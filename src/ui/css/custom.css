@@ -1,0 +1,23 @@
+nav {
+  -webkit-app-region: drag;
+}
+a,  button, input {
+  -webkit-app-region: no-drag;
+}
+
+body {
+  overflow-y: hidden;
+}
+
+#titlebar {
+  display: block;
+  position: fixed;
+  height: 60px;
+}
+
+#content {
+  /* height: calc(100% - 60px); */
+  margin-top: 60px;
+  padding: 20px;
+  overflow-y: auto
+}

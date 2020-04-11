@@ -1,0 +1,68 @@
+@font-face {
+  font-family: 'icomoon';
+  src:  url('/assetserver/72462532b445569fd2ce6568f2a38f2b94b570b1-icomoon.eot?jqzphe');
+  src:  url('/assetserver/72462532b445569fd2ce6568f2a38f2b94b570b1-icomoon.eot?jqzphe#iefix') format('embedded-opentype'),
+    url('/assetserver/0d8d8b653e6473f4f8e6391c8c0db793910f17b3-icomoon.ttf?jqzphe') format('truetype'),
+    url('/assetserver/1320038633cceff2f295f55fc74268475268f6d8-icomoon.woff?jqzphe') format('woff'),
+    url('/assetserver/f83f9d37fdbb0bbb72e21d67a5d5fed389a08f30-icomoon.svg?jqzphe#icomoon') format('svg');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+[class^="icon-"], [class*=" icon-"] {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: 'icomoon' !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  display: block;
+  text-align: center;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-play-circle-solid:before {
+  content: "\e90c";
+}
+.icon-oscilloscope:before {
+  content: "\e902";
+}
+.icon-flask:before {
+  content: "\e90b";
+}
+.icon-calculator:before {
+  content: "\e90a";
+}
+.icon-images:before {
+  content: "\e909";
+}
+.icon-magnet:before {
+  content: "\e901";
+}
+.icon-times-circle:before {
+  content: "\e903";
+}
+.icon-code:before {
+  content: "\e904";
+}
+.icon-x-ray:before {
+  content: "\e905";
+}
+.icon-lungs:before {
+  content: "\e906";
+}
+.icon-broadcast-tower:before {
+  content: "\e907";
+}
+.icon-brain:before {
+  content: "\e908";
+}
+.icon-wave-square:before {
+  content: "\e900";
+}
