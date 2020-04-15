@@ -19,16 +19,17 @@
   font-variant: normal;
   text-transform: none;
   line-height: 1;
-  display: block;
-  text-align: center;
 
   /* Better Font Rendering =========== */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.icon-play-circle-solid:before {
-  content: "\e90c";
+.icon-book:before {
+  content: "\e900";
+}
+.icon-github:before {
+  content: "\e901";
 }
 .icon-oscilloscope:before {
   content: "\e902";
@@ -43,26 +44,27 @@
   content: "\e909";
 }
 .icon-magnet:before {
-  content: "\e901";
-}
-.icon-times-circle:before {
   content: "\e903";
 }
-.icon-code:before {
+.icon-times-circle:before {
   content: "\e904";
 }
-.icon-x-ray:before {
+.icon-code:before {
   content: "\e905";
 }
-.icon-lungs:before {
+.icon-x-ray:before {
   content: "\e906";
 }
-.icon-broadcast-tower:before {
+.icon-lungs:before {
   content: "\e907";
 }
-.icon-brain:before {
+.icon-broadcast-tower:before {
   content: "\e908";
 }
-.icon-wave-square:before {
-  content: "\e900";
+.icon-brain:before {
+  content: "\e90c";
 }
+.icon-wave-square:before {
+  content: "\e90d";
+}
+

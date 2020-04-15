@@ -1,7 +1,7 @@
 module MRIsim
 #IMPORT PACKAGES
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size
-using Random, LinearAlgebra, FFTW, Plots, Images, Printf, Distributed
+using Random, LinearAlgebra, FFTW, Plots, Images, Printf, Distributed, MAT, ORCA
 
 γ = 42.5e6; #Hz/T gyromagnetic constant for H
 

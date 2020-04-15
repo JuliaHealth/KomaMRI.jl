@@ -1,9 +1,21 @@
 nav {
   -webkit-app-region: drag;
+  margin-bottom: 10px;
 }
 a,  button, input {
   -webkit-app-region: no-drag;
 }
+
+[class^="icon-"], [class*=" icon-"] {
+    display: inline;
+    padding-right: 5px;
+}
+
+.card-deck .card {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+/*
 
 body {
   overflow-y: hidden;
@@ -21,3 +33,5 @@ body {
   padding: 20px;
   overflow-y: auto
 }
+
+*/

@@ -22,6 +22,7 @@ Square gradient object.
 # Arguments
 - `A::Real` := Gradient amplitude [T].
 - `T::Real` := Gradient duration [s].
+- `DAC::Bool` := Data acq. on/off.
 
 # Examples
 ```julia-repl
