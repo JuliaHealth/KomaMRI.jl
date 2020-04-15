@@ -33,7 +33,6 @@ global w = Blink.Window(Dict(
     "node-integration" => true,
     :icon=>path*"/ui/assets/Logo_icon.png",
     "minHeight"=>500,
-    # "minWidth"=>800
     ))
 function loadjs_defer!(w, url)
   @js w @new Promise(function (resolve, reject)
