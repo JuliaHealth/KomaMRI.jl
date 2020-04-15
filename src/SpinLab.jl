@@ -80,8 +80,8 @@ open(path*"/ui/css/icons_tmp.css", "w") do f write(f, icons) end
 loadcss!(w, iconstmp)
 # LOAD
 index = replace(index, "PHANTOM"=>imphantom)
-                     , "SCANNER"=>imscanner)
-                     , "PULSES"=>impulses)
+                     # , "SCANNER"=>imscanner)
+                     # , "PULSES"=>impulses)
 body!(w,*(navbar,index,footer))
 ## UPDATE FUNCTIONS
 handle(w, "index") do args...
