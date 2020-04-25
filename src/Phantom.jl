@@ -35,7 +35,7 @@ struct Phantom
 	uy::Function #Displacement field x
 end
 # end
-Phantom() = Phantom("spin",0,0,ones(1,1),ones(1,1),zeros(1,1),
+Phantom() = Phantom("spin",zeros(1,1),zeros(1,1),ones(1,1),ones(1,1),zeros(1,1),
 					zeros(1,1),zeros(1,1),zeros(1,1),(x,y,t)->0,(x,y,t)->0)
 size(x::Phantom) = size(x.ρ)
 # @everywhere
@@ -132,7 +132,7 @@ heart_phantom(x,y,FOV,α=1,β=1,γ=1,fat_bool::Bool=false) = begin
 	#Resulting phantom
 	obj = fat_bool ? heart+fat : heart #concatenating spins
 end
-function brain_phantom2D(;axis="axial")
+function brain_phantom2D(;axis="axial",ss=4)
     """
     B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic digital brain phantom"
     NeuroImage, in review - 2006.
@@ -144,7 +144,7 @@ function brain_phantom2D(;axis="axial")
     path = @__DIR__
     data = MAT.matread(path*"/exampledata/brain2D.mat")
 
-    class = data[axis]
+    class = data[axis][1:ss:end,1:ss:end]
     Δx = 1e-3
     M, N = size(class)
     FOVx = (M-1)*Δx #[m]
@@ -199,5 +199,5 @@ function brain_phantom2D(;axis="axial")
         (class.==232)*1 .+ #DURA
         (class.==255)*.77 #MARROW
 
-    phantom = Phantom("brain2D",x,y,ρ,T2*1e-3,zeros(size(ρ)))
+    phantom = Phantom("brain2D_"*axis,x,y,ρ,T2*1e-3,zeros(size(ρ)))
 end

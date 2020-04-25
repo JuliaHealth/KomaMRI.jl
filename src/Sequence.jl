@@ -24,6 +24,7 @@ Sequence(Grad[Grad(1, 1) Grad(1, 1) Grad(2, 2) Grad(2, 2); Grad(1, 1) Grad(1, 1)
 """
 struct Sequence
 	GR::Array{Grad,2}	#Sequence in X, Y and Z
+    #RF
 end
 # end
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
@@ -37,6 +38,7 @@ Sequence() = Sequence([Grad(0,0)])
 *(x::Sequence,A::Matrix) = Sequence(x.GR*A)
 /(x::Sequence, α::Real) = Sequence(x.GR/α)
 #Sequence object functions
+is_DAC_on(x::Sequence) = any([g.DAC==1 for g in x.GR])
 DAC_on(x::Sequence) = Sequence(DAC_on.(x.GR))
 "Duration `T` [s] of the gradient array."
 dur(x::Array{Grad,1}) = sum(x[i].T for i=1:size(x,1))
@@ -228,8 +230,10 @@ EPI_base(FOV::Float64,N::Int,Δt::Float64,Gmax::Float64) = begin
 	Δfx_pix = γ*Ga*Δx_pix
 	Δt_phase = Ta*(Nx/(Nx-1)+(Ny-1)^-1) #Time between two echoes
 	Δfx_pix_phase = 1/(Ny*Δt_phase)
-	println("#################################################################")
-	println("Pixel bandwith in freq. direction "*string(round(Δfx_pix,digits=2))*" Hz")
-	println("Pixel bandwith in phase direction "*string(round(Δfx_pix_phase,digits=2))*" Hz")
-	EPI, Δx, Ga, Ta
+	println("## EPI parameters ##")
+	println("Pixel Δf in freq. direction "*string(round(Δfx_pix,digits=2))*" Hz")
+	println("Pixel Δf in phase direction "*string(round(Δfx_pix_phase,digits=2))*" Hz")
+    PHASE = Sequence(1/2*[Grad(-Ga, Ta); Grad(-Ga, Ta)])
+    DEPHASE = Sequence(1/2*[Grad(Ga, Ta); Grad(-Ga, Ta)])
+	PHASE+EPI+DEPHASE, Δx, Ga, Ta
 end

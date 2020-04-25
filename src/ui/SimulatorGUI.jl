@@ -7,16 +7,14 @@ map!(f->begin
     end
     , data, loadbutton)
 
-p = PlotlyJS.plot()
 hh, ww = 800, 800
-kspace = MRIsim.get_designed_kspace(seq[1])
-l = PlotlyJS.Layout(;title="k-space", yaxis_title="ky [m^-1]",
+l = PlotlyJS.Layout(;title="Acquired signal", yaxis_title="ky [m^-1]",
     xaxis_title="kx [m^-1]",#height=hh,width=ww,
     modebar=attr(orientation="v"),legend=false)
-line = PlotlyJS.scatter(x=kspace[:,1],y=kspace[:,2],mode="lines")
-marker = PlotlyJS.scatter(x=kspace[:,1],y=kspace[:,2],mode="markers",
-    marker=attr(size=5,color=1:length(kspace),colorscale="Jet"))
-p = PlotlyJS.plot([line,marker],l)
+absS = PlotlyJS.scatter(y=abs.(signal),label="|S(t)|")
+reS = PlotlyJS.scatter(y=real.(signal),label="Re{S(t)}")
+imS = PlotlyJS.scatter(y=imag.(signal),label="Im{S(t)}")
+p = PlotlyJS.plot([absS,reS,imS],l)
 plt = Observable{Any}(p)
 
 function makebuttons(df)

@@ -1,6 +1,6 @@
 <div id="content" class="container">
   <div class="card-deck">
-  <div class="card text-center border-success">
+  <div class="card border-success">
     <div class="card-header border-success"><b>Scanner</b></div>
     <div class="card-body">
       <p class="card-text small">
@@ -8,28 +8,37 @@
       </p>
       <p class="card-text small">It is also possible to include field imperfections as an additional term $\Delta \boldsymbol{B}(\boldsymbol{x},\boldsymbol{G})$.</p>
     </div>
-      <img class="card-img-bottom"  src="SCANNER" alt="Phantom">
+    <div class="card-img-bottom center-cropped" style="background-image: url('SCANNER');"></div>
+      <!-- <img class="card-img-bottom center-cropped"  src="SCANNER" alt="Scanner"> -->
   </div>
 
-  <div class="card text-center border-primary">
+  <div class="card border-primary">
     <div class="card-header border-primary"><b>Pulses</b></div>
     <div class="card-body">
       <p class="card-text small">
         Sequence of pulses, including the gradients $\boldsymbol{G}(t)$ and RF $B_{1,e}(t)$ signals.
       </p>
+      <p class="card-text small">
+        It can also visualize the $k$-space of the acquisistion.
+      </p>
     </div>
-      <img class="card-img-bottom"  src="PULSES" alt="Phantom">
+    <div class="card-img-bottom center-cropped" style="background-image: url('PULSES');"></div>
   </div>
 
-  <div class="card text-center border-dark">
+  <div class="card border-dark">
     <div class="card-header border-dark"><b>Phantom</b></div>
     <div class="card-body">
       <p class="card-text small">
         Definition of the phantom model, includes information about the proton density $\rho$, $\mathrm{T1}$, $\mathrm{T2}$, off-resonance $\Delta\omega$, diffusion, and displacement field $\boldsymbol{u}(\boldsymbol{x},t)$.
       </p>
     </div>
-      <img class="card-img-bottom"  src="PHANTOM" alt="Phantom">
+    <div class="card-img-bottom center-cropped" style="background-image: url('PHANTOM');">
+    </div>
+      <!-- <img class="card-img-bottom"  src="PHANTOM" alt="Phantom"> -->
   </div>
 
+  </div>
+  <div id="simulate" class="container" style="margin-top:10px; margin-bottom:10px;">
+    <button type="button" onclick='Blink.msg("simulate", 1)' class="btn btn-primary btn-lg btn-block">Run simulation!</button>
   </div>
 </div>

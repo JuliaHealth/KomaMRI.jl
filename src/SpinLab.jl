@@ -1,4 +1,4 @@
-function SpinLab(;frame=false)
+function SpinLab(;frame=true)
 
 ## ASSETS
 path = @__DIR__
@@ -22,6 +22,8 @@ fontswoff = AssetRegistry.register(path*"/ui/css/fonts/icomoon.woff")
 fontssvg = AssetRegistry.register(path*"/ui/css/fonts/icomoon.svg")
 #others
 imphantom = AssetRegistry.register(path*"/ui/assets/phantom.png")
+imscanner = AssetRegistry.register(path*"/ui/assets/scanner.png")
+impulses = AssetRegistry.register(path*"/ui/assets/pulses.png")
 ## WINDOW
 global w = Blink.Window(Dict(
     "title"=>"SpinLab",
@@ -79,8 +81,8 @@ open(path*"/ui/css/icons_tmp.css", "w") do f write(f, icons) end
 loadcss!(w, iconstmp)
 # LOAD
 index = replace(index, "PHANTOM"=>imphantom)
-                     # , "SCANNER"=>imscanner)
-                     # , "PULSES"=>impulses)
+index = replace(index, "SCANNER"=>imscanner)
+index = replace(index, "PULSES"=>impulses)
 body!(w,*(navbar,index,footer))
 ## UPDATE FUNCTIONS
 handle(w, "index") do args...
@@ -95,16 +97,45 @@ handle(w, "phantom") do args...
     @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
     include(path*"/ui/PhantomGUI.jl")
 end
-handle(w, "docs") do args...
-    content!(w, "#content",open(f->read(f, String), replace(path,"src"=>"")*"docs/build/index.html"))
+handle(w, "sim") do args...
+    @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
+    include(path*"/ui/SimulatorGUI.jl")
+end
+handle(w, "recon") do args...
+    @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
+    include(path*"/ui/ReconGUI.jl")
+end
+handle(w, "simulate") do args...
+    @info "Running simulation..."
+    @js_ w (@var loading = $loadbar; document.getElementById("simulate").innerHTML=loading)
+    Δt = 4e-6
+    t_mat = collect(Δt/2:Δt:MRIsim.dur(sum(seq)))
+    t = reshape(t_mat,1,length(t_mat)) #To do everything vectorized
+    S = @time MRIsim.run_sim2D_spin(phantom,sum(seq),t)
+    global signal = S[MRIsim.get_DAC_on(sum(seq),t)] #Acquired data
+    Nx = Ny = 64
+    global kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
+    global kdata[:,2:2:Ny,:] = kdata[Nx:-1:1,2:2:Ny] #Flip in freq-dir bc EPI
+    global kdata = convert(Array{Complex{Float64},2},kdata)
+    @js_ w document.getElementById("simulate").innerHTML="""<button type="button" onclick='Blink.msg("simulate", 1)' class="btn btn-primary btn-lg btn-block">Run simulation!</button>"""
 end
 handle(w, "close") do args...
+    global phantom = nothing
+    global seq = nothing
+    global scanner = nothing
+
     close(w)
 end
 ## Defaults
+@info "Loading Phantom (default)"
 global phantom = brain_phantom2D(;axis="coronal")
-global seq = []
+println("Phantom object \"$(phantom.name)\" successfully loaded!")
+@info "Loading Sequence (default) "
+EPI,_,_,_ = MRIsim.EPI_base(10/100, 64, 4e-6, 1000e-3)
+global seq = [EPI]
+println("EPI successfully loaded!")
 global scanner = []
-
-w
+global signal = 0
+global kdata = 0
+nothing
 end

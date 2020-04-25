@@ -9,12 +9,14 @@ map!(f->begin
     end
     , data, loadbutton)
 
+
+# Ploting recon
+global recon = ifftc(kdata)
 hh, ww = 420,550
-l = PlotlyJS.Layout(;title=phantom.name, yaxis_title="y [cm]",
-    xaxis_title="x [cm]",height=hh,width=ww,
+l = PlotlyJS.Layout(;title="Reconstruction", yaxis_title="y",
+    xaxis_title="x",height=hh,width=ww,
     modebar=attr(orientation="v"),scene=attr(aspectratio=attr(x=1,y=1,z=1)))
-p = PlotlyJS.plot(PlotlyJS.heatmap(x=phantom.x*1e2,y=phantom.y*1e2,
-    z=phantom.ρ,showscale=false),l)
+p = PlotlyJS.plot(PlotlyJS.heatmap(z=abs.(recon),showscale=false,colorscale="Greys"),l)
 plt = Observable{Any}(p)
 # PlotlyJS.savefig(p, path*"/assets/phantom.png", width=320, height=300)
 
