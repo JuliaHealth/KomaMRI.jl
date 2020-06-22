@@ -24,6 +24,6 @@ MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquis
 ## Example 1: Brain phantom for different TEs
 ![Brain phantom with different TEs](others/TEs.png)
 ## Example 2: dMRI with multiple diffusion directions  
-![Reconstructed images and diffusion propagator](others/propagator.gif=600x)
+![Reconstructed images and diffusion propagator](others/propagator.gif)
 ## Example 3: Moment-compensated diffusion
-![Moment-compensated diffusion](others/MomentCompensation.gif=600x)
+![Moment-compensated diffusion](others/MomentCompensation.gif)
