@@ -23,6 +23,8 @@ MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquis
 
 ![SpinLab](others/GUI.png)
 
+---
+
 ## Example 1: Brain phantom for different TEs
 
 ![Brain phantom with different TEs](others/TEs.png)
