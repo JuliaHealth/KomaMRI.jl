@@ -15,4 +15,4 @@ Also, the code is structured so future users can add functionalities with ease. 
  * Magnetic susceptibility,
  * etc.
 
-**Documentation**: [cncastillo.github.io/MRIsim.jl](cncastillo.github.io/MRIsim.jl).
+**Documentation**: [cncastillo.github.io/MRIsim.jl](https://cncastillo.github.io/MRIsim.jl/build/index.html).
