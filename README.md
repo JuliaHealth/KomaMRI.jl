@@ -8,8 +8,8 @@
 MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development.
 
 **TO-DO**:
- * Coil sensitivities,
  * RF excitation (under development),
+ * Coil sensitivities,
  * Magnetic susceptibility,
  * etc.
 
