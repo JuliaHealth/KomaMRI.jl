@@ -10,11 +10,11 @@ map!(f->begin
     , data, loadbutton)
 
 hh, ww = 420,550
-l = PlotlyJS.Layout(;title=phantom.name, yaxis_title="y [cm]",
+l = PlotlyJS.Layout(;title=phantom.name*": ρ", yaxis_title="y [cm]",
     xaxis_title="x [cm]",height=hh,width=ww,
-    modebar=attr(orientation="v"),scene=attr(aspectratio=attr(x=1,y=1,z=1)))
+    modebar=attr(orientation="v"),xaxis=attr(constrain="domain"))
 p = PlotlyJS.plot(PlotlyJS.heatmap(x=phantom.x*1e2,y=phantom.y*1e2,
-    z=phantom.ρ,showscale=false),l)
+    z=phantom.ρ),l)
 plt = Observable{Any}(p)
 # PlotlyJS.savefig(p, path*"/assets/phantom.png", width=320, height=300)
 
@@ -38,6 +38,6 @@ function makebuttons(ph)
 end
 
 map!(makebuttons, columnbuttons, data)
-
+columnbuttons = makebuttons(phantom)
 pulseseq = dom"div"(loadbutton, columnbuttons, plt)
 content!(w, "div#content", pulseseq)

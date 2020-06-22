@@ -7,13 +7,13 @@ map!(f->begin
     end
     , data, loadbutton)
 
-hh, ww = 800, 800
-l = PlotlyJS.Layout(;title="Acquired signal", yaxis_title="ky [m^-1]",
-    xaxis_title="kx [m^-1]",#height=hh,width=ww,
-    modebar=attr(orientation="v"),legend=false)
-absS = PlotlyJS.scatter(y=abs.(signal),label="|S(t)|")
-reS = PlotlyJS.scatter(y=real.(signal),label="Re{S(t)}")
-imS = PlotlyJS.scatter(y=imag.(signal),label="Im{S(t)}")
+hh, ww = 450, 150
+l = PlotlyJS.Layout(;title="Acquired signal", yaxis_title="Signal (a.u.)",
+    xaxis_title="samples",#height=hh,width=ww,
+    modebar=attr(orientation="v"),legend=false,height=450)
+absS = PlotlyJS.scatter(y=abs.(signal),name="|S(t)|")
+reS = PlotlyJS.scatter(y=real.(signal),name="Re{S(t)}")
+imS = PlotlyJS.scatter(y=imag.(signal),name="Im{S(t)}")
 p = PlotlyJS.plot([absS,reS,imS],l)
 plt = Observable{Any}(p)
 

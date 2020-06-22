@@ -36,6 +36,7 @@ global w = Blink.Window(Dict(
     :icon=>path*"/ui/assets/Logo_icon.png",
     "minHeight"=>500,
     ))
+#Loading of JS files with "defer" tag
 function loadjs_defer!(w, url)
   @js w @new Promise(function (resolve, reject)
     @var script = document.createElement("script")
@@ -64,7 +65,7 @@ loadcss!(w, customcss)
 loadcss!(w,"https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css")
 loadjs!(w,"https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js")
 loadjs!(w, katex)
-#JQUERY, POPPER, BOOSTRAP JS
+#JQUERY, BOOSTRAP JS
 customjs = open(f->read(f, String), path*"/ui/scripts/custom.js")
 customjs = replace(customjs, "JQUERY"=>path*"/ui/scripts/jquery-3.4.1.slim.min.js")
 open(path*"/ui/scripts/custom_tmp.js", "w") do f write(f, customjs) end
@@ -109,13 +110,14 @@ handle(w, "simulate") do args...
     @info "Running simulation..."
     @js_ w (@var loading = $loadbar; document.getElementById("simulate").innerHTML=loading)
     Δt = 4e-6
-    t_mat = collect(Δt/2:Δt:MRIsim.dur(sum(seq)))
+    t_mat = collect(Δt:Δt:MRIsim.dur(sum(seq)))
     t = reshape(t_mat,1,length(t_mat)) #To do everything vectorized
-    S = @time MRIsim.run_sim2D_spin(phantom,sum(seq),t)
+        S = @time MRIsim.run_sim2D_spin(phantom,sum(seq),t)
     global signal = S[MRIsim.get_DAC_on(sum(seq),t)] #Acquired data
-    Nx = Ny = 64
+    S = nothing
+    Nx = Ny = 64 #hardcodded by now
     global kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
-    global kdata[:,2:2:Ny,:] = kdata[Nx:-1:1,2:2:Ny] #Flip in freq-dir bc EPI
+    global kdata[:,2:2:Ny,:] = kdata[Nx:-1:1,2:2:Ny] #Flip in freq-dir for the EPI
     global kdata = convert(Array{Complex{Float64},2},kdata)
     @js_ w document.getElementById("simulate").innerHTML="""<button type="button" onclick='Blink.msg("simulate", 1)' class="btn btn-primary btn-lg btn-block">Run simulation!</button>"""
 end
@@ -126,16 +128,19 @@ handle(w, "close") do args...
 
     close(w)
 end
-## Defaults
+## Default example
 @info "Loading Phantom (default)"
-global phantom = brain_phantom2D(;axis="coronal")
+global phantom = @async brain_phantom2D(;axis="coronal")
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 @info "Loading Sequence (default) "
 EPI,_,_,_ = MRIsim.EPI_base(10/100, 64, 4e-6, 1000e-3)
-global seq = [EPI]
-println("EPI successfully loaded!")
+TE = 20e-3 #<50 for speed
+d = MRIsim.delay(TE-MRIsim.dur(EPI)/2)
+DELAY = Sequence([d;d])
+global seq = [DELAY EPI]
+println("EPI successfully loaded! (TE = $(TE*1e3) ms)")
 global scanner = []
 global signal = 0
-global kdata = 0
+global kdata = [0.0im 0.; 0. 0.]
 nothing
 end

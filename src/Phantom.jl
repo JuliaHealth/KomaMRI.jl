@@ -34,6 +34,26 @@ struct Phantom
 	ux::Function #Displacement field x
 	uy::Function #Displacement field x
 end
+# import Base.@kwdef
+# @kwdef struct Phantom
+# 	name::String = "Spin" #Name of the Phantom
+# 	x::Array{Float64} = zeros(1,1) #x-coordinates of spins
+# 	y::Array{Float64} = zeros(1,1) #y-coordinates of spins
+#     z::Array{Float64} = zeros(1,1) #z-coordinates of spins
+#     #Properties
+# 	ρ::Array{Float64} = ones(1,1) #proton density
+# 	T1::Array{Float64} = ones(1,1) #T1 map
+# 	T2::Array{Float64} = ones(1,1) #T2 map
+#     T2s::Array{Float64} = ones(1,1) #T2 map
+#     #Diffusion
+#     pr::DiffusionModel
+#     #Off-resonance
+# 	Δw::Array{Float64} = zeros(1,1) #Off-resonace map
+#     σ::Array{Float64} = zeros(1,1) #ppm
+#     χ::SusceptibilityModel
+#     #Displacement/flow
+# 	ux::Function #Displacement field x
+# end
 # end
 Phantom() = Phantom("spin",zeros(1,1),zeros(1,1),ones(1,1),ones(1,1),zeros(1,1),
 					zeros(1,1),zeros(1,1),zeros(1,1),(x,y,t)->0,(x,y,t)->0)

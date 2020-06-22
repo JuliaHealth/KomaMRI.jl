@@ -35,7 +35,6 @@ struct Grad
 	T::Real #Duration of sequence [s]
 	DAC::Bool #If we take data during that period
 end
-# end
 #Gradient operations
 *(x::Grad,α::Real) = Grad(α*x.A,x.T,x.DAC)
 *(x::Array{Grad},A::Matrix) = [sum(x[i,:]*A[j,i] for i=1:size(x,1))[k] for j=1:size(x,1), k=1:size(x,2)]

@@ -32,36 +32,22 @@ plot_seq(x::Sequence,t::Array{Float64,2},t_k0::Float64,Ga::Float64) = begin
 	end
 	p
 end
-plot_grads(x::Array{Sequence},t::Array{Float64,2},t_k0::Float64,Ga::Float64) = begin
-	Δt = t[2]-t[1]
-	idx = ["x" "y" "z"]
-	p = [plot() for i=1:3]
-	M0, M1, M2 = get_M0_M1_M2(sum(x))
-	DAC = get_DAC_on(sum(x),t)
-	for j=1:size(x[1].GR,1)
-		p[j] = plot()
-		T = 0
-		M0t = [M0(t)[j] for t=t][:]; M0t./=maximum(abs.(M0t.*DAC))/Ga*2
-		M1t = [M1(t)[j] for t=t][:]; M1t./=maximum(abs.(M1t.*DAC))/Ga*2
-		M2t = [M2(t)[j] for t=t][:]; M2t./=maximum(abs.(M2t.*DAC))/Ga*2
-		Gmin = minimum([g.A for g ∈ sum(x).GR[j,:]])
-		Gmax = maximum([g.A for g ∈ sum(x).GR[j,:]])
-		plot!([t_k0; t_k0]*1e3,[Gmin; Gmax]*1.1e3,linewidth=0.25,color=:black)
-		plot!(t[:]*1e3,M0t*1e3,linewidth=0.25,color=:red)
-		plot!(t[:]*1e3,M1t*1e3,linewidth=0.25,color=:green)
-		plot!(t[:]*1e3,M2t*1e3,linewidth=0.25,color=:blue)
-		for i=1:length(x)
-			tt = t[T-Δt.<t.<T+dur(x[i])+Δt]
-			G = get_grad(x[i],j,tt.-T)
-						plot!(tt[:]*1e3,round.(G[:]*1e3,digits=2),legend=:none);
-			xlabel!("Time [ms]")
-			ylabel!("G"*idx[j]*" [mT/m]")
-			xlims!((0,dur(sum(x))).*1e3)
-			ylims!((Gmin,Gmax).*1.1e3)
-			T = dur(x[i]) + T
-		end
+plot_grads(x::Array{Sequence}) = begin
+	idx = ["Gx" "Gy" "Gz"]
+	seq = sum(x)
+	M, N = size(seq.GR)
+	G = [seq.GR[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:M]
+	T = [seq.GR[1,i].T for i=1:N]
+	t = [sum(T[1:i]) for i=1:N]
+	t = [t[floor(Int,i/2)+1] for i=0:2*N-1]
+	t = [0; t[1:end-1]]
+	l = PlotlyJS.Layout(;title="Sequence", yaxis_title="G [mT/m]",
+	    xaxis_title="t [ms]",height=300)
+	p = [PlotlyJS.scatter() for j=1:M]
+	for j=1:size(seq.GR,1)
+		p[j] = PlotlyJS.scatter(x=t*1e3, y=G[:,j]*1e3,name=idx[j])
 	end
-	p
+	PlotlyJS.plot(p, l)
 end
 plot_Phantom(obj::Phantom,filename::String) = begin
 	# Phantom

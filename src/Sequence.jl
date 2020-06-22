@@ -23,12 +23,11 @@ Sequence(Grad[Grad(1, 1) Grad(1, 1) Grad(2, 2) Grad(2, 2); Grad(1, 1) Grad(1, 1)
 ```
 """
 struct Sequence
-	GR::Array{Grad,2}	#Sequence in X, Y and Z
-    #RF
+	GR::Array{Grad,2}	#Sequence in (X, Y and Z) and Time
 end
 # end
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
-Sequence() = Sequence([Grad(0,0)])
+Sequence() = Sequence([Grad(0,0); Grad(0,0)])
 #Sequence operations
 +(x::Sequence, y::Sequence) = Sequence([x.GR y.GR])
 -(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR])
@@ -140,11 +139,11 @@ get_qvector(DIF::Sequence,type::String) = begin
 		t*1e3, qt'*1e-3, p #ms, 1/mm
 	end
 end
-get_M0_M1_M2(SEQ::Sequence) = begin
+get_M0_M1_M2(SEQ::Sequence,idx=1) = begin
 	M, N = size(SEQ.GR)
 	G = [SEQ.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
-	δ = [SEQ.GR[1,j].T for j=1:N]; #Duration of pulse
-	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
+	δ = [SEQ.GR[idx,j].T for j=1:N]; #Duration of pulse
+	T = [sum(δ[idx:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(SEQ) #End of sequence
 	#M0
 	M0i(t,A,δ) = (t.≥0) ? A*(t.-(t.≥δ).*(t.-δ)) : 0
