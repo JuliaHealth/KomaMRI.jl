@@ -7,8 +7,6 @@
 
 MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development.
 
-Also, the code is structured so future users can add functionalities with ease. Having always open-source in mind.
-
 **TO-DO**:
  * Coil sensitivities,
  * RF excitation (under development),
@@ -16,3 +14,16 @@ Also, the code is structured so future users can add functionalities with ease. 
  * etc.
 
 **Documentation**: [cncastillo.github.io/MRIsim.jl](https://cncastillo.github.io/MRIsim.jl/build/index.html).
+
+**Presentation**: [MRIsim - Carlos Castillo.pdf](others/MRIsim - Carlos Castillo.pdf)
+
+---
+
+## SpinLab GUI
+![SpinLab](others/GUI.png)
+## Example 1: Different TEs
+![Brain phantom with different TEs](others/TEs.png)
+## Example 2: dMRI with multiple diffusion directions  
+![Reconstructed iamges and diffusion propagator](others/propagator.gif)
+## Example 3: Moment-compensated diffusion
+![Moment-compensated diffusion](others/Moment compensation.gif)
