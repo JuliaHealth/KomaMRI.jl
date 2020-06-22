@@ -130,7 +130,7 @@ handle(w, "close") do args...
 end
 ## Default example
 @info "Loading Phantom (default)"
-global phantom = @async brain_phantom2D(;axis="coronal")
+global phantom = brain_phantom2D(;axis="coronal")
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 @info "Loading Sequence (default) "
 EPI,_,_,_ = MRIsim.EPI_base(10/100, 64, 4e-6, 1000e-3)
