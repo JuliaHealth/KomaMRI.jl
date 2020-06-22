@@ -9,8 +9,10 @@ MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquis
 
 **TO-DO**:
  * RF excitation (under development),
- * Coil sensitivities,
+ * Arbitrary diffusion propagators (under development),
+ * Scanner object,
  * Magnetic susceptibility,
+ * Coil sensitivities,
  * etc.
 
 **Documentation**: [cncastillo.github.io/MRIsim.jl](https://cncastillo.github.io/MRIsim.jl/build/index.html).
