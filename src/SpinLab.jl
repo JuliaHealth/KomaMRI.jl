@@ -109,10 +109,10 @@ end
 handle(w, "simulate") do args...
     @info "Running simulation..."
     @js_ w (@var loading = $loadbar; document.getElementById("simulate").innerHTML=loading)
-    Δt = 4e-6
+    Δt = 4e-6 #<- simulate param
     t_mat = collect(Δt:Δt:MRIsim.dur(sum(seq)))
     t = reshape(t_mat,1,length(t_mat)) #To do everything vectorized
-        S = @time MRIsim.run_sim2D_spin(phantom,sum(seq),t)
+    S = @time MRIsim.run_sim2D_times_iter(phantom,sum(seq),t) #run_sim2D_times_iter run_sim2D_spin
     global signal = S[MRIsim.get_DAC_on(sum(seq),t)] #Acquired data
     S = nothing
     Nx = Ny = 64 #hardcodded by now
@@ -134,11 +134,11 @@ global phantom = brain_phantom2D(;axis="coronal")
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 @info "Loading Sequence (default) "
 EPI,_,_,_ = MRIsim.EPI_base(10/100, 64, 4e-6, 1000e-3)
-TE = 20e-3 #<50 for speed
+TE = 100e-3 #<50 for speed
 d = MRIsim.delay(TE-MRIsim.dur(EPI)/2)
 DELAY = Sequence([d;d])
 global seq = [DELAY EPI]
-println("EPI successfully loaded! (TE = $(TE*1e3) ms)")
+print("EPI successfully loaded! (TE = $(TE*1e3) ms)")
 global scanner = []
 global signal = 0
 global kdata = [0.0im 0.; 0. 0.]

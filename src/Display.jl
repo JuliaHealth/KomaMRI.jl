@@ -171,7 +171,8 @@ plot_Pr(vx,vy,S,S0,SEQ) = begin
     	legend=:none,grid=false,xticks=:none,yticks=:none,
     	background_color_subplot=α*c)
 end
-plot_phantom_anim(obj::Phantom,map::Array{Float64}, filename, Δxr, Δx, fps,
+
+plot_phantom_anim(obj::Phantom, map::Array{Float64}, filename, Δxr, Δx, fps,
 	tk=0) = begin
 
 	MAX = maximum(map)

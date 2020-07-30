@@ -152,15 +152,15 @@ heart_phantom(x,y,FOV,α=1,β=1,γ=1,fat_bool::Bool=false) = begin
 	#Resulting phantom
 	obj = fat_bool ? heart+fat : heart #concatenating spins
 end
-function brain_phantom2D(;axis="axial",ss=4)
-    """
-    B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic digital brain phantom"
-    NeuroImage, in review - 2006.
-    B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital brain phantoms for creation of validation image data bases"
-    IEEE TMI, in review - 2006
+"""
+B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic digital brain phantom"
+NeuroImage, in review - 2006.
+B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital brain phantoms for creation of validation image data bases"
+IEEE TMI, in review - 2006
 
-    https://brainweb.bic.mni.mcgill.ca/brainweb
-    """
+https://brainweb.bic.mni.mcgill.ca/brainweb
+"""
+function brain_phantom2D(;axis="axial",ss=4)
     path = @__DIR__
     data = MAT.matread(path*"/exampledata/brain2D.mat")
 

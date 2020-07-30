@@ -119,7 +119,7 @@ get_qvector(DIF::Sequence,type::String) = begin
 	δ = [DIF.GR[1,j].T for j=1:N]; #Duration of pulse
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(DIF) #End of sequence
-	# q-vector in time
+	# q-vector in time TODO ver δ[i]? or δ[j]
 	qτ = γ*sum([G[i,j]*δ[i] for i=1:M,j=1:N],dims=2) #Final q-value
 	norm(qτ) ≥ 1e-10 ? error("Error: this is not a diffusion sequence, M0{G(t)}=∫G(t)dt!=0.") : 0
 	# q-trajectory
@@ -213,15 +213,17 @@ DIF_null(G0,Δ,δ,verbose=false) = begin
 end
 # EPI
 EPI_base(FOV::Float64,N::Int,Δt::Float64,Gmax::Float64) = begin
+    #TODO: consider when N is odd
 	Nx = Ny = N #Square acquisition
 	Δx = FOV/(Nx-1)
 	Ta = Δt*(Nx-1) #4-8 us
+    Δτ = Ta/(Ny-1)
 	Ga = 1/(γ*Δt*FOV)
 	Ga ≥ Gmax ? error("Error: Ga exceeds Gmax, increase Δt to at least Δt_min="
 	*string(round(1/(γ*Gmax*FOV),digits=2))*" us.") : 0
 	EPI = DAC_on(Sequence(vcat(
-	    [mod(i,2)==0 ? Grad(Ga*(-1)^(i/2),Ta) : delay(Ta/(Ny-1)) for i=0:2*Ny-2],#Gx
-	 	[mod(i,2)==1 ? Grad(Ga,Ta/(Ny-1)) : delay(Ta) for i=0:2*Ny-2]))) #Gy
+	    [mod(i,2)==0 ? Grad(Ga*(-1)^(i/2),Ta) : delay(Δτ) for i=0:2*Ny-2],#Gx
+	 	[mod(i,2)==1 ? Grad(Ga,Δτ) : delay(Ta) for i=0:2*Ny-2]))) #Gy
 	# Recon parameters
 	Wx = maximum(abs.(get_designed_kspace(EPI)[:,1]))
 	Wy = maximum(abs.(get_designed_kspace(EPI)[:,2]))
