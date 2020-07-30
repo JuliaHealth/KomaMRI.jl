@@ -13,6 +13,7 @@ MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquis
  - [ ] Magnetic susceptibility,
  - [ ] Signal "Raw Output" dictionary (ISMRMRD),
  - [ ] MRIReco.jl for the reconstruciton,
+ - [ ] Scanner object: $B_0,\,B_1,\,G_{\max},\,S_{\max}$,etc.
  - [ ] Coil sensitivities.
 
 
