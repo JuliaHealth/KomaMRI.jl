@@ -27,37 +27,24 @@ struct Phantom
 	ρ::Array{Float64} #proton density
 #	T1::Matrix #T1 map
 	T2::Array{Float64} #T2 map
+	#T2s::Array{Float64}
 	Δw::Array{Float64} #Off-resonace map
 	Dλ1::Array{Float64}  #Diffusion map
 	Dλ2::Array{Float64}  #Diffusion map
 	Dθ::Array{Float64}  #Diffusion map
+	#χ::SusceptibilityModel
 	ux::Function #Displacement field x
 	uy::Function #Displacement field x
 end
-# import Base.@kwdef
-# @kwdef struct Phantom
-# 	name::String = "Spin" #Name of the Phantom
-# 	x::Array{Float64} = zeros(1,1) #x-coordinates of spins
-# 	y::Array{Float64} = zeros(1,1) #y-coordinates of spins
-#     z::Array{Float64} = zeros(1,1) #z-coordinates of spins
-#     #Properties
-# 	ρ::Array{Float64} = ones(1,1) #proton density
-# 	T1::Array{Float64} = ones(1,1) #T1 map
-# 	T2::Array{Float64} = ones(1,1) #T2 map
-#     T2s::Array{Float64} = ones(1,1) #T2 map
-#     #Diffusion
-#     pr::DiffusionModel
-#     #Off-resonance
-# 	Δw::Array{Float64} = zeros(1,1) #Off-resonace map
-#     σ::Array{Float64} = zeros(1,1) #ppm
-#     χ::SusceptibilityModel
-#     #Displacement/flow
-# 	ux::Function #Displacement field x
-# end
-# end
 Phantom() = Phantom("spin",zeros(1,1),zeros(1,1),ones(1,1),ones(1,1),zeros(1,1),
 					zeros(1,1),zeros(1,1),zeros(1,1),(x,y,t)->0,(x,y,t)->0)
 size(x::Phantom) = size(x.ρ)
+"""Separate object spins in a sub-group."""
+Base.getindex(obj::Phantom, p::UnitRange{Int}) = begin
+		Phantom(obj.name,obj.x[p],obj.y[p],obj.ρ[p],
+						obj.T2[p],obj.Δw[p],obj.Dλ1[p],obj.Dλ2[p],
+						obj.Dθ[p],obj.ux,obj.uy)
+end
 # @everywhere
 Phantom(name::String,x::Array{Float64,2},y::Array{Float64,2},
 	ρ::Array{Float64},T2::Array{Float64},Δw::Array{Float64},
@@ -99,7 +86,7 @@ end
 end
 # Movement related commands
 StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
-StartAtStill(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
+FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
 # Getting maps
 get_DxDy2D(obj::Phantom) = begin
 	P(i) = rotz(obj.Dθ[i])[1:2,1:2];
@@ -165,7 +152,7 @@ function brain_phantom2D(;axis="axial",ss=4)
     data = MAT.matread(path*"/exampledata/brain2D.mat")
 
     class = data[axis][1:ss:end,1:ss:end]
-    Δx = 1e-3
+    Δx = 1e-3*ss
     M, N = size(class)
     FOVx = (M-1)*Δx #[m]
     FOVy = (N-1)*Δx #[m]

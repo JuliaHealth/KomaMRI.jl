@@ -1,18 +1,14 @@
 # B = μ (I-σI+1/3Χ) H
 #FT^-1{1/}
 
-# using Plots
-# using LinearAlgebra
-# pyplot()
+using Plots
+using LinearAlgebra
+pyplot()
 
 Dipole(x,y) = begin
     r = sqrt.(x.^2 .+ y.^2)
     θ = atan.(x,y) #angle with respect to the main magnetic field
-    if r > 1e-16
-        1/(4*π)*(1 .+ 3*cos.(2*θ))./r.^3
-    else
-        0
-    end
+    r < 1e-16 ? 0 : 1/(4*π)*(1 .+ 3*cos.(2*θ))./r.^3
 end
 
 B0 = 1 #From scanner object
@@ -50,9 +46,5 @@ CylinderY(x,R,Δχ) = begin
     end
 end
 
-# contourf([CylinderY([x,0,z],.1,.1) for z=-1:.001:1, x=-1:.001:1],aspect_ratio=:equal)
-# contourf([Sphere([x,0,z],.1,.1) for z=-1:.001:1, x=-1:.001:1],aspect_ratio=:equal)
-# # plot([Sphere([x,0,0],.1,.1) for x=-1:.01:1])
-# # heatmap(xs, ys, D.(xs' ,ys) , yflip=true)
-# xlabel!("x")
-# ylabel!("y")
+contourf([CylinderY([x,0,z],.1,.1) for z=-1:.001:1, x=-1:.001:1],aspect_ratio=:equal)
+contourf([Sphere([x,0,z],.1,.1) for z=-1:.001:1, x=-1:.001:1],aspect_ratio=:equal)

@@ -84,7 +84,7 @@ loadcss!(w, iconstmp)
 index = replace(index, "PHANTOM"=>imphantom)
 index = replace(index, "SCANNER"=>imscanner)
 index = replace(index, "PULSES"=>impulses)
-body!(w,*(navbar,index,footer))
+@async body!(w,*(navbar,index,footer))
 ## UPDATE FUNCTIONS
 handle(w, "index") do args...
      @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
@@ -110,12 +110,14 @@ handle(w, "simulate") do args...
     @info "Running simulation..."
     @js_ w (@var loading = $loadbar; document.getElementById("simulate").innerHTML=loading)
     Δt = 4e-6 #<- simulate param
-    t_mat = collect(Δt:Δt:MRIsim.dur(sum(seq)))
-    t = reshape(t_mat,1,length(t_mat)) #To do everything vectorized
-    S = @time MRIsim.run_sim2D_times_iter(phantom,sum(seq),t) #run_sim2D_times_iter run_sim2D_spin
-    global signal = S[MRIsim.get_DAC_on(sum(seq),t)] #Acquired data
+    t = collect(Δt:Δt:MRIsim.dur(seq))
+    Nphant, Nt = prod(size(phantom)), length(t)
+    N_parts = floor(Int, Nphant*Nt/2.7e6)
+    println("Dividing simulation in Nblocks=$N_parts")
+    S = @time MRIsim.run_sim2D_times_iter(phantom,seq,t;N_parts) #run_sim2D_times_iter run_sim2D_spin
+    global signal = S[MRIsim.get_DAC_on(seq,t)]/prod(size(phantom)) #Acquired data
     S = nothing
-    Nx = Ny = 64 #hardcodded by now
+    Nx = Ny = 100 #hardcoded by now
     global kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
     global kdata[:,2:2:Ny,:] = kdata[Nx:-1:1,2:2:Ny] #Flip in freq-dir for the EPI
     global kdata = convert(Array{Complex{Float64},2},kdata)
@@ -133,11 +135,11 @@ end
 global phantom = brain_phantom2D(;axis="coronal")
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 @info "Loading Sequence (default) "
-EPI,_,_,_ = MRIsim.EPI_base(10/100, 64, 4e-6, 1000e-3)
-TE = 100e-3 #<50 for speed
+EPI,_,_,_ = MRIsim.EPI_base(40/100, 100, 4e-6, 60e-3)
+TE = 25e-3 
 d = MRIsim.delay(TE-MRIsim.dur(EPI)/2)
 DELAY = Sequence([d;d])
-global seq = [DELAY EPI]
+global seq = DELAY + EPI
 print("EPI successfully loaded! (TE = $(TE*1e3) ms)")
 global scanner = []
 global signal = 0

@@ -7,10 +7,10 @@ map!(f->begin
     end
     , data, loadbutton)
 
-hh, ww = 450, 500
-l = PlotlyJS.Layout(;title="k-space", yaxis_title="ky [m^-1]",
-    xaxis_title="kx [m^-1]",#height=hh,width=ww,
-    modebar=attr(orientation="v"),legend=false,height=hh,width=ww)
+hh, ww = 600, 600
+l = PlotlyJS.Layout(;title=L"k-space", yaxis_title="ky [m^-1]",
+    xaxis_title="kx [m^-1]",
+    modebar=attr(orientation="v"),height=hh,width=ww)
 p = MRIsim.plot_grads(seq)
 plt = Observable{Any}(p)
 
@@ -25,12 +25,19 @@ function makebuttons(seq)
                 , plt, btn)
         elseif name == "k-space"
             map!(t->begin
-                seqADC = sum([is_DAC_on(s) ? s : Sequence() for s in seq])
+                ACQ = is_DAC_on.(seq)
+                #Adding gradients before and after acq, to show the centered k-space
+                ACQ = (circshift(ACQ,1)+circshift(ACQ,-1)+ACQ).!=0 
+                seqADC = sum(seq[ACQ])
                 kspace = MRIsim.get_designed_kspace(seqADC)
-                line = PlotlyJS.scatter(x=kspace[:,1],y=kspace[:,2],mode="lines")
-                marker = PlotlyJS.scatter(x=kspace[:,1],y=kspace[:,2],mode="markers",
-                    marker=attr(size=5,color=1:length(kspace),colorscale="Jet"))
-                PlotlyJS.plot([line,marker],l)
+                N = size(kspace,1)-1
+                # lines = [PlotlyJS.scatter() for i=1:N-1]
+                # for i = 1:N-1
+                c = ["hsv(200,$((i-1)/N*255),70)" for i=1:N-1]
+                lines = PlotlyJS.scatter(x=kspace[:,1],y=kspace[:,2],mode="lines+markers",
+                        line=attr(color=c),aspectratio=1)
+                # end
+                p = PlotlyJS.plot(lines,l)
             end
             , plt, btn)
         end

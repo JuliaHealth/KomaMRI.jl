@@ -32,9 +32,9 @@ plot_seq(x::Sequence,t::Array{Float64,2},t_k0::Float64,Ga::Float64) = begin
 	end
 	p
 end
-plot_grads(x::Array{Sequence}) = begin
+
+plot_grads(seq::Sequence) = begin
 	idx = ["Gx" "Gy" "Gz"]
-	seq = sum(x)
 	M, N = size(seq.GR)
 	G = [seq.GR[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:M]
 	T = [seq.GR[1,i].T for i=1:N]
@@ -45,7 +45,7 @@ plot_grads(x::Array{Sequence}) = begin
 	    xaxis_title="t [ms]",height=300)
 	p = [PlotlyJS.scatter() for j=1:M]
 	for j=1:size(seq.GR,1)
-		p[j] = PlotlyJS.scatter(x=t*1e3, y=G[:,j]*1e3,name=idx[j])
+		p[j] = PlotlyJS.scatter(x=t*1e3, y=G[:,j]*1e3,name=idx[j],line_shape="hv")
 	end
 	PlotlyJS.plot(p, l)
 end

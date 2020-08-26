@@ -1,8 +1,8 @@
 module MRIsim
 
 #IMPORT PACKAGES
-import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size #, Base.Threads.@spawn
-using Random, LinearAlgebra, FFTW, Images, Printf, MAT, Distributed, Plots, PlotlyJS, ProgressMeter
+import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.Threads.@spawn, Base.Threads.@threads
+using Random, LinearAlgebra, FFTW, Images, Printf, MAT, Plots, PlotlyJS, ProgressMeter
 
 γ = 42.5e6; #Hz/T gyromagnetic constant for H1
 
@@ -15,7 +15,7 @@ include("Simulator.jl")
 include("Recon.jl")
 include("Display.jl")
 
-export Grad, Sequence, Phantom
+export Grad, RF, Sequence, Phantom
 
 #GUI
 using Blink, Interact, AssetRegistry, JLD2, FileIO #,ORCA

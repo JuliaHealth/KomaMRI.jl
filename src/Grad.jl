@@ -34,6 +34,9 @@ struct Grad
 	A::Real #Amplitud [T]
 	T::Real #Duration of sequence [s]
 	DAC::Bool #If we take data during that period
+    function Grad(A,T,DAC)
+		T < 0 ? error("Gradient duration must be positive.") : new(A, T, DAC)
+    end 
 end
 #Gradient operations
 *(x::Grad,α::Real) = Grad(α*x.A,x.T,x.DAC)

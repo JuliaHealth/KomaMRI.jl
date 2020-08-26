@@ -24,20 +24,44 @@ Sequence(Grad[Grad(1, 1) Grad(1, 1) Grad(2, 2) Grad(2, 2); Grad(1, 1) Grad(1, 1)
 """
 struct Sequence
 	GR::Array{Grad,2}	#Sequence in (X, Y and Z) and Time
+	RF::Array{RF,1}     #RF pulses
+	function Sequence(GR) #If no RF is defined, just use a zero amplitude pulse
+		new(GR, [RF(0, dur(GR))])
+	end
+	Sequence(GR,RF) = abs(dur(GR)-dur(RF))>1e-10 ? error("Gradient and RF sequence must have the same duration. 
+durGR = $(dur(GR)) s != durRF = $(dur(RF)) s") : new(GR,RF)
 end
 # end
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(reshape(GR,(length(GR),1)),RF)
 Sequence() = Sequence([Grad(0,0); Grad(0,0)])
 #Sequence operations
-+(x::Sequence, y::Sequence) = Sequence([x.GR y.GR])
--(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR])
--(x::Sequence) = Sequence(-x.GR)
-*(x::Sequence, α::Real) = Sequence(α*x.GR)
-*(α::Real, x::Sequence) = Sequence(α*x.GR)
-*(x::Sequence,A::Matrix) = Sequence(x.GR*A)
-/(x::Sequence, α::Real) = Sequence(x.GR/α)
+Base.length(x::Sequence) = size(x.GR,2)
+Base.iterate(x::Sequence) = (Sequence(x.GR[:,1]), 2)
+Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i]), i+1) : nothing
+Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i])
+Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i])
+Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i]) : nothing
+Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i]) : nothing
+
++(x::Sequence, y::Sequence) = Sequence([x.GR y.GR], [x.RF; y.RF])
+-(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF; y.RF])
+-(x::Sequence) = Sequence(-x.GR, x.RF)
+*(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF)
+*(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF)
+*(x::Sequence, A::Matrix) = Sequence(x.GR*A, x.RF)
+/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF)
 #Sequence object functions
-is_DAC_on(x::Sequence) = any([g.DAC==1 for g in x.GR])
+is_DAC_on(x::Sequence) = any([g.DAC for g in x.GR])
+"Tells if the sequence has elements with DAC on during t."
+is_DAC_on(x::Sequence, t::Array{Float64,2}) = begin
+	N = size(x.GR,2)
+	T = [i==0 ? 0 : x.GR[1,i].T for i=0:N]
+	ts = [sum(T[1:i])  for i=1:N+1]
+	activeGrads = [any(ts[i] .<= t .< ts[i+1]) for i=1:N]
+	is_DAC_on(x[activeGrads]) #Get elements of sequence active during time period t
+end
+"Turns on data acquisition and forces RF pulse to have zero amplitud."
 DAC_on(x::Sequence) = Sequence(DAC_on.(x.GR))
 "Duration `T` [s] of the gradient array."
 dur(x::Array{Grad,1}) = sum(x[i].T for i=1:size(x,1))
@@ -79,7 +103,7 @@ get_grad(seq::Sequence,dim::Integer,t) = begin
 	⊓(t) = (abs.(t.-1/2) .<= 1/2)*1.;
 	sum([A[i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N])
 end
-get_DAC_on(seq::Sequence,t::Array{Float64,2}) = begin
+get_DAC_on(seq::Sequence,t::Array{Float64,1}) = begin
 	Δt = t[2]-t[1]
 	M, N = size(seq.GR)
 	DAC = sum([seq.GR[i,j].DAC for i=1:M, j=1:N],dims=1)
@@ -120,7 +144,7 @@ get_qvector(DIF::Sequence,type::String) = begin
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(DIF) #End of sequence
 	# q-vector in time TODO ver δ[i]? or δ[j]
-	qτ = γ*sum([G[i,j]*δ[i] for i=1:M,j=1:N],dims=2) #Final q-value
+	qτ = γ*sum([G[i,j]*δ[j] for i=1:M,j=1:N],dims=2) #Final q-value
 	norm(qτ) ≥ 1e-10 ? error("Error: this is not a diffusion sequence, M0{G(t)}=∫G(t)dt!=0.") : 0
 	# q-trajectory
 	int_rect(t,A,δ) = (t.≥0) ? A*(t.-(t.≥δ).*(t.-δ)) : 0
