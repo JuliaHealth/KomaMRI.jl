@@ -1,4 +1,4 @@
-window.$ = window.jQuery = require('/home/ccp/.juliapro/JuliaPro_v1.4.0-1/dev/MRIsim/src/ui/scripts/jquery-3.4.1.slim.min.js');
+window.$ = window.jQuery = require('c:\Users\carlo\Documents\MRIsim.jl\src/ui/scripts/jquery-3.4.1.slim.min.js');
 
 $(document).ready(function() {
   // executes when HTML-Document is loaded and DOM is ready

@@ -121,46 +121,47 @@ get_bvalue(DIF::Sequence) = begin
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(DIF) #End of sequence
 	# q-vector
-	qτ = γ*sum([G[i,j]*δ[i] for i=1:M,j=1:N],dims=2) #Final q-value
-	norm(qτ) ≥ 1e-10 ? error("Error: this is not a diffusion sequence, M0{G(t)}=∫G(t)dt!=0.") : 0
+	qτ = γ*sum([G[i,j]*δ[j] for i=1:M,j=1:N],dims=2) #Final q-value
+	norm(qτ) ≥ 1e-10 ? error("This is not a diffusion sequence, M0{G(t)}=∫G(t)dt!=0.") : 0
 	# B-value
-	b = zeros(M,N,N)
+	b = 0
 	for k=1:M,i=1:N,j=1:N
 		ij = max(i,j)
-		α = i==j ? 2/3 : 1/2
-		b[k,i,j] = G[k,i]*G[k,j]*δ[i]*δ[j]*(τ.-T[ij]-α*δ[ij])
+		α = (i==j) ? 2/3 : 1/2
+		b += G[k,i]*G[k,j]*δ[i]*δ[j]*(τ-T[ij]-α*δ[ij])
 	end
-	b_value = (2π*γ)^2*sum(b) #Trace of B tensor
-	G = [DIF.GR[i,1].A for i=1:M]; A = norm(G)
-	b_value, (A!=0) ? G/A : G
+	b_value = (2π*γ)^2*b # Trace of B tensor
+	# G = [DIF.GR[i,1].A for i=1:M]; A = norm(G)
+	# b_value, (A!=0) ? G/A : G
 end
 "Calculates the `b` value for PGSE and a moment nulled sequence."
-get_bvalue(G,Δ,δ,null::Bool) = (null ? 1/9 : 1)*(2π*γ*G*δ)^2*(Δ-δ/3)
+get_bvalue(G,Δ,δ;null::Bool=false) = (null ? 1/9 : 1)*(2π*γ*G*δ)^2*(Δ-δ/3)
 "Calculates `q` = γδG diffusion vector from a *diffusion sequence*."
-get_qvector(DIF::Sequence,type::String) = begin
+get_qvector(DIF::Sequence;type::String="val") = begin
 	M, N = size(DIF.GR)
 	G = [DIF.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
 	δ = [DIF.GR[1,j].T for j=1:N]; #Duration of pulse
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(DIF) #End of sequence
-	# q-vector in time TODO ver δ[i]? or δ[j]
 	qτ = γ*sum([G[i,j]*δ[j] for i=1:M,j=1:N],dims=2) #Final q-value
-	norm(qτ) ≥ 1e-10 ? error("Error: this is not a diffusion sequence, M0{G(t)}=∫G(t)dt!=0.") : 0
+	norm(qτ) ≥ 1e-10 ? error("This is not a diffusion sequence, M0{G(t)}=∫G(t)dt!=0.") : 0
 	# q-trajectory
 	int_rect(t,A,δ) = (t.≥0) ? A*(t.-(t.≥δ).*(t.-δ)) : 0
 	q(t) = γ*sum([int_rect(t.-T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
- 		# Output q-vector and q-trajectory
+ 	# Output q-vector and q-trajectory
 	if type=="val"
 		q(τ/2) #1/m
 	elseif type=="traj"
 		t = range(0,stop=τ,length=10^3)
 		qt = [q(t)[i] for i=1:M, t=t]
-		p = plot(t*1e3,qt'*1e-3,label=["qx" "qy" "qz"])
-		xlabel!("t [ms]")
-		ylabel!("q [1/mm]")
-		title!("q(t) trajectory")
-		savefig(p,"q-space_traj.pdf")
-		t*1e3, qt'*1e-3, p #ms, 1/mm
+		l = PlotlyJS.Layout(;title="q(t) trajectory", yaxis_title="q [1/mm]",
+	    xaxis_title="t [ms]",height=300)
+		p = [PlotlyJS.scatter() for j=1:M]
+		idx = ["qx" "qy" "qz"]
+		for j=1:M
+			p[j] = PlotlyJS.scatter(x=t*1e3, y=qt[j,:]*1e-3,name=idx[j])
+		end
+		PlotlyJS.plot(p, l)
 	end
 end
 get_M0_M1_M2(SEQ::Sequence,idx=1) = begin
@@ -202,7 +203,7 @@ get_actual_kspace(x::Sequence,t) = begin
 	k = γ*cumsum(F, dims=1)
 end
 # Without moment nulling
-DIF_base(G0,Δ,δ,verbose=false) = begin
+DIF_base(G0,Δ,δ;verbose=false) = begin
 	DIF = Sequence([Grad(G0,δ) delay(Δ-δ) -Grad(G0,δ); #Gx
 	         		Grad(0, δ) delay(Δ-δ)  Grad(0 ,δ)]) #Gy
 	if verbose

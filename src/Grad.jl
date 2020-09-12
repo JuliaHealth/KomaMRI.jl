@@ -76,7 +76,7 @@ julia> Grad_fun(x-> sin(π*x),1,4)
  Grad(0.0, 0.333333)  Grad(0.866025, 0.333333)  Grad(0.866025, 0.333333)  Grad(1.22465e-16, 0.333333)
 ```
 """
-Grad_fun(f::Function,T::Real,N::Int=300) = begin
-	Grads = [Grad(f(t),T/(N-1),false) for t = range(0,stop=T,length=N)]
+Grad_fun(f::Function,T::Real,N::Int64=300) = begin
+	Grads = [Grad(f(t),T/N,false) for t = range(0,stop=T,length=N)]
 	reshape(Grads,(1,N))
 end

@@ -1,7 +1,7 @@
 ##########################
 ## SIMULATION FUNCTIONS ##
 ##########################
-# @everywhere begin
+gpu(x) = CUDA.has_cuda_gpu() ? CuArray(x) : x
 """
 	run_sim2D(obj,seq,t)
 
@@ -24,18 +24,24 @@ function run_sim2D_spin(obj::Phantom,seq::Sequence,t::Array{Float64,1};ϕ0::Arra
 		ηyp = 0
 	end
 	#SCANNER
-    Gx = get_grad(seq,1,t)
-	Gy = get_grad(seq,2,t)
+    Gx = get_grad(seq,1,t) |> gpu
+	Gy = get_grad(seq,2,t) |> gpu 
 	#SIMULATION
-    xt = obj.x .+ obj.ux(obj.x,obj.y,t) .+ ηxp
-    yt = obj.y .+ obj.uy(obj.x,obj.y,t) .+ ηyp
+	ϕ0 = ϕ0 |> gpu
+    xt = obj.x .+ obj.ux(obj.x,obj.y,t) .+ ηxp |> gpu
+    yt = obj.y .+ obj.uy(obj.x,obj.y,t) .+ ηyp |> gpu
     if is_DAC_on(seq,t) #ACQ OPTIMIZATION
 		ϕ = ϕ0 .+ (2π*γ*Δt).*cumsum(xt.*Gx.+yt.*Gy, dims=Nsz+1) 
 	else
 		ϕ = ϕ0 .+ (2π*γ*Δt).*sum(xt.*Gx.+yt.*Gy, dims=Nsz+1) 
 	end
-    S = sum(obj.ρ.*exp.(-𝒊.*(ϕ .+ obj.Δw.*t).-t.*obj.T2.^-1 ), dims=1:Nsz)[:]
-    S, ϕ[:,end]
+	#SIGNAL
+	t = t		 |> gpu
+	ρ = obj.ρ	 |> gpu
+	Δw = obj.Δw  |> gpu
+	T2 = obj.T2  |> gpu
+    S = sum(ρ.*exp.(-𝒊.*(ϕ .+ Δw.*t).-t./T2 ), dims=1:Nsz)[:]
+    Array(S), Array(ϕ[:,end])
 end
 """Divides a list of indices 1:N in k groups"""
 function kfoldperm(N,k; type="random")
@@ -53,10 +59,10 @@ function kfoldperm(N,k; type="random")
 end
 
 """
-Work in progress. Implementation in multiple threads by separation the spins in N_parts.
+Implementation in multiple threads by separation the spins in N_parts.
 """
 function run_sim2D_spin_parallel(obj::Phantom,seq::Sequence,t::Array{Float64,1};
-	ϕ0::Array{Float64,1}=0., N_parts::Int=Threads.nthreads())
+	ϕ0::Array{Float64,1}=0., N_parts::Int= CUDA.has_cuda_gpu() ? 1 : Threads.nthreads())
 
 	Nt, Ns = length(t), prod(size(obj))
 	S = zeros(ComplexF64, Nt)
