@@ -5,3 +5,5 @@
 /Manifest.toml
 /dev/
 .vscode/settings.json
+src/TestPluto.jl
+src/TestBvalue.jl

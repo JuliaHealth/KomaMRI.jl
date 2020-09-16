@@ -22,7 +22,7 @@ julia> C = A + B
 Sequence(Grad[Grad(1, 1) Grad(1, 1) Grad(2, 2) Grad(2, 2); Grad(1, 1) Grad(1, 1) Grad(2, 2) Grad(2, 2)])
 ```
 """
-struct Sequence
+mutable struct Sequence
 	GR::Array{Grad,2}	#Sequence in (X, Y and Z) and Time
 	RF::Array{RF,1}     #RF pulses
 	function Sequence(GR) #If no RF is defined, just use a zero amplitude pulse
@@ -164,11 +164,11 @@ get_qvector(DIF::Sequence;type::String="val") = begin
 		PlotlyJS.plot(p, l)
 	end
 end
-get_M0_M1_M2(SEQ::Sequence,idx=1) = begin
+get_M0_M1_M2(SEQ::Sequence) = begin
 	M, N = size(SEQ.GR)
 	G = [SEQ.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
-	δ = [SEQ.GR[idx,j].T for j=1:N]; #Duration of pulse
-	T = [sum(δ[idx:j]) for j=1:N]; T = [0; T] #Position of pulse
+	δ = [SEQ.GR[1,j].T for j=1:N]; #Duration of pulse
+	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(SEQ) #End of sequence
 	#M0
 	M0i(t,A,δ) = (t.≥0) ? A*(t.-(t.≥δ).*(t.-δ)) : 0
