@@ -43,6 +43,7 @@ Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i])
 Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i])
 Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i]) : nothing
 Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i]) : nothing
+Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
 
 +(x::Sequence, y::Sequence) = Sequence([x.GR y.GR], [x.RF; y.RF])
 -(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF; y.RF])
@@ -116,13 +117,10 @@ end
 "Calculates the `b`-value, in the PGSE sequnce is b = (2πγGδ)²(Δ-δ/3) and the normalized diffusion vector `n` from a *diffusion sequence*."
 get_bvalue(DIF::Sequence) = begin
 	M, N = size(DIF.GR)
-	G = [DIF.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
-	δ = [DIF.GR[1,j].T for j=1:N]; #Duration of pulse
+	G = getproperty.(DIF.GR,:A) #[DIF.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
+	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(DIF) #End of sequence
-	# q-vector
-	qτ = γ*sum([G[i,j]*δ[j] for i=1:M,j=1:N],dims=2) #Final q-value
-	norm(qτ) ≥ 1e-10 ? error("This is not a diffusion sequence, M0{G(t)}=∫G(t)dt!=0.") : 0
 	# B-value
 	b = 0
 	for k=1:M,i=1:N,j=1:N
@@ -134,13 +132,29 @@ get_bvalue(DIF::Sequence) = begin
 	# G = [DIF.GR[i,1].A for i=1:M]; A = norm(G)
 	# b_value, (A!=0) ? G/A : G
 end
+"Calculates the `b`-matrix, such as `b`-value = g' B g."
+get_Bmatrix(DIF::Sequence) = begin
+	M, N = size(DIF.GR)
+	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
+	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
+	τ = dur(DIF) #End of sequence
+	# B-value
+	b = zeros(M,N,N)
+	for k=1:M,i=1:N,j=1:N
+		ij = max(i,j)
+		α = (i==j) ? 2/3 : 1/2
+		b[k,i,j] = δ[i]*δ[j]*(τ-T[ij]-α*δ[ij])
+	end
+	b_value = (2π*γ)^2*1e-6*b # (2π*γ)^2*b Trace of B tensor
+end
+
 "Calculates the `b` value for PGSE and a moment nulled sequence."
 get_bvalue(G,Δ,δ;null::Bool=false) = (null ? 1/9 : 1)*(2π*γ*G*δ)^2*(Δ-δ/3)
 "Calculates `q` = γδG diffusion vector from a *diffusion sequence*."
 get_qvector(DIF::Sequence;type::String="val") = begin
 	M, N = size(DIF.GR)
-	G = [DIF.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
-	δ = [DIF.GR[1,j].T for j=1:N]; #Duration of pulse
+	G = getproperty.(DIF.GR,:A) #[DIF.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
+	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(DIF) #End of sequence
 	qτ = γ*sum([G[i,j]*δ[j] for i=1:M,j=1:N],dims=2) #Final q-value
@@ -171,14 +185,14 @@ get_M0_M1_M2(SEQ::Sequence) = begin
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(SEQ) #End of sequence
 	#M0
-	M0i(t,A,δ) = (t.≥0) ? A*(t.-(t.≥δ).*(t.-δ)) : 0
-	M0(t) = sum([M0i(t.-T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
+	M0i(t,T,A,δ) = (t.≥T) ? A*(t.-T.-(t.≥δ+T).*(t.-δ.-T)) : 0
+	M0(t) = sum([M0i(t,T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
 	#M1
-	M1i(t,A,δ) = (t.≥0) ? A*(t.^2 .-(t.≥δ).*(t.^2 .-δ.^2))./2 : 0
-	M1(t) = sum([M1i(t.-T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
+	M1i(t,T,A,δ) = (t.≥T) ? A/2*(t.^2 .-T^2 .-(t.≥δ+T).*(t.^2 .-(δ+T).^2))./2 : 0
+	M1(t) = sum([M1i(t,T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
 	#M1
-	M2i(t,A,δ) = (t.≥0) ? A*(t.^3 .-(t.≥δ).*(t.^3 .-δ.^3))./3 : 0
-	M2(t) = sum([M2i(t.-T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
+	M2i(t,T,A,δ) = (t.≥T) ? A/3*(t.^3 .-T^3 .-(t.≥δ+T).*(t.^3 .-(δ+T).^3))./3 : 0
+	M2(t) = sum([M2i(t,T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
 	M0, M1, M2
 end
 get_max_grad(x::Sequence) = begin
@@ -262,4 +276,31 @@ EPI_base(FOV::Float64,N::Int,Δt::Float64,Gmax::Float64) = begin
     PHASE = Sequence(1/2*[Grad(-Ga, Ta); Grad(-Ga, Ta)])
     DEPHASE = Sequence(1/2*[Grad(Ga, Ta); Grad(-Ga, Ta)])
 	PHASE+EPI+DEPHASE, Δx, Ga, Ta
+end
+
+""""Calculates the normalized moments at the end of the sequence. """
+function get_Mmatrix(seq::Sequence)
+    M, N = size(seq.GR)
+    τ = dur(seq)
+    δ = getproperty.(seq.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
+	T = [sum(δ[1:j]) for j=1:N]; T = [0; T[1:end-1]] #Position of pulse
+    M0 = δ/τ
+    M1 = δ.*(T .+ δ/2)/τ^2
+	M2 = δ.*(T.^2 .+ T.*δ .+ δ.^2/3)/τ^3
+	M3 = δ.*(T.^3 .+ 3/2 * T.^2 .*δ .+ T.*δ.^2 .+ δ.^3/4)/τ^4
+    [M0'; M1'; M2'; M3']
+end
+
+using LinearAlgebra: I, Bidiagonal, norm
+"""Slew rate matrix: |SR*g| ≤ Smax."""
+function get_SRmatrix(seq::Sequence)
+    _, N = size(seq.GR)
+    T = getproperty.(seq.GR[1,:],:T)
+    Δt = [(T[i]+T[i+1])/2 for i=1:N-1]
+    dv = [Δt; T[end]/2]
+    ev = Δt;
+	SR = Array(Bidiagonal(-1 ./ dv, 1 ./ ev, :U))
+	SR = [SR[1,:]'*0 ; SR]; SR[1,1] = 2/T[1] 
+	# HW = Array([I;SR]) #Harware constraints
+	SR
 end

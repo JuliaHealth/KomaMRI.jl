@@ -1,79 +1,7 @@
 ###################
 # DISPLAY METHODS #
 ###################
-# plot_seq(x::Sequence) = begin
-# 	τ = dur(x)
-# 	M, N = size(x.GR)
-# 	T = [x.GR[1,i].T for i=1:N]
-# 	t = [sum(T[1:i]) for i=1:N]
-# 	t = [t[floor(Int,i/2)+1] for i=0:2*N-1]
-# 	t = [0; t[1:end-1]]
-# 	Δt = t[2]-t[1]
-# 	idx = ["x" "y" "z"]
-# 	p = [plot() for i=1:3]
-# 	M0, M1, M2 = get_M0_M1_M2(sum(x))
-# 	DAC = get_DAC_on(sum(x),t)
-# 	for j=1:size(x[1].GR,1)
-# 		p[j] = plot()
-# 		T = 0
-# 		M0t = [M0(t)[j] for t=t][:]/τ; 
-# 		M1t = [M1(t)[j] for t=t][:]/τ^2; 
-# 		M2t = [M2(t)[j] for t=t][:]/τ^3; 
-# 		Gmin = minimum([g.A for g ∈ sum(x).GR[j,:]])
-# 		Gmax = maximum([g.A for g ∈ sum(x).GR[j,:]])
-# 		# plot!([t_k0; t_k0]*1e3,[Gmin; Gmax]*1.1e3,linewidth=0.25,color=:black)
-# 		PlotlyJS.scatter(x=t[:]*1e3,y=M0t*1e3)
-# 		PlotlyJS.scatter(x=t[:]*1e3,y=M1t*1e3)
-# 		PlotlyJS.scatter(x=t[:]*1e3,y=M2t*1e3)
-# 		for i=1:length(x)
-# 			tt = t[T-Δt.<t.<T+dur(x[i])+Δt]
-# 			G = get_grad(x[i],j,tt.-T)
-# 						plot!(tt[:]*1e3,round.(G[:]*1e3,digits=2),legend=:none);
-# 			xlabel!("Time [ms]")
-# 			ylabel!("G"*idx[j]*" [mT/m]")
-# 			xlims!((0,dur(sum(x))).*1e3)
-# 			ylims!((Gmin,Gmax).*1.1e3)
-# 			T = dur(x[i]) + T
-# 		end
-# 	end
-# 	p
-# end
 
-plot_grads(seq::Sequence) = begin
-	idx = ["Gx" "Gy" "Gz"]
-	M, N = size(seq.GR)
-	G = [seq.GR[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:M]
-	T = [seq.GR[1,i].T for i=1:N]
-	t = [sum(T[1:i]) for i=1:N]
-	t = [t[floor(Int,i/2)+1] for i=0:2*N-1]
-	t = [0; t[1:end-1]]
-	
-	l = PlotlyJS.Layout(;title="Sequence", yaxis_title="G [mT/m]",
-	    xaxis_title="t [ms]",height=300)
-	p = [PlotlyJS.scatter() for j=1:M]
-	for j=1:size(seq.GR,1)
-		p[j] = PlotlyJS.scatter(x=t*1e3, y=G[:,j]*1e3,name=idx[j],line_shape="hv")
-	end
-	PlotlyJS.plot(p, l)
-end
-plot_grads_moments(seq::Sequence) = begin
-	idx = ["Gx" "Gy" "Gz"]
-	M, N = size(seq.GR)
-	G = [seq.GR[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:M]
-	T = [seq.GR[1,i].T for i=1:N]
-	t = [sum(T[1:i]) for i=1:N]
-	t = [t[floor(Int,i/2)+1] for i=0:2*N-1]
-	t = [0; t[1:end-1]]
-	
-	l = PlotlyJS.Layout(;title="Sequence", yaxis_title="G [mT/m]",
-	    xaxis_title="t [ms]",height=300)
-	p = [PlotlyJS.scatter() for j=1:M]
-	for j=1:size(seq.GR,1)
-		p[j] = PlotlyJS.scatter(x=t*1e3, y=G[:,j]*1e3,name=idx[j],line_shape="hv")
-
-	end
-	PlotlyJS.plot(p, l)
-end
 # plot_Phantom(obj::Phantom,filename::String) = begin
 # 	# Phantom
 # 	p1 = heatmap(obj.x*1e2,obj.y*1e2,obj.ρ,aspect_ratio=:equal)#,clims=(0,maximum(T2[:])))
@@ -238,3 +166,94 @@ end
 # 		title!(@sprintf("t = %1.1f s",tk))
 # 	end
 # end
+
+
+# plot_seq(x::Sequence) = begin
+# 	τ = dur(x)
+# 	M, N = size(x.GR)
+# 	T = [x.GR[1,i].T for i=1:N]
+# 	t = [sum(T[1:i]) for i=1:N]
+# 	t = [t[floor(Int,i/2)+1] for i=0:2*N-1]
+# 	t = [0; t[1:end-1]]
+# 	Δt = t[2]-t[1]
+# 	idx = ["x" "y" "z"]
+# 	p = [plot() for i=1:3]
+# 	M0, M1, M2 = get_M0_M1_M2(sum(x))
+# 	DAC = get_DAC_on(sum(x),t)
+# 	for j=1:size(x[1].GR,1)
+# 		p[j] = plot()
+# 		T = 0
+# 		M0t = [M0(t)[j] for t=t][:]/τ; 
+# 		M1t = [M1(t)[j] for t=t][:]/τ^2; 
+# 		M2t = [M2(t)[j] for t=t][:]/τ^3; 
+# 		Gmin = minimum([g.A for g ∈ sum(x).GR[j,:]])
+# 		Gmax = maximum([g.A for g ∈ sum(x).GR[j,:]])
+# 		# plot!([t_k0; t_k0]*1e3,[Gmin; Gmax]*1.1e3,linewidth=0.25,color=:black)
+# 		PlotlyJS.scatter(x=t[:]*1e3,y=M0t*1e3)
+# 		PlotlyJS.scatter(x=t[:]*1e3,y=M1t*1e3)
+# 		PlotlyJS.scatter(x=t[:]*1e3,y=M2t*1e3)
+# 		for i=1:length(x)
+# 			tt = t[T-Δt.<t.<T+dur(x[i])+Δt]
+# 			G = get_grad(x[i],j,tt.-T)
+# 						plot!(tt[:]*1e3,round.(G[:]*1e3,digits=2),legend=:none);
+# 			xlabel!("Time [ms]")
+# 			ylabel!("G"*idx[j]*" [mT/m]")
+# 			xlims!((0,dur(sum(x))).*1e3)
+# 			ylims!((Gmin,Gmax).*1.1e3)
+# 			T = dur(x[i]) + T
+# 		end
+# 	end
+# 	p
+# end
+
+plot_grads(seq::Sequence) = begin
+	idx = ["Gx" "Gy" "Gz"]
+	M, N = size(seq.GR)
+	G = [seq.GR[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:M]
+	T = [seq.GR[1,i].T for i=1:N]
+	t = [sum(T[1:i]) for i=1:N]
+	t = [t[floor(Int,i/2)+1] for i=0:2*N-1]
+	t = [0; t[1:end-1]]
+	
+	l = PlotlyJS.Layout(;yaxis_title="G [mT/m]", #title="Sequence", 
+	    xaxis_title="t [ms]",height=300)
+	p = [PlotlyJS.scatter() for j=1:M]
+	for j=1:size(seq.GR,1)
+		p[j] = PlotlyJS.scatter(x=t*1e3, y=G[:,j]*1e3,name=idx[j],line_shape="hv")
+	end
+	PlotlyJS.plot(p, l)
+end
+plot_grads_moments(seq::Sequence, idx::Int=1; title="") = begin
+	names = ["Gx", "Gy", "Gz"]
+	M, N = size(seq.GR)
+	G = [seq.GR[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:M]
+	T = [seq.GR[1,i].T for i=1:N]
+	t = [sum(T[1:i]) for i=1:N]
+	t = [t[floor(Int,i/2)+1] for i=0:2*N-1]
+	t = [0; t[1:end-1]]
+
+	M0, M1, M2 = get_M0_M1_M2(seq)
+	M0t = [M0(t)[idx] for t=t][:]; M0max = maximum(abs.(M0t))*1.1e6
+	M1t = [M1(t)[idx] for t=t][:]; M1max = maximum(abs.(M1t))*1.1e9
+	M2t = [M2(t)[idx] for t=t][:]; M2max = maximum(abs.(M2t))*1.1e12
+	Gmax = maximum(abs.(G))*1.1e3
+
+	p = [PlotlyJS.scatter() for k = 1:4]
+
+	l = PlotlyJS.Layout(;
+	title=title,
+	xaxis=attr(domain = [0, .8]),
+	yaxis=attr(title="[mT/m]", side="left", tickfont=attr(color="#1f77b4"), titlefont=attr(color="#1f77b4"),range=[-Gmax, Gmax]),
+	yaxis2=attr(title="[mT/m⋅ms]", anchor="free", overlaying="y",position=0.8, side="right", 
+	tickfont=attr(color="#ff7f0e"), titlefont=attr(color="#ff7f0e"), range=[-M0max, M0max]),
+	yaxis3=attr(title="[mT/m⋅ms²]",anchor="free",overlaying="y",position=0.8+.2/3,side="right",
+	tickfont=attr(color="#2CA02C"), titlefont=attr(color="#2CA02C"), range=[-M1max, M1max]),
+	yaxis4=attr(title="[mT/m⋅ms³]",anchor="free",overlaying="y",position=0.8+.4/3,side="right",
+	tickfont=attr(color="#d62728"), titlefont=attr(color="#d62728"), range=[-M2max, M2max]),
+	xaxis_title="t [ms]", height=400)
+	p[1] = PlotlyJS.scatter(x=t*1e3, y=G[:,idx]*1e3, name=names[idx], line_shape="hv")
+	p[2] = PlotlyJS.scatter(x=t*1e3, y=M0t*1e6, name="M0", yaxis="y2",line=attr(dash="dash"))
+	p[3] = PlotlyJS.scatter(x=t*1e3, y=M1t*1e9, name="M1", yaxis="y3",line=attr(dash="dash"))
+	p[4] = PlotlyJS.scatter(x=t*1e3, y=M2t*1e12, name="M2", yaxis="y4",line=attr(dash="dash"))
+	PlotlyJS.plot(p, l)
+end

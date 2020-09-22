@@ -30,7 +30,7 @@ julia> Grad(1,1)
 Grad(1, 1)
 ```
 """
-struct Grad
+mutable struct Grad
 	A::Real #Amplitud [T]
 	T::Real #Duration of sequence [s]
 	DAC::Bool #If we take data during that period

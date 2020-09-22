@@ -149,7 +149,7 @@ https://brainweb.bic.mni.mcgill.ca/brainweb
 """
 function brain_phantom2D(;axis="axial",ss=4)
     path = @__DIR__
-    data = MAT.matread(path*"/exampledata/brain2D.mat")
+    data = MAT.matread(path*"/data/brain2D.mat")
 
     class = data[axis][1:ss:end,1:ss:end]
     Δx = 1e-3*ss
