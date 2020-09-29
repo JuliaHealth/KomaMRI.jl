@@ -14,6 +14,8 @@ include("Phantom.jl")
 include("Simulator.jl")
 include("Recon.jl")
 include("Display.jl")
+#SIM EXTRA
+include("DiffusionModel.jl")
 
 export Grad, RF, Sequence, Phantom
 

@@ -2,6 +2,12 @@
 ## SIMULATION FUNCTIONS ##
 ##########################
 gpu(x) = CUDA.has_cuda_gpu() ? CuArray(x) : x
+print_gpus() = begin
+	@info "$(length(devices())) CUDA capable devices."
+	for d = devices()
+		@info name(d)
+	end
+end
 """
 	run_sim2D(obj,seq,t)
 
