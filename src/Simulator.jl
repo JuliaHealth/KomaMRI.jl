@@ -3,9 +3,9 @@
 ##########################
 gpu(x) = CUDA.has_cuda_gpu() ? CuArray(x) : x
 print_gpus() = begin
-	@info "$(length(devices())) CUDA capable devices."
+	println( "$(length(devices())) CUDA capable device(s)." )
 	for d = devices()
-		@info name(d)
+		println( "  -"*name(d) )
 	end
 end
 """
@@ -65,7 +65,7 @@ function kfoldperm(N,k; type="random")
 end
 
 """
-Implementation in multiple threads by separation the spins in N_parts.
+Implementation in multiple threads. Separating the spins in N_parts.
 """
 function run_sim2D_spin_parallel(obj::Phantom,seq::Sequence,t::Array{Float64,1};
 	ϕ0::Array{Float64,1}=0., N_parts::Int= CUDA.has_cuda_gpu() ? 1 : Threads.nthreads())
@@ -86,12 +86,12 @@ end
 
 """Divides time steps in N_parts blocks. Decreases RAM usage in long sequences."""
 function run_sim2D_times_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1};N_parts::Int=16)
-    N, Ns = length(t), prod(size(obj))
+	N, Ns = length(t), prod(size(obj))
 	S = zeros(ComplexF64, N)
 	ϕ0 = zeros(size(obj))
 
     parts = kfoldperm(N,N_parts,type="ordered")
-    println("Starting simulation with Nspins=$Ns and Nt=$N")
+	println("Starting simulation with Nspins=$Ns and Nt=$N")
     
 	@showprogress for p ∈ parts
 		S[p], ϕ0 =  run_sim2D_spin_parallel(obj, seq, t[p]; ϕ0)

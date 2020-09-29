@@ -140,9 +140,10 @@ TE = 25e-3
 d = MRIsim.delay(TE-MRIsim.dur(EPI)/2)
 DELAY = Sequence([d;d])
 global seq = DELAY + EPI
-print("EPI successfully loaded! (TE = $(TE*1e3) ms)")
+println("EPI successfully loaded! (TE = $(TE*1e3) ms)")
 global scanner = []
 global signal = 0
 global kdata = [0.0im 0.; 0. 0.]
+print_gpus()
 nothing
 end
