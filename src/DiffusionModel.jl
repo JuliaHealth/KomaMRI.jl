@@ -74,11 +74,11 @@ function Sphere(R,D=2e-9,M=20)
     μ = (Λ, A)
 end
 
-function SignalE(μ,seq)
+function SignalE(μ, seq)
     𝒊 = 1im;
     M, N = size(seq.GR)
-    G = getproperty(seq.GR,:A)
-    δ = getproperty(seq.GR[1,:],:T)
+    G = getproperty.(seq.GR,:A)
+    δ = getproperty.(seq.GR[1,:],:T)
     # E = [ Π exp( -(Λ + iγ Gn⋅A) ⋅ δn ) ]_{0,0}
-    E = *([exp(-(μ[1] .+ 𝒊*2π*γ*sum([μ[2][m]'*G[m,n] for m = 1:M]))*δ[k]) for n = 1:N]...)[1,1]
+    E = *([exp(-(μ[1] .+ 𝒊*2π*γ*.+([μ[2][m]'*G[m,n] for m = 1:M]...))*δ[n]) for n = 1:N]...)[1,1]
 end
