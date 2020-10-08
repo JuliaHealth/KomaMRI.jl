@@ -73,7 +73,6 @@ function run_sim2D_spin_parallel(obj::Phantom,seq::Sequence,t::Array{Float64,1};
 	Nt, Ns = length(t), prod(size(obj))
 	S = zeros(ComplexF64, Nt)
 	
-    #addprocs(N_parts)
 	parts = kfoldperm(Ns, N_parts, type="ordered") 
 
 	@threads for p ∈ parts

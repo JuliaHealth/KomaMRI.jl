@@ -15,7 +15,7 @@ end
 
 # ╔═╡ 95164fa0-f7da-11ea-20b3-a5dc6c5e8376
 begin
-	cd("C:/Users/carlo/Documents/MRIsim.jl")
+	cd("C:/Users/ccp/Documents/MRIsim.jl")
 	import Pkg; Pkg.activate(".")
 	using MRIsim
 end

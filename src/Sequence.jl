@@ -43,6 +43,7 @@ Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i])
 Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i])
 Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i]) : nothing
 Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i]) : nothing
+Base.lastindex(x::Sequence) = size(x.GR,2)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
 
 +(x::Sequence, y::Sequence) = Sequence([x.GR y.GR], [x.RF; y.RF])
@@ -97,12 +98,12 @@ julia> get_grad(seq,1,t)
  -1.0
 ```
 """
-get_grad(seq::Sequence,dim::Integer,t) = begin
-	N = size(seq.GR,2)
-	A = [seq.GR[dim,i].A for i=1:N]
-	T = [seq.GR[dim,i].T for i=1:N]; T = [0; T]
+get_grads(seq::Sequence,t) = begin
+	M, N = size(seq.GR);
+	A = [seq.GR[i,j].A for i=1:M, j=1:N];
+	T = [seq.GR[1,j].T for j=1:N]; T = [0; T];
 	⊓(t) = (abs.(t.-1/2) .<= 1/2)*1.;
-	sum([A[i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N])
+	(sum([A[j,i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N]) for j=1:M)
 end
 get_DAC_on(seq::Sequence,t::Array{Float64,1}) = begin
 	Δt = t[2]-t[1]
@@ -129,23 +130,24 @@ get_bvalue(DIF::Sequence) = begin
 		b += G[k,i]*G[k,j]*δ[i]*δ[j]*(τ-T[ij]-α*δ[ij])
 	end
 	b_value = (2π*γ)^2*b # Trace of B tensor
-	# G = [DIF.GR[i,1].A for i=1:M]; A = norm(G)
-	# b_value, (A!=0) ? G/A : G
 end
-"Calculates the `b`-matrix, such as `b`-value = g' B g."
+"Calculates the `b`-matrix, such as `b`-value = g' B g [s/mm2] with g [T/m]."
 get_Bmatrix(DIF::Sequence) = begin
 	M, N = size(DIF.GR)
 	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(DIF) #End of sequence
 	# B-value
-	b = zeros(M,N,N)
-	for k=1:M,i=1:N,j=1:N
-		ij = max(i,j)
-		α = (i==j) ? 2/3 : 1/2
-		b[k,i,j] = δ[i]*δ[j]*(τ-T[ij]-α*δ[ij])
-	end
-	b_value = (2π*γ)^2*1e-6*b # (2π*γ)^2*b Trace of B tensor
+	# b = zeros(M,N,N)
+	# for k=1,i=1:N,j=1:N
+	# 	ij = max(i,j)
+	# 	α = (i==j) ? 2/3 : 1/2
+	# 	b[k,i,j] = δ[i]*δ[j]*(τ-T[ij]-α*δ[ij])
+	# end
+	ij = [max(i,j) for i=1:N, j=1:N]
+	α = [(i==j) ? 2/3 : 1/2 for i=1:N, j=1:N]
+	b = (δ' .* δ) .* (τ .- T[ij] .- α .* δ[ij])
+	b_value = (2π*γ)^2*1e-6*b # Trace of B tensor
 end
 
 "Calculates the `b` value for PGSE and a moment nulled sequence."
@@ -301,6 +303,10 @@ function get_SRmatrix(seq::Sequence)
     ev = Δt;
 	SR = Array(Bidiagonal(-1 ./ dv, 1 ./ ev, :U))
 	SR = [SR[1,:]'*0 ; SR]; SR[1,1] = 2/T[1] 
-	# HW = Array([I;SR]) #Harware constraints
 	SR
 end
+
+Base.show(io::IO,s::Sequence) = begin
+	print(io, "Sequence[ τ = $(round(dur(s)*1e3)) ms ; DAC: $(is_DAC_on(s)) ; GR: $(size(s.GR)) ; RF: $(size(s.RF)) ]")
+end
+

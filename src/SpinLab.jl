@@ -112,7 +112,7 @@ handle(w, "simulate") do args...
     Δt = 4e-6 #<- simulate param
     t = collect(Δt:Δt:MRIsim.dur(seq))
     Nphant, Nt = prod(size(phantom)), length(t)
-    N_parts = floor(Int, Nphant*Nt/2.7e6)
+    N_parts = floor(Int, Nphant*Nt/2.7e6*1/3)
     println("Dividing simulation in Nblocks=$N_parts")
     S = @time MRIsim.run_sim2D_times_iter(phantom,seq,t;N_parts) #run_sim2D_times_iter run_sim2D_spin
     global signal = S[MRIsim.get_DAC_on(seq,t)]/prod(size(phantom)) #Acquired data

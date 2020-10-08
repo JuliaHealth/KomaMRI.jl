@@ -15,7 +15,7 @@ struct Spinor
 	α::Complex
 	β::Complex
 end
-Base.show(io::IO,s::Spinor) = print(io, "(α = ",s.α,", β = ",s.β,")")
+Base.show(io::IO,s::Spinor) = print(io, "Spinor(α = ",s.α,", β = ",s.β,")")
 
 """
 Spinor multiplication identity.
@@ -85,7 +85,7 @@ Q(φ, n::Array{Float64}) = begin
 end
 
 """RF Object"""
-struct RF
+mutable struct RF
 	A::Complex # Amplitud B1x + i B1y [T]
 	T::Float64 # Duration [s]
 end
@@ -94,42 +94,6 @@ dur(x::Array{RF,1}) = sum(x[i].T for i=1:size(x,1))
 "Duration `T` [s] of the RF array."
 dur(x::Array{RF,2}) = maximum(sum([x[i,j].T for i=1:size(x,1),j=1:size(x,2)],dims=2))
 
-# ## Example
-# G = 30e-3
-# γ = 2*π*42.5e6
-# T = 3e-3; N = 200
-# t = 0:T/(N-1):T; Δt = t[2]-t[1]
-
-# B1 = 15e-6; B1e = B1*sinc.(8(t.-T/2)/T)
-# φ = -2π*γ*Δt*sqrt.(abs.(B1e).^2) ; φ[φ.==0] .= 1e-17
-# n =  2π*γ*Δt*[[B1e[i]/abs(φ[i]) 0 0] for i = 1:N]
-# Qs = [Q(φ[i],n[i]) for i=1:N]
-# Qt = *(Qs...) #Total rotation matrix
-
-# Mxy, Mz = 0. + 0. *im, 1. #[0,0,1]
-# M = [Mxy, Mz]
-# Mt = Qt*M
-# Mz = [(*(Qs[1:i]...)*M)[2] for i=2:N]
-# Mxy = [(*(Qs[1:i]...)*M)[1] for i=2:N]
-
-# #Sphere
-# u = range(0,stop=2*π,length=100);
-# v = range(0,stop=π,length=100);
-# x = .99 * cos.(u) * sin.(v)';
-# y = .99 * sin.(u) * sin.(v)';
-# z = .99 * ones(100) * cos.(v)';
-
-# ##
-# l1 = PlotlyJS.Layout(;title="Magnetization", yaxis_title="",
-#     xaxis_title="t")
-# p1 = PlotlyJS.scatter(y=B1e/B1,name="B1e",mode="lines")
-# p2 = PlotlyJS.scatter(y=real(Mz),name="Mz",mode="lines")
-# p3 = PlotlyJS.scatter(y=imag.(Mxy),name="Mxy",mode="lines")
-# pp1 = PlotlyJS.plot([p1,p2,p3],l1)
-
-# l2 = PlotlyJS.Layout(;title="Magnetization",
-# 	xaxis_title="Mx",yaxis_title="My",zaxis_tile="Mz")
-# p4 = PlotlyJS.scatter3d(x=real(Mxy),y=imag(Mxy),z=real(Mz),xlim=(-1,1),ylim=(-1,1),zlim=(-1,1),
-# 	linewidth=5,colorbar=false,legend=false,mode="lines",name="M(t)",line_width=5)
-# p5 = PlotlyJS.surface(x=x,y=y,z=z,opacity=.4,showscale=false,colorscale="Greys")
-# pp2 = PlotlyJS.plot([p4,p5],l2)
+RF_fun(f::Function,T::Real,N::Int64=300) = begin
+	RFs = [RF(f(t),T/N) for t = range(0,stop=T,length=N)]
+end

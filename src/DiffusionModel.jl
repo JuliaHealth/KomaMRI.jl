@@ -64,7 +64,7 @@ function Sphere(R,D=2e-9,M=20)
     Λ =  D/R^2 * diagm([λ(lm) for lm=0:M])
     #βnk
     β(lm) = lm==0 ? sqrt(3/2) : sqrt((2*l[lm]+1)*λ(lm)/(λ(lm)-l[lm]*(l[lm]+1)))    
-    #Some definitions
+    # TODO: Finish matrix Ax
     δlδm(i,j) = (abs(l[i]-l[j])==1)*(abs(m[i]-m[j])==1)
     ϵ1(mk,nk) = (1+n[mk]+n[nk])/((2*n[mk]+1)*(2*n[nk]+1))
     ϵ2(mk,nk) = n[mk]*(n[nk]+1) + n[nk]*(n[mk]+1) + 1
