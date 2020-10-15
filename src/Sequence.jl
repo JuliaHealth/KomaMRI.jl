@@ -105,6 +105,18 @@ get_grads(seq::Sequence,t) = begin
 	⊓(t) = (abs.(t.-1/2) .<= 1/2)*1.;
 	(sum([A[j,i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N]) for j=1:M)
 end
+
+"""
+Linear interpolation of the gradients, only works for equal gradients' durations.
+"""
+get_grads_linear(seq::Sequence,t) = begin
+	M, N = size(seq.GR);
+	A = [seq.GR[i,j].A for i=1:M, j=1:N];
+	T = [seq.GR[1,j].T for j=1:N]; T = [0; T];
+	∧(t) = max.(1 .- abs.(t),0);
+	(sum([A[j,i]*∧((t.-sum(T[1:i]))/T[i+1]) for i=1:N]) for j=1:M)
+end
+
 get_DAC_on(seq::Sequence,t::Array{Float64,1}) = begin
 	Δt = t[2]-t[1]
 	M, N = size(seq.GR)
@@ -308,5 +320,38 @@ end
 
 Base.show(io::IO,s::Sequence) = begin
 	print(io, "Sequence[ τ = $(round(dur(s)*1e3)) ms ; DAC: $(is_DAC_on(s)) ; GR: $(size(s.GR)) ; RF: $(size(s.RF)) ]")
+end
+
+## TO SCANNER
+"""Duration in [s] => samples, with dwell-time of Δt = 6.4 μs."""
+δ2N(δ) = floor(Int64, δ * 156250) + 2
+
+function write_diff_fwf(DIF, start180, end180, Gmax; filename="./qte_vectors_input.txt")
+    open(filename, "w") do io
+        dt = 6.4e-6; #6.4us dwell-time
+        G1 = DIF[1:start180-1]
+        G2 = DIF[end180:end]
+        t = range(0,dur(G1),length=δ2N(dur(G1)))
+        Gx1, _ = get_grads_linear(G1,t)
+        Gx2, _ = get_grads_linear(G2,t)
+        write(io, "Maxwell2 $(δ2N(dur(G1))) $(δ2N(dur(G2)))\n")
+        for i = 1:length(t)
+            fx1 = Gx1[i]/Gmax
+            fx2 = -Gx2[i]/Gmax
+            line = @sprintf "% .4f % .4f % .4f % .4f % .4f % .4f\n" fx1 fx1 fx1 fx2 fx2 fx2
+            write(io, line)
+        end
+    end
+end
+
+function read_diff_fwf(filename="./qte_vectors_input.txt")
+    f = readlines(filename)
+    G = zeros(size(f[2:end],1),6)
+    n1, n2 = tryparse.(Int64, split(f[1]," ")[2:end])
+    for (i, l) in enumerate(f[2:end])
+        g = tryparse.(Float64, split(l," "))
+        G[i,:] = g[g .≠ nothing]
+    end
+    G, n1, n2
 end
 
