@@ -7,3 +7,7 @@
 .vscode/settings.json
 src/TestPluto.jl
 src/TestBvalue.jl
+src/examples/sysimageSpinLab.dll
+qte_vectors_input.txt
+Patch/*
+*.gve

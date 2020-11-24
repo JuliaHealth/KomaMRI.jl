@@ -13,7 +13,7 @@ map!(f->begin
 # Ploting recon
 global recon = ifftc(kdata)
 hh, ww = 420,550
-l = PlotlyJS.Layout(;title="Reconstruction", yaxis_title="y",
+l = PlotlyJS.Layout(;title="Reconstruction", yaxis_title="y", yaxis=attr(scaleanchor="x"),
     xaxis_title="x",height=hh,width=ww,
     modebar=attr(orientation="v"),scene=attr(aspectratio=attr(x=1,y=1,z=1)))
 p = PlotlyJS.plot(PlotlyJS.heatmap(z=abs.(recon),showscale=false,colorscale="Greys"),l)

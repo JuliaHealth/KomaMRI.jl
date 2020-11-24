@@ -34,7 +34,7 @@ global w = Blink.Window(Dict(
     "backgroundColor"=>"#000",
     "node-integration" => true,
     :icon=>path*"/ui/assets/Logo_icon.png",
-    "minHeight"=>500,
+    "minHeight"=>600,
     ))
 #Loading of JS files with "defer" tag
 function loadjs_defer!(w, url)
@@ -114,7 +114,7 @@ handle(w, "simulate") do args...
     Nphant, Nt = prod(size(phantom)), length(t)
     N_parts = floor(Int, Nphant*Nt/2.7e6*1/3)
     println("Dividing simulation in Nblocks=$N_parts")
-    S = @time MRIsim.run_sim2D_times_iter(phantom,seq,t;N_parts) #run_sim2D_times_iter run_sim2D_spin
+    S = @time MRIsim.run_sim2D_times_iter(phantom,seq,t;N_parts=2)#N_parts) #run_sim2D_times_iter run_sim2D_spin
     global signal = S[MRIsim.get_DAC_on(seq,t)]/prod(size(phantom)) #Acquired data
     S = nothing
     Nx = Ny = 100 #hardcoded by now
@@ -132,14 +132,17 @@ handle(w, "close") do args...
 end
 ## Default example
 @info "Loading Phantom (default)"
-global phantom = brain_phantom2D(;axis="coronal")
+global phantom = StartAt( MRIsim.heart_phantom() , 0.) #brain_phantom2D(;axis="coronal")
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 @info "Loading Sequence (default) "
-EPI,_,_,_ = MRIsim.EPI_base(40/100, 100, 4e-6, 60e-3)
+Gmax = 60e-3
+δ = 10e-3; Δ = 4δ/3; θ = 0;
+DIF = MRIsim.DIF_base(1.5*Gmax,Δ,δ)*rotz(θ);
+EPI,_,_,_ = MRIsim.EPI_base(40/100, 100, 4e-6, Gmax)
 TE = 25e-3 
 d = MRIsim.delay(TE-MRIsim.dur(EPI)/2)
-DELAY = Sequence([d;d])
-global seq = DELAY + EPI
+# DELAY = Sequence([d;d])
+global seq = DIF + EPI
 println("EPI successfully loaded! (TE = $(TE*1e3) ms)")
 global scanner = []
 global signal = 0

@@ -1,7 +1,6 @@
 #####################
 ## Sequence OBJECT ##
 #####################
-# @everywhere begin
 """
     Sequence(GR)
 
@@ -31,7 +30,7 @@ mutable struct Sequence
 	Sequence(GR,RF) = abs(dur(GR)-dur(RF))>1e-10 ? error("Gradient and RF sequence must have the same duration. 
 durGR = $(dur(GR)) s != durRF = $(dur(RF)) s") : new(GR,RF)
 end
-# end
+#TODO: Add trapezoidal grads
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(reshape(GR,(length(GR),1)),RF)
 Sequence() = Sequence([Grad(0,0); Grad(0,0)])
@@ -45,6 +44,9 @@ Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i]) : noth
 Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i]) : nothing
 Base.lastindex(x::Sequence) = size(x.GR,2)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
+Base.show(io::IO,s::Sequence) = begin
+	print(io, "Sequence[ τ = $(round(dur(s)*1e3)) ms | DAC: $(is_DAC_on(s)) | GR: $(size(s.GR)) | RF: $(size(s.RF)) ]")
+end
 
 +(x::Sequence, y::Sequence) = Sequence([x.GR y.GR], [x.RF; y.RF])
 -(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF; y.RF])
@@ -293,15 +295,22 @@ EPI_base(FOV::Float64,N::Int,Δt::Float64,Gmax::Float64) = begin
 end
 
 """"Calculates the normalized moments at the end of the sequence. """
-function get_Mmatrix(seq::Sequence)
+function get_Mmatrix(seq::Sequence,order=0)
     M, N = size(seq.GR)
     τ = dur(seq)
     δ = getproperty.(seq.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T[1:end-1]] #Position of pulse
-    M0 = δ/τ
-    M1 = δ.*(T .+ δ/2)/τ^2
-	M2 = δ.*(T.^2 .+ T.*δ .+ δ.^2/3)/τ^3
-	M3 = δ.*(T.^3 .+ 3/2 * T.^2 .*δ .+ T.*δ.^2 .+ δ.^3/4)/τ^4
+	if order == 0
+		M0 = δ/τ
+		M1 = δ.*(T .+ δ/2)/τ^2
+		M2 = δ.*(T.^2 .+ T.*δ .+ δ.^2/3)/τ^3
+		M3 = δ.*(T.^3 .+ 3/2 * T.^2 .*δ .+ T.*δ.^2 .+ δ.^3/4)/τ^4
+	elseif order == 1
+		M0 = δ/τ
+		M1 = δ.*T/τ^2
+		M2 = δ.*(T.^2 .+ δ.^2/6)/τ^3
+		M3 = δ.*(T.^3 .+ T.*δ.^2/2)/τ^4
+	end
     [M0'; M1'; M2'; M3']
 end
 
@@ -310,34 +319,30 @@ using LinearAlgebra: I, Bidiagonal, norm
 function get_SRmatrix(seq::Sequence)
     _, N = size(seq.GR)
     T = getproperty.(seq.GR[1,:],:T)
-    Δt = [(T[i]+T[i+1])/2 for i=1:N-1]
-    dv = [Δt; T[end]/2]
+    Δt = [T[i] for i=1:N-1]
+    dv = [Δt; T[end]]
     ev = Δt;
 	SR = Array(Bidiagonal(-1 ./ dv, 1 ./ ev, :U))
-	SR = [SR[1,:]'*0 ; SR]; SR[1,1] = 2/T[1] 
+	SR = [SR[1,:]'*0 ; SR]; SR[1,1] = T[1] 
 	SR
-end
-
-Base.show(io::IO,s::Sequence) = begin
-	print(io, "Sequence[ τ = $(round(dur(s)*1e3)) ms ; DAC: $(is_DAC_on(s)) ; GR: $(size(s.GR)) ; RF: $(size(s.RF)) ]")
 end
 
 ## TO SCANNER
 """Duration in [s] => samples, with dwell-time of Δt = 6.4 μs."""
 δ2N(δ) = floor(Int64, δ * 156250) + 2
 
-function write_diff_fwf(DIF, start180, end180, Gmax; filename="./qte_vectors_input.txt")
+function write_diff_fwf(DIF, idx180, Gmax; filename="./qte_vectors_input.txt", name="Maxwell2")
     open(filename, "w") do io
-        dt = 6.4e-6; #6.4us dwell-time
-        G1 = DIF[1:start180-1]
-        G2 = DIF[end180:end]
-        t = range(0,dur(G1),length=δ2N(dur(G1)))
-        Gx1, _ = get_grads_linear(G1,t)
-        Gx2, _ = get_grads_linear(G2,t)
-        write(io, "Maxwell2 $(δ2N(dur(G1))) $(δ2N(dur(G2)))\n")
-        for i = 1:length(t)
+        G1 = DIF[1:idx180-1]
+        G2 = DIF[idx180 + 1:end]
+        t1 = range(0,dur(G1),length=δ2N(dur(G1)))
+		Gx1, _ = get_grads_linear(G1,t1)
+		t2 = range(0,dur(G2),length=δ2N(dur(G2)))
+        Gx2, _ = get_grads_linear(G2,t2)
+        write(io, "$name $(δ2N(dur(G1))) $(δ2N(dur(G2)))\n")
+        for i = 1:length(t1)
             fx1 = Gx1[i]/Gmax
-            fx2 = -Gx2[i]/Gmax
+            fx2 = i ≤ length(t2) ? -Gx2[i]/Gmax : 0
             line = @sprintf "% .4f % .4f % .4f % .4f % .4f % .4f\n" fx1 fx1 fx1 fx2 fx2 fx2
             write(io, line)
         end

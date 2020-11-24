@@ -21,9 +21,8 @@ include("DiffusionModel.jl")
 export Grad, RF, Sequence, Phantom
 
 #GUI
-using Blink, Interact, AssetRegistry, JLD2, FileIO #,ORCA
+using Blink, Interact, AssetRegistry, JLD2, FileIO
 !Blink.AtomShell.isinstalled() && Blink.AtomShell.install()
-using CSV, DataFrames
 include("SpinLab.jl")
 
 export SpinLab

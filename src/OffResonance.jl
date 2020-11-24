@@ -46,5 +46,5 @@ CylinderY(x,R,Δχ) = begin
     end
 end
 
-contourf([CylinderY([x,0,z],.1,.1) for z=-1:.001:1, x=-1:.001:1],aspect_ratio=:equal)
-contourf([Sphere([x,0,z],.1,.1) for z=-1:.001:1, x=-1:.001:1],aspect_ratio=:equal)
+# contourf([CylinderY([x,0,z],.1,.1) for z=-1:.001:1, x=-1:.001:1],aspect_ratio=:equal)
+# contourf([Sphere([x,0,z],.1,.1) for z=-1:.001:1, x=-1:.001:1],aspect_ratio=:equal)

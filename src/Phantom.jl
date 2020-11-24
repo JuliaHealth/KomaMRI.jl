@@ -81,12 +81,14 @@ Phantom(name::String,x::Array{Float64,2},y::Array{Float64,2},ρ::Array{Float64},
 	Phantom(name,x,y,ρ,T2,Δw,zeros(size(ρ)),zeros(size(ρ)),zeros(size(ρ)),(x,y,t)->0,(x,y,t)->0)
 end
 +(s1::Phantom,s2::Phantom) =begin
-	Phantom(s1.name*"_"*s2.name,[s1.x;s2.x],[s1.y;s2.y],[s1.ρ;s2.ρ],[s1.T2;s2.T2],
+	Phantom(s1.name*"+"*s2.name,[s1.x;s2.x],[s1.y;s2.y],[s1.ρ;s2.ρ],[s1.T2;s2.T2],
 	[s1.Δw;s2.Δw],[s1.Dλ1;s2.Dλ1],[s1.Dλ2;s2.Dλ2],[s1.Dθ;s2.Dθ],s1.ux,s1.uy)
 end
 # Movement related commands
 StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
 FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
+#TODO: jaw-pitch-roll, expand, contract, functions
+
 # Getting maps
 get_DxDy2D(obj::Phantom) = begin
 	P(i) = rotz(obj.Dθ[i])[1:2,1:2];
@@ -104,41 +106,60 @@ Heart-like LV phantom. The variable `α` is for strech, `β` for contraction, an
  - Contraction:  -β x αt
  - Rotation:      γ(x cos(θt) + y sin(θt)) 4v sin.(ωHR t)
 """
-heart_phantom(x,y,FOV,α=1,β=1,γ=1,fat_bool::Bool=false) = begin
-	⚪(x,y,D) =  (x.^2 .+ y.^2 .<= D^2/4)*1. #Circle of diameter D
+heart_phantom(α=1,β=1,γ=1,fat_bool::Bool=false) = begin
+	#PARAMETERS
+	FOV = 10e-2 #m #Field of view
+	Nx = 21 #Number of points in x, frequency direction MUST BE ODD
+	Ny = 21 #Number of points in y, phase direction MUST BE ODD
+	Δxr = FOV/(Nx-1) #Aprox rec resolution, use Δx_pix and Δy_pix
+	Ns = 10^2 #number of spins per voxel
+	Δx = Δxr/sqrt(Ns) #spin separation
+	#POSITIONS
+	x = y = -FOV/2:Δx:FOV/2-Δx #spin coordinates
+	x, y = x .+ y'*0, x*0 .+ y' #grid points
+	#PHANTOM
+	⚪(R) =  (x.^2 .+ y.^2 .<= R^2)*1. #Circle of radius R
 	v = FOV/4 #m/s 1/16 th of the FOV during acquisition
 	ωHR = 2π/1 #One heart-beat in one second
 	θ(t) = -π/4*γ*(sin(ωHR*t).*(sin(ωHR*t).>0)+0.25.*sin(ωHR*t).*(sin(ωHR*t).<0) )
-	ux(x,y,t) = begin
-		-v.*(.3e5.*α.*x .*(FOV^2/4 .-(x.^2 .+y.^2)) ).*sin.(ωHR.*(t.+1/3)/2).^2 .+
-		x.*v.*sin.(ωHR*t./2).^2. *β .+
-		(x.*(cos.(θ.(t)).-1).+y.*sin.(θ.(t)))
-	end
-	uy(x,y,t) = begin
-		-v.*(.3e5.*α.*y .*(FOV^2/4 .-(x.^2 .+y.^2)) ).*sin.(ωHR.*(t.+1/3)/2).^2 .+
-		y.*v.*sin.(ωHR*t./2).^2. *β .+
-		(y.*(cos.(θ.(t)).-1).-x.*sin.(θ.(t)))
-	end
+	ux(x,y,t) = 20 * v * t
+	# begin
+	# 	-v.*(.3e5.*α.*x .*(FOV^2/4 .-(x.^2 .+y.^2)) ).*sin.(ωHR.*(t.+1/3)/2).^2 .+
+	# 	x.*v.*sin.(ωHR*t./2).^2. *β .+
+	# 	(x.*(cos.(θ.(t)).-1).+y.*sin.(θ.(t)))
+	# end
+	uy(x,y,t) = 10 * v * t
+	# begin
+	# 	-v.*(.3e5.*α.*y .*(FOV^2/4 .-(x.^2 .+y.^2)) ).*sin.(ωHR.*(t.+1/3)/2).^2 .+
+	# 	y.*v.*sin.(ωHR*t./2).^2. *β .+
+	# 	(y.*(cos.(θ.(t)).-1).-x.*sin.(θ.(t)))
+	# end
 	# Water spins
-	ρ = ⚪(x,y,9/10*FOV) #proton density
+	R = 9/10*FOV/2
+	r = 6/11*FOV/2
+	ring = ⚪(R) .- ⚪(r)
+	ρ = ⚪(r) .+ 0.9*ring #proton density
 	# Diffusion tensor model
 	D = 2e-9 #Diffusion of free water m2/s
-	Dλ1 = D*⚪(x,y,FOV*6/11) .+ D*(⚪(x,y,FOV*9/10).-⚪(x,y,FOV*6/11)) #Diffusion map
-	Dλ2 = D*⚪(x,y,FOV*6/11) .+ D/20*(⚪(x,y,FOV*9/10).-⚪(x,y,FOV*6/11)) #Diffusion map
-	Dθ = ⚪(x,y,FOV*6/11)*0 .+ atan.(x,-y).*(⚪(x,y,FOV*9/10).-⚪(x,y,FOV*6/11)) #Diffusion map
-	T1 = (1026*(⚪(x,y,9/10*FOV).-⚪(x,y,6/11*FOV)).+1400 .*⚪(x,y,6/11*FOV))/1000 #Myocardial T1
-	T2 = (42*(⚪(x,y,9/10*FOV).-⚪(x,y,6/11*FOV)).+308*⚪(x,y,6/11*FOV))/1000 #T2 map [s]
+	D1, D2 = D, D/20
+	Dλ1 = D1*⚪(R) #Diffusion map
+	Dλ2 = D1*⚪(r) .+ D2*ring #Diffusion map
+	Dθ =  atan.(x,-y) .* ring #Diffusion map
+	T1 = (1400*⚪(r) .+ 1026*ring)*1e-3 #Myocardial T1
+	T2 = ( 308*⚪(r) .+ 42*ring  )*1e-3 #T2 map [s]
 	# Generating Phantoms
-	heart = Phantom("SIMPLE",x,y,ρ,T2,Dλ1,Dλ2,Dθ,ux,uy)
+	heart = Phantom("LeftVentricle",x,y,ρ,T2,Dλ1,Dλ2,Dθ,ux,uy)
 	# Fat spins
-	ρ_fat = .5*ρ.*(⚪(x,y,FOV).-⚪(x,y,9/10*FOV))
-	Δw_fat = 2π*220*( ⚪(x,y,FOV).-⚪(x,y,9/10*FOV) )
-	T1_fat = 800*(⚪(x,y,FOV).-⚪(x,y,9/10*FOV))/1000
-	T2_fat = 120*(⚪(x,y,FOV).-⚪(x,y,9/10*FOV))/1000 #T2 map [s]
-	fat = Phantom("FAT",x,y,ρ_fat,T2_fat,Δw_fat)
+	ring2 = ⚪(FOV/2) .- ⚪(R) #outside fat layer
+	ρ_fat = .5*ρ.*ring2
+	Δw_fat = 2π*220*ring2 #fat should be dependant on B0
+	T1_fat = 800*ring2*1e-3
+	T2_fat = 120*ring2*1e-3 #T2 map [s]
+	fat = Phantom("fat",x,y,ρ_fat,T2_fat,Δw_fat)
 	#Resulting phantom
-	obj = fat_bool ? heart+fat : heart #concatenating spins
+	obj = fat_bool ? heart + fat : heart #concatenating spins
 end
+
 """
 B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic digital brain phantom"
 NeuroImage, in review - 2006.
