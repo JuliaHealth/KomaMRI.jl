@@ -12,3 +12,4 @@ src/examples/sysimageSpinLab.dll
 *.gif
 *.h5
 *.txt
+*.nb
