@@ -12,7 +12,7 @@ R = [α -β⋆;
 
 -------- β α⋆], with |α|²+|β|² = 1.
 
-This later operates on the 2x2 representaiton of (x,y,z) as follows V+ = R V R⋆.
+This later operates on the 2x2 representation of (x,y,z) as follows V+ = R V R⋆.
 """
 struct Spinor
 	α::Complex
