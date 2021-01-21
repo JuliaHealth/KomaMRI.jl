@@ -112,9 +112,9 @@ handle(w, "simulate") do args...
     Δt = 4e-6 #<- simulate param
     t = collect(Δt:Δt:MRIsim.dur(seq))
     Nphant, Nt = prod(size(phantom)), length(t)
-    N_parts = floor(Int, Nphant*Nt/2.7e6*1/3)
+    N_parts = floor(Int, Nphant*Nt/2.7e6)
     println("Dividing simulation in Nblocks=$N_parts")
-    S = @time MRIsim.run_sim2D_times_iter(phantom,seq,t;N_parts=2)#N_parts) #run_sim2D_times_iter run_sim2D_spin
+    S = @time MRIsim.run_sim2D_times_iter(phantom,seq,t;N_parts) #run_sim2D_times_iter run_sim2D_spin
     global signal = S[MRIsim.get_DAC_on(seq,t)]/prod(size(phantom)) #Acquired data
     S = nothing
     Nx = Ny = 100 #hardcoded by now
@@ -122,6 +122,7 @@ handle(w, "simulate") do args...
     global kdata[:,2:2:Ny,:] = kdata[Nx:-1:1,2:2:Ny] #Flip in freq-dir for the EPI
     global kdata = convert(Array{Complex{Float64},2},kdata)
     @js_ w document.getElementById("simulate").innerHTML="""<button type="button" onclick='Blink.msg("simulate", 1)' class="btn btn-primary btn-lg btn-block">Run simulation!</button>"""
+    @js_ w Blink.msg("recon", 0)
 end
 handle(w, "close") do args...
     global phantom = nothing
@@ -130,23 +131,22 @@ handle(w, "close") do args...
 
     close(w)
 end
-## Default example
+## PRINTING INFO
 @info "Loading Phantom (default)"
-global phantom = StartAt( MRIsim.heart_phantom() , 0.) #brain_phantom2D(;axis="coronal")
+global phantom = brain_phantom2D(;axis="coronal")
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 @info "Loading Sequence (default) "
 Gmax = 60e-3
-δ = 10e-3; Δ = 4δ/3; θ = 0;
-DIF = MRIsim.DIF_base(1.5*Gmax,Δ,δ)*rotz(θ);
-EPI,_,_,_ = MRIsim.EPI_base(40/100, 100, 4e-6, Gmax)
+EPI,_,_,_ = EPI_base(40/100, 100, 4e-6, Gmax)
 TE = 25e-3 
-d = MRIsim.delay(TE-MRIsim.dur(EPI)/2)
-# DELAY = Sequence([d;d])
-global seq = DIF + EPI
+d = delay(TE-dur(EPI)/2)
+DELAY = Sequence([d;d])
+global seq = DELAY + EPI
 println("EPI successfully loaded! (TE = $(TE*1e3) ms)")
 global scanner = []
 global signal = 0
 global kdata = [0.0im 0.; 0. 0.]
+@info "Loading GPUs"
 print_gpus()
 nothing
 end

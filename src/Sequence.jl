@@ -109,7 +109,7 @@ get_grads(seq::Sequence,t) = begin
 end
 
 """
-Linear interpolation of the gradients, only works for equal gradients' durations.
+Linear interpolation of the gradients, only works for gradients with uniform duration.
 """
 get_grads_linear(seq::Sequence,t) = begin
 	M, N = size(seq.GR);

@@ -1,4 +1,13 @@
 ## UNDER CONSTRUCTION!
+"""Matrix A such as A ⋅ b = n × b"""
+cross(n) = begin
+   nx,ny,nz = n
+    [0 -nz ny;
+     nz 0 -nx;
+    -ny nx 0] 
+end
+"""Rotation matrix that when applied rotates with respect to "n" in an angle θ clock-wise"""
+Un(n,θ) = I * cos(θ) - sin(θ) * cross(n) + (1-cos(θ)) * (n * n')
 """
 Slab oriented along the x axis.
 
@@ -13,8 +22,11 @@ function Planes(L,D=2e-9,M=30)
     Λ =  D/L^2 * diagm([λ(m) for m=0:M])
     #Matrix A
     Ax = L * [m!=n ? ((-1)^(m+n)-1)*ϵ(m)*ϵ(n)*(λ(m)+λ(n))/(λ(m)-λ(n))^2 : 1/2 for m=0:M, n=0:M]
-    A = (Ax,0,0) 
-    μ = (Λ, A)
+    A = cat(Ax,0*Ax,0*Ax; dims=3) 
+    n = [1 0 0;
+         0 1 0;
+         0 0 1]
+    μ = (Λ, A, n)
 end
 """
 Infinite cylinder oriented along the z axis.
@@ -41,7 +53,7 @@ function Cylinder(R,D=2e-9,M=20)
     #Matrix A
     Ax = R * [cond1(i,j)*ϵ1(i,j)*β(i)*β(j)*(λ(i)+λ(j)-2*n[i]*n[j])/(λ(i)-λ(j))^2 for i=0:M, j=0:M]
     Ay = 1im*R * [cond2(i,j)*β(i)*β(j)*(λ(i)+λ(j)-2*n[i]*n[j])/(λ(i)-λ(j))^2 for i=0:M, j=0:M]
-    A = (Ax,Ay,0)
+    A = (Ax,Ay,0*Ax)
     μ = (Λ, A)
 end
 
@@ -80,5 +92,6 @@ function SignalE(μ, seq)
     G = getproperty.(seq.GR,:A)
     δ = getproperty.(seq.GR[1,:],:T)
     # E = [ Π exp( -(Λ + iγ Gn⋅A) ⋅ δn ) ]_{0,0}
-    E = *([exp(-(μ[1] .+ 𝒊*2π*γ*.+([μ[2][m]'*G[m,n] for m = 1:M]...))*δ[n]) for n = 1:N]...)[1,1]
+    A = [exp(-( μ[1] .+ 𝒊*2π*γ* .+([μ[2][:,:,m]*G[m,n] for m=1:M]...) )*δ[n]) for n=1:N]
+    E = *(A...)[1,1]
 end

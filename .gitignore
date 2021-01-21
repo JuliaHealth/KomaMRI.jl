@@ -11,3 +11,7 @@ src/examples/sysimageSpinLab.dll
 qte_vectors_input.txt
 Patch/*
 *.gve
+*.pdf
+*.jld2
+*.gif
+*.txt

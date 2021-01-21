@@ -10,7 +10,7 @@ map!(f->begin
 hh, ww = 600, 600
 l = PlotlyJS.Layout(;title=L"k-space", yaxis_title="ky [m^-1]",
     xaxis_title="kx [m^-1]",
-    modebar=attr(orientation="v"),height=hh,width=ww)
+    modebar=attr(orientation="v"),height=hh,width=ww,hovermode="closest")
 p = MRIsim.plot_grads(seq)
 plt = Observable{Any}(p)
 
@@ -31,12 +31,10 @@ function makebuttons(seq)
                 seqADC = sum(seq[ACQ])
                 kspace = MRIsim.get_designed_kspace(seqADC)
                 N = size(kspace,1)-1
-                # lines = [PlotlyJS.scatter() for i=1:N-1]
-                # for i = 1:N-1
+
                 c = ["hsv(200,$((i-1)/N*255),70)" for i=1:N-1]
-                lines = PlotlyJS.scatter(x=kspace[:,1],y=kspace[:,2],mode="lines+markers",
+                lines = PlotlyJS.scattergl(x=kspace[:,1],y=kspace[:,2],mode="lines+markers",
                         line=attr(color=c),aspectratio=1)
-                # end
                 p = PlotlyJS.plot(lines,l)
             end
             , plt, btn)

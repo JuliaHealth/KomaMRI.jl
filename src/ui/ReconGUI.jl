@@ -12,10 +12,15 @@ map!(f->begin
 
 # Ploting recon
 global recon = ifftc(kdata)
+
 hh, ww = 420,550
-l = PlotlyJS.Layout(;title="Reconstruction", yaxis_title="y", yaxis=attr(scaleanchor="x"),
+# l = PlotlyJS.Layout(;title="Reconstruction", yaxis_title="y", yaxis=attr(scaleanchor="x"),
+#     xaxis_title="x",height=hh,width=ww,
+#     modebar=attr(orientation="v"),scene=attr(aspectratio=attr(x=1,y=1,z=1)))
+l = PlotlyJS.Layout(;title="Reconstruction",yaxis_title="y",
     xaxis_title="x",height=hh,width=ww,
-    modebar=attr(orientation="v"),scene=attr(aspectratio=attr(x=1,y=1,z=1)))
+    yaxis=attr(scaleanchor="x"),
+    modebar=attr(orientation="v"),xaxis=attr(constrain="domain"),hovermode="closest")
 p = PlotlyJS.plot(PlotlyJS.heatmap(z=abs.(recon),showscale=false,colorscale="Greys"),l)
 plt = Observable{Any}(p)
 # PlotlyJS.savefig(p, path*"/assets/phantom.png", width=320, height=300)
@@ -28,11 +33,12 @@ function makebuttons(ph)
     buttons = button.(propnm)
     for (btn, key, keyname) in zip(buttons, prop, propnm)
         map!(t -> begin
-            l = PlotlyJS.Layout(;title=ph.name*": "*keyname,yaxis_title="y [cm]",
-                xaxis_title="x [cm]",height=hh,width=ww,
-                modebar=attr(orientation="v"),xaxis=attr(constrain="domain"))
-            p = PlotlyJS.plot(PlotlyJS.heatmap(x=ph.x*1e2,y=ph.y*1e2,
-                z=getproperty(ph,key); colorbar=attr(ticksuffix="")),l)
+            l = PlotlyJS.Layout(;title="Reconstruction",yaxis_title="y",
+                                xaxis_title="x",height=hh,width=ww,
+                                yaxis=attr(scaleanchor="x"),
+                                modebar=attr(orientation="v"),xaxis=attr(constrain="domain"),hovermode="closest")
+            h = PlotlyJS.heatmap(x=ph.x*1e2,y=ph.y*1e2,z=getproperty(ph,key))
+            p = PlotlyJS.plot(h,l)
             end
             , plt, btn)
     end

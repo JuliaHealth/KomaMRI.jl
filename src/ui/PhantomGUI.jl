@@ -10,26 +10,29 @@ map!(f->begin
     , data, loadbutton)
 
 hh, ww = 420,550
-l = PlotlyJS.Layout(;title=phantom.name*": ρ", yaxis_title="y [cm]",
-    yaxis=attr(scaleanchor="x"),
-    xaxis_title="x [cm]",height=hh,width=ww,
-    modebar=attr(orientation="v"),xaxis=attr(constrain="domain"))
-p = PlotlyJS.plot(PlotlyJS.heatmap(x=phantom.x*1e2,y=phantom.y*1e2,
-    z=phantom.ρ),l)
+# l = PlotlyJS.Layout(;title=phantom.name*": ρ", yaxis_title="y [cm]",
+#     yaxis=attr(scaleanchor="x"),
+#     xaxis_title="x [cm]",height=hh,width=ww,
+#     modebar=attr(orientation="v"),xaxis=attr(constrain="domain"))
+# p = PlotlyJS.plot(PlotlyJS.heatmap(x=phantom.x*1e2,y=phantom.y*1e2,
+#     z=phantom.ρ),l)
 p = @manipulate for t0 = range(0,dur(seq),length=10)*1e3
     l = PlotlyJS.Layout(;title=phantom.name*": ρ",yaxis_title="y [cm]",
         xaxis_title="x [cm]",height=hh,width=ww,
         yaxis=attr(scaleanchor="x"),
-        modebar=attr(orientation="v"),xaxis=attr(constrain="domain"))
-    h = PlotlyJS.heatmap(x=(phantom.x .+ phantom.ux(phantom.x,phantom.y,t0*1e-3))*1e2,
-                            y=(phantom.y .+ phantom.uy(phantom.x,phantom.y,t0*1e-3))*1e2,
-                            z=phantom.ρ; 
+        modebar=attr(orientation="v"),xaxis=attr(constrain="domain"),hovermode="closest")
+    h = PlotlyJS.scattergl(x=(phantom.x .+ phantom.ux(phantom.x,phantom.y,t0*1e-3))*1e2,
+                            y=(phantom.y .+ phantom.uy(phantom.x,phantom.y, t0*1e-3))*1e2,
+                            mode="markers",
+                            marker=attr(color=phantom.ρ, showscale=true, colorscale="Viridis"),
+                            text=phantom.ρ; 
                             colorbar=attr(ticksuffix=""))
     PlotlyJS.plot(h,l)
 end
 plt = Observable{Any}(p)
+
 #TODO: Improve this using https://github.com/JuliaGizmos/Interact.jl
-function makebuttons(ph,t0)
+function makebuttons(ph)
     global phantom = ph #rewriting default phantom
     prop = propertynames(ph)[4:end-2]
     propnmtuple = string.(prop)
@@ -42,10 +45,12 @@ function makebuttons(ph,t0)
                 l = PlotlyJS.Layout(;title=ph.name*": "*keyname,yaxis_title="y [cm]",
                     xaxis_title="x [cm]",height=hh,width=ww,
                     yaxis=attr(scaleanchor="x"),
-                    modebar=attr(orientation="v"),xaxis=attr(constrain="domain"))
-                h = PlotlyJS.heatmap(x=(ph.x .+ ph.ux(ph.x,ph.y,t0*1e-3))*1e2,
+                    modebar=attr(orientation="v"),xaxis=attr(constrain="domain"),hovermode="closest")
+                h = PlotlyJS.scattergl(x=(ph.x .+ ph.ux(ph.x,ph.y,t0*1e-3))*1e2,
                                      y=(ph.y .+ ph.uy(ph.x,ph.y,t0*1e-3))*1e2,
-                                     z=getproperty(ph,key); 
+                                     mode="markers",
+                                     marker=attr(color=getproperty(ph,key), showscale=true, colorscale="Viridis"),
+                                     text=getproperty(ph,key); 
                                      colorbar=attr(ticksuffix=""))
                 p = PlotlyJS.plot(h,l)
             end
@@ -57,6 +62,6 @@ function makebuttons(ph,t0)
 end
 
 map!(makebuttons, columnbuttons, data)
-columnbuttons = makebuttons(phantom,0)
+columnbuttons = makebuttons(phantom)
 pulseseq = dom"div"(loadbutton, columnbuttons, plt)
 content!(w, "div#content", pulseseq)

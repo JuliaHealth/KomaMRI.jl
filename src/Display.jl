@@ -217,13 +217,18 @@ plot_grads(seq::Sequence) = begin
 	
 	l = PlotlyJS.Layout(;yaxis_title="G [mT/m]", #title="Sequence", 
 	    xaxis_title="t [ms]",height=300)
-	p = [PlotlyJS.scatter() for j=1:M]
+	p = [PlotlyJS.scattergl() for j=1:M]
 	for j=1:size(seq.GR,1)
-		p[j] = PlotlyJS.scatter(x=t*1e3, y=G[:,j]*1e3,name=idx[j],line_shape="hv")
+		p[j] = PlotlyJS.scattergl(x=t*1e3, y=G[:,j]*1e3,name=idx[j],line_shape="hv")
 	end
 	PlotlyJS.plot(p, l)
 end
-plot_grads_moments(seq::Sequence, idx::Int=1; title="") = begin
+plot_grads_moments(seq::Sequence, idx::Int=1; title="", mode="quick") = begin
+	if mode == "quick"
+		plotter = PlotlyJS.scattergl
+	else
+		plotter = PlotlyJS.scatter
+	end
 	names = ["Gx", "Gy", "Gz"]
 	M, N = size(seq.GR)
 	G = [seq.GR[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:M]
@@ -238,7 +243,7 @@ plot_grads_moments(seq::Sequence, idx::Int=1; title="") = begin
 	M2t = [M2(t)[idx] for t=t][:]; M2max = maximum(abs.(M2t))*1.1e12
 	Gmax = maximum(abs.(G))*1.1e3
 
-	p = [PlotlyJS.scatter() for k = 1:4]
+	p = [plotter() for k = 1:4]
 
 	l = PlotlyJS.Layout(;
 	title=title,
@@ -251,9 +256,9 @@ plot_grads_moments(seq::Sequence, idx::Int=1; title="") = begin
 	yaxis4=attr(title="[mT/m⋅ms³]",anchor="free",overlaying="y",position=0.8+.4/3,side="right",
 	tickfont=attr(color="#d62728"), titlefont=attr(color="#d62728"), range=[-M2max, M2max]),
 	xaxis_title="t [ms]", height=400)
-	p[1] = PlotlyJS.scatter(x=t*1e3, y=G[:,idx]*1e3, name=names[idx], line_shape="hv")
-	p[2] = PlotlyJS.scatter(x=t*1e3, y=M0t*1e6, name="M0", yaxis="y2",line=attr(dash="dash"))
-	p[3] = PlotlyJS.scatter(x=t*1e3, y=M1t*1e9, name="M1", yaxis="y3",line=attr(dash="dash"))
-	p[4] = PlotlyJS.scatter(x=t*1e3, y=M2t*1e12, name="M2", yaxis="y4",line=attr(dash="dash"))
+	p[1] = plotter(x=t*1e3, y=G[:,idx]*1e3, name=names[idx], line_shape="hv")
+	p[2] = plotter(x=t*1e3, y=M0t*1e6, name="M0", yaxis="y2",line=attr(dash="dash"))
+	p[3] = plotter(x=t*1e3, y=M1t*1e9, name="M1", yaxis="y3",line=attr(dash="dash"))
+	p[4] = plotter(x=t*1e3, y=M2t*1e12, name="M2", yaxis="y4",line=attr(dash="dash"))
 	PlotlyJS.plot(p, l)
 end
