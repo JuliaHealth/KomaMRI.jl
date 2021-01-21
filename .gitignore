@@ -5,13 +5,10 @@
 /Manifest.toml
 /dev/
 .vscode/settings.json
-src/TestPluto.jl
-src/TestBvalue.jl
 src/examples/sysimageSpinLab.dll
-qte_vectors_input.txt
-Patch/*
 *.gve
 *.pdf
 *.jld2
 *.gif
+*.h5
 *.txt
