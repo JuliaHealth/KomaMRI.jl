@@ -5,9 +5,10 @@ G = 30e-3 # 30 mT/m
 T = 3e-3; # 3 ms
 B1 = 15e-6; # 15 μT
 
-RFs = RF_fun(t->B1*sinc.(8(t-T/2)/T),T) #sinc pulse of duration T [s]
-B1e = getproperty.(SEQ.RF,:A)
-ΔT = getproperty.(SEQ.RF,:T)
+N = 300
+RFs = RF_fun(t->B1*sinc.(8(t-T/2)/T),T,N) #sinc pulse of duration T [s]
+B1e = getproperty.(RFs,:A)
+ΔT = getproperty.(RFs,:T)
 Bx, By = real.(B1e), imag.(B1e)
 Bz = zeros(size(B1e)) # Bz = 0 in the rotating frame implies a non-selective excitation
 # In genral, Bz = Δω(x)/γ + G ⋅ x
@@ -33,10 +34,9 @@ y = .99 * sin.(u) * sin.(v)';
 z = .99 * ones(100) * cos.(v)';
 
 ## Plots
-using Plots
+using Plots, LaTeXStrings
 plotlyjs() #change backend
-surface(x[:],y[:],z[:])
-plot!(real.(Mxy),imag.(Mxy),real.(Mz),
+plot(real.(Mxy),imag.(Mxy),real.(Mz),
     linewidth=5,label=L"M(t)",xlabel="x",ylabel="y",zlabel="z",
     xlims=(-1,1),ylims=(-1,1),zlims=(-1,1))
 scatter!([real.(Mxy[1])],[imag.(Mxy[1])],[real.(Mz[1])],
