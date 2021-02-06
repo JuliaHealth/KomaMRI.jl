@@ -151,7 +151,7 @@ get_Bmatrix(DIF::Sequence) = begin
 	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
 	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
 	τ = dur(DIF) #End of sequence
-	# B-value
+	# B-value, slower way of doing it
 	# b = zeros(M,N,N)
 	# for k=1,i=1:N,j=1:N
 	# 	ij = max(i,j)
