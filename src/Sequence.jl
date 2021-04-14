@@ -331,19 +331,25 @@ end
 """Duration in [s] => samples, with dwell-time of Δt = 6.4 μs."""
 δ2N(δ) = floor(Int64, δ * 156250) + 2
 
-function write_diff_fwf(DIF, idx180, Gmax; filename="./qte_vectors_input.txt", name="Maxwell2")
+function write_diff_fwf(DIF, idx180, Gmax, bmax; filename="./qte_vectors_input.txt", name="Maxwell2")
     open(filename, "w") do io
         G1 = DIF[1:idx180-1]
         G2 = DIF[idx180 + 1:end]
         t1 = range(0,dur(G1),length=δ2N(dur(G1)))
-		Gx1, _ = get_grads_linear(G1,t1)
 		t2 = range(0,dur(G2),length=δ2N(dur(G2)))
-        Gx2, _ = get_grads_linear(G2,t2)
-        write(io, "$name $(δ2N(dur(G1))) $(δ2N(dur(G2)))\n")
+		if size(DIF.GR,1) == 3
+        	Gx2, Gy2, Gz2 = get_grads_linear(G2,t2)
+			Gx1, Gy1, Gz1 = get_grads_linear(G1,t1)
+		else
+			Gx2, Gy2 = get_grads_linear(G2,t2)
+			Gx1, Gy1 = get_grads_linear(G1,t1)
+			Gz1, Gz2 = 0*Gy1, 0*Gy2
+		end
+        write(io, "$name $(δ2N(dur(G1))) $(δ2N(dur(G2))) $(bmax)\n")
         for i = 1:length(t1)
-            fx1 = Gx1[i]/Gmax
-            fx2 = i ≤ length(t2) ? -Gx2[i]/Gmax : 0
-            line = @sprintf "% .4f % .4f % .4f % .4f % .4f % .4f\n" fx1 fx1 fx1 fx2 fx2 fx2
+            fx1, fy1, fz1 = (Gx1[i], Gy1[i], Gz1[i])./Gmax
+            fx2, fy2, fz2 = i ≤ length(t2) ? (-Gx2[i], -Gy2[i], -Gz2[i])./Gmax : (0,0,0)
+            line = @sprintf "% .4f % .4f % .4f % .4f % .4f % .4f\n" fx1 fy1 fz1 fx2 fy2 fz2
             write(io, line)
         end
     end

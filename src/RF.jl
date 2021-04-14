@@ -1,4 +1,4 @@
-"""
+@doc raw"""
 	Spinor(α,β)
 
 
@@ -6,13 +6,17 @@ Spinor(α,β) with Cayley-Klein parameters α and β.
 
 Based on "Introduction to the Shinnar-Le Roux algorithm", Patrick Le Roux (1995).
 
-A spinor is a way to represent 3D rotations, the underlying representation is a 2 X 2 complex unitary matrix (α,β ∈ C):
+A spinor is a way to represent 3D rotations, the underlying representation is a 2 X 2 complex unitary matrix (``\alpha,\beta\in\mathbb{C}``):
 
-R = [α -β⋆;
+```math
+R=\left[\begin{array}{cc}
+\alpha & -\beta^{*}\\
+\beta & \alpha^{*}
+\end{array}\right],
+```
+with ``|\alpha|²+|\beta|^2 = 1``.
 
--------- β α⋆], with |α|²+|β|² = 1.
-
-This later operates on the 2x2 representation of (x,y,z) as follows V+ = R V R⋆.
+This later operates on the ``2\times2`` representation of ``(x,y,z)`` as follows ``V^{+} = R V R^{*}``.
 """
 struct Spinor
 	α::Complex
@@ -84,7 +88,7 @@ Spinor rotation matrix.
 
 Rotation of φ with respect to the axis of rotation n=(nx,ny,nz).
 
-φ = -γ Δt √(|B1j|²+(G⋅x)²)
+φ = -γ Δt √(|B1|²+(G⋅x)²)
 
 n =  γ Δt/|φ| (B1x, B1y, G⋅x)
 """

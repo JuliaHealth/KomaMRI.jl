@@ -35,7 +35,7 @@ z = .99 * ones(100) * cos.(v)';
 
 ## Plots
 using Plots, LaTeXStrings
-plotlyjs() #change backend
+pyplot(svg=true) #change backend
 plot(real.(Mxy),imag.(Mxy),real.(Mz),
     linewidth=5,label=L"M(t)",xlabel="x",ylabel="y",zlabel="z",
     xlims=(-1,1),ylims=(-1,1),zlims=(-1,1))
@@ -43,8 +43,6 @@ scatter!([real.(Mxy[1])],[imag.(Mxy[1])],[real.(Mz[1])],
           marker=:xcross,markersize=1.5,markerstrokecolor=:auto,label="Start")
 scatter!([real.(Mxy[end])],[imag.(Mxy[end])],[real.(Mz[end])],
           marker=:xcross,markersize=1.5,markerstrokecolor=:auto,label="End")
-
-
 ## TODO
 # - A function that translates from Phantom and Sequence to a rotation matrix for each spin, something like:
 # function get_rf_rotations(obj::Phantom, seq::Sequence, t)
