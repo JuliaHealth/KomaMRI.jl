@@ -5,8 +5,10 @@
 /Manifest.toml
 /dev/
 .vscode/settings.json
-src/examples/sysimageSpinLab.dll
 docs/build/
+docs/site/
+deps
+src/examples/sysimageSpinLab.dll
 *.gve
 *.pdf
 *.jld2
