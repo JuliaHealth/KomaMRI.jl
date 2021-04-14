@@ -8,6 +8,7 @@
 docs/build/
 docs/site/
 deps
+Thumbs.db
 src/examples/sysimageSpinLab.dll
 *.gve
 *.pdf
