@@ -1,7 +1,7 @@
 # MRIsim.jl
 
 <p align="center">
-<img width="400px" src="./docs/src/assets/logo.png"/>
+<img width="300px" src="./docs/src/assets/logo.png"/>
 </p>
 
 ![Build status](https://github.com/cncastillo/MRIsim.jl/actions/workflows/ci.yml/badge.svg)
