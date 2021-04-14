@@ -1,6 +1,7 @@
 # MRIsim.jl
 
 ![Build status](https://github.com/cncastillo/MRIsim.jl/actions/workflows/ci.yml/badge.svg)
+[![Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://cncastillo.github.io/MRIsim.jl/dev)
 
 
 
