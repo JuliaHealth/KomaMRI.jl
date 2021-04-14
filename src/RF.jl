@@ -14,7 +14,7 @@ R=\left[\begin{array}{cc}
 \beta & \alpha^{*}
 \end{array}\right],
 ```
-with ``|\alpha|²+|\beta|^2 = 1``.
+with ``|\alpha|^2+|\beta|^2 = 1``.
 
 This later operates on the ``2\times2`` representation of ``(x,y,z)`` as follows ``V^{+} = R V R^{*}``.
 """
