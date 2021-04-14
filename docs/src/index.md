@@ -1,4 +1,4 @@
-# MRIsim.jl
+# Home
 
 ```@docs
 Grad
