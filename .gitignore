@@ -6,6 +6,7 @@
 /dev/
 .vscode/settings.json
 src/examples/sysimageSpinLab.dll
+docs/build/
 *.gve
 *.pdf
 *.jld2
