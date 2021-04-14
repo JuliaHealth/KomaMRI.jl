@@ -1,9 +1,9 @@
 # MRIsim.jl
 
+![MRIsim.jl](./docs/src/assets/logo.png)
+
 ![Build status](https://github.com/cncastillo/MRIsim.jl/actions/workflows/ci.yml/badge.svg)
-[![Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://cncastillo.github.io/MRIsim.jl/dev)
-
-
+[![Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://cncastillo.github.io/MRIsim.jl/)
 
 MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development.
 
