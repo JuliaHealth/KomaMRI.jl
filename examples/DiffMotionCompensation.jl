@@ -1,5 +1,5 @@
 # Sequence optimization for diffusion motion compensation 
-using MRIsim, JuMP, Ipopt, Gtk
+using MRIsim, JuMP, Ipopt#, Gtk
 using MRIsim: get_Bmatrix, get_SRmatrix, get_Mmatrix, 
               Grad_fun, dur, get_bvalue, write_diff_fwf, delay
 
@@ -11,9 +11,8 @@ plots = true
 N1 = 400 #floor(Int64, τ * 1e3 * 15625 / 100) + 2 # Δt = 6.4e-6 #dwell-time 
 
 #Path were to write the waveforms
-#path = open_dialog("Select folder containing timings", action=GtkFileChooserAction.SELECT_FOLDER)*"/"
-path = "/home/ccp/Documents/MRIsim.jl/"
-#path = "/media/ccp/9549-1842/"
+#path = "/home/ccp/Documents/MRIsim.jl/"
+path = "/media/ccp/MRI/"
 
 for k = [0,1,2], (sym,maxwell)=[(true,false),(false,false),(false,true)]
 seq_name = maxwell ? "MXM$k" : "M$k"

@@ -206,10 +206,12 @@
 # 	p
 # end
 
-plot_grads(seq::Sequence) = begin
+plot_seq(seq::Sequence) = begin
 	idx = ["Gx" "Gy" "Gz"]
 	M, N = size(seq.GR)
+	O, _ = size(seq.RF)
 	G = [seq.GR[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:M]
+	R = [seq.RF[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:O]
 	T = [seq.GR[1,i].T for i=1:N]
 	t = [sum(T[1:i]) for i=1:N]
 	t = [t[floor(Int,i/2)+1] for i=0:2*N-1]
@@ -217,9 +219,12 @@ plot_grads(seq::Sequence) = begin
 	
 	l = PlotlyJS.Layout(;yaxis_title="G [mT/m]", #title="Sequence", 
 	    xaxis_title="t [ms]",height=300)
-	p = [PlotlyJS.scattergl() for j=1:M]
-	for j=1:size(seq.GR,1)
+	p = [PlotlyJS.scattergl() for j=1:(M+O)]
+	for j=1:M
 		p[j] = PlotlyJS.scattergl(x=t*1e3, y=G[:,j]*1e3,name=idx[j],line_shape="hv")
+	end
+	for j=1:O
+		p[j+M] = PlotlyJS.scattergl(x=t*1e3, y=abs.(R[:,j])*1e6,name="RF_$j",line_shape="hv")
 	end
 	PlotlyJS.plot(p, l)
 end

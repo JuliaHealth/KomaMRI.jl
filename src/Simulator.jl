@@ -17,7 +17,7 @@ function kfoldperm(N,k; type="random")
 	return [p[r] for r in [b[i]:b[i+1]-1 for i=1:k]]
 end
 
-#GPU realted functions
+#GPU related functions
 gpu(x) = CUDA.has_cuda_gpu() ? CuArray(x) : x
 print_gpus() = begin
 	println( "$(length(devices())) CUDA capable device(s)." )
@@ -38,7 +38,7 @@ end
 Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`.
 It calculates S(t) = ∫ ρ(x,t) exp(- t/T2(x,t) ) exp(- 𝒊 ϕ(x,t)) dx.
 """
-function run_sim2D_spin(obj::Phantom, seq::Sequence, t::Array{Float64,1};
+function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,1};
 	ϕ0::Array{Float64,1}=0.)
 
 	𝒊 = 1im; Random.seed!(1)
@@ -75,9 +75,9 @@ function run_sim2D_spin(obj::Phantom, seq::Sequence, t::Array{Float64,1};
 	yt = y0 .+ obj.uy(x0,y0,t) .+ ηyp |> gpu
 	#ACQ OPTIMIZATION
     if is_DAC_on(seq, Array(t)) 
-		ϕ = ϕ0 .+ (2π*γ*Δt).*cumsum(xt.*Gx.+yt.*Gy, dims=Nsz+1) 
+		ϕ = ϕ0 .+ (2π*γ).*cumsum((xt.*Gx.+yt.*Gy).*Δt, dims=Nsz+1) 
 	else
-		ϕ = ϕ0 .+ (2π*γ*Δt).*sum(xt.*Gx.+yt.*Gy, dims=Nsz+1) 
+		ϕ = ϕ0 .+ (2π*γ).*sum((xt.*Gx.+yt.*Gy).*Δt, dims=Nsz+1) 
 	end
 	#SIGNAL
 	ρ = obj.ρ	 |> gpu
@@ -91,7 +91,7 @@ end
 """
 Implementation in multiple threads. Separating the spins in N_parts.
 """
-function run_sim2D_spin_parallel(obj::Phantom,seq::Sequence,t::Array{Float64,1};
+function run_spin_precession_parallel(obj::Phantom,seq::Sequence,t::Array{Float64,1};
 	ϕ0::Array{Float64,1}=0., N_parts::Int=CUDA.has_cuda_gpu() ? 1 : Threads.nthreads())
 
 	Nt, Ns = length(t), prod(size(obj))
@@ -100,7 +100,7 @@ function run_sim2D_spin_parallel(obj::Phantom,seq::Sequence,t::Array{Float64,1};
 	parts = kfoldperm(Ns, N_parts, type="ordered") 
 
 	@threads for p ∈ parts
-		aux, ϕ0[p] = run_sim2D_spin(obj[p],seq,t; ϕ0=ϕ0[p])
+		aux, ϕ0[p] = run_spin_precession(obj[p],seq,t; ϕ0=ϕ0[p])
 		S .+= aux
 		aux = nothing
 	end
@@ -124,7 +124,12 @@ function run_sim2D_times_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}; N
 	
 	#TODO: transform suceptibility χ to Δω, for each time-block.
 	@showprogress for p ∈ parts
-		S[p], ϕ0 =  run_sim2D_spin_parallel(obj, seq, t[p]; ϕ0)
+		if is_RF_on(seq, t[p])
+			#S[p], ϕ0 =  run_spin_excitation_parallel(obj, seq, t[p]; ϕ0)
+			nothing
+		else
+			S[p], ϕ0 =  run_spin_precession_parallel(obj, seq, t[p]; ϕ0)
+		end
 	end
 	S
 	#TODO: output raw data in ISMRMD format

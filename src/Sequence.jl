@@ -22,34 +22,34 @@ Sequence(Grad[Grad(1, 1) Grad(1, 1) Grad(2, 2) Grad(2, 2); Grad(1, 1) Grad(1, 1)
 ```
 """
 mutable struct Sequence
-	GR::Array{Grad,2}	#Sequence in (X, Y and Z) and Time
-	RF::Array{RF,1}     #RF pulses
+	GR::Array{Grad,2}	#Sequence in (X, Y and Z) and time
+	RF::Array{RF,2}     #RF pulses in coil and time
 	function Sequence(GR) #If no RF is defined, just use a zero amplitude pulse
-		new(GR, [RF(0, dur(GR))])
+		N = size(GR,2)
+		new(GR, reshape([RF(0, GR[1,i].T) for i = 1:N],1,N)) 
 	end
-	Sequence(GR,RF) = abs(dur(GR)-dur(RF))>1e-10 ? error("Gradient and RF sequence must have the same duration. 
-durGR = $(dur(GR)) s != durRF = $(dur(RF)) s") : new(GR,RF)
+	Sequence(GR,RF) = any(getproperty.(GR[1,:], :T) .!= getproperty.(RF[1,:],:T)) ? error("Gradient and RF objects must have the same duration. ") : new(GR,RF)
 end
-#TODO: Add trapezoidal grads
+#TODO: Add trapezoidal grads MACRO
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(reshape(GR,(length(GR),1)),RF)
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(reshape(GR,(length(GR),1)),reshape(RF,(length(GR),1)))
 Sequence() = Sequence([Grad(0,0); Grad(0,0)])
-#Sequence operations
+#Sequence operations. TODO: CHANGE RF to :,i whrn including coil sensitivities
 Base.length(x::Sequence) = size(x.GR,2)
-Base.iterate(x::Sequence) = (Sequence(x.GR[:,1]), 2)
-Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i]), i+1) : nothing
-Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i])
-Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i])
-Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i]) : nothing
-Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i]) : nothing
+Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1]), 2)
+Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i], x.RF[:,i]), i+1) : nothing
+Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i], x.RF[:,i])
+Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i])
+Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i]) : nothing
+Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i]) : nothing
 Base.lastindex(x::Sequence) = size(x.GR,2)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
 Base.show(io::IO,s::Sequence) = begin
 	print(io, "Sequence[ τ = $(round(dur(s)*1e3)) ms | DAC: $(is_DAC_on(s)) | GR: $(size(s.GR)) | RF: $(size(s.RF)) ]")
 end
-
-+(x::Sequence, y::Sequence) = Sequence([x.GR y.GR], [x.RF; y.RF])
--(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF; y.RF])
+#Arithmetic operations
++(x::Sequence, y::Sequence) = Sequence([x.GR y.GR], [x.RF y.RF])
+-(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF])
 -(x::Sequence) = Sequence(-x.GR, x.RF)
 *(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF)
 *(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF)
@@ -67,6 +67,17 @@ is_DAC_on(x::Sequence, t::Array{Float64,2}) = begin
 end
 "Turns on data acquisition and forces RF pulse to have zero amplitud."
 DAC_on(x::Sequence) = Sequence(DAC_on.(x.GR))
+"Tells if the sequence has elements with RF on."
+is_RF_on(x::Sequence) = any(abs.(getproperty.(x.RF,:A)) .> 0)
+"Tells if the sequence has elements with DAC on during t."
+is_RF_on(x::Sequence, t::Vector{Float64}) = begin
+	t = reshape(t,1,length(t));
+	N = size(x.RF,2)
+	T = [i==0 ? 0 : x.RF[i].T for i=0:N]
+	ts = [sum(T[1:i])  for i=1:N+1]
+	activeRFs = [any(ts[i] .<= t .< ts[i+1]) for i=1:N]
+	is_RF_on(x[activeRFs]) #Get elements of sequence active during time period t
+end
 "Duration `T` [s] of the gradient array."
 dur(x::Array{Grad,1}) = sum(x[i].T for i=1:size(x,1))
 "Duration `T` [s] of the gradient array."

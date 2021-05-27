@@ -11,7 +11,7 @@ hh, ww = 600, 600
 l = PlotlyJS.Layout(;title=L"k-space", yaxis_title="ky [m^-1]",
     xaxis_title="kx [m^-1]",
     modebar=attr(orientation="v"),height=hh,width=ww,hovermode="closest")
-p = MRIsim.plot_grads(seq)
+p = MRIsim.plot_seq(seq)
 plt = Observable{Any}(p)
 
 function makebuttons(seq)
@@ -20,7 +20,7 @@ function makebuttons(seq)
     for (btn, name) in zip(buttons, namesseq)
         if name == "Sequence"
             map!(t-> begin
-                    MRIsim.plot_grads(seq)
+                    MRIsim.plot_seq(seq)
                 end
                 , plt, btn)
         elseif name == "k-space"

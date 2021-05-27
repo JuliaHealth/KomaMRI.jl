@@ -6,8 +6,8 @@ cross(n) = begin
      nz 0 -nx;
     -ny nx 0] 
 end
-"""Rotation matrix that when applied rotates with respect to "n" in an angle θ clock-wise"""
-Un(n,θ) = I * cos(θ) - sin(θ) * cross(n) + (1-cos(θ)) * (n * n')
+"""Rotation matrix that when applied rotates with respect to "n" in an angle θ anti clock-wise"""
+Un(θ,n) = I * cos(θ) + sin(θ) * cross(n) + (1-cos(θ)) * (n * n')
 """
 Slab oriented along the x axis.
 

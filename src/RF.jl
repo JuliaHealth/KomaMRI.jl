@@ -50,7 +50,7 @@ and
 
 z+ = (|α|² - |β|²)z-α⋆ β⋆ X-αβX⋆ .
 """
-*(s::Spinor,M::Array) = begin
+*(s::Spinor, M::Array) = begin
 	[2*conj(s.α)*s.β*M[2]+conj(s.α)^2*M[1]-s.β^2*conj(M[1]),
 	(abs(s.α)^2-abs(s.β)^2)*M[2]-conj(s.α)*conj(s.β)*M[1]-s.α*s.β*conj(M[1])]
 end
@@ -88,7 +88,7 @@ Spinor rotation matrix.
 
 Rotation of φ with respect to the axis of rotation n=(nx,ny,nz).
 
-φ = -γ Δt √(|B1|²+(G⋅x)²)
+φ = -γ Δt √(|B1|²+(G⋅x)²) = -γ Δt |Bz|
 
 n =  γ Δt/|φ| (B1x, B1y, G⋅x)
 """

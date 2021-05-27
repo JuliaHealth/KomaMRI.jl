@@ -59,9 +59,10 @@ navbar = replace(navbar, "LOGO"=>logo)
 index = open(f->read(f, String), path*"/ui/html/index.html")
 ## FOOTER
 footer = open(f->read(f, String), path*"/ui/html/footer.html")
-## Update content
+## CSS
 loadcss!(w, bscss)
 loadcss!(w, customcss)
+#KATEX
 loadcss!(w,"https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css")
 loadjs!(w,"https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js")
 loadjs!(w, katex)
@@ -80,12 +81,12 @@ icons = replace(icons, "fontswoff"=>fontswoff)
 icons = replace(icons, "fontssvg"=>fontssvg)
 open(path*"/ui/css/icons_tmp.css", "w") do f write(f, icons) end
 loadcss!(w, iconstmp)
-# LOAD
+# LOAD IMAGES
 index = replace(index, "PHANTOM"=>imphantom)
 index = replace(index, "SCANNER"=>imscanner)
 index = replace(index, "PULSES"=>impulses)
 @async body!(w,*(navbar,index,footer))
-## UPDATE FUNCTIONS
+## MENU FUNCTIONS
 handle(w, "index") do args...
      @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
      body!(w,*(navbar,index,footer))
