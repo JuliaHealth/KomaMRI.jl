@@ -2,25 +2,6 @@ using MRIsim
 using MRIsim: γ, Q, RF_fun, get_grads, Un, cross
 using Plots, LaTeXStrings
 gr(size = (800,800))
-##
-f(x,y) = x*y
-x = y = -10:10
-
-# a plot with an inset
-p1 = plot(x, y, f, 
-    seriestype = [:wireframe, :surface], 
-    inset_subplots = bbox(0, 0, 0.5, 0.5, :bottom),
-    title = ["Look At" "My Titles"],
-    camera = [(10, 45) (60, 0)],
-    colorbar = false)
-
-
-# a second plot
-p2 = heatmap(x, y, f, c = :viridis)
-
-# two subplots where one of them has an inset
-plot(p1, p2, layout = (2, 1))
-##
 
 # Example
 G = 30e-3 # 30 mT/m
@@ -29,22 +10,22 @@ B1 = 15e-6; # 15 μT
 
 N = 300
 RFs = RF_fun(t->B1*sinc.(4(t-T/2)/T),T,N) #sinc pulse of duration T [s]
-B1e = getproperty.(RFs,:A)
+B1e = RFs.A
 α = π / 2
-ΔT = getproperty.(RFs,:T)
+ΔT = RFs.T
 c = α / (2π*γ*sum(B1e.*ΔT))
 c = c.re
-setproperty!.(RFs,:A, getproperty.(RFs,:A) * c)
+RFs.A .= RFs.A * c
 
-plot(real.(getproperty.(RFs,:A)), linewidth=5, dpi=200)
+plot(real.(RFs.A), linewidth=5, dpi=200)
 
 ## In general, Bz = Δω(x)/γ + G ⋅ x
-B1e = getproperty.(RFs,:A)
-ΔT = getproperty.(RFs,:T)
+B1e = RFs.A
+ΔT = RFs.T
 Bx, By = real.(B1e), imag.(B1e)
 
 # Plot
-df = .02 #.02
+df = .2 #.02
 ff = -1:df:1
 colors = range(HSV(0,1,1), stop=HSV(-360,1,1), length=length(ff)) # inverse rotation
 
@@ -56,12 +37,11 @@ Bz = zeros(size(B1e)) .+ f*.01e-3 # Bz = 0 in the rotating frame implies a non-s
 φ = -2π*γ * ΔT .* sqrt.(abs.(B1e).^2 .+ abs.(Bz).^2) # angle of rotation 
 φ[φ.==0] .= 1e-17; # removes problems when dividing by φ
 n =  2π*γ * ΔT .* [Bx By Bz]./abs.(φ) # axis of rotation
-
 Qs = [Q(φ[i],n[i,:]) for i=1:N] # hard-pulse approximation for every RF element in RFs
 Qt = *(Qs...) # Total rotation matrix
 
 Mxy, Mz = 0. + 0. *im, 1. # [0,0,1]
-M0 = [Mxy, Mz] # Initial magnetization
+M0 = Mag(Mxy, Mz) # Initial magnetization
 Mt = Qt*M0 # Final magnetization
 Mz = [(*(Qs[1:i]...)*M0)[2] for i=2:N-j]
 Mxy = [(*(Qs[1:i]...)*M0)[1] for i=2:N-j]
@@ -73,13 +53,13 @@ plot!(real.(Mxy),imag.(Mxy),real.(Mz),
     linecolor=colors[i],subplot=1)
 end
 
-plot!(real.(getproperty.(RFs,:A))[1:N-j], linewidth=5, dpi=200,
+plot!(real.(RFs.A)[1:N-j], linewidth=5, dpi=200,
     xlims=(0,N),ylims=(-.5c*B1,1.1c*B1), ticks = nothing,
     inset_subplots=bbox(0.05, 0.05, 0.5, 0.25, :bottom, :right),
     subplot=2,label=:none)
 
 end
-gif(anim, "anim_fps60.gif", fps = 60)
+#gif(anim, "anim_fps60.gif", fps = 60)
 
 ## TODO
 # - A function that translates from Phantom and Sequence to a rotation matrix for each spin, something like:

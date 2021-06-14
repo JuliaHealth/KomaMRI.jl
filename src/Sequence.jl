@@ -28,12 +28,12 @@ mutable struct Sequence
 		N = size(GR,2)
 		new(GR, reshape([RF(0, GR[1,i].T) for i = 1:N],1,N)) 
 	end
-	Sequence(GR,RF) = any(getproperty.(GR[1,:], :T) .!= getproperty.(RF[1,:],:T)) ? error("Gradient and RF objects must have the same duration. ") : new(GR,RF)
+	Sequence(GR,RF) = any(GR.T .!= RF.T) ? error("Gradient and RF objects must have the same duration. ") : new(GR,RF)
 end
 #TODO: Add trapezoidal grads MACRO
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(reshape(GR,(length(GR),1)),reshape(RF,(length(GR),1)))
-Sequence() = Sequence([Grad(0,0); Grad(0,0)])
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(reshape(GR,(length(GR),1)),reshape(RF,(length(RF),1)))
+Sequence() = Sequence(reshape([Grad(0,0); Grad(0,0)],2,1))
 #Sequence operations. TODO: CHANGE RF to :,i whrn including coil sensitivities
 Base.length(x::Sequence) = size(x.GR,2)
 Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1]), 2)
@@ -231,6 +231,9 @@ get_designed_kspace(x::Sequence) = begin
 	M, N = size(x.GR)
 	F = [x.GR[i,j].A*x.GR[i,j].T for j=1:N, i=1:M]
 	F = [zeros(1,M); F]
+	if M < 3
+		F = [F zeros(N+1,3-M)]
+	end
 	k = γ*cumsum(F, dims=1)
 end
 "Outputs actual k-space trajectory for time vector `t` from sequence object."

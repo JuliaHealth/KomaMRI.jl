@@ -21,8 +21,8 @@ p = @manipulate for t0 = range(0,dur(seq),length=10)*1e3
         xaxis_title="x [cm]",height=hh,width=ww,
         yaxis=attr(scaleanchor="x"),
         modebar=attr(orientation="v"),xaxis=attr(constrain="domain"),hovermode="closest")
-    h = PlotlyJS.scattergl(x=(phantom.x .+ phantom.ux(phantom.x,phantom.y,t0*1e-3))*1e2,
-                            y=(phantom.y .+ phantom.uy(phantom.x,phantom.y, t0*1e-3))*1e2,
+    h = PlotlyJS.scattergl(x=(phantom.x .+ phantom.ux(phantom.x,phantom.y,0,t0*1e-3))*1e2,
+                            y=(phantom.y .+ phantom.uy(phantom.x,phantom.y,0, t0*1e-3))*1e2,
                             mode="markers",
                             marker=attr(color=phantom.ρ, showscale=true, colorscale="Viridis"),
                             text=phantom.ρ; 
@@ -34,7 +34,7 @@ plt = Observable{Any}(p)
 #TODO: Improve this using https://github.com/JuliaGizmos/Interact.jl
 function makebuttons(ph)
     global phantom = ph #rewriting default phantom
-    prop = propertynames(ph)[4:end-2]
+    prop = propertynames(ph)[5:end-3]
     propnmtuple = string.(prop)
     propnm = [i for i in propnmtuple]
     buttons = button.(propnm)
@@ -46,8 +46,8 @@ function makebuttons(ph)
                     xaxis_title="x [cm]",height=hh,width=ww,
                     yaxis=attr(scaleanchor="x"),
                     modebar=attr(orientation="v"),xaxis=attr(constrain="domain"),hovermode="closest")
-                h = PlotlyJS.scattergl(x=(ph.x .+ ph.ux(ph.x,ph.y,t0*1e-3))*1e2,
-                                     y=(ph.y .+ ph.uy(ph.x,ph.y,t0*1e-3))*1e2,
+                h = PlotlyJS.scattergl(x=(ph.x .+ ph.ux(ph.x,ph.y,0,t0*1e-3))*1e2,
+                                     y=(ph.y .+ ph.uy(ph.x,ph.y,0,t0*1e-3))*1e2,
                                      mode="markers",
                                      marker=attr(color=getproperty(ph,key), showscale=true, colorscale="Viridis"),
                                      text=getproperty(ph,key); 

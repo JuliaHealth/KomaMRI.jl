@@ -7,94 +7,88 @@
 Phantom object.
 
 # Arguments
- - `name`         := Name of the Phantom
+ - `name::String` := Name of the Phantom
  - `x`            := Spins x-coordinates.
  - `y`            := Spins y-coordinates.
+ - `z`            := Spins z-coordinates.
  - `ρ::Matrix`    := Proton density.
+ - `T1::Matrix`   := T1 map.
  - `T2::Matrix`   := T2 map.
  - `Δw::Matrix`   := Off-resonace map;
- - `Dλ1::Matrix`  := Diffusion tensor principal eigen value map.
- - `Dλ2::Matrix`  := Diffusion tensor secondary eigen value map.
- - `Dθ::Matrix`   := Diffusion tensor angle map.
+ - `D::Matrix`    := Diffusion model.
  - `ux::Function` := Displacement field x.
  - `uy::Function` := Displacement field y.
+ - `uz::Function` := Displacement field z.
 """
-mutable struct Phantom # TODO: in the future use @with_kw
-	name::String #Name ob the Phantom
-	x::Array{Float64} #x-coordinates of spins
-	y::Array{Float64} #y-coordinates of spins
-	ρ::Array{Float64} #proton density
-	#T1::Matrix #T1 map
-	T2::Array{Float64} #T2 map
-	#T2s::Array{Float64}
-	Δw::Array{Float64} #Off-resonace map
-	Dλ1::Array{Float64}  #Diffusion map
-	Dλ2::Array{Float64}  #Diffusion map
-	Dθ::Array{Float64}  #Diffusion map
+@with_kw mutable struct Phantom # TODO: in the future use @with_kw
+	name::String = "spin" #Name of the Phantom
+	x::Vector #x-coordinates of spins
+	y::Vector = zeros(size(x)) #y-coordinates of spins
+	z::Vector = zeros(size(x)) #z-coordinates of spins
+	ρ::Vector = ones(size(x)) #proton density
+	T1::Vector = Inf*ones(size(x)) #T1 map
+	T2::Vector = Inf*ones(size(x)) #T2 map
+	T2s::Vector = T2
+	#Off-resonance related
+	Δw::Vector = zeros(size(x)) #Off-resonace map
 	#χ::SusceptibilityModel
-	ux::Function #Displacement field x
-	uy::Function #Displacement field x
+	#Diffusion
+	#Diff::DiffusionModel  #Diffusion map
+	#Motion
+	ux::Function = (x,y,z,t)->0 #Displacement field x
+	uy::Function = (x,y,z,t)->0 #Displacement field y
+	uz::Function = (x,y,z,t)->0 #Displacement field z
 end
-Phantom() = Phantom("spin",zeros(1,1),zeros(1,1),ones(1,1),ones(1,1),zeros(1,1),
-					zeros(1,1),zeros(1,1),zeros(1,1),(x,y,t)->0,(x,y,t)->0)
+
+# Phantom() = Phantom(name="spin",x=zeros(1,1))
 size(x::Phantom) = size(x.ρ)
 """Separate object spins in a sub-group."""
 Base.getindex(obj::Phantom, p::UnitRange{Int}) = begin
-		Phantom(obj.name,obj.x[p],obj.y[p],obj.ρ[p],
-						obj.T2[p],obj.Δw[p],obj.Dλ1[p],obj.Dλ2[p],
-						obj.Dθ[p],obj.ux,obj.uy)
+	Phantom(name=obj.name,
+			x=obj.x[p],
+			y=obj.y[p],
+			z=obj.z[p],
+			ρ=obj.ρ[p],
+			T1=obj.T1[p],
+			T2=obj.T2[p],
+			T2s=obj.T2s[p],
+			Δw=obj.Δw[p],
+			#Diff=obj.Diff[p], #TODO!
+			#Χ=obj.Diff[p], #TODO!
+			ux=obj.ux,
+			uy=obj.uy,
+			uz=obj.uz
+			)
 end
-Phantom(name::String,x::Array{Float64,2},y::Array{Float64,2},
-	ρ::Array{Float64},T2::Array{Float64},Δw::Array{Float64},
-	Dλ1::Array{Float64},Dλ2::Array{Float64},Dθ::Array{Float64},
-	ux::Function,uy::Function) = begin
-	x, y = x[ρ.≠0], y[ρ.≠0]
-	T2 = T2[ρ.≠0]
-	Δw = Δw[ρ.≠0]
-	Dλ1 = Dλ1[ρ.≠0]
-	Dλ2 = Dλ2[ρ.≠0]
-	Dθ = Dθ[ρ.≠0]
-	ρ = ρ[ρ.≠0]
-	Phantom(name,x,y,ρ,T2,Δw,Dλ1,Dλ2,Dθ,ux,uy)
-end
-Phantom(name::String,x::Array{Float64,2},y::Array{Float64,2},
-	ρ::Array{Float64},T2::Array{Float64},Dλ1::Array{Float64},Dλ2::Array{Float64},
-	Dθ::Array{Float64},ux::Function,uy::Function) = begin
-	x, y = x[ρ.≠0], y[ρ.≠0]
-	T2 = T2[ρ.≠0]
-	Dλ1 = Dλ1[ρ.≠0]
-	Dλ2 = Dλ2[ρ.≠0]
-	Dθ = Dθ[ρ.≠0]
-	ρ = ρ[ρ.≠0]
-	Phantom(name,x,y,ρ,T2,zeros(size(ρ)),Dλ1,Dλ2,Dθ,ux,uy)
-end
-Phantom(name::String,x::Array{Float64,2},y::Array{Float64,2},ρ::Array{Float64},
-	T2::Array{Float64},Δw::Array{Float64}) = begin
-	x, y = x[ρ.≠0], y[ρ.≠0]
-	T2 = T2[ρ.≠0]
-	Δw = Δw[ρ.≠0]
-	ρ = ρ[ρ.≠0]
-	Phantom(name,x,y,ρ,T2,Δw,zeros(size(ρ)),zeros(size(ρ)),zeros(size(ρ)),(x,y,t)->0,(x,y,t)->0)
-end
+
 +(s1::Phantom,s2::Phantom) =begin
-	Phantom(s1.name*"+"*s2.name,[s1.x;s2.x],[s1.y;s2.y],[s1.ρ;s2.ρ],[s1.T2;s2.T2],
-	[s1.Δw;s2.Δw],[s1.Dλ1;s2.Dλ1],[s1.Dλ2;s2.Dλ2],[s1.Dθ;s2.Dθ],s1.ux,s1.uy)
+	Phantom(s1.name*"+"*s2.name,
+			[s1.x;s2.x],
+			[s1.y;s2.y],
+			[s1.ρ;s2.ρ],
+			[s1.T2;s2.T2],
+			[s1.Δw;s2.Δw],
+			[s1.Dλ1;s2.Dλ1],
+			[s1.Dλ2;s2.Dλ2],
+			[s1.Dθ;s2.Dθ],
+			s1.ux,
+			s1.uy)
 end
 
 # Movement related commands
-StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
-FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
+# StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
+# FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
 #TODO: jaw-pitch-roll, expand, contract, functions
 
 # Getting maps
-get_DxDy2D(obj::Phantom) = begin
-	P(i) = rotz(obj.Dθ[i])[1:2,1:2];
-	D(i) = [obj.Dλ1[i] 0;0 obj.Dλ2[i]]
-	nx = [1;0]; ny = [0;1]
-	Dx = [nx'*P(i)'*D(i)*P(i)*nx for i=1:prod(size(obj.Dλ1))]
-	Dy = [ny'*P(i)'*D(i)*P(i)*ny for i=1:prod(size(obj.Dλ1))]
-	Dx, Dy
-end
+# get_DxDy2D(obj::Phantom) = begin
+# 	P(i) = rotz(obj.Dθ[i])[1:2,1:2];
+# 	D(i) = [obj.Dλ1[i] 0;0 obj.Dλ2[i]]
+# 	nx = [1;0]; ny = [0;1]
+# 	Dx = [nx'*P(i)'*D(i)*P(i)*nx for i=1:prod(size(obj.Dλ1))]
+# 	Dy = [ny'*P(i)'*D(i)*P(i)*ny for i=1:prod(size(obj.Dλ1))]
+# 	Dx, Dy
+# end
 
 """
 Heart-like LV phantom. The variable `α` is for strech, `β` for contraction, and `γ` for rotation.
@@ -219,6 +213,15 @@ function brain_phantom2D(;axis="axial",ss=4)
         (class.==209)*.77 .+ #FAT2
         (class.==232)*1 .+ #DURA
         (class.==255)*.77 #MARROW
-
-    phantom = Phantom("brain2D_"*axis,x,y,ρ,T2*1e-3,zeros(size(ρ)))
+	T1 = T1*1e-3
+	T2 = T2*1e-3
+	T2s = T2s*1e-3
+    phantom = Phantom(name="brain2D_"*axis,
+					  x=x[:],
+					  y=y[:],
+					  ρ=ρ[:],
+					  T1=T1[:],
+					  T2=T2[:],
+					  T2s=T2s[:])
+	phantom
 end

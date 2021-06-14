@@ -52,6 +52,23 @@ Grad(A::Real,T::Real) = Grad(A,T,false)
 DAC_on(x::Grad) = Grad(x.A,x.T,true)
 vcat(x::Array{Grad,1},y::Array{Grad,1}) = [i==1 ? x[j] : y[j] for i=1:2,j=1:length(x)]
 vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ? y[j] : z[j] for i=1:3,j=1:length(x)]
+getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
+getproperty(x::Matrix{Grad}, f::Symbol) = begin
+	if f == :x
+		x[1,:].A
+	elseif f == :y
+		x[2,:].A
+	elseif f == :z && size(x,2) == 3
+		x[3,:].A
+	elseif f == :DAC
+		x[1,:].DAC
+	elseif f == :T
+		x[1,:].T
+	elseif f == :A
+		getproperty.(x,:A)
+	end
+end
+
 """
 	delay(T)
 

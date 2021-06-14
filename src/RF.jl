@@ -22,7 +22,7 @@ struct Spinor
 	α::Complex
 	β::Complex
 end
-Base.show(io::IO,s::Spinor) = print(io, "Spinor(α = ",s.α,", β = ",s.β,")")
+Base.show(io::IO,s::Spinor) = print(io, "Spinor(α = ",round(s.α,digits=3),", β = ",round(s.β,digits=3),")")
 
 """
 Spinor multiplication identity.
@@ -31,28 +31,6 @@ Spinor multiplication identity.
 *(s1::Spinor,s2::Spinor) = begin
 	Spinor(s1.α*s2.α - conj(s2.β)*s1.β,
 		   s1.α*s2.β + conj(s2.α)*s1.β)
-end
-
-"""
-Spinor × Magnetization (Mx + i My, Mz)
-
-A vector V = (x,y,z) can be expressed as a complex 2x2 matrix
-
-V = [z X⋆;
-
-------- X  -z],	with X = x + i y.
-
-Then, to operate with a Spinor V+=RVR⋆, or (α,β)×(X,z) = (X+,z+) with
-
-X+ = 2α⋆βz+(α⋆)²X-β²X⋆
-
-and
-
-z+ = (|α|² - |β|²)z-α⋆ β⋆ X-αβX⋆ .
-"""
-*(s::Spinor, M::Array) = begin
-	[2*conj(s.α)*s.β*M[2]+conj(s.α)^2*M[1]-s.β^2*conj(M[1]),
-	(abs(s.α)^2-abs(s.β)^2)*M[2]-conj(s.α)*conj(s.β)*M[1]-s.α*s.β*conj(M[1])]
 end
 
 #Rotation matrices
@@ -109,4 +87,12 @@ dur(x::Array{RF,2}) = maximum(sum([x[i,j].T for i=1:size(x,1),j=1:size(x,2)],dim
 "Generate an RF sequence with amplitudes sampled from a function."
 RF_fun(f::Function,T::Real,N::Int64=300) = begin
 	RFs = [RF(f(t),T/N) for t = range(0,stop=T,length=N)]
+end
+getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x,f)
+getproperty(x::Matrix{RF}, f::Symbol) = begin
+	if f == :A
+		x[1,:].A
+	elseif f == :T
+		x[1,:].T
+	end
 end
