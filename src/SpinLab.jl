@@ -85,7 +85,6 @@ loadcss!(w, iconstmp)
 index = replace(index, "PHANTOM"=>imphantom)
 index = replace(index, "SCANNER"=>imscanner)
 index = replace(index, "PULSES"=>impulses)
-@async body!(w,*(navbar,index,footer))
 ## MENU FUNCTIONS
 handle(w, "index") do args...
      @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
@@ -150,4 +149,6 @@ global kdata = [0.0im 0.; 0. 0.]
 @info "Loading GPUs"
 print_gpus()
 nothing
+#Update GUI
+@async body!(w,*(navbar,index,footer))
 end
