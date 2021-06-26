@@ -246,6 +246,83 @@ get_actual_kspace(x::Sequence,t) = begin
 	F = [zeros(1,M); F]
 	k = γ*cumsum(F, dims=1)
 end
+
+""""Calculates the normalized moments at the end of the sequence. """
+function get_Mmatrix(seq::Sequence,order=0)
+    M, N = size(seq.GR)
+    τ = dur(seq)
+    δ = getproperty.(seq.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
+	T = [sum(δ[1:j]) for j=1:N]; T = [0; T[1:end-1]] #Position of pulse
+	if order == 0
+		M0 = δ/τ
+		M1 = δ.*(T .+ δ/2)/τ^2
+		M2 = δ.*(T.^2 .+ T.*δ .+ δ.^2/3)/τ^3
+		M3 = δ.*(T.^3 .+ 3/2 * T.^2 .*δ .+ T.*δ.^2 .+ δ.^3/4)/τ^4
+	elseif order == 1
+		M0 = δ/τ
+		M1 = δ.*T/τ^2
+		M2 = δ.*(T.^2 .+ δ.^2/6)/τ^3
+		M3 = δ.*(T.^3 .+ T.*δ.^2/2)/τ^4
+	end
+    [M0'; M1'; M2'; M3']
+end
+
+using LinearAlgebra: I, Bidiagonal, norm
+"""Slew rate matrix: |SR*g| ≤ Smax."""
+function get_SRmatrix(seq::Sequence)
+    _, N = size(seq.GR)
+    T = getproperty.(seq.GR[1,:],:T)
+    Δt = [T[i] for i=1:N-1]
+    dv = [Δt; T[end]]
+    ev = Δt;
+	SR = Array(Bidiagonal(-1 ./ dv, 1 ./ ev, :U))
+	SR = [SR[1,:]'*0 ; SR]; SR[1,1] = T[1] 
+	SR
+end
+
+## TO SCANNER (Philips)
+"""Duration in [s] => samples, with dwell-time of Δt = 6.4 μs."""
+δ2N(δ) = floor(Int64, δ * 156250) + 2
+
+function write_diff_fwf(DIF, idx180, Gmax, bmax; filename="./qte_vectors_input.txt", name="Maxwell2")
+    open(filename, "w") do io
+        G1 = DIF[1:idx180-1]
+        G2 = DIF[idx180 + 1:end]
+        t1 = range(0,dur(G1),length=δ2N(dur(G1)))
+		t2 = range(0,dur(G2),length=δ2N(dur(G2)))
+		if size(DIF.GR,1) == 3
+        	Gx2, Gy2, Gz2 = get_grads_linear(G2,t2)
+			Gx1, Gy1, Gz1 = get_grads_linear(G1,t1)
+		else
+			Gx2, Gy2 = get_grads_linear(G2,t2)
+			Gx1, Gy1 = get_grads_linear(G1,t1)
+			Gz1, Gz2 = 0*Gy1, 0*Gy2
+		end
+        write(io, "$name $(δ2N(dur(G1))) $(δ2N(dur(G2))) $(bmax)\n")
+        for i = 1:length(t1)
+            fx1, fy1, fz1 = (Gx1[i], Gy1[i], Gz1[i])./Gmax
+            fx2, fy2, fz2 = i ≤ length(t2) ? (-Gx2[i], -Gy2[i], -Gz2[i])./Gmax : (0,0,0)
+            line = @sprintf "% .4f % .4f % .4f % .4f % .4f % .4f\n" fx1 fy1 fz1 fx2 fy2 fz2
+            write(io, line)
+        end
+    end
+end
+
+function read_diff_fwf(filename="./qte_vectors_input.txt")
+    f = readlines(filename)
+    G = zeros(size(f[2:end],1),6)
+    n1, n2 = tryparse.(Int64, split(f[1]," ")[2:end])
+    for (i, l) in enumerate(f[2:end])
+        g = tryparse.(Float64, split(l," "))
+        G[i,:] = g[g .≠ nothing]
+    end
+    G, n1, n2
+end
+
+module PulseDesigner
+using ..MRIsim
+using ..MRIsim: γ, DAC_on, get_designed_kspace, get_bvalue, get_max_grad
+
 # Without moment nulling
 DIF_base(G0,Δ,δ;verbose=false) = begin
 	DIF = Sequence([Grad(G0,δ) delay(Δ-δ) -Grad(G0,δ); #Gx
@@ -308,75 +385,6 @@ EPI_base(FOV::Float64,N::Int,Δt::Float64,Gmax::Float64) = begin
 	PHASE+EPI+DEPHASE, Δx, Ga, Ta
 end
 
-""""Calculates the normalized moments at the end of the sequence. """
-function get_Mmatrix(seq::Sequence,order=0)
-    M, N = size(seq.GR)
-    τ = dur(seq)
-    δ = getproperty.(seq.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
-	T = [sum(δ[1:j]) for j=1:N]; T = [0; T[1:end-1]] #Position of pulse
-	if order == 0
-		M0 = δ/τ
-		M1 = δ.*(T .+ δ/2)/τ^2
-		M2 = δ.*(T.^2 .+ T.*δ .+ δ.^2/3)/τ^3
-		M3 = δ.*(T.^3 .+ 3/2 * T.^2 .*δ .+ T.*δ.^2 .+ δ.^3/4)/τ^4
-	elseif order == 1
-		M0 = δ/τ
-		M1 = δ.*T/τ^2
-		M2 = δ.*(T.^2 .+ δ.^2/6)/τ^3
-		M3 = δ.*(T.^3 .+ T.*δ.^2/2)/τ^4
-	end
-    [M0'; M1'; M2'; M3']
-end
-
-using LinearAlgebra: I, Bidiagonal, norm
-"""Slew rate matrix: |SR*g| ≤ Smax."""
-function get_SRmatrix(seq::Sequence)
-    _, N = size(seq.GR)
-    T = getproperty.(seq.GR[1,:],:T)
-    Δt = [T[i] for i=1:N-1]
-    dv = [Δt; T[end]]
-    ev = Δt;
-	SR = Array(Bidiagonal(-1 ./ dv, 1 ./ ev, :U))
-	SR = [SR[1,:]'*0 ; SR]; SR[1,1] = T[1] 
-	SR
-end
-
-## TO SCANNER
-"""Duration in [s] => samples, with dwell-time of Δt = 6.4 μs."""
-δ2N(δ) = floor(Int64, δ * 156250) + 2
-
-function write_diff_fwf(DIF, idx180, Gmax, bmax; filename="./qte_vectors_input.txt", name="Maxwell2")
-    open(filename, "w") do io
-        G1 = DIF[1:idx180-1]
-        G2 = DIF[idx180 + 1:end]
-        t1 = range(0,dur(G1),length=δ2N(dur(G1)))
-		t2 = range(0,dur(G2),length=δ2N(dur(G2)))
-		if size(DIF.GR,1) == 3
-        	Gx2, Gy2, Gz2 = get_grads_linear(G2,t2)
-			Gx1, Gy1, Gz1 = get_grads_linear(G1,t1)
-		else
-			Gx2, Gy2 = get_grads_linear(G2,t2)
-			Gx1, Gy1 = get_grads_linear(G1,t1)
-			Gz1, Gz2 = 0*Gy1, 0*Gy2
-		end
-        write(io, "$name $(δ2N(dur(G1))) $(δ2N(dur(G2))) $(bmax)\n")
-        for i = 1:length(t1)
-            fx1, fy1, fz1 = (Gx1[i], Gy1[i], Gz1[i])./Gmax
-            fx2, fy2, fz2 = i ≤ length(t2) ? (-Gx2[i], -Gy2[i], -Gz2[i])./Gmax : (0,0,0)
-            line = @sprintf "% .4f % .4f % .4f % .4f % .4f % .4f\n" fx1 fy1 fz1 fx2 fy2 fz2
-            write(io, line)
-        end
-    end
-end
-
-function read_diff_fwf(filename="./qte_vectors_input.txt")
-    f = readlines(filename)
-    G = zeros(size(f[2:end],1),6)
-    n1, n2 = tryparse.(Int64, split(f[1]," ")[2:end])
-    for (i, l) in enumerate(f[2:end])
-        g = tryparse.(Float64, split(l," "))
-        G[i,:] = g[g .≠ nothing]
-    end
-    G, n1, n2
-end
+export DIF_base, DIF_null, EPI_base
+end 
 

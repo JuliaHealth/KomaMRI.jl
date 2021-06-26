@@ -24,9 +24,11 @@ include("Display.jl")
 include("DiffusionModel.jl")
 
 #Main 
-export Grad, RF, Sequence, Phantom, Mag
+export Grad, delay, RF, Sequence, Phantom, Mag
 #RF-related
 export Rx, Ry, Rz, Q, Un
+#Secondary
+export PulseDesigner
 
 #GUI
 using Blink, Interact, AssetRegistry, JLD2, FileIO

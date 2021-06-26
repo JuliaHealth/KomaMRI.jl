@@ -31,7 +31,7 @@ function makebuttons(seq)
             map!(t->begin
                 ACQ = seq.GR.DAC #is_DAC_on.(seq)
                 #Adding gradients before and after acq, to show the centered k-space
-                ACQ = (circshift(ACQ,1)+circshift(ACQ,-1)+ACQ).!=0 
+                ACQ = (circshift(ACQ,1)+circshift(ACQ,-1)+ACQ).!=0 #TODO: Change to accumulated moment-0
                 seqADC = sum(seq[ACQ])
                 kspace = MRIsim.get_designed_kspace(seqADC)
                 N = size(kspace,1)-1

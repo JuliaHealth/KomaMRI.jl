@@ -31,9 +31,9 @@ Phantom object.
 	T2s::Vector = T2
 	#Off-resonance related
 	Δw::Vector = zeros(size(x)) #Off-resonace map
-	#χ::SusceptibilityModel
+	#χ::Vector{SusceptibilityModel}
 	#Diffusion
-	#Diff::DiffusionModel  #Diffusion map
+	#Diff::Vector{DiffusionModel}  #Diffusion map
 	#Motion
 	ux::Function = (x,y,z,t)->0 #Displacement field x
 	uy::Function = (x,y,z,t)->0 #Displacement field y
@@ -54,30 +54,54 @@ Base.getindex(obj::Phantom, p::UnitRange{Int}) = begin
 			T2s=obj.T2s[p],
 			Δw=obj.Δw[p],
 			#Diff=obj.Diff[p], #TODO!
-			#Χ=obj.Diff[p], #TODO!
+			#Χ=obj.Χ[p], #TODO!
 			ux=obj.ux,
 			uy=obj.uy,
 			uz=obj.uz
 			)
 end
-
+# Compartment enabling routines:
+# Addition of compartments
 +(s1::Phantom,s2::Phantom) =begin
-	Phantom(s1.name*"+"*s2.name,
-			[s1.x;s2.x],
-			[s1.y;s2.y],
-			[s1.ρ;s2.ρ],
-			[s1.T2;s2.T2],
-			[s1.Δw;s2.Δw],
-			[s1.Dλ1;s2.Dλ1],
-			[s1.Dλ2;s2.Dλ2],
-			[s1.Dθ;s2.Dθ],
-			s1.ux,
-			s1.uy)
+	Phantom(name=s1.name*"+"*s2.name,
+		x=[s1.x;s2.x],
+		y=[s1.y;s2.y],
+		z=[s1.z;s2.z],
+		ρ=[s1.ρ;s2.ρ],
+		T1=[s1.T1;s2.T1],
+		T2=[s1.T2;s2.T2],
+		T2s=[s1.T2s;s2.T2s],
+		Δw=[s1.Δw;s2.Δw],
+		#Diff=obj.Diff[p], #TODO!
+		#Χ=obj.Χ[p], #TODO!
+		ux=s1.ux,
+		uy=s1.uy,
+		uz=s1.uz
+	)
+end
+#Fraction of compartments
+*(α::Real,obj::Phantom) = begin
+	Phantom(name=obj.name,
+		x=obj.x,
+		y=obj.y,
+		z=obj.z,
+		ρ=α*obj.ρ, #Only affects the proton density
+		T1=obj.T1,
+		T2=obj.T2,
+		T2s=obj.T2s,
+		Δw=obj.Δw,
+		#Diff=obj.Diff[p], #TODO!
+		#Χ=obj.Χ[p], #TODO!
+		ux=obj.ux,
+		uy=obj.uy,
+		uz=obj.uz
+	)
 end
 
 # Movement related commands
 # StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
 # FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
+
 #TODO: jaw-pitch-roll, expand, contract, functions
 
 # Getting maps

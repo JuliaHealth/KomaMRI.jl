@@ -137,7 +137,7 @@ global phantom = brain_phantom2D(;axis="coronal")
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 @info "Loading Sequence (default) "
 Gmax = 60e-3
-EPI,_,_,_ = EPI_base(40/100, 100, 4e-6, Gmax)
+EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 100, 4e-6, Gmax)
 TE = 25e-3 
 d = delay(TE-dur(EPI)/2)
 DELAY = Sequence([d;d])
