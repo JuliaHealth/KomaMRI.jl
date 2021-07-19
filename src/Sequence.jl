@@ -319,6 +319,7 @@ function read_diff_fwf(filename="./qte_vectors_input.txt")
     G, n1, n2
 end
 
+## PulseDesigner
 module PulseDesigner
 using ..MRIsim
 using ..MRIsim: γ, DAC_on, get_designed_kspace, get_bvalue, get_max_grad

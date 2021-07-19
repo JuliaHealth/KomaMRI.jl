@@ -66,7 +66,7 @@ Spinor rotation matrix.
 
 Rotation of φ with respect to the axis of rotation n=(nx,ny,nz).
 
-φ = -γ Δt √(|B1|²+(G⋅x)²) = -γ Δt |Bz|
+φ = -γ Δt √(|B1|²+(G⋅x)²) = -γ Δt |B|
 
 n =  γ Δt/|φ| (B1x, B1y, G⋅x)
 """

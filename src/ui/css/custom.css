@@ -24,7 +24,6 @@ a,  button, input {
   overflow: hidden;
 }
 
-
 /*
 
 body {
@@ -38,7 +37,7 @@ body {
 }
 
 #content {
-  /* height: calc(100% - 60px); */
+  height: calc(100% - 60px); 
   margin-top: 60px;
   padding: 20px;
   overflow-y: auto

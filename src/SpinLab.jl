@@ -4,22 +4,22 @@ function SpinLab(;frame=true)
 path = @__DIR__
 logo = AssetRegistry.register(path*"/ui/assets/Logo.png")
 loading = AssetRegistry.register(path*"/ui/assets/Loading.gif")
-jquery = AssetRegistry.register(path*"/ui/scripts/jquery-3.4.1.slim.min.js")
+# jquery = AssetRegistry.register(path*"/ui/scripts/jquery-3.4.1.slim.min.js")
 popper = AssetRegistry.register(path*"/ui/scripts/popper.min.js")
 bsjs = AssetRegistry.register(path*"/ui/scripts/bootstrap.min.js")
 bscss = AssetRegistry.register(path*"/ui/css/bootstrap.min.css")
 katex = AssetRegistry.register(path*"/ui/scripts/auto-render.min.js")
 customcss = AssetRegistry.register(path*"/ui/css/custom.css")
-customjs = AssetRegistry.register(path*"/ui/scripts/custom.js")
-customjstmp = AssetRegistry.register(path*"/ui/scripts/custom_tmp.js")
+# customjs = AssetRegistry.register(path*"/ui/scripts/custom.js")
+# customjstmp = AssetRegistry.register(path*"/ui/scripts/custom_tmp.js")
 
 # custom icons
 icons = AssetRegistry.register(path*"/ui/css/icons.css")
-iconstmp = AssetRegistry.register(path*"/ui/css/icons_tmp.css")
-fontseot = AssetRegistry.register(path*"/ui/css/fonts/icomoon.eot")
-fontsttf = AssetRegistry.register(path*"/ui/css/fonts/icomoon.ttf")
-fontswoff = AssetRegistry.register(path*"/ui/css/fonts/icomoon.woff")
-fontssvg = AssetRegistry.register(path*"/ui/css/fonts/icomoon.svg")
+# iconstmp = AssetRegistry.register(path*"/ui/css/icons_tmp.css")
+# fontseot = AssetRegistry.register(path*"/ui/css/fonts/icomoon.eot")
+# fontsttf = AssetRegistry.register(path*"/ui/css/fonts/icomoon.ttf")
+# fontswoff = AssetRegistry.register(path*"/ui/css/fonts/icomoon.woff")
+# fontssvg = AssetRegistry.register(path*"/ui/css/fonts/icomoon.svg")
 #others
 imphantom = AssetRegistry.register(path*"/ui/assets/phantom.png")
 imscanner = AssetRegistry.register(path*"/ui/assets/scanner.png")
@@ -28,28 +28,14 @@ impulses = AssetRegistry.register(path*"/ui/assets/pulses.png")
 global w = Blink.Window(Dict(
     "title"=>"SpinLab",
     "darkTheme"=>true,
-    "autoHideMenuBar"=>true,
+    "autoHideMenuBar"=>false,
     "frame"=>frame, #removes title bar
-    "transparent"=>true,
+    "transparent"=>false,
     "backgroundColor"=>"#000",
     "node-integration" => true,
     :icon=>path*"/ui/assets/Logo_icon.png",
-    "minHeight"=>600,
-    ))
-#Loading of JS files with "defer" tag
-function loadjs_defer!(w, url)
-  @js w @new Promise(function (resolve, reject)
-    @var script = document.createElement("script")
-    script.src = $url
-    script.onload = resolve
-    script.onerror = (e) -> reject(
-                               Dict("name"=>"JSLoadError",
-                                    "message"=>"failed to load " + this.src)
-                                    )
-    script.defer = true;
-    document.head.appendChild(script)
-  end)
-end
+    # "minHeight"=>700,
+    ),async=false);
 ## LOADING BAR
 loadbar = """<center><img src="$loading" width="100px" class="align-middle"></center><br>"""
 ## NAV BAR
@@ -67,28 +53,34 @@ loadcss!(w,"https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css")
 loadjs!(w,"https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js")
 loadjs!(w, katex)
 #JQUERY, BOOSTRAP JS
-customjs = open(f->read(f, String), path*"/ui/scripts/custom.js")
-customjs = replace(customjs, "JQUERY"=>path*"/ui/scripts/jquery-3.4.1.slim.min.js")
-open(path*"/ui/scripts/custom_tmp.js", "w") do f write(f, customjs) end
-loadjs!(w, customjstmp)
+# customjs_tmp = open(f->read(f, String), customjs)
+# customjs_tmp = replace(customjs_tmp, "JQUERY"=>path*"/ui/scripts/jquery-3.4.1.slim.min.js")
+# open(path*"/ui/scripts/custom_tmp.js", "w") do f write(f, customjs) end
+# loadjs!(w, customjs_tmp)
 loadjs!(w, popper)
 loadjs!(w, bsjs)
+# loadjs_defer!(w, jquery)
 #ICONS
-icons = open(f->read(f, String), path*"/ui/css/icons.css")
-icons = replace(icons, "fontseot"=>fontseot)
-icons = replace(icons, "fontsttf"=>fontsttf)
-icons = replace(icons, "fontswoff"=>fontswoff)
-icons = replace(icons, "fontssvg"=>fontssvg)
-open(path*"/ui/css/icons_tmp.css", "w") do f write(f, icons) end
-loadcss!(w, iconstmp)
+# icons = open(f->read(f, String), path*"/ui/css/icons.css")
+# icons = replace(icons, "fontseot"=>fontseot)
+# icons = replace(icons, "fontsttf"=>fontsttf)
+# icons = replace(icons, "fontswoff"=>fontswoff)
+# icons = replace(icons, "fontssvg"=>fontssvg)
+
+# navbar = replace(navbar, "fontseot"=>path*"/ui/css/fonts/icomoon.eot")
+# navbar = replace(navbar, "fontsttf"=>path*"/ui/css/fonts/icomoon.ttf")
+# navbar = replace(navbar, "fontswoff"=>path*"/ui/css/fonts/icomoon.woff")
+# navbar = replace(navbar, "fontssvg"=>path*"/ui/css/fonts/icomoon.svg")
+# open(path*"/ui/css/icons_tmp.css", "w") do f write(f, icons) end
+loadcss!(w, "ui/css/icons.css")
 # LOAD IMAGES
 index = replace(index, "PHANTOM"=>imphantom)
 index = replace(index, "SCANNER"=>imscanner)
 index = replace(index, "PULSES"=>impulses)
 ## MENU FUNCTIONS
 handle(w, "index") do args...
-     @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
-     body!(w,*(navbar,index,footer))
+    @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
+    body!(w,*(navbar,index,footer))
 end
 handle(w, "pulses") do args...
     @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
@@ -132,9 +124,11 @@ handle(w, "close") do args...
     close(w)
 end
 ## PRINTING INFO
+#PHANTOM init
 @info "Loading Phantom (default)"
 global phantom = brain_phantom2D(;axis="coronal")
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
+#SEQ init
 @info "Loading Sequence (default) "
 Gmax = 60e-3
 EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 100, 4e-6, Gmax)
@@ -143,12 +137,16 @@ d = delay(TE-dur(EPI)/2)
 DELAY = Sequence([d;d])
 global seq = DELAY + EPI
 println("EPI successfully loaded! (TE = $(TE*1e3) ms)")
+#Init
 global scanner = []
 global signal = 0
 global kdata = [0.0im 0.; 0. 0.]
-@info "Loading GPUs"
-print_gpus()
-nothing
+#GPUs
+if has_cuda()
+    @info "Loading GPUs"
+    print_gpus()
+end
 #Update GUI
-@async body!(w,*(navbar,index,footer))
+body!(w,*(navbar,index,footer),async=false)
+nothing
 end
