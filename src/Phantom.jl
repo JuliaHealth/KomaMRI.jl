@@ -241,11 +241,11 @@ function brain_phantom2D(;axis="axial",ss=4)
 	T2 = T2*1e-3
 	T2s = T2s*1e-3
     phantom = Phantom(name="brain2D_"*axis,
-					  x=x[:],
-					  y=y[:],
-					  ρ=ρ[:],
-					  T1=T1[:],
-					  T2=T2[:],
-					  T2s=T2s[:])
+					  x=x[ρ.!=0],
+					  y=y[ρ.!=0],
+					  ρ=ρ[ρ.!=0],
+					  T1=T1[ρ.!=0],
+					  T2=T2[ρ.!=0],
+					  T2s=T2s[ρ.!=0])
 	phantom
 end

@@ -27,15 +27,17 @@ impulses = AssetRegistry.register(path*"/ui/assets/pulses.png")
 ## WINDOW
 global w = Blink.Window(Dict(
     "title"=>"SpinLab",
-    "darkTheme"=>true,
-    "autoHideMenuBar"=>false,
+    # "darkTheme"=>true,
+    # "autoHideMenuBar"=>false,
     "frame"=>frame, #removes title bar
-    "transparent"=>false,
-    "backgroundColor"=>"#000",
-    "node-integration" => true,
+    # "transparent"=>false,
+    # "backgroundcolor"=>"#000000",
+    # "node-integration" => true,
+    # :show=>false,
     :icon=>path*"/ui/assets/Logo_icon.png",
     # "minHeight"=>700,
     ),async=false);
+
 ## LOADING BAR
 loadbar = """<center><img src="$loading" width="100px" class="align-middle"></center><br>"""
 ## NAV BAR
@@ -108,11 +110,13 @@ handle(w, "simulate") do args...
     println("Dividing simulation in Nblocks=$N_parts")
     S = @time MRIsim.run_sim2D_times_iter(phantom,seq,t;N_parts) #run_sim2D_times_iter run_sim2D_spin
     global signal = S[MRIsim.get_DAC_on(seq,t)]/prod(size(phantom)) #Acquired data
-    S = nothing
-    Nx = Ny = 100 #hardcoded by now
+    #Recon
+    S = nothing #remove aux signal S
+    Nx = Ny = 99 #hardcoded by now
     global kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
     global kdata[:,2:2:Ny,:] = kdata[Nx:-1:1,2:2:Ny] #Flip in freq-dir for the EPI
     global kdata = convert(Array{Complex{Float64},2},kdata)
+
     @js_ w document.getElementById("simulate").innerHTML="""<button type="button" onclick='Blink.msg("simulate", 1)' class="btn btn-primary btn-lg btn-block">Run simulation!</button>"""
     @js_ w Blink.msg("recon", 0)
 end
@@ -131,7 +135,7 @@ println("Phantom object \"$(phantom.name)\" successfully loaded!")
 #SEQ init
 @info "Loading Sequence (default) "
 Gmax = 60e-3
-EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 100, 4e-6, Gmax)
+EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 99, 4e-6, Gmax)
 TE = 25e-3 
 d = delay(TE-dur(EPI)/2)
 DELAY = Sequence([d;d])

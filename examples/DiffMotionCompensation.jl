@@ -57,9 +57,9 @@ println("###")
 model = Model(); set_optimizer(model, Ipopt.Optimizer); set_silent(model)
 @variable(model, -Gmax <= x[1:N] <= Gmax, start=1, start=Gmax); #max-grads
 @variable(model, t)
-# @objective(model, Min, -x'*B*x); #+); #b-value
-@objective(model, Min, t); #+); #b-value
-@constraint(model, [t; M1v'*x] in NormOneCone(2))
+@objective(model, Min, -x'*B*x); #+); #b-value
+# @objective(model, Min, t); #+); #b-value
+# @constraint(model, [t; M1v'*x] in NormOneCone(2))
 # @constraint(model, [t; 1e5*1e-6*SR*x] in NormOneCone(N+2))
 @constraint(model, start_seq,  x[1] .== 0); #seq
 @constraint(model, end_seq,  x[end] .== 0); #seq
@@ -67,6 +67,8 @@ model = Model(); set_optimizer(model, Ipopt.Optimizer); set_silent(model)
 @constraint(model, end_RF180,  x[idx180 + 1] .== 0); #rf
 @constraint(model, slewrate, -Smax .<= SR*x .<= Smax); #slew rate
 @constraint(model, moments, M0v'*x .== 0); #moments
+@constraint(model, moments, M1v'*x .== 0); #moments
+@constraint(model, moments, M2v'*x .== 0); #moments
 # @constraint(model, M1extra, -λ <= 1e3*M1v'*x <= λ); #moments
 @constraint(model, bvalue, x'*B*x == bvalue0); #moments
 if maxwell

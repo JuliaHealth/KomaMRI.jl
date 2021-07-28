@@ -84,7 +84,7 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,1};
 	ρ = obj.ρ	 |> gpu
 	Δw = obj.Δw  |> gpu
 	T2 = obj.T2  |> gpu
-	S = sum(ρ.*exp.(-𝒊.*(ϕ .+ Δw.*t) .- t./T2 ), dims=1:Nsz)[:]
+	S = sum(ρ.*exp.(-𝒊.*(ϕ .+ Δw.*t) .- t./T2 ), dims=1:Nsz)[:] #<--- TODO: add coil sensitivities
 	#Signal; Current magnetization
 	ϕ0 = Array(ϕ[:,end])
     Array(S), Mag.(exp.(ϕ0*𝒊), 1)

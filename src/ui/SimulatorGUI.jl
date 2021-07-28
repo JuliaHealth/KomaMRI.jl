@@ -9,8 +9,13 @@ map!(f->begin
 
 hh, ww = 450, 150
 l = PlotlyJS.Layout(;title="Acquired signal", yaxis_title="Signal (a.u.)",
-    xaxis_title="samples",#height=hh,width=ww,
-    modebar=attr(orientation="v"),legend=false,height=450)
+    xaxis_title="samples",
+    xaxis=attr(range=[length(signal)/2-250,length(signal)/2+250],
+			    rangeslider=attr(visible=true),
+                gridcolor="gray"),
+    yaxis=attr(gridcolor="gray"),
+    modebar=attr(orientation="v"),legend=false,height=400,
+    plot_bgcolor="black")
 absS = PlotlyJS.scatter(y=abs.(signal),name="|S(t)|")
 reS = PlotlyJS.scatter(y=real.(signal),name="Re{S(t)}")
 imS = PlotlyJS.scatter(y=imag.(signal),name="Im{S(t)}")
