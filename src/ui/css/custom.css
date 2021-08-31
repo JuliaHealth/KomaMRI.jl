@@ -24,16 +24,18 @@ a,  button, input {
   overflow: hidden;
 }
 
-/*
-
-body {
-  overflow-y: hidden;
-}
-
+/* body { padding-top: 70px; } */
+/* 
 #titlebar {
   display: block;
   position: fixed;
   height: 60px;
+} */
+
+/*
+
+body {
+  overflow-y: hidden;
 }
 
 #content {

@@ -9,12 +9,12 @@ map!(f->begin
 
 hh, ww = 600, 600
 l = PlotlyJS.Layout(;
-    scene=attr(xaxis_title="kx [m^-1]",
+    scene=attr(xaxis_title=L"kx [m^-1]",
             yaxis_title="ky [m^-1]",
-            zaxis_title=L"kz [m^-1]",),
+            zaxis_title="kz [m^-1]",),
     modebar=attr(orientation="v"),height=hh,width=ww,hovermode="closest",
     scene_camera_eye=attr(x=0, y=0, z=2),
-    scene_camera_up=attr(x=0, y=1., z=0),include_mathjax=true)
+    scene_camera_up=attr(x=0, y=1., z=0),)
 p = MRIsim.plot_seq(seq)
 plt = Observable{Any}(p)
 
@@ -29,7 +29,7 @@ function makebuttons(seq)
                 , plt, btn)
         elseif name == "k-space"
             map!(t->begin
-                ACQ = seq.GR.DAC #is_DAC_on.(seq)
+                ACQ = is_DAC_on.(seq)
                 #Adding gradients before and after acq, to show the centered k-space
                 ACQ = (circshift(ACQ,1)+circshift(ACQ,-1)+ACQ).!=0 #TODO: Change to accumulated moment-0
                 seqADC = sum(seq[ACQ])

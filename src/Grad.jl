@@ -22,7 +22,6 @@ Square gradient object.
 # Arguments
 - `A::Real` := Gradient amplitude [T].
 - `T::Real` := Gradient duration [s].
-- `DAC::Bool` := Data acq. on/off.
 
 # Examples
 ```julia-repl
@@ -33,23 +32,20 @@ Grad(1, 1)
 mutable struct Grad
 	A::Real #Amplitud [T]
 	T::Real #Duration of sequence [s]
-	DAC::Bool #If we take data during that period
-    function Grad(A,T,DAC)
-		T < 0 ? error("Gradient duration must be positive.") : new(A, T, DAC)
+    function Grad(A,T)
+		T < 0 ? error("Gradient duration must be positive.") : new(A, T)
     end 
 end
 #Gradient operations
-*(x::Grad,α::Real) = Grad(α*x.A,x.T,x.DAC)
+*(x::Grad,α::Real) = Grad(α*x.A,x.T)
 *(x::Array{Grad},A::Matrix) = [sum(x[i,:]*A[j,i] for i=1:size(x,1))[k] for j=1:size(x,1), k=1:size(x,2)]
-*(α::Real,x::Grad) = Grad(α*x.A,x.T,x.DAC)
-/(x::Grad,α::Real) = Grad(x.A/α,x.T,x.DAC)
-+(x::Grad,y::Grad) = (x.T!=y.T) ? error("Duration of gradients DO NOT match") : Grad(x.A+y.A,x.T,x.DAC||y.DAC)
+*(α::Real,x::Grad) = Grad(α*x.A,x.T)
+/(x::Grad,α::Real) = Grad(x.A/α,x.T)
++(x::Grad,y::Grad) = (x.T!=y.T) ? error("Duration of gradients DO NOT match") : Grad(x.A+y.A,x.T)
 +(x::Array{Grad,1},y::Array{Grad,1}) = [x[i]+y[i] for i=1:length(x)]
 -(x::Grad) = -1*x
--(x::Grad,y::Grad) = (x.T!=y.T) ? error("Duration of gradients DO NOT match") : Grad(x.A-y.A,x.T,x.DAC||y.DAC)
+-(x::Grad,y::Grad) = (x.T!=y.T) ? error("Duration of gradients DO NOT match") : Grad(x.A-y.A,x.T)
 #Gradient functions
-Grad(A::Real,T::Real) = Grad(A,T,false)
-DAC_on(x::Grad) = Grad(x.A,x.T,true)
 vcat(x::Array{Grad,1},y::Array{Grad,1}) = [i==1 ? x[j] : y[j] for i=1:2,j=1:length(x)]
 vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ? y[j] : z[j] for i=1:3,j=1:length(x)]
 getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
@@ -60,8 +56,6 @@ getproperty(x::Matrix{Grad}, f::Symbol) = begin
 		x[2,:].A
 	elseif f == :z && size(x,2) == 3
 		x[3,:].A
-	elseif f == :DAC
-		x[1,:].DAC
 	elseif f == :T
 		x[1,:].T
 	elseif f == :A
@@ -74,7 +68,7 @@ end
 
 Auxiliary function, creates Grad object of duration `T` [s] and strength 0 [T].
 """
-delay(T::Real) = Grad(0,T,false)
+delay(T::Real) = Grad(0,T)
 """
 	Grad_fun(f,T,N)
 

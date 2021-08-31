@@ -1,3 +1,5 @@
+# Precursor of the RF excitation code with feature directions, most of the comments below are already implemented
+
 using MRIsim
 using MRIsim: γ, Q, RF_fun, get_grads, Un, cross
 using Plots, LaTeXStrings

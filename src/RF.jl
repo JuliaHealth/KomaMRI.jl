@@ -70,10 +70,13 @@ Rotation of φ with respect to the axis of rotation n=(nx,ny,nz).
 
 n =  γ Δt/|φ| (B1x, B1y, G⋅x)
 """
-Q(φ, n::Array{Float64}) = begin
-	Spinor(cos(φ/2)-im*n[3]*sin(φ/2),
-		   -im*(n[1]+im*n[2])*sin(φ/2))
+Q(φ, nxy::ComplexF64, nz::Float64) = begin
+	Spinor( cos(φ/2)-im*nz*sin(φ/2), -im*nxy*sin(φ/2) )
 end
+"""
+It calculates |\\alpha|^2+|\\beta|^2 of the Cayley-Klein parameters
+"""
+abs(s::MRIsim.Spinor) = abs(s.α)^2 + abs(s.β)^2
 
 """RF Object"""
 mutable struct RF
@@ -88,6 +91,7 @@ dur(x::Array{RF,2}) = maximum(sum([x[i,j].T for i=1:size(x,1),j=1:size(x,2)],dim
 RF_fun(f::Function,T::Real,N::Int64=300) = begin
 	RFs = [RF(f(t),T/N) for t = range(0,stop=T,length=N)]
 end
+one(T::Spinor) = Spinor(1,0)
 getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x,f)
 getproperty(x::Matrix{RF}, f::Symbol) = begin
 	if f == :A

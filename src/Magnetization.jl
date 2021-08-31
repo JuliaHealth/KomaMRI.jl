@@ -7,26 +7,28 @@ Base.show(io::IO,M::Mag) = print(io, "Mag(xy = ",round(M.xy,digits=2),", z = ",r
 Mag(p::Phantom) = Mag.(0,p.ρ)
 # Arithmetic operations
 +(M1::Mag, M2::Mag) = Mag(M1.xy + M2.xy, M1.z + M2.z) #Vector sum
-*(α::Float64, M::Mag) = Mag(α*M.xy, M.z)
+*(α::Float64, M::Mag) = Mag(α*M.xy, α*M.z)
+# Other operations
 angle(M::Mag) = angle(M.xy)
 abs(M::Mag) = abs(M.xy)
 getproperty(x::Vector{Mag}, f::Symbol) = getproperty.(x,f)
-"""
-Spinor × Magnetization (Mx + i My, Mz)
+# Rotation
+@doc raw"""
+Spinor (\alpha, \beta) × Magnetization (Mx + i My, Mz)
 
-A vector V = (x,y,z) can be expressed as a complex 2x2 matrix
+A vector M = (Mx,My,Mz) can be expressed as a complex 2x2 matrix
 
-V = [z X⋆;
+M = [Mz Mxy⋆;
 
-------- X  -z],	with X = x + i y.
+------- Mxy  -Mz],	with Mxy = Mx + i My.
 
-Then, to operate with a Spinor V+=RVR⋆, or (α,β)×(X,z) = (X+,z+) with
+Then, to operate with a Spinor M+=RMR⋆, or (α,β)×(Mxy,Mz) = (Mxy+,Mz+) with
 
-X+ = 2α⋆βz+(α⋆)²X-β²X⋆
+Mxy+ = 2α⋆βMz+(α⋆)²Mxy-β²Mxy⋆
 
 and
 
-z+ = (|α|² - |β|²)z-α⋆ β⋆ X-αβX⋆ .
+Mz+ = (|α|² - |β|²)Mz-α⋆ β⋆ Mxy-αβMxy⋆ .
 """
 *(s::Spinor, M::Mag) = begin
 	Mag(
@@ -34,7 +36,7 @@ z+ = (|α|² - |β|²)z-α⋆ β⋆ X-αβX⋆ .
         (abs(s.α)^2-abs(s.β)^2)*M.z-conj(s.α)*conj(s.β)*M.xy-s.α*s.β*conj(M.xy)
         )
 end
-
+#Operation on vector
 # M0 = Mag(0,1)
 # Mf = Ry(π/2)*M0
 # Mf.xy, Mf.z

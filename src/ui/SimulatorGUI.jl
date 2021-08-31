@@ -14,8 +14,8 @@ l = PlotlyJS.Layout(;title="Acquired signal", yaxis_title="Signal (a.u.)",
 			    rangeslider=attr(visible=true),
                 gridcolor="gray"),
     yaxis=attr(gridcolor="gray"),
-    modebar=attr(orientation="v"),legend=false,height=400,
-    plot_bgcolor="black")
+    plot_bgcolor="black",
+    modebar=attr(orientation="v"),legend=false,height=400)
 absS = PlotlyJS.scatter(y=abs.(signal),name="|S(t)|")
 reS = PlotlyJS.scatter(y=real.(signal),name="Re{S(t)}")
 imS = PlotlyJS.scatter(y=imag.(signal),name="Im{S(t)}")

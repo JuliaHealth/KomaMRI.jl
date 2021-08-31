@@ -1,6 +1,7 @@
 # This is an example code used to precompile the SpinLab GUI
 # Using a precompiled version of MRIsim should accelerate startup times for each library
 # In the future, this will enable to create an Standalone-App (exceutable)
+
 using MRIsim
 SpinLab()
 
