@@ -3,7 +3,7 @@
 ###################
 using LaTeXStrings
 plot_seq(seq::Sequence) = begin
-	idx = ["G_x" "Gy" "Gz"]
+	idx = ["Gx" "Gy" "Gz"]
 	M, N = size(seq.GR)
 	O, _ = size(seq.RF)
 	times_DAC = get_sample_times(seq)
