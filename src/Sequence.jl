@@ -22,60 +22,74 @@ Sequence(Grad[Grad(1, 1) Grad(1, 1) Grad(2, 2) Grad(2, 2); Grad(1, 1) Grad(1, 1)
 ```
 """
 mutable struct Sequence
-	GR::Array{Grad,2}	#Sequence in (X, Y and Z) and time
-	RF::Array{RF,2}     #RF pulses in coil and time
-	function Sequence(GR) #If no RF is defined, just use a zero amplitude pulse
+	GR::Array{Grad,2}		#Sequence in (X, Y and Z) and time
+	RF::Array{RF,2}			#RF pulses in coil and time
+	DAC::Array{DAC,1}		#DAC in time
+	function Sequence(GR)	#If no RF is defined, just use a zero amplitude pulse
 		N = size(GR,2)
-		new(GR, reshape([RF(0, GR[1,i].T) for i = 1:N],1,N)) 
+		new(GR, 
+			reshape(
+				[RF(0, GR[1,i].T) for i = 1:N]
+				,1,N),
+			[DAC(0,GR[1,i].T) for i = 1:N]) 
 	end
-	Sequence(GR,RF) = any(GR.T .!= RF.T) ? error("Gradient and RF objects must have the same duration. ") : new(GR,RF)
+	function Sequence(GR,RF)	#If no DAC is defined, just use a zero amplitude pulse
+		N = size(GR,2)
+		new(GR, 
+			RF,
+			[DAC(0,GR[1,i].T) for i = 1:N]) 
+	end
+	Sequence(GR,RF,DAC) = any(GR.T .!= RF.T .!= DAC.T) ? error("Gradient, RF, and DAC objects must have the same duration. ") : new(GR,RF,DAC)
 end
 #TODO: Add trapezoidal grads MACRO
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(reshape(GR,(length(GR),1)),reshape(RF,(length(RF),1)))
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, D::DAC) = Sequence(
+																reshape(GR,(length(GR),1)),
+																reshape(RF,(length(RF),1)),
+																[D]
+																)
 Sequence() = Sequence(reshape([Grad(0,0); Grad(0,0)],2,1))
 #Sequence operations. TODO: CHANGE RF to :,i whrn including coil sensitivities
 Base.length(x::Sequence) = size(x.GR,2)
-Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1]), 2)
-Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i], x.RF[:,i]), i+1) : nothing
-Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i], x.RF[:,i])
-Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i])
-Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i]) : nothing
-Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i]) : nothing
+Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1], x.DAC[1]), 2)
+Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i], x.RF[:,i], x.DAC[i]), i+1) : nothing
+Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i], x.RF[:,i], x.DAC[i])
+Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i], x.DAC[i])
+Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.DAC[i]) : nothing
+Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.DAC[i]) : nothing
 Base.lastindex(x::Sequence) = size(x.GR,2)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
 Base.show(io::IO,s::Sequence) = begin
 	print(io, "Sequence[ τ = $(round(dur(s)*1e3)) ms | DAC: $(is_DAC_on(s)) | GR: $(size(s.GR)) | RF: $(size(s.RF)) ]")
 end
 #Arithmetic operations
-+(x::Sequence, y::Sequence) = Sequence([x.GR y.GR], [x.RF y.RF])
--(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF])
--(x::Sequence) = Sequence(-x.GR, x.RF)
-*(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF)
-*(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF)
-*(x::Sequence, A::Matrix) = Sequence(x.GR*A, x.RF)
-/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF)
++(x::Sequence, y::Sequence) = Sequence([x.GR y.GR], [x.RF y.RF], [x.DAC; y.DAC])
+-(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF], [x.DAC; y.DAC])
+-(x::Sequence) = Sequence(-x.GR, x.RF, x.DAC)
+*(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF, x.DAC)
+*(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF, x.DAC)
+*(x::Sequence, A::Array{Float64,2}) = Sequence(x.GR*A, x.RF, x.DAC)
+*(A::Array{Float64,2}, x::Sequence) = Sequence(x.GR*A, x.RF, x.DAC)
+/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.DAC)
 #Sequence object functions
-is_DAC_on(x::Sequence) = any([g.DAC for g in x.GR])
+is_DAC_on(x::Sequence) = any(x.DAC.N .> 0)
 "Tells if the sequence has elements with DAC on during t."
-is_DAC_on(x::Sequence, t::Array{Float64,2}) = begin
-	N = size(x.GR,2)
-	T = [i==0 ? 0 : x.GR[1,i].T for i=0:N]
+is_DAC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}}) = begin
+	N = length(x.DAC)
+	T = [i==0 ? 0 : x.DAC[i].T for i=0:N]
 	ts = [sum(T[1:i])  for i=1:N+1]
 	activeGrads = [any(ts[i] .<= t .< ts[i+1]) for i=1:N]
 	is_DAC_on(x[activeGrads]) #Get elements of sequence active during time period t
 end
-"Turns on data acquisition and forces RF pulse to have zero amplitud."
-DAC_on(x::Sequence) = Sequence(DAC_on.(x.GR))
 "Tells if the sequence has elements with RF on."
 is_RF_on(x::Sequence) = any(abs.(getproperty.(x.RF,:A)) .> 0)
-"Tells if the sequence has elements with DAC on during t."
+"Tells if the sequence has elements with RF on during t."
 is_RF_on(x::Sequence, t::Vector{Float64}) = begin
 	t = reshape(t,1,length(t));
 	N = size(x.RF,2)
 	T = [i==0 ? 0 : x.RF[i].T for i=0:N]
 	ts = [sum(T[1:i])  for i=1:N+1]
-	activeRFs = [any(ts[i] .<= t .< ts[i+1]) for i=1:N]
+ 	activeRFs = [any(ts[i] .<= t .< ts[i+1]) for i=1:N]
 	is_RF_on(x[activeRFs]) #Get elements of sequence active during time period t
 end
 "Duration `T` [s] of the gradient array."
@@ -119,6 +133,14 @@ get_grads(seq::Sequence,t) = begin
 	(sum([A[j,i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N]) for j=1:M)
 end
 
+get_rfs(seq::Sequence,t) = begin
+	M, N = size(seq.RF);
+	A = [seq.RF[i,j].A for i=1:M, j=1:N];
+	T = [seq.RF[1,j].T for j=1:N]; T = [0; T];
+	⊓(t) = (abs.(t.-1/2) .<= 1/2)*1.;
+	[sum([A[1,i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N])]
+end
+
 """
 Linear interpolation of the gradients, only works for gradients with uniform duration.
 """
@@ -132,9 +154,9 @@ end
 
 get_DAC_on(seq::Sequence,t::Array{Float64,1}) = begin
 	Δt = t[2]-t[1]
-	M, N = size(seq.GR)
-	DAC = sum([seq.GR[i,j].DAC for i=1:M, j=1:N],dims=1)
-	T = [seq.GR[1,i].T for i=1:N]; T = [0; T]
+	M, N = size(seq.DAC)
+	DAC = seq.DAC.N .> 0
+	T = [seq.DAC[i].T for i=1:N]; T = [0; T]
 	⊓(t) = (abs.(t.-1/2.) .<= 1/2)*1.
 	DAC_bool = sum([DAC[i]*⊓((t.-sum(T[1:i]))/(T[i+1]+Δt)) for i=1:N])
 	DAC_bool = (DAC_bool.>0)
@@ -322,8 +344,20 @@ end
 ## PulseDesigner
 module PulseDesigner
 using ..MRIsim
-using ..MRIsim: γ, DAC_on, get_designed_kspace, get_bvalue, get_max_grad
+using ..MRIsim: γ, get_designed_kspace, get_bvalue, get_max_grad
 
+###############
+## RF Pulses ##
+###############
+RF_hard(B1,T; G=[0,0]) = begin
+	EX = Sequence([	Grad(G[1],T);	#Gx
+					Grad(G[2],T)],	#Gy
+					[RF(B1,T)]		#RF
+					)
+end
+##################
+## Gradient SEQ ##
+##################
 # Without moment nulling
 DIF_base(G0,Δ,δ;verbose=false) = begin
 	DIF = Sequence([Grad(G0,δ) delay(Δ-δ) -Grad(G0,δ); #Gx
@@ -368,9 +402,11 @@ EPI_base(FOV::Float64,N::Int,Δt::Float64,Gmax::Float64) = begin
 	Ga = 1/(γ*Δt*FOV)
 	Ga ≥ Gmax ? error("Error: Ga exceeds Gmax, increase Δt to at least Δt_min="
 	*string(round(1/(γ*Gmax*FOV),digits=2))*" us.") : 0
-	EPI = DAC_on(Sequence(vcat(
+	EPI = Sequence(vcat(
 	    [mod(i,2)==0 ? Grad(Ga*(-1)^(i/2),Ta) : delay(Δτ) for i=0:2*Ny-2],#Gx
-	 	[mod(i,2)==1 ? Grad(Ga,Δτ) : delay(Ta) for i=0:2*Ny-2]))) #Gy
+	 	[mod(i,2)==1 ? Grad(Ga,Δτ) : delay(Ta) for i=0:2*Ny-2])) #Gy
+	DACs = [mod(i,2)==1 ? DAC(0,Δτ) : DAC(N,Ta) for i=0:2*Ny-2]
+	EPI.DAC = DACs
 	# Recon parameters
 	Wx = maximum(abs.(get_designed_kspace(EPI)[:,1]))
 	Wy = maximum(abs.(get_designed_kspace(EPI)[:,2]))
@@ -382,7 +418,7 @@ EPI_base(FOV::Float64,N::Int,Δt::Float64,Gmax::Float64) = begin
 	println("Pixel Δf in freq. direction "*string(round(Δfx_pix,digits=2))*" Hz")
 	println("Pixel Δf in phase direction "*string(round(Δfx_pix_phase,digits=2))*" Hz")
     PHASE = Sequence(1/2*[Grad(-Ga, Ta); Grad(-Ga, Ta)])
-    DEPHASE = Sequence(1/2*[Grad(Ga, Ta); Grad(-Ga, Ta)])
+    DEPHASE = Sequence(1/2*[Grad(-Ga, Ta); Grad(-Ga, Ta)])
 	PHASE+EPI+DEPHASE, Δx, Ga, Ta
 end
 
