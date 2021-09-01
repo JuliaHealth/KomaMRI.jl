@@ -1,9 +1,9 @@
 loadbutton = filepicker()
 columnbuttons = Observable{Any}(dom"div"())
-data = Observable{Any}(Array{Sequence})
+data = Observable{Any}(Sequence)
 map!(f->begin
-        print("Loading... $f\n")
-        JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"seq")
+        global seq = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"seq")
+        print("Loaded! ... $f\n")
     end
     , data, loadbutton)
 

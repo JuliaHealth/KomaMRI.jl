@@ -4,8 +4,8 @@ loadbutton = filepicker()
 columnbuttons = Observable{Any}(dom"div"())
 data = Observable{Any}(Phantom)
 map!(f->begin
-        print("Loading... $f\n")
-        JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"phantom")
+        global phantom = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"phantom")
+        print("Loaded! ... $f\n")
     end
     , data, loadbutton)
 

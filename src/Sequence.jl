@@ -43,6 +43,11 @@ mutable struct Sequence
 end
 #TODO: Add trapezoidal grads MACRO
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(
+																reshape(GR,(length(GR),1)),
+																reshape(RF,(length(RF),1)),
+																[DAC(0,GR[1,i].T) for i = 1:size(GR,2)]
+																)
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, D::DAC) = Sequence(
 																reshape(GR,(length(GR),1)),
 																reshape(RF,(length(RF),1)),
@@ -68,8 +73,8 @@ end
 -(x::Sequence) = Sequence(-x.GR, x.RF, x.DAC)
 *(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF, x.DAC)
 *(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF, x.DAC)
-*(x::Sequence, A::Array{Float64,2}) = Sequence(x.GR*A, x.RF, x.DAC)
-*(A::Array{Float64,2}, x::Sequence) = Sequence(x.GR*A, x.RF, x.DAC)
+*(x::Sequence, A::Matrix{Float64}) = Sequence(x.GR*A, x.RF, x.DAC)
+*(A::Matrix{Float64}, x::Sequence) = Sequence(x.GR*A, x.RF, x.DAC)
 /(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.DAC)
 #Sequence object functions
 is_DAC_on(x::Sequence) = any(x.DAC.N .> 0)

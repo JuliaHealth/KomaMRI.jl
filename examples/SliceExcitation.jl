@@ -11,9 +11,10 @@ TE = 25e-3
 d = delay(TE-dur(EPI)/2-dur(EX))
 DELAY = Sequence([d;d])
 #Rotation
-t = π/2
-Rz = MRIsim.rotz(t)
-seq = Rz*EX + DELAY + EPI
-plot_seq(seq)
-@save "./EPI_example.seq" seq=seq
+for t = 0:45:180
+    Rz = MRIsim.rotz(t/180*π) #counter-clockwise rotation
+    seq = EX*Rz + DELAY + EPI
+    # plot_seq(seq)
+    @save "./EPI_example_$t.seq" seq=seq
+end
 

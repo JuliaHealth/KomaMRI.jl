@@ -2,7 +2,7 @@ mutable struct DAC
     N::Int64
     T::Float64
 end
-getproperty(x::Matrix{DAC}, f::Symbol) = getproperty.(x,f)
+getproperty(x::Vector{DAC}, f::Symbol) = getproperty.(x,f)
 
 function get_sample_times(seq)
     T = seq.DAC.T

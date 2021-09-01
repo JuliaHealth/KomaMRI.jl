@@ -38,11 +38,11 @@ mutable struct Grad
 end
 #Gradient operations
 *(x::Grad,α::Real) = Grad(α*x.A,x.T)
-*(x::Array{Grad},A::Array{Grad,2}) = [sum(x[i,:]*A[j,i] for i=1:size(x,1))[k] for j=1:size(x,1), k=1:size(x,2)]
+*(x::Array{Grad,2}, A::Matrix{Float64}) = [sum(x[i,:]*A[j,i] for i=1:size(x,1))[k] for j=1:size(x,1), k=1:size(x,2)]
 *(α::Real,x::Grad) = Grad(α*x.A,x.T)
 /(x::Grad,α::Real) = Grad(x.A/α,x.T)
 +(x::Grad,y::Grad) = (x.T!=y.T) ? error("Duration of gradients DO NOT match") : Grad(x.A+y.A,x.T)
-+(x::Array{Grad,1},y::Array{Grad,1}) = [x[i]+y[i] for i=1:length(x)]
++(x::Array{Grad,1}, y::Array{Grad,1}) = [x[i]+y[i] for i=1:length(x)]
 -(x::Grad) = -1*x
 -(x::Grad,y::Grad) = (x.T!=y.T) ? error("Duration of gradients DO NOT match") : Grad(x.A-y.A,x.T)
 #Gradient functions
