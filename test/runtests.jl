@@ -8,7 +8,7 @@ using Test
     n = rand(3); n = n./sqrt(sum(n.^2))
     z = Mag(x[1]+1im*x[2], x[3])
     # General rotation
-    xx1 = Q(θ,n)*z; #Spinor rot
+    xx1 = Q(θ,n[1]+1im*n[2],n[3])*z; #Spinor rot Q.(φ, B1./B, Bz./B)
     xx2 = Un(θ,n)*x; #3D rot matrix
     xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
     @test xx1 ≈ xx2
