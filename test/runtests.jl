@@ -31,3 +31,27 @@ using Test
     xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
     @test xx1 ≈ xx2
 end
+
+@testset "Sequence" begin
+    # Rotation
+    A1, A2, T, t = rand(4)
+    s = Sequence([Grad(A1,T);
+                  Grad(A2,T)])
+    θ = π*t
+    R = MRIsim.rotz(θ)
+    s2 = R*s
+    @test s2.GR.A ≈ [A1*cos(θ)-A2*sin(θ); A1*sin(θ)+A2*cos(θ)]
+    # Concatenation
+    A1, A2, A3, T1 = rand(4)
+    s1 = Sequence([Grad(A1,T1);
+                   Grad(A2,T1)],
+                  [RF(A3,T1)])
+    B1, B2, B3, T2 = rand(4)
+    s2 = Sequence([Grad(B1,T2);
+                   Grad(B2,T2)],
+                  [RF(B3,T2)])
+    s = s1 + s2
+    @test s.GR.A ≈ [s1.GR.A s2.GR.A]
+    @test s.RF.A ≈ [s1.RF.A s2.RF.A]
+    @test s.DAC.N ≈ [s1.DAC.N ; s2.DAC.N]
+end

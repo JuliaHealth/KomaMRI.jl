@@ -95,7 +95,7 @@ one(T::Spinor) = Spinor(1,0)
 getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x,f)
 getproperty(x::Matrix{RF}, f::Symbol) = begin
 	if f == :A
-		x[1,:].A
+		getproperty.(x,:A)
 	elseif f == :T
 		x[1,:].T
 	end
