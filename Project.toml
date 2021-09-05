@@ -37,6 +37,7 @@ TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
 
 [compat]
 FileIO = "1"
+CSV = "0.8"
 julia = "1.6"
 
 [extras]
