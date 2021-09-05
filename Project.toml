@@ -37,6 +37,14 @@ TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
 
 [compat]
 MAT = "0.10"
+Mux = "0.7"
+Images = "0.24"
+JuMP = "0.21"
+MathOptInterface = "0.9"
+Interpolations = "0.13"
+PackageCompiler = "1"
+FileIO = "1"
+CSV = "0.8"
 julia = "1.6"
 
 [extras]
