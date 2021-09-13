@@ -12,3 +12,6 @@ Phantom
 ```@docs
 MRIsim.Spinor
 ```
+```@docs
+MRIsim.Q
+```
