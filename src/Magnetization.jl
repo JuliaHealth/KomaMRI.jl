@@ -31,6 +31,10 @@ and
 Mz+ = (|α|² - |β|²)Mz-α⋆ β⋆ Mxy-αβMxy⋆ .
 """
 *(s::Spinor, M::Mag) = begin
+    # M_mat = [M.z conj(M.xy); M.xy -M.z]
+    # Q = [s.α -conj(s.β); s.β conj(s.α)]
+    # M⁺ = Q * M_mat * Q'
+    # Mag(M⁺[2,1], real(M⁺[1,1]))
 	Mag(
         2*conj(s.α)*s.β*M.z+conj(s.α)^2*M.xy-s.β^2*conj(M.xy),
         (abs(s.α)^2-abs(s.β)^2)*M.z-conj(s.α)*conj(s.β)*M.xy-s.α*s.β*conj(M.xy)
