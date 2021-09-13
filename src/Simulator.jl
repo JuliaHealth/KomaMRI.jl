@@ -66,7 +66,7 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,1};
     sz = size(obj)
 	Nsz, Nt = length(sz), length(t)
 
-	#DIFFUSION
+	#DIFFUSION, disabled while I think how to do it efficiently
 	# if !all(obj.Dλ1 .== 0) && !all(obj.Dλ2 .== 0) #No diff optimization
 	# 	#TODO: I need to add diff displacement η story between blocks (like ϕ0)
 	# 	η1 = randn(sz...,Nt) |> gpu
@@ -133,51 +133,44 @@ run_spin_excitation_parallel(obj, seq, t; M0::Array{Mag,1}, N_parts::Int = Threa
 end
 
 run_spin_excitation(obj, seq, t; M0::Array{Mag,1}) = begin
-	#TODO: GPU acceleration
-	t = reshape(t,1,length(t)); Δt = t[2]-t[1]
-	Nsz = size(obj)
-	# #SCANNER
+	Nsz = prod(size(obj))
+	Nt = length(t)
+	t = reshape(t,1,Nt); Δt = t[2]-t[1]
+	#SCANNER
 	B1 = 		get_rfs(seq,t)[1]
     Gx, Gy = 	get_grads(seq,t)
-	B1 = B1 
-	Gx = Gx #|> gpu
-	Gy = Gy #|> gpu 
+	B1 = B1 |> gpu
+	Gx = Gx |> gpu
+	Gy = Gy |> gpu 
 	#SIMULATION
-	x0 = obj.x		#|> gpu
-	y0 = obj.y		#|> gpu
-	t = t			#|> gpu
-    xt = x0 .+ obj.ux(x0,y0,0,t)					#|> gpu
-	yt = y0 .+ obj.uy(x0,y0,0,t)					#|> gpu
-	ΔB0 = obj.Δw./(2π*γ)							#|> gpu
-	Bz = Gx.*xt .+ Gy.*yt .+ ΔB0					#|> Array
-	B = sqrt.(abs.(B1).^2 .+ abs.(Bz).^2)			#|> Array
-	φ = -2π*γ * Δt .* B								# angle of rotation 
+	x0 = obj.x		|> gpu
+	y0 = obj.y		|> gpu
+	t = t			|> gpu
+    xt = x0 .+ obj.ux(x0,y0,0,t)		|> gpu
+	yt = y0 .+ obj.uy(x0,y0,0,t)		|> gpu
+	ΔB0 = obj.Δw./(2π*γ)				|> gpu
+	Bz = (Gx.*xt .+ Gy.*yt) .+ ΔB0	#<-- This line is very slow FIX!!
+	B = sqrt.(abs.(B1).^2. .+ abs.(Bz).^2.)			
+	φ = -2π*γ * Δt * B # angle of rotation 
 	B[B.==0] .= 1e-17; # removes problems when dividing by φ
-	Qt = Q.(φ, B1./B, Bz./B)
+	Qt = Q.(Array(φ), Array(B1./B), Array(Bz./B))
 	Qf = prod( Qt , dims=2 )[:] # equivalent rotation
 	#TODO: Relaxation effects
-	M0 = Qf .* M0
+	M0 =  Qf .* M0
 end
-
-
-#TODO: Create function that handles Array{Sequence,1}, starting where the other one ended
 
 """Divides time steps in N_parts blocks. Decreases RAM usage in long sequences."""
 function run_sim2D_times_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}; N_parts::Int=16)
-	if N_parts != 1
-		@warn "Diffusion will not be simulated correctly with `N_parts != 1` inside function `run_sim2D_times_iter()`.  This is a known bug being fixed."
-	end
-
 	N, Ns = length(t), prod(size(obj))
 	S = zeros(ComplexF64, N)
 	M0 = Mag(obj) #Magnetization initialization
     parts = kfoldperm(N,N_parts,type="ordered")
 	println("Starting simulation with Nspins=$Ns and Nt=$N")
 	
-	#TODO: transform suceptibility χ to Δω, for each time-block.
+	#TODO: transform suceptibility χ to Δω, for each time-block with FMM-like technique O(nlogn).
 	@showprogress for p ∈ parts
 		if is_RF_on(seq, t[p])
-			M0 = run_spin_excitation_parallel(obj, seq, t[p]; M0)
+			M0  = run_spin_excitation_parallel(obj, seq, t[p]; M0)
 		else
 			S[p], M0 = run_spin_precession_parallel(obj, seq, t[p]; M0)
 		end
@@ -186,5 +179,5 @@ function run_sim2D_times_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}; N
 	#TODO: output raw data in ISMRMD format
 	t_interp = get_sample_times(seq)
 	S_interp = LinearInterpolation(t,S)(t_interp)
-	# is_DAC_on(seq, t)
+	S_interp
 end

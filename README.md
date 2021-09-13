@@ -10,12 +10,16 @@
 MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development.
 
 **TO-DO**:
- - [x] GPU accelaration using CUDA,
- - [ ] RF excitation (under development),
- - [ ] Magnetic susceptibility,
+ - [x] Phantom and Sequence data-types,
+ - [x] Spin preccesion in gradient-only blocks,
+ - [x] GPU accelaration using CUDA.jl,
+ - [x] RF excitation,
+ - [ ] GPU accelaration of RF excitation (under development),
  - [ ] Signal "Raw Output" dictionary ([ISMRMRD](https://ismrmrd.github.io/)),
  - [ ] [MRIReco.jl](https://magneticresonanceimaging.github.io/MRIReco.jl/latest/) for the reconstruciton,
- - [ ] Scanner object: <img src="https://latex.codecogs.com/gif.latex?B_0,\,B_1,\,G_{\max},\,S_{\max}">, etc. 
+ - [ ] Scanner data-type: <img src="https://latex.codecogs.com/gif.latex?B_0,\,B_1,\,G_{\max},\,S_{\max}">, etc.,
+ - [ ] Diffusion models with Laplacian Eigen Functions,
+ - [ ] Magnetic susceptibility,
  - [ ] Coil sensitivities,
  - [ ] Documentation.
 

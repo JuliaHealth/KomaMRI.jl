@@ -1,7 +1,6 @@
 function SpinLab(;frame=true)
 ## ASSETS
 path = @__DIR__
-
 assets = AssetRegistry.register(dirname(path*"/ui/assets/"))
 scripts = AssetRegistry.register(dirname(path*"/ui/scripts/"))
 css = AssetRegistry.register(dirname(path*"/ui/css/"))
@@ -90,7 +89,7 @@ handle(w, "simulate") do args...
     Δt = 4e-6 #<- simulate param
     t = collect(0:Δt:MRIsim.dur(seq))
     Nphant, Nt = prod(size(phantom)), length(t)
-    N_parts = floor(Int, 2Nphant*Nt/2.7e6)
+    N_parts = floor(Int, Nphant*Nt/2.7e6)
     println("Dividing simulation in Nblocks=$N_parts")
     S = @time MRIsim.run_sim2D_times_iter(phantom,seq,t;N_parts) #run_sim2D_times_iter run_sim2D_spin
     global signal = S ./prod(size(phantom)) #Acquired data
@@ -136,7 +135,7 @@ if has_cuda()
     @info "Loading GPUs"
     print_gpus()
 end
-#Update GUIs home
+#Update GUI's home
 body!(w,*(navbar,index,footer),async=false)
 nothing
 end

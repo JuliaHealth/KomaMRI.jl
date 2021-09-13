@@ -57,7 +57,7 @@ Rφ(φ,θ) = Rg(-φ,θ,φ) = Rz(φ) Ry(θ) Rz(-φ)
 """
 Rφ(φ,θ) = Spinor(cos(θ/2),exp(im*φ)*sin(θ/2))
 
-"""
+@doc raw"""
 Pauly, J., Le Roux, P., Nishimura, D., & Macovski, A. (1991).
 Parameter relations for the Shinnar-Le Roux selective excitation pulse design algorithm (NMR imaging).
 IEEE Transactions on Medical Imaging, 10(1), 53–65. doi:10.1109/42.75611
@@ -66,11 +66,14 @@ Spinor rotation matrix.
 
 Rotation of φ with respect to the axis of rotation n=(nx,ny,nz).
 
-φ = -γ Δt √(|B1|²+(G⋅x)²) = -γ Δt |B|
-
-n =  γ Δt/|φ| (B1x, B1y, G⋅x)
+```math
+\varphi=-\gamma\Delta t\sqrt{\left|B_{1}\right|^{2}+\left(\boldsymbol{G}\cdot\boldsymbol{x}\right)^{2}}=-\gamma\Delta t\left\Vert \boldsymbol{B}\right\Vert
+```
+```math
+\boldsymbol{n}=\boldsymbol{B}/\left\Vert \boldsymbol{B}\right\Vert 
+```
 """
-Q(φ, nxy::ComplexF64, nz::Float64) = begin
+Q(φ, nxy, nz) = begin
 	Spinor( cos(φ/2)-im*nz*sin(φ/2), -im*nxy*sin(φ/2) )
 end
 """
