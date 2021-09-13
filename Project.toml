@@ -58,7 +58,6 @@ Parameters = "0.12"
 PlotlyJS = "0.18"
 ProgressLogging = "0.1"
 ProgressMeter = "1"
-TensorOperations = "3"
 julia = "1.6"
 
 [extras]
