@@ -15,7 +15,7 @@ MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquis
  - [x] GPU accelaration using CUDA.jl,
  - [x] RF excitation,
  - [ ] GPU accelaration of RF excitation (under development),
- - [ ] [Pulseq](https://github.com/imr-framework/pypulseq) IO and auxiliary functions,
+ - [ ] [Pulseq](https://github.com/imr-framework/pypulseq) IO and [auxiliary functions](https://github.com/imr-framework/pypulseq/tree/master/pypulseq),
  - [ ] Signal "Raw Output" dictionary ([ISMRMRD](https://ismrmrd.github.io/)),
  - [ ] [MRIReco.jl](https://magneticresonanceimaging.github.io/MRIReco.jl/latest/) for the reconstruciton,
  - [ ] Scanner data-type: <img src="https://latex.codecogs.com/gif.latex?B_0,\,B_1,\,G_{\max},\,S_{\max}">, etc.,
