@@ -27,6 +27,20 @@ MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquis
 
 **ISMRM 2020 Presentation**: [MRIsim - Carlos Castillo.pdf](others/MRIsim-CarlosCastillo.pdf)
 
+## Installation
+To install just do the following:
+
+```julia
+] add MRIsim
+```
+## First run
+MRIsim.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
+
+```julia
+SpinLab()
+```
+Then, press the button that says "Run simulation!" to do your first simulatation :).
+
 ---
 
 ## SpinLab GUI
