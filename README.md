@@ -39,7 +39,7 @@ MRIsim.jl comes with a handy GUI that contains a brain phantom with an EPI seque
 ```julia
 SpinLab()
 ```
-Then, press the button that says "Run simulation!" to do your first simulatation :).
+Then, press the button that says "Run simulation!" to do your first simulation :).
 
 ---
 
