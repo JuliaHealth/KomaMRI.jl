@@ -1,0 +1,11 @@
+cff-version: 1.0.3
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Carlos"
+    given-names: "Castillo-Passi"
+    orcid: https://orcid.org/0000-0001-6227-0477
+title: 'cncastillo/MRIsim.jl: v0.3.3'
+doi: 10.5281/zenodo.5507370
+version: 0.3.3
+date-released: 2021-09-14
+repository-code: https://github.com/cncastillo/MRIsim.jl
