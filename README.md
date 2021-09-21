@@ -15,6 +15,7 @@ MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquis
  - [x] GPU accelaration using CUDA.jl,
  - [x] RF excitation,
  - [ ] GPU accelaration of RF excitation (under development),
+ - [ ] [Pulseq](https://github.com/imr-framework/pypulseq) IO and [auxiliary functions](https://github.com/imr-framework/pypulseq/tree/master/pypulseq),
  - [ ] Signal "Raw Output" dictionary ([ISMRMRD](https://ismrmrd.github.io/)),
  - [ ] [MRIReco.jl](https://magneticresonanceimaging.github.io/MRIReco.jl/latest/) for the reconstruciton,
  - [ ] Scanner data-type: <img src="https://latex.codecogs.com/gif.latex?B_0,\,B_1,\,G_{\max},\,S_{\max}">, etc.,
@@ -25,6 +26,36 @@ MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquis
 
 
 **ISMRM 2020 Presentation**: [MRIsim - Carlos Castillo.pdf](others/MRIsim-CarlosCastillo.pdf)
+
+## Installation
+To install just do the following:
+
+```julia
+] add MRIsim
+```
+## First run
+MRIsim.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
+
+```julia
+SpinLab()
+```
+Then, press the button that says "Run simulation!" to do your first simulation :).
+
+## How to cite
+If you use this package please acknowledge us by citing:
+
+```bibtex
+@software{carlos_castillo_passi_2021_5507370,
+  author       = {Castillo-Passi, Carlos and Irarrazaval, Pablo},
+  title        = {cncastillo/MRIsim.jl: v0.3.3},
+  month        = sep,
+  year         = 2021,
+  publisher    = {Zenodo},
+  version      = {v0.3.3},
+  doi          = {10.5281/zenodo.5507370},
+  url          = {https://doi.org/10.5281/zenodo.5507370}
+}
+```
 
 ---
 

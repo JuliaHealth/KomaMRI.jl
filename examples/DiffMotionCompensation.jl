@@ -1,5 +1,5 @@
-# Code use to generate gradient waveforms that are moment compensated
-# Sequence optimization for diffusion motion compensation 
+# Code used to generate gradient waveforms that are moment-compensated
+# Sequence optimization for diffusion motion-compensation 
 
 using LinearAlgebra: norm1
 using MRIsim, JuMP, Ipopt #, Gtk
@@ -15,8 +15,8 @@ plots = true
 N1 = 400 #floor(Int64, τ * 1e3 * 15625 / 100) + 2 # Δt = 6.4e-6 #dwell-time 
 
 #Path were to write the waveforms
-# path = "/home/ccp/Documents/MRIsim.jl/"
-path = "/media/ccp/9549-1842/"
+path = "/home/ccp/Documents/MRIsim.jl/"
+#path = "/media/ccp/9549-1842/"
 
 k = 2
 sym = false
@@ -43,7 +43,7 @@ DIF = Sequence([Grad_fun(x -> 1, δ1 - dwell_time, N1) delay(rf180) Grad_fun(x -
 idx180 = N1 + 1
 _, N = size(DIF.GR)
 #Opt matrices
-B =  get_Bmatrix(DIF) #B-value
+B =  get_Bmatrix(DIF)  #B-value
 SR = get_SRmatrix(DIF) #Slew-rate
 M =  get_Mmatrix(DIF); #Moments
 M0v = M[1,:]
