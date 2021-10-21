@@ -39,6 +39,10 @@ end
 #Gradient operations
 *(x::Grad,α::Real) = Grad(α*x.A,x.T)
 *(α::Real,x::Grad) = Grad(α*x.A,x.T)
+*(A::Matrix{Float64},GR::Matrix{Grad}) = begin
+	N, M = size(GR)
+	[sum(A[i,1:N] .* GR[:,j]) for i=1:N, j=1:M]
+end
 import Base.zero
 zero(::Grad) = Grad(0,0)
 /(x::Grad,α::Real) = Grad(x.A/α,x.T)

@@ -40,7 +40,8 @@ end
     θ = π*t
     R = MRIsim.rotz(θ)
     s2 = R*s
-    @test s2.GR.A ≈ [A1*cos(θ)-A2*sin(θ); A1*sin(θ)+A2*cos(θ)]
+    GR2 = R*s.GR.A
+    @test s2.GR.A ≈ GR2
     # Rotation 3D case
     T, t1, t2, t3 = rand(4)
     N = 100
