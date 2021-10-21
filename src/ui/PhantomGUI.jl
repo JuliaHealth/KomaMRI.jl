@@ -22,8 +22,9 @@ p = @manipulate for t0 = range(0,dur(seq),length=10)*1e3
         xaxis_title="x [cm]",height=hh,width=ww,
         yaxis=attr(scaleanchor="x"),
         modebar=attr(orientation="v"),xaxis=attr(constrain="domain"),hovermode="closest")
-    h = PlotlyJS.scattergl(x=(phantom.x .+ phantom.ux(phantom.x,phantom.y,0,t0*1e-3))*1e2,
-                            y=(phantom.y .+ phantom.uy(phantom.x,phantom.y,0, t0*1e-3))*1e2,
+    h = PlotlyJS.PlotlyJS.scatter3d(x=(phantom.x .+ phantom.ux(phantom.x,phantom.y,phantom.z,t0*1e-3))*1e2,
+                                    y=(phantom.y .+ phantom.uy(phantom.x,phantom.y,phantom.z,t0*1e-3))*1e2,
+                                    z=(phantom.z .+ phantom.uz(phantom.x,phantom.y,phantom.z,t0*1e-3))*1e2,
                             mode="markers",
                             marker=attr(color=phantom.ρ, showscale=true, colorscale="Viridis"),
                             text=phantom.ρ; 
@@ -47,8 +48,9 @@ function makebuttons(ph)
                     xaxis_title="x [cm]",height=hh,width=ww,
                     yaxis=attr(scaleanchor="x"),
                     modebar=attr(orientation="v"),xaxis=attr(constrain="domain"),hovermode="closest")
-                h = PlotlyJS.scattergl(x=(ph.x .+ ph.ux(ph.x,ph.y,0,t0*1e-3))*1e2,
-                                     y=(ph.y .+ ph.uy(ph.x,ph.y,0,t0*1e-3))*1e2,
+                h = PlotlyJS.scatter3d(x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
+                                       y=(ph.y .+ ph.uy(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
+                                       z=(ph.z .+ ph.uz(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
                                      mode="markers",
                                      marker=attr(color=getproperty(ph,key), showscale=true, colorscale="Viridis"),
                                      text=getproperty(ph,key); 

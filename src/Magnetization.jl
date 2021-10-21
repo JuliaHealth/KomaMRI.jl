@@ -4,7 +4,7 @@ mutable struct Mag
 end 
 Base.show(io::IO,M::Mag) = print(io, "Mag(xy = ",round(M.xy,digits=2),", z = ",round(M.z,digits=2),")")
 # Contructor
-Mag(p::Phantom) = Mag.(0,p.ρ)
+Mag(p::Phantom, dir::Symbol) = dir==:x ? Mag.(p.ρ,0) : Mag.(0,p.ρ)
 # Arithmetic operations
 +(M1::Mag, M2::Mag) = Mag(M1.xy + M2.xy, M1.z + M2.z) #Vector sum
 *(α::Float64, M::Mag) = Mag(α*M.xy, α*M.z)

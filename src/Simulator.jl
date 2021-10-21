@@ -67,40 +67,45 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,1};
 	Nsz, Nt = length(sz), length(t)
 
 	#DIFFUSION, disabled while I think how to do it efficiently
-	# if !all(obj.Dλ1 .== 0) && !all(obj.Dλ2 .== 0) #No diff optimization
-	# 	#TODO: I need to add diff displacement η story between blocks (like ϕ0)
-	# 	η1 = randn(sz...,Nt) |> gpu
-	# 	η2 = randn(sz...,Nt) |> gpu
-	# 	Dθ = obj.Dθ |> gpu
-	# 	Dλ1 = obj.Dλ1 |> gpu
-	# 	Dλ2 = obj.Dλ2 |> gpu
-	# 	ηx = sqrt.(2Δt .* Dλ1) .* η1 |> gpu
-	# 	ηy = sqrt.(2Δt .* Dλ2) .* η2 |> gpu
-	# 	ηxp = cumsum(ηx .* cos.(Dθ) .- ηy.*sin.(Dθ), dims=Nsz+1) |> gpu
-	# 	ηyp = cumsum(ηy .* cos.(Dθ) .+ ηx.*sin.(Dθ), dims=Nsz+1) |> gpu
-	# else
+	if any(obj.Dλ1 .+ obj.Dλ2 .!= 0)  #No diff optimization
+		#TODO: I need to add diff displacement η story between blocks (like ϕ0)
+		η1 = randn(sz...,Nt) |> gpu
+		η2 = randn(sz...,Nt) |> gpu
+		Dθ = obj.Dθ |> gpu
+		Dλ1 = obj.Dλ1 |> gpu
+		Dλ2 = obj.Dλ2 |> gpu
+		ηx = sqrt.(2Δt .* Dλ1) .* η1 |> gpu
+		ηy = sqrt.(2Δt .* Dλ2) .* η2 |> gpu
+		ηxp = cumsum(ηx .* cos.(Dθ) .- ηy.*sin.(Dθ), dims=Nsz+1) |> gpu
+		ηyp = cumsum(ηy .* cos.(Dθ) .+ ηx.*sin.(Dθ), dims=Nsz+1) |> gpu
+		ηzp = 0
+	else
 		ηxp = 0
 		ηyp = 0
-	# end
+		ηzp = 0
+	end
 
 	#SCANNER
-    Gx, Gy = get_grads(seq,t)
+    Gx, Gy, Gz = get_grads(seq,t)
 	Gx = Gx |> gpu
 	Gy = Gy |> gpu 
+	Gz = Gz |> gpu 
 	#SIMULATION
 	Mxy = abs.(M0)	|> gpu
 	ϕ0 = angle.(M0)	|> gpu
 	x0 = obj.x		|> gpu
 	y0 = obj.y		|> gpu
+	z0 = obj.z		|> gpu
 	tp = t .- t[1]	|> gpu # t' = t - t0
 	t = t			|> gpu
-    xt = x0 .+ obj.ux(x0,y0,0,t) .+ ηxp |> gpu
-	yt = y0 .+ obj.uy(x0,y0,0,t) .+ ηyp |> gpu
+    xt = x0 .+ obj.ux(x0,y0,z0,t) .+ ηxp |> gpu
+	yt = y0 .+ obj.uy(x0,y0,z0,t) .+ ηyp |> gpu
+	zt = z0 .+ obj.uy(x0,y0,z0,t) .+ ηzp |> gpu
 	#ACQ OPTIMIZATION
     if is_DAC_on(seq, Array(t)) 
-		ϕ = ϕ0 .- (2π*γ).*cumsum((xt.*Gx.+yt.*Gy).*Δt, dims=Nsz+1) #TODO: Change Δt to a vector for non-uniform time stepping
+		ϕ = ϕ0 .- (2π*γ).*cumsum((xt.*Gx .+ yt.*Gy .+ zt.*Gz).*Δt, dims=Nsz+1) #TODO: Change Δt to a vector for non-uniform time stepping
 	else
-		ϕ = ϕ0 .- (2π*γ).*sum((xt.*Gx.+yt.*Gy).*Δt, dims=Nsz+1) 
+		ϕ = ϕ0 .- (2π*γ).*sum((xt.*Gx .+ yt.*Gy .+ zt.*Gz).*Δt, dims=Nsz+1) 
 	end
 	#Mxy preccesion and relaxation
 	Δw = obj.Δw  |> gpu
@@ -138,19 +143,22 @@ run_spin_excitation(obj, seq, t; M0::Array{Mag,1}) = begin
 	t = reshape(t,1,Nt); Δt = t[2]-t[1]
 	#SCANNER
 	B1 = 		get_rfs(seq,t)[1]
-    Gx, Gy = 	get_grads(seq,t)
+    Gx, Gy, Gz = 	get_grads(seq,t)
 	B1 = B1 |> gpu
 	Gx = Gx |> gpu
 	Gy = Gy |> gpu 
+	Gz = Gz |> gpu 
 	#SIMULATION
 	x0 = obj.x		|> gpu
 	y0 = obj.y		|> gpu
+	z0 = obj.z		|> gpu
 	t = t			|> gpu
-    xt = x0 .+ obj.ux(x0,y0,0,t)		|> gpu
-	yt = y0 .+ obj.uy(x0,y0,0,t)		|> gpu
+    xt = x0 .+ obj.ux(x0,y0,z0,t)		|> gpu
+	yt = y0 .+ obj.uy(x0,y0,z0,t)		|> gpu
+	zt = z0 .+ obj.uy(x0,y0,z0,t)		|> gpu
 	ΔB0 = obj.Δw./(2π*γ)				|> gpu
-	Bz = (Gx.*xt .+ Gy.*yt) .+ ΔB0	#<-- This line is very slow FIX!!
-	B = sqrt.(abs.(B1).^2. .+ abs.(Bz).^2.)			
+	Bz = (Gx.*xt .+ Gy.*yt .+ Gz.*zt) .+ ΔB0	#<-- This line is very slow, FIX!!
+	B = sqrt.(abs.(B1).^2. .+ abs.(Bz).^2.)		
 	φ = -2π*γ * Δt * B # angle of rotation 
 	B[B.==0] .= 1e-17; # removes problems when dividing by φ
 	Qt = Q.(Array(φ), Array(B1./B), Array(Bz./B))
@@ -160,10 +168,14 @@ run_spin_excitation(obj, seq, t; M0::Array{Mag,1}) = begin
 end
 
 """Divides time steps in N_parts blocks. Decreases RAM usage in long sequences."""
-function run_sim2D_times_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}; N_parts::Int=16)
+function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}; N_parts::Int=16)
 	N, Ns = length(t), prod(size(obj))
 	S = zeros(ComplexF64, N)
-	M0 = Mag(obj) #Magnetization initialization
+	if is_RF_on(seq)
+		M0 = Mag(obj,:z)
+	else
+		M0 = Mag(obj,:x)
+	end
     parts = kfoldperm(N,N_parts,type="ordered")
 	println("Starting simulation with Nspins=$Ns and Nt=$N")
 	
@@ -180,4 +192,36 @@ function run_sim2D_times_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}; N
 	t_interp = get_sample_times(seq)
 	S_interp = LinearInterpolation(t,S)(t_interp)
 	S_interp
+end
+
+function simulate(phantom::Phantom, seq::Sequence, simParams::Dict, recParams::Dict)
+	#General params
+	Nphant = prod(size(phantom))
+	#Simulation params
+	Δt = get(simParams, :Δt, 4e-6) #<- simulate param
+	t = collect(0:Δt:MRIsim.dur(seq)+Δt)
+	Nblocks = get(simParams, :Nblocks, 1)
+	println("Dividing simulation in Nblocks=$Nblocks")
+	#Recon params
+    Nx = get(recParams, :Nx, 100)
+	Ny = get(recParams, :Ny, Nx)
+	epi = get(recParams, :epi, false)
+	skip_rec = get(recParams, :skip_rec, false)
+	recon = get(recParams, :recon, :fft)
+    #Simulate
+    S = @time MRIsim.run_sim_time_iter(phantom,seq,t;N_parts=Nblocks)
+    signal = S ./ Nphant #Acquired data
+	#K-data, only 2D for now
+	if !skip_rec
+		kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
+		if epi kdata[:,2:2:Ny] = kdata[Nx:-1:1,2:2:Ny] end #Flip in freq-dir for the EPI
+		kdata = convert(Array{Complex{Float64},2},kdata)
+		#Recon, will be replaced to call MRIReco.jl
+		if recon == :fft
+			image = ifftc(kdata)
+		end
+		image
+	else
+		signal
+	end
 end

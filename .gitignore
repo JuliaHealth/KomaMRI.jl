@@ -17,6 +17,5 @@ src/examples/sysimageSpinLab.dll
 *.h5
 *.txt
 *.nb
-EPI_example_90.seq
+*.seq
 .gitignore
-EPI_example_45.seq

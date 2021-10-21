@@ -17,8 +17,8 @@ include("DAC.jl")
 include("Sequence.jl")
 include("Phantom.jl")
 include("Magnetization.jl")
-include("Simulator.jl")
 include("Recon.jl")
+include("Simulator.jl")
 include("Display.jl")
 
 #UNDER DEVELOPMENT
@@ -32,6 +32,8 @@ export Rx, Ry, Rz, Q, Un
 export PulseDesigner
 # Display
 export plot_seq, plot_grads_moments, plot_ksapce_trajectory
+# Simulator
+export simulate
 
 #GUI
 using Blink, Interact, AssetRegistry, JLD2, FileIO

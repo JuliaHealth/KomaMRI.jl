@@ -33,6 +33,9 @@ Phantom object.
 	Δw::Vector = zeros(size(x)) #Off-resonace map
 	#χ::Vector{SusceptibilityModel}
 	#Diffusion
+	Dλ1::Vector = zeros(size(x))
+	Dλ2::Vector = zeros(size(x))
+	Dθ::Vector = zeros(size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 	#Motion
 	ux::Function = (x,y,z,t)->0 #Displacement field x
@@ -54,6 +57,9 @@ Base.getindex(obj::Phantom, p::UnitRange{Int}) = begin
 			T2s=obj.T2s[p],
 			Δw=obj.Δw[p],
 			#Diff=obj.Diff[p], #TODO!
+			Dλ1=obj.Dλ1[p],
+			Dλ2=obj.Dλ2[p],
+			Dθ=obj.Dθ[p],
 			#Χ=obj.Χ[p], #TODO!
 			ux=obj.ux,
 			uy=obj.uy,
@@ -73,6 +79,9 @@ end
 		T2s=[s1.T2s;s2.T2s],
 		Δw=[s1.Δw;s2.Δw],
 		#Diff=obj.Diff[p], #TODO!
+		Dλ1=[s1.Dλ1;s2.Dλ1],
+		Dλ2=[s1.Dλ2;s2.Dλ2],
+		Dθ=[s1.Dθ;s2.Dθ],
 		#Χ=obj.Χ[p], #TODO!
 		ux=s1.ux,
 		uy=s1.uy,
@@ -91,6 +100,9 @@ end
 		T2s=obj.T2s,
 		Δw=obj.Δw,
 		#Diff=obj.Diff[p], #TODO!
+		Dλ1=obj.Dλ1,
+		Dλ2=obj.Dλ2,
+		Dθ=obj.Dθ,
 		#Χ=obj.Χ[p], #TODO!
 		ux=obj.ux,
 		uy=obj.uy,
@@ -213,7 +225,7 @@ function brain_phantom2D(;axis="axial",ss=4)
         (class.==185)*0 .+ #VESSELS
         (class.==209)*61 .+ #FAT2
         (class.==232)*58 .+ #DURA
-        (class.==255)*61 #MARROW
+        (class.==255)*61 .+#MARROW
         (class.==255)*70 #MARROW
     T1 = (class.==23)*2569 .+ #CSF
         (class.==46)*833 .+ #GM
@@ -237,15 +249,20 @@ function brain_phantom2D(;axis="axial",ss=4)
         (class.==209)*.77 .+ #FAT2
         (class.==232)*1 .+ #DURA
         (class.==255)*.77 #MARROW
+	Δw_fat = -220*2π/10
+	Δw = (class.==93)*Δw_fat .+ #FAT1
+		(class.==209)*Δw_fat    #FAT2
 	T1 = T1*1e-3
 	T2 = T2*1e-3
 	T2s = T2s*1e-3
     phantom = Phantom(name="brain2D_"*axis,
 					  x=x[ρ.!=0],
 					  y=y[ρ.!=0],
+					  z=0*x[ρ.!=0],
 					  ρ=ρ[ρ.!=0],
 					  T1=T1[ρ.!=0],
 					  T2=T2[ρ.!=0],
-					  T2s=T2s[ρ.!=0])
+					  T2s=T2s[ρ.!=0],
+					  Δw=Δw[ρ.!=0])
 	phantom
 end

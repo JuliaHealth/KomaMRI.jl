@@ -38,13 +38,14 @@ mutable struct Grad
 end
 #Gradient operations
 *(x::Grad,α::Real) = Grad(α*x.A,x.T)
-*(x::Array{Grad,2}, A::Matrix{Float64}) = [sum(x[i,:]*A[j,i] for i=1:size(x,1))[k] for j=1:size(x,1), k=1:size(x,2)]
 *(α::Real,x::Grad) = Grad(α*x.A,x.T)
+import Base.zero
+zero(::Grad) = Grad(0,0)
 /(x::Grad,α::Real) = Grad(x.A/α,x.T)
-+(x::Grad,y::Grad) = (x.T!=y.T) ? error("Duration of gradients DO NOT match") : Grad(x.A+y.A,x.T)
++(x::Grad,y::Grad) = Grad(x.A+y.A,max(x.T,y.T))
 +(x::Array{Grad,1}, y::Array{Grad,1}) = [x[i]+y[i] for i=1:length(x)]
 -(x::Grad) = -1*x
--(x::Grad,y::Grad) = (x.T!=y.T) ? error("Duration of gradients DO NOT match") : Grad(x.A-y.A,x.T)
+-(x::Grad,y::Grad) = Grad(x.A-y.A,max(x.T,y.T))
 #Gradient functions
 vcat(x::Array{Grad,1},y::Array{Grad,1}) = [i==1 ? x[j] : y[j] for i=1:2,j=1:length(x)]
 vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ? y[j] : z[j] for i=1:3,j=1:length(x)]
@@ -54,7 +55,7 @@ getproperty(x::Matrix{Grad}, f::Symbol) = begin
 		x[1,:].A
 	elseif f == :y
 		x[2,:].A
-	elseif f == :z && size(x,2) == 3
+	elseif f == :z && size(x,1) == 3
 		x[3,:].A
 	elseif f == :T
 		x[1,:].T
@@ -87,7 +88,14 @@ julia> Grad_fun(x-> sin(π*x),1,4)
  Grad(0.0, 0.333333)  Grad(0.866025, 0.333333)  Grad(0.866025, 0.333333)  Grad(1.22465e-16, 0.333333)
 ```
 """
-Grad_fun(f::Function,T::Real,N::Int64=300) = begin
-	Grads = [Grad(f(t),T/N,false) for t = range(0,stop=T,length=N)]
+Grad(f::Function,T::Real,N::Int64=300) = begin
+	Grads = [Grad(f(t),T/N) for t = range(0,stop=T,length=N)]
+	reshape(Grads,(1,N))
+end
+
+Grad(A::Vector, T::Real) = begin
+	N = length(A)
+	Δt = T/N
+	Grads = [Grad(A[i],Δt) for i = 1:N]
 	reshape(Grads,(1,N))
 end

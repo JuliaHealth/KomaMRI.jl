@@ -91,9 +91,9 @@ handle(w, "simulate") do args...
     Nphant, Nt = prod(size(phantom)), length(t)
     N_parts = floor(Int, Nphant*Nt/2.7e6)
     println("Dividing simulation in Nblocks=$N_parts")
-    S = @time MRIsim.run_sim2D_times_iter(phantom,seq,t;N_parts) #run_sim2D_times_iter run_sim2D_spin
+    S = @time MRIsim.run_sim_time_iter(phantom,seq,t;N_parts)
     global signal = S ./prod(size(phantom)) #Acquired data
-    #Recon
+    #Recon, will be replaced by call to MRIReco.jl
     S = nothing #remove aux signal S
     Nx = Ny = 99 #hardcoded by now
     global kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image

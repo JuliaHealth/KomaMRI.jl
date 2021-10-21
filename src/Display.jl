@@ -6,8 +6,7 @@ plot_seq(seq::Sequence) = begin
 	idx = ["Gx" "Gy" "Gz"]
 	M, N = size(seq.GR)
 	O, _ = size(seq.RF)
-	times_DAC = get_sample_times(seq)
-	G = [seq.GR[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:M]
+	G = [j <= M ? seq.GR[j,floor(Int,i/2)+1].A : 0. for i=0:2*N-1, j=1:3]
 	R = [seq.RF[j,floor(Int,i/2)+1].A for i=0:2*N-1, j=1:O]
 	D = [seq.DAC[floor(Int,i/2)+1].N > 0 for i=0:2*N-1]
 	T = [seq.GR[1,i].T for i=1:N]
@@ -32,17 +31,17 @@ plot_seq(seq::Sequence) = begin
 					)
 				)
 			)
-	p = [PlotlyJS.scatter() for j=1:(M+O+1)]
+	p = [PlotlyJS.scatter() for j=1:(3+O+1)]
 	#GR
-	for j=1:M
+	for j=1:3
 		p[j] = PlotlyJS.scatter(x=t*1e3, y=G[:,j]*1e3,name=idx[j],line_shape="hv",hovertemplate="%{y:.1f} mT/m")
 	end
 	#RF
 	for j=1:O
-		p[j+M] = PlotlyJS.scatter(x=t*1e3, y=abs.(R[:,j])*1e6,name="RF_$j",line_shape="hv",hovertemplate="%{y:.1f} μT")
+		p[j+3] = PlotlyJS.scatter(x=t*1e3, y=abs.(R[:,j])*1e6,name="RF_$j",line_shape="hv",hovertemplate="%{y:.1f} μT")
 	end
 	#DAC
-	p[O+M+1] = PlotlyJS.scatter(x=t*1e3, y=D*1., name="DAC")
+	p[O+3+1] = PlotlyJS.scatter(x=t*1e3, y=D*1., name="DAC")
 	PlotlyJS.plot(p, l)#, options=Dict(:displayModeBar => false))
 end
 
@@ -70,16 +69,20 @@ plot_grads_moments(seq::Sequence, idx::Int=1; title="", mode="quick") = begin
 
 	l = PlotlyJS.Layout(;
 	title=title,
-	xaxis=attr(domain = [0, .8]),
-	yaxis=attr(title="[mT/m]", side="left", tickfont=attr(color="#1f77b4"), titlefont=attr(color="#1f77b4"),range=[-Gmax, Gmax]),
-	yaxis2=attr(title="[mT/m⋅ms]", anchor="free", overlaying="y",position=0.8, side="right", 
-	tickfont=attr(color="#ff7f0e"), titlefont=attr(color="#ff7f0e"), range=[-M0max, M0max]),
-	yaxis3=attr(title="[mT/m⋅ms²]",anchor="free",overlaying="y",position=0.8+.2/3,side="right",
-	tickfont=attr(color="#2CA02C"), titlefont=attr(color="#2CA02C"), range=[-M1max, M1max]),
-	yaxis4=attr(title="[mT/m⋅ms³]",anchor="free",overlaying="y",position=0.8+.4/3,side="right",
-	tickfont=attr(color="#d62728"), titlefont=attr(color="#d62728"), range=[-M2max, M2max]),
-	xaxis_title="t [ms]", height=400)
-	p[1] = plotter(x=t*1e3, y=G[:,idx]*1e3, name=names[idx], line_shape="hv")
+	xaxis=attr(domain = [0, .75]),
+	yaxis=attr(title=attr(text="G [mT/m]", standoff=0), 
+		side="left", tickfont=attr(color="#636efa"), titlefont=attr(color="#636efa"),range=[-Gmax, Gmax]),
+	yaxis2=attr(title=attr(text="M0 [mT/m⋅ms]", standoff=1, position=1), showgrid=false,
+		anchor="free", overlaying="y",position=0.75, side="right", 
+		tickfont=attr(color="#ef553b"), titlefont=attr(color="#ef553b"), range=[-M0max, M0max]),
+	yaxis3=attr(title=attr(text="M1 [mT/m⋅ms²]", standoff=1), showgrid=false,
+		anchor="free",overlaying="y",position=0.75+.25/3,side="right",
+		tickfont=attr(color="#45d9b2"), titlefont=attr(color="#45d9b2"), range=[-M1max, M1max]),
+	yaxis4=attr(title=attr(text="M2 [mT/m⋅ms³]", standoff=1), showgrid=false,
+		anchor="free",overlaying="y",position=0.75+.5/3,side="right",
+		tickfont=attr(color="#b373fa"), titlefont=attr(color="#b373fa"), range=[-M2max, M2max]),
+	xaxis_title="t [ms]", height=300)
+	p[1] = plotter(x=t*1e3, y=G[:,idx]*1e3, name=names[idx] , line_shape="hv")
 	p[2] = plotter(x=t*1e3, y=M0t*1e6, name="M0", yaxis="y2",line=attr(dash="dash"))
 	p[3] = plotter(x=t*1e3, y=M1t*1e9, name="M1", yaxis="y3",line=attr(dash="dash"))
 	p[4] = plotter(x=t*1e3, y=M2t*1e12, name="M2", yaxis="y4",line=attr(dash="dash"))

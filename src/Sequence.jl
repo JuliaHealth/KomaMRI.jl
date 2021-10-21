@@ -26,20 +26,30 @@ mutable struct Sequence
 	RF::Array{RF,2}			#RF pulses in coil and time
 	DAC::Array{DAC,1}		#DAC in time
 	function Sequence(GR)	#If no RF is defined, just use a zero amplitude pulse
-		N = size(GR,2)
-		new(GR, 
+		M,N = size(GR)
+		new([i <= M ? GR[i,j] : Grad(0,GR[1,j].T) for i=1:3, j=1:N], 
 			reshape(
 				[RF(0, GR[1,i].T) for i = 1:N]
 				,1,N),
 			[DAC(0,GR[1,i].T) for i = 1:N]) 
 	end
 	function Sequence(GR,RF)	#If no DAC is defined, just use a zero amplitude pulse
-		N = size(GR,2)
-		new(GR, 
+		M,N = size(GR)
+		new([i <= M ? GR[i,j] : Grad(0,GR[1,j].T) for i=1:3, j=1:N], 
 			RF,
 			[DAC(0,GR[1,i].T) for i = 1:N]) 
 	end
-	Sequence(GR,RF,DAC) = any(GR.T .!= RF.T .!= DAC.T) ? error("Gradient, RF, and DAC objects must have the same duration. ") : new(GR,RF,DAC)
+	Sequence(GR,RF,DAC) = begin
+		if any(GR.T .!= RF.T .!= DAC.T)
+			error("Gradient, RF, and DAC objects must have the same duration. ")
+		end
+		M,N = size(GR)
+		if M != 3
+			new([i <= M ? GR[i,j] : Grad(0,GR[1,j].T) for i=1:3, j=1:N],RF,DAC)
+		else
+			new(GR,RF,DAC)
+		end
+	end
 end
 #TODO: Add trapezoidal grads MACRO
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
@@ -73,8 +83,8 @@ end
 -(x::Sequence) = Sequence(-x.GR, x.RF, x.DAC)
 *(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF, x.DAC)
 *(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF, x.DAC)
-*(x::Sequence, A::Matrix{Float64}) = Sequence(x.GR*A, x.RF, x.DAC)
-*(A::Matrix{Float64}, x::Sequence) = Sequence(x.GR*A, x.RF, x.DAC)
+*(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.DAC)
+*(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.DAC)
 /(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.DAC)
 #Sequence object functions
 is_DAC_on(x::Sequence) = any(x.DAC.N .> 0)
@@ -132,10 +142,10 @@ julia> get_grad(seq,1,t)
 """
 get_grads(seq::Sequence,t) = begin
 	M, N = size(seq.GR);
-	A = [seq.GR[i,j].A for i=1:M, j=1:N];
+	A = [i <= M ? seq.GR[i,j].A : 0 for i=1:3, j=1:N];
 	T = [seq.GR[1,j].T for j=1:N]; T = [0; T];
 	⊓(t) = (abs.(t.-1/2) .<= 1/2)*1.;
-	(sum([A[j,i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N]) for j=1:M)
+	(sum([A[j,i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N]) for j=1:3)
 end
 
 get_rfs(seq::Sequence,t) = begin
@@ -165,7 +175,7 @@ get_DAC_on(seq::Sequence,t::Array{Float64,1}) = begin
 	⊓(t) = (abs.(t.-1/2.) .<= 1/2)*1.
 	DAC_bool = sum([DAC[i]*⊓((t.-sum(T[1:i]))/(T[i+1]+Δt)) for i=1:N])
 	DAC_bool = (DAC_bool.>0)
-	circshift(convert.(Bool,DAC_bool[:]),-1)
+	circshift(convert.(Bool,	[:]),-1)
 end
 "Calculates the `b`-value, in the PGSE sequnce is b = (2πγGδ)²(Δ-δ/3) and the normalized diffusion vector `n` from a *diffusion sequence*."
 get_bvalue(DIF::Sequence) = begin
@@ -200,6 +210,7 @@ get_Bmatrix(DIF::Sequence) = begin
 	α = [(i==j) ? 2/3 : 1/2 for i=1:N, j=1:N]
 	b = (δ' .* δ) .* (τ .- T[ij] .- α .* δ[ij])
 	b_value = (2π*γ)^2*1e-6*b # Trace of B tensor
+	b_value
 end
 
 "Calculates the `b` value for PGSE and a moment nulled sequence."
@@ -275,7 +286,7 @@ get_actual_kspace(x::Sequence,t) = begin
 end
 
 """"Calculates the normalized moments at the end of the sequence. """
-function get_Mmatrix(seq::Sequence,order=0)
+function get_Mmatrix(seq::Sequence;order=0)
     M, N = size(seq.GR)
     τ = dur(seq)
     δ = getproperty.(seq.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
@@ -317,14 +328,8 @@ function write_diff_fwf(DIF, idx180, Gmax, bmax; filename="./qte_vectors_input.t
         G2 = DIF[idx180 + 1:end]
         t1 = range(0,dur(G1),length=δ2N(dur(G1)))
 		t2 = range(0,dur(G2),length=δ2N(dur(G2)))
-		if size(DIF.GR,1) == 3
-        	Gx2, Gy2, Gz2 = get_grads_linear(G2,t2)
-			Gx1, Gy1, Gz1 = get_grads_linear(G1,t1)
-		else
-			Gx2, Gy2 = get_grads_linear(G2,t2)
-			Gx1, Gy1 = get_grads_linear(G1,t1)
-			Gz1, Gz2 = 0*Gy1, 0*Gy2
-		end
+		Gx2, Gy2, Gz2 = get_grads_linear(G2,t2)
+		Gx1, Gy1, Gz1 = get_grads_linear(G1,t1)
         write(io, "$name $(δ2N(dur(G1))) $(δ2N(dur(G2))) $(bmax)\n")
         for i = 1:length(t1)
             fx1, fy1, fz1 = (Gx1[i], Gy1[i], Gz1[i])./Gmax
