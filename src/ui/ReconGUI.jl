@@ -1,14 +1,13 @@
 path = @__DIR__
 
-loadbutton = filepicker()
-columnbuttons = Observable{Any}(dom"div"())
-data = Observable{Any}(Phantom)
-map!(f->begin
-        global recon = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"recon")
-        print("Loaded! ... $f\n")
-    end
-    , data, loadbutton)
-
+# loadbutton = filepicker()
+# columnbuttons = Observable{Any}(dom"div"())
+# data = Observable{Any}(Phantom)
+# map!(f->begin
+#         global recon = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"recon")
+#         print("Loaded! ... $f\n")
+#     end
+#     , data, loadbutton)
 
 # Ploting recon
 global recon = ifftc(kdata)

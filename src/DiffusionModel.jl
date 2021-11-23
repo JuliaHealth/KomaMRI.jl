@@ -89,8 +89,7 @@ end
 function SignalE(μ, seq)
     𝒊 = 1im;
     M, N = size(seq.GR)
-    G = getproperty.(seq.GR,:A)
-    δ = getproperty.(seq.GR[1,:],:T)
+    G, δ = seq.GR.A, seq.GR.T 
     # E = [ Π exp( -(Λ + iγ Gn⋅A) ⋅ δn ) ]_{0,0}
     A = [exp(-( μ[1] .+ 𝒊*2π*γ* .+([μ[2][:,:,m]*G[m,n] for m=1:M]...) )*δ[n]) for n=1:N]
     E = *(A...)[1,1]

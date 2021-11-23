@@ -91,11 +91,11 @@ handle(w, "simulate") do args...
     Nphant, Nt = prod(size(phantom)), length(t)
     N_parts = floor(Int, Nphant*Nt/2.7e6)
     println("Dividing simulation in Nblocks=$N_parts")
-    S = @time MRIsim.run_sim_time_iter(phantom,seq,t;N_parts)
+    S = @time MRIsim.run_sim_time_iter(phantom,seq,t,Δt;N_parts)
     global signal = S ./prod(size(phantom)) #Acquired data
     #Recon, will be replaced by call to MRIReco.jl
     S = nothing #remove aux signal S
-    Nx = Ny = 99 #hardcoded by now
+    Nx = Ny = 101 #hardcoded by now
     global kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
     global kdata[:,2:2:Ny] = kdata[Nx:-1:1,2:2:Ny] #Flip in freq-dir for the EPI
     global kdata = convert(Array{Complex{Float64},2},kdata)
@@ -113,14 +113,14 @@ end
 ## PRINTING INFO
 #PHANTOM init
 @info "Loading Phantom (default)"
-global phantom = brain_phantom2D(;axis="coronal")
+global phantom = brain_phantom2D()
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 #SEQ init
 @info "Loading Sequence (default) "
 B1 = 6e-6; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
 EX = PulseDesigner.RF_hard(B1, durRF)
 Gmax = 60e-3
-EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 99, 4e-6, Gmax)
+EPI,_,_,_ = PulseDesigner.EPI_base(46e-2, 101, 4e-6, Gmax)
 TE = 25e-3 
 d = delay(TE-dur(EPI)/2-dur(EX))
 DELAY = Sequence([d;d])

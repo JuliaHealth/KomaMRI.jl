@@ -39,8 +39,8 @@ end
                   Grad(A2,T)])
     θ = π*t
     R = MRIsim.rotz(θ)
-    s2 = R*s
-    GR2 = R*s.GR.A
+    s2 = R*s #Matrix-Matrix{Grad} multiplication
+    GR2 = R*s.GR.A #Matrix-vector multiplication
     @test s2.GR.A ≈ GR2
     # Rotation 3D case
     T, t1, t2, t3 = rand(4)
@@ -52,8 +52,8 @@ end
     Ry = MRIsim.roty(β)
     Rz = MRIsim.rotz(γ)
     R = Rx*Ry*Rz
-    s2 = R*s
-    GR2 = R*GR.A
+    s2 = R*s #Matrix-Matrix{Grad} multiplication
+    GR2 = R*s.GR.A #Matrix-vector multiplication
     @test s2.GR.A ≈ GR2
     # Concatenation
     A1, A2, A3, T1 = rand(4)

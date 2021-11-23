@@ -78,7 +78,7 @@ end
 #     Qtotal
 # end
 # - Obtaining rotation matrices efficiently: as we would NEVER acquire during an RF pulse we do not need
-#   to simulate intermidiate steps. This is due to the fact that we need to change between Rx and Tx with a switch (hardware limitation).
+#   to store intermidiate steps. This is due to the fact that we need to change between Rx and Tx with a switch (hardware limitation).
 # - I suggest to simulate RF blocks separatly, and then to use run_sim2D_spin() in between.
 #   The only thing we need to add is a way to follow the T1 decay during the non-RF parts of the simulation.
 #   The magnetization [Mx + iMx, Mz] should decay as follows (the first part is already in run_sim2D_spin()):

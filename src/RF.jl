@@ -86,6 +86,8 @@ mutable struct RF
 	A::Complex # Amplitud B1x + i B1y [T]
 	T::Float64 # Duration [s]
 end
+#Properties
+*(α::ComplexF64, x::RF) = RF(α*x.A,x.T)
 "Duration `T` [s] of the RF array Array{RF,1}."
 dur(x::Array{RF,1}) = sum(x[i].T for i=1:size(x,1))
 "Duration `T` [s] of the RF array Array{RF,2}."

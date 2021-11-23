@@ -1,20 +1,19 @@
 # Comparison between the Short Pulse Aproximation and Pulse Gradient Spin Echo (with Laplacian Eigen Functions)
 
-using MRIsim, Plots
-using MRIsim: γ, Planes, SignalE, DIF_base, plot_grads
+using MRIsim, Plots, LaTeXStrings
+using MRIsim: γ, Planes, SignalE
 
 #Constants
 𝒊 = 1im; D = 2e-9 # m2/s
 #DIF Sequence
 T = 80e-3; δ = 10e-3;
-DIF = DIF_base(1,T-δ,δ); #plot_grads(DIF)
+DIF = PulseDesigner.DIF_base(1,T-δ,δ); #plot_grads(DIF)
 #Restricted planes with Short Pulse Approximation (SPA) - from my thesis 
 Erest(L,q) = sum([(n==0 ? 1 : 2)*exp(-D*(T-δ)*(n*π/L)^2)*sinc.(L*q .+ n/2).^2 ./(1 .- n./(2*L*q)).^2 for n = 0:100])
 #Free diffusion - SPA
 Efree(q) = exp.(-4π^2*D*q^2)
 
 ## Comparison
-gr()
 plot()
 g = (0:1000)*1e-3
 q = γ*g*δ #q-values
@@ -31,5 +30,5 @@ plot!(q*1e-6, abs.(Efree.(q)),linecolor=:purple,label="L = ∞ μm",yaxis=:log, 
 ylims!(1e-6,1)
 ylabel!("E(q)")
 xlabel!("q [μm⁻¹]")
-title!("Laplacian Eigen Functions vs Short Pulse Approximation")
+title!("Laplacian Eigen Functions vs SPA (dashed)")
 #savefig("./src/examples/Figures/PGSEvsSPA.pdf")

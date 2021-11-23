@@ -33,7 +33,7 @@ mutable struct Sequence
 				,1,N),
 			[DAC(0,GR[1,i].T) for i = 1:N]) 
 	end
-	function Sequence(GR,RF)	#If no DAC is defined, just use a zero amplitude pulse
+	function Sequence(GR,RF)	#If no DAC is defined, just use a DAC with 0 samples
 		M,N = size(GR)
 		new([i <= M ? GR[i,j] : Grad(0,GR[1,j].T) for i=1:3, j=1:N], 
 			RF,
@@ -83,10 +83,13 @@ end
 -(x::Sequence) = Sequence(-x.GR, x.RF, x.DAC)
 *(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF, x.DAC)
 *(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF, x.DAC)
+*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α.*x.RF, x.DAC)
+*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α.*x.RF, x.DAC)
 *(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.DAC)
 *(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.DAC)
 /(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.DAC)
 #Sequence object functions
+size(x::Sequence) = size(x.GR[1,:])
 is_DAC_on(x::Sequence) = any(x.DAC.N .> 0)
 "Tells if the sequence has elements with DAC on during t."
 is_DAC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}}) = begin
@@ -144,7 +147,7 @@ get_grads(seq::Sequence,t) = begin
 	M, N = size(seq.GR);
 	A = [i <= M ? seq.GR[i,j].A : 0 for i=1:3, j=1:N];
 	T = [seq.GR[1,j].T for j=1:N]; T = [0; T];
-	⊓(t) = (abs.(t.-1/2) .<= 1/2)*1.;
+	⊓(t) = (0 .<= t .< 1)*1.;
 	(sum([A[j,i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N]) for j=1:3)
 end
 
@@ -152,7 +155,7 @@ get_rfs(seq::Sequence,t) = begin
 	M, N = size(seq.RF);
 	A = [seq.RF[i,j].A for i=1:M, j=1:N];
 	T = [seq.RF[1,j].T for j=1:N]; T = [0; T];
-	⊓(t) = (abs.(t.-1/2) .<= 1/2)*1.;
+	⊓(t) = (0 .<= t .< 1)*1.;
 	[sum([A[1,i]*⊓((t.-sum(T[1:i]))/T[i+1]) for i=1:N])]
 end
 
@@ -172,7 +175,7 @@ get_DAC_on(seq::Sequence,t::Array{Float64,1}) = begin
 	M, N = size(seq.DAC)
 	DAC = seq.DAC.N .> 0
 	T = [seq.DAC[i].T for i=1:N]; T = [0; T]
-	⊓(t) = (abs.(t.-1/2.) .<= 1/2)*1.
+	⊓(t) = (0 .<= t .< 1)*1.;
 	DAC_bool = sum([DAC[i]*⊓((t.-sum(T[1:i]))/(T[i+1]+Δt)) for i=1:N])
 	DAC_bool = (DAC_bool.>0)
 	circshift(convert.(Bool,	[:]),-1)
@@ -359,9 +362,10 @@ using ..MRIsim: γ, get_designed_kspace, get_bvalue, get_max_grad
 ###############
 ## RF Pulses ##
 ###############
-RF_hard(B1,T; G=[0,0]) = begin
+RF_hard(B1,T; G=[0,0,0]) = begin
 	EX = Sequence([	Grad(G[1],T);	#Gx
-					Grad(G[2],T)],	#Gy
+					Grad(G[2],T);
+					Grad(G[3],T)],	#Gy
 					[RF(B1,T)]		#RF
 					)
 end
@@ -418,18 +422,40 @@ EPI_base(FOV::Float64,N::Int,Δt::Float64,Gmax::Float64) = begin
 	DACs = [mod(i,2)==1 ? DAC(0,Δτ) : DAC(N,Ta) for i=0:2*Ny-2]
 	EPI.DAC = DACs
 	# Recon parameters
-	Wx = maximum(abs.(get_designed_kspace(EPI)[:,1]))
-	Wy = maximum(abs.(get_designed_kspace(EPI)[:,2]))
+	Wx = 2*maximum(abs.(get_designed_kspace(EPI)[:,1]))
+	Wy = 2*maximum(abs.(get_designed_kspace(EPI)[:,2]))
 	Δx_pix, Δy_pix = 1/Wx, 1/Wy
 	Δfx_pix = γ*Ga*Δx_pix
 	Δt_phase = Ta*(Nx/(Nx-1)+(Ny-1)^-1) #Time between two echoes
 	Δfx_pix_phase = 1/(Ny*Δt_phase)
 	println("## EPI parameters ##")
+	println("Δx = "*string(Δx*1e3)*" mm")
 	println("Pixel Δf in freq. direction "*string(round(Δfx_pix,digits=2))*" Hz")
 	println("Pixel Δf in phase direction "*string(round(Δfx_pix_phase,digits=2))*" Hz")
     PHASE = Sequence(1/2*[Grad(-Ga, Ta); Grad(-Ga, Ta)])
-    DEPHASE = Sequence(1/2*[Grad(-Ga, Ta); Grad(-Ga, Ta)])
+	DEPHASE = Sequence(1/2*[Grad((-1)^N*Ga, Ta); Grad(-Ga, Ta)])
 	PHASE+EPI+DEPHASE, Δx, Ga, Ta
+end
+
+# Radial
+radial_base(FOV::Float64,Nr::Int,Δt::Float64,Gmax::Float64) = begin
+	Nx = Nr #Number of samples in each spoke
+	Δx = FOV/(Nx-1)
+	Ta = Δt*(Nx-1) #4-8 us
+	Ga = 1/(γ*Δt*FOV)
+	Ga ≥ Gmax ? error("Error: Ga exceeds Gmax, increase Δt to at least Δt_min="
+	*string(round(1/(γ*Gmax*FOV),digits=2))*" us.") : 0
+	rad = Sequence([Grad(Ga,Ta)]) #Gx
+	rad.DAC = [DAC(Nr,Ta)]
+	# Acq/Recon parameters
+	Nspokes = ceil(Int64, π/2 * Nr ) #Nyquist in the radial direction
+	Δθ = π / Nspokes
+	println("## Radial parameters ##")
+	println("FOVr = "*string(round(FOV*1e2,digits=2))*" cm; Δr = "*string(round(Δx*1e3,digits=2))*" mm")
+	println("Nspokes = "*string(Nspokes)*", to satisfy the Nyquist criterion")
+    PHASE = Sequence([Grad(-Ga, Ta/2)])
+	radial = PHASE+rad+PHASE
+	radial, Nspokes, Δθ, Ta
 end
 
 export DIF_base, DIF_null, EPI_base
