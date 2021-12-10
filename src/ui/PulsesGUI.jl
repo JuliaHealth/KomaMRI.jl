@@ -1,20 +1,24 @@
-loadbutton = filepicker()
+loadbutton = filepicker("Choose .seq file..."; accept=".seq", value="")
 columnbuttons = Observable{Any}(dom"div"())
 data = Observable{Any}(Sequence)
-#Assigning function of data when load button (filepicker) is changed
-map!(f->begin
-        global seq = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"seq")
-        print("Loaded! ... $f\n")
-    end
-    , data, loadbutton)
-
 p = MRIsim.plot_seq(seq)
 plt = Observable{Any}(p)
+#Assigning function of data when load button (filepicker) is changed
+map!(f->begin
+            if f!=""
+            global seq = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"seq")
+            # print("Loaded! ... $f\n")
+            else
+            seq
+            end
+        end
+    , data, loadbutton)
 
 function makebuttons(seq)
     namesseq = ["Sequence","k-space"]
     buttons = button.(string.(namesseq))
-    for (btn, name) in zip(buttons, namesseq)
+
+    for (btn, name) in zip(reverse(buttons), reverse(namesseq))
         if name == "Sequence"
             map!(t-> begin
                 MRIsim.plot_seq(seq)
@@ -45,11 +49,12 @@ function makebuttons(seq)
             , plt, btn)
         end
     end
+    
     dom"div"(hbox(buttons))
 end
 
 map!(makebuttons, columnbuttons, data)
 
-columnbuttons = makebuttons(seq)
+# columnbuttons = makebuttons(seq)
 ui = dom"div"(loadbutton, columnbuttons, plt)
 content!(w, "div#content", ui)

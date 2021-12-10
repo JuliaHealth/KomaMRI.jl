@@ -1,22 +1,9 @@
 path = @__DIR__
 
-loadbutton = filepicker()
+loadbutton = filepicker("Choose .phantom file..."; accept=".phantom", value="")
 columnbuttons = Observable{Any}(dom"div"())
 data = Observable{Any}(Phantom)
-#Assigning function of data when load button (filepicker) is changed
-map!(f->begin
-        global phantom = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"phantom")
-        print("Loaded! ... $f\n")
-    end
-    , data, loadbutton)
-
 hh, ww = 420,550
-# l = PlotlyJS.Layout(;title=phantom.name*": ρ", yaxis_title="y [cm]",
-#     yaxis=attr(scaleanchor="x"),
-#     xaxis_title="x [cm]",height=hh,width=ww,
-#     modebar=attr(orientation="v"),xaxis=attr(constrain="domain"))
-# p = PlotlyJS.plot(PlotlyJS.heatmap(x=phantom.x*1e2,y=phantom.y*1e2,
-#     z=phantom.ρ),l)
 p = @manipulate for t0 = range(0,dur(seq),length=10)*1e3
     l = PlotlyJS.Layout(;title=phantom.name*": ρ",yaxis_title="y [cm]",
         xaxis_title="x [cm]",height=hh,width=ww,
@@ -32,8 +19,17 @@ p = @manipulate for t0 = range(0,dur(seq),length=10)*1e3
     PlotlyJS.plot(h,l)
 end
 plt = Observable{Any}(p)
+#Assigning function of data when load button (filepicker) is changed
+map!(f->begin
+        if f!=""
+        global phantom = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"phantom")
+        # print("Loaded! ... $f\n")
+        else
+        phantom
+        end
+    end
+    , data, loadbutton)
 
-#TODO: Improve this using https://github.com/JuliaGizmos/Interact.jl
 function makebuttons(ph)
     global phantom = ph #rewriting default phantom
     prop = propertynames(ph)[5:end-3]
@@ -41,7 +37,7 @@ function makebuttons(ph)
     propnm = [i for i in propnmtuple]
     buttons = button.(propnm)
 
-    for (btn, key, keyname) in zip(buttons, prop, propnm)
+    for (btn, key, keyname) in zip(reverse(buttons), reverse(prop), reverse(propnm))
         map!(t -> begin
             @manipulate for t0 = range(0,dur(seq),length=10)*1e3
                 l = PlotlyJS.Layout(;title=ph.name*": "*keyname,yaxis_title="y [cm]",
@@ -65,6 +61,6 @@ function makebuttons(ph)
 end
 
 map!(makebuttons, columnbuttons, data)
-columnbuttons = makebuttons(phantom)
-pulseseq = dom"div"(loadbutton, columnbuttons, plt)
-content!(w, "div#content", pulseseq)
+# columnbuttons = makebuttons(data)
+ui = dom"div"(loadbutton, columnbuttons, plt)
+content!(w, "div#content", ui)
