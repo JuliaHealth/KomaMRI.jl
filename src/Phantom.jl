@@ -193,10 +193,10 @@ https://brainweb.bic.mni.mcgill.ca/brainweb
 """
 function brain_phantom2D(;axis="axial",ss=4)
     path = @__DIR__
-    data = MAT.matread(path*"/data/brain2D.mat")
+    data = MAT.matread(path*"/data/phantoms/brain2D.mat")
 
     class = data[axis][1:ss:end,1:ss:end]
-    Δx = 1e-3*ss
+    Δx = .5e-3*ss
     M, N = size(class)
     FOVx = (M-1)*Δx #[m]
     FOVy = (N-1)*Δx #[m]
@@ -249,7 +249,7 @@ function brain_phantom2D(;axis="axial",ss=4)
         (class.==209)*.77 .+ #FAT2
         (class.==232)*1 .+ #DURA
         (class.==255)*.77 #MARROW
-	Δw_fat = -220*2π/10
+	Δw_fat = -220*2π
 	Δw = (class.==93)*Δw_fat .+ #FAT1
 		(class.==209)*Δw_fat    #FAT2
 	T1 = T1*1e-3

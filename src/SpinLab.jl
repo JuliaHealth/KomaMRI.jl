@@ -75,9 +75,9 @@ handle(w, "phantom") do args...
     @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
     include(path*"/ui/PhantomGUI.jl")
 end
-handle(w, "sim") do args...
+handle(w, "sig") do args...
     @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
-    include(path*"/ui/SimulatorGUI.jl")
+    include(path*"/ui/SignalGUI.jl")
 end
 handle(w, "recon") do args...
     @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
@@ -86,20 +86,14 @@ end
 handle(w, "simulate") do args...
     @info "Running simulation..."
     @js_ w (@var loading = $loadbar; document.getElementById("simulate").innerHTML=loading)
-    Δt = 4e-6 #<- simulate param
-    t = collect(0:Δt:MRIsim.dur(seq))
-    Nphant, Nt = prod(size(phantom)), length(t)
-    N_parts = floor(Int, Nphant*Nt/2.7e6)
-    println("Dividing simulation in Nblocks=$N_parts")
-    S = @time MRIsim.run_sim_time_iter(phantom,seq,t,Δt;N_parts)
-    global signal = S ./prod(size(phantom)) #Acquired data
-    #Recon, will be replaced by call to MRIReco.jl
-    S = nothing #remove aux signal S
-    Nx = Ny = 101 #hardcoded by now
-    global kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
-    global kdata[:,2:2:Ny] = kdata[Nx:-1:1,2:2:Ny] #Flip in freq-dir for the EPI
-    global kdata = convert(Array{Complex{Float64},2},kdata)
-
+    simParams = Dict(:step=>"uniform",:Δt=>4e-6)
+    recParams = Dict(:Nx=>101,:epi=>true,:recon=>:fft)
+    aux = simulate(phantom, seq, simParams, recParams)
+    #To SignalGUI
+    global signal = aux[1]
+    global t_interp = aux[2]
+    #To ReconGUI
+    global recon = aux[3]
     @js_ w document.getElementById("simulate").innerHTML="""<button type="button" onclick='Blink.msg("simulate", 1)' class="btn btn-primary btn-lg btn-block">Run simulation!</button>"""
     @js_ w Blink.msg("recon", 0)
 end
@@ -107,6 +101,11 @@ handle(w, "close") do args...
     global phantom = nothing
     global seq = nothing
     global scanner = nothing
+
+    global signal = nothing
+    global t_interp = nothing
+
+    global recon = nothing
 
     close(w)
 end
@@ -119,8 +118,8 @@ println("Phantom object \"$(phantom.name)\" successfully loaded!")
 @info "Loading Sequence (default) "
 B1 = 6e-6; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
 EX = PulseDesigner.RF_hard(B1, durRF)
-Gmax = 60e-3
-EPI,_,_,_ = PulseDesigner.EPI_base(46e-2, 101, 4e-6, Gmax)
+Gmax = 30e-3
+EPI,_,_,_ = PulseDesigner.EPI_base(23e-2, 101, 4e-6, Gmax)
 TE = 25e-3 
 d = delay(TE-dur(EPI)/2-dur(EX))
 DELAY = Sequence([d;d])
@@ -128,8 +127,9 @@ global seq = EX + DELAY + EPI
 println("EPI successfully loaded! (TE = $(TE*1e3) ms)")
 #Init
 global scanner = []
+global t_interp = 0
 global signal = 0
-global kdata = [0.0im 0.; 0. 0.]
+global recon = [0.0im 0.; 0. 0.]
 #GPUs
 if has_cuda()
     @info "Loading GPUs"

@@ -6,7 +6,7 @@ using JLD2
 B1 = 6e-6; durRF = π/(2π*γ*B1)
 EX = PulseDesigner.RF_hard(B1, durRF; G=[0 0])
 Gmax = 60e-3
-EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 99, 4e-6, Gmax)
+EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 101, 4e-6, Gmax)
 TE = 25e-3
 d = delay(TE-dur(EPI)/2-dur(EX))
 DELAY = Sequence([d;d])

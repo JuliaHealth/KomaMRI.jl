@@ -233,17 +233,19 @@ function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt;
 	#TODO: output raw data in ISMRMD format
 	t_interp = get_sample_times(seq)
 	S_interp = LinearInterpolation(t,S)(t_interp)
-	S_interp
+	(S_interp, t_interp)
 end
 
 function simulate(phantom::Phantom, seq::Sequence, simParams::Dict, recParams::Dict)
 	#Simulation params
-	sim = get(simParams, :step, "variable")
-	if sim == "uniform"
+	step = get(simParams, :step, "variable")
+	if step == "uniform"
 		Δt = get(simParams, :Δt, 4e-6) #<- simulate param
 		t, Δt = get_uniform_times(seq,Δt)
-		Nblocks = get(simParams, :Nblocks, 1)
-	elseif sim == "variable"
+		Nphant, Nt = prod(size(phantom)), length(t)
+		Nblocks = floor(Int, Nphant*Nt/2.7e6)
+		Nblocks = get(simParams, :Nblocks, Nblocks)
+	elseif step == "variable"
 		t, Δt = get_variable_times(seq)
 		Nblocks = floor(Int64, length(t) / 1)
 	end
@@ -252,14 +254,13 @@ function simulate(phantom::Phantom, seq::Sequence, simParams::Dict, recParams::D
     Nx = get(recParams, :Nx, 100)
 	Ny = get(recParams, :Ny, Nx)
 	epi = get(recParams, :epi, false)
-	skip_rec = get(recParams, :skip_rec, false)
-	recon = get(recParams, :recon, :fft)
+	recon = get(recParams, :recon, :skip)
     #Simulate
-    S = @time MRIsim.run_sim_time_iter(phantom,seq,t,Δt;N_parts=Nblocks)
+    S, t_interp = @time MRIsim.run_sim_time_iter(phantom,seq,t,Δt;N_parts=Nblocks)
     Nphant = prod(size(phantom))
 	signal = S ./ Nphant #Acquired data
 	#K-data, only 2D for now
-	if !skip_rec
+	if recon != :skip 
 		kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
 		if epi kdata[:,2:2:Ny] = kdata[Nx:-1:1,2:2:Ny] end #Flip in freq-dir for the EPI
 		kdata = convert(Array{Complex{Float64},2},kdata)
@@ -267,8 +268,8 @@ function simulate(phantom::Phantom, seq::Sequence, simParams::Dict, recParams::D
 		if recon == :fft
 			image = ifftc(kdata)
 		end
-		image
+		(signal, t_interp, image)
 	else
-		signal
+		(signal, t_interp, nothing)
 	end
 end
