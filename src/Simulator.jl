@@ -36,25 +36,25 @@ end
 Uniform time-step calculation
 """
 function get_uniform_times(seq,Δt)
-	t = collect(0:Δt:dur(seq)+Δt)
-	t, Δt
+	t, Δt = get_variable_times(seq; dt=Δt)
 end
 
 """
 Variable time-step calculation
 """
-function get_variable_times(seq)
+function get_variable_times(seq; dt=0)
 	idx = 1
 	t = [0.]
 	Δt = Float64[]
-	for i = 1:size(seq)[1]
+	for i = 1:size(seq,1)
 		ti = t[idx]
 		T = seq[i].GR[1].T #Length of block
 		if is_DAC_on(seq[i])
-			N = seq[i].DAC[1].N #Number of samples
+			N = dt == 0 ? seq[i].DAC[1].N : ceil(Int64, 1 + T/dt) # Δt = (Tmax-Tmin)/(N-1)
 			taux = collect(range(ti,ti+T;length=N))
 		else
-			taux = collect(range(ti,ti+T;length=2))
+			N = dt == 0 ? 2 : ceil(Int64, 1 + T/dt)
+			taux = collect(range(ti,ti+T;length=N)) # Δt = (Tmax-Tmin)/(N-1)
 		end
 		dtaux = taux[2:end] .- taux[1:end-1]
 		append!(t,taux)
@@ -232,7 +232,7 @@ function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt;
 
 	#TODO: output raw data in ISMRMD format
 	t_interp = get_sample_times(seq)
-	S_interp = LinearInterpolation(t,S)(t_interp)
+	S_interp = LinearInterpolation(t.+Δt,S)(t_interp)
 	(S_interp, t_interp)
 end
 
@@ -251,7 +251,7 @@ function simulate(phantom::Phantom, seq::Sequence, simParams::Dict, recParams::D
 	end
 	println("Dividing simulation in Nblocks=$Nblocks")
 	#Recon params
-    Nx = get(recParams, :Nx, 100)
+    Nx = get(recParams, :Nx, 101)
 	Ny = get(recParams, :Ny, Nx)
 	epi = get(recParams, :epi, false)
 	recon = get(recParams, :recon, :skip)

@@ -5,8 +5,13 @@ assets = AssetRegistry.register(dirname(path*"/ui/assets/"))
 scripts = AssetRegistry.register(dirname(path*"/ui/scripts/"))
 css = AssetRegistry.register(dirname(path*"/ui/css/"))
 
+# Assets
+imphantom = assets*"/phantom.png" #In Windows joinpath causes problems "/assetserver/...-assets\Logo.png"
+imscanner = assets*"/scanner.png"
+impulses = assets*"/pulses.png"
 logo = joinpath(assets, "Logo.png")
 loading = joinpath(assets, "Loading.gif")
+# JS 
 popper = joinpath(scripts, "popper.min.js")
 bsjs = joinpath(scripts, "bootstrap.min.js")
 bscss = joinpath(css,"bootstrap.min.css")
@@ -15,16 +20,13 @@ jquery = joinpath(scripts,"jquery-3.4.1.slim.min.js")
 katexrender = joinpath(scripts, "auto-render.min.js")
 katexjs = joinpath(scripts,"katex.min.js")
 katexcss = joinpath(css,"katex.min.css")
-# User defined
+# User defined JS and CSS
 customcss = joinpath(css,"custom.css")
 customjs = joinpath(scripts,"custom.js")
 customjs2 = joinpath(scripts,"custom2.js")
 # Custom icons
 icons = joinpath(css,"icons.css")
-# Others
-imphantom = joinpath(assets, "phantom.png")
-imscanner = joinpath(assets, "scanner.png")
-impulses = joinpath(assets, "pulses.png")
+
 ## WINDOW
 global w = Blink.Window(Dict(
     "title"=>"SpinLab",
@@ -40,6 +42,9 @@ navbar = open(f->read(f, String), path*"/ui/html/navbar.html")
 navbar = replace(navbar, "LOGO"=>logo)
 ## CONTENT
 index = open(f->read(f, String), path*"/ui/html/index.html")
+index = replace(index, "PHANTOM"=>imphantom)
+index = replace(index, "SCANNER"=>imscanner)
+index = replace(index, "PULSES"=>impulses)
 ## FOOTER
 footer = open(f->read(f, String), path*"/ui/html/footer.html")
 ## CSS
@@ -57,11 +62,8 @@ loadjs!(w, jquery)
 loadjs!(w, customjs2)   #must be after jquery
 loadjs!(w, popper)
 loadjs!(w, bsjs)        #after jquery
-# LOAD IMAGES AND ICONS
+# LOAD ICONS
 loadcss!(w, icons)
-index = replace(index, "PHANTOM"=>imphantom)
-index = replace(index, "SCANNER"=>imscanner)
-index = replace(index, "PULSES"=>impulses)
 ## MENU FUNCTIONS
 handle(w, "index") do args...
     @js_ w (@var loading = $loadbar; document.getElementById("content").innerHTML=loading)
