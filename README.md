@@ -48,13 +48,13 @@ If you use this package please acknowledge us by citing:
 ```bibtex
 @software{carlos_castillo_passi_2021_5507370,
   author       = {Castillo-Passi, Carlos and Irarrazaval, Pablo},
-  title        = {cncastillo/MRIsim.jl: v0.3.3},
+  title        = {cncastillo/MRIsim.jl},
   month        = sep,
   year         = 2021,
   publisher    = {Zenodo},
-  version      = {v0.3.3},
-  doi          = {10.5281/zenodo.5507370},
-  url          = {https://doi.org/10.5281/zenodo.5507370}
+  version      = {v0.3.8},
+  doi          = {10.5281/zenodo.5784237},
+  url          = {https://doi.org/10.5281/zenodo.5784237}
 }
 ```
 

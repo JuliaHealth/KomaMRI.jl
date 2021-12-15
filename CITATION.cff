@@ -5,7 +5,7 @@ authors:
     given-names: "Castillo-Passi"
     orcid: https://orcid.org/0000-0001-6227-0477
 title: 'cncastillo/MRIsim.jl'
-doi: 10.5281/zenodo.5507370
-version: 0.3.5
+doi: 10.5281/zenodo.5784237
+version: 0.3.8
 date-released: 2021-09-14
 repository-code: https://github.com/cncastillo/MRIsim.jl
