@@ -46,7 +46,7 @@ function get_variable_times(seq; dt=0)
 	idx = 1
 	t = [0.]
 	Δt = Float64[]
-	for i = 1:size(seq,1)
+	for i = 1:size(seq)[1]
 		ti = t[idx]
 		T = seq[i].GR[1].T #Length of block
 		if is_DAC_on(seq[i])
