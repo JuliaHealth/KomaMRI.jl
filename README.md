@@ -7,7 +7,9 @@
 [![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/MRIsim.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
 
 
-Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. This package is meant to simulate Magnetic Resonance Imaging (MRI) acquisitions and its main focus is to replicate general scenarios that could arise in pulse sequence development with an easy-to-use GUI. 
+Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
+
+This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
 
 **TO-DO**:
  - [x] Phantom and Sequence data-types,
