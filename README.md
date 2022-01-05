@@ -1,5 +1,3 @@
-# Koma.jl
-
 <p align="center">
 <img width="300px" src="./src/ui/assets/Logo.png#gh-light-mode-only"/>
 <img width="300px" src="./src/ui/assets/Logo_dark.png#gh-dark-mode-only"/>
