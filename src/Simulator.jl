@@ -61,7 +61,7 @@ function get_variable_times(seq; dt=0)
 		append!(Δt,dtaux)
 		idx += length(taux)	
 	end
-	t = unique(t[1:end-1]) .+ 1e-8 #Remove repited values
+	t = unique(t[1:end-1]) .+ 1e-8 #Remove non-unique values
 	t, Δt
 end
 
@@ -139,7 +139,7 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
 	Δt = Δt			|> gpu
     xt = x0 .+ obj.ux(x0,y0,z0,t) .+ ηxp |> gpu
 	yt = y0 .+ obj.uy(x0,y0,z0,t) .+ ηyp |> gpu
-	zt = z0 .+ obj.uy(x0,y0,z0,t) .+ ηzp |> gpu
+	zt = z0 .+ obj.uz(x0,y0,z0,t) .+ ηzp |> gpu
 	#ACQ OPTIMIZATION
     if is_DAC_on(seq, Array(t)) 
 		ϕ = ϕ0 .- (2π*γ).*cumsum((xt.*Gx .+ yt.*Gy .+ zt.*Gz).*Δt, dims=Nsz+1) #TODO: Change Δt to a vector for non-uniform time stepping
@@ -196,7 +196,7 @@ run_spin_excitation(obj, seq, t::Array{Float64,2}, Δt::Array{Float64,2};
 	Δt = Δt			|> gpu
     xt = x0 .+ obj.ux(x0,y0,z0,t)		|> gpu
 	yt = y0 .+ obj.uy(x0,y0,z0,t)		|> gpu
-	zt = z0 .+ obj.uy(x0,y0,z0,t)		|> gpu
+	zt = z0 .+ obj.uz(x0,y0,z0,t)		|> gpu
 	ΔB0 = obj.Δw./(2π*γ)				|> gpu
 	Bz = (Gx.*xt .+ Gy.*yt .+ Gz.*zt) .+ ΔB0	#<-- This line is very slow, FIX!!
 	B = sqrt.(abs.(B1).^2. .+ abs.(Bz).^2.)		
@@ -256,7 +256,7 @@ function simulate(phantom::Phantom, seq::Sequence, simParams::Dict, recParams::D
 	epi = get(recParams, :epi, false)
 	recon = get(recParams, :recon, :skip)
     #Simulate
-    S, t_interp = @time MRIsim.run_sim_time_iter(phantom,seq,t,Δt;N_parts=Nblocks)
+    S, t_interp = @time run_sim_time_iter(phantom,seq,t,Δt;N_parts=Nblocks)
     Nphant = prod(size(phantom))
 	signal = S ./ Nphant #Acquired data
 	#K-data, only 2D for now

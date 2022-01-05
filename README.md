@@ -1,21 +1,22 @@
-# MRIsim.jl
+# Koma.jl
 
 <p align="center">
-<img width="250px" src="./docs/src/assets/logo.png"/>
+<img width="250px" src="./docs/src/assets/Logo.png#gh-light-mode-only"/>
+<img width="250px" src="./docs/src/assets/Logo_dark.png#gh-dark-mode-only"/>
 </p>
 
 ![Build status](https://github.com/cncastillo/MRIsim.jl/actions/workflows/ci.yml/badge.svg)
 [![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/MRIsim.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
 
 
-MRIsim.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development. 
+Koma.jl, whose name comes from the Japanese word for spinning-top こま (ko-ma), is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development. 
 
 **TO-DO**:
  - [x] Phantom and Sequence data-types,
  - [x] Spin preccesion in gradient-only blocks,
  - [x] GPU accelaration using CUDA.jl,
  - [x] RF excitation,
- - [ ] GPU accelaration of RF excitation (under development),
+ - [X] GPU accelaration of RF excitation (under development),
  - [ ] [Pulseq](https://github.com/imr-framework/pypulseq) IO and [auxiliary functions](https://github.com/imr-framework/pypulseq/tree/master/pypulseq),
  - [ ] Signal "Raw Output" dictionary ([ISMRMRD](https://ismrmrd.github.io/)),
  - [ ] [MRIReco.jl](https://magneticresonanceimaging.github.io/MRIReco.jl/latest/) for the reconstruciton,

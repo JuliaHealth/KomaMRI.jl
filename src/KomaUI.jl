@@ -1,4 +1,4 @@
-function SpinLab(;frame=true)
+function KomaUI(;frame=true)
 ## ASSETS
 path = @__DIR__
 assets = AssetRegistry.register(dirname(path*"/ui/assets/"))
@@ -9,7 +9,7 @@ css = AssetRegistry.register(dirname(path*"/ui/css/"))
 imphantom = assets*"/phantom.png" #In Windows joinpath causes problems "/assetserver/...-assets\Logo.png"
 imscanner = assets*"/scanner.png"
 impulses = assets*"/pulses.png"
-logo = joinpath(assets, "Logo.png")
+logo = joinpath(assets, "Logo_dark.png")
 loading = joinpath(assets, "Loading.gif")
 # JS 
 popper = joinpath(scripts, "popper.min.js")
@@ -29,7 +29,7 @@ icons = joinpath(css,"icons.css")
 
 ## WINDOW
 global w = Blink.Window(Dict(
-    "title"=>"SpinLab",
+    "title"=>"KomaUI",
     # "autoHideMenuBar"=>false,
     "frame"=>frame, #removes title bar
     "node-integration" => true,

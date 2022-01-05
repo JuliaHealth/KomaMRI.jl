@@ -356,8 +356,8 @@ end
 
 ## PulseDesigner
 module PulseDesigner
-using ..MRIsim
-using ..MRIsim: γ, get_designed_kspace, get_bvalue, get_max_grad
+using ..Koma
+using ..Koma: γ, get_designed_kspace, get_bvalue, get_max_grad
 
 ###############
 ## RF Pulses ##

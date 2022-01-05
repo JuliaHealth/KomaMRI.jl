@@ -1,4 +1,4 @@
-module MRIsim
+module Koma
 
 #IMPORT PACKAGES
 using LinearAlgebra: Matrix
@@ -29,17 +29,17 @@ export Grad, delay, dur, DAC, RF, Sequence, Phantom, Mag
 #RF-related
 export Rx, Ry, Rz, Q, Un
 #Secondary
-export PulseDesigner
+export PulseDesigner, get_designed_kspace
 # Display
 export plot_seq, plot_grads_moments, plot_ksapce_trajectory
 # Simulator
-export simulate
+export simulate, run_sim_time_iter
 
 #GUI
 using Blink, Interact, AssetRegistry, JLD2, FileIO
 !Blink.AtomShell.isinstalled() && Blink.AtomShell.install()
-include("SpinLab.jl")
+include("KomaUI.jl")
 
-export SpinLab
+export KomaUI
 
 end

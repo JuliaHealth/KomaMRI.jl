@@ -1,7 +1,7 @@
 loadbutton = filepicker("Choose .seq file..."; accept=".seq", value="")
 columnbuttons = Observable{Any}(dom"div"())
 data = Observable{Any}(Sequence)
-p = MRIsim.plot_seq(seq)
+p = plot_seq(seq)
 plt = Observable{Any}(p)
 #Assigning function of data when load button (filepicker) is changed
 map!(f->begin
@@ -21,7 +21,7 @@ function makebuttons(seq)
     for (btn, name) in zip(reverse(buttons), reverse(namesseq))
         if name == "Sequence"
             map!(t-> begin
-                MRIsim.plot_seq(seq)
+                plot_seq(seq)
                 end
                 , plt, btn)
         elseif name == "k-space"
@@ -38,7 +38,7 @@ function makebuttons(seq)
                 #Adding gradients before and after acq, to show the centered k-space
                 ACQ = (circshift(ACQ,1)+circshift(ACQ,-1)+ACQ).!=0 #TODO: Change to accumulated moment-0
                 seqADC = sum(seq[ACQ])
-                kspace = MRIsim.get_designed_kspace(seqADC)
+                kspace = get_designed_kspace(seqADC)
                 N = size(kspace,1)-1
                 M = size(kspace,2)
                 c = ["hsv($((i-1)/N*255),255,25)" for i=1:N-1]

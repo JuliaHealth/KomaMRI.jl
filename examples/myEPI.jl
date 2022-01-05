@@ -7,20 +7,23 @@ EX = PulseDesigner.RF_hard(B1,T)
 FOV, N, Δt, Gmax = 25.6e-2, 101, 4e-6, 30e-3
 EPI,_,_,_ = PulseDesigner.EPI_base(FOV,N,Δt,Gmax)
 TE = 50e-3
-d1 = Sequence([delay(TE - dur(EPI)/2 - dur(EX))]) #You can obtain the duration of the EPI with dur(EPI)
+d1 = TE - dur(EPI)/2 - dur(EX)
+D1 = Sequence([delay(d1)]) #You can obtain the duration of the EPI with dur(EPI)
 R = MRIsim.rotz(0.) #Play with the rotation of the acquisition!
 # For a GE acquisition
-seq = EX + d1 + R*EPI
+seq = EX + D1 + R*EPI
 #Save seq
 println(seq)
-@save "C:/Users/56988/Downloads/ProyectoIBM2101/myEPI_GE.seq" seq
+@save "./myEPI_GE.seq" seq
 # For a SE, the delays must refocuse at k=0 (half the EPI)
 REF = 2.0im*EX #twice the B1, 90 deg -> 180 deg
 halfTE = TE / 2
-d1 = Sequence([delay(halfTE - dur(EX))])
-d2 = Sequence([delay(halfTE - dur(EPI)/2 - dur(REF))])
-seq = EX + d1 + REF + d2 + R*EPI
+d1 = halfTE - dur(EX)
+d2 = halfTE - dur(EPI)/2 - dur(REF)
+D1 = Sequence([delay(d1)])
+D2 = Sequence([delay(d2)])
+seq = EX + D1 + REF + D2 + R*EPI
 #Save seq
 println(seq)
-@save "C:/Users/56988/Downloads/ProyectoIBM2101/myEPI_SE.seq" seq
+@save "./myEPI_SE.seq" seq
 #Go to SpinLab GUI, loag "myEPI_GE.seq", press "Run"

@@ -79,7 +79,7 @@ end
 """
 It calculates |\\alpha|^2+|\\beta|^2 of the Cayley-Klein parameters
 """
-abs(s::MRIsim.Spinor) = abs(s.α)^2 + abs(s.β)^2
+abs(s::Spinor) = abs(s.α)^2 + abs(s.β)^2
 
 """RF Object"""
 mutable struct RF
