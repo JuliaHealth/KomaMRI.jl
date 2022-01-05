@@ -9,7 +9,7 @@
 
 Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
 
-This package is meant to simulate general Magnetic Resonance Imaging (MRI) acquisitions and that could arise in pulse sequence development. 
+This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
 
 **TO-DO**:
  - [x] Phantom and Sequence data-types,
