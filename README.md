@@ -1,8 +1,8 @@
 # Koma.jl
 
 <p align="center">
-<img width="250px" src="./src/assets/Logo.png#gh-light-mode-only"/>
-<img width="250px" src="./src/assets/Logo_dark.png#gh-dark-mode-only"/>
+<img width="250px" src="./src/ui/assets/Logo.png#gh-light-mode-only"/>
+<img width="250px" src="./src/ui/assets/Logo_dark.png#gh-dark-mode-only"/>
 </p>
 
 ![Build status](https://github.com/cncastillo/MRIsim.jl/actions/workflows/ci.yml/badge.svg)
