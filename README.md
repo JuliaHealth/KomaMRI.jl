@@ -1,15 +1,15 @@
 # Koma.jl
 
 <p align="center">
-<img width="250px" src="./src/ui/assets/Logo.png#gh-light-mode-only"/>
-<img width="250px" src="./src/ui/assets/Logo_dark.png#gh-dark-mode-only"/>
+<img width="300px" src="./src/ui/assets/Logo.png#gh-light-mode-only"/>
+<img width="300px" src="./src/ui/assets/Logo_dark.png#gh-dark-mode-only"/>
 </p>
 
 ![Build status](https://github.com/cncastillo/MRIsim.jl/actions/workflows/ci.yml/badge.svg)
 [![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/MRIsim.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
 
 
-Koma.jl, whose name comes from the Japanese word for spinning-top こま (ko-ma), is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development. 
+Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma), is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development. 
 
 **TO-DO**:
  - [x] Phantom and Sequence data-types,
