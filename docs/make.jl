@@ -1,6 +1,6 @@
-using Documenter, MRIsim
+using Documenter, Koma
 
-makedocs(sitename="MRIsim.jl")
+makedocs(sitename="Koma.jl")
 
 deploydocs(
     repo = "github.com/cncastillo/MRIsim.jl.git",
