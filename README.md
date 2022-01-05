@@ -7,7 +7,7 @@
 [![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/MRIsim.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
 
 
-Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. This package is meant to simulate Magnetic Resonance Imaging (MRI) acquisitions and its main focus is to simulate general scenarios that could arise in pulse sequence development. 
+Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. This package is meant to simulate Magnetic Resonance Imaging (MRI) acquisitions and its main focus is to replicate general scenarios that could arise in pulse sequence development with an easy-to-use GUI. 
 
 **TO-DO**:
  - [x] Phantom and Sequence data-types,
@@ -31,13 +31,13 @@ Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinni
 To install just do the following:
 
 ```julia
-] add MRIsim
+] add Koma
 ```
 ## First run
-MRIsim.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
+Koma.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
 
 ```julia
-SpinLab()
+KomaUI()
 ```
 Then, press the button that says "Run simulation!" to do your first simulation :).
 

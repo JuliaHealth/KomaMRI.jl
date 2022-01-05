@@ -29,7 +29,7 @@ export Grad, delay, dur, DAC, RF, Sequence, Phantom, Mag
 #RF-related
 export Rx, Ry, Rz, Q, Un
 #Secondary
-export PulseDesigner, get_designed_kspace
+export PulseDesigner, get_designed_kspace, rotx, roty, rotz
 # Display
 export plot_seq, plot_grads_moments, plot_ksapce_trajectory
 # Simulator
