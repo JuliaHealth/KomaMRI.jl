@@ -1,4 +1,4 @@
-using MRIsim
+using Koma
 using Test
 
 @testset "Spinors×Magnetization" begin
