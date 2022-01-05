@@ -27,7 +27,7 @@ include("DiffusionModel.jl")
 #Main 
 export Grad, delay, dur, DAC, RF, Sequence, Phantom, Mag
 #RF-related
-export Rx, Ry, Rz, Q, Un
+export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
 export PulseDesigner, get_designed_kspace, rotx, roty, rotz
 # Display
