@@ -3,9 +3,9 @@
     B0::Real=1.5      # Main magnetic field [T]
     B1::Real=10e-6     # Max RF amplitude [T]
     Gmax::Real=60e-3  # Max Gradient [T/m]
-    Smax::Real=500    # Max Slew-rate [mT/m/ms] or [T/m/s]
+    Smax::Real=1000    # Max Slew-rate [mT/m/ms] or [T/m/s]
     #Sampling
-    ADC_Δt::Real=1e-7 # ADC raster time
+    ADC_Δt::Real=2e-6 # ADC raster time
     seq_Δt::Real=1e-5 # Seq-block raster time 
     GR_Δt::Real=1e-5  # GR raster time
     RF_Δt::Real=1e-6  # RF raster time 

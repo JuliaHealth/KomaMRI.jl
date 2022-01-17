@@ -32,14 +32,6 @@ print_gpus_info() = begin
 	end
 end
 
-function trapz(dx,y)
-	1/2*sum( dx .* (y[:, 2:end] .+ y[:, 1:end-1]); dims=2) 
-end
-
-function cumtrapz(dx,y)
-	1/2*cumsum( dx .* (y[:, 2:end] .+ y[:, 1:end-1]); dims=2)
-end
-
 function points_from_key_times(times ; dt)
 	t = Float64[]
 	for i = 1:length(times)-1
@@ -71,11 +63,13 @@ function get_variable_times(seq; dt=0)
 		T = dur(seq[i]) #Length of block
 		tf = t0+T
 		if is_ADC_on(seq[i])
-			t1 = t0 + seq.GR.delay[i]
-			t2 = t1 + seq.GR.rise[i]
-			t3 = t2 + seq.GR.T[i]
-			t4 = t3 + seq.GR.fall[i]
-			taux = points_from_key_times([t0,t1,t2,t3,t4,tf]; dt)
+			t1 = t0 + seq.ADC.delay[i]
+			t2 = t1 + seq.ADC.T[i]
+			dτ = min(dt, seq.DEF["ADC_Δt"])
+			taux1 = points_from_key_times([t0,t1]; dt)
+			taux2 = points_from_key_times([t1,t2]; dt=dτ)
+			taux3 = points_from_key_times([t2,tf]; dt)
+			taux = [taux1; taux2; taux3]
 		else
 			t1 = t0 + seq.GR.delay[i]
 			t2 = t1 + seq.GR.rise[i]
@@ -262,15 +256,15 @@ function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt;
 	(S_interp, t_interp)
 end
 
-function simulate(phantom::Phantom, seq::Sequence, simParams::Dict)
+function simulate(phantom::Phantom, seq::Sequence, sys::Scanner, simParams::Dict)
 	#Simulation params
 	Nthreads = get(simParams, "Nthreads", Threads.nthreads())
 	step = get(simParams, "step", "uniform")
 	if step == "uniform"
-		Δt = get(simParams, "Δt", 4e-6) #<- simulate param
-		t, Δt = get_uniform_times(seq,Δt)
+		Δt = get(simParams, "Δt", sys.ADC_Δt)
+		t, Δt = get_uniform_times(seq, Δt)
 		Nspins, Nt = prod(size(phantom)), length(t)
-		Nblocks = get(simParams, "Nblocks", floor(Int, Nspins*Nt/2.7e6))
+		Nblocks = get(simParams, "Nblocks", floor(Int, Nspins*Nt/1.15e6))
 	elseif step == "variable"
 		t, Δt = get_variable_times(seq)
 		Nblocks = floor(Int64, length(t) / 1)

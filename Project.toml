@@ -4,6 +4,7 @@ authors = ["Carlos Castillo Passi"]
 version = "0.3.8"
 
 [deps]
+ArgCheck = "dce04be8-c92d-5529-be00-80e4d2c0e197"
 AssetRegistry = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Blink = "ad839575-38b3-5650-b840-f874b8c74a25"

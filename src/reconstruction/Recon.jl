@@ -1,5 +1,5 @@
 ifftc(x::Array{Complex{Float64},2})=fftshift(ifft(ifftshift(x)))*prod(size(x))
-fftc(x::Array{Complex{Float64},2})=fftshift(fft(ifftshift(x)))
+fftc(x::Array{Complex{Float64},2}) =fftshift(fft(ifftshift(x)))
 function reconstruction(signal, recParams)
     #Param unpack
     Nx =  get(recParams, "Nx",  101)

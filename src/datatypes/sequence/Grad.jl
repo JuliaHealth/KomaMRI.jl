@@ -30,7 +30,7 @@ Grad(1, 1)
 ```
 """
 mutable struct Grad
-	A::Union{Real,Matrix{Real}} #Amplitud [T], if this is a scalar it makes a trapezoid
+	A #Amplitud [T], if this is a scalar it makes a trapezoid
 	T::Real     #Duration of flat-top [s]
 	rise::Real  #Duration of rise [s]
 	fall::Real  #Duration of fall [s]
@@ -131,6 +131,7 @@ Base.show(io::IO,x::Grad) = begin
 			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(r(x.A*1e3)) mT, $(r(x.T*1e3)) ms, ↑$(r(x.rise*1e3)) ms, ↓$(r(x.fall*1e3)) ms)")
 		end
 	else
-		print(io, (x.A > 0 ? "⊓" : x.A < 0 ? "⊔" : "⇿")*"($(r((x.delay+x.rise+x.fall+x.T)*1e3)) ms)")
+		wave = length(x.A) == 1 ? "⊓" : "∿"
+		print(io, (sum(abs.(x.A)) > 0 ? wave : "⇿")*"($(r((x.delay+x.rise+x.fall+x.T)*1e3)) ms)")
 	end
 end

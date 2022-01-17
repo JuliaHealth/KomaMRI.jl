@@ -81,20 +81,24 @@ It calculates |\\alpha|^2+|\\beta|^2 of the Cayley-Klein parameters
 """
 abs(s::Spinor) = abs(s.α)^2 + abs(s.β)^2
 
+
 """RF Object"""
 mutable struct RF
-	A::Union{Complex,Matrix{Complex}} # Amplitud/Phase B1x + i B1y [T]
+	A # Amplitud/Phase B1x + i B1y [T]
 	T::Float64     # Duration [s]
 	Δf::Float64    # Frequency offset [Hz]
 	delay::Float64 # Delay [s]
 	function RF(A,T,Δf,delay)
-		T < 0 || delay < 0 ? error("RF timings must be positive.") : new(A, T, Δf, delay)
+		@argcheck T > 0 && delay >= 0 "RF timings must be positive."
+		new(A, T, Δf, delay)
     end
 	function RF(A,T,Δf)
-		T < 0 ? error("RF timings must be positive.") : new(A, T, Δf, 0.)
+		@argcheck T > 0 "RF timings must be positive."
+		new(A, T, Δf, 0.)
     end
 	function RF(A,T)
-		T < 0 ? error("RF timings must be positive.") : new(A, T, 0., 0.)
+		@argcheck T > 0 "RF timings must be positive."
+		new(A, T, 0., 0.)
     end
 end
 #Properties
@@ -128,5 +132,12 @@ getproperty(x::Matrix{RF}, f::Symbol) = begin
 end
 #aux
 Base.show(io::IO,x::RF) = begin
-	print(io, (x.delay>0 ? "|-$(x.T*1e3) ms-| " : "")*"RF([$(x.A*1e6)] uT, $(x.T*1e3) ms, $(x.Δf) Hz)")
+	r(x) = round(x,digits=4)
+	compact = get(io, :compact, false)
+	if !compact
+			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"RF($(r(x.A*1e6)) uT, $(r(x.T*1e3)) ms, $(r(x.Δf)) Hz)")
+	else
+		wave = length(x.A) == 1 ? "⊓" : "∿"
+		print(io, (sum(abs.(x.A)) > 0 ? wave : "⇿")*"($(r((x.delay+x.T)*1e3)) ms)")
+	end
 end

@@ -6,7 +6,7 @@ import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size,
        Base.copy, Base.Threads.@spawn, Base.Threads.@threads,
        Base.angle, Base.abs, Base.getproperty, Base.one
 using Random, LinearAlgebra, FFTW, Images, Printf, MAT, PlotlyJS, 
-       ProgressMeter, CUDA, Parameters, Interpolations, FileIO
+       ProgressMeter, CUDA, Parameters, ArgCheck, Interpolations, FileIO
 
 global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1
 
@@ -28,7 +28,7 @@ include("datatypes/Phantom.jl")
 include("reconstruction/Recon.jl")
 #Simulator
 include("datatypes/simulation/Magnetization.jl")
-# include("simulation/DiffusionModel.jl")
+include("simulation/DiffusionModel.jl")
 # include("simulation/OffResonanceModel.jl")
 include("simulation/Simulator.jl")
 #UI
@@ -46,7 +46,7 @@ export PulseDesigner, get_designed_kspace, rotx, roty, rotz
 # Display
 export plot_seq, plot_grads_moments, plot_ksapce_trajectory
 # Simulator
-export simulate, run_sim_time_iter
+export simulate
 
 #GUI
 using Blink, Interact, AssetRegistry, JLD2

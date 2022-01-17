@@ -30,7 +30,7 @@ mutable struct Sequence
 		M,N = size(GR)
 		new([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N], 
 			reshape(
-				[RF(complex(0), GR[1,i].T, GR[1,i].rise) for i = 1:N]
+				[RF(0, GR[1,i].T, GR[1,i].rise) for i = 1:N]
 				,1,N),
 			[ADC(0, GR[1,i].T, GR[1,i].rise) for i = 1:N],
 			Dict()
@@ -156,7 +156,7 @@ dur(x::Sequence) = sum(durs(x))
 	aux
 end
 """
-	get_grad(seq,dim,t)
+	get_grad(seq,t)
 
 Get gradient array from sequence `seq` evaluated in time points `t` for the dimension `dim`.
 

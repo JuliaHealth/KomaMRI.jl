@@ -89,7 +89,7 @@ handle(w, "simulate") do args...
     @info "Running simulation..."
     @js_ w (@var loading = $loadbar; document.getElementById("simulate").innerHTML=loading)
     #To SequenceGUI
-    aux = simulate(phantom, seq, simParams)
+    aux = simulate(phantom, seq, sys, simParams)
     #To SignalGUI
     global signal = aux[1]
     global t_interp = aux[2]
@@ -118,8 +118,7 @@ global phantom = brain_phantom2D()
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 #SCANNER init
 @info "Loading Scanner (default)"
-sys = Scanner()
-sys.ADC_Δt = 4e-6
+global sys = Scanner()
 println("B0 = $(sys.B0) T")
 println("Gmax = $(round(sys.Gmax*1e3,digits=2)) mT/m")
 println("Smax = $(sys.Smax) mT/m/ms")
@@ -127,20 +126,19 @@ println("Smax = $(sys.Smax) mT/m/ms")
 @info "Loading Sequence (default) "
 B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
 EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
-EPI,_,_,_ = PulseDesigner.EPI_base(23e-2, 101, sys)
-TE = 40e-3
+EPI = PulseDesigner.EPI(23e-2, 101, sys)
+TE = 30e-3
 d1 = TE-dur(EPI)/2-dur(EX)
 if d1 > 0 DELAY = Delay(d1) end
 global seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI
 seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1,digits=4)*1e3
 println("EPI successfully loaded! (TE = $(seq.DEF["TE"]) ms)")
 #Init
-global scanner = []
 global t_interp = 0
 global signal = [0.0im 0. 0. 0.]
 global image = [0.0im 0.; 0. 0.]
-global simParams = Dict("step"=>"uniform","Δt"=>8e-6)
-global recParams = seq.DEF
+global simParams = Dict("step"=>"uniform","Δt"=>1e-3)
+global recParams = Dict("Nx"=>2,"recon"=>"fft")
 #GPUs
 if has_cuda()
     @info "Loading GPUs"
