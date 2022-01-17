@@ -1,7 +1,7 @@
 # Precursor of the RF excitation code with feature directions, most of the comments below are already implemented
 
-using MRIsim
-using MRIsim: γ, Q, RF_fun, get_grads, Un, cross
+using Koma
+using Koma: γ, Q, RF_fun, get_grads, Un, cross
 using Plots, LaTeXStrings
 gr(size = (800,800))
 
@@ -85,6 +85,6 @@ end
 #                    [exp(-Δt/T2)(Mx + iMx), exp(-Δt/T1) Mz + ρ (1 - exp(-Δt/T1))].
 # - Movement of the phantom during excitation? (using obj.x + obj.ux(obj.x,obj.y))
 # - Effects of T1 and T2 during an RF block: For each Δt we do RF and then T1 & T2 decay.
-# - Plotting function MRIsim.plot_grads(seq) in Display.jl is not currently plotting RF pulses
+# - Plotting function Koma.plot_grads(seq) in Display.jl is not currently plotting RF pulses
 # - Pre-defined RF waveforms.
 # - Shinnar-Le Roux pulse desing? 

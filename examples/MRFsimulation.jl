@@ -1,5 +1,5 @@
-using MRIsim, MAT, PlotlyJS
-using MRIsim: γ, rotz, brain_phantom2D
+using Koma, MAT, PlotlyJS
+using Koma: γ, rotz, brain_phantom2D
 #Phantom 
 phantom = brain_phantom2D()
 phantom.Δw = zeros(size(phantom)) #Removing off-resonance
@@ -14,10 +14,10 @@ data = matread("./src/data/MRFinput.mat")
 A = α.*exp.(1im*ϕ)
 #Inversion pulse
 TINV = 50e-3
-INV = (π+0im)*EX + Sequence([delay(TINV)])
+INV = (π+0im)*EX + Sequence([Delay(TINV)])
 #Delays
-delayTE = [Sequence([delay(TE[n]-Ta)]) for n=1:length(α)]
-delayTR = [Sequence([delay(TR[n]-TE[n]-Ta)]) for n=1:length(α)]
+delayTE = [Sequence([Delay(TE[n]-Ta)]) for n=1:length(α)]
+delayTR = [Sequence([Delay(TR[n]-TE[n]-Ta)]) for n=1:length(α)]
 #MRF with rotated spokes
 # φ, Nφ = (√5 + 1)/2, 7; Δθ = π/(φ+Nφ-1) # Uncomment for tiny golden angle 7
 NTRs = 1000 #Number of TRs
@@ -26,6 +26,6 @@ plot_seq(seq)
 ## Simulation
 simParams = Dict(:step => "uniform", :Δt => 25e-6, :Nblocks=> 20*NTRs)
 recParams = Dict(:skip_rec => true)
-fingerprint = MRIsim.simulate(phantom, seq, simParams, recParams)
+fingerprint = Koma.simulate(phantom, seq, simParams, recParams)
 plot(abs.(fingerprint))
 matwrite("./MRF_signal_Δθ_$(floor(Int64, Δθ/π*180)).mat", Dict("signal"=>fingerprint))

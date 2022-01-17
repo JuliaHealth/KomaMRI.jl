@@ -3,8 +3,8 @@
 <img width="300px" src="./src/ui/assets/Logo_dark.png#gh-dark-mode-only"/>
 </p>
 
-![Build status](https://github.com/cncastillo/MRIsim.jl/actions/workflows/ci.yml/badge.svg)
-[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/MRIsim.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
+![Build status](https://github.com/cncastillo/Koma.jl/actions/workflows/ci.yml/badge.svg)
+[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/Koma.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
 
 
 Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
@@ -49,7 +49,7 @@ If you use this package please acknowledge us by citing:
 ```bibtex
 @software{carlos_castillo_passi_2021_5507370,
   author       = {Castillo-Passi, Carlos and Irarrazaval, Pablo},
-  title        = {cncastillo/MRIsim.jl},
+  title        = {cncastillo/Koma.jl},
   month        = sep,
   year         = 2021,
   publisher    = {Zenodo},

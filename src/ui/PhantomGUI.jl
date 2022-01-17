@@ -1,6 +1,6 @@
 path = @__DIR__
 
-loadbutton = filepicker("Choose .phantom file..."; accept=".phantom", value="")
+loadbutton = filepicker("Choose .phantom file.."; accept=".phantom", value="")
 columnbuttons = Observable{Any}(dom"div"())
 data = Observable{Any}(Phantom)
 hh, ww = 420,550
@@ -22,6 +22,7 @@ plt = Observable{Any}(p)
 #Assigning function of data when load button (filepicker) is changed
 map!(f->begin
         if f!=""
+        global pha_file = basename(f)
         global phantom = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"phantom")
         # print("Loaded! ... $f\n")
         else

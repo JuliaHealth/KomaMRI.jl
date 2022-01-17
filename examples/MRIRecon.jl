@@ -47,13 +47,13 @@ img_reco = reconstruction(acqDataSub, params)
 heatmap(reverse( abs.(img_reco[:,:,1,1,1]),dims=1), c=:viridis)
 
 ##
-using MRIsim
+using Koma
 
 imcoils = []
 Nc = numChannels(data) 
 for coil = 1:Nc
     raw = reshape(data.kdata[1][:,coil], sz[1:2]...)
-    img = MRIsim.ifftc(raw)
+    img = Koma.ifftc(raw)
     append!(imcoils, [img])
 end
 imgss = sqrt.( sum([abs.(imcoils[i]).^2 for i=1:Nc]) ) #sum of squares

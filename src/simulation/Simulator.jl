@@ -32,6 +32,26 @@ print_gpus_info() = begin
 	end
 end
 
+function trapz(dx,y)
+	1/2*sum( dx .* (y[:, 2:end] .+ y[:, 1:end-1]); dims=2) 
+end
+
+function cumtrapz(dx,y)
+	1/2*cumsum( dx .* (y[:, 2:end] .+ y[:, 1:end-1]); dims=2)
+end
+
+function points_from_key_times(times ; dt)
+	t = Float64[]
+	for i = 1:length(times)-1
+		if dt < times[i+1] - times[i]
+			taux = collect(range(times[i],times[i+1];step=dt))
+		else
+			taux = [times[i], times[i+1]]
+		end
+		append!(t, taux)
+	end
+	t
+end
 """
 Uniform time-step calculation
 """
@@ -43,25 +63,31 @@ end
 Variable time-step calculation
 """
 function get_variable_times(seq; dt=0)
-	idx = 1
-	t = [0.]
-	Δt = Float64[]
-	for i = 1:size(seq)[1]
-		ti = t[idx]
-		T = seq[i].GR[1].T #Length of block
-		if is_DAC_on(seq[i])
-			N = dt == 0 ? seq[i].DAC[1].N : ceil(Int64, 1 + T/dt) # Δt = (Tmax-Tmin)/(N-1)
-			taux = collect(range(ti,ti+T;length=N))
+	t = Float64[]
+	ΔT = durs(seq) #Duration of sequence block
+	T0 = cumsum([0; ΔT[1:end-1]]) #Start time of each block
+	for i = 1:length(seq)
+		t0 = T0[i]
+		T = dur(seq[i]) #Length of block
+		tf = t0+T
+		if is_ADC_on(seq[i])
+			t1 = t0 + seq.GR.delay[i]
+			t2 = t1 + seq.GR.rise[i]
+			t3 = t2 + seq.GR.T[i]
+			t4 = t3 + seq.GR.fall[i]
+			taux = points_from_key_times([t0,t1,t2,t3,t4,tf]; dt)
 		else
-			N = dt == 0 ? 2 : ceil(Int64, 1 + T/dt)
-			taux = collect(range(ti,ti+T;length=N)) # Δt = (Tmax-Tmin)/(N-1)
+			t1 = t0 + seq.GR.delay[i]
+			t2 = t1 + seq.GR.rise[i]
+			t3 = t2 + seq.GR.T[i]
+			t4 = t3 + seq.GR.fall[i]
+			taux = points_from_key_times([t0,t1,t2,t3,t4,tf]; dt)
 		end
-		dtaux = taux[2:end] .- taux[1:end-1]
-		append!(t,taux)
-		append!(Δt,dtaux)
-		idx += length(taux)	
+		append!(t, taux)
 	end
-	t = unique(t[1:end-1]) .+ 1e-8 #Remove non-unique values
+	t = unique(x -> round(x*1e8), t)
+	Δt = t[2:end] .- t[1:end-1]
+	t = t[1:end-1] .+ 1e-8
 	t, Δt
 end
 
@@ -69,8 +95,7 @@ end
 Implementation in multiple threads. Separating the spins in N_parts.
 """
 function run_spin_precession_parallel(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt::Array{Float64,1};
-	M0::Array{Mag,1}, 
-	N_parts::Int = Threads.nthreads())
+	M0::Array{Mag,1}, Nthreads::Int=Threads.nthreads())
 
 	Nt, NΔt, Ns = length(t), length(Δt), prod(size(obj))
 	#Put times as row vector
@@ -79,7 +104,7 @@ function run_spin_precession_parallel(obj::Phantom,seq::Sequence, t::Array{Float
 
 	S = zeros(ComplexF64, Nt)
 	
-	parts = kfoldperm(Ns, N_parts, type="ordered") 
+	parts = kfoldperm(Ns, Nthreads, type="ordered") 
 
 	@threads for p ∈ parts
 		aux, M0[p] = run_spin_precession(obj[p],seq,t,Δt; M0=M0[p])
@@ -100,7 +125,7 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
 
 	𝒊 = 1im; Random.seed!(1)
 	T = sum(Δt) #Total length, used for signal relaxation
-	
+	# t = [t t[end]+Δt[end]] #For trapezoidal integration <---------------------------
     sz = size(obj)
 	Nsz = length(sz)
 
@@ -141,10 +166,10 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
 	yt = y0 .+ obj.uy(x0,y0,z0,t) .+ ηyp |> gpu
 	zt = z0 .+ obj.uz(x0,y0,z0,t) .+ ηzp |> gpu
 	#ACQ OPTIMIZATION
-    if is_DAC_on(seq, Array(t)) 
-		ϕ = ϕ0 .- (2π*γ).*cumsum((xt.*Gx .+ yt.*Gy .+ zt.*Gz).*Δt, dims=Nsz+1) #TODO: Change Δt to a vector for non-uniform time stepping
+    if is_ADC_on(seq, Array(t)) 
+		ϕ = ϕ0 .- (2π*γ).*cumsum(Δt.*(xt.*Gx .+ yt.*Gy .+ zt.*Gz), dims=2)
 	else
-		ϕ = ϕ0 .- (2π*γ).*sum((xt.*Gx .+ yt.*Gy .+ zt.*Gz).*Δt, dims=Nsz+1) 
+		ϕ = ϕ0 .- (2π*γ).*sum(Δt.*(xt.*Gx .+ yt.*Gy .+ zt.*Gz), dims=2) 
 	end
 	#Mxy preccesion and relaxation
 	Δw = obj.Δw  |> gpu
@@ -160,18 +185,18 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
 	# END
 	Mxy = Array(Mxy)
 	Mz = Array(Mz)
-	M0 = Mag.(Mxy[:,end], Mz)
+	M0 = Mag.(Mxy[:,end], Mz) #Saving the last magnetization
     Array(S), M0
 end
 
 run_spin_excitation_parallel(obj, seq, t::Array{Float64,1}, Δt::Array{Float64,1}; 
-	M0::Array{Mag,1}, N_parts::Int = Threads.nthreads()) = begin
+	M0::Array{Mag,1}, Nthreads::Int=Threads.nthreads()) = begin
 	Nt, NΔt, Ns = length(t), length(Δt), prod(size(obj))
 	#Put times as row vector
 	t = reshape(t,1,Nt)
 	Δt = reshape(Δt,1,NΔt)
 	
-	parts = kfoldperm(Ns, N_parts, type="ordered") 
+	parts = kfoldperm(Ns, Nthreads, type="ordered") 
 
 	@threads for p ∈ parts
 		M0[p] = run_spin_excitation(obj[p],seq,t,Δt; M0=M0[p])
@@ -209,7 +234,8 @@ run_spin_excitation(obj, seq, t::Array{Float64,2}, Δt::Array{Float64,2};
 end
 
 """Divides time steps in N_parts blocks. Decreases RAM usage in long sequences."""
-function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt; N_parts::Int=16)
+function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt; 
+								Nblocks::Int=16, Nthreads::Int=Threads.nthreads())
 	Nt, NΔt, Ns = length(t), length(Δt), prod(size(obj))
 	if NΔt ==1 Δt = Δt*ones(size(t)) end
 	#Put times as row vector
@@ -219,14 +245,14 @@ function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt;
 	else
 		M0 = Mag(obj,:x)
 	end
-    parts = kfoldperm(Nt,N_parts,type="ordered")
+    parts = kfoldperm(Nt,Nblocks,type="ordered")
 	println("Starting simulation with Nspins=$Ns and Nt=$Nt")
 	#TODO: transform suceptibility χ to Δω, for each time-block with FMM-like technique O(nlogn).
 	@showprogress for p ∈ parts
 		if is_RF_on(seq, t[p])
-			M0  = run_spin_excitation_parallel(obj, seq, t[p], Δt[p]; M0)
+			M0  = run_spin_excitation_parallel(obj, seq, t[p], Δt[p]; M0, Nthreads)
 		else
-			S[p], M0 = run_spin_precession_parallel(obj, seq, t[p], Δt[p]; M0)
+			S[p], M0 = run_spin_precession_parallel(obj, seq, t[p], Δt[p]; M0, Nthreads)
 		end
 	end
 
@@ -236,40 +262,28 @@ function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt;
 	(S_interp, t_interp)
 end
 
-function simulate(phantom::Phantom, seq::Sequence, simParams::Dict, recParams::Dict)
+function simulate(phantom::Phantom, seq::Sequence, simParams::Dict)
 	#Simulation params
-	step = get(simParams, :step, "variable")
+	Nthreads = get(simParams, "Nthreads", Threads.nthreads())
+	step = get(simParams, "step", "uniform")
 	if step == "uniform"
-		Δt = get(simParams, :Δt, 4e-6) #<- simulate param
+		Δt = get(simParams, "Δt", 4e-6) #<- simulate param
 		t, Δt = get_uniform_times(seq,Δt)
-		Nphant, Nt = prod(size(phantom)), length(t)
-		Nblocks = floor(Int, Nphant*Nt/2.7e6)
-		Nblocks = get(simParams, :Nblocks, Nblocks)
+		Nspins, Nt = prod(size(phantom)), length(t)
+		Nblocks = get(simParams, "Nblocks", floor(Int, Nspins*Nt/2.7e6))
 	elseif step == "variable"
 		t, Δt = get_variable_times(seq)
 		Nblocks = floor(Int64, length(t) / 1)
 	end
 	println("Dividing simulation in Nblocks=$Nblocks")
-	#Recon params
-    Nx = get(recParams, :Nx, 101)
-	Ny = get(recParams, :Ny, Nx)
-	epi = get(recParams, :epi, false)
-	recon = get(recParams, :recon, :skip)
     #Simulate
-    S, t_interp = @time run_sim_time_iter(phantom,seq,t,Δt;N_parts=Nblocks)
-    Nphant = prod(size(phantom))
-	signal = S ./ Nphant #Acquired data
-	#K-data, only 2D for now
-	if recon != :skip 
-		kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
-		if epi kdata[:,2:2:Ny] = kdata[Nx:-1:1,2:2:Ny] end #Flip in freq-dir for the EPI
-		kdata = convert(Array{Complex{Float64},2},kdata)
-		#Recon, will be replaced to call MRIReco.jl
-		if recon == :fft
-			image = ifftc(kdata)
-		end
-		(signal, t_interp, image)
-	else
-		(signal, t_interp, nothing)
-	end
+    S, t_interp = @time run_sim_time_iter(phantom,seq,t,Δt;Nblocks,Nthreads)
+    Nspins = prod(size(phantom))
+	signal = S ./ Nspins #Acquired data
+	#Recon params parsing
+	recParams = Dict()
+    recParams["Nx"] =  get(seq.DEF, "Nx",  101)
+	recParams["Ny"] =  get(seq.DEF, "Ny",  recParams["Nx"])
+	recParams["EPI"] = get(seq.DEF, "EPI", false)
+	(signal, t_interp, recParams)
 end

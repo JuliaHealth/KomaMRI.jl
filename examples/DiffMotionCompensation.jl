@@ -1,8 +1,8 @@
 # Code used to generate gradient waveforms that are moment-compensated
 # Sequence optimization for diffusion motion-compensation 
 
-using MRIsim, JuMP, Ipopt #, Gtk
-using MRIsim: get_Bmatrix, get_SRmatrix, get_Mmatrix, 
+using Koma, JuMP, Ipopt #, Gtk
+using Koma: get_Bmatrix, get_SRmatrix, get_Mmatrix, 
               dur, get_bvalue, write_diff_fwf, delay
 ## Parameters
 dwell_time = 6.4e-6
@@ -12,7 +12,7 @@ plots = true
 N1 = 250 #floor(Int64, τ * 1e3 * 15625 / 100) + 2 # Δt = 6.4e-6 #dwell-time 
 #Path were to write the waveforms
 #path = "/media/ccp/Samsung_T5/"
-path_file = "/home/ccp/Documents/MRIsim.jl/"
+path_file = "/home/ccp/Documents/Koma.jl/"
 k = 2
 sym = false
 maxwell = true
@@ -31,7 +31,7 @@ end
 #Grads# - Pre-defined RF waveforms.
 τ = (δ1 + rf180 + δ2) # τ/Nt = Δt => Nt = τ/Δt  
 N2 = floor(Int, N1 * δ2 / δ1)
-DIF = Sequence([Grad(x -> 1, δ1 - dwell_time, N1) delay(rf180) Grad(x -> 1, δ2 - dwell_time, N2)])
+DIF = Sequence([Grad(x -> 1, δ1 - dwell_time, N1) Delay(rf180) Grad(x -> 1, δ2 - dwell_time, N2)])
 idx180 = N1 + 1
 _, N = size(DIF.GR)
 #Opt matrices
@@ -86,7 +86,7 @@ write_diff_fwf(DIF,idx180,Gmax,floor(Int64,bmax); filename=path_file*"QTE_Wavefo
 write_diff_fwf(DIF,idx180,Gmax,floor(Int64,bmax); filename=path_file*"QTE_Waveforms/qte_vectors_input.txt", name=seq_name)
 # Plots
 # if plots
-MRIsim.plot_grads_moments(DIF,title="ODTI, b=$(round(get_bvalue(DIF)*1e-6, digits=2)) s/mm2, λ0 = $(abs(round(1e3*M0v'*gx,digits=1))), λ1 = $(abs(round(1e3*M1v'*gx,digits=1))), λ2 = $(abs(round(1e3*M2v'*gx,digits=1)))")
+Koma.plot_grads_moments(DIF,title="ODTI, b=$(round(get_bvalue(DIF)*1e-6, digits=2)) s/mm2, λ0 = $(abs(round(1e3*M0v'*gx,digits=1))), λ1 = $(abs(round(1e3*M1v'*gx,digits=1))), λ2 = $(abs(round(1e3*M2v'*gx,digits=1)))")
 # end
 # end
 

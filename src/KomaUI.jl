@@ -30,7 +30,7 @@ icons = joinpath(css,"icons.css")
 ## WINDOW
 global w = Blink.Window(Dict(
     "title"=>"KomaUI",
-    # "autoHideMenuBar"=>false,
+    "autoHideMenuBar"=>true,
     "frame"=>frame, #removes title bar
     "node-integration" => true,
     :icon=>path*"/ui/assets/Logo_icon.png"
@@ -88,16 +88,15 @@ end
 handle(w, "simulate") do args...
     @info "Running simulation..."
     @js_ w (@var loading = $loadbar; document.getElementById("simulate").innerHTML=loading)
-    simParams = Dict(:step=>"uniform",:Δt=>4e-6)
-    recParams = Dict(:Nx=>101,:epi=>true,:recon=>:fft)
-    aux = simulate(phantom, seq, simParams, recParams)
+    #To SequenceGUI
+    aux = simulate(phantom, seq, simParams)
     #To SignalGUI
     global signal = aux[1]
     global t_interp = aux[2]
     #To ReconGUI
-    global recon = aux[3]
-    @js_ w document.getElementById("simulate").innerHTML="""<button type="button" onclick='Blink.msg("simulate", 1)' class="btn btn-primary btn-lg btn-block">Run simulation!</button>"""
+    global recParams = aux[3]
     @js_ w Blink.msg("recon", 0)
+    @js_ w document.getElementById("simulate").innerHTML="""<button type="button" onclick='Blink.msg("simulate", 1)' class="btn btn-primary btn-lg btn-block">Run simulation!</button>"""
 end
 handle(w, "close") do args...
     global phantom = nothing
@@ -107,7 +106,8 @@ handle(w, "close") do args...
     global signal = nothing
     global t_interp = nothing
 
-    global recon = nothing
+    global simParams = nothing
+    global recParams = nothing
 
     close(w)
 end
@@ -116,22 +116,31 @@ end
 @info "Loading Phantom (default)"
 global phantom = brain_phantom2D()
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
+#SCANNER init
+@info "Loading Scanner (default)"
+sys = Scanner()
+sys.ADC_Δt = 4e-6
+println("B0 = $(sys.B0) T")
+println("Gmax = $(round(sys.Gmax*1e3,digits=2)) mT/m")
+println("Smax = $(sys.Smax) mT/m/ms")
 #SEQ init
 @info "Loading Sequence (default) "
-B1 = 6e-6; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
-EX = PulseDesigner.RF_hard(B1, durRF)
-Gmax = 30e-3
-EPI,_,_,_ = PulseDesigner.EPI_base(23e-2, 101, 4e-6, Gmax)
-TE = 25e-3 
-d = delay(TE-dur(EPI)/2-dur(EX))
-DELAY = Sequence([d;d])
-global seq = EX + DELAY + EPI
-println("EPI successfully loaded! (TE = $(TE*1e3) ms)")
+B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
+EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+EPI,_,_,_ = PulseDesigner.EPI_base(23e-2, 101, sys)
+TE = 40e-3
+d1 = TE-dur(EPI)/2-dur(EX)
+if d1 > 0 DELAY = Delay(d1) end
+global seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI
+seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1,digits=4)*1e3
+println("EPI successfully loaded! (TE = $(seq.DEF["TE"]) ms)")
 #Init
 global scanner = []
 global t_interp = 0
-global signal = 0
-global recon = [0.0im 0.; 0. 0.]
+global signal = [0.0im 0. 0. 0.]
+global image = [0.0im 0.; 0. 0.]
+global simParams = Dict("step"=>"uniform","Δt"=>8e-6)
+global recParams = seq.DEF
 #GPUs
 if has_cuda()
     @info "Loading GPUs"

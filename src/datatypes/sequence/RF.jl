@@ -83,11 +83,22 @@ abs(s::Spinor) = abs(s.α)^2 + abs(s.β)^2
 
 """RF Object"""
 mutable struct RF
-	A::Complex # Amplitud B1x + i B1y [T]
-	T::Float64 # Duration [s]
+	A::Union{Complex,Matrix{Complex}} # Amplitud/Phase B1x + i B1y [T]
+	T::Float64     # Duration [s]
+	Δf::Float64    # Frequency offset [Hz]
+	delay::Float64 # Delay [s]
+	function RF(A,T,Δf,delay)
+		T < 0 || delay < 0 ? error("RF timings must be positive.") : new(A, T, Δf, delay)
+    end
+	function RF(A,T,Δf)
+		T < 0 ? error("RF timings must be positive.") : new(A, T, Δf, 0.)
+    end
+	function RF(A,T)
+		T < 0 ? error("RF timings must be positive.") : new(A, T, 0., 0.)
+    end
 end
 #Properties
-*(α::ComplexF64, x::RF) = RF(α*x.A,x.T)
+*(α::ComplexF64, x::RF) = RF(α*x.A,x.T,x.Δf,x.delay)
 "Duration `T` [s] of the RF array Array{RF,1}."
 dur(x::Array{RF,1}) = sum(x[i].T for i=1:size(x,1))
 "Duration `T` [s] of the RF array Array{RF,2}."
@@ -99,9 +110,23 @@ end
 one(T::Spinor) = Spinor(1,0)
 getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x,f)
 getproperty(x::Matrix{RF}, f::Symbol) = begin
-	if f == :A
-		getproperty.(x,:A)
-	elseif f == :T
-		x[1,:].T
+	if     f == :Bx
+		real.(getproperty.(x,:A))
+	elseif f == :By
+		imag.(getproperty.(x,:A))
+	elseif f == :Δf
+		imag.(getproperty.(x,:Δf))
+	elseif f == :T || f == :delay
+		getproperty.(x[1,:],f)
+	elseif f == :dur
+		T, delay = x.T, x.delay
+		ΔT = T .+ delay
+		ΔT
+	else
+		getproperty.(x,f)
 	end
+end
+#aux
+Base.show(io::IO,x::RF) = begin
+	print(io, (x.delay>0 ? "|-$(x.T*1e3) ms-| " : "")*"RF([$(x.A*1e6)] uT, $(x.T*1e3) ms, $(x.Δf) Hz)")
 end

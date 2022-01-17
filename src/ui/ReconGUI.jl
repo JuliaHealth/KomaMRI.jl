@@ -7,21 +7,36 @@ path = @__DIR__
 #         print("Loaded! ... $f\n")
 #     end
 #     , data, loadbutton)
-
-# Ploting recon
-# global recon = ifftc(kdata)
-
-hh, ww = 420,550
-# l = PlotlyJS.Layout(;title="Reconstruction", yaxis_title="y", yaxis=attr(scaleanchor="x"),
-#     xaxis_title="x",height=hh,width=ww,
-#     modebar=attr(orientation="v"),scene=attr(aspectratio=attr(x=1,y=1,z=1)))
-l = PlotlyJS.Layout(;title="Reconstruction",yaxis_title="y",
-    xaxis_title="x",height=hh,width=ww,
-    yaxis=attr(scaleanchor="x"),
-    modebar=attr(orientation="v"),xaxis=attr(constrain="domain"),hovermode="closest")
-p = PlotlyJS.plot(PlotlyJS.heatmap(z=abs.(recon),showscale=false,colorscale="Greys",transpose = false),l)
+columnbuttons = Observable{Any}(dom"div"())
+data = Observable{Any}(signal)
+p = plot_image(image)
 plt = Observable{Any}(p)
-# PlotlyJS.savefig(p, path*"/assets/phantom.png", width=320, height=300)
+# Ploting recon
+function makebuttons(signal)
+    namesseq = ["Image","k-data"]
+    buttons = button.(string.(namesseq))
 
-ui = dom"div"(plt)
+    for (btn, name) in zip(reverse(buttons), reverse(namesseq))
+        if name == "Image"
+            map!(t-> begin
+                    recParams["recon"] = "fft"
+                    image = reconstruction(signal, recParams)
+                    plot_image(image)
+                end
+                , plt, btn)
+        elseif name == "k-data"
+            map!(t-> begin
+                    recParams["recon"] = "skip"
+                    image = reconstruction(signal, recParams)
+                    plot_image(image)         
+            end
+            , plt, btn)
+        end
+    end
+    dom"div"(hbox(buttons))
+end
+
+map!(makebuttons, columnbuttons, data)
+
+ui = dom"div"(columnbuttons, plt)
 content!(w, "div#content", ui)

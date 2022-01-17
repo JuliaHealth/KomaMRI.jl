@@ -67,5 +67,5 @@ end
     s = s1 + s2
     @test s.GR.A ≈ [s1.GR.A s2.GR.A]
     @test s.RF.A ≈ [s1.RF.A s2.RF.A]
-    @test s.DAC.N ≈ [s1.DAC.N ; s2.DAC.N]
+    @test s.ADC.N ≈ [s1.ADC.N ; s2.ADC.N]
 end
