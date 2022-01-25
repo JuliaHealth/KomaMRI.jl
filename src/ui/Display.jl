@@ -8,7 +8,11 @@ get_grad_theo_A(g::Grad) = begin
 end
 get_grad_theo_t(g::Grad) = begin
 	N = length(g.A)
-	t = g.delay+g.rise:g.T/N:g.delay+g.rise+g.T
+	if g.T != 0
+		t = g.delay+g.rise:g.T/N:g.delay+g.rise+g.T
+	else
+		t = [g.delay+g.rise; g.delay+g.rise]
+	end
 	t = [t t]'; t = t[2:end-1]
 	[0; g.delay; t; g.delay+g.rise+g.T+g.fall]
 end
@@ -18,7 +22,11 @@ get_rfs_theo_A(r::RF) = begin
 end
 get_rfs_theo_t(r::RF) = begin
 	N = length(r.A)
-	t = r.delay:r.T/N:r.delay+r.T
+	if r.T != 0
+		t = r.delay:r.T/N:r.delay+r.T
+	else
+		t = [r.delay; r.delay]
+	end
 	t = [t t]'; t = t[1:end-1]
 	[0; t; r.delay+r.T]
 end
@@ -37,7 +45,10 @@ plot_seq(seq::Sequence) = begin
 	O = size(seq.RF,1)
 	ΔT = durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
-	t1 = vcat([get_grad_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
+	t1x = vcat([get_grad_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
+	t1y = vcat([get_grad_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
+	t1z = vcat([get_grad_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
+	t1 = [t1x t1y t1z]
 	t2 = vcat([get_rfs_theo_t(seq.RF[1,i])  .+ T0[i] for i=1:N]...)
 	t3 = vcat([get_adc_theo_t(seq.ADC[i])   .+ T0[i] for i=1:N]...)
 	Gx = vcat([get_grad_theo_A(seq.GR[1,i]) for i=1:N]...)
@@ -47,11 +58,11 @@ plot_seq(seq::Sequence) = begin
 	R = vcat([get_rfs_theo_A(seq.RF[1,i]) for i=1:N]...)
 	D = vcat([get_adc_theo_N(seq.ADC[i] ) for i=1:N]...); D ./= maximum(D)
 	
-	l = PlotlyJS.Layout(;yaxis_title="G [mT/m]",#, hovermode="x unified", #title="Sequence", 
+	l = PlotlyJS.Layout(;yaxis_title="G [mT/m]<br>RF [μT]",#, hovermode="x unified", #title="Sequence", 
 			xaxis_title="t [ms]",height=300, modebar=attr(orientation="v"),
 			legend=attr(orientation="h",yanchor="bottom",xanchor="right",y=1.02,x=1),
 			xaxis=attr(
-				range=[0.,20],
+				range=[0.,min(20,1e3*dur(seq))],
 				rangeslider=attr(visible=true),
 				rangeselector=attr(
 					buttons=[
@@ -64,17 +75,18 @@ plot_seq(seq::Sequence) = begin
 					)
 				)
 			)
-	p = [PlotlyJS.scatter() for j=1:(3+O+1)]
+	p = [PlotlyJS.scatter() for j=1:(3+2O+1)]
 	#GR
 	for j=1:3
-		p[j] = PlotlyJS.scatter(x=t1*1e3, y=G[:,j]*1e3,name=idx[j],hovertemplate="%{y:.1f} mT/m")
+		p[j] = PlotlyJS.scatter(x=t1[:,j]*1e3, y=G[:,j]*1e3,name=idx[j],hovertemplate="%{y:.1f} mT/m")
 	end
 	#RF
 	for j=1:O
-		p[j+3] = PlotlyJS.scatter(x=t2*1e3, y=abs.(R[:,j])*1e6,name="RF_$j",hovertemplate="%{y:.1f} μT")
+		p[2j-1+3] = PlotlyJS.scatter(x=t2*1e3, y=abs.(R[:,j])*1e6,name="|RF_$j|",hovertemplate="%{y:.1f} μT")
+		p[2j+3] = PlotlyJS.scatter(x=t2*1e3, y=angle.(R[:,j]),name="<RF_$j",hovertemplate="%{y:.1f} rad", visible="legendonly")
 	end
 	#ADC
-	p[O+3+1] = PlotlyJS.scatter(x=t3*1e3, y=D*1., name="ADC")
+	p[2O+3+1] = PlotlyJS.scatter(x=t3*1e3, y=D*1., name="ADC")
 	PlotlyJS.plot(p, l)#, options=Dict(:displayModeBar => false))
 end
 
@@ -134,29 +146,32 @@ function plot_image(image)
 end
 
 function plot_kspace(seq, simParams)
-	#Layout
-	hh, ww = 500,550
-	l = PlotlyJS.Layout(;title="k-space",
-		scene=attr(xaxis_title="kx [m^-1]",
-				   yaxis_title="ky [m^-1]",
-				   zaxis_title="kz [m^-1]",),
-		modebar=attr(orientation="v"),height=hh,hovermode="closest",
-		scene_camera_eye=attr(x=0, y=0, z=2),
-		scene_camera_up=attr(x=0, y=1., z=0),)
 	#Calculations of theoretical k-space
 	kspace = get_designed_kspace(seq)
-	N = size(kspace,1)-1
-	c = ["hsv($((i-1)/N*255),255,25)" for i=1:N-1]
+	N = size(kspace,1)
+	c = ["hsv($((i-1)/N*255),255,25)" for i=1:N]
 	#Calculations of simulated k-space
-	kspace2 = get_actual_kspace(seq, simParams)
-	N = size(kspace2,1)-1
-	c2 = ["hsv($((i-1)/N*255),255,25)" for i=1:N-1]
+	kspace2 = kspace #get_actual_kspace(seq, simParams)
+	N = size(kspace2,1)
+	c2 = ["hsv($((i-1)/N*255),100,25)" for i=1:N]
+	#Layout
+	mink = minimum([kspace[:]; kspace2[:]])
+	maxk = maximum([kspace[:]; kspace2[:]])
+	hh, ww = 500,550
+	l = PlotlyJS.Layout(;title="k-space",
+		scene=attr(xaxis_title="kx [m^-1]",#xaxis_range=[mink,maxk],
+				   yaxis_title="ky [m^-1]",#yaxis_range=[mink,maxk],
+				   zaxis_title="kz [m^-1]"),#zaxis_range=[mink,maxk]),
+		modebar=attr(orientation="v"),hovermode="closest",
+		scene_camera_eye=attr(x=0, y=0, z=2),
+		scene_camera_up=attr(x=0, y=1., z=0),
+		aspectmode="cube")
 	#Plot
 	p = [PlotlyJS.scatter() for j=1:2]
 	p[1] = PlotlyJS.scatter3d(x=kspace[:,1],y=kspace[:,2],z=kspace[:,3],mode="lines",
 			line=attr(color=c),aspectratio=1,name="Designed")
-	p[2] = PlotlyJS.scatter3d(x=kspace2[:,1],y=kspace2[:,2],z=kspace2[:,3],mode="lines",
-			line=attr(color=c2),aspectratio=1,name="Simulated")
+	p[2] = PlotlyJS.scatter3d(x=kspace2[:,1],y=kspace2[:,2],z=kspace2[:,3],mode="markers",
+			line=attr(color=c2),aspectratio=1,marker=attr(size=2),name="Simulated")
 	PlotlyJS.plot(p,l)
 end
 # plot_Phantom(obj::Phantom,filename::String) = begin

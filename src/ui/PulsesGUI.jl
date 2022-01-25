@@ -8,7 +8,7 @@ plt = Observable{Any}(p)
 map!(f->begin
             if f!=""
                 global seq_file = basename(f)
-                global seq = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"seq")
+                global seq = read_seq(f)
             else
             seq
             end

@@ -11,7 +11,7 @@ RF_hard(B1, T, sys::Scanner; G=[0,0,0]) = begin
 	EX = Sequence([	Grad(G[1],T,ζ);	 #Gx
 					Grad(G[2],T,ζ);  #Gy
 					Grad(G[3],T,ζ)], #Gz
-					[RF(B1,T,0,ζ)]	 #RF
+					 [RF(B1,T,0,ζ)]	 #RF
 					)
 	EX
 end

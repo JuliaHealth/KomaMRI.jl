@@ -67,7 +67,7 @@ function get_variable_times(seq; dt=0)
 			t2 = t1 + seq.ADC.T[i]
 			dτ = min(dt, seq.DEF["ADC_Δt"])
 			taux1 = points_from_key_times([t0,t1]; dt)
-			taux2 = points_from_key_times([t1,t2]; dt=dτ)
+			taux2 = points_from_key_times([t1,t2]; dt=dτ) #Higher sampling during ADC
 			taux3 = points_from_key_times([t2,tf]; dt)
 			taux = [taux1; taux2; taux3]
 		else
@@ -81,7 +81,7 @@ function get_variable_times(seq; dt=0)
 	end
 	t = unique(x -> round(x*1e8), t)
 	Δt = t[2:end] .- t[1:end-1]
-	t = t[1:end-1] .+ 1e-8
+	t = t[1:end-1] .+ 1e-8 #The tiny offset is necessary
 	t, Δt
 end
 

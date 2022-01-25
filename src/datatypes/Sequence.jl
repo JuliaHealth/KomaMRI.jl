@@ -82,7 +82,7 @@ Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, D::ADC, def::Dict) = Sequence(
 																[D],
 																def
 																)
-Sequence() = Sequence(reshape([Grad(0,0); Grad(0,0)],2,1))
+Sequence() = Sequence([Grad(0,0)])
 #Sequence operations. TODO: CHANGE RF to :,i whrn including coil sensitivities
 Base.length(x::Sequence) = size(x.GR,2)
 Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1], x.ADC[1], x.DEF), 2)
@@ -96,9 +96,9 @@ Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k
 Base.show(io::IO,s::Sequence) = begin
 	compact = get(io, :compact, false)
 	if !compact
-		print(io, "Sequence[ τ = $(round(dur(s)*1e3)) ms | ADC: $(is_ADC_on(s)) | GR: $(size(s.GR)) | RF: $(size(s.RF)) ]")
+		print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | ADC: $(is_ADC_on(s)) | GR: $(size(s.GR)) | RF: $(size(s.RF)) ]")
 	else
-		print(io, "Sequence[τ = $(round(dur(s)*1e3)) ms]")
+		print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
 	end
 end
 #Arithmetic operations
@@ -124,7 +124,7 @@ is_ADC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}}) = begin
 	is_ADC_on(x[activeBlock]) #Get elements of sequence active during time period t
 end
 "Tells if the sequence has elements with RF on."
-is_RF_on(x::Sequence) = any(abs.(x.RF.A) .> 0)
+is_RF_on(x::Sequence) = any(abs.([sum(abs.(r)) for r = x.RF.A]) .> 0)
 "Tells if the sequence has elements with RF on during t."
 is_RF_on(x::Sequence, t::Vector{Float64}) = begin
 	N = length(x)
@@ -316,9 +316,9 @@ end
 get_designed_kspace(x::Sequence) = begin
 	x = x[(!).(Koma.is_RF_on.(x))] #Remove RF blocks
 	M, N = size(x.GR)
-	rise = x.GR.A .* x.GR.rise' / 2.
-	flat = x.GR.A .* x.GR.T'
-	fall = x.GR.A .* x.GR.fall' / 2.
+	rise = x.GR.A .* x.GR.rise / 2.
+	flat = x.GR.A .* x.GR.T
+	fall = x.GR.A .* x.GR.fall / 2.
 	F = cat(([rise[:,i] flat[:,i] fall[:,i]] for i=1:N)...; dims=2)
 	F = [zeros(1,M); F']
 	k = γ*cumsum(F, dims=1)
@@ -326,14 +326,21 @@ get_designed_kspace(x::Sequence) = begin
 end
 "Outputs actual k-space trajectory for time vector `t` from sequence object."
 get_actual_kspace(x::Sequence, simsParams) = begin
-	seq = x[(!).(is_RF_on.(x))] #Remove RF blocks
+	seq = x[(!).(is_RF_on.(x))] #TODO: Remove gradients on RF blocks
 	t, Δt = get_uniform_times(seq, simsParams["Δt"])
+	t_interp = get_sample_times(seq)
+	#Calculation of k-space
 	Gx, Gy, Gz = get_grads(seq,t)
 	G = cat(Gx,Gy,Gz; dims=2)
 	F = G .* Δt 
-	F = [zeros(1,3); F]
 	k = γ*cumsum(F, dims=1)
-	k
+	kx, ky, kz = k[:,1], k[:,2], k[:,3]
+	#Interpolation
+	kx_interp = LinearInterpolation(t.+Δt,kx)(t_interp)
+	ky_interp = LinearInterpolation(t.+Δt,ky)(t_interp)
+	kz_interp = LinearInterpolation(t.+Δt,kz)(t_interp)
+	k_interp = [kx_interp ky_interp kz_interp]
+	k_interp
 end
 
 """"Calculates the normalized moments at the end of the sequence. """

@@ -74,9 +74,7 @@ getproperty(x::Matrix{Grad}, f::Symbol) = begin
 	elseif f == :z && size(x,1) >= 3
 		x[3,:].A
 	elseif f == :T || f == :rise || f == :fall || f == :delay
-		# There is an implicit assumtion that the 
-		# only timigs that matter are from Gx
-		getproperty.(x[1,:],f)
+		getproperty.(x,f)
 	elseif f == :Teff
 		# This is the equivalent time of a trapezoid so ∫ G(t) dt = A*Teff
 		(2*getproperty.(x,:T) .+ 
@@ -85,7 +83,7 @@ getproperty(x::Matrix{Grad}, f::Symbol) = begin
 	elseif f == :dur
 		T, ζ1, ζ2, delay = x.T, x.rise, x.fall, x.delay
 		ΔT = T .+ ζ1 .+ ζ2 .+ delay
-		ΔT
+		maximum(ΔT,dims=1)[:]
 	else
 		getproperty.(x,f)
 	end
@@ -110,19 +108,13 @@ julia> Grad_fun(x-> sin(π*x),1,4)
 ```
 """
 Grad(f::Function,T::Real,N::Int64=300) = begin
-	Grads = [Grad(f(t),T/N) for t = range(0,stop=T,length=N)]
-	reshape(Grads,(1,N))
-end
-
-Grad(A::Vector, T::Real) = begin
-	N = length(A)
-	Δt = T/N
-	Grads = [Grad(A[i],Δt) for i = 1:N]
-	reshape(Grads,(1,N))
+	t = range(0,T,N)
+	G = f.(t')
+	Grad(G,T)
 end
 #aux
 Base.show(io::IO,x::Grad) = begin
-	r(x) = round(x,digits=4)
+	r(x) = round.(x,digits=4)
 	compact = get(io, :compact, false)
 	if !compact
 		if x.rise == x.fall == 0.

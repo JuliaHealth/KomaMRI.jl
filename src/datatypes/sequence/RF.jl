@@ -89,15 +89,15 @@ mutable struct RF
 	Δf::Float64    # Frequency offset [Hz]
 	delay::Float64 # Delay [s]
 	function RF(A,T,Δf,delay)
-		@argcheck T > 0 && delay >= 0 "RF timings must be positive."
+		@argcheck T >= 0 && delay >= 0 "RF timings must be positive."
 		new(A, T, Δf, delay)
     end
 	function RF(A,T,Δf)
-		@argcheck T > 0 "RF timings must be positive."
+		@argcheck T >= 0 "RF timings must be positive."
 		new(A, T, Δf, 0.)
     end
 	function RF(A,T)
-		@argcheck T > 0 "RF timings must be positive."
+		@argcheck T >= 0 "RF timings must be positive."
 		new(A, T, 0., 0.)
     end
 end
@@ -132,7 +132,7 @@ getproperty(x::Matrix{RF}, f::Symbol) = begin
 end
 #aux
 Base.show(io::IO,x::RF) = begin
-	r(x) = round(x,digits=4)
+	r(x) = round.(x,digits=4)
 	compact = get(io, :compact, false)
 	if !compact
 			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"RF($(r(x.A*1e6)) uT, $(r(x.T*1e3)) ms, $(r(x.Δf)) Hz)")

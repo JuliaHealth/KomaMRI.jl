@@ -5,7 +5,7 @@ using LinearAlgebra: Matrix
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, 
        Base.copy, Base.Threads.@spawn, Base.Threads.@threads,
        Base.angle, Base.abs, Base.getproperty, Base.one
-using Random, LinearAlgebra, FFTW, Images, Printf, MAT, PlotlyJS, 
+using Random, LinearAlgebra, FFTW, Images, Scanf, Printf, MAT, PlotlyJS, 
        ProgressMeter, CUDA, Parameters, ArgCheck, Interpolations, FileIO
 
 global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1
@@ -39,6 +39,8 @@ export γ #gyro-magnetic ratio [Hz/T]
 export Scanner, Sequence, Phantom
 export Grad, RF, ADC, Delay
 export Mag, dur
+#Pulseq
+export read_seq
 #RF-related
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
