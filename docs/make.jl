@@ -3,7 +3,7 @@ using Documenter, Koma
 makedocs(sitename="Koma.jl")
 
 makedocs(
-    modules = [MRIReco],
+    modules = [Koma],
     sitename = "Koma.jl: General MRI simulator",
     authors = "Carlos Castillo",
     pages = [
