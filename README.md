@@ -64,17 +64,3 @@ If you use this package please acknowledge us by citing:
 ## Koma GUI
 
 ![Koma](others/GUI.png)
-
----
-
-## Example 1: Brain phantom for different TEs
-
-![Brain phantom with different TEs](others/TEs.png)
-
-## Example 2: dMRI with multiple diffusion directions  
-
-<img src="others/propagator.gif" width="80%">
-
-## Example 3: Moment-compensated diffusion
-
-<img src="others/MomentCompensation.gif" width="80%">
