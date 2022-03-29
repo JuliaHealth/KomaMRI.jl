@@ -1,19 +1,19 @@
 # Example of rotation of acquisition and excitation
-using MRIsim
+using Koma
 using JLD2
+# Scanner
+sys = Scanner()
+sys.ADC_Δt = 4e-6
 # SEQ design
-γ = 42.58e6
 B1 = 6e-6; durRF = π/(2π*γ*B1)
-EX = PulseDesigner.RF_hard(B1, durRF; G=[0 0])
-Gmax = 60e-3
-EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 101, 4e-6, Gmax)
+EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 101, sys)
 TE = 25e-3
-d = delay(TE-dur(EPI)/2-dur(EX))
-DELAY = Sequence([d;d])
+DELAY = Delay(TE-dur(EPI)/2-dur(EX))
 #Rotation
-Rz = MRIsim.rotz(-π/2) #counter-clockwise rotation
-Ry = MRIsim.roty(-π/2) #counter-clockwise rotation
-Rx = MRIsim.rotx(π/2)  #counter-clockwise rotation
+Rz = Koma.rotz(-π/2) #counter-clockwise rotation
+Ry = Koma.roty(-π/2) #counter-clockwise rotation
+Rx = Koma.rotx(π/2)  #counter-clockwise rotation
 
 seq = EX + DELAY + EPI*(Ry*Rz)
 @save "./EPI_example.seq" seq=seq

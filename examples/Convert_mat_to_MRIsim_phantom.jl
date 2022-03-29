@@ -1,4 +1,4 @@
-using MRIsim, JLD2, MAT
+using Koma, JLD2, MAT
 fantoma = matread("/home/ccp/Downloads/fantoma.mat")["fantoma"]
 
 ρ = fantoma["PD"]
@@ -22,4 +22,4 @@ phantom = Phantom(name="brain",
                   Δw=2π*fantoma["df"][ρ.!=0]*2,
                   ux=(x,y,z,t)->v*t
                   )
-@save "/home/ccp/Downloads/brain.phantom" phantom #Hacer ]up para version MRIsim v0.3.6 
+@save "/home/ccp/Downloads/brain.phantom" phantom #Hacer ]up para version Koma v0.3.6 
