@@ -17,9 +17,11 @@ jobs:
         version:
           - '1.6' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
           - '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
-          - 'nightly'
+          #- 'nightly'
         os:
           - ubuntu-latest
+          - macos-latest
+          - windows-latest
         arch:
           - x64
     steps:
@@ -45,21 +47,24 @@ jobs:
         with:
           file: lcov.info
   docs:
-    name: Documenter
-    on:
-      push:
-        branches: [master]
-        tags: [v*]
-      pull_request:
-
-    jobs:
-      Documenter:
-        name: Documentation
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v2
-          - uses: julia-actions/julia-buildpkg@latest
-          - uses: julia-actions/julia-docdeploy@latest
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1'
+      - run: |
+          julia --project=docs -e '
+            using Pkg
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()'
+      - run: |
+          julia --project=docs -e '
+            using Documenter: doctest
+            using Koma
+            doctest(Koma)' # change MYPACKAGE to the name of your package
+      - run: julia --project=docs docs/make.jl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
