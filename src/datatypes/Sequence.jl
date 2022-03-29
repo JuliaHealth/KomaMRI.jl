@@ -369,8 +369,8 @@ get_max_grad(x::Sequence) = begin
 end
 """Get RF centers and types. Useful for k-space calculations."""
 function get_RF_types(seq, t)
-	RF_ex = get_flip_angles(seq) .<= 90.01 .&& is_RF_on.(seq)
-	RF_rf = get_flip_angles(seq) .>  90.01 .&& is_RF_on.(seq)
+	RF_ex = (get_flip_angles(seq) .<= 90.01) .&& is_RF_on.(seq)
+	RF_rf = (get_flip_angles(seq) .>  90.01) .&& is_RF_on.(seq)
 	rf_idx = Int[]
 	rf_type = Int[]
 	T0 = cumsum([0; durs(seq)[:]])

@@ -101,7 +101,7 @@ global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
 global kspace = [0.0im 0.; 0. 0.]
 #Reco
-default = defaultRecoParams() #Dict{Symbol,Any}(:reco=>"standard")#, :iterations=>10, :λ=>1e-6,:solver=>"admm",:regularization=>"TV")
+default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solver=>"admm",:regularization=>"TV")
 global recParams = merge(default, rec)
 #Simulation
 Ncores = Hwloc.num_physical_cores()
