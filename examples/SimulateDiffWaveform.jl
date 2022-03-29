@@ -1,5 +1,5 @@
 # Code to asses the effect of moment-compensation on the diffusion signal
-
+# MOST OF THE SYNTAX IN THIS FILE HAS CHANGED, RUN WITH CAUTION
 ## Read
 #Waveform
 using Koma, PlotlyJS
@@ -52,12 +52,12 @@ if FID
 else
     recParams = Dict(:epi => true, :recon => :fft, :Nx => Nxy)
 end
-S_MM = Koma.simulate(phantom, seq, simParams, recParams) #Eventualmente se agregará el objeto hardware
-S_DTI = Koma.simulate(phantom, f*seq_dti+seq_ACQ, simParams, recParams)
-S_MM2 = Koma.simulate(phantom2, seq, simParams, recParams)
-S_DTI2 = Koma.simulate(phantom2, f*seq_dti+seq_ACQ, simParams, recParams)
-S0 = Koma.simulate(phantom, 0*seq, simParams, recParams)
-S02 = Koma.simulate(phantom2, 0*seq, simParams, recParams)
+S_MM = simulate(phantom, seq; simParams) #Eventualmente se agregará el objeto hardware
+S_DTI = simulate(phantom, f*seq_dti+seq_ACQ; simParams)
+S_MM2 = simulate(phantom2, seq; simParams)
+S_DTI2 = simulate(phantom2, f*seq_dti+seq_ACQ; simParams)
+S0 = simulate(phantom, 0*seq; simParams)
+S02 = simulate(phantom2, 0*seq; simParams)
 #Saving results
 E[idx+1,1] = S_MM
 E[idx+1,2] = S_DTI

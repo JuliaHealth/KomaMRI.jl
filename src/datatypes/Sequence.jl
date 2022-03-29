@@ -25,93 +25,92 @@ mutable struct Sequence
 	GR::Array{Grad,2}		  #Sequence in (X, Y and Z) and time
 	RF::Array{RF,2}			  #RF pulses in coil and time
 	ADC::Array{ADC,1}		  #ADC in time
-	DEF::Dict{String,Any} #Dictionary with information relevant to the reconstructor
-	function Sequence(GR)	  #If no RF is DEFined, just use a zero amplitude pulse
-		M,N = size(GR)
-		new([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N], 
-			reshape(
-				[RF(0, GR[1,i].T, GR[1,i].rise) for i = 1:N]
-				,1,N),
-			[ADC(0, GR[1,i].T, GR[1,i].rise) for i = 1:N],
-			Dict()
-			) 
-	end
-	function Sequence(GR,RF)	#If no ADC is DEFined, just use a ADC with 0 samples
-		if size(GR,2) .!= size(RF,2)
-			error("The number of Gradient, and RF objects must be the same.")
-		end
-		M,N = size(GR)
-		new([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N], 
-			RF,
-			[ADC(0, GR[1,i].T, GR[1,i].rise) for i = 1:N],
-			Dict()) 
-	end
-	Sequence(GR,RF,ADC) = begin
-		if size(GR,2) .!= size(RF,2) .!= length(ADC)
-			error("The number of Gradient, RF, and ADC objects must be the same.")
-		end
-		M,N = size(GR)
-		if M != 3
-			new([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N],RF,ADC, Dict())
-		else
-			new(GR, RF, ADC, Dict())
-		end
-	end
-	Sequence(GR,RF,ADC,DEF) = begin
-		if size(GR,2) .!= size(RF,2) .!= length(ADC)
-			error("The number of Gradient, RF, and ADC objects must be the same.")
-		end
-		M,N = size(GR)
-		if M != 3
-			new([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N],RF,ADC, DEF)
-		else
-			new(GR, RF, ADC, DEF)
-		end
-	end
+	DUR::Vector				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
+	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
 end
-#TODO: Add trapezoidal grads MACRO
-Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,(length(GR),1)))
+#MAIN CONSTRUCTORS
+function Sequence(GR)	  #If no RF is defined, just use a zero amplitude pulse
+	M,N = size(GR)
+	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N], 
+		[(RF(0, 0) for i = 1:N)...;;],
+		[ADC(0, 0) for i = 1:N],
+		GR.dur,
+		Dict()
+		) 
+end
+function Sequence(GR,RF)	#If no ADC is DEFined, just use a ADC with 0 samples
+	@assert size(GR,2) .== size(RF,2) "The number of Gradient, and RF objects must be the same."
+	M,N = size(GR)
+	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N], 
+		RF,
+		[ADC(0, 0) for i = 1:N],
+		maximum([GR.dur RF.dur],dims=2)[:],
+		Dict()
+		) 
+end
+function Sequence(GR,RF,ADC)
+	@assert size(GR,2) .== size(RF,2) .== length(ADC) "The number of Gradient, RF, and ADC objects must be the same."
+	M,N = size(GR)
+	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N], 
+		RF,
+		ADC,
+		maximum([GR.dur RF.dur ADC.dur],dims=2)[:],
+		Dict())
+end
+function Sequence(GR,RF,ADC,DUR)
+	@assert size(GR,2) .== size(RF,2) .== length(ADC) .== length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
+	M,N = size(GR)
+	Sequence([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N],
+		RF,
+		ADC, 
+		maximum([GR.dur RF.dur ADC.dur DUR],dims=2)[:],
+		Dict())
+end
+#OTHER CONSTRUCTORS
+Sequence(GR::Array{Grad,1}) = Sequence([GR;;])
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(
-														reshape(GR,(length(GR),1)),
-														reshape(RF,(length(RF),1)),
-														[ADC(0,GR[1,i].T) for i = 1:size(GR,2)]
+														[GR;;],
+														[RF;;],
+														[ADC(0,0) for i = 1:size(GR,2)]
 														)
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, D::ADC, def::Dict) = Sequence(
-																reshape(GR,(length(GR),1)),
-																reshape(RF,(length(RF),1)),
-																[D],
-																def
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF) = Sequence(
+																[GR;;],
+																[RF;;],
+																[A],
+																[DUR],
+																DEF
 																)
 Sequence() = Sequence([Grad(0,0)])
-#Sequence operations. TODO: CHANGE RF to :,i whrn including coil sensitivities
-Base.length(x::Sequence) = size(x.GR,2)
-Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1], x.ADC[1], x.DEF), 2)
-Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DEF), i+1) : nothing
-Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DEF)
-Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DEF)
-Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DEF) : nothing
-Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DEF) : nothing
-Base.lastindex(x::Sequence) = size(x.GR,2)
+#Sequence operations
+Base.length(x::Sequence) = length(x.DUR)
+Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1], x.ADC[1], x.DUR[1], x.DEF), 2)
+Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF), i+1) : nothing
+Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF)
+Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF)
+Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF) : nothing
+Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF) : nothing
+Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
 Base.show(io::IO,s::Sequence) = begin
 	compact = get(io, :compact, false)
 	if !compact
-		print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | ADC: $(is_ADC_on(s)) | GR: $(size(s.GR)) | RF: $(size(s.RF)) ]")
+		nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
+		print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | DEF: $(length(s.DEF)) ]")
 	else
 		print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
 	end
 end
 #Arithmetic operations
-+(x::Sequence, y::Sequence) = Sequence([x.GR y.GR],  [x.RF y.RF], [x.ADC; y.ADC], merge(x.DEF, y.DEF))
--(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF], [x.ADC; y.ADC], merge(x.DEF, y.DEF))
--(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DEF)
-*(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF, x.ADC, x.DEF)
-*(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF, x.ADC, x.DEF)
-*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α.*x.RF, x.ADC, x.DEF)
-*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α.*x.RF, x.ADC, x.DEF)
-*(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DEF)
-*(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DEF)
-/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DEF)
++(x::Sequence, y::Sequence) = Sequence([x.GR  y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
+-(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
+-(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.DEF)
+*(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF, x.ADC, x.DUR, x.DEF)
+*(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF, x.ADC, x.DUR, x.DEF)
+*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
+*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
+*(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
+*(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
+/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.DEF)
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 is_ADC_on(x::Sequence) = any(x.ADC.N .> 0)
@@ -119,39 +118,81 @@ is_ADC_on(x::Sequence) = any(x.ADC.N .> 0)
 is_ADC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}}) = begin
 	N = length(x)
 	ΔT = durs(x)
-	ts = cumsum([0 ; ΔT], dims=1)
-	activeBlock = [any(ts[i] .<= t .< ts[i+1]) for i=1:N]
-	is_ADC_on(x[activeBlock]) #Get elements of sequence active during time period t
+	ts = cumsum([0 ; ΔT[1:end-1]])
+	delays = x.ADC.delay
+	Ts = 	 x.ADC.dur #delat+T
+	t0s = ts .+ delays
+	tfs = ts .+ Ts
+	# The following just checks the ADC
+	# |___∿  |
+	#     △
+	#     Here
+	activeADC = any([is_ADC_on(x[i]) && any(t0s[i] .<= t .< tfs[i]) for i=1:N])
+	activeADC
 end
 "Tells if the sequence has elements with RF on."
-is_RF_on(x::Sequence) = any(abs.([sum(abs.(r)) for r = x.RF.A]) .> 0)
+is_RF_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.RF] .> 0)
 "Tells if the sequence has elements with RF on during t."
 is_RF_on(x::Sequence, t::Vector{Float64}) = begin
 	N = length(x)
 	ΔT = durs(x)
-	ts = cumsum([0 ; ΔT], dims=1)
-	activeBlock = [any(ts[i] .<= t .< ts[i+1]) for i=1:N]
-	is_RF_on(x[activeBlock]) #Get elements of sequence active during time period t
+	ts = cumsum([0 ; ΔT[1:end-1]])
+	delays = x.RF.delay
+	Ts = 	 x.RF.dur #dur = delat+T
+	t0s = ts .+ delays
+	tfs = ts .+ Ts
+	# The following just checks the RF waveform
+	# |___∿  |
+	#     △
+	#     Here
+	activeRFs = any([is_RF_on(x[i]) && any(t0s[i] .<= t .<= tfs[i]) for i=1:N])
+	activeRFs
 end
+"Tells if the sequence has elements with GR on."
+is_GR_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR] .> 0)
+"Tells if the sequence has elements with GR on."
+is_Gx_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.x] .> 0)
+"Tells if the sequence has elements with GR on."
+is_Gy_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.y] .> 0)
+"Tells if the sequence has elements with GR on."
+is_Gz_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.z] .> 0)
+"Tells if the sequence is a delay"
+is_Delay(x::Sequence) = !(is_GR_on(x) || is_RF_on(x) || is_ADC_on(x))
 "Duration of sequence's blocks `ΔT::Array{Real,1}` [s]."
 durs(x::Sequence) = begin
-	ΔT_GR  = x.GR.dur
-	ΔT_RF  = x.RF.dur
-	ΔT_ADC = x.ADC.dur
-	ΔT = maximum([ΔT_GR ΔT_RF ΔT_ADC],dims=2)
-	ΔT
+	# ΔT_GR  = x.GR.dur
+	# ΔT_RF  = x.RF.dur
+	# ΔT_ADC = x.ADC.dur
+	# ΔT_DUR = x.DUR
+	# ΔT = maximum([ΔT_GR ΔT_RF ΔT_ADC ΔT_DUR],dims=2)
+	x.DUR
 end
 "Duration of the sequence `T` [s]."
 dur(x::Sequence) = sum(durs(x))
 
 #Trapezoidal Waveform
-⏢(t,ΔT,ζ1,ζ2,delay) = begin
-	aux = (ζ1    .<= t .- delay .< ζ1+ΔT) .* 1.
-	if ζ1 != 0 
-		aux .+= (0     .<= t .- delay .< ζ1) .* 1/2 #(t .- delay)./ζ1 
-	end
-	if ζ2 !=0
-		aux .+= (ζ1+ΔT .<= t .- delay .< ζ1+ΔT+ζ2) .* 1/2 #(t.-delay.-ζ1.-ΔT)./ζ2
+⏢(A,t,ΔT,ζ1,ζ2,delay) = begin
+	if sum(abs.(A)) != 0 && ΔT+ζ1+ζ2 != 0 # If no event just ignore calculations
+		#Getting amplitudes, onlu supports uniformly sampled waveforms for now
+		if length(A) != 1
+			grad_raster = ΔT / length(A)
+			idx = ceil.(Int, (t .- delay .- ζ1) ./ grad_raster ) #Time to integer index
+			valid = 1 .<= idx .<= length(A)
+			idx[(!).(valid)] .= 1
+			B = A[idx] .* valid
+		else
+			B = A
+		end
+		#Trapezoidal waveform
+		aux = (ζ1    .<= t .- delay .< ζ1+ΔT) .* B
+		if ζ1 != 0 
+			aux .+= (0     .<= t .- delay .< ζ1) .* A[1] .* (t .- delay)./ζ1 
+		end
+		if ζ2 !=0
+			aux .+= (ζ1+ΔT .<= t .- delay .< ζ1+ΔT+ζ2) .* A[end] .* (1 .- (t.-delay.-ζ1.-ΔT)./ζ2)
+		end
+	else
+		aux = zeros(size(t))
 	end
 	aux
 end
@@ -162,7 +203,6 @@ Get gradient array from sequence `seq` evaluated in time points `t` for the dime
 
 # Arguments
  - `seq::Sequence`:= Sequence object.
- - `dim::Integer` := Dimension to retrieve, i.e. (1,2,3) = (Gx,Gy,Gz).
  - `t`            := Time vector to evaluate.
 
 # Examples
@@ -173,7 +213,7 @@ Sequence(Grad[Grad(1, 1) Grad(-1, 1); Grad(0, 1) Grad(0, 1)])
 julia> t = 0:.5:2
 0.0:0.5:2.0
 
-julia> get_grad(seq,1,t)
+julia> get_grad(seq,t)
 5-element Array{Float64,1}:
   1.0
   1.0
@@ -182,38 +222,53 @@ julia> get_grad(seq,1,t)
  -1.0
 ```
 """
-get_grads(seq::Sequence,t) = begin
-	#Amplitude
-	A = seq.GR.A
-	#Timings
-	T = seq.GR.T
-	ζ1 = seq.GR.rise
-	ζ2 = seq.GR.fall
-	delay = seq.GR.delay
-	T0 = cumsum([0; durs(seq)], dims=1)
-	(sum([A[j,i]*⏢(t.-T0[i],T[i],ζ1[i],ζ2[i],delay[i]) for i=1:length(seq)]) for j=1:3)
+function get_grads(seq, t::Vector)
+    gx = get_theo_Gi(seq,1)
+    gy = get_theo_Gi(seq,2)
+    gz = get_theo_Gi(seq,3)
+    Gx = LinearInterpolation(gx..., extrapolation_bc=0)(t)
+    Gy = LinearInterpolation(gy..., extrapolation_bc=0)(t)
+    Gz = LinearInterpolation(gz..., extrapolation_bc=0)(t)
+    (Gx, Gy, Gz)
 end
+function get_grads(seq, t::Matrix)
+	t_vec = t[:]
+    gx = get_theo_Gi(seq,1)
+    gy = get_theo_Gi(seq,2)
+    gz = get_theo_Gi(seq,3)
+    Gx = LinearInterpolation(gx..., extrapolation_bc=0)(t_vec)
+    Gy = LinearInterpolation(gy..., extrapolation_bc=0)(t_vec)
+    Gz = LinearInterpolation(gz..., extrapolation_bc=0)(t_vec)
+    (Gx', Gy', Gz')
+end
+# get_grads(seq::Sequence,t) = begin
+# 	#Amplitude
+# 	A = seq.GR.A
+# 	#Grad Timings
+# 	T = seq.GR.T
+# 	ζ1 = seq.GR.rise
+# 	ζ2 = seq.GR.fall
+# 	delay = seq.GR.delay
+# 	#Sequence timings
+# 	ΔT = durs(seq) #Duration of sequence block
+# 	T0 = cumsum([0; ΔT[:]]) #Start time of each block
+# 	#Waveforms
+# 	(sum([⏢(A[j,i],t.-T0[i],T[j,i],ζ1[j,i],ζ2[j,i],delay[j,i]) for i=1:length(seq)]) for j=1:3)
+# end
 
 get_rfs(seq::Sequence,t) = begin
 	#Amplitude
-	A = seq.RF.A
+	A  = seq.RF.A
+	Δf = seq.RF.Δf
 	#Timings
 	T = seq.RF.T
 	delay = seq.RF.delay
 	T0 = cumsum([0; durs(seq)], dims=1)
-	[sum([A[1,i]*⏢(t.-T0[i],T[i],0,0,delay[i]) for i=1:length(seq)])]
+	(sum([⏢(A[1,i], t.-T0[i],sum(T[i]),0,0,delay[i]) for i=1:length(seq)]),
+	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]),0,0,delay[i]) for i=1:length(seq)])
+	)
 end
-
-"""
-Linear interpolation of the gradients, only works for gradients with uniform duration.
-"""
-get_grads_linear(seq::Sequence,t) = begin
-	M, N = size(seq.GR);
-	A = [seq.GR[i,j].A for i=1:M, j=1:N];
-	T = [seq.GR[1,j].T for j=1:N]; T = [0; T];
-	∧(t) = max.(1 .- abs.(t),0);
-	(sum([A[j,i]*∧((t.-sum(T[1:i]))/T[i+1]) for i=1:N]) for j=1:M)
-end
+get_flip_angles(x::Sequence) = get_flip_angle.(x.RF)[:]
 
 get_ADC_on(seq::Sequence,t::Array{Float64,1}) = begin
 	Δt = t[2]-t[1]
@@ -312,35 +367,58 @@ get_max_grad(x::Sequence) = begin
 	G = [x.GR[i,j].A for i=1:size(x.GR,1),j=1:size(x.GR,2)]
 	Gmax = maximum(sqrt.(sum(G.^2,dims=1)))
 end
-"Outputs designed k-space trajectory from sequence object."
-get_designed_kspace(x::Sequence) = begin
-	x = x[(!).(Koma.is_RF_on.(x))] #Remove RF blocks
-	M, N = size(x.GR)
-	rise = x.GR.A .* x.GR.rise / 2.
-	flat = x.GR.A .* x.GR.T
-	fall = x.GR.A .* x.GR.fall / 2.
-	F = cat(([rise[:,i] flat[:,i] fall[:,i]] for i=1:N)...; dims=2)
-	F = [zeros(1,M); F']
-	k = γ*cumsum(F, dims=1)
-	k
+"""Get RF centers and types. Useful for k-space calculations."""
+function get_RF_types(seq, t)
+	RF_ex = get_flip_angles(seq) .<= 90.01 .&& is_RF_on.(seq)
+	RF_rf = get_flip_angles(seq) .>  90.01 .&& is_RF_on.(seq)
+	rf_idx = Int[]
+	rf_type = Int[]
+	T0 = cumsum([0; durs(seq)[:]])
+	for i = 1:length(seq)
+		if is_RF_on(seq[i])
+			trf = get_RF_center(seq[i].RF[1]) + T0[i]
+			append!(rf_idx, argmin(abs.(trf.-t)))
+			if RF_ex[i]
+				append!(rf_type, 0)
+			elseif RF_rf[i]
+				append!(rf_type, 1)
+			end 
+		end
+	end
+	rf_idx, rf_type 
 end
-"Outputs actual k-space trajectory for time vector `t` from sequence object."
-get_actual_kspace(x::Sequence, simsParams) = begin
-	seq = x[(!).(is_RF_on.(x))] #TODO: Remove gradients on RF blocks
-	t, Δt = get_uniform_times(seq, simsParams["Δt"])
-	t_interp = get_sample_times(seq)
-	#Calculation of k-space
-	Gx, Gy, Gz = get_grads(seq,t)
-	G = cat(Gx,Gy,Gz; dims=2)
-	F = G .* Δt 
-	k = γ*cumsum(F, dims=1)
-	kx, ky, kz = k[:,1], k[:,2], k[:,3]
-	#Interpolation
-	kx_interp = LinearInterpolation(t.+Δt,kx)(t_interp)
-	ky_interp = LinearInterpolation(t.+Δt,ky)(t_interp)
-	kz_interp = LinearInterpolation(t.+Δt,kz)(t_interp)
-	k_interp = [kx_interp ky_interp kz_interp]
-	k_interp
+"Outputs designed k-space trajectory from sequence object."
+get_kspace(seq::Sequence; Δt=1) = begin
+	t, Δt = get_uniform_times(seq, Δt)
+	Gx, Gy, Gz = get_grads(seq, t)
+	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	#kspace
+	Nt = length(t)
+	k = zeros(Nt,3)
+	#get_RF_center_breaks
+	idx_rf, rf_type = get_RF_types(seq, t)
+	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	for i = 1:3
+		kf = 0
+		for (rf, p) in enumerate(parts)
+			k[p,i] = cumtrapz(Δt[p]', G[i][p[1]:p[end]+1]')[:] #This is the exact integral
+			if rf > 1 #First part does not have RF
+				k[p,i] .-= rf_type[rf-1] * kf
+			end
+			kf = k[p[end],i]
+		end
+	end
+	kspace = γ * k #[m^-1]
+	#Interp, as Gradients are piece-wise linear, the integral is piece-wise quadratic
+	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
+	ts = t .+ Δt
+	t_adc =  get_sample_times(seq)
+	kx_adc = LinearInterpolation(ts,kspace[:,1])(t_adc)
+	ky_adc = LinearInterpolation(ts,kspace[:,2])(t_adc)
+	kz_adc = LinearInterpolation(ts,kspace[:,3])(t_adc)
+	kspace_adc = [kx_adc ky_adc kz_adc]
+	#Final
+	kspace, kspace_adc
 end
 
 """"Calculates the normalized moments at the end of the sequence. """

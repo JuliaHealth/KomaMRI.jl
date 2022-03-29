@@ -14,10 +14,11 @@ function read_version(io)
 
     version_combined = 1_000_000*major+1_000*minor+revision
 
+    @assert major == 1 "Unsupported version_major $major"
     if     version_combined < 1002000
         @error "Unsupported version $major.$minor.$revision, only file format revision 1.2.0 and above are supported"
     elseif version_combined < 1003001
-        @warn "Loading older Pulseq format file (version $major.$minor.$revision) some code may function not as expected"
+        @warn "Loading older Pulseq format file (version $major.$minor.$revision) some code may not function as expected"
     end
 
     major, minor, revision, version_combined
@@ -30,14 +31,25 @@ read_definitions Read the [DEFINITIONS] section of a sequence file.
    key/value entries.
 """
 function read_definitions(io)
-    def = Dict()
+    def = Dict{String,Any}()
     while true
-        r,key,value = @scanf(readline(io), "%s %f", String, Float64)
+        r,key,value_string1,value_string2,value_string3 = @scanf(readline(io), "%s %s %s %s", String, String, String, String)
         if r == 2
-            def[key] = value
+            value_numeric = tryparse.(Float64, value_string1)
+            def[key] = (value_numeric === nothing) ? value_string1 : value_numeric
         end
-        r != 1 || break #Break on white space
+        if r == 4
+            value_string_array = [value_string1,value_string2,value_string3]
+            value_numeric = tryparse.(Float64, value_string_array)
+            def[key] = value_numeric[value_numeric .!== nothing]
+        end
+        (r == 2 || r == 4) || break #Break on white space
     end
+    #Default values
+    if !haskey(def,"BlockDurationRaster")       def["BlockDurationRaster"] = 1e-5       end
+    if !haskey(def,"GradientRasterTime")        def["GradientRasterTime"] = 1e-5        end
+    if !haskey(def,"RadiofrequencyRasterTime")  def["RadiofrequencyRasterTime"] = 1e-6  end
+    if !haskey(def,"AdcRasterTime")             def["AdcRasterTime"] = 1e-7             end
     def
 end
 
@@ -130,7 +142,7 @@ function read_shapes(io, forceConvertUncompressed)
         end
         # check if conversion is needed: in v1.4.x we use length(data)==num_samples 
         # as a marker for the uncompressed (stored) data. In older versions this condition could occur by chance 
-        if forceConvertUncompressed && length(data)==num_samples
+        if forceConvertUncompressed && length(shape)==num_samples
             shape = compress_shape(decompress_shape(shape, num_samples; forceDecompression=true))
             data = (num_samples, shape)
         else
@@ -234,7 +246,7 @@ function decompress_shape(num_samples, data; forceDecompression = false)
         end
         # samples left?
         if countPack <= dataPackLen
-            println("$dataPackLen $countPack $numSamples $countUnpack")
+            # println("$dataPackLen $countPack $numSamples $countUnpack")
             @assert dataPackLen-countPack == numSamples-countUnpack "Unsuccessful unpacking of samples"
             # copy the rest of the shape, it is unpacked
             w[countUnpack:end] .= dataPack[countPack:end]
@@ -264,6 +276,8 @@ READ Load sequence from file.
  See also  write
 """
 function read_seq(filename)
+    println("")
+    @info "Loading sequence $(basename(filename)) ..."
     version_combined = 0
     version_major = 0
     version_minor = 0
@@ -315,14 +329,52 @@ function read_seq(filename)
             elseif  section == "[SHAPES]"
                 shapeLibrary = read_shapes(io, (version_major==1 && version_minor<4))
             elseif  section == "[EXTENSIONS]"
-                extensionLibrary = read_events(io,1)
+                extensionLibrary = read_events(io,1) #For now, it reads the extensions but it does not take it them into account
             elseif  section == "[SIGNATURE]"
                 #Not implemented yet
             end
 
         end
     end
-
+    # fix blocks, gradients and RF objects imported from older versions
+    if version_combined < 1004000
+        # scan through the RF objects
+        for i = 0:length(rfLibrary)-1
+            rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]' 0 rfLibrary[i]["data"][4:end]']
+        end
+        # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
+        for i = 0:length(gradLibrary)-1
+            if gradLibrary[i]["type"] == 't'
+                #(1)amplitude (2)rise (2)flat (3)fall (4)delay
+                if gradLibrary[i]["data"][2] == 0 #rise
+                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
+                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
+                        gradLibrary[i]["data"][2]  = def["gradRasterTime"]
+                    end
+                end
+                if gradLibrary[i]["data"][4] == 0 #delay
+                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
+                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
+                        gradLibrary[i]["data"][4]  = def["gradRasterTime"]
+                    end
+                end
+            end
+            if gradLibrary[i]["type"] == 'g'
+                #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+                gradLibrary[i]["data"] = [gradLibrary[i]["data"][1:2]; 0; gradLibrary[i]["data"][3:end]]
+            end
+        end
+        # for versions prior to 1.4.0 blockDurations have not been initialized
+        blockDurations = zeros(length(blockEvents))
+        for i = 1:length(blockEvents)
+        idelay = delayInd_tmp[i]
+            if idelay > 0
+                delay = tmp_delayLibrary[idelay]["data"][1] 
+                blockDurations[i] = delay
+            end
+        end
+    end
+    #Sequence
     obj = Dict(
         "blockEvents"=>blockEvents, 
         "blockDurations"=>blockDurations, 
@@ -334,102 +386,133 @@ function read_seq(filename)
         "shapeLibrary"=>shapeLibrary, 
         "extensionLibrary"=>extensionLibrary,
         "definitions"=>def)
-
-    if version_combined < 1002000
-        @error "Unsupported version $version_combined, only file format revision 1.2.0 (1002000) and above are supported"
-    end
-    # # fix blocks, gradients and RF objects imported from older versions
-    # if version_combined < 1004000
-    #     # scan through the RF objects
-    #     for i = 1:length(shapeLibrary)
-    #         rfLibrary[i][1] = [rfLibrary[i]["data"][1:3]; 0; rfLibrary[i]["data"][4:end]]
-    #     end
-    #     # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
-    #     for i = 1:length(gradLibrary)
-    #         if gradLibrary[i]["type"] == "t"
-    #             if gradLibrary[i]["data"][2] == 0
-    #                 if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-    #                     gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-    #                     gradLibrary[i]["data"][2]  = def["gradRasterTime"]
-    #                 end
-    #             end
-    #             if gradLibrary[i]["data"][4] == 0
-    #                 if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-    #                     gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-    #                     gradLibrary[i]["data"][4]  = def["gradRasterTime"]
-    #                 end
-    #             end
-    #         end
-    #         if gradLibrary[i]["type"] == "g"
-    #             gradLibrary[i]["data"] = [gradLibrary[i]["data"][1:2]; 0; gradLibrary[i]["data"][3:end]]
-    #         end
-    #     end
-    #     # for versions prior to 1.4.0 blockDurations have not been initialized
-    #     blockDurations = zeros(length(blockEvents))
-    #     for i = 1:length(blockEvents)
-    #         b = get_block(obj, i) #TODO
-    #         if delayInd_tmp[i] > 0
-    #             #TODO
-    #         end
-    #     end
-    # end
-    if version_combined < 1004000
-        @error "This version $version_combined is not supported yet, please use Pulseq >=1.4.0 files"
-    end
-    #Warning
-    if any([obj["gradLibrary"][i]["type"] for i = 1:length(obj["gradLibrary"])-1].=='g')
-        @warn "Gradient waveforms are not supported yet!"
-    end
     #Transforming Dictionary to Sequence object 
-    #This should only work >=1.4.x
+    #This should only work for Pulseq files >=1.4.0
     seq = Sequence()
-    ADC_Δt = 0
     for i = 1:length(blockEvents)
-        G, R, A, ADC_Δt_new = get_block(obj,i)
-        seq += Sequence(G,R,A)
-        ADC_Δt = max(ADC_Δt, ADC_Δt_new)
+        seq += get_block(obj,i)
     end
     #Final details
     seq = seq[2:end] #Removed dummy seq block at the start
-    koma_def = Dict("ADC_Δt"=>ADC_Δt)
-    seq.DEF = merge(koma_def, obj["definitions"])
+    seq.DEF = obj["definitions"]
+    seq.DEF["FileName"] = basename(filename)
+    seq.DEF["PulseqVersion"] = version_combined
+    if !haskey(seq.DEF,"Nx")
+        Nx = maximum(seq.ADC.N)
+        RF_ex = get_flip_angles(seq) .<= 90.01 .&& is_RF_on.(seq)
+        Nz = max(length(unique(seq.RF[RF_ex].Δf)), 1)
+        Ny = sum(is_ADC_on.(seq)) / Nz |> x->floor(Int,x)
+        
+        seq.DEF["Nx"] = Nx  #Number of samples per ADC
+        seq.DEF["Ny"] = Ny  #Number of ADC events
+        seq.DEF["Nz"] = Nz  #Number of unique RF frequencies, in a 3D acquisition this should not work
+        @warn "Pulseq file did not contain [DEFINITIONS] for Nx, Ny, and Nz. We added Nx=$Nx, Ny=$Ny, and Nz=$Nz to the Sequence object for the reconstruction."
+    end
     #Koma sequence
+    println("Successfully loaded $(basename(filename))!")
     seq
 end
 
-function get_block(obj, i)
+#To Sequence
+function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
+    G = Grad(0,0)
+    if gradLibrary[i]["type"] == 't' #if trapezoidal gradient
+        #(1)amplitude (2)rise (3)flat (4)fall (5)delay
+        g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
+        G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
+    elseif gradLibrary[i]["type"] == 'g' #Arbitrary gradient waveform
+        #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+        g = gradLibrary[i]["data"]
+        amplitude =     g[1]
+        amp_shape_id =  g[2] |> x->floor(Int64,x)
+        time_shape_id = g[3] |> x->floor(Int64,x)
+        delay =         g[4]
+        #Amplitude
+        gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
+        Nrf = length(gA) - 1
+        #Creating timings
+        if time_shape_id == 0 #no time waveform
+            gT = Nrf * Δt_gr
+        else
+            gt = decompress_shape(shapeLibrary[time_shape_id]...)
+            gT = (gt[2:end] .- gt[1:end-1]) * Δt_gr
+        end
+        G = Grad(gA,gT,(time_shape_id==0)*Δt_gr/2,0,delay)
+    end
+    G
+end
+
+function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     #Unpacking
-    _, irf, ix, iy, iz, iadc, iext = obj["blockEvents"][i]
-
-    #(1)amplitude (2)rise (3)flat (4)fall (5)delay
-    gx = obj["gradLibrary"][ix]["data"]
-    gy = obj["gradLibrary"][iy]["data"]
-    gz = obj["gradLibrary"][iz]["data"]
-    Gx = Grad(gx[1],gx[3],gx[2],gx[4],gx[5])
-    Gy = Grad(gy[1],gy[3],gy[2],gy[4],gy[5])
-    Gz = Grad(gz[1],gz[3],gz[2],gz[4],gz[5])
-    # println("A=$(1e3*gx[1]),T=$(1e3*gx[3]),rise=$(1e3*gx[2]),fall=$(1e3*gx[4]),delay=$(1e3*gx[5])")
-    G = reshape([Gx;Gy;Gz],3,1)
-
     #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
-    r = obj["rfLibrary"][irf]["data"]
-    if r[2] != 0 && r[3] != 0
-        rfA = decompress_shape(obj["shapeLibrary"][floor(Int,r[2])]...)
-        rfϕ = decompress_shape(obj["shapeLibrary"][floor(Int,r[3])]...)
-        Nrf = obj["shapeLibrary"][floor(Int,r[2])][1]
+    r = rfLibrary[i]["data"]
+    amplitude =     r[1]
+    mag_id =        r[2] |> x->floor(Int64,x)
+    phase_id =      r[3] |> x->floor(Int64,x)
+    time_shape_id = r[4] |> x->floor(Int64,x)
+    delay =         r[5] + (time_shape_id==0)*Δt_rf/2
+    freq =          r[6]
+    phase =         r[7]
+    #Amplitude and phase waveforms
+    if amplitude != 0 && mag_id != 0
+        rfA = decompress_shape(shapeLibrary[mag_id]...)[1:end-1]
+        rfϕ = decompress_shape(shapeLibrary[phase_id]...)[1:end-1]
+        Nrf = shapeLibrary[mag_id][1] - 1
+        rfAϕ = amplitude .* rfA .* exp.(-1im*(2π*rfϕ .+ phase))
     else
         rfA = 0
         rfϕ = 0
         Nrf = 0
+        rfAϕ = 0
     end
-    rfAϕ = r[1]*rfA .* exp.(1im*2π*rfϕ) #TODO: Add phase
-    Δtrf = obj["definitions"]["RadiofrequencyRasterTime"]
-    rfT = Nrf * Δtrf
-    R = reshape([RF(rfAϕ,rfT,r[6],r[5])],1,1)
+    #Creating timings
+    if time_shape_id == 0 #no time waveform
+        rfT = Nrf * Δt_rf
+    else
+        rft = decompress_shape(shapeLibrary[time_shape_id]...)
+        rfT = (rft[2:end] .- rft[1:end-1]) * Δt_rf
+    end
+    R = [RF(rfAϕ,rfT,freq,delay);;]
+    R  
+end
 
+function read_ADC(adcLibrary, i)
+    #Unpacking
     #(1)num (2)dwell (3)delay (4)freq (5)phase
-    a = obj["adcLibrary"][iadc]["data"]
-    A = [ADC(a[1],a[2]*a[1],a[3])]
-    ADC_Δt = a[2]
-    G, R, A, ADC_Δt
+    a = adcLibrary[i]["data"]
+    num =   a[1] |> x->floor(Int64,x)
+    dwell = a[2]
+    delay = a[3] + dwell/2
+    freq =  a[4]
+    phase = a[5]
+    #Definition
+    T = (num-1) * dwell
+    A = [ADC(num,T,delay,freq,phase)]
+    A
+end
+
+function get_block(obj, i)
+    #Unpacking
+    idelay, irf, ix, iy, iz, iadc, iext = obj["blockEvents"][i]
+
+    #Gradient definition
+    Δt_gr = obj["definitions"]["GradientRasterTime"]
+    Gx = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, ix)
+    Gy = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iy)
+    Gz = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iz)
+    G = [Gx;Gy;Gz;;]
+
+    #RF definition
+    Δt_rf = obj["definitions"]["RadiofrequencyRasterTime"]
+    R = read_RF(obj["rfLibrary"], obj["shapeLibrary"], Δt_rf, irf)
+
+    #ADC definition
+    A = read_ADC(obj["adcLibrary"], iadc)
+
+    #DUR
+    D = [obj["blockDurations"][i]]
+
+    #Sequence block definition
+    s = Sequence(G,R,A,D)
+    s
 end

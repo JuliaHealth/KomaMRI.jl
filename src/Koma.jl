@@ -1,38 +1,52 @@
 module Koma
 
 #IMPORT PACKAGES
-using LinearAlgebra: Matrix
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, 
        Base.copy, Base.Threads.@spawn, Base.Threads.@threads,
-       Base.angle, Base.abs, Base.getproperty, Base.one
-using Random, LinearAlgebra, FFTW, Images, Scanf, Printf, MAT, PlotlyJS, 
-       ProgressMeter, CUDA, Parameters, ArgCheck, Interpolations, FileIO
+       Base.angle, Base.abs, Base.getproperty, Base.one, Base.zero
+#General
+using Pkg, Random, LinearAlgebra, FFTW, Images 
+#Printing
+using Scanf, Printf, ProgressMeter 
+#Datatypes
+using Parameters, ArgCheck
+#Simulation
+using CUDA, Interpolations, Hwloc
+#Reconstruction
+using MRIReco
+#IO
+using FileIO, HDF5, MAT, JLD2
+#GUI
+using Blink, Interact, PlotlyJS, AssetRegistry
 
 global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1
 
 #Hardware
 include("datatypes/Scanner.jl")
-
 #Sequence
 include("datatypes/sequence/Grad.jl")
 include("datatypes/sequence/RF.jl")
 include("datatypes/sequence/ADC.jl")
+include("simulation/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
 include("datatypes/sequence/Delay.jl")
 include("sequences/PulseDesigner.jl")
 include("io/Pulseq.jl")
-
 #Phantom
 include("datatypes/Phantom.jl")
+include("io/JEMRIS.jl")
 #Reconstruction
 include("reconstruction/Recon.jl")
 #Simulator
 include("datatypes/simulation/Magnetization.jl")
-include("simulation/DiffusionModel.jl")
-# include("simulation/OffResonanceModel.jl")
-include("simulation/Simulator.jl")
+include("simulation/TimeStepCalculation.jl")
+include("simulation/other/DiffusionModel.jl")
+# include("simulation/other/OffResonanceModel.jl")
+include("simulation/TrapezoidalIntegration.jl")
+include("simulation/SimulatorCore.jl")
+include("io/ISMRMRD.jl")
 #UI
-include("ui/Display.jl")
+include("ui/DisplayFunctions.jl")
 
 #Main 
 export γ #gyro-magnetic ratio [Hz/T]
@@ -41,17 +55,19 @@ export Grad, RF, ADC, Delay
 export Mag, dur
 #Pulseq
 export read_seq
+#ISMRMRD
+export rawSignalToISMRMRD
+# Phantom
+export brain_phantom2D, brain_phantom3D
 #RF-related
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
-export PulseDesigner, get_designed_kspace, rotx, roty, rotz
+export PulseDesigner, get_kspace, rotx, roty, rotz
 # Display
-export plot_seq, plot_grads_moments, plot_ksapce_trajectory
+export plot_seq, plot_grads_moments, plot_kspace, plot_phantom_map, plot_signal, plot_M0, plot_image
 # Simulator
-export simulate
-
+export simulate, simulate_slice_profile
 #GUI
-using Blink, Interact, AssetRegistry, JLD2
 !Blink.AtomShell.isinstalled() && Blink.AtomShell.install()
 include("KomaUI.jl")
 

@@ -7,7 +7,8 @@ Base.show(io::IO,M::Mag) = print(io, "Mag(xy = ",round(M.xy,digits=2),", z = ",r
 Mag(p::Phantom, dir::Symbol) = dir==:x ? Mag.(p.ρ,0) : Mag.(0,p.ρ)
 # Arithmetic operations
 +(M1::Mag, M2::Mag) = Mag(M1.xy + M2.xy, M1.z + M2.z) #Vector sum
-*(α::Float64, M::Mag) = Mag(α*M.xy, α*M.z)
+*(α::Float64, M::Mag) = Mag(α*M.xy, α*M.z) #This was defined to easily define the average M_mean = sum 1/N* M
+*(M::Mag, α::Float64) = Mag(α*M.xy, α*M.z)
 # Other operations
 angle(M::Mag) = angle(M.xy)
 abs(M::Mag) = abs(M.xy)

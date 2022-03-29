@@ -31,22 +31,22 @@ Grad(1, 1)
 """
 mutable struct Grad
 	A #Amplitud [T], if this is a scalar it makes a trapezoid
-	T::Real     #Duration of flat-top [s]
+	T     #Duration of flat-top [s]
 	rise::Real  #Duration of rise [s]
 	fall::Real  #Duration of fall [s]
 	delay::Real #Duration of fall [s]
     function Grad(A,T,rise,fall,delay)
-		T < 0 || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, fall, delay)
+		all(T .< 0) || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, fall, delay)
     end
 	function Grad(A,T,rise,delay)
-		T < 0 || rise < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, rise, delay)
+		all(T .< 0) < 0 || rise < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, rise, delay)
     end
 	function Grad(A,T,rise)
-		T < 0 || rise < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, rise, 0)
+		all(T .< 0) < 0 || rise < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, rise, 0)
     end
 	function Grad(A,T)
-		T < 0 ? error("Gradient timings must be positive.") : new(A, T, 0, 0, 0)
-    end 
+		all(T .< 0) < 0 ? error("Gradient timings must be positive.") : new(A, T, 0, 0, 0)
+    end
 end
 #Gradient operations
 *(x::Grad,α::Real) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
@@ -55,7 +55,6 @@ end
 	N, M = size(GR)
 	[sum(A[i,1:N] .* GR[:,j]) for i=1:N, j=1:M]
 end
-import Base.zero
 zero(::Grad) = Grad(0,0)
 /(x::Grad,α::Real) = Grad(x.A/α,x.T,x.rise,x.fall,x.delay)
 +(x::Grad,y::Grad) = Grad(x.A+y.A,x.T,x.rise,x.fall,x.delay)
@@ -68,26 +67,27 @@ vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ?
 getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
 getproperty(x::Matrix{Grad}, f::Symbol) = begin
 	if f == :x
-		x[1,:].A
+		x[1,:]
 	elseif f == :y && size(x,1) >= 2
-		x[2,:].A
+		x[2,:]
 	elseif f == :z && size(x,1) >= 3
-		x[3,:].A
+		x[3,:]
 	elseif f == :T || f == :rise || f == :fall || f == :delay
 		getproperty.(x,f)
-	elseif f == :Teff
-		# This is the equivalent time of a trapezoid so ∫ G(t) dt = A*Teff
-		(2*getproperty.(x,:T) .+ 
-		 getproperty.(x,:rise) .+ 
-		 getproperty.(x,:fall))/2.
 	elseif f == :dur
 		T, ζ1, ζ2, delay = x.T, x.rise, x.fall, x.delay
-		ΔT = T .+ ζ1 .+ ζ2 .+ delay
+		ΔT = [sum(t) for t=T] .+ ζ1 .+ ζ2 .+ delay
 		maximum(ΔT,dims=1)[:]
 	else
 		getproperty.(x,f)
 	end
 end
+
+#TIMINGS
+"Duration `T` [s] of Grad datatype."
+dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
+"Duration `T` [s] of Vector{Grad}."
+dur(x::Vector{Grad}) = maximum(dur.(x), dims=1)[:]
 
 """
 	Grad_fun(f,T,N)
@@ -117,10 +117,11 @@ Base.show(io::IO,x::Grad) = begin
 	r(x) = round.(x,digits=4)
 	compact = get(io, :compact, false)
 	if !compact
+		wave = length(x.A) == 1 ? r(x.A*1e3) : "∿"
 		if x.rise == x.fall == 0.
-			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(r(x.A*1e3)) mT, $(r(x.T*1e3)) ms)")
+			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(wave) mT, $(r(x.T*1e3)) ms)")
 		else
-			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(r(x.A*1e3)) mT, $(r(x.T*1e3)) ms, ↑$(r(x.rise*1e3)) ms, ↓$(r(x.fall*1e3)) ms)")
+			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(wave) mT, $(r(x.T*1e3)) ms, ↑$(r(x.rise*1e3)) ms, ↓$(r(x.fall*1e3)) ms)")
 		end
 	else
 		wave = length(x.A) == 1 ? "⊓" : "∿"

@@ -1,0 +1,177 @@
+<main id="main">
+<div class="navbar-dark d-flex flex-column p-3 bg-dark vh-100">
+  <a href="#" onclick='Blink.msg("index", 1)' class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none">
+    <input type="image" class="mx-auto d-block" height="70px" src="LOGO"/>
+  </a>
+  <hr>
+  <ul class="navbar-nav nav-pills flex-column mb-auto">
+    <!-- SEQUENCE -->
+    <li id="pulses" class="nav-item dropdown dropdown-dark">
+      <a class="nav-link dropdown-toggle" href="#" role="button" id="seq-dropdown" data-bs-toggle="dropdown">
+          <span class="icon-wave-square me-2"></span><span class="w-100">Sequence</span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="seq-dropdown">
+          <li class="dropdown-interact" id="seqfilepicker"></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_seq", 1)'>Sequence (MPS)</a></li>
+          <li><a class="dropdown-item disabled" href="#" onclick='Blink.msg("pulses_seqxyz", 1)'>Sequence (XYZ)</a></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_kspace", 1)'>$k$-space</a></li>
+          <!-- Default dropright button -->
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item" href="#">
+              Moments &raquo;
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-submenu">
+              <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_M0", 1)'>$M_0(t)$</a></li>
+              <li><a class="dropdown-item disabled" href="#">$M_1(t)$</a></li>
+              <li><a class="dropdown-item disabled" href="#">$M_2(t)$</a></li>
+            </ul>
+          </li>
+      </ul>
+    </li>
+    <!-- PHANTOM -->
+    <li id="phantom" class="nav-item dropdown dropdown-dark">
+      <a class="nav-link dropdown-toggle" href="#" role="button" id="pha-dropdown" data-bs-toggle="dropdown">
+          <span class="icon-brain me-2"></span><span class="w-100">Phantom</span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="pha-dropdown">
+          <li class="dropdown-interact" id="phafilepicker"></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("phantom", 1)'>View phantom</a></li>
+      </ul>
+    </li>
+    <!-- SCANNER -->
+    <li id="scanner" class="nav-item">
+      <a class="nav-link disabled" href="#">
+        <span class="icon-magnet me-2"></span><span class="w-100">Scanner</span>
+      </a>
+    </li>
+    <!-- SIMULATE -->
+    <li class="nav-item">
+      <div class="btn-group btn-group-sm d-flex">
+        <button type="button" class="btn btn-primary w-100" id="simulate!" onclick='Blink.msg("simulate", 1)'>Simulate!</button>
+        <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        </button>
+        <div class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="btnDropdownDemo">
+          <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load options</a>
+          <a class="dropdown-item" href="#" onclick='Blink.msg("sim_params", 1)'><i class="bi bi-gear-fill me-2"></i>View options</a>
+        </div>
+      </div>
+    </li>
+    <hr>
+    <!-- SIGNAL -->
+    <li id="sig" class="nav-item dropdown dropdown-dark">
+      <a class="nav-link dropdown-toggle" href="#" role="button" id="sig-dropdown" data-bs-toggle="dropdown">
+          <span class="icon-oscilloscope me-2"></span><span class="w-100">Raw data</span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="sig-dropdown">
+          <li class="dropdown-interact" id="sigfilepicker"></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("sig", 1)'>View raw data</a></li>
+      </ul>
+    </li>
+    <!-- RECON -->
+    <li class="nav-item">
+      <div class="btn-group btn-group-sm d-flex">
+        <button type="button" class="btn btn-success w-100" id="recon!" onclick='Blink.msg("recon", 1)'>Reconstruct!</button>
+        <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        </button>
+        <div class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="btnDropdownDemo">
+          <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load options</a>
+          <a class="dropdown-item" href="#"  onclick='Blink.msg("rec_params", 1)'><i class="bi bi-gear-fill me-2"></i>View options</a>
+        </div>
+      </div>
+    </li>
+    <!-- RECOND IMAGE -->
+    <li id="recon" class="nav-item dropdown dropdown-dark">
+      <a class="nav-link dropdown-toggle" href="#" role="button" id="rec-dropdown" data-bs-toggle="dropdown">
+          <span class="icon-images me-2"></span><span class="w-100">Reconstruction</span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="rec-dropdown">
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absI", 1)'>$|\mathrm{Image}|$</a></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_angI", 1)'>$\angle\mathrm{Image}$</a></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absK", 1)'>$\log(|k$-data$|+1)$</a></li>
+      </ul>
+    </li>
+  </ul>
+  <hr>
+  <!-- Koma GITHUB -->
+  <div class="dropdown">
+    <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-box-seam me-2"></i>
+      <strong>Koma v<span id="version"></span></strong>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
+      <li><a class="dropdown-item" id="Github" target="#" onclick="shell.openExternal('https://github.com/cncastillo/Koma.jl/');">
+        <i class="bi bi-github me-2"></i>Go to Koma's GitHub
+      </a></li>
+      <li><a class="dropdown-item" id="Documentation" target="#" onclick="shell.openExternal('https://cncastillo.github.io/Koma.jl/');">
+        <i class="bi bi-file-earmark-text me-2"></i>Documentation
+      </a></li>
+      <li><a class="dropdown-item" id="Issues" target="#" onclick="shell.openExternal('https://github.com/cncastillo/Koma.jl/issues/new');">
+        <i class="bi bi-exclamation-circle me-2"></i>Post an issue/bug
+      </a></li>
+    </ul>
+  </div>
+</div>
+
+<!-- TOAST MESSAGES -->
+<div class="toast-container position-absolute bottom-0 end-0 p-3" style="z-index: 11;">
+
+  <div id="liveToast0" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header bg-dark">
+      <svg class="bd-placeholder-img rounded me-2" width="20" height="20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"><rect width="100%" height="100%" fill="grey"></rect></svg>
+      <strong class="me-auto text-white" id="toastTitle0">Data loader</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="toastBody0">
+      Hello, world! This is a toast message.
+    </div>
+  </div>
+
+  <div id="liveToast1" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header bg-dark">
+      <svg class="bd-placeholder-img rounded me-2" width="20" height="20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"><rect width="100%" height="100%" fill="#0d6efd"></rect></svg>
+      <strong class="me-auto text-white" id="toastTitle1">Simulator</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="toastBody1">
+      Hello, world! This is a toast message.
+    </div>
+  </div>
+
+  <div id="liveToast2" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header bg-dark">
+      <svg class="bd-placeholder-img rounded me-2" width="20" height="20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"><rect width="100%" height="100%" fill="#198754"></rect></svg>
+      <strong class="me-auto text-white" id="toastTitle2">Reconstructor</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="toastBody2">
+      Hello, world! This is a toast message.
+    </div>
+  </div>
+
+</div>
+
+<script type="text/javascript">
+  // function updateMath(){
+  //   // MathJax.typeset() //3
+  //   window.MathJax.Hub.Queue(["Typeset",MathJax.Hub]); //2
+  // }
+  //Toasts (Popover messages)
+  var option = {
+    animation : true,
+    delay: 2000
+  };
+  function Toasty(id, title, text)
+  {
+    var toastHTMLElement = document.getElementById("liveToast"+id);
+    document.getElementById("toastTitle"+id).innerHTML=title;
+    document.getElementById("toastBody"+id).innerHTML=text;
+    var toastElemnt = new bootstrap.Toast(toastHTMLElement, option);
+    toastElemnt.show();
+  }
+</script>
+<!-- For index.html -->
+<div class="container" style="padding: 0px !important;" id="content">

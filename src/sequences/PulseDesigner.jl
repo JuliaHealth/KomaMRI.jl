@@ -1,7 +1,7 @@
 ## PulseDesigner
 module PulseDesigner
 using ..Koma
-using ..Koma: γ, Scanner, get_designed_kspace, get_bvalue, get_max_grad
+using ..Koma: γ, Scanner, get_bvalue, get_max_grad
 
 ###############
 ## RF Pulses ##
@@ -10,8 +10,8 @@ RF_hard(B1, T, sys::Scanner; G=[0,0,0]) = begin
 	ζ = sum(G) / sys.Smax
 	EX = Sequence([	Grad(G[1],T,ζ);	 #Gx
 					Grad(G[2],T,ζ);  #Gy
-					Grad(G[3],T,ζ)], #Gz
-					 [RF(B1,T,0,ζ)]	 #RF
+					Grad(G[3],T,ζ);;], #Gz
+					 [RF(B1,T,0,ζ);;]	 #RF
 					)
 	EX
 end
@@ -54,7 +54,7 @@ end
 # end
 # EPI
 EPI(FOV::Float64, N::Int, sys::Scanner) = begin
-    #TODO: consider when N is odd
+    #TODO: consider when N is even
 	Δt = sys.ADC_Δt
 	Gmax = sys.Gmax
 	Nx = Ny = N #Square acquisition
@@ -81,11 +81,11 @@ EPI(FOV::Float64, N::Int, sys::Scanner) = begin
 	println("Pixel Δf in phase direction $(round(Δfx_pix_phase,digits=2)) Hz")
 	#Pre-wind and wind gradients
 	ϵ2 = Ta/(Ta+ζ)
-    PHASE =   Sequence(1/2*[Grad(-Ga, Ta, ζ)      ; ϵ2*Grad(-Ga, Ta, ζ)]) #This needs to be calculated differently
-	DEPHASE = Sequence(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)]) #for even N
+    PHASE =   Sequence(1/2*[Grad(-Ga, Ta, ζ)      ; ϵ2*Grad(-Ga, Ta, ζ);;]) #This needs to be calculated differently
+	DEPHASE = Sequence(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ);;]) #for even N
 	seq = PHASE+EPI+DEPHASE
 	#Saving parameters
-	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"EPI"=>true, "ADC_Δt"=> Δt,"ACQ"=>"cartesian")
+	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi")
 	seq
 end
 
@@ -93,9 +93,8 @@ end
 radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 	Δt = sys.ADC_Δt
 	Gmax = sys.Gmax
-	Nx = Ny = N #Square acquisition
-	Δx = FOV/(Nx-1)
-	Ta = Δt*(Nx-1)
+	Δx = FOV/(Nr-1)
+	Ta = Δt*(Nr-1)
 	Ga = 1/(γ*Δt*FOV)
 	ζ = Ga / sys.Smax
 	Ga ≥ sys.Gmax ? error("Ga=$(Ga*1e3) mT/m exceeds Gmax=$(Gmax*1e3) mT/m, increase Δt to at least Δt_min="
@@ -109,10 +108,11 @@ radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 	println("## Radial parameters ##")
 	println("FOVr = $(round(FOV*1e2,digits=2)) cm; Δr = $(round(Δx*1e3,digits=2)) mm")
 	println("Nspokes = $Nspokes, to satisfy the Nyquist criterion")
-    PHASE = Sequence([Grad(-Ga, Ta/2, ζ)])
+    PHASE = Sequence([Grad(-Ga/2, Ta, ζ)])
 	seq = PHASE+rad+PHASE
 	#Saving parameters
-	seq.DEF = Dict("Nx"=>Nr,"Ny"=>Nspokes,"Δθ"=>Δθ,"ADC_Δt"=> Δt,"ACQ"=>"radial")
+	seq.DEF = Dict("Nx"=>Nr,"Ny"=>Nspokes,"Nz"=>1,"Δθ"=>Δθ,"Name"=>"radial","FOV"=>[FOV, FOV, 0])
+
 	seq
 end
 

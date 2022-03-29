@@ -1,44 +1,24 @@
-<div id="content" class="container">
-  <div class="card-deck">
-  <div class="card border-success">
-    <div class="card-header border-success"><b>Scanner</b></div>
-    <div class="card-body">
-      <p class="card-text small">
-        Description of the hardware limitations, such as $B_0$, $B_{1}$, $G_{\max}$, and $S_{\max}$.
-      </p>
-      <!-- <p class="card-text small">It is also possible to include field imperfections as an additional term $\Delta \boldsymbol{B}(\boldsymbol{x},\boldsymbol{G})$.</p> -->
+<div class="d-flex h-100 text-center text-white bg-image" data-new-gr-c-s-check-loaded="14.1050.0" data-gr-ext-installed="" style="background-image: url('BACKGROUND_IMAGE');">
+  <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column mask" style="background-color: rgba(0, 0, 0, 0.75);">
+    <div class="mb-auto">
     </div>
-    <div class="card-img-bottom center-cropped" style="background-image: url('SCANNER');"></div>
-      <!-- <img class="card-img-bottom center-cropped"  src="SCANNER" alt="Scanner"> -->
-  </div>
-
-  <div class="card border-primary">
-    <div class="card-header border-primary"><b>Sequence</b></div>
-    <div class="card-body">
-      <p class="card-text small">
-        Sequence of pulses, including the gradients $\boldsymbol{G}(t)$, RFs $B_{1}(t)$, and $\mathrm{ADC}(t)$ signals.
-      </p>
-      <!-- <p class="card-text small">
-        It can also visualize the $k$-space of the acquisistion.
-      </p> -->
-    </div>
-    <div class="card-img-bottom center-cropped" style="background-image: url('PULSES');"></div>
-  </div>
-
-  <div class="card border-dark">
-    <div class="card-header border-dark"><b>Phantom</b></div>
-    <div class="card-body">
-      <p class="card-text small">
-        Definition of the phantom model, includes information about the proton density $\rho$, $\mathrm{T1}$, $\mathrm{T2}$, off-resonance $\Delta\omega$, diffusion, and displacement field $\boldsymbol{u}(\boldsymbol{x},t)$.
+  
+    <div class="px-3">
+      <h1>Welcome to Koma!</h1>
+      <p class="lead">
+        Koma.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development.
       </p>
     </div>
-    <div class="card-img-bottom center-cropped" style="background-image: url('PHANTOM');">
-    </div>
-      <!-- <img class="card-img-bottom"  src="PHANTOM" alt="Phantom"> -->
+  
+    <footer class="mt-auto text-white-50">
+      <p>Koma was developed by <a href="https://github.com/cncastillo" class="text-white">Carlos Castillo</a>, et al.</p>
+      <p>Cite us <a href="doi:XYZ" class="text-white">doi:XYZ</a>.</p>
+    </footer>
   </div>
 
-  </div>
-  <div id="simulate" class="container" style="margin-top:10px; margin-bottom:10px;">
-    <button type="button" onclick='Blink.msg("simulate", 1)' class="btn btn-primary btn-lg btn-block">Run simulation!</button>
-  </div>
 </div>
+<script>
+  //To render Math in this document
+   renderMathInElement(document.body);
+</script>
+</main>

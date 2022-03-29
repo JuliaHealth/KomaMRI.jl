@@ -9,8 +9,7 @@ B1 = 6e-6; durRF = π/(2π*γ*B1)
 EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
 EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 101, sys)
 TE = 25e-3
-d = Delay(TE-dur(EPI)/2-dur(EX))
-DELAY = Sequence([d;d])
+DELAY = Delay(TE-dur(EPI)/2-dur(EX))
 #Rotation
 Rz = Koma.rotz(-π/2) #counter-clockwise rotation
 Ry = Koma.roty(-π/2) #counter-clockwise rotation

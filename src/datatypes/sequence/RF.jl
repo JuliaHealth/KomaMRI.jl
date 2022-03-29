@@ -85,32 +85,53 @@ abs(s::Spinor) = abs(s.α)^2 + abs(s.β)^2
 """RF Object"""
 mutable struct RF
 	A # Amplitud/Phase B1x + i B1y [T]
-	T::Float64     # Duration [s]
+	T # Durations [s]
 	Δf::Float64    # Frequency offset [Hz]
 	delay::Float64 # Delay [s]
 	function RF(A,T,Δf,delay)
-		@argcheck T >= 0 && delay >= 0 "RF timings must be positive."
+		@argcheck all(T .>= 0) && delay >= 0 "RF timings must be positive."
 		new(A, T, Δf, delay)
     end
 	function RF(A,T,Δf)
-		@argcheck T >= 0 "RF timings must be positive."
+		@argcheck all(T .>= 0) "RF timings must be positive."
 		new(A, T, Δf, 0.)
     end
 	function RF(A,T)
-		@argcheck T >= 0 "RF timings must be positive."
+		@argcheck all(T .>= 0) >= 0 "RF timings must be positive."
 		new(A, T, 0., 0.)
     end
 end
 #Properties
 *(α::ComplexF64, x::RF) = RF(α*x.A,x.T,x.Δf,x.delay)
+"Duration `T` [s] of RF datatype."
+dur(x::RF) = sum(x.T)
 "Duration `T` [s] of the RF array Array{RF,1}."
-dur(x::Array{RF,1}) = sum(x[i].T for i=1:size(x,1))
+dur(x::Array{RF,1}) = sum(sum(x[i].T) for i=1:size(x,1))
 "Duration `T` [s] of the RF array Array{RF,2}."
-dur(x::Array{RF,2}) = maximum(sum([x[i,j].T for i=1:size(x,1),j=1:size(x,2)],dims=2))
+dur(x::Array{RF,2}) = maximum(sum([sum(x[i,j].T) for i=1:size(x,1),j=1:size(x,2)],dims=2))
 "Generate an RF sequence with amplitudes sampled from a function."
 RF_fun(f::Function,T::Real,N::Int64=300) = begin
-	RFs = [RF(f(t),T/N) for t = range(0,stop=T,length=N)]
+	t = range(0,stop=T,length=N)
+	A = f.(t)
+	RFs = RF(A,T)
 end
+"Calculates the flip-angle α [deg] of an RF object. α = γ ∫ B1(τ) dτ"
+get_flip_angle(x::RF) = begin
+	A, NA, T, NT = x.A, length(x.A), x.T, length(x.T)
+	dT = T / NA * NT
+	α = round(360 * γ * abs(sum(A .* dT)), digits=3) #Pulseq
+	α
+end
+"Calculates the RF center. This calculation includes the RF delay."
+get_RF_center(x::RF) = begin
+	A, NA, T, NT, delay = x.A, length(x.A), x.T, length(x.T), x.delay
+	dT = T / NA * NT .* ones(NA)
+	t = cumsum([0; dT])[1:end-1]
+	i_center = argmax(abs.(A))
+	t_center = t[i_center] + dT[i_center]/2
+	t_center + delay
+end
+
 one(T::Spinor) = Spinor(1,0)
 getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x,f)
 getproperty(x::Matrix{RF}, f::Symbol) = begin
@@ -119,12 +140,12 @@ getproperty(x::Matrix{RF}, f::Symbol) = begin
 	elseif f == :By
 		imag.(getproperty.(x,:A))
 	elseif f == :Δf
-		imag.(getproperty.(x,:Δf))
+		getproperty.(x,:Δf)
 	elseif f == :T || f == :delay
 		getproperty.(x[1,:],f)
 	elseif f == :dur
 		T, delay = x.T, x.delay
-		ΔT = T .+ delay
+		ΔT = [sum(t) for t=T] .+ delay
 		ΔT
 	else
 		getproperty.(x,f)
@@ -135,9 +156,10 @@ Base.show(io::IO,x::RF) = begin
 	r(x) = round.(x,digits=4)
 	compact = get(io, :compact, false)
 	if !compact
-			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"RF($(r(x.A*1e6)) uT, $(r(x.T*1e3)) ms, $(r(x.Δf)) Hz)")
+		wave = length(x.A) == 1 ? r(x.A*1e6) : "∿"
+		print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"RF($(wave) uT, $(r(sum(x.T)*1e3)) ms, $(r(x.Δf)) Hz)")
 	else
 		wave = length(x.A) == 1 ? "⊓" : "∿"
-		print(io, (sum(abs.(x.A)) > 0 ? wave : "⇿")*"($(r((x.delay+x.T)*1e3)) ms)")
+		print(io, (sum(abs.(x.A)) > 0 ? wave : "⇿")*"($(r((x.delay+sum(x.T))*1e3)) ms)")
 	end
 end
