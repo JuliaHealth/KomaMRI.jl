@@ -399,7 +399,7 @@ function read_seq(filename)
     seq.DEF["PulseqVersion"] = version_combined
     if !haskey(seq.DEF,"Nx")
         Nx = maximum(seq.ADC.N)
-        RF_ex = get_flip_angles(seq) .<= 90.01 .&& is_RF_on.(seq)
+        RF_ex = (get_flip_angles(seq) .<= 90.01) .* is_RF_on.(seq)
         Nz = max(length(unique(seq.RF[RF_ex].Δf)), 1)
         Ny = sum(is_ADC_on.(seq)) / Nz |> x->floor(Int,x)
         
