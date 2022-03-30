@@ -43,6 +43,7 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
 
 [compat]
+ArgCheck = "2"
 AssetRegistry = "0.1"
 BenchmarkTools = "1"
 Blink = "0.12"
