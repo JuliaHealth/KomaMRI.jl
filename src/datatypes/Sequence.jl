@@ -371,8 +371,8 @@ end
 function get_RF_types(seq, t)
 	α = get_flip_angles(seq)
 	RF_mask = is_RF_on.(seq)
-	RF_ex = (α .<= 90.01) .&& RF_mask
-	RF_rf = (α .>  90.01) .&& RF_mask
+	RF_ex = (α .<= 90.01) .* RF_mask
+	RF_rf = (α .>  90.01) .* RF_mask
 	rf_idx = Int[]
 	rf_type = Int[]
 	T0 = cumsum([0; durs(seq)[:]])
