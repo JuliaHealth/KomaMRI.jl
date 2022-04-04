@@ -1,33 +1,33 @@
 <p align="center">
-<img width="300px" src="./src/ui/assets/Logo.png#gh-light-mode-only"/>
-<img width="300px" src="./src/ui/assets/Logo_dark.png#gh-dark-mode-only"/>
+<img width="300px" src="./src/ui/assets/Logo.svg#gh-light-mode-only"/>
+<img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
 </p>
 
-![Build status](https://github.com/cncastillo/MRIsim.jl/actions/workflows/ci.yml/badge.svg)
-[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/MRIsim.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
+![Build status](https://github.com/cncastillo/Koma.jl/actions/workflows/ci.yml/badge.svg)
+[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/Koma.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
 
 
 Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
 
 This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
 
-**TO-DO**:
+**Roadmap**:
  - [x] Phantom and Sequence data-types,
- - [x] Spin preccesion in gradient-only blocks,
+ - [x] Spin preccesion in gradient-only blocks (simulation optimization),
  - [x] GPU accelaration using CUDA.jl,
  - [x] RF excitation,
- - [X] GPU accelaration of RF excitation (under development),
- - [ ] [Pulseq](https://github.com/imr-framework/pypulseq) IO and [auxiliary functions](https://github.com/imr-framework/pypulseq/tree/master/pypulseq),
- - [ ] Signal "Raw Output" dictionary ([ISMRMRD](https://ismrmrd.github.io/)),
- - [ ] [MRIReco.jl](https://magneticresonanceimaging.github.io/MRIReco.jl/latest/) for the reconstruciton,
- - [ ] Scanner data-type: <img src="https://latex.codecogs.com/gif.latex?B_0,\,B_1,\,G_{\max},\,S_{\max}">, etc.,
+ - [x] GPU accelaration of RF excitation,
+ - [x] Scanner data-type: <img src="https://latex.codecogs.com/gif.latex?B_0,\,B_1,\,G_{\max},\,S_{\max}">, etc.,
+ - [x] [Pulseq](https://github.com/imr-framework/pypulseq) IO,
+ - [x] Signal "Raw Output" dictionary ([ISMRMRD](https://ismrmrd.github.io/)),
+ - [x] [MRIReco.jl](https://magneticresonanceimaging.github.io/MRIReco.jl/latest/) for the reconstruciton,
+ - [ ] Documentation,
+ - [ ] <img src="https://latex.codecogs.com/gif.latex?T_{2}^{*}"> decay,
+ - [ ] [Auxiliary Pulseq functions](https://github.com/imr-framework/pypulseq/tree/master/pypulseq),
+ - [ ] Coil sensitivities,
  - [ ] Diffusion models with Laplacian Eigen Functions,
  - [ ] Magnetic susceptibility,
- - [ ] Coil sensitivities,
- - [ ] Documentation.
-
-
-**ISMRM 2020 Presentation**: [MRIsim - Carlos Castillo.pdf](others/MRIsim-CarlosCastillo.pdf)
+ - [ ] Use [PackageCompiler.jl](https://julialang.github.io/PackageCompiler.jl/dev/apps.html) to build a ditributable core or app.
 
 ## Installation
 To install just do the following:
@@ -41,7 +41,7 @@ Koma.jl comes with a handy GUI that contains a brain phantom with an EPI sequenc
 ```julia
 KomaUI()
 ```
-Then, press the button that says "Run simulation!" to do your first simulation :).
+Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was succesfful. In this notification, you can either select to  see the Raw signal or to procced with the reconstruction.
 
 ## How to cite
 If you use this package please acknowledge us by citing:
@@ -49,7 +49,7 @@ If you use this package please acknowledge us by citing:
 ```bibtex
 @software{carlos_castillo_passi_2021_5507370,
   author       = {Castillo-Passi, Carlos and Irarrazaval, Pablo},
-  title        = {cncastillo/MRIsim.jl},
+  title        = {cncastillo/Koma.jl},
   month        = sep,
   year         = 2021,
   publisher    = {Zenodo},
@@ -61,20 +61,6 @@ If you use this package please acknowledge us by citing:
 
 ---
 
-## SpinLab GUI
+## Koma GUI
 
-![SpinLab](others/GUI.png)
-
----
-
-## Example 1: Brain phantom for different TEs
-
-![Brain phantom with different TEs](others/TEs.png)
-
-## Example 2: dMRI with multiple diffusion directions  
-
-<img src="others/propagator.gif" width="80%">
-
-## Example 3: Moment-compensated diffusion
-
-<img src="others/MomentCompensation.gif" width="80%">
+![Koma](others/GUI.png)

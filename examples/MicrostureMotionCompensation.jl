@@ -1,7 +1,7 @@
 # Experiment to see how the motion-compensated diffusion sequences
 # affects microstructural signals.
 
-using MRIsim, JLD2, ProgressMeter
+using Koma, JLD2, ProgressMeter
 # using PlotlyJS: savefig
 
 Ls = (1:4:120)*1e-6
@@ -15,30 +15,30 @@ DIF2 = DIF
 ##Timings
 @showprogress for (j,b) in enumerate(bs)
     for (i,L) in enumerate(Ls)
-        μ = MRIsim.Planes(L)
-        b1 = MRIsim.get_bvalue(DIF1)*1e-6
+        μ = Koma.Planes(L)
+        b1 = Koma.get_bvalue(DIF1)*1e-6
         seq = DIF1 * b
-        E[i,j] = MRIsim.SignalE(μ, seq)
-        b2 = MRIsim.get_bvalue(DIF2)*1e-6
+        E[i,j] = Koma.SignalE(μ, seq)
+        b2 = Koma.get_bvalue(DIF2)*1e-6
         seq = DIF2 * sqrt(b1/b2) * b
-        Emc[i,j] = MRIsim.SignalE(μ, seq)
+        Emc[i,j] = Koma.SignalE(μ, seq)
     end
 end
 @save "ResultsMC.jld2" E Emc
 ##
-# p = MRIsim.plot_grads_moments(DIF1,title="M0, b=$(round(MRIsim.get_bvalue(DIF1)*1e-6, digits=2)) s/mm2",mode="hd")
+# p = Koma.plot_grads_moments(DIF1,title="M0, b=$(round(Koma.get_bvalue(DIF1)*1e-6, digits=2)) s/mm2",mode="hd")
 # PlotlyJS.savefig(p,"M0.pdf";width=900,height=250)
 # ##
-# b1 = MRIsim.get_bvalue(DIF1)*1e-6
-# b2 = MRIsim.get_bvalue(DIF2)*1e-6
+# b1 = Koma.get_bvalue(DIF1)*1e-6
+# b2 = Koma.get_bvalue(DIF2)*1e-6
 # DIF = DIF2 * sqrt(b1/b2)
-# p = MRIsim.plot_grads_moments(DIF,title="M2 M1 MX MC, b=$(round(MRIsim.get_bvalue(DIF)*1e-6, digits=2)) s/mm2",mode="hd")
+# p = Koma.plot_grads_moments(DIF,title="M2 M1 MX MC, b=$(round(Koma.get_bvalue(DIF)*1e-6, digits=2)) s/mm2",mode="hd")
 # PlotlyJS.savefig(p,"M1M2MC.pdf";width=900,height=250)
 ##
 @load "ResultsMC.jld2" E Emc
 
 using Plots#, Interact, Blink
-b1 = MRIsim.get_bvalue(DIF1)*1e-6
+b1 = Koma.get_bvalue(DIF1)*1e-6
 # w = Window()
 anim = @animate for l = 1:9
     D = 2e-9
@@ -73,20 +73,20 @@ Emc = zeros(ComplexF64,length(θs))
 f = 2
 L = 20e-6
 @showprogress for (i,θ) in enumerate(θs)
-        μ = MRIsim.Planes(L)
-        R = MRIsim.rotz(θ)
-        b1 = MRIsim.get_bvalue(DIF1)*1e-6
+        μ = Koma.Planes(L)
+        R = Koma.rotz(θ)
+        b1 = Koma.get_bvalue(DIF1)*1e-6
         seq = DIF1 * f * R
-        E[i] = MRIsim.SignalE(μ, seq)
-        b2 = MRIsim.get_bvalue(DIF2)*1e-6
+        E[i] = Koma.SignalE(μ, seq)
+        b2 = Koma.get_bvalue(DIF2)*1e-6
         seq = DIF2 * sqrt(b1/b2) * f * R
-        Emc[i] = MRIsim.SignalE(μ, seq)
+        Emc[i] = Koma.SignalE(μ, seq)
 end
 ##
 using Plots
 f = 2
 D = 2e-9
-b = MRIsim.get_bvalue(DIF1)
+b = Koma.get_bvalue(DIF1)
 p = plot(θs,abs.(E[:]),label="M0",legend=:topright,ylim=(0,1))
 plot!(θs,abs.(Emc[:]),label="M2-Maxwell")
 plot!(θs,abs.(ones(size(Emc[:])) .* exp(-b*f*D)),label="Free diffusion")

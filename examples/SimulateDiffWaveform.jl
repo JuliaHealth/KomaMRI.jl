@@ -1,24 +1,24 @@
 # Code to asses the effect of moment-compensation on the diffusion signal
-
+# MOST OF THE SYNTAX IN THIS FILE HAS CHANGED, RUN WITH CAUTION
 ## Read
 #Waveform
-using MRIsim, PlotlyJS
+using Koma, PlotlyJS
 b = [0, 50, 200, 400, 600, 790]
 E = Array{Any, 2}(undef,6,4)
 FID = false
-path_file = "/home/ccp/Documents/MRIsim.jl/"
+path_file = "/home/ccp/Documents/Koma.jl/"
 #Timings
 f = readlines(path_file*"qte_timings.txt")
 timings = tryparse.(Float64, split(f[2]," "))
 δ1, rf180, δ2 = timings[timings .≠ nothing]*1e-3
 #Normal DTI
-G, n1, n2 = MRIsim.read_diff_fwf(path_file*"QTE_Waveforms/MX_MC2_b790.txt")
+G, n1, n2 = Koma.read_diff_fwf(path_file*"QTE_Waveforms/MX_MC2_b790.txt")
 Gmax = 21e-3
 g1, g2 = G[1:20:n1,1], G[1:20:n2,4]
-seq_dti = Sequence(Gmax*[Grad(g1,δ1) delay(rf180) -Grad(g2,δ2)])
+seq_dti = Sequence(Gmax*[Grad(g1,δ1) Delay(rf180) -Grad(g2,δ2)])
 #ACQ
 if FID
-    seq_ACQ = Sequence([Grad(0,0)], [RF(0,0)], DAC(1,0))
+    seq_ACQ = Sequence([Grad(0,0)], [RF(0,0)], ADC(1,0))
 else
     FOV = 4e-2 #10cm
     Nxy = 20
@@ -40,9 +40,9 @@ phantom2 = Phantom(x=xx[:], y=yy[:], ux=(x,y,z,t)-> (x .> Δx*.4).*(-v*t) .+ (x 
 #Iter
 for idx = [2]
 #Seq
-G, n1, n2 = MRIsim.read_diff_fwf(path_file*"QTE_Waveforms/MX_MC2_b$(b[idx+1]).txt")
+G, n1, n2 = Koma.read_diff_fwf(path_file*"QTE_Waveforms/MX_MC2_b$(b[idx+1]).txt")
 g1, g2 = G[1:20:n1,1], G[1:20:n2,4]
-seq = Sequence(Gmax*[Grad(g1,δ1) delay(rf180) -Grad(g2,δ2)])
+seq = Sequence(Gmax*[Grad(g1,δ1) Delay(rf180) -Grad(g2,δ2)])
 seq += seq_ACQ
 #Simulate
 f = sqrt(b[idx+1]/790)
@@ -52,12 +52,12 @@ if FID
 else
     recParams = Dict(:epi => true, :recon => :fft, :Nx => Nxy)
 end
-S_MM = MRIsim.simulate(phantom, seq, simParams, recParams) #Eventualmente se agregará el objeto hardware
-S_DTI = MRIsim.simulate(phantom, f*seq_dti+seq_ACQ, simParams, recParams)
-S_MM2 = MRIsim.simulate(phantom2, seq, simParams, recParams)
-S_DTI2 = MRIsim.simulate(phantom2, f*seq_dti+seq_ACQ, simParams, recParams)
-S0 = MRIsim.simulate(phantom, 0*seq, simParams, recParams)
-S02 = MRIsim.simulate(phantom2, 0*seq, simParams, recParams)
+S_MM = simulate(phantom, seq; simParams) #Eventualmente se agregará el objeto hardware
+S_DTI = simulate(phantom, f*seq_dti+seq_ACQ; simParams)
+S_MM2 = simulate(phantom2, seq; simParams)
+S_DTI2 = simulate(phantom2, f*seq_dti+seq_ACQ; simParams)
+S0 = simulate(phantom, 0*seq; simParams)
+S02 = simulate(phantom2, 0*seq; simParams)
 #Saving results
 E[idx+1,1] = S_MM
 E[idx+1,2] = S_DTI
@@ -77,4 +77,4 @@ plot(heatmap(z=abs.(E[i,2]), transpose=false, zmin=0, zmax=zmax), Layout(;title=
 plot(heatmap(z=abs.(E[i,3]), transpose=false, zmin=0, zmax=zmax), Layout(;title="Mov. MM-DTI b$(b[i])"))
 plot(heatmap(z=abs.(E[i,4]), transpose=false, zmin=0, zmax=zmax), Layout(;title="Mov. DTI b$(b[i])"))
 
-p = MRIsim.plot_grads_moments(seq_dti+seq_ACQ)
+p = Koma.plot_grads_moments(seq_dti+seq_ACQ)

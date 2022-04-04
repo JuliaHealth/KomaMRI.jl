@@ -1,48 +1,144 @@
-nav {
-  -webkit-app-region: drag;
-  margin-bottom: 10px;
-}
-a,  button, input {
-  -webkit-app-region: no-drag;
-}
-
-[class^="icon-"], [class*=" icon-"] {
-    display: inline;
-    padding-right: 5px;
-}
-
-.card-deck .card {
-    margin-left: 5px;
-    margin-right: 5px;
-}
-
+/*Images in index at the bottom of the card*/
 .center-cropped {
   width: 100%;
-  height: 120px;
+  height: 110px;
   background-position: center center;
   background-repeat: no-repeat;
   overflow: hidden;
+} 
+
+/* Ulma theme (Interact) is overwritting hr style */
+hr {
+  height: 1px!important;
+  margin: 1rem 0!important;
+  color: inherit!important;
+  background-color: currentColor!important;
+  border: 0!important;
+  opacity: .25!important;
 }
 
-/* body { padding-top: 70px; } */
-/* 
-#titlebar {
+/* Ulma theme (Interact) is overwritting text style */
+body, button{
+  font-family: var(--bs-font-sans-serif) !important;
+}
+
+/* Interact buttons */
+.button.is-primary{
+  background-color:#212529!important;
+  font-size: .875rem!important;
+}
+
+/* Interact filepicker button */
+.file-cta{
+  padding: 5px!important;
+  background-color: #0d6cf9!important;
+  border-color: #0d6cf9!important;
+  color: white!important;
+  margin-right: 5px!important;
+  cursor: pointer !important;;
+}
+.file-cta:hover{color:#fff;background-color:#0b5ed7!important;border-color:#0a58ca!important}
+.file-cta:focus{color:#fff;background-color:#0b5ed7!important;border-color:#0a58ca!important;box-shadow:0 0 0 .25rem rgba(49,132,253,.5)!important}
+
+/* Interact filepicker name */
+.file-name{
+  padding: 5px!important;
+  border-color:#343a40!important;
+  color:  #dee2e6!important;
+  background-color: #343a40!important;
+  vertical-align: middle!important;
+}
+
+/* Interact dropdown button  style*/
+.dropdown-interact{
+  display:block;
+  width:100%;
+  padding:.25rem 1rem;
+  clear:both;
+  font-weight:400;
+  color:#212529;
+  text-align:inherit;
+  text-decoration:none;
+  white-space:nowrap;
+  background-color:transparent;
+  border:0;
+  font-size: 0.875rem;
+}
+
+/* So Ulma does not overwrite h1 */
+h1 {
+  font-size: 2.5rem!important;
+  margin-bottom: .5rem!important;
+  font-weight: 500!important;
+  line-height: 1.2!important;
+}
+
+/* Content top margin */ 
+div.topsep, plot-containter {
+  margin-top: 20px;
+  padding-bottom: 20px;
+}
+
+/* Dropdown divider style */
+.dropdown-divider{
+  margin-top: 5px!important; 
+  margin-bottom: 5px!important;
+}
+
+/*SUBMENUS*/
+.dropdown-menu li {
+  position: relative;
+}
+.dropdown-menu .dropdown-submenu {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: -7px;
+}
+.dropdown-menu .dropdown-submenu-left {
+  right: 100%;
+  left: auto;
+}
+.dropdown-menu > li:hover > .dropdown-submenu {
   display: block;
-  position: fixed;
-  height: 60px;
-} */
-
-/*
-
-body {
-  overflow-y: hidden;
 }
 
-#content {
-  height: calc(100% - 60px); 
-  margin-top: 60px;
-  padding: 20px;
-  overflow-y: auto
+/*CIRCULAR BUTTON*/
+.btn-circle.btn-xl {
+  width: 70px;
+  height: 70px;
+  padding: 10px 16px;
+  border-radius: 35px;
+  font-size: 24px;
+  line-height: 1.33;
 }
 
-*/
+.btn-circle {
+  width: 24px;
+  height: 24px;
+  padding: 0px 0px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.42857;
+}
+/* REMOVE BTN OUTLINE */
+.btn:focus, input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/*INTERACT LABEL*/
+label.interact{
+  color: white;
+}
+
+.interact-flex-row-right>p{
+  color: white;
+}
+
+td, th, tr{
+  color: white!important;
+}
+
+.bg-image{position:relative;overflow:hidden;background-repeat:no-repeat;background-size:cover;background-position:50%}
