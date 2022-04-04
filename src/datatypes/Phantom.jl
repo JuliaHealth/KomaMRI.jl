@@ -28,7 +28,7 @@ Phantom object.
 	ρ::Vector = ones(size(x)) #proton density
 	T1::Vector = Inf*ones(size(x)) #T1 map
 	T2::Vector = Inf*ones(size(x)) #T2 map
-	T2s::Vector = T2
+	T2s::Vector = Inf*ones(size(x))
 	#Off-resonance related
 	Δw::Vector = zeros(size(x)) #Off-resonace map
 	#χ::Vector{SusceptibilityModel}

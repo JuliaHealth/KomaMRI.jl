@@ -171,6 +171,10 @@ function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt;
 	Nblocks = length(parts)
 	println("Dividing simulation in Nblocks=$Nblocks")
 	println("Starting simulation with Nspins=$Ns and Nt=$Nt")
+	#Perturbation of spins' position to reduce spurious echoes (?)
+	#Test convert T2* to ΔBz with Lorentzian distribution (?)
+	# R2prime = 1 ./obj.T2s .- 1 ./ obj.T2 #1/T2* = 1/T2 + 1/T2' and 1/T2' = γΔB
+	#obj_p.Δw .+= something
 	#TODO: transform suceptibility χ to Δω, for each time-block with FMM-like technique O(nlogn).
 	rfs = 0
 	pp = Progress(Nblocks)
@@ -191,7 +195,6 @@ function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt;
 					document.getElementById("simul_progress").setAttribute("aria-valuenow", progress);)
 		end
 	end
-
 	#Output
 	t_interp = get_sample_times(seq) 
 	S_interp = LinearInterpolation(t.+Δt,S)(t_interp) .* get_sample_phase_compensation(seq)

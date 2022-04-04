@@ -200,7 +200,7 @@ handle(w, "recon") do args...
     aux = @time MRIReco.reconstruction(acqData, recParams)
     global image  = reshape(aux.data,Nx,Ny,:) 
     global kspace = fftc(reshape(aux.data,Nx,Ny,:)) 
-    global img_obs[] = image
+    # global img_obs[] = image
     println("Reconstruction successfull!")
     #After Recon go to Image
     @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
