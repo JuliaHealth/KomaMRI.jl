@@ -32,7 +32,7 @@ end
 function Sequence(GR)	  #If no RF is defined, just use a zero amplitude pulse
 	M,N = size(GR)
 	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N], 
-		[(RF(0, 0) for i = 1:N)...;;],
+		reshape([RF(0, 0) for i = 1:N],1,:),
 		[ADC(0, 0) for i = 1:N],
 		GR.dur,
 		Dict()
@@ -67,15 +67,15 @@ function Sequence(GR,RF,ADC,DUR)
 		Dict())
 end
 #OTHER CONSTRUCTORS
-Sequence(GR::Array{Grad,1}) = Sequence([GR;;])
+Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,1,:))
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(
-														[GR;;],
-														[RF;;],
+														reshape(GR,:,1),
+														reshape(RF,1,:),
 														[ADC(0,0) for i = 1:size(GR,2)]
 														)
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF) = Sequence(
-																[GR;;],
-																[RF;;],
+																reshape(GR,:,1),
+																reshape(RF,1,:),
 																[A],
 																[DUR],
 																DEF
