@@ -10,8 +10,8 @@ Sequence
 Phantom
 ```
 ```@docs
-MRIsim.Spinor
+Spinor
 ```
 ```@docs
-MRIsim.Q
+Q
 ```

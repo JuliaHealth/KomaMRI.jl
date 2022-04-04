@@ -1,9 +1,18 @@
-using Documenter, MRIsim
+using Documenter, Koma
 
-makedocs(sitename="MRIsim.jl")
+makedocs(sitename="Koma.jl")
+
+makedocs(
+    modules = [Koma],
+    sitename = "Koma.jl: General MRI simulator",
+    authors = "Carlos Castillo",
+    pages = [
+        "Home" => "index.md",
+    ],
+)
 
 deploydocs(
-    repo = "github.com/cncastillo/MRIsim.jl.git",
+    repo = "github.com/cncastillo/Koma.jl.git",
 )
 
 #makedocs(format = LaTeX())

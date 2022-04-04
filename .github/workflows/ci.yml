@@ -17,9 +17,11 @@ jobs:
         version:
           - '1.6' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
           - '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
-          - 'nightly'
+          #- 'nightly'
         os:
           - ubuntu-latest
+          - macos-latest
+          - windows-latest
         arch:
           - x64
     steps:
@@ -60,8 +62,8 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: doctest
-            using MRIsim
-            doctest(MRIsim)'
+            using Koma
+            doctest(Koma)' # change MYPACKAGE to the name of your package
       - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

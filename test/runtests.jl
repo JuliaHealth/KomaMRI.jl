@@ -1,4 +1,4 @@
-using MRIsim
+using Koma
 using Test
 
 @testset "Spinors×Magnetization" begin
@@ -38,7 +38,7 @@ end
     s = Sequence([Grad(A1,T);
                   Grad(A2,T)])
     θ = π*t
-    R = MRIsim.rotz(θ)
+    R = rotz(θ)
     s2 = R*s #Matrix-Matrix{Grad} multiplication
     GR2 = R*s.GR.A #Matrix-vector multiplication
     @test s2.GR.A ≈ GR2
@@ -48,9 +48,9 @@ end
     GR = [Grad(rand(),T) for i=1:3, j=1:N]
     s = Sequence(GR)
     α, β, γ = π*t1, π*t2, π*t3
-    Rx = MRIsim.rotx(α)
-    Ry = MRIsim.roty(β)
-    Rz = MRIsim.rotz(γ)
+    Rx = rotx(α)
+    Ry = roty(β)
+    Rz = rotz(γ)
     R = Rx*Ry*Rz
     s2 = R*s #Matrix-Matrix{Grad} multiplication
     GR2 = R*s.GR.A #Matrix-vector multiplication
@@ -67,5 +67,5 @@ end
     s = s1 + s2
     @test s.GR.A ≈ [s1.GR.A s2.GR.A]
     @test s.RF.A ≈ [s1.RF.A s2.RF.A]
-    @test s.DAC.N ≈ [s1.DAC.N ; s2.DAC.N]
+    @test s.ADC.N ≈ [s1.ADC.N ; s2.ADC.N]
 end
