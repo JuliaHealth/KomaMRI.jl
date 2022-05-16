@@ -1,19 +1,28 @@
 using Documenter, Koma
 
-makedocs(sitename="Koma.jl")
-
 makedocs(
     modules = [Koma],
-    sitename = "Koma.jl: General MRI simulator",
-    authors = "Carlos Castillo",
+    sitename = "Koma.jl :General MRI simulation framework",
+    authors = "Carlos Castillo Passi",
     pages = [
         "Home" => "index.md",
-    ],
+        "API" => "API.md"
+    ]
 )
+
+# makedocs(
+#     modules = [Koma],
+#     sitename = "Koma.jl :General MRI simulation framework",
+#     authors = "Carlos Castillo Passi",
+#     pages = [
+#         "Home" => "index.md",
+#     ],
+#     format = LaTeX()
+# )
 
 deploydocs(
     repo = "github.com/cncastillo/Koma.jl.git",
+    versions = ["stable" => "v^", "v#", "dev" => "dev"],
 )
 
-#makedocs(format = LaTeX())
 #julia --color=yes make.jl

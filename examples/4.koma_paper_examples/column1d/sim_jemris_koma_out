@@ -1,0 +1,22 @@
+Preparation of DelayAtomicSequence 'D1' not successful. Delay = 15.17 ms
+Preparation of DelayAtomicSequence 'D2' not successful. Delay = 816.01 ms
+Preparation of DelayAtomicSequence 'D1' not successful. Delay = 15.17 ms
+Preparation of DelayAtomicSequence 'D2' not successful. Delay = 816.01 ms
+Preparation of DelayAtomicSequence 'D1' not successful. Delay = 15.17 ms
+Preparation of DelayAtomicSequence 'D1' not successful. Delay = 15.17 ms
+Preparation of DelayAtomicSequence 'D2' not successful. Delay = 816.01 ms
+Preparation of DelayAtomicSequence 'D2' not successful. Delay = 816.01 ms
+
+Parallel jemris 2.9.0 (GITDIR-NOTFOUND)
+
+Model    : Bloch	  , solver = CVODE
+Sample   : 1D column	  , spins  = 200
+TxArray  : /usr/local/share/jemris/matlab/uniform.xml
+RxArray  : /usr/local/share/jemris/matlab/uniform.xml
+Sequence : epi_100x100_TE100_FOV230.xml
+
+pop-os -> Master Process: send MR sample (200 spins) to 3 slave(s)
+
+Simulating | **                                                 |   5% doneSimulating | *****                                              |  10% doneSimulating | **********                                         |  20% doneSimulating | ****************                                   |  33% doneSimulating | **********************                             |  44% doneSimulating | **************************                         |  53% doneSimulating | *****************************                      |  59% doneSimulating | ********************************                   |  65% doneSimulating | ************************************               |  73% doneSimulating | ***************************************            |  78% doneSimulating | *****************************************          |  83% doneSimulating | ********************************************       |  88% doneSimulating | *********************************************      |  90% doneSimulating | ***********************************************    |  95% doneSimulating | ************************************************** | 100% done
+
+Actual simulation took 1.85 seconds.

@@ -17,16 +17,15 @@ rotz(θ::Real) = [cos(θ) -sin(θ)	0;
 """
     Grad(A,T)
 
-Square gradient object.
+Gradient object.
 
 # Arguments
 - `A::Real` := Gradient amplitude [T].
 - `T::Real` := Gradient duration [s].
 
 # Examples
-```julia-repl
-julia> Grad(1,1)
-Grad(1, 1)
+```@example
+Grad(1,2)
 ```
 """
 mutable struct Grad

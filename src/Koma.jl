@@ -58,7 +58,7 @@ export read_seq
 #ISMRMRD
 export rawSignalToISMRMRD
 # Phantom
-export brain_phantom2D, brain_phantom3D
+export brain_phantom2D, brain_phantom3D, read_phantom_jemris
 #RF-related
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
