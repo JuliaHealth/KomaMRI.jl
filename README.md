@@ -30,7 +30,7 @@ This package is meant to simulate general Magnetic Resonance Imaging (MRI) scena
  - [ ] Use [PackageCompiler.jl](https://julialang.github.io/PackageCompiler.jl/dev/apps.html) to build a ditributable core or app.
 
 ## Installation
-To install just do the following:
+To install just write the following in the Julia REPL:
 
 ```julia
 ] add Koma
@@ -41,10 +41,10 @@ Koma.jl comes with a handy GUI that contains a brain phantom with an EPI sequenc
 ```julia
 KomaUI()
 ```
-Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was succesfful. In this notification, you can either select to  see the Raw signal or to procced with the reconstruction.
+Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw signal or (2) to procced with the reconstruction.
 
 ## How to cite
-If you use this package please acknowledge us by citing:
+If you use this package please acknowledge us by citing (currently working in the paper!):
 
 ```bibtex
 @software{carlos_castillo_passi_2021_5507370,
