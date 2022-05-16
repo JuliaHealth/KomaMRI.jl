@@ -18,6 +18,7 @@ using MRIReco
 using FileIO, HDF5, MAT, JLD2
 #GUI
 using Blink, Interact, PlotlyJS, AssetRegistry
+using PlotlyJS: savefig
 
 global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1
 

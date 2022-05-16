@@ -34,7 +34,6 @@ grad2 = Grad([30,50,40].*1e-3, 1e-3, .5e-3, 1e-3)
 ```@example 1
 seq = Sequence([grad;grad2;;])
 p = plot_seq(seq; slider=false, height=300) 
-using PlotlyJS
 savefig(p,"assets/Grad2.html"); nothing
 ```
 
