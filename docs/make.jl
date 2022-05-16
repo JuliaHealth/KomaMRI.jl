@@ -12,7 +12,7 @@ makedocs(
 
 deploydocs(
     repo = "github.com/cncastillo/Koma.jl.git",
-    versions = ["stable" => "v^", "v#", "dev" => "dev"],
+    # versions = ["stable" => "v^", "v#", "dev" => "dev"],
 )
 
 #julia --color=yes make.jl
