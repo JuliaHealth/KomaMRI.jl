@@ -1,0 +1,25 @@
+### JEMRIS ###
+Preparation of DelayAtomicSequence 'D1' not successful. Delay = 15.17 ms
+Preparation of DelayAtomicSequence 'D2' not successful. Delay = 816.01 ms
+
+Parallel jemris 2.9.0 (GITDIR-NOTFOUND)
+
+Model    : Bloch	  , solver = CVODE
+Sample   : 1D column	  , spins  = 200
+TxArray  : /usr/local/share/jemris/matlab/uniform.xml
+RxArray  : /usr/local/share/jemris/matlab/uniform.xml
+Sequence : jemris/epi_100x100_TE100_FOV230.xml
+Preparation of DelayAtomicSequence 'D1' not successful. Delay = 15.17 ms
+
+pop-os -> Master Process: send MR sample (200 spins) to 3 slave(s)
+
+Preparation of DelayAtomicSequence 'D2' not successful. Delay = 816.01 ms
+Preparation of DelayAtomicSequence 'D1' not successful. Delay = 15.17 ms
+Preparation of DelayAtomicSequence 'D1' not successful. Delay = 15.17 ms
+Preparation of DelayAtomicSequence 'D2' not successful. Delay = 816.01 ms
+Preparation of DelayAtomicSequence 'D2' not successful. Delay = 816.01 ms
+Simulating | **                                                 |   5% doneSimulating | ********                                           |  16% doneSimulating | *************                                      |  26% doneSimulating | ******************                                 |  36% doneSimulating | ************************                           |  48% doneSimulating | ****************************                       |  57% doneSimulating | *******************************                    |  62% doneSimulating | **********************************                 |  68% doneSimulating | *************************************              |  75% doneSimulating | ****************************************           |  80% doneSimulating | ******************************************         |  85% doneSimulating | *********************************************      |  90% doneSimulating | ***********************************************    |  95% doneSimulating | ************************************************** | 100% done
+
+Actual simulation took 2.19 seconds.
+### KOMA ###
+### END ###
