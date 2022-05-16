@@ -1,7 +1,6 @@
 name = "Koma"
-uuid = "a9056882-1c2f-47b4-848d-dcb4a04f1994"
-authors = ["Carlos Castillo Passi"]
-version = "0.6.0"
+uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
+authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [deps]
 ArgCheck = "dce04be8-c92d-5529-be00-80e4d2c0e197"
