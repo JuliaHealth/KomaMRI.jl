@@ -19,7 +19,6 @@ grad = Grad(30e-3, 1e-3, .5e-3, 3e-3)
 ```@example 1
 seq = Sequence([grad])
 p = plot_seq(seq; slider=false, height=300) 
-using PlotlyJS
 savefig(p,"assets/Grad.html"); nothing
 ```
 
@@ -58,13 +57,6 @@ savefig(p,"assets/Grad4.html"); nothing
 
 ```@raw html
 <object type="text/html" data="../assets/Grad4.html" style="width:100%;height:430px;"></object>
-```
-
-```@example 
-using Plots
-x = 0:.001:1
-y = sin.(10*x)
-plot(x,y)
 ```
 ## RF
 ```@autodocs
