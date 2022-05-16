@@ -5,7 +5,7 @@ import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size,
        Base.copy, Base.Threads.@spawn, Base.Threads.@threads,
        Base.angle, Base.abs, Base.getproperty, Base.one, Base.zero
 #General
-using Pkg, Random, LinearAlgebra, FFTW, Images 
+using Pkg, Random, LinearAlgebra, FFTW, Images, Reexport 
 #Printing
 using Scanf, Printf, ProgressMeter 
 #Datatypes
@@ -18,7 +18,7 @@ using MRIReco
 using FileIO, HDF5, MAT, JLD2
 #GUI
 using Blink, Interact, PlotlyJS, AssetRegistry
-using PlotlyJS: savefig
+@reexport using PlotlyJS: savefig
 
 global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1
 
