@@ -1,4 +1,4 @@
-> :warning: **Koma.jl v0.6 is coming**: A hugely improved version of the package is going public in the next weeks. Please wait for a little bit, `] add Koma; using Koma` will work soon. 
+> :warning: **Koma.jl v0.6 is coming**: A hugely improved version of the package is going public in the next weeks. Please wait for a little bit, `] add Koma` and `using Koma` will work soon. 
 
 <p align="center">
 <img width="300px" src="./src/ui/assets/Logo.svg#gh-light-mode-only"/>
