@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<simulate name="JEMRIS">
+   <sample name="2D 2-spheres" uri="/home/ccp/sample.h5"/>
+   <RXcoilarray uri="/usr/local/share/jemris/matlab/uniform.xml"/>
+   <TXcoilarray uri="/usr/local/share/jemris/matlab/uniform.xml"/>
+   <parameter ConcomitantFields="0" EvolutionPrefix="evol" EvolutionSteps="0" RandomNoise="0"/>
+   <sequence name="epi_100x100_TE100_FOV230" uri="/home/ccp/epi_100x100_TE100_FOV230.xml"/>
+   <model name="Bloch" type="CVODE"/>
+</simulate>

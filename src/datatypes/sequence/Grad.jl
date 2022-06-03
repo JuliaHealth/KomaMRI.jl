@@ -55,6 +55,7 @@ end
 	[sum(A[i,1:N] .* GR[:,j]) for i=1:N, j=1:M]
 end
 zero(::Grad) = Grad(0,0)
+size(g::Grad, i::Int64) = 1 #To fix [g;g;;] concatenation of Julia 1.7.3
 /(x::Grad,α::Real) = Grad(x.A/α,x.T,x.rise,x.fall,x.delay)
 +(x::Grad,y::Grad) = Grad(x.A+y.A,x.T,x.rise,x.fall,x.delay)
 +(x::Array{Grad,1}, y::Array{Grad,1}) = [x[i]+y[i] for i=1:length(x)]

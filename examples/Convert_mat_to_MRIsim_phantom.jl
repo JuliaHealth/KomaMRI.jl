@@ -23,3 +23,9 @@ phantom = Phantom(name="brain",
                   ux=(x,y,z,t)->v*t
                   )
 @save "/home/ccp/Downloads/brain.phantom" phantom #Hacer ]up para version Koma v0.3.6 
+
+## WITH MOTION from JEMRIS
+using JLD2
+phantom = read_phantom_jemris("/home/ccp/sample.h5")
+phantom.uy = (x,y,z,t)-> 0.1*t
+@save "/home/ccp/brain_motion.phantom" phantom
