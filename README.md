@@ -1,4 +1,4 @@
-> :warning: **KomaMRI.jl v0.6 is coming**: A hugely improved version of the package is going public in the next weeks. Please wait for a little bit, `] add KomaMRI` and `using KomaMRIMRI` will work soon. If you are impatient like me, you could always `] add https://github.com/cncastillo/KomaMRI.jl`.
+> :warning: **KomaMRI.jl v0.6 is coming**: A hugely improved version of the package is going public in the next weeks. Please wait for a little bit, `] add KomaMRI` and `using KomaMRI` will work soon. If you are impatient like me, you could always `] add https://github.com/cncastillo/KomaMRI.jl`.
 
 > 🟢: **ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
 
