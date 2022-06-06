@@ -6,13 +6,13 @@ using Koma, PlotlyJS
 b = [0, 50, 200, 400, 600, 790]
 E = Array{Any, 2}(undef,6,4)
 FID = false
-path_file = "/home/ccp/Documents/Koma.jl/"
+path_file = "/home/ccp/Documents/KomaMRI.jl/"
 #Timings
 f = readlines(path_file*"qte_timings.txt")
 timings = tryparse.(Float64, split(f[2]," "))
 δ1, rf180, δ2 = timings[timings .≠ nothing]*1e-3
 #Normal DTI
-G, n1, n2 = Koma.read_diff_fwf(path_file*"QTE_Waveforms/MX_MC2_b790.txt")
+G, n1, n2 = KomaMRI.read_diff_fwf(path_file*"QTE_Waveforms/MX_MC2_b790.txt")
 Gmax = 21e-3
 g1, g2 = G[1:20:n1,1], G[1:20:n2,4]
 seq_dti = Sequence(Gmax*[Grad(g1,δ1) Delay(rf180) -Grad(g2,δ2)])
@@ -40,7 +40,7 @@ phantom2 = Phantom(x=xx[:], y=yy[:], ux=(x,y,z,t)-> (x .> Δx*.4).*(-v*t) .+ (x 
 #Iter
 for idx = [2]
 #Seq
-G, n1, n2 = Koma.read_diff_fwf(path_file*"QTE_Waveforms/MX_MC2_b$(b[idx+1]).txt")
+G, n1, n2 = KomaMRI.read_diff_fwf(path_file*"QTE_Waveforms/MX_MC2_b$(b[idx+1]).txt")
 g1, g2 = G[1:20:n1,1], G[1:20:n2,4]
 seq = Sequence(Gmax*[Grad(g1,δ1) Delay(rf180) -Grad(g2,δ2)])
 seq += seq_ACQ
@@ -77,4 +77,4 @@ plot(heatmap(z=abs.(E[i,2]), transpose=false, zmin=0, zmax=zmax), Layout(;title=
 plot(heatmap(z=abs.(E[i,3]), transpose=false, zmin=0, zmax=zmax), Layout(;title="Mov. MM-DTI b$(b[i])"))
 plot(heatmap(z=abs.(E[i,4]), transpose=false, zmin=0, zmax=zmax), Layout(;title="Mov. DTI b$(b[i])"))
 
-p = Koma.plot_grads_moments(seq_dti+seq_ACQ)
+p = KomaMRI.plot_grads_moments(seq_dti+seq_ACQ)

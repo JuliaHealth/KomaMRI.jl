@@ -12,7 +12,7 @@ plots = true
 N1 = 250 #floor(Int64, τ * 1e3 * 15625 / 100) + 2 # Δt = 6.4e-6 #dwell-time 
 #Path were to write the waveforms
 #path = "/media/ccp/Samsung_T5/"
-path_file = "/home/ccp/Documents/Koma.jl/"
+path_file = "/home/ccp/Documents/KomaMRI.jl/"
 k = 2
 sym = false
 maxwell = true
@@ -86,7 +86,7 @@ write_diff_fwf(DIF,idx180,Gmax,floor(Int64,bmax); filename=path_file*"QTE_Wavefo
 write_diff_fwf(DIF,idx180,Gmax,floor(Int64,bmax); filename=path_file*"QTE_Waveforms/qte_vectors_input.txt", name=seq_name)
 # Plots
 # if plots
-Koma.plot_grads_moments(DIF,title="ODTI, b=$(round(get_bvalue(DIF)*1e-6, digits=2)) s/mm2, λ0 = $(abs(round(1e3*M0v'*gx,digits=1))), λ1 = $(abs(round(1e3*M1v'*gx,digits=1))), λ2 = $(abs(round(1e3*M2v'*gx,digits=1)))")
+KomaMRI.plot_grads_moments(DIF,title="ODTI, b=$(round(get_bvalue(DIF)*1e-6, digits=2)) s/mm2, λ0 = $(abs(round(1e3*M0v'*gx,digits=1))), λ1 = $(abs(round(1e3*M1v'*gx,digits=1))), λ2 = $(abs(round(1e3*M2v'*gx,digits=1)))")
 # end
 # end
 

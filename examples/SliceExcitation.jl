@@ -11,9 +11,9 @@ EPI,_,_,_ = PulseDesigner.EPI_base(40/100, 101, sys)
 TE = 25e-3
 DELAY = Delay(TE-dur(EPI)/2-dur(EX))
 #Rotation
-Rz = Koma.rotz(-π/2) #counter-clockwise rotation
-Ry = Koma.roty(-π/2) #counter-clockwise rotation
-Rx = Koma.rotx(π/2)  #counter-clockwise rotation
+Rz = KomaMRI.rotz(-π/2) #counter-clockwise rotation
+Ry = KomaMRI.roty(-π/2) #counter-clockwise rotation
+Rx = KomaMRI.rotx(π/2)  #counter-clockwise rotation
 
 seq = EX + DELAY + EPI*(Ry*Rz)
 @save "./EPI_example.seq" seq=seq

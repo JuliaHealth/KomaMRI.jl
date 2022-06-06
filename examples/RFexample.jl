@@ -85,6 +85,6 @@ end
 #                    [exp(-Δt/T2)(Mx + iMx), exp(-Δt/T1) Mz + ρ (1 - exp(-Δt/T1))].
 # - Movement of the phantom during excitation? (using obj.x + obj.ux(obj.x,obj.y))
 # - Effects of T1 and T2 during an RF block: For each Δt we do RF and then T1 & T2 decay.
-# - Plotting function Koma.plot_grads(seq) in Display.jl is not currently plotting RF pulses
+# - Plotting function KomaMRI.plot_grads(seq) in Display.jl is not currently plotting RF pulses
 # - Pre-defined RF waveforms.
 # - Shinnar-Le Roux pulse desing? 

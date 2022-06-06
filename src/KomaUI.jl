@@ -302,7 +302,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
             global rawfile = f
             global raw_ismrmrd = RawAcquisitionData(fraw)
 
-            not_Koma = raw_ismrmrd.params["systemVendor"] != "Koma.jl"
+            not_Koma = raw_ismrmrd.params["systemVendor"] != "KomaMRI.jl"
             if not_Koma
                 @warn "ISMRMRD files generated externally could cause problems during the reconstruction. We are currently improving compatibility."
             end

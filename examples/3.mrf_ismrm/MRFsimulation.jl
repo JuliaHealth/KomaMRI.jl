@@ -33,7 +33,7 @@ jldsave("./examples/3.mrf_ismrm/mrf.seqk"; seq=seq)
 ## Simulation
 fingerprint = simulate(phantom, seq, sys); #This takes like 5 min for NTRs = 500.
 ## Output ISMRMRD
-raw_ismrmrd = Koma.rawSignalToISMRMRD([fingerprint;;],seq;phantom,sys)
+raw_ismrmrd = KomaMRI.rawSignalToISMRMRD([fingerprint;;],seq;phantom,sys)
 fname = "MRF_signal_Δθ_$(floor(Int64, Δθ/π*180))_NTRs_$NTRs"
 fout = ISMRMRDFile("./examples/3.mrf_ismrm/$fname.h5")
 save(fout, raw_ismrmrd)

@@ -45,7 +45,7 @@ M3 = simulate_slice_profile(seq3;z)
 plot_seq(seq2; width=480, height=350, slider=false)
 f = γ*Gx1*z*1e-3
 plot(f,  abs.(M1.xy),label=L"|M_{xy}| @ \Delta f = -5\, \mathrm{kHz}",
-        xlabel=L"\mathrm{kHz}",line=3,title="α=$(Koma.get_flip_angle(seq2.RF[1]))")
+        xlabel=L"\mathrm{kHz}",line=3,title="α=$(KomaMRI.get_flip_angle(seq2.RF[1]))")
 plot!(f, abs.(M2.xy),label=L"|M_{xy}| @ \Delta f = +0\, \mathrm{kHz}",line=3)
 plot!(f, abs.(M3.xy),label=L"|M_{xy}| @ \Delta f = +5\, \mathrm{kHz}",line=3)
 

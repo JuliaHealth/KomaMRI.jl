@@ -1,4 +1,4 @@
-> :warning: **Koma.jl v0.6 is coming**: A hugely improved version of the package is going public in the next weeks. Please wait for a little bit, `] add Koma` and `using Koma` will work soon. If you are impatient like me, you could always `] add https://github.com/cncastillo/Koma.jl`.
+> :warning: **KomaMRI.jl v0.6 is coming**: A hugely improved version of the package is going public in the next weeks. Please wait for a little bit, `] add Koma` and `using Koma` will work soon. If you are impatient like me, you could always `] add https://github.com/cncastillo/KomaMRI.jl`.
 
 > 🟢: **ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
 
@@ -7,11 +7,11 @@
 <img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
 </p>
 
-![Build status](https://github.com/cncastillo/Koma.jl/actions/workflows/ci.yml/badge.svg)
-[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/Koma.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
+![Build status](https://github.com/cncastillo/KomaMRI.jl/actions/workflows/ci.yml/badge.svg)
+[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/KomaMRI.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
 
 
-Koma.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
+KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
 
 This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
 
@@ -40,7 +40,7 @@ To install just write the following in the Julia REPL:
 ] add Koma
 ```
 ## First run
-Koma.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
+KomaMRI.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
 
 ```julia
 KomaUI()
@@ -53,7 +53,7 @@ If you use this package please acknowledge us by citing (currently working in th
 ```bibtex
 @software{carlos_castillo_passi_2021_5507370,
   author       = {Castillo-Passi, Carlos and Irarrazaval, Pablo},
-  title        = {cncastillo/Koma.jl},
+  title        = {cncastillo/KomaMRI.jl},
   month        = sep,
   year         = 2021,
   publisher    = {Zenodo},

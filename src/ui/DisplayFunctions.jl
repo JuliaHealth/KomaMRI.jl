@@ -212,11 +212,11 @@ end
 function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false)
 	#Times
 	dt = 1
-	t, Δt = Koma.get_uniform_times(seq, dt)
+	t, Δt = KomaMRI.get_uniform_times(seq, dt)
 	#kx,ky
 	ts = t .+ Δt
-	rf_idx, rf_type = Koma.get_RF_types(seq, t)
-	k, _ =  Koma.get_kspace(seq; Δt=dt)
+	rf_idx, rf_type = KomaMRI.get_RF_types(seq, t)
+	k, _ =  KomaMRI.get_kspace(seq; Δt=dt)
 
 	#plots k(t)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -345,7 +345,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 end
 
 function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, darkmode=false)
-	not_Koma = raw.params["systemVendor"] != "Koma.jl"
+	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
 	signal = []
 	current_t0 = 0

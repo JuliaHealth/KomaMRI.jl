@@ -2,6 +2,6 @@
 echo "### JEMRIS ###"
 mpirun -np 4 pjemris ./jemris/run.xml
 echo "### KOMA ###"
-julia --project=/home/ccp/Documents/Koma.jl/ ./koma/run.jl
+julia --project=/home/ccp/Documents/KomaMRI.jl/ ./koma/run.jl
 echo "### END ###"
 

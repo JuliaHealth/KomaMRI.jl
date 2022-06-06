@@ -30,7 +30,7 @@ function rawSignalToISMRMRD(signal,seq;
     #First we define the ISMRMRD data XML header
     params = Dict(
         #Simulator
-        "systemVendor"                   => "Koma.jl", #String
+        "systemVendor"                   => "KomaMRI.jl", #String
         "systemModel"                    => "v"*version, #String
         "institutionName"                => "Pontificia Universidad Catolica de Chile", #String
         #Phantom

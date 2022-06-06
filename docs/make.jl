@@ -1,8 +1,8 @@
-using Documenter, Koma
+using Documenter, KomaMRI
 
 makedocs(
-    modules = [Koma],
-    sitename = "Koma.jl: General MRI simulation framework",
+    modules = [KomaMRI],
+    sitename = "KomaMRI.jl: General MRI simulation framework",
     authors = "Carlos Castillo Passi",
     pages = [
         "Home" => "index.md",
@@ -11,7 +11,7 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/cncastillo/Koma.jl.git",
+    repo = "github.com/cncastillo/KomaMRI.jl.git",
     # versions = ["stable" => "v^", "v#", "dev" => "dev"],
 )
 

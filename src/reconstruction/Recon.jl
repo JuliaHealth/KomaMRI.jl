@@ -34,10 +34,10 @@ end
 # 		if recon == "MRIReco"
 # 			#MRIReco.jl, WIP
 # 			#Getting kspace coordinates
-# 			times = Koma.get_sample_times(seq)
-# 			_, traj = Koma.get_kspace(seq)
+# 			times = KomaMRI.get_sample_times(seq)
+# 			_, traj = KomaMRI.get_kspace(seq)
 # 			TE = 0
-# 			AQ = maximum(seq[Koma.is_ADC_on.(seq)].ADC.T)
+# 			AQ = maximum(seq[KomaMRI.is_ADC_on.(seq)].ADC.T)
 # 			tr = Trajectory(name, traj', times, TE, AQ, Ny, Nx, Nz, cartesian, !cartesian)
 # 			#RawData
 # 			sequenceInfo = Dict([Symbol(key) => value for (key,value) = seq.DEF]...)

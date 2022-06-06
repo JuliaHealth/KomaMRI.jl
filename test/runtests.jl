@@ -7,23 +7,27 @@ using Test
     θ = rand() * π
     n = rand(3); n = n./sqrt(sum(n.^2))
     z = Mag(x[1]+1im*x[2], x[3])
+
     # General rotation
     xx1 = Q(θ,n[1]+1im*n[2],n[3])*z; #Spinor rot Q.(φ, B1./B, Bz./B)
     xx2 = Un(θ,n)*x; #3D rot matrix
     xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
     @test xx1 ≈ xx2
+
     # Rot x
     nx = [1,0,0]
     xx1 = Rx(θ)*z; #Spinor rot
     xx2 = Un(θ,nx)*x; #3D rot matrix
     xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
     @test xx1 ≈ xx2
+
     # Rot y
     nx = [0,1,0]
     xx1 = Ry(θ)*z; #Spinor rot
     xx2 = Un(θ,nx)*x; #3D rot matrix
     xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
     @test xx1 ≈ xx2
+
     # Rot z
     nx = [0,0,1]
     xx1 = Rz(θ)*z; #Spinor rot
@@ -42,6 +46,7 @@ end
     s2 = R*s #Matrix-Matrix{Grad} multiplication
     GR2 = R*s.GR.A #Matrix-vector multiplication
     @test s2.GR.A ≈ GR2
+
     # Rotation 3D case
     T, t1, t2, t3 = rand(4)
     N = 100
@@ -55,7 +60,8 @@ end
     s2 = R*s #Matrix-Matrix{Grad} multiplication
     GR2 = R*s.GR.A #Matrix-vector multiplication
     @test s2.GR.A ≈ GR2
-    # Concatenation
+
+    # Concatenation of sequences
     A1, A2, A3, T1 = rand(4)
     s1 = Sequence([Grad(A1,T1);
                    Grad(A2,T1)],
@@ -68,4 +74,37 @@ end
     @test s.GR.A ≈ [s1.GR.A s2.GR.A]
     @test s.RF.A ≈ [s1.RF.A s2.RF.A]
     @test s.ADC.N ≈ [s1.ADC.N ; s2.ADC.N]
+end
+
+@testset "Grad" begin
+    #Testing gradient concatenation, breakes in some Julia versions
+    A1, A2, T = rand(3)
+    g1, g2 = Grad(A1,T), Grad(A2,T)
+    GR = [g1;g2;;]
+    GR2 = reshape([g1;g2],:,1)
+    @test GR.A ≈ GR2.A
+end
+
+@testset "RF" begin
+    #Testing gradient concatenation, breakes in some Julia versions
+    A1, A2, T = rand(3)
+    r1, r2 = RF(A1,T), RF(A2,T)
+    R = [r1;r2;;]
+    R2 = reshape([r1;r2],:,1)
+    @test R.A ≈ R2.A
+
+    #Sanity checks of constructors (A [T], T [s], Δf[Hz], delay [s])
+    A, T = rand(2)
+    r1, r2 = RF(A,T), RF(A,T,0,0)
+    @test r1.A ≈ r2.A
+    @test r1.T ≈ r2.T
+    @test r1.Δf ≈ r2.Δf
+    @test r1.delay ≈ r2.delay
+
+    A, T, Δf = rand(3)
+    r1, r2 = RF(A,T,Δf), RF(A,T,Δf,0)
+    @test r1.A ≈ r2.A
+    @test r1.T ≈ r2.T
+    @test r1.Δf ≈ r2.Δf
+    @test r1.delay ≈ r2.delay
 end

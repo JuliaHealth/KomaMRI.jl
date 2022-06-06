@@ -1,4 +1,4 @@
-module Koma
+module KomaMRI
 
 #IMPORT PACKAGES
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, 

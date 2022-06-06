@@ -6,25 +6,25 @@ using Koma
 SpinLab()
 
 ##
-phantom = Koma.brain_phantom2D(;axis="coronal")
-EPI,_,_,_ = Koma.EPI_base(40/100, 100, 4e-6, 60e-3)
+phantom = KomaMRI.brain_phantom2D(;axis="coronal")
+EPI,_,_,_ = KomaMRI.EPI_base(40/100, 100, 4e-6, 60e-3)
 TE = 25e-3 
-d = Koma.Delay(TE-Koma.dur(EPI)/2)
+d = KomaMRI.Delay(TE-KomaMRI.dur(EPI)/2)
 DELAY = Sequence([d;d])
 seq = DELAY + EPI
 println("EPI successfully loaded! (TE = $(TE*1e3) ms)")
 scanner = []
 signal = 0
 kdata = [0.0im 0.; 0. 0.]
-Koma.print_gpus_info()
+KomaMRI.print_gpus_info()
 
 Δt = 4e-6 #<- simulate param
-t = collect(Δt:Δt:Koma.dur(seq))
+t = collect(Δt:Δt:KomaMRI.dur(seq))
 Nphant, Nt = prod(size(phantom)), length(t)
 N_parts = floor(Int, Nphant*Nt/2.7e6*1/3) #heuristic
 println("Dividing simulation in Nblocks=$N_parts")
-S = @time Koma.run_sim2D_times_iter(phantom,seq,t;N_parts) #run_sim2D_times_iter run_sim2D_spin
-signal = S[Koma.get_ADC_on(seq,t)]/prod(size(phantom)) #Acquired data
+S = @time KomaMRI.run_sim2D_times_iter(phantom,seq,t;N_parts) #run_sim2D_times_iter run_sim2D_spin
+signal = S[KomaMRI.get_ADC_on(seq,t)]/prod(size(phantom)) #Acquired data
 S = nothing
 Nx = Ny = 100 #hardcoded by now
 kdata = reshape(signal,(Nx,Ny)) #Turning into kspace image
@@ -40,9 +40,9 @@ b = a .* a
 ##
 using PackageCompiler
 PackageCompiler.create_sysimage(:Koma;
-sysimage_path="C:/Users/ccp/Documents/Koma.jl/src/examples/sysimageSpinLab.dll",
-precompile_execution_file="C:/Users/ccp/Documents/Koma.jl/src/examples/precompileSpinLab.jl")
-# julia --sysimage C:/Users/ccp/Documents/Koma.jl/src/examples/sysimageSpinLab.dll --project=@.
+sysimage_path="C:/Users/ccp/Documents/KomaMRI.jl/src/examples/sysimageSpinLab.dll",
+precompile_execution_file="C:/Users/ccp/Documents/KomaMRI.jl/src/examples/precompileSpinLab.jl")
+# julia --sysimage C:/Users/ccp/Documents/KomaMRI.jl/src/examples/sysimageSpinLab.dll --project=@.
 
 ##
 # using PackageCompiler
