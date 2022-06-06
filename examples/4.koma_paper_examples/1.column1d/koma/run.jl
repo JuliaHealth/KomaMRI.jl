@@ -1,4 +1,4 @@
-using Koma
+using KomaMRI
 
 obj = read_phantom_jemris("koma/column1d_phantom.h5")
 seq = read_seq("koma/epi_100x100_TE100_FOV230.seq")

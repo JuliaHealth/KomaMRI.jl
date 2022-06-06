@@ -1,7 +1,7 @@
 # Precursor of the RF excitation code with feature directions, most of the comments below are already implemented
 
-using Koma
-using Koma: γ, Q, RF_fun, get_grads, Un, cross
+using KomaMRI
+using KomaMRI: γ, Q, RF_fun, get_grads, Un, cross
 using Plots, LaTeXStrings
 gr(size = (800,800))
 

@@ -13,7 +13,7 @@ Pages   = ["Grad.jl"]
 ```
 There should be a plot here:
 ```@example 1
-using Koma
+using KomaMRI
 grad = Grad(30e-3, 1e-3, .5e-3, 3e-3)
 ```
 ```@example 1

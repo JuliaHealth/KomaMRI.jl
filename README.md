@@ -1,4 +1,4 @@
-> :warning: **KomaMRI.jl v0.6 is coming**: A hugely improved version of the package is going public in the next weeks. Please wait for a little bit, `] add Koma` and `using Koma` will work soon. If you are impatient like me, you could always `] add https://github.com/cncastillo/KomaMRI.jl`.
+> :warning: **KomaMRI.jl v0.6 is coming**: A hugely improved version of the package is going public in the next weeks. Please wait for a little bit, `] add KomaMRI` and `using KomaMRIMRI` will work soon. If you are impatient like me, you could always `] add https://github.com/cncastillo/KomaMRI.jl`.
 
 > 🟢: **ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
 
@@ -37,7 +37,7 @@ This package is meant to simulate general Magnetic Resonance Imaging (MRI) scena
 To install just write the following in the Julia REPL:
 
 ```julia
-] add Koma
+] add KomaMRI
 ```
 ## First run
 KomaMRI.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:

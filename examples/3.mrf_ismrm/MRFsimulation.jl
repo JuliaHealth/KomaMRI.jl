@@ -1,4 +1,4 @@
-using Koma, MAT, JLD2
+using KomaMRI, MAT, JLD2
 using MRIReco
 #Phantom 
 phantom = brain_phantom2D()

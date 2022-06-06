@@ -1,7 +1,7 @@
 # Comparison between the Short Pulse Aproximation and Pulse Gradient Spin Echo (with Laplacian Eigen Functions)
 
-using Koma, Plots, LaTeXStrings
-using Koma: γ, Planes, SignalE
+using KomaMRI, Plots, LaTeXStrings
+using KomaMRI: γ, Planes, SignalE
 
 #Constants
 𝒊 = 1im; D = 2e-9 # m2/s

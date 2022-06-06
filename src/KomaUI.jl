@@ -329,7 +329,7 @@ w = content!(w, "#sigfilepicker", load_sig, async=false)
 #Update Koma version
 version =  string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]))
 content!(w, "#version", version, async=false)
-@info "Currently using Koma v$version"
+@info "Currently using KomaMRI v$version"
 
 nothing
 end

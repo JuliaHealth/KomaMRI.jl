@@ -1,8 +1,8 @@
 # Code used to generate gradient waveforms that are moment-compensated
 # Sequence optimization for diffusion motion-compensation 
 
-using Koma, JuMP, Ipopt #, Gtk
-using Koma: get_Bmatrix, get_SRmatrix, get_Mmatrix, 
+using KomaMRI, JuMP, Ipopt #, Gtk
+using KomaMRI: get_Bmatrix, get_SRmatrix, get_Mmatrix, 
               dur, get_bvalue, write_diff_fwf, delay
 ## Parameters
 dwell_time = 6.4e-6

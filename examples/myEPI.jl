@@ -1,4 +1,4 @@
-using Koma, JLD2
+using KomaMRI, JLD2
 #Scanner
 sys = Scanner()
 sys.ADC_Δt = 4e-6

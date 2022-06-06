@@ -2,7 +2,7 @@
 # Using a precompiled version of Koma should accelerate startup times for each library
 # In the future, this will enable to create an Standalone-App (exceutable)
 
-using Koma
+using KomaMRI
 SpinLab()
 
 ##

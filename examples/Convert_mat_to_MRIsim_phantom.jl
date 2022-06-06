@@ -1,4 +1,4 @@
-using Koma, JLD2, MAT
+using KomaMRI, JLD2, MAT
 fantoma = matread("/home/ccp/Downloads/fantoma.mat")["fantoma"]
 
 ρ = fantoma["PD"]

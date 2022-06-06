@@ -1,7 +1,7 @@
 # Experiment to see how the motion-compensated diffusion sequences
 # affects microstructural signals.
 
-using Koma, JLD2, ProgressMeter
+using KomaMRI, JLD2, ProgressMeter
 # using PlotlyJS: savefig
 
 Ls = (1:4:120)*1e-6

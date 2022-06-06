@@ -2,7 +2,7 @@
 # MOST OF THE SYNTAX IN THIS FILE HAS CHANGED, RUN WITH CAUTION
 ## Read
 #Waveform
-using Koma, PlotlyJS
+using KomaMRI, PlotlyJS
 b = [0, 50, 200, 400, 600, 790]
 E = Array{Any, 2}(undef,6,4)
 FID = false

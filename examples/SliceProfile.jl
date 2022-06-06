@@ -1,4 +1,4 @@
-using Koma, Plots, LaTeXStrings
+using KomaMRI, Plots, LaTeXStrings
 pgfplotsx()
 rf_wf = [
     #Waveform am_sg_100_100_0

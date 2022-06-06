@@ -1,5 +1,5 @@
 # Example of rotation of acquisition and excitation
-using Koma
+using KomaMRI
 using JLD2
 # Scanner
 sys = Scanner()
