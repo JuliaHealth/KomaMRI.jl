@@ -1,7 +1,7 @@
 ## PulseDesigner
 module PulseDesigner
-using ..Koma
-using ..Koma: γ, Scanner, get_bvalue, get_max_grad
+using ..KomaMRI
+using ..KomaMRI: γ, Scanner, get_bvalue, get_max_grad
 
 ###############
 ## RF Pulses ##
