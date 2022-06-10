@@ -5,7 +5,7 @@ authors:
     given-names: "Castillo-Passi"
     orcid: https://orcid.org/0000-0001-6227-0477
 title: 'cncastillo/KomaMRI.jl'
-doi: 10.5281/zenodo.5784237
-version: 0.3.8
-date-released: 2021-09-14
+doi: 10.5281/zenodo.6627503
+version: 0.6.0
+date-released: 2022-06-09
 repository-code: https://github.com/cncastillo/KomaMRI.jl
