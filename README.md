@@ -1,5 +1,3 @@
-> :warning: **KomaMRI.jl v0.6 is coming**: A hugely improved version of the package is going public in the next weeks. Please wait for a little bit, `] add KomaMRI` and `using KomaMRI` will work soon. If you are impatient like me, you could always `] add https://github.com/cncastillo/KomaMRI.jl`.
-
 > 🟢: **ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
 
 <p align="center">
@@ -48,7 +46,7 @@ KomaUI()
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw signal or (2) to procced with the reconstruction.
 
 ## How to cite
-If you use this package please acknowledge us by citing (currently working in the paper!):
+If you use this package please acknowledge us by citing (currently working in the paper! 👷‍♂️):
 
 ```bibtex
 @software{carlos_castillo_passi_2021_5507370,
@@ -57,9 +55,9 @@ If you use this package please acknowledge us by citing (currently working in th
   month        = sep,
   year         = 2021,
   publisher    = {Zenodo},
-  version      = {v0.3.8},
-  doi          = {10.5281/zenodo.5784237},
-  url          = {https://doi.org/10.5281/zenodo.5784237}
+  version      = {v0.6.0},
+  doi          = {10.5281/zenodo.6627503},
+  url          = {https://doi.org/10.5281/zenodo.6627503}
 }
 ```
 
