@@ -270,6 +270,7 @@ end
 Colormaps from https://github.com/markgriswold/MRFColormaps
 Towards Unified Colormaps for Quantitative MRF Data, Mark Griswold, et al. (2018)."""
 function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=nothing, darkmode=false)
+	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
 	if key == :T1 || key == :T2 || key == :T2s
@@ -278,7 +279,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 		unit = " ms"
 		if key  == :T1
 			cmax_key = 2500/factor
-			colors = MAT.matread("src/ui/assets/T1cm.mat")["T1colormap"]
+			colors = MAT.matread(path*"/assets/T1cm.mat")["T1colormap"]
 			N, _ = size(colors)
 			idx = range(0,1,N)
 			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
@@ -286,7 +287,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 			if key == :T2
 				cmax_key = 250/factor
 			end
-    		colors = MAT.matread("src/ui/assets/T2cm.mat")["T2colormap"]
+    		colors = MAT.matread(path*"/assets/T2cm.mat")["T2colormap"]
 			N, _ = size(colors)
 			idx = range(0,1,N)
 			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
