@@ -33,7 +33,7 @@ function get_sample_times(seq)
             δ = seq.ADC[i].delay
             T = seq.ADC[i].T
             N = seq.ADC[i].N
-            t = range(0, T, N).+T0[i].+δ
+            t = range(0, T; length=N).+T0[i].+δ #range(0,T,N) works in Julia 1.7
             append!(times, t)
         end
     end

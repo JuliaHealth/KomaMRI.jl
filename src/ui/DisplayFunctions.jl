@@ -281,7 +281,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 			cmax_key = 2500/factor
 			colors = MAT.matread(path*"/assets/T1cm.mat")["T1colormap"]
 			N, _ = size(colors)
-			idx = range(0,1,N)
+			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
 			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
 		elseif key == :T2 || key == :T2s
 			if key == :T2
@@ -289,7 +289,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 			end
     		colors = MAT.matread(path*"/assets/T2cm.mat")["T2colormap"]
 			N, _ = size(colors)
-			idx = range(0,1,N)
+			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
 			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
 		end
 	elseif key == :x || key == :y || key == :z
