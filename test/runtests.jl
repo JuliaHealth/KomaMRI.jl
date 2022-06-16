@@ -161,15 +161,9 @@ end
 #GUI tests
 @testset "GUI" begin
     @testset "GUI_phantom" begin
-        ph = brain_phantom2D()   #2D phantom
-        plot_phantom_map(ph, :ρ) #Plotting the phantom's rho map
-        @test true               #If the previous line fails the test will fail
-
+        ph = brain_phantom2D()    #2D phantom
         plot_phantom_map(ph, :T1) #Plotting the phantom's rho map
-        @test true               #If the previous line fails the test will fail
-
-        plot_phantom_map(ph, :T2) #Plotting the phantom's rho map
-        @test true               #If the previous line fails the test will fail
+        @test true                #If the previous line fails the test will fail
     end
 
     @testset "GUI_seq" begin
@@ -193,17 +187,23 @@ end
         seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
         @test dur(seq) ≈ dur(EX) + d1 + dur(EPI) #Sequence duration matches what is supposed to be
 
-        #Plot sequence
-        plot_seq(seq)  #Plotting the sequence
-        @test true          #If the previous line fails the test will fail
+        @testset "GUI_seq_plot_seq" begin
+            #Plot sequence
+            plot_seq(seq)  #Plotting the sequence
+            @test true          #If the previous line fails the test will fail
+        end
 
-        #Plot k-space
-        plot_kspace(seq)    #Plotting the k-space
-        @test true          #If the previous line fails the test will fail
+        @testset "GUI_seq_plot_kspace" begin
+            #Plot k-space
+            plot_kspace(seq)    #Plotting the k-space
+            @test true          #If the previous line fails the test will fail
+        end
 
-        #Plot M0
-        plot_M0(seq)        #Plotting the M0
-        @test true          #If the previous line fails the test will fail
+        @testset "GUI_seq_plot_M0" begin
+            #Plot M0
+            plot_M0(seq)        #Plotting the M0
+            @test true          #If the previous line fails the test will fail
+        end
     end
 end
 
