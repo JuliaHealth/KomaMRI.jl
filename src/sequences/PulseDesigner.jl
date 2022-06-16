@@ -75,10 +75,10 @@ EPI(FOV::Float64, N::Int, sys::Scanner) = begin
 	Δfx_pix = 1/Ta
 	Δt_phase = (Ta+2ζ)*Ny + (Δτ+2ζ)*Ny
 	Δfx_pix_phase = 1/Δt_phase
-	println("## EPI parameters ##")
-	println("Δx = $(round(Δx*1e3,digits=2)) mm")
-	println("Pixel Δf in freq. direction $(round(Δfx_pix,digits=2)) Hz")
-	println("Pixel Δf in phase direction $(round(Δfx_pix_phase,digits=2)) Hz")
+	# println("## EPI parameters ##")
+	# println("Δx = $(round(Δx*1e3,digits=2)) mm")
+	# println("Pixel Δf in freq. direction $(round(Δfx_pix,digits=2)) Hz")
+	# println("Pixel Δf in phase direction $(round(Δfx_pix_phase,digits=2)) Hz")
 	#Pre-wind and wind gradients
 	ϵ2 = Ta/(Ta+ζ)
     PHASE =   Sequence(1/2*[Grad(-Ga, Ta, ζ)      ; ϵ2*Grad(-Ga, Ta, ζ);;]) #This needs to be calculated differently
@@ -105,9 +105,9 @@ radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 	# Acq/Recon parameters
 	Nspokes = ceil(Int64, π/2 * Nr ) #Nyquist in the radial direction
 	Δθ = π / Nspokes
-	println("## Radial parameters ##")
-	println("FOVr = $(round(FOV*1e2,digits=2)) cm; Δr = $(round(Δx*1e3,digits=2)) mm")
-	println("Nspokes = $Nspokes, to satisfy the Nyquist criterion")
+	# println("## Radial parameters ##")
+	# println("FOVr = $(round(FOV*1e2,digits=2)) cm; Δr = $(round(Δx*1e3,digits=2)) mm")
+	# println("Nspokes = $Nspokes, to satisfy the Nyquist criterion")
     PHASE = Sequence([Grad(-Ga/2, Ta, ζ)])
 	seq = PHASE+rad+PHASE
 	#Saving parameters
