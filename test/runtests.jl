@@ -180,28 +180,25 @@ end
     end
 
     @testset "GUI_seq" begin
+        #RF construction
+        sys = Scanner()
+        B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
+        EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+        @test dur(EX) ≈ durRF #RF length matches what is supposed to be
 
-        @testset "seq_init" begin
-            #RF construction
-            sys = Scanner()
-            B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
-            EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
-            @test dur(EX) ≈ durRF #RF length matches what is supposed to be
+        #ACQ construction
+        N = 101
+        FOV = 23e-2
+        EPI = PulseDesigner.EPI(FOV, N, sys)
+        TE = 30e-3
+        d1 = TE-dur(EPI)/2-dur(EX)
+        d1 = d1 > 0 ? d1 : 0
+        if d1 > 0 DELAY = Delay(d1) end 
 
-            #ACQ construction
-            N = 101
-            FOV = 23e-2
-            EPI = PulseDesigner.EPI(FOV, N, sys)
-            TE = 30e-3
-            d1 = TE-dur(EPI)/2-dur(EX)
-            d1 = d1 > 0 ? d1 : 0
-            if d1 > 0 DELAY = Delay(d1) end 
-
-            #Sequence construction
-            seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
-            seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
-            @test dur(seq) ≈ dur(EX) + d1 + dur(EPI) #Sequence duration matches what is supposed to be
-        end
+        #Sequence construction
+        seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
+        seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
+        @test dur(seq) ≈ dur(EX) + d1 + dur(EPI) #Sequence duration matches what is supposed to be
 
         @testset "plot_seq" begin
             #Plot sequence
