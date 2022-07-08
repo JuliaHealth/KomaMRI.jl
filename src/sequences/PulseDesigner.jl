@@ -6,12 +6,12 @@ using ..KomaMRI: γ, Scanner, get_bvalue, get_max_grad
 ###############
 ## RF Pulses ##
 ###############
-RF_hard(B1, T, sys::Scanner; G=[0,0,0]) = begin
+RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0) = begin
 	ζ = sum(G) / sys.Smax
 	EX = Sequence([	Grad(G[1],T,ζ);	 #Gx
 					Grad(G[2],T,ζ);  #Gy
 					Grad(G[3],T,ζ);;], #Gz
-					 [RF(B1,T,0,ζ);;]	 #RF
+					 [RF(B1,T,Δf,ζ);;]	 #RF
 					)
 	EX
 end
