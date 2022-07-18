@@ -92,9 +92,9 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
 		ϕ =  ϕ0 .- (2π*γ) .* trapz(Δt, xt.*Gx .+ yt.*Gy .+ zt.*Gz )
 	end
 	#Mxy preccesion and relaxation
-	Δw = obj.Δw  |> gpu
+	Δw = obj.Δw  |> gpu #Need to add a component here to model scanner's dB0(xt,yt,zt)
 	T2 = obj.T2  |> gpu
-	Mxy =  Mxy .* exp.(𝒊.*(ϕ .- Δw.*tp) .- tp./T2 )
+	Mxy =  Mxy .* exp.(𝒊.*(ϕ .- Δw.*tp) .- tp./T2 ) #This assumes Δw constant in time
 	#ACQUIRED SIGNAL
 	S = sum(Mxy, dims=1:Nsz)[:] #<--- TODO: add coil sensitivities
 	#Mz relaxation
@@ -142,7 +142,7 @@ run_spin_excitation(obj, seq, t::Array{Float64,2}, Δt::Array{Float64,2};
     xt = x0 .+ obj.ux(x0,y0,z0,t)		|> gpu
 	yt = y0 .+ obj.uy(x0,y0,z0,t)		|> gpu
 	zt = z0 .+ obj.uz(x0,y0,z0,t)		|> gpu
-	ΔB0 = obj.Δw./(2π*γ) .- Δf_rf./γ	|> gpu # ΔB_0 = (B_0 - ω_rf/γ)
+	ΔB0 = obj.Δw./(2π*γ) .- Δf_rf./γ	|> gpu # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
 	Bz = (Gx.*xt .+ Gy.*yt .+ Gz.*zt) .+ ΔB0	#<-- TODO: This line is very slow, FIX!?
 	B = sqrt.(abs.(B1).^2. .+ abs.(Bz).^2.)		
 	φ = -2π*γ * (B .* Δt) # angle of rotation 
@@ -203,9 +203,10 @@ end
 
 function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
 	#Simulation params
-	enable_gpu = get(simParams, "gpu", true)
-	gpu(x) = has_cuda() && enable_gpu ? CuArray(x) : x
+	enable_gpu = get(simParams, "gpu", true) && has_cuda()
+	gpu(x) = enable_gpu ? CuArray(x) : x
 	Nthreads = get(simParams, "Nthreads", Hwloc.num_physical_cores())
+	Nthreads = enable_gpu ? 1 : Nthreads
 	Δt    = get(simParams, "Δt", 1e-3)
 	Δt_rf = get(simParams, "Δt_rf", 1e-4)
 	t, Δt = get_uniform_times(seq, Δt; Δt_rf)
@@ -221,7 +222,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	Nblocks = get(simParams, "Nblocks", ceil(Int, 6506*Nt/1.15e6))
     #Simulate
 	println("")
-	@info "Running simulation... [GPU = $(enable_gpu && has_cuda()), CPU = $Nthreads thread(s)]."
+	@info "Running simulation... [GPU = $(enable_gpu), CPU = $Nthreads thread(s)]."
 	if return_Mag
 		_, out = @time run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu)
 	else

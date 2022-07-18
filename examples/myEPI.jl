@@ -1,7 +1,7 @@
 using KomaMRI, JLD2
 #Scanner
 sys = Scanner()
-sys.ADC_Δt = 4e-6
+sys.ADC_Δt = 4e-6 #ADC sampling time
 #Seq
 α, T = π/2, 1e-3
 B1 = α / (2π*γ*T) # α =  2π γ B1 T -> B1 = α / (2π γ T)

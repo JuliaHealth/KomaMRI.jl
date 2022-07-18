@@ -14,8 +14,7 @@ src/examples/sysimageSpinLab.dll
 *.pdf
 *.jld2
 *.gif
-*.h5
+*.out
 *.txt
 *.nb
-*.seq
 .gitignore

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<simulate name="JEMRIS">
-   <sample name="1D column" uri="jemris/column1d_phantom.h5"/>
-   <RXcoilarray uri="/usr/local/share/jemris/matlab/uniform.xml"/>
-   <TXcoilarray uri="/usr/local/share/jemris/matlab/uniform.xml"/>
-   <parameter ConcomitantFields="0" EvolutionPrefix="evol" EvolutionSteps="0" RandomNoise="0"/>
-   <sequence name="jemris/epi_100x100_TE100_FOV230" uri="jemris/epi_100x100_TE100_FOV230.xml"/>
-   <model name="Bloch" type="CVODE"/>
-</simulate>
