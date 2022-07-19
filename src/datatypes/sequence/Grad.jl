@@ -108,8 +108,8 @@ julia> Grad_fun(x-> sin(π*x),1,4)
 ```
 """
 Grad(f::Function,T::Real,N::Int64=300) = begin
-	t = range(0,T,N)
-	G = f.(t')
+	t = range(0,T;length=N)
+	G = f.(t)
 	Grad(G,T)
 end
 #aux

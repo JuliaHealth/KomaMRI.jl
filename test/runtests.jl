@@ -173,7 +173,9 @@ end
 
 @testset "IO" begin
     #Test Pulseq
-
+    seq = read_seq("./examples/1.sequences/epi.seq")
+    @test seq.DEF["FileName"] == "epi.seq"
+    
     #Test ISMRMRD
 
     #Test JEMRIS

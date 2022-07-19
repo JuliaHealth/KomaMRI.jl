@@ -296,7 +296,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
     , pha_obs, load_pha)
 w = content!(w, "#phafilepicker", load_pha, async=false)
 #Signal observable
-load_sig = filepicker(".h5 (ISMRMRD)"; accept=".h5")
+load_sig = filepicker(".h5/.mrd (ISMRMRD)"; accept=".h5,.mrd")
 map!(f->if f!="" #Assigning function of data when load button (filepicker) is changed
             fraw = ISMRMRDFile(f)
             global rawfile = f

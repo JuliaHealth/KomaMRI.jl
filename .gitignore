@@ -11,10 +11,10 @@ deps
 Thumbs.db
 src/examples/sysimageSpinLab.dll
 *.gve
-*.pdf
 *.jld2
 *.gif
 *.out
 *.txt
 *.nb
 .gitignore
+qte_timings.txt
