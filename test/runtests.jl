@@ -1,4 +1,4 @@
-using KomaMRI, Test, Suppressor
+using KomaMRI, Test
 
 @testset "Sequence" begin
     @testset "Init" begin
