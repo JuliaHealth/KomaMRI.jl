@@ -173,7 +173,7 @@ end
 @testset "IO" begin
     #Test Pulseq
     path = @__DIR__
-    seq = @suppress read_seq(path*"/test_files/epi.seq")
+    seq = read_seq(path*"/test_files/epi.seq")
     @test seq.DEF["FileName"] == "epi.seq"
 
     #Test ISMRMRD
