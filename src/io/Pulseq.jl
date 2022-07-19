@@ -472,7 +472,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
         rfT = (rft[2:end] .- rft[1:end-1]) * Δt_rf
     end
-    R = [RF(rfAϕ,rfT,freq,delay);;]
+    R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
     R  
 end
 
@@ -500,7 +500,7 @@ function get_block(obj, i)
     Gx = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, ix)
     Gy = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iy)
     Gz = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iz)
-    G = [Gx;Gy;Gz;;]
+    G = reshape([Gx;Gy;Gz],3,1) #[Gx;Gy;Gz;;]
 
     #RF definition
     Δt_rf = obj["definitions"]["RadiofrequencyRasterTime"]

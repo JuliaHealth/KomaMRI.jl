@@ -1,4 +1,4 @@
-using KomaMRI, Test
+using KomaMRI, Test, Suppressor
 
 @testset "Sequence" begin
     @testset "Init" begin
@@ -173,7 +173,7 @@ end
 @testset "IO" begin
     #Test Pulseq
     path = @__DIR__
-    seq = read_seq(path*"/test_files/epi.seq")
+    seq = @suppress read_seq(path*"/test_files/epi.seq")
     @test seq.DEF["FileName"] == "epi.seq"
 
     #Test ISMRMRD
