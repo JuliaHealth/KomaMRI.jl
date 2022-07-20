@@ -173,11 +173,21 @@ end
 @testset "IO" begin
     #Test Pulseq
     path = @__DIR__
-    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0
+    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
     @test seq.DEF["FileName"] == "epi.seq"
+    @test seq.DEF["PulseqVersion"] ≈ 1004000
+
+    seq = @suppress read_seq(path*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
+    @test seq.DEF["FileName"] == "spiral.seq"
+    @test seq.DEF["PulseqVersion"] ≈ 1004000
 
     seq = @suppress read_seq(path*"/test_files/epi_JEMRIS.seq") #Pulseq v1.2.1
     @test seq.DEF["FileName"] == "epi_JEMRIS.seq"
+    @test seq.DEF["PulseqVersion"] ≈ 1002001
+
+    seq = @suppress read_seq(path*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
+    @test seq.DEF["FileName"] == "radial_JEMRIS.seq"
+    @test seq.DEF["PulseqVersion"] ≈ 1002001
 
     #Test ISMRMRD
 
