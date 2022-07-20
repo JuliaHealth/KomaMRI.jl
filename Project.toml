@@ -64,6 +64,7 @@ PlotlyJS = "0.18"
 ProgressMeter = "1"
 Reexport = "1"
 Scanf = "0.5"
+Suppressor = "0.2"
 julia = "1.6"
 
 [extras]
