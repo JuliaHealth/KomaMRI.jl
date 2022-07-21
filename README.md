@@ -65,6 +65,8 @@ If you use this package please acknowledge us by citing (currently working in th
 
 ## Koma GUI
 
-<img width="600px" src="./src/ui/assets/GUI.svg"/>
+<img width="600px" src="./src/others/GUI.svg"/>
+
+Koma’s GUI: (a) Sequence (interleaved spiral), (b) k-space, (c) Phantom, (d) Raw Data, (e) Image, and (f) k-space data (Fourier transform of (e)).
 
 ![Koma](others/GUI.png)
