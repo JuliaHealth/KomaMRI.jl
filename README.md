@@ -13,7 +13,10 @@ KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spi
 
 This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
 
-**Roadmap**:
+<details>
+<summary> <samp>&#9776; Roadmap</samp></summary>
+
+ v1.0: 
  - [x] Phantom and Sequence data-types,
  - [x] Spin preccesion in gradient-only blocks (simulation optimization),
  - [x] GPU accelaration using CUDA.jl,
@@ -27,9 +30,15 @@ This package is meant to simulate general Magnetic Resonance Imaging (MRI) scena
  - [ ] <img src="https://latex.codecogs.com/gif.latex?T_{2}^{*}"> decay,
  - [ ] [Auxiliary Pulseq functions](https://github.com/imr-framework/pypulseq/tree/master/pypulseq),
  - [ ] Coil sensitivities,
+ - [ ] Cardiac phantoms, and triggers.
+ 
+ Next:
  - [ ] Diffusion models with Laplacian Eigen Functions,
  - [ ] Magnetic susceptibility,
  - [ ] Use [PackageCompiler.jl](https://julialang.github.io/PackageCompiler.jl/dev/apps.html) to build a ditributable core or app.
+ 
+</details>
+
 
 ## Installation
 To install just write the following in the Julia REPL:
