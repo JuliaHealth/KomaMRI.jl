@@ -205,8 +205,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	#Simulation params
 	enable_gpu = get(simParams, "gpu", true) && has_cuda()
 	gpu(x) = enable_gpu ? CuArray(x) : x
-	Nthreads = get(simParams, "Nthreads", Hwloc.num_physical_cores())
-	Nthreads = enable_gpu ? 1 : Nthreads
+	Nthreads = get(simParams, "Nthreads", enable_gpu ? 1 : Hwloc.num_physical_cores())
 	Δt    = get(simParams, "Δt", 1e-3)
 	Δt_rf = get(simParams, "Δt_rf", 1e-4)
 	t, Δt = get_uniform_times(seq, Δt; Δt_rf)
