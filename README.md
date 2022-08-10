@@ -1,5 +1,3 @@
-> 🟢: **ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
-
 <p align="center">
 <img width="300px" src="./src/ui/assets/Logo.svg#gh-light-mode-only"/>
 <img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
@@ -12,6 +10,8 @@
 KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
 
 This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
+
+> 🟢: **ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
 
 <details>
 <summary> <samp>&#9776; Roadmap</samp></summary>
