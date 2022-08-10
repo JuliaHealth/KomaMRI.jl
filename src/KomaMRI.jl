@@ -76,6 +76,7 @@ include("KomaUI.jl")
 # For extra documentation
 export trapz, cumtrapz
 export get_theo_A, get_theo_t, get_theo_Gi
+export kfoldperm, points_from_key_times, get_uniform_times, get_variable_times, get_breaks_in_RF_key_points
 
 export KomaUI
 

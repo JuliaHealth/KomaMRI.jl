@@ -1,6 +1,21 @@
-"""Divides a list of indices 1:N in k groups"""
-function kfoldperm(N,k; type="random", breaks=[])
-	n,r = divrem(N,k)
+"""
+    kfoldperm(N, k; type="random", breaks=[])
+
+Divides a list of indices 1:N in k groups.
+
+# Arguments
+- `N`: length of the list
+- `k`: number of groups
+
+# Keywords
+- `type`: can be "random" or "ordered"
+- `breaks`: ???
+
+# Returns
+- `y`: ???
+"""
+function kfoldperm(N, k; type="random", breaks=[])
+	n, r = divrem(N, k)
 	b = collect(1:n:N+1)
 	Nb = length(b)
 	for i in 1:Nb
@@ -16,8 +31,21 @@ function kfoldperm(N,k; type="random", breaks=[])
 	[p[r] for r in [b[i]:b[i+1]-1 for i=1:k+Nbreaks]] #TODO: use RF starts and ends differently to remove PATCH in run_sim_time_iter
 end
 
-"""Calcualtes key time points that can not be missed during the simulation"""
-function points_from_key_times(times ; dt)
+"""
+    points_from_key_times(times; dt)
+
+Calcualtes key time points that can not be missed during the simulation.
+
+# Arguments
+- `times`: time array
+
+# Keywords
+- `dt`: reference delta time
+
+# Returns
+- `y`: new time array
+"""
+function points_from_key_times(times; dt)
 	t = Float64[]
 	for i = 1:length(times)-1
 		if dt < times[i+1] - times[i]
@@ -29,15 +57,42 @@ function points_from_key_times(times ; dt)
 	end
 	t
 end
+
 """
-Uniform time-step calculation
+    get_uniform_times(seq, Δt; Δt_rf=1e-4)
+
+Uniform time-step calculation.
+
+# Arguments
+- `seq`: the sequence
+- `Δt`: the delta time value
+
+# Keywords
+- `Δt_rf`: the reference delta time
+
+# Returns
+- `t`: the time array
+- `Δt`: the delta time value
 """
-function get_uniform_times(seq,Δt;Δt_rf=1e-4)
+function get_uniform_times(seq, Δt; Δt_rf=1e-4)
 	t, Δt = get_variable_times(seq; dt=Δt, dt_rf=Δt_rf)
 end
 
 """
-Variable time-step calculation
+    get_variable_times(seq; dt=1, dt_rf=1e-4)
+
+Variable time-step calculation.
+
+# Arguments
+- `seq`: the sequence
+
+# Keywords
+- `dt`: the delta time value
+- `Δt_rf`: the reference delta time
+
+# Returns
+- `t`: the time array
+- `Δt`: the delta time value
 """
 function get_variable_times(seq; dt=1, dt_rf=1e-4)
 	t = Float64[]
@@ -78,7 +133,18 @@ function get_variable_times(seq; dt=1, dt_rf=1e-4)
 	t, Δt
 end
 
-"""Calculate RF key points (start-end) to split simulation in RF and non-RF parts. """
+"""
+    get_breaks_in_RF_key_points(seq::Sequence, t)
+
+Calculate RF key points (start-end) to split simulation in RF and non-RF parts.
+
+# Arguments
+- `seq::Sequence`: the sequence
+- `t`: the time array
+
+# Returns
+- `key_idxs`: array of key points indexes
+"""
 function get_breaks_in_RF_key_points(seq::Sequence, t)
 	T0 = cumsum([0; durs(seq)[:]])
 	# Identifying RF key points
