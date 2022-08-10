@@ -169,9 +169,14 @@ end
         xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
         @test xx1 ≈ xx2
     end
-    #Test somehow
+    #Simulation function
     @testset "Simulation" begin
-        # ??
+        path = @__DIR__
+        seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+        obj = brain_phantom2D()
+        sys = Scanner()
+        sig = @suppress simulate(obj, seq, sys)
+        @test true                #If the previous line fails the test will fail
     end
 
 end
@@ -191,14 +196,18 @@ end
     fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
     raw = RawAcquisitionData(fraw)
     acq = AcquisitionData(raw)
+
     @testset "MRIReco_direct" begin
-        Nx, Ny = raw_ismrmrd.params["reconSize"][1:2]
+        Nx, Ny = raw.params["reconSize"][1:2]
         recParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx,Ny), :densityWeighting=>true)
-        img = MRIReco.reconstruction(acq, recParams)
+        img = reconstruction(acq, recParams)
         @test true                #If the previous line fails the test will fail
     end
 
     #Test MRIReco regularized recon (with a λ)
+    @testset "MRIReco_standard" begin
+        #???
+    end
 
 end
 
