@@ -55,7 +55,7 @@ KomaUI()
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw signal or (2) to procced with the reconstruction.
 
 ## How to cite
-If you use this package please acknowledge us by citing (currently working in the paper! 👷‍♂️):
+If you use this package please acknowledge us by citing (paper being reviewed! 👷‍♂️):
 
 ```bibtex
 @software{carlos_castillo_passi_2021_5507370,

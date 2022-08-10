@@ -121,7 +121,13 @@ using KomaMRI, Test, Suppressor
 end
 
 @testset "Phantom" begin
-    #Test somehow
+    #Test brain phantom 2D
+    ph = brain_phantom2D()    #2D phantom
+    @test ph.name=="brain2D_axial"
+
+    #Test brain phantom 3D
+    ph = brain_phantom3D()    #3D phantom
+    @test ph.name=="brain3D"
 end
 
 @testset "Scanner" begin
@@ -164,10 +170,36 @@ end
         @test xx1 ≈ xx2
     end
     #Test somehow
+    @testset "Simulation" begin
+        # ??
+    end
+
 end
 
 @testset "Recon" begin
-    #Test
+    #Sanity check 1
+    A = rand(5,5,3)
+    B = KomaMRI.fftc(KomaMRI.ifftc(A))
+    @test A ≈ B
+
+    #Sanity check 2
+    B = KomaMRI.ifftc(KomaMRI.fftc(A))
+    @test A ≈ B
+
+    #MRIReco.jl
+    path = @__DIR__
+    fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
+    raw = RawAcquisitionData(fraw)
+    acq = AcquisitionData(raw)
+    @testset "MRIReco_direct" begin
+        Nx, Ny = raw_ismrmrd.params["reconSize"][1:2]
+        recParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx,Ny), :densityWeighting=>true)
+        img = MRIReco.reconstruction(acq, recParams)
+        @test true                #If the previous line fails the test will fail
+    end
+
+    #Test MRIReco regularized recon (with a λ)
+
 end
 
 @testset "IO" begin
@@ -190,6 +222,15 @@ end
     @test seq.DEF["PulseqVersion"] ≈ 1002001
 
     #Test ISMRMRD
+    fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
+    raw = RawAcquisitionData(fraw)
+    @test raw.params["protocolName"] == "epi"
+    @test raw.params["institutionName"] == "Pontificia Universidad Catolica de Chile"
+    @test raw.params["encodedSize"] ≈ [101, 101, 1]
+    @test raw.params["reconSize"] ≈ [102, 102, 1]
+    @test raw.params["patientName"] == "brain2D_axial"
+    @test raw.params["trajectory"] == "other"
+    @test raw.params["systemVendor"] == "KomaMRI.jl"
 
     #Test JEMRIS
 end
@@ -249,6 +290,14 @@ end
             plot_M0(seq)        #Plotting the M0
             @test true          #If the previous line fails the test will fail
         end
+    end
+
+    @testset "GUI_signal" begin
+        path = @__DIR__
+        fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
+        raw = RawAcquisitionData(fraw)
+        plot_signal(raw)
+        @test true          #If the previous line fails the test will fail
     end
 end
 
