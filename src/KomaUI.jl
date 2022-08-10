@@ -163,7 +163,7 @@ handle(w, "simulate") do args...
     println("")
     @info "Exporting to ISMRMRD file"
     global raw_ismrmrd = rawSignalToISMRMRD([signal;;],seq;phantom,sys,simParams)
-    global rawfile = tempdir()*"/Koma_signal_ismrmrd.h5"
+    global rawfile = tempdir()*"/Koma_signal.mrd"
     global sig_obs[] = raw_ismrmrd
     fout = ISMRMRDFile(rawfile)
     save(fout, raw_ismrmrd)

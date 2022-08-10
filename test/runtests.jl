@@ -299,6 +299,10 @@ end
         plot_signal(raw)
         @test true          #If the previous line fails the test will fail
     end
+
+    @testset "GUI_recon" begin
+        #???
+    end
 end
 
 nothing
