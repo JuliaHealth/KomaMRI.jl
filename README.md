@@ -1,5 +1,3 @@
-> 🟢: **ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
-
 <p align="center">
 <img width="300px" src="./src/ui/assets/Logo.svg#gh-light-mode-only"/>
 <img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
@@ -13,7 +11,12 @@ KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spi
 
 This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
 
-**Roadmap**:
+> 🟢: **ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
+
+<details>
+<summary> <samp>&#9776; Roadmap</samp></summary>
+
+ v1.0: 
  - [x] Phantom and Sequence data-types,
  - [x] Spin preccesion in gradient-only blocks (simulation optimization),
  - [x] GPU accelaration using CUDA.jl,
@@ -27,9 +30,15 @@ This package is meant to simulate general Magnetic Resonance Imaging (MRI) scena
  - [ ] <img src="https://latex.codecogs.com/gif.latex?T_{2}^{*}"> decay,
  - [ ] [Auxiliary Pulseq functions](https://github.com/imr-framework/pypulseq/tree/master/pypulseq),
  - [ ] Coil sensitivities,
+ - [ ] Cardiac phantoms, and triggers.
+ 
+ Next:
  - [ ] Diffusion models with Laplacian Eigen Functions,
  - [ ] Magnetic susceptibility,
  - [ ] Use [PackageCompiler.jl](https://julialang.github.io/PackageCompiler.jl/dev/apps.html) to build a ditributable core or app.
+ 
+</details>
+
 
 ## Installation
 To install just write the following in the Julia REPL:
@@ -46,7 +55,7 @@ KomaUI()
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw signal or (2) to procced with the reconstruction.
 
 ## How to cite
-If you use this package please acknowledge us by citing (currently working in the paper! 👷‍♂️):
+If you use this package please acknowledge us by citing (paper being reviewed! 👷‍♂️):
 
 ```bibtex
 @software{carlos_castillo_passi_2021_5507370,

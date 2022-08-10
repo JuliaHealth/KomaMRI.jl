@@ -1,16 +1,16 @@
 ifftc(x;dims=[1,2])=fftshift(ifft(ifftshift(x,dims),dims),dims)*prod(size(x)[dims])
-fftc(x;dims=[1,2]) =fftshift(fft(ifftshift(x,dims),dims),dims)
+fftc(x;dims=[1,2]) =fftshift(fft(ifftshift(x,dims),dims),dims)/prod(size(x)[dims])
 
-#DCF 
-"""
-Hoge, R.D., Kwan, R.K.S. and Bruce Pike, G. (1997), Density compensation functions for spiral MRI. Magn. Reson. Med., 38: 117-128. https://doi.org/10.1002/mrm.1910380117"""
-function dcf_nufft(seq)
-    _, k = get_kspace(seq)
-	t_adc = get_sample_times(seq) |> t-> convert(Vector{Float64},t)
-	Gx, Gy, Gz = get_grads(seq, t_adc)
-	dcf = abs.(Gx .* k[:,1] .+ Gy .* k[:,2] .+ Gz .* k[:,3]) # dcf = γ|<k(t), g(t)>|
-	dcf ./ maximum(dcf[:])
-end
+# #DCF 
+# """
+# Hoge, R.D., Kwan, R.K.S. and Bruce Pike, G. (1997), Density compensation functions for spiral MRI. Magn. Reson. Med., 38: 117-128. https://doi.org/10.1002/mrm.1910380117"""
+# function dcf_nufft(seq)
+#     _, k = get_kspace(seq)
+# 	t_adc = get_sample_times(seq) |> t-> convert(Vector{Float64},t)
+# 	Gx, Gy, Gz = get_grads(seq, t_adc)
+# 	dcf = abs.(Gx .* k[:,1] .+ Gy .* k[:,2] .+ Gz .* k[:,3]) # dcf = γ|<k(t), g(t)>|
+# 	dcf ./ maximum(dcf[:])
+# end
 
 # using MRIReco: AcquisitionData
 # function reconstruction(signal, recParams)

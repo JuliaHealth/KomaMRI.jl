@@ -5,7 +5,7 @@ import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size,
        Base.copy, Base.Threads.@spawn, Base.Threads.@threads,
        Base.angle, Base.abs, Base.getproperty, Base.one, Base.zero
 #General
-using Pkg, Random, LinearAlgebra, FFTW, Images, Reexport 
+using Pkg, Random, LinearAlgebra, Images, Reexport, FFTW 
 #Printing
 using Scanf, Printf, ProgressMeter 
 #Datatypes
@@ -14,13 +14,14 @@ using Parameters, ArgCheck
 using CUDA, Interpolations, Hwloc
 #Reconstruction
 using MRIReco
+@reexport using MRIReco: ISMRMRDFile, RawAcquisitionData, AcquisitionData, reconstruction
 #IO
 using FileIO, HDF5, MAT, JLD2
 #GUI
 using Blink, Interact, PlotlyJS, AssetRegistry
 @reexport using PlotlyJS: savefig
 
-global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1
+global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
 #Hardware
 include("datatypes/Scanner.jl")

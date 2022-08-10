@@ -105,7 +105,7 @@ default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solve
 global recParams = merge(default, rec)
 #Simulation
 Ncores = Hwloc.num_physical_cores()
-default = Dict{String,Any}("Δt"=>1e-3,"Δt_rf"=>1e-4,"gpu"=>has_cuda(),"Nthreads"=>Ncores)
+default = Dict{String,Any}("Δt"=>1e-3,"Δt_rf"=>1e-4,"gpu"=>has_cuda(),"Nthreads"=>has_cuda() ? 1 : Ncores)
 global simParams = merge(default, sim)
 #GPUs
 if simParams["gpu"]
@@ -163,7 +163,7 @@ handle(w, "simulate") do args...
     println("")
     @info "Exporting to ISMRMRD file"
     global raw_ismrmrd = rawSignalToISMRMRD([signal;;],seq;phantom,sys,simParams)
-    global rawfile = tempdir()*"/Koma_signal_ismrmrd.h5"
+    global rawfile = tempdir()*"/Koma_signal.mrd"
     global sig_obs[] = raw_ismrmrd
     fout = ISMRMRDFile(rawfile)
     save(fout, raw_ismrmrd)
