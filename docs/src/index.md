@@ -1,17 +1,8 @@
 # Home
 
+## [TrapezoidalIntegration.jl](@id trapezoidal-integration)
+
 ```@docs
-Grad
-```
-```@docs
-Sequence
-```
-```@docs
-Phantom
-```
-```@docs
-Spinor
-```
-```@docs
-Q
+trapz
+cumtrapz
 ```

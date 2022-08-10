@@ -72,6 +72,9 @@ export simulate, simulate_slice_profile
 !Blink.AtomShell.isinstalled() && Blink.AtomShell.install()
 include("KomaUI.jl")
 
+# For extra documentation
+export trapz, cumtrapz
+
 export KomaUI
 
 end
