@@ -3,6 +3,11 @@
 ##########################
 
 #GPU related functions
+"""
+    print_gpus()
+
+Simple function to print the gpus CUDA devices available in the host.
+"""
 print_gpus() = begin
 	println( "$(length(devices())) CUDA capable device(s)." )
 	for (i,d) = enumerate(devices())
@@ -12,9 +17,27 @@ print_gpus() = begin
 end
 
 """
-Implementation in multiple threads. Separating the spins in N_parts.
+    function run_spin_precession_parallel(obj, seq, t, Δt; M0, Nthreads, gpu)
+
+Implementation in multiple threads for the simulation in free precession,
+separating the spins in N_parts.
+
+# Arguments
+- `obj::Phantom`: the phantom
+- `seq::Sequence`: the sequence
+- `t::Array{Float64,1}`: the time array
+- `Δt::Array{Float64,1}`: the delta time
+
+# Keywords
+- `M0::Array{Mag,1}`: the operation point for the mangnetization
+- `Nthreads::Int`: number of process threads. Default = Hwloc.num_physical_cores()
+- `gpu::Function`: the function that represents the gpu of the host
+
+# Returns
+- `S`: the raw data (the detected signal)
+- `M0`: the operation point for the mangnetization
 """
-function run_spin_precession_parallel(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt::Array{Float64,1};
+function run_spin_precession_parallel(obj::Phantom, seq::Sequence, t::Array{Float64,1}, Δt::Array{Float64,1};
 	M0::Array{Mag,1}, Nthreads::Int=Hwloc.num_physical_cores(), gpu::Function)
 
 	Nt, NΔt, Ns = length(t), length(Δt), prod(size(obj))
@@ -23,8 +46,8 @@ function run_spin_precession_parallel(obj::Phantom,seq::Sequence, t::Array{Float
 	Δt = reshape(Δt,1,NΔt)
 
 	S = zeros(ComplexF64, Nt)
-	
-	parts = kfoldperm(Ns, Nthreads, type="ordered") 
+
+	parts = kfoldperm(Ns, Nthreads, type="ordered")
 
 	@threads for p ∈ parts
 		@inbounds aux, M0[p] = run_spin_precession(obj[p],seq,t,Δt; M0=M0[p], gpu)
@@ -35,10 +58,25 @@ function run_spin_precession_parallel(obj::Phantom,seq::Sequence, t::Array{Float
 end
 
 """
-	run_spin_precession(obj,seq,t)
+	run_spin_precession(obj, seq, t, Δt; M0, gpu)
 
 Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`.
 It calculates S(t) = ∫ ρ(x,t) exp(- t/T2(x,t) ) exp(- 𝒊 ϕ(x,t)) dx.
+It performs the simulation in free precession.
+
+# Arguments
+- `obj::Phantom`: the phantom
+- `seq::Sequence`: the sequence
+- `t::Array{Float64,2}`: the time array
+- `Δt::Array{Float64,2}`: the delta time
+
+# Keywords
+- `M0::Array{Mag,1}`: the operation point for the mangnetization
+- `gpu::Function`: the function that represents the gpu of the host
+
+# Returns
+- `S`: the raw data (the detected signal)
+- `M0`: the operation point for the mangnetization
 """
 function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, Δt::Array{Float64,2};
 	M0::Array{Mag,1}, gpu::Function)
@@ -71,8 +109,8 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
 	#SCANNER
     Gx, Gy, Gz = get_grads(seq,t)
 	Gx = Gx |> gpu
-	Gy = Gy |> gpu 
-	Gz = Gz |> gpu 
+	Gy = Gy |> gpu
+	Gz = Gz |> gpu
 	#SIMULATION
 	Mxy = abs.(M0)	|> gpu
 	ϕ0 = angle.(M0)	|> gpu
@@ -86,7 +124,7 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
 	yt = y0 .+ obj.uy(x0,y0,z0,t) .+ ηyp |> gpu
 	zt = z0 .+ obj.uz(x0,y0,z0,t) .+ ηzp |> gpu
 	#ACQ OPTIMIZATION
-    if is_ADC_on(seq, Array(t)) 
+    if is_ADC_on(seq, Array(t))
 		ϕ =  ϕ0 .- (2π*γ) .* cumtrapz(Δt, xt.*Gx .+ yt.*Gy .+ zt.*Gz )
 	else
 		ϕ =  ϕ0 .- (2π*γ) .* trapz(Δt, xt.*Gx .+ yt.*Gy .+ zt.*Gz )
@@ -109,14 +147,35 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
     Array(S), M0 #Singal, M0
 end
 
-run_spin_excitation_parallel(obj, seq, t::Array{Float64,1}, Δt::Array{Float64,1}; 
+"""
+    run_spin_excitation_parallel(obj, seq, t, Δt; M0, Nthreads, gpu)
+
+It gives rise to a rotation of M0 with an angle given by the efective magnetic field
+(including B1, gradients and off resonance) and with respect to a rotation axis. It uses
+different number threads to excecute the process.
+
+# Arguments
+- `obj`: the phantom
+- `seq`: the sequence
+- `t::Array{Float64,1}`: the time array
+- `Δt::Array{Float64,1}`: the delta time
+
+# Keywords
+- `M0::Array{Mag,1}`: the operation point for the mangnetization
+- `Nthreads::Int`: number of process threads. Default = Hwloc.num_physical_cores()
+- `gpu::Function`: the function that represents the gpu of the host
+
+# Returns
+- `M0`: the operation point for the mangnetization after a rotation
+"""
+run_spin_excitation_parallel(obj, seq, t::Array{Float64,1}, Δt::Array{Float64,1};
 	M0::Array{Mag,1}, Nthreads::Int=Hwloc.num_physical_cores(), gpu::Function) = begin
 	Nt, NΔt, Ns = length(t), length(Δt), prod(size(obj))
 	#Put times as row vector
 	t = reshape(t,1,Nt)
 	Δt = reshape(Δt,1,NΔt)
-	
-	parts = kfoldperm(Ns, Nthreads, type="ordered") 
+
+	parts = kfoldperm(Ns, Nthreads, type="ordered")
 
 	@threads for p ∈ parts
 		@inbounds M0[p] = run_spin_excitation(obj[p],seq,t,Δt; M0=M0[p], gpu)
@@ -124,15 +183,34 @@ run_spin_excitation_parallel(obj, seq, t::Array{Float64,1}, Δt::Array{Float64,1
     M0
 end
 
-run_spin_excitation(obj, seq, t::Array{Float64,2}, Δt::Array{Float64,2}; 
+"""
+    run_spin_excitation(obj, seq, t, Δt; M0, gpu)
+
+It gives rise to a rotation of M0 with an angle given by the efective magnetic field
+(including B1, gradients and off resonance) and with respect to a rotation axis.
+
+# Arguments
+- `obj`: the phantom
+- `seq`: the sequence
+- `t::Array{Float64,2}`: the time array
+- `Δt::Array{Float64,2}`: the delta time
+
+# Keywords
+- `M0::Array{Mag,1}`: the operation point for the mangnetization
+- `gpu::Function`: the function that represents the gpu of the host
+
+# Returns
+- `M0`: the operation point for the mangnetization after a rotation
+"""
+run_spin_excitation(obj, seq, t::Array{Float64,2}, Δt::Array{Float64,2};
 	M0::Array{Mag,1}, gpu::Function) = begin
 	#SCANNER
 	B1, Δf_rf  = get_rfs(seq,t)
     Gx, Gy, Gz = get_grads(seq,t)
 	B1 = B1 |> gpu
 	Gx = Gx |> gpu
-	Gy = Gy |> gpu 
-	Gz = Gz |> gpu 
+	Gy = Gy |> gpu
+	Gz = Gz |> gpu
 	#SIMULATION
 	x0 = obj.x		|> gpu
 	y0 = obj.y		|> gpu
@@ -144,8 +222,8 @@ run_spin_excitation(obj, seq, t::Array{Float64,2}, Δt::Array{Float64,2};
 	zt = z0 .+ obj.uz(x0,y0,z0,t)		|> gpu
 	ΔB0 = obj.Δw./(2π*γ) .- Δf_rf./γ	|> gpu # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
 	Bz = (Gx.*xt .+ Gy.*yt .+ Gz.*zt) .+ ΔB0	#<-- TODO: This line is very slow, FIX!?
-	B = sqrt.(abs.(B1).^2. .+ abs.(Bz).^2.)		
-	φ = -2π*γ * (B .* Δt) # angle of rotation 
+	B = sqrt.(abs.(B1).^2. .+ abs.(Bz).^2.)
+	φ = -2π*γ * (B .* Δt) # angle of rotation
 	B[B.==0] .= 1e-17; # removes problems when dividing by φ
 	Qt = Q.(Array(φ), Array(B1./B), Array(Bz./B)) #TODO: remove the gpu->array step
 	Qf = prod( Qt , dims=2 )[:] # equivalent rotation
@@ -159,8 +237,28 @@ run_spin_excitation(obj, seq, t::Array{Float64,2}, Δt::Array{Float64,2};
  	M0
 end
 
-"""Divides time steps in N_parts blocks. Decreases RAM usage in long sequences."""
-function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt; 
+"""
+    run_sim_time_iter(obj, seq, t, Δt; Nblocks, Nthreads, gpu, w)
+
+Divides time steps in N_parts blocks. Decreases RAM usage in long sequences.
+
+# Arguments
+- `obj::Phantom`: the phantom
+- `seq::Sequence`: the sequence
+- `t::Array{Float64,1}`: the time array
+- `Δt`: the delta time
+
+# Keywords
+- `Nblocks::Int`: number of groups for the kfoldperm function. Default = 16
+- `Nthreads::Int`: number of process threads. Default = Hwloc.num_physical_cores()
+- `gpu::Function`: the function that represents the gpu of the host
+- `w`: flag to regard progress bar in the blink window UI. Default = nothing
+
+# Returns
+- `S_interp`: the interpolated raw data (the detected signal)
+- `M0`: the operation point for the mangnetization
+"""
+function run_sim_time_iter(obj::Phantom, seq::Sequence, t::Array{Float64,1}, Δt;
 								Nblocks::Int=16, Nthreads::Int=Hwloc.num_physical_cores(), gpu::Function, w=nothing)
 	Nt, Ns = length(t), prod(size(obj))
 	blink_window = w !== nothing
@@ -189,18 +287,35 @@ function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt;
 		next!(pp, showvalues = [(:simulated_blocks, block), (:rf_blocks,rfs)])
 		if blink_window #update Progress
 			progress = string(floor(Int, block / Nblocks * 100))
-			@js_ w (@var progress=$progress; 
-					document.getElementById("simul_progress").style.width=progress+"%"; 
-					document.getElementById("simul_progress").innerHTML=progress+"%"; 
+			@js_ w (@var progress=$progress;
+					document.getElementById("simul_progress").style.width=progress+"%";
+					document.getElementById("simul_progress").innerHTML=progress+"%";
 					document.getElementById("simul_progress").setAttribute("aria-valuenow", progress);)
 		end
 	end
 	#Output
-	t_interp = get_sample_times(seq) 
+	t_interp = get_sample_times(seq)
 	S_interp = LinearInterpolation(t.+Δt,S)(t_interp) .* get_sample_phase_compensation(seq)
 	(S_interp, M0)
 end
 
+"""
+    simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams, w)
+
+Returns the raw data (the detected signal).
+
+# Arguments
+- `obj::Phantom`: the phantom
+- `seq::Sequence`: the sequence
+- `sys::Scanner`: the scanner
+
+# Keywords
+- `simParams`: a dictionary with simulation parameters. Default = Dict{String,Any}()
+- `w`: flag to regard progress bar in the blink window UI. Default = nothing
+
+# Returns
+- `S`: the raw data (the detected signal)
+"""
 function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
 	#Simulation params
 	enable_gpu = get(simParams, "gpu", true) && has_cuda()
@@ -231,7 +346,21 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	out
 end
 
-"""Returns magnetization of spins distributed along `z` after running the Sequence `seq`."""
+"""
+    simulate_slice_profile(seq; z, simParams)
+
+Returns magnetization of spins distributed along `z` after running the Sequence `seq`.
+
+# Arguments
+- `seq`: the sequence
+
+# Keywords
+- `z`: a range for the z axe. Default = range(-2e-2,2e-2,200)
+- `simParams`: a dictionary with simulation parameters. Default = Dict{String,Any}("Δt_rf"=>1e-6)
+
+# Returns
+- `M`: the magnetization result
+"""
 function simulate_slice_profile(seq; z=range(-2e-2,2e-2,200), simParams=Dict{String,Any}("Δt_rf"=>1e-6))
 	simParams["return_Mag"] = true
 	sys = Scanner()

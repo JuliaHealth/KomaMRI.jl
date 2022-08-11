@@ -60,3 +60,45 @@ kfoldperm
 ```@docs
 get_breaks_in_RF_key_points
 ```
+
+## [SimulationCore.jl](@id simulation-core)
+
+### `print_gpus`
+```@docs
+print_gpus
+```
+
+### `run_spin_precession`
+```@docs
+run_spin_precession
+```
+
+### `run_spin_precession_parallel`
+```@docs
+run_spin_precession_parallel
+```
+
+### `run_spin_excitation`
+```@docs
+run_spin_excitation
+```
+
+### `run_spin_excitation_parallel`
+```@docs
+run_spin_excitation_parallel
+```
+
+### `run_sim_time_iter`
+```@docs
+run_sim_time_iter
+```
+
+### `simulate`
+```@docs
+simulate
+```
+
+### `simulate_slice_profile`
+```@docs
+simulate_slice_profile
+```
