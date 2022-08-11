@@ -1,8 +1,13 @@
+"""
+    Delay
+
+The Delay object.
+"""
 struct Delay
     T::Real #Time in [s]
     function Delay(T)
 		T < 0 ? error("Delays must be positive.") : new(T)
-    end 
+    end
 end
 #Interactions with other objects are context aware object
 #Sequence contatenation

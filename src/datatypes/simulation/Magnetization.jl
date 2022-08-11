@@ -1,7 +1,12 @@
+"""
+    Mag
+
+The Magnetization object.
+"""
 mutable struct Mag
     xy::Complex
     z::Real
-end 
+end
 Base.show(io::IO,M::Mag) = print(io, "Mag(xy = ",round(M.xy,digits=2),", z = ",round(M.z,digits=2),")")
 # Contructor
 Mag(p::Phantom, dir::Symbol) = dir==:x ? Mag.(p.ρ,0) : Mag.(0,p.ρ)

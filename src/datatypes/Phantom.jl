@@ -4,7 +4,7 @@
 """
     Phantom(x,y,ρ,T2,Δw,Dλ1,Dλ2,Dθ,ux,uy)
 
-Phantom object.
+The Phantom object.
 
 # Arguments
  - `name::String` := Name of the Phantom
@@ -145,13 +145,13 @@ heart_phantom(α=1,β=1,γ=1,fat_bool::Bool=false) = begin
 	ωHR = 2π/1 #One heart-beat in one second
 
 	# θ(t) = -π/4*γ*(sin.(ωHR*t).*(sin.(ωHR*t).>0)+0.25.*sin.(ωHR*t).*(sin.(ωHR*t).<0) )
-	ux(x,y,t) = begin 
+	ux(x,y,t) = begin
 		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(x)
 		contract = - β * v * x / (FOV/2)  #expand
 		rotate = - γ * v * y / (FOV/2)
 		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
 	end
-	uy(x,y,t) = begin 
+	uy(x,y,t) = begin
 		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(y)
 		contract = - β * v * y / (FOV/2)
 		rotate = γ * v * x / (FOV/2)

@@ -5,6 +5,50 @@ Pages = ["index.md"]
 Depth = 3
 ```
 
+## [datatypes](@id datatypes)
+
+### `Mag`
+```@docs
+Mag
+```
+
+### `Phantom`
+```@docs
+Phantom
+```
+
+### `Scanner`
+```@docs
+Scanner
+```
+
+### `Sequence`
+```@docs
+Sequence
+```
+
+### `Grad`
+```@docs
+Grad
+```
+
+### `RF`
+```@docs
+RF
+Spinor
+Q
+```
+
+### `ADC`
+```@docs
+ADC
+```
+
+### `Delay`
+```@docs
+Delay
+```
+
 ## [Pulseq.jl](@id pulseq)
 
 ### `read_Grad`
