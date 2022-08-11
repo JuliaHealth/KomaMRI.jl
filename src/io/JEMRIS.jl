@@ -1,5 +1,13 @@
 """
-Basic function to read JEMRIS phantoms.
+    read_phantom_jemris(filename)
+
+Basic function to read JEMRIS phantoms from a file.
+
+# Arguments
+- `filename`: the path of the file
+
+# Returns
+- `phantom::Phantom`: the phantom object
 """
 function read_phantom_jemris(filename)
 	# A(:,:,:,1)=Sample.M0;
@@ -27,7 +35,7 @@ function read_phantom_jemris(filename)
 	FOVy = (Y-1)*Δx[2] #[m]
 	FOVz = (Z-1)*Δx[3] #[m]
 	xx = [(-FOVx/2:Δx[1]:FOVx/2)...;]
-	yy = [(-FOVy/2:Δx[2]:FOVy/2)...;;] 
+	yy = [(-FOVy/2:Δx[2]:FOVy/2)...;;]
 	zz = [(-FOVz/2:Δx[3]:FOVz/2)...;;;]
 	x = xx*1 .+ yy*0 .+ zz*0 .+ offset[1]	#spin x coordinates
 	y = xx*0 .+ yy*1 .+ zz*0 .+ offset[2]	#spin y coordinates
@@ -38,7 +46,7 @@ function read_phantom_jemris(filename)
 					x=    x[mask],
 					y=    y[mask],
 					z=    z[mask],
-					ρ=    ρ[mask], 
+					ρ=    ρ[mask],
 					T1=	 T1[mask],
 					T2=	 T2[mask],
 					T2s=T2s[mask],

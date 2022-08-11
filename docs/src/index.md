@@ -5,6 +5,47 @@ Pages = ["index.md"]
 Depth = 3
 ```
 
+## [Pulseq.jl](@id pulseq)
+
+### `read_Grad`
+```@docs
+read_Grad
+```
+
+### `read_RF`
+```@docs
+read_RF
+```
+
+### `read_ADC`
+```@docs
+read_ADC
+```
+
+### `get_block`
+```@docs
+get_block
+```
+
+### `read_seq`
+```@docs
+read_seq
+```
+
+## [JEMRIS.jl](@id jemris)
+
+### `read_phantom_jemris`
+```@docs
+read_phantom_jemris
+```
+
+## [ISMRMRD.jl](@id ismrmrd)
+
+### `rawSignalToISMRMRD`
+```@docs
+rawSignalToISMRMRD
+```
+
 ## [PulseDesigner.jl](@id pulse-designer)
 
 ### `PulseDesigner`

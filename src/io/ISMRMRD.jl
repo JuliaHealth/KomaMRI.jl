@@ -1,6 +1,23 @@
 using MRIReco: Profile
 
-function rawSignalToISMRMRD(signal,seq; 
+"""
+    rawSignalToISMRMRD(signal, seq; phantom, sys, simParams)
+
+Transforms the raw signal to the ISMRMRD format.
+
+# Arguments
+- `signal`: the raw dat signal
+- `seq`: the sequence
+
+# Keywords
+- `phantom`: the phantom. Default = Phantom(name="Phantom",x=[0])
+- `sys`: the scanner. Default = Scanner()
+- `simParams`. dictionary with simulation parameters. Default = Dict{String,Any}()
+
+# Returns
+- `raw_ismrmrd::RawAcquisitionData`: the raw data in ISMRMRD format.
+"""
+function rawSignalToISMRMRD(signal, seq;
                                 phantom=Phantom(name="Phantom",x=[0]),
                                 sys=Scanner(),
                                 simParams=Dict{String,Any}())
@@ -116,7 +133,7 @@ function rawSignalToISMRMRD(signal,seq;
                 ),
                 (0, 0, 0, 0, 0, 0, 0, 0), #user_int: Free user parameters
                 (0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0) #user_float: Free user parameters
-            )   
+            )
             #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
             traj = ktraj[1:2, current:current+Nsamples-1]
             #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils

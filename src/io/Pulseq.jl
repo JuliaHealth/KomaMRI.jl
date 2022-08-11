@@ -68,7 +68,7 @@ function read_blocks(io, blockDurationRaster, version_combined)
         else
             NumberBlockEvents = 8
         end
-            
+
         fmt = Scanf.Format("%i "^NumberBlockEvents)
         r, blockEvents... = scanf(readline(io), fmt, zeros(Int,NumberBlockEvents)...)
 
@@ -140,8 +140,8 @@ function read_shapes(io, forceConvertUncompressed)
             r == 1 || break #Break if no sample
             append!(shape, data_point)
         end
-        # check if conversion is needed: in v1.4.x we use length(data)==num_samples 
-        # as a marker for the uncompressed (stored) data. In older versions this condition could occur by chance 
+        # check if conversion is needed: in v1.4.x we use length(data)==num_samples
+        # as a marker for the uncompressed (stored) data. In older versions this condition could occur by chance
         if forceConvertUncompressed && length(shape)==num_samples
             shape = compress_shape(decompress_shape(shape, num_samples; forceDecompression=true))
             data = (num_samples, shape)
@@ -158,7 +158,7 @@ end
 compress_shape Compress a gradient or pulse shape.
    s=compress_shape(w) Compress the waveform using a run-length compression
    scheme on the derivative. This strategy encodes constant and linear
-   waveforms with very few samples. Returns: 
+   waveforms with very few samples. Returns:
      num_samples - the number of samples in the uncompressed waveform
      data - containing the compressed waveform
 
@@ -225,7 +225,7 @@ function decompress_shape(num_samples, data; forceDecompression = false)
         #when dataPackDiff == 0 the subsequent samples are equal ==> marker for
         #repeats (run-length encoding)
         dataPackMarkers = findall(dataPackDiff .== 0)
-        
+
         countPack = 1       # counter 1: points to the current compressed sample
         countUnpack = 1     # counter 2: points to the current uncompressed sample
         for i = 1:length(dataPackMarkers)
@@ -258,22 +258,33 @@ function decompress_shape(num_samples, data; forceDecompression = false)
     w
 end
 
+#"""
+#READ Load sequence from file.
+#   READ(seqObj, filename, ...) Read the given filename and load sequence
+#   data into sequence object.
+#
+#   optional parwameter 'detectRFuse' can be given to let the function
+#   infer the currently missing flags concerning the intended use of the RF
+#   pulses (excitation, refocusing, etc). These are important for the
+#   k-space trajectory calculation
+#
+#   Examples:
+#   Load the sequence defined in gre.seq in my_sequences directory
+#
+#       read(seqObj,'my_sequences/gre.seq')
+#
+# See also  write
+#"""
 """
-READ Load sequence from file.
-   READ(seqObj, filename, ...) Read the given filename and load sequence
-   data into sequence object.
+    read_seq(filename)
 
-   optional parwameter 'detectRFuse' can be given to let the function
-   infer the currently missing flags concerning the intended use of the RF
-   pulses (excitation, refocusing, etc). These are important for the
-   k-space trajectory calculation
+Read the given filename and load sequence data into sequence object.
 
-   Examples:
-   Load the sequence defined in gre.seq in my_sequences directory
+# Arguments
+- `filename`: the path of the file
 
-       read(seqObj,'my_sequences/gre.seq')
-
- See also  write
+# Returns
+- `seq::Sequence`: the sequence
 """
 function read_seq(filename)
     println("")
@@ -305,24 +316,24 @@ function read_seq(filename)
                 end
                 blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], version_combined)
             elseif  section == "[RF]"
-                if version_combined >= 1004000 
+                if version_combined >= 1004000
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
                     rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1]) # this is 1.3.x and below
-                    # we will have to scan through the library later after all the shapes have been loaded  
+                    # we will have to scan through the library later after all the shapes have been loaded
                 end
             elseif  section == "[GRADIENTS]"
-                if version_combined >= 1004000 
-                    gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format 
+                if version_combined >= 1004000
+                    gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format
                 else
-                    gradLibrary = read_events(io, [1/γ 1 1e-6];   type='g', eventLibrary=gradLibrary) # this is 1.3.x and below 
+                    gradLibrary = read_events(io, [1/γ 1 1e-6];   type='g', eventLibrary=gradLibrary) # this is 1.3.x and below
                 end
             elseif  section == "[TRAP]"
                 gradLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6]; type='t', eventLibrary=gradLibrary);
             elseif  section == "[ADC]"
                 adcLibrary = read_events(io, [1 1e-9 1e-6 1 1])
             elseif  section == "[DELAYS]"
-                if version_combined >= 1004000 
+                if version_combined >= 1004000
                     @error "Pulseq file revision 1.4.0 and above MUST NOT contain [DELAYS] section"
                 end
                 tmp_delayLibrary = read_events(io, 1e-6);
@@ -369,24 +380,24 @@ function read_seq(filename)
         for i = 1:length(blockEvents)
         idelay = delayInd_tmp[i]
             if idelay > 0
-                delay = tmp_delayLibrary[idelay]["data"][1] 
+                delay = tmp_delayLibrary[idelay]["data"][1]
                 blockDurations[i] = delay
             end
         end
     end
     #Sequence
     obj = Dict(
-        "blockEvents"=>blockEvents, 
-        "blockDurations"=>blockDurations, 
-        "delayInd_tmp"=>delayInd_tmp, 
-        "gradLibrary"=>gradLibrary, 
-        "rfLibrary"=>rfLibrary, 
-        "adcLibrary"=>adcLibrary, 
-        "tmp_delayLibrary"=>tmp_delayLibrary, 
-        "shapeLibrary"=>shapeLibrary, 
+        "blockEvents"=>blockEvents,
+        "blockDurations"=>blockDurations,
+        "delayInd_tmp"=>delayInd_tmp,
+        "gradLibrary"=>gradLibrary,
+        "rfLibrary"=>rfLibrary,
+        "adcLibrary"=>adcLibrary,
+        "tmp_delayLibrary"=>tmp_delayLibrary,
+        "shapeLibrary"=>shapeLibrary,
         "extensionLibrary"=>extensionLibrary,
         "definitions"=>def)
-    #Transforming Dictionary to Sequence object 
+    #Transforming Dictionary to Sequence object
     #This should only work for Pulseq files >=1.4.0
     seq = Sequence()
     for i = 1:length(blockEvents)
@@ -402,7 +413,7 @@ function read_seq(filename)
         RF_ex = (get_flip_angles(seq) .<= 90.01) .* is_RF_on.(seq)
         Nz = max(length(unique(seq.RF[RF_ex].Δf)), 1)
         Ny = sum(is_ADC_on.(seq)) / Nz |> x->floor(Int,x)
-        
+
         seq.DEF["Nx"] = Nx  #Number of samples per ADC
         seq.DEF["Ny"] = Ny  #Number of ADC events
         seq.DEF["Nz"] = Nz  #Number of unique RF frequencies, in a 3D acquisition this should not work
@@ -414,6 +425,20 @@ function read_seq(filename)
 end
 
 #To Sequence
+"""
+    read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
+
+Reads the gradient. Used internally by get_block().
+
+# Arguments
+- `gradLibrary`: ???
+- `shapeLibrary`: ???
+- `Δt_gr`: ???
+- `i`: ???
+
+# Returns
+- `G::Grad`: the gradient
+"""
 function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0,0)
     if gradLibrary[i]["type"] == 't' #if trapezoidal gradient
@@ -442,6 +467,20 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
     G
 end
 
+"""
+    read_RF(gradLibrary, shapeLibrary, Δt_gr, i)
+
+Reads the RF. Used internally by get_block().
+
+# Arguments
+- `gradLibrary`: ???
+- `shapeLibrary`: ???
+- `Δt_gr`: ???
+- `i`: ???
+
+# Returns
+- `R`: array with RF object
+"""
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     #Unpacking
     #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
@@ -473,9 +512,21 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rfT = (rft[2:end] .- rft[1:end-1]) * Δt_rf
     end
     R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
-    R  
+    R
 end
 
+"""
+    read_ADC(adcLibrary, i)
+
+Reads the ADC. Used internally by get_block().
+
+# Arguments
+- `adcLibrary`: ???
+- `i`: ???
+
+# Returns
+- `A`: array with ADC object
+"""
 function read_ADC(adcLibrary, i)
     #Unpacking
     #(1)num (2)dwell (3)delay (4)freq (5)phase
@@ -491,6 +542,18 @@ function read_ADC(adcLibrary, i)
     A
 end
 
+"""
+    get_block(obj, i)
+
+Sequence block definition. Used internally by read_seq().
+
+# Arguments
+- `obj`: ???
+- `i`: ???
+
+# Returns
+- `s::Sequence`: the sequence block
+"""
 function get_block(obj, i)
     #Unpacking
     idelay, irf, ix, iy, iz, iadc, iext = obj["blockEvents"][i]
