@@ -5,6 +5,10 @@ Pages = ["index.md"]
 Depth = 3
 ```
 
+## [Dataflow Graph](@id dataflow-graph)
+
+![](assets/dataflow.svg)
+
 ## [datatypes](@id datatypes)
 
 ### `Mag`
