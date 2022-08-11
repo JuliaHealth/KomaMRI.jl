@@ -1,4 +1,9 @@
 ## PulseDesigner
+"""
+    PulseDesigner
+
+A module to define different pulse sequences.
+"""
 module PulseDesigner
 using ..KomaMRI
 using ..KomaMRI: γ, Scanner, get_bvalue, get_max_grad
@@ -6,6 +11,23 @@ using ..KomaMRI: γ, Scanner, get_bvalue, get_max_grad
 ###############
 ## RF Pulses ##
 ###############
+"""
+    RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0)
+
+Definition of the RF hard sequence.
+
+# Arguments
+- `B1`: the amplitude of the radio frequency magnetic pulse
+- `T`: the duration of B1
+- `sys::Scanner`: the Scanner object
+
+# Keywords
+- `G`: the Gradient. Default = [0, 0, 0]
+- `Δf`: the delta frequency. Default = 0
+
+# Returns
+- `EX`: the excitation sequence signal
+"""
 RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0) = begin
 	ζ = sum(G) / sys.Smax
 	EX = Sequence([	Grad(G[1],T,ζ);	 #Gx
@@ -53,6 +75,19 @@ end
 # 	DIF
 # end
 # EPI
+"""
+    EPI(FOV::Float64, N::Int, sys::Scanner)
+
+Definition of the EPI sequence.
+
+# Arguments
+- `FOV::Float64`: the field of view
+- `N::Int`: number of voxels???
+- `sys::Scanner`: the Scanner object
+
+# Returns
+- `seq`: the EPI sequence signal
+"""
 EPI(FOV::Float64, N::Int, sys::Scanner) = begin
     #TODO: consider when N is even
 	Δt = sys.ADC_Δt
@@ -90,6 +125,19 @@ EPI(FOV::Float64, N::Int, sys::Scanner) = begin
 end
 
 # Radial
+"""
+    radial_base(FOV::Float64, Nr::Int, sys::Scanner)
+
+Definition of the radial base sequence.
+
+# Arguments
+- `FOV::Float64`: the field of view
+- `N::Int`: number of voxels???
+- `sys::Scanner`: the Scanner object
+
+# Returns
+- `seq`: the radial base sequence signal
+"""
 radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 	Δt = sys.ADC_Δt
 	Gmax = sys.Gmax
@@ -117,4 +165,4 @@ radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 end
 
 export EPI, radial_base
-end 
+end

@@ -5,6 +5,28 @@ Pages = ["index.md"]
 Depth = 3
 ```
 
+## [PulseDesigner.jl](@id pulse-designer)
+
+### `PulseDesigner`
+```@docs
+PulseDesigner
+```
+
+### `PulseDesigner.RF_hard`
+```@docs
+PulseDesigner.RF_hard
+```
+
+### `PulseDesigner.EPI`
+```@docs
+PulseDesigner.EPI
+```
+
+### `PulseDesigner.radial_base`
+```@docs
+PulseDesigner.radial_base
+```
+
 ## [KeyValuesCalculation.jl](@id key-values-calculation)
 
 ### `get_theo_A`
