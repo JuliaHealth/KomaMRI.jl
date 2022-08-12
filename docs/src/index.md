@@ -57,27 +57,27 @@ Delay
 
 ### `read_Grad`
 ```@docs
-read_Grad
+KomaMRI.read_Grad
 ```
 
 ### `read_RF`
 ```@docs
-read_RF
+KomaMRI.read_RF
 ```
 
 ### `read_ADC`
 ```@docs
-read_ADC
+KomaMRI.read_ADC
 ```
 
 ### `get_block`
 ```@docs
-get_block
+KomaMRI.get_block
 ```
 
 ### `read_seq`
 ```@docs
-read_seq
+KomaMRI.read_seq
 ```
 
 ## [JEMRIS.jl](@id jemris)
@@ -120,88 +120,88 @@ PulseDesigner.radial_base
 
 ### `get_theo_A`
 ```@docs
-get_theo_A
+KomaMRI.get_theo_A
 ```
 
 ### `get_theo_t`
 ```@docs
-get_theo_t
+KomaMRI.get_theo_t
 ```
 
 ### `get_theo_Gi`
 ```@docs
-get_theo_Gi
+KomaMRI.get_theo_Gi
 ```
 
 ## [TrapezoidalIntegration.jl](@id trapezoidal-integration)
 
 ### `trapz`
 ```@docs
-trapz
+KomaMRI.trapz
 ```
 
 ### `cumtrapz`
 ```@docs
-cumtrapz
+KomaMRI.cumtrapz
 ```
 
 ## [TimeStepCalculation.jl](@id time-step-calculation)
 
 ### `points_from_key_times`
 ```@docs
-points_from_key_times
+KomaMRI.points_from_key_times
 ```
 
 ### `get_variable_times`
 ```@docs
-get_variable_times
+KomaMRI.get_variable_times
 ```
 
 ### `get_uniform_times`
 ```@docs
-get_uniform_times
+KomaMRI.get_uniform_times
 ```
 
 ### `kfoldperm`
 ```@docs
-kfoldperm
+KomaMRI.kfoldperm
 ```
 
 ### `get_breaks_in_RF_key_points`
 ```@docs
-get_breaks_in_RF_key_points
+KomaMRI.get_breaks_in_RF_key_points
 ```
 
 ## [SimulationCore.jl](@id simulation-core)
 
 ### `print_gpus`
 ```@docs
-print_gpus
+KomaMRI.print_gpus
 ```
 
 ### `run_spin_precession`
 ```@docs
-run_spin_precession
+KomaMRI.run_spin_precession
 ```
 
 ### `run_spin_precession_parallel`
 ```@docs
-run_spin_precession_parallel
+KomaMRI.run_spin_precession_parallel
 ```
 
 ### `run_spin_excitation`
 ```@docs
-run_spin_excitation
+KomaMRI.run_spin_excitation
 ```
 
 ### `run_spin_excitation_parallel`
 ```@docs
-run_spin_excitation_parallel
+KomaMRI.run_spin_excitation_parallel
 ```
 
 ### `run_sim_time_iter`
 ```@docs
-run_sim_time_iter
+KomaMRI.run_sim_time_iter
 ```
 
 ### `simulate`

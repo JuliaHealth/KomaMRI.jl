@@ -73,13 +73,6 @@ export simulate, simulate_slice_profile
 !Blink.AtomShell.isinstalled() && Blink.AtomShell.install()
 include("KomaUI.jl")
 
-# For extra documentation
-export trapz, cumtrapz
-export get_theo_A, get_theo_t, get_theo_Gi
-export kfoldperm, points_from_key_times, get_uniform_times, get_variable_times, get_breaks_in_RF_key_points
-export print_gpus, run_spin_precession, run_spin_precession_parallel, run_spin_excitation, run_spin_excitation_parallel, run_sim_time_iter
-export read_Grad, read_RF, read_ADC, get_block
-
 export KomaUI
 
 end
