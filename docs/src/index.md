@@ -57,6 +57,7 @@ KomaMRI.getproperty
 ### `Delay`
 ```@docs
 Delay
+KomaMRI.show
 ```
 
 ## [Pulseq.jl](@id pulseq)
