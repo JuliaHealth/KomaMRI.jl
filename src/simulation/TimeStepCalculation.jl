@@ -97,21 +97,22 @@ This function, despite its name, actually gets non-uniform time points. Refer to
 
 !!! note
     This function should be deprecated and the simulator should only use the
-    [`get_variable_times`](@ref) function. Note that in this version, this function is
-    bypassed by [`get_variable_times`](@ref).
+    [`get_variable_times`](@ref) function. Note that in this KomaMRI version, this function
+    is bypassed by [`get_variable_times`](@ref).
 
 # Arguments
 - `seq`: (::Sequence) the sequence object
 - `Δt`: (::Real) the nominal delta time separation between two time samples for ADC
     acquisition and Gradients (by nominal we mean that the time separation should be at
-    least `Δt` when the samples are regarded by [`is_ADC_on`](@ref) or [`is_GR_on`](@ref)),
-    otherwise the time points are not necessary and the separation will be bigger)
+    least `Δt` when the samples are regarded by [`KomaMRI.is_ADC_on`](@ref) or
+    [`KomaMRI.is_GR_on`](@ref)), otherwise the time points are not necessary and the
+    separation will be bigger)
 
 # Keywords
 - `Δt_rf`: (::Real) the nominal delta time separation between two time samples for RF
     excitation (by nominal we mean that the time separation should be at least `Δt_rf` when
-    the samples are regarded by [`is_RF_on`](@ref), otherwise the time points are not
-    necessary and the separation will be bigger)
+    the samples are regarded by [`KomaMRI.is_RF_on`](@ref), otherwise the time points are
+    not necessary and the separation will be bigger)
 
 # Returns
 - `t`: (::Vector{Float64}) the time array with the non-uniform time values
@@ -133,14 +134,15 @@ simulation speed.
 - `seq`: (::Sequence) the sequence object
 - `dt`: (::Real) the nominal delta time separation between two time samples for ADC
     acquisition and Gradients (by nominal we mean that the time separation should be at
-    least `dt` when the samples are regarded by [`is_ADC_on`](@ref) or [`is_GR_on`](@ref)),
-    otherwise the time points are not necessary and the separation will be bigger)
+    least `dt` when the samples are regarded by [`KomaMRI.is_ADC_on`](@ref) or
+    [`KomaMRI.is_GR_on`](@ref)), otherwise the time points are not necessary and the
+    separation will be bigger)
 
 # Keywords
 - `Δt_rf`: (::Real) the nominal delta time separation between two time samples for RF
     excitation (by nominal we mean that the time separation should be at least `Δt_rf` when
-    the samples are regarded by [`is_RF_on`](@ref), otherwise the time points are not
-    necessary and the separation will be bigger)
+    the samples are regarded by [`KomaMRI.is_RF_on`](@ref), otherwise the time points are
+    not necessary and the separation will be bigger)
 
 # Returns
 - `t`: (::Vector{Float64}) the time array with the non-uniform time values

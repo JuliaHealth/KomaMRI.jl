@@ -29,6 +29,9 @@ Scanner
 ### `Sequence`
 ```@docs
 Sequence
+KomaMRI.is_ADC_on
+KomaMRI.is_GR_on
+KomaMRI.is_RF_on
 ```
 
 ### `Grad`
