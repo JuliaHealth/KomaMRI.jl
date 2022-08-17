@@ -32,30 +32,61 @@ function kfoldperm(N, k; type="random", breaks=[])
 end
 
 """
-    points_from_key_times(times; dt)
+    t = points_from_key_times(times; dt)
 
-Calcualtes key time points that can not be missed during the simulation.
+Returns a vector which contains the same points as `times` but with additional points that
+have a separation of at least `dt`.
+
+!!! note
+    The last time points could not be present in the output in some cases.
+    Some time points could be duplicated in the output.
+    Duplicated time points should be removed afterwards (done by
+        [`get_variable_times`](@ref)).
+    The output represents time points that cannot be missed out during the simulation.
 
 # Arguments
-- `times`: time array
+- `times`: (::Vector{Float64}) input time array with key points you want to keep
 
 # Keywords
-- `dt`: reference delta time
+- `dt`: (::Float64) minimal delta time separation between two time samples
 
 # Returns
-- `y`: new time array
+- `t`: (::Vector{Float64}) output time array with the same points as the input array but
+    with additional points that have a separation of at least `dt`.
+
+# Examples
+```julia-repl
+julia> times = [0 1 2 10 11 12 20]
+1×7 Matrix{Int64}:
+ 0  1  2  10  11  12  20
+
+julia> points_from_key_times(times; dt=0.5)'
+1×46 adjoint(::Vector{Float64}) with eltype Float64:
+ 0.0  0.5  1.0  1.0  1.5  2.0  2.0  2.5  3.0  3.5  4.0  4.5  …  16.0  16.5  17.0  17.5
+   18.0  18.5  19.0  19.5  20.0
+
+julia> points_from_key_times(times; dt=0.7)'
+1×32 adjoint(::Vector{Float64}) with eltype Float64:
+ 0.0  0.7  1.0  1.7  2.0  2.7  3.4  4.1  4.8  5.5  6.2  6.9  …  14.1  14.8  15.5  16.2
+   16.9  17.6  18.3  19.0  19.7
+
+julia> points_from_key_times(times; dt=2.5)'
+1×16 adjoint(::Vector{Float64}) with eltype Float64:
+ 0.0  1.0  1.0  2.0  2.0  4.5  7.0  9.5  10.0  11.0  11.0  12.0  12.0  14.5  17.0  19.5
+```
 """
 function points_from_key_times(times; dt)
+    # Fill the `t` empty vector in the `for` loop
 	t = Float64[]
 	for i = 1:length(times)-1
 		if dt < times[i+1] - times[i]
-			taux = collect(range(times[i],times[i+1];step=dt))
+			taux = collect(range(times[i], times[i+1]; step=dt))
 		else
 			taux = [times[i], times[i+1]]
 		end
 		append!(t, taux)
 	end
-	t
+	return t
 end
 
 """
