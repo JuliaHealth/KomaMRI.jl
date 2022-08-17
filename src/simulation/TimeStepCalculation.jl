@@ -1,18 +1,59 @@
 """
-    kfoldperm(N, k; type="random", breaks=[])
+    array_of_ranges = kfoldperm(N, k; type="random", breaks=[])
 
-Divides a list of indices 1:N in k groups.
+Divides a list of indices 1:`N` (which is in your imagination) into `k` groups.
+
+!!! note
+    It is possible to predifine some break points at specific indices with the `breaks`
+    keyword, in this case the number of groups could increase.
 
 # Arguments
-- `N`: length of the list
-- `k`: number of groups
+- `N`: (::Int64) number of elements to be ordered (of an imaginary array 1:`N`)
+- `k`: (::Int64) number of groups to divide the `N` elements
 
 # Keywords
-- `type`: can be "random" or "ordered"
-- `breaks`: ???
+- `type`: (::String) can be "random" or "ordered". If random, then the indices of the groups
+    are unordered. If "ordered", the indices of the groups are sorted in an incremental
+    order
+- `breaks`: (::Vector{Int64}) array of indices where predefined break points are placed
 
 # Returns
-- `y`: ???
+- `array_of_ranges`: (Vector{UnitRange{Int64}}) an array that contains ranges of different
+    groups (the aim target are `k` groups, but this could be increased by adding elements in
+    the `breaks` input array)
+
+# Examples
+``` julia-repl
+julia> kfoldperm(20, 3; type="ordered")
+3-element Vector{UnitRange{Int64}}:
+ 1:7
+ 8:14
+ 15:20
+
+julia> kfoldperm(20, 3; type="ordered", breaks=[3])
+4-element Vector{UnitRange{Int64}}:
+ 1:2
+ 3:7
+ 8:14
+ 15:20
+
+julia> kfoldperm(20, 3; type="ordered", breaks=[3, 10])
+5-element Vector{UnitRange{Int64}}:
+ 1:2
+ 3:7
+ 8:9
+ 10:14
+ 15:20
+
+julia> kfoldperm(20, 3; type="ordered", breaks=[3, 10, 17])
+6-element Vector{UnitRange{Int64}}:
+ 1:2
+ 3:7
+ 8:9
+ 10:14
+ 15:16
+ 17:20
+```
 """
 function kfoldperm(N, k; type="random", breaks=[])
 	n, r = divrem(N, k)
