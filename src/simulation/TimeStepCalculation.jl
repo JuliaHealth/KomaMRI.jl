@@ -48,7 +48,7 @@ have a separation of at least `dt`.
 - `times`: (::Vector{Float64}) input time array with key points you want to keep
 
 # Keywords
-- `dt`: (::Float64) minimal delta time separation between two time samples
+- `dt`: (::Float64) maximum delta time separation between two time samples
 
 # Returns
 - `t`: (::Vector{Float64}) output time array with the same points as the input array but
@@ -90,40 +90,62 @@ function points_from_key_times(times; dt)
 end
 
 """
-    get_uniform_times(seq, Δt; Δt_rf=1e-4)
+    (t, Δt) = get_uniform_times(seq, Δt; Δt_rf=1e-4)
 
-Uniform time-step calculation.
+This function, despite its name, actually gets non-uniform time points. Refer to
+[`get_variable_times`](@ref) for more details.
+
+!!! note
+    This function should be deprecated and the simulator should only use the
+    [`get_variable_times`](@ref) function. Note that in this version, this function is
+    bypassed by [`get_variable_times`](@ref).
 
 # Arguments
-- `seq`: the sequence
-- `Δt`: the delta time value
+- `seq`: (::Sequence) the sequence object
+- `Δt`: (::Real) the nominal delta time separation between two time samples for ADC
+    acquisition and Gradients (by nominal we mean that the time separation should be at
+    least `Δt` when the samples are regarded by [`is_ADC_on`](@ref) or [`is_GR_on`](@ref)),
+    otherwise the time points are not necessary and the separation will be bigger)
 
 # Keywords
-- `Δt_rf`: the reference delta time
+- `Δt_rf`: (::Real) the nominal delta time separation between two time samples for RF
+    excitation (by nominal we mean that the time separation should be at least `Δt_rf` when
+    the samples are regarded by [`is_RF_on`](@ref), otherwise the time points are not
+    necessary and the separation will be bigger)
 
 # Returns
-- `t`: the time array
-- `Δt`: the delta time value
+- `t`: (::Vector{Float64}) the time array with the non-uniform time values
+- `Δt`: (::Vector{Float64}) the delta time array with the separation between two adjacent
+    time points of the `t` array
 """
 function get_uniform_times(seq, Δt; Δt_rf=1e-4)
 	t, Δt = get_variable_times(seq; dt=Δt, dt_rf=Δt_rf)
 end
 
 """
-    get_variable_times(seq; dt=1, dt_rf=1e-4)
+    (t, Δt) = get_variable_times(seq; dt=1, dt_rf=1e-4)
 
-Variable time-step calculation.
+This function returns non-uniform time points that are relevant in the sequence `seq`. It is
+important to use a variable time step (instead of constant sampling time) to increase the
+simulation speed.
 
 # Arguments
-- `seq`: the sequence
+- `seq`: (::Sequence) the sequence object
+- `dt`: (::Real) the nominal delta time separation between two time samples for ADC
+    acquisition and Gradients (by nominal we mean that the time separation should be at
+    least `dt` when the samples are regarded by [`is_ADC_on`](@ref) or [`is_GR_on`](@ref)),
+    otherwise the time points are not necessary and the separation will be bigger)
 
 # Keywords
-- `dt`: the delta time value
-- `Δt_rf`: the reference delta time
+- `Δt_rf`: (::Real) the nominal delta time separation between two time samples for RF
+    excitation (by nominal we mean that the time separation should be at least `Δt_rf` when
+    the samples are regarded by [`is_RF_on`](@ref), otherwise the time points are not
+    necessary and the separation will be bigger)
 
 # Returns
-- `t`: the time array
-- `Δt`: the delta time value
+- `t`: (::Vector{Float64}) the time array with the non-uniform time values
+- `Δt`: (::Vector{Float64}) the delta time array with the separation between two adjacent
+    time points of the `t` array
 """
 function get_variable_times(seq; dt=1, dt_rf=1e-4)
 	t = Float64[]
@@ -170,7 +192,7 @@ end
 Calculate RF key points (start-end) to split simulation in RF and non-RF parts.
 
 # Arguments
-- `seq::Sequence`: the sequence
+- `seq::Sequence`: the input sequence object
 - `t`: the time array
 
 # Returns
