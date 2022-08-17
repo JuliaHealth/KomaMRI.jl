@@ -49,6 +49,9 @@ Q
 ### `ADC`
 ```@docs
 ADC
+KomaMRI.get_sample_times
+KomaMRI.get_sample_phase_compensation
+KomaMRI.getproperty
 ```
 
 ### `Delay`
