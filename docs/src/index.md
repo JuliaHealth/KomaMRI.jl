@@ -41,9 +41,18 @@ Grad
 
 ### `RF`
 ```@docs
-RF
 Spinor
+Rz
+Ry
+Rx
+KomaMRI.Rg
+KomaMRI.Rφ
 Q
+
+RF
+KomaMRI.RF_fun
+KomaMRI.get_flip_angle
+KomaMRI.get_RF_center
 ```
 
 ### `ADC`
@@ -51,13 +60,11 @@ Q
 ADC
 KomaMRI.get_sample_times
 KomaMRI.get_sample_phase_compensation
-KomaMRI.getproperty
 ```
 
 ### `Delay`
 ```@docs
 Delay
-KomaMRI.show
 ```
 
 ## [Pulseq.jl](@id pulseq)
