@@ -230,16 +230,22 @@ function get_variable_times(seq; dt=1, dt_rf=1e-4)
 end
 
 """
-    get_breaks_in_RF_key_points(seq::Sequence, t)
+    key_idxs = get_breaks_in_RF_key_points(seq::Sequence, t)
 
-Calculate RF key points (start-end) to split simulation in RF and non-RF parts.
+Return the indices of the time `t` array where are RF key points from a sequence `seq`.
+Thus, it is possible to split the simulation into RF and non-RF parts.
+
+!!! note
+    By `RF key points` we mean all the start and end points where the RF excitation takes
+    place with the [`KomaMRI.is_RF_on`](@ref) function.
 
 # Arguments
-- `seq::Sequence`: the input sequence object
-- `t`: the time array
+- `seq::Sequence`: the sequence object
+- `t`: (::Int64) the non-uniform time array
 
 # Returns
-- `key_idxs`: array of key points indexes
+- `key_idxs`: (::Vector{Int64}) array of indices of the time `t` array where are RF key
+    points.
 """
 function get_breaks_in_RF_key_points(seq::Sequence, t)
 	T0 = cumsum([0; durs(seq)[:]])
@@ -256,5 +262,5 @@ function get_breaks_in_RF_key_points(seq::Sequence, t)
 			append!(key_idxs,   [idx0; idxf])
 		end
 	end
-	key_idxs
+	return key_idxs
 end
