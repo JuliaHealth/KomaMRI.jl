@@ -36,6 +36,9 @@ KomaMRI.is_RF_on
 
 ### `Grad`
 ```@docs
+rotx
+roty
+rotz
 Grad
 ```
 
