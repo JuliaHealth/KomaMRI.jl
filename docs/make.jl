@@ -5,8 +5,9 @@ makedocs(
     sitename = "KomaMRI.jl: General MRI simulation framework",
     authors = "Carlos Castillo Passi",
     pages = [
-        "Home" => "index.md",
-        "Examples" => "examples.md"
+        "Getting Started" => "index.md",
+        "CLI Examples" => "cli-examples.md",
+        "Software" => "software.md"
     ]
 )
 

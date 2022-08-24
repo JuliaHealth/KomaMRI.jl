@@ -1,232 +1,39 @@
-# Home
+# Getting Started
 
-```@contents
-Pages = ["index.md"]
-Depth = 3
+It is mandatory to install Julia in your computer first. There are many tutorials out there to do so, we recommend to follow the official [Julia Getting Started](https://docs.julialang.org/en/v1/manual/getting-started/) documentation and the [Julia Downloads](https://julialang.org/downloads/) page to install the latest version of Julia in your machine. It is advisable you add julia to the PATH, which can be done during the installation process of Julia.
+
+## Add KomaMRI
+
+Once Julia is installed, open the Julia REPL and add the `KomaMRI` package to the default environment (note that in this example we installed Julia 1.7.3, so the default environment is `(@1.7)`). This process should take about 5min in a fresh Julia installation:
+```julia-repl
+julia> (press the "]" key)
+
+(@v1.7) pkg> add KomaMRI
+
+(@v1.7) pkg> (press the "backspace" key)
+
+julia>
 ```
 
-## [Dataflow Graph](@id dataflow-graph)
+Then, launch the `KomaMRI` user interface (the first time you issue this command it may take more time than usual):
+```julia-repl
+julia> using KomaMRI
 
-![](assets/dataflow.svg)
-
-## [datatypes](@id datatypes)
-
-### `Mag`
-```@docs
-Mag
+julia> KomaUI()
 ```
 
-### `Phantom`
-```@docs
-Phantom
-```
+A window with the Koma user interface will pop up:
 
-### `Scanner`
-```@docs
-Scanner
-```
+![](assets/ui-mainpage.png)
 
-### `Sequence`
-```@docs
-Sequence
-KomaMRI.is_ADC_on
-KomaMRI.is_GR_on
-KomaMRI.is_RF_on
-```
 
-### `Grad`
-```@docs
-rotx
-roty
-rotz
-Grad
-```
+---
+## UI Example
 
-### `RF`
-```@docs
-Spinor
-Rz
-Ry
-Rx
-KomaMRI.Rg
-KomaMRI.Rφ
-Q
+As a simple demonstration, press the button `Simulate!` and wait until the result is ready. Then click on the `Raw Data` dropdown and then click on the `View Raw Data` button. You should see the following result:
 
-RF
-KomaMRI.RF_fun
-KomaMRI.get_flip_angle
-KomaMRI.get_RF_center
-```
+![](assets/ui-view-raw-data.png)
 
-### `ADC`
-```@docs
-ADC
-KomaMRI.get_sample_times
-KomaMRI.get_sample_phase_compensation
-```
+Then press the button `Reconstruct!` and wait until the reconstruction process is successful. Then click on the `Reconstruction` dropdown and then click on the `|Image|` button to see the image reconstruction example: 
 
-### `Delay`
-```@docs
-Delay
-```
-
-## [Pulseq.jl](@id pulseq)
-
-### `read_Grad`
-```@docs
-KomaMRI.read_Grad
-```
-
-### `read_RF`
-```@docs
-KomaMRI.read_RF
-```
-
-### `read_ADC`
-```@docs
-KomaMRI.read_ADC
-```
-
-### `get_block`
-```@docs
-KomaMRI.get_block
-```
-
-### `read_seq`
-```@docs
-KomaMRI.read_seq
-```
-
-## [JEMRIS.jl](@id jemris)
-
-### `read_phantom_jemris`
-```@docs
-read_phantom_jemris
-```
-
-## [ISMRMRD.jl](@id ismrmrd)
-
-### `rawSignalToISMRMRD`
-```@docs
-rawSignalToISMRMRD
-```
-
-## [PulseDesigner.jl](@id pulse-designer)
-
-### `PulseDesigner`
-```@docs
-PulseDesigner
-```
-
-### `PulseDesigner.RF_hard`
-```@docs
-PulseDesigner.RF_hard
-```
-
-### `PulseDesigner.EPI`
-```@docs
-PulseDesigner.EPI
-```
-
-### `PulseDesigner.radial_base`
-```@docs
-PulseDesigner.radial_base
-```
-
-## [KeyValuesCalculation.jl](@id key-values-calculation)
-
-### `get_theo_A`
-```@docs
-KomaMRI.get_theo_A
-```
-
-### `get_theo_t`
-```@docs
-KomaMRI.get_theo_t
-```
-
-### `get_theo_Gi`
-```@docs
-KomaMRI.get_theo_Gi
-```
-
-## [TrapezoidalIntegration.jl](@id trapezoidal-integration)
-
-### `trapz`
-```@docs
-KomaMRI.trapz
-```
-
-### `cumtrapz`
-```@docs
-KomaMRI.cumtrapz
-```
-
-## [TimeStepCalculation.jl](@id time-step-calculation)
-
-### `points_from_key_times`
-```@docs
-KomaMRI.points_from_key_times
-```
-
-### `get_variable_times`
-```@docs
-KomaMRI.get_variable_times
-```
-
-### `get_uniform_times`
-```@docs
-KomaMRI.get_uniform_times
-```
-
-### `kfoldperm`
-```@docs
-KomaMRI.kfoldperm
-```
-
-### `get_breaks_in_RF_key_points`
-```@docs
-KomaMRI.get_breaks_in_RF_key_points
-```
-
-## [SimulationCore.jl](@id simulation-core)
-
-### `print_gpus`
-```@docs
-KomaMRI.print_gpus
-```
-
-### `run_spin_precession`
-```@docs
-KomaMRI.run_spin_precession
-```
-
-### `run_spin_precession_parallel`
-```@docs
-KomaMRI.run_spin_precession_parallel
-```
-
-### `run_spin_excitation`
-```@docs
-KomaMRI.run_spin_excitation
-```
-
-### `run_spin_excitation_parallel`
-```@docs
-KomaMRI.run_spin_excitation_parallel
-```
-
-### `run_sim_time_iter`
-```@docs
-KomaMRI.run_sim_time_iter
-```
-
-### `simulate`
-```@docs
-simulate
-```
-
-### `simulate_slice_profile`
-```@docs
-simulate_slice_profile
-```
+![](assets/ui-view-abs-image.png)
