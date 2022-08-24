@@ -1,13 +1,13 @@
 # Home
 
-```@contents
-Pages = ["index.md"]
-Depth = 3
-```
-
 ## [Dataflow Graph](@id dataflow-graph)
 
 ![](assets/dataflow.svg)
+
+```@contents
+Pages = ["software.md"]
+Depth = 3
+```
 
 ## [datatypes](@id datatypes)
 
