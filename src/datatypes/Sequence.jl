@@ -2,12 +2,23 @@
 ## Sequence OBJECT ##
 #####################
 """
+    Sequence()
     Sequence(GR)
+    Sequence(GR, RF)
+    Sequence(GR, RF, ADC)
+    Sequence(GR, RF, ADC, DUR)
+    Sequence(GR::Array{Grad,1})
+    Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
+    Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
 
-Sequence object.
+The Sequence object.
 
-# Argument
- - `GR::Array{Grad,2}` := Gradient array, fist axis is the dimension (x,y,z) and the second one is time.
+# Arguments
+- `GR::Array{Grad,2}`: gradient array, first axis is the dimension (x,y,z) and the second one is time.
+- `RF::Array{RF,2}`: RF pulses in coil and time
+- `ADC::Array{ADC,1}`: ADC in time
+- `DUR::Vector`: duration of each block, this enables delays after RF pulses to satisfy ring-down times
+- `DEF::Dict{String,Any}`: dictionary with information relevant to the reconstructor
 
 # Examples
 ```julia-repl
@@ -28,44 +39,46 @@ mutable struct Sequence
 	DUR::Vector				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
 	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
 end
+
 #MAIN CONSTRUCTORS
 function Sequence(GR)	  #If no RF is defined, just use a zero amplitude pulse
 	M,N = size(GR)
-	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N], 
+	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N],
 		reshape([RF(0, 0) for i = 1:N],1,:),
 		[ADC(0, 0) for i = 1:N],
 		GR.dur,
 		Dict()
-		) 
+		)
 end
-function Sequence(GR,RF)	#If no ADC is DEFined, just use a ADC with 0 samples
+function Sequence(GR, RF)	#If no ADC is DEFined, just use a ADC with 0 samples
 	@assert size(GR,2) .== size(RF,2) "The number of Gradient, and RF objects must be the same."
 	M,N = size(GR)
-	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N], 
+	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N],
 		RF,
 		[ADC(0, 0) for i = 1:N],
 		maximum([GR.dur RF.dur],dims=2)[:],
 		Dict()
-		) 
+		)
 end
-function Sequence(GR,RF,ADC)
+function Sequence(GR, RF, ADC)
 	@assert size(GR,2) .== size(RF,2) .== length(ADC) "The number of Gradient, RF, and ADC objects must be the same."
 	M,N = size(GR)
-	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N], 
+	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N],
 		RF,
 		ADC,
 		maximum([GR.dur RF.dur ADC.dur],dims=2)[:],
 		Dict())
 end
-function Sequence(GR,RF,ADC,DUR)
+function Sequence(GR, RF, ADC, DUR)
 	@assert size(GR,2) .== size(RF,2) .== length(ADC) .== length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
 	M,N = size(GR)
 	Sequence([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N],
 		RF,
-		ADC, 
+		ADC,
 		maximum([GR.dur RF.dur ADC.dur DUR],dims=2)[:],
 		Dict())
 end
+
 #OTHER CONSTRUCTORS
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,1,:))
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(
@@ -81,6 +94,7 @@ Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF) = Sequence(
 																DEF
 																)
 Sequence() = Sequence([Grad(0,0)])
+
 #Sequence operations
 Base.length(x::Sequence) = length(x.DUR)
 Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1], x.ADC[1], x.DUR[1], x.DEF), 2)
@@ -100,6 +114,7 @@ Base.show(io::IO,s::Sequence) = begin
 		print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
 	end
 end
+
 #Arithmetic operations
 +(x::Sequence, y::Sequence) = Sequence([x.GR  y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
 -(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
@@ -111,10 +126,24 @@ end
 *(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
 *(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
 /(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.DEF)
+
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
+
+"""
+    y = is_ADC_on(x::Sequence)
+    y = is_ADC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}})
+
+Tells if the sequence `seq` has elements with ADC active, or active during time `t`.
+
+# Arguments
+- `x::Sequence`: the sequence object
+- `t::Union{Array{Float64,1},Array{Float64,2}}`: time to check
+
+# Returns
+- `y::Bool`: whether or not the ADC in the sequence is active
+"""
 is_ADC_on(x::Sequence) = any(x.ADC.N .> 0)
-"Tells if the sequence has elements with ADC on during t."
 is_ADC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}}) = begin
 	N = length(x)
 	ΔT = durs(x)
@@ -130,9 +159,21 @@ is_ADC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}}) = begin
 	activeADC = any([is_ADC_on(x[i]) && any(t0s[i] .<= t .< tfs[i]) for i=1:N])
 	activeADC
 end
-"Tells if the sequence has elements with RF on."
+
+"""
+    y = is_RF_on(x::Sequence)
+    y = is_RF_on(x::Sequence, t::Vector{Float64})
+
+Tells if the sequence `seq` has elements with RF active, or active during time `t`.
+
+# Arguments
+- `x::Sequence`: the sequence object
+- `t::Vector{Float64}`: time to check
+
+# Returns
+- `y::Bool`: whether or not the RF in the sequence is active
+"""
 is_RF_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.RF] .> 0)
-"Tells if the sequence has elements with RF on during t."
 is_RF_on(x::Sequence, t::Vector{Float64}) = begin
 	N = length(x)
 	ΔT = durs(x)
@@ -148,17 +189,83 @@ is_RF_on(x::Sequence, t::Vector{Float64}) = begin
 	activeRFs = any([is_RF_on(x[i]) && any(t0s[i] .<= t .<= tfs[i]) for i=1:N])
 	activeRFs
 end
-"Tells if the sequence has elements with GR on."
+
+"""
+    y = is_GR_on(x::Sequence)
+
+Tells if the sequence `seq` has elements with GR active.
+
+# Arguments
+- `x::Sequence`: the sequence object
+
+# Returns
+- `y::Bool`: whether or not the GR in the sequence is active
+"""
 is_GR_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR] .> 0)
-"Tells if the sequence has elements with GR on."
+
+"""
+    y = is_Gx_on(x::Sequence)
+
+Tells if the sequence `seq` has elements with GR active in x direction.
+
+# Arguments
+- `x::Sequence`: the sequence object
+
+# Returns
+- `y::Bool`: whether or not the GRx in the sequence is active
+"""
 is_Gx_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.x] .> 0)
-"Tells if the sequence has elements with GR on."
+
+"""
+    y = is_Gy_on(x::Sequence)
+
+Tells if the sequence `seq` has elements with GR active in y direction.
+
+# Arguments
+- `x::Sequence`: the sequence object
+
+# Returns
+- `y::Bool`: whether or not the GRy in the sequence is active
+"""
 is_Gy_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.y] .> 0)
-"Tells if the sequence has elements with GR on."
+
+"""
+    y = is_Gz_on(x::Sequence)
+
+Tells if the sequence `seq` has elements with GR active in z direction.
+
+# Arguments
+- `x::Sequence`: the sequence object
+
+# Returns
+- `y::Bool`: whether or not the GRz in the sequence is active
+"""
 is_Gz_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.z] .> 0)
-"Tells if the sequence is a delay"
+
+"""
+    y = is_Delay(x::Sequence)
+
+Tells if the sequence `seq` is a delay.
+
+# Arguments
+- `x::Sequence`: the sequence object
+
+# Returns
+- `y::Bool`: whether or not the RF in the sequence is active
+"""
 is_Delay(x::Sequence) = !(is_GR_on(x) || is_RF_on(x) || is_ADC_on(x))
-"Duration of sequence's blocks `ΔT::Array{Real,1}` [s]."
+
+"""
+    ΔT = durs(x::Sequence)
+
+Returns the array of durations of sequence's blocks in [s].
+
+# Arguments
+- `x::Sequence`: the sequence object
+
+# Returns
+- `ΔT::Array{Real,1}`: the array of durations of sequence's blocks
+"""
 durs(x::Sequence) = begin
 	# ΔT_GR  = x.GR.dur
 	# ΔT_RF  = x.RF.dur
@@ -167,11 +274,36 @@ durs(x::Sequence) = begin
 	# ΔT = maximum([ΔT_GR ΔT_RF ΔT_ADC ΔT_DUR],dims=2)
 	x.DUR
 end
-"Duration of the sequence `T` [s]."
+
+"""
+    T = dur(x::Sequence)
+
+The total duration of the sequence in [s].
+
+# Arguments
+- `x::Sequence`: the sequence object
+
+# Returns
+- `T::Real`: the total duration of the sequence
+"""
 dur(x::Sequence) = sum(durs(x))
 
-#Trapezoidal Waveform
-⏢(A,t,ΔT,ζ1,ζ2,delay) = begin
+"""
+    y = ⏢(A, t, ΔT, ζ1, ζ2, delay)
+Generates a trapezoidal waveform vector.
+
+# Arguments
+- `A`: (::Real or ::Vector) amplitudes
+- `t`: (::Vector or ::Matrix) times to evaluate
+- `ΔT`: (::Real) time duration of the top-flat
+- `ζ1`: (::Real) rise time duration
+- `ζ2`: (::Real) fall time duration
+- `delay`: (::Real) time delay
+
+# Returns
+- `y`: (::Vector or ::Matrix) the trapezoidal waveform
+"""
+⏢(A, t, ΔT, ζ1, ζ2, delay) = begin
 	if sum(abs.(A)) != 0 && ΔT+ζ1+ζ2 != 0 # If no event just ignore calculations
 		#Getting amplitudes, onlu supports uniformly sampled waveforms for now
 		if length(A) != 1
@@ -185,8 +317,8 @@ dur(x::Sequence) = sum(durs(x))
 		end
 		#Trapezoidal waveform
 		aux = (ζ1    .<= t .- delay .< ζ1+ΔT) .* B
-		if ζ1 != 0 
-			aux .+= (0     .<= t .- delay .< ζ1) .* A[1] .* (t .- delay)./ζ1 
+		if ζ1 != 0
+			aux .+= (0     .<= t .- delay .< ζ1) .* A[1] .* (t .- delay)./ζ1
 		end
 		if ζ2 !=0
 			aux .+= (ζ1+ΔT .<= t .- delay .< ζ1+ΔT+ζ2) .* A[end] .* (1 .- (t.-delay.-ζ1.-ΔT)./ζ2)
@@ -196,14 +328,21 @@ dur(x::Sequence) = sum(durs(x))
 	end
 	aux
 end
-"""
-	get_grad(seq,t)
 
-Get gradient array from sequence `seq` evaluated in time points `t` for the dimension `dim`.
+"""
+    Gx, Gy, Gz = get_grads(seq, t::Vector)
+    Gx, Gy, Gz = get_grads(seq, t::Matrix)
+
+Get the gradient array from sequence `seq` evaluated in time points `t`.
 
 # Arguments
- - `seq::Sequence`:= Sequence object.
- - `t`            := Time vector to evaluate.
+- `seq::Sequence`: the sequence object
+- `t(::Vector or ::Matrix)`: time vector or matrix to evaluate
+
+# Returns
+- `Gx`: gradient array in the x direction
+- `Gy`: gradient array in the y direction
+- `Gz`: gradient array in the y direction
 
 # Examples
 ```julia-repl
@@ -213,7 +352,7 @@ Sequence(Grad[Grad(1, 1) Grad(-1, 1); Grad(0, 1) Grad(0, 1)])
 julia> t = 0:.5:2
 0.0:0.5:2.0
 
-julia> get_grad(seq,t)
+julia> get_grad(seq, t)
 5-element Array{Float64,1}:
   1.0
   1.0
@@ -256,7 +395,20 @@ end
 # 	(sum([⏢(A[j,i],t.-T0[i],T[j,i],ζ1[j,i],ζ2[j,i],delay[j,i]) for i=1:length(seq)]) for j=1:3)
 # end
 
-get_rfs(seq::Sequence,t) = begin
+"""
+   B1, Δf_rf  = get_rfs(seq::Sequence, t)
+
+Returns the RF pulses and the delta frequency.
+
+# Arguments
+- `seq::Sequence`: the sequence object
+- `t`: (::Vector or ::Matrix) the time vector or matrix
+
+# Returns
+- `B1`: the RF pulses
+- `Δf_rf`: the delta frequency
+"""
+get_rfs(seq::Sequence, t) = begin
 	#Amplitude
 	A  = seq.RF.A
 	Δf = seq.RF.Δf
@@ -268,9 +420,36 @@ get_rfs(seq::Sequence,t) = begin
 	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]),0,0,delay[i]) for i=1:length(seq)])
 	)
 end
+
+"""
+    y = get_flip_angles(x::Sequence)
+
+Returns all the flip angles of the RF pulses in the sequence `x`.
+
+# Arguments
+- `x::Sequence`: the sequence object
+
+# Returns
+- `y`: flip angles
+"""
 get_flip_angles(x::Sequence) = get_flip_angle.(x.RF)[:]
 
-get_ADC_on(seq::Sequence,t::Array{Float64,1}) = begin
+"""
+    y = get_ADC_on(seq::Sequence, t::Array{Float64,1})
+
+Get the ADC objects that are active.
+
+!!! note
+    This function is not being used.
+
+# Arguments
+- `seq::Sequence`: the sequence object
+- `t::Array{Float64,1}`: the time vector
+
+# Returns
+- `y`: the ADC objects that are active
+"""
+get_ADC_on(seq::Sequence, t::Array{Float64,1}) = begin
 	Δt = t[2]-t[1]
 	M, N = size(seq.ADC)
 	ADC = seq.ADC.N .> 0
@@ -280,7 +459,32 @@ get_ADC_on(seq::Sequence,t::Array{Float64,1}) = begin
 	ADC_bool = (ADC_bool.>0)
 	circshift(convert.(Bool,	[:]),-1)
 end
-"Calculates the `b`-value, in the PGSE sequnce is b = (2πγGδ)²(Δ-δ/3) and the normalized diffusion vector `n` from a *diffusion sequence*."
+
+"""
+    bvalue = get_bvalue(DIF::Sequence)
+
+Calculates the `b`-value, in the PGSE sequnce is b = (2πγGδ)²(Δ-δ/3) and the normalized
+diffusion vector `n` from a *diffusion sequence*.
+
+    bvalue = get_bvalue(G, Δ, δ; null::Bool=false)
+
+Calculates the `b` value for PGSE and a moment nulled sequence.
+
+!!! note
+    This function is not being used.
+
+# Arguments
+- `DIF::Sequence`
+- `G`
+- `Δ`
+- `δ`
+
+# Keywords
+- `null::Bool=false`
+
+# Returns
+- `bvalue`: the b value
+"""
 get_bvalue(DIF::Sequence) = begin
 	M, N = size(DIF.GR)
 	G = getproperty.(DIF.GR,:A) #[DIF.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
@@ -296,7 +500,23 @@ get_bvalue(DIF::Sequence) = begin
 	end
 	b_value = (2π*γ)^2*b # Trace of B tensor
 end
-"Calculates the `b`-matrix, such as `b`-value = g' B g [s/mm2] with g [T/m]."
+
+get_bvalue(G, Δ, δ; null::Bool=false) = (null ? 1/9 : 1)*(2π*γ*G*δ)^2*(Δ-δ/3)
+
+"""
+    bmatrix = get_Bmatrix(DIF::Sequence)
+
+Calculates the `b`-matrix, such as `b`-value = g' B g [s/mm2] with g [T/m].
+
+!!! note
+    This function is not being used.
+
+# Arguments
+- `DIF::Sequence`: the diffusion sequence object
+
+# Returns
+- `bmatrix`: the b matrix
+"""
 get_Bmatrix(DIF::Sequence) = begin
 	M, N = size(DIF.GR)
 	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
@@ -316,10 +536,22 @@ get_Bmatrix(DIF::Sequence) = begin
 	b_value
 end
 
-"Calculates the `b` value for PGSE and a moment nulled sequence."
-get_bvalue(G,Δ,δ;null::Bool=false) = (null ? 1/9 : 1)*(2π*γ*G*δ)^2*(Δ-δ/3)
-"Calculates `q` = γδG diffusion vector from a *diffusion sequence*."
-get_qvector(DIF::Sequence;type::String="val") = begin
+"""
+    qvector = get_qvector(DIF::Sequence; type::String="val")
+
+Calculates `q` = γδG diffusion vector from a *diffusion sequence*.
+
+!!! note
+    This function is not being used.
+
+# Arguments
+- `DIF::Sequence`: the diffusion sequence object
+- `type::String="val"` (::String) option to get a value or plot
+
+# Returns
+- `qvector`: the q diffusion vector as a value or a plot
+"""
+get_qvector(DIF::Sequence; type::String="val") = begin
 	M, N = size(DIF.GR)
 	G = getproperty.(DIF.GR,:A) #[DIF.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
 	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
@@ -346,6 +578,23 @@ get_qvector(DIF::Sequence;type::String="val") = begin
 		PlotlyJS.plot(p, l)
 	end
 end
+
+"""
+    M0, M1, M2 = get_M0_M1_M2(seq::Sequence)
+
+Get the momentums `M0`, `M1` and `M2` from the sequence `seq`.
+
+!!! note
+    This function is not being used.
+
+# Arguments
+- `seq`: (::Sequence) the sequence object
+
+# Returns
+- `M0`: the M0 momentum
+- `M1`: the M1 momentum
+- `M2`: the M2 momentum
+"""
 get_M0_M1_M2(SEQ::Sequence) = begin
 	M, N = size(SEQ.GR)
 	G = [SEQ.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
@@ -363,11 +612,39 @@ get_M0_M1_M2(SEQ::Sequence) = begin
 	M2(t) = sum([M2i(t,T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
 	M0, M1, M2
 end
+
+"""
+    Gmax = get_max_grad(x::Sequence)
+
+The maximum gradient of the sequence `x`.
+
+!!! note
+    This function is not being used.
+
+# Arguments
+- `seq`: (::Sequence) the sequence object
+
+# Returns
+- `Gmax`: (::Real) the maximum value of the gradient
+"""
 get_max_grad(x::Sequence) = begin
 	G = [x.GR[i,j].A for i=1:size(x.GR,1),j=1:size(x.GR,2)]
 	Gmax = maximum(sqrt.(sum(G.^2,dims=1)))
 end
-"""Get RF centers and types. Useful for k-space calculations."""
+
+"""
+    rf_idx, rf_type = get_RF_types(seq, t)
+
+Get RF centers and types (excitation or precession). Useful for k-space calculations.
+
+# Arguments
+- `seq`: (::Sequence) the sequence object
+- `t`: (::Vector{Float64}) the time array with the time values
+
+# Returns
+- `rf_idx`: the index of the RF center
+. `rf_type`: the RF type (excitation or precession)
+"""
 function get_RF_types(seq, t)
 	α = get_flip_angles(seq)
 	RF_mask = is_RF_on.(seq)
@@ -384,12 +661,26 @@ function get_RF_types(seq, t)
 				append!(rf_type, 0)
 			elseif RF_rf[i]
 				append!(rf_type, 1)
-			end 
+			end
 		end
 	end
-	rf_idx, rf_type 
+	rf_idx, rf_type
 end
-"Outputs designed k-space trajectory from sequence object."
+
+"""
+    kspace, kspace_adc = get_kspace(seq::Sequence; Δt=1)
+
+Outputs designed k-space trajectory from sequence object.
+
+# Arguments
+- `seq::Sequence`: the sequence object
+- `Δt=1`: (::Real) the nominal delta time separation between two time samples for ADC
+    acquisition and Gradients
+
+# Returns
+- `kspace`: the kspace
+. `kspace_adc`: the adc kspace
+"""
 get_kspace(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
@@ -423,8 +714,22 @@ get_kspace(seq::Sequence; Δt=1) = begin
 	kspace, kspace_adc
 end
 
-""""Calculates the normalized moments at the end of the sequence. """
-function get_Mmatrix(seq::Sequence;order=0)
+""""
+    y = get_Mmatrix(seq::Sequence; order=0)
+
+Calculates the normalized moments at the end of the sequence.
+
+!!! note
+    This function is not being used.
+
+# Arguments
+- `seq::Sequence`: the sequence object
+- `order=0`: (::Real) the order parameter
+
+# Returns
+- `y`: (::Matrix) the normalized moments matrix [M0'; M1'; M2'; M3']
+"""
+function get_Mmatrix(seq::Sequence; order=0)
     M, N = size(seq.GR)
     τ = dur(seq)
     δ = getproperty.(seq.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
@@ -444,7 +749,21 @@ function get_Mmatrix(seq::Sequence;order=0)
 end
 
 using LinearAlgebra: I, Bidiagonal, norm
-"""Slew rate matrix: |SR*g| ≤ Smax."""
+
+"""
+    y = get_SRmatrix(seq::Sequence)
+
+Slew rate matrix: |SR*g| ≤ Smax.
+
+!!! note
+    This function is not being used.
+
+# Arguments
+- `seq::Sequence`: the sequence object
+
+# Returns
+- `y`: the slew rate matrix
+"""
 function get_SRmatrix(seq::Sequence)
     _, N = size(seq.GR)
     T = getproperty.(seq.GR[1,:],:T)
@@ -452,14 +771,29 @@ function get_SRmatrix(seq::Sequence)
     dv = [Δt; T[end]]
     ev = Δt;
 	SR = Array(Bidiagonal(-1 ./ dv, 1 ./ ev, :U))
-	SR = [SR[1,:]'*0 ; SR]; SR[1,1] = T[1] 
+	SR = [SR[1,:]'*0 ; SR]; SR[1,1] = T[1]
 	SR
 end
 
-## TO SCANNER (Philips)
-"""Duration in [s] => samples, with dwell-time of Δt = 6.4 μs."""
+"""
+    y = δ2N(δ)
+
+Duration in [s] => samples, with dwell-time of Δt = 6.4 μs. Useful to scanner Philips.
+
+# Arguments
+- `δ`: (::Real) delta time parameter
+
+# Returns
+- `y`: (::Real) the time duration
+"""
 δ2N(δ) = floor(Int64, δ * 156250) + 2
 
+"""
+    write_diff_fwf(args...)
+
+!!! note
+    This function is not being used.
+"""
 function write_diff_fwf(DIF, idx180, Gmax, bmax; filename="./qte_vectors_input.txt", name="Maxwell2")
     open(filename, "w") do io
         G1 = DIF[1:idx180-1]
@@ -478,6 +812,12 @@ function write_diff_fwf(DIF, idx180, Gmax, bmax; filename="./qte_vectors_input.t
     end
 end
 
+"""
+    read_diff_fwf(filename="./qte_vectors_input.txt")
+
+!!! note
+    This function is not being used.
+"""
 function read_diff_fwf(filename="./qte_vectors_input.txt")
     f = readlines(filename)
     G = zeros(size(f[2:end],1),6)
@@ -488,4 +828,3 @@ function read_diff_fwf(filename="./qte_vectors_input.txt")
     end
     G, n1, n2
 end
-

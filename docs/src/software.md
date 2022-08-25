@@ -33,8 +33,29 @@ Scanner
 ```@docs
 Sequence
 KomaMRI.is_ADC_on
-KomaMRI.is_GR_on
 KomaMRI.is_RF_on
+KomaMRI.is_GR_on
+KomaMRI.is_Gx_on
+KomaMRI.is_Gy_on
+KomaMRI.is_Gz_on
+KomaMRI.is_Delay
+KomaMRI.⏢
+KomaMRI.get_grads
+KomaMRI.get_rfs
+KomaMRI.get_flip_angles
+KomaMRI.get_ADC_on
+KomaMRI.get_bvalue
+KomaMRI.get_Bmatrix
+KomaMRI.get_qvector
+KomaMRI.get_M0_M1_M2
+KomaMRI.get_max_grad
+KomaMRI.get_RF_types
+KomaMRI.get_kspace
+KomaMRI.get_Mmatrix
+KomaMRI.get_SRmatrix
+KomaMRI.δ2N
+KomaMRI.write_diff_fwf
+KomaMRI.read_diff_fwf
 ```
 
 ### `Grad`
