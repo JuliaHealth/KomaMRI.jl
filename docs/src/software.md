@@ -19,6 +19,9 @@ Mag
 ### `Phantom`
 ```@docs
 Phantom
+KomaMRI.heart_phantom
+brain_phantom2D
+brain_phantom3D
 ```
 
 ### `Scanner`

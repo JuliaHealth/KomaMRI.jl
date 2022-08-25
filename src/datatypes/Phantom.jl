@@ -2,23 +2,44 @@
 ## Phantom OBJECT ##
 ####################
 """
-    Phantom(x,y,ρ,T2,Δw,Dλ1,Dλ2,Dθ,ux,uy)
+    Phantom(x, y, ρ, T2, Δw, Dλ1, Dλ2, Dθ, ux, uy)
 
 The Phantom object.
 
 # Arguments
- - `name::String` := Name of the Phantom
- - `x`            := Spins x-coordinates.
- - `y`            := Spins y-coordinates.
- - `z`            := Spins z-coordinates.
- - `ρ::Matrix`    := Proton density.
- - `T1::Matrix`   := T1 map.
- - `T2::Matrix`   := T2 map.
- - `Δw::Matrix`   := Off-resonace map;
- - `D::Matrix`    := Diffusion model.
- - `ux::Function` := Displacement field x.
- - `uy::Function` := Displacement field y.
- - `uz::Function` := Displacement field z.
+ - `name::String`: name of the Phantom
+ - `x::Vector`: spins x-coordinates
+ - `y::Vector`: spins y-coordinates
+ - `z::Vector`: spins z-coordinates
+ - `ρ::Matrix`: proton density
+ - `T1::Matrix`: T1 map
+ - `T2::Matrix`: T2 map
+ - `Δw::Matrix`: off-resonace map
+ - `D::Matrix`: diffusion model
+ - `ux::Function`: displacement field x
+ - `uy::Function`: displacement field y
+ - `uz::Function`: displacement field z
+
+# Examples
+```julia-repl
+julia> obj = Phantom(x=zeros(5))
+Phantom
+  name: String "spin"
+  x: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
+  y: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
+  z: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
+  ρ: Array{Float64}((5,)) [1.0, 1.0, 1.0, 1.0, 1.0]
+  T1: Array{Float64}((5,)) [Inf, Inf, Inf, Inf, Inf]
+  T2: Array{Float64}((5,)) [Inf, Inf, Inf, Inf, Inf]
+  T2s: Array{Float64}((5,)) [Inf, Inf, Inf, Inf, Inf]
+  Δw: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
+  Dλ1: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
+  Dλ2: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
+  Dθ: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
+  ux: #145 (function of type KomaMRI.var"#145#153")
+  uy: #146 (function of type KomaMRI.var"#146#154")
+  uz: #147 (function of type KomaMRI.var"#147#155")
+```
 """
 @with_kw mutable struct Phantom
 	name::String = "spin" #Name of the Phantom
@@ -127,9 +148,21 @@ end
 # end
 
 """
-Heart-like LV phantom. The variable `α` is for strech, `β` for contraction, and `γ` for rotation.
+    obj = heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false)
+
+Heart-like LV phantom. The variable `α` is for strech, `β` for contraction, and `γ` for
+rotation.
+
+# Arguments
+- `α=1`: (::Reañ) streching parameter
+- `β=1`: (::Real) contraction parameter
+- `γ=1`: (::Real) rotation parameter
+- `fat_bool::Bool=false`: fat parameter
+
+# Returns
+- `obj::Phantom`: the Heart-like LV phantom object
 """
-heart_phantom(α=1,β=1,γ=1,fat_bool::Bool=false) = begin
+heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false) = begin
 	#PARAMETERS
 	FOV = 10e-2 #m Diameter ventricule
 	N = 21
@@ -183,15 +216,27 @@ heart_phantom(α=1,β=1,γ=1,fat_bool::Bool=false) = begin
 	obj = fat_bool ? heart + fat : heart #concatenating spins
 end
 
-"""
-B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic digital brain phantom"
-NeuroImage, in review - 2006.
-B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital brain phantoms for creation of validation image data bases"
-IEEE TMI, in review - 2006
 
-https://brainweb.bic.mni.mcgill.ca/brainweb
 """
-function brain_phantom2D(;axis="axial",ss=4)
+    obj = brain_phantom2D(;axis="axial", ss=4)
+
+Creates a three-dimentional phantom object.
+
+# References
+- B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
+    digital brain phantom" NeuroImage, in review - 2006
+- B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital
+    brain phantoms for creation of validation image data bases" IEEE TMI, in review - 2006
+- https://brainweb.bic.mni.mcgill.ca/brainweb
+
+# Keywords
+- `axis="axial"`: (::String) orientation of the phantom
+- `ss=4`: (::Real) heart phantom parameter
+
+# Returns
+- `obj::Phantom`: the 2D phantom object
+"""
+function brain_phantom2D(;axis="axial", ss=4)
     path = @__DIR__
     data = MAT.matread(path*"/phantom/brain2D.mat")
 
@@ -268,12 +313,22 @@ function brain_phantom2D(;axis="axial",ss=4)
 end
 
 """
-B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic digital brain phantom"
-NeuroImage, in review - 2006.
-B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital brain phantoms for creation of validation image data bases"
-IEEE TMI, in review - 2006
+    obj = brain_phantom3D(;ss=4)
 
-https://brainweb.bic.mni.mcgill.ca/brainweb
+Creates a three-dimentional phantom object.
+
+# References
+- B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
+    digital brain phantom" NeuroImage, in review - 2006
+- B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital
+    brain phantoms for creation of validation image data bases" IEEE TMI, in review - 2006
+- https://brainweb.bic.mni.mcgill.ca/brainweb
+
+# Keywords
+- `ss=4`: (::Real) heart phantom parameter
+
+# Returns
+- `obj::Phantom`: the 3D phantom object
 """
 function brain_phantom3D(;ss=4)
     path = @__DIR__
