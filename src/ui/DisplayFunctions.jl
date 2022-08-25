@@ -345,7 +345,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 	p = PlotlyJS.plot(h,l;config)
 end
 
-function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, darkmode=false)
+function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, slider=true, darkmode=false)
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
 	signal = []
@@ -370,28 +370,48 @@ function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, dar
 	Tacq = Tmax - Tmin
 	#PLOT
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;title="",
-		font_color=text_color,
-		xaxis=attr(ticksuffix=" ms",range=[Tmin+Tacq/2-.025*Tacq,Tmin+Tacq/2+.025*Tacq],
-					rangeslider=attr(visible=true),
-					gridcolor=grid_color,zerolinecolor=grid_color),
-		yaxis=attr(gridcolor=grid_color,zerolinecolor=grid_color),
+	l = PlotlyJS.Layout(; hovermode="closest", 
+		xaxis_title="",
+		modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
+		legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
+		plot_bgcolor=plot_bgcolor,
 		paper_bgcolor=bgcolor,
-		plot_bgcolor=plot_bgcolor, height=height, width=width,
+		xaxis_gridcolor=grid_color,
+		yaxis_gridcolor=grid_color,
+		xaxis_zerolinecolor=grid_color,
+		yaxis_zerolinecolor=grid_color,
+		font_color=text_color,
 		yaxis_fixedrange = false,
-		legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1.02,x=0),
-		modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1.02,x=1,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor))
+		xaxis=attr(
+			ticksuffix=" ms",
+			range=[Tmin+Tacq/2-.025*Tacq,Tmin+Tacq/2+.025*Tacq],
+			rangeslider=attr(visible=slider),
+			rangeselector=attr(
+				buttons=[
+					attr(count=1,
+					label="100m",
+					step=10,
+					stepmode="backward"),
+					attr(step="all")
+					]
+				),
+			),
+		margin=attr(t=0,l=0,r=0,b=0),
+		height=height, width=width
+		)
 	absS = PlotlyJS.scatter(x=t,y=abs.(signal), name="|S(t)|")
 	reS =  PlotlyJS.scatter(x=t,y=real.(signal),name="Re{S(t)}")
 	imS =  PlotlyJS.scatter(x=t,y=imag.(signal),name="Im{S(t)}")
+	p = [absS,reS,imS]
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
 			format="svg", # one of png, svg, jpeg, webp
 		).fields,
-		modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
+		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
+		# modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
-	p = PlotlyJS.plot([absS,reS,imS],l;config)
+	PlotlyJS.plot(p, l;config)
 end
 
 function plot_dict(dict::Dict)
