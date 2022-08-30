@@ -17,25 +17,36 @@ print_gpus() = begin
 end
 
 """
-    function run_spin_precession_parallel(obj, seq, t, Δt; M0, Nthreads, gpu)
+    S, M0 = run_spin_precession_parallel(obj, seq, t, Δt; M0, Nthreads, gpu)
 
 Implementation in multiple threads for the simulation in free precession,
-separating the spins in N_parts.
+separating the spins of the phantom `obj` in `Nthreads`.
+
+!!! note
+    This function does not use the complete time vector of the total simulation, it uses
+    instead a piece of the time vector given by a variable called `Nblocks` (which is
+    outside of this function, refer to [`run_sim_time_iter`](@ref)) to reduce the RAM memory
+    utilization.
 
 # Arguments
-- `obj::Phantom`: the phantom
-- `seq::Sequence`: the sequence
-- `t::Array{Float64,1}`: the time array
-- `Δt::Array{Float64,1}`: the delta time
+- `obj`: (`::Phantom`) the phantom struct
+- `seq`: (`::Sequence`) the sequence struct
+- `t`: (`::Vector{Float64}`, `[s]`) the non-uniform time vector (actually it's a part of the
+    complete simulation time vector)
+- `Δt`: (`::Vector{Float64}`, `[s]`) the delta time of `t` (actually it's a part of the
+    complete simulation time vector)
 
 # Keywords
-- `M0::Array{Mag,1}`: the operation point for the mangnetization
-- `Nthreads::Int`: number of process threads. Default = Hwloc.num_physical_cores()
-- `gpu::Function`: the function that represents the gpu of the host
+- `M0`: (`::Vector{Mag}`) the initial state of the Mag vector
+- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) the number of process threads for
+    dividing the simulation into different phantom spin parts
+- `gpu`: (`::Function`) the function that represents the gpu of the host
 
 # Returns
-- `S`: the raw data (the detected signal)
-- `M0`: the operation point for the mangnetization
+- `S`: (`Vector{ComplexF64}`) the raw signal over time
+- `M0`: (`::Vector{Mag}`) the final state of the Mag vector (or the initial state for the
+    next simulation step (the next step can be another precession step or an excitation
+    step))
 """
 function run_spin_precession_parallel(obj::Phantom, seq::Sequence, t::Array{Float64,1}, Δt::Array{Float64,1};
 	M0::Array{Mag,1}, Nthreads::Int=Hwloc.num_physical_cores(), gpu::Function)
@@ -58,25 +69,39 @@ function run_spin_precession_parallel(obj::Phantom, seq::Sequence, t::Array{Floa
 end
 
 """
-	run_spin_precession(obj, seq, t, Δt; M0, gpu)
+    S, M0 = run_spin_precession(obj, seq, t, Δt; M0, gpu)
 
-Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`.
-It calculates S(t) = ∫ ρ(x,t) exp(- t/T2(x,t) ) exp(- 𝒊 ϕ(x,t)) dx.
-It performs the simulation in free precession.
+Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`. It calculates S(t)
+= ∫ ρ(x,t) exp(- t/T2(x,t) ) exp(- 𝒊 ϕ(x,t)) dx. It performs the simulation in free
+precession.
+
+!!! note
+    This function is used to simulate a part of the simulation over time given by the
+    variable `Nblocks` (which is outside of this function, refer to
+    [`run_sim_time_iter`](@ref)) to reduce the RAM memory utilization. It is also used to
+    simulate a part of the spins in a phantom defined by the variable `Nthreads` (which is
+    outside of this function too, refer to [`run_spin_precession_parallel`](@ref)) to take
+    advantage of CPU parallel processing.
 
 # Arguments
-- `obj::Phantom`: the phantom
-- `seq::Sequence`: the sequence
-- `t::Array{Float64,2}`: the time array
-- `Δt::Array{Float64,2}`: the delta time
+- `obj`: (`::Phantom`) the phantom struct (actually, it's a part of the complete phantom)
+- `seq`: (`::Sequence`) the sequence struct
+- `t`: (`1-row ::Matrix{Float64}`, `[s]`) the non-uniform time vector (actually it's a part
+    of the complete simulation time vector)
+- `Δt`: (`1-row ::Matrix{Float64}`, `[s]`) the delta time of `t` (actually it's a part of
+    the complete simulation time vector)
 
 # Keywords
-- `M0::Array{Mag,1}`: the operation point for the mangnetization
-- `gpu::Function`: the function that represents the gpu of the host
+- `M0`: (`::Vector{Mag}`) the initial state of the Mag vector (actually, it's a part of the
+    complete Mag vector)
+- `gpu`: (`::Function`) the function that represents the gpu of the host
 
 # Returns
-- `S`: the raw data (the detected signal)
-- `M0`: the operation point for the mangnetization
+- `S`: (`Vector{ComplexF64}`) the raw signal over time
+- `M0`: (`::Vector{Mag}`) the final state of the Mag vector (actually, it's a part of the
+    complete Mag vector) (it's not the initial state for the next simulation, since it's
+    necessary to add the magnetization of all the parts of the phantom (i.e. sum up all the
+    spin magnetizations first), refer to [`run_spin_precession_parallel`](@ref))
 """
 function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, Δt::Array{Float64,2};
 	M0::Array{Mag,1}, gpu::Function)
@@ -148,25 +173,35 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
 end
 
 """
-    run_spin_excitation_parallel(obj, seq, t, Δt; M0, Nthreads, gpu)
+    M0 = run_spin_excitation_parallel(obj, seq, t, Δt; M0, Nthreads, gpu)
 
 It gives rise to a rotation of M0 with an angle given by the efective magnetic field
 (including B1, gradients and off resonance) and with respect to a rotation axis. It uses
 different number threads to excecute the process.
 
+!!! note
+    This function does not use the complete time vector of the total simulation, it uses
+    instead a piece of the time vector given by a variable called `Nblocks` (which is
+    outside of this function, refer to [`run_sim_time_iter`](@ref)) to reduce the RAM memory
+    utilization.
+
 # Arguments
-- `obj`: the phantom
-- `seq`: the sequence
-- `t::Array{Float64,1}`: the time array
-- `Δt::Array{Float64,1}`: the delta time
+- `obj`: (`::Phantom`) the phantom struct
+- `seq`: (`::Sequence`) the sequence struct
+- `t`: (`::Vector{Float64}`, `[s]`) the non-uniform time vector (actually it's a part of the
+    complete simulation time vector)
+- `Δt`: (`::Vector{Float64}`, `[s]`) the delta time of `t` (actually it's a part of the
+    complete simulation time vector)
 
 # Keywords
-- `M0::Array{Mag,1}`: the operation point for the mangnetization
-- `Nthreads::Int`: number of process threads. Default = Hwloc.num_physical_cores()
-- `gpu::Function`: the function that represents the gpu of the host
+- `M0`: (`::Vector{Mag}`) the initial state of the Mag vector
+- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) the number of process threads for
+    dividing the simulation into different phantom spin parts
+- `gpu`: (`::Function`) the function that represents the gpu of the host
 
 # Returns
-- `M0`: the operation point for the mangnetization after a rotation
+- `M0`: (`::Vector{Mag}`) the final state of the Mag vector after a rotation (or the initial
+    state for the next precession simulation step)
 """
 run_spin_excitation_parallel(obj, seq, t::Array{Float64,1}, Δt::Array{Float64,1};
 	M0::Array{Mag,1}, Nthreads::Int=Hwloc.num_physical_cores(), gpu::Function) = begin
@@ -184,23 +219,36 @@ run_spin_excitation_parallel(obj, seq, t::Array{Float64,1}, Δt::Array{Float64,1
 end
 
 """
-    run_spin_excitation(obj, seq, t, Δt; M0, gpu)
+    M0 = run_spin_excitation(obj, seq, t, Δt; M0, gpu)
 
-It gives rise to a rotation of M0 with an angle given by the efective magnetic field
+It gives rise to a rotation of `M0` with an angle given by the efective magnetic field
 (including B1, gradients and off resonance) and with respect to a rotation axis.
 
+!!! note
+    This function is used to simulate a part of the simulation over time given by the
+    variable `Nblocks` (which is outside of this function, refer to
+    [`run_sim_time_iter`](@ref)) to reduce the RAM memory utilization. It is also used to
+    simulate a part of the spins in a phantom defined by the variable `Nthreads` (which is
+    outside of this function too, refer to [`run_spin_excitation_parallel`](@ref)) to take
+    advantage of CPU parallel processing.
+
 # Arguments
-- `obj`: the phantom
-- `seq`: the sequence
-- `t::Array{Float64,2}`: the time array
-- `Δt::Array{Float64,2}`: the delta time
+- `obj`: (`::Phantom`) the phantom struct (actually, it's a part of the complete phantom)
+- `seq`: (`::Sequence`) the sequence struct
+- `t`: (`1-row ::Matrix{Float64}`, `[s]`) the non-uniform time vector (actually it's a part
+    of the complete simulation time vector)
+- `Δt`: (`1-row ::Matrix{Float64}`, `[s]`) the delta time of `t` (actually it's a part of
+    the complete simulation time vector)
 
 # Keywords
-- `M0::Array{Mag,1}`: the operation point for the mangnetization
-- `gpu::Function`: the function that represents the gpu of the host
+- `M0`: (`::Vector{Mag}`) the initial state of the Mag vector (actually, it's a part of the
+    complete Mag vector)
+- `gpu`: (`::Function`) the function that represents the gpu of the host
 
 # Returns
-- `M0`: the operation point for the mangnetization after a rotation
+- `M0`: (`::Vector{Mag}`) the final state of the Mag vector after a rotation (actually, it's
+    a part of the complete Mag vector and it's a part of the initial state for the next
+    precession simulation step)
 """
 run_spin_excitation(obj, seq, t::Array{Float64,2}, Δt::Array{Float64,2};
 	M0::Array{Mag,1}, gpu::Function) = begin
@@ -238,25 +286,29 @@ run_spin_excitation(obj, seq, t::Array{Float64,2}, Δt::Array{Float64,2};
 end
 
 """
-    run_sim_time_iter(obj, seq, t, Δt; Nblocks, Nthreads, gpu, w)
+    S_interp, M0 = run_sim_time_iter(obj, seq, t, Δt; Nblocks, Nthreads, gpu, w)
 
-Divides time steps in N_parts blocks. Decreases RAM usage in long sequences.
+Performs the simulation over the total time vector `t` by dividing the time into `Nblocks`
+parts to reduce RAM usage and spliting the spins of the phantom `obj` into `Nthreads` to
+take advantage of CPU parallel processing.
 
 # Arguments
-- `obj::Phantom`: the phantom
-- `seq::Sequence`: the sequence
-- `t::Array{Float64,1}`: the time array
-- `Δt`: the delta time
+- `obj`: (`::Phantom`) the phantom struct
+- `seq`: (`::Sequence`) the sequence struct
+- `t`: (`::Vector{Float64}`, `[s]`) the non-uniform time vector
+- `Δt`: (`::Vector{Float64}`, `[s]`) the delta time of `t`
 
 # Keywords
-- `Nblocks::Int`: number of groups for the kfoldperm function. Default = 16
-- `Nthreads::Int`: number of process threads. Default = Hwloc.num_physical_cores()
-- `gpu::Function`: the function that represents the gpu of the host
-- `w`: flag to regard progress bar in the blink window UI. Default = nothing
+- `Nblocks`: (`::Int`, `=16`) the number of groups for spliting the simulation over time
+- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) the number of process threads for
+    dividing the simulation into different phantom spin parts
+- `gpu`: (`::Function`) the function that represents the gpu of the host
+- `w`: (`::Any`, `=nothing`) the flag to regard a progress bar in the blink window UI. If
+    this variable is differnet from nothing, then the progress bar is considered
 
 # Returns
-- `S_interp`: the interpolated raw data (the detected signal)
-- `M0`: the operation point for the mangnetization
+- `S_interp`: (`::Vector{ComplexF64}`) the interpolated raw signal
+- `M0`: (`::Vector{Mag}`) the final state of the Mag vector
 """
 function run_sim_time_iter(obj::Phantom, seq::Sequence, t::Array{Float64,1}, Δt;
 								Nblocks::Int=16, Nthreads::Int=Hwloc.num_physical_cores(), gpu::Function, w=nothing)
@@ -300,21 +352,25 @@ function run_sim_time_iter(obj::Phantom, seq::Sequence, t::Array{Float64,1}, Δt
 end
 
 """
-    simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams, w)
+    out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams, w)
 
-Returns the raw data (the detected signal).
+Returns the raw signal or the last state of the magnetization according to the boolean value
+of the `"return_Mag"` key of the `simParams` dictionary.
 
 # Arguments
-- `obj::Phantom`: the phantom
-- `seq::Sequence`: the sequence
-- `sys::Scanner`: the scanner
+- `obj`: (`::Phantom`) the phantom struct
+- `seq`: (`::Sequence`) the sequence struct
+- `sys`: (`::Scanner`) the scanner struct
 
 # Keywords
-- `simParams`: a dictionary with simulation parameters. Default = Dict{String,Any}()
-- `w`: flag to regard progress bar in the blink window UI. Default = nothing
+- `simParams`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) the dictionary with simulation
+    parameters
+- `w`: (`::Any`, `=nothing`) the flag to regard a progress bar in the blink window UI. If
+    this variable is differnet from nothing, then the progress bar is considered
 
 # Returns
-- `S`: the raw data (the detected signal)
+- `out`: (`::Vector{ComplexF64}` or `::Vector{Mag}`) the raw signal if "return_Mag"=>false,
+    else the final state of the Mag vector
 """
 function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
 	#Simulation params
@@ -347,19 +403,23 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 end
 
 """
-    simulate_slice_profile(seq; z, simParams)
+    M = simulate_slice_profile(seq; z, simParams)
 
 Returns magnetization of spins distributed along `z` after running the Sequence `seq`.
 
+!!! note
+    This function is not being used in this KomaMRI version.
+
 # Arguments
-- `seq`: the sequence
+- `seq`: (`::Sequence`) the sequence struct
 
 # Keywords
-- `z`: a range for the z axe. Default = range(-2e-2,2e-2,200)
-- `simParams`: a dictionary with simulation parameters. Default = Dict{String,Any}("Δt_rf"=>1e-6)
+- `z`: (`=range(-2e-2,2e-2,200)`) a range for the z axe
+- `simParams`: (`::Dict{String, Any}`, `=Dict{String,Any}("Δt_rf"=>1e-6)`) a dictionary with
+    simulation parameters
 
 # Returns
-- `M`: the magnetization result
+- `M`: (`::Vector{Mag}`) the final state of the Mag vector
 """
 function simulate_slice_profile(seq; z=range(-2e-2,2e-2,200), simParams=Dict{String,Any}("Δt_rf"=>1e-6))
 	simParams["return_Mag"] = true
