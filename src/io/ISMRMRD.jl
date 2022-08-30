@@ -1,21 +1,22 @@
 using MRIReco: Profile
 
 """
-    rawSignalToISMRMRD(signal, seq; phantom, sys, simParams)
+    raw_ismrmrd = rawSignalToISMRMRD(signal, seq; phantom, sys, simParams)
 
-Transforms the raw signal to the ISMRMRD format.
+Transforms the raw signal into ISMRMRD format.
 
 # Arguments
-- `signal`: the raw dat signal
-- `seq`: the sequence
+- `signal`: (`::Vector{ComplexF64}`) the raw signal
+- `seq`: (`::Sequence`) the sequence struct
 
 # Keywords
-- `phantom`: the phantom. Default = Phantom(name="Phantom",x=[0])
-- `sys`: the scanner. Default = Scanner()
-- `simParams`. dictionary with simulation parameters. Default = Dict{String,Any}()
+- `phantom`: (`::Phantom`, `=Phantom(name="Phantom",x=[0])`) the phantom struct
+- `sys`: (`::Scanner`, `=Scanner()`) the scanner struct
+- `simParams`: (`::Dict{String,Any}()`, `=Dict{String,Any}()`) the dictionary with
+    simulation parameters
 
 # Returns
-- `raw_ismrmrd::RawAcquisitionData`: the raw data in ISMRMRD format.
+- `raw_ismrmrd`: (`::RawAcquisitionData`) the raw signal in ISMRMRD format
 """
 function rawSignalToISMRMRD(signal, seq;
                                 phantom=Phantom(name="Phantom",x=[0]),

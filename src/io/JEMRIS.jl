@@ -1,13 +1,13 @@
 """
-    read_phantom_jemris(filename)
+    phantom = read_phantom_jemris(filename)
 
-Basic function to read JEMRIS phantoms from a file.
+Returns the Phantom struct from JEMRIS phantoms a file `.h`.
 
 # Arguments
-- `filename`: the path of the file
+- `filename`: (`::String`) the absolute or relative path of the phantom file `.h`
 
 # Returns
-- `phantom::Phantom`: the phantom object
+- `phantom`: (`::Phantom`) the phantom struct
 """
 function read_phantom_jemris(filename)
 	# A(:,:,:,1)=Sample.M0;

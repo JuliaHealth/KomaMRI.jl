@@ -276,15 +276,15 @@ end
 # See also  write
 #"""
 """
-    read_seq(filename)
+    seq = read_seq(filename)
 
-Read the given filename and load sequence data into sequence object.
+Returns the Sequence struct from a sequence file `.seq`.
 
 # Arguments
-- `filename`: the path of the file
+- `filename`: (`::String`) the absolute or relative path of the sequence file `.seq`
 
 # Returns
-- `seq::Sequence`: the sequence
+- `seq`: (`::Sequence`) the sequence struct
 """
 function read_seq(filename)
     println("")
@@ -426,18 +426,18 @@ end
 
 #To Sequence
 """
-    read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
+    grad = read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
 
-Reads the gradient. Used internally by get_block().
+Reads the gradient. It is used internally by [`get_block`](@ref).
 
 # Arguments
-- `gradLibrary`: ???
-- `shapeLibrary`: ???
-- `Δt_gr`: ???
-- `i`: ???
+- `gradLibrary`: (`::Dict{K, V}`) the "gradLibrary" dictionary
+- `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
+- `Δt_gr`: (`::Float64`, `[s]`) the gradient raster time
+- `i`: (`::Int64`) the index of the axis in the block event
 
 # Returns
-- `G::Grad`: the gradient
+- `grad`: (::Grad) the gradient struct
 """
 function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0,0)
@@ -468,18 +468,18 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
 end
 
 """
-    read_RF(gradLibrary, shapeLibrary, Δt_gr, i)
+    rf = read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
 
-Reads the RF. Used internally by get_block().
+Reads the RF. It is used internally by [`get_block`](@ref).
 
 # Arguments
-- `gradLibrary`: ???
-- `shapeLibrary`: ???
-- `Δt_gr`: ???
-- `i`: ???
+- `rfLibrary`: (`::Dict{K, V}`) the "rfLibrary" dictionary
+- `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
+- `Δt_rf`: (`::Float64`, `[s]`) the RF raster time
+- `i`: (`::Int64`) the index of the RF in the block event
 
 # Returns
-- `R`: array with RF object
+- `rf`: (`1x1 ::Matrix{RF}`) the RF struct
 """
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     #Unpacking
@@ -516,16 +516,16 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
 end
 
 """
-    read_ADC(adcLibrary, i)
+    adc = read_ADC(adcLibrary, i)
 
-Reads the ADC. Used internally by get_block().
+Reads the ADC. It is used internally by [`get_block`](@ref).
 
 # Arguments
-- `adcLibrary`: ???
-- `i`: ???
+- `adcLibrary`: (`::Dict{String, Any}`) the "adcLibrary" dictionary
+- `i`: (`::Int64`) the index of the adc in the block event
 
 # Returns
-- `A`: array with ADC object
+- `adc`: (`1x1 ::Vector{ADC}`) the ADC struct
 """
 function read_ADC(adcLibrary, i)
     #Unpacking
@@ -543,16 +543,16 @@ function read_ADC(adcLibrary, i)
 end
 
 """
-    get_block(obj, i)
+    seq = get_block(obj, i)
 
-Sequence block definition. Used internally by read_seq().
+Block sequence definition. Used internally by [`read_seq`](@ref).
 
 # Arguments
-- `obj`: ???
-- `i`: ???
+- `obj`: (`::Dict{String, Any}`) the main dictionary
+- `i`: (`::Int64`) the index of a block event
 
 # Returns
-- `s::Sequence`: the sequence block
+- `s`: (`::Sequence`) the block sequence struct
 """
 function get_block(obj, i)
     #Unpacking
