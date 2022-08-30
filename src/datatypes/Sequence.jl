@@ -308,7 +308,7 @@ Generates a trapezoidal waveform vector.
 
 # Arguments
 - `A`: (`::Real`) the amplitude
-- `t`: (`::Vector{Float64}`, `[s]`) the times to evaluate (actually it's a `1-column
+- `t`: (`::Vector{Float64}`, `[s]`) the times to evaluate (actually it's a `1-row
     ::Matrix{Float64}`)
 - `ΔT`: (`::Real`, `[s]`) the time duration of the top-flat
 - `ζ1`: (`::Real`, `[s]`) the rise time duration
@@ -316,7 +316,7 @@ Generates a trapezoidal waveform vector.
 - `delay`: (`::Real`, `[s]`) the delay time
 
 # Returns
-- `y`: (`::Vector{Float64}`) the trapezoidal waveform (actually it's a `1-column
+- `y`: (`::Vector{Float64}`) the trapezoidal waveform (actually it's a `1-row
     ::Matrix{Float64}`)
 """
 ⏢(A, t, ΔT, ζ1, ζ2, delay) = begin
@@ -353,7 +353,7 @@ Get the gradient array from sequence `seq` evaluated in time points `t`.
 
 # Arguments
 - `seq`: (`::Sequence`) the sequence struct
-- `t`: (`::Vector{Float64}` or `1-column ::Matrix{Float64}`, `[s]`) the times to evaluate
+- `t`: (`::Vector{Float64}` or `1-row ::Matrix{Float64}`, `[s]`) the times to evaluate
 
 # Returns
 - `Gx`: (`Vector{Float64}`, `[T]`) the gradient vector values in the x direction
