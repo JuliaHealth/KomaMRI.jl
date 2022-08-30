@@ -356,9 +356,12 @@ Get the gradient array from sequence `seq` evaluated in time points `t`.
 - `t`: (`::Vector{Float64}` or `1-row ::Matrix{Float64}`, `[s]`) the times to evaluate
 
 # Returns
-- `Gx`: (`Vector{Float64}`, `[T]`) the gradient vector values in the x direction
-- `Gy`: (`Vector{Float64}`, `[T]`) the gradient vector values in the y direction
-- `Gz`: (`Vector{Float64}`, `[T]`) the gradient vector values in the z direction
+- `Gx`: (`Vector{Float64}` or `1-row ::Matrix{Float64}`, `[T]`) the gradient vector values
+    in the x direction
+- `Gy`: (`Vector{Float64}` or `1-row ::Matrix{Float64}`, `[T]`) the gradient vector values
+    in the y direction
+- `Gz`: (`Vector{Float64}` or `1-row ::Matrix{Float64}`, `[T]`) the gradient vector values
+    in the z direction
 """
 function get_grads(seq, t::Vector)
     gx = get_theo_Gi(seq, 1)
@@ -401,11 +404,11 @@ Returns the RF pulses and the delta frequency.
 
 # Arguments
 - `seq`: (`::Sequence`) the sequence struct
-- `t`: (`1-column ::Matrix{Float64}`, `[s]`) the time points
+- `t`: (`1-row ::Matrix{Float64}`, `[s]`) the time points
 
 # Returns
-- `B1`: (`1-column ::Matrix{ComplexF64}`, `[T]`) the vector of RF pulses
-- `Δf_rf`: (`1-column ::Matrix{Float64}`, `[Hz]`) the delta frequency vector
+- `B1`: (`1-row ::Matrix{ComplexF64}`, `[T]`) the vector of RF pulses
+- `Δf_rf`: (`1-row ::Matrix{Float64}`, `[Hz]`) the delta frequency vector
 """
 get_rfs(seq::Sequence, t) = begin
 	#Amplitude
