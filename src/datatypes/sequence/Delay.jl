@@ -1,14 +1,17 @@
 """
-    Delay(T)
+    delay = Delay(T)
 
-The Delay object. The input delay time `T` must be non-negative.
+The Delay struct. The input delay time `T` must be non-negative.
 
 !!! note
-    This object is meant to add delays to a sequence object that ultimately affects to the
-    gradients of a sequence.
+    This struct is meant to add delays to a sequence struct that ultimately affects to the
+    duration of the gradients of a sequence.
 
 # Arguments
-- `T::Real`: the time delay value in [s]
+- `T`: (`::Real`, `[s]`) the time delay value
+
+# Returns
+- `delay`: (`::Delay`) the Delay struct
 """
 struct Delay
     T::Real
@@ -20,13 +23,13 @@ end
 """
     str = show(io::IO, s::Delay)
 
-Displays delay time in m[s] in the julia REPL.
+Displays the delay time in m[s] of the delay struct `s` in the julia REPL.
 
 # Arguments
-- `s::Delay`: the delay object
+- `s`: (`::Delay`) the delay struct
 
 # Returns
-- `str` (::String) the output string message
+- `str`: (`::String`) the output string message
 
 # Examples
 ``` julia-repl
@@ -51,14 +54,15 @@ end
     seq = +(s::Sequence, d::Delay)
     seq = +(d::Delay, s::Sequence)
 
-Add a delay to sequence object. It ultimately affects to the gradients of a sequence.
+Add a delay to sequence struct. It ultimately affects to the duration of the gradients of a
+sequence.
 
 # Arguments
-- `s::Sequence`: the sequence object
-- `d::Delay`: the delay object
+- `s`: (`::Sequence`) the sequence struct
+- `d`: (`::Delay`) the delay struct
 
 # Returns
-- `seq::Sequence`: the delayed sequence
+- `seq`: (`::Sequence`) the delayed sequence
 """
 +(s::Sequence, d::Delay) = s + Sequence([Grad(0.,d.T)])
 +(d::Delay, s::Sequence) = Sequence([Grad(0.,d.T)]) + s

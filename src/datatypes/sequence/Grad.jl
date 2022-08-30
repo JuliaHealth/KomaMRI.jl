@@ -4,10 +4,10 @@
 Rotates vector counter-clockwise with respect to the x-axis.
 
 # Arguments
-- `θ::Real`: rotation angle
+- `θ`: (`::Real`, `[rad]`) the rotation angle
 
 # Returns
-- `Rx::Matrix{Int64}`: rotation matrix
+- `Rx`: (`::Matrix{Int64}`) the rotation matrix
 """
 rotx(θ::Real) = [1		0		0
 				 0	cos(θ)	-sin(θ);
@@ -19,10 +19,10 @@ rotx(θ::Real) = [1		0		0
 Rotates vector counter-clockwise with respect to the y-axis.
 
 # Arguments
-- `θ::Real`: rotation angle
+- `θ`: (`::Real`, `[rad]`) the rotation angle
 
 # Returns
-- `Ry::Matrix{Int64}`: rotation matrix
+- `Ry`: (`::Matrix{Int64}`) the rotation matrix
 """
 roty(θ::Real) = [cos(θ) 0	sin(θ);
 				 0		1		0;
@@ -34,37 +34,39 @@ roty(θ::Real) = [cos(θ) 0	sin(θ);
 Rotates vector counter-clockwise with respect to the z-axis.
 
 # Arguments
-- `θ::Real`: rotation angle
+- `θ`: (`::Real`, `[rad]`) the rotation angle
 
 # Returns
-- `Rz::Matrix{Int64}`: rotation matrix
+- `Rz`: (`::Matrix{Int64}`) the rotation matrix
 """
 rotz(θ::Real) = [cos(θ) -sin(θ)	0;
 				 sin(θ) cos(θ)	0;
 				 0 		0 		1]
 
 """
-    Grad(A, T)
-    Grad(A, T, rise)
-    Grad(A, T, rise, delay)
-    Grad(A, T, rise, fall, delay)
+    grad = Grad(A, T)
+    grad = Grad(A, T, rise)
+    grad = Grad(A, T, rise, delay)
+    grad = Grad(A, T, rise, fall, delay)
 
-The Gradient object.
+The Gradient struct.
 
 # Arguments
-- `A`: (::Float64 or ::Vector{Float64}) amplitude in [T], if this is a scalar it makes a
-    trapezoid
-- `T`: (::Float64 or ::Vector{Float64}) duration of the flat-top [s]
-- `rise::Real`: duration of the rise [s]
-- `fall::Real`: duration of the fall [s]
-- `delay::Real`: duration of the delay [s]
+- `A`: (`::Float64`, `[T]`) the amplitude of the gradient
+- `T`: (`::Float64`, `[s]`) the duration of the flat-top
+- `rise`: (`::Real`, `[s]`) the duration of the rise
+- `fall`: (`::Real`, `[s]`) the duration of the fall
+- `delay`: (`::Real`, `[s]`) the duration of the delay
+
+# Returns
+- `grad`: (`::Grad`) the Gradient struct
 """
 mutable struct Grad
-	A           #Amplitud [T], if this is a scalar it makes a trapezoid
-	T           #Duration of flat-top [s]
-	rise::Real  #Duration of rise [s]
-	fall::Real  #Duration of fall [s]
-	delay::Real #Duration of fall [s]
+	A
+	T
+	rise::Real
+	fall::Real
+	delay::Real
     function Grad(A, T, rise, fall, delay)
 		all(T .< 0) || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, fall, delay)
     end
@@ -80,15 +82,18 @@ mutable struct Grad
 end
 
 """
-    Grad(f::Function, T::Real, N::Int64)
+    grad = Grad(f::Function, T::Real, N::Int64)
 
 Generates an arbitrary gradient waveform defined by function `f` in the interval t ∈
 [0,`T`]. It uses `N` square gradients uniformly spaced in the interval.
 
 # Arguments
-- `f::Function`: the gradient waveform
-- `T::Real`: the gradient duration
-- `N::Int64`: the number of samples of the gradient
+- `f`: (`::Function`) the gradient waveform
+- `T`: (`::Real`, `[s]`) the duration of the gradient waveform
+- `N`: (`::Int64`) the number of samples of the gradient waveform
+
+# Returns
+- `grad`: (`::Grad`) the Gradient struct
 """
 Grad(f::Function, T::Real, N::Int64=300) = begin
 	t = range(0, T; length=N)
@@ -99,13 +104,13 @@ end
 """
     str = show(io::IO, x::Grad)
 
-Displays information about the Grad object `x` in the julia REPL.
+Displays information about the Grad struct `x` in the julia REPL.
 
 # Arguments
-- `x::Grad`: the Grad object
+- `x`: (`::Grad`) the Grad struct
 
 # Returns
-- `str` (::String) the output string message
+- `str` (`::String`) the output string message
 """
 Base.show(io::IO, x::Grad) = begin
 	r(x) = round.(x,digits=4)
@@ -131,14 +136,14 @@ Overchages Base.getproperty(). It is meant to access properties of the Grad vect
 directly without the need to iterate elementwise.
 
 # Arguments
-- `x::Vector{Grad}`: the vector of Grad objects
-- `x::Matrix{Grad}`: the matrix of Grad objects
-- `f::Symbol`: custom options are the `:x`, `:y`, `:z`, `:T`, `:delay`, `:rise`, `:delay`
-    and `:dur` symbols
+- `x`: (`::Vector{Grad}` or `::Matrix{Grad}`) the vector or matrix of Grad structs
+- `f`: (`::Symbol`, opts: [`:x`, `:y`, `:z`, `:T`, `:delay`, `:rise`, `:delay`, `:dur`,
+    `:A`, `f`]) the input symbol that represents a property of the vector or matrix of Grad
+    structs
 
 # Returns
-- `y`: (::Vector{Any} or ::Matrix{Any}) the vector with the property defined by the symbol
-    `f` for all elements of the Grad vector or matrix `x`
+- `y`: (`::Vector{Any}` or `::Matrix{Any}`) the vector or matrix with the property defined
+    by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
 getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
 getproperty(x::Matrix{Grad}, f::Symbol) = begin
@@ -179,16 +184,17 @@ vcat(x::Array{Grad,1},y::Array{Grad,1}) = [i==1 ? x[j] : y[j] for i=1:2,j=1:leng
 vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ? y[j] : z[j] for i=1:3,j=1:length(x)]
 
 """
-   y = dur(x::Grad)
-   y = dur(x::Vector{Grad})
+    y = dur(x::Grad)
+    y = dur(x::Vector{Grad})
 
-Duration time in [s] of Grad object or Grad array.
+Duration time in [s] of Grad struct or Grad array. When the input is a gradient vector, then
+the duration is the maximum duration of all the elements of the gradient vector.
 
 # Arguments
-- `x`: (::Grad or ::Vector{Grad}) the RF object or RF array
+- `x`: (`::Grad` or `::Vector{Grad}`) the RF struct or RF array
 
 # Returns
-- `y`: (::Float64) the duration of the RF object or RF array in [s]
+- `y`: (`::Float64`, `[s]`) the duration of the RF struct or RF array
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x), dims=1)[:]

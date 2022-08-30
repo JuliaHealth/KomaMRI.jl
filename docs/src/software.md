@@ -64,19 +64,29 @@ rotx
 roty
 rotz
 Grad
+Grad(::Function, ::Real, ::Int64)
+show(::IO, ::Grad)
+getproperty(::Vector{Grad}, ::Symbol)
+dur(::Grad)
 ```
 
 ### `RF`
 ```@docs
 Spinor
+show(::IO,::Spinor)
+*(::Spinor, ::Spinor)
 Rz
 Ry
 Rx
 KomaMRI.Rg
 KomaMRI.Rφ
 Q
+abs(::Spinor)
 
 RF
+show(::IO, ::RF)
+getproperty(::Vector{RF}, ::Symbol)
+dur(::RF)
 KomaMRI.RF_fun
 KomaMRI.get_flip_angle
 KomaMRI.get_RF_center
@@ -85,6 +95,7 @@ KomaMRI.get_RF_center
 ### `ADC`
 ```@docs
 ADC
+getproperty(::Vector{ADC}, ::Symbol)
 KomaMRI.get_sample_times
 KomaMRI.get_sample_phase_compensation
 ```
@@ -92,6 +103,8 @@ KomaMRI.get_sample_phase_compensation
 ### `Delay`
 ```@docs
 Delay
+show(::IO, ::Delay)
++(::Sequence, ::Delay)
 ```
 
 ## [Pulseq.jl](@id pulseq)

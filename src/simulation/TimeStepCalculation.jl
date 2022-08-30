@@ -14,7 +14,7 @@ Divides a list of indices 1:`N` (which is in your imagination) into `k` groups.
 - `k`: (`::Int64`) the number of groups to divide the `N` elements
 
 # Keywords
-- `type`: (`::String`, `="random"`, opts: ["random", "ordered"]) the order type option.
+- `type`: (`::String`, `="random"`, opts: [`"random"`, `"ordered"`]) the order type option.
     If random, then the indices of the groups are unordered. If "ordered", then the indices
     of the groups are sorted in an incremental order
 - `breaks`: (`::Vector{Int64}`, `=[]`) the array of indices where predefined break points

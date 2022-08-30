@@ -1,20 +1,18 @@
 """
-    ADC(N, T)
-    ADC(N, T, delay)
-    ADC(N, T, delay, Δf, ϕ)
+    adc = ADC(N, T)
+    adc = ADC(N, T, delay)
+    adc = ADC(N, T, delay, Δf, ϕ)
 
-The ADC object.
-
-!!! note
-    All the time inputs are meant to be non-negative. When inputs are not defined, they are
-    set to zero.
+The ADC struct.
 
 # Arguments
-- `N::Int64`: number of acquired samples
-- `T::Float64`: duration to acquire the samples
-- `delay::Float64`: delay to start the acquisition
-- `Δf::Float64`: the delta frequency. It's meant to compensate RF pulse phases
-- `ϕ::Float64`: the phase. It's meant to compensate RF pulse phases
+- `N`: (`::Int64`) the number of acquired samples
+- `T`: (`::Float64`, [`s`]) the duration to acquire the samples
+- `delay`: (`::Float64`, [`s`]) the delay time to start the acquisition
+- `Δf`: (`::Float64`, [`Hz`]) the delta frequency. It's meant to compensate RF pulse phases.
+    It is used internally by the [`read_ADC`](@ref) function
+- `ϕ`: (`::Float64`, `[rad]`) the phase. It's meant to compensate RF pulse phases. It is
+    used internally by the [`read_ADC`](@ref) function
 """
 mutable struct ADC
     N::Int64
@@ -34,18 +32,18 @@ mutable struct ADC
 end
 
 """
-    getproperty(x::Vector{ADC}, f::Symbol)
+    y = getproperty(x::Vector{ADC}, f::Symbol)
 
 Overchages Base.getproperty(). It is meant to access properties of the ADC vector `x`
 directly without the need to iterate elementwise.
 
 # Arguments
-- `x::Vector{ADC}`: the vector of ADC objects
-- `f::Symbol`: custom options are the `:dur` symbol. `:dur` represents the acquisition time
-    regarding the delay
+- `x`: (`::Vector{ADC}`) the vector of ADC structs
+- `f`: (`::Symbol`, opts: [`:N`, `:T`, `:delay`, `:Δf`, `:ϕ`, `:dur`]) the input symbol that
+    represents a property of the ACD structs
 
 # Returns
-- `y`: (::Vector{Any}) the vector with the property defined by the `f` for all elements of
+- `y`: (`::Vector{Any}`) the vector with the property defined by the `f` for all elements of
     the ADC vector `x`
 
 ``` julia-repl
@@ -63,25 +61,25 @@ julia> getproperty(ADCs, :dur)
 ```
 """
 getproperty(x::Vector{ADC}, f::Symbol) = begin
-  if f == :dur
+    if f == :dur
 		T, delay = x.T, x.delay
 		ΔT = T .+ delay
 		ΔT
-  else
-    getproperty.(x, f)
-  end
+    else
+        getproperty.(x, f)
+    end
 end
 
 """
     times = get_sample_times(seq)
 
-Returns an array of times where the samples of the sequence `seq` are acquired.
+Returns an array of times when the samples of the sequence `seq` are acquired.
 
 # Arguments
-- `seq`: (::Sequence) the sequence object
+- `seq`: (`::Sequence`) the sequence struct
 
 # Returns
-- `times`: (::Vector{Float64}) the time array of acquired samples
+- `times`: (`::Vector{Float64}`, `[s]`) the time array when samples are acquired
 """
 function get_sample_times(seq)
     T0 = cumsum([0; durs(seq)], dims=1)
@@ -108,10 +106,11 @@ Returns the array of phases for every acquired sample in the sequence `seq`.
     to the end of the [`run_sim_time_iter`](@ref) function to see its usage.
 
 # Arguments
-- `seq`: (::Sequence) the sequence object
+- `seq`: (`::Sequence`) the sequence struct
 
 # Returns
-- `phase`: (::Vector{Complex{Int64}}) the array of phases for every acquired sample
+- `phase`: (`::Vector{Complex{Int64}}`, `[rad]`) the array of phases for every acquired
+    sample
 """
 function get_sample_phase_compensation(seq)
   phase = []
