@@ -1,24 +1,25 @@
-#####################
-## Sequence OBJECT ##
-#####################
 """
-    Sequence()
-    Sequence(GR)
-    Sequence(GR, RF)
-    Sequence(GR, RF, ADC)
-    Sequence(GR, RF, ADC, DUR)
-    Sequence(GR::Array{Grad,1})
-    Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
-    Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
+    seq = Sequence()
+    seq = Sequence(GR)
+    seq = Sequence(GR, RF)
+    seq = Sequence(GR, RF, ADC)
+    seq = Sequence(GR, RF, ADC, DUR)
+    seq = Sequence(GR::Array{Grad,1})
+    seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
+    seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
 
-The Sequence object.
+The Sequence struct.
 
 # Arguments
-- `GR::Array{Grad,2}`: gradient array, first axis is the dimension (x,y,z) and the second one is time.
-- `RF::Array{RF,2}`: RF pulses in coil and time
-- `ADC::Array{ADC,1}`: ADC in time
-- `DUR::Vector`: duration of each block, this enables delays after RF pulses to satisfy ring-down times
-- `DEF::Dict{String,Any}`: dictionary with information relevant to the reconstructor
+- `GR`: (`::Matrix{Grad}`) the gradient matrix, rows are for (x,y,z) and columns are for time
+- `RF`: (`::Matrix{RF}`) the RF matrix, the 1 row is for the coil and columns are for time
+- `ADC`: (`::Vector{ADC}`) the ADC vector in time
+- `DUR`: (`::Vector{Float64}`, `[s]`) the duration of each sequence-block, this enables
+    delays after RF pulses to satisfy ring-down times
+- `DEF`: (`::Dict{String, Any}`) the dictionary with relevant information of the sequence.
+    The possible keys are [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
+    `"Num_Blocks"`, `"Nx"`, `"Ny"`, `"PulseqVersion"`, `"BlockDurationRaster"`,
+    `"FileName"`, `"RadiofrequencyRasterTime"`]
 
 # Examples
 ```julia-repl
@@ -95,6 +96,27 @@ Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF) = Sequence(
 																)
 Sequence() = Sequence([Grad(0,0)])
 
+"""
+    str = show(io::IO, s::Sequence)
+
+Displays information about the Sequence struct `s` in the julia REPL.
+
+# Arguments
+- `s`: (`::Sequence`) the Sequence struct
+
+# Returns
+- `str` (`::String`) the output string message
+"""
+Base.show(io::IO, s::Sequence) = begin
+	compact = get(io, :compact, false)
+	if !compact
+		nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
+		print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | DEF: $(length(s.DEF)) ]")
+	else
+		print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
+	end
+end
+
 #Sequence operations
 Base.length(x::Sequence) = length(x.DUR)
 Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1], x.ADC[1], x.DUR[1], x.DEF), 2)
@@ -105,15 +127,6 @@ Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:
 Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF) : nothing
 Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
-Base.show(io::IO,s::Sequence) = begin
-	compact = get(io, :compact, false)
-	if !compact
-		nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
-		print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | DEF: $(length(s.DEF)) ]")
-	else
-		print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
-	end
-end
 
 #Arithmetic operations
 +(x::Sequence, y::Sequence) = Sequence([x.GR  y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
@@ -132,16 +145,16 @@ size(x::Sequence) = size(x.GR[1,:])
 
 """
     y = is_ADC_on(x::Sequence)
-    y = is_ADC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}})
+    y = is_ADC_on(x::Sequence, t::Union{Array{Float64,1}, Array{Float64,2}})
 
 Tells if the sequence `seq` has elements with ADC active, or active during time `t`.
 
 # Arguments
-- `x::Sequence`: the sequence object
-- `t::Union{Array{Float64,1},Array{Float64,2}}`: time to check
+- `x`: (`::Sequence`) the sequence struct
+- `t`: (`::Union{Array{Float64,1}, Array{Float64,2}}`, `[s]`) the time to check
 
 # Returns
-- `y::Bool`: whether or not the ADC in the sequence is active
+- `y`: (`::Bool`) the boolean that tells whether or not the ADC in the sequence is active
 """
 is_ADC_on(x::Sequence) = any(x.ADC.N .> 0)
 is_ADC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}}) = begin
@@ -167,11 +180,11 @@ end
 Tells if the sequence `seq` has elements with RF active, or active during time `t`.
 
 # Arguments
-- `x::Sequence`: the sequence object
-- `t::Vector{Float64}`: time to check
+- `x`: (`::Sequence`) the sequence struct
+- `t`: (`::Vector{Float64}`, `[s]`) the time to check
 
 # Returns
-- `y::Bool`: whether or not the RF in the sequence is active
+- `y`: (`::Bool`) the boolean that tells whether or not the RF in the sequence is active
 """
 is_RF_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.RF] .> 0)
 is_RF_on(x::Sequence, t::Vector{Float64}) = begin
@@ -196,10 +209,10 @@ end
 Tells if the sequence `seq` has elements with GR active.
 
 # Arguments
-- `x::Sequence`: the sequence object
+- `x`: (`::Sequence`) the sequence struct
 
 # Returns
-- `y::Bool`: whether or not the GR in the sequence is active
+- `y`: (`::Bool`) the boolean that tells whether or not the GR in the sequence is active
 """
 is_GR_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR] .> 0)
 
@@ -209,10 +222,10 @@ is_GR_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR] .> 0)
 Tells if the sequence `seq` has elements with GR active in x direction.
 
 # Arguments
-- `x::Sequence`: the sequence object
+- `x`: (`::Sequence`) the sequence struct
 
 # Returns
-- `y::Bool`: whether or not the GRx in the sequence is active
+- `y`: (`::Bool`) the boolean that tells whether or not the GRx in the sequence is active
 """
 is_Gx_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.x] .> 0)
 
@@ -222,10 +235,10 @@ is_Gx_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.x] .> 0)
 Tells if the sequence `seq` has elements with GR active in y direction.
 
 # Arguments
-- `x::Sequence`: the sequence object
+- `x`: (`::Sequence`) the sequence struct
 
 # Returns
-- `y::Bool`: whether or not the GRy in the sequence is active
+- `y`: (`::Bool`) the boolean that tells whether or not the GRy in the sequence is active
 """
 is_Gy_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.y] .> 0)
 
@@ -235,10 +248,10 @@ is_Gy_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.y] .> 0)
 Tells if the sequence `seq` has elements with GR active in z direction.
 
 # Arguments
-- `x::Sequence`: the sequence object
+- `x`: (`::Sequence`) the sequence struct
 
 # Returns
-- `y::Bool`: whether or not the GRz in the sequence is active
+- `y`: (`::Bool`) the boolean that tells whether or not the GRz in the sequence is active
 """
 is_Gz_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.z] .> 0)
 
@@ -248,10 +261,10 @@ is_Gz_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.z] .> 0)
 Tells if the sequence `seq` is a delay.
 
 # Arguments
-- `x::Sequence`: the sequence object
+- `x`: (`::Sequence`) the sequence struct
 
 # Returns
-- `y::Bool`: whether or not the RF in the sequence is active
+- `y::Bool`: the boolean that tells whether or not the sequence is a delay
 """
 is_Delay(x::Sequence) = !(is_GR_on(x) || is_RF_on(x) || is_ADC_on(x))
 
@@ -261,10 +274,10 @@ is_Delay(x::Sequence) = !(is_GR_on(x) || is_RF_on(x) || is_ADC_on(x))
 Returns the array of durations of sequence's blocks in [s].
 
 # Arguments
-- `x::Sequence`: the sequence object
+- `x`: (`::Sequence`) the sequence struct
 
 # Returns
-- `ΔT::Array{Real,1}`: the array of durations of sequence's blocks
+- `ΔT`: (`::Vector{Real}`, `[s]`) the array of durations of sequence's blocks
 """
 durs(x::Sequence) = begin
 	# ΔT_GR  = x.GR.dur
@@ -281,27 +294,30 @@ end
 The total duration of the sequence in [s].
 
 # Arguments
-- `x::Sequence`: the sequence object
+- `x`: (`::Sequence`) the sequence struct
 
 # Returns
-- `T::Real`: the total duration of the sequence
+- `T`: (`::Real`, `[s]`) the total duration of the sequence
 """
 dur(x::Sequence) = sum(durs(x))
 
 """
     y = ⏢(A, t, ΔT, ζ1, ζ2, delay)
+
 Generates a trapezoidal waveform vector.
 
 # Arguments
-- `A`: (::Real or ::Vector) amplitudes
-- `t`: (::Vector or ::Matrix) times to evaluate
-- `ΔT`: (::Real) time duration of the top-flat
-- `ζ1`: (::Real) rise time duration
-- `ζ2`: (::Real) fall time duration
-- `delay`: (::Real) time delay
+- `A`: (`::Real`) the amplitude
+- `t`: (`::Vector{Float64}`, `[s]`) the times to evaluate (actually it's a `1-column
+    ::Matrix{Float64}`)
+- `ΔT`: (`::Real`, `[s]`) the time duration of the top-flat
+- `ζ1`: (`::Real`, `[s]`) the rise time duration
+- `ζ2`: (`::Real`, `[s]`) the fall time duration
+- `delay`: (`::Real`, `[s]`) the delay time
 
 # Returns
-- `y`: (::Vector or ::Matrix) the trapezoidal waveform
+- `y`: (`::Vector{Float64}`) the trapezoidal waveform (actually it's a `1-column
+    ::Matrix{Float64}`)
 """
 ⏢(A, t, ΔT, ζ1, ζ2, delay) = begin
 	if sum(abs.(A)) != 0 && ΔT+ζ1+ζ2 != 0 # If no event just ignore calculations
@@ -336,35 +352,18 @@ end
 Get the gradient array from sequence `seq` evaluated in time points `t`.
 
 # Arguments
-- `seq::Sequence`: the sequence object
-- `t(::Vector or ::Matrix)`: time vector or matrix to evaluate
+- `seq`: (`::Sequence`) the sequence struct
+- `t`: (`::Vector{Float64}` or `1-column ::Matrix{Float64}`, `[s]`) the times to evaluate
 
 # Returns
-- `Gx`: gradient array in the x direction
-- `Gy`: gradient array in the y direction
-- `Gz`: gradient array in the y direction
-
-# Examples
-```julia-repl
-julia> seq = Sequence([Grad(1,1) Grad(-1,1); Delay(1) Delay(1)])
-Sequence(Grad[Grad(1, 1) Grad(-1, 1); Grad(0, 1) Grad(0, 1)])
-
-julia> t = 0:.5:2
-0.0:0.5:2.0
-
-julia> get_grad(seq, t)
-5-element Array{Float64,1}:
-  1.0
-  1.0
-  0.0
- -1.0
- -1.0
-```
+- `Gx`: (`Vector{Float64}`, `[T]`) the gradient vector values in the x direction
+- `Gy`: (`Vector{Float64}`, `[T]`) the gradient vector values in the y direction
+- `Gz`: (`Vector{Float64}`, `[T]`) the gradient vector values in the z direction
 """
 function get_grads(seq, t::Vector)
-    gx = get_theo_Gi(seq,1)
-    gy = get_theo_Gi(seq,2)
-    gz = get_theo_Gi(seq,3)
+    gx = get_theo_Gi(seq, 1)
+    gy = get_theo_Gi(seq, 2)
+    gz = get_theo_Gi(seq, 3)
     Gx = LinearInterpolation(gx..., extrapolation_bc=0)(t)
     Gy = LinearInterpolation(gy..., extrapolation_bc=0)(t)
     Gz = LinearInterpolation(gz..., extrapolation_bc=0)(t)
@@ -372,9 +371,9 @@ function get_grads(seq, t::Vector)
 end
 function get_grads(seq, t::Matrix)
 	t_vec = t[:]
-    gx = get_theo_Gi(seq,1)
-    gy = get_theo_Gi(seq,2)
-    gz = get_theo_Gi(seq,3)
+    gx = get_theo_Gi(seq, 1)
+    gy = get_theo_Gi(seq, 2)
+    gz = get_theo_Gi(seq, 3)
     Gx = LinearInterpolation(gx..., extrapolation_bc=0)(t_vec)
     Gy = LinearInterpolation(gy..., extrapolation_bc=0)(t_vec)
     Gz = LinearInterpolation(gz..., extrapolation_bc=0)(t_vec)
@@ -396,17 +395,17 @@ end
 # end
 
 """
-   B1, Δf_rf  = get_rfs(seq::Sequence, t)
+    B1, Δf_rf  = get_rfs(seq::Sequence, t)
 
 Returns the RF pulses and the delta frequency.
 
 # Arguments
-- `seq::Sequence`: the sequence object
-- `t`: (::Vector or ::Matrix) the time vector or matrix
+- `seq`: (`::Sequence`) the sequence struct
+- `t`: (`1-column ::Matrix{Float64}`, `[s]`) the time points
 
 # Returns
-- `B1`: the RF pulses
-- `Δf_rf`: the delta frequency
+- `B1`: (`1-column ::Matrix{ComplexF64}`, `[T]`) the vector of RF pulses
+- `Δf_rf`: (`1-column ::Matrix{Float64}`, `[Hz]`) the delta frequency vector
 """
 get_rfs(seq::Sequence, t) = begin
 	#Amplitude
@@ -427,27 +426,27 @@ end
 Returns all the flip angles of the RF pulses in the sequence `x`.
 
 # Arguments
-- `x::Sequence`: the sequence object
+- `x`: (`::Sequence`) the sequence struct
 
 # Returns
-- `y`: flip angles
+- `y`: (`::Vector{Float64}`, `[deg]`) the flip angles
 """
 get_flip_angles(x::Sequence) = get_flip_angle.(x.RF)[:]
 
 """
     y = get_ADC_on(seq::Sequence, t::Array{Float64,1})
 
-Get the ADC objects that are active.
+Get the ADC struct that are active.
 
 !!! note
     This function is not being used.
 
 # Arguments
-- `seq::Sequence`: the sequence object
-- `t::Array{Float64,1}`: the time vector
+- `seq`: (`::Sequence`) the sequence struct
+- `t`: (`::Vector{Float64}`, `[s]`) the time vector
 
 # Returns
-- `y`: the ADC objects that are active
+- `y`: (`::Vector{Bool}`) the ADC struct that are active
 """
 get_ADC_on(seq::Sequence, t::Array{Float64,1}) = begin
 	Δt = t[2]-t[1]
@@ -474,13 +473,13 @@ Calculates the `b` value for PGSE and a moment nulled sequence.
     This function is not being used.
 
 # Arguments
-- `DIF::Sequence`
+- `DIF`: (`:Sequence`)
 - `G`
 - `Δ`
 - `δ`
 
 # Keywords
-- `null::Bool=false`
+- `null`: (`::Bool`, `=false`)
 
 # Returns
 - `bvalue`: the b value
@@ -512,7 +511,7 @@ Calculates the `b`-matrix, such as `b`-value = g' B g [s/mm2] with g [T/m].
     This function is not being used.
 
 # Arguments
-- `DIF::Sequence`: the diffusion sequence object
+- `DIF`: (`::Sequence`) the diffusion sequence struct
 
 # Returns
 - `bmatrix`: the b matrix
@@ -545,8 +544,8 @@ Calculates `q` = γδG diffusion vector from a *diffusion sequence*.
     This function is not being used.
 
 # Arguments
-- `DIF::Sequence`: the diffusion sequence object
-- `type::String="val"` (::String) option to get a value or plot
+- `DIF`: (`::Sequence`) the diffusion sequence struct
+- `type`: (`::String`, `="val"`) the option to get a value or plot
 
 # Returns
 - `qvector`: the q diffusion vector as a value or a plot
@@ -588,7 +587,7 @@ Get the momentums `M0`, `M1` and `M2` from the sequence `seq`.
     This function is not being used.
 
 # Arguments
-- `seq`: (::Sequence) the sequence object
+- `seq`: (`::Sequence`) the sequence struct
 
 # Returns
 - `M0`: the M0 momentum
@@ -622,10 +621,10 @@ The maximum gradient of the sequence `x`.
     This function is not being used.
 
 # Arguments
-- `seq`: (::Sequence) the sequence object
+- `seq`: (`::Sequence`) the sequence struct
 
 # Returns
-- `Gmax`: (::Real) the maximum value of the gradient
+- `Gmax`: (`::Real`) the maximum value of the gradient
 """
 get_max_grad(x::Sequence) = begin
 	G = [x.GR[i,j].A for i=1:size(x.GR,1),j=1:size(x.GR,2)]
@@ -638,12 +637,13 @@ end
 Get RF centers and types (excitation or precession). Useful for k-space calculations.
 
 # Arguments
-- `seq`: (::Sequence) the sequence object
-- `t`: (::Vector{Float64}) the time array with the time values
+- `seq`: (`::Sequence`) the sequence struct
+- `t`: (`::Vector{Float64}`, `[s]`) the time values
 
 # Returns
-- `rf_idx`: the index of the RF center
-. `rf_type`: the RF type (excitation or precession)
+- `rf_idx`: (`::Vector{Int64}`) the indices of the RF centers
+- `rf_type`: (`::Vector{Int64}`, opts: [`0`, `1`]) the RF type (`0`: excitation, `1`:
+    precession)
 """
 function get_RF_types(seq, t)
 	α = get_flip_angles(seq)
@@ -670,16 +670,16 @@ end
 """
     kspace, kspace_adc = get_kspace(seq::Sequence; Δt=1)
 
-Outputs designed k-space trajectory from sequence object.
+Outputs designed k-space trajectory from sequence struct.
 
 # Arguments
-- `seq::Sequence`: the sequence object
-- `Δt=1`: (::Real) the nominal delta time separation between two time samples for ADC
-    acquisition and Gradients
+- `seq`: (`::Sequence`) the sequence struct
+- `Δt`: (`::Real`, `=1`, `[s]`) the nominal delta time separation between two time samples
+    for ADC acquisition and Gradients
 
 # Returns
-- `kspace`: the kspace
-. `kspace_adc`: the adc kspace
+- `kspace`: (`3-column ::Matrix{Float64}`) the kspace
+- `kspace_adc`: (`3-column ::Matrix{Float64}`) the adc kspace
 """
 get_kspace(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
@@ -723,11 +723,11 @@ Calculates the normalized moments at the end of the sequence.
     This function is not being used.
 
 # Arguments
-- `seq::Sequence`: the sequence object
-- `order=0`: (::Real) the order parameter
+- `seq`: (`::Sequence`) the sequence struct
+- `order`: (`::Real`, `=0`, opts: [`0`, `1`]) the order parameter
 
 # Returns
-- `y`: (::Matrix) the normalized moments matrix [M0'; M1'; M2'; M3']
+- `y`: (`::Matrix{Float64}`) the normalized moments matrix [M0'; M1'; M2'; M3']
 """
 function get_Mmatrix(seq::Sequence; order=0)
     M, N = size(seq.GR)
@@ -759,10 +759,10 @@ Slew rate matrix: |SR*g| ≤ Smax.
     This function is not being used.
 
 # Arguments
-- `seq::Sequence`: the sequence object
+- `seq`: (`::Sequence`) the sequence struct
 
 # Returns
-- `y`: the slew rate matrix
+- `y`: (`Matrix{Float64}`) the slew rate matrix
 """
 function get_SRmatrix(seq::Sequence)
     _, N = size(seq.GR)
@@ -781,15 +781,15 @@ end
 Duration in [s] => samples, with dwell-time of Δt = 6.4 μs. Useful to scanner Philips.
 
 # Arguments
-- `δ`: (::Real) delta time parameter
+- `δ`: (`::Float64`, `[s]`) the delta time parameter
 
 # Returns
-- `y`: (::Real) the time duration
+- `y`: (`::Float64`, `[s]`) the time duration
 """
 δ2N(δ) = floor(Int64, δ * 156250) + 2
 
 """
-    write_diff_fwf(args...)
+    write_diff_fwf(DIF, idx180, Gmax, bmax; filename="./qte_vectors_input.txt", name)
 
 !!! note
     This function is not being used.

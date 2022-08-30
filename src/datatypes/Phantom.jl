@@ -1,24 +1,27 @@
-####################
-## Phantom OBJECT ##
-####################
 """
-    Phantom(x, y, ρ, T2, Δw, Dλ1, Dλ2, Dθ, ux, uy)
+    phantom = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
 
-The Phantom object.
+The Phantom struct.
 
 # Arguments
- - `name::String`: name of the Phantom
- - `x::Vector`: spins x-coordinates
- - `y::Vector`: spins y-coordinates
- - `z::Vector`: spins z-coordinates
- - `ρ::Matrix`: proton density
- - `T1::Matrix`: T1 map
- - `T2::Matrix`: T2 map
- - `Δw::Matrix`: off-resonace map
- - `D::Matrix`: diffusion model
- - `ux::Function`: displacement field x
- - `uy::Function`: displacement field y
- - `uz::Function`: displacement field z
+- `name`: (`::String`) the name of the Phantom
+- `x`: (`::Vector{Float64}`, `[m]`) the vector of x-positions of the spins
+- `y`: (`::Vector{Float64}`, `[m]`) the vector of y-positions of the spins
+- `z`: (`::Vector{Float64}`, `[m]`) the vector of z-positions of the spins
+- `ρ`: (`::Vector{Float64}`) the vector of proton density of the spins
+- `T1`: (`::Vector{Float64}`, `[s]`) the vector of T1 parameters of the spins
+- `T2`: (`::Vector{Float64}`, `[s]`) the vector of T2 parameters of the spins
+- `T2s`: (`::Vector{Float64}`, `[s]`) the vector of T2s parameters of the spins
+- `Δw`: (`::Vector{Float64}`, `[rad/s]`) the vector of off-resonance parameters of the spins
+- `Dλ1`: (`::Vector{Float64}`) the vector of Dλ1 (diffusion) parameters of the spins
+- `Dλ2`: (`::Vector{Float64}`) the vector of Dλ2 (diffusion) parameters of the spins
+- `Dθ`: (`::Vector{Float64}`) the vector of Dθ (diffusion) parameters of the spins
+- `ux`: (`::Function`) the displacement field in the x-axis
+- `uy`: (`::Function`) the displacement field in the y-axis
+- `uz`: (`::Function`) the displacement field in the z-axis
+
+# Returns
+- `phantom`: (`::Phantom`) the Phantom struct
 
 # Examples
 ```julia-repl
@@ -42,16 +45,16 @@ Phantom
 ```
 """
 @with_kw mutable struct Phantom
-	name::String = "spin" #Name of the Phantom
-	x::Vector #x-coordinates of spins
-	y::Vector = zeros(size(x)) #y-coordinates of spins
-	z::Vector = zeros(size(x)) #z-coordinates of spins
-	ρ::Vector = ones(size(x)) #proton density
-	T1::Vector = Inf*ones(size(x)) #T1 map
-	T2::Vector = Inf*ones(size(x)) #T2 map
+	name::String = "spin"
+	x::Vector
+	y::Vector = zeros(size(x))
+	z::Vector = zeros(size(x))
+	ρ::Vector = ones(size(x))
+	T1::Vector = Inf*ones(size(x))
+	T2::Vector = Inf*ones(size(x))
 	T2s::Vector = Inf*ones(size(x))
 	#Off-resonance related
-	Δw::Vector = zeros(size(x)) #Off-resonace map
+	Δw::Vector = zeros(size(x))
 	#χ::Vector{SusceptibilityModel}
 	#Diffusion
 	Dλ1::Vector = zeros(size(x))
@@ -59,9 +62,9 @@ Phantom
 	Dθ::Vector = zeros(size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 	#Motion
-	ux::Function = (x,y,z,t)->0 #Displacement field x
-	uy::Function = (x,y,z,t)->0 #Displacement field y
-	uz::Function = (x,y,z,t)->0 #Displacement field z
+	ux::Function = (x,y,z,t)->0
+	uy::Function = (x,y,z,t)->0
+	uz::Function = (x,y,z,t)->0
 end
 
 # Phantom() = Phantom(name="spin",x=zeros(1,1))
@@ -148,19 +151,19 @@ end
 # end
 
 """
-    obj = heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false)
+    phantom = heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false)
 
-Heart-like LV phantom. The variable `α` is for strech, `β` for contraction, and `γ` for
+Heart-like LV phantom. The variable `α` is for streching, `β` for contraction, and `γ` for
 rotation.
 
 # Arguments
-- `α=1`: (::Reañ) streching parameter
-- `β=1`: (::Real) contraction parameter
-- `γ=1`: (::Real) rotation parameter
-- `fat_bool::Bool=false`: fat parameter
+- `α`: (`::Real`, `=1`) the streching parameter
+- `β`: (`::Real`, `=1`) the contraction parameter
+- `γ`: (`::Real`, `=1`) the rotation parameter
+- `fat_bool`: (`::Bool`, `=false`) the fat boolean parameter
 
 # Returns
-- `obj::Phantom`: the Heart-like LV phantom object
+- `phantom`: (`::Phantom`) the Heart-like LV phantom struct
 """
 heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false) = begin
 	#PARAMETERS
@@ -218,9 +221,9 @@ end
 
 
 """
-    obj = brain_phantom2D(;axis="axial", ss=4)
+    phantom = brain_phantom2D(;axis="axial", ss=4)
 
-Creates a three-dimentional phantom object.
+Creates a two-dimentional brain phantom struct.
 
 # References
 - B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
@@ -230,11 +233,11 @@ Creates a three-dimentional phantom object.
 - https://brainweb.bic.mni.mcgill.ca/brainweb
 
 # Keywords
-- `axis="axial"`: (::String) orientation of the phantom
-- `ss=4`: (::Real) heart phantom parameter
+- `axis`: (`::String`, `="axial"`, opts=[`"axial"`]) the orientation of the phantom
+- `ss`: (`::Real`, `=4`) the brain phantom parameter
 
 # Returns
-- `obj::Phantom`: the 2D phantom object
+- `phantom`: (`::Phantom`) the 2D phantom struct
 """
 function brain_phantom2D(;axis="axial", ss=4)
     path = @__DIR__
@@ -313,9 +316,9 @@ function brain_phantom2D(;axis="axial", ss=4)
 end
 
 """
-    obj = brain_phantom3D(;ss=4)
+    phantom = brain_phantom3D(;ss=4)
 
-Creates a three-dimentional phantom object.
+Creates a three-dimentional brain phantom struct.
 
 # References
 - B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
@@ -325,10 +328,10 @@ Creates a three-dimentional phantom object.
 - https://brainweb.bic.mni.mcgill.ca/brainweb
 
 # Keywords
-- `ss=4`: (::Real) heart phantom parameter
+- `ss`: (`::Real`, `=4`) the heart phantom parameter
 
 # Returns
-- `obj::Phantom`: the 3D phantom object
+- `phantom`: (`::Phantom`) the 3D phantom struct
 """
 function brain_phantom3D(;ss=4)
     path = @__DIR__

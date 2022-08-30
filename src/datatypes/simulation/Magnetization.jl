@@ -1,11 +1,14 @@
 """
-    Mag(xy::Complex, z::Real)
+    mag = Mag(xy::Complex, z::Real)
 
-The Magnetization object.
+The Magnetization struct.
 
 # Arguments
-- `xy::Complex`: the magnetization (of a phantom) in the xy plane
-- `z::Real`: the magnetization (of a phantom) in the z plane
+- `xy`: (`::Complex{Int64}`) the magnetization of a spin in the xy plane
+- `z`: (`::Real`) the magnetization of a spin in the z plane
+
+# Returns
+- `mag`: (`::Mag`) the Magnetization struct
 """
 mutable struct Mag
     xy::Complex
@@ -13,15 +16,18 @@ mutable struct Mag
 end
 
 """
-    Mag(p::Phantom, dir::Symbol)
+    mag = Mag(p::Phantom, dir::Symbol)
 
-Generates a Vector of Magnetization objects with the information of the `p` panthom object
-in the axis given by the `dir` symbol.
+Generates a Vector of Mag structs with the information of the `p` panthom struct (the proton
+density) in the axis given by the `dir` symbol.
 
 # Arguments
-- `p::Phantom`: the phantom object
-- `dir::Symbol`: custom options are `:x` or `:z`. It is the symbol that represents the axis
-    of the magnetization
+- `p`: (`::Phantom`) the phantom struct
+- `dir`: (`::Symbol`, opts: [`:x`, `:z`]) the symbol that represents the axis of the
+    magnetization
+
+# Returns
+- `mag`: (`Vector{Mag}`) the vector of Magnetization structs
 
 # Examples
 ```julia-repl
@@ -41,13 +47,13 @@ Mag(p::Phantom, dir::Symbol) = dir==:x ? Mag.(p.ρ, 0) : Mag.(0, p.ρ)
 """
     str = show(io::IO, x::Mag)
 
-Displays information about the Mag object `x` in the julia REPL.
+Displays information about the Mag struct `x` in the julia REPL.
 
 # Arguments
-- `x::Mag`: the Mag object
+- `x`: (`::Mag`) the Magnetization struct
 
 # Returns
-- `str` (::String) the output string message
+- `str` (`::String`) the output string message
 """
 Base.show(io::IO, M::Mag) = begin
     print(io, "Mag(xy = ", round(M.xy, digits=2), ", z = ", round(M.z, digits=2), ")")
@@ -60,11 +66,12 @@ Overchages Base.getproperty(). It is meant to access properties of the Mag vecto
 directly without needing to iterate elementwise.
 
 # Arguments
-- `x::Vector{Mag}`: the vector of Mag objects
-- `f::Symbol`: the symbol that represents a property of a Mag object
+- `x`: (`::Vector{Mag}`) the vector of Mag structs
+- `f`: (`::Symbol`, opts: [`:xy`, `:z`]) the symbol that represents a property of a Mag
+    struct
 
 # Returns
-- `y`: (::Vector{Any}) the vector with the property defined by the `f` symbol for all
+- `y`: (`::Vector{Any}`) the vector with the property defined by the `f` symbol for all
     elements of the Mag vector `x`
 """
 getproperty(x::Vector{Mag}, f::Symbol) = getproperty.(x, f)
