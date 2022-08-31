@@ -266,3 +266,50 @@ simulate
 ```@docs
 simulate_slice_profile
 ```
+
+## [DisplayFunctions.jl](@id display-functions)
+
+### `theme_chooser`
+```@docs
+KomaMRI.theme_chooser
+```
+
+### `interp_map`
+```@docs
+KomaMRI.interp_map
+```
+
+### `plot_seq`
+```@docs
+plot_seq
+```
+
+### `plot_image`
+```@docs
+plot_image
+```
+
+### `plot_kspace`
+```@docs
+plot_kspace
+```
+
+### `plot_M0`
+```@docs
+plot_M0
+```
+
+### `plot_phantom_map`
+```@docs
+plot_phantom_map
+```
+
+### `plot_signal`
+```@docs
+plot_signal
+```
+
+### `plot_dict`
+```@docs
+KomaMRI.plot_dict
+```
