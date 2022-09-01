@@ -1,39 +1,25 @@
-# Getting Started
+# KomaMRI
 
-It is mandatory to install Julia in your computer first. There are many tutorials out there to do so, we recommend to follow the official [Julia Getting Started](https://docs.julialang.org/en/v1/manual/getting-started/) documentation and the [Julia Downloads](https://julialang.org/downloads/) page to install the latest version of Julia in your machine. It is advisable you add julia to the PATH, which can be done during the installation process of Julia.
+KomaMRI.jl is a Julia package meant to simulate general Magnetic Resonance Imaging (MRI) scenarios. Its name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field.
 
-## Add KomaMRI
-
-Once Julia is installed, open the Julia REPL and add the `KomaMRI` package to the default environment (note that in this example we installed Julia 1.7.3, so the default environment is `(@1.7)`). This process should take about 5min in a fresh Julia installation:
-```julia-repl
-julia> (press the "]" key)
-
-(@v1.7) pkg> add KomaMRI
-
-(@v1.7) pkg> (press the "backspace" key)
-
-julia>
+```@raw html
+<p align="center">
+<img width="50%" src="assets/logo-dark.svg"/>
+</p>
 ```
 
-Then, launch the `KomaMRI` user interface (the first time you issue this command it may take more time than usual):
-```julia-repl
-julia> using KomaMRI
+A user willing to interact with KomaMRI can picture this software as the interaction of the following 3 components:
+* **Simulator**: generates the **raw signal** by solving the **bloch equation** with the **scanner**, **phantom** and **sequence** inputs.
+* **Reconstructor**: reconstructs the **image** by using the **MRIReco.jl** package from the **raw signal**.
+* **User Interface**: encapsulates the functionalities of the **Simulator** and the **Reconstructor** into an **user-friendly** interface.
 
-julia> KomaUI()
+```@raw html
+<p align="center">
+<img width="100%" src="assets/koma-schema.svg"/>
+</p>
 ```
 
-A window with the Koma user interface will pop up:
+A user can use the KomaMRI package by using:
+* **User Interface**: user-friendly interaction. No Julia programming skills required. Refer to [UI Example](getting-started.md#UI-Example) to check the simplest example.
+* **Julia REPL or Scripts** : command line interface interaction. Basic knowledge of Julia is required. Refer to [1-spin Example](simulation-examples.md#spin-Example) to check the simplest example. Refer to the [API documentation](api.md) to discover all the possibilities the KomaMRI package offers.
 
-![](assets/ui-mainpage.png)
-
-
----
-## UI Example
-
-As a simple demonstration, press the button `Simulate!` and wait until the result is ready. Then click on the `Raw Data` dropdown and then click on the `View Raw Data` button. You should see the following result:
-
-![](assets/ui-view-raw-data.png)
-
-Then press the button `Reconstruct!` and wait until the reconstruction process is successful. Then click on the `Reconstruction` dropdown and then click on the `|Image|` button to see the image reconstruction example: 
-
-![](assets/ui-view-abs-image.png)

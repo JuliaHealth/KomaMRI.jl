@@ -1,6 +1,8 @@
-# CLI Examples
+# Simulation Examples
 
 In order to follow these examples, make sure you have installed Julia in your machine and the `KomaMRI` package. Also, you need to download or clone this repo in your local machine since we are going to import some example files to generate phantom and sequence objects.
+
+## 1-spin Example
 
 
 ## `sphere_chemical_shift`
