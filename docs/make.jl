@@ -8,7 +8,8 @@ makedocs(
         "About KomaMRI" => "index.md",
         "Getting Started" => "getting-started.md",
         "Simulation Examples" => "simulation-examples.md",
-        "API Documentation" => "api.md"
+        "API Documentation" => "api.md",
+        "Internal Docstrings" => "docstrings.md"
     ]
 )
 
