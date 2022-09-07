@@ -25,3 +25,29 @@ A user can operate with the KomaMRI package by using:
 * **User Interface**: user-friendly interaction. No Julia programming skills required. Refer to [UI Example](getting-started.md#UI-Example) to check the simplest example.
 * **Julia REPL or Scripts** : command line interface interaction. Basic knowledge of Julia is required. Refer to [1-Spin Example](simulation-examples.md#Spin-Example) to check the simplest example. Refer to the [API documentation](api.md) to discover all the possibilities the KomaMRI package offers.
 
+## Features
+
+The main concrete task of the **KomaMRI.jl** julia package is to simulate the **Block equations** to get the **raw signal**. The task to reconstruct the **image** is delegated to the **MRIReco.jl** package. The second concrete task of **KomaMRI.jl** is to encapsulate the simulation and reconstruction functionalities into a user interface.
+
+Some of the most outstanding features of **KomaMRI.jl** are:
+* Useful in a wide range of applications, since it solves directly the **Block equations**.
+* Fast simulation time by exploiting MRI physics and sequence properties, allowing CPU and GPU parallelization.
+* Wide compatibility by using standard file formats `.h`, `.phantom`, `.scanner`, `.seq` and `.mrd`.
+* Friendly user interface to people with no programming skill.
+* Flexible Julia API for more advance users with programming skills.
+* Easy access to MRI concepts in a hands-on way for education an research purposes.
+* Appealing to test novel pulse sequences before implementing them directly in a real scanner.
+* Useful to generate synthetic data to train Machine Learning models.
+* Open Source, so anyone can add extra features and join to the KomaMRI community.
+* Cross-platform thanks to the use of the Julia programing language.
+
+General feature comparison with other general MRI simulators:
+
+| Name        | GUI | GPU | Open | Cross-platform |
+|:---         |:---:|:---:|:----:|:--------------:|
+| KomaMRI     | ✅  | ✅ | ✅   | ✅            |
+| JEMRIS      | ✅  | ❌ | ✅   | ❌ Windows    |
+| MRISIMUL    | ❌  | ✅ | ❌   | ❌            |
+| BlockSolver | ✅  | ✅ | ❌   | ✅            |
+| MRiLab      | ✅  | ✅ | ✅   | ❌ MacOS      |
+| coreMRI     | ✅  | ✅ | ❌   | ✅            |
