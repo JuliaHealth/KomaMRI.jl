@@ -3,9 +3,10 @@ using Documenter, KomaMRI
 makedocs(
     modules = [KomaMRI],
     sitename = "KomaMRI.jl: General MRI simulation framework",
-    authors = "Carlos Castillo Passi",
+    authors = "Boris Orostica Navarrete & Carlos Castillo Passi",
     pages = [
         "About KomaMRI" => "index.md",
+        "MRI Theory" => "mri-theory.md",
         "Getting Started" => "getting-started.md",
         "Simulation Examples" => "simulation-examples.md",
         "API Documentation" => "api.md",
