@@ -27,7 +27,7 @@ end
 
 function get_sample_times(seq)
     T0 = cumsum([0; durs(seq)], dims=1)
-    times = []
+    times = Float64[]
     for i = 1:length(seq)
         if is_ADC_on(seq[i])
             δ = seq.ADC[i].delay

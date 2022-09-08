@@ -1,6 +1,7 @@
 """Divides a list of indices 1:N in k groups"""
 function kfoldperm(N,k; type="random", breaks=[])
-	n,r = divrem(N,k)
+	k = min(N,k)
+	n,r = divrem(N, k) #N >= k, N < k
 	b = collect(1:n:N+1)
 	Nb = length(b)
 	for i in 1:Nb
