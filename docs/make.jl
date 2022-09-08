@@ -7,6 +7,7 @@ makedocs(
     pages = [
         "About KomaMRI" => "index.md",
         "MRI Theory" => "mri-theory.md",
+        "KomaMRI Details" => "komamri-details.md",
         "Getting Started" => "getting-started.md",
         "Simulation Examples" => "simulation-examples.md",
         "API Documentation" => "api.md",

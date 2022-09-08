@@ -41,7 +41,7 @@ Some of the most outstanding features of **KomaMRI.jl** are:
 * Open Source, so anyone can add extra features and join to the KomaMRI community.
 * Cross-platform thanks to the use of the Julia programing language.
 
-General feature comparison with other general MRI simulators:
+Here is a table with feature comparison against other general MRI simulators:
 
 | Name        | GUI | GPU | Open | Cross-platform |
 |:---         |:---:|:---:|:----:|:--------------:|
