@@ -41,7 +41,7 @@ function get_sample_times(seq)
 end
 
 function get_sample_phase_compensation(seq)
-  phase = []
+  phase = Float64[]
   for i = 1:length(seq)
       if is_ADC_on(seq[i])
           N = seq.ADC[i].N
