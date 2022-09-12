@@ -197,7 +197,7 @@ function run_sim_time_iter(obj::Phantom,seq::Sequence, t::Array{Float64,1}, Δt;
 	end
 	#Output
 	t_interp = get_sample_times(seq) 
-	S_interp = LinearInterpolation(t.+Δt,S,extrapolation_bc=0)(t_interp) .* get_sample_phase_compensation(seq)
+	S_interp = LinearInterpolation(t,S,extrapolation_bc=0)(t_interp) .* get_sample_phase_compensation(seq)
 	(S_interp, M0)
 end
 
