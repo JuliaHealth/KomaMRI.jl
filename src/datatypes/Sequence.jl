@@ -23,14 +23,22 @@ The Sequence struct.
 
 # Examples
 ```julia-repl
-julia> A = Sequence([Grad(1,1) for i=1:2,j=1:2])
-Sequence(Grad[Grad(1, 1) Grad(1, 1); Grad(1, 1) Grad(1, 1)])
+julia> d1, d2, d3 = 0.8, 0.4, 0.8;
 
-julia> B = Sequence([Grad(2,2) for i=1:2,j=1:2])
-Sequence(Grad[Grad(2, 2) Grad(2, 2); Grad(2, 2) Grad(2, 2)])
+julia> fsinc = x -> 2 * sinc(3*pi*(x - d1/2)) * 1e-3;
 
-julia> C = A + B
-Sequence(Grad[Grad(1, 1) Grad(1, 1) Grad(2, 2) Grad(2, 2); Grad(1, 1) Grad(1, 1) Grad(2, 2) Grad(2, 2)])
+julia> matrixGrads = [Grad(0, d1) Grad( 0, d2) Grad(1, d3);
+                      Grad(0, d1) Grad( 1, d2) Grad(0, d3);
+                      Grad(1, d1) Grad(-1, d2) Grad(0, d3)];
+
+julia> matrixRFs = [KomaMRI.RF_fun(fsinc, d1) RF(0, d2) RF(0, d3)];
+
+julia> vectorADCs = [ADC(0, d1); ADC(0, d2); ADC(9, d3)];
+
+julia> seq = Sequence(matrixGrads, matrixRFs, vectorADCs)
+Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 1 | GR: 4 | RF: 1 | DEF: 0 ]
+
+julia> plot_seq(seq)
 ```
 """
 mutable struct Sequence

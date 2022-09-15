@@ -39,7 +39,6 @@ Refer to [API Documentation](api.md#Scanner):
 
 Refer to [API Documentation](api.md#Sequence):
 * [`KomaMRI.Sequence`](@ref) — Type
-* [`KomaMRI.get_kspace`](@ref) — Function
 
 ```@docs
 show(::IO, ::Sequence)
@@ -57,7 +56,7 @@ KomaMRI.get_grads
 KomaMRI.get_rfs
 KomaMRI.get_flip_angles
 KomaMRI.get_ADC_on
-
+KomaMRI.get_kspace
 KomaMRI.get_RF_types
 
 KomaMRI.δ2N

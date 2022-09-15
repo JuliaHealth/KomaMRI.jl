@@ -238,6 +238,29 @@ Creates a two-dimentional brain phantom struct.
 
 # Returns
 - `phantom`: (`::Phantom`) the 2D phantom struct
+
+# Examples
+```julia-repl
+julia> obj = brain_phantom2D()
+Phantom
+  name: String "brain2D_axial"
+  x: Array{Float64}((6506,)) [-0.084, -0.084  …  0.086]
+  y: Array{Float64}((6506,)) [-0.03, -0.028  …  0.002]
+  z: Array{Float64}((6506,)) [-0.0, -0.0  …  0.0]
+  ρ: Array{Float64}((6506,)) [1.0, 1.0  …  1.0]
+  T1: Array{Float64}((6506,)) [0.569, 0.569  …  0.569]
+  T2: Array{Float64}((6506,)) [0.329, 0.329  …  0.329]
+  T2s: Array{Float64}((6506,)) [0.058, 0.058  …  0.058]
+  Δw: Array{Float64}((6506,)) [-0.0, -0.0  …  -0.0]
+  Dλ1: Array{Float64}((6506,)) [0.0, 0.0  …  0.0]
+  Dλ2: Array{Float64}((6506,)) [0.0, 0.0  …  0.0]
+  Dθ: Array{Float64}((6506,)) [0.0, 0.0  …  0.0]
+  ux: #386 (function of type KomaMRI.var"#386#394")
+  uy: #387 (function of type KomaMRI.var"#387#395")
+  uz: #388 (function of type KomaMRI.var"#388#396")
+
+julia> plot_phantom_map(obj, :ρ)
+```
 """
 function brain_phantom2D(;axis="axial", ss=4)
     path = @__DIR__
@@ -332,6 +355,29 @@ Creates a three-dimentional brain phantom struct.
 
 # Returns
 - `phantom`: (`::Phantom`) the 3D phantom struct
+
+# Examples
+```julia-repl
+julia> obj = brain_phantom3D()
+Phantom
+  name: String "brain3D"
+  x: Array{Float64}((71326,)) [-0.086, -0.086  …  0.084]
+  y: Array{Float64}((71326,)) [-0.02, -0.018  …  0.004]
+  z: Array{Float64}((71326,)) [-0.01, -0.01  …  0.01]
+  ρ: Array{Float64}((71326,)) [1.0, 1.0  …  1.0]
+  T1: Array{Float64}((71326,)) [0.569, 0.569  …  0.569]
+  T2: Array{Float64}((71326,)) [0.329, 0.329  …  0.329]
+  T2s: Array{Float64}((71326,)) [0.058, 0.058  …  0.058]
+  Δw: Array{Float64}((71326,)) [-0.0, -0.0  …  -0.0]
+  Dλ1: Array{Float64}((71326,)) [0.0, 0.0  …  0.0]
+  Dλ2: Array{Float64}((71326,)) [0.0, 0.0  …  0.0]
+  Dθ: Array{Float64}((71326,)) [0.0, 0.0  …  0.0]
+  ux: #386 (function of type KomaMRI.var"#386#394")
+  uy: #387 (function of type KomaMRI.var"#387#395")
+  uz: #388 (function of type KomaMRI.var"#388#396")
+
+julia> plot_phantom_map(obj, :ρ)
+```
 """
 function brain_phantom3D(;ss=4)
     path = @__DIR__

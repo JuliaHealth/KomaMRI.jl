@@ -13,6 +13,25 @@ The ADC struct.
     It is used internally by the [`read_ADC`](@ref) function
 - `ϕ`: (`::Float64`, `[rad]`) the phase. It's meant to compensate RF pulse phases. It is
     used internally by the [`read_ADC`](@ref) function
+
+# Returns
+- `adc`: (`::ADC`) the ADC struct
+
+# Examples
+```julia-repl
+julia> d1, d2, d3 = 0.8, 0.4, 0.8;
+
+julia> matrixGrads = [Grad(0, d1) Grad(0, d2) Grad(0, d3)];
+
+julia> matrixRFs = [RF(0, d1) RF(0, d2) RF(0, d3)];
+
+julia> vectorADCs = [ADC(0, d1); ADC(0, d2); ADC(9, d3)];
+
+julia> seq = Sequence(matrixGrads, matrixRFs, vectorADCs)
+Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 1 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> plot_seq(seq)
+```
 """
 mutable struct ADC
     N::Int64

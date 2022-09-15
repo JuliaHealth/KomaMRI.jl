@@ -12,6 +12,33 @@ The Delay struct. The input delay time `T` must be non-negative.
 
 # Returns
 - `delay`: (`::Delay`) the Delay struct
+
+# Examples
+```julia-repl
+julia> d1, d2, d3 = 0.8, 0.4, 0.8;
+
+julia> fsinc = x -> 2 * sinc(3*pi*(x - d1/2)) * 1e-3;
+
+julia> matrixGrads = [Grad(0, d1) Grad( 0, d2) Grad(1, d3);
+                      Grad(0, d1) Grad( 1, d2) Grad(0, d3);
+                      Grad(1, d1) Grad(-1, d2) Grad(0, d3)];
+
+julia> matrixRFs = [KomaMRI.RF_fun(fsinc, d1) RF(0, d2) RF(0, d3)];
+
+julia> vectorADCs = [ADC(0, d1); ADC(0, d2); ADC(9, d3)];
+
+julia> delay = Delay(1);
+
+julia> seq = Sequence(matrixGrads, matrixRFs, vectorADCs)
+Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 1 | GR: 4 | RF: 1 | DEF: 0 ]
+
+julia> delayed_seq = delay + seq
+Sequence[ τ = 3000.0 ms | blocks: 4 | ADC: 1 | GR: 4 | RF: 1 | DEF: 0 ]
+
+julia> plot_seq(seq)
+
+julia> plot_seq(delayed_seq)
+```
 """
 struct Delay
     T::Real

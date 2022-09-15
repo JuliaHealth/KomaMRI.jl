@@ -22,7 +22,6 @@ brain_phantom3D
 ### `Sequence`
 ```@docs
 Sequence
-KomaMRI.get_kspace
 ```
 
 ### `Grad`

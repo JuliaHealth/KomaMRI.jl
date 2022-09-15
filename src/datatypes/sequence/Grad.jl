@@ -60,6 +60,34 @@ The Gradient struct.
 
 # Returns
 - `grad`: (`::Grad`) the Gradient struct
+
+# Examples
+```julia-repl
+julia> d1, d2, d3 = 0.8, 0.4, 0.8;
+
+julia> matrixGrads = [Grad(0, d1) Grad( 0, d2) Grad(1, d3);
+                      Grad(0, d1) Grad( 1, d2) Grad(0, d3);
+                      Grad(1, d1) Grad(-1, d2) Grad(0, d3)];
+
+julia> seq = Sequence(matrixGrads)
+Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 0 | GR: 4 | RF: 0 | DEF: 0 ]
+
+julia> plot_seq(seq)
+```
+```julia-repl
+julia> d1, d2, d3 = 0.8, 0.4, 0.8;
+
+julia> dr, df, dd = 0.1, 0.05, 1;
+
+julia> matrixGrads = [Grad(0, d1, dr, df, dd) Grad( 0, d2, dr, df, 0) Grad(1, d3, dr, df, 0);
+                      Grad(0, d1, dr, df, dd) Grad( 1, d2, dr, df, 0) Grad(0, d3, dr, df, 0);
+                      Grad(1, d1, dr, df, dd) Grad(-1, d2, dr, df, 0) Grad(0, d3, dr, df, 0)];
+
+julia> seq = Sequence(matrixGrads)
+Sequence[ τ = 3450.0 ms | blocks: 3 | ADC: 0 | GR: 4 | RF: 0 | DEF: 0 ]
+
+julia> plot_seq(seq)
+```
 """
 mutable struct Grad
 	A
@@ -94,6 +122,26 @@ Generates an arbitrary gradient waveform defined by function `f` in the interval
 
 # Returns
 - `grad`: (`::Grad`) the Gradient struct
+
+# Examples
+```julia-repl
+julia> d1, d2, d3 = 0.8, 0.4, 0.8;
+
+julia> f1 = t -> sin(pi*t / d1);
+
+julia> f2 = t -> 1 - exp(- 5 * t / d2);
+
+julia> f3 = t -> exp(t / d3 * log(2)) - 1;
+
+julia> matrixGrads = [Grad(f1, d1) Grad( 0, d2) Grad( 0, d3);
+                      Grad( 0, d1) Grad(f2, d2) Grad( 0, d3);
+                      Grad( 0, d1) Grad( 0, d2) Grad(f3, d3)];
+
+julia> seq = Sequence(matrixGrads)
+Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 0 | GR: 3 | RF: 0 | DEF: 0 ]
+
+julia> plot_seq(seq)
+```
 """
 Grad(f::Function, T::Real, N::Int64=300) = begin
 	t = range(0, T; length=N)

@@ -187,6 +187,22 @@ The RF struct.
 
 # Returns
 - `rf`: (`::RF`) the RF struct
+
+# Examples
+```julia-repl
+julia> d1, d2, d3 = 0.8, 0.4, 0.8;
+
+julia> fsinc = x -> 2 * sinc(3*pi*(x - d1/2)) * 1e-3;
+
+julia> matrixGrads = [Grad(0, d1) Grad(0, d2) Grad(0, d3)];
+
+julia> matrixRFs = [KomaMRI.RF_fun(fsinc, d1) RF(0, d2) RF(0, d3)];
+
+julia> seq = Sequence(matrixGrads, matrixRFs)
+Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> plot_seq(seq)
+```
 """
 mutable struct RF
 	A
