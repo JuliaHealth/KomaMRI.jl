@@ -113,14 +113,14 @@ plot_seq
 plot_kspace
 ```
 
-### `plot_signal`
-```@docs
-plot_signal
-```
-
 ### `plot_M0`
 ```@docs
 plot_M0
+```
+
+### `plot_signal`
+```@docs
+plot_signal
 ```
 
 ### `plot_image`

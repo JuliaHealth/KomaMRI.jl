@@ -37,7 +37,7 @@ Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
 
 julia> plot_seq(seq)
 
-julia> obj = brain_phantom2D()
+julia> obj = brain_phantom2D();
 
 julia> signal = simulate(obj, seq, sys);
 

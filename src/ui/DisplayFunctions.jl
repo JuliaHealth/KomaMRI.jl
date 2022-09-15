@@ -77,6 +77,26 @@ Plots a sequence struct.
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) the plot of the sequence struct
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_seq(seq)
+```
 """
 plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, max_rf_samples=100) = begin
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -193,6 +213,69 @@ Plots an image matrix.
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) the plot of the image matrix
+
+# Examples
+
+Preparation (define scanner and sequence):
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_seq(seq)
+
+julia> plot_kspace(seq)
+```
+
+Simulate:
+```julia-repl
+julia> obj = brain_phantom2D()
+
+julia> signal = simulate(obj, seq, sys);
+
+julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
+
+julia> plot_signal(ismrmrd)
+```
+
+Reconstruct:
+```julia-repl
+julia> Nx, Ny = ismrmrd.params["reconSize"][1:2];
+
+julia> params = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny), :densityWeighting=>true);
+
+julia> acq = AcquisitionData(ismrmrd);
+
+julia> recon = reconstruction(acq, params);
+
+julia> image = reshape(recon.data, Nx, Ny, :)
+102×102×1 Array{ComplexF64, 3}:
+[:, :, 1] =
+ 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
+ 0.0+0.0im  0.0+0.0im     0.0+0.0im
+    ⋮           ⋮       ⋱      ⋮
+ 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
+
+julia> slice_abs = abs.(image[:, :, 1])
+102×102 Matrix{Float64}:
+ 0.0  0.0  …  0.0
+ 0.0  0.0     0.0
+  ⋮        ⋱   ⋮
+ 0.0  0.0  …  0.0
+
+julia> plot_image(slice_abs)
+```
 """
 function plot_image(image; height=750, width=nothing, zmin=minimum(abs.(image[:])), zmax=maximum(abs.(image[:])), darkmode=false, title="")
 	#Layout
@@ -235,6 +318,26 @@ Plots the k-space of a sequence struct.
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) the plot of the k-space of the sequence struct `seq`
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_kspace(seq)
+```
 """
 function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -306,6 +409,26 @@ Plots the magnetization M0 of a sequence struct.
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) the plot of the magnetization M0 of the sequence struct `seq`
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_M0(seq)
+```
 """
 function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false)
 	#Times
@@ -385,6 +508,15 @@ Plots a phantom map for a specific spin parameter given by `key`.
 # References
 Colormaps from https://github.com/markgriswold/MRFColormaps
 Towards Unified Colormaps for Quantitative MRF Data, Mark Griswold, et al. (2018).
+
+# Examples
+```julia-repl
+julia> obj2D, obj3D = brain_phantom2D(), brain_phantom3D();
+
+julia> plot_phantom_map(obj2D, :ρ)
+
+julia> plot_phantom_map(obj3D, :ρ)
+```
 """
 function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=nothing, darkmode=false)
 	path = @__DIR__
@@ -478,6 +610,34 @@ Plots a raw signal in ISMRMRD format.
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) the plot of the raw signal
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_seq(seq)
+
+julia> obj = brain_phantom2D();
+
+julia> signal = simulate(obj, seq, sys);
+
+julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
+
+julia> plot_signal(ismrmrd)
+```
 """
 function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, darkmode=false)
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
