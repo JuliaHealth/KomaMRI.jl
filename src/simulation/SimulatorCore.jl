@@ -371,6 +371,70 @@ of the `"return_Mag"` key of the `simParams` dictionary.
 # Returns
 - `out`: (`::Vector{ComplexF64}` or `::Vector{Mag}`) the raw signal if "return_Mag"=>false,
     else the final state of the Mag vector
+
+# Examples
+
+Preparation (define scanner and sequence):
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_seq(seq)
+
+julia> plot_kspace(seq)
+```
+
+Simulate:
+```julia-repl
+julia> obj = brain_phantom2D()
+
+julia> signal = simulate(obj, seq, sys);
+
+julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
+
+julia> plot_signal(ismrmrd)
+```
+
+Reconstruct:
+```julia-repl
+julia> Nx, Ny = ismrmrd.params["reconSize"][1:2];
+
+julia> params = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny), :densityWeighting=>true);
+
+julia> acq = AcquisitionData(ismrmrd);
+
+julia> recon = reconstruction(acq, params);
+
+julia> image = reshape(recon.data, Nx, Ny, :)
+102×102×1 Array{ComplexF64, 3}:
+[:, :, 1] =
+ 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
+ 0.0+0.0im  0.0+0.0im     0.0+0.0im
+    ⋮           ⋮       ⋱      ⋮
+ 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
+
+julia> slice_abs = abs.(image[:, :, 1])
+102×102 Matrix{Float64}:
+ 0.0  0.0  …  0.0
+ 0.0  0.0     0.0
+  ⋮        ⋱   ⋮
+ 0.0  0.0  …  0.0
+
+julia> plot_image(slice_abs)
+```
+```
 """
 function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
 	#Simulation params
