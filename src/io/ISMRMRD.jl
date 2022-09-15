@@ -17,6 +17,32 @@ Transforms the raw signal into ISMRMRD format.
 
 # Returns
 - `raw_ismrmrd`: (`::RawAcquisitionData`) the raw signal in ISMRMRD format
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_seq(seq)
+
+julia> signal = simulate(obj, seq, sys);
+
+julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
+
+julia> plot_signal(ismrmrd)
+```
 """
 function rawSignalToISMRMRD(signal, seq;
                                 phantom=Phantom(name="Phantom",x=[0]),

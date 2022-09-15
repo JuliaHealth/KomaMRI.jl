@@ -22,7 +22,19 @@ Definition of the RF hard sequence.
 - `Δf`: (`Float64`, `=0`, `[Hz]`) the frequency offset of the RF pulse
 
 # Returns
-- `EX`: (`::Sequence`) the excitation sequence struct
+- `ex`: (`::Sequence`) the excitation sequence struct
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> plot_seq(ex)
+```
 """
 RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0) = begin
 	ζ = sum(G) / sys.Smax
@@ -83,7 +95,21 @@ Definition of the EPI sequence.
 - `sys`: (`::Scanner`) the scanner struct
 
 # Returns
-- `seq`: (`::Sequence`) the epi sequence struct
+- `epi`: (`::Sequence`) the epi sequence struct
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> plot_seq(epi)
+
+julia> plot_kspace(epi)
+```
 """
 EPI(FOV::Float64, N::Int, sys::Scanner) = begin
     #TODO: consider when N is even

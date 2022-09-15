@@ -285,6 +285,26 @@ Returns the Sequence struct from a sequence file `.seq`.
 
 # Returns
 - `seq`: (`::Sequence`) the sequence struct
+
+# Examples
+```julia-repl
+julia> seq = read_seq("examples/1.sequences/epi.seq")
+Successfully loaded epi.seq!
+Sequence[ τ = 332.16 ms | blocks: 609 | ADC: 300 | GR: 615 | RF: 3 | DEF: 10 ]
+
+julia> plot_seq(seq)
+
+julia> plot_kspace(seq)
+```
+```julia-repl
+julia> seq = read_seq("examples/1.sequences/spiral.seq")
+Successfully loaded spiral.seq!
+Sequence[ τ = 42.89 ms | blocks: 4 | ADC: 1 | GR: 8 | RF: 2 | DEF: 12 ]
+
+julia> plot_seq(seq)
+
+julia> plot_kspace(seq)
+```
 """
 function read_seq(filename)
     println("")
