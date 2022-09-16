@@ -1,11 +1,10 @@
-# KomaMRI Details
+# Useful Information
 
-This section dives into some details about how a sequence is constructed and a more in depth understanding about how KomaMRI speeds up the simulation.
-
+This section covers some topics that are helpful to get a deeper understanding and more insights about a variety of topics
 
 ## Sequence Structure
 
-Let's introduce the following simple sequence figure to extend the ideas from a visual example to a more general sequence definition:
+This subsection dives into some details about how a sequence is constructed. Let's introduce the following simple sequence figure to extend the ideas from a visual example to a more general sequence definition:
 
 ```@raw html
 <p align="center">
@@ -13,7 +12,7 @@ Let's introduce the following simple sequence figure to extend the ideas from a 
 </p>
 ```
 
-A **sequence** can be thought as and ordered concatenation of blocks over time. Every block is composed by an **RF** pulse, the ``(x,y,z)`` **gradients**,  and the **acquisition** of the samples. There is also a time **duration** associated to each block. For short, we are going to refer to this components like so:
+A **sequence** can be thought as and ordered concatenation of blocks over time. Every block is composed by an **RF** pulse, the ``(x,y,z)`` **gradients**,  and the **acquisition** of the samples. There is also a time **duration** associated to each block. For short, we are going to refer to these components like so:
 
 ```math
 \begin{matrix*}[l]
@@ -34,7 +33,3 @@ Additionally, there are associated some uniform time resolution parameters or **
 \Delta t_{ADC}  &: & raster \: time \: for \: acquisition
 \end{matrix*}
 ```
-
-
-
-## KomaMRI Solution

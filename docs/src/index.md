@@ -23,7 +23,7 @@ A user willing to interact with KomaMRI can picture this software as the interac
 
 A user can operate with the KomaMRI package by using:
 * **User Interface**: user-friendly interaction. No Julia programming skills required. Refer to [UI Example](getting-started.md#UI-Example) to check the simplest example.
-* **Julia REPL or Scripts** : command line interface interaction. Basic knowledge of Julia is required. Refer to [1-Spin Example](simulation-examples.md#Spin-Example) to check the simplest example. Refer to the [API documentation](api.md) to discover all the possibilities the KomaMRI package offers.
+* **Julia REPL or Scripts** : command line interface interaction. Basic knowledge of Julia is required. Refer to [Brain Example](simulation-examples.md#Brain-Example) to check the simplest example. Refer to the [API documentation](api.md) to discover all the possibilities the KomaMRI package offers.
 
 ## Features
 

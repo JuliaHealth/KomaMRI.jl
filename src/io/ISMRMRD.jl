@@ -51,13 +51,15 @@ function rawSignalToISMRMRD(signal, seq;
                                 sys=Scanner(),
                                 simParams=Dict{String,Any}())
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
-    Nz = seq.DEF["Nz"]
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information
     mink = minimum(ktraj, dims=1)
     maxk = maximum(ktraj, dims=1)
     Wk = maxk .- mink
     Δx = 1 ./ Wk[1:2] #[m] Only x-y
+    Nx = get(seq.DEF, "Nx", 1)
+    Ny = get(seq.DEF, "Ny", 1)
+    Nz = get(seq.DEF, "Nz", 1)
     if haskey(seq.DEF, "FOV")
         FOVx, FOVy, _ = seq.DEF["FOV"] #[m]
         if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
@@ -65,8 +67,6 @@ function rawSignalToISMRMRD(signal, seq;
         Nx = round(Int64, FOVx / Δx[1])
         Ny = round(Int64, FOVy / Δx[2])
     else
-        Nx = seq.DEF["Nx"]
-        Ny = seq.DEF["Ny"]
         FOVx = Nx * Δx[1]
         FOVy = Ny * Δx[2]
     end
