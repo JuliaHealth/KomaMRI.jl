@@ -1,43 +1,41 @@
 # Getting Started
 
-It is mandatory to install Julia in your computer first. There are many tutorials out there to do so, we recommend to follow the official [Julia Getting Started](https://docs.julialang.org/en/v1/manual/getting-started/) documentation and the [Julia Downloads](https://julialang.org/downloads/) page to install the latest version of Julia in your machine. It is advisable you add julia to the PATH, which can be done during the installation process of Julia.
+## Installing Julia
 
-## Installation
+KomaMRI was written in Julia, so the first thing you should do is to install it! The latest version of Julia can be downloaded at the [Julia Downloads](https://julialang.org/downloads/) page. It is advisable you add julia to the PATH, which can be done during the installation process.
 
-Once Julia is installed, open the Julia REPL and add the `KomaMRI` package to the default environment (note that in this example we installed Julia 1.7.3, so the default environment is `(@1.7)`). This process should take about 5min in a fresh Julia installation:
+## Installing KomaMRI
+
+Once Julia is installed, open the Julia REPL and add the `KomaMRI` package. To bring up Julia's [package manager](https://docs.julialang.org/en/v1/stdlib/Pkg/) enter `]`, and then add the KomaMRI package. This process should take about 5 minutes in a fresh Julia installation. 
+
 ```julia-repl
-julia> (press the "]" key)
+julia> ]
 
-(@v1.7) pkg> add KomaMRI
-
-(@v1.7) pkg> (press the "backspace" key)
-
-julia>
+(@v1.8) pkg> add KomaMRI
 ```
-
-All done!
+Then press `Ctrl+C` or `backspace` to return to the `julia>` prompt.
 
 
 ---
-## UI Example
+## Graphical User Interface
 
-In the Julia REPL, launch the `KomaMRI` user interface (the first time you issue this command it may take more time than usual):
+To launch Koma's graphical user interface (GUI), you will need to load the package by typing `using KomaMRI`, and then lauch the GUI with `KomaUI()`.
+
 ```julia-repl
 julia> using KomaMRI
 
 julia> KomaUI()
 ```
-
-A window with the Koma user interface will pop up:
+The first time you use this command it may take more time than usual, but a window with the Koma GUI will pop up:
 
 ![](assets/ui-mainpage.png)
 
-The user interface has some inputs for the scanner, phantom and sequence already preloaded. So you can immediately interact with the simulation and reconstruction processes and visualize some results for the generation of the raw signal and the reconstruction of the image.
+The user interface has some basic definitions for the scanner, phantom, and sequence already preloaded. So you can immediately interact with the simulation and reconstruction processes, and then visualize the results.
 
-As a simple demonstration, press the button `Simulate!` and wait until the result is ready. Then click on the `Raw Data` dropdown and then click on the `View Raw Data` button. You should see the following result:
+As a simple demonstration, press the button `Simulate!` and wait until the simulation is ready. Then click on the `Raw Data` dropdown and then click on the `View Raw Data` button. You should see the following:
 
 ![](assets/ui-view-raw-data.png)
 
-Then press the button `Reconstruct!` and wait until the reconstruction process is successful. Then click on the `Reconstruction` dropdown and then click on the `|Image|` button to see the image reconstruction example: 
+Then, press the button `Reconstruct!` and wait until the reconstruction ends. Then click on the `Reconstruction` dropdown and then click on the `|Image|` button to see the image reconstruction: 
 
 ![](assets/ui-view-abs-image.png)

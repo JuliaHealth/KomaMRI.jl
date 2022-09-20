@@ -3,14 +3,18 @@ using Documenter, KomaMRI
 makedocs(
     modules = [KomaMRI],
     sitename = "KomaMRI.jl: General MRI simulation framework",
-    authors = "Boris Orostica Navarrete & Carlos Castillo Passi",
+    authors = "Boris Orostica Navarrete and Carlos Castillo Passi",
     pages = [
-        "About KomaMRI" => "index.md",
+        "Home" => "index.md",
         "Getting Started" => "getting-started.md",
-        "Useful Information" => "useful-information.md",
+        "Sequence" => "sequence.md",
         "Simulation Examples" => "simulation-examples.md",
         "API Documentation" => "api.md"
-    ]
+    ],
+    format = Documenter.HTML(
+        prettyurls = get(ENV, "CI", nothing) == "true",
+        sidebar_sitename = false
+    )
 )
 
 deploydocs(
