@@ -7,8 +7,8 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Getting Started" => "getting-started.md",
-        "Sequence" => "sequence.md",
         "Simulation Examples" => "simulation-examples.md",
+        "Miscellaneous" => "miscellaneous.md",
         "API Documentation" => "api.md"
     ],
     format = Documenter.HTML(
