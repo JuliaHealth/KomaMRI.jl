@@ -8,7 +8,7 @@ This subsection dives into some details about how a sequence is constructed. Let
 
 ```@raw html
 <p align="center">
-<img width="90%" src="../assets/sequence-diagram.svg"/>
+<img width="90%" src="assets/sequence-diagram.svg"/>
 </p>
 ```
 
@@ -99,7 +99,7 @@ The evolution of the magnetization can then be described as a two-step process f
 ```@raw html
 <p align="center">
 <figure>
-  <img width="50%" src="../assets/block-equation-intuition.png">
+  <img width="50%" src="assets/block-equation-intuition.png">
   <figcaption><b>Figure 2</b>: Solution of the Bloch equations for one time step can be described by (2) a rotation and (3) a relaxation step.</figcaption>
 </figure>
 </p>
@@ -200,7 +200,7 @@ We further increase the simulation speed by separating the Bloch calculations in
 ```@raw html
 <p align="center">
 <figure>
-  <img width="100%" src="../assets/koma-solution.png">
+  <img width="100%" src="assets/koma-solution.png">
   <figcaption><b>Figure 3</b>: This is a summary of the functions called to perform the simulation. The sequence <b>seq</b> is discretized after calculating the required time points in the wrapper function <b>simulate</b>. The time points are then divided into <b>Nblocks</b> to reduce the amount of memory used. The phantom <b>obj</b> is divided into <b>Nthreads</b>, and <b>KomaMRI</b> will use either <b>run_spin_excitation</b> or <b>run_spin_precession</b> depending on the regime. If an ADC object is present, the simulator will add the signal contributions of each thread to construct the acquired signal <b>S[t]</b>. All the parameters: <b>Nthreads</b>, <b>Nblocks</b>, <b>Δt_rf</b>, and <b>Δt</b>, are passed through a dictionary called <b>simParams</b> as an optional parameter of the <b>simulate</b> function.>
 </figure>
 </p>
