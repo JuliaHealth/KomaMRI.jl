@@ -2,6 +2,11 @@
 
 *Magnetic Resonance Imaging Simulator*
 
+```@raw html
+<p align="center"><img class="display-light-only" width="50%" src="assets/logo.svg"/></p>
+<p align="center"><img class="display-dark-only" width="50%" src="assets/logo-dark.svg""/></p>
+```
+
 ## Introduction
 
 **KomaMRI.jl** is a Julia package meant to simulate general Magnetic Resonance Imaging (MRI) scenarios. Its name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field.

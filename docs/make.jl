@@ -13,7 +13,8 @@ makedocs(
     ],
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
-        sidebar_sitename = false
+        sidebar_sitename = false,
+        assets = ["assets/extra-styles.css"]
     )
 )
 

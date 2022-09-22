@@ -1,6 +1,6 @@
 # Useful Information
 
-This section covers some topics that are helpful to get a deeper understanding and more insights about a variety of topics
+This section covers some topics that are helpful to get a deeper understanding and more insights about a variety of topics.
 
 ## Sequence Structure
 
@@ -16,11 +16,11 @@ A **sequence** can be thought as and ordered concatenation of blocks over time. 
 
 ```math
 \begin{matrix*}[l]
-i          &: & sequence \: block \: ID \\
-RF[i]      &: & RF \: pulse \: at \: the \: i \: block \\
-G_j[i]     &: &gradients \: at \: the \: i \: block, \: \forall j \in \{x,y,z\} \\
-ADC[i]     &: &acquisition \: at \: the \: i \: block \\
-DUR[i]     &: &duration \: at \: the \: i \: block
+i          &: & \text{sequence block ID} \\
+RF[i]      &: & \text{RF pulse at the $i$ block} \\
+G_j[i]     &: & \text{gradients at the $i$ block}, \: \forall j \in \{x,y,z\} \\
+ADC[i]     &: & \text{acquisition at the $i$ block} \\
+DUR[i]     &: & \text{duration at the $i$ block}
 \end{matrix*}
 ```
 
@@ -28,8 +28,8 @@ Additionally, there are associated some uniform time resolution parameters or **
 
 ```math
 \begin{matrix*}[l]
-\Delta t_{RF}   &: & raster \: time \: for \: RF \: pulses\\
-\Delta t_{G}    &: & raster \: time \: for \: gradients\\
-\Delta t_{ADC}  &: & raster \: time \: for \: acquisition
+\Delta t_{RF}   &: & \text{raster time for RF pulses}\\
+\Delta t_{G}    &: & \text{raster time for gradients}\\
+\Delta t_{ADC}  &: & \text{raster time for acquisition}
 \end{matrix*}
 ```
