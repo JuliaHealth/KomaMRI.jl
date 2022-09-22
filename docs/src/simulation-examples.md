@@ -51,10 +51,10 @@ plot_seq(seq)
 plot_kspace(seq)
 ```
 ```@raw html
-<object type="text/html" data="../assets/0-seq.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/0-seq.html" style="width:100%; height:330px;"></object>
 ```
 ```@raw html
-<object type="text/html" data="../assets/0-kspace.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/0-kspace.html" style="width:100%; height:730px;"></object>
 ```
 
 Define the **Phantom** struct. This is an example of a 2D brain. We can even visualize the parameters of the spins in an image, for example here we plot the densities of every spin in the phantom:
@@ -73,7 +73,7 @@ obj = brain_phantom2D()     # an example of a 2D brain
 plot_phantom_map(obj, :ρ)
 ```
 ```@raw html
-<object type="text/html" data="../assets/0-obj.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/0-obj.html" style="width:100%; height:730px;"></object>
 ```
 
 ### Simulation: Raw Signal Output
@@ -96,7 +96,7 @@ ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys)
 plot_signal(ismrmrd)
 ```
 ```@raw html
-<object type="text/html" data="../assets/0-ismrmrd.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/0-ismrmrd.html" style="width:100%; height:330px;"></object>
 ```
 
 ### Reconstruction: Image Output
@@ -131,7 +131,7 @@ slice_abs = abs.(image[:, :, 1])
 plot_image(slice_abs)
 ```
 ```@raw html
-<object type="text/html" data="../assets/0-slice_abs.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/0-slice_abs.html" style="width:100%; height:730px;"></object>
 ```
 
 
@@ -197,7 +197,7 @@ seq = exc + dly + adq
 plot_seq(seq; slider=true)
 ```
 ```@raw html
-<object type="text/html" data="../assets/1-seq.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/1-seq.html" style="width:100%; height:330px;"></object>
 ```
 
 ### Free-Decay Case
@@ -232,7 +232,7 @@ ismrmrd = rawSignalToISMRMRD([sig;;], seq; phantom=obj, sys=sys)
 plot_signal(ismrmrd)
 ```
 ```@raw html
-<object type="text/html" data="../assets/10-ismrmrd.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/10-ismrmrd.html" style="width:100%; height:330px;"></object>
 ```
 
 ### Off-Resonance Case
@@ -265,7 +265,7 @@ ismrmrd = rawSignalToISMRMRD([sig;;], seq; phantom=obj, sys=sys)
 plot_signal(ismrmrd)
 ```
 ```@raw html
-<object type="text/html" data="../assets/11-ismrmrd.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/11-ismrmrd.html" style="width:100%; height:330px;"></object>
 ```
 
 
@@ -304,13 +304,13 @@ plot_kspace(seq)
 plot_phantom_map(obj, :T2)
 ```
 ```@raw html
-<object type="text/html" data="../assets/2-seq.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/2-seq.html" style="width:100%; height:330px;"></object>
 ```
 ```@raw html
-<object type="text/html" data="../assets/2-kspace.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/2-kspace.html" style="width:100%; height:730px;"></object>
 ```
 ```@raw html
-<object type="text/html" data="../assets/2-obj.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/2-obj.html" style="width:100%; height:730px;"></object>
 ```
 
 ### Simulation: Raw Signal Output
@@ -333,7 +333,7 @@ ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys)
 plot_signal(ismrmrd)
 ```
 ```@raw html
-<object type="text/html" data="../assets/2-ismrmrd.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/2-ismrmrd.html" style="width:100%; height:330px;"></object>
 ```
 
 
@@ -369,5 +369,5 @@ slice_abs = abs.(image[:, :, 1])
 plot_image(slice_abs)
 ```
 ```@raw html
-<object type="text/html" data="../assets/2-slice_abs.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/2-slice_abs.html" style="width:100%; height:730px;"></object>
 ```
