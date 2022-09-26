@@ -28,11 +28,11 @@ A user can operate with the KomaMRI package by using:
 
 ## Features
 
-The main concrete task of the **KomaMRI.jl** julia package is to simulate the **Bloch equations** to get the **raw signal**. The task to reconstruct the **image** is delegated to the **MRIReco.jl** package. The second concrete task of **KomaMRI.jl** is to encapsulate the simulation and reconstruction functionalities into a user interface.
+The main task of the **KomaMRI.jl** julia package is to simulate the **Bloch equations** to get the **raw signal**. The task to reconstruct the **image** is delegated to the **MRIReco.jl** package. The second task of **KomaMRI.jl** is to encapsulate the simulation and reconstruction functionalities into a user interface.
 
-Some of the most outstanding features of **KomaMRI.jl** are:
-* Useful in a wide range of applications, since it solves directly the **Block equations**.
-* Fast simulation time by exploiting MRI physics and sequence properties, allowing CPU and GPU parallelization.
+Some of the features of **KomaMRI.jl** are:
+* Useful in a wide range of applications, since it solves directly the **Bloch equations**.
+* Fast simulation time by exploiting MRI physics and sequence properties, allowing CPU and GPU (CUDA) parallelization.
 * Wide compatibility by using standard file formats `.h5`, `.phantom`, `.scanner`, `.seq` and `.mrd`.
 * Friendly user interface to people with no programming skill.
 * Flexible Julia API for more advance users with programming skills.

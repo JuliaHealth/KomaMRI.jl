@@ -1,4 +1,5 @@
-# API Documentation
+
+This page shows the documentation for the modules, structs, functions, methods and additional components available when importing the **KomaMRI.jl** package. It is very useful for reference when using directly the Julia REPL and when creating custom Julia scripts. Please, don't miss out the section [How to read the API docs](api.md#How-to-read-the-API-docs) which has important considerations to understand general aspects of the docstring structure. The following are the contents of the API Documentation:
 
 ```@contents
 Pages = ["api.md"]
@@ -13,7 +14,7 @@ These documentation "template patterns" are based from the [Julia Blue Style](ht
 
 Whenever you see a docstring documentation, it will have the following structure:
 
-!!! quote "KomaMRI.component_name — Component"
+!!! docstring "KomaMRI.component_name — Component"
     ```
     out1, out2, ... = component_name(arg1, arg2, ...; kw1, kw2, ...)
     ```
