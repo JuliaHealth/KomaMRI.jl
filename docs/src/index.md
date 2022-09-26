@@ -24,7 +24,18 @@ KomaMRI has three main components:
 
 A user can operate with the KomaMRI package by using:
 * **User Interface**: user-friendly interaction. No Julia programming skills required. Refer to [Graphical User Interface](getting-started.md#Graphical-User-Interface) to check the simplest usage example.
+```@raw html
+<p align="center">
+<img width="75%" src="assets/koma-gui.png"/>
+</p>
+```
+
 * **Julia REPL or Scripts** : Basic knowledge of Julia is required. Refer to [Brain Example](simulation-examples.md#Brain-Example) to check the one example. Refer to the [API documentation](api.md) to discover all the possibilities the KomaMRI package offers.
+```@raw html
+<p align="center">
+<img width="75%" src="assets/repl-scripts.png"/>
+</p>
+```
 
 ## Features
 
