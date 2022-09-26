@@ -60,7 +60,7 @@ function interp_map(c_map, t_interp)
 end
 
 """
-    p = plot_seq(seq; width, height, slider, show_seq_blocks, darkmode, max_rf_samples)
+    p = plot_seq(seq; width, height, slider, show_seq_blocks, darkmode, max_rf_samples, range)
 
 Plots a sequence struct.
 
@@ -74,6 +74,7 @@ Plots a sequence struct.
 - `show_seq_blocks`: (`::Bool`, `=false`) the boolean to show sequence blocks
 - `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
 - `max_rf_samples`: (`::Int64`, `=100`) the maximum number of RF samples
+- `range`: (`::Vector{Float64}`, `=[]`) the time range to be displayed initially
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) the plot of the sequence struct
@@ -98,7 +99,7 @@ Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
 julia> plot_seq(seq)
 ```
 """
-plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, max_rf_samples=100) = begin
+plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, max_rf_samples=100, range=[]) = begin
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
@@ -154,7 +155,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 			yaxis_fixedrange = false,
 			xaxis=attr(
 				ticksuffix=" ms",
-				range=[0.,min(20,1e3*dur(seq))],
+				range=range,
 				rangeslider=attr(visible=slider),
 				rangeselector=attr(
 					buttons=[
@@ -595,7 +596,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 end
 
 """
-    p = plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, darkmode=false)
+    p = plot_signal(raw::RawAcquisitionData; height, width, darkmode, range)
 
 Plots a raw signal in ISMRMRD format.
 
@@ -607,6 +608,7 @@ Plots a raw signal in ISMRMRD format.
 - `width`: (`::Int64`, `=nothing`) the width of the plot
 - `height`: (`::Int64`, `=nothing`) the height of the plot
 - `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+- `range`: (`::Vector{Float64}`, `=[]`) the time range to be displayed initially
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) the plot of the raw signal
@@ -639,7 +641,7 @@ julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
 julia> plot_signal(ismrmrd)
 ```
 """
-function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, darkmode=false)
+function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, darkmode=false, range=[])
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
 	signal = []
@@ -666,7 +668,7 @@ function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, dar
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	l = PlotlyJS.Layout(;title="",
 		font_color=text_color,
-		xaxis=attr(ticksuffix=" ms",range=[Tmin+Tacq/2-.025*Tacq,Tmin+Tacq/2+.025*Tacq],
+		xaxis=attr(ticksuffix=" ms",range=range,
 					rangeslider=attr(visible=true),
 					gridcolor=grid_color,zerolinecolor=grid_color),
 		yaxis=attr(gridcolor=grid_color,zerolinecolor=grid_color),

@@ -34,7 +34,7 @@ seq = ex + epi                                  # the final sequence
 
 # Plot the sequence in time and in the kspace
 savefig(plot_seq(seq; slider=true, height=300), "assets/0-seq.html")
-savefig(plot_kspace(seq; height=700), "assets/0-kspace.html")
+savefig(plot_kspace(seq; height=500), "assets/0-kspace.html")
 ```
 ```julia
 # Define some parameters
@@ -54,7 +54,7 @@ plot_kspace(seq)
 <object type="text/html" data="assets/0-seq.html" style="width:100%; height:330px;"></object>
 ```
 ```@raw html
-<object type="text/html" data="assets/0-kspace.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/0-kspace.html" style="width:60%; height:520px; display:block; margin:auto;"></object>
 ```
 
 Define the **Phantom** struct. This is an example of a 2D brain. We can even visualize the parameters of the spins in an image, for example here we plot the densities of every spin in the phantom:
@@ -63,7 +63,7 @@ Define the **Phantom** struct. This is an example of a 2D brain. We can even vis
 obj = brain_phantom2D()     # an example of a 2D brain
 
 # Visualize the densities of the spins
-savefig(plot_phantom_map(obj, :ρ; height=700), "assets/0-obj.html")
+savefig(plot_phantom_map(obj, :ρ; height=500), "assets/0-obj.html")
 ```
 ```julia
 # Define the phantom
@@ -73,7 +73,7 @@ obj = brain_phantom2D()     # an example of a 2D brain
 plot_phantom_map(obj, :ρ)
 ```
 ```@raw html
-<object type="text/html" data="assets/0-obj.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/0-obj.html" style="width:60%; height:520px; display:block; margin:auto;"></object>
 ```
 
 ### Simulation: Raw Signal Output
@@ -114,7 +114,7 @@ image  = reshape(recon.data, Nx, Ny, :)
 slice_abs = abs.(image[:, :, 1])
 
 # Plot an slice of the image
-savefig(plot_image(slice_abs; height=700), "assets/0-slice_abs.html")
+savefig(plot_image(slice_abs; height=500), "assets/0-slice_abs.html")
 ```
 ```julia
 # Get the acquisition data
@@ -131,7 +131,7 @@ slice_abs = abs.(image[:, :, 1])
 plot_image(slice_abs)
 ```
 ```@raw html
-<object type="text/html" data="assets/0-slice_abs.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/0-slice_abs.html" style="width:60%; height:520px; display:block; margin:auto;"></object>
 ```
 
 
@@ -288,8 +288,8 @@ obj = read_phantom_jemris("../../examples/2.phantoms/sphere_chemical_shift.h5")
 # Visualize the inputs
 display(sys)
 savefig(plot_seq(seq; slider=true, height=300), "assets/2-seq.html")
-savefig(plot_kspace(seq; height=700), "assets/2-kspace.html")
-savefig(plot_phantom_map(obj, :T2; height=700), "assets/2-obj.html")
+savefig(plot_kspace(seq; height=500), "assets/2-kspace.html")
+savefig(plot_phantom_map(obj, :T2; height=500), "assets/2-obj.html")
 ```
 ```julia
 # Define the scanner, sequence and phantom
@@ -307,10 +307,10 @@ plot_phantom_map(obj, :T2)
 <object type="text/html" data="assets/2-seq.html" style="width:100%; height:330px;"></object>
 ```
 ```@raw html
-<object type="text/html" data="assets/2-kspace.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/2-kspace.html" style="width:60%; height:520px; display:block; margin:auto;""></object>
 ```
 ```@raw html
-<object type="text/html" data="assets/2-obj.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/2-obj.html" style="width:60%; height:520px; display:block; margin:auto;""></object>
 ```
 
 ### Simulation: Raw Signal Output
@@ -352,7 +352,7 @@ image  = reshape(recon.data, Nx, Ny, :)
 slice_abs = abs.(image[:, :, 1])
 
 # Plot an slice of the image
-savefig(plot_image(slice_abs; height=700), "assets/2-slice_abs.html")
+savefig(plot_image(slice_abs; height=500), "assets/2-slice_abs.html")
 ```
 ```julia
 # Get the acquisition data
@@ -369,5 +369,5 @@ slice_abs = abs.(image[:, :, 1])
 plot_image(slice_abs)
 ```
 ```@raw html
-<object type="text/html" data="assets/2-slice_abs.html" style="width:100%; height:730px;"></object>
+<object type="text/html" data="assets/2-slice_abs.html" style="width:60%; height:520px; display:block; margin:auto;"></object>
 ```
