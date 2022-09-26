@@ -32,7 +32,7 @@ function interp_map(c_map, t_interp)
 	c_map_interp
 end
 
-plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, max_rf_samples=100) = begin
+plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, max_rf_samples=100, range=[]) = begin
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
@@ -88,7 +88,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 			yaxis_fixedrange = false,
 			xaxis=attr(
 				ticksuffix=" ms",
-				range=[0.,min(20,1e3*dur(seq))],
+				range=range,
 				rangeslider=attr(visible=slider),
 				rangeselector=attr(
 					buttons=[

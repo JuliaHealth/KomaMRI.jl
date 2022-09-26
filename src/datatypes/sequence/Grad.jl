@@ -107,10 +107,10 @@ julia> Grad_fun(x-> sin(π*x),1,4)
  Grad(0.0, 0.333333)  Grad(0.866025, 0.333333)  Grad(0.866025, 0.333333)  Grad(1.22465e-16, 0.333333)
 ```
 """
-Grad(f::Function,T::Real,N::Int64=300) = begin
+Grad(f::Function, T::Real, N::Int64=300, delay::Real=0) = begin
 	t = range(0,T;length=N)
 	G = f.(t)
-	Grad(G,T)
+	Grad(G,T,0,0,delay)
 end
 #aux
 Base.show(io::IO,x::Grad) = begin
