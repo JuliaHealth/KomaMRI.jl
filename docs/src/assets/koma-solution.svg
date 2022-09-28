@@ -14,7 +14,7 @@
    viewBox="0 0 819.99998 385"
    version="1.1"
    id="svg1740"
-   sodipodi:docname="ParalelSpins.svg"
+   sodipodi:docname="koma-solution.svg"
    inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)"
    inkscape:export-filename="/home/ccp/Documents/MRIsim_paper/Figures/SimulationKeyPoints.png"
    inkscape:export-xdpi="300"
@@ -27,7 +27,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -48,7 +48,7 @@
      inkscape:window-x="-9"
      inkscape:window-y="-9"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer3"
+     inkscape:current-layer="layer5"
      showguides="true"
      inkscape:guide-bbox="true"
      inkscape:document-rotation="0"
@@ -8828,6 +8828,19 @@
       </symbol>
     </g>
   </defs>
+  <g
+     inkscape:groupmode="layer"
+     id="layer5"
+     inkscape:label="Background"
+     transform="translate(-175.89088,166.87124)">
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:6;stroke-linecap:round;stroke-linejoin:round"
+       id="rect5084"
+       width="866.03448"
+       height="419.92972"
+       x="156.0011"
+       y="-184.27481" />
+  </g>
   <g
      class="layer-below"
      id="g31"
