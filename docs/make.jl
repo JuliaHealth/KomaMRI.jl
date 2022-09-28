@@ -9,6 +9,7 @@ makedocs(
         "Getting Started" => "getting-started.md",
         "Simulation Examples" => "simulation-examples.md",
         "MRI Theory" => "mri-theory.md",
+        "UI Details" => "ui-details.md",
         "API Documentation" => "api.md"
     ],
     format = Documenter.HTML(
