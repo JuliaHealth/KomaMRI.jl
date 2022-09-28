@@ -6,7 +6,7 @@
 
 /* Style for custom docstring template example */
 .is-category-docstring .admonition-header::before {display: none;}
-.is-category-docstring .admonition-header {background-color: white; color: #222222;}
+.is-category-docstring .admonition-header {background-color: whitesmoke; color: #222222;}
 .is-category-docstring .admonition-body {background-color: white;}
 .theme--documenter-dark .is-category-docstring .admonition-body {background-color: #1f2424;}
-.theme--documenter-dark .is-category-docstring .admonition-header {background-color: #1f2424; color: white;}
+.theme--documenter-dark .is-category-docstring .admonition-header {background-color: #282f2f; color: white;}
