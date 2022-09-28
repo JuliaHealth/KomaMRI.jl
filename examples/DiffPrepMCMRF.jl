@@ -104,12 +104,12 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax; filename="./qte_vectors_inpu
     end
 end
 
-## Parameters
-Gmax =  40e-3 # T/m
+## Paramete40
+Gmax =  60e-3 # T/m
 Smax = 200 # mT/m/ms
 N1 = 400 # You can solve the opt problem in a lower time resolution or use δ2N(dur_grad) 
 path_file = "/home/ccp/"
-k = 2 #Number of moments to null
+k = 0 #Number of moments to null
 maxwell = true #maxwell or concomitant gradient compensation
 seq_name = maxwell ? "MX_MC$(k)" : "MC$(k)" #Name of the sequnce
 
@@ -158,12 +158,12 @@ bmax = gx'*B*gx
 @info "b-value: $(round(bmax, digits=2)) s/mm2"
 @info seq_name
 if termination_status(model) == MOI.LOCALLY_SOLVED
-    @info "Solved!" 
+    @info "Solved! 😃" 
 else
-    @info "NOT Solved :(" 
+    @info "NOT Solved 😢" 
 end
-# TO SCANNER
-inv = false
+## TO SCANNER
+inv = true
 DIFinv = inv ? -DIF : DIF
 write_diffprep_fwf(DIFinv[1], DIFinv[2], DIFinv[3], bmax, Gmax; filename="/home/ccp/DiffPrepWaveforms/$seq_name.txt", name=seq_name)
 # Plots
