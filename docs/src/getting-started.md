@@ -17,9 +17,9 @@ Then press `Ctrl+C` or `backspace` to return to the `julia>` prompt.
 
 
 ---
-## Graphical User Interface
+## My first MRI simulation
 
-To launch Koma's graphical user interface (GUI), you will need to load the package by typing `using KomaMRI`, and then lauch the GUI with `KomaUI()`.
+For our first simulation we will use Koma's graphical user interface (GUI). For this, you will first need to load KomaMRI by typing `using KomaMRI`, and then lauch the GUI with `KomaUI()`.
 
 ```julia-repl
 julia> using KomaMRI
@@ -39,3 +39,5 @@ As a simple demonstration, press the button `Simulate!` and wait until the simul
 Then, press the button `Reconstruct!` and wait until the reconstruction ends. Then click on the `Reconstruction` dropdown and then click on the `|Image|` button to see the image reconstruction: 
 
 ![](assets/ui-view-abs-image.png)
+
+Congratulations, you successfully simulated an MRI acquisition! 🎊
