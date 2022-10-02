@@ -1,7 +1,7 @@
 # Code used to generate moment-compensated diffusion gradient waveforms
 # Sequence optimization for diffusion prepared motion-compensated MRF 
 
-using KomaMRI, JuMP, Ipopt
+using KomaMRI, JuMP, Ipopt, Dates
 using LinearAlgebra: I, Bidiagonal, norm
 using Printf
 
@@ -83,7 +83,7 @@ end
 δ2N(δ) = floor(Int64, δ * 156250) + 2
 
 """Exports diffusion preparation waveforms for their use in the scanner."""
-function write_diffprep_fwf(G1, G2, G3, bmax, Gmax; filename="./qte_vectors_input.txt", name="Maxwell2")
+function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vectors_input.txt", name="Maxwell2")
     open(filename, "w") do io
         t1 = range(0, G1.GR[1].T, length=δ2N(G1.GR[1].T))
 		t2 = range(0, G2.GR[1].T, length=δ2N(G2.GR[1].T))
@@ -92,7 +92,15 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax; filename="./qte_vectors_inpu
         Gx1, Gy1, Gz1 = KomaMRI.get_grads(G1, Array(t1).+G1.GR[1].delay)
 		Gx2, Gy2, Gz2 = KomaMRI.get_grads(G2, Array(t2).+G2.GR[1].delay)
         Gx3, Gy3, Gz3 = KomaMRI.get_grads(G3, Array(t3).+G3.GR[1].delay)
-        line = @sprintf "%s %i %i %i % .4f % .4f\n" name length(t1) length(t2) length(t3) bmax Gmax*1e3
+        #Header
+        N1, N2, N3 = length(t1), length(t2), length(t3)
+        date = "#Generated on $(now())\n"
+        vars =  @sprintf "%s %s %s %s %s %s %s\n" "#Name"*" "^(length(name)-5) "N1"*" "^(length(string(N1))-2) "N2"*" "^(length(string(N2))-2) "N3"*" "^(length(string(N3))-2) "bval"*" "^(length(string(round(bmax,digits=1)))-4) "Gmax"*" "^(length(string(round(Gmax,digits=1)))-3) "Smax"
+        unit =  @sprintf "%s %s %s %s\n" "#"*" "^(length(name)+length(string(N1))+length(string(N2))+length(string(N3))+2)  "s/mm2"*" "^(length(string(round(bmax,digits=1)))-5) "mT/m"*" "^(length(string(round(Gmax,digits=1)))-3) "T/m/s"  
+        line =  @sprintf "%s %i %i %i %.1f %.1f %.1f\n" name N1 N2 N3 bmax Gmax*1e3 Smax
+        write(io, date)
+        write(io, vars)
+        write(io, unit)
         write(io, line)
         for i = 1:maxN
             fx1, fy1, fz1 = i ≤ length(t1) ? (Gx1[i], Gy1[i], Gz1[i])./Gmax   : (0,0,0)
@@ -104,22 +112,30 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax; filename="./qte_vectors_inpu
     end
 end
 
-## Paramete40
+## Paramete
+#Case 1
+# Gmax =  31e-3 # T/m
+# Smax = 200 # mT/m/ms
+# Δ1, Δ2 = 15.615800e-3, 45.615799e-3
+# δ1, δ2, δ3 = 13.804600e-3, 28.188801e-3, 13.931400e-3
+#Case 2
 Gmax =  60e-3 # T/m
-Smax = 200 # mT/m/ms
+Smax = 100 # mT/m/ms
+Δ1, Δ2 = 9.365800e-3, 26.865799e-3
+δ1, δ2, δ3 = 7.554600e-3, 15.688800e-3, 7.681400e-3
+
 N1 = 400 # You can solve the opt problem in a lower time resolution or use δ2N(dur_grad) 
 path_file = "/home/ccp/"
 k = 0 #Number of moments to null
 maxwell = true #maxwell or concomitant gradient compensation
-seq_name = maxwell ? "MX_MC$(k)" : "MC$(k)" #Name of the sequnce
 
 # Timings
-Δ1, Δ2 = 15.6180e-3, 45.6180e-3
-δ1, δ2, δ3 = 13.8004e-3, 28.1824e-3, 13.8004e-3
 rf1 = Δ1 - δ1
 rf2 = Δ2 - δ2 - Δ1
 # Grads - Pre-defined RF waveforms.
-τ = Δ2 + δ3 # τ/Nt = Δt => Nt = τ/Δt  
+τ = Δ2 + δ3 # τ/Nt = Δt => Nt = τ/Δt
+durT = ceil(Int64, τ*1e3) #For the name
+seq_name = maxwell ? "MX_MC$(k)_$durT" : "MC$(k)_$durT" #Name of the sequnce
 N2 = floor(Int, N1 * δ2 / δ1)
 N3 = floor(Int, N1 * δ3 / δ1)
 DIF =  Sequence([Grad(x -> 1e-3,   δ1, N1, 0)])
@@ -163,10 +179,10 @@ else
     @info "NOT Solved 😢" 
 end
 ## TO SCANNER
-inv = true
+inv = false
 DIFinv = inv ? -DIF : DIF
-write_diffprep_fwf(DIFinv[1], DIFinv[2], DIFinv[3], bmax, Gmax; filename="/home/ccp/DiffPrepWaveforms/$seq_name.txt", name=seq_name)
+write_diffprep_fwf(DIFinv[1], DIFinv[2], DIFinv[3], bmax, Gmax, Smax; filename="/home/ccp/DiffPrepWaveforms/$seq_name.txt", name=seq_name)
 # Plots
 p = plot_seq(DIFinv; darkmode=false, slider=false)
 savefig(p,"/home/ccp/DiffPrepWaveforms/$seq_name.svg")
-p
+#p
