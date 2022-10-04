@@ -1,4 +1,4 @@
-# User Interface Details
+# Graphical User Interface
 
 This section is meant to explain some details about how to use the user interface of the **KomaMRI.jl** package and the processes that happen internally while interacting with it.
 

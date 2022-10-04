@@ -191,7 +191,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 		toImageButtonOptions=attr(
 			format="svg", # one of png, svg, jpeg, webp
 		).fields,
-		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
+		modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
 	PlotlyJS.plot(p, l; config) #, options=Dict(:displayModeBar => false))
 end
@@ -282,7 +282,7 @@ function plot_image(image; height=750, width=nothing, zmin=minimum(abs.(image[:]
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	l = PlotlyJS.Layout(;title=title,yaxis_title="y",
-    xaxis_title="x",height=height,wifth=width,
+    xaxis_title="x",height=height,wifth=width,margin=attr(t=0,l=0,r=0,b=0),
     yaxis=attr(scaleanchor="x"),
 	font_color=text_color,
     modebar=attr(orientation="v",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),xaxis=attr(constrain="domain"),hovermode="closest",
@@ -641,7 +641,7 @@ julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
 julia> plot_signal(ismrmrd)
 ```
 """
-function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, darkmode=false, range=[])
+function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, slider=true, darkmode=false, range=[])
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
 	signal = []
@@ -660,26 +660,43 @@ function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, dar
 		append!(t, t[end])
 		append!(signal, [Inf + Inf*1im])
 	end
-	#Time window
-	Tmin = minimum(t)
-	Tmax = maximum(t)
-	Tacq = Tmax - Tmin
 	#PLOT
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;title="",
-		font_color=text_color,
-		xaxis=attr(ticksuffix=" ms",range=range,
-					rangeslider=attr(visible=true),
-					gridcolor=grid_color,zerolinecolor=grid_color),
-		yaxis=attr(gridcolor=grid_color,zerolinecolor=grid_color),
-		paper_bgcolor=bgcolor,
-		plot_bgcolor=plot_bgcolor, height=height, width=width,
-		yaxis_fixedrange = false,
-		legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1.02,x=0),
-		modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1.02,x=1,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor))
-	absS = PlotlyJS.scatter(x=t,y=abs.(signal), name="|S(t)|")
-	reS =  PlotlyJS.scatter(x=t,y=real.(signal),name="Re{S(t)}")
-	imS =  PlotlyJS.scatter(x=t,y=imag.(signal),name="Im{S(t)}")
+	l = PlotlyJS.Layout(; hovermode="closest",
+			xaxis_title="",
+			modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
+			legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
+			plot_bgcolor=plot_bgcolor,
+			paper_bgcolor=bgcolor,
+			xaxis_gridcolor=grid_color,
+			yaxis_gridcolor=grid_color,
+			xaxis_zerolinecolor=grid_color,
+			yaxis_zerolinecolor=grid_color,
+			font_color=text_color,
+			yaxis_fixedrange = false,
+			xaxis=attr(
+				ticksuffix=" ms",
+				range=range,
+				rangeslider=attr(visible=slider),
+				rangeselector=attr(
+					buttons=[
+						attr(count=1,
+						label="1m",
+						step=10,
+						stepmode="backward"),
+						attr(step="all")
+						]
+					),
+				),
+			shapes = [],
+			margin=attr(t=0,l=0,r=0,b=0),
+			height=height, width=width
+			)
+	plotter = PlotlyJS.scatter
+	p = [plotter() for j=1:3]
+	p[1] = plotter(x=t,y=abs.(signal), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[2] = plotter(x=t,y=real.(signal),name="Re{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[3] = plotter(x=t,y=imag.(signal),name="Im{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
@@ -687,7 +704,7 @@ function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, dar
 		).fields,
 		modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
-	p = PlotlyJS.plot([absS,reS,imS],l;config)
+	p = PlotlyJS.plot(p,l;config)
 end
 
 """

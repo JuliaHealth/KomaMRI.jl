@@ -354,8 +354,8 @@ end
 """
     out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams, w)
 
-Returns the raw signal or the last state of the magnetization according to the boolean value
-of the `"return_Mag"` key of the `simParams` dictionary.
+Returns the raw signal or the last state of the magnetization according to the value
+of the `"return_type"` key of the `simParams` dictionary.
 
 # Arguments
 - `obj`: (`::Phantom`) the phantom struct
@@ -369,8 +369,8 @@ of the `"return_Mag"` key of the `simParams` dictionary.
     this variable is differnet from nothing, then the progress bar is considered
 
 # Returns
-- `out`: (`::Vector{ComplexF64}` or `::Vector{Mag}`) the raw signal if "return_Mag"=>false,
-    else the final state of the Mag vector
+- `out`: (`::Vector{ComplexF64}` or `::Vector{Mag}` or `RawAcquisitionData`) depending if "return_type" is
+    "mat" or "mag" or "raw" (default) respectively.
 
 # Examples
 
@@ -444,7 +444,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	Δt    = get(simParams, "Δt", 1e-3)
 	Δt_rf = get(simParams, "Δt_rf", 1e-4)
 	t, Δt = get_uniform_times(seq, Δt; Δt_rf)
-	return_Mag = get(simParams, "return_Mag", false)
+	return_type = get(simParams, "return_type", "raw")
 	end_sim_at = get(simParams, "end_sim_at", Inf)
 	if 0 < end_sim_at < dur(seq)
 		idx = t .< end_sim_at
@@ -455,13 +455,15 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	Nspins = prod(size(obj)...)
 	Nblocks = get(simParams, "Nblocks", ceil(Int, 6506*Nt/1.15e6))
     #Simulate
-	println("")
 	@info "Running simulation... [GPU = $(enable_gpu), CPU = $Nthreads thread(s)]."
-	if return_Mag
-		_, out = @time run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu)
-	else
-		S, _ = @time run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu,w)
-		out = S ./ Nspins #Acquired data
+	S, M = @time run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu)
+	out = S ./ Nspins #Acquired data
+	if return_type == "mag"
+		out = M
+	elseif return_type == "mat"
+		out = S
+	elseif return_type == "raw"
+		out = rawSignalToISMRMRD([S;;], seq; phantom=obj, sys=sys, simParams=simParams)
 	end
 	out
 end
@@ -486,7 +488,7 @@ Returns magnetization of spins distributed along `z` after running the Sequence 
 - `M`: (`::Vector{Mag}`) the final state of the Mag vector
 """
 function simulate_slice_profile(seq; z=range(-2e-2,2e-2,200), simParams=Dict{String,Any}("Δt_rf"=>1e-6))
-	simParams["return_Mag"] = true
+	simParams["return_type"] = "raw"
 	sys = Scanner()
 	phantom = Phantom(;x=zeros(size(z)),z)
 	M = simulate(phantom, seq, sys; simParams)

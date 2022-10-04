@@ -71,7 +71,7 @@ function rawSignalToISMRMRD(signal, seq;
         FOVy = Ny * Δx[2]
     end
     #It needs to be transposed for the raw data
-    ktraj = transpose(ktraj) ./ maximum(2*abs.(ktraj[:]))
+    ktraj = maximum(2*abs.(ktraj[:])) == 0 ? transpose(ktraj) : transpose(ktraj)./ maximum(2*abs.(ktraj[:]))
 
     #First we define the ISMRMRD data XML header
     params = Dict(
@@ -224,3 +224,13 @@ end
 #     ISMRMRD_ACQ_USER7                               = 63,
 #     ISMRMRD_ACQ_USER8                               = 64
 # };
+
+Base.show(io::IO, raw::RawAcquisitionData) = begin
+    Nt, Nc = size(raw.profiles[1].data)
+    compact = get(io, :compact, false)
+	if !compact
+        print(io, "RawAcquisitionData[SeqName: $(raw.params["protocolName"]) | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
+    else
+        print(io, "RawAcqData[$(raw.params["protocolName"]) | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
+    end
+end

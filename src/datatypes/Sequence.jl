@@ -147,7 +147,15 @@ Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k
 *(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
 *(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
 /(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.DEF)
-
+#Grad operations
++(s::Sequence, g::Grad) = s + Sequence([g;;])
++(g::Grad, s::Sequence) = Sequence([g;;]) + s
+#RF operations
++(s::Sequence, r::RF) = s + Sequence([Grad(0,0);;],[r;;])
++(r::RF, s::Sequence) = Sequence([Grad(0,0);;],[r;;]) + s
+#ADC operations
++(s::Sequence, a::ADC) = s + Sequence([Grad(0,0);;],[RF(0,0);;],[a])
++(a::ADC, s::Sequence) = Sequence([Grad(0,0);;],[RF(0,0);;],[a]) + s
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 

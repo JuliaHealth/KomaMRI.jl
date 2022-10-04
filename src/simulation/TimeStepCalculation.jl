@@ -59,7 +59,8 @@ julia> kfoldperm(20, 3; type="ordered", breaks=[3, 10, 17])
 ```
 """
 function kfoldperm(N, k; type="random", breaks=[])
-	n, r = divrem(N, k)
+	k = min(N,k)
+	n, r = divrem(N, k) #N >= k, N < k
 	b = collect(1:n:N+1)
 	Nb = length(b)
 	for i in 1:Nb

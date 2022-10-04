@@ -24,7 +24,7 @@ Some of the features of **KomaMRI.jl** are:
 * Friendly user interface for people with no programming skills.
 * Flexible API for advance users.
 
-## Potential use cases
+## Potential Use Cases
 
 We see Koma being used in:
 * The generation of synthetic data to train Machine Learning models.

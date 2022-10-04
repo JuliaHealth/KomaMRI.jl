@@ -1,5 +1,4 @@
 using KomaMRI, Plots, LaTeXStrings
-pgfplotsx()
 rf_wf = [
     #Waveform am_sg_100_100_0
     0, 413, 859, 1337, 1847, 2389, 2962, 3568, 4204, 4870,
@@ -51,7 +50,7 @@ plot!(f, abs.(M3.xy),label=L"|M_{xy}| @ \Delta f = +5\, \mathrm{kHz}",line=3)
 
 #GIF
 # anim = @animate for tf = range(0,7.5e-3,60)
-#     simParams = Dict("return_Mag"=>true, "end_sim_at"=>tf, "gpu"=>false)
+#     simParams = Dict("return_type"=>"raw", "end_sim_at"=>tf, "gpu"=>false)
 #     M = simulate(phantom, seq2, sys; simParams)
 #     #Plots
 #     plot(xx*1e2, abs.(M.xy),label="Mxy",line=4,ylim=(-1,1),title="Simulation ended at $(round(simParams["end_sim_at"]*1e3,digits=3)) ms")

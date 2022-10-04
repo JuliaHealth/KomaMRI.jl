@@ -7,9 +7,13 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Getting Started" => "getting-started.md",
-        "Simulation Examples" => "simulation-examples.md",
-        "MRI Theory" => "mri-theory.md",
-        "UI Details" => "ui-details.md",
+        # "Sequence" => "sequence.md",
+        # "Phantom" => "phantom.md",
+        # "Scanner" => "scanner.md",
+        # "Raw Signal" => "raw-signal.md",
+        "Graphical User Interface" => "ui-details.md",
+        "Examples" => "simulation-examples.md",
+        "Simulation Method" => "mri-theory.md",
         "API Documentation" => "api.md"
     ],
     format = Documenter.HTML(

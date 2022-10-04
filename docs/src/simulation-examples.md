@@ -1,373 +1,141 @@
 # Simulation Examples
 
-In order to follow these examples, make sure you have installed Julia in your machine and the `KomaMRI` package. These are step-by-step examples, so you can simply copy-and-paste the next lines of code in the Julia REPL to follow along.
-
-Before starting any example, don't forget to Include the `KomaMRI` package:
-```
-using KomaMRI
+These examples are designed so you can go along by copying and pasting the code blocks. 😃. Before starting, don't forget to include the `KomaMRI` package:
+```@example 1
+using KomaMRI # Copy me by clicking the icon at the right! ------>
 ```
 
-## Brain Example
+## Free Induction Decay
 
-This example is the same as the one used by default in the [KomaMRI User Interface](getting-started.md#UI-Example) but instead of using the **KomaUI()** function we issue commands in the Julia REPL with functions from the [KomaMRI API](api.md). The procedures in this example can be extended to other custom application cases by simply changing the inputs (**Scanner**, **Sequence** and **Phantom**).
-```@setup 0
-using KomaMRI
+The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse. To recreate this experiment, we will need to define a `Sequence` with 2 blocks. 
+
+The first block containing an RF pulse with a flip-angle of 90 deg, 
+```@example 1
+ampRF = 2e-6                        # 2 uT RF amplitude
+durRF = π / 2 / (2π * γ * ampRF)    # required duration for a 90 deg RF pulse
+exc = RF(ampRF,durRF)
+nothing # hide
 ```
-
-### Preparation: Inputs
-
-Define the default **Scanner** struct. Note that it simply contains some parameters that defines a scanner device:
-```@example 0
-sys = Scanner()
-```
-
-Define the **Sequence** struct. In this case we use a one-shot 90-degree excitation and a EPI sequence. It is also a good idea to inspect how the signal looks like in the time domain and how it covers the kspace:
-```@setup 0
-# Define some parameters
-FOV, N = 23e-2, 101         # field-of-view and number-of-pixels in x,y
-durRF = π/2/(2π*γ*sys.B1)   # duration of a flat RF for 90-degree hard excitation pulse
-
-# Define the sequence
-ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)  # the 90-degree excitation
-epi = PulseDesigner.EPI(FOV, N, sys)            # the epi sequence
-seq = ex + epi                                  # the final sequence
-
-# Plot the sequence in time and in the kspace
-savefig(plot_seq(seq; slider=true, height=300), "assets/0-seq.html")
-savefig(plot_kspace(seq; height=500), "assets/0-kspace.html")
-```
-```julia
-# Define some parameters
-FOV, N = 23e-2, 101         # field-of-view and number-of-pixels in x,y
-durRF = π/2/(2π*γ*sys.B1)   # duration of a flat RF for 90-degree hard excitation pulse
-
-# Define the sequence
-ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)  # the 90-degree excitation
-epi = PulseDesigner.EPI(FOV, N, sys)            # the epi sequence
-seq = ex + epi                                  # the final sequence
-
-# Plot the sequence in time and in the kspace
-plot_seq(seq)
-plot_kspace(seq)
-```
-```@raw html
-<object type="text/html" data="assets/0-seq.html" style="width:100%; height:330px;"></object>
-```
-```@raw html
-<object type="text/html" data="assets/0-kspace.html" style="width:60%; height:520px; display:block; margin:auto;"></object>
-```
-
-Define the **Phantom** struct. This is an example of a 2D brain. We can even visualize the parameters of the spins in an image, for example here we plot the densities of every spin in the phantom:
-```@setup 0
-# Define the phantom
-obj = brain_phantom2D()     # an example of a 2D brain
-
-# Visualize the densities of the spins
-savefig(plot_phantom_map(obj, :ρ; height=500), "assets/0-obj.html")
-```
-```julia
-# Define the phantom
-obj = brain_phantom2D()     # an example of a 2D brain
-
-# Visualize the densities of the spins
-plot_phantom_map(obj, :ρ)
-```
-```@raw html
-<object type="text/html" data="assets/0-obj.html" style="width:60%; height:520px; display:block; margin:auto;"></object>
-```
-
-### Simulation: Raw Signal Output
-
-Simulate and get the raw signal in ISMRMRD format:
-```@setup 0
-# Simulate and get the raw signal in ISMRMRD format
-signal = simulate(obj, seq, sys)
-ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys)
-
-# Plot the raw signal
-savefig(plot_signal(ismrmrd; height=300), "assets/0-ismrmrd.html")
-```
-```julia
-# Simulate and get the raw signal in ISMRMRD format
-signal = simulate(obj, seq, sys)
-ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys)
-
-# Plot the raw signal
-plot_signal(ismrmrd)
-```
-```@raw html
-<object type="text/html" data="assets/0-ismrmrd.html" style="width:100%; height:330px;"></object>
-```
-
-### Reconstruction: Image Output
-
-To reconstruct the image we use the [MRIReco.jl](https://github.com/MagneticResonanceImaging/MRIReco.jl) package. Here it is an example of how to use the raw signal in ISMRMRD format with **MRIReco.jl** to finally visualize the image:
-```@setup 0
-# Get the acquisition data
-Nx, Ny = ismrmrd.params["reconSize"][1:2]
-params = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny), :densityWeighting=>true)
-acq = AcquisitionData(ismrmrd)
-
-# Reconstruct and get an slice of the magnitude of the image
-recon = reconstruction(acq, params)
-image  = reshape(recon.data, Nx, Ny, :)
-slice_abs = abs.(image[:, :, 1])
-
-# Plot an slice of the image
-savefig(plot_image(slice_abs; height=500), "assets/0-slice_abs.html")
-```
-```julia
-# Get the acquisition data
-Nx, Ny = ismrmrd.params["reconSize"][1:2]
-params = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny), :densityWeighting=>true)
-acq = AcquisitionData(ismrmrd)
-
-# Reconstruct and get an slice of the magnitude of the image
-recon = reconstruction(acq, params)
-image  = reshape(recon.data, Nx, Ny, :)
-slice_abs = abs.(image[:, :, 1])
-
-# Plot an slice of the image
-plot_image(slice_abs)
-```
-```@raw html
-<object type="text/html" data="assets/0-slice_abs.html" style="width:60%; height:520px; display:block; margin:auto;"></object>
-```
-
-
-## 1-Spin Example
-
-This example simulates a phantom that contain only 1 spin, so it is a very theoretical example. The idea is to visualize the dynamics of an spin when an RF pulse is applied. Two cases are considered: the simple exponential free decay and when the spin is affected by the off-resonance phenomena: 
-
-```@setup 1
-using KomaMRI
-```
-
-### Sequence Definition
-
-Let's define the default scanner struct:
-```@setup 1
-sys = Scanner()
-```
-```julia
-sys = Scanner()
-```
-
-In this example we define a sequence with 3 blocks. The first block contains a 90° RF pulse, the second block is a small delay and the third one is the adquisition (for more information about how a sequence is constructed refer to the [Sequence Structure](useful-information.md#Sequence-Structure)):
-```@setup 1
-# Define the 90-degree hard excitation pulse parameters
-ampRF = sys.B1                      # amplitude of the RF pulse
-durRF = π / 2 / (2π * γ * ampRF)    # duration of the RF pulse (γ is globally defined by KomaMRI)
-
-# Define a delay parameter between the excitation and the acquisition
-delayTime = .001    # a small delay
-
-# Define parameters for the acquisition
+and the second block containing the ADC.
+```@example 1
 nADC = 8192         # number of acquisition samples
-durADC = .5         # duration of the acquisition
-
-# Define sequence the struct
-exc = Sequence([Grad(0,0); Grad(0,0); Grad(0,0);;], [RF(ampRF,durRF);;])
-dly = Delay(delayTime)
-adq = Sequence([Grad(0,0); Grad(0,0); Grad(0,0);;], [RF(0,0);;], [ADC(nADC, durADC)])
-seq = exc + dly + adq
-
-# Plot the sequence over time
-savefig(plot_seq(seq; slider=true, height=300), "assets/1-seq.html")
+durADC = 250e-3     # duration of the acquisition
+delay =  1e-3       # small delay
+acq = ADC(nADC, durADC, delay)
+nothing # hide
 ```
-```julia
-# Define the 90-degree hard excitation pulse parameters
-ampRF = sys.B1                      # amplitude of the RF pulse
-durRF = π / 2 / (2π * γ * ampRF)    # duration of the RF pulse (γ is globally defined by KomaMRI)
-
-# Define a delay parameter between the excitation and the acquisition
-delayTime = durRF   # a small delay
-
-# Define parameters for the acquisition
-nADC = 8192         # number of acquisition samples
-durADC = .5         # duration of the acquisition
-
-# Define sequence the struct
-exc = Sequence([Grad(0,0); Grad(0,0); Grad(0,0);;], [RF(ampRF,durRF);;])
-dly = Delay(delayTime)
-adq = Sequence([Grad(0,0); Grad(0,0); Grad(0,0);;], [RF(0,0);;], [ADC(nADC, durADC)])
-seq = exc + dly + adq
-
-# Plot the sequence over time
-plot_seq(seq; slider=true)
+Finally, we concatenate the sequence blocks to create the final sequence (for more info. refer to [Sequence Structure](useful-information.md#Sequence-Structure)).
+```@example 1
+seq = Sequence()  # empty sequence
+seq += exc        # adding RF-only block
+seq += acq        # adding ADC-only block
+p = plot_seq(seq; slider=false, height=300)
+savefig(p, "assets/1-seq.html") # hide
+nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="assets/1-seq.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/1-seq.html" style="width:100%; height:320px;"></object>
+```
+Now, we will define a `Phantom` with a single spin at $x=0$ with $T_1=1000\,\mathrm{ms}$ and $T_2=100\,\mathrm{ms}$.
+```@example 1
+obj = Phantom(x=[0], T1=[1000e-3], T2=[100e-3])
+nothing # hide
 ```
 
-### Free-Decay Case
+Finally, to simulate we will need to use the function [simulate](@ref).
+```@example 1
+sys = Scanner() # default hardware definition
+raw = simulate(obj, seq, sys)
+``` 
+To plot the results we will need to use the [plot_signal](@ref) function 
 
-Define the 1-spin phantom struct with T1 and T2 parameters:
-```@setup 1
-# Define the 1-spin phantom struct with T1 and T2 parameters
-T1, T2 = 1, durADC / 5
-obj = Phantom(x=[0], T1=[T1], T2=[T2])
-```
-```julia
-# Define the 1-spin phantom struct with T1 and T2 parameters
-T1, T2 = 1, durADC / 5
-obj = Phantom(x=[0], T1=[T1], T2=[T2])
-```
-
-Perform the simulation and visualize the free-decay behavior:
-```@setup 1
-# Simulate and get the output raw signal in ismrmrd format
-sig = simulate(obj, seq, sys)
-ismrmrd = rawSignalToISMRMRD([sig;;], seq; phantom=obj, sys=sys)
-
-# Check that the raw signal is the expected free-decay behavior
-savefig(plot_signal(ismrmrd; height=300), "assets/10-ismrmrd.html")
-```
-```julia
-# Simulate and get the output raw signal in ismrmrd format
-sig = simulate(obj, seq, sys)
-ismrmrd = rawSignalToISMRMRD([sig;;], seq; phantom=obj, sys=sys)
-
-# Check that the raw signal is the expected free-decay behavior
-plot_signal(ismrmrd)
+```@example 1
+p = plot_signal(raw; slider=false, height=300)
+savefig(p, "assets/1-signal.html"); nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="assets/10-ismrmrd.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/1-signal.html" style="width:100%; height:320px;"></object>
 ```
+Nice!, we can see that $S(t)$ follows an exponential decay $\exp(-t/T_2)$ as expected.
 
-### Off-Resonance Case
-
-Define the 1-spin phantom struct with the additional off-resonance parameter:
+For a little bit of spiciness, let's add **off-resonance** to our example. We will use $\Delta f=-100\,\mathrm{Hz}$. For this, we will need to add a definition for `Δw` in our `Phantom`
+```@example 1
+obj = Phantom(x=[0], T1=[1000e-3], T2=[100e-3], Δw=[-2π*100])
+nothing # hide
+```
+and simulate again.
 ```@setup 1
-Δw = 220 * 2π
-obj = Phantom(x=[0], T1=[T1], T2=[T2], Δw=[Δw])
-```
-```julia
-Δw = 220 * 2π
-obj = Phantom(x=[0], T1=[T1], T2=[T2], Δw=[Δw])
-```
-
-Perform the simulation and visualize the off-resonance oscillation behavior:
-```@setup 1
-# Simulate and get the output raw signal in ismrmrd format
-sig = simulate(obj, seq, sys)
-ismrmrd = rawSignalToISMRMRD([sig;;], seq; phantom=obj, sys=sys)
-
-# Check that the raw signal is the expected off-resonance oscillation behavior
-savefig(plot_signal(ismrmrd; height=300), "assets/11-ismrmrd.html")
-```
-```julia
-# Simulate and get the output raw signal in ismrmrd format
-sig = simulate(obj, seq, sys)
-ismrmrd = rawSignalToISMRMRD([sig;;], seq; phantom=obj, sys=sys)
-
-# Check that the raw signal is the expected off-resonance oscillation behavior
-plot_signal(ismrmrd)
+raw = simulate(obj, seq, sys)
+p = plot_signal(raw; slider=false, height=300)
+savefig(p, "assets/2-signal.html"); nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="assets/11-ismrmrd.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/2-signal.html" style="width:100%; height:320px;"></object>
 ```
+The signal now follows an exponential of the form $\exp(-t/T_2)\cdot\exp(-i\Delta\omega t)$. The addition of $\exp(-i\Delta\omega t)$ to the signal will generate a shift in the image space (Fourier shifting property). This effect will be better visualized and explained in later examples.
 
+# Chemical Shift in an EPI sequence
 
-## Shifted Sphere
+For a more realistic example, we will use a brain phantom. 
 
-This example shows the simulation and reconstruction for a sphere phantom with a chemical shift. The idea is to include standard files to define the **Sequence** and **Phantom** inputs . The files can be found in the same paths of the [github repo](https://github.com/cncastillo/KomaMRI.jl).
 ```@setup 2
 using KomaMRI
-```
-
-### Preparation: Inputs
-
-Define the inputs of the simulation (the scanner, the sequence and the phantom):
-```@setup 2
-# Define the scanner, sequence and phantom
 sys = Scanner()
+```
+```@example 2
+obj = brain_phantom2D() # a slice of a brain
+p1 = plot_phantom_map(obj, :T2 ; height=400)
+p2 = plot_phantom_map(obj, :Δw ; height=400)
+savefig(p1, "assets/1-phantom.html"); nothing # hide
+savefig(p2, "assets/2-phantom.html"); nothing # hide
+```
+At the left, you can see the $T_2$ map of the phantom, and at the right, the off-resonance $\Delta\omega$. In this example, the fat is the only source of off-resonance (with $\Delta f =  -220\,\mathrm{Hz}$) and you can see it in black in the off-resonance map.
+```@raw html
+<object type="text/html" data="assets/1-phantom.html" style="width:50%; height:420px;"></object><object type="text/html" data="assets/2-phantom.html" style="width:50%; height:420px;"></object>
+```
+Then, we will load an EPI sequence, that is well known for being affected by off-resonance. With this sequence, we will be able visualize the effect of the chemical shift.
+
+```@setup 2
 seq = read_seq("../../examples/3.koma_paper/comparison/sequences/EPI/epi_100x100_TE100_FOV230.seq")
-obj = read_phantom_jemris("../../examples/2.phantoms/sphere_chemical_shift.h5")
-
-# Visualize the inputs
-display(sys)
-savefig(plot_seq(seq; slider=true, height=300), "assets/2-seq.html")
-savefig(plot_kspace(seq; height=500), "assets/2-kspace.html")
-savefig(plot_phantom_map(obj, :T2; height=500), "assets/2-obj.html")
+p = plot_seq(seq; range=[90. 120.], slider=true, height=300)
+savefig(p, "assets/2-seq.html"); 
 ```
 ```julia
-# Define the scanner, sequence and phantom
-sys = Scanner()
 seq = read_seq("examples/3.koma_paper/comparison/sequences/EPI/epi_100x100_TE100_FOV230.seq")
-obj = read_phantom_jemris("examples/2.phantoms/sphere_chemical_shift.h5")
-
-# Visualize the inputs
-display(sys)
-plot_seq(seq; slider=true)
-plot_kspace(seq)
-plot_phantom_map(obj, :T2)
 ```
+Feel free to explore the sequence plot 🔍 below!
 ```@raw html
-<object type="text/html" data="assets/2-seq.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/2-seq.html" style="width:100%; height:320px;"></object>
 ```
-```@raw html
-<object type="text/html" data="assets/2-kspace.html" style="width:60%; height:520px; display:block; margin:auto;""></object>
+If we simulate this sequence we will end up with the following signal.
+```@example 2
+raw = simulate(obj, seq, sys)
 ```
-```@raw html
-<object type="text/html" data="assets/2-obj.html" style="width:60%; height:520px; display:block; margin:auto;""></object>
-```
-
-### Simulation: Raw Signal Output
-
-Simulate and get the raw signal in ISMRMRD format:
 ```@setup 2
-# Simulate and get the raw signal in ISMRMRD format
-signal = simulate(obj, seq, sys)
-ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys)
-
-# Plot the raw signal
-savefig(plot_signal(ismrmrd; height=300), "assets/2-ismrmrd.html")
-```
-```julia
-# Simulate and get the raw signal in ISMRMRD format
-signal = simulate(obj, seq, sys)
-ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys)
-
-# Plot the raw signal
-plot_signal(ismrmrd)
+p = plot_signal(raw; range=[120.4 122.2] , height=300)
+savefig(p, "assets/3-signal.html"); nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="assets/2-ismrmrd.html" style="width:100%; height:330px;"></object>
+<object type="text/html" data="assets/3-signal.html" style="width:100%; height:320px;"></object>
 ```
-
-
-### Reconstruction: Image Output
-
-To reconstruct the image we use the [MRIReco.jl](https://github.com/MagneticResonanceImaging/MRIReco.jl) package:
-```@setup 2
+Now, we need to inspect what effect the off-resonance had in the reconstructed image. As you can see, the fat layer is now shifted to a different position 🤯, this is why the effect is called chemical shift!
+```@example 2
 # Get the acquisition data
-Nx, Ny = ismrmrd.params["reconSize"][1:2]
-params = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny), :densityWeighting=>true)
-acq = AcquisitionData(ismrmrd)
+acq = AcquisitionData(raw)
+acq.traj[1].circular = false #This is to remove a circular mask
 
-# Reconstruct and get an slice of the magnitude of the image
-recon = reconstruction(acq, params)
-image  = reshape(recon.data, Nx, Ny, :)
+# Setting up the reconstruction parameters
+Nx, Ny = raw.params["reconSize"][1:2]
+reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny))
+image = reconstruction(acq, reconParams)
+
+# Plotting the recon
 slice_abs = abs.(image[:, :, 1])
-
-# Plot an slice of the image
-savefig(plot_image(slice_abs; height=500), "assets/2-slice_abs.html")
-```
-```julia
-# Get the acquisition data
-Nx, Ny = ismrmrd.params["reconSize"][1:2]
-params = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny), :densityWeighting=>true)
-acq = AcquisitionData(ismrmrd)
-
-# Reconstruct and get an slice of the magnitude of the image
-recon = reconstruction(acq, params)
-image  = reshape(recon.data, Nx, Ny, :)
-slice_abs = abs.(image[:, :, 1])
-
-# Plot an slice of the image
-plot_image(slice_abs)
+p = plot_image(slice_abs; height=400)
+savefig(p, "assets/1-recon.html");  nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="assets/2-slice_abs.html" style="width:60%; height:520px; display:block; margin:auto;"></object>
+<center>
+<object type="text/html" data="assets/1-recon.html" style="width:65%; height:420px;">
+</center>
 ```
