@@ -34,7 +34,7 @@ savefig(p, "assets/1-seq.html") # hide
 nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="assets/1-seq.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/1-seq.html" style="width:100%; height:320px;"></object>
 ```
 Now, we will define a `Phantom` with a single spin at $x=0$ with $T_1=1000\,\mathrm{ms}$ and $T_2=100\,\mathrm{ms}$.
 ```@example 1
@@ -54,7 +54,7 @@ p = plot_signal(raw; slider=false, height=300)
 savefig(p, "assets/1-signal.html"); nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="assets/1-signal.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/1-signal.html" style="width:100%; height:320px;"></object>
 ```
 Nice!, we can see that $S(t)$ follows an exponential decay $\exp(-t/T_2)$ as expected.
 
@@ -70,7 +70,7 @@ p = plot_signal(raw; slider=false, height=300)
 savefig(p, "assets/2-signal.html"); nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="assets/2-signal.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/2-signal.html" style="width:100%; height:320px;"></object>
 ```
 The signal now follows an exponential of the form $\exp(-t/T_2)\cdot\exp(-i\Delta\omega t)$. The addition of $\exp(-i\Delta\omega t)$ to the signal will generate a shift in the image space (Fourier shifting property). This effect will be better visualized and explained in later examples.
 
@@ -91,7 +91,7 @@ savefig(p2, "assets/2-phantom.html"); nothing # hide
 ```
 At the left, you can see the $T_2$ map of the phantom, and at the right, the off-resonance $\Delta\omega$. In this example, the fat is the only source of off-resonance (with $\Delta f =  -220\,\mathrm{Hz}$) and you can see it in black in the off-resonance map.
 ```@raw html
-<object type="text/html" data="assets/1-phantom.html" style="width:50%; height:420px;"></object><object type="text/html" data="assets/2-phantom.html" style="width:50%; height:420px;"></object>
+<object type="text/html" data="../assets/1-phantom.html" style="width:50%; height:420px;"></object><object type="text/html" data="../assets/2-phantom.html" style="width:50%; height:420px;"></object>
 ```
 Then, we will load an EPI sequence, that is well known for being affected by off-resonance. With this sequence, we will be able visualize the effect of the chemical shift.
 
@@ -105,7 +105,7 @@ seq = read_seq("examples/3.koma_paper/comparison/sequences/EPI/epi_100x100_TE100
 ```
 Feel free to explore the sequence's plot 🔍 below!
 ```@raw html
-<object type="text/html" data="assets/2-seq.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/2-seq.html" style="width:100%; height:320px;"></object>
 ```
 If we simulate this sequence we will end up with the following signal.
 ```@example 2
@@ -116,7 +116,7 @@ p = plot_signal(raw; range=[98.4 103.4] , height=300)
 savefig(p, "assets/3-signal.html"); nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="assets/3-signal.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/3-signal.html" style="width:100%; height:320px;"></object>
 ```
 Now, we need to inspect what effect the off-resonance had in the reconstructed image. As you can see, the fat layer is now shifted to a different position 🤯, this is why the effect is called chemical shift!
 ```@example 2
@@ -136,6 +136,6 @@ savefig(p, "assets/1-recon.html");  nothing # hide
 ```
 ```@raw html
 <center>
-<object type="text/html" data="assets/1-recon.html" style="width:65%; height:420px;">
+<object type="text/html" data="../assets/1-recon.html" style="width:65%; height:420px;">
 </center>
 ```
