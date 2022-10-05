@@ -138,9 +138,9 @@ durT = ceil(Int64, τ*1e3) #For the name
 seq_name = maxwell ? "MX_MC$(k)_$durT" : "MC$(k)_$durT" #Name of the sequnce
 N2 = floor(Int, N1 * δ2 / δ1)
 N3 = floor(Int, N1 * δ3 / δ1)
-DIF =  Sequence([Grad(x -> 1e-3,   δ1, N1, 0)])
-DIF += Sequence([Grad(x -> 1e-3,   δ2, N2, rf1)])
-DIF += Sequence([Grad(x -> 1e-3,   δ3, N3, rf2)])
+DIF =  Sequence([Grad(x -> 1e-3,   δ1, N1; delay=0)])
+DIF += Sequence([Grad(x -> 1e-3,   δ2, N2; delay=rf1)])
+DIF += Sequence([Grad(x -> 1e-3,   δ3, N3; delay=rf2)])
 # Opt matrices
 B =  get_Bmatrix(DIF)  #B-value
 SR = get_SRmatrix(DIF) #Slew-rate matrices

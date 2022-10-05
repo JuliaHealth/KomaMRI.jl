@@ -1,6 +1,52 @@
 using MRIReco: Profile
 
-function rawSignalToISMRMRD(signal,seq; 
+"""
+    raw_ismrmrd = rawSignalToISMRMRD(signal, seq; phantom, sys, simParams)
+
+Transforms the raw signal into ISMRMRD format.
+
+# Arguments
+- `signal`: (`::Vector{ComplexF64}`) the raw signal
+- `seq`: (`::Sequence`) the sequence struct
+
+# Keywords
+- `phantom`: (`::Phantom`, `=Phantom(name="Phantom",x=[0])`) the phantom struct
+- `sys`: (`::Scanner`, `=Scanner()`) the scanner struct
+- `simParams`: (`::Dict{String,Any}()`, `=Dict{String,Any}()`) the dictionary with
+    simulation parameters
+
+# Returns
+- `raw_ismrmrd`: (`::RawAcquisitionData`) the raw signal in ISMRMRD format
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_seq(seq)
+
+julia> obj = brain_phantom2D();
+
+julia> signal = simulate(obj, seq, sys);
+
+julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
+
+julia> plot_signal(ismrmrd)
+```
+"""
+function rawSignalToISMRMRD(signal, seq;
                                 phantom=Phantom(name="Phantom",x=[0]),
                                 sys=Scanner(),
                                 simParams=Dict{String,Any}())
@@ -25,7 +71,7 @@ function rawSignalToISMRMRD(signal,seq;
         FOVy = Ny * Δx[2]
     end
     #It needs to be transposed for the raw data
-    ktraj = transpose(ktraj) ./ maximum(2*abs.(ktraj[:]))
+    ktraj = maximum(2*abs.(ktraj[:])) == 0 ? transpose(ktraj) : transpose(ktraj)./ maximum(2*abs.(ktraj[:]))
 
     #First we define the ISMRMRD data XML header
     params = Dict(
@@ -116,7 +162,7 @@ function rawSignalToISMRMRD(signal,seq;
                 ),
                 (0, 0, 0, 0, 0, 0, 0, 0), #user_int: Free user parameters
                 (0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0) #user_float: Free user parameters
-            )   
+            )
             #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
             traj = ktraj[1:2, current:current+Nsamples-1]
             #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
@@ -178,3 +224,13 @@ end
 #     ISMRMRD_ACQ_USER7                               = 63,
 #     ISMRMRD_ACQ_USER8                               = 64
 # };
+
+Base.show(io::IO, raw::RawAcquisitionData) = begin
+    Nt, Nc = size(raw.profiles[1].data)
+    compact = get(io, :compact, false)
+	if !compact
+        print(io, "RawAcquisitionData[SeqName: $(raw.params["protocolName"]) | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
+    else
+        print(io, "RawAcqData[$(raw.params["protocolName"]) | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
+    end
+end

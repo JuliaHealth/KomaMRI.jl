@@ -1,5 +1,36 @@
 """
-Basic function to read JEMRIS phantoms.
+    phantom = read_phantom_jemris(filename)
+
+Returns the Phantom struct from JEMRIS phantoms a file `.h5`.
+
+# Arguments
+- `filename`: (`::String`) the absolute or relative path of the phantom file `.h5`
+
+# Returns
+- `phantom`: (`::Phantom`) the phantom struct
+
+# Examples
+```julia-repl
+julia> obj = read_phantom_jemris("examples/2.phantoms/brain.h5")
+Phantom
+  name: String "brain.h5"
+  x: Array{Float64}((25841,)) [-0.0085, -0.0075  …  0.0035]
+  y: Array{Float64}((25841,)) [-0.0985, -0.0985  …  0.1055]
+  z: Array{Float64}((25841,)) [0.0, 0.0  …  0.0]
+  ρ: Array{Float64}((25841,)) [1.0, 1.0  …  1.0]
+  T1: Array{Float64}((25841,)) [2.569, 2.569  …  2.569]
+  T2: Array{Float64}((25841,)) [0.329, 0.329  …  0.329]
+  T2s: Array{Float64}((25841,)) [Inf, Inf  …  Inf]
+  Δw: Array{Float64}((25841,)) [0.0, 0.0  …  0.0]
+  Dλ1: Array{Float64}((25841,)) [0.0, 0.0  …  0.0]
+  Dλ2: Array{Float64}((25841,)) [0.0, 0.0  …  0.0]
+  Dθ: Array{Float64}((25841,)) [0.0, 0.0  …  0.0]
+  ux: #161 (function of type KomaMRI.var"#161#162"{Int64})
+  uy: #387 (function of type KomaMRI.var"#387#395")
+  uz: #388 (function of type KomaMRI.var"#388#396")
+
+julia> plot_phantom_map(obj, :ρ)
+```
 """
 function read_phantom_jemris(filename)
 	# A(:,:,:,1)=Sample.M0;
@@ -27,7 +58,7 @@ function read_phantom_jemris(filename)
 	FOVy = (Y-1)*Δx[2] #[m]
 	FOVz = (Z-1)*Δx[3] #[m]
 	xx = [(-FOVx/2:Δx[1]:FOVx/2)...;]
-	yy = [(-FOVy/2:Δx[2]:FOVy/2)...;;] 
+	yy = [(-FOVy/2:Δx[2]:FOVy/2)...;;]
 	zz = [(-FOVz/2:Δx[3]:FOVz/2)...;;;]
 	x = xx*1 .+ yy*0 .+ zz*0 .+ offset[1]	#spin x coordinates
 	y = xx*0 .+ yy*1 .+ zz*0 .+ offset[2]	#spin y coordinates
@@ -38,7 +69,7 @@ function read_phantom_jemris(filename)
 					x=    x[mask],
 					y=    y[mask],
 					z=    z[mask],
-					ρ=    ρ[mask], 
+					ρ=    ρ[mask],
 					T1=	 T1[mask],
 					T2=	 T2[mask],
 					T2s=T2s[mask],

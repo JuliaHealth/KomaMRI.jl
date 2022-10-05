@@ -1,11 +1,41 @@
-## PulseDesigner
+"""
+    PulseDesigner
+
+A module to define different pulse sequences.
+"""
 module PulseDesigner
 using ..KomaMRI
 using ..KomaMRI: γ, Scanner, get_bvalue, get_max_grad
 
-###############
-## RF Pulses ##
-###############
+"""
+    ex = RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0)
+
+Definition of the RF hard sequence.
+
+# Arguments
+- `B1`: (`Float64`, `[T]`) the amplitude of the RF pulse
+- `T`: (`Float64`, `[s]`) the duration of the RF pulse
+- `sys`: (`::Scanner`) the scanner struct
+
+# Keywords
+- `G`: (`Vector{Float64}`, `=[0, 0, 0]`, `[T]`) the gradient amplitudes for x, y, z
+- `Δf`: (`Float64`, `=0`, `[Hz]`) the frequency offset of the RF pulse
+
+# Returns
+- `ex`: (`::Sequence`) the excitation sequence struct
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> plot_seq(ex)
+```
+"""
 RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0) = begin
 	ζ = sum(G) / sys.Smax
 	EX = Sequence([	Grad(G[1],T,ζ);	 #Gx
@@ -15,6 +45,7 @@ RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0) = begin
 					)
 	EX
 end
+
 ##################
 ## Gradient SEQ ##
 ##################
@@ -53,6 +84,33 @@ end
 # 	DIF
 # end
 # EPI
+"""
+    epi = EPI(FOV::Float64, N::Int, sys::Scanner)
+
+Definition of the EPI sequence.
+
+# Arguments
+- `FOV`: (`::Float64`, `[m]`) the field of view
+- `N`: (`::Int`) the number of pixels in the x and y axis
+- `sys`: (`::Scanner`) the scanner struct
+
+# Returns
+- `epi`: (`::Sequence`) the epi sequence struct
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> plot_seq(epi)
+
+julia> plot_kspace(epi)
+```
+"""
 EPI(FOV::Float64, N::Int, sys::Scanner) = begin
     #TODO: consider when N is even
 	Δt = sys.ADC_Δt
@@ -89,7 +147,19 @@ EPI(FOV::Float64, N::Int, sys::Scanner) = begin
 	seq
 end
 
-# Radial
+"""
+    seq = radial_base(FOV::Float64, Nr::Int, sys::Scanner)
+
+Definition of the radial base sequence.
+
+# Arguments
+- `FOV`: (`::Float64`, `[m]`) the field of view
+- `N`: (`::Int`) number of pixel in the radious
+- `sys`: (`::Scanner`) the scanner struct
+
+# Returns
+- `seq`: (`::Sequence`) the radial base sequence struct
+"""
 radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 	Δt = sys.ADC_Δt
 	Gmax = sys.Gmax
@@ -117,4 +187,4 @@ radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 end
 
 export EPI, radial_base
-end 
+end

@@ -1,9 +1,18 @@
-###################
-# DISPLAY METHODS #
-###################
+"""
+    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 
-# mathjax = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_SVG"
-#COLORS
+Define colors for dark or light mode.
+
+# Arguments
+- `darkmode`: (`::Bool`) the boolean that selects dark or light mode
+
+# Returns
+- `bgcolor`: (`::String`) the backgound color
+- `text_color`: (`::String`) the text color
+- `plot_bgcolor`: (`::String`) the color background for the plots
+- `grid_color`: (`::String`) the color of the grids
+- `sep_color`: (`::String`) the color of separator lines
+"""
 function theme_chooser(darkmode)
 	if darkmode
 		bgcolor = "rgba(0,0,0,0)"#"rgb(13,16,17)"
@@ -20,6 +29,24 @@ function theme_chooser(darkmode)
 	end
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color
 end
+
+"""
+    c_map_interp = interp_map(c_map, t_interp)
+
+Interpolates a color map. This is used for plotting the kspace (refer to
+[`plot_kspace`](@ref)).
+
+# Arguments
+- `c_map`: (`::Vector{Vector{Any}}`) the color map. Every element of this vector has a
+    vector with a number between 0-1 in its first element and a color string in its second
+    element. It serves as a reference to create a color map with more elements
+- `t_interp`: (`::Vector{Float64}`) the vector with values between 0-1 that are the
+    reference for interpolate the color map with more elements
+
+# Returns
+- `c_map_interp`: (`::Vector{String}`) the vector with color strings with interpolated
+    values
+"""
 function interp_map(c_map, t_interp)
 	idx = [c[1] for c = c_map]
 	R = [parse.(Int, split(c[2][5:end-1],", "))[1] for c = c_map]
@@ -32,6 +59,46 @@ function interp_map(c_map, t_interp)
 	c_map_interp
 end
 
+"""
+    p = plot_seq(seq; width, height, slider, show_seq_blocks, darkmode, max_rf_samples, range)
+
+Plots a sequence struct.
+
+# Arguments
+- `seq`: (`::Sequence`) the sequence struct
+
+# Keywords
+- `width`: (`::Int64`, `=nothing`) the width of the plot
+- `height`: (`::Int64`, `=nothing`) the height of the plot
+- `slider`: (`::Bool`, `=true`) the boolean to display a slider
+- `show_seq_blocks`: (`::Bool`, `=false`) the boolean to show sequence blocks
+- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+- `max_rf_samples`: (`::Int64`, `=100`) the maximum number of RF samples
+- `range`: (`::Vector{Float64}`, `=[]`) the time range to be displayed initially
+
+# Returns
+- `p`: (`::PlotlyJS.SyncPlot`) the plot of the sequence struct
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_seq(seq)
+```
+"""
 plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, max_rf_samples=100, range=[]) = begin
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	idx = ["Gx" "Gy" "Gz"]
@@ -53,7 +120,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 	#ADC
 	t3 =  vcat([get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
 	D =   vcat([get_theo_A(d;off_val) for d = seq.ADC]...)
-	#Shapes 
+	#Shapes
 	shapes = []
 	if show_seq_blocks
 		aux = [line(
@@ -74,7 +141,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 	# 		) for i = 1:length(t_sim_parts)]
 	# 		append!(shapes, aux)
 	# end
-	l = PlotlyJS.Layout(; hovermode="closest", 
+	l = PlotlyJS.Layout(; hovermode="closest",
 			xaxis_title="",
 			modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
 			legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
@@ -88,7 +155,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 			yaxis_fixedrange = false,
 			xaxis=attr(
 				ticksuffix=" ms",
-				range=range,
+				range=range[:],
 				rangeslider=attr(visible=slider),
 				rangeselector=attr(
 					buttons=[
@@ -124,16 +191,98 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 		toImageButtonOptions=attr(
 			format="svg", # one of png, svg, jpeg, webp
 		).fields,
-		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
+		modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
 	PlotlyJS.plot(p, l; config) #, options=Dict(:displayModeBar => false))
 end
 
+"""
+    p = plot_image(image; height, width, zmin, zmax, darkmode, title)
+
+Plots an image matrix.
+
+# Arguments
+- `image`: (`::Matrix{Float64}`) the image matrix
+
+# Keywords
+- `height`: (`::Int64`, `=750`) the height of the plot
+- `width`: (`::Int64`, `=nothing`) the width of the plot
+- `zmin`: (`::Float64`, `=minimum(abs.(image[:]))`) the reference value for minimum color
+- `zmax`: (`::Float64`, `=maximum(abs.(image[:]))`) the reference value for maximum color
+- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+- `title`: (`::String`, `=""`) the title of the plot
+
+# Returns
+- `p`: (`::PlotlyJS.SyncPlot`) the plot of the image matrix
+
+# Examples
+
+Preparation (define scanner and sequence):
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_seq(seq)
+
+julia> plot_kspace(seq)
+```
+
+Simulate:
+```julia-repl
+julia> obj = brain_phantom2D()
+
+julia> signal = simulate(obj, seq, sys);
+
+julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
+
+julia> plot_signal(ismrmrd)
+```
+
+Reconstruct:
+```julia-repl
+julia> Nx, Ny = ismrmrd.params["reconSize"][1:2];
+
+julia> params = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny), :densityWeighting=>true);
+
+julia> acq = AcquisitionData(ismrmrd);
+
+julia> recon = reconstruction(acq, params);
+
+julia> image = reshape(recon.data, Nx, Ny, :)
+102×102×1 Array{ComplexF64, 3}:
+[:, :, 1] =
+ 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
+ 0.0+0.0im  0.0+0.0im     0.0+0.0im
+    ⋮           ⋮       ⋱      ⋮
+ 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
+
+julia> slice_abs = abs.(image[:, :, 1])
+102×102 Matrix{Float64}:
+ 0.0  0.0  …  0.0
+ 0.0  0.0     0.0
+  ⋮        ⋱   ⋮
+ 0.0  0.0  …  0.0
+
+julia> plot_image(slice_abs)
+```
+"""
 function plot_image(image; height=750, width=nothing, zmin=minimum(abs.(image[:])), zmax=maximum(abs.(image[:])), darkmode=false, title="")
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	l = PlotlyJS.Layout(;title=title,yaxis_title="y",
-    xaxis_title="x",height=height,wifth=width,
+    xaxis_title="x",height=height,wifth=width,margin=attr(t=0,l=0,r=0,b=0),
     yaxis=attr(scaleanchor="x"),
 	font_color=text_color,
     modebar=attr(orientation="v",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),xaxis=attr(constrain="domain"),hovermode="closest",
@@ -155,6 +304,42 @@ function plot_image(image; height=750, width=nothing, zmin=minimum(abs.(image[:]
 	PlotlyJS.plot(p,l;config)
 end
 
+"""
+    p = plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
+
+Plots the k-space of a sequence struct.
+
+# Arguments
+- `seq`: (`::Sequence`) the sequence struct
+
+# Keywords
+- `width`: (`::Int64`, `=nothing`) the width of the plot
+- `height`: (`::Int64`, `=nothing`) the height of the plot
+- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+
+# Returns
+- `p`: (`::PlotlyJS.SyncPlot`) the plot of the k-space of the sequence struct `seq`
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_kspace(seq)
+```
+"""
 function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	#Calculations of theoretical k-space
@@ -209,6 +394,43 @@ function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 	PlotlyJS.plot(p,l; config)
 end
 
+"""
+    p = plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false)
+
+Plots the magnetization M0 of a sequence struct.
+
+# Arguments
+- `seq`: (`::Sequence`) the sequence struct
+
+# Keywords
+- `height`: (`::Int64`, `=nothing`) the height of the plot
+- `width`: (`::Int64`, `=nothing`) the width of the plot
+- `slider`: (`::Bool`, `=true`) the boolean to display a slider
+- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+
+# Returns
+- `p`: (`::PlotlyJS.SyncPlot`) the plot of the magnetization M0 of the sequence struct `seq`
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_M0(seq)
+```
+"""
 function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false)
 	#Times
 	dt = 1
@@ -220,7 +442,7 @@ function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false
 
 	#plots k(t)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;yaxis_title="M0", hovermode="closest", 
+	l = PlotlyJS.Layout(;yaxis_title="M0", hovermode="closest",
 			xaxis_title="",
 			modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
 			legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
@@ -265,10 +487,38 @@ function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false
 	PlotlyJS.plot(p, l; config)
 end
 
-"""Plot phantom map, the keys could be {:ρ, :T1, :T2, :T2s, :x, :y, :z}. Optional parameter: t0 [ms] to see displacement.
+"""
+    p = plot_phantom_map(ph, key; t0=0, height=700, width=nothing, darkmode=false)
 
+Plots a phantom map for a specific spin parameter given by `key`.
+
+# Arguments
+- `ph`: (`::Phantom`) the phantom struct
+- `key`: (`::Symbol`, opts: [`:ρ`, `:T1`, `:T2`, `:T2s`, `:x`, `:y`, `:z`]) the symbol for
+    displaying different parameters of the phantom spins
+
+# Keywords
+- `t0`: (`::Float64`, `=0`, `[ms]`) the time to see displacement of the phantom
+- `height`: (`::Int64`, `=nothing`) the height of the plot
+- `width`: (`::Int64`, `=nothing`) the width of the plot
+- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+
+# Returns
+- `p`: (`::PlotlyJS.SyncPlot`) the plot of the phantom map for a specific spin parameter
+
+# References
 Colormaps from https://github.com/markgriswold/MRFColormaps
-Towards Unified Colormaps for Quantitative MRF Data, Mark Griswold, et al. (2018)."""
+Towards Unified Colormaps for Quantitative MRF Data, Mark Griswold, et al. (2018).
+
+# Examples
+```julia-repl
+julia> obj2D, obj3D = brain_phantom2D(), brain_phantom3D();
+
+julia> plot_phantom_map(obj2D, :ρ)
+
+julia> plot_phantom_map(obj3D, :ρ)
+```
+"""
 function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=nothing, darkmode=false)
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
@@ -326,7 +576,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 							z=(ph.z .+ ph.uz(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							mode="markers",
 							marker=attr(color=getproperty(ph,key)*factor,
-										showscale=true, 
+										showscale=true,
 										colorscale=colormap,
 										colorbar=attr(ticksuffix=unit, title=string(key)),
 										cmin=cmin_key,
@@ -345,7 +595,53 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 	p = PlotlyJS.plot(h,l;config)
 end
 
-function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, slider=true, darkmode=false)
+"""
+    p = plot_signal(raw::RawAcquisitionData; height, width, darkmode, range)
+
+Plots a raw signal in ISMRMRD format.
+
+# Arguments
+- `raw`: (`::RawAcquisitionData`) the RawAcquisitionData struct which is the raw signal in
+    ISMRMRD format
+
+# Keywords
+- `width`: (`::Int64`, `=nothing`) the width of the plot
+- `height`: (`::Int64`, `=nothing`) the height of the plot
+- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+- `range`: (`::Vector{Float64}`, `=[]`) the time range to be displayed initially
+
+# Returns
+- `p`: (`::PlotlyJS.SyncPlot`) the plot of the raw signal
+
+# Examples
+```julia-repl
+julia> sys = Scanner();
+
+julia> FOV, N = 23e-2, 101;
+
+julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+
+julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+
+julia> epi = PulseDesigner.EPI(FOV, N, sys)
+Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+
+julia> seq = ex + epi
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+
+julia> plot_seq(seq)
+
+julia> obj = brain_phantom2D();
+
+julia> signal = simulate(obj, seq, sys);
+
+julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
+
+julia> plot_signal(ismrmrd)
+```
+"""
+function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, slider=true, darkmode=false, range=[])
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
 	signal = []
@@ -364,45 +660,43 @@ function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, sli
 		append!(t, t[end])
 		append!(signal, [Inf + Inf*1im])
 	end
-	#Time window
-	Tmin = minimum(t)
-	Tmax = maximum(t)
-	Tacq = Tmax - Tmin
 	#PLOT
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(; hovermode="closest", 
-		xaxis_title="",
-		modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
-		legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
-		plot_bgcolor=plot_bgcolor,
-		paper_bgcolor=bgcolor,
-		xaxis_gridcolor=grid_color,
-		yaxis_gridcolor=grid_color,
-		xaxis_zerolinecolor=grid_color,
-		yaxis_zerolinecolor=grid_color,
-		font_color=text_color,
-		yaxis_fixedrange = false,
-		xaxis=attr(
-			ticksuffix=" ms",
-			range=[Tmin+Tacq/2-.025*Tacq,Tmin+Tacq/2+.025*Tacq],
-			rangeslider=attr(visible=slider),
-			rangeselector=attr(
-				buttons=[
-					attr(count=1,
-					label="100m",
-					step=10,
-					stepmode="backward"),
-					attr(step="all")
-					]
+	l = PlotlyJS.Layout(; hovermode="closest",
+			xaxis_title="",
+			modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
+			legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
+			plot_bgcolor=plot_bgcolor,
+			paper_bgcolor=bgcolor,
+			xaxis_gridcolor=grid_color,
+			yaxis_gridcolor=grid_color,
+			xaxis_zerolinecolor=grid_color,
+			yaxis_zerolinecolor=grid_color,
+			font_color=text_color,
+			yaxis_fixedrange = false,
+			xaxis=attr(
+				ticksuffix=" ms",
+				range=range[:],
+				rangeslider=attr(visible=slider),
+				rangeselector=attr(
+					buttons=[
+						attr(count=1,
+						label="1m",
+						step=10,
+						stepmode="backward"),
+						attr(step="all")
+						]
+					),
 				),
-			),
-		margin=attr(t=0,l=0,r=0,b=0),
-		height=height, width=width
-		)
-	absS = PlotlyJS.scatter(x=t,y=abs.(signal), name="|S(t)|")
-	reS =  PlotlyJS.scatter(x=t,y=real.(signal),name="Re{S(t)}")
-	imS =  PlotlyJS.scatter(x=t,y=imag.(signal),name="Im{S(t)}")
-	p = [absS,reS,imS]
+			shapes = [],
+			margin=attr(t=0,l=0,r=0,b=0),
+			height=height, width=width
+			)
+	plotter = PlotlyJS.scatter
+	p = [plotter() for j=1:3]
+	p[1] = plotter(x=t,y=abs.(signal), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[2] = plotter(x=t,y=real.(signal),name="Re{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[3] = plotter(x=t,y=imag.(signal),name="Im{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
@@ -414,6 +708,17 @@ function plot_signal(raw::RawAcquisitionData; height=nothing, width=nothing, sli
 	PlotlyJS.plot(p, l;config)
 end
 
+"""
+    str = plot_dict(dict::Dict)
+
+Generates a string in html format of the dictionary `dict`.
+
+# Arguments
+- `dict`: (`::Dict`) the dictionary to generate tha html string
+
+# Returns
+- `str`: (`::String`) the string of the dictionary `dict` which is a table in html format
+"""
 function plot_dict(dict::Dict)
 	html = """
 	<table class="table table-dark table-striped">
@@ -424,7 +729,7 @@ function plot_dict(dict::Dict)
 			<th scope="col">Value</th>
 			</tr>
 		</thead>
-		<tbody>		
+		<tbody>
 	"""
 	i = 1
 	for (key,val) = dict
@@ -469,10 +774,10 @@ end
 # 	l = PlotlyJS.Layout(;
 # 	title=title,
 # 	xaxis=attr(domain = [0, .75]),
-# 	yaxis=attr(title=attr(text="G [mT/m]", standoff=0), 
+# 	yaxis=attr(title=attr(text="G [mT/m]", standoff=0),
 # 		side="left", tickfont=attr(color="#636efa"), titlefont=attr(color="#636efa"),range=[-Gmax, Gmax]),
 # 	yaxis2=attr(title=attr(text="M0 [mT/m⋅ms]", standoff=1, position=1), showgrid=false,
-# 		anchor="free", overlaying="y",position=0.75, side="right", 
+# 		anchor="free", overlaying="y",position=0.75, side="right",
 # 		tickfont=attr(color="#ef553b"), titlefont=attr(color="#ef553b"), range=[-M0max, M0max]),
 # 	yaxis3=attr(title=attr(text="M1 [mT/m⋅ms²]", standoff=1), showgrid=false,
 # 		anchor="free",overlaying="y",position=0.75+.25/3,side="right",

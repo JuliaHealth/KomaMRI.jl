@@ -156,13 +156,12 @@ handle(w, "simulate") do args...
     # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
-    signal = simulate(phantom, seq, sys; simParams, w)
+    global raw_ismrmrd = simulate(phantom, seq, sys; simParams, w)
     #After simulation go to RECON
     @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
     #EXPORT to ISMRMRD -> To SignalGUI
     println("")
     @info "Exporting to ISMRMRD file"
-    global raw_ismrmrd = rawSignalToISMRMRD([signal;;],seq;phantom,sys,simParams)
     global rawfile = tempdir()*"/Koma_signal.mrd"
     global sig_obs[] = raw_ismrmrd
     fout = ISMRMRDFile(rawfile)

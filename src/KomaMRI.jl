@@ -1,13 +1,13 @@
 module KomaMRI
 
 #IMPORT PACKAGES
-import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, 
+import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size,
        Base.copy, Base.Threads.@spawn, Base.Threads.@threads,
        Base.angle, Base.abs, Base.getproperty, Base.one, Base.zero
 #General
-using Pkg, Random, LinearAlgebra, Images, Reexport, FFTW 
+using Pkg, Random, LinearAlgebra, Images, Reexport, FFTW
 #Printing
-using Scanf, Printf, ProgressMeter 
+using Scanf, Printf, ProgressMeter
 #Datatypes
 using Parameters, ArgCheck
 #Simulation
@@ -50,7 +50,7 @@ include("io/ISMRMRD.jl")
 #UI
 include("ui/DisplayFunctions.jl")
 
-#Main 
+#Main
 export γ #gyro-magnetic ratio [Hz/T]
 export Scanner, Sequence, Phantom
 export Grad, RF, ADC, Delay
