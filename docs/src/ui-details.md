@@ -11,7 +11,7 @@ julia> using KomaMRI
 julia> KomaUI()
 ```
 ```@raw html
-<p align="center"><img width="90%" src="assets/gui-dashboard.png"/></p>
+<p align="center"><img width="90%" src="/assets/gui-dashboard.png"/></p>
 ```
 
 ## Inputs
