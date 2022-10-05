@@ -97,13 +97,13 @@ Then, we will load an EPI sequence, that is well known for being affected by off
 
 ```@setup 2
 seq = read_seq("../../examples/3.koma_paper/comparison/sequences/EPI/epi_100x100_TE100_FOV230.seq")
-p = plot_seq(seq; range=[90. 120.], slider=true, height=300)
+p = plot_seq(seq; range=[0 40], slider=true, height=300)
 savefig(p, "assets/2-seq.html"); 
 ```
 ```julia
 seq = read_seq("examples/3.koma_paper/comparison/sequences/EPI/epi_100x100_TE100_FOV230.seq")
 ```
-Feel free to explore the sequence plot 🔍 below!
+Feel free to explore the sequence's plot 🔍 below!
 ```@raw html
 <object type="text/html" data="assets/2-seq.html" style="width:100%; height:320px;"></object>
 ```
@@ -112,7 +112,7 @@ If we simulate this sequence we will end up with the following signal.
 raw = simulate(obj, seq, sys)
 ```
 ```@setup 2
-p = plot_signal(raw; range=[120.4 122.2] , height=300)
+p = plot_signal(raw; range=[98.4 103.4] , height=300)
 savefig(p, "assets/3-signal.html"); nothing # hide
 ```
 ```@raw html

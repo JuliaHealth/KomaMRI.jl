@@ -155,7 +155,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 			yaxis_fixedrange = false,
 			xaxis=attr(
 				ticksuffix=" ms",
-				range=range,
+				range=range[:],
 				rangeslider=attr(visible=slider),
 				rangeselector=attr(
 					buttons=[
@@ -642,6 +642,7 @@ julia> plot_signal(ismrmrd)
 ```
 """
 function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, slider=true, darkmode=false, range=[])
+	print(range)
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
 	signal = []
@@ -676,7 +677,7 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 			yaxis_fixedrange = false,
 			xaxis=attr(
 				ticksuffix=" ms",
-				range=range,
+				range=range[:],
 				rangeslider=attr(visible=slider),
 				rangeselector=attr(
 					buttons=[
