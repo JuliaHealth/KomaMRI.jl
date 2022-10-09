@@ -58,7 +58,7 @@ export Mag, dur
 #Pulseq
 export read_seq
 #ISMRMRD
-export rawSignalToISMRMRD
+export signal_to_raw_data
 # Phantom
 export brain_phantom2D, brain_phantom3D, read_phantom_jemris
 #RF-related

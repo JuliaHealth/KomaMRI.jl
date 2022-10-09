@@ -107,9 +107,9 @@ KomaMRI.read_seq
 read_phantom_jemris
 ```
 
-### `rawSignalToISMRMRD`
+### `signal_to_raw_data`
 ```@docs
-rawSignalToISMRMRD
+signal_to_raw_data
 ```
 
 ## Pulse Design

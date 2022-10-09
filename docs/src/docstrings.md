@@ -156,9 +156,9 @@ Refer to [API Documentation](api.md#read_phantom_jemris):
 
 ## [ISMRMRD.jl](@id ismrmrd)
 
-### `rawSignalToISMRMRD`
-Refer to [API Documentation](api.md#rawSignalToISMRMRD):
-* [`KomaMRI.rawSignalToISMRMRD`](@ref) — Function
+### `signal_to_raw_data`
+Refer to [API Documentation](api.md#signal_to_raw_data):
+* [`KomaMRI.signal_to_raw_data`](@ref) — Function
 
 ## [PulseDesigner.jl](@id pulse-designer)
 

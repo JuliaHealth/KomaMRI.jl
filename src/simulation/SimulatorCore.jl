@@ -402,7 +402,7 @@ julia> obj = brain_phantom2D()
 
 julia> signal = simulate(obj, seq, sys);
 
-julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
+julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
 
 julia> plot_signal(ismrmrd)
 ```
@@ -463,7 +463,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	elseif return_type == "mat"
 		out = S
 	elseif return_type == "raw"
-		out = rawSignalToISMRMRD([S;;], seq; phantom=obj, sys=sys, simParams=simParams)
+		out = signal_to_raw_data([S;;], seq; phantom=obj, sys=sys, simParams=simParams)
 	end
 	out
 end

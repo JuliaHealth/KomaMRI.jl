@@ -1,7 +1,7 @@
 name = "KomaMRI"
 uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
-version = "0.6.6"
+version = "0.6.7"
 
 [deps]
 ArgCheck = "dce04be8-c92d-5529-be00-80e4d2c0e197"
@@ -55,7 +55,7 @@ JLD2 = "0.4"
 JuMP = "0.21, 1"
 LinearOperators = "2"
 MAT = "0.10"
-MRIReco = "0.4.2"
+MRIReco = "0.4.2, 0.6"
 MathOptInterface = "0.9, 0.10, 1"
 Mux = "0.7"
 PackageCompiler = "1, 2"

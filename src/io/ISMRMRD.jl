@@ -1,7 +1,7 @@
 using MRIReco: Profile
 
 """
-    raw_ismrmrd = rawSignalToISMRMRD(signal, seq; phantom, sys, simParams)
+    raw_ismrmrd = signal_to_raw_data(signal, seq; phantom, sys, simParams)
 
 Transforms the raw signal into ISMRMRD format.
 
@@ -41,12 +41,12 @@ julia> obj = brain_phantom2D();
 
 julia> signal = simulate(obj, seq, sys);
 
-julia> ismrmrd = rawSignalToISMRMRD([signal;;], seq; phantom=obj, sys=sys);
+julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
 
 julia> plot_signal(ismrmrd)
 ```
 """
-function rawSignalToISMRMRD(signal, seq;
+function signal_to_raw_data(signal, seq;
                                 phantom=Phantom(name="Phantom",x=[0]),
                                 sys=Scanner(),
                                 simParams=Dict{String,Any}())
