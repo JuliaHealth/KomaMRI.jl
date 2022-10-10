@@ -18,11 +18,11 @@ KomaMRI can be used by either:
 
 Some of the features of **KomaMRI.jl** are:
 * Fast simulations by using CPU and GPU parallelization 🏃💨.
-* Open Source, so anyone can include additional features.
-* Compatibility with community-standards e like Pulseq `.seq` and ISMRMRD `.mrd`.
-* Cross-platform thanks to the use of the Julia programing language.
-* Friendly user interface for people with no programming skills.
-* Flexible API for advance users.
+* Open Source, so anyone can include additional features 🆙.
+* Compatibility with community-standards 🤝 like Pulseq `.seq` and ISMRMRD `.mrd`.
+* Cross-platform 🌐 thanks to the use of the Julia programing language.
+* Friendly user interface for people with no programming skills 😌.
+* Flexible API for advance users 👨‍💻.
 
 ## Potential Use Cases
 

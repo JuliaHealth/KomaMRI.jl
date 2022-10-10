@@ -25,7 +25,9 @@ makedocs(
 
 deploydocs(
     repo = "github.com/cncastillo/KomaMRI.jl.git",
-    # versions = ["stable" => "v^", "v#", "dev" => "dev"],
+    devbranch = "main",
+    devurl = "dev",
+    versions = ["stable" => "v^", "v#", "dev" => "dev"],
+    forcepush = true,
 )
-
 #julia --color=yes make.jl
