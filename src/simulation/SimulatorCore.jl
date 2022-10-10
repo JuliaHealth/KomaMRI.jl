@@ -456,7 +456,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	Nblocks = get(simParams, "Nblocks", ceil(Int, 6506*Nt/1.15e6))
     #Simulate
 	@info "Running simulation... [GPU = $(enable_gpu), CPU = $Nthreads thread(s)]."
-	S, M = @time run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu)
+	S, M = @time run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu,w)
 	out = S ./ Nspins #Acquired data
 	if return_type == "mag"
 		out = M
