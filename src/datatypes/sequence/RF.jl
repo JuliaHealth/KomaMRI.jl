@@ -218,7 +218,7 @@ mutable struct RF
 		new(A, T, Δf, 0.)
     end
 	function RF(A, T)
-		@argcheck all(T .>= 0) >= 0 "RF timings must be positive."
+		@argcheck all(T .>= 0) "RF timings must be positive."
 		new(A, T, 0., 0.)
     end
 end
