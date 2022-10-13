@@ -458,15 +458,23 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	Nblocks = get(simParams, "Nblocks", ceil(Int, 6506*Nt/1.15e6))
     #Simulate
 	@info "Running simulation... [GPU = $(enable_gpu), CPU = $Nthreads thread(s)]."
-	S, M, t_sim_parts = @time run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu,w)
+	@time begin
+		timed_tuple = @timed run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu,w)
+	end
+	S, M, t_sim_parts = timed_tuple.value #unpacking
 	out = S ./ Nspins #Acquired data
 	if return_type == "mag"
 		out = M
 	elseif return_type == "mat"
 		out = S
 	elseif return_type == "raw"
-		simParams["t_sim_parts"] = t_sim_parts
-		out = signal_to_raw_data([S;;], seq; phantom=obj, sys, simParams)
+		simParams_raw = copy(simParams)
+		simParams_raw["gpu"] = enable_gpu
+		simParams_raw["Nthreads"] = Nthreads
+		simParams_raw["t_sim_parts"] = t_sim_parts
+		simParams_raw["Nblocks"] = Nblocks
+		simParams_raw["sim_time"] = timed_tuple.time
+		out = signal_to_raw_data([S;;], seq; phantom=obj, sys=sys, simParams=simParams_raw)
 	end
 	out
 end

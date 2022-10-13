@@ -25,7 +25,7 @@ function theme_chooser(darkmode)
 		text_color = "gray"#"rgb(49,70,101)"
 		plot_bgcolor = "rgb(229,236,246)"
 		grid_color = "white"
-		sep_color = "white"
+		sep_color = "black"
 	end
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color
 end
@@ -99,7 +99,7 @@ Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
 julia> plot_seq(seq)
 ```
 """
-plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, show_sim_blocks=false, darkmode=false, max_rf_samples=100, range=[]) = begin
+plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, show_sim_blocks=false, Nblocks=0, darkmode=false, max_rf_samples=100, range=[]) = begin
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
@@ -127,7 +127,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 			xref="x", yref="paper",
 			x0=T0[i]*1e3, y0=0,
 			x1=T0[i]*1e3, y1=1,
-			line=attr(color=sep_color, width=1),
+			line=attr(color=sep_color, width=2),
 			) for i = 1:N+1]
 		append!(shapes, aux)
 	end
@@ -137,7 +137,9 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 		t, _ = KomaMRI.get_uniform_times(seq, 1e-3)
 		breaks = KomaMRI.get_breaks_in_RF_key_points(seq,t)
 		Nt = length(t)
-		Nblocks = ceil(Int, 6506*Nt/1.15e6)
+		if Nblocks == 0
+			Nblocks = ceil(Int, 6506*Nt/1.15e6)
+		end
 		parts = KomaMRI.kfoldperm(Nt,Nblocks;type="ordered",breaks)
 		t_sim_parts = [t[p[1]] for p in parts]
 		#Create lines
