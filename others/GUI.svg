@@ -2,16 +2,16 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="955.67511mm"
-   height="431.79993mm"
-   viewBox="0 0 955.67508 431.79993"
+   width="634.73547mm"
+   height="655.38232mm"
+   viewBox="0 0 634.73545 655.38233"
    version="1.1"
    id="svg5"
    inkscape:export-filename="/home/ccp/Documents/Koma_paper/Figures/GUI.png"
    inkscape:export-xdpi="300"
    inkscape:export-ydpi="300"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
-   sodipodi:docname="GUI.svg"
+   sodipodi:docname="GUI_new.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -27,33 +27,37 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="0.28284582"
-     inkscape:cx="1279.8492"
-     inkscape:cy="997.00962"
+     inkscape:zoom="0.2000022"
+     inkscape:cx="-559.99385"
+     inkscape:cy="1004.989"
      inkscape:window-width="1920"
-     inkscape:window-height="1043"
-     inkscape:window-x="1920"
-     inkscape:window-y="0"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="32"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g37170"
+     inkscape:current-layer="g37158"
      showguides="true"
      inkscape:guide-bbox="true">
     <sodipodi:guide
-       position="342.36368,431.79992"
+       position="342.36368,655.38231"
        orientation="0,-1"
        id="guide839" />
     <sodipodi:guide
-       position="-1.0650765,211.66667"
+       position="-1.0650749,435.24906"
        orientation="0,-1"
        id="guide841" />
     <sodipodi:guide
-       position="1003.503,431.79994"
+       position="1003.503,655.38233"
        orientation="1,0"
        id="guide843" />
     <sodipodi:guide
-       position="655.8949,431.79992"
+       position="321.20421,443.71565"
        orientation="1,0"
        id="guide845" />
+    <sodipodi:guide
+       position="4.7412107e-06,655.38231"
+       orientation="1,0"
+       id="guide855" />
   </sodipodi:namedview>
   <defs
      id="defs2" />
@@ -74,11 +78,11 @@
          x="-249.49274"
          y="-85.659088" />
       <rect
-         style="fill:#26292d;stroke-width:2;stroke-linecap:round;stroke-dashoffset:3;fill-opacity:1"
+         style="fill:#000000;fill-opacity:1;stroke-width:2;stroke-linecap:round;stroke-dashoffset:3"
          id="rect18309"
-         width="37.400002"
+         width="105.9977"
          height="37.400005"
-         x="-249.49274"
+         x="-249.49272"
          y="88.607582" />
       <text
          xml:space="preserve"
@@ -90,7 +94,7 @@
            id="tspan13622"
            style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:19.7556px;font-family:MathJax_Main;-inkscape-font-specification:'MathJax_Main Bold';fill:#ffffff;stroke-width:0.264583"
            x="-245.13527"
-           y="112.25636">(a)</tspan></text>
+           y="112.25636"> Sequence</tspan></text>
     </g>
     <g
        id="g37182"
@@ -105,11 +109,11 @@
          x="71.711441"
          y="-85.659088" />
       <rect
-         style="fill:#26292d;stroke-width:2;stroke-linecap:round;stroke-dashoffset:3;fill-opacity:1"
+         style="fill:#000000;fill-opacity:1;stroke-width:1.99999;stroke-linecap:round;stroke-dashoffset:3"
          id="rect18309-3"
-         width="37.399998"
+         width="90.8582"
          height="37.400002"
-         x="71.711441"
+         x="71.711433"
          y="88.607574" />
       <text
          xml:space="preserve"
@@ -121,11 +125,13 @@
            id="tspan13622-75"
            style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:19.7556px;font-family:MathJax_Main;-inkscape-font-specification:'MathJax_Main Bold';fill:#ffffff;stroke-width:0.264583"
            x="75.278664"
-           y="112.25636">(b)</tspan></text>
+           y="112.25636"><tspan
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:MathJax_Math;-inkscape-font-specification:'MathJax_Math Bold'"
+   id="tspan28342"> k</tspan>-Space</tspan></text>
     </g>
     <g
        id="g37188"
-       transform="translate(-2.7941895e-5)">
+       transform="translate(-642.14389,221.85779)">
       <image
          width="313.53125"
          height="211.66667"
@@ -136,9 +142,9 @@
          x="392.65115"
          y="-85.659088" />
       <rect
-         style="fill:#26292d;stroke-width:2;stroke-linecap:round;stroke-dashoffset:3;fill-opacity:1"
+         style="fill:#000000;fill-opacity:1;stroke-width:1.99999;stroke-linecap:round;stroke-dashoffset:3"
          id="rect18309-35"
-         width="37.399998"
+         width="108.81626"
          height="37.400002"
          x="392.65115"
          y="88.607574" />
@@ -152,11 +158,11 @@
            id="tspan13622-9"
            style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:19.7556px;font-family:MathJax_Main;-inkscape-font-specification:'MathJax_Main Bold';fill:#ffffff;stroke-width:0.264583"
            x="397.48273"
-           y="112.25636">(c)</tspan></text>
+           y="112.25636"> Phantom</tspan></text>
     </g>
     <g
        id="g37158"
-       transform="translate(-2.7941895e-5)">
+       transform="translate(-321.46883,223.58237)">
       <image
          width="313.26666"
          height="211.66667"
@@ -167,27 +173,29 @@
          x="392.91574"
          y="134.47417" />
       <rect
-         style="fill:#26292d;stroke-width:2;stroke-linecap:round;stroke-dashoffset:3;fill-opacity:1"
+         style="fill:#000000;fill-opacity:1;stroke-width:2;stroke-linecap:round;stroke-dashoffset:3"
          id="rect18309-1"
-         width="37.399998"
+         width="87.225739"
          height="37.400002"
          x="392.91574"
          y="308.74084" />
       <text
          xml:space="preserve"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:19.7556px;line-height:1.25;font-family:MathJax_Main;-inkscape-font-specification:'MathJax_Main Bold';fill:#ffffff;stroke-width:0.264583"
-         x="399.32776"
+         x="399.85693"
          y="332.38962"
          id="text13624-27"><tspan
            sodipodi:role="line"
            id="tspan13622-0"
            style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:19.7556px;font-family:MathJax_Main;-inkscape-font-specification:'MathJax_Main Bold';fill:#ffffff;stroke-width:0.264583"
-           x="399.32776"
-           y="332.38962">(f)</tspan></text>
+           x="399.85693"
+           y="332.38962"><tspan
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:MathJax_Math;-inkscape-font-specification:'MathJax_Math Bold'"
+   id="tspan43794"> k</tspan>-Data</tspan></text>
     </g>
     <g
        id="g37164"
-       transform="translate(3.6653646e-5)">
+       transform="translate(-321.46877,223.58234)">
       <image
          width="313.26666"
          height="211.66667"
@@ -198,11 +206,11 @@
          x="71.976028"
          y="134.47415" />
       <rect
-         style="fill:#26292d;stroke-width:2;stroke-linecap:round;stroke-dashoffset:3;fill-opacity:1"
+         style="fill:#000000;fill-opacity:1;stroke-width:2.00001;stroke-linecap:round;stroke-dashoffset:3"
          id="rect18309-9"
-         width="37.399998"
+         width="79.666351"
          height="37.400002"
-         x="71.976028"
+         x="71.976021"
          y="308.74084" />
       <text
          xml:space="preserve"
@@ -214,10 +222,11 @@
            id="tspan13622-06"
            style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:19.7556px;font-family:MathJax_Main;-inkscape-font-specification:'MathJax_Main Bold';fill:#ffffff;stroke-width:0.264583"
            x="76.649582"
-           y="332.38962">(e)</tspan></text>
+           y="332.38962"> Recon</tspan></text>
     </g>
     <g
-       id="g37170">
+       id="g37170"
+       transform="translate(320.41045,1.724535)">
       <image
          width="313.00208"
          height="211.66667"
@@ -228,11 +237,11 @@
          x="-248.69897"
          y="134.47417" />
       <rect
-         style="fill:#26292d;stroke-width:2;stroke-linecap:round;stroke-dashoffset:3;fill-opacity:1"
+         style="fill:#000000;fill-opacity:1;stroke-width:2;stroke-linecap:round;stroke-dashoffset:3"
          id="rect18309-2"
-         width="37.399998"
+         width="108.6122"
          height="37.400002"
-         x="-248.69897"
+         x="-248.69896"
          y="308.74084" />
       <text
          xml:space="preserve"
@@ -244,7 +253,7 @@
            id="tspan13622-8"
            style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:19.7556px;font-family:MathJax_Main;-inkscape-font-specification:'MathJax_Main Bold';fill:#ffffff;stroke-width:0.264583"
            x="-245.13174"
-           y="332.38962">(d)</tspan></text>
+           y="332.38962"> Raw data</tspan></text>
     </g>
   </g>
 </svg>
