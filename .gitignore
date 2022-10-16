@@ -3,6 +3,7 @@
 *.jl.mem
 .DS_Store
 /Manifest.toml
+/test/Manifest.toml
 /dev/
 .vscode/settings.json
 docs/build/

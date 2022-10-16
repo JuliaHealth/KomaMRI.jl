@@ -25,7 +25,7 @@ function theme_chooser(darkmode)
 		text_color = "gray"#"rgb(49,70,101)"
 		plot_bgcolor = "rgb(229,236,246)"
 		grid_color = "white"
-		sep_color = "white"
+		sep_color = "black"
 	end
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color
 end
@@ -99,7 +99,7 @@ Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
 julia> plot_seq(seq)
 ```
 """
-plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, max_rf_samples=100, range=[]) = begin
+plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, show_sim_blocks=false, Nblocks=0, darkmode=false, max_rf_samples=100, range=[]) = begin
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
@@ -127,20 +127,30 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 			xref="x", yref="paper",
 			x0=T0[i]*1e3, y0=0,
 			x1=T0[i]*1e3, y1=1,
-			line=attr(color=sep_color, width=1),
+			line=attr(color=sep_color, width=2),
 			) for i = 1:N+1]
 		append!(shapes, aux)
 	end
-	# The commented code here is to visually check the simulation blocks
-	# if show_sim_blocks
-	# 	aux = [line(
-	# 		xref="x", yref="paper",
-	# 		x0=t_sim_parts[i]*1e3, y0=0,
-	# 		x1=t_sim_parts[i]*1e3, y1=1,
-	# 		line=attr(color="Red", width=1),
-	# 		) for i = 1:length(t_sim_parts)]
-	# 		append!(shapes, aux)
-	# end
+	# Visually check the simulation blocks
+	if show_sim_blocks
+		#This is the preparation of the default simulate function
+		t, _ = KomaMRI.get_uniform_times(seq, 1e-3)
+		breaks = KomaMRI.get_breaks_in_RF_key_points(seq,t)
+		Nt = length(t)
+		if Nblocks == 0
+			Nblocks = ceil(Int, 6506*Nt/1.15e6)
+		end
+		parts = KomaMRI.kfoldperm(Nt,Nblocks;type="ordered",breaks)
+		t_sim_parts = [t[p[1]] for p in parts]
+		#Create lines
+		aux = [line(
+			xref="x", yref="paper",
+			x0=t_sim_parts[i]*1e3, y0=0,
+			x1=t_sim_parts[i]*1e3, y1=1,
+			line=attr(color="Red", width=1),
+			) for i = 1:length(t_sim_parts)]
+		append!(shapes, aux)
+	end
 	l = PlotlyJS.Layout(; hovermode="closest",
 			xaxis_title="",
 			modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
@@ -278,11 +288,11 @@ julia> slice_abs = abs.(image[:, :, 1])
 julia> plot_image(slice_abs)
 ```
 """
-function plot_image(image; height=750, width=nothing, zmin=minimum(abs.(image[:])), zmax=maximum(abs.(image[:])), darkmode=false, title="")
+function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:])), zmax=maximum(abs.(image[:])), darkmode=false, title="")
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	l = PlotlyJS.Layout(;title=title,yaxis_title="y",
-    xaxis_title="x",height=height,wifth=width,margin=attr(t=0,l=0,r=0,b=0),
+    xaxis_title="x",height=height,wifth=width,margin=attr(t=50,l=0,r=0,b=0),
     yaxis=attr(scaleanchor="x"),
 	font_color=text_color,
     modebar=attr(orientation="v",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),xaxis=attr(constrain="domain"),hovermode="closest",
@@ -519,7 +529,7 @@ julia> plot_phantom_map(obj2D, :ρ)
 julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
-function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=nothing, darkmode=false)
+function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=nothing, darkmode=false)
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
@@ -562,7 +572,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
     xf = maximum([ph.x;ph.y;ph.z])*1e2
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;title=ph.name, height=height, width=width,
+	l = PlotlyJS.Layout(;title=ph.name*": "*string(key), height=height, width=width, margin=attr(t=50,l=0,r=0,b=0),
 		paper_bgcolor=bgcolor,font_color=text_color,
 		scene=attr(
 			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
@@ -570,7 +580,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=700, width=noth
 			zaxis=attr(title="z",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 		),
 		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),xaxis=attr(constrain="domain"),
-		hovermode="closest",aspectmode="cube", margin=attr(t=25,l=0,r=0))
+		hovermode="closest",aspectmode="cube")
 	h = PlotlyJS.scatter3d( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							y=(ph.y .+ ph.uy(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							z=(ph.z .+ ph.uz(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
@@ -641,7 +651,7 @@ julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
 julia> plot_signal(ismrmrd)
 ```
 """
-function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, slider=true, darkmode=false, range=[])
+function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, slider=true, show_sim_blocks=false, darkmode=false, range=[])
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
 	signal = []
@@ -659,6 +669,18 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 		#To generate gap
 		append!(t, t[end])
 		append!(signal, [Inf + Inf*1im])
+	end
+	#Show simulation blocks
+	shapes = []
+	if !not_Koma && show_sim_blocks
+		t_sim_parts = raw.params["userParameters"]["t_sim_parts"]
+		aux = [line(
+			xref="x", yref="paper",
+			x0=t_sim_parts[i]*1e3, y0=0,
+			x1=t_sim_parts[i]*1e3, y1=1,
+			line=attr(color="Red", width=1),
+			) for i = 1:length(t_sim_parts)]
+		append!(shapes, aux)
 	end
 	#PLOT
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -688,7 +710,7 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 						]
 					),
 				),
-			shapes = [],
+			shapes = shapes,
 			margin=attr(t=0,l=0,r=0,b=0),
 			height=height, width=width
 			)

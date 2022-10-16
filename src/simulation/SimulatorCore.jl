@@ -60,11 +60,11 @@ function run_spin_precession_parallel(obj::Phantom, seq::Sequence, t::Array{Floa
 
 	parts = kfoldperm(Ns, Nthreads, type="ordered")
 
-	@threads for p ∈ parts
-		@inbounds aux, M0[p] = run_spin_precession(obj[p],seq,t,Δt; M0=M0[p], gpu)
-		S .+= aux
-		aux = nothing
+	S = ThreadsX.mapreduce(+, parts) do p #Thread-safe summation
+		S_p, M0[p] = run_spin_precession(obj[p],seq,t,Δt; M0=M0[p], gpu)
+		S_p
 	end
+
     S, M0
 end
 
@@ -319,6 +319,8 @@ function run_sim_time_iter(obj::Phantom, seq::Sequence, t::Array{Float64,1}, Δt
 	breaks = get_breaks_in_RF_key_points(seq,t)
     parts = kfoldperm(Nt,Nblocks;type="ordered",breaks)
 	Nblocks = length(parts)
+	# To visually check the simulation blocks
+	t_sim_parts = [t[p[1]] for p in parts]
 	println("Dividing simulation in Nblocks=$Nblocks")
 	println("Starting simulation with Nspins=$Ns and Nt=$Nt")
 	#Perturbation of spins' position to reduce spurious echoes (?)
@@ -348,7 +350,7 @@ function run_sim_time_iter(obj::Phantom, seq::Sequence, t::Array{Float64,1}, Δt
 	#Output
 	t_interp = get_sample_times(seq)
 	S_interp = LinearInterpolation(t.+Δt,S,extrapolation_bc=0)(t_interp) .* get_sample_phase_compensation(seq)
-	(S_interp, M0)
+	(S_interp, M0, t_sim_parts)
 end
 
 """
@@ -445,7 +447,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	Δt_rf = get(simParams, "Δt_rf", 1e-4)
 	t, Δt = get_uniform_times(seq, Δt; Δt_rf)
 	return_type = get(simParams, "return_type", "raw")
-	end_sim_at = get(simParams, "end_sim_at", Inf)
+	end_sim_at =  get(simParams, "end_sim_at", Inf)
 	if 0 < end_sim_at < dur(seq)
 		idx = t .< end_sim_at
 		t  =  t[idx]
@@ -456,14 +458,23 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 	Nblocks = get(simParams, "Nblocks", ceil(Int, 6506*Nt/1.15e6))
     #Simulate
 	@info "Running simulation... [GPU = $(enable_gpu), CPU = $Nthreads thread(s)]."
-	S, M = @time run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu,w)
+	@time begin
+		timed_tuple = @timed run_sim_time_iter(obj,seq,t,Δt;Nblocks,Nthreads,gpu,w)
+	end
+	S, M, t_sim_parts = timed_tuple.value #unpacking
 	out = S ./ Nspins #Acquired data
 	if return_type == "mag"
 		out = M
 	elseif return_type == "mat"
 		out = S
 	elseif return_type == "raw"
-		out = signal_to_raw_data([S;;], seq; phantom=obj, sys=sys, simParams=simParams)
+		simParams_raw = copy(simParams)
+		simParams_raw["gpu"] = enable_gpu
+		simParams_raw["Nthreads"] = Nthreads
+		simParams_raw["t_sim_parts"] = t_sim_parts
+		simParams_raw["Nblocks"] = Nblocks
+		simParams_raw["sim_time"] = timed_tuple.time
+		out = signal_to_raw_data([S;;], seq; phantom=obj, sys=sys, simParams=simParams_raw)
 	end
 	out
 end

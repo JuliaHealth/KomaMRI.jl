@@ -7,7 +7,7 @@ cross(n) = begin
     -ny nx 0] 
 end
 """Rodrigues' formula: Rotation matrix that when applied rotates with respect to "n" in an angle θ anti clock-wise"""
-Un(θ,n) = I * cos(θ) + sin(θ) * cross(n) + (1-cos(θ)) * (n * n')
+Un(θ,n) = [1 0 0; 0 1 0; 0 0 1] * cos(θ) + sin(θ) * cross(n) + (1-cos(θ)) * (n * n')
 """
 Slab oriented along the x axis.
 
