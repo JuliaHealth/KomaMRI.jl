@@ -56,15 +56,15 @@ function run_spin_precession_parallel(obj::Phantom, seq::Sequence, t::Array{Floa
 	t = reshape(t,1,Nt)
 	Δt = reshape(Δt,1,NΔt)
 
-	S = zeros(ComplexF64, Nt, Nthreads)
+	S = zeros(ComplexF64, Nt)
 
 	parts = kfoldperm(Ns, Nthreads, type="ordered")
 
-	@threads for p ∈ parts
-		idx = Threads.threadid()
-		@inbounds S[:, idx], M0[p] = run_spin_precession(obj[p],seq,t,Δt; M0=M0[p], gpu)
+	S = ThreadsX.mapreduce(+, parts) do p #Thread-safe summation
+		S_p, M0[p] = run_spin_precession(obj[p],seq,t,Δt; M0=M0[p], gpu)
+		S_p
 	end
-	S = sum(S, dims=2) #Thread-safe way to S .+ = S_p
+
     S, M0
 end
 

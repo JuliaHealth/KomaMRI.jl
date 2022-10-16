@@ -5,7 +5,7 @@ import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size,
        Base.copy, Base.Threads.@spawn, Base.Threads.@threads,
        Base.angle, Base.abs, Base.getproperty, Base.one, Base.zero
 #General
-using Pkg, Random, Reexport, FFTW
+using Pkg, Random, Reexport, FFTW, ThreadsX
 #Printing
 using Scanf, ProgressMeter
 #Datatypes
