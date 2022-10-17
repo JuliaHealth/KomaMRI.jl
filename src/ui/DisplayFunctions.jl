@@ -178,9 +178,14 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 					),
 				),
 			shapes = shapes,
-			margin=attr(t=0,l=0,r=0,b=0),
-			height=height, width=width
+			margin=attr(t=0,l=0,r=0,b=0)
 			)
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
 	plotter = PlotlyJS.scatter #using scattergl speeds up the plotting but does not show the sequence in the slider below
 	p = [plotter() for j=1:(3+2O+1)]
 	#GR
@@ -292,7 +297,7 @@ function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:]
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	l = PlotlyJS.Layout(;title=title,yaxis_title="y",
-    xaxis_title="x",height=height,wifth=width,margin=attr(t=50,l=0,r=0,b=0),
+    xaxis_title="x",margin=attr(t=50,l=0,r=0,b=0),
     yaxis=attr(scaleanchor="x"),
 	font_color=text_color,
     modebar=attr(orientation="v",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),xaxis=attr(constrain="domain"),hovermode="closest",
@@ -302,6 +307,12 @@ function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:]
 	yaxis_gridcolor=grid_color,
 	xaxis_zerolinecolor=grid_color,
 	yaxis_zerolinecolor=grid_color)
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
 	#Plot
 	p = PlotlyJS.heatmap(z=image,transpose=false,zmin=zmin,zmax=zmax,colorscale="Greys")
 	config = PlotConfig(
@@ -382,11 +393,17 @@ function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 				   zaxis=attr(title="kz [m⁻¹]",range=[mink[3],maxk[3]],backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color)),
 		modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
 		legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
-		height=height, width=width,font_color=text_color,
+		font_color=text_color,
 		scene_camera_eye=attr(x=0, y=0, z=1.7),
 		scene_camera_up=attr(x=0, y=1., z=0),
 		scene_aspectmode="cube",
 		margin=attr(t=0,l=0,r=0))
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
 	#Plot
 	p = [PlotlyJS.scatter() for j=1:3]
 	p[1] = PlotlyJS.scatter3d(x=kspace[:,1],y=kspace[:,2],z=kspace[:,3],mode="lines",
@@ -478,9 +495,14 @@ function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false
 						]
 					),
 				),
-			margin=attr(t=0,l=0,r=0),
-			height=height, width=width
+			margin=attr(t=0,l=0,r=0)
 			)
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
 	plotter = PlotlyJS.scatter #using scattergl speeds up the plotting but does not show the sequence in the slider below
 	p = [plotter() for j=1:4]
 	p[1] = plotter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms)", name="x")
@@ -572,7 +594,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
     xf = maximum([ph.x;ph.y;ph.z])*1e2
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;title=ph.name*": "*string(key), height=height, width=width, margin=attr(t=50,l=0,r=0,b=0),
+	l = PlotlyJS.Layout(;title=ph.name*": "*string(key), margin=attr(t=50,l=0,r=0,b=0),
 		paper_bgcolor=bgcolor,font_color=text_color,
 		scene=attr(
 			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
@@ -581,6 +603,12 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 		),
 		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),xaxis=attr(constrain="domain"),
 		hovermode="closest",aspectmode="cube")
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
 	h = PlotlyJS.scatter3d( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							y=(ph.y .+ ph.uy(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							z=(ph.z .+ ph.uz(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
@@ -711,9 +739,14 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 					),
 				),
 			shapes = shapes,
-			margin=attr(t=0,l=0,r=0,b=0),
-			height=height, width=width
+			margin=attr(t=0,l=0,r=0,b=0)
 			)
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
 	plotter = PlotlyJS.scatter
 	p = [plotter() for j=1:3]
 	p[1] = plotter(x=t,y=abs.(signal), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
