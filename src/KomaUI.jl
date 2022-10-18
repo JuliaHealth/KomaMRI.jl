@@ -8,7 +8,7 @@ css = AssetRegistry.register(dirname(path*"/ui/css/"))
 background = assets*"/spiral-bg.svg" #In Windows joinpath causes problems "/assetserver/...-assets\Logo.png"
 logo = joinpath(assets, "Logo_dark.svg")
 loading = joinpath(assets, "Loading.gif")
-# JS 
+# JS
 bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
 bscss = joinpath(css,"bootstrap.min.css")
 bsiconcss = joinpath(css,"bootstrap-icons.css")
@@ -175,7 +175,7 @@ handle(w, "simulate") do args...
             Updating <b>Raw signal</b> plots ...
         </li>
         <li>
-            <button class="btn btn-success btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>    
+            <button class="btn btn-success btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
             Ready to <b>reconstruct</b>?
         </li>
     </ul>
@@ -184,6 +184,16 @@ handle(w, "simulate") do args...
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
 handle(w, "recon") do args...
+    # Check that there is a previous simulation
+    if !haskey(raw_ismrmrd.params, "trajectory")
+        @js_ w Toasty("2", "No RawAcquisitionData", """
+        <p>
+            Please press the <b>Simulate!</b> button first.
+        </p>
+        """)
+        return
+    end
+    # Update loading icon for button
     @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML=buffericon)
     #IMPORT ISMRMRD raw data
     raw_ismrmrd.profiles = raw_ismrmrd.profiles[getproperty.(getproperty.(raw_ismrmrd.profiles, :head), :flags) .!= 268435456] #Extra profile in JEMRIS simulations
@@ -197,8 +207,8 @@ handle(w, "recon") do args...
     println("")
     @info "Running reconstruction of $rawfile"
     aux = @time MRIReco.reconstruction(acqData, recParams)
-    global image  = reshape(aux.data,Nx,Ny,:) 
-    global kspace = fftc(reshape(aux.data,Nx,Ny,:)) 
+    global image  = reshape(aux.data,Nx,Ny,:)
+    global kspace = fftc(reshape(aux.data,Nx,Ny,:))
     # global img_obs[] = image
     println("Reconstruction successfull!")
     #After Recon go to Image
@@ -248,7 +258,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
             elseif splitext(f)[end]==".seq" #Pulseq
                 global seq = read_seq(f) #Pulseq read
             end
-            @js_ w (@var name = $(basename(f)); 
+            @js_ w (@var name = $(basename(f));
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -256,7 +266,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                     Updating <b>Sequence</b> plots ...
                 </li>
                 <li>
-                    <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('simulate', 1)"><i class="bi bi-caret-right-fill"></i></button>    
+                    <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('simulate', 1)"><i class="bi bi-caret-right-fill"></i></button>
                     Ready to <b>simulate</b>?
                 </li>
             </ul>
@@ -275,7 +285,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
             elseif splitext(f)[end]==".h5" #JEMRIS
                 global phantom = read_phantom_jemris(f)
             end
-            @js_ w (@var name = $(basename(f)); 
+            @js_ w (@var name = $(basename(f));
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -283,7 +293,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                     Updating <b>Phantom</b> plots ...
                 </li>
                 <li>
-                    <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('simulate', 1)"><i class="bi bi-caret-right-fill"></i></button>    
+                    <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('simulate', 1)"><i class="bi bi-caret-right-fill"></i></button>
                     Ready to <b>simulate</b>?
                 </li>
             </ul>
@@ -306,7 +316,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 @warn "ISMRMRD files generated externally could cause problems during the reconstruction. We are currently improving compatibility."
             end
 
-            @js_ w (@var name = $(basename(f)); 
+            @js_ w (@var name = $(basename(f));
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -314,7 +324,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                     Updating <b>Raw data</b> plots ...
                 </li>
                 <li>
-                    <button class="btn btn-success btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>    
+                    <button class="btn btn-success btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
                     Ready to <b>reconstruct</b>?
                 </li>
             </ul>
