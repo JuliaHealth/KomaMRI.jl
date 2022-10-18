@@ -14,12 +14,12 @@ using KomaMRI, Test, Suppressor
         TE = 30e-3
         d1 = TE-dur(EPI)/2-dur(EX)
         d1 = d1 > 0 ? d1 : 0
-        if d1 > 0 DELAY = Delay(d1) end 
+        if d1 > 0 DELAY = Delay(d1) end
 
         #Sequence construction
         seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
         seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
-        @test dur(seq) ≈ dur(EX) + d1 + dur(EPI) #Sequence duration matches what is supposed to be  
+        @test dur(seq) ≈ dur(EX) + d1 + dur(EPI) #Sequence duration matches what is supposed to be
     end
 
     @testset "Rot_and_Concat" begin
@@ -141,27 +141,27 @@ end
         θ = rand() * π
         n = rand(3); n = n./sqrt(sum(n.^2))
         z = Mag(x[1]+1im*x[2], x[3])
-    
+
         # General rotation
         xx1 = Q(θ,n[1]+1im*n[2],n[3])*z; #Spinor rot Q.(φ, B1./B, Bz./B)
         xx2 = Un(θ,n)*x; #3D rot matrix
         xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
         @test xx1 ≈ xx2
-    
+
         # Rot x
         nx = [1,0,0]
         xx1 = Rx(θ)*z; #Spinor rot
         xx2 = Un(θ,nx)*x; #3D rot matrix
         xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
         @test xx1 ≈ xx2
-    
+
         # Rot y
         nx = [0,1,0]
         xx1 = Ry(θ)*z; #Spinor rot
         xx2 = Un(θ,nx)*x; #3D rot matrix
         xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
         @test xx1 ≈ xx2
-    
+
         # Rot z
         nx = [0,0,1]
         xx1 = Rz(θ)*z; #Spinor rot
@@ -277,7 +277,7 @@ end
         TE = 30e-3
         d1 = TE-dur(EPI)/2-dur(EX)
         d1 = d1 > 0 ? d1 : 0
-        if d1 > 0 DELAY = Delay(d1) end 
+        if d1 > 0 DELAY = Delay(d1) end
         #Sequence construction
         seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
         seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
