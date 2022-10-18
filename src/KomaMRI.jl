@@ -13,8 +13,9 @@ using Parameters, ArgCheck
 #Simulation
 using CUDA, Interpolations, Hwloc
 #Reconstruction
-using MRIReco
-@reexport using MRIReco: ISMRMRDFile, RawAcquisitionData, AcquisitionData, reconstruction
+using MRIReco, MRIFiles
+@reexport using MRIReco: RawAcquisitionData, AcquisitionData, reconstruction
+@reexport using MRIFiles: ISMRMRDFile
 #IO
 using FileIO, HDF5, MAT, JLD2
 #GUI
