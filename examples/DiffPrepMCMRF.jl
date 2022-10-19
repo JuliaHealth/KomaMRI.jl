@@ -96,7 +96,7 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
         N1, N2, N3 = length(t1), length(t2), length(t3)
         date = "#Generated on $(now())\n"
         vars =  @sprintf "%s %s %s %s %s %s %s\n" "#Name"*" "^(length(name)-5) "N1"*" "^(length(string(N1))-2) "N2"*" "^(length(string(N2))-2) "N3"*" "^(length(string(N3))-2) "bval"*" "^(length(string(round(bmax,digits=1)))-4) "Gmax"*" "^(length(string(round(Gmax,digits=1)))-3) "Smax"
-        unit =  @sprintf "%s %s %s %s\n" "#"*" "^(length(name)+length(string(N1))+length(string(N2))+length(string(N3))+2)  "s/mm2"*" "^(length(string(round(bmax,digits=1)))-5) "mT/m"*" "^(length(string(round(Gmax,digits=1)))-3) "T/m/s"  
+        unit =  @sprintf "%s %s %s %s\n" "#"*" "^(length(name)+length(string(N1))+length(string(N2))+length(string(N3))+2)  "s/mm2"*" "^(length(string(round(bmax,digits=1)))-4) "mT/m"*" "^(length(string(round(Gmax,digits=1)))-3) "T/m/s"  
         line =  @sprintf "%s %i %i %i %.1f %.1f %.1f\n" name N1 N2 N3 bmax Gmax*1e3 Smax
         write(io, date)
         write(io, vars)
@@ -112,17 +112,83 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
     end
 end
 
-## Paramete
-#Case 1
-# Gmax =  31e-3 # T/m
-# Smax = 200 # mT/m/ms
-# Δ1, Δ2 = 15.615800e-3, 45.615799e-3
-# δ1, δ2, δ3 = 13.804600e-3, 28.188801e-3, 13.931400e-3
-#Case 2
-Gmax =  60e-3 # T/m
-Smax = 100 # mT/m/ms
-Δ1, Δ2 = 9.365800e-3, 26.865799e-3
-δ1, δ2, δ3 = 7.554600e-3, 15.688800e-3, 7.681400e-3
+## Params.
+Gmax = 31e-3 # mT/m
+Smax = 100   # mT/m/ms
+for pulse_type = 1:10
+##############################################################################
+if pulse_type == 1
+    # 35ms
+    #    Delta 1 --> 9.365800 || Delta 2 --> 26.865799
+    # 	 delta 1 --> 7.554600 || delta 2 --> 15.688800 || delta 3 -> 7.681400
+    adia = false
+    Δ1, Δ2 = 9.365800e-3, 26.865799e-3
+    δ1, δ2, δ3 = 7.554600e-3, 15.688800e-3, 7.681400e-3
+elseif pulse_type == 2
+    # 40 ms
+    #     Delta 1 --> 10.615800 || Delta 2 --> 30.615799
+    #     delta 1 --> 8.804600 || delta 2 --> 18.188801 || delta 3 -> 8.931400
+    adia = false
+    Δ1, Δ2 = 10.615800e-3, 30.615799e-3
+    δ1, δ2, δ3 = 8.804600e-3, 18.188801e-3, 8.931400e-3
+elseif pulse_type == 3
+    # 45 ms
+    #     Delta 1 --> 11.865800 || Delta 2 --> 34.365799
+    # 	  delta 1 --> 10.054600 || delta 2 --> 20.688801 || delta 3 -> 10.181400
+    adia = false
+    Δ1, Δ2 = 11.865800e-3, 34.365799e-3
+    δ1, δ2, δ3 = 10.054600e-3, 20.688801e-3, 10.181400e-3
+elseif pulse_type == 4
+    # 50 ms
+    #     Delta 1 --> 13.115800 || Delta 2 --> 38.115799
+    #     delta 1 --> 11.304600 || delta 2 --> 23.188801 || delta 3 -> 11.431400
+    adia = false
+    Δ1, Δ2 = 13.115800e-3, 38.115799e-3
+    δ1, δ2, δ3 = 11.304600e-3, 23.188801e-3, 11.431400e-3
+elseif pulse_type == 5
+    # 60 ms
+    #     Delta 1 --> 15.615800 || Delta 2 --> 45.615799
+    #     delta 1 --> 13.804600 || delta 2 --> 28.188801 || delta 3 -> 13.931400
+    adia = false
+    Δ1, Δ2 = 15.615800e-3, 45.615799e-3
+    δ1, δ2, δ3 = 13.804600e-3, 28.188801e-3, 13.931400e-3
+elseif pulse_type == 6
+    # 35 - T2prep-adiab 375 deg
+    #     Delta 1 --> 11.055400 || Delta 2 --> 28.555399
+    #     delta 1 --> 5.865000 || delta 2 --> 12.309600 || delta 3 -> 5.991800
+    adia = true
+    Δ1, Δ2 = 11.055400e-3, 28.555399e-3
+    δ1, δ2, δ3 = 5.865000e-3, 12.309600e-3, 5.991800e-3
+elseif pulse_type == 7
+    # 40 - T2prep-adiab 375 deg
+    #     Delta 1 --> 12.305400 || Delta 2 --> 32.305401
+    #     delta 1 --> 7.115000 || delta 2 --> 14.809600 || delta 3 -> 7.241800
+    adia = true
+    Δ1, Δ2 = 12.305400e-3, 32.305401e-3
+    δ1, δ2, δ3 = 7.115000e-3, 14.809600e-3, 7.241800e-3
+elseif pulse_type == 8
+    # 45 - T2prep-adiab 375 deg
+    #     Delta 1 --> 13.555400 || Delta 2 --> 36.055401
+    #     delta 1 --> 8.365000 || delta 2 --> 17.309601 || delta 3 -> 8.491800
+    adia = true
+    Δ1, Δ2 = 13.555400e-3, 36.055401e-3
+    δ1, δ2, δ3 = 8.365000e-3, 17.309601e-3, 8.491800e-3
+elseif pulse_type == 9
+    # 50 - T2prep-adiab 375 deg
+    #     Delta 1 --> 14.805400 || Delta 2 --> 39.805401
+    #     delta 1 --> 9.615000 || delta 2 --> 19.809601 || delta 3 -> 9.741800
+    adia = true
+    Δ1, Δ2 = 14.805400e-3, 39.805401e-3
+    δ1, δ2, δ3 = 9.615000e-3, 19.809601e-3, 9.741800e-3
+elseif pulse_type == 10
+    # 60 - T2prep-adiab 375 deg
+    #     Delta 1 --> 17.305399 || Delta 2 --> 47.305397
+    #     delta 1 --> 12.115000 || delta 2 --> 24.809601 || delta 3 -> 12.241800
+    adia = true
+    Δ1, Δ2 = 17.305399e-3, 47.305397e-3
+    δ1, δ2, δ3 = 12.115000e-3, 24.809601e-3, 12.241800e-3
+end
+##############################################################################
 
 N1 = 400 # You can solve the opt problem in a lower time resolution or use δ2N(dur_grad) 
 path_file = "/home/ccp/"
@@ -135,7 +201,9 @@ rf2 = Δ2 - δ2 - Δ1
 # Grads - Pre-defined RF waveforms.
 τ = Δ2 + δ3 # τ/Nt = Δt => Nt = τ/Δt
 durT = ceil(Int64, τ*1e3) #For the name
-seq_name = maxwell ? "MX_MC$(k)_$durT" : "MC$(k)_$durT" #Name of the sequnce
+seq_name = maxwell ? "MX_MC$(k)_$durT" : "MC$(k)_$durT"  #Name of the sequnce
+seq_name = adia ? "$(seq_name)_adia" : seq_name       #Name of the sequnce
+
 N2 = floor(Int, N1 * δ2 / δ1)
 N3 = floor(Int, N1 * δ3 / δ1)
 DIF =  Sequence([Grad(x -> 1e-3,   δ1, N1; delay=0)])
@@ -170,19 +238,20 @@ DIF[2].GR[1].A = -gx2 #This inversion is necessary, the opt. does not consider t
 DIF[3].GR[1].A =  gx3
 gx = [gx1; gx2; gx3]
 bmax = gx'*B*gx
-@info "λ0 = $(abs(round(M[1,:]'*gx/Gmax,digits=1))), λ1 = $(abs(round(M[2,:]'*gx/Gmax,digits=1))), λ2 = $(abs(round(M[3,:]'*gx/Gmax,digits=1)))"
-@info "b-value: $(round(bmax, digits=2)) s/mm2"
-@info seq_name
+println( "λ0 = $(abs(round(M[1,:]'*gx/Gmax,digits=1))), λ1 = $(abs(round(M[2,:]'*gx/Gmax,digits=1))), λ2 = $(abs(round(M[3,:]'*gx/Gmax,digits=1)))" )
+println( "b-value: $(round(bmax, digits=2)) s/mm2" )
+println( seq_name )
 if termination_status(model) == MOI.LOCALLY_SOLVED
-    @info "Solved! 😃" 
+    println( "Solved! 😃"  )
 else
-    @info "NOT Solved 😢" 
+    println( "NOT Solved 😢"  )
 end
 ## TO SCANNER
+path_res = "/home/ccp/DiffPrepWaveforms/G$(floor(Int,Gmax*1e3))_SR$(floor(Int,Smax))/"
 inv = false
 DIFinv = inv ? -DIF : DIF
-write_diffprep_fwf(DIFinv[1], DIFinv[2], DIFinv[3], bmax, Gmax, Smax; filename="/home/ccp/DiffPrepWaveforms/$seq_name.txt", name=seq_name)
+write_diffprep_fwf(DIFinv[1], DIFinv[2], DIFinv[3], bmax, Gmax, Smax; filename=path_res*"$seq_name.txt", name=seq_name)
 # Plots
-p = plot_seq(DIFinv; darkmode=false, slider=false)
-savefig(p,"/home/ccp/DiffPrepWaveforms/$seq_name.svg")
-#p
+p = plot_seq(DIFinv; darkmode=false, slider=false, range=[-1 dur(DIFinv)*1e3+1])
+savefig(p, path_res*"$seq_name.svg")
+end
