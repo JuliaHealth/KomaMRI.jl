@@ -95,7 +95,8 @@ seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
 println("EPI successfully loaded! (TE = $(seq.DEF["TE"]) ms)")
 #Init
 global darkmode = dark
-global hasSimulation = false
+global isSimulation = false
+global isIsmrmrdFile = false
 global raw_ismrmrd = RawAcquisitionData(Dict(
     "systemVendor" => "",
     "encodedSize" => [2,2,1],
@@ -188,16 +189,16 @@ handle(w, "simulate") do args...
         </li>
     </ul>
     """)
-    hasSimulation = true
+    global isSimulation = true
     # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
 handle(w, "recon") do args...
-    # Check that there is a previous simulation
-    if !hasSimulation
-        @js_ w Toasty("2", "No Previous Simulation", """
+    # Check that there is a previous raw signal (not the default)
+    if !(isSimulation || isIsmrmrdFile)
+        @js_ w Toasty("2", "No Previous RawSignal", """
         <p>
-            Please press the <b>Simulate!</b> button first.
+            Please perform a simulation or load a ISMRMRD file first.
         </p>
         """)
         return
@@ -234,6 +235,8 @@ handle(w, "recon") do args...
 end
 handle(w, "close") do args...
     global darkmode = nothing
+    global isSimulation = nothing
+    global isIsmrmrdFile = nothing
 
     global phantom = nothing
     global seq = nothing
@@ -338,6 +341,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 </li>
             </ul>
             """))
+            global isIsmrmrdFile = true
             raw_ismrmrd
         else
             raw_ismrmrd #default
