@@ -95,8 +95,16 @@ seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
 println("EPI successfully loaded! (TE = $(seq.DEF["TE"]) ms)")
 #Init
 global darkmode = dark
-global raw_ismrmrd = RawAcquisitionData(Dict("systemVendor"=>"","encodedSize"=>[2,1,1],
-"reconSize"=>[2,1,1],"number_of_samples"=>2,"encodedFOV"=>[100,1,1]), [Profile(AcquisitionHeader(),[0im; 0;;],[0im; 0;;])])
+global hasSimulation = false
+global raw_ismrmrd = RawAcquisitionData(Dict(
+    "systemVendor" => "",
+    "encodedSize" => [2,2,1],
+    "reconSize" => [2,2,1],
+    "number_of_samples" => 4,
+    "encodedFOV" => [100.,100.,1],
+    "trajectory" => "other"),
+    [KomaMRI.Profile(AcquisitionHeader(trajectory_dimensions=2, sample_time_us=1),
+        [0. 0. 1 1; 0 1 1 1]./2, [0.; 0im; 0; 0;;])])
 global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
 global kspace = [0.0im 0.; 0. 0.]
@@ -121,7 +129,7 @@ global img_obs = Observable{Any}(image)
 ## MENU FUNCTIONS
 handle(w, "index") do args...
     content!(w, "div#content", index)
- end
+end
 handle(w, "pulses_seq") do args...
     include(path*"/ui/PulsesGUI_seq.jl")
 end
@@ -180,13 +188,14 @@ handle(w, "simulate") do args...
         </li>
     </ul>
     """)
+    hasSimulation = true
     # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
 handle(w, "recon") do args...
     # Check that there is a previous simulation
-    if !haskey(raw_ismrmrd.params, "trajectory")
-        @js_ w Toasty("2", "No RawAcquisitionData", """
+    if !hasSimulation
+        @js_ w Toasty("2", "No Previous Simulation", """
         <p>
             Please press the <b>Simulate!</b> button first.
         </p>
