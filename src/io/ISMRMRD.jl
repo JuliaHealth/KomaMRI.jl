@@ -228,9 +228,10 @@ end
 Base.show(io::IO, raw::RawAcquisitionData) = begin
     Nt, Nc = size(raw.profiles[1].data)
     compact = get(io, :compact, false)
+    seq_name = get(raw.params, "protocolName", "None")
 	if !compact
-        print(io, "RawAcquisitionData[SeqName: $(raw.params["protocolName"]) | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
+        print(io, "RawAcquisitionData[SeqName: $seq_name | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
     else
-        print(io, "RawAcqData[$(raw.params["protocolName"]) | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
+        print(io, "RawAcqData[$seq_name | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
     end
 end
