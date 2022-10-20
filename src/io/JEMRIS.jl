@@ -1,7 +1,7 @@
 """
     phantom = read_phantom_jemris(filename)
 
-Returns the Phantom struct from JEMRIS phantoms a file `.h5`.
+Returns the Phantom struct from a JEMRIS phantom file `.h5`.
 
 # Arguments
 - `filename`: (`::String`) the absolute or relative path of the phantom file `.h5`

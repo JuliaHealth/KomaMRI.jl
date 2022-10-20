@@ -60,7 +60,8 @@ function interp_map(c_map, t_interp)
 end
 
 """
-    p = plot_seq(seq; width, height, slider, show_seq_blocks, darkmode, max_rf_samples, range)
+    p = plot_seq(seq; width, height, slider, show_seq_blocks, show_sim_blocks, Nblocks,
+            darkmode, max_rf_samples, range)
 
 Plots a sequence struct.
 
@@ -72,6 +73,8 @@ Plots a sequence struct.
 - `height`: (`::Int64`, `=nothing`) the height of the plot
 - `slider`: (`::Bool`, `=true`) the boolean to display a slider
 - `show_seq_blocks`: (`::Bool`, `=false`) the boolean to show sequence blocks
+- `show_sim_blocks`: (`::Bool`, `=false`) the boolean to show simulation blocks
+- `Nblocks`: (`::Int64`, `=0`) the of simulation blocks to display
 - `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
 - `max_rf_samples`: (`::Int64`, `=100`) the maximum number of RF samples
 - `range`: (`::Vector{Float64}`, `=[]`) the time range to be displayed initially
@@ -258,9 +261,7 @@ Simulate:
 ```julia-repl
 julia> obj = brain_phantom2D()
 
-julia> signal = simulate(obj, seq, sys);
-
-julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
+julia> ismrmrd = simulate(obj, seq, sys);
 
 julia> plot_signal(ismrmrd)
 ```
@@ -520,7 +521,7 @@ function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false
 end
 
 """
-    p = plot_phantom_map(ph, key; t0=0, height=700, width=nothing, darkmode=false)
+    p = plot_phantom_map(ph, key; t0=0, height=600, width=nothing, darkmode=false)
 
 Plots a phantom map for a specific spin parameter given by `key`.
 
@@ -531,7 +532,7 @@ Plots a phantom map for a specific spin parameter given by `key`.
 
 # Keywords
 - `t0`: (`::Float64`, `=0`, `[ms]`) the time to see displacement of the phantom
-- `height`: (`::Int64`, `=nothing`) the height of the plot
+- `height`: (`::Int64`, `=600`) the height of the plot
 - `width`: (`::Int64`, `=nothing`) the width of the plot
 - `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
 
@@ -634,7 +635,8 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 end
 
 """
-    p = plot_signal(raw::RawAcquisitionData; height, width, darkmode, range)
+    p = plot_signal(raw::RawAcquisitionData; height, width, slider, show_sim_blocks,
+            darkmode, range)
 
 Plots a raw signal in ISMRMRD format.
 
@@ -645,6 +647,8 @@ Plots a raw signal in ISMRMRD format.
 # Keywords
 - `width`: (`::Int64`, `=nothing`) the width of the plot
 - `height`: (`::Int64`, `=nothing`) the height of the plot
+- `slider`: (`::Bool`, `=true`) the boolean to display a slider
+- `show_sim_blocks`: (`::Bool`, `=false`) the boolean to show simulation blocks
 - `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
 - `range`: (`::Vector{Float64}`, `=[]`) the time range to be displayed initially
 
@@ -672,9 +676,7 @@ julia> plot_seq(seq)
 
 julia> obj = brain_phantom2D();
 
-julia> signal = simulate(obj, seq, sys);
-
-julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
+julia> ismrmrd = simulate(obj, seq, sys);
 
 julia> plot_signal(ismrmrd)
 ```
@@ -769,7 +771,7 @@ end
 Generates a string in html format of the dictionary `dict`.
 
 # Arguments
-- `dict`: (`::Dict`) the dictionary to generate tha html string
+- `dict`: (`::Dict`) the dictionary to generate the html string
 
 # Returns
 - `str`: (`::String`) the string of the dictionary `dict` which is a table in html format

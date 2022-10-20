@@ -181,7 +181,7 @@ The RF struct.
 
 # Arguments
 - `A`: (`::Complex{Int64}`, `[T]`) the amplitud-phase B1x + i B1y
-- `T`: (`::Int64`, [`s`]) the durations of the RF
+- `T`: (`::Int64`, [`s`]) the duration of the RF
 - `Δf`: (`::Float64`, [`Hz`]) the frequency offset of the RF
 - `delay`: (`::Float64`, [`s`]) the delay time of the RF
 

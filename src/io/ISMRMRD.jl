@@ -39,9 +39,9 @@ julia> plot_seq(seq)
 
 julia> obj = brain_phantom2D();
 
-julia> signal = simulate(obj, seq, sys);
+julia> signal = simulate(obj, seq, sys; simParams=Dict{String,Any}("return_type"=>"mat"));
 
-julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
+julia> ismrmrd = signal_to_raw_data(signal, seq; phantom=obj, sys=sys);
 
 julia> plot_signal(ismrmrd)
 ```

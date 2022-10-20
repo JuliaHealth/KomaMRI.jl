@@ -371,8 +371,8 @@ of the `"return_type"` key of the `simParams` dictionary.
     this variable is differnet from nothing, then the progress bar is considered
 
 # Returns
-- `out`: (`::Vector{ComplexF64}` or `::Vector{Mag}` or `RawAcquisitionData`) depending if "return_type" is
-    "mat" or "mag" or "raw" (default) respectively.
+- `out`: (`::Vector{ComplexF64}` or `::Vector{Mag}` or `RawAcquisitionData`) depending if
+    "return_type" is "mat" or "mag" or "raw" (default) respectively.
 
 # Examples
 
@@ -402,9 +402,7 @@ Simulate:
 ```julia-repl
 julia> obj = brain_phantom2D()
 
-julia> signal = simulate(obj, seq, sys);
-
-julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
+julia> ismrmrd = simulate(obj, seq, sys);
 
 julia> plot_signal(ismrmrd)
 ```

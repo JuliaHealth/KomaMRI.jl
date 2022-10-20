@@ -4,8 +4,7 @@
 The Delay struct. The input delay time `T` must be non-negative.
 
 !!! note
-    This struct is meant to add delays to a sequence struct that ultimately affects to the
-    duration of the gradients of a sequence.
+    This struct is meant to add delays to a sequence struct.
 
 # Arguments
 - `T`: (`::Real`, `[s]`) the time delay value
