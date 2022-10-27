@@ -4,7 +4,6 @@ authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 version = "0.6.7"
 
 [deps]
-ArgCheck = "dce04be8-c92d-5529-be00-80e4d2c0e197"
 AssetRegistry = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
 Blink = "ad839575-38b3-5650-b840-f874b8c74a25"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -32,7 +31,6 @@ Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
 ThreadsX = "ac1d9e8a-700a-412c-b207-f0111f4b6c0d"
 
 [compat]
-ArgCheck = "2"
 AssetRegistry = "0.1"
 Blink = "0.12"
 CUDA = "3"

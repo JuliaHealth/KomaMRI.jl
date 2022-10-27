@@ -9,7 +9,7 @@ using Pkg, Random, Reexport, FFTW, ThreadsX
 #Printing
 using Scanf, ProgressMeter
 #Datatypes
-using Parameters, ArgCheck
+using Parameters
 #Simulation
 using CUDA, Interpolations, Hwloc
 #Reconstruction
