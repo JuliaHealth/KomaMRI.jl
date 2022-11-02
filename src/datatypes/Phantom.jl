@@ -4,45 +4,24 @@
 The Phantom struct.
 
 # Arguments
-- `name`: (`::String`) the name of the Phantom
-- `x`: (`::Vector{Float64}`, `[m]`) the vector of x-positions of the spins
-- `y`: (`::Vector{Float64}`, `[m]`) the vector of y-positions of the spins
-- `z`: (`::Vector{Float64}`, `[m]`) the vector of z-positions of the spins
-- `ρ`: (`::Vector{Float64}`) the vector of proton density of the spins
-- `T1`: (`::Vector{Float64}`, `[s]`) the vector of T1 parameters of the spins
-- `T2`: (`::Vector{Float64}`, `[s]`) the vector of T2 parameters of the spins
-- `T2s`: (`::Vector{Float64}`, `[s]`) the vector of T2s parameters of the spins
-- `Δw`: (`::Vector{Float64}`, `[rad/s]`) the vector of off-resonance parameters of the spins
-- `Dλ1`: (`::Vector{Float64}`) the vector of Dλ1 (diffusion) parameters of the spins
-- `Dλ2`: (`::Vector{Float64}`) the vector of Dλ2 (diffusion) parameters of the spins
-- `Dθ`: (`::Vector{Float64}`) the vector of Dθ (diffusion) parameters of the spins
-- `ux`: (`::Function`) the displacement field in the x-axis
-- `uy`: (`::Function`) the displacement field in the y-axis
-- `uz`: (`::Function`) the displacement field in the z-axis
+- `name`: (`::String`) name of the Phantom
+- `x`: (`::Vector{Float64}`, `[m]`) vector of x-positions of the spins
+- `y`: (`::Vector{Float64}`, `[m]`) vector of y-positions of the spins
+- `z`: (`::Vector{Float64}`, `[m]`) vector of z-positions of the spins
+- `ρ`: (`::Vector{Float64}`) vector of proton density of the spins
+- `T1`: (`::Vector{Float64}`, `[s]`) vector of T1 parameters of the spins
+- `T2`: (`::Vector{Float64}`, `[s]`) vector of T2 parameters of the spins
+- `T2s`: (`::Vector{Float64}`, `[s]`) vector of T2s parameters of the spins
+- `Δw`: (`::Vector{Float64}`, `[rad/s]`) vector of off-resonance parameters of the spins
+- `Dλ1`: (`::Vector{Float64}`) vector of Dλ1 (diffusion) parameters of the spins
+- `Dλ2`: (`::Vector{Float64}`) vector of Dλ2 (diffusion) parameters of the spins
+- `Dθ`: (`::Vector{Float64}`) vector of Dθ (diffusion) parameters of the spins
+- `ux`: (`::Function`) displacement field in the x-axis
+- `uy`: (`::Function`) displacement field in the y-axis
+- `uz`: (`::Function`) displacement field in the z-axis
 
 # Returns
-- `phantom`: (`::Phantom`) the Phantom struct
-
-# Examples
-```julia-repl
-julia> obj = Phantom(x=zeros(5))
-Phantom
-  name: String "spin"
-  x: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
-  y: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
-  z: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
-  ρ: Array{Float64}((5,)) [1.0, 1.0, 1.0, 1.0, 1.0]
-  T1: Array{Float64}((5,)) [Inf, Inf, Inf, Inf, Inf]
-  T2: Array{Float64}((5,)) [Inf, Inf, Inf, Inf, Inf]
-  T2s: Array{Float64}((5,)) [Inf, Inf, Inf, Inf, Inf]
-  Δw: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
-  Dλ1: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
-  Dλ2: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
-  Dθ: Array{Float64}((5,)) [0.0, 0.0, 0.0, 0.0, 0.0]
-  ux: #145 (function of type KomaMRI.var"#145#153")
-  uy: #146 (function of type KomaMRI.var"#146#154")
-  uz: #147 (function of type KomaMRI.var"#147#155")
-```
+- `phantom`: (`::Phantom`) Phantom struct
 """
 @with_kw mutable struct Phantom
 	name::String = "spin"
@@ -157,13 +136,13 @@ Heart-like LV phantom. The variable `α` is for streching, `β` for contraction,
 rotation.
 
 # Arguments
-- `α`: (`::Real`, `=1`) the streching parameter
-- `β`: (`::Real`, `=1`) the contraction parameter
-- `γ`: (`::Real`, `=1`) the rotation parameter
-- `fat_bool`: (`::Bool`, `=false`) the fat boolean parameter
+- `α`: (`::Real`, `=1`) streching parameter
+- `β`: (`::Real`, `=1`) contraction parameter
+- `γ`: (`::Real`, `=1`) rotation parameter
+- `fat_bool`: (`::Bool`, `=false`) fat boolean parameter
 
 # Returns
-- `phantom`: (`::Phantom`) the Heart-like LV phantom struct
+- `phantom`: (`::Phantom`) Heart-like LV phantom struct
 """
 heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false) = begin
 	#PARAMETERS
@@ -233,31 +212,15 @@ Creates a two-dimentional brain phantom struct.
 - https://brainweb.bic.mni.mcgill.ca/brainweb
 
 # Keywords
-- `axis`: (`::String`, `="axial"`, opts=[`"axial"`]) the orientation of the phantom
-- `ss`: (`::Real`, `=4`) the brain phantom parameter
+- `axis`: (`::String`, `="axial"`, opts=[`"axial"`]) orientation of the phantom
+- `ss`: (`::Real`, `=4`) subsampling parameter in all axis
 
 # Returns
-- `phantom`: (`::Phantom`) the 2D phantom struct
+- `phantom`: (`::Phantom`) 2D Phantom struct
 
 # Examples
 ```julia-repl
 julia> obj = brain_phantom2D()
-Phantom
-  name: String "brain2D_axial"
-  x: Array{Float64}((6506,)) [-0.084, -0.084  …  0.086]
-  y: Array{Float64}((6506,)) [-0.03, -0.028  …  0.002]
-  z: Array{Float64}((6506,)) [-0.0, -0.0  …  0.0]
-  ρ: Array{Float64}((6506,)) [1.0, 1.0  …  1.0]
-  T1: Array{Float64}((6506,)) [0.569, 0.569  …  0.569]
-  T2: Array{Float64}((6506,)) [0.329, 0.329  …  0.329]
-  T2s: Array{Float64}((6506,)) [0.058, 0.058  …  0.058]
-  Δw: Array{Float64}((6506,)) [-0.0, -0.0  …  -0.0]
-  Dλ1: Array{Float64}((6506,)) [0.0, 0.0  …  0.0]
-  Dλ2: Array{Float64}((6506,)) [0.0, 0.0  …  0.0]
-  Dθ: Array{Float64}((6506,)) [0.0, 0.0  …  0.0]
-  ux: #386 (function of type KomaMRI.var"#386#394")
-  uy: #387 (function of type KomaMRI.var"#387#395")
-  uz: #388 (function of type KomaMRI.var"#388#396")
 
 julia> plot_phantom_map(obj, :ρ)
 ```
@@ -351,30 +314,14 @@ Creates a three-dimentional brain phantom struct.
 - https://brainweb.bic.mni.mcgill.ca/brainweb
 
 # Keywords
-- `ss`: (`::Real`, `=4`) the heart phantom parameter
+- `ss`: (`::Real`, `=4`) subsampling parameter in all axis
 
 # Returns
-- `phantom`: (`::Phantom`) the 3D phantom struct
+- `phantom`: (`::Phantom`) 3D Phantom struct
 
 # Examples
 ```julia-repl
 julia> obj = brain_phantom3D()
-Phantom
-  name: String "brain3D"
-  x: Array{Float64}((71326,)) [-0.086, -0.086  …  0.084]
-  y: Array{Float64}((71326,)) [-0.02, -0.018  …  0.004]
-  z: Array{Float64}((71326,)) [-0.01, -0.01  …  0.01]
-  ρ: Array{Float64}((71326,)) [1.0, 1.0  …  1.0]
-  T1: Array{Float64}((71326,)) [0.569, 0.569  …  0.569]
-  T2: Array{Float64}((71326,)) [0.329, 0.329  …  0.329]
-  T2s: Array{Float64}((71326,)) [0.058, 0.058  …  0.058]
-  Δw: Array{Float64}((71326,)) [-0.0, -0.0  …  -0.0]
-  Dλ1: Array{Float64}((71326,)) [0.0, 0.0  …  0.0]
-  Dλ2: Array{Float64}((71326,)) [0.0, 0.0  …  0.0]
-  Dθ: Array{Float64}((71326,)) [0.0, 0.0  …  0.0]
-  ux: #386 (function of type KomaMRI.var"#386#394")
-  uy: #387 (function of type KomaMRI.var"#387#395")
-  uz: #388 (function of type KomaMRI.var"#388#396")
 
 julia> plot_phantom_map(obj, :ρ)
 ```

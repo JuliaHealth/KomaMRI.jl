@@ -10,12 +10,12 @@ Trapezoidal integration for every spin of a phantom.
     and the elements are the field Gx * x + Gy * y + Gz * z values.
 
 # Arguments
-- `Δt`: (`1 x NΔt ::Matrix{Float64}`, `[s]`) the delta time 1-row array
-- `x`: (`Ns x (NΔt+1) ::Matrix{Float64}`, `[T]`) the magnitude of field Gx * x + Gy * y +
+- `Δt`: (`1 x NΔt ::Matrix{Float64}`, `[s]`) delta time 1-row array
+- `x`: (`Ns x (NΔt+1) ::Matrix{Float64}`, `[T]`) magnitude of the field Gx * x + Gy * y +
     Gz * z
 
 # Returns
-- `y`: (`Ns x 1 ::Matrix{Float64}`, `[T*s]`) the vector where every element is the integral
+- `y`: (`Ns x 1 ::Matrix{Float64}`, `[T*s]`) vector where every element is the integral
     of (Gx * x + Gy * y + Gz * z) * Δt for every spin of a phantom
 """
 function trapz(Δt, x)
@@ -38,12 +38,12 @@ Trapezoidal cumulative integration over time for every spin of a phantom.
     [`cumtrapz`](@ref) is equal to the result of the function [`trapz`](@ref)
 
 # Arguments
-- `Δt`: (`1 x NΔt ::Matrix{Float64}`, `[s]`) the delta time 1-row array
-- `x`: (`Ns x (NΔt+1) ::Matrix{Float64}`, `[T]`) the magnitude of field Gx * x + Gy * y +
+- `Δt`: (`1 x NΔt ::Matrix{Float64}`, `[s]`) delta time 1-row array
+- `x`: (`Ns x (NΔt+1) ::Matrix{Float64}`, `[T]`) magnitude of the field Gx * x + Gy * y +
     Gz * z
 
 # Returns
-- `y`: (`Ns x NΔt ::Matrix{Float64}`, `[T*s]`) the matrix where every column is the
+- `y`: (`Ns x NΔt ::Matrix{Float64}`, `[T*s]`) matrix where every column is the
     cumulative integration over time of (Gx * x + Gy * y + Gz * z) * Δt for every spin of a
     phantom
 """

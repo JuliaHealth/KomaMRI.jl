@@ -17,11 +17,11 @@ This later operates on the ``2\times2`` representation of ``(x,y,z)`` as follows
 R V R^{*}``.
 
 # Arguments
-- `α`: (`::Complex{Int64}`) the Cayley-Klein parameter α
-- `β`: (`::Complex{Int64}`) the Cayley-Klein parameter β
+- `α`: (`::Complex{Int64}`) Cayley-Klein parameter α
+- `β`: (`::Complex{Int64}`) Cayley-Klein parameter β
 
 # Returns
-- `spinor`: (`::Spinor`) the Spinor struct
+- `spinor`: (`::Spinor`) Spinor struct
 """
 struct Spinor
 	α::Complex
@@ -34,10 +34,10 @@ end
 Displays the spinor parameters in the julia REPL.
 
 # Arguments
-- `s`: (`::Spinor`) the spinnor struct
+- `s`: (`::Spinor`) Spinnor struct
 
 # Returns
-- `str`: (`::String`) the output string message
+- `str`: (`::String`) output string message
 """
 Base.show(io::IO, s::Spinor) = begin
     print(io, "Spinor(α = ", round(s.α, digits=3), ", β = ", round(s.β, digits=3), ")")
@@ -49,11 +49,11 @@ end
 Spinor multiplication identity: (α1,β1)×(α2,β2) = (α1 α2 - β2⋆ β1 , β2 α1 + α2⋆ β1)
 
 # Arguments
-- `s1`: (`::Spinor`) the first spinnor struct
-- `s2`: (`::Spinor`) the second spinnor struct
+- `s1`: (`::Spinor`) first spinnor struct
+- `s2`: (`::Spinor`) second spinnor struct
 
 # Returns
-- `s`: (`::Spinor`) the multiplication spinnor identity result
+- `s`: (`::Spinor`) multiplication spinnor identity result
 """
 *(s1::Spinor, s2::Spinor) = begin
 	Spinor(s1.α*s2.α - conj(s2.β)*s1.β,
@@ -66,10 +66,10 @@ end
 Spinor clockwise rotation matrix with angle `φ` with respect to z-axis.
 
 # Arguments
-- `φ`: (`::Real`, `[rad]`) the angle with respect to z-axis
+- `φ`: (`::Real`, `[rad]`) angle with respect to z-axis
 
 # Returns
-- `s`: (`::Spinnor`) the spinnor struct that represents the `Rz` rotation matrix
+- `s`: (`::Spinnor`) spinnor struct that represents the `Rz` rotation matrix
 """
 Rz(φ) = Spinor(exp(-im*φ/2), 0)
 
@@ -79,10 +79,10 @@ Rz(φ) = Spinor(exp(-im*φ/2), 0)
 Spinor clockwise rotation matrix with angle `θ` with respect to y-axis.
 
 # Arguments
-- `θ`: (`::Real`, `[rad]`) the angle with respect to y-axis
+- `θ`: (`::Real`, `[rad]`) angle with respect to y-axis
 
 # Returns
-- `s`: (`::Spinnor`) the spinnor struct that represents the `Ry` rotation matrix
+- `s`: (`::Spinnor`) spinnor struct that represents the `Ry` rotation matrix
 """
 Ry(θ) = Spinor(cos(θ/2), sin(θ/2))
 
@@ -92,10 +92,10 @@ Ry(θ) = Spinor(cos(θ/2), sin(θ/2))
 Spinor clockwise rotation matrix with angle `θ` with respect to x-axis.
 
 # Arguments
-- `θ`: (`::Real`, `[rad]`) the angle with respect to x-axis
+- `θ`: (`::Real`, `[rad]`) angle with respect to x-axis
 
 # Returns
-- `s`: (`::Spinnor`) the spinnor struct that represents the `Rx` rotation matrix
+- `s`: (`::Spinnor`) spinnor struct that represents the `Rx` rotation matrix
 """
 Rx(θ) = Spinor(cos(θ/2), -im*sin(θ/2))
 
@@ -105,12 +105,12 @@ Rx(θ) = Spinor(cos(θ/2), -im*sin(θ/2))
 Spinor rotation matrix: Rg(φ1, θ, φ2) = Rz(φ2) Ry(θ) Rz(φ1)
 
 # Arguments
-- `φ1`: (`::Real`, `[rad]`) the φ1 angle
-- `θ`: (`::Real`, `[rad]`) the θ angle
-- `φ2`: (`::Real`, `[rad]`) the φ2 angle
+- `φ1`: (`::Real`, `[rad]`) φ1 angle
+- `θ`: (`::Real`, `[rad]`) θ angle
+- `φ2`: (`::Real`, `[rad]`) φ2 angle
 
 # Returns
-- `s`: (`::Spinnor`) the spinnor struct that represents the `Rg` rotation matrix
+- `s`: (`::Spinnor`) spinnor struct that represents the `Rg` rotation matrix
 """
 Rg(φ1, θ, φ2) = Spinor(cos(θ/2)*exp(-im*(φ1+φ2)/2), sin(θ/2)*exp(-im*(φ1-φ2)/2))
 
@@ -122,11 +122,11 @@ Spinor rotation matrix with angle `θ` with axis in the xy plane u=(cosφ, sinφ
 Rφ(φ,θ) = Rg(-φ,θ,φ) = Rz(φ) Ry(θ) Rz(-φ)
 
 # Arguments
-- `φ`: (`::Real`, `[rad]`) the φ angle
-- `θ`: (`::Real`, `[rad]`) the θ angle
+- `φ`: (`::Real`, `[rad]`) φ angle
+- `θ`: (`::Real`, `[rad]`) θ angle
 
 # Returns
-- `s`: (`::Spinnor`) the spinnor struct that represents the `Rφ` rotation matrix
+- `s`: (`::Spinnor`) spinnor struct that represents the `Rφ` rotation matrix
 """
 Rφ(φ, θ) = Spinor(cos(θ/2), exp(im*φ)*sin(θ/2))
 
@@ -149,12 +149,12 @@ IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 ```
 
 # Arguments
-- `φ`: (`::Real`, `[rad]`) the φ angle
-- `nxy`: (`::Real`) the nxy factor
-- `nz`: (`::Real`) the nz factor
+- `φ`: (`::Real`, `[rad]`) φ angle
+- `nxy`: (`::Real`) nxy factor
+- `nz`: (`::Real`) nz factor
 
 # Returns
-- `s`: (`::Spinnor`) the spinnor struct that represents the `Q` rotation matrix
+- `s`: (`::Spinnor`) spinnor struct that represents the `Q` rotation matrix
 """
 Q(φ, nxy, nz) = Spinor(cos(φ/2)-im*nz*sin(φ/2), -im*nxy*sin(φ/2))
 
@@ -164,10 +164,10 @@ Q(φ, nxy, nz) = Spinor(cos(φ/2)-im*nz*sin(φ/2), -im*nxy*sin(φ/2))
 It calculates |α|^2 + |β|^2 of the Cayley-Klein parameters.
 
 # Arguments
-- `s`: (`::Spinnor`) the spinnor struct
+- `s`: (`::Spinnor`) spinnor struct
 
 # Returns
-- `y`: (`::Real`) the result of the abs operator
+- `y`: (`::Real`) result of the abs operator
 """
 abs(s::Spinor) = abs(s.α)^2 + abs(s.β)^2
 
@@ -187,22 +187,6 @@ The RF struct.
 
 # Returns
 - `rf`: (`::RF`) the RF struct
-
-# Examples
-```julia-repl
-julia> d1, d2, d3 = 0.8, 0.4, 0.8;
-
-julia> fsinc = x -> 2 * sinc(3*pi*(x - d1/2)) * 1e-3;
-
-julia> matrixGrads = [Grad(0, d1) Grad(0, d2) Grad(0, d3)];
-
-julia> matrixRFs = [KomaMRI.RF_fun(fsinc, d1) RF(0, d2) RF(0, d3)];
-
-julia> seq = Sequence(matrixGrads, matrixRFs)
-Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> plot_seq(seq)
-```
 """
 mutable struct RF
 	A
@@ -229,10 +213,10 @@ end
 Displays information about the RF struct `x` in the julia REPL.
 
 # Arguments
-- `x`: (`::RF`) the RF struct
+- `x`: (`::RF`) RF struct
 
 # Returns
-- `str`: (`::String`) the output string message
+- `str`: (`::String`) output string message
 """
 Base.show(io::IO, x::RF) = begin
 	r(x) = round.(x,digits=4)
@@ -254,12 +238,12 @@ Overchages Base.getproperty(). It is meant to access properties of the RF vector
 directly without the need to iterate elementwise.
 
 # Arguments
-- `x`: (`::Vector{RF}` or `::Matrix{RF}`) the vector or matrix of RF structs
-- `f`: (`::Symbol`, opts: [`:A`, `:Bx`, `:By`, `:T`, `:Δf`, `:delay` and `:dur`]) the input
+- `x`: (`::Vector{RF}` or `::Matrix{RF}`) vector or matrix of RF structs
+- `f`: (`::Symbol`, opts: [`:A`, `:Bx`, `:By`, `:T`, `:Δf`, `:delay` and `:dur`]) input
     symbol that represents a property of the vector or matrix of RF structs
 
 # Returns
-- `y`: (`::Vector{Any}` or `::Matrix{Any}`) the vector with the property defined by the
+- `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector with the property defined by the
     symbol `f` for all elements of the RF vector or matrix `x`
 """
 getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x,f)
@@ -294,10 +278,10 @@ size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
 Duration time in [s] of RF struct or RF array.
 
 # Arguments
-- `x`: (`::RF` or `::Array{RF,1}` or `::Array{RF,2}`) the RF struct or RF array
+- `x`: (`::RF` or `::Array{RF,1}` or `::Array{RF,2}`) RF struct or RF array
 
 # Returns
-- `y`: (`::Float64`, [`s`]) the duration of the RF struct or RF array
+- `y`: (`::Float64`, [`s`]) duration of the RF struct or RF array
 """
 dur(x::RF) = sum(x.T)
 dur(x::Array{RF,1}) = sum(sum(x[i].T) for i=1:size(x,1))
@@ -312,12 +296,12 @@ Generate an RF sequence with amplitudes sampled from a function waveform.
     This function is not being used in this KomaMRI version.
 
 # Arguments
-- `f`: (`::Function`, [`T`]) the function for the RF amplitud waveform
-- `T`: (`::Real`, [`s`]) the duration of the RF pulse
-- `N`: (`::Int64`) the number of samples of the RF pulse
+- `f`: (`::Function`, [`T`]) function for the RF amplitud waveform
+- `T`: (`::Real`, [`s`]) duration of the RF pulse
+- `N`: (`::Int64`) number of samples of the RF pulse
 
 # Returns
-- `rf`:(`::RF`) the RF struct with amplitud defined by the function `f`
+- `rf`:(`::RF`) RF struct with amplitud defined by the function `f`
 """
 RF_fun(f::Function, T::Real, N::Int64=300) = begin
 	t = range(0, stop=T, length=N)
@@ -331,10 +315,10 @@ end
 Calculates the flip angle α [deg] of an RF struct. α = γ ∫ B1(τ) dτ
 
 # Arguments
-- `x`: (`::RF`) the RF struct
+- `x`: (`::RF`) RF struct
 
 # Returns
-- `α`: (`::Int64`, `[deg]`) the flip angle RF struct `x`
+- `α`: (`::Int64`, `[deg]`) flip angle RF struct `x`
 """
 get_flip_angle(x::RF) = begin
 	A, NA, T, NT = x.A, length(x.A), x.T, length(x.T)
@@ -350,10 +334,10 @@ Calculates the time where is the center of the RF pulse `x`. This calculation in
 RF delay.
 
 # Arguments
-- `x`: (`::RF`) the RF struct
+- `x`: (`::RF`) RF struct
 
 # Returns
-- `t`: (`::Int64`, `[s]`) the time where is the center of the RF pulse `x`
+- `t`: (`::Int64`, `[s]`) time where is the center of the RF pulse `x`
 """
 get_RF_center(x::RF) = begin
 	A, NA, T, NT, delay = x.A, length(x.A), x.T, length(x.T), x.delay

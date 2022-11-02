@@ -4,10 +4,10 @@
 Rotates vector counter-clockwise with respect to the x-axis.
 
 # Arguments
-- `θ`: (`::Real`, `[rad]`) the rotation angle
+- `θ`: (`::Real`, `[rad]`) rotation angle
 
 # Returns
-- `Rx`: (`::Matrix{Int64}`) the rotation matrix
+- `Rx`: (`::Matrix{Int64}`) rotation matrix
 """
 rotx(θ::Real) = [1		0		0
 				 0	cos(θ)	-sin(θ);
@@ -19,10 +19,10 @@ rotx(θ::Real) = [1		0		0
 Rotates vector counter-clockwise with respect to the y-axis.
 
 # Arguments
-- `θ`: (`::Real`, `[rad]`) the rotation angle
+- `θ`: (`::Real`, `[rad]`) rotation angle
 
 # Returns
-- `Ry`: (`::Matrix{Int64}`) the rotation matrix
+- `Ry`: (`::Matrix{Int64}`) rotation matrix
 """
 roty(θ::Real) = [cos(θ) 0	sin(θ);
 				 0		1		0;
@@ -34,10 +34,10 @@ roty(θ::Real) = [cos(θ) 0	sin(θ);
 Rotates vector counter-clockwise with respect to the z-axis.
 
 # Arguments
-- `θ`: (`::Real`, `[rad]`) the rotation angle
+- `θ`: (`::Real`, `[rad]`) rotation angle
 
 # Returns
-- `Rz`: (`::Matrix{Int64}`) the rotation matrix
+- `Rz`: (`::Matrix{Int64}`) rotation matrix
 """
 rotz(θ::Real) = [cos(θ) -sin(θ)	0;
 				 sin(θ) cos(θ)	0;
@@ -52,42 +52,14 @@ rotz(θ::Real) = [cos(θ) -sin(θ)	0;
 The Gradient struct.
 
 # Arguments
-- `A`: (`::Float64`, `[T]`) the amplitude of the gradient
-- `T`: (`::Float64`, `[s]`) the duration of the flat-top
-- `rise`: (`::Real`, `[s]`) the duration of the rise
-- `fall`: (`::Real`, `[s]`) the duration of the fall
-- `delay`: (`::Real`, `[s]`) the duration of the delay
+- `A`: (`::Float64`, `[T]`) amplitude of the gradient
+- `T`: (`::Float64`, `[s]`) duration of the flat-top
+- `rise`: (`::Real`, `[s]`) duration of the rise
+- `fall`: (`::Real`, `[s]`) duration of the fall
+- `delay`: (`::Real`, `[s]`) duration of the delay
 
 # Returns
-- `grad`: (`::Grad`) the Gradient struct
-
-# Examples
-```julia-repl
-julia> d1, d2, d3 = 0.8, 0.4, 0.8;
-
-julia> matrixGrads = [Grad(0, d1) Grad( 0, d2) Grad(1, d3);
-                      Grad(0, d1) Grad( 1, d2) Grad(0, d3);
-                      Grad(1, d1) Grad(-1, d2) Grad(0, d3)];
-
-julia> seq = Sequence(matrixGrads)
-Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 0 | GR: 4 | RF: 0 | DEF: 0 ]
-
-julia> plot_seq(seq)
-```
-```julia-repl
-julia> d1, d2, d3 = 0.8, 0.4, 0.8;
-
-julia> dr, df, dd = 0.1, 0.05, 1;
-
-julia> matrixGrads = [Grad(0, d1, dr, df, dd) Grad( 0, d2, dr, df, 0) Grad(1, d3, dr, df, 0);
-                      Grad(0, d1, dr, df, dd) Grad( 1, d2, dr, df, 0) Grad(0, d3, dr, df, 0);
-                      Grad(1, d1, dr, df, dd) Grad(-1, d2, dr, df, 0) Grad(0, d3, dr, df, 0)];
-
-julia> seq = Sequence(matrixGrads)
-Sequence[ τ = 3450.0 ms | blocks: 3 | ADC: 0 | GR: 4 | RF: 0 | DEF: 0 ]
-
-julia> plot_seq(seq)
-```
+- `grad`: (`::Grad`) gradient struct
 """
 mutable struct Grad
 	A
@@ -116,32 +88,21 @@ Generates an arbitrary gradient waveform defined by function `f` in the interval
 [0,`T`]. It uses `N` square gradients uniformly spaced in the interval.
 
 # Arguments
-- `f`: (`::Function`) the gradient waveform
-- `T`: (`::Real`, `[s]`) the duration of the gradient waveform
-- `N`: (`::Int64`) the number of samples of the gradient waveform
+- `f`: (`::Function`) function that describes the gradient waveform
+- `T`: (`::Real`, `[s]`) duration of the gradient waveform
+- `N`: (`::Int64`) number of samples of the gradient waveform
 
 # Keywords
-- `delay`: (`::Real`, `=0`, `[s]`) the starting delay for the waveform
+- `delay`: (`::Real`, `=0`, `[s]`) starting delay for the waveform
 
 # Returns
-- `grad`: (`::Grad`) the Gradient struct
+- `grad`: (`::Grad`) gradient struct
 
 # Examples
 ```julia-repl
-julia> d1, d2, d3 = 0.8, 0.4, 0.8;
+julia> f1 = t -> sin(π*t / 0.8)
 
-julia> f1 = t -> sin(pi*t / d1);
-
-julia> f2 = t -> 1 - exp(- 5 * t / d2);
-
-julia> f3 = t -> exp(t / d3 * log(2)) - 1;
-
-julia> matrixGrads = [Grad(f1, d1) Grad( 0, d2) Grad( 0, d3);
-                      Grad( 0, d1) Grad(f2, d2) Grad( 0, d3);
-                      Grad( 0, d1) Grad( 0, d2) Grad(f3, d3)];
-
-julia> seq = Sequence(matrixGrads)
-Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 0 | GR: 3 | RF: 0 | DEF: 0 ]
+julia> seq = Sequence([Grad(f1, 0.8)])
 
 julia> plot_seq(seq)
 ```
@@ -159,10 +120,10 @@ end
 Displays information about the Grad struct `x` in the julia REPL.
 
 # Arguments
-- `x`: (`::Grad`) the Grad struct
+- `x`: (`::Grad`) Grad struct
 
 # Returns
-- `str` (`::String`) the output string message
+- `str` (`::String`) output string message
 """
 Base.show(io::IO, x::Grad) = begin
 	r(x) = round.(x,digits=4)
@@ -188,13 +149,13 @@ Overchages Base.getproperty(). It is meant to access properties of the Grad vect
 directly without the need to iterate elementwise.
 
 # Arguments
-- `x`: (`::Vector{Grad}` or `::Matrix{Grad}`) the vector or matrix of Grad structs
+- `x`: (`::Vector{Grad}` or `::Matrix{Grad}`) vector or matrix of Grad structs
 - `f`: (`::Symbol`, opts: [`:x`, `:y`, `:z`, `:T`, `:delay`, `:rise`, `:delay`, `:dur`,
-    `:A`, `f`]) the input symbol that represents a property of the vector or matrix of Grad
+    `:A`, `f`]) input symbol that represents a property of the vector or matrix of Grad
     structs
 
 # Returns
-- `y`: (`::Vector{Any}` or `::Matrix{Any}`) the vector or matrix with the property defined
+- `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector or matrix with the property defined
     by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
 getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
@@ -243,10 +204,10 @@ Duration time in [s] of Grad struct or Grad array. When the input is a gradient 
 the duration is the maximum duration of all the elements of the gradient vector.
 
 # Arguments
-- `x`: (`::Grad` or `::Vector{Grad}`) the RF struct or RF array
+- `x`: (`::Grad` or `::Vector{Grad}`) RF struct or RF array
 
 # Returns
-- `y`: (`::Float64`, `[s]`) the duration of the RF struct or RF array
+- `y`: (`::Float64`, `[s]`) duration of the RF struct or RF array
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x), dims=1)[:]

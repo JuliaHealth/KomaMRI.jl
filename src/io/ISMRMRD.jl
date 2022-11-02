@@ -6,39 +6,20 @@ using MRIReco: Profile
 Transforms the raw signal into ISMRMRD format.
 
 # Arguments
-- `signal`: (`::Vector{ComplexF64}`) the raw signal
-- `seq`: (`::Sequence`) the sequence struct
+- `signal`: (`::Vector{ComplexF64}`) raw signal
+- `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `phantom`: (`::Phantom`, `=Phantom(name="Phantom",x=[0])`) the phantom struct
-- `sys`: (`::Scanner`, `=Scanner()`) the scanner struct
-- `simParams`: (`::Dict{String,Any}()`, `=Dict{String,Any}()`) the dictionary with
+- `phantom`: (`::Phantom`, `=Phantom(name="Phantom",x=[0])`) Phantom struct
+- `sys`: (`::Scanner`, `=Scanner()`) Scanner struct
+- `simParams`: (`::Dict{String,Any}()`, `=Dict{String,Any}()`) dictionary with
     simulation parameters
 
 # Returns
-- `raw_ismrmrd`: (`::RawAcquisitionData`) the raw signal in ISMRMRD format
+- `raw_ismrmrd`: (`::RawAcquisitionData`) raw signal in ISMRMRD format
 
 # Examples
 ```julia-repl
-julia> sys = Scanner();
-
-julia> FOV, N = 23e-2, 101;
-
-julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
-
-julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
-Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> epi = PulseDesigner.EPI(FOV, N, sys)
-Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
-
-julia> seq = ex + epi
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
-
-julia> plot_seq(seq)
-
-julia> obj = brain_phantom2D();
-
 julia> signal = simulate(obj, seq, sys; simParams=Dict{String,Any}("return_type"=>"mat"));
 
 julia> ismrmrd = signal_to_raw_data(signal, seq; phantom=obj, sys=sys);

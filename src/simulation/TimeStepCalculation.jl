@@ -91,35 +91,14 @@ have a separation of at most `dt`.
     `dt` separation between two samples.
 
 # Arguments
-- `times`: (`::Vector{Float64}`, `[s]`) the time array with key points you want to keep
+- `times`: (`::Vector{Float64}`, `[s]`) time array with key points you want to keep
 
 # Keywords
-- `dt`: (`::Float64`, `[s]`) the maximum delta time separation between two time samples
+- `dt`: (`::Float64`, `[s]`) maximum delta time separation between two time samples
 
 # Returns
-- `t`: (`::Vector{Float64}`, `[s]`) the time array with the same points as the input array but with
+- `t`: (`::Vector{Float64}`, `[s]`) time array with the same points as the input array but with
     additional points that have a separation of at most `dt`.
-
-# Examples
-```julia-repl
-julia> times = [0 1 2 10 11 12 20]
-1×7 Matrix{Int64}:
- 0  1  2  10  11  12  20
-
-julia> points_from_key_times(times; dt=0.5)'
-1×46 adjoint(::Vector{Float64}) with eltype Float64:
- 0.0  0.5  1.0  1.0  1.5  2.0  2.0  2.5  3.0  3.5  4.0  4.5  …  16.0  16.5  17.0  17.5
-   18.0  18.5  19.0  19.5  20.0
-
-julia> points_from_key_times(times; dt=0.7)'
-1×32 adjoint(::Vector{Float64}) with eltype Float64:
- 0.0  0.7  1.0  1.7  2.0  2.7  3.4  4.1  4.8  5.5  6.2  6.9  …  14.1  14.8  15.5  16.2
-   16.9  17.6  18.3  19.0  19.7
-
-julia> points_from_key_times(times; dt=2.5)'
-1×16 adjoint(::Vector{Float64}) with eltype Float64:
- 0.0  1.0  1.0  2.0  2.0  4.5  7.0  9.5  10.0  11.0  11.0  12.0  12.0  14.5  17.0  19.5
-```
 """
 function points_from_key_times(times; dt)
     # Fill the `t` empty vector in the `for` loop
@@ -147,22 +126,22 @@ This function, despite its name, actually gets non-uniform time points. Refer to
     is bypassed by [`get_variable_times`](@ref).
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
-- `Δt`: (`::Real`, `[s]`) the nominal delta time separation between two time samples for ADC
+- `seq`: (`::Sequence`) Sequence struct
+- `Δt`: (`::Real`, `[s]`) nominal delta time separation between two time samples for ADC
     acquisition and Gradients (by nominal we mean that the time separation should be at
     most `Δt` when the samples are regarded by [`KomaMRI.is_ADC_on`](@ref) or
     [`KomaMRI.is_GR_on`](@ref)), otherwise the time points are not necessary and the
     separation will be bigger)
 
 # Keywords
-- `Δt_rf`: (`::Real`, `=1e-4`, `[s]`) the nominal delta time separation between two time
+- `Δt_rf`: (`::Real`, `=1e-4`, `[s]`) nominal delta time separation between two time
     samples for RF excitation (by nominal we mean that the time separation should be at most
     `Δt_rf` when the samples are regarded by [`KomaMRI.is_RF_on`](@ref), otherwise the time
     points are not necessary and the separation will be bigger)
 
 # Returns
-- `t`: (`::Vector{Float64}`, `[s]`) the time array with non-uniform time values
-- `Δt`: (`::Vector{Float64}`, `[s]`) the delta time array with the separation between two
+- `t`: (`::Vector{Float64}`, `[s]`) time array with non-uniform time values
+- `Δt`: (`::Vector{Float64}`, `[s]`) delta time array with the separation between two
     adjacent time points of the `t` time array
 """
 function get_uniform_times(seq, Δt; Δt_rf=1e-4)
@@ -179,22 +158,22 @@ This function returns non-uniform time points that are relevant in the sequence 
     increase the simulation speed.
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
-- `dt`: (`::Real`, `=1`, `[s]`) the nominal delta time separation between two time samples
+- `seq`: (`::Sequence`) Sequence struct
+- `dt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients (by nominal we mean that the time separation should be
     at most `Δt` when the samples are regarded by [`KomaMRI.is_ADC_on`](@ref) or
     [`KomaMRI.is_GR_on`](@ref)), otherwise the time points are not necessary and the
     separation will be bigger)
 
 # Keywords
-- `Δt_rf`: (`::Real`, `=1e-4`, `[s]`) the nominal delta time separation between two time
+- `Δt_rf`: (`::Real`, `=1e-4`, `[s]`) nominal delta time separation between two time
     samples for RF excitation (by nominal we mean that the time separation should be at most
     `Δt_rf` when the samples are regarded by [`KomaMRI.is_RF_on`](@ref), otherwise the time
     points are not necessary and the separation will be bigger)
 
 # Returns
-- `t`: (`::Vector{Float64}`, `[s]`) the time array with non-uniform time values
-- `Δt`: (`::Vector{Float64}`, `[s]`) the delta time array with the separation between two
+- `t`: (`::Vector{Float64}`, `[s]`) time array with non-uniform time values
+- `Δt`: (`::Vector{Float64}`, `[s]`) delta time array with the separation between two
     adjacent time points of the `t` time array
 """
 function get_variable_times(seq; dt=1, dt_rf=1e-4)
@@ -247,8 +226,8 @@ Thus, it is possible to split the simulation into excitation and preccesion comp
     place with the [`KomaMRI.is_RF_on`](@ref) function.
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
-- `t`: (`::Vector{Int64}`, `[s]`) the non-uniform time array
+- `seq`: (`::Sequence`) Sequence struct
+- `t`: (`::Vector{Int64}`, `[s]`) non-uniform time array
 
 # Returns
 - `key_idxs`: (`::Vector{Int64}`) array of indices of the `t` time array where are RF key

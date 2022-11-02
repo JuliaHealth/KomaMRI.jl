@@ -284,26 +284,13 @@ Returns the Sequence struct from a sequence file `.seq`.
 - `filename`: (`::String`) the absolute or relative path of the sequence file `.seq`
 
 # Returns
-- `seq`: (`::Sequence`) the sequence struct
+- `seq`: (`::Sequence`) Sequence struct
 
 # Examples
 ```julia-repl
-julia> seq = read_seq("examples/1.sequences/epi.seq")
-Successfully loaded epi.seq!
-Sequence[ τ = 332.16 ms | blocks: 609 | ADC: 300 | GR: 615 | RF: 3 | DEF: 10 ]
-
-julia> plot_seq(seq)
-
-julia> plot_kspace(seq)
-```
-```julia-repl
 julia> seq = read_seq("examples/1.sequences/spiral.seq")
-Successfully loaded spiral.seq!
-Sequence[ τ = 42.89 ms | blocks: 4 | ADC: 1 | GR: 8 | RF: 2 | DEF: 12 ]
 
 julia> plot_seq(seq)
-
-julia> plot_kspace(seq)
 ```
 """
 function read_seq(filename)
@@ -453,11 +440,11 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 # Arguments
 - `gradLibrary`: (`::Dict{K, V}`) the "gradLibrary" dictionary
 - `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
-- `Δt_gr`: (`::Float64`, `[s]`) the gradient raster time
-- `i`: (`::Int64`) the index of the axis in the block event
+- `Δt_gr`: (`::Float64`, `[s]`) gradient raster time
+- `i`: (`::Int64`) index of the axis in the block event
 
 # Returns
-- `grad`: (::Grad) the gradient struct
+- `grad`: (::Grad) Gradient struct
 """
 function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0,0)
@@ -495,11 +482,11 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 # Arguments
 - `rfLibrary`: (`::Dict{K, V}`) the "rfLibrary" dictionary
 - `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
-- `Δt_rf`: (`::Float64`, `[s]`) the RF raster time
-- `i`: (`::Int64`) the index of the RF in the block event
+- `Δt_rf`: (`::Float64`, `[s]`) RF raster time
+- `i`: (`::Int64`) index of the RF in the block event
 
 # Returns
-- `rf`: (`1x1 ::Matrix{RF}`) the RF struct
+- `rf`: (`1x1 ::Matrix{RF}`) RF struct
 """
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     #Unpacking
@@ -542,10 +529,10 @@ Reads the ADC. It is used internally by [`get_block`](@ref).
 
 # Arguments
 - `adcLibrary`: (`::Dict{String, Any}`) the "adcLibrary" dictionary
-- `i`: (`::Int64`) the index of the adc in the block event
+- `i`: (`::Int64`) index of the adc in the block event
 
 # Returns
-- `adc`: (`1x1 ::Vector{ADC}`) the ADC struct
+- `adc`: (`1x1 ::Vector{ADC}`) ADC struct
 """
 function read_ADC(adcLibrary, i)
     #Unpacking
@@ -568,11 +555,11 @@ end
 Block sequence definition. Used internally by [`read_seq`](@ref).
 
 # Arguments
-- `obj`: (`::Dict{String, Any}`) the main dictionary
-- `i`: (`::Int64`) the index of a block event
+- `obj`: (`::Dict{String, Any}`) main dictionary
+- `i`: (`::Int64`) index of a block event
 
 # Returns
-- `s`: (`::Sequence`) the block sequence struct
+- `s`: (`::Sequence`) block Sequence struct
 """
 function get_block(obj, i)
     #Unpacking
