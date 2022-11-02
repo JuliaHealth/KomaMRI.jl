@@ -338,7 +338,7 @@ function run_sim_time_iter(obj::Phantom, seq::Sequence, t::Array{Float64,1}, Δt
 			@inbounds S[p], M0 = run_spin_precession_parallel(obj, seq, t[p], Δt[p]; M0, Nthreads, gpu)
 		end
 		#Update progress
-		next!(pp, showvalues = [(:simulated_blocks, block), (:rf_blocks,rfs)])
+		next!(pp, showvalues = [(:simulated_blocks, block), (:rf_blocks, rfs)])
 		if blink_window #update Progress
 			progress = string(floor(Int, block / Nblocks * 100))
 			@js_ w (@var progress=$progress;

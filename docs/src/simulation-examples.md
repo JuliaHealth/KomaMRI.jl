@@ -1,11 +1,15 @@
 # Simulation Examples
 
-These examples are designed so you can go along by copying and pasting the code blocks. 😃. Before starting, don't forget to include the `KomaMRI` package:
-```@example 1
+These examples are designed so you can go along by copying and pasting the code blocks 😃. Before starting, don't forget to include the `KomaMRI` package:
+```julia
 using KomaMRI # Copy me by clicking the icon at the right! ------>
 ```
 
 ## Free Induction Decay
+
+```@setup 1
+using KomaMRI # Copy me by clicking the icon at the right! ------>
+```
 
 The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse. To recreate this experiment, we will need to define a `Sequence` with 2 blocks. 
 
