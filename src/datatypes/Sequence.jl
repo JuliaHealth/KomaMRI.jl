@@ -725,9 +725,9 @@ get_kspace(seq::Sequence; Δt=1) = begin
 	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
 	ts = t .+ Δt
 	t_adc =  get_sample_times(seq)
-	kx_adc = LinearInterpolation(ts,kspace[:,1])(t_adc)
-	ky_adc = LinearInterpolation(ts,kspace[:,2])(t_adc)
-	kz_adc = LinearInterpolation(ts,kspace[:,3])(t_adc)
+	kx_adc = LinearInterpolation(ts,kspace[:,1],extrapolation_bc=0)(t_adc)
+	ky_adc = LinearInterpolation(ts,kspace[:,2],extrapolation_bc=0)(t_adc)
+	kz_adc = LinearInterpolation(ts,kspace[:,3],extrapolation_bc=0)(t_adc)
 	kspace_adc = [kx_adc ky_adc kz_adc]
 	#Final
 	kspace, kspace_adc
