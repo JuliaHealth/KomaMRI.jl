@@ -8,24 +8,29 @@ using Printf
 ## Aux functions
 """"Calculates the normalized moments Mₖ = 1/tᵏ ∫ᵗG(τ)τᵏ dτ at the end of the sequence. """
 function get_Mmatrix(seq::Sequence; axis=1)
-    τ = dur(seq)
+    τ = dur(seq) * 1e3 # Seq Duration [ms]
     T0 = cumsum([0; seq.DUR])
     M0, M1, M2, M3 = Float64[], Float64[], Float64[], Float64[]
     for i = 1:length(seq)
         #Gradient
         Gi = seq[i].GR[axis]
         N = length(Gi.A)
-        delay = Gi.delay
+        delay = Gi.delay * 1e3 #Durations of delay [ms]
         #Timings
         if N > 1
-            δ = ones(N) * Gi.T / (N-1) #Durations of pulse
+            δ = ones(N) * Gi.T / (N-1) * 1e3 #Durations of pulse [ms]
             T = [sum(δ[1:j]) for j = 1:N-1]
             T = T0[i] .+ delay .+ [0; T] #Position of pulse
-            #Moment calculations
+            #Moment calculations - P0 model
+            # append!(M0, δ/τ)
+            # append!(M1, δ.*(T .+ δ/2)/τ^2)
+            # append!(M2, δ.*(T.^2 .+ T.*δ .+ δ.^2/3)/τ^3)
+            # append!(M3, δ.*(T.^3 .+ 3/2 * T.^2 .*δ .+ T.*δ.^2 .+ δ.^3/4)/τ^4)
+            #Moment calculations - P1 model
             append!(M0, δ/τ)
-            append!(M1, δ.*(T .+ δ/2)/τ^2)
-            append!(M2, δ.*(T.^2 .+ T.*δ .+ δ.^2/3)/τ^3)
-            append!(M3, δ.*(T.^3 .+ 3/2 * T.^2 .*δ .+ T.*δ.^2 .+ δ.^3/4)/τ^4)
+            append!(M1, δ.*(T)/τ^2)
+            append!(M2, δ.*(T.^2 .+ δ.^2/6)/τ^3)
+            append!(M3, δ.*(T.^3 .+ T .* δ.^2/2)/τ^4)
         end
     end
     [M0'; M1'; M2'; M3']
@@ -83,11 +88,11 @@ end
 δ2N(δ) = floor(Int64, δ * 156250) + 2
 
 """Exports diffusion preparation waveforms for their use in the scanner."""
-function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vectors_input.txt", name="Maxwell2", precision::Int=5)
+function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vectors_input.txt", name="Maxwell2", precision::Int=5, dwell_time=6.4e-6)
     open(filename, "w") do io
-        t1 = range(0, maximum(G1.GR.T), length=δ2N(maximum(G1.GR.T)))
-		t2 = range(0, maximum(G2.GR.T), length=δ2N(maximum(G2.GR.T)))
-        t3 = range(0, maximum(G3.GR.T), length=δ2N(maximum(G3.GR.T)))
+        t1 = range(0, maximum(G1.GR.T), step=dwell_time) #length=δ2N(maximum(G1.GR.T)))
+		t2 = range(0, maximum(G2.GR.T), step=dwell_time) #length=δ2N(maximum(G2.GR.T)))
+        t3 = range(0, maximum(G3.GR.T), step=dwell_time) #length=δ2N(maximum(G3.GR.T)))
         maxN = max(length(t1), length(t2), length(t3))
         Gx1, Gy1, Gz1 = KomaMRI.get_grads(G1, Array(t1).+maximum(G1.GR.delay))
 		Gx2, Gy2, Gz2 = KomaMRI.get_grads(G2, Array(t2).+maximum(G2.GR.delay))
@@ -101,6 +106,9 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
         Gz1_round = round.(Gz1 ./ Gmax, digits=precision)
         Gz2_round = round.(Gz2 ./ Gmax, digits=precision)
         Gz3_round = round.(Gz3 ./ Gmax, digits=precision)
+        println("Δt1=$(t1[2]-t1[1]) $(Gx1_round[1]) $(Gx1_round[end]) $(Gy1_round[1]) $(Gy1_round[end]) $(Gz1_round[1]) $(Gz1_round[end])")
+        println("Δt2=$(t2[2]-t2[1]) $(Gx2_round[1]) $(Gx2_round[end]) $(Gy2_round[1]) $(Gy2_round[end]) $(Gz2_round[1]) $(Gz2_round[end])")
+        println("Δt3=$(t3[2]-t3[1]) $(Gx3_round[1]) $(Gx3_round[end]) $(Gy3_round[1]) $(Gy3_round[end]) $(Gz3_round[1]) $(Gz3_round[end])")
         M01 =  [sum(floor.(Int32, Gx1_round*10^precision)) sum(floor.(Int32, Gy1_round*10^precision)) sum(floor.(Int32, Gz1_round*10^precision))]
         M02 = -[sum(floor.(Int32, Gx2_round*10^precision)) sum(floor.(Int32, Gy2_round*10^precision)) sum(floor.(Int32, Gz2_round*10^precision))]
         M03 =  [sum(floor.(Int32, Gx3_round*10^precision)) sum(floor.(Int32, Gy3_round*10^precision)) sum(floor.(Int32, Gz3_round*10^precision))]
@@ -114,15 +122,15 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
         Gz1_diff =  maximum(abs.(Gz1_round[2:end] .- Gz1_round[1:end-1]))
         Gz2_diff =  maximum(abs.(Gz2_round[2:end] .- Gz2_round[1:end-1]))
         Gz3_diff =  maximum(abs.(Gz3_round[2:end] .- Gz3_round[1:end-1]))
-        SRx1 = Gx1_diff * Gmax / 6.4 * 1e6 # 6.4 us is the dwell-time
-        SRx2 = Gx2_diff * Gmax / 6.4 * 1e6 # 6.4 us is the dwell-time
-        SRx3 = Gx3_diff * Gmax / 6.4 * 1e6 # 6.4 us is the dwell-time
-        SRy1 = Gy1_diff * Gmax / 6.4 * 1e6 # 6.4 us is the dwell-time
-        SRy2 = Gy2_diff * Gmax / 6.4 * 1e6 # 6.4 us is the dwell-time
-        SRy3 = Gy3_diff * Gmax / 6.4 * 1e6 # 6.4 us is the dwell-time
-        SRz1 = Gz1_diff * Gmax / 6.4 * 1e6 # 6.4 us is the dwell-time
-        SRz2 = Gz2_diff * Gmax / 6.4 * 1e6 # 6.4 us is the dwell-time
-        SRz3 = Gz3_diff * Gmax / 6.4 * 1e6 # 6.4 us is the dwell-time
+        SRx1 = Gx1_diff * Gmax / dwell_time # 6.4 us is the dwell-time
+        SRx2 = Gx2_diff * Gmax / dwell_time # 6.4 us is the dwell-time
+        SRx3 = Gx3_diff * Gmax / dwell_time # 6.4 us is the dwell-time
+        SRy1 = Gy1_diff * Gmax / dwell_time # 6.4 us is the dwell-time
+        SRy2 = Gy2_diff * Gmax / dwell_time # 6.4 us is the dwell-time
+        SRy3 = Gy3_diff * Gmax / dwell_time # 6.4 us is the dwell-time
+        SRz1 = Gz1_diff * Gmax / dwell_time # 6.4 us is the dwell-time
+        SRz2 = Gz2_diff * Gmax / dwell_time # 6.4 us is the dwell-time
+        SRz3 = Gz3_diff * Gmax / dwell_time # 6.4 us is the dwell-time
         println("SR1 = [$SRx1, $SRy1, $SRz1]")
         println("SR2 = [$SRx2, $SRy2, $SRz2]")
         println("SR3 = [$SRx3, $SRy3, $SRz3]")
@@ -132,7 +140,7 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
         println("M01 = [$(M01[1]), $(M01[2]), $(M01[3])]")
         println("M02 = [$(M02[1]), $(M02[2]), $(M02[3])]")
         println("M03 = [$(M03[1]), $(M03[2]), $(M03[3])]")
-        println("M0 = $M0")
+        println("M0 = $(M0.*10.0^(-precision))")
         #Header
         N1, N2, N3 = length(t1), length(t2), length(t3)
         date = "#Generated on $(now())\n"
@@ -156,8 +164,7 @@ end
 #sla# Params.
 Gmax = 62e-3 # mT/m
 Smax = 100   # mT/m/ms
-axis = "z"
-for pulse_type = [11 12]
+for pulse_type = [10, 11, 12]
 ##############################################################################
 if pulse_type == 1
     # 35ms
@@ -248,20 +255,21 @@ end
 
 N1 = 400 # You can solve the opt problem in a lower time resolution or use δ2N(dur_grad) 
 path_file = "/home/ccp/"
-for k = [0, 1] #Number of moments to null
 maxwell = true #maxwell or concomitant gradient compensation
-
+sym = false
 # Timings
+dwell_time = 6.4e-6
+δ1 = floor( δ1 / dwell_time) * dwell_time # Making the waveform match the dwell time
+δ2 = floor( δ2 / dwell_time) * dwell_time # Making the waveform match the dwell time
+δ3 = floor( δ3 / dwell_time) * dwell_time # Making the waveform match the dwell time
+δ3 = sym ? δ1 : δ3
 rf1 = Δ1 - δ1
 rf2 = Δ2 - δ2 - Δ1
 # Grads - Pre-defined RF waveforms.
 τ = Δ2 + δ3 # τ/Nt = Δt => Nt = τ/Δt
 durT = ceil(Int64, τ*1e3) #For the name
-seq_name = maxwell ? "MX_MC$(k)_$durT" : "MC$(k)_$durT"  #Name of the sequnce
-seq_name = adia ? "$(seq_name)_adia" : seq_name       #Name of the sequnce
-
-N2 = floor(Int, N1 * δ2 / δ1)
-N3 = floor(Int, N1 * δ3 / δ1)
+N2 = floor(Int, (N1 - 1) * δ2 / δ1) # δ1/N1 = δ2/N2
+N3 = floor(Int, (N1 - 1) * δ3 / δ1)
 DIF =  Sequence([Grad(x -> 1e-3, δ1, N1; delay=0)])
 DIF += Sequence([Grad(x -> 1e-3, δ2, N2; delay=rf1)])
 DIF += Sequence([Grad(x -> 1e-3, δ3, N3; delay=rf2)])
@@ -270,59 +278,71 @@ B =  get_Bmatrix(DIF)  #B-value
 SR = get_SRmatrix(DIF) #Slew-rate matrices
 M =  get_Mmatrix(DIF)  #Moments
 
-## Optimazation
-Mm = M[1:k+1,:] #./ 10 .^(2:k+1)
-model = Model(); set_optimizer(model, Ipopt.Optimizer); set_silent(model)
-@variable(model, -Gmax <= g1[1:N1] <= Gmax, start=Gmax); #max-grads
-@variable(model, -Gmax <= g2[1:N2] <= Gmax, start=Gmax); #max-grads
-@variable(model, -Gmax <= g3[1:N3] <= Gmax, start=Gmax); #max-grads
-@objective(model, Max, [g1;g2;g3]'*B*[g1;g2;g3]); #b-value
-@constraint(model, moments, Mm*[g1;g2;g3] .== 0); #moments
-@constraint(model, slewrate, -Smax*0.999 .<= [SR[1]*g1; SR[2]*g2; SR[3]*g3] .<= Smax*0.999); #slew rate 99.9% of the SR
-@constraint(model, ends, [g1[1]; g2[1]; g3[1]; g1[N1]; g2[N2]; g3[N3]] .== 0)
-if maxwell
-    @constraint(model, concomitant, sum(g1.^2) - sum(g2.^2) + sum(g3.^2) == 0); #concomitant
-end
-optimize!(model);
-gx1 = value.(g1) #retrieving solution
-gx2 = value.(g2) #retrieving solution
-gx3 = value.(g3) #retrieving solution
-
-## Solution to Sequence object
-if     axis == "x"
-    ax = 1
-    DIF =  Sequence([Grad( gx1,δ1,0,0  ); Grad(0,0); Grad(0,0);;])
-    DIF += Sequence([Grad(-gx2,δ2,0,rf1); Grad(0,0); Grad(0,0);;])
-    DIF += Sequence([Grad( gx3,δ3,0,rf2); Grad(0,0); Grad(0,0);;])
-elseif axis == "y"
-    ax = 2
-    DIF =  Sequence([Grad(0,0); Grad( gx1,δ1,0,0  ); Grad(0,0);;])
-    DIF += Sequence([Grad(0,0); Grad(-gx2,δ2,0,rf1); Grad(0,0);;])
-    DIF += Sequence([Grad(0,0); Grad( gx3,δ3,0,rf2); Grad(0,0);;])
-elseif axis == "z"
-    ax = 3
-    DIF =  Sequence([Grad(0,0); Grad(0,0); Grad( gx1,δ1,0,0  );;])
-    DIF += Sequence([Grad(0,0); Grad(0,0); Grad(-gx2,δ2,0,rf1);;])
-    DIF += Sequence([Grad(0,0); Grad(0,0); Grad( gx3,δ3,0,rf2);;])
-end
-gx = [gx1; gx2; gx3]
-bmax = gx'*B*gx
-println( "λ0 = $(abs(round(M[1,:]'*gx/Gmax,digits=1))), λ1 = $(abs(round(M[2,:]'*gx/Gmax,digits=1))), λ2 = $(abs(round(M[3,:]'*gx/Gmax,digits=1)))" )
-println( "b-value: $(round(bmax, digits=2)) s/mm2" )
-println( seq_name )
-if termination_status(model) == MOI.LOCALLY_SOLVED
-    println( "Solved! 😃"  )
-else
-    println( "NOT Solved 😢"  )
-end
-## TO SCANNER
-path_res = "/home/ccp/DiffPrepWaveforms/G$(floor(Int,Gmax*1e3))_SR$(floor(Int,Smax))_$axis/"
-inv = DIF[1].GR[ax].A[2] <= 0 #if first grdient's x component goes down, invert 
-DIFinv = inv ? -DIF : DIF
-write_diffprep_fwf(DIFinv[1], DIFinv[2], DIFinv[3], bmax, Gmax, Smax; filename=path_res*"$seq_name.txt", name=seq_name)
-# Plots
-p = plot_seq(DIFinv; darkmode=false, slider=false, range=[-1 dur(DIFinv)*1e3+1])
-savefig(p, path_res*"$seq_name.svg")
+for k = [0, 1] #Number of moments to null
+    seq_name = maxwell ? "MX_MC$(k)_$durT" : "MC$(k)_$durT"  #Name of the sequnce
+    seq_name = adia ? "$(seq_name)_adia" : seq_name       #Name of the sequnce
+    ## Optimazation
+    Mm = M[1:k+1,:]
+    model = Model(Ipopt.Optimizer)
+    set_silent(model)
+    @variable(model, -Gmax <= g1[1:N1] <= Gmax, start=Gmax); #max-grads
+    @variable(model, -Gmax <= g2[1:N2] <= Gmax, start=Gmax); #max-grads
+    @variable(model, -Gmax <= g3[1:N3] <= Gmax, start=Gmax); #max-grads
+    @objective(model, Max, [g1;g2;g3]'*B*[g1;g2;g3]); #b-value
+    @constraint(model, moments, Mm*[g1;g2;g3] .== 0); #moments
+    @constraint(model, slewrate, -Smax*0.999 .<= [SR[1]*g1; SR[2]*g2; SR[3]*g3] .<= Smax*0.999); #slew rate 99.9% of the SR
+    @constraint(model, ends, [g1[1]; g2[1]; g3[1]; g1[N1]; g2[N2]; g3[N3]] .== 0)
+    if maxwell
+        @constraint(model, concomitant, sum(g1.^2) - sum(g2.^2) + sum(g3.^2) == 0); #concomitant
+    end
+    optimize!(model);
+    gx1 = value.(g1) #retrieving solution
+    gx2 = value.(g2) #retrieving solution
+    gx3 = value.(g3) #retrieving solution
+    # Results
+    gx = [gx1; gx2; gx3]
+    bmax = gx'*B*gx
+    println( "λ0 = $(abs(round(M[1,:]'*gx/Gmax,digits=3))), λ1 = $(abs(round(M[2,:]'*gx/Gmax,digits=3))), λ2 = $(abs(round(M[3,:]'*gx/Gmax,digits=3)))" )
+    println( "b-value: $(round(bmax, digits=2)) s/mm2" )
+    println( seq_name )
+    if termination_status(model) == MOI.LOCALLY_SOLVED
+        println( "Solved! 😃"  )
+    else
+        println( "NOT Solved 😢"  )
+    end
+    ## Solution to Sequence object (for plotting)
+    B1 = 15e-6
+    β = 1100
+    R1 = [RF(t->B1*sech(β*(t-rf1/2)), rf1; delay=δ1);;]
+    R2 = [RF(t->B1*sech(β*(t-rf1/2)), rf2; delay=δ2);;]
+    for axis = ["x", "y", "z"]
+        if     axis == "x"
+            ax = 1
+            DIF =  Sequence([Grad( gx1,δ1); Grad(0,0); Grad(0,0);;],R1)
+            DIF += Sequence([Grad(-gx2,δ2); Grad(0,0); Grad(0,0);;],R2)
+            DIF += Sequence([Grad( gx3,δ3); Grad(0,0); Grad(0,0);;])
+        elseif axis == "y"
+            ax = 2
+            DIF =  Sequence([Grad(0,0); Grad( gx1,δ1); Grad(0,0);;],R1)
+            DIF += Sequence([Grad(0,0); Grad(-gx2,δ2); Grad(0,0);;],R1)
+            DIF += Sequence([Grad(0,0); Grad( gx3,δ3); Grad(0,0);;])
+        elseif axis == "z"
+            ax = 3
+            DIF =  Sequence([Grad(0,0); Grad(0,0); Grad( gx1,δ1,0);;],R1)
+            DIF += Sequence([Grad(0,0); Grad(0,0); Grad(-gx2,δ2,0);;],R2)
+            DIF += Sequence([Grad(0,0); Grad(0,0); Grad( gx3,δ3,0);;])
+        end
+        ## TO SCANNER
+        path_res = "/home/ccp/DiffPrepWaveforms/G$(floor(Int,Gmax*1e3))_SR$(floor(Int,Smax))_$axis/"
+        inv = DIF[1].GR[ax].A[2] <= 0 #if first grdient's x component goes down, invert 
+        DIFinv = inv ? -DIF : DIF
+        # Write
+        write_diffprep_fwf(DIFinv[1], DIFinv[2], DIFinv[3], bmax, Gmax, Smax; filename=path_res*"$seq_name.txt", name=seq_name)
+        # Plots
+        R90 = RF(B1, 0.35e-3)
+        p = plot_seq(R90+DIFinv+R90; darkmode=false, slider=false, range=[-1 dur(DIFinv)*1e3+1])
+        savefig(p, path_res*"$seq_name.svg")
+    end
 end
 end
 println("Finished! 💃")
