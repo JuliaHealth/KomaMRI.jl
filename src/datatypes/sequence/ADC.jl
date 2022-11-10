@@ -101,7 +101,7 @@ Returns the array of phases for every acquired sample in the sequence `seq`.
 - `phase`: (`::Vector{Complex{Int64}}`, `[rad]`) array of phases for every acquired sample
 """
 function get_sample_phase_compensation(seq)
-  phase = Float64[]
+  phase = ComplexF64[]
   for i = 1:length(seq)
       if is_ADC_on(seq[i])
           N = seq.ADC[i].N

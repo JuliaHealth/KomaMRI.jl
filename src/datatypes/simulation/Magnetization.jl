@@ -72,6 +72,7 @@ getproperty(x::Vector{Mag}, f::Symbol) = getproperty.(x, f)
 # Other operations
 angle(M::Mag) = angle(M.xy)
 abs(M::Mag) = abs(M.xy)
+zero(::Type{Mag}) = Mag(0,0)
 
 # Rotation
 @doc raw"""
