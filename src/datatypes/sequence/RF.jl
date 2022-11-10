@@ -210,16 +210,13 @@ mutable struct RF
 	Δf::Float64
 	delay::Float64
 	function RF(A, T, Δf, delay)
-		@argcheck all(T .>= 0) && delay >= 0 "RF timings must be positive."
-		new(A, T, Δf, delay)
+        any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new(A, T, Δf, delay)
     end
 	function RF(A, T, Δf)
-		@argcheck all(T .>= 0) "RF timings must be positive."
-		new(A, T, Δf, 0.)
+        any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, Δf, 0.)
     end
 	function RF(A, T)
-		@argcheck all(T .>= 0) "RF timings must be positive."
-		new(A, T, 0., 0.)
+        any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, 0., 0.)
     end
 end
 
