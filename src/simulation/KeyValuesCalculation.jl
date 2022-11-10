@@ -11,18 +11,18 @@ Get the theoretical amplitudes of a rectangle waveform for Grad, RF or ADC struc
     them whenever necessary.
 
 # Arguments
-- `g`: (`::Grad`) the gradient struct
-- `r`: (`::RF`) the RF struct
-- `d`: (`::ADC`) the ADC truct
+- `g`: (`::Grad`) Gradient struct
+- `r`: (`::RF`) RF struct
+- `d`: (`::ADC`) ADC truct
 
 # Keywords
-- `off_val`: (`::Float64`, `=0`) the offset value for amplitude. In general, it is used for
+- `off_val`: (`::Float64`, `=0`) offset value for amplitude. In general, it is used for
     not showing some points in plots by giving an `Inf` value
-- `max_rf_samples`: (`::Float64`, `=Inf`) the number of maximum samples for the RF struct.
+- `max_rf_samples`: (`::Float64`, `=Inf`) number of maximum samples for the RF struct.
     In general, this parameter is not necessary to set
 
 # Returns
-- `A`: (`::Vector{Float64}`) the vector with the amplitude key points of the rectangle
+- `A`: (`::Vector{Float64}`) vector with the amplitude key points of the rectangle
     waveform
 """
 get_theo_A(g::Grad; off_val=0) = begin
@@ -89,16 +89,16 @@ Get the theoretical times of a rectangle waveform for Grad, RF or ADC structs. T
     them whenever necessary.
 
 # Arguments
-- `g`: (`::Grad`) the gradient struct
-- `r`: (`::RF`) the RF struct
-- `d`: (`::ADC`) the ADC truct
+- `g`: (`::Grad`) Gradient struct
+- `r`: (`::RF`) RF struct
+- `d`: (`::ADC`) ADC truct
 
 # Keywords
-- `max_rf_samples`: (`::Float64`, `=Inf`) the number of maximum samples for the RF struct.
+- `max_rf_samples`: (`::Float64`, `=Inf`) number of maximum samples for the RF struct.
     In general, this parameter is not necessary to set
 
 # Returns
-- `t`: (`::Vector{Float64}`) the vector with the time key points of the rectangle waveform
+- `t`: (`::Vector{Float64}`) vector with the time key points of the rectangle waveform
 """
 get_theo_t(g::Grad) = begin
 	NT, T, NA = length(g.T), g.T, length(g.A)
@@ -151,12 +151,12 @@ end
 Get the theoretical gradient for a sequence in a defined axis.
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
-- `idx`: (`::Int64`, opts=[1, 2, 3]) the axis x, y or z for the gradient
+- `seq`: (`::Sequence`) Sequence struct
+- `idx`: (`::Int64`, opts=[1, 2, 3]) axis x, y or z for the gradient
 
 # Returns
-- `t`: (`::Vector{Float64}`) the time key points
-- `g`: (`::Vector{Float64}`) the amplitude key points
+- `t`: (`::Vector{Float64}`) time key points
+- `g`: (`::Vector{Float64}`) amplitude key points
 """
 get_theo_Gi(seq, idx) = begin
 	ΔT, N = durs(seq), length(seq)

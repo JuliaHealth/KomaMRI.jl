@@ -4,14 +4,14 @@
 Define colors for dark or light mode.
 
 # Arguments
-- `darkmode`: (`::Bool`) the boolean that selects dark or light mode
+- `darkmode`: (`::Bool`) boolean that selects dark or light mode
 
 # Returns
-- `bgcolor`: (`::String`) the backgound color
-- `text_color`: (`::String`) the text color
-- `plot_bgcolor`: (`::String`) the color background for the plots
-- `grid_color`: (`::String`) the color of the grids
-- `sep_color`: (`::String`) the color of separator lines
+- `bgcolor`: (`::String`) backgound color
+- `text_color`: (`::String`) text color
+- `plot_bgcolor`: (`::String`) color background for the plots
+- `grid_color`: (`::String`) color of the grids
+- `sep_color`: (`::String`) color of separator lines
 """
 function theme_chooser(darkmode)
 	if darkmode
@@ -37,14 +37,14 @@ Interpolates a color map. This is used for plotting the kspace (refer to
 [`plot_kspace`](@ref)).
 
 # Arguments
-- `c_map`: (`::Vector{Vector{Any}}`) the color map. Every element of this vector has a
+- `c_map`: (`::Vector{Vector{Any}}`)color map. Every element of this vector has a
     vector with a number between 0-1 in its first element and a color string in its second
     element. It serves as a reference to create a color map with more elements
 - `t_interp`: (`::Vector{Float64}`) the vector with values between 0-1 that are the
     reference for interpolate the color map with more elements
 
 # Returns
-- `c_map_interp`: (`::Vector{String}`) the vector with color strings with interpolated
+- `c_map_interp`: (`::Vector{String}`) vector with color strings with interpolated
     values
 """
 function interp_map(c_map, t_interp)
@@ -60,41 +60,31 @@ function interp_map(c_map, t_interp)
 end
 
 """
-    p = plot_seq(seq; width, height, slider, show_seq_blocks, darkmode, max_rf_samples, range)
+    p = plot_seq(seq; width, height, slider, show_seq_blocks, show_sim_blocks, Nblocks,
+            darkmode, max_rf_samples, range)
 
 Plots a sequence struct.
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
+- `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `width`: (`::Int64`, `=nothing`) the width of the plot
-- `height`: (`::Int64`, `=nothing`) the height of the plot
-- `slider`: (`::Bool`, `=true`) the boolean to display a slider
-- `show_seq_blocks`: (`::Bool`, `=false`) the boolean to show sequence blocks
-- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
-- `max_rf_samples`: (`::Int64`, `=100`) the maximum number of RF samples
-- `range`: (`::Vector{Float64}`, `=[]`) the time range to be displayed initially
+- `width`: (`::Int64`, `=nothing`) width of the plot
+- `height`: (`::Int64`, `=nothing`) height of the plot
+- `slider`: (`::Bool`, `=true`) boolean to display a slider
+- `show_seq_blocks`: (`::Bool`, `=false`) boolean to show sequence blocks
+- `show_sim_blocks`: (`::Bool`, `=false`) boolean to show simulation blocks
+- `Nblocks`: (`::Int64`, `=0`) number of simulation blocks to display
+- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `max_rf_samples`: (`::Int64`, `=100`) maximum number of RF samples
+- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) the plot of the sequence struct
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the Sequence struct
 
 # Examples
 ```julia-repl
-julia> sys = Scanner();
-
-julia> FOV, N = 23e-2, 101;
-
-julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
-
-julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
-Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> epi = PulseDesigner.EPI(FOV, N, sys)
-Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
-
-julia> seq = ex + epi
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+julia> seq = read_seq("examples/1.sequences/spiral.seq")
 
 julia> plot_seq(seq)
 ```
@@ -217,81 +207,18 @@ end
 Plots an image matrix.
 
 # Arguments
-- `image`: (`::Matrix{Float64}`) the image matrix
+- `image`: (`::Matrix{Float64}`) image matrix
 
 # Keywords
-- `height`: (`::Int64`, `=750`) the height of the plot
-- `width`: (`::Int64`, `=nothing`) the width of the plot
-- `zmin`: (`::Float64`, `=minimum(abs.(image[:]))`) the reference value for minimum color
-- `zmax`: (`::Float64`, `=maximum(abs.(image[:]))`) the reference value for maximum color
-- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
-- `title`: (`::String`, `=""`) the title of the plot
+- `height`: (`::Int64`, `=750`) height of the plot
+- `width`: (`::Int64`, `=nothing`) width of the plot
+- `zmin`: (`::Float64`, `=minimum(abs.(image[:]))`) reference value for minimum color
+- `zmax`: (`::Float64`, `=maximum(abs.(image[:]))`) reference value for maximum color
+- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `title`: (`::String`, `=""`) title of the plot
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) the plot of the image matrix
-
-# Examples
-
-Preparation (define scanner and sequence):
-```julia-repl
-julia> sys = Scanner();
-
-julia> FOV, N = 23e-2, 101;
-
-julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
-
-julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
-Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> epi = PulseDesigner.EPI(FOV, N, sys)
-Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
-
-julia> seq = ex + epi
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
-
-julia> plot_seq(seq)
-
-julia> plot_kspace(seq)
-```
-
-Simulate:
-```julia-repl
-julia> obj = brain_phantom2D()
-
-julia> signal = simulate(obj, seq, sys);
-
-julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
-
-julia> plot_signal(ismrmrd)
-```
-
-Reconstruct:
-```julia-repl
-julia> Nx, Ny = ismrmrd.params["reconSize"][1:2];
-
-julia> params = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny), :densityWeighting=>true);
-
-julia> acq = AcquisitionData(ismrmrd);
-
-julia> recon = reconstruction(acq, params);
-
-julia> image = reshape(recon.data, Nx, Ny, :)
-102×102×1 Array{ComplexF64, 3}:
-[:, :, 1] =
- 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
- 0.0+0.0im  0.0+0.0im     0.0+0.0im
-    ⋮           ⋮       ⋱      ⋮
- 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
-
-julia> slice_abs = abs.(image[:, :, 1])
-102×102 Matrix{Float64}:
- 0.0  0.0  …  0.0
- 0.0  0.0     0.0
-  ⋮        ⋱   ⋮
- 0.0  0.0  …  0.0
-
-julia> plot_image(slice_abs)
-```
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the image matrix
 """
 function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:])), zmax=maximum(abs.(image[:])), darkmode=false, title="")
 	#Layout
@@ -331,32 +258,19 @@ end
 Plots the k-space of a sequence struct.
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
+- `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `width`: (`::Int64`, `=nothing`) the width of the plot
-- `height`: (`::Int64`, `=nothing`) the height of the plot
-- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+- `width`: (`::Int64`, `=nothing`) width of the plot
+- `height`: (`::Int64`, `=nothing`) height of the plot
+- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) the plot of the k-space of the sequence struct `seq`
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the k-space of the sequence struct `seq`
 
 # Examples
 ```julia-repl
-julia> sys = Scanner();
-
-julia> FOV, N = 23e-2, 101;
-
-julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
-
-julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
-Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> epi = PulseDesigner.EPI(FOV, N, sys)
-Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
-
-julia> seq = ex + epi
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+julia> seq = read_seq("examples/1.sequences/spiral.seq")
 
 julia> plot_kspace(seq)
 ```
@@ -427,33 +341,20 @@ end
 Plots the magnetization M0 of a sequence struct.
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
+- `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `height`: (`::Int64`, `=nothing`) the height of the plot
-- `width`: (`::Int64`, `=nothing`) the width of the plot
-- `slider`: (`::Bool`, `=true`) the boolean to display a slider
-- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+- `height`: (`::Int64`, `=nothing`) height of the plot
+- `width`: (`::Int64`, `=nothing`) width of the plot
+- `slider`: (`::Bool`, `=true`) boolean to display a slider
+- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) the plot of the magnetization M0 of the sequence struct `seq`
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the magnetization M0 of the sequence struct `seq`
 
 # Examples
 ```julia-repl
-julia> sys = Scanner();
-
-julia> FOV, N = 23e-2, 101;
-
-julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
-
-julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
-Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> epi = PulseDesigner.EPI(FOV, N, sys)
-Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
-
-julia> seq = ex + epi
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
+julia> seq = read_seq("examples/1.sequences/spiral.seq")
 
 julia> plot_M0(seq)
 ```
@@ -520,23 +421,23 @@ function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false
 end
 
 """
-    p = plot_phantom_map(ph, key; t0=0, height=700, width=nothing, darkmode=false)
+    p = plot_phantom_map(ph, key; t0=0, height=600, width=nothing, darkmode=false)
 
 Plots a phantom map for a specific spin parameter given by `key`.
 
 # Arguments
-- `ph`: (`::Phantom`) the phantom struct
-- `key`: (`::Symbol`, opts: [`:ρ`, `:T1`, `:T2`, `:T2s`, `:x`, `:y`, `:z`]) the symbol for
+- `ph`: (`::Phantom`) Phantom struct
+- `key`: (`::Symbol`, opts: [`:ρ`, `:T1`, `:T2`, `:T2s`, `:x`, `:y`, `:z`]) symbol for
     displaying different parameters of the phantom spins
 
 # Keywords
-- `t0`: (`::Float64`, `=0`, `[ms]`) the time to see displacement of the phantom
-- `height`: (`::Int64`, `=nothing`) the height of the plot
-- `width`: (`::Int64`, `=nothing`) the width of the plot
-- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
+- `t0`: (`::Float64`, `=0`, `[ms]`) time to see displacement of the phantom
+- `height`: (`::Int64`, `=600`) height of the plot
+- `width`: (`::Int64`, `=nothing`) width of the plot
+- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) the plot of the phantom map for a specific spin parameter
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the phantom map for a specific spin parameter
 
 # References
 Colormaps from https://github.com/markgriswold/MRFColormaps
@@ -634,47 +535,31 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 end
 
 """
-    p = plot_signal(raw::RawAcquisitionData; height, width, darkmode, range)
+    p = plot_signal(raw::RawAcquisitionData; height, width, slider, show_sim_blocks,
+            darkmode, range)
 
 Plots a raw signal in ISMRMRD format.
 
 # Arguments
-- `raw`: (`::RawAcquisitionData`) the RawAcquisitionData struct which is the raw signal in
+- `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct which is the raw signal in
     ISMRMRD format
 
 # Keywords
-- `width`: (`::Int64`, `=nothing`) the width of the plot
-- `height`: (`::Int64`, `=nothing`) the height of the plot
-- `darkmode`: (`::Bool`, `=false`) the boolean to define colors for darkmode
-- `range`: (`::Vector{Float64}`, `=[]`) the time range to be displayed initially
+- `width`: (`::Int64`, `=nothing`) width of the plot
+- `height`: (`::Int64`, `=nothing`) height of the plot
+- `slider`: (`::Bool`, `=true`) boolean to display a slider
+- `show_sim_blocks`: (`::Bool`, `=false`) boolean to show simulation blocks
+- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) the plot of the raw signal
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the raw signal
 
 # Examples
 ```julia-repl
-julia> sys = Scanner();
+julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq("examples/1.sequences/spiral.seq");
 
-julia> FOV, N = 23e-2, 101;
-
-julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
-
-julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
-Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> epi = PulseDesigner.EPI(FOV, N, sys)
-Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
-
-julia> seq = ex + epi
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
-
-julia> plot_seq(seq)
-
-julia> obj = brain_phantom2D();
-
-julia> signal = simulate(obj, seq, sys);
-
-julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
+julia> ismrmrd = simulate(obj, seq, sys);
 
 julia> plot_signal(ismrmrd)
 ```
@@ -769,10 +654,10 @@ end
 Generates a string in html format of the dictionary `dict`.
 
 # Arguments
-- `dict`: (`::Dict`) the dictionary to generate tha html string
+- `dict`: (`::Dict`) dictionary to generate the html string
 
 # Returns
-- `str`: (`::String`) the string of the dictionary `dict` which is a table in html format
+- `str`: (`::String`) string of the dictionary `dict` which is a table in html format
 """
 function plot_dict(dict::Dict)
 	html = """

@@ -6,32 +6,16 @@
 The ADC struct.
 
 # Arguments
-- `N`: (`::Int64`) the number of acquired samples
-- `T`: (`::Float64`, [`s`]) the duration to acquire the samples
-- `delay`: (`::Float64`, [`s`]) the delay time to start the acquisition
-- `Δf`: (`::Float64`, [`Hz`]) the delta frequency. It's meant to compensate RF pulse phases.
+- `N`: (`::Int64`) number of acquired samples
+- `T`: (`::Float64`, [`s`]) duration to acquire the samples
+- `delay`: (`::Float64`, [`s`]) delay time to start the acquisition
+- `Δf`: (`::Float64`, [`Hz`]) delta frequency. It's meant to compensate RF pulse phases.
     It is used internally by the [`read_ADC`](@ref) function
-- `ϕ`: (`::Float64`, `[rad]`) the phase. It's meant to compensate RF pulse phases. It is
+- `ϕ`: (`::Float64`, `[rad]`) phase. It's meant to compensate RF pulse phases. It is
     used internally by the [`read_ADC`](@ref) function
 
 # Returns
-- `adc`: (`::ADC`) the ADC struct
-
-# Examples
-```julia-repl
-julia> d1, d2, d3 = 0.8, 0.4, 0.8;
-
-julia> matrixGrads = [Grad(0, d1) Grad(0, d2) Grad(0, d3)];
-
-julia> matrixRFs = [RF(0, d1) RF(0, d2) RF(0, d3)];
-
-julia> vectorADCs = [ADC(0, d1); ADC(0, d2); ADC(9, d3)];
-
-julia> seq = Sequence(matrixGrads, matrixRFs, vectorADCs)
-Sequence[ τ = 2000.0 ms | blocks: 3 | ADC: 1 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> plot_seq(seq)
-```
+- `adc`: (`::ADC`) ADC struct
 """
 mutable struct ADC
     N::Int64
@@ -57,27 +41,13 @@ Overchages Base.getproperty(). It is meant to access properties of the ADC vecto
 directly without the need to iterate elementwise.
 
 # Arguments
-- `x`: (`::Vector{ADC}`) the vector of ADC structs
-- `f`: (`::Symbol`, opts: [`:N`, `:T`, `:delay`, `:Δf`, `:ϕ`, `:dur`]) the input symbol that
+- `x`: (`::Vector{ADC}`) vector of ADC structs
+- `f`: (`::Symbol`, opts: [`:N`, `:T`, `:delay`, `:Δf`, `:ϕ`, `:dur`]) input symbol that
     represents a property of the ACD structs
 
 # Returns
-- `y`: (`::Vector{Any}`) the vector with the property defined by the `f` for all elements of
+- `y`: (`::Vector{Any}`) vector with the property defined by the `f` for all elements of
     the ADC vector `x`
-
-``` julia-repl
-julia> ADCs = [ADC(16, 8, 2); ADC(8, 4, 6); ADC(4, 2, 8)]
-3-element Vector{ADC}:
- ADC(16, 8.0, 2.0, 0.0, 0.0)
- ADC(8, 4.0, 6.0, 0.0, 0.0)
- ADC(4, 2.0, 8.0, 0.0, 0.0)
-
-julia> getproperty(ADCs, :dur)
-3-element Vector{Float64}:
- 10.0
- 10.0
- 10.0
-```
 """
 getproperty(x::Vector{ADC}, f::Symbol) = begin
     if f == :dur
@@ -95,10 +65,10 @@ end
 Returns an array of times when the samples of the sequence `seq` are acquired.
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
+- `seq`: (`::Sequence`) sequence struct
 
 # Returns
-- `times`: (`::Vector{Float64}`, `[s]`) the time array when samples are acquired
+- `times`: (`::Vector{Float64}`, `[s]`) time array when samples are acquired
 """
 function get_sample_times(seq)
     T0 = cumsum([0; durs(seq)], dims=1)
@@ -125,11 +95,10 @@ Returns the array of phases for every acquired sample in the sequence `seq`.
     to the end of the [`run_sim_time_iter`](@ref) function to see its usage.
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
+- `seq`: (`::Sequence`) sequence struct
 
 # Returns
-- `phase`: (`::Vector{Complex{Int64}}`, `[rad]`) the array of phases for every acquired
-    sample
+- `phase`: (`::Vector{Complex{Int64}}`, `[rad]`) array of phases for every acquired sample
 """
 function get_sample_phase_compensation(seq)
   phase = Float64[]

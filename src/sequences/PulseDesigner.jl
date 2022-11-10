@@ -13,16 +13,16 @@ using ..KomaMRI: γ, Scanner, get_bvalue, get_max_grad
 Definition of the RF hard sequence.
 
 # Arguments
-- `B1`: (`Float64`, `[T]`) the amplitude of the RF pulse
-- `T`: (`Float64`, `[s]`) the duration of the RF pulse
-- `sys`: (`::Scanner`) the scanner struct
+- `B1`: (`Float64`, `[T]`) amplitude of the RF pulse
+- `T`: (`Float64`, `[s]`) duration of the RF pulse
+- `sys`: (`::Scanner`) Scanner struct
 
 # Keywords
-- `G`: (`Vector{Float64}`, `=[0, 0, 0]`, `[T]`) the gradient amplitudes for x, y, z
-- `Δf`: (`Float64`, `=0`, `[Hz]`) the frequency offset of the RF pulse
+- `G`: (`Vector{Float64}`, `=[0, 0, 0]`, `[T]`) gradient amplitudes for x, y, z
+- `Δf`: (`Float64`, `=0`, `[Hz]`) frequency offset of the RF pulse
 
 # Returns
-- `ex`: (`::Sequence`) the excitation sequence struct
+- `ex`: (`::Sequence`) excitation Sequence struct
 
 # Examples
 ```julia-repl
@@ -90,12 +90,12 @@ end
 Definition of the EPI sequence.
 
 # Arguments
-- `FOV`: (`::Float64`, `[m]`) the field of view
-- `N`: (`::Int`) the number of pixels in the x and y axis
-- `sys`: (`::Scanner`) the scanner struct
+- `FOV`: (`::Float64`, `[m]`) field of view
+- `N`: (`::Int`) number of pixels in the x and y axis
+- `sys`: (`::Scanner`) Scanner struct
 
 # Returns
-- `epi`: (`::Sequence`) the epi sequence struct
+- `epi`: (`::Sequence`) epi Sequence struct
 
 # Examples
 ```julia-repl
@@ -107,8 +107,6 @@ julia> epi = PulseDesigner.EPI(FOV, N, sys)
 Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
 
 julia> plot_seq(epi)
-
-julia> plot_kspace(epi)
 ```
 """
 EPI(FOV::Float64, N::Int, sys::Scanner) = begin
@@ -153,12 +151,12 @@ end
 Definition of the radial base sequence.
 
 # Arguments
-- `FOV`: (`::Float64`, `[m]`) the field of view
-- `N`: (`::Int`) number of pixel in the radious
-- `sys`: (`::Scanner`) the scanner struct
+- `FOV`: (`::Float64`, `[m]`) field of view
+- `N`: (`::Int`) number of pixels along the radious
+- `sys`: (`::Scanner`) Scanner struct
 
 # Returns
-- `seq`: (`::Sequence`) the radial base sequence struct
+- `seq`: (`::Sequence`) radial base Sequence struct
 """
 radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 	Δt = sys.ADC_Δt

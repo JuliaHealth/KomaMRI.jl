@@ -29,22 +29,22 @@ separating the spins of the phantom `obj` in `Nthreads`.
     utilization.
 
 # Arguments
-- `obj`: (`::Phantom`) the phantom struct
-- `seq`: (`::Sequence`) the sequence struct
-- `t`: (`::Vector{Float64}`, `[s]`) the non-uniform time vector (actually it's a part of the
+- `obj`: (`::Phantom`) Phantom struct
+- `seq`: (`::Sequence`) Sequence struct
+- `t`: (`::Vector{Float64}`, `[s]`) non-uniform time vector (actually it's a part of the
     complete simulation time vector)
-- `Δt`: (`::Vector{Float64}`, `[s]`) the delta time of `t` (actually it's a part of the
+- `Δt`: (`::Vector{Float64}`, `[s]`) delta time of `t` (actually it's a part of the
     complete simulation time vector)
 
 # Keywords
-- `M0`: (`::Vector{Mag}`) the initial state of the Mag vector
-- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) the number of process threads for
+- `M0`: (`::Vector{Mag}`) initial state of the Mag vector
+- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) number of process threads for
     dividing the simulation into different phantom spin parts
-- `gpu`: (`::Function`) the function that represents the gpu of the host
+- `gpu`: (`::Function`) function that represents the gpu of the host
 
 # Returns
-- `S`: (`Vector{ComplexF64}`) the raw signal over time
-- `M0`: (`::Vector{Mag}`) the final state of the Mag vector (or the initial state for the
+- `S`: (`Vector{ComplexF64}`) raw signal over time
+- `M0`: (`::Vector{Mag}`) final state of the Mag vector (or the initial state for the
     next simulation step (the next step can be another precession step or an excitation
     step))
 """
@@ -84,21 +84,21 @@ precession.
     advantage of CPU parallel processing.
 
 # Arguments
-- `obj`: (`::Phantom`) the phantom struct (actually, it's a part of the complete phantom)
-- `seq`: (`::Sequence`) the sequence struct
-- `t`: (`1-row ::Matrix{Float64}`, `[s]`) the non-uniform time vector (actually it's a part
+- `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
+- `seq`: (`::Sequence`) Sequence struct
+- `t`: (`1-row ::Matrix{Float64}`, `[s]`) non-uniform time vector (actually it's a part
     of the complete simulation time vector)
-- `Δt`: (`1-row ::Matrix{Float64}`, `[s]`) the delta time of `t` (actually it's a part of
+- `Δt`: (`1-row ::Matrix{Float64}`, `[s]`) delta time of `t` (actually it's a part of
     the complete simulation time vector)
 
 # Keywords
-- `M0`: (`::Vector{Mag}`) the initial state of the Mag vector (actually, it's a part of the
+- `M0`: (`::Vector{Mag}`) initial state of the Mag vector (actually, it's a part of the
     complete Mag vector)
-- `gpu`: (`::Function`) the function that represents the gpu of the host
+- `gpu`: (`::Function`) function that represents the gpu of the host
 
 # Returns
-- `S`: (`Vector{ComplexF64}`) the raw signal over time
-- `M0`: (`::Vector{Mag}`) the final state of the Mag vector (actually, it's a part of the
+- `S`: (`Vector{ComplexF64}`) raw signal over time
+- `M0`: (`::Vector{Mag}`) final state of the Mag vector (actually, it's a part of the
     complete Mag vector) (it's not the initial state for the next simulation, since it's
     necessary to add the magnetization of all the parts of the phantom (i.e. sum up all the
     spin magnetizations first), refer to [`run_spin_precession_parallel`](@ref))
@@ -186,21 +186,21 @@ different number threads to excecute the process.
     utilization.
 
 # Arguments
-- `obj`: (`::Phantom`) the phantom struct
-- `seq`: (`::Sequence`) the sequence struct
-- `t`: (`::Vector{Float64}`, `[s]`) the non-uniform time vector (actually it's a part of the
+- `obj`: (`::Phantom`) Phantom struct
+- `seq`: (`::Sequence`) Sequence struct
+- `t`: (`::Vector{Float64}`, `[s]`) non-uniform time vector (actually it's a part of the
     complete simulation time vector)
-- `Δt`: (`::Vector{Float64}`, `[s]`) the delta time of `t` (actually it's a part of the
+- `Δt`: (`::Vector{Float64}`, `[s]`) delta time of `t` (actually it's a part of the
     complete simulation time vector)
 
 # Keywords
-- `M0`: (`::Vector{Mag}`) the initial state of the Mag vector
-- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) the number of process threads for
+- `M0`: (`::Vector{Mag}`) initial state of the Mag vector
+- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) number of process threads for
     dividing the simulation into different phantom spin parts
-- `gpu`: (`::Function`) the function that represents the gpu of the host
+- `gpu`: (`::Function`) function that represents the gpu of the host
 
 # Returns
-- `M0`: (`::Vector{Mag}`) the final state of the Mag vector after a rotation (or the initial
+- `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (or the initial
     state for the next precession simulation step)
 """
 run_spin_excitation_parallel(obj, seq, t::Array{Float64,1}, Δt::Array{Float64,1};
@@ -233,20 +233,20 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     advantage of CPU parallel processing.
 
 # Arguments
-- `obj`: (`::Phantom`) the phantom struct (actually, it's a part of the complete phantom)
-- `seq`: (`::Sequence`) the sequence struct
-- `t`: (`1-row ::Matrix{Float64}`, `[s]`) the non-uniform time vector (actually it's a part
+- `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
+- `seq`: (`::Sequence`) Sequence struct
+- `t`: (`1-row ::Matrix{Float64}`, `[s]`) non-uniform time vector (actually it's a part
     of the complete simulation time vector)
-- `Δt`: (`1-row ::Matrix{Float64}`, `[s]`) the delta time of `t` (actually it's a part of
+- `Δt`: (`1-row ::Matrix{Float64}`, `[s]`) delta time of `t` (actually it's a part of
     the complete simulation time vector)
 
 # Keywords
-- `M0`: (`::Vector{Mag}`) the initial state of the Mag vector (actually, it's a part of the
+- `M0`: (`::Vector{Mag}`) initial state of the Mag vector (actually, it's a part of the
     complete Mag vector)
-- `gpu`: (`::Function`) the function that represents the gpu of the host
+- `gpu`: (`::Function`) function that represents the gpu of the host
 
 # Returns
-- `M0`: (`::Vector{Mag}`) the final state of the Mag vector after a rotation (actually, it's
+- `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (actually, it's
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
@@ -293,22 +293,22 @@ parts to reduce RAM usage and spliting the spins of the phantom `obj` into `Nthr
 take advantage of CPU parallel processing.
 
 # Arguments
-- `obj`: (`::Phantom`) the phantom struct
-- `seq`: (`::Sequence`) the sequence struct
-- `t`: (`::Vector{Float64}`, `[s]`) the non-uniform time vector
-- `Δt`: (`::Vector{Float64}`, `[s]`) the delta time of `t`
+- `obj`: (`::Phantom`) Phantom struct
+- `seq`: (`::Sequence`) Sequence struct
+- `t`: (`::Vector{Float64}`, `[s]`) non-uniform time vector
+- `Δt`: (`::Vector{Float64}`, `[s]`) delta time of `t`
 
 # Keywords
-- `Nblocks`: (`::Int`, `=16`) the number of groups for spliting the simulation over time
-- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) the number of process threads for
+- `Nblocks`: (`::Int`, `=16`) number of groups for spliting the simulation over time
+- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) number of process threads for
     dividing the simulation into different phantom spin parts
-- `gpu`: (`::Function`) the function that represents the gpu of the host
-- `w`: (`::Any`, `=nothing`) the flag to regard a progress bar in the blink window UI. If
+- `gpu`: (`::Function`) function that represents the gpu of the host
+- `w`: (`::Any`, `=nothing`) flag to regard a progress bar in the blink window UI. If
     this variable is differnet from nothing, then the progress bar is considered
 
 # Returns
-- `S_interp`: (`::Vector{ComplexF64}`) the interpolated raw signal
-- `M0`: (`::Vector{Mag}`) the final state of the Mag vector
+- `S_interp`: (`::Vector{ComplexF64}`) interpolated raw signal
+- `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_sim_time_iter(obj::Phantom, seq::Sequence, t::Array{Float64,1}, Δt;
 								Nblocks::Int=16, Nthreads::Int=Hwloc.num_physical_cores(), gpu::Function, w=nothing)
@@ -360,9 +360,9 @@ Returns the raw signal or the last state of the magnetization according to the v
 of the `"return_type"` key of the `simParams` dictionary.
 
 # Arguments
-- `obj`: (`::Phantom`) the phantom struct
-- `seq`: (`::Sequence`) the sequence struct
-- `sys`: (`::Scanner`) the scanner struct
+- `obj`: (`::Phantom`) Phantom struct
+- `seq`: (`::Sequence`) Sequence struct
+- `sys`: (`::Scanner`) Scanner struct
 
 # Keywords
 - `simParams`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) the dictionary with simulation
@@ -371,71 +371,16 @@ of the `"return_type"` key of the `simParams` dictionary.
     this variable is differnet from nothing, then the progress bar is considered
 
 # Returns
-- `out`: (`::Vector{ComplexF64}` or `::Vector{Mag}` or `RawAcquisitionData`) depending if "return_type" is
-    "mat" or "mag" or "raw" (default) respectively.
+- `out`: (`::Vector{ComplexF64}` or `::Vector{Mag}` or `RawAcquisitionData`) depending if
+    "return_type" is "mat" or "mag" or "raw" (default) respectively.
 
 # Examples
-
-Preparation (define scanner and sequence):
 ```julia-repl
-julia> sys = Scanner();
+julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq("examples/1.sequences/spiral.seq");
 
-julia> FOV, N = 23e-2, 101;
-
-julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
-
-julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
-Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> epi = PulseDesigner.EPI(FOV, N, sys)
-Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
-
-julia> seq = ex + epi
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 4 ]
-
-julia> plot_seq(seq)
-
-julia> plot_kspace(seq)
-```
-
-Simulate:
-```julia-repl
-julia> obj = brain_phantom2D()
-
-julia> signal = simulate(obj, seq, sys);
-
-julia> ismrmrd = signal_to_raw_data([signal;;], seq; phantom=obj, sys=sys);
+julia> ismrmrd = simulate(obj, seq, sys);
 
 julia> plot_signal(ismrmrd)
-```
-
-Reconstruct:
-```julia-repl
-julia> Nx, Ny = ismrmrd.params["reconSize"][1:2];
-
-julia> params = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny), :densityWeighting=>true);
-
-julia> acq = AcquisitionData(ismrmrd);
-
-julia> recon = reconstruction(acq, params);
-
-julia> image = reshape(recon.data, Nx, Ny, :)
-102×102×1 Array{ComplexF64, 3}:
-[:, :, 1] =
- 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
- 0.0+0.0im  0.0+0.0im     0.0+0.0im
-    ⋮           ⋮       ⋱      ⋮
- 0.0+0.0im  0.0+0.0im  …  0.0+0.0im
-
-julia> slice_abs = abs.(image[:, :, 1])
-102×102 Matrix{Float64}:
- 0.0  0.0  …  0.0
- 0.0  0.0     0.0
-  ⋮        ⋱   ⋮
- 0.0  0.0  …  0.0
-
-julia> plot_image(slice_abs)
-```
 ```
 """
 function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
@@ -488,15 +433,15 @@ Returns magnetization of spins distributed along `z` after running the Sequence 
     This function is not being used in this KomaMRI version.
 
 # Arguments
-- `seq`: (`::Sequence`) the sequence struct
+- `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `z`: (`=range(-2e-2,2e-2,200)`) a range for the z axe
-- `simParams`: (`::Dict{String, Any}`, `=Dict{String,Any}("Δt_rf"=>1e-6)`) a dictionary with
+- `z`: (`=range(-2e-2,2e-2,200)`) range for the z axis
+- `simParams`: (`::Dict{String, Any}`, `=Dict{String,Any}("Δt_rf"=>1e-6)`) dictionary with
     simulation parameters
 
 # Returns
-- `M`: (`::Vector{Mag}`) the final state of the Mag vector
+- `M`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function simulate_slice_profile(seq; z=range(-2e-2,2e-2,200), simParams=Dict{String,Any}("Δt_rf"=>1e-6))
 	simParams["return_type"] = "raw"
