@@ -142,7 +142,7 @@ function run_spin_precession(obj::Phantom, seq::Sequence, t::Array{Float64,2}, �
 	x0 = obj.x		|> gpu
 	y0 = obj.y		|> gpu
 	z0 = obj.z		|> gpu
-	tp = t[:,1:end-1] .- t[1]	|> gpu # t' = t - t0
+	tp = t[:,2:end] .- t[1]	|> gpu # t' = t - t0
 	t = t			|> gpu
 	Δt = Δt			|> gpu
     xt = x0 .+ obj.ux(x0,y0,z0,t) .+ ηxp |> gpu
@@ -444,7 +444,7 @@ Returns magnetization of spins distributed along `z` after running the Sequence 
 - `M`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function simulate_slice_profile(seq; z=range(-2e-2,2e-2,200), simParams=Dict{String,Any}("Δt_rf"=>1e-6))
-	simParams["return_type"] = "raw"
+	simParams["return_type"] = "mag"
 	sys = Scanner()
 	phantom = Phantom(;x=zeros(size(z)),z)
 	M = simulate(phantom, seq, sys; simParams)

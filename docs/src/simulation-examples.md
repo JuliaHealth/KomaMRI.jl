@@ -160,17 +160,17 @@ savefig(p, "assets/1-recon.html");  nothing # hide
 ```
 
 
-## Three Dimensional Example
+## Slice Selective Acquisition of 3D Phantom
 
 ```@setup 3
 using KomaMRI
 sys = Scanner()
 ```
 
-This demonstration example shows how to simulate a 3D phantom object. Let's import a 3D phantom struct by calling the function [brain_phantom3D](@ref). You can see that are many slices along the longitudinal axis.
+While in the previous examples we simulated using hard RF pulses, in this demonstration we will illustrate the principles of slice selection. First, let's import a 3D phantom, in this case a brain slab (thickness of $2\,\mathrm{cm}$), by calling the function [brain_phantom3D](@ref). 
 ```@example 3
-obj = brain_phantom3D() # a slice of a brain
-obj.Δw.=0 # to remove off-resonance phenomena
+obj = brain_phantom3D()
+obj.Δw .= 0 # Removes the off-resonance
 p = plot_phantom_map(obj, :T2 ; height=400)
 savefig(p, "assets/3-phantom.html"); nothing # hide
 ```
@@ -180,7 +180,7 @@ savefig(p, "assets/3-phantom.html"); nothing # hide
 </center>
 ```
 
-Now, we are going to import a sequence struct which acquires 3 slices in the longitudinal axis. Note that the sequence is an EPI with 3 shots to acquire 3 slices of the phantom.
+Now, we are going to import a sequence which acquires 3 slices in the longitudinal axis. Note that the sequence contains three EPIs to acquire 3 slices of the phantom.
 ```@setup 3
 seq = read_seq("../../examples/1.sequences/epi.seq")
 p = plot_seq(seq; slider=false, height=300)
@@ -188,13 +188,30 @@ savefig(p, "assets/3-seq.html");
 ```
 ```julia
 seq = read_seq("examples/1.sequences/epi.seq")
-p = plot_seq(seq; slider=false, height=300)
+p = plot_seq(seq[1:10]; slider=false, height=300)
 ```
 ```@raw html
 <object type="text/html" data="../assets/3-seq.html" style="width:100%; height:320px;"></object>
 ```
+We can take a look to the slice profiles by using the function [simulate_slice_profile](@ref):
+```@example 3
+z = range(-2, 2, 200) * 1e-2; # -2 to 2 cm
+rf1, rf2, rf3 = findall(KomaMRI.is_RF_on.(seq))
+M1 = simulate_slice_profile(seq[rf1]; z)
+M2 = simulate_slice_profile(seq[rf2]; z)
+M3 = simulate_slice_profile(seq[rf3]; z)
+using PlotlyJS # hide
+p1 = scatter(x=z*1e2, y=abs.(M1.xy), name="Slice 1") # hide
+p2 = scatter(x=z*1e2, y=abs.(M2.xy), name="Slice 2") # hide
+p3 = scatter(x=z*1e2, y=abs.(M3.xy), name="Slice 3") # hide
+p = plot([p1,p2,p3], Layout(xaxis=attr(title="z [cm]"), height=300,margin=attr(t=40,l=0,r=0), title="Slice profiles for the slice-selective sequence")) # hide
+savefig(p, "assets/4-profile.html"); nothing # hide
+```
+```@raw html
+<object type="text/html" data="../assets/4-profile.html" style="width:100%; height:320px;"></object>
+```
 
-Let's get the raw signal by performing the simulation. You can immediately see the acquisition of the 3 shots. 
+Now let's simulate the acquisition. Notice the three echoes, one for every slice excitation.
 ```@setup 3
 raw = simulate(obj, seq, sys)
 p = plot_signal(raw; slider=false, height=300)
@@ -208,7 +225,7 @@ p = plot_signal(raw; slider=false, height=300)
 <object type="text/html" data="../assets/4-signal.html" style="width:100%; height:320px;"></object>
 ```
 
-Finally we reconstruct the image. In this case we show 3 images for the 3 acquired slices.
+Finally, we reconstruct the acquiered images.
 ```@example 3
 # Get the acquisition data
 acq = AcquisitionData(raw)

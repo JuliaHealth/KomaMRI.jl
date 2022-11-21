@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<simulate name="JEMRIS">
-   <sample name="Brain Spiral" uri="../../../2.phantoms/brain.h5"/>
-   <RXcoilarray uri="/usr/local/share/jemris/matlab/uniform.xml"/>
-   <TXcoilarray uri="/usr/local/share/jemris/matlab/uniform.xml"/>
-   <parameter ConcomitantFields="0" EvolutionPrefix="evol" EvolutionSteps="0" RandomNoise="0"/>
-   <sequence name="../sequences/EPI/epi_100x100_TE100_FOV230" uri="../sequences/Spiral/spiral_100x100_FOV230_SPZ_INTER1.xml"/>
-   <model name="Bloch" type="CVODE"/>
-</simulate>

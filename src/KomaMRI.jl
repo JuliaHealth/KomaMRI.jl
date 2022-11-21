@@ -38,6 +38,7 @@ include("io/Pulseq.jl")
 #Phantom
 include("datatypes/Phantom.jl")
 include("io/JEMRIS.jl")
+include("io/MRiLab.jl")
 #Reconstruction
 include("reconstruction/Recon.jl")
 #Simulator
@@ -61,7 +62,7 @@ export read_seq
 #ISMRMRD
 export signal_to_raw_data
 # Phantom
-export brain_phantom2D, brain_phantom3D, read_phantom_jemris
+export brain_phantom2D, brain_phantom3D, read_phantom_jemris, read_phantom_MRiLab
 #RF-related
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary

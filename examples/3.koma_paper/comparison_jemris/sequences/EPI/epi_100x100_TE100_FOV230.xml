@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Parameters FOVx="230" FOVy="230" GradMaxAmpl="10" GradSlewRate="10" Name="P" Nx="100"
+            Ny="100"
+            TE="100">
+   <ConcatSequence Name="C1">
+      <AtomicSequence Name="A1">
+         <HARDRFPULSE Axis="RF" Duration="0.1" FlipAngle="90" Name="P1"/>
+      </AtomicSequence>
+      <AtomicSequence Name="A2">
+         <TrapGradPulse Area="-0.5*abs(A)" Axis="GX" Name="P2" Observe="A=P4.Area"/>
+         <TrapGradPulse Area="KMY" Axis="GY" Name="P3" Observe="KMY=P.KMAXy"/>
+      </AtomicSequence>
+      <DelayAtomicSequence Delay="TE" DelayType="C2C" Name="D1" Observe="TE=P.TE" StartSeq="A1"
+                           StopSeq="C2"/>
+      <ConcatSequence LoopFlag="2" Name="C2" Observe="NY=P.Ny" Repetitions="NY">
+         <AtomicSequence Name="A3">
+            <TrapGradPulse ADCFlag="2" ADCs="NX" Axis="GX" FlatTopArea="2*KMX*(-1)^C" FlatTopTime="1"
+                           Name="P4"
+                           Observe="KMX=P.KMAXx, C=C2.Counter, NX=P.Nx"/>
+         </AtomicSequence>
+         <AtomicSequence Name="A4">
+            <TrapGradPulse Area="ite(1+C,R,0,-DKY)" Axis="GY" Name="P5"
+                           Observe="DKY=P.DKy, C=C2.Counter, R=C2.Repetitions"/>
+         </AtomicSequence>
+      </ConcatSequence>
+   </ConcatSequence>
+</Parameters>

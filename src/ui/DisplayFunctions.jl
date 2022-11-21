@@ -491,8 +491,8 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 	end
 	cmin_key *= factor
 	cmax_key *= factor
-	x0 = minimum([ph.x;ph.y;ph.z])*1e2
-    xf = maximum([ph.x;ph.y;ph.z])*1e2
+	x0 = -maximum(abs.([ph.x ph.y ph.z]))*1e2
+    xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	l = PlotlyJS.Layout(;title=ph.name*": "*string(key), margin=attr(t=50,l=0,r=0,b=0),
@@ -501,9 +501,11 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			yaxis=attr(title="y",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			zaxis=attr(title="z",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			aspectmode="manual",
+			aspectratio=attr(x=1,y=1,z=1)
 		),
 		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),xaxis=attr(constrain="domain"),
-		hovermode="closest",aspectmode="cube")
+		hovermode="closest")
     if height !== nothing
         l.height = height
     end

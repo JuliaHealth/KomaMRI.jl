@@ -277,7 +277,7 @@ function brain_phantom2D(;axis="axial", ss=4)
         (class.==70)*.77 .+ #WM
         (class.==93)*1 .+ #FAT1
         (class.==116)*1 .+ #MUSCLE
-        (class.==139)*1 .+ #SKIN/MUSCLE
+        (class.==139)*.7 .+ #SKIN/MUSCLE
         (class.==162)*0 .+ #SKULL
         (class.==185)*0 .+ #VESSELS
         (class.==209)*.77 .+ #FAT2
@@ -382,7 +382,7 @@ function brain_phantom3D(;ss=4)
         (class.==70)*.77 .+ #WM
         (class.==93)*1 .+ #FAT1
         (class.==116)*1 .+ #MUSCLE
-        (class.==139)*1 .+ #SKIN/MUSCLE
+        (class.==139)*.7 .+ #SKIN/MUSCLE
         (class.==162)*0 .+ #SKULL
         (class.==185)*0 .+ #VESSELS
         (class.==209)*.77 .+ #FAT2

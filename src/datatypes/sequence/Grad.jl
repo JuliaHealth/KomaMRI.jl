@@ -187,10 +187,10 @@ end
 zero(::Grad) = Grad(0,0)
 size(g::Grad, i::Int64) = 1 #To fix [g;g;;] concatenation of Julia 1.7.3
 /(x::Grad,α::Real) = Grad(x.A/α,x.T,x.rise,x.fall,x.delay)
-+(x::Grad,y::Grad) = Grad(x.A+y.A,x.T,x.rise,x.fall,x.delay)
++(x::Grad,y::Grad) = Grad(x.A.+y.A,x.T,x.rise,x.fall,x.delay)
 +(x::Array{Grad,1}, y::Array{Grad,1}) = [x[i]+y[i] for i=1:length(x)]
 -(x::Grad) = -1*x
--(x::Grad,y::Grad) = Grad(x.A-y.A,x.T,x.rise,x.fall,x.delay)
+-(x::Grad,y::Grad) = Grad(x.A.-y.A,x.T,x.rise,x.fall,x.delay)
 
 # Gradient functions
 vcat(x::Array{Grad,1},y::Array{Grad,1}) = [i==1 ? x[j] : y[j] for i=1:2,j=1:length(x)]

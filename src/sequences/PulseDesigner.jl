@@ -46,6 +46,30 @@ RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0) = begin
 	EX
 end
 
+"""
+	seq = spiral_base(FOV::Float64, Nr::Int, sys::Scanner)
+
+Definition of the radial base sequence.
+# Arguments
+- `FOV`: (`::Float64`, `[m]`) field of view
+- `N`: (`::Int`) number of pixels along the radious
+- `sys`: (`::Scanner`) Scanner struct
+
+# Returns
+- `ex`: (`::Sequence`) RF struct
+"""
+RF_sinc(B1, T, sys::Scanner; G=[0,0,0], Δf=0, a=0.46, TBP=4) = begin
+	T0 = T / TBP
+	ζ = sum(G) / sys.Smax
+	sinc_pulse(t) = B1*sinc((t.-T/2)/T0).*((1-a)+a*cos((π*(t.-T/2))/(TBP*T0)))
+	EX = Sequence([	  Grad(G[1],T,ζ);	 #Gx
+					  Grad(G[2],T,ζ);    #Gy
+					  Grad(G[3],T,ζ);;], #Gz
+					 [RF(t->sinc_pulse(t),T; delay=ζ, Δf);;]	 #RF
+					)
+	EX
+end
+
 ##################
 ## Gradient SEQ ##
 ##################
@@ -183,6 +207,66 @@ radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 
 	seq
 end
+
+"""
+	seq = spiral_base(FOV::Float64, Nr::Int, sys::Scanner)
+
+Definition of the radial base sequence.
+# Arguments
+- `FOV`: (`::Float64`, `[m]`) field of view
+- `N`: (`::Int`) number of pixels along the radious
+- `sys`: (`::Scanner`) Scanner struct
+
+# Returns
+- `seq`: (`::Function`) function that returns a `Sequence` when evaluated 
+
+# References
+- Glover, G.H. (1999), Simple analytic spiral K-space algorithm. Magn. Reson. Med., 42: 412-415. https://doi.org/10.1002/(SICI)1522-2594(199908)42:2<412::AID-MRM25>3.0.CO;2-U
+"""
+spiral_base(FOV::Float64, N::Int64, sys::Scanner; S0=sys.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3) = begin
+	kmax = N / (2*FOV)
+	θmax = kmax / λ # From k(t) = λ θ(t) exp(iθ(t))
+	Smax = sys.Smax
+	β = Smax * γ / λ
+	a₂ = (9β/4)^(1/3)
+	Λ = Smax / S0
+	θ₁(t) = (.5 * β * t^2) / (Λ + β / 2a₂ * t^(4/3))
+	Gmax = sys.Gmax
+	ts = (Gmax * 3γ/(2λ*a₂^2))^3 # Gmax = 2λ / 3γ a₂² t ^1/3 e^ (i a₂ t^2/3)
+	dt = sys.ADC_Δt
+	if θ₁(ts) < θmax
+		#Region 1 - Slew Rate-Limited
+		t1 = 0:dt:ts
+		θ₁v = θ₁.(t1)
+		#Region 2 - Amplitude-Limtied
+		ta = ts .+ (λ/(2γ * sys.Gmax)) * ( θmax.^2 .- θ₁v[end]^2); # ta = ts .+ (λ/(2γ * g0)) * ( θmax.^2 .- θs^2);
+		t2 = ts:dt:ta
+		θ₂v = sqrt.(θ₁v[end]^2 .+ (2γ/λ) * sys.Gmax * (t2 .- ts))
+		θ = [θ₁v[1:end-1]; θ₂v]
+	else
+		ta = ((2π*FOV)/(3Nint))*sqrt(1/(2γ*Smax*(FOV/N)^3));
+		t1 = 0:dt:ta;
+		θ = θ₁.(t1)
+	end
+	dθdt = [0; diff(θ; dims=1) ./ dt]
+	#Definition of sequence object
+	function spiral(i)
+		Δθ = 2π/Nint
+		G = (λ/γ) * dθdt .* ( 1 .+ 1im*θ ) .* exp.(1im*(θ .+ Δθ * i))
+		Gx = Grad(real.(G),ta,0,abs(real(G[end]))/Smax,0)
+		Gy = Grad(imag.(G),ta,0,abs(imag(G[end]))/Smax,0)
+		Gz = Grad(0,0)
+		GR = [Gx; Gy; Gz;;]
+		R = [RF(0,0);;]
+		Nadc = floor(Int64, ta*BW)
+		A = [ADC(Nadc,ta)]
+		seq = Sequence(GR,R,A)
+		seq.DEF = Dict("Nx"=>N,"Ny"=>N,"Nz"=>1,"Δθ"=>Δθ,"Nint"=>Nint,"Name"=>"spiral","FOV"=>[FOV, FOV, 0])
+		seq
+	end
+	return spiral
+end
+
 
 export EPI, radial_base
 end
