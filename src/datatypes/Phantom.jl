@@ -290,7 +290,7 @@ function brain_phantom2D(;axis="axial", ss=4)
 	T1 = T1*1e-3
 	T2 = T2*1e-3
 	T2s = T2s*1e-3
-    phantom = Phantom(name="brain2D_"*axis,
+    phantom = Phantom{Float64}(name="brain2D_"*axis,
 					  x=y[ρ.!=0],
 					  y=x[ρ.!=0],
 					  z=0*x[ρ.!=0],

@@ -1,6 +1,6 @@
-using KomaMRI, Test, Suppressor
+using TestItems, TestItemRunner
 
-@testset "Sequence" begin
+@testitem "Sequence" begin
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -120,7 +120,7 @@ using KomaMRI, Test, Suppressor
     end
 end
 
-@testset "Phantom" begin
+@testitem "Phantom" begin
     #Test brain phantom 2D
     ph = brain_phantom2D()    #2D phantom
     @test ph.name=="brain2D_axial"
@@ -130,58 +130,90 @@ end
     @test ph.name=="brain3D"
 end
 
-@testset "Scanner" begin
+@testitem "Scanner" begin
     #Test somehow
+    @test true
 end
 
-@testset "Simulation" begin
-    @testset "Spinors×Mag" begin
-        # Spinor 2x2 representation should be equivalent to a 3x1 vector rotation
-        x = rand(3); x = x./sum(x)
-        θ = rand() * π
-        n = rand(3); n = n./sqrt(sum(n.^2))
-        z = Mag(x[1]+1im*x[2], x[3])
+@testitem "Spinors×Mag" begin
+    # Spinor 2x2 representation should be equivalent to a 3x1 vector rotation
+    x = rand(3); x = x./sum(x)
+    θ = rand() * π
+    n = rand(3); n = n./sqrt(sum(n.^2))
+    z = Mag(x[1]+1im*x[2], x[3])
 
-        # General rotation
-        xx1 = Q(θ,n[1]+1im*n[2],n[3])*z; #Spinor rot Q.(φ, B1./B, Bz./B)
-        xx2 = Un(θ,n)*x; #3D rot matrix
-        xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
-        @test xx1 ≈ xx2
+    # General rotation
+    xx1 = Q(θ,n[1]+1im*n[2],n[3])*z; #Spinor rot Q.(φ, B1./B, Bz./B)
+    xx2 = Un(θ,n)*x; #3D rot matrix
+    xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
+    @test xx1 ≈ xx2
 
-        # Rot x
-        nx = [1,0,0]
-        xx1 = Rx(θ)*z; #Spinor rot
-        xx2 = Un(θ,nx)*x; #3D rot matrix
-        xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
-        @test xx1 ≈ xx2
+    # Rot x
+    nx = [1,0,0]
+    xx1 = Rx(θ)*z; #Spinor rot
+    xx2 = Un(θ,nx)*x; #3D rot matrix
+    xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
+    @test xx1 ≈ xx2
 
-        # Rot y
-        nx = [0,1,0]
-        xx1 = Ry(θ)*z; #Spinor rot
-        xx2 = Un(θ,nx)*x; #3D rot matrix
-        xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
-        @test xx1 ≈ xx2
+    # Rot y
+    nx = [0,1,0]
+    xx1 = Ry(θ)*z; #Spinor rot
+    xx2 = Un(θ,nx)*x; #3D rot matrix
+    xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
+    @test xx1 ≈ xx2
 
-        # Rot z
-        nx = [0,0,1]
-        xx1 = Rz(θ)*z; #Spinor rot
-        xx2 = Un(θ,nx)*x; #3D rot matrix
-        xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
-        @test xx1 ≈ xx2
-    end
-    #Simulation function
-    @testset "Simulation" begin
-        path = @__DIR__
-        seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
-        obj = brain_phantom2D()
-        sys = Scanner()
-        sig = @suppress simulate(obj, seq, sys)
-        @test true                #If the previous line fails the test will fail
-    end
-
+    # Rot z
+    nx = [0,0,1]
+    xx1 = Rz(θ)*z; #Spinor rot
+    xx2 = Un(θ,nx)*x; #3D rot matrix
+    xx1 = [real(xx1.xy), imag(xx1.xy), xx1.z]
+    @test xx1 ≈ xx2
 end
 
-@testset "Recon" begin
+@testitem "BlochSim_CPU_sigle_thread" tags=[:important] begin
+    using Suppressor
+    path = @__DIR__
+    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+    obj = brain_phantom2D()
+    sys = Scanner()
+    simParams = Dict{String, Any}(
+        "gpu"=>false,
+        "Nthreads"=>1,
+        "sim_method"=>KomaMRI.Bloch()
+    )
+    sig = @suppress simulate(obj, seq, sys; simParams)
+    @test true                #If the previous line fails the test will fail
+end
+
+@testitem "BlochSim_CPU_multi_thread" tags=[:important] begin
+    using Suppressor
+    path = @__DIR__
+    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+    obj = brain_phantom2D()
+    sys = Scanner()
+    simParams = Dict{String, Any}(
+        "gpu"=>false,
+        "sim_method"=>KomaMRI.Bloch()
+    )
+    sig = @suppress simulate(obj, seq, sys; simParams)
+    @test true                #If the previous line fails the test will fail
+end
+
+@testitem "BlochSim_GPU" tags=[:important, :skipci] begin
+    using Suppressor
+    path = @__DIR__
+    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+    obj = brain_phantom2D()
+    sys = Scanner()
+    simParams = Dict{String, Any}(
+        "gpu"=>true,
+        "sim_method"=>KomaMRI.Bloch()
+    )
+    sig = @suppress simulate(obj, seq, sys; simParams)
+    @test true                #If the previous line fails the test will fail
+end
+
+@testitem "Recon" begin
     #Sanity check 1
     A = rand(5,5,3)
     B = KomaMRI.fftc(KomaMRI.ifftc(A))
@@ -211,41 +243,43 @@ end
 
 end
 
-@testset "IO" begin
+@testitem "IO" begin
+    using Suppressor
     #Test Pulseq
-    path = @__DIR__
-    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
-    @test seq.DEF["FileName"] == "epi.seq"
-    @test seq.DEF["PulseqVersion"] ≈ 1004000
+    @testset "Pulseq" begin
+        path = @__DIR__
+        seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+        @test seq.DEF["FileName"] == "epi.seq"
+        @test seq.DEF["PulseqVersion"] ≈ 1004000
 
-    seq = @suppress read_seq(path*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
-    @test seq.DEF["FileName"] == "spiral.seq"
-    @test seq.DEF["PulseqVersion"] ≈ 1004000
+        seq = @suppress read_seq(path*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
+        @test seq.DEF["FileName"] == "spiral.seq"
+        @test seq.DEF["PulseqVersion"] ≈ 1004000
 
-    seq = @suppress read_seq(path*"/test_files/epi_JEMRIS.seq") #Pulseq v1.2.1
-    @test seq.DEF["FileName"] == "epi_JEMRIS.seq"
-    @test seq.DEF["PulseqVersion"] ≈ 1002001
+        seq = @suppress read_seq(path*"/test_files/epi_JEMRIS.seq") #Pulseq v1.2.1
+        @test seq.DEF["FileName"] == "epi_JEMRIS.seq"
+        @test seq.DEF["PulseqVersion"] ≈ 1002001
 
-    seq = @suppress read_seq(path*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
-    @test seq.DEF["FileName"] == "radial_JEMRIS.seq"
-    @test seq.DEF["PulseqVersion"] ≈ 1002001
+        seq = @suppress read_seq(path*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
+        @test seq.DEF["FileName"] == "radial_JEMRIS.seq"
+        @test seq.DEF["PulseqVersion"] ≈ 1002001
 
-    #Test ISMRMRD
-    fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
-    raw = RawAcquisitionData(fraw)
-    @test raw.params["protocolName"] == "epi"
-    @test raw.params["institutionName"] == "Pontificia Universidad Catolica de Chile"
-    @test raw.params["encodedSize"] ≈ [101, 101, 1]
-    @test raw.params["reconSize"] ≈ [102, 102, 1]
-    @test raw.params["patientName"] == "brain2D_axial"
-    @test raw.params["trajectory"] == "other"
-    @test raw.params["systemVendor"] == "KomaMRI.jl"
-
+        #Test ISMRMRD
+        fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
+        raw = RawAcquisitionData(fraw)
+        @test raw.params["protocolName"] == "epi"
+        @test raw.params["institutionName"] == "Pontificia Universidad Catolica de Chile"
+        @test raw.params["encodedSize"] ≈ [101, 101, 1]
+        @test raw.params["reconSize"] ≈ [102, 102, 1]
+        @test raw.params["patientName"] == "brain2D_axial"
+        @test raw.params["trajectory"] == "other"
+        @test raw.params["systemVendor"] == "KomaMRI.jl"
+    end
     #Test JEMRIS
 end
 
 #GUI tests
-@testset "GUI" begin
+@testitem "GUI" begin
     @testset "GUI_phantom" begin
         ph = brain_phantom2D()    #2D phantom
 
@@ -314,4 +348,4 @@ end
     end
 end
 
-nothing
+@run_package_tests filter=ti->!(:skipci in ti.tags)
