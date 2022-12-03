@@ -156,7 +156,7 @@ Tells if the sequence `seq` has elements with ADC active, or active during time 
 - `y`: (`::Bool`) boolean that tells whether or not the ADC in the sequence is active
 """
 is_ADC_on(x::Sequence) = any(x.ADC.N .> 0)
-is_ADC_on(x::Sequence, t::Union{Array{Float64,1},Array{Float64,2}}) = begin
+is_ADC_on(x::Sequence, t::AbstractVecOrMat) = begin
 	N = length(x)
 	ΔT = durs(x)
 	ts = cumsum([0 ; ΔT[1:end-1]])
@@ -186,7 +186,7 @@ Tells if the sequence `seq` has elements with RF active, or active during time `
 - `y`: (`::Bool`) boolean that tells whether or not the RF in the sequence is active
 """
 is_RF_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.RF] .> 0)
-is_RF_on(x::Sequence, t::Vector{Float64}) = begin
+is_RF_on(x::Sequence, t::AbstractVector) = begin
 	N = length(x)
 	ΔT = durs(x)
 	ts = cumsum([0 ; ΔT[1:end-1]])
@@ -320,7 +320,7 @@ Generates a trapezoidal waveform vector.
 """
 ⏢(A, t, ΔT, ζ1, ζ2, delay) = begin
 	if sum(abs.(A)) != 0 && ΔT+ζ1+ζ2 != 0 # If no event just ignore calculations
-		#Getting amplitudes, onlu supports uniformly sampled waveforms for now
+		#Getting amplitudes, only supports uniformly sampled waveforms for now
 		if length(A) != 1
 			grad_raster = ΔT / length(A)
 			idx = ceil.(Int, (t .- delay .- ζ1) ./ grad_raster ) #Time to integer index
@@ -366,9 +366,9 @@ function get_grads(seq, t::Vector)
     gx = get_theo_Gi(seq, 1)
     gy = get_theo_Gi(seq, 2)
     gz = get_theo_Gi(seq, 3)
-    Gx = LinearInterpolation(gx..., extrapolation_bc=0)(t)
-    Gy = LinearInterpolation(gy..., extrapolation_bc=0)(t)
-    Gz = LinearInterpolation(gz..., extrapolation_bc=0)(t)
+    Gx = linear_interpolation(gx..., extrapolation_bc=0)(t)
+    Gy = linear_interpolation(gy..., extrapolation_bc=0)(t)
+    Gz = linear_interpolation(gz..., extrapolation_bc=0)(t)
     (Gx, Gy, Gz)
 end
 function get_grads(seq, t::Matrix)
@@ -376,11 +376,13 @@ function get_grads(seq, t::Matrix)
     gx = get_theo_Gi(seq, 1)
     gy = get_theo_Gi(seq, 2)
     gz = get_theo_Gi(seq, 3)
-    Gx = LinearInterpolation(gx..., extrapolation_bc=0)(t_vec)
-    Gy = LinearInterpolation(gy..., extrapolation_bc=0)(t_vec)
-    Gz = LinearInterpolation(gz..., extrapolation_bc=0)(t_vec)
+    Gx = linear_interpolation(gx..., extrapolation_bc=0)(t_vec)
+    Gy = linear_interpolation(gy..., extrapolation_bc=0)(t_vec)
+    Gz = linear_interpolation(gz..., extrapolation_bc=0)(t_vec)
     (Gx', Gy', Gz')
 end
+# hold_interpolation(range::AbstractVector, vs::AbstractVector; extrapolation_bc = Throw()) =
+#     extrapolate(interpolate((range, ), vs, Gridded(Constant{Previous}())), 0)
 # get_grads(seq::Sequence,t) = begin
 # 	#Amplitude
 # 	A = seq.GR.A
@@ -421,7 +423,6 @@ get_rfs(seq::Sequence, t) = begin
 	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]),0,0,delay[i]) for i=1:length(seq)])
 	)
 end
-
 """
     y = get_flip_angles(x::Sequence)
 
@@ -708,9 +709,9 @@ get_kspace(seq::Sequence; Δt=1) = begin
 	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
 	ts = t .+ Δt
 	t_adc =  get_sample_times(seq)
-	kx_adc = LinearInterpolation(ts,kspace[:,1],extrapolation_bc=0)(t_adc)
-	ky_adc = LinearInterpolation(ts,kspace[:,2],extrapolation_bc=0)(t_adc)
-	kz_adc = LinearInterpolation(ts,kspace[:,3],extrapolation_bc=0)(t_adc)
+	kx_adc = linear_interpolation(ts,kspace[:,1],extrapolation_bc=0)(t_adc)
+	ky_adc = linear_interpolation(ts,kspace[:,2],extrapolation_bc=0)(t_adc)
+	kz_adc = linear_interpolation(ts,kspace[:,3],extrapolation_bc=0)(t_adc)
 	kspace_adc = [kx_adc ky_adc kz_adc]
 	#Final
 	kspace, kspace_adc

@@ -145,7 +145,7 @@ end
     y = getproperty(x::Vector{Grad}, f::Symbol)
     y = getproperty(x::Matrix{Grad}, f::Symbol)
 
-Overchages Base.getproperty(). It is meant to access properties of the Grad vector `x`
+Overloads Base.getproperty(). It is meant to access properties of the Grad vector `x`
 directly without the need to iterate elementwise.
 
 # Arguments

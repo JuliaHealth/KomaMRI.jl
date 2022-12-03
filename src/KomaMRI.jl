@@ -42,9 +42,11 @@ include("io/MRiLab.jl")
 #Reconstruction
 include("reconstruction/Recon.jl")
 #Simulator
-include("datatypes/simulation/Magnetization.jl")
+include("datatypes/simulation/DiscreteSequence.jl")
+include("datatypes/simulation/Spinor.jl")
 include("simulation/TimeStepCalculation.jl")
 include("simulation/other/DiffusionModel.jl")
+include("simulation/GPUFunctions.jl")
 # include("simulation/other/OffResonanceModel.jl")
 include("simulation/TrapezoidalIntegration.jl")
 include("simulation/SimulatorCore.jl")
@@ -61,15 +63,15 @@ export Mag, dur
 export read_seq
 #ISMRMRD
 export signal_to_raw_data
-# Phantom
+#Phantom
 export brain_phantom2D, brain_phantom3D, read_phantom_jemris, read_phantom_MRiLab
-#RF-related
+#Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
 export PulseDesigner, get_kspace, rotx, roty, rotz
-# Display
+#Display
 export plot_seq, plot_grads_moments, plot_kspace, plot_phantom_map, plot_signal, plot_M0, plot_image
-# Simulator
+#Simulator
 export simulate, simulate_slice_profile
 #GUI
 !Blink.AtomShell.isinstalled() && Blink.AtomShell.install()

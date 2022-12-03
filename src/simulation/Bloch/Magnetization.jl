@@ -4,32 +4,18 @@
 The Magnetization struct.
 
 # Arguments
-- `xy`: (`::Complex{Int64}`) magnetization of a spin in the xy plane
+- `xy`: (`::Complex{Float64}`) magnetization of a spin in the xy plane
 - `z`: (`::Real`) magnetization of a spin in the z plane
 
 # Returns
 - `mag`: (`::Mag`) Magnetization struct
 """
-mutable struct Mag
-    xy::Complex
-    z::Real
+mutable struct Mag{T<:Real} <: SpinStateRepresentation
+    xy::AbstractVector{Complex{T}}
+    z::AbstractVector{T}
 end
-
-"""
-    mag = Mag(p::Phantom, dir::Symbol)
-
-Generates a Vector of Mag structs with the information of the `p` panthom struct (the proton
-density) in the axis given by the `dir` symbol.
-
-# Arguments
-- `p`: (`::Phantom`) Phantom struct
-- `dir`: (`::Symbol`, opts: [`:x`, `:z`]) symbol that represents the axis of the
-    magnetization
-
-# Returns
-- `mag`: (`Vector{Mag}`) vector of Magnetization structs
-"""
-Mag(p::Phantom, dir::Symbol) = dir==:x ? Mag.(p.ρ, 0) : Mag.(0, p.ρ)
+Mag(xy::Complex{T}, z::T) where {T<:Real} = Mag([xy], [z])
+Mag(xy::T, z::T) where {T<:Real} = Mag([complex(xy)], [z])
 
 """
     str = show(io::IO, x::Mag)
@@ -43,13 +29,13 @@ Displays information about the Mag struct `x` in the julia REPL.
 - `str` (`::String`) output string message
 """
 Base.show(io::IO, M::Mag) = begin
-    print(io, "Mag(xy = ", round(M.xy, digits=2), ", z = ", round(M.z, digits=2), ")")
+    print(io, "Mag(xy = ", round.(M.xy, digits=2), ", z = ", round.(M.z, digits=2), ")")
 end
 
 """
     y = getproperty(x::Vector{Mag}, f::Symbol)
 
-Overchages Base.getproperty(). It is meant to access properties of the Mag vector `x`
+Overloads Base.getproperty(). It is meant to access properties of the Mag vector `x`
 directly without needing to iterate elementwise.
 
 # Arguments
@@ -63,16 +49,21 @@ directly without needing to iterate elementwise.
 """
 getproperty(x::Vector{Mag}, f::Symbol) = getproperty.(x, f)
 
-
 # Arithmetic operations
-+(M1::Mag, M2::Mag) = Mag(M1.xy + M2.xy, M1.z + M2.z) #Vector sum
++(M1::Mag, M2::Mag) = Mag(M1.xy .+ M2.xy, M1.z .+ M2.z) #Vector sum
 *(α::Float64, M::Mag) = Mag(α*M.xy, α*M.z) #This was defined to easily define the average M_mean = sum 1/N* M
 *(M::Mag, α::Float64) = Mag(α*M.xy, α*M.z)
 
 # Other operations
-angle(M::Mag) = angle(M.xy)
-abs(M::Mag) = abs(M.xy)
-zero(::Type{Mag}) = Mag(0,0)
+angle(M::Mag) = angle.(M.xy)
+abs(M::Mag) = abs.(M.xy)
+zero(::Type{Mag}) = Mag([0],[0])
+Base.getindex(M::Mag, i) = Mag(M.xy[i], M.z[i])
+Base.lastindex(M::Mag) = length(M.xy)
+Base.view(M::Mag, i) = Mag(view(M.xy, i), view(M.z, i))
+Base.length(M::Mag) = length(M.xy)
+Base.iterate(M::Mag) = (Mag(M.xy[1], M.z[1]), 2)
+Base.iterate(M::Mag, i::Integer) = (i <= length(M)) ? (Mag(M.xy[i], M.z[i]), i+1) : nothing
 
 # Rotation
 @doc raw"""
@@ -99,12 +90,7 @@ Mz+ = (|α|² - |β|²)Mz-α⋆ β⋆ Mxy-αβMxy⋆ .
     # M⁺ = Q * M_mat * Q'
     # Mag(M⁺[2,1], real(M⁺[1,1]))
 	Mag(
-        2*conj(s.α)*s.β*M.z+conj(s.α)^2*M.xy-s.β^2*conj(M.xy),
-        (abs(s.α)^2-abs(s.β)^2)*M.z-2real(s.α*s.β*conj(M.xy))#2real(s.α*s.β*conj(M.xy))=conj(s.α)*conj(s.β)*M.xy+s.α*s.β*conj(M.xy)
+        2*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
+        (abs.(s.α).^2 .-abs.(s.β).^2).*M.z.-2*real.(s.α.*s.β.*conj.(M.xy)) #2real(s.α*s.β*conj(M.xy))=conj(s.α)*conj(s.β)*M.xy+s.α*s.β*conj(M.xy)
         )
 end
-
-#Operation on vector
-# M0 = Mag(0,1)
-# Mf = Ry(π/2)*M0
-# Mf.xy, Mf.z

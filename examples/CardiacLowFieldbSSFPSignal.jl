@@ -41,7 +41,7 @@ for (j, im_flip_angle) = enumerate(α)
     end
     #Simulation
     sys = Scanner()
-    simParams = Dict{String,Any}("Nblocks"=>1, "return_type"=>"mag")
+    simParams = Dict{String,Any}("Nblocks"=>1, "return_type"=>"state")
     aux = simulate(obj, seq, sys; simParams)
     M[j,1] = aux[1]
     M[j,2] = aux[2]

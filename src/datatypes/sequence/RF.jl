@@ -1,177 +1,3 @@
-@doc raw"""
-	spinor = Spinor(α, β)
-
-Spinor(α, β) with Cayley-Klein parameters α and β. Based on "Introduction to the Shinnar-Le
-Roux algorithm", Patrick Le Roux (1995). A spinor is a way to represent 3D rotations, the
-underlying representation is a 2 X 2 complex unitary matrix (``\alpha,\beta\in\mathbb{C}``):
-
-```math
-R=\left[\begin{array}{cc}
-\alpha & -\beta^{*}\\
-\beta & \alpha^{*}
-\end{array}\right],
-```
-with ``|\alpha|^2+|\beta|^2 = 1``.
-
-This later operates on the ``2\times2`` representation of ``(x,y,z)`` as follows ``V^{+} =
-R V R^{*}``.
-
-# Arguments
-- `α`: (`::Complex{Int64}`) Cayley-Klein parameter α
-- `β`: (`::Complex{Int64}`) Cayley-Klein parameter β
-
-# Returns
-- `spinor`: (`::Spinor`) Spinor struct
-"""
-struct Spinor
-	α::Complex
-	β::Complex
-end
-
-"""
-    str = show(io::IO, s::Spinor)
-
-Displays the spinor parameters in the julia REPL.
-
-# Arguments
-- `s`: (`::Spinor`) Spinnor struct
-
-# Returns
-- `str`: (`::String`) output string message
-"""
-Base.show(io::IO, s::Spinor) = begin
-    print(io, "Spinor(α = ", round(s.α, digits=3), ", β = ", round(s.β, digits=3), ")")
-end
-
-"""
-    s = *(s1::Spinor, s2::Spinor)
-
-Spinor multiplication identity: (α1,β1)×(α2,β2) = (α1 α2 - β2⋆ β1 , β2 α1 + α2⋆ β1)
-
-# Arguments
-- `s1`: (`::Spinor`) first spinnor struct
-- `s2`: (`::Spinor`) second spinnor struct
-
-# Returns
-- `s`: (`::Spinor`) multiplication spinnor identity result
-"""
-*(s1::Spinor, s2::Spinor) = begin
-	Spinor(s1.α*s2.α - conj(s2.β)*s1.β,
-		   s1.α*s2.β + conj(s2.α)*s1.β)
-end
-
-"""
-    s = Rz(φ)
-
-Spinor clockwise rotation matrix with angle `φ` with respect to z-axis.
-
-# Arguments
-- `φ`: (`::Real`, `[rad]`) angle with respect to z-axis
-
-# Returns
-- `s`: (`::Spinnor`) spinnor struct that represents the `Rz` rotation matrix
-"""
-Rz(φ) = Spinor(exp(-im*φ/2), 0)
-
-"""
-    s = Ry(θ)
-
-Spinor clockwise rotation matrix with angle `θ` with respect to y-axis.
-
-# Arguments
-- `θ`: (`::Real`, `[rad]`) angle with respect to y-axis
-
-# Returns
-- `s`: (`::Spinnor`) spinnor struct that represents the `Ry` rotation matrix
-"""
-Ry(θ) = Spinor(cos(θ/2), sin(θ/2))
-
-"""
-    s = Rx(θ)
-
-Spinor clockwise rotation matrix with angle `θ` with respect to x-axis.
-
-# Arguments
-- `θ`: (`::Real`, `[rad]`) angle with respect to x-axis
-
-# Returns
-- `s`: (`::Spinnor`) spinnor struct that represents the `Rx` rotation matrix
-"""
-Rx(θ) = Spinor(cos(θ/2), -im*sin(θ/2))
-
-"""
-    s = Rg(φ1, θ, φ2)
-
-Spinor rotation matrix: Rg(φ1, θ, φ2) = Rz(φ2) Ry(θ) Rz(φ1)
-
-# Arguments
-- `φ1`: (`::Real`, `[rad]`) φ1 angle
-- `θ`: (`::Real`, `[rad]`) θ angle
-- `φ2`: (`::Real`, `[rad]`) φ2 angle
-
-# Returns
-- `s`: (`::Spinnor`) spinnor struct that represents the `Rg` rotation matrix
-"""
-Rg(φ1, θ, φ2) = Spinor(cos(θ/2)*exp(-im*(φ1+φ2)/2), sin(θ/2)*exp(-im*(φ1-φ2)/2))
-
-"""
-    s = Rφ(φ, θ)
-
-Spinor rotation matrix with angle `θ` with axis in the xy plane u=(cosφ, sinφ).
-
-Rφ(φ,θ) = Rg(-φ,θ,φ) = Rz(φ) Ry(θ) Rz(-φ)
-
-# Arguments
-- `φ`: (`::Real`, `[rad]`) φ angle
-- `θ`: (`::Real`, `[rad]`) θ angle
-
-# Returns
-- `s`: (`::Spinnor`) spinnor struct that represents the `Rφ` rotation matrix
-"""
-Rφ(φ, θ) = Spinor(cos(θ/2), exp(im*φ)*sin(θ/2))
-
-@doc raw"""
-    s = Q(φ, nxy, nz)
-
-Spinor rotation matrix. Rotation of `φ` with respect to the axis of rotation n=(nx, ny, nz).
-
-Pauly, J., Le Roux, P., Nishimura, D., & Macovski, A. (1991).
-Parameter relations for the Shinnar-Le Roux selective excitation pulse design algorithm
-(NMR imaging).
-IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
-
-```math
-\varphi=-\gamma\Delta t\sqrt{\left|B_{1}\right|^{2}+\left(\boldsymbol{G}\cdot\boldsymbol{x}
-\right)^{2}}=-\gamma\Delta t\left\Vert \boldsymbol{B}\right\Vert
-```
-```math
-\boldsymbol{n}=\boldsymbol{B}/\left\Vert \boldsymbol{B}\right\Vert
-```
-
-# Arguments
-- `φ`: (`::Real`, `[rad]`) φ angle
-- `nxy`: (`::Real`) nxy factor
-- `nz`: (`::Real`) nz factor
-
-# Returns
-- `s`: (`::Spinnor`) spinnor struct that represents the `Q` rotation matrix
-"""
-Q(φ, nxy, nz) = Spinor(cos(φ/2)-im*nz*sin(φ/2), -im*nxy*sin(φ/2))
-
-"""
-    y = abs(s::Spinor)
-
-It calculates |α|^2 + |β|^2 of the Cayley-Klein parameters.
-
-# Arguments
-- `s`: (`::Spinnor`) spinnor struct
-
-# Returns
-- `y`: (`::Real`) result of the abs operator
-"""
-abs(s::Spinor) = abs(s.α)^2 + abs(s.β)^2
-
-
 """
     rf = RF(A, T)
     rf = RF(A, T, Δf)
@@ -231,7 +57,7 @@ end
     y = getproperty(x::Vector{RF}, f::Symbol)
     y = getproperty(x::Matrix{RF}, f::Symbol)
 
-Overchages Base.getproperty(). It is meant to access properties of the RF vector `x`
+Overloads Base.getproperty(). It is meant to access properties of the RF vector `x`
 directly without the need to iterate elementwise.
 
 # Arguments
@@ -263,9 +89,8 @@ getproperty(x::Matrix{RF}, f::Symbol) = begin
 end
 
 # Properties
-one(T::Spinor) = Spinor(1,0)
 size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
-*(α::ComplexF64, x::RF) = RF(α*x.A,x.T,x.Δf,x.delay)
+*(α::Complex{T}, x::RF) where {T<:Real} = RF(α*x.A,x.T,x.Δf,x.delay)
 
 """
     y = dur(x::RF)

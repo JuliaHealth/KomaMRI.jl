@@ -23,33 +23,34 @@ The Phantom struct.
 # Returns
 - `phantom`: (`::Phantom`) Phantom struct
 """
-@with_kw mutable struct Phantom
-	name::String = "spin"
-	x::Vector
-	y::Vector = zeros(size(x))
-	z::Vector = zeros(size(x))
-	ρ::Vector = ones(size(x))
-	T1::Vector = Inf*ones(size(x))
-	T2::Vector = Inf*ones(size(x))
-	T2s::Vector = Inf*ones(size(x))
+ @with_kw mutable struct Phantom{T<:Real}
+	name::String = "spins"
+	x::AbstractVector{T}
+	y::AbstractVector{T} =   zeros(size(x))
+	z::AbstractVector{T} =   zeros(size(x))
+	ρ::AbstractVector{T} =   ones(size(x))
+	T1::AbstractVector{T} =  ones(size(x)) * 1_000_000
+	T2::AbstractVector{T} =  ones(size(x)) * 1_000_000
+	T2s::AbstractVector{T} = ones(size(x)) * 1_000_000
 	#Off-resonance related
-	Δw::Vector = zeros(size(x))
+	Δw::AbstractVector{T} =  zeros(size(x))
 	#χ::Vector{SusceptibilityModel}
 	#Diffusion
-	Dλ1::Vector = zeros(size(x))
-	Dλ2::Vector = zeros(size(x))
-	Dθ::Vector = zeros(size(x))
+	Dλ1::AbstractVector{T} = zeros(size(x))
+	Dλ2::AbstractVector{T} = zeros(size(x))
+	Dθ::AbstractVector{T} =  zeros(size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 	#Motion
 	ux::Function = (x,y,z,t)->0
 	uy::Function = (x,y,z,t)->0
 	uz::Function = (x,y,z,t)->0
 end
-
 # Phantom() = Phantom(name="spin",x=zeros(1,1))
 size(x::Phantom) = size(x.ρ)
+Base.length(x::Phantom) = length(x.ρ)
+
 """Separate object spins in a sub-group."""
-Base.getindex(obj::Phantom, p::UnitRange{Int}) = begin
+Base.getindex(obj::Phantom, p::AbstractRange) = begin
 	Phantom(name=obj.name,
 			x=obj.x[p],
 			y=obj.y[p],
@@ -394,14 +395,14 @@ function brain_phantom3D(;ss=4)
 	T1 = T1*1e-3
 	T2 = T2*1e-3
 	T2s = T2s*1e-3
-    phantom = Phantom(name="brain3D",
-					  x=y[ρ.!=0],
-					  y=x[ρ.!=0],
-					  z=z[ρ.!=0],
-					  ρ=ρ[ρ.!=0],
-					  T1=T1[ρ.!=0],
-					  T2=T2[ρ.!=0],
-					  T2s=T2s[ρ.!=0],
-					  Δw=Δw[ρ.!=0])
+    phantom = Phantom{Float64}(name ="brain3D",
+							   x = y[ρ.!=0],
+							   y = x[ρ.!=0],
+							   z = z[ρ.!=0],
+							   ρ = ρ[ρ.!=0],
+							   T1 = T1[ρ.!=0],
+							   T2 = T2[ρ.!=0],
+							   T2s = T2s[ρ.!=0],
+							   Δw = Δw[ρ.!=0])
 	phantom
 end

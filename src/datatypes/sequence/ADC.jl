@@ -37,7 +37,7 @@ end
 """
     y = getproperty(x::Vector{ADC}, f::Symbol)
 
-Overchages Base.getproperty(). It is meant to access properties of the ADC vector `x`
+Overloads Base.getproperty(). It is meant to access properties of the ADC vector `x`
 directly without the need to iterate elementwise.
 
 # Arguments

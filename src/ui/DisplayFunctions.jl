@@ -52,9 +52,9 @@ function interp_map(c_map, t_interp)
 	R = [parse.(Int, split(c[2][5:end-1],", "))[1] for c = c_map]
 	G = [parse.(Int, split(c[2][5:end-1],", "))[2] for c = c_map]
 	B = [parse.(Int, split(c[2][5:end-1],", "))[3] for c = c_map]
-	r = LinearInterpolation(idx,R)(t_interp)
-	g = LinearInterpolation(idx,G)(t_interp)
-	b = LinearInterpolation(idx,B)(t_interp)
+	r = linear_interpolation(idx,R)(t_interp)
+	g = linear_interpolation(idx,G)(t_interp)
+	b = linear_interpolation(idx,B)(t_interp)
 	c_map_interp = ["hsv($r, $g, $b)" for (r,g,b)=zip(r,g,b)]
 	c_map_interp
 end
