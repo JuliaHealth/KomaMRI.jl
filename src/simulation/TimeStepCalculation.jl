@@ -209,8 +209,8 @@ function get_variable_times(seq; dt=1, dt_rf=1e-4)
 			end
 		end
 	end
-	# t = sort(unique(x -> round(x*1e8), t)) #Removing repeated points
-	t = sort(unique(t)) #Removing repeated points
+	tadc = get_adc_sampling_times(seq)
+	t = sort(unique([t; tadc])) #Removing repeated points
 	Δt = t[2:end] .- t[1:end-1]
 	t = t[1:end-1]
 	t, Δt

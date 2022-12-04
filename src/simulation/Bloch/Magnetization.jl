@@ -16,8 +16,11 @@ mutable struct Mag{T<:Real} <: SpinStateRepresentation{T}
 end
 
 # Required indexing operations
+# M[i]
 Base.getindex(M::Mag, i::Integer) = Mag(M.xy[i,:], M.z[i,:])
+# M[a:b]
 Base.getindex(M::Mag, i::UnitRange) = Mag(M.xy[i], M.z[i])
+# M[p] = M2 
 Base.setindex!(M::Mag{T}, M2::Mag{T}, p::UnitRange) where {T<:Real} = begin
     M.xy[p] = M2.xy
     M.z[p]  = M2.z

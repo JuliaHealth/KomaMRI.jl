@@ -35,16 +35,18 @@ NVTX.@range function run_spin_precession(p::Phantom{T}, s::DiscreteSequence{T}, 
     xt = p.x .+ p.ux(p.x, p.y, p.z, s.t')
     yt = p.y .+ p.uy(p.x, p.y, p.z, s.t')
     zt = p.z .+ p.uz(p.x, p.y, p.z, s.t')
-    #ACQ OPTIMIZATION
+    #Effective field
+    Bz = xt .* s.Gx' .+ yt .* s.Gy' .+ zt .* s.Gz'
+    #Rotation
     if is_ADC_on(s)
-        ϕ = T(-2π * γ) .* cumtrapz(s.Δt', xt .* s.Gx' .+ yt .* s.Gy' .+ zt .* s.Gz')
+        ϕ = T(2π * γ) .* cumtrapz(s.Δt', Bz)
     else
-        ϕ = T(-2π * γ) .* trapz(s.Δt', xt .* s.Gx' .+ yt .* s.Gy' .+ zt .* s.Gz')
+        ϕ = T(2π * γ) .* trapz(s.Δt', Bz)
     end
     #Mxy preccesion and relaxation and Mz relaxation
-    tp = s.t[2:end] .- s.t[1] # t' = t - t0
+    tp = cumsum(s.Δt) # t' = t - t0
     dur = sum(s.Δt) #Total length, used for signal relaxation
-    Mxy = M.xy .* exp.(1im .* (ϕ .- p.Δw .* tp') .- tp' ./ p.T2) #This assumes Δw and T2 are constant
+    Mxy = M.xy .* exp.(1im .* (ϕ .+ p.Δw .* tp') .- tp' ./ p.T2) #This assumes Δw and T2 are constant
     M.xy .= Mxy[:, end]
     M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
@@ -79,8 +81,8 @@ NVTX.@range function run_spin_excitation(p::Phantom{T}, seq::DiscreteSequence{T}
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔB0 #<-- TODO: This line is very slow, FIX!?
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B[B .== 0] .= eps(T)
-        φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here,  this is just Forward Euler
         #Spinor Rotation
+        φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here,  this is just Forward Euler
         M = Q(φ, s.B1 ./ B, Bz ./ B) * M
         #Relaxation
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)

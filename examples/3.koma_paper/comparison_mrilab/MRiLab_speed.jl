@@ -15,7 +15,7 @@ rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
 TE = 50e-3  # 50e-3 [s]
 TR = 10     # 10 [s]
 Nint = 8
-spiral = PulseDesigner.spiral_base(FOV, N, sys; λ=2.1, BW=120e3, Nint)
+spiral = PulseDesigner.spiral_base(FOV, N, sys; λ=2.1, BW=60e3, Nint)
 delayTE = Delay(TE - Trf / 2)
 delayTR = Delay(TR - Trf / 2 - TE - dur(spiral(0)))
 seq = Sequence()
@@ -33,26 +33,27 @@ phantom = read_phantom_MRiLab(filename; FRange_filename)
 simParams = Dict{String,Any}(
     "Nblocks" => 1,
     "gpu" => true,
-    "return_type"=>"mat"
-    # "Nthreads" => 1
+    "gpu_device" => 0,
+    "Nthreads" => 1
+    # "return_type"=>"mat"
 )
+
+using CUDA
+CUDA.allowscalar(false)
+
 raw = simulate(phantom, seq, sys; simParams)
-nothing
-using PlotlyJS
-plot(abs.(raw[:]))
-# using CUDA
-# CUDA.allowscalar(false)
-# CUDA.@profile ( simulate(phantom, seq, sys; simParams); simulate(phantom, seq, sys; simParams) );
-# plot_signal(raw) #; show_sim_blocks=true)
+
+# CUDA.@profile ( simulate(phantom, seq, sys; simParams) );
+plot_signal(raw) #; show_sim_blocks=true)
 ## Recon
-# acq = AcquisitionData(raw)
-# reconParams = Dict{Symbol,Any}(
-#     :reco => "direct",
-#     :reconSize => (N, N),
-#     :densityWeighting => true
-# )
-# image = reconstruction(acq, reconParams)
-# plot_image(abs.(image[:, :, 1]); height=400, width=400)
+acq = AcquisitionData(raw)
+reconParams = Dict{Symbol,Any}(
+    :reco => "direct",
+    :reconSize => (N, N),
+    :densityWeighting => true
+)
+image = reconstruction(acq, reconParams)
+plot_image(abs.(image[:, :, 1]); height=380, width=400)
 # To profile this code use:
 # nsys launch julia --project=. examples/3.koma_paper/comparison_mrilab/MRiLab_speed.jl
 # Then, open the report by using NVIDIA Nsight Systems with nsys-ui
