@@ -109,8 +109,8 @@ Refer to [API Documentation](api.md#ADC):
 
 ```@docs
 getproperty(::Vector{ADC}, ::Symbol)
-KomaMRI.get_sample_times
-KomaMRI.get_sample_phase_compensation
+KomaMRI.get_adc_sampling_times
+KomaMRI.get_adc_phase_compensation
 ```
 
 ### `Delay`

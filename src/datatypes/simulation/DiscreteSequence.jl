@@ -9,18 +9,28 @@ struct DiscreteSequence{T<:Real}
     Δt::AbstractVector{T}
 end
 
-Base.length(seq::DiscreteSequence) = length(seq.t)
-Base.getindex(seq::DiscreteSequence, i) = DiscreteSequence(
-                                                        seq.Gx[i],
-                                                        seq.Gy[i],
-                                                        seq.Gz[i],
-                                                        seq.B1[i],
-                                                        seq.Δf[i],
-                                                        seq.ADC[i],
-                                                        seq.t[i],
-                                                        seq.Δt[i]
-                                                        )
-# Base.view(seq::DiscreteSequence, i) = @views seq[i]
+DiscreteSequence(xy::T, z::T) where {T<:Real} = Mag([complex(xy)], [z])
+Base.length(seq::DiscreteSequence) = length(seq.Δt)
+Base.getindex(seq::DiscreteSequence, i::Integer) = begin
+    DiscreteSequence(seq.Gx[i, :],
+                     seq.Gy[i, :],
+                     seq.Gz[i, :],
+                     seq.B1[i, :],
+                     seq.Δf[i, :],
+                     seq.ADC[i, :],
+                     seq.t[i, :],
+                     seq.Δt[i, :])
+end
+Base.getindex(seq::DiscreteSequence, i::UnitRange) = begin
+    DiscreteSequence(seq.Gx[i.start:i.stop+1],
+                     seq.Gy[i.start:i.stop+1],
+                     seq.Gz[i.start:i.stop+1],
+                     seq.B1[i.start:i.stop+1],
+                     seq.Δf[i.start:i.stop+1],
+                     seq.ADC[i],
+                     seq.t[i.start:i.stop+1],
+                     seq.Δt[i])
+end
 Base.iterate(seq::DiscreteSequence) = (seq[1], 2)
 Base.iterate(seq::DiscreteSequence, i) = (i <= length(seq)) ? (seq[i], i+1) : nothing
 

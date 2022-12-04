@@ -6,7 +6,7 @@ fftc(x;dims=[1,2]) =fftshift(fft(ifftshift(x,dims),dims),dims)/prod(size(x)[dims
 # Hoge, R.D., Kwan, R.K.S. and Bruce Pike, G. (1997), Density compensation functions for spiral MRI. Magn. Reson. Med., 38: 117-128. https://doi.org/10.1002/mrm.1910380117"""
 # function dcf_nufft(seq)
 #     _, k = get_kspace(seq)
-# 	t_adc = get_sample_times(seq) |> t-> convert(Vector{Float64},t)
+# 	t_adc = get_adc_sampling_times(seq) |> t-> convert(Vector{Float64},t)
 # 	Gx, Gy, Gz = get_grads(seq, t_adc)
 # 	dcf = abs.(Gx .* k[:,1] .+ Gy .* k[:,2] .+ Gz .* k[:,3]) # dcf = γ|<k(t), g(t)>|
 # 	dcf ./ maximum(dcf[:])
@@ -25,7 +25,7 @@ fftc(x;dims=[1,2]) =fftshift(fft(ifftshift(x,dims),dims),dims)/prod(size(x)[dims
 # 	@info "Running reconstruction..."
 # 	@time begin
 # 	#K-data, only 2D for now
-# 	signal_phase = signal .* get_sample_phase_compensation(seq) #ADC phase compensation
+# 	signal_phase = signal .* get_adc_phase_compensation(seq) #ADC phase compensation
 # 	kdata = reshape(signal_phase, Nx,Ny,Nz)
 # 	image = zeros(2,2,1)
 # 	kspace = zeros(2,2,1)
@@ -34,7 +34,7 @@ fftc(x;dims=[1,2]) =fftshift(fft(ifftshift(x,dims),dims),dims)/prod(size(x)[dims
 # 		if recon == "MRIReco"
 # 			#MRIReco.jl, WIP
 # 			#Getting kspace coordinates
-# 			times = KomaMRI.get_sample_times(seq)
+# 			times = KomaMRI.get_adc_sampling_times(seq)
 # 			_, traj = KomaMRI.get_kspace(seq)
 # 			TE = 0
 # 			AQ = maximum(seq[KomaMRI.is_ADC_on.(seq)].ADC.T)

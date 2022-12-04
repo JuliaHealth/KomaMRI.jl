@@ -95,7 +95,7 @@ function signal_to_raw_data(signal, seq;
 
     #Then, we define the Profiles
     profiles = Profile[]
-    t_acq = get_sample_times(seq)
+    t_acq = get_adc_sampling_times(seq)
     Nadcs = sum(is_ADC_on.(seq))
     NadcsPerImage = floor(Int, Nadcs / Nz)
     scan_counter = 0

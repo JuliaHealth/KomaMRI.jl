@@ -60,7 +60,7 @@ getproperty(x::Vector{ADC}, f::Symbol) = begin
 end
 
 """
-    times = get_sample_times(seq)
+    times = get_adc_sampling_times(seq)
 
 Returns an array of times when the samples of the sequence `seq` are acquired.
 
@@ -70,7 +70,7 @@ Returns an array of times when the samples of the sequence `seq` are acquired.
 # Returns
 - `times`: (`::Vector{Float64}`, `[s]`) time array when samples are acquired
 """
-function get_sample_times(seq)
+function get_adc_sampling_times(seq)
     T0 = cumsum([0; durs(seq)], dims=1)
     times = Float64[]
     for i = 1:length(seq)
@@ -86,7 +86,7 @@ function get_sample_times(seq)
 end
 
 """
-    phase = get_sample_phase_compensation(seq)
+    phase = get_adc_phase_compensation(seq)
 
 Returns the array of phases for every acquired sample in the sequence `seq`.
 
@@ -100,7 +100,7 @@ Returns the array of phases for every acquired sample in the sequence `seq`.
 # Returns
 - `phase`: (`::Vector{Complex{Int64}}`, `[rad]`) array of phases for every acquired sample
 """
-function get_sample_phase_compensation(seq)
+function get_adc_phase_compensation(seq)
   phase = ComplexF64[]
   for i = 1:length(seq)
       if is_ADC_on(seq[i])

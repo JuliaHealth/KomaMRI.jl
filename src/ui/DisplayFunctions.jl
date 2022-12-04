@@ -279,7 +279,7 @@ function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	#Calculations of theoretical k-space
 	kspace, kspace_adc = get_kspace(seq; Δt=1) #simParams["Δt"])
-	t_adc = get_sample_times(seq)
+	t_adc = get_adc_sampling_times(seq)
 	#Colormap
 	c_map = [[t, "hsv($(floor(Int,(1-t)*255)), 100, 50)"] for t=range(0,1;length=10)] # range(s,b,N) only works in Julia 1.7.3
 	c = "gray"

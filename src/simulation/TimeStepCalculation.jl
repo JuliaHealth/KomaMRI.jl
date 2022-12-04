@@ -184,7 +184,7 @@ function get_variable_times(seq; dt=1, dt_rf=1e-4)
 		s = seq[i] #Current sequence block
 		t0 = T0[i]
 		if is_ADC_on(s)
-			ts = get_sample_times(s) .+ t0
+			ts = get_adc_sampling_times(s) .+ t0
 			taux = points_from_key_times(ts; dt) # ADC sampling
 			append!(t, taux)
 		end

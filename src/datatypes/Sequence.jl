@@ -708,7 +708,7 @@ get_kspace(seq::Sequence; Δt=1) = begin
 	#Interp, as Gradients are piece-wise linear, the integral is piece-wise quadratic
 	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
 	ts = t .+ Δt
-	t_adc =  get_sample_times(seq)
+	t_adc =  get_adc_sampling_times(seq)
 	kx_adc = linear_interpolation(ts,kspace[:,1],extrapolation_bc=0)(t_adc)
 	ky_adc = linear_interpolation(ts,kspace[:,2],extrapolation_bc=0)(t_adc)
 	kz_adc = linear_interpolation(ts,kspace[:,3],extrapolation_bc=0)(t_adc)

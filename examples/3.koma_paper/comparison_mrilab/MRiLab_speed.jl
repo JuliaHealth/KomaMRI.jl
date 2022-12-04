@@ -33,22 +33,26 @@ phantom = read_phantom_MRiLab(filename; FRange_filename)
 simParams = Dict{String,Any}(
     "Nblocks" => 1,
     "gpu" => true,
-    "Nthreads" => 1
+    "return_type"=>"mat"
+    # "Nthreads" => 1
 )
 raw = simulate(phantom, seq, sys; simParams)
+nothing
+using PlotlyJS
+plot(abs.(raw[:]))
 # using CUDA
 # CUDA.allowscalar(false)
 # CUDA.@profile ( simulate(phantom, seq, sys; simParams); simulate(phantom, seq, sys; simParams) );
-plot_signal(raw) #; show_sim_blocks=true)
+# plot_signal(raw) #; show_sim_blocks=true)
 ## Recon
-acq = AcquisitionData(raw)
-reconParams = Dict{Symbol,Any}(
-    :reco => "direct",
-    :reconSize => (N, N),
-    :densityWeighting => true
-)
-image = reconstruction(acq, reconParams)
-plot_image(abs.(image[:, :, 1]); height=400, width=400)
+# acq = AcquisitionData(raw)
+# reconParams = Dict{Symbol,Any}(
+#     :reco => "direct",
+#     :reconSize => (N, N),
+#     :densityWeighting => true
+# )
+# image = reconstruction(acq, reconParams)
+# plot_image(abs.(image[:, :, 1]); height=400, width=400)
 # To profile this code use:
 # nsys launch julia --project=. examples/3.koma_paper/comparison_mrilab/MRiLab_speed.jl
 # Then, open the report by using NVIDIA Nsight Systems with nsys-ui
