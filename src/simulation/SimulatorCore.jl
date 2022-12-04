@@ -102,11 +102,11 @@ NVTX.@range function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, Xt:
     samples = 1
     progress_bar = Progress(Nblocks)
     for (block, p) = enumerate(parts)
-        # params
-        # excitation_bool = is_RF_on(seq[p]) #&& is_ADC_off(seq[p]) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
+        # Params
+        excitation_bool = is_RF_on(seq[p]) && is_ADC_off(seq[p]) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
         Nadc = sum(seq[p].ADC)
         # Simulation wrappers
-        if is_RF_on(seq[p])
+        if excitation_bool
             Xt = run_spin_excitation_parallel(obj, seq[p], Xt; Nthreads)
             rfs += 1
         else
