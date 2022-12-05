@@ -44,7 +44,7 @@ nothing # hide
 
 Now, we will define a `Phantom` with a single spin at $x=0$ with $T_1=1000\,\mathrm{ms}$ and $T_2=100\,\mathrm{ms}$.
 ```@example 1
-obj = Phantom(x=[0], T1=[1000e-3], T2=[100e-3])
+obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
 nothing # hide
 ```
 
@@ -66,7 +66,7 @@ Nice!, we can see that $S(t)$ follows an exponential decay $\exp(-t/T_2)$ as exp
 
 For a little bit of spiciness, let's add **off-resonance** to our example. We will use $\Delta f=-100\,\mathrm{Hz}$. For this, we will need to add a definition for `Δw` in our `Phantom`
 ```@example 1
-obj = Phantom(x=[0], T1=[1000e-3], T2=[100e-3], Δw=[-2π*100])
+obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3], Δw=[-2π*100])
 nothing # hide
 ```
 
@@ -74,14 +74,14 @@ and simulate again.
 ```@setup 1
 raw = simulate(obj, seq, sys)
 p = plot_signal(raw; slider=false, height=300)
-savefig(p, "assets/2-signal.html"); nothing # hide
+savefig(p, "assets/1-signal2.html"); nothing # hide
 ```
 ```julia
 raw = simulate(obj, seq, sys)
 p = plot_signal(raw; slider=false, height=300)
 ```
 ```@raw html
-<object type="text/html" data="../assets/2-signal.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/1-signal2.html" style="width:100%; height:320px;"></object>
 ```
 The signal now follows an exponential of the form $\exp(-t/T_2)\cdot\exp(-i\Delta\omega t)$. The addition of $\exp(-i\Delta\omega t)$ to the signal will generate a shift in the image space (Fourier shifting property). This effect will be better visualized and explained in later examples.
 
@@ -98,20 +98,20 @@ For a more realistic example, we will use a brain phantom.
 obj = brain_phantom2D() # a slice of a brain
 p1 = plot_phantom_map(obj, :T2 ; height=400)
 p2 = plot_phantom_map(obj, :Δw ; height=400)
-savefig(p1, "assets/1-phantom.html"); nothing # hide
-savefig(p2, "assets/2-phantom.html"); nothing # hide
+savefig(p1, "assets/2-phantom1.html"); nothing # hide
+savefig(p2, "assets/2-phantom2.html"); nothing # hide
 ```
 
 At the left, you can see the $T_2$ map of the phantom, and at the right, the off-resonance $\Delta\omega$. In this example, the fat is the only source of off-resonance (with $\Delta f =  -220\,\mathrm{Hz}$) and you can see it in black in the off-resonance map.
 ```@raw html
-<object type="text/html" data="../assets/1-phantom.html" style="width:50%; height:420px;"></object><object type="text/html" data="../assets/2-phantom.html" style="width:50%; height:420px;"></object>
+<object type="text/html" data="../assets/2-phantom1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../assets/2-phantom2.html" style="width:50%; height:420px;"></object>
 ```
 
 Then, we will load an EPI sequence, that is well known for being affected by off-resonance. With this sequence, we will be able visualize the effect of the chemical shift.
 ```@setup 2
-seq = read_seq("../../examples/3.koma_paper/comparison/sequences/EPI/epi_100x100_TE100_FOV230.seq")
+seq = read_seq("../../examples/3.koma_paper/comparison_jemris/sequences/EPI/epi_100x100_TE100_FOV230.seq")
 p = plot_seq(seq; range=[0 40], slider=true, height=300)
-savefig(p, "assets/2-seq.html"); 
+savefig(p, "assets/2-seq.html");
 ```
 ```julia
 seq = read_seq("examples/3.koma_paper/comparison/sequences/EPI/epi_100x100_TE100_FOV230.seq")
@@ -124,17 +124,13 @@ Feel free to explore the sequence's plot 🔍 below!
 ```
 
 If we simulate this sequence we will end up with the following signal.
-```@setup 2
+```@example 2
 raw = simulate(obj, seq, sys)
 p = plot_signal(raw; range=[98.4 103.4] , height=300)
-savefig(p, "assets/3-signal.html"); nothing # hide
-```
-```julia
-raw = simulate(obj, seq, sys)
-p = plot_signal(raw; range=[98.4 103.4] , height=300)
+savefig(p, "assets/2-signal.html"); #nothing
 ```
 ```@raw html
-<object type="text/html" data="../assets/3-signal.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/2-signal.html" style="width:100%; height:320px;"></object>
 ```
 
 Now, we need to inspect what effect the off-resonance had in the reconstructed image. As you can see, the fat layer is now shifted to a different position 🤯, this is why the effect is called chemical shift!
@@ -151,11 +147,11 @@ image = reconstruction(acq, reconParams)
 # Plotting the recon
 slice_abs = abs.(image[:, :, 1])
 p = plot_image(slice_abs; height=400)
-savefig(p, "assets/1-recon.html");  nothing # hide
+savefig(p, "assets/2-recon.html");  nothing # hide
 ```
 ```@raw html
 <center>
-<object type="text/html" data="../assets/1-recon.html" style="width:65%; height:420px;"></object>
+<object type="text/html" data="../assets/2-recon.html" style="width:65%; height:420px;"></object>
 </center>
 ```
 
@@ -182,47 +178,45 @@ savefig(p, "assets/3-phantom.html"); nothing # hide
 
 Now, we are going to import a sequence which acquires 3 slices in the longitudinal axis. Note that the sequence contains three EPIs to acquire 3 slices of the phantom.
 ```@setup 3
-seq = read_seq("../../examples/1.sequences/epi.seq")
-p = plot_seq(seq; slider=false, height=300)
+seq = read_seq("../../examples/1.sequences/epi_multislice.seq")
+p = plot_seq(seq; range=[0,10], height=400)
 savefig(p, "assets/3-seq.html"); 
 ```
-```julia
-seq = read_seq("examples/1.sequences/epi.seq")
-p = plot_seq(seq[1:10]; slider=false, height=300)
-```
 ```@raw html
-<object type="text/html" data="../assets/3-seq.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/3-seq.html" style="width:100%; height:420px;"></object>
 ```
 We can take a look to the slice profiles by using the function [simulate_slice_profile](@ref):
 ```@example 3
-z = range(-2, 2, 200) * 1e-2; # -2 to 2 cm
+z = range(-2., 2., 200) * 1e-2; # -2 to 2 cm
 rf1, rf2, rf3 = findall(KomaMRI.is_RF_on.(seq))
 M1 = simulate_slice_profile(seq[rf1]; z)
 M2 = simulate_slice_profile(seq[rf2]; z)
 M3 = simulate_slice_profile(seq[rf3]; z)
-using PlotlyJS # hide
+```
+```@setup 3
+using PlotlyJS
 p1 = scatter(x=z*1e2, y=abs.(M1.xy), name="Slice 1") # hide
-p2 = scatter(x=z*1e2, y=abs.(M2.xy), name="Slice 2") # hide
-p3 = scatter(x=z*1e2, y=abs.(M3.xy), name="Slice 3") # hide
-p = plot([p1,p2,p3], Layout(xaxis=attr(title="z [cm]"), height=300,margin=attr(t=40,l=0,r=0), title="Slice profiles for the slice-selective sequence")) # hide
-savefig(p, "assets/4-profile.html"); nothing # hide
+p2 = scatter(x=z*1e2, y=abs.(M2.xy), name="Slice 2")
+p3 = scatter(x=z*1e2, y=abs.(M3.xy), name="Slice 3")
+p = plot([p1,p2,p3], Layout(xaxis=attr(title="z [cm]"), height=300,margin=attr(t=40,l=0,r=0), title="Slice profiles for the slice-selective sequence"))
+savefig(p, "assets/3-profile.html"); nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="../assets/4-profile.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/3-profile.html" style="width:100%; height:320px;"></object>
 ```
 
 Now let's simulate the acquisition. Notice the three echoes, one for every slice excitation.
 ```@setup 3
-raw = simulate(obj, seq, sys)
+raw = simulate(obj, seq, sys; simParams=Dict{String,Any}("Nblocks"=>30))
 p = plot_signal(raw; slider=false, height=300)
-savefig(p, "assets/4-signal.html"); nothing # hide
+savefig(p, "assets/3-signal.html"); nothing # hide
 ```
 ```julia
 raw = simulate(obj, seq, sys)
 p = plot_signal(raw; slider=false, height=300)
 ```
 ```@raw html
-<object type="text/html" data="../assets/4-signal.html" style="width:100%; height:320px;"></object>
+<object type="text/html" data="../assets/3-signal.html" style="width:100%; height:320px;"></object>
 ```
 
 Finally, we reconstruct the acquiered images.
@@ -239,15 +233,15 @@ image = reconstruction(acq, reconParams)
 p1 = plot_image(abs.(image[:, :, 1]); height=360, title="slice 1")
 p2 = plot_image(abs.(image[:, :, 2]); height=360, title="slice 2")
 p3 = plot_image(abs.(image[:, :, 3]); height=360, title="slice 3")
-savefig(p1, "assets/3-recon.html");  nothing # hide
-savefig(p2, "assets/4-recon.html");  nothing # hide
-savefig(p3, "assets/5-recon.html");  nothing # hide
+savefig(p1, "assets/3-recon1.html");  nothing # hide
+savefig(p2, "assets/3-recon2.html");  nothing # hide
+savefig(p3, "assets/3-recon3.html");  nothing # hide
 ```
 ```@raw html
-<object type="text/html" data="../assets/3-recon.html" style="width:50%; height:380px;"></object><object type="text/html" data="../assets/4-recon.html" style="width:50%; height:380px;"></object>
+<object type="text/html" data="../assets/3-recon1.html" style="width:50%; height:380px;"></object><object type="text/html" data="../assets/3-recon2.html" style="width:50%; height:380px;"></object>
 ```
 ```@raw html
 <center>
-<object type="text/html" data="../assets/5-recon.html" style="width:50%; height:380px;"></object>
+<object type="text/html" data="../assets/3-recon3.html" style="width:50%; height:380px;"></object>
 </center>
 ```

@@ -78,11 +78,11 @@ NVTX.@range function run_spin_excitation(p::Phantom{T}, seq::DiscreteSequence{T}
         zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
         #Effective field
         ΔB0 = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
-        Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔB0 #<-- TODO: This line is very slow, FIX!?
+        Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔB0
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B[B .== 0] .= eps(T)
         #Spinor Rotation
-        φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here,  this is just Forward Euler
+        φ = T(2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here,  this is just Forward Euler
         M = Q(φ, s.B1 ./ B, Bz ./ B) * M
         #Relaxation
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)

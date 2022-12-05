@@ -265,10 +265,10 @@ Returns magnetization of spins distributed along `z` after running the Sequence 
 # Returns
 - `M`: (`::Vector{Mag}`) final state of the Mag vector
 """
-function simulate_slice_profile(seq; z=range(-2e-2, 2e-2, 200), simParams=Dict{String,Any}("Δt_rf" => 1e-6))
+function simulate_slice_profile(seq; z=range(-2.e-2, 2.e-2, 200), simParams=Dict{String,Any}("Δt_rf" => 1e-6))
     simParams["return_type"] = "state"
     sys = Scanner()
-    phantom = Phantom(; x=zeros(size(z)), z)
+    phantom = Phantom{Float64}(x=zeros(size(z)), z=z)
     M = simulate(phantom, seq, sys; simParams)
     M
 end
