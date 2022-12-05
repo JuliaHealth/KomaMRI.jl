@@ -159,7 +159,7 @@ IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 # Returns
 - `s`: (`::Spinor`) spinnor struct that represents the `Q` rotation matrix
 """
-Q(φ, nxy, nz) = Spinor(cos.(φ/2).-im*nz.*sin.(φ/2), -im*nxy.*sin.(φ/2))
+Q(φ, nxy, nz) = Spinor(cos.(φ/2).-1im*nz.*sin.(φ/2), -1im*nxy.*sin.(φ/2))
 
 """
     y = abs(s::Spinor)

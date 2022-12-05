@@ -86,7 +86,7 @@ NVTX.@range function run_spin_excitation(p::Phantom{T}, seq::DiscreteSequence{T}
         M = Q(φ, s.B1 ./ B, Bz ./ B) * M
         #Relaxation
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
-        M.z .= M.z .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
+        M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
     end
     return M
 end

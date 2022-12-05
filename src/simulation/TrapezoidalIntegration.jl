@@ -18,8 +18,8 @@ Trapezoidal integration for every spin of a phantom.
 - `y`: (`Ns x 1 ::Matrix{Float64}`, `[T*s]`) vector where every element is the integral
     of (Gx * x + Gy * y + Gz * z) * Δt for every spin of a phantom
 """
-function trapz(Δt, x)
-    y = 1/2 * (x[:, 2:end] .+ x[:, 1:end-1]) .* Δt
+function trapz(Δt::AbstractArray{T}, x::AbstractArray{T}) where {T<:Real}
+    y = (x[:, 2:end] .+ x[:, 1:end-1]) .* (Δt / 2)
     y = sum(y, dims=2)
     return y
 end
