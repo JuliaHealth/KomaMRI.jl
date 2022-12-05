@@ -166,7 +166,7 @@ julia> plot_signal(ismrmrd)
 NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
     #Simulation parameter parsing
     NVTX.@range "Param parsing" begin
-    enable_gpu  = get(simParams, "gpu", use_cuda)
+    enable_gpu  = get(simParams, "gpu", use_cuda[])
     gpu_device  = get(simParams, "gpu_device", 0)
     precision   = get(simParams, "precision", "f32")
     Nthreads    = get(simParams, "Nthreads", enable_gpu ? 1 : Nphyscores)

@@ -579,7 +579,11 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 			t0 = current_t0 * dt
 			current_t0 += N
 		end
-		append!(t, t0.+(0:dt:dt*(N-1)))
+		if N != 1
+			append!(t, t0.+(0:dt:dt*(N-1)))
+		else
+			append!(t, t0)
+		end
 		append!(signal, p.data[:,1]) #Just one coil
 		#To generate gap
 		append!(t, t[end])

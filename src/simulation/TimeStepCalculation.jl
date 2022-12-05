@@ -176,7 +176,7 @@ This function returns non-uniform time points that are relevant in the sequence 
 - `Δt`: (`::Vector{Float64}`, `[s]`) delta time array with the separation between two
     adjacent time points of the `t` time array
 """
-function get_variable_times(seq; dt=1, dt_rf=1e-4)
+function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
 	t = Float64[]
 	ΔT = durs(seq) #Duration of sequence block
 	T0 = cumsum([0; ΔT[:]]) #Start time of each block

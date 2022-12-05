@@ -78,7 +78,11 @@ function get_adc_sampling_times(seq)
             δ = seq.ADC[i].delay
             T = seq.ADC[i].T
             N = seq.ADC[i].N
-            t = range(0, T; length=N).+T0[i].+δ #range(0,T,N) works in Julia 1.7
+            if N != 1
+                t = range(0, T; length=N).+T0[i].+δ #range(0,T,N) works in Julia 1.7
+            else
+                t = [T/2].+T0[i].+δ #range(0,T,N) works in Julia 1.7
+            end
             append!(times, t)
         end
     end

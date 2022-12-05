@@ -36,17 +36,17 @@ NVTX.@range function run_spin_precession(p::Phantom{T}, s::DiscreteSequence{T}, 
     yt = p.y .+ p.uy(p.x, p.y, p.z, s.t')
     zt = p.z .+ p.uz(p.x, p.y, p.z, s.t')
     #Effective field
-    Bz = xt .* s.Gx' .+ yt .* s.Gy' .+ zt .* s.Gz'
+    Bz = xt .* s.Gx' .+ yt .* s.Gy' .+ zt .* s.Gz' .+ p.Δw ./ T(2π * γ)
     #Rotation
     if is_ADC_on(s)
         ϕ = T(2π * γ) .* cumtrapz(s.Δt', Bz)
     else
         ϕ = T(2π * γ) .* trapz(s.Δt', Bz)
     end
-    #Mxy preccesion and relaxation and Mz relaxation
+    #Mxy preccesion and relaxation, and Mz relaxation
     tp = cumsum(s.Δt) # t' = t - t0
     dur = sum(s.Δt) #Total length, used for signal relaxation
-    Mxy = M.xy .* exp.(1im .* (ϕ .+ p.Δw .* tp') .- tp' ./ p.T2) #This assumes Δw and T2 are constant
+    Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal

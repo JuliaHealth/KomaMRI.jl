@@ -15,7 +15,7 @@ rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
 TE = 50e-3  # 50e-3 [s]
 TR = 10     # 10 [s]
 Nint = 8
-spiral = PulseDesigner.spiral_base(FOV, N, sys; λ=2.1, BW=60e3, Nint)
+spiral = PulseDesigner.spiral_base(FOV, N, sys; λ=2.1, BW=120e3, Nint)
 delayTE = Delay(TE - Trf / 2)
 delayTR = Delay(TR - Trf / 2 - TE - dur(spiral(0)))
 seq = Sequence()
@@ -35,7 +35,6 @@ simParams = Dict{String,Any}(
     "gpu" => true,
     "gpu_device" => 0,
     "Nthreads" => 1
-    # "return_type"=>"mat"
 )
 
 using CUDA
