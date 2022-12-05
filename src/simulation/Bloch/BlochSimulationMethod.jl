@@ -50,7 +50,7 @@ NVTX.@range function run_spin_precession(p::Phantom{T}, s::DiscreteSequence{T}, 
     M.xy .= Mxy[:, end]
     M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
-    sig = sum(Mxy[:, findall(s.ADC)]; dims=1) #<--- TODO: add coil sensitivities
+    sig = sum(Mxy[:, findall(s.ADC)]; dims=1)' #<--- TODO: add coil sensitivities
     return sig, M
 end
 

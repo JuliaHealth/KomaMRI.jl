@@ -112,13 +112,13 @@ default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solve
 global recParams = merge(default, rec)
 #Simulation
 Ncores = Hwloc.num_physical_cores()
-default = Dict{String,Any}("Δt"=>1e-3,"Δt_rf"=>1e-4,"gpu"=>has_cuda(),"Nthreads"=>has_cuda() ? 1 : Ncores)
+default = Dict{String,Any}("gpu"=>has_cuda(), "gpu_device"=>0, "Nthreads"=>has_cuda() ? 1 : Ncores)
 global simParams = merge(default, sim)
 #GPUs
 if simParams["gpu"]
     @info "Loading GPUs"
     print_gpus()
-    device!(0) #By default it uses first GPU, multiGPU not supported yet
+    device!(simParams["gpu_device"]) #By default it uses first GPU, multiGPU not supported yet
 end
 #OBERSVABLES
 global seq_obs = Observable{Sequence}(seq)

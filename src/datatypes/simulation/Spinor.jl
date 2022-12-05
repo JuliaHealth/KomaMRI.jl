@@ -74,7 +74,7 @@ Spinor clockwise rotation matrix with angle `φ` with respect to z-axis.
 # Returns
 - `s`: (`::Spinor`) spinnor struct that represents the `Rz` rotation matrix
 """
-Rz(φ) = Spinor(exp(-im*φ/2), 0)
+Rz(φ) = Spinor(exp(-1im*φ/2), 0.0im)
 
 """
     s = Ry(θ)
@@ -87,7 +87,7 @@ Spinor clockwise rotation matrix with angle `θ` with respect to y-axis.
 # Returns
 - `s`: (`::Spinor`) spinor struct that represents the `Ry` rotation matrix
 """
-Ry(θ) = Spinor(cos(θ/2), sin(θ/2))
+Ry(θ) = Spinor(cos(θ/2)+0im, sin(θ/2)+0im)
 
 """
     s = Rx(θ)
@@ -100,7 +100,7 @@ Spinor clockwise rotation matrix with angle `θ` with respect to x-axis.
 # Returns
 - `s`: (`::Spinor`) spinor struct that represents the `Rx` rotation matrix
 """
-Rx(θ) = Spinor(cos(θ/2), -im*sin(θ/2))
+Rx(θ) = Spinor(cos(θ/2)+0im, -1im*sin(θ/2))
 
 """
     s = Rg(φ1, θ, φ2)
@@ -115,7 +115,7 @@ Spinor rotation matrix: Rg(φ1, θ, φ2) = Rz(φ2) Ry(θ) Rz(φ1)
 # Returns
 - `s`: (`::Spinor`) spinor struct that represents the `Rg` rotation matrix
 """
-Rg(φ1, θ, φ2) = Spinor(cos(θ/2)*exp(-im*(φ1+φ2)/2), sin(θ/2)*exp(-im*(φ1-φ2)/2))
+Rg(φ1, θ, φ2) = Spinor(cos(θ/2)*exp(-1im*(φ1+φ2)/2), sin(θ/2)*exp(-1im*(φ1-φ2)/2))
 
 """
     s = Rφ(φ, θ)
@@ -131,7 +131,7 @@ Rφ(φ,θ) = Rg(-φ,θ,φ) = Rz(φ) Ry(θ) Rz(-φ)
 # Returns
 - `s`: (`::Spinor`) spinnor struct that represents the `Rφ` rotation matrix
 """
-Rφ(φ, θ) = Spinor(cos(θ/2), exp(im*φ)*sin(θ/2))
+Rφ(φ, θ) = Spinor(cos(θ/2)+0im, exp(1im*φ)*sin(θ/2))
 
 @doc raw"""
     s = Q(φ, nxy, nz)

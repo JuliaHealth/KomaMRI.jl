@@ -111,7 +111,7 @@ NVTX.@range function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, Xt:
             rfs += 1
         else
             sig_aux, Xt = run_spin_precession_parallel(obj, seq[p], Xt; Nthreads)
-            sig[samples:samples+Nadc-1, :] .= sig_aux'
+            sig[samples:samples+Nadc-1, :] .= sig_aux
             samples += Nadc
         end
         #Update progress
