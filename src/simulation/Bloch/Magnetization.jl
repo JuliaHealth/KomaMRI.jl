@@ -20,6 +20,7 @@ end
 Base.getindex(M::Mag, i::Integer) = Mag(M.xy[i,:], M.z[i,:])
 # M[a:b]
 Base.getindex(M::Mag, i::UnitRange) = Mag(M.xy[i], M.z[i])
+Base.view(M::Mag, i::UnitRange) = @views Mag(M.xy[i], M.z[i])
 # M[p] = M2 
 Base.setindex!(M::Mag{T}, M2::Mag{T}, p::UnitRange) where {T<:Real} = begin
     M.xy[p] = M2.xy
@@ -43,6 +44,11 @@ Mxy+ = 2α⋆βMz+(α⋆)²Mxy-β²Mxy⋆
 and
 
 Mz+ = (|α|² - |β|²)Mz-α⋆ β⋆ Mxy-αβMxy⋆ .
+
+Pauly, J., Le Roux, P., Nishimura, D., & Macovski, A. (1991).
+Parameter relations for the Shinnar-Le Roux selective excitation pulse design algorithm
+(NMR imaging).
+IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 """
 *(s::Spinor, M::Mag) = begin
 	Mag(

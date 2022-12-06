@@ -164,7 +164,7 @@ end
 #sla# Params.
 Gmax = 62e-3 # mT/m
 Smax = 100   # mT/m/ms
-for pulse_type = [10, 11, 12]
+for pulse_type = [3,9]#[10, 11, 12]
 ##############################################################################
 if pulse_type == 1
     # 35ms

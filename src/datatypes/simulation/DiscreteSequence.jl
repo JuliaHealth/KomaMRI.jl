@@ -31,6 +31,16 @@ Base.getindex(seq::DiscreteSequence, i::UnitRange) = begin
                      seq.t[i.start:i.stop+1],
                      seq.Δt[i])
 end
+Base.view(seq::DiscreteSequence, i::UnitRange) = begin
+    @views DiscreteSequence(seq.Gx[i.start:i.stop+1],
+                     seq.Gy[i.start:i.stop+1],
+                     seq.Gz[i.start:i.stop+1],
+                     seq.B1[i.start:i.stop+1],
+                     seq.Δf[i.start:i.stop+1],
+                     seq.ADC[i],
+                     seq.t[i.start:i.stop+1],
+                     seq.Δt[i])
+end
 Base.iterate(seq::DiscreteSequence) = (seq[1], 2)
 Base.iterate(seq::DiscreteSequence, i) = (i <= length(seq)) ? (seq[i], i+1) : nothing
 

@@ -43,7 +43,7 @@ CUDA.allowscalar(false)
 raw = simulate(phantom, seq, sys; simParams)
 
 # CUDA.@profile ( simulate(phantom, seq, sys; simParams) );
-plot_signal(raw) #; show_sim_blocks=true)
+# plot_signal(raw) #; show_sim_blocks=true)
 ## Recon
 acq = AcquisitionData(raw)
 reconParams = Dict{Symbol,Any}(

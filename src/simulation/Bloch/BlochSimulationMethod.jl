@@ -22,35 +22,33 @@ precession.
 - `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
 - `seq`: (`::Sequence`) Sequence struct
 
-# Keywords
-- `M0`: (`::Vector{Mag}`) initial state of the Mag vector (actually, it's a part of the
-    complete Mag vector)
-
 # Returns
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-NVTX.@range function run_spin_precession(p::Phantom{T}, s::DiscreteSequence{T}, M::Mag{T}) where {T<:Real}
+NVTX.@range function run_spin_precession(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
+    M::Mag{T}, sim_method::Bloch) where {T<:Real}
+    #Simulation
     #Motion
-    xt = p.x .+ p.ux(p.x, p.y, p.z, s.t')
-    yt = p.y .+ p.uy(p.x, p.y, p.z, s.t')
-    zt = p.z .+ p.uz(p.x, p.y, p.z, s.t')
+    xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
+    yt = p.y .+ p.uy.(p.x, p.y, p.z, seq.t')
+    zt = p.z .+ p.uz.(p.x, p.y, p.z, seq.t')
     #Effective field
-    Bz = xt .* s.Gx' .+ yt .* s.Gy' .+ zt .* s.Gz' .+ p.Δw ./ T(2π * γ)
+    Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
-    if is_ADC_on(s)
-        ϕ = T(2π * γ) .* cumtrapz(s.Δt', Bz)
+    if is_ADC_on(seq)
+        ϕ = T(2π * γ) .* cumtrapz(seq.Δt', Bz)
     else
-        ϕ = T(2π * γ) .* trapz(s.Δt', Bz)
+        ϕ = T(2π * γ) .* trapz(seq.Δt', Bz)
     end
     #Mxy preccesion and relaxation, and Mz relaxation
-    tp = cumsum(s.Δt) # t' = t - t0
-    dur = sum(s.Δt) #Total length, used for signal relaxation
+    tp = cumsum(seq.Δt) # t' = t - t0
+    dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
-    sig = sum(Mxy[:, findall(s.ADC)]; dims=1)' #<--- TODO: add coil sensitivities
+    sig .= sum(Mxy[:, findall(seq.ADC)]; dims=1)' #<--- TODO: add coil sensitivities
     return sig, M
 end
 
@@ -69,16 +67,17 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
-NVTX.@range function run_spin_excitation(p::Phantom{T}, seq::DiscreteSequence{T}, M::Mag{T}) where {T<:Real}
+NVTX.@range function run_spin_excitation(p::Phantom{T}, seq::DiscreteSequence{T}, 
+    M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
-    for s ∈ seq
+    for s ∈ seq #This iterates over seq, "s = seq[i,:]"
         #Motion
         xt = p.x .+ p.ux(p.x, p.y, p.z, s.t)
         yt = p.y .+ p.uy(p.x, p.y, p.z, s.t)
         zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
         #Effective field
-        ΔB0 = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
-        Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔB0
+        ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
+        Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B[B .== 0] .= eps(T)
         #Spinor Rotation

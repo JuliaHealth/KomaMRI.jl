@@ -26,17 +26,18 @@ separating the spins of the phantom `obj` in `Nthreads`.
     next simulation step (the next step can be another precession step or an excitation
     step))
 """
-NVTX.@range function run_spin_precession_parallel(obj::Phantom{T}, seq::DiscreteSequence{T}, Xt::SpinStateRepresentation{T};
+NVTX.@range function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nthreads=Nphyscores) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads, type="ordered")
 
-    sig = ThreadsX.mapreduce(+, parts) do p #Thread-safe summation
-        sig_p, Xt[p] = run_spin_precession(obj[p], seq, Xt[p])
+    sig = ThreadsX.mapreduce(+, parts) do p # Thread-safe summation
+        sig_p, Xt[p] = run_spin_precession(@view(obj[p]), seq, sig, @view(Xt[p]), sim_method)
         sig_p
     end
 
-    return sig, Xt
+    return nothing
 end
 
 """
@@ -58,16 +59,16 @@ different number threads to excecute the process.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (or the initial
     state for the next precession simulation step)
 """
-NVTX.@range function run_spin_excitation_parallel(obj::Phantom{T}, seq::DiscreteSequence{T}, Xt::SpinStateRepresentation{T};
+NVTX.@range function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, 
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nthreads=Nphyscores) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads; type="ordered")
 
     Threads.@threads for p ∈ parts
-        Xt[p] = run_spin_excitation(obj[p], seq, Xt[p])
+        Xt[p] = run_spin_excitation(@view(obj[p]), seq, @view(Xt[p]), sim_method)
     end
-
-    return Xt
+    return nothing
 end
 
 """
@@ -95,23 +96,25 @@ take advantage of CPU parallel processing.
 - `S_interp`: (`::Vector{ComplexF64}`) interpolated raw signal
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-NVTX.@range function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, Xt::SpinStateRepresentation{T}, sig::AbstractArray{Complex{T}};
+NVTX.@range function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}}, 
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nblocks=1, Nthreads=Nphyscores, parts=[1:length(seq)], w=nothing) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
     progress_bar = Progress(Nblocks)
     for (block, p) = enumerate(parts)
+        seq_block = @view seq[p]
         # Params
-        excitation_bool = is_RF_on(seq[p]) && is_ADC_off(seq[p]) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
-        Nadc = sum(seq[p].ADC)
+        excitation_bool = is_RF_on(seq_block) && is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
+        Nadc = sum(seq_block.ADC)
+        acq_samples = samples:samples+Nadc-1
         # Simulation wrappers
         if excitation_bool
-            Xt = run_spin_excitation_parallel(obj, seq[p], Xt; Nthreads)
+            run_spin_excitation_parallel!(obj, seq_block, Xt, sim_method; Nthreads)
             rfs += 1
         else
-            sig_aux, Xt = run_spin_precession_parallel(obj, seq[p], Xt; Nthreads)
-            sig[samples:samples+Nadc-1, :] .= sig_aux
+            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, :]), Xt, sim_method; Nthreads)
             samples += Nadc
         end
         #Update progress
@@ -166,15 +169,16 @@ julia> plot_signal(ismrmrd)
 NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
     #Simulation parameter parsing
     NVTX.@range "Param parsing" begin
+                                #This is the default value of each variable
     enable_gpu  = get(simParams, "gpu", use_cuda[])
     gpu_device  = get(simParams, "gpu_device", 0)
-    precision   = get(simParams, "precision", "f32")
     Nthreads    = get(simParams, "Nthreads", enable_gpu ? 1 : Nphyscores)
+    Nblocks     = get(simParams, "Nblocks", 10)
     Δt          = get(simParams, "Δt", 1e-3)
-    Δt_rf       = get(simParams, "Δt_rf", 1e-5)
-    return_type = get(simParams, "return_type", "raw")
-    Nblocks     = get(simParams, "Nblocks", 1)
+    Δt_rf       = get(simParams, "Δt_rf", 1e-4)
     sim_method  = get(simParams, "sim_method", Bloch())
+    precision   = get(simParams, "precision", "f32")
+    return_type = get(simParams, "return_type", "raw")
     end
     # Simulation init
     NVTX.@range "Sim init" begin
@@ -190,7 +194,7 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
     B1, Δf     = get_rfs(seq, t)
     Gx, Gy, Gz = get_grads(seq, t)
     tadc       = get_adc_sampling_times(seq)
-    ADCflag = [any(tt .== tadc) for tt in t[2:end]]
+    ADCflag = [any(tt .== tadc) for tt in t[2:end]] #Displaced 1 dt, sig[i]=S(ti+dt)
     seqd = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
     end
     # Spins' state init (Magnetization, EPG, etc.)
@@ -200,17 +204,11 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
     # Signal init
     NVTX.@range "Signal init" begin
     Nadc = sum(seq.ADC.N)
-    Ncoils = 1
+    Ncoils = 1 #This should consider the input Scanner type
     sig = zeros(ComplexF64, Nadc, Ncoils)
     end
     # Objects to GPU
     NVTX.@range "To GPU" begin
-    if precision == "f32" #Default
-        obj  = obj  |> f32 #Phantom
-        seqd = seqd |> f32 #DiscreteSequence
-        Xt   = Xt   |> f32 #SpinStateRepresentation
-        sig  = sig  |> f32 #Signal
-    end
     if enable_gpu #Default
         device!(gpu_device)
         gpu_name = name.(devices())[gpu_device+1]
@@ -219,14 +217,29 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
         Xt   = Xt   |> gpu #SpinStateRepresentation
         sig  = sig  |> gpu #Signal
     end
+    if precision == "f32" #Default
+        obj  = obj  |> f32 #Phantom
+        seqd = seqd |> f32 #DiscreteSequence
+        Xt   = Xt   |> f32 #SpinStateRepresentation
+        sig  = sig  |> f32 #Signal
+    elseif precision == "f64"
+        obj  = obj  |> f64 #Phantom
+        seqd = seqd |> f64 #DiscreteSequence
+        Xt   = Xt   |> f64 #SpinStateRepresentation
+        sig  = sig  |> f64 #Signal
+    end
     end
     # Simulation
     @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Nadc
-    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, Xt, sig; Nblocks, Nthreads, parts, w)
-    #Result to CPU, if already in the CPU it does nothing
-    NVTX.@range "Sign and Xt to CPU" begin
+    CUDA.@time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
+    # Result to CPU, if already in the CPU it does nothing
+    NVTX.@range "Results to CPU" begin
     sig = sig |> cpu
     Xt  = Xt  |> cpu
+    end
+    NVTX.@range "GC" begin
+    GC.gc(true)
+    if enable_gpu CUDA.reclaim() end
     end
     # Output
     NVTX.@range "Return result" begin
@@ -243,7 +256,7 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
         simParams_raw["t_sim_parts"] = t_sim_parts
         simParams_raw["Nblocks"] = Nblocks
         simParams_raw["sim_time_sec"] = timed_tuple.time
-        out = signal_to_raw_data(sig, seq; phantom=obj, sys=sys, simParams=simParams_raw)
+        out = signal_to_raw_data(sig, seq; phantom=cpu(obj), sys=sys, simParams=simParams_raw)
     end
     end
     return out

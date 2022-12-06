@@ -70,6 +70,28 @@ Base.getindex(obj::Phantom, p::AbstractRange) = begin
 			uz=obj.uz
 			)
 end
+"""Separate object spins in a sub-group."""
+Base.view(obj::Phantom, p::AbstractRange) = begin
+	@views Phantom(name=obj.name,
+			x=obj.x[p],
+			y=obj.y[p],
+			z=obj.z[p],
+			ρ=obj.ρ[p],
+			T1=obj.T1[p],
+			T2=obj.T2[p],
+			T2s=obj.T2s[p],
+			Δw=obj.Δw[p],
+			#Diff=obj.Diff[p], #TODO!
+			Dλ1=obj.Dλ1[p],
+			Dλ2=obj.Dλ2[p],
+			Dθ=obj.Dθ[p],
+			#Χ=obj.Χ[p], #TODO!
+			ux=obj.ux,
+			uy=obj.uy,
+			uz=obj.uz
+			)
+end
+
 # Compartment enabling routines:
 # Addition of compartments
 +(s1::Phantom,s2::Phantom) =begin

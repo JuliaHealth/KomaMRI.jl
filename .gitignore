@@ -20,3 +20,4 @@ src/examples/sysimageSpinLab.dll
 .gitignore
 qte_timings.txt
 *.nsys-rep
+*.mem
