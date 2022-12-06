@@ -233,7 +233,7 @@ spiral_base(FOV::Float64, N::Int64, sys::Scanner; S0=sys.Smax*2/3, Nint=8, λ=Ni
 	θ₁(t) = (.5 * β * t^2) / (Λ + β / 2a₂ * t^(4/3))
 	Gmax = sys.Gmax
 	ts = (Gmax * 3γ/(2λ*a₂^2))^3 # Gmax = 2λ / 3γ a₂² t ^1/3 e^ (i a₂ t^2/3)
-	dt = sys.ADC_Δt
+	dt = sys.GR_Δt
 	if θ₁(ts) < θmax
 		#Region 1 - Slew Rate-Limited
 		t1 = 0:dt:ts

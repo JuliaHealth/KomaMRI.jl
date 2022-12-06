@@ -28,7 +28,7 @@ julia> plot_signal(ismrmrd)
 ```
 """
 function signal_to_raw_data(signal, seq;
-                                phantom=Phantom(name="Phantom",x=[0]),
+                                phantom_name="Phantom",
                                 sys=Scanner(),
                                 simParams=Dict{String,Any}())
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
@@ -61,7 +61,7 @@ function signal_to_raw_data(signal, seq;
         "systemModel"                    => "v"*version, #String
         "institutionName"                => "Pontificia Universidad Catolica de Chile", #String
         #Phantom
-        "patientName"                    => phantom.name,
+        "patientName"                    => phantom_name,
         #Sys
         "systemFieldStrength_T"          => sys.B0, #Float
         "H1resonanceFrequency_Hz"        => floor(Int64, γ * sys.B0), #Long (Int)

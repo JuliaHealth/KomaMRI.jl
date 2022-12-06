@@ -32,9 +32,8 @@ NVTX.@range function run_spin_precession_parallel!(obj::Phantom{T}, seq::Discret
 
     parts = kfoldperm(length(obj), Nthreads, type="ordered")
 
-    sig = ThreadsX.mapreduce(+, parts) do p # Thread-safe summation
-        sig_p, Xt[p] = run_spin_precession(@view(obj[p]), seq, sig, @view(Xt[p]), sim_method)
-        sig_p
+    ThreadsX.foreach(enumerate(parts)) do (i, p)
+        run_spin_precession!(@view(obj[p]), seq, @view(sig[:,:,i]), @view(Xt[p]), sim_method)
     end
 
     return nothing
@@ -66,8 +65,9 @@ NVTX.@range function run_spin_excitation_parallel!(obj::Phantom{T}, seq::Discret
     parts = kfoldperm(length(obj), Nthreads; type="ordered")
 
     Threads.@threads for p ∈ parts
-        Xt[p] = run_spin_excitation(@view(obj[p]), seq, @view(Xt[p]), sim_method)
+        run_spin_excitation!(@view(obj[p]), seq, @view(Xt[p]), sim_method)
     end
+
     return nothing
 end
 
@@ -114,11 +114,11 @@ NVTX.@range function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig
             run_spin_excitation_parallel!(obj, seq_block, Xt, sim_method; Nthreads)
             rfs += 1
         else
-            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, :]), Xt, sim_method; Nthreads)
+            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, :, :]), Xt, sim_method; Nthreads)
             samples += Nadc
         end
         #Update progress
-        next!(progress_bar, showvalues=[(:simulated_blocks, block), (:rf_blocks, rfs), (:adc_samples, samples-1)])
+        next!(progress_bar, showvalues=[(:simulated_blocks, block), (:rf_blocks, rfs), (:acq_samples, samples-1)])
         update_blink_window_progress!(w, block, Nblocks)
     end
     return nothing
@@ -173,9 +173,9 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
     enable_gpu  = get(simParams, "gpu", use_cuda[])
     gpu_device  = get(simParams, "gpu_device", 0)
     Nthreads    = get(simParams, "Nthreads", enable_gpu ? 1 : Nphyscores)
-    Nblocks     = get(simParams, "Nblocks", 10)
+    Nblocks     = get(simParams, "Nblocks", 20)
     Δt          = get(simParams, "Δt", 1e-3)
-    Δt_rf       = get(simParams, "Δt_rf", 1e-4)
+    Δt_rf       = get(simParams, "Δt_rf", 5e-5)
     sim_method  = get(simParams, "sim_method", Bloch())
     precision   = get(simParams, "precision", "f32")
     return_type = get(simParams, "return_type", "raw")
@@ -205,7 +205,7 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
     NVTX.@range "Signal init" begin
     Nadc = sum(seq.ADC.N)
     Ncoils = 1 #This should consider the input Scanner type
-    sig = zeros(ComplexF64, Nadc, Ncoils)
+    sig = zeros(ComplexF64, Nadc, Ncoils, Nthreads)
     end
     # Objects to GPU
     NVTX.@range "To GPU" begin
@@ -233,13 +233,10 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
     @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Nadc
     CUDA.@time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
     # Result to CPU, if already in the CPU it does nothing
-    NVTX.@range "Results to CPU" begin
-    sig = sig |> cpu
-    Xt  = Xt  |> cpu
-    end
-    NVTX.@range "GC" begin
+    NVTX.@range "Aggregate threads, To CPU" begin
+    sig = sum(sig; dims=3) |> cpu
     GC.gc(true)
-    if enable_gpu CUDA.reclaim() end
+    CUDA.reclaim()
     end
     # Output
     NVTX.@range "Return result" begin
@@ -256,7 +253,7 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
         simParams_raw["t_sim_parts"] = t_sim_parts
         simParams_raw["Nblocks"] = Nblocks
         simParams_raw["sim_time_sec"] = timed_tuple.time
-        out = signal_to_raw_data(sig, seq; phantom=cpu(obj), sys=sys, simParams=simParams_raw)
+        out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, simParams=simParams_raw)
     end
     end
     return out

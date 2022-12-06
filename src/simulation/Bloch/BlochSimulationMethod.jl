@@ -26,7 +26,7 @@ precession.
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-NVTX.@range function run_spin_precession(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
+NVTX.@range function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
     M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
     #Motion
@@ -46,10 +46,10 @@ NVTX.@range function run_spin_precession(p::Phantom{T}, seq::DiscreteSequence{T}
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
+    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
     sig .= sum(Mxy[:, findall(seq.ADC)]; dims=1)' #<--- TODO: add coil sensitivities
-    return sig, M
+    return nothing
 end
 
 """
@@ -67,7 +67,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
-NVTX.@range function run_spin_excitation(p::Phantom{T}, seq::DiscreteSequence{T}, 
+NVTX.@range function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, 
     M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
     for s ∈ seq #This iterates over seq, "s = seq[i,:]"
@@ -82,10 +82,10 @@ NVTX.@range function run_spin_excitation(p::Phantom{T}, seq::DiscreteSequence{T}
         B[B .== 0] .= eps(T)
         #Spinor Rotation
         φ = T(2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
-        M = Q(φ, s.B1 ./ B, Bz ./ B) * M
+        mul!( Q(φ, s.B1 ./ B, Bz ./ B), M )
         #Relaxation
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
         M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
     end
-    return M
+    return nothing
 end

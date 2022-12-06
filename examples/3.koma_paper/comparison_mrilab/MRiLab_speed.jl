@@ -4,14 +4,15 @@ using KomaMRI
 sys = Scanner()
 sys.Smax = 150    # [mT/m/ms]
 sys.Gmax = 500e-3 # [T/m]
+sys.GR_Δt = 4e-6  # [s]
 FOV = 0.2       # [m]
 N = 80          # Reconstructed image N×N
 ## Pulse programming
-#RF sinc
+# RF sinc
 B1 = 24.7835e-6 # For 90 deg flip angle
 Trf = 1e-3
 rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
-#Spiral sequence
+# Spiral sequence
 TE = 50e-3  # 50e-3 [s]
 TR = 10     # 10 [s]
 Nint = 8
@@ -31,19 +32,16 @@ FRange_filename = filepath * "FRange.mat"
 phantom = read_phantom_MRiLab(filename; FRange_filename)
 ## Simulation
 simParams = Dict{String,Any}(
-    "Nblocks" => 1,
+    "Nblocks" => 20,
     "gpu" => true,
-    "gpu_device" => 0,
     "Nthreads" => 1
 )
 
-using CUDA
-CUDA.allowscalar(false)
-
 raw = simulate(phantom, seq, sys; simParams)
+plot_signal(raw; range=[50.5, 54]) #; show_sim_blocks=true)
 
+# using CUDA
 # CUDA.@profile ( simulate(phantom, seq, sys; simParams) );
-# plot_signal(raw) #; show_sim_blocks=true)
 ## Recon
 acq = AcquisitionData(raw)
 reconParams = Dict{Symbol,Any}(

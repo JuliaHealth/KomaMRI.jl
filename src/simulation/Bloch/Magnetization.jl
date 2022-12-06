@@ -21,11 +21,6 @@ Base.getindex(M::Mag, i::Integer) = Mag(M.xy[i,:], M.z[i,:])
 # M[a:b]
 Base.getindex(M::Mag, i::UnitRange) = Mag(M.xy[i], M.z[i])
 Base.view(M::Mag, i::UnitRange) = @views Mag(M.xy[i], M.z[i])
-# M[p] = M2 
-Base.setindex!(M::Mag{T}, M2::Mag{T}, p::UnitRange) where {T<:Real} = begin
-    M.xy[p] = M2.xy
-    M.z[p]  = M2.z
-end
 
 # Definition of rotation Spinor×SpinStateRepresentation
 @doc raw"""
@@ -50,9 +45,11 @@ Parameter relations for the Shinnar-Le Roux selective excitation pulse design al
 (NMR imaging).
 IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 """
-*(s::Spinor, M::Mag) = begin
-	Mag(
-        2*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
-        (abs.(s.α).^2 .-abs.(s.β).^2).*M.z.-2*real.(s.α.*s.β.*conj.(M.xy)) #2real(s.α*s.β*conj(M.xy))=conj(s.α)*conj(s.β)*M.xy+s.α*s.β*conj(M.xy)
-    )
+mul!(s::Spinor, M::Mag) = begin
+    M_aux = Mag(
+        2*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy), 
+        (abs.(s.α).^2 .-abs.(s.β).^2).*M.z.-2*real.(s.α.*s.β.*conj.(M.xy))
+     )
+    M.xy .= M_aux.xy
+    M.z  .= M_aux.z
 end
