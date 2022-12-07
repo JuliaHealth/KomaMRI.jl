@@ -231,14 +231,14 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
     end
     # Simulation
     @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Nadc
-    CUDA.@time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
+    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
     # Result to CPU, if already in the CPU it does nothing
     NVTX.@range "Aggregate threads, Phase compensation, Results to CPU" begin
     sig = sum(sig; dims=3) |> cpu
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
     GC.gc(true)
-    CUDA.reclaim()
+    if enable_gpu CUDA.reclaim() end
     end
     # Output
     NVTX.@range "Return result" begin
