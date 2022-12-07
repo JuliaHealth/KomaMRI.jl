@@ -14,7 +14,6 @@ Depth = 3
 ### `Mag`
 ```@docs
 Mag
-Mag(::Phantom, ::Symbol)
 show(::IO, ::Mag)
 getproperty(::Vector{Mag}, ::Symbol)
 ```

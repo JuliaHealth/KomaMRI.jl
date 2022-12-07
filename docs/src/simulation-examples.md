@@ -48,13 +48,13 @@ obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
 nothing # hide
 ```
 
-Finally, to simulate we will need to use the function [simulate](@ref).
+Finally, to simulate we will need to use the function [`simulate`](@ref).
 ```@example 1
 sys = Scanner() # default hardware definition
 raw = simulate(obj, seq, sys)
 ```
 
-To plot the results we will need to use the [plot_signal](@ref) function 
+To plot the results we will need to use the [`plot_signal`](@ref) function 
 ```@example 1
 p = plot_signal(raw; slider=false, height=300)
 savefig(p, "assets/1-signal.html"); nothing # hide
@@ -163,7 +163,7 @@ using KomaMRI
 sys = Scanner()
 ```
 
-While in the previous examples we simulated using hard RF pulses, in this demonstration we will illustrate the principles of slice selection. First, let's import a 3D phantom, in this case a brain slab (thickness of $2\,\mathrm{cm}$), by calling the function [brain_phantom3D](@ref). 
+While in the previous examples we simulated using hard RF pulses, in this demonstration we will illustrate the principles of slice selection. First, let's import a 3D phantom, in this case a brain slab (thickness of $2\,\mathrm{cm}$), by calling the function [`brain_phantom3D`](@ref). 
 ```@example 3
 obj = brain_phantom3D()
 obj.Δw .= 0 # Removes the off-resonance
@@ -185,7 +185,7 @@ savefig(p, "assets/3-seq.html");
 ```@raw html
 <object type="text/html" data="../assets/3-seq.html" style="width:100%; height:420px;"></object>
 ```
-We can take a look to the slice profiles by using the function [simulate_slice_profile](@ref):
+We can take a look to the slice profiles by using the function [`simulate_slice_profile`](@ref):
 ```@example 3
 z = range(-2., 2., 200) * 1e-2; # -2 to 2 cm
 rf1, rf2, rf3 = findall(KomaMRI.is_RF_on.(seq))
@@ -230,9 +230,9 @@ reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny))
 image = reconstruction(acq, reconParams)
 
 # Plotting the slices
-p1 = plot_image(abs.(image[:, :, 1]); height=360, title="slice 1")
-p2 = plot_image(abs.(image[:, :, 2]); height=360, title="slice 2")
-p3 = plot_image(abs.(image[:, :, 3]); height=360, title="slice 3")
+p1 = plot_image(abs.(image[:, :, 1]); height=360, title="Slice 1")
+p2 = plot_image(abs.(image[:, :, 2]); height=360, title="Slice 2")
+p3 = plot_image(abs.(image[:, :, 3]); height=360, title="Slice 3")
 savefig(p1, "assets/3-recon1.html");  nothing # hide
 savefig(p2, "assets/3-recon2.html");  nothing # hide
 savefig(p3, "assets/3-recon3.html");  nothing # hide
