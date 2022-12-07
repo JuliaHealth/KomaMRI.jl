@@ -233,9 +233,10 @@ NVTX.@range function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simPara
     @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Nadc
     CUDA.@time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
     # Result to CPU, if already in the CPU it does nothing
-    NVTX.@range "Aggregate threads, Phase compensation, Signal to CPU" begin
+    NVTX.@range "Aggregate threads, Phase compensation, Results to CPU" begin
     sig = sum(sig; dims=3) |> cpu
     sig .*= get_adc_phase_compensation(seq)
+    Xt = Xt |> cpu
     GC.gc(true)
     CUDA.reclaim()
     end
@@ -279,7 +280,7 @@ Returns magnetization of spins distributed along `z` after running the Sequence 
 function simulate_slice_profile(seq; z=range(-2.e-2, 2.e-2, 200), simParams=Dict{String,Any}("Δt_rf" => 1e-6))
     simParams["return_type"] = "state"
     sys = Scanner()
-    phantom = Phantom{Float64}(x=zeros(size(z)), z=z)
+    phantom = Phantom{Float64}(x=zeros(size(z)), z=Array(z))
     M = simulate(phantom, seq, sys; simParams)
     M
 end

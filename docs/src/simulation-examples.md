@@ -207,7 +207,7 @@ savefig(p, "assets/3-profile.html"); nothing # hide
 
 Now let's simulate the acquisition. Notice the three echoes, one for every slice excitation.
 ```@setup 3
-raw = simulate(obj, seq, sys; simParams=Dict{String,Any}("Nblocks"=>30))
+raw = simulate(obj, seq, sys; simParams=Dict{String,Any}("Nblocks"=>20))
 p = plot_signal(raw; slider=false, height=300)
 savefig(p, "assets/3-signal.html"); nothing # hide
 ```
