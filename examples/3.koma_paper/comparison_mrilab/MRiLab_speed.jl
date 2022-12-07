@@ -40,8 +40,8 @@ simParams = Dict{String,Any}(
 raw = simulate(phantom, seq, sys; simParams)
 plot_signal(raw; range=[50.5, 54]) #; show_sim_blocks=true)
 
-# using CUDA
-# CUDA.@profile ( simulate(phantom, seq, sys; simParams) );
+using CUDA
+CUDA.@profile ( simulate(phantom, seq, sys; simParams) );
 ## Recon
 acq = AcquisitionData(raw)
 reconParams = Dict{Symbol,Any}(
