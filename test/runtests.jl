@@ -171,9 +171,8 @@ end
 end
 
 @testitem "BlochSim_CPU_sigle_thread" tags=[:important] begin
-    using Suppressor
     path = @__DIR__
-    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+    seq = read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
     obj = brain_phantom2D()
     sys = Scanner()
     simParams = Dict{String, Any}(
@@ -186,9 +185,8 @@ end
 end
 
 @testitem "BlochSim_CPU_multi_thread" tags=[:important] begin
-    using Suppressor
     path = @__DIR__
-    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+    seq = read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
     obj = brain_phantom2D()
     sys = Scanner()
     simParams = Dict{String, Any}(
@@ -200,9 +198,8 @@ end
 end
 
 @testitem "BlochSim_GPU" tags=[:important, :skipci] begin
-    using Suppressor
     path = @__DIR__
-    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+    seq = read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
     obj = brain_phantom2D()
     sys = Scanner()
     simParams = Dict{String, Any}(
