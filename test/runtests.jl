@@ -181,7 +181,7 @@ end
         "Nthreads"=>1,
         "sim_method"=>KomaMRI.Bloch()
     )
-    sig = @suppress simulate(obj, seq, sys; simParams)
+    sig = simulate(obj, seq, sys; simParams)
     @test true                #If the previous line fails the test will fail
 end
 
@@ -195,7 +195,7 @@ end
         "gpu"=>false,
         "sim_method"=>KomaMRI.Bloch()
     )
-    sig = @suppress simulate(obj, seq, sys; simParams)
+    sig = simulate(obj, seq, sys; simParams)
     @test true                #If the previous line fails the test will fail
 end
 
@@ -209,7 +209,7 @@ end
         "gpu"=>true,
         "sim_method"=>KomaMRI.Bloch()
     )
-    sig = @suppress simulate(obj, seq, sys; simParams)
+    sig = simulate(obj, seq, sys; simParams)
     @test true                #If the previous line fails the test will fail
 end
 
