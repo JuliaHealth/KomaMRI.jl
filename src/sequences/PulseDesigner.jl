@@ -256,8 +256,8 @@ spiral_base(FOV::Float64, N::Int64, sys::Scanner; S0=sys.Smax*2/3, Nint=8, λ=Ni
 		Gx = Grad(real.(G),ta,0,abs(real(G[end]))/Smax,0)
 		Gy = Grad(imag.(G),ta,0,abs(imag(G[end]))/Smax,0)
 		Gz = Grad(0,0)
-		GR = [Gx; Gy; Gz;;]
-		R = [RF(0,0);;]
+		GR = reshape([Gx; Gy; Gz], 3, 1)
+		R = reshape([RF(0,0)], 1, 1)
 		Nadc = floor(Int64, ta*BW)
 		A = [ADC(Nadc,ta)]
 		seq = Sequence(GR,R,A)

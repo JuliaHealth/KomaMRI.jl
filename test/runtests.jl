@@ -307,6 +307,11 @@ end
         @test raw.params["systemVendor"] == "KomaMRI.jl"
     end
     #Test JEMRIS
+    @testset "JEMRIS" begin
+        path = @__DIR__
+        obj = read_phantom_jemris(path*"/test_files/column1d.h5")
+        @test obj.name == "column1d.h5"
+    end
 end
 
 #GUI tests
