@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Simulation Method · KomaMRI.jl: General MRI simulation framework</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.044/juliamono.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/extra-styles.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img class="docs-light-only" src="../assets/logo.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/><img class="docs-dark-only" src="../assets/logo-dark.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/></a><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../getting-started/">Getting Started</a></li><li><a class="tocitem" href="../ui-details/">Graphical User Interface</a></li><li><a class="tocitem" href="../simulation-examples/">Examples</a></li><li class="is-active"><a class="tocitem" href>Simulation Method</a><ul class="internal"><li><a class="tocitem" href="#Physical-and-Mathematical-Background"><span>Physical and Mathematical Background</span></a></li><li><a class="tocitem" href="#Simulation-Blocks,-Regime-Switching,-and-Sequence-Aware-Time-Stepping"><span>Simulation Blocks, Regime Switching, and Sequence-Aware Time Stepping</span></a></li><li><a class="tocitem" href="#GPU/CPU-Parallelization"><span>GPU/CPU Parallelization</span></a></li></ul></li><li><a class="tocitem" href="../api/">API Documentation</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Simulation Method</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Simulation Method</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/cncastillo/KomaMRI.jl/blob/master/docs/src/mri-theory.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Koma&#39;s-Simulation-Method"><a class="docs-heading-anchor" href="#Koma&#39;s-Simulation-Method">Koma&#39;s Simulation Method</a><a id="Koma&#39;s-Simulation-Method-1"></a><a class="docs-heading-anchor-permalink" href="#Koma&#39;s-Simulation-Method" title="Permalink"></a></h1><h2 id="Physical-and-Mathematical-Background"><a class="docs-heading-anchor" href="#Physical-and-Mathematical-Background">Physical and Mathematical Background</a><a id="Physical-and-Mathematical-Background-1"></a><a class="docs-heading-anchor-permalink" href="#Physical-and-Mathematical-Background" title="Permalink"></a></h2><p>Koma simulates the magnetization of each spin by solving the Bloch equations in the rotating frame:</p><p class="math-container">\[\begin{align} \tag{1}
+
+\frac{\mathrm{d} \boldsymbol{M}}{\mathrm{d} t} =
+  \gamma \boldsymbol{M} \times \boldsymbol{B}
+- \frac{M_x \hat{x} + M_y \hat{y}}{T_2}
+- \frac{M_z \hat{x} + M_0 \hat{y}}{T_1} \:,
+
+\end{align}\]</p><p>with <span>$\gamma$</span> the gyromagnetic ratio, <span>$\boldsymbol{M} = [M_x,\: M_y,\: M_z]^T$</span> the magnetization vector, and</p><p class="math-container">\[\boldsymbol{B} = [B_{1,x}(t),\: B_{1,y}(t),\: \boldsymbol{G}(t) \cdot \boldsymbol{x} + \Delta \omega(t)]^T\]</p><p>the effective magnetic field. <span>$M_0$</span> is the proton density, <span>$T_1$</span> and <span>$T_2$</span> are the relaxation times, and <span>$\Delta \omega$</span> is the off-resonance, for each position.</p><p>The solution of Equation <code>(1)</code> for a single spin is independent of the state of the other spins in the system, a key feature that enables parallelization (look at <a href="#GPU/CPU-Parallelization">GPU/CPU Parallelization</a>).</p><p>Our simulator also uses the method of <strong>operator splitting</strong> to simplify the solution of Equation <code>(1)</code>. This reflects mathematically the intuition of separating the Bloch equations in a rotation operator described by</p><p class="math-container">\[\begin{align} \tag{2}
+
+\frac{\mathrm{d}}{\mathrm{d}t} \boldsymbol{M} =
+\begin{bmatrix}
+ 0          &amp;  \gamma B_z &amp; -\gamma B_y \\
+-\gamma B_z &amp;  0          &amp;  \gamma B_x \\
+ \gamma B_y &amp; -\gamma B_x &amp;  0
+\end{bmatrix}
+\boldsymbol{M} \:,
+
+\end{align}\]</p><p>and a relaxation operator described by</p><p class="math-container">\[\begin{align} \tag{3}
+
+\frac{\mathrm{d}}{\mathrm{d}t} \boldsymbol{M} =
+\begin{bmatrix}
+-\tfrac{1}{T_2} &amp; 0 &amp; 0 \\
+0 &amp; -\tfrac{1}{T_2} &amp; 0 \\
+0 &amp; 0 &amp; -\tfrac{1}{T_1}
+\end{bmatrix}
+\boldsymbol{M}
++
+\begin{bmatrix}
+0 \\
+0 \\
+\tfrac{M_0}{T_1}
+\end{bmatrix} \:.
+
+\end{align}\]</p><p>The evolution of the magnetization can then be described as a two-step process for each time step <span>$\Delta t$</span> (<strong>Figure 1</strong>).</p><p align="center">
+<figure>
+  <img width="60%" src="../assets/block-equation-intuition.svg">
+  <figcaption><b>Figure 1</b>: Solution of the Bloch equations for one time step can be described by (2) a rotation and (3) a relaxation step.</figcaption>
+</figure>
+</p><p>Furthermore, we define two regimes in the pulse sequence: excitation and precession. During the latter, the excitation fields are nulled: <span>$B_x = B_y = 0$</span> in Equation <code>(2)</code>. In the precession regime, the operator splitting method gives an exact solution, whereas during the excitation regime the method has <span>$O({\Delta t}^3)$</span> convergence.</p><p>From this point forward, we will drop the vectorial notation for <span>$\boldsymbol{M}$</span> and <span>$\boldsymbol{B}_1$</span>, and we will use <span>$M_{xy} = M_x + i M_y$</span> and <span>$B_1 = B_{1,x} + i B_{1,y}$</span> to describe the simplifications made in each regime.</p><p>The rotations during the excitation regime are stored in their spin-domain or SU(2) representation</p><p class="math-container">\[\bold{Q} =
+\begin{bmatrix}
+\alpha &amp;-\beta^* \\
+\beta  &amp;-\alpha^*
+\end{bmatrix}\:, \quad\quad
+\text{with}\:
+|\alpha|^2 + |\beta|^2 = 1 \:,\]</p><p>characterized by the Cayley-Klein complex parameters or Spinors for short <span>$(\alpha,\:\beta)$</span>. Spinors can represent any 3D rotation as</p><p class="math-container">\[\alpha = \cos \left( \tfrac{\varphi}{2} \right)  - i \: n_z \sin \left( \tfrac{\varphi}{2} \right) \\
+\beta = -i n_{xy} \sin \left( \tfrac{\varphi}{2} \right) \:.\]</p><p>To solve Equation <code>(2)</code> the parameters for the Spinors are <span>$n_{xy} = \tfrac{B_1}{\lVert \boldsymbol{B} \rVert}$</span>, <span>$n_z = \tfrac{B_z}{\lVert \boldsymbol{B} \rVert}$</span>, and</p><p class="math-container">\[\begin{align} \tag{4}
+
+\varphi = - \gamma \lVert \boldsymbol{B} \rVert \Delta t \:.
+
+\end{align}\]</p><p>Then, the application of a Spinor rotation to a magnetization element is described by the operation</p><p class="math-container">\[\begin{align} \tag{5}
+
+\begin{bmatrix}
+M_{xy}^+ \\
+M_z^+
+\end{bmatrix} = 
+\begin{bmatrix}
+2{\alpha}^* \beta M_z + {\alpha^*}^2 M_{xy} - \beta^2 M_{xy}^* \\
+(|\alpha|^2 - |\beta|^2)M_z - 2\Re\left( \alpha \beta M_{xy}^* \right)
+\end{bmatrix}\:.
+
+\end{align}\]</p><p>For the precession regime, all the rotations are with respect to <span>$z$</span>, and therefore they can be described with a complex exponential applied to the transverse magnetization</p><p class="math-container">\[\begin{align} \tag{6}
+
+M_{xy}^+ = M_{xy} e^{i\varphi} \:,
+
+\end{align}\]</p><p>where <span>$\varphi$</span> is defined in Equation <code>(4)</code>.</p><p>Finally, to solve the relaxation step described in Equation <code>(3)</code> the magnetization is updated by</p><p class="math-container">\[\begin{bmatrix}
+M_{xy}^+ \\
+M_z^+
+\end{bmatrix} =
+\begin{bmatrix}
+M_{xy} e^{-\tfrac{\Delta t}{T_2}} \\
+M_z e^{-\tfrac{\Delta t}{T_1}} + M_0\left(1-e^{-\tfrac{\Delta t}{T_1}}\right)
+\end{bmatrix} \:.\]</p><h2 id="Simulation-Blocks,-Regime-Switching,-and-Sequence-Aware-Time-Stepping"><a class="docs-heading-anchor" href="#Simulation-Blocks,-Regime-Switching,-and-Sequence-Aware-Time-Stepping">Simulation Blocks, Regime Switching, and Sequence-Aware Time Stepping</a><a id="Simulation-Blocks,-Regime-Switching,-and-Sequence-Aware-Time-Stepping-1"></a><a class="docs-heading-anchor-permalink" href="#Simulation-Blocks,-Regime-Switching,-and-Sequence-Aware-Time-Stepping" title="Permalink"></a></h2><p>To reduce the memory usage of our simulator, we subdivided time into <strong>Nblocks</strong> (<strong>Figure 2</strong>). KomaMRI classifies each block in either the excitation regime or the precession regime before the simulation.</p><p>For precession blocks, we can improve the accuracy of the simulations by using the integral representation of Equation <code>(6)</code>, obtained by applying the limit as <span>$\Delta t \rightarrow 0$</span> of iterated applications of Equation <code>(6)</code>, giving a phase of</p><p class="math-container">\[\varphi = - \gamma \int_{t_i}^{t_{i+1}} \boldsymbol{G}(\tau) \cdot \boldsymbol{x}(\tau)  \mathrm{d}\tau - \int_{t_i}^{t_{i+1}} \Delta \omega(\tau)  \mathrm{d}\tau \:.\]</p><p>Assuming that during the <span>$i$</span>-th simulation block (<span>$t \in [t_i,\:t_{i+1}]$</span>) the gradients <span>$\boldsymbol{G}(t)$</span> are piece-wise linear functions, and <span>$\boldsymbol{x}(t)$</span> and <span>$\Delta \omega (t)$</span> are approximately constant, then, if we use the trapezoidal rule to obtain the value of this integral, we will obtain an exact result by sampling just the vertices of <span>$\boldsymbol{G}(t)$</span>, greatly reducing the number of points required by the simulation. We will only need intermediate points in the case of motion and for recording the sampling points as required by the Analog to Digital Converter (ADC). The user can control the time between intermediate gradient samples with the parameter <strong>Δt</strong> (<strong>Figure 2</strong>).</p><p>We can do something similar with <span>$B_1(t)$</span> in the excitation regime. If we assume <span>$B_1(t)$</span> is a piece-wise constant function (or concatenation of hard pulses), then Equation <code>(5)</code> will give an exact solution to Equation <code>(2)</code>. The parameter <strong>Δt_rf</strong> manages the time between RF samples (<strong>Figure 2</strong>), and can be relatively large for 2D imaging where the slice profile is less relevant.</p><p>Thus, <strong>KomaMRI</strong> uses the rationale mentioned above to: (1) call different methods based on the regime of each block, while also (2) obtaining a variable time stepping schedule that adapts to the sequence needs. We named the latter sequence-aware time stepping (<strong>Figure 2</strong>).</p><h2 id="GPU/CPU-Parallelization"><a class="docs-heading-anchor" href="#GPU/CPU-Parallelization">GPU/CPU Parallelization</a><a id="GPU/CPU-Parallelization-1"></a><a class="docs-heading-anchor-permalink" href="#GPU/CPU-Parallelization" title="Permalink"></a></h2><p>We further increase the simulation speed by separating the Bloch calculations into <strong>Nthreads</strong> and then performing the GPU operations with CUDA.jl (<strong>Figure 2</strong>). This separation is possible as all magnetization vectors are independent of one another.</p><p align="center">
+<figure>
+  <img width="100%" src="../assets/koma-solution.svg">
+  <figcaption><b>Figure 2</b>: This is a summary of the functions called to perform the simulation. The sequence <b>seq</b> is discretized after calculating the required time points in the wrapper function <b>simulate</b>. The time points are then divided into <b>Nblocks</b> to reduce the amount of memory used. The phantom <b>obj</b> is divided into <b>Nthreads</b>, and <b>KomaMRI</b> will use either <b>run_spin_excitation</b> or <b>run_spin_precession</b> depending on the regime. If an ADC object is present, the simulator will add the signal contributions of each thread to construct the acquired signal <b>S[t]</b>. All the parameters: <b>Nthreads</b>, <b>Nblocks</b>, <b>Δt_rf</b>, and <b>Δt</b>, are passed through a dictionary called <b>simParams</b> as an optional parameter of the <b>simulate</b> function.
+</figure>
+</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../simulation-examples/">« Examples</a><a class="docs-footer-nextpage" href="../api/">API Documentation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.17 on <span class="colophon-date" title="Thursday 8 December 2022 16:52">Thursday 8 December 2022</span>. Using Julia version 1.8.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
