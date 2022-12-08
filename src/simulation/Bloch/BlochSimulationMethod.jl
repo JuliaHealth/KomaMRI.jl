@@ -26,7 +26,7 @@ precession.
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-NVTX.@range function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
+function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
     M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
     #Motion
@@ -67,7 +67,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
-NVTX.@range function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, 
+function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, 
     M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
     for s ∈ seq #This iterates over seq, "s = seq[i,:]"

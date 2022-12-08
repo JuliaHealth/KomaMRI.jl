@@ -171,8 +171,9 @@ end
 end
 
 @testitem "BlochSim_CPU_sigle_thread" tags=[:important] begin
+    using Suppressor
     path = @__DIR__
-    seq = read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
     obj = brain_phantom2D()
     sys = Scanner()
     simParams = Dict{String, Any}(
@@ -180,33 +181,35 @@ end
         "Nthreads"=>1,
         "sim_method"=>KomaMRI.Bloch()
     )
-    sig = simulate(obj, seq, sys; simParams)
+    sig = @suppress simulate(obj, seq, sys; simParams)
     @test true                #If the previous line fails the test will fail
 end
 
 @testitem "BlochSim_CPU_multi_thread" tags=[:important] begin
+    using Suppressor
     path = @__DIR__
-    seq = read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
     obj = brain_phantom2D()
     sys = Scanner()
     simParams = Dict{String, Any}(
         "gpu"=>false,
         "sim_method"=>KomaMRI.Bloch()
     )
-    sig = simulate(obj, seq, sys; simParams)
+    sig = @suppress simulate(obj, seq, sys; simParams)
     @test true                #If the previous line fails the test will fail
 end
 
 @testitem "BlochSim_GPU" tags=[:important, :skipci] begin
+    using Suppressor
     path = @__DIR__
-    seq = read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
     obj = brain_phantom2D()
     sys = Scanner()
     simParams = Dict{String, Any}(
         "gpu"=>true,
         "sim_method"=>KomaMRI.Bloch()
     )
-    sig = simulate(obj, seq, sys; simParams)
+    sig = @suppress simulate(obj, seq, sys; simParams)
     @test true                #If the previous line fails the test will fail
 end
 
