@@ -41,9 +41,9 @@ function read_phantom_jemris(filename)
 	FOVx = (X-1)*Δx[1] #[m]
 	FOVy = (Y-1)*Δx[2] #[m]
 	FOVz = (Z-1)*Δx[3] #[m]
-	xx = [(-FOVx/2:Δx[1]:FOVx/2)...;]
-	yy = [(-FOVy/2:Δx[2]:FOVy/2)...;;]
-	zz = [(-FOVz/2:Δx[3]:FOVz/2)...;;;]
+	xx = reshape((-FOVx/2:Δx[1]:FOVx/2),:,1,1) #[(-FOVx/2:Δx[1]:FOVx/2)...;]
+	yy = reshape((-FOVy/2:Δx[2]:FOVy/2),1,:,1) #[(-FOVy/2:Δx[2]:FOVy/2)...;;]
+	zz = reshape((-FOVz/2:Δx[3]:FOVz/2),1,1,:) #[(-FOVz/2:Δx[3]:FOVz/2)...;;;]
 	x = xx*1 .+ yy*0 .+ zz*0 .+ offset[1]	#spin x coordinates
 	y = xx*0 .+ yy*1 .+ zz*0 .+ offset[2]	#spin y coordinates
 	z = xx*0 .+ yy*0 .+ zz*1 .+ offset[3]	#spin z coordinates
