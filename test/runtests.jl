@@ -120,6 +120,37 @@ using TestItems, TestItemRunner
     end
 end
 
+@testitem "PulseDesigner" begin
+    @testset "RF_sinc" begin
+        sys = Scanner()
+        B1 = 24.7835e-6 # For 90 deg flip angle
+        Trf = 1e-3
+        rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
+        @test KomaMRI.get_flip_angles(rf) ≈ [90]
+    end
+    @testset "Spiral" begin
+        sys = Scanner()
+        sys.Smax = 150    # [mT/m/ms]
+        sys.Gmax = 500e-3 # [T/m]
+        sys.GR_Δt = 4e-6  # [s]
+        FOV = 0.2       # [m]
+        N = 80          # Reconstructed image N×N
+        Nint = 8
+        λ = 2.1
+        spiral = PulseDesigner.spiral_base(FOV, N, sys; λ=λ, BW=120e3, Nint)
+        # Look at the k_space generated
+        @test spiral(0).DEF["λ"] ≈ λ
+    end
+    @testset "Radial" begin
+        sys = Scanner()
+        N = 80
+        Nspokes = ceil(Int64, π/2 * N ) #Nyquist in the radial direction
+        FOV = 0.2
+        spoke = PulseDesigner.radial_base(FOV, N, sys)
+        @test spoke.DEF["Δθ"] ≈ π / Nspokes
+    end
+end
+
 @testitem "Phantom" begin
     #Test brain phantom 2D
     ph = brain_phantom2D()    #2D phantom
@@ -280,6 +311,7 @@ end
 
 #GUI tests
 @testitem "GUI" begin
+    using Suppressor
     @testset "GUI_phantom" begin
         ph = brain_phantom2D()    #2D phantom
 
@@ -346,6 +378,7 @@ end
     @testset "GUI_recon" begin
         #???
     end
+
 end
 
 @run_package_tests filter=ti->!(:skipci in ti.tags)
