@@ -33,11 +33,11 @@ seq = Sequence()  # empty sequence
 seq += exc        # adding RF-only block
 seq += acq        # adding ADC-only block
 p = plot_seq(seq; slider=false, height=300)
-savefig(p, "../../assets/1-seq.html") # hide
+savefig(p, "../assets/1-seq.html") # hide
 nothing # hide
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../../assets/1-seq.html" style="width:100%; height:320px;"></object>
+#md # <object type="text/html" data="../../assets/1-seq.html" style="width:100%; height:320px;"></object>
 #md # ```
 
 #md # Now, we will define a `Phantom` with a single spin at ``x=0``
@@ -48,21 +48,16 @@ nothing # hide
 
 #md # Finally, to simulate we will need to use the function [`simulate`](@ref).
 
-# ```@setup example-01
-# raw = simulate(obj, seq, sys)
-# ```
-# ```julia
-# raw = simulate(obj, seq, sys)
-# ```
+raw = simulate(obj, seq, sys)
 
 #md # To plot the results we will need to use the [`plot_signal`](@ref) function
 
 p = plot_signal(raw; slider=false, height=300)
-savefig(p, "../../assets/1-signal.html") # hide
+savefig(p, "../assets/1-signal.html") # hide
 nothing # hide
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../../assets/1-signal.html" style="width:100%; height:320px;"></object>
+#md # <object type="text/html" data="../../assets/1-signal.html" style="width:100%; height:320px;"></object>
 #md # ```
 
 #md # Nice!, we can see that ``S(t)`` follows an
@@ -77,18 +72,13 @@ nothing # hide
 
 #md # and simulate again.
 
-# ```julia
-# raw = simulate(obj, seq, sys)
-# p = plot_signal(raw; slider=false, height=300)
-# ```
-# ```@setup example-01
-# raw = simulate(obj, seq, sys)
-# ```
-savefig(plot_signal(raw; slider=false, height=300), "../../assets/1-signal2.html") # hide
+raw = simulate(obj, seq, sys)
+p = plot_signal(raw; slider=false, height=300)
+savefig(p, "../assets/1-signal2.html") # hide
 nothing # hide
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../../assets/1-signal2.html" style="width:100%; height:320px;"></object>
+#md # <object type="text/html" data="../../assets/1-signal2.html" style="width:100%; height:320px;"></object>
 #md # ```
 
 #md # The signal now follows an exponential of the
