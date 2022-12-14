@@ -2,14 +2,19 @@ using Documenter, Literate, KomaMRI
 
 lit = joinpath(@__DIR__, "lit")
 src = joinpath(@__DIR__, "src")
+gen = joinpath(@__DIR__, "src/generated")
 
 for (root, _, files) ∈ walkdir(lit), file ∈ files
     splitext(file)[2] == ".jl" || continue
     ipath = joinpath(root, file)
-    opath = splitdir(replace(ipath, lit=>src))[1]
+    opath = splitdir(replace(ipath, lit=>gen))[1]
     Literate.markdown(ipath, opath)
     #Literate.notebook(ipath, opath; execute = false)
 end
+
+# Documentation structure
+ismd(f) = splitext(f)[2] == ".md"
+pages(folder) = [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if ismd(f)]
 
 makedocs(
     modules = [KomaMRI],
@@ -26,7 +31,7 @@ makedocs(
         "Examples" => "simulation-examples.md",
         "Simulation Method" => "mri-theory.md",
         "API Documentation" => "api.md",
-        "Literate Examples" => "examples.md"
+        "Literate Examples" => pages("examples")
     ],
     format = Documenter.HTML(
         prettyurls = true, #get(ENV, "CI", nothing) == "true",
