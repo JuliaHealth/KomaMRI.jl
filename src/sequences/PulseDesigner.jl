@@ -57,15 +57,18 @@ Definition of the radial base sequence.
 
 # Returns
 - `ex`: (`::Sequence`) RF struct
+
+# References
+- MATT A. BERNSTEIN, KEVIN F. KING, XIAOHONG JOE ZHOU, CHAPTER 2 - RADIOFREQUENCY PULSE SHAPES, Handbook of MRI Pulse Sequences, 2004, Pages 35-66, https://doi.org/10.1016/B978-012092861-3/50006-6.
 """
 RF_sinc(B1, T, sys::Scanner; G=[0,0,0], Δf=0, a=0.46, TBP=4) = begin
-	T0 = T / TBP
-	ζ = sum(G) / sys.Smax
-	sinc_pulse(t) = B1*sinc((t.-T/2)/T0).*((1-a)+a*cos((π*(t.-T/2))/(TBP*T0)))
-	EX = Sequence([	  Grad(G[1],T,ζ);	 #Gx
-					  Grad(G[2],T,ζ);    #Gy
-					  Grad(G[3],T,ζ);;], #Gz
-					 [RF(t->sinc_pulse(t),T; delay=ζ, Δf);;]	 #RF
+	t0 = T / TBP
+	ζ = maximum(abs.(G)) / sys.Smax
+	sinc_pulse(t) = B1 * sinc(t/t0) .* ( (1-a) + a*cos((2π*t)/(TBP*t0)) )
+	EX = Sequence([	  Grad(G[1],T,ζ) Grad(-G[1],(T-ζ)/2,ζ);	 #Gx
+					  Grad(G[2],T,ζ) Grad(-G[2],(T-ζ)/2,ζ);    #Gy
+					  Grad(G[3],T,ζ) Grad(-G[3],(T-ζ)/2,ζ)], #Gz
+					 [RF(t->sinc_pulse(t - T/2),T; delay=ζ, Δf) RF(0,0)]	 #RF
 					)
 	EX
 end

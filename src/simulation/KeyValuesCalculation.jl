@@ -44,25 +44,28 @@ get_theo_A(r::RF; off_val=0, max_rf_samples=Inf) = begin
 		aux = off_val * [1; 1; ones(length(A)); 1]
 	else
 		#Calculating frequency waveform
-		if length(r.A) != 1
-			tf = range(0,sum(r.T),length(r.A))
-		else
-			tf = [0]
+		NA = length(r.A)
+		NT = length(r.T)
+		if NA > 1 && NT == 1
+			dt = repeat([r.T], outer=length(r.A))
+		elseif NA > 1 && NT > 1
+			dt = r.T[:]
+		elseif NA == 1 && NT == 1
+			dt = r.T
 		end
-		freq = exp.(1im*2π*r.Δf.*tf)
-		freq = transpose([freq freq])[:]
-		A = A .* freq
-		A[abs.(A).<=1e-14] .= 0 #Remove small values
+		freq = exp.(1im*2π*cumsum(r.Δf.*dt)) # exp(i ∫ᵗw(t)dt)
+		added_phase = transpose([freq freq])[:]
+		A = A .* added_phase
+		A[abs.(A).<=1e-10] .= 0 #Remove small values
 		#Output
 		aux = [off_val; 0; A; 0]
 	end
 	#Subsample
 	if length(aux) > max_rf_samples
 		n = floor(Int, length(aux) / max_rf_samples)
-		aux[1:n:end]
-	else
-		aux
+		aux = aux[[1; 2:n:end-1; end]]
 	end
+	aux
 end
 
 get_theo_A(d::ADC; off_val=0) = begin
@@ -132,10 +135,9 @@ get_theo_t(r::RF; max_rf_samples=Inf) = begin
 	#Subsample
 	if length(t) > max_rf_samples
 		n = floor(Int, length(t) / max_rf_samples)
-		t[1:n:end]
-	else
-		t
+		t = t[[1; 2:n:end-1; end]]
 	end
+	t
 end
 
 get_theo_t(d::ADC) = begin
@@ -176,6 +178,9 @@ end
     t, r = get_theo_rf(seq, idx)
 
 Get the theoretical RF timings and amplitude of a sequence.
+
+!!! note
+    Experimental, not being used yet.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct

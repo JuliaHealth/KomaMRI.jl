@@ -17,7 +17,7 @@ The RF struct.
 mutable struct RF
 	A
 	T
-	Δf::Float64
+	Δf
 	delay::Float64
 	function RF(A, T, Δf, delay)
         any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new(A, T, Δf, delay)

@@ -15,7 +15,7 @@ end
     run_spin_precession(obj, seq, Xt, sig)
 
 Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`. It calculates S(t)
-= ∫ ρ(x,t) exp(- t/T2(x,t) ) exp(- 𝒊 ϕ(x,t)) dx. It performs the simulation in free
+= ∑ᵢ ρ(xᵢ) exp(- t/T2(xᵢ) ) exp(- 𝒊 γ ∫ Bz(xᵢ,t)). It performs the simulation in free
 precession.
 
 # Arguments
@@ -31,15 +31,15 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     #Simulation
     #Motion
     xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
-    yt = p.y .+ p.uy.(p.x, p.y, p.z, seq.t')
-    zt = p.z .+ p.uz.(p.x, p.y, p.z, seq.t')
+    yt = p.y .+ p.uy(p.x, p.y, p.z, seq.t')
+    zt = p.z .+ p.uz(p.x, p.y, p.z, seq.t')
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
     if is_ADC_on(seq)
-        ϕ = T(2π * γ) .* cumtrapz(seq.Δt', Bz)
+        ϕ = T(-2π * γ) .* cumtrapz(seq.Δt', Bz)
     else
-        ϕ = T(2π * γ) .* trapz(seq.Δt', Bz)
+        ϕ = T(-2π * γ) .* trapz(seq.Δt', Bz)
     end
     #Mxy preccesion and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
@@ -48,7 +48,7 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     M.xy .= Mxy[:, end]
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
-    sig .= sum(Mxy[:, findall(seq.ADC)]; dims=1)' #<--- TODO: add coil sensitivities
+    sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
 end
 
@@ -81,7 +81,7 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T},
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B[B .== 0] .= eps(T)
         #Spinor Rotation
-        φ = T(2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
+        φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         mul!( Q(φ, s.B1 ./ B, Bz ./ B), M )
         #Relaxation
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)

@@ -92,7 +92,6 @@ d1 = TE-dur(EPI)/2-dur(EX)
 if d1 > 0 DELAY = Delay(d1) end
 global seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI
 seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
-println("EPI successfully loaded! (TE = $(seq.DEF["TE"]) ms)")
 #Init
 global darkmode = dark
 global raw_ismrmrd = RawAcquisitionData(Dict(
@@ -167,15 +166,15 @@ handle(w, "simulate") do args...
     #After simulation go to RECON
     @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
     #EXPORT to ISMRMRD -> To SignalGUI
-    println("")
-    @info "Exporting to ISMRMRD file"
     global rawfile = tempdir()*"/Koma_signal.mrd"
+    @info "Exporting to ISMRMRD file: $rawfile"
     global sig_obs[] = raw_ismrmrd
     fout = ISMRMRDFile(rawfile)
     save(fout, raw_ismrmrd)
-    println("$rawfile successfully saved!")
     #Message
-    @js_ w Toasty("1", "Simulation successfull" ,"""
+    sim_time = raw_ismrmrd.params["userParameters"]["sim_time_sec"]
+    @js_ w (@var sim_time = $sim_time; 
+    Toasty("1", """Simulation successfull<br>Time: <a id="sim_time"></a> s""" ,"""
     <ul>
         <li>
             <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('sig', 1)"><i class="fa fa-search"></i></button>
@@ -186,7 +185,9 @@ handle(w, "simulate") do args...
             Ready to <b>reconstruct</b>?
         </li>
     </ul>
-    """)
+    """);
+    document.getElementById("sim_time").innerHTML=sim_time;
+    )
     # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
@@ -202,16 +203,16 @@ handle(w, "recon") do args...
     recParams[:reconSize] = (Nx, Ny)
     recParams[:densityWeighting] = true
     #Reconstruction
-    println("")
     @info "Running reconstruction of $rawfile"
-    aux = @time MRIReco.reconstruction(acqData, recParams)
-    global image  = reshape(aux.data,Nx,Ny,:)
-    global kspace = fftc(reshape(aux.data,Nx,Ny,:))
+    aux = @timed MRIReco.reconstruction(acqData, recParams)
+    global image  = reshape(aux.value.data,Nx,Ny,:)
+    global kspace = fftc(reshape(aux.value.data,Nx,Ny,:))
     # global img_obs[] = image
-    println("Reconstruction successfull!")
     #After Recon go to Image
+    recon_time = aux.time
     @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
-    @js_ w Toasty("2", "Reconstruction successfull" ,"""
+    @js_ w (@var recon_time = $recon_time; 
+    Toasty("2", """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""" ,"""
     <ul>
         <li>
             <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('reconstruction_absI', 1)"><i class="fa fa-search"></i></button>
@@ -219,6 +220,8 @@ handle(w, "recon") do args...
         </li>
     </ul>
     """
+    );
+    document.getElementById("recon_time").innerHTML=recon_time;
     )
 end
 handle(w, "close") do args...

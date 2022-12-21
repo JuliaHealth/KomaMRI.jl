@@ -294,7 +294,6 @@ julia> plot_seq(seq)
 ```
 """
 function read_seq(filename)
-    println("")
     @info "Loading sequence $(basename(filename)) ..."
     version_combined = 0
     version_major = 0
@@ -427,7 +426,6 @@ function read_seq(filename)
         @warn "Pulseq file did not contain [DEFINITIONS] for Nx, Ny, and Nz. We added Nx=$Nx, Ny=$Ny, and Nz=$Nz to the Sequence object for the reconstruction."
     end
     #Koma sequence
-    println("Successfully loaded $(basename(filename))!")
     seq
 end
 
