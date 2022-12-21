@@ -123,10 +123,10 @@ end
 @testitem "PulseDesigner" begin
     @testset "RF_sinc" begin
         sys = Scanner()
-        B1 = 24.7835e-6 # For 90 deg flip angle
+        B1 = 23.4732e-6 # For 90 deg flip angle
         Trf = 1e-3
         rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
-        @test KomaMRI.get_flip_angles(rf) ≈ [90]
+        @test KomaMRI.get_flip_angles(rf)[1] ≈ 90
     end
     @testset "Spiral" begin
         sys = Scanner()
@@ -202,46 +202,76 @@ end
 end
 
 @testitem "BlochSim_CPU_sigle_thread" tags=[:important] begin
-    using Suppressor
+    using Suppressor, HDF5
     path = @__DIR__
-    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
-    obj = brain_phantom2D()
+    seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
+    obj = read_phantom_jemris(path*"/test_files/sphere_chemical_shift.h5")
     sys = Scanner()
+
     simParams = Dict{String, Any}(
         "gpu"=>false,
         "Nthreads"=>1,
-        "sim_method"=>KomaMRI.Bloch()
+        "sim_method"=>KomaMRI.Bloch(),
+        "return_type" => "mat"
     )
     sig = @suppress simulate(obj, seq, sys; simParams)
-    @test true                #If the previous line fails the test will fail
+    sig = sig / prod(size(obj))
+
+    sig_jemris = h5open(path*"/test_files/signals_epi_sphere_cs.h5")["/signal/channels/00"]
+    sig_jemris = sig_jemris[1,:] + 1im*sig_jemris[2,:]
+    sig_jemris = sig_jemris[:]
+
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
 @testitem "BlochSim_CPU_multi_thread" tags=[:important] begin
-    using Suppressor
+    using Suppressor, HDF5
     path = @__DIR__
-    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
-    obj = brain_phantom2D()
+    seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
+    obj = read_phantom_jemris(path*"/test_files/sphere_chemical_shift.h5")
     sys = Scanner()
+
     simParams = Dict{String, Any}(
         "gpu"=>false,
-        "sim_method"=>KomaMRI.Bloch()
+        "sim_method"=>KomaMRI.Bloch(),
+        "return_type" => "mat"
     )
     sig = @suppress simulate(obj, seq, sys; simParams)
-    @test true                #If the previous line fails the test will fail
+    sig = sig / prod(size(obj))
+
+    sig_jemris = h5open(path*"/test_files/signals_epi_sphere_cs.h5")["/signal/channels/00"]
+    sig_jemris = sig_jemris[1,:] + 1im*sig_jemris[2,:]
+    sig_jemris = sig_jemris[:]
+
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
 @testitem "BlochSim_GPU" tags=[:important, :skipci] begin
-    using Suppressor
+    using Suppressor, HDF5
     path = @__DIR__
-    seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
-    obj = brain_phantom2D()
+    seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
+    obj = read_phantom_jemris(path*"/test_files/sphere_chemical_shift.h5")
     sys = Scanner()
+
     simParams = Dict{String, Any}(
         "gpu"=>true,
-        "sim_method"=>KomaMRI.Bloch()
+        "sim_method"=>KomaMRI.Bloch(),
+        "return_type" => "mat"
     )
     sig = @suppress simulate(obj, seq, sys; simParams)
-    @test true                #If the previous line fails the test will fail
+    sig = sig / prod(size(obj))
+    
+    sig_jemris = h5open(path*"/test_files/signals_epi_sphere_cs.h5")["/signal/channels/00"]
+    sig_jemris = sig_jemris[1,:] + 1im*sig_jemris[2,:]
+    sig_jemris = sig_jemris[:]
+
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
 @testitem "Recon" begin
