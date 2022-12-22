@@ -43,8 +43,8 @@ the final sequence (for more info. refer to
 seq = Sequence()  # empty sequence
 seq += exc        # adding RF-only block
 seq += acq        # adding ADC-only block
-p = plot_seq(seq; slider=false, height=300)
-savefig(p, "../assets/1-seq.html") # hide
+p1 = plot_seq(seq; slider=false, height=300)
+savefig(p1, "../assets/1-seq.html") # hide
 nothing # hide
 ````
 
@@ -69,8 +69,8 @@ raw = simulate(obj, seq, sys)
 To plot the results we will need to use the [`plot_signal`](@ref) function
 
 ````@example 01-FID
-p = plot_signal(raw; slider=false, height=300)
-savefig(p, "../assets/1-signal.html") # hide
+p2 = plot_signal(raw; slider=false, height=300)
+savefig(p2, "../assets/1-signal.html") # hide
 nothing # hide
 ````
 
@@ -94,8 +94,8 @@ and simulate again.
 
 ````@example 01-FID
 raw = simulate(obj, seq, sys)
-p = plot_signal(raw; slider=false, height=300)
-savefig(p, "../assets/1-signal2.html") # hide
+p3 = plot_signal(raw; slider=false, height=300)
+savefig(p3, "../assets/1-signal2.html") # hide
 nothing # hide
 ````
 

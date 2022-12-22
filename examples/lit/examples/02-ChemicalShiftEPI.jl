@@ -31,12 +31,12 @@ nothing # hide
 
 # ```julia
 # seq = read_seq("examples/3.koma_paper/comparison/sequences/EPI/epi_100x100_TE100_FOV230.seq")
-# p = plot_seq(seq; range=[0 40], slider=true, height=300)
+# p3 = plot_seq(seq; range=[0 40], slider=true, height=300)
 # ```
 
 seq = read_seq("../../../examples/3.koma_paper/comparison_jemris/sequences/EPI/epi_100x100_TE100_FOV230.seq") # hide
-p = plot_seq(seq; range=[0 40], slider=true, height=300) # hide
-savefig(p, "../assets/2-seq.html") # hide
+p3 = plot_seq(seq; range=[0 40], slider=true, height=300) # hide
+savefig(p3, "../assets/2-seq.html") # hide
 nothing # hide
 
 #md # Feel free to explore the sequence's plot 🔍 below!
@@ -48,8 +48,8 @@ nothing # hide
 #md # If we simulate this sequence we will end up with the following signal.
 
 raw = simulate(obj, seq, sys)
-p = plot_signal(raw; range=[98.4 103.4] , height=300)
-savefig(p, "../assets/2-signal.html") # hide
+p4 = plot_signal(raw; range=[98.4 103.4] , height=300)
+savefig(p4, "../assets/2-signal.html") # hide
 nothing # hide
 
 #md # ```@raw html
@@ -72,8 +72,8 @@ image = reconstruction(acq, reconParams)
 
 ## Plotting the recon
 slice_abs = abs.(image[:, :, 1])
-p = plot_image(slice_abs; height=400)
-savefig(p, "../assets/2-recon.html") # hide
+p5 = plot_image(slice_abs; height=400)
+savefig(p5, "../assets/2-recon.html") # hide
 nothing # hide
 
 #md # ```@raw html
