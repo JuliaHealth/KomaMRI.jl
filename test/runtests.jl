@@ -201,6 +201,15 @@ end
     @test xx1 ≈ xx2
 end
 
+@testitem "TrapezoidalIntegration" begin
+    dt = Float64[1 1 1 1]
+    x  = Float64[0 1 2 1 0]
+
+    @test KomaMRI.trapz(dt, x)[1] ≈ 4 #Triangle area = bh/2, with b = 4 and h = 2
+
+    @test KomaMRI.cumtrapz(dt, x) ≈ [0.5 2 3.5 4]
+end
+
 @testitem "BlochSim_CPU_sigle_thread" tags=[:important] begin
     using Suppressor, HDF5
     path = @__DIR__
@@ -212,12 +221,12 @@ end
         "gpu"=>false,
         "Nthreads"=>1,
         "sim_method"=>KomaMRI.Bloch(),
-        "return_type" => "mat"
+        "return_type"=>"mat"
     )
     sig = @suppress simulate(obj, seq, sys; simParams)
     sig = sig / prod(size(obj))
 
-    sig_jemris = h5open(path*"/test_files/signals_epi_sphere_cs.h5")["/signal/channels/00"]
+    sig_jemris = h5open(path*"/test_files/jemris_signals_epi_sphere_cs.h5")["/signal/channels/00"]
     sig_jemris = sig_jemris[1,:] + 1im*sig_jemris[2,:]
     sig_jemris = sig_jemris[:]
 
@@ -236,12 +245,12 @@ end
     simParams = Dict{String, Any}(
         "gpu"=>false,
         "sim_method"=>KomaMRI.Bloch(),
-        "return_type" => "mat"
+        "return_type"=>"mat"
     )
     sig = @suppress simulate(obj, seq, sys; simParams)
     sig = sig / prod(size(obj))
 
-    sig_jemris = h5open(path*"/test_files/signals_epi_sphere_cs.h5")["/signal/channels/00"]
+    sig_jemris = h5open(path*"/test_files/jemris_signals_epi_sphere_cs.h5")["/signal/channels/00"]
     sig_jemris = sig_jemris[1,:] + 1im*sig_jemris[2,:]
     sig_jemris = sig_jemris[:]
 
@@ -260,12 +269,12 @@ end
     simParams = Dict{String, Any}(
         "gpu"=>true,
         "sim_method"=>KomaMRI.Bloch(),
-        "return_type" => "mat"
+        "return_type"=>"mat"
     )
     sig = @suppress simulate(obj, seq, sys; simParams)
     sig = sig / prod(size(obj))
     
-    sig_jemris = h5open(path*"/test_files/signals_epi_sphere_cs.h5")["/signal/channels/00"]
+    sig_jemris = h5open(path*"/test_files/jemris_signals_epi_sphere_cs.h5")["/signal/channels/00"]
     sig_jemris = sig_jemris[1,:] + 1im*sig_jemris[2,:]
     sig_jemris = sig_jemris[:]
 
