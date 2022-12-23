@@ -1,4 +1,4 @@
-# # Sinc Slice Profile
+# # Small Tip Approximation
 
 filename = last(splitpath(@__FILE__)) # hide
 isFileMD = occursin(".md", filename) # hide

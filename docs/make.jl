@@ -1,13 +1,14 @@
 using Documenter, Literate, KomaMRI
 
-lit = joinpath(@__DIR__, "../examples/lit")
+exa = joinpath(@__DIR__, "../examples")
 src = joinpath(@__DIR__, "src")
 gen = joinpath(@__DIR__, "src/generated")
 
-for (root, _, files) ∈ walkdir(lit), file ∈ files
-    splitext(file)[2] == ".jl" || continue
+for (root, _, files) ∈ walkdir(exa), file ∈ files
+    #splitext(file)[2] == ".jl" || continue
+    cmp(last(splitpath(root)), "examples") == 0 && cmp(first(split(file, "-")), "lit") == 0 || continue
     ipath = joinpath(root, file)
-    opath = splitdir(replace(ipath, lit=>gen))[1]
+    opath = splitdir(replace(ipath, exa=>gen))[1]
     Literate.markdown(ipath, opath)
     #Literate.notebook(ipath, opath; execute = false)
 end
