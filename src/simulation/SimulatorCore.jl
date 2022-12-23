@@ -218,12 +218,14 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
         sig  = sig  |> f64 #Signal
     end
     # Simulation
-    @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Nadc
+    koma_version = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"])
+    @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=koma_version sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Nadc
     @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
     # Result to CPU, if already in the CPU it does nothing
     sig = sum(sig; dims=3) |> cpu
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
+    if enable_gpu GC.gc(true); CUDA.reclaim() end
     # Output
     if return_type == "state"
         out = Xt

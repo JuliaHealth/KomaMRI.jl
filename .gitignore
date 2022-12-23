@@ -23,3 +23,6 @@ qte_timings.txt
 *.mem
 
 docs/src/generated/
+examples/3.koma_paper/**/*.mrd
+examples/3.koma_paper/**/*.mat
+examples/3.koma_paper/**/*.h5
