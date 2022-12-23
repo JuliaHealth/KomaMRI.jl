@@ -1,5 +1,9 @@
 # # Chemical Shift in an EPI sequence
 
+filename = last(splitpath(@__FILE__)) # hide
+isFileMD = occursin(".md", filename) # hide
+isFileJL = occursin(".jl", filename) # hide
+
 #md # First of all, let's use the KomaMRI package and define the default scanner.
 
 using KomaMRI
@@ -11,8 +15,10 @@ nothing # hide
 obj = brain_phantom2D() # a slice of a brain
 p1 = plot_phantom_map(obj, :T2 ; height=400)
 p2 = plot_phantom_map(obj, :Δw ; height=400)
-savefig(p1, "../assets/2-phantom1.html") # hide
-savefig(p2, "../assets/2-phantom2.html") # hide
+if isFileMD savefig(p1, "../assets/2-phantom1.html") end # hide
+if isFileMD savefig(p2, "../assets/2-phantom2.html") end # hide
+if isFileJL display(p1) end # hide
+if isFileJL display(p2) end # hide
 nothing # hide
 
 #md # At the left, you can see the ``T_2`` map of the phantom,
@@ -29,14 +35,11 @@ nothing # hide
 #md # for being affected by off-resonance. With this sequence,
 #md # we will be able visualize the effect of the chemical shift.
 
-# ```julia
-# seq = read_seq("examples/3.koma_paper/comparison/sequences/EPI/epi_100x100_TE100_FOV230.seq")
-# p3 = plot_seq(seq; range=[0 40], slider=true, height=300)
-# ```
-
-seq = read_seq("../../../examples/3.koma_paper/comparison_jemris/sequences/EPI/epi_100x100_TE100_FOV230.seq") # hide
-p3 = plot_seq(seq; range=[0 40], slider=true, height=300) # hide
-savefig(p3, "../assets/2-seq.html") # hide
+seqFile = joinpath(dirname(pathof(KomaMRI)), "../examples/3.koma_paper/comparison_jemris/sequences/EPI/epi_100x100_TE100_FOV230.seq")
+seq = read_seq(seqFile)
+p3 = plot_seq(seq; range=[0 40], slider=true, height=300)
+if isFileMD savefig(p3, "../assets/2-seq.html") end # hide
+if isFileJL display(p3) end # hide
 nothing # hide
 
 #md # Feel free to explore the sequence's plot 🔍 below!
@@ -49,7 +52,8 @@ nothing # hide
 
 raw = simulate(obj, seq, sys)
 p4 = plot_signal(raw; range=[98.4 103.4] , height=300)
-savefig(p4, "../assets/2-signal.html") # hide
+if isFileMD savefig(p4, "../assets/2-signal.html") end # hide
+if isFileJL display(p4) end # hide
 nothing # hide
 
 #md # ```@raw html
@@ -73,7 +77,8 @@ image = reconstruction(acq, reconParams)
 ## Plotting the recon
 slice_abs = abs.(image[:, :, 1])
 p5 = plot_image(slice_abs; height=400)
-savefig(p5, "../assets/2-recon.html") # hide
+if isFileMD savefig(p5, "../assets/2-recon.html") end # hide
+if isFileJL display(p5) end # hide
 nothing # hide
 
 #md # ```@raw html

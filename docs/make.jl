@@ -1,6 +1,6 @@
 using Documenter, Literate, KomaMRI
 
-lit = joinpath(@__DIR__, "../examples/lit/examples")
+lit = joinpath(@__DIR__, "../examples/lit")
 src = joinpath(@__DIR__, "src")
 gen = joinpath(@__DIR__, "src/generated")
 

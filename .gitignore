@@ -21,3 +21,5 @@ src/examples/sysimageSpinLab.dll
 qte_timings.txt
 *.nsys-rep
 *.mem
+
+docs/src/generated/

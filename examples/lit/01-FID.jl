@@ -1,5 +1,9 @@
 # # Free Induction Decay
 
+filename = last(splitpath(@__FILE__)) # hide
+isFileMD = occursin(".md", filename) # hide
+isFileJL = occursin(".jl", filename) # hide
+
 #md # First of all, let's use the KomaMRI package and define the default scanner.
 
 using KomaMRI
@@ -33,7 +37,8 @@ seq = Sequence()  # empty sequence
 seq += exc        # adding RF-only block
 seq += acq        # adding ADC-only block
 p1 = plot_seq(seq; slider=false, height=300)
-savefig(p1, "../assets/1-seq.html") # hide
+if isFileMD savefig(p1, "../assets/1-seq.html") end # hide
+if isFileJL display(p1) end # hide
 nothing # hide
 
 #md # ```@raw html
@@ -53,7 +58,8 @@ raw = simulate(obj, seq, sys)
 #md # To plot the results we will need to use the [`plot_signal`](@ref) function
 
 p2 = plot_signal(raw; slider=false, height=300)
-savefig(p2, "../assets/1-signal.html") # hide
+if isFileMD savefig(p2, "../assets/1-signal.html") end # hide
+if isFileJL display(p2) end # hide
 nothing # hide
 
 #md # ```@raw html
@@ -74,7 +80,8 @@ nothing # hide
 
 raw = simulate(obj, seq, sys)
 p3 = plot_signal(raw; slider=false, height=300)
-savefig(p3, "../assets/1-signal2.html") # hide
+if isFileMD savefig(p3, "../assets/1-signal2.html") end # hide
+if isFileJL display(p3) end # hide
 nothing # hide
 
 #md # ```@raw html
