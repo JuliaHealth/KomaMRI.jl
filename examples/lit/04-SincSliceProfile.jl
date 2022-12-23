@@ -66,10 +66,6 @@ if isFileMD savefig(p2, "../assets/42-seq.html") end # hide
 if isFileJL display(p2) end # hide
 nothing # hide
 
-#md # ```@raw html
-#md # <object type="text/html" data="../../assets/42-seq.html" style="width:100%; height:320px;"></object>
-#md # ```
-
 #md # Perform the simulation of a slice.
 
 simParams = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
@@ -83,6 +79,8 @@ if isFileMD savefig(pb, "../assets/4b-profile.html") end # hide
 if isFileJL display(pb) end # hide
 nothing # hide
 
+#md # Comparing the images.
+
 #md # ```@raw html
-#md # <object type="text/html" data="../../assets/4b-profile.html" style="width:100%; height:320px;"></object>
+#md # <object type="text/html" data="../../assets/42-seq.html" style="width:50%; height:380px;"></object><object type="text/html" data="../../assets/4b-profile.html" style="width:50%; height:380px;"></object>
 #md # ```
