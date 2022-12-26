@@ -1,0 +1,65 @@
+################################### MRILAB Multi-Shot Spiral CPU ###################################
+Elapsed time is 1.560526 seconds.
+Elapsed time is 1.587692 seconds.
+Elapsed time is 1.566472 seconds.
+Elapsed time is 1.502572 seconds.
+Elapsed time is 1.514722 seconds.
+Elapsed time is 1.506806 seconds.
+Elapsed time is 1.518760 seconds.
+Elapsed time is 1.546690 seconds.
+Elapsed time is 1.543845 seconds.
+Elapsed time is 1.506442 seconds.
+Elapsed time is 1.491106 seconds.
+Elapsed time is 1.490584 seconds.
+Elapsed time is 1.496000 seconds.
+Elapsed time is 1.542686 seconds.
+Elapsed time is 1.709496 seconds.
+Elapsed time is 1.707444 seconds.
+Elapsed time is 1.604970 seconds.
+Elapsed time is 1.544813 seconds.
+Elapsed time is 1.634114 seconds.
+Elapsed time is 1.695162 seconds.
+################################### MRILAB Multi-Shot Spiral GPU0 ###################################
+------ Current active GPU device : NVIDIA GeForce RTX 2080 Ti ------
+Elapsed time is 0.923831 seconds.
+Elapsed time is 0.887756 seconds.
+Elapsed time is 0.886612 seconds.
+Elapsed time is 0.882812 seconds.
+Elapsed time is 0.895637 seconds.
+Elapsed time is 0.923394 seconds.
+Elapsed time is 0.901402 seconds.
+Elapsed time is 0.901290 seconds.
+Elapsed time is 0.901274 seconds.
+Elapsed time is 0.889470 seconds.
+Elapsed time is 0.894391 seconds.
+Elapsed time is 0.897369 seconds.
+Elapsed time is 0.897577 seconds.
+Elapsed time is 0.903271 seconds.
+Elapsed time is 0.908582 seconds.
+Elapsed time is 0.900758 seconds.
+Elapsed time is 0.940209 seconds.
+Elapsed time is 0.906426 seconds.
+Elapsed time is 0.908100 seconds.
+Elapsed time is 0.952205 seconds.
+################################### MRILAB Multi-Shot Spiral GPU1 ###################################
+------ Current active GPU device : NVIDIA GeForce GTX 1650 Ti with Max-Q Design ------
+Elapsed time is 0.921450 seconds.
+Elapsed time is 0.826068 seconds.
+Elapsed time is 0.824097 seconds.
+Elapsed time is 0.830737 seconds.
+Elapsed time is 0.822129 seconds.
+Elapsed time is 0.824959 seconds.
+Elapsed time is 0.840479 seconds.
+Elapsed time is 0.858635 seconds.
+Elapsed time is 0.860044 seconds.
+Elapsed time is 0.860038 seconds.
+Elapsed time is 0.845864 seconds.
+Elapsed time is 0.834030 seconds.
+Elapsed time is 0.839527 seconds.
+Elapsed time is 0.830485 seconds.
+Elapsed time is 0.852167 seconds.
+Elapsed time is 0.843796 seconds.
+Elapsed time is 0.845359 seconds.
+Elapsed time is 0.842426 seconds.
+Elapsed time is 0.838932 seconds.
+Elapsed time is 0.843059 seconds.
