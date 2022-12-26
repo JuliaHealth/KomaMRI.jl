@@ -1,5 +1,10 @@
 using Documenter, Literate, KomaMRI
 
+org, reps = :cncastillo, :KomaMRI
+
+base = "$org/$reps.jl"
+repo_root_url = "https://github.com/$base/blob/master"
+
 exa = joinpath(@__DIR__, "../examples")
 src = joinpath(@__DIR__, "src")
 gen = joinpath(@__DIR__, "src/generated")
@@ -9,7 +14,7 @@ for (root, _, files) ∈ walkdir(exa), file ∈ files
     cmp(last(splitpath(root)), "examples") == 0 && cmp(first(split(file, "-")), "lit") == 0 || continue
     ipath = joinpath(root, file)
     opath = splitdir(replace(ipath, exa=>gen))[1]
-    Literate.markdown(ipath, opath)
+    Literate.markdown(ipath, opath; repo_root_url)
     #Literate.notebook(ipath, opath; execute = false)
 end
 

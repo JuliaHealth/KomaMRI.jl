@@ -1,14 +1,13 @@
 # # Chemical Shift in an EPI sequence
 
+#md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](@__REPO_ROOT_URL__/examples/lit-03-ChemicalShiftEPI.jl)
+
 filename = last(splitpath(@__FILE__)) # hide
 isFileMD = occursin(".md", filename) # hide
 isFileJL = occursin(".jl", filename) # hide
 
-#md # First of all, let's use the KomaMRI package and define the default scanner.
-
-using KomaMRI
-sys = Scanner() # default hardware definition
-nothing # hide
+using KomaMRI # hide
+sys = Scanner() # hide
 
 #md # For a more realistic example, we will use a brain phantom.
 

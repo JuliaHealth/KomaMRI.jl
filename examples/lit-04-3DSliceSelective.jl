@@ -1,14 +1,13 @@
 # # Slice Selective Acquisition of 3D Phantom
 
+#md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](@__REPO_ROOT_URL__/examples/lit-04-3DSliceSelective.jl)
+
 filename = last(splitpath(@__FILE__)) # hide
 isFileMD = occursin(".md", filename) # hide
 isFileJL = occursin(".jl", filename) # hide
 
-#md # First of all, let's use the KomaMRI package and define the default scanner.
-
-using KomaMRI
-sys = Scanner() # default hardware definition
-nothing # hide
+using KomaMRI # hide
+sys = Scanner() # hide
 
 #md # While in the previous examples we simulated using hard RF pulses,
 #md # in this demonstration we will illustrate the principles of slice selection.

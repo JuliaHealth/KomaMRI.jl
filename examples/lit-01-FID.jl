@@ -1,5 +1,7 @@
 # # Free Induction Decay
 
+#md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](@__REPO_ROOT_URL__/examples/lit-01-FID.jl)
+
 filename = last(splitpath(@__FILE__)) # hide
 isFileMD = occursin(".md", filename) # hide
 isFileJL = occursin(".jl", filename) # hide
