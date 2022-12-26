@@ -34,7 +34,7 @@ nothing # hide
 #md # for being affected by off-resonance. With this sequence,
 #md # we will be able visualize the effect of the chemical shift.
 
-seqFile = joinpath(dirname(pathof(KomaMRI)), "../examples/3.koma_paper/comparison_jemris/sequences/EPI/epi_100x100_TE100_FOV230.seq")
+seqFile = joinpath(dirname(pathof(KomaMRI)), "../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq")
 seq = read_seq(seqFile)
 p3 = plot_seq(seq; range=[0 40], slider=true, height=300)
 if isFileMD savefig(p3, "../assets/2-seq.html") end # hide
