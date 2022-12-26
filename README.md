@@ -4,7 +4,7 @@
 </p>
 
 ![Build status](https://github.com/cncastillo/KomaMRI.jl/actions/workflows/ci.yml/badge.svg)
-[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/KomaMRI.jl/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
+[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/KomaMRI.jl/dev/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
 
 
 KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
