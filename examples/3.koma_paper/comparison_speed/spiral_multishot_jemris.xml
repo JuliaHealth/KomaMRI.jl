@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Parameters FOVx="200" FOVy="200" FOVz="1" Name="P" Nx="80" Ny="80" Nz="1" TE="50"
+            TR="10000">
+   <ConcatSequence LoopFlag="1" Name="Seq" Repetitions="1">
+      <CONCATSEQUENCE LoopFlag="2" Name="Intl" Repetitions="8">
+         <ATOMICSEQUENCE Name="A1">
+            <SINCRFPULSE Apodization="0.46" Bandwidth="4" FlipAngle="90" Name="P6" Symmetry="0.5"
+                         Zeros="2"/>
+         </ATOMICSEQUENCE>
+         <DELAYATOMICSEQUENCE ADCFlag="1" Delay="TE" DelayType="C2C" Name="TE" Observe="TE=P.TE"/>
+         <ATOMICSEQUENCE Name="A2" Observe="KMAX=P.KMAXx, R=Intl.Repetitions, DK=P.DKx, IL=Intl.Counter"
+                         RotAngle="360*IL/R">
+            <SPIRALGRADPULSE ADCFlag="2" ADCs="222" Axis="GX" FOV="FOV" GradRasterTime="0.004"
+                             Interleaves="IL"
+                             Inward="1"
+                             MaxAmpl="50"
+                             Name="SPox"
+                             Observe="FOV=P.FOVx, NX = P.Nx, IL = Intl.Repetitions"
+                             Resolution="FOV/NX"
+                             SlewRate="50"/>
+            <SPIRALGRADPULSE ADCFlag="1" Axis="GY" FOV="FOV" GradRasterTime="Raster" Interleaves="IL"
+                             Inward="1"
+                             MaxAmpl="Grad"
+                             Name="SPoy"
+                             Observe="NX = P.Nx, IL = SPox.Interleaves, FOV = P.FOVx, Raster=SPox.GradRasterTime, Grad=SPox.MaxAmpl, Slew=SPox.SlewRate"
+                             Resolution="FOV/NX"
+                             SlewRate="Slew"/>
+         </ATOMICSEQUENCE>
+         <ATOMICSEQUENCE Name="A3" Observe="R=Intl.Repetitions, IL=Intl.Counter" RotAngle="360*IL/R">
+            <TRAPGRADPULSE Area="-A" Axis="GX" Name="Rephx" Observe="A=SPox.Area"/>
+            <TRAPGRADPULSE Area="-A" Axis="GY" Name="Rephy" Observe="A=SPoy.Area"/>
+         </ATOMICSEQUENCE>
+         <DELAYATOMICSEQUENCE Delay="TR" DelayType="B2E" Name="TR" Observe="TR=P.TR" StartSeq="A1"/>
+      </CONCATSEQUENCE>
+   </ConcatSequence>
+</Parameters>

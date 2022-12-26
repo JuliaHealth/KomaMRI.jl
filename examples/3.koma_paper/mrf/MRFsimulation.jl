@@ -28,14 +28,15 @@ delayTR = [Delay(TR[n]-TE[n]-Ta) for n=1:length(α)]
 NTRs = 500 #Number of TRs
 seq = INV + sum([A[n]*EX + delayTE[n] + rotz((n-1)*Δθ)*RAD + delayTR[n] for n=1:NTRs])
 seq.DEF["Nz"] = NTRs #So each TR is reconstructed independently by MRIReco.jl
-jldsave("./mrf.seqk"; seq=seq)
+jldsave(path*"/mrf.seqk"; seq=seq)
 # plot_seq(seq)
 ## Simulation
-fingerprint = simulate(phantom, seq, sys); #This takes like 5 min for NTRs = 500.
+simParams = Dict{String, Any}("return_type"=>"mat", "gpu_device"=>0)
+fingerprint = simulate(phantom, seq, sys; simParams); #This takes like 10 sec for NTRs = 500.
 ## Output ISMRMRD
-raw_ismrmrd = KomaMRI.signal_to_raw_data([fingerprint;;],seq;phantom,sys)
+raw = signal_to_raw_data(fingerprint, seq)
 fname = "MRF_signal_Δθ_$(floor(Int64, Δθ/π*180))_NTRs_$NTRs"
-fout = ISMRMRDFile("./$fname.h5")
-save(fout, raw_ismrmrd)
+fout = ISMRMRDFile(path*"/$fname.mrd")
+save(fout, raw)
 ## Output MAT for external recon
-# matwrite("./$fname.mat", Dict("signal"=>fingerprint))
+#matwrite("./$fname.mat", Dict("signal"=>fingerprint))
