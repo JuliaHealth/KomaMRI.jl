@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Slice Selective Acquisition of 3D Phantom · KomaMRI.jl: General MRI simulation framework</title><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.044/juliamono.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/extra-styles.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img class="docs-light-only" src="../../assets/logo.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/><img class="docs-dark-only" src="../../assets/logo-dark.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/></a><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../getting-started/">Getting Started</a></li><li><a class="tocitem" href="../../ui-details/">Graphical User Interface</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../lit-01-FID/">Free Induction Decay</a></li><li><a class="tocitem" href="../lit-02-SmallTipApproximation/">Small Tip Approximation</a></li><li><a class="tocitem" href="../lit-03-ChemicalShiftEPI/">Chemical Shift in an EPI sequence</a></li><li class="is-active"><a class="tocitem" href>Slice Selective Acquisition of 3D Phantom</a></li></ul></li><li><a class="tocitem" href="../../mri-theory/">Simulation Method</a></li><li><a class="tocitem" href="../../api/">API Documentation</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Slice Selective Acquisition of 3D Phantom</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Slice Selective Acquisition of 3D Phantom</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/cncastillo/KomaMRI.jl/blob/master/examples/lit-04-3DSliceSelective.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Slice-Selective-Acquisition-of-3D-Phantom"><a class="docs-heading-anchor" href="#Slice-Selective-Acquisition-of-3D-Phantom">Slice Selective Acquisition of 3D Phantom</a><a id="Slice-Selective-Acquisition-of-3D-Phantom-1"></a><a class="docs-heading-anchor-permalink" href="#Slice-Selective-Acquisition-of-3D-Phantom" title="Permalink"></a></h1><p><a href="https://github.com/cncastillo/KomaMRI.jl/blob/master/examples/lit-04-3DSliceSelective.jl"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt/></a></p><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Scanner
+  B0: Float64 1.5
+  B1: Float64 1.0e-5
+  Gmax: Float64 0.06
+  Smax: Int64 500
+  ADC_Δt: Float64 2.0e-6
+  seq_Δt: Float64 1.0e-5
+  GR_Δt: Float64 1.0e-5
+  RF_Δt: Float64 1.0e-6
+  RF_ring_down_T: Float64 2.0e-5
+  RF_dead_time_T: Float64 0.0001
+  ADC_dead_time_T: Float64 1.0e-5
+</code></pre><p>While in the previous examples we simulated using hard RF pulses, in this demonstration we will illustrate the principles of slice selection. First, let&#39;s import a 3D phantom, in this case a brain slab (thickness of <span>$2\,\mathrm{cm}$</span>), by calling the function <a href="../../api/#KomaMRI.brain_phantom3D"><code>brain_phantom3D</code></a>.</p><pre><code class="language-julia hljs">obj = brain_phantom3D()
+obj.Δw .= 0 # Removes the off-resonance
+p1 = plot_phantom_map(obj, :T2 ; height=400)</code></pre><center><object type="text/html" data="../../assets/3-phantom.html" style="width:50%; height:420px;"></object></center><p>Now, we are going to import a sequence which acquires 3 slices in the longitudinal axis. Note that the sequence contains three EPIs to acquire 3 slices of the phantom.</p><pre><code class="language-julia hljs">seqFile = joinpath(dirname(pathof(KomaMRI)), &quot;../examples/1.sequences/epi_multislice.seq&quot;)
+seq = read_seq(seqFile)
+p2 = plot_seq(seq; range=[0,10], height=400)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Loading sequence epi_multislice.seq ...
+┌ Warning: Pulseq file did not contain [DEFINITIONS] for Nx, Ny, and Nz. We added Nx=100, Ny=100, and Nz=3 to the Sequence object for the reconstruction.
+└ @ KomaMRI ~/work/KomaMRI.jl/KomaMRI.jl/src/io/Pulseq.jl:426</code></pre><object type="text/html" data="../../assets/3-seq.html" style="width:100%; height:420px;"></object><p>We can take a look to the slice profiles by using the function <a href="../../api/#KomaMRI.simulate_slice_profile"><code>simulate_slice_profile</code></a>:</p><pre><code class="language-julia hljs">z = range(-2., 2., 200) * 1e-2; # -2 to 2 cm
+rf1, rf2, rf3 = findall(KomaMRI.is_RF_on.(seq))
+M1 = simulate_slice_profile(seq[rf1]; z)
+M2 = simulate_slice_profile(seq[rf2]; z)
+M3 = simulate_slice_profile(seq[rf3]; z)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ Info: Running simulation in the CPU with 1 thread(s)
+│   koma_version = v&quot;0.7.1&quot;
+│   sim_method = KomaMRI.Bloch()
+│   spins = 200
+│   time_points = 3007
+└   adc_points = 0
+Progress:  36%|██████████████▉                          |  ETA: 0:00:00
+  simulated_blocks:  8
+  rf_blocks:         7
+  acq_samples:       0
+
+
+Progress:  68%|████████████████████████████             |  ETA: 0:00:00
+  simulated_blocks:  15
+  rf_blocks:         14
+  acq_samples:       0
+
+
+Progress: 100%|█████████████████████████████████████████| Time: 0:00:00
+  simulated_blocks:  22
+  rf_blocks:         20
+  acq_samples:       0
+  0.303997 seconds (585.99 k allocations: 104.112 MiB)
+┌ Info: Running simulation in the CPU with 1 thread(s)
+│   koma_version = v&quot;0.7.1&quot;
+│   sim_method = KomaMRI.Bloch()
+│   spins = 200
+│   time_points = 3007
+└   adc_points = 0
+Progress:  32%|█████████████                            |  ETA: 0:00:00
+  simulated_blocks:  7
+  rf_blocks:         6
+  acq_samples:       0
+
+
+Progress:  68%|████████████████████████████             |  ETA: 0:00:00
+  simulated_blocks:  15
+  rf_blocks:         14
+  acq_samples:       0
+
+
+Progress: 100%|█████████████████████████████████████████| Time: 0:00:00
+  simulated_blocks:  22
+  rf_blocks:         20
+  acq_samples:       0
+  0.365333 seconds (585.99 k allocations: 104.112 MiB, 16.43% gc time)
+┌ Info: Running simulation in the CPU with 1 thread(s)
+│   koma_version = v&quot;0.7.1&quot;
+│   sim_method = KomaMRI.Bloch()
+│   spins = 200
+│   time_points = 3007
+└   adc_points = 0
+Progress:  36%|██████████████▉                          |  ETA: 0:00:00
+  simulated_blocks:  8
+  rf_blocks:         7
+  acq_samples:       0
+
+
+Progress:  68%|████████████████████████████             |  ETA: 0:00:00
+  simulated_blocks:  15
+  rf_blocks:         14
+  acq_samples:       0
+
+
+Progress: 100%|█████████████████████████████████████████| Time: 0:00:00
+  simulated_blocks:  22
+  rf_blocks:         20
+  acq_samples:       0
+  0.358847 seconds (585.99 k allocations: 104.112 MiB, 15.84% gc time)</code></pre><object type="text/html" data="../../assets/3-profile.html" style="width:100%; height:320px;"></object><p>Now let&#39;s simulate the acquisition. Notice the three echoes, one for every slice excitation.</p><pre><code class="language-julia hljs">raw = simulate(obj, seq, sys; simParams=Dict{String,Any}(&quot;Nblocks&quot;=&gt;20))
+p3 = plot_signal(raw; slider=false, height=300)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ Info: Running simulation in the CPU with 1 thread(s)
+│   koma_version = v&quot;0.7.1&quot;
+│   sim_method = KomaMRI.Bloch()
+│   spins = 71326
+│   time_points = 31938
+└   adc_points = 30000
+Progress:   8%|███▏                                     |  ETA: 0:00:11
+  simulated_blocks:  2
+  rf_blocks:         1
+  acq_samples:       0
+
+
+Progress:  12%|████▊                                    |  ETA: 0:00:54
+  simulated_blocks:  3
+  rf_blocks:         1
+  acq_samples:       1410
+
+
+Progress:  15%|██████▎                                  |  ETA: 0:01:08
+  simulated_blocks:  4
+  rf_blocks:         1
+  acq_samples:       2917
+
+
+Progress:  19%|███████▉                                 |  ETA: 0:01:15
+  simulated_blocks:  5
+  rf_blocks:         1
+  acq_samples:       4433
+
+
+Progress:  23%|█████████▌                               |  ETA: 0:01:17
+  simulated_blocks:  6
+  rf_blocks:         1
+  acq_samples:       5925
+
+
+Progress:  27%|███████████                              |  ETA: 0:01:17
+  simulated_blocks:  7
+  rf_blocks:         1
+  acq_samples:       7429
+
+
+Progress:  31%|████████████▋                            |  ETA: 0:01:16
+  simulated_blocks:  8
+  rf_blocks:         1
+  acq_samples:       8933
+
+
+Progress:  35%|██████████████▎                          |  ETA: 0:01:11
+  simulated_blocks:  9
+  rf_blocks:         1
+  acq_samples:       10000
+
+
+Progress:  38%|███████████████▊                         |  ETA: 0:01:01
+  simulated_blocks:  10
+  rf_blocks:         2
+  acq_samples:       10000
+
+
+Progress:  42%|█████████████████▍                       |  ETA: 0:00:54
+  simulated_blocks:  11
+  rf_blocks:         2
+  acq_samples:       10363
+
+
+Progress:  46%|██████████████████▉                      |  ETA: 0:00:53
+  simulated_blocks:  12
+  rf_blocks:         2
+  acq_samples:       11885
+
+
+Progress:  50%|████████████████████▌                    |  ETA: 0:00:51
+  simulated_blocks:  13
+  rf_blocks:         2
+  acq_samples:       13402
+
+
+Progress:  54%|██████████████████████▏                  |  ETA: 0:00:48
+  simulated_blocks:  14
+  rf_blocks:         2
+  acq_samples:       14924
+
+
+Progress:  58%|███████████████████████▋                 |  ETA: 0:00:45
+  simulated_blocks:  15
+  rf_blocks:         2
+  acq_samples:       16446
+
+
+Progress:  62%|█████████████████████████▎               |  ETA: 0:00:42
+  simulated_blocks:  16
+  rf_blocks:         2
+  acq_samples:       17968
+
+
+Progress:  65%|██████████████████████████▊              |  ETA: 0:00:38
+  simulated_blocks:  17
+  rf_blocks:         2
+  acq_samples:       19490
+
+
+Progress:  69%|████████████████████████████▍            |  ETA: 0:00:33
+  simulated_blocks:  18
+  rf_blocks:         2
+  acq_samples:       20000
+
+
+Progress:  73%|██████████████████████████████           |  ETA: 0:00:27
+  simulated_blocks:  19
+  rf_blocks:         3
+  acq_samples:       20000
+
+
+Progress:  77%|███████████████████████████████▌         |  ETA: 0:00:23
+  simulated_blocks:  20
+  rf_blocks:         3
+  acq_samples:       20928
+
+
+Progress:  81%|█████████████████████████████████▏       |  ETA: 0:00:20
+  simulated_blocks:  21
+  rf_blocks:         3
+  acq_samples:       22435
+
+
+Progress:  85%|██████████████████████████████████▊      |  ETA: 0:00:16
+  simulated_blocks:  22
+  rf_blocks:         3
+  acq_samples:       23951
+
+
+Progress:  88%|████████████████████████████████████▎    |  ETA: 0:00:12
+  simulated_blocks:  23
+  rf_blocks:         3
+  acq_samples:       25466
+
+
+Progress:  92%|█████████████████████████████████████▉   |  ETA: 0:00:08
+  simulated_blocks:  24
+  rf_blocks:         3
+  acq_samples:       26980
+
+
+Progress:  96%|███████████████████████████████████████▍ |  ETA: 0:00:04
+  simulated_blocks:  25
+  rf_blocks:         3
+  acq_samples:       28493
+
+
+Progress: 100%|█████████████████████████████████████████| Time: 0:01:49
+  simulated_blocks:  26
+  rf_blocks:         3
+  acq_samples:       30000
+109.427219 seconds (52.34 k allocations: 85.002 GiB, 3.08% gc time)</code></pre><object type="text/html" data="../../assets/3-signal.html" style="width:100%; height:320px;"></object><p>Finally, we reconstruct the acquiered images.</p><pre><code class="language-julia hljs"># Get the acquisition data
+acq = AcquisitionData(raw)
+
+# Setting up the reconstruction parameters and perform reconstruction
+Nx, Ny = raw.params[&quot;reconSize&quot;][1:2]
+reconParams = Dict{Symbol,Any}(:reco=&gt;&quot;direct&quot;, :reconSize=&gt;(Nx, Ny))
+image = reconstruction(acq, reconParams)
+
+# Plotting the slices
+p4 = plot_image(abs.(image[:, :, 1]); height=360, title=&quot;Slice 1&quot;)
+p5 = plot_image(abs.(image[:, :, 2]); height=360, title=&quot;Slice 2&quot;)
+p6 = plot_image(abs.(image[:, :, 3]); height=360, title=&quot;Slice 3&quot;)</code></pre><object type="text/html" data="../../assets/3-recon1.html" style="width:50%; height:380px;"></object><object type="text/html" data="../../assets/3-recon2.html" style="width:50%; height:380px;"></object><center><object type="text/html" data="../../assets/3-recon3.html" style="width:50%; height:380px;"></object></center><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../lit-03-ChemicalShiftEPI/">« Chemical Shift in an EPI sequence</a><a class="docs-footer-nextpage" href="../../mri-theory/">Simulation Method »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.17 on <span class="colophon-date" title="Monday 26 December 2022 23:34">Monday 26 December 2022</span>. Using Julia version 1.8.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

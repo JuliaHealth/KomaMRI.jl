@@ -10,3 +10,6 @@
 .is-category-docstring .admonition-body {background-color: white;}
 .theme--documenter-dark .is-category-docstring .admonition-body {background-color: #1f2424;}
 .theme--documenter-dark .is-category-docstring .admonition-header {background-color: #282f2f; color: white;}
+
+/* For hiding the standard output from literate examples */
+.documenter-example-output {display: none;}
