@@ -1,4 +1,27 @@
-using Documenter, KomaMRI
+using Documenter, Literate, KomaMRI
+
+org, reps = :cncastillo, :KomaMRI
+
+base = "$org/$reps.jl"
+repo_root_url = "https://github.com/$base/blob/master"
+
+exa = joinpath(@__DIR__, "../examples")
+src = joinpath(@__DIR__, "src")
+gen = joinpath(@__DIR__, "src/generated")
+
+for (root, _, files) ∈ walkdir(exa), file ∈ files
+    #splitext(file)[2] == ".jl" || continue
+    cmp(last(splitpath(root)), "examples") == 0 && cmp(first(split(file, "-")), "lit") == 0 || continue
+    ipath = joinpath(root, file)
+    opath = splitdir(replace(ipath, exa=>gen))[1]
+    Literate.markdown(ipath, opath; repo_root_url)
+    #Literate.notebook(ipath, opath; execute = false)
+end
+
+# Documentation structure
+ismd(f) = splitext(f)[2] == ".md"
+pages() = [joinpath("generated", f) for f in readdir(gen) if ismd(f)]
+#pages(folder) = [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if ismd(f)]
 
 makedocs(
     modules = [KomaMRI],
@@ -12,7 +35,7 @@ makedocs(
         # "Scanner" => "scanner.md",
         # "Raw Signal" => "raw-signal.md",
         "Graphical User Interface" => "ui-details.md",
-        "Examples" => "simulation-examples.md",
+        "Examples" => pages(),
         "Simulation Method" => "mri-theory.md",
         "API Documentation" => "api.md"
     ],
@@ -26,4 +49,3 @@ makedocs(
 deploydocs(
     repo = "github.com/cncastillo/KomaMRI.jl.git",
 )
-#julia --color=yes make.jl 
