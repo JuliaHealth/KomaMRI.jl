@@ -103,4 +103,4 @@ nothing # hide
 #md # For this case, the small tip angle approximation breaks 😢, thus, the reason for its name!
 
 #md # This basic sinc pulse is not designed to be ``B_{1}``-insensitive.  Some adiabatic RF pulses have been proposed to achieve this.
-#md # Watch out for a future example showing this adiabatic RF pulses 👀.
+#md # Watch out for a future example showing these adiabatic RF pulses 👀.
