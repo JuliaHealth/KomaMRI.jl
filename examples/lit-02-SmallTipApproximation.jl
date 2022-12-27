@@ -64,13 +64,13 @@ if isFileMD savefig(pb, "../assets/4b-profile.html") end # hide
 if isFileJL display(pb) end # hide
 nothing # hide
 
-#md # This produces the follwoing slice profile:
+#md # This produces the following slice profile:
 
 #md # ```@raw html
 #md # <object type="text/html" data="../../assets/4b-profile.html" style="width:100%; height:380px;"></object>
 #md # ```
 
-#md # As you can see, for a flip angle of 30 deg the slice profile is very close to
+#md # As you can see, for a flip angle of 30 deg, the slice profile is very close to
 #md # the small tip angle approximation (the Fourier transform of ``B_{1}(t)``).
 
 #md # But what will happen if we use a flip angle of 120 deg instead?
