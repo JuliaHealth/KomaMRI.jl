@@ -7,9 +7,7 @@ isFileMD = occursin(".md", filename) # hide
 isFileJL = occursin(".jl", filename) # hide
 
 
-#md # !!! note
-#md #     This example is inspired by the results in page 41 of the book
-#md #     "Handbook of MRI Pulse Sequences" by Bernstein et al.
+#md # > Based on the results in page 41 of the book "Handbook of MRI Pulse Sequences" by Bernstein et al.
 
 using KomaMRI # hide
 sys = Scanner() # hide
@@ -17,7 +15,7 @@ sys.Smax = 50 # hide
 
 #md # In this example, we will showcase a common approximation in MRI, the small tip angle approximation. 
 #md # For this, we will simulate a slice profile for spins with positions ``z\in[-2,\,2]\,\mathrm{cm}``
-#md # and with a gradient ``G_{z}`` so their frequencies are mapped to ``f\in[-5,\,5]\,\mathrm{kHZ}``.
+#md # and with a gradient ``G_{z}`` so their frequencies are mapped to ``f\in[-5,\,5]\,\mathrm{kHz}``.
 #md # To start, we define an RF pulse with a flip angle of 30 deg and pulse duration of ``T_{\mathrm{rf}}=3.2\,\mathrm{ms}``.
 
 B1 = 4.92e-6
