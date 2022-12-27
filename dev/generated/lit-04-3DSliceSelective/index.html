@@ -27,15 +27,21 @@ M3 = simulate_slice_profile(seq[rf3]; z)</code></pre><pre class="documenter-exam
 │   spins = 200
 │   time_points = 3007
 └   adc_points = 0
-Progress:  36%|██████████████▉                          |  ETA: 0:00:00
-  simulated_blocks:  8
-  rf_blocks:         7
+Progress:  27%|███████████▏                             |  ETA: 0:00:00
+  simulated_blocks:  6
+  rf_blocks:         5
   acq_samples:       0
 
 
-Progress:  68%|████████████████████████████             |  ETA: 0:00:00
-  simulated_blocks:  15
-  rf_blocks:         14
+Progress:  55%|██████████████████████▍                  |  ETA: 0:00:00
+  simulated_blocks:  12
+  rf_blocks:         11
+  acq_samples:       0
+
+
+Progress:  82%|█████████████████████████████████▌       |  ETA: 0:00:00
+  simulated_blocks:  18
+  rf_blocks:         17
   acq_samples:       0
 
 
@@ -43,22 +49,34 @@ M3 = simulate_slice_profile(seq[rf3]; z)</code></pre><pre class="documenter-exam
   simulated_blocks:  22
   rf_blocks:         20
   acq_samples:       0
-  0.306411 seconds (585.99 k allocations: 104.112 MiB)
+  0.384367 seconds (586.24 k allocations: 104.120 MiB)
 ┌ Info: Running simulation in the CPU with 1 thread(s)
 │   koma_version = v&quot;0.7.1&quot;
 │   sim_method = KomaMRI.Bloch()
 │   spins = 200
 │   time_points = 3007
 └   adc_points = 0
-Progress:  32%|█████████████                            |  ETA: 0:00:00
-  simulated_blocks:  7
-  rf_blocks:         6
+Progress:   9%|███▊                                     |  ETA: 0:00:06
+  simulated_blocks:  2
+  rf_blocks:         1
   acq_samples:       0
 
 
-Progress:  68%|████████████████████████████             |  ETA: 0:00:00
-  simulated_blocks:  15
-  rf_blocks:         14
+Progress:  36%|██████████████▉                          |  ETA: 0:00:01
+  simulated_blocks:  8
+  rf_blocks:         7
+  acq_samples:       0
+
+
+Progress:  64%|██████████████████████████▏              |  ETA: 0:00:00
+  simulated_blocks:  14
+  rf_blocks:         13
+  acq_samples:       0
+
+
+Progress:  86%|███████████████████████████████████▍     |  ETA: 0:00:00
+  simulated_blocks:  19
+  rf_blocks:         18
   acq_samples:       0
 
 
@@ -66,22 +84,28 @@ M3 = simulate_slice_profile(seq[rf3]; z)</code></pre><pre class="documenter-exam
   simulated_blocks:  22
   rf_blocks:         20
   acq_samples:       0
-  0.369251 seconds (585.99 k allocations: 104.112 MiB, 17.33% gc time)
+  0.940012 seconds (586.50 k allocations: 104.128 MiB, 57.18% gc time)
 ┌ Info: Running simulation in the CPU with 1 thread(s)
 │   koma_version = v&quot;0.7.1&quot;
 │   sim_method = KomaMRI.Bloch()
 │   spins = 200
 │   time_points = 3007
 └   adc_points = 0
-Progress:  36%|██████████████▉                          |  ETA: 0:00:00
-  simulated_blocks:  8
-  rf_blocks:         7
+Progress:  27%|███████████▏                             |  ETA: 0:00:00
+  simulated_blocks:  6
+  rf_blocks:         5
   acq_samples:       0
 
 
-Progress:  68%|████████████████████████████             |  ETA: 0:00:00
-  simulated_blocks:  15
-  rf_blocks:         14
+Progress:  55%|██████████████████████▍                  |  ETA: 0:00:00
+  simulated_blocks:  12
+  rf_blocks:         11
+  acq_samples:       0
+
+
+Progress:  82%|█████████████████████████████████▌       |  ETA: 0:00:00
+  simulated_blocks:  18
+  rf_blocks:         17
   acq_samples:       0
 
 
@@ -89,162 +113,162 @@ M3 = simulate_slice_profile(seq[rf3]; z)</code></pre><pre class="documenter-exam
   simulated_blocks:  22
   rf_blocks:         20
   acq_samples:       0
-  0.363643 seconds (585.99 k allocations: 104.112 MiB, 16.48% gc time)</code></pre><object type="text/html" data="../../assets/3-profile.html" style="width:100%; height:320px;"></object><p>Now let&#39;s simulate the acquisition. Notice the three echoes, one for every slice excitation.</p><pre><code class="language-julia hljs">raw = simulate(obj, seq, sys; simParams=Dict{String,Any}(&quot;Nblocks&quot;=&gt;20))
+  0.387053 seconds (586.24 k allocations: 104.120 MiB)</code></pre><object type="text/html" data="../../assets/3-profile.html" style="width:100%; height:320px;"></object><p>Now let&#39;s simulate the acquisition. Notice the three echoes, one for every slice excitation.</p><pre><code class="language-julia hljs">raw = simulate(obj, seq, sys; simParams=Dict{String,Any}(&quot;Nblocks&quot;=&gt;20))
 p3 = plot_signal(raw; slider=false, height=300)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ Info: Running simulation in the CPU with 1 thread(s)
 │   koma_version = v&quot;0.7.1&quot;
 │   sim_method = KomaMRI.Bloch()
 │   spins = 71326
 │   time_points = 31938
 └   adc_points = 30000
-Progress:   8%|███▏                                     |  ETA: 0:00:11
+Progress:   8%|███▏                                     |  ETA: 0:00:13
   simulated_blocks:  2
   rf_blocks:         1
   acq_samples:       0
 
 
-Progress:  12%|████▊                                    |  ETA: 0:00:54
+Progress:  12%|████▊                                    |  ETA: 0:01:01
   simulated_blocks:  3
   rf_blocks:         1
   acq_samples:       1410
 
 
-Progress:  15%|██████▎                                  |  ETA: 0:01:09
+Progress:  15%|██████▎                                  |  ETA: 0:01:18
   simulated_blocks:  4
   rf_blocks:         1
   acq_samples:       2917
 
 
-Progress:  19%|███████▉                                 |  ETA: 0:01:16
+Progress:  19%|███████▉                                 |  ETA: 0:01:26
   simulated_blocks:  5
   rf_blocks:         1
   acq_samples:       4433
 
 
-Progress:  23%|█████████▌                               |  ETA: 0:01:18
+Progress:  23%|█████████▌                               |  ETA: 0:01:29
   simulated_blocks:  6
   rf_blocks:         1
   acq_samples:       5925
 
 
-Progress:  27%|███████████                              |  ETA: 0:01:19
+Progress:  27%|███████████                              |  ETA: 0:01:29
   simulated_blocks:  7
   rf_blocks:         1
   acq_samples:       7429
 
 
-Progress:  31%|████████████▋                            |  ETA: 0:01:17
+Progress:  31%|████████████▋                            |  ETA: 0:01:28
   simulated_blocks:  8
   rf_blocks:         1
   acq_samples:       8933
 
 
-Progress:  35%|██████████████▎                          |  ETA: 0:01:12
+Progress:  35%|██████████████▎                          |  ETA: 0:01:22
   simulated_blocks:  9
   rf_blocks:         1
   acq_samples:       10000
 
 
-Progress:  38%|███████████████▊                         |  ETA: 0:01:02
+Progress:  38%|███████████████▊                         |  ETA: 0:01:11
   simulated_blocks:  10
   rf_blocks:         2
   acq_samples:       10000
 
 
-Progress:  42%|█████████████████▍                       |  ETA: 0:00:55
+Progress:  42%|█████████████████▍                       |  ETA: 0:01:02
   simulated_blocks:  11
   rf_blocks:         2
   acq_samples:       10363
 
 
-Progress:  46%|██████████████████▉                      |  ETA: 0:00:53
+Progress:  46%|██████████████████▉                      |  ETA: 0:01:01
   simulated_blocks:  12
   rf_blocks:         2
   acq_samples:       11885
 
 
-Progress:  50%|████████████████████▌                    |  ETA: 0:00:51
+Progress:  50%|████████████████████▌                    |  ETA: 0:00:58
   simulated_blocks:  13
   rf_blocks:         2
   acq_samples:       13402
 
 
-Progress:  54%|██████████████████████▏                  |  ETA: 0:00:49
+Progress:  54%|██████████████████████▏                  |  ETA: 0:00:55
   simulated_blocks:  14
   rf_blocks:         2
   acq_samples:       14924
 
 
-Progress:  58%|███████████████████████▋                 |  ETA: 0:00:46
+Progress:  58%|███████████████████████▋                 |  ETA: 0:00:52
   simulated_blocks:  15
   rf_blocks:         2
   acq_samples:       16446
 
 
-Progress:  62%|█████████████████████████▎               |  ETA: 0:00:42
+Progress:  62%|█████████████████████████▎               |  ETA: 0:00:48
   simulated_blocks:  16
   rf_blocks:         2
   acq_samples:       17968
 
 
-Progress:  65%|██████████████████████████▊              |  ETA: 0:00:39
+Progress:  65%|██████████████████████████▊              |  ETA: 0:00:44
   simulated_blocks:  17
   rf_blocks:         2
   acq_samples:       19490
 
 
-Progress:  69%|████████████████████████████▍            |  ETA: 0:00:33
+Progress:  69%|████████████████████████████▍            |  ETA: 0:00:38
   simulated_blocks:  18
   rf_blocks:         2
   acq_samples:       20000
 
 
-Progress:  73%|██████████████████████████████           |  ETA: 0:00:28
+Progress:  73%|██████████████████████████████           |  ETA: 0:00:32
   simulated_blocks:  19
   rf_blocks:         3
   acq_samples:       20000
 
 
-Progress:  77%|███████████████████████████████▌         |  ETA: 0:00:24
+Progress:  77%|███████████████████████████████▌         |  ETA: 0:00:27
   simulated_blocks:  20
   rf_blocks:         3
   acq_samples:       20928
 
 
-Progress:  81%|█████████████████████████████████▏       |  ETA: 0:00:20
+Progress:  81%|█████████████████████████████████▏       |  ETA: 0:00:23
   simulated_blocks:  21
   rf_blocks:         3
   acq_samples:       22435
 
 
-Progress:  85%|██████████████████████████████████▊      |  ETA: 0:00:16
+Progress:  85%|██████████████████████████████████▊      |  ETA: 0:00:19
   simulated_blocks:  22
   rf_blocks:         3
   acq_samples:       23951
 
 
-Progress:  88%|████████████████████████████████████▎    |  ETA: 0:00:12
+Progress:  88%|████████████████████████████████████▎    |  ETA: 0:00:14
   simulated_blocks:  23
   rf_blocks:         3
   acq_samples:       25466
 
 
-Progress:  92%|█████████████████████████████████████▉   |  ETA: 0:00:08
+Progress:  92%|█████████████████████████████████████▉   |  ETA: 0:00:10
   simulated_blocks:  24
   rf_blocks:         3
   acq_samples:       26980
 
 
-Progress:  96%|███████████████████████████████████████▍ |  ETA: 0:00:04
+Progress:  96%|███████████████████████████████████████▍ |  ETA: 0:00:05
   simulated_blocks:  25
   rf_blocks:         3
   acq_samples:       28493
 
 
-Progress: 100%|█████████████████████████████████████████| Time: 0:01:51
+Progress: 100%|█████████████████████████████████████████| Time: 0:02:08
   simulated_blocks:  26
   rf_blocks:         3
   acq_samples:       30000
-111.463864 seconds (52.34 k allocations: 85.002 GiB, 3.21% gc time)</code></pre><object type="text/html" data="../../assets/3-signal.html" style="width:100%; height:320px;"></object><p>Finally, we reconstruct the acquiered images.</p><pre><code class="language-julia hljs"># Get the acquisition data
+128.274361 seconds (52.34 k allocations: 85.002 GiB, 2.88% gc time)</code></pre><object type="text/html" data="../../assets/3-signal.html" style="width:100%; height:320px;"></object><p>Finally, we reconstruct the acquiered images.</p><pre><code class="language-julia hljs"># Get the acquisition data
 acq = AcquisitionData(raw)
 
 # Setting up the reconstruction parameters and perform reconstruction
@@ -255,4 +279,4 @@ image = reconstruction(acq, reconParams)
 # Plotting the slices
 p4 = plot_image(abs.(image[:, :, 1]); height=360, title=&quot;Slice 1&quot;)
 p5 = plot_image(abs.(image[:, :, 2]); height=360, title=&quot;Slice 2&quot;)
-p6 = plot_image(abs.(image[:, :, 3]); height=360, title=&quot;Slice 3&quot;)</code></pre><object type="text/html" data="../../assets/3-recon1.html" style="width:50%; height:380px;"></object><object type="text/html" data="../../assets/3-recon2.html" style="width:50%; height:380px;"></object><center><object type="text/html" data="../../assets/3-recon3.html" style="width:50%; height:380px;"></object></center><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../lit-03-ChemicalShiftEPI/">« Chemical Shift in an EPI sequence</a><a class="docs-footer-nextpage" href="../../mri-theory/">Simulation Method »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.17 on <span class="colophon-date" title="Tuesday 27 December 2022 17:47">Tuesday 27 December 2022</span>. Using Julia version 1.8.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+p6 = plot_image(abs.(image[:, :, 3]); height=360, title=&quot;Slice 3&quot;)</code></pre><object type="text/html" data="../../assets/3-recon1.html" style="width:50%; height:380px;"></object><object type="text/html" data="../../assets/3-recon2.html" style="width:50%; height:380px;"></object><center><object type="text/html" data="../../assets/3-recon3.html" style="width:50%; height:380px;"></object></center><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../lit-03-ChemicalShiftEPI/">« Chemical Shift in an EPI sequence</a><a class="docs-footer-nextpage" href="../../mri-theory/">Simulation Method »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.17 on <span class="colophon-date" title="Tuesday 27 December 2022 17:53">Tuesday 27 December 2022</span>. Using Julia version 1.8.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
