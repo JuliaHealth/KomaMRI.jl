@@ -9,13 +9,18 @@ exa = joinpath(@__DIR__, "../examples")
 src = joinpath(@__DIR__, "src")
 gen = joinpath(@__DIR__, "src/generated")
 
+function update_file_name(file)
+    return content -> content = replace(content, "FILE_NAME" => file)
+end
+
 for (root, _, files) ∈ walkdir(exa), file ∈ files
     #splitext(file)[2] == ".jl" || continue
     cmp(last(splitpath(root)), "examples") == 0 && cmp(first(split(file, "-")), "lit") == 0 || continue
+    file_minus_ext = split(file, ".")[1] #lit-02-example.jl => lit-02-example
     ipath = joinpath(root, file)
-    opath = splitdir(replace(ipath, exa=>gen))[1]
-    Literate.markdown(ipath, opath; repo_root_url)
-    #Literate.notebook(ipath, opath; execute = false)
+    Literate.markdown(ipath, gen; repo_root_url, preprocess=update_file_name(file_minus_ext) )
+    Literate.script(ipath, gen; repo_root_url)
+    Literate.notebook(ipath, gen; execute=false)
 end
 
 # Documentation structure
