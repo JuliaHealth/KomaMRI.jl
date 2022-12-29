@@ -58,7 +58,7 @@ different number threads to excecute the process.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (or the initial
     state for the next precession simulation step)
 """
-function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, 
+function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nthreads=Nphyscores) where {T<:Real}
 
@@ -96,7 +96,7 @@ take advantage of CPU parallel processing.
 - `S_interp`: (`::Vector{ComplexF64}`) interpolated raw signal
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}}, 
+function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nblocks=1, Nthreads=Nphyscores, parts=[1:length(seq)], w=nothing) where {T<:Real}
     # Simulation
@@ -128,10 +128,10 @@ end
 function update_blink_window_progress!(w, block, Nblocks)
     if w !== nothing #update Progress to Blink Window
         progress = string(floor(Int, block / Nblocks * 100))
-        @js_ w (@var progress = $progress;
-        document.getElementById("simul_progress").style.width = progress + "%";
-        document.getElementById("simul_progress").innerHTML = progress + "%";
-        document.getElementById("simul_progress").setAttribute("aria-valuenow", progress))
+        #@js_ w (@var progress = $progress;
+        #document.getElementById("simul_progress").style.width = progress + "%";
+        #document.getElementById("simul_progress").innerHTML = progress + "%";
+        #document.getElementById("simul_progress").setAttribute("aria-valuenow", progress))
     end
     return nothing
 end

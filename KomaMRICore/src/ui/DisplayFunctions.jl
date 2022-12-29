@@ -124,13 +124,13 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 	# Visually check the simulation blocks
 	if show_sim_blocks
 		#This is the preparation of the default simulate function
-		t, _ = KomaMRI.get_uniform_times(seq, 1e-3)
-		breaks = KomaMRI.get_breaks_in_RF_key_points(seq,t)
+		t, _ = KomaMRICore.get_uniform_times(seq, 1e-3)
+		breaks = KomaMRICore.get_breaks_in_RF_key_points(seq,t)
 		Nt = length(t)
 		if Nblocks == 0
 			Nblocks = ceil(Int, 6506*Nt/1.15e6)
 		end
-		parts = KomaMRI.kfoldperm(Nt,Nblocks;type="ordered",breaks)
+		parts = KomaMRICore.kfoldperm(Nt,Nblocks;type="ordered",breaks)
 		t_sim_parts = [t[p[1]] for p in parts]
 		#Create lines
 		aux = [line(
@@ -362,11 +362,11 @@ julia> plot_M0(seq)
 function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false)
 	#Times
 	dt = 1
-	t, Δt = KomaMRI.get_uniform_times(seq, dt)
+	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
 	#kx,ky
 	ts = t .+ Δt
-	rf_idx, rf_type = KomaMRI.get_RF_types(seq, t)
-	k, _ =  KomaMRI.get_kspace(seq; Δt=dt)
+	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
+	k, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
 
 	#plots k(t)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)

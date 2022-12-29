@@ -126,7 +126,7 @@ end
         B1 = 23.4732e-6 # For 90 deg flip angle
         Trf = 1e-3
         rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
-        @test KomaMRI.get_flip_angles(rf)[1] ≈ 90
+        @test KomaMRICore.get_flip_angles(rf)[1] ≈ 90
     end
     @testset "Spiral" begin
         sys = Scanner()
@@ -205,9 +205,9 @@ end
     dt = Float64[1 1 1 1]
     x  = Float64[0 1 2 1 0]
 
-    @test KomaMRI.trapz(dt, x)[1] ≈ 4 #Triangle area = bh/2, with b = 4 and h = 2
+    @test KomaMRICore.trapz(dt, x)[1] ≈ 4 #Triangle area = bh/2, with b = 4 and h = 2
 
-    @test KomaMRI.cumtrapz(dt, x) ≈ [0.5 2 3.5 4]
+    @test KomaMRICore.cumtrapz(dt, x) ≈ [0.5 2 3.5 4]
 end
 
 @testitem "BlochSim_CPU_sigle_thread" tags=[:important] begin
@@ -220,7 +220,7 @@ end
     simParams = Dict{String, Any}(
         "gpu"=>false,
         "Nthreads"=>1,
-        "sim_method"=>KomaMRI.Bloch(),
+        "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat"
     )
     sig = @suppress simulate(obj, seq, sys; simParams)
@@ -244,7 +244,7 @@ end
 
     simParams = Dict{String, Any}(
         "gpu"=>false,
-        "sim_method"=>KomaMRI.Bloch(),
+        "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat"
     )
     sig = @suppress simulate(obj, seq, sys; simParams)
@@ -268,12 +268,12 @@ end
 
     simParams = Dict{String, Any}(
         "gpu"=>true,
-        "sim_method"=>KomaMRI.Bloch(),
+        "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat"
     )
     sig = @suppress simulate(obj, seq, sys; simParams)
     sig = sig / prod(size(obj))
-    
+
     sig_jemris = h5open(path*"/test_files/jemris_signals_epi_sphere_cs.h5")["/signal/channels/00"]
     sig_jemris = sig_jemris[1,:] + 1im*sig_jemris[2,:]
     sig_jemris = sig_jemris[:]

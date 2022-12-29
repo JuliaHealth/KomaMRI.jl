@@ -170,10 +170,10 @@ handle(w, "simulate") do args...
     @info "Exporting to ISMRMRD file: $rawfile"
     global sig_obs[] = raw_ismrmrd
     fout = ISMRMRDFile(rawfile)
-    save(fout, raw_ismrmrd)
+    KomaMRICore.save(fout, raw_ismrmrd)
     #Message
     sim_time = raw_ismrmrd.params["userParameters"]["sim_time_sec"]
-    @js_ w (@var sim_time = $sim_time; 
+    @js_ w (@var sim_time = $sim_time;
     Toasty("1", """Simulation successfull<br>Time: <a id="sim_time"></a> s""" ,"""
     <ul>
         <li>
@@ -211,7 +211,7 @@ handle(w, "recon") do args...
     #After Recon go to Image
     recon_time = aux.time
     @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
-    @js_ w (@var recon_time = $recon_time; 
+    @js_ w (@var recon_time = $recon_time;
     Toasty("2", """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""" ,"""
     <ul>
         <li>

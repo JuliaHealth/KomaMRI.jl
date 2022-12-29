@@ -4,8 +4,8 @@
 A module to define different pulse sequences.
 """
 module PulseDesigner
-using ..KomaMRI
-using ..KomaMRI: γ, Scanner, get_bvalue, get_max_grad
+using ..KomaMRICore
+using ..KomaMRICore: γ, Scanner, get_bvalue, get_max_grad
 
 """
     ex = RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0)
@@ -221,7 +221,7 @@ Definition of the radial base sequence.
 - `sys`: (`::Scanner`) Scanner struct
 
 # Returns
-- `seq`: (`::Function`) function that returns a `Sequence` when evaluated 
+- `seq`: (`::Function`) function that returns a `Sequence` when evaluated
 
 # References
 - Glover, G.H. (1999), Simple analytic spiral K-space algorithm. Magn. Reson. Med., 42: 412-415. https://doi.org/10.1002/(SICI)1522-2594(199908)42:2<412::AID-MRM25>3.0.CO;2-U
