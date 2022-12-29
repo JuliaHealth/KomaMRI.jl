@@ -15,13 +15,10 @@ using Parameters
 @reexport using CUDA, Interpolations, Hwloc
 #Reconstruction
 using MRIReco, MRIFiles
-@reexport using MRIReco: RawAcquisitionData, AcquisitionData, reconstruction
+@reexport using MRIReco: RawAcquisitionData, AcquisitionData, AcquisitionHeader, reconstruction
 @reexport using MRIFiles: ISMRMRDFile
 #IO
 using FileIO, HDF5, MAT, JLD2
-#GUI
-#using Blink, Interact, PlotlyJS, AssetRegistry
-#@reexport using PlotlyJS: savefig
 
 global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
@@ -74,16 +71,12 @@ export PulseDesigner, get_kspace, rotx, roty, rotz
 export plot_seq, plot_grads_moments, plot_kspace, plot_phantom_map, plot_signal, plot_M0, plot_image, plot_dict
 #Simulator
 export simulate, simulate_slice_profile
-#GUI
-#!Blink.AtomShell.isinstalled() && Blink.AtomShell.install()
-#include("KomaUI.jl")
-#export KomaUI
 
 export print_gpus
 export fftc, ifftc
 
 #Additionals
-#export get_flip_angles, Bloch, is_RF_on
+export get_flip_angles, is_RF_on
 using PlotlyJS
 
 end

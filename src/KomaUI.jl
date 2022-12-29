@@ -101,7 +101,7 @@ global raw_ismrmrd = RawAcquisitionData(Dict(
     "number_of_samples" => 4,
     "encodedFOV" => [100.,100.,1],
     "trajectory" => "other"),
-    [KomaMRI.Profile(AcquisitionHeader(trajectory_dimensions=2, sample_time_us=1),
+    [KomaMRICore.Profile(AcquisitionHeader(trajectory_dimensions=2, sample_time_us=1),
         [0. 0. 1 1; 0 1 1 1]./2, [0.; 0im; 0; 0;;])])
 global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
@@ -204,7 +204,7 @@ handle(w, "recon") do args...
     recParams[:densityWeighting] = true
     #Reconstruction
     @info "Running reconstruction of $rawfile"
-    aux = @timed MRIReco.reconstruction(acqData, recParams)
+    aux = @timed reconstruction(acqData, recParams)
     global image  = reshape(aux.value.data,Nx,Ny,:)
     global kspace = fftc(reshape(aux.value.data,Nx,Ny,:))
     # global img_obs[] = image

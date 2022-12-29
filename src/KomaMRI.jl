@@ -1,11 +1,6 @@
 module KomaMRI
 
 #IMPORT PACKAGES
-#Reconstruction
-using MRIReco, MRIFiles
-@reexport using MRIReco: RawAcquisitionData, AcquisitionData, reconstruction
-@reexport using MRIFiles: ISMRMRDFile
-
 using Reexport
 @reexport using KomaMRICore
 
