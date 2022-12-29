@@ -125,14 +125,7 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
 end
 
 """Updates KomaUI's simulation progress bar."""
-function update_blink_window_progress!(w, block, Nblocks)
-    if w !== nothing #update Progress to Blink Window
-        progress = string(floor(Int, block / Nblocks * 100))
-        #@js_ w (@var progress = $progress;
-        #document.getElementById("simul_progress").style.width = progress + "%";
-        #document.getElementById("simul_progress").innerHTML = progress + "%";
-        #document.getElementById("simul_progress").setAttribute("aria-valuenow", progress))
-    end
+function update_blink_window_progress!(w::Nothing, block, Nblocks)
     return nothing
 end
 

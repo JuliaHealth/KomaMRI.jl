@@ -59,7 +59,7 @@ Note that every subitem in the sections **Arguments**, **Keywords** and **Return
 
 ### `Scanner`
 ```@docs
-Scanner
+KomaMRICore.Scanner
 ```
 
 ### `Phantom`
