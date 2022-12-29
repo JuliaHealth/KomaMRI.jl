@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Chemical Shift in an EPI sequence · KomaMRI.jl: General MRI simulation framework</title><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.044/juliamono.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/extra-styles.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img class="docs-light-only" src="../../assets/logo.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/><img class="docs-dark-only" src="../../assets/logo-dark.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/></a><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../getting-started/">Getting Started</a></li><li><a class="tocitem" href="../../ui-details/">Graphical User Interface</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../lit-01-FID/">Free Induction Decay</a></li><li><a class="tocitem" href="../lit-02-SmallTipApproximation/">Small Tip Angle Approximation</a></li><li class="is-active"><a class="tocitem" href>Chemical Shift in an EPI sequence</a></li><li><a class="tocitem" href="../lit-04-3DSliceSelective/">Slice Selective Acquisition of 3D Phantom</a></li></ul></li><li><a class="tocitem" href="../../mri-theory/">Simulation Method</a></li><li><a class="tocitem" href="../../api/">API Documentation</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Chemical Shift in an EPI sequence</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Chemical Shift in an EPI sequence</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/cncastillo/KomaMRI.jl/blob/master/examples/lit-03-ChemicalShiftEPI.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Chemical-Shift-in-an-EPI-sequence"><a class="docs-heading-anchor" href="#Chemical-Shift-in-an-EPI-sequence">Chemical Shift in an EPI sequence</a><a id="Chemical-Shift-in-an-EPI-sequence-1"></a><a class="docs-heading-anchor-permalink" href="#Chemical-Shift-in-an-EPI-sequence" title="Permalink"></a></h1><p><a href="https://github.com/cncastillo/KomaMRI.jl/blob/master/examples/lit-03-ChemicalShiftEPI.jl"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt/></a></p><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Scanner
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Chemical Shift in an EPI sequence · KomaMRI.jl: General MRI simulation framework</title><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.044/juliamono.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/extra-styles.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img class="docs-light-only" src="../../assets/logo.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/><img class="docs-dark-only" src="../../assets/logo-dark.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/></a><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../getting-started/">Getting Started</a></li><li><a class="tocitem" href="../../ui-details/">Graphical User Interface</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../lit-01-FID/">Free Induction Decay</a></li><li><a class="tocitem" href="../lit-02-SmallTipApproximation/">Small Tip Angle Approximation</a></li><li class="is-active"><a class="tocitem" href>Chemical Shift in an EPI sequence</a></li><li><a class="tocitem" href="../lit-04-3DSliceSelective/">Slice Selective Acquisition of 3D Phantom</a></li></ul></li><li><a class="tocitem" href="../../mri-theory/">Simulation Method</a></li><li><a class="tocitem" href="../../api/">API Documentation</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Chemical Shift in an EPI sequence</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Chemical Shift in an EPI sequence</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/cncastillo/KomaMRI.jl/blob/master/examples/lit-03-ChemicalShiftEPI.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Chemical-Shift-in-an-EPI-sequence"><a class="docs-heading-anchor" href="#Chemical-Shift-in-an-EPI-sequence">Chemical Shift in an EPI sequence</a><a id="Chemical-Shift-in-an-EPI-sequence-1"></a><a class="docs-heading-anchor-permalink" href="#Chemical-Shift-in-an-EPI-sequence" title="Permalink"></a></h1><p><a href="../lit-03-ChemicalShiftEPI.jl"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt/></a> <a href="../lit-03-ChemicalShiftEPI.ipynb"><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt/></a></p><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Scanner
   B0: Float64 1.5
   B1: Float64 1.0e-5
   Gmax: Float64 0.06
@@ -13,138 +13,10 @@
   ADC_dead_time_T: Float64 1.0e-5
 </code></pre><p>For a more realistic example, we will use a brain phantom.</p><pre><code class="language-julia hljs">obj = brain_phantom2D() # a slice of a brain
 p1 = plot_phantom_map(obj, :T2 ; height=400)
-p2 = plot_phantom_map(obj, :Δw ; height=400)</code></pre><p>At the left, you can see the <span>$T_2$</span> map of the phantom, and at the right, the off-resonance <span>$\Delta\omega$</span>. In this example, the fat is the only source of off-resonance (with <span>$\Delta f =  -220\,\mathrm{Hz}$</span>) and you can see it in black in the off-resonance map.</p><object type="text/html" data="../../assets/2-phantom1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/2-phantom2.html" style="width:50%; height:420px;"></object><p>Then, we will load an EPI sequence, that is well known for being affected by off-resonance. With this sequence, we will be able visualize the effect of the chemical shift.</p><pre><code class="language-julia hljs">seqFile = joinpath(dirname(pathof(KomaMRI)), &quot;../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq&quot;)
-seq = read_seq(seqFile)
-p3 = plot_seq(seq; range=[0 40], slider=true, height=300)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: Loading sequence epi_100x100_TE100_FOV230.seq ...
-┌ Warning: Loading older Pulseq format file (version 1.2.1) some code may not function as expected
-└ @ KomaMRI ~/work/KomaMRI.jl/KomaMRI.jl/src/io/Pulseq.jl:21
-┌ Warning: Pulseq file did not contain [DEFINITIONS] for Nx, Ny, and Nz. We added Nx=100, Ny=100, and Nz=1 to the Sequence object for the reconstruction.
-└ @ KomaMRI ~/work/KomaMRI.jl/KomaMRI.jl/src/io/Pulseq.jl:426</code></pre><p>Feel free to explore the sequence&#39;s plot 🔍 below!</p><object type="text/html" data="../../assets/2-seq.html" style="width:100%; height:320px;"></object><p>If we simulate this sequence we will end up with the following signal.</p><pre><code class="language-julia hljs">raw = simulate(obj, seq, sys)
-p4 = plot_signal(raw; range=[98.4 103.4] , height=300)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌ Info: Running simulation in the CPU with 1 thread(s)
-│   koma_version = v&quot;0.7.1&quot;
-│   sim_method = KomaMRI.Bloch()
-│   spins = 6506
-│   time_points = 10611
-└   adc_points = 10000
-Progress:  10%|███▉                                     |  ETA: 0:00:02
-  simulated_blocks:  2
-  rf_blocks:         1
-  acq_samples:       493
-
-
-Progress:  14%|█████▉                                   |  ETA: 0:00:02
-  simulated_blocks:  3
-  rf_blocks:         1
-  acq_samples:       990
-
-
-Progress:  19%|███████▊                                 |  ETA: 0:00:02
-  simulated_blocks:  4
-  rf_blocks:         1
-  acq_samples:       1491
-
-
-Progress:  24%|█████████▊                               |  ETA: 0:00:02
-  simulated_blocks:  5
-  rf_blocks:         1
-  acq_samples:       1992
-
-
-Progress:  29%|███████████▊                             |  ETA: 0:00:02
-  simulated_blocks:  6
-  rf_blocks:         1
-  acq_samples:       2493
-
-
-Progress:  33%|█████████████▋                           |  ETA: 0:00:02
-  simulated_blocks:  7
-  rf_blocks:         1
-  acq_samples:       2996
-
-
-Progress:  38%|███████████████▋                         |  ETA: 0:00:02
-  simulated_blocks:  8
-  rf_blocks:         1
-  acq_samples:       3500
-
-
-Progress:  43%|█████████████████▋                       |  ETA: 0:00:01
-  simulated_blocks:  9
-  rf_blocks:         1
-  acq_samples:       4000
-
-
-Progress:  48%|███████████████████▌                     |  ETA: 0:00:01
-  simulated_blocks:  10
-  rf_blocks:         1
-  acq_samples:       4502
-
-
-Progress:  52%|█████████████████████▌                   |  ETA: 0:00:01
-  simulated_blocks:  11
-  rf_blocks:         1
-  acq_samples:       5005
-
-
-Progress:  57%|███████████████████████▍                 |  ETA: 0:00:01
-  simulated_blocks:  12
-  rf_blocks:         1
-  acq_samples:       5508
-
-
-Progress:  62%|█████████████████████████▍               |  ETA: 0:00:01
-  simulated_blocks:  13
-  rf_blocks:         1
-  acq_samples:       6004
-
-
-Progress:  67%|███████████████████████████▍             |  ETA: 0:00:01
-  simulated_blocks:  14
-  rf_blocks:         1
-  acq_samples:       6506
-
-
-Progress:  71%|█████████████████████████████▎           |  ETA: 0:00:01
-  simulated_blocks:  15
-  rf_blocks:         1
-  acq_samples:       7004
-
-
-Progress:  76%|███████████████████████████████▎         |  ETA: 0:00:01
-  simulated_blocks:  16
-  rf_blocks:         1
-  acq_samples:       7503
-
-
-Progress:  81%|█████████████████████████████████▎       |  ETA: 0:00:00
-  simulated_blocks:  17
-  rf_blocks:         1
-  acq_samples:       8002
-
-
-Progress:  86%|███████████████████████████████████▏     |  ETA: 0:00:00
-  simulated_blocks:  18
-  rf_blocks:         1
-  acq_samples:       8501
-
-
-Progress:  90%|█████████████████████████████████████▏   |  ETA: 0:00:00
-  simulated_blocks:  19
-  rf_blocks:         1
-  acq_samples:       9000
-
-
-Progress:  95%|███████████████████████████████████████  |  ETA: 0:00:00
-  simulated_blocks:  20
-  rf_blocks:         1
-  acq_samples:       9500
-
-
-Progress: 100%|█████████████████████████████████████████| Time: 0:00:02
-  simulated_blocks:  21
-  rf_blocks:         1
-  acq_samples:       10000
-  2.581966 seconds (10.59 k allocations: 2.548 GiB, 4.72% gc time)</code></pre><object type="text/html" data="../../assets/2-signal.html" style="width:100%; height:320px;"></object><p>Now, we need to inspect what effect the off-resonance had in the reconstructed image. As you can see, the fat layer is now shifted to a different position 🤯, this is why the effect is called chemical shift!</p><pre><code class="language-julia hljs"># Get the acquisition data
+p2 = plot_phantom_map(obj, :Δw ; height=400)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/2-phantom2.html&quot;</code></pre><p>At the left, you can see the <span>$T_2$</span> map of the phantom, and at the right, the off-resonance <span>$\Delta\omega$</span>. In this example, the fat is the only source of off-resonance (with <span>$\Delta f =  -220\,\mathrm{Hz}$</span>) and you can see it in black in the off-resonance map.</p><object type="text/html" data="../../assets/2-phantom1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/2-phantom2.html" style="width:50%; height:420px;"></object><p>Then, we will load an EPI sequence, that is well known for being affected by off-resonance. With this sequence, we will be able visualize the effect of the chemical shift.</p><pre><code class="language-julia hljs">seq_file = joinpath(dirname(pathof(KomaMRI)), &quot;../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq&quot;)
+seq = read_seq(seq_file)
+p3 = plot_seq(seq; range=[0 40], slider=true, height=300)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/2-seq.html&quot;</code></pre><p>Feel free to explore the sequence&#39;s plot 🔍 below!</p><object type="text/html" data="../../assets/2-seq.html" style="width:100%; height:320px;"></object><p>If we simulate this sequence we will end up with the following signal.</p><pre><code class="language-julia hljs">raw = simulate(obj, seq, sys)
+p4 = plot_signal(raw; range=[98.4 103.4] , height=300)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/2-signal.html&quot;</code></pre><object type="text/html" data="../../assets/2-signal.html" style="width:100%; height:320px;"></object><p>Now, we need to inspect what effect the off-resonance had in the reconstructed image. As you can see, the fat layer is now shifted to a different position 🤯, this is why the effect is called chemical shift!</p><pre><code class="language-julia hljs"># Get the acquisition data
 acq = AcquisitionData(raw)
 acq.traj[1].circular = false #This is to remove a circular mask
 
@@ -155,4 +27,4 @@ image = reconstruction(acq, reconParams)
 
 # Plotting the recon
 slice_abs = abs.(image[:, :, 1])
-p5 = plot_image(slice_abs; height=400)</code></pre><center><object type="text/html" data="../../assets/2-recon.html" style="width:65%; height:420px;"></object></center><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../lit-02-SmallTipApproximation/">« Small Tip Angle Approximation</a><a class="docs-footer-nextpage" href="../lit-04-3DSliceSelective/">Slice Selective Acquisition of 3D Phantom »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.17 on <span class="colophon-date" title="Thursday 29 December 2022 15:47">Thursday 29 December 2022</span>. Using Julia version 1.8.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+p5 = plot_image(slice_abs; height=400)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/2-recon.html&quot;</code></pre><center><object type="text/html" data="../../assets/2-recon.html" style="width:65%; height:420px;"></object></center><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../lit-02-SmallTipApproximation/">« Small Tip Angle Approximation</a><a class="docs-footer-nextpage" href="../lit-04-3DSliceSelective/">Slice Selective Acquisition of 3D Phantom »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.17 on <span class="colophon-date" title="Thursday 29 December 2022 18:54">Thursday 29 December 2022</span>. Using Julia version 1.8.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
