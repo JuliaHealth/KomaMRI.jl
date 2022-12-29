@@ -24,8 +24,7 @@ zmax = 2e-2
 fmax = 5e3
 z = range(-zmax, zmax, 400)
 Gz = fmax / (γ * zmax)
-f = γ * Gz * z
-α = KomaMRI.get_flip_angles(seq)[1] #Approx 30 deg
+f = γ * Gz * z # hide
 
 #md # The designed RF pulse is presented in the figure below, 
 #md # where the additional gradient refocuses the spins' phase after the excitation.  
