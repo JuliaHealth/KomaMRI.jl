@@ -39,22 +39,20 @@ if (ARGS == String[]) #No arguments, use defaults
     simParams = Dict{String,Any}(
         "Nblocks" => 20,
         "gpu" => true,
-        "gpu_device" => 0,
-        "Nthreads" => 1
+        "gpu_device" => 0
     )
 else
     simParams = Dict{String,Any}(
         "Nblocks" => 20,
         "gpu" => ARGS[1] == "gpu" ? true : false,
-        "gpu_device" => parse(Int64, ARGS[2]),
-        "Nthreads" => parse(Int64, ARGS[3])
+        "gpu_device" => parse(Int64, ARGS[2])
     )
 end
 
 Nexp = 20
 raw = @suppress simulate(phantom, seq, sys; simParams) #warmup
 for i = 1:Nexp
-    raw = simulate(phantom, seq, sys; simParams)
+    local raw = simulate(phantom, seq, sys; simParams)
 end
 # plot_signal(raw; range=[50.5, 54]) #; show_sim_blocks=true)
 
