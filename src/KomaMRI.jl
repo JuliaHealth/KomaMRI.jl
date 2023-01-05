@@ -74,7 +74,6 @@ export plot_seq, plot_grads_moments, plot_kspace, plot_phantom_map, plot_signal,
 #Simulator
 export simulate, simulate_slice_profile
 #GUI
-!Blink.AtomShell.isinstalled() && Blink.AtomShell.install()
 include("KomaUI.jl")
 
 export KomaUI
