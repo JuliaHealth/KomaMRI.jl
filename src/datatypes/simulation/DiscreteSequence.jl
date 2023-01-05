@@ -9,7 +9,6 @@ struct DiscreteSequence{T<:Real}
     Δt::AbstractVector{T}
 end
 
-DiscreteSequence(xy::T, z::T) where {T<:Real} = Mag([complex(xy)], [z])
 Base.length(seq::DiscreteSequence) = length(seq.Δt)
 Base.getindex(seq::DiscreteSequence, i::Integer) = begin
     DiscreteSequence(seq.Gx[i, :],
