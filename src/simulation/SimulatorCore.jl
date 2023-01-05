@@ -194,15 +194,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     Nadc = sum(seq.ADC.N)
     Ncoils = 1 #This should consider the input Scanner type
     sig = zeros(ComplexF64, Nadc, Ncoils, Nthreads)
-    # Objects to GPU
-    if enable_gpu #Default
-        device!(gpu_device)
-        gpu_name = name.(devices())[gpu_device+1]
-        obj  = obj  |> gpu #Phantom
-        seqd = seqd |> gpu #DiscreteSequence
-        Xt   = Xt   |> gpu #SpinStateRepresentation
-        sig  = sig  |> gpu #Signal
-    end
+    #Change precision: Only for CPU simulations
     if precision == "f32" #Default
         obj  = obj  |> f32 #Phantom
         seqd = seqd |> f32 #DiscreteSequence
@@ -213,6 +205,15 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
         seqd = seqd |> f64 #DiscreteSequence
         Xt   = Xt   |> f64 #SpinStateRepresentation
         sig  = sig  |> f64 #Signal
+    end
+    # Objects to GPU
+    if enable_gpu #Default
+        device!(gpu_device)
+        gpu_name = name.(devices())[gpu_device+1]
+        obj  = obj  |> gpu #Phantom
+        seqd = seqd |> gpu #DiscreteSequence
+        Xt   = Xt   |> gpu #SpinStateRepresentation
+        sig  = sig  |> gpu #Signal
     end
     # Simulation
     koma_version = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"])
