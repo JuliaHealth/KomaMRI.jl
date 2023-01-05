@@ -110,8 +110,7 @@ global kspace = [0.0im 0.; 0. 0.]
 default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solver=>"admm",:regularization=>"TV")
 global recParams = merge(default, rec)
 #Simulation
-Ncores = Hwloc.num_physical_cores()
-default = Dict{String,Any}("gpu"=>has_cuda(), "gpu_device"=>0, "Nthreads"=>has_cuda() ? 1 : Ncores)
+default = Dict{String,Any}("gpu"=>has_cuda(), "gpu_device"=>0, "Nthreads"=>has_cuda() ? 1 : Threads.nthreads())
 global simParams = merge(default, sim)
 #GPUs
 if simParams["gpu"]

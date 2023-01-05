@@ -12,7 +12,7 @@ using Scanf, ProgressMeter
 #Datatypes
 using Parameters
 #Simulation
-@reexport using CUDA, Interpolations, Hwloc
+@reexport using CUDA, Interpolations
 #Reconstruction
 using MRIReco, MRIFiles
 @reexport using MRIReco: RawAcquisitionData, AcquisitionData, AcquisitionHeader, reconstruction

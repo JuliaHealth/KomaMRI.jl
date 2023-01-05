@@ -1,5 +1,3 @@
-const Nphyscores = Hwloc.num_physical_cores()
-
 abstract type SimulationMethod end #get all available types by using subtypes(KomaMRI.SimulationMethod)
 abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
@@ -17,7 +15,7 @@ separating the spins of the phantom `obj` in `Nthreads`.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) number of process threads for
+- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
 
 # Returns
@@ -28,7 +26,7 @@ separating the spins of the phantom `obj` in `Nthreads`.
 """
 function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
-    Nthreads=Nphyscores) where {T<:Real}
+    Nthreads=Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads, type="ordered")
 
@@ -51,7 +49,7 @@ different number threads to excecute the process.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) number of process threads for
+- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
 
 # Returns
@@ -60,7 +58,7 @@ different number threads to excecute the process.
 """
 function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
-    Nthreads=Nphyscores) where {T<:Real}
+    Nthreads=Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads; type="ordered")
 
@@ -86,7 +84,7 @@ take advantage of CPU parallel processing.
 
 # Keywords
 - `Nblocks`: (`::Int`, `=16`) number of groups for spliting the simulation over time
-- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) number of process threads for
+- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
 - `gpu`: (`::Function`) function that represents the gpu of the host
 - `w`: (`::Any`, `=nothing`) flag to regard a progress bar in the blink window UI. If
@@ -98,7 +96,7 @@ take advantage of CPU parallel processing.
 """
 function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
-    Nblocks=1, Nthreads=Nphyscores, parts=[1:length(seq)], w=nothing) where {T<:Real}
+    Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], w=nothing) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
@@ -161,16 +159,15 @@ julia> plot_signal(ismrmrd)
 """
 function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
     #Simulation parameter parsing, and setting defaults
-    enable_gpu  = get(simParams, "gpu", true)
+    enable_gpu  = get(simParams, "gpu", true); if enable_gpu check_use_cuda(); enable_gpu &= use_cuda[] end
     gpu_device  = get(simParams, "gpu_device", 0)
-    Nthreads    = get(simParams, "Nthreads", enable_gpu ? 1 : Nphyscores)
+    Nthreads    = get(simParams, "Nthreads", enable_gpu ? 1 : Threads.nthreads())
     Nblocks     = get(simParams, "Nblocks", 20)
     Δt          = get(simParams, "Δt", 1e-3)
     Δt_rf       = get(simParams, "Δt_rf", 5e-5)
     sim_method  = get(simParams, "sim_method", Bloch())
     precision   = get(simParams, "precision", "f32")
     return_type = get(simParams, "return_type", "raw")
-    if enable_gpu check_use_cuda(); enable_gpu &= use_cuda[] end
     # Simulation init
     t, Δt = get_uniform_times(seq, Δt; Δt_rf)
     t = [t; t[end]+Δt[end]]
