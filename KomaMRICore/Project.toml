@@ -1,7 +1,7 @@
 name = "KomaMRICore"
-uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0b"
+uuid = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
-version = "0.7.1"
+version = "0.7.0"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
