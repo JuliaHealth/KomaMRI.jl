@@ -1,18 +1,16 @@
 module KomaMRICore
 
 #IMPORT PACKAGES
-import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size,
-       Base.copy, Base.Threads.@spawn, Base.Threads.@threads,
-       Base.angle, Base.abs, Base.getproperty, Base.one, Base.zero
+import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.abs, Base.getproperty
 #General
-using Random, Reexport, ThreadsX
-@reexport using Pkg
+using Reexport, ThreadsX, Pkg
 #Printing
 using Scanf, ProgressMeter
 #Datatypes
 using Parameters
 #Simulation
-@reexport using CUDA, Interpolations
+using Interpolations
+@reexport using CUDA
 #Reconstruction
 using MRIBase, MRIFiles
 @reexport using MRIBase: Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
@@ -73,7 +71,9 @@ export simulate, simulate_slice_profile
 export print_gpus
 
 #Additionals
-export get_flip_angles, is_RF_on
 using PlotlyJS
+
+koma_core_version = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
+export koma_core_version
 
 end

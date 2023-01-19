@@ -9,7 +9,7 @@ using KomaMRI # hide
 sys = Scanner() # hide
 sys.Smax = 50 # hide
 
-# In this example, we will showcase a common approximation in MRI, the small tip angle approximation. 
+# In this example, we will showcase a common approximation in MRI, the small tip angle approximation.
 # For this, we will simulate a slice profile for spins with positions ``z\in[-2,\,2]\,\mathrm{cm}``
 # and with a gradient ``G_{z}`` so their frequencies are mapped to ``f\in[-5,\,5]\,\mathrm{kHz}``.
 # To start, we define an RF pulse with a flip angle of 30 deg and pulse duration of ``T_{\mathrm{rf}}=3.2\,\mathrm{ms}``.
@@ -22,8 +22,8 @@ z = range(-zmax, zmax, 400)
 Gz = fmax / (γ * zmax)
 f = γ * Gz * z # hide
 
-# The designed RF pulse is presented in the figure below, 
-# where the additional gradient refocuses the spins' phase after the excitation.  
+# The designed RF pulse is presented in the figure below,
+# where the additional gradient refocuses the spins' phase after the excitation.
 
 seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0;0;Gz], TBP=8)
 p2 = plot_seq(seq; max_rf_samples=Inf, slider=false)
@@ -34,7 +34,7 @@ p2 = plot_seq(seq; max_rf_samples=Inf, slider=false)
 #md # <object type="text/html" data="../../assets/42-seq.html" style="width:100%; height:380px;"></object>
 #md # ```
 
-# Now we will perform the simulation using the function [`simulate_slice_profile`](@ref). 
+# Now we will perform the simulation using the function [`simulate_slice_profile`](@ref).
 # Note that we modified `Δt_rf` in `simParams` to match the resolution of the waveform.
 
 simParams = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
@@ -69,7 +69,7 @@ pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_t
 # But what will happen if we use a flip angle of 120 deg instead?
 
 α_desired = 120 + 0im               # The multiplication of a complex number scales the RF pulse of a Sequence
-α = KomaMRI.get_flip_angles(seq)[1] # Previous FA approx 30 deg
+α = KomaMRICore.get_flip_angles(seq)[1] # Previous FA approx 30 deg
 seq = (α_desired / α) * seq         # Scaling the pulse to have a flip angle of 120
 M = simulate_slice_profile(seq; z, simParams)
 

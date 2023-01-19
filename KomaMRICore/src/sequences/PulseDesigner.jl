@@ -5,7 +5,7 @@ A module to define different pulse sequences.
 """
 module PulseDesigner
 using ..KomaMRICore
-using ..KomaMRICore: γ, Scanner, get_bvalue, get_max_grad
+using ..KomaMRICore: Scanner
 
 """
     ex = RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0)

@@ -38,7 +38,7 @@ p2 = plot_seq(seq; range=[0,10], height=400)
 # We can take a look to the slice profiles by using the function [`simulate_slice_profile`](@ref):
 
 z = range(-2., 2., 200) * 1e-2; # -2 to 2 cm
-rf1, rf2, rf3 = findall(KomaMRI.is_RF_on.(seq))
+rf1, rf2, rf3 = findall(KomaMRICore.is_RF_on.(seq))
 M1 = simulate_slice_profile(seq[rf1]; z)
 M2 = simulate_slice_profile(seq[rf2]; z)
 M3 = simulate_slice_profile(seq[rf3]; z)

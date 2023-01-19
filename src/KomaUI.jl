@@ -336,9 +336,9 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
 #Update Koma version
-version =  string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]))
+version = string(koma_core_version)
 content!(w, "#version", version, async=false)
-@info "Currently using KomaMRI v$version"
+@info "Currently using KomaMRICore v$version"
 
 nothing
 end
