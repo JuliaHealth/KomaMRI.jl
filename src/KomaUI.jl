@@ -110,14 +110,11 @@ global kspace = [0.0im 0.; 0. 0.]
 default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solver=>"admm",:regularization=>"TV")
 global recParams = merge(default, rec)
 #Simulation
-default = Dict{String,Any}("gpu"=>has_cuda(), "gpu_device"=>0, "Nthreads"=>has_cuda() ? 1 : Threads.nthreads())
+default = Dict{String,Any}()
 global simParams = merge(default, sim)
 #GPUs
-if simParams["gpu"]
-    @info "Loading GPUs"
-    print_gpus()
-    device!(simParams["gpu_device"]) #By default it uses first GPU, multiGPU not supported yet
-end
+@info "Loading GPUs"
+KomaMRICore.print_gpus()
 #OBERSVABLES
 global seq_obs = Observable{Sequence}(seq)
 global pha_obs = Observable{Phantom}(phantom)
@@ -336,7 +333,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
 #Update Koma version
-version = string(koma_core_version)
+version = string(KomaMRICore.__VERSION__)
 content!(w, "#version", version, async=false)
 @info "Currently using KomaMRICore v$version"
 

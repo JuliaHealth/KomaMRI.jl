@@ -68,12 +68,10 @@ export plot_seq, plot_grads_moments, plot_kspace, plot_phantom_map, plot_signal,
 #Simulator
 export simulate, simulate_slice_profile
 
-export print_gpus
-
 #Additionals
+export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 using PlotlyJS
 
-koma_core_version = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
-export koma_core_version
+__VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
 end

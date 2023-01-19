@@ -3,7 +3,7 @@ module KomaMRI
 #IMPORT PACKAGES
 using Reexport
 @reexport using KomaMRICore
-import KomaMRICore: update_blink_window_progress!, koma_core_version
+import KomaMRICore: update_blink_window_progress!
 
 #GUI
 using Blink, Interact, PlotlyJS, AssetRegistry
