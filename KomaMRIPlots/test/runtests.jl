@@ -2,7 +2,7 @@ using TestItems, TestItemRunner
 
 #GUI tests
 @testitem "GUI" begin
-    using Suppressor, KomaMRICore
+    using KomaMRICore
     @testset "GUI_phantom" begin
         ph = brain_phantom2D()    #2D phantom
 
