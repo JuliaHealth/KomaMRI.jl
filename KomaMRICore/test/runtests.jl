@@ -1,5 +1,4 @@
 using TestItems, TestItemRunner
-using KomaMRICore
 
 @testitem "Sequence" begin
     @testset "Init" begin
