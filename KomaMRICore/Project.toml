@@ -18,7 +18,6 @@ MRIBase = "f7771a9a-6e57-4e71-863b-6e4b6a2f17df"
 MRIFiles = "5a6f062f-bf45-497d-b654-ad17aae2a530"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
@@ -36,15 +35,8 @@ MAT = "0.10"
 MRIBase = "0.3"
 MRIFiles = "0.1"
 Parameters = "0.12"
-PlotlyJS = "0.18"
 ProgressMeter = "1"
 Reexport = "1"
 Scanf = "0.5"
 ThreadsX = "0.1"
 julia = "1.6"
-
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]

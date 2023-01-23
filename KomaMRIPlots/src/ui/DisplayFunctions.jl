@@ -94,22 +94,22 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
 	O = size(seq.RF,1)
-	ΔT = durs(seq)
+	ΔT = KomaMRICore.durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
 	off_val = Inf #This removes the unnecessary points in the plot
 	#GRADS
-	t1x = vcat([get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
-	t1y = vcat([get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
-	t1z = vcat([get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
-	Gx =  vcat([get_theo_A(seq.GR[1,i];off_val) for i=1:N]...)
-	Gy =  vcat([get_theo_A(seq.GR[2,i];off_val) for i=1:N]...)
-	Gz =  vcat([get_theo_A(seq.GR[3,i];off_val) for i=1:N]...)
+	t1x = vcat([KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
+	t1y = vcat([KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
+	t1z = vcat([KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
+	Gx =  vcat([KomaMRICore.get_theo_A(seq.GR[1,i];off_val) for i=1:N]...)
+	Gy =  vcat([KomaMRICore.get_theo_A(seq.GR[2,i];off_val) for i=1:N]...)
+	Gz =  vcat([KomaMRICore.get_theo_A(seq.GR[3,i];off_val) for i=1:N]...)
 	#RFS
-	t2 =  vcat([get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
-	R =   vcat([get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
+	t2 =  vcat([KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
+	R =   vcat([KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
 	#ADC
-	t3 =  vcat([get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
-	D =   vcat([get_theo_A(d;off_val) for d = seq.ADC]...)
+	t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
+	D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
 	#Shapes
 	shapes = []
 	if show_seq_blocks
@@ -128,7 +128,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 		breaks = KomaMRICore.get_breaks_in_RF_key_points(seq,t)
 		Nt = length(t)
 		if Nblocks == 0
-			Nblocks = ceil(Int, 6506*Nt/1.15e6)
+			Nblocks = 20
 		end
 		parts = KomaMRICore.kfoldperm(Nt,Nblocks;type="ordered",breaks)
 		t_sim_parts = [t[p[1]] for p in parts]
@@ -279,7 +279,7 @@ function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	#Calculations of theoretical k-space
 	kspace, kspace_adc = get_kspace(seq; Δt=1) #simParams["Δt"])
-	t_adc = get_adc_sampling_times(seq)
+	t_adc = KomaMRICore.get_adc_sampling_times(seq)
 	#Colormap
 	c_map = [[t, "hsv($(floor(Int,(1-t)*255)), 100, 50)"] for t=range(0,1;length=10)] # range(s,b,N) only works in Julia 1.7.3
 	c = "gray"

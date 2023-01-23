@@ -10,7 +10,7 @@ using Scanf, ProgressMeter
 using Parameters
 #Simulation
 using Interpolations
-@reexport using CUDA
+using CUDA
 #Reconstruction
 using MRIBase, MRIFiles
 @reexport using MRIBase: Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
@@ -29,7 +29,6 @@ include("datatypes/sequence/ADC.jl")
 include("simulation/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
 include("datatypes/sequence/Delay.jl")
-include("sequences/PulseDesigner.jl")
 include("io/Pulseq.jl")
 #Phantom
 include("datatypes/Phantom.jl")
@@ -45,8 +44,6 @@ include("simulation/GPUFunctions.jl")
 include("simulation/TrapezoidalIntegration.jl")
 include("simulation/SimulatorCore.jl")
 include("io/ISMRMRD.jl")
-#UI
-include("ui/DisplayFunctions.jl")
 
 #Main
 export γ #gyro-magnetic ratio [Hz/T]
@@ -62,15 +59,16 @@ export brain_phantom2D, brain_phantom3D, read_phantom_jemris, read_phantom_MRiLa
 #Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
-export PulseDesigner, get_kspace, rotx, roty, rotz
-#Display
-export plot_seq, plot_grads_moments, plot_kspace, plot_phantom_map, plot_signal, plot_M0, plot_image, plot_dict
+export get_kspace, rotx, roty, rotz
 #Simulator
 export simulate, simulate_slice_profile
 
 #Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
-using PlotlyJS
+
+#PulseDesigner submodule
+include("sequences/PulseDesigner.jl")
+export PulseDesigner
 
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
