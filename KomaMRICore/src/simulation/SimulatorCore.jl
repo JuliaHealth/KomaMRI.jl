@@ -15,7 +15,7 @@ separating the spins of the phantom `obj` in `Nthreads`.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) number of process threads for
+- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
 
 # Returns
@@ -49,14 +49,14 @@ different number threads to excecute the process.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) number of process threads for
+- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
 
 # Returns
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (or the initial
     state for the next precession simulation step)
 """
-function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, 
+function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nthreads=Threads.nthreads()) where {T<:Real}
 
@@ -84,7 +84,7 @@ take advantage of CPU parallel processing.
 
 # Keywords
 - `Nblocks`: (`::Int`, `=16`) number of groups for spliting the simulation over time
-- `Nthreads`: (`::Int`, `=Hwloc.num_physical_cores()`) number of process threads for
+- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
 - `gpu`: (`::Function`) function that represents the gpu of the host
 - `w`: (`::Any`, `=nothing`) flag to regard a progress bar in the blink window UI. If
@@ -94,7 +94,7 @@ take advantage of CPU parallel processing.
 - `S_interp`: (`::Vector{ComplexF64}`) interpolated raw signal
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}}, 
+function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], w=nothing) where {T<:Real}
     # Simulation
@@ -123,14 +123,7 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
 end
 
 """Updates KomaUI's simulation progress bar."""
-function update_blink_window_progress!(w, block, Nblocks)
-    if w !== nothing #update Progress to Blink Window
-        progress = string(floor(Int, block / Nblocks * 100))
-        @js_ w (@var progress = $progress;
-        document.getElementById("simul_progress").style.width = progress + "%";
-        document.getElementById("simul_progress").innerHTML = progress + "%";
-        document.getElementById("simul_progress").setAttribute("aria-valuenow", progress))
-    end
+function update_blink_window_progress!(w::Nothing, block, Nblocks)
     return nothing
 end
 
@@ -174,7 +167,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     Δt_rf       = get(simParams, "Δt_rf", 5e-5)
     sim_method  = get(simParams, "sim_method", Bloch())
     precision   = get(simParams, "precision", "f32")
-    return_type = get(simParams, "return_type", "raw") 
+    return_type = get(simParams, "return_type", "raw")
     # Simulation init
     t, Δt = get_uniform_times(seq, Δt; Δt_rf)
     t = [t; t[end]+Δt[end]]
@@ -215,8 +208,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
         sig  = sig  |> f64 #Signal
     end
     # Simulation
-    koma_version = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"])
-    @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=koma_version sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Nadc
+    @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=__VERSION__ sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Nadc
     @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
     # Result to CPU, if already in the CPU it does nothing
     sig = sum(sig; dims=3) |> cpu

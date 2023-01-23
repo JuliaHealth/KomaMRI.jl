@@ -1,5 +1,3 @@
-using MRIReco: Profile
-
 """
     raw_ismrmrd = signal_to_raw_data(signal, seq; phantom, sys, simParams)
 
@@ -149,7 +147,7 @@ function signal_to_raw_data(signal, seq;
             #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
             dat =  signal[current:current+Nsamples-1, :]
             #Saving profile
-            push!(profiles, MRIReco.Profile(head, traj, dat))
+            push!(profiles, Profile(head, traj, dat))
             #Update counters
             scan_counter += 1
             current += Nsamples

@@ -101,7 +101,7 @@ global raw_ismrmrd = RawAcquisitionData(Dict(
     "number_of_samples" => 4,
     "encodedFOV" => [100.,100.,1],
     "trajectory" => "other"),
-    [KomaMRI.Profile(AcquisitionHeader(trajectory_dimensions=2, sample_time_us=1),
+    [KomaMRICore.Profile(AcquisitionHeader(trajectory_dimensions=2, sample_time_us=1),
         [0. 0. 1 1; 0 1 1 1]./2, [0.; 0im; 0; 0;;])])
 global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
@@ -110,14 +110,11 @@ global kspace = [0.0im 0.; 0. 0.]
 default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solver=>"admm",:regularization=>"TV")
 global recParams = merge(default, rec)
 #Simulation
-default = Dict{String,Any}("gpu"=>has_cuda(), "gpu_device"=>0, "Nthreads"=>has_cuda() ? 1 : Threads.nthreads())
+default = Dict{String,Any}()
 global simParams = merge(default, sim)
 #GPUs
-if simParams["gpu"]
-    @info "Loading GPUs"
-    print_gpus()
-    device!(simParams["gpu_device"]) #By default it uses first GPU, multiGPU not supported yet
-end
+@info "Loading GPUs"
+KomaMRICore.print_gpus()
 #OBERSVABLES
 global seq_obs = Observable{Sequence}(seq)
 global pha_obs = Observable{Phantom}(phantom)
@@ -169,10 +166,10 @@ handle(w, "simulate") do args...
     @info "Exporting to ISMRMRD file: $rawfile"
     global sig_obs[] = raw_ismrmrd
     fout = ISMRMRDFile(rawfile)
-    save(fout, raw_ismrmrd)
+    KomaMRICore.save(fout, raw_ismrmrd)
     #Message
     sim_time = raw_ismrmrd.params["userParameters"]["sim_time_sec"]
-    @js_ w (@var sim_time = $sim_time; 
+    @js_ w (@var sim_time = $sim_time;
     Toasty("1", """Simulation successfull<br>Time: <a id="sim_time"></a> s""" ,"""
     <ul>
         <li>
@@ -203,14 +200,14 @@ handle(w, "recon") do args...
     recParams[:densityWeighting] = true
     #Reconstruction
     @info "Running reconstruction of $rawfile"
-    aux = @timed MRIReco.reconstruction(acqData, recParams)
+    aux = @timed reconstruction(acqData, recParams)
     global image  = reshape(aux.value.data,Nx,Ny,:)
     global kspace = fftc(reshape(aux.value.data,Nx,Ny,:))
     # global img_obs[] = image
     #After Recon go to Image
     recon_time = aux.time
     @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
-    @js_ w (@var recon_time = $recon_time; 
+    @js_ w (@var recon_time = $recon_time;
     Toasty("2", """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""" ,"""
     <ul>
         <li>
@@ -336,9 +333,19 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
 #Update Koma version
-version =  string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]))
+version = string(KomaMRICore.__VERSION__)
 content!(w, "#version", version, async=false)
-@info "Currently using KomaMRI v$version"
+@info "Currently using KomaMRICore v$version"
 
 nothing
+end
+
+"""Updates KomaUI's simulation progress bar."""
+function update_blink_window_progress!(w::Window, block, Nblocks)
+    progress = string(floor(Int, block / Nblocks * 100))
+    @js_ w (@var progress = $progress;
+    document.getElementById("simul_progress").style.width = progress + "%";
+    document.getElementById("simul_progress").innerHTML = progress + "%";
+    document.getElementById("simul_progress").setAttribute("aria-valuenow", progress))
+    return nothing
 end

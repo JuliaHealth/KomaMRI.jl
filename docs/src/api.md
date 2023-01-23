@@ -57,6 +57,10 @@ Note that every subitem in the sections **Arguments**, **Keywords** and **Return
 
 ## Structs
 
+```@meta
+CurrentModule = KomaMRICore
+```
+
 ### `Scanner`
 ```@docs
 Scanner
@@ -99,7 +103,7 @@ Delay
 
 ### `read_seq`
 ```@docs
-KomaMRI.read_seq
+read_seq
 ```
 
 ### `read_phantom_jemris`
