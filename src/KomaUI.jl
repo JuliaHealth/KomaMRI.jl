@@ -113,7 +113,6 @@ global recParams = merge(default, rec)
 default = Dict{String,Any}()
 global simParams = merge(default, sim)
 #GPUs
-@info "Loading GPUs"
 KomaMRICore.print_gpus()
 #OBERSVABLES
 global seq_obs = Observable{Sequence}(seq)
