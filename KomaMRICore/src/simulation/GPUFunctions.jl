@@ -9,15 +9,15 @@ const use_cuda = Ref{Union{Nothing,Bool}}(nothing)
 Simple function to print the CUDA devices available in the host.
 """
 print_gpus() = begin
-    @info "Loading GPUs"
-    if has_cuda()
+    check_use_cuda()
+    if use_cuda[]
 	    println( "$(length(devices())) CUDA capable device(s)." )
 	    for (i,d) = enumerate(devices())
 	    	u = i == 1 ? "*" : " "
 	    	println( "  ($(i-1)$u) $(name(d))")
 	    end
     else
-        println("No GPUs Found")
+        println("0 CUDA capable devices(s).")
     end
 end
 
