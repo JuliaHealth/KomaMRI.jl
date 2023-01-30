@@ -1,7 +1,7 @@
 name = "KomaMRIPlots"
 uuid = "f70fe232-3dd0-45f8-8fca-afaf3c0c2f75"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
-version = "0.7.4"
+version = "0.7.5"
 
 [deps]
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
