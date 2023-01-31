@@ -1,5 +1,5 @@
 name = "KomaMRIPlots"
-uuid = "f70fe232-3dd0-45f8-8fca-afaf3c0c2f75"
+uuid = "76db0263-63f3-4d26-bb9a-5dba378db904"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 version = "0.7.4"
 
