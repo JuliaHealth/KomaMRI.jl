@@ -288,7 +288,9 @@ Returns the Sequence struct from a sequence file `.seq`.
 
 # Examples
 ```julia-repl
-julia> seq = read_seq("examples/1.sequences/spiral.seq")
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
+
+julia> seq = read_seq(seq_file)
 
 julia> plot_seq(seq)
 ```

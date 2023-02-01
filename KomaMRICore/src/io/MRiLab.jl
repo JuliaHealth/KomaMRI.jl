@@ -11,7 +11,9 @@ Returns the Phantom struct from a MRiLab phantom file `.mat`.
 
 # Examples
 ```julia-repl
-julia> obj = read_phantom_MRiLab("examples/2.phantoms/brain.mat")
+julia> obj_file = joinpath(dirname(pathof(KomaMRI)), "../examples/2.phantoms/brain.mat")
+
+julia> obj = read_phantom_MRiLab(obj_file)
 
 julia> plot_phantom_map(obj, :ρ)
 ```
@@ -38,13 +40,13 @@ function read_phantom_MRiLab(filename; B0=1.5, offset=[0,0,0], FRange_filename="
 	FOVy = (Y-1)*Δx[2] #[m]
 	FOVz = (Z-1)*Δx[3] #[m]
     # [row,col,layer]=size(VOex.Mz);
-    # VVar.ObjLoc = 
-            # [((col+1)/2)*VOex.XDimRes; 
-            # ((row+1)/2)*VOex.YDimRes ; 
+    # VVar.ObjLoc =
+            # [((col+1)/2)*VOex.XDimRes;
+            # ((row+1)/2)*VOex.YDimRes ;
             # ((layer+1)/2)*VOex.ZDimRes]; % Set matrix center as Object position for motion simulation
-    # VVar.ObjTurnLoc = 
-            # [((col+1)/2)*VOex.XDimRes; 
-            # ((row+1)/2)*VOex.YDimRes ; 
+    # VVar.ObjTurnLoc =
+            # [((col+1)/2)*VOex.XDimRes;
+            # ((row+1)/2)*VOex.YDimRes ;
             # ((layer+1)/2)*VOex.ZDimRes]; % Set matrix center as Object origin for motion simulation
 	xx = [(-FOVx/2:Δx[1]:FOVx/2)...;]
 	yy = [(-FOVy/2:Δx[2]:FOVy/2)...;;]

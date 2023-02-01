@@ -5,17 +5,17 @@ The Phantom struct.
 
 # Arguments
 - `name`: (`::String`) name of the Phantom
-- `x`: (`::Vector{Float64}`, `[m]`) vector of x-positions of the spins
-- `y`: (`::Vector{Float64}`, `[m]`) vector of y-positions of the spins
-- `z`: (`::Vector{Float64}`, `[m]`) vector of z-positions of the spins
-- `ρ`: (`::Vector{Float64}`) vector of proton density of the spins
-- `T1`: (`::Vector{Float64}`, `[s]`) vector of T1 parameters of the spins
-- `T2`: (`::Vector{Float64}`, `[s]`) vector of T2 parameters of the spins
-- `T2s`: (`::Vector{Float64}`, `[s]`) vector of T2s parameters of the spins
-- `Δw`: (`::Vector{Float64}`, `[rad/s]`) vector of off-resonance parameters of the spins
-- `Dλ1`: (`::Vector{Float64}`) vector of Dλ1 (diffusion) parameters of the spins
-- `Dλ2`: (`::Vector{Float64}`) vector of Dλ2 (diffusion) parameters of the spins
-- `Dθ`: (`::Vector{Float64}`) vector of Dθ (diffusion) parameters of the spins
+- `x`: (`::AbstractVector{T}`, `[m]`) vector of x-positions of the spins
+- `y`: (`::AbstractVector{T}`, `[m]`) vector of y-positions of the spins
+- `z`: (`::AbstractVector{T}`, `[m]`) vector of z-positions of the spins
+- `ρ`: (`::AbstractVector{T}`) vector of proton density of the spins
+- `T1`: (`::AbstractVector{T}`, `[s]`) vector of T1 parameters of the spins
+- `T2`: (`::AbstractVector{T}`, `[s]`) vector of T2 parameters of the spins
+- `T2s`: (`::AbstractVector{T}`, `[s]`) vector of T2s parameters of the spins
+- `Δw`: (`::AbstractVector{T}`, `[rad/s]`) vector of off-resonance parameters of the spins
+- `Dλ1`: (`::AbstractVector{T}`) vector of Dλ1 (diffusion) parameters of the spins
+- `Dλ2`: (`::AbstractVector{T}`) vector of Dλ2 (diffusion) parameters of the spins
+- `Dθ`: (`::AbstractVector{T}`) vector of Dθ (diffusion) parameters of the spins
 - `ux`: (`::Function`) displacement field in the x-axis
 - `uy`: (`::Function`) displacement field in the y-axis
 - `uz`: (`::Function`) displacement field in the z-axis

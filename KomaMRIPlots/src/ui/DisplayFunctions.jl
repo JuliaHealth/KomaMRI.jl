@@ -84,7 +84,9 @@ Plots a sequence struct.
 
 # Examples
 ```julia-repl
-julia> seq = read_seq("examples/1.sequences/spiral.seq")
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
+
+julia> seq = read_seq(seq_file)
 
 julia> plot_seq(seq)
 ```
@@ -270,7 +272,9 @@ Plots the k-space of a sequence struct.
 
 # Examples
 ```julia-repl
-julia> seq = read_seq("examples/1.sequences/spiral.seq")
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
+
+julia> seq = read_seq(seq_file)
 
 julia> plot_kspace(seq)
 ```
@@ -354,7 +358,9 @@ Plots the magnetization M0 of a sequence struct.
 
 # Examples
 ```julia-repl
-julia> seq = read_seq("examples/1.sequences/spiral.seq")
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
+
+julia> seq = read_seq(seq_file)
 
 julia> plot_M0(seq)
 ```
@@ -559,11 +565,13 @@ Plots a raw signal in ISMRMRD format.
 
 # Examples
 ```julia-repl
-julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq("examples/1.sequences/spiral.seq");
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq");
 
-julia> ismrmrd = simulate(obj, seq, sys);
+julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq(seq_file)
 
-julia> plot_signal(ismrmrd)
+julia> raw = simulate(obj, seq, sys)
+
+julia> plot_signal(raw)
 ```
 """
 function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, slider=true, show_sim_blocks=false, darkmode=false, range=[])
