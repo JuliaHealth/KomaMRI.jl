@@ -157,6 +157,10 @@ simulate_slice_profile
 
 ## Plots
 
+```@meta
+CurrentModule = KomaMRIPlots
+```
+
 ### `plot_phantom_map`
 ```@docs
 plot_phantom_map
