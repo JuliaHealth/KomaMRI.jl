@@ -9,11 +9,16 @@ const use_cuda = Ref{Union{Nothing,Bool}}(nothing)
 Simple function to print the CUDA devices available in the host.
 """
 print_gpus() = begin
-	println( "$(length(devices())) CUDA capable device(s)." )
-	for (i,d) = enumerate(devices())
-		u = i == 1 ? "*" : " "
-		println( "  ($(i-1)$u) $(name(d))")
-	end
+    check_use_cuda()
+    if use_cuda[]
+	    println( "$(length(devices())) CUDA capable device(s)." )
+	    for (i,d) = enumerate(devices())
+	    	u = i == 1 ? "*" : " "
+	    	println( "  ($(i-1)$u) $(name(d))")
+	    end
+    else
+        println("0 CUDA capable devices(s).")
+    end
 end
 
 """
@@ -26,7 +31,7 @@ function check_use_cuda()
 		@warn "CUDA.jl found cuda, but did not find libcudnn. Some functionality will not be available."
 		end
 		if !(use_cuda[])
-		@info """The GPU function is being called but the GPU is not accessible. 
+		@info """The GPU function is being called but the GPU is not accessible.
 					Defaulting back to the CPU. (No action is required if you want to run on the CPU).""" maxlog=1
 		end
 	end
