@@ -125,9 +125,7 @@ Definition of the EPI sequence.
 
 # Examples
 ```julia-repl
-julia> sys = Scanner();
-
-julia> FOV, N = 23e-2, 101;
+julia> sys, FOV, N = Scanner(), 23e-2, 101
 
 julia> epi = PulseDesigner.EPI(FOV, N, sys)
 Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]

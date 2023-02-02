@@ -29,7 +29,7 @@ pages() = [joinpath("generated", f) for f in readdir(gen) if ismd(f)]
 #pages(folder) = [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if ismd(f)]
 
 makedocs(
-    modules = [KomaMRI, KomaMRICore],
+    modules = [KomaMRI, KomaMRICore, KomaMRIPlots],
     sitename = "KomaMRI.jl: General MRI simulation framework",
     authors = "Boris Orostica Navarrete and Carlos Castillo Passi",
     pages = [

@@ -111,6 +111,11 @@ read_seq
 read_phantom_jemris
 ```
 
+### `read_phantom_MRiLab`
+```@docs
+read_phantom_MRiLab
+```
+
 ### `signal_to_raw_data`
 ```@docs
 signal_to_raw_data
@@ -151,6 +156,10 @@ simulate_slice_profile
 ```
 
 ## Plots
+
+```@meta
+CurrentModule = KomaMRIPlots
+```
 
 ### `plot_phantom_map`
 ```@docs

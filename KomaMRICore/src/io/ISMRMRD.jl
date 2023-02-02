@@ -1,5 +1,5 @@
 """
-    raw_ismrmrd = signal_to_raw_data(signal, seq; phantom, sys, simParams)
+    raw_ismrmrd = signal_to_raw_data(signal, seq; phantom_name, sys, simParams)
 
 Transforms the raw signal into ISMRMRD format.
 
@@ -8,7 +8,7 @@ Transforms the raw signal into ISMRMRD format.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `phantom`: (`::Phantom`, `=Phantom(name="Phantom",x=[0])`) Phantom struct
+- `phantom_name`: (`::String`, `="Phantom"`) Phantom struct
 - `sys`: (`::Scanner`, `=Scanner()`) Scanner struct
 - `simParams`: (`::Dict{String,Any}()`, `=Dict{String,Any}()`) dictionary with
     simulation parameters
@@ -18,11 +18,13 @@ Transforms the raw signal into ISMRMRD format.
 
 # Examples
 ```julia-repl
-julia> signal = simulate(obj, seq, sys; simParams=Dict{String,Any}("return_type"=>"mat"));
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq");
 
-julia> ismrmrd = signal_to_raw_data(signal, seq; phantom=obj, sys=sys);
+julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq(seq_file)
 
-julia> plot_signal(ismrmrd)
+julia> raw = simulate(obj, seq, sys)
+
+julia> plot_signal(raw)
 ```
 """
 function signal_to_raw_data(signal, seq;
