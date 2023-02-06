@@ -34,7 +34,7 @@ pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_t
 display(pb)
 
 α_desired = 120 + 0im               # The multiplication of a complex number scales the RF pulse of a Sequence
-α = KomaMRI.get_flip_angles(seq)[1] # Previous FA approx 30 deg
+α = get_flip_angles(seq)[1] # Previous FA approx 30 deg
 seq = (α_desired / α) * seq         # Scaling the pulse to have a flip angle of 120
 M = simulate_slice_profile(seq; z, simParams)
 
