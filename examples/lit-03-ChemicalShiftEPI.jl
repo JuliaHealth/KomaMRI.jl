@@ -9,8 +9,8 @@ sys = Scanner() # hide
 # For a more realistic example, we will use a brain phantom.
 
 obj = brain_phantom2D() # a slice of a brain
-p1 = plot_phantom_map(obj, :T2 ; height=400)
-p2 = plot_phantom_map(obj, :Δw ; height=400)
+p1 = plot_phantom_map(obj, :T2 ; height=400, width=400, view_2d=true, darkmode=true)
+p2 = plot_phantom_map(obj, :Δw ; height=400, width=400, view_2d=true, darkmode=true)
 #md savefig(p1, "../assets/2-phantom1.html") # hide
 #md savefig(p2, "../assets/2-phantom2.html") # hide
 #jl display(p1)
@@ -60,7 +60,7 @@ p4 = plot_signal(raw; range=[98.4 103.4] , height=300)
 
 ## Get the acquisition data
 acq = AcquisitionData(raw)
-acq.traj[1].circular = false #This is to remove a circular mask
+acq.traj[1].circular = false #This is to remove the circular mask
 
 ## Setting up the reconstruction parameters
 Nx, Ny = raw.params["reconSize"][1:2]

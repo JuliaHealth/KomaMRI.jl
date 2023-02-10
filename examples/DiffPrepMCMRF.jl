@@ -207,26 +207,26 @@ Gmax = 62e-3 # mT/m
 Smax = 100   # mT/m/ms
 axis_to_calc = ["x", "y", "z"]
 moment_to_calc = [0, 1]
-pulses_to_calc = [3, 8, 13] #1:15
-N1 = 500 # You can solve the opt problem in a lower time resolution or use δ2N(dur_grad) 
+pulses_to_calc = 1:20
+N1 = 200 # You can solve the opt problem in a lower time resolution or use δ2N(dur_grad) 
 maxwell = true #maxwell or concomitant gradient compensation
 
 for pulse_type = pulses_to_calc
 ##############################################################################
 if pulse_type == 1
     adia = "MLEV"
-    δ1 = 7.8464e-3
-    δ2 = 15.6928e-3
-    δ3 = 7.8464e-3
-    Δ1 = 9.6576e-3
-    Δ2 = 27.1616e-3
+    δ1 = 7.5968e-3
+    δ2 = 15.7568e-3
+    δ3 = 7.5968e-3
+    Δ1 = 9.6216e-3
+    Δ2 = 27.1247e-3    
 elseif pulse_type == 2
     adia = "MLEV"
-    δ1 = 9.0944e-3
-    δ2 = 18.1888e-3
-    δ3 = 9.0944e-3
-    Δ1 = 10.9056e-3
-    Δ2 = 30.9056e-3
+    δ1 = 8.8448e-3
+    δ2 = 18.2592e-3
+    δ3 = 8.8448e-3
+    Δ1 = 10.8704e-3
+    Δ2 = 30.8767e-3    
 elseif pulse_type == 3
     adia = "MLEV"
     δ1 = 10.0992e-3
@@ -236,88 +236,123 @@ elseif pulse_type == 3
     Δ2 = 34.6223e-3    
 elseif pulse_type == 4
     adia = "MLEV"
-    δ1 = 10.0992e-3
-    δ2 = 20.7552e-3
-    δ3 = 10.0992e-3
-    Δ1 = 12.1224e-3
-    Δ2 = 34.6223e-3    
+    δ1 = 11.3472e-3
+    δ2 = 23.2576e-3
+    δ3 = 11.3472e-3
+    Δ1 = 13.3712e-3
+    Δ2 = 38.3743e-3    
 elseif pulse_type == 5
     adia = "MLEV"
-    δ1 = 12.8512e-3
-    δ2 = 25.7024e-3
-    δ3 = 12.8512e-3
-    Δ1 = 14.6624e-3
-    Δ2 = 42.1760e-3
+    δ1 = 12.5952e-3
+    δ2 = 25.7536e-3
+    δ3 = 12.5952e-3
+    Δ1 = 14.6232e-3
+    Δ2 = 42.1263e-3    
 elseif pulse_type == 6
-    adia = "HS"
-    δ1 = 3.7568e-3
-    δ2 = 7.5136e-3
-    δ3 = 3.7568e-3
-    Δ1 = 13.7536e-3
-    Δ2 = 31.2640e-3
+    adia = "HS2"
+    δ1 = 3.4688e-3
+    δ2 = 7.5008e-3
+    δ3 = 3.4688e-3
+    Δ1 = 13.7496e-3
+    Δ2 = 31.2527e-3    
 elseif pulse_type == 7
-    adia = "HS"
-    δ1 = 4.3776e-3
-    δ2 = 9.3440e-3
-    δ3 = 4.3776e-3
-    Δ1 = 14.7630e-3
-    Δ2 = 34.4878e-3
+    adia = "HS2"
+    δ1 = 4.7168e-3
+    δ2 = 10.0032e-3
+    δ3 = 4.7168e-3
+    Δ1 = 14.9984e-3
+    Δ2 = 35.0047e-3      
 elseif pulse_type == 8
-    adia = "HS"
+    adia = "HS2"
     δ1 = 5.9712e-3
     δ2 = 12.4992e-3
     δ3 = 5.9712e-3
     Δ1 = 16.2504e-3
     Δ2 = 38.7503e-3    
 elseif pulse_type == 9
-    adia = "HS"
-    δ1 = 7.3152e-3
-    δ2 = 14.6304e-3
-    δ3 = 7.3152e-3
-    Δ1 = 17.6960e-3
-    Δ2 = 42.7072e-3
+    adia = "HS2"
+    δ1 = 7.2192e-3
+    δ2 = 15.0016e-3
+    δ3 = 7.2192e-3
+    Δ1 = 17.4992e-3
+    Δ2 = 42.5023e-3    
 elseif pulse_type == 10
-    adia = "HS"
-    δ1 = 8.5632e-3
-    δ2 = 17.1264e-3
-    δ3 = 8.5632e-3
-    Δ1 = 18.9440e-3
-    Δ2 = 46.4512e-3
+    adia = "HS2"
+    δ1 = 8.4672e-3
+    δ2 = 17.4976e-3
+    δ3 = 8.4672e-3
+    Δ1 = 18.7512e-3
+    Δ2 = 46.2543e-3    
 elseif pulse_type == 11
     adia = "BIR4"
-    δ1 = 14.0032e-3
-    δ2 = 14.0032e-3
+    δ1 = 13.7152e-3
+    δ2 = 13.7152e-3
     δ3 = 0
-    Δ1 = 21.0048e-3
-    Δ2 = 0
+    Δ1 = 21.0063e-3
+    Δ2 = 0    
 elseif pulse_type == 12
     adia = "BIR4"
-    δ1 = 16.5056e-3
-    δ2 = 16.5056e-3
+    δ1 = 16.2176e-3
+    δ2 = 16.2176e-3
     δ3 = 0
-    Δ1 = 23.5072e-3
-    Δ2 = 0
+    Δ1 = 23.5039e-3
+    Δ2 = 0     
 elseif pulse_type == 13
     adia = "BIR4"
     δ1 = 18.7200e-3
     δ2 = 18.7200e-3
     δ3 = 0
     Δ1 = 26.0015e-3
-    Δ2 = 0    
+    Δ2 = 0      
 elseif pulse_type == 14
     adia = "BIR4"
-    δ1 = 21.5040e-3
-    δ2 = 21.5040e-3
+    δ1 = 21.2160e-3
+    δ2 = 21.2160e-3
     δ3 = 0
-    Δ1 = 28.5056e-3
-    Δ2 = 0
+    Δ1 = 28.5055e-3
+    Δ2 = 0    
 elseif pulse_type == 15
     adia = "BIR4"
-    δ1 = 24.0064e-3
-    δ2 = 24.0064e-3
+    δ1 = 23.7184e-3
+    δ2 = 23.7184e-3
     δ3 = 0
-    Δ1 = 31.0080e-3
-    Δ2 = 0
+    Δ1 = 31.0031e-3
+    Δ2 = 0    
+elseif pulse_type == 16
+    adia = "HS1"
+    δ1 = 12.2176e-3
+    δ2 = 12.2176e-3
+    δ3 = 0
+    Δ1 = 22.5039e-3
+    Δ2 = 0    
+elseif pulse_type == 17
+    adia = "HS1"
+    δ1 = 14.7200e-3
+    δ2 = 14.7200e-3
+    δ3 = 0
+    Δ1 = 25.0015e-3
+    Δ2 = 0    
+elseif pulse_type == 18
+    adia = "HS1"
+    δ1 = 17.2224e-3
+    δ2 = 17.2224e-3
+    δ3 = 0
+    Δ1 = 27.4991e-3
+    Δ2 = 0     
+elseif pulse_type == 19
+    adia = "HS1"
+    δ1 = 19.7184e-3
+    δ2 = 19.7184e-3
+    δ3 = 0
+    Δ1 = 30.0031e-3
+    Δ2 = 0    
+elseif pulse_type == 20
+    adia = "HS1"
+    δ1 = 22.2208e-3
+    δ2 = 22.2208e-3
+    δ3 = 0
+    Δ1 = 32.5007e-3
+    Δ2 = 0    
 end
 #############################################################################
 path_file = "/home/ccp/"
@@ -347,9 +382,9 @@ DIF += Sequence([Grad(x -> 1e-3, δ3, N3; delay=rf2)])
 Smax_discrete = Smax * 0.999
 
 #To match the samples exactly
-dt = max(δ1 / (N1-1), δ2 / (N2-1), δ3 / (N3-1))
-Smax_discrete = Gmax / (dt * ceil(Int64, (Gmax / Smax) / dt))
-println("Smax_discrete = ", Smax_discrete)
+# dt = max(δ1 / (N1-1), δ2 / (N2-1), δ3 / (N3-1))
+# Smax_discrete = Gmax / (dt * ceil(Int64, (Gmax / Smax) / dt))
+# println("Smax_discrete = ", Smax_discrete)
 
 τ = dur(DIF) # τ/Nt = Δt => Nt = τ/Δt
 durT = round(Int64, round(τ*1e3)) #For the name

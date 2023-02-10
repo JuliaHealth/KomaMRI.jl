@@ -441,6 +441,8 @@ Plots a phantom map for a specific spin parameter given by `key`.
 - `height`: (`::Int64`, `=600`) height of the plot
 - `width`: (`::Int64`, `=nothing`) width of the plot
 - `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `view_2d`: (`::Bool`, `=false`) boolean to use a 2D scatter plot
+- `colorbar`: (`::Bool`, `=true`) boolean to show the colorbar
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the phantom map for a specific spin parameter
@@ -458,7 +460,7 @@ julia> plot_phantom_map(obj2D, :ρ)
 julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
-function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=nothing, darkmode=false)
+function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=nothing, darkmode=false, view_2d=false, colorbar=true)
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
@@ -500,17 +502,29 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 	x0 = -maximum(abs.([ph.x ph.y ph.z]))*1e2
     xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
 	#Layout
+	println(darkmode)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;title=ph.name*": "*string(key), margin=attr(t=50,l=0,r=0,b=0),
-		paper_bgcolor=bgcolor,font_color=text_color,
+	println(darkmode)
+	l = PlotlyJS.Layout(;title=ph.name*": "*string(key),
+		xaxis_title="x",
+		yaxis_title="y",
+		plot_bgcolor=plot_bgcolor,
+		paper_bgcolor=bgcolor,
+		xaxis_gridcolor=grid_color,
+		yaxis_gridcolor=grid_color,
+		xaxis_zerolinecolor=grid_color,
+		yaxis_zerolinecolor=grid_color,
+		font_color=text_color,
 		scene=attr(
 			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			yaxis=attr(title="y",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			zaxis=attr(title="z",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			aspectmode="manual",
-			aspectratio=attr(x=1,y=1,z=1)
-		),
-		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),xaxis=attr(constrain="domain"),
+			aspectratio=attr(x=1,y=1,z=1)),
+		margin=attr(t=50,l=0,r=0),
+		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
+		xaxis=attr(constrain="domain"),
+		yaxis=attr(scaleanchor="x"),
 		hovermode="closest")
     if height !== nothing
         l.height = height
@@ -518,12 +532,27 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
     if width !== nothing
         l.width = width
     end
+	if view_2d
+	h = PlotlyJS.scatter( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
+						y=(ph.y .+ ph.uy(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
+						mode="markers",
+						marker=attr(color=getproperty(ph,key)*factor,
+									showscale=colorbar,
+									colorscale=colormap,
+									colorbar=attr(ticksuffix=unit, title=string(key)),
+									cmin=cmin_key,
+									cmax=cmax_key,
+									size=4
+									),
+						text=round.(getproperty(ph,key)*factor,digits=4),
+						hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")
+	else
 	h = PlotlyJS.scatter3d( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							y=(ph.y .+ ph.uy(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							z=(ph.z .+ ph.uz(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							mode="markers",
 							marker=attr(color=getproperty(ph,key)*factor,
-										showscale=true,
+										showscale=colorbar,
 										colorscale=colormap,
 										colorbar=attr(ticksuffix=unit, title=string(key)),
 										cmin=cmin_key,
@@ -532,6 +561,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 										),
 							text=round.(getproperty(ph,key)*factor,digits=4),
 							hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")
+	end
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
