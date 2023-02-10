@@ -2,8 +2,8 @@ using KomaMRI # hide
 sys = Scanner() # hide
 
 obj = brain_phantom2D() # a slice of a brain
-p1 = plot_phantom_map(obj, :T2 ; height=400)
-p2 = plot_phantom_map(obj, :Δw ; height=400)
+p1 = plot_phantom_map(obj, :T2 ; height=400, width=400, view_2d=true, darkmode=true)
+p2 = plot_phantom_map(obj, :Δw ; height=400, width=400, view_2d=true, darkmode=true)
 display(p1)
 display(p2)
 
@@ -18,7 +18,7 @@ display(p4)
 
 # Get the acquisition data
 acq = AcquisitionData(raw)
-acq.traj[1].circular = false #This is to remove a circular mask
+acq.traj[1].circular = false #This is to remove the circular mask
 
 # Setting up the reconstruction parameters
 Nx, Ny = raw.params["reconSize"][1:2]
