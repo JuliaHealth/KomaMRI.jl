@@ -502,9 +502,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 	x0 = -maximum(abs.([ph.x ph.y ph.z]))*1e2
     xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
 	#Layout
-	println(darkmode)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	println(darkmode)
 	l = PlotlyJS.Layout(;title=ph.name*": "*string(key),
 		xaxis_title="x",
 		yaxis_title="y",
