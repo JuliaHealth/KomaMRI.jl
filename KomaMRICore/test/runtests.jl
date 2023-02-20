@@ -213,8 +213,7 @@ end
 end
 
 @testitem "BlochSim_CPU_sigle_thread" tags=[:important, :core] begin
-    using Suppressor
-    using HDF5
+    using Suppressor, HDF5
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
     obj = read_phantom_jemris(path*"/test_files/sphere_chemical_shift.h5")
