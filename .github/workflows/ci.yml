@@ -42,6 +42,11 @@ jobs:
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+      - name: Run submodule tests
+        shell: bash
+        run: |
+          julia --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(path=\".\")); Pkg.update(); Pkg.test(\"KomaMRICore\")"
+          julia --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(path=\".\")); Pkg.update(); Pkg.test(\"KomaMRIPlots\")"
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1
         with:

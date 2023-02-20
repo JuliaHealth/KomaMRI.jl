@@ -1,6 +1,8 @@
 using TestItems, TestItemRunner
 
-@testitem "Recon" begin
+@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:koma in ti.tags) #verbose=true
+
+@testitem "MRIReco recon" tags=[:koma] begin
     #Sanity check 1
     A = rand(5,5,3)
     B = KomaMRI.fftc(KomaMRI.ifftc(A))
@@ -29,5 +31,3 @@ using TestItems, TestItemRunner
     end
 
 end
-
-@run_package_tests filter=ti->!(:skipci in ti.tags)

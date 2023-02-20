@@ -1,9 +1,9 @@
 # This document replicates the results of Figure 15g of the paper "The Return of the Frequency Sweep: 
 # Designing Adiabatic Pulses for Contemporary NMR" by Michael Garwood and Lance DelaBarre.
-using KomaMRI, MAT, PlotlyJS, LinearAlgebra, ProgressMeter
+using KomaMRI, MAT, PlotlyJS, LinearAlgebra
 
 RF_wf = matread("./examples/4.adiabatic_pulses/BIR4.mat")
-for R = [50] #Product duration and bandwidth
+for R = [28] #Product duration and bandwidth
     B1_nom = 13.5e-6; w1_2pi_Hz = γ*B1_nom
     Trfs = [7] * 1e-3  # (4:0.1:7.5) * 1e-3 #ms
     f0s = R ./ (2Trfs) # R = (2 fmax) * Trf
@@ -51,8 +51,7 @@ for R = [50] #Product duration and bandwidth
     end
     # Heatmap
     fmax = round(f0s[1] * 1e-3; digits=2)
-    p1 = plot(heatmap(y=B0s, x=ΔB1s, z=real.(MagXY), colorscale="Jet"), Layout(title="MX BIR-4 Trf=7 ms R=$R fmax=$fmax kHz"))
-    p2 = plot(heatmap(y=B0s, x=ΔB1s, z=imag.(MagXY), colorscale="Jet"), Layout(title="MY BIR-4 Trf=7 ms R=$R fmax=$fmax kHz"))
-    p3 = plot(heatmap(y=B0s, x=ΔB1s, z=real.(MagZ), colorscale="Jet"), Layout(title="MZ BIR-4 Trf=7 ms R=$R fmax=$fmax kHz"))
-    display([p1; p2; p3])
+    p1 = plot(heatmap(y=B0s, x=ΔB1s, z=abs.(MagXY), colorscale="Jet"), Layout(title="MXY BIR-4 Trf=7 ms R=$R fmax=$fmax kHz"))
+    p2 = plot(heatmap(y=B0s, x=ΔB1s, z=real.(MagZ), colorscale="Jet"), Layout(title="MZ BIR-4 Trf=7 ms R=$R fmax=$fmax kHz"))
+    display([p1; p2])
 end

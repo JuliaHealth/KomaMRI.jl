@@ -1,6 +1,8 @@
 using TestItems, TestItemRunner
 
-@testitem "Sequence" begin
+@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
+
+@testitem "Sequence" tags=[:core] begin
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -120,7 +122,7 @@ using TestItems, TestItemRunner
     end
 end
 
-@testitem "PulseDesigner" begin
+@testitem "PulseDesigner" tags=[:core] begin
     @testset "RF_sinc" begin
         sys = Scanner()
         B1 = 23.4732e-6 # For 90 deg flip angle
@@ -151,7 +153,7 @@ end
     end
 end
 
-@testitem "Phantom" begin
+@testitem "Phantom" tags=[:core] begin
     #Test brain phantom 2D
     ph = brain_phantom2D()    #2D phantom
     @test ph.name=="brain2D_axial"
@@ -161,12 +163,12 @@ end
     @test ph.name=="brain3D"
 end
 
-@testitem "Scanner" begin
+@testitem "Scanner" tags=[:core] begin
     #Test somehow
     @test true
 end
 
-@testitem "Spinors×Mag" begin
+@testitem "Spinors×Mag" tags=[:core] begin
     # Spinor 2x2 representation should be equivalent to a 3x1 vector rotation
     x = rand(3); x = x./sum(x)
     θ = rand() * π
@@ -201,7 +203,7 @@ end
     @test xx1 ≈ xx2
 end
 
-@testitem "TrapezoidalIntegration" begin
+@testitem "TrapezoidalIntegration" tags=[:core] begin
     dt = Float64[1 1 1 1]
     x  = Float64[0 1 2 1 0]
 
@@ -210,8 +212,9 @@ end
     @test KomaMRICore.cumtrapz(dt, x) ≈ [0.5 2 3.5 4]
 end
 
-@testitem "BlochSim_CPU_sigle_thread" tags=[:important] begin
-    using Suppressor, HDF5
+@testitem "BlochSim_CPU_sigle_thread" tags=[:important, :core] begin
+    using Suppressor
+    using HDF5
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
     obj = read_phantom_jemris(path*"/test_files/sphere_chemical_shift.h5")
@@ -235,7 +238,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "BlochSim_CPU_multi_thread" tags=[:important] begin
+@testitem "BlochSim_CPU_multi_thread" tags=[:important, :core] begin
     using Suppressor, HDF5
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
@@ -259,7 +262,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "BlochSim_GPU" tags=[:important, :skipci] begin
+@testitem "BlochSim_GPU" tags=[:important, :skipci, :core] begin
     using Suppressor, HDF5
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
@@ -283,7 +286,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "IO" begin
+@testitem "IO" tags=[:core] begin
     using Suppressor
     #Test Pulseq
     @testset "Pulseq" begin
@@ -322,5 +325,3 @@ end
         @test obj.name == "column1d.h5"
     end
 end
-
-@run_package_tests filter=ti->!(:skipci in ti.tags)

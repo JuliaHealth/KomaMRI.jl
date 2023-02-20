@@ -1,8 +1,11 @@
 using TestItems, TestItemRunner
 
+@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:plots in ti.tags) #verbose=true
+
 #GUI tests
-@testitem "GUI" begin
+@testitem "GUI" tags=[:plots] begin
     using KomaMRICore
+
     @testset "GUI_phantom" begin
         ph = brain_phantom2D()    #2D phantom
 
@@ -23,6 +26,7 @@ using TestItems, TestItemRunner
     end
 
     @testset "GUI_seq" begin
+        #KomaCore definition of a sequence:
         #RF construction
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -71,5 +75,3 @@ using TestItems, TestItemRunner
     end
 
 end
-
-@run_package_tests filter=ti->!(:skipci in ti.tags)

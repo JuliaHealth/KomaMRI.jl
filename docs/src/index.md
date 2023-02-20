@@ -22,7 +22,7 @@ Some of the features of **KomaMRI.jl** are:
 * Compatibility with community-standards 🤝 like Pulseq `.seq` and ISMRMRD `.mrd`.
 * Cross-platform 🌐 thanks to the use of the Julia programing language.
 * Friendly user interface for people with no programming skills 😌.
-* Flexible API for advance users 👨‍💻.
+* Flexible API for advanced users 👨‍💻.
 
 ## Potential Use Cases
 

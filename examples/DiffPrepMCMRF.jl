@@ -1,7 +1,7 @@
 # Code used to generate moment-compensated diffusion gradient waveforms
 # Sequence optimization for diffusion prepared motion-compensated MRF 
 
-using KomaMRI, JuMP, Ipopt, Dates
+using KomaMRI, KomaMRICore, JuMP, Ipopt, Dates
 using LinearAlgebra: I, Bidiagonal, norm, Diagonal, Tridiagonal
 using Printf
 
@@ -114,9 +114,9 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
 		t2 = range(0, maximum(G2.GR.T), step=dwell_time) #length=δ2N(maximum(G2.GR.T)))
         t3 = range(0, maximum(G3.GR.T), step=dwell_time) #length=δ2N(maximum(G3.GR.T)))
         maxN = max(length(t1), length(t2), length(t3))
-        Gx1, Gy1, Gz1 = KomaMRI.get_grads(G1, Array(t1).+maximum(G1.GR.delay))
-		Gx2, Gy2, Gz2 = KomaMRI.get_grads(G2, Array(t2).+maximum(G2.GR.delay))
-        Gx3, Gy3, Gz3 = KomaMRI.get_grads(G3, Array(t3).+maximum(G3.GR.delay))
+        Gx1, Gy1, Gz1 = KomaMRICore.get_grads(G1, Array(t1).+maximum(G1.GR.delay))
+		Gx2, Gy2, Gz2 = KomaMRICore.get_grads(G2, Array(t2).+maximum(G2.GR.delay))
+        Gx3, Gy3, Gz3 = KomaMRICore.get_grads(G3, Array(t3).+maximum(G3.GR.delay))
         Gx1_round = round.(Gx1 ./ Gmax, digits=precision)
         Gx2_round = round.(Gx2 ./ Gmax, digits=precision)
         Gx3_round = round.(Gx3 ./ Gmax, digits=precision)
@@ -207,8 +207,9 @@ Gmax = 62e-3 # mT/m
 Smax = 100   # mT/m/ms
 axis_to_calc = ["x", "y", "z"]
 moment_to_calc = [0, 1]
-pulses_to_calc = 1:20
-N1 = 200 # You can solve the opt problem in a lower time resolution or use δ2N(dur_grad) 
+pulses_to_calc = [11] #, 12, 10]
+# N1 = 400 # You can solve the opt problem in a lower time resolution or use δ2N(dur_grad) 
+n_dwells = 4
 maxwell = true #maxwell or concomitant gradient compensation
 
 for pulse_type = pulses_to_calc
@@ -366,6 +367,7 @@ path_file = "/home/ccp/"
 rf1 = Δ1 - δ1
 rf2 = Δ2 - δ2 - Δ1
 # Grads - Pre-defined RF waveforms.
+N1 = round(Int64, δ1 / (n_dwells * dwell_time) + 1 ); println("N1opt = $N1")
 N2 = round(Int, N1 * δ2 / δ1) #- 1 # δ1/N1 = δ2/N2
 N3 = round(Int, N1 * δ3 / δ1)
 if δ3 == 0 
@@ -454,7 +456,7 @@ for k = moment_to_calc #Number of moments to null
         DIFinv = inv ? -DIF : DIF
         # Plots
         p = plot_seq(DIFinv; darkmode=false, slider=false, range=[-1 dur(DIFinv)*1e3+1])
-        if axis == "x" display(p) end
+        # if axis == "x" display(p) end
         savefig(p, path_res*"$seq_name.svg")
         # Write
         write_diffprep_fwf(DIFinv[1], DIFinv[2], DIFinv[3], bmax, Gmax, Smax; 

@@ -9,8 +9,8 @@ sys = Scanner() # hide
 # For a more realistic example, we will use a brain phantom.
 
 obj = brain_phantom2D() # a slice of a brain
-p1 = plot_phantom_map(obj, :T2 ; height=400, width=400, view_2d=true, darkmode=true)
-p2 = plot_phantom_map(obj, :Δw ; height=400, width=400, view_2d=true, darkmode=true)
+p1 = plot_phantom_map(obj, :T2 ; height=400, width=400, view_2d=true)
+p2 = plot_phantom_map(obj, :Δw ; height=400, width=400, view_2d=true)
 #md savefig(p1, "../assets/2-phantom1.html") # hide
 #md savefig(p2, "../assets/2-phantom2.html") # hide
 #jl display(p1)
