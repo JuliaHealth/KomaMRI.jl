@@ -705,8 +705,9 @@ get_kspace(seq::Sequence; Δt=1) = begin
 		end
 	end
 	kspace = γ * k #[m^-1]
-	#Interp, as Gradients are piece-wise linear, the integral is piece-wise quadratic
+	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise quadratic
 	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
+	#TODO: check if this interpolation is necessary
 	ts = t .+ Δt
 	t_adc =  get_adc_sampling_times(seq)
 	kx_adc = linear_interpolation(ts,kspace[:,1],extrapolation_bc=0)(t_adc)
@@ -715,4 +716,52 @@ get_kspace(seq::Sequence; Δt=1) = begin
 	kspace_adc = [kx_adc ky_adc kz_adc]
 	#Final
 	kspace, kspace_adc
+end
+
+"""
+    M1, M1_adc = get_M1(seq::Sequence; Δt=1)
+
+Outputs designed k-space trajectory from sequence struct.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+- `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
+    for ADC acquisition and Gradients
+
+# Returns
+- `M1`: (`3-column ::Matrix{Float64}`) First moment
+- `M1_adc`: (`3-column ::Matrix{Float64}`) First moment sampled at ADC points
+"""
+get_M1(seq::Sequence; Δt=1) = begin
+	t, Δt = get_uniform_times(seq, Δt)
+	Gx, Gy, Gz = get_grads(seq, t)
+	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	#kspace
+	Nt = length(t)
+	m1 = zeros(Nt,3)
+	#get_RF_center_breaks
+	idx_rf, rf_type = get_RF_types(seq, t)
+	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	for i = 1:3
+		m1f = 0
+		for (rf, p) in enumerate(parts)
+			m1[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]] .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
+			if rf > 1 #First part does not have RF
+				m1[p,i] .-= rf_type[rf-1] * m1f
+			end
+			m1f = m1[p[end],i]
+		end
+	end
+	M1 = γ * m1 #[m^-1]
+	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
+	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
+	#TODO: check if this interpolation is necessary
+	ts = t .+ Δt
+	t_adc =  get_adc_sampling_times(seq)
+	M1x_adc = linear_interpolation(ts,M1[:,1],extrapolation_bc=0)(t_adc)
+	M1y_adc = linear_interpolation(ts,M1[:,2],extrapolation_bc=0)(t_adc)
+	M1z_adc = linear_interpolation(ts,M1[:,3],extrapolation_bc=0)(t_adc)
+	M1_adc = [M1x_adc M1y_adc M1z_adc]
+	#Final
+	M1, M1_adc
 end
