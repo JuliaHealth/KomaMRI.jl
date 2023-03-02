@@ -8,17 +8,17 @@ using Printf
 ## Aux functions
 """"Calculates the normalized moments Mₖ = 1/tᵏ ∫ᵗG(τ)τᵏ dτ at the end of the sequence. """
 function get_Mmatrix(seq::Sequence; axis=1)
-    τ = dur(seq) * 1e3 # Seq Duration [ms]
+    τ = dur(seq) # Seq Duration [ms]
     T0 = cumsum([0; seq.DUR])
     M0, M1, M2, M3 = Float64[], Float64[], Float64[], Float64[]
     for i = 1:length(seq)
         #Gradient
         Gi = seq[i].GR[axis]
         N = length(Gi.A)
-        delay = Gi.delay * 1e3 #Durations of delay [ms]
+        delay = Gi.delay #Durations of delay [s]
         #Timings
         if N > 1
-            δ = ones(N) * Gi.T / (N-1) * 1e3 #Durations of pulse [ms]
+            δ = ones(N) * Gi.T / (N-1) #Durations of pulse [s]
             T = [sum(δ[1:j]) for j = 1:N-1]
             T = T0[i] .+ delay .+ [0; T] #Position of pulse
             #Moment calculations - P0 model
@@ -27,10 +27,10 @@ function get_Mmatrix(seq::Sequence; axis=1)
             # append!(M2, δ.*(T.^2 .+ T.*δ .+ δ.^2/3)/τ^3)
             # append!(M3, δ.*(T.^3 .+ 3/2 * T.^2 .*δ .+ T.*δ.^2 .+ δ.^3/4)/τ^4)
             #Moment calculations - P1 model
-            append!(M0, δ/τ^0)
-            append!(M1, δ.*(T)/τ^0)
-            append!(M2, δ.*(T.^2 .+ δ.^2/6)/τ^0)
-            append!(M3, δ.*(T.^3 .+ T .* δ.^2/2)/τ^0)
+            append!(M0, δ/τ^1)
+            append!(M1, δ.*(T)/τ^2)
+            append!(M2, δ.*(T.^2 .+ δ.^2/6)/τ^3)
+            append!(M3, δ.*(T.^3 .+ T .* δ.^2/2)/τ^4)
         end
     end
     [M0'; M1'; M2'; M3']
@@ -68,7 +68,7 @@ function get_MXmatrix(seq::Sequence; axis = 1)
             dd = Δt[2:end]/6
             d = 2Δt/3
             MXi = Tridiagonal(dd, d, dd)
-            push!(MX, MXi)
+            push!(MX, MXi/τ)
         end
     end
     MX
@@ -207,153 +207,83 @@ Gmax = 62e-3 # mT/m
 Smax = 100   # mT/m/ms
 axis_to_calc = ["x", "y", "z"]
 moment_to_calc = [0, 1]
-pulses_to_calc = [11] #, 12, 10]
-# N1 = 400 # You can solve the opt problem in a lower time resolution or use δ2N(dur_grad) 
-n_dwells = 4
+pulses_to_calc = 1:10
+n_dwells = 10
 maxwell = true #maxwell or concomitant gradient compensation
+DIF = Sequence()
 
 for pulse_type = pulses_to_calc
 ##############################################################################
 if pulse_type == 1
-    adia = "MLEV"
-    δ1 = 7.5968e-3
-    δ2 = 15.7568e-3
-    δ3 = 7.5968e-3
-    Δ1 = 9.6216e-3
-    Δ2 = 27.1247e-3    
-elseif pulse_type == 2
-    adia = "MLEV"
-    δ1 = 8.8448e-3
-    δ2 = 18.2592e-3
-    δ3 = 8.8448e-3
-    Δ1 = 10.8704e-3
-    Δ2 = 30.8767e-3    
-elseif pulse_type == 3
-    adia = "MLEV"
-    δ1 = 10.0992e-3
-    δ2 = 20.7552e-3
-    δ3 = 10.0992e-3
-    Δ1 = 12.1224e-3
-    Δ2 = 34.6223e-3    
-elseif pulse_type == 4
-    adia = "MLEV"
-    δ1 = 11.3472e-3
-    δ2 = 23.2576e-3
-    δ3 = 11.3472e-3
-    Δ1 = 13.3712e-3
-    Δ2 = 38.3743e-3    
-elseif pulse_type == 5
-    adia = "MLEV"
-    δ1 = 12.5952e-3
-    δ2 = 25.7536e-3
-    δ3 = 12.5952e-3
-    Δ1 = 14.6232e-3
-    Δ2 = 42.1263e-3    
-elseif pulse_type == 6
     adia = "HS2"
     δ1 = 3.4688e-3
     δ2 = 7.5008e-3
     δ3 = 3.4688e-3
     Δ1 = 13.7496e-3
-    Δ2 = 31.2527e-3    
-elseif pulse_type == 7
+    Δ2 = 31.2506e-3
+elseif pulse_type == 2
     adia = "HS2"
     δ1 = 4.7168e-3
     δ2 = 10.0032e-3
     δ3 = 4.7168e-3
     Δ1 = 14.9984e-3
-    Δ2 = 35.0047e-3      
-elseif pulse_type == 8
+    Δ2 = 35.0026e-3 
+elseif pulse_type == 3
     adia = "HS2"
-    δ1 = 5.9712e-3
+    δ1 = 5.9648e-3
     δ2 = 12.4992e-3
-    δ3 = 5.9712e-3
+    δ3 = 5.9648e-3
     Δ1 = 16.2504e-3
-    Δ2 = 38.7503e-3    
-elseif pulse_type == 9
+    Δ2 = 38.7546e-3    
+elseif pulse_type == 4
     adia = "HS2"
     δ1 = 7.2192e-3
     δ2 = 15.0016e-3
     δ3 = 7.2192e-3
     Δ1 = 17.4992e-3
-    Δ2 = 42.5023e-3    
-elseif pulse_type == 10
+    Δ2 = 42.5002e-3      
+elseif pulse_type == 5
     adia = "HS2"
     δ1 = 8.4672e-3
     δ2 = 17.4976e-3
     δ3 = 8.4672e-3
     Δ1 = 18.7512e-3
-    Δ2 = 46.2543e-3    
-elseif pulse_type == 11
+    Δ2 = 46.2522e-3      
+elseif pulse_type == 6
     adia = "BIR4"
     δ1 = 13.7152e-3
     δ2 = 13.7152e-3
     δ3 = 0
-    Δ1 = 21.0063e-3
-    Δ2 = 0    
-elseif pulse_type == 12
+    Δ1 = 21.0042e-3
+    Δ2 = 0       
+elseif pulse_type == 7
     adia = "BIR4"
     δ1 = 16.2176e-3
     δ2 = 16.2176e-3
     δ3 = 0
-    Δ1 = 23.5039e-3
-    Δ2 = 0     
-elseif pulse_type == 13
-    adia = "BIR4"
-    δ1 = 18.7200e-3
-    δ2 = 18.7200e-3
-    δ3 = 0
-    Δ1 = 26.0015e-3
+    Δ1 = 23.5018e-3
     Δ2 = 0      
-elseif pulse_type == 14
+elseif pulse_type == 8
+    adia = "BIR4"
+    δ1 = 18.7136e-3
+    δ2 = 18.7136e-3
+    δ3 = 0
+    Δ1 = 26.0058e-3
+    Δ2 = 0    
+elseif pulse_type == 9
     adia = "BIR4"
     δ1 = 21.2160e-3
     δ2 = 21.2160e-3
     δ3 = 0
-    Δ1 = 28.5055e-3
+    Δ1 = 28.5034e-3
     Δ2 = 0    
-elseif pulse_type == 15
+elseif pulse_type == 10
     adia = "BIR4"
     δ1 = 23.7184e-3
     δ2 = 23.7184e-3
     δ3 = 0
-    Δ1 = 31.0031e-3
-    Δ2 = 0    
-elseif pulse_type == 16
-    adia = "HS1"
-    δ1 = 12.2176e-3
-    δ2 = 12.2176e-3
-    δ3 = 0
-    Δ1 = 22.5039e-3
-    Δ2 = 0    
-elseif pulse_type == 17
-    adia = "HS1"
-    δ1 = 14.7200e-3
-    δ2 = 14.7200e-3
-    δ3 = 0
-    Δ1 = 25.0015e-3
-    Δ2 = 0    
-elseif pulse_type == 18
-    adia = "HS1"
-    δ1 = 17.2224e-3
-    δ2 = 17.2224e-3
-    δ3 = 0
-    Δ1 = 27.4991e-3
+    Δ1 = 31.0010e-3
     Δ2 = 0     
-elseif pulse_type == 19
-    adia = "HS1"
-    δ1 = 19.7184e-3
-    δ2 = 19.7184e-3
-    δ3 = 0
-    Δ1 = 30.0031e-3
-    Δ2 = 0    
-elseif pulse_type == 20
-    adia = "HS1"
-    δ1 = 22.2208e-3
-    δ2 = 22.2208e-3
-    δ3 = 0
-    Δ1 = 32.5007e-3
-    Δ2 = 0    
 end
 #############################################################################
 path_file = "/home/ccp/"
@@ -378,9 +308,9 @@ if δ3 == 0
 end
 println("#################### pulse_type = $pulse_type ####################")
 # println("δ1=$(δ1*1e3), δ2=$(δ2*1e3), δ3=$(δ3*1e3)")
-DIF =  Sequence([Grad(x -> 1e-3, δ1, N1; delay=0)])
-DIF += Sequence([Grad(x -> 1e-3, δ2, N2; delay=rf1)])
-DIF += Sequence([Grad(x -> 1e-3, δ3, N3; delay=rf2)])
+global DIF =  Sequence([Grad(x -> 1e-3, δ1, N1; delay=0)])
+global DIF += Sequence([Grad(x -> 1e-3, δ2, N2; delay=rf1)])
+global DIF += Sequence([Grad(x -> 1e-3, δ3, N3; delay=rf2)])
 Smax_discrete = Smax * 0.999
 
 #To match the samples exactly
@@ -436,32 +366,36 @@ for k = moment_to_calc #Number of moments to null
     for axis = axis_to_calc
         if     axis == "x"
             ax = 1
-            DIF =  Sequence([Grad( gx1,δ1); Grad(0,0); Grad(0,0);;],R1)
-            DIF += Sequence([Grad( gx2,δ2); Grad(0,0); Grad(0,0);;],R2)
-            DIF += Sequence([Grad( gx3,δ3); Grad(0,0); Grad(0,0);;])
+            global DIF =  Sequence([Grad( gx1,δ1); Grad(0,0); Grad(0,0);;],R1)
+            global DIF += Sequence([Grad( gx2,δ2); Grad(0,0); Grad(0,0);;],R2)
+            global DIF += Sequence([Grad( gx3,δ3); Grad(0,0); Grad(0,0);;])
         elseif axis == "y"
             ax = 2
-            DIF =  Sequence([Grad(0,0); Grad( gx1,δ1); Grad(0,0);;],R1)
-            DIF += Sequence([Grad(0,0); Grad( gx2,δ2); Grad(0,0);;],R2)
-            DIF += Sequence([Grad(0,0); Grad( gx3,δ3); Grad(0,0);;])
+            global DIF =  Sequence([Grad(0,0); Grad( gx1,δ1); Grad(0,0);;],R1)
+            global DIF += Sequence([Grad(0,0); Grad( gx2,δ2); Grad(0,0);;],R2)
+            global DIF += Sequence([Grad(0,0); Grad( gx3,δ3); Grad(0,0);;])
         elseif axis == "z"
             ax = 3
-            DIF =  Sequence([Grad(0,0); Grad(0,0); Grad( gx1,δ1,0);;],R1)
-            DIF += Sequence([Grad(0,0); Grad(0,0); Grad( gx2,δ2,0);;],R2)
-            DIF += Sequence([Grad(0,0); Grad(0,0); Grad( gx3,δ3,0);;])
+            global DIF =  Sequence([Grad(0,0); Grad(0,0); Grad( gx1,δ1,0);;],R1)
+            global DIF += Sequence([Grad(0,0); Grad(0,0); Grad( gx2,δ2,0);;],R2)
+            global DIF += Sequence([Grad(0,0); Grad(0,0); Grad( gx3,δ3,0);;])
         end
         ## TO SCANNER
         path_res = "/home/ccp/DPW/G$(floor(Int,Gmax*1e3))_SR$(ceil(Int,Smax))_$axis/"
         inv = DIF[1].GR[ax].A[2] <= 0 #if first grdient's x component goes down, invert 
-        DIFinv = inv ? -DIF : DIF
+        DIF = inv ? -DIF : DIF
         # Plots
-        p = plot_seq(DIFinv; darkmode=false, slider=false, range=[-1 dur(DIFinv)*1e3+1])
+        p = plot_seq(DIF; darkmode=false, slider=false, range=[-1 dur(DIF)*1e3+1])
         # if axis == "x" display(p) end
         savefig(p, path_res*"$seq_name.svg")
         # Write
-        write_diffprep_fwf(DIFinv[1], DIFinv[2], DIFinv[3], bmax, Gmax, Smax; 
+        write_diffprep_fwf(DIF[1], DIF[2], DIF[3], bmax, Gmax, Smax; 
                 filename=path_res*"$seq_name.txt", name=seq_name, verbose=false)
     end
 end
 end
 println("Finished! 💃")
+τ = dur(DIF) * 1e3
+[plot_seq(DIF; slider=false, range=[0,τ]);
+ plot_M0(DIF; slider=false,range=[0,τ]);
+ plot_M1(DIF; slider=false,range=[0,τ])]
