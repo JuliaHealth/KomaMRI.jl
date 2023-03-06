@@ -184,8 +184,8 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
         N1, N2, N3 = length(t1), length(t2), length(t3)
         println("N1 = $N1 N2 = $N2 N3 = $N3")
         date = "#Generated on $(now())\n"
-        vars =  @sprintf "%s %s %s %s %s %s %s\n" "#Name"*" "^(length(name)-5) "N1"*" "^(length(string(N1))-1) "N2"*" "^(length(string(N2))-1) "N3"*" "^(length(string(N3))-1) "bval"*" "^(length(string(round(bmax,digits=1)))-4) "Gmax"*" "^(length(string(round(Gmax,digits=1)))-3) "Smax"
-        unit =  @sprintf "%s %s %s %s\n" "#"*" "^(length(name)+length(string(N1))+length(string(N2))+length(string(N3))+2)  "s/mm2"*" "^(length(string(round(bmax,digits=1)))-4) "mT/m"*" "^(length(string(round(Gmax,digits=1)))-3) "T/m/s"  
+        vars =  @sprintf "%s %s %s %s %s %s %s\n" "#Name"*" "^(length(name)-5) "N1"*" "^(length(string(N1))-1) "N2"*" "^(length(string(N2))-1) "N3"*" "^(length(string(N3))-1) "bval"*" "^(length(string(round(bmax,digits=1)))-3) "Gmax"*" "^(length(string(round(Gmax,digits=1)))-3) "Smax"
+        unit =  @sprintf "%s %s %s %s\n" "#"*" "^(length(name)+length(string(N1))+length(string(N2))+length(string(N3))+2)  "s/mm2"*" "^(length(string(round(bmax,digits=1)))-3) "mT/m"*" "^(length(string(round(Gmax,digits=1)))-3) "T/m/s"  
         line =  @sprintf "%s %i %i %i %.1f %.1f %.1f\n" name N1 N2 N3 bmax Gmax*1e3 Smax
         write(io, date)
         write(io, vars)
@@ -206,9 +206,9 @@ dwell_time = 6.4e-6
 Gmax = 62e-3 # mT/m
 Smax = 100   # mT/m/ms
 axis_to_calc = ["x", "y", "z"]
-moment_to_calc = [0, 1]
-pulses_to_calc = 1:10
-n_dwells = 10
+moment_to_calc = [0, 1, 2]
+pulses_to_calc = [8, 13]# [15, 17]
+n_dwells = 4
 maxwell = true #maxwell or concomitant gradient compensation
 DIF = Sequence()
 
@@ -216,74 +216,130 @@ for pulse_type = pulses_to_calc
 ##############################################################################
 if pulse_type == 1
     adia = "HS2"
-    δ1 = 3.4688e-3
-    δ2 = 7.5008e-3
-    δ3 = 3.4688e-3
-    Δ1 = 13.7496e-3
-    Δ2 = 31.2506e-3
+    δ1 = 3.4560e-3
+    δ2 = 7.4944e-3
+    δ3 = 3.4560e-3
+    Δ1 = 13.7528e-3
+    Δ2 = 31.2564e-3    
 elseif pulse_type == 2
     adia = "HS2"
-    δ1 = 4.7168e-3
-    δ2 = 10.0032e-3
-    δ3 = 4.7168e-3
-    Δ1 = 14.9984e-3
-    Δ2 = 35.0026e-3 
+    δ1 = 4.7040e-3
+    δ2 = 9.9968e-3
+    δ3 = 4.7040e-3
+    Δ1 = 15.0016e-3
+    Δ2 = 35.0084e-3    
 elseif pulse_type == 3
     adia = "HS2"
-    δ1 = 5.9648e-3
-    δ2 = 12.4992e-3
-    δ3 = 5.9648e-3
-    Δ1 = 16.2504e-3
-    Δ2 = 38.7546e-3    
+    δ1 = 5.9520e-3
+    δ2 = 12.4928e-3
+    δ3 = 5.9520e-3
+    Δ1 = 16.2536e-3
+    Δ2 = 38.7604e-3    
 elseif pulse_type == 4
     adia = "HS2"
-    δ1 = 7.2192e-3
-    δ2 = 15.0016e-3
-    δ3 = 7.2192e-3
-    Δ1 = 17.4992e-3
-    Δ2 = 42.5002e-3      
+    δ1 = 7.2064e-3
+    δ2 = 14.9952e-3
+    δ3 = 7.2064e-3
+    Δ1 = 17.5024e-3
+    Δ2 = 42.5076e-3     
 elseif pulse_type == 5
     adia = "HS2"
-    δ1 = 8.4672e-3
-    δ2 = 17.4976e-3
-    δ3 = 8.4672e-3
-    Δ1 = 18.7512e-3
-    Δ2 = 46.2522e-3      
+    δ1 = 8.4544e-3
+    δ2 = 17.4912e-3
+    δ3 = 8.4544e-3
+    Δ1 = 18.7544e-3
+    Δ2 = 46.2596e-3    
 elseif pulse_type == 6
-    adia = "BIR4"
-    δ1 = 13.7152e-3
-    δ2 = 13.7152e-3
-    δ3 = 0
-    Δ1 = 21.0042e-3
-    Δ2 = 0       
+    adia = "BIR4x2_3"
+    δ1 = 6.9504e-3
+    δ2 = 14.4896e-3
+    δ3 = 6.9504e-3
+    Δ1 = 10.2552e-3
+    Δ2 = 27.7620e-3        
 elseif pulse_type == 7
-    adia = "BIR4"
-    δ1 = 16.2176e-3
-    δ2 = 16.2176e-3
-    δ3 = 0
-    Δ1 = 23.5018e-3
-    Δ2 = 0      
+    adia = "BIR4x2_3"
+    δ1 = 8.2048e-3
+    δ2 = 16.9920e-3
+    δ3 = 8.2048e-3
+    Δ1 = 11.5040e-3
+    Δ2 = 31.5076e-3   
 elseif pulse_type == 8
-    adia = "BIR4"
-    δ1 = 18.7136e-3
-    δ2 = 18.7136e-3
-    δ3 = 0
-    Δ1 = 26.0058e-3
-    Δ2 = 0    
+    adia = "BIR4x2_3"
+    δ1 = 9.4464e-3
+    δ2 = 19.4688e-3
+    δ3 = 9.4464e-3
+    Δ1 = 12.7656e-3
+    Δ2 = 35.2676e-3     
 elseif pulse_type == 9
-    adia = "BIR4"
-    δ1 = 21.2160e-3
-    δ2 = 21.2160e-3
-    δ3 = 0
-    Δ1 = 28.5034e-3
-    Δ2 = 0    
+    adia = "BIR4x2_3"
+    δ1 = 10.6944e-3
+    δ2 = 21.9712e-3
+    δ3 = 10.6944e-3
+    Δ1 = 14.0144e-3
+    Δ2 = 39.0196e-3    
 elseif pulse_type == 10
-    adia = "BIR4"
-    δ1 = 23.7184e-3
-    δ2 = 23.7184e-3
-    δ3 = 0
-    Δ1 = 31.0010e-3
-    Δ2 = 0     
+    adia = "BIR4x2_3"
+    δ1 = 11.9424e-3
+    δ2 = 24.4672e-3
+    δ3 = 11.9424e-3
+    Δ1 = 15.2664e-3
+    Δ2 = 42.7716e-3    
+elseif pulse_type == 11
+    adia = "BIR4x2_5"
+    δ1 = 5.9520e-3
+    δ2 = 12.4864e-3
+    δ3 = 5.9520e-3
+    Δ1 = 11.2568e-3
+    Δ2 = 28.7604e-3       
+elseif pulse_type == 12
+    adia = "BIR4x2_5"
+    δ1 = 7.2000e-3
+    δ2 = 14.9888e-3
+    δ3 = 7.2000e-3
+    Δ1 = 12.5056e-3
+    Δ2 = 32.5124e-3    
+elseif pulse_type == 13
+    adia = "BIR4x2_5"
+    δ1 = 8.4480e-3
+    δ2 = 17.4720e-3
+    δ3 = 8.4480e-3
+    Δ1 = 13.7640e-3
+    Δ2 = 36.2660e-3    
+elseif pulse_type == 14
+    adia = "BIR4x2_5"
+    δ1 = 9.6960e-3
+    δ2 = 19.9744e-3
+    δ3 = 9.6960e-3
+    Δ1 = 15.0128e-3
+    Δ2 = 40.0180e-3    
+elseif pulse_type == 15
+    adia = "BIR4x2_5"
+    δ1 = 10.9440e-3
+    δ2 = 22.4704e-3
+    δ3 = 10.9440e-3
+    Δ1 = 16.2648e-3
+    Δ2 = 43.7700e-3    
+elseif pulse_type == 16
+    adia = "BIR4x2_3"
+    δ1 = 13.1968e-3
+    δ2 = 26.9696e-3
+    δ3 = 13.1968e-3
+    Δ1 = 16.5152e-3
+    Δ2 = 46.5172e-3      
+elseif pulse_type == 17
+    adia = "BIR4x2_5"
+    δ1 = 12.1984e-3
+    δ2 = 24.9728e-3
+    δ3 = 12.1984e-3
+    Δ1 = 17.5136e-3
+    Δ2 = 47.5156e-3
+elseif pulse_type == 18
+    adia = "HS2"
+    δ1 = 9.7088e-3
+    δ2 = 19.9936e-3
+    δ3 = 9.7088e-3
+    Δ1 = 20.0032e-3
+    Δ2 = 50.0052e-3
 end
 #############################################################################
 path_file = "/home/ccp/"
@@ -334,7 +390,7 @@ for k = moment_to_calc #Number of moments to null
     model = Model(Ipopt.Optimizer)
     set_silent(model)
     @variable(model, -Gmax <= g1[1:N1] <= Gmax, start=Gmax); #max-grads
-    @variable(model, -Gmax <= g2[1:N2] <= Gmax, start=-Gmax); #max-grads
+    @variable(model, -Gmax <= g2[1:N2] <= Gmax, start=Gmax); #max-grads
     @variable(model, -Gmax <= g3[1:N3] <= Gmax, start=-Gmax); #max-grads
     @objective(model, Max, [g1;-g2;g3]'*B*[g1;-g2;g3]); #b-value
     @constraint(model, moments, Mm*[g1;-g2;g3] .== 0); #moments
@@ -385,7 +441,12 @@ for k = moment_to_calc #Number of moments to null
         inv = DIF[1].GR[ax].A[2] <= 0 #if first grdient's x component goes down, invert 
         DIF = inv ? -DIF : DIF
         # Plots
-        p = plot_seq(DIF; darkmode=false, slider=false, range=[-1 dur(DIF)*1e3+1])
+        τ = dur(DIF) * 1e3
+        p1 = plot_seq(DIF; slider=false, range=[0,τ])
+        p2 = plot_M0(DIF; slider=false, range=[0,τ])
+        p3 = plot_M1(DIF; slider=false, range=[0,τ])
+        p4 = plot_M2(DIF; slider=false, range=[0,τ])
+        p = [p1;p2;p3;p4]
         # if axis == "x" display(p) end
         savefig(p, path_res*"$seq_name.svg")
         # Write
@@ -395,7 +456,3 @@ for k = moment_to_calc #Number of moments to null
 end
 end
 println("Finished! 💃")
-τ = dur(DIF) * 1e3
-[plot_seq(DIF; slider=false, range=[0,τ]);
- plot_M0(DIF; slider=false,range=[0,τ]);
- plot_M1(DIF; slider=false,range=[0,τ])]
