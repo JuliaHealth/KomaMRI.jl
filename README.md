@@ -3,14 +3,14 @@
 <img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
 </p>
 
-<center>
-
+<div align="center">
+ 
 | **Documentation**         | **KomaMRI.jl Paper**          | **Build Status**                      |
 |:------------------------- |:------------------------------|:------------------------------------- |
 | [![][docr-img]][docr-url] | [![][paper-img1]][paper-url1] | [![][gh-actions-img]][gh-actions-url] |
 | [![][docd-img]][docd-url] | [![][arXiv-img1]][arXiv-url1] | [![][codecov-img]][codecov-url]       |
 
-</center>
+</div>
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docr-url]: https://cncastillo.github.io/KomaMRI.jl/stable/
