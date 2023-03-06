@@ -673,7 +673,7 @@ end
 """
     kspace, kspace_adc = get_kspace(seq::Sequence; Δt=1)
 
-Outputs designed k-space trajectory from sequence struct.
+Outputs the designed k-space trajectory of the Sequence `seq`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -721,7 +721,7 @@ end
 """
     M1, M1_adc = get_M1(seq::Sequence; Δt=1)
 
-Outputs designed k-space trajectory from sequence struct.
+Outputs the designed M1 of the Sequence `seq`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -764,4 +764,53 @@ get_M1(seq::Sequence; Δt=1) = begin
 	M1_adc = [M1x_adc M1y_adc M1z_adc]
 	#Final
 	M1, M1_adc
+end
+
+
+"""
+    M2, M2_adc = get_M2(seq::Sequence; Δt=1)
+
+Outputs the designed M2 of the Sequence `seq`.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+- `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
+    for ADC acquisition and Gradients
+
+# Returns
+- `M2`: (`3-column ::Matrix{Float64}`) Second moment
+- `M2_adc`: (`3-column ::Matrix{Float64}`) Second moment sampled at ADC points
+"""
+get_M2(seq::Sequence; Δt=1) = begin
+	t, Δt = get_uniform_times(seq, Δt)
+	Gx, Gy, Gz = get_grads(seq, t)
+	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	#kspace
+	Nt = length(t)
+	m2 = zeros(Nt,3)
+	#get_RF_center_breaks
+	idx_rf, rf_type = get_RF_types(seq, t)
+	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	for i = 1:3
+		m2f = 0
+		for (rf, p) in enumerate(parts)
+			m2[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^2 .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
+			if rf > 1 #First part does not have RF
+				m2[p,i] .-= rf_type[rf-1] * m2f
+			end
+			m2f = m2[p[end],i]
+		end
+	end
+	M2 = γ * m2 #[m^-1]
+	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
+	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
+	#TODO: check if this interpolation is necessary
+	ts = t .+ Δt
+	t_adc =  get_adc_sampling_times(seq)
+	M2x_adc = linear_interpolation(ts,M2[:,1],extrapolation_bc=0)(t_adc)
+	M2y_adc = linear_interpolation(ts,M2[:,2],extrapolation_bc=0)(t_adc)
+	M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
+	M2_adc = [M2x_adc M2y_adc M2z_adc]
+	#Final
+	M2, M2_adc
 end

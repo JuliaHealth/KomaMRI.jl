@@ -65,6 +65,8 @@ export simulate, simulate_slice_profile
 
 #Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
+#Sequence related
+export get_M0, get_M1, get_M2, get_kspace
 
 #PulseDesigner submodule
 include("sequences/PulseDesigner.jl")
