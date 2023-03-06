@@ -1,23 +1,19 @@
-struct Bloch <: SimulationMethod end
+Base.@kwdef struct BlochDict <: SimulationMethod 
+    save_Mz::Bool=false
+end
 
-export Bloch
+export BlochDict
 
-include("Magnetization.jl") #Defines Mag <: SpinStateRepresentation
-@functor Mag #Gives gpu acceleration capabilities, see GPUFunctions.jl
+output_Ndim(sim_method::BlochDict) = 3
 
-output_Ndim(sim_method::Bloch) = 2 #time-points x coils
-
-function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::Bloch) where {T<:Real}
-    return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
+function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict) where {T<:Real}
+    out_state_dim = sim_method.save_Mz ? 2 : 1
+    return (sum(seq.ADC.N), length(obj), out_state_dim)
 end
 
 """Magnetization initialization for Bloch simulation method."""
-function initialize_spins_state(obj::Phantom{T}, sim_method::Bloch) where {T<:Real}
-    Nspins = length(obj)
-    Mxy = zeros(T, Nspins)
-    Mz = obj.ρ
-    Xt = Mag{T}(Mxy, Mz)
-    return Xt, obj
+function initialize_spins_state(obj::Phantom{T}, sim_method::BlochDict) where {T<:Real}
+    return initialize_spins_state(obj, Bloch())
 end
 
 """
@@ -36,7 +32,7 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
-    M::Mag{T}, sim_method::Bloch) where {T<:Real}
+    M::Mag{T}, sim_method::BlochDict) where {T<:Real}
     #Simulation
     #Motion
     xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
@@ -55,9 +51,17 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
+    
     #Acquired signal
-    sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    sig[:,:,1] .= transpose(Mxy[:, findall(seq.ADC)])
+
+    if sim_method.save_Mz
+        Mz = M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1)) #Calculate intermediate points
+        sig[:,:,2] .= transpose(Mz[:, findall(seq.ADC)]) #Save state to signal
+        M.z .= Mz[:, end]
+    else
+        M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point
+    end
     return nothing
 end
 
@@ -77,24 +81,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, 
-    M::Mag{T}, sim_method::Bloch) where {T<:Real}
-    #Simulation
-    for s ∈ seq #This iterates over seq, "s = seq[i,:]"
-        #Motion
-        xt = p.x .+ p.ux(p.x, p.y, p.z, s.t)
-        yt = p.y .+ p.uy(p.x, p.y, p.z, s.t)
-        zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
-        #Effective field
-        ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
-        Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
-        B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
-        B[B .== 0] .= eps(T)
-        #Spinor Rotation
-        φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
-        mul!( Q(φ, s.B1 ./ B, Bz ./ B), M )
-        #Relaxation
-        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
-        M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
-    end
+    M::Mag{T}, sim_method::BlochDict) where {T<:Real}
+    run_spin_excitation!(p, seq, M, Bloch()) #The same as Bloch
     return nothing
 end

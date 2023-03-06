@@ -3,6 +3,7 @@ abstract type SpinStateRepresentation{T<:Real} end #get all available types by u
 
 #Defined methods:
 include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
+include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
 
 """
     sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
@@ -29,9 +30,10 @@ function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     Nthreads=Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads, type="ordered")
+    dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_precession!(@view(obj[p]), seq, @view(sig[:,:,i]), @view(Xt[p]), sim_method)
+        run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
     end
 
     return nothing
@@ -107,12 +109,13 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
         excitation_bool = is_RF_on(seq_block) && is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
         Nadc = sum(seq_block.ADC)
         acq_samples = samples:samples+Nadc-1
+        dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool
             run_spin_excitation_parallel!(obj, seq_block, Xt, sim_method; Nthreads)
             rfs += 1
         else
-            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, :, :]), Xt, sim_method; Nthreads)
+            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
             samples += Nadc
         end
         #Update progress
@@ -183,12 +186,11 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     tadc       = get_adc_sampling_times(seq)
     ADCflag = [any(tt .== tadc) for tt in t[2:end]] #Displaced 1 dt, sig[i]=S(ti+dt)
     seqd = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
-    # Spins' state init (Magnetization, EPG, etc.)
-    Xt = initialize_spins_state(obj, sim_method)
+    # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
+    Xt, obj = initialize_spins_state(obj, sim_method)
     # Signal init
-    Nadc = sum(seq.ADC.N)
-    Ncoils = 1 #This should consider the input Scanner type
-    sig = zeros(ComplexF64, Nadc, Ncoils, Nthreads)
+    Ndims = sim_output_dim(obj, seq, sys, sim_method)
+    sig = zeros(ComplexF64, Ndims..., Nthreads)
     # Objects to GPU
     if enable_gpu #Default
         device!(gpu_device)
@@ -210,10 +212,10 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
         sig  = sig  |> f64 #Signal
     end
     # Simulation
-    @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=__VERSION__ sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Nadc
+    @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=__VERSION__ sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Ndims[1]
     @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
     # Result to CPU, if already in the CPU it does nothing
-    sig = sum(sig; dims=3) |> cpu
+    sig = sum(sig; dims=length(Ndims)+1) |> cpu
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
     if enable_gpu GC.gc(true); CUDA.reclaim() end
