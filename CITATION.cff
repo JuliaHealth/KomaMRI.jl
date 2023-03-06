@@ -4,8 +4,8 @@ authors:
   - family-names: "Carlos"
     given-names: "Castillo-Passi"
     orcid: https://orcid.org/0000-0001-6227-0477
-title: 'cncastillo/KomaMRI.jl'
-doi: 10.5281/zenodo.6627503
-version: 0.6.0
-date-released: 2022-06-09
+title: 'KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration'
+doi: 10.1002/mrm.29635
+version: 0.7
+date-released: 2023-02-06
 repository-code: https://github.com/cncastillo/KomaMRI.jl

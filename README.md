@@ -3,17 +3,42 @@
 <img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
 </p>
 
-![Build status](https://github.com/cncastillo/KomaMRI.jl/actions/workflows/ci.yml/badge.svg)
-[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://cncastillo.github.io/KomaMRI.jl/dev/) [![DOI](https://zenodo.org/badge/252201289.svg)](https://zenodo.org/badge/latestdoi/252201289)
+<center>
 
+| **Documentation**         | **KomaMRI.jl Paper**          | **Build Status**                      |
+|:------------------------- |:------------------------------|:------------------------------------- |
+| [![][docr-img]][docr-url] | [![][paper-img1]][paper-url1] | [![][gh-actions-img]][gh-actions-url] |
+| [![][docd-img]][docd-url] | [![][arXiv-img1]][arXiv-url1] | [![][codecov-img]][codecov-url]       |
+
+</center>
+
+[docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docr-url]: https://cncastillo.github.io/KomaMRI.jl/stable/
+
+[docd-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docd-url]: https://cncastillo.github.io/KomaMRI.jl/dev/
+
+[gh-actions-img]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-url]: https://github.com/cncastillo/KomaMRI.jl/actions
+
+[codecov-img]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/cncastillo/KomaMRI.jl
+
+[arXiv-img1]: https://img.shields.io/badge/arXiv-2107.11000-blue.svg
+[arXiv-url1]: https://arxiv.org/abs/2301.02702
+
+[paper-img1]: https://img.shields.io/badge/doi-10.1002/mrm.29635-blue.svg
+[paper-url1]: https://doi.org/10.1002/mrm.29635
 
 KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
 
 This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
 
-> 🟢 **KomaMRI v0.7**: Huge code rewrite, this implies improved: performance (now **5x faster**), type stability, extensibility, and more!
+> 🟢 **[6 Mar 2023] Paper published in MRM 😃!** The open access article is available [here](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635)
 
-> 🟢 **ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
+> 🟢 **[8 Dec 2022] KomaMRI v0.7**: Huge code rewrite, this implies improved: performance (now **5x faster**), type stability, extensibility, and more!
+
+> 🟢 **[17 May 2022] ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
 
 <details>
 <summary> <samp>&#9776; Roadmap</samp></summary>
@@ -57,21 +82,23 @@ KomaUI()
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw signal or (2) to procced with the reconstruction.
 
 ## How to cite
-If you use this package please acknowledge us by citing (paper being reviewed! 👷‍♂️):
+If you use this package please acknowledge us by citing our paper. 
 
+**How to cite:**
+> Castillo-Passi, C, Coronado, R, Varela-Mattatall, G, Alberola-López, C, Botnar, R, Irarrazaval, P. KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration. Magn Reson Med. 2023; 1- 14. doi: 10.1002/mrm.29635
+
+**BibTex:**
 ```bibtex
-@software{carlos_castillo_passi_2021_5507370,
-  author       = {Castillo-Passi, Carlos and Irarrazaval, Pablo},
-  title        = {cncastillo/KomaMRI.jl},
-  month        = sep,
-  year         = 2021,
-  publisher    = {Zenodo},
-  version      = {v0.6.0},
-  doi          = {10.5281/zenodo.6627503},
-  url          = {https://doi.org/10.5281/zenodo.6627503}
+@article{https://doi.org/10.1002/mrm.29635,
+author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
+title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
+journal = {Magnetic Resonance in Medicine},
+keywords = {Bloch equations, GPU, GUI, Julia, open source, simulation},
+doi = {https://doi.org/10.1002/mrm.29635},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
 }
 ```
-
 ---
 
 ## Koma GUI
