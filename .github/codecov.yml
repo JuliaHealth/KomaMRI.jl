@@ -1,8 +1,48 @@
+# Setting coverage targets per flag
 coverage:
   status:
     project:
       default:
+        target: 90% #overall project/ repo coverage
         threshold: 1%
+      KomaMRI:
+        target: 90%
+        flags:
+          - KomaMRI
+      KomaMRICore:
+        target: 90%
+        flags:
+          - KomaMRICore
+      KomaMRIPlots:
+        target: 90%
+        flags:
+          - KomaMRIPlots
     patch:
       default:
         informational: true
+        
+# adding Flags to your `layout` configuration to show up in the PR comment
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false  
+  require_base: yes
+  require_head: yes       
+  branches: null
+  
+# New root YAML section = `flags:`
+# This is where you would define every flag from your
+# uploader, and update when new Flags added
+flags:
+  KomaMRI:
+    carryforward: false
+    paths:
+      - src
+  KomaMRICore:
+    carryforward: false
+    paths:
+      - KomaMRICore/src
+  KomaMRIPlots:
+    carryforward: false
+    paths:
+      - KomaMRIPlots/src
