@@ -6,13 +6,13 @@
 <div align="center">
 
 ##### Main project
-| **Documentation**         | **KomaMRI.jl Paper**          | **Build Status**                      |
-|:------------------------- |:------------------------------|:------------------------------------- |
-| [![][docr-img]][docr-url] | [![][paper-img1]][paper-url1] | [![][gh-actions-img]][gh-actions-url] |
-| [![][docd-img]][docd-url] | [![][arXiv-img1]][arXiv-url1] | [![][codecov-img]][codecov-url]       |
+| **Documentation**         | **KomaMRI.jl Paper**           | **Build Status**                      |
+|:-------------------------:|:------------------------------:|:-------------------------------------:|
+| [![][docr-img]][docr-url] | [![][paper-img1]][paper-url1]  | [![][gh-actions-img]][gh-actions-url] |
+| [![][docd-img]][docd-url] | [![][arXiv-img1]][arXiv-url1]  | [![][codecov-img]][codecov-url]       |
 ##### Submodules
-| **KomaMRI.jl**            | **KomaMRICore.jl**            | **KomaMRIPlots.jl**                   |
-|:------------------------- |:------------------------------|:------------------------------------- |
+| **KomaMRI.jl**            | **KomaMRICore.jl**             | **KomaMRIPlots.jl**                   |
+|:-------------------------:|:------------------------------:|:-------------------------------------:|
 | [![][gh-actions-img1]][gh-actions-url] | [![][gh-actions-img2]][gh-actions-url] | [![][gh-actions-img3]][gh-actions-url]       |
 | [![][codecov-img1]][codecov-url] | [![][codecov-img2]][codecov-url] | [![][codecov-img3]][codecov-url]       |
 
