@@ -4,11 +4,17 @@
 </p>
 
 <div align="center">
- 
+
+##### Main project
 | **Documentation**         | **KomaMRI.jl Paper**          | **Build Status**                      |
 |:------------------------- |:------------------------------|:------------------------------------- |
 | [![][docr-img]][docr-url] | [![][paper-img1]][paper-url1] | [![][gh-actions-img]][gh-actions-url] |
 | [![][docd-img]][docd-url] | [![][arXiv-img1]][arXiv-url1] | [![][codecov-img]][codecov-url]       |
+##### Submodules
+| **KomaMRI.jl**            | **KomaMRICore.jl**            | **KomaMRIPlots.jl**                   |
+|:------------------------- |:------------------------------|:------------------------------------- |
+| [![][gh-actions-img1]][gh-actions-url] | [![][gh-actions-img2]][gh-actions-url] | [![][gh-actions-img3]][gh-actions-url]       |
+| [![][codecov-img1]][codecov-url] | [![][codecov-img2]][codecov-url] | [![][codecov-img3]][codecov-url]       |
 
 </div>
 
@@ -19,9 +25,15 @@
 [docd-url]: https://cncastillo.github.io/KomaMRI.jl/dev/
 
 [gh-actions-img]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-img1]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-img2]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-img3]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-url]: https://github.com/cncastillo/KomaMRI.jl/actions
 
 [codecov-img]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg
+[codecov-img1]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=komamri
+[codecov-img2]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=core
+[codecov-img3]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=plots
 [codecov-url]: https://codecov.io/gh/cncastillo/KomaMRI.jl
 
 [arXiv-img1]: https://img.shields.io/badge/arXiv-2107.11000-blue.svg
