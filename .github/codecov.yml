@@ -5,18 +5,18 @@ coverage:
       default:
         target: 90% #overall project/ repo coverage
         threshold: 1%
-      KomaMRI:
+      komamri:
         target: 90%
         flags:
-          - KomaMRI
-      KomaMRICore:
+          - komamri
+      core:
         target: 90%
         flags:
-          - KomaMRICore
-      KomaMRIPlots:
+          - core
+      plots:
         target: 90%
         flags:
-          - KomaMRIPlots
+          - plots
     patch:
       default:
         informational: true
@@ -34,15 +34,15 @@ comment:
 # This is where you would define every flag from your
 # uploader, and update when new Flags added
 flags:
-  KomaMRI:
-    carryforward: false
+  komamri:
+    carryforward: true
     paths:
-      - src
-  KomaMRICore:
-    carryforward: false
+      - src/.*
+  core:
+    carryforward: true
     paths:
-      - KomaMRICore/src
-  KomaMRIPlots:
-    carryforward: false
+      - KomaMRICore/src/.*
+  plots:
+    carryforward: true
     paths:
-      - KomaMRIPlots/src
+      - KomaMRIPlots/src/.*
