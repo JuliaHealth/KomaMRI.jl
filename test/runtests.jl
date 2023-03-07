@@ -1,6 +1,6 @@
 using TestItems, TestItemRunner
 
-@run_package_tests filter=ti->!(:skipci in ti.tags) #verbose=true
+@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:koma in ti.tags) #verbose=true
 
 # include("../KomaMRICore/test/runtests.jl")
 # include("../KomaMRIPlots/test/runtests.jl")
