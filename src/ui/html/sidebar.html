@@ -3,24 +3,24 @@
   <a href="#" onclick='Blink.msg("index", 1)' class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none">
     <input type="image" class="mx-auto d-block" height="70px" src="LOGO"/>
   </a>
-  <hr>
   <ul class="navbar-nav nav-pills flex-column mb-auto">
+    <hr>
+    <h6 class="dropdown-header">Inputs</h6>
     <!-- SEQUENCE -->
     <li id="pulses" class="nav-item dropdown dropdown-dark">
       <a class="nav-link dropdown-toggle" href="#" role="button" id="seq-dropdown" data-bs-toggle="dropdown">
           <span class="icon-wave-square me-2"></span><span class="w-100">Sequence</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="seq-dropdown">
-          <li class="dropdown-interact" id="seqfilepicker"></li>
+          <li><a class="dropdown-item disabled">Name: <span id="seqname">default</span></a></li>
           <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_seq", 1)'>Sequence (MPS)</a></li>
-          <li><a class="dropdown-item disabled" href="#" onclick='Blink.msg("pulses_seqxyz", 1)'>Sequence (XYZ)</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_kspace", 1)'>$k$-space</a></li>
-          <!-- Default dropright button -->
-          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_seq", 1)'>View Sequence</a></li>
+          <!-- Sequence (MPS) -->
+          <!--<li><a class="dropdown-item disabled" href="#" onclick='Blink.msg("pulses_seqxyz", 1)'>Sequence (XYZ)</a></li>-->
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_kspace", 1)'>View $k$-space</a></li>
           <li>
             <a class="dropdown-item" href="#">
-              Moments &raquo;
+              View Moments &raquo;
             </a>
             <ul class="dropdown-menu dropdown-menu-dark dropdown-submenu">
               <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_M0", 1)'>$M_0(t)$</a></li>
@@ -28,6 +28,8 @@
               <li><a class="dropdown-item disabled" href="#">$M_2(t)$</a></li>
             </ul>
           </li>
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-interact" id="seqfilepicker"></li>
       </ul>
     </li>
     <!-- PHANTOM -->
@@ -36,17 +38,26 @@
           <span class="icon-brain me-2"></span><span class="w-100">Phantom</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="pha-dropdown">
-          <li class="dropdown-interact" id="phafilepicker"></li>
+          <li><a class="dropdown-item disabled">Name: <span id="phaname">default</span></a></li>
           <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item" href="#" onclick='Blink.msg("phantom", 1)'>View Phantom</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-interact" id="phafilepicker"></li>
       </ul>
     </li>
     <!-- SCANNER -->
-    <li id="scanner" class="nav-item">
-      <a class="nav-link disabled" href="#">
+    <li id="scanner" class="nav-item dropdown dropdown-dark">
+      <a class="nav-link dropdown-toggle" href="#" role="button" id="seq-dropdown" data-bs-toggle="dropdown">
         <span class="icon-magnet me-2"></span><span class="w-100">Scanner</span>
       </a>
+      <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="pha-dropdown">
+        <li><a class="dropdown-item disabled">Name: <span id="scaname">default</span></a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="#" onclick='Blink.msg("scanner", 1)'>View Scanner</a></li>
+    </ul>
     </li>
+    <hr>
+    <h6 class="dropdown-header">Simulation</h6>
     <!-- SIMULATE -->
     <li class="nav-item">
       <div class="btn-group btn-group-sm d-flex">
@@ -59,18 +70,21 @@
         </div>
       </div>
     </li>
-    <hr>
     <!-- SIGNAL -->
     <li id="sig" class="nav-item dropdown dropdown-dark">
       <a class="nav-link dropdown-toggle" href="#" role="button" id="sig-dropdown" data-bs-toggle="dropdown">
-          <span class="icon-oscilloscope me-2"></span><span class="w-100">Raw Data</span>
+          <span class="icon-oscilloscope me-2"></span><span class="w-100">RawData</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="sig-dropdown">
-          <li class="dropdown-interact" id="sigfilepicker"></li>
+          <li><a class="dropdown-item disabled">Name: <span id="rawname">default</span></a></li>
           <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("sig", 1)'>View Raw Data</a></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("sig", 1)'>View RawData</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-interact" id="sigfilepicker"></li>
       </ul>
     </li>
+    <hr>
+    <h6 class="dropdown-header">Reconstruction</h6>
     <!-- RECON -->
     <li class="nav-item">
       <div class="btn-group btn-group-sm d-flex">
@@ -86,12 +100,14 @@
     <!-- RECOND IMAGE -->
     <li id="recon" class="nav-item dropdown dropdown-dark">
       <a class="nav-link dropdown-toggle" href="#" role="button" id="rec-dropdown" data-bs-toggle="dropdown">
-          <span class="icon-images me-2"></span><span class="w-100">Reconstruction</span>
+          <span class="icon-images me-2"></span><span class="w-100">Image</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="rec-dropdown">
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absI", 1)'>$|\mathrm{Image}|$</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_angI", 1)'>$\angle\mathrm{Image}$</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absK", 1)'>$\log(|k$-data$|+1)$</a></li>
+          <li><a class="dropdown-item disabled">Name: <span id="imaname">default</span></a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absI", 1)'>View $|\mathrm{Image}|$</a></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_angI", 1)'>View $\angle\mathrm{Image}$</a></li>
+          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absK", 1)'>View $\log(|k$-data$|+1)$</a></li>
       </ul>
     </li>
   </ul>
