@@ -337,6 +337,8 @@ version = string(KomaMRICore.__VERSION__)
 content!(w, "#version", version, async=false)
 @info "Currently using KomaMRICore v$version"
 
+content!(w, "#phaname", phantom.name, async=false)
+
 nothing
 end
 

@@ -20,3 +20,4 @@ map!(makebuttons, columnbuttons, pha_obs)
 
 ui = dom"div"(vbox(columnbuttons, plt))
 content!(w, "div#content", ui)
+content!(w, "#phaname", phantom.name, async=false)

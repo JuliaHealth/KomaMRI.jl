@@ -8,6 +8,7 @@ import KomaMRICore: update_blink_window_progress!
 
 #GUI
 using Blink, Interact, AssetRegistry
+using MAT
 
 #MRIReco
 using MRIReco
