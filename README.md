@@ -89,6 +89,7 @@ To install just write the following in the Julia REPL:
 KomaMRI.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
 
 ```julia
+using KomaMRI
 KomaUI()
 ```
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw signal or (2) to procced with the reconstruction.
