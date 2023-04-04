@@ -326,6 +326,8 @@ handle(w, "simulate") do args...
     #Message
     sim_time = raw_ismrmrd.params["userParameters"]["sim_time_sec"]
     @js_ w (@var sim_time = $sim_time;
+    @var name = $(phantom.name);
+    document.getElementById("rawname").innerHTML=name;
     Toasty("1", """Simulation successfull<br>Time: <a id="sim_time"></a> s""" ,"""
     <ul>
         <li>
@@ -364,6 +366,8 @@ handle(w, "recon") do args...
     recon_time = aux.time
     @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
     @js_ w (@var recon_time = $recon_time;
+    @var name = $(phantom.name);
+    document.getElementById("imaname").innerHTML=name;
     Toasty("2", """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""" ,"""
     <ul>
         <li>
@@ -412,6 +416,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global seq = read_seq(f) #Pulseq read
             end
             @js_ w (@var name = $(basename(f));
+            document.getElementById("seqname").innerHTML=name;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -439,6 +444,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global phantom = read_phantom_jemris(f)
             end
             @js_ w (@var name = $(basename(f));
+            document.getElementById("phaname").innerHTML=name;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -470,6 +476,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
             end
 
             @js_ w (@var name = $(basename(f));
+            document.getElementById("rawname").innerHTML=name;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
