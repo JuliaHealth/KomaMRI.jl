@@ -8,7 +8,6 @@ css = AssetRegistry.register(dirname(path*"/ui/css/"))
 background = assets*"/spiral-bg.svg" #In Windows joinpath causes problems "/assetserver/...-assets\Logo.png"
 logo = joinpath(assets, "Logo_dark.svg")
 icon = joinpath(assets, "Icon.svg")
-loading = joinpath(assets, "Loading.gif")
 # JS
 bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
 bscss = joinpath(css,"bootstrap.min.css")
@@ -51,6 +50,8 @@ sidebar = replace(sidebar, "LOGO"=>logo)
 index = open(f->read(f, String), path*"/ui/html/index.html")
 index = replace(index, "ICON"=>icon)
 #index = replace(index, "BACKGROUND_IMAGE"=>background)
+## LOADING
+loading = open(f->read(f, String), path*"/ui/html/loading.html")
 ## CSS
 loadcss!(w, bscss)
 loadcss!(w, bsiconcss)
@@ -235,7 +236,9 @@ function export2matimage()
     matwrite("image.mat", Dict("image" => image))
 end
 
-function export2mat(;type="all")
+function export2mat(w; type="all")
+    content!(w, "div#content", loading)
+    sleep(2)
     if type=="all"
         export2matsequence()
         export2matkspace()
@@ -255,25 +258,26 @@ function export2mat(;type="all")
     elseif type=="image"
 		export2matimage()
 	end
+    content!(w, "div#content", index)
 end
 
 handle(w, "matall") do args...
-    export2mat(;type="all")
+    export2mat(w; type="all")
 end
 handle(w, "matsequence") do args...
-    export2mat(;type="sequence")
+    export2mat(w; type="sequence")
 end
 handle(w, "matphantom") do args...
-    export2mat(;type="phantom")
+    export2mat(w; type="phantom")
 end
 handle(w, "matscanner") do args...
-    export2mat(;type="scanner")
+    export2mat(w; type="scanner")
 end
 handle(w, "matraw") do args...
-    export2mat(;type="raw")
+    export2mat(w; type="raw")
 end
 handle(w, "matimage") do args...
-    export2mat(;type="image")
+    export2mat(w; type="image")
 end
 
 ## MENU FUNCTIONS
@@ -281,36 +285,58 @@ handle(w, "index") do args...
     content!(w, "div#content", index)
 end
 handle(w, "pulses_seq") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/PulsesGUI_seq.jl")
 end
 handle(w, "pulses_kspace") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/PulsesGUI_kspace.jl")
 end
 handle(w, "pulses_M0") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/PulsesGUI_M0.jl")
 end
 handle(w, "phantom") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/PhantomGUI.jl")
 end
 handle(w, "sig") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/SignalGUI.jl")
 end
 handle(w, "reconstruction_absI") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/ReconGUI_absI.jl")
 end
 handle(w, "reconstruction_angI") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/ReconGUI_angI.jl")
 end
 handle(w, "reconstruction_absK") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/ReconGUI_absK.jl")
 end
 handle(w, "sim_params") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/SimParams_view.jl")
 end
 handle(w, "rec_params") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     include(path*"/ui/RecParams_view.jl")
 end
 handle(w, "simulate") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
@@ -342,10 +368,13 @@ handle(w, "simulate") do args...
     """);
     document.getElementById("sim_time").innerHTML=sim_time;
     )
+    include(path*"/ui/SignalGUI.jl")
     # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
 handle(w, "recon") do args...
+    content!(w, "div#content", loading)
+    sleep(2)
     # Update loading icon for button
     @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML=buffericon)
     #IMPORT ISMRMRD raw data
@@ -379,6 +408,7 @@ handle(w, "recon") do args...
     );
     document.getElementById("recon_time").innerHTML=recon_time;
     )
+    include(path*"/ui/ReconGUI_absI.jl")
 end
 handle(w, "close") do args...
     global darkmode = nothing
