@@ -156,3 +156,26 @@ matwrite("test.mat", Dict("scanner" => sys_dict,
                           "raw" => raw_dict,
                           "rec_params" => reconParams_dict,
                           "image" => image))
+
+################################################
+# Simple test
+B1=1
+N=6
+T=1e-6
+seq = Sequence()
+seq += ADC(N, T)
+seq += ADC(N, T)
+for i in 1:2
+    seq += RF(B1,T)
+    seq += ADC(N, T)
+    #seq += Delay(100*T)
+end
+seq += Grad(B1,T)
+
+sys = Scanner()
+obj = Phantom{Float64}(x=[0],T1=[T],T2=[T])
+
+
+raw = simulate(obj, seq, sys)
+
+plot_signal(raw)

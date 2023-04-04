@@ -1,4 +1,4 @@
-function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}())
+function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), devTools=false)
 ## ASSETS
 path = @__DIR__
 assets = AssetRegistry.register(dirname(path*"/ui/assets/"))
@@ -7,6 +7,7 @@ css = AssetRegistry.register(dirname(path*"/ui/css/"))
 # Assets
 background = assets*"/spiral-bg.svg" #In Windows joinpath causes problems "/assetserver/...-assets\Logo.png"
 logo = joinpath(assets, "Logo_dark.svg")
+icon = joinpath(assets, "Icon.svg")
 loading = joinpath(assets, "Loading.gif")
 # JS
 bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
@@ -33,7 +34,8 @@ global w = Blink.Window(Dict(
     "node-integration" => true,
     :icon=>path*"/ui/assets/Logo_icon.png",
     "width"=>1200,
-    "height"=>800
+    "height"=>800,
+    "webPreferences" => Dict("devTools" => devTools)
     ),async=false);
 ## LOADING BAR
 buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
@@ -47,7 +49,8 @@ sidebar = open(f->read(f, String), path*"/ui/html/sidebar.html")
 sidebar = replace(sidebar, "LOGO"=>logo)
 ## CONTENT
 index = open(f->read(f, String), path*"/ui/html/index.html")
-index = replace(index, "BACKGROUND_IMAGE"=>background)
+index = replace(index, "ICON"=>icon)
+#index = replace(index, "BACKGROUND_IMAGE"=>background)
 ## CSS
 loadcss!(w, bscss)
 loadcss!(w, bsiconcss)
@@ -120,6 +123,159 @@ global seq_obs = Observable{Sequence}(seq)
 global pha_obs = Observable{Phantom}(phantom)
 global sig_obs = Observable{RawAcquisitionData}(raw_ismrmrd)
 global img_obs = Observable{Any}(image)
+
+function export2matsequence()
+	max_rf_samples=100
+    N = length(seq)
+    ΔT = KomaMRICore.durs(seq)
+    T0 = cumsum([0; ΔT],dims=1)
+    off_val = Inf #This removes the unnecessary points in the plot
+
+    #GRADS
+    t1x = vcat([KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
+    t1y = vcat([KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
+    t1z = vcat([KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
+    Gx =  vcat([KomaMRICore.get_theo_A(seq.GR[1,i];off_val) for i=1:N]...)
+    Gy =  vcat([KomaMRICore.get_theo_A(seq.GR[2,i];off_val) for i=1:N]...)
+    Gz =  vcat([KomaMRICore.get_theo_A(seq.GR[3,i];off_val) for i=1:N]...)
+    GRADS = hcat(t1x, t1y, t1z, Gx, Gy, Gz)
+    #RFS
+    t2 =  vcat([KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
+    R =   vcat([KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
+    RFS = hcat(t2, R)
+    #ADC
+    t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
+    D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
+    ADCS = hcat(t3, D)
+
+    seq_dict = Dict("GRAD" => GRADS,
+                    "RF" => RFS,
+                    "ADC" => ADCS,
+                    "DUR" => seq.DUR,
+                    "DEF" => seq.DEF)
+    matwrite("sequence.mat", Dict("sequence" => seq_dict))
+end
+
+function export2matkspace()
+    kspace, kspace_adc = get_kspace(seq; Δt=1)
+    matwrite("kspace.mat", Dict("kspace" => kspace, "kspace_adc" => kspace_adc))
+end
+
+function export2matmoment0()
+    dt = 1
+    t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+    ts = t .+ Δt
+    k, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
+    moment0 = hcat(t, k)
+    matwrite("moment0.mat", Dict("moment0" => moment0))
+end
+
+function export2matphantom()
+    phantom_dict = Dict("name" => phantom.name,
+                "columns" => ["x", "y", "z", "rho", "T1", "T2", "T2s", "delta_omega"],
+                "data" => hcat(phantom.x, phantom.y, phantom.z, phantom.ρ, phantom.T1, phantom.T2, phantom.T2s, phantom.Δw))
+    matwrite("phantom.mat", Dict("phantom" => phantom_dict))
+end
+
+function export2matscanner()
+    sys_dict = Dict("B0" => sys.B0,
+                "B1" => sys.B1,
+                "Gmax" => sys.Gmax,
+                "Smax" => sys.Smax,
+                "ADC_dt" => sys.ADC_Δt,
+                "seq_dt" => sys.seq_Δt,
+                "GR_dt" => sys.GR_Δt,
+                "RF_dt" => sys.RF_Δt,
+                "RF_ring_down_T" => sys.RF_ring_down_T,
+                "RF_dead_time_T" => sys.RF_dead_time_T,
+                "ADC_dead_time_T" => sys.ADC_dead_time_T)
+    matwrite("scanner.mat", Dict("scanner" => sys_dict))
+end
+
+function export2matraw()
+    if haskey(raw_ismrmrd.params, "userParameters")
+        matwrite("sim_params.mat", Dict("sim_params" => raw_ismrmrd.params["userParameters"]))
+
+        not_Koma = raw_ismrmrd.params["systemVendor"] != "KomaMRI.jl"
+        t = Float64[]
+        signal = ComplexF64[]
+        current_t0 = 0
+        for p in raw_ismrmrd.profiles
+        	dt = p.head.sample_time_us != 0 ? p.head.sample_time_us * 1e-3 : 1
+        	t0 = p.head.acquisition_time_stamp * 1e-3 #This parameter is used in Koma to store the time offset
+            N =  p.head.number_of_samples != 0 ? p.head.number_of_samples : 1
+            if not_Koma
+        		t0 = current_t0 * dt
+                current_t0 += N
+            end
+            if N != 1
+                append!(t, t0.+(0:dt:dt*(N-1)))
+            else
+                append!(t, t0)
+            end
+            append!(signal, p.data[:,1]) #Just one coil
+            #To generate gap
+            append!(t, t[end])
+            append!(signal, [Inf + Inf*1im])
+        end
+        raw_dict = hcat(t, signal)
+        matwrite("raw.mat", Dict("raw" => raw_dict))
+    end
+
+end
+
+function export2matimage()
+    if haskey(recParams, :reconSize)
+        recParams_dict = Dict("reco" => recParams[:reco],
+                            "Nx" => recParams[:reconSize][1],
+                            "Ny" => recParams[:reconSize][2])
+        matwrite("rec_params.mat", Dict("rec_params" => recParams_dict))
+    end
+
+    matwrite("image.mat", Dict("image" => image))
+end
+
+function export2mat(;type="all")
+    if type=="all"
+        export2matsequence()
+        export2matkspace()
+        export2matmoment0()
+        export2matphantom()
+        export2matscanner()
+    elseif type=="sequence"
+		export2matsequence()
+        export2matkspace()
+        export2matmoment0()
+	elseif type=="phantom"
+		export2matphantom()
+    elseif type=="scanner"
+		export2matscanner()
+    elseif type=="raw"
+		export2matraw()
+    elseif type=="image"
+		export2matimage()
+	end
+end
+
+handle(w, "matall") do args...
+    export2mat(;type="all")
+end
+handle(w, "matsequence") do args...
+    export2mat(;type="sequence")
+end
+handle(w, "matphantom") do args...
+    export2mat(;type="phantom")
+end
+handle(w, "matscanner") do args...
+    export2mat(;type="scanner")
+end
+handle(w, "matraw") do args...
+    export2mat(;type="raw")
+end
+handle(w, "matimage") do args...
+    export2mat(;type="image")
+end
+
 ## MENU FUNCTIONS
 handle(w, "index") do args...
     content!(w, "div#content", index)
@@ -160,7 +316,7 @@ handle(w, "simulate") do args...
     #To SequenceGUI
     global raw_ismrmrd = simulate(phantom, seq, sys; simParams, w)
     #After simulation go to RECON
-    @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
+    @js_ w document.getElementById("simulate!").innerHTML="Run"
     #EXPORT to ISMRMRD -> To SignalGUI
     global rawfile = tempdir()*"/Koma_signal.mrd"
     @info "Exporting to ISMRMRD file: $rawfile"
@@ -177,7 +333,7 @@ handle(w, "simulate") do args...
             Updating <b>Raw signal</b> plots ...
         </li>
         <li>
-            <button class="btn btn-success btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
+            <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
             Ready to <b>reconstruct</b>?
         </li>
     </ul>
@@ -206,7 +362,7 @@ handle(w, "recon") do args...
     # global img_obs[] = image
     #After Recon go to Image
     recon_time = aux.time
-    @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
+    @js_ w document.getElementById("recon!").innerHTML="Run"
     @js_ w (@var recon_time = $recon_time;
     Toasty("2", """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""" ,"""
     <ul>
@@ -339,7 +495,7 @@ content!(w, "#version", version, async=false)
 
 content!(w, "#phaname", phantom.name, async=false)
 
-nothing
+return w
 end
 
 """Updates KomaUI's simulation progress bar."""

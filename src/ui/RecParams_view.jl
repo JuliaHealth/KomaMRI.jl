@@ -1,7 +1,7 @@
 ui = plot_dict(recParams)
-title = """<h1 class="text-white">Reconstruction parameters</h1>"""
+title = """<h1 style="padding: 8px 16px;">Reconstruction parameters</h1>"""
 btn = """<button class="btn btn-dark btn-sm" onclick='Blink.msg("btnrecparams", 1)'>Export .mat</button>"""
-content!(w, "div#content", btn*title*ui)
+content!(w, "div#content", title*ui)
 
 handle(w, "btnrecparams") do args...
     recParams_dict = Dict("reco" => recParams[:reco],

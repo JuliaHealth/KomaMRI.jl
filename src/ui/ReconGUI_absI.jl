@@ -19,7 +19,8 @@ map!(t-> begin
         end
     end
     , plt, img_obs)
-ui = dom"div"(vbox(dom"div"(hbox(btn)), plt))
+#ui = dom"div"(vbox(dom"div"(hbox(btn)), plt))
+ui = dom"div"(plt)
 content!(w, "div#content", ui)
 
 function export2mat()

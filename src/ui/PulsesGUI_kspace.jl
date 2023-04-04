@@ -5,7 +5,8 @@
 
 plt = Observable{Any}(plot_kspace(seq;darkmode))
 btn = button("Export .mat")
-ui = dom"div"(vbox(dom"div"(hbox(btn)), plt))
+#ui = dom"div"(vbox(dom"div"(hbox(btn)), plt))
+ui = dom"div"(plt)
 map!(p->plot_kspace(p;darkmode), plt, seq_obs)
 content!(w, "div#content", ui)
 

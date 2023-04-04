@@ -31,20 +31,20 @@ body, button{
 /* Interact filepicker button */
 .file-cta{
   padding: 5px!important;
-  background-color: #0d6cf9!important;
-  border-color: #0d6cf9!important;
-  color: white!important;
+  background-color: transparent!important;
+  border-color: transparent!important;
+  color: #f8f9fa!important;
   margin-right: 5px!important;
   cursor: pointer !important;;
 }
-.file-cta:hover{color:#fff;background-color:#0b5ed7!important;border-color:#0a58ca!important}
-.file-cta:focus{color:#fff;background-color:#0b5ed7!important;border-color:#0a58ca!important;box-shadow:0 0 0 .25rem rgba(49,132,253,.5)!important}
+.file-cta:hover{color:#f8f9fa;background-color:#52575c!important;border-color:#52575c!important}
+.file-cta:focus{color:#f8f9fa;background-color:#52575c!important;border-color:#52575c!important;box-shadow:0 0 0 .25rem rgba(49,132,253,.5)!important}
 
 /* Interact filepicker name */
 .file-name{
   padding: 5px!important;
   border-color:#343a40!important;
-  color:  #dee2e6!important;
+  color:  #868888!important;
   background-color: #343a40!important;
   vertical-align: middle!important;
 }
@@ -130,15 +130,24 @@ div.topsep, plot-containter {
 
 /*INTERACT LABEL*/
 label.interact{
-  color: white;
+  color: #868888;
 }
 
 .interact-flex-row-right>p{
-  color: white;
+  color: #868888;
 }
 
 td, th, tr{
-  color: white!important;
+  color: #868888!important;
 }
 
+
 .bg-image{position:relative;overflow:hidden;background-repeat:no-repeat;background-size:cover;background-position:50%}
+
+::-webkit-scrollbar {
+  width: 0!important;
+}
+
+.pname {
+  margin-left: 24px;
+}
