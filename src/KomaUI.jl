@@ -316,7 +316,7 @@ handle(w, "simulate") do args...
     #To SequenceGUI
     global raw_ismrmrd = simulate(phantom, seq, sys; simParams, w)
     #After simulation go to RECON
-    @js_ w document.getElementById("simulate!").innerHTML="Run"
+    @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
     #EXPORT to ISMRMRD -> To SignalGUI
     global rawfile = tempdir()*"/Koma_signal.mrd"
     @info "Exporting to ISMRMRD file: $rawfile"
@@ -362,7 +362,7 @@ handle(w, "recon") do args...
     # global img_obs[] = image
     #After Recon go to Image
     recon_time = aux.time
-    @js_ w document.getElementById("recon!").innerHTML="Run"
+    @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
     @js_ w (@var recon_time = $recon_time;
     Toasty("2", """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""" ,"""
     <ul>
