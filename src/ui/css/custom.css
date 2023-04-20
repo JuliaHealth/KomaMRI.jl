@@ -49,6 +49,20 @@ body, button{
   vertical-align: middle!important;
 }
 
+/* Interact filepicker button */
+.webio-scope>button{
+  padding: 5px!important;
+  background-color: transparent!important;
+  border-color: transparent!important;
+  color: #f8f9fa!important;
+  margin-right: 5px!important;
+  cursor: pointer !important;
+  font-size: 0.875rem!important;
+}
+.webio-scope>button:hover{color:#f8f9fa;background-color:#52575c!important;border-color:#52575c!important}
+.webio-scope>button:focus{color:#f8f9fa;background-color:#52575c!important;border-color:#52575c!important;box-shadow:0 0 0 .25rem rgba(49,132,253,.5)!important}
+
+
 /* Interact dropdown button  style*/
 .dropdown-interact{
   display:block;

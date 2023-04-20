@@ -179,3 +179,185 @@ obj = Phantom{Float64}(x=[0],T1=[T],T2=[T])
 raw = simulate(obj, seq, sys)
 
 plot_signal(raw)
+
+
+
+
+####
+using Blink
+using Interact
+
+global matfolder = pwd()
+global mat_obs = Observable{Any}(matfolder)
+
+mergeclasses(args...) = join(args, ' ')
+
+customopendialog(; value = String[], label = "Open", icon = "far fa-folder-open", kwargs...) =
+    customdialog(js"showOpenDialog"; value = value, label = label, icon = icon, kwargs...)
+
+function customdialog(dialogtype; value, theme = gettheme(), className = "", label = "dialog", icon = nothing, options...)
+    (value isa AbstractObservable) || (value = Observable(value))
+    scp = Scope()
+    setobservable!(scp, "output", value)
+    clicks = Observable(scp, "clicks", 0)
+    callback = @js function (val)
+        $value[] = val
+    end
+    onimport(scp, js"""
+    function () {
+        const { dialog } = require('electron').remote;
+        this.dialog = dialog;
+    }
+    """)
+    onjs(clicks, js"""
+    function (val) {
+        console.log(this.dialog.$dialogtype($options, $callback));
+    }
+    """)
+    className = mergeclasses("is-medium button", className)
+    content = if icon === nothing
+        (label,)
+    else
+        iconNode = node(:span, node(:i, className = icon), className = "icon")
+        (iconNode, node(:span, label))
+    end
+    btn = node(:button, content...,
+        events=Dict("click" => @js event -> ($clicks[] = $clicks[] + 1)),
+        className = className)
+    scp.dom = btn
+    slap_design!(scp, theme)
+    Widget{:dialog}([]; output = value, scope = scp, layout = Widgets.scope)
+end
+
+loadbutton = filepicker(; properties = ["openDirectory"])
+dialogbutton = customopendialog(; properties = ["openDirectory"])
+ui = vbox( # put things one on top of the other
+    loadbutton,
+    dialogbutton
+)
+
+#map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+#            println(f)
+#            global matfolder = f[1]
+#            @js_ w (@var name = $(basename(f[1]));
+#            document.getElementById("folname").innerHTML=name)
+#            matfolder
+#        else
+#            matfolder #default sequence
+#        end
+#    , mat_obs, dialogbutton)
+
+w = Window()
+body!(w, ui);
+
+
+
+###############
+seq = Sequence()  # empty sequence
+seq += exc        # adding RF-only block
+seq += acq        # adding ADC-only block
+seq += Sequence([Grad(0, 0.1), Grad(0, 0.1), Grad(1, 0.1)])
+p1 = plot_seq(seq; slider=false, height=300)
+
+####################
+using KomaMRI, Blink, Interact
+
+darkmode = true
+img_obs = Observable{Any}(image)
+image = [0.0im; 2;; 3; 4;; 5; 6;;; 7; 8;; 9; 10;; 11; 12]
+#image = [0.0im; 0.0im;; 0.0im; 0.0im;; 0.0im; 0.0im;;; 0.0im; 0.0im;; 0.0im; 0.0im;; 0.0im; 0.0im]
+
+function plotInteract()
+    @manipulate for slice = 1:size(image,3)
+        aux = abs.(image) * prod(size(image)[1:2])
+        plot_image(aux[:,:,slice],zmin=minimum(aux[:]),zmax=maximum(aux[:]);darkmode,title="Reconstruction ($slice/$(size(image,3)))")
+    end
+end
+
+plt = Observable{Any}(plotInteract())
+
+map!(t-> plotInteract(), plt, img_obs)
+ui = dom"div"(plt)
+
+w = Window()
+body!(w, ui)
+##################
+using KomaMRI, Blink, Interact, PlotlyJS
+
+sys = Scanner()
+B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
+EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+N = 101
+FOV = 23e-2
+EPI = PulseDesigner.EPI(FOV, N, sys)
+TE = 30e-3
+d1 = TE-dur(EPI)/2-dur(EX)
+if d1 > 0 DELAY = Delay(d1) end
+seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI
+
+darkmode = true
+phantom = brain_phantom3D()
+pha_obs = Observable{Phantom}(phantom)
+
+loadbutton = filepicker()
+function aux(data)
+    brain_phantom2D()
+end
+
+map!(aux, pha_obs, loadbutton)
+
+
+columnbuttons = Observable{Any}(dom"div"())
+plt = Observable{Any}(PlotlyJS.plot());
+
+function plotInteract(ph, key)
+    @manipulate for t0_ms = range(0,dur(seq),5)*1e3
+        t0_ms = 0.0
+        plot_phantom_map(ph, key; t0=t0_ms, darkmode)
+    end
+end
+
+function makebuttons(ph)
+    prop = propertynames(ph)[5:end-3] #Removes name,x,y,z and ux,uy,uz
+    propnm = [s for s=string.(prop)]
+    buttons = button.(propnm)
+    for (btn, key) in zip(reverse(buttons), reverse(prop))
+        map!(t -> begin plotInteract(ph, key) end, plt, btn)
+    end
+    dom"div"(hbox(buttons))
+end
+
+
+
+map!(makebuttons, columnbuttons, pha_obs)
+
+w = Window()
+ui = dom"div"(vbox(loadbutton, columnbuttons, plt));
+body!(w, ui)
+####################
+
+using CSV, DataFrames, Interact, Plots
+loadbutton = filepicker()
+columnbuttons = Observable{Any}(dom"div"())
+data = Observable{Any}(DataFrame)
+plt = Observable{Any}(plot())
+function aux(data)
+    CSV.read(data, DataFrame)
+end
+
+map!(aux, data, loadbutton)
+
+function makebuttons(df)
+    buttons = button.(string.(names(df)))
+    for (btn, name) in zip(buttons, names(df))
+        map!(t -> histogram(df[!, name]), plt, btn)
+    end
+    dom"div"(hbox(buttons))
+end
+
+map!(makebuttons, columnbuttons, data)
+
+ui = dom"div"(loadbutton, columnbuttons, plt)
+
+w = Window()
+body!(w, ui)

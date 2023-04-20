@@ -110,6 +110,7 @@ global raw_ismrmrd = RawAcquisitionData(Dict(
 global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
 global kspace = [0.0im 0.; 0. 0.]
+global matfolder = pwd()
 #Reco
 default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solver=>"admm",:regularization=>"TV")
 global recParams = merge(default, rec)
@@ -124,6 +125,7 @@ global seq_obs = Observable{Sequence}(seq)
 global pha_obs = Observable{Phantom}(phantom)
 global sig_obs = Observable{RawAcquisitionData}(raw_ismrmrd)
 global img_obs = Observable{Any}(image)
+global mat_obs = Observable{Any}(matfolder)
 
 function export2matsequence()
 	max_rf_samples=100
@@ -154,12 +156,12 @@ function export2matsequence()
                     "ADC" => ADCS,
                     "DUR" => seq.DUR,
                     "DEF" => seq.DEF)
-    matwrite("sequence.mat", Dict("sequence" => seq_dict))
+    matwrite(joinpath(matfolder, "sequence.mat"), Dict("sequence" => seq_dict))
 end
 
 function export2matkspace()
     kspace, kspace_adc = get_kspace(seq; Δt=1)
-    matwrite("kspace.mat", Dict("kspace" => kspace, "kspace_adc" => kspace_adc))
+    matwrite(joinpath(matfolder, "kspace.mat"), Dict("kspace" => kspace, "kspace_adc" => kspace_adc))
 end
 
 function export2matmoment0()
@@ -168,14 +170,14 @@ function export2matmoment0()
     ts = t .+ Δt
     k, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
     moment0 = hcat(t, k)
-    matwrite("moment0.mat", Dict("moment0" => moment0))
+    matwrite(joinpath(matfolder, "moment0.mat"), Dict("moment0" => moment0))
 end
 
 function export2matphantom()
     phantom_dict = Dict("name" => phantom.name,
                 "columns" => ["x", "y", "z", "rho", "T1", "T2", "T2s", "delta_omega"],
                 "data" => hcat(phantom.x, phantom.y, phantom.z, phantom.ρ, phantom.T1, phantom.T2, phantom.T2s, phantom.Δw))
-    matwrite("phantom.mat", Dict("phantom" => phantom_dict))
+    matwrite(joinpath(matfolder, "phantom.mat"), Dict("phantom" => phantom_dict))
 end
 
 function export2matscanner()
@@ -190,12 +192,12 @@ function export2matscanner()
                 "RF_ring_down_T" => sys.RF_ring_down_T,
                 "RF_dead_time_T" => sys.RF_dead_time_T,
                 "ADC_dead_time_T" => sys.ADC_dead_time_T)
-    matwrite("scanner.mat", Dict("scanner" => sys_dict))
+    matwrite(joinpath(matfolder, "scanner.mat"), Dict("scanner" => sys_dict))
 end
 
 function export2matraw()
     if haskey(raw_ismrmrd.params, "userParameters")
-        matwrite("sim_params.mat", Dict("sim_params" => raw_ismrmrd.params["userParameters"]))
+        matwrite(joinpath(matfolder, "sim_params.mat"), Dict("sim_params" => raw_ismrmrd.params["userParameters"]))
 
         not_Koma = raw_ismrmrd.params["systemVendor"] != "KomaMRI.jl"
         t = Float64[]
@@ -220,7 +222,7 @@ function export2matraw()
             append!(signal, [Inf + Inf*1im])
         end
         raw_dict = hcat(t, signal)
-        matwrite("raw.mat", Dict("raw" => raw_dict))
+        matwrite(joinpath(matfolder, "raw.mat"), Dict("raw" => raw_dict))
     end
 
 end
@@ -230,15 +232,15 @@ function export2matimage()
         recParams_dict = Dict("reco" => recParams[:reco],
                             "Nx" => recParams[:reconSize][1],
                             "Ny" => recParams[:reconSize][2])
-        matwrite("rec_params.mat", Dict("rec_params" => recParams_dict))
+        matwrite(joinpath(matfolder, "rec_params.mat"), Dict("rec_params" => recParams_dict))
     end
 
-    matwrite("image.mat", Dict("image" => image))
+    matwrite(joinpath(matfolder, "image.mat"), Dict("image" => image))
 end
 
 function export2mat(w; type="all")
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     if type=="all"
         export2matsequence()
         export2matkspace()
@@ -286,57 +288,58 @@ handle(w, "index") do args...
 end
 handle(w, "pulses_seq") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/PulsesGUI_seq.jl")
 end
 handle(w, "pulses_kspace") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/PulsesGUI_kspace.jl")
 end
 handle(w, "pulses_M0") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/PulsesGUI_M0.jl")
 end
 handle(w, "phantom") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/PhantomGUI.jl")
 end
+
 handle(w, "sig") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/SignalGUI.jl")
 end
 handle(w, "reconstruction_absI") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/ReconGUI_absI.jl")
 end
 handle(w, "reconstruction_angI") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/ReconGUI_angI.jl")
 end
 handle(w, "reconstruction_absK") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/ReconGUI_absK.jl")
 end
 handle(w, "sim_params") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/SimParams_view.jl")
 end
 handle(w, "rec_params") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     include(path*"/ui/RecParams_view.jl")
 end
 handle(w, "simulate") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
@@ -353,7 +356,7 @@ handle(w, "simulate") do args...
     sim_time = raw_ismrmrd.params["userParameters"]["sim_time_sec"]
     @js_ w (@var sim_time = $sim_time;
     @var name = $(phantom.name);
-    document.getElementById("rawname").innerHTML=name;
+    document.getElementById("rawname").innerHTML="Koma_signal.mrd";
     Toasty("1", """Simulation successfull<br>Time: <a id="sim_time"></a> s""" ,"""
     <ul>
         <li>
@@ -374,7 +377,7 @@ handle(w, "simulate") do args...
 end
 handle(w, "recon") do args...
     content!(w, "div#content", loading)
-    sleep(2)
+    sleep(1)
     # Update loading icon for button
     @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML=buffericon)
     #IMPORT ISMRMRD raw data
@@ -430,6 +433,7 @@ handle(w, "close") do args...
     global pha_obs = nothing
     global sig_obs = nothing
     global img_obs = nothing
+    global mat_obs = nothing
     close(w)
 end
 #Update GUI's home
@@ -525,6 +529,18 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
         end
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
+#Folder observable
+load_folder = opendialog(; label = "Select Folder", properties = ["openDirectory"])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = f[1]
+            @js_ w (@var name = $(basename(f[1]));
+            document.getElementById("folname").innerHTML=name)
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder)
+w = content!(w, "#matfolder", load_folder, async=false)
 #Update Koma version
 version = string(KomaMRICore.__VERSION__)
 content!(w, "#version", version, async=false)
@@ -544,3 +560,41 @@ function update_blink_window_progress!(w::Window, block, Nblocks)
     document.getElementById("simul_progress").setAttribute("aria-valuenow", progress))
     return nothing
 end
+
+#opendialog(theme::WidgetTheme; value = String[], label = "Open", icon = "far fa-folder-open", kwargs...) =
+#    customdialog(js"showOpenDialog"; value = value, label = label, icon = icon, kwargs...)
+#
+#function dialog(dialogtype; value, className = "", label = "dialog", icon = nothing, options...)
+#    (value isa AbstractObservable) || (value = Observable(value))
+#    scp = Scope()
+#    setobservable!(scp, "output", value)
+#    clicks = Observable(scp, "clicks", 0)
+#    callback = @js function (val)
+#        $value[] = val
+#    end
+#    onimport(scp, js"""
+#    function () {
+#        const { dialog } = require('electron').remote;
+#        this.dialog = dialog;
+#    }
+#    """)
+#    onjs(clicks, js"""
+#    function (val) {
+#        console.log(this.dialog.$dialogtype($options, $callback));
+#    }
+#    """)
+#    className = mergeclasses(getclass(theme, :button), className)
+#    content = if icon === nothing
+#        (label,)
+#    else
+#        iconNode = node(:span, node(:i, className = icon), className = "icon")
+#        (iconNode, node(:span, label))
+#    end
+#    btn = node(:button, content...,
+#        events=Dict("click" => @js event -> ($clicks[] = $clicks[] + 1)),
+#        className = className)
+#    scp.dom = btn
+#    slap_design!(scp, theme)
+#    Widget{:dialog}([]; output = value, scope = scp, layout = Widgets.scope)
+#end
+#

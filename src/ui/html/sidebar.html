@@ -1,7 +1,7 @@
 <main id="main">
 <div class="navbar-dark d-flex flex-column p-3 bg-dark vh-100">
   <a href="#" onclick='Blink.msg("index", 1)' class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none">
-    <input type="image" class="mx-auto d-block" style="padding: 8px;" height="82px" src="LOGO"/>
+    <input type="image" class="mx-auto d-block" style="padding: 8px;" width="180px" src="LOGO"/>
   </a>
   <ul class="navbar-nav nav-pills flex-column mb-auto">
     <hr>
@@ -116,8 +116,11 @@
           <li><a class="dropdown-item" href="#" onclick='Blink.msg("matscanner", 1)'>Scanner</a></li>
           <li><a class="dropdown-item" href="#" onclick='Blink.msg("matraw", 1)'>RawData</a></li>
           <li><a class="dropdown-item" href="#" onclick='Blink.msg("matimage", 1)'>Image</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-interact" id="matfolder"></li>
       </ul>
     </li>
+    <p id="folname" class="pname">KomaMRI</p>
   </ul>
   <hr>
   <!-- Koma GITHUB -->
