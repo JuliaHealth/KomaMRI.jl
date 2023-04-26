@@ -91,7 +91,7 @@ julia> seq = read_seq(seq_file)
 julia> plot_seq(seq)
 ```
 """
-plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, show_sim_blocks=false, Nblocks=0, darkmode=false, max_rf_samples=100, range=[]) = begin
+plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, show_sim_blocks=false, Nblocks=0, darkmode=false, max_rf_samples=100, range=[], title="") = begin
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
@@ -129,7 +129,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 		t, _ = KomaMRICore.get_uniform_times(seq, 1e-3)
 		breaks = KomaMRICore.get_breaks_in_RF_key_points(seq,t)
 		Nt = length(t)
-		if Nblocks == 0
+		if Nblocks == 0 #TODO: This should change to a call to a function that generates the default parameters for the simulation 
 			Nblocks = 20
 		end
 		parts = KomaMRICore.kfoldperm(Nt,Nblocks;type="ordered",breaks)
@@ -143,7 +143,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 			) for i = 1:length(t_sim_parts)]
 		append!(shapes, aux)
 	end
-	l = PlotlyJS.Layout(; hovermode="closest",
+	l = PlotlyJS.Layout(;title=title, hovermode="closest",
 			xaxis_title="",
 			modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
 			legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
@@ -515,7 +515,7 @@ end
 
 
 """
-    p = plot_M1(seq; height=nothing, width=nothing, slider=true, darkmode=false)
+    p = plot_M2(seq; height=nothing, width=nothing, slider=true, darkmode=false)
 
 Plots the second order moment (M2) of a Sequence `seq`.
 
@@ -591,6 +591,94 @@ function plot_M2(seq; height=nothing, width=nothing, slider=true, darkmode=false
 	p[2] = plotter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2y")
 	p[3] = plotter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2z")
 	p[4] = plotter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"),mode="markers")
+	config = PlotConfig(
+		displaylogo=false,
+		toImageButtonOptions=attr(
+			format="svg", # one of png, svg, jpeg, webp
+		).fields,
+		modeBarButtonsToRemove=["zoom", "select", "select2d","lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
+	)
+	PlotlyJS.plot(p, l; config)
+end
+
+
+"""
+    p = plot_eddy_currents(seq; height=nothing, width=nothing, slider=true, darkmode=false)
+
+Plots the eddy currents of a Sequence `seq`.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence
+
+# Keywords
+- `height`: (`::Int64`, `=nothing`) height of the plot
+- `width`: (`::Int64`, `=nothing`) width of the plot
+- `slider`: (`::Bool`, `=true`) boolean to display a slider
+- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+
+# Returns
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the eddy currents of the sequence struct `seq`
+
+# Examples
+```julia-repl
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
+
+julia> seq = read_seq(seq_file)
+
+julia> plot_eddy_currents(seq)
+```
+"""
+function plot_eddy_currents(seq, λ; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+	#Times
+	dt = 1
+	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+	#kx,ky
+	ts = t .+ Δt
+	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
+	k, _ =  KomaMRICore.get_eddy_currents(seq; Δt=dt, λ)
+
+	#plots k(t)
+	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
+	l = PlotlyJS.Layout(;yaxis_title="EC", hovermode="closest",
+			xaxis_title="",
+			modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
+			legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
+			plot_bgcolor=plot_bgcolor,
+			paper_bgcolor=bgcolor,
+			xaxis_gridcolor=grid_color,
+			yaxis_gridcolor=grid_color,
+			xaxis_zerolinecolor=grid_color,
+			yaxis_zerolinecolor=grid_color,
+			font_color=text_color,
+			yaxis_fixedrange = false,
+			xaxis=attr(
+				ticksuffix=" ms",
+				range=range[:],
+				rangeslider=attr(visible=slider),
+				rangeselector=attr(
+					buttons=[
+						attr(count=1,
+						label="1m",
+						step=10,
+						stepmode="backward"),
+						attr(step="all")
+						]
+					),
+				),
+			margin=attr(t=0,l=0,r=0)
+			)
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
+	plotter = PlotlyJS.scatter #using scattergl speeds up the plotting but does not show the sequence in the slider below
+	p = [plotter() for j=1:4]
+	p[1] = plotter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2x")
+	p[2] = plotter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2y")
+	p[3] = plotter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2z")
+	# p[4] = plotter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"),mode="markers")
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
