@@ -76,7 +76,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
-function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, 
+function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
     for s ∈ seq #This iterates over seq, "s = seq[i,:]"
@@ -96,5 +96,7 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T},
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
         M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
     end
+    #Acquired signal
+    #sig .= -0.1im #<-- This was to test if an ADC point was inside an RF block
     return nothing
 end

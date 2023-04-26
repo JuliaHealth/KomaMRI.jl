@@ -58,14 +58,15 @@ different number threads to excecute the process.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (or the initial
     state for the next precession simulation step)
 """
-function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T},
+function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nthreads=Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads; type="ordered")
+    dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
-    Threads.@threads for p ∈ parts
-        run_spin_excitation!(@view(obj[p]), seq, @view(Xt[p]), sim_method)
+    ThreadsX.foreach(enumerate(parts)) do (i, p)
+        run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
     end
 
     return nothing
@@ -112,12 +113,12 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
         dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool
-            run_spin_excitation_parallel!(obj, seq_block, Xt, sim_method; Nthreads)
+            run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
             rfs += 1
         else
             run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
-            samples += Nadc
         end
+        samples += Nadc
         #Update progress
         next!(progress_bar, showvalues=[(:simulated_blocks, block), (:rf_blocks, rfs), (:acq_samples, samples-1)])
         update_blink_window_progress!(w, block, Nblocks)
