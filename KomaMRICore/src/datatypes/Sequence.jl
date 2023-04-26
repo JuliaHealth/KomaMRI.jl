@@ -331,9 +331,9 @@ Generates a trapezoidal waveform vector.
 			B = A
 		end
 		#Trapezoidal waveform
-		aux = (ζ1    .<= t .- delay .< ζ1+ΔT) .* B
+		aux = (ζ1    .< t .- delay .< ζ1+ΔT) .* B
 		if ζ1 != 0
-			aux .+= (0     .<= t .- delay .< ζ1) .* A[1] .* (t .- delay)./ζ1
+			aux .+= (0     .< t .- delay .<= ζ1) .* A[1] .* (t .- delay)./ζ1
 		end
 		if ζ2 !=0
 			aux .+= (ζ1+ΔT .<= t .- delay .< ζ1+ΔT+ζ2) .* A[end] .* (1 .- (t.-delay.-ζ1.-ΔT)./ζ2)
@@ -813,4 +813,93 @@ get_M2(seq::Sequence; Δt=1) = begin
 	M2_adc = [M2x_adc M2y_adc M2z_adc]
 	#Final
 	M2, M2_adc
+end
+
+"""
+	SR, SR_adc = get_slew_rate(seq::Sequence; Δt=1)
+
+Outputs the designed slew rate of the Sequence `seq`.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+- `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
+    for ADC acquisition and Gradients
+
+# Returns
+- `SR`: (`3-column ::Matrix{Float64}`) Slew rate
+- `SR_adc`: (`3-column ::Matrix{Float64}`) Slew rate sampled at ADC points
+"""
+get_slew_rate(seq::Sequence; Δt=1) = begin
+	t, Δt = get_uniform_times(seq, Δt)
+	Gx, Gy, Gz = get_grads(seq, t)
+	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	#kspace
+	Nt = length(t)
+	m2 = zeros(Nt,3)
+	#get_RF_center_breaks
+	idx_rf, rf_type = get_RF_types(seq, t)
+	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	for i = 1:3
+		m2f = 0
+		for (rf, p) in enumerate(parts)
+			m2[p,i] = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:] ./ Δt[p]
+		end
+	end
+	M2 = m2 #[m^-1]
+	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
+	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
+	#TODO: check if this interpolation is necessary
+	ts = t .+ Δt
+	t_adc =  get_adc_sampling_times(seq)
+	M2x_adc = linear_interpolation(ts,M2[:,1],extrapolation_bc=0)(t_adc)
+	M2y_adc = linear_interpolation(ts,M2[:,2],extrapolation_bc=0)(t_adc)
+	M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
+	M2_adc = [M2x_adc M2y_adc M2z_adc]
+	#Final
+	M2, M2_adc
+end
+
+"""
+    EC, EC_adc = get_eddy_currents(seq::Sequence; Δt=1)
+
+Outputs the designed eddy currents of the Sequence `seq`.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+- `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
+    for ADC acquisition and Gradients
+
+# Returns
+- `EC`: (`3-column ::Matrix{Float64}`) Eddy currents
+- `EC_adc`: (`3-column ::Matrix{Float64}`) Eddy currents sampled at ADC points
+"""
+get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
+	t, Δt = get_uniform_times(seq, Δt)
+	Gx, Gy, Gz = get_grads(seq, t)
+	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	#kspace
+	Nt = length(t)
+	m2 = zeros(Nt,3)
+	#get_RF_center_breaks
+	idx_rf, rf_type = get_RF_types(seq, t)
+	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	for i = 1:3
+		m2f = 0
+		for (rf, p) in enumerate(parts)
+			m2[p,i] = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:] ./ Δt[p]
+		end
+	end
+	ec(t, λ) = exp.(-t ./ λ) .* (t .>= 0)
+	M2 = [sum( m2[:, j] .* ec(t[i] .- t, λ) .* Δt ) for i = 1:Nt, j = 1:3] #[m^-1]
+	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
+	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
+	#TODO: check if this interpolation is necessary
+	ts = t .+ Δt
+	t_adc =  get_adc_sampling_times(seq)
+	M2x_adc = linear_interpolation(ts,M2[:,1],extrapolation_bc=0)(t_adc)
+	M2y_adc = linear_interpolation(ts,M2[:,2],extrapolation_bc=0)(t_adc)
+	M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
+	M2_adc = [M2x_adc M2y_adc M2z_adc]
+	#Final
+	M2*1_000, M2_adc*1_000
 end

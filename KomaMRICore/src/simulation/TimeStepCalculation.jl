@@ -1,3 +1,4 @@
+const EPS = eps(1.0)
 """
     array_of_ranges = kfoldperm(N, k; type="random", breaks=[])
 
@@ -178,23 +179,19 @@ This function returns non-uniform time points that are relevant in the sequence 
 """
 function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
 	t = Float64[]
+	ϵ = EPS #Smallest Float64
 	ΔT = durs(seq) #Duration of sequence block
 	T0 = cumsum([0; ΔT[:]]) #Start time of each block
 	for i = 1:length(seq)
 		s = seq[i] #Current sequence block
 		t0 = T0[i]
-		if is_ADC_on(s)
-			ts = get_adc_sampling_times(s) .+ t0
-			taux = points_from_key_times(ts; dt) # ADC sampling
-			append!(t, taux)
-		end
 		if is_RF_on(s)
 			y = s.RF[1]
 			delay, T = y.delay, y.T
 			t1 = t0 + delay
 			t2 = t1 + sum(T)
 			rf0 = t0 + get_RF_center(y) #get_RF_center includes delays
-			taux = points_from_key_times([t1,rf0,t2]; dt=dt_rf) # Arbitrary RF
+			taux = points_from_key_times([t1,t1+ϵ,rf0,t2-ϵ,t2]; dt=dt_rf) # Arbitrary RF. Points (t1+ϵ, t2-ϵ) added to fix bug with ADCs
 			append!(t, taux)
 		end
 		if is_GR_on(s)
@@ -204,13 +201,19 @@ function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
 			if is_Gz_on(s) append!(active_gradients, s.GR.z) end
 			for y = active_gradients
 				ts = get_theo_t(y) .+ t0
-				taux = points_from_key_times(ts; dt)
+				taux = points_from_key_times([ts[1]+ϵ; ts; ts[end]-ϵ]; dt) #The ±ϵ fixes #
 				append!(t, taux)
 			end
 		end
 	end
+	#Adding ADC samples, and removing repeated points
 	tadc = get_adc_sampling_times(seq)
 	t = sort(unique([t; tadc])) #Removing repeated points
+	#Fixes a problem with ADC at the start and end of the seq
+	t0 = t[1]   - ϵ
+	tf = t[end] + ϵ
+	t = [t0; t; tf]
+	#Final time points
 	Δt = t[2:end] .- t[1:end-1]
 	t = t[1:end-1]
 	t, Δt
@@ -237,6 +240,7 @@ Thus, it is possible to split the simulation into excitation and preccesion comp
 function get_breaks_in_RF_key_points(seq::Sequence, t)
 	T0 = cumsum([0; durs(seq)[:]])
 	# Identifying RF key points
+	ϵ = EPS #Smallest Float64
 	key_points = Float64[]
 	key_idxs = Int[]
 	for (i, s) = enumerate(seq)
@@ -244,8 +248,8 @@ function get_breaks_in_RF_key_points(seq::Sequence, t)
 			t0 = T0[i] + s.RF.delay[1]	#start of RF waverform
 			tf = T0[i] + s.RF.dur[1]	#end of RF waveform
 			append!(key_points, [t0; tf])
-			idx0 = argmin(abs.(t.-t0))
-			idxf = argmin(abs.(t.-tf))
+			idx0 = argmin(abs.(t.-(t0+ϵ)))
+			idxf = argmin(abs.(t.-(tf-ϵ)))
 			append!(key_idxs,   [idx0; idxf])
 		end
 	end
