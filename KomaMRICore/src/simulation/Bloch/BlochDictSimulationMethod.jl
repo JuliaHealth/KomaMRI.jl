@@ -3,6 +3,10 @@ Base.@kwdef struct BlochDict <: SimulationMethod
 end
 
 export BlochDict
+Base.show(io::IO, s::BlochDict) = begin
+	print(io, "BlochDict(save_Mz=$(s.save_Mz))")
+end
+
 
 output_Ndim(sim_method::BlochDict) = 3
 
@@ -80,8 +84,8 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
-function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, 
+function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     M::Mag{T}, sim_method::BlochDict) where {T<:Real}
-    run_spin_excitation!(p, seq, M, Bloch()) #The same as Bloch
+    run_spin_excitation!(p, seq, sig, M, Bloch()) #The same as Bloch
     return nothing
 end
