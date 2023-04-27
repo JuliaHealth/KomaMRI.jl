@@ -1,4 +1,4 @@
-function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}())
+function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), devTools=false)
 ## ASSETS
 path = @__DIR__
 assets = AssetRegistry.register(dirname(path*"/ui/assets/"))
@@ -7,7 +7,7 @@ css = AssetRegistry.register(dirname(path*"/ui/css/"))
 # Assets
 background = assets*"/spiral-bg.svg" #In Windows joinpath causes problems "/assetserver/...-assets\Logo.png"
 logo = joinpath(assets, "Logo_dark.svg")
-loading = joinpath(assets, "Loading.gif")
+icon = joinpath(assets, "Icon.svg")
 # JS
 bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
 bscss = joinpath(css,"bootstrap.min.css")
@@ -33,7 +33,8 @@ global w = Blink.Window(Dict(
     "node-integration" => true,
     :icon=>path*"/ui/assets/Logo_icon.png",
     "width"=>1200,
-    "height"=>800
+    "height"=>800,
+    "webPreferences" => Dict("devTools" => devTools)
     ),async=false);
 ## LOADING BAR
 buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
@@ -47,7 +48,10 @@ sidebar = open(f->read(f, String), path*"/ui/html/sidebar.html")
 sidebar = replace(sidebar, "LOGO"=>logo)
 ## CONTENT
 index = open(f->read(f, String), path*"/ui/html/index.html")
-index = replace(index, "BACKGROUND_IMAGE"=>background)
+index = replace(index, "ICON"=>icon)
+#index = replace(index, "BACKGROUND_IMAGE"=>background)
+## LOADING
+loading = open(f->read(f, String), path*"/ui/html/loading.html")
 ## CSS
 loadcss!(w, bscss)
 loadcss!(w, bsiconcss)
@@ -106,6 +110,7 @@ global raw_ismrmrd = RawAcquisitionData(Dict(
 global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
 global kspace = [0.0im 0.; 0. 0.]
+global matfolder = pwd()
 #Reco
 default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solver=>"admm",:regularization=>"TV")
 global recParams = merge(default, rec)
@@ -120,41 +125,215 @@ global seq_obs = Observable{Sequence}(seq)
 global pha_obs = Observable{Phantom}(phantom)
 global sig_obs = Observable{RawAcquisitionData}(raw_ismrmrd)
 global img_obs = Observable{Any}(image)
+global mat_obs = Observable{Any}(matfolder)
+
+function export2matsequence(;matfilename="seq_sequence.mat")
+	max_rf_samples=100
+    N = length(seq)
+    ΔT = KomaMRICore.durs(seq)
+    T0 = cumsum([0; ΔT],dims=1)
+    off_val = Inf #This removes the unnecessary points in the plot
+
+    #GRADS
+    t1x = vcat([KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
+    t1y = vcat([KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
+    t1z = vcat([KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
+    Gx =  vcat([KomaMRICore.get_theo_A(seq.GR[1,i];off_val) for i=1:N]...)
+    Gy =  vcat([KomaMRICore.get_theo_A(seq.GR[2,i];off_val) for i=1:N]...)
+    Gz =  vcat([KomaMRICore.get_theo_A(seq.GR[3,i];off_val) for i=1:N]...)
+    GRADS = hcat(t1x, t1y, t1z, Gx, Gy, Gz)
+    #RFS
+    t2 =  vcat([KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
+    R =   vcat([KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
+    RFS = hcat(t2, R)
+    #ADC
+    t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
+    D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
+    ADCS = hcat(t3, D)
+
+    seq_dict = Dict("GRAD" => GRADS,
+                    "RF" => RFS,
+                    "ADC" => ADCS,
+                    "DUR" => seq.DUR,
+                    "DEF" => seq.DEF)
+    matwrite(joinpath(matfolder, matfilename), Dict("sequence" => seq_dict))
+end
+
+function export2matkspace(;matfilename="seq_kspace.mat")
+    kspace, kspace_adc = get_kspace(seq; Δt=1)
+    matwrite(joinpath(matfolder, matfilename), Dict("kspace" => kspace, "kspace_adc" => kspace_adc))
+end
+
+function export2matmoment0(;matfilename="seq_moment0.mat")
+    dt = 1
+    t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+    ts = t .+ Δt
+    k, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
+    moment0 = hcat(t, k)
+    matwrite(joinpath(matfolder, matfilename), Dict("moment0" => moment0))
+end
+
+function export2matphantom(;matfilename="phantom.mat")
+    phantom_dict = Dict("name" => phantom.name,
+                "columns" => ["x", "y", "z", "rho", "T1", "T2", "T2s", "delta_omega"],
+                "data" => hcat(phantom.x, phantom.y, phantom.z, phantom.ρ, phantom.T1, phantom.T2, phantom.T2s, phantom.Δw))
+    matwrite(joinpath(matfolder, matfilename), Dict("phantom" => phantom_dict))
+end
+
+function export2matscanner(;matfilename="scanner.mat")
+    sys_dict = Dict("B0" => sys.B0,
+                "B1" => sys.B1,
+                "Gmax" => sys.Gmax,
+                "Smax" => sys.Smax,
+                "ADC_dt" => sys.ADC_Δt,
+                "seq_dt" => sys.seq_Δt,
+                "GR_dt" => sys.GR_Δt,
+                "RF_dt" => sys.RF_Δt,
+                "RF_ring_down_T" => sys.RF_ring_down_T,
+                "RF_dead_time_T" => sys.RF_dead_time_T,
+                "ADC_dead_time_T" => sys.ADC_dead_time_T)
+    matwrite(joinpath(matfolder, matfilename), Dict("scanner" => sys_dict))
+end
+
+function export2matraw(;matfilename="raw.mat");
+    if haskey(raw_ismrmrd.params, "userParameters")
+        matwrite(joinpath(matfolder, "sim_params.mat"), Dict("sim_params" => raw_ismrmrd.params["userParameters"]))
+
+        not_Koma = raw_ismrmrd.params["systemVendor"] != "KomaMRI.jl"
+        t = Float64[]
+        signal = ComplexF64[]
+        current_t0 = 0
+        for p in raw_ismrmrd.profiles
+        	dt = p.head.sample_time_us != 0 ? p.head.sample_time_us * 1e-3 : 1
+        	t0 = p.head.acquisition_time_stamp * 1e-3 #This parameter is used in Koma to store the time offset
+            N =  p.head.number_of_samples != 0 ? p.head.number_of_samples : 1
+            if not_Koma
+        		t0 = current_t0 * dt
+                current_t0 += N
+            end
+            if N != 1
+                append!(t, t0.+(0:dt:dt*(N-1)))
+            else
+                append!(t, t0)
+            end
+            append!(signal, p.data[:,1]) #Just one coil
+            #To generate gap
+            append!(t, t[end])
+            append!(signal, [Inf + Inf*1im])
+        end
+        raw_dict = hcat(t, signal)
+        matwrite(joinpath(matfolder, matfilename), Dict("raw" => raw_dict))
+    end
+
+end
+
+function export2matimage(;matfilename="image.mat")
+    if haskey(recParams, :reconSize)
+        recParams_dict = Dict("reco" => recParams[:reco],
+                            "Nx" => recParams[:reconSize][1],
+                            "Ny" => recParams[:reconSize][2])
+        matwrite(joinpath(matfolder, "rec_params.mat"), Dict("rec_params" => recParams_dict))
+    end
+
+    matwrite(joinpath(matfolder, matfilename), Dict("image" => image))
+end
+
+function export2mat(w; type="all", matfilename="data.mat")
+
+    content!(w, "div#content", loading)
+    sleep(1)
+    if type=="all"
+        export2matsequence()
+        export2matkspace()
+        export2matmoment0()
+        export2matphantom()
+        export2matscanner()
+        export2matraw()
+        export2matimage()
+        include(path*"/ui/SignalGUI.jl")
+    elseif type=="sequence"
+		export2matsequence(;matfilename=(head*"_sequence.mat"))
+        export2matkspace(;matfilename=(head*"_kspace.mat"))
+        export2matmoment0(;matfilename=(head*"_moment0.mat"))
+        include(path*"/ui/PulsesGUI_seq.jl")
+	elseif type=="phantom"
+		export2matphantom(;matfilename)
+        include(path*"/ui/PhantomGUI.jl")
+    elseif type=="scanner"
+		export2matscanner(;matfilename)
+        include(path*"/ui/ScannerParams_view.jl")
+    elseif type=="raw"
+		export2matraw(;matfilename)
+        include(path*"/ui/SignalGUI.jl")
+    elseif type=="image"
+		export2matimage(;matfilename)
+        include(path*"/ui/ReconGUI_absI.jl")
+	end
+end
+
 ## MENU FUNCTIONS
 handle(w, "index") do args...
     content!(w, "div#content", index)
 end
 handle(w, "pulses_seq") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/PulsesGUI_seq.jl")
 end
 handle(w, "pulses_kspace") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/PulsesGUI_kspace.jl")
 end
 handle(w, "pulses_M0") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/PulsesGUI_M0.jl")
 end
 handle(w, "phantom") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/PhantomGUI.jl")
 end
+
 handle(w, "sig") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/SignalGUI.jl")
 end
 handle(w, "reconstruction_absI") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/ReconGUI_absI.jl")
 end
 handle(w, "reconstruction_angI") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/ReconGUI_angI.jl")
 end
 handle(w, "reconstruction_absK") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/ReconGUI_absK.jl")
 end
+handle(w, "scanner") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
+    include(path*"/ui/ScannerParams_view.jl")
+end
 handle(w, "sim_params") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/SimParams_view.jl")
 end
 handle(w, "rec_params") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     include(path*"/ui/RecParams_view.jl")
 end
 handle(w, "simulate") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
@@ -170,6 +349,8 @@ handle(w, "simulate") do args...
     #Message
     sim_time = raw_ismrmrd.params["userParameters"]["sim_time_sec"]
     @js_ w (@var sim_time = $sim_time;
+    @var name = $(phantom.name);
+    document.getElementById("rawname").innerHTML="Koma_signal.mrd";
     Toasty("1", """Simulation successfull<br>Time: <a id="sim_time"></a> s""" ,"""
     <ul>
         <li>
@@ -177,17 +358,20 @@ handle(w, "simulate") do args...
             Updating <b>Raw signal</b> plots ...
         </li>
         <li>
-            <button class="btn btn-success btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
+            <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
             Ready to <b>reconstruct</b>?
         </li>
     </ul>
     """);
     document.getElementById("sim_time").innerHTML=sim_time;
     )
+    include(path*"/ui/SignalGUI.jl")
     # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
 handle(w, "recon") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
     # Update loading icon for button
     @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML=buffericon)
     #IMPORT ISMRMRD raw data
@@ -208,6 +392,8 @@ handle(w, "recon") do args...
     recon_time = aux.time
     @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
     @js_ w (@var recon_time = $recon_time;
+    @var name = $(phantom.name);
+    document.getElementById("imaname").innerHTML=name;
     Toasty("2", """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""" ,"""
     <ul>
         <li>
@@ -219,6 +405,7 @@ handle(w, "recon") do args...
     );
     document.getElementById("recon_time").innerHTML=recon_time;
     )
+    include(path*"/ui/ReconGUI_absI.jl")
 end
 handle(w, "close") do args...
     global darkmode = nothing
@@ -240,6 +427,7 @@ handle(w, "close") do args...
     global pha_obs = nothing
     global sig_obs = nothing
     global img_obs = nothing
+    global mat_obs = nothing
     close(w)
 end
 #Update GUI's home
@@ -256,6 +444,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global seq = read_seq(f) #Pulseq read
             end
             @js_ w (@var name = $(basename(f));
+            document.getElementById("seqname").innerHTML=name;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -283,6 +472,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global phantom = read_phantom_jemris(f)
             end
             @js_ w (@var name = $(basename(f));
+            document.getElementById("phaname").innerHTML=name;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -314,6 +504,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
             end
 
             @js_ w (@var name = $(basename(f));
+            document.getElementById("rawname").innerHTML=name;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -332,12 +523,94 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
         end
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
+#Folder observable
+
+load_folder = opendialog(; label = "Save All", properties = ["openDirectory"], icon = "far fa-save")
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = f[1]
+            @js_ w (@var name = $(basename(f[1]));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="all", matfilename="")
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder)
+w = content!(w, "#matfolder", load_folder, async=false)
+
+load_folder_seq = savedialog(; label = "Sequence", defaultPath = "seq.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="sequence", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_seq)
+w = content!(w, "#matfolderseq", load_folder_seq, async=false)
+
+load_folder_pha = savedialog(; label = "Phantom", defaultPath = "phantom.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="phantom", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_pha)
+w = content!(w, "#matfolderpha", load_folder_pha, async=false)
+
+load_folder_sca = savedialog(; label = "Scanner", defaultPath = "scanner.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="scanner", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_sca)
+w = content!(w, "#matfoldersca", load_folder_sca, async=false)
+
+load_folder_raw = savedialog(; label = "Raw", defaultPath = "raw.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="raw", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_raw)
+w = content!(w, "#matfolderraw", load_folder_raw, async=false)
+
+load_folder_ima = savedialog(; label = "Image", defaultPath = "image.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="image", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_ima)
+w = content!(w, "#matfolderima", load_folder_ima, async=false)
+
 #Update Koma version
 version = string(KomaMRICore.__VERSION__)
 content!(w, "#version", version, async=false)
 @info "Currently using KomaMRICore v$version"
 
-nothing
+content!(w, "#phaname", phantom.name, async=false)
+
+return w
 end
 
 """Updates KomaUI's simulation progress bar."""
