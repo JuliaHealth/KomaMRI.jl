@@ -261,7 +261,7 @@ function export2mat(w; type="all", matfilename="data.mat")
         include(path*"/ui/PhantomGUI.jl")
     elseif type=="scanner"
 		export2matscanner(;matfilename)
-        content!(w, "div#content", index)
+        include(path*"/ui/ScannerParams_view.jl")
     elseif type=="raw"
 		export2matraw(;matfilename)
         include(path*"/ui/SignalGUI.jl")
@@ -315,6 +315,11 @@ handle(w, "reconstruction_absK") do args...
     content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/ReconGUI_absK.jl")
+end
+handle(w, "scanner") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
+    include(path*"/ui/ScannerParams_view.jl")
 end
 handle(w, "sim_params") do args...
     content!(w, "div#content", loading)
@@ -520,7 +525,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
 w = content!(w, "#sigfilepicker", load_sig, async=false)
 #Folder observable
 
-load_folder = opendialog(; label = "All", properties = ["openDirectory"], icon = "far fa-save")
+load_folder = opendialog(; label = "Save All", properties = ["openDirectory"], icon = "far fa-save")
 map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
             global matfolder = f[1]
             @js_ w (@var name = $(basename(f[1]));
