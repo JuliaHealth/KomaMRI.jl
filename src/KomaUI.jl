@@ -252,6 +252,7 @@ function export2mat(w; type="all", matfilename="data.mat")
         export2matimage()
         include(path*"/ui/SignalGUI.jl")
     elseif type=="sequence"
+        head = splitext(matfilename)[1]
 		export2matsequence(;matfilename=(head*"_sequence.mat"))
         export2matkspace(;matfilename=(head*"_kspace.mat"))
         export2matmoment0(;matfilename=(head*"_moment0.mat"))
