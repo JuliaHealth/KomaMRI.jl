@@ -127,7 +127,7 @@ global sig_obs = Observable{RawAcquisitionData}(raw_ismrmrd)
 global img_obs = Observable{Any}(image)
 global mat_obs = Observable{Any}(matfolder)
 
-function export2matsequence()
+function export2matsequence(;matfilename="seq_sequence.mat")
 	max_rf_samples=100
     N = length(seq)
     ΔT = KomaMRICore.durs(seq)
@@ -156,31 +156,31 @@ function export2matsequence()
                     "ADC" => ADCS,
                     "DUR" => seq.DUR,
                     "DEF" => seq.DEF)
-    matwrite(joinpath(matfolder, "sequence.mat"), Dict("sequence" => seq_dict))
+    matwrite(joinpath(matfolder, matfilename), Dict("sequence" => seq_dict))
 end
 
-function export2matkspace()
+function export2matkspace(;matfilename="seq_kspace.mat")
     kspace, kspace_adc = get_kspace(seq; Δt=1)
-    matwrite(joinpath(matfolder, "kspace.mat"), Dict("kspace" => kspace, "kspace_adc" => kspace_adc))
+    matwrite(joinpath(matfolder, matfilename), Dict("kspace" => kspace, "kspace_adc" => kspace_adc))
 end
 
-function export2matmoment0()
+function export2matmoment0(;matfilename="seq_moment0.mat")
     dt = 1
     t, Δt = KomaMRICore.get_uniform_times(seq, dt)
     ts = t .+ Δt
     k, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
     moment0 = hcat(t, k)
-    matwrite(joinpath(matfolder, "moment0.mat"), Dict("moment0" => moment0))
+    matwrite(joinpath(matfolder, matfilename), Dict("moment0" => moment0))
 end
 
-function export2matphantom()
+function export2matphantom(;matfilename="phantom.mat")
     phantom_dict = Dict("name" => phantom.name,
                 "columns" => ["x", "y", "z", "rho", "T1", "T2", "T2s", "delta_omega"],
                 "data" => hcat(phantom.x, phantom.y, phantom.z, phantom.ρ, phantom.T1, phantom.T2, phantom.T2s, phantom.Δw))
-    matwrite(joinpath(matfolder, "phantom.mat"), Dict("phantom" => phantom_dict))
+    matwrite(joinpath(matfolder, matfilename), Dict("phantom" => phantom_dict))
 end
 
-function export2matscanner()
+function export2matscanner(;matfilename="scanner.mat")
     sys_dict = Dict("B0" => sys.B0,
                 "B1" => sys.B1,
                 "Gmax" => sys.Gmax,
@@ -192,10 +192,10 @@ function export2matscanner()
                 "RF_ring_down_T" => sys.RF_ring_down_T,
                 "RF_dead_time_T" => sys.RF_dead_time_T,
                 "ADC_dead_time_T" => sys.ADC_dead_time_T)
-    matwrite(joinpath(matfolder, "scanner.mat"), Dict("scanner" => sys_dict))
+    matwrite(joinpath(matfolder, matfilename), Dict("scanner" => sys_dict))
 end
 
-function export2matraw()
+function export2matraw(;matfilename="raw.mat");
     if haskey(raw_ismrmrd.params, "userParameters")
         matwrite(joinpath(matfolder, "sim_params.mat"), Dict("sim_params" => raw_ismrmrd.params["userParameters"]))
 
@@ -222,12 +222,12 @@ function export2matraw()
             append!(signal, [Inf + Inf*1im])
         end
         raw_dict = hcat(t, signal)
-        matwrite(joinpath(matfolder, "raw.mat"), Dict("raw" => raw_dict))
+        matwrite(joinpath(matfolder, matfilename), Dict("raw" => raw_dict))
     end
 
 end
 
-function export2matimage()
+function export2matimage(;matfilename="image.mat")
     if haskey(recParams, :reconSize)
         recParams_dict = Dict("reco" => recParams[:reco],
                             "Nx" => recParams[:reconSize][1],
@@ -235,10 +235,11 @@ function export2matimage()
         matwrite(joinpath(matfolder, "rec_params.mat"), Dict("rec_params" => recParams_dict))
     end
 
-    matwrite(joinpath(matfolder, "image.mat"), Dict("image" => image))
+    matwrite(joinpath(matfolder, matfilename), Dict("image" => image))
 end
 
-function export2mat(w; type="all")
+function export2mat(w; type="all", matfilename="data.mat")
+
     content!(w, "div#content", loading)
     sleep(1)
     if type=="all"
@@ -247,39 +248,27 @@ function export2mat(w; type="all")
         export2matmoment0()
         export2matphantom()
         export2matscanner()
+        export2matraw()
+        export2matimage()
+        include(path*"/ui/SignalGUI.jl")
     elseif type=="sequence"
-		export2matsequence()
-        export2matkspace()
-        export2matmoment0()
+		export2matsequence(;matfilename=(head*"_sequence.mat"))
+        export2matkspace(;matfilename=(head*"_kspace.mat"))
+        export2matmoment0(;matfilename=(head*"_moment0.mat"))
+        include(path*"/ui/PulsesGUI_seq.jl")
 	elseif type=="phantom"
-		export2matphantom()
+		export2matphantom(;matfilename)
+        include(path*"/ui/PhantomGUI.jl")
     elseif type=="scanner"
-		export2matscanner()
+		export2matscanner(;matfilename)
+        content!(w, "div#content", index)
     elseif type=="raw"
-		export2matraw()
+		export2matraw(;matfilename)
+        include(path*"/ui/SignalGUI.jl")
     elseif type=="image"
-		export2matimage()
+		export2matimage(;matfilename)
+        include(path*"/ui/ReconGUI_absI.jl")
 	end
-    content!(w, "div#content", index)
-end
-
-handle(w, "matall") do args...
-    export2mat(w; type="all")
-end
-handle(w, "matsequence") do args...
-    export2mat(w; type="sequence")
-end
-handle(w, "matphantom") do args...
-    export2mat(w; type="phantom")
-end
-handle(w, "matscanner") do args...
-    export2mat(w; type="scanner")
-end
-handle(w, "matraw") do args...
-    export2mat(w; type="raw")
-end
-handle(w, "matimage") do args...
-    export2mat(w; type="image")
 end
 
 ## MENU FUNCTIONS
@@ -530,17 +519,85 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
 #Folder observable
-load_folder = opendialog(; label = "Select Folder", properties = ["openDirectory"])
+
+load_folder = opendialog(; label = "All", properties = ["openDirectory"], icon = "far fa-save")
 map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
             global matfolder = f[1]
             @js_ w (@var name = $(basename(f[1]));
             document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="all", matfilename="")
             matfolder
         else
             matfolder #default sequence
         end
     , mat_obs, load_folder)
 w = content!(w, "#matfolder", load_folder, async=false)
+
+load_folder_seq = savedialog(; label = "Sequence", defaultPath = "seq.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="sequence", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_seq)
+w = content!(w, "#matfolderseq", load_folder_seq, async=false)
+
+load_folder_pha = savedialog(; label = "Phantom", defaultPath = "phantom.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="phantom", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_pha)
+w = content!(w, "#matfolderpha", load_folder_pha, async=false)
+
+load_folder_sca = savedialog(; label = "Scanner", defaultPath = "scanner.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="scanner", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_sca)
+w = content!(w, "#matfoldersca", load_folder_sca, async=false)
+
+load_folder_raw = savedialog(; label = "Raw", defaultPath = "raw.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="raw", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_raw)
+w = content!(w, "#matfolderraw", load_folder_raw, async=false)
+
+load_folder_ima = savedialog(; label = "Image", defaultPath = "image.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+            global matfolder = dirname(f)
+            @js_ w (@var name = $(basename(dirname(f)));
+            document.getElementById("folname").innerHTML=name)
+            export2mat(w; type="image", matfilename=basename(f))
+            matfolder
+        else
+            matfolder #default sequence
+        end
+    , mat_obs, load_folder_ima)
+w = content!(w, "#matfolderima", load_folder_ima, async=false)
+
 #Update Koma version
 version = string(KomaMRICore.__VERSION__)
 content!(w, "#version", version, async=false)
@@ -560,41 +617,3 @@ function update_blink_window_progress!(w::Window, block, Nblocks)
     document.getElementById("simul_progress").setAttribute("aria-valuenow", progress))
     return nothing
 end
-
-#opendialog(theme::WidgetTheme; value = String[], label = "Open", icon = "far fa-folder-open", kwargs...) =
-#    customdialog(js"showOpenDialog"; value = value, label = label, icon = icon, kwargs...)
-#
-#function dialog(dialogtype; value, className = "", label = "dialog", icon = nothing, options...)
-#    (value isa AbstractObservable) || (value = Observable(value))
-#    scp = Scope()
-#    setobservable!(scp, "output", value)
-#    clicks = Observable(scp, "clicks", 0)
-#    callback = @js function (val)
-#        $value[] = val
-#    end
-#    onimport(scp, js"""
-#    function () {
-#        const { dialog } = require('electron').remote;
-#        this.dialog = dialog;
-#    }
-#    """)
-#    onjs(clicks, js"""
-#    function (val) {
-#        console.log(this.dialog.$dialogtype($options, $callback));
-#    }
-#    """)
-#    className = mergeclasses(getclass(theme, :button), className)
-#    content = if icon === nothing
-#        (label,)
-#    else
-#        iconNode = node(:span, node(:i, className = icon), className = "icon")
-#        (iconNode, node(:span, label))
-#    end
-#    btn = node(:button, content...,
-#        events=Dict("click" => @js event -> ($clicks[] = $clicks[] + 1)),
-#        className = className)
-#    scp.dom = btn
-#    slap_design!(scp, theme)
-#    Widget{:dialog}([]; output = value, scope = scp, layout = Widgets.scope)
-#end
-#

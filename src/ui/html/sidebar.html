@@ -109,15 +109,13 @@
           <span class="bi-download me-2"></span><span class="w-100">Export .mat</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="exp-dropdown">
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matall", 1)'>All</a></li>
+          <li><a class="dropdown-interact" id="matfolder" href="#" >All</a></li>
           <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matsequence", 1)'>Sequence</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matphantom", 1)'>Phantom</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matscanner", 1)'>Scanner</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matraw", 1)'>RawData</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matimage", 1)'>Image</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li class="dropdown-interact" id="matfolder"></li>
+          <li><a class="dropdown-interact" id="matfolderseq" href="#">Sequence</a></li>
+          <li><a class="dropdown-interact" id="matfolderpha" href="#">Phantom</a></li>
+          <li><a class="dropdown-interact" id="matfoldersca" href="#">Scanner</a></li>
+          <li><a class="dropdown-interact" id="matfolderraw" href="#">RawData</a></li>
+          <li><a class="dropdown-interact" id="matfolderima" href="#">Image</a></li>
       </ul>
     </li>
     <p id="folname" class="pname">KomaMRI</p>
