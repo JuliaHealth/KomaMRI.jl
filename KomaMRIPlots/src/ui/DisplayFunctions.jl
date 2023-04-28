@@ -129,7 +129,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 		t, _ = KomaMRICore.get_uniform_times(seq, 1e-3)
 		breaks = KomaMRICore.get_breaks_in_RF_key_points(seq,t)
 		Nt = length(t)
-		if Nblocks == 0 #TODO: This should change to a call to a function that generates the default parameters for the simulation 
+		if Nblocks == 0 #TODO: This should change to a call to a function that generates the default parameters for the simulation
 			Nblocks = 20
 		end
 		parts = KomaMRICore.kfoldperm(Nt,Nblocks;type="ordered",breaks)
@@ -603,7 +603,7 @@ end
 
 
 """
-    p = plot_eddy_currents(seq; height=nothing, width=nothing, slider=true, darkmode=false)
+    p = plot_eddy_currents(seq; λ=80e-3, height=nothing, width=nothing, slider=true, darkmode=false)
 
 Plots the eddy currents of a Sequence `seq`.
 
@@ -611,6 +611,7 @@ Plots the eddy currents of a Sequence `seq`.
 - `seq`: (`::Sequence`) Sequence
 
 # Keywords
+- `λ`: (`::Float64`, `=80e-3`, `[s]`) eddy current decay constant time
 - `height`: (`::Int64`, `=nothing`) height of the plot
 - `width`: (`::Int64`, `=nothing`) width of the plot
 - `slider`: (`::Bool`, `=true`) boolean to display a slider
@@ -628,7 +629,7 @@ julia> seq = read_seq(seq_file)
 julia> plot_eddy_currents(seq)
 ```
 """
-function plot_eddy_currents(seq, λ; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+function plot_eddy_currents(seq; λ=80e-3, height=nothing, width=nothing, slider=true, darkmode=false, range=[])
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)

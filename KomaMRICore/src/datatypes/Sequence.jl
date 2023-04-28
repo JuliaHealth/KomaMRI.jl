@@ -860,7 +860,7 @@ get_slew_rate(seq::Sequence; Δt=1) = begin
 end
 
 """
-    EC, EC_adc = get_eddy_currents(seq::Sequence; Δt=1)
+    EC, EC_adc = get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3)
 
 Outputs the designed eddy currents of the Sequence `seq`.
 
@@ -868,6 +868,7 @@ Outputs the designed eddy currents of the Sequence `seq`.
 - `seq`: (`::Sequence`) Sequence struct
 - `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients
+- `λ`: (`::Float64`, `=80e-3`, `[s]`) eddy current decay constant time
 
 # Returns
 - `EC`: (`3-column ::Matrix{Float64}`) Eddy currents

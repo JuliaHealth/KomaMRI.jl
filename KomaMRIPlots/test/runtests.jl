@@ -60,6 +60,42 @@ using TestItems, TestItemRunner
             plot_M0(seq)        #Plotting the M0
             @test true          #If the previous line fails the test will fail
         end
+
+        @testset "plot_M1" begin
+            #Plot M1
+            plot_M1(seq)        #Plotting the M1
+            @test true          #If the previous line fails the test will fail
+        end
+
+        @testset "plot_M2" begin
+            #Plot M2
+            plot_M2(seq)        #Plotting the M2
+            @test true          #If the previous line fails the test will fail
+        end
+
+        @testset "plot_eddy_currents" begin
+            #Plot M2
+            plot_eddy_currents(seq) #Plotting the plot_eddy_currents
+            @test true              #If the previous line fails the test will fail
+        end
+    end
+
+    @testset "GUI_dict_html" begin
+        #Define a dictionary and Plot the dictionary table
+        sys = Scanner()
+        sys_dict = Dict("B0" => sys.B0,
+                "B1" => sys.B1,
+                "Gmax" => sys.Gmax,
+                "Smax" => sys.Smax,
+                "ADC_dt" => sys.ADC_Δt,
+                "seq_dt" => sys.seq_Δt,
+                "GR_dt" => sys.GR_Δt,
+                "RF_dt" => sys.RF_Δt,
+                "RF_ring_down_T" => sys.RF_ring_down_T,
+                "RF_dead_time_T" => sys.RF_dead_time_T,
+                "ADC_dead_time_T" => sys.ADC_dead_time_T)
+        plot_dict(sys_dict)
+        @test true
     end
 
     @testset "GUI_signal" begin
