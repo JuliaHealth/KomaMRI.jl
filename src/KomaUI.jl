@@ -291,6 +291,16 @@ handle(w, "pulses_M0") do args...
     sleep(1)
     include(path*"/ui/PulsesGUI_M0.jl")
 end
+handle(w, "pulses_M1") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
+    include(path*"/ui/PulsesGUI_M1.jl")
+end
+handle(w, "pulses_M2") do args...
+    content!(w, "div#content", loading)
+    sleep(1)
+    include(path*"/ui/PulsesGUI_M2.jl")
+end
 handle(w, "phantom") do args...
     content!(w, "div#content", loading)
     sleep(1)
