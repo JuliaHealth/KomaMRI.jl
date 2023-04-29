@@ -628,14 +628,19 @@ julia> seq = read_seq(seq_file)
 julia> plot_eddy_currents(seq)
 ```
 """
-function plot_eddy_currents(seq, λ; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+function plot_eddy_currents(seq, λ; α=ones(size(λ)), height=nothing, width=nothing, slider=true, darkmode=false, range=[])
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
 	#kx,ky
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
-	k, _ =  KomaMRICore.get_eddy_currents(seq; Δt=dt, λ)
+
+	k = zeros(length(t), 3)
+	for (i, l) in enumerate(λ)
+		aux, _ =  KomaMRICore.get_eddy_currents(seq; Δt=dt, λ=l)
+		k .+= α[i] .* aux
+	end
 
 	#plots k(t)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -892,11 +897,12 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 	shapes = []
 	if !not_Koma && show_sim_blocks
 		t_sim_parts = raw.params["userParameters"]["t_sim_parts"]
+		type_sim_parts = raw.params["userParameters"]["type_sim_parts"]
 		aux = [line(
 			xref="x", yref="paper",
 			x0=t_sim_parts[i]*1e3, y0=0,
 			x1=t_sim_parts[i]*1e3, y1=1,
-			line=attr(color="Red", width=1),
+			line=attr(color= type_sim_parts[i] ? "Purple" : "Blue", width=1),
 			) for i = 1:length(t_sim_parts)]
 		append!(shapes, aux)
 	end
