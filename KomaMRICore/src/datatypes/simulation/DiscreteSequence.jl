@@ -43,9 +43,19 @@ end
 Base.iterate(seq::DiscreteSequence) = (seq[1], 2)
 Base.iterate(seq::DiscreteSequence, i) = (i <= length(seq)) ? (seq[i], i+1) : nothing
 
-is_GR_on(seq::DiscreteSequence) =  sum(abs.([seq.Gx; seq.Gy; seq.Gz])) != 0
-is_RF_on(seq::DiscreteSequence) =  sum(abs.(seq.B1)) != 0
-is_ADC_on(seq::DiscreteSequence) = sum(abs.(seq.ADC)) != 0
+is_GR_on(seq::DiscreteSequence) =  sum(abs.([seq.Gx[1:end-1]; seq.Gy[1:end-1]; seq.Gz[1:end-1]])) != 0
+is_RF_on(seq::DiscreteSequence) =  sum(abs.(seq.B1[1:end-1])) != 0
+is_ADC_on(seq::DiscreteSequence) = sum(abs.(seq.ADC[1:end-1])) != 0
 is_GR_off(seq::DiscreteSequence) =  !is_GR_on(seq)
 is_RF_off(seq::DiscreteSequence) =  !is_RF_on(seq)
 is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
+
+function discretize(seq::Sequence; simParams=default_sim_params())
+    t, Δt      = get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
+    B1, Δf     = get_rfs(seq, t)
+    Gx, Gy, Gz = get_grads(seq, t)
+    tadc       = get_adc_sampling_times(seq)
+    ADCflag    = [any(tt .== tadc) for tt in t] #Displaced 1 dt, sig[i]=S(ti+dt)
+    seqd       = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
+    return seqd
+end
