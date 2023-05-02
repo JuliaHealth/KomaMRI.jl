@@ -50,14 +50,14 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     else
         ϕ = T(-2π * γ) .* trapz(seq.Δt', Bz)
     end
-    #Mxy preccesion and relaxation, and Mz relaxation
+    #Mxy precession and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time
+    Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
-    sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    sig .= transpose(sum(Mxy[:, seq.ADC]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
 end
 
@@ -97,6 +97,6 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
         M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
     end
     #Acquired signal
-    #sig .= -0.1im #<-- This was to test if an ADC point was inside an RF block
+    #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
     return nothing
 end
