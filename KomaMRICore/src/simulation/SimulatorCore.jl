@@ -5,6 +5,19 @@ abstract type SpinStateRepresentation{T<:Real} end #get all available types by u
 include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
 
+function default_sim_params(simParams=Dict{String,Any}())
+    get!(simParams, "gpu", true); if simParams["gpu"] check_use_cuda(); simParams["gpu"] &= use_cuda[] end
+    get!(simParams, "gpu_device", 0)
+    get!(simParams, "Nthreads", simParams["gpu"] ? 1 : Threads.nthreads())
+    get!(simParams, "Nblocks", 20)
+    get!(simParams, "Δt", 1e-3)
+    get!(simParams, "Δt_rf", 5e-5)
+    get!(simParams, "sim_method", Bloch())
+    get!(simParams, "precision", "f32")
+    get!(simParams, "return_type", "raw")
+    simParams
+end
+
 """
     sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
 
@@ -99,7 +112,7 @@ take advantage of CPU parallel processing.
 """
 function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
-    Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], w=nothing) where {T<:Real}
+    Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], excitation_bool=ones(Bool, size(parts)), w=nothing) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
@@ -107,12 +120,12 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
     for (block, p) = enumerate(parts)
         seq_block = @view seq[p]
         # Params
-        excitation_bool = is_RF_on(seq_block) && is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
+        # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
         Nadc = sum(seq_block.ADC)
         acq_samples = samples:samples+Nadc-1
         dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
         # Simulation wrappers
-        if excitation_bool
+        if excitation_bool[block]
             run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
             rfs += 1
         else
@@ -164,75 +177,59 @@ julia> plot_signal(raw)
 ```
 """
 function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
-    #Simulation parameter parsing, and setting defaults
-    enable_gpu  = get(simParams, "gpu", true); if enable_gpu check_use_cuda(); enable_gpu &= use_cuda[] end
-    gpu_device  = get(simParams, "gpu_device", 0)
-    Nthreads    = get(simParams, "Nthreads", enable_gpu ? 1 : Threads.nthreads())
-    Nblocks     = get(simParams, "Nblocks", 20)
-    Δt          = get(simParams, "Δt", 1e-3)
-    Δt_rf       = get(simParams, "Δt_rf", 5e-5)
-    sim_method  = get(simParams, "sim_method", Bloch())
-    precision   = get(simParams, "precision", "f32")
-    return_type = get(simParams, "return_type", "raw")
+    #Simulation parameter unpacking, and setting defaults if key is not defined
+    simParams = default_sim_params(simParams)
     # Simulation init
-    t, Δt = get_uniform_times(seq, Δt; Δt_rf)
-    t = [t; t[end]+Δt[end]]
-    breaks = get_breaks_in_RF_key_points(seq, t)
-    parts = kfoldperm(length(Δt), Nblocks; type="ordered", breaks)
-    Nblocks = length(parts)
-    t_sim_parts = [t[p[1]] for p ∈ parts]
-    # Sequence init
-    B1, Δf     = get_rfs(seq, t)
-    Gx, Gy, Gz = get_grads(seq, t)
-    tadc       = get_adc_sampling_times(seq)
-    ADCflag = [any(tt .== tadc) for tt in t[2:end]] #Displaced 1 dt, sig[i]=S(ti+dt)
-    seqd = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
+    seqd = discretize(seq; simParams) # Sampling of Sequence waveforms
+    parts, excitation_bool = get_sim_ranges(seqd; Nblocks=simParams["Nblocks"]) # Generating simulation blocks
+    t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
-    Xt, obj = initialize_spins_state(obj, sim_method)
+    Xt, obj = initialize_spins_state(obj, simParams["sim_method"])
     # Signal init
-    Ndims = sim_output_dim(obj, seq, sys, sim_method)
-    sig = zeros(ComplexF64, Ndims..., Nthreads)
+    Ndims = sim_output_dim(obj, seq, sys, simParams["sim_method"])
+    sig = zeros(ComplexF64, Ndims..., simParams["Nthreads"])
     # Objects to GPU
-    if enable_gpu #Default
-        device!(gpu_device)
-        gpu_name = name.(devices())[gpu_device+1]
+    if simParams["gpu"] #Default
+        device!(simParams["gpu_device"])
+        gpu_name = name.(devices())[simParams["gpu_device"]+1]
         obj  = obj  |> gpu #Phantom
         seqd = seqd |> gpu #DiscreteSequence
         Xt   = Xt   |> gpu #SpinStateRepresentation
         sig  = sig  |> gpu #Signal
     end
-    if precision == "f32" #Default
+    if simParams["precision"] == "f32" #Default
         obj  = obj  |> f32 #Phantom
         seqd = seqd |> f32 #DiscreteSequence
         Xt   = Xt   |> f32 #SpinStateRepresentation
         sig  = sig  |> f32 #Signal
-    elseif precision == "f64"
+    elseif simParams["precision"] == "f64"
         obj  = obj  |> f64 #Phantom
         seqd = seqd |> f64 #DiscreteSequence
         Xt   = Xt   |> f64 #SpinStateRepresentation
         sig  = sig  |> f64 #Signal
     end
     # Simulation
-    @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=__VERSION__ sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Ndims[1]
-    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
+    @info "Running simulation in the $(simParams["gpu"] ? "GPU ($gpu_name)" : "CPU with $(simParams["Nthreads"]) thread(s)")" koma_version=__VERSION__ sim_method = simParams["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points=Ndims[1]
+    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, simParams["sim_method"]; Nblocks=length(parts), Nthreads=simParams["Nthreads"], parts, excitation_bool, w)
     # Result to CPU, if already in the CPU it does nothing
     sig = sum(sig; dims=length(Ndims)+1) |> cpu
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
-    if enable_gpu GC.gc(true); CUDA.reclaim() end
+    if simParams["gpu"] GC.gc(true); CUDA.reclaim() end
     # Output
-    if return_type == "state"
+    if simParams["return_type"] == "state"
         out = Xt
-    elseif return_type == "mat"
+    elseif simParams["return_type"] == "mat"
         out = sig
-    elseif return_type == "raw"
+    elseif simParams["return_type"] == "raw"
         # To visually check the simulation blocks
         simParams_raw = copy(simParams)
-        simParams_raw["sim_method"] = string(sim_method)
-        simParams_raw["gpu"] = enable_gpu
-        simParams_raw["Nthreads"] = Nthreads
+        simParams_raw["sim_method"] = string(simParams["sim_method"])
+        simParams_raw["gpu"] = simParams["gpu"]
+        simParams_raw["Nthreads"] = simParams["Nthreads"]
         simParams_raw["t_sim_parts"] = t_sim_parts
-        simParams_raw["Nblocks"] = Nblocks
+        simParams_raw["type_sim_parts"] = excitation_bool
+        simParams_raw["Nblocks"] = length(parts)
         simParams_raw["sim_time_sec"] = timed_tuple.time
         out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, simParams=simParams_raw)
     end
