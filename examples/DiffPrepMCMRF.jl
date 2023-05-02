@@ -238,19 +238,23 @@ end
 dwell_time = 6.4e-6
 Gmax = 62e-3 # mT/m
 Smaxs = [100]#(50:10:100)#, 90, 100]   # mT/m/ms
-axis_to_calc = ["x"]#, "y", "z", "xyz", "xz", "yz"] 
+axis_to_calc = ["xyz"]#, "y", "z", "xyz", "xz", "yz"] 
 moment_to_calc = [0] #, 1, 2] #[0, 1, 2]
-pulses_to_calc = [16] #18,9,16] #, 18]# [15, 17]
+# 9 : BIR4 50ms
+pulses_to_calc = [18] #18,9,16] #, 18]# [15, 17]
 n_dwells = 10
 maxwell = true #maxwell or concomitant gradient compensation
-eddy, λs = true, [80]*1e-3#(10:10:100) * 1e-3
-gap_left_ms = 1; gap_left = floor(Int64, gap_left_ms * 1e-3 / (n_dwells * dwell_time))
+eddy = false
+gap_left_ms = 0; gap_left = floor(Int64, gap_left_ms * 1e-3 / (n_dwells * dwell_time))
 gap_right_ms = 0; gap_right = floor(Int64, gap_right_ms * 1e-3 / (n_dwells * dwell_time))
+
 λ_spectra = (0.1:0.5:150) * 1e-3
 ec_spectra = zeros(length(λ_spectra), 3)
 DIF = Sequence()
 
-for λ = λs
+# for eddy = [true], gap_left_ms = [1]
+for eddy = [false, true], gap_left_ms = [0, 1]
+gap_left = floor(Int64, gap_left_ms * 1e-3 / (n_dwells * dwell_time))
 for Smax = Smaxs
 for pulse_type = pulses_to_calc
 ##############################################################################
@@ -414,19 +418,24 @@ println("Smax_discrete = ", Smax_discrete)
 
 τ = dur(DIF) # τ/Nt = Δt => Nt = τ/Δt
 durT = round(Int64, round(τ*1e3)) #For the name
-durλ = round(Int64, round(λ*1e3)) #For the name
 # Opt matrices
 B =  get_Bmatrix(DIF)  #B-value
 SR = get_SRmatrix(DIF) #Slew-rate matrices
 MX = get_MXmatrix(DIF) #Maxwell matrices
 M =  get_Mmatrix(DIF)  #Moments
-EC = get_ECmatrix(DIF; λ) #Eddy currents
+ecc_λ = [0.04, 0.1, 0.24, 0.57, 1.4, 3.4, 8.3, 20, 49, 118, 288, 700] * 1e-3
+ecc_α = [51.2*ones(3); 10.24*ones(9)]
+EC = zeros(length(ecc_λ), N1+N2+N3)
+for (i, λ) in enumerate(ecc_λ)
+    EC[i,:] = get_ECmatrix(DIF; λ) #Eddy currents
+end 
 
 for k = moment_to_calc #Number of moments to null
-    seq_name = eddy ? "EC$(durλ)_" : ""
+    seq_name = eddy ? "EC_" : ""
     seq_name = maxwell ? "$(seq_name)MX_MC$(k)" : "$(seq_name)MC$(k)"  #Name of the sequnce
     seq_name = adia != "" ? "$(adia)_$(seq_name)" : seq_name       #Name of the sequnce
     seq_name *= "_$durT"
+    seq_name *= gap_left_ms > 0 ? "_gap" : ""
     println("#################### $seq_name ####################")
     ## Optimazation
     Mm = M[1:k+1,:]
@@ -440,12 +449,13 @@ for k = moment_to_calc #Number of moments to null
     @objective(model, Max, [g1;-g2;g3]'*B*[g1;-g2;g3]); #b-value
     @constraint(model, moments, Mm*[g1;-g2;g3] .== 0); #moments
     @constraint(model, slewrate, -Smax_discrete .<= [SR[1]*g1; -SR[2]*g2; SR[3]*g3] .<= Smax_discrete); #slew rate 99.9% of the Smax
-    @constraint(model, ends, [g1[1]; g2[1:1+gap_right]; g3[1:1+gap_right]; g1[N1-gap_left:N1]; g2[N2-gap_left:N2]; g3[N3]] .== 0)
+    @constraint(model, ends, [g1[1]; g2[1:1+gap_right]; g3[1:1+gap_right]; g1[N1-gap_left:N1]; g2[N2-gap_left:N2]; g3[N3-gap_left:N3]] .== 0)
     if maxwell
         @constraint(model, concomitant, g1'*MX[1]*g1 - g2'*MX[2]*g2 + g3'*MX[3]*g3 == 0); #concomitant
     end
     if eddy
-        @constraint(model, eddycurrents, EC*[g1; g2; g3] == 0); #eddy currents
+        println("EC $(size(EC))")
+        @constraint(model, eddycurrents, ecc_α'*(EC*[g1; g2; g3]) .== 0); #eddy currents
     end
     optimize!(model)
     gx1 = value.(g1) #retrieving solution
@@ -457,7 +467,7 @@ for k = moment_to_calc #Number of moments to null
     println( "λ0 = $(abs(round(M[1,:]'*gx/Gmax,digits=3))), λ1 = $(abs(round(M[2,:]'*gx/Gmax,digits=3))), λ2 = $(abs(round(M[3,:]'*gx/Gmax,digits=3)))" )
     println( "MX ∫g1²-∫g2²+∫g3²=$(gx1'*MX[1]*gx1 - gx2'*MX[2]*gx2 + gx3'*MX[3]*gx3)")
     println( "b-value: $(round(bmax, digits=2)) s/mm2" )
-    println( "Eddy currents: $(EC*[gx1; gx2; gx3])")
+    println( "Eddy currents: $(ecc_α'*EC*[gx1; gx2; gx3])")
     println( seq_name )
     if termination_status(model) == MOI.LOCALLY_SOLVED
         println( "Solved! 😃" )
@@ -525,10 +535,9 @@ for k = moment_to_calc #Number of moments to null
             global ec_spectra[i,2] = EC_spectra2 * [gx1; gx2; zeros(size(gx3))]
             global ec_spectra[i,3] = EC_spectra3 * [gx1; gx2; gx3]
         end
-        p5 = plot_eddy_currents(DIF, λ; slider=false, range=[0,τ])
+        p5 = plot_eddy_currents(DIF, ecc_λ; α=ecc_α, slider=false, range=[0,τ])
         p6 = plot(λ_spectra*1e3, abs.(ec_spectra))#log.(abs.(ec_spectra) .+ 1))
-        p = p6
-        # p = [p1; p2 p3;p4 p5; p6]
+        p = [p1; p2 p3;p4 p5; p6]
         display(p)
         savefig(p, path_res*"$seq_name.svg")
         # Write
