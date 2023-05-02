@@ -57,7 +57,7 @@ This package is meant to simulate general Magnetic Resonance Imaging (MRI) scena
 
  v1.0: 
  - [x] Phantom and Sequence data-types,
- - [x] Spin preccesion in gradient-only blocks (simulation optimization),
+ - [x] Spin precession in gradient-only blocks (simulation optimization),
  - [x] GPU accelaration using CUDA.jl,
  - [x] RF excitation,
  - [x] GPU accelaration of RF excitation,
