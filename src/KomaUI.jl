@@ -51,7 +51,22 @@ index = open(f->read(f, String), path*"/ui/html/index.html")
 index = replace(index, "ICON"=>icon)
 #index = replace(index, "BACKGROUND_IMAGE"=>background)
 ## LOADING
-loading = open(f->read(f, String), path*"/ui/html/loading.html")
+#loading = open(f->read(f, String), path*"/ui/html/loading.html")
+loadingHead = """
+<div class="vh-100" style="position: relative;">
+<div style="width:100%; margin: 0; position: absolute; top: 50%; -ms-transform: translateY(-50%); transform: translateY(-50%);">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="150px" height="150px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+  <circle cx="50" cy="50" fill="none" stroke="#2a7fb8" stroke-width="8" r="36" stroke-dasharray="164.93361431346415 56.97787143782138">
+    <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite" dur="1s" values="0 50 50;360 50 50" keyTimes="0;1"></animateTransform>
+  </circle>
+</svg>
+<div id="loaddes" class="pname mt-auto text-white-50 text-center">
+"""
+loadingTail = """
+</div>
+</div>
+</div>
+"""
 ## CSS
 loadcss!(w, bscss)
 loadcss!(w, bsiconcss)
@@ -197,7 +212,18 @@ end
 
 function export2matraw(;matfilename="raw.mat");
     if haskey(raw_ismrmrd.params, "userParameters")
-        matwrite(joinpath(matfolder, "sim_params.mat"), Dict("sim_params" => raw_ismrmrd.params["userParameters"]))
+        dictForMat = Dict()
+        dictUserParams = raw_ismrmrd.params["userParameters"]
+        for (key, value) in dictUserParams
+            if key == "Δt_rf"
+                dictForMat["dt_rf"] = value
+            elseif key == "Δt"
+                dictForMat["dt_rf"] = value
+            else
+                dictForMat[key] = value
+            end
+        end
+        matwrite(joinpath(matfolder, "sim_params.mat"), dictForMat)
 
         not_Koma = raw_ismrmrd.params["systemVendor"] != "KomaMRI.jl"
         t = Float64[]
@@ -240,7 +266,7 @@ end
 
 function export2mat(w; type="all", matfilename="data.mat")
 
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Exporting to .mat ..." * loadingTail)
     sleep(1)
     if type=="all"
         export2matsequence()
@@ -277,73 +303,73 @@ handle(w, "index") do args...
     content!(w, "div#content", index)
 end
 handle(w, "pulses_seq") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting Sequence ..." * loadingTail)
     sleep(1)
     include(path*"/ui/PulsesGUI_seq.jl")
 end
 handle(w, "pulses_kspace") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting Kspace ..." * loadingTail)
     sleep(1)
     include(path*"/ui/PulsesGUI_kspace.jl")
 end
 handle(w, "pulses_M0") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting Momentum0 ..." * loadingTail)
     sleep(1)
     include(path*"/ui/PulsesGUI_M0.jl")
 end
 handle(w, "pulses_M1") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting Momentum1 ..." * loadingTail)
     sleep(1)
     include(path*"/ui/PulsesGUI_M1.jl")
 end
 handle(w, "pulses_M2") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting Momentum2 ..." * loadingTail)
     sleep(1)
     include(path*"/ui/PulsesGUI_M2.jl")
 end
 handle(w, "phantom") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting Phantom ..." * loadingTail)
     sleep(1)
     include(path*"/ui/PhantomGUI.jl")
 end
 
 handle(w, "sig") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting RawSignal ..." * loadingTail)
     sleep(1)
     include(path*"/ui/SignalGUI.jl")
 end
 handle(w, "reconstruction_absI") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting Image Magnitude ..." * loadingTail)
     sleep(1)
     include(path*"/ui/ReconGUI_absI.jl")
 end
 handle(w, "reconstruction_angI") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting Image Phase ..." * loadingTail)
     sleep(1)
     include(path*"/ui/ReconGUI_angI.jl")
 end
 handle(w, "reconstruction_absK") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Plotting Image K ..." * loadingTail)
     sleep(1)
     include(path*"/ui/ReconGUI_absK.jl")
 end
 handle(w, "scanner") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Displaying Scanner Parameters ..." * loadingTail)
     sleep(1)
     include(path*"/ui/ScannerParams_view.jl")
 end
 handle(w, "sim_params") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Displaying Simulation Parameters ..." * loadingTail)
     sleep(1)
     include(path*"/ui/SimParams_view.jl")
 end
 handle(w, "rec_params") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Displaying Reconstruction Parameters ..." * loadingTail)
     sleep(1)
     include(path*"/ui/RecParams_view.jl")
 end
 handle(w, "simulate") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Running Simulation ..." * loadingTail)
     sleep(1)
     # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
@@ -381,7 +407,7 @@ handle(w, "simulate") do args...
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
 handle(w, "recon") do args...
-    content!(w, "div#content", loading)
+    content!(w, "div#content", loadingHead * "Running Reconstruction ..." * loadingTail)
     sleep(1)
     # Update loading icon for button
     @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML=buffericon)
