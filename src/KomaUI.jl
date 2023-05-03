@@ -179,13 +179,15 @@ function export2matkspace(;matfilename="seq_kspace.mat")
     matwrite(joinpath(matfolder, matfilename), Dict("kspace" => kspace, "kspace_adc" => kspace_adc))
 end
 
-function export2matmoment0(;matfilename="seq_moment0.mat")
+function export2matmomentums(;matfilename="seq_momentums.mat")
     dt = 1
     t, Δt = KomaMRICore.get_uniform_times(seq, dt)
     t = t[1:end-1]
-    k, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
-    moment0 = hcat(t, k)
-    matwrite(joinpath(matfolder, matfilename), Dict("moment0" => moment0))
+    k0, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
+    k1, _ =  KomaMRICore.get_M1(seq; Δt=dt)
+    k2, _ =  KomaMRICore.get_M2(seq; Δt=dt)
+    momentums = hcat(t, k0, k1, k2)
+    matwrite(joinpath(matfolder, matfilename), Dict("momentums" => momentums))
 end
 
 function export2matphantom(;matfilename="phantom.mat")
@@ -271,7 +273,7 @@ function export2mat(w; type="all", matfilename="data.mat")
     if type=="all"
         export2matsequence()
         export2matkspace()
-        export2matmoment0()
+        export2matmomentums()
         export2matphantom()
         export2matscanner()
         export2matraw()
@@ -281,7 +283,7 @@ function export2mat(w; type="all", matfilename="data.mat")
         head = splitext(matfilename)[1]
 		export2matsequence(;matfilename=(head*"_sequence.mat"))
         export2matkspace(;matfilename=(head*"_kspace.mat"))
-        export2matmoment0(;matfilename=(head*"_moment0.mat"))
+        export2matmomentums(;matfilename=(head*"_momentums.mat"))
         include(path*"/ui/PulsesGUI_seq.jl")
 	elseif type=="phantom"
 		export2matphantom(;matfilename)
