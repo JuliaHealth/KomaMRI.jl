@@ -75,7 +75,7 @@ using TestItems, TestItemRunner
 
         @testset "plot_eddy_currents" begin
             #Plot M2
-            plot_eddy_currents(seq) #Plotting the plot_eddy_currents
+            plot_eddy_currents(seq, 80e-3) #Plotting the plot_eddy_currents
             @test true              #If the previous line fails the test will fail
         end
     end

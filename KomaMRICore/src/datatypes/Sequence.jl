@@ -419,8 +419,8 @@ get_rfs(seq::Sequence, t) = begin
 	T = seq.RF.T
 	delay = seq.RF.delay
 	T0 = cumsum([0; durs(seq)], dims=1)
-	(sum([⏢(A[1,i], t.-T0[i],sum(T[i]),0,0,delay[i]) for i=1:length(seq)]),
-	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]),0,0,delay[i]) for i=1:length(seq)])
+	(sum([⏢(A[1,i], t.-T0[i],sum(T[i]).-2EPS,EPS,EPS,delay[i]) for i=1:length(seq)]),
+	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]).-2EPS,EPS,EPS,delay[i]) for i=1:length(seq)])
 	)
 end
 """
@@ -687,7 +687,8 @@ Outputs the designed k-space trajectory of the Sequence `seq`.
 get_kspace(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	k = zeros(Nt,3)
@@ -735,7 +736,8 @@ Outputs the designed M1 of the Sequence `seq`.
 get_M1(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	m1 = zeros(Nt,3)
@@ -784,7 +786,8 @@ Outputs the designed M2 of the Sequence `seq`.
 get_M2(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	m2 = zeros(Nt,3)
@@ -832,7 +835,8 @@ Outputs the designed slew rate of the Sequence `seq`.
 get_slew_rate(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	m2 = zeros(Nt,3)
@@ -877,7 +881,8 @@ Outputs the designed eddy currents of the Sequence `seq`.
 get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	m2 = zeros(Nt,3)

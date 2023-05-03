@@ -167,7 +167,7 @@ end
 function export2matmoment0(;matfilename="seq_moment0.mat")
     dt = 1
     t, Δt = KomaMRICore.get_uniform_times(seq, dt)
-    ts = t .+ Δt
+    t = t[1:end-1]
     k, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
     moment0 = hcat(t, k)
     matwrite(joinpath(matfolder, matfilename), Dict("moment0" => moment0))

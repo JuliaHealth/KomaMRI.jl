@@ -340,7 +340,7 @@ function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 end
 
 """
-    p = plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false)
+    p = plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
 
 Plots the zero order moment (M0) of a Sequence `seq`.
 
@@ -352,6 +352,7 @@ Plots the zero order moment (M0) of a Sequence `seq`.
 - `width`: (`::Int64`, `=nothing`) width of the plot
 - `slider`: (`::Bool`, `=true`) boolean to display a slider
 - `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M0 of the sequence struct `seq`
@@ -369,6 +370,7 @@ function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+	t = t[1:end-1]
 	#kx,ky
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
@@ -427,7 +429,7 @@ function plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false
 end
 
 """
-    p = plot_M1(seq; height=nothing, width=nothing, slider=true, darkmode=false)
+    p = plot_M1(seq; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
 
 Plots the first order moment (M1) of a Sequence `seq`.
 
@@ -439,6 +441,7 @@ Plots the first order moment (M1) of a Sequence `seq`.
 - `width`: (`::Int64`, `=nothing`) width of the plot
 - `slider`: (`::Bool`, `=true`) boolean to display a slider
 - `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M1 of the sequence struct `seq`
@@ -456,6 +459,7 @@ function plot_M1(seq; height=nothing, width=nothing, slider=true, darkmode=false
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+	t = t[1:end-1]
 	#kx,ky
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
@@ -515,7 +519,7 @@ end
 
 
 """
-    p = plot_M2(seq; height=nothing, width=nothing, slider=true, darkmode=false)
+    p = plot_M2(seq; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
 
 Plots the second order moment (M2) of a Sequence `seq`.
 
@@ -527,6 +531,7 @@ Plots the second order moment (M2) of a Sequence `seq`.
 - `width`: (`::Int64`, `=nothing`) width of the plot
 - `slider`: (`::Bool`, `=true`) boolean to display a slider
 - `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M2 of the sequence struct `seq`
@@ -544,6 +549,7 @@ function plot_M2(seq; height=nothing, width=nothing, slider=true, darkmode=false
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+	t = t[1:end-1]
 	#kx,ky
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
@@ -603,19 +609,21 @@ end
 
 
 """
-    p = plot_eddy_currents(seq; λ=80e-3, height=nothing, width=nothing, slider=true, darkmode=false)
+    p = plot_eddy_currents(seq, λ; α=ones(size(λ)), height=nothing, width=nothing, slider=true, darkmode=false, range=[])
 
 Plots the eddy currents of a Sequence `seq`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence
+- `λ`: (`::Float64`, `[s]`) eddy currents decay constant time
 
 # Keywords
-- `λ`: (`::Float64`, `=80e-3`, `[s]`) eddy current decay constant time
+- `α`: (`::Vector{Float64}`, `=ones(size(λ))`) eddy currents factors
 - `height`: (`::Int64`, `=nothing`) height of the plot
 - `width`: (`::Int64`, `=nothing`) width of the plot
 - `slider`: (`::Bool`, `=true`) boolean to display a slider
 - `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the eddy currents of the sequence struct `seq`
@@ -626,17 +634,23 @@ julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/sp
 
 julia> seq = read_seq(seq_file)
 
-julia> plot_eddy_currents(seq)
+julia> plot_eddy_currents(seq, 80e-3)
 ```
 """
-function plot_eddy_currents(seq; λ=80e-3, height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+function plot_eddy_currents(seq, λ; α=ones(size(λ)), height=nothing, width=nothing, slider=true, darkmode=false, range=[])
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+	t = t[1:end-1]
 	#kx,ky
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
-	k, _ =  KomaMRICore.get_eddy_currents(seq; Δt=dt, λ)
+
+	k = zeros(length(t), 3)
+	for (i, l) in enumerate(λ)
+		aux, _ =  KomaMRICore.get_eddy_currents(seq; Δt=dt, λ=l)
+		k .+= α[i] .* aux
+	end
 
 	#plots k(t)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -891,15 +905,30 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 	end
 	#Show simulation blocks
 	shapes = []
+	annotations = []
+	type_names = ["precession", "excitation"]
 	if !not_Koma && show_sim_blocks
 		t_sim_parts = raw.params["userParameters"]["t_sim_parts"]
-		aux = [line(
-			xref="x", yref="paper",
-			x0=t_sim_parts[i]*1e3, y0=0,
-			x1=t_sim_parts[i]*1e3, y1=1,
-			line=attr(color="Red", width=1),
-			) for i = 1:length(t_sim_parts)]
-		append!(shapes, aux)
+		type_sim_parts = raw.params["userParameters"]["type_sim_parts"]
+
+		current_type = -1
+		for i = eachindex(t_sim_parts[1:end-1])
+			aux = rect(
+				xref="x", yref="paper",
+				x0=t_sim_parts[i]*1e3, y0=0,
+				x1=t_sim_parts[i+1]*1e3, y1=1,
+				fillcolor=type_sim_parts[i] ? "Purple" : "Blue",
+				opacity=.1,
+				layer="below", line_width=2,
+				)
+			push!(shapes, aux)
+
+			if type_sim_parts[i] != current_type
+				aux = attr(xref="x", yref="paper", x=t_sim_parts[i]*1e3, y=1, showarrow=false, text=type_names[type_sim_parts[i]+1])
+				push!(annotations, aux)
+				current_type = type_sim_parts[i]
+			end
+		end
 	end
 	#PLOT
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -930,6 +959,7 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 					),
 				),
 			shapes = shapes,
+			annotations = annotations,
 			margin=attr(t=0,l=0,r=0,b=0)
 			)
     if height !== nothing
@@ -951,7 +981,7 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 		# modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
-	PlotlyJS.plot(p, l;config)
+	PlotlyJS.plot(p, l; config)
 end
 
 """
@@ -991,7 +1021,15 @@ function plot_dict(dict::Dict)
 	html *= "</tbody></table>"
 end
 
-
+function plot_seqd(seq::Sequence; simParams)
+	seqd = KomaMRICore.discretize(seq; simParams)
+	Gx = scatter(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
+	Gy = scatter(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
+	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)
+	B1 = scatter(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
+	ADC = scatter(x=seqd.t[seqd.ADC]*1e3, y=zeros(sum(seqd.ADC)), name="ADC", mode="markers", marker_symbol=:x)
+	plot([Gx,Gy,Gz,B1,ADC]), seqd
+end
 
 
 # """Plots gradient moments M0, M1 and M2 for specified axis. Does NOT consider RF pulses."""
