@@ -212,7 +212,7 @@ end
     @test KomaMRICore.cumtrapz(dt, x) ≈ [0.5 2 3.5 4]
 end
 
-@testitem "BlochSim_CPU_sigle_thread" tags=[:important, :core] begin
+@testitem "Bloch_CPU_single_thread" tags=[:important, :core] begin
     using Suppressor, HDF5
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
@@ -237,7 +237,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "BlochSim_CPU_multi_thread" tags=[:important, :core] begin
+@testitem "Bloch_CPU_multi_thread" tags=[:important, :core] begin
     using Suppressor, HDF5
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
@@ -261,7 +261,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "BlochSim_GPU" tags=[:important, :skipci, :core] begin
+@testitem "Bloch_GPU" tags=[:important, :skipci, :core] begin
     using Suppressor, HDF5
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
@@ -283,6 +283,138 @@ end
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
 
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+@testitem "Bloch_CPU_RF_accuracy_single_thread" tags=[:important, :core] begin
+    using Suppressor
+    Tadc = 1e-3
+    Trf = Tadc
+    T1 = 1000e-3
+    T2 = 20e-3
+    Δw = 2π * 100
+    B1 = 2e-6 * (Tadc / Trf)
+    N = 6
+
+    sys = Scanner()
+    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+
+    seq = Sequence()
+    seq += ADC(N, Tadc)
+    for i=1:2
+        global seq += RF(B1, Trf)
+        global seq += ADC(N, Tadc)
+    end
+
+    simParams = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false, "Nthreads"=>1)
+    raw = @suppress simulate(obj, seq, sys; simParams)
+
+    #Mathematica-simulated Bloch equation result
+    res1 = [0.153592+0.46505im,
+            0.208571+0.437734im,
+            0.259184+0.40408im,
+            0.304722+0.364744im,
+            0.344571+0.320455im,
+            0.378217+0.272008im]
+    res2 = [0.570549+0.377122im
+            0.607214+0.299628im
+            0.633611+0.218961im
+            0.649530+0.136450im
+            0.654928+0.0534296im
+            0.649928-0.0287866im]
+    norm2(x) = sqrt.(sum(abs.(x).^2))
+    error0 = norm2(raw.profiles[1].data .- 0)
+    error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
+    error2 = norm2(raw.profiles[3].data .- res2) ./ norm2(res2) * 100
+
+    @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
+end
+
+@testitem "Bloch_CPU_RF_accuracy_multi_thread" tags=[:important, :core] begin
+    using Suppressor
+    Tadc = 1e-3
+    Trf = Tadc
+    T1 = 1000e-3
+    T2 = 20e-3
+    Δw = 2π * 100
+    B1 = 2e-6 * (Tadc / Trf)
+    N = 6
+
+    sys = Scanner()
+    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+
+    seq = Sequence()
+    seq += ADC(N, Tadc)
+    for i=1:2
+        global seq += RF(B1, Trf)
+        global seq += ADC(N, Tadc)
+    end
+
+    simParams = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false)
+    raw = @suppress simulate(obj, seq, sys; simParams)
+
+    #Mathematica-simulated Bloch equation result
+    res1 = [0.153592+0.46505im,
+            0.208571+0.437734im,
+            0.259184+0.40408im,
+            0.304722+0.364744im,
+            0.344571+0.320455im,
+            0.378217+0.272008im]
+    res2 = [0.570549+0.377122im
+            0.607214+0.299628im
+            0.633611+0.218961im
+            0.649530+0.136450im
+            0.654928+0.0534296im
+            0.649928-0.0287866im]
+    norm2(x) = sqrt.(sum(abs.(x).^2))
+    error0 = norm2(raw.profiles[1].data .- 0)
+    error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
+    error2 = norm2(raw.profiles[3].data .- res2) ./ norm2(res2) * 100
+
+    @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
+end
+
+@testitem "Bloch_GPU_RF_accuracy" tags=[:important, :core] begin
+    using Suppressor
+    Tadc = 1e-3
+    Trf = Tadc
+    T1 = 1000e-3
+    T2 = 20e-3
+    Δw = 2π * 100
+    B1 = 2e-6 * (Tadc / Trf)
+    N = 6
+
+    sys = Scanner()
+    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+
+    seq = Sequence()
+    seq += ADC(N, Tadc)
+    for i=1:2
+        global seq += RF(B1, Trf)
+        global seq += ADC(N, Tadc)
+    end
+
+    simParams = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>true)
+    raw = @suppress simulate(obj, seq, sys; simParams)
+
+    #Mathematica-simulated Bloch equation result
+    res1 = [0.153592+0.46505im,
+            0.208571+0.437734im,
+            0.259184+0.40408im,
+            0.304722+0.364744im,
+            0.344571+0.320455im,
+            0.378217+0.272008im]
+    res2 = [0.570549+0.377122im
+            0.607214+0.299628im
+            0.633611+0.218961im
+            0.649530+0.136450im
+            0.654928+0.0534296im
+            0.649928-0.0287866im]
+    norm2(x) = sqrt.(sum(abs.(x).^2))
+    error0 = norm2(raw.profiles[1].data .- 0)
+    error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
+    error2 = norm2(raw.profiles[3].data .- res2) ./ norm2(res2) * 100
+
+    @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
 end
 
 @testitem "IO" tags=[:core] begin
