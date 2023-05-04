@@ -1015,7 +1015,7 @@ function plot_dict(dict::Dict)
 	html *= "</tbody></table>"
 end
 
-function plot_seqd(seq::Sequence; simParams)
+function plot_seqd(seq::Sequence; simParams=KomaMRICore.default_sim_params())
 	seqd = KomaMRICore.discretize(seq; simParams)
 	Gx = scatter(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
 	Gy = scatter(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
