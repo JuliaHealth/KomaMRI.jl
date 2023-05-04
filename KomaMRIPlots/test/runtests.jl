@@ -60,6 +60,18 @@ using TestItems, TestItemRunner
             plot_M0(seq)        #Plotting the M0
             @test true          #If the previous line fails the test will fail
         end
+
+        @testset "plot_M1" begin
+            #Plot M1
+            plot_M1(seq)        #Plotting the M0
+            @test true          #If the previous line fails the test will fail
+        end
+
+        @testset "plot_M2" begin
+            #Plot M2
+            plot_M2(seq)        #Plotting the M0
+            @test true          #If the previous line fails the test will fail
+        end
     end
 
     @testset "GUI_signal" begin
