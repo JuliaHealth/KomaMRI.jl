@@ -40,14 +40,19 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
+      - name: Install subpackages
+        shell: julia --color=yes --project=. {0}
+        run: |
+          using Pkg
+          Pkg.add(PackageSpec(path=pwd(), subdir="KomaMRICore"))
+          Pkg.add(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-      - uses: julia-actions/julia-runtest@v1
-        with:
-          project: KomaMRICore
-      - uses: julia-actions/julia-runtest@v1
-        with:
-          project: KomaMRIPlots
+      - name: Run subpackage tests
+        shell: bash
+        run: |
+          julia --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(path=\".\")); Pkg.update(); Pkg.test()"
+          julia --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(path=\".\")); Pkg.update(); Pkg.test()"
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
