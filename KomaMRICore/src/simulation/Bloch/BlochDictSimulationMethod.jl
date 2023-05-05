@@ -57,11 +57,11 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     M.xy .= Mxy[:, end]
     
     #Acquired signal
-    sig[:,:,1] .= transpose(Mxy[:, seq.ADC])
+    sig[:,:,1] .= transpose(Mxy[:, findall(seq.ADC)])
 
     if sim_method.save_Mz
         Mz = [M.z M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1))] #Calculate intermediate points
-        sig[:,:,2] .= transpose(Mz[:, seq.ADC]) #Save state to signal
+        sig[:,:,2] .= transpose(Mz[:, findall(seq.ADC)]) #Save state to signal
         M.z .= Mz[:, end]
     else
         M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point

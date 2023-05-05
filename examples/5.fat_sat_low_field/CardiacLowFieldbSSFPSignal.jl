@@ -4,11 +4,12 @@ using  KomaMRI, PlotlyJS, MAT
 # Dependence on tissue type, NMR frequency, temperature, species, excision, and age, Paul A. Bottomley,  
 # Thomas H. Foster,  Raymond E. Argersinger,  Leah M. Pfeifer
 B0 = 0.55
-fat_ppm = 3.4e-6
+fat_ppm = -3.4e-6
 Niso = 200
+Δx_voxel = 2e-3
 fat_freq = γ*B0*fat_ppm
 off = Array(range(-1, 1, Niso))
-dx = Array(range(-1.5e-3/2, 1.5e-3/2, Niso))
+dx = Array(range(-Δx_voxel/2, Δx_voxel/2, Niso))
 #BASED ON T1 and T2 maps
 myocard = Phantom{Float64}(x=dx, T1=700e-3*ones(Niso), T2=60e-3*ones(Niso))
 blood =   Phantom{Float64}(x=dx, T1=1250e-3*ones(Niso), T2=300e-3*ones(Niso)) #1.5 T2 240ms
@@ -19,7 +20,7 @@ fat =     Phantom{Float64}(x=dx, T1=96e-3*ones(Niso), T2=150e-3*ones(Niso), Δw=
 # fat =     Phantom{Float64}(x=dx*0, T1=217e-3*ones(Niso), T2=95e-3*ones(Niso), Δw=2π*(fat_freq .+ 5*off))
 obj = myocard+blood+fat
 #Sequence parameters
-TR = 4.6e-3 #5.81
+TR = 4.4e-3 #5.81
 TE = TR / 2 #bSSFP condition
 Tadc = 1e-6
 RR = 1 #1 [s]
@@ -32,7 +33,7 @@ im_flip_angle = 80 #90
 number_dummy_heart_beats = 3
 #Pre-pulses
 T2prep_duration = 50e-3
-Tfatsat = 25e-3
+Tfatsat = 32e-3
 Δf_sinc = fat_freq
 additional_offset = 0
 FatSat_flip_angle = 180
@@ -40,7 +41,7 @@ FatSat_flip_angle = 180
 sys = Scanner()
 
 function FatSat(α, Δf; sample=false)
-    RF_wf = matread("./examples/5.fat_sat_low_field/SINC_1.mat")["SINC_1"]
+    RF_wf = matread("./examples/5.fat_sat_low_field/GAUSS5120.mat")["B1"]
     seq = Sequence()
     seq += RF(RF_wf, Tfatsat, Δf)
     α_ref = get_flip_angles(seq)[2]

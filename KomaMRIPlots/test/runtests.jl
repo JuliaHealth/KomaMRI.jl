@@ -63,12 +63,17 @@ using TestItems, TestItemRunner
 
         @testset "plot_M1" begin
             #Plot M1
+<<<<<<< HEAD
             plot_M1(seq)        #Plotting the M1
+=======
+            plot_M1(seq)        #Plotting the M0
+>>>>>>> koma_v074
             @test true          #If the previous line fails the test will fail
         end
 
         @testset "plot_M2" begin
             #Plot M2
+<<<<<<< HEAD
             plot_M2(seq)        #Plotting the M2
             @test true          #If the previous line fails the test will fail
         end
@@ -96,6 +101,11 @@ using TestItems, TestItemRunner
                 "ADC_dead_time_T" => sys.ADC_dead_time_T)
         plot_dict(sys_dict)
         @test true
+=======
+            plot_M2(seq)        #Plotting the M0
+            @test true          #If the previous line fails the test will fail
+        end
+>>>>>>> koma_v074
     end
 
     @testset "GUI_signal" begin

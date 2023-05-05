@@ -82,7 +82,7 @@ This package is meant to simulate general Magnetic Resonance Imaging (MRI) scena
 ## Installation
 To install just write the following in the Julia REPL:
 
-```julia
+```repl
 ] add KomaMRI
 ```
 ## First run
