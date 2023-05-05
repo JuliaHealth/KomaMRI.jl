@@ -1,7 +1,7 @@
 <main id="main">
-<div class="navbar-dark d-flex flex-column p-3 bg-dark vh-100">
+<div class="navbar-dark d-flex flex-column p-3 bg-dark vh-100" style="width: 200px">
   <a href="#" onclick='Blink.msg("index", 1)' class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none">
-    <input type="image" style="padding: 10px 10px 10px 8px;" width="130px" src="LOGO"/>
+    <input type="image"  width="120px" src="LOGO"/>
   </a>
   <ul class="navbar-nav nav-pills flex-column mb-auto">
     <hr>
@@ -106,7 +106,7 @@
     <!-- EXPORT -->
     <li id="export" class="nav-item dropdown dropdown-dark">
       <a class="nav-link dropdown-toggle" href="#" role="button" id="exp-dropdown" data-bs-toggle="dropdown">
-          <span class="bi-download me-2"></span><span class="w-100">Export .mat</span>
+          <span class="bi-download me-2"></span><span class="w-100">Export to .mat</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="exp-dropdown">
           <li><a class="dropdown-interact" id="matfolder" href="#" >All</a></li>
@@ -122,10 +122,10 @@
   </ul>
   <hr>
   <!-- Koma GITHUB -->
-  <div class="dropdown">
-    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" style="color:#2a7fb8;" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+  <div class="nav-item dropdown dropdown-dark">
+    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" style="color:#9b9d9e;" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
       <i class="bi bi-box-seam me-2"></i>
-      <strong>Koma Core v<span id="version"></span></strong>
+      <strong>Koma v<span id="version"></span></strong>
     </a>
     <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
       <li><a class="dropdown-item" id="Github" target="_blank" href="https://github.com/cncastillo/KomaMRI.jl/">

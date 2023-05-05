@@ -25,6 +25,9 @@ customjs2 = joinpath(scripts,"custom2.js")
 sidebarcss = joinpath(css,"sidebars.css")
 # Custom icons
 icons = joinpath(css,"icons.css")
+## BOOLEAN TO INDICATE FIRST TIME PRECOMPILING
+global ISFIRSTSIM = true
+global ISFIRSTREC = true
 ## WINDOW
 global w = Blink.Window(Dict(
     "title"=>"KomaUI",
@@ -52,21 +55,6 @@ index = replace(index, "ICON"=>icon)
 #index = replace(index, "BACKGROUND_IMAGE"=>background)
 ## LOADING
 #loading = open(f->read(f, String), path*"/ui/html/loading.html")
-loadingHead = """
-<div class="vh-100" style="position: relative;">
-<div style="width:100%; margin: 0; position: absolute; top: 50%; -ms-transform: translateY(-50%); transform: translateY(-50%);">
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="150px" height="150px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
-  <circle cx="50" cy="50" fill="none" stroke="#2a7fb8" stroke-width="8" r="36" stroke-dasharray="164.93361431346415 56.97787143782138">
-    <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite" dur="1s" values="0 50 50;360 50 50" keyTimes="0;1"></animateTransform>
-  </circle>
-</svg>
-<div id="loaddes" class="pname mt-auto text-white-50 text-center">
-"""
-loadingTail = """
-</div>
-</div>
-</div>
-"""
 ## CSS
 loadcss!(w, bscss)
 loadcss!(w, bsiconcss)
@@ -179,15 +167,15 @@ function export2matkspace(;matfilename="seq_kspace.mat")
     matwrite(joinpath(matfolder, matfilename), Dict("kspace" => kspace, "kspace_adc" => kspace_adc))
 end
 
-function export2matmomentums(;matfilename="seq_momentums.mat")
+function export2matmoments(;matfilename="seq_moments.mat")
     dt = 1
     t, Δt = KomaMRICore.get_uniform_times(seq, dt)
     t = t[1:end-1]
     k0, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
     k1, _ =  KomaMRICore.get_M1(seq; Δt=dt)
     k2, _ =  KomaMRICore.get_M2(seq; Δt=dt)
-    momentums = hcat(t, k0, k1, k2)
-    matwrite(joinpath(matfolder, matfilename), Dict("momentums" => momentums))
+    moments = hcat(t, k0, k1, k2)
+    matwrite(joinpath(matfolder, matfilename), Dict("moments" => moments))
 end
 
 function export2matphantom(;matfilename="phantom.mat")
@@ -267,34 +255,49 @@ function export2matimage(;matfilename="image.mat")
 end
 
 function export2mat(w; type="all", matfilename="data.mat")
-
-    content!(w, "div#content", loadingHead * "Exporting to .mat ..." * loadingTail)
-    sleep(1)
     if type=="all"
+        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting everything to .mat files ...")
+        content!(w, "div#content", loading)
+        sleep(1)
         export2matsequence()
         export2matkspace()
-        export2matmomentums()
+        export2matmoments()
         export2matphantom()
         export2matscanner()
         export2matraw()
         export2matimage()
         include(path*"/ui/SignalGUI.jl")
     elseif type=="sequence"
+        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting sequence to .mat files ...")
+        content!(w, "div#content", loading)
+        sleep(1)
         head = splitext(matfilename)[1]
 		export2matsequence(;matfilename=(head*"_sequence.mat"))
         export2matkspace(;matfilename=(head*"_kspace.mat"))
-        export2matmomentums(;matfilename=(head*"_momentums.mat"))
+        export2matmoments(;matfilename=(head*"_moments.mat"))
         include(path*"/ui/PulsesGUI_seq.jl")
 	elseif type=="phantom"
+        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting sequence to .mat file ...")
+        content!(w, "div#content", loading)
+        sleep(1)
 		export2matphantom(;matfilename)
         include(path*"/ui/PhantomGUI.jl")
     elseif type=="scanner"
+        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting scanner to .mat file ...")
+        content!(w, "div#content", loading)
+        sleep(1)
 		export2matscanner(;matfilename)
         include(path*"/ui/ScannerParams_view.jl")
     elseif type=="raw"
+        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting raw signal to .mat file ...")
+        content!(w, "div#content", loading)
+        sleep(1)
 		export2matraw(;matfilename)
         include(path*"/ui/SignalGUI.jl")
     elseif type=="image"
+        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting image to .mat file ...")
+        content!(w, "div#content", loading)
+        sleep(1)
 		export2matimage(;matfilename)
         include(path*"/ui/ReconGUI_absI.jl")
 	end
@@ -305,73 +308,92 @@ handle(w, "index") do args...
     content!(w, "div#content", index)
 end
 handle(w, "pulses_seq") do args...
-    content!(w, "div#content", loadingHead * "Plotting Sequence ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting sequence ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/PulsesGUI_seq.jl")
 end
 handle(w, "pulses_kspace") do args...
-    content!(w, "div#content", loadingHead * "Plotting Kspace ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting kspace ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/PulsesGUI_kspace.jl")
 end
 handle(w, "pulses_M0") do args...
-    content!(w, "div#content", loadingHead * "Plotting Momentum0 ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting moment 0 ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/PulsesGUI_M0.jl")
 end
 handle(w, "pulses_M1") do args...
-    content!(w, "div#content", loadingHead * "Plotting Momentum1 ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting moment 1 ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/PulsesGUI_M1.jl")
 end
 handle(w, "pulses_M2") do args...
-    content!(w, "div#content", loadingHead * "Plotting Momentum2 ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting moment 2 ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/PulsesGUI_M2.jl")
 end
 handle(w, "phantom") do args...
-    content!(w, "div#content", loadingHead * "Plotting Phantom ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting phantom ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/PhantomGUI.jl")
 end
 
 handle(w, "sig") do args...
-    content!(w, "div#content", loadingHead * "Plotting RawSignal ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting raw signal ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/SignalGUI.jl")
 end
 handle(w, "reconstruction_absI") do args...
-    content!(w, "div#content", loadingHead * "Plotting Image Magnitude ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image magnitude ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/ReconGUI_absI.jl")
 end
 handle(w, "reconstruction_angI") do args...
-    content!(w, "div#content", loadingHead * "Plotting Image Phase ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image phase ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/ReconGUI_angI.jl")
 end
 handle(w, "reconstruction_absK") do args...
-    content!(w, "div#content", loadingHead * "Plotting Image K ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image k ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/ReconGUI_absK.jl")
 end
 handle(w, "scanner") do args...
-    content!(w, "div#content", loadingHead * "Displaying Scanner Parameters ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying scanner parameters ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/ScannerParams_view.jl")
 end
 handle(w, "sim_params") do args...
-    content!(w, "div#content", loadingHead * "Displaying Simulation Parameters ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying simulation parameters ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/SimParams_view.jl")
 end
 handle(w, "rec_params") do args...
-    content!(w, "div#content", loadingHead * "Displaying Reconstruction Parameters ..." * loadingTail)
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying reconstruction parameters ...")
+    content!(w, "div#content", loading)
     sleep(1)
     include(path*"/ui/RecParams_view.jl")
 end
 handle(w, "simulate") do args...
-    content!(w, "div#content", loadingHead * "Running Simulation ..." * loadingTail)
+    strLoadingMessage = "Running simulation ..."
+    if ISFIRSTSIM
+        strLoadingMessage = "Precompiling simulation functions ..."
+        ISFIRSTSIM = false
+    end
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
+    content!(w, "div#content", loading)
     sleep(1)
     # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
@@ -404,12 +426,20 @@ handle(w, "simulate") do args...
     """);
     document.getElementById("sim_time").innerHTML=sim_time;
     )
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting raw signal ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/SignalGUI.jl")
     # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
 handle(w, "recon") do args...
-    content!(w, "div#content", loadingHead * "Running Reconstruction ..." * loadingTail)
+    strLoadingMessage = "Running reconstruction ..."
+    if ISFIRSTREC
+        strLoadingMessage = "Precompiling reconstruction functions ..."
+        ISFIRSTREC = false
+    end
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
+    content!(w, "div#content", loading)
     sleep(1)
     # Update loading icon for button
     @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML=buffericon)
@@ -444,6 +474,8 @@ handle(w, "recon") do args...
     );
     document.getElementById("recon_time").innerHTML=recon_time;
     )
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image magnitude ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/ReconGUI_absI.jl")
 end
 handle(w, "close") do args...

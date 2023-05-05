@@ -10,5 +10,5 @@ sys_dict = Dict("B0" => sys.B0,
                 "RF_dead_time_T" => sys.RF_dead_time_T,
                 "ADC_dead_time_T" => sys.ADC_dead_time_T)
 plt = plot_dict(sys_dict)
-title = """<h1 style="padding: 8px 16px;">Scanner parameters</h1>"""
+title = """<h1 style="padding: 8px 16px; color: #868888;">Scanner parameters</h1>"""
 content!(w, "div#content", title*plt)
