@@ -12,7 +12,6 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
 [compat]
 Interpolations = "0.13, 0.14"
-KomaMRICore = "0.7"
 MAT = "0.10"
 PlotlyJS = "0.18"
 Reexport = "1"
