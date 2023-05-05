@@ -85,7 +85,7 @@ function generate_seq_time_layout_config(title, width, height, range, slider, sh
 		toImageButtonOptions=attr(
 			format="svg", # one of png, svg, jpeg, webp
 		).fields,
-		modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", 
+		modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan",
 								"tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
 
@@ -173,79 +173,8 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 	#ADC
 	t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
 	D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
-<<<<<<< HEAD
-	#Shapes
-	shapes = []
-	if show_seq_blocks
-		aux = [line(
-			xref="x", yref="paper",
-			x0=T0[i]*1e3, y0=0,
-			x1=T0[i]*1e3, y1=1,
-			line=attr(color=sep_color, width=2),
-			) for i = 1:N+1]
-		append!(shapes, aux)
-	end
-	# Visually check the simulation blocks
-	if show_sim_blocks
-		#This is the preparation of the default simulate function
-		t, _ = KomaMRICore.get_uniform_times(seq, 1e-3)
-		breaks = KomaMRICore.get_breaks_in_RF_key_points(seq,t)
-		Nt = length(t)
-		if Nblocks == 0 #TODO: This should change to a call to a function that generates the default parameters for the simulation
-			Nblocks = 20
-		end
-		parts = KomaMRICore.kfoldperm(Nt,Nblocks;type="ordered",breaks)
-		t_sim_parts = [t[p[1]] for p in parts]
-		#Create lines
-		aux = [line(
-			xref="x", yref="paper",
-			x0=t_sim_parts[i]*1e3, y0=0,
-			x1=t_sim_parts[i]*1e3, y1=1,
-			line=attr(color="Red", width=1),
-			) for i = 1:length(t_sim_parts)]
-		append!(shapes, aux)
-	end
-	l = PlotlyJS.Layout(;title=title, hovermode="closest",
-			xaxis_title="",
-			modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
-			legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
-			plot_bgcolor=plot_bgcolor,
-			paper_bgcolor=bgcolor,
-			xaxis_gridcolor=grid_color,
-			yaxis_gridcolor=grid_color,
-			xaxis_zerolinecolor=grid_color,
-			yaxis_zerolinecolor=grid_color,
-			font_color=text_color,
-			yaxis_fixedrange = false,
-			xaxis=attr(
-				ticksuffix=" ms",
-				range=range[:],
-				rangeslider=attr(visible=slider),
-				rangeselector=attr(
-					buttons=[
-						attr(count=1,
-						label="1m",
-						step=10,
-						stepmode="backward"),
-						attr(step="all")
-						]
-					),
-				),
-			shapes = shapes,
-			margin=attr(t=0,l=0,r=0,b=0)
-			)
-    if height !== nothing
-        l.height = height
-    end
-    if width !== nothing
-        l.width = width
-    end
-	plotter = PlotlyJS.scatter #using scattergl speeds up the plotting but does not show the sequence in the slider below
-	p = [plotter() for j=1:(3+2O+1)]
-=======
     #Plot
 	p = [scatter() for j=1:(3+2O+1)]
->>>>>>> koma_v074
 	#GR
 	p[1] = scatter(x=t1x*1e3, y=Gx*1e3,name=idx[1],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)")
 	p[2] = scatter(x=t1y*1e3, y=Gy*1e3,name=idx[2],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)")
