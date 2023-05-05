@@ -256,9 +256,6 @@ end
 
 function export2mat(w; type="all", matfilename="data.mat")
     if type=="all"
-        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting everything to .mat files ...")
-        content!(w, "div#content", loading)
-        sleep(1)
         export2matsequence()
         export2matkspace()
         export2matmoments()
@@ -266,41 +263,48 @@ function export2mat(w; type="all", matfilename="data.mat")
         export2matscanner()
         export2matraw()
         export2matimage()
-        include(path*"/ui/SignalGUI.jl")
     elseif type=="sequence"
-        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting sequence to .mat files ...")
-        content!(w, "div#content", loading)
-        sleep(1)
         head = splitext(matfilename)[1]
 		export2matsequence(;matfilename=(head*"_sequence.mat"))
         export2matkspace(;matfilename=(head*"_kspace.mat"))
         export2matmoments(;matfilename=(head*"_moments.mat"))
-        include(path*"/ui/PulsesGUI_seq.jl")
 	elseif type=="phantom"
-        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting sequence to .mat file ...")
-        content!(w, "div#content", loading)
-        sleep(1)
 		export2matphantom(;matfilename)
-        include(path*"/ui/PhantomGUI.jl")
     elseif type=="scanner"
-        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting scanner to .mat file ...")
-        content!(w, "div#content", loading)
-        sleep(1)
 		export2matscanner(;matfilename)
-        include(path*"/ui/ScannerParams_view.jl")
     elseif type=="raw"
-        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting raw signal to .mat file ...")
-        content!(w, "div#content", loading)
-        sleep(1)
 		export2matraw(;matfilename)
-        include(path*"/ui/SignalGUI.jl")
     elseif type=="image"
-        loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Exporting image to .mat file ...")
-        content!(w, "div#content", loading)
-        sleep(1)
 		export2matimage(;matfilename)
-        include(path*"/ui/ReconGUI_absI.jl")
 	end
+
+    if type=="all"
+        @js_ w (
+            @var matfolder = $matfolder;
+            Toasty("1", "Saved .mat files" ,"
+            <ul>
+                <li>
+                    <b>Path:</b> " + matfolder + "
+                </li>
+            </ul>
+            ");
+        )
+    else
+        @js_ w (
+            @var matfolder = $matfolder;
+            @var matfilename = $matfilename;
+            Toasty("1", "Saved .mat file" ,"
+            <ul>
+                <li>
+                    <b>Name:</b> " + matfilename + "
+                </li>
+                <li>
+                    <b>Path:</b> " + matfolder + "
+                </li>
+            </ul>
+            ");
+        )
+    end
 end
 
 ## MENU FUNCTIONS
