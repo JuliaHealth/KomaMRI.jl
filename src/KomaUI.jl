@@ -461,8 +461,6 @@ handle(w, "recon") do args...
     recon_time = aux.time
     @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
     @js_ w (@var recon_time = $recon_time;
-    @var name = $(phantom.name);
-    document.getElementById("imaname").innerHTML=name;
     Toasty("2", """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""" ,"""
     <ul>
         <li>
@@ -599,8 +597,6 @@ w = content!(w, "#sigfilepicker", load_sig, async=false)
 load_folder = opendialog(; label = "Save All", properties = ["openDirectory"], icon = "far fa-save")
 map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
             global matfolder = f[1]
-            @js_ w (@var name = $(basename(f[1]));
-            document.getElementById("folname").innerHTML=name)
             export2mat(w; type="all", matfilename="")
             matfolder
         else
@@ -612,8 +608,6 @@ w = content!(w, "#matfolder", load_folder, async=false)
 load_folder_seq = savedialog(; label = "Sequence", defaultPath = "seq.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
 map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
             global matfolder = dirname(f)
-            @js_ w (@var name = $(basename(dirname(f)));
-            document.getElementById("folname").innerHTML=name)
             export2mat(w; type="sequence", matfilename=basename(f))
             matfolder
         else
@@ -625,8 +619,6 @@ w = content!(w, "#matfolderseq", load_folder_seq, async=false)
 load_folder_pha = savedialog(; label = "Phantom", defaultPath = "phantom.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
 map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
             global matfolder = dirname(f)
-            @js_ w (@var name = $(basename(dirname(f)));
-            document.getElementById("folname").innerHTML=name)
             export2mat(w; type="phantom", matfilename=basename(f))
             matfolder
         else
@@ -638,8 +630,6 @@ w = content!(w, "#matfolderpha", load_folder_pha, async=false)
 load_folder_sca = savedialog(; label = "Scanner", defaultPath = "scanner.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
 map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
             global matfolder = dirname(f)
-            @js_ w (@var name = $(basename(dirname(f)));
-            document.getElementById("folname").innerHTML=name)
             export2mat(w; type="scanner", matfilename=basename(f))
             matfolder
         else
@@ -651,8 +641,6 @@ w = content!(w, "#matfoldersca", load_folder_sca, async=false)
 load_folder_raw = savedialog(; label = "Raw", defaultPath = "raw.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
 map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
             global matfolder = dirname(f)
-            @js_ w (@var name = $(basename(dirname(f)));
-            document.getElementById("folname").innerHTML=name)
             export2mat(w; type="raw", matfilename=basename(f))
             matfolder
         else
@@ -664,8 +652,6 @@ w = content!(w, "#matfolderraw", load_folder_raw, async=false)
 load_folder_ima = savedialog(; label = "Image", defaultPath = "image.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
 map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
             global matfolder = dirname(f)
-            @js_ w (@var name = $(basename(dirname(f)));
-            document.getElementById("folname").innerHTML=name)
             export2mat(w; type="image", matfilename=basename(f))
             matfolder
         else
@@ -679,7 +665,7 @@ version = string(KomaMRICore.__VERSION__)
 content!(w, "#version", version, async=false)
 @info "Currently using KomaMRICore v$version"
 
-content!(w, "#phaname", phantom.name, async=false)
+#content!(w, "#phaname", phantom.name, async=false)
 
 return w
 end
