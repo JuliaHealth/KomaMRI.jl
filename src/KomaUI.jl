@@ -139,91 +139,77 @@ end
 handle(w, "pulses_seq") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting sequence ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/PulsesGUI_seq.jl")
 end
 handle(w, "pulses_kspace") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting kspace ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/PulsesGUI_kspace.jl")
 end
 handle(w, "pulses_M0") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting moment 0 ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/PulsesGUI_M0.jl")
 end
 handle(w, "pulses_M1") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting moment 1 ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/PulsesGUI_M1.jl")
 end
 handle(w, "pulses_M2") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting moment 2 ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/PulsesGUI_M2.jl")
 end
 handle(w, "phantom") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting phantom ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/PhantomGUI.jl")
 end
 
 handle(w, "sig") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting raw signal ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/SignalGUI.jl")
 end
 handle(w, "reconstruction_absI") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image magnitude ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/ReconGUI_absI.jl")
 end
 handle(w, "reconstruction_angI") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image phase ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/ReconGUI_angI.jl")
 end
 handle(w, "reconstruction_absK") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image k ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/ReconGUI_absK.jl")
 end
 handle(w, "scanner") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying scanner parameters ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/ScannerParams_view.jl")
 end
 handle(w, "sim_params") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying simulation parameters ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/SimParams_view.jl")
 end
 handle(w, "rec_params") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying reconstruction parameters ...")
     content!(w, "div#content", loading)
-    sleep(1)
     include(path*"/ui/RecParams_view.jl")
 end
 handle(w, "simulate") do args...
     strLoadingMessage = "Running simulation ..."
     if ISFIRSTSIM
-        strLoadingMessage = "Precompiling simulation functions ..."
+        strLoadingMessage = "Precompiling and running simulation functions ..."
         ISFIRSTSIM = false
     end
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
     content!(w, "div#content", loading)
-    sleep(1)
     # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
@@ -264,12 +250,11 @@ end
 handle(w, "recon") do args...
     strLoadingMessage = "Running reconstruction ..."
     if ISFIRSTREC
-        strLoadingMessage = "Precompiling reconstruction functions ..."
+        strLoadingMessage = "Precompiling and running reconstruction functions ..."
         ISFIRSTREC = false
     end
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
     content!(w, "div#content", loading)
-    sleep(1)
     # Update loading icon for button
     @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML=buffericon)
     #IMPORT ISMRMRD raw data
@@ -421,8 +406,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
         end
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
-#Folder observable
-
+# Folder observable
 load_folder = opendialog(; label = "Save All", properties = ["openDirectory"], icon = "far fa-save")
 map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
             global matfolder = f[1]
