@@ -44,8 +44,8 @@ jobs:
         shell: julia --color=yes --project=. {0}
         run: |
           using Pkg
-          Pkg.add(PackageSpec(path=pwd(), subdir="KomaMRICore"))
-          Pkg.add(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
+          Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRICore"))
+          Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - name: Run subpackage tests
