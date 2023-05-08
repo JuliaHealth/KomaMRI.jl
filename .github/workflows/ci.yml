@@ -25,12 +25,12 @@ jobs:
         arch:
           - x64
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v3
         env:
           cache-name: cache-artifacts
         with:
@@ -40,18 +40,20 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - name: Install subpackages
-        shell: julia --color=yes --project=. {0}
+      - name: "Submodule dev setup"
+        shell: julia --color=yes --project {0}
         run: |
           using Pkg
-          Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRICore"))
-          Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
+          Pkg.develop(PackageSpec(; path="./KomaMRICore"))
+          Pkg.develop(PackageSpec(; path="./KomaMRIPlots"))
+      - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-      - name: Run subpackage tests
-        shell: bash
-        run: |
-          julia --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(path=\".\")); Pkg.test()"
-          julia --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(path=\".\")); Pkg.test()"
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRICore
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIPlots
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
@@ -77,7 +79,7 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1'
