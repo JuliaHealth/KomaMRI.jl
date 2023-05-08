@@ -40,7 +40,7 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - name: "Submodule dev setup"
+      - name: "KomaMRI dev setup"
         shell: julia --color=yes --project {0}
         run: |
           using Pkg
@@ -48,9 +48,20 @@ jobs:
           Pkg.develop(PackageSpec(; path="./KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+      - name: "KomaMRIPlots dev setup"
+        shell: julia --color=yes --project {0}
+        run: |
+          using Pkg
+          Pkg.develop(PackageSpec(; path="./KomaMRICore"))
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIPlots
       - uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIPlots
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRICore
       - uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRICore
