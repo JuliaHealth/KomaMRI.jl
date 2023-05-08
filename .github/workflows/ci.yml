@@ -46,7 +46,6 @@ jobs:
           using Pkg
           Pkg.develop(PackageSpec(; path="./KomaMRICore"))
           Pkg.develop(PackageSpec(; path="./KomaMRIPlots"))
-      - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - name: "KomaMRIPlots dev setup"
         shell: julia --color=yes --project {0}
