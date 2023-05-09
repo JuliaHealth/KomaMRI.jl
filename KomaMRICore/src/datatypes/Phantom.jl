@@ -16,9 +16,9 @@ The Phantom struct.
 - `Dλ1`: (`::AbstractVector{T}`) vector of Dλ1 (diffusion) parameters of the spins
 - `Dλ2`: (`::AbstractVector{T}`) vector of Dλ2 (diffusion) parameters of the spins
 - `Dθ`: (`::AbstractVector{T}`) vector of Dθ (diffusion) parameters of the spins
-- `ux`: (`::Function`) displacement field in the x-axis
-- `uy`: (`::Function`) displacement field in the y-axis
-- `uz`: (`::Function`) displacement field in the z-axis
+- `ux`: (`::Vector{Function}`) displacement field in the x-axis
+- `uy`: (`::Vector{Function}`) displacement field in the y-axis
+- `uz`: (`::Vector{Function}`) displacement field in the z-axis
 
 # Returns
 - `phantom`: (`::Phantom`) Phantom struct
@@ -41,10 +41,11 @@ The Phantom struct.
 	Dθ::AbstractVector{T} =  zeros(size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 	#Motion
-	ux::Function = (x,y,z,t)->0
-	uy::Function = (x,y,z,t)->0
-	uz::Function = (x,y,z,t)->0
+	ux::Function = [(t)->0 for i in 1:length(x)]
+	uy::Function = [(t)->0 for i in 1:length(x)]
+	uz::Function = [(t)->0 for i in 1:length(x)]
 end
+
 # Phantom() = Phantom(name="spin",x=zeros(1,1))
 size(x::Phantom) = size(x.ρ)
 Base.length(x::Phantom) = length(x.ρ)
@@ -65,9 +66,9 @@ Base.getindex(obj::Phantom, p::AbstractRange) = begin
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
 			#Χ=obj.Χ[p], #TODO!
-			ux=obj.ux,
-			uy=obj.uy,
-			uz=obj.uz
+			ux=obj.ux[p],
+			uy=obj.uy[p],
+			uz=obj.uz[p]
 			)
 end
 """Separate object spins in a sub-group."""
@@ -86,9 +87,9 @@ Base.view(obj::Phantom, p::AbstractRange) = begin
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
 			#Χ=obj.Χ[p], #TODO!
-			ux=obj.ux,
-			uy=obj.uy,
-			uz=obj.uz
+			ux=obj.ux[p],
+			uy=obj.uy[p],
+			uz=obj.uz[p]
 			)
 end
 
@@ -433,9 +434,13 @@ end
 """
 phantom = read_phantom_file(filename)
 
-
 Reads a (.phantom) file and creates a Phantom structure from it
 
+Motion Models --------------------------------------------------
+	1. Linear interpolation of one segment (Constant speed)
+	2. Linear interpolation of K segments
+	3. Cubic interpolation of one segment
+	4. Cubic interpolation of K segments
 """
 function read_phantom_file(filename)
     fid = HDF5.h5open(filename,"r")
@@ -645,6 +650,8 @@ function read_phantom_file(filename)
 
 				# Here we should process motion values. First column is the motion model ID
 				# and the rest of columns contain the values of the movement parameters for that model
+				motion_models = values[:,1]
+				β = values[:,2:end]
 
 			end
 		end
