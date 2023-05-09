@@ -428,3 +428,235 @@ function brain_phantom3D(;ss=4)
 							   Δw = Δw[ρ.!=0])
 	phantom
 end
+
+
+"""
+phantom = read_phantom_file(filename)
+
+
+Reads a (.phantom) file and creates a Phantom structure from it
+
+"""
+function read_phantom_file(filename)
+    fid = HDF5.h5open(filename,"r")
+
+	name    = read_attribute(fid,"Name")
+    dims    = read_attribute(fid,"Dims")
+    dynamic = Bool(read_attribute(fid,"Dynamic"))
+    Ns      = read_attribute(fid,"Ns")
+    version = read_attribute(fid,"Version")
+
+    # --------------- Spin positions -----------------
+    axis = HDF5.keys(fid["position"])
+    if dims == length(axis)
+        x = zeros(Ns)
+        y = zeros(Ns)
+        z = zeros(Ns)
+
+        if "x" in axis
+            x = read(fid["position/x"])
+            if length(x) != Ns
+                print("X vector length mismatch")   
+            end
+        end
+        if "y" in axis
+            y = read(fid["position/y"])
+            if length(y) != Ns
+                print("Y vector length mismatch")   
+            end
+        end
+        if "z" in axis
+            z = read(fid["position/z"])
+            if length(z) != Ns
+                print("Z vector length mismatch")   
+            end
+        end
+    else
+        print("Error: Phantom dimensions mismatch")
+    end
+
+    # ----------------- Contrast --------------------
+    contrast = fid["contrast"]	
+
+    # Rho
+    rho = contrast["rho"]
+    rho_type = read_attribute(rho,"type")
+
+    if rho_type == "Explicit"
+        rho_values = read(rho["values"])
+		if Ns != length(rho_values)
+			print("Error: rho vector dimensions mismatch")
+		end
+
+    elseif rho_type == "Default"
+        rho_values = ones(Ns)
+
+    elseif rho_type == "Indexed"
+        index = read(rho["values"]) 
+		if Ns == length(index)
+			rho_table = read(rho["table"])
+			Nrho = read_attribute(rho,"N")
+			if Nrho == length(rho_table)
+				rho_values = rho_table[index]
+			else
+				print("Error: rho table dimensions mismatch")
+			end
+		else
+			print("Error: rho vector dimensions mismatch")
+		end
+    end
+
+
+    # T1
+    T1 = contrast["T1"]
+    T1_type = read_attribute(T1, "type")
+
+    if T1_type == "Explicit"
+        T1_values = read(T1["values"])
+		if Ns != length(T1_values)
+			print("Error: T1 vector dimensions mismatch")
+		end
+
+    elseif T1_type == "Default"
+        T1_values = ones(Ns)
+
+    elseif T1_type == "Zero"
+        T1_values = 1e-6 .* ones(Ns)
+
+    elseif T1_type == "Indexed"
+        index = read(T1["values"]) 
+		if Ns == length(index)
+			T1_table = read(T1["table"])
+			NT1 = read_attribute(T1,"N")
+			if NT1 == length(T1_table)
+				T1_values = T1_table[index]
+			else
+				print("Error: T1 table dimensions mismatch")
+			end
+		else
+			print("Error: T1 vector dimensions mismatch")
+		end
+    end
+
+    # T2
+    T2 = contrast["T2"]
+    T2_type = read_attribute(T2, "type")
+
+    if T2_type == "Explicit"
+        T2_values = read(T2["values"])
+		if Ns != length(T2_values)
+			print("Error: T2 vector dimensions mismatch")
+		end
+
+    elseif  T2_type == "Default"
+        T2_values = 0.1 .* ones(Ns)
+
+    elseif  T2_type == "Inf"
+        T2_values = ones(Ns)
+
+    elseif  T2_type == "Indexed"
+        index = read(T2["values"]) 
+		if Ns == length(index)
+			T2_table = read(T2["table"])
+			NT2 = read_attribute(T2,"N")
+			if NT2 == length(T2_table)
+				T2_values = T2_table[index]
+			else
+				print("Error: T2 table dimensions mismatch")
+			end
+		else
+			print("Error: T2 vector dimensions mismatch")
+		end
+    end
+
+    # Δw
+    Deltaw = contrast["Deltaw"]
+    Deltaw_type = read_attribute(Deltaw, "type")
+
+    if Deltaw_type == "Explicit"
+        Deltaw_values = read(Deltaw["values"])
+		if Ns != length(Deltaw_values)
+			print("Error: Deltaw vector dimensions mismatch")
+		end
+
+    elseif  Deltaw_type == "Default"
+        Deltaw_values = 0.1 .* ones(Ns)
+
+    elseif  Deltaw_type == "Indexed"
+        index = read(Deltaw["values"]) 
+		if Ns == length(index)
+			Deltaw_table = read(Deltaw["table"])
+			NDeltaw = read_attribute(Deltaw,"N")
+			if NDeltaw == length(Deltaw_table)
+				Deltaw_values = Deltaw_table[index]
+			else
+				print("Error: Deltaw table dimensions mismatch")
+			end
+		else
+			print("Error: Deltaw vector dimensions mismatch")
+		end
+    end
+
+
+	phantom = Phantom{Float64}(name = name,
+							   x = x[:],
+							   y = y[:],
+							   z = z[:],
+							   ρ = rho_values[:],
+							   T1 = T1_values[:],
+							   T2 = T2_values[:],
+							   Δw = Deltaw_values[:])
+
+
+
+    # ----------------- Diffusion --------------------
+    # NOT IMPLEMENTED
+
+    # ----------------- Motion --------------------
+	if dynamic
+		motion = fid["motion"]
+		keys = HDF5.keys(motion)
+
+		# Motion
+		for key in keys
+			if key != "segments"
+				type = read_attribute(motion[key], "type")
+
+				if type == "Explicit"
+					values = read(motion[key]["values"])
+					if Ns != length(values)
+						print("Error: motion vector dimensions mismatch")
+					end
+
+				elseif type == "Indexed"
+					index = read(motion[key]["values"]) 
+					if Ns == length(index)
+						table = read(motion[key]["table"])
+						N = read_attribute(motion[key],"N")
+						if N == length(table)
+							values = table[index]
+						else
+							print("Error: motion table dimensions mismatch")
+						end
+					else
+						print("Error: motion vector dimensions mismatch")
+					end
+				end
+
+				# Here we should process motion values. First column is the motion model ID
+				# and the rest of columns contain the values of the movement parameters for that model
+
+			end
+		end
+
+		# Periodicity
+		segments = read(motion["segments"])
+		N = read(segments["N"])
+		dur = read(sgments["dur"])
+	end
+
+
+	close(fid)
+
+	phantom
+end
