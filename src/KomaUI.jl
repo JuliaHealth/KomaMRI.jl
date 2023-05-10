@@ -1,6 +1,6 @@
 include("ui/ExportMATFunctions.jl")
 
-function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), devTools=false)
+function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false)
 ## ASSETS
 path = @__DIR__
 assets = AssetRegistry.register(dirname(path*"/ui/assets/"))
@@ -478,9 +478,11 @@ version = string(KomaMRICore.__VERSION__)
 content!(w, "#version", version, async=false)
 @info "Currently using KomaMRICore v$version"
 
-#content!(w, "#phaname", phantom.name, async=false)
-
-return w
+if dev_tools
+    return w
+else
+    return nothing
+end
 end
 
 """Updates KomaUI's simulation progress bar."""
