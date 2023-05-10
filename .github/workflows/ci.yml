@@ -39,12 +39,12 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - name: "KomaMRI dev setup"
-        shell: julia --color=yes --project {0}
-        run: |
-          using Pkg
-          Pkg.develop(PackageSpec(; path="./KomaMRICore"))
-          # Pkg.develop(PackageSpec(; path="./KomaMRIPlots"))
+      # - name: "KomaMRI dev setup"
+      #   shell: julia --color=yes --project {0}
+      #   run: |
+      #     using Pkg
+      #     Pkg.develop(PackageSpec(; path="./KomaMRICore"))
+      #     # Pkg.develop(PackageSpec(; path="./KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         with:
