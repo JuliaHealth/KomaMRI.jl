@@ -48,6 +48,8 @@ jobs:
           Pkg.develop(PackageSpec(; path="./KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+        with:
+          prefix: xvfb-run
       - name: "KomaMRIPlots dev setup"
         shell: bash
         run: |
