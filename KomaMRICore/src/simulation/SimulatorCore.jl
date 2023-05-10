@@ -2,8 +2,9 @@ abstract type SimulationMethod end #get all available types by using subtypes(Ko
 abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
-include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
-include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
+include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
+include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
+include("Bloch/BlochMovSimulationMethod.jl")    #Defines BlochMov simulation method
 
 """
     sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
@@ -163,6 +164,7 @@ julia> raw = simulate(obj, seq, sys)
 julia> plot_signal(raw)
 ```
 """
+
 function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
     #Simulation parameter parsing, and setting defaults
     enable_gpu  = get(simParams, "gpu", true); if enable_gpu check_use_cuda(); enable_gpu &= use_cuda[] end
