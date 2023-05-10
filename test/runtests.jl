@@ -34,3 +34,10 @@ using TestItems, TestItemRunner
     end
 
 end
+
+@testitem "KomaUI" tags=[:koma] begin
+    @testset "Open UI" begin
+        KomaUI()
+        @test true
+    end
+end
