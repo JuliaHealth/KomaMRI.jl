@@ -111,7 +111,7 @@ global raw_ismrmrd = RawAcquisitionData(Dict(
     "encodedFOV" => [100.,100.,1],
     "trajectory" => "other"),
     [KomaMRICore.Profile(AcquisitionHeader(trajectory_dimensions=2, sample_time_us=1),
-        [0. 0. 1 1; 0 1 1 1]./2, [0.; 0im; 0; 0;;])])
+        [0. 0. 1 1; 0 1 1 1]./2, reshape([0.; 0im; 0; 0],4,1))])
 global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
 global kspace = [0.0im 0.; 0. 0.]
