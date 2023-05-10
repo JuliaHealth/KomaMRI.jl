@@ -8,7 +8,8 @@ on:
       - master
     tags: '*'
 jobs:
-  test:
+  ci:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -17,16 +18,11 @@ jobs:
         version:
           - '1.6' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
           - '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
-          #- 'nightly'
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        arch:
-          - x64
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x64]
         include:
           - os: ubuntu-latest
-            prefix: xvfb-run
+            prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
@@ -51,6 +47,8 @@ jobs:
           Pkg.develop(PackageSpec(; path="./KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+        with:
+          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - name: "KomaMRIPlots dev setup"
         shell: bash
         run: |
@@ -61,12 +59,14 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIPlots
+          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRICore
       - uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRICore
+          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
@@ -110,3 +110,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+  Skip:
+    if: contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip CI 🚫
+        run: echo skip ci
