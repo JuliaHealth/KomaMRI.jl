@@ -24,6 +24,9 @@ jobs:
           - windows-latest
         arch:
           - x64
+        include:
+          - os: ubuntu-latest
+            prefix: xvfb-run
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
@@ -48,8 +51,6 @@ jobs:
           Pkg.develop(PackageSpec(; path="./KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-        with:
-          prefix: xvfb-run
       - name: "KomaMRIPlots dev setup"
         shell: bash
         run: |
