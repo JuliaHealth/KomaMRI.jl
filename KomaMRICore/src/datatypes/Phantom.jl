@@ -1,3 +1,7 @@
+mutable struct FuncWrapper # Function wrapper so we can re-define anonymous functions in the Phantom
+	f::Function
+end
+
 """
     phantom = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
 
@@ -41,9 +45,9 @@ The Phantom struct.
 	Dθ::AbstractVector{T} =  zeros(size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 	#Motion
-	ux::Function = [(t)->0 for i in 1:length(x)]
-	uy::Function = [(t)->0 for i in 1:length(x)]
-	uz::Function = [(t)->0 for i in 1:length(x)]
+	ux::Vector{FuncWrapper} = [FuncWrapper((t)->0) for i in 1:length(x)]
+	uy::Vector{FuncWrapper} = [FuncWrapper((t)->0) for i in 1:length(x)]
+	uz::Vector{FuncWrapper} = [FuncWrapper((t)->0) for i in 1:length(x)]
 end
 
 # Phantom() = Phantom(name="spin",x=zeros(1,1))
@@ -435,12 +439,6 @@ end
 phantom = read_phantom_file(filename)
 
 Reads a (.phantom) file and creates a Phantom structure from it
-
-Motion Models --------------------------------------------------
-	1. Linear interpolation of one segment (Constant speed)
-	2. Linear interpolation of K segments
-	3. Cubic interpolation of one segment
-	4. Cubic interpolation of K segments
 """
 function read_phantom_file(filename)
     fid = HDF5.h5open(filename,"r")
@@ -602,17 +600,14 @@ function read_phantom_file(filename)
 		end
     end
 
-
-	phantom = Phantom{Float64}(name = name,
-							   x = x[:],
-							   y = y[:],
-							   z = z[:],
-							   ρ = rho_values[:],
-							   T1 = T1_values[:],
-							   T2 = T2_values[:],
-							   Δw = Deltaw_values[:])
-
-
+	phantom = Phantom{Float64}( name = name,
+								x = x[:],
+								y = y[:],
+								z = z[:],
+								ρ = rho_values[:],
+								T1 = T1_values[:],
+								T2 = T2_values[:],
+								Δw = Deltaw_values[:])
 
     # ----------------- Diffusion --------------------
     # NOT IMPLEMENTED
@@ -629,7 +624,7 @@ function read_phantom_file(filename)
 
 				if type == "Explicit"
 					values = read(motion[key]["values"])
-					if Ns != length(values)
+					if Ns != length(values[:,1])
 						print("Error: motion vector dimensions mismatch")
 					end
 
@@ -638,7 +633,7 @@ function read_phantom_file(filename)
 					if Ns == length(index)
 						table = read(motion[key]["table"])
 						N = read_attribute(motion[key],"N")
-						if N == length(table)
+						if N == length(table[:,1])
 							values = table[index]
 						else
 							print("Error: motion table dimensions mismatch")
@@ -647,21 +642,38 @@ function read_phantom_file(filename)
 						print("Error: motion vector dimensions mismatch")
 					end
 				end
-
+				
 				# Here we should process motion values. First column is the motion model ID
 				# and the rest of columns contain the values of the movement parameters for that model
 				motion_models = values[:,1]
 				β = values[:,2:end]
+				u = [FuncWrapper((t)->0) for i in 1:Ns]
 
+				for i in 1:Ns
+					# 1. Linear interpolation of one segment (Constant speed): u(t) = β0 + β1t
+					if motion_models[i] == 1
+						u[i].f = (t) -> β[i,1] .+ β[i,2] .* t
+					end	
+					# 2. Linear interpolation of K segments (...)
+					# 3. Cubic interpolation of one segment (...)
+					# 4. Cubic interpolation of K segments (...)
+				end
+
+				if 	   key == "motionx"
+					phantom.ux = u
+				elseif key == "motiony"
+					phantom.uy = u
+				elseif key == "motionz"
+					phantom.uz = u
+				end
 			end
 		end
 
 		# Periodicity
-		segments = read(motion["segments"])
-		N = read(segments["N"])
-		dur = read(sgments["dur"])
+		segments = motion["segments"]
+		N = read_attribute(segments, "N")
+		dur = read(segments["dur"])
 	end
-
 
 	close(fid)
 
