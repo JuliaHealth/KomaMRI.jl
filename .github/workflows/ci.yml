@@ -66,7 +66,6 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRICore
-          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
