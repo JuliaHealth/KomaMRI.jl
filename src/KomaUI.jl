@@ -39,7 +39,7 @@ global w = Blink.Window(Dict(
     :icon=>path*"/ui/assets/Logo_icon.png",
     "width"=>1200,
     "height"=>800,
-    "webPreferences" => Dict("devTools" => devTools)
+    "webPreferences" => Dict("devTools" => dev_tools)
     ),async=false);
 ## LOADING BAR
 buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
