@@ -41,3 +41,32 @@ end
         @test true
     end
 end
+
+@testitem "Auxiliar Functions" tags=[:koma] begin
+    using MAT
+    include(joinpath(@__DIR__, "../src/ui/ExportMATFunctions.jl"))
+    @testset "ExportMATFunctions" begin
+        sys = Scanner()
+        B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
+        EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+        N = 101
+        FOV = 23e-2
+        EPI = PulseDesigner.EPI(FOV, N, sys)
+        TE = 30e-3
+        d1 = TE-dur(EPI)/2-dur(EX)
+        d1 = d1 > 0 ? d1 : 0
+        if d1 > 0 DELAY = Delay(d1) end
+        seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
+        seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
+        path = @__DIR__
+        fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
+        raw = RawAcquisitionData(fraw)
+        acq = AcquisitionData(raw)
+        Nx, Ny = raw.params["reconSize"][1:2]
+        recParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx,Ny), :densityWeighting=>true)
+        aux = reconstruction(acq, recParams)
+        image  = reshape(aux.data, Nx, Ny, :)
+        export_2_mat(seq, brain_phantom2D(), sys, raw, recParams, image, pwd(); type="all")
+        @test true
+    end
+end

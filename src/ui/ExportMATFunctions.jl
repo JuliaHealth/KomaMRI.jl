@@ -122,7 +122,7 @@ function export_2_mat_image(image, recParams, matfolder; matfilename="image.mat"
     matwrite(joinpath(matfolder, matfilename), Dict("image" => image))
 end
 
-function export_2_mat(w, seq, phantom, sys, raw_ismrmrd, recParams, matfolder; type="all", matfilename="data.mat")
+function export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="data.mat")
     if type=="all"
         export_2_mat_sequence(seq, matfolder)
         export_2_mat_kspace(seq, matfolder)
@@ -146,31 +146,9 @@ function export_2_mat(w, seq, phantom, sys, raw_ismrmrd, recParams, matfolder; t
 		export_2_mat_image(image, recParams, matfolder; matfilename)
 	end
 
+    strToast = "<ul><li><b>Name:</b> " * matfilename * "</li><li><b>Path:</b> " * matfolder * "</li></ul>"
     if type=="all"
-        @js_ w (
-            @var matfolder = $matfolder;
-            Toasty("1", "Saved .mat files" ,"
-            <ul>
-                <li>
-                    <b>Path:</b> " + matfolder + "
-                </li>
-            </ul>
-            ");
-        )
-    else
-        @js_ w (
-            @var matfolder = $matfolder;
-            @var matfilename = $matfilename;
-            Toasty("1", "Saved .mat file" ,"
-            <ul>
-                <li>
-                    <b>Name:</b> " + matfilename + "
-                </li>
-                <li>
-                    <b>Path:</b> " + matfolder + "
-                </li>
-            </ul>
-            ");
-        )
+        strToast = "<ul><li><b>Path:</b> " * matfolder * "</li></ul>"
     end
+    return strToast
 end
