@@ -67,6 +67,11 @@ end
         aux = reconstruction(acq, recParams)
         image  = reshape(aux.data, Nx, Ny, :)
         export_2_mat(seq, brain_phantom2D(), sys, raw, recParams, image, pwd(); type="all")
+        export_2_mat(seq, brain_phantom2D(), sys, raw, recParams, image, pwd(); type="sequence")
+        export_2_mat(seq, brain_phantom2D(), sys, raw, recParams, image, pwd(); type="phantom")
+        export_2_mat(seq, brain_phantom2D(), sys, raw, recParams, image, pwd(); type="scanner")
+        export_2_mat(seq, brain_phantom2D(), sys, raw, recParams, image, pwd(); type="raw")
+        export_2_mat(seq, brain_phantom2D(), sys, raw, recParams, image, pwd(); type="image")
         @test true
     end
 end
