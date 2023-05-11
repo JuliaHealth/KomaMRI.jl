@@ -1,6 +1,6 @@
 
 function plotInteract()
-    @manipulate for t0_ms = range(0,dur(seq),5)*1e3
+    @manipulate for t0_ms = range(0,dur(seq);length=5)*1e3
         plot_phantom_map(phantom, :ρ; t0=t0_ms, darkmode)
     end
 end
@@ -12,7 +12,7 @@ function makebuttons(ph)
     buttons = button.(propnm)
     for (btn, key) in zip(reverse(buttons), reverse(prop))
         map!(t -> begin
-            @manipulate for t0_ms = range(0,dur(seq),5)*1e3
+            @manipulate for t0_ms = range(0,dur(seq);length=5)*1e3
                 plot_phantom_map(ph, key; t0=t0_ms, darkmode)
             end
         end
