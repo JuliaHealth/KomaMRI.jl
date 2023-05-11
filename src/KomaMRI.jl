@@ -15,6 +15,7 @@ using MRIReco
 
 #Reconstruction
 include("reconstruction/Recon.jl")
+export fftc, ifftc
 
 #GUI
 include("KomaUI.jl")
