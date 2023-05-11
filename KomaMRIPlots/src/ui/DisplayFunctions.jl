@@ -850,6 +850,30 @@ function plot_dict(dict::Dict)
 	html *= "</tbody></table>"
 end
 
+"""
+    p = plot_seqd(seq::Sequence; simParams=KomaMRICore.default_sim_params())
+
+Plots a discretized sequence struct.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+
+# Keywords
+- `simParams`: (`::Dict{String,Any}()`, `=KomaMRICore.default_sim_params()`) dictionary of
+    simulation parameters
+
+# Returns
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the discretized Sequence struct
+
+# Examples
+```julia-repl
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
+
+julia> seq = read_seq(seq_file)
+
+julia> plot_seqd(seq)
+```
+"""
 function plot_seqd(seq::Sequence; simParams=KomaMRICore.default_sim_params())
 	seqd = KomaMRICore.discretize(seq; simParams)
 	Gx = scatter(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
@@ -857,5 +881,5 @@ function plot_seqd(seq::Sequence; simParams=KomaMRICore.default_sim_params())
 	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)
 	B1 = scatter(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
 	ADC = scatter(x=seqd.t[seqd.ADC]*1e3, y=zeros(sum(seqd.ADC)), name="ADC", mode="markers", marker_symbol=:x)
-	plot([Gx,Gy,Gz,B1,ADC]), seqd
+	plot([Gx,Gy,Gz,B1,ADC])
 end

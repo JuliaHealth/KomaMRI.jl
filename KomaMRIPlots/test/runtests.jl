@@ -78,6 +78,11 @@ using TestItems, TestItemRunner
             plot_eddy_currents(seq, 80e-3) #Plotting the plot_eddy_currents
             @test true              #If the previous line fails the test will fail
         end
+
+        @testset "plot_seqd" begin
+            plot_seqd(seq)
+            @test true
+        end
     end
 
     @testset "GUI_dict_html" begin
