@@ -39,9 +39,18 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     M::Mag{T}, sim_method::BlochMov) where {T<:Real}
     #Simulation
     #Motion 
-    xt = p.x .+ p.ux(seq.t') # TODO
-    yt = p.y .+ p.uy(seq.t') # TODO
-    zt = p.z .+ p.uz(seq.t') # TODO
+    # xt = p.x .+ p.ux(seq.t') 
+    # yt = p.y .+ p.uy(seq.t') 
+    # zt = p.z .+ p.uz(seq.t') 
+
+    Ux = [p.ux[i] for i in 1:length(p.ux)]
+    Uy = [p.uy[i] for i in 1:length(p.uy)]
+    Uz = [p.uz[i] for i in 1:length(p.uz)]
+
+    xt = p.x .+ reduce(vcat, collect(map(f -> f(seq.t'), Ux)))
+    yt = p.y .+ reduce(vcat, collect(map(f -> f(seq.t'), Uy)))
+    zt = p.z .+ reduce(vcat, collect(map(f -> f(seq.t'), Uz)))
+
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -86,6 +95,37 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
 """
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     M::Mag{T}, sim_method::BlochMov) where {T<:Real}
-    run_spin_excitation!(p, seq, sig, M, Bloch()) #The same as Bloch
+    #Simulation
+    for s ∈ seq #This iterates over seq, "s = seq[i,:]"
+        #Motion
+        # xt = p.x .+ p.ux(p.x, p.y, p.z, s.t)
+        # yt = p.y .+ p.uy(p.x, p.y, p.z, s.t)
+        # zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
+
+        Ux = [p.ux[i] for i in 1:length(p.ux)]
+        Uy = [p.uy[i] for i in 1:length(p.uy)]
+        Uz = [p.uz[i] for i in 1:length(p.uz)]
+
+        xt = p.x .+ reduce(vcat, collect(map(f -> f(s.t), Ux)))
+        yt = p.y .+ reduce(vcat, collect(map(f -> f(s.t), Uy)))
+        zt = p.z .+ reduce(vcat, collect(map(f -> f(s.t), Uz)))
+
+        #Effective field
+        ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
+        Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
+        B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
+        B[B .== 0] .= eps(T)
+        #Spinor Rotation
+        φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
+        mul!( Q(φ, s.B1 ./ B, Bz ./ B), M )
+        #Relaxation
+        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
+        M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
+    end
+    #Acquired signal
+    #sig .= -0.1im #<-- This was to test if an ADC point was inside an RF block
     return nothing
 end
+
+
+    
