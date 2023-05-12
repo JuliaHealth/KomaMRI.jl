@@ -45,9 +45,9 @@ The Phantom struct.
 	Dθ::AbstractVector{T} =  zeros(size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 	#Motion
-	ux::Vector{FuncWrapper} = [FuncWrapper((t)->0) for i in 1:length(x)]
-	uy::Vector{FuncWrapper} = [FuncWrapper((t)->0) for i in 1:length(x)]
-	uz::Vector{FuncWrapper} = [FuncWrapper((t)->0) for i in 1:length(x)]
+	ux::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
+	uy::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
+	uz::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
 end
 
 # Phantom() = Phantom(name="spin",x=zeros(1,1))
@@ -654,6 +654,7 @@ function read_phantom_file(filename)
 					if motion_models[i] == 1
 						u[i].f = (t) -> β[i,1] .+ β[i,2] .* t
 					end	
+
 					# 2. Linear interpolation of K segments (...)
 					# 3. Cubic interpolation of one segment (...)
 					# 4. Cubic interpolation of K segments (...)
