@@ -35,13 +35,14 @@ function generate_seq_time_layout_config(title, width, height, range, slider, sh
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	#Shapes
 	shapes = []
+    N = length(T0)
 	if show_seq_blocks
 		aux = [line(
 			xref="x", yref="paper",
 			x0=T0[i]*1e3, y0=0,
 			x1=T0[i]*1e3, y1=1,
 			line=attr(color=sep_color, width=2),
-			) for i = 1:N+1]
+			) for i = 1:N]
 		append!(shapes, aux)
 	end
 	l = Layout(;title=title, hovermode="closest",

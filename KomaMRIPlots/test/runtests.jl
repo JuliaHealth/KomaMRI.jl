@@ -10,7 +10,7 @@ using TestItems, TestItemRunner
         ph = brain_phantom2D()    #2D phantom
 
         @testset "plot_phantom_map_rho" begin
-            plot_phantom_map(ph, :ρ) #Plotting the phantom's rho map
+            plot_phantom_map(ph, :ρ, width=800, height=600) #Plotting the phantom's rho map
             @test true                #If the previous line fails the test will fail
         end
 
@@ -21,6 +21,21 @@ using TestItems, TestItemRunner
 
         @testset "plot_phantom_map_T2" begin
             plot_phantom_map(ph, :T2) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+
+        @testset "plot_phantom_map_x" begin
+            plot_phantom_map(ph, :x) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+
+        @testset "plot_phantom_map_w" begin
+            plot_phantom_map(ph, :Δw) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+
+        @testset "plot_phantom_map_2dview" begin
+            plot_phantom_map(ph, :ρ, view_2d=true) #Plotting the phantom's rho map
             @test true                #If the previous line fails the test will fail
         end
     end
@@ -46,12 +61,13 @@ using TestItems, TestItemRunner
         @testset "plot_seq" begin
             #Plot sequence
             plot_seq(seq)  #Plotting the sequence
-            @test true          #If the previous line fails the test will fail
+            plot_seq(seq; width=800, height=600, slider=true, show_seq_blocks=true)
+            @test true          #If the previous lines fail the test will fail
         end
 
         @testset "plot_kspace" begin
             #Plot k-space
-            plot_kspace(seq)    #Plotting the k-space
+            plot_kspace(seq; width=800, height=600) #Plotting the k-space
             @test true          #If the previous line fails the test will fail
         end
 
@@ -107,7 +123,7 @@ using TestItems, TestItemRunner
         path = @__DIR__
         fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
         raw = RawAcquisitionData(fraw)
-        plot_signal(raw)
+        plot_signal(raw, width=800, height=600)
         @test true          #If the previous line fails the test will fail
     end
 
