@@ -25,10 +25,6 @@ Refer to [API Documentation](api.md#Phantom):
 * [`KomaMRI.brain_phantom2D`](@ref) — Function
 * [`KomaMRI.brain_phantom3D`](@ref) — Function
 
-```@docs
-KomaMRI.heart_phantom
-```
-
 ### `Scanner`
 
 Refer to [API Documentation](api.md#Scanner):

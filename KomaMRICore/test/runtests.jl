@@ -3,13 +3,6 @@ using TestItems, TestItemRunner
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
 
 @testitem "Sequence" tags=[:core] begin
-    @testset "Scanner" begin
-        B0, B1, Gmax, Smax = 1.5, 10e-6, 60e-3, 500
-        ADC_Δt, seq_Δt, GR_Δt, RF_Δt = 2e-6, 1e-5, 1e-5, 1e-6
-        RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T = 20e-6, 100e-6, 10e-6
-        sys = Scanner(B0, B1, Gmax, Smax, ADC_Δt, seq_Δt, GR_Δt, RF_Δt, RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T)
-        @test sys.B0 ≈ B0 && sys.B1 ≈ B1 && sys.Gmax ≈ Gmax && sys.Smax ≈ Smax
-    end
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -128,7 +121,6 @@ using TestItems, TestItemRunner
         @test r1.delay ≈ r2.delay
     end
 end
-
 @testitem "PulseDesigner" tags=[:core] begin
     @testset "RF_sinc" begin
         sys = Scanner()
@@ -161,18 +153,79 @@ end
 end
 
 @testitem "Phantom" tags=[:core] begin
+
+    # Test phantom struct creation
+    name = "Bulks"
+    x = [-2e-3; -1e-3; 0.; 1e-3; 2e-3]
+    y = [-4e-3; -2e-3; 0.; 2e-3; 4e-3]
+    z = [-6e-3; -3e-3; 0.; 3e-3; 6e-3]
+    ρ = [.2; .4; .6; .8; 1.]
+    T1 = [.9; .9; .5; .25; .4]
+    T2 = [.09; .05; .04; .07; .005]
+    T2s = [.1; .06; .05; .08; .015]
+    Δw = [-2e-6; -1e-6; 0.; 1e-6; 2e-6]
+    Dλ1 = [-4e-6; -2e-6; 0.; 2e-6; 4e-6]
+    Dλ2 = [-6e-6; -3e-6; 0.; 3e-6; 6e-6]
+    Dθ = [-8e-6; -4e-6; 0.; 4e-6; 8e-6]
+    u = (x,y,z,t)->0
+    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, u, u, u)
+    @test   obj.name == name &&
+            obj.x ≈ x &&
+            obj.y ≈ y &&
+            obj.z ≈ z &&
+            obj.ρ ≈ ρ &&
+            obj.T1 ≈ T1 &&
+            obj.T2 ≈ T2 &&
+            obj.T2s ≈ T2s &&
+            obj.Δw ≈ Δw &&
+            obj.Dλ1 ≈ Dλ1 &&
+            obj.Dλ2 ≈ Dλ2 &&
+            obj.Dθ ≈ Dθ
+
+    # Test size and length definitions of a phantom
+    @test size(obj) == size(ρ)
+    #@test length(obj) == length(ρ)
+
+    # Test phantom comparison
+    ue = (x,y,z,t)->1
+    obe = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue, ue, ue)
+    @test obj ≈ obe
+
+    # Test phantom subset
+    rng = 1:2:5
+    ug = (x,y,z,t)->-1
+    obg = Phantom(name, x[rng], y[rng], z[rng], ρ[rng], T1[rng], T2[rng], T2s[rng], Δw[rng],
+                    Dλ1[rng], Dλ2[rng], Dθ[rng], ug, ug, ug)
+    @test obj[rng] ≈ obg
+    @test @view(obj[rng]) ≈ obg
+
+    # Test addition of phantoms
+    ua = (x,y,z,t)->2
+    oba = Phantom(name, [x; x[rng]], [y; y[rng]], [z; z[rng]], [ρ; ρ[rng]],
+                    [T1; T1[rng]], [T2; T2[rng]], [T2s; T2s[rng]], [Δw; Δw[rng]],
+                    [Dλ1; Dλ1[rng]], [Dλ2; Dλ2[rng]], [Dθ; Dθ[rng]], ua, ua, ua)
+    @test obj + obg ≈ oba
+
+    # Test scalar multiplication of a phantom
+    c = 7.
+    obc = Phantom(name, x, y, z, c*ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, u, u, u)
+    @test c*obj ≈ obc
+
     #Test brain phantom 2D
-    ph = brain_phantom2D()    #2D phantom
+    ph = brain_phantom2D()
     @test ph.name=="brain2D_axial"
 
     #Test brain phantom 3D
-    ph = brain_phantom3D()    #3D phantom
+    ph = brain_phantom3D()
     @test ph.name=="brain3D"
 end
 
 @testitem "Scanner" tags=[:core] begin
-    #Test somehow
-    @test true
+    B0, B1, Gmax, Smax = 1.5, 10e-6, 60e-3, 500
+    ADC_Δt, seq_Δt, GR_Δt, RF_Δt = 2e-6, 1e-5, 1e-5, 1e-6
+    RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T = 20e-6, 100e-6, 10e-6
+    sys = Scanner(B0, B1, Gmax, Smax, ADC_Δt, seq_Δt, GR_Δt, RF_Δt, RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T)
+    @test sys.B0 ≈ B0 && sys.B1 ≈ B1 && sys.Gmax ≈ Gmax && sys.Smax ≈ Smax
 end
 
 @testitem "Spinors×Mag" tags=[:core] begin
