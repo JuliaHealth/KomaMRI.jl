@@ -120,7 +120,34 @@ using TestItems, TestItemRunner
         @test r1.Δf ≈ r2.Δf
         @test r1.delay ≈ r2.delay
     end
+
+    @testset "Delay" begin
+
+        # Test delay construction
+        T = 1e-3
+        delay = Delay(T)
+        @test delay.T ≈ T
+
+        # Test delay construction error for negative values
+        err = Nothing
+        try Delay(-T) catch err end
+        @test err isa ErrorException
+
+        # Test delay output message
+        io = IOBuffer()
+        show(io, "text/plain", delay)
+        @test String(take!(io)) == "Delay($(T*1e3)ms)"
+
+        # Test addition of a delay to a sequence
+        seq = Sequence()
+        ds = delay + seq
+        @test dur(ds[1]) ≈ delay.T && dur(ds[2]) ≈ .0
+        sd = seq + delay
+        @test dur(sd[1]) ≈ .0 && dur(sd[2]) ≈ delay.T
+
+    end
 end
+
 @testitem "PulseDesigner" tags=[:core] begin
     @testset "RF_sinc" begin
         sys = Scanner()
