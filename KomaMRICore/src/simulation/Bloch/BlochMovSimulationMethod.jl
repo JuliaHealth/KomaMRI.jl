@@ -8,16 +8,19 @@ Base.show(io::IO, s::BlochMov) = begin
 end
 
 
-output_Ndim(sim_method::BlochMov) = 3
+output_Ndim(sim_method::BlochMov) = 2 #time-points x coils
 
 function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochMov) where {T<:Real}
-    out_state_dim = sim_method.save_Mz ? 2 : 1
-    return (sum(seq.ADC.N), length(obj), out_state_dim)
+    return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
 end
 
 """Magnetization initialization for Bloch simulation method."""
 function initialize_spins_state(obj::Phantom{T}, sim_method::BlochMov) where {T<:Real}
-    return initialize_spins_state(obj, Bloch())
+    Nspins = length(obj)
+    Mxy = zeros(T, Nspins)
+    Mz = obj.ρ
+    Xt = Mag{T}(Mxy, Mz)
+    return Xt, obj
 end
 
 """
@@ -43,13 +46,13 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     # yt = p.y .+ p.uy(seq.t') 
     # zt = p.z .+ p.uz(seq.t') 
 
-    Ux = [p.ux[i] for i in 1:length(p.ux)]
-    Uy = [p.uy[i] for i in 1:length(p.uy)]
-    Uz = [p.uz[i] for i in 1:length(p.uz)]
+    Ux = [p.ux[i].f for i in 1:length(p.ux)]
+    Uy = [p.uy[i].f for i in 1:length(p.uy)]
+    Uz = [p.uz[i].f for i in 1:length(p.uz)]
 
     xt = p.x .+ reduce(vcat, collect(map(f -> f(seq.t'), Ux)))
-    yt = p.y .+ reduce(vcat, collect(map(f -> f(seq.t'), Uy)))
-    zt = p.z .+ reduce(vcat, collect(map(f -> f(seq.t'), Uz)))
+    yt = p.y .+ reduce(vcat, collect(map(g -> g(seq.t'), Uy)))
+    zt = p.z .+ reduce(vcat, collect(map(h -> h(seq.t'), Uz)))
 
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
@@ -64,17 +67,9 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    
+    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
-    sig[:,:,1] .= transpose(Mxy[:, findall(seq.ADC)])
-
-    if sim_method.save_Mz
-        Mz = M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1)) #Calculate intermediate points
-        sig[:,:,2] .= transpose(Mz[:, findall(seq.ADC)]) #Save state to signal
-        M.z .= Mz[:, end]
-    else
-        M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point
-    end
+    sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
 end
 
@@ -102,13 +97,13 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
         # yt = p.y .+ p.uy(p.x, p.y, p.z, s.t)
         # zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
 
-        Ux = [p.ux[i] for i in 1:length(p.ux)]
-        Uy = [p.uy[i] for i in 1:length(p.uy)]
-        Uz = [p.uz[i] for i in 1:length(p.uz)]
+        Ux = [p.ux[i].f for i in 1:length(p.ux)]
+        Uy = [p.uy[i].f for i in 1:length(p.uy)]
+        Uz = [p.uz[i].f for i in 1:length(p.uz)]
 
         xt = p.x .+ reduce(vcat, collect(map(f -> f(s.t), Ux)))
-        yt = p.y .+ reduce(vcat, collect(map(f -> f(s.t), Uy)))
-        zt = p.z .+ reduce(vcat, collect(map(f -> f(s.t), Uz)))
+        yt = p.y .+ reduce(vcat, collect(map(g -> g(s.t), Uy)))
+        zt = p.z .+ reduce(vcat, collect(map(h -> h(s.t), Uz)))
 
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
