@@ -646,7 +646,7 @@ function read_phantom_file(filename)
 				# Here we should process motion values. First column is the motion model ID
 				# and the rest of columns contain the values of the movement parameters for that model
 				motion_models = values[:,1]
-				β = values[:,2:end]
+				β = Float32.(values[:,2:end])
 				u = [FuncWrapper((t)->0) for i in 1:Ns]
 
 				for i in 1:Ns
