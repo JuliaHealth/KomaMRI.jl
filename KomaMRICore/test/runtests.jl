@@ -2,6 +2,16 @@ using TestItems, TestItemRunner
 
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
 
+function test_EPI()
+    # Scanner
+    sys = Scanner()
+    # 90-degree hard excitation pulse
+    B1 = sys.B1; durRF = π/2/(2π*γ*B1)
+    EX = PulseDesigner.RF_hard(B1, durRF, sys)
+    N, FOV = 101, 23e-2
+    EPI = PulseDesigner.EPI(FOV, N, sys)
+end
+
 @testitem "Sequence" tags=[:core] begin
     @testset "Init" begin
         sys = Scanner()
@@ -144,6 +154,42 @@ using TestItems, TestItemRunner
         @test dur(ds[1]) ≈ delay.T && dur(ds[2]) ≈ .0
         sd = seq + delay
         @test dur(sd[1]) ≈ .0 && dur(sd[2]) ≈ delay.T
+
+    end
+    @testset "ADC" begin
+
+        # Test ADC construction
+        N, T, delay, Δf, ϕ  = 64, 1e-3, 2e-3, 1e-6, .25*π
+        adc = ADC(N, T)
+        @test adc.N ≈ N && adc.T ≈ T && adc.delay ≈ 0 && adc.Δf ≈ 0 && adc.ϕ ≈ 0
+        adc = ADC(N, T, delay)
+        @test adc.N ≈ N && adc.T ≈ T && adc.delay ≈ delay && adc.Δf ≈ 0 && adc.ϕ ≈ 0
+        adc = ADC(N, T, delay, Δf, ϕ)
+        @test adc.N ≈ N && adc.T ≈ T && adc.delay ≈ delay && adc.Δf ≈ Δf && adc.ϕ ≈ ϕ
+
+        # Test ADC construction errors for negative values
+        err = Nothing
+        try ADC(N, -T) catch err end
+        @test err isa ErrorException
+        try ADC(N, -T,  delay) catch err end
+        @test err isa ErrorException
+        try ADC(N,  T, -delay) catch err end
+        @test err isa ErrorException
+        try ADC(N, -T, -delay) catch err end
+        @test err isa ErrorException
+        try ADC(N, -T,  delay, Δf, ϕ) catch err end
+        @test err isa ErrorException
+        try ADC(N,  T, -delay, Δf, ϕ) catch err end
+        @test err isa ErrorException
+        try ADC(N, -T, -delay, Δf, ϕ) catch err end
+        @test err isa ErrorException
+
+        # Test ADC getproperties
+        Nb, Tb, delayb, Δfb, ϕb  = 128, 2e-3, 4e-3, 2e-6, .125*π
+        adb = ADC(Nb, Tb, delayb, Δfb, ϕb)
+        adcs = [adc, adb]
+        @test adcs.N ≈ [adc.N, adb.N] && adcs.T ≈ [adc.T, adb.T] && adcs.delay ≈ [adc.delay, adb.delay]
+        @test adcs.Δf ≈ [adc.Δf, adb.Δf] && adcs.ϕ ≈ [adc.ϕ, adb.ϕ] && adcs.dur ≈ [adc.T + adc.delay, adb.T + adb.delay]
 
     end
 end

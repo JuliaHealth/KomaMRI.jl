@@ -24,7 +24,7 @@ mutable struct ADC
     Δf::Float64
     ϕ::Float64
     function ADC(N, T, delay, Δf, ϕ)
-      T < 0 || delay < 0 ? error("ADC timings must be positive.") : new(N, T, delay, Δf, ϕ)
+        T < 0 || delay < 0 ? error("ADC timings must be positive.") : new(N, T, delay, Δf, ϕ)
     end
     function ADC(N, T, delay)
 		T < 0 || delay < 0 ? error("ADC timings must be positive.") : new(N, T, delay, 0, 0)
@@ -43,7 +43,7 @@ directly without the need to iterate elementwise.
 # Arguments
 - `x`: (`::Vector{ADC}`) vector of ADC structs
 - `f`: (`::Symbol`, opts: [`:N`, `:T`, `:delay`, `:Δf`, `:ϕ`, `:dur`]) input symbol that
-    represents a property of the ACD structs
+    represents a property of the ADC structs
 
 # Returns
 - `y`: (`::Vector{Any}`) vector with the property defined by the `f` for all elements of
