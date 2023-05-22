@@ -680,3 +680,83 @@ function read_phantom_file(filename)
 
 	phantom
 end
+
+
+"""
+phantom = read_nifti_file(folder; ss)
+
+Reads a (.nii) file and creates a Phantom structure from it
+"""
+function read_nifti_file(folder; ss=1::Int)
+	T1_path = folder*"T1map.nii.gz";
+	T2_path = folder*"T2map.nii.gz";
+	PD_path = folder*"PDmap.nii.gz";
+
+	T1_ni = niread(T1_path);
+	T2_ni = niread(T2_path);
+	PD_ni = niread(PD_path);
+
+	T1_data = T1_ni.raw
+	T2_data = T2_ni.raw
+	ρ = PD_ni.raw
+
+	M, N, L = size(T1_data)
+
+	# Subsampling
+	T1_data = T1_data[1:ss:end,1:ss:end,1:ss:end]
+	T2_data = T2_data[1:ss:end,1:ss:end,1:ss:end]
+	ρ = ρ[1:ss:end,1:ss:end,1:ss:end]
+	T2s_data = T2_data.+10
+
+	# Clip outliers
+	T1_percentile = percentile(T1_data[:],99)
+	T1_data[T1_data.>=T1_percentile].= T1_percentile;
+
+	T2_percentile = percentile(T2_data[:],99)
+	T2_data[T2_data.>=T2_percentile].= T2_percentile;
+
+	ρ_percentile = percentile(ρ[:],99)
+	ρ[ρ.>=ρ_percentile].= ρ_percentile;
+
+	T2s_percentile = percentile(T2s_data[:],99)
+	T2s_data[T2s_data.>=T2s_percentile].= T2s_percentile;
+
+	Δx = 1e-3*ss  # Each voxel is 1mm x 1mm x 1mm.
+				  # Voxels have the same size in the three dimensions (cubic voxels)
+
+	M, N, L = size(T1_data)
+
+
+	println("Phantom size: $M x $N x $L elements")
+
+	FOVx = (M-1)*Δx
+	FOVy = (N-1)*Δx
+	FOVz = (L-1)*Δx
+
+	println("Phantom dimensions: ($FOVx x $FOVy x $FOVz) m")
+
+	x = -FOVx/2:Δx:FOVx/2
+	y = -FOVy/2:Δx:FOVy/2
+	z = -FOVz/2:Δx:FOVz/2
+
+	X,Y,Z = mgrid(x,y,z);
+
+	Δw = zeros(M,N,L)
+
+	# Convert miliseconds into seconds
+	T1_data .*= 1e-3
+	T2_data .*= 1e-3
+	T2s_data .*= 1e-3
+
+	phantom = Phantom{Float64}(name="nii_brain3D",
+                          		x=X[ρ.!=0],
+                          		y=Y[ρ.!=0],
+                          		z=Z[ρ.!=0],
+                          		ρ=ρ[ρ.!=0],
+                          		T1=T1_data[ρ.!=0],
+                          		T2=T2_data[ρ.!=0],
+                          		T2s=T2s_data[ρ.!=0],
+                          		Δw=Δw[ρ.!=0]
+                          		)
+	phantom
+end
