@@ -107,14 +107,10 @@ using TestItems, TestItemRunner
         gradw = Grad(f, T, N)
         @test gradw.A ≈ f.(range(0, T; length=N))
 
-        # Test Grad output message
-        io = IOBuffer()
-        show(io, "text/plain", grad)
-        @test occursin("Grad(", String(take!(io)))
-
         # Test Grad operations
         α = 3
         gradt = α * grad
+        @test size(grad, 1) == 1
         @test gradt.A ≈ α * grad.A
         gradt = grad * α
         @test gradt.A ≈ α * grad.A
@@ -145,6 +141,13 @@ using TestItems, TestItemRunner
         vt = [Grad(A1,T1); Grad(A2,T2); Grad(A3,T3)]
         @test dur(vt) ≈ [maximum([T1, T2, T3])]
 
+        # Test Grad output message
+        io = IOBuffer()
+        show(io, "text/plain", grad)
+        @test occursin("Grad(", String(take!(io)))
+        show(io, "text/plain", gr)
+        @test occursin("Grad(", String(take!(io)))
+
     end
 
     @testset "RF" begin
@@ -169,6 +172,35 @@ using TestItems, TestItemRunner
         @test r1.T ≈ r2.T
         @test r1.Δf ≈ r2.Δf
         @test r1.delay ≈ r2.delay
+
+        # Test RF construction
+        B1x, B1y, T = rand(3)
+        A = B1x + im*B1y
+        rf = RF(A, T)
+        @test rf.A ≈ A && rf.T ≈ T && rf.Δf ≈ 0 && rf.delay ≈ 0
+
+        # Test RF output message
+        io = IOBuffer()
+        show(io, "text/plain", rf)
+        @test occursin("RF(", String(take!(io)))
+
+        # Test Grad operations
+        α = Complex(rand())
+        rft = α * rf
+        @test size(rf, 1) == 1
+        @test rft.A ≈ α * rf.A
+        @test dur(rf) ≈ rf.T
+        B1x, B1y, B2x, B2y, B3x, B3y, T1, T2, T3 = rand(9)
+        rf1, rf2, rf3 = RF(B1x + im*B1y, T1), RF(B1x + im*B1y, T2), RF(B3x + im*B3y, T3)
+        rv = [rf1; rf2; rf3]
+        @test dur(rv) ≈ sum(dur.(rv))
+        rm = [rv;;rv]
+        @test dur(rm) ≈ size(rm, 2) * maximum([T1, T2, T3])
+
+        # Test get properties
+        @test getproperty(rm, :Bx) ≈ real.(getproperty.(rm,:A))
+        @test getproperty(rm, :By) ≈ imag.(getproperty.(rm,:A))
+
     end
 
     @testset "Delay" begin
