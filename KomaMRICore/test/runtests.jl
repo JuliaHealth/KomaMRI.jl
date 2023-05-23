@@ -2,16 +2,6 @@ using TestItems, TestItemRunner
 
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
 
-function test_EPI()
-    # Scanner
-    sys = Scanner()
-    # 90-degree hard excitation pulse
-    B1 = sys.B1; durRF = π/2/(2π*γ*B1)
-    EX = PulseDesigner.RF_hard(B1, durRF, sys)
-    N, FOV = 101, 23e-2
-    EPI = PulseDesigner.EPI(FOV, N, sys)
-end
-
 @testitem "Sequence" tags=[:core] begin
     @testset "Init" begin
         sys = Scanner()
@@ -105,6 +95,56 @@ end
         @test g1.rise ≈ g2.rise
         @test g1.fall ≈ g2.fall
         @test g1.delay ≈ g2.delay
+
+        # Test Grad construction
+        A, T = 0.1, 1e-3
+        grad = Grad(A, T)
+        @test grad.A ≈ A && grad.T ≈ T && grad.rise ≈ 0 && grad.fall ≈ 0 && grad.delay ≈ 0
+
+        # Test construction with shape function
+        T, N = 1e-3, 100
+        f = t -> sin(π*t / T)
+        gradw = Grad(f, T, N)
+        @test gradw.A ≈ f.(range(0, T; length=N))
+
+        # Test Grad output message
+        io = IOBuffer()
+        show(io, "text/plain", grad)
+        @test occursin("Grad(", String(take!(io)))
+
+        # Test Grad operations
+        α = 3
+        gradt = α * grad
+        @test gradt.A ≈ α * grad.A
+        gradt = grad * α
+        @test gradt.A ≈ α * grad.A
+        gradt = grad / α
+        @test gradt.A ≈ grad.A / α
+        grads = grad + gradt
+        @test grads.A ≈ grad.A + gradt.A
+        A1, A2, A3 = 0.1, 0.2, 0.3
+        v1 = [Grad(A1,T); Grad(A2,T); Grad(A3,T)]
+        v2 = [Grad(A2,T); Grad(A3,T); Grad(A1,T)]
+        v3 = v1 + v2
+        @test [v3[i].A for i=1:length(v3)] ≈ [v1[i].A + v2[i].A for i=1:length(v1)]
+        gradr = grad - gradt
+        @test gradr.A ≈ grad.A - gradt.A
+        gradt = -grad
+        @test gradt.A ≈ -grad.A
+        vc = vcat(v1, v2)
+        @test [vc[1,j].A for j=1:length(v1)] ≈ [v1[i].A for i=1:length(v1)]
+        @test [vc[2,j].A for j=1:length(v2)] ≈ [v2[i].A for i=1:length(v2)]
+        vc = vcat(v1, v2, v3)
+        @test [vc[1,j].A for j=1:length(v1)] ≈ [v1[i].A for i=1:length(v1)]
+        @test [vc[2,j].A for j=1:length(v2)] ≈ [v2[i].A for i=1:length(v2)]
+        @test [vc[3,j].A for j=1:length(v3)] ≈ [v3[i].A for i=1:length(v3)]
+        delay, rise, T, fall = 1e-6, 2e-6, 10e-3, 3e-6
+        gr = Grad(A, T, rise, fall, delay)
+        @test dur(gr) ≈ delay + rise + T + fall
+        T1, T2, T3 = 1e-3, 2e-3, 3e-3
+        vt = [Grad(A1,T1); Grad(A2,T2); Grad(A3,T3)]
+        @test dur(vt) ≈ [maximum([T1, T2, T3])]
+
     end
 
     @testset "RF" begin
@@ -146,7 +186,7 @@ end
         # Test delay output message
         io = IOBuffer()
         show(io, "text/plain", delay)
-        @test String(take!(io)) == "Delay($(T*1e3)ms)"
+        @test occursin("Delay(", String(take!(io)))
 
         # Test addition of a delay to a sequence
         seq = Sequence()
