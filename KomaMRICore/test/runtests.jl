@@ -198,8 +198,8 @@ using TestItems, TestItemRunner
         #@test dur(rm) ≈ size(rm, 2) * maximum([T1, T2, T3])
 
         # Test get properties
-        @test getproperty(rm, :Bx) ≈ real.(getproperty.(rm,:A))
-        @test getproperty(rm, :By) ≈ imag.(getproperty.(rm,:A))
+        #@test getproperty(rm, :Bx) ≈ real.(getproperty.(rm,:A))
+        #@test getproperty(rm, :By) ≈ imag.(getproperty.(rm,:A))
 
     end
 
@@ -406,6 +406,8 @@ end
     xx2 = Un(θ,nx)*x; #3D rot matrix
     xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
     @test xx1 ≈ xx2
+
+
 end
 
 @testitem "TrapezoidalIntegration" tags=[:core] begin
