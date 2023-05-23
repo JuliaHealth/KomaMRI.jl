@@ -662,4 +662,12 @@ end
         obj = read_phantom_jemris(path*"/test_files/column1d.h5")
         @test obj.name == "column1d.h5"
     end
+    #Test JEMRIS
+    @testset "MRiLab" begin
+        path = @__DIR__
+        filename = path * "/test_files/brain_mrilab.mat"
+        FRange_filename = path * "/test_files/FRange.mat" #Slab within slice thickness
+        obj = read_phantom_MRiLab(filename; FRange_filename)
+        @test obj.name == "brain_mrilab.mat"
+    end
 end
