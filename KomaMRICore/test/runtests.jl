@@ -426,7 +426,23 @@ end
     xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
     @test xx1 ≈ xx2
 
-
+    # Test Spinor struct
+    α, β = rand(2)
+    s = Spinor(α, β)
+    @test s[1].α ≈ [Complex(α)] && s[1].β ≈ [Complex(β)]
+    io = IOBuffer()
+    show(io, "text/plain", s)
+    @test occursin("Spinor(", String(take!(io)))
+    α2, β2 = rand(2)
+    s2 = Spinor(α2, β2)
+    sp = s * s2
+    @test sp.α ≈ s.α.*s2.α .- conj.(s2.β).*s.β && sp.β ≈ s.α.*s2.β .+ conj.(s2.α).*s.β
+    φ, φ1, θ, φ2 = rand(4)
+    Rm = KomaMRICore.Rg(φ1, θ, φ2)
+    @test Rm.α ≈ [cos(θ/2)*exp(-1im*(φ1+φ2)/2)] && Rm.β ≈ [sin(θ/2)*exp(-1im*(φ1-φ2)/2)]
+    Rn = KomaMRICore.Rφ(φ, θ)
+    @test Rn.α ≈ [cos(θ/2)+0im] && Rn.β ≈ [exp(1im*φ)*sin(θ/2)]
+    @test abs(s) ≈ [α^2 + β^2]
 end
 
 @testitem "TrapezoidalIntegration" tags=[:core] begin
