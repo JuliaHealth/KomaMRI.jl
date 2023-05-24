@@ -655,6 +655,18 @@ end
         @test raw.params["patientName"] == "brain2D_axial"
         @test raw.params["trajectory"] == "other"
         @test raw.params["systemVendor"] == "KomaMRI.jl"
+
+        # Test signal_to_raw_data
+        signal1 = Vector()
+        for i=1:length(raw.profiles)
+            signal1 = [signal1; raw.profiles[i].data]
+        end
+        rawmrd = signal_to_raw_data(signal1, seq)
+        @test rawmrd.params["institutionName"] == raw.params["institutionName"]
+        io = IOBuffer()
+        show(io, "text/plain", rawmrd)
+        @test occursin("RawAcquisitionData[", String(take!(io)))
+
     end
     #Test JEMRIS
     @testset "JEMRIS" begin
