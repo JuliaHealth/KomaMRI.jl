@@ -11,11 +11,16 @@
 | [![][docr-img]][docr-url] | [![][paper-img1]][paper-url1]  | [![][gh-actions-img]][gh-actions-url] |
 | [![][docd-img]][docd-url] | [![][arXiv-img1]][arXiv-url1]  | [![][codecov-img]][codecov-url]       |
 ##### Submodules
+
 | **KomaMRI.jl**            | **KomaMRICore.jl**             | **KomaMRIPlots.jl**                   |
 |:-------------------------:|:------------------------------:|:-------------------------------------:|
 | [![][gh-actions-img1]][gh-actions-url] | [![][gh-actions-img2]][gh-actions-url] | [![][gh-actions-img3]][gh-actions-url]       |
 | [![][codecov-img1]][codecov-url] | [![][codecov-img2]][codecov-url] | [![][codecov-img3]][codecov-url]       |
-
+ ```
+📦 KomaMRI.jl (UI)                      
+├─ 📦 KomaMRICore.jl (Simulation and IO)
+└─ 📦 KomaMRIPlots.jl (Plots)           
+```
 </div>
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
