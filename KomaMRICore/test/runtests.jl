@@ -264,6 +264,25 @@ using TestItems, TestItemRunner
         @test adcs.Δf ≈ [adc.Δf, adb.Δf] && adcs.ϕ ≈ [adc.ϕ, adb.ϕ] && adcs.dur ≈ [adc.T + adc.delay, adb.T + adb.delay]
 
     end
+
+    using Suppressor
+    @testset "DiscreteSequence" begin
+        path = @__DIR__
+        seq = @suppress read_seq(path*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
+        simParams = KomaMRICore.default_sim_params()
+        t, Δt = KomaMRICore.get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
+        seqd = KomaMRICore.discretize(seq)
+        i1, i2 = rand(1:Int(floor(0.5*length(seqd)))), rand(Int(ceil(0.5*length(seqd))):length(seqd))
+        @test seqd[i1].t ≈ [t[i1]]
+        @test seqd[i1:i2-1].t ≈ t[i1:i2]
+        @test KomaMRICore.is_GR_on(seqd) == (sum(abs.([seqd.Gx[1:end-1]; seqd.Gy[1:end-1]; seqd.Gz[1:end-1]])) != 0)
+        @test KomaMRICore.is_RF_on(seqd) ==  (sum(abs.(seqd.B1[1:end-1])) != 0)
+        @test KomaMRICore.is_ADC_on(seqd) == (sum(abs.(seqd.ADC[1:end-1])) != 0)
+        @test KomaMRICore.is_GR_off(seqd) ==  !KomaMRICore.is_GR_on(seqd)
+        @test KomaMRICore.is_RF_off(seqd) ==  !KomaMRICore.is_RF_on(seqd)
+        @test KomaMRICore.is_ADC_off(seqd) == !KomaMRICore.is_ADC_on(seqd)
+    end
+
 end
 
 @testitem "PulseDesigner" tags=[:core] begin
