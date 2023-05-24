@@ -3,6 +3,7 @@ using TestItems, TestItemRunner
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
 
 @testitem "Sequence" tags=[:core] begin
+    using Suppressor
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -265,7 +266,6 @@ using TestItems, TestItemRunner
 
     end
 
-    using Suppressor
     @testset "DiscreteSequence" begin
         path = @__DIR__
         seq = @suppress read_seq(path*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
@@ -281,6 +281,24 @@ using TestItems, TestItemRunner
         @test KomaMRICore.is_GR_off(seqd) ==  !KomaMRICore.is_GR_on(seqd)
         @test KomaMRICore.is_RF_off(seqd) ==  !KomaMRICore.is_RF_on(seqd)
         @test KomaMRICore.is_ADC_off(seqd) == !KomaMRICore.is_ADC_on(seqd)
+    end
+
+    @testset "SequenceFunctions" begin
+        path = @__DIR__
+        seq = @suppress read_seq(path*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
+        t, Δt = KomaMRICore.get_uniform_times(seq, 1)
+        t_adc =  KomaMRICore.get_adc_sampling_times(seq)
+        M2, M2_adc = KomaMRICore.get_slew_rate(seq)
+        Gx, Gy, Gz = KomaMRICore.get_grads(seq, t)
+        Gmx, Gmy, Gmz = KomaMRICore.get_grads(seq, [t...;;])
+        @test reshape(Gmx, :, 1) ≈ Gx && reshape(Gmy, :, 1) ≈ Gy && reshape(Gmz, :, 1) ≈ Gz
+        @test is_ADC_on(seq) == is_ADC_on(seq, t)
+        @test is_RF_on(seq) == is_RF_on(seq, t)
+        @test KomaMRICore.is_Delay(seq) == !(is_GR_on(seq) || is_RF_on(seq) || is_ADC_on(seq))
+        @test size(M2, 1) == length(Δt) && size(M2_adc, 1) == length(t_adc)
+        io = IOBuffer()
+        show(io, "text/plain", seq)
+        @test occursin("Sequence[", String(take!(io)))
     end
 
 end
