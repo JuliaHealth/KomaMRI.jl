@@ -299,6 +299,40 @@ using TestItems, TestItemRunner
         io = IOBuffer()
         show(io, "text/plain", seq)
         @test occursin("Sequence[", String(take!(io)))
+
+        α = rand()
+        c = α + im*rand()
+        x = seq
+        y = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+        z = x + y
+        @test z.GR.A ≈ [x.GR  y.GR].A && z.RF.A ≈ [x.RF y.RF].A && z.ADC.N ≈ [x.ADC; y.ADC].N
+        z = x - y
+        @test z.GR.A ≈ [x.GR  -y.GR].A
+        z = -x
+        @test z.GR.A ≈ -x.GR.A
+        z = x * α
+        @test z.GR.A ≈ α*x.GR.A
+        z = α * x
+        @test z.GR.A ≈ α*x.GR.A
+        z = x * c
+        @test z.RF.A ≈ c*x.RF.A
+        z = c * x
+        @test z.RF.A ≈ c*x.RF.A
+        z = x / α
+        @test z.GR.A ≈ x.GR.A/α
+        @test size(y) == size(y.GR[1,:])
+        z = x + x.GR[3,1]
+        @test z.GR.A[1, end] ≈ x.GR[3,1].A
+        z = x.GR[3,1] + x
+        @test z.GR.A[1, 1] ≈ x.GR[3,1].A
+        z = x + x.RF[1,1]
+        @test z.RF.A[1, end] ≈ x.RF[1,1].A
+        z = x.RF[1,1] + x
+        @test z.RF.A[1, 1] ≈ x.RF[1,1].A
+        z = x + x.ADC[3,1]
+        @test z.ADC.N[end] ≈ x.ADC[3,1].N
+        z = x.ADC[3,1] + x
+        @test z.ADC.N[1] ≈ x.ADC[3,1].N
     end
 
 end
