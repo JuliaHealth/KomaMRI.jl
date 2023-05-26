@@ -85,6 +85,12 @@ To install just write the following in the Julia REPL:
 ```julia
 ] add KomaMRI
 ```
+
+**IMPORTANT!!!** After Julia 1.9 release, some features don't work properly when using multithreading with the user interface. By the time being, the following workaround is necessary to solve some errors:
+```julia
+] add WebIO#a18e830a5a4d1193472e2a111ca4a62c1165f716
+```
+
 ## First run
 KomaMRI.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
 

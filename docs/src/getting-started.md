@@ -13,6 +13,12 @@ julia> ]
 
 (@v1.8) pkg> add KomaMRI
 ```
+
+**IMPORTANT!!!** After Julia 1.9 release, some features don't work properly when using multithreading with the user interface. By the time being, the following workaround is necessary to solve some errors:
+```julia
+(@v1.9) pkg> add WebIO#a18e830a5a4d1193472e2a111ca4a62c1165f716
+```
+
 Then press `Ctrl+C` or `backspace` to return to the `julia>` prompt.
 
 
