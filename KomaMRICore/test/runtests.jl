@@ -711,6 +711,25 @@ end
     @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
 end
 
+@testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
+    using Suppressor
+    path = joinpath(@__DIR__, "test_files")
+    seq = @suppress read_seq(joinpath(path, "epi_100x100_TE100_FOV230.seq"))
+    obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
+    sys = Scanner()
+    simParams = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>"mat")
+    sig = @suppress simulate(obj, seq, sys; simParams)
+    sig = sig / prod(size(obj))
+    simParams["sim_method"] = KomaMRICore.BlochDict()
+    sig2 = simulate(obj, seq, sys; simParams)
+    sig2 = sig2 / prod(size(obj))
+    @test sig ≈ sig2
+
+    io = IOBuffer()
+    show(io, "text/plain", KomaMRICore.BlochDict())
+    @test occursin("BlochDict(", String(take!(io)))
+end
+
 @testitem "IO" tags=[:core] begin
     using Suppressor
     #Test Pulseq
