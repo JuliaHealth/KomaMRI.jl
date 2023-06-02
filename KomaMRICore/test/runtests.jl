@@ -393,7 +393,7 @@ end
     Dλ2 = [-6e-6; -3e-6; 0.; 3e-6; 6e-6]
     Dθ = [-8e-6; -4e-6; 0.; 4e-6; 8e-6]
     u = (x,y,z,t)->0
-    obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ1, Dθ=Dλ1, ux=u, uy=u, uz=u)
+    obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, ux=u, uy=u, uz=u)
     @test   obj.name == name &&
             obj.x ≈ x &&
             obj.y ≈ y &&
