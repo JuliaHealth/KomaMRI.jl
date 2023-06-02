@@ -86,7 +86,7 @@ To install just write the following in the Julia REPL:
 ] add KomaMRI
 ```
 
-**IMPORTANT!!!** After Julia 1.9 release, some features don't work properly when using multithreading with the user interface. By the time being, the following workaround is necessary to solve some errors:
+**IMPORTANT!!!** In Julia 1.9 and KomaMRI v0.7.3, some UI features don't work properly when using Julia with multiple threads (by starting it with `julia -t auto` or `julia -t Nthreads`). This is currently being fixed. For the time being, we recommend installing a dev version of WebIO.jl that fixes these problems. This can be done by doing the following:
 ```julia
 ] add WebIO#a18e830a5a4d1193472e2a111ca4a62c1165f716
 ```
