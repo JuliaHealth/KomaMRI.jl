@@ -5,10 +5,10 @@
 The Scanner struct.
 
 # Arguments
-- `B0`: (`::Real`, `=1.5`, `[T]`) main magnetic field amplitude
+- `B0`: (`::Real`, `=1.5`, `[T]`) main magnetic field strength
 - `B1`: (`::Real`, `=10e-6`, `[T]`) maximum RF amplitude
 - `Gmax`: (`::Real`, `=60e-3`, `[T/m]`) maximum gradient amplitude
-- `Smax`: (`::Real`, `=500`, `[T/m/s]`) maximum slew-rate for gradients
+- `Smax`: (`::Real`, `=500`, `[mT/m/ms]`) gradient maximum slew-rate
 - `ADC_Δt`: (`::Real`, `=2e-6`, `[s]`) ADC raster time
 - `seq_Δt`: (`::Real`, `=1e-5`, `[s]`) sequence-block raster time
 - `GR_Δt`: (`::Real`, `=1e-5`, `[s]`) gradient raster time

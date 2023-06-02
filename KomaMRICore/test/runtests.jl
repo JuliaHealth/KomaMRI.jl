@@ -275,9 +275,18 @@ using TestItems, TestItemRunner
         i1, i2 = rand(1:Int(floor(0.5*length(seqd)))), rand(Int(ceil(0.5*length(seqd))):length(seqd))
         @test seqd[i1].t ≈ [t[i1]]
         @test seqd[i1:i2-1].t ≈ t[i1:i2]
-        @test KomaMRICore.is_GR_on(seqd) == (sum(abs.([seqd.Gx[1:end-1]; seqd.Gy[1:end-1]; seqd.Gz[1:end-1]])) != 0)
-        @test KomaMRICore.is_RF_on(seqd) ==  (sum(abs.(seqd.B1[1:end-1])) != 0)
-        @test KomaMRICore.is_ADC_on(seqd) == (sum(abs.(seqd.ADC[1:end-1])) != 0)
+
+        T, N = 1, 4
+        seq = RF(1, 1)
+        seq += Sequence([Grad(1, 1)])
+        seq += ADC(N, 1)
+        simParams = KomaMRICore.default_sim_params()
+        simParams["Δt"], simParams["Δt_rf"] = T/N, T/N
+        seqd = KomaMRICore.discretize(seq; simParams)
+        i = Int(floor(length(seqd) / 3))
+        @test is_RF_on(seq[1]) == is_RF_on(seqd[1*i:1*i+1]) && is_GR_on(seq[1]) == is_GR_on(seqd[1*i:1*i+1]) && is_ADC_on(seq[1]) == is_ADC_on(seqd[1*i:1*i+1])
+        @test is_RF_on(seq[2]) == is_RF_on(seqd[2*i:2*i+1]) && is_GR_on(seq[2]) == is_GR_on(seqd[2*i:2*i+1]) && is_ADC_on(seq[2]) == is_ADC_on(seqd[2*i:2*i+1])
+        @test is_RF_on(seq[3]) == is_RF_on(seqd[3*i:3*i+1]) && is_GR_on(seq[3]) == is_GR_on(seqd[3*i:3*i+1]) && is_ADC_on(seq[3]) == is_ADC_on(seqd[3*i:3*i+1])
         @test KomaMRICore.is_GR_off(seqd) ==  !KomaMRICore.is_GR_on(seqd)
         @test KomaMRICore.is_RF_off(seqd) ==  !KomaMRICore.is_RF_on(seqd)
         @test KomaMRICore.is_ADC_off(seqd) == !KomaMRICore.is_ADC_on(seqd)
@@ -384,7 +393,7 @@ end
     Dλ2 = [-6e-6; -3e-6; 0.; 3e-6; 6e-6]
     Dθ = [-8e-6; -4e-6; 0.; 4e-6; 8e-6]
     u = (x,y,z,t)->0
-    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, u, u, u)
+    obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ1, Dθ=Dλ1, ux=u, uy=u, uz=u)
     @test   obj.name == name &&
             obj.x ≈ x &&
             obj.y ≈ y &&
