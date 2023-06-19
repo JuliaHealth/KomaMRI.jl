@@ -44,10 +44,23 @@ The Phantom struct.
 	Dλ2::AbstractVector{T} = zeros(size(x))
 	Dθ::AbstractVector{T} =  zeros(size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
+
+	"""
 	#Motion
-	ux::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
-	uy::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
-	uz::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
+	# ux::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
+	# uy::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
+	# uz::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
+	"""
+
+	# Segments
+	dur::AbstractVector{T} = [Inf]
+	K::Int = 2
+
+	# Motion
+	Δx::AbstractArray{T, 2} = zeros(size(x),K-1)
+	Δy::AbstractArray{T, 2} = zeros(size(x),K-1)
+	Δz::AbstractArray{T, 2} = zeros(size(x),K-1)
+	
 end
 
 # Phantom() = Phantom(name="spin",x=zeros(1,1))
@@ -69,10 +82,15 @@ Base.getindex(obj::Phantom, p::AbstractRange) = begin
 			Dλ1=obj.Dλ1[p],
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
+			dur=obj.dur,
+			K=obj.K,
+			Δx=obj.Δx[p],
+			Δy=obj.Δy[p],
+			Δz=obj.Δz[p]
 			#Χ=obj.Χ[p], #TODO!
-			ux=obj.ux[p],
-			uy=obj.uy[p],
-			uz=obj.uz[p]
+			# ux=obj.ux[p],
+			# uy=obj.uy[p],
+			# uz=obj.uz[p]
 			)
 end
 """Separate object spins in a sub-group."""
@@ -90,10 +108,15 @@ Base.view(obj::Phantom, p::AbstractRange) = begin
 			Dλ1=obj.Dλ1[p],
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
+			dur=obj.dur,
+			K=obj.K,
+			Δx=obj.Δx[p,:],
+			Δy=obj.Δy[p,:],
+			Δz=obj.Δz[p,:]
 			#Χ=obj.Χ[p], #TODO!
-			ux=obj.ux[p],
-			uy=obj.uy[p],
-			uz=obj.uz[p]
+			# ux=obj.ux[p],
+			# uy=obj.uy[p],
+			# uz=obj.uz[p]
 			)
 end
 
@@ -113,10 +136,15 @@ end
 		Dλ1=[s1.Dλ1;s2.Dλ1],
 		Dλ2=[s1.Dλ2;s2.Dλ2],
 		Dθ=[s1.Dθ;s2.Dθ],
+		dur=s1.dur,
+		K=s1.K,
+		Δx=s1.Δx,
+		Δy=s1.Δy,
+		Δz=s1.Δz
 		#Χ=obj.Χ[p], #TODO!
-		ux=s1.ux,
-		uy=s1.uy,
-		uz=s1.uz
+		# ux=s1.ux,
+		# uy=s1.uy,
+		# uz=s1.uz
 	)
 end
 #Fraction of compartments
@@ -134,10 +162,15 @@ end
 		Dλ1=obj.Dλ1,
 		Dλ2=obj.Dλ2,
 		Dθ=obj.Dθ,
+		dur=obj.dur,
+		K=obj.K,
+		Δx=obj.Δx,
+		Δy=obj.Δy,
+		Δz=obj.Δz
 		#Χ=obj.Χ[p], #TODO!
-		ux=obj.ux,
-		uy=obj.uy,
-		uz=obj.uz
+		# ux=obj.ux,
+		# uy=obj.uy,
+		# uz=obj.uz
 	)
 end
 
@@ -436,6 +469,31 @@ end
 
 
 """
+function time_partitioner(t::AbstractVector, dur::AbstractVector, pieces::AbstractVector)
+	t_aux = t
+	aux = []
+	while length(t_aux) > 0
+		push!(aux,t_aux[t_aux.<= sum(dur)])
+		filter!(x -> x > sum(dur), t_aux)
+
+		if length(t_aux) > 0
+			t_aux .-= sum(dur)
+		end
+	end
+
+	times = []
+	for cycle in aux
+		for i in 1:length(pieces)-1
+			push!(times,filter(x -> x>=pieces[i] && x<pieces[i+1], cycle))
+		end
+	end
+
+	times
+end
+"""
+
+
+"""
 phantom = read_phantom_file(filename)
 
 Reads a (.phantom) file and creates a Phantom structure from it
@@ -444,11 +502,11 @@ function read_phantom_file(filename)
     fid = HDF5.h5open(filename,"r")
 
 	name    = read_attribute(fid,"Name")
+	version = read_attribute(fid,"Version")
     dims    = read_attribute(fid,"Dims")
     dynamic = Bool(read_attribute(fid,"Dynamic"))
     Ns      = read_attribute(fid,"Ns")
-    version = read_attribute(fid,"Version")
-
+    
     # --------------- Spin positions -----------------
     axis = HDF5.keys(fid["position"])
     if dims == length(axis)
@@ -600,31 +658,31 @@ function read_phantom_file(filename)
 		end
     end
 
-	phantom = Phantom{Float64}( name = name,
-								x = x[:],
-								y = y[:],
-								z = z[:],
-								ρ = rho_values[:],
-								T1 = T1_values[:],
-								T2 = T2_values[:],
-								Δw = Deltaw_values[:])
-
     # ----------------- Diffusion --------------------
     # NOT IMPLEMENTED
 
     # ----------------- Motion --------------------
-	if dynamic
+	if dynamic # Dynamic phantom
 		motion = fid["motion"]
 		keys = HDF5.keys(motion)
 
+		segments = motion["segments"]
+		N = read_attribute(segments, "N")
+		K = read_attribute(segments, "K")
+		dur = read(segments["dur"])
+
 		# Motion
+		Δx = zeros(Ns,K-1)
+		Δy = zeros(Ns,K-1)
+		Δz = zeros(Ns,K-1)
+
 		for key in keys
 			if key != "segments"
 				type = read_attribute(motion[key], "type")
 
 				if type == "Explicit"
-					values = read(motion[key]["values"])
-					if Ns != length(values[:,1])
+					deltas = read(motion[key]["values"])
+					if Ns != length(deltas[:,1])
 						print("Error: motion vector dimensions mismatch")
 					end
 
@@ -634,7 +692,7 @@ function read_phantom_file(filename)
 						table = read(motion[key]["table"])
 						N = read_attribute(motion[key],"N")
 						if N == length(table[:,1])
-							values = table[index]
+							deltas = table[index]
 						else
 							print("Error: motion table dimensions mismatch")
 						end
@@ -642,9 +700,27 @@ function read_phantom_file(filename)
 						print("Error: motion vector dimensions mismatch")
 					end
 				end
-				
+
+				if 	   key == "motionx"
+					Δx = deltas
+				elseif key == "motiony"
+					Δy = deltas
+				elseif key == "motionz"
+					Δz = deltas
+				end
+
+				if length(dur) != N
+					print("Error")
+				end
+
+				if length(deltas[1,:]) != K-1
+					print("Error")
+				end
+
+				"""
 				# Here we should process motion values. First column is the motion model ID
 				# and the rest of columns contain the values of the movement parameters for that model
+
 				motion_models = values[:,1]
 				β = Float32.(values[:,2:end])
 				u = [FuncWrapper((t)->0) for i in 1:Ns]
@@ -660,20 +736,46 @@ function read_phantom_file(filename)
 					# 4. Cubic interpolation of K segments (...)
 				end
 
-				if 	   key == "motionx"
-					phantom.ux = u
-				elseif key == "motiony"
-					phantom.uy = u
-				elseif key == "motionz"
-					phantom.uz = u
-				end
+				phantom.dur = dur
+				phantom.K = K
+
+				pieces = cumsum(reduce(vcat, [[dur[j]/K for i in 1:K] for j in 1:length(dur)])', dims=2)
+				pieces = vec(hcat(0,pieces))
+				
+				u = [FuncWrapper((t)-> begin
+									Δ_vector = vec(hcat(0,deltas[i,:]',0))
+
+									# TODO: finish interpolation
+
+
+									
+								end) 
+					for i in 1:Ns]
+				"""
 			end
 		end
 
-		# Periodicity
-		segments = motion["segments"]
-		N = read_attribute(segments, "N")
-		dur = read(segments["dur"])
+		phantom = Phantom{Float64}(name=name,
+                          		   x=x,
+                          		   y=y,
+                          		   z=z,
+                          		   ρ=rho_values,
+                          		   T1=T1_values,
+                          		   T2=T2_values,
+								   dur=dur,
+								   K=K,
+								   Δx=Δx,
+								   Δy=Δy,
+								   Δz=Δz)
+
+	else # Static phantom
+		phantom = Phantom{Float64}(name=name,
+                          		   x=x,
+                          		   y=y,
+                          		   z=z,
+                          		   ρ=rho_values,
+                          		   T1=T1_values,
+                          		   T2=T2_values)
 	end
 
 	close(fid)
@@ -684,9 +786,9 @@ end
 
 """
 phantom = read_nifti_file(folder; ss)
-
 Reads a (.nii) file and creates a Phantom structure from it
 """
+
 function read_nifti_file(folder; ss=1::Int)
 	T1_path = folder*"T1map.nii.gz";
 	T2_path = folder*"T2map.nii.gz";
