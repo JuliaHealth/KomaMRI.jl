@@ -10,6 +10,79 @@ end
 
 output_Ndim(sim_method::BlochMov) = 2 #time-points x coils
 
+
+function time_partitioner(t::AbstractVector{T}, dur::AbstractVector{T}, limits::AbstractVector{T})where {T<:Real}
+	t_aux = t
+	aux = []
+	while length(t_aux) > 0
+		push!(aux,t_aux[t_aux.<= sum(dur)])
+
+        t_arr = Array(t_aux)
+		filter!(x -> x > sum(dur), t_arr)
+        t_aux = KomaMRICore.CuArray(t_arr)
+
+		if length(t_aux) > 0
+			t_aux .-= sum(dur)
+		end
+	end
+
+	times = []
+	for cycle in aux
+		for i in 1:length(limits)-1
+            cycle_arr = Array(cycle)
+			push!(times,filter(x -> x>=limits[i] && x<limits[i+1], cycle_arr))
+		end
+	end
+
+	times
+end
+
+
+function get_pieces_limits(dur::AbstractVector{T}, K::Int)where {T<:Real}
+    limits = cumsum(reduce(vcat, [[dur[j]/K for i in 1:K] for j in 1:length(dur)])', dims=2)
+	limits = vec(hcat(0,limits))
+
+    limits
+end
+
+
+function get_displacements(p::Phantom{T}, t::AbstractVector{T})where {T<:Real}
+    Ns = length(p.x)
+    dur = p.dur
+    limits = get_pieces_limits(dur, p.K)
+    times = time_partitioner(t, dur, limits)
+
+    Δx = hcat(zeros(Ns,1),p.Δx,zeros(Ns,1))
+    Δy = hcat(zeros(Ns,1),p.Δy,zeros(Ns,1))
+    Δz = hcat(zeros(Ns,1),p.Δz,zeros(Ns,1))
+
+    aux_x = zeros(Ns,1)
+    aux_y = zeros(Ns,1)
+    aux_z = zeros(Ns,1)
+
+    for i in 1:length(times)
+        j = k = i
+        while j>(length(limits)-1)
+            j -= (length(limits)-1)
+        end
+        while k>(p.K)
+            k -= p.K
+        end
+        α = (times[i] .- limits[j]) ./ (limits[j+1] - limits[j])
+        
+        aux_x = hcat(aux_x, Δx[:,k+1]*α' + Δx[:,k]*(1 .- α)') 
+        aux_y = hcat(aux_y, Δy[:,k+1]*α' + Δy[:,k]*(1 .- α)') 
+        aux_z = hcat(aux_z, Δz[:,k+1]*α' + Δz[:,k]*(1 .- α)') 
+    end
+
+    Ux = CuArray(aux_x[:,2:end])
+    Uy = CuArray(aux_y[:,2:end])
+    Uz = CuArray(aux_z[:,2:end])
+
+    Ux,Uy,Uz
+end
+
+
 function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochMov) where {T<:Real}
     return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
 end
@@ -46,16 +119,22 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     # yt = p.y .+ p.uy(seq.t') 
     # zt = p.z .+ p.uz(seq.t') 
 
-    Ux = [p.ux[i].f for i in 1:length(p.ux)]
-    Uy = [p.uy[i].f for i in 1:length(p.uy)]
-    Uz = [p.uz[i].f for i in 1:length(p.uz)]
+    # Ux = [p.ux[i].f for i in 1:length(p.ux)]
+    # Uy = [p.uy[i].f for i in 1:length(p.uy)]
+    # Uz = [p.uz[i].f for i in 1:length(p.uz)]
 
-    xt = p.x .+ reduce(vcat, collect(map(f -> f(seq.t'), Ux)))
-    yt = p.y .+ reduce(vcat, collect(map(g -> g(seq.t'), Uy)))
-    zt = p.z .+ reduce(vcat, collect(map(h -> h(seq.t'), Uz)))
+    # xt = p.x .+ reduce(vcat, collect(map(f -> f(seq.t'), Ux)))
+    # yt = p.y .+ reduce(vcat, collect(map(g -> g(seq.t'), Uy)))
+    # zt = p.z .+ reduce(vcat, collect(map(h -> h(seq.t'), Uz)))
+
+    Ux, Uy, Uz = get_displacements(p,seq.t)
+
+    xt = p.x .+ Ux
+    yt = p.y .+ Uy
+    zt = p.z .+ Uz
 
     #Effective field
-    Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
+    Bz = Float32.(xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ))
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π * γ) .* cumtrapz(seq.Δt', Bz)
@@ -97,14 +176,39 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
         # yt = p.y .+ p.uy(p.x, p.y, p.z, s.t)
         # zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
 
-        Ux = [p.ux[i].f for i in 1:length(p.ux)]
-        Uy = [p.uy[i].f for i in 1:length(p.uy)]
-        Uz = [p.uz[i].f for i in 1:length(p.uz)]
+        # Ux = [p.ux[i].f for i in 1:length(p.ux)]
+        # Uy = [p.uy[i].f for i in 1:length(p.uy)]
+        # Uz = [p.uz[i].f for i in 1:length(p.uz)]
 
-        xt = p.x .+ reduce(vcat, collect(map(f -> f(s.t), Ux)))
-        yt = p.y .+ reduce(vcat, collect(map(g -> g(s.t), Uy)))
-        zt = p.z .+ reduce(vcat, collect(map(h -> h(s.t), Uz)))
+        # xt = p.x .+ reduce(vcat, collect(map(f -> f(s.t), Ux)))
+        # yt = p.y .+ reduce(vcat, collect(map(g -> g(s.t), Uy)))
+        # zt = p.z .+ reduce(vcat, collect(map(h -> h(s.t), Uz)))
 
+        Ux, Uy, Uz = get_displacements(p,s.t)
+
+
+        if size(Ux)[2] == 0
+            Ux = CuArray(zeros(length(p.x)))
+        end
+        if size(Uy)[2] == 0
+            Uy = CuArray(zeros(length(p.y)))
+        end
+        if size(Uz)[2] == 0
+            Uz = CuArray(zeros(length(p.z)))
+        end
+
+        # print("Excitation:\n")
+        # print("p.x: ", p.x)
+        # print('\n')
+        # print("Ux: ")
+        # display(Ux)
+        # print('\n')
+        # print("s.t: ", s.t)
+
+        xt = p.x + reshape(Ux,(length(p.x),))
+        yt = p.y + reshape(Ux,(length(p.y),))
+        zt = p.z + reshape(Ux,(length(p.z),))
+    
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
