@@ -709,5 +709,5 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
 	M2_adc = [M2x_adc M2y_adc M2z_adc]
 	#Final
-	M2*1_000, M2_adc*1_000
+	M2, M2_adc
 end
