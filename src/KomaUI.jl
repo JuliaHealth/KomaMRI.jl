@@ -115,7 +115,7 @@ global raw_ismrmrd = RawAcquisitionData(Dict(
 global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
 global kspace = [0.0im 0.; 0. 0.]
-global matfolder = pwd()
+global matfolder = tempdir()
 #Reco
 default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solver=>"admm",:regularization=>"TV")
 global recParams = merge(default, rec)
@@ -131,6 +131,32 @@ global pha_obs = Observable{Phantom}(phantom)
 global sig_obs = Observable{RawAcquisitionData}(raw_ismrmrd)
 global img_obs = Observable{Any}(image)
 global mat_obs = Observable{Any}(matfolder)
+
+#
+handle(w, "matfolder") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+end
+handle(w, "matfolderseq") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="sequence")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+end
+handle(w, "matfolderpha") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="phantom")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+end
+handle(w, "matfoldersca") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="scanner")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+end
+handle(w, "matfolderraw") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="raw")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+end
+handle(w, "matfolderima") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="image")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+end
 
 ## MENU FUNCTIONS
 handle(w, "index") do args...
@@ -406,78 +432,78 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
         end
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
-# Folder observable
-load_folder = opendialog(; label = "Save All", properties = ["openDirectory"], icon = "far fa-save")
-map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
-            global matfolder = f[1]
-            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="")
-            @js_ w Toasty("1", "Saved .mat files" , str_toast);
-            matfolder
-        else
-            matfolder #default sequence
-        end
-    , mat_obs, load_folder)
-w = content!(w, "#matfolder", load_folder, async=false)
-
-load_folder_seq = savedialog(; label = "Sequence", defaultPath = "seq.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
-map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
-            global matfolder = dirname(f)
-            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="sequence", matfilename=basename(f))
-            @js_ w Toasty("1", "Saved .mat files" , str_toast);
-            matfolder
-        else
-            matfolder #default sequence
-        end
-    , mat_obs, load_folder_seq)
-w = content!(w, "#matfolderseq", load_folder_seq, async=false)
-
-load_folder_pha = savedialog(; label = "Phantom", defaultPath = "phantom.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
-map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
-            global matfolder = dirname(f)
-            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="phantom", matfilename=basename(f))
-            @js_ w Toasty("1", "Saved .mat files" , str_toast);
-            matfolder
-        else
-            matfolder #default sequence
-        end
-    , mat_obs, load_folder_pha)
-w = content!(w, "#matfolderpha", load_folder_pha, async=false)
-
-load_folder_sca = savedialog(; label = "Scanner", defaultPath = "scanner.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
-map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
-            global matfolder = dirname(f)
-            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="scanner", matfilename=basename(f))
-            @js_ w Toasty("1", "Saved .mat files" , str_toast);
-            matfolder
-        else
-            matfolder #default sequence
-        end
-    , mat_obs, load_folder_sca)
-w = content!(w, "#matfoldersca", load_folder_sca, async=false)
-
-load_folder_raw = savedialog(; label = "Raw", defaultPath = "raw.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
-map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
-            global matfolder = dirname(f)
-            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="raw", matfilename=basename(f))
-            @js_ w Toasty("1", "Saved .mat files" , str_toast);
-            matfolder
-        else
-            matfolder #default sequence
-        end
-    , mat_obs, load_folder_raw)
-w = content!(w, "#matfolderraw", load_folder_raw, async=false)
-
-load_folder_ima = savedialog(; label = "Image", defaultPath = "image.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
-map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
-            global matfolder = dirname(f)
-            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="image", matfilename=basename(f))
-            @js_ w Toasty("1", "Saved .mat files" , str_toast);
-            matfolder
-        else
-            matfolder #default sequence
-        end
-    , mat_obs, load_folder_ima)
-w = content!(w, "#matfolderima", load_folder_ima, async=false)
+## Folder observable
+#load_folder = opendialog(; label = "Save All", properties = ["openDirectory"], icon = "far fa-save")
+#map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+#            global matfolder = f[1]
+#            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="")
+#            @js_ w Toasty("1", "Saved .mat files" , str_toast);
+#            matfolder
+#        else
+#            matfolder #default sequence
+#        end
+#    , mat_obs, load_folder)
+#w = content!(w, "#matfolder", load_folder, async=false)
+#
+#load_folder_seq = savedialog(; label = "Sequence", defaultPath = "seq.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+#map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+#            global matfolder = dirname(f)
+#            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="sequence", matfilename=basename(f))
+#            @js_ w Toasty("1", "Saved .mat files" , str_toast);
+#            matfolder
+#        else
+#            matfolder #default sequence
+#        end
+#    , mat_obs, load_folder_seq)
+#w = content!(w, "#matfolderseq", load_folder_seq, async=false)
+#
+#load_folder_pha = savedialog(; label = "Phantom", defaultPath = "phantom.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+#map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+#            global matfolder = dirname(f)
+#            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="phantom", matfilename=basename(f))
+#            @js_ w Toasty("1", "Saved .mat files" , str_toast);
+#            matfolder
+#        else
+#            matfolder #default sequence
+#        end
+#    , mat_obs, load_folder_pha)
+#w = content!(w, "#matfolderpha", load_folder_pha, async=false)
+#
+#load_folder_sca = savedialog(; label = "Scanner", defaultPath = "scanner.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+#map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+#            global matfolder = dirname(f)
+#            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="scanner", matfilename=basename(f))
+#            @js_ w Toasty("1", "Saved .mat files" , str_toast);
+#            matfolder
+#        else
+#            matfolder #default sequence
+#        end
+#    , mat_obs, load_folder_sca)
+#w = content!(w, "#matfoldersca", load_folder_sca, async=false)
+#
+#load_folder_raw = savedialog(; label = "Raw", defaultPath = "raw.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+#map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+#            global matfolder = dirname(f)
+#            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="raw", matfilename=basename(f))
+#            @js_ w Toasty("1", "Saved .mat files" , str_toast);
+#            matfolder
+#        else
+#            matfolder #default sequence
+#        end
+#    , mat_obs, load_folder_raw)
+#w = content!(w, "#matfolderraw", load_folder_raw, async=false)
+#
+#load_folder_ima = savedialog(; label = "Image", defaultPath = "image.mat", filters = [(; name = "Matlab Data", extensions = ["mat"])])
+#map!(f->if f!="" #Assigning function of data when load button (opendialog) is changed
+#            global matfolder = dirname(f)
+#            str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="image", matfilename=basename(f))
+#            @js_ w Toasty("1", "Saved .mat files" , str_toast);
+#            matfolder
+#        else
+#            matfolder #default sequence
+#        end
+#    , mat_obs, load_folder_ima)
+#w = content!(w, "#matfolderima", load_folder_ima, async=false)
 
 #Update Koma version
 version = string(KomaMRICore.__VERSION__)
