@@ -255,3 +255,43 @@ function get_breaks_in_RF_key_points(seq::Sequence, t)
 	end
 	return key_idxs
 end
+
+
+
+# ---------------------------------------------------------------------------------------------------
+
+function time_partitioner(t::AbstractVector{T}, dur::AbstractVector{T}, limits::AbstractVector{T})where {T<:Real}
+	t_aux = t
+	aux = []
+	while length(t_aux) > 0
+		push!(aux,t_aux[t_aux.<= sum(dur)])
+
+        t_arr = Array(t_aux)
+		filter!(x -> x >= sum(dur), t_arr)
+        t_aux = KomaMRICore.CuArray(t_arr)
+
+		if length(t_aux) > 0
+			t_aux .-= sum(dur)
+		end
+	end
+
+	times = []
+	for cycle in aux
+		for i in 1:length(limits)-1
+            cycle_arr = Array(cycle)
+			push!(times,filter(x -> x>=limits[i] && x<limits[i+1], cycle_arr))
+		end
+	end
+
+	times
+end
+
+
+
+
+function get_pieces_limits(dur::AbstractVector{T}, K::Int)where {T<:Real}
+    limits = cumsum(reduce(vcat, [[dur[j]/K for i in 1:K] for j in 1:length(dur)])', dims=2)
+	limits = vec(hcat(0,limits))
+
+    limits
+end
