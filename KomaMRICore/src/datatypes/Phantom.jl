@@ -57,9 +57,9 @@ The Phantom struct.
 	K::Int = 2
 
 	# Motion
-	Δx::AbstractArray{T, 2} = zeros(size(x),K-1)
-	Δy::AbstractArray{T, 2} = zeros(size(x),K-1)
-	Δz::AbstractArray{T, 2} = zeros(size(x),K-1)
+	Δx::AbstractArray{T, 2} = zeros(length(x),K-1)
+	Δy::AbstractArray{T, 2} = zeros(length(x),K-1)
+	Δz::AbstractArray{T, 2} = zeros(length(x),K-1)
 	
 end
 
