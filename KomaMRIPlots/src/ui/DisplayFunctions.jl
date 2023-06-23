@@ -723,7 +723,8 @@ julia> plot_phantom_map(obj2D, :ρ)
 julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
-function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=nothing, darkmode=false, view_2d=false, colorbar=true)
+function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=nothing, darkmode=true, view_2d=false, colorbar=true,
+							x0=-maximum(abs.([ph.x ph.y ph.z]))*1e2, xf=maximum(abs.([ph.x ph.y ph.z]))*1e2)						
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
@@ -762,11 +763,11 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 	end
 	cmin_key *= factor
 	cmax_key *= factor
-	x0 = -maximum(abs.([ph.x ph.y ph.z]))*1e2
-    xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
+	# x0 = -maximum(abs.([ph.x ph.y ph.z]))*1e2
+    # xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;title=ph.name*": "*string(key),
+	l = PlotlyJS.Layout(;title=ph.name*": "*string(key)*" (t = "*t0*" s)",
 		xaxis_title="x",
 		yaxis_title="y",
 		plot_bgcolor=plot_bgcolor,
@@ -776,12 +777,18 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 		xaxis_zerolinecolor=grid_color,
 		yaxis_zerolinecolor=grid_color,
 		font_color=text_color,
+
+		xaxis_range=[x0,xf]*1e2,
+		yaxis_range=[x0,xf]*1e2,
+		zaxis_range=[x0,xf]*1e2,
+
 		scene=attr(
-			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
-			yaxis=attr(title="y",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
-			zaxis=attr(title="z",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			xaxis=attr(title="x",ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			yaxis=attr(title="y",ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			zaxis=attr(title="z",ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			aspectmode="manual",
 			aspectratio=attr(x=1,y=1,z=1)),
+
 		margin=attr(t=50,l=0,r=0),
 		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
 		xaxis=attr(constrain="domain"),
@@ -793,24 +800,29 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
     if width !== nothing
         l.width = width
     end
+
+	Ux, Uy, Uz = reshape.(Array.(KomaMRICore.get_displacements(ph,Float64.([t0]))),(length(ph.x),))
+
+	# display(Ux)
+
 	if view_2d
-	h = PlotlyJS.scatter( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
-						y=(ph.y .+ ph.uy(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
-						mode="markers",
-						marker=attr(color=getproperty(ph,key)*factor,
-									showscale=colorbar,
-									colorscale=colormap,
-									colorbar=attr(ticksuffix=unit, title=string(key)),
-									cmin=cmin_key,
-									cmax=cmax_key,
-									size=4
-									),
-						text=round.(getproperty(ph,key)*factor,digits=4),
-						hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")
+	h = PlotlyJS.scatter( 	x=(ph.x .+ Ux)*1e2,
+							y=(ph.y .+ Uy)*1e2,
+							mode="markers",
+							marker=attr(color=getproperty(ph,key)*factor,
+										showscale=colorbar,
+										colorscale=colormap,
+										colorbar=attr(ticksuffix=unit, title=string(key)),
+										cmin=cmin_key,
+										cmax=cmax_key,
+										size=4
+										),
+							text=round.(getproperty(ph,key)*factor,digits=4),
+							hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")
 	else
-	h = PlotlyJS.scatter3d( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
-							y=(ph.y .+ ph.uy(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
-							z=(ph.z .+ ph.uz(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
+	h = PlotlyJS.scatter3d( x=(ph.x .+ Ux)*1e2,
+							y=(ph.y .+ Uy)*1e2,
+							z=(ph.z .+ Uz)*1e2,
 							mode="markers",
 							marker=attr(color=getproperty(ph,key)*factor,
 										showscale=colorbar,
