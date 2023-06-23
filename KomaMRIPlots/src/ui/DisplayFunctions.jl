@@ -767,7 +767,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
     # xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;title=ph.name*": "*string(key)*" (t = "*t0*" s)",
+	l = PlotlyJS.Layout(;title=ph.name*": "*string(key)*" (t = "*string(t0)*" s)",
 		xaxis_title="x",
 		yaxis_title="y",
 		plot_bgcolor=plot_bgcolor,
