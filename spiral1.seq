@@ -1,5 +1,5 @@
 # Pulseq sequence file
-# Created by KomaMRI
+# Created by KomaMRI.jl 
 
 [VERSION]
 major 1
@@ -35,8 +35,8 @@ RadiofrequencyRasterTime 1e-06
 [GRADIENTS]
 3      -947610 5 0 790
 4       946371 6 0 790
-6      -947610 7 8 0
-7      46816.9 7 8 0
+6      -947610 7 9 0
+7      46816.9 7 9 0
 
 # Format of trapezoid gradients:
 # id amplitude rise flat fall delay
@@ -8057,7 +8057,7 @@ num_samples 8000
 0.000118312775
 0.000117778547
 0.000117246598
-0.00011671692
+0.000117246598
 
 shape_id 2
 num_samples 8000
@@ -11066,7 +11066,7 @@ num_samples 3000
 3.14172076e-08
 1.14419998e-08
 2.46985517e-09
-9.14157145e-11
+2.46985517e-09
 
 shape_id 4
 num_samples 3000
@@ -19051,10 +19051,15 @@ num_samples 2
 0
 143
 
+shape_id 9
+num_samples 2
+0
+143
+
 
 [SIGNATURE]
 # This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added
 # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
 # The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
 Type md5
-Hash f1cf374f5a1d7d43987fe7769322027c
+Hash 2dc9d5e5a46c144da5587a4a07010716

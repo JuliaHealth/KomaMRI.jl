@@ -1,5 +1,5 @@
 # Pulseq sequence file
-# Created by KomaMRI
+# Created by KomaMRI.jl 
 
 [VERSION]
 major 1
@@ -1534,7 +1534,7 @@ num_samples 400
 1.34494433e-05
 4.87838881e-06
 1.04868224e-06
-3.8650164e-08
+1.04868224e-06
 
 shape_id 2
 num_samples 400
@@ -1566,4 +1566,4 @@ num_samples 6
 # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
 # The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
 Type md5
-Hash 0219d5ae05d568234e69d475866a58dc
+Hash f01a2b858fcd86c84d307a83ea487d2c

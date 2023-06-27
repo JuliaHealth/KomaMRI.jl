@@ -1,6 +1,7 @@
 using KomaMRI, Printf, MD5
 
 #seq_file = "epi0.seq"
+#seq_file = "epi_se0.seq"
 #seq_file = "spiral0.seq"
 seq_file = "gre_rad0.seq"
 seq = read_seq(seq_file)
@@ -66,7 +67,7 @@ filename = splitext(seq_file)[1][1:end-1] * "1.seq"
 open(filename, "w") do fid
 
     @printf(fid, "# Pulseq sequence file\n")
-    @printf(fid, "# Created by KomaMRI\n\n")
+    @printf(fid, "# Created by KomaMRI.jl \n\n") #TODO: add Koma version
 
     @printf(fid, "[VERSION]\n")
     @printf(fid, "major 1\n")
@@ -106,7 +107,7 @@ open(filename, "w") do fid
     # Assign IDs for RF shapes (this assumes always 2 IDs for magnitude and phase for every rf shape):
     wishape = [(abs.(wishapeun[1][1]), 1); (-angle.(wishapeun[1][1])/2π, 2)]
     [push!(wishape, (abs.(w), wishape[end][2]+1), (-angle.(w)/2π, wishape[end][2]+2)) for (k,(w,i)) in enumerate(wishapeun) if k != 1]
-    # Assign IDs for time shapes: (TODO: check if it is really valid to add the zero to the time shape)
+    # Assign IDs for time shapes:
     oivrfun = [(o,i,cumsum([0; o.T])/seq.DEF["RadiofrequencyRasterTime"]) for (_,o,i) in boirfun if isa(o.T, Vector{<:Number})]
     [push!(wishape, (w, wishape[end][2]+1)) for (o,i,w) in oivrfun if all([!(length(w) == length(ws) && w ≈ ws) for (ws,_) in wishape])]
     # The important vector for rf
@@ -132,6 +133,10 @@ open(filename, "w") do fid
                 end
             end
         end
+    end
+    # Fix: repeat the last sample
+    for i in 1:2*length(wishapeun)
+        push!(wishape[i][1], wishape[i][1][end])
     end
 
     # For GR:
@@ -288,3 +293,10 @@ end
 seq1 = read_seq(filename)
 println("seq ≈ seq1")
 println(seq ≈ seq1)
+
+#simParams = KomaMRICore.default_sim_params()
+#simParams["Δt_rf"] = seq.DEF["RadiofrequencyRasterTime"]
+#Δt_rf = simParams["Δt_rf"]
+#t, Δt = KomaMRICore.get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
+#B1, Δf = KomaMRICore.get_rfs(seq, t)
+#KomaMRICore.get_theo_A(seq.RF[5])

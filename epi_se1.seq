@@ -1,0 +1,15 @@
+# Pulseq sequence file
+# Created by KomaMRI.jl 
+
+[VERSION]
+major 1
+minor 4
+revision 1
+
+[DEFINITIONS]
+AdcRasterTime 1e-07 
+GradientRasterTime 1e-05 
+TotalDuration 0.08315 
+BlockDurationRaster 1e-05 
+RadiofrequencyRasterTime 1e-06 
+

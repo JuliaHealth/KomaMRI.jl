@@ -501,8 +501,8 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     phase =         r[7]
     #Amplitude and phase waveforms
     if amplitude != 0 && mag_id != 0
-        rfA = decompress_shape(shapeLibrary[mag_id]...)#[1:end-1]
-        rfϕ = decompress_shape(shapeLibrary[phase_id]...)#[1:end-1]
+        rfA = decompress_shape(shapeLibrary[mag_id]...)[1:end-1]
+        rfϕ = decompress_shape(shapeLibrary[phase_id]...)[1:end-1]
         Nrf = shapeLibrary[mag_id][1] - 1
         rfAϕ = amplitude .* rfA .* exp.(-1im*(2π*rfϕ .+ phase))
     else
