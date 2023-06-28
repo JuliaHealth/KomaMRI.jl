@@ -123,6 +123,7 @@ function export_2_mat_image(image, recParams, matfolder; matfilename="image.mat"
 end
 
 function export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="data.mat")
+    head = splitext(matfilename)[1]
     if type=="all"
         export_2_mat_sequence(seq, matfolder)
         export_2_mat_kspace(seq, matfolder)
@@ -132,18 +133,17 @@ function export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolde
         export_2_mat_raw(raw_ismrmrd, matfolder)
         export_2_mat_image(image, recParams, matfolder)
     elseif type=="sequence"
-        head = splitext(matfilename)[1]
 		export_2_mat_sequence(seq, matfolder; matfilename=(head*"_sequence.mat"))
         export_2_mat_kspace(seq, matfolder; matfilename=(head*"_kspace.mat"))
         export_2_mat_moments(seq, matfolder; matfilename=(head*"_moments.mat"))
 	elseif type=="phantom"
-		export_2_mat_phantom(phantom, matfolder; matfilename)
+		export_2_mat_phantom(phantom, matfolder; matfilename=(head*"_phantom.mat"))
     elseif type=="scanner"
-		export_2_mat_scanner(sys, matfolder; matfilename)
+		export_2_mat_scanner(sys, matfolder; matfilename=(head*"_scanner.mat"))
     elseif type=="raw"
-		export_2_mat_raw(raw_ismrmrd, matfolder; matfilename)
+		export_2_mat_raw(raw_ismrmrd, matfolder; matfilename=(head*"_raw.mat"))
     elseif type=="image"
-		export_2_mat_image(image, recParams, matfolder; matfilename)
+		export_2_mat_image(image, recParams, matfolder; matfilename=(head*"_image.mat"))
 	end
 
     strToast = "<ul><li><b>Name:</b> " * matfilename * "</li><li><b>Path:</b> " * matfolder * "</li></ul>"

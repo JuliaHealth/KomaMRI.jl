@@ -37,39 +37,43 @@ end
 
 @testitem "KomaUI" tags=[:koma] begin
 
-    @testset "PulsesGUI" begin
+    using Blink, Interact
 
+    @testset "PulsesGUI" begin
         w = KomaUI(dev_tools=true)
+        @js_ w Blink.msg("pulses_seq", 1)
+        @js_ w Blink.msg("pulses_kspace", 1)
+        @js_ w Blink.msg("pulses_M0", 1)
+        @js_ w Blink.msg("pulses_M1", 1)
         @js_ w Blink.msg("pulses_M2", 1)
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_seq.jl"))
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_kspace.jl"))
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_M0.jl"))
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_M1.jl"))
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_M2.jl"))
         @test true
     end
 
     @testset "PhantomGUI" begin
-        include(joinpath(@__DIR__, "../src/ui/PhantomGUI.jl"))
+        w = KomaUI(dev_tools=true)
+        @js_ w Blink.msg("phantom", 1)
         @test true
     end
 
     @testset "ParamsGUI" begin
-        include(joinpath(@__DIR__, "../src/ui/ScannerParams_view.jl"))
-        include(joinpath(@__DIR__, "../src/ui/SimParams_view.jl"))
-        include(joinpath(@__DIR__, "../src/ui/RecParams_view.jl"))
+        w = KomaUI(dev_tools=true)
+        @js_ w Blink.msg("scanner", 1)
+        @js_ w Blink.msg("sim_params", 1)
+        @js_ w Blink.msg("rec_params", 1)
         @test true
     end
 
     @testset "ReconGUI" begin
-        include(joinpath(@__DIR__, "../src/ui/ReconGUI_absI.jl"))
-        include(joinpath(@__DIR__, "../src/ui/ReconGUI_angI.jl"))
-        include(joinpath(@__DIR__, "../src/ui/ReconGUI_absK.jl"))
+        w = KomaUI(dev_tools=true)
+        @js_ w Blink.msg("reconstruction_absI", 1)
+        @js_ w Blink.msg("reconstruction_angI", 1)
+        @js_ w Blink.msg("reconstruction_absK", 1)
         @test true
     end
 
     @testset "SignalGUI" begin
-        include(joinpath(@__DIR__, "../src/ui/SignalGUI.jl"))
+        w = KomaUI(dev_tools=true)
+        @js_ w Blink.msg("sig", 1)
         @test true
     end
 
