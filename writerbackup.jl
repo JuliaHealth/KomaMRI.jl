@@ -6,8 +6,8 @@ using KomaMRI, Printf, MD5
 seq_file = "gre_rad0.seq"
 seq = read_seq(seq_file)
 
-#plot_seq(seq)
-#plot_kspace(seq)
+plot_seq(seq)
+plot_kspace(seq)
 
 function magsign(v)
     a, b = extrema(v)
@@ -60,14 +60,6 @@ end
 Base.isapprox(adc1::ADC, adc2::ADC) = begin
     return all(length(getfield(adc1,k)) ≈ length(getfield(adc2,k)) for k ∈ fieldnames(ADC)) &&
         all(getfield(adc1,k) ≈ getfield(adc2,k) for k ∈ fieldnames(ADC))
-end
-
-# Check equality
-Base.isapprox(s1::Sequence, s2::Sequence) = begin
-    if length(s1) != length(s2)
-        return false
-    end
-    return all([s1.ADC[i] ≈ s2.ADC[i] && s1.RF[i] ≈ s2.RF[i] && s1.GR[i] ≈ s2.GR[i] && s1.DUR[i] ≈ s2.DUR[i] for i in 1:length(s1)])
 end
 
 
@@ -290,6 +282,13 @@ open(filename, "a") do fid
     @printf(fid, "Hash %s\n", md5hash);
 end
 
+# Check equality
+Base.isapprox(s1::Sequence, s2::Sequence) = begin
+    if length(s1) != length(s2)
+        return false
+    end
+    return all([s1.ADC[i] ≈ s2.ADC[i] && s1.RF[i] ≈ s2.RF[i] && s1.GR[i] ≈ s2.GR[i] && s1.DUR[i] ≈ s2.DUR[i] for i in 1:length(s1)])
+end
 
 seq1 = read_seq(filename)
 println("seq ≈ seq1")

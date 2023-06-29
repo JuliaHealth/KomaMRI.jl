@@ -8,10 +8,12 @@ revision 1
 
 [DEFINITIONS]
 AdcRasterTime 1e-07 
-GradientRasterTime 1e-05 
-TotalDuration 0.06138 
 BlockDurationRaster 1e-05 
+FOV 0.256 0.256 0.003 
+GradientRasterTime 1e-05 
+MaxAdcSegmentLength 1000 
 RadiofrequencyRasterTime 1e-06 
+TotalDuration 0.06138 
 
 # Format of blocks:
 # NUM DUR RF  GX  GY  GZ  ADC  EXT
@@ -26,7 +28,7 @@ RadiofrequencyRasterTime 1e-06
 # ..        Hz   ....     ....          ....    us   Hz   rad
 [RF]
 1      129.712 1 2 0 100 -424.504 0
-2      329.152 3 4 0 100 0 0
+2      329.152 3 4 0 100 0 6.28319
 
 # Format of arbitrary gradients:
 #   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)
@@ -35,8 +37,8 @@ RadiofrequencyRasterTime 1e-06
 [GRADIENTS]
 3      -947610 5 0 790
 4       946371 6 0 790
-6      -947610 7 9 0
-7      46816.9 7 9 0
+6      -947610 7 8 0
+7      46816.9 7 8 0
 
 # Format of trapezoid gradients:
 # id amplitude rise flat fall delay
@@ -8059,12 +8061,6 @@ num_samples 8000
 0.000117246598
 0.000117246598
 
-shape_id 2
-num_samples 8000
-0
-0
-7998
-
 shape_id 3
 num_samples 3000
 9.14157145e-11
@@ -11067,6 +11063,12 @@ num_samples 3000
 1.14419998e-08
 2.46985517e-09
 2.46985517e-09
+
+shape_id 2
+num_samples 8000
+0
+0
+7998
 
 shape_id 4
 num_samples 3000
@@ -19051,15 +19053,10 @@ num_samples 2
 0
 143
 
-shape_id 9
-num_samples 2
-0
-143
-
 
 [SIGNATURE]
 # This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added
 # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
 # The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
 Type md5
-Hash 2dc9d5e5a46c144da5587a4a07010716
+Hash 2dd9e06acc82c8a068186f27f478c7c1
