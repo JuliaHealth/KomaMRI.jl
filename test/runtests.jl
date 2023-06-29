@@ -41,39 +41,44 @@ end
 
     @testset "PulsesGUI" begin
         w = KomaUI(dev_tools=true)
-        @js_ w Blink.msg("pulses_seq", 1)
-        @js_ w Blink.msg("pulses_kspace", 1)
-        @js_ w Blink.msg("pulses_M0", 1)
-        @js_ w Blink.msg("pulses_M1", 1)
-        @js_ w Blink.msg("pulses_M2", 1)
+        @js w Blink.msg("pulses_seq", 1)
+        @js w Blink.msg("pulses_kspace", 1)
+        @js w Blink.msg("pulses_M0", 1)
+        @js w Blink.msg("pulses_M1", 1)
+        @js w Blink.msg("pulses_M2", 1)
+        close(w)
         @test true
     end
 
     @testset "PhantomGUI" begin
         w = KomaUI(dev_tools=true)
-        @js_ w Blink.msg("phantom", 1)
+        @js w Blink.msg("phantom", 1)
+        close(w)
         @test true
     end
 
     @testset "ParamsGUI" begin
         w = KomaUI(dev_tools=true)
-        @js_ w Blink.msg("scanner", 1)
-        @js_ w Blink.msg("sim_params", 1)
-        @js_ w Blink.msg("rec_params", 1)
+        @js w Blink.msg("scanner", 1)
+        @js w Blink.msg("sim_params", 1)
+        @js w Blink.msg("rec_params", 1)
+        close(w)
         @test true
     end
 
     @testset "ReconGUI" begin
         w = KomaUI(dev_tools=true)
-        @js_ w Blink.msg("reconstruction_absI", 1)
-        @js_ w Blink.msg("reconstruction_angI", 1)
-        @js_ w Blink.msg("reconstruction_absK", 1)
+        @js w Blink.msg("reconstruction_absI", 1)
+        @js w Blink.msg("reconstruction_angI", 1)
+        @js w Blink.msg("reconstruction_absK", 1)
+        close(w)
         @test true
     end
 
     @testset "SignalGUI" begin
         w = KomaUI(dev_tools=true)
-        @js_ w Blink.msg("sig", 1)
+        @js w Blink.msg("sig", 1)
+        close(w)
         @test true
     end
 
