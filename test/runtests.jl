@@ -37,7 +37,44 @@ end
 
 @testitem "KomaUI" tags=[:koma] begin
 
-    using Blink, Interact
+    #using Blink, Interact
+
+    include(joinpath(@__DIR__, "../src/reconstruction/Recon.jl"))
+
+    w = Window(Blink.Dict(:show => false), async=false);
+    body!(w, """<div class="container" style="padding: 0px !important;" id="content">""");
+
+    phantom = brain_phantom2D()
+    sys = Scanner()
+    B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
+    EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+    N = 101
+    FOV = 23e-2
+    EPI = PulseDesigner.EPI(FOV, N, sys)
+    TE = 30e-3
+    d1 = TE-dur(EPI)/2-dur(EX)
+    d1 = d1 > 0 ? d1 : 0
+    if d1 > 0 DELAY = Delay(d1) end
+    seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
+    seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
+    simParams = KomaMRICore.default_sim_params()
+
+    path = @__DIR__
+    fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
+    darkmode = true
+    raw_ismrmrd = RawAcquisitionData(fraw)
+
+    acq = AcquisitionData(raw_ismrmrd)
+    Nx, Ny = raw_ismrmrd.params["reconSize"][1:2]
+    recParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx,Ny), :densityWeighting=>true)
+    aux = reconstruction(acq, recParams)
+    image  = reshape(aux.data, Nx, Ny, :)
+    kspace = KomaMRI.fftc(image)
+
+    seq_obs = Observable{Sequence}(seq)
+    pha_obs = Observable{Phantom}(phantom)
+    sig_obs = Observable{RawAcquisitionData}(raw_ismrmrd)
+    img_obs = Observable{Any}(image)
 
     @testset "PulsesGUI" begin
         #try
