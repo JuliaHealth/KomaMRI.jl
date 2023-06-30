@@ -16,7 +16,9 @@ using MRIBase, MRIFiles
 @reexport using MRIBase: Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
 @reexport using MRIFiles: ISMRMRDFile
 #IO
-using FileIO, HDF5, MAT, JLD2
+using FileIO, HDF5, MAT, JLD2, NIfTI
+# StatsBase
+using StatsBase
 
 global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
