@@ -37,7 +37,7 @@ end
 
 @testitem "KomaUI" tags=[:koma] begin
 
-    #using Blink, Interact
+    using Blink, Interact
 
     include(joinpath(@__DIR__, "../src/reconstruction/Recon.jl"))
 
