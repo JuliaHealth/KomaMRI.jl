@@ -78,24 +78,20 @@ precession.
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
     M::Mag{T}, sim_method::BlochMov) where {T<:Real}
     #Simulation
+
+    xt = p.x 
+    yt = p.y 
+    zt = p.z 
+
     #Motion 
-    # xt = p.x .+ p.ux(seq.t') 
-    # yt = p.y .+ p.uy(seq.t') 
-    # zt = p.z .+ p.uz(seq.t') 
-
-    # Ux = [p.ux[i].f for i in 1:length(p.ux)]
-    # Uy = [p.uy[i].f for i in 1:length(p.uy)]
-    # Uz = [p.uz[i].f for i in 1:length(p.uz)]
-
-    # xt = p.x .+ reduce(vcat, collect(map(f -> f(seq.t'), Ux)))
-    # yt = p.y .+ reduce(vcat, collect(map(g -> g(seq.t'), Uy)))
-    # zt = p.z .+ reduce(vcat, collect(map(h -> h(seq.t'), Uz)))
-
+    """
+    TO-DO: improve function get_displacements to use GPU 
     Ux, Uy, Uz = get_displacements(p,seq.t)
 
     xt = p.x .+ Ux
     yt = p.y .+ Uy
     zt = p.z .+ Uz
+    """
 
     #Effective field
     Bz = Float32.(xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ))
@@ -135,19 +131,12 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     M::Mag{T}, sim_method::BlochMov) where {T<:Real}
     #Simulation
     for s ∈ seq #This iterates over seq, "s = seq[i,:]"
+        xt = p.x 
+        yt = p.y 
+        zt = p.z 
+
         #Motion
-        # xt = p.x .+ p.ux(p.x, p.y, p.z, s.t)
-        # yt = p.y .+ p.uy(p.x, p.y, p.z, s.t)
-        # zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
-
-        # Ux = [p.ux[i].f for i in 1:length(p.ux)]
-        # Uy = [p.uy[i].f for i in 1:length(p.uy)]
-        # Uz = [p.uz[i].f for i in 1:length(p.uz)]
-
-        # xt = p.x .+ reduce(vcat, collect(map(f -> f(s.t), Ux)))
-        # yt = p.y .+ reduce(vcat, collect(map(g -> g(s.t), Uy)))
-        # zt = p.z .+ reduce(vcat, collect(map(h -> h(s.t), Uz)))
-
+        """ TO-DO: improve function get_displacements to use GPU
         Ux, Uy, Uz = get_displacements(p,s.t)
 
 
@@ -161,17 +150,10 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
             Uz = CuArray(zeros(length(p.z)))
         end
 
-        # print("Excitation:\n")
-        # print("p.x: ", p.x)
-        # print('\n')
-        # print("Ux: ")
-        # display(Ux)
-        # print('\n')
-        # print("s.t: ", s.t)
-
         xt = p.x + reshape(Ux,(length(p.x),))
         yt = p.y + reshape(Ux,(length(p.y),))
         zt = p.z + reshape(Ux,(length(p.z),))
+        """
     
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
