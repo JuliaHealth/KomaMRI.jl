@@ -104,12 +104,12 @@ function magsign(v)
 end
 
 """
-    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer)
+    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
 
 Returns the unique shapes for the magnitude, angle and time of the "rfunique_obj_id" vector.
 Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
 """
-function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer)
+function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
     # Find the unique shapes (magnitude, phase and time shapes) and assign IDs
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id = [], [], []
     for (obj,_) ∈ rfunique_obj_id
@@ -136,12 +136,12 @@ end
 
 
 """
-    gradunique_amp_id, gradunique_tim_id, id_shape_cnt = get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer)
+    gradunique_amp_id, gradunique_tim_id, id_shape_cnt = get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
 
 Returns the unique shapes for the amplitude and time of the "gradunique_obj_id" vector.
 Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
 """
-function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer)
+function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
     # Find shapes for magnitude and time gradients
     gradunique_amp_id, gradunique_tim_id = [], []
     for (obj,_) ∈ gradunique_obj_id
@@ -224,8 +224,8 @@ function write_seq(seq::Sequence, filename)
     adcunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "adc"))
     gradunique_obj_id = [[obj, id] for (obj, id) ∈ grunique_obj_id if length(obj.A) != 1]
     trapunique_obj_id = [[obj, id] for (obj, id) ∈ grunique_obj_id if length(obj.A) == 1]
-    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id, 1)
-    gradunique_amp_id, gradunique_tim_id, _ = get_gradunique(gradunique_obj_id, id_shape_cnt)
+    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id, 1, seq)
+    gradunique_amp_id, gradunique_tim_id, _ = get_gradunique(gradunique_obj_id, id_shape_cnt, seq)
 
     # Define the table to be written for the [BLOCKS] section
     @warn "EXTENSIONS will not be handled"
@@ -449,14 +449,14 @@ function write_seq(seq::Sequence, filename)
 
 end
 
-#seq_file = "cine_gre0.seq"            # false = seq0 ≈ seq1
+seq_file = "cine_gre0.seq"            # false = seq0 ≈ seq1
 #seq_file = "DEMO_gre0.seq"            # true  = seq0 ≈ seq1
 #seq_file = "DEMO_grep0.seq"           # true  = seq0 ≈ seq1
 #seq_file = "epi_label0.seq"           # false = seq0 ≈ seq1
 #seq_file = "epi_rs0.seq"              # Error after reading seq1
 #seq_file = "epi_se0.seq"              # true  = seq0 ≈ seq1
-seq_file = "epi0.seq"                 # true  = seq0 ≈ seq1
-#seq_file = "epise_rs0.seq"             # false = seq0 ≈ seq1
+#seq_file = "epi0.seq"                 # true  = seq0 ≈ seq1
+#seq_file = "epise_rs0.seq"            # false = seq0 ≈ seq1
 #seq_file = "external0.seq"            # true  = seq0 ≈ seq1
 #seq_file = "gre_rad0.seq"             # true  = seq0 ≈ seq1
 #seq_file = "spiral0.seq"              # true  = seq0 ≈ seq1
