@@ -11,18 +11,18 @@
           <span class="icon-wave-square me-2"></span><span class="w-100">Sequence</span>
       </a>
         <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="seq-dropdown" style="position: absolute;">
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_seq", 1)'>View Sequence</a></li>
+          <li><a id="button_pulses_seq" class="dropdown-item" href="#" onclick='Blink.msg("pulses_seq", 1)'>View Sequence</a></li>
           <!-- Sequence (MPS) -->
           <!--<li><a class="dropdown-item disabled" href="#" onclick='Blink.msg("pulses_seqxyz", 1)'>Sequence (XYZ)</a></li>-->
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_kspace", 1)'>View $k$-space</a></li>
+          <li><a id="button_pulses_kspace" class="dropdown-item" href="#" onclick='Blink.msg("pulses_kspace", 1)'>View $k$-space</a></li>
           <li>
             <a class="dropdown-item" href="#">
               View Moments &raquo;
             </a>
             <ul class="dropdown-menu dropdown-menu-dark dropdown-submenu">
-              <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_M0", 1)'>$M_0(t)$</a></li>
-              <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_M1", 1)'>$M_1(t)$</a></li>
-              <li><a class="dropdown-item" href="#" onclick='Blink.msg("pulses_M2", 1)'>$M_2(t)$</a></li>
+              <li><a id="button_pulses_M0" class="dropdown-item" href="#" onclick='Blink.msg("pulses_M0", 1)'>$M_0(t)$</a></li>
+              <li><a id="button_pulses_M1" class="dropdown-item" href="#" onclick='Blink.msg("pulses_M1", 1)'>$M_1(t)$</a></li>
+              <li><a id="button_pulses_M2" class="dropdown-item" href="#" onclick='Blink.msg("pulses_M2", 1)'>$M_2(t)$</a></li>
             </ul>
           </li>
           <li><hr class="dropdown-divider"></li>
@@ -36,7 +36,7 @@
           <span class="icon-brain me-2"></span><span class="w-100">Phantom</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="pha-dropdown">
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("phantom", 1)'>View Phantom</a></li>
+          <li><a id="button_phantom" class="dropdown-item" href="#" onclick='Blink.msg("phantom", 1)'>View Phantom</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-interact" id="phafilepicker"></li>
       </ul>
@@ -48,7 +48,7 @@
         <span class="icon-magnet me-2"></span><span class="w-100">Scanner</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="pha-dropdown">
-        <li><a class="dropdown-item" href="#" onclick='Blink.msg("scanner", 1)'>View Scanner</a></li>
+        <li><a id="button_scanner" class="dropdown-item" href="#" onclick='Blink.msg("scanner", 1)'>View Scanner</a></li>
       </ul>
     </li>
     <p id="scaname" class="pname">default.scanner</p>
@@ -61,7 +61,7 @@
         </button>
         <div class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="btnDropdownDemo">
           <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load Options</a>
-          <a class="dropdown-item" href="#" onclick='Blink.msg("sim_params", 1)'><i class="bi bi-gear-fill me-2"></i>View Options</a>
+          <a class="dropdown-item" href="#" id="button_sim_params" onclick='Blink.msg("sim_params", 1)'><i class="bi bi-gear-fill me-2"></i>View Options</a>
         </div>
       </div>
     </li>
@@ -71,7 +71,7 @@
           <span class="icon-oscilloscope me-2"></span><span class="w-100">RawData</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="sig-dropdown">
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("sig", 1)'>View RawData</a></li>
+          <li><a id="button_sig" class="dropdown-item" href="#" onclick='Blink.msg("sig", 1)'>View RawData</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-interact" id="sigfilepicker"></li>
       </ul>
@@ -86,7 +86,7 @@
         </button>
         <div class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="btnDropdownDemo">
           <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load Options</a>
-          <a class="dropdown-item" href="#"  onclick='Blink.msg("rec_params", 1)'><i class="bi bi-gear-fill me-2"></i>View Options</a>
+          <a class="dropdown-item" href="#" id="button_rec_params" onclick='Blink.msg("rec_params", 1)'><i class="bi bi-gear-fill me-2"></i>View Options</a>
         </div>
       </div>
     </li>
@@ -96,9 +96,9 @@
           <span class="icon-images me-2"></span><span class="w-100">Image</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="rec-dropdown">
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absI", 1)'>View $|\mathrm{Image}|$</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_angI", 1)'>View $\angle\mathrm{Image}$</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absK", 1)'>View $\log(|k$-data$|+1)$</a></li>
+          <li><a id="button_reconstruction_absI" class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absI", 1)'>View $|\mathrm{Image}|$</a></li>
+          <li><a id="button_reconstruction_angI" class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_angI", 1)'>View $\angle\mathrm{Image}$</a></li>
+          <li><a id="button_reconstruction_absK" class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absK", 1)'>View $\log(|k$-data$|+1)$</a></li>
       </ul>
     </li>
     <hr>
@@ -109,13 +109,13 @@
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="exp-dropdown">
           <!--<li><a class="dropdown-interact" id="matfolder" href="#" >All</a></li>-->
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matfolder", 1)'>All</a></li>
+          <li><a id="button_matfolder" class="dropdown-item" href="#" onclick='Blink.msg("matfolder", 1)'>All</a></li>
           <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matfolderseq", 1)'>Sequence</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matfolderpha", 1)'>Phantom</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matfoldersca", 1)'>Scanner</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matfolderraw", 1)'>RawData</a></li>
-          <li><a class="dropdown-item" href="#" onclick='Blink.msg("matfolderima", 1)'>Image</a></li>
+          <li><a id="button_matfolderseq" class="dropdown-item" href="#" onclick='Blink.msg("matfolderseq", 1)'>Sequence</a></li>
+          <li><a id="button_matfolderpha" class="dropdown-item" href="#" onclick='Blink.msg("matfolderpha", 1)'>Phantom</a></li>
+          <li><a id="button_matfoldersca" class="dropdown-item" href="#" onclick='Blink.msg("matfoldersca", 1)'>Scanner</a></li>
+          <li><a id="button_matfolderraw" class="dropdown-item" href="#" onclick='Blink.msg("matfolderraw", 1)'>RawData</a></li>
+          <li><a id="button_matfolderima" class="dropdown-item" href="#" onclick='Blink.msg("matfolderima", 1)'>Image</a></li>
           <!--
           <li><a class="dropdown-interact" id="matfolderseq" href="#">Sequence</a></li>
           <li><a class="dropdown-interact" id="matfolderpha" href="#">Phantom</a></li>
