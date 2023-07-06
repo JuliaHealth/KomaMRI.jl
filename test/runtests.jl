@@ -55,91 +55,114 @@ end
         take!(c)
     end
 
-    @testset "Open UI" begin
-        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        if !isnothing(w)
-            close(w)
-            @test true
-        elseif VERSION < v"1.7"
-            @test true
-        else
-            @test false
-        end
-    end
+    #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+    w = KomaUI(dev_tools=true; blink_show=false)
+
+    #@testset "Open UI" begin
+    #    w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+    #    if !isnothing(w)
+    #        close(w)
+    #        @test true
+    #    elseif VERSION < v"1.7"
+    #        @test true
+    #    else
+    #        @test false
+    #    end
+    #end
 
     @testset "PulsesGUI" begin
-        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        if !isnothing(w)
-            @js w document.getElementById("button_pulses_seq").click()
-            @js w document.getElementById("button_pulses_kspace").click()
-            @js w document.getElementById("button_pulses_M0").click()
-            @js w document.getElementById("button_pulses_M1").click()
-            @js w document.getElementById("button_pulses_M2").click()
-            close(w)
-            @test true
-        elseif VERSION < v"1.7"
-            @test true
-        else
-            @test false
-        end
+        @js w document.getElementById("button_pulses_seq").click()
+        @js w document.getElementById("button_pulses_kspace").click()
+        @js w document.getElementById("button_pulses_M0").click()
+        @js w document.getElementById("button_pulses_M1").click()
+        @js w document.getElementById("button_pulses_M2").click()
+        @test true
+        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        #if !isnothing(w)
+        #    @js w document.getElementById("button_pulses_seq").click()
+        #    @js w document.getElementById("button_pulses_kspace").click()
+        #    @js w document.getElementById("button_pulses_M0").click()
+        #    @js w document.getElementById("button_pulses_M1").click()
+        #    @js w document.getElementById("button_pulses_M2").click()
+        #    close(w)
+        #    @test true
+        #elseif VERSION < v"1.7"
+        #    @test true
+        #else
+        #    @test false
+        #end
 
     end
 
     @testset "PhantomGUI" begin
-        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        if !isnothing(w)
-            @js w document.getElementById("button_phantom").click()
-            close(w)
-            @test true
-        elseif VERSION < v"1.7"
-            @test true
-        else
-            @test false
-        end
+        @js w document.getElementById("button_phantom").click()
+        @test true
+        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        #if !isnothing(w)
+        #    @js w document.getElementById("button_phantom").click()
+        #    close(w)
+        #    @test true
+        #elseif VERSION < v"1.7"
+        #    @test true
+        #else
+        #    @test false
+        #end
     end
 
     @testset "ParamsGUI" begin
-        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        if !isnothing(w)
-            @js w document.getElementById("button_scanner").click()
-            @js w document.getElementById("button_sim_params").click()
-            @js w document.getElementById("button_rec_params").click()
-            close(w)
-            @test true
-        elseif VERSION < v"1.7"
-            @test true
-        else
-            @test false
-        end
+        @js w document.getElementById("button_scanner").click()
+        @js w document.getElementById("button_sim_params").click()
+        @js w document.getElementById("button_rec_params").click()
+        @test true
+        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        #if !isnothing(w)
+        #    @js w document.getElementById("button_scanner").click()
+        #    @js w document.getElementById("button_sim_params").click()
+        #    @js w document.getElementById("button_rec_params").click()
+        #    close(w)
+        #    @test true
+        #elseif VERSION < v"1.7"
+        #    @test true
+        #else
+        #    @test false
+        #end
     end
 
     @testset "ReconGUI" begin
-        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        if !isnothing(w)
-            @js w document.getElementById("button_reconstruction_absI").click()
-            @js w document.getElementById("button_reconstruction_angI").click()
-            @js w document.getElementById("button_reconstruction_absK").click()
-            close(w)
-            @test true
-        elseif VERSION < v"1.7"
-            @test true
-        else
-            @test false
-        end
+        @js w document.getElementById("button_reconstruction_absI").click()
+        @js w document.getElementById("button_reconstruction_angI").click()
+        @js w document.getElementById("button_reconstruction_absK").click()
+        @test true
+        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        #if !isnothing(w)
+        #    @js w document.getElementById("button_reconstruction_absI").click()
+        #    @js w document.getElementById("button_reconstruction_angI").click()
+        #    @js w document.getElementById("button_reconstruction_absK").click()
+        #    close(w)
+        #    @test true
+        #elseif VERSION < v"1.7"
+        #    @test true
+        #else
+        #    @test false
+        #end
     end
 
     @testset "SignalGUI" begin
-        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        if !isnothing(w)
-            @js w document.getElementById("button_sig").click()
-            close(w)
-            @test true
-        elseif VERSION < v"1.7"
-            @test true
-        else
-            @test false
-        end
+        @js w document.getElementById("button_sig").click()
+        @test true
+        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        #if !isnothing(w)
+        #    @js w document.getElementById("button_sig").click()
+        #    close(w)
+        #    @test true
+        #elseif VERSION < v"1.7"
+        #    @test true
+        #else
+        #    @test false
+        #end
     end
+
+    close(w)
 
 end
 
