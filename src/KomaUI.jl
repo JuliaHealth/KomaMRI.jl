@@ -1,6 +1,6 @@
 include("ui/ExportMATFunctions.jl")
 
-function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false)
+function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false, blink_show=true)
 ## ASSETS
 path = @__DIR__
 assets = AssetRegistry.register(dirname(path*"/ui/assets/"))
@@ -39,7 +39,8 @@ global w = Blink.Window(Dict(
     :icon=>path*"/ui/assets/Logo_icon.png",
     "width"=>1200,
     "height"=>800,
-    "webPreferences" => Dict("devTools" => dev_tools)
+    "webPreferences" => Dict("devTools" => dev_tools),
+    :show=>blink_show
     ),async=false);
 ## LOADING BAR
 buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
