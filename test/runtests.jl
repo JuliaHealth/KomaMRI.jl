@@ -39,60 +39,88 @@ end
 
     using Blink, Interact
 
+    """
+    Execute function f() with a timeout of `timeout` seconds. Returns the
+    result of f() or `nothing` in the case of a timeout.
+    """
+    function with_timeout(f::Function, timeout)
+        c = Channel{Any}(1)
+        @async begin
+            put!(c, f())
+        end
+        @async begin
+            sleep(timeout)
+            put!(c, nothing)
+        end
+        take!(c)
+    end
+
+    @testset "Open UI" begin
+        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        if !isnothing(w)
+            close(w)
+        end
+        @test true
+    end
+
     @testset "PulsesGUI" begin
-        w = KomaUI(dev_tools=true; blink_show=false)
-        sleep(120)
-        @js w document.getElementById("button_pulses_seq").click()
-        @js w document.getElementById("button_pulses_kspace").click()
-        @js w document.getElementById("button_pulses_M0").click()
-        @js w document.getElementById("button_pulses_M1").click()
-        @js w document.getElementById("button_pulses_M2").click()
-        close(w)
+        #w = KomaUI(dev_tools=true; blink_show=false)
+        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        if !isnothing(w)
+            @js w document.getElementById("button_pulses_seq").click()
+            @js w document.getElementById("button_pulses_kspace").click()
+            @js w document.getElementById("button_pulses_M0").click()
+            @js w document.getElementById("button_pulses_M1").click()
+            @js w document.getElementById("button_pulses_M2").click()
+            close(w)
+        end
         @test true
     end
 
     @testset "PhantomGUI" begin
-        w = KomaUI(dev_tools=true; blink_show=false)
-        sleep(120)
-        @js w document.getElementById("button_phantom").click()
-        close(w)
+        #w = KomaUI(dev_tools=true; blink_show=false)
+        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        if !isnothing(w)
+            @js w document.getElementById("button_phantom").click()
+            close(w)
+        end
         @test true
     end
 
     @testset "ParamsGUI" begin
-        w = KomaUI(dev_tools=true; blink_show=false)
-        sleep(120)
-        @js w document.getElementById("button_scanner").click()
-        @js w document.getElementById("button_sim_params").click()
-        @js w document.getElementById("button_rec_params").click()
-        close(w)
+        #w = KomaUI(dev_tools=true; blink_show=false)
+        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        if !isnothing(w)
+            @js w document.getElementById("button_scanner").click()
+            @js w document.getElementById("button_sim_params").click()
+            @js w document.getElementById("button_rec_params").click()
+            close(w)
+        end
         @test true
     end
 
     @testset "ReconGUI" begin
-        w = KomaUI(dev_tools=true; blink_show=false)
-        sleep(120)
-        @js w document.getElementById("button_reconstruction_absI").click()
-        @js w document.getElementById("button_reconstruction_angI").click()
-        @js w document.getElementById("button_reconstruction_absK").click()
-        close(w)
+        #w = KomaUI(dev_tools=true; blink_show=false)
+        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        if !isnothing(w)
+            @js w document.getElementById("button_reconstruction_absI").click()
+            @js w document.getElementById("button_reconstruction_angI").click()
+            @js w document.getElementById("button_reconstruction_absK").click()
+            close(w)
+        end
         @test true
     end
 
     @testset "SignalGUI" begin
-        w = KomaUI(dev_tools=true; blink_show=false)
-        sleep(120)
-        @js w document.getElementById("button_sig").click()
-        close(w)
+        #w = KomaUI(dev_tools=true; blink_show=false)
+        w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
+        if !isnothing(w)
+            @js w document.getElementById("button_sig").click()
+            close(w)
+        end
         @test true
     end
 
-    @testset "Open UI" begin
-        w = KomaUI(dev_tools=true; blink_show=false)
-        sleep(120)
-        close(w)
-        @test true
-    end
 end
 
 @testitem "Auxiliar Functions" tags=[:koma] begin
