@@ -39,127 +39,51 @@ end
 
     using Blink, Interact
 
-    """
-    Execute function f() with a timeout of `timeout` seconds. Returns the
-    result of f() or `nothing` in the case of a timeout.
-    """
-    function with_timeout(f::Function, timeout)
-        c = Channel{Any}(1)
-        @async begin
-            put!(c, f())
-        end
-        @async begin
-            sleep(timeout)
-            put!(c, nothing)
-        end
-        take!(c)
-    end
-
-    #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
     w = KomaUI(dev_tools=true; blink_show=false)
 
-    #@testset "Open UI" begin
-    #    w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-    #    if !isnothing(w)
-    #        close(w)
-    #        @test true
-    #    elseif VERSION < v"1.7"
-    #        @test true
-    #    else
-    #        @test false
-    #    end
-    #end
+    @testset "Open UI" begin
+        @test CONT_INDEX == @js w document.getElementById("content").dataset.content
+    end
 
     @testset "PulsesGUI" begin
         @js w document.getElementById("button_pulses_seq").click()
+        @test CONT_SEQUENCE == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_pulses_kspace").click()
+        @test CONT_KSPACE == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_pulses_M0").click()
+        @test CONT_M0 == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_pulses_M1").click()
+        @test CONT_M1 == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_pulses_M2").click()
-        @test true
-        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        #if !isnothing(w)
-        #    @js w document.getElementById("button_pulses_seq").click()
-        #    @js w document.getElementById("button_pulses_kspace").click()
-        #    @js w document.getElementById("button_pulses_M0").click()
-        #    @js w document.getElementById("button_pulses_M1").click()
-        #    @js w document.getElementById("button_pulses_M2").click()
-        #    close(w)
-        #    @test true
-        #elseif VERSION < v"1.7"
-        #    @test true
-        #else
-        #    @test false
-        #end
-
+        @test CONT_M2 == @js w document.getElementById("content").dataset.content
     end
 
     @testset "PhantomGUI" begin
         @js w document.getElementById("button_phantom").click()
-        @test true
-        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        #if !isnothing(w)
-        #    @js w document.getElementById("button_phantom").click()
-        #    close(w)
-        #    @test true
-        #elseif VERSION < v"1.7"
-        #    @test true
-        #else
-        #    @test false
-        #end
+        @test CONT_PHANTOM == @js w document.getElementById("content").dataset.content
     end
 
     @testset "ParamsGUI" begin
         @js w document.getElementById("button_scanner").click()
+        @test CONT_SCANNER_PARAMS == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_sim_params").click()
+        @test CONT_SIM_PARAMS == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_rec_params").click()
-        @test true
-        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        #if !isnothing(w)
-        #    @js w document.getElementById("button_scanner").click()
-        #    @js w document.getElementById("button_sim_params").click()
-        #    @js w document.getElementById("button_rec_params").click()
-        #    close(w)
-        #    @test true
-        #elseif VERSION < v"1.7"
-        #    @test true
-        #else
-        #    @test false
-        #end
+        @test CONT_REC_PARAMS == @js w document.getElementById("content").dataset.content
     end
 
     @testset "ReconGUI" begin
         @js w document.getElementById("button_reconstruction_absI").click()
+        @test CONT_ABSI == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_reconstruction_angI").click()
+        @test CONT_ANGI == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_reconstruction_absK").click()
-        @test true
-        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        #if !isnothing(w)
-        #    @js w document.getElementById("button_reconstruction_absI").click()
-        #    @js w document.getElementById("button_reconstruction_angI").click()
-        #    @js w document.getElementById("button_reconstruction_absK").click()
-        #    close(w)
-        #    @test true
-        #elseif VERSION < v"1.7"
-        #    @test true
-        #else
-        #    @test false
-        #end
+        @test CONT_ABSK == @js w document.getElementById("content").dataset.content
     end
 
     @testset "SignalGUI" begin
         @js w document.getElementById("button_sig").click()
-        @test true
-        #w = with_timeout(()->KomaUI(dev_tools=true; blink_show=false), 60)
-        #if !isnothing(w)
-        #    @js w document.getElementById("button_sig").click()
-        #    close(w)
-        #    @test true
-        #elseif VERSION < v"1.7"
-        #    @test true
-        #else
-        #    @test false
-        #end
+        @test CONT_SIG == @js w document.getElementById("content").dataset.content
     end
 
     close(w)
