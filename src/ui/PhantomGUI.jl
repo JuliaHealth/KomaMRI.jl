@@ -24,5 +24,5 @@ columnbuttons = Observable{Any}(makebuttons(phantom))
 
 map!(makebuttons, columnbuttons, pha_obs)
 ui = dom"div"(vbox(columnbuttons, plt))
-@js_ w document.getElementById("content").dataset.content = "phantom"
 content!(w, "div#content", ui)
+@js_ w document.getElementById("content").dataset.content = "phantom"
