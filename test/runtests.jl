@@ -42,48 +42,48 @@ end
     w = KomaUI(dev_tools=true; blink_show=false)
 
     @testset "Open UI" begin
-        @test CONT_INDEX == @js w document.getElementById("content").dataset.content
+        @test "index" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "PulsesGUI" begin
         @js w document.getElementById("button_pulses_seq").click()
-        @test CONT_SEQUENCE == @js w document.getElementById("content").dataset.content
+        @test "sequence" == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_pulses_kspace").click()
-        @test CONT_KSPACE == @js w document.getElementById("content").dataset.content
+        @test "kspace" == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_pulses_M0").click()
-        @test CONT_M0 == @js w document.getElementById("content").dataset.content
+        @test "m0" == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_pulses_M1").click()
-        @test CONT_M1 == @js w document.getElementById("content").dataset.content
+        @test "m1" == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_pulses_M2").click()
-        @test CONT_M2 == @js w document.getElementById("content").dataset.content
+        @test "m2" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "PhantomGUI" begin
         @js w document.getElementById("button_phantom").click()
-        @test CONT_PHANTOM == @js w document.getElementById("content").dataset.content
+        @test "phantom" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "ParamsGUI" begin
         @js w document.getElementById("button_scanner").click()
-        @test CONT_SCANNER_PARAMS == @js w document.getElementById("content").dataset.content
+        @test "scanneparams" == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_sim_params").click()
-        @test CONT_SIM_PARAMS == @js w document.getElementById("content").dataset.content
+        @test "simparams" == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_rec_params").click()
-        @test CONT_REC_PARAMS == @js w document.getElementById("content").dataset.content
+        @test "recparams" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "ReconGUI" begin
         @js w document.getElementById("button_reconstruction_absI").click()
-        @test CONT_ABSI == @js w document.getElementById("content").dataset.content
+        @test "absi" == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_reconstruction_angI").click()
-        @test CONT_ANGI == @js w document.getElementById("content").dataset.content
+        @test "angi" == @js w document.getElementById("content").dataset.content
         @js w document.getElementById("button_reconstruction_absK").click()
-        @test CONT_ABSK == @js w document.getElementById("content").dataset.content
+        @test "absk" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "SignalGUI" begin
         @js w document.getElementById("button_sig").click()
-        @test CONT_SIG == @js w document.getElementById("content").dataset.content
+        @test "sig" == @js w document.getElementById("content").dataset.content
     end
 
     close(w)

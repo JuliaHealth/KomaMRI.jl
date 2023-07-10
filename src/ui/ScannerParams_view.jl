@@ -11,5 +11,5 @@ sys_dict = Dict("B0" => sys.B0,
                 "ADC_dead_time_T" => sys.ADC_dead_time_T)
 plt = plot_dict(sys_dict)
 title = """<h1 style="padding: 8px 16px; color: #868888;">Scanner parameters</h1>"""
-@js_ w document.getElementById("content").dataset.content = $CONT_SCANNER_PARAMS
+@js_ w document.getElementById("content").dataset.content = "scanneparams"
 content!(w, "div#content", title*plt)

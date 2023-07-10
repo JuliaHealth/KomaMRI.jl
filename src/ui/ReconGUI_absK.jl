@@ -8,5 +8,5 @@ end
 plt = Observable{Any}(plotInteract())
 map!(t-> plotInteract(), plt, img_obs)
 ui = dom"div"(plt)
-@js_ w document.getElementById("content").dataset.content = $CONT_ABSK
+@js_ w document.getElementById("content").dataset.content = "absk"
 content!(w, "div#content", ui)

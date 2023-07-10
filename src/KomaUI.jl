@@ -162,7 +162,7 @@ end
 ## MENU FUNCTIONS
 handle(w, "index") do args...
     content!(w, "div#content", index)
-    @js_ w document.getElementById("content").dataset.content = $CONT_INDEX
+    @js_ w document.getElementById("content").dataset.content = "index"
 end
 handle(w, "pulses_seq") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting sequence ...")
