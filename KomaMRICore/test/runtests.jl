@@ -506,6 +506,22 @@ end
     @test abs(s) ≈ [α^2 + β^2]
 end
 
+@testitem "TimeStepCalculation" tags=[:core] begin
+    ampRF = 1e-6
+    durRF = 1e-3
+    rf = RF(ampRF, durRF)
+    seq = Sequence()
+    seq += rf
+    seq += Delay(durRF)
+    seq += rf
+    seq += Delay(durRF)
+    seq += rf
+    seq += Delay(durRF)
+    t, Δt = KomaMRICore.get_variable_times(seq; dt_rf=durRF)
+    o, d, s = 2, 3, 1
+    @test KomaMRICore.get_breaks_in_RF_key_points(seq, t) == [o; o+d+1*s; o+d+2*s; o+2*d+3*s; o+2*d+4*s; o+3*d+5*s]
+end
+
 @testitem "TrapezoidalIntegration" tags=[:core] begin
     dt = Float64[1 1 1 1]
     x  = Float64[0 1 2 1 0]
