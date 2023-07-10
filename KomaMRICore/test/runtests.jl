@@ -509,17 +509,20 @@ end
 @testitem "TimeStepCalculation" tags=[:core] begin
     ampRF = 1e-6
     durRF = 1e-3
+    index_offset, number_rf_points = 2, 3
+    rf_key_points = []
     rf = RF(ampRF, durRF)
     seq = Sequence()
     seq += rf
+    append!(rf_key_points, [index_offset; index_offset + number_rf_points + 1])
     seq += Delay(durRF)
     seq += rf
+    append!(rf_key_points, [rf_key_points[end] + 1; rf_key_points[end] + 1 + number_rf_points + 1])
     seq += Delay(durRF)
     seq += rf
-    seq += Delay(durRF)
+    append!(rf_key_points, [rf_key_points[end] + 1; rf_key_points[end] + 1 + number_rf_points + 1])
     t, Δt = KomaMRICore.get_variable_times(seq; dt_rf=durRF)
-    o, d, s = 2, 3, 1
-    @test KomaMRICore.get_breaks_in_RF_key_points(seq, t) == [o; o+d+1*s; o+d+2*s; o+2*d+3*s; o+2*d+4*s; o+3*d+5*s]
+    @test KomaMRICore.get_breaks_in_RF_key_points(seq, t) == rf_key_points
 end
 
 @testitem "TrapezoidalIntegration" tags=[:core] begin
