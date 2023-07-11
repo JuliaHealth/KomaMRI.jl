@@ -95,6 +95,11 @@ using TestItems, TestItemRunner
             @test true              #If the previous line fails the test will fail
         end
 
+        @testset "plot_slew_rate" begin
+            plot_slew_rate(seq)
+            @test true
+        end
+
         @testset "plot_seqd" begin
             plot_seqd(seq)
             @test true
