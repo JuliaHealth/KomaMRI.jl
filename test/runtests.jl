@@ -39,7 +39,25 @@ end
 
     using Blink, Interact
 
-    w = KomaUI(dev_tools=true)
+    function with_timeout(f::Function, timeout)
+        c = Channel{Any}(1)
+        @async begin
+            put!(c, f())
+        end
+        @async begin
+            sleep(timeout)
+            put!(c, nothing)
+        end
+        take!(c)
+    end
+
+    w = nothing
+    cnt = 1
+    while isnothing(w)
+        global w = with_timeout(()->KomaUI(dev_tools=true), 60)
+        @info "Number of KomaUI-Window attempts: $cnt"
+        global cnt += 1
+    end
 
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
