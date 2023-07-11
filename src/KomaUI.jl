@@ -199,11 +199,13 @@ handle(w, "sig") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting raw signal ...")
     content!(w, "div#content", loading)
     include(path*"/ui/SignalGUI.jl")
+    @js_ w document.getElementById("content").dataset.content = "sig"
 end
 handle(w, "reconstruction_absI") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image magnitude ...")
     content!(w, "div#content", loading)
     include(path*"/ui/ReconGUI_absI.jl")
+    @js_ w document.getElementById("content").dataset.content = "absi"
 end
 handle(w, "reconstruction_angI") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image phase ...")
@@ -272,6 +274,7 @@ handle(w, "simulate") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting raw signal ...")
     content!(w, "div#content", loading)
     include(path*"/ui/SignalGUI.jl")
+    @js_ w document.getElementById("content").dataset.content = "simulation"
     # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
@@ -317,6 +320,7 @@ handle(w, "recon") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image magnitude ...")
     content!(w, "div#content", loading)
     include(path*"/ui/ReconGUI_absI.jl")
+    @js_ w document.getElementById("content").dataset.content = "reconstruction"
 end
 handle(w, "close") do args...
     global darkmode = nothing
