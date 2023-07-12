@@ -51,10 +51,10 @@ end
         take!(c)
     end
 
-    function open_koma_ui()
-        for cnt = 1:5
+    function attempt_to_open_koma_ui(n_attempts, timeout_sec)
+        for cnt = 1:n_attempts
             @info "Trying to open the KomaUI-Window ..."
-            w = with_timeout(()->KomaUI(dev_tools=true), 120)
+            w = with_timeout(()->KomaUI(dev_tools=true), timeout_sec)
             @info "Number of KomaUI-Window attempts: $cnt"
             if !isnothing(w)
                 @info "KomaUI-Window successfully opened"
@@ -63,7 +63,9 @@ end
         end
     end
 
-    w = open_koma_ui()
+    n_attempts = 5
+    timeout_sec = 120
+    w = attempt_to_open_koma_ui(n_attempts, timeout_sec)
 
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
