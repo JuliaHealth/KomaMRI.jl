@@ -137,26 +137,32 @@ global mat_obs = Observable{Any}(matfolder)
 handle(w, "matfolder") do args...
     str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolder"
 end
 handle(w, "matfolderseq") do args...
     str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="sequence")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolderseq"
 end
 handle(w, "matfolderpha") do args...
     str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="phantom")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolderpha"
 end
 handle(w, "matfoldersca") do args...
     str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="scanner")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfoldersca"
 end
 handle(w, "matfolderraw") do args...
     str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="raw")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolderraw"
 end
 handle(w, "matfolderima") do args...
     str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="image")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolderima"
 end
 
 ## MENU FUNCTIONS
