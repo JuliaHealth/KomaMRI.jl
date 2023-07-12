@@ -158,9 +158,9 @@ end
 function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vectors_input.txt", name="Maxwell2", 
     precision::Int=6, dwell_time=6.4e-6, verbose=false)
     open(filename, "w") do io
-        t1 = range(0, maximum(G1.GR.T), step=dwell_time) #length=δ2N(maximum(G1.GR.T))) #step=dwell_time) #
-		t2 = range(0, maximum(G2.GR.T), step=dwell_time) #length=δ2N(maximum(G2.GR.T)))
-        t3 = range(0, maximum(G3.GR.T), step=dwell_time) #length=δ2N(maximum(G3.GR.T)))
+        t1 = range(0, G1.GR.dur[1] - maximum(G1.GR.delay), step=dwell_time) #length=δ2N(maximum(G1.GR.T))) #step=dwell_time) #
+		t2 = range(0, G2.GR.dur[1] - maximum(G2.GR.delay), step=dwell_time) #length=δ2N(maximum(G2.GR.T)))
+        t3 = range(0, G3.GR.dur[1] - maximum(G3.GR.delay), step=dwell_time) #length=δ2N(maximum(G3.GR.T)))
         maxN = max(length(t1), length(t2), length(t3))
         Gx1, Gy1, Gz1 = KomaMRICore.get_grads(G1, Array(t1).+maximum(G1.GR.delay))
 		Gx2, Gy2, Gz2 = KomaMRICore.get_grads(G2, Array(t2).+maximum(G2.GR.delay))
@@ -242,7 +242,7 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
         date = "#Generated on $(now())\r\n"
         vars =  @sprintf "%s %s %s %s %s %s %s\r\n" "#Name"*" "^(length(name)-5) "N1"*" "^(length(string(N1))-1) "N2"*" "^(length(string(N2))-1) "N3"*" "^(length(string(N3))-1) "bval"*" "^(length(string(round(bmax,digits=1)))-3) "Gmax"*" "^(length(string(round(Gmax,digits=1)))-3) "Smax"
         unit =  @sprintf "%s %s %s %s\r\n" "#"*" "^(length(name)+length(string(N1))+length(string(N2))+length(string(N3))+2)  "s/mm2"*" "^(length(string(bval))-3) "mT/m"*" "^(length(string(round(Gmax,digits=1)))-3) "T/m/s"  
-        line =  @sprintf "%s %i %i %i %.1f %.1f %.1f\r\n" name N1 N2 N3 bmax Gmax*1e3 Smax
+        line =  @sprintf "%s %i %i %i %.1f %.1f %.1f\r\n" name N1 N2 N3 bval Gmax*1e3 Smax
         write(io, date)
         write(io, vars)
         write(io, unit)
@@ -262,7 +262,8 @@ dwell_time = 6.4e-6
 Gmax = 62e-3 # mT/m
 Smaxs = [70] # mT/m/ms
 axis_to_calc = ["xyz"] # ["x", "y", "z", "xyz", "xz", "yz"] 
-moment_to_calc = [1] #[0, 1, 2]
+moment_to_calc = [0, 1] #[0, 1, 2]
+# 4 : HS 50ms
 # 5 : HS 55ms
 # 9 : BIR4 50ms
 pulses_to_calc = [4] #3,4,5]
@@ -275,11 +276,12 @@ gap_right_ms = 0; gap_right = floor(Int64, gap_right_ms * 1e-3 / (n_dwells * dwe
 λ_spectra = (0.1:0.5:150) * 1e-3
 ec_spectraB0 = zeros(length(λ_spectra))
 ec_spectraGradM0 = zeros(length(λ_spectra))
-ecc_λ = [85e-3]#[0.04, 0.1, 0.24, 0.57, 1.4, 3.4, 8.3, 20, 49, 118, 288, 700] * 1e-3
+ecc_λ = [15e-3]#[0.04, 0.1, 0.24, 0.57, 1.4, 3.4, 8.3, 20, 49, 118, 288, 700] * 1e-3
 ecc_α = [1.] #[51.2*ones(3); 10.24*ones(9)] / 100.
 DIF = Sequence()
+DIF_ref = Sequence()
 
-for eddy = [false], gap_left_ms = [1]
+for eddy = [false], gap_left_ms = [0, 1], maxwell = [true, false]
 # for eddy = [false, true], gap_left_ms = [0, 1]
 gap_left = floor(Int64, gap_left_ms * 1e-3 / (n_dwells * dwell_time))
 for Smax = Smaxs
@@ -570,28 +572,51 @@ for k = moment_to_calc #Number of moments to null
         #     global ec_spectraB0[i] = get_ECmatrix(DIF; λ, τ_sample=τ*1e-3) * [gx1; gx2; gx3]
         #     global ec_spectraGradM0[i] = get_ECmatrixM0(DIF; λ, τ_sample=τ*1e-3) * [gx1; gx2; gx3]
         # end
-        # p5 = plot_eddy_currents(DIF, ecc_λ; α=ecc_α, slider=false, range=[0,τ])
+        p5 = plot_eddy_currents(DIF, ecc_λ; α=ecc_α, slider=false, range=[0,τ])
         # p6 = plot([
         #     scatter(x=λ_spectra*1e3, y=log.(abs.(ec_spectraB0)), name="EC_B0"), 
         #     scatter(x=λ_spectra*1e3, y=log.(abs.(ec_spectraGradM0)), name="EC_GradM0")
         #     ])
         # p7 = KomaMRIPlots.plot_slew_rate(DIF; slider=false, range=[0,τ])
-        p = [p1; p2 p3]
-        display(p)
+        p = [p1; p2 p3; p5]
+        # display(p)
         savefig(p, path_res*"$seq_name.svg")
         # Write
         write_diffprep_fwf(DIF[1], DIF[2], DIF[3], bmax, Gmax, Smax; 
                 filename=path_res*"$seq_name.txt", name=seq_name, verbose=false)
-        
         println( "λ0 = $(abs(round(M[1,:]'*gx/Gmax,digits=3))), λ1 = $(abs(round(M[2,:]'*gx/Gmax,digits=3))), λ2 = $(abs(round(M[3,:]'*gx/Gmax,digits=3)))" )
         println( "MX ∫g1²-∫g2²+∫g3²=$(gx1'*MX[1]*gx1 - gx2'*MX[2]*gx2 + gx3'*MX[3]*gx3)")
         println( "b-value: $(round(bmax, digits=2)) s/mm2" )
         println( "Eddy currents B0: $(ecc_α'*EC*[gx1; gx2; gx3])")
         println( "Eddy currents GradM0: $(ecc_α'*ECM0*[gx1; -gx2; gx3])")
         println( seq_name )
+
+        #REFERENCES
+        #REF M0 TRSE
+        ζ = Gmax/Smax_discrete
+        G_waveform = [-Gmax; -Gmax; 0; Gmax; Gmax]
+        t_waveform = [(δ2-4ζ)/2; ζ; ζ; (δ2-4ζ)/2]
+        println("TRSE: $((δ1-2ζ)*1e3) $(t_waveform*1e3) $((δ3-2ζ)*1e3)")
+        global DIF_ref = Sequence([Grad(Gmax, δ1-2ζ, ζ); Grad(Gmax, δ1-2ζ, ζ); Grad(Gmax, δ1-2ζ, ζ);;], R1)
+        global DIF_ref += Sequence([Grad(G_waveform, t_waveform, ζ); Grad(G_waveform, t_waveform, ζ); Grad(G_waveform, t_waveform, ζ);;], R2)
+        global DIF_ref += Sequence([Grad(-Gmax, δ3-2ζ, ζ); Grad(-Gmax, δ3-2ζ, ζ); Grad(-Gmax, δ3-2ζ, ζ);;])
+        #Plot
+        τ = dur(DIF_ref) * 1e3
+        p1 = plot_seq(DIF_ref; slider=false, range=[0,τ], title="TRSE_$durT")
+        p2 = plot_M0(DIF_ref; slider=false, range=[0,τ])
+        p3 = plot_M1(DIF_ref; slider=false, range=[0,τ])
+        p4 = plot_M2(DIF_ref; slider=false, range=[0,τ])
+        p5 = plot_eddy_currents(DIF_ref, ecc_λ; α=ecc_α, slider=false, range=[0,τ])
+        p = [p1; p2 p3; p5]
+        # display(p)
+        savefig(p, path_res*"TRSE_$durT.svg")
+        #Write
+        write_diffprep_fwf(DIF_ref[1], DIF_ref[2], DIF_ref[3], bmax, Gmax, Smax; 
+            filename=path_res*"TRSE_$durT.txt", name="TRSE_$durT", verbose=false)
     end
 end
 end
 end
 end
+
 println("Finished! 💃")
