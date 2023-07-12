@@ -73,34 +73,20 @@ using TestItems, TestItemRunner
         @test GR.A ≈ GR2.A
 
         #Sanity checks of contructors (A [T], T[s], rise[s], fall[s], delay[s])
+        A, T = 0.1, 1e-3
+        grad = Grad(A, T)
+
         A, T = rand(2)
         g1, g2 = Grad(A,T), Grad(A,T,0,0,0)
-        @test g1.A ≈ g2.A
-        @test g1.T ≈ g2.T
-        @test g1.rise ≈ g2.rise
-        @test g1.fall ≈ g2.fall
-        @test g1.delay ≈ g2.delay
+        @test g1 ≈ g2
 
         A, T, ζ = rand(3)
         g1, g2 = Grad(A,T,ζ), Grad(A,T,ζ,ζ,0)
-        @test g1.A ≈ g2.A
-        @test g1.T ≈ g2.T
-        @test g1.rise ≈ g2.rise
-        @test g1.fall ≈ g2.fall
-        @test g1.delay ≈ g2.delay
+        @test g1 ≈ g2
 
         A, T, delay, ζ = rand(4)
         g1, g2 = Grad(A,T,ζ,delay), Grad(A,T,ζ,ζ,delay)
-        @test g1.A ≈ g2.A
-        @test g1.T ≈ g2.T
-        @test g1.rise ≈ g2.rise
-        @test g1.fall ≈ g2.fall
-        @test g1.delay ≈ g2.delay
-
-        # Test Grad construction
-        A, T = 0.1, 1e-3
-        grad = Grad(A, T)
-        @test grad.A ≈ A && grad.T ≈ T && grad.rise ≈ 0 && grad.fall ≈ 0 && grad.delay ≈ 0
+        @test g1 ≈ g2
 
         # Test construction with shape function
         T, N = 1e-3, 100
@@ -162,31 +148,22 @@ using TestItems, TestItemRunner
         #Sanity checks of constructors (A [T], T [s], Δf[Hz], delay [s])
         A, T = rand(2)
         r1, r2 = RF(A,T), RF(A,T,0,0)
-        @test r1.A ≈ r2.A
-        @test r1.T ≈ r2.T
-        @test r1.Δf ≈ r2.Δf
-        @test r1.delay ≈ r2.delay
+        @test r1 ≈ r2
 
         A, T, Δf = rand(3)
         r1, r2 = RF(A,T,Δf), RF(A,T,Δf,0)
-        @test r1.A ≈ r2.A
-        @test r1.T ≈ r2.T
-        @test r1.Δf ≈ r2.Δf
-        @test r1.delay ≈ r2.delay
-
-        # Test RF construction
-        B1x, B1y, T = rand(3)
-        A = B1x + im*B1y
-        rf = RF(A, T)
-        @test rf.A ≈ A && rf.T ≈ T && rf.Δf ≈ 0 && rf.delay ≈ 0
+        @test r1 ≈ r2
 
         # Test RF output message
         io = IOBuffer()
-        show(io, "text/plain", rf)
+        show(io, "text/plain", r1)
         @test occursin("RF(", String(take!(io)))
 
         # Test Grad operations
+        B1x, B1y, T = rand(3)
+        A = B1x + im*B1y
         α = Complex(rand())
+        rf = RF(A, T)
         rft = α * rf
         @test size(rf, 1) == 1
         @test rft.A ≈ α * rf.A
@@ -195,12 +172,6 @@ using TestItems, TestItemRunner
         rf1, rf2, rf3 = RF(B1x + im*B1y, T1), RF(B1x + im*B1y, T2), RF(B3x + im*B3y, T3)
         rv = [rf1; rf2; rf3]
         @test dur(rv) ≈ sum(dur.(rv))
-        rm = [rv;;rv]
-        #@test dur(rm) ≈ size(rm, 2) * maximum([T1, T2, T3])
-
-        # Test get properties
-        #@test getproperty(rm, :Bx) ≈ real.(getproperty.(rm,:A))
-        #@test getproperty(rm, :By) ≈ imag.(getproperty.(rm,:A))
 
     end
 
@@ -233,12 +204,16 @@ using TestItems, TestItemRunner
 
         # Test ADC construction
         N, T, delay, Δf, ϕ  = 64, 1e-3, 2e-3, 1e-6, .25*π
-        adc = ADC(N, T)
-        @test adc.N ≈ N && adc.T ≈ T && adc.delay ≈ 0 && adc.Δf ≈ 0 && adc.ϕ ≈ 0
-        adc = ADC(N, T, delay)
-        @test adc.N ≈ N && adc.T ≈ T && adc.delay ≈ delay && adc.Δf ≈ 0 && adc.ϕ ≈ 0
         adc = ADC(N, T, delay, Δf, ϕ)
-        @test adc.N ≈ N && adc.T ≈ T && adc.delay ≈ delay && adc.Δf ≈ Δf && adc.ϕ ≈ ϕ
+
+        adc1, adc2 = ADC(N, T), ADC(N,T,0,0,0)
+        @test adc1 ≈ adc2
+
+        adc1, adc2 = ADC(N, T, delay), ADC(N, T, delay, 0, 0)
+        @test adc1 ≈ adc2
+
+        adc1, adc2 = ADC(N, T, delay, Δf, ϕ), ADC(N, T, delay, Δf, ϕ)
+        @test adc1 ≈ adc2
 
         # Test ADC construction errors for negative values
         err = Nothing
@@ -394,18 +369,8 @@ end
     Dθ = [-8e-6; -4e-6; 0.; 4e-6; 8e-6]
     u = (x,y,z,t)->0
     obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, ux=u, uy=u, uz=u)
-    @test   obj.name == name &&
-            obj.x ≈ x &&
-            obj.y ≈ y &&
-            obj.z ≈ z &&
-            obj.ρ ≈ ρ &&
-            obj.T1 ≈ T1 &&
-            obj.T2 ≈ T2 &&
-            obj.T2s ≈ T2s &&
-            obj.Δw ≈ Δw &&
-            obj.Dλ1 ≈ Dλ1 &&
-            obj.Dλ2 ≈ Dλ2 &&
-            obj.Dθ ≈ Dθ
+    obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, ux=u, uy=u, uz=u)
+    @test obj ≈ obj2
 
     # Test size and length definitions of a phantom
     @test size(obj) == size(ρ)

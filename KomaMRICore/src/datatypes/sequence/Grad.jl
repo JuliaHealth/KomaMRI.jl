@@ -177,6 +177,12 @@ getproperty(x::Matrix{Grad}, f::Symbol) = begin
 	end
 end
 
+# Gradient comparison
+Base.isapprox(gr1::Grad, gr2::Grad) = begin
+    return all(length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k ∈ fieldnames(Grad)) &&
+        all(getfield(gr1, k) ≈ getfield(gr2, k) for k ∈ fieldnames(Grad))
+end
+
 # Gradient operations
 *(x::Grad,α::Real) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
 *(α::Real,x::Grad) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)

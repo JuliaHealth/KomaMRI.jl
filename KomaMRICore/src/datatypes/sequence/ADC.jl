@@ -34,6 +34,12 @@ mutable struct ADC
     end
 end
 
+# ADC comparison
+Base.isapprox(adc1::ADC, adc2::ADC) = begin
+    return all(length(getfield(adc1, k)) ≈ length(getfield(adc2, k)) for k ∈ fieldnames(ADC))
+        all(getfield(adc1, k) ≈ getfield(adc2, k) for k ∈ fieldnames(ADC))
+end
+
 """
     y = getproperty(x::Vector{ADC}, f::Symbol)
 
