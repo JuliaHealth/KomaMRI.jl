@@ -52,11 +52,14 @@ end
     end
 
     w = nothing
-    cnt = 1
-    while isnothing(w)
-        global w = with_timeout(()->KomaUI(dev_tools=true), 60)
+    for cnt = 1:5
+        @info "Trying to open the KomaUI-Window ..."
+        global w = with_timeout(()->KomaUI(dev_tools=true), 120)
         @info "Number of KomaUI-Window attempts: $cnt"
-        global cnt += 1
+        if !isnothing(w)
+            @info "KomaUI-Window successfully opened"
+            break
+        end
     end
 
     @testset "Open UI" begin
