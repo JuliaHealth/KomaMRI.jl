@@ -1,10 +1,10 @@
 """
-    phantom = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
+    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
 
 The Phantom struct.
 
 # Arguments
-- `name`: (`::String`) name of the Phantom
+- `name`: (`::String`) name of the phantom
 - `x`: (`::AbstractVector{T}`, `[m]`) vector of x-positions of the spins
 - `y`: (`::AbstractVector{T}`, `[m]`) vector of y-positions of the spins
 - `z`: (`::AbstractVector{T}`, `[m]`) vector of z-positions of the spins
@@ -21,10 +21,17 @@ The Phantom struct.
 - `uz`: (`::Function`) displacement field in the z-axis
 
 # Returns
-- `phantom`: (`::Phantom`) Phantom struct
+- `obj`: (`::Phantom`) Phantom struct
+
+# Examples
+```julia-repl
+julia> obj = Phantom()
+
+julia> obj.ρ
+```
 """
  @with_kw mutable struct Phantom{T<:Real}
-	name::String = "spins"
+    name::String = "spins"
 	x::AbstractVector{T}
 	y::AbstractVector{T} =   zeros(size(x))
 	z::AbstractVector{T} =   zeros(size(x))
@@ -45,9 +52,25 @@ The Phantom struct.
 	uy::Function = (x,y,z,t)->0
 	uz::Function = (x,y,z,t)->0
 end
-# Phantom() = Phantom(name="spin",x=zeros(1,1))
+
+"""Size and length of a phantom"""
 size(x::Phantom) = size(x.ρ)
 Base.length(x::Phantom) = length(x.ρ)
+
+"""Compare two phantoms"""
+Base.isapprox(obj1::Phantom, obj2::Phantom)  = begin
+    obj1.x     ≈ obj2.x    &&
+    obj1.y     ≈ obj2.y    &&
+    obj1.z     ≈ obj2.z    &&
+    obj1.ρ     ≈ obj2.ρ    &&
+    obj1.T1    ≈ obj2.T1   &&
+    obj1.T2    ≈ obj2.T2   &&
+    obj1.T2s   ≈ obj2.T2s  &&
+    obj1.Δw    ≈ obj2.Δw   &&
+    obj1.Dλ1   ≈ obj2.Dλ1  &&
+    obj1.Dλ2   ≈ obj2.Dλ2  &&
+    obj1.Dθ    ≈ obj2.Dθ
+end
 
 """Separate object spins in a sub-group."""
 Base.getindex(obj::Phantom, p::AbstractRange) = begin
@@ -70,7 +93,8 @@ Base.getindex(obj::Phantom, p::AbstractRange) = begin
 			uz=obj.uz
 			)
 end
-"""Separate object spins in a sub-group."""
+
+"""Separate object spins in a sub-group (lightweigth)."""
 Base.view(obj::Phantom, p::AbstractRange) = begin
 	@views Phantom(name=obj.name,
 			x=obj.x[p],
@@ -92,9 +116,8 @@ Base.view(obj::Phantom, p::AbstractRange) = begin
 			)
 end
 
-# Compartment enabling routines:
-# Addition of compartments
-+(s1::Phantom,s2::Phantom) =begin
+"""Addition of phantoms"""
++(s1::Phantom,s2::Phantom) = begin
 	Phantom(name=s1.name*"+"*s2.name,
 		x=[s1.x;s2.x],
 		y=[s1.y;s2.y],
@@ -114,7 +137,8 @@ end
 		uz=s1.uz
 	)
 end
-#Fraction of compartments
+
+"""Scalar multiplication of a phantom"""
 *(α::Real,obj::Phantom) = begin
 	Phantom(name=obj.name,
 		x=obj.x,
@@ -135,92 +159,6 @@ end
 		uz=obj.uz
 	)
 end
-
-# Movement related commands
-# StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
-# FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
-
-#TODO: jaw-pitch-roll, expand, contract, functions
-
-# Getting maps
-# get_DxDy2D(obj::Phantom) = begin
-# 	P(i) = rotz(obj.Dθ[i])[1:2,1:2];
-# 	D(i) = [obj.Dλ1[i] 0;0 obj.Dλ2[i]]
-# 	nx = [1;0]; ny = [0;1]
-# 	Dx = [nx'*P(i)'*D(i)*P(i)*nx for i=1:prod(size(obj.Dλ1))]
-# 	Dy = [ny'*P(i)'*D(i)*P(i)*ny for i=1:prod(size(obj.Dλ1))]
-# 	Dx, Dy
-# end
-
-"""
-    phantom = heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false)
-
-Heart-like LV phantom. The variable `α` is for streching, `β` for contraction, and `γ` for
-rotation.
-
-# Arguments
-- `α`: (`::Real`, `=1`) streching parameter
-- `β`: (`::Real`, `=1`) contraction parameter
-- `γ`: (`::Real`, `=1`) rotation parameter
-- `fat_bool`: (`::Bool`, `=false`) fat boolean parameter
-
-# Returns
-- `phantom`: (`::Phantom`) Heart-like LV phantom struct
-"""
-heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false) = begin
-	#PARAMETERS
-	FOV = 10e-2 #m Diameter ventricule
-	N = 21
-	Δxr = FOV/(N-1) #Aprox rec resolution, use Δx_pix and Δy_pix
-	Ns = 50 #number of spins per voxel
-	Δx = Δxr/sqrt(Ns) #spin separation
-	#POSITIONS
-	x = y = -FOV/2:Δx:FOV/2-Δx #spin coordinates
-	x, y = x .+ y'*0, x*0 .+ y' #grid points
-	#PHANTOM
-	⚪(R) =  (x.^2 .+ y.^2 .<= R^2)*1. #Circle of radius R
-	v = FOV/4 #m/s 1/16 th of the FOV during acquisition
-	ωHR = 2π/1 #One heart-beat in one second
-
-	# θ(t) = -π/4*γ*(sin.(ωHR*t).*(sin.(ωHR*t).>0)+0.25.*sin.(ωHR*t).*(sin.(ωHR*t).<0) )
-	ux(x,y,t) = begin
-		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(x)
-		contract = - β * v * x / (FOV/2)  #expand
-		rotate = - γ * v * y / (FOV/2)
-		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
-	end
-	uy(x,y,t) = begin
-		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(y)
-		contract = - β * v * y / (FOV/2)
-		rotate = γ * v * x / (FOV/2)
-		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
-	end
-	# Water spins
-	R = 9/10*FOV/2
-	r = 6/11*FOV/2
-	ring = ⚪(R) .- ⚪(r)
-	ρ = ⚪(r) .+ 0.9*ring #proton density
-	# Diffusion tensor model
-	D = 2e-9 #Diffusion of free water m2/s
-	D1, D2 = D, D/20
-	Dλ1 = D1*⚪(R) #Diffusion map
-	Dλ2 = D1*⚪(r) .+ D2*ring #Diffusion map
-	Dθ =  atan.(x,-y) .* ring #Diffusion map
-	T1 = (1400*⚪(r) .+ 1026*ring)*1e-3 #Myocardial T1
-	T2 = ( 308*⚪(r) .+ 42*ring  )*1e-3 #T2 map [s]
-	# Generating Phantoms
-	heart = Phantom("LeftVentricle",x,y,ρ,T2,Dλ1,Dλ2,Dθ,ux,uy)
-	# Fat spins
-	ring2 = ⚪(FOV/2) .- ⚪(R) #outside fat layer
-	ρ_fat = .5*ρ.*ring2
-	Δw_fat = 2π*220*ring2 #fat should be dependant on B0
-	T1_fat = 800*ring2*1e-3
-	T2_fat = 120*ring2*1e-3 #T2 map [s]
-	fat = Phantom("fat",x,y,ρ_fat,T2_fat,Δw_fat)
-	#Resulting phantom
-	obj = fat_bool ? heart + fat : heart #concatenating spins
-end
-
 
 """
     phantom = brain_phantom2D(;axis="axial", ss=4)
@@ -313,14 +251,14 @@ function brain_phantom2D(;axis="axial", ss=4)
 	T2 = T2*1e-3
 	T2s = T2s*1e-3
     phantom = Phantom{Float64}(name="brain2D_"*axis,
-					  x=y[ρ.!=0],
-					  y=x[ρ.!=0],
-					  z=0*x[ρ.!=0],
-					  ρ=ρ[ρ.!=0],
-					  T1=T1[ρ.!=0],
-					  T2=T2[ρ.!=0],
-					  T2s=T2s[ρ.!=0],
-					  Δw=Δw[ρ.!=0])
+				x=y[ρ.!=0],
+				y=x[ρ.!=0],
+				z=0*x[ρ.!=0],
+				ρ=ρ[ρ.!=0],
+				T1=T1[ρ.!=0],
+				T2=T2[ρ.!=0],
+				T2s=T2s[ρ.!=0],
+				Δw=Δw[ρ.!=0])
 	phantom
 end
 
@@ -418,13 +356,13 @@ function brain_phantom3D(;ss=4)
 	T2 = T2*1e-3
 	T2s = T2s*1e-3
     phantom = Phantom{Float64}(name ="brain3D",
-							   x = y[ρ.!=0],
-							   y = x[ρ.!=0],
-							   z = z[ρ.!=0],
-							   ρ = ρ[ρ.!=0],
-							   T1 = T1[ρ.!=0],
-							   T2 = T2[ρ.!=0],
-							   T2s = T2s[ρ.!=0],
-							   Δw = Δw[ρ.!=0])
+				x = y[ρ.!=0],
+				y = x[ρ.!=0],
+				z = z[ρ.!=0],
+				ρ = ρ[ρ.!=0],
+				T1 = T1[ρ.!=0],
+				T2 = T2[ρ.!=0],
+				T2s = T2s[ρ.!=0],
+				Δw = Δw[ρ.!=0])
 	phantom
 end

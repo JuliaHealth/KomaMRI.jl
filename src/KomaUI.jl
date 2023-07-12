@@ -1,4 +1,6 @@
-function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}())
+include("ui/ExportMATFunctions.jl")
+
+function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false, blink_show=true)
 ## ASSETS
 path = @__DIR__
 assets = AssetRegistry.register(dirname(path*"/ui/assets/"))
@@ -7,7 +9,7 @@ css = AssetRegistry.register(dirname(path*"/ui/css/"))
 # Assets
 background = assets*"/spiral-bg.svg" #In Windows joinpath causes problems "/assetserver/...-assets\Logo.png"
 logo = joinpath(assets, "Logo_dark.svg")
-loading = joinpath(assets, "Loading.gif")
+icon = joinpath(assets, "Icon.svg")
 # JS
 bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
 bscss = joinpath(css,"bootstrap.min.css")
@@ -25,6 +27,9 @@ customjs2 = joinpath(scripts,"custom2.js")
 sidebarcss = joinpath(css,"sidebars.css")
 # Custom icons
 icons = joinpath(css,"icons.css")
+## BOOLEAN TO INDICATE FIRST TIME PRECOMPILING
+global ISFIRSTSIM = true
+global ISFIRSTREC = true
 ## WINDOW
 global w = Blink.Window(Dict(
     "title"=>"KomaUI",
@@ -33,7 +38,9 @@ global w = Blink.Window(Dict(
     "node-integration" => true,
     :icon=>path*"/ui/assets/Logo_icon.png",
     "width"=>1200,
-    "height"=>800
+    "height"=>800,
+    "webPreferences" => Dict("devTools" => dev_tools),
+    :show=>blink_show
     ),async=false);
 ## LOADING BAR
 buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
@@ -47,7 +54,10 @@ sidebar = open(f->read(f, String), path*"/ui/html/sidebar.html")
 sidebar = replace(sidebar, "LOGO"=>logo)
 ## CONTENT
 index = open(f->read(f, String), path*"/ui/html/index.html")
-index = replace(index, "BACKGROUND_IMAGE"=>background)
+index = replace(index, "ICON"=>icon)
+#index = replace(index, "BACKGROUND_IMAGE"=>background)
+## LOADING
+#loading = open(f->read(f, String), path*"/ui/html/loading.html")
 ## CSS
 loadcss!(w, bscss)
 loadcss!(w, bsiconcss)
@@ -102,10 +112,11 @@ global raw_ismrmrd = RawAcquisitionData(Dict(
     "encodedFOV" => [100.,100.,1],
     "trajectory" => "other"),
     [KomaMRICore.Profile(AcquisitionHeader(trajectory_dimensions=2, sample_time_us=1),
-        [0. 0. 1 1; 0 1 1 1]./2, [0.; 0im; 0; 0;;])])
+        [0. 0. 1 1; 0 1 1 1]./2, reshape([0.; 0im; 0; 0],4,1))])
 global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
 global kspace = [0.0im 0.; 0. 0.]
+global matfolder = tempdir()
 #Reco
 default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solver=>"admm",:regularization=>"TV")
 global recParams = merge(default, rec)
@@ -120,41 +131,121 @@ global seq_obs = Observable{Sequence}(seq)
 global pha_obs = Observable{Phantom}(phantom)
 global sig_obs = Observable{RawAcquisitionData}(raw_ismrmrd)
 global img_obs = Observable{Any}(image)
+global mat_obs = Observable{Any}(matfolder)
+
+#
+handle(w, "matfolder") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolder"
+end
+handle(w, "matfolderseq") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="sequence")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolderseq"
+end
+handle(w, "matfolderpha") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="phantom")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolderpha"
+end
+handle(w, "matfoldersca") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="scanner")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfoldersca"
+end
+handle(w, "matfolderraw") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="raw")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolderraw"
+end
+handle(w, "matfolderima") do args...
+    str_toast = export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="image")
+    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+    @js_ w document.getElementById("content").dataset.content = "matfolderima"
+end
+
 ## MENU FUNCTIONS
 handle(w, "index") do args...
     content!(w, "div#content", index)
+    @js_ w document.getElementById("content").dataset.content = "index"
 end
 handle(w, "pulses_seq") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting sequence ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/PulsesGUI_seq.jl")
 end
 handle(w, "pulses_kspace") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting kspace ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/PulsesGUI_kspace.jl")
 end
 handle(w, "pulses_M0") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting moment 0 ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/PulsesGUI_M0.jl")
 end
+handle(w, "pulses_M1") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting moment 1 ...")
+    content!(w, "div#content", loading)
+    include(path*"/ui/PulsesGUI_M1.jl")
+end
+handle(w, "pulses_M2") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting moment 2 ...")
+    content!(w, "div#content", loading)
+    include(path*"/ui/PulsesGUI_M2.jl")
+end
 handle(w, "phantom") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting phantom ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/PhantomGUI.jl")
 end
+
 handle(w, "sig") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting raw signal ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/SignalGUI.jl")
+    @js_ w document.getElementById("content").dataset.content = "sig"
 end
 handle(w, "reconstruction_absI") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image magnitude ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/ReconGUI_absI.jl")
+    @js_ w document.getElementById("content").dataset.content = "absi"
 end
 handle(w, "reconstruction_angI") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image phase ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/ReconGUI_angI.jl")
 end
 handle(w, "reconstruction_absK") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image k ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/ReconGUI_absK.jl")
 end
+handle(w, "scanner") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying scanner parameters ...")
+    content!(w, "div#content", loading)
+    include(path*"/ui/ScannerParams_view.jl")
+end
 handle(w, "sim_params") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying simulation parameters ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/SimParams_view.jl")
 end
 handle(w, "rec_params") do args...
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying reconstruction parameters ...")
+    content!(w, "div#content", loading)
     include(path*"/ui/RecParams_view.jl")
 end
 handle(w, "simulate") do args...
+    strLoadingMessage = "Running simulation ..."
+    if ISFIRSTSIM
+        strLoadingMessage = "Precompiling and running simulation functions ..."
+        ISFIRSTSIM = false
+    end
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
+    content!(w, "div#content", loading)
     # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
@@ -170,6 +261,8 @@ handle(w, "simulate") do args...
     #Message
     sim_time = raw_ismrmrd.params["userParameters"]["sim_time_sec"]
     @js_ w (@var sim_time = $sim_time;
+    @var name = $(phantom.name);
+    document.getElementById("rawname").innerHTML="Koma_signal.mrd";
     Toasty("1", """Simulation successfull<br>Time: <a id="sim_time"></a> s""" ,"""
     <ul>
         <li>
@@ -177,17 +270,28 @@ handle(w, "simulate") do args...
             Updating <b>Raw signal</b> plots ...
         </li>
         <li>
-            <button class="btn btn-success btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
+            <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
             Ready to <b>reconstruct</b>?
         </li>
     </ul>
     """);
     document.getElementById("sim_time").innerHTML=sim_time;
     )
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting raw signal ...")
+    content!(w, "div#content", loading)
+    include(path*"/ui/SignalGUI.jl")
+    @js_ w document.getElementById("content").dataset.content = "simulation"
     # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
     # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
 end
 handle(w, "recon") do args...
+    strLoadingMessage = "Running reconstruction ..."
+    if ISFIRSTREC
+        strLoadingMessage = "Precompiling and running reconstruction functions ..."
+        ISFIRSTREC = false
+    end
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
+    content!(w, "div#content", loading)
     # Update loading icon for button
     @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML=buffericon)
     #IMPORT ISMRMRD raw data
@@ -219,6 +323,10 @@ handle(w, "recon") do args...
     );
     document.getElementById("recon_time").innerHTML=recon_time;
     )
+    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image magnitude ...")
+    content!(w, "div#content", loading)
+    include(path*"/ui/ReconGUI_absI.jl")
+    @js_ w document.getElementById("content").dataset.content = "reconstruction"
 end
 handle(w, "close") do args...
     global darkmode = nothing
@@ -240,6 +348,7 @@ handle(w, "close") do args...
     global pha_obs = nothing
     global sig_obs = nothing
     global img_obs = nothing
+    global mat_obs = nothing
     close(w)
 end
 #Update GUI's home
@@ -256,6 +365,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global seq = read_seq(f) #Pulseq read
             end
             @js_ w (@var name = $(basename(f));
+            document.getElementById("seqname").innerHTML=name;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -283,6 +393,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global phantom = read_phantom_jemris(f)
             end
             @js_ w (@var name = $(basename(f));
+            document.getElementById("phaname").innerHTML=name;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -314,6 +425,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
             end
 
             @js_ w (@var name = $(basename(f));
+            document.getElementById("rawname").innerHTML=name;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -332,12 +444,17 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
         end
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
+
 #Update Koma version
 version = string(KomaMRICore.__VERSION__)
 content!(w, "#version", version, async=false)
 @info "Currently using KomaMRICore v$version"
 
-nothing
+if dev_tools
+    return w
+else
+    return nothing
+end
 end
 
 """Updates KomaUI's simulation progress bar."""

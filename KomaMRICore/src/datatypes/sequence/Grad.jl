@@ -131,13 +131,13 @@ Base.show(io::IO, x::Grad) = begin
 	if !compact
 		wave = length(x.A) == 1 ? r(x.A*1e3) : "∿"
 		if x.rise == x.fall == 0.
-			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(wave) mT, $(r(x.T*1e3)) ms)")
+			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(wave) mT, $(r(sum(x.T)*1e3)) ms)")
 		else
-			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(wave) mT, $(r(x.T*1e3)) ms, ↑$(r(x.rise*1e3)) ms, ↓$(r(x.fall*1e3)) ms)")
+			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(wave) mT, $(r(sum(x.T)*1e3)) ms, ↑$(r(x.rise*1e3)) ms, ↓$(r(x.fall*1e3)) ms)")
 		end
 	else
 		wave = length(x.A) == 1 ? "⊓" : "∿"
-		print(io, (sum(abs.(x.A)) > 0 ? wave : "⇿")*"($(r((x.delay+x.rise+x.fall+x.T)*1e3)) ms)")
+		print(io, (sum(abs.(x.A)) > 0 ? wave : "⇿")*"($(r((x.delay+x.rise+x.fall+sum(x.T))*1e3)) ms)")
 	end
 end
 
@@ -177,6 +177,12 @@ getproperty(x::Matrix{Grad}, f::Symbol) = begin
 	end
 end
 
+# Gradient comparison
+Base.isapprox(gr1::Grad, gr2::Grad) = begin
+    return all(length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k ∈ fieldnames(Grad)) &&
+        all(getfield(gr1, k) ≈ getfield(gr2, k) for k ∈ fieldnames(Grad))
+end
+
 # Gradient operations
 *(x::Grad,α::Real) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
 *(α::Real,x::Grad) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
@@ -184,7 +190,7 @@ end
 	N, M = size(GR)
 	[sum(A[i,1:N] .* GR[:,j]) for i=1:N, j=1:M]
 end
-zero(::Grad) = Grad(0,0)
+Base.zero(::Grad) = Grad(0,0)
 size(g::Grad, i::Int64) = 1 #To fix [g;g;;] concatenation of Julia 1.7.3
 /(x::Grad,α::Real) = Grad(x.A/α,x.T,x.rise,x.fall,x.delay)
 +(x::Grad,y::Grad) = Grad(x.A.+y.A,x.T,x.rise,x.fall,x.delay)

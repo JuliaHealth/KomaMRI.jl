@@ -131,14 +131,14 @@ Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k
 *(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
 /(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.DEF)
 #Grad operations
-+(s::Sequence, g::Grad) = s + Sequence([g;;])
-+(g::Grad, s::Sequence) = Sequence([g;;]) + s
++(s::Sequence, g::Grad) = s + Sequence(reshape([g],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(g::Grad, s::Sequence) = Sequence(reshape([g],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #RF operations
-+(s::Sequence, r::RF) = s + Sequence([Grad(0,0);;],[r;;])
-+(r::RF, s::Sequence) = Sequence([Grad(0,0);;],[r;;]) + s
++(s::Sequence, r::RF) = s + Sequence(reshape([Grad(0,0)],1,1),reshape([r],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(r::RF, s::Sequence) = Sequence(reshape([Grad(0,0)],1,1),reshape([r],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #ADC operations
-+(s::Sequence, a::ADC) = s + Sequence([Grad(0,0);;],[RF(0,0);;],[a])
-+(a::ADC, s::Sequence) = Sequence([Grad(0,0);;],[RF(0,0);;],[a]) + s
++(s::Sequence, a::ADC) = s + Sequence(reshape([Grad(0,0)],1,1),reshape([RF(0,0)],1,1),[a]) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(a::ADC, s::Sequence) = Sequence(reshape([Grad(0,0)],1,1),reshape([RF(0,0)],1,1),[a]) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 
@@ -419,8 +419,8 @@ get_rfs(seq::Sequence, t) = begin
 	T = seq.RF.T
 	delay = seq.RF.delay
 	T0 = cumsum([0; durs(seq)], dims=1)
-	(sum([⏢(A[1,i], t.-T0[i],sum(T[i]),0,0,delay[i]) for i=1:length(seq)]),
-	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]),0,0,delay[i]) for i=1:length(seq)])
+	(sum([⏢(A[1,i], t.-T0[i],sum(T[i]).-2EPS,EPS,EPS,delay[i]) for i=1:length(seq)]),
+	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]).-2EPS,EPS,EPS,delay[i]) for i=1:length(seq)])
 	)
 end
 """
@@ -435,204 +435,6 @@ Returns all the flip angles of the RF pulses in the sequence `x`.
 - `y`: (`::Vector{Float64}`, `[deg]`) flip angles
 """
 get_flip_angles(x::Sequence) = get_flip_angle.(x.RF)[:]
-
-"""
-    y = get_ADC_on(seq::Sequence, t::Array{Float64,1})
-
-Get the ADC struct that are active.
-
-!!! note
-    This function is not being used.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `t`: (`::Vector{Float64}`, `[s]`) the time vector
-
-# Returns
-- `y`: (`::Vector{Bool}`) ADC struct that are active
-"""
-get_ADC_on(seq::Sequence, t::Array{Float64,1}) = begin
-	Δt = t[2]-t[1]
-	M, N = size(seq.ADC)
-	ADC = seq.ADC.N .> 0
-	T = [seq.ADC[i].T for i=1:N]; T = [0; T]
-	⊓(t) = (0 .<= t .< 1)*1.;
-	ADC_bool = sum([ADC[i]*⊓((t.-sum(T[1:i]))/(T[i+1]+Δt)) for i=1:N])
-	ADC_bool = (ADC_bool.>0)
-	circshift(convert.(Bool,	[:]),-1)
-end
-
-"""
-    bvalue = get_bvalue(DIF::Sequence)
-
-Calculates the `b`-value, in the PGSE sequnce is b = (2πγGδ)²(Δ-δ/3) and the normalized
-diffusion vector `n` from a *diffusion sequence*.
-
-    bvalue = get_bvalue(G, Δ, δ; null::Bool=false)
-
-Calculates the `b` value for PGSE and a moment nulled sequence.
-
-!!! note
-    This function is not being used.
-
-# Arguments
-- `DIF`: (`:Sequence`)
-- `G`
-- `Δ`
-- `δ`
-
-# Keywords
-- `null`: (`::Bool`, `=false`)
-
-# Returns
-- `bvalue`: the b value
-"""
-get_bvalue(DIF::Sequence) = begin
-	M, N = size(DIF.GR)
-	G = getproperty.(DIF.GR,:A) #[DIF.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
-	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
-	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
-	τ = dur(DIF) #End of sequence
-	# B-value
-	b = 0
-	for k=1:M,i=1:N,j=1:N
-		ij = max(i,j)
-		α = (i==j) ? 2/3 : 1/2
-		b += G[k,i]*G[k,j]*δ[i]*δ[j]*(τ-T[ij]-α*δ[ij])
-	end
-	b_value = (2π*γ)^2*b # Trace of B tensor
-end
-
-get_bvalue(G, Δ, δ; null::Bool=false) = (null ? 1/9 : 1)*(2π*γ*G*δ)^2*(Δ-δ/3)
-
-"""
-    bmatrix = get_Bmatrix(DIF::Sequence)
-
-Calculates the `b`-matrix, such as `b`-value = g' B g [s/mm2] with g [T/m].
-
-!!! note
-    This function is not being used.
-
-# Arguments
-- `DIF`: (`::Sequence`) diffusion Sequence struct
-
-# Returns
-- `bmatrix`: b matrix
-"""
-get_Bmatrix(DIF::Sequence) = begin
-	M, N = size(DIF.GR)
-	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
-	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
-	τ = dur(DIF) #End of sequence
-	# B-value, slower way of doing it
-	# b = zeros(M,N,N)
-	# for k=1,i=1:N,j=1:N
-	# 	ij = max(i,j)
-	# 	α = (i==j) ? 2/3 : 1/2
-	# 	b[k,i,j] = δ[i]*δ[j]*(τ-T[ij]-α*δ[ij])
-	# end
-	ij = [max(i,j) for i=1:N, j=1:N]
-	α = [(i==j) ? 2/3 : 1/2 for i=1:N, j=1:N]
-	b = (δ' .* δ) .* (τ .- T[ij] .- α .* δ[ij])
-	b_value = (2π*γ)^2*1e-6*b # Trace of B tensor
-	b_value
-end
-
-"""
-    qvector = get_qvector(DIF::Sequence; type::String="val")
-
-Calculates `q` = γδG diffusion vector from a *diffusion sequence*.
-
-!!! note
-    This function is not being used.
-
-# Arguments
-- `DIF`: (`::Sequence`) diffusion Sequence struct
-- `type`: (`::String`, `="val"`) option to get a value or plot
-
-# Returns
-- `qvector`: q diffusion vector as a value or a plot
-"""
-get_qvector(DIF::Sequence; type::String="val") = begin
-	M, N = size(DIF.GR)
-	G = getproperty.(DIF.GR,:A) #[DIF.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
-	δ = getproperty.(DIF.GR,:T)[1,:] #[DIF.GR[1,j].T for j=1:N]; #Duration of pulse
-	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
-	τ = dur(DIF) #End of sequence
-	qτ = γ*sum([G[i,j]*δ[j] for i=1:M,j=1:N],dims=2) #Final q-value
-	norm(qτ) ≥ 1e-10 ? error("This is not a diffusion sequence, M0{G(t)}=∫G(t)dt!=0.") : 0
-	# q-trajectory
-	int_rect(t,A,δ) = (t.≥0) ? A*(t.-(t.≥δ).*(t.-δ)) : 0
-	q(t) = γ*sum([int_rect(t.-T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
- 	# Output q-vector and q-trajectory
-	if type=="val"
-		q(τ/2) #1/m
-	elseif type=="traj"
-		t = range(0,stop=τ,length=10^3)
-		qt = [q(t)[i] for i=1:M, t=t]
-		l = PlotlyJS.Layout(;title="q(t) trajectory", yaxis_title="q [1/mm]",
-	    xaxis_title="t [ms]",height=300)
-		p = [PlotlyJS.scatter() for j=1:M]
-		idx = ["qx" "qy" "qz"]
-		for j=1:M
-			p[j] = PlotlyJS.scatter(x=t*1e3, y=qt[j,:]*1e-3,name=idx[j])
-		end
-		PlotlyJS.plot(p, l)
-	end
-end
-
-"""
-    M0, M1, M2 = get_M0_M1_M2(seq::Sequence)
-
-Get the momentums `M0`, `M1` and `M2` from the sequence `seq`.
-
-!!! note
-    This function is not being used.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-
-# Returns
-- `M0`: M0 momentum
-- `M1`: M1 momentum
-- `M2`: M2 momentum
-"""
-get_M0_M1_M2(SEQ::Sequence) = begin
-	M, N = size(SEQ.GR)
-	G = [SEQ.GR[i,j].A for i=1:M,j=1:N] #Strength of pulse
-	δ = [SEQ.GR[1,j].T for j=1:N]; #Duration of pulse
-	T = [sum(δ[1:j]) for j=1:N]; T = [0; T] #Position of pulse
-	τ = dur(SEQ) #End of sequence
-	#M0
-	M0i(t,T,A,δ) = (t.≥T) ? A*(t.-T.-(t.≥δ+T).*(t.-δ.-T)) : 0
-	M0(t) = sum([M0i(t,T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
-	#M1
-	M1i(t,T,A,δ) = (t.≥T) ? A/2*(t.^2 .-T^2 .-(t.≥δ+T).*(t.^2 .-(δ+T).^2))./2 : 0
-	M1(t) = sum([M1i(t,T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
-	#M1
-	M2i(t,T,A,δ) = (t.≥T) ? A/3*(t.^3 .-T^3 .-(t.≥δ+T).*(t.^3 .-(δ+T).^3))./3 : 0
-	M2(t) = sum([M2i(t,T[j],G[i,j],δ[j]) for i=1:M,j=1:N],dims=2)
-	M0, M1, M2
-end
-
-"""
-    Gmax = get_max_grad(x::Sequence)
-
-The maximum gradient of the sequence `x`.
-
-!!! note
-    This function is not being used.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-
-# Returns
-- `Gmax`: (`::Real`) maximum value of the gradient
-"""
-get_max_grad(x::Sequence) = begin
-	G = [x.GR[i,j].A for i=1:size(x.GR,1),j=1:size(x.GR,2)]
-	Gmax = maximum(sqrt.(sum(G.^2,dims=1)))
-end
 
 """
     rf_idx, rf_type = get_RF_types(seq, t)
@@ -687,7 +489,8 @@ Outputs the designed k-space trajectory of the Sequence `seq`.
 get_kspace(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	k = zeros(Nt,3)
@@ -735,7 +538,8 @@ Outputs the designed M1 of the Sequence `seq`.
 get_M1(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	m1 = zeros(Nt,3)
@@ -784,7 +588,8 @@ Outputs the designed M2 of the Sequence `seq`.
 get_M2(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	m2 = zeros(Nt,3)
@@ -832,7 +637,8 @@ Outputs the designed slew rate of the Sequence `seq`.
 get_slew_rate(seq::Sequence; Δt=1) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	m2 = zeros(Nt,3)
@@ -860,7 +666,7 @@ get_slew_rate(seq::Sequence; Δt=1) = begin
 end
 
 """
-    EC, EC_adc = get_eddy_currents(seq::Sequence; Δt=1)
+    EC, EC_adc = get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3)
 
 Outputs the designed eddy currents of the Sequence `seq`.
 
@@ -868,6 +674,7 @@ Outputs the designed eddy currents of the Sequence `seq`.
 - `seq`: (`::Sequence`) Sequence struct
 - `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients
+- `λ`: (`::Float64`, `=80e-3`, `[s]`) eddy current decay constant time
 
 # Returns
 - `EC`: (`3-column ::Matrix{Float64}`) Eddy currents
@@ -876,7 +683,8 @@ Outputs the designed eddy currents of the Sequence `seq`.
 get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>[Gx; 0], 2=>[Gy; 0], 3=>[Gz; 0])
+	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+	t = t[1:end-1]
 	#kspace
 	Nt = length(t)
 	m2 = zeros(Nt,3)
@@ -901,5 +709,5 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
 	M2_adc = [M2x_adc M2y_adc M2z_adc]
 	#Final
-	M2*1_000, M2_adc*1_000
+	M2, M2_adc
 end

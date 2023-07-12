@@ -105,7 +105,7 @@ function signal_to_raw_data(signal, seq;
         if is_ADC_on(s)
             Nsamples = s.ADC.N[1]
             Δt_us = Float32( s.ADC.T[1] / (Nsamples - 1) * 1e6 )
-            t0_us = floor(Int32, t_acq[current]*1e6 )
+            t0_us = floor(Int32, t_acq[current] * 1e6 )
             #Header of profile data, head::AcquisitionHeader
             head = AcquisitionHeader(
                 0, #version: First unsigned int indicates the version

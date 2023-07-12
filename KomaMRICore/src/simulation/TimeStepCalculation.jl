@@ -1,4 +1,4 @@
-const EPS = eps(1.0)
+const EPS = 1e-10 #100*eps(1.0) #SmallestFloat
 """
     array_of_ranges = kfoldperm(N, k; type="random", breaks=[])
 
@@ -8,7 +8,7 @@ Divides a list of indices 1:`N` (which is in your imagination) into `k` groups.
     It is possible to predifine some break points at specific indices with the `breaks`
     keyword, in this case the number of groups could increase. This is useful to define
     start and end indices of RF pulses to separate the simulation into excitation and
-    preccesion computations.
+    precession computations.
 
 # Arguments
 - `N`: (`::Int64`) the number of elements to be ordered (of an imaginary array 1:`N`)
@@ -40,26 +40,9 @@ julia> kfoldperm(20, 3; type="ordered", breaks=[3])
  3:7
  8:14
  15:20
-
-julia> kfoldperm(20, 3; type="ordered", breaks=[3, 10])
-5-element Vector{UnitRange{Int64}}:
- 1:2
- 3:7
- 8:9
- 10:14
- 15:20
-
-julia> kfoldperm(20, 3; type="ordered", breaks=[3, 10, 17])
-6-element Vector{UnitRange{Int64}}:
- 1:2
- 3:7
- 8:9
- 10:14
- 15:16
- 17:20
 ```
 """
-function kfoldperm(N, k; type="random", breaks=[])
+function kfoldperm(N, k; type="ordered", breaks=[])
 	k = min(N,k)
 	n, r = divrem(N, k) #N >= k, N < k
 	b = collect(1:n:N+1)
@@ -70,7 +53,7 @@ function kfoldperm(N, k; type="random", breaks=[])
 	b = sort(unique(append!(b, breaks)))
 	Nbreaks = length(b) - Nb
 	if type=="random"
-		p = randperm(N)
+		p = Random.randperm(N)
 	elseif type=="ordered"
 		p = 1:N
 	end
@@ -179,7 +162,7 @@ This function returns non-uniform time points that are relevant in the sequence 
 """
 function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
 	t = Float64[]
-	ϵ = EPS #Smallest Float64
+	ϵ = EPS #Small Float64
 	ΔT = durs(seq) #Duration of sequence block
 	T0 = cumsum([0; ΔT[:]]) #Start time of each block
 	for i = 1:length(seq)
@@ -215,7 +198,6 @@ function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
 	t = [t0; t; tf]
 	#Final time points
 	Δt = t[2:end] .- t[1:end-1]
-	t = t[1:end-1]
 	t, Δt
 end
 
@@ -223,7 +205,7 @@ end
     key_idxs = get_breaks_in_RF_key_points(seq::Sequence, t)
 
 Return the indices of the `t` time array where are RF key points from the `seq` sequence.
-Thus, it is possible to split the simulation into excitation and preccesion computations.
+Thus, it is possible to split the simulation into excitation and precession computations.
 
 !!! note
     By `RF key points` we mean all the start and end points where the RF excitation takes
@@ -240,7 +222,6 @@ Thus, it is possible to split the simulation into excitation and preccesion comp
 function get_breaks_in_RF_key_points(seq::Sequence, t)
 	T0 = cumsum([0; durs(seq)[:]])
 	# Identifying RF key points
-	ϵ = EPS #Smallest Float64
 	key_points = Float64[]
 	key_idxs = Int[]
 	for (i, s) = enumerate(seq)
@@ -248,10 +229,76 @@ function get_breaks_in_RF_key_points(seq::Sequence, t)
 			t0 = T0[i] + s.RF.delay[1]	#start of RF waverform
 			tf = T0[i] + s.RF.dur[1]	#end of RF waveform
 			append!(key_points, [t0; tf])
-			idx0 = argmin(abs.(t.-(t0+ϵ)))
-			idxf = argmin(abs.(t.-(tf-ϵ)))
+			idx0 = findall(t .== t0)
+			idxf = findall(t .== tf)
 			append!(key_idxs,   [idx0; idxf])
 		end
 	end
 	return key_idxs
+end
+
+function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
+	ranges = UnitRange{Int}[]
+	ranges_bool = Bool[]
+	start_idx_rf_block = 0
+	start_idx_gr_block = 0
+	#Split 1:N into Nblocks like kfoldperm
+	N = length(seqd.Δt)
+	k = min(N, Nblocks)
+	n, r = divrem(N, k) #N >= k, N < k
+	breaks = collect(1:n:N+1)
+	for i in eachindex(breaks)
+		breaks[i] += i > r ? r : i-1
+	end
+	breaks = breaks[2:end-1] #Remove borders, 
+	#Iterate over B1 values to decide the simulation UnitRanges
+	for i in eachindex(seqd.Δt)
+		if abs(seqd.B1[i]) > 10EPS #TODO: This is needed as the function ⏢ in get_rfs is not very accurate
+			if start_idx_rf_block == 0 #End RF block
+				start_idx_rf_block = i
+			end
+			if start_idx_gr_block > 0 #End of GR block
+				push!(ranges, start_idx_gr_block:i-1)
+				push!(ranges_bool, false)
+				start_idx_gr_block = 0
+			end
+		else
+			if start_idx_gr_block == 0 #Start GR block
+				start_idx_gr_block = i
+			end
+			if start_idx_rf_block > 0 #End of RF block
+				push!(ranges, start_idx_rf_block:i-1)
+				push!(ranges_bool, true)
+				start_idx_rf_block = 0
+			end
+		end
+		#More subdivisions
+		if i in breaks
+			if start_idx_rf_block > 0 #End of RF block
+				if length(start_idx_rf_block:i-1) > 1
+					push!(ranges, start_idx_rf_block:i-1)
+					push!(ranges_bool, true)
+					start_idx_rf_block = i
+				end
+			end
+			if start_idx_gr_block > 0 #End of RF block
+				if length(start_idx_gr_block:i-1) > 1
+					push!(ranges, start_idx_gr_block:i-1)
+					push!(ranges_bool, false)
+					start_idx_gr_block = i
+				end
+			end
+		end
+	end
+	#Finishing the UnitRange's
+	if start_idx_rf_block > 0
+		push!(ranges, start_idx_rf_block:N)
+		push!(ranges_bool, true)
+	end
+	if start_idx_gr_block > 0
+		push!(ranges, start_idx_gr_block:N)
+		push!(ranges_bool, false)
+	end
+	#Output
+	return ranges, ranges_bool
 end

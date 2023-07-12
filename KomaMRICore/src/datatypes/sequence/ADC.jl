@@ -24,7 +24,7 @@ mutable struct ADC
     Δf::Float64
     ϕ::Float64
     function ADC(N, T, delay, Δf, ϕ)
-      T < 0 || delay < 0 ? error("ADC timings must be positive.") : new(N, T, delay, Δf, ϕ)
+        T < 0 || delay < 0 ? error("ADC timings must be positive.") : new(N, T, delay, Δf, ϕ)
     end
     function ADC(N, T, delay)
 		T < 0 || delay < 0 ? error("ADC timings must be positive.") : new(N, T, delay, 0, 0)
@@ -32,6 +32,12 @@ mutable struct ADC
     function ADC(N, T)
 		T < 0 ? error("ADC timings must be positive.") : new(N, T, 0, 0, 0)
     end
+end
+
+# ADC comparison
+Base.isapprox(adc1::ADC, adc2::ADC) = begin
+    return all(length(getfield(adc1, k)) ≈ length(getfield(adc2, k)) for k ∈ fieldnames(ADC))
+        all(getfield(adc1, k) ≈ getfield(adc2, k) for k ∈ fieldnames(ADC))
 end
 
 """
@@ -43,7 +49,7 @@ directly without the need to iterate elementwise.
 # Arguments
 - `x`: (`::Vector{ADC}`) vector of ADC structs
 - `f`: (`::Symbol`, opts: [`:N`, `:T`, `:delay`, `:Δf`, `:ϕ`, `:dur`]) input symbol that
-    represents a property of the ACD structs
+    represents a property of the ADC structs
 
 # Returns
 - `y`: (`::Vector{Any}`) vector with the property defined by the `f` for all elements of
