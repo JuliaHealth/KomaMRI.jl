@@ -847,7 +847,8 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
     end
 	plotter = PlotlyJS.scatter
 	p = [plotter() for j=1:3]
-	p[1] = plotter(x=t,y=abs.(signal), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	#p[1] = plotter(x=t,y=abs.(signal), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+    p[1] = plotter(x=t,y=sqrt.(real.(signal).^2 + imag.(signal).^2), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
 	p[2] = plotter(x=t,y=real.(signal),name="Re{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
 	p[3] = plotter(x=t,y=imag.(signal),name="Im{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
 	config = PlotConfig(

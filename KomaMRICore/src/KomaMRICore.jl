@@ -1,6 +1,7 @@
 module KomaMRICore
 
 #IMPORT PACKAGES
+using PrecompileTools
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.abs, Base.getproperty
 #General
 using Reexport, ThreadsX, Pkg
@@ -73,5 +74,35 @@ include("sequences/PulseDesigner.jl")
 export PulseDesigner
 
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
+
+@setup_workload begin
+    #obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
+    #sys = Scanner() # default hardware definition
+    #ampRF = 2e-6                        # 2 uT RF amplitude
+    #durRF = π / 2 / (2π * γ * ampRF)    # required duration for a 90 deg RF pulse
+    #exc = RF(ampRF,durRF)
+    #nADC = 8192         # number of acquisition samples
+    #durADC = 250e-3     # duration of the acquisition
+    #delay =  1e-3       # small delay
+    #acq = ADC(nADC, durADC, delay)
+    #seq = Sequence()  # empty sequence
+    #seq += exc        # adding RF-only block
+    #seq += acq        # adding ADC-only block
+    #@compile_workload begin
+    #    raw = simulate(obj, seq, sys)
+    #end
+    obj = brain_phantom2D()
+    sys = Scanner()
+    seq = read_seq(joinpath(dirname(pathof(KomaMRICore)), "../../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq"))
+    @compile_workload begin
+        raw1 = simulate(obj, seq, sys; simParams=KomaMRICore.default_sim_params(), w=nothing)
+        raw = deepcopy(raw1)
+        #acq = AcquisitionData(raw)
+        acq.traj[1].circular = false #This is to remove the circular mask
+        Nx, Ny = raw.params["reconSize"][1:2]
+        reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny))
+        image = reconstruction(acq, reconParams)
+    end
+end
 
 end
