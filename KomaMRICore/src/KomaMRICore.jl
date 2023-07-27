@@ -71,6 +71,8 @@ export get_M0, get_M1, get_M2, get_kspace
 #PulseDesigner submodule
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
+include("sequences/TestSequence.jl")
+export check_sequence
 
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
