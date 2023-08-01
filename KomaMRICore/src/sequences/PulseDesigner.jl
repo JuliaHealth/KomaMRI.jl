@@ -37,11 +37,9 @@ julia> plot_seq(ex)
 """
 RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0) = begin
 	ζ = sum(G) / sys.Smax
-	EX = Sequence([	Grad(G[1],T,ζ);	 #Gx
-					Grad(G[2],T,ζ);  #Gy
-					Grad(G[3],T,ζ);;], #Gz
-					 [RF(B1,T,Δf,ζ);;]	 #RF
-					)
+    gr = reshape([Grad(G[1],T,ζ); Grad(G[2],T,ζ); Grad(G[3],T,ζ)],:,1)
+    rf = reshape([RF(B1,T,Δf,ζ)],:,1)
+	EX = Sequence(gr, rf)
 	EX
 end
 
@@ -161,8 +159,8 @@ EPI(FOV::Float64, N::Int, sys::Scanner) = begin
 	# println("Pixel Δf in phase direction $(round(Δfx_pix_phase,digits=2)) Hz")
 	#Pre-wind and wind gradients
 	ϵ2 = Ta/(Ta+ζ)
-    PHASE =   Sequence(1/2*[Grad(-Ga, Ta, ζ)      ; ϵ2*Grad(-Ga, Ta, ζ);;]) #This needs to be calculated differently
-	DEPHASE = Sequence(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ);;]) #for even N
+    PHASE =   Sequence(reshape(1/2*[Grad(      -Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) #This needs to be calculated differently
+	DEPHASE = Sequence(reshape(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) #for even N
 	seq = PHASE+EPI+DEPHASE
 	#Saving parameters
 	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi")
