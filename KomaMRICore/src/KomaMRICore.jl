@@ -3,14 +3,13 @@ module KomaMRICore
 #IMPORT PACKAGES
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.abs, Base.getproperty
 #General
-using Reexport, ThreadsX, Pkg
+using Reexport, ThreadsX
 #Printing
 using Scanf, ProgressMeter
 #Datatypes
 using Parameters
 #Simulation
 using Interpolations
-using CUDA
 #Reconstruction
 using MRIBase, MRIFiles
 @reexport using MRIBase: Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
@@ -72,6 +71,22 @@ export get_M0, get_M1, get_M2, get_kspace
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
 
+using Pkg
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
+
+#PrecompileTools
+# using PrecompileTools
+# @setup_workload begin
+#     obj = brain_phantom2D();
+#     sys = Scanner();
+#     seq = read_seq(joinpath(dirname(pathof(KomaMRICore)), 
+#         "../../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq"));
+#     simParams = KomaMRICore.default_sim_params();
+#     simParams["gpu"] = true;
+#     @compile_workload begin
+#         raw = simulate(obj, seq, sys; simParams);
+#         #abs.(raw.profiles[1].data)
+#     end
+# end
 
 end
