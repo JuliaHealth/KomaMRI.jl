@@ -6,37 +6,35 @@ using  KomaMRI, PlotlyJS, MAT
 B0 = 0.55
 fat_ppm = -3.4e-6
 Niso = 200
-Δx_voxel = 2e-3
+Δx_voxel = 1.5e-3
 fat_freq = γ*B0*fat_ppm
 off = Array(range(-1, 1, Niso))
 dx = Array(range(-Δx_voxel/2, Δx_voxel/2, Niso))
 #BASED ON T1 and T2 maps
 myocard = Phantom{Float64}(x=dx, T1=700e-3*ones(Niso), T2=60e-3*ones(Niso))
 blood =   Phantom{Float64}(x=dx, T1=1250e-3*ones(Niso), T2=300e-3*ones(Niso)) #1.5 T2 240ms
-fat =     Phantom{Float64}(x=dx, T1=96e-3*ones(Niso), T2=150e-3*ones(Niso), Δw=2π*(fat_freq .+ 5*off))
-#OLD VALUES, to Ivan
-# myocard = Phantom{Float64}(x=dx*0, T1=600e-3*ones(Niso), T2=60e-3*ones(Niso))
-# blood =   Phantom{Float64}(x=dx*0, T1=1200e-3*ones(Niso),T2=410e-3*ones(Niso))
-# fat =     Phantom{Float64}(x=dx*0, T1=217e-3*ones(Niso), T2=95e-3*ones(Niso), Δw=2π*(fat_freq .+ 5*off))
+fat =     Phantom{Float64}(x=dx, T1=172.93e-3*ones(Niso), T2=135.32e-3*ones(Niso), Δw=2π*(fat_freq .+ 10*off))
 obj = myocard+blood+fat
 #Sequence parameters
-TR = 4.4e-3 #5.81
-TE = TR / 2 #bSSFP condition
-Tadc = 1e-6
-RR = 1 #1 [s]
-Trf = 1e-3  #1 [ms]
-B1 = 1 / (360*γ*Trf)
-iNAV_lines = 6
-im_segments = 22
-iNAV_flip_angle = 3.2
-im_flip_angle = 80 #90
-number_dummy_heart_beats = 3
+# TR = 5.29e-3
+TR = 4.89e-3
+im_flip_angle = 110
+iNAV_lines = 14
+FatSat_flip_angle = 180
 #Pre-pulses
 T2prep_duration = 50e-3
 Tfatsat = 32e-3
 Δf_sinc = fat_freq
 additional_offset = 0
-FatSat_flip_angle = 180
+# Rest of parameters
+TE = TR / 2 #bSSFP condition
+Tadc = 1e-6
+RR = 1 #1 [s]
+Trf = 1.4e-3  #1 [ms]
+B1 = 1 / (360*γ*Trf)
+im_segments = 22
+iNAV_flip_angle = 3.2
+number_dummy_heart_beats = 3
 #Scanner
 sys = Scanner()
 
@@ -45,8 +43,11 @@ function FatSat(α, Δf; sample=false)
     seq = Sequence()
     seq += RF(RF_wf, Tfatsat, Δf)
     α_ref = get_flip_angles(seq)[2]
-    seq *= (α/α_ref + 0im)  
-    seq += Grad(20e-3, 4.7e-3, 1e-3)
+    seq *= (α/α_ref + 0im)
+    if sample
+        seq += ADC(1, 1e-6)
+    end
+    seq += Grad(60e-3, 4.7e-3, 4e-3)
     if sample
         seq += ADC(1, 1e-6)
     end
@@ -60,7 +61,7 @@ function T2prep(TE; sample=false)
     seq += RF(180im * B1/2, 2Trf)
     seq += sample ? ADC(20, TE/2) : Delay(TE/2)
     seq += RF(-90 * B1, Trf)
-    seq += Grad(20e-3, 4.7e-3, 1e-3)
+    seq += Grad(30e-3, 4.7e-3, 4e-3)
     if sample
         seq += ADC(1, 1e-6)
     end
@@ -90,48 +91,32 @@ function bSSFP(iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample=f
     return seq
 end
 
-function CMRA_iNAV_bSSFP_cardiac(number_dummy_heart_beats, iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample_recovery=false)
+function CMRA_iNAV_bSSFP_cardiac(number_dummy_heart_beats, iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample_recovery=ones(Bool,number_dummy_heart_beats+1))
     k = 0
     seq = Sequence()
     for hb = 0 : number_dummy_heart_beats
-        t2p = T2prep(T2prep_duration; sample=sample_recovery)
-        fatsat = FatSat(FatSat_flip_angle, Δf_sinc + additional_offset; sample=sample_recovery)
-        bssfp = bSSFP(iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample=sample_recovery)
+        t2p = T2prep(T2prep_duration; sample=sample_recovery[hb+1])
+        fatsat = FatSat(FatSat_flip_angle, Δf_sinc + additional_offset; sample=sample_recovery[hb+1])
+        bssfp = bSSFP(iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample=sample_recovery[hb+1])
         RRdelay = RR  - dur(bssfp) - dur(t2p) - dur(fatsat)
         seq += t2p
-        seq += fatsat             
+        seq += Delay(4e-3)
+        seq += fatsat
+        seq += Delay(4e-3)         
         seq += bssfp
-        seq += sample_recovery ? ADC(40, RRdelay) : Delay(RRdelay) #Sampling recovery curve
+        seq += sample_recovery[hb+1] ? ADC(40, RRdelay) : Delay(RRdelay) #Sampling recovery curve
     end
     return seq
 end
-
-function BOOST_iNAV_bSSFP_cardiac(number_dummy_heart_beats, iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample_recovery=false)
-    k = 0
-    seq = Sequence()
-    for hb = 0 : number_dummy_heart_beats
-        t2p = T2prep(T2prep_duration; sample=sample_recovery)
-        fatsat = FatSat(FatSat_flip_angle, Δf_sinc + additional_offset; sample=sample_recovery)
-        bssfp = bSSFP(iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample=sample_recovery)
-        RRdelay = RR  - dur(bssfp) - dur(t2p) - dur(fatsat)
-        seq += t2p
-        seq += fatsat             
-        seq += bssfp
-        seq += sample_recovery ? ADC(40, RRdelay) : Delay(RRdelay) #Sampling recovery curve
-    end
-    return seq
-end
-
 
 sim_method = BlochDict(save_Mz=true)
 #Sequence
 seq = CMRA_iNAV_bSSFP_cardiac(number_dummy_heart_beats, iNAV_lines, 
-                        im_segments, iNAV_flip_angle, im_flip_angle; sample_recovery=true)
+                        im_segments, iNAV_flip_angle, im_flip_angle; sample_recovery=[false, false, false, true])
 #Simulation
-simParams = Dict{String,Any}("return_type"=>"mat", "sim_method"=>sim_method)
+simParams = Dict{String,Any}("return_type"=>"mat", "sim_method"=>sim_method, "Nthreads"=>1)
 magnetization = simulate(obj, seq, sys; simParams)
 
-# p, seqd = KomaMRIPlots.plot_seqd(seq; simParams); p
 labels = ["Myocardium", "Blood", "Fat"]
 colors = ["blue", "red", "green"]
 spin_group = [(1:Niso)', (Niso+1:2Niso)', (2Niso+1:3Niso)'] 
@@ -139,11 +124,19 @@ t = KomaMRICore.get_adc_sampling_times(seq)
 
 Mxy(i) = abs.(sum(magnetization[:,spin_group[i],1,1][:,1,:],dims=2)[:]/length(spin_group[i]))
 Mz(i) = real.(sum(magnetization[:,spin_group[i],2,1][:,1,:],dims=2)[:]/length(spin_group[i]))
-p0 = make_subplots(rows=2, cols=1, shared_xaxes=true, vertical_spacing=0.02)
+p0 = make_subplots(rows=3, cols=1, subplot_titles=["Mxy" "Mz" "Sequence"], shared_xaxes=true, vertical_spacing=0.1)
 for i=eachindex(spin_group)
     p1 = scatter(x=t, y=Mxy(i), name=labels[i], legendgroup=labels[i], marker_color=colors[i])
     p2 = scatter(x=t, y=Mz(i), name=labels[i], legendgroup=labels[i], showlegend=false, marker_color=colors[i])#,line=attr(dash="dash"))
     add_trace!(p0, p1, row=1, col=1)
     add_trace!(p0, p2, row=2, col=1)
 end
+seqd = KomaMRICore.discretize(seq; simParams)
+p3 = scatter(x=seqd.t, y=abs.(seqd.B1)*1e6, name="B1",marker_color="purple",yaxis_range=[0,5])
+add_trace!(p0, p3, row=3, col=1)
+relayout!(p0, xaxis_range=[3, 4],title_text="TR=$(TR*1e3), α=$(im_flip_angle), iNAV_lines=$(iNAV_lines), FatSat α=$(FatSat_flip_angle)")
 p0
+
+
+# plot_seq(seq)
+# p = KomaMRIPlots.plot_seqd(seq; simParams); p
