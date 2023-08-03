@@ -365,7 +365,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global seq = read_seq(f) #Pulseq read
             end
             @js_ w (@var name = $(basename(f));
-            document.getElementById("seqname").innerHTML=name;
+            document.getElementById("seqname").innerHTML="<abbr title='"+name+"'>"+name+"</abbr>";
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -393,7 +393,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global phantom = read_phantom_jemris(f)
             end
             @js_ w (@var name = $(basename(f));
-            document.getElementById("phaname").innerHTML=name;
+            document.getElementById("phaname").innerHTML="<abbr title='"+name+"'>"+name+"</abbr>";;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -425,7 +425,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
             end
 
             @js_ w (@var name = $(basename(f));
-            document.getElementById("rawname").innerHTML=name;
+            document.getElementById("rawname").innerHTML="<abbr title='"+name+"'>"+name+"</abbr>";;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>

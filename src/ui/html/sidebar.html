@@ -8,7 +8,7 @@
     <!-- SEQUENCE -->
     <li id="pulses" class="nav-item dropdown dropdown-dark" style="padding-bottom:0; margin-bottom:0">
       <a class="nav-link dropdown-toggle" href="#" role="button" id="seq-dropdown" data-bs-toggle="dropdown">
-          <span class="icon-wave-square me-2"></span><span class="w-100">Sequence</span>
+          <span class="iconkoma"><span class="icon-wave-square me-2 "></span><span class="w-100 ">Sequence</span></span>
       </a>
         <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="seq-dropdown" style="position: absolute;">
           <li><a id="button_pulses_seq" class="dropdown-item" href="#" onclick='Blink.msg("pulses_seq", 1)'>View Sequence</a></li>
@@ -29,11 +29,11 @@
           <li class="dropdown-interact" id="seqfilepicker"></li>
         </ul>
     </li>
-    <p id="seqname" class="pname">epi.seq</p>
+    <p id="seqname" class="pname"><abbr title="epi.seq">epi.seq</abbr></p>
     <!-- PHANTOM -->
     <li id="phantom" class="nav-item dropdown dropdown-dark">
-      <a class="nav-link dropdown-toggle" href="#" role="button" id="pha-dropdown" data-bs-toggle="dropdown">
-          <span class="icon-brain me-2"></span><span class="w-100">Phantom</span>
+      <a class="nav-link dropdown-toggle iconkoma" href="#" role="button" id="pha-dropdown" data-bs-toggle="dropdown">
+        <span class="iconkoma"><span class="icon-brain me-2 "></span><span class="w-100 ">Phantom</span></span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="pha-dropdown">
           <li><a id="button_phantom" class="dropdown-item" href="#" onclick='Blink.msg("phantom", 1)'>View Phantom</a></li>
@@ -41,17 +41,17 @@
           <li class="dropdown-interact" id="phafilepicker"></li>
       </ul>
     </li>
-    <p id="phaname" class="pname">brain2D_axial.h5</p>
+    <p id="phaname" class="pname"><abbr title="brain2D_axial.h5">brain2D_axial.h5</abbr></p>
     <!-- SCANNER -->
     <li id="scanner" class="nav-item dropdown dropdown-dark">
-      <a class="nav-link dropdown-toggle" href="#" role="button" id="seq-dropdown" data-bs-toggle="dropdown">
-        <span class="icon-magnet me-2"></span><span class="w-100">Scanner</span>
+      <a class="nav-link dropdown-toggle iconkoma" href="#" role="button" id="seq-dropdown" data-bs-toggle="dropdown">
+        <span class="iconkoma"><span class="icon-magnet me-2 "></span><span class="w-100 ">Scanner</span></span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="pha-dropdown">
         <li><a id="button_scanner" class="dropdown-item" href="#" onclick='Blink.msg("scanner", 1)'>View Scanner</a></li>
       </ul>
     </li>
-    <p id="scaname" class="pname">default.scanner</p>
+    <p id="scaname" class="pname"><abbr title="default.scanner">default.scanner</abbr></p>
     <hr>
     <!-- SIMULATE -->
     <li class="nav-item">
@@ -67,8 +67,8 @@
     </li>
     <!-- SIGNAL -->
     <li id="sig" class="nav-item dropdown dropdown-dark">
-      <a class="nav-link dropdown-toggle" href="#" role="button" id="sig-dropdown" data-bs-toggle="dropdown">
-          <span class="icon-oscilloscope me-2"></span><span class="w-100">RawData</span>
+      <a class="nav-link dropdown-toggle iconkoma" href="#" role="button" id="sig-dropdown" data-bs-toggle="dropdown">
+        <span class="iconkoma"><span class="icon-oscilloscope me-2 "></span><span class="w-100 ">RawData</span></span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="sig-dropdown">
           <li><a id="button_sig" class="dropdown-item" href="#" onclick='Blink.msg("sig", 1)'>View RawData</a></li>
@@ -76,7 +76,7 @@
           <li class="dropdown-interact" id="sigfilepicker"></li>
       </ul>
     </li>
-    <p id="rawname" class="pname">empty.mrd</p>
+    <p id="rawname" class="pname"><abbr title="empty.mrd">empty.mrd</abbr></p>
     <hr>
     <!-- RECON -->
     <li class="nav-item">
@@ -92,8 +92,8 @@
     </li>
     <!-- RECOND IMAGE -->
     <li id="recon" class="nav-item dropdown dropdown-dark">
-      <a class="nav-link dropdown-toggle" href="#" role="button" id="rec-dropdown" data-bs-toggle="dropdown">
-          <span class="icon-images me-2"></span><span class="w-100">Image</span>
+      <a class="nav-link dropdown-toggle iconkoma" href="#" role="button" id="rec-dropdown" data-bs-toggle="dropdown">
+        <span class="iconkoma"><span class="icon-images me-2 "></span><span class="w-100 ">Image</span></span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="rec-dropdown">
           <li><a id="button_reconstruction_absI" class="dropdown-item" href="#" onclick='Blink.msg("reconstruction_absI", 1)'>View $|\mathrm{Image}|$</a></li>
@@ -105,7 +105,7 @@
     <!-- EXPORT -->
     <li id="export" class="nav-item dropdown dropdown-dark">
       <a class="nav-link dropdown-toggle" href="#" role="button" id="exp-dropdown" data-bs-toggle="dropdown">
-          <span class="bi-download me-2"></span><span class="w-100">Export to .mat</span>
+        <span class="iconkoma"><span class="bi-download me-2"></span><span class="w-100">Export to .mat</span></span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="exp-dropdown">
           <!--<li><a class="dropdown-interact" id="matfolder" href="#" >All</a></li>-->
@@ -130,8 +130,7 @@
   <!-- Koma GITHUB -->
   <div class="nav-item dropdown dropdown-dark">
     <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" style="color:#9b9d9e;" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-      <i class="bi bi-box-seam me-2"></i>
-      <strong>Koma v<span id="version"></span></strong>
+      <span class="iconkoma"><i class="bi bi-box-seam me-2"></i>KomaCore v<span id="version"></span></span>
     </a>
     <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
       <li><a class="dropdown-item" id="Github" target="_blank" href="https://github.com/cncastillo/KomaMRI.jl/">
