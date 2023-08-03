@@ -274,7 +274,7 @@ using TestItems, TestItemRunner
         t_adc =  KomaMRICore.get_adc_sampling_times(seq)
         M2, M2_adc = KomaMRICore.get_slew_rate(seq)
         Gx, Gy, Gz = KomaMRICore.get_grads(seq, t)
-        Gmx, Gmy, Gmz = KomaMRICore.get_grads(seq, [t...;;])
+        Gmx, Gmy, Gmz = KomaMRICore.get_grads(seq, reshape(t, 1, :))
         @test reshape(Gmx, :, 1) ≈ Gx && reshape(Gmy, :, 1) ≈ Gy && reshape(Gmz, :, 1) ≈ Gz
         @test is_ADC_on(seq) == is_ADC_on(seq, t)
         @test is_RF_on(seq) == is_RF_on(seq, t)

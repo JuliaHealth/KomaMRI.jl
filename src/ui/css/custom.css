@@ -164,4 +164,7 @@ td, th, tr{
 
 .pname {
   margin-left: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
