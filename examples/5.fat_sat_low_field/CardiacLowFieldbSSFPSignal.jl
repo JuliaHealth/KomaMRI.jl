@@ -11,16 +11,16 @@ fat_freq = γ*B0*fat_ppm
 off = Array(range(-1, 1, Niso))
 dx = Array(range(-Δx_voxel/2, Δx_voxel/2, Niso))
 #BASED ON T1 and T2 maps
-myocard = Phantom{Float64}(x=dx, T1=700e-3*ones(Niso), T2=60e-3*ones(Niso))
-blood =   Phantom{Float64}(x=dx, T1=1250e-3*ones(Niso), T2=300e-3*ones(Niso)) #1.5 T2 240ms
-fat =     Phantom{Float64}(x=dx, T1=172.93e-3*ones(Niso), T2=135.32e-3*ones(Niso), Δw=2π*(fat_freq .+ 10*off))
+myocard = Phantom{Float64}(x=dx, T1=700e-3*ones(Niso), T2=60e-3*ones(Niso), Δw=2π*20*off)
+blood =   Phantom{Float64}(x=dx, T1=1250e-3*ones(Niso), T2=300e-3*ones(Niso), Δw=2π*20*off) #1.5 T2 240ms
+fat =     Phantom{Float64}(x=dx, T1=172.93e-3*ones(Niso), T2=135.32e-3*ones(Niso), Δw=2π*(fat_freq .+ 20*off))
 obj = myocard+blood+fat
 #Sequence parameters
-# TR = 5.29e-3
-TR = 4.89e-3
+TR = 5.29e-3
+# TR = 4.89e-3
 im_flip_angle = 110
 iNAV_lines = 14
-FatSat_flip_angle = 180
+FatSat_flip_angle = 110
 #Pre-pulses
 T2prep_duration = 50e-3
 Tfatsat = 32e-3
@@ -32,7 +32,7 @@ Tadc = 1e-6
 RR = 1 #1 [s]
 Trf = 1.4e-3  #1 [ms]
 B1 = 1 / (360*γ*Trf)
-im_segments = 22
+im_segments = 20
 iNAV_flip_angle = 3.2
 number_dummy_heart_beats = 3
 #Scanner
@@ -100,21 +100,19 @@ function CMRA_iNAV_bSSFP_cardiac(number_dummy_heart_beats, iNAV_lines, im_segmen
         bssfp = bSSFP(iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample=sample_recovery[hb+1])
         RRdelay = RR  - dur(bssfp) - dur(t2p) - dur(fatsat)
         seq += t2p
-        seq += Delay(4e-3)
         seq += fatsat
-        seq += Delay(4e-3)         
         seq += bssfp
-        seq += sample_recovery[hb+1] ? ADC(40, RRdelay) : Delay(RRdelay) #Sampling recovery curve
+        seq += sample_recovery[hb+1] ? ADC(80, RRdelay) : Delay(RRdelay) #Sampling recovery curve
     end
     return seq
 end
 
-sim_method = BlochDict(save_Mz=true)
 #Sequence
 seq = CMRA_iNAV_bSSFP_cardiac(number_dummy_heart_beats, iNAV_lines, 
                         im_segments, iNAV_flip_angle, im_flip_angle; sample_recovery=[false, false, false, true])
 #Simulation
-simParams = Dict{String,Any}("return_type"=>"mat", "sim_method"=>sim_method, "Nthreads"=>1)
+sim_method = BlochDict(save_Mz=true)
+simParams = Dict{String,Any}("return_type"=>"mat", "sim_method"=>sim_method, "gpu"=>false, "Nthreads"=>1)
 magnetization = simulate(obj, seq, sys; simParams)
 
 labels = ["Myocardium", "Blood", "Fat"]
@@ -134,9 +132,16 @@ end
 seqd = KomaMRICore.discretize(seq; simParams)
 p3 = scatter(x=seqd.t, y=abs.(seqd.B1)*1e6, name="B1",marker_color="purple",yaxis_range=[0,5])
 add_trace!(p0, p3, row=3, col=1)
-relayout!(p0, xaxis_range=[3, 4],title_text="TR=$(TR*1e3), α=$(im_flip_angle), iNAV_lines=$(iNAV_lines), FatSat α=$(FatSat_flip_angle)")
+add_layout_image!(p0, attr(
+                    source="https://raw.githubusercontent.com/cncastillo/KomaMRI.jl/master/src/ui/assets/Logo.svg",
+                    xref="x domain",
+                    yref="y domain",
+                    x=0.99,
+                    y=1.2,
+                    opacity=0.7,
+                    xanchor="right",
+                    yanchor="top",
+                    sizex=0.15,
+                    sizey=0.15,))
+relayout!(p0, yaxis_range=[0, 0.5], xaxis_range=[3, 4],title_text="TR=$(round(TR*1e3;digits=3)) ms, α=$(im_flip_angle), iNAV_lines=$(iNAV_lines), FatSat α=$(FatSat_flip_angle)")
 p0
-
-
-# plot_seq(seq)
-# p = KomaMRIPlots.plot_seqd(seq; simParams); p

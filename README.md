@@ -11,11 +11,16 @@
 | [![][docr-img]][docr-url] | [![][paper-img1]][paper-url1]  | [![][gh-actions-img]][gh-actions-url] |
 | [![][docd-img]][docd-url] | [![][arXiv-img1]][arXiv-url1]  | [![][codecov-img]][codecov-url]       |
 ##### Submodules
+
 | **KomaMRI.jl**            | **KomaMRICore.jl**             | **KomaMRIPlots.jl**                   |
 |:-------------------------:|:------------------------------:|:-------------------------------------:|
 | [![][gh-actions-img1]][gh-actions-url] | [![][gh-actions-img2]][gh-actions-url] | [![][gh-actions-img3]][gh-actions-url]       |
 | [![][codecov-img1]][codecov-url] | [![][codecov-img2]][codecov-url] | [![][codecov-img3]][codecov-url]       |
-
+ ```
+📦 KomaMRI.jl (UI)                      
+├─ 📦 KomaMRICore.jl (Simulation and IO)
+└─ 📦 KomaMRIPlots.jl (Plots)           
+```
 </div>
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
@@ -45,6 +50,8 @@
 KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
 
 This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
+
+> 🟢 **[29 Jun 2023] [KomaMRI.jl's paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635) was part of July's editor's picks in MRM 🥳!**
 
 > 🟢 **[6 Mar 2023] Paper published in MRM 😃!** The open access article is available [here](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635).
 

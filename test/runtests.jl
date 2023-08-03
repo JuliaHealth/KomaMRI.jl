@@ -36,114 +36,120 @@ using TestItems, TestItemRunner
 end
 
 @testitem "KomaUI" tags=[:koma] begin
+
     using Blink, Interact
-    include(joinpath(@__DIR__, "../src/reconstruction/Recon.jl"))
 
-    w = Window(Blink.Dict(:show => false), async=false);
-    body!(w, """<div class="container" style="padding: 0px !important;" id="content">""");
+    function with_timeout(f::Function, timeout)
+        c = Channel{Any}(1)
+        @async begin
+            put!(c, f())
+        end
+        @async begin
+            sleep(timeout)
+            put!(c, nothing)
+        end
+        take!(c)
+    end
 
-    phantom = brain_phantom2D()
-    sys = Scanner()
-    B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
-    EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
-    N = 101
-    FOV = 23e-2
-    EPI = PulseDesigner.EPI(FOV, N, sys)
-    TE = 30e-3
-    d1 = TE-dur(EPI)/2-dur(EX)
-    d1 = d1 > 0 ? d1 : 0
-    if d1 > 0 DELAY = Delay(d1) end
-    seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
-    seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
-    simParams = KomaMRICore.default_sim_params()
+    function attempt_to_open_koma_ui(n_attempts, timeout_sec)
+        for cnt = 1:n_attempts
+            @info "Trying to open the KomaUI-Window ..."
+            w = with_timeout(()->KomaUI(dev_tools=true), timeout_sec)
+            @info "Number of KomaUI-Window attempts: $cnt"
+            if !isnothing(w)
+                @info "KomaUI-Window successfully opened"
+                return w
+            end
+        end
+    end
 
-    path = @__DIR__
-    fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
-    darkmode = true
-    raw_ismrmrd = RawAcquisitionData(fraw)
+    n_attempts = 5
+    timeout_sec = 120
+    w = attempt_to_open_koma_ui(n_attempts, timeout_sec)
 
-    acq = AcquisitionData(raw_ismrmrd)
-    Nx, Ny = raw_ismrmrd.params["reconSize"][1:2]
-    recParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx,Ny), :densityWeighting=>true)
-    aux = reconstruction(acq, recParams)
-    image  = reshape(aux.data, Nx, Ny, :)
-    kspace = KomaMRI.fftc(image)
-
-    seq_obs = Observable{Sequence}(seq)
-    pha_obs = Observable{Phantom}(phantom)
-    sig_obs = Observable{RawAcquisitionData}(raw_ismrmrd)
-    img_obs = Observable{Any}(image)
+    @testset "Open UI" begin
+        @test "index" == @js w document.getElementById("content").dataset.content
+    end
 
     @testset "PulsesGUI" begin
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_seq.jl"))
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_kspace.jl"))
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_M0.jl"))
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_M1.jl"))
-        include(joinpath(@__DIR__, "../src/ui/PulsesGUI_M2.jl"))
-        @test true
+        @js w document.getElementById("button_pulses_seq").click()
+        @test "sequence" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_pulses_kspace").click()
+        @test "kspace" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_pulses_M0").click()
+        @test "m0" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_pulses_M1").click()
+        @test "m1" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_pulses_M2").click()
+        @test "m2" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "PhantomGUI" begin
-        include(joinpath(@__DIR__, "../src/ui/PhantomGUI.jl"))
-        @test true
+        @js w document.getElementById("button_phantom").click()
+        @test "phantom" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "ParamsGUI" begin
-        include(joinpath(@__DIR__, "../src/ui/ScannerParams_view.jl"))
-        include(joinpath(@__DIR__, "../src/ui/SimParams_view.jl"))
-        include(joinpath(@__DIR__, "../src/ui/RecParams_view.jl"))
-        @test true
+        @js w document.getElementById("button_scanner").click()
+        @test "scanneparams" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_sim_params").click()
+        @test "simparams" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_rec_params").click()
+        @test "recparams" == @js w document.getElementById("content").dataset.content
     end
 
-    @testset "ReconGUI" begin
-        include(joinpath(@__DIR__, "../src/ui/ReconGUI_absI.jl"))
-        include(joinpath(@__DIR__, "../src/ui/ReconGUI_angI.jl"))
-        include(joinpath(@__DIR__, "../src/ui/ReconGUI_absK.jl"))
-        @test true
+    @testset "Simulation" begin
+        @js w document.getElementById("simulate!").click()
+        @test "simulation" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "SignalGUI" begin
-        include(joinpath(@__DIR__, "../src/ui/SignalGUI.jl"))
-        @test true
+        @js w document.getElementById("button_sig").click()
+        @test "sig" == @js w document.getElementById("content").dataset.content
     end
 
-    @testset "Open UI" begin
-        KomaUI()
-        @test true
+    @testset "Reconstruction" begin
+        @js w document.getElementById("recon!").click()
+        @test "reconstruction" == @js w document.getElementById("content").dataset.content
     end
-end
 
-@testitem "Auxiliar Functions" tags=[:koma] begin
-    using MAT
-    include(joinpath(@__DIR__, "../src/ui/ExportMATFunctions.jl"))
-    @testset "ExportMATFunctions" begin
-        phantom = brain_phantom2D()
-        sys = Scanner()
-        B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
-        EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
-        N = 101
-        FOV = 23e-2
-        EPI = PulseDesigner.EPI(FOV, N, sys)
-        TE = 30e-3
-        d1 = TE-dur(EPI)/2-dur(EX)
-        d1 = d1 > 0 ? d1 : 0
-        if d1 > 0 DELAY = Delay(d1) end
-        seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
-        seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
-        path = @__DIR__
-        fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
-        raw = RawAcquisitionData(fraw)
-        acq = AcquisitionData(raw)
-        Nx, Ny = raw.params["reconSize"][1:2]
-        recParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx,Ny), :densityWeighting=>true)
-        aux = reconstruction(acq, recParams)
-        image  = reshape(aux.data, Nx, Ny, :)
-        export_2_mat(seq, phantom, sys, raw, recParams, image, pwd(); type="all")
-        export_2_mat(seq, phantom, sys, raw, recParams, image, pwd(); type="sequence")
-        export_2_mat(seq, phantom, sys, raw, recParams, image, pwd(); type="phantom")
-        export_2_mat(seq, phantom, sys, raw, recParams, image, pwd(); type="scanner")
-        export_2_mat(seq, phantom, sys, raw, recParams, image, pwd(); type="raw")
-        export_2_mat(seq, phantom, sys, raw, recParams, image, pwd(); type="image")
-        @test true
+    @testset "ReconGUI" begin
+        @js w document.getElementById("button_reconstruction_absI").click()
+        @test "absi" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_reconstruction_angI").click()
+        @test "angi" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_reconstruction_absK").click()
+        @test "absk" == @js w document.getElementById("content").dataset.content
     end
+
+    @testset "ExportToMAT" begin
+        @js w document.getElementById("button_matfolder").click()
+        @test "matfolder" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_matfolderseq").click()
+        @test "matfolderseq" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_matfolderpha").click()
+        @test "matfolderpha" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_matfoldersca").click()
+        @test "matfoldersca" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_matfolderraw").click()
+        @test "matfolderraw" == @js w document.getElementById("content").dataset.content
+
+        @js w document.getElementById("button_matfolderima").click()
+        @test "matfolderima" == @js w document.getElementById("content").dataset.content
+    end
+
+    close(w)
+
 end

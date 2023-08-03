@@ -375,22 +375,69 @@ julia> plot_eddy_currents(seq, 80e-3)
 function plot_eddy_currents(seq, λ; α=ones(size(λ)), width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="")
 	#Times
 	dt = 1
+	t, Δt = KomaMRICore.get_uniform_times(seq + ADC(100, 100e-3), dt)
+	t = t[2:end]
+	ΔT = KomaMRICore.durs(seq)
+	T0 = cumsum([0; ΔT],dims=1)
+	Gx, Gy, Gz = KomaMRICore.get_grads(seq, t)
+	#Eddy currents per lambda
+	Gec = zeros(length(t), 3)
+	for (i, l) in enumerate(λ)
+		aux, _ =  KomaMRICore.get_eddy_currents(seq + ADC(100, 100e-3); Δt=dt, λ=l)
+		Gec .+= α[i] .* aux
+	end
+	#Plot eddy currents
+	p = [scatter() for j=1:4]
+	p[1] = scatter(x=t*1e3, y=(Gx*0 .+ Gec[:,1])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECx")
+	p[2] = scatter(x=t*1e3, y=(Gy*0 .+ Gec[:,2])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECy")
+	p[3] = scatter(x=t*1e3, y=(Gz*0 .+ Gec[:,3])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECz")
+	#Layout and config
+	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
+	plot(p, l; config)
+end
+
+"""
+    p = plot_slew_rate(seq; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+
+Plots the slew rate currents of a Sequence `seq`.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence
+
+# Keywords
+- `height`: (`::Int64`, `=nothing`) height of the plot
+- `width`: (`::Int64`, `=nothing`) width of the plot
+- `slider`: (`::Bool`, `=true`) boolean to display a slider
+- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
+
+# Returns
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the slew rate currents of the sequence struct `seq`
+
+# Examples
+```julia-repl
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
+
+julia> seq = read_seq(seq_file)
+
+julia> plot_slew_rate(seq)
+```
+"""
+function plot_slew_rate(seq; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="")
+	#Times
+	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
 	t = t[1:end-1]
 	ΔT = KomaMRICore.durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
 	ts = t .+ Δt
 	#Eddy currents per lambda
-	k = zeros(length(t), 3)
-	for (i, l) in enumerate(λ)
-		aux, _ =  KomaMRICore.get_eddy_currents(seq; Δt=dt, λ=l)
-		k .+= α[i] .* aux
-	end
+	k, _ =  KomaMRICore.get_slew_rate(seq; Δt=dt)
 	#Plot eddy currents
 	p = [scatter() for j=1:4]
-	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2x")
-	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2y")
-	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2z")
+	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRx")
+	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRy")
+	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRz")
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
 	plot(p, l; config)

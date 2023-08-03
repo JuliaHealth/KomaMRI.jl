@@ -70,18 +70,18 @@ end
 
 function export_2_mat_raw(raw_ismrmrd, matfolder; matfilename="raw.mat");
     if haskey(raw_ismrmrd.params, "userParameters")
-        dictForMat = Dict()
-        dictUserParams = raw_ismrmrd.params["userParameters"]
-        for (key, value) in dictUserParams
+        dict_for_mat = Dict()
+        dict_user_params = raw_ismrmrd.params["userParameters"]
+        for (key, value) in dict_user_params
             if key == "Δt_rf"
-                dictForMat["dt_rf"] = value
+                dict_for_mat["dt_rf"] = value
             elseif key == "Δt"
-                dictForMat["dt_rf"] = value
+                dict_for_mat["dt_rf"] = value
             else
-                dictForMat[key] = value
+                dict_for_mat[key] = value
             end
         end
-        matwrite(joinpath(matfolder, "sim_params.mat"), dictForMat)
+        matwrite(joinpath(matfolder, "sim_params.mat"), dict_for_mat)
 
         not_Koma = raw_ismrmrd.params["systemVendor"] != "KomaMRI.jl"
         t = Float64[]
@@ -111,18 +111,19 @@ function export_2_mat_raw(raw_ismrmrd, matfolder; matfilename="raw.mat");
 
 end
 
-function export_2_mat_image(image, recParams, matfolder; matfilename="image.mat")
-    if haskey(recParams, :reconSize)
-        recParams_dict = Dict("reco" => recParams[:reco],
-                            "Nx" => recParams[:reconSize][1],
-                            "Ny" => recParams[:reconSize][2])
-        matwrite(joinpath(matfolder, "rec_params.mat"), Dict("rec_params" => recParams_dict))
+function export_2_mat_image(image, rec_params, matfolder; matfilename="image.mat")
+    if haskey(rec_params, :reconSize)
+        dict_rec_params = Dict("reco" => rec_params[:reco],
+                            "Nx" => rec_params[:reconSize][1],
+                            "Ny" => rec_params[:reconSize][2])
+        matwrite(joinpath(matfolder, "rec_params.mat"), Dict("rec_params" => dict_rec_params))
     end
 
     matwrite(joinpath(matfolder, matfilename), Dict("image" => image))
 end
 
-function export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="data.mat")
+function export_2_mat(seq, phantom, sys, raw_ismrmrd, rec_params, image, matfolder; type="all", matfilename="data.mat")
+    head = splitext(matfilename)[1]
     if type=="all"
         export_2_mat_sequence(seq, matfolder)
         export_2_mat_kspace(seq, matfolder)
@@ -130,20 +131,19 @@ function export_2_mat(seq, phantom, sys, raw_ismrmrd, recParams, image, matfolde
         export_2_mat_phantom(phantom, matfolder)
         export_2_mat_scanner(sys, matfolder)
         export_2_mat_raw(raw_ismrmrd, matfolder)
-        export_2_mat_image(image, recParams, matfolder)
+        export_2_mat_image(image, rec_params, matfolder)
     elseif type=="sequence"
-        head = splitext(matfilename)[1]
 		export_2_mat_sequence(seq, matfolder; matfilename=(head*"_sequence.mat"))
         export_2_mat_kspace(seq, matfolder; matfilename=(head*"_kspace.mat"))
         export_2_mat_moments(seq, matfolder; matfilename=(head*"_moments.mat"))
 	elseif type=="phantom"
-		export_2_mat_phantom(phantom, matfolder; matfilename)
+		export_2_mat_phantom(phantom, matfolder; matfilename=(head*"_phantom.mat"))
     elseif type=="scanner"
-		export_2_mat_scanner(sys, matfolder; matfilename)
+		export_2_mat_scanner(sys, matfolder; matfilename=(head*"_scanner.mat"))
     elseif type=="raw"
-		export_2_mat_raw(raw_ismrmrd, matfolder; matfilename)
+		export_2_mat_raw(raw_ismrmrd, matfolder; matfilename=(head*"_raw.mat"))
     elseif type=="image"
-		export_2_mat_image(image, recParams, matfolder; matfilename)
+		export_2_mat_image(image, rec_params, matfolder; matfilename=(head*"_image.mat"))
 	end
 
     strToast = "<ul><li><b>Name:</b> " * matfilename * "</li><li><b>Path:</b> " * matfolder * "</li></ul>"
