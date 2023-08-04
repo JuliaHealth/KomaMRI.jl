@@ -7,16 +7,30 @@ function check_sequence(seq::Sequence, sys::Scanner; dt=1e-3)
     gr_max_abs_amps = Float64[]
     gr_max_slewrates = reshape(Float64[], 3, 0)
     gr_max_abs_slewrates = Float64[]
-    for i = 1:2#length(seq)
+    s_adc_past, T0f_adc_past = Sequence([Grad(0, 0)]), 0
+    Δt_delay_adcs = Float64[]
+    Δt_between_adcs = Float64[]
+    s_rf_past, T0f_rf_past = Sequence([Grad(0, 0)]), 0
+    Δt_delay_rfs = Float64[]
+    Δt_between_rfs = Float64[]
+    T0 = cumsum([0; durs(seq)])
+    for i = 1:length(seq)
+        T0i, T0f  =  T0[i], T0[i+1]
         s = seq[i]
         if is_RF_on(s)
             rf = maximum(abs.(s.RF[1].A))
             append!(rf_max_amps, rf)
+            #
+            append!(Δt_delay_rfs, s.RF.delay[1])
+            # Get the
+            Δt_rf_past = s_rf_past[1].DUR[1] - s_rf_past.RF.dur[1]
+            append!(Δt_between_rfs, s.RF.delay[1] + T0i - T0f_rf_past - Δt_rf_past)
+            s_rf_past, T0f_rf_past = s, T0f
         end
         if is_GR_on(s)
             # Get maximum amplitudes of every x,y,z component
-            gx, gy, gz = maximum(abs.(s.GR[1,1].A)), maximum(abs.(s.GR[2,1].A)), maximum(abs.(s.GR[3,1].A))
-            gr_max_amps = hcat(gr_max_amps, [gx; gy; gz])
+            gr = [maximum(abs.(gi.A)) for gi in s.GR]
+            gr_max_amps = hcat(gr_max_amps, gr)
             # Get maximum absolute values for each sample of the grads
             t, Δt = get_uniform_times(s, dt)
             gx, gy, gz = get_grads(s, t)
@@ -32,26 +46,45 @@ function check_sequence(seq::Sequence, sys::Scanner; dt=1e-3)
             sr = maximum(sqrt.(srx.^2 + sry.^2 + srz.^2))
             append!(gr_max_abs_slewrates, sr)
         end
+        if is_ADC_on(s)
+            append!(Δt_delay_adcs, s.ADC.delay[1])
+            # Get the
+            Δt_adc_past = s_adc_past[1].DUR[1] - s_adc_past.ADC.dur[1]
+            append!(Δt_between_adcs, s.ADC.delay[1] + T0i - T0f_adc_past - Δt_adc_past)
+            s_adc_past, T0f_adc_past = s, T0f
+        end
     end
     if maximum(rf_max_amps) > sys.B1
-        @warn "A B1 sample of the sequence is higher than the maximum value B1 of the scanner"
+        @warn "A B1 sample of the sequence is greater than the maximum value B1 of the scanner"
         is_hw_compliant = false
     end
     if maximum(gr_max_amps) > sys.Gmax
-        @warn "A GR sample of the sequence is higher than the maximum value Gmax of the scanner"
+        @warn "A GR sample of the sequence is greater than the maximum value Gmax of the scanner"
         is_hw_compliant = false
     end
     if maximum(gr_max_abs_amps) > sys.Gmax
-        @warn "An oblique GR sample of the sequence is higher than the maximum value Gmax of the scanner"
+        @warn "An oblique GR sample of the sequence is greater than the maximum value Gmax of the scanner"
         is_hw_compliant = false
     end
     if maximum(gr_max_slewrates) > sys.Smax
-        @warn "A GR slew-rate of the sequence is higher than the maximum value Smax of the scanner"
+        @warn "A GR slew-rate of the sequence is greater than the maximum value Smax of the scanner"
         is_hw_compliant = false
     end
     if maximum(gr_max_abs_slewrates) > sys.Smax
-        @warn "An oblique GR slew-rate of the sequence is higher than the maximum value Smax of the scanner"
+        @warn "An oblique GR slew-rate of the sequence is greater than the maximum value Smax of the scanner"
         is_hw_compliant = false
     end
-    return gr_max_slewrates, gr_max_abs_slewrates
+    if minimum(Δt_delay_adcs) < sys.ADC_dead_time_T
+        @warn "The delay of an ADC in a sequence block is lower than the ADC_dead_time_T of the scanner"
+        is_hw_compliant = false
+    end
+    if minimum(Δt_delay_rfs) < sys.RF_dead_time_T
+        @warn "The delay of an RF in a sequence block is lower than the RF_dead_time_T of the scanner"
+        is_hw_compliant = false
+    end
+    if minimum(Δt_between_rfs) < sys.RF_ring_down_T
+        @warn "A distance between 2 RFs is lower than the RF_ring_down_T of the scanner"
+        is_hw_compliant = false
+    end
+    return Δt_between_adcs
 end
