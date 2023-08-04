@@ -122,7 +122,6 @@ t = KomaMRICore.get_adc_sampling_times(seq)
 
 Mxy(i) = abs.(sum(magnetization[:,spin_group[i],1,1][:,1,:],dims=2)[:]/length(spin_group[i]))
 Mz(i) = real.(sum(magnetization[:,spin_group[i],2,1][:,1,:],dims=2)[:]/length(spin_group[i]))
-
 p0 = make_subplots(rows=3, cols=1, subplot_titles=["Mxy" "Mz" "Sequence"], shared_xaxes=true, vertical_spacing=0.1)
 for i=eachindex(spin_group)
     p1 = scatter(x=t, y=Mxy(i), name=labels[i], legendgroup=labels[i], marker_color=colors[i])
