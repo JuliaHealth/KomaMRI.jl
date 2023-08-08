@@ -51,3 +51,6 @@ Reexport = "1"
 Scanf = "0.5"
 ThreadsX = "0.1"
 julia = "1.6"
+
+[extras]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
