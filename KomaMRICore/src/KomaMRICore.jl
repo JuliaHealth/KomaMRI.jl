@@ -74,6 +74,10 @@ export PulseDesigner
 using Pkg
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
+using PackageExtensionCompat
+function __init__()
+    @require_extensions
+end
 #PrecompileTools
 # using PrecompileTools
 # @setup_workload begin
