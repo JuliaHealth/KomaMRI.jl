@@ -246,7 +246,7 @@ handle(w, "simulate") do args...
     end
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
     content!(w, "div#content", loading)
-    # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
+    @js_ w document.getElementById("simulate!").setAttribute("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
     global raw_ismrmrd = simulate(phantom, seq, sys; simParams, w)
@@ -281,8 +281,8 @@ handle(w, "simulate") do args...
     content!(w, "div#content", loading)
     include(path*"/ui/SignalGUI.jl")
     @js_ w document.getElementById("content").dataset.content = "simulation"
-    # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
-    # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
+    @js_ w document.getElementById("simulate!").removeAttribute("disabled"); #Re-enable button
+    @js_ w document.getElementById("recon!").removeAttribute("disabled");
 end
 handle(w, "recon") do args...
     strLoadingMessage = "Running reconstruction ..."
