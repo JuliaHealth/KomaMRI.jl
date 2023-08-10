@@ -62,7 +62,7 @@ function check_sequence(seq::Sequence, sys::Scanner; dt=1e-3)
     end
 
     # Generate error tables for magnitudes and print info to user
-    mag_err_cols = ["B1"; "GX"; "GY"; "GZ"; "GR"; "SX"; "SY"; "SZ"; "SR"]
+    mag_err_cols = ["|B1|"; "Gx"; "Gy"; "Gz"; "||G||"; "SRx"; "SRy"; "SRz"; "||SR||"]
     mag_err_all = [rf_max .> sys.B1 gi_max .> sys.Gmax gr_max .> sys.Gmax sri_max .> sys.Smax srr_max .> sys.Smax]
     mag_err_any = [any(mag_err_all, dims=1)...]
     mag_err_blks = findall([any(mag_err_all, dims=2)...])
