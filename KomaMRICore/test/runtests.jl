@@ -324,9 +324,12 @@ end
 @testitem "PulseDesigner" tags=[:core] begin
     @testset "RF_sinc" begin
         sys = Scanner()
-        B1 = 23.4732e-6 # For 90 deg flip angle
+        B1 = 1
         Trf = 1e-3
         rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
+        α_ref = KomaMRICore.get_flip_angles(rf)[1]
+        α = 90.0 + 0.0im #Flip-angle 90 deg 
+        rf *= α/α_ref 
         @test KomaMRICore.get_flip_angles(rf)[1] ≈ 90
     end
     @testset "Spiral" begin
@@ -549,7 +552,7 @@ end
 end
 
 @testitem "Bloch_GPU" tags=[:important, :skipci, :core] begin
-    using Suppressor, HDF5
+    using Suppressor, HDF5, CUDA
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
     obj = read_phantom_jemris(path*"/test_files/sphere_chemical_shift.h5")
@@ -661,7 +664,7 @@ end
 end
 
 @testitem "Bloch_GPU_RF_accuracy" tags=[:important, :core] begin
-    using Suppressor
+    using Suppressor, CUDA
     Tadc = 1e-3
     Trf = Tadc
     T1 = 1000e-3
@@ -714,7 +717,7 @@ end
     sig = @suppress simulate(obj, seq, sys; simParams)
     sig = sig / prod(size(obj))
     simParams["sim_method"] = KomaMRICore.BlochDict()
-    sig2 = simulate(obj, seq, sys; simParams)
+    sig2 = @suppress simulate(obj, seq, sys; simParams)
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 

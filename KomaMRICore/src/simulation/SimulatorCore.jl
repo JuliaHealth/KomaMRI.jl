@@ -2,11 +2,12 @@ abstract type SimulationMethod end #get all available types by using subtypes(Ko
 abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
-include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
-include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
+# include("BlochKA/BlochSimulationMethod.jl")     #Defines Bloch simulation method with KernelAbstractions
+include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
+include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
 
 function default_sim_params(simParams=Dict{String,Any}())
-    get!(simParams, "gpu", true); if simParams["gpu"] check_use_cuda(); simParams["gpu"] &= use_cuda[] end
+    get!(simParams, "gpu", true); if simParams["gpu"] simParams["gpu"] &= CUDA_LOADED[] end
     get!(simParams, "gpu_device", 0)
     get!(simParams, "Nthreads", simParams["gpu"] ? 1 : Threads.nthreads())
     get!(simParams, "Nblocks", 20)
@@ -190,8 +191,8 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     sig = zeros(ComplexF64, Ndims..., simParams["Nthreads"])
     # Objects to GPU
     if simParams["gpu"] #Default
-        device!(simParams["gpu_device"])
-        gpu_name = name.(devices())[simParams["gpu_device"]+1]
+        #device!(simParams["gpu_device"])
+        gpu_name = "_"#name.(devices())[simParams["gpu_device"]+1]
         obj  = obj  |> gpu #Phantom
         seqd = seqd |> gpu #DiscreteSequence
         Xt   = Xt   |> gpu #SpinStateRepresentation
@@ -215,7 +216,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     sig = sum(sig; dims=length(Ndims)+1) |> cpu
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
-    if simParams["gpu"] GC.gc(true); CUDA.reclaim() end
+    # if simParams["gpu"] GC.gc(true); CUDA.reclaim() end
     # Output
     if simParams["return_type"] == "state"
         out = Xt
