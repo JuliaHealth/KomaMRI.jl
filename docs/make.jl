@@ -5,18 +5,41 @@ org, reps = :cncastillo, :KomaMRI
 base = "$org/$reps.jl"
 repo_root_url = "https://github.com/$base/blob/master"
 
-exa = joinpath(@__DIR__, "../examples")
-src = joinpath(@__DIR__, "src")
-gen = joinpath(@__DIR__, "src/generated")
+# User can add some directories from the literate folder
 foldernames = ["basic"; "sequence-design"]
-folderpaths = [joinpath(exa, foldername) for foldername in foldernames]
 
+# Define some paths
+exa = joinpath(dirname(@__DIR__), "examples")
+src = joinpath(@__DIR__, "src")
+lit = joinpath(exa, "literate")
+gen = joinpath(src, "generated")
+assets = joinpath(src, "assets")
+folderpaths = [joinpath(lit, foldername) for foldername in foldernames]
+
+# Auxiliar function to replace texts into literate .jl files previous processing
 function preprocess_constants(file, folder)
     return content -> content = replace(content, "FILE_NAME" => file, "FOLDER_NAME" => folder)
 end
 
+# Auxiliar function to check if a file has .md extension
+function is_md_file(filename)
+    return splitext(filename)[2] == ".md"
+end
+
+# Auxiliar function that returns an array with the subseccions of a literate seccion
+function pages_for_literate_seccion(folder)
+    return [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if is_md_file(f)]
+    #return [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if is_md_file(f)]
+end
+
+# Create empty folders for in the assets directory for the literate generated sections
+[mkpath(joinpath(assets, foldername)) for foldername in foldernames]
+#[mkpath(joinpath(gen, foldername)) for foldername in foldernames]
+
+# Generate markdown, script and notebook for from the source literate file
 for i ∈ eachindex(foldernames)
-    for (root, _, files) ∈ walkdir(folderpaths[i]), file ∈ files
+    subsection = joinpath(lit, foldernames[i])
+    for (root, _, files) ∈ walkdir(subsection), file ∈ files
         file_minus_ext = split(file, ".")[1]
         ipath, opath = joinpath(root, file), joinpath(gen, foldernames[i])
         Literate.markdown(ipath, opath; repo_root_url, preprocess=preprocess_constants(file_minus_ext, foldernames[i]) )
@@ -25,22 +48,20 @@ for i ∈ eachindex(foldernames)
     end
 end
 
-# Documentation structure
-ismd(f) = splitext(f)[2] == ".md"
-pages(folder) = [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if ismd(f)]
+literate_seccions = [titlecase(replace(foldername, "-"=>" ")) => pages_for_literate_seccion(foldername) for foldername in foldernames]
 
+# Documentation structure
 makedocs(
     modules = [KomaMRI, KomaMRICore, KomaMRIPlots],
     sitename = "KomaMRI.jl: General MRI simulation framework",
     authors = "Boris Orostica Navarrete and Carlos Castillo Passi",
     pages = [
-        "Home" => "index.md",
-        #"Getting Started" => "getting-started.md",
-        #"Graphical User Interface" => "ui-details.md",
-        "Examples" => pages(foldernames[1]),
-        "Sequence Design" => pages(foldernames[2]),
-        #"Simulation Method" => "mri-theory.md",
-        #"API Documentation" => "api.md"
+        "Home" => "index.md";
+        "Getting Started" => "getting-started.md";
+        "Graphical User Interface" => "ui-details.md";
+        literate_seccions;
+        "Simulation Method" => "mri-theory.md";
+        "API Documentation" => "api.md";
     ],
     format = Documenter.HTML(
         prettyurls = true, #get(ENV, "CI", nothing) == "true",
