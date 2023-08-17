@@ -51,7 +51,7 @@ KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spi
 
 This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
 
-> 🟢 **[29 Jun 2023] [KomaMRI.jl's paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635) was part of July's editor's picks in MRM 🥳!**
+> 🟢 **[29 Jun 2023] [KomaMRI.jl's paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635) was chosen as a July editor's pick in MRM 🥳!**
 
 > 🟢 **[6 Mar 2023] Paper published in MRM 😃!** The open access article is available [here](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635).
 

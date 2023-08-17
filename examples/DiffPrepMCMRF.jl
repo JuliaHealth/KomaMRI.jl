@@ -276,7 +276,7 @@ gap_right_ms = 0; gap_right = floor(Int64, gap_right_ms * 1e-3 / (n_dwells * dwe
 λ_spectra = (0.1:0.5:150) * 1e-3
 ec_spectraB0 = zeros(length(λ_spectra))
 ec_spectraGradM0 = zeros(length(λ_spectra))
-ecc_λ = [15e-3]#[0.04, 0.1, 0.24, 0.57, 1.4, 3.4, 8.3, 20, 49, 118, 288, 700] * 1e-3
+ecc_λ = [85e-3]#[0.04, 0.1, 0.24, 0.57, 1.4, 3.4, 8.3, 20, 49, 118, 288, 700] * 1e-3
 ecc_α = [1.] #[51.2*ones(3); 10.24*ones(9)] / 100.
 DIF = Sequence()
 DIF_ref = Sequence()

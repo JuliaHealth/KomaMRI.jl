@@ -287,11 +287,11 @@ julia> obj = brain_phantom3D()
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom3D(;ss=4)
+function brain_phantom3D(;ss=4,start_end=[160, 200])
     path = @__DIR__
     data = MAT.matread(path*"/phantom/brain3D.mat")
 
-    class = data["data"][1:ss:end,1:ss:end,160:ss:200]
+    class = data["data"][1:ss:end,1:ss:end,start_end[1]:ss:start_end[2]]
     Δx = .5e-3*ss
     M, N, Z = size(class)
     FOVx = (M-1)*Δx #[m]
