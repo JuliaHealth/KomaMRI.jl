@@ -1,5 +1,5 @@
 using KomaMRI,DelimitedFiles
-Fields = readdlm("mpf_2023062211393219.dat",' ')
+Fields = readdlm("./test/ourSequence/mpf_2023062211393219.dat",' ')
 Gx = Float16.(Fields[:,1] .* 10^(-3))
 Gy = Float16.(Fields[:,2] .* 10^(-3))
 Gz = Float16.(Fields[:,3] .* 10^(-3))
