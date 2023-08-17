@@ -106,11 +106,9 @@ rawfile = "./Koma_signal.mrd"
 savefig(plot_seq(GRE),"Sequence.png")
 savefig(plot_seq(GRE,range=[2200,2280]),"SequenceMed.png")
 savefig(plot_seq(GRE,range=[0,2000]),"SequenceEarly.png")
-#=
 raw_ismrmrd = simulate(obj,GRE,sys,simParams=sims)
 show(IOContext(stdout, :limit => true), "text/plain", raw_ismrmrd)
 p3 = plot_signal(raw_ismrmrd; slider=false, height=300)
 savefig(p3, "Signal.png")
 fout = ISMRMRDFile(rawfile)
 KomaMRICore.save(fout, raw_ismrmrd)
-=#
