@@ -16,14 +16,12 @@ function get_displacements(p::Phantom{T}, t::AbstractVector{T})where {T<:Real}
     limits = get_pieces_limits(dur, p.K)
     times = time_partitioner(t, dur, limits)
 
-    Δx = hcat(zeros(Ns,1),p.Δx,zeros(Ns,1))
-    Δy = hcat(zeros(Ns,1),p.Δy,zeros(Ns,1))
-    Δz = hcat(zeros(Ns,1),p.Δz,zeros(Ns,1))
+    Δx = CUDA.hcat(CUDA.zeros(Ns,1),p.Δx,CUDA.zeros(Ns,1))
+    Δy = CUDA.hcat(CUDA.zeros(Ns,1),p.Δy,CUDA.zeros(Ns,1))
+    Δz = CUDA.hcat(CUDA.zeros(Ns,1),p.Δz,CUDA.zeros(Ns,1))
 
-    aux_x = zeros(Ns,1)
-    aux_y = zeros(Ns,1)
-    aux_z = zeros(Ns,1)
 
+    # PARALELIZAR ESTO
     for i in 1:length(times)
         j = k = i
         while j>(length(limits)-1)
@@ -44,6 +42,17 @@ function get_displacements(p::Phantom{T}, t::AbstractVector{T})where {T<:Real}
     Uz = CuArray(aux_z[:,2:end])
 
     Ux,Uy,Uz
+end
+
+
+function get_displacements_2(p::Phantom, t::AbstractVector{T}, itp) where {T<:Real}
+    times = mod.(t,sum(p.dur)) # Map time values between 0 and sum(dur)
+
+    Ux = reduce(hcat,[itp[i,1].(times) for i in 1:length(p.x)])'
+    Uy = reduce(hcat,[itp[i,2].(times) for i in 1:length(p.x)])'
+    Uz = reduce(hcat,[itp[i,3].(times) for i in 1:length(p.x)])'
+
+    Ux, Uy, Uz
 end
 
 
@@ -76,25 +85,15 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
-    M::Mag{T}, sim_method::BlochMov) where {T<:Real}
+    M::Mag{T}, sim_method::BlochMov, Ux, Uy, Uz) where {T<:Real}
     #Simulation
-
-    xt = p.x 
-    yt = p.y 
-    zt = p.z 
-
-    #Motion 
-    """
-    TO-DO: improve function get_displacements to use GPU 
-    Ux, Uy, Uz = get_displacements(p,seq.t)
-
     xt = p.x .+ Ux
     yt = p.y .+ Uy
     zt = p.z .+ Uz
-    """
 
     #Effective field
-    Bz = Float32.(xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ))
+    Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ) # INEFICIENTE
+
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π * γ) .* cumtrapz(seq.Δt', Bz)
@@ -128,33 +127,15 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    M::Mag{T}, sim_method::BlochMov) where {T<:Real}
+                              M::Mag{T}, sim_method::BlochMov, Ux, Uy, Uz) where {T<:Real}
     #Simulation
-    for s ∈ seq #This iterates over seq, "s = seq[i,:]"
-        xt = p.x 
-        yt = p.y 
-        zt = p.z 
+    for i in 1:length(seq)
+        s = seq[i]
 
-        #Motion
-        """ TO-DO: improve function get_displacements to use GPU
-        Ux, Uy, Uz = get_displacements(p,s.t)
+        xt = p.x + reshape(@view(Ux[:,i]),(length(p.x),))
+        yt = p.y + reshape(@view(Uy[:,i]),(length(p.y),))
+        zt = p.z + reshape(@view(Uz[:,i]),(length(p.z),))
 
-
-        if size(Ux)[2] == 0
-            Ux = CuArray(zeros(length(p.x)))
-        end
-        if size(Uy)[2] == 0
-            Uy = CuArray(zeros(length(p.y)))
-        end
-        if size(Uz)[2] == 0
-            Uz = CuArray(zeros(length(p.z)))
-        end
-
-        xt = p.x + reshape(Ux,(length(p.x),))
-        yt = p.y + reshape(Ux,(length(p.y),))
-        zt = p.z + reshape(Ux,(length(p.z),))
-        """
-    
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz

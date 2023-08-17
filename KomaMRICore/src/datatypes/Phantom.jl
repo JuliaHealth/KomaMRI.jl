@@ -53,7 +53,7 @@ The Phantom struct.
 	"""
 
 	# Segments
-	dur::AbstractVector{T} = [Inf]
+	dur::AbstractVector{T} = [1]
 	K::Int = 2
 
 	# Motion

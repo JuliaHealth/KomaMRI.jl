@@ -27,14 +27,16 @@ separating the spins of the phantom `obj` in `Nthreads`.
     step))
 """
 function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
-    Nthreads=Threads.nthreads()) where {T<:Real}
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod,
+    Ux,Uy,Uz;
+    Nthreads = Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads, type="ordered")
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
+        run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method, 
+                             @view(Ux[p,:]),@view(Uy[p,:]),@view(Uz[p,:]))
     end
 
     return nothing
@@ -60,14 +62,16 @@ different number threads to excecute the process.
     state for the next precession simulation step)
 """
 function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod,
+    Ux,Uy,Uz;
     Nthreads=Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads; type="ordered")
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
+        run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method, 
+                             @view(Ux[p,:]),@view(Uy[p,:]),@view(Uz[p,:]))
     end
 
     return nothing
@@ -99,14 +103,21 @@ take advantage of CPU parallel processing.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod,itp;
     Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], w=nothing) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
     progress_bar = Progress(Nblocks)
-    for (block, p) = enumerate(parts)
+
+    Ux,Uy,Uz = get_displacements_2(obj,seq.t,itp)
+
+    for (block, p) = enumerate(parts) 
         seq_block = @view seq[p]
+        ux = KomaMRICore.CUDA.hcat(@view(Ux[:,p]),@view(Ux[:,p[end]])) # We need to duplicate the last column of Ux, Uy and Uz
+        uy = KomaMRICore.CUDA.hcat(@view(Uy[:,p]),@view(Uy[:,p[end]])) # so that dimensions match
+        uz = KomaMRICore.CUDA.hcat(@view(Uz[:,p]),@view(Uz[:,p[end]]))
+
         # Params
         excitation_bool = is_RF_on(seq_block) && is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
         Nadc = sum(seq_block.ADC)
@@ -114,10 +125,14 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
         dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool
-            run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
+            run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method,
+                                          ux,uy,uz;
+                                          Nthreads)
             rfs += 1
         else
-            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
+            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method,
+                                          ux,uy,uz; 
+                                          Nthreads)
         end
         samples += Nadc
         #Update progress
@@ -194,6 +209,39 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
     sig = zeros(ComplexF64, Ndims..., Nthreads)
+
+    # NEW <------- INTERPOLATION MOTION FUNCTIONS -------------
+    Ns = length(obj.x)
+    limits = get_pieces_limits_cpu(obj)
+
+    Δ = zeros(Ns,length(limits),3)
+    Δ[:,:,1] = hcat(zeros(Ns,1),obj.Δx,zeros(Ns,1))
+    Δ[:,:,2] = hcat(zeros(Ns,1),obj.Δy,zeros(Ns,1))
+    Δ[:,:,3] = hcat(zeros(Ns,1),obj.Δz,zeros(Ns,1))
+    
+    itp = [[interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns];;
+           [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns];;
+           [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns]]
+    
+    # --------------------------------------------------------- 
+    # Precision
+    if precision == "f32" #Default
+        obj  = obj  |> f32 #Phantom
+        seqd = seqd |> f32 #DiscreteSequence
+        Xt   = Xt   |> f32 #SpinStateRepresentation
+        sig  = sig  |> f32 #Signal
+        # NEW <----------------------
+        itp  = itp  |> f32 #Motion
+        # ---------------------------
+    elseif precision == "f64"
+        obj  = obj  |> f64 #Phantom
+        seqd = seqd |> f64 #DiscreteSequence
+        Xt   = Xt   |> f64 #SpinStateRepresentation
+        sig  = sig  |> f64 #Signal
+        # NEW <----------------------
+        itp  = itp  |> f64 #Motion
+        # ---------------------------
+    end
     # Objects to GPU
     if enable_gpu #Default
         device!(gpu_device)
@@ -202,21 +250,15 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
         seqd = seqd |> gpu #DiscreteSequence
         Xt   = Xt   |> gpu #SpinStateRepresentation
         sig  = sig  |> gpu #Signal
+        # NEW <----------------------
+        itp  = itp  |> gpu; #Motion
+        # ---------------------------
     end
-    if precision == "f32" #Default
-        obj  = obj  |> f32 #Phantom
-        seqd = seqd |> f32 #DiscreteSequence
-        Xt   = Xt   |> f32 #SpinStateRepresentation
-        sig  = sig  |> f32 #Signal
-    elseif precision == "f64"
-        obj  = obj  |> f64 #Phantom
-        seqd = seqd |> f64 #DiscreteSequence
-        Xt   = Xt   |> f64 #SpinStateRepresentation
-        sig  = sig  |> f64 #Signal
-    end
+
     # Simulation
     @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=__VERSION__ sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Ndims[1]
-    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
+    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method, itp; 
+                                                  Nblocks, Nthreads, parts, w)
     # Result to CPU, if already in the CPU it does nothing
     sig = sum(sig; dims=length(Ndims)+1) |> cpu
     sig .*= get_adc_phase_compensation(seq)
