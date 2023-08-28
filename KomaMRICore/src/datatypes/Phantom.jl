@@ -1,7 +1,3 @@
-mutable struct FuncWrapper # Function wrapper so we can re-define anonymous functions in the Phantom
-	f::Function
-end
-
 """
     phantom = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
 
