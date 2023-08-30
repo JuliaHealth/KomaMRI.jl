@@ -801,9 +801,11 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
         l.width = width
     end
 
-	Ux, Uy, Uz = reshape.(Array.(KomaMRICore.get_displacements(ph,Float64.([t0]))),(length(ph.x),))
-
-	# display(Ux)
+	itp = get_itp_functions(ph)
+	Ux, Uy, Uz = get_displacements(ph,[t0],itp)
+	Ux = Ux === nothing ? zeros(length(ph.x)) : reshape(Ux,(length(ph.x),))
+	Uy = Uy === nothing ? zeros(length(ph.x)) : reshape(Uy,(length(ph.x),))
+	Uz = Uz === nothing ? zeros(length(ph.x)) : reshape(Uz,(length(ph.x),))
 
 	if view_2d
 	h = PlotlyJS.scatter( 	x=(ph.x .+ Ux)*1e2,
