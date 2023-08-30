@@ -143,7 +143,7 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
     samples = 1
     progress_bar = Progress(Nblocks)
 
-    Ux,Uy,Uz = get_displacements_2(obj,seq.t,itp)
+    Ux,Uy,Uz = get_displacements(obj,seq.t,itp)
 
     for (block, p) = enumerate(parts) 
         seq_block = @view seq[p]
