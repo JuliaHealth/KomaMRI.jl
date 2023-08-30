@@ -59,7 +59,7 @@ export read_seq
 export signal_to_raw_data
 #Phantom
 export brain_phantom2D, brain_phantom3D, read_phantom_jemris, read_phantom_MRiLab, read_phantom_NIfTI, read_phantom_file
-export get_displacements, get_displacements_2, time_partitioner, time_partitioner_2, get_pieces_limits_cpu, get_pieces_limits_gpu
+export get_itp_functions, get_displacements, get_pieces_limits
 #Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary

@@ -6,6 +6,31 @@ include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
 include("Bloch/BlochMovSimulationMethod.jl")    #Defines BlochMov simulation method
 
+
+"""
+    itp = get_itp_functions(obj)
+
+Returns an array of motion interpolation functions from a phantom
+"""
+function get_itp_functions(obj::Phantom)
+    Ns = length(obj.x)
+    limits = get_pieces_limits(obj)
+
+    Δ = zeros(Ns,length(limits),3)
+    Δ[:,:,1] = hcat(zeros(Ns,1),obj.Δx,zeros(Ns,1))
+    Δ[:,:,2] = hcat(zeros(Ns,1),obj.Δy,zeros(Ns,1))
+    Δ[:,:,3] = hcat(zeros(Ns,1),obj.Δz,zeros(Ns,1))
+
+    itpx = reshape(sum(abs.(Δ[:,:,1]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns] : nothing
+    itpy = reshape(sum(abs.(Δ[:,:,2]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns] : nothing
+    itpz = reshape(sum(abs.(Δ[:,:,3]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns] : nothing
+
+    itp = [itpx, itpy, itpz]
+    itp
+end
+
+
+
 """
     sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
 
@@ -219,19 +244,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     sig = zeros(ComplexF64, Ndims..., Nthreads)
 
     # NEW <------- INTERPOLATION MOTION FUNCTIONS -------------
-    Ns = length(obj.x)
-    limits = get_pieces_limits_cpu(obj)
-
-    Δ = zeros(Ns,length(limits),3)
-    Δ[:,:,1] = hcat(zeros(Ns,1),obj.Δx,zeros(Ns,1))
-    Δ[:,:,2] = hcat(zeros(Ns,1),obj.Δy,zeros(Ns,1))
-    Δ[:,:,3] = hcat(zeros(Ns,1),obj.Δz,zeros(Ns,1))
-
-    itpx = reshape(sum(abs.(Δ[:,:,1]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns] : nothing
-    itpy = reshape(sum(abs.(Δ[:,:,2]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns] : nothing
-    itpz = reshape(sum(abs.(Δ[:,:,3]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns] : nothing
-
-    itp = [itpx, itpy, itpz]
+    itp = get_itp_functions(obj)
     
     # --------------------------------------------------------- 
     # Precision

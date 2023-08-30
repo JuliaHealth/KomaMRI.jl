@@ -259,7 +259,21 @@ end
 
 
 # ---------------------------------------------------------------------------------------------------
+function get_pieces_limits(obj::Phantom)
+	dur = obj.dur
+	K   = obj.K
 
+	steps = dur/K
+	mat = reduce(hcat,[steps for i in 1:K])'
+	limits = reshape(mat,(K*length(dur),))
+	cumsum!(limits,limits)
+	limits = vcat(0,limits)
+    limits
+end
+
+
+
+"""
 function time_partitioner(t::AbstractVector{T}, dur::AbstractVector{T}, limits::AbstractVector{T})where {T<:Real}
 	t_aux = t
 	aux = []
@@ -289,34 +303,25 @@ function time_partitioner(t::AbstractVector{T}, dur::AbstractVector{T}, limits::
 end
 
 
-# function time_partitioner_2(t::AbstractVector{T}, dur::AbstractVector{T})where {T<:Real}
-# 	t_aux = t
-# 	times = CuArray[]
-# 	while length(t_aux) > 0
-# 		CUDA.push!(times,t_aux[t_aux.<= sum(dur)])
-# 		t_aux = CUDA.filter(x -> x >= sum(dur), t_aux)
-
-# 		if length(t_aux) > 0
-# 			t_aux .-= sum(dur)
-# 		end
-# 	end
-
-# 	times
-# end
 
 
+function time_partitioner_2(t::AbstractVector{T}, dur::AbstractVector{T})where {T<:Real}
+	t_aux = t
+	times = CuArray[]
+	while length(t_aux) > 0
+		CUDA.push!(times,t_aux[t_aux.<= sum(dur)])
+		t_aux = CUDA.filter(x -> x >= sum(dur), t_aux)
 
-function get_pieces_limits_cpu(obj::Phantom)
-	dur = obj.dur
-	K   = obj.K
+		if length(t_aux) > 0
+			t_aux .-= sum(dur)
+		end
+	end
 
-	steps = dur/K
-	mat = reduce(hcat,[steps for i in 1:K])'
-	limits = reshape(mat,(K*length(dur),))
-	cumsum!(limits,limits)
-	limits = vcat(0,limits)
-    limits
+	times
 end
+
+
+
 
 function get_pieces_limits_2(dur,K)
 	steps = dur/K
@@ -326,6 +331,9 @@ function get_pieces_limits_2(dur,K)
 	limits = vcat(0,limits)
     limits
 end
+
+
+
 
 function get_pieces_limits_gpu(obj::Phantom)
 	dur = obj.dur
@@ -350,3 +358,4 @@ function get_pieces_limits_gpu(obj::Phantom)
 
     limits
 end
+"""

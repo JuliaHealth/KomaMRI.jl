@@ -10,6 +10,7 @@ end
 
 output_Ndim(sim_method::BlochMov) = 2 #time-points x coils
 
+"""
 function get_displacements(p::Phantom{T}, t::AbstractVector{T})where {T<:Real}
     Ns = length(p.x)
     dur = p.dur
@@ -43,9 +44,10 @@ function get_displacements(p::Phantom{T}, t::AbstractVector{T})where {T<:Real}
 
     Ux,Uy,Uz
 end
+"""
 
 
-function get_displacements_2(p::Phantom, t::AbstractVector{T}, itp) where {T<:Real}
+function get_displacements(p::Phantom, t::AbstractVector{T}, itp) where {T<:Real}
     times = mod.(t,sum(p.dur)) # Map time values between 0 and sum(dur)
     mov = Array(itp) .!== nothing     # mov tells in which dimensions we have movement
 
