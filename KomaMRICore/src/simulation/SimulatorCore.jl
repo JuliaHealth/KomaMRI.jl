@@ -35,8 +35,12 @@ function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
+        ux = Ux !== nothing ? @view(Ux[p,:]) : nothing
+        uy = Uy !== nothing ? @view(Uy[p,:]) : nothing
+        uz = Uz !== nothing ? @view(Uz[p,:]) : nothing
+
         run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method, 
-                             @view(Ux[p,:]),@view(Uy[p,:]),@view(Uz[p,:]))
+                             ux,uy,uz)
     end
 
     return nothing
@@ -70,8 +74,12 @@ function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
+        ux = Ux !== nothing ? @view(Ux[p,:]) : nothing
+        uy = Uy !== nothing ? @view(Uy[p,:]) : nothing
+        uz = Uz !== nothing ? @view(Uz[p,:]) : nothing
+
         run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method, 
-                             @view(Ux[p,:]),@view(Uy[p,:]),@view(Uz[p,:]))
+                             ux,uy,uz)
     end
 
     return nothing
@@ -114,9 +122,9 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
 
     for (block, p) = enumerate(parts) 
         seq_block = @view seq[p]
-        ux = KomaMRICore.CUDA.hcat(@view(Ux[:,p]),@view(Ux[:,p[end]])) # We need to duplicate the last column of Ux, Uy and Uz
-        uy = KomaMRICore.CUDA.hcat(@view(Uy[:,p]),@view(Uy[:,p[end]])) # so that dimensions match
-        uz = KomaMRICore.CUDA.hcat(@view(Uz[:,p]),@view(Uz[:,p[end]]))
+        ux = (Ux !== nothing) ? KomaMRICore.CUDA.hcat(@view(Ux[:,p]),@view(Ux[:,p[end]])) : nothing # We need to duplicate the last column of Ux, Uy and Uz
+        uy = (Uy !== nothing) ? KomaMRICore.CUDA.hcat(@view(Uy[:,p]),@view(Uy[:,p[end]])) : nothing # so that dimensions match
+        uz = (Uz !== nothing) ? KomaMRICore.CUDA.hcat(@view(Uz[:,p]),@view(Uz[:,p[end]])) : nothing
 
         # Params
         excitation_bool = is_RF_on(seq_block) && is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
@@ -218,10 +226,12 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     Δ[:,:,1] = hcat(zeros(Ns,1),obj.Δx,zeros(Ns,1))
     Δ[:,:,2] = hcat(zeros(Ns,1),obj.Δy,zeros(Ns,1))
     Δ[:,:,3] = hcat(zeros(Ns,1),obj.Δz,zeros(Ns,1))
-    
-    itp = [[interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns];;
-           [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns];;
-           [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns]]
+
+    itpx = reshape(sum(abs.(Δ[:,:,1]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns] : nothing
+    itpy = reshape(sum(abs.(Δ[:,:,2]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns] : nothing
+    itpz = reshape(sum(abs.(Δ[:,:,3]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns] : nothing
+
+    itp = [itpx, itpy, itpz]
     
     # --------------------------------------------------------- 
     # Precision

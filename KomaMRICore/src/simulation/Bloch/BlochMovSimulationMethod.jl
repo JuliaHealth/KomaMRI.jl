@@ -47,10 +47,11 @@ end
 
 function get_displacements_2(p::Phantom, t::AbstractVector{T}, itp) where {T<:Real}
     times = mod.(t,sum(p.dur)) # Map time values between 0 and sum(dur)
+    mov = Array(itp) .!== nothing     # mov tells in which dimensions we have movement
 
-    Ux = reduce(hcat,[itp[i,1].(times) for i in 1:length(p.x)])'
-    Uy = reduce(hcat,[itp[i,2].(times) for i in 1:length(p.x)])'
-    Uz = reduce(hcat,[itp[i,3].(times) for i in 1:length(p.x)])'
+    Ux = mov[1] ? reduce(hcat,[itp[1][i].(times) for i in 1:length(p.x)])' : nothing
+    Uy = mov[2] ? reduce(hcat,[itp[2][i].(times) for i in 1:length(p.x)])' : nothing
+    Uz = mov[3] ? reduce(hcat,[itp[3][i].(times) for i in 1:length(p.x)])' : nothing
 
     Ux, Uy, Uz
 end
@@ -87,9 +88,9 @@ precession.
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
     M::Mag{T}, sim_method::BlochMov, Ux, Uy, Uz) where {T<:Real}
     #Simulation
-    xt = p.x .+ Ux
-    yt = p.y .+ Uy
-    zt = p.z .+ Uz
+    xt = Ux !== nothing ? p.x .+ Ux : p.x
+    yt = Uy !== nothing ? p.y .+ Uy : p.y
+    zt = Uz !== nothing ? p.z .+ Uz : p.z
 
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ) # INEFICIENTE
@@ -132,9 +133,9 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     for i in 1:length(seq)
         s = seq[i]
 
-        xt = p.x + reshape(@view(Ux[:,i]),(length(p.x),))
-        yt = p.y + reshape(@view(Uy[:,i]),(length(p.y),))
-        zt = p.z + reshape(@view(Uz[:,i]),(length(p.z),))
+        xt = Ux !== nothing ? p.x + reshape(@view(Ux[:,i]),(length(p.x),)) : p.x
+        yt = Uy !== nothing ? p.y + reshape(@view(Uy[:,i]),(length(p.y),)) : p.y
+        zt = Uz !== nothing ? p.z + reshape(@view(Uz[:,i]),(length(p.z),)) : p.z
 
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
