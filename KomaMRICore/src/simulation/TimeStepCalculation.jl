@@ -250,7 +250,7 @@ function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
 	for i in eachindex(breaks)
 		breaks[i] += i > r ? r : i-1
 	end
-	breaks = breaks[2:end-1] #Remove borders, 
+	breaks = breaks[2:end-1] #Remove borders,
 	#Iterate over B1 values to decide the simulation UnitRanges
 	for i in eachindex(seqd.Δt)
 		if abs(seqd.B1[i]) > 10EPS #TODO: This is needed as the function ⏢ in get_rfs is not very accurate

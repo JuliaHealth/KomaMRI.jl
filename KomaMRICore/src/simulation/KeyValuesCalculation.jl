@@ -129,8 +129,8 @@ function get_theo_t(gr::Grad)
     NT, NA = length(gr.T), length(gr.A)
     ((sum(abs.(gr.A)) == 0) || (sum(gr.T) == 0)) && return []
     (NA == 1 && NT == 1) && return cumsum([gr.delay; gr.rise; gr.T; gr.fall])
-    (NA > 1 && NT == 1) && return [gr.delay; gr.rise; (ones(NA-1).*(gr.T/(NA-1))); gr.fall]
-	return [gr.delay; gr.rise; (ones(NT) .* T); gr.fall]
+    (NA > 1 && NT == 1) && return cumsum([gr.delay; gr.rise; (ones(NA-1).*(gr.T/(NA-1))); gr.fall])
+	return cumsum([gr.delay; gr.rise; (ones(NT) .* T); gr.fall])
 end
 
 get_theo_t(r::RF; max_rf_samples=Inf) = begin
@@ -220,4 +220,168 @@ get_theo_RF(seq, idx) = begin
 	mask = (G .== 0)
 	# Interpolations.deduplicate_knots!(t; move_knots=true)
 	return (t[mask], R[mask])
+end
+
+
+############################################################################################
+### For Grad ###############################################################################
+############################################################################################
+"""
+Get values from object definition
+"""
+function eventvalues(gr::Grad)
+
+    # Define empty vectors to be filled and some params
+    amps, times = Float64[], Float64[]
+    NT, NA = length(gr.T), length(gr.A)
+    is0 = (sum(abs.(gr.A)) == 0) || (sum(gr.T) == 0)
+
+    # Get the amplitudes from object parameters definitions
+    if is0
+        return (is0, Float64[], [Float64[]])    # empty values definition
+    elseif (NA == 1 && NT == 1)
+        amps, times = [0.; gr.A; gr.A; 0.], cumsum([gr.delay; gr.rise; gr.T; gr.fall])
+    elseif (NA > 1 && NT == 1)
+        amps, times = [0.; gr.A; 0.], cumsum([gr.delay; gr.rise; (ones(NA-1).*(gr.T/(NA-1))); gr.fall])
+    elseif (NA > 1 && NT > 1)
+        amps, times = [0.; gr.A; 0.], cumsum([gr.delay; gr.rise; (ones(NT) .* gr.T); gr.fall])
+    end
+
+    # Here, at the same time can be multiple amplitude values,
+    # so we keep up to 2 amplitudes at the same time
+    tu =  sort(unique(times))
+    Ntu = length(tu)
+    a = Vector{Vector{Float64}}(undef, Ntu)
+    for i in eachindex(tu)
+        mask = findall(times .== tu[i])
+        a[i] = (length(mask) == 1) ? amps[mask] : [amps[mask][1]; amps[mask][end]]
+    end
+
+    # Return the object values
+    # is0: when the object is zero (empty means zero value in amplitude)
+    # tu: the vector unique time points
+    # a: vectors of vectors with all the amplitudes at a unique time
+    # Note that length(tu) = length(a)
+    return is0, tu, a
+end
+
+"""
+Get amplitude values from object at certain time
+"""
+function eventvalues(gr::Grad, t::Float64)
+    # Get the values of the object definition
+    is0, tu, amps = eventvalues(gr)
+    # Return zero when zero-signal or outside the critical-times
+    (is0 || (t < tu[1]) || (tu[end] < t)) && return [0.]
+    # Return the interpolated value when is in between two points of the signal
+    if !(t in tu)
+        i = findlast(tu .< t)
+        m = (amps[i+1][1] - amps[i][end]) / (tu[i+1] - tu[i])
+        return [m * (t - tu[i]) + amps[i][end]]
+    end
+    # Return the exact values when is an exact point of the signal
+    return amps[t .== tu][1]
+end
+
+"""
+Get multiple amplitude values at certain time points for the event
+"""
+function eventvalues(gr::Grad, t::Vector{Float64})
+    return [eventvalues(gr, ti) for ti in t]
+end
+
+
+############################################################################################
+### For RF #################################################################################
+############################################################################################
+
+"""
+Get values from object definition
+"""
+function eventvalues(rf::RF)
+
+    # Define empty vectors to be filled and some params
+    amps, Δfs, times = Float64[], Float64[], Float64[]
+    NT, NA = length(rf.T), length(rf.A)
+    is0 = (sum(abs.(rf.A)) == 0) || (sum(rf.T) == 0)
+
+    # Get the amplitudes from object parameters definitions
+    if is0
+        return (is0, Float64[], [Float64[]], [Float64[]])    # empty values definition
+    elseif (NA == 1 && NT == 1)
+        amps, Δfs, times = [0.; rf.A; rf.A; 0.], [0.; 0.; rf.Δf; 0.], cumsum([rf.delay; 0.; rf.T; 0.])
+    elseif (NA > 1 && NT == 1)
+        amps, Δfs, times = [0.; rf.A; 0.], [rf.Δf[1]; rf.Δf; rf.Δf[end]], cumsum([rf.delay; 0.; (ones(NA-1).*(rf.T/(NA-1))); 0.])
+    elseif (NA > 1 && NT > 1)
+        amps, Δfs, times = [0.; rf.A; 0.], [rf.Δf[1]; rf.Δf; rf.Δf[end]], cumsum([rf.delay; 0.; (ones(NT) .* rf.T); 0.])
+    end
+
+    # Here, at the same time can be multiple amplitude values,
+    # so we keep up to 2 amplitudes at the same time
+    tu =  sort(unique(times))
+    Ntu = length(tu)
+    a = Vector{Vector{Float64}}(undef, Ntu)
+    Δf = Vector{Vector{Float64}}(undef, Ntu)
+    for i in eachindex(tu)
+        mask = findall(times .== tu[i])
+        Nmask = length(mask)
+        a[i]  = (Nmask == 1) ? amps[mask] : [amps[mask][1]; amps[mask][end]]
+        Δf[i] = (Nmask == 1) ? Δfs[mask] : [Δfs[mask][1]; Δfs[mask][end]]
+    end
+
+    # Return the object values
+    # is0: when the object is zero (empty means zero value in amplitude)
+    # tu: the vector unique time points
+    # a: vectors of vectors with all the amplitudes at a unique time
+    # Note that length(tu) = length(a)
+    return is0, tu, a, Δf
+end
+
+"""
+Get amplitude and Δf values from object at certain time
+"""
+function eventvalues(rf::RF, t::Float64)
+    # Get the values of the object definition
+    is0, tu, amps, Δfs = eventvalues(rf)
+    # Return zero when zero-signal or outside the critical-times
+    (is0 || (t < tu[1]) || (tu[end] < t)) && return ([0.], [0.])
+    # Return the interpolated value when is in between two points of the signal
+    if !(t in tu)
+        i = findlast(tu .< t)
+        ma = (amps[i+1][1] - amps[i][end]) / (tu[i+1] - tu[i])
+        mΔf = (Δfs[i+1][1] - Δfs[i][end]) / (tu[i+1] - tu[i])
+        return ([ma * (t - tu[i]) + amps[i][end]], [mΔf * (t - tu[i]) + Δfs[i][end]])
+    end
+    # Return the exact values when is an exact point of the signal
+    mask = (t .== tu)
+    return (amps[mask][1], Δfs[mask][1])
+end
+
+"""
+Get multiple amplitude and Δf values at certain time points for the event
+"""
+function eventvalues(rf::RF, t::Vector{Float64})
+    Nt = length(t)
+    a, Δf = Vector{Vector{Float64}}(undef, Nt), Vector{Vector{Float64}}(undef, Nt)
+    for i in eachindex(t)
+        a[i], Δf[i] = eventvalues(rf, t[i])
+    end
+    return (a, Δf)
+end
+
+
+############################################################################################
+### For ADC ################################################################################
+############################################################################################
+"""
+Return adc values from object definition
+"""
+function eventvalues(adc::ADC)
+    # Return for zero adc
+    is0 = (adc.N < 1)
+    (is0) && return (true, [])
+    # Return for adc with samples
+    Nsamp, T = adc.N, adc.T
+    t = adc.delay .+ ((Nsamp == 1) ? ([T/2]) : (range(0, T; length=Nsamp)))
+    return (is0, t)
 end

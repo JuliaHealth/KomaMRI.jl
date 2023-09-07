@@ -176,11 +176,11 @@ julia> raw = simulate(obj, seq, sys)
 julia> plot_signal(raw)
 ```
 """
-function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
+function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing, isnew=false)
     #Simulation parameter unpacking, and setting defaults if key is not defined
     simParams = default_sim_params(simParams)
     # Simulation init
-    seqd = discretize(seq; simParams) # Sampling of Sequence waveforms
+    seqd = discretize(seq; simParams, isnew) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; Nblocks=simParams["Nblocks"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
