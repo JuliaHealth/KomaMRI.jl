@@ -62,7 +62,10 @@ export Spinor, Rx, Ry, Rz, Q, Un
 export get_kspace, rotx, roty, rotz
 #Simulator
 export simulate, simulate_slice_profile
+
+# For new discretization
 export blockvalues, sequencevalues, komasim
+export kspace
 
 #Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on

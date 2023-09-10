@@ -283,18 +283,20 @@ function komasim(seq::Sequence, obj::Phantom; Δtgr=1e-3, Δtrf=1e-5)
     # Perform simulation iterating over every block-sequence
     for k = 1:length(seq)
 
-        # Fill with the initial state of the magnetization and signal vectors
-        push!(magxy, M_xy); push!(magz, M_z); push!(sig, sum(M_xy))
-
         # Get the important vector values of the block-sequence
         tk, Δtk, rfak, rfΔfk, gxak, gyak, gzak, rf_onmaskk, gx_onmaskk, gy_onmaskk, gz_onmaskk, adc_onmaskk, adctk = blockvalues(seq, k; Δtgr, Δtrf)
 
         # Fill the vector values for the complete sequence
-        append!(t, to[k] .+ tk); append!(Δt, Δtk); append!(adct, to[k] .+ adctk)
-        append!(rfa, rfak); append!(rfΔf, rfΔfk)
-        append!(gxa, gxak); append!(gya, gyak); append!(gza, gzak)
-        append!(rf_onmask, rf_onmaskk); append!(adc_onmask, adc_onmaskk)
-        append!(gx_onmask, gx_onmaskk); append!(gy_onmask, gy_onmaskk); append!(gz_onmask, gz_onmaskk)
+        # This first consideration is just for the initial condition of the complete sequence
+        if k == 1
+            push!(magxy, M_xy); push!(magz, M_z); push!(sig, sum(M_xy))
+            append!(t, to[k] .+ tk[1]); append!(adct, to[k] .+ adctk)
+            append!(rfa, rfak[1]); append!(rfΔf, rfΔfk[1]); append!(gxa, gxak[1]); append!(gya, gyak[1]); append!(gza, gzak[1])
+            append!(rf_onmask, rf_onmaskk[1]); append!(adc_onmask, adc_onmaskk[1]); append!(gx_onmask, gx_onmaskk[1]); append!(gy_onmask, gy_onmaskk[1]); append!(gz_onmask, gz_onmaskk[1])
+        end
+        append!(t, to[k] .+ tk[2:end]); append!(Δt, Δtk); append!(adct, to[k] .+ adctk)
+        append!(rfa, rfak[2:end]); append!(rfΔf, rfΔfk[2:end]); append!(gxa, gxak[2:end]); append!(gya, gyak[2:end]); append!(gza, gzak[2:end])
+        append!(rf_onmask, rf_onmaskk[2:end]); append!(adc_onmask, adc_onmaskk[2:end]); append!(gx_onmask, gx_onmaskk[2:end]); append!(gy_onmask, gy_onmaskk[2:end]); append!(gz_onmask, gz_onmaskk[2:end])
 
         # Perform simulation iterating over each time step
         for i in eachindex(Δtk)
@@ -336,7 +338,7 @@ function komasim(seq::Sequence, obj::Phantom; Δtgr=1e-3, Δtrf=1e-5)
                 ϕ = (-2π * γ) * (0.5*(Bz+Bzn) .* Δtk[i])
                 M_xy = M_xy .* exp.(1im .* (ϕ .- Δtk[i] ./ obj.T2))
 
-                # Mz: compute just relaxation for Mz in on step (rotation phenomena doesn't happen)
+                # Mz: compute just relaxation for Mz in one step (rotation phenomena doesn't happen)
                 M_z  = M_z  .* exp.(-Δtk[i] ./ obj.T1) .+ obj.ρ .* (1 .- exp.(-Δtk[i] ./ obj.T1))
 
             end

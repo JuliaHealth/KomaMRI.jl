@@ -522,6 +522,17 @@ get_kspace(seq::Sequence; Δt=1) = begin
 end
 
 """
+Returns the kspace for the new discretized sequence
+"""
+function kspace(seq::Sequence; Δtgr::Float64=1e-3)
+    _, Δt, _, _, gxa, gya, gza, _, _, _, _, adc_onmask, _ = sequencevalues(seq; Δtgr)
+    kx = γ * cumsum([0.; .5 * (gxa[1:end-1] .+ gxa[2:end]) .* Δt])
+    ky = γ * cumsum([0.; .5 * (gya[1:end-1] .+ gya[2:end]) .* Δt])
+    kz = γ * cumsum([0.; .5 * (gza[1:end-1] .+ gza[2:end]) .* Δt])
+    return kx, ky, kz, adc_onmask
+end
+
+"""
     M1, M1_adc = get_M1(seq::Sequence; Δt=1)
 
 Outputs the designed M1 of the Sequence `seq`.
