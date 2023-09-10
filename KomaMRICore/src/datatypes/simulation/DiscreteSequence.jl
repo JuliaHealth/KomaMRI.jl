@@ -50,6 +50,18 @@ is_GR_off(seq::DiscreteSequence) =  !is_GR_on(seq)
 is_RF_off(seq::DiscreteSequence) =  !is_RF_on(seq)
 is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
 
+"""
+Return the DiscreteSequence object with the important vectors prepared for simulation
+"""
+function discretize(seq::Sequence; simParams=default_sim_params())
+    t, Δt      = get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
+    B1, Δf     = get_rfs(seq, t)
+    Gx, Gy, Gz = get_grads(seq, t)
+    tadc       = get_adc_sampling_times(seq)
+    ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
+    return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
+end
+
 ############################################################################################
 ### For Block and Sequence #################################################################
 ############################################################################################
@@ -60,15 +72,15 @@ function blockvalues(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Floa
 
     # Select the block of the sequence and the events
     #s =
-    ΔT = KomaMRICore.durs(seq)[blk]
+    ΔT = durs(seq)[blk]
     rf, gx, gy, gz, adc = seq.RF[blk], seq.GR[1,blk], seq.GR[2,blk], seq.GR[3,blk], seq.ADC[blk]
 
     # Get the critical times that define the events
-    rf_is0, rf_tu, _, _ = KomaMRICore.eventvalues(rf)
-    gx_is0, gx_tu, _ = KomaMRICore.eventvalues(gx)
-    gy_is0, gy_tu, _ = KomaMRICore.eventvalues(gy)
-    gz_is0, gz_tu, _ = KomaMRICore.eventvalues(gz)
-    adc_is0, adc_t = KomaMRICore.eventvalues(adc)
+    rf_is0, rf_tu, _, _ = eventvalues(rf)
+    gx_is0, gx_tu, _ = eventvalues(gx)
+    gy_is0, gy_tu, _ = eventvalues(gy)
+    gz_is0, gz_tu, _ = eventvalues(gz)
+    adc_is0, adc_t = eventvalues(adc)
 
     # Get the simulations times
     # This can be optimized.
@@ -84,22 +96,23 @@ function blockvalues(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Floa
 
     # Get the simulation-times
     t = Float64[]
-    (!rf_is0) && append!(t, trf[(rf_tu[1] .< trf) .& (trf .< rf_tu[end])], [rf_tu[1]; KomaMRICore.get_RF_center(rf); rf_tu[end]])  # consider RF pivot times and equispaced RF times when is RF on
+    (!rf_is0) && append!(t, trf[(rf_tu[1] .< trf) .& (trf .< rf_tu[end])], [rf_tu[1]; get_RF_center(rf); rf_tu[end]])  # consider RF pivot times and equispaced RF times when is RF on
     (!gx_is0) && append!(t, tgr[(gx_tu[1] .< tgr) .& (tgr .< gx_tu[end])], [gx_tu[1]; gx_tu[2]; gx_tu[end-1]; gx_tu[end]])         # consider GX pivot times and equispaced GR times when is GX on
     (!gy_is0) && append!(t, tgr[(gy_tu[1] .< tgr) .& (tgr .< gy_tu[end])], [gy_tu[1]; gy_tu[2]; gy_tu[end-1]; gy_tu[end]])         # consider GY pivot times and equispaced GR times when is GY on
     (!gz_is0) && append!(t, tgr[(gz_tu[1] .< tgr) .& (tgr .< gz_tu[end])], [gz_tu[1]; gz_tu[2]; gz_tu[end-1]; gz_tu[end]])         # consider GZ pivot times and equispaced GR times when is GZ on
     (!adc_is0) && append!(t, adc_t)                                                                  # consider ADC sampling-times
+    push!(t, ΔT)                # add the last time point always
     sort!(t); unique!(t)        # make the simulation-times unique and in increasing order
 
     # Return for no times
     (isempty(t)) && return [], NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN
 
     # Get the sampled values of RF and GRs at times t
-    rf_a, rf_Δf = KomaMRICore.eventvalues(rf, t)
-    gx_a, gy_a, gz_a = KomaMRICore.eventvalues(gx, t), KomaMRICore.eventvalues(gy, t), KomaMRICore.eventvalues(gz, t)
-    amps = [rf_a rf_Δf gx_a gy_a gz_a]
+    rf_a, rf_Δf = eventvalues(rf, t)
+    gx_a, gy_a, gz_a = eventvalues(gx, t), eventvalues(gy, t), eventvalues(gz, t)
 
     # Create a matrix to add additional amplitudes and times when there are more samples at a certain time
+    # so we can get all the times to be simulated (some times could be repeated up to twice)
     m = [rf_a rf_Δf gx_a gy_a gz_a]
     tc = Float64[]
     for i in eachindex(t)
@@ -114,61 +127,33 @@ function blockvalues(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Floa
         end
     end
     Δtc = tc[2:end] - tc[1:end-1]
-    #adc_flag = [any(ti .== adc_t) for ti in tc]
-    adc_flag = [any(ti .== adc_t[2:end-1]) for ti in tc]
-    if !adc_is0
-        adc_flag[findlast(adc_t[1] .== tc)] = true
-        adc_flag[findfirst(adc_t[end] .== tc)] = true
-    end
+
+    # Get the masks when the events are on
+    Ntc = length(tc)
+    rf_onmask = (rf_is0) ? BitVector(zeros(Ntc)) : ((rf_tu[1] .<= tc) .& (tc .<= rf_tu[end]))
+    gx_onmask = (gx_is0) ? BitVector(zeros(Ntc)) : ((gx_tu[1] .<= tc) .& (tc .<= gx_tu[end]))
+    gy_onmask = (gy_is0) ? BitVector(zeros(Ntc)) : ((gy_tu[1] .<= tc) .& (tc .<= gy_tu[end]))
+    gz_onmask = (gz_is0) ? BitVector(zeros(Ntc)) : ((gz_tu[1] .<= tc) .& (tc .<= gz_tu[end]))
+    adc_onmask = (adc_is0) ? BitVector(zeros(Ntc)) : ((adc_t[1] .<= tc) .& (tc .<= adc_t[end]))
 
     # Return at amplitudes and times with possibly more samples at the same time
     rfa, rfΔf, gxa, gya, gza = vcat(m[:,1]...), vcat(m[:,2]...), vcat(m[:,3]...), vcat(m[:,4]...), vcat(m[:,5]...)
-    return tc, Δtc, rfa, rfΔf, gxa, gya, gza, adc_flag, adc_t
-
+    return tc, Δtc, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, adc_t
 end
 
 """
 Get samples of the complete sequence
 """
 function sequencevalues(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
-    t, Δt, rfa, rfΔf, gxa, gya, gza, adcflag, adct = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[], Float64[]
-    ΔT = durs(seq)
-    T0 = cumsum([0; ΔT[:]]) #Start time of each block
-    for i = 1:length(seq)
-        ti, Δti, rfai, rfΔfi, gxai, gyai, gzai, adcflagi, adcti = blockvalues(seq, i; Δtgr, Δtrf)
-        append!(t, T0[i] .+ ti); append!(Δt, Δti)
-        append!(rfa, rfai); append!(rfΔf, rfΔfi)
-        append!(gxa, gxai); append!(gya, gyai); append!(gza, gzai)
-        append!(adcflag, adcflagi); append!(adct, T0[i] .+ adcti)
+    t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, adct = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[], Bool[], Bool[], Bool[], Bool[], Float64[]
+    to = cumsum([0; durs(seq)])
+    for k = 1:length(seq)
+        tk, Δtk, rfak, rfΔfk, gxak, gyak, gzak, rf_onmaskk, gx_onmaskk, gy_onmaskk, gz_onmaskk, adc_onmaskk, adctk = blockvalues(seq, k; Δtgr, Δtrf)
+        append!(t, to[k] .+ tk); append!(Δt, Δtk)
+        append!(rfa, rfak); append!(rfΔf, rfΔfk)
+        append!(gxa, gxak); append!(gya, gyak); append!(gza, gzak)
+        append!(rf_onmask, rf_onmaskk); append!(gx_onmask, gx_onmaskk); append!(gy_onmask, gy_onmaskk); append!(gz_onmask, gz_onmaskk); append!(adc_onmask, adc_onmaskk)
+        append!(adct, to[k] .+ adctk)
     end
-    return t, Δt, rfa, rfΔf, gxa, gya, gza, adcflag, adct
-end
-
-"""
-Same as discretize, but returns all the important vector values (not the DiscreteSequence object)
-This is for testing purpose only
-"""
-function seqvals(seq::Sequence; simParams=default_sim_params(), isnew=false)
-    if isnew
-        t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag, tadc = sequencevalues(seq; Δtgr=simParams["Δt"], Δtrf=simParams["Δt_rf"])
-        #ADCflag = [false for _ in eachindex(t)]
-        #[ADCflag[i]=true for i in eachindex(tadc)]
-        return t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag, tadc
-    end
-    t, Δt      = get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
-    B1, Δf     = get_rfs(seq, t)
-    Gx, Gy, Gz = get_grads(seq, t)
-    tadc       = get_adc_sampling_times(seq)
-    ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
-    #ADCflag = [false for _ in eachindex(t)]
-    #[ADCflag[i]=true for i in eachindex(tadc)]
-    return t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag, tadc
-end
-
-"""
-Return the DiscreteSequence object with the important vectors prepared for simulation
-"""
-function discretize(seq::Sequence; simParams=default_sim_params(), isnew=false)
-    t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag, tadc = seqvals(seq; simParams, isnew)
-    return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
+    return t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, adct
 end

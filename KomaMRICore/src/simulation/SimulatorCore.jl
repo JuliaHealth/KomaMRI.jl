@@ -176,11 +176,11 @@ julia> raw = simulate(obj, seq, sys)
 julia> plot_signal(raw)
 ```
 """
-function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing, isnew=false)
+function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
     #Simulation parameter unpacking, and setting defaults if key is not defined
     simParams = default_sim_params(simParams)
     # Simulation init
-    seqd = discretize(seq; simParams, isnew) # Sampling of Sequence waveforms
+    seqd = discretize(seq; simParams) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; Nblocks=simParams["Nblocks"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
@@ -258,4 +258,94 @@ function simulate_slice_profile(seq; z=range(-2.e-2, 2.e-2, 200), simParams=Dict
     phantom = Phantom{Float64}(x=zeros(size(z)), z=Array(z))
     M = simulate(phantom, seq, sys; simParams)
     M
+end
+
+"""
+Returns the result of a simple simulation using the disretization with blockvalues() function
+"""
+function komasim(seq::Sequence, obj::Phantom; Δtgr=1e-3, Δtrf=1e-5)
+
+    # Create empty vectors to be filled during simulation for the sequence
+    t, Δt, adct = Float64[], Float64[], Float64[]
+    rfa, rfΔf, gxa, gya, gza = Float64[], Float64[], Float64[], Float64[], Float64[]
+    rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask = Bool[], Bool[], Bool[], Bool[], Bool[]
+
+    # Create empty vectors to be filled during simulation for the magnetizations and raw-signal
+    magxy, magz, sig = Vector{ComplexF64}[], Vector{Float64}[], ComplexF64[]
+
+    # Create the initial condition of the magnetization of the spins
+    M_xy = zeros(ComplexF64, length(obj))
+    M_z = obj.ρ
+
+    # These are the initial times of the blocks
+    to = cumsum([0.; durs(seq)])
+
+    # Perform simulation iterating over every block-sequence
+    for k = 1:length(seq)
+
+        # Fill with the initial state of the magnetization and signal vectors
+        push!(magxy, M_xy); push!(magz, M_z); push!(sig, sum(M_xy))
+
+        # Get the important vector values of the block-sequence
+        tk, Δtk, rfak, rfΔfk, gxak, gyak, gzak, rf_onmaskk, gx_onmaskk, gy_onmaskk, gz_onmaskk, adc_onmaskk, adctk = blockvalues(seq, k; Δtgr, Δtrf)
+
+        # Fill the vector values for the complete sequence
+        append!(t, to[k] .+ tk); append!(Δt, Δtk); append!(adct, to[k] .+ adctk)
+        append!(rfa, rfak); append!(rfΔf, rfΔfk)
+        append!(gxa, gxak); append!(gya, gyak); append!(gza, gzak)
+        append!(rf_onmask, rf_onmaskk); append!(adc_onmask, adc_onmaskk)
+        append!(gx_onmask, gx_onmaskk); append!(gy_onmask, gy_onmaskk); append!(gz_onmask, gz_onmaskk)
+
+        # Perform simulation iterating over each time step
+        for i in eachindex(Δtk)
+
+            # Excitation: Compute magnetization and signal when RF is on
+            if rf_onmaskk[i]
+
+                # B-field: compute the effective B field
+                ΔBz = obj.Δw ./ (2π * γ) .- rfΔfk[i] ./ γ
+                Bz = (gxak[i] .* obj.x .+ gyak[i] .* obj.y .+ gzak[i] .* obj.z) .+ ΔBz
+                B = sqrt.((abs(rfak[i]))^2 .+ (abs.(Bz)).^2)
+                B[B .== 0] .= eps(Float64)
+
+                # Rotation: compute magnetization in rotation regime
+                φ = (-2π * γ) * (B .* Δtk[i])
+                nxy = rfak[i] ./ B
+                nz = Bz ./ B
+                α = cos.(φ/2) .- 1im*nz .* sin.(φ/2)
+                β = -1im*nxy .* sin.(φ/2)
+                Mxy = 2*conj.(α).*β.*M_z.+conj.(α).^2 .* M_xy.-β.^2 .*conj.(M_xy)
+                Mz = (abs.(α).^2 .-abs.(β).^2).*M_z.-2*real.(α.*β.*conj.(M_xy))
+                M_xy = Mxy
+                M_z = Mz
+
+                # Relaxation: compute magnetization in rotation regime
+                M_xy = M_xy .* exp.(-Δtk[i] ./ obj.T2)
+                M_z  = M_z  .* exp.(-Δtk[i] ./ obj.T1) .+ obj.ρ .* (1 .- exp.(-Δtk[i] ./ obj.T1))
+
+            # Precession: compute magnetization and signal when RF is off
+            else
+
+                # B-field: compute effective B field
+                ΔBz = obj.Δw ./ (2π * γ) .- rfΔfk[i] ./ γ
+                Bz = (gxak[i] .* obj.x .+ gyak[i] .* obj.y .+ gzak[i] .* obj.z) .+ ΔBz
+                ΔBzn = obj.Δw ./ (2π * γ) .- rfΔfk[i+1] ./ γ
+                Bzn = (gxak[i+1] .* obj.x .+ gyak[i+1] .* obj.y .+ gzak[i+1] .* obj.z) .+ ΔBzn
+
+                # Mxy: compute rotation and relaxation for Mxy in one step
+                ϕ = (-2π * γ) * (0.5*(Bz+Bzn) .* Δtk[i])
+                M_xy = M_xy .* exp.(1im .* (ϕ .- Δtk[i] ./ obj.T2))
+
+                # Mz: compute just relaxation for Mz in on step (rotation phenomena doesn't happen)
+                M_z  = M_z  .* exp.(-Δtk[i] ./ obj.T1) .+ obj.ρ .* (1 .- exp.(-Δtk[i] ./ obj.T1))
+
+            end
+
+            # Fill the magnetization and signal vectors
+            push!(magxy, M_xy); push!(magz, M_z); push!(sig, sum(M_xy))
+
+        end
+    end
+
+    return t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, adct, reduce(hcat, magxy), reduce(hcat, magz), sig
 end
