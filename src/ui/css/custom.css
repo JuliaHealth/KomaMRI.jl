@@ -167,4 +167,17 @@ td, th, tr{
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #929292;
+}
+
+abbr[title] {
+  text-decoration: none;
+}
+
+.iconkoma {
+  color: #c7c8c9;
+}
+
+.iconkoma:hover {
+  color: #ffffff;
 }

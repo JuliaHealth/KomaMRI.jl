@@ -246,7 +246,7 @@ handle(w, "simulate") do args...
     end
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
     content!(w, "div#content", loading)
-    # @js_ w document.getElementById("simulate!").prop("disabled", true); #Disable button during SIMULATION
+    @js_ w document.getElementById("simulate!").setAttribute("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
     global raw_ismrmrd = simulate(phantom, seq, sys; simParams, w)
@@ -281,8 +281,8 @@ handle(w, "simulate") do args...
     content!(w, "div#content", loading)
     include(path*"/ui/SignalGUI.jl")
     @js_ w document.getElementById("content").dataset.content = "simulation"
-    # @js_ w document.getElementById("simulate!").prop("disabled", false); #Re-enable button
-    # @js_ w (@var button = document.getElementById("recon!"); @var bsButton = @new bootstrap.Button(button); vsButton.toggle())
+    @js_ w document.getElementById("simulate!").removeAttribute("disabled"); #Re-enable button
+    @js_ w document.getElementById("recon!").removeAttribute("disabled");
 end
 handle(w, "recon") do args...
     strLoadingMessage = "Running reconstruction ..."
@@ -365,7 +365,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global seq = read_seq(f) #Pulseq read
             end
             @js_ w (@var name = $(basename(f));
-            document.getElementById("seqname").innerHTML=name;
+            document.getElementById("seqname").innerHTML="<abbr title='"+name+"'>"+name+"</abbr>";
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -393,7 +393,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
                 global phantom = read_phantom_jemris(f)
             end
             @js_ w (@var name = $(basename(f));
-            document.getElementById("phaname").innerHTML=name;
+            document.getElementById("phaname").innerHTML="<abbr title='"+name+"'>"+name+"</abbr>";;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
@@ -425,7 +425,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
             end
 
             @js_ w (@var name = $(basename(f));
-            document.getElementById("rawname").innerHTML=name;
+            document.getElementById("rawname").innerHTML="<abbr title='"+name+"'>"+name+"</abbr>";;
             Toasty("0", "Loaded <b>"+name+"</b> successfully", """
             <ul>
                 <li>
