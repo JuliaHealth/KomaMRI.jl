@@ -25,23 +25,23 @@ Get the theoretical amplitudes of a rectangle waveform for Grad, RF or ADC struc
 - `A`: (`::Vector{Float64}`) vector with the amplitude key points of the rectangle
     waveform
 """
-#get_theo_A(g::Grad; off_val=0) = begin
-#	A = g.A
-#	if length(A) == 1
-#		aux = [off_val; 0; A; A; 0]
-#	else
-#		aux = [off_val; 0; A; 0]
-#	end
-#	if sum(abs.(g.A)) == 0
-#		aux *= off_val
-#	end
-#	aux
-#end
-function get_theo_A(gr::Grad)
-    ((sum(abs.(gr.A)) == 0) || (sum(gr.T) == 0)) && return []
-    (length(gr.A) == 1) && return [0; gr.A; gr.A; 0]
-    return [0; gr.A; 0]
+get_theo_A(g::Grad; off_val=0) = begin
+	A = g.A
+	if length(A) == 1
+		aux = [off_val; 0; A; A; 0]
+	else
+		aux = [off_val; 0; A; 0]
+	end
+	if sum(abs.(g.A)) == 0
+		aux *= off_val
+	end
+	aux
 end
+#function get_theo_A(gr::Grad)
+#    ((sum(abs.(gr.A)) == 0) || (sum(gr.T) == 0)) && return []
+#    (length(gr.A) == 1) && return [0; gr.A; gr.A; 0]
+#    return [0; gr.A; 0]
+#end
 
 get_theo_A(r::RF; off_val=0, max_rf_samples=Inf) = begin
 	A = [r.A r.A]'; A = A[:]
@@ -108,30 +108,30 @@ Get the theoretical times of a rectangle waveform for Grad, RF or ADC structs. T
 # Returns
 - `t`: (`::Vector{Float64}`) vector with the time key points of the rectangle waveform
 """
-#get_theo_t(g::Grad) = begin
-#	NT, T, NA = length(g.T), g.T, length(g.A)
-#	if sum(T) != 0
-#		if NA == 1 && NT == 1
-#			trf = [0; T]
-#		elseif NA>1 && NT == 1
-#			trf = cumsum([0; T/(NA-1).*ones(NA-1)])
-#		elseif NA>1 && NT>1
-#			trf = cumsum([0; T.*ones(NT)])
-#		end
-#		t = g.delay .+ g.rise .+ trf
-#	else
-#		t = [g.delay+g.rise; g.delay+g.rise]
-#	end
-#	aux = [0; g.delay; t; g.delay+g.rise+sum(g.T)+g.fall]
-#	aux
-#end
-function get_theo_t(gr::Grad)
-    NT, NA = length(gr.T), length(gr.A)
-    ((sum(abs.(gr.A)) == 0) || (sum(gr.T) == 0)) && return []
-    (NA == 1 && NT == 1) && return cumsum([gr.delay; gr.rise; gr.T; gr.fall])
-    (NA > 1 && NT == 1) && return cumsum([gr.delay; gr.rise; (ones(NA-1).*(gr.T/(NA-1))); gr.fall])
-	return cumsum([gr.delay; gr.rise; (ones(NT) .* T); gr.fall])
+get_theo_t(g::Grad) = begin
+	NT, T, NA = length(g.T), g.T, length(g.A)
+	if sum(T) != 0
+		if NA == 1 && NT == 1
+			trf = [0; T]
+		elseif NA>1 && NT == 1
+			trf = cumsum([0; T/(NA-1).*ones(NA-1)])
+		elseif NA>1 && NT>1
+			trf = cumsum([0; T.*ones(NT)])
+		end
+		t = g.delay .+ g.rise .+ trf
+	else
+		t = [g.delay+g.rise; g.delay+g.rise]
+	end
+	aux = [0; g.delay; t; g.delay+g.rise+sum(g.T)+g.fall]
+	aux
 end
+#function get_theo_t(gr::Grad)
+#    NT, NA = length(gr.T), length(gr.A)
+#    ((sum(abs.(gr.A)) == 0) || (sum(gr.T) == 0)) && return []
+#    (NA == 1 && NT == 1) && return cumsum([gr.delay; gr.rise; gr.T; gr.fall])
+#    (NA > 1 && NT == 1) && return cumsum([gr.delay; gr.rise; (ones(NA-1).*(gr.T/(NA-1))); gr.fall])
+#	return cumsum([gr.delay; gr.rise; (ones(NT) .* T); gr.fall])
+#end
 
 get_theo_t(r::RF; max_rf_samples=Inf) = begin
 	if sum(r.T) != 0
@@ -172,19 +172,32 @@ Get the theoretical gradient for a sequence in a defined axis.
 - `t`: (`::Vector{Float64}`) time key points
 - `g`: (`::Vector{Float64}`) amplitude key points
 """
+#get_theo_Gi(seq, idx) = begin
+#	ΔT, N = durs(seq), length(seq)
+#	T0 = cumsum([0; ΔT], dims=1)
+#	t = vcat([get_theo_t(seq.GR[idx,i]) .+ T0[i] for i=1:N]...)
+#	G = vcat([get_theo_A(seq.GR[idx,i]) for i=1:N]...)
+#
+#    # Check emptyness of the vectors
+#    if isempty(t)
+#        t = [0.; 0.]
+#        G = [0.; 0.]
+#    end
+#
+#    #; off_val=0 <---potential solution
+#	#Removing duplicated points
+#	#TODO: do this properly. As it is now it generates a bug for slew rates that are too high
+#	# mask = (G .== 0) #<---potential solution
+#	# t = t[mask]
+#	# G = G[mask]
+#	Interpolations.deduplicate_knots!(t; move_knots=true)
+#	return (t, G)
+#end
 get_theo_Gi(seq, idx) = begin
 	ΔT, N = durs(seq), length(seq)
 	T0 = cumsum([0; ΔT], dims=1)
 	t = vcat([get_theo_t(seq.GR[idx,i]) .+ T0[i] for i=1:N]...)
-	G = vcat([get_theo_A(seq.GR[idx,i]) for i=1:N]...)
-
-    # Check emptyness of the vectors
-    if isempty(t)
-        t = [0.; 0.]
-        G = [0.; 0.]
-    end
-
-    #; off_val=0 <---potential solution
+	G = vcat([get_theo_A(seq.GR[idx,i]) for i=1:N]...) #; off_val=0 <---potential solution
 	#Removing duplicated points
 	#TODO: do this properly. As it is now it generates a bug for slew rates that are too high
 	# mask = (G .== 0) #<---potential solution
@@ -234,7 +247,7 @@ function eventvalues(gr::Grad)
     # Define empty vectors to be filled and some params
     amps, times = Float64[], Float64[]
     NT, NA = length(gr.T), length(gr.A)
-    is0 = (sum(abs.(gr.A)) == 0) || (sum(gr.T) == 0)
+    is0 = (sum(abs.(gr.A)) == 0)
 
     # Get the amplitudes from object parameters definitions
     if is0
@@ -311,7 +324,7 @@ function eventvalues(rf::RF)
     elseif (NA == 1 && NT == 1)
         amps, Δfs, times = [0.; rf.A; rf.A; 0.], [0.; 0.; rf.Δf; 0.], cumsum([rf.delay; 0.; rf.T; 0.])
     elseif (NA > 1 && NT == 1)
-        amps, Δfs, times = [0.; rf.A; 0.], [rf.Δf[1]; rf.Δf; rf.Δf[end]], cumsum([rf.delay; 0.; (ones(NA-1).*(rf.T/(NA-1))); 0.])
+        amps, Δfs, times = [0.; rf.A; 0.], (rf.Δf .* ones(NA+2)), cumsum([rf.delay; 0.; (ones(NA-1).*(rf.T/(NA-1))); 0.])
     elseif (NA > 1 && NT > 1)
         amps, Δfs, times = [0.; rf.A; 0.], [rf.Δf[1]; rf.Δf; rf.Δf[end]], cumsum([rf.delay; 0.; (ones(NT) .* rf.T); 0.])
     end
@@ -379,7 +392,7 @@ Return adc values from object definition
 function eventvalues(adc::ADC)
     # Return for zero adc
     is0 = (adc.N < 1)
-    (is0) && return (true, [])
+    (is0) && return (true, Float64[])
     # Return for adc with samples
     Nsamp, T = adc.N, adc.T
     t = adc.delay .+ ((Nsamp == 1) ? ([T/2]) : (range(0, T; length=Nsamp)))

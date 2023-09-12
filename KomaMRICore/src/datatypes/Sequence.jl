@@ -525,11 +525,11 @@ end
 Returns the kspace for the new discretized sequence
 """
 function kspace(seq::Sequence; Δtgr::Float64=1e-3)
-    _, Δt, _, _, gxa, gya, gza, _, _, _, _, adc_onmask, _ = sequencevalues(seq; Δtgr)
-    kx = γ * cumsum([0.; .5 * (gxa[1:end-1] .+ gxa[2:end]) .* Δt])
-    ky = γ * cumsum([0.; .5 * (gya[1:end-1] .+ gya[2:end]) .* Δt])
-    kz = γ * cumsum([0.; .5 * (gza[1:end-1] .+ gza[2:end]) .* Δt])
-    return kx, ky, kz, adc_onmask
+    sq = sequencevalues(seq; Δtgr)
+    kx = γ * cumsum([0.; .5 * (sq.gxa[1:end-1] .+ sq.gxa[2:end]) .* sq.Δt])
+    ky = γ * cumsum([0.; .5 * (sq.gya[1:end-1] .+ sq.gya[2:end]) .* sq.Δt])
+    kz = γ * cumsum([0.; .5 * (sq.gza[1:end-1] .+ sq.gza[2:end]) .* sq.Δt])
+    return kx, ky, kz, sq.adc_onmask
 end
 
 """

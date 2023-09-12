@@ -99,9 +99,9 @@ function blockvalues(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Floa
     (!gx_is0) && append!(t, tgr[(gx_tu[1] .< tgr) .& (tgr .< gx_tu[end])], [gx_tu[1]; gx_tu[2]; gx_tu[end-1]; gx_tu[end]])         # consider GX pivot times and equispaced GR times when is GX on
     (!gy_is0) && append!(t, tgr[(gy_tu[1] .< tgr) .& (tgr .< gy_tu[end])], [gy_tu[1]; gy_tu[2]; gy_tu[end-1]; gy_tu[end]])         # consider GY pivot times and equispaced GR times when is GY on
     (!gz_is0) && append!(t, tgr[(gz_tu[1] .< tgr) .& (tgr .< gz_tu[end])], [gz_tu[1]; gz_tu[2]; gz_tu[end-1]; gz_tu[end]])         # consider GZ pivot times and equispaced GR times when is GZ on
-    (!adc_is0) && append!(t, adc_t)                                                                  # consider ADC sampling-times
-    push!(t, ΔT)                # add the last time point always (this is very important when putting blocks together in a sequence)
-    sort!(t); unique!(t)        # make the unique-increasing-times actually unique and in increasing order
+    (!adc_is0) && append!(t, adc_t)     # consider ADC sampling-times
+    append!(t, [0.; ΔT])                # add the first and last time point always (this is very important when putting blocks together in a sequence)
+    sort!(t); unique!(t)                # make the unique-increasing-times actually unique and in increasing order
 
     # Return for no times
     (isempty(t)) && return Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], BitVector(), BitVector(), BitVector(), BitVector(), BitVector(), Float64[]
@@ -133,11 +133,13 @@ function blockvalues(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Floa
     gx_onmask = (gx_is0) ? BitVector(zeros(Ntc)) : ((gx_tu[1] .<= tc) .& (tc .<= gx_tu[end]))
     gy_onmask = (gy_is0) ? BitVector(zeros(Ntc)) : ((gy_tu[1] .<= tc) .& (tc .<= gy_tu[end]))
     gz_onmask = (gz_is0) ? BitVector(zeros(Ntc)) : ((gz_tu[1] .<= tc) .& (tc .<= gz_tu[end]))
-    adc_onmask = (adc_is0) ? BitVector(zeros(Ntc)) : ((adc_t[1] .<= tc) .& (tc .<= adc_t[end]))
+    adc_onmask = BitVector([any(t .== adc_t) for t in tc])
 
     # Return amplitudes and simulation-times with possibly more samples at the same time
     rfa, rfΔf, gxa, gya, gza = vcat(m[:,1]...), vcat(m[:,2]...), vcat(m[:,3]...), vcat(m[:,4]...), vcat(m[:,5]...)
-    return tc, Δtc, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, adc_t
+    return (t = tc, Δt = Δtc, rfa = rfa, rfΔf = rfΔf, gxa = gxa, gya = gya, gza = gza,
+            rf_onmask = rf_onmask, gx_onmask = gx_onmask, gy_onmask = gy_onmask, gz_onmask = gz_onmask,
+            adc_onmask = adc_onmask, adc_t = adc_t)
 end
 
 """
@@ -146,33 +148,46 @@ Get samples of the complete sequence
 function sequencevalues(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
 
     # Create empty vectors to be filled
-    t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, adct = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[], Bool[], Bool[], Bool[], Bool[], Float64[]
+    t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[], Bool[], Bool[], Bool[], Bool[], Float64[]
 
     # These are the initial times of the blocks
     to = cumsum([0; durs(seq)])
 
     # Iterate over each block of the sequence
-    for k = 1:length(seq)
+    Nblk = length(seq)                                   # number of blocks
+    blk_range = Vector{UnitRange{Int64}}(undef, Nblk)    # empty vector of block-range to be filled
+    ko = 1                                               # initialization of the index of the first time sample for block ranges
+    for k in 1:Nblk
 
         # Get the vector values of the block
-        tk, Δtk, rfak, rfΔfk, gxak, gyak, gzak, rf_onmaskk, gx_onmaskk, gy_onmaskk, gz_onmaskk, adc_onmaskk, adctk = blockvalues(seq, k; Δtgr, Δtrf)
+        blk = blockvalues(seq, k; Δtgr, Δtrf)
+
+        # Fill the vector of block masks
+        kn = ko + length(blk.t) - 1     # index of the last time sample of this 1-block-sequence (it is also the first time sample of the next 1-block-sequence)
+        blk_range[k] = (ko:kn)          # range of the 1-block-sequence for time samples
+        ko = kn                         # update the index of the first time sample for the next block range
 
         # Add the initial condition just for the first block
         if k == 1
-            append!(t, to[k] .+ tk[1])
-            append!(rfa, rfak[1]); append!(rfΔf, rfΔfk[1]); append!(gxa, gxak[1]); append!(gya, gyak[1]); append!(gza, gzak[1])
-            append!(rf_onmask, rf_onmaskk[1]); append!(gx_onmask, gx_onmaskk[1]); append!(gy_onmask, gy_onmaskk[1]); append!(gz_onmask, gz_onmaskk[1]); append!(adc_onmask, adc_onmaskk[1])
+            append!(t, to[k] .+ blk.t[1])
+            append!(rfa, blk.rfa[1]); append!(rfΔf, blk.rfΔf[1]); append!(gxa, blk.gxa[1]); append!(gya, blk.gya[1]); append!(gza, blk.gza[1])
+            append!(rf_onmask, blk.rf_onmask[1]); append!(gx_onmask, blk.gx_onmask[1]); append!(gy_onmask, blk.gy_onmask[1]); append!(gz_onmask, blk.gz_onmask[1]); append!(adc_onmask, blk.adc_onmask[1])
         end
 
         # Fill the vector values of the sequence without considering the initial condition,
         # except for the delta-times (the last time point for the sequence duration is always added)
         # and except for the adc-times (wich shouldn't be used, it should be used adc-on-mask instead)
-        append!(t, to[k] .+ tk[2:end]); append!(Δt, Δtk); append!(adct, to[k] .+ adctk)
-        append!(rfa, rfak[2:end]); append!(rfΔf, rfΔfk[2:end]); append!(gxa, gxak[2:end]); append!(gya, gyak[2:end]); append!(gza, gzak[2:end])
-        append!(rf_onmask, rf_onmaskk[2:end]); append!(gx_onmask, gx_onmaskk[2:end]); append!(gy_onmask, gy_onmaskk[2:end]); append!(gz_onmask, gz_onmaskk[2:end]); append!(adc_onmask, adc_onmaskk[2:end])
+        append!(t, to[k] .+ blk.t[2:end]); append!(Δt, blk.Δt); append!(tadc, to[k] .+ blk.adc_t)
+        append!(rfa, blk.rfa[2:end]); append!(rfΔf, blk.rfΔf[2:end]); append!(gxa, blk.gxa[2:end]); append!(gya, blk.gya[2:end]); append!(gza, blk.gza[2:end])
+        append!(rf_onmask, blk.rf_onmask[2:end]); append!(gx_onmask, blk.gx_onmask[2:end]); append!(gy_onmask, blk.gy_onmask[2:end]); append!(gz_onmask, blk.gz_onmask[2:end]); append!(adc_onmask, blk.adc_onmask[2:end])
+
+        # Add for the previous-block-last-sample for the masks
+        rf_onmask[blk_range[k][1]] |= blk.rf_onmask[1]; gx_onmask[blk_range[k][1]] |= blk.gx_onmask[1]; gy_onmask[blk_range[k][1]] |= blk.gy_onmask[1]; gz_onmask[blk_range[k][1]] |= blk.gz_onmask[1]; adc_onmask[blk_range[k][1]] |= blk.adc_onmask[1]
 
     end
 
     # Return the vector values of the sequence
-    return t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, adct
+    return (t = t, Δt = Δt, rfa = rfa, rfΔf = rfΔf, gxa = gxa, gya = gya, gza = gza,
+            rf_onmask = rf_onmask, gx_onmask = gx_onmask, gy_onmask = gy_onmask, gz_onmask = gz_onmask,
+            adc_onmask = adc_onmask, tadc = tadc, blk_range = blk_range)
 end
