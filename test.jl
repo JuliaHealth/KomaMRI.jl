@@ -62,8 +62,8 @@ display(plot([scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name
 display(plot([scatter(;x=t[adc_onmask], y=abs.(sig[adc_onmask]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
 
 # Reconstruction
-function recon(sig, adc_onmask, seq; isnew=true)
-    sigm = isnew ? reshape(sig[adc_onmask], length(sig[adc_onmask]), 1, 1) : sig
+function recon(sig, seq; isnew=true)
+    sigm = isnew ? reshape(sig, length(sig), 1, 1) : sig
     raw = signal_to_raw_data(sigm, seq)
     acqData = AcquisitionData(raw)
     acqData.traj[1].circular = false #Removing circular window
@@ -77,9 +77,9 @@ function recon(sig, adc_onmask, seq; isnew=true)
     image2d = (abs.(image3d) * prod(size(image3d)[1:2]))[:,:,1]
     return image2d
 end
-image2d = recon(sig, adc_onmask, seq; isnew=true)
+image2d = recon(sig[adc_onmask], seq; isnew=true)
 display(plot_image(image2d, zmin=minimum(image2d), zmax=maximum(image2d), title="Reconstruction for New Simulator-Function"))
-image2dold = recon(sigold, adc_onmask, seq; isnew=false)
+image2dold = recon(sigold, seq; isnew=false)
 display(plot_image(image2dold, zmin=minimum(image2dold), zmax=maximum(image2dold), title="Reconstruction for Old Simulator-Function"))
 
 
