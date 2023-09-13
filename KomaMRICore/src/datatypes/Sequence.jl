@@ -525,7 +525,7 @@ end
 Returns the kspace for the new discretized sequence
 """
 function kspace(seq::Sequence; Δtgr::Float64=1e-3)
-    sq = sequencevalues(seq; Δtgr)
+    sq = sequence_values(seq; Δtgr)
     kx = γ * cumsum([0.; .5 * (sq.gxa[1:end-1] .+ sq.gxa[2:end]) .* sq.Δt])
     ky = γ * cumsum([0.; .5 * (sq.gya[1:end-1] .+ sq.gya[2:end]) .* sq.Δt])
     kz = γ * cumsum([0.; .5 * (sq.gza[1:end-1] .+ sq.gza[2:end]) .* sq.Δt])

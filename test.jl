@@ -24,7 +24,7 @@ seq = create_seq_epi(sys)
 
 # Plot the sequence
 function plotsequence(seq::Sequence)
-    sq = sequencevalues(seq)
+    sq = sequence_values(seq)
     prfa = scatter(;x=sq.t[sq.rf_onmask], y=abs.(sq.rfa)[sq.rf_onmask], mode="lines+markers", name="RF")
     pgxa = scatter(;x=sq.t[sq.gx_onmask], y=sq.gxa[sq.gx_onmask], mode="lines+markers", name="GX")
     pgya = scatter(;x=sq.t[sq.gy_onmask], y=sq.gya[sq.gy_onmask], mode="lines+markers", name="GY")
@@ -45,7 +45,7 @@ end
 plotkspace(seq)
 
 # Simulate for new simple simulation
-sq = sequencevalues(seq)
+sq = sequence_values(seq)
 t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc, blk_range = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.rf_onmask, sq.gx_onmask, sq.gy_onmask, sq.gz_onmask, sq.adc_onmask, sq.tadc, sq.blk_range
 magxy, magz, sig = komasim(seq, obj)
 display(plot([scatter(;x=t, y=abs.([sum(magxy; dims=1)...]), mode="lines+markers", name="sum(magxy)"); scatter(;x=t, y=abs.(sig), mode="lines+markers", name="sig")], Layout(title="Raw-Signal of the New Simulator-Function")))
@@ -103,7 +103,7 @@ sigold = (simulate(obj, seq, sys; simParams) / prod(size(obj)))[:,1,1]
 told = KomaMRICore.get_adc_sampling_times(seq)
 
 # New Koma simulation
-sq = sequencevalues(seq)
+sq = sequence_values(seq)
 t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc, blk_range = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.rf_onmask, sq.gx_onmask, sq.gy_onmask, sq.gz_onmask, sq.adc_onmask, sq.tadc, sq.blk_range
 magxy, magz, sig = komasim(seq, obj)
 signew = sig[adc_onmask] / prod(size(obj))

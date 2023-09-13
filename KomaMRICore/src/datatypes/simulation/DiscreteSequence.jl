@@ -63,7 +63,7 @@ function discretize(seq::Sequence; simParams=default_sim_params())
     #Gx, Gy, Gz = get_grads(seq, t)
     #tadc       = get_adc_sampling_times(seq)
     #ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
-    sq = sequencevalues(seq; Δtgr=simParams["Δt"] , Δtrf=simParams["Δt_rf"])
+    sq = sequence_values(seq; Δtgr=simParams["Δt"] , Δtrf=simParams["Δt_rf"])
     t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.adc_onmask
     return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
 end
@@ -74,18 +74,18 @@ end
 """
 Get samples of a block-sequence
 """
-function blockvalues(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
+function block_samples(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
 
     # Select the block of the sequence and the events
     ΔT = durs(seq)[blk]
     rf, gx, gy, gz, adc = seq.RF[blk], seq.GR[1,blk], seq.GR[2,blk], seq.GR[3,blk], seq.ADC[blk]
 
     # Get the critical times that define the events
-    rf_is0, rf_tu, _, _ = eventvalues(rf)
-    gx_is0, gx_tu, _ = eventvalues(gx)
-    gy_is0, gy_tu, _ = eventvalues(gy)
-    gz_is0, gz_tu, _ = eventvalues(gz)
-    adc_is0, adc_t = eventvalues(adc)
+    rf_ison, rf_tu, _, _ = event_samples(rf)
+    gx_ison, gx_tu, _ = event_samples(gx)
+    gy_ison, gy_tu, _ = event_samples(gy)
+    gz_ison, gz_tu, _ = event_samples(gz)
+    adc_ison, adc_t = event_samples(adc)
 
     # Get the simulations times
     # This can be optimized.
@@ -95,17 +95,17 @@ function blockvalues(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Floa
     # then the simulator doesn't generate unnecessary simulation times
 
     # Get the uniform-times for RFs and GRs
-    toffset = (adc_is0) ? (0.) : (adc_t[1])                      # align with the first sample of the ADC
+    toffset = (adc_ison) ? (adc_t[1]) : (0.)                     # align with the first sample of the ADC
     trf = [reverse(toffset-Δtrf:-Δtrf:0.); (toffset:Δtrf:ΔT)]    # uniform-times for RFs (they are gonna be included in the simulation when rf is on)
     tgr = [reverse(toffset-Δtgr:-Δtgr:0.); (toffset:Δtgr:ΔT)]    # uniform-times for GRs (they are gonna be included in the simulation when gr is on)
 
     # Get the unique-increasing-times
     t = Float64[]
-    (!rf_is0) && append!(t, trf[(rf_tu[1] .< trf) .& (trf .< rf_tu[end])], [rf_tu[1]; get_RF_center(rf); rf_tu[end]])  # consider RF pivot times and equispaced RF times when is RF on
-    (!gx_is0) && append!(t, tgr[(gx_tu[1] .< tgr) .& (tgr .< gx_tu[end])], [gx_tu[1]; gx_tu[2]; gx_tu[end-1]; gx_tu[end]])         # consider GX pivot times and equispaced GR times when is GX on
-    (!gy_is0) && append!(t, tgr[(gy_tu[1] .< tgr) .& (tgr .< gy_tu[end])], [gy_tu[1]; gy_tu[2]; gy_tu[end-1]; gy_tu[end]])         # consider GY pivot times and equispaced GR times when is GY on
-    (!gz_is0) && append!(t, tgr[(gz_tu[1] .< tgr) .& (tgr .< gz_tu[end])], [gz_tu[1]; gz_tu[2]; gz_tu[end-1]; gz_tu[end]])         # consider GZ pivot times and equispaced GR times when is GZ on
-    (!adc_is0) && append!(t, adc_t)     # consider ADC sampling-times
+    (rf_ison) && append!(t, trf[(rf_tu[1] .< trf) .& (trf .< rf_tu[end])], [rf_tu[1]; get_RF_center(rf); rf_tu[end]])       # consider RF pivot times and equispaced RF times when is RF on
+    (gx_ison) && append!(t, tgr[(gx_tu[1] .< tgr) .& (tgr .< gx_tu[end])], [gx_tu[1]; gx_tu[2]; gx_tu[end-1]; gx_tu[end]])  # consider GX pivot times and equispaced GR times when is GX on
+    (gy_ison) && append!(t, tgr[(gy_tu[1] .< tgr) .& (tgr .< gy_tu[end])], [gy_tu[1]; gy_tu[2]; gy_tu[end-1]; gy_tu[end]])  # consider GY pivot times and equispaced GR times when is GY on
+    (gz_ison) && append!(t, tgr[(gz_tu[1] .< tgr) .& (tgr .< gz_tu[end])], [gz_tu[1]; gz_tu[2]; gz_tu[end-1]; gz_tu[end]])  # consider GZ pivot times and equispaced GR times when is GZ on
+    (adc_ison) && append!(t, adc_t)     # consider ADC sampling-times
     append!(t, [0.; ΔT])                # add the first and last time point always (this is very important when putting blocks together in a sequence)
     sort!(t); unique!(t)                # make the unique-increasing-times actually unique and in increasing order
 
@@ -113,8 +113,8 @@ function blockvalues(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Floa
     (isempty(t)) && return Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], BitVector(), BitVector(), BitVector(), BitVector(), BitVector(), Float64[]
 
     # Get the sampled values of RF and GRs at times t
-    rf_a, rf_Δf = eventvalues(rf, t)
-    gx_a, gy_a, gz_a = eventvalues(gx, t), eventvalues(gy, t), eventvalues(gz, t)
+    rf_a, rf_Δf = event_samples(rf, t)
+    gx_a, gy_a, gz_a = event_samples(gx, t), event_samples(gy, t), event_samples(gz, t)
 
     # Create a matrix to add additional amplitudes and times when there are more samples at a certain time
     # so we can get all the times to be simulated (some times could be repeated up to twice)
@@ -135,10 +135,10 @@ function blockvalues(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Floa
 
     # Get the masks when the events are on
     Ntc = length(tc)
-    rf_onmask = (rf_is0) ? BitVector(zeros(Ntc)) : ((rf_tu[1] .<= tc) .& (tc .<= rf_tu[end]))
-    gx_onmask = (gx_is0) ? BitVector(zeros(Ntc)) : ((gx_tu[1] .<= tc) .& (tc .<= gx_tu[end]))
-    gy_onmask = (gy_is0) ? BitVector(zeros(Ntc)) : ((gy_tu[1] .<= tc) .& (tc .<= gy_tu[end]))
-    gz_onmask = (gz_is0) ? BitVector(zeros(Ntc)) : ((gz_tu[1] .<= tc) .& (tc .<= gz_tu[end]))
+    rf_onmask = (rf_ison) ? ((rf_tu[1] .<= tc) .& (tc .<= rf_tu[end])) : BitVector(zeros(Ntc))
+    gx_onmask = (gx_ison) ? ((gx_tu[1] .<= tc) .& (tc .<= gx_tu[end])) : BitVector(zeros(Ntc))
+    gy_onmask = (gy_ison) ? ((gy_tu[1] .<= tc) .& (tc .<= gy_tu[end])) : BitVector(zeros(Ntc))
+    gz_onmask = (gz_ison) ? ((gz_tu[1] .<= tc) .& (tc .<= gz_tu[end])) : BitVector(zeros(Ntc))
     adc_onmask = BitVector([any(t .== adc_t) for t in tc])
 
     # Return amplitudes and simulation-times with possibly more samples at the same time
@@ -151,7 +151,7 @@ end
 """
 Get samples of the complete sequence
 """
-function sequencevalues(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
+function sequence_values(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
 
     # Create empty vectors to be filled
     t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[], Bool[], Bool[], Bool[], Bool[], Float64[]
@@ -166,7 +166,7 @@ function sequencevalues(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
     for k in 1:Nblk
 
         # Get the vector values of the block
-        blk = blockvalues(seq, k; Δtgr, Δtrf)
+        blk = block_samples(seq, k; Δtgr, Δtrf)
 
         # Fill the vector of block masks
         kn = ko + length(blk.t) - 1     # index of the last time sample of this 1-block-sequence (it is also the first time sample of the next 1-block-sequence)

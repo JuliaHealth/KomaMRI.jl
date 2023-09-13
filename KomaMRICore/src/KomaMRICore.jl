@@ -64,7 +64,7 @@ export get_kspace, rotx, roty, rotz
 export simulate, simulate_slice_profile
 
 # For new discretization
-export blockvalues, sequencevalues, komasim
+export block_samples, sequence_values, komasim
 export kspace
 
 #Additionals

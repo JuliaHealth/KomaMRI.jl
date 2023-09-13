@@ -172,27 +172,6 @@ Get the theoretical gradient for a sequence in a defined axis.
 - `t`: (`::Vector{Float64}`) time key points
 - `g`: (`::Vector{Float64}`) amplitude key points
 """
-#get_theo_Gi(seq, idx) = begin
-#	ΔT, N = durs(seq), length(seq)
-#	T0 = cumsum([0; ΔT], dims=1)
-#	t = vcat([get_theo_t(seq.GR[idx,i]) .+ T0[i] for i=1:N]...)
-#	G = vcat([get_theo_A(seq.GR[idx,i]) for i=1:N]...)
-#
-#    # Check emptyness of the vectors
-#    if isempty(t)
-#        t = [0.; 0.]
-#        G = [0.; 0.]
-#    end
-#
-#    #; off_val=0 <---potential solution
-#	#Removing duplicated points
-#	#TODO: do this properly. As it is now it generates a bug for slew rates that are too high
-#	# mask = (G .== 0) #<---potential solution
-#	# t = t[mask]
-#	# G = G[mask]
-#	Interpolations.deduplicate_knots!(t; move_knots=true)
-#	return (t, G)
-#end
 get_theo_Gi(seq, idx) = begin
 	ΔT, N = durs(seq), length(seq)
 	T0 = cumsum([0; ΔT], dims=1)
@@ -207,33 +186,36 @@ get_theo_Gi(seq, idx) = begin
 	return (t, G)
 end
 
-"""
-    t, r = get_theo_rf(seq, idx)
-
-Get the theoretical RF timings and amplitude of a sequence.
-
-!!! note
-    Experimental, not being used yet.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `idx`: (`::Int64`, opts=[1, 2]) it selects 1:B1 or 2:Δf of the RF
-
-# Returns
-- `t`: (`::Vector{Float64}`) time key points
-- `r`: (`::Vector{Float64}`) amplitude key points
-"""
-get_theo_RF(seq, idx) = begin
-	ΔT, N = durs(seq), length(seq)
-	T0 = cumsum([0; ΔT], dims=1)
-	t = vcat([get_theo_t(seq.RF[i]) .+ T0[i] for i=1:N]...)
-	R = vcat([get_theo_A(seq.RF[i]; off_val=0) for i=1:N]...)
-	#Removing duplicated points
-	#TODO: do this properly. As it is now it generates a bug for slew rates that are too high
-	mask = (G .== 0)
-	# Interpolations.deduplicate_knots!(t; move_knots=true)
-	return (t[mask], R[mask])
-end
+##################
+### DEPRECATED ###
+##################
+#"""
+#    t, r = get_theo_rf(seq, idx)
+#
+#Get the theoretical RF timings and amplitude of a sequence.
+#
+#!!! note
+#    Experimental, not being used yet.
+#
+## Arguments
+#- `seq`: (`::Sequence`) Sequence struct
+#- `idx`: (`::Int64`, opts=[1, 2]) it selects 1:B1 or 2:Δf of the RF
+#
+## Returns
+#- `t`: (`::Vector{Float64}`) time key points
+#- `r`: (`::Vector{Float64}`) amplitude key points
+#"""
+#get_theo_RF(seq, idx) = begin
+#	ΔT, N = durs(seq), length(seq)
+#	T0 = cumsum([0; ΔT], dims=1)
+#	t = vcat([get_theo_t(seq.RF[i]) .+ T0[i] for i=1:N]...)
+#	R = vcat([get_theo_A(seq.RF[i]; off_val=0) for i=1:N]...)
+#	#Removing duplicated points
+#	#TODO: do this properly. As it is now it generates a bug for slew rates that are too high
+#	mask = (G .== 0)
+#	# Interpolations.deduplicate_knots!(t; move_knots=true)
+#	return (t[mask], R[mask])
+#end
 
 
 ############################################################################################
@@ -242,16 +224,16 @@ end
 """
 Get values from object definition
 """
-function eventvalues(gr::Grad)
+function event_samples(gr::Grad)
 
     # Define empty vectors to be filled and some params
     amps, times = Float64[], Float64[]
     NT, NA = length(gr.T), length(gr.A)
-    is0 = (sum(abs.(gr.A)) == 0)
+    ison = (sum(abs.(gr.A)) != 0.)
 
     # Get the amplitudes from object parameters definitions
-    if is0
-        return (is0, Float64[], [Float64[]])    # empty values definition
+    if !ison
+        return (ison, Float64[], [Float64[]])    # empty values definition
     elseif (NA == 1 && NT == 1)
         amps, times = [0.; gr.A; gr.A; 0.], cumsum([gr.delay; gr.rise; gr.T; gr.fall])
     elseif (NA > 1 && NT == 1)
@@ -271,21 +253,21 @@ function eventvalues(gr::Grad)
     end
 
     # Return the object values
-    # is0: when the object is zero (empty means zero value in amplitude)
+    # ison: when the object is non-zero (empty means zero value in amplitude)
     # tu: the vector unique time points
     # a: vectors of vectors with all the amplitudes at a unique time
     # Note that length(tu) = length(a)
-    return is0, tu, a
+    return ison, tu, a
 end
 
 """
 Get amplitude values from object at certain time
 """
-function eventvalues(gr::Grad, t::Float64)
+function event_samples(gr::Grad, t::Float64)
     # Get the values of the object definition
-    is0, tu, amps = eventvalues(gr)
+    ison, tu, amps = event_samples(gr)
     # Return zero when zero-signal or outside the critical-times
-    (is0 || (t < tu[1]) || (tu[end] < t)) && return [0.]
+    (!ison || (t < tu[1]) || (tu[end] < t)) && return [0.]
     # Return the interpolated value when is in between two points of the signal
     if !(t in tu)
         i = findlast(tu .< t)
@@ -299,8 +281,8 @@ end
 """
 Get multiple amplitude values at certain time points for the event
 """
-function eventvalues(gr::Grad, t::Vector{Float64})
-    return [eventvalues(gr, ti) for ti in t]
+function event_samples(gr::Grad, t::Vector{Float64})
+    return [event_samples(gr, ti) for ti in t]
 end
 
 
@@ -311,16 +293,16 @@ end
 """
 Get values from object definition
 """
-function eventvalues(rf::RF)
+function event_samples(rf::RF)
 
     # Define empty vectors to be filled and some params
     amps, Δfs, times = Float64[], Float64[], Float64[]
     NT, NA = length(rf.T), length(rf.A)
-    is0 = (sum(abs.(rf.A)) == 0) || (sum(rf.T) == 0)
+    ison = (sum(abs.(rf.A)) != 0) && (sum(rf.T) != 0)
 
     # Get the amplitudes from object parameters definitions
-    if is0
-        return (is0, Float64[], [Float64[]], [Float64[]])    # empty values definition
+    if !ison
+        return (ison, Float64[], [Float64[]], [Float64[]])    # empty values definition
     elseif (NA == 1 && NT == 1)
         amps, Δfs, times = [0.; rf.A; rf.A; 0.], [0.; 0.; rf.Δf; 0.], cumsum([rf.delay; 0.; rf.T; 0.])
     elseif (NA > 1 && NT == 1)
@@ -343,21 +325,21 @@ function eventvalues(rf::RF)
     end
 
     # Return the object values
-    # is0: when the object is zero (empty means zero value in amplitude)
+    # ison: when the object is non-zero (empty means zero value in amplitude)
     # tu: the vector unique time points
     # a: vectors of vectors with all the amplitudes at a unique time
     # Note that length(tu) = length(a)
-    return is0, tu, a, Δf
+    return ison, tu, a, Δf
 end
 
 """
 Get amplitude and Δf values from object at certain time
 """
-function eventvalues(rf::RF, t::Float64)
+function event_samples(rf::RF, t::Float64)
     # Get the values of the object definition
-    is0, tu, amps, Δfs = eventvalues(rf)
+    ison, tu, amps, Δfs = event_samples(rf)
     # Return zero when zero-signal or outside the critical-times
-    (is0 || (t < tu[1]) || (tu[end] < t)) && return ([0.], [0.])
+    (!ison || (t < tu[1]) || (tu[end] < t)) && return ([0.], [0.])
     # Return the interpolated value when is in between two points of the signal
     if !(t in tu)
         i = findlast(tu .< t)
@@ -373,11 +355,11 @@ end
 """
 Get multiple amplitude and Δf values at certain time points for the event
 """
-function eventvalues(rf::RF, t::Vector{Float64})
+function event_samples(rf::RF, t::Vector{Float64})
     Nt = length(t)
     a, Δf = Vector{Vector{Float64}}(undef, Nt), Vector{Vector{Float64}}(undef, Nt)
     for i in eachindex(t)
-        a[i], Δf[i] = eventvalues(rf, t[i])
+        a[i], Δf[i] = event_samples(rf, t[i])
     end
     return (a, Δf)
 end
@@ -389,12 +371,12 @@ end
 """
 Return adc values from object definition
 """
-function eventvalues(adc::ADC)
+function event_samples(adc::ADC)
     # Return for zero adc
-    is0 = (adc.N < 1)
-    (is0) && return (true, Float64[])
+    ison = (adc.N > 0)
+    (!ison) && return (ison, Float64[])
     # Return for adc with samples
     Nsamp, T = adc.N, adc.T
     t = adc.delay .+ ((Nsamp == 1) ? ([T/2]) : (range(0, T; length=Nsamp)))
-    return (is0, t)
+    return (ison, t)
 end
