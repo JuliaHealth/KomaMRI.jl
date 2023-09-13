@@ -341,7 +341,7 @@ Generates a trapezoidal waveform vector.
 	else
 		aux = zeros(size(t))
 	end
-	aux
+	ComplexF32.(aux)
 end
 
 """
@@ -363,22 +363,28 @@ Get the gradient array from sequence `seq` evaluated in time points `t`.
     in the z direction
 """
 function get_grads(seq, t::Vector)
+	println("Get Grads start")
     gx = get_theo_Gi(seq, 1)
     gy = get_theo_Gi(seq, 2)
     gz = get_theo_Gi(seq, 3)
+	println("Get Grads middle")
     Gx = linear_interpolation(gx..., extrapolation_bc=0)(t)
     Gy = linear_interpolation(gy..., extrapolation_bc=0)(t)
     Gz = linear_interpolation(gz..., extrapolation_bc=0)(t)
+	println("Get Grads done")
     (Gx, Gy, Gz)
 end
 function get_grads(seq, t::Matrix)
 	t_vec = t[:]
+	println("Get Grads start")
     gx = get_theo_Gi(seq, 1)
     gy = get_theo_Gi(seq, 2)
     gz = get_theo_Gi(seq, 3)
+	println("Get Grads middle")
     Gx = linear_interpolation(gx..., extrapolation_bc=0)(t_vec)
     Gy = linear_interpolation(gy..., extrapolation_bc=0)(t_vec)
     Gz = linear_interpolation(gz..., extrapolation_bc=0)(t_vec)
+	println("Get Grads done")
     (Gx', Gy', Gz')
 end
 # hold_interpolation(range::AbstractVector, vs::AbstractVector; extrapolation_bc = Throw()) =

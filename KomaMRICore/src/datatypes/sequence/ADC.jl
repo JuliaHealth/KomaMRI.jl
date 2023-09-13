@@ -78,7 +78,8 @@ Returns an array of times when the samples of the sequence `seq` are acquired.
 """
 function get_adc_sampling_times(seq)
     T0 = cumsum([0; durs(seq)], dims=1)
-    times = Float64[]
+    println("IDK")
+    times = Float32[]
     for i = 1:length(seq)
         if is_ADC_on(seq[i])
             δ = seq.ADC[i].delay
@@ -92,6 +93,7 @@ function get_adc_sampling_times(seq)
             append!(times, t)
         end
     end
+    println("Passed ADC")
     return times
 end
 

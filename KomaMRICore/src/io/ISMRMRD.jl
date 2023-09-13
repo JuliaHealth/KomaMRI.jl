@@ -41,6 +41,8 @@ function signal_to_raw_data(signal, seq;
     Nx = get(seq.DEF, "Nx", 1)
     Ny = get(seq.DEF, "Ny", 1)
     Nz = get(seq.DEF, "Nz", 1)
+    println("Nz")
+    println(Nz)
     if haskey(seq.DEF, "FOV")
         FOVx, FOVy, _ = seq.DEF["FOV"] #[m]
         if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm

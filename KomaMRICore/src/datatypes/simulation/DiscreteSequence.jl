@@ -2,8 +2,8 @@ struct DiscreteSequence{T<:Real}
     Gx::AbstractVector{T}
     Gy::AbstractVector{T}
     Gz::AbstractVector{T}
-    B1::AbstractVector{Complex{T}}
-    Δf::AbstractVector{T}
+    B1::AbstractVector{Complex{Float32}}
+    Δf::AbstractVector{Complex{Float32}}
     ADC::AbstractVector{Bool}
     t::AbstractVector{T}
     Δt::AbstractVector{T}
@@ -53,6 +53,7 @@ is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
 function discretize(seq::Sequence; simParams=default_sim_params())
     t, Δt      = get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
     B1, Δf     = get_rfs(seq, t)
+    println("Passed rfs")
     Gx, Gy, Gz = get_grads(seq, t)
     tadc       = get_adc_sampling_times(seq)
     ADCflag    = [any(tt .== tadc) for tt in t] #Displaced 1 dt, sig[i]=S(ti+dt)

@@ -65,7 +65,7 @@ get_theo_A(r::RF; off_val=0, max_rf_samples=Inf) = begin
 		n = floor(Int, length(aux) / max_rf_samples)
 		aux = aux[[1; 2:n:end-1; end]]
 	end
-	return Float32.(aux)
+	return ComplexF16.(aux)
 end
 
 get_theo_A(d::ADC; off_val=0) = begin
