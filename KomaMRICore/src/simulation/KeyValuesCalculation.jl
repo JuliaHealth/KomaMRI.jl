@@ -233,7 +233,7 @@ function event_samples(gr::Grad)
 
     # Get the amplitudes from object parameters definitions
     if !ison
-        return (ison, Float64[], [Float64[]])    # empty values definition
+        return (ison = ison, tu = Float64[], a = [Float64[]])    # empty values definition
     elseif (NA == 1 && NT == 1)
         amps, times = [0.; gr.A; gr.A; 0.], cumsum([gr.delay; gr.rise; gr.T; gr.fall])
     elseif (NA > 1 && NT == 1)
@@ -257,7 +257,7 @@ function event_samples(gr::Grad)
     # tu: the vector unique time points
     # a: vectors of vectors with all the amplitudes at a unique time
     # Note that length(tu) = length(a)
-    return ison, tu, a
+    return (ison = ison, tu = tu, a = a)
 end
 
 """
@@ -265,24 +265,31 @@ Get amplitude values from object at certain time
 """
 function event_samples(gr::Grad, t::Float64)
     # Get the values of the object definition
-    ison, tu, amps = event_samples(gr)
+    egr = event_samples(gr)
+    ison, tu, amps = egr.ison, egr.tu, egr.a
     # Return zero when zero-signal or outside the critical-times
-    (!ison || (t < tu[1]) || (tu[end] < t)) && return [0.]
+    (!ison || (t < tu[1]) || (tu[end] < t)) && return (a = [0.],)
     # Return the interpolated value when is in between two points of the signal
     if !(t in tu)
         i = findlast(tu .< t)
         m = (amps[i+1][1] - amps[i][end]) / (tu[i+1] - tu[i])
-        return [m * (t - tu[i]) + amps[i][end]]
+        return (a = [m * (t - tu[i]) + amps[i][end]],)
     end
     # Return the exact values when is an exact point of the signal
-    return amps[t .== tu][1]
+    return (a = amps[t .== tu][1],)
 end
 
 """
 Get multiple amplitude values at certain time points for the event
 """
 function event_samples(gr::Grad, t::Vector{Float64})
-    return [event_samples(gr, ti) for ti in t]
+    Nt = length(t)
+    a = Vector{Vector{Float64}}(undef, Nt)
+    for i in eachindex(t)
+        grt = event_samples(gr, t[i])
+        a[i] = grt.a
+    end
+    return (a = a,)
 end
 
 
@@ -302,7 +309,7 @@ function event_samples(rf::RF)
 
     # Get the amplitudes from object parameters definitions
     if !ison
-        return (ison, Float64[], [Float64[]], [Float64[]])    # empty values definition
+        return (ison = ison, tu = Float64[], a = [Float64[]], Δf = [Float64[]])    # empty values definition
     elseif (NA == 1 && NT == 1)
         amps, Δfs, times = [0.; rf.A; rf.A; 0.], [0.; 0.; rf.Δf; 0.], cumsum([rf.delay; 0.; rf.T; 0.])
     elseif (NA > 1 && NT == 1)
@@ -329,7 +336,7 @@ function event_samples(rf::RF)
     # tu: the vector unique time points
     # a: vectors of vectors with all the amplitudes at a unique time
     # Note that length(tu) = length(a)
-    return ison, tu, a, Δf
+    return (ison = ison, tu = tu, a = a, Δf = Δf)
 end
 
 """
@@ -337,19 +344,20 @@ Get amplitude and Δf values from object at certain time
 """
 function event_samples(rf::RF, t::Float64)
     # Get the values of the object definition
-    ison, tu, amps, Δfs = event_samples(rf)
+    erf = event_samples(rf)
+    ison, tu, amps, Δfs = erf.ison, erf.tu, erf.a, erf.Δf
     # Return zero when zero-signal or outside the critical-times
-    (!ison || (t < tu[1]) || (tu[end] < t)) && return ([0.], [0.])
+    (!ison || (t < tu[1]) || (tu[end] < t)) && return (a = [0.], Δf = [0.])
     # Return the interpolated value when is in between two points of the signal
     if !(t in tu)
         i = findlast(tu .< t)
         ma = (amps[i+1][1] - amps[i][end]) / (tu[i+1] - tu[i])
         mΔf = (Δfs[i+1][1] - Δfs[i][end]) / (tu[i+1] - tu[i])
-        return ([ma * (t - tu[i]) + amps[i][end]], [mΔf * (t - tu[i]) + Δfs[i][end]])
+        return (a = [ma * (t - tu[i]) + amps[i][end]], Δf = [mΔf * (t - tu[i]) + Δfs[i][end]])
     end
     # Return the exact values when is an exact point of the signal
     mask = (t .== tu)
-    return (amps[mask][1], Δfs[mask][1])
+    return (a = amps[mask][1], Δf = Δfs[mask][1])
 end
 
 """
@@ -359,9 +367,10 @@ function event_samples(rf::RF, t::Vector{Float64})
     Nt = length(t)
     a, Δf = Vector{Vector{Float64}}(undef, Nt), Vector{Vector{Float64}}(undef, Nt)
     for i in eachindex(t)
-        a[i], Δf[i] = event_samples(rf, t[i])
+        rft = event_samples(rf, t[i])
+        a[i], Δf[i] = rft.a, rft.Δf
     end
-    return (a, Δf)
+    return (a = a, Δf = Δf)
 end
 
 
@@ -374,9 +383,9 @@ Return adc values from object definition
 function event_samples(adc::ADC)
     # Return for zero adc
     ison = (adc.N > 0)
-    (!ison) && return (ison, Float64[])
+    (!ison) && return (ison = ison, t = Float64[])
     # Return for adc with samples
     Nsamp, T = adc.N, adc.T
     t = adc.delay .+ ((Nsamp == 1) ? ([T/2]) : (range(0, T; length=Nsamp)))
-    return (ison, t)
+    return (ison = ison, t = t)
 end

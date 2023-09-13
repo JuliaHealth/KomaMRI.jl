@@ -81,11 +81,9 @@ function block_samples(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Fl
     rf, gx, gy, gz, adc = seq.RF[blk], seq.GR[1,blk], seq.GR[2,blk], seq.GR[3,blk], seq.ADC[blk]
 
     # Get the critical times that define the events
-    rf_ison, rf_tu, _, _ = event_samples(rf)
-    gx_ison, gx_tu, _ = event_samples(gx)
-    gy_ison, gy_tu, _ = event_samples(gy)
-    gz_ison, gz_tu, _ = event_samples(gz)
-    adc_ison, adc_t = event_samples(adc)
+    erf, egx, egy, egz, eadc = event_samples(rf), event_samples(gx), event_samples(gy), event_samples(gz), event_samples(adc)
+    rf_ison, gx_ison, gy_ison, gz_ison, adc_ison = erf.ison, egx.ison, egy.ison, egz.ison, eadc.ison
+    rf_tu, gx_tu, gy_tu, gz_tu, adc_t = erf.tu, egx.tu, egy.tu, egz.tu, eadc.t
 
     # Get the simulations times
     # This can be optimized.
@@ -113,12 +111,11 @@ function block_samples(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Fl
     (isempty(t)) && return Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], BitVector(), BitVector(), BitVector(), BitVector(), BitVector(), Float64[]
 
     # Get the sampled values of RF and GRs at times t
-    rf_a, rf_Δf = event_samples(rf, t)
-    gx_a, gy_a, gz_a = event_samples(gx, t), event_samples(gy, t), event_samples(gz, t)
+    rft, gxt, gyt, gzt = event_samples(rf, t), event_samples(gx, t), event_samples(gy, t), event_samples(gz, t)
 
     # Create a matrix to add additional amplitudes and times when there are more samples at a certain time
     # so we can get all the times to be simulated (some times could be repeated up to twice)
-    m = [rf_a rf_Δf gx_a gy_a gz_a]
+    m = [rft.a rft.Δf gxt.a gyt.a gzt.a]
     tc = Float64[]
     for i in eachindex(t)
         Nsamp = maximum(length.(m[i,:]))
