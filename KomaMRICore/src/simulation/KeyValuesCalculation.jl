@@ -223,8 +223,11 @@ end
 ############################################################################################
 """
 Get values from object definition
+Returns a vector of unique times and a vector of vectors with up to two amplitudes at a unique times
+Note that length(tu) = length(a)
+It also return if the gradient is on
 """
-function event_samples(gr::Grad)
+function event_values(gr::Grad)
 
     # Define empty vectors to be filled and some params
     amps, times = Float64[], Float64[]
@@ -252,20 +255,16 @@ function event_samples(gr::Grad)
         a[i] = (length(mask) == 1) ? amps[mask] : [amps[mask][1]; amps[mask][end]]
     end
 
-    # Return the object values
-    # ison: when the object is non-zero (empty means zero value in amplitude)
-    # tu: the vector unique time points
-    # a: vectors of vectors with all the amplitudes at a unique time
-    # Note that length(tu) = length(a)
     return (ison = ison, tu = tu, a = a)
 end
 
 """
 Get amplitude values from object at certain time
+It returns a vector of amplitudes with up to two samples
 """
-function event_samples(gr::Grad, t::Float64)
+function event_values(gr::Grad, t::Float64)
     # Get the values of the object definition
-    egr = event_samples(gr)
+    egr = event_values(gr)
     ison, tu, amps = egr.ison, egr.tu, egr.a
     # Return zero when zero-signal or outside the critical-times
     (!ison || (t < tu[1]) || (tu[end] < t)) && return (a = [0.],)
@@ -281,26 +280,44 @@ end
 
 """
 Get multiple amplitude values at certain time points for the event
+Returns a vector of length(t), each element of the vector is a vector with up to two amplitudes
 """
-function event_samples(gr::Grad, t::Vector{Float64})
+function event_values(gr::Grad, t::Vector{Float64})
     Nt = length(t)
     a = Vector{Vector{Float64}}(undef, Nt)
     for i in eachindex(t)
-        grt = event_samples(gr, t[i])
+        grt = event_values(gr, t[i])
         a[i] = grt.a
     end
     return (a = a,)
+end
+
+"""
+Returns a vector of times and a vector of gradient amplitudes
+The times are not necessary unique, at the same time can be up to two amplitudes
+"""
+function event_samples(gr::Grad)
+    egr = event_values(gr)
+    ison = egr.ison
+    t, a = Float64[], Float64[]
+    for i in eachindex(egr.tu)
+        append!(t, fill(egr.tu[i], length(egr.a[i])))
+        append!(a, egr.a[i])
+    end
+    return (ison = ison, t = t, a = a)
 end
 
 
 ############################################################################################
 ### For RF #################################################################################
 ############################################################################################
-
 """
 Get values from object definition
+Returns a vector of unique times and a vector of vectors with up to two amplitudes at a unique times
+Note that length(tu) = length(a)
+It also return if the gradient is on
 """
-function event_samples(rf::RF)
+function event_values(rf::RF)
 
     # Define empty vectors to be filled and some params
     amps, Δfs, times = Float64[], Float64[], Float64[]
@@ -332,19 +349,16 @@ function event_samples(rf::RF)
     end
 
     # Return the object values
-    # ison: when the object is non-zero (empty means zero value in amplitude)
-    # tu: the vector unique time points
-    # a: vectors of vectors with all the amplitudes at a unique time
-    # Note that length(tu) = length(a)
     return (ison = ison, tu = tu, a = a, Δf = Δf)
 end
 
 """
 Get amplitude and Δf values from object at certain time
+It returns a vector of amplitudes with up to two samples for a and Δf
 """
-function event_samples(rf::RF, t::Float64)
+function event_values(rf::RF, t::Float64)
     # Get the values of the object definition
-    erf = event_samples(rf)
+    erf = event_values(rf)
     ison, tu, amps, Δfs = erf.ison, erf.tu, erf.a, erf.Δf
     # Return zero when zero-signal or outside the critical-times
     (!ison || (t < tu[1]) || (tu[end] < t)) && return (a = [0.], Δf = [0.])
@@ -362,25 +376,43 @@ end
 
 """
 Get multiple amplitude and Δf values at certain time points for the event
+Returns a vector of length(t), each element of the vector is a vector with up to two amplitudes
 """
-function event_samples(rf::RF, t::Vector{Float64})
+function event_values(rf::RF, t::Vector{Float64})
     Nt = length(t)
     a, Δf = Vector{Vector{Float64}}(undef, Nt), Vector{Vector{Float64}}(undef, Nt)
     for i in eachindex(t)
-        rft = event_samples(rf, t[i])
+        rft = event_values(rf, t[i])
         a[i], Δf[i] = rft.a, rft.Δf
     end
     return (a = a, Δf = Δf)
 end
 
+"""
+Returns a vector of times and a vector of rf amplitudes
+The times are not necessary unique, at the same time can be up to two amplitudes
+"""
+function event_samples(rf::RF)
+    erf = event_values(rf)
+    ison = erf.ison
+    t, a, Δf = Float64[], Float64[], Float64[]
+    for i in eachindex(erf.tu)
+        append!(t, fill(erf.tu[i], length(erf.a[i])))
+        append!(a, erf.a[i])
+        append!(Δf, erf.Δf[i])
+    end
+    return (ison = ison, t = t, a = a, Δf = Δf)
+end
 
 ############################################################################################
 ### For ADC ################################################################################
 ############################################################################################
 """
 Return adc values from object definition
+This should have unique time points
+It returns a vector
 """
-function event_samples(adc::ADC)
+function event_values(adc::ADC)
     # Return for zero adc
     ison = (adc.N > 0)
     (!ison) && return (ison = ison, t = Float64[])
@@ -388,4 +420,12 @@ function event_samples(adc::ADC)
     Nsamp, T = adc.N, adc.T
     t = adc.delay .+ ((Nsamp == 1) ? ([T/2]) : (range(0, T; length=Nsamp)))
     return (ison = ison, t = t)
+end
+
+"""
+This should have unique time points
+It returns a vector
+"""
+function event_samples(adc::ADC)
+    return event_values(adc)
 end

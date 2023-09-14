@@ -23,16 +23,21 @@ end
 seq = create_seq_epi(sys)
 
 # Plot the sequence
-function plotsequence(seq::Sequence)
-    sq = sequence_values(seq)
-    prfa = scatter(;x=sq.t[sq.rf_onmask], y=abs.(sq.rfa)[sq.rf_onmask], mode="lines+markers", name="RF")
-    pgxa = scatter(;x=sq.t[sq.gx_onmask], y=sq.gxa[sq.gx_onmask], mode="lines+markers", name="GX")
-    pgya = scatter(;x=sq.t[sq.gy_onmask], y=sq.gya[sq.gy_onmask], mode="lines+markers", name="GY")
-    pgza = scatter(;x=sq.t[sq.gz_onmask], y=sq.gza[sq.gz_onmask], mode="lines+markers", name="GZ")
+function plotsimseq(seq::Sequence)
+    sq = sequence_samples(seq)
+    #prfa = scatter(;x=sq.t[sq.rf_onmask], y=abs.(sq.rfa)[sq.rf_onmask], mode="lines+markers", name="RF")
+    #pgxa = scatter(;x=sq.t[sq.gx_onmask], y=sq.gxa[sq.gx_onmask], mode="lines+markers", name="GX")
+    #pgya = scatter(;x=sq.t[sq.gy_onmask], y=sq.gya[sq.gy_onmask], mode="lines+markers", name="GY")
+    #pgza = scatter(;x=sq.t[sq.gz_onmask], y=sq.gza[sq.gz_onmask], mode="lines+markers", name="GZ")
+    #padc = scatter(;x=sq.tadc, y=(.01 .* ones(length(sq.tadc))), mode="markers", name="ADC")
+    prfa = scatter(;x=sq.t, y=(5000 .*abs.(sq.rfa)), mode="lines+markers", name="RF")
+    pgxa = scatter(;x=sq.t, y=sq.gxa, mode="lines+markers", name="GX")
+    pgya = scatter(;x=sq.t, y=sq.gya, mode="lines+markers", name="GY")
+    pgza = scatter(;x=sq.t, y=sq.gza, mode="lines+markers", name="GZ")
     padc = scatter(;x=sq.tadc, y=(.01 .* ones(length(sq.tadc))), mode="markers", name="ADC")
     display(plot([prfa; pgxa; pgya; pgza; padc], Layout(title="New Discretized Sequence")))
 end
-plotsequence(seq)
+plotsimseq(seq)
 
 # Plot the kspace of the sequence
 function plotkspace(seq::Sequence)
@@ -45,7 +50,7 @@ end
 plotkspace(seq)
 
 # Simulate for new simple simulation
-sq = sequence_values(seq)
+sq = sequence_samples(seq)
 t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc, blk_range = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.rf_onmask, sq.gx_onmask, sq.gy_onmask, sq.gz_onmask, sq.adc_onmask, sq.tadc, sq.blk_range
 magxy, magz, sig = komasim(seq, obj)
 display(plot([scatter(;x=t, y=abs.([sum(magxy; dims=1)...]), mode="lines+markers", name="sum(magxy)"); scatter(;x=t, y=abs.(sig), mode="lines+markers", name="sig")], Layout(title="Raw-Signal of the New Simulator-Function")))
@@ -95,7 +100,7 @@ sys = Scanner()
 
 # Plot the sequence
 plot_seq(seq)
-plotsequence(seq)
+plotsimseq(seq)
 
 # Old Koma simulation
 simParams = Dict{String, Any}("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>"mat")
@@ -103,7 +108,7 @@ sigold = (simulate(obj, seq, sys; simParams) / prod(size(obj)))[:,1,1]
 told = KomaMRICore.get_adc_sampling_times(seq)
 
 # New Koma simulation
-sq = sequence_values(seq)
+sq = sequence_samples(seq)
 t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc, blk_range = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.rf_onmask, sq.gx_onmask, sq.gy_onmask, sq.gz_onmask, sq.adc_onmask, sq.tadc, sq.blk_range
 magxy, magz, sig = komasim(seq, obj)
 signew = sig[adc_onmask] / prod(size(obj))
@@ -118,3 +123,72 @@ sigjem = sigjem[:]
 display(plot([scatter(; y=abs.(sigold), mode="lines+markers", name="old"); scatter(; y=abs.(signew), mode="lines+markers", name="new");], Layout(title="Comparison of the Raw-Signals")))
 display(plot([scatter(; y=abs.(sigjem), mode="lines+markers", name="jem"); scatter(; y=abs.(sigold), mode="lines+markers", name="old");], Layout(title="Comparison of the Raw-Signals")))
 display(plot([scatter(; y=abs.(sigjem), mode="lines+markers", name="jem"); scatter(; y=abs.(signew), mode="lines+markers", name="new");], Layout(title="Comparison of the Raw-Signals")))
+
+
+############################################################################################
+### Plot user defined events ###############################################################
+############################################################################################
+
+# Define the sequence
+seq = create_seq_epi(sys)
+
+# Plots for user-defined grs
+function plotevent(gr::Grad)
+    gr = KomaMRICore.event_samples(gr)
+    pgr = scatter(; x=gr.t, y=gr.a, mode="lines+markers", name="GR")
+    display(plot([pgr], Layout(title="Gradient")))
+end
+plotevent(seq[2].GR[1,1])
+function plotgr(seq::Sequence)
+    gr = KomaMRICore.gr_samples_for_plots(seq)
+    pgx = scatter(; x=gr.tx, y=gr.ax, mode="lines+markers", name="GX")
+    pgy = scatter(; x=gr.ty, y=gr.ay, mode="lines+markers", name="GY")
+    pgz = scatter(; x=gr.tz, y=gr.az, mode="lines+markers", name="GZ")
+    display(plot([pgx; pgy; pgz], Layout(title="Gradients of the Sequence")))
+end
+plotgr(seq)
+
+# Plots for user-defined rfs
+function plotevent(rf::RF)
+    rf = KomaMRICore.event_samples(rf)
+    prf = scatter(; x=rf.t, y=abs.(rf.a), mode="lines+markers", name="RF")
+    display(plot([prf], Layout(title="RF")))
+end
+plotevent(seq[1].RF[1])
+function plotrf(seq::Sequence)
+    rf = KomaMRICore.rf_samples_for_plots(seq)
+    prfa = scatter(; x=rf.t, y=abs.(rf.a), mode="lines+markers", name="rf.a")
+    prfΔf = scatter(; x=rf.t, y=rf.Δf, mode="lines+markers", name="rf.Δf")
+    display(plot([prfa; prfΔf], Layout(title="RFs of the Sequence")))
+end
+plotrf(seq + seq + seq)
+
+# Plots for user-defined adcs
+function plotevent(adc::ADC)
+    adc = KomaMRICore.event_samples(adc)
+    padc = scatter(; x=adc.t, y=ones(length(adc.t)), mode="lines+markers", name="ADC")
+    display(plot([padc], Layout(title="ADC")))
+end
+plotevent(seq[5].ADC[1])
+function plotadc(seq::Sequence)
+    adc = KomaMRICore.adc_samples_for_plots(seq)
+    padc = scatter(; x=adc.t, y=adc.a, mode="lines+markers", name="ADC")
+    display(plot([padc], Layout(title="ADCs of the Sequence")))
+end
+plotadc(seq)
+
+# Plot sequence
+function plotseq(seq::Sequence)
+    rf = KomaMRICore.rf_samples_for_plots(seq)
+    gr = KomaMRICore.gr_samples_for_plots(seq)
+    adc = KomaMRICore.adc_samples_for_plots(seq)
+    prfa = scatter(; x=rf.t, y=(5000 .* abs.(rf.a)), mode="lines+markers", name="rf.a")
+    prfΔf = scatter(; x=rf.t, y=rf.Δf, mode="lines+markers", name="rf.Δf")
+    pgx = scatter(; x=gr.tx, y=gr.ax, mode="lines+markers", name="GX")
+    pgy = scatter(; x=gr.ty, y=gr.ay, mode="lines+markers", name="GY")
+    pgz = scatter(; x=gr.tz, y=gr.az, mode="lines+markers", name="GZ")
+    padc = scatter(; x=adc.t, y=(.01 .*adc.a), mode="lines+markers", name="ADC")
+    display(plot([prfa; prfΔf; pgx; pgy; pgz; padc], Layout(title="Sequence")))
+end
+plotseq(seq)
+plotsimseq(seq)

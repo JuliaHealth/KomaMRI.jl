@@ -63,7 +63,7 @@ function discretize(seq::Sequence; simParams=default_sim_params())
     #Gx, Gy, Gz = get_grads(seq, t)
     #tadc       = get_adc_sampling_times(seq)
     #ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
-    sq = sequence_values(seq; Δtgr=simParams["Δt"] , Δtrf=simParams["Δt_rf"])
+    sq = sequence_samples(seq; Δtgr=simParams["Δt"] , Δtrf=simParams["Δt_rf"])
     t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.adc_onmask
     return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
 end
@@ -81,7 +81,7 @@ function block_samples(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Fl
     rf, gx, gy, gz, adc = seq.RF[blk], seq.GR[1,blk], seq.GR[2,blk], seq.GR[3,blk], seq.ADC[blk]
 
     # Get the critical times that define the events
-    erf, egx, egy, egz, eadc = event_samples(rf), event_samples(gx), event_samples(gy), event_samples(gz), event_samples(adc)
+    erf, egx, egy, egz, eadc = event_values(rf), event_values(gx), event_values(gy), event_values(gz), event_values(adc)
     rf_ison, gx_ison, gy_ison, gz_ison, adc_ison = erf.ison, egx.ison, egy.ison, egz.ison, eadc.ison
     rf_tu, gx_tu, gy_tu, gz_tu, adc_t = erf.tu, egx.tu, egy.tu, egz.tu, eadc.t
 
@@ -111,7 +111,7 @@ function block_samples(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Fl
     (isempty(t)) && return Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], BitVector(), BitVector(), BitVector(), BitVector(), BitVector(), Float64[]
 
     # Get the sampled values of RF and GRs at times t
-    rft, gxt, gyt, gzt = event_samples(rf, t), event_samples(gx, t), event_samples(gy, t), event_samples(gz, t)
+    rft, gxt, gyt, gzt = event_values(rf, t), event_values(gx, t), event_values(gy, t), event_values(gz, t)
 
     # Create a matrix to add additional amplitudes and times when there are more samples at a certain time
     # so we can get all the times to be simulated (some times could be repeated up to twice)
@@ -148,7 +148,7 @@ end
 """
 Get samples of the complete sequence
 """
-function sequence_values(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
+function sequence_samples(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
 
     # Create empty vectors to be filled
     t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[], Bool[], Bool[], Bool[], Bool[], Float64[]

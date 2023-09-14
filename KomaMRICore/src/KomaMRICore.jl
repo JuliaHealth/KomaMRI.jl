@@ -64,8 +64,8 @@ export get_kspace, rotx, roty, rotz
 export simulate, simulate_slice_profile
 
 # For new discretization
-export block_samples, sequence_values, komasim
-export kspace
+export block_samples, sequence_samples, komasim
+export kspace, gr_samples
 
 #Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on

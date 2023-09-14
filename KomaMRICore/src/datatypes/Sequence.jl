@@ -525,7 +525,7 @@ end
 Returns the kspace for the new discretized sequence
 """
 function kspace(seq::Sequence; Δtgr::Float64=1e-3)
-    sq = sequence_values(seq; Δtgr)
+    sq = sequence_samples(seq; Δtgr)
     kx = γ * cumsum([0.; .5 * (sq.gxa[1:end-1] .+ sq.gxa[2:end]) .* sq.Δt])
     ky = γ * cumsum([0.; .5 * (sq.gya[1:end-1] .+ sq.gya[2:end]) .* sq.Δt])
     kz = γ * cumsum([0.; .5 * (sq.gza[1:end-1] .+ sq.gza[2:end]) .* sq.Δt])
@@ -721,4 +721,159 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	M2_adc = [M2x_adc M2y_adc M2z_adc]
 	#Final
 	M2, M2_adc
+end
+
+
+############################################################################################
+### For GR #################################################################################
+############################################################################################
+"""
+Returns the amplitude of the gradients and its times
+This function doens't repeat zero-samples for blocks togheter
+"""
+function gr_samples(seq::Sequence)
+    # Initialize empty vector to be filled
+    tx, ty, tz = Float64[], Float64[], Float64[]
+    ax, ay, az = Float64[], Float64[], Float64[]
+    # Iterate over every block of the sequence
+    Nblk = length(seq)              # Number of blocks
+    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
+    for k in 1:Nblk
+        # Get the all the samples for the gradients at this block
+        gxk, gyk, gzk = event_samples(seq.GR[1,k]), event_samples(seq.GR[2,k]), event_samples(seq.GR[3,k])
+        # Just for the first block, append all the samples
+        if k == 1
+            append!(tx, to[k] .+ gxk.t); append!(ty, to[k] .+ gyk.t); append!(tz, to[k] .+ gzk.t)
+            append!(ax, gxk.a); append!(ay, gyk.a); append!(az, gzk.a)
+        # For all other blocks, check if the first sample needs to be added and append all the rest of the samples always
+        else
+            (gxk.ison) && ((!isempty(tx) && tx[end] == to[k]) ? (append!(tx, to[k] .+ gxk.t[2:end]); append!(ax, gxk.a[2:end])) : (append!(tx, to[k] .+ gxk.t); append!(ax, gxk.a)))
+            (gyk.ison) && ((!isempty(ty) && ty[end] == to[k]) ? (append!(ty, to[k] .+ gyk.t[2:end]); append!(ay, gyk.a[2:end])) : (append!(ty, to[k] .+ gyk.t); append!(ay, gyk.a)))
+            (gzk.ison) && ((!isempty(tz) && tz[end] == to[k]) ? (append!(tz, to[k] .+ gzk.t[2:end]); append!(az, gzk.a[2:end])) : (append!(tz, to[k] .+ gzk.t); append!(az, gzk.a)))
+        end
+    end
+    # Returns the gradient amplitudes and time
+    return (tx = tx, ty = ty, tz = tz, ax = ax, ay = ay, az = az)
+end
+
+"""
+Returns the amplitude of the gradients and its times
+but there are NaN point when is a new block, this is useful for ploting with PlotlyJS
+and ther can be repeated zero-point when there are blocks togheter
+"""
+function gr_samples_for_plots(seq::Sequence)
+    # Initialize empty vector to be filled
+    tx, ty, tz = Float64[], Float64[], Float64[]
+    ax, ay, az = Float64[], Float64[], Float64[]
+    # Iterate over every block of the sequence
+    Nblk = length(seq)              # Number of blocks
+    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
+    for k in 1:Nblk
+        # Get the all the samples for the gradients at this block
+        gxk, gyk, gzk = event_samples(seq.GR[1,k]), event_samples(seq.GR[2,k]), event_samples(seq.GR[3,k])
+        # Append all the samples of the gradientes and add a NaN values ate the end of the block
+        append!(tx, [to[k] .+ gxk.t; to[k+1]]); append!(ty, [to[k] .+ gyk.t;to[k+1]]); append!(tz, [to[k] .+ gzk.t; to[k+1]])
+        append!(ax, [gxk.a; NaN]); append!(ay, [gyk.a; NaN]); append!(az, [gzk.a; NaN])
+    end
+    # Returns the gradient amplitudes and time for plots
+    return (tx = tx, ty = ty, tz = tz, ax = ax, ay = ay, az = az)
+end
+
+
+############################################################################################
+### For RF #################################################################################
+############################################################################################
+"""
+Returns the amplitude of the rfs and its times
+This function doens't repeat zero-samples for blocks togheter
+"""
+function rf_samples(seq::Sequence)
+    # Initialize empty vector to be filled
+    t, a, Δf = Float64[], Float64[], Float64[]
+    # Iterate over every block of the sequence
+    Nblk = length(seq)              # Number of blocks
+    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
+    for k in 1:Nblk
+        # Get the all the samples for the rf at this block
+        rfk = event_samples(seq.RF[k])
+        # Just for the first block, append all the samples
+        if k == 1
+            append!(t, to[k] .+ rfk.t); append!(a, rfk.a); append!(Δf, rfk.Δf)
+        # For all other blocks, check if the first sample needs to be added and append all the rest of the samples always
+        else
+            (rfk.ison) && ((!isempty(t) && t[end] == to[k]) ? (append!(t, to[k] .+ rfk.t[2:end]); append!(a, rfk.a[2:end]); append!(Δf, rfk.Δf[2:end])) : (append!(t, to[k] .+ rfk.t); append!(a, rfk.a); append!(Δf, rfk.Δf)))
+        end
+    end
+    # Returns the gradient amplitudes and time
+    return (t = t, a = a, Δf = Δf)
+end
+
+"""
+Returns the amplitude of the rfs and its times
+but there are NaN point when is a new block, this is useful for ploting with PlotlyJS
+and ther can be repeated zero-point when there are blocks togheter
+"""
+function rf_samples_for_plots(seq::Sequence)
+    # Initialize empty vector to be filled
+    t, a, Δf = Float64[], Float64[], Float64[]
+    # Iterate over every block of the sequence
+    Nblk = length(seq)              # Number of blocks
+    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
+    for k in 1:Nblk
+        # Get the all the samples for the rf at this block
+        rfk = event_samples(seq.RF[k])
+        # Append all the samples of the rfs and add a NaN values ate the end of the block
+        append!(t, [to[k] .+ rfk.t; to[k+1]]); append!(a, [rfk.a; NaN]);  append!(Δf, [rfk.Δf; NaN])
+    end
+    # Returns the gradient amplitudes and time for plots
+    return (t = t, a = a, Δf = Δf)
+end
+
+############################################################################################
+### For ADC ################################################################################
+############################################################################################
+"""
+Returns the times of the adc
+This function doens't repeat times for blocks togheter
+"""
+function adc_samples(seq::Sequence)
+    # Initialize empty vector to be filled
+    t = Float64[]
+    # Iterate over every block of the sequence
+    Nblk = length(seq)              # Number of blocks
+    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
+    for k in 1:Nblk
+        # Get the all the samples for the adc at this block
+        adck = event_samples(seq.ADC[k])
+        # Just for the first block, append all the samples
+        if k == 1
+            append!(t, to[k] .+ adck.t);
+        # For all other blocks, check if the first sample needs to be added and append all the rest of the samples always
+        else
+            (adck.ison) && ((!isempty(t) && t[end] == to[k]) ? (append!(t, to[k] .+ adck.t[2:end])) : (append!(t, to[k] .+ adck.t)))
+        end
+    end
+    # Returns the gradient amplitudes and time
+    return (t = t,)
+end
+
+"""
+Returns the times of the adc
+but there are NaN point when is a new block, this is useful for ploting with PlotlyJS
+and there can be repeated times when there are blocks togheter
+"""
+function adc_samples_for_plots(seq::Sequence)
+    # Initialize empty vector to be filled
+    t, a = Float64[], Float64[]
+    # Iterate over every block of the sequence
+    Nblk = length(seq)              # Number of blocks
+    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
+    for k in 1:Nblk
+        # Get the all the samples for the adc at this block
+        adck = event_samples(seq.ADC[k])
+        # Append all the samples of the adc and add a NaN values ate the end of the block
+        append!(t, [to[k] .+ adck.t; to[k+1]]); append!(a, [ones(Int64, length(adck.t)); NaN])
+    end
+    # Returns the gradient amplitudes and time for plots
+    return (t = t, a = a)
 end
