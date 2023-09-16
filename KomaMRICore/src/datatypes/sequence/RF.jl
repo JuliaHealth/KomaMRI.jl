@@ -137,6 +137,7 @@ RF(f::Function, T::Real, N::Int64=301; delay::Real=0, Δf=0) = begin
 	RF(A,T,Δf,delay)
 end
 
+# DEPRECATED?
 """
     α = get_flip_angle(x::RF)
 
@@ -155,6 +156,7 @@ get_flip_angle(x::RF) = begin
 	return α
 end
 
+# DEPRECATED?
 """
     t = get_RF_center(x::RF)
 

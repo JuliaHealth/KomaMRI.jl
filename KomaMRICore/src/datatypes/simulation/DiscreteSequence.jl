@@ -54,6 +54,7 @@ is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
 Return the DiscreteSequence object with the important vectors prepared for simulation
 """
 function discretize(seq::Sequence; simParams=default_sim_params())
+    # DEPRECATED?
     ### Previous discretization
     ### The new discretization is faster but is has more allocation
     ### When simulating, the new simulation with the new discretization is slower, I don't know why ...
@@ -63,7 +64,8 @@ function discretize(seq::Sequence; simParams=default_sim_params())
     #Gx, Gy, Gz = get_grads(seq, t)
     #tadc       = get_adc_sampling_times(seq)
     #ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
-    sq = sequence_samples(seq; Δtgr=simParams["Δt"] , Δtrf=simParams["Δt_rf"])
+    # This is the new discretization
+    sq = sequence_samples(seq; Δtgr=simParams["Δt"], Δtrf=simParams["Δt_rf"])
     t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.adc_onmask
     return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
 end
@@ -85,6 +87,9 @@ function block_samples(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Fl
     rf_ison, gx_ison, gy_ison, gz_ison, adc_ison = erf.ison, egx.ison, egy.ison, egz.ison, eadc.ison
     rf_tu, gx_tu, gy_tu, gz_tu, adc_t = erf.tu, egx.tu, egy.tu, egz.tu, eadc.t
 
+    # Get information about RF signal
+    trf_center, rfα, rftype = erf.tx, erf.α, erf.type
+
     # Get the simulations times
     # This can be optimized.
     # So far, if the Δtrf, Δtgr and Δtadc (an ADC with uniform times, Δtadc is not defined till now)
@@ -99,7 +104,7 @@ function block_samples(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Fl
 
     # Get the unique-increasing-times
     t = Float64[]
-    (rf_ison) && append!(t, trf[(rf_tu[1] .< trf) .& (trf .< rf_tu[end])], [rf_tu[1]; get_RF_center(rf); rf_tu[end]])       # consider RF pivot times and equispaced RF times when is RF on
+    (rf_ison) && append!(t, trf[(rf_tu[1] .< trf) .& (trf .< rf_tu[end])], [rf_tu[1]; trf_center; rf_tu[end]])              # consider RF pivot times and equispaced RF times when is RF on
     (gx_ison) && append!(t, tgr[(gx_tu[1] .< tgr) .& (tgr .< gx_tu[end])], [gx_tu[1]; gx_tu[2]; gx_tu[end-1]; gx_tu[end]])  # consider GX pivot times and equispaced GR times when is GX on
     (gy_ison) && append!(t, tgr[(gy_tu[1] .< tgr) .& (tgr .< gy_tu[end])], [gy_tu[1]; gy_tu[2]; gy_tu[end-1]; gy_tu[end]])  # consider GY pivot times and equispaced GR times when is GY on
     (gz_ison) && append!(t, tgr[(gz_tu[1] .< tgr) .& (tgr .< gz_tu[end])], [gz_tu[1]; gz_tu[2]; gz_tu[end-1]; gz_tu[end]])  # consider GZ pivot times and equispaced GR times when is GZ on
@@ -137,12 +142,13 @@ function block_samples(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Fl
     gy_onmask = (gy_ison) ? ((gy_tu[1] .<= tc) .& (tc .<= gy_tu[end])) : BitVector(zeros(Ntc))
     gz_onmask = (gz_ison) ? ((gz_tu[1] .<= tc) .& (tc .<= gz_tu[end])) : BitVector(zeros(Ntc))
     adc_onmask = BitVector([any(t .== adc_t) for t in tc])
+    rfix = (rf_ison) ? findfirst(tc .== trf_center) : 0
 
     # Return amplitudes and simulation-times with possibly more samples at the same time
     rfa, rfΔf, gxa, gya, gza = vcat(m[:,1]...), vcat(m[:,2]...), vcat(m[:,3]...), vcat(m[:,4]...), vcat(m[:,5]...)
     return (t = tc, Δt = Δtc, rfa = rfa, rfΔf = rfΔf, gxa = gxa, gya = gya, gza = gza,
             rf_onmask = rf_onmask, gx_onmask = gx_onmask, gy_onmask = gy_onmask, gz_onmask = gz_onmask,
-            adc_onmask = adc_onmask, adc_t = adc_t)
+            adc_onmask = adc_onmask, adc_t = adc_t, rfα = rfα, rftype = rftype, rfix = rfix)
 end
 
 """
@@ -151,15 +157,17 @@ Get samples of the complete sequence
 function sequence_samples(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
 
     # Create empty vectors to be filled
-    t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[], Bool[], Bool[], Bool[], Bool[], Float64[]
+    t, Δt, rfa, rfΔf, gxa, gya, gza = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[]
+    rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc = Bool[], Bool[], Bool[], Bool[], Bool[], Float64[]
 
     # These are the initial times of the blocks
     to = cumsum([0; durs(seq)])
 
     # Iterate over each block of the sequence
-    Nblk = length(seq)                                   # number of blocks
-    blk_range = Vector{UnitRange{Int64}}(undef, Nblk)    # empty vector of block-range to be filled
-    ko = 1                                               # initialization of the index of the first time sample for block ranges
+    Nblk = length(seq)                                                   # number of blocks
+    blk_ranges = Vector{UnitRange{Int64}}(undef, Nblk)                   # empty vector of block-range to be filled
+    rfα, rftype, rfix = Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Int64}(undef, Nblk)
+    ko = 1                                                               # initialization of the index of the first time sample for block ranges
     for k in 1:Nblk
 
         # Get the vector values of the block
@@ -167,8 +175,11 @@ function sequence_samples(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-
 
         # Fill the vector of block masks
         kn = ko + length(blk.t) - 1     # index of the last time sample of this 1-block-sequence (it is also the first time sample of the next 1-block-sequence)
-        blk_range[k] = (ko:kn)          # range of the 1-block-sequence for time samples
+        blk_ranges[k] = (ko:kn)          # range of the 1-block-sequence for time samples
         ko = kn                         # update the index of the first time sample for the next block range
+
+        # Fill the RF properties vector (block dependent)
+        rfα[k] = blk.rfα; rftype[k] = blk.rftype; rfix[k] = blk.rfix
 
         # Add the initial condition just for the first block
         if k == 1
@@ -185,12 +196,12 @@ function sequence_samples(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-
         append!(rf_onmask, blk.rf_onmask[2:end]); append!(gx_onmask, blk.gx_onmask[2:end]); append!(gy_onmask, blk.gy_onmask[2:end]); append!(gz_onmask, blk.gz_onmask[2:end]); append!(adc_onmask, blk.adc_onmask[2:end])
 
         # Add for the previous-block-last-sample for the masks
-        rf_onmask[blk_range[k][1]] |= blk.rf_onmask[1]; gx_onmask[blk_range[k][1]] |= blk.gx_onmask[1]; gy_onmask[blk_range[k][1]] |= blk.gy_onmask[1]; gz_onmask[blk_range[k][1]] |= blk.gz_onmask[1]; adc_onmask[blk_range[k][1]] |= blk.adc_onmask[1]
+        rf_onmask[blk_ranges[k][1]] |= blk.rf_onmask[1]; gx_onmask[blk_ranges[k][1]] |= blk.gx_onmask[1]; gy_onmask[blk_ranges[k][1]] |= blk.gy_onmask[1]; gz_onmask[blk_ranges[k][1]] |= blk.gz_onmask[1]; adc_onmask[blk_ranges[k][1]] |= blk.adc_onmask[1]
 
     end
 
     # Return the vector values of the sequence
     return (t = t, Δt = Δt, rfa = rfa, rfΔf = rfΔf, gxa = gxa, gya = gya, gza = gza,
             rf_onmask = rf_onmask, gx_onmask = gx_onmask, gy_onmask = gy_onmask, gz_onmask = gz_onmask,
-            adc_onmask = adc_onmask, tadc = tadc, blk_range = blk_range)
+            adc_onmask = adc_onmask, tadc = tadc, blk_ranges = blk_ranges, rfα = rfα, rftype = rftype, rfix = rfix)
 end

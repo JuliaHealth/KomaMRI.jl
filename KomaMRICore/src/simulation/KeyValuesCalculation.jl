@@ -1,3 +1,4 @@
+# DEPRECATED?
 """
     A = get_theo_A(g::Grad; off_val=0)
     A = get_theo_A(r::RF; off_val=0, max_rf_samples=Inf)
@@ -83,7 +84,7 @@ get_theo_A(d::ADC; off_val=0) = begin
 	aux
 end
 
-
+# DEPRECATED?
 """
     t = get_theo_t(g::Grad)
     t = get_theo_t(r::RF; max_rf_samples=Inf)
@@ -158,7 +159,7 @@ get_theo_t(d::ADC) = begin
 	[0; t; d.delay+d.T]
 end
 
-
+# DEPRECATED?
 """
     t, g = get_theo_Gi(seq, idx)
 
@@ -321,23 +322,33 @@ function event_values(rf::RF)
 
     # Define empty vectors to be filled and some params
     amps, Δfs, times = Float64[], Float64[], Float64[]
-    NT, NA = length(rf.T), length(rf.A)
+    NT, NA, NΔf = length(rf.T), length(rf.A), length(rf.Δf)
     ison = (sum(abs.(rf.A)) != 0) && (sum(rf.T) != 0)
+    α, type, tx, ax = NaN, false, NaN, NaN
 
     # Get the amplitudes from object parameters definitions
     if !ison
-        return (ison = ison, tu = Float64[], a = [Float64[]], Δf = [Float64[]])    # empty values definition
+        return (ison = ison, α = α, type = type, tx = tx, ax = ax, tu = Float64[], a = [Float64[]], Δf = [Float64[]])    # empty values definition
     elseif (NA == 1 && NT == 1)
         amps, Δfs, times = [0.; rf.A; rf.A; 0.], [0.; 0.; rf.Δf; 0.], cumsum([rf.delay; 0.; rf.T; 0.])
+        α = (360. * γ * abs(rf.A * rf.T))
+        tx, ax = (.5 * rf.T), rf.A
     elseif (NA > 1 && NT == 1)
-        amps, Δfs, times = [0.; rf.A; 0.], (rf.Δf .* ones(NA+2)), cumsum([rf.delay; 0.; (ones(NA-1).*(rf.T/(NA-1))); 0.])
+        amps, Δfs, times = [0.; rf.A; 0.], ((NΔf == 1) ? (rf.Δf .* ones(NA+2)) : ([rf.Δf[1]; rf.Δf; rf.Δf[end]])), cumsum([rf.delay; 0.; (ones(NA-1).*(rf.T/(NA-1))); 0.])
+        α = (180. * γ * abs(sum(rf.A[2:end] + rf.A[1:end-1]) * rf.T / NT))
+        ix = argmax(abs.(amps))
+        tx, ax = times[ix], amps[ix]
     elseif (NA > 1 && NT > 1)
-        amps, Δfs, times = [0.; rf.A; 0.], [rf.Δf[1]; rf.Δf; rf.Δf[end]], cumsum([rf.delay; 0.; (ones(NT) .* rf.T); 0.])
+        amps, Δfs, times = [0.; rf.A; 0.], ((NΔf == 1) ? (rf.Δf .* ones(NA+2)) : ([rf.Δf[1]; rf.Δf; rf.Δf[end]])), cumsum([rf.delay; 0.; (ones(NT) .* rf.T); 0.])
+        α = (180. * γ * abs(sum((rf.A[2:end] + rf.A[1:end-1]) .* rf.T)))
+        ix = argmax(abs.(amps))
+        tx, ax = times[ix], amps[ix]
     end
+    type = (α <= 90.01)
 
     # Here, at the same time can be multiple amplitude values,
     # so we keep up to 2 amplitudes at the same time
-    tu =  sort(unique(times))
+    tu =  unique(times)
     Ntu = length(tu)
     a = Vector{Vector{Float64}}(undef, Ntu)
     Δf = Vector{Vector{Float64}}(undef, Ntu)
@@ -349,7 +360,7 @@ function event_values(rf::RF)
     end
 
     # Return the object values
-    return (ison = ison, tu = tu, a = a, Δf = Δf)
+    return (ison = ison, α = α, type = type, tx = tx, ax = ax , tu = tu, a = a, Δf = Δf)
 end
 
 """
@@ -394,14 +405,14 @@ The times are not necessary unique, at the same time can be up to two amplitudes
 """
 function event_samples(rf::RF)
     erf = event_values(rf)
-    ison = erf.ison
+    ison, α, type, tx, ax = erf.ison, erf.α, erf.type, erf.tx, erf.ax
     t, a, Δf = Float64[], Float64[], Float64[]
     for i in eachindex(erf.tu)
         append!(t, fill(erf.tu[i], length(erf.a[i])))
         append!(a, erf.a[i])
         append!(Δf, erf.Δf[i])
     end
-    return (ison = ison, t = t, a = a, Δf = Δf)
+    return (ison = ison, α = α, type = type, tx = tx, ax = ax, t = t, a = a, Δf = Δf)
 end
 
 ############################################################################################

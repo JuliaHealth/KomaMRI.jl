@@ -52,7 +52,7 @@ rotz(θ::Real) = [cos(θ) -sin(θ)	0;
 The Gradient struct.
 
 # Arguments
-- `A`: (`::Float64`, `[T]`) amplitude of the gradient
+- `A`: (`::Float64`, `[T/m]`) amplitude of the gradient
 - `T`: (`::Float64`, `[s]`) duration of the flat-top
 - `rise`: (`::Real`, `[s]`) duration of the rise
 - `fall`: (`::Real`, `[s]`) duration of the fall

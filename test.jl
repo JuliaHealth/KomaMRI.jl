@@ -5,7 +5,7 @@ using PlotlyJS, KomaMRI
 sys = Scanner()
 obj = brain_phantom2D()
 
-# Define the sequence
+# For defining an EPI sequence
 function create_seq_epi(sys)
     B1 = sys.B1;
     durRF = π/2/(2π*γ*B1)
@@ -20,38 +20,71 @@ function create_seq_epi(sys)
     seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
     return seq
 end
+
+# For plotting the user-defined sequence
+function plotuserseq(seq::Sequence)
+    rf = KomaMRICore.rf_samples_for_plots(seq)
+    gr = KomaMRICore.gr_samples_for_plots(seq)
+    adc = KomaMRICore.adc_samples_for_plots(seq)
+    prfa = scatter(; x=rf.t, y=(5000 .* abs.(rf.a)), mode="lines+markers", name="rf.a")
+    prfΔf = scatter(; x=rf.t, y=rf.Δf, mode="lines+markers", name="rf.Δf")
+    pgx = scatter(; x=gr.tx, y=gr.ax, mode="lines+markers", name="GX")
+    pgy = scatter(; x=gr.ty, y=gr.ay, mode="lines+markers", name="GY")
+    pgz = scatter(; x=gr.tz, y=gr.az, mode="lines+markers", name="GZ")
+    padc = scatter(; x=adc.t, y=(.01 .*adc.a), mode="lines+markers", name="ADC")
+    prfx = scatter(; x=rf.tx, y=(5000 .*abs.(rf.ax)), mode="markers", marker=attr(symbol="x"), name="RFcenter")
+    display(plot([prfa; prfΔf; pgx; pgy; pgz; padc; prfx], Layout(title="User Defined Sequence")))
+end
+
+# For plotting the simulated sequence
+function plotmaskseq(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
+    sq = sequence_samples(seq; Δtgr, Δtrf)
+    ix = sq.rfix[sq.rfix .!= 0]
+    prfa = scatter(; x=sq.t[sq.rf_onmask], y=(5000 .* abs.(sq.rfa)[sq.rf_onmask]), mode="lines+markers", name="RF")
+    pgxa = scatter(; x=sq.t[sq.gx_onmask], y=sq.gxa[sq.gx_onmask], mode="lines+markers", name="GX")
+    pgya = scatter(; x=sq.t[sq.gy_onmask], y=sq.gya[sq.gy_onmask], mode="lines+markers", name="GY")
+    pgza = scatter(; x=sq.t[sq.gz_onmask], y=sq.gza[sq.gz_onmask], mode="lines+markers", name="GZ")
+    padc = scatter(; x=sq.tadc, y=(.01 .* ones(length(sq.tadc))), mode="markers", name="ADC")
+    prfx = scatter(; x=sq.t[ix], y=(5000 .* abs.(sq.rfa[ix])), mode="markers", marker=attr(symbol="x"), name="RFcenter")
+    display(plot([prfa; pgxa; pgya; pgza; padc; prfx], Layout(title="Koma Simulated Sequence (Masked Points when events are on)")))
+end
+
+# For plotting the simulated sequence
+function plotsimuseq(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
+    sq = sequence_samples(seq; Δtgr, Δtrf)
+    ix = sq.rfix[sq.rfix .!= 0]
+    prfa = scatter(; x=sq.t, y=(5000 .* abs.(sq.rfa)), mode="lines+markers", name="RF")
+    pgxa = scatter(; x=sq.t, y=sq.gxa, mode="lines+markers", name="GX")
+    pgya = scatter(; x=sq.t, y=sq.gya, mode="lines+markers", name="GY")
+    pgza = scatter(; x=sq.t, y=sq.gza, mode="lines+markers", name="GZ")
+    padc = scatter(; x=sq.tadc, y=(.01 .* ones(length(sq.tadc))), mode="markers", name="ADC")
+    prfx = scatter(; x=sq.t[ix], y=(5000 .* abs.(sq.rfa[ix])), mode="markers", marker=attr(symbol="x"), name="RFcenter")
+    display(plot([prfa; pgxa; pgya; pgza; padc; prfx], Layout(title="Koma Simulated Sequence (All Points)")))
+end
+
+# For plotting the kspace of the simulated sequence
+function plotsimukspace(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
+    k = KomaMRICore.kspace(seq; Δtgr, Δtrf)
+    p1 = scatter3d(; x=k.x, y=k.y, z=k.z, mode="lines", hoverinfo="skip", name="simu-samples")
+    p2 = scatter3d(; x=k.x[k.adc_onmask], y=k.y[k.adc_onmask], z=k.z[k.adc_onmask], mode="markers", name="adc-samples")
+    p3 = scatter3d(; x=[0.], y=[0.], z=[0.], marker=attr(symbol="cross",size=10,color="red", name="ko"))
+    display(plot([p1; p2; p3], Layout(title="K-Space of the Simulated Sequence")))
+end
+
+# Define sequence
 seq = create_seq_epi(sys)
 
-# Plot the sequence
-function plotsimseq(seq::Sequence)
-    sq = sequence_samples(seq)
-    #prfa = scatter(;x=sq.t[sq.rf_onmask], y=abs.(sq.rfa)[sq.rf_onmask], mode="lines+markers", name="RF")
-    #pgxa = scatter(;x=sq.t[sq.gx_onmask], y=sq.gxa[sq.gx_onmask], mode="lines+markers", name="GX")
-    #pgya = scatter(;x=sq.t[sq.gy_onmask], y=sq.gya[sq.gy_onmask], mode="lines+markers", name="GY")
-    #pgza = scatter(;x=sq.t[sq.gz_onmask], y=sq.gza[sq.gz_onmask], mode="lines+markers", name="GZ")
-    #padc = scatter(;x=sq.tadc, y=(.01 .* ones(length(sq.tadc))), mode="markers", name="ADC")
-    prfa = scatter(;x=sq.t, y=(5000 .*abs.(sq.rfa)), mode="lines+markers", name="RF")
-    pgxa = scatter(;x=sq.t, y=sq.gxa, mode="lines+markers", name="GX")
-    pgya = scatter(;x=sq.t, y=sq.gya, mode="lines+markers", name="GY")
-    pgza = scatter(;x=sq.t, y=sq.gza, mode="lines+markers", name="GZ")
-    padc = scatter(;x=sq.tadc, y=(.01 .* ones(length(sq.tadc))), mode="markers", name="ADC")
-    display(plot([prfa; pgxa; pgya; pgza; padc], Layout(title="New Discretized Sequence")))
-end
-plotsimseq(seq)
+# Plot sequence
+plotuserseq(seq)
+plotmaskseq(seq)
+plotsimuseq(seq)
 
-# Plot the kspace of the sequence
-function plotkspace(seq::Sequence)
-    kx, ky, kz, adc_onmask = KomaMRICore.kspace(seq)
-    p1 = scatter3d(; x=kx, y=ky, z=kz, mode="lines", hoverinfo="skip")
-    p2 = scatter3d(; x=kx[adc_onmask], y=ky[adc_onmask], z=kz[adc_onmask], mode="markers")
-    p3 = scatter3d(; x=[0.], y=[0.], z=[0.], marker=attr(symbol="cross",size=10,color="red"))
-    display(plot([p1; p2; p3], Layout(title="K-Space of the New Discretized Sequence")))
-end
-plotkspace(seq)
+# Plot the simulated kspace
+plotsimukspace(seq)
 
 # Simulate for new simple simulation
 sq = sequence_samples(seq)
-t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc, blk_range = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.rf_onmask, sq.gx_onmask, sq.gy_onmask, sq.gz_onmask, sq.adc_onmask, sq.tadc, sq.blk_range
+t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc, blk_ranges = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.rf_onmask, sq.gx_onmask, sq.gy_onmask, sq.gz_onmask, sq.adc_onmask, sq.tadc, sq.blk_ranges
 magxy, magz, sig = komasim(seq, obj)
 display(plot([scatter(;x=t, y=abs.([sum(magxy; dims=1)...]), mode="lines+markers", name="sum(magxy)"); scatter(;x=t, y=abs.(sig), mode="lines+markers", name="sig")], Layout(title="Raw-Signal of the New Simulator-Function")))
 
@@ -100,7 +133,8 @@ sys = Scanner()
 
 # Plot the sequence
 plot_seq(seq)
-plotsimseq(seq)
+plotuserseq(seq)
+plotsimuseq(seq)
 
 # Old Koma simulation
 simParams = Dict{String, Any}("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>"mat")
@@ -109,7 +143,7 @@ told = KomaMRICore.get_adc_sampling_times(seq)
 
 # New Koma simulation
 sq = sequence_samples(seq)
-t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc, blk_range = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.rf_onmask, sq.gx_onmask, sq.gy_onmask, sq.gz_onmask, sq.adc_onmask, sq.tadc, sq.blk_range
+t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc, blk_ranges = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.rf_onmask, sq.gx_onmask, sq.gy_onmask, sq.gz_onmask, sq.adc_onmask, sq.tadc, sq.blk_ranges
 magxy, magz, sig = komasim(seq, obj)
 signew = sig[adc_onmask] / prod(size(obj))
 tnew = t[adc_onmask]
@@ -176,19 +210,3 @@ function plotadc(seq::Sequence)
     display(plot([padc], Layout(title="ADCs of the Sequence")))
 end
 plotadc(seq)
-
-# Plot sequence
-function plotseq(seq::Sequence)
-    rf = KomaMRICore.rf_samples_for_plots(seq)
-    gr = KomaMRICore.gr_samples_for_plots(seq)
-    adc = KomaMRICore.adc_samples_for_plots(seq)
-    prfa = scatter(; x=rf.t, y=(5000 .* abs.(rf.a)), mode="lines+markers", name="rf.a")
-    prfΔf = scatter(; x=rf.t, y=rf.Δf, mode="lines+markers", name="rf.Δf")
-    pgx = scatter(; x=gr.tx, y=gr.ax, mode="lines+markers", name="GX")
-    pgy = scatter(; x=gr.ty, y=gr.ay, mode="lines+markers", name="GY")
-    pgz = scatter(; x=gr.tz, y=gr.az, mode="lines+markers", name="GZ")
-    padc = scatter(; x=adc.t, y=(.01 .*adc.a), mode="lines+markers", name="ADC")
-    display(plot([prfa; prfΔf; pgx; pgy; pgz; padc], Layout(title="Sequence")))
-end
-plotseq(seq)
-plotsimseq(seq)

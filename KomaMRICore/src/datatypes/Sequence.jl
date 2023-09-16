@@ -300,6 +300,7 @@ The total duration of the sequence in [s].
 """
 dur(x::Sequence) = sum(durs(x))
 
+# DEPRECATED?
 """
     y = ⏢(A, t, ΔT, ζ1, ζ2, delay)
 
@@ -344,6 +345,7 @@ Generates a trapezoidal waveform vector.
 	aux
 end
 
+# DEPRECATED?
 """
     Gx, Gy, Gz = get_grads(seq, t::Vector)
     Gx, Gy, Gz = get_grads(seq, t::Matrix)
@@ -398,6 +400,7 @@ end
 # 	(sum([⏢(A[j,i],t.-T0[i],T[j,i],ζ1[j,i],ζ2[j,i],delay[j,i]) for i=1:length(seq)]) for j=1:3)
 # end
 
+# DEPREACTED?
 """
     B1, Δf_rf  = get_rfs(seq::Sequence, t)
 
@@ -423,6 +426,8 @@ get_rfs(seq::Sequence, t) = begin
 	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]).-2EPS,EPS,EPS,delay[i]) for i=1:length(seq)])
 	)
 end
+
+# DEPRECATED?
 """
     y = get_flip_angles(x::Sequence)
 
@@ -436,6 +441,7 @@ Returns all the flip angles of the RF pulses in the sequence `x`.
 """
 get_flip_angles(x::Sequence) = get_flip_angle.(x.RF)[:]
 
+# DEPRECATED?
 """
     rf_idx, rf_type = get_RF_types(seq, t)
 
@@ -472,6 +478,7 @@ function get_RF_types(seq, t)
 	rf_idx, rf_type
 end
 
+# DEPRECATED?
 """
     kspace, kspace_adc = get_kspace(seq::Sequence; Δt=1)
 
@@ -519,17 +526,6 @@ get_kspace(seq::Sequence; Δt=1) = begin
 	kspace_adc = [kx_adc ky_adc kz_adc]
 	#Final
 	kspace, kspace_adc
-end
-
-"""
-Returns the kspace for the new discretized sequence
-"""
-function kspace(seq::Sequence; Δtgr::Float64=1e-3)
-    sq = sequence_samples(seq; Δtgr)
-    kx = γ * cumsum([0.; .5 * (sq.gxa[1:end-1] .+ sq.gxa[2:end]) .* sq.Δt])
-    ky = γ * cumsum([0.; .5 * (sq.gya[1:end-1] .+ sq.gya[2:end]) .* sq.Δt])
-    kz = γ * cumsum([0.; .5 * (sq.gza[1:end-1] .+ sq.gza[2:end]) .* sq.Δt])
-    return kx, ky, kz, sq.adc_onmask
 end
 
 """
@@ -736,11 +732,14 @@ function gr_samples(seq::Sequence)
     tx, ty, tz = Float64[], Float64[], Float64[]
     ax, ay, az = Float64[], Float64[], Float64[]
     # Iterate over every block of the sequence
-    Nblk = length(seq)              # Number of blocks
-    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
+    Nblk = length(seq)                  # Number of blocks
+    isxon, isyon, iszon = Vector{Bool}(undef, Nblk), Vector{Bool}(undef, Nblk), Vector{Bool}(undef, Nblk)    # Initialize empty vectors of block properties
+    to = cumsum([0; durs(seq)])         # Initial time of every block of the sequece
     for k in 1:Nblk
         # Get the all the samples for the gradients at this block
         gxk, gyk, gzk = event_samples(seq.GR[1,k]), event_samples(seq.GR[2,k]), event_samples(seq.GR[3,k])
+        # Fill gr block properties
+        isxon[k], isyon[k], iszon[k] = gxk.ison, gyk.ison, gzk.ison
         # Just for the first block, append all the samples
         if k == 1
             append!(tx, to[k] .+ gxk.t); append!(ty, to[k] .+ gyk.t); append!(tz, to[k] .+ gzk.t)
@@ -753,7 +752,8 @@ function gr_samples(seq::Sequence)
         end
     end
     # Returns the gradient amplitudes and time
-    return (tx = tx, ty = ty, tz = tz, ax = ax, ay = ay, az = az)
+    return (isxon = isxon, isyon = isyon, iszon = iszon,
+            tx = tx, ty = ty, tz = tz, ax = ax, ay = ay, az = az)
 end
 
 """
@@ -767,16 +767,20 @@ function gr_samples_for_plots(seq::Sequence)
     ax, ay, az = Float64[], Float64[], Float64[]
     # Iterate over every block of the sequence
     Nblk = length(seq)              # Number of blocks
+    isxon, isyon, iszon = Vector{Bool}(undef, Nblk), Vector{Bool}(undef, Nblk), Vector{Bool}(undef, Nblk)    # Initialize empty vectors of block properties
     to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
     for k in 1:Nblk
         # Get the all the samples for the gradients at this block
         gxk, gyk, gzk = event_samples(seq.GR[1,k]), event_samples(seq.GR[2,k]), event_samples(seq.GR[3,k])
+        # Fill gr block properties
+        isxon[k], isyon[k], iszon[k] = gxk.ison, gyk.ison, gzk.ison
         # Append all the samples of the gradientes and add a NaN values ate the end of the block
         append!(tx, [to[k] .+ gxk.t; to[k+1]]); append!(ty, [to[k] .+ gyk.t;to[k+1]]); append!(tz, [to[k] .+ gzk.t; to[k+1]])
         append!(ax, [gxk.a; NaN]); append!(ay, [gyk.a; NaN]); append!(az, [gzk.a; NaN])
     end
     # Returns the gradient amplitudes and time for plots
-    return (tx = tx, ty = ty, tz = tz, ax = ax, ay = ay, az = az)
+    return (isxon = isxon, isyon = isyon, iszon = iszon,
+            tx = tx, ty = ty, tz = tz, ax = ax, ay = ay, az = az)
 end
 
 
@@ -792,10 +796,13 @@ function rf_samples(seq::Sequence)
     t, a, Δf = Float64[], Float64[], Float64[]
     # Iterate over every block of the sequence
     Nblk = length(seq)              # Number of blocks
+    ison, α, type, tx, ax = Vector{Bool}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk)  # Initialize empty vectors of block properties
     to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
     for k in 1:Nblk
         # Get the all the samples for the rf at this block
         rfk = event_samples(seq.RF[k])
+        # Fill rf block properties
+        ison[k], α[k], type[k], tx[k], ax[k] = rfk.ison, rfk.α, rfk.type, rfk.tx, rfk.ax
         # Just for the first block, append all the samples
         if k == 1
             append!(t, to[k] .+ rfk.t); append!(a, rfk.a); append!(Δf, rfk.Δf)
@@ -805,7 +812,7 @@ function rf_samples(seq::Sequence)
         end
     end
     # Returns the gradient amplitudes and time
-    return (t = t, a = a, Δf = Δf)
+    return (ison = ison, α = α, type = type, tx = tx, ax = ax, t = t, a = a, Δf = Δf)
 end
 
 """
@@ -818,15 +825,18 @@ function rf_samples_for_plots(seq::Sequence)
     t, a, Δf = Float64[], Float64[], Float64[]
     # Iterate over every block of the sequence
     Nblk = length(seq)              # Number of blocks
+    ison, α, type, tx, ax = Vector{Bool}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk)  # Initialize empty vectors of block properties
     to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
     for k in 1:Nblk
         # Get the all the samples for the rf at this block
         rfk = event_samples(seq.RF[k])
+        # Fill rf block properties
+        ison[k], α[k], type[k], tx[k], ax[k] = rfk.ison, rfk.α, rfk.type, rfk.tx, rfk.ax
         # Append all the samples of the rfs and add a NaN values ate the end of the block
         append!(t, [to[k] .+ rfk.t; to[k+1]]); append!(a, [rfk.a; NaN]);  append!(Δf, [rfk.Δf; NaN])
     end
     # Returns the gradient amplitudes and time for plots
-    return (t = t, a = a, Δf = Δf)
+    return (ison = ison, α = α, type = type, tx = tx, ax = ax, t = t, a = a, Δf = Δf)
 end
 
 ############################################################################################
@@ -840,11 +850,14 @@ function adc_samples(seq::Sequence)
     # Initialize empty vector to be filled
     t = Float64[]
     # Iterate over every block of the sequence
-    Nblk = length(seq)              # Number of blocks
-    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
+    Nblk = length(seq)                  # Number of blocks
+    ison = Vector{Bool}(undef, Nblk)    # Initialize empty vectors of block properties
+    to = cumsum([0; durs(seq)])         # Initial time of every block of the sequece
     for k in 1:Nblk
         # Get the all the samples for the adc at this block
         adck = event_samples(seq.ADC[k])
+        # Fill adc block properties
+        ison[k] = adck.ison
         # Just for the first block, append all the samples
         if k == 1
             append!(t, to[k] .+ adck.t);
@@ -854,7 +867,7 @@ function adc_samples(seq::Sequence)
         end
     end
     # Returns the gradient amplitudes and time
-    return (t = t,)
+    return (ison = ison, t = t)
 end
 
 """
@@ -866,14 +879,44 @@ function adc_samples_for_plots(seq::Sequence)
     # Initialize empty vector to be filled
     t, a = Float64[], Float64[]
     # Iterate over every block of the sequence
-    Nblk = length(seq)              # Number of blocks
-    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
+    Nblk = length(seq)                  # Number of blocks
+    ison = Vector{Bool}(undef, Nblk)    # Initialize empty vectors of block properties
+    to = cumsum([0; durs(seq)])         # Initial time of every block of the sequece
     for k in 1:Nblk
         # Get the all the samples for the adc at this block
         adck = event_samples(seq.ADC[k])
+        # Fill adc block properties
+        ison[k] = adck.ison
         # Append all the samples of the adc and add a NaN values ate the end of the block
         append!(t, [to[k] .+ adck.t; to[k+1]]); append!(a, [ones(Int64, length(adck.t)); NaN])
     end
-    # Returns the gradient amplitudes and time for plots
-    return (t = t, a = a)
+    # Returns the adc amplitudes and time for plots
+    return (ison = ison, t = t, a = a)
+end
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+
+"""
+Returns the kspace for the new discretized sequence
+"""
+function kspace(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-3)
+    sq = sequence_samples(seq; Δtgr, Δtrf)
+    Nt = length(sq.t)
+    kx, ky, kz = zeros(Nt), zeros(Nt), zeros(Nt)
+    for (k, blk_range) in enumerate(sq.blk_ranges)
+        for i in blk_range[1:end-1]
+            kx[i+1] = kx[i] + γ * .5 * (sq.gxa[i+1] + sq.gxa[i]) * sq.Δt[i]
+            ky[i+1] = ky[i] + γ * .5 * (sq.gya[i+1] + sq.gya[i]) * sq.Δt[i]
+            kz[i+1] = kz[i] + γ * .5 * (sq.gza[i+1] + sq.gza[i]) * sq.Δt[i]
+            if i == sq.rfix
+                kx[i+1] *= (-sq.rftype[k])
+                ky[i+1] *= (-sq.rftype[k])
+                kz[i+1] *= (-sq.rftype[k])
+            end
+        end
+    end
+    return (x = kx, y = ky, z = kz, adc_onmask = sq.adc_onmask)
 end

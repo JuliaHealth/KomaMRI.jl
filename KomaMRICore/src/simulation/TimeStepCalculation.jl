@@ -98,6 +98,7 @@ function points_from_key_times(times; dt)
 	return t
 end
 
+# DEPRECATED?
 """
     t, Δt = get_uniform_times(seq, Δt; Δt_rf=1e-4)
 
@@ -132,6 +133,7 @@ function get_uniform_times(seq, Δt; Δt_rf=1e-4)
 	t, Δt = get_variable_times(seq; dt=Δt, dt_rf=Δt_rf)
 end
 
+# DEPRECATED?
 """
     t, Δt = get_variable_times(seq; dt=1, dt_rf=1e-4)
 
@@ -201,41 +203,44 @@ function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
 	t, Δt
 end
 
-"""
-    key_idxs = get_breaks_in_RF_key_points(seq::Sequence, t)
-
-Return the indices of the `t` time array where are RF key points from the `seq` sequence.
-Thus, it is possible to split the simulation into excitation and precession computations.
-
-!!! note
-    By `RF key points` we mean all the start and end points where the RF excitation takes
-    place with the [`KomaMRI.is_RF_on`](@ref) function.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `t`: (`::Vector{Int64}`, `[s]`) non-uniform time array
-
-# Returns
-- `key_idxs`: (`::Vector{Int64}`) array of indices of the `t` time array where are RF key
-    points
-"""
-function get_breaks_in_RF_key_points(seq::Sequence, t)
-	T0 = cumsum([0; durs(seq)[:]])
-	# Identifying RF key points
-	key_points = Float64[]
-	key_idxs = Int[]
-	for (i, s) = enumerate(seq)
-		if is_RF_on(s)
-			t0 = T0[i] + s.RF.delay[1]	#start of RF waverform
-			tf = T0[i] + s.RF.dur[1]	#end of RF waveform
-			append!(key_points, [t0; tf])
-			idx0 = findall(t .== t0)
-			idxf = findall(t .== tf)
-			append!(key_idxs,   [idx0; idxf])
-		end
-	end
-	return key_idxs
-end
+##################
+### DEPRECATED ###
+##################
+#"""
+#    key_idxs = get_breaks_in_RF_key_points(seq::Sequence, t)
+#
+#Return the indices of the `t` time array where are RF key points from the `seq` sequence.
+#Thus, it is possible to split the simulation into excitation and precession computations.
+#
+#!!! note
+#    By `RF key points` we mean all the start and end points where the RF excitation takes
+#    place with the [`KomaMRI.is_RF_on`](@ref) function.
+#
+## Arguments
+#- `seq`: (`::Sequence`) Sequence struct
+#- `t`: (`::Vector{Int64}`, `[s]`) non-uniform time array
+#
+## Returns
+#- `key_idxs`: (`::Vector{Int64}`) array of indices of the `t` time array where are RF key
+#    points
+#"""
+#function get_breaks_in_RF_key_points(seq::Sequence, t)
+#	T0 = cumsum([0; durs(seq)[:]])
+#	# Identifying RF key points
+#	key_points = Float64[]
+#	key_idxs = Int[]
+#	for (i, s) = enumerate(seq)
+#		if is_RF_on(s)
+#			t0 = T0[i] + s.RF.delay[1]	#start of RF waverform
+#			tf = T0[i] + s.RF.dur[1]	#end of RF waveform
+#			append!(key_points, [t0; tf])
+#			idx0 = findall(t .== t0)
+#			idxf = findall(t .== tf)
+#			append!(key_idxs,   [idx0; idxf])
+#		end
+#	end
+#	return key_idxs
+#end
 
 function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
 	ranges = UnitRange{Int}[]
