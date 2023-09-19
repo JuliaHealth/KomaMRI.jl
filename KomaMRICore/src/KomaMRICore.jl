@@ -63,7 +63,7 @@ export get_itp_functions, get_displacements, get_pieces_limits
 #Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
-export get_kspace, rotx, roty, rotz
+export get_kspace, rotx, roty, rotz, rotation_matrix
 #Simulator
 export simulate, simulate_slice_profile
 
