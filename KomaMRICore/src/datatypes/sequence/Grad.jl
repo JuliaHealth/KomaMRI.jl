@@ -43,6 +43,35 @@ rotz(θ::Real) = [cos(θ) -sin(θ)	0;
 				 sin(θ) cos(θ)	0;
 				 0 		0 		1]
 
+
+"""
+	R = rotation_matrix(G)
+
+Creates a rotation matrix which converts vector [0 0 1] into vector G
+"""
+rotation_matrix(G=[0;0;0]) = begin
+# We need to create a rotation matrix which transfomrs vector [0 0 1] into vector G
+# To do this, we can use axis-angle representation, and then calculate rotation matrix with that
+# https://en.wikipedia.org/wiki/Rotation_matrix#Conversion_from_rotation_matrix_to_axis%E2%80%93angle
+REF = [0;0;1];
+# Cross product:
+global cross_prod = LinearAlgebra.cross(REF,G);
+# Rotation axis (n = axb) Normalized cross product:
+n = normalize(cross_prod);
+# Rotation angle:
+θ = asin(norm(cross_prod)/((norm(REF))*(norm(G))));
+# Rotation matrix:
+R = (norm(cross_prod)>0) ? [cos(θ)+n[1]^2*(1-cos(θ))            n[1]*n[2]*(1-cos(θ))-n[3]*sin(θ)     n[1]*n[3]*(1-cos(θ))+n[2]*sin(θ);
+							n[2]*n[1]*(1-cos(θ))+n[3]*sin(θ)    cos(θ)+n[2]^2*(1-cos(θ))             n[2]*n[3]*(1-cos(θ))-n[1]*sin(θ);
+							n[3]*n[1]*(1-cos(θ))-n[2]*sin(θ)    n[3]*n[2]*(1-cos(θ))+n[1]*sin(θ)     cos(θ)+n[3]^2*(1-cos(θ))        ] :
+
+							[1.0  0    0;
+							 0    1.0  0;
+							 0    0    1.0];
+end
+
+
+
 """
     grad = Grad(A, T)
     grad = Grad(A, T, rise)
