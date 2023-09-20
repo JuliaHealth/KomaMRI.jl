@@ -324,7 +324,7 @@ end
 @testitem "PulseDesigner" tags=[:core] begin
     @testset "RF_sinc" begin
         sys = Scanner()
-        B1 = 23.4732e-6 # For 90 deg flip angle
+        B1 = 23.4731e-6 # For 90 deg flip angle
         Trf = 1e-3
         rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
         @test KomaMRICore.get_flip_angles(rf)[1] ≈ 90
