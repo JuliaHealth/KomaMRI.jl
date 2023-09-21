@@ -12,14 +12,14 @@ include("Bloch/BlochMovSimulationMethod.jl")    #Defines BlochMov simulation met
 
 Returns an array of motion interpolation functions from a phantom
 """
-function get_itp_functions(obj::Phantom)
+function get_itp_functions(obj::Phantom) 
     Ns = length(obj.x)
     limits = get_pieces_limits(obj)
 
     Δ = zeros(Ns,length(limits),3)
-    Δ[:,:,1] = hcat(zeros(Ns,1),obj.Δx,zeros(Ns,1))
-    Δ[:,:,2] = hcat(zeros(Ns,1),obj.Δy,zeros(Ns,1))
-    Δ[:,:,3] = hcat(zeros(Ns,1),obj.Δz,zeros(Ns,1))
+    Δ[:,:,1] = hcat(repeat(hcat(zeros(Ns,1),obj.Δx),1,length(obj.dur)),zeros(Ns,1))
+    Δ[:,:,2] = hcat(repeat(hcat(zeros(Ns,1),obj.Δy),1,length(obj.dur)),zeros(Ns,1))
+    Δ[:,:,3] = hcat(repeat(hcat(zeros(Ns,1),obj.Δz),1,length(obj.dur)),zeros(Ns,1))
 
     itpx = reshape(sum(abs.(Δ[:,:,1]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns] : nothing
     itpy = reshape(sum(abs.(Δ[:,:,2]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns] : nothing
