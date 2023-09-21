@@ -3,7 +3,7 @@ module KomaMRICore
 #IMPORT PACKAGES
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.abs, Base.getproperty
 #General
-using Reexport, ThreadsX, Pkg
+using Reexport, ThreadsX, Pkg, LinearAlgebra
 #Printing
 using Scanf, ProgressMeter
 #Datatypes
