@@ -65,7 +65,8 @@ function discretize(seq::Sequence; simParams=default_sim_params())
     #tadc       = get_adc_sampling_times(seq)
     #ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
     # This is the new discretization
-    sq = sequence_samples(seq; Δtgr=simParams["Δt"], Δtrf=simParams["Δt_rf"])
+    Δtgr, Δtrf = simParams["Δt"], simParams["Δt_rf"]
+    sq = sequence_samples(seq, Δtgr, Δtrf)
     t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.adc_onmask
     return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
 end
@@ -76,7 +77,7 @@ end
 """
 Get samples of a block-sequence
 """
-function block_samples(seq::Sequence, blk::Int64; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
+function block_samples(seq::Sequence, blk::Int64, Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
 
     # Select the block of the sequence and the events
     ΔT = durs(seq)[blk]
@@ -154,7 +155,7 @@ end
 """
 Get samples of the complete sequence
 """
-function sequence_samples(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
+function sequence_samples(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
 
     # Create empty vectors to be filled
     t, Δt, rfa, rfΔf, gxa, gya, gza = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[]
@@ -171,7 +172,7 @@ function sequence_samples(seq::Sequence; Δtgr::Float64=1e-3, Δtrf::Float64=1e-
     for k in 1:Nblk
 
         # Get the vector values of the block
-        blk = block_samples(seq, k; Δtgr, Δtrf)
+        blk = block_samples(seq, k, Δtgr, Δtrf)
 
         # Fill the vector of block masks
         kn = ko + length(blk.t) - 1     # index of the last time sample of this 1-block-sequence (it is also the first time sample of the next 1-block-sequence)

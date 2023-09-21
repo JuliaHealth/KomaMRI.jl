@@ -176,12 +176,14 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 	#t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
 	#D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
     #GRADS
-    gr = KomaMRICore.gr_samples_for_plots(seq)
-    rf = KomaMRICore.rf_samples_for_plots(seq)
-    adc = KomaMRICore.adc_samples_for_plots(seq)
-    t1x, t1y, t1z, Gx, Gy, Gz = gr.tx, gr.ty, gr.tz, gr.ax, gr.ay, gr.az
+    rf = KomaMRICore.rf_samples(seq)
+    gx = KomaMRICore.gr_samples(seq, 1)
+    gy = KomaMRICore.gr_samples(seq, 2)
+    gz = KomaMRICore.gr_samples(seq, 3)
+    adc = KomaMRICore.adc_samples(seq)
+    t1x, t1y, t1z, Gx, Gy, Gz = gx.t, gy.t, gz.t, KomaMRICore.samples_for_plot(gx.a, gx.onmask), KomaMRICore.samples_for_plot(gy.a, gy.onmask), KomaMRICore.samples_for_plot(gz.a, gz.onmask)
     t2, R = rf.t, rf.a
-    t3, D = adc.t, adc.a
+    t3, D = adc.t, KomaMRICore.samples_for_plot(ones(length(adc.t)), adc.onmask)
     #Plot
 	p = [scatter() for j=1:(3+2O+1)]
 	#GR

@@ -278,7 +278,7 @@ function komasim(seq::Sequence, obj::Phantom; Δtgr=1e-3, Δtrf=1e-5)
     for k in 1:length(seq)
 
         # Get the important vector values of the block-sequence
-        blk = block_samples(seq, k; Δtgr, Δtrf)
+        blk = block_samples(seq, k, Δtgr, Δtrf)
 
         # Perform simulation iterating over each time step
         for i in eachindex(blk.Δt)

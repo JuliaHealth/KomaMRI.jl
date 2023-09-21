@@ -65,7 +65,7 @@ export simulate, simulate_slice_profile
 
 # For new discretization
 export block_samples, sequence_samples, komasim
-export kspace, gr_samples
+export kspace, rf_samples, gr_samples, adc_samples, samples_for_plot
 
 #Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
