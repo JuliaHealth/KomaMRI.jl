@@ -174,6 +174,8 @@ end
 Basic gradient-echo (GRE) Sequence
 """
 GRE(FOV::Float64, N::Int, TE::Float64, TR::Float64, α, sys::Scanner; G=[0,0,0], Δf=0) = begin
+	# PENDING: Consider trapezoid areas 
+
 	# Excitation (Sinc pulse) ----------------------------------
 	# α = γ ∫(0-T) B1(t)dt 
 	# ----------------------
@@ -214,7 +216,7 @@ GRE(FOV::Float64, N::Int, TE::Float64, TR::Float64, α, sys::Scanner; G=[0,0,0],
 	ζ = G_ro / sys.Smax
 	GR = reshape([Grad(G_ro,ACQ_dur,ζ), Grad(0,0), Grad(0,0)],(3,1))
 	RO = Sequence(GR)
-	RO.ADC[1] = ADC(N, ACQ_dur+ζ, ζ)
+	RO.ADC[1] = ADC(N, ACQ_dur, ζ)
 	delay_TR = TR - (EX.DUR[1] + EX.DUR[2] + RO.DUR[1])
 	
 	print("ACQ_dur = ", ACQ_dur*1e3, " ms\n")
