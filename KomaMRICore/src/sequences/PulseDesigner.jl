@@ -60,7 +60,7 @@ Definition of the radial base sequence.
 # References
 - MATT A. BERNSTEIN, KEVIN F. KING, XIAOHONG JOE ZHOU, CHAPTER 2 - RADIOFREQUENCY PULSE SHAPES, Handbook of MRI Pulse Sequences, 2004, Pages 35-66, https://doi.org/10.1016/B978-012092861-3/50006-6.
 """
-RF_sinc(B1, T, sys::Scanner; G=[0,0,0], Δf=0, a=0.46, TBP=4) = begin
+RF_sinc(B1, T, sys::Scanner; G=[0,0,0], Δf=0, a=0.46, TBP=4) = begin # BUG WHEN Δf = 0
 	t0 = T / TBP
 	ζ = maximum(abs.(G)) / sys.Smax
 	sinc_pulse(t) = B1 * sinc(t/t0) .* ( (1-a) + a*cos((2π*t)/(TBP*t0)) )
