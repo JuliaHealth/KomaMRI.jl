@@ -7,7 +7,7 @@ iNAV_lines = 6
 im_flip_angle = 110
 #Pre-pulses
 Tfatsat = 32e-3 # 32ms
-FatSat_flip_angle = 130
+FatSat_flip_angle = 180
 T2prep_duration = 50e-3
 # Other parameters
 TE = TR / 2 #bSSFP condition
