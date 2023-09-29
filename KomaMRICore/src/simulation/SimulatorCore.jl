@@ -4,31 +4,10 @@ abstract type SpinStateRepresentation{T<:Real} end #get all available types by u
 #Defined methods:
 include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
-include("Bloch/BlochMovSimulationMethod.jl")    #Defines BlochMov simulation method
 
-
-"""
-    itp = get_itp_functions(obj)
-
-Returns an array of motion interpolation functions from a phantom
-"""
-function get_itp_functions(obj::Phantom) 
-    Ns = length(obj.x)
-    limits = get_pieces_limits(obj)
-
-    Δ = zeros(Ns,length(limits),3)
-    Δ[:,:,1] = hcat(repeat(hcat(zeros(Ns,1),obj.Δx),1,length(obj.dur)),zeros(Ns,1))
-    Δ[:,:,2] = hcat(repeat(hcat(zeros(Ns,1),obj.Δy),1,length(obj.dur)),zeros(Ns,1))
-    Δ[:,:,3] = hcat(repeat(hcat(zeros(Ns,1),obj.Δz),1,length(obj.dur)),zeros(Ns,1))
-
-    itpx = reshape(sum(abs.(Δ[:,:,1]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns] : nothing
-    itpy = reshape(sum(abs.(Δ[:,:,2]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns] : nothing
-    itpz = reshape(sum(abs.(Δ[:,:,3]);dims=2),(Ns,)) != zeros(Ns) ? [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns] : nothing
-
-    itp = [itpx, itpy, itpz]
-    itp
-end
-
+#Motion models:
+include("motion/SimpleMotion.jl") 
+include("motion/ArbitraryMotion.jl") 
 
 
 """
@@ -136,14 +115,12 @@ take advantage of CPU parallel processing.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod,itp;
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod, Ux, Uy, Uz;
     Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], w=nothing) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
     progress_bar = Progress(Nblocks)
-
-    Ux,Uy,Uz = get_displacements(obj,seq.t,itp)
 
     for (block, p) = enumerate(parts) 
         seq_block = @view seq[p]
@@ -239,12 +216,11 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     seqd = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
     Xt, obj = initialize_spins_state(obj, sim_method)
+    # Spins' motion init
+    Ux, Uy, Uz = initialize_motion(obj.mov, obj.x, obj.y, obj.z, seqd.t, enable_gpu, gpu_device, precision)
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
     sig = zeros(ComplexF64, Ndims..., Nthreads)
-
-    # NEW <------- INTERPOLATION MOTION FUNCTIONS -------------
-    itp = get_itp_functions(obj)
     
     # --------------------------------------------------------- 
     # Precision
@@ -253,17 +229,11 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
         seqd = seqd |> f32 #DiscreteSequence
         Xt   = Xt   |> f32 #SpinStateRepresentation
         sig  = sig  |> f32 #Signal
-        # NEW <----------------------
-        itp  = itp  |> f32 #Motion
-        # ---------------------------
     elseif precision == "f64"
         obj  = obj  |> f64 #Phantom
         seqd = seqd |> f64 #DiscreteSequence
         Xt   = Xt   |> f64 #SpinStateRepresentation
         sig  = sig  |> f64 #Signal
-        # NEW <----------------------
-        itp  = itp  |> f64 #Motion
-        # ---------------------------
     end
     # Objects to GPU
     if enable_gpu #Default
@@ -273,14 +243,11 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
         seqd = seqd |> gpu #DiscreteSequence
         Xt   = Xt   |> gpu #SpinStateRepresentation
         sig  = sig  |> gpu #Signal
-        # NEW <----------------------
-        itp  = itp  |> gpu; #Motion
-        # ---------------------------
     end
 
     # Simulation
     @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=__VERSION__ sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Ndims[1]
-    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method, itp; 
+    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method, Ux, Uy, Uz; 
                                                   Nblocks, Nthreads, parts, w)
     # Result to CPU, if already in the CPU it does nothing
     sig = sum(sig; dims=length(Ndims)+1) |> cpu

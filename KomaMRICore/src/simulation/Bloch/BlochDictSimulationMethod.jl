@@ -36,12 +36,19 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
-    M::Mag{T}, sim_method::BlochDict) where {T<:Real}
+    M::Mag{T}, sim_method::BlochDict, Ux, Uy, Uz) where {T<:Real}
     #Simulation
     #Motion
+    xt = Ux !== nothing ? p.x .+ Ux : p.x
+    yt = Uy !== nothing ? p.y .+ Uy : p.y
+    zt = Uz !== nothing ? p.z .+ Uz : p.z
+
+    """
     xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
     yt = p.y .+ p.uy(p.x, p.y, p.z, seq.t')
     zt = p.z .+ p.uz(p.x, p.y, p.z, seq.t')
+    """
+    
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -85,7 +92,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    M::Mag{T}, sim_method::BlochDict) where {T<:Real}
-    run_spin_excitation!(p, seq, sig, M, Bloch()) #The same as Bloch
+    M::Mag{T}, sim_method::BlochDict, Ux, Uy, Uz) where {T<:Real}
+    run_spin_excitation!(p, seq, sig, M, Bloch(), Ux, Uy, Uz) #The same as Bloch
     return nothing
 end

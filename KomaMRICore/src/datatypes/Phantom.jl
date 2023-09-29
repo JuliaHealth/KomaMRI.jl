@@ -1,3 +1,5 @@
+abstract type MotionModel end
+
 """
     phantom = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
 
@@ -41,6 +43,9 @@ The Phantom struct.
 	Dθ::AbstractVector{T} =  zeros(size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 
+	#Motion
+	mov::MotionModel = SimpleMotion()
+
 	"""
 	#Motion
 	# ux::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
@@ -48,6 +53,7 @@ The Phantom struct.
 	# uz::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
 	"""
 
+	"""
 	# Segments
 	dur::AbstractVector{T} = [1]
 	K::Int = 2
@@ -56,7 +62,7 @@ The Phantom struct.
 	Δx::AbstractArray{T, 2} = zeros(length(x),K-1)
 	Δy::AbstractArray{T, 2} = zeros(length(x),K-1)
 	Δz::AbstractArray{T, 2} = zeros(length(x),K-1)
-	
+	"""
 end
 
 # Phantom() = Phantom(name="spin",x=zeros(1,1))
@@ -78,15 +84,8 @@ Base.getindex(obj::Phantom, p::AbstractRange) = begin
 			Dλ1=obj.Dλ1[p],
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
-			dur=obj.dur,
-			K=obj.K,
-			Δx=obj.Δx[p],
-			Δy=obj.Δy[p],
-			Δz=obj.Δz[p]
+			mov=obj.mov[p]
 			#Χ=obj.Χ[p], #TODO!
-			# ux=obj.ux[p],
-			# uy=obj.uy[p],
-			# uz=obj.uz[p]
 			)
 end
 """Separate object spins in a sub-group."""
@@ -104,15 +103,8 @@ Base.view(obj::Phantom, p::AbstractRange) = begin
 			Dλ1=obj.Dλ1[p],
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
-			dur=obj.dur,
-			K=obj.K,
-			Δx=obj.Δx[p,:],
-			Δy=obj.Δy[p,:],
-			Δz=obj.Δz[p,:]
+			mov=obj.mov[p]
 			#Χ=obj.Χ[p], #TODO!
-			# ux=obj.ux[p],
-			# uy=obj.uy[p],
-			# uz=obj.uz[p]
 			)
 end
 
@@ -132,15 +124,8 @@ end
 		Dλ1=[s1.Dλ1;s2.Dλ1],
 		Dλ2=[s1.Dλ2;s2.Dλ2],
 		Dθ=[s1.Dθ;s2.Dθ],
-		dur=s1.dur,
-		K=s1.K,
-		Δx=s1.Δx,
-		Δy=s1.Δy,
-		Δz=s1.Δz
+		mov=s1.mov
 		#Χ=obj.Χ[p], #TODO!
-		# ux=s1.ux,
-		# uy=s1.uy,
-		# uz=s1.uz
 	)
 end
 #Fraction of compartments
@@ -158,15 +143,8 @@ end
 		Dλ1=obj.Dλ1,
 		Dλ2=obj.Dλ2,
 		Dθ=obj.Dθ,
-		dur=obj.dur,
-		K=obj.K,
-		Δx=obj.Δx,
-		Δy=obj.Δy,
-		Δz=obj.Δz
+		mov=obj.mov
 		#Χ=obj.Χ[p], #TODO!
-		# ux=obj.ux,
-		# uy=obj.uy,
-		# uz=obj.uz
 	)
 end
 
@@ -758,11 +736,11 @@ function read_phantom_file(filename)
                           		   ρ=rho_values,
                           		   T1=T1_values,
                           		   T2=T2_values,
-								   dur=dur,
-								   K=K,
-								   Δx=Δx,
-								   Δy=Δy,
-								   Δz=Δz)
+								   mov=ArbitraryMotion{Float64}(dur=dur,
+																K=K,
+																Δx=Δx,
+																Δy=Δy,
+																Δz=Δz))
 
 	else # Static phantom
 		phantom = Phantom{Float64}(name=name,

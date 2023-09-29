@@ -36,12 +36,19 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
-    M::Mag{T}, sim_method::Bloch) where {T<:Real}
+    M::Mag{T}, sim_method::Bloch, Ux, Uy, Uz) where {T<:Real}
     #Simulation
     #Motion
+    xt = Ux !== nothing ? p.x .+ Ux : p.x
+    yt = Uy !== nothing ? p.y .+ Uy : p.y
+    zt = Uz !== nothing ? p.z .+ Uz : p.z
+
+    """
     xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
     yt = p.y .+ p.uy(p.x, p.y, p.z, seq.t')
     zt = p.z .+ p.uz(p.x, p.y, p.z, seq.t')
+    """
+    
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -77,13 +84,22 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    M::Mag{T}, sim_method::Bloch) where {T<:Real}
+                              M::Mag{T}, sim_method::Bloch, Ux, Uy, Uz) where {T<:Real}
     #Simulation
-    for s ∈ seq #This iterates over seq, "s = seq[i,:]"
+    for i in 1:length(seq)
+        s = seq[i]
+
         #Motion
+        xt = Ux !== nothing ? p.x + reshape(@view(Ux[:,i]),(length(p.x),)) : p.x
+        yt = Uy !== nothing ? p.y + reshape(@view(Uy[:,i]),(length(p.y),)) : p.y
+        zt = Uz !== nothing ? p.z + reshape(@view(Uz[:,i]),(length(p.z),)) : p.z
+        
+        """
         xt = p.x .+ p.ux(p.x, p.y, p.z, s.t)
         yt = p.y .+ p.uy(p.x, p.y, p.z, s.t)
         zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
+        """
+
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz

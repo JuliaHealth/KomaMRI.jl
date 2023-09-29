@@ -259,19 +259,6 @@ end
 
 
 # ---------------------------------------------------------------------------------------------------
-function get_pieces_limits(obj::Phantom)
-	dur = obj.dur
-	K   = obj.K
-
-	steps = dur/K
-	mat = reduce(hcat,[steps for i in 1:K])'
-	limits = reshape(mat,(K*length(dur),))
-	cumsum!(limits,limits)
-	limits = vcat(0,limits)
-    limits
-end
-
-
 
 """
 function time_partitioner(t::AbstractVector{T}, dur::AbstractVector{T}, limits::AbstractVector{T})where {T<:Real}
