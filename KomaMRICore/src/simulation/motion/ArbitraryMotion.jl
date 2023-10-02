@@ -18,6 +18,14 @@ Base.getindex(mov::ArbitraryMotion, p::AbstractRange) = begin
                     Δz=mov.Δz[p,:])
 end
 
+Base.getindex(mov::ArbitraryMotion, p::AbstractVector) = begin
+    ArbitraryMotion(dur=mov.dur,
+                    K=mov.K,
+                    Δx=mov.Δx[p,:],
+                    Δy=mov.Δy[p,:],
+                    Δz=mov.Δz[p,:])
+end
+
 """
     limits = get_pieces_limits(obj.mov)
 

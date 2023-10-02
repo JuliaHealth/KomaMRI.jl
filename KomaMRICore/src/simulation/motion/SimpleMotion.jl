@@ -6,6 +6,7 @@ end
 export SimpleMotion
 
 Base.getindex(mov::SimpleMotion, p::AbstractRange) = mov
+Base.getindex(mov::SimpleMotion, p::AbstractVector) = mov
 
 """
     Ux, Uy, Uz = initialize_motion(obj.mov, seqd.t)
