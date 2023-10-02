@@ -723,8 +723,8 @@ julia> plot_phantom_map(obj2D, :ρ)
 julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
-function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=nothing, darkmode=true, view_2d=false, colorbar=true,
-							x0=-maximum(abs.([ph.x ph.y ph.z]))*1e2, xf=maximum(abs.([ph.x ph.y ph.z]))*1e2)						
+function plot_phantom_map(ph::Phantom, key::Symbol; t0=0.0, height=600, width=nothing, darkmode=true, view_2d=false, colorbar=true,
+							x0=-maximum(abs.([ph.x ph.y ph.z]))*1.3, xf=maximum(abs.([ph.x ph.y ph.z]))*1.3)						
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
@@ -763,8 +763,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 	end
 	cmin_key *= factor
 	cmax_key *= factor
-	# x0 = -maximum(abs.([ph.x ph.y ph.z]))*1e2
-    # xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
+
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	l = PlotlyJS.Layout(;title=ph.name*": "*string(key)*" (t = "*string(t0)*" s)",
@@ -801,11 +800,10 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
         l.width = width
     end
 
-	itp = get_itp_functions(ph)
-	Ux, Uy, Uz = get_displacements(ph,[t0],itp)
-	Ux = Ux === nothing ? zeros(length(ph.x)) : reshape(Ux,(length(ph.x),))
-	Uy = Uy === nothing ? zeros(length(ph.x)) : reshape(Uy,(length(ph.x),))
-	Uz = Uz === nothing ? zeros(length(ph.x)) : reshape(Uz,(length(ph.x),))
+	Ux, Uy, Uz = initialize_motion(ph.mov, ph.x, ph.y, ph.z, [t0])
+	Ux = Ux===nothing ? 0 : reshape(Ux',(length(Ux),))
+	Uy = Uy===nothing ? 0 : reshape(Uy',(length(Ux),))
+	Uz = Uz===nothing ? 0 : reshape(Uz',(length(Ux),))
 
 	if view_2d
 	h = PlotlyJS.scatter( 	x=(ph.x .+ Ux)*1e2,
