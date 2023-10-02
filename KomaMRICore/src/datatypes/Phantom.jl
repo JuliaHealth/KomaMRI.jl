@@ -204,9 +204,9 @@ heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false) = begin
 	T2 = ( 308*⚪(r) .+ 42*ring  )*1e-3 #T2 map [s]
 	# Generating Phantoms
 	heart = Phantom(name="LeftVentricle",
-					x=x[:],y=y[:],
-					ρ=ρ[:],T1=T1[:],T2=T2[:],
-					Dλ1=Dλ1[:],Dλ2=Dλ2[:],Dθ=Dθ[:],
+					x=x[ρ.!=0],y=y[ρ.!=0],
+					ρ=ρ[ρ.!=0],T1=T1[ρ.!=0],T2=T2[ρ.!=0],
+					Dλ1=Dλ1[ρ.!=0],Dλ2=Dλ2[ρ.!=0],Dθ=Dθ[ρ.!=0],
 					mov=SimpleMotion(ux=ux,uy=uy))
 	heart
 end
