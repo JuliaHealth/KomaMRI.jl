@@ -72,8 +72,8 @@ end
     Ux, Uy, Uz = initialize_motion(obj.mov, seqd.t)
 """
 function initialize_motion(mov::ArbitraryMotion{T}, 
-                           x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}, 
-                           enable_gpu::Bool, gpu_device::Int, precision::AbstractString) where {T<:Real}
+                           x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}; 
+                           enable_gpu::Bool=false, gpu_device::Int=0, precision::AbstractString="f32") where {T<:Real}
     Ns = size(mov.Δx)[1]
     times = mod.(t,sum(mov.dur)) # Map time values between 0 and sum(dur)
 
@@ -91,11 +91,15 @@ function initialize_motion(mov::ArbitraryMotion{T},
         device!(gpu_device)
         itp   = itp   |> gpu
         times = times |> gpu
-    end
 
-    Ux = is_mov_on[1] ? reduce(hcat,[itp[1][i].(times) for i in 1:Ns])' : nothing
-    Uy = is_mov_on[2] ? reduce(hcat,[itp[2][i].(times) for i in 1:Ns])' : nothing
-    Uz = is_mov_on[3] ? reduce(hcat,[itp[3][i].(times) for i in 1:Ns])' : nothing
+        Ux = is_mov_on[1] ? reduce(hcat,[itp[1][i].(times) for i in 1:Ns])' : nothing
+        Uy = is_mov_on[2] ? reduce(hcat,[itp[2][i].(times) for i in 1:Ns])' : nothing
+        Uz = is_mov_on[3] ? reduce(hcat,[itp[3][i].(times) for i in 1:Ns])' : nothing
+    else
+        Ux = is_mov_on[1] ? reduce(hcat,[itp[1][i](times) for i in 1:Ns])' : nothing
+        Uy = is_mov_on[2] ? reduce(hcat,[itp[2][i](times) for i in 1:Ns])' : nothing
+        Uz = is_mov_on[3] ? reduce(hcat,[itp[3][i](times) for i in 1:Ns])' : nothing
+    end
 
     Ux, Uy, Uz
 end

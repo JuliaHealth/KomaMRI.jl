@@ -217,7 +217,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
     Xt, obj = initialize_spins_state(obj, sim_method)
     # Spins' motion init
-    Ux, Uy, Uz = initialize_motion(obj.mov, obj.x, obj.y, obj.z, seqd.t, enable_gpu, gpu_device, precision)
+    Ux, Uy, Uz = initialize_motion(obj.mov, obj.x, obj.y, obj.z, seqd.t; enable_gpu, gpu_device, precision)
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
     sig = zeros(ComplexF64, Ndims..., Nthreads)

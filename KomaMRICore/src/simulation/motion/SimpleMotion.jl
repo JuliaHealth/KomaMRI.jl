@@ -11,8 +11,8 @@ Base.getindex(mov::SimpleMotion, p::AbstractRange) = mov
     Ux, Uy, Uz = initialize_motion(obj.mov, seqd.t)
 """
 function initialize_motion(mov::SimpleMotion, 
-                           x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}, 
-                           enable_gpu::Bool, gpu_device::Int, precision::AbstractString) where {T<:Real}
+                           x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}; 
+                           enable_gpu::Bool=false, gpu_device::Int=0, precision::AbstractString="f32") where {T<:Real}
  
     Ns = length(x)
                            
