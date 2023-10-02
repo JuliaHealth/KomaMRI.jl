@@ -45,24 +45,6 @@ The Phantom struct.
 
 	#Motion
 	mov::MotionModel = SimpleMotion()
-
-	"""
-	#Motion
-	# ux::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
-	# uy::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
-	# uz::Vector{FuncWrapper} = [FuncWrapper((t)->0 .* t) for i in 1:length(x)]
-	"""
-
-	"""
-	# Segments
-	dur::AbstractVector{T} = [1]
-	K::Int = 2
-
-	# Motion
-	Δx::AbstractArray{T, 2} = zeros(length(x),K-1)
-	Δy::AbstractArray{T, 2} = zeros(length(x),K-1)
-	Δz::AbstractArray{T, 2} = zeros(length(x),K-1)
-	"""
 end
 
 # Phantom() = Phantom(name="spin",x=zeros(1,1))
@@ -195,13 +177,13 @@ heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false) = begin
 	ωHR = 2π/1 #One heart-beat in one second
 
 	# θ(t) = -π/4*γ*(sin.(ωHR*t).*(sin.(ωHR*t).>0)+0.25.*sin.(ωHR*t).*(sin.(ωHR*t).<0) )
-	ux(x,y,t) = begin
+	ux(x,y,z,t) = begin
 		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(x)
 		contract = - β * v * x / (FOV/2)  #expand
 		rotate = - γ * v * y / (FOV/2)
 		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
 	end
-	uy(x,y,t) = begin
+	uy(x,y,z,t) = begin
 		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(y)
 		contract = - β * v * y / (FOV/2)
 		rotate = γ * v * x / (FOV/2)
@@ -221,17 +203,25 @@ heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false) = begin
 	T1 = (1400*⚪(r) .+ 1026*ring)*1e-3 #Myocardial T1
 	T2 = ( 308*⚪(r) .+ 42*ring  )*1e-3 #T2 map [s]
 	# Generating Phantoms
-	heart = Phantom("LeftVentricle",x,y,ρ,T2,Dλ1,Dλ2,Dθ,ux,uy)
-	# Fat spins
-	ring2 = ⚪(FOV/2) .- ⚪(R) #outside fat layer
-	ρ_fat = .5*ρ.*ring2
-	Δw_fat = 2π*220*ring2 #fat should be dependant on B0
-	T1_fat = 800*ring2*1e-3
-	T2_fat = 120*ring2*1e-3 #T2 map [s]
-	fat = Phantom("fat",x,y,ρ_fat,T2_fat,Δw_fat)
-	#Resulting phantom
-	obj = fat_bool ? heart + fat : heart #concatenating spins
+	heart = Phantom(name="LeftVentricle",
+					x=x[:],y=y[:],
+					ρ=ρ[:],T1=T1[:],T2=T2[:],
+					Dλ1=Dλ1[:],Dλ2=Dλ2[:],Dθ=Dθ[:],
+					mov=SimpleMotion(ux=ux,uy=uy))
+	heart
 end
+
+"""
+# Fat spins
+ring2 = ⚪(FOV/2) .- ⚪(R) #outside fat layer
+ρ_fat = .5*ρ.*ring2
+Δw_fat = 2π*220*ring2 #fat should be dependant on B0
+T1_fat = 800*ring2*1e-3
+T2_fat = 120*ring2*1e-3 #T2 map [s]
+fat = Phantom("fat",x,y,ρ_fat,T2_fat,Δw_fat)
+#Resulting phantom
+obj = fat_bool ? heart + fat : heart #concatenating spins
+"""
 
 
 """
