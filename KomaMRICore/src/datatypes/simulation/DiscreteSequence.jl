@@ -53,21 +53,27 @@ is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
 """
 Return the DiscreteSequence object with the important vectors prepared for simulation
 """
-function discretize(seq::Sequence; simParams=default_sim_params())
+function discretize(seq::Sequence; simParams=default_sim_params(), isnew=false)
     # DEPRECATED?
     ### Previous discretization
     ### The new discretization is faster but is has more allocation
     ### When simulating, the new simulation with the new discretization is slower, I don't know why ...
     ### ... using ProfileView and Cthulhu can be really helpful for debbuging these perferomances issues
-    #t, Δt      = get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
-    #B1, Δf     = get_rfs(seq, t)
-    #Gx, Gy, Gz = get_grads(seq, t)
-    #tadc       = get_adc_sampling_times(seq)
-    #ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
+    if !isnew
+        t, Δt      = get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
+        B1, Δf     = get_rfs(seq, t)
+        Gx, Gy, Gz = get_grads(seq, t)
+        tadc       = get_adc_sampling_times(seq)
+        ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
+        return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
+    end
     # This is the new discretization
     Δtgr, Δtrf = simParams["Δt"], simParams["Δt_rf"]
-    sq = sequence_samples(seq, Δtgr, Δtrf)
-    t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.adc_onmask
+    sq = samples(seq, Δtgr, Δtrf)
+    t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag = sq.t, sq.Δt, sq.rfa, sq.rfΔfc, sq.gxa, sq.gya, sq.gza, sq.adconmask
+    #Δtgr, Δtrf = simParams["Δt"], simParams["Δt_rf"]
+    #sq = sequence_samples(seq, Δtgr, Δtrf)
+    #t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.adc_onmask
     return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
 end
 

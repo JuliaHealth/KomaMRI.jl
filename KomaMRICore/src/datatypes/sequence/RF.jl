@@ -177,3 +177,132 @@ get_RF_center(x::RF) = begin
 	t_center = t[i_center] + dT[i_center]/2
 	return t_center + delay
 end
+
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+"""
+For detecting if the rf event is on
+"""
+function ison(rf::RF)
+    return ((sum(abs.(rf.A)) != 0.) && (sum(rf.T) != 0.))
+end
+
+"""
+For getting the time, amplitude and carrier-frequency-difference samples of the rf event
+"""
+function samples(rf::RF)
+    Δt, t, a, Δfc = Float64[], Float64[], Float64[], Float64[]
+    if ison(rf)
+        NT, NA, NΔf = length(rf.T), length(rf.A), length(rf.Δf)
+        if (NA == 1 && NT == 1)         # Block Pulse
+            Δt = [rf.delay; 0.; rf.T; 0.]
+            t  = cumsum(Δt)
+            a  = [0.; rf.A; rf.A; 0.]
+            Δfc = [0.; rf.Δf; rf.Δf; 0.]
+        elseif (NA > 1 && NT == 1)
+            Δt = [rf.delay; 0.; (ones(NA-1).*(rf.T/(NA-1))); 0.]
+            t = cumsum(Δt)
+            a = [0.; rf.A; 0.]
+            Δfc = ((NΔf == 1) ? (rf.Δf .* ones(NA+2)) : ([rf.Δf[1]; rf.Δf; rf.Δf[end]]))
+        elseif (NA > 1 && NT > 1)
+            Δt = [rf.delay; 0.; (ones(NT) .* rf.T); 0.]
+            t = cumsum(Δt)
+            a = [0.; rf.A; 0.]
+            Δfc = ((NΔf == 1) ? (rf.Δf .* ones(NA+2)) : ([rf.Δf[1]; rf.Δf; rf.Δf[end]]))
+        end
+    end
+    return (Δt = Δt, t = t, a = a, Δfc = Δfc)
+end
+
+"""
+For getting the time and amplitude samples of the rf event at times given
+by the "ts" vector which must be increasing and with unique time points
+"ts" must have at least 2 samples.
+"""
+function samples(rf::RF, ts::Vector{Float64})
+    Δt, t, a, Δfc, ionfirst, ionlast, ix = (ts[2:end]-ts[1:end-1]), ts, zeros(length(ts)), zeros(length(ts)), 0, 0, 0
+    if ison(rf)
+        rfe = samples(rf)                       # Get the samples of the event
+        rfs = interpolate(rfe.t, rfe.a, ts)     # Get interpolated and extrapolated values
+        rfΔfs = interpolate(rfe.t, rfe.Δfc, ts) # Get interpolated and extrapolated values (the user must put the same samples for A and Δf)
+        t, a, Δfc = rfs.t, rfs.a, rfΔfs.a       # Assign returned values
+        Δt = t[2:end] - t[1:end-1]              # Assign returned values
+        ionfirst, ionlast = rfs.ion[1], rfs.ion[2]   # Assign returned values for on indexes
+        ix = argmin(abs.(center(rf).t .- t))    # Index of the RF center (must be present in "ts" in order to get the exact point)
+    end
+    return (Δt = Δt, t = t, a = a, Δfc = Δfc, ion = (ionfirst, ionlast), ix = ix)
+end
+
+"""
+For getting the flipangle and type (excitation or refocusing)
+"""
+function flipangle(rf::RF)
+    α, type = NaN, false
+    if ison(rf)
+        rfs = samples(rf)
+        α = 180. * γ * abs(sum((rfs.a[2:end] + rfs.a[1:end-1]) .* rfs.Δt))
+        type = (α <= 90.01)
+    end
+    return (α = α, type = type)
+end
+
+"""
+For getting the center
+"""
+function center(rf::RF)
+    tx, ax = NaN, NaN
+    if ison(rf)
+        if length(rf.A) == 1
+            tx, ax = rf.delay + rf.T/2, rf.A
+        else
+            rfs = samples(rf)
+            ix = argmax(abs.(rfs.a))
+            tx, ax = rfs.t[ix], rfs.a[ix]
+        end
+    end
+    return (t = tx, a = ax)
+end
+
+"""
+For getting critical times that must be simulated and considered for the block-samples
+For rfs the extremes and the center are considered critical times
+"""
+function criticaltimes(rf::RF)
+    tc = Float64[]
+    if ison(rf)
+        t = samples(rf).t
+        tx = center(rf).t
+        tc = [t[1]; tx; t[end]]
+    end
+    return tc
+end
+
+"""
+For adding properties to the struct (rf event) calculated dynamically
+"""
+function Base.getproperty(rf::RF, sym::Symbol)
+    (sym == :ison  ) && return ison(rf)
+    (sym == :tc    ) && return criticaltimes(rf)
+    (sym == :Δt    ) && return samples(rf).Δt
+    (sym == :t     ) && return samples(rf).t
+    (sym == :a     ) && return samples(rf).a
+    (sym == :Δfc   ) && return samples(rf).Δfc
+    (sym == :α     ) && return flipangle(rf).α
+    (sym == :type  ) && return flipangle(rf).type
+    (sym == :center) && return center(rf)
+    return getfield(rf, sym)
+end
+
+"""
+For displaying additional properties of the struct (rf event) when a user
+press TAB twice in the REPL. This additional properties must be added previously in the
+Base.getproperty() function
+"""
+function Base.propertynames(::RF)
+    return (:A, :T, :rise, :fall, :delay,
+            :ison, :tc, :Δt, :t, :a, :Δfc,
+            :α, :type, :center)
+end

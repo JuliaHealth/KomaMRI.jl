@@ -901,3 +901,152 @@ function kspace(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-3)
     end
     return (x = kx, y = ky, z = kz, adc_onmask = sq.adc_onmask)
 end
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+"""
+Returns the block samples of the first block-sequence
+"""
+function blksamples(seq::Sequence; addfirst=false, addlast=false)
+
+    # Select the block of the sequence and the events
+    rfo, gxo, gyo, gzo, adco = seq[1].RF[1], seq[1].GR[1,1], seq[1].GR[2,1], seq[1].GR[3,1], seq[1].ADC[1]
+    tblk = block_limits(addfirst, addlast, durs(seq[1])[1])     # Extreme times of the block (empty vector if is not necessary to add them)
+    trfx = (ison(rfo) ? [center(rfo).t] : Float64[])            # Time of the RF center (empty vector if there is no rf)
+
+    # Get the samples, the sampler-times (merged-nondecreasing-times), and the interpolated values
+    rfe, gxe, gye, gze, adce = samples(rfo), samples(gxo), samples(gyo), samples(gzo), samples(adco)
+    ts = mergetimes([rfe.t, gxe.t, gye.t, gze.t, adce.t, trfx, tblk])   # Add the center of the RF and the block extremes
+    rfs, gxs, gys, gzs = samples(rfo, ts), samples(gxo, ts), samples(gyo, ts), samples(gzo, ts)
+
+    # Return the block with "combined" samples
+    return (t = ts, rf = rfs, gx = gxs, gy = gys, gz = gzs, adconmask = mask_adcon(ts, adce.t), rfonmask = mask_rfon(ts, criticaltimes(rfe)))
+end
+
+"""
+Returns the block samples of the first block-sequence refined by Δtgr and Δtrf
+"""
+function blksamples(seq::Sequence, Δtgr::Float64, Δtrf::Float64; addfirst=false, addlast=false)
+
+    # Variables related to the original block events ("o" stands for "original")
+    rfo, gxo, gyo, gzo, adco = seq[1].RF[1], seq[1].GR[1,1], seq[1].GR[2,1], seq[1].GR[3,1], seq[1].ADC[1]
+    tblk = block_limits(addfirst, addlast, durs(seq[1])[1])         # Extreme times of the block (empty vector if is not necessary to add them)
+
+    # Critical times to be considered ("c" stands for "critical" (there must be present in the simulation))
+    rftc, gxtc, gytc, gztc = criticaltimes(rfo), criticaltimes(gxo), criticaltimes(gyo), criticaltimes(gzo)
+    # After this, the sampled events not necessarily have the same length since when sampling the events can have more than one sample at the same time
+    tc = mergetimes([rftc, gxtc, gytc, gztc])
+    rfc, gxc, gyc, gzc = samples(rfo, tc), samples(gxo, tc), samples(gyo, tc), samples(gzo, tc)
+    # After this, all sampled events have the same length
+    adce = samples(adco)
+    tsc = mergetimes([rfc.t, gxc.t, gyc.t, gzc.t, adce.t, tblk])    # Add the block extremes if necessary
+    rfsc, gxsc, gysc, gzsc = samples(rfo, tsc), samples(gxo, tsc), samples(gyo, tsc), samples(gzo, tsc)
+
+    # Get the intervals where gr an rf are on ("i" stands for "indices", "on" stands for "event is on")
+    # "bion" is a vector of tuples, each tuple has 3 components:
+    # bion[i][1]: the first index of a on interval
+    # bion[i][2]: the last index of a on interval
+    # bion[i][3]: the type of the interval, (0: gron, 1: rfon, 2: both are on),
+    # so far it is assumed that Δtrf < Δtgr in the implementation of this algorithm, so 1 or 2 the samples are refined at Δtrf
+    grion = interval_union(gxsc.ion, gysc.ion, gzsc.ion)
+    (grion[1][1] == 0) && popfirst!(grion)  # this can be optimized in order to not consider the !ison case (0,0)
+    bion = rfgr_intersection(rfsc.ion, grion)
+    (bion[1][1] == 0) && popfirst!(bion)    # this can be optimized in order to not consider the !ison case (0,0)
+
+    # Fill the sampling times with the refined samples
+    ts = refinetimes(tsc, bion, Δtgr, Δtrf)
+    rfs, gxs, gys, gzs = samples(rfo, ts), samples(gxo, ts), samples(gyo, ts), samples(gzo, ts)
+
+    # Return the block with "combined" and "refined" samples
+    return (t = ts, rf = rfs, gx = gxs, gy = gys, gz = gzs, adconmask = mask_adcon(ts, adce.t), rfonmask = mask_rfon(ts, rftc))
+end
+
+"""
+"""
+function samples(seq::Sequence)
+    # Get the number of blocks
+    Nblk = length(seq)
+    # Return for 1-block-sequence
+    if Nblk == 1
+        blk = blksamples(seq; addfirst=true, addlast=true)
+        return (Δt = (blk.t[2:end]-blk.t[1:end-1]), t = blk.t, rfa = blk.rf.a, rfΔfc = blk.rf.Δfc,
+                gxa = blk.gx.a, gya = blk.gy.a, gza = blk.gz.a, adconmask = blk.adconmask, rfonmask = blk.rfonmask)
+    end
+    addfirst, addlast = true, false
+    # Iterate over each block of the sequence
+    Δtacum = 0.
+    Δt, t, rfa, rfΔfc, gxa, gya, gza, adconmask = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[]
+    rfonmask = Bool[]
+    to = 0.
+    for i in 1:Nblk
+        # For the first and last block que add the first and last point
+        if i == 1
+            addfirst, addlast = true, false
+        elseif i == Nblk
+            addfirst, addlast = false, true
+        else
+            addfirst, addlast = false, false
+        end
+        # Append samples of the block
+        ΔT = durs(seq[i])[1]                            # Duration of the block
+        blk = blksamples(seq[i]; addfirst, addlast)     # Combined samples of the block
+        append!(t, to .+ blk.t); append!(rfa, blk.rf.a); append!(rfΔfc, blk.rf.Δfc)
+        append!(gxa, blk.gx.a); append!(gya, blk.gy.a); append!(gza, blk.gz.a); append!(adconmask, blk.adconmask); append!(rfonmask, blk.rfonmask)
+        if length(blk.t) == 0
+            Δtacum += ΔT
+        else
+            (i != 1) && push!(Δt, Δtacum + blk.t[1])    # Avoid for pushing for the first block
+            append!(Δt, (blk.t[2:end] - blk.t[1:end-1]))
+            Δtacum = ΔT - blk.t[end]
+        end
+        to += ΔT
+    end
+    # Return the values for the Discretized sequence
+    return (Δt = Δt, t = t, rfa = rfa, rfΔfc = rfΔfc, gxa = gxa, gya = gya, gza = gza, adconmask = adconmask, rfonmask = rfonmask)
+end
+
+"""
+"""
+function samples(seq::Sequence, Δtgr::Float64, Δtrf::Float64)
+    # Get the number of blocks
+    Nblk = length(seq)
+    # Return for 1-block-sequence
+    if Nblk == 1
+        blk = blksamples(seq, Δtgr, Δtrf; addfirst=true, addlast=true)
+        return (Δt = (blk.t[2:end]-blk.t[1:end-1]), t = blk.t, rfa = blk.rf.a, rfΔfc = blk.rf.Δfc,
+                gxa = blk.gx.a, gya = blk.gy.a, gza = blk.gz.a, adconmask = blk.adconmask, rfonmask = blk.rfonmask)
+    end
+    addfirst, addlast = true, false
+    # Iterate over each block of the sequence
+    Δtacum = 0.
+    Δt, t, rfa, rfΔfc, gxa, gya, gza, adconmask = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[]
+    rfonmask = Bool[]
+    to = 0.
+    for i in 1:Nblk
+        # For the first and last block que add the first and last point
+        if i == 1
+            addfirst, addlast = true, false
+        elseif i == Nblk
+            addfirst, addlast = false, true
+        else
+            addfirst, addlast = false, false
+        end
+        # Append samples of the block
+        ΔT = durs(seq[i])[1]                            # Duration of the block
+        blk = blksamples(seq[i], Δtgr, Δtrf; addfirst, addlast)     # Combined samples of the block
+        append!(t, to .+ blk.t); append!(rfa, blk.rf.a); append!(rfΔfc, blk.rf.Δfc)
+        append!(gxa, blk.gx.a); append!(gya, blk.gy.a); append!(gza, blk.gz.a); append!(adconmask, blk.adconmask); append!(rfonmask, blk.rfonmask)
+        if length(blk.t) == 0
+            Δtacum += ΔT
+        else
+            (i != 1) && push!(Δt, Δtacum + blk.t[1])
+            append!(Δt, (blk.t[2:end] - blk.t[1:end-1]))
+            Δtacum = ΔT - blk.t[end]
+        end
+        to += ΔT
+    end
+    # Return the values for the Discretized sequence
+    return (Δt = Δt, t = t, rfa = rfa, rfΔfc = rfΔfc, gxa = gxa, gya = gya, gza = gza, adconmask = adconmask, rfonmask = rfonmask)
+end

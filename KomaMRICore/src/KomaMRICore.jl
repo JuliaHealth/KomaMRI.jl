@@ -23,6 +23,7 @@ global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1, JEMRIS uses 42.575
 #Hardware
 include("datatypes/Scanner.jl")
 #Sequence
+include("datatypes/sequence/Utils.jl")
 include("datatypes/sequence/Grad.jl")
 include("datatypes/sequence/RF.jl")
 include("datatypes/sequence/ADC.jl")
@@ -64,8 +65,11 @@ export get_kspace, rotx, roty, rotz
 export simulate, simulate_slice_profile
 
 # For new discretization
-export block_samples, sequence_samples, komasim
+export block_samples, sequence_samples, komasim, seqsim, blksim
 export kspace, rf_samples, gr_samples, adc_samples, samples_for_plot
+export samples, blksamples
+export interpolate, mergetimes, interval_union, interval_intersection, rfgr_intersection, refinetimes, indices_adcon, mask_adcon, block_limits, indices_rfon, mask_rfon
+export center, criticaltimes
 
 #Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on

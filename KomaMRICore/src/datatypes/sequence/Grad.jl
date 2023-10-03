@@ -217,3 +217,91 @@ the duration is the maximum duration of all the elements of the gradient vector.
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x), dims=1)[:]
+
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+"""
+For detecting if the gradient event is on
+"""
+function ison(gr::Grad)
+    return (sum(abs.(gr.A)) != 0.)
+end
+
+"""
+For getting the time and amplitude samples of the gradient event
+"""
+function samples(gr::Grad)
+    Δt, t, a = Float64[], Float64[], Float64[]
+    if ison(gr)
+        NT, NA = length(gr.T), length(gr.A)
+        if (NA == 1 && NT == 1)     # Trapezoid
+            Δt = [gr.delay; gr.rise; gr.T; gr.fall]
+            t = cumsum(Δt)
+            a = [0.; gr.A; gr.A; 0.]
+        elseif (NA > 1 && NT == 1)  # Uniformly-Sampled waveform
+            Δt = [gr.delay; gr.rise; (ones(NA-1).*(gr.T/(NA-1))); gr.fall]
+            t = cumsum(Δt)
+            a = [0.; gr.A; 0.]
+        elseif (NA > 1 && NT > 1)   # Time-Shaped waveform
+            Δt = [gr.delay; gr.rise; (ones(NT) .* gr.T); gr.fall]
+            t = cumsum(Δt)
+            a = [0.; gr.A; 0.]
+        end
+    end
+    return (Δt = Δt, t = t, a = a)
+end
+
+"""
+For getting the time and amplitude samples of the gradient event at times given
+by the "ts" vector which must be increasing and with unique time points
+"ts" must have at least 2 samples.
+"""
+function samples(gr::Grad, ts::Vector{Float64})
+    Δt, t, a, ionfirst, ionlast = (ts[2:end]-ts[1:end-1]), ts, zeros(length(ts)), 0, 0
+    if ison(gr)
+        gre = samples(gr)                       # Get the samples of the event
+        grs = interpolate(gre.t, gre.a, ts)     # Get interpolated and extrapolated values
+        t, a = grs.t, grs.a                     # Assign returned values
+        Δt = t[2:end] - t[1:end-1]              # Assign returned values
+        ionfirst, ionlast = grs.ion[1], grs.ion[2]  # Assign returned values for on indexes
+    end
+    return (Δt = Δt, t = t, a = a, ion = (ionfirst, ionlast))
+end
+
+"""
+For getting critical times that must be simulated and considered for the block-samples
+For gradients the times of the trapezoid are critical
+"""
+function criticaltimes(gr::Grad)
+    tc = Float64[]
+    if ison(gr)
+        t = samples(gr).t
+        tc = [t[1]; t[2]; t[end-1]; t[end]]
+    end
+    return tc
+end
+
+"""
+For adding properties to the struct (gradient event) calculated dynamically
+"""
+function Base.getproperty(gr::Grad, sym::Symbol)
+    (sym == :ison) && return ison(gr)
+    (sym == :tc  ) && return criticaltimes(gr)
+    (sym == :Δt  ) && return samples(gr).Δt
+    (sym == :t   ) && return samples(gr).t
+    (sym == :a   ) && return samples(gr).a
+    return getfield(gr, sym)
+end
+
+"""
+For displaying additional properties of the struct (gradient event) when a user
+press TAB twice in the REPL. This additional properties must be added previously in the
+Base.getproperty() function
+"""
+function Base.propertynames(::Grad)
+    return (:A, :T, :rise, :fall, :delay,
+            :ison, :tc, :Δt, :t, :a)
+end

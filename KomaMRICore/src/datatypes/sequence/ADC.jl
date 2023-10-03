@@ -122,3 +122,59 @@ function get_adc_phase_compensation(seq)
   end
   return phase
 end
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+"""
+For detecting if the adc event is on
+"""
+function ison(adc::ADC)
+    return (adc.N > 0)
+end
+
+"""
+For getting the time samples of the adc event
+"""
+function samples(adc::ADC)
+    Δt, t = Float64[], Float64[]
+    if ison(adc)
+        Nsamp, T = adc.N, adc.T
+        Δt = (Nsamp == 1) ? [0.] : T
+        t = adc.delay .+ ((Nsamp == 1) ? ([T/2]) : Vector(range(0, T; length=Nsamp)))
+    end
+    return (Δt = Δt, t = t)
+end
+
+"""
+For getting the phase compensation of the adc event
+"""
+function compensation(adc::ADC)
+    ϕc = Float64[]
+    if ison(adc)
+        ϕc = ones(adc.N) .* exp(-1im*adc.ϕ)
+    end
+    return ϕc
+end
+
+"""
+For adding properties to the struct (adc event) calculated dynamically
+"""
+function Base.getproperty(adc::ADC, sym::Symbol)
+    (sym == :ison) && return ison(adc)
+    (sym == :Δt  ) && return samples(adc).Δt
+    (sym == :t   ) && return samples(adc).t
+    (sym == :ϕc  ) && return compensation(adc)
+    return getfield(adc, sym)
+end
+
+"""
+For displaying additional properties of the struct (adc event) when a user
+press TAB twice in the REPL. This additional properties must be added previously in the
+Base.getproperty() function
+"""
+function Base.propertynames(::ADC)
+    return (:N, :T, :delay, Δf, ϕ,
+            :ison, :Δt, :t, :ϕc)
+end

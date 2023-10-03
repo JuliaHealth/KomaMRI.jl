@@ -1,9 +1,7 @@
 # Import packages
 using PlotlyJS, KomaMRI
 
-"""
-For defining an EPI sequence
-"""
+# For defining an EPI sequence
 function create_seq_epi(sys)
     B1 = sys.B1;
     durRF = π/2/(2π*γ*B1)
@@ -27,9 +25,117 @@ seq = create_seq_epi(sys)
 # Define simulator parameters
 Δtgr, Δtrf = 1e-3, 1e-5
 
+# Get and plot the discretized sequences
+seqori = @time KomaMRICore.discretize(seq; simParams, isnew=false);
+seqnew = @time KomaMRICore.discretize(seq; simParams, isnew=true);
+prfaori = scatter(; x=seqori.t, y=(5000 .* abs.(seqori.B1)), mode="lines+markers", name="RF")
+pgxaori = scatter(; x=seqori.t, y=seqori.Gx, mode="lines+markers", name="GX")
+pgyaori = scatter(; x=seqori.t, y=seqori.Gy, mode="lines+markers", name="GY")
+pgzaori = scatter(; x=seqori.t, y=seqori.Gz, mode="lines+markers", name="GZ")
+padcori = scatter(; x=seqori.t[seqori.ADC], y=(.01 .* ones(length(seqori.ADC))), mode="markers", name="ADC")
+prfanew = scatter(; x=seqnew.t, y=(5000 .* abs.(seqnew.B1)), mode="lines+markers", name="RF")
+pgxanew = scatter(; x=seqnew.t, y=seqnew.Gx, mode="lines+markers", name="GX")
+pgyanew = scatter(; x=seqnew.t, y=seqnew.Gy, mode="lines+markers", name="GY")
+pgzanew = scatter(; x=seqnew.t, y=seqnew.Gz, mode="lines+markers", name="GZ")
+padcnew = scatter(; x=seqnew.t[seqnew.ADC], y=(.01 .* ones(length(seqnew.ADC))), mode="markers", name="ADC")
+display(plot([prfaori; pgxaori; pgyaori; pgzaori; padcori; prfanew; pgxanew; pgyanew; pgzanew; padcnew], Layout(title="Seq comparison")))
+
+# Simulate for original and new discretized koma
+simParams = KomaMRICore.default_sim_params()
+simParams["Δt"], simParams["Δt_rf"] = Δtgr, Δtrf
+simParams["Nthreads"], simParams["Nblocks"] = 1, 1
+simParams["return_type"] = "mat"
+simParams["gpu"] = false
+simParams["precision"] == "f64"
+tori = KomaMRICore.get_adc_sampling_times(seq)
+sigori = @time simulate(obj, seq, sys; simParams, isnew=false);
+signew = @time simulate(obj, seq, sys; simParams, isnew=true);
+
+# Simulate for seq test simulators
+_, _, sigseqsim = @time seqsim(seq, obj, Δtgr, Δtrf);
+
+display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(signew[:,1,1]), mode="lines+markers", name="new"); scatter(;x=tori, y=abs.(sigori[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
+display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(sigseqsim[seqnew.ADC]), mode="lines+markers", name="new"); scatter(;x=tori, y=abs.(sigori[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
+
+# Reconstruction
+function recon(sig, seq; isnew=true)
+    sigm = isnew ? reshape(sig, length(sig), 1, 1) : sig
+    raw = signal_to_raw_data(sigm, seq)
+    acqData = AcquisitionData(raw)
+    acqData.traj[1].circular = false #Removing circular window
+    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acqData.traj[1].nodes[:])) #Normalize k-space to -.5 to .5 for NUFFT
+    Nx, Ny = raw.params["reconSize"][1:2]
+    recParams = Dict{Symbol,Any}()
+    recParams[:reconSize] = (Nx, Ny)
+    recParams[:densityWeighting] = true
+    rec = reconstruction(acqData, recParams)
+    image3d  = reshape(rec.data, Nx, Ny, :)
+    image2d = (abs.(image3d) * prod(size(image3d)[1:2]))[:,:,1]
+    return image2d
+end
+
+# Reconstruct for original discretization
+image2dori = recon(sigori, seq; isnew=false)
+display(plot_image(image2dori, zmin=minimum(image2dori), zmax=maximum(image2dori), title="Reconstruction for Original Simulator-Function"))
+
+# Reconstruct for new discretization
+image2dnew = recon(signew, seq; isnew=false)
+display(plot_image(image2dnew, zmin=minimum(image2dnew), zmax=maximum(image2dnew), title="Reconstruction for Original Simulator-Function"))
+
+# Reconstruct for test simulator and new discretization
+image2dseqsim = recon(sigseqsim[seqnew.ADC], seq; isnew=true)
+display(plot_image(image2dseqsim, zmin=minimum(image2dseqsim), zmax=maximum(image2dseqsim), title="Reconstruction for Seq Test Simulator-Function"))
+
+
+############################################################################################
+### TEST COMPARISON WITH MATHEMATICA #######################################################
+############################################################################################
+Tadc = 1e-3
+Trf = Tadc
+T1 = 1000e-3
+T2 = 20e-3
+Δw = 2π * 100
+B1 = 2e-6 * (Tadc / Trf)
+N = 6
+sys = Scanner()
+obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+seq = Sequence()
+seq += ADC(N, Tadc)
+for i=1:1
+    seq += RF(B1, Trf)
+    seq += ADC(N, Tadc)
+end
+
+# Compare original and new discretization of the sequences
+seqold = @time KomaMRICore.discretize(seq; simParams, isnew=false);
+seqnew = @time KomaMRICore.discretize(seq; simParams, isnew=true);
+prfaold = scatter(; x=seqold.t, y=(5000 .* abs.(seqold.B1)), mode="lines+markers", name="RF")
+pgxaold = scatter(; x=seqold.t, y=seqold.Gx, mode="lines+markers", name="GX")
+pgyaold = scatter(; x=seqold.t, y=seqold.Gy, mode="lines+markers", name="GY")
+pgzaold = scatter(; x=seqold.t, y=seqold.Gz, mode="lines+markers", name="GZ")
+padcold = scatter(; x=seqold.t[seqold.ADC], y=(.01 .* ones(length(seqold.ADC))), mode="markers", name="ADC")
+prfanew = scatter(; x=seqnew.t, y=(5000 .* abs.(seqnew.B1)), mode="lines+markers", name="RF")
+pgxanew = scatter(; x=seqnew.t, y=seqnew.Gx, mode="lines+markers", name="GX")
+pgyanew = scatter(; x=seqnew.t, y=seqnew.Gy, mode="lines+markers", name="GY")
+pgzanew = scatter(; x=seqnew.t, y=seqnew.Gz, mode="lines+markers", name="GZ")
+padcnew = scatter(; x=seqnew.t[seqnew.ADC], y=(.01 .* ones(length(seqnew.ADC))), mode="markers", name="ADC")
+display(plot([prfaold; pgxaold; pgyaold; pgzaold; padcold; prfanew; pgxanew; pgyanew; pgzanew; padcnew], Layout(title="Seq comparison")))
+
+# Compare simulations (original-discretization, new-discretization, test-simulator)
+# There is a problem at the end of the simulation
+Δtgr, Δtrf = 1e-3, 1e-5
+told = KomaMRICore.get_adc_sampling_times(seq)
+sigold = simulate(obj, seq, sys; simParams, isnew=false)
+signew = simulate(obj, seq, sys; simParams, isnew=true)
+_, _, sigseqsim = seqsim(seq, obj, Δtgr, Δtrf)
+sq = sequence_samples(seq, Δtgr, Δtrf)
+_, _, sigkomasim = komasim(seq, obj; Δtgr, Δtrf)
+display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(signew[:,1,1]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals original simulator")))
+display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(sigseqsim[seqnew.ADC]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals seqsim")))
+display(plot([scatter(; x=sq.t[sq.adc_onmask], y=abs.(sigkomasim[sq.adc_onmask]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals komasim")))
+
 """
-For plotting user-defined sequence
-"""
+# For plotting user-defined sequence
 function plotseq(seq::Sequence)
     rf = rf_samples(seq)
     gx = gr_samples(seq, 1)
@@ -47,9 +153,7 @@ function plotseq(seq::Sequence)
 end
 plotseq(seq)
 
-"""
-For plotting the simulated sequence
-"""
+# For plotting the simulated sequence
 function plotseq(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
     sq = sequence_samples(seq, Δtgr, Δtrf)
     ix = sq.rfix[sq.rfix .!= 0]
@@ -63,9 +167,7 @@ function plotseq(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
 end
 plotseq(seq, Δtgr, Δtrf)
 
-"""
-For plotting the simulated sequence but with masked on-events
-"""
+# For plotting the simulated sequence but with masked on-events
 function plotonmaskseq(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
     sq = sequence_samples(seq, Δtgr, Δtrf)
     ix = sq.rfix[sq.rfix .!= 0]
@@ -79,9 +181,7 @@ function plotonmaskseq(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
 end
 plotonmaskseq(seq, Δtgr, Δtrf)
 
-"""
-For plotting the kspace of the simulated sequence
-"""
+# For plotting the kspace of the simulated sequence
 function plotkspace(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-5)
     k = KomaMRICore.kspace(seq, Δtgr, Δtrf)
     p1 = scatter3d(; x=k.x, y=k.y, z=k.z, mode="lines", hoverinfo="skip", name="simu-samples")
@@ -92,7 +192,6 @@ end
 plotkspace(seq, Δtgr, Δtrf)
 
 
-"""
 # Simulate for new simple simulation
 sq = sequence_samples(seq, Δtgr, Δtrf)
 t, Δt, rfa, rfΔf, gxa, gya, gza, rf_onmask, gx_onmask, gy_onmask, gz_onmask, adc_onmask, tadc, blk_ranges = sq.t, sq.Δt, sq.rfa, sq.rfΔf, sq.gxa, sq.gya, sq.gza, sq.rf_onmask, sq.gx_onmask, sq.gy_onmask, sq.gz_onmask, sq.adc_onmask, sq.tadc, sq.blk_ranges
