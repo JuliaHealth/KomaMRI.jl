@@ -68,7 +68,7 @@ export simulate, simulate_slice_profile
 export block_samples, sequence_samples, komasim, seqsim, blksim
 export kspace, rf_samples, gr_samples, adc_samples, samples_for_plot
 export samples, blksamples
-export interpolate, mergetimes, interval_union, interval_intersection, rfgr_intersection, refinetimes, indices_adcon, mask_adcon, block_limits, indices_rfon, mask_rfon
+export interpolate, mergetimes, interval_union, interval_intersection, rfgr_intersection, refinetimes, indices_adcon, mask_adcon, block_limits, indices_rfon, mask_rfon, simranges
 export center, criticaltimes
 
 #Additionals

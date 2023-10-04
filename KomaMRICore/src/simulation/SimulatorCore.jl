@@ -180,8 +180,14 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     #Simulation parameter unpacking, and setting defaults if key is not defined
     simParams = default_sim_params(simParams)
     # Simulation init
-    seqd = discretize(seq; simParams, isnew) # Sampling of Sequence waveforms
-    parts, excitation_bool = get_sim_ranges(seqd; Nblocks=simParams["Nblocks"]) # Generating simulation blocks
+    #---------------------------------------------------------------------------------------
+    #seqd = discretize(seq; simParams, isnew) # Sampling of Sequence waveforms
+    #parts, excitation_bool = get_sim_ranges(seqd; Nblocks=simParams["Nblocks"]) # Generating simulation blocks
+    #---------------------------------------------------------------------------------------
+    sq = (isnew) ? samples(seq, simParams["Δt"], simParams["Δt_rf"]) : nothing
+    seqd = (isnew) ? KomaMRICore.DiscreteSequence(sq.gxa, sq.gya, sq.gza, complex.(sq.rfa), sq.rfΔfc, sq.adconmask, sq.t, sq.Δt) : KomaMRICore.discretize(seq; simParams, isnew)
+    parts, excitation_bool = (isnew) ? simranges(sq.irfon, length(sq.t)) : KomaMRICore.get_sim_ranges(seqd; Nblocks=simParams["Nblocks"])
+    #---------------------------------------------------------------------------------------
     t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
     Xt, obj = initialize_spins_state(obj, simParams["sim_method"])

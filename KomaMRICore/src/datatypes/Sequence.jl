@@ -922,7 +922,7 @@ function blksamples(seq::Sequence; addfirst=false, addlast=false)
     rfs, gxs, gys, gzs = samples(rfo, ts), samples(gxo, ts), samples(gyo, ts), samples(gzo, ts)
 
     # Return the block with "combined" samples
-    return (t = ts, rf = rfs, gx = gxs, gy = gys, gz = gzs, adconmask = mask_adcon(ts, adce.t), rfonmask = mask_rfon(ts, criticaltimes(rfe)))
+    return (t = ts, rf = rfs, gx = gxs, gy = gys, gz = gzs, adconmask = mask_adcon(ts, adce.t), rfonmask = mask_rfon(ts, criticaltimes(rfo)), irfon = indices_rfon(ts, criticaltimes(rfo)))
 end
 
 """
@@ -960,7 +960,7 @@ function blksamples(seq::Sequence, Δtgr::Float64, Δtrf::Float64; addfirst=fals
     rfs, gxs, gys, gzs = samples(rfo, ts), samples(gxo, ts), samples(gyo, ts), samples(gzo, ts)
 
     # Return the block with "combined" and "refined" samples
-    return (t = ts, rf = rfs, gx = gxs, gy = gys, gz = gzs, adconmask = mask_adcon(ts, adce.t), rfonmask = mask_rfon(ts, rftc))
+    return (t = ts, rf = rfs, gx = gxs, gy = gys, gz = gzs, adconmask = mask_adcon(ts, adce.t), rfonmask = mask_rfon(ts, rftc), irfon = indices_rfon(ts, rftc))
 end
 
 """
@@ -972,14 +972,13 @@ function samples(seq::Sequence)
     if Nblk == 1
         blk = blksamples(seq; addfirst=true, addlast=true)
         return (Δt = (blk.t[2:end]-blk.t[1:end-1]), t = blk.t, rfa = blk.rf.a, rfΔfc = blk.rf.Δfc,
-                gxa = blk.gx.a, gya = blk.gy.a, gza = blk.gz.a, adconmask = blk.adconmask, rfonmask = blk.rfonmask)
+                gxa = blk.gx.a, gya = blk.gy.a, gza = blk.gz.a, adconmask = blk.adconmask, rfonmask = blk.rfonmask, irfon = [blk.irfon])
     end
-    addfirst, addlast = true, false
     # Iterate over each block of the sequence
     Δtacum = 0.
     Δt, t, rfa, rfΔfc, gxa, gya, gza, adconmask = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[]
-    rfonmask = Bool[]
-    to = 0.
+    rfonmask, irfon = Bool[], Vector{Int64}[]
+    to, Nt = 0., 0
     for i in 1:Nblk
         # For the first and last block que add the first and last point
         if i == 1
@@ -993,7 +992,9 @@ function samples(seq::Sequence)
         ΔT = durs(seq[i])[1]                            # Duration of the block
         blk = blksamples(seq[i]; addfirst, addlast)     # Combined samples of the block
         append!(t, to .+ blk.t); append!(rfa, blk.rf.a); append!(rfΔfc, blk.rf.Δfc)
-        append!(gxa, blk.gx.a); append!(gya, blk.gy.a); append!(gza, blk.gz.a); append!(adconmask, blk.adconmask); append!(rfonmask, blk.rfonmask)
+        append!(gxa, blk.gx.a); append!(gya, blk.gy.a); append!(gza, blk.gz.a); append!(adconmask, blk.adconmask);
+        append!(rfonmask, blk.rfonmask);
+        (!isempty(blk.irfon)) && append!(irfon, [Nt .+ blk.irfon])
         if length(blk.t) == 0
             Δtacum += ΔT
         else
@@ -1002,9 +1003,19 @@ function samples(seq::Sequence)
             Δtacum = ΔT - blk.t[end]
         end
         to += ΔT
+        Nt += length(blk.t)
     end
+
+    ########################################################################################
+    # Add a last dummy sample, this is due to DiscretizedSequence get by ranges, this shoudn't be done
+    append!(t, t[end]); append!(rfa, rfa[end]); append!(rfΔfc, rfΔfc[end])
+    append!(gxa, gxa[end]); append!(gya, gya[end]); append!(gza, gza[end]); append!(adconmask, false);
+    append!(rfonmask, false);
+    append!(Δt, 0.)
+    ########################################################################################
+
     # Return the values for the Discretized sequence
-    return (Δt = Δt, t = t, rfa = rfa, rfΔfc = rfΔfc, gxa = gxa, gya = gya, gza = gza, adconmask = adconmask, rfonmask = rfonmask)
+    return (Δt = Δt, t = t, rfa = rfa, rfΔfc = rfΔfc, gxa = gxa, gya = gya, gza = gza, adconmask = adconmask, rfonmask = rfonmask, irfon = irfon)
 end
 
 """
@@ -1016,14 +1027,13 @@ function samples(seq::Sequence, Δtgr::Float64, Δtrf::Float64)
     if Nblk == 1
         blk = blksamples(seq, Δtgr, Δtrf; addfirst=true, addlast=true)
         return (Δt = (blk.t[2:end]-blk.t[1:end-1]), t = blk.t, rfa = blk.rf.a, rfΔfc = blk.rf.Δfc,
-                gxa = blk.gx.a, gya = blk.gy.a, gza = blk.gz.a, adconmask = blk.adconmask, rfonmask = blk.rfonmask)
+                gxa = blk.gx.a, gya = blk.gy.a, gza = blk.gz.a, adconmask = blk.adconmask, rfonmask = blk.rfonmask, irfon = [blk.irfon])
     end
-    addfirst, addlast = true, false
     # Iterate over each block of the sequence
     Δtacum = 0.
     Δt, t, rfa, rfΔfc, gxa, gya, gza, adconmask = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[]
-    rfonmask = Bool[]
-    to = 0.
+    rfonmask, irfon = Bool[], Vector{Int64}[]
+    to, Nt = 0., 0
     for i in 1:Nblk
         # For the first and last block que add the first and last point
         if i == 1
@@ -1037,7 +1047,9 @@ function samples(seq::Sequence, Δtgr::Float64, Δtrf::Float64)
         ΔT = durs(seq[i])[1]                            # Duration of the block
         blk = blksamples(seq[i], Δtgr, Δtrf; addfirst, addlast)     # Combined samples of the block
         append!(t, to .+ blk.t); append!(rfa, blk.rf.a); append!(rfΔfc, blk.rf.Δfc)
-        append!(gxa, blk.gx.a); append!(gya, blk.gy.a); append!(gza, blk.gz.a); append!(adconmask, blk.adconmask); append!(rfonmask, blk.rfonmask)
+        append!(gxa, blk.gx.a); append!(gya, blk.gy.a); append!(gza, blk.gz.a); append!(adconmask, blk.adconmask);
+        append!(rfonmask, blk.rfonmask);
+        (!isempty(blk.irfon)) && append!(irfon, [Nt .+ blk.irfon])
         if length(blk.t) == 0
             Δtacum += ΔT
         else
@@ -1046,7 +1058,17 @@ function samples(seq::Sequence, Δtgr::Float64, Δtrf::Float64)
             Δtacum = ΔT - blk.t[end]
         end
         to += ΔT
+        Nt += length(blk.t)
     end
+
+    ########################################################################################
+    # Add a last dummy sample, this is due to DiscretizedSequence get by ranges, this shoudn't be done
+    append!(t, t[end]); append!(rfa, rfa[end]); append!(rfΔfc, rfΔfc[end])
+    append!(gxa, gxa[end]); append!(gya, gya[end]); append!(gza, gza[end]); append!(adconmask, false);
+    append!(rfonmask, false);
+    append!(Δt, 0.)
+    ########################################################################################
+
     # Return the values for the Discretized sequence
-    return (Δt = Δt, t = t, rfa = rfa, rfΔfc = rfΔfc, gxa = gxa, gya = gya, gza = gza, adconmask = adconmask, rfonmask = rfonmask)
+    return (Δt = Δt, t = t, rfa = rfa, rfΔfc = rfΔfc, gxa = gxa, gya = gya, gza = gza, adconmask = adconmask, rfonmask = rfonmask, irfon = irfon)
 end

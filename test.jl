@@ -24,6 +24,12 @@ seq = create_seq_epi(sys)
 
 # Define simulator parameters
 Δtgr, Δtrf = 1e-3, 1e-5
+simParams = KomaMRICore.default_sim_params()
+simParams["Δt"], simParams["Δt_rf"] = Δtgr, Δtrf
+simParams["Nthreads"], simParams["Nblocks"] = 1, 1
+simParams["return_type"] = "mat"
+simParams["gpu"] = false
+simParams["precision"] == "f64"
 
 # Get and plot the discretized sequences
 seqori = @time KomaMRICore.discretize(seq; simParams, isnew=false);
@@ -41,12 +47,6 @@ padcnew = scatter(; x=seqnew.t[seqnew.ADC], y=(.01 .* ones(length(seqnew.ADC))),
 display(plot([prfaori; pgxaori; pgyaori; pgzaori; padcori; prfanew; pgxanew; pgyanew; pgzanew; padcnew], Layout(title="Seq comparison")))
 
 # Simulate for original and new discretized koma
-simParams = KomaMRICore.default_sim_params()
-simParams["Δt"], simParams["Δt_rf"] = Δtgr, Δtrf
-simParams["Nthreads"], simParams["Nblocks"] = 1, 1
-simParams["return_type"] = "mat"
-simParams["gpu"] = false
-simParams["precision"] == "f64"
 tori = KomaMRICore.get_adc_sampling_times(seq)
 sigori = @time simulate(obj, seq, sys; simParams, isnew=false);
 signew = @time simulate(obj, seq, sys; simParams, isnew=true);
@@ -101,10 +101,11 @@ sys = Scanner()
 obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
 seq = Sequence()
 seq += ADC(N, Tadc)
-for i=1:1
+for i=1:2
     seq += RF(B1, Trf)
     seq += ADC(N, Tadc)
 end
+#seq = seq[2:end]
 
 # Compare original and new discretization of the sequences
 seqold = @time KomaMRICore.discretize(seq; simParams, isnew=false);
@@ -123,7 +124,6 @@ display(plot([prfaold; pgxaold; pgyaold; pgzaold; padcold; prfanew; pgxanew; pgy
 
 # Compare simulations (original-discretization, new-discretization, test-simulator)
 # There is a problem at the end of the simulation
-Δtgr, Δtrf = 1e-3, 1e-5
 told = KomaMRICore.get_adc_sampling_times(seq)
 sigold = simulate(obj, seq, sys; simParams, isnew=false)
 signew = simulate(obj, seq, sys; simParams, isnew=true)

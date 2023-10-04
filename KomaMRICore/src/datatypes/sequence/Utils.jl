@@ -275,29 +275,40 @@ function refinetimes(tsc::Vector{Float64}, bion::Vector{Tuple{Int64, Int64, Int6
 end
 
 """
+all the elements of tadc must be contained in ts
 """
 function indices_adcon(ts::Vector{Float64}, tadc::Vector{Float64})
     iadcon = Int64[]
-    i, j, Nj = 1, 1, length(tadc)
+    i, j, Ni, Nj = 1, 1, length(ts), length(tadc)
     while j <= Nj
         if ts[i] == tadc[j]
-            push!(iadcon, i)
+            while i <= Ni && ts[i] == tadc[j]
+                push!(iadcon, i)
+                i += 1
+            end
             j += 1
+        else
+            i += 1
         end
-        i += 1
     end
     return iadcon
 end
-
+"""
+all the elements of tadc must be contained in ts
+"""
 function mask_adcon(ts::Vector{Float64}, tadc::Vector{Float64})
-    mask = fill(false, length(ts))
-    i, j, Nj = 1, 1, length(tadc)
+    i, j, Ni, Nj = 1, 1, length(ts), length(tadc)
+    mask = fill(false, Ni)
     while j <= Nj
         if ts[i] == tadc[j]
-            mask[i] = true
+            while i <= Ni && ts[i] == tadc[j]
+                mask[i] = true
+                i += 1
+            end
             j += 1
+        else
+            i += 1
         end
-        i += 1
     end
     return mask
 end
@@ -313,20 +324,31 @@ end
 
 
 """
+all the elements of tc must be contained in ts
 """
 function indices_rfon(ts::Vector{Float64}, tc::Vector{Float64})
     irfon = Int64[]
     if isempty(tc)
         return irfon
     end
-    te = [tc[1]; tc[end]]
-    i, j, Nj = 1, 1, length(te)
-    while j <= Nj
-        if ts[i] == te[j]
+    tmin, tmax = tc[1], tc[end]
+    # Find min index
+    i = 1
+    while true
+        if ts[i] == tmin
             push!(irfon, i)
-            j += 1
+            break
         end
         i += 1
+    end
+    # Find max index
+    i = length(ts)
+    while true
+        if ts[i] == tmax
+            push!(irfon, i)
+            break
+        end
+        i -= 1
     end
     return irfon
 end
@@ -336,18 +358,33 @@ function mask_rfon(ts::Vector{Float64}, tc::Vector{Float64})
     if isempty(tc)
         return mask
     end
-    te = [tc[1]; tc[end]]
-    i, j, Nj = 1, 1, length(te)
-    isrfon = false
-    while j <= Nj
-        if ts[i] == te[j]
-            isrfon = true
-            j += 1
-        end
-        if isrfon
-            mask[i] = true
-        end
-        i += 1
-    end
+    imin, imax = indices_rfon(ts, tc)
+    mask[imin:imax] .= true
     return mask
+end
+
+"""
+It does same as get_sim_ranges() but ignores the Minimal quantity of number of Blocks
+"""
+function simranges(sq_irfon::Vector{Vector{Int64}}, Nt::Int64)
+    ########################################################################################
+    # Remove the last sample, this is due to DiscretizedSequence get by ranges, this shoudn't be done
+    Nt -= 1
+    ########################################################################################
+    parts, excitation_bool = UnitRange{Int}[], Bool[]
+    i0, Ni = 1, length(sq_irfon)
+    if sq_irfon[1][1] != 1
+        push!(parts, (1:(sq_irfon[1][1]-1))); push!(excitation_bool, false)
+        i0 = sq_irfon[1][1]
+    end
+    for i in eachindex(sq_irfon)
+        push!(parts, (sq_irfon[i][1]:sq_irfon[i][2])); push!(excitation_bool, true)
+        if i < Ni
+            push!(parts, ((sq_irfon[i][2]+1):(sq_irfon[i+1][1]-1))); push!(excitation_bool, false)
+        end
+    end
+    if sq_irfon[end][2] != Nt
+        push!(parts, ((sq_irfon[end][2]+1):Nt)); push!(excitation_bool, false)
+    end
+    return parts, excitation_bool
 end
