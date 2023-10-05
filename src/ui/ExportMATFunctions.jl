@@ -1,35 +1,26 @@
 function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
 
-    # DEPRECATED?
-    #max_rf_samples=100
-    #N = length(seq)
-    #ΔT = KomaMRICore.durs(seq)
-    #T0 = cumsum([0; ΔT],dims=1)
-    #off_val = Inf #This removes the unnecessary points in the plot
-    ##GRADS
-    #t1x = vcat([KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
-    #t1y = vcat([KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
-    #t1z = vcat([KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
-    #Gx =  vcat([KomaMRICore.get_theo_A(seq.GR[1,i]) for i=1:N]...)
-    #Gy =  vcat([KomaMRICore.get_theo_A(seq.GR[2,i]) for i=1:N]...)
-    #Gz =  vcat([KomaMRICore.get_theo_A(seq.GR[3,i]) for i=1:N]...)
-    #GRADS = hcat(t1x, t1y, t1z, Gx, Gy, Gz)
-    ##RFS
-    #t2 =  vcat([KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
-    #R =   vcat([KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
-    #RFS = hcat(t2, R)
-    ##ADC
-    #t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
-    #D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
-    #ADCS = hcat(t3, D)
-    gr = KomaMRICore.gr_samples(seq)
-    rf = KomaMRICore.rf_samples(seq)
-    adc = KomaMRICore.adc_samples(seq)
-    t1x, t1y, t1z, Gx, Gy, Gz = gr.tx, gr.ty, gr.tz, gr.ax, gr.ay, gr.az
-    t2, R = rf.t, rf.a
-    t3, D = adc.t, adc.onmask
+    # TO BE DEPRECATED?
+    max_rf_samples=100
+    N = length(seq)
+    ΔT = KomaMRICore.durs(seq)
+    T0 = cumsum([0; ΔT],dims=1)
+    off_val = Inf #This removes the unnecessary points in the plot
+    #GRADS
+    t1x = vcat([KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
+    t1y = vcat([KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
+    t1z = vcat([KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
+    Gx =  vcat([KomaMRICore.get_theo_A(seq.GR[1,i]) for i=1:N]...)
+    Gy =  vcat([KomaMRICore.get_theo_A(seq.GR[2,i]) for i=1:N]...)
+    Gz =  vcat([KomaMRICore.get_theo_A(seq.GR[3,i]) for i=1:N]...)
     GRADS = hcat(t1x, t1y, t1z, Gx, Gy, Gz)
+    #RFS
+    t2 =  vcat([KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
+    R =   vcat([KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
     RFS = hcat(t2, R)
+    #ADC
+    t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
+    D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
     ADCS = hcat(t3, D)
 
     seq_dict = Dict("GRAD" => GRADS,

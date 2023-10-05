@@ -720,187 +720,30 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 end
 
 
-############################################################################################
-############################################################################################
-############################################################################################
-"""
-Returns the amplitude of the gradients and its times
-This function adds a sample with zero amplitude at the end of each block
-"""
-function gr_samples(seq::Sequence, gi::Int64)
-
-    # Initialize empty vectors to be filled: block properties related
-    Nblk = length(seq)                                      # Number of blocks
-    blk_ranges = Vector{UnitRange{Int64}}(undef, Nblk)      # Initialize empty vector of block-ranges
-    ison = Vector{Bool}(undef, Nblk)                        # Initialize empty vectors of block properties
-    ko = 1                                                  # Initialize reference index of block-ranges
-
-    # Initialize empty vectors to be filled: time-sample properties related
-    t, Δt, a, onmask = Float64[], Float64[], Float64[], Bool[]
-    push!(t, 0.); push!(a, 0.); push!(onmask, false)
-
-    # Iterate over every block of the sequence
-    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
-    for k in 1:Nblk
-
-        # Get the all the samples for the gr in this block
-        ΔTk = durs(seq)[k]                      # Duration of the block
-        grk = event_samples(seq.GR[gi, k])      # Samples of the gr event in the block
-        Nt = length(grk.t)                      # Number of samples of the rf event in the block
-
-        # Fill gr block properties
-        ison[k] = grk.ison
-
-        # Append the samples of the block
-        append!(t, to[k] .+ grk.t); append!(a, grk.a); append!(onmask, fill(true, Nt))
-
-        # Add an additional sample at the end of the block always (useful for detecting block limits)
-        push!(t, to[k+1]); push!(a, 0.); push!(onmask, false)
-
-        # Append to the vector of delta-times
-        append!(Δt, [grk.t; ΔTk] - [0.; grk.t])
-
-        # Fill the block ranges
-        kn = ko + Nt + 1            # Index of the last time sample of this 1-block-sequence
-        blk_ranges[k] = (ko:kn)     # Range of the 1-block-sequence for time samples
-        ko = kn                     # Update the index of the first time sample for the next block range
-
-    end
-
-    # Returns rf block properties and time-sampled data
-    return (ison = ison, t = t, Δt = Δt, a = a, onmask = onmask, blk_ranges = blk_ranges)
-end
-
-"""
-Returns the amplitude of the rfs and its times
-This function adds a sample with zero amplitude at the end of the each block
-"""
-function rf_samples(seq::Sequence)
-
-    # Initialize empty vectors to be filled: block properties related
-    Nblk = length(seq)                                      # Number of blocks
-    blk_ranges = Vector{UnitRange{Int64}}(undef, Nblk)      # Initialize empty vector of block-ranges
-    ison, α, type, tx, ax = Vector{Bool}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk), Vector{Float64}(undef, Nblk)  # Initialize empty vectors of block properties
-    ko = 1                                                  # Initialize reference index of block-ranges
-
-    # Initialize empty vectors to be filled: time-sample properties related
-    t, Δt, a, Δf, onmask = Float64[], Float64[], Float64[], Float64[], Bool[]
-    push!(t, 0.); push!(a, 0.); push!(Δf, 0.); push!(onmask, false)
-
-    # Iterate over every block of the sequence
-    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
-    for k in 1:Nblk
-
-        # Get the all the samples for the rf at this block
-        ΔTk = durs(seq)[k]                  # Duration of the block
-        rfk = event_samples(seq.RF[k])      # Samples of the rf event in the block
-        Nt = length(rfk.t)                  # Number of samples of the rf event in the block
-
-        # Fill rf block properties
-        ison[k], α[k], type[k], tx[k], ax[k] = rfk.ison, rfk.α, rfk.type, rfk.tx, rfk.ax
-
-        # Append the samples of the block
-        append!(t, to[k] .+ rfk.t); append!(a, rfk.a); append!(Δf, rfk.Δf); append!(onmask, fill(true, Nt))
-
-        # Add an additional sample at the end of the block always (useful for detecting block limits)
-        push!(t, to[k+1]); push!(a, 0.); push!(Δf, 0.); push!(onmask, false)
-
-        # Append to the vector of delta-times
-        append!(Δt, [rfk.t; ΔTk] - [0.; rfk.t])
-
-        # Fill the block ranges
-        kn = ko + Nt + 1            # Index of the last time sample of this 1-block-sequence
-        blk_ranges[k] = (ko:kn)     # Range of the 1-block-sequence for time samples
-        ko = kn                     # Update the index of the first time sample for the next block range
-
-    end
-
-    # Returns rf block properties and time-sampled data
-    return (ison = ison, α = α, type = type, tx = tx, ax = ax,
-            t = t, Δt = Δt, a = a, Δf = Δf, onmask = onmask, blk_ranges = blk_ranges)
-end
-
-"""
-Returns the times of the adcs
-This function adds a dummy sample at the end of the each block
-"""
-function adc_samples(seq::Sequence)
-
-    # Iterate over every block of the sequence
-    Nblk = length(seq)                                      # Number of blocks
-    blk_ranges = Vector{UnitRange{Int64}}(undef, Nblk)      # Initialize empty vector of block-ranges
-    ison = Vector{Bool}(undef, Nblk)                        # Initialize empty vectors of block properties
-    ko = 1                                                  # Initialize reference index of block-ranges
-
-    # Initialize empty vectors to be filled
-    t, Δt, onmask = Float64[], Float64[], Bool[]
-    push!(t, 0.); push!(onmask, false)
-
-    # Iterate over every block of the sequence
-    to = cumsum([0; durs(seq)])     # Initial time of every block of the sequece
-    for k in 1:Nblk
-
-        # Get the all the samples for the adc at this block
-        ΔTk = durs(seq)[k]                  # Duration of the block
-        adck = event_samples(seq.ADC[k])    # Samples of the adc event in the block
-        Nt = length(adck.t)                 # Number of samples of the adc event in the block
-
-        # Fill adc block properties
-        ison[k] = adck.ison
-
-        # Append the samples of the block
-        append!(t, to[k] .+ adck.t); append!(onmask, fill(true, Nt))
-
-        # Add an additional sample at the end of the block always (useful for detecting block limits)
-        push!(t, to[k+1]); push!(onmask, false)
-
-        # Append to the vector of delta-times
-        append!(Δt, [adck.t; ΔTk] - [0.; adck.t])
-
-        # Fill the block ranges
-        kn = ko + Nt + 1            # Index of the last time sample of this 1-block-sequence
-        blk_ranges[k] = (ko:kn)     # Range of the 1-block-sequence for time samples
-        ko = kn                     # Update the index of the first time sample for the next block range
-
-    end
-
-    # Returns rf block properties and time-sampled data
-    return (ison = ison, t = t, Δt = Δt, onmask = onmask, blk_ranges = blk_ranges)
-end
-
-
-"""
-Auxiliar function which adds "Inf" values between blocks of the sequence useful when ploting
-"""
-function samples_for_plot(data::Vector{<:Number}, onmask::Vector{Bool})
-    return [((onmask[i]) ? (data[i]) : (Inf)) for i in eachindex(onmask)]
-end
-
-
-############################################################################################
-############################################################################################
-############################################################################################
-"""
-Returns the kspace for the new discretized sequence
-"""
-function kspace(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-3)
-    sq = sequence_samples(seq, Δtgr, Δtrf)
-    Nt = length(sq.t)
-    kx, ky, kz = zeros(Nt), zeros(Nt), zeros(Nt)
-    for (k, blk_range) in enumerate(sq.blk_ranges)
-        for i in blk_range[1:end-1]
-            kx[i+1] = kx[i] + γ * .5 * (sq.gxa[i+1] + sq.gxa[i]) * sq.Δt[i]
-            ky[i+1] = ky[i] + γ * .5 * (sq.gya[i+1] + sq.gya[i]) * sq.Δt[i]
-            kz[i+1] = kz[i] + γ * .5 * (sq.gza[i+1] + sq.gza[i]) * sq.Δt[i]
-            if i == sq.rfix
-                kx[i+1] *= (-sq.rftype[k])
-                ky[i+1] *= (-sq.rftype[k])
-                kz[i+1] *= (-sq.rftype[k])
-            end
-        end
-    end
-    return (x = kx, y = ky, z = kz, adc_onmask = sq.adc_onmask)
-end
+#############################################################################################
+#############################################################################################
+#############################################################################################
+#"""
+#Returns the kspace for the new discretized sequence
+#"""
+#function kspace(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-3)
+#    sq = sequence_samples(seq, Δtgr, Δtrf)
+#    Nt = length(sq.t)
+#    kx, ky, kz = zeros(Nt), zeros(Nt), zeros(Nt)
+#    for (k, blk_range) in enumerate(sq.blk_ranges)
+#        for i in blk_range[1:end-1]
+#            kx[i+1] = kx[i] + γ * .5 * (sq.gxa[i+1] + sq.gxa[i]) * sq.Δt[i]
+#            ky[i+1] = ky[i] + γ * .5 * (sq.gya[i+1] + sq.gya[i]) * sq.Δt[i]
+#            kz[i+1] = kz[i] + γ * .5 * (sq.gza[i+1] + sq.gza[i]) * sq.Δt[i]
+#            if i == sq.rfix
+#                kx[i+1] *= (-sq.rftype[k])
+#                ky[i+1] *= (-sq.rftype[k])
+#                kz[i+1] *= (-sq.rftype[k])
+#            end
+#        end
+#    end
+#    return (x = kx, y = ky, z = kz, adc_onmask = sq.adc_onmask)
+#end
 
 
 ############################################################################################
@@ -962,6 +805,8 @@ function blksamples(seq::Sequence, Δtgr::Float64, Δtrf::Float64; addfirst=fals
     # Return the block with "combined" and "refined" samples
     return (t = ts, rf = rfs, gx = gxs, gy = gys, gz = gzs, adconmask = mask_adcon(ts, adce.t), rfonmask = mask_rfon(ts, rftc), irfon = indices_rfon(ts, rftc))
 end
+
+
 
 """
 """

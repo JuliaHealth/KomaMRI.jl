@@ -160,30 +160,21 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 	O = size(seq.RF,1)
 	ΔT = KomaMRICore.durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
-    # DEPRECATED?
-	#off_val = Inf #This removes the unnecessary points in the plot
-	##GRADS
-	#t1x = vcat([KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
-	#t1y = vcat([KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
-	#t1z = vcat([KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
-	#Gx =  vcat([KomaMRICore.get_theo_A(seq.GR[1,i]) for i=1:N]...)
-	#Gy =  vcat([KomaMRICore.get_theo_A(seq.GR[2,i]) for i=1:N]...)
-	#Gz =  vcat([KomaMRICore.get_theo_A(seq.GR[3,i]) for i=1:N]...)
-	##RFS
-	#t2 =  vcat([KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
-	#R =   vcat([KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
-	##ADC
-	#t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
-	#D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
-    #GRADS
-    rf = KomaMRICore.rf_samples(seq)
-    gx = KomaMRICore.gr_samples(seq, 1)
-    gy = KomaMRICore.gr_samples(seq, 2)
-    gz = KomaMRICore.gr_samples(seq, 3)
-    adc = KomaMRICore.adc_samples(seq)
-    t1x, t1y, t1z, Gx, Gy, Gz = gx.t, gy.t, gz.t, KomaMRICore.samples_for_plot(gx.a, gx.onmask), KomaMRICore.samples_for_plot(gy.a, gy.onmask), KomaMRICore.samples_for_plot(gz.a, gz.onmask)
-    t2, R = rf.t, rf.a
-    t3, D = adc.t, KomaMRICore.samples_for_plot(ones(length(adc.t)), adc.onmask)
+    # TO BE DEPRECATED?
+	off_val = Inf #This removes the unnecessary points in the plot
+	#GRADS
+	t1x = vcat([KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
+	t1y = vcat([KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
+	t1z = vcat([KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
+	Gx =  vcat([KomaMRICore.get_theo_A(seq.GR[1,i]) for i=1:N]...)
+	Gy =  vcat([KomaMRICore.get_theo_A(seq.GR[2,i]) for i=1:N]...)
+	Gz =  vcat([KomaMRICore.get_theo_A(seq.GR[3,i]) for i=1:N]...)
+	#RFS
+	t2 =  vcat([KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
+	R =   vcat([KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
+	#ADC
+	t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
+	D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
     #Plot
 	p = [scatter() for j=1:(3+2O+1)]
 	#GR
