@@ -720,43 +720,17 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 end
 
 
-#############################################################################################
-#############################################################################################
-#############################################################################################
-#"""
-#Returns the kspace for the new discretized sequence
-#"""
-#function kspace(seq::Sequence, Δtgr::Float64=1e-3, Δtrf::Float64=1e-3)
-#    sq = sequence_samples(seq, Δtgr, Δtrf)
-#    Nt = length(sq.t)
-#    kx, ky, kz = zeros(Nt), zeros(Nt), zeros(Nt)
-#    for (k, blk_range) in enumerate(sq.blk_ranges)
-#        for i in blk_range[1:end-1]
-#            kx[i+1] = kx[i] + γ * .5 * (sq.gxa[i+1] + sq.gxa[i]) * sq.Δt[i]
-#            ky[i+1] = ky[i] + γ * .5 * (sq.gya[i+1] + sq.gya[i]) * sq.Δt[i]
-#            kz[i+1] = kz[i] + γ * .5 * (sq.gza[i+1] + sq.gza[i]) * sq.Δt[i]
-#            if i == sq.rfix
-#                kx[i+1] *= (-sq.rftype[k])
-#                ky[i+1] *= (-sq.rftype[k])
-#                kz[i+1] *= (-sq.rftype[k])
-#            end
-#        end
-#    end
-#    return (x = kx, y = ky, z = kz, adc_onmask = sq.adc_onmask)
-#end
-
-
 ############################################################################################
-############################################################################################
+### BLOCK COMBINED SAMPLES #################################################################
 ############################################################################################
 """
 Returns the block samples of the first block-sequence
 """
-function blksamples(seq::Sequence; addfirst=false, addlast=false)
+function blksamples(seq::Sequence; addblkfirst=false, addblklast=false)
 
     # Select the block of the sequence and the events
     rfo, gxo, gyo, gzo, adco = seq[1].RF[1], seq[1].GR[1,1], seq[1].GR[2,1], seq[1].GR[3,1], seq[1].ADC[1]
-    tblk = block_limits(addfirst, addlast, durs(seq[1])[1])     # Extreme times of the block (empty vector if is not necessary to add them)
+    tblk = block_limits(addblkfirst, addblklast, durs(seq[1])[1])     # Extreme times of the block (empty vector if is not necessary to add them)
     trfx = (ison(rfo) ? [center(rfo).t] : Float64[])            # Time of the RF center (empty vector if there is no rf)
 
     # Get the samples, the sampler-times (merged-nondecreasing-times), and the interpolated values
@@ -771,11 +745,11 @@ end
 """
 Returns the block samples of the first block-sequence refined by Δtgr and Δtrf
 """
-function blksamples(seq::Sequence, Δtgr::Float64, Δtrf::Float64; addfirst=false, addlast=false)
+function blksamples(seq::Sequence, Δtgr::Float64, Δtrf::Float64; addblkfirst=false, addblklast=false)
 
     # Variables related to the original block events ("o" stands for "original")
     rfo, gxo, gyo, gzo, adco = seq[1].RF[1], seq[1].GR[1,1], seq[1].GR[2,1], seq[1].GR[3,1], seq[1].ADC[1]
-    tblk = block_limits(addfirst, addlast, durs(seq[1])[1])         # Extreme times of the block (empty vector if is not necessary to add them)
+    tblk = block_limits(addblkfirst, addblklast, durs(seq[1])[1])         # Extreme times of the block (empty vector if is not necessary to add them)
 
     # Critical times to be considered ("c" stands for "critical" (there must be present in the simulation))
     rftc, gxtc, gytc, gztc = criticaltimes(rfo), criticaltimes(gxo), criticaltimes(gyo), criticaltimes(gzo)
@@ -806,53 +780,55 @@ function blksamples(seq::Sequence, Δtgr::Float64, Δtrf::Float64; addfirst=fals
     return (t = ts, rf = rfs, gx = gxs, gy = gys, gz = gzs, adconmask = mask_adcon(ts, adce.t), rfonmask = mask_rfon(ts, rftc), irfon = indices_rfon(ts, rftc))
 end
 
+
+############################################################################################
+### SEQUENCE CONCATENATION OF BLOCK COMBINED SAMPLES #######################################
+############################################################################################
+"""
+Update the concatenation step inside a "for loop" of the blocks in a sequence
+This is meant when there is a simple concatenation of the blocks in a sequence
+"""
+function upcat!(ΔTblk::Float64, tblk::Vector{Float64}, isfirstsample::Bool, Δtacum::Float64, to::Float64, Nt::Int64, Δt::Vector{Float64})
+    Ntblk = length(tblk)
+    if isempty(tblk)
+        Δtacum += ΔTblk
+    else
+        if isfirstsample
+            (!isempty(tblk)) && (isfirstsample = false)
+        else
+            push!(Δt, Δtacum + tblk[1])
+        end
+        append!(Δt, (tblk[2:end] - tblk[1:end-1]))
+        Δtacum = ΔTblk - tblk[end]
+    end
+    to += ΔTblk
+    Nt += Ntblk
+    return isfirstsample, Δtacum, to, Nt
+end
+
 """
 Returns the combined sequence samples refined by Δtgr and Δtrf or not depending on the
 refination boolean
 """
-function seqsamples(seq::Sequence, isrefined::Bool, Δtgr::Float64, Δtrf::Float64)
-    # Get the number of blocks
-    Nblk = length(seq)
-    # Return for 1-block-sequence
-    if Nblk == 1
-        blk = (isrefined) ? blksamples(seq, Δtgr, Δtrf; addfirst=true, addlast=true) : blksamples(seq; addfirst=true, addlast=true)
-        return (Δt = (blk.t[2:end]-blk.t[1:end-1]), t = blk.t, rfa = blk.rf.a, rfΔfc = blk.rf.Δfc,
-                gxa = blk.gx.a, gya = blk.gy.a, gza = blk.gz.a, adconmask = blk.adconmask, rfonmask = blk.rfonmask, irfon = [blk.irfon])
-    end
+function seqsamples(seq::Sequence, isrefined::Bool, Δtgr::Float64, Δtrf::Float64; addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false)
     # Iterate over each block of the sequence
-    Δtacum = 0.
-    Δt, t, rfa, rfΔfc, gxa, gya, gza, adconmask = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Bool[]
+    Δt, t, rfa, rfΔfc, gxa, gya, gza, adconmask = Float64[], Float64[], ComplexF64[], Float64[], Float64[], Float64[], Float64[], Bool[]
     rfonmask, irfon = Bool[], Vector{Int64}[]
-    to, Nt = 0., 0
+    isfirstsample, Δtacum, to, Nt, Nblk = true, 0., 0., 0, length(seq)
     for i in 1:Nblk
-        # For the first and last block que add the first and last point
-        if i == 1
-            addfirst, addlast = true, false
-        elseif i == Nblk
-            addfirst, addlast = false, true
-        else
-            addfirst, addlast = false, false
-        end
         # Append samples of the block
-        ΔT = durs(seq[i])[1]        # Duration of the block
-        blk = (isrefined) ? blksamples(seq[i], Δtgr, Δtrf; addfirst, addlast) : blksamples(seq[i]; addfirst, addlast)   # Combined samples of the block
+        abf, abl = ((i == 1) ? addseqfirst : addblkfirst), ((i == Nblk || Nblk == 1) ? addseqlast : addblklast)
+        blk = (isrefined) ? blksamples(seq[i], Δtgr, Δtrf; addblkfirst=abf, addblklast=abl) : blksamples(seq[i]; addblkfirst=abf, addblklast=abl)
         append!(t, to .+ blk.t); append!(rfa, blk.rf.a); append!(rfΔfc, blk.rf.Δfc)
         append!(gxa, blk.gx.a); append!(gya, blk.gy.a); append!(gza, blk.gz.a); append!(adconmask, blk.adconmask);
         append!(rfonmask, blk.rfonmask);
         (!isempty(blk.irfon)) && append!(irfon, [Nt .+ blk.irfon])
-        if length(blk.t) == 0
-            Δtacum += ΔT
-        else
-            (i != 1) && push!(Δt, Δtacum + blk.t[1])
-            append!(Δt, (blk.t[2:end] - blk.t[1:end-1]))
-            Δtacum = ΔT - blk.t[end]
-        end
-        to += ΔT
-        Nt += length(blk.t)
+        # Update the concatenation appending time distances
+        isfirstsample, Δtacum, to, Nt = upcat!(durs(seq[i])[1], blk.t, isfirstsample, Δtacum, to, Nt, Δt)
     end
 
     ########################################################################################
-    # Add a last dummy sample, this is due to DiscretizedSequence get by ranges, this shoudn't be done
+    # Add a last dummy sample, this is due to DiscretizedSequence get by ranges, this shoudn't be done but if for keeping compatibility
     append!(t, t[end]); append!(rfa, rfa[end]); append!(rfΔfc, rfΔfc[end])
     append!(gxa, gxa[end]); append!(gya, gya[end]); append!(gza, gza[end]); append!(adconmask, false);
     append!(rfonmask, false);
@@ -866,9 +842,231 @@ end
 """
 Return the combined samples of a sequence with time refination or not
 """
-function samples(seq::Sequence)
-    return seqsamples(seq, false, 0., 0.)
+function samples(seq::Sequence; addseqfirst=true, addseqlast=true, addblkfirst=false, addblklast=true)
+    return seqsamples(seq, false, 0., 0.; addseqfirst, addseqlast, addblkfirst, addblklast)
 end
-function samples(seq::Sequence, Δtgr::Float64, Δtrf::Float64)
-    return seqsamples(seq, true, Δtgr, Δtrf)
+function samples(seq::Sequence, Δtgr::Float64, Δtrf::Float64; addseqfirst=true, addseqlast=true, addblkfirst=false, addblklast=true)
+    return seqsamples(seq, true, Δtgr, Δtrf; addseqfirst, addseqlast, addblkfirst, addblklast)
+end
+
+
+############################################################################################
+### SEQUENCE CONCATENATION OF EVENT SAMPLES ################################################
+############################################################################################
+"""
+Update the concatenation step inside a "for loop" of the blocks in a sequence
+This is meant when its necessary to add an aditional sample with Inf amplitude between blocks when ploting
+"""
+function upcat!(ΔTblk::Float64, tblk::Vector{Float64}, to::Float64, Nt::Int64, Δt::Vector{Float64})
+    Ntblk = length(tblk)
+    areblksamples = (!isempty(tblk))
+    Δtblklim = (areblksamples) ? (ΔTblk - tblk[end]) : ΔTblk
+    (areblksamples) && append!(Δt, (tblk[2:end] - tblk[1:end-1]))
+    push!(Δt, Δtblklim)
+    to += ΔTblk
+    Nt += Ntblk + 1
+    return false, 0., to, Nt
+end
+
+#####################
+### For Gradients ###
+#####################
+"""
+Get the gradient samples of the first block of the sequence sampled at defined times given
+by the keyword arguments
+"""
+function blkgrsamples(seq::Sequence, igr::Int64; addblkfirst=false, addblklast=false, addrfx=false, addadc=false)
+    # Get the event samples defined by the user
+    rfo, adco, ΔTblk = seq[1].RF[1], seq[1].ADC[1], durs(seq[1])[1]
+    gro = seq[1].GR[igr,1]
+    gre = samples(gro)
+    # Get the possibly times to be added
+    tblk = block_limits(addblkfirst, addblklast, ΔTblk)
+    trfc = center(rfo).t
+    trfx = (addrfx && !isnan(trfc)) ? [trfc] : Float64[]
+    tadcc = samples(adco).t
+    tadc = (addadc) ? tadcc : Float64[]
+    # Get the samples of the event
+    ts = mergetimes([gre.t, tblk, trfx, tadc])
+    grs = samples(gro, ts)
+    # Return the gradient event samples and the index of the center
+    return (t = ts, gra = grs.a, irfx = ((addrfx) ? index_rfx(ts, trfc) : 0), adconmask = ((addadc) ? mask_adcon(ts, tadcc) : Bool[]))
+end
+function blkgrsamples(seq::Sequence; addblkfirst=false, addblklast=false, addrfx=false, addadc=false)
+    # Get the event samples defined by the user
+    rfo, adco, ΔTblk = seq[1].RF[1], seq[1].ADC[1], durs(seq[1])[1]
+    gxo, gyo, gzo = seq[1].GR[1,1], seq[1].GR[2,1], seq[1].GR[3,1]
+    gxe, gye, gze = samples(gxo), samples(gyo), samples(gzo)
+    # Get the possibly times to be added
+    tblk = block_limits(addblkfirst, addblklast, ΔTblk)
+    trfc = center(rfo).t
+    trfx = (addrfx && !isnan(trfc)) ? [trfc] : Float64[]
+    tadcc = samples(adco).t
+    tadc = (addadc) ? tadcc : Float64[]
+    # Get the samples of the event
+    ts = mergetimes([gxe.t, gye.t, gze.t, tblk, trfx, tadc])
+    gxs, gys, gzs = samples(gxo, ts), samples(gyo, ts), samples(gzo, ts)
+    # Return the gradient event samples and the index of the center
+    return (t = ts, gxa = gxs.a, gya = gys.a, gza = gzs.a, irfx = ((addrfx) ? index_rfx(ts, trfc) : 0), rftype = flipangle(rfo).type, adconmask = ((addadc) ? mask_adcon(ts, tadcc) : Bool[]))
+end
+
+"""
+Concatenate one component of the gradient event of the sequence
+"""
+function grsamples(seq::Sequence, igr::Int64; addblklim=false, addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false, addrfx=false, addadc=false)
+    # Create empty vectors to be filled and initial variable values
+    Δt, t, a, irfx, adconmask = Float64[], Float64[], Float64[], Int64[], Bool[]
+    isfirstsample, Δtacum, to, Nt, Nblk = true, 0., 0., 0, length(seq)
+    # Initial state when it's required to add block limits
+    if addblklim
+        tblk = blkgrsamples(seq[1], igr; addblkfirst, addblklast, addrfx, addadc).t
+        (!isempty(tblk)) && push!(Δt, tblk[1])
+        push!(t, 0.); push!(a, Inf); ((addadc) && push!(adconmask, false)); Nt += 1
+    end
+    # Iterate over blocks
+    for i in 1:Nblk
+        # Get the values of the block and fill the vectors
+        blk = blkgrsamples(seq[i], igr; addblkfirst=((i == 1) ? addseqfirst : addblkfirst), addblklast=((i == Nblk || Nblk == 1) ? addseqlast : addblklast), addrfx, addadc)
+        append!(t, to .+ blk.t); append!(a, blk.gra); append!(adconmask, blk.adconmask)
+        (blk.irfx != 0) && push!(irfx, Nt + blk.irfx)
+        # Update the concatenation adding appending time distances (must be done always at every step), and appendind an additional Inf sample in the separation of every block when required
+        ΔTblk = durs(seq[i])[1]
+        if addblklim
+            push!(t, to + ΔTblk); push!(a, Inf); ((addadc) && push!(adconmask, false))
+        end
+        isfirstsample, Δtacum, to, Nt = (addblklim) ? upcat!(ΔTblk, blk.t, to, Nt, Δt) : upcat!(ΔTblk, blk.t, isfirstsample, Δtacum, to, Nt, Δt)
+    end
+    # Return the concatenated data of the event
+    return (Δt = Δt, t = t, a = a, irfx = irfx, adconmask = adconmask)
+end
+function grsamples(seq::Sequence; addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false, addrfx=false, addadc=false)
+    # Create empty vectors to be filled and initial variable values
+    Δt, t, ax, ay, az, irfx, rftype, adconmask = Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], Bool[], Bool[]
+    isfirstsample, Δtacum, to, Nt, Nblk = true, 0., 0., 0, length(seq)
+    # Iterate over blocks
+    for i in 1:Nblk
+        # Get the values of the block and fill the vectors
+        blk = blkgrsamples(seq[i]; addblkfirst=((i == 1) ? addseqfirst : addblkfirst), addblklast=((i == Nblk || Nblk == 1) ? addseqlast : addblklast), addrfx, addadc)
+        append!(t, to .+ blk.t); append!(ax, blk.gxa); append!(ay, blk.gya); append!(az, blk.gza); append!(adconmask, blk.adconmask)
+        if blk.irfx != 0
+            push!(irfx, Nt + blk.irfx)
+            push!(rftype, blk.rftype)
+        end
+        # Update the concatenation adding appending time distances (must be done always at every step), and appendind an additional Inf sample in the separation of every block when required
+        ΔTblk = durs(seq[i])[1]
+        isfirstsample, Δtacum, to, Nt = upcat!(ΔTblk, blk.t, isfirstsample, Δtacum, to, Nt, Δt)
+    end
+    # Return the concatenated data of the event
+    return (Δt = Δt, t = t, ax = ax, ay = ay, az = az, irfx = irfx, rftype = rftype, adconmask = adconmask)
+end
+
+##############
+### For RF ###
+##############
+function blkrfsamples(seq::Sequence; addblkfirst=false, addblklast=false, addrfx=true)
+    # Get the event samples defined by the user
+    rfo, ΔTblk = seq[1].RF[1], durs(seq[1])[1]
+    rfe = samples(rfo)
+    # Get the possibly times to be added
+    tblk = block_limits(addblkfirst, addblklast, ΔTblk)
+    trfc = center(rfo).t
+    trfx = (addrfx && !isnan(trfc)) ? [trfc] : Float64[]
+    # Get the samples of the event
+    ts = mergetimes([rfe.t, tblk, trfx])
+    rfs = samples(rfo, ts)
+    # Return the gradient event samples and the index of the center
+    return (t = ts, a = rfs.a, irfx = index_rfx(ts, center(rfo).t), rftype = flipangle(rfo).type)
+end
+function rfsamples(seq::Sequence; addblklim=false, addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false, addrfx=false)
+    # Create empty vectors to be filled and initial variable values
+    Δt, t, a, irfx, rftype = Float64[], Float64[], ComplexF64[], Int64[], Bool[]
+    isfirstsample, Δtacum, to, Nt, Nblk = true, 0., 0., 0, length(seq)
+    # Initial state when it's required to add block limits
+    if addblklim
+        tblk = blkrfsamples(seq[1]; addblkfirst, addblklast, addrfx).t
+        (!isempty(tblk)) && push!(Δt, tblk[1])
+        push!(t, 0.); push!(a, Inf); Nt += 1
+    end
+    # Iterate over blocks
+    for i in 1:Nblk
+        # Get the values of the block and fill the vectors
+        blk = blkrfsamples(seq[i]; addblkfirst=((i == 1) ? addseqfirst : addblkfirst), addblklast=((i == Nblk || Nblk == 1) ? addseqlast : addblklast), addrfx)
+        append!(t, to .+ blk.t); append!(a, blk.a)
+        if blk.irfx != 0
+            push!(irfx, Nt + blk.irfx)
+            push!(rftype, blk.rftype)
+        end
+        # Update the concatenation adding appending time distances (must be done always at every step), and appendind an additional Inf sample in the separation of every block when required
+        ΔTblk = durs(seq[i])[1]
+        if addblklim
+            push!(t, to + ΔTblk); push!(a, Inf)
+        end
+        isfirstsample, Δtacum, to, Nt = (addblklim) ? upcat!(ΔTblk, blk.t, to, Nt, Δt) : upcat!(ΔTblk, blk.t, isfirstsample, Δtacum, to, Nt, Δt)
+    end
+    # Return the concatenated data of the event
+    return (Δt = Δt, t = t, a = a, irfx = irfx, rftype = rftype)
+end
+
+###############
+### For ADC ###
+###############
+function blkadcsamples(seq::Sequence)
+    return (t = samples(seq[1].ADC[1]).t,)
+end
+function adcsamples(seq::Sequence; addblklim=false)
+    # Create empty vectors to be filled and initial variable values
+    Δt, t, a = Float64[], Float64[], Float64[]
+    isfirstsample, Δtacum, to, Nt, Nblk = true, 0., 0., 0, length(seq)
+    # Initial state when it's required to add block limits
+    if addblklim
+        tblk = blkadcsamples(seq[1]).t
+        (!isempty(tblk)) && push!(Δt, tblk[1])
+        push!(t, 0.); push!(a, Inf); Nt += 1
+    end
+    # Iterate over blocks
+    for i in 1:Nblk
+        # Get the values of the block and fill the vectors
+        blk = blkadcsamples(seq[i])
+        tblk = (addblklim && !isempty(blk.t)) ? [blk.t[1]; blk.t; blk.t[end]] : blk.t
+        # Update the concatenation adding appending time distances (must be done always at every step), and appendind an additional Inf sample in the separation of every block when required
+        ΔTblk = durs(seq[i])[1]
+        if addblklim
+            if !isempty(tblk)
+                Nt = length(blk.t)
+                append!(t, to .+ tblk); append!(a, [0.; fill(1., Nt); 0.])
+                push!(t, to + ΔTblk); push!(a, Inf)
+            end
+        else
+            append!(t, to .+ blk.t)
+        end
+        isfirstsample, Δtacum, to, Nt = (addblklim) ? upcat!(ΔTblk, tblk, to, Nt, Δt) : upcat!(ΔTblk, blk.t, isfirstsample, Δtacum, to, Nt, Δt)
+    end
+    # Return the concatenated data of the event
+    return (Δt = Δt, t = t, a = a)
+end
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+"""
+Returns the kspace for the new discretized sequence
+"""
+function kspace(seq::Sequence)
+    gr = grsamples(seq; addseqfirst=true, addseqlast=true, addblkfirst=false, addblklast=false, addrfx=true, addadc=true)
+    Nt = length(gr.t)
+    kx, ky, kz = zeros(Nt), zeros(Nt), zeros(Nt)
+    j, Nj = 1, length(gr.irfx)
+    for i in eachindex(gr.Δt)
+        kx[i+1] = kx[i] + γ * .5 * (gr.ax[i+1] + gr.ax[i]) * gr.Δt[i]
+        ky[i+1] = ky[i] + γ * .5 * (gr.ay[i+1] + gr.ay[i]) * gr.Δt[i]
+        kz[i+1] = kz[i] + γ * .5 * (gr.az[i+1] + gr.az[i]) * gr.Δt[i]
+        if (j <= Nj && gr.irfx[j] == i)
+            kx[i+1] *= (-gr.rftype[j])
+            ky[i+1] *= (-gr.rftype[j])
+            kz[i+1] *= (-gr.rftype[j])
+            j += 1
+        end
+    end
+    return (x = kx, y = ky, z = kz, adconmask = gr.adconmask)
 end

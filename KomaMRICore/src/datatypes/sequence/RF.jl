@@ -194,7 +194,7 @@ end
 For getting the time, amplitude and carrier-frequency-difference samples of the rf event
 """
 function samples(rf::RF)
-    Δt, t, a, Δfc = Float64[], Float64[], Float64[], Float64[]
+    Δt, t, a, Δfc = Float64[], Float64[], ComplexF64[], Float64[]
     if ison(rf)
         NT, NA, NΔf = length(rf.T), length(rf.A), length(rf.Δf)
         if (NA == 1 && NT == 1)         # Block Pulse
@@ -243,7 +243,7 @@ function flipangle(rf::RF)
     α, type = NaN, false
     if ison(rf)
         rfs = samples(rf)
-        α = 180. * γ * abs(sum((rfs.a[2:end] + rfs.a[1:end-1]) .* rfs.Δt))
+        α = 180. * γ * abs(sum((rfs.a[2:end] + rfs.a[1:end-1]) .* rfs.Δt[2:end]))
         type = (α <= 90.01)
     end
     return (α = α, type = type)

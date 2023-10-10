@@ -19,8 +19,8 @@ end
 
 # Define scanner, object and sequence
 sys = Scanner()
-obj = brain_phantom2D()
 seq = create_seq_epi(sys)
+obj = brain_phantom2D()
 
 # Define simulator parameters
 Δtgr, Δtrf = 1e-3, 1e-5
@@ -163,3 +163,16 @@ sigjem = sigjem[:]
 display(plot([scatter(; y=abs.(sigold), mode="lines+markers", name="old"); scatter(; y=abs.(signew), mode="lines+markers", name="new");], Layout(title="Comparison of the Raw-Signals")))
 display(plot([scatter(; y=abs.(sigjem), mode="lines+markers", name="jem"); scatter(; y=abs.(sigold), mode="lines+markers", name="old");], Layout(title="Comparison of the Raw-Signals")))
 display(plot([scatter(; y=abs.(sigjem), mode="lines+markers", name="jem"); scatter(; y=abs.(signew), mode="lines+markers", name="new");], Layout(title="Comparison of the Raw-Signals")))
+
+#grs = grsamples(seq, 1; addblklim=false, addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false, addrfx=false, addadc=false)
+grs = grsamples(seq; addseqfirst=true, addseqlast=true, addblkfirst=false, addblklast=false, addrfx=true, addadc=true)
+display(plot([scatter(; x=grs.t, y=grs.ax, mode="lines+markers", name="GX")]))
+
+rfs = rfsamples(seq; addblklim=true, addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false, addrfx=false)
+display(plot([scatter(; x=rfs.t, y=rfs.a, mode="lines+markers", name="RF")]))
+
+k = KomaMRICore.kspace(seq)
+p1 = PlotlyJS.scatter3d(x=k.x, y=k.y, z=k.z, mode="lines", name="Trajectory", hoverinfo="skip")
+p2 = PlotlyJS.scatter3d(x=k.x[k.adconmask], y=k.y[k.adconmask], z=k.z[k.adconmask], mode="markers", marker=attr(size=2), name="ADC")
+p3 = PlotlyJS.scatter3d(x=[0], y=[0], z=[0], name="k=0", marker=attr(symbol="cross",size=10,color="red"))
+plot([p1, p2, p3])

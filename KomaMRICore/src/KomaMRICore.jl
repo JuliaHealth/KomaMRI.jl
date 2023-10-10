@@ -67,8 +67,10 @@ export simulate, simulate_slice_profile
 # For new discretization
 export seqsim
 export blksamples, samples
-export interpolate, mergetimes, interval_union, interval_intersection, rfgr_intersection, refinetimes, indices_adcon, mask_adcon, block_limits, indices_rfon, mask_rfon, simranges
+export interpolate, mergetimes, interval_union, interval_intersection, rfgr_intersection, refinetimes, indices_adcon, mask_adcon, block_limits, index_rfx, indices_rfon, mask_rfon, simranges
 export center, criticaltimes
+export blkgrsamples, grsamples, blkrfsamples, rfsamples, blkadcsamples, adcsamples
+export kspace
 
 #Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on

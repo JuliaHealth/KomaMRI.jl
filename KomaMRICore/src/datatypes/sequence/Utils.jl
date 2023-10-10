@@ -16,7 +16,7 @@ function interpolate(td::Vector{Float64}, ad::Vector{<:Number}, ts::Vector{Float
     tef, aef = te[end], ae[end]
 
     # Empty Vectors to be filled
-    t, a = Float64[], Float64[]
+    t, a = Float64[], Number[]  # Be careful with type stability here
     Nt = 0
 
     # Iterate over the sampling vector
@@ -320,6 +320,25 @@ function block_limits(addfirst::Bool, addlast::Bool, ΔT::Float64)
     (!addfirst)             && return [ΔT]
     (!addlast)              && return [0.]
     return [0.; ΔT]
+end
+
+
+"""
+Returns the first index value when tx appears in ts or is the next closest index
+tx must be contained in the ts samples
+"""
+function index_rfx(ts::Vector{Float64}, tx::Float64)
+    ix = 0
+    if isnan(tx) || isempty(ts)
+        return ix
+    end
+    ix = 1
+    while true
+        if ts[ix] >= tx
+            return ix
+        end
+        ix += 1
+    end
 end
 
 
