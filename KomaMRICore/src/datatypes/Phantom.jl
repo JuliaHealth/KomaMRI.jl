@@ -31,8 +31,8 @@ The Phantom struct.
 	y::AbstractVector{T} =   zeros(size(x))
 	z::AbstractVector{T} =   zeros(size(x))
 	ρ::AbstractVector{T} =   ones(size(x))
-	T1::AbstractVector{T} =  ones(size(x)) * 1_000_000
-	T2::AbstractVector{T} =  ones(size(x)) * 1_000_000
+	T1::AbstractVector{T} =  ones(size(x)) 
+	T2::AbstractVector{T} =  0.1 * ones(size(x))
 	T2s::AbstractVector{T} = ones(size(x)) * 1_000_000
 	#Off-resonance related
 	Δw::AbstractVector{T} =  zeros(size(x))
@@ -469,29 +469,120 @@ end
 
 
 """
-function time_partitioner(t::AbstractVector, dur::AbstractVector, pieces::AbstractVector)
-	t_aux = t
-	aux = []
-	while length(t_aux) > 0
-		push!(aux,t_aux[t_aux.<= sum(dur)])
-		filter!(x -> x > sum(dur), t_aux)
+phantom = read_phantom(filename)
 
-		if length(t_aux) > 0
-			t_aux .-= sum(dur)
-		end
-	end
-
-	times = []
-	for cycle in aux
-		for i in 1:length(pieces)-1
-			push!(times,filter(x -> x>=pieces[i] && x<pieces[i+1], cycle))
-		end
-	end
-
-	times
-end
+Reads a (.phantom) file and creates a Phantom structure from it
 """
+function read_phantom(filename::String) 
+	# ----------------------------------------------
+	function read_param(param::HDF5.Group)
+		type = attrs(param)["type"]
+	
+		if     type == "Explicit"
+			values = read(param["values"])
+		elseif type == "Indexed"
+			index = read(param["values"]) 
+			if Ns == length(index)
+				table = read(param["table"])
+				N = read_attribute(param,"N")
+				if N == length(table)
+					values = table[index]
+				else
+					print("Error: $(label) table dimensions mismatch")
+				end
+			else
+				print("Error: $(label) vector dimensions mismatch")
+			end
+		elseif type == "Default"
+			values = "Default"
+		end
+	
+		values
+	end
+	# ----------------------------------------------
 
+	fid = HDF5.h5open(filename,"r")
+
+	name    = read_attribute(fid,"Name")
+	version = read_attribute(fid,"Version")
+    dims    = read_attribute(fid,"Dims")
+    dynamic = Bool(read_attribute(fid,"Dynamic"))
+    Ns      = read_attribute(fid,"Ns")
+
+	ph = Phantom(name=name,
+				 x=zeros(Ns))
+
+	# Position and contrast
+	for key in ["position","contrast"]
+		group = fid[key]
+		for label in HDF5.keys(group)
+			param = group[label]
+			values = read_param(param)
+			if values != "Default"
+				setfield!(ph,Symbol(label),values)
+			end
+		end
+	end
+
+	# Motion
+	if dynamic
+		motion = fid["motion"]
+		model = read_attribute(motion,"model")
+		if model == "Simple"
+		# ---------- PENDING -----------
+		elseif model == "Arbitrary"
+			segments = motion["segments"]
+			N = read_attribute(segments, "N")
+			K = read_attribute(segments, "K")
+			dur = read(segments["dur"])
+
+			Δx = zeros(Ns,K-1)
+			Δy = zeros(Ns,K-1)
+			Δz = zeros(Ns,K-1)
+
+			for key in HDF5.keys(motion)
+				if key != "segments"
+					deltas = read_param(motion[key])
+					if 	   key == "motionx"
+						Δx = deltas
+					elseif key == "motiony"
+						Δy = deltas
+					elseif key == "motionz"
+						Δz = deltas
+					end
+				end
+			end
+
+			ph.mov = ArbitraryMotion{Float64}(dur=dur,
+											  K=K,
+										      Δx=Δx,
+										      Δy=Δy,
+											  Δz=Δz)
+		end
+	end
+
+	return ph
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# UNUSED FUNCTIONS --------------------
 
 """
 phantom = read_phantom_file(filename)
@@ -755,31 +846,51 @@ function read_phantom_file(filename)
 			end
 		end
 
-		phantom = Phantom{Float64}(name=name,
-                          		   x=x,
-                          		   y=y,
-                          		   z=z,
-                          		   ρ=rho_values,
-                          		   T1=T1_values,
-                          		   T2=T2_values,
-								   mov=ArbitraryMotion{Float64}(dur=dur,
-																K=K,
-																Δx=Δx,
-																Δy=Δy,
-																Δz=Δz))
+		mov = ArbitraryMotion{Float64}(dur=dur,
+									   K=K,
+									   Δx=Δx,
+									   Δy=Δy,
+									   Δz=Δz)
 
 	else # Static phantom
-		phantom = Phantom{Float64}(name=name,
-                          		   x=x,
-                          		   y=y,
-                          		   z=z,
-                          		   ρ=rho_values,
-                          		   T1=T1_values,
-                          		   T2=T2_values)
+		mov = SimpleMotion()
 	end
+
+	phantom = Phantom{Float64}(name=name,
+							   x=x,
+							   y=y,
+							   z=z,
+							   ρ=rho_values,
+							   T1=T1_values,
+							   T2=T2_values,
+							   mov=mov)
 
 	close(fid)
 
 	phantom
 end
 
+
+"""
+function time_partitioner(t::AbstractVector, dur::AbstractVector, pieces::AbstractVector)
+	t_aux = t
+	aux = []
+	while length(t_aux) > 0
+		push!(aux,t_aux[t_aux.<= sum(dur)])
+		filter!(x -> x > sum(dur), t_aux)
+
+		if length(t_aux) > 0
+			t_aux .-= sum(dur)
+		end
+	end
+
+	times = []
+	for cycle in aux
+		for i in 1:length(pieces)-1
+			push!(times,filter(x -> x>=pieces[i] && x<pieces[i+1], cycle))
+		end
+	end
+
+	times
+end
+"""
