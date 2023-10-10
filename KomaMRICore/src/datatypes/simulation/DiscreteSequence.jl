@@ -73,3 +73,33 @@ function discretize(seq::Sequence; simParams=default_sim_params(), isnew=false)
     t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag = sq.t, sq.Δt, sq.rfa, sq.rfΔfc, sq.gxa, sq.gya, sq.gza, sq.adconmask
     return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
 end
+
+
+############################################################################################
+### TEST DISCRETE SEQUENCE STRUCT ##########################################################
+############################################################################################
+struct SEQD{T<:Real}
+    Δt::AbstractVector{T}
+    t::AbstractVector{T}
+    rfa::AbstractVector{Complex{T}}
+    rfΔfc::AbstractVector{T}
+    gxa::AbstractVector{T}
+    gya::AbstractVector{T}
+    gza::AbstractVector{T}
+    adconmask::AbstractVector{Bool}
+end
+
+function Base.length(seqd::SEQD)
+    return length(seqd.Δt)
+end
+function Base.getindex(seqd::SEQD, i::Integer)
+    return SEQD(seqd.Δt[i, :], seqd.t[i, :], seqd.rfa[i, :], seqd.rfΔfc[i, :], seqd.gxa[i, :], seqd.gya[i, :], seqd.gza[i, :], seqd.adconmask[i, :])
+end
+function Base.getindex(seqd::SEQD, i::UnitRange)
+    r = (i.start:i.stop+1)
+    return SEQD(seqd.Δt[i], seqd.t[r], seqd.rfa[r], seqd.rfΔfc[r], seqd.gxa[r], seqd.gya[r], seqd.gza[r], seqd.adconmask[r])
+end
+function Base.view(seqd::SEQD, i::UnitRange)
+    r = (i.start:i.stop+1)
+    return @views SEQD(seqd.Δt[i], seqd.t[r], seqd.rfa[r], seqd.rfΔfc[r], seqd.gxa[r], seqd.gya[r], seqd.gza[r], seqd.adconmask[r])
+end

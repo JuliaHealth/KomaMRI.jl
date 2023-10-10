@@ -127,9 +127,13 @@ display(plot([prfaold; pgxaold; pgyaold; pgzaold; padcold; prfanew; pgxanew; pgy
 told = KomaMRICore.get_adc_sampling_times(seq)
 sigold = simulate(obj, seq, sys; simParams, isnew=false)
 signew = simulate(obj, seq, sys; simParams, isnew=true)
-_, _, sigseqsim = seqsim(seq, obj, Δtgr, Δtrf)
 display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(signew[:,1,1]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals original simulator")))
-display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(sigseqsim[seqnew.ADC]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals seqsim")))
+
+sqs = samples(seq, Δtgr, Δtrf; dummylast=true)
+seqtest = KomaMRICore.SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
+_, _, sigseqtest = @time seqsim(seq, obj, Δtgr, Δtrf);
+display(plot([scatter(; x=seqtest.t[seqtest.adconmask], y=abs.(sigseqtest[seqtest.adconmask]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals seqsim")))
+
 
 ############################################################################################
 ### Comparison with JEMRIS #################################################################

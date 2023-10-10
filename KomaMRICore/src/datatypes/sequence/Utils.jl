@@ -385,10 +385,12 @@ end
 """
 It does same as get_sim_ranges() but ignores the Minimal quantity of number of Blocks
 """
-function simranges(sq_irfon::Vector{Vector{Int64}}, Nt::Int64)
+function simranges(sq_irfon::Vector{Vector{Int64}}, Nt::Int64; dummylast=true)
     ########################################################################################
     # Remove the last sample, this is due to DiscretizedSequence get by ranges, this shoudn't be done
-    Nt -= 1
+    if dummylast
+        Nt -= 1
+    end
     ########################################################################################
     parts, excitation_bool = UnitRange{Int}[], Bool[]
     i0, Ni = 1, length(sq_irfon)

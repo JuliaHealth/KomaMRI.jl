@@ -280,60 +280,69 @@ function seqsim(seq::Sequence, obj::Phantom, Δtgr::Float64, Δtrf::Float64)
     push!(magxy, M_xy); push!(magz, M_z); push!(sig, sum(M_xy))
 
     # Get the important vector values of the sequence
-    sq = samples(seq, Δtgr, Δtrf)
+    sqs = samples(seq, Δtgr, Δtrf; dummylast=true)
+    rfranges, isrfranges = simranges(sqs.irfon, length(sqs.t); dummylast=true)
+    seqd = SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
 
-    # Perform simulation iterating over every time interval
-    for i in eachindex(sq.Δt)
+    for j in eachindex(rfranges)
+        sq = @view seqd[rfranges[j]]
 
         # Excitation: Compute magnetization and signal when RF is on
-        if sq.rfonmask[i]
+        if isrfranges[j]
 
-            # B-field: compute the effective B field
-            ΔBz = obj.Δw ./ (2π * γ) .- sq.rfΔfc[i] ./ γ
-            Bz = (sq.gxa[i] .* obj.x .+ sq.gya[i] .* obj.y .+ sq.gza[i] .* obj.z) .+ ΔBz
-            ΔBzn = obj.Δw ./ (2π * γ) .- sq.rfΔfc[i+1] ./ γ
-            Bzn = (sq.gxa[i+1] .* obj.x .+ sq.gya[i+1] .* obj.y .+ sq.gza[i+1] .* obj.z) .+ ΔBzn
+            for i in eachindex(sq.Δt)
+                # B-field: compute the effective B field
+                ΔBz = obj.Δw ./ (2π * γ) .- sq.rfΔfc[i] ./ γ
+                Bz = (sq.gxa[i] .* obj.x .+ sq.gya[i] .* obj.y .+ sq.gza[i] .* obj.z) .+ ΔBz
+                ΔBzn = obj.Δw ./ (2π * γ) .- sq.rfΔfc[i+1] ./ γ
+                Bzn = (sq.gxa[i+1] .* obj.x .+ sq.gya[i+1] .* obj.y .+ sq.gza[i+1] .* obj.z) .+ ΔBzn
 
-            B = sqrt.((abs(sq.rfa[i]))^2 .+ (abs.(Bz)).^2)
-            B[B .== 0] .= eps(Float64)
-            Bn = sqrt.((abs(sq.rfa[i+1]))^2 .+ (abs.(Bzn)).^2)
-            Bn[Bn .== 0] .= eps(Float64)
+                B = sqrt.((abs(sq.rfa[i]))^2 .+ (abs.(Bz)).^2)
+                B[B .== 0] .= eps(Float64)
+                Bn = sqrt.((abs(sq.rfa[i+1]))^2 .+ (abs.(Bzn)).^2)
+                Bn[Bn .== 0] .= eps(Float64)
 
-            # Rotation: compute magnetization in rotation regime
-            φ = (-2π * γ) * (.5*(B+Bn) .* sq.Δt[i])
-            nxy = sq.rfa[i] ./ B
-            nz = Bz ./ B
-            α = cos.(φ/2) .- 1im*nz .* sin.(φ/2)
-            β = -1im*nxy .* sin.(φ/2)
-            Mxy = 2*conj.(α).*β.*M_z.+conj.(α).^2 .* M_xy.-β.^2 .*conj.(M_xy)
-            Mz = (abs.(α).^2 .-abs.(β).^2).*M_z.-2*real.(α.*β.*conj.(M_xy))
-            M_xy = Mxy
-            M_z = Mz
+                # Rotation: compute magnetization in rotation regime
+                φ = (-2π * γ) * (.5*(B+Bn) .* sq.Δt[i])
+                nxy = sq.rfa[i] ./ B
+                nz = Bz ./ B
+                α = cos.(φ/2) .- 1im*nz .* sin.(φ/2)
+                β = -1im*nxy .* sin.(φ/2)
+                Mxy = 2*conj.(α).*β.*M_z.+conj.(α).^2 .* M_xy.-β.^2 .*conj.(M_xy)
+                Mz = (abs.(α).^2 .-abs.(β).^2).*M_z.-2*real.(α.*β.*conj.(M_xy))
+                M_xy = Mxy
+                M_z = Mz
 
-            # Relaxation: compute magnetization in rotation regime
-            M_xy = M_xy .* exp.(-sq.Δt[i] ./ obj.T2)
-            M_z  = M_z  .* exp.(-sq.Δt[i] ./ obj.T1) .+ obj.ρ .* (1 .- exp.(-sq.Δt[i] ./ obj.T1))
+                # Relaxation: compute magnetization in rotation regime
+                M_xy = M_xy .* exp.(-sq.Δt[i] ./ obj.T2)
+                M_z  = M_z  .* exp.(-sq.Δt[i] ./ obj.T1) .+ obj.ρ .* (1 .- exp.(-sq.Δt[i] ./ obj.T1))
+
+                # Fill the magnetization and signal vectors
+                push!(magxy, M_xy); push!(magz, M_z); push!(sig, sum(M_xy))
+            end
 
         # Precession: compute magnetization and signal when RF is off
         else
 
-            # B-field: compute effective B field
-            ΔBz = obj.Δw ./ (2π * γ) .- sq.rfΔfc[i] ./ γ
-            Bz = (sq.gxa[i] .* obj.x .+ sq.gya[i] .* obj.y .+ sq.gza[i] .* obj.z) .+ ΔBz
-            ΔBzn = obj.Δw ./ (2π * γ) .- sq.rfΔfc[i+1] ./ γ
-            Bzn = (sq.gxa[i+1] .* obj.x .+ sq.gya[i+1] .* obj.y .+ sq.gza[i+1] .* obj.z) .+ ΔBzn
+            for i in eachindex(sq.Δt)
+                # B-field: compute effective B field
+                ΔBz = obj.Δw ./ (2π * γ) .- sq.rfΔfc[i] ./ γ
+                Bz = (sq.gxa[i] .* obj.x .+ sq.gya[i] .* obj.y .+ sq.gza[i] .* obj.z) .+ ΔBz
+                ΔBzn = obj.Δw ./ (2π * γ) .- sq.rfΔfc[i+1] ./ γ
+                Bzn = (sq.gxa[i+1] .* obj.x .+ sq.gya[i+1] .* obj.y .+ sq.gza[i+1] .* obj.z) .+ ΔBzn
 
-            # Mxy: compute rotation and relaxation for Mxy in one step
-            ϕ = (-2π * γ) * (0.5*(Bz+Bzn) .* sq.Δt[i])
-            M_xy = M_xy .* exp.(1im .* ϕ .- sq.Δt[i] ./ obj.T2)
+                # Mxy: compute rotation and relaxation for Mxy in one step
+                ϕ = (-2π * γ) * (0.5*(Bz+Bzn) .* sq.Δt[i])
+                M_xy = M_xy .* exp.(1im .* ϕ .- sq.Δt[i] ./ obj.T2)
 
-            # Mz: compute just relaxation for Mz in one step (rotation phenomena doesn't happen)
-            M_z  = M_z  .* exp.(-sq.Δt[i] ./ obj.T1) .+ obj.ρ .* (1 .- exp.(-sq.Δt[i] ./ obj.T1))
+                # Mz: compute just relaxation for Mz in one step (rotation phenomena doesn't happen)
+                M_z  = M_z  .* exp.(-sq.Δt[i] ./ obj.T1) .+ obj.ρ .* (1 .- exp.(-sq.Δt[i] ./ obj.T1))
+
+                # Fill the magnetization and signal vectors
+                push!(magxy, M_xy); push!(magz, M_z); push!(sig, sum(M_xy))
+            end
 
         end
-
-        # Fill the magnetization and signal vectors
-        push!(magxy, M_xy); push!(magz, M_z); push!(sig, sum(M_xy))
 
     end
 
