@@ -43,8 +43,14 @@ attributes(fid)["Dynamic"] = 0     # 0=False, 1=True
 
 # Spin initial positions
 pos = create_group(fid,"position")
-pos["x"] = x_values 
-pos["y"] = y_values 
+x = create_group(pos,"x"); 
+y = create_group(pos,"y"); 
+
+attributes(x)["type"] = "Explicit"
+attributes(y)["type"] = "Explicit"
+
+x["values"] = x_values
+y["values"] = y_values
 
 # Contrast (Rho, T1, T2, Deltaw)
 contrast = create_group(fid,"contrast")
@@ -61,7 +67,7 @@ T2 = create_group(contrast,"T2")
 attributes(T2)["type"] = "Explicit"
 T2["values"] = T2_values 
 
-Deltaw = create_group(contrast,"Deltaw")
+Deltaw = create_group(contrast,"Δw")
 attributes(Deltaw)["type"] = "Explicit"
 Deltaw["values"] = zeros(length(x_values))
 
