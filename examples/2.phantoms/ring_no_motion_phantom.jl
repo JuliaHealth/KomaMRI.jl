@@ -49,7 +49,7 @@ pos["y"] = y_values
 # Contrast (Rho, T1, T2, Deltaw)
 contrast = create_group(fid,"contrast")
 
-rho = create_group(contrast,"rho")
+rho = create_group(contrast,"ρ")
 attributes(rho)["type"] = "Explicit"
 rho["values"] = ρ_values 
 
