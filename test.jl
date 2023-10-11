@@ -52,7 +52,7 @@ sigori = @time simulate(obj, seq, sys; simParams, isnew=false);
 signew = @time simulate(obj, seq, sys; simParams, isnew=true);
 
 # Simulate for seq test simulators
-_, _, sigseqsim = @time seqsim(seq, obj, Δtgr, Δtrf);
+sigseqsim = @time seqsim(seq, obj, Δtgr, Δtrf);
 
 display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(signew[:,1,1]), mode="lines+markers", name="new"); scatter(;x=tori, y=abs.(sigori[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
 display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(sigseqsim[seqnew.ADC]), mode="lines+markers", name="new"); scatter(;x=tori, y=abs.(sigori[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
@@ -101,7 +101,7 @@ sys = Scanner()
 obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
 seq = Sequence()
 seq += ADC(N, Tadc)
-for i=1:2
+for i=1:3
     seq += RF(B1, Trf)
     seq += ADC(N, Tadc)
 end
@@ -131,7 +131,7 @@ display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(signew[:,1,1]), mode="lin
 
 sqs = samples(seq, Δtgr, Δtrf; dummylast=true)
 seqtest = KomaMRICore.SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
-_, _, sigseqtest = @time seqsim(seq, obj, Δtgr, Δtrf);
+sigseqtest = @time seqsim(seq, obj, Δtgr, Δtrf);
 display(plot([scatter(; x=seqtest.t[seqtest.adconmask], y=abs.(sigseqtest[seqtest.adconmask]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals seqsim")))
 
 
@@ -154,7 +154,7 @@ told = KomaMRICore.get_adc_sampling_times(seq)
 
 # New Koma simulation
 sq = samples(seq, Δtgr, Δtrf)
-magxy, magz, sig = seqsim(seq, obj, Δtgr, Δtrf)
+sig = seqsim(seq, obj, Δtgr, Δtrf)
 signew = sig[sq.adconmask] / prod(size(obj))
 tnew = sq.t[sq.adconmask]
 
