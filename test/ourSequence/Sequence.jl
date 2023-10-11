@@ -87,7 +87,7 @@ end
 =#
 seq_file = "./test/ourSequence/gre3d.seq"
 GRE = read_seq(seq_file)
-GRE.DEF = Dict("Name"=>"GRE3D", "Nx" => 64, "Ny" => 64,"Nz" => 32)
+GRE.DEF = Dict("Name"=>"GRE3D", "Nx" => 100, "Ny" => 100)
 obj = brain_phantom3D()
 sys = Scanner()
 sys.B0 = 3
@@ -111,6 +111,6 @@ reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny))
 image = reconstruction(acq, reconParams)
 for n in 1:size(image,3)
     local Title = "Slice " * string(n)
-    local Save = "./test/ourSequence/slices/Slice " * string(n) * ".png"
+    local Save = "./test/ourSequence/slices/StrangSplitting/20 FOV 64x64x32/Slice " * string(n) * ".png"
     savefig(plot_image(abs.(image[:, :, n]); height=360, title=Title),Save)
 end

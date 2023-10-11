@@ -1,10 +1,23 @@
 struct Bloch <: SimulationMethod end
 
 export Bloch
+using LinearAlgebra
+mutable struct simParametersPhantom
+    M0c
+    T1
+    T2
+    relax
+    gamma
+    B1c                                                                                                                                             
+    dt
+    points                                                                   
+    M0                                                                        
+    B0
+    B0_var                                                                
+  end
 
 include("Magnetization.jl") #Defines Mag <: SpinStateRepresentation
 @functor Mag #Gives gpu acceleration capabilities, see GPUFunctions.jl
-
 output_Ndim(sim_method::Bloch) = 2 #time-points x coils
 
 function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::Bloch) where {T<:Real}
@@ -18,6 +31,92 @@ function initialize_spins_state(obj::Phantom{T}, sim_method::Bloch) where {T<:Re
     Mz = obj.ρ
     Xt = Mag{T}(Mxy, Mz)
     return Xt, obj
+end
+
+function bloch_symmetric_splitting!(u, v, w1, m1, p1,  d::simParametersPhantom, sig1, ADC1)
+    # members of d
+  M0c = d.M0c
+  T1 = d.T1
+  T2 = d.T2
+  relax = d.relax
+  gamma = d.gamma
+  B1c = d.B1c
+  dt = Array(d.dt)                                                     
+  Np = size(d.points,2)   
+  M0 = d.M0  
+  u = Array(u)
+  v = Array(v)
+  w = Array(w1) 
+  m = Array(m1) 
+  p = Array(p1)   
+  ADC = Array(ADC1)
+  sig = Array(sig1)                                       
+  @assert length(T1) == Np
+  @assert length(T2) == Np
+  Nu = CUDA.length(u)                                                                # Number of time points 
+  Mrot = CUDA.copy(M0)
+  Mt = CUDA.copy(M0)
+  println(typeof(dt))
+  i = 0                                                                              # Since length(sig) = num true ADC
+  for n ∈ 1:(Nu - 1)
+
+    gadt = gamma * dt[n] / 2   # Time step multiplied by gamma
+    B1R = B1c * u[n] * gadt                                                     # RF pulse with inhomogeneities
+    B1I = B1c * (-v[n]) * gadt
+    
+    D12 = CUDA.exp.(-1 ./ T2 .* (relax * dt[n]) )
+    D3 = CUDA.exp.(-1 ./ T1 .* (relax * dt[n])) 
+    D = CuArray([1 0 0]')  .* D12' .+ CuArray([0 1 0]')  .* D12' + .+ CuArray([0 0 1]')  .* D3'
+    b = CuArray([0 0 1]') .* (M0c .- M0c * CUDA.exp.(-1 / T1 * relax * dt[n]))                   #right hand    
+    K = gadt .* (d.points[1,:] .* w[n] .+ d.points[2,:] .* m[n] .+ d.points[3,:] .* p[n]) # Inital Gs with no inhomogeneities
+    phi = -CUDA.sqrt.((B1R^2 + B1I^2) .+ K.^2)
+    cs = CUDA.cos.(phi)
+    si = CUDA.sin.(phi)
+    n1 = B1R ./ CUDA.abs.(phi)
+    n2 = B1I ./ CUDA.abs.(phi)
+    n3 = K ./ CUDA.abs.(phi)
+    n1[CUDA.isnan.(n1)] .=1
+    n2[CUDA.isnan.(n2)] .=0
+    n3[CUDA.isnan.(n3)] .=0
+
+    #rotation matrix, 3x3 
+
+    Bd1 = n1 .* n1 .* (1 .- cs) .+ cs                       
+    Bd2 = n1 .* n2 .* (1 .- cs) .- n3 .* si
+    Bd3 = n1 .* n3 .* (1 .- cs) .+ n2 .* si
+    Bd4 = n2 .* n1 .* (1 .- cs) .+ n3 .* si
+    Bd5 = n2 .* n2 .* (1 .- cs) .+ cs
+    Bd6 = n2 .* n3 .* (1 .- cs) .- n1 .* si
+    Bd7 = n3 .* n1 .* (1 .- cs) .- n2 .* si
+    Bd8 = n3 .* n2 .* (1 .- cs) .+ n1 .* si
+    Bd9 = n3 .* n3 .* (1 .- cs) .+ cs
+
+
+    #Computes the solution to M(r,u) using strang splitting techniques
+
+    Mrot[1, :] = Bd1 .* Mt[1, :] .+ Bd2 .* Mt[2, :] .+ Bd3 .* Mt[3, :]
+    Mrot[2, :] = Bd4 .* Mt[1, :] .+ Bd5 .* Mt[2, :] .+ Bd6 .* Mt[3, :]
+    Mrot[3, :] = Bd7 .* Mt[1, :] .+ Bd8 .* Mt[2, :] .+ Bd9 .* Mt[3, :]
+
+    
+    Mt = D .* Mrot .+ b
+
+    
+    # Second Rotation
+    Mrot[1, :] = Bd1 .* Mt[1, :] .+ Bd2 .* Mt[2, :] .+ Bd3 .* Mt[3, :]
+    Mrot[2, :] = Bd4 .* Mt[1, :] .+ Bd5 .* Mt[2, :] .+ Bd6 .* Mt[3, :]
+    Mrot[3, :] = Bd7 .* Mt[1, :] .+ Bd8 .* Mt[2, :] .+ Bd9 .* Mt[3, :]
+
+    Mt .= Mrot
+    
+    if (ADC[n])
+        i += 1
+        sig[i] = sum(Mrot[1,:]) + sum(Mrot[2,:])im     #transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1))
+    end  
+        #println(round(n / Nu,digits=2))
+    end 
+    sig1 .= CuArray(sig) 
+    return nothing
 end
 
 """
@@ -35,6 +134,7 @@ precession.
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
+#=
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
     M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
@@ -60,6 +160,39 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
 end
+=#
+function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
+    M::Mag{T}, sim_method::Bloch, ndt) where {T<:Real}
+    #Simulation
+    #Motion
+    xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
+    yt = p.y .+ p.uy(p.x, p.y, p.z, seq.t')
+    zt = p.z .+ p.uz(p.x, p.y, p.z, seq.t')
+    #Effective field
+    #Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
+    #Rotation
+    #=
+    if is_ADC_on(seq)
+        ϕ = T(-2π * γ) .* cumtrapz(seq.Δt', Bz)
+    else
+        ϕ = T(-2π * γ) .* trapz(seq.Δt', Bz)
+    end
+    =#
+    #Mxy precession and relaxation, and Mz relaxation
+    #tp = cumsum(seq.Δt) # t' = t - t0
+    #dur = sum(seq.Δt)   # Total length, used for signal relaxation
+    #Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
+    println("Here")
+    points = xt' .* [1,0,0] .+ yt' .* [0,1,0] .+ zt' .* [0,0,1]
+    M0 =  real.(M.xy)' .* [1,0,0] .+ imag.(M.xy)' .* [0,1,0] .+ M.z' .* [0,0,1]
+    params = simParametersPhantom(1.0,p.T1,p.T2,1,γ,1.0,seq.Δt,points,M0,3.0,[0])
+    Mi = bloch_symmetric_splitting(zeros(length(seq.Gx)), zeros(length(seq.Gx)),seq.Gz .* 1000, seq.Gx .* 1000, seq.Gy .* 1000,params,ndt)
+    M.xy .= Mi[1,:] .+ (Mi[2,:] .*im)
+    M.z  .= Mi[3,:]
+    #Acquired signal
+    sig .= transpose(sum(M.xy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    return nothing
+end
 
 """
     M0 = run_spin_excitation(obj, seq, M0)
@@ -76,6 +209,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
+#=
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
@@ -100,3 +234,144 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
     return nothing
 end
+=#
+function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
+    M::Mag{T}, sim_method::Bloch, ndt) where {T<:Real}
+    #Simulation
+    for s ∈ seq #This iterates over seq, "s = seq[i,:]"
+        #Motion
+        xt = p.x .+ p.ux(p.x, p.y, p.z, s.t)
+        yt = p.y .+ p.uy(p.x, p.y, p.z, s.t)
+        zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
+        #Effective field
+        ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
+        Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
+        B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
+        B[B .== 0] .= eps(T)
+        #Spinor Rotation
+        φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
+        mul!( Q(φ, s.B1 ./ B, Bz ./ B), M )
+        #Relaxation
+        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
+        M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
+    end
+    #Acquired signal
+    #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
+    return nothing
+end
+
+#= no gpu
+function bloch_symmetric_splitting!(u, v, w, m, p,  d::simParametersPhantom, sig, ADC)
+    # members of d
+    M0c = d.M0c
+    T1 = d.T1
+    T2 = d.T2
+    relax = d.relax
+    gamma = d.gamma
+    B1c = d.B1c
+    dt = d.dt                                                     
+    Np = size(d.points,2)   
+    M0 = d.M0                                               
+    @assert length(T1) == Np
+    @assert length(T2) == Np
+    Nu = length(u)                                                                # Number of time points 
+    Bd = CuArray{Float64}(undef, (9, Np)) 
+    cs = CuArray{Float64}(undef, Np)
+    si = CuArray{Float64}(undef, Np)
+    n1 = CuArray{Float64}(undef, Np)
+    n2 = CuArray{Float64}(undef, Np)
+    n3 = CuArray{Float64}(undef, Np)
+    phi = CuArray{Float64}(undef, Np)
+    Mrot = zeros(Float64, (3, Np))
+    Mrot .= copy(M0)
+    Mt = M0
+    D = fill(zeros(3,3),Np)
+    b = fill(zeros(3),Np)
+    for n ∈ 1:Nu
+        #=
+        if (n == Nu)
+            gadt = gamma * ndt / 2   # Time step multiplied by gamma
+            for m ∈ 1:Npf (block == length(seq)) 
+            ndt = seq_block.Δt[length(seq_block)]
+        else
+            n
+                D[m] = diagm([exp(-1 / T2[m] * relax * ndt), exp(-1 / T2[m] * relax * ndt),        #relaxation
+                exp(-1 / T1[m] * relax * ndt)])
+                b[m] = [0; 0; M0c] - [0; 0; M0c * exp(-1 / T1[m] * relax * ndt)]                     #right hand
+            end    
+        else
+            gadt = gamma * dt[n] / 2   # Time step multiplied by gamma
+            for m ∈ 1:Np
+                D[m] = diagm([exp(-1 / T2[m] * relax * dt[n]), exp(-1 / T2[m] * relax * dt[n]),        #relaxation
+                exp(-1 / T1[m] * relax * dt[n])])
+                b[m] = [0; 0; M0c] - [0; 0; M0c * exp(-1 / T1[m] * relax * dt[n])]                     #right hand
+            end  
+        end    
+        =#
+        gadt = gamma * dt[n] / 2   # Time step multiplied by gamma
+        for m ∈ 1:Np
+            D[m] = diagm([exp(-1 / T2[m] * relax * dt[n]), exp(-1 / T2[m] * relax * dt[n]),        #relaxation
+            exp(-1 / T1[m] * relax * dt[n])])
+            b[m] = [0; 0; M0c] - [0; 0; M0c * exp(-1 / T1[m] * relax * dt[n])]                     #right hand
+        end                                                               
+        B1R = B1c * u[n] * gadt                                                     # RF pulse with inhomogeneities
+        B1I = B1c * (-v[n]) * gadt
+        K = gadt * (d.points[1,:] .* w[n] + d.points[2,:] .* m[n] + d.points[3,:] .* p[n]) # Inital Gs with no inhomogeneities
+        for m ∈ 1:Np
+            phi[m] = -sqrt(B1R^2 + B1I^2 + K[m]^2)
+        end
+        for m ∈ 1:Np
+            cs[m] = cos(phi[m])
+            si[m] = sin(phi[m])
+            n1[m] = B1R / abs(phi[m])
+            n2[m] = B1I / abs(phi[m])
+            n3[m] = K[m] / abs(phi[m])
+        end 
+        replace!(n1, NaN => 1)
+        replace!(n2, NaN => 0)
+        replace!(n3, NaN => 0) 
+    
+        #rotation matrix, 3x3 
+    
+        for m ∈ 1:Np
+            Bd[1,m] = n1[m] * n1[m] * (1 - cs[m]) + cs[m]                       
+            Bd[2,m] = n1[m] * n2[m] * (1 - cs[m]) - n3[m] * si[m]
+            Bd[3,m] = n1[m] * n3[m] * (1 - cs[m]) + n2[m] * si[m]
+            Bd[4,m] = n2[m] * n1[m] * (1 - cs[m]) + n3[m] * si[m]
+            Bd[5,m] = n2[m] * n2[m] * (1 - cs[m]) + cs[m]
+            Bd[6,m] = n2[m] * n3[m] * (1 - cs[m]) - n1[m] * si[m]
+            Bd[7,m] = n3[m] * n1[m] * (1 - cs[m]) - n2[m] * si[m]
+            Bd[8,m] = n3[m] * n2[m] * (1 - cs[m]) + n1[m] * si[m]
+            Bd[9,m] = n3[m] * n3[m] * (1 - cs[m]) + cs[m]
+        end
+    
+        #Computes the solution to M(r,u) using strang splitting techniques
+    
+        for x ∈ 1:Np
+            Mrot[1, x] = Bd[1,x] * Mt[1, x] + Bd[2,x] * Mt[2, x] + Bd[3,x] * Mt[3, x]
+            Mrot[2, x] = Bd[4,x] * Mt[1, x] + Bd[5,x] * Mt[2, x] + Bd[6,x] * Mt[3, x]
+            Mrot[3, x] = Bd[7,x] * Mt[1, x] + Bd[8,x] * Mt[2, x] + Bd[9,x] * Mt[3, x]
+        end
+        
+        #Idk why but turbo throws error here
+        for x ∈ 1:Np
+            Mt[1, x] = D[x][1, 1] * Mrot[1, x]
+            Mt[2, x] = D[x][2, 2] * Mrot[2, x]
+            Mt[3, x] = D[x][3, 3] * Mrot[3, x] + b[x][3]
+        end
+        
+        # Second Rotation
+        for x ∈ 1:Np
+            Mrot[1, x] = Bd[1,x] * Mt[1, x] + Bd[2,x] * Mt[2, x] + Bd[3,x] * Mt[3, x]
+            Mrot[2, x] = Bd[4,x] * Mt[1, x] + Bd[5,x] * Mt[2, x] + Bd[6,x] * Mt[3, x]
+            Mrot[3, x] = Bd[7,x] * Mt[1, x] + Bd[8,x] * Mt[2, x] + Bd[9,x] * Mt[3, x]
+        end
+        Mt .= Mrot
+        if (ADC[n])
+            sig[n] = sum(Mrot[1,:]) + sum(Mrot[2,:])im     #transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1))
+        end  
+        println(round(n / Nu,digits=2))
+    end  
+    return nothing
+end
+=#

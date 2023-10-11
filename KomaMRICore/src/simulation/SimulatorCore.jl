@@ -40,13 +40,13 @@ separating the spins of the phantom `obj` in `Nthreads`.
 """
 function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
-    Nthreads=Threads.nthreads()) where {T<:Real}
+    Nthreads=Threads.nthreads(), ndt) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads, type="ordered")
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
+        run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method, ndt)
     end
 
     return nothing
@@ -73,13 +73,13 @@ different number threads to excecute the process.
 """
 function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
-    Nthreads=Threads.nthreads()) where {T<:Real}
+    Nthreads=Threads.nthreads(), ndt) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads; type="ordered")
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
+        run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method,ndt)
     end
 
     return nothing
@@ -117,8 +117,23 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
     rfs = 0
     samples = 1
     progress_bar = Progress(Nblocks)
+    parts = kfoldperm(length(obj), Nthreads; type="ordered")
+    dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
+    ThreadsX.foreach(enumerate(parts)) do (i, p)
+        run_section_simulation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
+    end
+    # Simulation
+    #=
+    rfs = 0
+    samples = 1
+    progress_bar = Progress(Nblocks)
     for (block, p) = enumerate(parts)
         seq_block = @view seq[p]
+        if (block == length(seq)) 
+            ndt = seq_block.Δt[length(seq_block)]
+        else
+            ndt = seq[block + 1].Δt[1]
+        end    
         # Params
         # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
         Nadc = sum(seq_block.ADC)
@@ -126,18 +141,47 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
         dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool[block]
-            run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
+            run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads,ndt)
             rfs += 1
-        else
-            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
+        else 
+            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads,ndt)
         end
         samples += Nadc
         #Update progress
         next!(progress_bar, showvalues=[(:simulated_blocks, block), (:rf_blocks, rfs), (:acq_samples, samples-1)])
         update_blink_window_progress!(w, block, Nblocks)
     end
+    =#
+    println("Simulation ended")
     return nothing
 end
+
+function run_section_simulation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
+    M::Mag{T}, sim_method::Bloch) where {T<:Real}
+    xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
+    yt = p.y .+ p.uy(p.x, p.y, p.z, seq.t')
+    zt = p.z .+ p.uz(p.x, p.y, p.z, seq.t')
+    X = CuArray([1,0,0])
+    Y = CuArray([0,1,0])
+    Z = CuArray([0,0,1])
+    points = xt' .* X .+ yt' .* Y .+ zt' .* Z
+    M0 =  CUDA.real.(M.xy)' .* X .+ CUDA.imag.(M.xy)' .* Y.+ M.z' .* Z
+    params = simParametersPhantom(1.0,p.T1 .* 1000,p.T2 .* 1000,1,γ,1.0,seq.Δt,points,M0,3.0,[0])
+    bloch_symmetric_splitting!(real.(seq.B1) .* 1000, imag.(seq.B1) .* 1000,seq.Gz .* 1000, seq.Gx .* 1000, seq.Gy .* 1000,params,sig,seq.ADC)
+end   
+
+#=
+function run_section_simulation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
+    M::Mag{T}, sim_method::Bloch) where {T<:Real}
+    xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
+    yt = p.y .+ p.uy(p.x, p.y, p.z, seq.t')
+    zt = p.z .+ p.uz(p.x, p.y, p.z, seq.t')
+    points = xt' .* [1,0,0] .+ yt' .* [0,1,0] .+ zt' .* [0,0,1]
+    M0 =  real.(M.xy)' .* [1,0,0] .+ imag.(M.xy)' .* [0,1,0] .+ M.z' .* [0,0,1]
+    params = simParametersPhantom(1.0,p.T1,p.T2,1,γ,1.0,seq.Δt,points,M0,3.0,[0])
+    bloch_symmetric_splitting!(real.(seq.B1) .* 1000, imag.(seq.B1) .* 1000,seq.Gz .* 1000, seq.Gx .* 1000, seq.Gy .* 1000,params,sig,seq.ADC)
+end   
+=#
 
 """Updates KomaUI's simulation progress bar."""
 function update_blink_window_progress!(w::Nothing, block, Nblocks)
@@ -180,7 +224,6 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     #Simulation parameter unpacking, and setting defaults if key is not defined
     simParams = default_sim_params(simParams)
     # Simulation init
-    println("This has to show")
     seqd = discretize(seq; simParams) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; Nblocks=simParams["Nblocks"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
