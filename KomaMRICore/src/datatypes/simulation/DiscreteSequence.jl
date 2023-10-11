@@ -96,10 +96,8 @@ function Base.getindex(seqd::SEQD, i::Integer)
     return SEQD(seqd.Δt[i, :], seqd.t[i, :], seqd.rfa[i, :], seqd.rfΔfc[i, :], seqd.gxa[i, :], seqd.gya[i, :], seqd.gza[i, :], seqd.adconmask[i, :])
 end
 function Base.getindex(seqd::SEQD, i::UnitRange)
-    r = (i.start:i.stop+1)
-    return SEQD(seqd.Δt[i], seqd.t[r], seqd.rfa[r], seqd.rfΔfc[r], seqd.gxa[r], seqd.gya[r], seqd.gza[r], seqd.adconmask[r])
+    return SEQD(seqd.Δt[i.start:i.stop-1], seqd.t[i], seqd.rfa[i], seqd.rfΔfc[i], seqd.gxa[i], seqd.gya[i], seqd.gza[i], seqd.adconmask[i])
 end
 function Base.view(seqd::SEQD, i::UnitRange)
-    r = (i.start:i.stop+1)
-    return @views SEQD(seqd.Δt[i], seqd.t[r], seqd.rfa[r], seqd.rfΔfc[r], seqd.gxa[r], seqd.gya[r], seqd.gza[r], seqd.adconmask[r])
+    return @views SEQD(seqd.Δt[i.start:i.stop-1], seqd.t[i], seqd.rfa[i], seqd.rfΔfc[i], seqd.gxa[i], seqd.gya[i], seqd.gza[i], seqd.adconmask[i])
 end

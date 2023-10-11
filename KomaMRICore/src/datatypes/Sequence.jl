@@ -810,7 +810,7 @@ end
 Returns the combined sequence samples refined by Δtgr and Δtrf or not depending on the
 refination boolean
 """
-function seqsamples(seq::Sequence, isrefined::Bool, Δtgr::Float64, Δtrf::Float64; addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false, dummylast=true)
+function seqsamples(seq::Sequence, isrefined::Bool, Δtgr::Float64, Δtrf::Float64; addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false)
     # Iterate over each block of the sequence
     Δt, t, rfa, rfΔfc, gxa, gya, gza, adconmask = Float64[], Float64[], ComplexF64[], Float64[], Float64[], Float64[], Float64[], Bool[]
     irfon = Vector{Int64}[]
@@ -826,15 +826,6 @@ function seqsamples(seq::Sequence, isrefined::Bool, Δtgr::Float64, Δtrf::Float
         isfirstsample, Δtacum, to, Nt = upcat!(durs(seq[i])[1], blk.t, isfirstsample, Δtacum, to, Nt, Δt)
     end
 
-    ########################################################################################
-    # Add a last dummy sample, this is due to DiscretizedSequence get by ranges, this shoudn't be done but if for keeping compatibility
-    if dummylast
-        append!(t, t[end]); append!(rfa, rfa[end]); append!(rfΔfc, rfΔfc[end])
-        append!(gxa, gxa[end]); append!(gya, gya[end]); append!(gza, gza[end]); append!(adconmask, false);
-        append!(Δt, 0.)
-    end
-    ########################################################################################
-
     # Return the values for the Discretized sequence
     return (Δt = Δt, t = t, rfa = rfa, rfΔfc = rfΔfc, gxa = gxa, gya = gya, gza = gza, adconmask = adconmask, irfon = irfon)
 end
@@ -842,11 +833,11 @@ end
 """
 Return the combined samples of a sequence with time refination or not
 """
-function samples(seq::Sequence; addseqfirst=true, addseqlast=true, addblkfirst=false, addblklast=true, dummylast=true)
-    return seqsamples(seq, false, 0., 0.; addseqfirst, addseqlast, addblkfirst, addblklast, dummylast)
+function samples(seq::Sequence; addseqfirst=true, addseqlast=true, addblkfirst=false, addblklast=true)
+    return seqsamples(seq, false, 0., 0.; addseqfirst, addseqlast, addblkfirst, addblklast)
 end
-function samples(seq::Sequence, Δtgr::Float64, Δtrf::Float64; addseqfirst=true, addseqlast=true, addblkfirst=false, addblklast=true, dummylast=true)
-    return seqsamples(seq, true, Δtgr, Δtrf; addseqfirst, addseqlast, addblkfirst, addblklast, dummylast)
+function samples(seq::Sequence, Δtgr::Float64, Δtrf::Float64; addseqfirst=true, addseqlast=true, addblkfirst=false, addblklast=true)
+    return seqsamples(seq, true, Δtgr, Δtrf; addseqfirst, addseqlast, addblkfirst, addblklast)
 end
 
 

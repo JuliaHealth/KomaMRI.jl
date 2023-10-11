@@ -52,10 +52,12 @@ sigori = @time simulate(obj, seq, sys; simParams, isnew=false);
 signew = @time simulate(obj, seq, sys; simParams, isnew=true);
 
 # Simulate for seq test simulators
+sqs = samples(seq, Δtgr, Δtrf)
+seqtest = KomaMRICore.SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
 sigseqsim = @time seqsim(seq, obj, Δtgr, Δtrf);
 
 display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(signew[:,1,1]), mode="lines+markers", name="new"); scatter(;x=tori, y=abs.(sigori[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
-display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(sigseqsim[seqnew.ADC]), mode="lines+markers", name="new"); scatter(;x=tori, y=abs.(sigori[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
+display(plot([scatter(; x=seqtest.t[seqtest.adconmask], y=abs.(sigseqsim[seqtest.adconmask]), mode="lines+markers", name="new"); scatter(;x=tori, y=abs.(sigori[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
 
 # Reconstruction
 function recon(sig, seq; isnew=true)
@@ -101,7 +103,7 @@ sys = Scanner()
 obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
 seq = Sequence()
 seq += ADC(N, Tadc)
-for i=1:3
+for i=1:2
     seq += RF(B1, Trf)
     seq += ADC(N, Tadc)
 end
@@ -129,7 +131,7 @@ sigold = simulate(obj, seq, sys; simParams, isnew=false)
 signew = simulate(obj, seq, sys; simParams, isnew=true)
 display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(signew[:,1,1]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals original simulator")))
 
-sqs = samples(seq, Δtgr, Δtrf; dummylast=true)
+sqs = samples(seq, Δtgr, Δtrf)
 seqtest = KomaMRICore.SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
 sigseqtest = @time seqsim(seq, obj, Δtgr, Δtrf);
 display(plot([scatter(; x=seqtest.t[seqtest.adconmask], y=abs.(sigseqtest[seqtest.adconmask]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals seqsim")))
