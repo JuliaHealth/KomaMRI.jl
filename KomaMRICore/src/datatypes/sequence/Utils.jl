@@ -383,33 +383,8 @@ function mask_rfon(ts::Vector{Float64}, tc::Vector{Float64})
 end
 
 """
-It does same as get_sim_ranges() but ignores the Minimal quantity of number of Blocks
-"""
-function simrangesold(sq_irfon::Vector{Vector{Int64}}, Nt::Int64)
-    ########################################################################################
-    # Remove the last sample, this is due to DiscretizedSequence get by ranges, this shoudn't be done
-    Nt -= 1
-    ########################################################################################
-    parts, excitation_bool = UnitRange{Int}[], Bool[]
-    i0, Ni = 1, length(sq_irfon)
-    if sq_irfon[1][1] != 1
-        push!(parts, (1:(sq_irfon[1][1]-1))); push!(excitation_bool, false)
-        i0 = sq_irfon[1][1]
-    end
-    for i in eachindex(sq_irfon)
-        push!(parts, (sq_irfon[i][1]:sq_irfon[i][2])); push!(excitation_bool, true)
-        if i < Ni
-            push!(parts, ((sq_irfon[i][2]+1):(sq_irfon[i+1][1]-1))); push!(excitation_bool, false)
-        end
-    end
-    if sq_irfon[end][2] != Nt
-        push!(parts, ((sq_irfon[end][2]+1):Nt)); push!(excitation_bool, false)
-    end
-    return parts, excitation_bool
-end
-
-"""
 Get the simulation ranges when RF is on or not
+Note how is used the test discretizaed sequence SEDQ when reading samples in a range
 """
 function simranges(sq_irfon::Vector{Vector{Int64}}, Nt::Int64)
     parts, excitation_bool = UnitRange{Int}[], Bool[]
