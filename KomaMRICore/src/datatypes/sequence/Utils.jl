@@ -277,14 +277,18 @@ end
 """
 all the elements of tadc must be contained in ts
 """
-function indices_adcon(ts::Vector{Float64}, tadc::Vector{Float64})
+function indices_adcon(ts::Vector{Float64}, tadc::Vector{Float64}; keeptimeunicity=true)
     iadcon = Int64[]
     i, j, Ni, Nj = 1, 1, length(ts), length(tadc)
     while j <= Nj
         if ts[i] == tadc[j]
-            while i <= Ni && ts[i] == tadc[j]
+            if keeptimeunicity
                 push!(iadcon, i)
-                i += 1
+            else
+                while i <= Ni && ts[i] == tadc[j]
+                    push!(iadcon, i)
+                    i += 1
+                end
             end
             j += 1
         else
@@ -296,14 +300,18 @@ end
 """
 all the elements of tadc must be contained in ts
 """
-function mask_adcon(ts::Vector{Float64}, tadc::Vector{Float64})
+function mask_adcon(ts::Vector{Float64}, tadc::Vector{Float64}; keeptimeunicity=true)
     i, j, Ni, Nj = 1, 1, length(ts), length(tadc)
     mask = fill(false, Ni)
     while j <= Nj
         if ts[i] == tadc[j]
-            while i <= Ni && ts[i] == tadc[j]
+            if keeptimeunicity
                 mask[i] = true
-                i += 1
+            else
+                while i <= Ni && ts[i] == tadc[j]
+                    mask[i] = true
+                    i += 1
+                end
             end
             j += 1
         else
