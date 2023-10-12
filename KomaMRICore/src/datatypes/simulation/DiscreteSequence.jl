@@ -53,24 +53,12 @@ is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
 """
 Return the DiscreteSequence object with the important vectors prepared for simulation
 """
-function discretize(seq::Sequence; simParams=default_sim_params(), isnew=false)
-    # To BE DEPRECATED?
-    ### Previous discretization
-    ### The new discretization is faster but is has more allocation
-    ### When simulating, the new simulation with the new discretization is slower, I don't know why ...
-    ### ... using ProfileView and Cthulhu can be really helpful for debbuging these perferomances issues
-    if !isnew
-        t, Δt      = get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
-        B1, Δf     = get_rfs(seq, t)
-        Gx, Gy, Gz = get_grads(seq, t)
-        tadc       = get_adc_sampling_times(seq)
-        ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
-        return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
-    end
-    # This is the new discretization
-    Δtgr, Δtrf = simParams["Δt"], simParams["Δt_rf"]
-    sq = samples(seq, Δtgr, Δtrf)
-    t, Δt, B1, Δf, Gx, Gy, Gz, ADCflag = sq.t, sq.Δt, sq.rfa, sq.rfΔfc, sq.gxa, sq.gya, sq.gza, sq.adconmask
+function discretize(seq::Sequence; simParams=default_sim_params())
+    t, Δt      = get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
+    B1, Δf     = get_rfs(seq, t)
+    Gx, Gy, Gz = get_grads(seq, t)
+    tadc       = get_adc_sampling_times(seq)
+    ADCflag    = [any(tt .== tadc) for tt in t]  #Displaced 1 dt, sig[i]=S(ti+dt)
     return DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
 end
 
@@ -96,8 +84,8 @@ function Base.getindex(seqd::SEQD, i::Integer)
     return SEQD(seqd.Δt[i, :], seqd.t[i, :], seqd.rfa[i, :], seqd.rfΔfc[i, :], seqd.gxa[i, :], seqd.gya[i, :], seqd.gza[i, :], seqd.adconmask[i, :])
 end
 function Base.getindex(seqd::SEQD, i::UnitRange)
-    return SEQD(seqd.Δt[i.start:i.stop-1], seqd.t[i], seqd.rfa[i], seqd.rfΔfc[i], seqd.gxa[i], seqd.gya[i], seqd.gza[i], seqd.adconmask[i])
+    return SEQD(seqd.Δt[i.start:i.stop-1], seqd.t[i], seqd.rfa[i], seqd.rfΔfc[i], seqd.gxa[i], seqd.gya[i], seqd.gza[i], seqd.adconmask[i.start+1:i.stop])
 end
 function Base.view(seqd::SEQD, i::UnitRange)
-    return @views SEQD(seqd.Δt[i.start:i.stop-1], seqd.t[i], seqd.rfa[i], seqd.rfΔfc[i], seqd.gxa[i], seqd.gya[i], seqd.gza[i], seqd.adconmask[i])
+    return @views SEQD(seqd.Δt[i.start:i.stop-1], seqd.t[i], seqd.rfa[i], seqd.rfΔfc[i], seqd.gxa[i], seqd.gya[i], seqd.gza[i], seqd.adconmask[i.start+1:i.stop])
 end

@@ -176,18 +176,12 @@ julia> raw = simulate(obj, seq, sys)
 julia> plot_signal(raw)
 ```
 """
-function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing, isnew=false)
+function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
     #Simulation parameter unpacking, and setting defaults if key is not defined
     simParams = default_sim_params(simParams)
     # Simulation init
-    #---------------------------------------------------------------------------------------
-    #seqd = discretize(seq; simParams, isnew) # Sampling of Sequence waveforms
-    #parts, excitation_bool = get_sim_ranges(seqd; Nblocks=simParams["Nblocks"]) # Generating simulation blocks
-    #---------------------------------------------------------------------------------------
-    sq = (isnew) ? samples(seq, simParams["Δt"], simParams["Δt_rf"]) : nothing
-    seqd = (isnew) ? KomaMRICore.DiscreteSequence(sq.gxa, sq.gya, sq.gza, complex.(sq.rfa), sq.rfΔfc, sq.adconmask, sq.t, sq.Δt) : KomaMRICore.discretize(seq; simParams, isnew)
-    parts, excitation_bool = (isnew) ? simrangesold(sq.irfon, length(sq.t)) : KomaMRICore.get_sim_ranges(seqd; Nblocks=simParams["Nblocks"])
-    #---------------------------------------------------------------------------------------
+    seqd = discretize(seq; simParams) # Sampling of Sequence waveforms
+    parts, excitation_bool = get_sim_ranges(seqd; Nblocks=simParams["Nblocks"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
     Xt, obj = initialize_spins_state(obj, simParams["sim_method"])
@@ -268,7 +262,7 @@ end
 
 """
 """
-function seqsim(seq::Sequence, obj::Phantom, Δtgr::Float64, Δtrf::Float64)
+function seqsim(seq::Sequence, obj::Phantom, Δtgr::Float64, Δtrf::Float64; onadc=false)
 
     # Get the important vector values of the sequence and the simulation ranges
     sqs = samples(seq, Δtgr, Δtrf)
@@ -276,13 +270,17 @@ function seqsim(seq::Sequence, obj::Phantom, Δtgr::Float64, Δtrf::Float64)
     seqd = SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
 
     # Get the dimensions of the spin magnetizations and times
-    Nspins, Nt = length(obj), length(seqd.t)
+    Nspins, Nsamps = length(obj), (onadc ? sum(seqd.adconmask) : length(seqd.t))
 
     # Create the initial condition of the magnetization of the spins
     M_xy, M_z = zeros(ComplexF64, Nspins),  obj.ρ
 
     # Create the signal vector to be filled during simulation
-    sig = zeros(ComplexF64, Nt); sig[1] = sum(M_xy); n = 2
+    sig = zeros(ComplexF64, Nsamps)
+    n = 1
+    if !onadc || (onadc && seqd.adconmask[1])
+        sig[n] = sum(M_xy); n += 1
+    end
     #sig = ComplexF64[]; push!(sig, sum(M_xy))
 
     # Perform simulation over rf-on-off ranges
@@ -309,7 +307,9 @@ function seqsim(seq::Sequence, obj::Phantom, Δtgr::Float64, Δtrf::Float64)
                 M_xy = M_xy .* exp.(-sq.Δt[i] ./ obj.T2)
                 M_z  = M_z  .* exp.(-sq.Δt[i] ./ obj.T1) .+ obj.ρ .* (1 .- exp.(-sq.Δt[i] ./ obj.T1))
                 # Save the raw signal and update the signal counter
-                sig[n] = sum(M_xy); n += 1
+                if !onadc || (onadc && sq.adconmask[i])
+                    sig[n] = sum(M_xy); n += 1
+                end
             end
             #########################################
             #### Previous Step-by-step Excitation ###
@@ -352,11 +352,19 @@ function seqsim(seq::Sequence, obj::Phantom, Δtgr::Float64, Δtrf::Float64)
             # Mz: compute just relaxation for Mz in one step (rotation phenomena doesn't happen)
             dur = sum(sq.Δt)        # Total length, used for signal relaxation
             Mz  = M_z  .* exp.(-dur ./ obj.T1) .+ obj.ρ .* (1 .- exp.(-dur ./ obj.T1))
-            # Save the raw signal, update the signal counter and keep the initial condition of the magnetization for the next simulation step
-            NΔtblk = length(sq.Δt)
-            sig[n:(n + NΔtblk - 1)] = sum(Mxy, dims=1); n += NΔtblk
+            # Keep the initial condition of the magnetization for the next simulation step
             M_xy = Mxy[:, end]
             M_z = Mz[:, end]
+            # Save the raw signal, update the signal counter
+            if onadc
+                Nadc = sum(sq.adconmask)
+                if Nadc > 0
+                    sig[n:(n + Nadc - 1)] = sum(Mxy[:, sq.adconmask], dims=1); n += Nadc
+                end
+            else
+                NΔtblk = length(sq.Δt)
+                sig[n:(n + NΔtblk - 1)] = sum(Mxy, dims=1); n += NΔtblk
+            end
             #########################################
             #### Previous Step-by-step Precession ###
             #########################################

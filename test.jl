@@ -31,37 +31,36 @@ simParams["return_type"] = "mat"
 simParams["gpu"] = false
 simParams["precision"] == "f64"
 
-# Get and plot the discretized sequences
-seqori = @time KomaMRICore.discretize(seq; simParams, isnew=false);
-seqnew = @time KomaMRICore.discretize(seq; simParams, isnew=true);
+# Get the discretized sequences
+seqori = @time KomaMRICore.discretize(seq; simParams);
+sqs = samples(seq, Δtgr, Δtrf)
+seqnew = KomaMRICore.SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
+
+# Plot the discretized sequences
 prfaori = scatter(; x=seqori.t, y=(5000 .* abs.(seqori.B1)), mode="lines+markers", name="RF")
 pgxaori = scatter(; x=seqori.t, y=seqori.Gx, mode="lines+markers", name="GX")
 pgyaori = scatter(; x=seqori.t, y=seqori.Gy, mode="lines+markers", name="GY")
 pgzaori = scatter(; x=seqori.t, y=seqori.Gz, mode="lines+markers", name="GZ")
 padcori = scatter(; x=seqori.t[seqori.ADC], y=(.01 .* ones(length(seqori.ADC))), mode="markers", name="ADC")
-prfanew = scatter(; x=seqnew.t, y=(5000 .* abs.(seqnew.B1)), mode="lines+markers", name="RF")
-pgxanew = scatter(; x=seqnew.t, y=seqnew.Gx, mode="lines+markers", name="GX")
-pgyanew = scatter(; x=seqnew.t, y=seqnew.Gy, mode="lines+markers", name="GY")
-pgzanew = scatter(; x=seqnew.t, y=seqnew.Gz, mode="lines+markers", name="GZ")
-padcnew = scatter(; x=seqnew.t[seqnew.ADC], y=(.01 .* ones(length(seqnew.ADC))), mode="markers", name="ADC")
+prfanew = scatter(; x=seqnew.t, y=(5000 .* abs.(seqnew.rfa)), mode="lines+markers", name="RF")
+pgxanew = scatter(; x=seqnew.t, y=seqnew.gxa, mode="lines+markers", name="GX")
+pgyanew = scatter(; x=seqnew.t, y=seqnew.gya, mode="lines+markers", name="GY")
+pgzanew = scatter(; x=seqnew.t, y=seqnew.gza, mode="lines+markers", name="GZ")
+padcnew = scatter(; x=seqnew.t[seqnew.adconmask], y=(.01 .* ones(length(seqnew.adconmask))), mode="markers", name="ADC")
 display(plot([prfaori; pgxaori; pgyaori; pgzaori; padcori; prfanew; pgxanew; pgyanew; pgzanew; padcnew], Layout(title="Seq comparison")))
 
-# Simulate for original and new discretized koma
+# Simulate for original and new discretization-and-simulator
 tori = KomaMRICore.get_adc_sampling_times(seq)
-sigori = @time simulate(obj, seq, sys; simParams, isnew=false);
-signew = @time simulate(obj, seq, sys; simParams, isnew=true);
+sigori = @time simulate(obj, seq, sys; simParams)[:];   # this asumes that the raw signal have only one column component with data
+signew = @time seqsim(seq, obj, Δtgr, Δtrf; onadc=true);
+signewall = @time seqsim(seq, obj, Δtgr, Δtrf; onadc=false);
 
-# Simulate for seq test simulators
-sqs = samples(seq, Δtgr, Δtrf)
-seqtest = KomaMRICore.SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
-sigseqsim = @time seqsim(seq, obj, Δtgr, Δtrf);
-
-display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(signew[:,1,1]), mode="lines+markers", name="new"); scatter(;x=tori, y=abs.(sigori[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
-display(plot([scatter(; x=seqtest.t[seqtest.adconmask], y=abs.(sigseqsim[seqtest.adconmask]), mode="lines+markers", name="new"); scatter(;x=tori, y=abs.(sigori[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals")))
+display(plot([scatter(; x=seqnew.t[seqnew.adconmask], y=abs.(signew), mode="lines+markers", name="test-sim"); scatter(;x=tori, y=abs.(sigori), mode="lines+markers", name="master-sim")], Layout(title="Comparison of the Raw-Signals")))
+display(plot([scatter(; x=seqnew.t, y=abs.(signewall), mode="lines+markers", name="test-sim-all"); scatter(;x=tori, y=abs.(sigori), mode="lines+markers", name="master-sim")], Layout(title="Comparison of the Raw-Signals")))
 
 # Reconstruction
-function recon(sig, seq; isnew=true)
-    sigm = isnew ? reshape(sig, length(sig), 1, 1) : sig
+function recon(sig, seq)
+    sigm = sig
     raw = signal_to_raw_data(sigm, seq)
     acqData = AcquisitionData(raw)
     acqData.traj[1].circular = false #Removing circular window
@@ -77,16 +76,12 @@ function recon(sig, seq; isnew=true)
 end
 
 # Reconstruct for original discretization
-image2dori = recon(sigori, seq; isnew=false)
-display(plot_image(image2dori, zmin=minimum(image2dori), zmax=maximum(image2dori), title="Reconstruction for Original Simulator-Function"))
-
-# Reconstruct for new discretization
-image2dnew = recon(signew, seq; isnew=false)
-display(plot_image(image2dnew, zmin=minimum(image2dnew), zmax=maximum(image2dnew), title="Reconstruction for Original Simulator-Function"))
+image2dori = recon(sigori, seq)
+display(plot_image(image2dori, zmin=minimum(image2dori), zmax=maximum(image2dori), title="Reconstruction for Master Simulator"))
 
 # Reconstruct for test simulator and new discretization
-image2dseqsim = recon(sigseqsim[seqnew.ADC], seq; isnew=true)
-display(plot_image(image2dseqsim, zmin=minimum(image2dseqsim), zmax=maximum(image2dseqsim), title="Reconstruction for Seq Test Simulator-Function"))
+image2dnew = recon(signew, seq)
+display(plot_image(image2dnew, zmin=minimum(image2dnew), zmax=maximum(image2dnew), title="Reconstruction for Test Simulator"))
 
 
 ############################################################################################
@@ -103,38 +98,39 @@ sys = Scanner()
 obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
 seq = Sequence()
 seq += ADC(N, Tadc)
-for i=1:2
+for i=1:3
     seq += RF(B1, Trf)
     seq += ADC(N, Tadc)
 end
 #seq = seq[2:end]
 
-# Compare original and new discretization of the sequences
-seqold = @time KomaMRICore.discretize(seq; simParams, isnew=false);
-seqnew = @time KomaMRICore.discretize(seq; simParams, isnew=true);
-prfaold = scatter(; x=seqold.t, y=(5000 .* abs.(seqold.B1)), mode="lines+markers", name="RF")
-pgxaold = scatter(; x=seqold.t, y=seqold.Gx, mode="lines+markers", name="GX")
-pgyaold = scatter(; x=seqold.t, y=seqold.Gy, mode="lines+markers", name="GY")
-pgzaold = scatter(; x=seqold.t, y=seqold.Gz, mode="lines+markers", name="GZ")
-padcold = scatter(; x=seqold.t[seqold.ADC], y=(.01 .* ones(length(seqold.ADC))), mode="markers", name="ADC")
-prfanew = scatter(; x=seqnew.t, y=(5000 .* abs.(seqnew.B1)), mode="lines+markers", name="RF")
-pgxanew = scatter(; x=seqnew.t, y=seqnew.Gx, mode="lines+markers", name="GX")
-pgyanew = scatter(; x=seqnew.t, y=seqnew.Gy, mode="lines+markers", name="GY")
-pgzanew = scatter(; x=seqnew.t, y=seqnew.Gz, mode="lines+markers", name="GZ")
-padcnew = scatter(; x=seqnew.t[seqnew.ADC], y=(.01 .* ones(length(seqnew.ADC))), mode="markers", name="ADC")
-display(plot([prfaold; pgxaold; pgyaold; pgzaold; padcold; prfanew; pgxanew; pgyanew; pgzanew; padcnew], Layout(title="Seq comparison")))
-
-# Compare simulations (original-discretization, new-discretization, test-simulator)
-# There is a problem at the end of the simulation
-told = KomaMRICore.get_adc_sampling_times(seq)
-sigold = simulate(obj, seq, sys; simParams, isnew=false)
-signew = simulate(obj, seq, sys; simParams, isnew=true)
-display(plot([scatter(; x=seqnew.t[seqnew.ADC], y=abs.(signew[:,1,1]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals original simulator")))
-
+# Get the discretized sequences
+seqori = @time KomaMRICore.discretize(seq; simParams);
 sqs = samples(seq, Δtgr, Δtrf)
-seqtest = KomaMRICore.SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
-sigseqtest = @time seqsim(seq, obj, Δtgr, Δtrf);
-display(plot([scatter(; x=seqtest.t[seqtest.adconmask], y=abs.(sigseqtest[seqtest.adconmask]), mode="lines+markers", name="new"); scatter(;x=told, y=abs.(sigold[:,1,1]), mode="lines+markers", name="old")], Layout(title="Comparison of the Raw-Signals seqsim")))
+seqnew = KomaMRICore.SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
+
+# Plot the discretized sequences
+prfaori = scatter(; x=seqori.t, y=(5000 .* abs.(seqori.B1)), mode="lines+markers", name="RF")
+pgxaori = scatter(; x=seqori.t, y=seqori.Gx, mode="lines+markers", name="GX")
+pgyaori = scatter(; x=seqori.t, y=seqori.Gy, mode="lines+markers", name="GY")
+pgzaori = scatter(; x=seqori.t, y=seqori.Gz, mode="lines+markers", name="GZ")
+padcori = scatter(; x=seqori.t[seqori.ADC], y=(.01 .* ones(length(seqori.ADC))), mode="markers", name="ADC")
+prfanew = scatter(; x=seqnew.t, y=(5000 .* abs.(seqnew.rfa)), mode="lines+markers", name="RF")
+pgxanew = scatter(; x=seqnew.t, y=seqnew.gxa, mode="lines+markers", name="GX")
+pgyanew = scatter(; x=seqnew.t, y=seqnew.gya, mode="lines+markers", name="GY")
+pgzanew = scatter(; x=seqnew.t, y=seqnew.gza, mode="lines+markers", name="GZ")
+padcnew = scatter(; x=seqnew.t[seqnew.adconmask], y=(.01 .* ones(length(seqnew.adconmask))), mode="markers", name="ADC")
+display(plot([prfaori; pgxaori; pgyaori; pgzaori; padcori; prfanew; pgxanew; pgyanew; pgzanew; padcnew], Layout(title="Seq comparison")))
+
+# Simulate for original and new discretization-and-simulator
+tori = KomaMRICore.get_adc_sampling_times(seq)
+sigori = @time simulate(obj, seq, sys; simParams)[:];
+signew = @time seqsim(seq, obj, Δtgr, Δtrf; onadc=true);
+signewall = @time seqsim(seq, obj, Δtgr, Δtrf; onadc=false);
+
+# Compare simulations
+display(plot([scatter(; x=seqnew.t[seqnew.adconmask], y=abs.(signew), mode="lines+markers", name="test-sim"); scatter(;x=tori, y=abs.(sigori), mode="lines+markers", name="master-sim")], Layout(title="Comparison of the Raw-Signals")))
+display(plot([scatter(; x=seqnew.t, y=abs.(signewall), mode="lines+markers", name="test-sim-all"); scatter(;x=tori, y=abs.(sigori), mode="lines+markers", name="master-sim")], Layout(title="Comparison of the Raw-Signals")))
 
 
 ############################################################################################
