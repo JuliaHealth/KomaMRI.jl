@@ -47,7 +47,7 @@ pgxanew = scatter(; x=seqnew.t, y=seqnew.gxa, mode="lines+markers", name="GX")
 pgyanew = scatter(; x=seqnew.t, y=seqnew.gya, mode="lines+markers", name="GY")
 pgzanew = scatter(; x=seqnew.t, y=seqnew.gza, mode="lines+markers", name="GZ")
 padcnew = scatter(; x=seqnew.t[seqnew.adconmask], y=(.01 .* ones(length(seqnew.adconmask))), mode="markers", name="ADC")
-display(plot([prfaori; pgxaori; pgyaori; pgzaori; padcori; prfanew; pgxanew; pgyanew; pgzanew; padcnew], Layout(title="Seq comparison")))
+display(plot([prfaori; pgxaori; pgyaori; pgzaori; padcori; prfanew; pgxanew; pgyanew; pgzanew; padcnew], Layout(title="Discretized Sequence comparison")))
 
 # Simulate for original and new discretization-and-simulator
 tori = KomaMRICore.get_adc_sampling_times(seq)
@@ -146,15 +146,15 @@ sys = Scanner()
 # Plot the sequence
 plot_seq(seq)
 
-# Old Koma simulation
-sigold = (simulate(obj, seq, sys; simParams) / prod(size(obj)))[:,1,1]
+# Master Koma simulation
 told = KomaMRICore.get_adc_sampling_times(seq)
+sigold = (simulate(obj, seq, sys; simParams) / prod(size(obj)))[:,1,1]
 
-# New Koma simulation
-sq = samples(seq, Δtgr, Δtrf)
-sig = seqsim(seq, obj, Δtgr, Δtrf)
-signew = sig[sq.adconmask] / prod(size(obj))
-tnew = sq.t[sq.adconmask]
+# Test Koma simulation
+sqs = samples(seq, Δtgr, Δtrf)
+seqnew = KomaMRICore.SEQD(sqs.Δt, sqs.t, complex.(sqs.rfa), sqs.rfΔfc, sqs.gxa, sqs.gya, sqs.gza, sqs.adconmask)
+tnew = seqnew.t[seqnew.adconmask]
+signew = @time seqsim(seq, obj, Δtgr, Δtrf; onadc=true) / prod(size(obj));
 
 # Jemris ground-true data
 sigjem = h5open(joinpath(dirname(dirname(pathof(KomaMRI))), "KomaMRICore", "test", "test_files", "jemris_signals_epi_sphere_cs.h5"))["/signal/channels/00"]
@@ -162,17 +162,34 @@ sigjem = sigjem[1,:] + 1im*sigjem[2,:]
 sigjem = sigjem[:]
 
 # Compare signals in plots
-display(plot([scatter(; y=abs.(sigold), mode="lines+markers", name="old"); scatter(; y=abs.(signew), mode="lines+markers", name="new");], Layout(title="Comparison of the Raw-Signals")))
-display(plot([scatter(; y=abs.(sigjem), mode="lines+markers", name="jem"); scatter(; y=abs.(sigold), mode="lines+markers", name="old");], Layout(title="Comparison of the Raw-Signals")))
-display(plot([scatter(; y=abs.(sigjem), mode="lines+markers", name="jem"); scatter(; y=abs.(signew), mode="lines+markers", name="new");], Layout(title="Comparison of the Raw-Signals")))
+display(plot([scatter(; y=abs.(sigold), mode="lines+markers", name="master-sim"); scatter(; y=abs.(signew), mode="lines+markers", name="test-sim");], Layout(title="Comparison of the Raw-Signals")))
+display(plot([scatter(; y=abs.(sigjem), mode="lines+markers", name="jem-ground-truth"); scatter(; y=abs.(sigold), mode="lines+markers", name="master-sim");], Layout(title="Comparison of the Raw-Signals")))
+display(plot([scatter(; y=abs.(sigjem), mode="lines+markers", name="jem-ground-truth"); scatter(; y=abs.(signew), mode="lines+markers", name="test-sim");], Layout(title="Comparison of the Raw-Signals")))
 
-#grs = grsamples(seq, 1; addblklim=false, addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false, addrfx=false, addadc=false)
+
+############################################################################################
+### Checks for event samples functions #####################################################
+############################################################################################
+
+# Get block-independent concatenated events
+gxs, gys, gzs = grsamples(seq, 1; addblklim=true), grsamples(seq, 2; addblklim=true), grsamples(seq, 3; addblklim=true)
+rfs, adcs = rfsamples(seq; addblklim=true), adcsamples(seq; addblklim=true)
+pgx = scatter(; x=gxs.t, y=gxs.a, mode="lines+markers", name="GX")
+pgy = scatter(; x=gys.t, y=gys.a, mode="lines+markers", name="GY")
+pgz = scatter(; x=gzs.t, y=gzs.a, mode="lines+markers", name="GZ")
+prf = scatter(; x=rfs.t, y=1000*abs.(rfs.a), mode="lines+markers", name="RF")
+padc = scatter(; x=adcs.t, y= 0.001 * adcs.a, mode="lines", name="ADC")
+display(plot([pgx, pgy, pgz, prf, padc]))
+
+# Get block-independent, gradient-combined, concatenated gradients (possibly with rf-center and adc-samples added)
+# This is useful for calculating kspace, M0, M1, M2, etc ...
 grs = grsamples(seq; addseqfirst=true, addseqlast=true, addblkfirst=false, addblklast=false, addrfx=true, addadc=true)
-display(plot([scatter(; x=grs.t, y=grs.ax, mode="lines+markers", name="GX")]))
+pgx = scatter(; x=grs.t, y=grs.ax, mode="lines+markers", name="GX")
+pgy = scatter(; x=grs.t, y=grs.ay, mode="lines+markers", name="GY")
+pgz = scatter(; x=grs.t, y=grs.az, mode="lines+markers", name="GZ")
+display(plot([pgx, pgy, pgz]))
 
-rfs = rfsamples(seq; addblklim=true, addseqfirst=false, addseqlast=false, addblkfirst=false, addblklast=false, addrfx=false)
-display(plot([scatter(; x=rfs.t, y=rfs.a, mode="lines+markers", name="RF")]))
-
+# Get the kspace
 k = KomaMRICore.kspace(seq)
 p1 = PlotlyJS.scatter3d(x=k.x, y=k.y, z=k.z, mode="lines", name="Trajectory", hoverinfo="skip")
 p2 = PlotlyJS.scatter3d(x=k.x[k.adconmask], y=k.y[k.adconmask], z=k.z[k.adconmask], mode="markers", marker=attr(size=2), name="ADC")
