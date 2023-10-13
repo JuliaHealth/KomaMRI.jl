@@ -12,7 +12,7 @@ KomaMRI generates **raw data** by solving the **Bloch equations** using the spec
 KomaMRI can be used by either:
 * **Graphical User Interface**: User-friendly interaction. No Julia programming skills are required. Refer to [Graphical User Interface](getting-started.md#Graphical-User-Interface) to check the simplest usage example.
 
-* **Scripts** : Basic knowledge of Julia is required. Refer to [Brain Example](simulation-examples.md#Brain-Example) to check a tutorial. Refer to the [API documentation](api.md) to discover all the functions that the package has to offer.
+* **Scripts** : Basic knowledge of Julia is required. Refer to [FID Example](generated/basic/01-FID.md) to check a tutorial. Refer to the [API documentation](api.md) to discover all the functions that the package has to offer.
 
 ## Features
 

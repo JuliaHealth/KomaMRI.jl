@@ -10,9 +10,9 @@ The ADC struct.
 - `T`: (`::Float64`, [`s`]) duration to acquire the samples
 - `delay`: (`::Float64`, [`s`]) delay time to start the acquisition
 - `Δf`: (`::Float64`, [`Hz`]) delta frequency. It's meant to compensate RF pulse phases.
-    It is used internally by the [`read_ADC`](@ref) function
+    It is used internally by the read_ADC function
 - `ϕ`: (`::Float64`, `[rad]`) phase. It's meant to compensate RF pulse phases. It is
-    used internally by the [`read_ADC`](@ref) function
+    used internally by the read_ADC function
 
 # Returns
 - `adc`: (`::ADC`) ADC struct
