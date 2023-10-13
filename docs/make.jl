@@ -6,7 +6,7 @@ base = "$org/$reps.jl"
 repo_root_url = "https://github.com/$base/blob/master"
 
 # User can add some directories from the literate folder
-foldernames = ["basic"; "sequence-design"]
+foldernames = ["basic"]
 
 # Define some paths
 exa = joinpath(dirname(@__DIR__), "examples")
@@ -59,6 +59,7 @@ makedocs(
         "Home" => "index.md";
         "Getting Started" => "getting-started.md";
         "Graphical User Interface" => "ui-details.md";
+        "Julia Programming" => "programming-workflow.md";
         literate_seccions;
         "Simulation Method" => "mri-theory.md";
         "API Documentation" => "api.md";
