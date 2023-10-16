@@ -166,6 +166,17 @@ end
 	)
 end
 
+"""
+dims = get_dims(obj)
+"""
+function get_dims(obj::Phantom)
+	dims = [0,0,0]
+	if obj.x != zeros(length(obj.x)) dims[1] = 1 end
+	if obj.y != zeros(length(obj.x)) dims[2] = 1 end
+	if obj.z != zeros(length(obj.x)) dims[3] = 1 end
+	dims
+end
+
 # Movement related commands
 # StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
 # FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
@@ -468,6 +479,7 @@ function brain_phantom3D(;ss=4)
 end
 
 
+
 """
 phantom = read_phantom(filename)
 
@@ -476,25 +488,30 @@ Reads a (.phantom) file and creates a Phantom structure from it
 function read_phantom(filename::String) 
 	# ----------------------------------------------
 	function read_param(param::HDF5.Group)
-		type = attrs(param)["type"]
-	
-		if     type == "Explicit"
-			values = read(param["values"])
-		elseif type == "Indexed"
-			index = read(param["values"]) 
-			if Ns == length(index)
-				table = read(param["table"])
-				N = read_attribute(param,"N")
-				if N == length(table)
-					values = table[index]
+
+		if "type" in HDF5.keys(attrs(param))
+			type = attrs(param)["type"]
+		
+			if     type == "Explicit"
+				values = read(param["values"])
+			elseif type == "Indexed"
+				index = read(param["values"]) 
+				if Ns == length(index)
+					table = read(param["table"])
+					N = read_attribute(param,"N")
+					if N == length(table)
+						values = table[index]
+					else
+						print("Error: $(label) table dimensions mismatch")
+					end
 				else
-					print("Error: $(label) table dimensions mismatch")
+					print("Error: $(label) vector dimensions mismatch")
 				end
-			else
-				print("Error: $(label) vector dimensions mismatch")
+			elseif type == "Default"
+				values = "Default"
 			end
-		elseif type == "Default"
-			values = "Default"
+		else
+			values = read(param["values"])
 		end
 	
 		values
@@ -509,8 +526,8 @@ function read_phantom(filename::String)
     dynamic = Bool(read_attribute(fid,"Dynamic"))
     Ns      = read_attribute(fid,"Ns")
 
-	ph = Phantom(name=name,
-				 x=zeros(Ns))
+	obj = Phantom(name=name,
+				  x=zeros(Ns))
 
 	# Position and contrast
 	for key in ["position","contrast"]
@@ -519,7 +536,7 @@ function read_phantom(filename::String)
 			param = group[label]
 			values = read_param(param)
 			if values != "Default"
-				setfield!(ph,Symbol(label),values)
+				setfield!(obj,Symbol(label),values)
 			end
 		end
 	end
@@ -553,7 +570,7 @@ function read_phantom(filename::String)
 				end
 			end
 
-			ph.mov = ArbitraryMotion{Float64}(dur=dur,
+			obj.mov = ArbitraryMotion{Float64}(dur=dur,
 											  K=K,
 										      Δx=Δx,
 										      Δy=Δy,
@@ -561,13 +578,78 @@ function read_phantom(filename::String)
 		end
 	end
 
-	return ph
+	close(fid)
+	return obj
 end
 
 
+"""
+write_phantom(ph,filename)
 
+Writes a (.phantom) file from a Phantom struct.
+"""
+# By the moment, only "Explicit" type 
+# is considered when writing .phantom files
+function write_phantom(obj::Phantom,filename::String) 
+	# Create HDF5 phantom file
+	fid = h5open(filename,"w")
 
+	# Root attributes
+	HDF5.attributes(fid)["Version"] = "1.0"
+	HDF5.attributes(fid)["Name"] = obj.name
+	HDF5.attributes(fid)["Ns"] = length(obj.x)
+	dims = get_dims(obj)
+	HDF5.attributes(fid)["Dims"] = sum(dims)
+	dynamic = is_dynamic(obj.mov)
+	HDF5.attributes(fid)["Dynamic"] = Int(dynamic)     # 0=False, 1=True
 
+	fields = fieldnames(Phantom)[2:end]
+
+	# Spin initial positions
+	pos = create_group(fid,"position")
+	for i in 1:3
+		if Bool(dims[i])
+			create_group(pos,String(fields[i]))["values"] = getfield(obj,fields[1])
+		end
+	end
+
+	# Contrast (Rho, T1, T2, T2s Deltaw)
+	contrast = create_group(fid,"contrast")
+	for i in 4:8
+		param = create_group(contrast,String(fields[i]))
+		HDF5.attributes(param)["type"] = "Explicit"
+		param["values"] = getfield(obj,fields[1])
+	end
+
+	# Motion
+	if dynamic
+		motion = create_group(fid,"motion")
+		if typeof(obj.mov) <: SimpleMotion
+		# ---------- PENDING -----------
+		elseif typeof(obj.mov) <: ArbitraryMotion
+			attributes(motion)["model"] = "Arbitrary"
+
+			segments = create_group(motion, "segments")
+			attributes(segments)["N"] = length(obj.mov.dur) 
+			attributes(segments)["K"] = obj.mov.K
+			segments["dur"] = obj.mov.dur
+
+			itp = get_itp_functions(mov)
+			is_mov_on = (itp .!== nothing) 
+			mov_dims = ["motionx","motiony","motionz"] 
+			Δ = fieldnames(ArbitraryMotion)[3:5]
+			for i in 1:3
+				if is_mov_on[i]
+					motion_i = create_group(motion,mov_dims[i])
+					attributes(motion_i)["type"] = "Explicit"
+					motion_i["values"] = getfield(obj.mov,Δ[i])
+				end
+			end
+		end
+	end
+
+	close(fid)
+end
 
 
 
