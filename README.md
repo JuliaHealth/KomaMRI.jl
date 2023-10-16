@@ -2,9 +2,12 @@
 <img width="300px" src="./src/ui/assets/Logo.svg#gh-light-mode-only"/>
 <img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
 </p>
+<p align="center">
+<img src="https://img.shields.io/github/stars/cncastillo/KomaMRI.jl?style=social" width="100px"/>
+</p>
 
 <div align="center">
-
+ 
 ##### Main project
 | **Documentation**         | **KomaMRI.jl Paper**           | **Build Status**                      |
 |:-------------------------:|:------------------------------:|:-------------------------------------:|
@@ -112,13 +115,13 @@ If you use this package please acknowledge us by citing our paper.
 **BibTex:**
 ```bibtex
 @article{https://doi.org/10.1002/mrm.29635,
-author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
-title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
-journal = {Magnetic Resonance in Medicine},
-keywords = {Bloch equations, GPU, GUI, Julia, open source, simulation},
-doi = {https://doi.org/10.1002/mrm.29635},
-url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
-eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
+         author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
+         title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
+         journal = {Magnetic Resonance in Medicine},
+         keywords = {Bloch equations, GPU, GUI, Julia, open source, simulation},
+         doi = {https://doi.org/10.1002/mrm.29635},
+         url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
+         eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
 }
 ```
 ---
