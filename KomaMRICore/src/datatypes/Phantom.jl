@@ -609,7 +609,7 @@ function write_phantom(obj::Phantom,filename::String)
 	pos = create_group(fid,"position")
 	for i in 1:3
 		if Bool(dims[i])
-			create_group(pos,String(fields[i]))["values"] = getfield(obj,fields[1])
+			create_group(pos,String(fields[i]))["values"] = getfield(obj,fields[i])
 		end
 	end
 
@@ -618,7 +618,7 @@ function write_phantom(obj::Phantom,filename::String)
 	for i in 4:8
 		param = create_group(contrast,String(fields[i]))
 		HDF5.attributes(param)["type"] = "Explicit"
-		param["values"] = getfield(obj,fields[1])
+		param["values"] = getfield(obj,fields[i])
 	end
 
 	# Motion
@@ -627,6 +627,7 @@ function write_phantom(obj::Phantom,filename::String)
 		if typeof(obj.mov) <: SimpleMotion
 		# ---------- PENDING -----------
 		elseif typeof(obj.mov) <: ArbitraryMotion
+			print("")
 			HDF5.attributes(motion)["model"] = "Arbitrary"
 
 			segments = create_group(motion, "segments")
@@ -634,7 +635,7 @@ function write_phantom(obj::Phantom,filename::String)
 			HDF5.attributes(segments)["K"] = obj.mov.K
 			segments["dur"] = obj.mov.dur
 
-			itp = get_itp_functions(mov)
+			itp = get_itp_functions(obj.mov)
 			is_mov_on = (itp .!== nothing) 
 			mov_dims = ["motionx","motiony","motionz"] 
 			Δ = fieldnames(ArbitraryMotion)[3:5]

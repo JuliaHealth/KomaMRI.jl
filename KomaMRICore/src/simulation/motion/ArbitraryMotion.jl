@@ -121,5 +121,5 @@ end
 
 function is_dynamic(mov::ArbitraryMotion{T}) where {T<:Real}
     itp = get_itp_functions(mov)
-    return reduce(&,(itp .!== nothing))
+    return reduce(|,(itp .!== nothing))
 end

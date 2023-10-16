@@ -63,5 +63,5 @@ function is_dynamic(mov::SimpleMotion)
     t = 0:0.01:10
 
     Ux,Uy,Uz = get_U(mov,x,y,z,t)
-    return reduce(&,([Ux,Uy,Uz] .!== nothing))
+    return reduce(|,([Ux,Uy,Uz] .!== nothing))
 end
