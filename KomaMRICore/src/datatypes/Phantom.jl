@@ -627,11 +627,11 @@ function write_phantom(obj::Phantom,filename::String)
 		if typeof(obj.mov) <: SimpleMotion
 		# ---------- PENDING -----------
 		elseif typeof(obj.mov) <: ArbitraryMotion
-			attributes(motion)["model"] = "Arbitrary"
+			HDF5.attributes(motion)["model"] = "Arbitrary"
 
 			segments = create_group(motion, "segments")
-			attributes(segments)["N"] = length(obj.mov.dur) 
-			attributes(segments)["K"] = obj.mov.K
+			HDF5.attributes(segments)["N"] = length(obj.mov.dur) 
+			HDF5.attributes(segments)["K"] = obj.mov.K
 			segments["dur"] = obj.mov.dur
 
 			itp = get_itp_functions(mov)
@@ -641,7 +641,7 @@ function write_phantom(obj::Phantom,filename::String)
 			for i in 1:3
 				if is_mov_on[i]
 					motion_i = create_group(motion,mov_dims[i])
-					attributes(motion_i)["type"] = "Explicit"
+					HDF5.attributes(motion_i)["type"] = "Explicit"
 					motion_i["values"] = getfield(obj.mov,Δ[i])
 				end
 			end
