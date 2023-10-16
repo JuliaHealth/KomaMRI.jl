@@ -8,15 +8,10 @@ export SimpleMotion
 Base.getindex(mov::SimpleMotion, p::AbstractRange) = mov
 Base.getindex(mov::SimpleMotion, p::AbstractVector) = mov
 
-"""
-    Ux, Uy, Uz = initialize_motion(obj.mov, seqd.t)
-"""
-function initialize_motion(mov::SimpleMotion, 
-                           x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}; 
-                           enable_gpu::Bool=false, gpu_device::Int=0, precision::AbstractString="f32") where {T<:Real}
- 
+
+function get_U(mov::SimpleMotion,x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}) where {T<:Real}                      
     Ns = length(x)
-                           
+                        
     Ux = zeros(Ns,1) .+ mov.ux(x, y, z, t')
     Uy = zeros(Ns,1) .+ mov.uy(x, y, z, t')
     Uz = zeros(Ns,1) .+ mov.uz(x, y, z, t')
@@ -24,6 +19,19 @@ function initialize_motion(mov::SimpleMotion,
     Ux = sum(abs.(Ux);dims=2) != zeros(Ns,1) ? Ux : nothing
     Uy = sum(abs.(Uy);dims=2) != zeros(Ns,1) ? Uy : nothing
     Uz = sum(abs.(Uz);dims=2) != zeros(Ns,1) ? Uz : nothing
+
+    Ux,Uy,Uz
+end
+
+
+"""
+    Ux, Uy, Uz = initialize_motion(obj.mov, seqd.t)
+"""
+function initialize_motion(mov::SimpleMotion, 
+                           x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}; 
+                           enable_gpu::Bool=false, gpu_device::Int=0, precision::AbstractString="f32") where {T<:Real}
+
+    Ux,Uy,Uz = get_U(mov,x,y,z,t)
 
     # Precision
     if precision == "f32"
@@ -44,4 +52,16 @@ function initialize_motion(mov::SimpleMotion,
     end
 
     Ux, Uy, Uz
+end
+
+
+
+function is_dynamic(mov::SimpleMotion)
+    x = 0:0.01:10
+    y = 0:0.01:10
+    z = 0:0.01:10
+    t = 0:0.01:10
+
+    Ux,Uy,Uz = get_U(mov,x,y,z,t)
+    return reduce(&,([Ux,Uy,Uz] .!== nothing))
 end

@@ -4,10 +4,17 @@
 	K::Int = 2
 
 	# Motion
-	Δx::AbstractArray{T, 2}
+	Δx::AbstractArray{T, 2} 
 	Δy::AbstractArray{T, 2}
 	Δz::AbstractArray{T, 2}
 end
+
+function ArbitraryMotion(Ns::Int)
+    ArbitraryMotion{Int}(Δx=zeros(Ns,1),
+                         Δy=zeros(Ns,1),
+                         Δz=zeros(Ns,1))       
+end
+
 export ArbitraryMotion
 
 Base.getindex(mov::ArbitraryMotion, p::AbstractRange) = begin
@@ -110,4 +117,9 @@ function initialize_motion(mov::ArbitraryMotion{T},
     end
 
     Ux, Uy, Uz
+end
+
+function is_dynamic(mov::ArbitraryMotion{T}) where {T<:Real}
+    itp = get_itp_functions(mov)
+    return reduce(&,(itp .!== nothing))
 end
