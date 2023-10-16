@@ -2,7 +2,7 @@
 This file generates a .phantom of an static ring.
 """
 
-using HDF5
+using KomaMRICore.HDF5
 
 #PARAMETERS
 FOV = 10e-2 #m Diameter ventricule
@@ -45,9 +45,6 @@ attributes(fid)["Dynamic"] = 0     # 0=False, 1=True
 pos = create_group(fid,"position")
 x = create_group(pos,"x"); 
 y = create_group(pos,"y"); 
-
-attributes(x)["type"] = "Explicit"
-attributes(y)["type"] = "Explicit"
 
 x["values"] = x_values
 y["values"] = y_values

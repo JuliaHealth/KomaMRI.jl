@@ -4,7 +4,7 @@ A ventricle of the heart is recreated, with a diameter equal to FOV
 and an expansion and contraction of Δ meters every T seconds.
 """
 
-using HDF5
+using KomaMRICore.HDF5
 
 FOV = 10e-2 # [m] Diameter ventricule
 Δ = 1e-2    # [m] Displacement
@@ -55,9 +55,6 @@ attributes(fid)["Dynamic"] = 1     # 0=False, 1=True
 pos = create_group(fid,"position")
 x = create_group(pos,"x"); 
 y = create_group(pos,"y"); 
-
-attributes(x)["type"] = "Explicit"
-attributes(y)["type"] = "Explicit"
 
 x["values"] = x_values
 y["values"] = y_values
