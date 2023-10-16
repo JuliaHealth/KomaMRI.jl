@@ -60,7 +60,7 @@ function read_phantom_jemris(filename)
 					T2=	 T2[mask],
 					T2s=T2s[mask],
 					Δw=	 Δw[mask],
-					ux=(x,y,z,t)->v*t
+					mov = SimpleMotion(ux=(x,y,z,t)->v*t)
 					)
 	phantom
 end
