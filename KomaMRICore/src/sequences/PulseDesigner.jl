@@ -266,5 +266,24 @@ spiral_base(FOV::Float64, N::Int64, sys::Scanner; S0=sys.Smax*2/3, Nint=8, λ=Ni
 end
 
 
-export EPI, radial_base
+"""
+Returns a sequence which is useful for examples and lets you acquire the 2D brain example
+"""
+function EPI_example(; sys=Scanner())
+    B1 = sys.B1;
+    durRF = π/2/(2π*γ*B1)
+    EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+    N = 101
+    FOV = 23e-2
+    EPI = PulseDesigner.EPI(FOV, N, sys)
+    TE = 30e-3
+    d1 = TE-dur(EPI)/2-dur(EX)
+    if d1 > 0 DELAY = Delay(d1) end
+    seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI
+    seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
+    return seq
+end
+
+
+export EPI, radial_base, EPI_example
 end

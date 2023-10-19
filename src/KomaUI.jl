@@ -92,16 +92,7 @@ println("Gmax = $(round(sys.Gmax*1e3,digits=2)) mT/m")
 println("Smax = $(sys.Smax) mT/m/ms")
 #SEQ init
 @info "Loading Sequence (default) "
-B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
-EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
-N = 101
-FOV = 23e-2
-EPI = PulseDesigner.EPI(FOV, N, sys)
-TE = 30e-3
-d1 = TE-dur(EPI)/2-dur(EX)
-if d1 > 0 DELAY = Delay(d1) end
-global seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI
-seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
+global seq = PulseDesigner.EPI_example(; sys)
 #Init
 global darkmode = dark
 global raw_ismrmrd = RawAcquisitionData(Dict(

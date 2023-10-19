@@ -17,26 +17,10 @@ Let's replicate these previous steps in a julia script. You will end up with the
 # Import the package
 using KomaMRI
 
-# Auxiliary function for defining an EPI sequence
-function create_epi_seq(sys::Scanner)
-    B1 = sys.B1;
-    durRF = π/2/(2π*γ*B1)
-    EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
-    N = 101
-    FOV = 23e-2
-    EPI = PulseDesigner.EPI(FOV, N, sys)
-    TE = 30e-3
-    d1 = TE-dur(EPI)/2-dur(EX)
-    if d1 > 0 DELAY = Delay(d1) end
-    seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI
-    seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
-    return seq
-end
-
 # Define scanner, object and sequence
 sys = Scanner()
 obj = brain_phantom2D()
-seq = create_epi_seq(sys)
+seq = PulseDesigner.EPI_example()
 
 # Define simulation parameters and perform simulation
 simParams = KomaMRICore.default_sim_params() 

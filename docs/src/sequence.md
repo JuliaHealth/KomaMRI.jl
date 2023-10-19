@@ -40,7 +40,7 @@ As you can see, a **Sequence** struct contains 5 field names: ''DEF'' contains i
 
 In order to understand how a **Sequence** struct can be manipulated in **Julia**, let's use the EPI sequence example. You can display basic information of the **Sequence** variable in the **Julia REPL**:
 ```julia-repl
-julia> seq = create_epi_seq(sys)
+julia> seq = PulseDesigner.EPI_example()
 Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 5 ]
 ```
 
