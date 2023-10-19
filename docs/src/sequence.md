@@ -146,6 +146,8 @@ As you can see, it has 4 field names: ''A'' defines amplitude, ''T'' defines dur
 * Uniformly-Sampled Waveform: A is a vector and T is a number
 * Time-Shaped Waveform: A and T are both vectors with the same length (zero-order-hold)
 
+Let's see some basic examples on how to create these types of **RF** structs and put them inside a **Sequence** struct. The examples should be self explanatory.
+
 ### RF Pulse Waveform
 
 ```julia-repl
@@ -221,6 +223,8 @@ Just like the **RF**, ''A'' and ''T'' in the **Grad** struct can be numbers or v
 * Uniformly-Sampled Waveform: A is a vector and T is a number
 * Time-Shaped Waveform: A and T are both vectors, A has one sample more the T (linear interpolation)
 
+Let's see some basic examples on how to create these types of **Grad** structs and put them inside a **Sequence** struct considering just the ''x'' component of the gradients. The examples should be self explanatory.
+
 ### Gradient Trapezoidal Waveform
 
 ```julia-repl
@@ -294,6 +298,7 @@ end
 
 As you can see, it has 5 field names: ''N'' defines number of samples, ''T'' defines total acquisition duration, ''delay'' is the distance between the 0 time and the first sampled signal, ''Δf'' and ''ϕ' are factor to correct signal acquisition (for advanced users).
 
+Let's see a basic example on how to define an **ADC** struct and put it inside a **Sequence** struct:
 ```julia-repl
 julia> N, T, delay =  16, 5e-3, 1e-3;
 
@@ -309,34 +314,57 @@ julia> plot_seq(seq)
 <p align="center"><img width="90%" src="../assets/event-adc.svg"/></p>
 ```
 
-## Concatenation of Sequences
+## Event Combination
 
+We call ''event combination'' to the action of putting inside a sequence of one block multiple events. The example bellow shows how to combine an **RF** struct, 3 **Grad** structs for the x-y-z components and an **ADC** struct in a sequence of one block: 
 ```julia
+# Define an RF struct
 A, T, delay =  1e-6*[0; -0.1; 0.2; -0.5; 1; -0.5; 0.2; -0.1; 0], 0.5e-3, 0.1e-3;
 rf = RF(A, T, 0, delay)
 
+# Define a Grad struct for Gx
 A, T, delay, rise, fall =  50*10e-6, 5e-3, 2e-3, 1e-3, 1e-3
 gx = Grad(A, T, rise, fall, delay)
 
+# Define a Grad struct for Gy
 A = 50*10e-6*[0; 0.5; 0.9; 1; 0.9; 0.5; 0; -0.5; -0.9; -1]
 T, delay, rise, fall = 5e-3, 2e-3, 0, 1e-3;
 gy = Grad(A, T, rise, fall, delay)
 
+# Define a Grad struct for Gz
 A = 50*10e-6*[0; 0.5; 0.9; 1; 0.9; 0.5; 0; -0.5; -0.9; -1]
 T = 5e-3*[0.2; 0.1; 0.3; 0.2; 0.1; 0.2; 0.3; 0.2; 0.1]
 delay, rise, fall = 2e-3, 1e-3, 1e-3
 gz = Grad(A, T, rise, fall, delay)
 
-gr = [gx; gy; gz;;]
-
+# Define an ADC struct
 N, T, delay =  16, 5e-3, 1e-3
 adc = ADC(N, T, delay)
-
-seq = rf + Sequence(gr) + adc
 ```
 ```julia-repl
-plot_seq(seq)
+julia> seq = Sequence([gx; gy; gz;;], [rf;;], [adc])
+Sequence[ τ = 12.5 ms | blocks: 1 | ADC: 1 | GR: 3 | RF: 1 | DEF: 0 ]
+
+julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/concatenation-of-sequences.svg"/></p>
+<p align="center"><img width="90%" src="../assets/event-combination.svg"/></p>
+```
+
+It is important to note that once the struct events are defined, in order to create a sequence of one block, is necessary to put 2D matrices of **Grad** and **RF** structs and a vector of **ADC** structs as arguments in the **Sequence()** constructor.
+
+## Sequence Concatenation
+
+We call ''sequence concatenation'' to the action of putting sequences together side by side. The example bellow shows how to concatenate sequences:
+```julia-repl
+julia> s = PulseDesigner.EPI_example()[1:11]
+Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]
+
+julia> seq = s + s + s
+Sequence[ τ = 11.512 ms | blocks: 33 | ADC: 15 | GR: 33 | RF: 3 | DEF: 5 ]
+
+julia> plot_seq(seq)
+```
+```@raw html
+<p align="center"><img width="90%" src="../assets/seq-concatenation.svg"/></p>
 ```

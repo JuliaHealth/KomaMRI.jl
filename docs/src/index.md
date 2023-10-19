@@ -12,7 +12,7 @@
 **KomaMRI*** can be used by either:
 * **Graphical User Interface**: User-friendly interaction. No Julia programming skills are required. Refer to [Getting Started](getting-started.md) to check the simplest usage example or refer to [Graphical User Interface](ui-details.md) to dive into the details of how to use the GUI.
 
-* **Julia Programming** : Basic knowledge of Julia is required. Refer to [Julia Programming](programming-workflow.md) to follow a basic workflow on how to work with **KomaMRI**, read the [Sequence Definition](sequence.md) for learning to create your own **Sequence** structs programmatically, follow the [Examples](generated/basic/01-FID.md) section to see how to manipulate **KomaMRI** functionalities in didactical cases or go to the [API documentation](api.md) to discover all the functions that the package has to offer.
+* **Julia Programming** : Basic knowledge of Julia is required. Refer to [Julia Programming](programming-workflow.md) to follow a basic workflow on how to work with **KomaMRI**, read the [Sequence Definition](sequence.md) for learning to create your own **Sequence** structs programmatically, follow the [Examples](generated/examples/01-FID.md) section to see how to manipulate **KomaMRI** functionalities in didactical cases or go to the [API documentation](api.md) to discover all the functions that the package has to offer.
 
 ## Features
 

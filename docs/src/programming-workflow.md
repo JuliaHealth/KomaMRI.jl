@@ -250,7 +250,7 @@ julia> plot_image(image)
 ```
 
 
-## Export o .mat
+## Export to .mat
 
 Many people in the MRI community uses MATLAB, probably you are one of them and you want to process the raw signal in the MATLAB environment after simulation is done with **KomaMRI**. Here we show you an example of how to save a **.mat** file with the information of the raw signal thank to the help of the **MAT** package:
 ```julia

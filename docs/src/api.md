@@ -1,3 +1,4 @@
+# API Documentation
 
 This page shows the documentation for the modules, structs, functions, methods and additional components available when importing the **KomaMRI.jl** package. It is very useful for reference when using directly the Julia REPL and when creating custom Julia scripts. Please, don't miss out the section [How to read the API docs](api.md#How-to-read-the-API-docs) which has important considerations to understand general aspects of the docstring structure. The following are the contents of the API Documentation:
 
@@ -49,7 +50,7 @@ Whenever you see a docstring documentation, it will have the following structure
 
 The previous docstring block will always have first the way how it is called the component (outputs = component_name(inputs) and next a brief description about what the component does. Then a **note** block will be displayed if necessary. As general rule, the next subsections are optional: **Arguments**, **Keywords**, **Returns**, **References** and **Examples**, however they will be displayed whenever necessary. These subsections are self-explanatory, so it is intuitive to figure out what are they meant for.
 
-Note that every subitem in the sections **Arguments**, **Keywords** and **Returns** are variables. They have practical information enclosed in parentheses plus a description. They information in parentheses is optional but very useful if it is present:
+Note that every subitem in the sections **Arguments**, **Keywords** and **Returns** are variables. They have practical information enclosed in parentheses plus a description. The information in parentheses is optional but very useful if it is present:
 * `::type`: is the suggested type of the variable. If the input variable is of type `::type`, then nothing can go wrong, but it is always possible to test other types. If the variable is an output, then it will always try to be forced to the type `::type`.
 * `=value`: sometimes for the inputs the is defined a default value if it is not assigned by the user.
 * `[unit]`: this is the suggested physical unit of measure of the variable. Everything it is going to be fine if you are stick with these units of measure.
