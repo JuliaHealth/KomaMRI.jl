@@ -30,7 +30,8 @@ raw = simulate(obj, seq, sys; simParams)
 function reconstruct_2d_image(raw::RawAcquisitionData)
     acqData = AcquisitionData(raw)
     acqData.traj[1].circular = false #Removing circular window
-    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acqData.traj[1].nodes[:])) #Normalize k-space to -.5 to .5 for NUFFT
+    C = maximum(2*abs.(acqData.traj[1].nodes[:]))  #Normalize k-space to -.5 to .5 for NUFFT
+    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ C
     Nx, Ny = raw.params["reconSize"][1:2]
     recParams = Dict{Symbol,Any}()
     recParams[:reconSize] = (Nx, Ny)
@@ -211,21 +212,6 @@ julia> plot_signal(raw)
 <p align="center"><img width="100%" src="../assets/raw-epi-brain-default.svg"/></p>
 ```
 
-Many people in the MRI community uses MATLAB, probably you are one of them and you want to process the raw signal in the MATLAB environment. Here we show you an example of how to save a ".mat" file with the information of raw signal thank to the help of the **MAT** package:
-```julia
-# Use the MAT package
-using MAT
-
-# Perform simulation to return an Array type
-simParams["return_type"] = "mat"
-raw = simulate(obj, seq, sys; simParams)
-
-# Save the .mat file in the temp directory
-matwrite(joinpath(tempdir(), "koma-raw.mat"), Dict("raw" => raw))
-```
-
-Note that we need to simulate again to return an array type and then we use the **matwrite()** function to save a file called "koma-raw.mat" in the temporal directory of the your computer OS. Now you can go to your temporal directory (you can check that by displaying the **tempdir()** result in the **Julia REPL**) and see the "koma-raw.mat" file.
-
 
 ## Reconstruction
 
@@ -237,7 +223,8 @@ In the example bellow, we create a auxiliary function **reconstruct\_2d\_image()
 function reconstruct_2d_image(raw::RawAcquisitionData)
     acqData = AcquisitionData(raw)
     acqData.traj[1].circular = false #Removing circular window
-    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acqData.traj[1].nodes[:])) #Normalize k-space to -.5 to .5 for NUFFT
+    C = maximum(2*abs.(acqData.traj[1].nodes[:]))  #Normalize k-space to -.5 to .5 for NUFFT
+    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ C
     Nx, Ny = raw.params["reconSize"][1:2]
     recParams = Dict{Symbol,Any}()
     recParams[:reconSize] = (Nx, Ny)
@@ -261,3 +248,21 @@ julia> plot_image(image)
 ```@raw html
 <p align="center"><img width="100%" src="../assets/image-default-brain.svg"/></p>
 ```
+
+
+## Export o .mat
+
+Many people in the MRI community uses MATLAB, probably you are one of them and you want to process the raw signal in the MATLAB environment after simulation is done with **KomaMRI**. Here we show you an example of how to save a **.mat** file with the information of the raw signal thank to the help of the **MAT** package:
+```julia
+# Use the MAT package
+using MAT
+
+# Perform simulation to return an Array type
+simParams["return_type"] = "mat"
+raw = simulate(obj, seq, sys; simParams)
+
+# Save the .mat file in the temp directory
+matwrite(joinpath(tempdir(), "koma-raw.mat"), Dict("raw" => raw))
+```
+
+Note that we need to simulate to return an array type (not the default **RawAcquisitionData**) and then we use the **matwrite()** function to save a file called "koma-raw.mat" in the temporal directory of the your computer OS. Now you can go to your temporal directory (you can check that by displaying the **tempdir()** result in the **Julia REPL**) and see the "koma-raw.mat" file.

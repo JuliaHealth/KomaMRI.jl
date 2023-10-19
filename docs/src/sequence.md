@@ -1,4 +1,4 @@
-# Sequence
+# Sequence Definition
 
 This section dives into some details about how a sequence is constructed. After you read this section, you should be able to construct your own **Sequence** structs to perform your custom simulations using the **KomaMRI** package.
 

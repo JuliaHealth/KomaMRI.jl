@@ -2,7 +2,7 @@
 
 ## Installing Julia
 
-KomaMRI was written in Julia, so the first thing you should do is to install it! The latest version of Julia can be downloaded at the [Julia Downloads](https://julialang.org/downloads/) page. It is advisable you add julia to the PATH, which can be done during the installation process.
+**KomaMRI** was written in Julia, so the first thing you should do is to install it! The latest version of Julia can be downloaded at the [Julia Downloads](https://julialang.org/downloads/) page. It is advisable you add julia to the PATH, which can be done during the installation process.
 
 ## Installing KomaMRI
 
@@ -11,7 +11,7 @@ Once Julia is installed, open the Julia REPL and add the `KomaMRI` package. To b
 ```julia-repl
 julia> ]
 
-(@v1.8) pkg> add KomaMRI
+(@v1.9) pkg> add KomaMRI
 ```
 Then press `Ctrl+C` or `backspace` to return to the `julia>` prompt.
 
@@ -19,7 +19,7 @@ Then press `Ctrl+C` or `backspace` to return to the `julia>` prompt.
 ---
 ## My First MRI Simulation
 
-For our first simulation we will use Koma's graphical user interface (GUI). For this, you will first need to load KomaMRI by typing `using KomaMRI`, and then lauch the GUI with `KomaUI()`.
+For our first simulation we will use **KomaMRI**'s graphical user interface (GUI). For this, you will first need to load **KomaMRI** by typing `using KomaMRI`, and then lauch the GUI with `KomaUI()`.
 
 ```julia-repl
 julia> using KomaMRI
@@ -32,11 +32,11 @@ The first time you use this command it may take more time than usual, but a wind
 
 The user interface has some basic definitions for the scanner, phantom, and sequence already preloaded. So you can immediately interact with the simulation and reconstruction processes, and then visualize the results.
 
-As a simple demonstration, press the button `Simulate!` and wait until the simulation is ready. Then click on the `Raw Data` dropdown and then click on the `View Raw Data` button. You should see the following:
+As a simple demonstration, press the `Simulate!` button and wait until the simulation is ready. Now you have acquired the `Raw Data` and you should see the following:
 
 ![](assets/ui-view-raw-data.png)
 
-Then, press the button `Reconstruct!` and wait until the reconstruction ends. Then click on the `Reconstruction` dropdown and then click on the `|Image|` button to see the image reconstruction: 
+Then, press the `Reconstruct!` button and wait until the reconstruction ends. Now you have reconstructed an `Image` from the `Raw Data` and you should see the following in the GUI:
 
 ![](assets/ui-view-abs-image.png)
 

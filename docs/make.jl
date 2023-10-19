@@ -6,7 +6,7 @@ base = "$org/$reps.jl"
 repo_root_url = "https://github.com/$base/blob/master"
 
 # User can add some directories from the literate folder
-foldernames = ["basic"]
+foldernames = ["examples"]
 
 # Define some paths
 exa = joinpath(dirname(@__DIR__), "examples")
@@ -29,12 +29,11 @@ end
 # Auxiliar function that returns an array with the subseccions of a literate seccion
 function pages_for_literate_seccion(folder)
     return [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if is_md_file(f)]
-    #return [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if is_md_file(f)]
 end
 
 # Create empty folders for in the assets directory for the literate generated sections
 [mkpath(joinpath(assets, foldername)) for foldername in foldernames]
-#[mkpath(joinpath(gen, foldername)) for foldername in foldernames]
+[mkpath(joinpath(gen, foldername)) for foldername in foldernames]
 
 # Generate markdown, script and notebook for from the source literate file
 for i ∈ eachindex(foldernames)
@@ -60,7 +59,7 @@ makedocs(
         "Getting Started" => "getting-started.md";
         "Graphical User Interface" => "ui-details.md";
         "Julia Programming" => "programming-workflow.md";
-        "Sequence" => "sequence.md";
+        "Sequence Definition" => "sequence.md";
         literate_seccions;
         "Simulation Method" => "mri-theory.md";
         "API Documentation" => "api.md";
