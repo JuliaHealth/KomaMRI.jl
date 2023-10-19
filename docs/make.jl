@@ -60,6 +60,7 @@ makedocs(
         "Getting Started" => "getting-started.md";
         "Graphical User Interface" => "ui-details.md";
         "Julia Programming" => "programming-workflow.md";
+        "Sequence" => "sequence.md";
         literate_seccions;
         "Simulation Method" => "mri-theory.md";
         "API Documentation" => "api.md";
