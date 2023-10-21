@@ -45,7 +45,7 @@ add_layout_image!(p0, attr(
                     yanchor="top",
                     sizex=0.15,
                     sizey=0.15,))
-relayout!(p0, yaxis_range=[0, 0.5], 
-        xaxis_range=[RR*number_dummy_heart_beats, RR*number_dummy_heart_beats+1],
+relayout!(p0, yaxis_range=[0, 0.4], 
+        xaxis_range=[RR*number_dummy_heart_beats, RR*number_dummy_heart_beats+.250],
         title_text="TR=$(round(TR*1e3;digits=3)) ms, α=$(im_flip_angle), iNAV_lines=$(iNAV_lines), FatSat α=$(FatSat_flip_angle)")
 p0
