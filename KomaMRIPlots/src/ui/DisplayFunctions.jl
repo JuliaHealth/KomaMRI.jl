@@ -191,7 +191,7 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
 	p[2O+3+1] = scatter(x=t3*1e3, y=D*1., name="ADC",hovertemplate="(%{x:.4f} ms, %{y:i})")
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot(p, l; config)
+	plot_koma(p, l; config)
 end
 
 """
@@ -240,7 +240,7 @@ function plot_M0(seq; width=nothing, height=nothing, slider=true, show_seq_block
 	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"),mode="markers")
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot(p, l; config)
+	plot_koma(p, l; config)
 end
 
 """
@@ -289,7 +289,7 @@ function plot_M1(seq; width=nothing, height=nothing, slider=true, show_seq_block
 	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"),mode="markers")
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot(p, l; config)
+	plot_koma(p, l; config)
 end
 
 
@@ -339,7 +339,7 @@ function plot_M2(seq; width=nothing, height=nothing, slider=true, show_seq_block
 	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"),mode="markers")
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot(p, l; config)
+	plot_koma(p, l; config)
 end
 
 
@@ -393,7 +393,7 @@ function plot_eddy_currents(seq, λ; α=ones(size(λ)), width=nothing, height=no
 	p[3] = scatter(x=t*1e3, y=(Gz*0 .+ Gec[:,3])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECz")
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot(p, l; config)
+	plot_koma(p, l; config)
 end
 
 """
@@ -440,7 +440,7 @@ function plot_slew_rate(seq; width=nothing, height=nothing, slider=true, show_se
 	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRz")
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot(p, l; config)
+	plot_koma(p, l; config)
 end
 
 
@@ -466,7 +466,7 @@ Plots an image matrix.
 function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:])), zmax=maximum(abs.(image[:])), darkmode=false, title="")
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;title=title,yaxis_title="y",
+	l = Layout(;title=title,yaxis_title="y",
     xaxis_title="x",margin=attr(t=50,l=0,r=0,b=0),
     yaxis=attr(scaleanchor="x"),
 	font_color=text_color,
@@ -484,7 +484,7 @@ function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:]
         l.width = width
     end
 	#Plot
-	p = PlotlyJS.heatmap(z=image,transpose=false,zmin=zmin,zmax=zmax,colorscale="Greys")
+	p = heatmap(z=image,transpose=false,zmin=zmin,zmax=zmax,colorscale="Greys")
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
@@ -492,7 +492,7 @@ function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:]
 		).fields,
 		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
-	PlotlyJS.plot(p,l;config)
+	plot_koma(p,l;config)
 end
 
 """
@@ -545,7 +545,7 @@ function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 	mink .-= dW
 	maxk .+= dW
 	#Layout
-	l = PlotlyJS.Layout(;
+	l = Layout(;
 		paper_bgcolor=bgcolor,
 		scene=attr(xaxis=attr(title="kx [m⁻¹]",range=[mink[1],maxk[1]],backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 				   yaxis=attr(title="ky [m⁻¹]",range=[mink[2],maxk[2]],backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
@@ -564,12 +564,12 @@ function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
         l.width = width
     end
 	#Plot
-	p = [PlotlyJS.scatter() for j=1:3]
-	p[1] = PlotlyJS.scatter3d(x=kspace[:,1],y=kspace[:,2],z=kspace[:,3],mode="lines",
+	p = [scatter() for j=1:3]
+	p[1] = scatter3d(x=kspace[:,1],y=kspace[:,2],z=kspace[:,3],mode="lines",
 			line=attr(color=c),name="Trajectory",hoverinfo="skip")
-	p[2] = PlotlyJS.scatter3d(x=kspace_adc[:,1],y=kspace_adc[:,2],z=kspace_adc[:,3],text=round.(t_adc*1e3,digits=3),mode="markers",
+	p[2] = scatter3d(x=kspace_adc[:,1],y=kspace_adc[:,2],z=kspace_adc[:,3],text=round.(t_adc*1e3,digits=3),mode="markers",
 			line=attr(color=c2),marker=attr(size=2),name="ADC",hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>")
-	p[3] = PlotlyJS.scatter3d(x=[0],y=[0],z=[0],name="k=0",marker=attr(symbol="cross",size=10,color="red"))
+	p[3] = scatter3d(x=[0],y=[0],z=[0],name="k=0",marker=attr(symbol="cross",size=10,color="red"))
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
@@ -577,7 +577,7 @@ function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 		).fields,
 		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
 	)
-	PlotlyJS.plot(p,l; config)
+	plot_koma(p,l; config)
 end
 
 
@@ -658,7 +658,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
     xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(;title=ph.name*": "*string(key),
+	l = Layout(;title=ph.name*": "*string(key),
 		xaxis_title="x",
 		yaxis_title="y",
 		plot_bgcolor=plot_bgcolor,
@@ -686,7 +686,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
         l.width = width
     end
 	if view_2d
-	h = PlotlyJS.scatter( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
+	h = scatter( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 						y=(ph.y .+ ph.uy(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 						mode="markers",
 						marker=attr(color=getproperty(ph,key)*factor,
@@ -700,7 +700,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 						text=round.(getproperty(ph,key)*factor,digits=4),
 						hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")
 	else
-	h = PlotlyJS.scatter3d( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
+	h = scatter3d( x=(ph.x .+ ph.ux(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							y=(ph.y .+ ph.uy(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							z=(ph.z .+ ph.uz(ph.x,ph.y,ph.z,t0*1e-3))*1e2,
 							mode="markers",
@@ -722,7 +722,7 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 		).fields,
 		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
 	)
-	p = PlotlyJS.plot(h,l;config)
+	p = plot_koma(h,l;config)
 end
 
 """
@@ -809,7 +809,7 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 	end
 	#PLOT
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = PlotlyJS.Layout(; hovermode="closest",
+	l = Layout(; hovermode="closest",
 			xaxis_title="",
 			modebar=attr(orientation="h",yanchor="bottom",xanchor="right",y=1,x=0,bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
 			legend=attr(orientation="h",yanchor="bottom",xanchor="left",y=1,x=0),
@@ -845,11 +845,10 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
     if width !== nothing
         l.width = width
     end
-	plotter = PlotlyJS.scatter
-	p = [plotter() for j=1:3]
-	p[1] = plotter(x=t,y=abs.(signal), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
-	p[2] = plotter(x=t,y=real.(signal),name="Re{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
-	p[3] = plotter(x=t,y=imag.(signal),name="Im{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p = [scatter() for j=1:3]
+	p[1] = scatter(x=t,y=abs.(signal), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[2] = scatter(x=t,y=real.(signal),name="Re{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[3] = scatter(x=t,y=imag.(signal),name="Im{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
@@ -858,7 +857,7 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 		# modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
-	PlotlyJS.plot(p, l; config)
+	plot_koma(p, l; config)
 end
 
 """
@@ -929,5 +928,5 @@ function plot_seqd(seq::Sequence; simParams=KomaMRICore.default_sim_params())
 	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)
 	B1 = scatter(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
 	ADC = scatter(x=seqd.t[seqd.ADC]*1e3, y=zeros(sum(seqd.ADC)), name="ADC", mode="markers", marker_symbol=:x)
-	plot([Gx,Gy,Gz,B1,ADC])
+	plot_koma([Gx,Gy,Gz,B1,ADC])
 end
