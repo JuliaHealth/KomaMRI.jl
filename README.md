@@ -103,6 +103,7 @@ To install just write the following in the Julia REPL:
 ```repl
 ] add KomaMRI
 ```
+For more information about installation insturctions refer the section [Getting Started](https://cncastillo.github.io/KomaMRI.jl/stable/getting-started/) of the documentation.
 ## First run
 KomaMRI.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
 
