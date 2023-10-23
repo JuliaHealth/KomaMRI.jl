@@ -48,9 +48,9 @@ function read_phantom_MRiLab(filename; B0=1.5, offset=[0,0,0], FRange_filename="
             # [((col+1)/2)*VOex.XDimRes;
             # ((row+1)/2)*VOex.YDimRes ;
             # ((layer+1)/2)*VOex.ZDimRes]; % Set matrix center as Object origin for motion simulation
-	xx = [(-FOVx/2:Δx[1]:FOVx/2)...;]
-	yy = reshape([(-FOVy/2:Δx[2]:FOVy/2)...;;], 1, :)
-	zz = reshape([(-FOVz/2:Δx[3]:FOVz/2)...;;;], 1, 1, :)
+    xx = reshape((-FOVx/2:Δx[1]:FOVx/2),:,1,1) #[(-FOVx/2:Δx[1]:FOVx/2)...;]
+	yy = reshape((-FOVy/2:Δx[2]:FOVy/2),1,:,1) #[(-FOVy/2:Δx[2]:FOVy/2)...;;]
+	zz = reshape((-FOVz/2:Δx[3]:FOVz/2),1,1,:) #[(-FOVz/2:Δx[3]:FOVz/2)...;;;]
 	x = xx*1 .+ yy*0 .+ zz*0 .+ offset[1]	#spin x coordinates
 	y = xx*0 .+ yy*1 .+ zz*0 .+ offset[2]	#spin y coordinates
 	z = xx*0 .+ yy*0 .+ zz*1 .+ offset[3]	#spin z coordinates

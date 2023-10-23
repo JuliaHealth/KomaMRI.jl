@@ -2,9 +2,18 @@
 <img width="300px" src="./src/ui/assets/Logo.svg#gh-light-mode-only"/>
 <img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
 </p>
+<p align="center">
+<a href="https://pkg.julialang.org/detail/KomaMRI.html"><img src="https://img.shields.io/badge/julia-v1.6_(LTS)-9558B2?logo=julia" /></a>
+<a href="https://github.com/cncastillo/KomaMRI.jl/blob/master/LICENSE"><img src="http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat" /></a>
+<a href="https://github.com/invenia/BlueStyle"><img src="https://img.shields.io/badge/code%20style-blue-4495d1.svg" /></a>
+<a href="https://pkgs.genieframework.com?packages=KomaMRI"><img src="https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/KomaMRI" /></a>
+</p>
+<p align="center">
+<img src="https://img.shields.io/github/stars/cncastillo/KomaMRI.jl?style=social" width="100px"/>
+</p>
 
 <div align="center">
-
+ 
 ##### Main project
 | **Documentation**         | **KomaMRI.jl Paper**           | **Build Status**                      |
 |:-------------------------:|:------------------------------:|:-------------------------------------:|
@@ -51,7 +60,9 @@ KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spi
 
 This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
 
-> 🟢 **[29 Jun 2023] [KomaMRI.jl's paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635) was part of July's editor's picks in MRM 🥳!**
+> 🟢 **[27 Jul 2023] JuliaCon 2023 presentation:** I gave a talk at the MIT 😄! A video of the presentation can be seen [here](https://www.youtube.com/watch?v=WVT9wJegC6Q).
+
+> 🟢 **[29 Jun 2023] [KomaMRI.jl's paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635) was chosen as a July editor's pick in MRM 🥳!**
 
 > 🟢 **[6 Mar 2023] Paper published in MRM 😃!** The open access article is available [here](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635).
 
@@ -87,11 +98,12 @@ This package is meant to simulate general Magnetic Resonance Imaging (MRI) scena
 
 
 ## Installation
-To install just write the following in the Julia REPL:
+To install just **type** the following in the Julia REPL:
 
 ```repl
 ] add KomaMRI
 ```
+For more information about installation insturctions refer the section [Getting Started](https://cncastillo.github.io/KomaMRI.jl/stable/getting-started/) of the documentation.
 ## First run
 KomaMRI.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
 
@@ -110,13 +122,13 @@ If you use this package please acknowledge us by citing our paper.
 **BibTex:**
 ```bibtex
 @article{https://doi.org/10.1002/mrm.29635,
-author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
-title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
-journal = {Magnetic Resonance in Medicine},
-keywords = {Bloch equations, GPU, GUI, Julia, open source, simulation},
-doi = {https://doi.org/10.1002/mrm.29635},
-url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
-eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
+         author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
+         title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
+         journal = {Magnetic Resonance in Medicine},
+         keywords = {Bloch equations, GPU, GUI, Julia, open source, simulation},
+         doi = {https://doi.org/10.1002/mrm.29635},
+         url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
+         eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
 }
 ```
 ---

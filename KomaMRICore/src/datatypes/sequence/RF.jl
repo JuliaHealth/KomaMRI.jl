@@ -131,7 +131,7 @@ Generate an RF sequence with amplitudes sampled from a function waveform.
 # Returns
 - `rf`:(`::RF`) RF struct with amplitud defined by the function `f`
 """
-RF(f::Function, T::Real, N::Int64=300; delay::Real=0, Δf=0) = begin
+RF(f::Function, T::Real, N::Int64=301; delay::Real=0, Δf=0) = begin
 	t = range(0,T;length=N)
 	A = f.(t)
 	RF(A,T,Δf,delay)
