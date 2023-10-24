@@ -3,13 +3,17 @@ include("ui/ExportMATFunctions.jl")
 function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false, blink_show=true)
 ## ASSETS
 path = @__DIR__
-assets = AssetRegistry.register(dirname(path*"/ui/assets/"))
+assets = AssetRegistry.register(joinpath(dirname(path), "assets"))
 scripts = AssetRegistry.register(dirname(path*"/ui/scripts/"))
 css = AssetRegistry.register(dirname(path*"/ui/css/"))
 # Assets
-background = assets*"/spiral-bg.svg" #In Windows joinpath causes problems "/assetserver/...-assets\Logo.png"
 logo = joinpath(assets, "Logo_dark.svg")
 icon = joinpath(assets, "Icon.svg")
+# Apparently Blink requires an assets folder in a chiled route of where is launched
+icon_png = path*"/ui/assets/Logo_icon.png"
+if !isfile(icon_png)
+    cp(joinpath([dirname(path), "assets", "Logo_icon.png"]), path*"/ui/assets/Logo_icon.png")
+end
 # JS
 bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
 bscss = joinpath(css,"bootstrap.min.css")
@@ -36,7 +40,7 @@ global w = Blink.Window(Dict(
     "autoHideMenuBar"=>true,
     "frame"=>frame, #removes title bar
     "node-integration" => true,
-    :icon=>path*"/ui/assets/Logo_icon.png",
+    :icon=>icon_png,
     "width"=>1200,
     "height"=>800,
     "webPreferences" => Dict("devTools" => dev_tools),
