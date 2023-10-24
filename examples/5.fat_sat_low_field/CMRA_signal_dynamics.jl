@@ -35,7 +35,7 @@ seqd = KomaMRICore.discretize(seq; simParams)
 p3 = scatter(x=seqd.t, y=abs.(seqd.B1), name="B1",marker_color="purple",yaxis_range=[0,5])
 add_trace!(p0, p3, row=3, col=1)
 add_layout_image!(p0, attr(
-                    source="https://raw.githubusercontent.com/cncastillo/KomaMRI.jl/master/assets/Logo.svg",
+                    source="https://raw.githubusercontent.com/cncastillo/KomaMRI.jl/master/assets/logo.svg",
                     xref="x domain",
                     yref="y domain",
                     x=0.99,

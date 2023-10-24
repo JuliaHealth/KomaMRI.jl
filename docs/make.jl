@@ -9,6 +9,7 @@ repo_root_url = "https://github.com/$base/blob/master"
 foldernames = ["examples"]
 
 # Define some paths
+com = joinpath(dirname(@__DIR__), "assets")
 exa = joinpath(dirname(@__DIR__), "examples")
 src = joinpath(@__DIR__, "src")
 lit = joinpath(exa, "literate")
@@ -30,6 +31,11 @@ end
 function pages_for_literate_seccion(folder)
     return [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if is_md_file(f)]
 end
+
+# Copy the logos into the assets folder if necessary
+logo, logo_dark = joinpath(assets, "logo.svg"), joinpath(assets, "logo-dark.svg")
+(!isfile(logo)) && cp(joinpath(com, "logo.svg"), logo)
+(!isfile(logo_dark)) && cp(joinpath(com, "logo-dark.svg"), logo_dark)
 
 # Create empty folders for in the assets directory for the literate generated sections
 [mkpath(joinpath(assets, foldername)) for foldername in foldernames]

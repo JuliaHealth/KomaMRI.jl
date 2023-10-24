@@ -7,12 +7,12 @@ assets = AssetRegistry.register(joinpath(dirname(path), "assets"))
 scripts = AssetRegistry.register(dirname(path*"/ui/scripts/"))
 css = AssetRegistry.register(dirname(path*"/ui/css/"))
 # Assets
-logo = joinpath(assets, "Logo_dark.svg")
-icon = joinpath(assets, "Icon.svg")
+logo = joinpath(assets, "logo-dark.svg")
+icon = joinpath(assets, "icon.svg")
 # Apparently Blink requires an assets folder in a chiled route of where is launched
-icon_png = path*"/ui/assets/Logo_icon.png"
+icon_png = path*"/ui/assets/logo-icon.png"
 if !isfile(icon_png)
-    cp(joinpath([dirname(path), "assets", "Logo_icon.png"]), path*"/ui/assets/Logo_icon.png")
+    cp(joinpath([dirname(path), "assets", "logo-icon.png"]), path*"/ui/assets/logo-icon.png")
 end
 # JS
 bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
