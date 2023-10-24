@@ -3,6 +3,12 @@
 <img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
 </p>
 <p align="center">
+<a href="https://pkg.julialang.org/detail/KomaMRI.html"><img src="https://img.shields.io/badge/julia-v1.6_(LTS)-9558B2?logo=julia" /></a>
+<a href="https://github.com/cncastillo/KomaMRI.jl/blob/master/LICENSE"><img src="http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat" /></a>
+<a href="https://github.com/invenia/BlueStyle"><img src="https://img.shields.io/badge/code%20style-blue-4495d1.svg" /></a>
+<a href="https://pkgs.genieframework.com?packages=KomaMRI"><img src="https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/KomaMRI" /></a>
+</p>
+<p align="center">
 <img src="https://img.shields.io/github/stars/cncastillo/KomaMRI.jl?style=social" width="100px"/>
 </p>
 
@@ -92,11 +98,12 @@ This package is meant to simulate general Magnetic Resonance Imaging (MRI) scena
 
 
 ## Installation
-To install just write the following in the Julia REPL:
+To install just **type** the following in the Julia REPL:
 
 ```repl
 ] add KomaMRI
 ```
+For more information about installation insturctions refer the section [Getting Started](https://cncastillo.github.io/KomaMRI.jl/stable/getting-started/) of the documentation.
 ## First run
 KomaMRI.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
 

@@ -2,11 +2,11 @@ using MAT
 
 # Sequence parameters
 # TR = 4.9e-3   #RF Normal
-TR = 5.24e-3    #RF Low SAR
+TR = 5.3e-3    #RF Low SAR
 iNAV_lines = 6
 im_flip_angle = 110
 #Pre-pulses
-Tfatsat = 32e-3 # 32ms
+Tfatsat = 26.624e-3
 FatSat_flip_angle = 180
 T2prep_duration = 50e-3
 # Other parameters
@@ -22,13 +22,14 @@ number_dummy_heart_beats = 3
 function FatSat(α, Δf; sample=false)
     RF_wf = matread("./examples/5.fat_sat_low_field/GAUSS5120.mat")["B1"]
     seq = Sequence()
+    seq += Grad(-8e-3, 3000e-6, 500e-6) #Spoiler1
     seq += RF(RF_wf, Tfatsat, Δf)
-    α_ref = get_flip_angles(seq)[2]
+    α_ref = get_flip_angles(seq)[3]
     seq *= (α/α_ref+0im)
     if sample
         seq += ADC(1, 1e-6)
     end
-    seq += Grad(-7e-3, 9e-3, 5e-4)
+    seq += Grad(8e-3, 3000e-6, 500e-6) #Spoiler2
     if sample
         seq += ADC(1, 1e-6)
     end
@@ -42,7 +43,7 @@ function T2prep(TE; sample=false)
     seq += RF(180im * B1 / 2, Trf*2)
     seq += sample ? ADC(20, TE/2 - 1.5Trf) : Delay(TE/2 - 1.5Trf)
     seq += RF(-90 * B1, Trf)
-    seq += Grad(-7e-3, 9e-3, 5e-4)
+    seq += Grad(8e-3, 6000e-6, 600e-6)
     if sample
         seq += ADC(1, 1e-6)
     end
@@ -55,9 +56,9 @@ function bSSFP(iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample=f
     for i = 0 : iNAV_lines + im_segments - 1
         if iNAV_lines != 0
             m = (im_flip_angle - iNAV_flip_angle) / iNAV_lines
-            α = min( m * i + iNAV_flip_angle, im_flip_angle ) * exp(1im * π * k)
+            α = min( m * i + iNAV_flip_angle, im_flip_angle ) * (-1)^k
         else
-            α = im_flip_angle * exp(1im * π * k)
+            α = im_flip_angle * (-1)^k
         end
         seq += RF(α * B1, Trf)
         if i < iNAV_lines && !sample
