@@ -208,7 +208,7 @@ rotation.
 # Returns
 - `phantom`: (`::Phantom`) Heart-like LV phantom struct
 """
-heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false) = begin
+heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false; heart_rate=60) = begin
 	#PARAMETERS
 	FOV = 10e-2 #m Diameter ventricule
 	N = 21
@@ -221,7 +221,8 @@ heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false) = begin
 	#PHANTOM
 	⚪(R) =  (x.^2 .+ y.^2 .<= R^2)*1. #Circle of radius R
 	v = FOV/4 #m/s 1/16 th of the FOV during acquisition
-	ωHR = 2π/1 #One heart-beat in one second
+	f = heart_rate/60
+	ωHR = 2π*f 
 
 	# θ(t) = -π/4*γ*(sin.(ωHR*t).*(sin.(ωHR*t).>0)+0.25.*sin.(ωHR*t).*(sin.(ωHR*t).<0) )
 	ux(x,y,z,t) = begin
