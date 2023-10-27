@@ -256,7 +256,7 @@ get_grad_area(gr::Grad) = begin
 		y = vcat(0, gr.A, 0)[1:length(x)]
 	end
 
-	n = length(x)
+	n = length(x) - 1
 	area = 0.0
 
 	for i in 1:n
@@ -265,4 +265,13 @@ get_grad_area(gr::Grad) = begin
 		area += base * average_height
 	end
 	area
+end
+
+
+set_grad_area!(gr::Grad,area::Real) = begin
+	B = gr.rise + sum(gr.T) + gr.fall
+	b = sum(gr.T)
+	G = 2*area/(B+b)
+
+	gr.A = G
 end

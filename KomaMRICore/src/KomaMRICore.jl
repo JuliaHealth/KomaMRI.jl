@@ -68,7 +68,7 @@ export get_kspace, rotx, roty, rotz, rotation_matrix
 export simulate, simulate_slice_profile
 
 #Additionals
-export get_flip_angles, get_grad_area, is_RF_on, is_GR_on, is_ADC_on
+export get_flip_angles, get_grad_area, is_RF_on, is_GR_on, is_ADC_on, set_grad_area!
 #Sequence related
 export get_M0, get_M1, get_M2, get_kspace
 
