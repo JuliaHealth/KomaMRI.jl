@@ -326,6 +326,71 @@ end
 
 
 
+bSSFP(FOV::Float64, N::Int, TR::Float64, α, sys::Scanner; G=[0,0,0], Δf=0) = begin
+	# Excitation (Sinc pulse) ----------------------------------
+	# α = γ ∫(0-T) B1(t)dt 
+	# ----------------------
+	# We need to obtain B1 from flip angle α and a generic T=3ms duration
+	# i.e. we need to resolve the equation above
+
+	T_rf = 3e-3   	# Pulse duration
+	Gss = 2e-3     	# Slice-select gradient
+
+	# With T = 3ms, we need B1 = 8,69e-8 T to produce a flip angle α = 1°
+	B_1° = 8.6938e-8
+	B1 = α*B_1°
+	EX = RF_sinc(B1,T_rf,sys;G=[0,0,Gss],Δf=Δf)
+
+	# Acquisition ----------------------------------------------
+	# Square acquisition (Nx = Ny = N) 
+	# PHASE
+	ζ_phase = EX[2].GR[1].rise
+	T_phase = EX[2].GR[1].T
+
+	Δk = (1/FOV)
+	FOVk = (N-1)*Δk
+	Gx = Gy = FOVk/(γ*(T_phase + ζ_phase))
+	step = Δk/(γ*(T_phase + ζ_phase))
+
+	print("Δk = ", Δk, " m⁻¹\n")
+	print("FOVk = ", FOVk, " m⁻¹\n")
+	print("Gx = ", Gx*1e3, " mT/m\n")
+	print("step = ", step*1e3, " mT/m\n")
+
+	# FE and Readout
+	delay = 0.3*TR # delay to "strech" readout time
+	ACQ_dur = TR - (EX.DUR[1] + 2*EX.DUR[2] + 2*delay)
+	G_ro = FOVk/(γ*ACQ_dur)
+	ζ_ro = G_ro / sys.Smax
+	T_ro = ACQ_dur - ζ_ro
+	GR = reshape([Grad(G_ro,T_ro,ζ_ro), Grad(0,0), Grad(0,0)],(3,1))
+	RO = Sequence(GR)
+	RO.ADC[1] = ADC(N, T_ro, ζ_ro)
+	
+	print("ACQ_dur = ", ACQ_dur*1e3, " ms\n")
+	print("G_ro = ", G_ro*1e3, " mT/m\n")
+	print("ζ = ", ζ_ro*1e3, " ms\n")
+
+	gre = Sequence()
+	for i in 0:(N-1)
+		# Excitation and first phase 
+		EX = RF_sinc(B1,T_rf,sys;G=[0,0,Gss],Δf=Δf)
+		EX[end].GR[1].A = -Gx/2
+		EX[end].GR[2].A = -Gy/2 + i*step
+		gre += EX
+		
+		# FE and Readout
+		gre += Delay(delay) + RO + Delay(delay) + Sequence(reshape([ EX[end].GR[1],
+																	-EX[end].GR[2],
+																	 EX[end].GR[3]],(3,1)))
+	end
+	gre.DEF = Dict("Nx"=>N,"Ny"=>N,"Nz"=>1,"Name"=>"gre"*string(N)*"x"*string(N),"FOV"=>[FOV, FOV, 0])
+	gre[2:end]
+end
+
+
+
+
 """
     seq = radial_base(FOV::Float64, Nr::Int, sys::Scanner)
 
@@ -425,5 +490,5 @@ spiral_base(FOV::Float64, N::Int64, sys::Scanner; S0=sys.Smax*2/3, Nint=8, λ=Ni
 end
 
 
-export EPI, radial_base, GRE
+export EPI, radial_base, GRE, SE, bSSFP
 end
