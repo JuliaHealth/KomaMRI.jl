@@ -6,7 +6,7 @@
 
 ## Installing KomaMRI
 
-Once Julia is installed, open the Julia REPL and add the `KomaMRI` package. To bring up Julia's [package manager](https://docs.julialang.org/en/v1/stdlib/Pkg/) enter `]`, and then add the KomaMRI package. This process should take about 5 minutes in a fresh Julia installation. 
+Once Julia is installed, open the Julia REPL and add the `KomaMRI` package: to bring up Julia's [package manager](https://docs.julialang.org/en/v1/stdlib/Pkg/) type `]` and press `enter`, then add the KomaMRI package by typing `add KomaMRI` in the package manager session. This process should take about 5 minutes in a fresh Julia installation:
 
 ```julia-repl
 julia> ]
@@ -19,7 +19,7 @@ Then press `Ctrl+C` or `backspace` to return to the `julia>` prompt.
 ---
 ## My First MRI Simulation
 
-For our first simulation we will use **KomaMRI**'s graphical user interface (GUI). For this, you will first need to load **KomaMRI** by typing `using KomaMRI`, and then lauch the GUI with `KomaUI()`.
+For our first simulation we will use **KomaMRI**'s graphical user interface (GUI). For this, you will first need to load **KomaMRI** by typing `using KomaMRI`, and then launch the GUI with `KomaUI()`.
 
 ```julia-repl
 julia> using KomaMRI
@@ -32,11 +32,11 @@ The first time you use this command it may take more time than usual, but a wind
 
 The user interface has some basic definitions for the scanner, phantom, and sequence already preloaded. So you can immediately interact with the simulation and reconstruction processes, and then visualize the results.
 
-As a simple demonstration, press the `Simulate!` button and wait until the simulation is ready. Now you have acquired the `Raw Data` and you should see the following:
+As a simple demonstration, press the `Simulate!` button and wait until the simulation is ready. Now you have acquired the `Raw Signal` and you should see the following:
 
 ![](assets/ui-view-raw-data.png)
 
-Then, press the `Reconstruct!` button and wait until the reconstruction ends. Now you have reconstructed an `Image` from the `Raw Data` and you should see the following in the GUI:
+Then, press the `Reconstruct!` button and wait until the reconstruction ends. Now you have reconstructed an `Image` from the `Raw Signal` and you should see the following in the GUI:
 
 ![](assets/ui-view-abs-image.png)
 

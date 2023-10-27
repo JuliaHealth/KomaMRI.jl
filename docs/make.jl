@@ -63,9 +63,10 @@ makedocs(
     pages = [
         "Home" => "index.md";
         "Getting Started" => "getting-started.md";
-        "Graphical User Interface" => "ui-details.md";
-        "Julia Programming" => "programming-workflow.md";
+        "Simulation with User Interface" => "ui-details.md";
+        "Simulation with Scripts" => "programming-workflow.md";
         "Sequence Definition" => "sequence.md";
+        "Events Definition" => "events.md";
         literate_seccions;
         "Simulation Method" => "mri-theory.md";
         "API Documentation" => "api.md";

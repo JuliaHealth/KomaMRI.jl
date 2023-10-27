@@ -2,9 +2,16 @@
 
 This section is meant to explain some details about how to use the user interface of the **KomaMRI** package and the processes that happen internally while interacting with it.
 
-## Launch the UI
+## Basic Workflow
+(You can also go to [analog steps using Scripts](programming-workflow.md#Basic-Workflow))
 
-Open the Julia REPL and issue the following commands to include the **KomaMRI** package and launch the user interface:
+As a general overview, you need to keep in mind the following steps when using KomaMRI:
+
+* Loading Simulation Inputs: Scanner, Phantom, Sequence
+* Running Simulation
+* Reconstructing Image using MRIReco
+
+In the following subsections, we will cover all the aforementioned steps. But first, open the Julia REPL and issue the following commands to include the **KomaMRI** package and launch the user interface:
 ```julia-repl
 julia> using KomaMRI
 
@@ -14,7 +21,8 @@ julia> KomaUI()
 <p align="center"><img width="90%" src="../assets/gui-dashboard.png"/></p>
 ```
 
-## Inputs
+## Loading Simulation Inputs
+(You can also go to [analog steps using Scripts](programming-workflow.md#Loading-Simulation-Inputs))
 
 The user interface has already preloaded some inputs (stored in RAM). In particular, it has predefined the **Scanner**, the **Phantom** and the **Sequence** structs. In the following subsections, we will show how to visualize these inputs.
 
@@ -64,7 +72,8 @@ It is also possible to load `.seq` sequence files. The **KomaMRI** has some exam
 ```
 
 
-## Simulation
+## Running Simulation
+(You can also go to [analog steps using Scripts](programming-workflow.md#Running-Simulation))
 
 Once the inputs are loaded in RAM, it is possible to perform the simulation to get the **Raw Signal**.
 
@@ -82,7 +91,8 @@ Press the `Simulate!` button to perform the simulation (this may take a while). 
 <p align="center"><img width="90%" src="../assets/gui-rawsignal-view.png"/></p>
 ```
 
-## Reconstruction
+## Reconstructing Image using MRIReco
+(You can also go to [analog steps using Scripts](programming-workflow.md#Reconstructing-Image-using-MRIReco))
 
 Once the **Raw Signal** is loaded in RAM, it is possible to reconstruct the image.
 
@@ -100,7 +110,8 @@ Press the `Reconstruct!` button to perform the reconstruction (this may take a w
 <p align="center"><img width="90%" src="../assets/gui-image-view.png"/></p>
 ```
 
-## Export to .mat
+## Exporting Results to .mat File
+(You can also go to [analog steps using Scripts](programming-workflow.md#Exporting-Results-to-.mat-File))
 
 The user interface has the option to save the results in **.mat** format. Simply click on the `Export to .mat` and you have the alternatives to get data independently or you can press the `All` button to have all the results given by the simulator:
 ```@raw html

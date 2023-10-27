@@ -1,16 +1,17 @@
 # Julia Programming
 
-You should already be familiar with the [Graphical User Interface](ui-details.md) of **KomaMRI.jl**. However, you can always use this package directly from the **Julia REPL** or write your own julia scripts. In this way you can unleash all the power of KomaMRI by using more of its functionalities and you can even test your own MRI ideas.
+You should already be familiar with the [Graphical User Interface](ui-details.md) of **KomaMRI.jl**. However, you can always use this package directly from the **Julia REPL** or write your own julia **Scripts**. In this way you can unleash all the power of KomaMRI by using more of its functionalities and you can even test your own MRI ideas.
 
-This section is meant to show you a basic workflow when working with KomaMRI when writing your own scripts or typing down directly on the **Julia REPL**. Let's get started. 
+This section is meant to show you a basic workflow when working with **KomaMRI** by writing your own **Scripts** or typing down directly on the **Julia REPL**. Let's get started. 
 
 ## Basic Workflow
+(You can also go to [analog steps using UI](ui-details.md#Basic-Workflow))
 
 As a general overview, you need to keep in mind the following steps when using KomaMRI:
 
-* Create Inputs: Scanner, Phantom, Sequence
-* Perform Simulation
-* Perform Reconstruction (actually, this is part of [MRIReco.jl](https://github.com/MagneticResonanceImaging/MRIReco.jl))
+* Loading Simulation Inputs: Scanner, Phantom, Sequence
+* Running Simulation
+* Reconstructing Image using MRIReco
 
 Let's replicate these previous steps in a julia script. You will end up with the following, feel free to copy and paste it in the **Julia REPL**:
 ```julia
@@ -48,7 +49,8 @@ image = reconstruct_2d_image(raw)
 
 Let's go through this script step by step.
 
-## Inputs
+## Loading Simulation Inputs
+(You can also go to [analog steps using UI](ui-details.md#Loading-Simulation-Inputs))
 
 The inputs of the simulation are created in the following part of the script: 
 ```julia
@@ -163,7 +165,8 @@ julia> plot_kspace(spiral)
 <p align="center"><img width="100%" src="../assets/seq-spiral-pulseq-kspace.svg"/></p>
 ```
 
-## Simulation
+## Running Simulation
+(You can also go to [analog steps using UI](ui-details.md#Running-Simulation))
 
 The lines in the example script where the simulation is configured and performed are the following: 
 ```julia
@@ -213,7 +216,8 @@ julia> plot_signal(raw)
 ```
 
 
-## Reconstruction
+## Reconstructing Image using MRIReco
+(You can also go to [analog steps using UI](ui-details.md#Reconstructing-Image-using-MRIReco))
 
 **KomaMRI** doesn't perform reconstruction, instead you need to use the **MRIReco** package to obtain an image. For simplicity, when you install **KomaMRI**, you also install **MRIReco**, so you can use functions from that package too. In particular, you will need to pay attention to the structs **RawAcquisitionData**, **AcquisitionData** and to the function **reconstruction()**.
 
@@ -250,7 +254,8 @@ julia> plot_image(image)
 ```
 
 
-## Export to .mat
+## Exporting Results to .mat File
+(You can also go to [analog steps using UI](ui-details.md#Exporting-Results-to-.mat-File))
 
 Many people in the MRI community uses MATLAB, probably you are one of them and you want to process the raw signal in the MATLAB environment after simulation is done with **KomaMRI**. Here we show you an example of how to save a **.mat** file with the information of the raw signal thank to the help of the **MAT** package:
 ```julia
