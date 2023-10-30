@@ -254,6 +254,28 @@ function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:]
 	PlotlyJS.plot(p,l;config)
 end
 
+
+"""
+"""
+function plot_cine(frames, fps)
+
+	x = 0:size(frames[1])[2]-1
+	y = 1:size(frames[1])[1]
+
+	t = 0
+
+	anim = @animate for image in frames
+		t += 1/fps
+		Plots.plot!(Plots.heatmap(x,y,image,color=:greys,legend=:none; aspect_ratio=:equal),
+					title="Reconstruction (t="*Printf.@sprintf("%.2f", t)*"s)", 
+					xlims=(minimum(x), maximum(x)), 
+					ylims=(minimum(y), maximum(y)))
+	end
+
+	gif(anim, string(@__DIR__)*"/../../../others/cine_recon.gif", fps = fps)
+end
+
+
 """
     p = plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 
