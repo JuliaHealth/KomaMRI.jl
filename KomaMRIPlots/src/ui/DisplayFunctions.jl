@@ -266,7 +266,7 @@ function plot_cine(frames, fps)
 
 	anim = @animate for image in frames
 		t += 1/fps
-		Plots.plot!(Plots.heatmap(x,y,image,color=:greys,legend=:none; aspect_ratio=:equal),
+		Plots.plot!(Plots.heatmap(x,y,image',color=:greys,legend=:none; aspect_ratio=:equal),
 					title="Reconstruction (t="*Printf.@sprintf("%.2f", t)*"s)", 
 					xlims=(minimum(x), maximum(x)), 
 					ylims=(minimum(y), maximum(y)))
