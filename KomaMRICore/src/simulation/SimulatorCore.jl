@@ -43,10 +43,10 @@ function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
         uy = Uy !== nothing ? @view(Uy[p,:]) : nothing
         uz = Uz !== nothing ? @view(Uz[p,:]) : nothing
 
-        resetmag = resetmag !== nothing ? @view(resetmag[p,:]) : nothing
+        flags = resetmag !== nothing ? @view(resetmag[p,:]) : nothing
 
         run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method, 
-                             ux,uy,uz,resetmag)
+                             ux,uy,uz,flags)
     end
 
     return nothing
@@ -84,10 +84,10 @@ function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
         uy = Uy !== nothing ? @view(Uy[p,:]) : nothing
         uz = Uz !== nothing ? @view(Uz[p,:]) : nothing
 
-        resetmag = resetmag !== nothing ? @view(resetmag[p,:]) : nothing
+        flags = resetmag !== nothing ? @view(resetmag[p,:]) : nothing
 
         run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method, 
-                             ux,uy,uz,resetmag)
+                             ux,uy,uz,flags)
     end
 
     return nothing
@@ -132,7 +132,7 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
         uy = (Uy !== nothing) ? KomaMRICore.CUDA.hcat(@view(Uy[:,p]),@view(Uy[:,p[end]])) : nothing # so that dimensions match
         uz = (Uz !== nothing) ? KomaMRICore.CUDA.hcat(@view(Uz[:,p]),@view(Uz[:,p[end]])) : nothing
 
-        resetmag = (resetmag !== nothing) ? @view(resetmag[:,p]) : nothing
+        flags = (resetmag !== nothing) ? @view(resetmag[:,p]) : nothing
 
         # Params
         excitation_bool = is_RF_on(seq_block) && is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
@@ -142,12 +142,12 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
         # Simulation wrappers
         if excitation_bool
             run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method,
-                                          ux,uy,uz,resetmag;
+                                          ux,uy,uz,flags;
                                           Nthreads)
             rfs += 1
         else
             run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method,
-                                          ux,uy,uz,resetmag; 
+                                          ux,uy,uz,flags; 
                                           Nthreads)
         end
         samples += Nadc
