@@ -51,7 +51,7 @@ function initialize_motion(mov::SimpleMotion,
         Uz  = Uz  |> gpu
     end
 
-    Ux, Uy, Uz
+    Ux, Uy, Uz, nothing
 end
 
 
