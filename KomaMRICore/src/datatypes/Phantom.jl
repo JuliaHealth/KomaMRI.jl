@@ -558,24 +558,29 @@ function read_phantom(filename::String)
 			Δy = zeros(Ns,K-1)
 			Δz = zeros(Ns,K-1)
 
+			resetmag = zeros(Ns,K)
+
 			for key in HDF5.keys(motion)
 				if key != "segments"
-					deltas = read_param(motion[key])
+					values = read_param(motion[key])
 					if 	   key == "motionx"
-						Δx = deltas
+						Δx = values
 					elseif key == "motiony"
-						Δy = deltas
+						Δy = values
 					elseif key == "motionz"
-						Δz = deltas
+						Δz = values
+					elseif key == "resetmag"
+						resetmag = Bool.(values)
 					end
 				end
 			end
 
 			obj.mov = ArbitraryMotion{Float64}(dur=dur,
-											  K=K,
-										      Δx=Δx,
-										      Δy=Δy,
-											  Δz=Δz)
+											   K=K,
+										       Δx=Δx,
+										       Δy=Δy,
+											   Δz=Δz,
+											   resetmag = resetmag)
 		end
 	end
 
@@ -636,15 +641,16 @@ function write_phantom(obj::Phantom,filename::String)
 			HDF5.attributes(segments)["K"] = obj.mov.K
 			segments["dur"] = obj.mov.dur
 
-			itp = get_itp_functions(obj.mov)
-			is_mov_on = (itp .!== nothing) 
-			mov_dims = ["motionx","motiony","motionz"] 
-			Δ = fieldnames(ArbitraryMotion)[3:5]
-			for i in 1:3
+			itp = get_itp_functions(obj.mov)[1]
+			is_mov_on = vcat((itp .!== nothing),is_fluid(obj.mov)) 
+			mov_dims = ["motionx","motiony","motionz","resetmag"] 
+			Δ = fieldnames(ArbitraryMotion)[3:6]
+			for i in 1:4
 				if is_mov_on[i]
 					motion_i = create_group(motion,mov_dims[i])
 					HDF5.attributes(motion_i)["type"] = "Explicit"
-					motion_i["values"] = getfield(obj.mov,Δ[i])
+					values = i != 4 ? getfield(obj.mov,Δ[i]) : Int.(getfield(obj.mov,Δ[i]))
+					motion_i["values"] = values
 				end
 			end
 		end
