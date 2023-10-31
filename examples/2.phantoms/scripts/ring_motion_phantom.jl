@@ -6,9 +6,10 @@ and an expansion and contraction of Δ meters every T seconds.
 
 using KomaMRICore.HDF5
 
-FOV = 10e-2 # [m] Diameter ventricule
-Δ = 1e-2    # [m] Displacement
-T = 1       # [s] Period
+FOV = 10e-2   # [m] Diameter ventricule
+Δ = 1e-2      # [m] Displacement
+T = [1]       # [s] Period
+K = 4
 
 #PARAMETERS
 N = 21
@@ -27,8 +28,8 @@ r = 6/11*FOV/2
 ring = ⚪(R) .- ⚪(r)
 
 ρ = 0.9*ring #proton density
-T1 = (1026*ring)*1e-3 #Myocardial T1
-T2 = (42*ring)*1e-3 #T2 map [s]
+T1 = (1026*ring)*1e-3   #Myocardial T1
+T2 = (42*ring)*1e-3     #T2 map [s]
 
 x_values  = x[ρ .!= 0]
 y_values  = y[ρ .!= 0]
@@ -85,18 +86,20 @@ motion = create_group(fid,"motion")
 attributes(motion)["model"] = "Arbitrary"
 
 segments = create_group(motion, "segments")
-attributes(segments)["N"] = 1
-attributes(segments)["K"] = 4
-segments["dur"] = [T]
+attributes(segments)["N"] = length(T)
+attributes(segments)["K"] = K
+segments["dur"] = T
 
 motionx = create_group(motion,"motionx")
 attributes(motionx)["type"] = "Explicit"
 motionx["values"] = hcat(Δ*cos.(α), zeros(length(x_values)), -Δ*cos.(α))
-# motionx["values"] = hcat(Δ*ones(length(x_values)), zeros(length(x_values)), -Δ*ones(length(x_values)))
 
 motiony = create_group(motion,"motiony")
 attributes(motiony)["type"] = "Explicit"
 motiony["values"] = hcat(Δ*sin.(α), zeros(length(x_values)), -Δ*sin.(α))
-# motiony["values"] = hcat(Δ*ones(length(x_values)), zeros(length(x_values)), -Δ*ones(length(x_values)))
+
+resetmag = create_group(motion,"resetmag")
+attributes(resetmag)["type"] = "Explicit"
+resetmag["values"] = zeros(length(x_values),K)
 
 close(fid)
