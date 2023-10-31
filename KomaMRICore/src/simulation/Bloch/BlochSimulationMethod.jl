@@ -36,7 +36,7 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
-    M::Mag{T}, sim_method::Bloch, Ux, Uy, Uz) where {T<:Real}
+    M::Mag{T}, sim_method::Bloch, Ux, Uy, Uz, resetmag) where {T<:Real}
     #Simulation
     #Motion
     xt = Ux !== nothing ? p.x .+ Ux : p.x
@@ -54,9 +54,20 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     #Mxy preccesion and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time
+
+    Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time 
+    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) 
+
+    # Flow
+    if resetmag !== nothing
+        reset = any(resetmag;dims=2)
+        resetmag = .!(cumsum(resetmag,dims=2) .>= 1)
+        Mxy .*= resetmag
+        M.z[reset] = p.ρ[reset]
+    end
+    
     M.xy .= Mxy[:, end]
-    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
+
     #Acquired signal
     sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
@@ -78,7 +89,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-                              M::Mag{T}, sim_method::Bloch, Ux, Uy, Uz) where {T<:Real}
+                              M::Mag{T}, sim_method::Bloch, Ux, Uy, Uz, resetmag) where {T<:Real}
     #Simulation
     for i in 1:length(seq)
         s = seq[i]
@@ -97,8 +108,14 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
         φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         mul!( Q(φ, s.B1 ./ B, Bz ./ B), M )
         #Relaxation
-        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
+        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)                                      
         M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
+        # Flow
+        if resetmag !== nothing
+            reset = any(resetmag;dims=2)
+            M.xy[reset] .= 0
+            M.z[reset] = p.ρ[reset]
+        end
     end
     #Acquired signal
     #sig .= -0.1im #<-- This was to test if an ADC point was inside an RF block
