@@ -117,7 +117,7 @@ default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solve
 global recParams = merge(default, rec)
 #Simulation
 default = Dict{String,Any}()
-global simParams = merge(default, sim)
+global sim_params = merge(default, sim)
 #GPUs
 @info "Loading GPUs"
 KomaMRICore.print_gpus()
@@ -244,7 +244,7 @@ handle(w, "simulate") do args...
     @js_ w document.getElementById("simulate!").setAttribute("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
-    global raw_ismrmrd = simulate(phantom, seq, sys; simParams, w)
+    global raw_ismrmrd = simulate(phantom, seq, sys; sim_params, w)
     #After simulation go to RECON
     @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
     #EXPORT to ISMRMRD -> To SignalGUI
@@ -336,7 +336,7 @@ handle(w, "close") do args...
     global image = nothing
     global kspace = nothing
 
-    global simParams = nothing
+    global sim_params = nothing
     global recParams = nothing
 
     global seq_obs = nothing

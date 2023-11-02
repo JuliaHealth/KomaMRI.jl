@@ -35,10 +35,10 @@ p2 = plot_seq(seq; max_rf_samples=Inf, slider=false)
 #md # ```
 
 # Now we will perform the simulation using the function [`simulate_slice_profile`](@ref).
-# Note that we modified `Δt_rf` in `simParams` to match the resolution of the waveform.
+# Note that we modified `Δt_rf` in `sim_params` to match the resolution of the waveform.
 
-simParams = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
-M = simulate_slice_profile(seq; z, simParams)
+sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
+M = simulate_slice_profile(seq; z, sim_params)
 
 using PlotlyJS # hide
 s1 = scatter(x=f, y=real.(M.xy), name="Mx") # hide
@@ -71,7 +71,7 @@ pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_t
 α_desired = 120 + 0im               # The multiplication of a complex number scales the RF pulse of a Sequence
 α = get_flip_angles(seq)[1] # Previous FA approx 30 deg
 seq = (α_desired / α) * seq         # Scaling the pulse to have a flip angle of 120
-M = simulate_slice_profile(seq; z, simParams)
+M = simulate_slice_profile(seq; z, sim_params)
 
 s1 = scatter(x=f, y=abs.(M.xy), name="|Mxy|") # hide
 dat = seq.RF.A[1] # hide

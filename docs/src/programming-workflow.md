@@ -24,8 +24,8 @@ obj = brain_phantom2D()
 seq = PulseDesigner.EPI_example()
 
 # Define simulation parameters and perform simulation
-simParams = KomaMRICore.default_sim_params() 
-raw = simulate(obj, seq, sys; simParams)
+sim_params = KomaMRICore.default_sim_params() 
+raw = simulate(obj, seq, sys; sim_params)
 
 # Auxiliary function for reconstruction
 function reconstruct_2d_image(raw::RawAcquisitionData)
@@ -171,15 +171,15 @@ julia> plot_kspace(spiral)
 The following lines in the example script configure and perform the simulation:
 ```julia
 # Define simulation parameters and perform simulation
-simParams = KomaMRICore.default_sim_params() 
-raw = simulate(obj, seq, sys; simParams)
+sim_params = KomaMRICore.default_sim_params() 
+raw = simulate(obj, seq, sys; sim_params)
 ```
 
 ### Simulation Parameters
 
-To perform simulations, **KomaMRI** requires certain parameters. You can use the default parameters for testing, but you also have the option to customize specific simulation aspects. In the example, we use the **default\_sim\_params()** function to create a dictionary with default simulation parameters. You can view the keys that can be modified by displaying the `simParams` variable:
+To perform simulations, **KomaMRI** requires certain parameters. You can use the default parameters for testing, but you also have the option to customize specific simulation aspects. In the example, we use the **default\_sim\_params()** function to create a dictionary with default simulation parameters. You can view the keys that can be modified by displaying the `sim_params` variable:
 ```julia-repl
-julia> simParams
+julia> sim_params
 Dict{String, Any} with 9 entries:
   "return_type" => "raw"
   "Nblocks"     => 20
@@ -196,7 +196,7 @@ All of these parameters deserve special attention. We will explain some of the m
 
 ### Raw Signal
 
-The simulation is performed using the **simulate()** function, which requires three arguments: a **Scanner** struct, a **Phantom** struct, and a **Sequence** struct. Optionally, you can include the keyword argument `simParams` if you wish to use custom simulation parameters.
+The simulation is performed using the **simulate()** function, which requires three arguments: a **Scanner** struct, a **Phantom** struct, and a **Sequence** struct. Optionally, you can include the keyword argument `sim_params` if you wish to use custom simulation parameters.
 
 In the example, we can see that the output of the simulation is a special struct:
 ```julia-repl
@@ -265,8 +265,8 @@ Many people in the MRI community use **MATLAB**; you might be one of them and ma
 using MAT
 
 # Perform simulation to return an Array type
-simParams["return_type"] = "mat"
-raw = simulate(obj, seq, sys; simParams)
+sim_params["return_type"] = "mat"
+raw = simulate(obj, seq, sys; sim_params)
 
 # Save the .mat file in the temp directory
 matwrite(joinpath(tempdir(), "koma-raw.mat"), Dict("raw" => raw))

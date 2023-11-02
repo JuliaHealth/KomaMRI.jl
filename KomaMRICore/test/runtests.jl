@@ -244,8 +244,8 @@ using TestItems, TestItemRunner
     @testset "DiscreteSequence" begin
         path = @__DIR__
         seq = @suppress read_seq(path*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
-        simParams = KomaMRICore.default_sim_params()
-        t, Δt = KomaMRICore.get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
+        sim_params = KomaMRICore.default_sim_params()
+        t, Δt = KomaMRICore.get_uniform_times(seq, sim_params["Δt"]; Δt_rf=sim_params["Δt_rf"])
         seqd = KomaMRICore.discretize(seq)
         i1, i2 = rand(1:Int(floor(0.5*length(seqd)))), rand(Int(ceil(0.5*length(seqd))):length(seqd))
         @test seqd[i1].t ≈ [t[i1]]
@@ -255,9 +255,9 @@ using TestItems, TestItemRunner
         seq = RF(1, 1)
         seq += Sequence([Grad(1, 1)])
         seq += ADC(N, 1)
-        simParams = KomaMRICore.default_sim_params()
-        simParams["Δt"], simParams["Δt_rf"] = T/N, T/N
-        seqd = KomaMRICore.discretize(seq; simParams)
+        sim_params = KomaMRICore.default_sim_params()
+        sim_params["Δt"], sim_params["Δt_rf"] = T/N, T/N
+        seqd = KomaMRICore.discretize(seq; sim_params)
         i = Int(floor(length(seqd) / 3))
         @test is_RF_on(seq[1]) == is_RF_on(seqd[1*i:1*i+1]) && is_GR_on(seq[1]) == is_GR_on(seqd[1*i:1*i+1]) && is_ADC_on(seq[1]) == is_ADC_on(seqd[1*i:1*i+1])
         @test is_RF_on(seq[2]) == is_RF_on(seqd[2*i:2*i+1]) && is_GR_on(seq[2]) == is_GR_on(seqd[2*i:2*i+1]) && is_ADC_on(seq[2]) == is_ADC_on(seqd[2*i:2*i+1])
@@ -506,13 +506,13 @@ end
     obj = read_phantom_jemris(path*"/test_files/sphere_chemical_shift.h5")
     sys = Scanner()
 
-    simParams = Dict{String, Any}(
+    sim_params = Dict{String, Any}(
         "gpu"=>false,
         "Nthreads"=>1,
         "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat"
     )
-    sig = @suppress simulate(obj, seq, sys; simParams)
+    sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
 
     sig_jemris = h5open(path*"/test_files/jemris_signals_epi_sphere_cs.h5")["/signal/channels/00"]
@@ -531,12 +531,12 @@ end
     obj = read_phantom_jemris(path*"/test_files/sphere_chemical_shift.h5")
     sys = Scanner()
 
-    simParams = Dict{String, Any}(
+    sim_params = Dict{String, Any}(
         "gpu"=>false,
         "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat"
     )
-    sig = @suppress simulate(obj, seq, sys; simParams)
+    sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
 
     sig_jemris = h5open(path*"/test_files/jemris_signals_epi_sphere_cs.h5")["/signal/channels/00"]
@@ -555,12 +555,12 @@ end
     obj = read_phantom_jemris(path*"/test_files/sphere_chemical_shift.h5")
     sys = Scanner()
 
-    simParams = Dict{String, Any}(
+    sim_params = Dict{String, Any}(
         "gpu"=>true,
         "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat"
     )
-    sig = @suppress simulate(obj, seq, sys; simParams)
+    sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
 
     sig_jemris = h5open(path*"/test_files/jemris_signals_epi_sphere_cs.h5")["/signal/channels/00"]
@@ -592,8 +592,8 @@ end
         global seq += ADC(N, Tadc)
     end
 
-    simParams = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false, "Nthreads"=>1)
-    raw = @suppress simulate(obj, seq, sys; simParams)
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false, "Nthreads"=>1)
+    raw = @suppress simulate(obj, seq, sys; sim_params)
 
     #Mathematica-simulated Bloch equation result
     res1 = [0.153592+0.46505im,
@@ -636,8 +636,8 @@ end
         global seq += ADC(N, Tadc)
     end
 
-    simParams = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false)
-    raw = @suppress simulate(obj, seq, sys; simParams)
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false)
+    raw = @suppress simulate(obj, seq, sys; sim_params)
 
     #Mathematica-simulated Bloch equation result
     res1 = [0.153592+0.46505im,
@@ -680,8 +680,8 @@ end
         global seq += ADC(N, Tadc)
     end
 
-    simParams = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>true)
-    raw = @suppress simulate(obj, seq, sys; simParams)
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>true)
+    raw = @suppress simulate(obj, seq, sys; sim_params)
 
     #Mathematica-simulated Bloch equation result
     res1 = [0.153592+0.46505im,
@@ -710,11 +710,11 @@ end
     seq = @suppress read_seq(joinpath(path, "epi_100x100_TE100_FOV230.seq"))
     obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
     sys = Scanner()
-    simParams = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>"mat")
-    sig = @suppress simulate(obj, seq, sys; simParams)
+    sim_params = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>"mat")
+    sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
-    simParams["sim_method"] = KomaMRICore.BlochDict()
-    sig2 = simulate(obj, seq, sys; simParams)
+    sim_params["sim_method"] = KomaMRICore.BlochDict()
+    sig2 = simulate(obj, seq, sys; sim_params)
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 

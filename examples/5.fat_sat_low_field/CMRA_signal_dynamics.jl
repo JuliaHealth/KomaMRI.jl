@@ -13,9 +13,9 @@ seq = CMRA_iNAV_bSSFP_cardiac(number_dummy_heart_beats, iNAV_lines,
                         sample_recovery=ones(Bool,number_dummy_heart_beats+1))
 obj = cardiac_phantom(0)
 sim_method = BlochDict(save_Mz=true)
-simParams = Dict{String,Any}("return_type"=>"mat", "sim_method"=>sim_method, "gpu"=>false,
+sim_params = Dict{String,Any}("return_type"=>"mat", "sim_method"=>sim_method, "gpu"=>false,
                              "Nthreads"=>1, "Δt_rf"=>2e-4)
-magnetization = simulate(obj, seq, sys; simParams)
+magnetization = simulate(obj, seq, sys; sim_params)
 # Prep plots
 labels = ["Myocardium", "Blood", "Fat"]
 colors = ["blue", "red", "green"]
@@ -31,7 +31,7 @@ for i=eachindex(spin_group)
     add_trace!(p0, p1, row=1, col=1)
     add_trace!(p0, p2, row=2, col=1)
 end
-seqd = KomaMRICore.discretize(seq; simParams)
+seqd = KomaMRICore.discretize(seq; sim_params)
 p3 = scatter(x=seqd.t, y=abs.(seqd.B1), name="B1",marker_color="purple",yaxis_range=[0,5])
 add_trace!(p0, p3, row=3, col=1)
 add_layout_image!(p0, attr(

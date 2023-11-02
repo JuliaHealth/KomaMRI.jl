@@ -595,7 +595,7 @@ julia> plot_kspace(seq)
 function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false)
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	#Calculations of theoretical k-space
-	kspace, kspace_adc = get_kspace(seq; Δt=1) #simParams["Δt"])
+	kspace, kspace_adc = get_kspace(seq; Δt=1) #sim_params["Δt"])
 	t_adc = KomaMRICore.get_adc_sampling_times(seq)
 	#Colormap
 	c_map = [[t, "hsv($(floor(Int,(1-t)*255)), 100, 50)"] for t=range(0,1;length=10)] # range(s,b,N) only works in Julia 1.7.3
@@ -974,7 +974,7 @@ function plot_dict(dict::Dict)
 end
 
 """
-    p = plot_seqd(seq::Sequence; simParams=KomaMRICore.default_sim_params())
+    p = plot_seqd(seq::Sequence; sim_params=KomaMRICore.default_sim_params())
 
 Plots a discretized sequence struct.
 
@@ -982,7 +982,7 @@ Plots a discretized sequence struct.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `simParams`: (`::Dict{String,Any}()`, `=KomaMRICore.default_sim_params()`) dictionary of
+- `sim_params`: (`::Dict{String,Any}()`, `=KomaMRICore.default_sim_params()`) dictionary of
     simulation parameters
 
 # Returns
@@ -997,8 +997,8 @@ julia> seq = read_seq(seq_file)
 julia> plot_seqd(seq)
 ```
 """
-function plot_seqd(seq::Sequence; simParams=KomaMRICore.default_sim_params())
-	seqd = KomaMRICore.discretize(seq; simParams)
+function plot_seqd(seq::Sequence; sim_params=KomaMRICore.default_sim_params())
+	seqd = KomaMRICore.discretize(seq; sim_params)
 	Gx = scatter(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
 	Gy = scatter(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
 	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)

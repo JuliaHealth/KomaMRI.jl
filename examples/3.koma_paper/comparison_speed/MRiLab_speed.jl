@@ -36,13 +36,13 @@ FRange_filename = filepath * "FRange.mat" #Slab within slice thickness
 phantom = read_phantom_MRiLab(filename; FRange_filename)
 ## Simulation
 if (ARGS == String[]) #No arguments, use defaults
-    simParams = Dict{String,Any}(
+    sim_params = Dict{String,Any}(
         "Nblocks" => 20,
         "gpu" => true,
         "gpu_device" => 0
     )
 else
-    simParams = Dict{String,Any}(
+    sim_params = Dict{String,Any}(
         "Nblocks" => 20,
         "gpu" => ARGS[1] == "gpu" ? true : false,
         "gpu_device" => parse(Int64, ARGS[2])
@@ -50,9 +50,9 @@ else
 end
 
 Nexp = 20
-raw = @suppress simulate(phantom, seq, sys; simParams) #warmup
+raw = @suppress simulate(phantom, seq, sys; sim_params) #warmup
 for i = 1:Nexp
-    local raw = simulate(phantom, seq, sys; simParams)
+    local raw = simulate(phantom, seq, sys; sim_params)
 end
 # plot_signal(raw; range=[50.5, 54]) #; show_sim_blocks=true)
 
@@ -60,7 +60,7 @@ end
 # nsys launch julia --project=. --color=yes examples/3.koma_paper/comparison_mrilab/MRiLab_speed.jl
 # Then, open the report by using NVIDIA Nsight Systems with nsys-ui
 # using CUDA
-# CUDA.@profile ( simulate(phantom, seq, sys; simParams) );
+# CUDA.@profile ( simulate(phantom, seq, sys; sim_params) );
 
 ## Recon
 # acq = AcquisitionData(raw)

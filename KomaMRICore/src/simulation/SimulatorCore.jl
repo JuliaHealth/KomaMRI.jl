@@ -5,17 +5,17 @@ abstract type SpinStateRepresentation{T<:Real} end #get all available types by u
 include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
 
-function default_sim_params(simParams=Dict{String,Any}())
-    get!(simParams, "gpu", true); if simParams["gpu"] check_use_cuda(); simParams["gpu"] &= use_cuda[] end
-    get!(simParams, "gpu_device", 0)
-    get!(simParams, "Nthreads", simParams["gpu"] ? 1 : Threads.nthreads())
-    get!(simParams, "Nblocks", 20)
-    get!(simParams, "Δt", 1e-3)
-    get!(simParams, "Δt_rf", 5e-5)
-    get!(simParams, "sim_method", Bloch())
-    get!(simParams, "precision", "f32")
-    get!(simParams, "return_type", "raw")
-    simParams
+function default_sim_params(sim_params=Dict{String,Any}())
+    get!(sim_params, "gpu", true); if sim_params["gpu"] check_use_cuda(); sim_params["gpu"] &= use_cuda[] end
+    get!(sim_params, "gpu_device", 0)
+    get!(sim_params, "Nthreads", sim_params["gpu"] ? 1 : Threads.nthreads())
+    get!(sim_params, "Nblocks", 20)
+    get!(sim_params, "Δt", 1e-3)
+    get!(sim_params, "Δt_rf", 5e-5)
+    get!(sim_params, "sim_method", Bloch())
+    get!(sim_params, "precision", "f32")
+    get!(sim_params, "return_type", "raw")
+    sim_params
 end
 
 """
@@ -145,10 +145,10 @@ function update_blink_window_progress!(w::Nothing, block, Nblocks)
 end
 
 """
-    out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams, w)
+    out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; sim_params, w)
 
 Returns the raw signal or the last state of the magnetization according to the value
-of the `"return_type"` key of the `simParams` dictionary.
+of the `"return_type"` key of the `sim_params` dictionary.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
@@ -156,7 +156,7 @@ of the `"return_type"` key of the `simParams` dictionary.
 - `sys`: (`::Scanner`) Scanner struct
 
 # Keywords
-- `simParams`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
+- `sim_params`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
 - `w`: (`::Blink.AtomShell.Window`, `=nothing`) the window within which to display a
     progress bar in the Blink Window UI. If this variable is anything other than 'nothing',
     the progress bar will be considered
@@ -178,69 +178,69 @@ julia> plot_signal(raw)
 """
 function simulate(
     obj::Phantom, seq::Sequence, sys::Scanner;
-    simParams=Dict{String,Any}(), w=nothing
+    sim_params=Dict{String,Any}(), w=nothing
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined
-    simParams = default_sim_params(simParams)
+    sim_params = default_sim_params(sim_params)
     # Simulation init
-    seqd = discretize(seq; simParams) # Sampling of Sequence waveforms
-    parts, excitation_bool = get_sim_ranges(seqd; Nblocks=simParams["Nblocks"]) # Generating simulation blocks
+    seqd = discretize(seq; sim_params) # Sampling of Sequence waveforms
+    parts, excitation_bool = get_sim_ranges(seqd; Nblocks=sim_params["Nblocks"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
-    Xt, obj = initialize_spins_state(obj, simParams["sim_method"])
+    Xt, obj = initialize_spins_state(obj, sim_params["sim_method"])
     # Signal init
-    Ndims = sim_output_dim(obj, seq, sys, simParams["sim_method"])
-    sig = zeros(ComplexF64, Ndims..., simParams["Nthreads"])
+    Ndims = sim_output_dim(obj, seq, sys, sim_params["sim_method"])
+    sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
     # Objects to GPU
-    if simParams["gpu"] #Default
-        device!(simParams["gpu_device"])
-        gpu_name = name.(devices())[simParams["gpu_device"]+1]
+    if sim_params["gpu"] #Default
+        device!(sim_params["gpu_device"])
+        gpu_name = name.(devices())[sim_params["gpu_device"]+1]
         obj  = obj  |> gpu #Phantom
         seqd = seqd |> gpu #DiscreteSequence
         Xt   = Xt   |> gpu #SpinStateRepresentation
         sig  = sig  |> gpu #Signal
     end
-    if simParams["precision"] == "f32" #Default
+    if sim_params["precision"] == "f32" #Default
         obj  = obj  |> f32 #Phantom
         seqd = seqd |> f32 #DiscreteSequence
         Xt   = Xt   |> f32 #SpinStateRepresentation
         sig  = sig  |> f32 #Signal
-    elseif simParams["precision"] == "f64"
+    elseif sim_params["precision"] == "f64"
         obj  = obj  |> f64 #Phantom
         seqd = seqd |> f64 #DiscreteSequence
         Xt   = Xt   |> f64 #SpinStateRepresentation
         sig  = sig  |> f64 #Signal
     end
     # Simulation
-    @info "Running simulation in the $(simParams["gpu"] ? "GPU ($gpu_name)" : "CPU with $(simParams["Nthreads"]) thread(s)")" koma_version=__VERSION__ sim_method = simParams["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points=Ndims[1]
-    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, simParams["sim_method"]; Nblocks=length(parts), Nthreads=simParams["Nthreads"], parts, excitation_bool, w)
+    @info "Running simulation in the $(sim_params["gpu"] ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version=__VERSION__ sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points=Ndims[1]
+    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_params["sim_method"]; Nblocks=length(parts), Nthreads=sim_params["Nthreads"], parts, excitation_bool, w)
     # Result to CPU, if already in the CPU it does nothing
     sig = sum(sig; dims=length(Ndims)+1) |> cpu
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
-    if simParams["gpu"] GC.gc(true); CUDA.reclaim() end
+    if sim_params["gpu"] GC.gc(true); CUDA.reclaim() end
     # Output
-    if simParams["return_type"] == "state"
+    if sim_params["return_type"] == "state"
         out = Xt
-    elseif simParams["return_type"] == "mat"
+    elseif sim_params["return_type"] == "mat"
         out = sig
-    elseif simParams["return_type"] == "raw"
+    elseif sim_params["return_type"] == "raw"
         # To visually check the simulation blocks
-        simParams_raw = copy(simParams)
-        simParams_raw["sim_method"] = string(simParams["sim_method"])
-        simParams_raw["gpu"] = simParams["gpu"]
-        simParams_raw["Nthreads"] = simParams["Nthreads"]
-        simParams_raw["t_sim_parts"] = t_sim_parts
-        simParams_raw["type_sim_parts"] = excitation_bool
-        simParams_raw["Nblocks"] = length(parts)
-        simParams_raw["sim_time_sec"] = timed_tuple.time
-        out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, simParams=simParams_raw)
+        sim_params_raw = copy(sim_params)
+        sim_params_raw["sim_method"] = string(sim_params["sim_method"])
+        sim_params_raw["gpu"] = sim_params["gpu"]
+        sim_params_raw["Nthreads"] = sim_params["Nthreads"]
+        sim_params_raw["t_sim_parts"] = t_sim_parts
+        sim_params_raw["type_sim_parts"] = excitation_bool
+        sim_params_raw["Nblocks"] = length(parts)
+        sim_params_raw["sim_time_sec"] = timed_tuple.time
+        out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw)
     end
     return out
 end
 
 """
-    mag = simulate_slice_profile(seq; z, simParams)
+    mag = simulate_slice_profile(seq; z, sim_params)
 
 Returns magnetization of spins distributed along `z` after running the Sequence struct.
 
@@ -249,7 +249,7 @@ Returns magnetization of spins distributed along `z` after running the Sequence 
 
 # Keywords
 - `z`: (`=range(-2e-2,2e-2,200)`) range for the z axis
-- `simParams`: (`::Dict{String, Any}`, `=Dict{String,Any}("Δt_rf"=>1e-6)`) dictionary with
+- `sim_params`: (`::Dict{String, Any}`, `=Dict{String,Any}("Δt_rf"=>1e-6)`) dictionary with
     simulation parameters
 
 # Returns
@@ -257,11 +257,11 @@ Returns magnetization of spins distributed along `z` after running the Sequence 
 """
 function simulate_slice_profile(
     seq::Sequence;
-    z=range(-2.e-2, 2.e-2, 200), simParams=Dict{String,Any}("Δt_rf" => 1e-6)
+    z=range(-2.e-2, 2.e-2, 200), sim_params=Dict{String,Any}("Δt_rf" => 1e-6)
 )
-    simParams["return_type"] = "state"
+    sim_params["return_type"] = "state"
     sys = Scanner()
     obj = Phantom{Float64}(x=zeros(size(z)), z=Array(z))
-    mag = simulate(obj, seq, sys; simParams)
+    mag = simulate(obj, seq, sys; sim_params)
     return mag
 end

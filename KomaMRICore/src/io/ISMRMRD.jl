@@ -1,5 +1,5 @@
 """
-    raw = signal_to_raw_data(signal, seq; phantom_name, sys, simParams)
+    raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params)
 
 Transforms the raw signal into a RawAcquisitionData struct (nearly equivalent to the ISMRMRD
 format) used for reconstruction with MRIReco.
@@ -11,7 +11,7 @@ format) used for reconstruction with MRIReco.
 # Keywords
 - `phantom_name`: (`::String`, `="Phantom"`) phantom name
 - `sys`: (`::Scanner`, `=Scanner()`) Scanner struct
-- `simParams`: (`::Dict{String, Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
+- `sim_params`: (`::Dict{String, Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
 
 # Returns
 - `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct
@@ -22,9 +22,9 @@ julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/ep
 
 julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq(seq_file)
 
-julia> simParams = KomaMRICore.default_sim_params(); simParams["return_type"] = "mat"
+julia> sim_params = KomaMRICore.default_sim_params(); sim_params["return_type"] = "mat"
 
-julia> signal = simulate(obj, seq, sys; simParams)
+julia> signal = simulate(obj, seq, sys; sim_params)
 
 julia> raw = signal_to_raw_data(signal, seq)
 
@@ -33,7 +33,7 @@ julia> plot_signal(raw)
 """
 function signal_to_raw_data(
     signal, seq;
-    phantom_name="Phantom", sys=Scanner(), simParams=Dict{String,Any}()
+    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}()
 )
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
     #Number of samples and FOV
@@ -73,7 +73,7 @@ function signal_to_raw_data(
         "trajectory"                     => "other", #Must be: cartesian, epi, radial, goldenangle, spiral, and other
         "protocolName"                   => haskey(seq.DEF,"Name") ? seq.DEF["Name"] : "NoName", #String
         # "trajectoryDescription"          => Dict{String, Any}("comment"=>""), #You can put wathever you want here: comment, bandwidth, MaxGradient_G_per_cm, MaxSlewRate_G_per_cm_per_s, interleaves, etc
-        "userParameters"                 => simParams, #Dict with parameters
+        "userParameters"                 => sim_params, #Dict with parameters
         #encoding>
         "encodedFOV"                     => [FOVx, FOVy, 1.0],    #encodedSpace>fieldOfView_mm
         "reconFOV"                       => [FOVx, FOVy, 1.0],    #reconSpace>fieldOfView_mm
