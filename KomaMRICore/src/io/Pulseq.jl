@@ -278,10 +278,10 @@ end
 """
     seq = read_seq(filename)
 
-Returns the Sequence struct from a sequence file `.seq`.
+Returns the Sequence struct from a pulseq sequence file with `.seq` extension.
 
 # Arguments
-- `filename`: (`::String`) the absolute or relative path of the sequence file `.seq`
+- `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
 
 # Returns
 - `seq`: (`::Sequence`) Sequence struct
@@ -428,7 +428,7 @@ function read_seq(filename)
         @warn "Pulseq file did not contain [DEFINITIONS] for Nx, Ny, and Nz. We added Nx=$Nx, Ny=$Ny, and Nz=$Nz to the Sequence object for the reconstruction."
     end
     #Koma sequence
-    seq
+    return seq
 end
 
 #To Sequence

@@ -1,5 +1,5 @@
 """
-    phantom = read_phantom_MRiLab(filename)
+    obj = read_phantom_MRiLab(filename)
 
 Returns the Phantom struct from a MRiLab phantom file `.mat`.
 
@@ -7,7 +7,7 @@ Returns the Phantom struct from a MRiLab phantom file `.mat`.
 - `filename`: (`::String`) the absolute or relative path of the phantom file `.mat`
 
 # Returns
-- `phantom`: (`::Phantom`) Phantom struct
+- `obj`: (`::Phantom`) Phantom struct
 
 # Examples
 ```julia-repl
@@ -56,16 +56,17 @@ function read_phantom_MRiLab(filename; B0=1.5, offset=[0,0,0], FRange_filename="
 	z = xx*0 .+ yy*0 .+ zz*1 .+ offset[3]	#spin z coordinates
 	v = 0 # m/s
 
-	phantom = Phantom(name=basename(filename),
-					x=    y[mask],
-					y=   -x[mask],
-					z=   -z[mask],
-					ρ=    ρ[mask],
-					T1=	 T1[mask],
-					T2=	 T2[mask],
-					T2s=T2s[mask],
-					Δw=	 Δw[mask],
-					ux=(x,y,z,t)->v*t
-					)
-	phantom
+	obj = Phantom(
+        name = basename(filename),
+		x = y[mask],
+		y = -x[mask],
+		z = -z[mask],
+		ρ = ρ[mask],
+		T1 = T1[mask],
+		T2 = T2[mask],
+		T2s = T2s[mask],
+		Δw = Δw[mask],
+		ux = (x,y,z,t)->v*t,
+	)
+	return obj
 end

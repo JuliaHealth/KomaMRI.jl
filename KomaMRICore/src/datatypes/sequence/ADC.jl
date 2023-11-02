@@ -3,26 +3,31 @@
     adc = ADC(N, T, delay)
     adc = ADC(N, T, delay, Δf, ϕ)
 
-The ADC struct.
+The ADC struct. This is an event of an MRI sequence.
 
 # Arguments
-- `N`: (`::Int64`) number of acquired samples
-- `T`: (`::Float64`, [`s`]) duration to acquire the samples
-- `delay`: (`::Float64`, [`s`]) delay time to start the acquisition
-- `Δf`: (`::Float64`, [`Hz`]) delta frequency. It's meant to compensate RF pulse phases.
-    It is used internally by the read_ADC function
-- `ϕ`: (`::Float64`, `[rad]`) phase. It's meant to compensate RF pulse phases. It is
-    used internally by the read_ADC function
+- `N`: (`::Integer`) number of acquired samples
+- `T`: (`::Real`, [`s`]) duration to acquire the samples
+- `delay`: (`::Real`, [`s`]) delay time to start the acquisition
+- `Δf`: (`::Real`, [`Hz`]) delta frequency. It is meant to compensate RF pulse phases
+- `ϕ`: (`::Real`, `[rad]`) phase. It is meant to compensate RF pulse phases
 
 # Returns
 - `adc`: (`::ADC`) ADC struct
+
+# Examples
+```julia-repl
+julia> adc = ADC(16, 1, 0.1)
+
+julia> seq = Sequence(); seq += adc; plot_seq(seq)
+```
 """
 mutable struct ADC
-    N::Int64
-    T::Float64
-    delay::Float64
-    Δf::Float64
-    ϕ::Float64
+    N::Integer
+    T::Real
+    delay::Real
+    Δf::Real
+    ϕ::Real
     function ADC(N, T, delay, Δf, ϕ)
         T < 0 || delay < 0 ? error("ADC timings must be positive.") : new(N, T, delay, Δf, ϕ)
     end

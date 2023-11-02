@@ -44,22 +44,29 @@ rotz(θ::Real) = [cos(θ) -sin(θ)	0;
 				 0 		0 		1]
 
 """
-    grad = Grad(A, T)
-    grad = Grad(A, T, rise)
-    grad = Grad(A, T, rise, delay)
-    grad = Grad(A, T, rise, fall, delay)
+    gr = Grad(A, T)
+    gr = Grad(A, T, rise)
+    gr = Grad(A, T, rise, delay)
+    gr = Grad(A, T, rise, fall, delay)
 
-The Gradient struct.
+The Gradient struct. This is an event of an MRI sequence.
 
 # Arguments
-- `A`: (`::Float64`, `[T]`) amplitude of the gradient
-- `T`: (`::Float64`, `[s]`) duration of the flat-top
+- `A`: (`::Real`, `[T/m]`) amplitude of the gradient
+- `T`: (`::Real`, `[s]`) duration of the flat-top
 - `rise`: (`::Real`, `[s]`) duration of the rise
 - `fall`: (`::Real`, `[s]`) duration of the fall
 - `delay`: (`::Real`, `[s]`) duration of the delay
 
 # Returns
-- `grad`: (`::Grad`) gradient struct
+- `gr`: (`::Grad`) gradient struct
+
+# Examples
+```julia-repl
+julia> gr = Grad(1, 1, 0.1, 0.1, 0.2)
+
+julia> seq = Sequence([gr]); plot_seq(seq)
+```
 """
 mutable struct Grad
 	A
@@ -82,35 +89,33 @@ mutable struct Grad
 end
 
 """
-    grad = Grad(f::Function, T::Real, N::Int64; delay::Real)
+    gr = Grad(f::Function, T::Real, N::Integer; delay::Real)
 
-Generates an arbitrary gradient waveform defined by function `f` in the interval t ∈
-[0,`T`]. It uses `N` square gradients uniformly spaced in the interval.
+Generates an arbitrary gradient waveform defined by the function `f` in the interval t ∈
+[0,`T`]. The time separation between two consecutive samples is given by T/N.
 
 # Arguments
 - `f`: (`::Function`) function that describes the gradient waveform
 - `T`: (`::Real`, `[s]`) duration of the gradient waveform
-- `N`: (`::Int64`) number of samples of the gradient waveform
+- `N`: (`::Integer`, `=300`) number of samples of the gradient waveform
 
 # Keywords
-- `delay`: (`::Real`, `=0`, `[s]`) starting delay for the waveform
+- `delay`: (`::Real`, `=0`, `[s]`) delay time of the waveform
 
 # Returns
-- `grad`: (`::Grad`) gradient struct
+- `gr`: (`::Grad`) gradient struct
 
 # Examples
 ```julia-repl
-julia> f1 = t -> sin(π*t / 0.8)
+julia> gr = Grad(t -> sin(π*t / 0.8), 0.8)
 
-julia> seq = Sequence([Grad(f1, 0.8)])
-
-julia> plot_seq(seq)
+julia> seq = Sequence([gr]); plot_seq(seq)
 ```
 """
-Grad(f::Function, T::Real, N::Int64=300; delay::Real=0) = begin
-	t = range(0,T;length=N)
+Grad(f::Function, T::Real, N::Integer=300; delay::Real=0) = begin
+	t = range(0, T; length=N)
 	G = f.(t)
-	Grad(G,T,0,0,delay)
+	return Grad(G, T, 0, 0, delay)
 end
 
 

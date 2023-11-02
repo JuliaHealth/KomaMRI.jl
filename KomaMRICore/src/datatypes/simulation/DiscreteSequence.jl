@@ -1,3 +1,22 @@
+"""
+    seqd = DiscreteSequence(Gx, Gy, Gz, B1, Δf, ADC, t, Δt)
+
+A discretized version of a Sequence struct, containing vectors for event amplitudes at
+specified times. DiscreteSequence is the struct used for simulation.
+
+# Arguments
+- `Gx`: (`::AbstractVector{T<:Real}`, `[T/m]`) x-gradient vector
+- `Gy`: (`::AbstractVector{T<:Real}`, `[T/m]`) y-gradient vector
+- `Gz`: (`::AbstractVector{T<:Real}`, `[T/m]`) z-gradient vector
+- `B1`: (`::AbstractVector{Complex{T<:Real}}`, `[T]`) RF amplitude vector
+- `Δf`: (`::AbstractVector{T<:Real}`, `[Hz]`) RF carrier frequency displacement vector
+- `ADC`: (`::AbstractVector{Bool}`) ADC sample vector
+- `t`: (`::AbstractVector{T<:Real}`, `[s]`) time vector
+- `Δt`: (`::AbstractVector{T<:Real}`, `[s]`) delta time vector
+
+# Returns
+- `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
+"""
 struct DiscreteSequence{T<:Real}
     Gx::AbstractVector{T}
     Gy::AbstractVector{T}
@@ -50,6 +69,21 @@ is_GR_off(seq::DiscreteSequence) =  !is_GR_on(seq)
 is_RF_off(seq::DiscreteSequence) =  !is_RF_on(seq)
 is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
 
+"""
+    seqd = discretize(seq::Sequence; simParams=default_sim_params())
+
+This function returns a discretized Sequence struct with RF and gradient time refinements
+based on simulation parameters.
+
+# Arguments
+- `seq`: (`::Sequence`) sequence
+
+# Keywords
+- `simParams`: (`::Dict{String, Any}`, `=default_sim_params()`) simulation parameter dictionary
+
+# Returns
+- `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
+"""
 function discretize(seq::Sequence; simParams=default_sim_params())
     t, Δt      = get_uniform_times(seq, simParams["Δt"]; Δt_rf=simParams["Δt_rf"])
     B1, Δf     = get_rfs(seq, t)

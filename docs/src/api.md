@@ -134,6 +134,11 @@ PulseDesigner
 PulseDesigner.RF_hard
 ```
 
+### `PulseDesigner.RF_sinc`
+```@docs
+PulseDesigner.RF_sinc
+```
+
 ### `PulseDesigner.EPI`
 ```@docs
 PulseDesigner.EPI
@@ -142,6 +147,16 @@ PulseDesigner.EPI
 ### `PulseDesigner.radial_base`
 ```@docs
 PulseDesigner.radial_base
+```
+
+### `PulseDesigner.spiral_base`
+```@docs
+PulseDesigner.spiral_base
+```
+
+### `PulseDesigner.EPI_example`
+```@docs
+PulseDesigner.EPI_example
 ```
 
 ## Simulation
@@ -180,6 +195,26 @@ plot_kspace
 ### `plot_M0`
 ```@docs
 plot_M0
+```
+
+### `plot_M1`
+```@docs
+plot_M1
+```
+
+### `plot_M2`
+```@docs
+plot_M2
+```
+
+### `plot_eddy_currents`
+```@docs
+plot_eddy_currents
+```
+
+### `plot_slew_rate`
+```@docs
+plot_slew_rate
 ```
 
 ### `plot_signal`

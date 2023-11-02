@@ -1,36 +1,40 @@
 """
-    raw_ismrmrd = signal_to_raw_data(signal, seq; phantom_name, sys, simParams)
+    raw = signal_to_raw_data(signal, seq; phantom_name, sys, simParams)
 
-Transforms the raw signal into ISMRMRD format.
+Transforms the raw signal into a RawAcquisitionData struct (nearly equivalent to the ISMRMRD
+format) used for reconstruction with MRIReco.
 
 # Arguments
-- `signal`: (`::Vector{ComplexF64}`) raw signal
+- `signal`: (`::Vector{Complex}`) raw signal vector
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `phantom_name`: (`::String`, `="Phantom"`) Phantom struct
+- `phantom_name`: (`::String`, `="Phantom"`) phantom name
 - `sys`: (`::Scanner`, `=Scanner()`) Scanner struct
-- `simParams`: (`::Dict{String,Any}()`, `=Dict{String,Any}()`) dictionary with
-    simulation parameters
+- `simParams`: (`::Dict{String, Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
 
 # Returns
-- `raw_ismrmrd`: (`::RawAcquisitionData`) raw signal in ISMRMRD format
+- `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct
 
 # Examples
 ```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq");
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/epi_se.seq")
 
 julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq(seq_file)
 
-julia> raw = simulate(obj, seq, sys)
+julia> simParams = KomaMRICore.default_sim_params(); simParams["return_type"] = "mat"
+
+julia> signal = simulate(obj, seq, sys; simParams)
+
+julia> raw = signal_to_raw_data(signal, seq)
 
 julia> plot_signal(raw)
 ```
 """
-function signal_to_raw_data(signal, seq;
-                                phantom_name="Phantom",
-                                sys=Scanner(),
-                                simParams=Dict{String,Any}())
+function signal_to_raw_data(
+    signal, seq;
+    phantom_name="Phantom", sys=Scanner(), simParams=Dict{String,Any}()
+)
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information

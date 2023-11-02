@@ -1,5 +1,5 @@
 """
-    phantom = read_phantom_jemris(filename)
+    obj = read_phantom_jemris(filename)
 
 Returns the Phantom struct from a JEMRIS phantom file `.h5`.
 
@@ -7,7 +7,7 @@ Returns the Phantom struct from a JEMRIS phantom file `.h5`.
 - `filename`: (`::String`) the absolute or relative path of the phantom file `.h5`
 
 # Returns
-- `phantom`: (`::Phantom`) Phantom struct
+- `obj`: (`::Phantom`) Phantom struct
 
 # Examples
 ```julia-repl
@@ -51,16 +51,17 @@ function read_phantom_jemris(filename)
 	z = xx*0 .+ yy*0 .+ zz*1 .+ offset[3]	#spin z coordinates
 	v = 0 # m/s
 
-	phantom = Phantom{Float64}(name=basename(filename),
-					x=    x[mask],
-					y=    y[mask],
-					z=    z[mask],
-					ρ=    ρ[mask],
-					T1=	 T1[mask],
-					T2=	 T2[mask],
-					T2s=T2s[mask],
-					Δw=	 Δw[mask],
-					ux=(x,y,z,t)->v*t
-					)
-	phantom
+	obj = Phantom{Float64}(
+        name = basename(filename),
+		x = x[mask],
+		y = y[mask],
+		z = z[mask],
+		ρ = ρ[mask],
+		T1 = T1[mask],
+		T2 = T2[mask],
+		T2s = T2s[mask],
+		Δw = Δw[mask],
+		ux = (x,y,z,t)->v*t,
+	)
+	return obj
 end

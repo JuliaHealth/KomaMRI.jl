@@ -26,7 +26,7 @@ mutable struct RF
     A
     T
     Δf
-    delay::Float64
+    delay::Real
 end
 ```
 
@@ -188,14 +188,14 @@ julia> plot_seq(seq)
 
 ## ADC
 
-The **ADC** struct is defined as follows in the source code of **KomaMRI**:
+The **ADC** struct is defined in the **KomaMRI** source code as follows:
 ```julia
 mutable struct ADC
-    N::Int64
-    T::Float64
-    delay::Float64
-    Δf::Float64
-    ϕ::Float64
+    N::Integer
+    T::Real
+    delay::Real
+    Δf::Real
+    ϕ::Real
 end
 ```
 

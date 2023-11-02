@@ -4,20 +4,21 @@
     seq = Sequence(GR, RF)
     seq = Sequence(GR, RF, ADC)
     seq = Sequence(GR, RF, ADC, DUR)
-    seq = Sequence(GR::Array{Grad,1})
-    seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
-    seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
+    seq = Sequence(GR::Vector{Grad})
+    seq = Sequence(GR::Vector{Grad}, RF::Vector{RF})
+    seq = Sequence(GR::Vector{Grad}, RF::Vector{RF}, A::ADC, DUR, DEF)
 
-The Sequence struct.
+The Sequence struct. It contains events of an MRI sequence. Most field names (except for the
+DEF field) consist of matrices or vectors, where each column index represents a sequence
+block. This struct serves as an input for the simulation.
 
 # Arguments
-- `GR`: (`::Matrix{Grad}`) gradient matrix, rows are for (x,y,z) and columns are for time
-- `RF`: (`::Matrix{RF}`) RF matrix, the 1 row is for the coil and columns are for time
-- `ADC`: (`::Vector{ADC}`) ADC vector in time
-- `DUR`: (`::Vector{Float64}`, `[s]`) duration of each sequence-block, this enables
-    delays after RF pulses to satisfy ring-down times
+- `GR`: (`::Matrix{Grad}`) gradient matrix. Rows for x-y-z amplitudes and columns are for blocks
+- `RF`: (`::Matrix{RF}`) RF matrix. The 1 row is for the coil and columns are for blocks
+- `ADC`: (`::Vector{ADC}`) ADC block vector
+- `DUR`: (`::Vector{Real}`, `[s]`) duration block vector
 - `DEF`: (`::Dict{String, Any}`) dictionary with relevant information of the sequence.
-    The possible keys are [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
+    Possible keys could be [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
     `"Num_Blocks"`, `"Nx"`, `"Ny"`, `"PulseqVersion"`, `"BlockDurationRaster"`,
     `"FileName"`, `"RadiofrequencyRasterTime"`]
 
@@ -32,60 +33,50 @@ mutable struct Sequence
 	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
 end
 
-#MAIN CONSTRUCTORS
-function Sequence(GR)	  #If no RF is defined, just use a zero amplitude pulse
-	M,N = size(GR)
-	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N],
-		reshape([RF(0, 0) for i = 1:N],1,:),
-		[ADC(0, 0) for i = 1:N],
-		GR.dur,
-		Dict()
-		)
+# Main Constructors
+function Sequence(GR)
+	M, N = size(GR)
+    gr = [i <= M ? GR[i,j] : Grad(0, 0) for i in 1:3, j in 1:N]
+    rf = reshape([RF(0, 0) for i in 1:N], 1, :)
+    adc = [ADC(0, 0) for _ = 1:N]
+	return Sequence(gr, rf, adc, GR.dur, Dict())
 end
-function Sequence(GR, RF)	#If no ADC is DEFined, just use a ADC with 0 samples
-	@assert size(GR,2) .== size(RF,2) "The number of Gradient, and RF objects must be the same."
-	M,N = size(GR)
-	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N],
-		RF,
-		[ADC(0, 0) for i = 1:N],
-		maximum([GR.dur RF.dur],dims=2)[:],
-		Dict()
-		)
+function Sequence(GR, RF)
+	@assert size(GR, 2) .== size(RF, 2) "The number of Gradient, and RF objects must be the same."
+	M, N = size(GR)
+    gr = [i <= M ? GR[i,j] : Grad(0, 0) for i in 1:3, j in 1:N]
+    adc = [ADC(0, 0) for _ in 1:N]
+    dur = maximum([GR.dur RF.dur], dims=2)[:]
+	return Sequence(gr, RF, adc, dur, Dict())
 end
 function Sequence(GR, RF, ADC)
-	@assert size(GR,2) .== size(RF,2) .== length(ADC) "The number of Gradient, RF, and ADC objects must be the same."
-	M,N = size(GR)
-	Sequence([i <= M ? GR[i,j] : Grad(0, 0) for i=1:3, j=1:N],
-		RF,
-		ADC,
-		maximum([GR.dur RF.dur ADC.dur],dims=2)[:],
-		Dict())
+	@assert size(GR, 2) .== size(RF, 2) .== length(ADC) "The number of Gradient, RF, and ADC objects must be the same."
+	M, N = size(GR)
+    gr = [i <= M ? GR[i,j] : Grad(0, 0) for i in 1:3, j in 1:N]
+    dur = maximum([GR.dur RF.dur ADC.dur], dims=2)[:]
+	return Sequence(gr, RF, ADC, dur, Dict())
 end
 function Sequence(GR, RF, ADC, DUR)
-	@assert size(GR,2) .== size(RF,2) .== length(ADC) .== length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
-	M,N = size(GR)
-	Sequence([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N],
-		RF,
-		ADC,
-		maximum([GR.dur RF.dur ADC.dur DUR],dims=2)[:],
-		Dict())
+	@assert size(GR, 2) .== size(RF, 2) .== length(ADC) .== length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
+	M, N = size(GR)
+    gr = [i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i in 1:3, j in 1:N]
+    dur = maximum([GR.dur RF.dur ADC.dur DUR], dims=2)[:]
+	return Sequence(gr, RF, ADC, dur, Dict())
 end
 
 #OTHER CONSTRUCTORS
-Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,1,:))
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}) = Sequence(
-														reshape(GR,:,1),
-														reshape(RF,1,:),
-														[ADC(0,0) for i = 1:size(GR,2)]
-														)
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF) = Sequence(
-																reshape(GR,:,1),
-																reshape(RF,1,:),
-																[A],
-																[DUR],
-																DEF
-																)
-Sequence() = Sequence([Grad(0,0)])
+function Sequence(GR::Array{Grad,1})
+    return Sequence(reshape(GR,1,:))
+end
+function Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
+    return Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0) for i in 1:size(GR, 2)])
+end
+function Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
+    return Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], [DUR], DEF)
+end
+function Sequence()
+    return Sequence([Grad(0, 0)])
+end
 
 """
     str = show(io::IO, s::Sequence)

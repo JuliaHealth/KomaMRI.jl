@@ -156,14 +156,14 @@ of the `"return_type"` key of the `simParams` dictionary.
 - `sys`: (`::Scanner`) Scanner struct
 
 # Keywords
-- `simParams`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) the dictionary with simulation
-    parameters
-- `w`: (`::Any`, `=nothing`) the flag to regard a progress bar in the blink window UI. If
-    this variable is differnet from nothing, then the progress bar is considered
+- `simParams`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
+- `w`: (`::Blink.AtomShell.Window`, `=nothing`) the window within which to display a
+    progress bar in the Blink Window UI. If this variable is anything other than 'nothing',
+    the progress bar will be considered
 
 # Returns
-- `out`: (`::Vector{ComplexF64}` or `::S <: SpinStateRepresentation` or `RawAcquisitionData`) depending if
-    "return_type" is "mat" or "state" or "raw" (default) respectively.
+- `out`: (`::Vector{Complex}` or `::SpinStateRepresentation` or `::RawAcquisitionData`) depending
+    on whether "return_type" is "mat", "state" or "raw" (default), respectively
 
 # Examples
 ```julia-repl
@@ -176,7 +176,10 @@ julia> raw = simulate(obj, seq, sys)
 julia> plot_signal(raw)
 ```
 """
-function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{String,Any}(), w=nothing)
+function simulate(
+    obj::Phantom, seq::Sequence, sys::Scanner;
+    simParams=Dict{String,Any}(), w=nothing
+)
     #Simulation parameter unpacking, and setting defaults if key is not defined
     simParams = default_sim_params(simParams)
     # Simulation init
@@ -237,9 +240,9 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 end
 
 """
-    M = simulate_slice_profile(seq; z, simParams)
+    mag = simulate_slice_profile(seq; z, simParams)
 
-Returns magnetization of spins distributed along `z` after running the Sequence `seq`.
+Returns magnetization of spins distributed along `z` after running the Sequence struct.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -250,12 +253,15 @@ Returns magnetization of spins distributed along `z` after running the Sequence 
     simulation parameters
 
 # Returns
-- `M`: (`::Vector{Mag}`) final state of the Mag vector
+- `mag`: (`::SpinStateRepresentation`) final state of the magnetization vector
 """
-function simulate_slice_profile(seq; z=range(-2.e-2, 2.e-2, 200), simParams=Dict{String,Any}("Δt_rf" => 1e-6))
+function simulate_slice_profile(
+    seq::Sequence;
+    z=range(-2.e-2, 2.e-2, 200), simParams=Dict{String,Any}("Δt_rf" => 1e-6)
+)
     simParams["return_type"] = "state"
     sys = Scanner()
-    phantom = Phantom{Float64}(x=zeros(size(z)), z=Array(z))
-    M = simulate(phantom, seq, sys; simParams)
-    M
+    obj = Phantom{Float64}(x=zeros(size(z)), z=Array(z))
+    mag = simulate(obj, seq, sys; simParams)
+    return mag
 end

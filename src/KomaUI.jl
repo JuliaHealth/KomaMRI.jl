@@ -11,9 +11,9 @@ logo = joinpath(assets, "logo-dark.svg")
 icon = joinpath(assets, "icon.svg")
 # Apparently Blink requires an assets folder in a chiled route of where is launched
 icon_png = path*"/ui/assets/logo-icon.png"
-if !isfile(icon_png)
-    cp(joinpath([dirname(path), "assets", "logo-icon.png"]), path*"/ui/assets/logo-icon.png")
-end
+#if !isfile(icon_png)
+#    cp(joinpath([dirname(path), "assets", "logo-icon.png"]), path*"/ui/assets/logo-icon.png"; force=true)
+#end
 # JS
 bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
 bscss = joinpath(css,"bootstrap.min.css")

@@ -3,22 +3,29 @@
     rf = RF(A, T, Δf)
     rf = RF(A, T, Δf, delay)
 
-The RF struct.
+The RF struct. This is an event of an MRI sequence.
 
 # Arguments
-- `A`: (`::Complex{Int64}`, `[T]`) the amplitud-phase B1x + i B1y
-- `T`: (`::Int64`, [`s`]) the duration of the RF
-- `Δf`: (`::Float64`, [`Hz`]) the frequency offset of the RF
-- `delay`: (`::Float64`, [`s`]) the delay time of the RF
+- `A`: (`::Complex`, `[T]`) RF amplitud and phase. B1x + i B1y
+- `T`: (`::Real`, [`s`]) RF duration
+- `Δf`: (`::Real`, [`Hz`]) RF frequency dispracement from carrier
+- `delay`: (`::Real`, [`s`]) RF delay time
 
 # Returns
 - `rf`: (`::RF`) the RF struct
+
+# Examples
+```julia-repl
+julia> rf = RF(1, 1, 0, 0.2)
+
+julia> seq = Sequence(); seq += rf; plot_seq(seq)
+```
 """
 mutable struct RF
 	A
 	T
 	Δf
-	delay::Float64
+	delay::Real
 	function RF(A, T, Δf, delay)
         any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new(A, T, Δf, delay)
     end
