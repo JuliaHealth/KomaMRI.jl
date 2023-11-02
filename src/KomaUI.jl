@@ -82,6 +82,7 @@ if phantom_mode == "3D"
 else
     global phantom = brain_phantom2D()
 end
+global phantom = brain_phantom3D()
 phantom.Δw .*= 0
 println("Phantom object \"$(phantom.name)\" successfully loaded!")
 #SCANNER init

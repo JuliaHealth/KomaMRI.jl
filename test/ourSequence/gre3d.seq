@@ -12,6 +12,9 @@ BlockDurationRaster 1e-05
 FOV 0.2 0.2 0.02 
 GradientRasterTime 1e-05 
 Name gre3d 
+Nx 64 
+Ny 64 
+Nz 32 
 RadiofrequencyRasterTime 1e-06 
 
 # Format of blocks:
@@ -12764,4 +12767,4 @@ num_samples 2
 # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
 # The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
 Type md5
-Hash b8dedaedfadb5af7a38c1446f92c4f05
+Hash cbf9faf4c0947f39e69339f49b56dd3e

@@ -33,6 +33,7 @@ function initialize_spins_state(obj::Phantom{T}, sim_method::Bloch) where {T<:Re
     return Xt, obj
 end
 
+
 function bloch_symmetric_splitting!(u, v, w1, m1, p1,  d::simParametersPhantom, sig1, ADC1)
     # members of d
   M0c = d.M0c
@@ -98,7 +99,8 @@ function bloch_symmetric_splitting!(u, v, w1, m1, p1,  d::simParametersPhantom, 
     Mrot[2, :] = Bd4 .* Mt[1, :] .+ Bd5 .* Mt[2, :] .+ Bd6 .* Mt[3, :]
     Mrot[3, :] = Bd7 .* Mt[1, :] .+ Bd8 .* Mt[2, :] .+ Bd9 .* Mt[3, :]
 
-    
+    # Relaxation
+
     Mt = D .* Mrot .+ b
 
     
@@ -108,7 +110,6 @@ function bloch_symmetric_splitting!(u, v, w1, m1, p1,  d::simParametersPhantom, 
     Mrot[3, :] = Bd7 .* Mt[1, :] .+ Bd8 .* Mt[2, :] .+ Bd9 .* Mt[3, :]
 
     Mt .= Mrot
-    
     if (ADC[n])
         i += 1
         sig[i] = sum(Mrot[1,:]) + sum(Mrot[2,:])im     #transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1))
@@ -119,6 +120,83 @@ function bloch_symmetric_splitting!(u, v, w1, m1, p1,  d::simParametersPhantom, 
     return nothing
 end
 
+
+#=
+function bloch_symmetric_splitting!(u, v, w1, m1, p1,  d::simParametersPhantom#=, sig1, ADC1=#)
+    # members of d
+  M0c = d.M0c
+  T1 = d.T1
+  T2 = d.T2
+  relax = d.relax
+  gamma = d.gamma
+  B1c = d.B1c
+  dt = Array(d.dt)                                                     
+  Np = size(d.points,2)   
+  M0 = d.M0  
+  u = Array(u)
+  v = Array(v)
+  w = Array(w1) 
+  m = Array(m1) 
+  p = Array(p1)                                     
+  @assert length(T1) == Np
+  @assert length(T2) == Np
+  Nu = CUDA.length(u)                                                                # Number of time points 
+  Mrot = CUDA.copy(M0)
+  Mt = CUDA.copy(M0)
+  for n ∈ 1:(Nu - 1)
+
+    gadt = gamma * dt[n] / 2   # Time step multiplied by gamma
+    B1R = B1c * u[n] * gadt                                                     # RF pulse with inhomogeneities
+    B1I = B1c * (-v[n]) * gadt
+    
+    D12 = CUDA.exp.(-1 ./ T2 .* (relax * dt[n]) )
+    D3 = CUDA.exp.(-1 ./ T1 .* (relax * dt[n])) 
+    D = CuArray([1 0 0]')  .* D12' .+ CuArray([0 1 0]')  .* D12' + .+ CuArray([0 0 1]')  .* D3'
+    b = CuArray([0 0 1]') .* (M0c .- M0c * CUDA.exp.(-1 / T1 * relax * dt[n]))                   #right hand    
+    K = gadt .* (d.points[1,:] .* w[n] .+ d.points[2,:] .* m[n] .+ d.points[3,:] .* p[n]) # Inital Gs with no inhomogeneities
+    phi = -CUDA.sqrt.((B1R^2 + B1I^2) .+ K.^2)
+    cs = CUDA.cos.(phi)
+    si = CUDA.sin.(phi)
+    n1 = B1R ./ CUDA.abs.(phi)
+    n2 = B1I ./ CUDA.abs.(phi)
+    n3 = K ./ CUDA.abs.(phi)
+    n1[CUDA.isnan.(n1)] .=1
+    n2[CUDA.isnan.(n2)] .=0
+    n3[CUDA.isnan.(n3)] .=0
+
+    #rotation matrix, 3x3 
+
+    Bd1 = n1 .* n1 .* (1 .- cs) .+ cs                       
+    Bd2 = n1 .* n2 .* (1 .- cs) .- n3 .* si
+    Bd3 = n1 .* n3 .* (1 .- cs) .+ n2 .* si
+    Bd4 = n2 .* n1 .* (1 .- cs) .+ n3 .* si
+    Bd5 = n2 .* n2 .* (1 .- cs) .+ cs
+    Bd6 = n2 .* n3 .* (1 .- cs) .- n1 .* si
+    Bd7 = n3 .* n1 .* (1 .- cs) .- n2 .* si
+    Bd8 = n3 .* n2 .* (1 .- cs) .+ n1 .* si
+    Bd9 = n3 .* n3 .* (1 .- cs) .+ cs
+
+
+    #Computes the solution to M(r,u) using strang splitting techniques
+
+    Mrot[1, :] = Bd1 .* Mt[1, :] .+ Bd2 .* Mt[2, :] .+ Bd3 .* Mt[3, :]
+    Mrot[2, :] = Bd4 .* Mt[1, :] .+ Bd5 .* Mt[2, :] .+ Bd6 .* Mt[3, :]
+    Mrot[3, :] = Bd7 .* Mt[1, :] .+ Bd8 .* Mt[2, :] .+ Bd9 .* Mt[3, :]
+
+    
+    Mt = D .* Mrot .+ b
+
+    
+    # Second Rotation
+    Mrot[1, :] = Bd1 .* Mt[1, :] .+ Bd2 .* Mt[2, :] .+ Bd3 .* Mt[3, :]
+    Mrot[2, :] = Bd4 .* Mt[1, :] .+ Bd5 .* Mt[2, :] .+ Bd6 .* Mt[3, :]
+    Mrot[3, :] = Bd7 .* Mt[1, :] .+ Bd8 .* Mt[2, :] .+ Bd9 .* Mt[3, :]
+
+    Mt .= Mrot
+    end 
+    return Mt
+end
+=#
 """
     run_spin_precession(obj, seq, Xt, sig)
 
@@ -162,7 +240,7 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
 end
 =#
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
-    M::Mag{T}, sim_method::Bloch, ndt) where {T<:Real}
+    M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
     #Motion
     xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
@@ -182,15 +260,26 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     #tp = cumsum(seq.Δt) # t' = t - t0
     #dur = sum(seq.Δt)   # Total length, used for signal relaxation
     #Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
-    println("Here")
-    points = xt' .* [1,0,0] .+ yt' .* [0,1,0] .+ zt' .* [0,0,1]
-    M0 =  real.(M.xy)' .* [1,0,0] .+ imag.(M.xy)' .* [0,1,0] .+ M.z' .* [0,0,1]
-    params = simParametersPhantom(1.0,p.T1,p.T2,1,γ,1.0,seq.Δt,points,M0,3.0,[0])
-    Mi = bloch_symmetric_splitting(zeros(length(seq.Gx)), zeros(length(seq.Gx)),seq.Gz .* 1000, seq.Gx .* 1000, seq.Gy .* 1000,params,ndt)
+    X = CuArray([1,0,0])
+    Y = CuArray([0,1,0])
+    Z = CuArray([0,0,1])
+    points = xt' .* X .+ yt' .* Y .+ zt' .* Z
+    M0 =  CUDA.real.(M.xy)' .* X .+ CUDA.imag.(M.xy)' .* Y.+ M.z' .* Z
+    #println("M0")
+    #show(IOContext(stdout, :limit => true), "text/plain", M0)
+    params = simParametersPhantom(0.7,p.T1,p.T2,1,γ,1.0,seq.Δt,points,M0,3.0,[0])
+    Mi = bloch_symmetric_splitting!(zeros(length(seq.Gx)), zeros(length(seq.Gx)),seq.Gz .* 1000, seq.Gx .* 1000, seq.Gy .* 1000,params)
+    #println("Mi")
+    #show(IOContext(stdout, :limit => true), "text/plain", Mi)
     M.xy .= Mi[1,:] .+ (Mi[2,:] .*im)
     M.z  .= Mi[3,:]
+    #println("M")
+    #show(IOContext(stdout, :limit => true), "text/plain", M)
     #Acquired signal
+    #println(sig)
+    #println(transpose(sum(M.xy[:, findall(seq.ADC)]; dims=1)))
     sig .= transpose(sum(M.xy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    #show(IOContext(stdout, :limit => true), "text/plain", sig)
     return nothing
 end
 
@@ -236,7 +325,7 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
 end
 =#
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    M::Mag{T}, sim_method::Bloch, ndt) where {T<:Real}
+    M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
     for s ∈ seq #This iterates over seq, "s = seq[i,:]"
         #Motion
@@ -244,6 +333,7 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
         yt = p.y .+ p.uy(p.x, p.y, p.z, s.t)
         zt = p.z .+ p.uz(p.x, p.y, p.z, s.t)
         #Effective field
+        #=
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
@@ -254,6 +344,16 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
         #Relaxation
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
         M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
+        =#
+        X = CuArray([1,0,0])
+        Y = CuArray([0,1,0])
+        Z = CuArray([0,0,1])
+        points = xt' .* X .+ yt' .* Y .+ zt' .* Z
+        M0 =  CUDA.real.(M.xy)' .* X .+ CUDA.imag.(M.xy)' .* Y.+ M.z' .* Z
+        params = simParametersPhantom(0.7,p.T1 .* 1000,p.T2 .* 1000,1,γ,1.0,seq.Δt,points,M0,3.0,[0])
+        Mi = bloch_symmetric_splitting!(real.(seq.B1) .* 1000, imag.(seq.B1) .* 1000,seq.Gz .* 1000, seq.Gx .* 1000, seq.Gy .* 1000,params)
+        M.xy .= Mi[1,:] .+ (Mi[2,:] .*im)
+        M.z  .= Mi[3,:]
     end
     #Acquired signal
     #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
