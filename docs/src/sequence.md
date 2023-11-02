@@ -1,16 +1,15 @@
 # Sequence Definition
 
-This section dives into some details about how a sequence is constructed. The sequence definition of **KomaMRI** is strongly realated with the [Pulseq](https://pulseq.github.io/index.html) definition. After you read this section, you should be able to construct your own **Sequence** structs to perform your custom simulations using the **KomaMRI** package.
+This section delves into some details about how a sequence is constructed. The sequence definition in **KomaMRI** is strongly related to the [Pulseq](https://pulseq.github.io/index.html) definition. After reading this section, you should be able to create your own **Sequence** structs for conducting custom simulations using the **KomaMRI** package.
 
 ## Sequence Overview
 
-Let's introduce the following simple sequence figure to extend the ideas from a visual example to a more general sequence definition:
-
+Let's introduce the following simple sequence figure to expand from a visual example to a more general sequence definition:
 ```@raw html
 <p align="center"><img width="80%" src="../assets/sequence-diagram.svg"/></p>
 ```
 
-A **sequence** can be thought as and ordered concatenation of blocks over time. A block is a **sequence** of length 1. Every block is composed by an **RF** pulse, the ``(x,y,z)`` **gradients**,  and the **acquisition** of the samples. There is also a time **duration** associated to each block. For short, we are going to refer to these components like so:
+A **sequenc**e** can be thought of as an ordered concatenation of blocks over time. Each block is essentially a sequence with a length of 1. Every block consists of an **RF** pulse, the ``(x,y,z)`` **gradients**, and the **acquisition** of samples. Each block also has an associated time **duration**. To simplify, we will refer to these components as follows:
 
 ```math
 \begin{matrix*}[l]
@@ -24,14 +23,14 @@ seq.DUR[i]  &: & \text{duration at the $i$ block}
 \end{matrix*}
 ```
 
-The best way to understand the **Sequence** struct of **KomaMRI** is by directly seeing the source code where this struct is defined:
+The best way to understand the **Sequence** struct in **KomaMRI** is by examining the source code where this struct is defined:
 ```julia
 mutable struct Sequence
-    GR::Array{Grad,2}      # Sequence in (X, Y and Z) and time
-    RF::Array{RF,2}        # RF pulses in coil and time
-    ADC::Array{ADC,1}      # ADC in time
-    DUR::Vector            # Duration of each block
-    DEF::Dict{String,Any}  # Dictionary with information relevant to the reconstructor
+    GR::Array{Grad,2}
+    RF::Array{RF,2}
+    ADC::Array{ADC,1}
+    DUR::Vector
+    DEF::Dict{String,Any}
 end
 ```
 
@@ -56,9 +55,9 @@ julia> plot_seq(seq)
 <p align="center"><img width="100%" src="../assets/seq-epi-example-full.svg"/></p>
 ```
 
-In this way you can see exactly where are present the **RF**, **Grad** and **ADC** structs.
+This way, you can see exactly where the **RF**, **Grad** and **ADC** structs are located in time.
 
-You can filter the information for the **RF**, **Grad**, **ADC** and **DUR** field names of a **Sequence** by simply accessing to them with the ''dot'' notation, so you can display helpful information of how the **Sequence** struct is organized:
+You can access and filter information for the **RF**, **Grad**, **ADC**, and **DUR** field names of a **Sequence** using the dot notation. This allows you to display helpful information about the organization of the **Sequence** struct:
 ```julia-repl
 julia> seq.RF
 1×204 Matrix{RF}:
@@ -89,7 +88,7 @@ julia> seq.DUR
  0.0004042313086942605
 ```
 
-Additionally, you can access to a subset of blocks in a **Sequence** by slicing or indexing, in which case the result will also be a **Sequence** struct and thus you can perform the same normal operations for a **Sequence**. For example, if you are interested in analyzing just the first 11 blocks, you can make something like this:
+Additionally, you can access a subset of blocks in a **Sequence** by slicing or indexing. The result will also be a **Sequence** struct, allowing you to perform the same operations as you would with a full Sequence. For example, if you want to analyze the first 11 blocks, you can do the following:
 ```julia-repl
 julia> seq[1:11]
 Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]
@@ -108,7 +107,7 @@ julia> plot_seq(seq[1:11])
 
 ## Concatenation of Sequences 
 
-We can concatenate sequences together side by side. The example bellow shows how to concatenate sequences:
+Sequences can be concatenated side by side. The example below demonstrates how to concatenate sequences:
 ```julia-repl
 julia> s = PulseDesigner.EPI_example()[1:11]
 Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]

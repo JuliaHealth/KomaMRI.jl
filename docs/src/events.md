@@ -1,26 +1,26 @@
 # Event Definitions
 
-We refer to **RF**, **Grad** and **ADC** as ''events''. This section deals with some details about how events can be defined and how they can be manipulated inside a **Sequence** struct.
+We refer to **RF**, **Grad**, and **ADC** as "events". This section covers the details of how events are defined and manipulated within a **Sequence** struct.
 
 ## Events Overview
 
-As we already know, a **Sequence** struct contains field names that access to arrays of **RF**, **Grad** and **ADC** structs. So, in order to create a **Sequence** you need to understand how to create these basic events. In the image bellow, we show a summary of how you can define **RF**, **Grad** and **ADC** events:
+As we already know, a **Sequence** struct contains field names that store arrays of **RF**, **Grad** and **ADC** structs. To create a **Sequence**, it's essential to understand how to create these fundamental events. In the image below, we provide a summary of how you can define **RF**, **Grad** and **ADC** events:
 
 ```@raw html
 <p align="center"><img width="90%" src="../assets/event-shapes.svg"/></p>
 ```
 
-As a general overview, you can see that the **RF** and **Grad** structs has 3 ways of defining waveforms: a simple pulse/trapezoidal, evenly time spaced waveform (uniformly-sampled) and non-uniform time sampled waveform (time-shaped); whereas the **ADC** just have one way to define its struct. It's important to notice that the way the samples of the **RF** and **Grad** structs are interpolated by **KomaMRI** are different; on one hand for **RF** is used a zero-order-hold sampling, on the other hand for **Grads** is used linear interpolation. 
+As a general overview, you can observe that the **RF** and **Grad** structs have three ways of defining waveforms: a simple pulse/trapezoidal waveform, an evenly time-spaced waveform (uniformly-sampled), and a non-uniform time-sampled waveform (time-shaped). In contrast, the **ADC** has only one method for defining its struct. It's important to note that the way samples in the **RF** and **Grad** structs are interpolated by **KomaMRI** is different. **R**F uses a zero-order-hold sampling, while **Grads** use linear interpolation.
 
 !!! warning
-    The way in which the **RF** interpolation is interpreted by **KomaMRI** will change in future versions considering linear interpolation between 2 consecutive samples instead of the present zero-order-hold, just like is being done with the **Grad** struct.
+    In future versions of **KomaMRI**, the **RF** interpolation will change to use linear interpolation between two consecutive samples, similar to what is currently done with the **Grad** struct.
 
-In the following subsections, we are going to explain more in detail the parameters to define events and how to create a **Sequence** with the **RF**, **Grad** and **ADC** events.
+In the following subsections, we will provide detailed explanations of event parameters and how to create a **Sequence** using **RF**, **Grad** and **ADC** events.
 
 
 ## RF
 
-The **RF** struct is defined as follows in the source code of **KomaMRI**:
+The **RF** struct is defined in the source code of **KomaMRI** as follows:
 ```julia
 mutable struct RF
     A
@@ -37,7 +37,7 @@ As you can see, it has 4 field names: ''A'' defines amplitude, ''T'' defines dur
 * Uniformly-Sampled Waveform: A is a vector and T is a number
 * Time-Shaped Waveform: A and T are both vectors with the same length (zero-order-hold)
 
-Let's see some basic examples on how to create these types of **RF** structs and put them inside a **Sequence** struct. The examples should be self explanatory.
+Let's look at some basic examples of creating these **RF** structs and including them in a **Sequence** struct. The examples should be self-explanatory.
 
 ### RF Pulse Waveform
 
@@ -123,7 +123,8 @@ Just like the **RF**, ''A'' and ''T'' in the **Grad** struct can be numbers or v
 * Uniformly-Sampled Waveform: A is a vector and T is a number
 * Time-Shaped Waveform: A and T are both vectors, A has one sample more the T (linear interpolation)
 
-Let's see some basic examples on how to create these types of **Grad** structs and put them inside a **Sequence** struct considering just the ''x'' component of the gradients. The examples should be self explanatory.
+
+Let's look at some basic examples of creating these **Grad** structs and including them in a **Sequence** struct, focusing on the ''x'' component of the gradients. The examples should be self-explanatory.
 
 ### Gradient Trapezoidal Waveform
 
@@ -201,7 +202,7 @@ end
 
 As you can see, it has 5 field names: ''N'' defines number of samples, ''T'' defines total acquisition duration, ''delay'' is the distance between the 0 time and the first sampled signal, ''Δf'' and ''ϕ' are factor to correct signal acquisition (for advanced users).
 
-Let's see a basic example on how to define an **ADC** struct and put it inside a **Sequence** struct:
+Let's look at a basic example of defining an **ADC** struct and including it in a **Sequence** struct:
 ```julia-repl
 julia> N, T, delay =  16, 5e-3, 1e-3;
 
@@ -218,30 +219,29 @@ julia> plot_seq(seq)
 ```
 
 !!! warning
-    The **Pulseq** definition of the ADC is different from the **KomaMRI** definition. **KomaMRI** considers ADC samples at `delay` time, at `delay + T`, and with equispaced positions for remaining samples (except for and ADC with 1 sample in which is at the position `delay + T/2`). Meanwhile **Pulseq** regards equispaced samples without considering the `delay` nor the `delay + T` points.    
+    The **ADC** definition in **Pulseq** differs from that in **KomaMRI**. In **KomaMRI**, **ADC** samples are taken at `delay` time, at `delay + T`, and have equispaced positions for the remaining samples, except for an ADC with 1 sample, which is at the position `delay + T/2`. In contrast, **Pulseq** uses equispaced samples without considering the `delay` or the `delay + T` points.    
 
 ## Combination of Events
 
-We can insert multiple events inside a sequence of one block. The example bellow shows how to combine an **RF** struct, 3 **Grad** structs for the x-y-z components and an **ADC** struct in a sequence of one block: 
+We can include multiple events within a single block of a sequence. The example below demonstrates how to combine an **RF** struct, three **Grad** structs for the x-y-z components, and an **ADC** struct in a single block of a sequence:
 ```julia
 # Define an RF struct
-A, T, delay =  1e-6*[0; -0.1; 0.2; -0.5; 1; -0.5; 0.2; -0.1; 0], 0.5e-3, 0.1e-3;
-rf = RF(A, T, 0, delay)
+A, T =  1e-6*[0; -0.1; 0.2; -0.5; 1; -0.5; 0.2; -0.1; 0], 0.5e-3;
+rf = RF(A, T)
 
 # Define a Grad struct for Gx
-A, T, delay, rise, fall =  50*10e-6, 5e-3, 2e-3, 1e-3, 1e-3
-gx = Grad(A, T, rise, fall, delay)
+A, T, rise =  50*10e-6, 5e-3, 1e-3
+gx = Grad(A, T, rise)
 
 # Define a Grad struct for Gy
 A = 50*10e-6*[0; 0.5; 0.9; 1; 0.9; 0.5; 0; -0.5; -0.9; -1]
-T, delay, rise, fall = 5e-3, 2e-3, 0, 1e-3;
-gy = Grad(A, T, rise, fall, delay)
+T, rise = 5e-3, 2e-3;
+gy = Grad(A, T, rise)
 
 # Define a Grad struct for Gz
 A = 50*10e-6*[0; 0.5; 0.9; 1; 0.9; 0.5; 0; -0.5; -0.9; -1]
-T = 5e-3*[0.2; 0.1; 0.3; 0.2; 0.1; 0.2; 0.3; 0.2; 0.1]
-delay, rise, fall = 2e-3, 1e-3, 1e-3
-gz = Grad(A, T, rise, fall, delay)
+T = 5e-3*[0.0; 0.1; 0.3; 0.2; 0.1; 0.2; 0.3; 0.2; 0.1]
+gz = Grad(A, T)
 
 # Define an ADC struct
 N, T, delay =  16, 5e-3, 1e-3
@@ -249,7 +249,7 @@ adc = ADC(N, T, delay)
 ```
 ```julia-repl
 julia> seq = Sequence([gx; gy; gz;;], [rf;;], [adc])
-Sequence[ τ = 12.5 ms | blocks: 1 | ADC: 1 | GR: 3 | RF: 1 | DEF: 0 ]
+Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 1 | GR: 3 | RF: 1 | DEF: 0 ]
 
 julia> plot_seq(seq)
 ```
@@ -257,4 +257,4 @@ julia> plot_seq(seq)
 <p align="center"><img width="90%" src="../assets/event-combination.svg"/></p>
 ```
 
-It is important to note that once the struct events are defined, in order to create a sequence of one block, is necessary to put 2D matrices of **Grad** and **RF** structs and a vector of **ADC** structs as arguments in the **Sequence()** constructor.
+Once the struct events are defined, it's important to note that to create a single block sequence, you need to provide 2D matrices of **Grad** and **RF** structs, as well as a vector of **ADC** structs as arguments in the **Sequence()** constructor.

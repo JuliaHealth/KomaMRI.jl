@@ -1,17 +1,17 @@
 # Graphical User Interface
 
-This section is meant to explain some details about how to use the user interface of the **KomaMRI** package and the processes that happen internally while interacting with it.
+This section explains how to use the user interface of the **KomaMRI** package and the internal processes during interaction.
 
 ## Basic Workflow
 (You can also go to [analog steps using Scripts](programming-workflow.md#Basic-Workflow))
 
-As a general overview, you need to keep in mind the following steps when using KomaMRI:
+As a general overview, remember the following workflow steps when using KomaMRI:
 
-* Loading Simulation Inputs: Scanner, Phantom, Sequence
+* Loading Simulation Inputs: **Scanner**, **Phantom**, **Sequence**
 * Running Simulation
-* Reconstructing Image using MRIReco
+* Reconstructing Image using **MRIReco**
 
-In the following subsections, we will cover all the aforementioned steps. But first, open the Julia REPL and issue the following commands to include the **KomaMRI** package and launch the user interface:
+In the following subsections, we will cover all the mentioned steps. First, open the **Julia REPL** and enter the following commands to include the **KomaMRI** package and launch the user interface:
 ```julia-repl
 julia> using KomaMRI
 
@@ -24,11 +24,11 @@ julia> KomaUI()
 ## Loading Simulation Inputs
 (You can also go to [analog steps using Scripts](programming-workflow.md#Loading-Simulation-Inputs))
 
-The user interface has already preloaded some inputs (stored in RAM). In particular, it has predefined the **Scanner**, the **Phantom** and the **Sequence** structs. In the following subsections, we will show how to visualize these inputs.
+The user interface has preloaded certain inputs into RAM, including the **Scanner**, **Phantom**, and **Sequence** structs. In the following subsections, we will demonstrate how to visualize these inputs.
 
 ### Scanner
 
-You can visualize the preloaded **Scanner** struct by clicking on the `Scanner` dropdown and then pressing the `View Scanner` button. The **Scanner** struct simply contains information related to the hardware being use like the magnitude of the main magnetic field:
+You can visualize the preloaded **Scanner** struct by clicking on the `Scanner` dropdown and then pressing the `View Scanner` button. The **Scanner** struct contains hardware-related information, such as the main magnetic field's magnitude:
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-scanner-view.png"/></p>
 ```
@@ -63,7 +63,7 @@ For visualization of the sequence in the k-space, click on the `Sequence` dropdo
 
 You can also display the `Moments` related to the **Sequence** by pressing the `View Moments` and then pressing the buttons for zero, first and second moments.
 
-It is also possible to load `.seq` sequence files. The **KomaMRI** has some examples stored at `~/.julia/packages/KomaMRI/<id-string>/examples/1.sequences/`. For instance, let's load the `spiral.seq` file and view it the time domain and k-space:
+It is also possible to load **Pulseq** compatible `.seq` sequence files. The **KomaMRI** has some examples stored at `~/.julia/packages/KomaMRI/<id-string>/examples/1.sequences/`. For instance, let's load the `spiral.seq` file and view it the time domain and k-space:
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-seq-time-load.png"/></p>
 ```
