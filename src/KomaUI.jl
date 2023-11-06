@@ -1,83 +1,108 @@
 include("ui/ExportMATFunctions.jl")
 
-function KomaUI(;dark=true,frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false, blink_show=true)
-## ASSETS
-path = @__DIR__
-assets = AssetRegistry.register(joinpath(dirname(path), "assets"))
-scripts = AssetRegistry.register(dirname(path*"/ui/scripts/"))
-css = AssetRegistry.register(dirname(path*"/ui/css/"))
-# Assets
-logo = joinpath(assets, "logo-dark.svg")
-icon = joinpath(assets, "icon.svg")
-# Apparently Blink requires an assets folder in a chiled route of where is launched
-icon_png = path*"/ui/assets/logo-icon.png"
-if !isfile(icon_png)
-    cp(joinpath([dirname(path), "assets", "logo-icon.png"]), path*"/ui/assets/logo-icon.png")
+"""
+    w = setup_blink_window(path::String)
+
+Returns the blink window with some custom styles and js logic.
+"""
+function setup_blink_window(path::String; darkmode=true, frame=true, dev_tools=false, blink_show=true)
+    ## ASSETS
+    assets = AssetRegistry.register(joinpath(dirname(path), "assets"))
+    scripts = AssetRegistry.register(dirname(path*"/ui/scripts/"))
+    css = AssetRegistry.register(dirname(path*"/ui/css/"))
+    # Assets
+    logo = joinpath(assets, "logo-dark.svg")
+    icon = joinpath(assets, "icon.svg")
+    # Apparently Blink requires an assets folder in a chiled route of where is launched
+    icon_png = path*"/ui/assets/logo-icon.png"
+    if !isfile(icon_png)
+        cp(joinpath([dirname(path), "assets", "logo-icon.png"]), path*"/ui/assets/logo-icon.png")
+    end
+    # JS
+    bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
+    bscss = joinpath(css,"bootstrap.min.css")
+    bsiconcss = joinpath(css,"bootstrap-icons.css")
+    jquery = joinpath(scripts,"jquery-3.4.1.slim.min.js")
+    # mathjaxsetup = joinpath(scripts, "mathjaxsetup.js")
+    # KaTeX
+    katexrender = joinpath(scripts, "auto-render.min.js")
+    katexjs = joinpath(scripts,"katex.min.js")
+    katexcss = joinpath(css,"katex.min.css")
+    # User defined JS and CSS
+    customcss = joinpath(css,"custom.css")
+    customjs = joinpath(scripts,"custom.js")
+    customjs2 = joinpath(scripts,"custom2.js")
+    sidebarcss = joinpath(css,"sidebars.css")
+    # Custom icons
+    icons = joinpath(css,"icons.css")
+    ## WINDOW
+    w = Blink.Window(Dict(
+        "title"=>"KomaUI",
+        "autoHideMenuBar"=>true,
+        "frame"=>frame, #removes title bar
+        "node-integration" => true,
+        :icon=>icon_png,
+        "width"=>1200,
+        "height"=>800,
+        "webPreferences" => Dict("devTools" => dev_tools),
+        :show=>blink_show
+        ),async=false);
+    ## NAV BAR
+    sidebar = open(f->read(f, String), path*"/ui/html/sidebar.html")
+    sidebar = replace(sidebar, "LOGO"=>logo)
+    ## CONTENT
+    index = open(f->read(f, String), path*"/ui/html/index.html")
+    index = replace(index, "ICON"=>icon)
+    #index = replace(index, "BACKGROUND_IMAGE"=>background)
+    ## LOADING
+    #loading = open(f->read(f, String), path*"/ui/html/loading.html")
+    ## CSS
+    loadcss!(w, bscss)
+    loadcss!(w, bsiconcss)
+    loadcss!(w, customcss)
+    loadcss!(w, sidebarcss)
+    # KATEX
+    loadcss!(w, katexcss)
+    loadjs!(w, katexjs)
+    loadjs!(w, katexrender)
+    # JQUERY, BOOSTRAP JS
+    loadjs!(w, customjs)    #must be before jquery
+    loadjs!(w, jquery)
+    loadjs!(w, bsjs)        #after jquery
+    loadjs!(w, customjs2)   #must be after jquery
+    # LOAD ICONS
+    loadcss!(w, icons)
+
+    #Update GUI's home
+    w = body!(w, *(sidebar, index), async=false)
+    if darkmode
+        @js_ w document.getElementById("main").style="background-color:rgb(13,16,17);"
+    end
+
+    # Return the Blink window
+    return w, index
 end
-# JS
-bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
-bscss = joinpath(css,"bootstrap.min.css")
-bsiconcss = joinpath(css,"bootstrap-icons.css")
-jquery = joinpath(scripts,"jquery-3.4.1.slim.min.js")
-# mathjaxsetup = joinpath(scripts, "mathjaxsetup.js")
-# KaTeX
-katexrender = joinpath(scripts, "auto-render.min.js")
-katexjs = joinpath(scripts,"katex.min.js")
-katexcss = joinpath(css,"katex.min.css")
-# User defined JS and CSS
-customcss = joinpath(css,"custom.css")
-customjs = joinpath(scripts,"custom.js")
-customjs2 = joinpath(scripts,"custom2.js")
-sidebarcss = joinpath(css,"sidebars.css")
-# Custom icons
-icons = joinpath(css,"icons.css")
+
+"""
+"""
+function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false, blink_show=true)
+
+    # Setup the Blink window
+    path = @__DIR__
+    w, index = setup_blink_window(path; darkmode, frame, dev_tools, blink_show)
+
+    ## LOADING BAR
+    buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
+    progressbar = """
+    <div class="progress" style="background-color: #27292d;">
+      <div id="simul_progress" class="progress-bar" role="progressbar" style="width: 0%; transition:none;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+    </div>
+    """
+
 ## BOOLEAN TO INDICATE FIRST TIME PRECOMPILING
 global ISFIRSTSIM = true
 global ISFIRSTREC = true
-## WINDOW
-global w = Blink.Window(Dict(
-    "title"=>"KomaUI",
-    "autoHideMenuBar"=>true,
-    "frame"=>frame, #removes title bar
-    "node-integration" => true,
-    :icon=>icon_png,
-    "width"=>1200,
-    "height"=>800,
-    "webPreferences" => Dict("devTools" => dev_tools),
-    :show=>blink_show
-    ),async=false);
-## LOADING BAR
-buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
-progressbar = """
-<div class="progress" style="background-color: #27292d;">
-  <div id="simul_progress" class="progress-bar" role="progressbar" style="width: 0%; transition:none;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-</div>
-"""
-## NAV BAR
-sidebar = open(f->read(f, String), path*"/ui/html/sidebar.html")
-sidebar = replace(sidebar, "LOGO"=>logo)
-## CONTENT
-index = open(f->read(f, String), path*"/ui/html/index.html")
-index = replace(index, "ICON"=>icon)
-#index = replace(index, "BACKGROUND_IMAGE"=>background)
-## LOADING
-#loading = open(f->read(f, String), path*"/ui/html/loading.html")
-## CSS
-loadcss!(w, bscss)
-loadcss!(w, bsiconcss)
-loadcss!(w, customcss)
-loadcss!(w, sidebarcss)
-# KATEX
-loadcss!(w, katexcss)
-loadjs!(w, katexjs)
-loadjs!(w, katexrender)
-# JQUERY, BOOSTRAP JS
-loadjs!(w, customjs)    #must be before jquery
-loadjs!(w, jquery)
-loadjs!(w, bsjs)        #after jquery
-loadjs!(w, customjs2)   #must be after jquery
-# LOAD ICONS
-loadcss!(w, icons)
+
 ## INITAL VARIABLES
 #PHANTOM init
 @info "Loading Phantom (default)"
@@ -98,7 +123,6 @@ println("Smax = $(sys.Smax) mT/m/ms")
 @info "Loading Sequence (default) "
 global seq = PulseDesigner.EPI_example(; sys)
 #Init
-global darkmode = dark
 global raw_ismrmrd = RawAcquisitionData(Dict(
     "systemVendor" => "",
     "encodedSize" => [2,2,1],
@@ -121,6 +145,7 @@ global sim_params = merge(default, sim)
 #GPUs
 @info "Loading GPUs"
 KomaMRICore.print_gpus()
+
 #OBERSVABLES
 global seq_obs = Observable{Sequence}(seq)
 global pha_obs = Observable{Phantom}(phantom)
@@ -324,8 +349,6 @@ handle(w, "recon") do args...
     @js_ w document.getElementById("content").dataset.content = "reconstruction"
 end
 handle(w, "close") do args...
-    global darkmode = nothing
-
     global phantom = nothing
     global seq = nothing
     global sys = nothing
@@ -346,11 +369,7 @@ handle(w, "close") do args...
     global mat_obs = nothing
     close(w)
 end
-#Update GUI's home
-w = body!(w, *(sidebar,index), async=false)
-if darkmode
-    @js_ w document.getElementById("main").style="background-color:rgb(13,16,17);"
-end
+
 #Sequence observable
 load_seq = filepicker(".seq (Pulseq)/.seqk (Koma)"; accept=".seq,.seqk")
 map!(f->if f!="" #Assigning function of data when load button (filepicker) is changed
@@ -379,6 +398,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
         end
     , seq_obs, load_seq)
 w = content!(w, "#seqfilepicker", load_seq, async=false)
+
 #Phantom observable
 load_pha = filepicker(".phantom (Koma)/.h5 (JEMRIS)"; accept=".phantom,.h5")
 map!(f->if f!="" #Assigning function of data when load button (filepicker) is changed
@@ -407,6 +427,7 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
         end
     , pha_obs, load_pha)
 w = content!(w, "#phafilepicker", load_pha, async=false)
+
 #Signal observable
 load_sig = filepicker(".h5/.mrd (ISMRMRD)"; accept=".h5,.mrd")
 map!(f->if f!="" #Assigning function of data when load button (filepicker) is changed
@@ -440,19 +461,19 @@ map!(f->if f!="" #Assigning function of data when load button (filepicker) is ch
     , sig_obs, load_sig)
 w = content!(w, "#sigfilepicker", load_sig, async=false)
 
-#Update Koma version
-version = string(KomaMRICore.__VERSION__)
-content!(w, "#version", version, async=false)
-@info "Currently using KomaMRICore v$version"
+    # Update Koma version on UI
+    version = string(KomaMRICore.__VERSION__)
+    content!(w, "#version", version, async=false)
+    @info "Currently using KomaMRICore v$version"
 
-if dev_tools
-    return w
-else
+    # Return the Blink Window or not
+    (dev_tools) && return w
     return nothing
 end
-end
 
-"""Updates KomaUI's simulation progress bar."""
+"""
+Auxiliary function to updates KomaUI's simulation progress bar.
+"""
 function update_blink_window_progress!(w::Window, block, Nblocks)
     progress = string(floor(Int, block / Nblocks * 100))
     @js_ w (@var progress = $progress;
