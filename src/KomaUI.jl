@@ -144,13 +144,13 @@ end
 
 """
 """
-function callback_filepicker_seq(filename::String, w::Window, seq::Sequence)
+function callback_filepicker(filename::String, w::Window, seq::Sequence)
     if filename != ""
         filename_extension = splitext(filename)[end]
-        if filename_extension ==".seqk" #Koma
+        if filename_extension ==".seqk"     # Koma
             seq = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(filename),"seq")
-        elseif filename_extension == ".seq" #Pulseq
-            seq = read_seq(filename) #Pulseq read
+        elseif filename_extension == ".seq" # Pulseq
+            seq = read_seq(filename)        # Pulseq read
         end
         @js_ w (@var name = $(basename(filename));
         document.getElementById("seqname").innerHTML = "<abbr title='" + name + "'>" + name + "</abbr>";
@@ -169,6 +169,35 @@ function callback_filepicker_seq(filename::String, w::Window, seq::Sequence)
         return seq
     end
     return seq
+end
+
+"""
+"""
+function callback_filepicker(filename::String, w::Window, obj::Phantom)
+    if filename != ""
+        filename_extension = splitext(filename)[end]
+        if filename_extension == ".phantom" # Koma
+            obj = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(filename),"phantom")
+        elseif filename_extension == ".h5"  # JEMRIS
+            obj = read_phantom_jemris(filename)
+        end
+        @js_ w (@var name = $(basename(filename));
+        document.getElementById("phaname").innerHTML="<abbr title='" + name + "'>" + name + "</abbr>";;
+        Toasty("0", "Loaded <b>" + name + "</b> successfully", """
+        <ul>
+            <li>
+                <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('phantom', 1)"><i class="fa fa-search"></i></button>
+                Updating <b>Phantom</b> plots ...
+            </li>
+            <li>
+                <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('simulate', 1)"><i class="bi bi-caret-right-fill"></i></button>
+                Ready to <b>simulate</b>?
+            </li>
+        </ul>
+        """))
+        return obj
+    end
+    return obj
 end
 
 """
@@ -203,6 +232,48 @@ function display_ui!(seq::Sequence, w::Window; type="sequence", darkmode=true)
     end
 end
 
+# Auxiliar function to plot a phantom with slider
+function plot_with_slider(obj::Phantom, seq::Sequence; key=:ρ, darkmode=true)
+    return @manipulate for t0_ms in 1e3*range(0, dur(seq); length=5)
+        plot_phantom_map(obj, key; t0=t0_ms, darkmode)
+    end
+end
+
+"""
+"""
+function display_ui!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
+    display_loading!(w, "Plotting phantom ...")
+    div_content = dom"div"(hbox(buttons_obj...), plot_with_slider(obj, seq; key, darkmode))
+    content!(w, "div#content", div_content)
+    @js_ w document.getElementById("content").dataset.content = "phantom"
+end
+function display_ui!(cnt::Integer, w::Window, obj::Phantom, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
+    display_loading!(w, "Plotting phantom ...")
+    div_content = dom"div"(hbox(buttons_obj...), plot_with_slider(obj, seq; key, darkmode))
+    content!(w, "div#content", div_content)
+    @js_ w document.getElementById("content").dataset.content = "phantom"
+end
+
+"""
+"""
+function display_ui!(sys::Scanner, w::Window)
+    sys_dict = Dict("B0" => sys.B0,
+                "B1" => sys.B1,
+                "Gmax" => sys.Gmax,
+                "Smax" => sys.Smax,
+                "ADC_dt" => sys.ADC_Δt,
+                "seq_dt" => sys.seq_Δt,
+                "GR_dt" => sys.GR_Δt,
+                "RF_dt" => sys.RF_Δt,
+                "RF_ring_down_T" => sys.RF_ring_down_T,
+                "RF_dead_time_T" => sys.RF_dead_time_T,
+                "ADC_dead_time_T" => sys.ADC_dead_time_T)
+    plt = plot_dict(sys_dict)
+    title = """<h1 style="padding: 8px 16px; color: #868888;">Scanner parameters</h1>"""
+    content!(w, "div#content", title*plt)
+    @js_ w document.getElementById("content").dataset.content = "scanneparams"
+end
+
 
 """
 This launches the Koma's UI
@@ -224,7 +295,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     # Setup default simulation inputs
     sys = setup_scanner()
     seq = setup_sequence(sys)
-    global phantom = setup_phantom(; phantom_mode)
+    obj = setup_phantom(; phantom_mode)
 
     ## BOOLEAN TO INDICATE FIRST TIME PRECOMPILING
     global ISFIRSTSIM = true
@@ -242,7 +313,6 @@ global raw_ismrmrd = RawAcquisitionData(Dict(
         [0. 0. 1 1; 0 1 1 1]./2, reshape([0.; 0im; 0; 0],4,1))])
 global rawfile = ""
 global image =  [0.0im 0.; 0. 0.]
-global kspace = [0.0im 0.; 0. 0.]
 global matfolder = tempdir()
 
 #Reco
@@ -258,42 +328,46 @@ KomaMRICore.print_gpus()
     #OBERSVABLES
     obs_sys = Observable{Scanner}(sys)
     obs_seq = Observable{Sequence}(seq)
-global pha_obs = Observable{Phantom}(phantom)
+    obs_obj = Observable{Phantom}(obj)
 global sig_obs = Observable{RawAcquisitionData}(raw_ismrmrd)
 global img_obs = Observable{Any}(image)
 global mat_obs = Observable{Any}(matfolder)
 
 #
 handle(w, "matfolder") do args...
-    str_toast = export_2_mat(obs_seq[], phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], raw_ismrmrd, recParams, image, matfolder; type="all", matfilename="")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolder"
 end
 handle(w, "matfolderseq") do args...
-    str_toast = export_2_mat(obs_seq[], phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="sequence")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], raw_ismrmrd, recParams, image, matfolder; type="sequence")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolderseq"
 end
 handle(w, "matfolderpha") do args...
-    str_toast = export_2_mat(obs_seq[], phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="phantom")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], raw_ismrmrd, recParams, image, matfolder; type="phantom")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolderpha"
 end
 handle(w, "matfoldersca") do args...
-    str_toast = export_2_mat(obs_seq[], phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="scanner")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], raw_ismrmrd, recParams, image, matfolder; type="scanner")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfoldersca"
 end
 handle(w, "matfolderraw") do args...
-    str_toast = export_2_mat(obs_seq[], phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="raw")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], raw_ismrmrd, recParams, image, matfolder; type="raw")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolderraw"
 end
 handle(w, "matfolderima") do args...
-    str_toast = export_2_mat(obs_seq[], phantom, sys, raw_ismrmrd, recParams, image, matfolder; type="image")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], raw_ismrmrd, recParams, image, matfolder; type="image")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolderima"
 end
+
+    # For phantom buttons
+    fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
+    widgets_button_obj = button.(string.(fieldnames_obj))
 
     # Handle "View" sidebar buttons
     handle(w, "index") do _
@@ -315,12 +389,12 @@ end
     handle(w, "pulses_M2") do _
         display_ui!(obs_seq[], w; type="moment2", darkmode)
     end
-
-handle(w, "phantom") do args...
-    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting phantom ...")
-    content!(w, "div#content", loading)
-    include(path*"/ui/PhantomGUI.jl")
-end
+    handle(w, "phantom") do _
+        display_ui!(obs_obj[], w, obs_seq[], widgets_button_obj; key=:ρ, darkmode)
+    end
+    handle(w, "scanner") do _
+        display_ui!(obs_sys[], w)
+    end
 
 handle(w, "sig") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting raw signal ...")
@@ -344,11 +418,7 @@ handle(w, "reconstruction_absK") do args...
     content!(w, "div#content", loading)
     include(path*"/ui/ReconGUI_absK.jl")
 end
-handle(w, "scanner") do args...
-    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying scanner parameters ...")
-    content!(w, "div#content", loading)
-    include(path*"/ui/ScannerParams_view.jl")
-end
+
 handle(w, "sim_params") do args...
     loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying simulation parameters ...")
     content!(w, "div#content", loading)
@@ -370,7 +440,7 @@ handle(w, "simulate") do args...
     @js_ w document.getElementById("simulate!").setAttribute("disabled", true); #Disable button during SIMULATION
     @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
     #To SequenceGUI
-    global raw_ismrmrd = simulate(phantom, obs_seq[], sys; sim_params, w)
+    global raw_ismrmrd = simulate(obs_obj[], obs_seq[], obs_sys[]; sim_params, w)
     #After simulation go to RECON
     @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
     #EXPORT to ISMRMRD -> To SignalGUI
@@ -382,7 +452,7 @@ handle(w, "simulate") do args...
     #Message
     sim_time = raw_ismrmrd.params["userParameters"]["sim_time_sec"]
     @js_ w (@var sim_time = $sim_time;
-    @var name = $(phantom.name);
+    @var name = $(obj.name);
     document.getElementById("rawname").innerHTML="Koma_signal.mrd";
     Toasty("1", """Simulation successfull<br>Time: <a id="sim_time"></a> s""" ,"""
     <ul>
@@ -427,8 +497,6 @@ handle(w, "recon") do args...
     @info "Running reconstruction of $rawfile"
     aux = @timed reconstruction(acqData, recParams)
     global image  = reshape(aux.value.data,Nx,Ny,:)
-    global kspace = fftc(reshape(aux.value.data,Nx,Ny,:))
-    # global img_obs[] = image
     #After Recon go to Image
     recon_time = aux.time
     @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
@@ -450,18 +518,15 @@ handle(w, "recon") do args...
     @js_ w document.getElementById("content").dataset.content = "reconstruction"
 end
 handle(w, "close") do args...
-    global phantom = nothing
 
     global raw_ismrmrd = nothing
     global rawfile = nothing
 
     global image = nothing
-    global kspace = nothing
 
     global sim_params = nothing
     global recParams = nothing
 
-    global pha_obs = nothing
     global sig_obs = nothing
     global img_obs = nothing
     global mat_obs = nothing
@@ -470,41 +535,20 @@ end
 
     # Define functionality of sequence filepicker widget
     widget_filepicker_seq = filepicker(".seq (Pulseq)/.seqk (Koma)"; accept=".seq,.seqk")
-    map!((filename) -> callback_filepicker_seq(filename, w, obs_seq[]), obs_seq, widget_filepicker_seq)
-    # Update on change of the sequence observable (when respective filepicker changes it)
+    map!((filename) -> callback_filepicker(filename, w, obs_seq[]), obs_seq, widget_filepicker_seq)
     on((seq) -> display_ui!(seq, w; type="sequence", darkmode), obs_seq)
+
+    # Define functionality of phantom filepicker widget and sub-buttons
+    widget_filepicker_obj = filepicker(".phantom (Koma)/.h5 (JEMRIS)"; accept=".phantom,.h5")
+    map!((filename) -> callback_filepicker(filename, w, obs_obj[]), obs_obj, widget_filepicker_obj)
+    on((obj) -> display_ui!(obj, w, obs_seq[], widgets_button_obj; key=:ρ, darkmode), obs_obj)
+    for (widget_button, key) in zip(widgets_button_obj, fieldnames_obj)
+        on((cnt) -> display_ui!(cnt, w, obs_obj[], obs_seq[], widgets_button_obj; key, darkmode), widget_button)
+    end
 
     # Add filepicker widgets to the UI
     content!(w, "#seqfilepicker", widget_filepicker_seq, async=false)
-
-#Phantom observable
-load_pha = filepicker(".phantom (Koma)/.h5 (JEMRIS)"; accept=".phantom,.h5")
-map!(f->if f!="" #Assigning function of data when load button (filepicker) is changed
-            if splitext(f)[end]==".phantom" #Koma
-                global phantom = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(f),"phantom")
-            elseif splitext(f)[end]==".h5" #JEMRIS
-                global phantom = read_phantom_jemris(f)
-            end
-            @js_ w (@var name = $(basename(f));
-            document.getElementById("phaname").innerHTML="<abbr title='"+name+"'>"+name+"</abbr>";;
-            Toasty("0", "Loaded <b>"+name+"</b> successfully", """
-            <ul>
-                <li>
-                    <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('phantom', 1)"><i class="fa fa-search"></i></button>
-                    Updating <b>Phantom</b> plots ...
-                </li>
-                <li>
-                    <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('simulate', 1)"><i class="bi bi-caret-right-fill"></i></button>
-                    Ready to <b>simulate</b>?
-                </li>
-            </ul>
-            """))
-            phantom
-        else
-            phantom #default
-        end
-    , pha_obs, load_pha)
-w = content!(w, "#phafilepicker", load_pha, async=false)
+    content!(w, "#phafilepicker", widget_filepicker_obj, async=false)
 
 #Signal observable
 load_sig = filepicker(".h5/.mrd (ISMRMRD)"; accept=".h5,.mrd")
