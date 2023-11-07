@@ -289,26 +289,22 @@ function display_ui!(seq::Sequence, w::Window; type="sequence", darkmode=true)
     end
 end
 
-# Auxiliar function to plot a phantom with slider
-function plot_with_slider(obj::Phantom, seq::Sequence; key=:ρ, darkmode=true)
-    return @manipulate for t0_ms in 1e3*range(0, dur(seq); length=5)
+"""
+"""
+function display_ui_phantom!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
+    display_loading!(w, "Plotting phantom ...")
+    widget_plot = @manipulate for t0_ms in 1e3*range(0, dur(seq); length=5)
         plot_phantom_map(obj, key; t0=t0_ms, darkmode)
     end
-end
-
-"""
-"""
-function display_ui!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
-    display_loading!(w, "Plotting phantom ...")
-    div_content = dom"div"(hbox(buttons_obj...), plot_with_slider(obj, seq; key, darkmode))
+    div_content = dom"div"(hbox(buttons_obj...), widget_plot)
     content!(w, "div#content", div_content)
     @js_ w document.getElementById("content").dataset.content = "phantom"
+end
+function display_ui!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
+    display_ui_phantom!(obj, w, seq, buttons_obj; key, darkmode)
 end
 function display_ui!(cnt::Integer, w::Window, obj::Phantom, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
-    display_loading!(w, "Plotting phantom ...")
-    div_content = dom"div"(hbox(buttons_obj...), plot_with_slider(obj, seq; key, darkmode))
-    content!(w, "div#content", div_content)
-    @js_ w document.getElementById("content").dataset.content = "phantom"
+    display_ui_phantom!(obj, w, seq, buttons_obj; key, darkmode)
 end
 
 """
@@ -334,6 +330,17 @@ end
 
 """
 """
+function display_ui!(sim_params::Dict{String, Any}, w::Window)
+    display_loading!(w, "Displaying simulation parameters ...")
+    plt = plot_dict(sim_params)
+    title = """<h1 style="padding: 8px 16px; color: #868888;">Simulation parameters</h1>"""
+    content!(w, "div#content", title*plt)
+    @js_ w document.getElementById("content").dataset.content = "simparams"
+end
+
+
+"""
+"""
 function display_ui!(raw::RawAcquisitionData, w::Window; darkmode=true)
     display_loading!(w, "Plotting raw signal ...")
     widget_plot = plot_signal(raw; darkmode)
@@ -343,12 +350,44 @@ end
 
 """
 """
-function display_ui!(sim_params::Dict{String, Any}, w::Window)
-    display_loading!(w, "Displaying simulation parameters ...")
-    plt = plot_dict(sim_params)
-    title = """<h1 style="padding: 8px 16px; color: #868888;">Simulation parameters</h1>"""
+function display_ui!(rec_params::Dict{Symbol, Any}, w::Window)
+    display_loading!(w, "Displaying reconstruction parameters ...")
+    plt = plot_dict(rec_params)
+    title = """<h1 style="padding: 8px 16px; color: #868888;">Reconstruction parameters</h1>"""
     content!(w, "div#content", title*plt)
-    @js_ w document.getElementById("content").dataset.content = "simparams"
+    @js_ w document.getElementById("content").dataset.content = "recparams"
+end
+
+"""
+"""
+function display_ui!(img::Array, w::Window; type="absi", darkmode=true)
+    # Add loading progress and then a plot to the UI depending on type of the plot
+    if type == "absi"
+        display_loading!(w, "Plotting image magnitude ...")
+        widget_plot = @manipulate for slice in 1:size(img, 3)
+            aux = abs.(img) * prod(size(img)[1:2])
+            plot_image(aux[:, :, slice], zmin=minimum(aux[:]), zmax=maximum(aux[:]); darkmode, title="Reconstruction ($slice/$(size(img, 3)))")
+        end
+        content!(w, "div#content", dom"div"(widget_plot))
+        @js_ w document.getElementById("content").dataset.content = "absi"
+    elseif type == "angi"
+        display_loading!(w, "Plotting image phase ...")
+        widget_plot = @manipulate for slice in 1:size(img, 3)
+            aux = angle.(img[:, :, slice])
+            plot_image(aux, zmin=-π, zmax=π; darkmode, title="Reconstruction ($slice/$(size(img, 3)))")
+        end
+        content!(w, "div#content", dom"div"(widget_plot))
+        @js_ w document.getElementById("content").dataset.content = "angi"
+    elseif type == "absk"
+        display_loading!(w, "Plotting image k ...")
+        widget_plot = @manipulate for slice in 1:size(img, 3)
+            kspace = fftc(img)
+            aux = log.(abs.(kspace[:, :, slice]) .+ 1)
+            plot_image(aux, zmin=0, zmax=.1*maximum(aux[:]); darkmode, title="Reconstruction ($slice/$(size(img, 3)))")
+        end
+        content!(w, "div#content", dom"div"(widget_plot))
+        @js_ w document.getElementById("content").dataset.content = "absk"
+    end
 end
 
 
@@ -369,26 +408,23 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     </div>
     """
 
-    # Setup default simulation inputs
+    # Setup default simulation inputs (they have observables)
     sys = setup_scanner()
     seq = setup_sequence(sys)
     obj = setup_phantom(; phantom_mode)
     raw = setup_raw()
+    img =  [0.0im 0.; 0. 0.]
 
-    # Define parameters
+    # Define parameters (they are just internal variables)
     sim_params = merge(Dict{String,Any}(), sim)
+    rec_params = merge(Dict{Symbol,Any}(:reco=>"direct"), rec)
 
     ## BOOLEAN TO INDICATE FIRST TIME PRECOMPILING
     global ISFIRSTSIM = true
     global ISFIRSTREC = true
 
     # Init
-global image =  [0.0im 0.; 0. 0.]
 global matfolder = tempdir()
-
-#Reco
-default = Dict{Symbol,Any}(:reco=>"direct") #, :iterations=>10, :λ=>1e-5,:solver=>"admm",:regularization=>"TV")
-global recParams = merge(default, rec)
 
 #GPUs
 @info "Loading GPUs"
@@ -399,37 +435,37 @@ KomaMRICore.print_gpus()
     obs_seq = Observable{Sequence}(seq)
     obs_obj = Observable{Phantom}(obj)
     obs_raw = Observable{RawAcquisitionData}(raw)
-global img_obs = Observable{Any}(image)
+    obs_img = Observable{Array}(img)
 global mat_obs = Observable{Any}(matfolder)
 
 #
 handle(w, "matfolder") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], recParams, image, matfolder; type="all", matfilename="")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="all", matfilename="")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolder"
 end
 handle(w, "matfolderseq") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], recParams, image, matfolder; type="sequence")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="sequence")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolderseq"
 end
 handle(w, "matfolderpha") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], recParams, image, matfolder; type="phantom")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="phantom")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolderpha"
 end
 handle(w, "matfoldersca") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], recParams, image, matfolder; type="scanner")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="scanner")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfoldersca"
 end
 handle(w, "matfolderraw") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], recParams, image, matfolder; type="raw")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="raw")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolderraw"
 end
 handle(w, "matfolderima") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], recParams, image, matfolder; type="image")
+    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="image")
     @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
     @js_ w document.getElementById("content").dataset.content = "matfolderima"
 end
@@ -464,36 +500,24 @@ end
     handle(w, "scanner") do _
         display_ui!(obs_sys[], w)
     end
-    handle(w, "sig") do _
-        display_ui!(obs_raw[], w; darkmode)
-    end
     handle(w, "sim_params") do _
         display_ui!(sim_params, w)
     end
-
-handle(w, "reconstruction_absI") do args...
-    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image magnitude ...")
-    content!(w, "div#content", loading)
-    include(path*"/ui/ReconGUI_absI.jl")
-    @js_ w document.getElementById("content").dataset.content = "absi"
-end
-handle(w, "reconstruction_angI") do args...
-    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image phase ...")
-    content!(w, "div#content", loading)
-    include(path*"/ui/ReconGUI_angI.jl")
-end
-handle(w, "reconstruction_absK") do args...
-    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image k ...")
-    content!(w, "div#content", loading)
-    include(path*"/ui/ReconGUI_absK.jl")
-end
-
-
-handle(w, "rec_params") do args...
-    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Displaying reconstruction parameters ...")
-    content!(w, "div#content", loading)
-    include(path*"/ui/RecParams_view.jl")
-end
+    handle(w, "sig") do _
+        display_ui!(obs_raw[], w; darkmode)
+    end
+    handle(w, "rec_params") do _
+        display_ui!(rec_params, w)
+    end
+    handle(w, "reconstruction_absI") do _
+        display_ui!(obs_img[], w; type="absi", darkmode)
+    end
+    handle(w, "reconstruction_angI") do _
+        display_ui!(obs_img[], w; type="angi", darkmode)
+    end
+    handle(w, "reconstruction_absK") do _
+        display_ui!(obs_img[], w; type="absk", darkmode)
+    end
 
 handle(w, "simulate") do _
     strLoadingMessage = "Running simulation ..."
@@ -533,14 +557,13 @@ handle(w, "simulate") do _
     """);
     document.getElementById("sim_time").innerHTML=sim_time;
     )
-
-    obs_raw[] = raw_ismrmrd
     @js_ w document.getElementById("content").dataset.content = "simulation"
     @js_ w document.getElementById("simulate!").removeAttribute("disabled"); #Re-enable button
     @js_ w document.getElementById("recon!").removeAttribute("disabled");
+    obs_raw[] = raw_ismrmrd
 end
 
-handle(w, "recon") do args...
+handle(w, "recon") do _
     strLoadingMessage = "Running reconstruction ..."
     if ISFIRSTREC
         strLoadingMessage = "Precompiling and running reconstruction functions ..."
@@ -556,12 +579,12 @@ handle(w, "recon") do args...
     acqData.traj[1].circular = false #Removing circular window
     acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acqData.traj[1].nodes[:])) #Normalize k-space to -.5 to .5 for NUFFT
     Nx, Ny = obs_raw[].params["reconSize"][1:2]
-    recParams[:reconSize] = (Nx, Ny)
-    recParams[:densityWeighting] = true
+    rec_params[:reconSize] = (Nx, Ny)
+    rec_params[:densityWeighting] = true
     #Reconstruction
     @info "Running reconstruction of ..."
-    aux = @timed reconstruction(acqData, recParams)
-    global image  = reshape(aux.value.data,Nx,Ny,:)
+    aux = @timed reconstruction(acqData, rec_params)
+    image  = reshape(aux.value.data,Nx,Ny,:)
     #After Recon go to Image
     recon_time = aux.time
     @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
@@ -577,17 +600,11 @@ handle(w, "recon") do args...
     );
     document.getElementById("recon_time").innerHTML=recon_time;
     )
-    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>"Plotting image magnitude ...")
-    content!(w, "div#content", loading)
-    include(path*"/ui/ReconGUI_absI.jl")
     @js_ w document.getElementById("content").dataset.content = "reconstruction"
+    obs_img[] = image
 end
 
 handle(w, "close") do args...
-    global image = nothing
-    global recParams = nothing
-    global img_obs = nothing
-
     global mat_obs = nothing
     close(w)
 end
@@ -609,6 +626,9 @@ end
     widget_filepicker_raw = filepicker(".h5/.mrd (ISMRMRD)"; accept=".h5,.mrd")
     map!((filename) -> callback_filepicker(filename, w, obs_raw[]), obs_raw, widget_filepicker_raw)
     on((raw) -> display_ui!(raw, w; darkmode), obs_raw)
+
+    # Define functioanlity when image observable changes (after reconstruction)
+    on((img) -> display_ui!(img, w; type="absi", darkmode), obs_img)
 
     # Add filepicker widgets to the UI
     content!(w, "#seqfilepicker", widget_filepicker_seq, async=false)
