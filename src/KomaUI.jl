@@ -259,7 +259,7 @@ end
 
 """
 """
-function display_ui!(seq::Sequence, w::Window; type="sequence", darkmode=true)
+function view_ui!(seq::Sequence, w::Window; type="sequence", darkmode=true)
     # Add loading progress and then a plot to the UI depending on type of the plot
     if type == "sequence"
         display_loading!(w, "Plotting sequence ...")
@@ -291,7 +291,7 @@ end
 
 """
 """
-function display_ui_phantom!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
+function view_ui_phantom!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
     display_loading!(w, "Plotting phantom ...")
     widget_plot = @manipulate for t0_ms in 1e3*range(0, dur(seq); length=5)
         plot_phantom_map(obj, key; t0=t0_ms, darkmode)
@@ -300,16 +300,16 @@ function display_ui_phantom!(obj::Phantom, w::Window, seq::Sequence, buttons_obj
     content!(w, "div#content", div_content)
     @js_ w document.getElementById("content").dataset.content = "phantom"
 end
-function display_ui!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
-    display_ui_phantom!(obj, w, seq, buttons_obj; key, darkmode)
+function view_ui!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
+    view_ui_phantom!(obj, w, seq, buttons_obj; key, darkmode)
 end
-function display_ui!(cnt::Integer, w::Window, obj::Phantom, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
-    display_ui_phantom!(obj, w, seq, buttons_obj; key, darkmode)
+function view_ui!(cnt::Integer, w::Window, obj::Phantom, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
+    view_ui_phantom!(obj, w, seq, buttons_obj; key, darkmode)
 end
 
 """
 """
-function display_ui!(sys::Scanner, w::Window)
+function view_ui!(sys::Scanner, w::Window)
     display_loading!(w, "Displaying scanner parameters ...")
     sys_dict = Dict("B0" => sys.B0,
                 "B1" => sys.B1,
@@ -330,7 +330,7 @@ end
 
 """
 """
-function display_ui!(sim_params::Dict{String, Any}, w::Window)
+function view_ui!(sim_params::Dict{String, Any}, w::Window)
     display_loading!(w, "Displaying simulation parameters ...")
     plt = plot_dict(sim_params)
     title = """<h1 style="padding: 8px 16px; color: #868888;">Simulation parameters</h1>"""
@@ -341,7 +341,7 @@ end
 
 """
 """
-function display_ui!(raw::RawAcquisitionData, w::Window; darkmode=true)
+function view_ui!(raw::RawAcquisitionData, w::Window; darkmode=true)
     display_loading!(w, "Plotting raw signal ...")
     widget_plot = plot_signal(raw; darkmode)
     content!(w, "div#content", dom"div"(widget_plot))
@@ -350,7 +350,7 @@ end
 
 """
 """
-function display_ui!(rec_params::Dict{Symbol, Any}, w::Window)
+function view_ui!(rec_params::Dict{Symbol, Any}, w::Window)
     display_loading!(w, "Displaying reconstruction parameters ...")
     plt = plot_dict(rec_params)
     title = """<h1 style="padding: 8px 16px; color: #868888;">Reconstruction parameters</h1>"""
@@ -360,7 +360,7 @@ end
 
 """
 """
-function display_ui!(img::Array, w::Window; type="absi", darkmode=true)
+function view_ui!(img::Array, w::Window; type="absi", darkmode=true)
     # Add loading progress and then a plot to the UI depending on type of the plot
     if type == "absi"
         display_loading!(w, "Plotting image magnitude ...")
@@ -390,23 +390,57 @@ function display_ui!(img::Array, w::Window; type="absi", darkmode=true)
     end
 end
 
+"""
+"""
+function save_ui!(w::Window, seq::Sequence, obj::Phantom, sys::Scanner, raw, img, rec_params, mat_folder; type="all")
+    if type=="all"
+        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type, matfilename="")
+        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+        @js_ w document.getElementById("content").dataset.content = "matfolder"
+    elseif type=="sequence"
+        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
+        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+        @js_ w document.getElementById("content").dataset.content = "matfolderseq"
+	elseif type=="phantom"
+        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
+        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+        @js_ w document.getElementById("content").dataset.content = "matfolderpha"
+    elseif type=="scanner"
+        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
+        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+        @js_ w document.getElementById("content").dataset.content = "matfoldersca"
+    elseif type=="raw"
+        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
+        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+        @js_ w document.getElementById("content").dataset.content = "matfolderraw"
+    elseif type=="image"
+        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
+        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
+        @js_ w document.getElementById("content").dataset.content = "matfolderima"
+	end
+end
+
 
 """
 This launches the Koma's UI
 """
 function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false, blink_show=true)
 
-    # Setup the Blink window
-    path = @__DIR__
-    w, index = setup_blink_window(path; darkmode, frame, dev_tools, blink_show)
+    # For phantom sub-buttons
+    fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
+    widgets_button_obj = button.(string.(fieldnames_obj))
 
-    ## LOADING BAR
-    buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
+    # For loading bars in simulate and reconstruction button handlers
     progressbar = """
     <div class="progress" style="background-color: #27292d;">
       <div id="simul_progress" class="progress-bar" role="progressbar" style="width: 0%; transition:none;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
     </div>
     """
+    buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
+
+    # Setup the Blink window
+    path = @__DIR__
+    w, index = setup_blink_window(path; darkmode, frame, dev_tools, blink_show)
 
     # Setup default simulation inputs (they have observables)
     sys = setup_scanner()
@@ -415,64 +449,25 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     raw = setup_raw()
     img =  [0.0im 0.; 0. 0.]
 
-    # Define parameters (they are just internal variables)
-    sim_params = merge(Dict{String,Any}(), sim)
-    rec_params = merge(Dict{Symbol,Any}(:reco=>"direct"), rec)
-
-    ## BOOLEAN TO INDICATE FIRST TIME PRECOMPILING
-    global ISFIRSTSIM = true
-    global ISFIRSTREC = true
-
-    # Init
-global matfolder = tempdir()
-
-#GPUs
-@info "Loading GPUs"
-KomaMRICore.print_gpus()
-
-    #OBERSVABLES
+    # Define observables
     obs_sys = Observable{Scanner}(sys)
     obs_seq = Observable{Sequence}(seq)
     obs_obj = Observable{Phantom}(obj)
     obs_raw = Observable{RawAcquisitionData}(raw)
     obs_img = Observable{Array}(img)
-global mat_obs = Observable{Any}(matfolder)
 
-#
-handle(w, "matfolder") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="all", matfilename="")
-    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
-    @js_ w document.getElementById("content").dataset.content = "matfolder"
-end
-handle(w, "matfolderseq") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="sequence")
-    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
-    @js_ w document.getElementById("content").dataset.content = "matfolderseq"
-end
-handle(w, "matfolderpha") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="phantom")
-    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
-    @js_ w document.getElementById("content").dataset.content = "matfolderpha"
-end
-handle(w, "matfoldersca") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="scanner")
-    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
-    @js_ w document.getElementById("content").dataset.content = "matfoldersca"
-end
-handle(w, "matfolderraw") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="raw")
-    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
-    @js_ w document.getElementById("content").dataset.content = "matfolderraw"
-end
-handle(w, "matfolderima") do args...
-    str_toast = export_2_mat(obs_seq[], obs_obj[], obs_sys[], obs_raw[], rec_params, obs_img[], matfolder; type="image")
-    @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files" , msg);)
-    @js_ w document.getElementById("content").dataset.content = "matfolderima"
-end
+    # Define parameters (they are just internal variables)
+    sim_params = merge(Dict{String,Any}(), sim)
+    rec_params = merge(Dict{Symbol,Any}(:reco=>"direct"), rec)
+    mat_folder = tempdir()
 
-    # For phantom buttons
-    fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
-    widgets_button_obj = button.(string.(fieldnames_obj))
+    ## BOOLEAN TO INDICATE FIRST TIME PRECOMPILING
+    ISFIRSTSIM = true
+    ISFIRSTREC = true
+
+    # Print GPU information
+    @info "Loading GPUs"
+    KomaMRICore.print_gpus()
 
     # Handle "View" sidebar buttons
     handle(w, "index") do _
@@ -480,43 +475,63 @@ end
         @js_ w document.getElementById("content").dataset.content = "index"
     end
     handle(w, "pulses_seq") do _
-        display_ui!(obs_seq[], w; type="sequence", darkmode)
+        view_ui!(obs_seq[], w; type="sequence", darkmode)
     end
     handle(w, "pulses_kspace") do _
-        display_ui!(obs_seq[], w; type="kspace", darkmode)
+        view_ui!(obs_seq[], w; type="kspace", darkmode)
     end
     handle(w, "pulses_M0") do _
-        display_ui!(obs_seq[], w; type="moment0", darkmode)
+        view_ui!(obs_seq[], w; type="moment0", darkmode)
     end
     handle(w, "pulses_M1") do _
-        display_ui!(obs_seq[], w; type="moment1", darkmode)
+        view_ui!(obs_seq[], w; type="moment1", darkmode)
     end
     handle(w, "pulses_M2") do _
-        display_ui!(obs_seq[], w; type="moment2", darkmode)
+        view_ui!(obs_seq[], w; type="moment2", darkmode)
     end
     handle(w, "phantom") do _
-        display_ui!(obs_obj[], w, obs_seq[], widgets_button_obj; key=:ρ, darkmode)
+        view_ui!(obs_obj[], w, obs_seq[], widgets_button_obj; key=:ρ, darkmode)
     end
     handle(w, "scanner") do _
-        display_ui!(obs_sys[], w)
+        view_ui!(obs_sys[], w)
     end
     handle(w, "sim_params") do _
-        display_ui!(sim_params, w)
+        view_ui!(sim_params, w)
     end
     handle(w, "sig") do _
-        display_ui!(obs_raw[], w; darkmode)
+        view_ui!(obs_raw[], w; darkmode)
     end
     handle(w, "rec_params") do _
-        display_ui!(rec_params, w)
+        view_ui!(rec_params, w)
     end
     handle(w, "reconstruction_absI") do _
-        display_ui!(obs_img[], w; type="absi", darkmode)
+        view_ui!(obs_img[], w; type="absi", darkmode)
     end
     handle(w, "reconstruction_angI") do _
-        display_ui!(obs_img[], w; type="angi", darkmode)
+        view_ui!(obs_img[], w; type="angi", darkmode)
     end
     handle(w, "reconstruction_absK") do _
-        display_ui!(obs_img[], w; type="absk", darkmode)
+        view_ui!(obs_img[], w; type="absk", darkmode)
+    end
+
+    # Handle "Save" to mat sidebar buttons
+    handle(w, "matfolder") do _
+        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="all")
+    end
+    handle(w, "matfolderseq") do _
+        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="sequence")
+    end
+    handle(w, "matfolderpha") do _
+        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="phantom")
+    end
+    handle(w, "matfoldersca") do _
+        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="scanner")
+    end
+    handle(w, "matfolderraw") do _
+        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="raw")
+    end
+    handle(w, "matfolderima") do _
+        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="image")
     end
 
 handle(w, "simulate") do _
@@ -582,7 +597,7 @@ handle(w, "recon") do _
     rec_params[:reconSize] = (Nx, Ny)
     rec_params[:densityWeighting] = true
     #Reconstruction
-    @info "Running reconstruction of ..."
+    @info "Running reconstruction ..."
     aux = @timed reconstruction(acqData, rec_params)
     image  = reshape(aux.value.data,Nx,Ny,:)
     #After Recon go to Image
@@ -604,31 +619,26 @@ handle(w, "recon") do _
     obs_img[] = image
 end
 
-handle(w, "close") do args...
-    global mat_obs = nothing
-    close(w)
-end
-
     # Define functionality of sequence filepicker widget
     widget_filepicker_seq = filepicker(".seq (Pulseq)/.seqk (Koma)"; accept=".seq,.seqk")
     map!((filename) -> callback_filepicker(filename, w, obs_seq[]), obs_seq, widget_filepicker_seq)
-    on((seq) -> display_ui!(seq, w; type="sequence", darkmode), obs_seq)
+    on((seq) -> view_ui!(seq, w; type="sequence", darkmode), obs_seq)
 
     # Define functionality of phantom filepicker widget and sub-buttons
     widget_filepicker_obj = filepicker(".phantom (Koma)/.h5 (JEMRIS)"; accept=".phantom,.h5")
     map!((filename) -> callback_filepicker(filename, w, obs_obj[]), obs_obj, widget_filepicker_obj)
-    on((obj) -> display_ui!(obj, w, obs_seq[], widgets_button_obj; key=:ρ, darkmode), obs_obj)
+    on((obj) -> view_ui!(obj, w, obs_seq[], widgets_button_obj; key=:ρ, darkmode), obs_obj)
     for (widget_button, key) in zip(widgets_button_obj, fieldnames_obj)
-        on((cnt) -> display_ui!(cnt, w, obs_obj[], obs_seq[], widgets_button_obj; key, darkmode), widget_button)
+        on((cnt) -> view_ui!(cnt, w, obs_obj[], obs_seq[], widgets_button_obj; key, darkmode), widget_button)
     end
 
     # Define functionality of raw filepicker widget
     widget_filepicker_raw = filepicker(".h5/.mrd (ISMRMRD)"; accept=".h5,.mrd")
     map!((filename) -> callback_filepicker(filename, w, obs_raw[]), obs_raw, widget_filepicker_raw)
-    on((raw) -> display_ui!(raw, w; darkmode), obs_raw)
+    on((raw) -> view_ui!(raw, w; darkmode), obs_raw)
 
     # Define functioanlity when image observable changes (after reconstruction)
-    on((img) -> display_ui!(img, w; type="absi", darkmode), obs_img)
+    on((img) -> view_ui!(img, w; type="absi", darkmode), obs_img)
 
     # Add filepicker widgets to the UI
     content!(w, "#seqfilepicker", widget_filepicker_seq, async=false)
