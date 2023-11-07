@@ -226,3 +226,15 @@ plot_signal
 ```@docs
 plot_image
 ```
+
+
+## UI
+
+```@meta
+CurrentModule = KomaMRI
+```
+
+### `KomaUI`
+```@docs
+KomaUI
+```

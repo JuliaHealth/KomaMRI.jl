@@ -2,7 +2,29 @@ include("ui/ExportMATFunctions.jl")
 include("ui/ExportUIFunctions.jl")
 
 """
-This launches the Koma's UI
+    out = KomaUI(; kwargs...)
+
+Launch the Koma's UI.
+
+# Keywords
+- `darkmode`: (`::Bool`, `=true`) define dark mode style for the UI
+- `frame`: (`::Bool`, `=true`) display the upper frame of the Blink window
+- `phantom_mode`: (`::String`, `="2D"`, opts=[`"2D"`, `"3D"`]) load the default phantom as a
+    2D or 3D brain example
+- `sim`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) simulation parameters dictionary
+- `rec`: (`::Dict{Symbol,Any}`, `=Dict{Symbol,Any}()`) reconstruction parameters dictionary
+- `dev_tools`: (`::Bool`, `=false`) make the `out` be either 'nothing' or the Blink window,
+    depending on whether the `dev_tools` keyword argument is set to true
+- `blink_show`: (`::Bool`, `=true`) display the Blink window
+
+# Returns
+- `out`: (`::Nothing` or `::Blink.AtomShell.Window`) returns either 'nothing' or the Blink
+    window, depending on whether the `dev_tools` keyword argument is set to true.
+
+# Examples
+```julia-repl
+julia> KomaUI()
+```
 """
 function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false, blink_show=true)
 

@@ -106,7 +106,7 @@ end
 
     @testset "Simulation" begin
         @js w document.getElementById("simulate!").click()
-        @test "simulation" == @js w document.getElementById("content").dataset.content
+        @test "sig" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "SignalGUI" begin
@@ -116,7 +116,7 @@ end
 
     @testset "Reconstruction" begin
         @js w document.getElementById("recon!").click()
-        @test "reconstruction" == @js w document.getElementById("content").dataset.content
+        @test "absi" == @js w document.getElementById("content").dataset.content
     end
 
     @testset "ReconGUI" begin
