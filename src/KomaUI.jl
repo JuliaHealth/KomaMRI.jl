@@ -53,7 +53,6 @@ function setup_blink_window(path::String; darkmode=true, frame=true, dev_tools=f
     ## CONTENT
     index = open(f->read(f, String), path*"/ui/html/index.html")
     index = replace(index, "ICON"=>icon)
-    #index = replace(index, "BACKGROUND_IMAGE"=>background)
     ## LOADING
     #loading = open(f->read(f, String), path*"/ui/html/loading.html")
     ## CSS
@@ -430,14 +429,6 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
     widgets_button_obj = button.(string.(fieldnames_obj))
 
-    # For loading bars in simulate and reconstruction button handlers
-    progressbar = """
-    <div class="progress" style="background-color: #27292d;">
-      <div id="simul_progress" class="progress-bar" role="progressbar" style="width: 0%; transition:none;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-    </div>
-    """
-    buffericon = """<div class="spinner-border spinner-border-sm text-light" role="status"></div>"""
-
     # Setup the Blink window
     path = @__DIR__
     w, index = setup_blink_window(path; darkmode, frame, dev_tools, blink_show)
@@ -461,9 +452,9 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     rec_params = merge(Dict{Symbol,Any}(:reco=>"direct"), rec)
     mat_folder = tempdir()
 
-    ## BOOLEAN TO INDICATE FIRST TIME PRECOMPILING
-    ISFIRSTSIM = true
-    ISFIRSTREC = true
+    # Boleans to indicate first time for precompilation
+    is_first_sim = true
+    is_first_rec = true
 
     # Print GPU information
     @info "Loading GPUs"
@@ -534,90 +525,129 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="image")
     end
 
-handle(w, "simulate") do _
-    strLoadingMessage = "Running simulation ..."
-    if ISFIRSTSIM
-        strLoadingMessage = "Precompiling and running simulation functions ..."
-        ISFIRSTSIM = false
-    end
-    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
-    content!(w, "div#content", loading)
-    @js_ w document.getElementById("simulate!").setAttribute("disabled", true); #Disable button during SIMULATION
-    @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
-    #To SequenceGUI
-    raw_ismrmrd = simulate(obs_obj[], obs_seq[], obs_sys[]; sim_params, w)
-    #After simulation go to RECON
-    @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
-    #EXPORT to ISMRMRD -> To SignalGUI
-    rawfile = tempdir()*"/Koma_signal.mrd"
-    @info "Exporting to ISMRMRD file: $rawfile"
-    fout = ISMRMRDFile(rawfile)
-    KomaMRICore.save(fout, raw_ismrmrd)
-    #Message
-    sim_time = raw_ismrmrd.params["userParameters"]["sim_time_sec"]
-    @js_ w (@var sim_time = $sim_time;
-    @var name = $(obj.name);
-    document.getElementById("rawname").innerHTML="Koma_signal.mrd";
-    Toasty("1", """Simulation successfull<br>Time: <a id="sim_time"></a> s""" ,"""
-    <ul>
-        <li>
-            <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('sig', 1)"><i class="fa fa-search"></i></button>
-            Updating <b>Raw signal</b> plots ...
-        </li>
-        <li>
-            <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
-            Ready to <b>reconstruct</b>?
-        </li>
-    </ul>
-    """);
-    document.getElementById("sim_time").innerHTML=sim_time;
-    )
-    @js_ w document.getElementById("content").dataset.content = "simulation"
-    @js_ w document.getElementById("simulate!").removeAttribute("disabled"); #Re-enable button
-    @js_ w document.getElementById("recon!").removeAttribute("disabled");
-    obs_raw[] = raw_ismrmrd
-end
+    # Handle "Simulation" sidebar button
+    handle(w, "simulate") do _
 
-handle(w, "recon") do _
-    strLoadingMessage = "Running reconstruction ..."
-    if ISFIRSTREC
-        strLoadingMessage = "Precompiling and running reconstruction functions ..."
-        ISFIRSTREC = false
+        # Display loading and disable simulation button
+        msg = "Running simulation ..."
+        if is_first_sim
+            msg = "Precompiling and running simulation functions ..."
+            is_first_sim = false
+        end
+        display_loading!(w, msg)
+        @js_ w document.getElementById("simulate!").setAttribute("disabled", true)
+
+        # Define progress bar in the simulation button
+        progressbar = """
+            <div class="progress" style="background-color: #27292d;">
+            <div id="simul_progress" class="progress-bar" role="progressbar" style="width: 0%; transition:none;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+        """
+        @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
+
+        # Perform simulation
+        raw_aux = simulate(obs_obj[], obs_seq[], obs_sys[]; sim_params, w)
+
+        # After simulation, display the text on the simulation button (not the progress bar)
+        @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
+
+        # Save the raw signal to a file in the temporal directory
+        rawfile = tempdir()*"/Koma_signal.mrd"
+        @info "Exporting to ISMRMRD file: $rawfile"
+        KomaMRICore.save(ISMRMRDFile(rawfile), raw_aux)
+
+        # Display message on UI
+        sim_time = raw_aux.params["userParameters"]["sim_time_sec"]
+        @js_ w (
+            @var sim_time = $sim_time;
+            @var name = $(obs_obj[].name);
+            document.getElementById("rawname").innerHTML = "Koma_signal.mrd";
+            Toasty(
+                "1",
+                """Simulation successfull<br>Time: <a id="sim_time"></a> s""",
+                """
+                    <ul>
+                        <li>
+                            <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('sig', 1)"><i class="fa fa-search"></i></button>
+                            Updating <b>Raw signal</b> plots ...
+                        </li>
+                        <li>
+                            <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
+                            Ready to <b>reconstruct</b>?
+                        </li>
+                    </ul>
+                """
+            );
+            document.getElementById("sim_time").innerHTML = sim_time;
+        )
+
+        # Set the dataset content and enable simulation and reconstruction buttons
+        @js_ w document.getElementById("content").dataset.content = "simulation"
+        @js_ w document.getElementById("simulate!").removeAttribute("disabled");
+        @js_ w document.getElementById("recon!").removeAttribute("disabled");
+
+        # Update the value of the raw signal observable
+        # this calls the view_ui to display the raw signal
+        obs_raw[] = raw_aux
     end
-    loading = replace(open(f->read(f, String), path*"/ui/html/loading.html"), "LOADDES"=>strLoadingMessage)
-    content!(w, "div#content", loading)
-    # Update loading icon for button
-    @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML=buffericon)
-    #IMPORT ISMRMRD raw data
-    obs_raw[].profiles = obs_raw[].profiles[getproperty.(getproperty.(obs_raw[].profiles, :head), :flags) .!= 268435456] #Extra profile in JEMRIS simulations
-    acqData = AcquisitionData(obs_raw[])
-    acqData.traj[1].circular = false #Removing circular window
-    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acqData.traj[1].nodes[:])) #Normalize k-space to -.5 to .5 for NUFFT
-    Nx, Ny = obs_raw[].params["reconSize"][1:2]
-    rec_params[:reconSize] = (Nx, Ny)
-    rec_params[:densityWeighting] = true
-    #Reconstruction
-    @info "Running reconstruction ..."
-    aux = @timed reconstruction(acqData, rec_params)
-    image  = reshape(aux.value.data,Nx,Ny,:)
-    #After Recon go to Image
-    recon_time = aux.time
-    @js_ w document.getElementById("recon!").innerHTML="Reconstruct!"
-    @js_ w (@var recon_time = $recon_time;
-    Toasty("2", """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""" ,"""
-    <ul>
-        <li>
-            <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('reconstruction_absI', 1)"><i class="fa fa-search"></i></button>
-            Updating <b>Reconstruction</b> plots ...
-        </li>
-    </ul>
-    """
-    );
-    document.getElementById("recon_time").innerHTML=recon_time;
-    )
-    @js_ w document.getElementById("content").dataset.content = "reconstruction"
-    obs_img[] = image
-end
+
+    # Handle "Reconstruction" sidebar button
+    handle(w, "recon") do _
+
+        # Display loading
+        msg = "Running reconstruction ..."
+        if is_first_rec
+            msg = "Precompiling and running reconstruction functions ..."
+            is_first_rec = false
+        end
+        display_loading!(w, msg)
+
+        # Update loading icon for button
+        buffericon = """
+            <div class="spinner-border spinner-border-sm text-light" role="status"></div>
+        """
+        @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML = buffericon)
+
+        # Get the value of the raw signal and prepare for reconstruction
+        raw_aux = obs_raw[]
+        raw_aux.profiles = raw_aux.profiles[getproperty.(getproperty.(raw_aux.profiles, :head), :flags) .!= 268435456] #Extra profile in JEMRIS simulations
+        acq_data = AcquisitionData(raw_aux)
+        acq_data.traj[1].circular = false #Removing circular window
+        acq_data.traj[1].nodes = acq_data.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acq_data.traj[1].nodes[:])) #Normalize k-space to -.5 to .5 for NUFFT
+        Nx, Ny = raw_aux.params["reconSize"][1:2]
+        rec_params[:reconSize] = (Nx, Ny)
+        rec_params[:densityWeighting] = true
+
+        # Perform reconstruction
+        @info "Running reconstruction ..."
+        rec_aux = @timed reconstruction(acq_data, rec_params)
+        image  = reshape(rec_aux.value.data, Nx, Ny, :)
+
+        # After Recon go to Image
+        recon_time = rec_aux.time
+        @js_ w (document.getElementById("recon!").innerHTML = "Reconstruct!")
+        @js_ w (
+            @var recon_time = $recon_time;
+            Toasty(
+                "2",
+                """Reconstruction successfull<br>Time: <a id="recon_time"></a> s""",
+                """
+                    <ul>
+                        <li>
+                            <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('reconstruction_absI', 1)"><i class="fa fa-search"></i></button>
+                            Updating <b>Reconstruction</b> plots ...
+                        </li>
+                    </ul>
+                """
+            );
+            document.getElementById("recon_time").innerHTML = recon_time;
+        )
+        @js_ w document.getElementById("content").dataset.content = "reconstruction"
+
+        # Update the value of the image observable
+        # this calls the view_ui to display the image
+        obs_img[] = image
+    end
 
     # Define functionality of sequence filepicker widget
     widget_filepicker_seq = filepicker(".seq (Pulseq)/.seqk (Koma)"; accept=".seq,.seqk")
@@ -637,7 +667,7 @@ end
     map!((filename) -> callback_filepicker(filename, w, obs_raw[]), obs_raw, widget_filepicker_raw)
     on((raw) -> view_ui!(raw, w; darkmode), obs_raw)
 
-    # Define functioanlity when image observable changes (after reconstruction)
+    # Define functionality when image observable changes (after reconstruction)
     on((img) -> view_ui!(img, w; type="absi", darkmode), obs_img)
 
     # Add filepicker widgets to the UI
