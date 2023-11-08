@@ -1,4 +1,4 @@
-# Graphical User Interface
+# User Interface
 
 This section explains how to use the user interface of the **KomaMRI** package and the internal processes during interaction.
 

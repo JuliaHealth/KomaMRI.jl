@@ -1,4 +1,4 @@
-# Julia Programming
+# Julia Scripts
 
 You should already be familiar with the  [Graphical User Interface](ui-details.md) of **KomaMRI**. However, you can also use this package directly from the **Julia REPL** or write your own Julia scripts. This allows you to unlock the full potential of KomaMRI, enabling you to utilize more of its functionalities and even test your own MRI ideas.
 
@@ -108,7 +108,7 @@ You can also visualize the **Phantom** struct using the **plot\_phantom\_map()**
 julia> plot_phantom_map(obj, :ρ)
 ```
 ```@raw html
-<p align="center"><img width="100%" src="../assets/phantom-rho.svg"/></p>
+<object type="text/html" data="../assets/phantom-rho.html" style="width:100%; height:620px;"></object>
 ```
 
 To utilize test phantoms included with **KomaMRI**, navigate to the "examples" folder and use the **read\_phantom\_jemris()** function to read a phantom in **.h5** format. The following steps outline how to do this in **Julia**:
@@ -116,10 +116,10 @@ To utilize test phantoms included with **KomaMRI**, navigate to the "examples" f
 julia> path_koma = dirname(dirname(pathof(KomaMRI)))
 julia> path_sphere = joinpath(path_koma, "examples", "2.phantoms", "sphere_chemical_shift.h5")
 julia> sphere = read_phantom_jemris(path_sphere)
-julia> plot_phantom_map(sphere)
+julia> plot_phantom_map(sphere, :T2)
 ```
 ```@raw html
-<p align="center"><img width="100%" src="../assets/phantom-T2-circle.svg"/></p>
+<object type="text/html" data="../assets/phantom-T2-circle.html" style="width:100%; height:620px;"></object>
 ```
 
 ### Sequence
@@ -136,10 +136,10 @@ Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 5 ]
 
 For more precise timing checks, you can use the **plot\_seq()** function:
 ```julia-repl
-julia> plot_seq(seq)
+julia> plot_seq(seq; range=[0 30])
 ```
 ```@raw html
-<p align="center"><img width="100%" src="../assets/plot-seq-epi.svg"/></p>
+<object type="text/html" data="../assets/plot-seq-epi.html" style="width:100%; height:420px;"></object>
 ```
 
 It is important to consider how the sequence traverses through k-space. The **get\_kspace()** function does precisely that:
@@ -147,7 +147,7 @@ It is important to consider how the sequence traverses through k-space. The **ge
 julia> plot_kspace(seq)
 ```
 ```@raw html
-<p align="center"><img width="100%" src="../assets/kspace-epi.svg"/></p>
+<object type="text/html" data="../assets/kspace-epi.html" style="width:100%; height:420px;"></object>
 ```
 
 Additionally, there are helpful sequence construction functions within a submodule of **KomaMRI** called **PulseDesigner**. These functions include **RF\_hard()**, **RF\_sinc()**, **EPI()**, **radial\_base()** and **spiral\_base()**. For more details on how to use them, refer to the [API documentation](api.md).
@@ -157,12 +157,12 @@ Additionally, there are helpful sequence construction functions within a submodu
 julia> path_koma = dirname(dirname(pathof(KomaMRI)))
 julia> path_spiral = joinpath(path_koma, "examples", "1.sequences", "spiral.seq")
 julia> spiral = read_seq(path_spiral)
-julia> plot_seq(spiral)
-julia> plot_kspace(spiral)
+julia> p1 = plot_seq(spiral);
+julia> p2 = plot_kspace(spiral);
+julia> [p1 p2]
 ```
 ```@raw html
-<p align="center"><img width="100%" src="../assets/seq-spiral-pulseq.svg"/></p>
-<p align="center"><img width="100%" src="../assets/seq-spiral-pulseq-kspace.svg"/></p>
+<object type="text/html" data="../assets/seq-spiral-pulseq-seq-kspace.html" style="width:100%; height:420px;"></object>
 ```
 
 ## Running Simulation
@@ -212,7 +212,7 @@ You can plot the simulation result with the **plot\_signal()** function like so:
 julia> plot_signal(raw)
 ```
 ```@raw html
-<p align="center"><img width="100%" src="../assets/raw-epi-brain-default.svg"/></p>
+<object type="text/html" data="../assets/raw-epi-brain-default.html" style="width:100%; height:420px;"></object>
 ```
 
 
@@ -250,7 +250,7 @@ To display the image, you can use the **plot_\image()** function which is part o
 julia> plot_image(image)
 ```
 ```@raw html
-<p align="center"><img width="100%" src="../assets/image-default-brain.svg"/></p>
+<center><object type="text/html" data="../assets/image-default-brain.html" style="width:100%; height:620px;"></object></center>
 ```
 
 

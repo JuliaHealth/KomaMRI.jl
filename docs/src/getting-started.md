@@ -6,7 +6,12 @@
 
 ## Installing KomaMRI
 
-Once Julia is installed, open the Julia REPL and add the `KomaMRI` package: to bring up Julia's [package manager](https://docs.julialang.org/en/v1/stdlib/Pkg/) type `]` and press `enter`, then add the KomaMRI package by typing `add KomaMRI` in the package manager session. This process should take about 5 minutes in a fresh Julia installation:
+Once Julia is installed, open the Julia REPL, and add the **KomaMRI** package by typing the following commands:
+
+* Press the `]` key and then press `enter` to bring up **Julia**'s package manager.
+* Type `add KomaMRI` and then press `enter` in the package manager session.
+
+This process should take about 5 minutes in a fresh Julia installation. Here is how it looks in the **Julia REPL**:
 
 ```julia-repl
 julia> ]

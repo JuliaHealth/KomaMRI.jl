@@ -9,17 +9,17 @@ Let's introduce the following simple sequence figure to expand from a visual exa
 <p align="center"><img width="80%" src="../assets/sequence-diagram.svg"/></p>
 ```
 
-A **sequenc**e** can be thought of as an ordered concatenation of blocks over time. Each block is essentially a sequence with a length of 1. Every block consists of an **RF** pulse, the ``(x,y,z)`` **gradients**, and the **acquisition** of samples. Each block also has an associated time **duration**. To simplify, we will refer to these components as follows:
+A **sequence** can be thought of as an ordered concatenation of blocks over time. Each block is essentially a sequence with a length of 1. Every block consists of an **RF** pulse, the ``(x,y,z)`` **gradients**, and the **acquisition** of samples. Each block also has an associated time **duration**. To simplify, we will refer to these components as follows:
 
 ```math
 \begin{matrix*}[l]
-seq[i]      &: & \text{block $i$ of the sequence} \\
-seq.RF[i]   &: & \text{RF pulse at the $i$ block} \\
-seq.GR.x[i] &: & \text{gradient x at the $i$ block} \\
-seq.GR.y[i] &: & \text{gradient y at the $i$ block} \\
-seq.GR.z[i] &: & \text{gradient z at the $i$ block} \\
-seq.ADC[i]  &: & \text{acquisition at the $i$ block} \\
-seq.DUR[i]  &: & \text{duration at the $i$ block}
+\text{seq[i]}      &: & \text{block i of the sequence} \\
+\text{seq.RF[i]}   &: & \text{RF pulse at the i block} \\
+\text{seq.GR.x[i]} &: & \text{gradient x at the i block} \\
+\text{seq.GR.y[i]} &: & \text{gradient y at the i block} \\
+\text{seq.GR.z[i]} &: & \text{gradient z at the i block} \\
+\text{seq.ADC[i]}  &: & \text{acquisition at the i block} \\
+\text{seq.DUR[i]}  &: & \text{duration at the i block}
 \end{matrix*}
 ```
 
@@ -37,7 +37,7 @@ end
 As you can see, a **Sequence** struct contains 5 field names: ''DEF'' contains information for reconstruction steps (so it is not mandatory to fill it), ''DUR'' is a vector that contains the time durations of each block, ''ADC'' is also a vector with the acquisition samples for every block (an vector of **ADC** structs), ''GR'' is a 2D matrix which 3 rows representing the x-y-z gradients and columns having the samples of each block (a matrix of **Grad** structs) and ''RF'' is also a 2D matrix where each row represents a different coil and the columns are for different block samples too (a matrix of **RF** structs). The **RF**, **Grad** and **ADC** are MRI events that will be explained in the section [Events Definitions](events.md).
 
 !!! warning
-    So far, **KomaMRI** only can manage 1 coil for RF excitations
+    So far, **KomaMRI** can only manage one coil for RF excitations. However, in future versions, multiple coils will be managed by adding more ``rows'' to the RF matrix of the Sequence field name.
 
 In order to understand how a **Sequence** struct can be manipulated in **Julia**, let's use the EPI sequence example. You can display basic information of the **Sequence** variable in the **Julia REPL**:
 ```julia-repl
@@ -52,7 +52,7 @@ To display the sequence in an graph, we can use the **plot\_seq()** function:
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="100%" src="../assets/seq-epi-example-full.svg"/></p>
+<object type="text/html" data="../assets/seq-epi-example-full.html" style="width:100%; height:420px;"></object>
 ```
 
 This way, you can see exactly where the **RF**, **Grad** and **ADC** structs are located in time.
@@ -102,7 +102,7 @@ julia> seq[1:11].GR
 julia> plot_seq(seq[1:11])
 ```
 ```@raw html
-<p align="center"><img width="100%" src="../assets/seq-epi-example-some-blocks.svg"/></p>
+<object type="text/html" data="../assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px;"></object>
 ```
 
 ## Concatenation of Sequences 
@@ -118,5 +118,5 @@ Sequence[ τ = 11.512 ms | blocks: 33 | ADC: 15 | GR: 33 | RF: 3 | DEF: 5 ]
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/seq-concatenation.svg"/></p>
+<object type="text/html" data="../assets/seq-concatenation.html" style="width:100%; height:420px;"></object>
 ```

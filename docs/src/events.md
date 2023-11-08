@@ -2,7 +2,7 @@
 
 We refer to **RF**, **Grad**, and **ADC** as "events". This section covers the details of how events are defined and manipulated within a **Sequence** struct.
 
-## Events Overview
+## Sequence Events
 
 As we already know, a **Sequence** struct contains field names that store arrays of **RF**, **Grad** and **ADC** structs. To create a **Sequence**, it's essential to understand how to create these fundamental events. In the image below, we provide a summary of how you can define **RF**, **Grad** and **ADC** events:
 
@@ -53,7 +53,7 @@ Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/event-rf-pulse-waveform.svg"/></p>
+<object type="text/html" data="../assets/event-rf-pulse-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ### RF Uniformly-Sampled Waveform
@@ -74,7 +74,7 @@ Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/event-rf-uniformly-sampled-waveform.svg"/></p>
+<object type="text/html" data="../assets/event-rf-uniformly-sampled-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ### RF Time-Shaped Waveform
@@ -88,8 +88,6 @@ julia> T = [0.05e-3*ones(length(tl)); 2e-3; 0.05e-3*ones(length(tl))]
 
 julia> delay = 0.1e-3;
 
-julia> T, delay = 0.5e-3*[0.1; 0.2; 0.1; 0.2; 0.2; 0.1; 0.2; 0.1; 0.15], 0.1e-3;
-
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(∿ uT, 4.0 ms, 0.0 Hz)
 
@@ -99,7 +97,7 @@ Sequence[ τ = 4.1 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/event-rf-time-shaped-waveform.svg"/></p>
+<object type="text/html" data="../assets/event-rf-time-shaped-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 
@@ -129,7 +127,7 @@ Let's look at some basic examples of creating these **Grad** structs and includi
 ### Gradient Trapezoidal Waveform
 
 ```julia-repl
-julia> A, T, delay, rise, fall =  50*10e-6, 5e-3, 2e-3, 1e-3, 1e-3;
+julia> A, T, delay, rise, fall = 50*10e-6, 5e-3, 2e-3, 1e-3, 1e-3;
 
 julia> gr = Grad(A, T, rise, fall, delay)
 ←2.0 ms→ Grad(0.5 mT, 0.5 ms, ↑1.0 ms, ↓1.0 ms)
@@ -140,7 +138,7 @@ Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/event-gr-trapezoidal-waveform.svg"/></p>
+<object type="text/html" data="../assets/event-gr-trapezoidal-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ### Gradient Uniformly-Sampled Waveform
@@ -163,7 +161,7 @@ Sequence[ τ = 12.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/event-gr-uniformly-sampled-waveform.svg"/></p>
+<object type="text/html" data="../assets/event-gr-uniformly-sampled-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ### Gradient Time-Shaped Waveform
@@ -184,7 +182,7 @@ Sequence[ τ = 10.75 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/event-gr-time-shaped-waveform.svg"/></p>
+<object type="text/html" data="../assets/event-gr-time-shaped-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ## ADC
@@ -215,11 +213,12 @@ Sequence[ τ = 6.0 ms | blocks: 1 | ADC: 1 | GR: 0 | RF: 0 | DEF: 0 ]
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/event-adc.svg"/></p>
+<object type="text/html" data="../assets/event-adc.html" style="width:100%; height:420px;"></object>
 ```
 
 !!! warning
-    The **ADC** definition in **Pulseq** differs from that in **KomaMRI**. In **KomaMRI**, **ADC** samples are taken at `delay` time, at `delay + T`, and have equispaced positions for the remaining samples, except for an ADC with 1 sample, which is at the position `delay + T/2`. In contrast, **Pulseq** uses equispaced samples without considering the `delay` or the `delay + T` points.    
+    The definition of **ADC** in **Pulseq** differs from that in **KomaMRI**. In **KomaMRI**, **ADC** samples are taken at `delay` time and at `delay + T`, with equispaced positions for the remaining samples. The exception is an **ADC** with only one sample, which is located at the position delay + T/2. In contrast, **Pulseq** uses equispaced samples placed between the two ADC sampling times defined in **KomaMRI**, except for an **ADC** with only one sample, which follows the same definition
+  
 
 ## Combination of Events
 
@@ -254,7 +253,7 @@ Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 1 | GR: 3 | RF: 1 | DEF: 0 ]
 julia> plot_seq(seq)
 ```
 ```@raw html
-<p align="center"><img width="90%" src="../assets/event-combination.svg"/></p>
+<object type="text/html" data="../assets/event-combination.html" style="width:100%; height:420px;"></object>
 ```
 
 Once the struct events are defined, it's important to note that to create a single block sequence, you need to provide 2D matrices of **Grad** and **RF** structs, as well as a vector of **ADC** structs as arguments in the **Sequence()** constructor.

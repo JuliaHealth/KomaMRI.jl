@@ -14,9 +14,8 @@
 
 * **Scripts** : Basic knowledge of Julia is required. Refer to [Simulation with Scripts](programming-workflow.md) to follow a basic workflow on how to work with **KomaMRI**.
 
-If it is the first time you want to use **KomaMRI**, we suggest to navigate the ["Getting Started"](getting-started.md) section to install **Julia**, **KomaMRI** and perform your first simulation.
+If you are new to **KomaMRI**, we recommend starting with the ["Getting Started"](getting-started.md) section to install **Julia**, **KomaMRI**, and perform your first simulation.
 
-If you want to go more in depth on how to use **KomaMRI**, check the [Simulation with User Interface](ui-details.md) and [Simulation with Scripts](programming-workflow.md) in which you can contrast the simulation workflow when using the **User Interface** or **Scripts**.
 
 ## Features
 
@@ -24,6 +23,7 @@ Some of the features of **KomaMRI** are:
 * Fast simulations by using CPU and GPU parallelization 🏃💨.
 * Open Source, so anyone can include additional features 🆙.
 * Compatibility with community-standards 🤝 like Pulseq `.seq` and ISMRMRD `.mrd`.
+* Compatibility with [Pluto](https://github.com/fonsp/Pluto.jl) notebooks 🎈
 * Cross-platform 🌐 thanks to the use of the Julia programing language.
 * Friendly user interface for people with no programming skills 😌.
 * Flexible API for advanced users 👨‍💻.
