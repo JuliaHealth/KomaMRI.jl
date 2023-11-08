@@ -37,21 +37,23 @@ function signal_to_raw_data(signal, seq;
     mink = minimum(ktraj, dims=1)
     maxk = maximum(ktraj, dims=1)
     Wk = maxk .- mink
-    Δx = 1 ./ Wk[1:2] #[m] Only x-y
+    Δx = 1 ./ Wk[1:3] #[m] Only x-y
     Nx = get(seq.DEF, "Nx", 1)
     Ny = get(seq.DEF, "Ny", 1)
     Nz = get(seq.DEF, "Nz", 1)
     println("Nz")
     println(Nz)
     if haskey(seq.DEF, "FOV")
-        FOVx, FOVy, _ = seq.DEF["FOV"] #[m]
+        FOVx, FOVy, FOVz = seq.DEF["FOV"] #[m]
         if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVy > 1 FOVy *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
         Nx = round(Int64, FOVx / Δx[1])
         Ny = round(Int64, FOVy / Δx[2])
+        Nz = round(Int64, FOVz / Δx[3])
     else
         FOVx = Nx * Δx[1]
         FOVy = Ny * Δx[2]
+        FOVz = Ny * Δx[3]
     end
     #It needs to be transposed for the raw data
     ktraj = maximum(2*abs.(ktraj[:])) == 0 ? transpose(ktraj) : transpose(ktraj)./ maximum(2*abs.(ktraj[:]))
@@ -73,10 +75,10 @@ function signal_to_raw_data(signal, seq;
         # "trajectoryDescription"          => Dict{String, Any}("comment"=>""), #You can put wathever you want here: comment, bandwidth, MaxGradient_G_per_cm, MaxSlewRate_G_per_cm_per_s, interleaves, etc
         "userParameters"                 => simParams, #Dict with parameters
         #encoding>
-        "encodedFOV"                     => [FOVx, FOVy, 1.0],    #encodedSpace>fieldOfView_mm
-        "reconFOV"                       => [FOVx, FOVy, 1.0],    #reconSpace>fieldOfView_mm
-        "encodedSize"                    => [Nx, Ny, 1],            #encodedSpace>matrixSize
-        "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, 1],  #reconSpace>matrixSize
+        "encodedFOV"                     => [FOVx, FOVy, FOVz],    #encodedSpace>fieldOfView_mm
+        "reconFOV"                       => [FOVx, FOVy, FOVz],    #reconSpace>fieldOfView_mm
+        "encodedSize"                    => [Nx, Ny, Nz],            #encodedSpace>matrixSize
+        "reconSize"                      => [Nx+Nx+Nx%2, Ny+Ny+Ny%2, Nz+Nz+Nz%2],  #reconSpace>matrixSize
         #encodingLimits>
         "enc_lim_kspace_encoding_step_1" => Limit(0, Nx-1, ceil(Int, Nx / 2)),   #min, max, center, e.g. phase encoding line number
         "enc_lim_kspace_encoding_step_2" => Limit(0, 0, 0),     #min, max, center, e.g. partition encoding number
@@ -147,7 +149,8 @@ function signal_to_raw_data(signal, seq;
                 (0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0) #user_float: Free user parameters
             )
             #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
-            traj = ktraj[1:2, current:current+Nsamples-1]
+            # traj = ktraj[1:2, current:current+Nsamples-1]
+            traj = ktraj[1:3, current:current+Nsamples-1]
             #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
             dat =  signal[current:current+Nsamples-1, :]
             #Saving profile
