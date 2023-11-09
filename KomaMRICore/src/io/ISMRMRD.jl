@@ -81,7 +81,7 @@ function signal_to_raw_data(signal, seq;
         "reconSize"                      => [Nx+Nx+Nx%2, Ny+Ny+Ny%2, Nz+Nz+Nz%2],  #reconSpace>matrixSize
         #encodingLimits>
         "enc_lim_kspace_encoding_step_1" => Limit(0, Nx-1, ceil(Int, Nx / 2)),   #min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, 0, 0),     #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)),     #min, max, center, e.g. partition encoding number
         "enc_lim_average"                => Limit(0, 0, 0),     #min, max, center, e.g. signal average number
         "enc_lim_slice"                  => Limit(0, 0, 0),     #min, max, center, e.g. imaging slice number
         "enc_lim_contrast"               => Limit(0, 0, 0),     #min, max, center, e.g. echo number in multi-echo
@@ -126,7 +126,7 @@ function signal_to_raw_data(signal, seq;
                 0, #discard_post: Samples to be discarded at the end of acquisition
                 0, #center_sample: Sample at the center of k-space
                 0, #encoding_space_ref: Reference to an encoding space, typically only one per acquisition
-                2, #trajectory_dimensions: Indicates the dimensionality of the trajectory vector (0 means no trajectory)
+                3, #trajectory_dimensions: Indicates the dimensionality of the trajectory vector (0 means no trajectory)
                 Δt_us, #sample_time_us: Time between samples in micro seconds, sampling BW
                 (0.0f0, 0.0f0, 0.0f0), #position: Three-dimensional spatial offsets from isocenter
                 (1.0f0, 0.0f0, 0.0f0), #read_dir: Directional cosines of the readout/frequency encoding
@@ -135,9 +135,9 @@ function signal_to_raw_data(signal, seq;
                 (0.0f0, 0.0f0, 0.0f0), #patient_table_position: Patient table off-center
                 EncodingCounters( #idx: Encoding loop counters
                     scan_counter, #kspace_encode_step_1: e.g. phase encoding line number
-                    0, #kspace_encode_step_2: e.g. partition encoding number
+                    nz, #kspace_encode_step_2: e.g. partition encoding number
                     0, #average: e.g. signal average number
-                    nz, #slice: e.g. imaging slice number
+                    0, #slice: e.g. imaging slice number
                     0, #contrast: e.g. echo number in multi-echo
                     0, #phase: e.g. cardiac phase number
                     0, #repetition: e.g. dynamic number for dynamic scanning

@@ -1,6 +1,6 @@
 using KomaMRI, PlotlyJS
 
-seq_file = "./test/ourSequence/gre3d.seq" #"./examples/1.sequences/ge.seq" 
+seq_file = "./test/ourSequence/gre3d.seq"  #"./examples/1.sequences/ge.seq"  
 GRE = read_seq(seq_file)
 GRE.DEF = Dict("Name"=>"GRE3D", "Nx" => 64, "Ny" => 64, "Nz" => 32)
 obj = brain_phantom3D()
@@ -19,7 +19,7 @@ show(IOContext(stdout, :limit => true), "text/plain", raw_ismrmrd)
 p3 = plot_signal(raw_ismrmrd; slider=false, height=300)
 savefig(p3, "./test/ourSequence/Signal.png")
 fout = ISMRMRDFile(rawfile)
-#KomaMRICore.save(fout, raw_ismrmrd)
+KomaMRICore.save(fout, raw_ismrmrd)
 acq = AcquisitionData(raw_ismrmrd)
 Nx, Ny, Nz = raw_ismrmrd.params["reconSize"][1:3]
 reconParams = Dict{Symbol,Any}(:reco=>"standard", :reconSize=>(Ny,Nx,Nz))
