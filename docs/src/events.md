@@ -4,16 +4,7 @@ We refer to **RF**, **Grad**, and **ADC** as "events". This section covers the d
 
 ## Sequence Events
 
-As we already know, a **Sequence** struct contains field names that store arrays of **RF**, **Grad** and **ADC** structs. To create a **Sequence**, it's essential to understand how to create these fundamental events. In the image below, we provide a summary of how you can define **RF**, **Grad** and **ADC** events:
-
-```@raw html
-<p align="center"><img width="90%" src="../assets/event-shapes.svg"/></p>
-```
-
-As a general overview, you can observe that the **RF** and **Grad** structs have three ways of defining waveforms: a simple pulse/trapezoidal waveform, an evenly time-spaced waveform (uniformly-sampled), and a non-uniform time-sampled waveform (time-shaped). In contrast, the **ADC** has only one method for defining its struct. It's important to note that the way samples in the **RF** and **Grad** structs are interpolated by **KomaMRI** is different. **R**F uses a zero-order-hold sampling, while **Grads** use linear interpolation.
-
-!!! warning
-    In future versions of **KomaMRI**, the **RF** interpolation will change to use linear interpolation between two consecutive samples, similar to what is currently done with the **Grad** struct.
+As we already know, a **Sequence** struct contains field names that store arrays of **RF**, **Grad** and **ADC** structs. To create a **Sequence**, it's essential to understand how to create these fundamental events.
 
 In the following subsections, we will provide detailed explanations of event parameters and how to create a **Sequence** using **RF**, **Grad** and **ADC** events.
 
@@ -36,6 +27,15 @@ As you can see, it has 4 field names: ''A'' defines amplitude, ''T'' defines dur
 * Pulse Waveform: A and T are numbers
 * Uniformly-Sampled Waveform: A is a vector and T is a number
 * Time-Shaped Waveform: A and T are both vectors with the same length (zero-order-hold)
+
+In the image below, we provide a summary of how you can define **RF** events:
+
+```@raw html
+<p align="center"><img width="100%" src="../assets/event-shapes-rf-horizontal.svg"/></p>
+```
+
+!!! warning
+    In future versions of **KomaMRI**, the **RF** interpolation will change to use linear interpolation between two consecutive samples, similar to what is currently done with the **Grad** struct.
 
 Let's look at some basic examples of creating these **RF** structs and including them in a **Sequence** struct. The examples should be self-explanatory.
 
@@ -121,6 +121,11 @@ Just like the **RF**, ''A'' and ''T'' in the **Grad** struct can be numbers or v
 * Uniformly-Sampled Waveform: A is a vector and T is a number
 * Time-Shaped Waveform: A and T are both vectors, A has one sample more the T (linear interpolation)
 
+In the image below, we provide a summary of how you can define **Grad** events:
+
+```@raw html
+<p align="center"><img width="100%" src="../assets/event-shapes-gr-horizontal.svg"/></p>
+```
 
 Let's look at some basic examples of creating these **Grad** structs and including them in a **Sequence** struct, focusing on the ''x'' component of the gradients. The examples should be self-explanatory.
 
@@ -199,6 +204,12 @@ end
 ```
 
 As you can see, it has 5 field names: ''N'' defines number of samples, ''T'' defines total acquisition duration, ''delay'' is the distance between the 0 time and the first sampled signal, ''Δf'' and ''ϕ' are factor to correct signal acquisition (for advanced users).
+
+In the image below you can see how to define an **ADC** event:
+
+```@raw html
+<p align="center"><img width="50%" src="../assets/event-shapes-adc.svg"/></p>
+```
 
 Let's look at a basic example of defining an **ADC** struct and including it in a **Sequence** struct:
 ```julia-repl
