@@ -68,7 +68,7 @@ makedocs(
         "Sequence Definition" => "sequence.md";
         "Events Definition" => "events.md";
         literate_seccions;
-        "Simulation Methods" => "mri-theory.md";
+        "Simulation Method" => "mri-theory.md";
         "API Documentation" => "api.md";
     ],
     format = Documenter.HTML(
