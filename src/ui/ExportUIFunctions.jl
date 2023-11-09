@@ -4,7 +4,7 @@ Returns the blink window with some custom styles and js logic.
 function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, blink_show=true)
     path = @__DIR__
     ## ASSETS
-    assets = AssetRegistry.register(joinpath(dirname(dirname(path)), "assets"))
+    assets = AssetRegistry.register(dirname(dirname(dirname(path))*"/assets/"))
     scripts = AssetRegistry.register(dirname(path*"/scripts/"))
     css = AssetRegistry.register(dirname(path*"/css/"))
     # Assets
@@ -13,7 +13,7 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, blink_
     # Apparently Blink requires an assets folder in a chiled route of where is launched
     icon_png = path*"/assets/logo-icon.png"
     if !isfile(icon_png)
-        cp(joinpath([dirname(dirname(path)), "assets", "logo-icon.png"]), path*"/assets/logo-icon.png")
+        cp(dirname(dirname(path))*"/assets/logo-icon.png", path*"/assets/logo-icon.png")
     end
     # JS
     bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
