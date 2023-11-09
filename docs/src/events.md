@@ -216,10 +216,6 @@ julia> plot_seq(seq)
 <object type="text/html" data="../assets/event-adc.html" style="width:100%; height:420px;"></object>
 ```
 
-!!! warning
-    The definition of **ADC** in **Pulseq** differs from that in **KomaMRI**. In **KomaMRI**, **ADC** samples are taken at `delay` time and at `delay + T`, with equispaced positions for the remaining samples. The exception is an **ADC** with only one sample, which is located at the position delay + T/2. In contrast, **Pulseq** uses equispaced samples placed between the two ADC sampling times defined in **KomaMRI**, except for an **ADC** with only one sample, which follows the same definition
-  
-
 ## Combination of Events
 
 We can include multiple events within a single block of a sequence. The example below demonstrates how to combine an **RF** struct, three **Grad** structs for the x-y-z components, and an **ADC** struct in a single block of a sequence:
