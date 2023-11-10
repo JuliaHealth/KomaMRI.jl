@@ -976,7 +976,7 @@ end
 """
     p = plot_seqd(seq::Sequence; sim_params=KomaMRICore.default_sim_params())
 
-Plots a discretized sequence struct.
+Plots a sampled sequence struct.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -986,7 +986,7 @@ Plots a discretized sequence struct.
     simulation parameters
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the discretized Sequence struct
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the sampled Sequence struct
 
 # Examples
 ```julia-repl

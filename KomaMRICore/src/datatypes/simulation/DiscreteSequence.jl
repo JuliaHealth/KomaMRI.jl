@@ -1,8 +1,8 @@
 """
     seqd = DiscreteSequence(Gx, Gy, Gz, B1, Δf, ADC, t, Δt)
 
-A discretized version of a Sequence struct, containing vectors for event amplitudes at
-specified times. DiscreteSequence is the struct used for simulation.
+A sampled version of a Sequence struct, containing vectors for event amplitudes at specified
+times. DiscreteSequence is the struct used for simulation.
 
 # Arguments
 - `Gx`: (`::AbstractVector{T<:Real}`, `[T/m]`) x-gradient vector
@@ -72,7 +72,7 @@ is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
 """
     seqd = discretize(seq::Sequence; sim_params=default_sim_params())
 
-This function returns a discretized Sequence struct with RF and gradient time refinements
+This function returns a sampled Sequence struct with RF and gradient time refinements
 based on simulation parameters.
 
 # Arguments

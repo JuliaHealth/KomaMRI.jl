@@ -1,8 +1,7 @@
 """
     delay = Delay(T)
 
-The Delay struct. It is a special struct meant to add a delay to a sequence by using a
-sum operator.
+The Delay struct is meant to add a delay to a sequence by using a sum operator.
 
 # Arguments
 - `T`: (`::Real`, `[s]`) time delay value

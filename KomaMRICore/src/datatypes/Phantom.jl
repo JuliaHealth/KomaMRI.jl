@@ -2,22 +2,21 @@
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
 
 The Phantom struct. Most of its field names are vectors, with each element associated with
-a spin property value representing a small piece of magnetization. This struct serves as an
-input for the simulation.
+a property value representing a spin. This struct serves as an input for the simulation.
 
 # Arguments
 - `name`: (`::String`) phantom name
-- `x`: (`::AbstractVector{T<:Real}`, `[m]`) x-position magnetization vector
-- `y`: (`::AbstractVector{T<:Real}`, `[m]`) y-position magnetization vector
-- `z`: (`::AbstractVector{T<:Real}`, `[m]`) z-position magnetization vector
-- `ρ`: (`::AbstractVector{T<:Real}`) proton density magnetization vector
-- `T1`: (`::AbstractVector{T<:Real}`, `[s]`) T1 parameter magnetization vector
-- `T2`: (`::AbstractVector{T<:Real}`, `[s]`) T2 parameter magnetization vector
-- `T2s`: (`::AbstractVector{T<:Real}`, `[s]`) T2s parameter magnetization vector
-- `Δw`: (`::AbstractVector{T<:Real}`, `[rad/s]`) off-resonance parameter magnetization vector
-- `Dλ1`: (`::AbstractVector{T<:Real}`) Dλ1 (diffusion) parameter magnetization vector
-- `Dλ2`: (`::AbstractVector{T<:Real}`) Dλ2 (diffusion) parameter magnetization vector
-- `Dθ`: (`::AbstractVector{T<:Real}`) Dθ (diffusion) parameter magnetization vector
+- `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
+- `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
+- `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
+- `ρ`: (`::AbstractVector{T<:Real}`) spin proton density vector
+- `T1`: (`::AbstractVector{T<:Real}`, `[s]`) spin T1 parameter vector
+- `T2`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2 parameter vector
+- `T2s`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2s parameter vector
+- `Δw`: (`::AbstractVector{T<:Real}`, `[rad/s]`) spin off-resonance parameter vector
+- `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
+- `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
+- `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
 - `ux`: (`::Function`) displacement field in the x-axis
 - `uy`: (`::Function`) displacement field in the y-axis
 - `uz`: (`::Function`) displacement field in the z-axis
@@ -33,7 +32,7 @@ julia> obj.ρ
 ```
 """
  @with_kw mutable struct Phantom{T<:Real}
-    name::String = "magnetizations"
+    name::String = "spins"
 	x::AbstractVector{T}
 	y::AbstractVector{T} = zeros(size(x))
 	z::AbstractVector{T} = zeros(size(x))
@@ -74,7 +73,9 @@ Base.isapprox(obj1::Phantom, obj2::Phantom)  = begin
     obj1.Dθ    ≈ obj2.Dθ
 end
 
-"""Separate object magnetizations in a sub-group."""
+"""
+Separate object spins in a sub-group
+"""
 Base.getindex(obj::Phantom, p::AbstractRange) = begin
 	Phantom(name=obj.name,
 			x=obj.x[p],
@@ -96,7 +97,7 @@ Base.getindex(obj::Phantom, p::AbstractRange) = begin
 			)
 end
 
-"""Separate object magnetizations in a sub-group (lightweigth)."""
+"""Separate object spins in a sub-group (lightweigth)."""
 Base.view(obj::Phantom, p::AbstractRange) = begin
 	@views Phantom(name=obj.name,
 			x=obj.x[p],
@@ -195,7 +196,7 @@ function brain_phantom2D(; axis="axial", ss=4)
     data = MAT.matread(path*"/phantom/brain2D.mat")
     class = data[axis][1:ss:end,1:ss:end]
 
-    # Define position magnetization vectors
+    # Define spin position vectors
     Δx = .5e-3*ss
     M, N = size(class)
     FOVx = (M-1)*Δx #[m]
@@ -204,7 +205,7 @@ function brain_phantom2D(; axis="axial", ss=4)
     y = -FOVy/2:Δx:FOVy/2 #spin coordinates
     x, y = x .+ y'*0, x*0 .+ y' #grid points
 
-    # Define property magnetization vectors
+    # Define spin property vectors
     T2 = (class.==23)*329 .+ #CSF
         (class.==46)*83 .+ #GM
         (class.==70)*70 .+ #WM
@@ -304,7 +305,7 @@ function brain_phantom3D(;ss=4,start_end=[160, 200])
     data = MAT.matread(path*"/phantom/brain3D.mat")
     class = data["data"][1:ss:end,1:ss:end,start_end[1]:ss:start_end[2]]
 
-    # Define position magnetization vectors
+    # Define spin position vectors
     Δx = .5e-3*ss
     M, N, Z = size(class)
     FOVx = (M-1)*Δx #[m]
@@ -317,7 +318,7 @@ function brain_phantom3D(;ss=4,start_end=[160, 200])
 	y = 0*xx .+ 1*yy .+ 0*zz
 	z = 0*xx .+ 0*yy .+ 1*zz
 
-    # Define property magnetization vectors
+    # Define spin property vectors
     T2 = (class.==23)*329 .+ #CSF
         (class.==46)*83 .+ #GM
         (class.==70)*70 .+ #WM

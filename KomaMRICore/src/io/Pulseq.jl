@@ -278,7 +278,7 @@ end
 """
     seq = read_seq(filename)
 
-Returns the Sequence struct from a pulseq sequence file with `.seq` extension.
+Returns the Sequence struct from a Pulseq file with `.seq` extension.
 
 # Arguments
 - `filename`: (`::String`) absolute or relative path of the sequence file `.seq`

@@ -5,6 +5,9 @@ abstract type SpinStateRepresentation{T<:Real} end #get all available types by u
 include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
 
+"""
+Returns a dictionary with default simulation parameters.
+"""
 function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "gpu", true); if sim_params["gpu"] check_use_cuda(); sim_params["gpu"] &= use_cuda[] end
     get!(sim_params, "gpu_device", 0)
@@ -15,7 +18,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "sim_method", Bloch())
     get!(sim_params, "precision", "f32")
     get!(sim_params, "return_type", "raw")
-    sim_params
+    return sim_params
 end
 
 """

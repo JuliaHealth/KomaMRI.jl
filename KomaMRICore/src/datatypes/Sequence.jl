@@ -4,9 +4,9 @@
     seq = Sequence(GR, RF)
     seq = Sequence(GR, RF, ADC)
     seq = Sequence(GR, RF, ADC, DUR)
-    seq = Sequence(GR::Vector{Grad})
-    seq = Sequence(GR::Vector{Grad}, RF::Vector{RF})
-    seq = Sequence(GR::Vector{Grad}, RF::Vector{RF}, A::ADC, DUR, DEF)
+    seq = Sequence(GR::Array{Grad,1})
+    seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
+    seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
 
 The Sequence struct. It contains events of an MRI sequence. Most field names (except for the
 DEF field) consist of matrices or vectors, where each column index represents a sequence
@@ -15,8 +15,8 @@ block. This struct serves as an input for the simulation.
 # Arguments
 - `GR`: (`::Matrix{Grad}`) gradient matrix. Rows for x-y-z amplitudes and columns are for blocks
 - `RF`: (`::Matrix{RF}`) RF matrix. The 1 row is for the coil and columns are for blocks
-- `ADC`: (`::Vector{ADC}`) ADC block vector
-- `DUR`: (`::Vector{Real}`, `[s]`) duration block vector
+- `ADC`: (`::Array{ADC,1}`) ADC block vector
+- `DUR`: (`::Vector`, `[s]`) duration block vector
 - `DEF`: (`::Dict{String, Any}`) dictionary with relevant information of the sequence.
     Possible keys could be [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
     `"Num_Blocks"`, `"Nx"`, `"Ny"`, `"PulseqVersion"`, `"BlockDurationRaster"`,
@@ -39,7 +39,7 @@ function Sequence(GR)
     gr = [i <= M ? GR[i,j] : Grad(0, 0) for i in 1:3, j in 1:N]
     rf = reshape([RF(0, 0) for i in 1:N], 1, :)
     adc = [ADC(0, 0) for _ = 1:N]
-	return Sequence(gr, rf, adc, GR.dur, Dict())
+    return Sequence(gr, rf, adc, GR.dur, Dict())
 end
 function Sequence(GR, RF)
 	@assert size(GR, 2) .== size(RF, 2) "The number of Gradient, and RF objects must be the same."
@@ -64,19 +64,11 @@ function Sequence(GR, RF, ADC, DUR)
 	return Sequence(gr, RF, ADC, dur, Dict())
 end
 
-#OTHER CONSTRUCTORS
-function Sequence(GR::Array{Grad,1})
-    return Sequence(reshape(GR,1,:))
-end
-function Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
-    return Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0) for i in 1:size(GR, 2)])
-end
-function Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
-    return Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], [DUR], DEF)
-end
-function Sequence()
-    return Sequence([Grad(0, 0)])
-end
+# Other constructors
+Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,1,:))
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1})= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0) for i in 1:size(GR, 2)])
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], [DUR], DEF)
+Sequence() = Sequence([Grad(0, 0)])
 
 """
     str = show(io::IO, s::Sequence)

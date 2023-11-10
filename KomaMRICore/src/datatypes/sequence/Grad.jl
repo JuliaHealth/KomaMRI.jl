@@ -49,11 +49,11 @@ rotz(θ::Real) = [cos(θ) -sin(θ)	0;
     gr = Grad(A, T, rise, delay)
     gr = Grad(A, T, rise, fall, delay)
 
-The Gradient struct. This is an event of an MRI sequence.
+The Grad struct represents a gradient of a sequence event.
 
 # Arguments
-- `A`: (`::Real`, `[T/m]`) amplitude of the gradient
-- `T`: (`::Real`, `[s]`) duration of the flat-top
+- `A`: (`::Real` or `::Vector`, `[T/m]`) amplitude of the gradient
+- `T`: (`::Real` or `::Vector`, `[s]`) duration of the flat-top
 - `rise`: (`::Real`, `[s]`) duration of the rise
 - `fall`: (`::Real`, `[s]`) duration of the fall
 - `delay`: (`::Real`, `[s]`) duration of the delay
@@ -92,7 +92,7 @@ end
     gr = Grad(f::Function, T::Real, N::Integer; delay::Real)
 
 Generates an arbitrary gradient waveform defined by the function `f` in the interval t ∈
-[0,`T`]. The time separation between two consecutive samples is given by T/N.
+[0,`T`]. The time separation between two consecutive samples is given by T/(N-1).
 
 # Arguments
 - `f`: (`::Function`) function that describes the gradient waveform
@@ -107,9 +107,9 @@ Generates an arbitrary gradient waveform defined by the function `f` in the inte
 
 # Examples
 ```julia-repl
-julia> gr = Grad(t -> sin(π*t / 0.8), 0.8)
+julia> gx = Grad(t -> sin(π*t / 0.8), 0.8)
 
-julia> seq = Sequence([gr]); plot_seq(seq)
+julia> seq = Sequence([gx]); plot_seq(seq)
 ```
 """
 Grad(f::Function, T::Real, N::Integer=300; delay::Real=0) = begin

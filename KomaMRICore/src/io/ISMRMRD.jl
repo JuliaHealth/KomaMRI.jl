@@ -5,7 +5,7 @@ Transforms the raw signal into a RawAcquisitionData struct (nearly equivalent to
 format) used for reconstruction with MRIReco.
 
 # Arguments
-- `signal`: (`::Vector{Complex}`) raw signal vector
+- `signal`: (`::Matrix{Complex}`) raw signal matrix
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
