@@ -142,10 +142,13 @@ end
 		Dλ1=[s1.Dλ1;s2.Dλ1],
 		Dλ2=[s1.Dλ2;s2.Dλ2],
 		Dθ=[s1.Dθ;s2.Dθ],
-		mov=s1.mov
+		mov=s1.mov+s2.mov
 		#Χ=obj.Χ[p], #TODO!
 	)
 end
+
++(m1::MotionModel,m2::MotionModel) = SimpleMotion() # TODO: resolve this in a more sophisticated way
+
 #Fraction of compartments
 *(α::Real,obj::Phantom) = begin
 	Phantom(name=obj.name,

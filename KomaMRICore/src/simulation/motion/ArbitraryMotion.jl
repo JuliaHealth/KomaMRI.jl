@@ -38,6 +38,19 @@ Base.getindex(mov::ArbitraryMotion, p::AbstractVector) = begin
                     resetmag=mov.resetmag[p,:])
 end
 
++(m1::ArbitraryMotion,m2::ArbitraryMotion) = begin
+    if m1.K == m2.K
+        return ArbitraryMotion(dur=m1.dur,
+                               K = m1.K,
+                               Δx = vcat(m1.Δx,m2.Δx),
+                               Δy = vcat(m1.Δy,m2.Δy),
+                               Δz = vcat(m1.Δz,m2.Δz),
+                               resetmag = vcat(m1.resetmag,m2.resetmag))
+    else
+        return SimpleMotion()
+    end
+end
+
 """
     limits = get_pieces_limits(obj.mov)
 
@@ -137,7 +150,7 @@ function initialize_motion(mov::ArbitraryMotion{T},
 end
 
 function is_dynamic(mov::ArbitraryMotion{T}) where {T<:Real}
-    itp = get_itp_functions(mov)
+    itp,_ = get_itp_functions(mov)
     return reduce(|,(itp .!== nothing))
 end
 
