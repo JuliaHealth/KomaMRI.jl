@@ -91,6 +91,7 @@ end
 # Properties
 size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
 *(α::Complex{T}, x::RF) where {T<:Real} = RF(α*x.A,x.T,x.Δf,x.delay)
+*(α::Real, x::RF) = RF(α*x.A,x.T,x.Δf,x.delay)
 
 """
     y = dur(x::RF)

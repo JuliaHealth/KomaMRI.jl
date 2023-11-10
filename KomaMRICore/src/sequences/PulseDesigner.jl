@@ -72,6 +72,39 @@ RF_sinc(B1, T, sys::Scanner; G=[0,0,0], Δf=0, a=0.46, TBP=4) = begin # BUG WHEN
 	EX
 end
 
+
+
+
+RF_train(N_pulses, pulse_dur, spacing, flip_angle, sys; G=[0,0,0]) = begin
+	T = N_pulses*(pulse_dur+spacing)
+
+	train(x) = begin 
+		for i in 0:(N_pulses-1)
+			start = i*(pulse_dur + spacing)
+			finish = start + pulse_dur
+
+			if (x >= start) & (x <= finish)
+				return 1
+			end
+		end
+		return 0
+	end
+
+	B1 = flip_angle/(360*γ*pulse_dur)
+	ζ = maximum(G) / sys.Smax
+	T_grad = T - spacing - ζ
+
+	TRAIN = Sequence(reshape([Grad(G[1],T_grad,ζ);
+							  Grad(G[2],T_grad,ζ);
+							  Grad(G[3],T_grad,ζ)], (3,1)),
+				     reshape([B1*RF(train,T,10000)], (1,1)))
+
+	TRAIN
+end
+
+
+
+
 ##################
 ## Gradient SEQ ##
 ##################
@@ -284,10 +317,12 @@ GRE(FOV::Float64, N::Int, TE::Float64, TR::Float64, α, sys::Scanner; G=[0,0,0],
 	Gx = Gy = FOVk/(γ*(T_phase + ζ_phase))
 	step = Δk/(γ*(T_phase + ζ_phase))
 
+	"""
 	print("Δk = ", Δk, " m⁻¹\n")
 	print("FOVk = ", FOVk, " m⁻¹\n")
 	print("Gx = ", Gx*1e3, " mT/m\n")
 	print("step = ", step*1e3, " mT/m\n")
+	"""
 
 	# FE and Readout
 	TE_min = (1/2) * ( sys.ADC_Δt*(N-1) + 2*((EX.DUR[1]/2) + EX.DUR[2]) )
@@ -305,9 +340,11 @@ GRE(FOV::Float64, N::Int, TE::Float64, TR::Float64, α, sys::Scanner; G=[0,0,0],
 	RO.ADC[1] = ADC(N, T_ro, ζ_ro)
 	delay_TR = TR - (EX.DUR[1] + EX.DUR[2] + RO.DUR[1])
 	
+	"""
 	print("ACQ_dur = ", ACQ_dur*1e3, " ms\n")
 	print("G_ro = ", G_ro*1e3, " mT/m\n")
 	print("ζ = ", ζ_ro*1e3, " ms\n")
+	"""
 
 	gre = Sequence()
 	for i in 0:(N-1)
@@ -352,13 +389,15 @@ bSSFP(FOV::Float64, N::Int, TR::Float64, α, sys::Scanner; G=[0,0,0], Δf=0) = b
 	Gx = Gy = FOVk/(γ*(T_phase + ζ_phase))
 	step = Δk/(γ*(T_phase + ζ_phase))
 
+	#=
 	print("Δk = ", Δk, " m⁻¹\n")
 	print("FOVk = ", FOVk, " m⁻¹\n")
 	print("Gx = ", Gx*1e3, " mT/m\n")
 	print("step = ", step*1e3, " mT/m\n")
+	=#
 
 	# FE and Readout
-	delay = 0.3*TR # delay to "strech" readout time
+	delay = 0.1*TR # delay to "strech" readout time
 	ACQ_dur = TR - (EX.DUR[1] + 2*EX.DUR[2] + 2*delay)
 	G_ro = FOVk/(γ*ACQ_dur)
 	ζ_ro = G_ro / sys.Smax
@@ -367,9 +406,11 @@ bSSFP(FOV::Float64, N::Int, TR::Float64, α, sys::Scanner; G=[0,0,0], Δf=0) = b
 	RO = Sequence(GR)
 	RO.ADC[1] = ADC(N, T_ro, ζ_ro)
 	
+	#=
 	print("ACQ_dur = ", ACQ_dur*1e3, " ms\n")
 	print("G_ro = ", G_ro*1e3, " mT/m\n")
 	print("ζ = ", ζ_ro*1e3, " ms\n")
+	=#
 
 	gre = Sequence()
 	for i in 0:(N-1)
@@ -380,9 +421,15 @@ bSSFP(FOV::Float64, N::Int, TR::Float64, α, sys::Scanner; G=[0,0,0], Δf=0) = b
 		gre += EX
 		
 		# FE and Readout
-		gre += Delay(delay) + RO + Delay(delay) + Sequence(reshape([ EX[end].GR[1],
-																	-EX[end].GR[2],
-																	 EX[end].GR[3]],(3,1)))
+		balance = Sequence(reshape([ EX[end].GR[1],
+									-EX[end].GR[2],
+									 EX[end].GR[3]],(3,1)))
+
+		# balance = Sequence(reshape([  Grad(0,EX[end].GR[1].T),
+		# 							  Grad(0,EX[end].GR[2].T),
+		# 							  Grad(0,EX[end].GR[2].T)],(3,1)))	
+
+		gre += Delay(delay) + RO + Delay(delay) + balance
 	end
 	gre.DEF = Dict("Nx"=>N,"Ny"=>N,"Nz"=>1,"Name"=>"gre"*string(N)*"x"*string(N),"FOV"=>[FOV, FOV, 0])
 	gre[2:end]
