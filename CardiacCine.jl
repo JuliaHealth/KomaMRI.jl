@@ -2,17 +2,97 @@
 Simulate cardiac cine adquisition and reconstruction. 
 Output are cine frames from different cardiac phases
 """
-cardiac_cine(FOV::Float64,heart_rate::Int,N_phases::Int,N::Int,obj::Phantom,sys::Scanner) = begin
+cardiac_cine(FOV::Float64,heart_rate::Int,N_phases::Int,N::Int,obj::Phantom,sys::Scanner;
+			 Δf=0,
+			 flip_angle = 10,
+			 TR = (60/heart_rate)/N_phases,
+			 dummy_cycles = 0,
+			 tagging::Bool=false) = begin
+
 	RR = 60/heart_rate
-	TR = RR/N_phases
-	α = 15
+	α = flip_angle
 
 	# Sequence
-	seq = Sequence()
-	base_seq =  PulseDesigner.bSSFP(FOV, N, TR, α, sys)
-	for i in 1:N
+	global seq = Sequence()
+
+
+	# Tagging ----------------------------------
+	tag = Sequence()
+	if tagging
+
+		# SPAMM
+		hard_flip(T,α,sys) = begin
+			B1 = α/(360*γ*T) 
+			return PulseDesigner.RF_hard(B1, T, sys)
+		end
+
+		T_RF = 0.5e-3
+
+		EX_22 = hard_flip(T_RF,22.5,sys)
+		EX_45 = hard_flip(T_RF,45,sys)
+		EX_90 = hard_flip(T_RF,90,sys)
+
+		A = 3.5e-3
+		T = 0.7e-3
+		ζ = A / sys.Smax
+
+		GR_x = Sequence(reshape([Grad(A,T,ζ);
+								Grad(0,0);
+								Grad(0,0)],(3,1)))
+
+		GR_y = Sequence(reshape([Grad(0,0);
+								Grad(A,T,ζ);
+								Grad(0,0)],(3,1)))
+
+		spamm_x =   EX_45 +
+					GR_x +
+					EX_45 +
+					5*GR_x
+
+		spamm_y =   EX_45 +
+					GR_y +
+					EX_45 +
+					5*GR_y
+
+		tag = spamm_x + spamm_y + Delay(10e-3)
+
+
+		# DANTE 
+		"""
+		dante = PulseDesigner.RF_train(8, 1e-4, 1e-3, 25, sys; G = [0,4e-3,0])
+
+		tag = dante + rotz(π/2)*dante + Delay(1e-3)
+		"""
+	end
+	# -------------------------------------------------
+
+	prospective = true
+	if TR == RR/N_phases
+		TR -= sum(dur(tag))/N_phases
+		prospective = false
+	end
+
+	base_seq =  PulseDesigner.bSSFP(FOV, N, TR, α, sys; Δf=Δf)
+
+
+	for i in 0:N-1
+		seq += tag
+
+		line = base_seq[6*i .+ (1:6)]
+		dummy_cycle = copy(line)
+		dummy_cycle.ADC = [ADC(0,0) for i in 1:length(dummy_cycle)]
+		# dummy_cycle.GR[1,:] = [Grad(0,0) for i in 1:length(dummy_cycle)]
+		# dummy_cycle.GR[2,:] = [Grad(0,0) for i in 1:length(dummy_cycle)]
+
+		for j in 1:dummy_cycles
+			seq += dummy_cycle
+		end
 		for j in 1:N_phases
-			seq += base_seq[6*(i-1).+(1:6)]
+			seq += line
+		end
+		if prospective
+			dead_space = RR - (N_phases*sum(dur(base_seq[6*i .+ (1:6)])) + sum(dur(tag)))
+			seq += Delay(dead_space)
 		end
 	end
 	seq = seq[2:end]
@@ -56,5 +136,6 @@ cardiac_cine(FOV::Float64,heart_rate::Int,N_phases::Int,N::Int,obj::Phantom,sys:
 
 		push!(frames,image_aux)
 	end
+
 	frames
-end
+end 
