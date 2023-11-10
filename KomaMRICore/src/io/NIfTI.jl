@@ -16,8 +16,6 @@ function read_phantom_NIfTI(folder; ss=1::Int)
 	T2_data = T2_ni.raw
 	ρ = PD_ni.raw
 
-	M, N, L = size(T1_data)
-
 	# Subsampling
 	T1_data = T1_data[1:ss:end,1:ss:end,1:ss:end]
 	T2_data = T2_data[1:ss:end,1:ss:end,1:ss:end]
@@ -77,7 +75,6 @@ function read_phantom_NIfTI(folder; ss=1::Int)
                           		ρ=ρ[ρ.!=0],
                           		T1=T1_data[ρ.!=0],
                           		T2=T2_data[ρ.!=0],
-                          		Δw=Δw[ρ.!=0]
-                          		)
+                          		Δw=Δw[ρ.!=0])
 	phantom
 end
