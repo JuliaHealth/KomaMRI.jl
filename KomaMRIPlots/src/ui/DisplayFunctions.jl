@@ -257,7 +257,7 @@ end
 
 """
 """
-function plot_cine(frames, fps)
+function plot_cine(frames, fps; Δt=1/fps)
 
 	x = 0:size(frames[1])[2]-1
 	y = 1:size(frames[1])[1]
@@ -265,8 +265,8 @@ function plot_cine(frames, fps)
 	t = 0
 
 	anim = @animate for image in frames
-		t += 1/fps
-		Plots.plot!(Plots.heatmap(x,y,image',color=:greys,legend=:none; aspect_ratio=:equal),
+		t += Δt
+		Plots.plot!(Plots.heatmap(x,y,image',color=:greys; aspect_ratio=:equal),
 					title="Reconstruction (t="*Printf.@sprintf("%.2f", t)*"s)", 
 					xlims=(minimum(x), maximum(x)), 
 					ylims=(minimum(y), maximum(y)))
@@ -824,8 +824,8 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0.0, height=600, width=no
 
 	Ux, Uy, Uz = initialize_motion(ph.mov, ph.x, ph.y, ph.z, [t0])
 	Ux = Ux===nothing ? 0 : reshape(Ux',(length(Ux),))
-	Uy = Uy===nothing ? 0 : reshape(Uy',(length(Ux),))
-	Uz = Uz===nothing ? 0 : reshape(Uz',(length(Ux),))
+	Uy = Uy===nothing ? 0 : reshape(Uy',(length(Uy),))
+	Uz = Uz===nothing ? 0 : reshape(Uz',(length(Uz),))
 
 	if view_2d
 	h = PlotlyJS.scatter( 	x=(ph.x .+ Ux)*1e2,
