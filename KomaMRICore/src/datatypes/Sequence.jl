@@ -31,6 +31,7 @@ mutable struct Sequence
 	ADC::Array{ADC,1}		  #ADC in time
 	DUR::Vector				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
 	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
+	#Ext::Array{Extension,1}
 end
 
 # Main Constructors
@@ -103,8 +104,11 @@ Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
 
 #Arithmetic operations
-+(x::Sequence, y::Sequence) = Sequence([x.GR  y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
--(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
+recursive_merge(x::AbstractDict...) = merge(recursive_merge, x...)
+recursive_merge(x::AbstractVector...) = cat(x...; dims=1)
+recursive_merge(x...) = x[end]
++(x::Sequence, y::Sequence) = Sequence([x.GR  y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], recursive_merge(x.DEF, y.DEF))
+-(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], recursive_merge(x.DEF, y.DEF))
 -(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.DEF)
 *(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF, x.ADC, x.DUR, x.DEF)
 *(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF, x.ADC, x.DUR, x.DEF)
@@ -469,7 +473,8 @@ Outputs the designed k-space trajectory of the Sequence `seq`.
 - `kspace`: (`3-column ::Matrix{Float64}`) kspace
 - `kspace_adc`: (`3-column ::Matrix{Float64}`) adc kspace
 """
-get_kspace(seq::Sequence; Δt=1) = begin
+get_kspace(seq::Sequence; Δt=1, 
+skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
@@ -484,8 +489,16 @@ get_kspace(seq::Sequence; Δt=1) = begin
 		kf = 0
 		for (rf, p) in enumerate(parts)
 			k[p,i] = cumtrapz(Δt[p]', G[i][p[1]:p[end]+1]')[:] #This is the exact integral
-			if rf > 1 #First part does not have RF
-				k[p,i] .-= rf_type[rf-1] * kf
+			if rf > 1
+				if !skip_rf[rf-1]
+					if rf_type[rf-1] == 0 # Excitation
+						k[p,i] .-= 0
+					elseif rf_type[rf-1] == 1 # Refocuse
+						k[p,i] .-= kf
+					end
+				else
+					k[p,i] .+= kf
+				end
 			end
 			kf = k[p[end],i]
 		end
@@ -518,7 +531,7 @@ Outputs the designed M1 of the Sequence `seq`.
 - `M1`: (`3-column ::Matrix{Float64}`) First moment
 - `M1_adc`: (`3-column ::Matrix{Float64}`) First moment sampled at ADC points
 """
-get_M1(seq::Sequence; Δt=1) = begin
+get_M1(seq::Sequence; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
@@ -534,7 +547,15 @@ get_M1(seq::Sequence; Δt=1) = begin
 		for (rf, p) in enumerate(parts)
 			m1[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]] .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
 			if rf > 1 #First part does not have RF
-				m1[p,i] .-= rf_type[rf-1] * m1f
+				if !skip_rf[rf-1]
+					if rf_type[rf-1] == 0 # Excitation
+						m1[p,i] .-= 0
+					elseif rf_type[rf-1] == 1 # Refocuse
+						m1[p,i] .-= m1f
+					end
+				else
+					m1[p,i] .+= m1f
+				end
 			end
 			m1f = m1[p[end],i]
 		end

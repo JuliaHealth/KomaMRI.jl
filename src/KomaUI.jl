@@ -1,6 +1,3 @@
-include("ui/ExportMATFunctions.jl")
-include("ui/ExportUIFunctions.jl")
-
 # Define observables exported observables
 sys_ui = Observable{Scanner}(Scanner())
 seq_ui = Observable{Sequence}(Sequence())
@@ -280,13 +277,26 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     content!(w, "#phafilepicker", widget_filepicker_obj, async=false)
     content!(w, "#sigfilepicker", widget_filepicker_raw, async=false)
 
-    # Update Koma version on UI
-    version = string(KomaMRICore.__VERSION__)
-    content!(w, "#version", version, async=false)
-    @info "Currently using KomaMRICore v$version"
+    # Update Koma version
+    version_ui = string(KomaMRI.__VERSION__)
+    version_core = string(KomaMRICore.__VERSION__)
+    version_plots = string(KomaMRIPlots.__VERSION__)
+    @js_ w (
+        @var version_ui = $(version_ui);
+        @var version_core = $(version_core);
+        @var version_plots = $(version_plots); 
+        document.getElementById("Github").setAttribute("data-bs-original-title", 
+                                                         "KomaMRI.jl v"+version_ui+"\n"+
+                                                         "KomaMRICore.jl v"+version_core+"\n"+
+                                                         "KomaMRIPlots.jl v"+version_plots);
+    )
+    @info "Currently using package versions" KomaMRI=version_ui KomaMRICore=version_core KomaMRIPlots=version_plots
+    
+    # Devtools
+    if dev_tools
+        Blink.tools(w)
+    end
 
-    # Return the Blink Window or not
-    (dev_tools) && return w
     return nothing
 end
 

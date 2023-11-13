@@ -57,6 +57,11 @@ end
 """Size and length of a phantom"""
 size(x::Phantom) = size(x.ρ)
 Base.length(x::Phantom) = length(x.ρ)
+# To enable to iterate and broadcast over the Phantom
+Base.iterate(x::Phantom) = (x[1], 2)
+Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i+1) : nothing
+Base.lastindex(x::Phantom) = length(x)
+Base.getindex(x::Phantom, i::Integer) = x[i:i]
 
 """Compare two phantoms"""
 Base.isapprox(obj1::Phantom, obj2::Phantom)  = begin
