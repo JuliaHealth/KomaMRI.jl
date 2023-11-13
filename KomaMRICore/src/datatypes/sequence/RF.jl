@@ -171,7 +171,8 @@ get_RF_center(x::RF) = begin
 	A, NA, T, NT, delay = x.A, length(x.A), x.T, length(x.T), x.delay
 	dT = T / NA * NT .* ones(NA)
 	t = cumsum([0; dT])[1:end-1]
-	i_center = argmax(abs.(A))
-	t_center = t[i_center] + dT[i_center]/2
-	return t_center + delay
+	t_center = sum(abs.(A) .* t) ./ sum(abs.(A))
+	idx = argmin(abs.(t .- t_center))
+	t_center += delay + dT[idx]/2
+	return t_center
 end
