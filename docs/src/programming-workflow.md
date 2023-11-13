@@ -157,12 +157,11 @@ Additionally, there are helpful sequence construction functions within a submodu
 julia> path_koma = dirname(dirname(pathof(KomaMRI)))
 julia> path_spiral = joinpath(path_koma, "examples", "1.sequences", "spiral.seq")
 julia> spiral = read_seq(path_spiral)
-julia> p1 = plot_seq(spiral);
-julia> p2 = plot_kspace(spiral);
-julia> [p1 p2]
+julia> plot_seq(spiral)
+julia> plot_kspace(spiral)
 ```
 ```@raw html
-<object type="text/html" data="../assets/seq-spiral-pulseq-seq-kspace.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/seq-spiral-pulseq-time.html" style="width:50%; height:420px;"></object><object type="text/html" data="../assets/seq-spiral-pulseq-kspace.html" style="width:50%; height:420px;"></object>
 ```
 
 ## Running Simulation
