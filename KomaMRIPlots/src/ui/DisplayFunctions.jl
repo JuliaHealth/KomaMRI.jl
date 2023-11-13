@@ -59,6 +59,7 @@ function generate_seq_time_layout_config(title, width, height, range, slider, sh
 			yaxis_fixedrange = false,
 			xaxis=attr(
 				ticksuffix=" ms",
+				domain=range[:],
 				range=range[:],
 				rangeslider=attr(visible=slider),
 				rangeselector=attr(
@@ -154,7 +155,9 @@ julia> seq = read_seq(seq_file)
 julia> plot_seq(seq)
 ```
 """
-plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, max_rf_samples=100, range=[], title="") = begin
+plot_seq(seq::Sequence; width=nothing, height=nothing, slider=false, 
+		show_seq_blocks=false, darkmode=false, max_rf_samples=Inf, 
+		range=[], title="", xaxis="x", yaxis="y", showlegend=true) = begin
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
 	O = size(seq.RF,1)
@@ -177,19 +180,24 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=true, show_seq_blo
     #Plot
 	p = [scatter() for j=1:(3+2O+1)]
 	#GR
-	p[1] = scatter(x=t1x*1e3, y=Gx*1e3,name=idx[1],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)")
-	p[2] = scatter(x=t1y*1e3, y=Gy*1e3,name=idx[2],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)")
-	p[3] = scatter(x=t1z*1e3, y=Gz*1e3,name=idx[3],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)")
+	p[1] = scatter(x=t1x*1e3, y=Gx*1e3,name=idx[1],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+			xaxis=xaxis,yaxis=yaxis,legendgroup="Gx",showlegend=showlegend,marker=attr(color="#636EFA"))
+	p[2] = scatter(x=t1y*1e3, y=Gy*1e3,name=idx[2],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+			xaxis=xaxis,yaxis=yaxis,legendgroup="Gy",showlegend=showlegend,marker=attr(color="#EF553B"))
+	p[3] = scatter(x=t1z*1e3, y=Gz*1e3,name=idx[3],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+			xaxis=xaxis,yaxis=yaxis,legendgroup="Gz",showlegend=showlegend,marker=attr(color="#00CC96"))
 	#RF
 	for j=1:O
 		phase = angle.(R[:,j])
 		phase[R[:,j] .== Inf] .= Inf
-		p[2j-1+3] = scatter(x=t2*1e3, y=abs.(R[:,j])*1e6,name="|RF_$j|",hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)")
-		p[2j+3] =   scatter(x=t2*1e3, y=phase, text=ones(size(t2)), name="<RF_$j",hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly")
+		p[2j-1+3] = scatter(x=t2*1e3, y=abs.(R[:,j])*1e6,name="|B1|",hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
+					xaxis=xaxis,yaxis=yaxis,legendgroup="|B1|",showlegend=showlegend,marker=attr(color="#AB63FA"))
+		p[2j+3] =   scatter(x=t2*1e3, y=phase, text=ones(size(t2)), name="<B1",hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
+					xaxis=xaxis,yaxis=yaxis,legendgroup="<B1",showlegend=showlegend,marker=attr(color="#FFA15A"))
 	end
 	#ADC
-	p[2O+3+1] = scatter(x=t3*1e3, y=D*1., name="ADC",hovertemplate="(%{x:.4f} ms, %{y:i})")
-	#Layout and config
+	p[2O+3+1] = scatter(x=t3*1e3, y=D*1., name="ADC",hovertemplate="(%{x:.4f} ms, %{y:i})",
+				xaxis=xaxis,yaxis=yaxis,legendgroup="ADC",showlegend=showlegend,color=marker=attr(color="#19D3F3"))
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
 	plot_koma(p, l; config)
 end
@@ -221,7 +229,8 @@ julia> seq = read_seq(seq_file)
 julia> plot_M0(seq)
 ```
 """
-function plot_M0(seq; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="")
+function plot_M0(seq; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="",
+	skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
@@ -231,13 +240,13 @@ function plot_M0(seq; width=nothing, height=nothing, slider=true, show_seq_block
 	#M0
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
-	k, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
+	k, _ =  KomaMRICore.get_kspace(seq; Δt=dt, skip_rf)
 	#plots M0
 	p = [scatter() for j=1:4]
-	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms)", name="M0x")
-	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms)", name="M0y")
-	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms)", name="M0z")
-	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"),mode="markers")
+	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms)", name="M0x", legendgroup="Gx", marker=attr(color="#636EFA"))
+	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms)", name="M0y", legendgroup="Gy", marker=attr(color="#EF553B"))
+	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms)", name="M0z", legendgroup="Gz", marker=attr(color="#00CC96"))
+	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"), mode="markers", showlegend=false)
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
 	plot_koma(p, l; config)
@@ -270,7 +279,8 @@ julia> seq = read_seq(seq_file)
 julia> plot_M1(seq)
 ```
 """
-function plot_M1(seq; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="")
+function plot_M1(seq; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="",
+	skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
@@ -280,13 +290,13 @@ function plot_M1(seq; width=nothing, height=nothing, slider=true, show_seq_block
 	#M1
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
-	k, _ =  KomaMRICore.get_M1(seq; Δt=dt)
+	k, _ =  KomaMRICore.get_M1(seq; Δt=dt, skip_rf)
 	#plots M1
 	p = [scatter() for j=1:4]
-	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms²)", name="M1x")
-	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms²)", name="M1y")
-	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms²)", name="M1z")
-	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"),mode="markers")
+	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms²)", name="M1x", legendgroup="Gx", marker=attr(color="#636EFA"))
+	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms²)", name="M1y", legendgroup="Gy", marker=attr(color="#EF553B"))
+	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms²)", name="M1z", legendgroup="Gz", marker=attr(color="#00CC96"))
+	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"), mode="markers", showlegend=false)
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
 	plot_koma(p, l; config)
@@ -333,10 +343,10 @@ function plot_M2(seq; width=nothing, height=nothing, slider=true, show_seq_block
 	k, _ =  KomaMRICore.get_M2(seq; Δt=dt)
 	#Plor M2
 	p = [scatter() for j=1:4]
-	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2x")
-	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2y")
-	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2z")
-	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"),mode="markers")
+	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2x", legendgroup="Gx", marker=attr(color="#636EFA"))
+	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2y", legendgroup="Gy", marker=attr(color="#EF553B"))
+	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2z", legendgroup="Gz", marker=attr(color="#00CC96"))
+	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"), mode="markers", showlegend=false)
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
 	plot_koma(p, l; config)
@@ -388,9 +398,9 @@ function plot_eddy_currents(seq, λ; α=ones(size(λ)), width=nothing, height=no
 	end
 	#Plot eddy currents
 	p = [scatter() for j=1:4]
-	p[1] = scatter(x=t*1e3, y=(Gx*0 .+ Gec[:,1])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECx")
-	p[2] = scatter(x=t*1e3, y=(Gy*0 .+ Gec[:,2])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECy")
-	p[3] = scatter(x=t*1e3, y=(Gz*0 .+ Gec[:,3])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECz")
+	p[1] = scatter(x=t*1e3, y=(Gx*0 .+ Gec[:,1])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECx", legendgroup="Gx", marker=attr(color="#636EFA"))
+	p[2] = scatter(x=t*1e3, y=(Gy*0 .+ Gec[:,2])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECy", legendgroup="Gy", marker=attr(color="#EF553B"))
+	p[3] = scatter(x=t*1e3, y=(Gz*0 .+ Gec[:,3])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECz", legendgroup="Gz", marker=attr(color="#00CC96"))
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
 	plot_koma(p, l; config)
@@ -435,9 +445,9 @@ function plot_slew_rate(seq; width=nothing, height=nothing, slider=true, show_se
 	k, _ =  KomaMRICore.get_slew_rate(seq; Δt=dt)
 	#Plot eddy currents
 	p = [scatter() for j=1:4]
-	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRx")
-	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRy")
-	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRz")
+	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRx", legendgroup="Gx", marker=attr(color="#636EFA"))
+	p[2] = scatter(x=ts*1e3, y=k[:,2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRy", legendgroup="Gy", marker=attr(color="#EF553B"))
+	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRz", legendgroup="Gz", marker=attr(color="#00CC96"))
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
 	plot_koma(p, l; config)
