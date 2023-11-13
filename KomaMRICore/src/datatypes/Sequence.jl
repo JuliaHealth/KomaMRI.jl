@@ -32,6 +32,15 @@ mutable struct Sequence
 	DUR::Vector				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
 	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
 	#Ext::Array{Extension,1}
+	Sequence(GR, RF, ADC, DUR, DEF) = begin
+		@assert size(GR,2) .== size(RF,2) .== length(ADC) .== length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
+		M,N = size(GR)
+		new([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N],
+			RF,
+			ADC,
+			maximum([GR.dur RF.dur ADC.dur DUR],dims=2)[:],
+			DEF)
+	end
 end
 
 # Main Constructors
