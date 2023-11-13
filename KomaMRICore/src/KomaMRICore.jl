@@ -3,7 +3,7 @@ module KomaMRICore
 #IMPORT PACKAGES
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.abs, Base.getproperty
 #General
-using Reexport, ThreadsX, Pkg
+using Reexport, ThreadsX
 #Printing
 using Scanf, ProgressMeter
 #Datatypes
@@ -72,6 +72,8 @@ export get_M0, get_M1, get_M2, get_kspace
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
 
+#Package version, KomaMRICore.__VERSION__
+using Pkg
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
 end

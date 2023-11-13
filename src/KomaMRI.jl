@@ -18,8 +18,13 @@ using MRIReco
 include("reconstruction/Recon.jl")
 
 #GUI
+include("ui/ExportMATFunctions.jl")
 include("KomaUI.jl")
 
 export KomaUI
+
+#Package version, KomaMRI.__VERSION__
+using Pkg
+__VERSION__ = Pkg.project().version
 
 end

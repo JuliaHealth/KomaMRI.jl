@@ -128,13 +128,15 @@
   </ul>
   <hr>
   <!-- Koma GITHUB -->
-  <div class="nav-item dropdown dropdown-dark">
-    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" style="color:#9b9d9e;" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-      <span class="iconkoma"><i class="bi bi-box-seam me-2"></i>KomaCore v<span id="version"></span></span>
+  <div class="dropdown">
+    <a class="d-flex align-items-center text-decoration-none dropdown-toggle iconkoma" href="#"
+      id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-github me-2"></i><span class="w-100">KomaMRI</span>
     </a>
     <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
-      <li><a class="dropdown-item" id="Github" target="_blank" href="https://github.com/cncastillo/KomaMRI.jl/">
-        <i class="bi bi-github me-2"></i>Go to Koma's GitHub
+      <li><a class="dropdown-item" id="Github" target="_blank" href="https://github.com/cncastillo/KomaMRI.jl/"
+        data-bs-toggle="tooltip" data-bs-placement="right" title="Hooray!">
+        <i class="bi bi-box-seam me-2"></i>Go to Koma's GitHub
       </a></li>
       <li><a class="dropdown-item" id="Documentation" target="_blank" href="https://cncastillo.github.io/KomaMRI.jl/">
         <i class="bi bi-file-earmark-text me-2"></i>Documentation
@@ -202,6 +204,11 @@
     var toastElemnt = new bootstrap.Toast(toastHTMLElement, option);
     toastElemnt.show();
   }
+  // Initialize tooltips
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl, {trigger : 'hover'})
+  })
 </script>
 <!-- For index.html -->
 <div class="container" style="padding: 0px !important;" id="content" data-content="index">
