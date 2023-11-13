@@ -1,6 +1,13 @@
 include("ui/ExportMATFunctions.jl")
 include("ui/ExportUIFunctions.jl")
 
+# Define observables exported observables
+sys_ui = Observable{Scanner}(Scanner())
+seq_ui = Observable{Sequence}(Sequence())
+obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
+raw_ui = Observable{RawAcquisitionData}(setup_raw())
+img_ui = Observable{Array}([0.0im 0.; 0. 0.])
+
 """
     out = KomaUI(; kwargs...)
 
@@ -36,18 +43,11 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     w, index = setup_blink_window(; darkmode, frame, dev_tools, blink_show)
 
     # Setup default simulation inputs (they have observables)
-    sys = setup_scanner()
-    seq = setup_sequence(sys)
-    obj = setup_phantom(; phantom_mode)
-    raw = setup_raw()
-    img =  [0.0im 0.; 0. 0.]
-
-    # Define observables
-    obs_sys = Observable{Scanner}(sys)
-    obs_seq = Observable{Sequence}(seq)
-    obs_obj = Observable{Phantom}(obj)
-    obs_raw = Observable{RawAcquisitionData}(raw)
-    obs_img = Observable{Array}(img)
+    sys_ui[] = setup_scanner()
+    seq_ui[] = setup_sequence(sys_ui[])
+    obj_ui[] = setup_phantom(; phantom_mode)
+    raw_ui[] = setup_raw()
+    img_ui[] = [0.0im 0.; 0. 0.]
 
     # Define parameters (they are just internal variables)
     sim_params = merge(Dict{String,Any}(), sim)
@@ -68,63 +68,63 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         @js_ w document.getElementById("content").dataset.content = "index"
     end
     handle(w, "pulses_seq") do _
-        view_ui!(obs_seq[], w; type="sequence", darkmode)
+        view_ui!(seq_ui[], w; type="sequence", darkmode)
     end
     handle(w, "pulses_kspace") do _
-        view_ui!(obs_seq[], w; type="kspace", darkmode)
+        view_ui!(seq_ui[], w; type="kspace", darkmode)
     end
     handle(w, "pulses_M0") do _
-        view_ui!(obs_seq[], w; type="moment0", darkmode)
+        view_ui!(seq_ui[], w; type="moment0", darkmode)
     end
     handle(w, "pulses_M1") do _
-        view_ui!(obs_seq[], w; type="moment1", darkmode)
+        view_ui!(seq_ui[], w; type="moment1", darkmode)
     end
     handle(w, "pulses_M2") do _
-        view_ui!(obs_seq[], w; type="moment2", darkmode)
+        view_ui!(seq_ui[], w; type="moment2", darkmode)
     end
     handle(w, "phantom") do _
-        view_ui!(obs_obj[], w, obs_seq[], widgets_button_obj; key=:ρ, darkmode)
+        view_ui!(obj_ui[], w, seq_ui[], widgets_button_obj; key=:ρ, darkmode)
     end
     handle(w, "scanner") do _
-        view_ui!(obs_sys[], w)
+        view_ui!(sys_ui[], w)
     end
     handle(w, "sim_params") do _
         view_ui!(sim_params, w)
     end
     handle(w, "sig") do _
-        view_ui!(obs_raw[], w; darkmode)
+        view_ui!(raw_ui[], w; darkmode)
     end
     handle(w, "rec_params") do _
         view_ui!(rec_params, w)
     end
     handle(w, "reconstruction_absI") do _
-        view_ui!(obs_img[], w; type="absi", darkmode)
+        view_ui!(img_ui[], w; type="absi", darkmode)
     end
     handle(w, "reconstruction_angI") do _
-        view_ui!(obs_img[], w; type="angi", darkmode)
+        view_ui!(img_ui[], w; type="angi", darkmode)
     end
     handle(w, "reconstruction_absK") do _
-        view_ui!(obs_img[], w; type="absk", darkmode)
+        view_ui!(img_ui[], w; type="absk", darkmode)
     end
 
     # Handle "Save" to mat sidebar buttons
     handle(w, "matfolder") do _
-        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="all")
+        save_ui!(w, seq_ui[], obj_ui[], sys_ui[], raw_ui[], img_ui[], rec_params, mat_folder; type="all")
     end
     handle(w, "matfolderseq") do _
-        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="sequence")
+        save_ui!(w, seq_ui[], obj_ui[], sys_ui[], raw_ui[], img_ui[], rec_params, mat_folder; type="sequence")
     end
     handle(w, "matfolderpha") do _
-        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="phantom")
+        save_ui!(w, seq_ui[], obj_ui[], sys_ui[], raw_ui[], img_ui[], rec_params, mat_folder; type="phantom")
     end
     handle(w, "matfoldersca") do _
-        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="scanner")
+        save_ui!(w, seq_ui[], obj_ui[], sys_ui[], raw_ui[], img_ui[], rec_params, mat_folder; type="scanner")
     end
     handle(w, "matfolderraw") do _
-        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="raw")
+        save_ui!(w, seq_ui[], obj_ui[], sys_ui[], raw_ui[], img_ui[], rec_params, mat_folder; type="raw")
     end
     handle(w, "matfolderima") do _
-        save_ui!(w, obs_seq[], obs_obj[], obs_sys[], obs_raw[], obs_img[], rec_params, mat_folder; type="image")
+        save_ui!(w, seq_ui[], obj_ui[], sys_ui[], raw_ui[], img_ui[], rec_params, mat_folder; type="image")
     end
 
     # Handle "Simulation" sidebar button
@@ -148,7 +148,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
 
         # Perform simulation
-        raw_aux = simulate(obs_obj[], obs_seq[], obs_sys[]; sim_params, w)
+        raw_aux = simulate(obj_ui[], seq_ui[], sys_ui[]; sim_params, w)
 
         # After simulation, display the text on the simulation button (not the progress bar)
         @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
@@ -162,7 +162,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         sim_time = raw_aux.params["userParameters"]["sim_time_sec"]
         @js_ w (
             @var sim_time = $sim_time;
-            @var name = $(obs_obj[].name);
+            @var name = $(obj_ui[].name);
             document.getElementById("rawname").innerHTML = "Koma_signal.mrd";
             Toasty(
                 "1",
@@ -190,7 +190,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
 
         # Update the value of the raw signal observable
         # this calls the view_ui to display the raw signal
-        obs_raw[] = raw_aux
+        raw_ui[] = raw_aux
     end
 
     # Handle "Reconstruction" sidebar button
@@ -211,7 +211,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML = buffericon)
 
         # Get the value of the raw signal and prepare for reconstruction
-        raw_aux = obs_raw[]
+        raw_aux = raw_ui[]
         raw_aux.profiles = raw_aux.profiles[getproperty.(getproperty.(raw_aux.profiles, :head), :flags) .!= 268435456] #Extra profile in JEMRIS simulations
         acq_data = AcquisitionData(raw_aux)
         acq_data.traj[1].circular = false #Removing circular window
@@ -248,29 +248,32 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
 
         # Update the value of the image observable
         # this calls the view_ui to display the image
-        obs_img[] = image
+        img_ui[] = image
     end
 
     # Define functionality of sequence filepicker widget
     widget_filepicker_seq = filepicker(".seq (Pulseq)/.seqk (Koma)"; accept=".seq,.seqk")
-    map!((filename) -> callback_filepicker(filename, w, obs_seq[]), obs_seq, widget_filepicker_seq)
-    on((seq) -> view_ui!(seq, w; type="sequence", darkmode), obs_seq)
+    map!((filename) -> callback_filepicker(filename, w, seq_ui[]), seq_ui, widget_filepicker_seq)
+    on((seq) -> view_ui!(seq, w; type="sequence", darkmode), seq_ui)
 
     # Define functionality of phantom filepicker widget and sub-buttons
     widget_filepicker_obj = filepicker(".phantom (Koma)/.h5 (JEMRIS)"; accept=".phantom,.h5")
-    map!((filename) -> callback_filepicker(filename, w, obs_obj[]), obs_obj, widget_filepicker_obj)
-    on((obj) -> view_ui!(obj, w, obs_seq[], widgets_button_obj; key=:ρ, darkmode), obs_obj)
+    map!((filename) -> callback_filepicker(filename, w, obj_ui[]), obj_ui, widget_filepicker_obj)
+    on((obj) -> view_ui!(obj, w, seq_ui[], widgets_button_obj; key=:ρ, darkmode), obj_ui)
     for (widget_button, key) in zip(widgets_button_obj, fieldnames_obj)
-        on((cnt) -> view_ui!(cnt, w, obs_obj[], obs_seq[], widgets_button_obj; key, darkmode), widget_button)
+        on((cnt) -> view_ui!(cnt, w, obj_ui[], seq_ui[], widgets_button_obj; key, darkmode), widget_button)
     end
+
+    # Define functionality when scanner observable changes
+    on((sys) -> view_ui!(sys, w), sys_ui)
 
     # Define functionality of raw filepicker widget
     widget_filepicker_raw = filepicker(".h5/.mrd (ISMRMRD)"; accept=".h5,.mrd")
-    map!((filename) -> callback_filepicker(filename, w, obs_raw[]), obs_raw, widget_filepicker_raw)
-    on((raw) -> view_ui!(raw, w; darkmode), obs_raw)
+    map!((filename) -> callback_filepicker(filename, w, raw_ui[]), raw_ui, widget_filepicker_raw)
+    on((raw) -> view_ui!(raw, w; darkmode), raw_ui)
 
     # Define functionality when image observable changes (after reconstruction)
-    on((img) -> view_ui!(img, w; type="absi", darkmode), obs_img)
+    on((img) -> view_ui!(img, w; type="absi", darkmode), img_ui)
 
     # Add filepicker widgets to the UI
     content!(w, "#seqfilepicker", widget_filepicker_seq, async=false)
