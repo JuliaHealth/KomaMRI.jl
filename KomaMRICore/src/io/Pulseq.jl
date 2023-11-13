@@ -33,17 +33,13 @@ read_definitions Read the [DEFINITIONS] section of a sequence file.
 function read_definitions(io)
     def = Dict{String,Any}()
     while true
-        r,key,value_string1,value_string2,value_string3 = @scanf(readline(io), "%s %s %s %s", String, String, String, String)
-        if r == 2
-            value_numeric = tryparse.(Float64, value_string1)
-            def[key] = (value_numeric === nothing) ? value_string1 : value_numeric
-        end
-        if r == 4
-            value_string_array = [value_string1,value_string2,value_string3]
-            value_numeric = tryparse.(Float64, value_string_array)
-            def[key] = value_numeric[value_numeric .!== nothing]
-        end
-        (r == 2 || r == 4) || break #Break on white space
+        line = readline(io)
+        line_split = String.(split(line))
+        (length(line_split) > 0) || break #Break on white space
+        key = line_split[1]
+        value_string_array = line_split[2:end]
+        parsed_array = [tryparse(Float64, s) === nothing ? s : tryparse(Float64, s) for s = value_string_array]
+        def[key] = length(parsed_array) == 1 ? parsed_array[1] : parsed_array
     end
     #Default values
     if !haskey(def,"BlockDurationRaster")       def["BlockDurationRaster"] = 1e-5       end
@@ -310,6 +306,7 @@ function read_seq(filename)
     tmp_delayLibrary = Dict()
     shapeLibrary = Dict()
     extensionLibrary = Dict()
+    triggerLibrary = Dict()
     #Reading file and storing data
     open(filename) do io
         while !eof(io)
@@ -348,7 +345,9 @@ function read_seq(filename)
             elseif  section == "[SHAPES]"
                 shapeLibrary = read_shapes(io, (version_major==1 && version_minor<4))
             elseif  section == "[EXTENSIONS]"
-                extensionLibrary = read_events(io,1) #For now, it reads the extensions but it does not take it them into account
+                extensionLibrary = read_events(io,[1 1 1]) #For now, it reads the extensions but it does not take it them into account
+            elseif  section == "extension TRIGGERS 1"
+                triggerLibrary = read_events(io,[1 1 1e-6 1e-6])
             elseif  section == "[SIGNATURE]"
                 #Not implemented yet
             end
@@ -404,6 +403,7 @@ function read_seq(filename)
         "tmp_delayLibrary"=>tmp_delayLibrary,
         "shapeLibrary"=>shapeLibrary,
         "extensionLibrary"=>extensionLibrary,
+        "triggerLibrary"=>triggerLibrary,
         "definitions"=>def)
     #Transforming Dictionary to Sequence object
     #This should only work for Pulseq files >=1.4.0
@@ -411,9 +411,13 @@ function read_seq(filename)
     for i = 1:length(blockEvents)
         seq += get_block(obj,i)
     end
-    #Final details
-    seq = seq[2:end] #Removed dummy seq block at the start
-    seq.DEF = obj["definitions"]
+    # Final details
+    # Remove dummy seq block at the start, Issue #203
+    seq = seq[2:end]
+    # Hack for including extension and triggers
+    seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
+    seq.DEF = recursive_merge(obj["definitions"], seq.DEF)
+    # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = version_combined
     if !haskey(seq.DEF,"Nx")
@@ -425,7 +429,6 @@ function read_seq(filename)
         seq.DEF["Nx"] = Nx  #Number of samples per ADC
         seq.DEF["Ny"] = Ny  #Number of ADC events
         seq.DEF["Nz"] = Nz  #Number of unique RF frequencies, in a 3D acquisition this should not work
-        @warn "Pulseq file did not contain [DEFINITIONS] for Nx, Ny, and Nz. We added Nx=$Nx, Ny=$Ny, and Nz=$Nz to the Sequence object for the reconstruction."
     end
     #Koma sequence
     seq
@@ -465,11 +468,12 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         #Creating timings
         if time_shape_id == 0 #no time waveform
             gT = Nrf * Δt_gr
+            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
             gT = (gt[2:end] .- gt[1:end-1]) * Δt_gr
+            G = Grad(gA,gT,0,0,delay)
         end
-        G = Grad(gA,gT,(time_shape_id==0)*Δt_gr/2,0,delay)
     end
     G
 end
@@ -503,6 +507,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     if amplitude != 0 && mag_id != 0
         rfA = decompress_shape(shapeLibrary[mag_id]...)[1:end-1]
         rfϕ = decompress_shape(shapeLibrary[phase_id]...)[1:end-1]
+        @assert all(rfϕ.>=0) "[RF id $i] Phase waveform rfϕ must have non-negative samples (1.>=rfϕ.>=0). "
         Nrf = shapeLibrary[mag_id][1] - 1
         rfAϕ = amplitude .* rfA .* exp.(-1im*(2π*rfϕ .+ phase))
     else
@@ -537,7 +542,11 @@ Reads the ADC. It is used internally by [`get_block`](@ref).
 function read_ADC(adcLibrary, i)
     #Unpacking
     #(1)num (2)dwell (3)delay (4)freq (5)phase
-    a = adcLibrary[i]["data"]
+    if !isempty(adcLibrary) # Is this the best? maybe defining i=0 is better, it works with RFs(?)
+        a = adcLibrary[i]["data"]
+    else
+        a = [0,0,0,0,0]
+    end
     num =   a[1] |> x->floor(Int64,x)
     dwell = a[2]
     delay = a[3] + dwell/2
@@ -547,6 +556,73 @@ function read_ADC(adcLibrary, i)
     T = (num-1) * dwell
     A = [ADC(num,T,delay,freq,phase)]
     A
+end
+
+"""
+    ext = read_Extension(extensionLibrary, triggerLibrary, i)
+
+Reads the Extension. It is used internally by [`get_block`](@ref).
+
+# Arguments
+- `extensionLibrary`: (`::Dict{String, Any}`) the "extensionLibrary" dictionary
+- `i`: (`::Int64`) index of the ext in the block event
+
+# Returns
+- `ext`: (`1x1 ::Vector{ADC}`) Extension struct
+"""
+function read_Extension(extensionLibrary, triggerLibrary)
+    # Only uses triggers and one extension per block
+    # Unpacking
+    # Extensions
+    # (1)id (2)type (3)ref (4)next_id
+    # if !isempty(extensionLibrary)
+    #     e = extensionLibrary[i]["data"]
+    # else
+    #     e = [0,0,0,0]
+    # end
+    # type    = e[1] |> x->floor(Int64,x) #1=Trigger
+    # ref     = e[2] |> x->floor(Int64,x)
+    # next_id = e[3] |> x->floor(Int64,x)
+    # Trigger
+    # (1)id (2)type (3)channel (4)delay (5)duration
+    # if !isempty(triggerLibrary)
+    #     t = triggerLibrary[ref]["data"]
+    # else
+    #     t = [0,0,0,0]
+    # end
+    # type     = t[1] |> x->floor(Int64,x)
+    # channel  = t[2] |> x->floor(Int64,x)
+    # delay    = t[3]
+    # duration = t[4]
+    #Definition
+    # trig = Trigger(type, channel, delay, duration)
+    # E = [Extension([trig])]
+    # E = Dict("extension"=>[ref]) 
+    additional_text =  
+    """# Format of extension lists:
+    # id type ref next_id
+    # next_id of 0 terminates the list
+    # Extension list is followed by extension specifications
+    [EXTENSIONS]
+    """
+    for id = eachindex(extensionLibrary)
+        (id == 0) && continue 
+        type, ref, next_id = floor.(Int64, extensionLibrary[id]["data"])
+        additional_text *= "$id $type $ref $next_id\n" 
+    end
+    additional_text *=
+    """
+
+    # Extension specification for digital output and input triggers:
+    # id type channel delay (us) duration (us)
+    extension TRIGGERS 1
+    """
+    for id = eachindex(triggerLibrary)
+        (id == 0) && continue 
+        type, channel, delay, duration = floor.(Int64, round.([1 1 1e6 1e6] .* triggerLibrary[id]["data"]))
+        additional_text *= "$id $type $channel $delay $duration\n" 
+    end
+    return additional_text
 end
 
 """
@@ -582,7 +658,10 @@ function get_block(obj, i)
     #DUR
     D = [obj["blockDurations"][i]]
 
+    #Extensions
+    E = Dict("extension"=>[iext]) #read_Extension(obj["extensionLibrary"], iext, i)
+
     #Sequence block definition
-    s = Sequence(G,R,A,D)
+    s = Sequence(G,R,A,D,E)
     s
 end
