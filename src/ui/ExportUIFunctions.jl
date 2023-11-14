@@ -12,9 +12,9 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, blink_
     icon = joinpath(assets, "icon.svg")
     # Apparently Blink requires an assets folder in a chiled route of where is launched
     icon_png = path*"/assets/logo-icon.png"
-    if !isfile(icon_png)
-        cp(dirname(dirname(path))*"/assets/logo-icon.png", path*"/assets/logo-icon.png")
-    end
+    #if !isfile(icon_png)
+    #    cp(dirname(dirname(path))*"/assets/logo-icon.png", path*"/assets/logo-icon.png")
+    #end
     # JS
     bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
     bscss = joinpath(css,"bootstrap.min.css")
