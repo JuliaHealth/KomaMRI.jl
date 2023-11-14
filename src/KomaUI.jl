@@ -39,12 +39,14 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     # Setup the Blink window
     w, index = setup_blink_window(; darkmode, frame, return_window, blink_show)
 
-    # Remove any listener
-    Observables.clear(seq_ui)
-    Observables.clear(obj_ui)
-    Observables.clear(sys_ui)
-    Observables.clear(raw_ui)
-    Observables.clear(img_ui)
+    # Remove any listener if necessary
+    if length(seq_ui.listeners) != 0
+        Observables.clear(seq_ui)
+        Observables.clear(obj_ui)
+        Observables.clear(sys_ui)
+        Observables.clear(raw_ui)
+        Observables.clear(img_ui)
+    end
 
     # Setup default simulation inputs (they have observables)
     sys_ui[] = setup_scanner()
