@@ -112,5 +112,5 @@ The evolution of the magnetization can then be described as a two-step process f
 This is another simulation method defined in the source code of **KomaMRI**. It can be specified by setting the ``{\tt sim\_method = BlochDict()}`` entry of the ``{\tt sim\_params}`` dictionary.
 
 !!! note
-  This section is under construction. More explanation of this simulation method is required.
+    This section is under construction. More explanation of this simulation method is required.
 
