@@ -1,36 +1,40 @@
 """
-    raw_ismrmrd = signal_to_raw_data(signal, seq; phantom_name, sys, simParams)
+    raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params)
 
-Transforms the raw signal into ISMRMRD format.
+Transforms the raw signal into a RawAcquisitionData struct (nearly equivalent to the ISMRMRD
+format) used for reconstruction with MRIReco.
 
 # Arguments
-- `signal`: (`::Vector{ComplexF64}`) raw signal
+- `signal`: (`::Matrix{Complex}`) raw signal matrix
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `phantom_name`: (`::String`, `="Phantom"`) Phantom struct
+- `phantom_name`: (`::String`, `="Phantom"`) phantom name
 - `sys`: (`::Scanner`, `=Scanner()`) Scanner struct
-- `simParams`: (`::Dict{String,Any}()`, `=Dict{String,Any}()`) dictionary with
-    simulation parameters
+- `sim_params`: (`::Dict{String, Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
 
 # Returns
-- `raw_ismrmrd`: (`::RawAcquisitionData`) raw signal in ISMRMRD format
+- `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct
 
 # Examples
 ```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq");
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/epi_se.seq")
 
 julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq(seq_file)
 
-julia> raw = simulate(obj, seq, sys)
+julia> sim_params = KomaMRICore.default_sim_params(); sim_params["return_type"] = "mat"
+
+julia> signal = simulate(obj, seq, sys; sim_params)
+
+julia> raw = signal_to_raw_data(signal, seq)
 
 julia> plot_signal(raw)
 ```
 """
-function signal_to_raw_data(signal, seq;
-                                phantom_name="Phantom",
-                                sys=Scanner(),
-                                simParams=Dict{String,Any}())
+function signal_to_raw_data(
+    signal, seq;
+    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}()
+)
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information
@@ -69,7 +73,7 @@ function signal_to_raw_data(signal, seq;
         "trajectory"                     => "other", #Must be: cartesian, epi, radial, goldenangle, spiral, and other
         "protocolName"                   => haskey(seq.DEF,"Name") ? seq.DEF["Name"] : "NoName", #String
         # "trajectoryDescription"          => Dict{String, Any}("comment"=>""), #You can put wathever you want here: comment, bandwidth, MaxGradient_G_per_cm, MaxSlewRate_G_per_cm_per_s, interleaves, etc
-        "userParameters"                 => simParams, #Dict with parameters
+        "userParameters"                 => sim_params, #Dict with parameters
         #encoding>
         "encodedFOV"                     => [FOVx, FOVy, 1.0],    #encodedSpace>fieldOfView_mm
         "reconFOV"                       => [FOVx, FOVy, 1.0],    #reconSpace>fieldOfView_mm

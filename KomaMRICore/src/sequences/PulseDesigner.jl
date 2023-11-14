@@ -7,67 +7,80 @@ module PulseDesigner
 using ..KomaMRICore
 
 """
-    ex = RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0)
+    seq = RF_hard(B1, T, sys; G=[0, 0, 0], Δf=0)
 
-Definition of the RF hard sequence.
+Returns a sequence with a RF excitation pulse.
 
 # Arguments
-- `B1`: (`Float64`, `[T]`) amplitude of the RF pulse
-- `T`: (`Float64`, `[s]`) duration of the RF pulse
+- `B1`: (`::Number`, `[T]`) RF pulse amplitude
+- `T`: (`::Real`, `[s]`) RF pulse duration
 - `sys`: (`::Scanner`) Scanner struct
 
 # Keywords
-- `G`: (`Vector{Float64}`, `=[0, 0, 0]`, `[T]`) gradient amplitudes for x, y, z
-- `Δf`: (`Float64`, `=0`, `[Hz]`) frequency offset of the RF pulse
+- `G`: (`::Vector{Real}`, `=[0, 0, 0]`, `[T/m]`) gradient amplitudes for x, y, z
+- `Δf`: (`::Real`, `=0`, `[Hz]`) RF pulse carrier frequency displacement
 
 # Returns
-- `ex`: (`::Sequence`) excitation Sequence struct
+- `seq`: (`::Sequence`) Sequence struct with a RF pulse
 
 # Examples
 ```julia-repl
-julia> sys = Scanner();
+julia> sys = Scanner(); durRF = π / 2 / (2π * γ * sys.B1);
 
-julia> durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+julia> seq = PulseDesigner.RF_hard(sys.B1, durRF, sys);
 
-julia> ex = PulseDesigner.RF_hard(sys.B1, durRF, sys)
-Sequence[ τ = 0.587 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
-
-julia> plot_seq(ex)
+julia> plot_seq(seq)
 ```
 """
-RF_hard(B1, T, sys::Scanner; G=[0,0,0], Δf=0) = begin
+function RF_hard(B1, T, sys::Scanner; G=[0, 0, 0], Δf=0)
 	ζ = sum(G) / sys.Smax
-    gr = reshape([Grad(G[1],T,ζ); Grad(G[2],T,ζ); Grad(G[3],T,ζ)],:,1)
-    rf = reshape([RF(B1,T,Δf,ζ)],:,1)
-	EX = Sequence(gr, rf)
-	EX
+    gr = reshape([Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T ,ζ)], :, 1)
+    rf = reshape([RF(B1, T, Δf, ζ)], :, 1)
+	return Sequence(gr, rf)
 end
 
 """
-	seq = spiral_base(FOV::Float64, Nr::Int, sys::Scanner)
+	seq = RF_sinc(B1, T, sys; G=[0, 0, 0], Δf=0, a=0.46, TBP=4)
 
-Definition of the radial base sequence.
-# Arguments
-- `FOV`: (`::Float64`, `[m]`) field of view
-- `N`: (`::Int`) number of pixels along the radious
-- `sys`: (`::Scanner`) Scanner struct
-
-# Returns
-- `ex`: (`::Sequence`) RF struct
+Returns a sequence with a RF sinc waveform.
 
 # References
-- MATT A. BERNSTEIN, KEVIN F. KING, XIAOHONG JOE ZHOU, CHAPTER 2 - RADIOFREQUENCY PULSE SHAPES, Handbook of MRI Pulse Sequences, 2004, Pages 35-66, https://doi.org/10.1016/B978-012092861-3/50006-6.
+- Matt A. Bernstein, Kevin F. King, Xiaohong Joe Zhou, Chapter 2 - Radiofrequency Pulse
+Shapes, Handbook of MRI Pulse Sequences, 2004, Pages 35-66,
+https://doi.org/10.1016/B978-012092861-3/50006-6.
+
+# Arguments
+- `B1`: (`::Number`, `[T]`) RF sinc amplitude
+- `T`: (`::Real`, `[s]`) RF sinc duration
+- `sys`: (`::Scanner`) Scanner struct
+
+# Keywords
+- `G`: (`::Vector{Real}`, `=[0, 0, 0]`, `[T/m]`) gradient amplitudes for x, y, z
+- `Δf`: (`::Real`, `=0`, `[Hz]`) RF pulse carrier frequency displacement
+- `a`: (`::Real`, `=0.46`) height appodization window parameter
+- `TBP`: (`::Real`, `=4`) width appodization window parameter
+
+# Returns
+- `seq`: (`::Sequence`) Sequence struct with a RF pulse
+
+# Examples
+```julia-repl
+julia> sys = Scanner(); durRF = π / 2 / (2π * γ * sys.B1);
+
+julia> seq = PulseDesigner.RF_sinc(sys.B1, durRF, sys);
+
+julia> plot_seq(seq)
+```
 """
-RF_sinc(B1, T, sys::Scanner; G=[0,0,0], Δf=0, a=0.46, TBP=4) = begin
+function RF_sinc(B1, T, sys::Scanner; G=[0, 0, 0], Δf=0, a=0.46, TBP=4)
 	t0 = T / TBP
 	ζ = maximum(abs.(G)) / sys.Smax
-	sinc_pulse(t) = B1 * sinc(t/t0) .* ( (1-a) + a*cos((2π*t)/(TBP*t0)) )
-	EX = Sequence([	  Grad(G[1],T,ζ) Grad(-G[1],(T-ζ)/2,ζ);	 #Gx
-					  Grad(G[2],T,ζ) Grad(-G[2],(T-ζ)/2,ζ);    #Gy
-					  Grad(G[3],T,ζ) Grad(-G[3],(T-ζ)/2,ζ)], #Gz
-					 [RF(t->sinc_pulse(t - T/2),T; delay=ζ, Δf) RF(0,0)]	 #RF
-					)
-	EX
+	sinc_pulse(t) = B1 * sinc(t/t0) .* ((1-a) + a*cos((2π*t)/(TBP*t0)))
+    gr1 = [Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T, ζ)]
+    gr2 = [Grad(-G[1], (T-ζ)/2, ζ); Grad(-G[2], (T-ζ)/2, ζ); Grad(-G[3], (T-ζ)/2, ζ)]
+    gr = [gr1 gr2]
+    rf = [RF(t->sinc_pulse(t - T/2), T; delay=ζ, Δf) RF(0,0)]
+	return Sequence(gr, rf)
 end
 
 ##################
@@ -109,29 +122,30 @@ end
 # end
 # EPI
 """
-    epi = EPI(FOV::Float64, N::Int, sys::Scanner)
+    seq = EPI(FOV::Real, N::Integer, sys::Scanner)
 
-Definition of the EPI sequence.
+Returns a sequence with EPI gradients.
 
 # Arguments
-- `FOV`: (`::Float64`, `[m]`) field of view
-- `N`: (`::Int`) number of pixels in the x and y axis
+- `FOV`: (`::Real`, `[m]`) field of view
+- `N`: (`::Integer`) number of pixels in the x and y axis
 - `sys`: (`::Scanner`) Scanner struct
 
 # Returns
-- `epi`: (`::Sequence`) epi Sequence struct
+- `seq`: (`::Sequence`) Sequence struct with EPI gradients
 
 # Examples
 ```julia-repl
 julia> sys, FOV, N = Scanner(), 23e-2, 101
 
-julia> epi = PulseDesigner.EPI(FOV, N, sys)
-Sequence[ τ = 62.259 ms | blocks: 203 | ADC: 101 | GR: 205 | RF: 0 | DEF: 4 ]
+julia> seq = PulseDesigner.EPI(FOV, N, sys)
 
-julia> plot_seq(epi)
+julia> plot_seq(seq)
+
+julia> plot_kspace(seq)
 ```
 """
-EPI(FOV::Float64, N::Int, sys::Scanner) = begin
+function EPI(FOV::Real, N::Integer, sys::Scanner)
     #TODO: consider when N is even
 	Δt = sys.ADC_Δt
 	Gmax = sys.Gmax
@@ -164,23 +178,34 @@ EPI(FOV::Float64, N::Int, sys::Scanner) = begin
 	seq = PHASE+EPI+DEPHASE
 	#Saving parameters
 	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi")
-	seq
+	return seq
 end
 
 """
-    seq = radial_base(FOV::Float64, Nr::Int, sys::Scanner)
+    seq = radial_base(FOV::Real, Nr::Integer, sys::Scanner)
 
-Definition of the radial base sequence.
+Returns a sequence with radial gradients for a single trajectory.
 
 # Arguments
-- `FOV`: (`::Float64`, `[m]`) field of view
-- `N`: (`::Int`) number of pixels along the radious
+- `FOV`: (`::Real`, `[m]`) field of view
+- `N`: (`::Integer`) number of pixels along the diameter
 - `sys`: (`::Scanner`) Scanner struct
 
 # Returns
-- `seq`: (`::Sequence`) radial base Sequence struct
+- `seq`: (`::Sequence`) Sequence struct of a single radial trajectory
+
+# Examples
+```julia-repl
+julia> sys, FOV, N = Scanner(), 23e-2, 101
+
+julia> seq = PulseDesigner.radial_base(FOV, N, sys)
+
+julia> plot_seq(seq)
+
+julia> plot_kspace(seq)
+```
 """
-radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
+function radial_base(FOV::Real, Nr::Integer, sys::Scanner)
 	Δt = sys.ADC_Δt
 	Gmax = sys.Gmax
 	Δx = FOV/(Nr-1)
@@ -202,26 +227,47 @@ radial_base(FOV::Float64, Nr::Int, sys::Scanner) = begin
 	seq = PHASE+rad+PHASE
 	#Saving parameters
 	seq.DEF = Dict("Nx"=>Nr,"Ny"=>Nspokes,"Nz"=>1,"Δθ"=>Δθ,"Name"=>"radial","FOV"=>[FOV, FOV, 0])
-
-	seq
+	return seq
 end
 
 """
-	seq = spiral_base(FOV::Float64, Nr::Int, sys::Scanner)
+    spiral = spiral_base(FOV, N, sys; S0=sys.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3)
 
-Definition of the radial base sequence.
-# Arguments
-- `FOV`: (`::Float64`, `[m]`) field of view
-- `N`: (`::Int`) number of pixels along the radious
-- `sys`: (`::Scanner`) Scanner struct
-
-# Returns
-- `seq`: (`::Function`) function that returns a `Sequence` when evaluated
+Definition of a spiral base sequence.
 
 # References
-- Glover, G.H. (1999), Simple analytic spiral K-space algorithm. Magn. Reson. Med., 42: 412-415. https://doi.org/10.1002/(SICI)1522-2594(199908)42:2<412::AID-MRM25>3.0.CO;2-U
+- Glover, G.H. (1999), Simple analytic spiral K-space algorithm. Magn. Reson. Med.,
+42: 412-415. https://doi.org/10.1002/(SICI)1522-2594(199908)42:2<412::AID-MRM25>3.0.CO;2-U
+
+# Arguments
+- `FOV`: (`::Real`, `[m]`) field of view
+- `N`: (`::Integer`) number of pixels along the radious
+- `sys`: (`::Scanner`) Scanner struct
+
+# Keywords
+- `S0`: (`::Vector{Real}`, `=sys.Smax*2/3`, `[T/m/s]`) slew rate reference
+- `Nint`: (`::Integer`, `=8`) number of interleaves
+- `λ`: (`::Real`, `=Nint/FOV`, `[1/m]`) kspace spiral parameter
+- `BW`: (`::Real`, `=60e3`, `[Hz]`) adquisition parameter
+
+# Returns
+- `spiral`: (`::Function`) function that returns a `Sequence` struct when evaluated
+
+# Examples
+```julia-repl
+julia> sys, FOV, N = Scanner(), 23e-2, 101
+
+julia> spiral = PulseDesigner.spiral_base(FOV, N, sys)
+
+julia> seq = spiral(0)
+
+julia> plot_seq(seq)
+```
 """
-spiral_base(FOV::Float64, N::Int64, sys::Scanner; S0=sys.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3) = begin
+function spiral_base(
+    FOV::Real, N::Integer, sys::Scanner;
+    S0=sys.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3
+)
 	kmax = N / (2*FOV)
 	θmax = kmax / λ # From k(t) = λ θ(t) exp(iθ(t))
 	Smax = sys.Smax
@@ -260,11 +306,45 @@ spiral_base(FOV::Float64, N::Int64, sys::Scanner; S0=sys.Smax*2/3, Nint=8, λ=Ni
 		A = [ADC(Nadc,ta)]
 		seq = Sequence(GR,R,A)
 		seq.DEF = Dict("Nx"=>N,"Ny"=>N,"Nz"=>1,"Δθ"=>Δθ,"Nint"=>Nint,"Name"=>"spiral","FOV"=>[FOV, FOV, 0], "λ"=>λ)
-		seq
+		return seq
 	end
 	return spiral
 end
 
 
-export EPI, radial_base
+"""
+    seq = EPI_example(; sys=Scanner())
+
+Returns a sequence suitable for acquiring the 2D brain example in the provided examples.
+
+# Keywords
+- `sys`: (`::Scanner`) Scanner struct
+
+# Returns
+- `seq`: (`::Sequence`) EPI example Sequence struct
+
+# Examples
+```julia-repl
+julia> seq = PulseDesigner.EPI_example();
+
+julia> plot_seq(seq)
+```
+"""
+function EPI_example(; sys=Scanner())
+    B1 = sys.B1;
+    durRF = π/2/(2π*γ*B1)
+    EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+    N = 101
+    FOV = 23e-2
+    EPI = PulseDesigner.EPI(FOV, N, sys)
+    TE = 30e-3
+    d1 = TE-dur(EPI)/2-dur(EX)
+    if d1 > 0 DELAY = Delay(d1) end
+    seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI
+    seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
+    return seq
+end
+
+
+export EPI, radial_base, EPI_example
 end

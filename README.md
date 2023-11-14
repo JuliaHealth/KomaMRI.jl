@@ -1,6 +1,6 @@
 <p align="center">
-<img width="300px" src="./src/ui/assets/Logo.svg#gh-light-mode-only"/>
-<img width="300px" src="./src/ui/assets/Logo_dark.svg#gh-dark-mode-only"/>
+<img width="300px" src="./assets/logo.svg#gh-light-mode-only"/>
+<img width="300px" src="./assets/logo-dark.svg#gh-dark-mode-only"/>
 </p>
 <p align="center">
 <a href="https://pkg.julialang.org/detail/KomaMRI.html"><img src="https://img.shields.io/badge/julia-v1.6_(LTS)-9558B2?logo=julia" /></a>

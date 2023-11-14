@@ -1,4 +1,4 @@
-# This document replicates the results of Figure 15g of the paper "The Return of the Frequency Sweep: 
+# This document replicates the results of Figure 15g of the paper "The Return of the Frequency Sweep:
 # Designing Adiabatic Pulses for Contemporary NMR" by Michael Garwood and Lance DelaBarre.
 using KomaMRI, MAT, PlotlyJS, LinearAlgebra
 
@@ -28,20 +28,20 @@ for R = [28] #Product duration and bandwidth
         T90 = .5e-3
         B190 = 90 / (360 * γ * T90)
         rf90 = Sequence(
-            [Grad(0.,0.); Grad(0.,0.); Grad(Gz,T90,0);;], 
+            [Grad(0.,0.); Grad(0.,0.); Grad(Gz,T90,0);;],
             [RF(ΔB1*B190,T90,0,0);;]
             )
         bir4 = Sequence(
-            [Grad(0.,0.); Grad(0.,0.); Grad(Gz,Trf,0);;], 
+            [Grad(0.,0.); Grad(0.,0.); Grad(Gz,Trf,0);;],
             [RF(B1,Trf,Δf,0);;]
             )
         seq = Sequence()
         # seq += rf90
         seq += bir4
         # seq += rf90
-        simParams = Dict{String,Any}("Δt_rf"=>dt)
+        sim_params = Dict{String,Any}("Δt_rf"=>dt)
 
-        M = simulate_slice_profile(seq; simParams, z)
+        M = simulate_slice_profile(seq; sim_params, z)
         # display(plot_seq(seq))
 
         MagXY[:, counter] = M.xy

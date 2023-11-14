@@ -27,18 +27,18 @@ f = γ * Gz * z # hide
 
 seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0;0;Gz], TBP=8)
 p2 = plot_seq(seq; max_rf_samples=Inf, slider=false)
-#md savefig(p2, "../assets/42-seq.html") # hide
+#md savefig(p2, "../../assets/FOLDER_NAME/42-seq.html") # hide
 #jl display(p2)
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../assets/42-seq.html" style="width:100%; height:380px;"></object>
+#md # <object type="text/html" data="../../../assets/FOLDER_NAME/42-seq.html" style="width:100%; height:380px;"></object>
 #md # ```
 
 # Now we will perform the simulation using the function [`simulate_slice_profile`](@ref).
-# Note that we modified `Δt_rf` in `simParams` to match the resolution of the waveform.
+# Note that we modified `Δt_rf` in `sim_params` to match the resolution of the waveform.
 
-simParams = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
-M = simulate_slice_profile(seq; z, simParams)
+sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
+M = simulate_slice_profile(seq; z, sim_params)
 
 using PlotlyJS # hide
 s1 = scatter(x=f, y=real.(M.xy), name="Mx") # hide
@@ -54,13 +54,13 @@ FT_dat_pad = abs.(KomaMRI.fftc(dat_pad; dims=1)) # hide
 scale_factor = maximum(abs.(M.xy)) / maximum(FT_dat_pad) # hide
 s3 = scatter(x=u, y=FT_dat_pad*scale_factor, name="|FT(B₁(t))|", line=attr(dash="dash")) # hide
 pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax])) # hide
-#md savefig(pb, "../assets/4b-profile.html") # hide
+#md savefig(pb, "../../assets/FOLDER_NAME/4b-profile.html") # hide
 #jl display(pb)
 
 #md # This produces the following slice profile:
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../assets/4b-profile.html" style="width:100%; height:380px;"></object>
+#md # <object type="text/html" data="../../../assets/FOLDER_NAME/4b-profile.html" style="width:100%; height:380px;"></object>
 #md # ```
 
 # As you can see, for a flip angle of 30 deg, the slice profile is very close to
@@ -71,7 +71,7 @@ pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_t
 α_desired = 120 + 0im               # The multiplication of a complex number scales the RF pulse of a Sequence
 α = get_flip_angles(seq)[1] # Previous FA approx 30 deg
 seq = (α_desired / α) * seq         # Scaling the pulse to have a flip angle of 120
-M = simulate_slice_profile(seq; z, simParams)
+M = simulate_slice_profile(seq; z, sim_params)
 
 s1 = scatter(x=f, y=abs.(M.xy), name="|Mxy|") # hide
 dat = seq.RF.A[1] # hide
@@ -85,11 +85,11 @@ FT_dat_pad = abs.(KomaMRI.fftc(dat_pad; dims=1)) # hide
 scale_factor = maximum(abs.(M.xy)) / maximum(FT_dat_pad) # hide
 s2 = scatter(x=u, y=FT_dat_pad*scale_factor, name="|FT(B₁(t))|", line=attr(dash="dash")) # hide
 pa = plot([s1,s2], Layout(title="120 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax])) # hide
-#md savefig(pa, "../assets/4a-profile.html") # hide
+#md savefig(pa, "../../assets/FOLDER_NAME/4a-profile.html") # hide
 #jl display(pa)
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../assets/4a-profile.html" style="width:100%; height:320px;"></object>
+#md # <object type="text/html" data="../../../assets/FOLDER_NAME/4a-profile.html" style="width:100%; height:320px;"></object>
 #md # ```
 
 # For this case, the small tip angle approximation breaks 😢, thus, the reason for its name!

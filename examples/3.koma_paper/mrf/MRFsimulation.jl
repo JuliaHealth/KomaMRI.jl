@@ -1,6 +1,6 @@
 using KomaMRI, MAT, JLD2
 using MRIReco
-#Phantom 
+#Phantom
 phantom = brain_phantom2D()
 phantom.Δw .*= 0 #Removing off-resonance
 #Scanner
@@ -23,7 +23,7 @@ Ta = dur(RAD)
 delayTE = [Delay(TE[n]-Ta) for n=1:length(α)]
 delayTR = [Delay(TR[n]-TE[n]-Ta) for n=1:length(α)]
 #MRF with rotated spokes
-φ, Nφ = (√5 + 1)/2, 7; 
+φ, Nφ = (√5 + 1)/2, 7;
 Δθ = π/(φ+Nφ-1) # Tiny golden angle with Nφ = 7
 NTRs = 500 #Number of TRs
 seq = INV + sum([A[n]*EX + delayTE[n] + rotz((n-1)*Δθ)*RAD + delayTR[n] for n=1:NTRs])
@@ -31,8 +31,8 @@ seq.DEF["Nz"] = NTRs #So each TR is reconstructed independently by MRIReco.jl
 jldsave(path*"/mrf.seqk"; seq=seq)
 # plot_seq(seq)
 ## Simulation
-simParams = Dict{String, Any}("return_type"=>"mat", "gpu_device"=>0)
-fingerprint = simulate(phantom, seq, sys; simParams); #This takes like 10 sec for NTRs = 500.
+sim_params = Dict{String, Any}("return_type"=>"mat", "gpu_device"=>0)
+fingerprint = simulate(phantom, seq, sys; sim_params); #This takes like 10 sec for NTRs = 500.
 ## Output ISMRMRD
 raw = signal_to_raw_data(fingerprint, seq)
 fname = "MRF_signal_Δθ_$(floor(Int64, Δθ/π*180))_NTRs_$NTRs"

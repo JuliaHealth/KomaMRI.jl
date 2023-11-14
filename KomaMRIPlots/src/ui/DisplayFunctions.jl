@@ -124,8 +124,7 @@ function interp_map(c_map, t_interp)
 end
 
 """
-    p = plot_seq(seq; width, height, slider, show_seq_blocks, show_sim_blocks, Nblocks,
-            darkmode, max_rf_samples, range)
+    p = plot_seq(seq::Sequence; kwargs...)
 
 Plots a sequence struct.
 
@@ -133,15 +132,14 @@ Plots a sequence struct.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `height`: (`::Int64`, `=nothing`) height of the plot
-- `slider`: (`::Bool`, `=true`) boolean to display a slider
-- `show_seq_blocks`: (`::Bool`, `=false`) boolean to show sequence blocks
-- `show_sim_blocks`: (`::Bool`, `=false`) boolean to show simulation blocks
-- `Nblocks`: (`::Int64`, `=0`) number of simulation blocks to display
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
-- `max_rf_samples`: (`::Int64`, `=100`) maximum number of RF samples
-- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
+- `width`: (`::Integer`, `=nothing`) plot width
+- `height`: (`::Integer`, `=nothing`) plot height
+- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
+- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
+- `title`: (`::String`, `=""`) plot title
+- `max_rf_samples`: (`::Integer`, `=100`) maximum number of RF samples
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the Sequence struct
@@ -155,9 +153,20 @@ julia> seq = read_seq(seq_file)
 julia> plot_seq(seq)
 ```
 """
-plot_seq(seq::Sequence; width=nothing, height=nothing, slider=false, 
-		show_seq_blocks=false, darkmode=false, max_rf_samples=Inf, 
-		range=[], title="", xaxis="x", yaxis="y", showlegend=true) = begin
+function plot_seq(
+      seq::Sequence; 
+      width=nothing, 
+      height=nothing, 
+      slider=false,
+      show_seq_blocks=false, 
+      darkmode=false, 
+      max_rf_samples=Inf, 
+      range=[], 
+      title="", 
+      xaxis="x",
+      yaxis="y", 
+      showlegend=true
+  )
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
 	O = size(seq.RF,1)
@@ -199,26 +208,28 @@ plot_seq(seq::Sequence; width=nothing, height=nothing, slider=false,
 	p[2O+3+1] = scatter(x=t3*1e3, y=D*1., name="ADC",hovertemplate="(%{x:.4f} ms, %{y:i})",
 				xaxis=xaxis,yaxis=yaxis,legendgroup="ADC",showlegend=showlegend,color=marker=attr(color="#19D3F3"))
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot_koma(p, l; config)
+	return plot_koma(p, l; config)
 end
 
 """
-    p = plot_M0(seq; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+    p = plot_M0(seq::Sequence; kwargs...)
 
-Plots the zero order moment (M0) of a Sequence `seq`.
+Plots the zero order moment (M0) of a Sequence struct.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `height`: (`::Int64`, `=nothing`) height of the plot
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `slider`: (`::Bool`, `=true`) boolean to display a slider
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
-- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
+- `width`: (`::Integer`, `=nothing`) plot width
+- `height`: (`::Integer`, `=nothing`) plot height
+- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
+- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
+- `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M0 of the sequence struct `seq`
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M0 of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -229,8 +240,17 @@ julia> seq = read_seq(seq_file)
 julia> plot_M0(seq)
 ```
 """
-function plot_M0(seq; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="",
-	skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
+function plot_M0(
+      seq::Sequence; 
+      width=nothing, 
+      height=nothing, 
+      slider=true, 
+      show_seq_blocks=false, 
+      darkmode=false, 
+      range=[], 
+      title="",
+      skip_rf=zeros(Bool, sum(is_RF_on.(seq)))
+  )
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
@@ -249,26 +269,28 @@ function plot_M0(seq; width=nothing, height=nothing, slider=true, show_seq_block
 	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"), mode="markers", showlegend=false)
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot_koma(p, l; config)
+	return plot_koma(p, l; config)
 end
 
 """
-    p = plot_M1(seq; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+    p = plot_M1(seq::Sequence; kwargs...)
 
-Plots the first order moment (M1) of a Sequence `seq`.
+Plots the first order moment (M1) of a Sequence struct.
 
 # Arguments
-- `seq`: (`::Sequence`) Sequence
+- `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `height`: (`::Int64`, `=nothing`) height of the plot
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `slider`: (`::Bool`, `=true`) boolean to display a slider
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
-- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
+- `width`: (`::Integer`, `=nothing`) plot width
+- `height`: (`::Integer`, `=nothing`) plot height
+- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
+- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
+- `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M1 of the sequence struct `seq`
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M1 of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -279,8 +301,17 @@ julia> seq = read_seq(seq_file)
 julia> plot_M1(seq)
 ```
 """
-function plot_M1(seq; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="",
-	skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
+function plot_M1(
+      seq::Sequence; 
+      width=nothing, 
+      height=nothing, 
+      slider=true, 
+      show_seq_blocks=false, 
+      darkmode=false, 
+      range=[], 
+      title="",
+      skip_rf=zeros(Bool, sum(is_RF_on.(seq)))
+  )
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
@@ -299,27 +330,29 @@ function plot_M1(seq; width=nothing, height=nothing, slider=true, show_seq_block
 	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"), mode="markers", showlegend=false)
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot_koma(p, l; config)
+	return plot_koma(p, l; config)
 end
 
 
 """
-    p = plot_M2(seq; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+    p = plot_M2(seq::Sequence; kwargs...)
 
-Plots the second order moment (M2) of a Sequence `seq`.
+Plots the second order moment (M2) of a Sequence struct.
 
 # Arguments
-- `seq`: (`::Sequence`) Sequence
+- `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `height`: (`::Int64`, `=nothing`) height of the plot
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `slider`: (`::Bool`, `=true`) boolean to display a slider
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
-- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
+- `width`: (`::Integer`, `=nothing`) plot width
+- `height`: (`::Integer`, `=nothing`) plot height
+- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
+- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
+- `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M2 of the sequence struct `seq`
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M2 of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -330,7 +363,16 @@ julia> seq = read_seq(seq_file)
 julia> plot_M2(seq)
 ```
 """
-function plot_M2(seq; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="")
+function plot_M2(
+      seq::Sequence;
+      width = nothing,
+      height = nothing,
+      slider = true,
+      show_seq_blocks = false,
+      darkmode = false,
+      range = [],
+      title = ""
+  )
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
@@ -349,29 +391,31 @@ function plot_M2(seq; width=nothing, height=nothing, slider=true, show_seq_block
 	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"), mode="markers", showlegend=false)
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot_koma(p, l; config)
+	return plot_koma(p, l; config)
 end
 
 
 """
-    p = plot_eddy_currents(seq, λ; α=ones(size(λ)), height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+    p = plot_eddy_currents(seq::Sequence, λ; kwargs...)
 
-Plots the eddy currents of a Sequence `seq`.
+Plots the eddy currents of a Sequence struct.
 
 # Arguments
-- `seq`: (`::Sequence`) Sequence
-- `λ`: (`::Float64`, `[s]`) eddy currents decay constant time
+- `seq`: (`::Sequence`) Sequence struct
+- `λ`: (`::Real`, `[s]`) time constant for the decay of Eddy currents
 
 # Keywords
-- `α`: (`::Vector{Float64}`, `=ones(size(λ))`) eddy currents factors
-- `height`: (`::Int64`, `=nothing`) height of the plot
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `slider`: (`::Bool`, `=true`) boolean to display a slider
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
-- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
+- `α`: (`::Vector{Real}`, `=ones(size(λ))`) eddy currents factors
+- `width`: (`::Integer`, `=nothing`) plot width
+- `height`: (`::Integer`, `=nothing`) plot height
+- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
+- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
+- `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the eddy currents of the sequence struct `seq`
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the Eddy currents of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -382,7 +426,17 @@ julia> seq = read_seq(seq_file)
 julia> plot_eddy_currents(seq, 80e-3)
 ```
 """
-function plot_eddy_currents(seq, λ; α=ones(size(λ)), width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="")
+function plot_eddy_currents(
+      seq::Sequence, λ;
+      α = ones(size(λ)),
+      width = nothing,
+      height = nothing,
+      slider = true,
+      show_seq_blocks = false,
+      darkmode = false,
+      range = [],
+      title = ""
+  )
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq + ADC(100, 100e-3), dt)
@@ -403,26 +457,28 @@ function plot_eddy_currents(seq, λ; α=ones(size(λ)), width=nothing, height=no
 	p[3] = scatter(x=t*1e3, y=(Gz*0 .+ Gec[:,3])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECz", legendgroup="Gz", marker=attr(color="#00CC96"))
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot_koma(p, l; config)
+	return plot_koma(p, l; config)
 end
 
 """
-    p = plot_slew_rate(seq; height=nothing, width=nothing, slider=true, darkmode=false, range=[])
+    p = plot_slew_rate(seq::Sequence; kwargs...)
 
-Plots the slew rate currents of a Sequence `seq`.
+Plots the slew rate currents of a Sequence struct.
 
 # Arguments
-- `seq`: (`::Sequence`) Sequence
+- `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `height`: (`::Int64`, `=nothing`) height of the plot
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `slider`: (`::Bool`, `=true`) boolean to display a slider
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
-- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
+- `width`: (`::Integer`, `=nothing`) plot width
+- `height`: (`::Integer`, `=nothing`) plot height
+- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
+- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
+- `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the slew rate currents of the sequence struct `seq`
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the slew rate currents of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -433,7 +489,16 @@ julia> seq = read_seq(seq_file)
 julia> plot_slew_rate(seq)
 ```
 """
-function plot_slew_rate(seq; width=nothing, height=nothing, slider=true, show_seq_blocks=false, darkmode=false, range=[], title="")
+function plot_slew_rate(
+      seq::Sequence;
+      width = nothing,
+      height = nothing,
+      slider = true,
+      show_seq_blocks = false,
+      darkmode = false,
+      range = [],
+      title = ""
+  )
 	#Times
 	dt = 1
 	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
@@ -450,7 +515,7 @@ function plot_slew_rate(seq; width=nothing, height=nothing, slider=true, show_se
 	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRz", legendgroup="Gz", marker=attr(color="#00CC96"))
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	plot_koma(p, l; config)
+	return plot_koma(p, l; config)
 end
 
 
@@ -460,20 +525,28 @@ end
 Plots an image matrix.
 
 # Arguments
-- `image`: (`::Matrix{Float64}`) image matrix
+- `image`: (`::Matrix{Number}`) image matrix
 
 # Keywords
-- `height`: (`::Int64`, `=750`) height of the plot
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `zmin`: (`::Float64`, `=minimum(abs.(image[:]))`) reference value for minimum color
-- `zmax`: (`::Float64`, `=maximum(abs.(image[:]))`) reference value for maximum color
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
-- `title`: (`::String`, `=""`) title of the plot
+- `width`: (`::Integer`, `=nothing`) plot width
+- `height`: (`::Integer`, `=nothing`) plot height
+- `zmin`: (`::Real`, `=minimum(abs.(image[:]))`) reference value for minimum color
+- `zmax`: (`::Real`, `=maximum(abs.(image[:]))`) reference value for maximum color
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `title`: (`::String`, `=""`) plot title
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the image matrix
 """
-function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:])), zmax=maximum(abs.(image[:])), darkmode=false, title="")
+function plot_image(
+      image;
+      height = 600,
+      width = nothing,
+      zmin = minimum(abs.(image[:])),
+      zmax = maximum(abs.(image[:])),
+      darkmode = false,
+      title = ""
+  )
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	l = Layout(;title=title,yaxis_title="y",
@@ -502,24 +575,24 @@ function plot_image(image; height=600, width=nothing, zmin=minimum(abs.(image[:]
 		).fields,
 		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
-	plot_koma(p,l;config)
+	return plot_koma(p, l; config)
 end
 
 """
-    p = plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
+    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false)
 
-Plots the k-space of a sequence struct.
+Plots the k-space of a Sequence struct.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `height`: (`::Int64`, `=nothing`) height of the plot
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
+- `width`: (`::Integer`, `=nothing`) plot width
+- `height`: (`::Integer`, `=nothing`) plot height
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the k-space of the sequence struct `seq`
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the k-space of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -530,10 +603,15 @@ julia> seq = read_seq(seq_file)
 julia> plot_kspace(seq)
 ```
 """
-function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
+function plot_kspace(
+      seq::Sequence; 
+      width=nothing, 
+      height=nothing, 
+      darkmode=false
+  )
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	#Calculations of theoretical k-space
-	kspace, kspace_adc = get_kspace(seq; Δt=1) #simParams["Δt"])
+	kspace, kspace_adc = get_kspace(seq; Δt=1) #sim_params["Δt"])
 	t_adc = KomaMRICore.get_adc_sampling_times(seq)
 	#Colormap
 	c_map = [[t, "hsv($(floor(Int,(1-t)*255)), 100, 50)"] for t=range(0,1;length=10)] # range(s,b,N) only works in Julia 1.7.3
@@ -587,27 +665,27 @@ function plot_kspace(seq; width=nothing, height=nothing, darkmode=false)
 		).fields,
 		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
 	)
-	plot_koma(p,l; config)
+	return plot_koma(p, l; config)
 end
 
 
 """
-    p = plot_phantom_map(ph, key; t0=0, height=600, width=nothing, darkmode=false)
+    p = plot_phantom_map(obj::Phantom, key::Symbol; kwargs...)
 
 Plots a phantom map for a specific spin parameter given by `key`.
 
 # Arguments
-- `ph`: (`::Phantom`) Phantom struct
+- `obj`: (`::Phantom`) Phantom struct
 - `key`: (`::Symbol`, opts: [`:ρ`, `:T1`, `:T2`, `:T2s`, `:x`, `:y`, `:z`]) symbol for
     displaying different parameters of the phantom spins
 
 # Keywords
-- `t0`: (`::Float64`, `=0`, `[ms]`) time to see displacement of the phantom
-- `height`: (`::Int64`, `=600`) height of the plot
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
-- `view_2d`: (`::Bool`, `=false`) boolean to use a 2D scatter plot
-- `colorbar`: (`::Bool`, `=true`) boolean to show the colorbar
+- `t0`: (`::Real`, `=0`, `[ms]`) time to see displacement of the phantom
+- `height`: (`::Integer`, `=600`) plot height
+- `width`: (`::Integer`, `=nothing`) plot width
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D scatter plot
+- `colorbar`: (`::Bool`, `=true`) boolean to indicate whether to display a colorbar
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the phantom map for a specific spin parameter
@@ -625,7 +703,16 @@ julia> plot_phantom_map(obj2D, :ρ)
 julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
-function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=nothing, darkmode=false, view_2d=false, colorbar=true)
+function plot_phantom_map(
+      ph::Phantom, 
+      key::Symbol;
+      t0=0, 
+      height=600, 
+      width=nothing, 
+      darkmode=false, 
+      view_2d=false, 
+      colorbar=true
+  ) 
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
@@ -732,26 +819,24 @@ function plot_phantom_map(ph::Phantom, key::Symbol; t0=0, height=600, width=noth
 		).fields,
 		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
 	)
-	p = plot_koma(h,l;config)
+	return plot_koma(h, l; config)
 end
 
 """
-    p = plot_signal(raw::RawAcquisitionData; height, width, slider, show_sim_blocks,
-            darkmode, range)
+    p = plot_signal(raw::RawAcquisitionData; kwargs...)
 
 Plots a raw signal in ISMRMRD format.
 
 # Arguments
-- `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct which is the raw signal in
-    ISMRMRD format
+- `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct (raw signal in ISMRMRD format)
 
 # Keywords
-- `width`: (`::Int64`, `=nothing`) width of the plot
-- `height`: (`::Int64`, `=nothing`) height of the plot
-- `slider`: (`::Bool`, `=true`) boolean to display a slider
-- `show_sim_blocks`: (`::Bool`, `=false`) boolean to show simulation blocks
-- `darkmode`: (`::Bool`, `=false`) boolean to define colors for darkmode
-- `range`: (`::Vector{Float64}`, `=[]`) time range to be displayed initially
+- `width`: (`::Integer`, `=nothing`) plot width
+- `height`: (`::Integer`, `=nothing`) plot height
+- `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
+- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
+- `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the raw signal
@@ -767,7 +852,15 @@ julia> raw = simulate(obj, seq, sys)
 julia> plot_signal(raw)
 ```
 """
-function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, slider=true, show_sim_blocks=false, darkmode=false, range=[])
+function plot_signal(
+      raw::RawAcquisitionData;
+      width=nothing, 
+      height=nothing, 
+      slider=true, 
+      show_sim_blocks=false, 
+      darkmode=false, 
+      range=[]
+  )
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
 	signal = []
@@ -867,7 +960,7 @@ function plot_signal(raw::RawAcquisitionData; width=nothing, height=nothing, sli
 		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 		# modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
-	plot_koma(p, l; config)
+	return plot_koma(p, l; config)
 end
 
 """
@@ -908,19 +1001,19 @@ function plot_dict(dict::Dict)
 end
 
 """
-    p = plot_seqd(seq::Sequence; simParams=KomaMRICore.default_sim_params())
+    p = plot_seqd(seq::Sequence; sim_params=KomaMRICore.default_sim_params())
 
-Plots a discretized sequence struct.
+Plots a sampled sequence struct.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `simParams`: (`::Dict{String,Any}()`, `=KomaMRICore.default_sim_params()`) dictionary of
+- `sim_params`: (`::Dict{String,Any}()`, `=KomaMRICore.default_sim_params()`) dictionary of
     simulation parameters
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the discretized Sequence struct
+- `p`: (`::PlotlyJS.SyncPlot`) plot of the sampled Sequence struct
 
 # Examples
 ```julia-repl
@@ -931,8 +1024,8 @@ julia> seq = read_seq(seq_file)
 julia> plot_seqd(seq)
 ```
 """
-function plot_seqd(seq::Sequence; simParams=KomaMRICore.default_sim_params())
-	seqd = KomaMRICore.discretize(seq; simParams)
+function plot_seqd(seq::Sequence; sim_params=KomaMRICore.default_sim_params())
+	seqd = KomaMRICore.discretize(seq; sim_params)
 	Gx = scatter(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
 	Gy = scatter(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
 	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)

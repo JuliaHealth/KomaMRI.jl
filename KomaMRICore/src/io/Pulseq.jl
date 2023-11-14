@@ -274,10 +274,10 @@ end
 """
     seq = read_seq(filename)
 
-Returns the Sequence struct from a sequence file `.seq`.
+Returns the Sequence struct from a Pulseq file with `.seq` extension.
 
 # Arguments
-- `filename`: (`::String`) the absolute or relative path of the sequence file `.seq`
+- `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
 
 # Returns
 - `seq`: (`::Sequence`) Sequence struct
@@ -431,7 +431,7 @@ function read_seq(filename)
         seq.DEF["Nz"] = Nz  #Number of unique RF frequencies, in a 3D acquisition this should not work
     end
     #Koma sequence
-    seq
+    return seq
 end
 
 #To Sequence
