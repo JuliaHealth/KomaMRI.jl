@@ -54,7 +54,7 @@ end
     function attempt_to_open_koma_ui(n_attempts, timeout_sec)
         for cnt = 1:n_attempts
             @info "Trying to open the KomaUI-Window ..."
-            w = with_timeout(()->KomaUI(dev_tools=true), timeout_sec)
+            w = with_timeout(()->KomaUI(return_window=true), timeout_sec)
             @info "Number of KomaUI-Window attempts: $cnt"
             if !isnothing(w)
                 @info "KomaUI-Window successfully opened"

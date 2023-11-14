@@ -1,7 +1,7 @@
 """
 Returns the blink window with some custom styles and js logic.
 """
-function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, blink_show=true)
+function setup_blink_window(; darkmode=true, frame=true, return_window=false, blink_show=true)
     path = @__DIR__
     ## ASSETS
     assets = AssetRegistry.register(dirname(dirname(dirname(path))*"/assets/"))
@@ -41,7 +41,7 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, blink_
         :icon=>icon_png,
         "width"=>1200,
         "height"=>800,
-        "webPreferences" => Dict("devTools" => dev_tools),
+        "webPreferences" => Dict("devTools" => return_window),
         :show=>blink_show
         ),async=false);
     ## NAV BAR
