@@ -1,9 +1,9 @@
-# Define observables exported observables
-sys_ui = Observable{Scanner}(Scanner())
-seq_ui = Observable{Sequence}(Sequence())
-obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
-raw_ui = Observable{RawAcquisitionData}(setup_raw())
-img_ui = Observable{Array}([0.0im 0.; 0. 0.])
+## Define observables exported observables
+#sys_ui = Observable{Scanner}(Scanner())
+#seq_ui = Observable{Sequence}(Sequence())
+#obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
+#raw_ui = Observable{RawAcquisitionData}(setup_raw())
+#img_ui = Observable{Array}([0.0im 0.; 0. 0.])
 
 """
     out = KomaUI(; kwargs...)
@@ -38,6 +38,13 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
 
     # Setup the Blink window
     w, index = setup_blink_window(; darkmode, frame, dev_tools, blink_show)
+
+    # Define observables exported observables
+    sys_ui = Observable{Scanner}(Scanner())
+    seq_ui = Observable{Sequence}(Sequence())
+    obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
+    raw_ui = Observable{RawAcquisitionData}(setup_raw())
+    img_ui = Observable{Array}([0.0im 0.; 0. 0.])
 
     # Setup default simulation inputs (they have observables)
     sys_ui[] = setup_scanner()
@@ -284,14 +291,14 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     @js_ w (
         @var version_ui = $(version_ui);
         @var version_core = $(version_core);
-        @var version_plots = $(version_plots); 
-        document.getElementById("Github").setAttribute("data-bs-original-title", 
+        @var version_plots = $(version_plots);
+        document.getElementById("Github").setAttribute("data-bs-original-title",
                                                          "KomaMRI.jl v"+version_ui+"\n"+
                                                          "KomaMRICore.jl v"+version_core+"\n"+
                                                          "KomaMRIPlots.jl v"+version_plots);
     )
     @info "Currently using package versions" KomaMRI=version_ui KomaMRICore=version_core KomaMRIPlots=version_plots
-    
+
     # Devtools
     if dev_tools
         Blink.tools(w)
