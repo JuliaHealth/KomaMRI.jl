@@ -23,10 +23,10 @@ ThreadsX = "ac1d9e8a-700a-412c-b207-f0111f4b6c0d"
 
 [compat]
 Adapt = "3"
-CUDA = "3"
+CUDA = "3, 4, 5"
 FileIO = "1"
 Functors = "0.4"
-HDF5 = "0.16"
+HDF5 = "0.16, 0.17"
 Interpolations = "0.13, 0.14"
 JLD2 = "0.4"
 MAT = "0.10"

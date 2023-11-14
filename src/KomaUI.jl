@@ -294,7 +294,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     
     # Devtools
     if dev_tools
-        Blink.tools(w)
+        #Blink.tools(w)
         return w
     end
 

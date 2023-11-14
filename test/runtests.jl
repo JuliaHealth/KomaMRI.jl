@@ -10,7 +10,7 @@ using TestItems, TestItemRunner
     A = rand(5,5,3)
     B = KomaMRI.fftc(KomaMRI.ifftc(A))
     @test A ≈ B
-
+    
     #Sanity check 2
     B = KomaMRI.ifftc(KomaMRI.fftc(A))
     @test A ≈ B
@@ -37,35 +37,35 @@ end
 
 @testitem "KomaUI" tags=[:koma] begin
 
-    using Blink, Interact
+    using Blink#, Interact
 
-    function with_timeout(f::Function, timeout)
-        c = Channel{Any}(1)
-        @async begin
-            put!(c, f())
-        end
-        @async begin
-            sleep(timeout)
-            put!(c, nothing)
-        end
-        take!(c)
-    end
+    # function with_timeout(f::Function, timeout)
+    #     c = Channel{Any}(1)
+    #     @async begin
+    #         put!(c, f())
+    #     end
+    #     @async begin
+    #         sleep(timeout)
+    #         put!(c, nothing)
+    #     end
+    #     take!(c)
+    # end
 
-    function attempt_to_open_koma_ui(n_attempts, timeout_sec)
-        for cnt = 1:n_attempts
-            @info "Trying to open the KomaUI-Window ..."
-            w = with_timeout(()->KomaUI(dev_tools=true), timeout_sec)
-            @info "Number of KomaUI-Window attempts: $cnt"
-            if !isnothing(w)
-                @info "KomaUI-Window successfully opened"
-                return w
-            end
-        end
-    end
+    # function attempt_to_open_koma_ui(n_attempts, timeout_sec)
+    #     for cnt = 1:n_attempts
+    #         @info "Trying to open the KomaUI-Window ..."
+    #         w = with_timeout(()->KomaUI(dev_tools=true, blink_show=false), timeout_sec)
+    #         @info "Number of KomaUI-Window attempts: $cnt"
+    #         if !isnothing(w)
+    #             @info "KomaUI-Window successfully opened"
+    #             return w
+    #         end
+    #     end
+    # end
 
-    n_attempts = 5
-    timeout_sec = 120
-    w = attempt_to_open_koma_ui(n_attempts, timeout_sec)
+    # n_attempts = 5
+    # timeout_sec = 1
+    w = KomaUI(dev_tools=true, blink_show=true) #attempt_to_open_koma_ui(n_attempts, timeout_sec)
 
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
@@ -150,6 +150,8 @@ end
         @test "matfolderima" == @js w document.getElementById("content").dataset.content
     end
 
-    close(w)
+    if !isnothing(w)
+        close(w)
+    end
 
 end
