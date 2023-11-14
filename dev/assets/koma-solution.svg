@@ -14401,7 +14401,7 @@
            id="tspan106840-2"
            style="font-weight:bold;font-size:12.4757px;fill:#000000;fill-opacity:1;stroke-width:0.935677"
            x="281.64166"
-           y="-51.876163">simulate(obj, seq, sys; simParams)</tspan></text>
+           y="-51.876163">simulate(obj, seq, sys; sim_params)</tspan></text>
       <g
          inkscape:label=""
          transform="matrix(1.4905143,0,0,1.4905143,353.10603,-18.192862)"
