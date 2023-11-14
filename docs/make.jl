@@ -65,6 +65,8 @@ makedocs(
         "Getting Started" => "getting-started.md";
         "Simulation with User Interface" => "ui-details.md";
         "Simulation with Scripts" => "programming-workflow.md";
+        "Create Your Own Phantom" => "create-your-own-phantom.md";
+        "Create Your Own Sequence" => "create-your-own-sequence.md";
         "Sequence Definition" => "sequence.md";
         "Events Definition" => "events.md";
         literate_seccions;

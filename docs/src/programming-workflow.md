@@ -191,7 +191,28 @@ Dict{String, Any} with 9 entries:
   "Δt_rf"       => 5.0e-5
 ```
 
-All of these parameters deserve special attention. We will explain some of the most important ones here. For instance, `"Δt"` and `"Δt_rf"` represent the raster times for the gradients and RFs. `"return_type"` specifies the type of variable returned by the simulator (by default, it returns an object ready for use with **MRIReco** for reconstruction, but you can use the value `"mat"` to return a simple vector). `"gpu"` indicates whether you want to use your GPU device for simulations, and `"precision"` sets the floating-point precision.
+All of these parameters merit special attention. Here is a description of each:
+
+* `"return_type"`: defines the output of the **simulation()** function. Possible values are `"raw"`, `"mat"`, and `"state"`, corresponding to outputting a **MRIReco** `RawAcquisitionData`, the signal values, and the last magnetization state of the simulation, respectively.
+* `"sim_method"`: defines the type of simulation. The default value is **Bloch()**, but you can alternatively use the **BlochDict()** simulation method. Moreover, you have the flexibility to create your own methods without altering the **KomaMRI** source code; for further details, refer to the [Simulation Method Extensibility section](mri-theory.md#Simulation-Method-Extensibility).
+* `"Δt"`: raster time for gradients.
+* `"Δt_rf"`: raster time for RFs.
+* `"precision"`: defines the floating-point simulation precision. You can choose between `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively. It's important to note that, especially for GPU operations, using `"f32"` is generally much faster.
+* `"Nblocks"` divides the simulation into a specified number of time blocks. This parameter is designed to conserve RAM resources, as **KomaMRI** computes a series of simulations consecutively, each with the specified number of blocks determined by the value of `"Nblocks"`.
+* `"Nthreads"`: divides the **Phantom** into a specified number of threads. Because spins are modeled independently of each other, **KomaMRI** can solve simulations in parallel threads, speeding up the execution time.
+* `"gpu"`: is a boolean that determines whether to use GPU or CPU hardware resources, as long as they are available on the host computer.
+* `"gpu_device"`: sets the index ID of the available GPU in the host computer.
+
+For instance, if you want to perform a simulation on the CPU with float64 precision using the **BlochDict()** method, you can do so like this:
+```julia
+# Set non-default simulation parameters and run simulation
+sim_params = KomaMRICore.default_sim_params() 
+sim_params["gpu"] = false
+sim_params["precision"] = "f64"
+sim_params["sim_method"] = BlochDict()
+raw = simulate(obj, seq, sys; sim_params)
+```
+
 
 ### Raw Signal
 
