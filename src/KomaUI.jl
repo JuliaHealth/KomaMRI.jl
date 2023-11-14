@@ -1,9 +1,9 @@
-## Define observables exported observables
-#sys_ui = Observable{Scanner}(Scanner())
-#seq_ui = Observable{Sequence}(Sequence())
-#obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
-#raw_ui = Observable{RawAcquisitionData}(setup_raw())
-#img_ui = Observable{Array}([0.0im 0.; 0. 0.])
+# Define observables exported observables
+sys_ui = Observable{Scanner}(Scanner())
+seq_ui = Observable{Sequence}(Sequence())
+obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
+raw_ui = Observable{RawAcquisitionData}(setup_raw())
+img_ui = Observable{Array}([0.0im 0.; 0. 0.])
 
 """
     out = KomaUI(; kwargs...)
@@ -39,12 +39,12 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     # Setup the Blink window
     w, index = setup_blink_window(; darkmode, frame, dev_tools, blink_show)
 
-    # Define observables exported observables
-    sys_ui = Observable{Scanner}(Scanner())
-    seq_ui = Observable{Sequence}(Sequence())
-    obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
-    raw_ui = Observable{RawAcquisitionData}(setup_raw())
-    img_ui = Observable{Array}([0.0im 0.; 0. 0.])
+    # Remove any listener
+    Observables.clear(seq_ui)
+    Observables.clear(obj_ui)
+    Observables.clear(sys_ui)
+    Observables.clear(raw_ui)
+    Observables.clear(img_ui)
 
     # Setup default simulation inputs (they have observables)
     sys_ui[] = setup_scanner()
