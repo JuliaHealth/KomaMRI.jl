@@ -17,27 +17,27 @@ Launch the Koma's UI.
     2D or 3D brain example
 - `sim`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) simulation parameters dictionary
 - `rec`: (`::Dict{Symbol,Any}`, `=Dict{Symbol,Any}()`) reconstruction parameters dictionary
-- `dev_tools`: (`::Bool`, `=false`) make the `out` be either 'nothing' or the Blink window,
-    depending on whether the `dev_tools` keyword argument is set to true
-- `blink_show`: (`::Bool`, `=true`) display the Blink window
+- `return_window`: (`::Bool`, `=false`) make the `out` be either 'nothing' or the Blink window,
+    depending on whether the `return_window` keyword argument is set to true
+- `show_window`: (`::Bool`, `=true`) display the Blink window
 
 # Returns
 - `out`: (`::Nothing` or `::Blink.AtomShell.Window`) returns either 'nothing' or the Blink
-    window, depending on whether the `dev_tools` keyword argument is set to true.
+    window, depending on whether the `return_window` keyword argument is set to true.
 
 # Examples
 ```julia-repl
 julia> KomaUI()
 ```
 """
-function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), dev_tools=false, blink_show=true)
+function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), return_window=false, show_window=true, dev_tools=false)
 
     # For phantom sub-buttons
     fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
     widgets_button_obj = button.(string.(fieldnames_obj))
 
     # Setup the Blink window
-    w, index = setup_blink_window(; darkmode, frame, dev_tools, blink_show)
+    w, index = setup_blink_window(; darkmode, frame, dev_tools, show_window)
 
     # Setup default simulation inputs (they have observables)
     sys_ui[] = setup_scanner()
@@ -293,8 +293,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     @info "Currently using package versions" KomaMRI=version_ui KomaMRICore=version_core KomaMRIPlots=version_plots
     
     # Devtools
-    if dev_tools
-        #Blink.tools(w)
+    if return_window
         return w
     end
 
