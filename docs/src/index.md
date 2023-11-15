@@ -23,8 +23,8 @@ Some of the features of **KomaMRI** are:
 * Fast simulations by using CPU and GPU parallelization 🏃💨.
 * Open Source, so anyone can include additional features 🆙.
 * Compatibility with community-standards 🤝 like Pulseq `.seq` and ISMRMRD `.mrd`.
-* Compatibility with [Pluto](https://github.com/fonsp/Pluto.jl) and [Jupyter](https://jupyter.org/) notebooks 🎈
-* Cross-platform 🌐 thanks to the use of the Julia programing language.
+* Compatibility with [Pluto](notebooks.md#Using-KomaMRI-with-Pluto) and [Jupyter](notebooks.md#Using-KomaMRI-with-Jupyter) notebooks 🎈
+* Cross-platform 🌐 thanks to the use of the Julia programming language.
 * Friendly user interface for people with no programming skills 😌.
 * Flexible API for advanced users 👨‍💻.
 
