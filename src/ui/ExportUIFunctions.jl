@@ -25,7 +25,6 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
     # User defined JS and CSS
     customcss = joinpath(css,"custom.css")
     customjs = joinpath(scripts,"custom.js")
-    customjs2 = joinpath(scripts,"custom2.js")
     sidebarcss = joinpath(css,"sidebars.css")
     # Custom icons
     icons = joinpath(css,"icons.css")
@@ -40,13 +39,15 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
         "height"=>800,
         "webPreferences"=>Dict("devTools"=>dev_tools),
         :show=>show_window
-        ), async=true);
+        ), async=false);
+
     ## NAV BAR
     sidebar = open(f->read(f, String), komamri_src_ui*"/html/sidebar.html")
     sidebar = replace(sidebar, "LOGO"=>logo)
     ## CONTENT
     index = open(f->read(f, String), komamri_src_ui*"/html/index.html")
     index = replace(index, "ICON"=>home_image)
+
     @sync begin
         ## CSS
         loadcss!(w, bscss)
@@ -61,13 +62,12 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
         loadjs!(w, customjs)    #must be before jquery
         loadjs!(w, jquery)
         loadjs!(w, bsjs)        #after jquery
-        loadjs!(w, customjs2)   #must be after jquery
         # LOAD ICONS
         loadcss!(w, icons)
     end
 
     #Update GUI's home
-    w = body!(w, *(sidebar, index), async=false) #async false is important to set the background correctly
+    body!(w, *(sidebar, index), async=false) #async false is important to set the background correctly
     if darkmode
         @js_ w document.getElementById("main").style="background-color:rgb(13,16,17);"
     end
