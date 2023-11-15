@@ -37,7 +37,6 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
         :icon=>app_icon,
         "width"=>1200,
         "height"=>800,
-        "webPreferences"=>Dict("devTools"=>dev_tools),
         :show=>show_window
         ), async=false);
 
@@ -72,6 +71,9 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
         @js_ w document.getElementById("main").style="background-color:rgb(13,16,17);"
     end
     # Return the Blink window
+    if dev_tools
+        Blink.tools(w)
+    end
     return w, index
 end
 
