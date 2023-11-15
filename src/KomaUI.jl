@@ -19,7 +19,7 @@ Launch the Koma's UI.
 - `rec`: (`::Dict{Symbol,Any}`, `=Dict{Symbol,Any}()`) reconstruction parameters dictionary
 - `return_window`: (`::Bool`, `=false`) make the `out` be either 'nothing' or the Blink window,
     depending on whether the `return_window` keyword argument is set to true
-- `blink_show`: (`::Bool`, `=true`) display the Blink window
+- `show_window`: (`::Bool`, `=true`) display the Blink window
 
 # Returns
 - `out`: (`::Nothing` or `::Blink.AtomShell.Window`) returns either 'nothing' or the Blink
@@ -30,14 +30,14 @@ Launch the Koma's UI.
 julia> KomaUI()
 ```
 """
-function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), return_window=false, blink_show=true)
+function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), return_window=false, show_window=true, dev_tools=false)
 
     # For phantom sub-buttons
     fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
     widgets_button_obj = button.(string.(fieldnames_obj))
 
     # Setup the Blink window
-    w, index = setup_blink_window(; darkmode, frame, return_window, blink_show)
+    w, index = setup_blink_window(; darkmode, frame, return_window, show_window)
 
     # Remove any listener if necessary
     if length(seq_ui.listeners) != 0

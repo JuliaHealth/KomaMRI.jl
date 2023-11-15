@@ -1,20 +1,17 @@
 """
 Returns the blink window with some custom styles and js logic.
 """
-function setup_blink_window(; darkmode=true, frame=true, return_window=false, blink_show=true)
-    path = @__DIR__
-    ## ASSETS
-    assets = AssetRegistry.register(dirname(dirname(dirname(path))*"/assets/"))
-    scripts = AssetRegistry.register(dirname(path*"/scripts/"))
-    css = AssetRegistry.register(dirname(path*"/css/"))
-    # Assets
+function setup_blink_window(; darkmode=true, frame=true, return_window=false, show_window=true)
+    komamri_src_ui = @__DIR__
+    komamri_root = dirname(dirname(komamri_src_ui))
+    # Asset folders
+    assets = AssetRegistry.register(komamri_root*"/assets/")
+    scripts = AssetRegistry.register(komamri_src_ui*"/scripts/")
+    css = AssetRegistry.register(komamri_src_ui*"/css/")
+    # Images
     logo = joinpath(assets, "logo-dark.svg")
-    icon = joinpath(assets, "icon.svg")
-    # Apparently Blink requires an assets folder in a chiled route of where is launched
-    icon_png = path*"/assets/logo-icon.png"
-    #if !isfile(icon_png)
-    #    cp(dirname(dirname(path))*"/assets/logo-icon.png", path*"/assets/logo-icon.png")
-    #end
+    home_image = joinpath(assets, "home-image.svg")
+    app_icon = komamri_root*"/assets/app-icon.png"
     # JS
     bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
     bscss = joinpath(css,"bootstrap.min.css")
@@ -37,19 +34,19 @@ function setup_blink_window(; darkmode=true, frame=true, return_window=false, bl
         "title"=>"KomaUI",
         "autoHideMenuBar"=>true,
         "frame"=>frame, #removes title bar
-        "node-integration" => true,
-        :icon=>icon_png,
+        "node-integration"=>true,
+        :icon=>app_icon,
         "width"=>1200,
         "height"=>800,
         "webPreferences" => Dict("devTools" => return_window),
-        :show=>blink_show
+        :show=>show_window
         ),async=false);
     ## NAV BAR
-    sidebar = open(f->read(f, String), path*"/html/sidebar.html")
+    sidebar = open(f->read(f, String), komamri_src_ui*"/html/sidebar.html")
     sidebar = replace(sidebar, "LOGO"=>logo)
     ## CONTENT
-    index = open(f->read(f, String), path*"/html/index.html")
-    index = replace(index, "ICON"=>icon)
+    index = open(f->read(f, String), komamri_src_ui*"/html/index.html")
+    index = replace(index, "ICON"=>home_image)
     ## CSS
     loadcss!(w, bscss)
     loadcss!(w, bsiconcss)
@@ -154,8 +151,8 @@ end
 Updates the blink window with a loading content
 """
 function display_loading!(w::Window, msg::String)
-    path = @__DIR__
-    loading = replace(open((f) -> read(f, String), path*"/html/loading.html"), "LOADDES"=>msg)
+    komamri_src_ui = @__DIR__
+    loading = replace(open((f) -> read(f, String), komamri_src_ui*"/html/loading.html"), "LOADDES"=>msg)
     content!(w, "div#content", loading)
 end
 
@@ -254,7 +251,7 @@ function view_ui!(seq::Sequence, w::Window; type="sequence", darkmode=true)
     # Add loading progress and then a plot to the UI depending on type of the plot
     if type == "sequence"
         display_loading!(w, "Plotting sequence ...")
-        widget_plot = plot_seq(seq; darkmode, range=[0 30])
+        widget_plot = plot_seq(seq; darkmode, range=[0 30], slider=true)
         content!(w, "div#content", dom"div"(widget_plot))
         @js_ w document.getElementById("content").dataset.content = "sequence"
     elseif type == "kspace"
