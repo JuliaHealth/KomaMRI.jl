@@ -47,7 +47,7 @@ Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 5 ]
 
 As you can see, this **Sequence** has 204 blocks, 1 of these blocks has an **RF** struct with values different from zero, there are 205 number of **Grad** structs considering the x-y-z components, 101 **ADC** structs acquire samples of some blocks and 62.846 ms is the total time duration of the complete **Sequence**.
 
-To display the sequence in an graph, we can use the **plot\_seq()** function:
+To display the sequence in an graph, we can use the `plot_seq` function:
 ```julia-repl
 julia> plot_seq(seq)
 ```

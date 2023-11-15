@@ -70,7 +70,7 @@ makedocs(
         "Sequence Definition" => "sequence.md";
         "Events Definition" => "events.md";
         literate_seccions;
-        "Simulation Method" => "mri-theory.md";
+        "Simulation" => "mri-theory.md";
         "API Documentation" => "api.md";
     ],
     format = Documenter.HTML(

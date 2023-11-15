@@ -43,7 +43,7 @@ You can add more properties to the **Phantom**, such as off-resonance, diffusion
 
 If you are familiar with the **MRI** world, you likely have a 2D or 3D array, where each element contains an ID number identifying a different class of tissue. In this setup, the array axes represent spatial positions, while the elements are used for tissue identification.
 
-In this example, we will utilize a `.mat` file containing arrays with such arrangements. The file is readily available upon installing **KomaMRI**. Let's read the file and store the 2D data in an array called `{\tt class}`:"
+In this example, we will utilize a `.mat` file containing arrays with such arrangements. The file is readily available upon installing **KomaMRI**. Let's read the file and store the 2D data in an array called `class`:"
 ```julia
 # Import necessary modules
 using KomaMRI, MAT
@@ -55,7 +55,7 @@ data = MAT.matread(path_phantom_mat)
 class = data["axial"]
 ```
 
-You can visualize the tissue map using the function ``{\tt plot\_image()}``:
+You can visualize the tissue map using the function `plot_image``:
 ```julia
 plot_image(class)
 ```
@@ -75,7 +75,7 @@ y = -FOVy/2:Δx:FOVy/2       # y spin coordinates vector
 x, y = x .+ y'*0, x*0 .+ y' # x and y grid points
 ```
 
-Now, let's define the arrays for the properties. It's essential to have prior knowledge of the property values for different tissue classes. For example, for muscle tissue, we use ``{\tt ρ = 1}``, ``{\tt T1 = 900 * 1e-3}``, ``{\tt T2 = 47 * 1e-3}``, and ``{\tt T2s = 30 * 1e-3}``. Additionally, create an array mask to identify the location of a tissue's ID. For muscle with ID = 116, the mask is `(class == 116)`. Finally, to obtain a property, sum all the masks with values for all tissue classes. This process is illustrated below: 
+Now, let's define the arrays for the properties. It's essential to have prior knowledge of the property values for different tissue classes. For example, for muscle tissue, we use `ρ = 1`, `T1 = 900 * 1e-3`, `T2 = 47 * 1e-3`, and `T2s = 30 * 1e-3`. Additionally, create an array mask to identify the location of a tissue's ID. For muscle with ID = 116, the mask is `(class == 116)`. Finally, to obtain a property, sum all the masks with values for all tissue classes. This process is illustrated below: 
 ```julia
 # Define the proton density array
 ρ = (class.==23)*1 .+       # CSF
@@ -156,7 +156,7 @@ obj = Phantom{Float64}(
 )
 ```
 
-We can display the **Phantom** struct with the ``{\tt plot\_phantom\_map()}` function. In this case we select the proton density to be displayed, but you can choose other property to be displayed:
+We can display the **Phantom** struct with the `plot_phantom_map` function. In this case we select the proton density to be displayed, but you can choose other property to be displayed:
 ```julia
 plot_phantom_map(obj, :ρ)
 ```
