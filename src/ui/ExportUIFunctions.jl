@@ -25,7 +25,6 @@ function setup_blink_window(; darkmode=true, frame=true, return_window=false, sh
     # User defined JS and CSS
     customcss = joinpath(css,"custom.css")
     customjs = joinpath(scripts,"custom.js")
-    customjs2 = joinpath(scripts,"custom2.js")
     sidebarcss = joinpath(css,"sidebars.css")
     # Custom icons
     icons = joinpath(css,"icons.css")
@@ -38,39 +37,43 @@ function setup_blink_window(; darkmode=true, frame=true, return_window=false, sh
         :icon=>app_icon,
         "width"=>1200,
         "height"=>800,
-        "webPreferences" => Dict("devTools" => return_window),
         :show=>show_window
-        ),async=false);
+        ), async=false);
+
     ## NAV BAR
     sidebar = open(f->read(f, String), komamri_src_ui*"/html/sidebar.html")
     sidebar = replace(sidebar, "LOGO"=>logo)
     ## CONTENT
     index = open(f->read(f, String), komamri_src_ui*"/html/index.html")
     index = replace(index, "ICON"=>home_image)
-    ## CSS
-    loadcss!(w, bscss)
-    loadcss!(w, bsiconcss)
-    loadcss!(w, customcss)
-    loadcss!(w, sidebarcss)
-    # KATEX
-    loadcss!(w, katexcss)
-    loadjs!(w, katexjs)
-    loadjs!(w, katexrender)
-    # JQUERY, BOOSTRAP JS
-    loadjs!(w, customjs)    #must be before jquery
-    loadjs!(w, jquery)
-    loadjs!(w, bsjs)        #after jquery
-    loadjs!(w, customjs2)   #must be after jquery
-    # LOAD ICONS
-    loadcss!(w, icons)
+
+    @sync begin
+        ## CSS
+        loadcss!(w, bscss)
+        loadcss!(w, bsiconcss)
+        loadcss!(w, customcss)
+        loadcss!(w, sidebarcss)
+        # KATEX
+        loadcss!(w, katexcss)
+        loadjs!(w, katexjs)
+        loadjs!(w, katexrender)
+        # JQUERY, BOOSTRAP JS
+        loadjs!(w, customjs)    #must be before jquery
+        loadjs!(w, jquery)
+        loadjs!(w, bsjs)        #after jquery
+        # LOAD ICONS
+        loadcss!(w, icons)
+    end
 
     #Update GUI's home
-    w = body!(w, *(sidebar, index), async=false)
+    body!(w, *(sidebar, index), async=false) #async false is important to set the background correctly
     if darkmode
         @js_ w document.getElementById("main").style="background-color:rgb(13,16,17);"
     end
-
     # Return the Blink window
+    if dev_tools
+        Blink.tools(w)
+    end
     return w, index
 end
 
@@ -80,11 +83,8 @@ Returns the default scanner used by the UI and print some information about it.
 function setup_scanner()
 
     # Print information and get the default Scanner struct
-    @info "Loading Scanner (default)"
+    @info "Loaded `Scanner` to `sys_ui[]`"
     sys = Scanner()
-    println("B0 = $(sys.B0) T")
-    println("Gmax = $(round(sys.Gmax*1e3, digits=2)) mT/m")
-    println("Smax = $(sys.Smax) mT/m/ms")
 
     # Return the default Scanner struct
     return sys
@@ -96,7 +96,7 @@ Returns the default sequence used by the UI and print some information about it.
 function setup_sequence(sys::Scanner)
 
     # Print information and get the default Sequence struct
-    @info "Loading Sequence (default) "
+    @info "Loaded `Sequence` to `seq_ui[]`"
     seq = PulseDesigner.EPI_example(; sys)
 
     # Return the default Sequence struct
@@ -109,10 +109,8 @@ Returns the default phantom used by the UI and print some information about it.
 function setup_phantom(; phantom_mode="2D")
 
     # Print information and get the default Phantom struct
-    @info "Loading Phantom (default)"
+    @info "Loaded `Phantom` to `obj_ui[]`"
     obj = phantom_mode == "3D" ? brain_phantom3D() : brain_phantom2D()
-    obj.Δw .*= 0
-    println("Phantom object \"$(obj.name)\" successfully loaded!")
 
     # Return the default Phantom struct
     return obj
