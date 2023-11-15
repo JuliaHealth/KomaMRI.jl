@@ -135,4 +135,4 @@ If you use this package please acknowledge us by citing our paper.
 
 ## Koma GUI
 
-<img width="100%" src="/others/GUI.svg"/>
+<img width="100%" src="/assets/GUI.svg"/>
