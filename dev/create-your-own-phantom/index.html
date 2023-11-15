@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Create Your Own Phantom · KomaMRI.jl: General MRI simulation framework</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/extra-styles.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img class="docs-light-only" src="../assets/logo.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/><img class="docs-dark-only" src="../assets/logo-dark.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/></a><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../getting-started/">Getting Started</a></li><li><a class="tocitem" href="../ui-details/">Simulation with User Interface</a></li><li><a class="tocitem" href="../programming-workflow/">Simulation with Scripts</a></li><li class="is-active"><a class="tocitem" href>Create Your Own Phantom</a></li><li><a class="tocitem" href="../create-your-own-sequence/">Create Your Own Sequence</a></li><li><a class="tocitem" href="../sequence/">Sequence Definition</a></li><li><a class="tocitem" href="../events/">Events Definition</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../generated/examples/01-FID/">Free Induction Decay</a></li><li><a class="tocitem" href="../generated/examples/02-SmallTipApproximation/">Small Tip Angle Approximation</a></li><li><a class="tocitem" href="../generated/examples/03-ChemicalShiftEPI/">Chemical Shift in an EPI sequence</a></li><li><a class="tocitem" href="../generated/examples/04-3DSliceSelective/">Slice Selective Acquisition of 3D Phantom</a></li></ul></li><li><a class="tocitem" href="../mri-theory/">Simulation</a></li><li><a class="tocitem" href="../api/">API Documentation</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Create Your Own Phantom</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Create Your Own Phantom</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/cncastillo/KomaMRI.jl/blob/master/docs/src/create-your-own-phantom.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Create-Your-Own-Phantom"><a class="docs-heading-anchor" href="#Create-Your-Own-Phantom">Create Your Own Phantom</a><a id="Create-Your-Own-Phantom-1"></a><a class="docs-heading-anchor-permalink" href="#Create-Your-Own-Phantom" title="Permalink"></a></h1><p>In this section, we will create a custom <strong>Phantom</strong> struct. While the example is presented in 2D, the concepts discussed here can be readily extended to 3D phantoms.</p><p>In <strong>KomaMRI</strong>, the creation of a <strong>Phantom</strong> struct involves defining spin position arrays (x, y, z) and spin property arrays. The indices of these arrays are then associated with independent spins.</p><p>For instance, you can create a <strong>Phantom</strong> with one spin like so:</p><pre><code class="language-julia hljs"># Define arrays of positions (spin at zero position)
+x = [0.0]
+y = [0.0]
+z = [0.0]
+
+# Define arrays of properties (for CSF tissue)
+ρ = [1.0]
+T1 = [2.569]
+T2 = [0.329]
+T2s = [0.058]
+
+# Define the phantom
+spin = Phantom(name=&quot;spin&quot;, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s)</code></pre><pre><code class="language-julia-repl hljs">Phantom{Float64}
+  name: String &quot;spin&quot;
+  x: Array{Float64}((1,)) [0.0]
+  y: Array{Float64}((1,)) [0.0]
+  z: Array{Float64}((1,)) [0.0]
+  ρ: Array{Float64}((1,)) [1.0]
+  T1: Array{Float64}((1,)) [2.569]
+  T2: Array{Float64}((1,)) [0.329]
+  T2s: Array{Float64}((1,)) [0.058]
+  Δw: Array{Float64}((1,)) [0.0]
+  Dλ1: Array{Float64}((1,)) [0.0]
+  Dλ2: Array{Float64}((1,)) [0.0]
+  Dθ: Array{Float64}((1,)) [0.0]
+  ux: #122 (function of type KomaMRICore.var&quot;#122#136&quot;)
+  uy: #123 (function of type KomaMRICore.var&quot;#123#137&quot;)
+  uz: #124 (function of type KomaMRICore.var&quot;#124#138&quot;)</code></pre><p>You can add more properties to the <strong>Phantom</strong>, such as off-resonance, diffusion parameters, and even functions of motion. However, we won&#39;t be utilizing them (except for the off-resonance parameter) to maintain simplicity.</p><p>If you are familiar with the <strong>MRI</strong> world, you likely have a 2D or 3D array, where each element contains an ID number identifying a different class of tissue. In this setup, the array axes represent spatial positions, while the elements are used for tissue identification.</p><p>In this example, we will utilize a <code>.mat</code> file containing arrays with such arrangements. The file is readily available upon installing <strong>KomaMRI</strong>. Let&#39;s read the file and store the 2D data in an array called <code>class</code>:&quot;</p><pre><code class="language-julia hljs"># Import necessary modules
+using KomaMRI, MAT
+
+# Get data from a .mat file
+path_koma = dirname(dirname(pathof(KomaMRI)))
+path_phantom_mat = joinpath(path_koma, &quot;KomaMRICore&quot;, &quot;src&quot;, &quot;datatypes&quot;,&quot;phantom&quot;, &quot;brain2D.mat&quot;)
+data = MAT.matread(path_phantom_mat)
+class = data[&quot;axial&quot;]</code></pre><p>You can visualize the tissue map using the function <code>plot_image</code>`:</p><pre><code class="language-julia hljs">plot_image(class)</code></pre><center><object type="text/html" data="../assets/create-your-own-phantom-class-map.html" style="width:100%; height:620px;"></object></center><p>Let&#39;s define the position arrays. You need to know the distance between the spins in the original array (in this case, it is 0.5mm), and then you can determine all the positions like this (the z-component is not calculated since this is a 2D example):</p><pre><code class="language-julia hljs"># Define spin position arrays
+Δx = .5e-3                  # 0.5mm
+M, N = size(class)          # Number of spins in x and y
+FOVx = (M-1)*Δx             # Field of view in x
+FOVy = (N-1)*Δx             # Field of view in y
+x = -FOVx/2:Δx:FOVx/2       # x spin coordinates vector
+y = -FOVy/2:Δx:FOVy/2       # y spin coordinates vector
+x, y = x .+ y&#39;*0, x*0 .+ y&#39; # x and y grid points</code></pre><p>Now, let&#39;s define the arrays for the properties. It&#39;s essential to have prior knowledge of the property values for different tissue classes. For example, for muscle tissue, we use <code>ρ = 1</code>, <code>T1 = 900 * 1e-3</code>, <code>T2 = 47 * 1e-3</code>, and <code>T2s = 30 * 1e-3</code>. Additionally, create an array mask to identify the location of a tissue&#39;s ID. For muscle with ID = 116, the mask is <code>(class == 116)</code>. Finally, to obtain a property, sum all the masks with values for all tissue classes. This process is illustrated below: </p><pre><code class="language-julia hljs"># Define the proton density array
+ρ = (class.==23)*1 .+       # CSF
+    (class.==46)*.86 .+     # GM
+    (class.==70)*.77 .+     # WM
+    (class.==93)*1 .+       # FAT1
+    (class.==116)*1 .+      # MUSCLE
+    (class.==139)*.7 .+     # SKIN/MUSCLE
+    (class.==162)*0 .+      # SKULL
+    (class.==185)*0 .+      # VESSELS
+    (class.==209)*.77 .+    # FAT2
+    (class.==232)*1 .+      # DURA
+    (class.==255)*.77       # MARROW
+
+# Define the T1 decay array
+T1 = (class.==23)*2569 .+   # CSF
+    (class.==46)*833 .+     # GM
+    (class.==70)*500 .+     # WM
+    (class.==93)*350 .+     # FAT1
+    (class.==116)*900 .+    # MUSCLE
+    (class.==139)*569 .+    # SKIN/MUSCLE
+    (class.==162)*0 .+      # SKULL
+    (class.==185)*0 .+      # VESSELS
+    (class.==209)*500 .+    # FAT2
+    (class.==232)*2569 .+   # DURA
+    (class.==255)*500       # MARROW
+
+# Define the T2 decay array
+T2 = (class.==23)*329 .+    # CSF
+    (class.==46)*83 .+      # GM
+    (class.==70)*70 .+      # WM
+    (class.==93)*70 .+      # FAT1
+    (class.==116)*47 .+     # MUSCLE
+    (class.==139)*329 .+    # SKIN/MUSCLE
+    (class.==162)*0 .+      # SKULL
+    (class.==185)*0 .+      # VESSELS
+    (class.==209)*70 .+     # FAT2
+    (class.==232)*329 .+    # DURA
+    (class.==255)*70        # MARROW
+
+# Define the T2s decay array
+T2s = (class.==23)*58 .+    # CSF
+    (class.==46)*69 .+      # GM
+    (class.==70)*61 .+      # WM
+    (class.==93)*58 .+      # FAT1
+    (class.==116)*30 .+     # MUSCLE
+    (class.==139)*58 .+     # SKIN/MUSCLE
+    (class.==162)*0 .+      # SKULL
+    (class.==185)*0 .+      # VESSELS
+    (class.==209)*61 .+     # FAT2
+    (class.==232)*58 .+     # DURA
+    (class.==255)*61        # MARROW
+
+# Define off-resonance array
+Δw_fat = -220*2π
+Δw = (class.==93)*Δw_fat .+ # FAT1
+	(class.==209)*Δw_fat    # FAT2
+
+# Adjust with scaling factor
+T1 = T1*1e-3
+T2 = T2*1e-3
+T2s = T2s*1e-3</code></pre><p>Finally, we can invoke the <code>Phantom</code> constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask <code>ρ.!=0</code> to the arrays. Additionally, please note that we set the z-position array filled with zeros, and we interchange the x and y coordinates.&quot;</p><pre><code class="language-julia hljs"># Define the phantom
+obj = Phantom{Float64}(
+    name = &quot;custom-brain&quot;,
+	x = y[ρ.!=0],
+	y = x[ρ.!=0],
+	z = 0*x[ρ.!=0],
+	ρ = ρ[ρ.!=0],
+	T1 = T1[ρ.!=0],
+	T2 = T2[ρ.!=0],
+	T2s = T2s[ρ.!=0],
+	Δw = Δw[ρ.!=0],
+)</code></pre><p>We can display the <strong>Phantom</strong> struct with the <code>plot_phantom_map</code> function. In this case we select the proton density to be displayed, but you can choose other property to be displayed:</p><pre><code class="language-julia hljs">plot_phantom_map(obj, :ρ)</code></pre><object type="text/html" data="../assets/create-your-own-phantom-plot-rho.html" style="width:100%; height:620px;"></object></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../programming-workflow/">« Simulation with Scripts</a><a class="docs-footer-nextpage" href="../create-your-own-sequence/">Create Your Own Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Wednesday 15 November 2023 13:51">Wednesday 15 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
