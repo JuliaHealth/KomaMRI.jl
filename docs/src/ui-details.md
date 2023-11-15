@@ -45,7 +45,7 @@ It is also possible to load `.h5` phantom files. The **KomaMRI.jl** has some exa
 <p align="center"><img width="90%" src="../assets/gui-phantom-load.png"/></p>
 ```
 
-Note that you can select different spin parameters to visualize like ``\rho``, ``T_1``, ``T_2``, among others. 
+Note that you can select different spin parameters to visualize like `ρ`, `T1`, `T2`, among others. 
 
 ### Sequence
 
@@ -113,9 +113,9 @@ Press the `Reconstruct!` button to perform the reconstruction (this may take a w
 ## Exporting Results to .mat File
 (You can also go to [analog steps using Scripts](programming-workflow.md#Exporting-Results-to-.mat-File))
 
-The user interface has the option to save the results in **.mat** format. Simply click on the `Export to .mat` and you have the alternatives to get data independently or you can press the `All` button to have all the results given by the simulator:
+The user interface has the option to save the results in `.mat` format. Simply click on the `Export to .mat` and you have the alternatives to get data independently or you can press the `All` button to have all the results given by the simulator:
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-export-to-mat.png"/></p>
 ```
 
-So far, and due to limitations of the user interface dependencies, the **.mat** files are saved in the temporal directory of your computer OS, which can be found by typing the `tempdir()` command in the **Julia REPL**.
+So far, and due to limitations of the user interface dependencies, the `.mat` files are saved in the temporal directory of your computer OS, which can be found by typing the `tempdir()` command in the **Julia REPL**.
