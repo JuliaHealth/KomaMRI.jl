@@ -51,10 +51,8 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         @async sys_ui[] = setup_scanner()
         @async seq_ui[] = setup_sequence(sys_ui[])
         @async obj_ui[] = setup_phantom(; phantom_mode)
-        @info "Loaded `RawAcquisitionData` to `raw_ui[]`" 
-        @async raw_ui[] = setup_raw()
-        @info "Loaded image to `img_ui[]`" 
-        @async img_ui[] = [0.0im 0.; 0. 0.]
+        @async ( @info "Loaded `RawAcquisitionData` to `raw_ui[]`"; raw_ui[] = setup_raw() )
+        @async ( @info "Loaded image to `img_ui[]`"; img_ui[] = [0.0im 0.; 0. 0.] )
     end
 
     # Define parameters (they are just internal variables)
