@@ -7,9 +7,21 @@
 # Order is important. The last matching pattern has the most precedence.
 # So if a pull request only touches Julia files, only these owners
 # will be requested to review.
+# SRC
 src/*.jl    @cncastillo
 KomaMRICore/src/*.jl    @cncastillo
 KomaMRIPlots/src/*.jl    @cncastillo
+KomaMRIIO/src/*.jl    @cncastillo
+# TEST
+test/*.jl    @cncastillo
+KomaMRICore/test/*.jl    @cncastillo
+KomaMRIPlots/test/*.jl    @cncastillo
+KomaMRIIO/test/*.jl    @cncastillo
+# EXT
+ext/*.jl    @cncastillo
+KomaMRICore/ext/*.jl    @cncastillo
+KomaMRIPlots/ext/*.jl    @cncastillo
+KomaMRIIO/ext/*.jl    @cncastillo
 
 # You can also use email addresses if you prefer.
 # docs/*  docs@example.com
