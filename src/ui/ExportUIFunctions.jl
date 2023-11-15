@@ -80,11 +80,8 @@ Returns the default scanner used by the UI and print some information about it.
 function setup_scanner()
 
     # Print information and get the default Scanner struct
-    @info "Loading Scanner (default)"
+    @info "Loaded `Scanner` to `sys_ui[]`"
     sys = Scanner()
-    println("B0 = $(sys.B0) T")
-    println("Gmax = $(round(sys.Gmax*1e3, digits=2)) mT/m")
-    println("Smax = $(sys.Smax) mT/m/ms")
 
     # Return the default Scanner struct
     return sys
@@ -96,7 +93,7 @@ Returns the default sequence used by the UI and print some information about it.
 function setup_sequence(sys::Scanner)
 
     # Print information and get the default Sequence struct
-    @info "Loading Sequence (default) "
+    @info "Loaded `Sequence` to `seq_ui[]`"
     seq = PulseDesigner.EPI_example(; sys)
 
     # Return the default Sequence struct
@@ -109,10 +106,8 @@ Returns the default phantom used by the UI and print some information about it.
 function setup_phantom(; phantom_mode="2D")
 
     # Print information and get the default Phantom struct
-    @info "Loading Phantom (default)"
+    @info "Loaded `Phantom` to `obj_ui[]`"
     obj = phantom_mode == "3D" ? brain_phantom3D() : brain_phantom2D()
-    obj.Δw .*= 0
-    println("Phantom object \"$(obj.name)\" successfully loaded!")
 
     # Return the default Phantom struct
     return obj

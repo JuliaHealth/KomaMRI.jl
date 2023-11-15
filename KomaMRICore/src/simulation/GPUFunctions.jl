@@ -8,30 +8,32 @@ const use_cuda = Ref{Union{Nothing,Bool}}(nothing)
 
 Simple function to print the CUDA devices available in the host.
 """
-print_gpus() = begin
+function print_gpus()
     check_use_cuda()
     if use_cuda[]
-	    println( "$(length(devices())) CUDA capable device(s)." )
-	    for (i,d) = enumerate(devices())
-	    	u = i == 1 ? "*" : " "
-	    	println( "  ($(i-1)$u) $(name(d))")
-	    end
+	    cuda_devices = [Symbol("($(i-1)$(i == 1 ? "*" : " "))") => name(d) for (i,d) = enumerate(devices())]
+		@info "$(length(devices())) CUDA capable device(s)." cuda_devices... 
     else
-        println("0 CUDA capable devices(s).")
+        @info "0 CUDA capable devices(s)."
     end
+	return 
 end
 
 """
 Checks if the PC has a functional CUDA installation. Inspired by Flux's `check_use_cuda` funciton.
 """
 function check_use_cuda()
-	if use_cuda[] === nothing
-		use_cuda[] = CUDA.functional()
-		if !(use_cuda[])
-		@info """The GPU function is being called but the GPU is not accessible.
-					Defaulting back to the CPU. (No action is required if you want to run on the CPU).""" maxlog=1
-		end
+	if !isnothing(use_cuda[])
+		return
 	end
+	use_cuda[] = CUDA.functional()
+	if use_cuda[]
+		@info """
+		The CUDA function is being called but CUDA.jl is not functional.
+		Defaulting back to the CPU. (No action is required if you want to run on the CPU).
+		""" maxlog=1
+	end
+	return
 end
 
 #Aux. funcitons to check if the variable we want to convert to CuArray is numeric
