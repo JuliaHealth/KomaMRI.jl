@@ -40,36 +40,37 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
         "height"=>800,
         "webPreferences"=>Dict("devTools"=>dev_tools),
         :show=>show_window
-        ),async=false);
+        ), async=true);
     ## NAV BAR
     sidebar = open(f->read(f, String), komamri_src_ui*"/html/sidebar.html")
     sidebar = replace(sidebar, "LOGO"=>logo)
     ## CONTENT
     index = open(f->read(f, String), komamri_src_ui*"/html/index.html")
     index = replace(index, "ICON"=>home_image)
-    ## CSS
-    loadcss!(w, bscss)
-    loadcss!(w, bsiconcss)
-    loadcss!(w, customcss)
-    loadcss!(w, sidebarcss)
-    # KATEX
-    loadcss!(w, katexcss)
-    loadjs!(w, katexjs)
-    loadjs!(w, katexrender)
-    # JQUERY, BOOSTRAP JS
-    loadjs!(w, customjs)    #must be before jquery
-    loadjs!(w, jquery)
-    loadjs!(w, bsjs)        #after jquery
-    loadjs!(w, customjs2)   #must be after jquery
-    # LOAD ICONS
-    loadcss!(w, icons)
+    @sync begin
+        ## CSS
+        loadcss!(w, bscss)
+        loadcss!(w, bsiconcss)
+        loadcss!(w, customcss)
+        loadcss!(w, sidebarcss)
+        # KATEX
+        loadcss!(w, katexcss)
+        loadjs!(w, katexjs)
+        loadjs!(w, katexrender)
+        # JQUERY, BOOSTRAP JS
+        loadjs!(w, customjs)    #must be before jquery
+        loadjs!(w, jquery)
+        loadjs!(w, bsjs)        #after jquery
+        loadjs!(w, customjs2)   #must be after jquery
+        # LOAD ICONS
+        loadcss!(w, icons)
+    end
 
     #Update GUI's home
-    w = body!(w, *(sidebar, index), async=false)
+    w = body!(w, *(sidebar, index), async=false) #async false is important to set the background correctly
     if darkmode
         @js_ w document.getElementById("main").style="background-color:rgb(13,16,17);"
     end
-
     # Return the Blink window
     return w, index
 end

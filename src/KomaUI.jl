@@ -31,6 +31,13 @@ julia> KomaUI()
 ```
 """
 function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), return_window=false, show_window=true, dev_tools=false)
+    
+    # To avoid generating multiple observables
+    Observables.clear(seq_ui)
+    Observables.clear(obj_ui)
+    Observables.clear(sys_ui)
+    Observables.clear(raw_ui)
+    Observables.clear(img_ui)
 
     # For phantom sub-buttons
     fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
@@ -40,12 +47,15 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     w, index = setup_blink_window(; darkmode, frame, dev_tools, show_window)
 
     # Setup default simulation inputs (they have observables)
-    sys_ui[] = setup_scanner()
-    seq_ui[] = setup_sequence(sys_ui[])
-    obj_ui[] = setup_phantom(; phantom_mode)
-    @info "Loaded `RawAcquisitionData` to `raw_ui[]`" 
-    raw_ui[] = setup_raw()
-    img_ui[] = [0.0im 0.; 0. 0.]
+    @sync begin
+        @async sys_ui[] = setup_scanner()
+        @async seq_ui[] = setup_sequence(sys_ui[])
+        @async obj_ui[] = setup_phantom(; phantom_mode)
+        @info "Loaded `RawAcquisitionData` to `raw_ui[]`" 
+        @async raw_ui[] = setup_raw()
+        @info "Loaded image to `img_ui[]`" 
+        @async img_ui[] = [0.0im 0.; 0. 0.]
+    end
 
     # Define parameters (they are just internal variables)
     sim_params = merge(Dict{String,Any}(), sim)
@@ -248,39 +258,38 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         img_ui[] = image
     end
 
+    # Filepicker SEQ
+    @sync begin
+        widget_filepicker_seq = filepicker(".seq (Pulseq)/.seqk (Koma)"; accept=".seq,.seqk")
+        content!(w, "#seqfilepicker", widget_filepicker_seq, async=true)
+        map!((filename) -> callback_filepicker(filename, w, seq_ui[]), seq_ui, widget_filepicker_seq)
+    end
 
-    # Define functionality of sequence filepicker widget
-    widget_filepicker_seq = filepicker(".seq (Pulseq)/.seqk (Koma)"; accept=".seq,.seqk")
-    map!((filename) -> callback_filepicker(filename, w, seq_ui[]), seq_ui, widget_filepicker_seq)
+    # Filepicker OBJ
+    @sync begin
+        widget_filepicker_obj = filepicker(".phantom (Koma)/.h5 (JEMRIS)"; accept=".phantom,.h5")
+        content!(w, "#phafilepicker", widget_filepicker_obj, async=true)
+        map!((filename) -> callback_filepicker(filename, w, obj_ui[]), obj_ui, widget_filepicker_obj)
+    end
+
+    # Filepicker RAW
+    @sync begin
+        widget_filepicker_raw = filepicker(".h5/.mrd (ISMRMRD)"; accept=".h5,.mrd")
+        content!(w, "#sigfilepicker", widget_filepicker_raw, async=true)
+        map!((filename) -> callback_filepicker(filename, w, raw_ui[]), raw_ui, widget_filepicker_raw)
+    end
+
+    # Listeners
     on((seq) -> view_ui!(seq, w; type="sequence", darkmode), seq_ui)
-    # Add filepicker widgets to the UI
-    content!(w, "#seqfilepicker", widget_filepicker_seq, async=true)
-
-    # Define functionality of phantom filepicker widget and sub-buttons
-    widget_filepicker_obj = filepicker(".phantom (Koma)/.h5 (JEMRIS)"; accept=".phantom,.h5")
-    map!((filename) -> callback_filepicker(filename, w, obj_ui[]), obj_ui, widget_filepicker_obj)
     on((obj) -> view_ui!(obj, w, seq_ui[], widgets_button_obj; key=:ρ, darkmode), obj_ui)
     for (widget_button, key) in zip(widgets_button_obj, fieldnames_obj)
         on((cnt) -> view_ui!(cnt, w, obj_ui[], seq_ui[], widgets_button_obj; key, darkmode), widget_button)
     end
-    # Add filepicker widgets to the UI
-    content!(w, "#phafilepicker", widget_filepicker_obj, async=true)
-
-    # Define functionality when scanner observable changes
     on((sys) -> view_ui!(sys, w), sys_ui)
-
-    # Define functionality of raw filepicker widget
-    widget_filepicker_raw = filepicker(".h5/.mrd (ISMRMRD)"; accept=".h5,.mrd")
-    map!((filename) -> callback_filepicker(filename, w, raw_ui[]), raw_ui, widget_filepicker_raw)
-    on((raw) -> view_ui!(raw, w; darkmode), raw_ui)
-    # Add filepicker widgets to the UI
-    content!(w, "#sigfilepicker", widget_filepicker_raw, async=true)
-
-    # Define functionality when image observable changes (after reconstruction)
+    on((raw) -> view_ui!(raw, w; darkmode), raw_ui)   
     on((img) -> view_ui!(img, w; type="absi", darkmode), img_ui)
 
-
-    # Update Koma version
+    # Update Koma versions to tooltip
     version_ui = string(KomaMRI.__VERSION__)
     version_core = string(KomaMRICore.__VERSION__)
     version_plots = string(KomaMRIPlots.__VERSION__)
