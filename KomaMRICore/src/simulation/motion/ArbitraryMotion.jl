@@ -94,13 +94,11 @@ function get_itp_functions(mov::ArbitraryMotion{T}) where {T<:Real}
     itpx = sum(abs.(Δ[:,:,1]);dims=2) != zeros(Ns,1) ? [interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns] : nothing
     itpy = sum(abs.(Δ[:,:,2]);dims=2) != zeros(Ns,1) ? [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns] : nothing
     itpz = sum(abs.(Δ[:,:,3]);dims=2) != zeros(Ns,1) ? [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns] : nothing
-
-    itp = [itpx, itpy, itpz]
     
-    # dis = get_discontinuity(mov)
+
     flags = is_fluid(mov) ? [interpolate((limits,), vcat(mov.resetmag[i,:],Bool(0)), Gridded(Constant{Previous}())) for i in 1:Ns] : nothing
 
-    itp,flags
+    [itpx, itpy, itpz, flags]
 end
 
 
@@ -108,56 +106,85 @@ end
 """
     Ux, Uy, Uz = initialize_motion(obj.mov, seqd.t)
 """
-function initialize_motion(mov::ArbitraryMotion{T}, 
+function initialize_motion(mov::ArbitraryMotion, 
                            x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}; 
-                           enable_gpu::Bool=false, gpu_device::Int=0, precision::AbstractString="f32") where {T<:Real}
-    Ns = size(mov.Δx)[1]
+                           enable_gpu::Bool=false, gpu_device::Int=0, precision::AbstractString="f32", w=nothing) where {T<:Real}
+    Ns = length(x)
     times = mod.(t,sum(mov.dur)) # Map time values between 0 and sum(dur)
 
-    itp,flags = get_itp_functions(mov)
-    is_mov_on = (itp .!== nothing) # tells in which dimensions we have movement
-    is_fluid = (flags !== nothing)
+    itp = get_itp_functions(mov)
 
-    # Precision
-    if precision == "f32"
-        itp    = itp    |> f32
-        flags  = flags  |> f32
-    elseif precision == "f64"
-        itp    = itp    |> f64
-        flags  = flags  |> f64
+    U = [itp[i] !== nothing ? zeros(Ns,length(times)) : nothing for i in 1:4]
+
+    if reduce(|,itp .!== nothing)
+        # Precision
+        if precision == "f32"
+            itp    = itp    |> f32
+            U      = U      |> f32
+        elseif precision == "f64"
+            itp    = itp    |> f64
+            U      = U      |> f64
+        end
+
+        # To GPU
+        if enable_gpu
+            device!(gpu_device)
+
+            times  = times  |> gpu
+
+            part_size = 1e4
+            Nparts = Int(ceil(Ns/part_size))
+            parts = kfoldperm(Ns, Nparts; type="ordered")
+
+            progress_bar = Progress(Nparts*length(U);desc="Initializing motion...")
+        
+            for (i, u) = enumerate(U)
+                for (part, p) = enumerate(parts)
+                    interp = itp[i] !== nothing ? itp[i][p]  |> gpu : nothing
+                    mat    =      u !== nothing ? u[p,:]     |> gpu : nothing
+
+                    if u !== nothing
+                        interpolate_mov!(mat, interp, times)
+                        U[i][p,:] = mat |> cpu
+                    end
+                    next!(progress_bar)
+                end
+            end 
+
+        else 
+            progress_bar = Progress(length(U);desc="Initializing motion...")
+            for (i, u) = enumerate(U)
+                u = itp[i] !== nothing ? reduce(hcat,[itp[i][j](times) for j in 1:Ns])' : nothing
+                #Update progress
+                next!(progress_bar)
+            end
+        end
     end
-    # To GPU
-    if enable_gpu
-        device!(gpu_device)
-        itp    = itp    |> gpu
-        times  = times  |> gpu
-        flags  = flags  |> gpu
-
-        Ux = is_mov_on[1] ? reduce(hcat,[itp[1][i].(times) for i in 1:Ns])' : nothing
-        Uy = is_mov_on[2] ? reduce(hcat,[itp[2][i].(times) for i in 1:Ns])' : nothing
-        Uz = is_mov_on[3] ? reduce(hcat,[itp[3][i].(times) for i in 1:Ns])' : nothing
-
-        resetmag = is_fluid ? Bool.(reduce(hcat,[flags[i].(times) for i in 1:Ns])') : nothing
-    else
-        Ux = is_mov_on[1] ? reduce(hcat,[itp[1][i](times) for i in 1:Ns])' : nothing
-        Uy = is_mov_on[2] ? reduce(hcat,[itp[2][i](times) for i in 1:Ns])' : nothing
-        Uz = is_mov_on[3] ? reduce(hcat,[itp[3][i](times) for i in 1:Ns])' : nothing
-
-        resetmag = is_fluid ? Bool.(reduce(hcat,[flags[i](times) for i in 1:Ns])') : nothing
-    end
-
-    Ux, Uy, Uz, resetmag
+    U
 end
 
+
+function interpolate_mov!(u, itp, times)
+    if itp !== nothing
+        u .= reduce(hcat,[func.(times) for func in itp])'
+    end
+end
+
+
 function is_dynamic(mov::ArbitraryMotion{T}) where {T<:Real}
-    itp,_ = get_itp_functions(mov)
-    return reduce(|,(itp .!== nothing))
+    itp = get_itp_functions(mov)
+    return reduce(|,(itp[1:3] .!== nothing))
 end
 
 function is_fluid(mov::ArbitraryMotion{T}) where {T<:Real}
     return any(mov.resetmag)
 end
 
+
+
+
+
+# UNUSED
 function get_discontinuity(mov::ArbitraryMotion)
     differences(x) = begin
         diff = zeros(size(x)[1],size(x)[2]+1)

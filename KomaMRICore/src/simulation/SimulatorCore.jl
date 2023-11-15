@@ -119,20 +119,32 @@ take advantage of CPU parallel processing.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod, Ux, Uy, Uz, resetmag;
-    Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], w=nothing) where {T<:Real}
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod, 
+    Ux, Uy, Uz, resetmag;
+    Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)],
+    w=nothing, enable_gpu::Bool=true, gpu_device) where {T<:Real}
+    
     # Simulation
     rfs = 0
     samples = 1
-    progress_bar = Progress(Nblocks)
+    progress_bar = Progress(Nblocks;desc="Running simulation...")
 
     for (block, p) = enumerate(parts) 
-        seq_block = @view seq[p]
-        ux = (Ux !== nothing) ? KomaMRICore.CUDA.hcat(@view(Ux[:,p]),@view(Ux[:,p[end]])) : nothing # We need to duplicate the last column of Ux, Uy and Uz
-        uy = (Uy !== nothing) ? KomaMRICore.CUDA.hcat(@view(Uy[:,p]),@view(Uy[:,p[end]])) : nothing # so that dimensions match
-        uz = (Uz !== nothing) ? KomaMRICore.CUDA.hcat(@view(Uz[:,p]),@view(Uz[:,p[end]])) : nothing
 
-        flags = (resetmag !== nothing) ? @view(resetmag[:,p]) : nothing
+        seq_block = @view seq[p]
+
+        ux = (Ux !== nothing) ? hcat(Ux[:,p],Ux[:,p[end]])     : nothing
+        uy = (Uy !== nothing) ? hcat(Uy[:,p],Uy[:,p[end]])     : nothing
+        uz = (Uz !== nothing) ? hcat(Uz[:,p],Uz[:,p[end]])     : nothing
+        flags = (resetmag !== nothing) ? Bool.(resetmag[:,p])  : nothing
+
+        if enable_gpu
+            device!(gpu_device)
+            ux    = ux    |> gpu
+            uy    = uy    |> gpu
+            uz    = uz    |> gpu
+            flags = flags |> gpu
+        end
 
         # Params
         excitation_bool = is_RF_on(seq_block) && is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
@@ -223,8 +235,10 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
     Xt, obj = initialize_spins_state(obj, sim_method)
     # Spins' motion init
-    Ux, Uy, Uz, resetmag = initialize_motion(obj.mov, obj.x, obj.y, obj.z, seqd.t; enable_gpu, gpu_device, precision)
-    # Signal init
+    Ux, Uy, Uz, resetmag = initialize_motion(obj.mov, obj.x, obj.y, obj.z, seqd.t; 
+                                             enable_gpu, gpu_device, precision)
+    
+                                             # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
     sig = zeros(ComplexF64, Ndims..., Nthreads)
     
@@ -254,7 +268,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     # Simulation
     @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=__VERSION__ sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Ndims[1]
     @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method, Ux, Uy, Uz, resetmag; 
-                                                  Nblocks, Nthreads, parts, w)
+                                                  Nblocks, Nthreads, parts, w, enable_gpu, gpu_device)
     # Result to CPU, if already in the CPU it does nothing
     sig = sum(sig; dims=length(Ndims)+1) |> cpu
     sig .*= get_adc_phase_compensation(seq)
