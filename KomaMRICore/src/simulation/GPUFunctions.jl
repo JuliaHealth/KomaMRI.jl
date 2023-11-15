@@ -23,17 +23,13 @@ end
 Checks if the PC has a functional CUDA installation. Inspired by Flux's `check_use_cuda` funciton.
 """
 function check_use_cuda()
-	if !isnothing(use_cuda[])
-		return
+	if use_cuda[] === nothing
+		use_cuda[] = CUDA.functional()
+		if !(use_cuda[])
+		@info """The GPU function is being called but the GPU is not accessible.
+					Defaulting back to the CPU. (No action is required if you want to run on the CPU).""" maxlog=1
+		end
 	end
-	use_cuda[] = CUDA.functional()
-	if use_cuda[]
-		@info """
-		The CUDA function is being called but CUDA.jl is not functional.
-		Defaulting back to the CPU. (No action is required if you want to run on the CPU).
-		""" maxlog=1
-	end
-	return
 end
 
 #Aux. funcitons to check if the variable we want to convert to CuArray is numeric
