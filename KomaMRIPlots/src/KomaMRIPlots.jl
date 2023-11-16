@@ -14,9 +14,9 @@ export plot_seq, plot_M0, plot_M1, plot_M2, plot_eddy_currents, plot_seqd,
 
 #PlutoPlotly extension
 using PackageExtensionCompat
-function __init__()
-        @require_extensions
-end
+#function __init__()
+#        @require_extensions
+#end
 
 #Package version, KomaMRIPlots.__VERSION__
 using Pkg
