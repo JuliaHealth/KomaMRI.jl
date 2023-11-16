@@ -37,7 +37,7 @@ end
 As you can see, a **Sequence** struct contains 5 field names: ''DEF'' contains information for reconstruction steps (so it is not mandatory to fill it), ''DUR'' is a vector that contains the time durations of each block, ''ADC'' is also a vector with the acquisition samples for every block (an vector of **ADC** structs), ''GR'' is a 2D matrix which 3 rows representing the x-y-z gradients and columns having the samples of each block (a matrix of **Grad** structs) and ''RF'' is also a 2D matrix where each row represents a different coil and the columns are for different block samples too (a matrix of **RF** structs). The **RF**, **Grad** and **ADC** are MRI events that will be explained in the section [Events Definitions](events.md).
 
 !!! warning
-    So far, **KomaMRI** can only manage one coil for RF excitations. However, in future versions, multiple coils will be managed by adding more ``rows'' to the RF matrix of the Sequence field name.
+    So far, **KomaMRI** can only manage one coil for RF excitations. However, in future versions, parallel transmit pTX will be managed by adding more ``rows'' to the RF matrix of the Sequence field name.
 
 In order to understand how a **Sequence** struct can be manipulated in **Julia**, let's use the EPI sequence example. You can display basic information of the **Sequence** variable in the **Julia REPL**:
 ```julia-repl

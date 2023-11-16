@@ -21,16 +21,17 @@ julia> Pluto.run()
 
 This should automatically open the **Pluto** dashboard in your default web browser:
 ```@raw html
-<center><img src="../assets/pluto-dashboard.png" alt="" style="width:85%;"></center>
+<center><img src="../assets/pluto-dashboard.png" alt="" style="width:75%;"></center>
 ```
 
 Next, create a new notebook by clicking on `+ Create a new notebook`:
 ```@raw html
-<center><img src="../assets/pluto-empty-notebook.png" alt="" style="width:85%;"></center>
+<center><img src="../assets/pluto-empty-notebook.png" alt="" style="width:75%;"></center>
 ```
-Write and run the following code, which is identical to the [Free Induction Decay example](#Free-Induction-Decay). Note that **Pluto** automatically installs the required modules if they are not present in your system. Additionally, we do not use **KomaMRI** directly; instead, we rely on the **KomaMRICore** and **KomaMRIPlots** dependencies. To display plots in **Pluto**, ensure that you import the **PlutoPlots** package:
+
+Write and run the following code, which is identical to the [Free Induction Decay example](#Free-Induction-Decay). **Pluto** automatically installs the required modules if they are not present on your system. Additionally, note that we do not use **KomaMRI** directly since we won't be utilizing the `KomaUI()` function. Instead, we rely on the **KomaMRICore** and **KomaMRIPlots** dependencies. To display plots in **Pluto**, ensure that you import the **PlutoPlots** package:"
 ```@raw html
-<embed type="text/html" src="../assets/pluto-fid-example.html" style="height:100vh;width:100%;">
+<embed type="text/html" src="../assets/pluto-fid-example.html" style="height:1024px;width:100%;">
 ```
 
 ## Using KomaMRI with Jupyter
@@ -44,7 +45,7 @@ julia>
 (@v1.9) pkg> add IJulia
 ```
 
-For this example, make sure to install **KomaMRICore** and **KomaMRIPlots**:
+For this example, make sure to install **KomaMRICore** and **KomaMRIPlots** (we do not use **KomaMRI** directly since we won't be utilizing the `KomaUI()` function):
 ```julia-repl
 (@v1.9) pkg> add KomaMRICore
 
@@ -53,12 +54,12 @@ For this example, make sure to install **KomaMRICore** and **KomaMRIPlots**:
 
 Next, open **Jupyter**, navigate to a working folder, and create a new notebook by clicking on `New`, then `Julia 1.9.3`."
 ```@raw html
-<center><img src="../assets/jupyter-create-new-notebook.png" alt="" style="width:85%;"></center>
+<center><img src="../assets/jupyter-create-new-notebook.png" alt="" style="width:75%;"></center>
 ```
 
 A new, empty notebook will appear:
 ```@raw html
-<center><img src="../assets/jupyter-create-new-notebook.png" alt="" style="width:85%;"></center>
+<center><img src="../assets/jupyter-empty-notebook.png" alt="" style="width:75%;"></center>
 ```
 
 Proceed to write and execute the provided example:
@@ -100,7 +101,7 @@ This should be sufficient, and now you can start working with **KomaMRI** using 
 
 If you encounter the issue of **WebIO** not being detected:
 ```@raw html
-<center><img src="../assets/jupyter-webio-problem.png" alt="" style="width:85%;"></center>
+<center><img src="../assets/jupyter-webio-problem.png" alt="" style="width:75%;"></center>
 ```
 
 Refer to this [troubleshooting guide](https://juliagizmos.github.io/WebIO.jl/stable/troubleshooting/not-detected/) for details. Essentially, you need to install a **WebIO** extension based on your **Jupyter** installation.
