@@ -39,12 +39,6 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - uses: julia-actions/julia-buildpkg@v1
-        with:
-          project: KomaMRICore
-      - uses: julia-actions/julia-runtest@v1
-        with:
-          project: KomaMRICore
       - name: "KomaMRIPlots dev setup"
         shell: bash
         run: |
@@ -56,6 +50,12 @@ jobs:
         with:
           project: KomaMRIPlots
           prefix: ${{ matrix.prefix }}  # for `xvfb-run`
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRICore
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRICore
       - name: "KomaMRI dev setup"
         shell: julia --color=yes --project {0}
         run: |
