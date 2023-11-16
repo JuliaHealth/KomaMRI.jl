@@ -154,17 +154,17 @@ julia> plot_seq(seq)
 ```
 """
 function plot_seq(
-      seq::Sequence; 
-      width=nothing, 
-      height=nothing, 
+      seq::Sequence;
+      width=nothing,
+      height=nothing,
       slider=false,
-      show_seq_blocks=false, 
-      darkmode=false, 
-      max_rf_samples=Inf, 
-      range=[], 
-      title="", 
+      show_seq_blocks=false,
+      darkmode=false,
+      max_rf_samples=Inf,
+      range=[],
+      title="",
       xaxis="x",
-      yaxis="y", 
+      yaxis="y",
       showlegend=true
   )
 	idx = ["Gx" "Gy" "Gz"]
@@ -208,7 +208,8 @@ function plot_seq(
 	p[2O+3+1] = scatter(x=t3*1e3, y=D*1., name="ADC",hovertemplate="(%{x:.4f} ms, %{y:i})",
 				xaxis=xaxis,yaxis=yaxis,legendgroup="ADC",showlegend=showlegend,color=marker=attr(color="#19D3F3"))
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	return plot_koma(p, l; config)
+	return PlotlyJS.plot(p, l; config)
+    #return plot_koma(p, l; config)
 end
 
 """
@@ -241,13 +242,13 @@ julia> plot_M0(seq)
 ```
 """
 function plot_M0(
-      seq::Sequence; 
-      width=nothing, 
-      height=nothing, 
-      slider=true, 
-      show_seq_blocks=false, 
-      darkmode=false, 
-      range=[], 
+      seq::Sequence;
+      width=nothing,
+      height=nothing,
+      slider=true,
+      show_seq_blocks=false,
+      darkmode=false,
+      range=[],
       title="",
       skip_rf=zeros(Bool, sum(is_RF_on.(seq)))
   )
@@ -269,7 +270,8 @@ function plot_M0(
 	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"), mode="markers", showlegend=false)
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	return plot_koma(p, l; config)
+    return PlotlyJS.plot(p, l; config)
+	#return plot_koma(p, l; config)
 end
 
 """
@@ -302,13 +304,13 @@ julia> plot_M1(seq)
 ```
 """
 function plot_M1(
-      seq::Sequence; 
-      width=nothing, 
-      height=nothing, 
-      slider=true, 
-      show_seq_blocks=false, 
-      darkmode=false, 
-      range=[], 
+      seq::Sequence;
+      width=nothing,
+      height=nothing,
+      slider=true,
+      show_seq_blocks=false,
+      darkmode=false,
+      range=[],
       title="",
       skip_rf=zeros(Bool, sum(is_RF_on.(seq)))
   )
@@ -330,7 +332,8 @@ function plot_M1(
 	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"), mode="markers", showlegend=false)
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	return plot_koma(p, l; config)
+    return PlotlyJS.plot(p, l; config)
+	#return plot_koma(p, l; config)
 end
 
 
@@ -391,7 +394,8 @@ function plot_M2(
 	p[4] = scatter(x=t[rf_idx]*1e3,y=rf_type,name="RFs",marker=attr(symbol="cross",size=8,color="orange"), mode="markers", showlegend=false)
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	return plot_koma(p, l; config)
+    return PlotlyJS.plot(p, l; config)
+	#return plot_koma(p, l; config)
 end
 
 
@@ -457,7 +461,8 @@ function plot_eddy_currents(
 	p[3] = scatter(x=t*1e3, y=(Gz*0 .+ Gec[:,3])*1e3, hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)", name="ECz", legendgroup="Gz", marker=attr(color="#00CC96"))
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	return plot_koma(p, l; config)
+    return PlotlyJS.plot(p, l; config)
+	#return plot_koma(p, l; config)
 end
 
 """
@@ -515,7 +520,8 @@ function plot_slew_rate(
 	p[3] = scatter(x=ts*1e3, y=k[:,3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRz", legendgroup="Gz", marker=attr(color="#00CC96"))
 	#Layout and config
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
-	return plot_koma(p, l; config)
+    return PlotlyJS.plot(p, l; config)
+	#return plot_koma(p, l; config)
 end
 
 
@@ -575,7 +581,8 @@ function plot_image(
 		).fields,
 		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
-	return plot_koma(p, l; config)
+    return PlotlyJS.plot(p, l; config)
+	#return plot_koma(p, l; config)
 end
 
 """
@@ -604,9 +611,9 @@ julia> plot_kspace(seq)
 ```
 """
 function plot_kspace(
-      seq::Sequence; 
-      width=nothing, 
-      height=nothing, 
+      seq::Sequence;
+      width=nothing,
+      height=nothing,
       darkmode=false
   )
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -665,7 +672,8 @@ function plot_kspace(
 		).fields,
 		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
 	)
-	return plot_koma(p, l; config)
+    return PlotlyJS.plot(p, l; config)
+	#return plot_koma(p, l; config)
 end
 
 
@@ -704,15 +712,15 @@ julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
 function plot_phantom_map(
-      ph::Phantom, 
+      ph::Phantom,
       key::Symbol;
-      t0=0, 
-      height=600, 
-      width=nothing, 
-      darkmode=false, 
-      view_2d=false, 
+      t0=0,
+      height=600,
+      width=nothing,
+      darkmode=false,
+      view_2d=false,
       colorbar=true
-  ) 
+  )
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
@@ -819,7 +827,8 @@ function plot_phantom_map(
 		).fields,
 		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
 	)
-	return plot_koma(h, l; config)
+    return PlotlyJS.plot(p, l; config)
+	#return plot_koma(h, l; config)
 end
 
 """
@@ -854,11 +863,11 @@ julia> plot_signal(raw)
 """
 function plot_signal(
       raw::RawAcquisitionData;
-      width=nothing, 
-      height=nothing, 
-      slider=true, 
-      show_sim_blocks=false, 
-      darkmode=false, 
+      width=nothing,
+      height=nothing,
+      slider=true,
+      show_sim_blocks=false,
+      darkmode=false,
       range=[]
   )
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
@@ -960,7 +969,8 @@ function plot_signal(
 		modeBarButtonsToRemove=["zoom", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 		# modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
 	)
-	return plot_koma(p, l; config)
+    return PlotlyJS.plot(p, l; config)
+	#return plot_koma(p, l; config)
 end
 
 """
@@ -1031,5 +1041,6 @@ function plot_seqd(seq::Sequence; sim_params=KomaMRICore.default_sim_params())
 	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)
 	B1 = scatter(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
 	ADC = scatter(x=seqd.t[seqd.ADC]*1e3, y=zeros(sum(seqd.ADC)), name="ADC", mode="markers", marker_symbol=:x)
-	plot_koma([Gx,Gy,Gz,B1,ADC])
+    return PlotlyJS.plot(p, l; config)
+	#plot_koma([Gx,Gy,Gz,B1,ADC])
 end
