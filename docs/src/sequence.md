@@ -1,4 +1,4 @@
-# Sequence Definition
+# Sequence
 
 This section delves into some details about how a sequence is constructed. The sequence definition in **KomaMRI** is strongly related to the [Pulseq](https://pulseq.github.io/index.html) definition. After reading this section, you should be able to create your own **Sequence** structs for conducting custom simulations using the **KomaMRI** package.
 
@@ -49,7 +49,7 @@ As you can see, this **Sequence** has 204 blocks, 1 of these blocks has an **RF*
 
 To display the sequence in an graph, we can use the `plot_seq` function:
 ```julia-repl
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/seq-epi-example-full.html" style="width:100%; height:420px;"></object>
@@ -99,7 +99,7 @@ julia> seq[1:11].GR
  ⇿(0.5872 ms)  ⊓(0.4042 ms)  ⇿(0.4042 ms)      ⇿(0.4042 ms)  ⊓(0.2062 ms)  ⇿(0.4042 ms)
  ⇿(0.5872 ms)  ⇿(0.0 ms)     ⇿(0.0 ms)        ⇿(0.0 ms)     ⇿(0.0 ms)     ⇿(0.0 ms)
 
-julia> plot_seq(seq[1:11])
+julia> plot_seq(seq[1:11]; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px;"></object>
@@ -115,7 +115,7 @@ Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]
 julia> seq = s + s + s
 Sequence[ τ = 11.512 ms | blocks: 33 | ADC: 15 | GR: 33 | RF: 3 | DEF: 5 ]
 
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/seq-concatenation.html" style="width:100%; height:420px;"></object>

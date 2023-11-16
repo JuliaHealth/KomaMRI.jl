@@ -1,4 +1,4 @@
-# Event Definitions
+# Sequence Events
 
 We refer to **RF**, **Grad**, and **ADC** as "events". This section covers the details of how events are defined and manipulated within a **Sequence** struct.
 
@@ -50,7 +50,7 @@ julia> rf = RF(A, T, 0, delay)
 julia> seq = Sequence(); seq += rf; seq = seq[2:end]
 Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/event-rf-pulse-waveform.html" style="width:100%; height:420px;"></object>
@@ -71,7 +71,7 @@ julia> rf = RF(A, T, 0, delay)
 julia> seq = Sequence(); seq += rf; seq = seq[2:end]
 Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/event-rf-uniformly-sampled-waveform.html" style="width:100%; height:420px;"></object>
@@ -94,7 +94,7 @@ julia> rf = RF(A, T, 0, delay)
 julia> seq = Sequence(); seq += rf; seq = seq[2:end]
 Sequence[ τ = 4.1 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/event-rf-time-shaped-waveform.html" style="width:100%; height:420px;"></object>
@@ -140,7 +140,7 @@ julia> gr = Grad(A, T, rise, fall, delay)
 julia> seq = Sequence([gr])
 Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
 
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/event-gr-trapezoidal-waveform.html" style="width:100%; height:420px;"></object>
@@ -163,7 +163,7 @@ julia> gr = Grad(A, T, rise, fall, delay)
 julia> seq = Sequence([gr])
 Sequence[ τ = 12.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
 
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/event-gr-uniformly-sampled-waveform.html" style="width:100%; height:420px;"></object>
@@ -184,7 +184,7 @@ julia> gr = Grad(A, T, rise, fall, delay)
 julia> seq = Sequence([gr])
 Sequence[ τ = 10.75 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
 
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/event-gr-time-shaped-waveform.html" style="width:100%; height:420px;"></object>
@@ -221,7 +221,7 @@ ADC(16, 0.005, 0.001, 0.0, 0.0)
 julia> seq = Sequence(); seq += adc; seq = seq[2:end]
 Sequence[ τ = 6.0 ms | blocks: 1 | ADC: 1 | GR: 0 | RF: 0 | DEF: 0 ]
 
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/event-adc.html" style="width:100%; height:420px;"></object>
@@ -257,7 +257,7 @@ adc = ADC(N, T, delay)
 julia> seq = Sequence([gx; gy; gz;;], [rf;;], [adc])
 Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 1 | GR: 3 | RF: 1 | DEF: 0 ]
 
-julia> plot_seq(seq)
+julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/event-combination.html" style="width:100%; height:420px;"></object>

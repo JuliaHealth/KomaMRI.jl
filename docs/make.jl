@@ -55,6 +55,9 @@ end
 
 literate_seccions = [titlecase(replace(foldername, "-"=>" ")) => pages_for_literate_seccion(foldername) for foldername in foldernames]
 
+ways_of_using_koma = ["ui-details.md", "programming-workflow.md", "notebooks.md"]
+create_your_own_sequence = ["sequence.md", "events.md"]
+
 # Documentation structure
 makedocs(
     modules = [KomaMRI, KomaMRICore, KomaMRIPlots],
@@ -63,13 +66,14 @@ makedocs(
     pages = [
         "Home" => "index.md";
         "Getting Started" => "getting-started.md";
-        "Simulation with User Interface" => "ui-details.md";
-        "Simulation with Scripts" => "programming-workflow.md";
-        "Notebooks" => "notebooks.md";
+        "Ways of Using Koma" => ways_of_using_koma;
+        #"Simulation with User Interface" => "ui-details.md";
+        #"Simulation with Scripts" => "programming-workflow.md";
+        #"Notebooks" => "notebooks.md";
         "Create Your Own Phantom" => "create-your-own-phantom.md";
-        #"Create Your Own Sequence" => "create-your-own-sequence.md";
-        "Sequence Definition" => "sequence.md";
-        "Events Definition" => "events.md";
+        "Create Your Own Sequence" => create_your_own_sequence;
+        #"Sequence Definition" => "sequence.md";
+        #"Events Definition" => "events.md";
         literate_seccions;
         "Simulation" => "mri-theory.md";
         "API Documentation" => "api.md";

@@ -5,7 +5,7 @@ You can use **KomaMRI** with popular programming environments such as **Pluto** 
 
 ## Using KomaMRI with Pluto
 
-First, install the **Pluto** module in your **Julia** environment. Remember to press the `]` button to open the **Package Manager Session**:"
+First, install the **Pluto** module in your **Julia** environment. Remember to press the `]` button to open the **Package Manager Session**:
 ```julia-repl
 julia>
 
@@ -29,10 +29,13 @@ Next, create a new notebook by clicking on `+ Create a new notebook`:
 <center><img src="../assets/pluto-empty-notebook.png" alt="" style="width:75%;"></center>
 ```
 
-Write and run the following code, which is identical to the [Free Induction Decay example](#Free-Induction-Decay). **Pluto** automatically installs the required modules if they are not present on your system. Additionally, note that we do not use **KomaMRI** directly since we won't be utilizing the `KomaUI()` function. Instead, we rely on the **KomaMRICore** and **KomaMRIPlots** dependencies. To display plots in **Pluto**, ensure that you import the **PlutoPlots** package:"
+Write and run the following code, which is identical to the [Free Induction Decay example](#Free-Induction-Decay). **Pluto** automatically installs the required modules if they are not present on your system. Additionally, note that we do not directly use **KomaMRI** since we won't be utilizing the `KomaUI()` function. Instead, we rely on the **KomaMRICore** and **KomaMRIPlots** dependencies. To display plots in **Pluto**, ensure that you import the **PlutoPlotly** package, as **KomaMRIPlots** requires its backend to display figures in **Pluto**:
 ```@raw html
 <embed type="text/html" src="../assets/pluto-fid-example.html" style="height:1024px;width:100%;">
 ```
+
+One of the most outstanding features of **Pluto** is its ability to ensure reproducibility by storing the information necessary to recreate the package environment in the notebook file. When others open your notebook with Pluto, it automatically ensures they use the exact same package environment, guaranteeing seamless functionality on their computers.
+
 
 ## Using KomaMRI with Jupyter
 
@@ -104,4 +107,4 @@ If you encounter the issue of **WebIO** not being detected:
 <center><img src="../assets/jupyter-webio-problem.png" alt="" style="width:75%;"></center>
 ```
 
-Refer to this [troubleshooting guide](https://juliagizmos.github.io/WebIO.jl/stable/troubleshooting/not-detected/) for details. Essentially, you need to install a **WebIO** extension based on your **Jupyter** installation.
+Refer to [this IJulia documentation](https://juliagizmos.github.io/WebIO.jl/latest/providers/ijulia/) and [this troubleshooting guide](https://juliagizmos.github.io/WebIO.jl/stable/troubleshooting/not-detected/) for details. Essentially, you need to install a **WebIO** extension depending on your **Jupyter** installation.

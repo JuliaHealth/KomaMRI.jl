@@ -9,10 +9,13 @@
 <p align="center"><img class="display-dark-only"  width="100%" src="assets/koma-schema-dark.svg""/></p>
 ```
 
-**KomaMRI** can be used by either:
-* **User Interface**: User-friendly interaction. No Julia programming skills are required. Refer to [Simulation with User Interface](ui-details.md) to dive into the details of how to use the GUI.
+**KomaMRI** can be used in different environments:
 
-* **Scripts** : Basic knowledge of Julia is required. Refer to [Simulation with Scripts](programming-workflow.md) to follow a basic workflow on how to work with **KomaMRI**.
+* **User Interface**: User-friendly interaction. No Julia programming skills are required. Refer to the [User Interface Section](ui-details.md) to dive into the details of how to use the GUI.
+
+* **Scripts** : Basic knowledge of **Julia** is required. Refer to the [Scripts Section](programming-workflow.md) to follow a basic workflow on how to work with **KomaMRI**.
+
+* **Notebooks**: Basic knowledge of **Julia** is required. This serves as an alternative development environment featuring user-friendly interactive tools. For guidance on setting up these environments, refer to the [Notebooks Section](#Notebooks).
 
 If you are new to **KomaMRI**, we recommend starting with the ["Getting Started"](getting-started.md) section to install **Julia**, **KomaMRI**, and perform your first simulation.
 
