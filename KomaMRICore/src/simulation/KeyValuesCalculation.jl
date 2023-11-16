@@ -35,7 +35,7 @@ get_theo_A(g::Grad; off_val=0) = begin
 	if sum(abs.(g.A)) == 0
 		aux *= off_val
 	end
-	return Float16.(aux)
+	return aux
 end
 
 get_theo_A(r::RF; off_val=0, max_rf_samples=Inf) = begin
@@ -65,7 +65,7 @@ get_theo_A(r::RF; off_val=0, max_rf_samples=Inf) = begin
 		n = floor(Int, length(aux) / max_rf_samples)
 		aux = aux[[1; 2:n:end-1; end]]
 	end
-	return ComplexF16.(aux)
+	return aux
 end
 
 get_theo_A(d::ADC; off_val=0) = begin
@@ -118,7 +118,7 @@ get_theo_t(g::Grad) = begin
 		t = [g.delay+g.rise; g.delay+g.rise]
 	end
 	aux = [0; g.delay; t; g.delay+g.rise+sum(g.T)+g.fall]
-	return Float32.(aux)
+	return aux
 end
 
 get_theo_t(r::RF; max_rf_samples=Inf) = begin
@@ -137,7 +137,7 @@ get_theo_t(r::RF; max_rf_samples=Inf) = begin
 		n = floor(Int, length(t) / max_rf_samples)
 		t = t[[1; 2:n:end-1; end]]
 	end
-	return Float32.(t)
+	return t
 end
 
 get_theo_t(d::ADC) = begin

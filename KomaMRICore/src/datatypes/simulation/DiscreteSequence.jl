@@ -59,3 +59,6 @@ function discretize(seq::Sequence; simParams=default_sim_params())
     seqd       = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
     return seqd
 end
+
+# Returns the phase in radians
+function phase(t, Δt, Δf)
