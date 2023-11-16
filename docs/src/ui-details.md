@@ -119,3 +119,23 @@ The user interface has the option to save the results in `.mat` format. Simply c
 ```
 
 So far, and due to limitations of the user interface dependencies, the `.mat` files are saved in the temporal directory of your computer OS, which can be found by typing the `tempdir()` command in the **Julia REPL**.
+
+
+## REPL and UI communication
+
+An amazing feature of **KomaMRI** is that it allows you to modify certain variables in the **Julia REPL**, and then the user interface automatically updates its plots in real-time:
+
+```@raw html
+<p align="center"><img width="90%" src="../assets/ui-observables.gif"/></p>
+```
+
+The variables that update the interface are:
+
+* `seq_ui[]` for the **Sequence**
+* `obj_ui[]` for the **Phantom**
+* `sys_ui[]` for the **Scanner**
+* `raw_ui[]` for the **Raw Signal**
+* `img_ui[]` for the **Image**
+
+Don't forget to add the brackets `[]` to these variables, otherwise it won't work.
+

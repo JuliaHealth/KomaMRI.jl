@@ -3,7 +3,7 @@
 You can use **KomaMRI** with popular programming environments such as **Pluto** and **Jupyter** notebooks. The following sections show how to set up these notebooks and test **KomaMRI** with them.
 
 
-## Using KomaMRI with Pluto
+## Pluto
 
 First, install the **Pluto** module in your **Julia** environment. Remember to press the `]` button to open the **Package Manager Session**:
 ```julia-repl
@@ -37,7 +37,7 @@ Write and run the following code, which is identical to the [Free Induction Deca
 One of the most outstanding features of **Pluto** is its ability to ensure reproducibility by storing the information necessary to recreate the package environment in the notebook file. When others open your notebook with Pluto, it automatically ensures they use the exact same package environment, guaranteeing seamless functionality on their computers.
 
 
-## Using KomaMRI with Jupyter
+## Jupyter
 
 Ensure you have **Jupyter** installed on your computer. Follow [this tutorial](https://test-jupyter.readthedocs.io/en/latest/install.html) for installation using **Anaconda**.
 

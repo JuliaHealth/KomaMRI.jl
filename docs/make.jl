@@ -66,7 +66,7 @@ makedocs(
     pages = [
         "Home" => "index.md";
         "Getting Started" => "getting-started.md";
-        "Ways of Using Koma" => ways_of_using_koma;
+        "Ways of Using KomaMRI" => ways_of_using_koma;
         #"Simulation with User Interface" => "ui-details.md";
         #"Simulation with Scripts" => "programming-workflow.md";
         #"Notebooks" => "notebooks.md";
