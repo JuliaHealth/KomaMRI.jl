@@ -1,10 +1,10 @@
 module KomaMRIPlots
 
-#using KomaMRICore
-#using MAT, Interpolations, PlotlyJS
+using KomaMRICore
+using MAT, Interpolations, PlotlyJS
 
-#include("ui/PlotBackends.jl")
-#include("ui/DisplayFunctions.jl")
+include("ui/PlotBackends.jl")
+include("ui/DisplayFunctions.jl")
 
 #using Reexport
 #@reexport using PlotlyJS: savefig
