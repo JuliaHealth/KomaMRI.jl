@@ -43,9 +43,8 @@ jobs:
         shell: julia --color=yes --project {0}
         run: |
           using Pkg
-          Pkg.develop(PackageSpec(; path="./KomaMRICore"))
-          Pkg.develop(PackageSpec(; path="./KomaMRIPlots"))
-          Pkg.update()
+          Pkg.add(PackageSpec(path=pwd(), subdir="KomaMRICore"))
+          Pkg.add(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         with:
