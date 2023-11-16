@@ -81,7 +81,7 @@ function signal_to_raw_data(signal, seq;
         "reconSize"                      => [Nx+Nx+Nx%2, Ny+Ny+Ny%2, Nz+Nz+Nz%2],  #reconSpace>matrixSize
         #encodingLimits>
         "enc_lim_kspace_encoding_step_1" => Limit(0, Nx-1, ceil(Int, Nx / 2)),   #min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)),     #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_2" => Limit(0, Ny-1, ceil(Int, Ny / 2)),     #min, max, center, e.g. partition encoding number
         "enc_lim_average"                => Limit(0, 0, 0),     #min, max, center, e.g. signal average number
         "enc_lim_slice"                  => Limit(0, 0, 0),     #min, max, center, e.g. imaging slice number
         "enc_lim_contrast"               => Limit(0, 0, 0),     #min, max, center, e.g. echo number in multi-echo
