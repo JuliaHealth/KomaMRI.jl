@@ -1,7 +1,7 @@
 module KomaMRIPlots
 
 using KomaMRICore
-using MAT, Interpolations, PlotlyJS
+#using MAT, Interpolations, PlotlyJS
 
 #include("ui/PlotBackends.jl")
 #include("ui/DisplayFunctions.jl")
@@ -19,7 +19,7 @@ using MAT, Interpolations, PlotlyJS
 #end
 
 #Package version, KomaMRIPlots.__VERSION__
-using Pkg
-__VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
+#using Pkg
+#__VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
 end
