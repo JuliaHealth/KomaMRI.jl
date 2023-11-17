@@ -55,7 +55,7 @@ data = MAT.matread(path_phantom_mat)
 class = data["axial"]
 ```
 
-You can visualize the tissue map using the function `plot_image``:
+You can visualize the tissue map using the [`plot_image`](@ref) function:
 ```julia
 plot_image(class)
 ```
@@ -156,7 +156,7 @@ obj = Phantom{Float64}(
 )
 ```
 
-We can display the **Phantom** struct with the `plot_phantom_map` function. In this case we select the proton density to be displayed, but you can choose other property to be displayed:
+We can display the **Phantom** struct with the [`plot_phantom_map`](@ref) function. In this case we select the proton density to be displayed, but you can choose other property to be displayed:
 ```julia
 plot_phantom_map(obj, :ρ)
 ```

@@ -269,7 +269,7 @@ julia> plot_seq(seq; range=[0 30])
 <object type="text/html" data="../assets/plot-seq-epi.html" style="width:100%; height:420px;"></object>
 ```
 
-It is important to consider how the sequence traverses through k-space. The `get_kspace` function does precisely that:
+It is important to consider how the sequence traverses through k-space. The `plot_kspace` function does precisely that:
 ```julia-repl
 julia> plot_kspace(seq)
 ```

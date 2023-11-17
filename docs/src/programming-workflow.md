@@ -103,7 +103,7 @@ Phantom{Float64}
 ```
 As you can see, attributes of the **Phantom** struct are vectors representing object properties, with each element holding a value associated with a single magnetization.
 
-You can also visualize the **Phantom** struct using the `plot_phantom_map` function, which is part of the **KomaMRIPlots** subdependency. This function plots the magnitude of a property for each magnetization at a specific spatial position. You can observe properties such as proton density and relaxation times, so feel free to replace the `:ρ` symbol with another property of the phantom in the example below:
+You can also visualize the **Phantom** struct using the [`plot_phantom_map`](@ref) function, which is part of the **KomaMRIPlots** subdependency. This function plots the magnitude of a property for each magnetization at a specific spatial position. You can observe properties such as proton density and relaxation times, so feel free to replace the `:ρ` symbol with another property of the phantom in the example below:
 ```julia-repl
 julia> plot_phantom_map(obj, :ρ)
 ```
@@ -111,7 +111,7 @@ julia> plot_phantom_map(obj, :ρ)
 <object type="text/html" data="../assets/phantom-rho.html" style="width:100%; height:620px;"></object>
 ```
 
-To utilize test phantoms included with **KomaMRI**, navigate to the "examples" folder and use the `read_phantom_jemris` function to read a phantom in `.h5` format. The following steps outline how to do this in **Julia**:
+To utilize test phantoms included with **KomaMRI**, navigate to the "examples" folder and use the [`read_phantom_jemris`](@ref)  function to read a phantom in `.h5` format. The following steps outline how to do this in **Julia**:
 ```julia-repl
 julia> path_koma = dirname(dirname(pathof(KomaMRI)))
 julia> path_sphere = joinpath(path_koma, "examples", "2.phantoms", "sphere_chemical_shift.h5")
@@ -134,7 +134,7 @@ julia> seq
 Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 5 ]
 ```
 
-For more precise timing checks, you can use the `plot_seq` function:
+For more precise timing checks, you can use the [`plot_seq`](@ref) function:
 ```julia-repl
 julia> plot_seq(seq; range=[0 30])
 ```
@@ -142,7 +142,7 @@ julia> plot_seq(seq; range=[0 30])
 <object type="text/html" data="../assets/plot-seq-epi.html" style="width:100%; height:420px;"></object>
 ```
 
-It is important to consider how the sequence traverses through k-space. The `get_kspace` function does precisely that:
+It is important to consider how the sequence traverses through k-space. The [`plot_kspace`](@ref) function does precisely that:
 ```julia-repl
 julia> plot_kspace(seq)
 ```
@@ -150,7 +150,7 @@ julia> plot_kspace(seq)
 <object type="text/html" data="../assets/kspace-epi.html" style="width:100%; height:420px;"></object>
 ```
 
-Additionally, there are helpful sequence construction functions within a submodule of **KomaMRI** called **PulseDesigner**. These functions include `RF_hard`, `RF_sinc`, `EPI`, `radial_base` and `spiral_base`. For more details on how to use them, refer to the [API documentation](api.md).
+Additionally, there are helpful sequence construction functions within a submodule of **KomaMRI** called **PulseDesigner**. These functions include [`RF_hard`](@ref), [`RF_sinc`](@ref), [`EPI`](@ref), [`radial_base`](@ref) and [`spiral_base`](@ref). For more details on how to use them, refer to the [API documentation](api.md).
 
 **KomaMRI** is also compatible with [Pulseq](https://pulseq.github.io/). The package installation includes some `.seq` files in **Pulseq** format, which can be read and used as a **Sequence** struct. Here's how to read a spiral **Pulseq** file stored in the "examples" folder of **KomaMRI**:
 ```julia-repl
@@ -176,7 +176,7 @@ raw = simulate(obj, seq, sys; sim_params)
 
 ### Simulation Parameters
 
-To perform simulations, **KomaMRI** requires certain parameters. You can use the default parameters for testing, but you also have the option to customize specific simulation aspects. In the example, we use the `default_sim_params` function to create a dictionary with default simulation parameters. You can view the keys that can be modified by displaying the `sim_params` variable:
+To perform simulations, **KomaMRI** requires certain parameters. You can use the default parameters for testing, but you also have the option to customize specific simulation aspects. In the example, we use the [`default_sim_params`](@ref) function to create a dictionary with default simulation parameters. You can view the keys that can be modified by displaying the `sim_params` variable:
 ```julia-repl
 julia> sim_params
 Dict{String, Any} with 9 entries:
@@ -191,12 +191,12 @@ Dict{String, Any} with 9 entries:
   "Δt_rf"       => 5.0e-5
 ```
 
-All of these parameters deserve special attention. We will explain some of the most important ones here. For instance, `"Δt"` and `"Δt_rf"` represent the raster times for the gradients and RFs. `"return_type"` specifies the type of variable returned by the simulator (by default, it returns an object ready for use with **MRIReco** for reconstruction, but you can use the value `"mat"` to return a simple vector). `"gpu"` indicates whether you want to use your GPU device for simulations, and `"precision"` sets the floating-point precision. For more details on how to set these parameters, please refer to the [Simulation Parameters Section](programming-workflow.md#Simulation-Parameters).
+All of these parameters deserve special attention. We will explain some of the most important ones here. For instance, `"Δt"` and `"Δt_rf"` represent the raster times for the gradients and RFs. `"return_type"` specifies the type of variable returned by the simulator (by default, it returns an object ready for use with **MRIReco** for reconstruction, but you can use the value `"mat"` to return a simple vector). `"gpu"` indicates whether you want to use your GPU device for simulations, and `"precision"` sets the floating-point precision. For more details on how to set these parameters, please refer to the [Simulation Parameters Section](mri-theory.md#Simulation).
 
 
 ### Raw Signal
 
-The simulation is performed using the `simulate` function, which requires three arguments: a **Scanner** struct, a **Phantom** struct, and a **Sequence** struct. Optionally, you can include the keyword argument `sim_params` if you wish to use custom simulation parameters.
+The simulation is performed using the [`simulate`](@ref) function, which requires three arguments: a **Scanner** struct, a **Phantom** struct, and a **Sequence** struct. Optionally, you can include the keyword argument `sim_params` if you wish to use custom simulation parameters.
 
 In the example, we can see that the output of the simulation is a special struct:
 ```julia-repl
@@ -207,7 +207,7 @@ julia> raw
 RawAcquisitionData[SeqName: epi | 101 Profile(s) of 101×1]
 ```
 
-You can plot the simulation result with the `plot_signal` function like so:
+You can plot the simulation result with the [`plot_signal`](@ref) function like so:
 ```julia-repl
 julia> plot_signal(raw)
 ```
@@ -245,7 +245,7 @@ image = reconstruct_2d_image(raw)
 
 If you need more information about how to use the `AcquisitionData` and the how to fill the reconstruction parameters, you need to visit the [MRIReco webpage](https://github.com/MagneticResonanceImaging/MRIReco.jl)).
 
-To display the image, you can use the `plot_image` function which is part of the **KomaMRIPlots** subpackage:
+To display the image, you can use the [`plot_image`](@ref) function which is part of the **KomaMRIPlots** subpackage:
 ```julia-repl
 julia> plot_image(image)
 ```

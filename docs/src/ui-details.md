@@ -1,6 +1,11 @@
 # User Interface
 
-This section explains how to use the user interface of the **KomaMRI** package and the internal processes during interaction.
+This section provides a comprehensive guide on using the **User Interface** of the **KomaMRI** package and delves into the internal processes that occur during interaction. By the end of this section, you will be equipped to execute a complete workflow even without any prior programming experience.
+
+```@raw html
+<p align="center"><img width="90%" src="../assets/ui-simulation.gif"/></p>
+```
+
 
 ## Basic Workflow
 (You can also go to [analog steps using Scripts](programming-workflow.md#Basic-Workflow))
@@ -71,6 +76,11 @@ It is also possible to load **Pulseq** compatible `.seq` sequence files. The **K
 <p align="center"><img width="90%" src="../assets/gui-seq-kspace-load.png"/></p>
 ```
 
+And remember, you are free to interact with the plots:
+```@raw html
+<p align="center"><img width="90%" src="../assets/ui-seq.gif"/></p>
+```
+
 
 ## Running Simulation
 (You can also go to [analog steps using Scripts](programming-workflow.md#Running-Simulation))
@@ -118,7 +128,10 @@ The user interface has the option to save the results in `.mat` format. Simply c
 <p align="center"><img width="90%" src="../assets/gui-export-to-mat.png"/></p>
 ```
 
-So far, and due to limitations of the user interface dependencies, the `.mat` files are saved in the temporal directory of your computer OS, which can be found by typing the `tempdir()` command in the **Julia REPL**.
+So far, and due to limitations of the user interface dependencies, the `.mat` files are saved in the temporal directory of your computer OS, which can be found by typing the `tempdir()` command in the **Julia REPL**:
+```@raw html
+<p align="center"><img width="90%" src="../assets/ui-export-data.gif"/></p>
+```
 
 
 ## REPL and UI communication

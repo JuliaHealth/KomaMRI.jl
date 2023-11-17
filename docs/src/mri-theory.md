@@ -6,25 +6,23 @@
 
 The are more internal considerations in the **KomaMRI** implementation. The **Figure 1** summarizes the functions called to perform the simulation.
 ```@raw html
-<p align="center">
-<figure>
-  <img width="100%" src="../assets/koma-solution.svg">
-  <figcaption><b>Figure 1</b>: The sequence ${\tt seq }$ is discretized after calculating the required time points in the wrapper function ${\tt simulate}$. The time points are then divided into ${\tt Nblocks}$ to reduce the amount of memory used. The phantom ${\tt obj}$ is divided into ${\tt Nthreads}$, and ${\bf KomaMRI}$ will use either ${\tt run\_spin\_excitation!}$ or ${\tt run\_spin\_precession!}$ depending on the regime. If an ${\tt ADC}$ object is present, the simulator will add the signal contributions of each thread to construct the acquired signal ${\tt sig[t]}$. All the parameters: ${\tt Nthreads}$, ${\tt Nblocks}$, ${\tt Δt_{rf}}$, and ${\tt Δt}$, are passed through a dictionary called ${\tt sim\_params}$ as an optional parameter of the simulate function.
-</figure>
-</p>
+<center><img width="100%" src="../assets/koma-solution.svg"></center>
 ```
+**Figure 1**: The sequence `seq` is discretized after calculating the required time points in the wrapper function [simulate](@ref). The time points are then divided into `Nblocks` to reduce the amount of memory used. The phantom `obj` is divided into `Nthreads`, and **KomaMRI** will use either `run_spin_excitation!` or `run_spin_precession!` depending on the regime. If an [`ADC`](@ref) object is present, the simulator will add the signal contributions of each thread to construct the acquired signal `sig[t]`. All the parameters: `Nthreads`, `Nblocks`, `Δt_rf`, and `Δt`, are passed through a dictionary called `sim_params` as an optional parameter of the simulate function.
 
-From the programming perspective, it is needed to call the function `simulate` with the `sim_params` dictionary keyword argument. A user can change the values of the following keys:
+From the programming perspective, it is needed to call the [`simulate`](@ref) function with the `sim_params` dictionary keyword argument. A user can change the values of the following keys:
 
-* `"return_type"`: defines the output of the `simulate` function. Possible values are `"raw"`, `"mat"`, and `"state"`, corresponding to outputting a **MRIReco** `RawAcquisitionData`, the signal values, and the last magnetization state of the simulation, respectively.
-* `"sim_method"`: defines the type of simulation. The default value is `Bloch()`, but you can alternatively use the `BlochDict()` simulation method. Moreover, you have the flexibility to create your own methods without altering the **KomaMRI** source code; for further details, refer to the [Simulation Method Extensibility section](mri-theory.md#Simulation-Method-Extensibility).
-* `"Δt"`: raster time for gradients.
-* `"Δt_rf"`: raster time for RFs.
-* `"precision"`: defines the floating-point simulation precision. You can choose between `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively. It's important to note that, especially for GPU operations, using `"f32"` is generally much faster.
-* `"Nblocks"` divides the simulation into a specified number of time blocks. This parameter is designed to conserve RAM resources, as **KomaMRI** computes a series of simulations consecutively, each with the specified number of blocks determined by the value of `"Nblocks"`.
-* `"Nthreads"`: divides the **Phantom** into a specified number of threads. Because spins are modeled independently of each other, **KomaMRI** can solve simulations in parallel threads, speeding up the execution time.
-* `"gpu"`: is a boolean that determines whether to use GPU or CPU hardware resources, as long as they are available on the host computer.
-* `"gpu_device"`: sets the index ID of the available GPU in the host computer.
+| Parameter | Description |
+|:---|:---|
+|`"return_type"` | defines the output of the [`simulate`](@ref) function. Possible values are `"raw"`, `"mat"`, and `"state"`, corresponding to outputting a **MRIReco** `RawAcquisitionData`, the signal values, and the last magnetization state of the simulation, respectively. |
+| `"sim_method"` | defines the type of simulation. The default value is `Bloch()`, but you can alternatively use the `BlochDict()` simulation method. Moreover, you have the flexibility to create your own methods without altering the **KomaMRI** source code; for further details, refer to the [Simulation Method Extensibility section](mri-theory.md#Simulation-Method-Extensibility). |
+| `"Δt"` | raster time for gradients. |
+| `"Δt_rf"` | raster time for RFs. |
+| `"precision"` | defines the floating-point simulation precision. You can choose between `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively. It's important to note that, especially for GPU operations, using `"f32"` is generally much faster. |
+| `"Nblocks"` | divides the simulation into a specified number of time blocks. This parameter is designed to conserve RAM resources, as **KomaMRI** computes a series of simulations consecutively, each with the specified number of blocks determined by the value of `"Nblocks"`. |
+| `"Nthreads"` | divides the **Phantom** into a specified number of threads. Because spins are modeled independently of each other, **KomaMRI** can solve simulations in parallel threads, speeding up the execution time. |
+| `"gpu"` | is a boolean that determines whether to use GPU or CPU hardware resources, as long as they are available on the host computer. |
+| `"gpu_device"` | sets the index ID of the available GPU in the host computer. |
 
 For instance, if you want to perform a simulation on the CPU with float64 precision using the `BlochDict()` method (assuming you have already defined `obj` and `seq`), you can do so like this:
 ```julia
@@ -53,7 +51,7 @@ In **Julia**, functions use different methods based on the input types via multi
 
 ## Bloch Simulation Method
 
-This is the default simulation method used by **KomaMRI**, however it can always be specified by setting the ``sim_method = Bloch()`` entry of the ``sim_params`` dictionary. In the following subsection, we will explain the physical and mathematical background and some considerations and assumptions that enables to speed up the simulation.
+This is the default simulation method used by **KomaMRI**, however it can always be specified by setting the `sim_method = Bloch()` entry of the `sim_params` dictionary. In the following subsection, we will explain the physical and mathematical background and some considerations and assumptions that enables to speed up the simulation.
 
 ### Physical and Mathematical Background
 

@@ -1,12 +1,8 @@
 # Sequence Events
 
-We refer to **RF**, **Grad**, and **ADC** as "events". This section covers the details of how events are defined and manipulated within a **Sequence** struct.
+As we already know, a **Sequence** struct contains field names that store arrays of **RF**, **Grad**, and **ADC** structs. In the context of **MRI**, we refer to **RF**, **Grad**, and **ADC** as "events." To create a **Sequence**, it's essential to understand how to create these fundamental events.
 
-## Sequence Events
-
-As we already know, a **Sequence** struct contains field names that store arrays of **RF**, **Grad** and **ADC** structs. To create a **Sequence**, it's essential to understand how to create these fundamental events.
-
-In the following subsections, we will provide detailed explanations of event parameters and how to create a **Sequence** using **RF**, **Grad** and **ADC** events.
+In the following subsections, we will provide detailed explanations of event parameters and guide you through the process of creating a **Sequence** using **RF**, **Grad**, and **ADC** events.
 
 
 ## RF
@@ -263,4 +259,96 @@ julia> plot_seq(seq; slider=false)
 <object type="text/html" data="../assets/event-combination.html" style="width:100%; height:420px;"></object>
 ```
 
-Once the struct events are defined, it's important to note that to create a single block sequence, you need to provide 2D matrices of **Grad** and **RF** structs, as well as a vector of **ADC** structs as arguments in the `Sequence` constructor.
+Once the struct events are defined, it's important to note that to create a single block sequence, you need to provide 2D matrices of **Grad** and **RF** structs, as well as a vector of **ADC** structs as arguments in the [`Sequence`](@ref) constructor.
+
+
+## Algebraic manipulation
+
+Certain mathematical operations can be directly applied to events and sequence structs. This proves helpful when constructing sequences using reference structs and manipulating them algebraically to create new structs. Below, we provide a list of operations you can perform, along with examples where we check the equivalence of two different struct definitions:
+
+* RF scaling
+```julia
+# Define params
+A, T = 10e-6, 0.5e-3    # Define base RF params  
+α = (1 + im*1)/sqrt(2)  # Define a complex scaling factor
+
+# Create two equivalent RFs in different ways
+ra = RF(α * A, T)
+rb = α * RF(A, T)
+```
+```julia-repl
+julia> ra ≈ rb
+true
+```
+		
+* Gradient scaling
+```julia
+# Define params
+A, T = 10e-3, 0.5e-3   # Define base gradient params  
+α = 2                  # Define a scaling factor
+
+# Create two equivalent gradients in different ways
+ga = Grad(α * A, T)
+gb = α * Grad(A, T)
+```
+```julia-repl
+julia> ga ≈ gb
+true
+```
+
+* Gradient addition
+```julia
+# Define params
+T = 0.5e-3      # Define common duration of the gradients
+A1 = 5e-3       # Define base amplitude for gradient  
+A2 = 10e-3      # Define another base amplitude for gradient  
+
+# Create two equivalent gradients in different ways
+ga = Grad(A1 + A2, T)
+gb = Grad(A1, T) + Grad(A2, T)
+```
+```julia-repl
+julia> ga ≈ gb
+true
+```
+
+* Gradient array multiplication by a matrix
+```julia
+# Define params
+T = 0.5e-3                          # Define common duration of the gradients
+Ax, Ay, Az = 10e-3, 20e-3, 5e-3     # Define base amplitude for gradients  
+gx, gy, gz = Grad(Ax, T), Grad(Ay, T), Grad(Az, T)  # Define gradients
+R = [0 1. 0; 0 0 1.; 1. 0 0]        # Define matrix (a rotation matrix in this example)
+
+# Create two equivalent gradient vectors in different ways
+ga = [gy; gz; gx]
+gb = R * [gx; gy; gz]
+
+# Create two equivalent gradient matrices in different ways
+gc = [gy 2*gy; gz 2*gz; gx 2*gx]
+gd = R * [gx 2*gx; gy 2*gy; gz 2*gz]
+```
+```julia-repl
+julia> all(ga .≈ gb)
+true
+
+julia> all(gc .≈ gd)
+true
+```
+
+* Sequence rotation
+```julia
+# Define params
+T = 0.5e-3                          # Define common duration of the gradients
+Ax, Ay, Az = 10e-3, 20e-3, 5e-3     # Define base amplitude for gradients  
+gx, gy, gz = Grad(Ax, T), Grad(Ay, T), Grad(Az, T)  # Define gradients
+R = [0 1. 0; 0 0 1.; 1. 0 0]        # Define matrix (a rotation matrix in this example)
+
+# Create two equivalent sequences in different ways
+sa = Sequence(R * [gx; gy; gz;;])
+sb = R * Sequence([gx; gy; gz;;])
+```
+```julia-repl
+julia> all(sa.GR .≈ sb.GR)
+true
+```
