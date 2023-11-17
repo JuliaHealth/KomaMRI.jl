@@ -120,10 +120,114 @@ The evolution of the magnetization can then be described as a two-step process f
 </p>
 ```
 
+### Bloch() Method Example
+
+We will consider an RF pulse that excites a phantom with 3 spins, and then we acquire the data:
+```@raw html
+<details><summary>View code</summary>
+```
+```julia
+# Import modules
+using KomaMRI
+
+# Define sequence
+ampRF = 2e-6                        # 2 uT RF amplitude
+durRF = π / 2 / (2π * γ * ampRF)    # required duration for a 90 deg RF pulse
+exc = RF(ampRF, durRF)
+
+nADC = 8192         # number of acquisition samples
+durADC = 4000e-3     # duration of the acquisition
+delay =  1e-3       # small delay
+acq = ADC(nADC, durADC, delay)
+
+seq = Sequence()  # empty sequence
+seq += exc        # adding RF-only block
+seq += acq        # adding ADC-only block
+```
+```@raw html
+</details>
+```
+```julia-repl
+julia> obj = Phantom(x=[-0.5e-3; 0.0; 0.5e-3], T1=[1000e-3; 2000e-3; 500e-3], T2=[500e-3; 1000e-3; 2000e-3]);
+```
+```julia
+julia> plot_seq(seq; slider=false)
+```
+```@raw html
+<object type="text/html" data="../assets/sim-bloch-seq.html" style="width:100%; height:420px;"></object>
+```
+
+The resulting signal from the **Bloch()** method is the sum of magnetizations in the transverse plane (x, y):
+```julia
+# Configure Bloch() simulation method and run simulation
+sim_params = KomaMRICore.default_sim_params()
+sim_params["return_type"] = "mat"
+sim_params["sim_method"] = Bloch()
+sig = simulate(obj, seq, sys; sim_params)
+```
+```julia-repl
+julia> plot(abs.(sig[:,1,1]))
+```
+```@raw html
+<object type="text/html" data="../assets/sim-bloch-sig.html" style="width:100%; height:420px;"></object>
+```
+
 ## BlochDict Simulation Method
 
-This is another simulation method defined in the source code of **KomaMRI**. It can be specified by setting the `sim_method = BlochDict()` entry of the `sim_params` dictionary.
+This is another simulation method defined in the source code of **KomaMRI**. You can specify it by setting the `sim_method = BlochDict()` entry in the `sim_params` dictionary. Additionally, it offers the option to save the resulting signal in the z-component by using `sim_method = BlochDict(save_Mz=true)`. This method allows you to store the magnetizations of all spins in both the transverse plane (x, y) and the longitudinal axis (z) if specified.
 
-!!! note
-    This section is under construction. More explanation of this simulation method is required.
+### BlochDict() Method Example
 
+We are going to consider the same setup as in the [Bloch() Method Example](#Bloch()-Method-Example). This includes the same excitation, acquisition, and the same 3-spin phantom:
+```@raw html
+<details><summary>View code</summary>
+```
+```julia
+# Import modules
+using KomaMRI, PlotlyJS
+
+# Define sequence
+ampRF = 2e-6                        # 2 uT RF amplitude
+durRF = π / 2 / (2π * γ * ampRF)    # required duration for a 90 deg RF pulse
+exc = RF(ampRF, durRF)
+
+nADC = 8192         # number of acquisition samples
+durADC = 4000e-3     # duration of the acquisition
+delay =  1e-3       # small delay
+acq = ADC(nADC, durADC, delay)
+
+seq = Sequence()  # empty sequence
+seq += exc        # adding RF-only block
+seq += acq        # adding ADC-only block
+```
+```@raw html
+</details>
+```
+```julia-repl
+julia> obj = Phantom(x=[-0.5e-3; 0.0; 0.5e-3], T1=[1000e-3; 2000e-3; 500e-3], T2=[500e-3; 1000e-3; 2000e-3]);
+```
+```julia
+julia> plot_seq(seq; slider=false)
+```
+```@raw html
+<object type="text/html" data="../assets/sim-bloch-seq.html" style="width:100%; height:420px;"></object>
+```
+
+The resulting signal from the **BlochDict()** method comprises the individual magnetizations of all spins in both the transverse plane (x, y) and the longitudinal axis (z):
+```julia
+# Configure BlochDict() simulation method and run simulation
+sim_params = KomaMRICore.default_sim_params()
+sim_params["return_type"] = "mat"
+sim_params["sim_method"] = BlochDict(save_Mz=true)
+sig = simulate(obj, seq, sys; sim_params)
+
+# Define the plots for traverse and longitudinal magnetizations
+pxy = plot(abs.(sig[:,:,1]));
+pz = plot(abs.(sig[:,:,2]));
+```
+```julia-repl
+julia> [pxy pz]
+```
+```@raw html
+<object type="text/html" data="../assets/sim-blochdict-sig.html" style="width:100%; height:420px;"></object>
+```

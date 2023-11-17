@@ -52,7 +52,7 @@ using KomaMRI, MAT
 path_koma = dirname(dirname(pathof(KomaMRI)))
 path_phantom_mat = joinpath(path_koma, "KomaMRICore", "src", "datatypes","phantom", "brain2D.mat")
 data = MAT.matread(path_phantom_mat)
-class = data["axial"]
+class = data["sagittal"]
 ```
 
 You can visualize the tissue map using the [`plot_image`](@ref) function:
@@ -132,7 +132,7 @@ T2s = (class.==23)*58 .+    # CSF
 # Define off-resonance array
 Δw_fat = -220*2π
 Δw = (class.==93)*Δw_fat .+ # FAT1
-	(class.==209)*Δw_fat    # FAT2
+    (class.==209)*Δw_fat    # FAT2
 
 # Adjust with scaling factor
 T1 = T1*1e-3
@@ -140,14 +140,14 @@ T2 = T2*1e-3
 T2s = T2s*1e-3
 ```
 
-Finally, we can invoke the `Phantom` constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask `ρ.!=0` to the arrays. Additionally, please note that we set the z-position array filled with zeros, and we interchange the x and y coordinates."
+Finally, we can invoke the [`Phantom`](@Ref) constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask `ρ.!=0` to the arrays. Additionally, please note that we set the x-position array filled with zeros, and we interchange the y and z coordinates.
 ```julia
 # Define the phantom
 obj = Phantom{Float64}(
     name = "custom-brain",
-	x = y[ρ.!=0],
+	x = 0*x[ρ.!=0],
 	y = x[ρ.!=0],
-	z = 0*x[ρ.!=0],
+	z = y[ρ.!=0],
 	ρ = ρ[ρ.!=0],
 	T1 = T1[ρ.!=0],
 	T2 = T2[ρ.!=0],
