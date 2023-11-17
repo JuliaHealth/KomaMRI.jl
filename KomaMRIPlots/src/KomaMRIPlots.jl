@@ -3,7 +3,7 @@ module KomaMRIPlots
 using KomaMRICore
 using MAT, Interpolations, PlotlyJS
 
-#include("ui/PlotBackends.jl")
+include("ui/PlotBackends.jl")
 #include("ui/DisplayFunctions.jl")
 
 #using Reexport
