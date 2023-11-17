@@ -42,4 +42,46 @@ raw = simulate(obj, seq, sys; sim_params)</code></pre><p>Additionally, the user 
   <img width="60%" src="../assets/block-equation-intuition.svg">
   <figcaption><b>Figure 2</b>: Solution of the Bloch equations for one time step can be described by (2) a rotation and (3) a relaxation step.</figcaption>
 </figure>
-</p><h2 id="BlochDict-Simulation-Method"><a class="docs-heading-anchor" href="#BlochDict-Simulation-Method">BlochDict Simulation Method</a><a id="BlochDict-Simulation-Method-1"></a><a class="docs-heading-anchor-permalink" href="#BlochDict-Simulation-Method" title="Permalink"></a></h2><p>This is another simulation method defined in the source code of <strong>KomaMRI</strong>. It can be specified by setting the <code>sim_method = BlochDict()</code> entry of the <code>sim_params</code> dictionary.</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>This section is under construction. More explanation of this simulation method is required.</p></div></div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../generated/examples/04-3DSliceSelective/">« Slice Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../api/">API Documentation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Friday 17 November 2023 05:58">Friday 17 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</p><h3 id="Bloch()-Method-Example"><a class="docs-heading-anchor" href="#Bloch()-Method-Example">Bloch() Method Example</a><a id="Bloch()-Method-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Bloch()-Method-Example" title="Permalink"></a></h3><p>We will consider an RF pulse that excites a phantom with 3 spins, and then we acquire the data:</p><details><summary>View code</summary><pre><code class="language-julia hljs"># Import modules
+using KomaMRI
+
+# Define sequence
+ampRF = 2e-6                        # 2 uT RF amplitude
+durRF = π / 2 / (2π * γ * ampRF)    # required duration for a 90 deg RF pulse
+exc = RF(ampRF, durRF)
+
+nADC = 8192         # number of acquisition samples
+durADC = 4000e-3     # duration of the acquisition
+delay =  1e-3       # small delay
+acq = ADC(nADC, durADC, delay)
+
+seq = Sequence()  # empty sequence
+seq += exc        # adding RF-only block
+seq += acq        # adding ADC-only block</code></pre></details><pre><code class="language-julia-repl hljs">julia&gt; obj = Phantom(x=[-0.5e-3; 0.0; 0.5e-3], T1=[1000e-3; 2000e-3; 500e-3], T2=[500e-3; 1000e-3; 2000e-3]);</code></pre><pre><code class="language-julia hljs">julia&gt; plot_seq(seq; slider=false)</code></pre><object type="text/html" data="../assets/sim-bloch-seq.html" style="width:100%; height:420px;"></object><p>The resulting signal from the <strong>Bloch()</strong> method is the sum of magnetizations in the transverse plane (x, y):</p><pre><code class="language-julia hljs"># Configure Bloch() simulation method and run simulation
+sim_params = KomaMRICore.default_sim_params()
+sim_params[&quot;return_type&quot;] = &quot;mat&quot;
+sim_params[&quot;sim_method&quot;] = Bloch()
+sig = simulate(obj, seq, sys; sim_params)</code></pre><pre><code class="language-julia-repl hljs">julia&gt; plot(abs.(sig[:,1,1]))</code></pre><object type="text/html" data="../assets/sim-bloch-sig.html" style="width:100%; height:420px;"></object><h2 id="BlochDict-Simulation-Method"><a class="docs-heading-anchor" href="#BlochDict-Simulation-Method">BlochDict Simulation Method</a><a id="BlochDict-Simulation-Method-1"></a><a class="docs-heading-anchor-permalink" href="#BlochDict-Simulation-Method" title="Permalink"></a></h2><p>This is another simulation method defined in the source code of <strong>KomaMRI</strong>. You can specify it by setting the <code>sim_method = BlochDict()</code> entry in the <code>sim_params</code> dictionary. Additionally, it offers the option to save the resulting signal in the z-component by using <code>sim_method = BlochDict(save_Mz=true)</code>. This method allows you to store the magnetizations of all spins in both the transverse plane (x, y) and the longitudinal axis (z) if specified.</p><h3 id="BlochDict()-Method-Example"><a class="docs-heading-anchor" href="#BlochDict()-Method-Example">BlochDict() Method Example</a><a id="BlochDict()-Method-Example-1"></a><a class="docs-heading-anchor-permalink" href="#BlochDict()-Method-Example" title="Permalink"></a></h3><p>We are going to consider the same setup as in the <a href="#Bloch()-Method-Example">Bloch() Method Example</a>. This includes the same excitation, acquisition, and the same 3-spin phantom:</p><details><summary>View code</summary><pre><code class="language-julia hljs"># Import modules
+using KomaMRI, PlotlyJS
+
+# Define sequence
+ampRF = 2e-6                        # 2 uT RF amplitude
+durRF = π / 2 / (2π * γ * ampRF)    # required duration for a 90 deg RF pulse
+exc = RF(ampRF, durRF)
+
+nADC = 8192         # number of acquisition samples
+durADC = 4000e-3     # duration of the acquisition
+delay =  1e-3       # small delay
+acq = ADC(nADC, durADC, delay)
+
+seq = Sequence()  # empty sequence
+seq += exc        # adding RF-only block
+seq += acq        # adding ADC-only block</code></pre></details><pre><code class="language-julia-repl hljs">julia&gt; obj = Phantom(x=[-0.5e-3; 0.0; 0.5e-3], T1=[1000e-3; 2000e-3; 500e-3], T2=[500e-3; 1000e-3; 2000e-3]);</code></pre><pre><code class="language-julia hljs">julia&gt; plot_seq(seq; slider=false)</code></pre><object type="text/html" data="../assets/sim-bloch-seq.html" style="width:100%; height:420px;"></object><p>The resulting signal from the <strong>BlochDict()</strong> method comprises the individual magnetizations of all spins in both the transverse plane (x, y) and the longitudinal axis (z):</p><pre><code class="language-julia hljs"># Configure BlochDict() simulation method and run simulation
+sim_params = KomaMRICore.default_sim_params()
+sim_params[&quot;return_type&quot;] = &quot;mat&quot;
+sim_params[&quot;sim_method&quot;] = BlochDict(save_Mz=true)
+sig = simulate(obj, seq, sys; sim_params)
+
+# Define the plots for traverse and longitudinal magnetizations
+pxy = plot(abs.(sig[:,:,1]));
+pz = plot(abs.(sig[:,:,2]));</code></pre><pre><code class="language-julia-repl hljs">julia&gt; [pxy pz]</code></pre><object type="text/html" data="../assets/sim-blochdict-sig.html" style="width:100%; height:420px;"></object></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../generated/examples/04-3DSliceSelective/">« Slice Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../api/">API Documentation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Friday 17 November 2023 08:28">Friday 17 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

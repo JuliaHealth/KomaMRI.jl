@@ -33,7 +33,7 @@ using KomaMRI, MAT
 path_koma = dirname(dirname(pathof(KomaMRI)))
 path_phantom_mat = joinpath(path_koma, &quot;KomaMRICore&quot;, &quot;src&quot;, &quot;datatypes&quot;,&quot;phantom&quot;, &quot;brain2D.mat&quot;)
 data = MAT.matread(path_phantom_mat)
-class = data[&quot;axial&quot;]</code></pre><p>You can visualize the tissue map using the <a href="../api/#KomaMRIPlots.plot_image"><code>plot_image</code></a> function:</p><pre><code class="language-julia hljs">plot_image(class)</code></pre><center><object type="text/html" data="../assets/create-your-own-phantom-class-map.html" style="width:100%; height:620px;"></object></center><p>Let&#39;s define the position arrays. You need to know the distance between the spins in the original array (in this case, it is 0.5mm), and then you can determine all the positions like this (the z-component is not calculated since this is a 2D example):</p><pre><code class="language-julia hljs"># Define spin position arrays
+class = data[&quot;sagittal&quot;]</code></pre><p>You can visualize the tissue map using the <a href="../api/#KomaMRIPlots.plot_image"><code>plot_image</code></a> function:</p><pre><code class="language-julia hljs">plot_image(class)</code></pre><center><object type="text/html" data="../assets/create-your-own-phantom-class-map.html" style="width:100%; height:620px;"></object></center><p>Let&#39;s define the position arrays. You need to know the distance between the spins in the original array (in this case, it is 0.5mm), and then you can determine all the positions like this (the z-component is not calculated since this is a 2D example):</p><pre><code class="language-julia hljs"># Define spin position arrays
 Δx = .5e-3                  # 0.5mm
 M, N = size(class)          # Number of spins in x and y
 FOVx = (M-1)*Δx             # Field of view in x
@@ -95,20 +95,20 @@ T2s = (class.==23)*58 .+    # CSF
 # Define off-resonance array
 Δw_fat = -220*2π
 Δw = (class.==93)*Δw_fat .+ # FAT1
-	(class.==209)*Δw_fat    # FAT2
+    (class.==209)*Δw_fat    # FAT2
 
 # Adjust with scaling factor
 T1 = T1*1e-3
 T2 = T2*1e-3
-T2s = T2s*1e-3</code></pre><p>Finally, we can invoke the <code>Phantom</code> constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask <code>ρ.!=0</code> to the arrays. Additionally, please note that we set the z-position array filled with zeros, and we interchange the x and y coordinates.&quot;</p><pre><code class="language-julia hljs"># Define the phantom
+T2s = T2s*1e-3</code></pre><p>Finally, we can invoke the <a href="@Ref"><code>Phantom</code></a> constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask <code>ρ.!=0</code> to the arrays. Additionally, please note that we set the x-position array filled with zeros, and we interchange the y and z coordinates.</p><pre><code class="language-julia hljs"># Define the phantom
 obj = Phantom{Float64}(
     name = &quot;custom-brain&quot;,
-	x = y[ρ.!=0],
+	x = 0*x[ρ.!=0],
 	y = x[ρ.!=0],
-	z = 0*x[ρ.!=0],
+	z = y[ρ.!=0],
 	ρ = ρ[ρ.!=0],
 	T1 = T1[ρ.!=0],
 	T2 = T2[ρ.!=0],
 	T2s = T2s[ρ.!=0],
 	Δw = Δw[ρ.!=0],
-)</code></pre><p>We can display the <strong>Phantom</strong> struct with the <a href="../api/#KomaMRIPlots.plot_phantom_map"><code>plot_phantom_map</code></a> function. In this case we select the proton density to be displayed, but you can choose other property to be displayed:</p><pre><code class="language-julia hljs">plot_phantom_map(obj, :ρ)</code></pre><object type="text/html" data="../assets/create-your-own-phantom-plot-rho.html" style="width:100%; height:620px;"></object></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../notebooks/">« Notebooks</a><a class="docs-footer-nextpage" href="../sequence/">Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Friday 17 November 2023 05:58">Friday 17 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+)</code></pre><p>We can display the <strong>Phantom</strong> struct with the <a href="../api/#KomaMRIPlots.plot_phantom_map"><code>plot_phantom_map</code></a> function. In this case we select the proton density to be displayed, but you can choose other property to be displayed:</p><pre><code class="language-julia hljs">plot_phantom_map(obj, :ρ)</code></pre><object type="text/html" data="../assets/create-your-own-phantom-plot-rho.html" style="width:100%; height:620px;"></object></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../notebooks/">« Notebooks</a><a class="docs-footer-nextpage" href="../sequence/">Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Friday 17 November 2023 08:28">Friday 17 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
