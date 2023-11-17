@@ -174,18 +174,18 @@ function plot_seq(
 	T0 = cumsum([0; ΔT],dims=1)
 	off_val = Inf #This removes the unnecessary points in the plot
 	#GRADS
-	t1x = vcat([KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
-	t1y = vcat([KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
-	t1z = vcat([KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
-	Gx =  vcat([KomaMRICore.get_theo_A(seq.GR[1,i];off_val) for i=1:N]...)
-	Gy =  vcat([KomaMRICore.get_theo_A(seq.GR[2,i];off_val) for i=1:N]...)
-	Gz =  vcat([KomaMRICore.get_theo_A(seq.GR[3,i];off_val) for i=1:N]...)
+	t1x = reduce(vcat, [KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N])
+	t1y = reduce(vcat, [KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N])
+	t1z = reduce(vcat, [KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N])
+	Gx =  reduce(vcat, [KomaMRICore.get_theo_A(seq.GR[1,i];off_val) for i=1:N])
+	Gy =  reduce(vcat, [KomaMRICore.get_theo_A(seq.GR[2,i];off_val) for i=1:N])
+	Gz =  reduce(vcat, [KomaMRICore.get_theo_A(seq.GR[3,i];off_val) for i=1:N])
 	#RFS
-	t2 =  vcat([KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
-	R =   vcat([KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
+	t2 =  reduce(vcat, [KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N])
+	R =   reduce(vcat, [KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF])
 	#ADC
-	t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
-	D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
+	t3 =  reduce(vcat, [KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N])
+	D =   reduce(vcat, [KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC])
     #Plot
 	p = [scatter() for j=1:(3+2O+1)]
 	#GR
