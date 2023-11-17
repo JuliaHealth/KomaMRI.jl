@@ -58,7 +58,7 @@
 
 KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
 
-This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
+This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence developmenty using open-source community standards like ISMRMRD and Pulseq.
 
 > 🟢 **[27 Jul 2023] JuliaCon 2023 presentation:** I gave a talk at the MIT 😄! A video of the presentation can be seen [here](https://www.youtube.com/watch?v=WVT9wJegC6Q).
 
