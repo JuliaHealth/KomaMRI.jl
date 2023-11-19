@@ -32,15 +32,12 @@ KomaMRI.jl is a Julia pacakge for highly-efficient ⚡ MRI simulations. KomaMRI 
 </td>
 </tr>
 <tr>
-<td colspan="2"><b>Main project</b></td>
-</tr>
-<tr>
 <td><b>
  
-Documentation: [![][docr-img]][docr-url] [![][docd-img]][docd-url]</b></td>
+Documentation: <br>[![][docr-img]][docr-url] [![][docd-img]][docd-url]</b></td>
 <td><b>
  
-Paper: [![][paper-img1]][paper-url1]
+Paper: <br>[![][paper-img1]][paper-url1]
 </b></td>
 </tr>
 <tr>
