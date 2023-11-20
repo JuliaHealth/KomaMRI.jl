@@ -49,7 +49,7 @@ jobs:
       - name: "KomaMRIPlots dev setup"
         shell: bash
         run: |
-          julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRICore\")); Pkg.update()"
+          julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRICore\"));"
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIPlots
@@ -61,8 +61,8 @@ jobs:
         shell: julia --color=yes --project {0}
         run: |
           using Pkg
-          Pkg.add(PackageSpec(path=pwd(), subdir="KomaMRICore"))
-          Pkg.add(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
+          Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRICore"))
+          Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         with:
