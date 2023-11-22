@@ -390,3 +390,79 @@ function brain_phantom3D(;ss=4,start_end=[160, 200])
     )
 	return obj
 end
+
+"""
+    obj = pelvis_phantom2D(; ss=4)
+
+Creates a two-dimensional pelvis Phantom struct.
+
+# Keywords
+- `ss`: (`::Integer`, `=4`) subsampling parameter
+
+# Returns
+- `obj`: (`::Phantom`) Phantom struct
+
+# Examples
+```julia-repl
+julia> obj = pelvis_phantom2D(; ss=1)
+
+julia> pelvis_phantom2D(obj, :ρ)
+```
+"""
+function pelvis_phantom2D(; ss=4)
+
+    # Get data from .mat file
+    path = @__DIR__
+    data = MAT.matread(path*"/phantom/pelvis2D.mat")
+    class = data["pelvis3D_slice"][1:ss:end,1:ss:end]
+
+    # Define spin position vectors
+    Δx = .5e-3*ss
+    M, N = size(class)
+    FOVx = (M-1)*Δx             # [m]
+    FOVy = (N-1)*Δx             # [m]
+    x = -FOVx/2:Δx:FOVx/2       # spin coordinates
+    y = -FOVy/2:Δx:FOVy/2       # spin coordinates
+    x, y = x .+ y'*0, x*0 .+ y' # grid points
+
+    # Define spin property vectors
+    ρ = (class.==51)*.001 .+    # Air
+        (class.==102)*.86 .+    # Fat
+        (class.==153)*.9 .+     # SoftTissue
+        (class.==204)*.4 .+     # SpongyBone
+        (class.==255)*.2        # CorticalBone
+    T1 = (class.==51)*.001 .+   # Air
+        (class.==102)*366 .+    # Fat
+        (class.==153)*1200 .+   # SoftTissue
+        (class.==204)*381 .+    # SpongyBone
+        (class.==255)*100       # CorticalBone
+    T2 = (class.==51)*.001 .+   # Air
+        (class.==102)*70 .+     # Fat
+        (class.==153)*80 .+     # SoftTissue
+        (class.==204)*52 .+     # SpongyBone
+        (class.==255)*.3        # CorticalBone
+    T2s = (class.==51)*.001 .+  # Air
+        (class.==102)*70 .+     # Fat
+        (class.==153)*80 .+     # SoftTissue
+        (class.==204)*52 .+     # SpongyBone
+        (class.==255)*.3        # CorticalBone
+	Δw_fat = -220 * 2π
+	Δw = (class.==102) * Δw_fat # FAT1
+	T1 = T1*1e-3
+	T2 = T2*1e-3
+	T2s = T2s*1e-3
+
+    # Define and return the Phantom struct
+    obj = Phantom{Float64}(
+        name = "pelvis2D",
+        x = y[ρ.!=0],
+        y = x[ρ.!=0],
+        z = 0*x[ρ.!=0],
+        ρ = ρ[ρ.!=0],
+        T1 = T1[ρ.!=0],
+        T2 = T2[ρ.!=0],
+        T2s = T2s[ρ.!=0],
+        Δw = Δw[ρ.!=0],
+    )
+	return obj
+end

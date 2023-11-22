@@ -50,9 +50,9 @@ using KomaMRI, MAT
 
 # Get data from a .mat file
 path_koma = dirname(dirname(pathof(KomaMRI)))
-path_phantom_mat = joinpath(path_koma, "KomaMRICore", "src", "datatypes","phantom", "brain2D.mat")
+path_phantom_mat = joinpath(path_koma, "KomaMRICore", "src", "datatypes", "phantom", "pelvis2D.mat")
 data = MAT.matread(path_phantom_mat)
-class = data["sagittal"]
+class = data["pelvis3D_slice"]
 ```
 
 You can visualize the tissue map using the [`plot_image`](@ref) function:
@@ -75,64 +75,39 @@ y = -FOVy/2:Δx:FOVy/2       # y spin coordinates vector
 x, y = x .+ y'*0, x*0 .+ y' # x and y grid points
 ```
 
-Now, let's define the arrays for the properties. It's essential to have prior knowledge of the property values for different tissue classes. For example, for muscle tissue, we use `ρ = 1`, `T1 = 900 * 1e-3`, `T2 = 47 * 1e-3`, and `T2s = 30 * 1e-3`. Additionally, create an array mask to identify the location of a tissue's ID. For muscle with ID = 116, the mask is `(class == 116)`. Finally, to obtain a property, sum all the masks with values for all tissue classes. This process is illustrated below: 
+Now, let's define the arrays for the properties. It's essential to have prior knowledge of the property values for different tissue classes. For example, for soft tissue, we use `ρ = 0.9`, `T1 = 1200 * 1e-3`, `T2 = 80 * 1e-3`, and `T2s = 80 * 1e-3`. Additionally, we create an array mask to identify the location of a tissue's ID. For soft tissue with ID = 153, the mask is `(class .== 153)`. Finally, to obtain a property, sum all the masks with values for all tissue classes. This process is illustrated below: 
 ```julia
 # Define the proton density array
-ρ = (class.==23)*1 .+       # CSF
-    (class.==46)*.86 .+     # GM
-    (class.==70)*.77 .+     # WM
-    (class.==93)*1 .+       # FAT1
-    (class.==116)*1 .+      # MUSCLE
-    (class.==139)*.7 .+     # SKIN/MUSCLE
-    (class.==162)*0 .+      # SKULL
-    (class.==185)*0 .+      # VESSELS
-    (class.==209)*.77 .+    # FAT2
-    (class.==232)*1 .+      # DURA
-    (class.==255)*.77       # MARROW
+ρ = (class.==51)*.001 .+    # Air
+    (class.==102)*.86 .+    # Fat
+    (class.==153)*.9 .+     # SoftTissue
+    (class.==204)*.4 .+     # SpongyBone
+    (class.==255)*.2        # CorticalBone
 
 # Define the T1 decay array
-T1 = (class.==23)*2569 .+   # CSF
-    (class.==46)*833 .+     # GM
-    (class.==70)*500 .+     # WM
-    (class.==93)*350 .+     # FAT1
-    (class.==116)*900 .+    # MUSCLE
-    (class.==139)*569 .+    # SKIN/MUSCLE
-    (class.==162)*0 .+      # SKULL
-    (class.==185)*0 .+      # VESSELS
-    (class.==209)*500 .+    # FAT2
-    (class.==232)*2569 .+   # DURA
-    (class.==255)*500       # MARROW
+T1 = (class.==51)*.001 .+   # Air
+    (class.==102)*366 .+    # Fat
+    (class.==153)*1200 .+   # SoftTissue
+    (class.==204)*381 .+    # SpongyBone
+    (class.==255)*100       # CorticalBone
 
 # Define the T2 decay array
-T2 = (class.==23)*329 .+    # CSF
-    (class.==46)*83 .+      # GM
-    (class.==70)*70 .+      # WM
-    (class.==93)*70 .+      # FAT1
-    (class.==116)*47 .+     # MUSCLE
-    (class.==139)*329 .+    # SKIN/MUSCLE
-    (class.==162)*0 .+      # SKULL
-    (class.==185)*0 .+      # VESSELS
-    (class.==209)*70 .+     # FAT2
-    (class.==232)*329 .+    # DURA
-    (class.==255)*70        # MARROW
+T2 = (class.==51)*.001 .+   # Air
+    (class.==102)*70 .+     # Fat
+    (class.==153)*80 .+     # SoftTissue
+    (class.==204)*52 .+     # SpongyBone
+    (class.==255)*.3        # CorticalBone
 
 # Define the T2s decay array
-T2s = (class.==23)*58 .+    # CSF
-    (class.==46)*69 .+      # GM
-    (class.==70)*61 .+      # WM
-    (class.==93)*58 .+      # FAT1
-    (class.==116)*30 .+     # MUSCLE
-    (class.==139)*58 .+     # SKIN/MUSCLE
-    (class.==162)*0 .+      # SKULL
-    (class.==185)*0 .+      # VESSELS
-    (class.==209)*61 .+     # FAT2
-    (class.==232)*58 .+     # DURA
-    (class.==255)*61        # MARROW
+T2s = (class.==51)*.001 .+  # Air
+    (class.==102)*70 .+     # Fat
+    (class.==153)*80 .+     # SoftTissue
+    (class.==204)*52 .+     # SpongyBone
+    (class.==255)*.3        # CorticalBone
 
 # Define off-resonance array
-Δw_fat = -220*2π
-Δw = (class.==93)*Δw_fat .+ # FAT1
-    (class.==209)*Δw_fat    # FAT2
+Δw_fat = -220 * 2π
+Δw = (class.==102) * Δw_fat # FAT1
 
 # Adjust with scaling factor
 T1 = T1*1e-3
@@ -140,14 +115,14 @@ T2 = T2*1e-3
 T2s = T2s*1e-3
 ```
 
-Finally, we can invoke the [`Phantom`](@Ref) constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask `ρ.!=0` to the arrays. Additionally, please note that we set the x-position array filled with zeros, and we interchange the y and z coordinates.
+Finally, we can invoke the [`Phantom`](@Ref) constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask `ρ.!=0` to the arrays. Additionally, please note that we set the z-position array filled with zeros.
 ```julia
 # Define the phantom
 obj = Phantom{Float64}(
-    name = "custom-brain",
-	x = 0*x[ρ.!=0],
-	y = x[ρ.!=0],
-	z = y[ρ.!=0],
+    name = "custom-pelvis",
+	x = x[ρ.!=0],
+	y = y[ρ.!=0],
+	z = 0*x[ρ.!=0],
 	ρ = ρ[ρ.!=0],
 	T1 = T1[ρ.!=0],
 	T2 = T2[ρ.!=0],
@@ -156,9 +131,9 @@ obj = Phantom{Float64}(
 )
 ```
 
-We can display the **Phantom** struct with the [`plot_phantom_map`](@ref) function. In this case we select the proton density to be displayed, but you can choose other property to be displayed:
+We can display the **Phantom** struct with the [`plot_phantom_map`](@ref) function. In this case we select the T1 decay to be displayed, but you can choose other property to be displayed:
 ```julia
-plot_phantom_map(obj, :ρ)
+plot_phantom_map(obj, :T1)
 ```
 ```@raw html
 <object type="text/html" data="../assets/create-your-own-phantom-plot-rho.html" style="width:100%; height:620px;"></object>
