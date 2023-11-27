@@ -29,11 +29,8 @@ include("datatypes/sequence/ADC.jl")
 include("simulation/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
 include("datatypes/sequence/Delay.jl")
-include("io/Pulseq.jl")
 #Phantom
 include("datatypes/Phantom.jl")
-include("io/JEMRIS.jl")
-include("io/MRiLab.jl")
 #Simulator
 include("datatypes/simulation/DiscreteSequence.jl")
 include("datatypes/simulation/Spinor.jl")
@@ -43,19 +40,15 @@ include("simulation/GPUFunctions.jl")
 # include("simulation/other/OffResonanceModel.jl")
 include("simulation/TrapezoidalIntegration.jl")
 include("simulation/SimulatorCore.jl")
-include("io/ISMRMRD.jl")
 
 #Main
 export γ #gyro-magnetic ratio [Hz/T]
 export Scanner, Sequence, Phantom
 export Grad, RF, ADC, Delay
 export Mag, dur
-#Pulseq
-export read_seq
-#ISMRMRD
-export signal_to_raw_data
+export recursive_merge
 #Phantom
-export brain_phantom2D, brain_phantom3D, read_phantom_jemris, read_phantom_MRiLab
+export brain_phantom2D, brain_phantom3D
 #Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
