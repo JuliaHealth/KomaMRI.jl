@@ -132,7 +132,7 @@ To install just **type** the following in the Julia REPL:
 ```
 For more information about installation insturctions refer the section [Getting Started](https://cncastillo.github.io/KomaMRI.jl/stable/getting-started/) of the documentation.
 ## First run
-KomaMRI.jl features a convenient GUI with predefined simulation inputs (i.e.`Sequence`, `Phantom`, and `Scanner`). To launch the GUI, use the following command:
+KomaMRI.jl features a convenient GUI with predefined simulation inputs (i.e. `Sequence`, `Phantom`, and `Scanner`). To launch the GUI, use the following command:
 
 ```julia
 using KomaMRI
