@@ -140,10 +140,10 @@ KomaUI()
 ```
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw signal or (2) to procced with the reconstruction.
 
-## How to cite
+## How to Cite
 If you use this package please acknowledge us by citing our paper. 
 
-**How to cite:**
+**Plain Text:**
 > Castillo-Passi, C, Coronado, R, Varela-Mattatall, G, Alberola-López, C, Botnar, R, Irarrazaval, P. KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration. Magn Reson Med. 2023; 1- 14. doi: 10.1002/mrm.29635
 
 **BibTex:**
