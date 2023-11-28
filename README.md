@@ -132,13 +132,13 @@ To install just **type** the following in the Julia REPL:
 ```
 For more information about installation insturctions refer the section [Getting Started](https://cncastillo.github.io/KomaMRI.jl/stable/getting-started/) of the documentation.
 ## First run
-KomaMRI.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
+KomaMRI.jl features a convenient GUI with predefined simulation inputs, including `Sequence` (EPI), `Phantom` (2D-Brain), and `Scanner`. To launch the GUI, use the following command:
 
 ```julia
 using KomaMRI
 KomaUI()
 ```
-Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw signal or (2) to procced with the reconstruction.
+Press the button that says "Simulate!" to do your first simulation :). Then, a notification will emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw Data or (2) to procced with the reconstruction.
 
 ## How to Cite
 If you use this package please acknowledge us by citing our paper. 
