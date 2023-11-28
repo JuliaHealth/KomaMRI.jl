@@ -46,6 +46,16 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRICore
+      - name: "KomaMRIIO dev setup"
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRIIO" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRICore\"));"
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIIO
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIIO
       - name: "KomaMRIPlots dev setup"
         shell: bash
         run: |
