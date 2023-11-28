@@ -2,8 +2,6 @@ module KomaMRIIO
 
 using KomaMRICore
 using Scanf, FileIO, HDF5, MAT, JLD2    # IO related
-using MRIBase                           # At least for EncodingCounters()
-using MRIFiles                          # At least for Limits()
 
 include("io/Pulseq.jl")
 include("io/JEMRIS.jl")
