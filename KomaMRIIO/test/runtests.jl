@@ -4,7 +4,7 @@ using TestItems, TestItemRunner
 
 @testitem "IO" tags=[:io] begin
     using Suppressor
-    using KomaMRICore   # For ISMRMRDFile and RawAcquisitionData
+    using KomaMRICore   # For RawAcquisitionData
 
     # Test Pulseq
     @testset "Pulseq" begin

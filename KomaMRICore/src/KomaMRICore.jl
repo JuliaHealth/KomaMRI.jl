@@ -13,7 +13,7 @@ using Interpolations
 using CUDA
 #Reconstruction
 using MRIBase, MRIFiles
-@reexport using MRIBase: Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
+@reexport using MRIBase: EncodingCounters, Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
 @reexport using MRIFiles: ISMRMRDFile
 #IO
 using FileIO, HDF5, MAT, JLD2

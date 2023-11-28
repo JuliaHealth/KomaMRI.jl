@@ -3,6 +3,10 @@ module KomaMRIIO
 using KomaMRICore
 using Scanf, FileIO, HDF5, MAT, JLD2    # IO related
 
+using Reexport
+using MRIFiles
+@reexport using MRIFiles: ISMRMRDFile
+
 include("io/Pulseq.jl")
 include("io/JEMRIS.jl")
 include("io/MRiLab.jl")

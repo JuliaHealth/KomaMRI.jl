@@ -80,15 +80,15 @@ function signal_to_raw_data(
         "encodedSize"                    => [Nx, Ny, 1],            #encodedSpace>matrixSize
         "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, 1],  #reconSpace>matrixSize
         #encodingLimits>
-        "enc_lim_kspace_encoding_step_1" => KomaMRICore.Limit(0, Nx-1, ceil(Int, Nx / 2)),   #min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_2" => KomaMRICore.Limit(0, 0, 0),     #min, max, center, e.g. partition encoding number
-        "enc_lim_average"                => KomaMRICore.Limit(0, 0, 0),     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => KomaMRICore.Limit(0, 0, 0),     #min, max, center, e.g. imaging slice number
-        "enc_lim_contrast"               => KomaMRICore.Limit(0, 0, 0),     #min, max, center, e.g. echo number in multi-echo
-        "enc_lim_phase"                  => KomaMRICore.Limit(0, 0, 0),     #min, max, center, e.g. cardiac phase number
-        "enc_lim_repetition"             => KomaMRICore.Limit(0, 0, 0),     #min, max, center, e.g. dynamic number for dynamic scanning
-        "enc_lim_set"                    => KomaMRICore.Limit(0, 0, 0),     #min, max, center, e.g. flow encoding set
-        "enc_lim_segment"                => KomaMRICore.Limit(0, 0, 0),     #min, max, center, #segment: e.g. segment number for segmented acquisition
+        "enc_lim_kspace_encoding_step_1" => Limit(0, Nx-1, ceil(Int, Nx / 2)),   #min, max, center, e.g. phase encoding line number
+        "enc_lim_kspace_encoding_step_2" => Limit(0, 0, 0),     #min, max, center, e.g. partition encoding number
+        "enc_lim_average"                => Limit(0, 0, 0),     #min, max, center, e.g. signal average number
+        "enc_lim_slice"                  => Limit(0, 0, 0),     #min, max, center, e.g. imaging slice number
+        "enc_lim_contrast"               => Limit(0, 0, 0),     #min, max, center, e.g. echo number in multi-echo
+        "enc_lim_phase"                  => Limit(0, 0, 0),     #min, max, center, e.g. cardiac phase number
+        "enc_lim_repetition"             => Limit(0, 0, 0),     #min, max, center, e.g. dynamic number for dynamic scanning
+        "enc_lim_set"                    => Limit(0, 0, 0),     #min, max, center, e.g. flow encoding set
+        "enc_lim_segment"                => Limit(0, 0, 0),     #min, max, center, #segment: e.g. segment number for segmented acquisition
         #sequenceParameters
         # "TR"                             => 0,
         # "TE"                             => 0,
@@ -133,7 +133,7 @@ function signal_to_raw_data(
                 (0.0f0, 1.0f0, 0.0f0), #phase_dir: Directional cosines of the phase
                 (0.0f0, 0.0f0, 1.0f0), #slice_dir: Directional cosines of the slice direction
                 (0.0f0, 0.0f0, 0.0f0), #patient_table_position: Patient table off-center
-                KomaMRICore.EncodingCounters( #idx: Encoding loop counters
+                EncodingCounters( #idx: Encoding loop counters
                     scan_counter, #kspace_encode_step_1: e.g. phase encoding line number
                     0, #kspace_encode_step_2: e.g. partition encoding number
                     0, #average: e.g. signal average number
