@@ -24,7 +24,7 @@ Then press `Ctrl+C` or `backspace` to return to the `julia>` prompt.
 ---
 ## My First MRI Simulation
 
-For our first simulation we will use **KomaMRI**'s graphical user interface (GUI). For this, you will first need to load **KomaMRI** by typing `using KomaMRI`, and then launch the GUI with `KomaUI()`.
+For our first simulation we will use **KomaMRI**'s graphical user interface (GUI). For this, you will first need to load **KomaMRI** by typing `using KomaMRI`, and then launch the GUI with the [`KomaUI`](@ref) function.
 
 ```julia-repl
 julia> using KomaMRI

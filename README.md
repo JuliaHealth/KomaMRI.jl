@@ -1,36 +1,63 @@
 <p align="center">
-<img width="300px" src="./assets/logo.svg#gh-light-mode-only"/>
-<img width="300px" src="./assets/logo-dark.svg#gh-dark-mode-only"/>
+<img width="300px" src="./assets/logo.svg#gh-light-mode-only" title="Ko-ma (こま) is the Japanese word for spinning-top. They precess due to gravity like spins in a magnetic field."/>
+<img width="300px" src="./assets/logo-dark.svg#gh-dark-mode-only" title="Ko-ma (こま) is the Japanese word for spinning-top. They precess due to gravity like spins in a magnetic field."/>
 </p>
+
 <p align="center">
 <a href="https://pkg.julialang.org/detail/KomaMRI.html"><img src="https://img.shields.io/badge/julia-v1.6_(LTS)-9558B2?logo=julia" /></a>
 <a href="https://github.com/cncastillo/KomaMRI.jl/blob/master/LICENSE"><img src="http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat" /></a>
 <a href="https://github.com/invenia/BlueStyle"><img src="https://img.shields.io/badge/code%20style-blue-4495d1.svg" /></a>
 <a href="https://pkgs.genieframework.com?packages=KomaMRI"><img src="https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/KomaMRI" /></a>
 </p>
-<p align="center">
-<img src="https://img.shields.io/github/stars/cncastillo/KomaMRI.jl?style=social" width="100px"/>
-</p>
-
-<div align="center">
  
-##### Main project
-| **Documentation**         | **KomaMRI.jl Paper**           | **Build Status**                      |
-|:-------------------------:|:------------------------------:|:-------------------------------------:|
-| [![][docr-img]][docr-url] | [![][paper-img1]][paper-url1]  | [![][gh-actions-img]][gh-actions-url] |
-| [![][docd-img]][docd-url] | [![][arXiv-img1]][arXiv-url1]  | [![][codecov-img]][codecov-url]       |
-##### Submodules
+KomaMRI.jl is a Julia pacakge for highly-efficient ⚡ MRI simulations. KomaMRI was built from the ground up to be: easy-to-use, extensible, cross-platform, and powered by open-source community standards. 
 
-| **KomaMRI.jl**            | **KomaMRICore.jl**             | **KomaMRIPlots.jl**                   |
-|:-------------------------:|:------------------------------:|:-------------------------------------:|
-| [![][gh-actions-img1]][gh-actions-url] | [![][gh-actions-img2]][gh-actions-url] | [![][gh-actions-img3]][gh-actions-url]       |
-| [![][codecov-img1]][codecov-url] | [![][codecov-img2]][codecov-url] | [![][codecov-img3]][codecov-url]       |
- ```
-📦 KomaMRI.jl (UI)                      
-├─ 📦 KomaMRICore.jl (Simulation and IO)
-└─ 📦 KomaMRIPlots.jl (Plots)           
-```
-</div>
+<table>
+<tr><td rowspan="2">
+<img width="350px" src="./docs/src/assets/ui-simulation.gif"/>
+</td>
+ <td><b>Features:</b></td>
+</tr>
+<tr>
+<td>
+ 
+- Fast simulations with CPU/GPU parallelization 🏃💨
+- Extensible, so anyone can include new features 🆙
+- Supports community-standards [🤝](## "Pulseq and ISMRMRD") 
+- Interactive visualizations using PlotlyJS.jl 📲
+- Cross-platform (Windows, Mac & Linux) 🌐
+- Friendly GUI (using web technologies) 😌
+- Compatible with modern notebooks [🎈](## "Pluto and Jupyter") 
+- Flexible API for advanced users 👨‍💻
+</td>
+</tr>
+<tr>
+<td><b>
+ 
+Documentation: <br>[![][docr-img]][docr-url] [![][docd-img]][docd-url]</b></td>
+<td><b>
+ 
+Paper: <br>[![][paper-img1]][paper-url1]
+</b></td>
+</tr>
+<tr>
+<td colspan="2">
+
+| **Packages**         | **Stable Version**                           | **Build Status**                       | **Code Coverage**                |
+|:---------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
+| 📦 KomaMRI.jl        | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
+| └ 📦 KomaMRICore.jl  | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
+| └ 📦 KomaMRIPlots.jl | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
+</td>
+</tr>
+</table>
+
+[komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
+[komacore-version]: https://juliahub.com/docs/General/KomaMRICore/stable/version.svg
+[komaplots-version]: https://juliahub.com/docs/General/KomaMRIPlots/stable/version.svg
+[komamri-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRI
+[komacore-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRICore
+[komaplots-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIPlots
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docr-url]: https://cncastillo.github.io/KomaMRI.jl/stable/
@@ -56,9 +83,9 @@
 [paper-img1]: https://img.shields.io/badge/doi-10.1002/mrm.29635-blue.svg
 [paper-url1]: https://doi.org/10.1002/mrm.29635
 
-KomaMRI.jl (formerly MRIsim.jl), whose name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field. 
+## News
 
-This package is meant to simulate general Magnetic Resonance Imaging (MRI) scenarios that could arise in pulse sequence development. 
+> 🟢 **[17 Nov 2023] ISMRM Pulseq's virtual meeting:** Pretty excited of being part of [this meeting](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023). The slidescan be seen [here](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023/blob/35a8da7eaa0bf42f2127e1338a440ccd4e3ef53c/slides/day3_KomaMRI_simulator_Quantitative_MRI.pdf).
 
 > 🟢 **[27 Jul 2023] JuliaCon 2023 presentation:** I gave a talk at the MIT 😄! A video of the presentation can be seen [here](https://www.youtube.com/watch?v=WVT9wJegC6Q).
 
@@ -84,10 +111,10 @@ This package is meant to simulate general Magnetic Resonance Imaging (MRI) scena
  - [x] Signal "Raw Output" dictionary ([ISMRMRD](https://ismrmrd.github.io/)),
  - [x] [MRIReco.jl](https://magneticresonanceimaging.github.io/MRIReco.jl/latest/) for the reconstruciton,
  - [ ] Documentation,
- - [ ] <img src="https://latex.codecogs.com/gif.latex?T_{2}^{*}"> decay,
  - [ ] [Auxiliary Pulseq functions](https://github.com/imr-framework/pypulseq/tree/master/pypulseq),
  - [ ] Coil sensitivities,
  - [ ] Cardiac phantoms, and triggers.
+ - [ ] <img src="https://latex.codecogs.com/gif.latex?T_{2}^{*}"> decay,
  
  Next:
  - [ ] Diffusion models with Laplacian Eigen Functions,
@@ -131,8 +158,3 @@ If you use this package please acknowledge us by citing our paper.
          eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
 }
 ```
----
-
-## Koma GUI
-
-<img width="100%" src="/assets/GUI.svg"/>

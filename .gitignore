@@ -14,6 +14,7 @@ src/examples/sysimageSpinLab.dll
 *.gve
 *.jld2
 *.gif
+!docs/src/assets/*.gif
 *.out
 *.txt
 *.nb
@@ -25,8 +26,6 @@ docs/src/generated/
 docs/src/assets/logo*
 docs/src/assets/icon*
 src/ui/assets/*
-!src/ui/assets/.gitkeep
-!src/ui/assets/logo-icon.png
 examples/3.koma_paper/comparison_accuracy/**/*.mrd
 examples/3.koma_paper/mrf/**/*.mrd
 examples/3.koma_paper/comparison_accuracy/**/*.mat
