@@ -98,6 +98,13 @@ jobs:
         with:
           files: lcov.info
           flags: plots
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: KomaMRIIO/src
+      - uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
+          flags: io
   docs:
     name: Documentation
     runs-on: ubuntu-latest
