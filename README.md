@@ -48,6 +48,7 @@ Paper: <br>[![][paper-img1]][paper-url1]
 | 📦 KomaMRI.jl        | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
 | └ 📦 KomaMRICore.jl  | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
 | └ 📦 KomaMRIPlots.jl | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
+| └ 📦 KomaMRIIO.jl    | ![Static Badge](https://img.shields.io/badge/developing%20...%20-%20%23575757)    | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
 </td>
 </tr>
 </table>
@@ -55,9 +56,11 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
 [komacore-version]: https://juliahub.com/docs/General/KomaMRICore/stable/version.svg
 [komaplots-version]: https://juliahub.com/docs/General/KomaMRIPlots/stable/version.svg
+[komaplots-version]: https://juliahub.com/docs/General/KomaMRIIO/stable/version.svg
 [komamri-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRI
 [komacore-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRICore
 [komaplots-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIPlots
+[komaio-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIIO
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docr-url]: https://cncastillo.github.io/KomaMRI.jl/stable/
@@ -69,12 +72,14 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [gh-actions-img1]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img2]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img3]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-img4]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-url]: https://github.com/cncastillo/KomaMRI.jl/actions
 
 [codecov-img]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg
 [codecov-img1]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=komamri
 [codecov-img2]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=core
 [codecov-img3]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=plots
+[codecov-img4]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/komaio/graph/badge.svg?flag=io
 [codecov-url]: https://codecov.io/gh/cncastillo/KomaMRI.jl
 
 [arXiv-img1]: https://img.shields.io/badge/arXiv-2107.11000-blue.svg
