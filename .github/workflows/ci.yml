@@ -117,6 +117,9 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Pkg
+            Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIIO"))
+            Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRICore"))
+            Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
       - run: |
