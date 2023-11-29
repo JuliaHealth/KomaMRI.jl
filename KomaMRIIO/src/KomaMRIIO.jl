@@ -1,11 +1,13 @@
 module KomaMRIIO
 
 using KomaMRICore
+import KomaMRICore: simulation_output
 using Scanf, FileIO, HDF5, MAT, JLD2    # IO related
 
 using Reexport
 using MRIFiles
 @reexport using MRIFiles: ISMRMRDFile
+@reexport using FileIO: save
 
 include("io/Pulseq.jl")
 include("io/JEMRIS.jl")

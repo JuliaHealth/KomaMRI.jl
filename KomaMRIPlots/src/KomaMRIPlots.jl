@@ -1,6 +1,6 @@
 module KomaMRIPlots
 
-using KomaMRICore
+using KomaMRICore, KomaMRIIO
 using MAT, Interpolations, PlotlyJS
 
 include("ui/PlotBackends.jl")

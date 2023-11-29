@@ -220,3 +220,10 @@ Base.show(io::IO, raw::RawAcquisitionData) = begin
         print(io, "RawAcqData[$seq_name | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
     end
 end
+
+"""
+Overwrites auxiliary function from KomaMRICore
+"""
+function simulation_output(sig, seq, phantom_name, sys, sim_params)
+    return signal_to_raw_data(sig, seq; phantom_name, sys, sim_params)
+end

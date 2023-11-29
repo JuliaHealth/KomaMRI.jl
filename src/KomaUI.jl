@@ -31,7 +31,7 @@ julia> KomaUI()
 ```
 """
 function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), return_window=false, show_window=true, dev_tools=false)
-    
+
     # To avoid generating multiple observables
     Observables.clear(seq_ui)
     Observables.clear(obj_ui)
@@ -161,7 +161,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         # Save the raw signal to a file in the temporal directory
         rawfile = tempdir()*"/Koma_signal.mrd"
         @info "Exporting to ISMRMRD file: $rawfile"
-        KomaMRICore.save(ISMRMRDFile(rawfile), raw_aux)
+        save(ISMRMRDFile(rawfile), raw_aux)
 
         # Display message on UI
         sim_time = raw_aux.params["userParameters"]["sim_time_sec"]
@@ -284,7 +284,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         on((cnt) -> view_ui!(cnt, w, obj_ui[], seq_ui[], widgets_button_obj; key, darkmode), widget_button)
     end
     on((sys) -> view_ui!(sys, w), sys_ui)
-    on((raw) -> view_ui!(raw, w; darkmode), raw_ui)   
+    on((raw) -> view_ui!(raw, w; darkmode), raw_ui)
     on((img) -> view_ui!(img, w; type="absi", darkmode), img_ui)
 
     # Update Koma versions to tooltip
@@ -294,14 +294,14 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     @js_ w (
         @var version_ui = $(version_ui);
         @var version_core = $(version_core);
-        @var version_plots = $(version_plots); 
-        document.getElementById("Github").setAttribute("data-bs-original-title", 
+        @var version_plots = $(version_plots);
+        document.getElementById("Github").setAttribute("data-bs-original-title",
                                                          "KomaMRI.jl v"+version_ui+"\n"+
                                                          "KomaMRICore.jl v"+version_core+"\n"+
                                                          "KomaMRIPlots.jl v"+version_plots);
     )
     @info "Currently using package versions" KomaMRI=version_ui KomaMRICore=version_core KomaMRIPlots=version_plots
-    
+
     # Devtools
     if return_window
         return w
