@@ -47,8 +47,8 @@ Paper: <br>[![][paper-img1]][paper-url1]
 |:---------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
 | 📦 KomaMRI.jl        | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
 | └ 📦 KomaMRICore.jl  | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
-| └ 📦 KomaMRIPlots.jl | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
 | └ 📦 KomaMRIIO.jl    | ![Static Badge](https://img.shields.io/badge/developing%20...%20-%20%23575757)    | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
+| └ 📦 KomaMRIPlots.jl | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
 </td>
 </tr>
 </table>
