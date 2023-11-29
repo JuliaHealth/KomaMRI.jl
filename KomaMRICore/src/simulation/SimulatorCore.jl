@@ -270,6 +270,9 @@ function simulate_slice_profile(
     return mag
 end
 
+"""
+Auxiliary function to be overwriten by KomaMRIIO for getting the signal in RawAcquisitionData
+"""
 function simulation_output(sig, seq, phantom_name, sys, sim_params)
     return sig
 end

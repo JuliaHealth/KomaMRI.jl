@@ -9,10 +9,10 @@ using MRIFiles
 @reexport using MRIFiles: ISMRMRDFile
 @reexport using FileIO: save
 
-include("io/Pulseq.jl")
-include("io/JEMRIS.jl")
-include("io/MRiLab.jl")
-include("io/ISMRMRD.jl")
+include("Sequence/Pulseq.jl")
+include("Phantom/JEMRIS.jl")
+include("Phantom/MRiLab.jl")
+include("RawAcquisitionData/ISMRMRD.jl")
 
 export read_seq                                 # Pulseq
 export signal_to_raw_data                       # ISMRMRD
