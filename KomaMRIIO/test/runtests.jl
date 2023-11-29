@@ -9,19 +9,19 @@ using TestItems, TestItemRunner
     # Test Pulseq
     @testset "Pulseq" begin
         path = @__DIR__
-        seq = @suppress KomaMRIIO.read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+        seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "epi.seq"
         @test seq.DEF["PulseqVersion"] ≈ 1004000
 
-        seq = @suppress KomaMRIIO.read_seq(path*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
+        seq = @suppress read_seq(path*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "spiral.seq"
         @test seq.DEF["PulseqVersion"] ≈ 1004000
 
-        seq = @suppress KomaMRIIO.read_seq(path*"/test_files/epi_JEMRIS.seq") #Pulseq v1.2.1
+        seq = @suppress read_seq(path*"/test_files/epi_JEMRIS.seq") #Pulseq v1.2.1
         @test seq.DEF["FileName"] == "epi_JEMRIS.seq"
         @test seq.DEF["PulseqVersion"] ≈ 1002001
 
-        seq = @suppress KomaMRIIO.read_seq(path*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
+        seq = @suppress read_seq(path*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
         @test seq.DEF["FileName"] == "radial_JEMRIS.seq"
         @test seq.DEF["PulseqVersion"] ≈ 1002001
 
@@ -36,12 +36,12 @@ using TestItems, TestItemRunner
         @test raw.params["trajectory"] == "other"
         @test raw.params["systemVendor"] == "KomaMRI.jl"
 
-        # Test KomaMRIIO.signal_to_raw_data
+        # Test signal_to_raw_data
         signal1 = Vector()
         for i=1:length(raw.profiles)
             signal1 = [signal1; raw.profiles[i].data]
         end
-        rawmrd = KomaMRIIO.signal_to_raw_data(signal1, seq)
+        rawmrd = signal_to_raw_data(signal1, seq)
         @test rawmrd.params["institutionName"] == raw.params["institutionName"]
         io = IOBuffer()
         show(io, "text/plain", rawmrd)
@@ -51,7 +51,7 @@ using TestItems, TestItemRunner
     # Test JEMRIS
     @testset "JEMRIS" begin
         path = @__DIR__
-        obj = KomaMRIIO.read_phantom_jemris(path*"/test_files/column1d.h5")
+        obj = read_phantom_jemris(path*"/test_files/column1d.h5")
         @test obj.name == "column1d.h5"
     end
     # Test JEMRIS
@@ -59,7 +59,7 @@ using TestItems, TestItemRunner
         path = @__DIR__
         filename = path * "/test_files/brain_mrilab.mat"
         FRange_filename = path * "/test_files/FRange.mat" #Slab within slice thickness
-        obj = KomaMRIIO.read_phantom_MRiLab(filename; FRange_filename)
+        obj = read_phantom_MRiLab(filename; FRange_filename)
         @test obj.name == "brain_mrilab.mat"
     end
 end
