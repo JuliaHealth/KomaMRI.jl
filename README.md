@@ -140,6 +140,10 @@ KomaUI()
 ```
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification will emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw Data or (2) to procced with the reconstruction.
 
+## How to Contribute
+We welcome contributions from the community! If you're interested in contributing, please read our [Contribution Guidelines](CONTRIBUTING.md) for details on how to get started.
+
+
 ## How to Cite
 If you use this package please acknowledge us by citing our paper. 
 
