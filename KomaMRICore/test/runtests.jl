@@ -130,6 +130,7 @@ using TestItems, TestItemRunner
 
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", grad)
+        @test true
 
     end
 
@@ -152,6 +153,7 @@ using TestItems, TestItemRunner
 
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", r1)
+        @test true
 
         # Test Grad operations
         B1x, B1y, T = rand(3)
@@ -183,6 +185,7 @@ using TestItems, TestItemRunner
 
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", delay)
+        @test true
 
         # Test addition of a delay to a sequence
         seq = Sequence()
@@ -275,6 +278,7 @@ using TestItems, TestItemRunner
 
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", seq)
+        @test true
 
         α = rand()
         c = α + im*rand()
@@ -450,6 +454,7 @@ end
     @test s[1].α ≈ [Complex(α)] && s[1].β ≈ [Complex(β)]
     # Just checking to ensure that show() doesn't get stuck and that it is covered
     show(IOBuffer(), "text/plain", s)
+    @test true
     α2, β2 = rand(2)
     s2 = Spinor(α2, β2)
     sp = s * s2
@@ -490,6 +495,7 @@ end
 
     # Just checking to ensure that show() doesn't get stuck and that it is covered
     show(IOBuffer(), "text/plain", rawmrd)
+    @test true
 end
 
 @testitem "TimeStepCalculation" tags=[:core] begin
@@ -748,4 +754,5 @@ end
 
     # Just checking to ensure that show() doesn't get stuck and that it is covered
     show(IOBuffer(), "text/plain", KomaMRICore.BlochDict())
+    @test true
 end
