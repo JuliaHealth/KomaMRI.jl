@@ -6,10 +6,7 @@ using TestItems, TestItemRunner
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
 
 @testitem "Sequence" tags=[:core] begin
-    using Suppressor
-    include("../../KomaMRIIO/src/KomaMRIIO.jl")
-    using .KomaMRIIO
-
+    using Suppressor, KomaMRIIO
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -506,9 +503,7 @@ end
 end
 
 @testitem "Bloch_CPU_single_thread" tags=[:important, :core] begin
-    using Suppressor, HDF5
-    include("../../KomaMRIIO/src/KomaMRIIO.jl")
-    using .KomaMRIIO
+    using Suppressor, HDF5, KomaMRIIO
 
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
@@ -534,9 +529,7 @@ end
 end
 
 @testitem "Bloch_CPU_multi_thread" tags=[:important, :core] begin
-    using Suppressor, HDF5
-    include("../../KomaMRIIO/src/KomaMRIIO.jl")
-    using .KomaMRIIO
+    using Suppressor, HDF5, KomaMRIIO
 
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
@@ -561,9 +554,7 @@ end
 end
 
 @testitem "Bloch_GPU" tags=[:important, :skipci, :core] begin
-    using Suppressor, HDF5
-    include("../../KomaMRIIO/src/KomaMRIIO.jl")
-    using .KomaMRIIO
+    using Suppressor, HDF5, KomaMRIIO
 
     path = @__DIR__
     seq = @suppress read_seq(path*"/test_files/epi_100x100_TE100_FOV230.seq")
@@ -588,9 +579,7 @@ end
 end
 
 @testitem "Bloch_CPU_RF_accuracy_single_thread" tags=[:important, :core] begin
-    using Suppressor
-    include("../../KomaMRIIO/src/KomaMRIIO.jl")
-    using .KomaMRIIO
+    using Suppressor, KomaMRIIO
 
     Tadc = 1e-3
     Trf = Tadc
@@ -635,9 +624,7 @@ end
 end
 
 @testitem "Bloch_CPU_RF_accuracy_multi_thread" tags=[:important, :core] begin
-    using Suppressor
-    include("../../KomaMRIIO/src/KomaMRIIO.jl")
-    using .KomaMRIIO
+    using Suppressor, KomaMRIIO
 
     Tadc = 1e-3
     Trf = Tadc
@@ -682,9 +669,7 @@ end
 end
 
 @testitem "Bloch_GPU_RF_accuracy" tags=[:important, :core] begin
-    using Suppressor
-    include("../../KomaMRIIO/src/KomaMRIIO.jl")
-    using .KomaMRIIO
+    using Suppressor, KomaMRIIO
 
     Tadc = 1e-3
     Trf = Tadc
@@ -729,9 +714,7 @@ end
 end
 
 @testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
-    using Suppressor
-    include("../../KomaMRIIO/src/KomaMRIIO.jl")
-    using .KomaMRIIO
+    using Suppressor, KomaMRIIO
 
     path = joinpath(@__DIR__, "test_files")
     seq = @suppress read_seq(joinpath(path, "epi_100x100_TE100_FOV230.seq"))
