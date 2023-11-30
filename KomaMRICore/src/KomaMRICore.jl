@@ -15,9 +15,7 @@ using CUDA
 #Reconstruction
 using MRIBase
 @reexport using MRIBase: EncodingCounters, Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
-#IO
-#using FileIO, HDF5, MAT, JLD2
-using MAT
+using MAT   # For loading example phantoms
 
 global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
@@ -32,6 +30,8 @@ include("datatypes/Sequence.jl")
 include("datatypes/sequence/Delay.jl")
 #Phantom
 include("datatypes/Phantom.jl")
+#Rawdata
+include("rawdata/ISMRMRD.jl")
 #Simulator
 include("datatypes/simulation/DiscreteSequence.jl")
 include("datatypes/simulation/Spinor.jl")
@@ -53,10 +53,10 @@ export brain_phantom2D, brain_phantom3D
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
 export get_kspace, rotx, roty, rotz
+#ISMRMRD
+export signal_to_raw_data
 #Simulator
 export simulate, simulate_slice_profile
-#Simulation Output
-export SpinsStateSimOutput, MatrixSimOutput
 
 #Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on

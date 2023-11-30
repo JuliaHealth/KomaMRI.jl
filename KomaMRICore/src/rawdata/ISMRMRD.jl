@@ -1,4 +1,13 @@
 """
+It is the same as defined in MRIFiles without the need to import MRIFiles
+"""
+struct Limit
+    minimum::Int
+    maximum::Int
+    center::Int
+end
+
+"""
     raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params)
 
 Transforms the raw signal into a RawAcquisitionData struct (nearly equivalent to the ISMRMRD
@@ -219,22 +228,4 @@ Base.show(io::IO, raw::RawAcquisitionData) = begin
     else
         print(io, "RawAcqData[$seq_name | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
     end
-end
-
-"""
-Define simulation output for RawDataSimOutput (or RawAcquisitionData)
-"""
-struct RawDataSimOutput <: SimulationOutput end
-
-function simulation_output(return_type::RawDataSimOutput; kwargs...)
-    sim_params_raw = copy(kwargs[:sim_params])
-    sim_params_raw["return_type"] = string(kwargs[:sim_params]["return_type"])
-    sim_params_raw["sim_method"] = string(kwargs[:sim_params]["sim_method"])
-    sim_params_raw["gpu"] = kwargs[:sim_params]["gpu"]
-    sim_params_raw["Nthreads"] = kwargs[:sim_params]["Nthreads"]
-    sim_params_raw["t_sim_parts"] = kwargs[:t_sim_parts]
-    sim_params_raw["type_sim_parts"] = kwargs[:excitation_bool]
-    sim_params_raw["Nblocks"] = kwargs[:Nparts]
-    sim_params_raw["sim_time_sec"] = kwargs[:timed_tuple_time]
-    out = signal_to_raw_data(kwargs[:sig], kwargs[:seq]; phantom_name=kwargs[:obj].name, sys=kwargs[:sys], sim_params=sim_params_raw)
 end

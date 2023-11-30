@@ -6,16 +6,6 @@ include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
 
 """
-Checks if the RawDataSimOutput type is part of SimulationOutput
-It requires the function subtypes() which is part of InteractiveUtils
-"""
-function default_return_type()
-    types = subtypes(SimulationOutput)
-    index = findfirst(i -> (string(i) == "RawDataSimOutput" || string(i) == "KomaMRIIO.RawDataSimOutput"), types)
-    return isnothing(index) ? MatrixSimOutput() : types[index].instance
-end
-
-"""
 Returns a dictionary with default simulation parameters.
 """
 function default_sim_params(sim_params=Dict{String,Any}())
@@ -27,7 +17,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "Δt_rf", 5e-5)
     get!(sim_params, "sim_method", Bloch())
     get!(sim_params, "precision", "f32")
-    get!(sim_params, "return_type", default_return_type())
+    get!(sim_params, "return_type", RawDataSimOutput())
     return sim_params
 end
 
@@ -270,10 +260,22 @@ end
 abstract type SimulationOutput end
 struct SpinsStateSimOutput <: SimulationOutput end
 struct MatrixSimOutput <: SimulationOutput end
-
+struct RawDataSimOutput <: SimulationOutput end
 function simulation_output(return_type::SpinsStateSimOutput; kwargs...)
     return kwargs[:Xt]
 end
 function simulation_output(return_type::MatrixSimOutput; kwargs...)
     return kwargs[:sig]
+end
+function simulation_output(return_type::RawDataSimOutput; kwargs...)
+    sim_params_raw = copy(kwargs[:sim_params])
+    sim_params_raw["return_type"] = string(kwargs[:sim_params]["return_type"])
+    sim_params_raw["sim_method"] = string(kwargs[:sim_params]["sim_method"])
+    sim_params_raw["gpu"] = kwargs[:sim_params]["gpu"]
+    sim_params_raw["Nthreads"] = kwargs[:sim_params]["Nthreads"]
+    sim_params_raw["t_sim_parts"] = kwargs[:t_sim_parts]
+    sim_params_raw["type_sim_parts"] = kwargs[:excitation_bool]
+    sim_params_raw["Nblocks"] = kwargs[:Nparts]
+    sim_params_raw["sim_time_sec"] = kwargs[:timed_tuple_time]
+    out = signal_to_raw_data(kwargs[:sig], kwargs[:seq]; phantom_name=kwargs[:obj].name, sys=kwargs[:sys], sim_params=sim_params_raw)
 end

@@ -1,7 +1,6 @@
 module KomaMRIIO
 
 using KomaMRICore
-import KomaMRICore: simulation_output, SimulationOutput
 using Scanf, FileIO, HDF5, MAT, JLD2    # IO related
 
 using Reexport
@@ -12,12 +11,9 @@ using MRIFiles
 include("Sequence/Pulseq.jl")
 include("Phantom/JEMRIS.jl")
 include("Phantom/MRiLab.jl")
-include("RawAcquisitionData/ISMRMRD.jl")
 
 export read_seq                                 # Pulseq
-export signal_to_raw_data                       # ISMRMRD
 export read_phantom_jemris, read_phantom_MRiLab # Phantom
-export RawDataSimOutput                                  # Simulation Output
 
 # Package version: KomaMRIIO.__VERSION__
 using Pkg

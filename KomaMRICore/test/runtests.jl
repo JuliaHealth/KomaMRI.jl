@@ -471,6 +471,37 @@ end
     @test abs(s) ≈ [α^2 + β^2]
 end
 
+# Test ISMRMRD
+@testitem "ISMRMRD" begin
+    using Suppressor, KomaMRIIO
+
+    path = @__DIR__
+    seq = @suppress read_seq(path*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
+
+    # Test ISMRMRD
+    fraw = ISMRMRDFile(path*"/test_files/Koma_signal.mrd")
+    raw = RawAcquisitionData(fraw)
+    @test raw.params["protocolName"] == "epi"
+    @test raw.params["institutionName"] == "Pontificia Universidad Catolica de Chile"
+    @test raw.params["encodedSize"] ≈ [101, 101, 1]
+    @test raw.params["reconSize"] ≈ [102, 102, 1]
+    @test raw.params["patientName"] == "brain2D_axial"
+    @test raw.params["trajectory"] == "other"
+    @test raw.params["systemVendor"] == "KomaMRI.jl"
+
+    # Test signal_to_raw_data
+    signal1 = Vector()
+    for i=1:length(raw.profiles)
+        signal = [signal1; raw.profiles[i].data]
+    end
+    rawmrd = signal_to_raw_data(signal1, seq)
+    @test rawmrd.params["institutionName"] == raw.params["institutionName"]
+    io = IOBuffer()
+    show(io, "text/plain", rawmrd)
+    @test occursin("RawAcquisitionData[", String(take!(io)))
+
+end
+
 @testitem "TimeStepCalculation" tags=[:core] begin
     ampRF = 1e-6
     durRF = 1e-3
@@ -511,7 +542,7 @@ end
         "gpu"=>false,
         "Nthreads"=>1,
         "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>MatrixSimOutput()
+        "return_type"=>KomaMRICore.MatrixSimOutput()
     )
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
@@ -536,7 +567,7 @@ end
     sim_params = Dict{String, Any}(
         "gpu"=>false,
         "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>MatrixSimOutput()
+        "return_type"=>KomaMRICore.MatrixSimOutput()
     )
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
@@ -561,7 +592,7 @@ end
     sim_params = Dict{String, Any}(
         "gpu"=>true,
         "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>MatrixSimOutput()
+        "return_type"=>KomaMRICore.MatrixSimOutput()
     )
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
@@ -717,7 +748,7 @@ end
     seq = @suppress read_seq(joinpath(path, "epi_100x100_TE100_FOV230.seq"))
     obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
     sys = Scanner()
-    sim_params = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>MatrixSimOutput())
+    sim_params = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>KomaMRICore.MatrixSimOutput())
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     sim_params["sim_method"] = KomaMRICore.BlochDict()
