@@ -6,6 +6,16 @@ include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
 
 """
+Checks if the MRD type is part of SimulationOutput
+It requires the function subtypes() which is part of InteractiveUtils
+"""
+function default_return_type()
+    types = subtypes(SimulationOutput)
+    index = findfirst(i -> (string(i) == "MRD" || string(i) == "KomaMRIIO.MRD"), types)
+    return isnothing(index) ? SigArray() : types[index].instance
+end
+
+"""
 Returns a dictionary with default simulation parameters.
 """
 function default_sim_params(sim_params=Dict{String,Any}())
@@ -17,7 +27,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "Δt_rf", 5e-5)
     get!(sim_params, "sim_method", Bloch())
     get!(sim_params, "precision", "f32")
-    get!(sim_params, "return_type", "raw")
+    get!(sim_params, "return_type", default_return_type())
     return sim_params
 end
 
@@ -222,24 +232,11 @@ function simulate(
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
     if sim_params["gpu"] GC.gc(true); CUDA.reclaim() end
-    # Output
-    if sim_params["return_type"] == "state"
-        out = Xt
-    elseif sim_params["return_type"] == "mat"
-        out = sig
-    elseif sim_params["return_type"] == "raw"
-        # To visually check the simulation blocks
-        sim_params_raw = copy(sim_params)
-        sim_params_raw["sim_method"] = string(sim_params["sim_method"])
-        sim_params_raw["gpu"] = sim_params["gpu"]
-        sim_params_raw["Nthreads"] = sim_params["Nthreads"]
-        sim_params_raw["t_sim_parts"] = t_sim_parts
-        sim_params_raw["type_sim_parts"] = excitation_bool
-        sim_params_raw["Nblocks"] = length(parts)
-        sim_params_raw["sim_time_sec"] = timed_tuple.time
-        out = simulation_output(sig, seq, obj.name, sys, sim_params_raw)
-        #out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw)
-    end
+    out = simulation_output(
+        sim_params["return_type"];
+        Xt, sig, seq, obj, sys, sim_params, t_sim_parts, excitation_bool,
+        Nparts=length(parts), timed_tuple_time=timed_tuple.time
+    )
     return out
 end
 
@@ -263,16 +260,20 @@ function simulate_slice_profile(
     seq::Sequence;
     z=range(-2.e-2, 2.e-2, 200), sim_params=Dict{String,Any}("Δt_rf" => 1e-6)
 )
-    sim_params["return_type"] = "state"
+    sim_params["return_type"] = MagState()
     sys = Scanner()
     obj = Phantom{Float64}(x=zeros(size(z)), z=Array(z))
     mag = simulate(obj, seq, sys; sim_params)
     return mag
 end
 
-"""
-Auxiliary function to be overwriten by KomaMRIIO for getting the signal in RawAcquisitionData
-"""
-function simulation_output(sig, seq, phantom_name, sys, sim_params)
-    return sig
+abstract type SimulationOutput end
+struct MagState <: SimulationOutput end
+struct SigArray <: SimulationOutput end
+
+function simulation_output(return_type::MagState; kwargs...)
+    return kwargs[:Xt]
+end
+function simulation_output(return_type::SigArray; kwargs...)
+    return kwargs[:sig]
 end

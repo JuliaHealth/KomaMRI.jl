@@ -3,6 +3,7 @@ module KomaMRICore
 #IMPORT PACKAGES
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.abs, Base.getproperty
 #General
+using InteractiveUtils      # for using subtypes()
 using Reexport, ThreadsX
 #Printing
 using Scanf, ProgressMeter
@@ -54,6 +55,8 @@ export Spinor, Rx, Ry, Rz, Q, Un
 export get_kspace, rotx, roty, rotz
 #Simulator
 export simulate, simulate_slice_profile
+#Simulation Output
+export MagState, SigArray
 
 #Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
