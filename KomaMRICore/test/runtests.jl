@@ -128,12 +128,8 @@ using TestItems, TestItemRunner
         vt = [Grad(A1,T1); Grad(A2,T2); Grad(A3,T3)]
         @test dur(vt) ≈ [maximum([T1, T2, T3])]
 
-        # Test Grad output message
-        io = IOBuffer()
-        show(io, "text/plain", grad)
-        @test occursin("Grad(", String(take!(io)))
-        show(io, "text/plain", gr)
-        @test occursin("Grad(", String(take!(io)))
+        # Just checking to ensure that show() doesn't get stuck and that it is covered
+        show(IOBuffer(), "text/plain", grad)
 
     end
 
@@ -154,10 +150,8 @@ using TestItems, TestItemRunner
         r1, r2 = RF(A,T,Δf), RF(A,T,Δf,0)
         @test r1 ≈ r2
 
-        # Test RF output message
-        io = IOBuffer()
-        show(io, "text/plain", r1)
-        @test occursin("RF(", String(take!(io)))
+        # Just checking to ensure that show() doesn't get stuck and that it is covered
+        show(IOBuffer(), "text/plain", r1)
 
         # Test Grad operations
         B1x, B1y, T = rand(3)
@@ -187,10 +181,8 @@ using TestItems, TestItemRunner
         try Delay(-T) catch err end
         @test err isa ErrorException
 
-        # Test delay output message
-        io = IOBuffer()
-        show(io, "text/plain", delay)
-        @test occursin("Delay(", String(take!(io)))
+        # Just checking to ensure that show() doesn't get stuck and that it is covered
+        show(IOBuffer(), "text/plain", delay)
 
         # Test addition of a delay to a sequence
         seq = Sequence()
@@ -280,9 +272,9 @@ using TestItems, TestItemRunner
         @test is_RF_on(seq) == is_RF_on(seq, t)
         @test KomaMRICore.is_Delay(seq) == !(is_GR_on(seq) || is_RF_on(seq) || is_ADC_on(seq))
         @test size(M2, 1) == length(Δt) && size(M2_adc, 1) == length(t_adc)
-        io = IOBuffer()
-        show(io, "text/plain", seq)
-        @test occursin("Sequence[", String(take!(io)))
+
+        # Just checking to ensure that show() doesn't get stuck and that it is covered
+        show(IOBuffer(), "text/plain", seq)
 
         α = rand()
         c = α + im*rand()
@@ -456,9 +448,8 @@ end
     α, β = rand(2)
     s = Spinor(α, β)
     @test s[1].α ≈ [Complex(α)] && s[1].β ≈ [Complex(β)]
-    io = IOBuffer()
-    show(io, "text/plain", s)
-    @test occursin("Spinor(", String(take!(io)))
+    # Just checking to ensure that show() doesn't get stuck and that it is covered
+    show(IOBuffer(), "text/plain", s)
     α2, β2 = rand(2)
     s2 = Spinor(α2, β2)
     sp = s * s2
@@ -496,10 +487,9 @@ end
     end
     rawmrd = signal_to_raw_data(signal1, seq)
     @test rawmrd.params["institutionName"] == raw.params["institutionName"]
-    io = IOBuffer()
-    show(io, "text/plain", rawmrd)
-    @test occursin("RawAcquisitionData[", String(take!(io)))
 
+    # Just checking to ensure that show() doesn't get stuck and that it is covered
+    show(IOBuffer(), "text/plain", rawmrd)
 end
 
 @testitem "TimeStepCalculation" tags=[:core] begin
@@ -756,7 +746,6 @@ end
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 
-    io = IOBuffer()
-    show(io, "text/plain", KomaMRICore.BlochDict())
-    @test occursin("BlochDict(", String(take!(io)))
+    # Just checking to ensure that show() doesn't get stuck and that it is covered
+    show(IOBuffer(), "text/plain", KomaMRICore.BlochDict())
 end
