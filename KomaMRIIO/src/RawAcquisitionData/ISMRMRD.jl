@@ -222,11 +222,11 @@ Base.show(io::IO, raw::RawAcquisitionData) = begin
 end
 
 """
-Define simulation output for MRD (or RawAcquisitionData)
+Define simulation output for RawData (or RawAcquisitionData)
 """
-struct MRD <: SimulationOutput end
+struct RawData <: SimulationOutput end
 
-function simulation_output(return_type::MRD; kwargs...)
+function simulation_output(return_type::RawData; kwargs...)
     sim_params_raw = copy(kwargs[:sim_params])
     sim_params_raw["return_type"] = string(kwargs[:sim_params]["return_type"])
     sim_params_raw["sim_method"] = string(kwargs[:sim_params]["sim_method"])
