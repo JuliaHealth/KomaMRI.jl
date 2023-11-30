@@ -3,7 +3,6 @@ module KomaMRICore
 #IMPORT PACKAGES
 import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.abs, Base.getproperty
 #General
-using InteractiveUtils      # for using subtypes()
 using Reexport, ThreadsX
 #Printing
 using Scanf, ProgressMeter
