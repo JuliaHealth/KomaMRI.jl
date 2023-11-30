@@ -222,11 +222,11 @@ Base.show(io::IO, raw::RawAcquisitionData) = begin
 end
 
 """
-Define simulation output for RawData (or RawAcquisitionData)
+Define simulation output for RawDataSimOutput (or RawAcquisitionData)
 """
-struct RawData <: SimulationOutput end
+struct RawDataSimOutput <: SimulationOutput end
 
-function simulation_output(return_type::RawData; kwargs...)
+function simulation_output(return_type::RawDataSimOutput; kwargs...)
     sim_params_raw = copy(kwargs[:sim_params])
     sim_params_raw["return_type"] = string(kwargs[:sim_params]["return_type"])
     sim_params_raw["sim_method"] = string(kwargs[:sim_params]["sim_method"])

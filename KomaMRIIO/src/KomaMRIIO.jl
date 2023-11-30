@@ -17,7 +17,7 @@ include("RawAcquisitionData/ISMRMRD.jl")
 export read_seq                                 # Pulseq
 export signal_to_raw_data                       # ISMRMRD
 export read_phantom_jemris, read_phantom_MRiLab # Phantom
-export RawData                                  # Simulation Output
+export RawDataSimOutput                                  # Simulation Output
 
 # Package version: KomaMRIIO.__VERSION__
 using Pkg

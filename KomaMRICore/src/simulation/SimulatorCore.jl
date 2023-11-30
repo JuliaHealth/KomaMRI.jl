@@ -6,12 +6,12 @@ include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
 
 """
-Checks if the RawData type is part of SimulationOutput
+Checks if the RawDataSimOutput type is part of SimulationOutput
 It requires the function subtypes() which is part of InteractiveUtils
 """
 function default_return_type()
     types = subtypes(SimulationOutput)
-    index = findfirst(i -> (string(i) == "RawData" || string(i) == "KomaMRIIO.RawData"), types)
+    index = findfirst(i -> (string(i) == "RawDataSimOutput" || string(i) == "KomaMRIIO.RawDataSimOutput"), types)
     return isnothing(index) ? MatrixSimOutput() : types[index].instance
 end
 
@@ -260,7 +260,7 @@ function simulate_slice_profile(
     seq::Sequence;
     z=range(-2.e-2, 2.e-2, 200), sim_params=Dict{String,Any}("Δt_rf" => 1e-6)
 )
-    sim_params["return_type"] = SpinsState()
+    sim_params["return_type"] = SpinsStateSimOutput()
     sys = Scanner()
     obj = Phantom{Float64}(x=zeros(size(z)), z=Array(z))
     mag = simulate(obj, seq, sys; sim_params)
@@ -268,10 +268,10 @@ function simulate_slice_profile(
 end
 
 abstract type SimulationOutput end
-struct SpinsState <: SimulationOutput end
+struct SpinsStateSimOutput <: SimulationOutput end
 struct MatrixSimOutput <: SimulationOutput end
 
-function simulation_output(return_type::SpinsState; kwargs...)
+function simulation_output(return_type::SpinsStateSimOutput; kwargs...)
     return kwargs[:Xt]
 end
 function simulation_output(return_type::MatrixSimOutput; kwargs...)
