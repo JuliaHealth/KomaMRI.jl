@@ -17,7 +17,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "Δt_rf", 5e-5)
     get!(sim_params, "sim_method", Bloch())
     get!(sim_params, "precision", "f32")
-    get!(sim_params, "return_type", RawDataSimOutput())
+    get!(sim_params, "return_type", "raw")
     return sim_params
 end
 
@@ -222,11 +222,23 @@ function simulate(
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
     if sim_params["gpu"] GC.gc(true); CUDA.reclaim() end
-    out = simulation_output(
-        sim_params["return_type"];
-        Xt, sig, seq, obj, sys, sim_params, t_sim_parts, excitation_bool,
-        Nparts=length(parts), timed_tuple_time=timed_tuple.time
-    )
+    # Output
+    if sim_params["return_type"] == "state"
+        out = Xt
+    elseif sim_params["return_type"] == "mat"
+        out = sig
+    elseif sim_params["return_type"] == "raw"
+        # To visually check the simulation blocks
+        sim_params_raw = copy(sim_params)
+        sim_params_raw["sim_method"] = string(sim_params["sim_method"])
+        sim_params_raw["gpu"] = sim_params["gpu"]
+        sim_params_raw["Nthreads"] = sim_params["Nthreads"]
+        sim_params_raw["t_sim_parts"] = t_sim_parts
+        sim_params_raw["type_sim_parts"] = excitation_bool
+        sim_params_raw["Nblocks"] = length(parts)
+        sim_params_raw["sim_time_sec"] = timed_tuple.time
+        out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw)
+    end
     return out
 end
 
@@ -255,27 +267,4 @@ function simulate_slice_profile(
     obj = Phantom{Float64}(x=zeros(size(z)), z=Array(z))
     mag = simulate(obj, seq, sys; sim_params)
     return mag
-end
-
-abstract type SimulationOutput end
-struct SpinsStateSimOutput <: SimulationOutput end
-struct MatrixSimOutput <: SimulationOutput end
-struct RawDataSimOutput <: SimulationOutput end
-function simulation_output(return_type::SpinsStateSimOutput; kwargs...)
-    return kwargs[:Xt]
-end
-function simulation_output(return_type::MatrixSimOutput; kwargs...)
-    return kwargs[:sig]
-end
-function simulation_output(return_type::RawDataSimOutput; kwargs...)
-    sim_params_raw = copy(kwargs[:sim_params])
-    sim_params_raw["return_type"] = string(kwargs[:sim_params]["return_type"])
-    sim_params_raw["sim_method"] = string(kwargs[:sim_params]["sim_method"])
-    sim_params_raw["gpu"] = kwargs[:sim_params]["gpu"]
-    sim_params_raw["Nthreads"] = kwargs[:sim_params]["Nthreads"]
-    sim_params_raw["t_sim_parts"] = kwargs[:t_sim_parts]
-    sim_params_raw["type_sim_parts"] = kwargs[:excitation_bool]
-    sim_params_raw["Nblocks"] = kwargs[:Nparts]
-    sim_params_raw["sim_time_sec"] = kwargs[:timed_tuple_time]
-    out = signal_to_raw_data(kwargs[:sig], kwargs[:seq]; phantom_name=kwargs[:obj].name, sys=kwargs[:sys], sim_params=sim_params_raw)
 end

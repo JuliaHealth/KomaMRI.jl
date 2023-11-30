@@ -542,7 +542,7 @@ end
         "gpu"=>false,
         "Nthreads"=>1,
         "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>KomaMRICore.MatrixSimOutput()
+        "return_type"=>"mat"
     )
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
@@ -567,7 +567,7 @@ end
     sim_params = Dict{String, Any}(
         "gpu"=>false,
         "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>KomaMRICore.MatrixSimOutput()
+        "return_type"=>"mat"
     )
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
@@ -592,7 +592,7 @@ end
     sim_params = Dict{String, Any}(
         "gpu"=>true,
         "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>KomaMRICore.MatrixSimOutput()
+        "return_type"=>"mat"
     )
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
@@ -748,7 +748,7 @@ end
     seq = @suppress read_seq(joinpath(path, "epi_100x100_TE100_FOV230.seq"))
     obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
     sys = Scanner()
-    sim_params = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>KomaMRICore.MatrixSimOutput())
+    sim_params = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>"mat")
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     sim_params["sim_method"] = KomaMRICore.BlochDict()
