@@ -11,9 +11,11 @@ using MRIFiles
 include("Sequence/Pulseq.jl")
 include("Phantom/JEMRIS.jl")
 include("Phantom/MRiLab.jl")
+include("RawAcquisitionData/UpdateRawParams.jl")
 
 export read_seq                                 # Pulseq
 export read_phantom_jemris, read_phantom_MRiLab # Phantom
+export update_encoding_limits!                  # Updates RawAcquisitionData Params
 
 # Package version: KomaMRIIO.__VERSION__
 using Pkg
