@@ -111,6 +111,13 @@ function signal_to_raw_data(
     ktraj = maximum(2*abs.(ktraj[:])) == 0 ? transpose(ktraj) : transpose(ktraj)./ maximum(2*abs.(ktraj[:]))
 
     #First we define the ISMRMRD data XML header
+    #userParameters <- sim_params
+    for (key, val) in sim_params
+        if typeof(val) <: Integer #Fixes problem with bools
+            sim_params[key] = Int(val)
+        end
+    end
+    #XML header
     params = Dict(
         #AcquisitionSystemInformation
         "systemVendor"                   => "KomaMRI.jl", #String
@@ -123,7 +130,6 @@ function signal_to_raw_data(
         "H1resonanceFrequency_Hz"        => floor(Int64, γ * sys.B0), #Long (Int)
         #measurementInformation
         "protocolName"                   => haskey(seq.DEF,"Name") ? seq.DEF["Name"] : "NoName", #String
-        "userParameters"                 => sim_params, #Dict with parameters
         # "trajectoryDescription"          => Dict{String, Any}("comment"=>""), #You can put wathever you want here: comment, bandwidth, MaxGradient_G_per_cm, MaxSlewRate_G_per_cm_per_s, interleaves, etc
         #encoding
         #   encodedSpace
@@ -150,7 +156,7 @@ function signal_to_raw_data(
         # "TI"                             => 0,
         # "flipAngle_deg"                  => 0,
         # "echo_spacing"                   => 0,
-        # "userParameters"                 => Dict{String,Any}("test"=>0), #sim_params, #Dict with parameters
+        "userParameters"                 => sim_params, #Dict with parameters
     )
 
     #Then, we define the Profiles
