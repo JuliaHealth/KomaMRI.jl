@@ -13,7 +13,6 @@ using Interpolations
 using CUDA
 #Reconstruction
 using MRIBase
-import MRIBase: EncodingCounters
 @reexport using MRIBase: Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
 using MAT   # For loading example phantoms
 
