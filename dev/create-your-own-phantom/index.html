@@ -31,84 +31,59 @@ using KomaMRI, MAT
 
 # Get data from a .mat file
 path_koma = dirname(dirname(pathof(KomaMRI)))
-path_phantom_mat = joinpath(path_koma, &quot;KomaMRICore&quot;, &quot;src&quot;, &quot;datatypes&quot;,&quot;phantom&quot;, &quot;brain2D.mat&quot;)
+path_phantom_mat = joinpath(path_koma, &quot;KomaMRICore&quot;, &quot;src&quot;, &quot;datatypes&quot;, &quot;phantom&quot;, &quot;pelvis2D.mat&quot;)
 data = MAT.matread(path_phantom_mat)
-class = data[&quot;sagittal&quot;]</code></pre><p>You can visualize the tissue map using the <a href="../api/#KomaMRIPlots.plot_image"><code>plot_image</code></a> function:</p><pre><code class="language-julia hljs">plot_image(class)</code></pre><center><object type="text/html" data="../assets/create-your-own-phantom-class-map.html" style="width:100%; height:620px;"></object></center><p>Let&#39;s define the position arrays. You need to know the distance between the spins in the original array (in this case, it is 0.5mm), and then you can determine all the positions like this (the z-component is not calculated since this is a 2D example):</p><pre><code class="language-julia hljs"># Define spin position arrays
+class = data[&quot;pelvis3D_slice&quot;]</code></pre><p>You can visualize the tissue map using the <a href="../api/#KomaMRIPlots.plot_image"><code>plot_image</code></a> function:</p><pre><code class="language-julia hljs">plot_image(class)</code></pre><center><object type="text/html" data="../assets/create-your-own-phantom-class-map.html" style="width:100%; height:620px;"></object></center><p>Let&#39;s define the position arrays. You need to know the distance between the spins in the original array (in this case, it is 0.5mm), and then you can determine all the positions like this (the z-component is not calculated since this is a 2D example):</p><pre><code class="language-julia hljs"># Define spin position arrays
 Δx = .5e-3                  # 0.5mm
 M, N = size(class)          # Number of spins in x and y
 FOVx = (M-1)*Δx             # Field of view in x
 FOVy = (N-1)*Δx             # Field of view in y
 x = -FOVx/2:Δx:FOVx/2       # x spin coordinates vector
 y = -FOVy/2:Δx:FOVy/2       # y spin coordinates vector
-x, y = x .+ y&#39;*0, x*0 .+ y&#39; # x and y grid points</code></pre><p>Now, let&#39;s define the arrays for the properties. It&#39;s essential to have prior knowledge of the property values for different tissue classes. For example, for muscle tissue, we use <code>ρ = 1</code>, <code>T1 = 900 * 1e-3</code>, <code>T2 = 47 * 1e-3</code>, and <code>T2s = 30 * 1e-3</code>. Additionally, create an array mask to identify the location of a tissue&#39;s ID. For muscle with ID = 116, the mask is <code>(class == 116)</code>. Finally, to obtain a property, sum all the masks with values for all tissue classes. This process is illustrated below: </p><pre><code class="language-julia hljs"># Define the proton density array
-ρ = (class.==23)*1 .+       # CSF
-    (class.==46)*.86 .+     # GM
-    (class.==70)*.77 .+     # WM
-    (class.==93)*1 .+       # FAT1
-    (class.==116)*1 .+      # MUSCLE
-    (class.==139)*.7 .+     # SKIN/MUSCLE
-    (class.==162)*0 .+      # SKULL
-    (class.==185)*0 .+      # VESSELS
-    (class.==209)*.77 .+    # FAT2
-    (class.==232)*1 .+      # DURA
-    (class.==255)*.77       # MARROW
+x, y = x .+ y&#39;*0, x*0 .+ y&#39; # x and y grid points</code></pre><p>Now, let&#39;s define the arrays for the properties. It&#39;s essential to have prior knowledge of the property values for different tissue classes. For example, for soft tissue, we use <code>ρ = 0.9</code>, <code>T1 = 1200 * 1e-3</code>, <code>T2 = 80 * 1e-3</code>, and <code>T2s = 80 * 1e-3</code>. Additionally, we create an array mask to identify the location of a tissue&#39;s ID. For soft tissue with ID = 153, the mask is <code>(class .== 153)</code>. Finally, to obtain a property, sum all the masks with values for all tissue classes. This process is illustrated below: </p><pre><code class="language-julia hljs"># Define the proton density array
+ρ = (class.==51)*.001 .+    # Air
+    (class.==102)*.86 .+    # Fat
+    (class.==153)*.9 .+     # SoftTissue
+    (class.==204)*.4 .+     # SpongyBone
+    (class.==255)*.2        # CorticalBone
 
 # Define the T1 decay array
-T1 = (class.==23)*2569 .+   # CSF
-    (class.==46)*833 .+     # GM
-    (class.==70)*500 .+     # WM
-    (class.==93)*350 .+     # FAT1
-    (class.==116)*900 .+    # MUSCLE
-    (class.==139)*569 .+    # SKIN/MUSCLE
-    (class.==162)*0 .+      # SKULL
-    (class.==185)*0 .+      # VESSELS
-    (class.==209)*500 .+    # FAT2
-    (class.==232)*2569 .+   # DURA
-    (class.==255)*500       # MARROW
+T1 = (class.==51)*.001 .+   # Air
+    (class.==102)*366 .+    # Fat
+    (class.==153)*1200 .+   # SoftTissue
+    (class.==204)*381 .+    # SpongyBone
+    (class.==255)*100       # CorticalBone
 
 # Define the T2 decay array
-T2 = (class.==23)*329 .+    # CSF
-    (class.==46)*83 .+      # GM
-    (class.==70)*70 .+      # WM
-    (class.==93)*70 .+      # FAT1
-    (class.==116)*47 .+     # MUSCLE
-    (class.==139)*329 .+    # SKIN/MUSCLE
-    (class.==162)*0 .+      # SKULL
-    (class.==185)*0 .+      # VESSELS
-    (class.==209)*70 .+     # FAT2
-    (class.==232)*329 .+    # DURA
-    (class.==255)*70        # MARROW
+T2 = (class.==51)*.001 .+   # Air
+    (class.==102)*70 .+     # Fat
+    (class.==153)*80 .+     # SoftTissue
+    (class.==204)*52 .+     # SpongyBone
+    (class.==255)*.3        # CorticalBone
 
 # Define the T2s decay array
-T2s = (class.==23)*58 .+    # CSF
-    (class.==46)*69 .+      # GM
-    (class.==70)*61 .+      # WM
-    (class.==93)*58 .+      # FAT1
-    (class.==116)*30 .+     # MUSCLE
-    (class.==139)*58 .+     # SKIN/MUSCLE
-    (class.==162)*0 .+      # SKULL
-    (class.==185)*0 .+      # VESSELS
-    (class.==209)*61 .+     # FAT2
-    (class.==232)*58 .+     # DURA
-    (class.==255)*61        # MARROW
+T2s = (class.==51)*.001 .+  # Air
+    (class.==102)*70 .+     # Fat
+    (class.==153)*80 .+     # SoftTissue
+    (class.==204)*52 .+     # SpongyBone
+    (class.==255)*.3        # CorticalBone
 
 # Define off-resonance array
-Δw_fat = -220*2π
-Δw = (class.==93)*Δw_fat .+ # FAT1
-    (class.==209)*Δw_fat    # FAT2
+Δw_fat = -220 * 2π
+Δw = (class.==102) * Δw_fat # FAT1
 
 # Adjust with scaling factor
 T1 = T1*1e-3
 T2 = T2*1e-3
-T2s = T2s*1e-3</code></pre><p>Finally, we can invoke the <a href="@Ref"><code>Phantom</code></a> constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask <code>ρ.!=0</code> to the arrays. Additionally, please note that we set the x-position array filled with zeros, and we interchange the y and z coordinates.</p><pre><code class="language-julia hljs"># Define the phantom
+T2s = T2s*1e-3</code></pre><p>Finally, we can invoke the <a href="@Ref"><code>Phantom</code></a> constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask <code>ρ.!=0</code> to the arrays. Additionally, please note that we set the z-position array filled with zeros.</p><pre><code class="language-julia hljs"># Define the phantom
 obj = Phantom{Float64}(
-    name = &quot;custom-brain&quot;,
-	x = 0*x[ρ.!=0],
-	y = x[ρ.!=0],
-	z = y[ρ.!=0],
+    name = &quot;custom-pelvis&quot;,
+	x = x[ρ.!=0],
+	y = y[ρ.!=0],
+	z = 0*x[ρ.!=0],
 	ρ = ρ[ρ.!=0],
 	T1 = T1[ρ.!=0],
 	T2 = T2[ρ.!=0],
 	T2s = T2s[ρ.!=0],
 	Δw = Δw[ρ.!=0],
-)</code></pre><p>We can display the <strong>Phantom</strong> struct with the <a href="../api/#KomaMRIPlots.plot_phantom_map"><code>plot_phantom_map</code></a> function. In this case we select the proton density to be displayed, but you can choose other property to be displayed:</p><pre><code class="language-julia hljs">plot_phantom_map(obj, :ρ)</code></pre><object type="text/html" data="../assets/create-your-own-phantom-plot-rho.html" style="width:100%; height:620px;"></object></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../notebooks/">« Notebooks</a><a class="docs-footer-nextpage" href="../sequence/">Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Thursday 30 November 2023 16:18">Thursday 30 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+)</code></pre><p>We can display the <strong>Phantom</strong> struct with the <a href="../api/#KomaMRIPlots.plot_phantom_map"><code>plot_phantom_map</code></a> function. In this case we select the T1 decay to be displayed, but you can choose other property to be displayed:</p><pre><code class="language-julia hljs">plot_phantom_map(obj, :T1)</code></pre><object type="text/html" data="../assets/create-your-own-phantom-plot-rho.html" style="width:100%; height:620px;"></object></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../notebooks/">« Notebooks</a><a class="docs-footer-nextpage" href="../sequence/">Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Friday 1 December 2023 20:28">Friday 1 December 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
