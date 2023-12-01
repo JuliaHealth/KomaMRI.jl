@@ -5,6 +5,7 @@ using Scanf, FileIO, HDF5, MAT, JLD2    # IO related
 
 using Reexport
 using MRIFiles
+import MRIFiles: insertNode
 @reexport using MRIFiles: ISMRMRDFile
 @reexport using FileIO: save
 

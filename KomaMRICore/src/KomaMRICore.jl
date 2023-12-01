@@ -13,7 +13,8 @@ using Interpolations
 using CUDA
 #Reconstruction
 using MRIBase
-@reexport using MRIBase: EncodingCounters, Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
+import MRIBase: EncodingCounters
+@reexport using MRIBase: Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader
 using MAT   # For loading example phantoms
 
 global γ = 42.5774688e6; #Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
