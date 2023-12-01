@@ -111,6 +111,7 @@ function setup_phantom(; phantom_mode="2D")
     # Print information and get the default Phantom struct
     @info "Loaded `Phantom` to `obj_ui[]`"
     obj = phantom_mode == "3D" ? brain_phantom3D() : brain_phantom2D()
+    obj.Δw .= 0 # Removes off-resonance
 
     # Return the default Phantom struct
     return obj
