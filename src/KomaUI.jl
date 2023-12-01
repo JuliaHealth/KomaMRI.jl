@@ -154,7 +154,6 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
 
         # Perform simulation
         raw_aux = simulate(obj_ui[], seq_ui[], sys_ui[]; sim_params, w)
-        update_encoding_limits!(raw_aux, seq_ui[])
 
         # After simulation, display the text on the simulation button (not the progress bar)
         @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
