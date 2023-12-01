@@ -47,7 +47,7 @@ Paper: <br>[![][paper-img1]][paper-url1]
 |:---------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
 | 📦 KomaMRI.jl        | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
 | └ 📦 KomaMRICore.jl  | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
-| └ 📦 KomaMRIIO.jl    | [![][komaio-version]][komaio-juliahub]    | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
+| └ 📦 KomaMRIFiles.jl    | [![][komaio-version]][komaio-juliahub]    | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
 | └ 📦 KomaMRIPlots.jl | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
 </td>
 </tr>
@@ -56,11 +56,11 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
 [komacore-version]: https://juliahub.com/docs/General/KomaMRICore/stable/version.svg
 [komaplots-version]: https://juliahub.com/docs/General/KomaMRIPlots/stable/version.svg
-[komaio-version]: https://juliahub.com/docs/General/KomaMRIIO/stable/version.svg
+[komaio-version]: https://juliahub.com/docs/General/KomaMRIFiles/stable/version.svg
 [komamri-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRI
 [komacore-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRICore
 [komaplots-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIPlots
-[komaio-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIIO
+[komaio-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIFiles
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docr-url]: https://cncastillo.github.io/KomaMRI.jl/stable/

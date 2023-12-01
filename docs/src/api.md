@@ -103,7 +103,7 @@ Delay
 ## Read Data
 
 ```@meta
-CurrentModule = KomaMRIIO
+CurrentModule = KomaMRIFiles
 ```
 
 ### `read_seq`

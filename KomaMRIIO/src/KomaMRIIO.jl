@@ -1,4 +1,4 @@
-module KomaMRIIO
+module KomaMRIFiles
 
 using KomaMRICore
 using Scanf, FileIO, HDF5, MAT, JLD2    # IO related
@@ -17,8 +17,8 @@ include("RawAcquisitionData/WriteRawData.jl")
 export read_seq                                 # Pulseq
 export read_phantom_jemris, read_phantom_MRiLab # Phantom
 
-# Package version: KomaMRIIO.__VERSION__
+# Package version: KomaMRIFiles.__VERSION__
 using Pkg
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
-end # module KomaMRIIO
+end # module KomaMRIFiles

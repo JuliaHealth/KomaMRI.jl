@@ -290,7 +290,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     # Update Koma versions to tooltip
     version_ui = string(KomaMRI.__VERSION__)
     version_core = string(KomaMRICore.__VERSION__)
-    version_io = string(KomaMRIIO.__VERSION__)
+    version_io = string(KomaMRIFiles.__VERSION__)
     version_plots = string(KomaMRIPlots.__VERSION__)
     @js_ w (
         @var version_ui = $(version_ui);
@@ -300,10 +300,10 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         document.getElementById("Github").setAttribute("data-bs-original-title",
                                                          "KomaMRI.jl v"+version_ui+"\n"+
                                                          "KomaMRICore.jl v"+version_core+"\n"+
-                                                         "KomaMRIIO.jl v"+version_io+"\n"+
+                                                         "KomaMRIFiles.jl v"+version_io+"\n"+
                                                          "KomaMRIPlots.jl v"+version_plots);
     )
-    @info "Currently using package versions" KomaMRI=version_ui KomaMRICore=version_core KomaMRIIO=version_io KomaMRIPlots=version_plots
+    @info "Currently using package versions" KomaMRI=version_ui KomaMRICore=version_core KomaMRIFiles=version_io KomaMRIPlots=version_plots
 
     # Devtools
     if return_window

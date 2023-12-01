@@ -11,17 +11,17 @@
 src/*.jl    @cncastillo
 KomaMRICore/src/*.jl    @cncastillo
 KomaMRIPlots/src/*.jl    @cncastillo
-KomaMRIIO/src/*.jl    @cncastillo
+KomaMRIFiles/src/*.jl    @cncastillo
 # TEST
 test/*.jl    @cncastillo
 KomaMRICore/test/*.jl    @cncastillo
 KomaMRIPlots/test/*.jl    @cncastillo
-KomaMRIIO/test/*.jl    @cncastillo
+KomaMRIFiles/test/*.jl    @cncastillo
 # EXT
 ext/*.jl    @cncastillo
 KomaMRICore/ext/*.jl    @cncastillo
 KomaMRIPlots/ext/*.jl    @cncastillo
-KomaMRIIO/ext/*.jl    @cncastillo
+KomaMRIFiles/ext/*.jl    @cncastillo
 
 # You can also use email addresses if you prefer.
 # docs/*  docs@example.com
