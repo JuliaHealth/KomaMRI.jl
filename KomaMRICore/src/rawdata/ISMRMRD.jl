@@ -7,6 +7,49 @@ struct Limit
     center::Int
 end
 
+const b64 = UInt64(1)
+const ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP1               =  1b64
+const ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1                =  2b64
+const ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP2               =  3b64
+const ISMRMRD_ACQ_LAST_IN_ENCODE_STEP2                =  4b64
+const ISMRMRD_ACQ_FIRST_IN_AVERAGE                    =  5b64
+const ISMRMRD_ACQ_LAST_IN_AVERAGE                     =  6b64
+const ISMRMRD_ACQ_FIRST_IN_SLICE                      =  7b64
+const ISMRMRD_ACQ_LAST_IN_SLICE                       =  8b64
+const ISMRMRD_ACQ_FIRST_IN_CONTRAST                   =  9b64
+const ISMRMRD_ACQ_LAST_IN_CONTRAST                    = 10b64
+const ISMRMRD_ACQ_FIRST_IN_PHASE                      = 11b64
+const ISMRMRD_ACQ_LAST_IN_PHASE                       = 12b64
+const ISMRMRD_ACQ_FIRST_IN_REPETITION                 = 13b64
+const ISMRMRD_ACQ_LAST_IN_REPETITION                  = 14b64
+const ISMRMRD_ACQ_FIRST_IN_SET                        = 15b64
+const ISMRMRD_ACQ_LAST_IN_SET                         = 16b64
+const ISMRMRD_ACQ_FIRST_IN_SEGMENT                    = 17b64
+const ISMRMRD_ACQ_LAST_IN_SEGMENT                     = 18b64
+const ISMRMRD_ACQ_IS_NOISE_MEASUREMENT                = 19b64
+const ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION             = 20b64
+const ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING = 21b64
+const ISMRMRD_ACQ_IS_REVERSE                          = 22b64
+const ISMRMRD_ACQ_IS_NAVIGATION_DATA                  = 23b64
+const ISMRMRD_ACQ_IS_PHASECORR_DATA                   = 24b64
+const ISMRMRD_ACQ_LAST_IN_MEASUREMENT                 = 25b64
+const ISMRMRD_ACQ_IS_HPFEEDBACK_DATA                  = 26b64
+const ISMRMRD_ACQ_IS_DUMMYSCAN_DATA                   = 27b64
+const ISMRMRD_ACQ_IS_RTFEEDBACK_DATA                  = 28b64
+const ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA   = 29b64
+const ISMRMRD_ACQ_COMPRESSION1                        = 53b64
+const ISMRMRD_ACQ_COMPRESSION2                        = 54b64
+const ISMRMRD_ACQ_COMPRESSION3                        = 55b64
+const ISMRMRD_ACQ_COMPRESSION4                        = 56b64
+const ISMRMRD_ACQ_USER1                               = 57b64
+const ISMRMRD_ACQ_USER2                               = 58b64
+const ISMRMRD_ACQ_USER3                               = 59b64
+const ISMRMRD_ACQ_USER4                               = 60b64
+const ISMRMRD_ACQ_USER5                               = 61b64
+const ISMRMRD_ACQ_USER6                               = 62b64
+const ISMRMRD_ACQ_USER7                               = 63b64
+const ISMRMRD_ACQ_USER8                               = 64b64
+
 """
     raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params)
 
@@ -69,46 +112,50 @@ function signal_to_raw_data(
 
     #First we define the ISMRMRD data XML header
     params = Dict(
-        #Simulator
+        #AcquisitionSystemInformation
         "systemVendor"                   => "KomaMRI.jl", #String
         "systemModel"                    => "v"*version, #String
-        "institutionName"                => "Pontificia Universidad Catolica de Chile", #String
-        #Phantom
-        "patientName"                    => phantom_name,
-        #Sys
         "systemFieldStrength_T"          => sys.B0, #Float
+        "institutionName"                => "Pontificia Universidad Catolica de Chile", #String
+        #subjectInformation
+        "patientName"                    => phantom_name,
+        #experimentalConditions
         "H1resonanceFrequency_Hz"        => floor(Int64, γ * sys.B0), #Long (Int)
-        #Seq
-        "trajectory"                     => "other", #Must be: cartesian, epi, radial, goldenangle, spiral, and other
+        #measurementInformation
         "protocolName"                   => haskey(seq.DEF,"Name") ? seq.DEF["Name"] : "NoName", #String
-        # "trajectoryDescription"          => Dict{String, Any}("comment"=>""), #You can put wathever you want here: comment, bandwidth, MaxGradient_G_per_cm, MaxSlewRate_G_per_cm_per_s, interleaves, etc
         "userParameters"                 => sim_params, #Dict with parameters
-        #encoding>
-        "encodedFOV"                     => [FOVx, FOVy, 1.0],    #encodedSpace>fieldOfView_mm
-        "reconFOV"                       => [FOVx, FOVy, 1.0],    #reconSpace>fieldOfView_mm
-        "encodedSize"                    => [Nx, Ny, 1],            #encodedSpace>matrixSize
-        "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, 1],  #reconSpace>matrixSize
-        #encoding limits
-        "enc_lim_kspace_encoding_step_1" => Limit(0, Nx-1, ceil(Int, Nx / 2)),   #min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, 0, 0),     #min, max, center, e.g. partition encoding number
-        "enc_lim_average"                => Limit(0, 0, 0),     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, 0, 0),     #min, max, center, e.g. imaging slice number
-        "enc_lim_contrast"               => Limit(0, 0, 0),     #min, max, center, e.g. echo number in multi-echo
-        "enc_lim_phase"                  => Limit(0, 0, 0),     #min, max, center, e.g. cardiac phase number
-        "enc_lim_repetition"             => Limit(0, 0, 0),     #min, max, center, e.g. dynamic number for dynamic scanning
-        "enc_lim_set"                    => Limit(0, 0, 0),     #min, max, center, e.g. flow encoding set
-        "enc_lim_segment"                => Limit(0, 0, 0),     #min, max, center, #segment: e.g. segment number for segmented acquisition
+        # "trajectoryDescription"          => Dict{String, Any}("comment"=>""), #You can put wathever you want here: comment, bandwidth, MaxGradient_G_per_cm, MaxSlewRate_G_per_cm_per_s, interleaves, etc
+        #encoding
+        #   encodedSpace
+        "encodedSize"                    => [Nx, Ny, 1],                        #encodedSpace>matrixSize
+        "encodedFOV"                     => Float32.([FOVx, FOVy, 1e-3]*1e3),   #encodedSpace>fieldOfView_mm
+        #   reconSpace
+        "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, 1],              #reconSpace>matrixSize
+        "reconFOV"                       => Float32.([FOVx, FOVy, 1e-3]*1e3),   #reconSpace>fieldOfView_mm
+        #encodingLimits
+        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
+        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_2" => Limit(0, 0, 0),                     #min, max, center, e.g. partition encoding number
+        "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
+        "enc_lim_slice"                  => Limit(0, 0, 0),                     #min, max, center, e.g. imaging slice number
+        "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
+        "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
+        "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
+        "enc_lim_set"                    => Limit(0, 0, 0),                     #min, max, center, e.g. flow encoding set
+        "enc_lim_segment"                => Limit(0, 0, 0),                     #min, max, center, e.g. segment number for segmented acquisition
+        "trajectory"                     => "other",
         #sequenceParameters
         # "TR"                             => 0,
         # "TE"                             => 0,
         # "TI"                             => 0,
         # "flipAngle_deg"                  => 0,
         # "echo_spacing"                   => 0,
+        # "userParameters"                 => Dict{String,Any}("test"=>0), #sim_params, #Dict with parameters
     )
 
     #Then, we define the Profiles
     profiles = Profile[]
-    t_acq = KomaMRICore.get_adc_sampling_times(seq)
+    t_acq = get_adc_sampling_times(seq)
     Nadcs = sum(is_ADC_on.(seq))
     NadcsPerImage = floor(Int, Nadcs / Nz)
     scan_counter = 0
@@ -117,52 +164,60 @@ function signal_to_raw_data(
     for s = seq #Iterate over sequence blocks
         if is_ADC_on(s)
             Nsamples = s.ADC.N[1]
-            Δt_us = Float32( s.ADC.T[1] / (Nsamples - 1) * 1e6 )
-            t0_us = floor(Int32, t_acq[current] * 1e6 )
+            Δt_us = floor( s.ADC.T[1] / (Nsamples - 1) * 1e6 )
+            t0_us = floor( t_acq[current] * 1e6 )
+            flag  = 0
+            if scan_counter == 0
+                flag += ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP1
+                flag += ISMRMRD_ACQ_FIRST_IN_SLICE
+            elseif scan_counter == Nadcs - 1
+                flag += ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1
+                flag += ISMRMRD_ACQ_LAST_IN_SLICE
+            end
             #Header of profile data, head::AcquisitionHeader
             head = AcquisitionHeader(
-                0, #version: First unsigned int indicates the version
-                0, #flags: bit field with flags, noise measure, calibration, coil sens, measure, etc
-                0, #measurement_uid: Unique ID for the measurement
-                scan_counter, #scan_counter: Current acquisition number in the measurement
-                t0_us, #acquisition_time_stamp: Acquisition clock, I am "miss"-using this variable to store t0 in us
-                (0, 0, 0), #physiology_time_stamp: Physiology time stamps, e.g. ecg, breating, etc.
-                Nsamples, #number_of_samples
-                1, #available_channels: Available coils
-                1, #active_channels: Active coils on current acquisiton
-                Tuple(0 for i=1:16), #channel_mask: Active coils on current acquisiton
-                0, #discard_pre: Samples to be discarded at the beginning of acquisition
-                0, #discard_post: Samples to be discarded at the end of acquisition
-                0, #center_sample: Sample at the center of k-space
-                0, #encoding_space_ref: Reference to an encoding space, typically only one per acquisition
-                2, #trajectory_dimensions: Indicates the dimensionality of the trajectory vector (0 means no trajectory)
-                Δt_us, #sample_time_us: Time between samples in micro seconds, sampling BW
-                (0.0f0, 0.0f0, 0.0f0), #position: Three-dimensional spatial offsets from isocenter
-                (1.0f0, 0.0f0, 0.0f0), #read_dir: Directional cosines of the readout/frequency encoding
-                (0.0f0, 1.0f0, 0.0f0), #phase_dir: Directional cosines of the phase
-                (0.0f0, 0.0f0, 1.0f0), #slice_dir: Directional cosines of the slice direction
-                (0.0f0, 0.0f0, 0.0f0), #patient_table_position: Patient table off-center
-                EncodingCounters( #idx: Encoding loop counters
-                    scan_counter, #kspace_encode_step_1: e.g. phase encoding line number
-                    0, #kspace_encode_step_2: e.g. partition encoding number
-                    0, #average: e.g. signal average number
-                    nz, #slice: e.g. imaging slice number
-                    0, #contrast: e.g. echo number in multi-echo
-                    0, #phase: e.g. cardiac phase number
-                    0, #repetition: e.g. dynamic number for dynamic scanning
-                    0, #set: e.g. flow encoding set
-                    0, #segment: e.g. segment number for segmented acquisition
-                    (0, 0, 0, 0, 0, 0, 0, 0) #user: Free user parameters
+                UInt16(1), #version uint16: First unsigned int indicates the version
+                UInt64(flag), #flags uint64: bit field with flags, noise measure, calibration, coil sens, measure, etc
+                UInt32(0), #measurement_uid uint32: Unique ID for the measurement
+                UInt32(scan_counter), #scan_counter uint32: Current acquisition number in the measurement
+                UInt32(t0_us), #acquisition_time_stamp uint32: Acquisition clock, I am "miss"-using this variable to store t0 in us
+                UInt32.((0, 0, 0)), #physiology_time_stamp uint32x3: Physiology time stamps, e.g. ecg, breating, etc.
+                UInt16(Nsamples), #number_of_samples uint16
+                UInt16(1), #available_channels uint16: Available coils 
+                UInt16(1), #active_channels uint16: Active coils on current acquisiton
+                Tuple(UInt64(0) for i=1:16), #channel_mask uint64x16: Active coils on current acquisiton
+                UInt16(0), #discard_pre uint16: Samples to be discarded at the beginning of acquisition
+                UInt16(0), #discard_post uint16: Samples to be discarded at the end of acquisition
+                UInt16(0), #center_sample uint16: Sample at the center of k-space
+                UInt16(0), #encoding_space_ref uint16: Reference to an encoding space, typically only one per acquisition
+                UInt16(2), #trajectory_dimensions uint16: Indicates the dimensionality of the trajectory vector (0 means no trajectory)
+                Float32(Δt_us), #sample_time_us float32: Time between samples in micro seconds, sampling BW
+                Float32.((0, 0, 0)), #position float32x3: Three-dimensional spatial offsets from isocenter
+                Float32.((1, 0, 0)), #read_dir float32x3: Directional cosines of the readout/frequency encoding
+                Float32.((0, 1, 0)), #phase_dir float32x3: Directional cosines of the phase
+                Float32.((0, 0, 1)), #slice_dir float32x3: Directional cosines of the slice direction
+                Float32.((0, 0, 0)), #patient_table_position float32x3: Patient table off-center
+                EncodingCounters( #idx uint16x17: Encoding loop counters
+                    UInt16(scan_counter), #kspace_encode_step_1 uint16: e.g. phase encoding line number
+                    UInt16(0), #kspace_encode_step_2 uint16: e.g. partition encoding number
+                    UInt16(0), #average uint16: e.g. signal average number
+                    UInt16(nz), #slice uint16: e.g. imaging slice number
+                    UInt16(0), #contrast uint16: e.g. echo number in multi-echo
+                    UInt16(0), #phase uint16: e.g. cardiac phase number
+                    UInt16(0), #repetition uint16: e.g. dynamic number for dynamic scanning
+                    UInt16(0), #set uint16: e.g. flow encoding set
+                    UInt16(0), #segment uint16: e.g. segment number for segmented acquisition
+                    Tuple(UInt16(0) for i=1:8) #user uint16x8: Free user parameters
                 ),
-                (0, 0, 0, 0, 0, 0, 0, 0), #user_int: Free user parameters
-                (0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0) #user_float: Free user parameters
+                Tuple(Int32(0) for i=1:8), #user_int int32x8: Free user parameters
+                Tuple(Float32(0) for i=1:8) #user_float float32x8: Free user parameters
             )
             #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
             traj = ktraj[1:2, current:current+Nsamples-1]
             #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
             dat =  signal[current:current+Nsamples-1, :]
             #Saving profile
-            push!(profiles, Profile(head, traj, dat))
+            push!(profiles, Profile(head, Float32.(traj), ComplexF32.(dat)))
             #Update counters
             scan_counter += 1
             current += Nsamples
@@ -175,49 +230,6 @@ function signal_to_raw_data(
 
     return RawAcquisitionData(params, profiles)
 end
-# enum ISMRMRD_AcquisitionFlags {
-#     ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP1               =  1,
-#     ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1                =  2,
-#     ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP2               =  3,
-#     ISMRMRD_ACQ_LAST_IN_ENCODE_STEP2                =  4,
-#     ISMRMRD_ACQ_FIRST_IN_AVERAGE                    =  5,
-#     ISMRMRD_ACQ_LAST_IN_AVERAGE                     =  6,
-#     ISMRMRD_ACQ_FIRST_IN_SLICE                      =  7,
-#     ISMRMRD_ACQ_LAST_IN_SLICE                       =  8,
-#     ISMRMRD_ACQ_FIRST_IN_CONTRAST                   =  9,
-#     ISMRMRD_ACQ_LAST_IN_CONTRAST                    = 10,
-#     ISMRMRD_ACQ_FIRST_IN_PHASE                      = 11,
-#     ISMRMRD_ACQ_LAST_IN_PHASE                       = 12,
-#     ISMRMRD_ACQ_FIRST_IN_REPETITION                 = 13,
-#     ISMRMRD_ACQ_LAST_IN_REPETITION                  = 14,
-#     ISMRMRD_ACQ_FIRST_IN_SET                        = 15,
-#     ISMRMRD_ACQ_LAST_IN_SET                         = 16,
-#     ISMRMRD_ACQ_FIRST_IN_SEGMENT                    = 17,
-#     ISMRMRD_ACQ_LAST_IN_SEGMENT                     = 18,
-#     ISMRMRD_ACQ_IS_NOISE_MEASUREMENT                = 19,
-#     ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION             = 20,
-#     ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING = 21,
-#     ISMRMRD_ACQ_IS_REVERSE                          = 22,
-#     ISMRMRD_ACQ_IS_NAVIGATION_DATA                  = 23,
-#     ISMRMRD_ACQ_IS_PHASECORR_DATA                   = 24,
-#     ISMRMRD_ACQ_LAST_IN_MEASUREMENT                 = 25,
-#     ISMRMRD_ACQ_IS_HPFEEDBACK_DATA                  = 26,
-#     ISMRMRD_ACQ_IS_DUMMYSCAN_DATA                   = 27,
-#     ISMRMRD_ACQ_IS_RTFEEDBACK_DATA                  = 28,
-#     ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA   = 29,
-#     ISMRMRD_ACQ_COMPRESSION1                        = 53,
-#     ISMRMRD_ACQ_COMPRESSION2                        = 54,
-#     ISMRMRD_ACQ_COMPRESSION3                        = 55,
-#     ISMRMRD_ACQ_COMPRESSION4                        = 56,
-#     ISMRMRD_ACQ_USER1                               = 57,
-#     ISMRMRD_ACQ_USER2                               = 58,
-#     ISMRMRD_ACQ_USER3                               = 59,
-#     ISMRMRD_ACQ_USER4                               = 60,
-#     ISMRMRD_ACQ_USER5                               = 61,
-#     ISMRMRD_ACQ_USER6                               = 62,
-#     ISMRMRD_ACQ_USER7                               = 63,
-#     ISMRMRD_ACQ_USER8                               = 64
-# };
 
 Base.show(io::IO, raw::RawAcquisitionData) = begin
     Nt, Nc = size(raw.profiles[1].data)
