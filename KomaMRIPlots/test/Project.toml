@@ -1,4 +1,5 @@
 [deps]
+MRIFiles = "5a6f062f-bf45-497d-b654-ad17aae2a530"
 KomaMRICore = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
 PlutoPlotly = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

@@ -40,12 +40,26 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
+      - name: "KomaMRICore dev setup"
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIFiles\"));"
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRICore
       - uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRICore
+      - name: "KomaMRIFiles dev setup"
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRICore\"));"
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIFiles
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIFiles
       - name: "KomaMRIPlots dev setup"
         shell: bash
         run: |
@@ -61,6 +75,7 @@ jobs:
         shell: julia --color=yes --project {0}
         run: |
           using Pkg
+          Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIFiles"))
           Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRICore"))
           Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1
@@ -88,6 +103,13 @@ jobs:
         with:
           files: lcov.info
           flags: plots
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: KomaMRIFiles/src
+      - uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
+          flags: io
   docs:
     name: Documentation
     runs-on: ubuntu-latest
@@ -99,6 +121,9 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Pkg
+            Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIFiles"))
+            Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRICore"))
+            Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
       - run: |

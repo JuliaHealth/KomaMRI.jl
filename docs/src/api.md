@@ -102,6 +102,10 @@ Delay
 
 ## Read Data
 
+```@meta
+CurrentModule = KomaMRIFiles
+```
+
 ### `read_seq`
 ```@docs
 read_seq
@@ -123,6 +127,10 @@ signal_to_raw_data
 ```
 
 ## Pulse Design
+
+```@meta
+CurrentModule = KomaMRICore
+```
 
 ### `PulseDesigner`
 ```@docs

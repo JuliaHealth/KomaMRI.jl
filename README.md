@@ -47,6 +47,7 @@ Paper: <br>[![][paper-img1]][paper-url1]
 |:---------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
 | 📦 KomaMRI.jl        | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
 | └ 📦 KomaMRICore.jl  | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
+| └ 📦 KomaMRIFiles.jl    | [![][komaio-version]][komaio-juliahub]    | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
 | └ 📦 KomaMRIPlots.jl | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
 </td>
 </tr>
@@ -55,9 +56,11 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
 [komacore-version]: https://juliahub.com/docs/General/KomaMRICore/stable/version.svg
 [komaplots-version]: https://juliahub.com/docs/General/KomaMRIPlots/stable/version.svg
+[komaio-version]: https://juliahub.com/docs/General/KomaMRIFiles/stable/version.svg
 [komamri-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRI
 [komacore-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRICore
 [komaplots-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIPlots
+[komaio-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIFiles
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docr-url]: https://cncastillo.github.io/KomaMRI.jl/stable/
@@ -69,12 +72,14 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [gh-actions-img1]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img2]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img3]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-img4]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-url]: https://github.com/cncastillo/KomaMRI.jl/actions
 
 [codecov-img]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg
 [codecov-img1]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=komamri
 [codecov-img2]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=core
 [codecov-img3]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=plots
+[codecov-img4]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=io
 [codecov-url]: https://codecov.io/gh/cncastillo/KomaMRI.jl
 
 [arXiv-img1]: https://img.shields.io/badge/arXiv-2107.11000-blue.svg
@@ -132,18 +137,22 @@ To install just **type** the following in the Julia REPL:
 ```
 For more information about installation insturctions refer the section [Getting Started](https://cncastillo.github.io/KomaMRI.jl/stable/getting-started/) of the documentation.
 ## First run
-KomaMRI.jl comes with a handy GUI that contains a brain phantom with an EPI sequence. To open it use:
+KomaMRI.jl features a convenient GUI with predefined simulation inputs (i.e. `Sequence`, `Phantom`, and `Scanner`). To launch the GUI, use the following command:
 
 ```julia
 using KomaMRI
 KomaUI()
 ```
-Press the button that says "Simulate!" to do your first simulation :). Then, a notification emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw signal or (2) to procced with the reconstruction.
+Press the button that says "Simulate!" to do your first simulation :). Then, a notification will emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw Data or (2) to procced with the reconstruction.
 
-## How to cite
+## How to Contribute
+We welcome contributions from the community! If you're interested in contributing, please read our [Contribution Guidelines](CONTRIBUTING.md) for details on how to get started.
+
+
+## How to Cite
 If you use this package please acknowledge us by citing our paper. 
 
-**How to cite:**
+**Plain Text:**
 > Castillo-Passi, C, Coronado, R, Varela-Mattatall, G, Alberola-López, C, Botnar, R, Irarrazaval, P. KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration. Magn Reson Med. 2023; 1- 14. doi: 10.1002/mrm.29635
 
 **BibTex:**
