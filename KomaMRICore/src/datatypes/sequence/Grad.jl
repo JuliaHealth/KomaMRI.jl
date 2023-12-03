@@ -187,6 +187,7 @@ Base.isapprox(gr1::Grad, gr2::Grad) = begin
     return all(length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k ∈ fieldnames(Grad)) &&
         all(getfield(gr1, k) ≈ getfield(gr2, k) for k ∈ fieldnames(Grad))
 end
+Base.:(==)(x::Grad, y::Grad) = all(getfield(x, k) == getfield(y, k) for k ∈ fieldnames(Grad))
 
 # Gradient operations
 *(x::Grad,α::Real) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
