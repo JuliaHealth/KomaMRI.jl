@@ -1,12 +1,3 @@
-"""
-It is the same as defined in MRIFiles without the need to import MRIFiles
-"""
-struct Limit
-    minimum::Int
-    maximum::Int
-    center::Int
-end
-
 const b64 = UInt64(1)
 const ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP1               =  1b64
 const ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1                =  2b64
