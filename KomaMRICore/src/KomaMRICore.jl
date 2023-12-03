@@ -21,7 +21,14 @@ include("other/DiffusionModel.jl")
 include("simulation/GPUFunctions.jl")
 include("simulation/SimulatorCore.jl")
 
-# ISMRMRD
+#Main
+export γ #gyro-magnetic ratio [Hz/T]
+export Scanner, Sequence, Phantom
+export Grad, RF, ADC, Delay
+export Mag, dur
+#Pulseq
+export read_seq, read_seq_via_blocks_as_int_array
+#ISMRMRD
 export signal_to_raw_data
 # Simulator
 export Mag
