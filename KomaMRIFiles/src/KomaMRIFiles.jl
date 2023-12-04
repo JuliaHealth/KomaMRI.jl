@@ -12,7 +12,6 @@ import MRIFiles: insertNode
 include("Sequence/Pulseq.jl")
 include("Phantom/JEMRIS.jl")
 include("Phantom/MRiLab.jl")
-include("RawAcquisitionData/WriteRawData.jl")
 
 export read_seq                                 # Pulseq
 export read_phantom_jemris, read_phantom_MRiLab # Phantom
