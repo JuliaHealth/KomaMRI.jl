@@ -724,12 +724,3 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	#Final
 	M2, M2_adc
 end
-
-"""
-It is the same as defined in MRIFiles without the need to import MRIFiles
-"""
-struct Limit
-    minimum::Int
-    maximum::Int
-    center::Int
-end

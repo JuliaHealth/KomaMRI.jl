@@ -2,10 +2,6 @@ module KomaMRI
 
 using Reexport
 
-# MRIReco
-using MRIReco
-@reexport using MRIReco: reconstruction
-
 # IMPORT PACKAGES
 using Reexport
 @reexport using KomaMRIBase
@@ -18,7 +14,12 @@ import KomaMRICore: update_blink_window_progress!
 using Blink, Interact, AssetRegistry
 using MAT
 
+# MRIReco
+using MRIReco
+@reexport using MRIReco: reconstruction
+
 # Reconstruction
+using FFTW: fftshift, ifftshift, fft, ifft
 include("reconstruction/Recon.jl")
 
 #GUI
