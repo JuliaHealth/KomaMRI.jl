@@ -3,7 +3,6 @@ using TestItems, TestItemRunner
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:base in ti.tags) #verbose=true
 
 @testitem "Sequence" tags=[:base] begin
-    using JLD2
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -238,7 +237,7 @@ using TestItems, TestItemRunner
 
     @testset "DiscreteSequence" begin
         path = joinpath(@__DIR__, "test_files")
-        seq = load_object(joinpath(path, "spiral.jld2"))
+        seq = PulseDesigner.EPI_example()
         sim_params = KomaMRIBase.default_sampling_params()
         t, Δt = KomaMRIBase.get_uniform_times(seq, sim_params["Δt"]; Δt_rf=sim_params["Δt_rf"])
         seqd = KomaMRIBase.discretize(seq)
@@ -264,7 +263,7 @@ using TestItems, TestItemRunner
 
     @testset "SequenceFunctions" begin
         path = joinpath(@__DIR__, "test_files")
-        seq = load_object(joinpath(path, "spiral.jld2"))
+        seq = PulseDesigner.EPI_example()
         t, Δt = KomaMRIBase.get_uniform_times(seq, 1)
         t_adc =  KomaMRIBase.get_adc_sampling_times(seq)
         M2, M2_adc = KomaMRIBase.get_slew_rate(seq)
@@ -283,7 +282,7 @@ using TestItems, TestItemRunner
         α = rand()
         c = α + im*rand()
         x = seq
-        y = load_object(joinpath(path, "epi.jld2"))
+        y = PulseDesigner.EPI_example()
         z = x + y
         @test z.GR.A ≈ [x.GR  y.GR].A && z.RF.A ≈ [x.RF y.RF].A && z.ADC.N ≈ [x.ADC; y.ADC].N
         z = x - y

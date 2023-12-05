@@ -1,5 +1,4 @@
 [deps]
-JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
