@@ -84,7 +84,7 @@ based on simulation parameters.
 # Returns
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
-function discretize(seq::Sequence; sim_params=default_sim_params())
+function discretize(seq::Sequence; sim_params=default_sampling_params())
     t, Δt      = get_uniform_times(seq, sim_params["Δt"]; Δt_rf=sim_params["Δt_rf"])
     B1, Δf     = get_rfs(seq, t)
     Gx, Gy, Gz = get_grads(seq, t)
@@ -92,4 +92,13 @@ function discretize(seq::Sequence; sim_params=default_sim_params())
     ADCflag    = [any(tt .== tadc) for tt in t] #Displaced 1 dt, sig[i]=S(ti+dt)
     seqd       = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
     return seqd
+end
+
+"""
+Returns a dictionary with default simulation parameters.
+"""
+function default_sampling_params(sampling_params=Dict{String,Any}())
+    get!(sampling_params, "Δt", 1e-3)
+    get!(sampling_params, "Δt_rf", 5e-5)
+    return sampling_params
 end

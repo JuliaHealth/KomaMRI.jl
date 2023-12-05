@@ -1,3 +1,5 @@
+abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
+
 """
     mag = Mag(xy::Complex, z::Real)
 

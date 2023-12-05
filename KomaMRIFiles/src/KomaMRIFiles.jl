@@ -1,6 +1,6 @@
 module KomaMRIFiles
 
-using KomaMRICore
+using KomaMRIBase
 using Scanf, FileIO, HDF5, MAT, JLD2    # IO related
 
 using Reexport

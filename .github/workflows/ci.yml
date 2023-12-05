@@ -40,20 +40,26 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - name: "KomaMRICore generate jld2 test files"
+      - name: "Generate jld2 test files for KomaMRIBase and KomaMRICore and dev environment for KomaMRIFiles"
         shell: bash
         run: |
-          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRICore\")); include(\"./KomaMRIFiles/test/generate_core_test_files/run.jl\")"
+          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\")); include(\"./KomaMRIFiles/test/generate_base_test_files/run.jl\"); include(\"./KomaMRIFiles/test/generate_core_test_files/run.jl\")"
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIBase
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIBase
+      - name: "KomaMRICore dev setup"
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRICore
       - uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRICore
-      - name: "KomaMRIFiles dev setup"
-        shell: bash
-        run: |
-          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRICore\"));"
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIFiles
@@ -63,7 +69,7 @@ jobs:
       - name: "KomaMRIPlots dev setup"
         shell: bash
         run: |
-          julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRICore\"));"
+          julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIPlots
@@ -75,7 +81,7 @@ jobs:
         shell: julia --color=yes --project {0}
         run: |
           using Pkg
-          Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIFiles"))
+          Pkg.develop([PackageSpec(path=pwd(), subdir="KomaMRIBase"), PackageSpec(path=pwd(), subdir="KomaMRIFiles")])
           Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRICore"))
           Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
       - uses: julia-actions/julia-buildpkg@v1

@@ -1,25 +1,25 @@
 function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
 	max_rf_samples=100
     N = length(seq)
-    ΔT = KomaMRICore.durs(seq)
+    ΔT = KomaMRIBase.durs(seq)
     T0 = cumsum([0; ΔT],dims=1)
     off_val = Inf #This removes the unnecessary points in the plot
 
     #GRADS
-    t1x = vcat([KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
-    t1y = vcat([KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
-    t1z = vcat([KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
-    Gx =  vcat([KomaMRICore.get_theo_A(seq.GR[1,i];off_val) for i=1:N]...)
-    Gy =  vcat([KomaMRICore.get_theo_A(seq.GR[2,i];off_val) for i=1:N]...)
-    Gz =  vcat([KomaMRICore.get_theo_A(seq.GR[3,i];off_val) for i=1:N]...)
+    t1x = vcat([KomaMRIBase.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
+    t1y = vcat([KomaMRIBase.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
+    t1z = vcat([KomaMRIBase.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
+    Gx =  vcat([KomaMRIBase.get_theo_A(seq.GR[1,i];off_val) for i=1:N]...)
+    Gy =  vcat([KomaMRIBase.get_theo_A(seq.GR[2,i];off_val) for i=1:N]...)
+    Gz =  vcat([KomaMRIBase.get_theo_A(seq.GR[3,i];off_val) for i=1:N]...)
     GRADS = hcat(t1x, t1y, t1z, Gx, Gy, Gz)
     #RFS
-    t2 =  vcat([KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
-    R =   vcat([KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
+    t2 =  vcat([KomaMRIBase.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
+    R =   vcat([KomaMRIBase.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
     RFS = hcat(t2, R)
     #ADC
-    t3 =  vcat([KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
-    D =   vcat([KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC]...)
+    t3 =  vcat([KomaMRIBase.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
+    D =   vcat([KomaMRIBase.get_theo_A(d;off_val) for d = seq.ADC]...)
     ADCS = hcat(t3, D)
 
     seq_dict = Dict("GRAD" => GRADS,
@@ -37,11 +37,11 @@ end
 
 function export_2_mat_moments(seq, matfolder; matfilename="seq_moments.mat")
     dt = 1
-    t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+    t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
     t = t[1:end-1]
-    k0, _ =  KomaMRICore.get_kspace(seq; Δt=dt)
-    k1, _ =  KomaMRICore.get_M1(seq; Δt=dt)
-    k2, _ =  KomaMRICore.get_M2(seq; Δt=dt)
+    k0, _ =  KomaMRIBase.get_kspace(seq; Δt=dt)
+    k1, _ =  KomaMRIBase.get_M1(seq; Δt=dt)
+    k2, _ =  KomaMRIBase.get_M2(seq; Δt=dt)
     moments = hcat(t, k0, k1, k2)
     matwrite(joinpath(matfolder, matfilename), Dict("moments" => moments))
 end

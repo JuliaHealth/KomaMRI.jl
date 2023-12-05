@@ -1,12 +1,3 @@
-"""
-It is the same as defined in MRIFiles without the need to import MRIFiles
-"""
-struct Limit
-    minimum::Int
-    maximum::Int
-    center::Int
-end
-
 const b64 = UInt64(1)
 const ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP1               =  1b64
 const ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1                =  2b64
@@ -139,16 +130,16 @@ function signal_to_raw_data(
         "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, 1],              #reconSpace>matrixSize
         "reconFOV"                       => Float32.([FOVx, FOVy, 1e-3]*1e3),   #reconSpace>fieldOfView_mm
         #encodingLimits
-        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, 0, 0),                     #min, max, center, e.g. partition encoding number
-        "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, 0, 0),                     #min, max, center, e.g. imaging slice number
-        "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
-        "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
-        "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
-        "enc_lim_set"                    => Limit(0, 0, 0),                     #min, max, center, e.g. flow encoding set
-        "enc_lim_segment"                => Limit(0, 0, 0),                     #min, max, center, e.g. segment number for segmented acquisition
+        "enc_lim_kspace_encoding_step_0" => KomaMRIBase.Limit(0, Nx-1, ceil(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
+        "enc_lim_kspace_encoding_step_1" => KomaMRIBase.Limit(0, Ny-1, ceil(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_2" => KomaMRIBase.Limit(0, 0, 0),                     #min, max, center, e.g. partition encoding number
+        "enc_lim_average"                => KomaMRIBase.Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
+        "enc_lim_slice"                  => KomaMRIBase.Limit(0, 0, 0),                     #min, max, center, e.g. imaging slice number
+        "enc_lim_contrast"               => KomaMRIBase.Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
+        "enc_lim_phase"                  => KomaMRIBase.Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
+        "enc_lim_repetition"             => KomaMRIBase.Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
+        "enc_lim_set"                    => KomaMRIBase.Limit(0, 0, 0),                     #min, max, center, e.g. flow encoding set
+        "enc_lim_segment"                => KomaMRIBase.Limit(0, 0, 0),                     #min, max, center, e.g. segment number for segmented acquisition
         "trajectory"                     => "other",
         #sequenceParameters
         # "TR"                             => 0,
@@ -189,7 +180,7 @@ function signal_to_raw_data(
                 UInt32(t0_us), #acquisition_time_stamp uint32: Acquisition clock, I am "miss"-using this variable to store t0 in us
                 UInt32.((0, 0, 0)), #physiology_time_stamp uint32x3: Physiology time stamps, e.g. ecg, breating, etc.
                 UInt16(Nsamples), #number_of_samples uint16
-                UInt16(1), #available_channels uint16: Available coils 
+                UInt16(1), #available_channels uint16: Available coils
                 UInt16(1), #active_channels uint16: Active coils on current acquisiton
                 Tuple(UInt64(0) for i=1:16), #channel_mask uint64x16: Active coils on current acquisiton
                 UInt16(0), #discard_pre uint16: Samples to be discarded at the beginning of acquisition

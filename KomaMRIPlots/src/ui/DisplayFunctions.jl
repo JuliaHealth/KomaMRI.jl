@@ -154,38 +154,38 @@ julia> plot_seq(seq)
 ```
 """
 function plot_seq(
-      seq::Sequence; 
-      width=nothing, 
-      height=nothing, 
+      seq::Sequence;
+      width=nothing,
+      height=nothing,
       slider=false,
-      show_seq_blocks=false, 
-      darkmode=false, 
-      max_rf_samples=Inf, 
-      range=[], 
-      title="", 
+      show_seq_blocks=false,
+      darkmode=false,
+      max_rf_samples=Inf,
+      range=[],
+      title="",
       xaxis="x",
-      yaxis="y", 
+      yaxis="y",
       showlegend=true
   )
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
 	O = size(seq.RF,1)
-	ΔT = KomaMRICore.durs(seq)
+	ΔT = KomaMRIBase.durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
 	off_val = Inf #This removes the unnecessary points in the plot
 	#GRADS
-	t1x = reduce(vcat, [KomaMRICore.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N])
-	t1y = reduce(vcat, [KomaMRICore.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N])
-	t1z = reduce(vcat, [KomaMRICore.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N])
-	Gx =  reduce(vcat, [KomaMRICore.get_theo_A(seq.GR[1,i];off_val) for i=1:N])
-	Gy =  reduce(vcat, [KomaMRICore.get_theo_A(seq.GR[2,i];off_val) for i=1:N])
-	Gz =  reduce(vcat, [KomaMRICore.get_theo_A(seq.GR[3,i];off_val) for i=1:N])
+	t1x = reduce(vcat, [KomaMRIBase.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N])
+	t1y = reduce(vcat, [KomaMRIBase.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N])
+	t1z = reduce(vcat, [KomaMRIBase.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N])
+	Gx =  reduce(vcat, [KomaMRIBase.get_theo_A(seq.GR[1,i];off_val) for i=1:N])
+	Gy =  reduce(vcat, [KomaMRIBase.get_theo_A(seq.GR[2,i];off_val) for i=1:N])
+	Gz =  reduce(vcat, [KomaMRIBase.get_theo_A(seq.GR[3,i];off_val) for i=1:N])
 	#RFS
-	t2 =  reduce(vcat, [KomaMRICore.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N])
-	R =   reduce(vcat, [KomaMRICore.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF])
+	t2 =  reduce(vcat, [KomaMRIBase.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N])
+	R =   reduce(vcat, [KomaMRIBase.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF])
 	#ADC
-	t3 =  reduce(vcat, [KomaMRICore.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N])
-	D =   reduce(vcat, [KomaMRICore.get_theo_A(d;off_val) for d = seq.ADC])
+	t3 =  reduce(vcat, [KomaMRIBase.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N])
+	D =   reduce(vcat, [KomaMRIBase.get_theo_A(d;off_val) for d = seq.ADC])
     #Plot
 	p = [scatter() for j=1:(3+2O+1)]
 	#GR
@@ -241,26 +241,26 @@ julia> plot_M0(seq)
 ```
 """
 function plot_M0(
-      seq::Sequence; 
-      width=nothing, 
-      height=nothing, 
-      slider=true, 
-      show_seq_blocks=false, 
-      darkmode=false, 
-      range=[], 
+      seq::Sequence;
+      width=nothing,
+      height=nothing,
+      slider=true,
+      show_seq_blocks=false,
+      darkmode=false,
+      range=[],
       title="",
       skip_rf=zeros(Bool, sum(is_RF_on.(seq)))
   )
 	#Times
 	dt = 1
-	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
 	t = t[1:end-1]
-	ΔT = KomaMRICore.durs(seq)
+	ΔT = KomaMRIBase.durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
 	#M0
 	ts = t .+ Δt
-	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
-	k, _ =  KomaMRICore.get_kspace(seq; Δt=dt, skip_rf)
+	rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
+	k, _ =  KomaMRIBase.get_kspace(seq; Δt=dt, skip_rf)
 	#plots M0
 	p = [scatter() for j=1:4]
 	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms)", name="M0x", legendgroup="Gx", marker=attr(color="#636EFA"))
@@ -302,26 +302,26 @@ julia> plot_M1(seq)
 ```
 """
 function plot_M1(
-      seq::Sequence; 
-      width=nothing, 
-      height=nothing, 
-      slider=true, 
-      show_seq_blocks=false, 
-      darkmode=false, 
-      range=[], 
+      seq::Sequence;
+      width=nothing,
+      height=nothing,
+      slider=true,
+      show_seq_blocks=false,
+      darkmode=false,
+      range=[],
       title="",
       skip_rf=zeros(Bool, sum(is_RF_on.(seq)))
   )
 	#Times
 	dt = 1
-	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
 	t = t[1:end-1]
-	ΔT = KomaMRICore.durs(seq)
+	ΔT = KomaMRIBase.durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
 	#M1
 	ts = t .+ Δt
-	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
-	k, _ =  KomaMRICore.get_M1(seq; Δt=dt, skip_rf)
+	rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
+	k, _ =  KomaMRIBase.get_M1(seq; Δt=dt, skip_rf)
 	#plots M1
 	p = [scatter() for j=1:4]
 	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms²)", name="M1x", legendgroup="Gx", marker=attr(color="#636EFA"))
@@ -375,14 +375,14 @@ function plot_M2(
   )
 	#Times
 	dt = 1
-	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
 	t = t[1:end-1]
-	ΔT = KomaMRICore.durs(seq)
+	ΔT = KomaMRIBase.durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
 	#M2
 	ts = t .+ Δt
-	rf_idx, rf_type = KomaMRICore.get_RF_types(seq, t)
-	k, _ =  KomaMRICore.get_M2(seq; Δt=dt)
+	rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
+	k, _ =  KomaMRIBase.get_M2(seq; Δt=dt)
 	#Plor M2
 	p = [scatter() for j=1:4]
 	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2x", legendgroup="Gx", marker=attr(color="#636EFA"))
@@ -439,15 +439,15 @@ function plot_eddy_currents(
   )
 	#Times
 	dt = 1
-	t, Δt = KomaMRICore.get_uniform_times(seq + ADC(100, 100e-3), dt)
+	t, Δt = KomaMRIBase.get_uniform_times(seq + ADC(100, 100e-3), dt)
 	t = t[2:end]
-	ΔT = KomaMRICore.durs(seq)
+	ΔT = KomaMRIBase.durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
-	Gx, Gy, Gz = KomaMRICore.get_grads(seq, t)
+	Gx, Gy, Gz = KomaMRIBase.get_grads(seq, t)
 	#Eddy currents per lambda
 	Gec = zeros(length(t), 3)
 	for (i, l) in enumerate(λ)
-		aux, _ =  KomaMRICore.get_eddy_currents(seq + ADC(100, 100e-3); Δt=dt, λ=l)
+		aux, _ =  KomaMRIBase.get_eddy_currents(seq + ADC(100, 100e-3); Δt=dt, λ=l)
 		Gec .+= α[i] .* aux
 	end
 	#Plot eddy currents
@@ -501,13 +501,13 @@ function plot_slew_rate(
   )
 	#Times
 	dt = 1
-	t, Δt = KomaMRICore.get_uniform_times(seq, dt)
+	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
 	t = t[1:end-1]
-	ΔT = KomaMRICore.durs(seq)
+	ΔT = KomaMRIBase.durs(seq)
 	T0 = cumsum([0; ΔT],dims=1)
 	ts = t .+ Δt
 	#Eddy currents per lambda
-	k, _ =  KomaMRICore.get_slew_rate(seq; Δt=dt)
+	k, _ =  KomaMRIBase.get_slew_rate(seq; Δt=dt)
 	#Plot eddy currents
 	p = [scatter() for j=1:4]
 	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRx", legendgroup="Gx", marker=attr(color="#636EFA"))
@@ -604,15 +604,15 @@ julia> plot_kspace(seq)
 ```
 """
 function plot_kspace(
-      seq::Sequence; 
-      width=nothing, 
-      height=nothing, 
+      seq::Sequence;
+      width=nothing,
+      height=nothing,
       darkmode=false
   )
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	#Calculations of theoretical k-space
 	kspace, kspace_adc = get_kspace(seq; Δt=1) #sim_params["Δt"])
-	t_adc = KomaMRICore.get_adc_sampling_times(seq)
+	t_adc = KomaMRIBase.get_adc_sampling_times(seq)
 	#Colormap
 	c_map = [[t, "hsv($(floor(Int,(1-t)*255)), 100, 50)"] for t=range(0,1;length=10)] # range(s,b,N) only works in Julia 1.7.3
 	c = "gray"
@@ -704,15 +704,15 @@ julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
 function plot_phantom_map(
-      ph::Phantom, 
+      ph::Phantom,
       key::Symbol;
-      t0=0, 
-      height=600, 
-      width=nothing, 
-      darkmode=false, 
-      view_2d=false, 
+      t0=0,
+      height=600,
+      width=nothing,
+      darkmode=false,
+      view_2d=false,
       colorbar=true
-  ) 
+  )
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
@@ -854,11 +854,11 @@ julia> plot_signal(raw)
 """
 function plot_signal(
       raw::RawAcquisitionData;
-      width=nothing, 
-      height=nothing, 
-      slider=true, 
-      show_sim_blocks=false, 
-      darkmode=false, 
+      width=nothing,
+      height=nothing,
+      slider=true,
+      show_sim_blocks=false,
+      darkmode=false,
       range=[]
   )
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
@@ -1001,7 +1001,7 @@ function plot_dict(dict::Dict)
 end
 
 """
-    p = plot_seqd(seq::Sequence; sim_params=KomaMRICore.default_sim_params())
+    p = plot_seqd(seq::Sequence; sim_params=KomaMRIBase.default_sim_params())
 
 Plots a sampled sequence struct.
 
@@ -1009,7 +1009,7 @@ Plots a sampled sequence struct.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `sim_params`: (`::Dict{String,Any}()`, `=KomaMRICore.default_sim_params()`) dictionary of
+- `sim_params`: (`::Dict{String,Any}()`, `=KomaMRIBase.default_sim_params()`) dictionary of
     simulation parameters
 
 # Returns
@@ -1024,8 +1024,8 @@ julia> seq = read_seq(seq_file)
 julia> plot_seqd(seq)
 ```
 """
-function plot_seqd(seq::Sequence; sim_params=KomaMRICore.default_sim_params())
-	seqd = KomaMRICore.discretize(seq; sim_params)
+function plot_seqd(seq::Sequence; sim_params=KomaMRIBase.default_sampling_params())
+	seqd = KomaMRIBase.discretize(seq; sim_params)
 	Gx = scatter(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
 	Gy = scatter(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
 	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)

@@ -482,7 +482,7 @@ Outputs the designed k-space trajectory of the Sequence `seq`.
 - `kspace`: (`3-column ::Matrix{Float64}`) kspace
 - `kspace_adc`: (`3-column ::Matrix{Float64}`) adc kspace
 """
-get_kspace(seq::Sequence; Δt=1, 
+get_kspace(seq::Sequence; Δt=1,
 skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
 	t, Δt = get_uniform_times(seq, Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
@@ -723,4 +723,13 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	M2_adc = [M2x_adc M2y_adc M2z_adc]
 	#Final
 	M2, M2_adc
+end
+
+"""
+It is the same as defined in MRIFiles without the need to import MRIFiles
+"""
+struct Limit
+    minimum::Int
+    maximum::Int
+    center::Int
 end

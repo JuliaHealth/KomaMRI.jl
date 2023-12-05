@@ -2,7 +2,7 @@ struct Bloch <: SimulationMethod end
 
 export Bloch
 
-include("Magnetization.jl") #Defines Mag <: SpinStateRepresentation
+#include("Magnetization.jl") #Defines Mag <: SpinStateRepresentation
 @functor Mag #Gives gpu acceleration capabilities, see GPUFunctions.jl
 
 output_Ndim(sim_method::Bloch) = 2 #time-points x coils
@@ -35,7 +35,7 @@ precession.
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
+function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
     #Motion
