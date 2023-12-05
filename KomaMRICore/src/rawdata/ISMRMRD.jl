@@ -1,45 +1,47 @@
 const b64 = UInt64(1)
-const ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP1               =  1b64
-const ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1                =  2b64
-const ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP2               =  3b64
-const ISMRMRD_ACQ_LAST_IN_ENCODE_STEP2                =  4b64
-const ISMRMRD_ACQ_FIRST_IN_AVERAGE                    =  5b64
-const ISMRMRD_ACQ_LAST_IN_AVERAGE                     =  6b64
-const ISMRMRD_ACQ_FIRST_IN_SLICE                      =  7b64
-const ISMRMRD_ACQ_LAST_IN_SLICE                       =  8b64
-const ISMRMRD_ACQ_FIRST_IN_CONTRAST                   =  9b64
-const ISMRMRD_ACQ_LAST_IN_CONTRAST                    = 10b64
-const ISMRMRD_ACQ_FIRST_IN_PHASE                      = 11b64
-const ISMRMRD_ACQ_LAST_IN_PHASE                       = 12b64
-const ISMRMRD_ACQ_FIRST_IN_REPETITION                 = 13b64
-const ISMRMRD_ACQ_LAST_IN_REPETITION                  = 14b64
-const ISMRMRD_ACQ_FIRST_IN_SET                        = 15b64
-const ISMRMRD_ACQ_LAST_IN_SET                         = 16b64
-const ISMRMRD_ACQ_FIRST_IN_SEGMENT                    = 17b64
-const ISMRMRD_ACQ_LAST_IN_SEGMENT                     = 18b64
-const ISMRMRD_ACQ_IS_NOISE_MEASUREMENT                = 19b64
-const ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION             = 20b64
-const ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING = 21b64
-const ISMRMRD_ACQ_IS_REVERSE                          = 22b64
-const ISMRMRD_ACQ_IS_NAVIGATION_DATA                  = 23b64
-const ISMRMRD_ACQ_IS_PHASECORR_DATA                   = 24b64
-const ISMRMRD_ACQ_LAST_IN_MEASUREMENT                 = 25b64
-const ISMRMRD_ACQ_IS_HPFEEDBACK_DATA                  = 26b64
-const ISMRMRD_ACQ_IS_DUMMYSCAN_DATA                   = 27b64
-const ISMRMRD_ACQ_IS_RTFEEDBACK_DATA                  = 28b64
-const ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA   = 29b64
-const ISMRMRD_ACQ_COMPRESSION1                        = 53b64
-const ISMRMRD_ACQ_COMPRESSION2                        = 54b64
-const ISMRMRD_ACQ_COMPRESSION3                        = 55b64
-const ISMRMRD_ACQ_COMPRESSION4                        = 56b64
-const ISMRMRD_ACQ_USER1                               = 57b64
-const ISMRMRD_ACQ_USER2                               = 58b64
-const ISMRMRD_ACQ_USER3                               = 59b64
-const ISMRMRD_ACQ_USER4                               = 60b64
-const ISMRMRD_ACQ_USER5                               = 61b64
-const ISMRMRD_ACQ_USER6                               = 62b64
-const ISMRMRD_ACQ_USER7                               = 63b64
-const ISMRMRD_ACQ_USER8                               = 64b64
+const ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP1               = 1b64 << ( 01 - 1 )
+const ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1                = 1b64 << ( 02 - 1 )
+const ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP2               = 1b64 << ( 03 - 1 )
+const ISMRMRD_ACQ_LAST_IN_ENCODE_STEP2                = 1b64 << ( 04 - 1 )
+const ISMRMRD_ACQ_FIRST_IN_AVERAGE                    = 1b64 << ( 05 - 1 )
+const ISMRMRD_ACQ_LAST_IN_AVERAGE                     = 1b64 << ( 06 - 1 )
+const ISMRMRD_ACQ_FIRST_IN_SLICE                      = 1b64 << ( 07 - 1 )
+const ISMRMRD_ACQ_LAST_IN_SLICE                       = 1b64 << ( 08 - 1 )
+const ISMRMRD_ACQ_FIRST_IN_CONTRAST                   = 1b64 << ( 09 - 1 )
+const ISMRMRD_ACQ_LAST_IN_CONTRAST                    = 1b64 << ( 10 - 1 )
+const ISMRMRD_ACQ_FIRST_IN_PHASE                      = 1b64 << ( 11 - 1 )
+const ISMRMRD_ACQ_LAST_IN_PHASE                       = 1b64 << ( 12 - 1 )
+const ISMRMRD_ACQ_FIRST_IN_REPETITION                 = 1b64 << ( 13 - 1 )
+const ISMRMRD_ACQ_LAST_IN_REPETITION                  = 1b64 << ( 14 - 1 )
+const ISMRMRD_ACQ_FIRST_IN_SET                        = 1b64 << ( 15 - 1 )
+const ISMRMRD_ACQ_LAST_IN_SET                         = 1b64 << ( 16 - 1 )
+const ISMRMRD_ACQ_FIRST_IN_SEGMENT                    = 1b64 << ( 17 - 1 )
+const ISMRMRD_ACQ_LAST_IN_SEGMENT                     = 1b64 << ( 18 - 1 )
+const ISMRMRD_ACQ_IS_NOISE_MEASUREMENT                = 1b64 << ( 19 - 1 )
+const ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION             = 1b64 << ( 20 - 1 )
+const ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING = 1b64 << ( 21 - 1 )
+const ISMRMRD_ACQ_IS_REVERSE                          = 1b64 << ( 22 - 1 )
+const ISMRMRD_ACQ_IS_NAVIGATION_DATA                  = 1b64 << ( 23 - 1 )
+const ISMRMRD_ACQ_IS_PHASECORR_DATA                   = 1b64 << ( 24 - 1 )
+const ISMRMRD_ACQ_LAST_IN_MEASUREMENT                 = 1b64 << ( 25 - 1 )
+const ISMRMRD_ACQ_IS_HPFEEDBACK_DATA                  = 1b64 << ( 26 - 1 )
+const ISMRMRD_ACQ_IS_DUMMYSCAN_DATA                   = 1b64 << ( 27 - 1 )
+const ISMRMRD_ACQ_IS_RTFEEDBACK_DATA                  = 1b64 << ( 28 - 1 )
+const ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA   = 1b64 << ( 29 - 1 )
+const ISMRMRD_ACQ_IS_PHASE_STABILIZATION_REFERENCE    = 1b64 << ( 30 - 1 )
+const ISMRMRD_ACQ_IS_PHASE_STABILIZATION              = 1b64 << ( 31 - 1 )
+const ISMRMRD_ACQ_COMPRESSION1                        = 1b64 << ( 53 - 1 )
+const ISMRMRD_ACQ_COMPRESSION2                        = 1b64 << ( 54 - 1 )
+const ISMRMRD_ACQ_COMPRESSION3                        = 1b64 << ( 55 - 1 )
+const ISMRMRD_ACQ_COMPRESSION4                        = 1b64 << ( 56 - 1 )
+const ISMRMRD_ACQ_USER1                               = 1b64 << ( 57 - 1 )
+const ISMRMRD_ACQ_USER2                               = 1b64 << ( 58 - 1 )
+const ISMRMRD_ACQ_USER3                               = 1b64 << ( 59 - 1 )
+const ISMRMRD_ACQ_USER4                               = 1b64 << ( 60 - 1 )
+const ISMRMRD_ACQ_USER5                               = 1b64 << ( 61 - 1 )
+const ISMRMRD_ACQ_USER6                               = 1b64 << ( 62 - 1 )
+const ISMRMRD_ACQ_USER7                               = 1b64 << ( 63 - 1 )
+const ISMRMRD_ACQ_USER8                               = 1b64 << ( 64 - 1 )
 
 """
     raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params)
@@ -76,7 +78,7 @@ julia> plot_signal(raw)
 """
 function signal_to_raw_data(
     signal, seq;
-    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}()
+    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
 )
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
     #Number of samples and FOV
@@ -187,7 +189,7 @@ function signal_to_raw_data(
                 UInt16(0), #discard_post uint16: Samples to be discarded at the end of acquisition
                 UInt16(0), #center_sample uint16: Sample at the center of k-space
                 UInt16(0), #encoding_space_ref uint16: Reference to an encoding space, typically only one per acquisition
-                UInt16(2), #trajectory_dimensions uint16: Indicates the dimensionality of the trajectory vector (0 means no trajectory)
+                UInt16(ndims), #trajectory_dimensions uint16: Indicates the dimensionality of the trajectory vector (0 means no trajectory)
                 Float32(Δt_us), #sample_time_us float32: Time between samples in micro seconds, sampling BW
                 Float32.((0, 0, 0)), #position float32x3: Three-dimensional spatial offsets from isocenter
                 Float32.((1, 0, 0)), #read_dir float32x3: Directional cosines of the readout/frequency encoding
@@ -210,7 +212,7 @@ function signal_to_raw_data(
                 Tuple(Float32(0) for i=1:8) #user_float float32x8: Free user parameters
             )
             #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
-            traj = ktraj[1:2, current:current+Nsamples-1]
+            traj = ktraj[1:ndims, current:current+Nsamples-1]
             #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
             dat =  signal[current:current+Nsamples-1, :]
             #Saving profile
