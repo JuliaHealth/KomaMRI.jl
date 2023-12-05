@@ -122,7 +122,7 @@ jobs:
       - uses: codecov/codecov-action@v3
         with:
           files: lcov.info
-          flags: io
+          flags: files
   docs:
     name: Documentation
     runs-on: ubuntu-latest
