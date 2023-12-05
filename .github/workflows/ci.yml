@@ -40,10 +40,10 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - name: "KomaMRICore dev setup"
+      - name: "KomaMRICore generate jld2 test files"
         shell: bash
         run: |
-          julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIFiles\"));"
+          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRICore\")); include(\"./KomaMRIFiles/test/generate_core_test_files/run.jl\")"
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRICore
