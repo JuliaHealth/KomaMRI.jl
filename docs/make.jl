@@ -60,7 +60,7 @@ create_your_own_sequence = ["sequence.md", "events.md"]
 
 # Documentation structure
 makedocs(
-    modules = [KomaMRI, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
+    modules = [KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
     sitename = "KomaMRI.jl: General MRI simulation framework",
     authors = "Boris Orostica Navarrete and Carlos Castillo Passi",
     pages = [

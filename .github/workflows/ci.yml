@@ -134,7 +134,7 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Pkg
-            Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIFiles"))
+            Pkg.develop([PackageSpec(path=pwd(), subdir="KomaMRIBase"), PackageSpec(path=pwd(), subdir="KomaMRIFiles")])
             Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRICore"))
             Pkg.develop(PackageSpec(path=pwd(), subdir="KomaMRIPlots"))
             Pkg.develop(PackageSpec(path=pwd()))

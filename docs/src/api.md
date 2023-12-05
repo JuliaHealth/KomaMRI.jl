@@ -59,7 +59,7 @@ Please note that every subitem in the sections **Arguments**, **Keywords**, and 
 ## Structs
 
 ```@meta
-CurrentModule = KomaMRICore
+CurrentModule = KomaMRIBase
 ```
 
 ### `Scanner`
@@ -121,15 +121,10 @@ read_phantom_jemris
 read_phantom_MRiLab
 ```
 
-### `signal_to_raw_data`
-```@docs
-signal_to_raw_data
-```
-
 ## Pulse Design
 
 ```@meta
-CurrentModule = KomaMRICore
+CurrentModule = KomaMRIBase
 ```
 
 ### `PulseDesigner`
@@ -169,6 +164,10 @@ PulseDesigner.EPI_example
 
 ## Simulation
 
+```@meta
+CurrentModule = KomaMRICore
+```
+
 ### `simulate`
 ```@docs
 simulate
@@ -177,6 +176,11 @@ simulate
 ### `simulate_slice_profile`
 ```@docs
 simulate_slice_profile
+```
+
+### `signal_to_raw_data`
+```@docs
+signal_to_raw_data
 ```
 
 ## Plots
