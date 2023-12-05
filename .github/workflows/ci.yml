@@ -97,6 +97,13 @@ jobs:
           flags: komamri
       - uses: julia-actions/julia-processcoverage@v1
         with:
+          directories: KomaMRIBase/src
+      - uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
+          flags: base
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
           directories: KomaMRICore/src
       - uses: codecov/codecov-action@v3
         with:
