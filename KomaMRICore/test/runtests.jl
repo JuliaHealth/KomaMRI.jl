@@ -3,39 +3,39 @@ using TestItems, TestItemRunner
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
 
 # Test ISMRMRD
-@testitem "ISMRMRD" begin
-    using JLD2
+@testitem "signal_to_raw_data" begin
+    using Suppressor
 
-    path = joinpath(@__DIR__, "test_files")
-    seq = load_object(joinpath(path, "radial_JEMRIS.jld2"))
+    seq = PulseDesigner.EPI_example()
+    sys = Scanner()
+    obj = brain_phantom2D()
 
-    # Test ISMRMRD
-    raw = load_object(joinpath(path, "Koma_signal.jld2"))
-    @test raw.params["protocolName"] == "epi"
-    @test raw.params["institutionName"] == "Pontificia Universidad Catolica de Chile"
-    @test raw.params["encodedSize"] ≈ [101, 101, 1]
-    @test raw.params["reconSize"] ≈ [102, 102, 1]
-    @test raw.params["patientName"] == "brain2D_axial"
-    @test raw.params["trajectory"] == "other"
-    @test raw.params["systemVendor"] == "KomaMRI.jl"
+    sim_params = KomaMRICore.default_sim_params()
+    sim_params["return_type"] = "mat"
+    sig = @suppress simulate(obj, seq, sys; sim_params)
 
     # Test signal_to_raw_data
+    raw = signal_to_raw_data(sig, seq)
     sig_aux = vcat([vec(profile.data) for profile in raw.profiles]...)
-    sig = reshape(sig_aux, length(sig_aux), 1)
-    rawmrd = signal_to_raw_data(sig, seq)
-    @test rawmrd.params["institutionName"] == raw.params["institutionName"]
+    sig_raw = reshape(sig_aux, length(sig_aux), 1)
+    @test all(sig .== sig_raw)
 
     # Just checking to ensure that show() doesn't get stuck and that it is covered
-    show(IOBuffer(), "text/plain", rawmrd)
+    show(IOBuffer(), "text/plain", raw)
     @test true
 end
 
 @testitem "Bloch_CPU_single_thread" tags=[:important, :core] begin
-    using Suppressor, JLD2, KomaMRIBase
+    using Suppressor, KomaMRIBase
 
     path = joinpath(@__DIR__, "test_files")
-    seq = load_object(joinpath(path, "epi_100x100_TE100_FOV230.jld2"))
-    obj = Phantom(; load_object(joinpath(path, "sphere_chemical_shift.jld2"))...)
+    include(joinpath(path, "jemris_signals_epi_sphere_cs.jl"))
+    include(joinpath(path, "epi_100x100_TE100_FOV230.jl"))
+    include(joinpath(path, "sphere_chemical_shift.jl"))
+
+    sig_jemris = jemris_signals_epi_sphere_cs()
+    seq = epi_100x100_TE100_FOV230()
+    obj = sphere_chemical_shift()
     sys = Scanner()
 
     sim_params = Dict{String, Any}(
@@ -47,19 +47,22 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
 
-    sig_jemris = load_object(joinpath(path, "jemris_signals_epi_sphere_cs.jld2"))
-
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
 
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
 @testitem "Bloch_CPU_multi_thread" tags=[:important, :core] begin
-    using Suppressor, JLD2, KomaMRIBase
+    using Suppressor, KomaMRIBase
 
     path = joinpath(@__DIR__, "test_files")
-    seq = load_object(joinpath(path, "epi_100x100_TE100_FOV230.jld2"))
-    obj = Phantom(; load_object(joinpath(path, "sphere_chemical_shift.jld2"))...)
+    include(joinpath(path, "jemris_signals_epi_sphere_cs.jl"))
+    include(joinpath(path, "epi_100x100_TE100_FOV230.jl"))
+    include(joinpath(path, "sphere_chemical_shift.jl"))
+
+    sig_jemris = jemris_signals_epi_sphere_cs()
+    seq = epi_100x100_TE100_FOV230()
+    obj = sphere_chemical_shift()
     sys = Scanner()
 
     sim_params = Dict{String, Any}(
@@ -70,19 +73,23 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
 
-    sig_jemris = load_object(joinpath(path, "jemris_signals_epi_sphere_cs.jld2"))
-
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
 
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
+
 @testitem "Bloch_GPU" tags=[:important, :skipci, :core] begin
-    using Suppressor, JLD2, KomaMRIBase
+    using Suppressor, KomaMRIBase
 
     path = joinpath(@__DIR__, "test_files")
-    seq = load_object(joinpath(path, "epi_100x100_TE100_FOV230.jld2"))
-    obj = Phantom(; load_object(joinpath(path, "sphere_chemical_shift.jld2"))...)
+    include(joinpath(path, "jemris_signals_epi_sphere_cs.jl"))
+    include(joinpath(path, "epi_100x100_TE100_FOV230.jl"))
+    include(joinpath(path, "sphere_chemical_shift.jl"))
+
+    sig_jemris = jemris_signals_epi_sphere_cs()
+    seq = epi_100x100_TE100_FOV230()
+    obj = sphere_chemical_shift()
     sys = Scanner()
 
     sim_params = Dict{String, Any}(
@@ -92,8 +99,6 @@ end
     )
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
-
-    sig_jemris = load_object(joinpath(path, "jemris_signals_epi_sphere_cs.jld2"))
 
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
 
@@ -236,10 +241,11 @@ end
 end
 
 @testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
-    using Suppressor, JLD2, KomaMRIBase
+    using Suppressor, KomaMRIBase
 
     path = joinpath(@__DIR__, "test_files")
-    seq = load_object(joinpath(path, "epi_100x100_TE100_FOV230.jld2"))
+    include(joinpath(path, "epi_100x100_TE100_FOV230.jl"))
+    seq = epi_100x100_TE100_FOV230()
     obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
     sys = Scanner()
     sim_params = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>"mat")
