@@ -413,59 +413,6 @@ end
     @test sys.B0 ≈ B0 && sys.B1 ≈ B1 && sys.Gmax ≈ Gmax && sys.Smax ≈ Smax
 end
 
-@testitem "Spinors×Mag" tags=[:base] begin
-    # Spinor 2x2 representation should be equivalent to a 3x1 vector rotation
-    x = rand(3); x = x./sum(x)
-    θ = rand() * π
-    n = rand(3); n = n./sqrt(sum(n.^2))
-    z = Mag([x[1]+1im*x[2]], [x[3]])
-
-    # General rotation
-    xx1 = Q(θ,n[1]+1im*n[2],n[3])*z; #Spinor rot Q.(φ, B1./B, Bz./B)
-    xx2 = Un(θ,n)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
-
-    # Rot x
-    nx = [1,0,0]
-    xx1 = Rx(θ)*z; #Spinor rot
-    xx2 = Un(θ,nx)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
-
-    # Rot y
-    nx = [0,1,0]
-    xx1 = Ry(θ)*z; #Spinor rot
-    xx2 = Un(θ,nx)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
-
-    # Rot z
-    nx = [0,0,1]
-    xx1 = Rz(θ)*z; #Spinor rot
-    xx2 = Un(θ,nx)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
-
-    # Test Spinor struct
-    α, β = rand(2)
-    s = Spinor(α, β)
-    @test s[1].α ≈ [Complex(α)] && s[1].β ≈ [Complex(β)]
-    # Just checking to ensure that show() doesn't get stuck and that it is covered
-    show(IOBuffer(), "text/plain", s)
-    @test true
-    α2, β2 = rand(2)
-    s2 = Spinor(α2, β2)
-    sp = s * s2
-    @test sp.α ≈ s.α.*s2.α .- conj.(s2.β).*s.β && sp.β ≈ s.α.*s2.β .+ conj.(s2.α).*s.β
-    φ, φ1, θ, φ2 = rand(4)
-    Rm = KomaMRIBase.Rg(φ1, θ, φ2)
-    @test Rm.α ≈ [cos(θ/2)*exp(-1im*(φ1+φ2)/2)] && Rm.β ≈ [sin(θ/2)*exp(-1im*(φ1-φ2)/2)]
-    Rn = KomaMRIBase.Rφ(φ, θ)
-    @test Rn.α ≈ [cos(θ/2)+0im] && Rn.β ≈ [exp(1im*φ)*sin(θ/2)]
-    @test abs(s) ≈ [α^2 + β^2]
-end
-
 @testitem "TimeStepCalculation" tags=[:base] begin
     ampRF = 1e-6
     durRF = 1e-3

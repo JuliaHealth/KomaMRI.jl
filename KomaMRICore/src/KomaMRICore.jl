@@ -1,7 +1,10 @@
 module KomaMRICore
 
+
 using KomaMRIBase
+import KomaMRIBase: kfoldperm, get_sim_ranges, trapz, cumtrapz
 #General
+import Base.*, Base.abs
 using ThreadsX
 #Printing
 using ProgressMeter
@@ -10,6 +13,10 @@ using CUDA
 
 #Rawdata
 include("rawdata/ISMRMRD.jl")
+#Datatypes
+include("datatypes/Spinor.jl")
+include("datatypes/Magnetization.jl")
+include("other/DiffusionModel.jl")
 #Simulator
 include("simulation/GPUFunctions.jl")
 include("simulation/SimulatorCore.jl")
