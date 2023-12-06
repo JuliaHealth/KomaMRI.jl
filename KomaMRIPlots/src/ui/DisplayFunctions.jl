@@ -1024,8 +1024,8 @@ julia> seq = read_seq(seq_file)
 julia> plot_seqd(seq)
 ```
 """
-function plot_seqd(seq::Sequence; sim_params=KomaMRIBase.default_sampling_params())
-	seqd = KomaMRIBase.discretize(seq; sim_params)
+function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_params())
+	seqd = KomaMRIBase.discretize(seq; sampling_params)
 	Gx = scatter(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
 	Gy = scatter(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
 	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)

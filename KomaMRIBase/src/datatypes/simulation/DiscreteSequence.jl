@@ -70,7 +70,7 @@ is_RF_off(seq::DiscreteSequence) =  !is_RF_on(seq)
 is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
 
 """
-    seqd = discretize(seq::Sequence; sim_params=default_sim_params())
+    seqd = discretize(seq::Sequence; sampling_params=default_sampling_params())
 
 This function returns a sampled Sequence struct with RF and gradient time refinements
 based on simulation parameters.
@@ -79,13 +79,14 @@ based on simulation parameters.
 - `seq`: (`::Sequence`) sequence
 
 # Keywords
-- `sim_params`: (`::Dict{String, Any}`, `=default_sim_params()`) simulation parameter dictionary
+- `sampling_params`: (`::Dict{String, Any}`, `=default_sampling_params()`) sampling
+    parameter dictionary
 
 # Returns
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
-function discretize(seq::Sequence; sim_params=default_sampling_params())
-    t, Δt      = get_uniform_times(seq, sim_params["Δt"]; Δt_rf=sim_params["Δt_rf"])
+function discretize(seq::Sequence; sampling_params=default_sampling_params())
+    t, Δt      = get_uniform_times(seq, sampling_params["Δt"]; Δt_rf=sampling_params["Δt_rf"])
     B1, Δf     = get_rfs(seq, t)
     Gx, Gy, Gz = get_grads(seq, t)
     tadc       = get_adc_sampling_times(seq)
