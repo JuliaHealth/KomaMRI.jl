@@ -4,7 +4,7 @@ using KomaMRIBase
 #General
 using ThreadsX
 #Printing
-using Scanf, ProgressMeter
+using ProgressMeter
 #Simulation
 using CUDA
 
