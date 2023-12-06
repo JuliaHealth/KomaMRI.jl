@@ -2,7 +2,6 @@ struct Bloch <: SimulationMethod end
 
 export Bloch
 
-#include("Magnetization.jl") #Defines Mag <: SpinStateRepresentation
 @functor Mag #Gives gpu acceleration capabilities, see GPUFunctions.jl
 
 output_Ndim(sim_method::Bloch) = 2 #time-points x coils
