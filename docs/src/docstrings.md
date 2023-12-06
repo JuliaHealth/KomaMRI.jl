@@ -11,13 +11,6 @@ Depth = 3
 
 ## [DataTypes](@id datatypes)
 
-### `Mag`
-```@docs
-Mag
-show(::IO, ::Mag)
-getproperty(::Vector{Mag}, ::Symbol)
-```
-
 ### `Phantom`
 
 Refer to [API Documentation](api.md#Phantom):
@@ -76,26 +69,6 @@ dur(::Grad)
 
 Refer to [API Documentation](api.md#RF):
 * [`KomaMRI.RF`](@ref) — Type
-
-```@docs
-Spinor
-show(::IO,::Spinor)
-*(::Spinor, ::Spinor)
-Rz
-Ry
-Rx
-KomaMRI.Rg
-KomaMRI.Rφ
-Q
-abs(::Spinor)
-
-show(::IO, ::RF)
-getproperty(::Vector{RF}, ::Symbol)
-dur(::RF)
-KomaMRI.RF_fun
-KomaMRI.get_flip_angle
-KomaMRI.get_RF_center
-```
 
 ### `ADC`
 
