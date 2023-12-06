@@ -170,7 +170,7 @@ function plot_seq(
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
 	O = size(seq.RF,1)
-	ΔT = KomaMRIBase.durs(seq)
+	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	off_val = Inf #This removes the unnecessary points in the plot
 	#GRADS
@@ -255,7 +255,7 @@ function plot_M0(
 	dt = 1
 	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
 	t = t[1:end-1]
-	ΔT = KomaMRIBase.durs(seq)
+	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	#M0
 	ts = t .+ Δt
@@ -316,7 +316,7 @@ function plot_M1(
 	dt = 1
 	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
 	t = t[1:end-1]
-	ΔT = KomaMRIBase.durs(seq)
+	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	#M1
 	ts = t .+ Δt
@@ -377,7 +377,7 @@ function plot_M2(
 	dt = 1
 	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
 	t = t[1:end-1]
-	ΔT = KomaMRIBase.durs(seq)
+	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	#M2
 	ts = t .+ Δt
@@ -441,7 +441,7 @@ function plot_eddy_currents(
 	dt = 1
 	t, Δt = KomaMRIBase.get_uniform_times(seq + ADC(100, 100e-3), dt)
 	t = t[2:end]
-	ΔT = KomaMRIBase.durs(seq)
+	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	Gx, Gy, Gz = KomaMRIBase.get_grads(seq, t)
 	#Eddy currents per lambda
@@ -503,7 +503,7 @@ function plot_slew_rate(
 	dt = 1
 	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
 	t = t[1:end-1]
-	ΔT = KomaMRIBase.durs(seq)
+	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	ts = t .+ Δt
 	#Eddy currents per lambda
