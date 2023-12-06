@@ -80,15 +80,11 @@ end
 
 @testitem "Bloch_CPU_single_thread" tags=[:important, :core] begin
     using Suppressor, KomaMRIBase
+    include(joinpath(@__DIR__, "test_files", "Utils.jl"))
 
-    path = joinpath(@__DIR__, "test_files")
-    include(joinpath(path, "jemris_signals_epi_sphere_cs.jl"))
-    include(joinpath(path, "epi_100x100_TE100_FOV230.jl"))
-    include(joinpath(path, "sphere_chemical_shift.jl"))
-
-    sig_jemris = jemris_signals_epi_sphere_cs()
-    seq = epi_100x100_TE100_FOV230()
-    obj = sphere_chemical_shift()
+    sig_jemris = signal_jemris()
+    seq = seq_epi_100x100_TE100_FOV230()
+    obj = phantom_sphere()
     sys = Scanner()
 
     sim_params = Dict{String, Any}(
@@ -107,15 +103,11 @@ end
 
 @testitem "Bloch_CPU_multi_thread" tags=[:important, :core] begin
     using Suppressor, KomaMRIBase
+    include(joinpath(@__DIR__, "test_files", "Utils.jl"))
 
-    path = joinpath(@__DIR__, "test_files")
-    include(joinpath(path, "jemris_signals_epi_sphere_cs.jl"))
-    include(joinpath(path, "epi_100x100_TE100_FOV230.jl"))
-    include(joinpath(path, "sphere_chemical_shift.jl"))
-
-    sig_jemris = jemris_signals_epi_sphere_cs()
-    seq = epi_100x100_TE100_FOV230()
-    obj = sphere_chemical_shift()
+    sig_jemris = signal_jemris()
+    seq = seq_epi_100x100_TE100_FOV230()
+    obj = phantom_sphere()
     sys = Scanner()
 
     sim_params = Dict{String, Any}(
@@ -134,15 +126,11 @@ end
 
 @testitem "Bloch_GPU" tags=[:important, :skipci, :core] begin
     using Suppressor, KomaMRIBase
+    include(joinpath(@__DIR__, "test_files", "Utils.jl"))
 
-    path = joinpath(@__DIR__, "test_files")
-    include(joinpath(path, "jemris_signals_epi_sphere_cs.jl"))
-    include(joinpath(path, "epi_100x100_TE100_FOV230.jl"))
-    include(joinpath(path, "sphere_chemical_shift.jl"))
-
-    sig_jemris = jemris_signals_epi_sphere_cs()
-    seq = epi_100x100_TE100_FOV230()
-    obj = sphere_chemical_shift()
+    sig_jemris = signal_jemris()
+    seq = seq_epi_100x100_TE100_FOV230()
+    obj = phantom_sphere()
     sys = Scanner()
 
     sim_params = Dict{String, Any}(
@@ -295,10 +283,9 @@ end
 
 @testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
     using Suppressor, KomaMRIBase
+    include(joinpath(@__DIR__, "test_files", "Utils.jl"))
 
-    path = joinpath(@__DIR__, "test_files")
-    include(joinpath(path, "epi_100x100_TE100_FOV230.jl"))
-    seq = epi_100x100_TE100_FOV230()
+    seq = seq_epi_100x100_TE100_FOV230()
     obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
     sys = Scanner()
     sim_params = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>"mat")
