@@ -413,25 +413,6 @@ end
     @test sys.B0 ≈ B0 && sys.B1 ≈ B1 && sys.Gmax ≈ Gmax && sys.Smax ≈ Smax
 end
 
-@testitem "TimeStepCalculation" tags=[:base] begin
-    ampRF = 1e-6
-    durRF = 1e-3
-    index_offset, number_rf_points = 2, 3
-    rf_key_points = []
-    rf = RF(ampRF, durRF)
-    seq = Sequence()
-    seq += rf
-    append!(rf_key_points, [index_offset; index_offset + number_rf_points + 1])
-    seq += Delay(durRF)
-    seq += rf
-    append!(rf_key_points, [rf_key_points[end] + 1; rf_key_points[end] + 1 + number_rf_points + 1])
-    seq += Delay(durRF)
-    seq += rf
-    append!(rf_key_points, [rf_key_points[end] + 1; rf_key_points[end] + 1 + number_rf_points + 1])
-    t, Δt = KomaMRIBase.get_variable_times(seq; dt_rf=durRF)
-    @test KomaMRIBase.get_breaks_in_RF_key_points(seq, t) == rf_key_points
-end
-
 @testitem "TrapezoidalIntegration" tags=[:base] begin
     dt = Float64[1 1 1 1]
     x  = Float64[0 1 2 1 0]
