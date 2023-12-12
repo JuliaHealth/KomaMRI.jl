@@ -147,6 +147,76 @@ function update_blink_window_progress!(w::Nothing, block, Nblocks)
 end
 
 """
+Get simulation ranges
+"""
+function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
+	ranges = UnitRange{Int}[]
+	ranges_bool = Bool[]
+	start_idx_rf_block = 0
+	start_idx_gr_block = 0
+	#Split 1:N into Nblocks like kfoldperm
+	N = length(seqd.Δt)
+	k = min(N, Nblocks)
+	n, r = divrem(N, k) #N >= k, N < k
+	breaks = collect(1:n:N+1)
+	for i in eachindex(breaks)
+		breaks[i] += i > r ? r : i-1
+	end
+	breaks = breaks[2:end-1] #Remove borders,
+	#Iterate over B1 values to decide the simulation UnitRanges
+	for i in eachindex(seqd.Δt)
+		if abs(seqd.B1[i]) > 10EPS #TODO: This is needed as the function ⏢ in get_rfs is not very accurate
+			if start_idx_rf_block == 0 #End RF block
+				start_idx_rf_block = i
+			end
+			if start_idx_gr_block > 0 #End of GR block
+				push!(ranges, start_idx_gr_block:i-1)
+				push!(ranges_bool, false)
+				start_idx_gr_block = 0
+			end
+		else
+			if start_idx_gr_block == 0 #Start GR block
+				start_idx_gr_block = i
+			end
+			if start_idx_rf_block > 0 #End of RF block
+				push!(ranges, start_idx_rf_block:i-1)
+				push!(ranges_bool, true)
+				start_idx_rf_block = 0
+			end
+		end
+		#More subdivisions
+		if i in breaks
+			if start_idx_rf_block > 0 #End of RF block
+				if length(start_idx_rf_block:i-1) > 1
+					push!(ranges, start_idx_rf_block:i-1)
+					push!(ranges_bool, true)
+					start_idx_rf_block = i
+				end
+			end
+			if start_idx_gr_block > 0 #End of RF block
+				if length(start_idx_gr_block:i-1) > 1
+					push!(ranges, start_idx_gr_block:i-1)
+					push!(ranges_bool, false)
+					start_idx_gr_block = i
+				end
+			end
+		end
+	end
+	#Finishing the UnitRange's
+	if start_idx_rf_block > 0
+		push!(ranges, start_idx_rf_block:N)
+		push!(ranges_bool, true)
+	end
+	if start_idx_gr_block > 0
+		push!(ranges, start_idx_gr_block:N)
+		push!(ranges_bool, false)
+	end
+	#Output
+	return ranges, ranges_bool
+end
+
+
+"""
     out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; sim_params, w)
 
 Returns the raw signal or the last state of the magnetization according to the value
@@ -185,7 +255,7 @@ function simulate(
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
     # Simulation init
-    seqd = discretize(seq; sim_params) # Sampling of Sequence waveforms
+    seqd = discretize(seq; sampling_params=sim_params) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; Nblocks=sim_params["Nblocks"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)

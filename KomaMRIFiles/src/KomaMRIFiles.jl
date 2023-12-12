@@ -1,7 +1,7 @@
 module KomaMRIFiles
 
 using KomaMRIBase
-using Scanf, FileIO, HDF5, MAT, JLD2    # IO related
+using Scanf, FileIO, HDF5, MAT    # IO related
 
 using Reexport
 using MRIFiles

@@ -28,9 +28,6 @@ include("datatypes/sequence/Delay.jl")
 include("datatypes/Phantom.jl")
 # Simulator
 include("datatypes/simulation/DiscreteSequence.jl")
-include("datatypes/simulation/Spinor.jl")
-include("datatypes/simulation/Magnetization.jl")
-include("datatypes/simulation/DiffusionModel.jl")
 include("timing/TimeStepCalculation.jl")
 include("timing/TrapezoidalIntegration.jl")
 
@@ -38,10 +35,9 @@ include("timing/TrapezoidalIntegration.jl")
 export γ    # gyro-magnetic ratio [Hz/T]
 export Scanner, Sequence, Phantom
 export Grad, RF, ADC, Delay
-export Mag, dur
+export dur
 export DiscreteSequence
-export SpinStateRepresentation
-export discretize, get_sim_ranges, get_adc_phase_compensation, kfoldperm, trapz, cumtrapz, mul!, get_adc_sampling_times
+export discretize, get_adc_phase_compensation, get_adc_sampling_times
 # Phantom
 export brain_phantom2D, brain_phantom3D
 # Spinors

@@ -3,7 +3,6 @@ using TestItems, TestItemRunner
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:base in ti.tags) #verbose=true
 
 @testitem "Sequence" tags=[:base] begin
-    using JLD2
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -238,7 +237,7 @@ using TestItems, TestItemRunner
 
     @testset "DiscreteSequence" begin
         path = joinpath(@__DIR__, "test_files")
-        seq = load_object(joinpath(path, "spiral.jld2"))
+        seq = PulseDesigner.EPI_example()
         sim_params = KomaMRIBase.default_sampling_params()
         t, Δt = KomaMRIBase.get_uniform_times(seq, sim_params["Δt"]; Δt_rf=sim_params["Δt_rf"])
         seqd = KomaMRIBase.discretize(seq)
@@ -252,7 +251,7 @@ using TestItems, TestItemRunner
         seq += ADC(N, 1)
         sim_params = KomaMRIBase.default_sampling_params()
         sim_params["Δt"], sim_params["Δt_rf"] = T/N, T/N
-        seqd = KomaMRIBase.discretize(seq; sim_params)
+        seqd = KomaMRIBase.discretize(seq; sampling_params=sim_params)
         i = Int(floor(length(seqd) / 3))
         @test is_RF_on(seq[1]) == is_RF_on(seqd[1*i:1*i+1]) && is_GR_on(seq[1]) == is_GR_on(seqd[1*i:1*i+1]) && is_ADC_on(seq[1]) == is_ADC_on(seqd[1*i:1*i+1])
         @test is_RF_on(seq[2]) == is_RF_on(seqd[2*i:2*i+1]) && is_GR_on(seq[2]) == is_GR_on(seqd[2*i:2*i+1]) && is_ADC_on(seq[2]) == is_ADC_on(seqd[2*i:2*i+1])
@@ -264,7 +263,7 @@ using TestItems, TestItemRunner
 
     @testset "SequenceFunctions" begin
         path = joinpath(@__DIR__, "test_files")
-        seq = load_object(joinpath(path, "spiral.jld2"))
+        seq = PulseDesigner.EPI_example()
         t, Δt = KomaMRIBase.get_uniform_times(seq, 1)
         t_adc =  KomaMRIBase.get_adc_sampling_times(seq)
         M2, M2_adc = KomaMRIBase.get_slew_rate(seq)
@@ -283,7 +282,7 @@ using TestItems, TestItemRunner
         α = rand()
         c = α + im*rand()
         x = seq
-        y = load_object(joinpath(path, "epi.jld2"))
+        y = PulseDesigner.EPI_example()
         z = x + y
         @test z.GR.A ≈ [x.GR  y.GR].A && z.RF.A ≈ [x.RF y.RF].A && z.ADC.N ≈ [x.ADC; y.ADC].N
         z = x - y
@@ -412,78 +411,6 @@ end
     RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T = 20e-6, 100e-6, 10e-6
     sys = Scanner(B0, B1, Gmax, Smax, ADC_Δt, seq_Δt, GR_Δt, RF_Δt, RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T)
     @test sys.B0 ≈ B0 && sys.B1 ≈ B1 && sys.Gmax ≈ Gmax && sys.Smax ≈ Smax
-end
-
-@testitem "Spinors×Mag" tags=[:base] begin
-    # Spinor 2x2 representation should be equivalent to a 3x1 vector rotation
-    x = rand(3); x = x./sum(x)
-    θ = rand() * π
-    n = rand(3); n = n./sqrt(sum(n.^2))
-    z = Mag([x[1]+1im*x[2]], [x[3]])
-
-    # General rotation
-    xx1 = Q(θ,n[1]+1im*n[2],n[3])*z; #Spinor rot Q.(φ, B1./B, Bz./B)
-    xx2 = Un(θ,n)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
-
-    # Rot x
-    nx = [1,0,0]
-    xx1 = Rx(θ)*z; #Spinor rot
-    xx2 = Un(θ,nx)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
-
-    # Rot y
-    nx = [0,1,0]
-    xx1 = Ry(θ)*z; #Spinor rot
-    xx2 = Un(θ,nx)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
-
-    # Rot z
-    nx = [0,0,1]
-    xx1 = Rz(θ)*z; #Spinor rot
-    xx2 = Un(θ,nx)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
-
-    # Test Spinor struct
-    α, β = rand(2)
-    s = Spinor(α, β)
-    @test s[1].α ≈ [Complex(α)] && s[1].β ≈ [Complex(β)]
-    # Just checking to ensure that show() doesn't get stuck and that it is covered
-    show(IOBuffer(), "text/plain", s)
-    @test true
-    α2, β2 = rand(2)
-    s2 = Spinor(α2, β2)
-    sp = s * s2
-    @test sp.α ≈ s.α.*s2.α .- conj.(s2.β).*s.β && sp.β ≈ s.α.*s2.β .+ conj.(s2.α).*s.β
-    φ, φ1, θ, φ2 = rand(4)
-    Rm = KomaMRIBase.Rg(φ1, θ, φ2)
-    @test Rm.α ≈ [cos(θ/2)*exp(-1im*(φ1+φ2)/2)] && Rm.β ≈ [sin(θ/2)*exp(-1im*(φ1-φ2)/2)]
-    Rn = KomaMRIBase.Rφ(φ, θ)
-    @test Rn.α ≈ [cos(θ/2)+0im] && Rn.β ≈ [exp(1im*φ)*sin(θ/2)]
-    @test abs(s) ≈ [α^2 + β^2]
-end
-
-@testitem "TimeStepCalculation" tags=[:base] begin
-    ampRF = 1e-6
-    durRF = 1e-3
-    index_offset, number_rf_points = 2, 3
-    rf_key_points = []
-    rf = RF(ampRF, durRF)
-    seq = Sequence()
-    seq += rf
-    append!(rf_key_points, [index_offset; index_offset + number_rf_points + 1])
-    seq += Delay(durRF)
-    seq += rf
-    append!(rf_key_points, [rf_key_points[end] + 1; rf_key_points[end] + 1 + number_rf_points + 1])
-    seq += Delay(durRF)
-    seq += rf
-    append!(rf_key_points, [rf_key_points[end] + 1; rf_key_points[end] + 1 + number_rf_points + 1])
-    t, Δt = KomaMRIBase.get_variable_times(seq; dt_rf=durRF)
-    @test KomaMRIBase.get_breaks_in_RF_key_points(seq, t) == rf_key_points
 end
 
 @testitem "TrapezoidalIntegration" tags=[:base] begin

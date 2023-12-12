@@ -1,15 +1,21 @@
 module KomaMRICore
 
 using KomaMRIBase
+import KomaMRIBase: kfoldperm, trapz, cumtrapz, EPS
 #General
+import Base.*, Base.abs
 using ThreadsX
 #Printing
-using Scanf, ProgressMeter
+using ProgressMeter
 #Simulation
 using CUDA
 
 #Rawdata
 include("rawdata/ISMRMRD.jl")
+#Datatypes
+include("datatypes/Spinor.jl")
+include("datatypes/Magnetization.jl")
+include("other/DiffusionModel.jl")
 #Simulator
 include("simulation/GPUFunctions.jl")
 include("simulation/SimulatorCore.jl")
