@@ -21,7 +21,7 @@ function seq_epi_100x100_TE100_FOV230()
     # First Block (excitation)
     seq = Sequence()
     Trf = 1e-4                     # From File: 9.9e-5
-    Arf = 1/(4*γ*Trf)              # From File: 5.871650124959988e-5
+    Arf = (π/2)/(2π*γ*Trf)         # From File: 5.871650124959988e-5. 90° rect excitation pulse
     rf = RF(Arf, Trf)              # From File: RF(Arf*ones(99), Trf, 5.0e-7, 0.0)
     seq += rf; seq = seq[2:end]    # From File: seq[1].DUR[1] = 9.949999999999999e-5
 
