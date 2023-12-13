@@ -1,7 +1,6 @@
 module KomaMRICore
 
 using KomaMRIBase
-import KomaMRIBase: kfoldperm, trapz, cumtrapz
 #General
 import Base.*, Base.abs
 using ThreadsX
