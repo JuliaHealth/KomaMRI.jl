@@ -86,7 +86,7 @@ based on simulation parameters.
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
 function discretize(seq::Sequence; sampling_params=default_sampling_params())
-    t, Δt      = get_uniform_times(seq, sampling_params["Δt"]; Δt_rf=sampling_params["Δt_rf"])
+    t, Δt      = get_variable_times(seq; Δt=sampling_params["Δt"], Δt_rf=sampling_params["Δt_rf"])
     B1, Δf     = get_rfs(seq, t)
     Gx, Gy, Gz = get_grads(seq, t)
     tadc       = get_adc_sampling_times(seq)

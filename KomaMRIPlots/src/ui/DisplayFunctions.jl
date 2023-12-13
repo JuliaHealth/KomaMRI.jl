@@ -252,15 +252,14 @@ function plot_M0(
       skip_rf=zeros(Bool, sum(is_RF_on.(seq)))
   )
 	#Times
-	dt = 1
-	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
+	t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
 	t = t[1:end-1]
 	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	#M0
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
-	k, _ =  KomaMRIBase.get_kspace(seq; Δt=dt, skip_rf)
+	k, _ =  KomaMRIBase.get_kspace(seq; Δt=1, skip_rf)
 	#plots M0
 	p = [scatter() for j=1:4]
 	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms)", name="M0x", legendgroup="Gx", marker=attr(color="#636EFA"))
@@ -313,15 +312,14 @@ function plot_M1(
       skip_rf=zeros(Bool, sum(is_RF_on.(seq)))
   )
 	#Times
-	dt = 1
-	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
+	t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
 	t = t[1:end-1]
 	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	#M1
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
-	k, _ =  KomaMRIBase.get_M1(seq; Δt=dt, skip_rf)
+	k, _ =  KomaMRIBase.get_M1(seq; Δt=1, skip_rf)
 	#plots M1
 	p = [scatter() for j=1:4]
 	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms²)", name="M1x", legendgroup="Gx", marker=attr(color="#636EFA"))
@@ -374,15 +372,14 @@ function plot_M2(
       title = ""
   )
 	#Times
-	dt = 1
-	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
+	t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
 	t = t[1:end-1]
 	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	#M2
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
-	k, _ =  KomaMRIBase.get_M2(seq; Δt=dt)
+	k, _ =  KomaMRIBase.get_M2(seq; Δt=1)
 	#Plor M2
 	p = [scatter() for j=1:4]
 	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m⋅ms³)", name="M2x", legendgroup="Gx", marker=attr(color="#636EFA"))
@@ -438,8 +435,7 @@ function plot_eddy_currents(
       title = ""
   )
 	#Times
-	dt = 1
-	t, Δt = KomaMRIBase.get_uniform_times(seq + ADC(100, 100e-3), dt)
+	t, Δt = KomaMRIBase.get_variable_times(seq + ADC(100, 100e-3); Δt=1)
 	t = t[2:end]
 	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
@@ -447,7 +443,7 @@ function plot_eddy_currents(
 	#Eddy currents per lambda
 	Gec = zeros(length(t), 3)
 	for (i, l) in enumerate(λ)
-		aux, _ =  KomaMRIBase.get_eddy_currents(seq + ADC(100, 100e-3); Δt=dt, λ=l)
+		aux, _ =  KomaMRIBase.get_eddy_currents(seq + ADC(100, 100e-3); Δt=1, λ=l)
 		Gec .+= α[i] .* aux
 	end
 	#Plot eddy currents
@@ -500,14 +496,13 @@ function plot_slew_rate(
       title = ""
   )
 	#Times
-	dt = 1
-	t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
+	t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
 	t = t[1:end-1]
 	ΔT = seq.DUR
 	T0 = cumsum([0; ΔT],dims=1)
 	ts = t .+ Δt
 	#Eddy currents per lambda
-	k, _ =  KomaMRIBase.get_slew_rate(seq; Δt=dt)
+	k, _ =  KomaMRIBase.get_slew_rate(seq; Δt=1)
 	#Plot eddy currents
 	p = [scatter() for j=1:4]
 	p[1] = scatter(x=ts*1e3, y=k[:,1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m/ms)", name="SRx", legendgroup="Gx", marker=attr(color="#636EFA"))
@@ -1001,7 +996,7 @@ function plot_dict(dict::Dict)
 end
 
 """
-    p = plot_seqd(seq::Sequence; sim_params=KomaMRIBase.default_sim_params())
+    p = plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_params())
 
 Plots a sampled sequence struct.
 
@@ -1009,8 +1004,8 @@ Plots a sampled sequence struct.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `sim_params`: (`::Dict{String,Any}()`, `=KomaMRIBase.default_sim_params()`) dictionary of
-    simulation parameters
+- `sampling_params`: (`::Dict{String,Any}()`, `=KomaMRIBase.default_sampling_params()`) dictionary of
+    sampling parameters
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the sampled Sequence struct

@@ -8,12 +8,13 @@ include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation meth
 Returns a dictionary with default simulation parameters.
 """
 function default_sim_params(sim_params=Dict{String,Any}())
+    sampling_params = KomaMRIBase.default_sampling_params()
     get!(sim_params, "gpu", true); if sim_params["gpu"] check_use_cuda(); sim_params["gpu"] &= use_cuda[] end
     get!(sim_params, "gpu_device", 0)
     get!(sim_params, "Nthreads", sim_params["gpu"] ? 1 : Threads.nthreads())
     get!(sim_params, "Nblocks", 20)
-    get!(sim_params, "Δt", 1e-3)
-    get!(sim_params, "Δt_rf", 5e-5)
+    get!(sim_params, "Δt", sampling_params["Δt"])
+    get!(sim_params, "Δt_rf", sampling_params["Δt_rf"])
     get!(sim_params, "sim_method", Bloch())
     get!(sim_params, "precision", "f32")
     get!(sim_params, "return_type", "raw")
@@ -147,7 +148,9 @@ function update_blink_window_progress!(w::Nothing, block, Nblocks)
 end
 
 """
-Get simulation ranges
+Separates the discrete sequence into Nblocks, ensuring that each block has either
+RF-on or RF-off. The function returns the ranges of the discrete sequence blocks along
+with a boolean vector indicating whether each block has RF.
 """
 function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
 	ranges = UnitRange{Int}[]
@@ -165,7 +168,7 @@ function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
 	breaks = breaks[2:end-1] #Remove borders,
 	#Iterate over B1 values to decide the simulation UnitRanges
 	for i in eachindex(seqd.Δt)
-		if abs(seqd.B1[i]) > 10EPS #TODO: This is needed as the function ⏢ in get_rfs is not very accurate
+		if abs(seqd.B1[i]) > 1e-9 #TODO: This is needed as the function ⏢ in get_rfs is not very accurate
 			if start_idx_rf_block == 0 #End RF block
 				start_idx_rf_block = i
 			end
@@ -254,8 +257,9 @@ function simulate(
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
+    sampling_params = Dict{String,Any}("Δt"=>sim_params["Δt"], "Δt_rf"=>sim_params["Δt_rf"])
     # Simulation init
-    seqd = discretize(seq; sampling_params=sim_params) # Sampling of Sequence waveforms
+    seqd = discretize(seq; sampling_params) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; Nblocks=sim_params["Nblocks"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)

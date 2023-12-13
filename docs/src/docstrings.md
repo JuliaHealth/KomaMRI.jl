@@ -177,11 +177,6 @@ KomaMRI.points_from_key_times
 KomaMRI.get_variable_times
 ```
 
-### `get_uniform_times`
-```@docs
-KomaMRI.get_uniform_times
-```
-
 ### `kfoldperm`
 ```@docs
 KomaMRI.kfoldperm

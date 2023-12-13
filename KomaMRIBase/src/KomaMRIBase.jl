@@ -38,6 +38,8 @@ export Grad, RF, ADC, Delay
 export dur
 export DiscreteSequence
 export discretize, get_adc_phase_compensation, get_adc_sampling_times
+# This are also used for simulation
+export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D
 # Spinors

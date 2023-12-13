@@ -21,33 +21,44 @@ function seq_epi_100x100_TE100_FOV230()
     # First Block (excitation)
     seq = Sequence()
     Trf = 1e-4                     # From File: 9.9e-5
-    Arf = 1/(4*γ*Trf)              # From File: 5.871650124959988e-5
+    Arf = (π/2)/(2π*γ*Trf)         # From File: 5.871650124959988e-5. 90° rect excitation pulse
     rf = RF(Arf, Trf)              # From File: RF(Arf*ones(99), Trf, 5.0e-7, 0.0)
-    seq += rf; seq = seq[2:end]    # From File: seq[1].DUR[1] = 9.949999999999999e-5
+    seq += rf;                     # From File: seq[1].DUR[1] = 9.949999999999999e-5
 
     # Define params
     begin
-        # Image params
+        # User params
         FOVx = 0.230                    # Set
         Nx = 100                        # Set
         FOVy = 0.230                    # Set
         Ny = 100                        # Set
+        TE = 0.1                        # Set
+        Δtadc = 0.00001                 # Set
+        Smax = 10*1_000_000_000/2π/γ    # Set
 
         # For gradients which moves in the k-space (and ADC)
-        Tgx = 0.001                     # Set
-        ζgx = 0.00028                   # Set
-        Δtadc_min = 0.00001             # Set
-        Agx = Nx/(γ*Tgx*FOVx)           # From File: 0.010211565230481714
-        Tadc = Tgx - Δtadc_min          # From File: 0.00099
-        ΔDadc = ζgx + Δtadc_min/2       # From File: 0.000285
-        ζgy = 6e-5                      # From File: 5.9999999999999995e-5
-        Agy = 1/(γ*ζgy*FOVy)            # From File: 0.0017019276167022875
+        Area_adc = Nx/FOVx/γ
+        Tgx = Nx*Δtadc                                  # From File: 0.001
+        Agx = Area_adc/Tgx                              # From File: 0.010211565230481714
+        ζgx = ceil(100000*(Agx/Smax))/100000            # From File: 0.00028 (JEMRIS non-optimal definition for trapezoidal with flat-top)
+        Tadc = Tgx - Δtadc                              # From File: 0.00099
+        ΔDadc = ζgx + Δtadc/2                           # From File: 0.000285
+        Area_gy = 1/FOVy/γ
+        ζgy = ceil(100000*sqrt(Area_gy/Smax))/100000    # From File: 5.9999999999999995e-5 (JEMRIS optimal definition for trapezoidal without flat-top)
+        Agy = Area_gy/ζgy                               # From File: 0.0017019276167022875
 
-        # For first corner in the k-space
-        ζgyo = 0.00037                  # Set
-        ζgxo = 0.00042                  # From File: 0.00041999999999999996
-        Agyo = 0.5*Ny/(γ*ζgyo*FOVy)     # From File: 0.013799413552738015
-        Agxo = 0.5*Agx*(Tgx + ζgx)/ζgxo # From File: 0.015560481134096917
+        # For first corner in the k-space (half of the covered rectangle in the k-space)
+        Area_kx = Area_adc + Agx*ζgx
+        Area_gxo = 0.5*Area_kx
+        ζgxo = ceil(100000*sqrt(Area_gxo/Smax))/100000  # From File: 0.00041999999999999996 (JEMRIS optimal definition for trapezoidal without flat-top)
+        Agxo = Area_gxo/ζgxo                            # From File: 0.015560481134096917
+        Area_ky = Ny*Area_gy
+        Area_gyo = 0.5*Area_ky
+        ζgyo = ceil(100000*sqrt(Area_gyo/Smax))/100000  # From File: 0.00037
+        Agyo = Area_gyo/ζgyo                            # From File: 0.013799413552738015 (JEMRIS optimal definition for trapezoidal without flat-top)
+
+        # For delay (from JEMRIS center-to-center TE definition)
+        ΔD = TE - (Trf/2 + 2*ζgxo + Ny*ζgx + Ny*Tgx/2 + (Ny-1)*ζgy)
     end
 
     # Second Block (move to a corner of the k-space)
@@ -57,36 +68,32 @@ function seq_epi_100x100_TE100_FOV230()
     seq += Sequence(reshape([gx; gy; gz], :, 1))
 
     # Third Block (a delay)
-    gx = Grad(0.0, 0.01517)
+    gx = Grad(0.0, ΔD)
     seq += Sequence([gx])
 
     # Define blocks that will be repeated
-    begin
-        gx = Grad(Agx, Tgx, ζgx)
-        gy = Grad(0.0, 0.0)
-        gz = Grad(0.0, 0.0)
-        rf = RF(0.0, 0.0)
-        adc = ADC(Nx, Tadc, ΔDadc)
-        sxA = Sequence(reshape([gx; gy; gz], :, 1), reshape([rf], :, 1), [adc])
-        sxB = Sequence(reshape([-gx; gy; gz], :, 1), reshape([rf], :, 1), [adc])
-        gx = Grad(0.0, 0.0)
-        gy = Grad(-Agy, 0.0, ζgy)
-        gz = Grad(0.0, 0.0)
-        syC = Sequence(reshape([gx; gy; gz], :, 1))
-    end
+    gx = Grad(Agx, Tgx, ζgx)
+    gy = Grad(0.0, 0.0)
+    gz = Grad(0.0, 0.0)
+    rf = RF(0.0, 0.0)
+    adc = ADC(Nx, Tadc, ΔDadc)
+    sxA = Sequence(reshape([gx; gy; gz], :, 1), reshape([rf], :, 1), [adc])
+    sxB = Sequence(reshape([-gx; gy; gz], :, 1), reshape([rf], :, 1), [adc])
+    gx = Grad(0.0, 0.0)
+    gy = Grad(-Agy, 0.0, ζgy)
+    gz = Grad(0.0, 0.0)
+    syC = Sequence(reshape([gx; gy; gz], :, 1))
 
     # Repetition of blocks (move in the k-space)
-    for _ in 1:(round(Int, Ny/2)-1)
-        seq += sxA
-        seq += syC
-        seq += sxB
-        seq += syC
+    for _ in 1:(Ny÷2-1)
+        seq += sxA  # moves to the right in kx and samples the signal
+        seq += syC  # moves a blip down in ky
+        seq += sxB  # moves to the left in kx and samples the signal
+        seq += syC  # moves a blip down in ky again
     end
-
-    # Final Blocks
-    seq += sxA
-    seq += syC
-    seq += sxB
+    seq += sxA  # moves to the right in kx and samples the signal
+    seq += syC  # moves a blip down in ky
+    seq += sxB  # moves to the left in kx and samples the signal
 
     return seq
 end

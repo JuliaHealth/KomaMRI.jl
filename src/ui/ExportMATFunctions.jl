@@ -36,12 +36,11 @@ function export_2_mat_kspace(seq, matfolder; matfilename="seq_kspace.mat")
 end
 
 function export_2_mat_moments(seq, matfolder; matfilename="seq_moments.mat")
-    dt = 1
-    t, Δt = KomaMRIBase.get_uniform_times(seq, dt)
+    t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
     t = t[1:end-1]
-    k0, _ =  KomaMRIBase.get_kspace(seq; Δt=dt)
-    k1, _ =  KomaMRIBase.get_M1(seq; Δt=dt)
-    k2, _ =  KomaMRIBase.get_M2(seq; Δt=dt)
+    k0, _ =  KomaMRIBase.get_kspace(seq; Δt=1)
+    k1, _ =  KomaMRIBase.get_M1(seq; Δt=1)
+    k2, _ =  KomaMRIBase.get_M2(seq; Δt=1)
     moments = hcat(t, k0, k1, k2)
     matwrite(joinpath(matfolder, matfilename), Dict("moments" => moments))
 end

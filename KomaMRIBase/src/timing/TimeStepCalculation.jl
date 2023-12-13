@@ -1,4 +1,4 @@
-const EPS = 1e-10 #100*eps(1.0) #SmallestFloat
+const MIN_RISE_TIME = 1e-10 #100*eps(1.0) #SmallestFloat
 """
     array_of_ranges = kfoldperm(N, k; type="random", breaks=[])
 
@@ -99,58 +99,20 @@ function points_from_key_times(times; dt)
 end
 
 """
-    t, Δt = get_uniform_times(seq, Δt; Δt_rf=1e-4)
-
-This function, despite its name, actually gets non-uniform time points. Refer to
-[`get_variable_times`](@ref) for more details.
-
-!!! note
-    This function should be deprecated and the simulator should only use the
-    [`get_variable_times`](@ref) function. Note that in this KomaMRI version, this function
-    is bypassed by [`get_variable_times`](@ref).
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `Δt`: (`::Real`, `[s]`) nominal delta time separation between two time samples for ADC
-    acquisition and Gradients (by nominal we mean that the time separation should be at
-    most `Δt` when the samples are regarded by [`KomaMRI.is_ADC_on`](@ref) or
-    [`KomaMRI.is_GR_on`](@ref)), otherwise the time points are not necessary and the
-    separation will be bigger)
-
-# Keywords
-- `Δt_rf`: (`::Real`, `=1e-4`, `[s]`) nominal delta time separation between two time
-    samples for RF excitation (by nominal we mean that the time separation should be at most
-    `Δt_rf` when the samples are regarded by [`KomaMRI.is_RF_on`](@ref), otherwise the time
-    points are not necessary and the separation will be bigger)
-
-# Returns
-- `t`: (`::Vector{Float64}`, `[s]`) time array with non-uniform time values
-- `Δt`: (`::Vector{Float64}`, `[s]`) delta time array with the separation between two
-    adjacent time points of the `t` time array
-"""
-function get_uniform_times(seq, Δt; Δt_rf=1e-4)
-	t, Δt = get_variable_times(seq; dt=Δt, dt_rf=Δt_rf)
-end
-
-"""
-    t, Δt = get_variable_times(seq; dt=1, dt_rf=1e-4)
+    t, Δt = get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 
 This function returns non-uniform time points that are relevant in the sequence `seq`.
 
-!!! note
-    It is important to use a variable time step (instead of constant sampling time) to
-    increase the simulation speed.
-
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
-- `dt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
+
+# Keywords
+- `Δt`: (`::Real`, `=1e-3`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients (by nominal we mean that the time separation should be
     at most `Δt` when the samples are regarded by [`KomaMRI.is_ADC_on`](@ref) or
     [`KomaMRI.is_GR_on`](@ref)), otherwise the time points are not necessary and the
     separation will be bigger)
-
-# Keywords
-- `Δt_rf`: (`::Real`, `=1e-4`, `[s]`) nominal delta time separation between two time
+- `Δt_rf`: (`::Real`, `=1e-5`, `[s]`) nominal delta time separation between two time
     samples for RF excitation (by nominal we mean that the time separation should be at most
     `Δt_rf` when the samples are regarded by [`KomaMRI.is_RF_on`](@ref), otherwise the time
     points are not necessary and the separation will be bigger)
@@ -160,9 +122,9 @@ This function returns non-uniform time points that are relevant in the sequence 
 - `Δt`: (`::Vector{Float64}`, `[s]`) delta time array with the separation between two
     adjacent time points of the `t` time array
 """
-function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
+function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 	t = Float64[]
-	ϵ = EPS #Small Float64
+	ϵ = MIN_RISE_TIME #Small Float64
 	ΔT = durs(seq) #Duration of sequence block
 	T0 = cumsum([0; ΔT[:]]) #Start time of each block
 	for i = 1:length(seq)
@@ -174,7 +136,7 @@ function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
 			t1 = t0 + delay
 			t2 = t1 + sum(T)
 			rf0 = t0 + get_RF_center(y) #get_RF_center includes delays
-			taux = points_from_key_times([t1,t1+ϵ,rf0,t2-ϵ,t2]; dt=dt_rf) # Arbitrary RF. Points (t1+ϵ, t2-ϵ) added to fix bug with ADCs
+			taux = points_from_key_times([t1,t1+ϵ,rf0,t2-ϵ,t2]; dt=Δt_rf) # Arbitrary RF. Points (t1+ϵ, t2-ϵ) added to fix bug with ADCs
 			append!(t, taux)
 		end
 		if is_GR_on(s)
@@ -184,7 +146,7 @@ function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
 			if is_Gz_on(s) append!(active_gradients, s.GR.z) end
 			for y = active_gradients
 				ts = get_theo_t(y) .+ t0
-				taux = points_from_key_times([ts[1]+ϵ; ts; ts[end]-ϵ]; dt) #The ±ϵ fixes #
+				taux = points_from_key_times([ts[1]+ϵ; ts; ts[end]-ϵ]; dt=Δt) #The ±ϵ fixes #
 				append!(t, taux)
 			end
 		end

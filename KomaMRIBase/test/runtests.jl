@@ -238,8 +238,8 @@ using TestItems, TestItemRunner
     @testset "DiscreteSequence" begin
         path = joinpath(@__DIR__, "test_files")
         seq = PulseDesigner.EPI_example()
-        sim_params = KomaMRIBase.default_sampling_params()
-        t, Δt = KomaMRIBase.get_uniform_times(seq, sim_params["Δt"]; Δt_rf=sim_params["Δt_rf"])
+        sampling_params = KomaMRIBase.default_sampling_params()
+        t, Δt = KomaMRIBase.get_variable_times(seq; Δt=sampling_params["Δt"], Δt_rf=sampling_params["Δt_rf"])
         seqd = KomaMRIBase.discretize(seq)
         i1, i2 = rand(1:Int(floor(0.5*length(seqd)))), rand(Int(ceil(0.5*length(seqd))):length(seqd))
         @test seqd[i1].t ≈ [t[i1]]
@@ -249,9 +249,9 @@ using TestItems, TestItemRunner
         seq = RF(1, 1)
         seq += Sequence([Grad(1, 1)])
         seq += ADC(N, 1)
-        sim_params = KomaMRIBase.default_sampling_params()
-        sim_params["Δt"], sim_params["Δt_rf"] = T/N, T/N
-        seqd = KomaMRIBase.discretize(seq; sampling_params=sim_params)
+        sampling_params = KomaMRIBase.default_sampling_params()
+        sampling_params["Δt"], sampling_params["Δt_rf"] = T/N, T/N
+        seqd = KomaMRIBase.discretize(seq; sampling_params)
         i = Int(floor(length(seqd) / 3))
         @test is_RF_on(seq[1]) == is_RF_on(seqd[1*i:1*i+1]) && is_GR_on(seq[1]) == is_GR_on(seqd[1*i:1*i+1]) && is_ADC_on(seq[1]) == is_ADC_on(seqd[1*i:1*i+1])
         @test is_RF_on(seq[2]) == is_RF_on(seqd[2*i:2*i+1]) && is_GR_on(seq[2]) == is_GR_on(seqd[2*i:2*i+1]) && is_ADC_on(seq[2]) == is_ADC_on(seqd[2*i:2*i+1])
@@ -264,7 +264,7 @@ using TestItems, TestItemRunner
     @testset "SequenceFunctions" begin
         path = joinpath(@__DIR__, "test_files")
         seq = PulseDesigner.EPI_example()
-        t, Δt = KomaMRIBase.get_uniform_times(seq, 1)
+        t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
         t_adc =  KomaMRIBase.get_adc_sampling_times(seq)
         M2, M2_adc = KomaMRIBase.get_slew_rate(seq)
         Gx, Gy, Gz = KomaMRIBase.get_grads(seq, t)
