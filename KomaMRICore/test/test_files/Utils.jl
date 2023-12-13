@@ -27,27 +27,39 @@ function seq_epi_100x100_TE100_FOV230()
 
     # Define params
     begin
-        # Image params
+        # User params
         FOVx = 0.230                    # Set
         Nx = 100                        # Set
         FOVy = 0.230                    # Set
         Ny = 100                        # Set
+        TE = 0.1                        # Set
+        Δtadc = 0.00001                 # Set
+
+        # This params are from the original JEMRIS XML file
+        # They are not used here, but for sure they define the magical numbers
+        # We need to figure out how JEMRIS defines the trapezoidal waveforms
+        #Gmax = 10
+        #Smax = 10
+
+        # Magic numbers
+        ζgx = 0.00028                   # From File: 0.00028
+        ζgy = 6e-5                      # From File: 5.9999999999999995e-5
+        ζgxo = 3/2*ζgx                  # From File: 0.00041999999999999996
+        ζgyo = 0.00037                  # From File: 0.00037
 
         # For gradients which moves in the k-space (and ADC)
-        Tgx = 0.001                     # Set
-        ζgx = 0.00028                   # Set
-        Δtadc_min = 0.00001             # Set
-        Agx = Nx/(γ*Tgx*FOVx)           # From File: 0.010211565230481714
-        Tadc = Tgx - Δtadc_min          # From File: 0.00099
-        ΔDadc = ζgx + Δtadc_min/2       # From File: 0.000285
-        ζgy = 6e-5                      # From File: 5.9999999999999995e-5
-        Agy = 1/(γ*ζgy*FOVy)            # From File: 0.0017019276167022875
+        Tgx = Nx*Δtadc                  # From File: 0.001
+        Agx = 1/FOVx/γ/Δtadc            # From File: 0.010211565230481714
+        Tadc = Tgx - Δtadc              # From File: 0.00099
+        ΔDadc = ζgx + Δtadc/2           # From File: 0.000285
+        Agy = 1/FOVy/γ/ζgy              # From File: 0.0017019276167022875
 
-        # For first corner in the k-space
-        ζgyo = 0.00037                  # Set
-        ζgxo = 0.00042                  # From File: 0.00041999999999999996
-        Agyo = 0.5*Ny/(γ*ζgyo*FOVy)     # From File: 0.013799413552738015
+        # For first corner in the k-space (half of the covered rectangle in the k-space)
+        Agyo = 0.5*Ny/FOVy/γ/ζgyo       # From File: 0.013799413552738015
         Agxo = 0.5*Agx*(Tgx + ζgx)/ζgxo # From File: 0.015560481134096917
+
+        # For delay
+        ΔD = TE - (Trf/2 + 2*ζgxo + Ny*ζgx + Ny*Tgx/2 + (Ny-1)*ζgy)
     end
 
     # Second Block (move to a corner of the k-space)
@@ -57,7 +69,7 @@ function seq_epi_100x100_TE100_FOV230()
     seq += Sequence(reshape([gx; gy; gz], :, 1))
 
     # Third Block (a delay)
-    gx = Grad(0.0, 0.01517)
+    gx = Grad(0.0, ΔD)
     seq += Sequence([gx])
 
     # Define blocks that will be repeated
@@ -74,17 +86,15 @@ function seq_epi_100x100_TE100_FOV230()
     syC = Sequence(reshape([gx; gy; gz], :, 1))
 
     # Repetition of blocks (move in the k-space)
-    for _ in 1:(round(Int, Ny/2)-1)
-        seq += sxA
-        seq += syC
-        seq += sxB
-        seq += syC
+    for _ in 1:(Ny÷2-1)
+        seq += sxA  # moves to the right in kx and samples the signal
+        seq += syC  # moves a blip down in ky
+        seq += sxB  # moves to the left in kx and samples the signal
+        seq += syC  # moves a blip down in ky again
     end
-
-    # Final Blocks
-    seq += sxA
-    seq += syC
-    seq += sxB
+    seq += sxA  # moves to the right in kx and samples the signal
+    seq += syC  # moves a blip down in ky
+    seq += sxB  # moves to the left in kx and samples the signal
 
     return seq
 end
