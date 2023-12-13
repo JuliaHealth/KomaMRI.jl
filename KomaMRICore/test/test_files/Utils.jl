@@ -34,31 +34,30 @@ function seq_epi_100x100_TE100_FOV230()
         Ny = 100                        # Set
         TE = 0.1                        # Set
         Δtadc = 0.00001                 # Set
-
-        # This params are from the original JEMRIS XML file
-        # They are not used here, but for sure they define the magical numbers
-        # We need to figure out how JEMRIS defines the trapezoidal waveforms
-        #Gmax = 10
-        #Smax = 10
-
-        # Magic numbers
-        ζgx = 0.00028                   # From File: 0.00028
-        ζgy = 6e-5                      # From File: 5.9999999999999995e-5
-        ζgxo = 3/2*ζgx                  # From File: 0.00041999999999999996
-        ζgyo = 0.00037                  # From File: 0.00037
+        Smax = 10*1_000_000_000/2π/γ    # Set
 
         # For gradients which moves in the k-space (and ADC)
-        Tgx = Nx*Δtadc                  # From File: 0.001
-        Agx = 1/FOVx/γ/Δtadc            # From File: 0.010211565230481714
-        Tadc = Tgx - Δtadc              # From File: 0.00099
-        ΔDadc = ζgx + Δtadc/2           # From File: 0.000285
-        Agy = 1/FOVy/γ/ζgy              # From File: 0.0017019276167022875
+        Area_adc = Nx/FOVx/γ
+        Tgx = Nx*Δtadc                                  # From File: 0.001
+        Agx = Area_adc/Tgx                              # From File: 0.010211565230481714
+        ζgx = ceil(100000*(Agx/Smax))/100000            # From File: 0.00028 (JEMRIS non-optimal definition for trapezoidal with flat-top)
+        Tadc = Tgx - Δtadc                              # From File: 0.00099
+        ΔDadc = ζgx + Δtadc/2                           # From File: 0.000285
+        Area_gy = 1/FOVy/γ
+        ζgy = ceil(100000*sqrt(Area_gy/Smax))/100000    # From File: 5.9999999999999995e-5 (JEMRIS optimal definition for trapezoidal without flat-top)
+        Agy = Area_gy/ζgy                               # From File: 0.0017019276167022875
 
         # For first corner in the k-space (half of the covered rectangle in the k-space)
-        Agyo = 0.5*Ny/FOVy/γ/ζgyo       # From File: 0.013799413552738015
-        Agxo = 0.5*Agx*(Tgx + ζgx)/ζgxo # From File: 0.015560481134096917
+        Area_kx = Area_adc + Agx*ζgx
+        Area_gxo = 0.5*Area_kx
+        ζgxo = ceil(100000*sqrt(Area_gxo/Smax))/100000  # From File: 0.00041999999999999996 (JEMRIS optimal definition for trapezoidal without flat-top)
+        Agxo = Area_gxo/ζgxo                            # From File: 0.015560481134096917
+        Area_ky = Ny*Area_gy
+        Area_gyo = 0.5*Area_ky
+        ζgyo = ceil(100000*sqrt(Area_gyo/Smax))/100000  # From File: 0.00037
+        Agyo = Area_gyo/ζgyo                            # From File: 0.013799413552738015 (JEMRIS optimal definition for trapezoidal without flat-top)
 
-        # For delay
+        # For delay (from JEMRIS center-to-center TE definition)
         ΔD = TE - (Trf/2 + 2*ζgxo + Ny*ζgx + Ny*Tgx/2 + (Ny-1)*ζgy)
     end
 
