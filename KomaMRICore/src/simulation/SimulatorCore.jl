@@ -147,7 +147,9 @@ function update_blink_window_progress!(w::Nothing, block, Nblocks)
 end
 
 """
-Get simulation ranges
+Separates the discrete sequence into Nblocks, ensuring that each block has either
+RF-on or RF-off. The function returns the ranges of the discrete sequence blocks along
+with a boolean vector indicating whether each block has RF.
 """
 function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
 	ranges = UnitRange{Int}[]
