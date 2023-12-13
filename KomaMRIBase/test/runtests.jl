@@ -249,9 +249,9 @@ using TestItems, TestItemRunner
         seq = RF(1, 1)
         seq += Sequence([Grad(1, 1)])
         seq += ADC(N, 1)
-        sim_params = KomaMRIBase.default_sampling_params()
-        sim_params["Δt"], sim_params["Δt_rf"] = T/N, T/N
-        seqd = KomaMRIBase.discretize(seq; sampling_params=sim_params)
+        sampling_params = KomaMRIBase.default_sampling_params()
+        sampling_params["Δt"], sampling_params["Δt_rf"] = T/N, T/N
+        seqd = KomaMRIBase.discretize(seq; sampling_params)
         i = Int(floor(length(seqd) / 3))
         @test is_RF_on(seq[1]) == is_RF_on(seqd[1*i:1*i+1]) && is_GR_on(seq[1]) == is_GR_on(seqd[1*i:1*i+1]) && is_ADC_on(seq[1]) == is_ADC_on(seqd[1*i:1*i+1])
         @test is_RF_on(seq[2]) == is_RF_on(seqd[2*i:2*i+1]) && is_GR_on(seq[2]) == is_GR_on(seqd[2*i:2*i+1]) && is_ADC_on(seq[2]) == is_ADC_on(seqd[2*i:2*i+1])

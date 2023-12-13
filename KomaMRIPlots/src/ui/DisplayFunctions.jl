@@ -1001,7 +1001,7 @@ function plot_dict(dict::Dict)
 end
 
 """
-    p = plot_seqd(seq::Sequence; sim_params=KomaMRIBase.default_sim_params())
+    p = plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_params())
 
 Plots a sampled sequence struct.
 
@@ -1009,8 +1009,8 @@ Plots a sampled sequence struct.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `sim_params`: (`::Dict{String,Any}()`, `=KomaMRIBase.default_sim_params()`) dictionary of
-    simulation parameters
+- `sampling_params`: (`::Dict{String,Any}()`, `=KomaMRIBase.default_sampling_params()`) dictionary of
+    sampling parameters
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the sampled Sequence struct
