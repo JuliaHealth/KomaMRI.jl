@@ -1,4 +1,4 @@
-const EPS = 1e-10 #100*eps(1.0) #SmallestFloat
+const MIN_RISE_TIME = 1e-10 #100*eps(1.0) #SmallestFloat
 """
     array_of_ranges = kfoldperm(N, k; type="random", breaks=[])
 
@@ -162,7 +162,7 @@ This function returns non-uniform time points that are relevant in the sequence 
 """
 function get_variable_times(seq; dt=1e-3, dt_rf=1e-5)
 	t = Float64[]
-	ϵ = EPS #Small Float64
+	ϵ = MIN_RISE_TIME #Small Float64
 	ΔT = durs(seq) #Duration of sequence block
 	T0 = cumsum([0; ΔT[:]]) #Start time of each block
 	for i = 1:length(seq)
