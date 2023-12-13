@@ -485,7 +485,7 @@ Outputs the designed k-space trajectory of the Sequence `seq`.
 """
 get_kspace(seq::Sequence; Δt=1,
 skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
-	t, Δt = get_uniform_times(seq, Δt)
+	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
 	t = t[1:end-1]
@@ -542,7 +542,7 @@ Outputs the designed M1 of the Sequence `seq`.
 - `M1_adc`: (`3-column ::Matrix{Float64}`) First moment sampled at ADC points
 """
 get_M1(seq::Sequence; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
-	t, Δt = get_uniform_times(seq, Δt)
+	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
 	t = t[1:end-1]
@@ -600,7 +600,7 @@ Outputs the designed M2 of the Sequence `seq`.
 - `M2_adc`: (`3-column ::Matrix{Float64}`) Second moment sampled at ADC points
 """
 get_M2(seq::Sequence; Δt=1) = begin
-	t, Δt = get_uniform_times(seq, Δt)
+	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
 	t = t[1:end-1]
@@ -649,7 +649,7 @@ Outputs the designed slew rate of the Sequence `seq`.
 - `SR_adc`: (`3-column ::Matrix{Float64}`) Slew rate sampled at ADC points
 """
 get_slew_rate(seq::Sequence; Δt=1) = begin
-	t, Δt = get_uniform_times(seq, Δt)
+	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
 	t = t[1:end-1]
@@ -695,7 +695,7 @@ Outputs the designed eddy currents of the Sequence `seq`.
 - `EC_adc`: (`3-column ::Matrix{Float64}`) Eddy currents sampled at ADC points
 """
 get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
-	t, Δt = get_uniform_times(seq, Δt)
+	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
 	t = t[1:end-1]

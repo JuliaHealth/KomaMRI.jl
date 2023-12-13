@@ -238,8 +238,8 @@ using TestItems, TestItemRunner
     @testset "DiscreteSequence" begin
         path = joinpath(@__DIR__, "test_files")
         seq = PulseDesigner.EPI_example()
-        sim_params = KomaMRIBase.default_sampling_params()
-        t, Δt = KomaMRIBase.get_uniform_times(seq, sim_params["Δt"]; Δt_rf=sim_params["Δt_rf"])
+        sampling_params = KomaMRIBase.default_sampling_params()
+        t, Δt = KomaMRIBase.get_variable_times(seq; Δt=sampling_params["Δt"], Δt_rf=sampling_params["Δt_rf"])
         seqd = KomaMRIBase.discretize(seq)
         i1, i2 = rand(1:Int(floor(0.5*length(seqd)))), rand(Int(ceil(0.5*length(seqd))):length(seqd))
         @test seqd[i1].t ≈ [t[i1]]
@@ -264,7 +264,7 @@ using TestItems, TestItemRunner
     @testset "SequenceFunctions" begin
         path = joinpath(@__DIR__, "test_files")
         seq = PulseDesigner.EPI_example()
-        t, Δt = KomaMRIBase.get_uniform_times(seq, 1)
+        t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
         t_adc =  KomaMRIBase.get_adc_sampling_times(seq)
         M2, M2_adc = KomaMRIBase.get_slew_rate(seq)
         Gx, Gy, Gz = KomaMRIBase.get_grads(seq, t)
