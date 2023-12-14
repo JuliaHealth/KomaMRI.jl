@@ -170,8 +170,7 @@ function plot_seq(
 	idx = ["Gx" "Gy" "Gz"]
 	N = length(seq)
 	O = size(seq.RF,1)
-	ΔT = seq.DUR
-	T0 = cumsum([0; ΔT],dims=1)
+	T0 = get_block_start_times(seq)
 	off_val = Inf #This removes the unnecessary points in the plot
 	#GRADS
 	t1x = reduce(vcat, [KomaMRIBase.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N])
@@ -254,8 +253,7 @@ function plot_M0(
 	#Times
 	t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
 	t = t[1:end-1]
-	ΔT = seq.DUR
-	T0 = cumsum([0; ΔT],dims=1)
+	T0 = get_block_start_times(seq)
 	#M0
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
@@ -314,8 +312,7 @@ function plot_M1(
 	#Times
 	t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
 	t = t[1:end-1]
-	ΔT = seq.DUR
-	T0 = cumsum([0; ΔT],dims=1)
+	T0 = get_block_start_times(seq)
 	#M1
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
@@ -374,8 +371,7 @@ function plot_M2(
 	#Times
 	t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
 	t = t[1:end-1]
-	ΔT = seq.DUR
-	T0 = cumsum([0; ΔT],dims=1)
+	T0 = get_block_start_times(seq)
 	#M2
 	ts = t .+ Δt
 	rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
@@ -437,8 +433,7 @@ function plot_eddy_currents(
 	#Times
 	t, Δt = KomaMRIBase.get_variable_times(seq + ADC(100, 100e-3); Δt=1)
 	t = t[2:end]
-	ΔT = seq.DUR
-	T0 = cumsum([0; ΔT],dims=1)
+	T0 = get_block_start_times(seq)
 	Gx, Gy, Gz = KomaMRIBase.get_grads(seq, t)
 	#Eddy currents per lambda
 	Gec = zeros(length(t), 3)
@@ -498,8 +493,7 @@ function plot_slew_rate(
 	#Times
 	t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
 	t = t[1:end-1]
-	ΔT = seq.DUR
-	T0 = cumsum([0; ΔT],dims=1)
+	T0 = get_block_start_times(seq)
 	ts = t .+ Δt
 	#Eddy currents per lambda
 	k, _ =  KomaMRIBase.get_slew_rate(seq; Δt=1)

@@ -297,6 +297,20 @@ The total duration of the sequence in [s].
 dur(x::Sequence) = sum(durs(x))
 
 """
+    T0 = get_block_start_times(seq::Sequence)
+
+Returns a vector containing the start times of blocks in a sequence. The initial time is
+always zero, and the final time corresponds to the duration of the sequence.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+
+# Returns
+- `T0`: (`::Vector`, `[s]`) start times of the blocks in a sequence
+"""
+get_block_start_times(seq::Sequence) = cumsum([0; seq.DUR], dims=1)
+
+"""
     y = ⏢(A, t, ΔT, ζ1, ζ2, delay)
 
 Generates a trapezoidal waveform vector.
@@ -409,17 +423,18 @@ Returns the RF pulses and the delta frequency.
 """
 get_rfs(seq::Sequence, t) = begin
     ϵ = MIN_RISE_TIME
-	#Amplitude
-	A  = seq.RF.A
-	Δf = seq.RF.Δf
-	#Timings
-	T = seq.RF.T
-	delay = seq.RF.delay
-	T0 = cumsum([0; durs(seq)], dims=1)
-	(sum([⏢(A[1,i], t.-T0[i],sum(T[i]).-2ϵ,ϵ,ϵ,delay[i]) for i=1:length(seq)]),
-	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]).-2ϵ,ϵ,ϵ,delay[i]) for i=1:length(seq)])
-	)
+    # Amplitude
+    A  = seq.RF.A
+    Δf = seq.RF.Δf
+    # Timings
+    T = seq.RF.T
+    delay = seq.RF.delay
+    T0 = get_block_start_times(seq)
+    (sum([⏢(A[1,i], t .- T0[i], sum(T[i]) .- 2ϵ, ϵ, ϵ, delay[i]) for i=1:length(seq)]),
+     sum([⏢(Δf[1,i], t .- T0[i], sum(T[i]) .- 2ϵ, ϵ, ϵ, delay[i]) for i=1:length(seq)])
+    )
 end
+
 """
     y = get_flip_angles(x::Sequence)
 
@@ -454,7 +469,7 @@ function get_RF_types(seq, t)
 	RF_rf = (α .>  90.01) .* RF_mask
 	rf_idx = Int[]
 	rf_type = Int[]
-	T0 = cumsum([0; durs(seq)[:]])
+	T0 = get_block_start_times(seq)
 	for i = 1:length(seq)
 		if is_RF_on(seq[i])
 			trf = get_RF_center(seq[i].RF[1]) + T0[i]

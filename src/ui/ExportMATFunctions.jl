@@ -1,8 +1,7 @@
 function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
 	max_rf_samples=100
     N = length(seq)
-    ΔT = seq.DUR
-    T0 = cumsum([0; ΔT],dims=1)
+    T0 = get_block_start_times(seq)
     off_val = Inf #This removes the unnecessary points in the plot
 
     #GRADS

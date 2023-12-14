@@ -161,8 +161,8 @@ Get the theoretical gradient for a sequence in a defined axis.
 - `g`: (`::Vector{Float64}`) amplitude key points
 """
 get_theo_Gi(seq, idx) = begin
-	ΔT, N = durs(seq), length(seq)
-	T0 = cumsum([0; ΔT], dims=1)
+	N = length(seq)
+	T0 = get_block_start_times(seq)
 	t = vcat([get_theo_t(seq.GR[idx,i]) .+ T0[i] for i=1:N]...)
 	G = vcat([get_theo_A(seq.GR[idx,i]) for i=1:N]...) #; off_val=0 <---potential solution
 	#Removing duplicated points
@@ -191,8 +191,8 @@ Get the theoretical RF timings and amplitude of a sequence.
 - `r`: (`::Vector{Float64}`) amplitude key points
 """
 get_theo_RF(seq, idx) = begin
-	ΔT, N = durs(seq), length(seq)
-	T0 = cumsum([0; ΔT], dims=1)
+	N = length(seq)
+	T0 = get_block_start_times(seq)
 	t = vcat([get_theo_t(seq.RF[i]) .+ T0[i] for i=1:N]...)
 	R = vcat([get_theo_A(seq.RF[i]; off_val=0) for i=1:N]...)
 	#Removing duplicated points
