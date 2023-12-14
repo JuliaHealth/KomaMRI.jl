@@ -409,17 +409,18 @@ Returns the RF pulses and the delta frequency.
 """
 get_rfs(seq::Sequence, t) = begin
     ϵ = MIN_RISE_TIME
-	#Amplitude
-	A  = seq.RF.A
-	Δf = seq.RF.Δf
-	#Timings
-	T = seq.RF.T
-	delay = seq.RF.delay
-	T0 = cumsum([0; durs(seq)], dims=1)
-	(sum([⏢(A[1,i], t.-T0[i],sum(T[i]).-2ϵ,ϵ,ϵ,delay[i]) for i=1:length(seq)]),
-	 sum([⏢(Δf[1,i],t.-T0[i],sum(T[i]).-2ϵ,ϵ,ϵ,delay[i]) for i=1:length(seq)])
-	)
+    # Amplitude
+    A  = seq.RF.A
+    Δf = seq.RF.Δf
+    # Timings
+    T = seq.RF.T
+    delay = seq.RF.delay
+    T0 = cumsum([0; durs(seq)], dims=1)
+    (sum([⏢(A[1,i], t .- T0[i], sum(T[i]) .- 2ϵ, ϵ, ϵ, delay[i]) for i=1:length(seq)]),
+     sum([⏢(Δf[1,i], t .- T0[i], sum(T[i]) .- 2ϵ, ϵ, ϵ, delay[i]) for i=1:length(seq)])
+    )
 end
+
 """
     y = get_flip_angles(x::Sequence)
 

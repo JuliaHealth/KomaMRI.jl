@@ -1,4 +1,4 @@
-const MIN_RISE_TIME = 1e-10 #100*eps(1.0) #SmallestFloat
+const MIN_RISE_TIME = 1e-10
 """
     array_of_ranges = kfoldperm(N, k; type="random", breaks=[])
 
