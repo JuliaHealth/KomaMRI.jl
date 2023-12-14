@@ -167,3 +167,9 @@ If you use this package please acknowledge us by citing our paper.
          eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
 }
 ```
+
+## Contributors
+
+<a href="https://github.com/cncastillo/KomaMRI.jl/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=cncastillo/KomaMRI.jl" height="40px"/>
+</a>
