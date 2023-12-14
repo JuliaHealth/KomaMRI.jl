@@ -146,7 +146,13 @@ KomaUI()
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification will emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw Data or (2) to procced with the reconstruction.
 
 ## How to Contribute
-We welcome contributions from the community! If you're interested in contributing, please read our [Contribution Guidelines](CONTRIBUTING.md) for details on how to get started.
+KomaMRI exists thanks to all our contributors:
+
+<a href="https://github.com/cncastillo/KomaMRI.jl/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=cncastillo/KomaMRI.jl" height="40px"/>
+</a>
+
+Want to be highlighted here? We welcome contributions from the community! If you're interested in contributing, please read our [Contribution Guidelines](CONTRIBUTING.md) for details on how to get started.
 
 
 ## How to Cite
