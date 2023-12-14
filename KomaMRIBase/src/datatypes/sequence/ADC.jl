@@ -82,7 +82,7 @@ Returns an array of times when the samples of the sequence `seq` are acquired.
 - `times`: (`::Vector{Float64}`, `[s]`) time array when samples are acquired
 """
 function get_adc_sampling_times(seq)
-    T0 = cumsum([0; durs(seq)], dims=1)
+    T0 = get_block_start_times(seq)
     times = Float64[]
     for i = 1:length(seq)
         if is_ADC_on(seq[i])

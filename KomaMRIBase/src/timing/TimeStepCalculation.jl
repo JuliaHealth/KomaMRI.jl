@@ -125,8 +125,7 @@ This function returns non-uniform time points that are relevant in the sequence 
 function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 	t = Float64[]
 	ϵ = MIN_RISE_TIME #Small Float64
-	ΔT = durs(seq) #Duration of sequence block
-	T0 = cumsum([0; ΔT[:]]) #Start time of each block
+	T0 = get_block_start_times(seq)
 	for i = 1:length(seq)
 		s = seq[i] #Current sequence block
 		t0 = T0[i]

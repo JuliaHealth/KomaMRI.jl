@@ -35,7 +35,7 @@ include("timing/TrapezoidalIntegration.jl")
 export γ    # gyro-magnetic ratio [Hz/T]
 export Scanner, Sequence, Phantom
 export Grad, RF, ADC, Delay
-export dur
+export dur, get_block_start_times
 export DiscreteSequence
 export discretize, get_adc_phase_compensation, get_adc_sampling_times
 # This are also used for simulation
