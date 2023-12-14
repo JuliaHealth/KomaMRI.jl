@@ -27,37 +27,41 @@ function seq_epi_100x100_TE100_FOV230()
 
     # Define params
     begin
-        # User params
+        # Gyromagnetic constant
+        γ_jemris = 2π*γ/1000000000      # γ in [Hz/T]. γ_jemris in [rad/us/mT]
+
+        # User params (defined in the original JEMRIS XML file)
         FOVx = 0.230                    # Set
         Nx = 100                        # Set
         FOVy = 0.230                    # Set
         Ny = 100                        # Set
         TE = 0.1                        # Set
         Δtadc = 0.00001                 # Set
-        Smax = 10*1_000_000_000/2π/γ    # Set
+        Smax = 10/γ_jemris              # Set
+        Δtgr_digits = 5                 # Time resolution for gradients defined in JEMRIS source code (10us)
 
         # For gradients which moves in the k-space (and ADC)
-        Area_adc = Nx/FOVx/γ
-        Tgx = Nx*Δtadc                                  # From File: 0.001
-        Agx = Area_adc/Tgx                              # From File: 0.010211565230481714
-        ζgx = ceil(100000*(Agx/Smax))/100000            # From File: 0.00028 (JEMRIS non-optimal definition for trapezoidal with flat-top)
-        Tadc = Tgx - Δtadc                              # From File: 0.00099
-        ΔDadc = ζgx + Δtadc/2                           # From File: 0.000285
-        Area_gy = 1/FOVy/γ
-        ζgy = ceil(100000*sqrt(Area_gy/Smax))/100000    # From File: 5.9999999999999995e-5 (JEMRIS optimal definition for trapezoidal without flat-top)
-        Agy = Area_gy/ζgy                               # From File: 0.0017019276167022875
+        Area_adc = Nx/FOVx/γ                                # The width of the k-space traversed by the ADC in the x-direction
+        Tgx = Nx*Δtadc                                      # The duration of the flat top of the x-gradient
+        Agx = Area_adc/Tgx                                  # The amplitude of the x-gradient
+        ζgx = ceil(Agx/Smax; digits=Δtgr_digits)            # The rise and fall time of the the x-gradient
+        Tadc = Tgx - Δtadc                                  # The duration of the ADC
+        ΔDadc = ζgx + Δtadc/2                               # The delay of the ADC
+        Area_gy = 1/FOVy/γ                                  # The k-space resolution in the y-direction
+        ζgy = ceil(sqrt(Area_gy/Smax); digits=Δtgr_digits)  # The rise and fall time of the the triangular y-gradient (ζ = sqrt(Area/Slewrate) = sqrt((G*ζ)/(G/ζ)))
+        Agy = Area_gy/ζgy                                   # The amplitude of the triangular y-gradient
 
         # For first corner in the k-space (half of the covered rectangle in the k-space)
-        Area_kx = Area_adc + Agx*ζgx
-        Area_gxo = 0.5*Area_kx
-        ζgxo = ceil(100000*sqrt(Area_gxo/Smax))/100000  # From File: 0.00041999999999999996 (JEMRIS optimal definition for trapezoidal without flat-top)
-        Agxo = Area_gxo/ζgxo                            # From File: 0.015560481134096917
-        Area_ky = Ny*Area_gy
-        Area_gyo = 0.5*Area_ky
-        ζgyo = ceil(100000*sqrt(Area_gyo/Smax))/100000  # From File: 0.00037
-        Agyo = Area_gyo/ζgyo                            # From File: 0.013799413552738015 (JEMRIS optimal definition for trapezoidal without flat-top)
+        Area_kx = Area_adc + Agx*ζgx                            # The width of the k-space traversed by the x-gradient in the x-direction
+        Area_gxo = 0.5*Area_kx                                  # The half-width of the k-space in the x-direction
+        ζgxo = ceil(sqrt(Area_gxo/Smax); digits=Δtgr_digits)    # The rise and fall time of the the triangular dephasing x-gradient (ζ = sqrt(Area/Slewrate) = sqrt((G*ζ)/(G/ζ)))
+        Agxo = Area_gxo/ζgxo                                    # The amplitude of the triangular dephasing x-gradient
+        Area_ky = Ny*Area_gy                                    # The width of the k-space traversed by the y-gradient in the y-direction
+        Area_gyo = 0.5*Area_ky                                  # The half-width of the k-space in the y-direction
+        ζgyo = ceil(sqrt(Area_gyo/Smax); digits=Δtgr_digits)    # The rise and fall time of the the triangular dephasing y-gradient (ζ = sqrt(Area/Slewrate) = sqrt((G*ζ)/(G/ζ)))
+        Agyo = Area_gyo/ζgyo                                    # The amplitude of the triangular dephasing y-gradient
 
-        # For delay (from JEMRIS center-to-center TE definition)
+        # For dead time dalay to match TE (taken from JEMRIS center-to-center TE definition)
         ΔD = TE - (Trf/2 + 2*ζgxo + Ny*ζgx + Ny*Tgx/2 + (Ny-1)*ζgy)
     end
 
