@@ -1,8 +1,18 @@
 ### A Pluto.jl notebook ###
-# v0.19.30
+# v0.19.32
 
 using Markdown
 using InteractiveUtils
+
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
 
 # ╔═╡ d6b1729a-874d-11ee-151a-9b0fcce2c4fd
 using KomaMRI, PlutoPlotly, PlutoUI
@@ -21,7 +31,7 @@ If you have any doubts on how to use a function, please search in the **Live Doc
 md"""# 1. Free Induction Decay (FID)
 The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse. 
 
-$(LocalResource("Figures/FID.png", :width=>"300px"))
+$(PlutoUI.Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/FID.png", :width=>"300px"))
 To recreate this experiment, we will need to define a `Sequence`:
  - (1.1) A 90-deg block RF pulse, put it in a variable `seq` (check `PulseDesigner.RF_hard`'s docs using the Live Docs)
  - (1.2) An ADC to capture the signal in a variable `adc`, concatenate with (1.1) using `seq += adc`
@@ -32,15 +42,24 @@ For the hardware limits use the default scanner `sys = Scanner()`.
 
 # ╔═╡ c6e33cb8-f42c-4643-9257-124d2804d3da
 # (1.1) A 90-deg block RF pulse
-
+begin
+	sys = Scanner()
+	durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+	rf = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+end
 
 # ╔═╡ 0266632d-5ca4-4196-a523-33a66dd70e0c
 # (1.2) An ADC to capture the signal
-
+adc = ADC(100, 50e-3)
 
 # ╔═╡ 0975547d-67d9-4e6b-88ff-a9dd06a7f9ef
 # (1.3) Plot the generated Sequence
-
+begin
+	seq = Sequence()
+	seq += rf
+	seq += adc
+	plot_seq(seq; slider=false)
+end
 
 # ╔═╡ f11a2fa2-eff9-4979-b739-3da2b24a9a45
 md"""
@@ -54,12 +73,18 @@ Generate a virtual object:
 """
 
 # ╔═╡ d16efa62-dce7-4ec3-9e3c-b5e1677377fc
-# (1.4) A Phantom with three spins
-
+# (1.4) A Phantom with 20 spins
+begin
+	obj = Phantom(x=collect(range(-1e-3,1e-3,20)))
+	obj.ρ .= 1
+	obj.T1 .= 500e-3
+	obj.T2 .= 50e-3
+	obj
+end
 
 # ╔═╡ 35ff3402-dc36-4b91-bec9-b4d21faf3e68
 # (1.5) Plot the generated Phantom
-
+plot_phantom_map(obj, :T1)
 
 # ╔═╡ ea542271-01c2-4962-a708-804b23a861b9
 md"""
@@ -70,21 +95,27 @@ md"""
 
 # ╔═╡ c47a50b8-c930-4c96-9b34-2772186634d9
 # (1.6) Finally, use the generated seq, obj, and sys to simulate the FID
-
+raw = simulate(obj, seq, sys)
 
 # ╔═╡ 7a66ab47-918f-4582-895f-1b4690562051
 # (1.7) Plot the resulting raw data with plot_signal
-
+plot_signal(raw; slider=false)
 
 # ╔═╡ 1231b832-47b1-4ccb-9b56-a67838598cc7
 # (1.8) Is the signal the same as `plot(t, exp.(-t ./ T2))`?
-
+begin
+	t = range(0, 50, 100)
+	plot(
+		scatter(x=t, y=20.0.*exp.(-t ./ 50)),
+		Layout(yaxis_range=[0, 20.1])
+	)
+end
 
 # ╔═╡ e4c80c24-20fd-42e5-9dcd-a65958569c01
 md"""
 # 2. Gradient Echo
 
-$(LocalResource("Figures/GRE.gif", :width=>"400px"))
+$(Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/GRE.gif", :width=>"400px"))
 
 The gradient echo is one of the first steps to create an image. The big 
 breakthrough was the addition of linearly increasing magnetic fields, or gradients, to encode the spin's positions in their frequency (Mmmh, someone said Fourier?). This works due to the fact that the frequency $$f$$ of a spin is 
@@ -101,22 +132,6 @@ Let's create a different sequence.
  - (2.4) Plot the $$k$$-space with the `plot_kspace` function
 """
 
-# ╔═╡ 9179aa40-bb40-4a36-ae1e-00ae42935a5f
-# (2.1) Create a gradient `gx_pre`, use the variable `Ax`!!
-
-
-# ╔═╡ eafcf6ec-f564-4f1a-8785-689beda1f36d
-# (2.2) Append a `Sequence` block called `readout`
-
-
-# ╔═╡ 8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
-# (2.3) Plot `seq_gre` and the k-space
-
-
-# ╔═╡ 3abca406-2e6b-4b37-8835-65cfad9d0caa
-# (2.4) Plot the k-space with the `plot_kspace` function
-
-
 # ╔═╡ 74666c1a-2673-4936-982b-6229bf92af66
 md"""
  - (2.5) Simulate the `seq_gre` sequence
@@ -125,24 +140,44 @@ md"""
  - (2.8) Do you notice anything weird? If the answer is yes, try adjusting `Ax` to change the `FOV` of the acquisition
 """
 
+# ╔═╡ 0f96a83d-96ef-4768-9330-87c466e35c93
+# (2.8) Do you notice anything weird? Change Ax!
+@bind Ax Slider(range(0, 20, 20)*1e-5) # Gradient's area in [T/m s]
+
+# ╔═╡ 9179aa40-bb40-4a36-ae1e-00ae42935a5f
+# (2.1) Create a gradient `gx_pre`, use the variable `Ax`!!
+begin
+	T_gx_pre = 10e-3
+	gx_pre = Grad(-Ax/T_gx_pre, T_gx_pre, 0, 0)
+	seq_gre = Sequence()
+	seq_gre += rf
+	seq_gre += gx_pre
+# (2.2) Append a `Sequence` block called `readout`
+	gx = Grad(2*Ax/(2T_gx_pre), 2T_gx_pre, 0, 0)
+	adc_readout = ADC(100, 2T_gx_pre)
+	readout = Sequence([gx;;], [RF(0,0);;], [adc_readout])
+	seq_gre += readout
+end
+
+# ╔═╡ 8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
+# (2.3) Plot `seq_gre` and the k-space
+plot_seq(seq_gre; slider=false)
+
+# ╔═╡ 3abca406-2e6b-4b37-8835-65cfad9d0caa
+# (2.4) Plot the $k$-space with the `plot_kspace` function
+plot_kspace(seq_gre)
+
 # ╔═╡ ada602d2-4f4b-4fb4-a763-8a639e05ff38
 # (2.5) Simulate the seq_gre sequence
-
+raw_gre = simulate(obj, seq_gre, sys)
 
 # ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
 # (2.6) Plot the simulated signal
-
+plot_signal(raw_gre; slider=false)
 
 # ╔═╡ 9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # (2.7) Reconstruct the 1D image
-
-
-# ╔═╡ 0f96a83d-96ef-4768-9330-87c466e35c93
-Ax = 1 # Gradient's area in [T/m s]
-
-# ╔═╡ e2ac1ae4-d60f-4da5-881c-794dd12a8ad6
-# (2.8) Do you notice anything weird? Change Ax!
-
+plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
 
 # ╔═╡ 97104c46-e81f-444a-957f-0bbb1b02f1b8
 md"""
@@ -150,7 +185,7 @@ md"""
 
 The $$T_{2}^{*}$$-decay it the signal decay produced by microscopic distribution of off-resonance.
 
-$(LocalResource("Figures/T2star.png", :width=>"400px"))
+$(Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/T2star.png", :width=>"400px"))
 
 The exact distribution of off-resonance is
 
@@ -165,16 +200,17 @@ In this excercise we will simplify this distribution, but we will obtain a simil
 """
 
 # ╔═╡ ee7e81e7-484c-44a8-a191-f73e24707ce9
+begin
 # (3.1) Create a copy of the original phantom obj_t2star = copy(obj)
-
-
-# ╔═╡ 03b94173-da48-41ed-957a-816855cba180
+	obj_t2star = copy(obj)
 # (3.2) Add a linear distribution of off-resonance
-
+	obj_t2star.Δw .= 2π*collect(range(-50, 50, 20))
+	obj_t2star
+end
 
 # ╔═╡ 2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
 # (3.3) Plot obj_t2star
-
+plot_phantom_map(obj_t2star, :Δw)
 
 # ╔═╡ 27686262-1a1e-45fa-b4ee-90ae1d9ee34e
 md"""
@@ -186,25 +222,28 @@ md"""
 
 # ╔═╡ e4ef5145-a63c-4f91-ac04-3b5bf16c0842
 # (3.4) Simulate the seq_gre sequence
-
+raw_t2_star_gre = simulate(obj_t2star, seq_gre, sys)
 
 # ╔═╡ 1a83d897-705b-443d-89a4-ea5e3e6a3c07
 # (3.5) Plot the simulated signal
-
+plot_signal(raw_t2_star_gre; slider=false)
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
 # (3.6) Compare the plot in (3.5) with (2.6)
-
+plot_signal(raw_gre; slider=false)
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
 # (3.7) Reconstruct the 1D image
+plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
 
+# ╔═╡ f2d388d5-4cda-4a0b-be50-ea2cdc283692
+plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
 
 # ╔═╡ 3357a283-a234-4d15-8fdf-7fbec58b33a7
 md"""
 # 4. Spin Echo
 
-$(LocalResource("Figures/SE.gif", :width=>"400px"))
+$(Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/SE.gif", :width=>"400px"))
 
 The spin echo experiment has the advantage that the echo signal amplitud it is modulated by $$\exp(-t/T_2)$$ and not $$\exp(-t/T_2^{*})$$.
 
@@ -221,27 +260,22 @@ Our sequence consists of:
 
 # ╔═╡ 27e65680-22a0-4079-b6df-d60a3218e52e
 # (4.1) A 90deg hard RF pulse
-
-
-# ╔═╡ b856325a-ce6c-4712-b3ad-e69f686842d9
+begin
+	seq_se = Sequence()
+	seq_se += rf
 # (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
-
-
-# ╔═╡ abbf8627-1688-4833-a7a1-7c1478c46e08
+	seq_se += -1*gx_pre
+	seq_se += (0.0+2.0im)*rf
 # (4.3) A 180deg hard RF pulse
-
-
-# ╔═╡ 2e6305a3-ba08-4715-a752-0b8efeec2450
-# (4.4) A readout gradient
-
-
-# ╔═╡ 047f9dff-b2cf-4b9d-a9bd-f200bcf8205b
-# (4.5) Create `seq_se` 
-
+	seq_se += readout
+end
 
 # ╔═╡ f1f3b700-5916-496f-b938-46f7f08b4eb6
 # (4.6) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
+plot_seq(seq_se; slider=false)
 
+# ╔═╡ 4e1434e1-673f-4206-a271-9edec10ebd6a
+plot_kspace(seq_se)
 
 # ╔═╡ 45952512-aaf1-43d8-a95e-c32bb2633f42
 md"""
@@ -252,19 +286,34 @@ md"""
 
 # ╔═╡ 97479437-9ce3-4b33-9134-0f2af89bccb5
 # (4.7) Simulate using seq_se and obj_t2star
-
+raw_t2_star_se = simulate(obj_t2star, seq_se, sys)
 
 # ╔═╡ 1c79b37e-d4e0-490f-9466-20ce28f017ae
 # (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
-
+[
+	plot_signal(raw_t2_star_se; slider=false);
+	plot_signal(raw_t2_star_gre; slider=false)
+]
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
 # (4.9) Reconstruct the 1D image
+plot(abs.(KomaMRI.fftc(raw_t2_star_se.profiles[1].data)))
 
+# ╔═╡ 34824db7-13c4-45e2-befa-f027b9b585c0
+plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
 
 # ╔═╡ fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
 md"""
 Congratulations! you finished the simulation hands-on session 🥳!
+"""
+
+# ╔═╡ 3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
+# Run this cell to celebrate!
+html"""
+<script>
+const {default: confetti} = await import("https://cdn.skypack.dev/canvas-confetti@1")
+confetti()
+</script>
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -284,7 +333,7 @@ PlutoUI = "~0.7.53"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.2"
+julia_version = "1.9.4"
 manifest_format = "2.0"
 project_hash = "7455b5c042a0e461c2df1251b2894c0f07d0fba0"
 
@@ -989,12 +1038,12 @@ uuid = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
-version = "0.6.3"
+version = "0.6.4"
 
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "7.84.0+0"
+version = "8.4.0+0"
 
 [[deps.LibGit2]]
 deps = ["Base64", "NetworkOptions", "Printf", "SHA"]
@@ -1003,7 +1052,7 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 [[deps.LibSSH2_jll]]
 deps = ["Artifacts", "Libdl", "MbedTLS_jll"]
 uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
-version = "1.10.2+0"
+version = "1.11.0+1"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
@@ -1814,7 +1863,7 @@ version = "2.1.13+1"
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.48.0+0"
+version = "1.52.0+1"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1845,7 +1894,6 @@ version = "3.0.2+0"
 # ╠═1231b832-47b1-4ccb-9b56-a67838598cc7
 # ╟─e4c80c24-20fd-42e5-9dcd-a65958569c01
 # ╠═9179aa40-bb40-4a36-ae1e-00ae42935a5f
-# ╠═eafcf6ec-f564-4f1a-8785-689beda1f36d
 # ╠═8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
 # ╠═3abca406-2e6b-4b37-8835-65cfad9d0caa
 # ╟─74666c1a-2673-4936-982b-6229bf92af66
@@ -1853,27 +1901,25 @@ version = "3.0.2+0"
 # ╠═41d14dec-b852-4316-aefb-c3d08fa43216
 # ╠═9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # ╠═0f96a83d-96ef-4768-9330-87c466e35c93
-# ╠═e2ac1ae4-d60f-4da5-881c-794dd12a8ad6
 # ╟─97104c46-e81f-444a-957f-0bbb1b02f1b8
 # ╠═ee7e81e7-484c-44a8-a191-f73e24707ce9
-# ╠═03b94173-da48-41ed-957a-816855cba180
 # ╠═2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
 # ╟─27686262-1a1e-45fa-b4ee-90ae1d9ee34e
 # ╠═e4ef5145-a63c-4f91-ac04-3b5bf16c0842
 # ╠═1a83d897-705b-443d-89a4-ea5e3e6a3c07
 # ╠═18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
 # ╠═4a4a6bd3-b820-479c-89e3-f3ce79a316db
+# ╠═f2d388d5-4cda-4a0b-be50-ea2cdc283692
 # ╟─3357a283-a234-4d15-8fdf-7fbec58b33a7
 # ╠═27e65680-22a0-4079-b6df-d60a3218e52e
-# ╠═b856325a-ce6c-4712-b3ad-e69f686842d9
-# ╠═abbf8627-1688-4833-a7a1-7c1478c46e08
-# ╠═2e6305a3-ba08-4715-a752-0b8efeec2450
-# ╠═047f9dff-b2cf-4b9d-a9bd-f200bcf8205b
 # ╠═f1f3b700-5916-496f-b938-46f7f08b4eb6
+# ╠═4e1434e1-673f-4206-a271-9edec10ebd6a
 # ╟─45952512-aaf1-43d8-a95e-c32bb2633f42
 # ╠═97479437-9ce3-4b33-9134-0f2af89bccb5
 # ╠═1c79b37e-d4e0-490f-9466-20ce28f017ae
 # ╠═2e65ae31-f50a-462b-9744-80bf6cdb388e
+# ╠═34824db7-13c4-45e2-befa-f027b9b585c0
 # ╟─fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
+# ╠═3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
