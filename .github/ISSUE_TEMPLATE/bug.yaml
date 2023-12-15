@@ -1,0 +1,36 @@
+name: Bug Report
+description: File a bug report
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We use the GitHub issue tracker for bug reports and feature requests only.
+        If you're experiencing a problem with a particular package, open an issue on that package's repository instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Please describe the steps you took and provide any code executed to reproduce the bug, as well as any error messages that were printed.
+      placeholder: |
+        I executed this function:
+        
+        ```julia
+        [...]
+        ````
+  
+        and encountered the following error/wrong/unexpected result:
+
+        [...]
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Version
+      description: What version of KomaMRI are you running?
+      placeholder: Output of `using Pkg; [println("$(pkg.name) $(pkg.version)") for (_, pkg) in Pkg.dependencies() if occursin("KomaMRI", pkg.name)];`
+      render: Julia
+    validations:
+      required: true
