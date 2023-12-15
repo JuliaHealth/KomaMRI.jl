@@ -42,11 +42,10 @@ for (root, _, files) ∈ walkdir(joinpath(lit, exaname)), file ∈ files
     Literate.notebook(ipath, opath; execute=false)
 end
 
-# Create some subsecctions
+# Create some subsections
 ways_of_using_koma = ["ui-details.md", "programming-workflow.md", "notebooks.md"]
 create_your_own_sequence = ["sequence.md", "events.md"]
 literate_examples = [joinpath("generated", exaname, f) for f in readdir(joinpath(gen, exaname)) if is_md_file(f)]
-examples = push!(literate_examples, "pluto-simulation.md")
 
 # Documentation structure
 makedocs(
@@ -64,7 +63,8 @@ makedocs(
         "Create Your Own Sequence" => create_your_own_sequence;
         #"Sequence Definition" => "sequence.md";
         #"Events Definition" => "events.md";
-        "Examples" => examples;
+        "Examples" => literate_examples;
+        "Educational Material" => "pluto-simulation.md";
         "Simulation" => "mri-theory.md";
         "API Documentation" => "api.md";
     ],
