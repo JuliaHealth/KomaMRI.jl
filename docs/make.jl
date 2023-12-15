@@ -29,7 +29,8 @@ end
 
 # Auxiliar function that returns an array with the subseccions of a literate seccion
 function pages_for_literate_seccion(folder)
-    return [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if is_md_file(f)]
+    literate_examples = [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if is_md_file(f)]
+    return push!(literate_examples, "pluto-simulation.md")
 end
 
 # Copy the logos into the assets folder if necessary
