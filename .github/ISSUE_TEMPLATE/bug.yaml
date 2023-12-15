@@ -26,11 +26,11 @@ body:
     validations:
       required: true
   - type: textarea
-    id: version
+    id: environment
     attributes:
-      label: Version
-      description: What version of KomaMRI are you running?
-      placeholder: Output of `using Pkg; [println("$(pkg.name) $(pkg.version)") for (_, pkg) in Pkg.dependencies() if occursin("KomaMRI", pkg.name)];`
+      label: Environment
+      description: What version and environment of KomaMRI? (using Pkg; println("OS $(Base.Sys.MACHINE)"); println("Julia $VERSION"); [println("$(pkg.name) $(pkg.version)") for (_, pkg) in Pkg.dependencies() if occursin("KomaMRI", pkg.name)];)
+      placeholder: Output of `using Pkg; println("OS $(Base.Sys.MACHINE)"); println("Julia $VERSION"); [println("$(pkg.name) $(pkg.version)") for (_, pkg) in Pkg.dependencies() if occursin("KomaMRI", pkg.name)];`
       render: Julia
     validations:
       required: true
