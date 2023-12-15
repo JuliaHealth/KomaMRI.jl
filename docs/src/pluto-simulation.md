@@ -8,4 +8,7 @@ The participants used **KomaMRI** within a **Pluto** notebook to simulate some b
 
 ```@raw html
 <iframe type="text/html" src="../../../examples/pluto/simulation-example-empty.html" style="height:100vh;width:100%;"></iframe>
-
+<details><summary>View Solution</summary>
+<iframe type="text/html" src="../../../examples/pluto/simulation-example.html" style="height:100vh;width:100%;"></iframe>
+</details>
+```
