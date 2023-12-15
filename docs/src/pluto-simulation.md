@@ -18,4 +18,3 @@ The following outlines tasks for simulating with **KomaMRI** in a **Pluto** note
 <br>
 ```
 
-Have fun!
