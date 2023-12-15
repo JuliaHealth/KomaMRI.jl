@@ -29,7 +29,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: What version and environment of KomaMRI? (using Pkg; println("OS $(Base.Sys.MACHINE)"); println("Julia $VERSION"); [println("$(pkg.name) $(pkg.version)") for (_, pkg) in Pkg.dependencies() if occursin("KomaMRI", pkg.name)];)
+      description: What environment are you using? Run the following code to get all the relevant information: ```using Pkg; println("OS $(Base.Sys.MACHINE)"); println("Julia $VERSION"); [println("$(pkg.name) $(pkg.version)") for (_, pkg) in Pkg.dependencies() if occursin("KomaMRI", pkg.name)];```
       placeholder: Output of `using Pkg; println("OS $(Base.Sys.MACHINE)"); println("Julia $VERSION"); [println("$(pkg.name) $(pkg.version)") for (_, pkg) in Pkg.dependencies() if occursin("KomaMRI", pkg.name)];`
       render: Julia
     validations:
