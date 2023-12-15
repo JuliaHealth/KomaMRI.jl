@@ -153,7 +153,7 @@ md"""
 
 # ╔═╡ 0f96a83d-96ef-4768-9330-87c466e35c93
 # (2.8) Do you notice anything weird? Change Ax!
-@bind Ax Slider(range(0, 20, 20)*1e-5) # Gradient's area in [T/m s]
+@bind Ax Slider(range(0, 20, 20)*1e-5, default=10e-5) # Gradient's area in [T/m s]
 
 # ╔═╡ 9179aa40-bb40-4a36-ae1e-00ae42935a5f
 # (2.1) Create a gradient `gx_pre`, use the variable `Ax`!!
