@@ -6,10 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        If you have a question please search or post to our Discourse site: [https://discourse.julialang.org](https://discourse.julialang.org).
         We use the GitHub issue tracker for bug reports and feature requests only.
-        If you're experiencing a problem with a particular package, open an issue on that
-        package's repository instead.
+        If you're experiencing a problem with a particular package, open an issue on that package's repository instead.
   - type: textarea
     id: what-happened
     attributes:
@@ -28,27 +26,11 @@ body:
     validations:
       required: true
   - type: textarea
-    id: expectation
-    attributes:
-      label: What did you expect to happen?
-      description: Please describe what you expected to happen.
-      placeholder: I expected the function to return `foobar`.
-    validations:
-      required: true
-  - type: input
-    id: platform
-    attributes:
-      label: Installation Method
-      description: How did you install Julia?
-      placeholder: Download from julialang.org / juliaup / other (please specify)
-  - type: textarea
     id: version
     attributes:
       label: Version
-      description: What version of julia are you running?
-      placeholder: Output of `julia -e 'using InteractiveUtils; versioninfo()'`
-      render: shell
-    validations:
-      required: true
+      description: What version of KomaMRI are you running?
+      placeholder: Output of `using Pkg; [println("$(pkg.name) $(pkg.version)") for (_, pkg) in Pkg.dependencies() if occursin("KomaMRI", pkg.name)];`
+      render: Julia
     validations:
       required: true
