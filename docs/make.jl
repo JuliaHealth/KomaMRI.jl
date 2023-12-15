@@ -5,9 +5,6 @@ org, reps = :cncastillo, :KomaMRI
 base = "$org/$reps.jl"
 repo_root_url = "https://github.com/$base/blob/master"
 
-# User can add some directories from the literate folder
-foldernames = ["examples"]
-
 # Define some paths
 com = joinpath(dirname(@__DIR__), "assets")
 exa = joinpath(dirname(@__DIR__), "examples")
@@ -15,7 +12,16 @@ src = joinpath(@__DIR__, "src")
 lit = joinpath(exa, "literate")
 gen = joinpath(src, "generated")
 assets = joinpath(src, "assets")
-folderpaths = [joinpath(lit, foldername) for foldername in foldernames]
+exaname = "examples"
+
+# Create empty folders for in the assets directory for the literate generated sections
+mkpath(joinpath(assets, exaname))
+mkpath(joinpath(gen, exaname))
+
+# Copy the logos into the assets folder if necessary
+logo, logo_dark = joinpath(assets, "logo.svg"), joinpath(assets, "logo-dark.svg")
+(!isfile(logo)) && cp(joinpath(com, "logo.svg"), logo)
+(!isfile(logo_dark)) && cp(joinpath(com, "logo-dark.svg"), logo_dark)
 
 # Auxiliar function to replace texts into literate .jl files previous processing
 function preprocess_constants(file, folder)
@@ -27,36 +33,19 @@ function is_md_file(filename)
     return splitext(filename)[2] == ".md"
 end
 
-# Auxiliar function that returns an array with the subseccions of a literate seccion
-function pages_for_literate_seccion(folder)
-    return [joinpath("generated", folder, f) for f in readdir(joinpath(gen, folder)) if is_md_file(f)]
-end
-
-# Copy the logos into the assets folder if necessary
-logo, logo_dark = joinpath(assets, "logo.svg"), joinpath(assets, "logo-dark.svg")
-(!isfile(logo)) && cp(joinpath(com, "logo.svg"), logo)
-(!isfile(logo_dark)) && cp(joinpath(com, "logo-dark.svg"), logo_dark)
-
-# Create empty folders for in the assets directory for the literate generated sections
-[mkpath(joinpath(assets, foldername)) for foldername in foldernames]
-[mkpath(joinpath(gen, foldername)) for foldername in foldernames]
-
 # Generate markdown, script and notebook for from the source literate file
-for i ∈ eachindex(foldernames)
-    subsection = joinpath(lit, foldernames[i])
-    for (root, _, files) ∈ walkdir(subsection), file ∈ files
-        file_minus_ext = split(file, ".")[1]
-        ipath, opath = joinpath(root, file), joinpath(gen, foldernames[i])
-        Literate.markdown(ipath, opath; repo_root_url, preprocess=preprocess_constants(file_minus_ext, foldernames[i]) )
-        Literate.script(ipath, opath; repo_root_url)
-        Literate.notebook(ipath, opath; execute=false)
-    end
+for (root, _, files) ∈ walkdir(joinpath(lit, exaname)), file ∈ files
+    file_minus_ext = split(file, ".")[1]
+    ipath, opath = joinpath(root, file), joinpath(gen, exaname)
+    Literate.markdown(ipath, opath; repo_root_url, preprocess=preprocess_constants(file_minus_ext, exaname) )
+    Literate.script(ipath, opath; repo_root_url)
+    Literate.notebook(ipath, opath; execute=false)
 end
 
-literate_seccions = [titlecase(replace(foldername, "-"=>" ")) => pages_for_literate_seccion(foldername) for foldername in foldernames]
-
+# Create some subsections
 ways_of_using_koma = ["ui-details.md", "programming-workflow.md", "notebooks.md"]
 create_your_own_sequence = ["sequence.md", "events.md"]
+literate_examples = [joinpath("generated", exaname, f) for f in readdir(joinpath(gen, exaname)) if is_md_file(f)]
 
 # Documentation structure
 makedocs(
@@ -74,7 +63,8 @@ makedocs(
         "Create Your Own Sequence" => create_your_own_sequence;
         #"Sequence Definition" => "sequence.md";
         #"Events Definition" => "events.md";
-        literate_seccions;
+        "Examples" => literate_examples;
+        "Educational Material" => "pluto-simulation.md";
         "Simulation" => "mri-theory.md";
         "API Documentation" => "api.md";
     ],
