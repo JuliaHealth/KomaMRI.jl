@@ -39,6 +39,7 @@ body:
         KomaMRI X.X.X
         KomaMRICore X.X.X
         KomaMRIPlots X.X.X
+        ...
       render: Markdown
     validations:
       required: true
