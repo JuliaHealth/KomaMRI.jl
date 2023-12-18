@@ -20,7 +20,7 @@ body:
     attributes:
       label: Environment
       description: |
-        What environment are you using? Run the following code to get all the relevant information:
+        We need a few details to understand the issue better. Please run the following code to easily get all the relevant information (works for Julia >=1.9):
         ```julia
         using Pkg
         begin
