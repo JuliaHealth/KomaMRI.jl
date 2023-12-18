@@ -1,14 +1,12 @@
 name: Feature Request
 description: Suggest a new feature
-title: "[FR]: "
-labels: ["feature"]
+labels: ["enhancement"]
 body:
   - type: textarea
     id: feature-request
     attributes:
       label: Feature Request
-      description: Please describe your feature request
-      placeholder: |
+      description: |
         Your feature may already be requested!
         Please search on the issue tracker before creating a new issue.
     validations:
