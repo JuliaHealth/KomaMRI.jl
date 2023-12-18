@@ -184,11 +184,11 @@ raw_gre = simulate(obj, seq_gre, sys)
 
 # ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
 # (2.6) Plot the simulated signal
-plot_signal(raw_gre; slider=false)
+signal_gre = plot_signal(raw_gre; slider=false)
 
 # ╔═╡ 9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # (2.7) Reconstruct the 1D image
-plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+recon_gre = plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
 
 # ╔═╡ 97104c46-e81f-444a-957f-0bbb1b02f1b8
 md"""
@@ -204,51 +204,67 @@ $$p_{\Delta w}(w) = \frac{T_2^{'}}{\pi(1+T_2^{'2} w^2)},\quad\text{with }\frac{1
 
 In this excercise we will simplify this distribution, but we will obtain a similar effect.
 
- - (3.1) Create a copy of the original phantom `obj_t2star = copy(obj)`
- - (3.2) Add a linear distribution of off-resonance to `obj_t2star.Δw .= 2π[-10, 10] rad/s` 
- - (3.3) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
+- (3.1) Create a new phantom named `obj_t2star` with spins at the same positions as the original phantom `obj`, each having a linear distribution of the off-resonance parameter. To achieve this, follow these steps:
+   * (3.1.1) Create an empty phantom called `obj_t2star`.
+   * (3.1.2) Iterate over 20 equispaced values starting from -20π up to 20π; these values represent the linear off-resonance distribution.
+   * (3.1.3) Within the loop, create a copy of the original phantom: `obj_aux = copy(obj)` with the off-resonance value of the current iteration.
+   * (3.1.4) Within the loop, update the `obj_t2star` by superimposing it with `obj_aux`.
+   * (3.1.5) Finally, outside the loop, divide the proton density of `obj_t2star` by 20.
+
+ - (3.2) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
 
 """
 
 # ╔═╡ ee7e81e7-484c-44a8-a191-f73e24707ce9
+# (3.1) Create the obj_t2star phantom 
 begin
-# (3.1) Create a copy of the original phantom obj_t2star = copy(obj)
-	obj_t2star = copy(obj)
-# (3.2) Add a linear distribution of off-resonance
-	obj_t2star.Δw .= 2π*collect(range(-50, 50, 20))
-	obj_t2star
+    # (3.1.1) Empty phantom
+	obj_t2star = Phantom{Float64}(x=[])
+    # (3.1.2) Iterate over linear off-resonance distribution
+	linear_offresonance_distribution = 2π .* range(-10, 10, 20)
+	for off = linear_offresonance_distribution
+		# (3.1.3) Copy original phantom and modify off-resonance
+	    aux = copy(obj)
+		aux.Δw .= off
+		aux.y  .+= off * 1e-6  # So the distribution is visible
+		# (3.1.4) Update the phantom
+		obj_t2star += aux
+	end
+	# (3.1.5) Divide the proton density
+	obj_t2star.ρ .= 1.0 / 20.0 
+	obj_t2star.name = "T2 star phantom"  # Change the name of the phantom
 end
 
 # ╔═╡ 2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
-# (3.3) Plot obj_t2star
+# (3.2) Plot obj_t2star
 plot_phantom_map(obj_t2star, :Δw)
 
 # ╔═╡ 27686262-1a1e-45fa-b4ee-90ae1d9ee34e
 md"""
- - (3.4) Simulate the `seq_gre` sequence
- - (3.5) Plot the simulated signal
- - (3.6) Compare the plot in (3.5) with (2.6)
- - (3.7) Reconstruct the 1D image
+ - (3.3) Simulate the `seq_gre` sequence
+ - (3.4) Plot the simulated signal
+ - (3.5) Compare the plot in (3.5) with (2.6)
+ - (3.6) Reconstruct the 1D image
 """
 
 # ╔═╡ e4ef5145-a63c-4f91-ac04-3b5bf16c0842
-# (3.4) Simulate the seq_gre sequence
+# (3.3) Simulate the seq_gre sequence
 raw_t2_star_gre = simulate(obj_t2star, seq_gre, sys)
 
 # ╔═╡ 1a83d897-705b-443d-89a4-ea5e3e6a3c07
-# (3.5) Plot the simulated signal
-plot_signal(raw_t2_star_gre; slider=false)
+# (3.4) Plot the simulated signal
+signal_t2_star_gre = plot_signal(raw_t2_star_gre; slider=false)
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
-# (3.6) Compare the plot in (3.5) with (2.6)
-plot_signal(raw_gre; slider=false)
+# (3.5) Compare the plot in (3.5) with (2.6)
+[signal_gre; signal_t2_star_gre]
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
-# (3.7) Reconstruct the 1D image
-plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
+# (3.6) Reconstruct the 1D image
+recon_t2_star_gre = plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
 
 # ╔═╡ f2d388d5-4cda-4a0b-be50-ea2cdc283692
-plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+[recon_gre recon_t2_star_gre]
 
 # ╔═╡ 3357a283-a234-4d15-8fdf-7fbec58b33a7
 md"""
@@ -308,10 +324,10 @@ raw_t2_star_se = simulate(obj_t2star, seq_se, sys)
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
 # (4.9) Reconstruct the 1D image
-plot(abs.(KomaMRI.fftc(raw_t2_star_se.profiles[1].data)))
+recon_t2_star_se = plot(abs.(KomaMRI.fftc(raw_t2_star_se.profiles[1].data)))
 
 # ╔═╡ 34824db7-13c4-45e2-befa-f027b9b585c0
-plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
+[recon_t2_star_se recon_t2_star_gre recon_gre]
 
 # ╔═╡ fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
 md"""

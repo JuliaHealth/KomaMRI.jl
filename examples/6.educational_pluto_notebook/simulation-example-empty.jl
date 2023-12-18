@@ -116,6 +116,9 @@ Let's create a different sequence.
 # (2.1) Create a gradient `gx_pre`, use the variable `Ax`!!
 # ...
 
+# (2.2) Append a `Sequence` block called `readout`
+# ...
+
 # ╔═╡ 8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
 # (2.3) Plot `seq_gre` and the k-space
 # ...
@@ -162,22 +165,32 @@ $$p_{\Delta w}(w) = \frac{T_2^{'}}{\pi(1+T_2^{'2} w^2)},\quad\text{with }\frac{1
 
 In this excercise we will simplify this distribution, but we will obtain a similar effect.
 
- - (3.1) Create a copy of the original phantom `obj_t2star = copy(obj)`
- - (3.2) Add a linear distribution of off-resonance to `obj_t2star.Δw .= 2π[-10, 10] rad/s` 
- - (3.3) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
+- (3.1) Create a new phantom named `obj_t2star` with spins at the same positions as the original phantom `obj`, each having a linear distribution of the off-resonance parameter. To achieve this, follow these steps:
+   * (3.1.1) Create an empty phantom called `obj_t2star`.
+   * (3.1.2) Iterate over 20 equispaced values starting from -20π up to 20π; these values represent the linear off-resonance distribution.
+   * (3.1.3) Within the loop, create a copy of the original phantom: `obj_aux = copy(obj)` with the off-resonance value of the current iteration.
+   * (3.1.4) Within the loop, update the `obj_t2star` by superimposing it with `obj_aux`.
+   * (3.1.5) Finally, outside the loop, divide the proton density of `obj_t2star` by 20.
+
+ - (3.2) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
 
 """
 
 # ╔═╡ 9f3683c1-4dfb-419b-9e04-f93bb7f80503
 # (3.1) Create a copy of the original phantom obj_t2star = copy(obj)
-# ...
-
-# ╔═╡ ee7e81e7-484c-44a8-a191-f73e24707ce9
-# (3.2) Add a linear distribution of off-resonance
-# ...
+  # (3.1.1) Empty phantom
+  # ...
+  # (3.1.2) Iterate over linear off-resonance distribution
+  # ...
+    # (3.1.3) Copy original phantom and modify off-resonance
+	# ...
+	# (3.1.4) Update the phantom
+	# ...
+  # (3.1.5) Divide the proton density
+  # ...
 
 # ╔═╡ 2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
-# (3.3) Plot obj_t2star
+# (3.2) Plot obj_t2star
 # ...
 
 # ╔═╡ 27686262-1a1e-45fa-b4ee-90ae1d9ee34e
@@ -189,19 +202,19 @@ md"""
 """
 
 # ╔═╡ e4ef5145-a63c-4f91-ac04-3b5bf16c0842
-# (3.4) Simulate the seq_gre sequence
+# (3.3) Simulate the seq_gre sequence
 # ...
 
 # ╔═╡ 1a83d897-705b-443d-89a4-ea5e3e6a3c07
-# (3.5) Plot the simulated signal
+# (3.4) Plot the simulated signal
 # ...
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
-# (3.6) Compare the plot in (3.5) with (2.6)
+# (3.5) Compare the plot in (3.5) with (2.6)
 # ...
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
-# (3.7) Reconstruct the 1D image
+# (3.6) Reconstruct the 1D image
 # ...
 
 # ╔═╡ 3357a283-a234-4d15-8fdf-7fbec58b33a7
@@ -227,11 +240,9 @@ Our sequence consists of:
 # (4.1) A 90deg hard RF pulse
 # ...
 
-# ╔═╡ ae762259-46a7-4323-bbd1-adee08a139f2
 # (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
 # ...
 
-# ╔═╡ 8968bbd1-0705-4a58-9fc8-225929ce3ac1
 # (4.3) A 180deg hard RF pulse
 # ...
 
@@ -1876,7 +1887,6 @@ version = "3.0.2+0"
 # ╠═0f96a83d-96ef-4768-9330-87c466e35c93
 # ╟─97104c46-e81f-444a-957f-0bbb1b02f1b8
 # ╠═9f3683c1-4dfb-419b-9e04-f93bb7f80503
-# ╠═ee7e81e7-484c-44a8-a191-f73e24707ce9
 # ╠═2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
 # ╟─27686262-1a1e-45fa-b4ee-90ae1d9ee34e
 # ╠═e4ef5145-a63c-4f91-ac04-3b5bf16c0842
@@ -1885,8 +1895,6 @@ version = "3.0.2+0"
 # ╠═4a4a6bd3-b820-479c-89e3-f3ce79a316db
 # ╟─3357a283-a234-4d15-8fdf-7fbec58b33a7
 # ╠═c8a37593-3028-4e50-ad07-dc81edba45c8
-# ╠═ae762259-46a7-4323-bbd1-adee08a139f2
-# ╠═8968bbd1-0705-4a58-9fc8-225929ce3ac1
 # ╠═75ee6dbe-598a-47be-9655-3de3bc015281
 # ╠═68d88987-3de7-42ae-9380-91ffae3ca40b
 # ╠═f1f3b700-5916-496f-b938-46f7f08b4eb6
