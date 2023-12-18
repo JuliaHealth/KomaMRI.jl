@@ -165,8 +165,8 @@ begin
 	seq_gre += gx_pre
 # (2.2) Append a `Sequence` block called `readout`
 	gx = Grad(2*Ax/(2T_gx_pre), 2T_gx_pre, 0, 0)
-	adc_readout = ADC(100, 2T_gx_pre)
-	readout = Sequence([gx;;], [RF(0,0);;], [adc_readout])
+	adc2 = ADC(100, 2T_gx_pre)
+	readout = Sequence([gx;;], [RF(0,0);;], [adc2])
 	seq_gre += readout
 end
 
@@ -1900,7 +1900,7 @@ version = "3.0.2+0"
 # ╟─cc66bfed-b61b-4067-8c94-4c54b82a3b42
 # ╠═3e87790c-ddec-4897-a5d8-276cf7242147
 # ╠═8529f36d-2d39-4b45-a821-01c8346539fd
-# ╠═6dfe338d-de85-4adb-b030-09455fae78a0
+# ╟─6dfe338d-de85-4adb-b030-09455fae78a0
 # ╟─8e474add-8651-431b-b481-7a139037dbd2
 # ╠═c6e33cb8-f42c-4643-9257-124d2804d3da
 # ╠═0266632d-5ca4-4196-a523-33a66dd70e0c
