@@ -204,12 +204,12 @@ $$p_{\Delta w}(w) = \frac{T_2^{'}}{\pi(1+T_2^{'2} w^2)},\quad\text{with }\frac{1
 
 In this excercise we will simplify this distribution, but we will obtain a similar effect.
 
-- (3.1) Create a new phantom named `obj_t2star` with spins at the same positions as the original phantom `obj`, each having a linear distribution of the off-resonance parameter. To achieve this, follow these steps:
+- (3.1) Create a new phantom named `obj_t2star` with spins at the same positions as the original phantom `obj`, each having a linear distribution of off-resonance. To achieve this, follow these steps:
    * (3.1.1) Create an empty phantom called `obj_t2star`.
-   * (3.1.2) Iterate over 20 equispaced values starting from -20π up to 20π; these values represent the linear off-resonance distribution.
-   * (3.1.3) Within the loop, create a copy of the original phantom: `obj_aux = copy(obj)` with the off-resonance value of the current iteration.
-   * (3.1.4) Within the loop, update the `obj_t2star` by superimposing it with `obj_aux`.
-   * (3.1.5) Finally, outside the loop, divide the proton density of `obj_t2star` by 20.
+   * (3.1.2) Create a linear off-resonance distribution such that the range $2\pi [-10, 10]\,\mathrm{rad/s}` is covered uniformly with $N_{\mathrm{isochromats}} = 20$ (use the function `range(start, stop, length)`).
+   * (3.1.3) Iterate over the elements `off` of the linear distribution (`for` loop) and create copies of the original phantom (`obj_aux = copy(obj)`) and set the off-resonance of that copy to `off` with `obj_aux.Δw .= off`.
+   * (3.1.4) Update `obj_t2star` by appending the modified copies `obj_aux` (`obj_t2star += obj_aux`).
+   * (3.1.5) Finally, outside the loop, divide the proton density `obj_t2star.ρ` by $N_{\mathrm{isochromats}} = 20$ and rename the phantom `obj_t2star.name = "T2 star phantom"`.
 
  - (3.2) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
 
