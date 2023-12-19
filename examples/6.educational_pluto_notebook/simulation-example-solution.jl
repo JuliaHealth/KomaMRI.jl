@@ -206,33 +206,34 @@ In this excercise we will simplify this distribution, but we will obtain a simil
 
 - (3.1) Create a new phantom named `obj_t2star` with spins at the same positions as the original phantom `obj`, each having a linear distribution of off-resonance. To achieve this, follow these steps:
    * (3.1.1) Create an empty phantom called `obj_t2star`.
-   * (3.1.2) Create a linear off-resonance distribution such that the range $2\pi [-10, 10]\,\mathrm{rad/s}` is covered uniformly with $N_{\mathrm{isochromats}} = 20$ (use the function `range(start, stop, length)`).
+   * (3.1.2) Create a linear off-resonance distribution such that the range $$2\pi [-10, 10]\,\mathrm{rad/s}$$ is covered uniformly with $$N_{\mathrm{isochromats}} = 20$$ (use the function `range(start, stop, length)`).
    * (3.1.3) Iterate over the elements `off` of the linear distribution (`for` loop) and create copies of the original phantom (`obj_aux = copy(obj)`) and set the off-resonance of that copy to `off` with `obj_aux.Δw .= off`.
    * (3.1.4) Update `obj_t2star` by appending the modified copies `obj_aux` (`obj_t2star += obj_aux`).
-   * (3.1.5) Finally, outside the loop, divide the proton density `obj_t2star.ρ` by $N_{\mathrm{isochromats}} = 20$ and rename the phantom `obj_t2star.name = "T2 star phantom"`.
+   * (3.1.5) Finally, outside the loop, divide the proton density `obj_t2star.ρ` by $$N_{\mathrm{isochromats}} = 20$$ and rename the phantom `obj_t2star.name = "T2 star phantom"`.
 
  - (3.2) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
 
 """
 
 # ╔═╡ ee7e81e7-484c-44a8-a191-f73e24707ce9
-# (3.1) Create the obj_t2star phantom 
+# (3.1) Create the new obj_t2star phantom 
 begin
-    # (3.1.1) Empty phantom
+    # (3.1.1) Create an empty phantom
 	obj_t2star = Phantom{Float64}(x=[])
-    # (3.1.2) Iterate over linear off-resonance distribution
+    # (3.1.2) Define the linear off-resonance distribution
 	linear_offresonance_distribution = 2π .* range(-10, 10, 20)
+	# (3.1.3) Iterate over the linear off-resonance distribution and ...
 	for off = linear_offresonance_distribution
-		# (3.1.3) Copy original phantom and modify off-resonance
+		# ... copy the original phantom and modify its off-resonance
 	    aux = copy(obj)
 		aux.Δw .= off
 		aux.y  .+= off * 1e-6  # So the distribution is visible
 		# (3.1.4) Update the phantom
 		obj_t2star += aux
 	end
-	# (3.1.5) Divide the proton density
+	# (3.1.5) Divide the proton density and rename the phantom
 	obj_t2star.ρ .= 1.0 / 20.0 
-	obj_t2star.name = "T2 star phantom"  # Change the name of the phantom
+	obj_t2star.name = "T2 star phantom"
 end
 
 # ╔═╡ 2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
