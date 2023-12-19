@@ -52,6 +52,7 @@ makedocs(
     modules = [KomaMRI, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
     sitename = "KomaMRI.jl: General MRI simulation framework",
     authors = "Boris Orostica Navarrete and Carlos Castillo Passi",
+    checkdocs = :exports,
     pages = [
         "Home" => "index.md";
         "Getting Started" => "getting-started.md";
