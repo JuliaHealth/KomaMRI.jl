@@ -100,6 +100,64 @@ ADC
 Delay
 ```
 
+## Functions for structs
+
+### `dur`
+```@docs
+dur
+```
+
+### `rotx`
+```@docs
+rotx
+```
+
+### `roty`
+```@docs
+roty
+```
+
+### `rotz`
+```@docs
+rotz
+```
+
+### `get_kspace`
+```@docs
+get_kspace
+```
+
+### `get_M1`
+```@docs
+get_M1
+```
+
+### `get_M2`
+```@docs
+get_M2
+```
+
+### `get_flip_angles`
+```@docs
+get_flip_angles
+```
+
+### `is_RF_on`
+```@docs
+is_RF_on
+```
+
+### `is_GR_on`
+```@docs
+is_GR_on
+```
+
+### `is_ADC_on`
+```@docs
+is_ADC_on
+```
+
+
 ## Read Data
 
 ```@meta
@@ -121,12 +179,8 @@ read_phantom_jemris
 read_phantom_MRiLab
 ```
 
-### `signal_to_raw_data`
-```@docs
-signal_to_raw_data
-```
 
-## Pulse Design
+## Pulse Designer
 
 ```@meta
 CurrentModule = KomaMRICore
@@ -167,6 +221,67 @@ PulseDesigner.spiral_base
 PulseDesigner.EPI_example
 ```
 
+## Spin Representation
+
+### `Mag`
+```@docs
+Mag
+```
+
+### `Spinor`
+```@docs
+Spinor
+```
+
+### `Rx`
+```@docs
+Rx
+```
+
+### `Ry`
+```@docs
+Ry
+```
+
+### `Rz`
+```@docs
+Rz
+```
+
+### `Q`
+```@docs
+Q
+```
+
+### `Un`
+```@docs
+Un
+```
+
+
+## Low Level Processing
+
+### `f32`
+```@docs
+f32
+```
+
+### `f64`
+```@docs
+f64
+```
+
+### `cpu`
+```@docs
+cpu
+```
+
+### `gpu`
+```@docs
+gpu
+```
+
+
 ## Simulation
 
 ### `default_sim_params`
@@ -183,6 +298,12 @@ simulate
 ```@docs
 simulate_slice_profile
 ```
+
+### `signal_to_raw_data`
+```@docs
+signal_to_raw_data
+```
+
 
 ## Plots
 
@@ -238,6 +359,16 @@ plot_signal
 ### `plot_image`
 ```@docs
 plot_image
+```
+
+### `plot_dict`
+```@docs
+plot_dict
+```
+
+### `plot_seqd`
+```@docs
+plot_seqd
 ```
 
 

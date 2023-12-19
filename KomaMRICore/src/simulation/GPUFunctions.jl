@@ -12,11 +12,11 @@ function print_gpus()
     check_use_cuda()
     if use_cuda[]
 	    cuda_devices = [Symbol("($(i-1)$(i == 1 ? "*" : " "))") => name(d) for (i,d) = enumerate(devices())]
-		@info "$(length(devices())) CUDA capable device(s)." cuda_devices... 
+		@info "$(length(devices())) CUDA capable device(s)." cuda_devices...
     else
         @info "0 CUDA capable devices(s)."
     end
-	return 
+	return
 end
 
 """
@@ -47,7 +47,7 @@ adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
 
 Tries to move `x` to the current GPU device. Inspired by Flux's `gpu` function.
 
-This works for functions, and any struct marked with [`@functor`](@ref).
+This works for functions, and any struct marked with `@functor`.
 
 # Examples
 ```julia
@@ -70,7 +70,7 @@ adapt_storage(to::KomaCPUAdaptor, x::AbstractRange) = x
 
 Tries to move object to CPU. Inspired by Flux's `cpu` function.
 
-This works for functions, and any struct marked with [`@functor`](@ref).
+This works for functions, and any struct marked with `@functor`.
 
 # Examples
 ```julia
@@ -89,14 +89,14 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs #Type piracy
 """
     f32(m)
 Converts the `eltype` of model's parameters to `Float32`
-Recurses into structs marked with [`@functor`](@ref).
+Recurses into structs marked with `@functor`.
 """
 f32(m) = paramtype(Float32, m)
 
 """
     f64(m)
 Converts the `eltype` of model's parameters to `Float64` (which is Koma's default)..
-Recurses into structs marked with [`@functor`](@ref).
+Recurses into structs marked with `@functor`.
 """
 f64(m) = paramtype(Float64, m)
 
