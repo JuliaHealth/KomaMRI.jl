@@ -4,6 +4,16 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ 3e87790c-ddec-4897-a5d8-276cf7242147
 begin
 	using Pkg
@@ -111,6 +121,13 @@ Let's create a different sequence.
  - (2.3) Plot `seq_gre` and its k-space
  - (2.4) Plot the $$k$$-space with the `plot_kspace` function
 """
+
+# ╔═╡ 2b237108-bfbc-4e52-b991-2e413194c4ef
+# Define `Ax` (value defined by a slider)
+@bind Ax Slider(range(0, 20, 20)*1e-5, default=10e-5) # Gradient's area in [T/m s]
+
+# ╔═╡ 48bb2560-370b-461e-8b1e-adc40c9e74a7
+Ax
 
 # ╔═╡ 9179aa40-bb40-4a36-ae1e-00ae42935a5f
 # (2.1) Create a gradient `gx_pre`, use the variable `Ax`!!
@@ -1877,6 +1894,8 @@ version = "3.0.2+0"
 # ╠═7a66ab47-918f-4582-895f-1b4690562051
 # ╠═1231b832-47b1-4ccb-9b56-a67838598cc7
 # ╟─e4c80c24-20fd-42e5-9dcd-a65958569c01
+# ╠═2b237108-bfbc-4e52-b991-2e413194c4ef
+# ╠═48bb2560-370b-461e-8b1e-adc40c9e74a7
 # ╠═9179aa40-bb40-4a36-ae1e-00ae42935a5f
 # ╠═8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
 # ╠═3abca406-2e6b-4b37-8835-65cfad9d0caa
