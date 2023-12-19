@@ -4,16 +4,6 @@
 using Markdown
 using InteractiveUtils
 
-# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
-macro bind(def, element)
-    quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
-        local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
-        el
-    end
-end
-
 # ╔═╡ 3e87790c-ddec-4897-a5d8-276cf7242147
 begin
 	using Pkg
@@ -40,7 +30,7 @@ If you have any doubts on how to use a function, please search in the **Live Doc
 
 # ╔═╡ 8e474add-8651-431b-b481-7a139037dbd2
 md"""# 1. Free Induction Decay (FID)
-The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse. 
+The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse.
 
 $(PlutoUI.Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/FID.png", :width=>"300px"))
 To recreate this experiment, we will need to define a `Sequence`:
@@ -48,29 +38,20 @@ To recreate this experiment, we will need to define a `Sequence`:
  - (1.2) An ADC to capture the signal in a variable `adc`, concatenate with (1.1) using `seq += adc`
  - (1.3) Plot the generated `Sequence` (check `plot_seq`'s docs)
 
-For the hardware limits use the default scanner `sys = Scanner()`. 
+For the hardware limits use the default scanner `sys = Scanner()`.
 """
 
 # ╔═╡ c6e33cb8-f42c-4643-9257-124d2804d3da
 # (1.1) A 90-deg block RF pulse
-begin
-	sys = Scanner()
-	durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
-	rf = PulseDesigner.RF_hard(sys.B1, durRF, sys)
-end
+# ...
 
 # ╔═╡ 0266632d-5ca4-4196-a523-33a66dd70e0c
 # (1.2) An ADC to capture the signal
-adc = ADC(100, 50e-3)
+# ...
 
 # ╔═╡ 0975547d-67d9-4e6b-88ff-a9dd06a7f9ef
 # (1.3) Plot the generated Sequence
-begin
-	seq = Sequence()
-	seq += rf
-	seq += adc
-	plot_seq(seq; slider=false)
-end
+# ...
 
 # ╔═╡ f11a2fa2-eff9-4979-b739-3da2b24a9a45
 md"""
@@ -85,17 +66,11 @@ Generate a virtual object:
 
 # ╔═╡ d16efa62-dce7-4ec3-9e3c-b5e1677377fc
 # (1.4) A Phantom with 20 spins
-begin
-	obj = Phantom(x=collect(range(-1e-3,1e-3,20)))
-	obj.ρ .= 1
-	obj.T1 .= 500e-3
-	obj.T2 .= 50e-3
-	obj
-end
+# ...
 
 # ╔═╡ 35ff3402-dc36-4b91-bec9-b4d21faf3e68
 # (1.5) Plot the generated Phantom
-plot_phantom_map(obj, :T1)
+# ...
 
 # ╔═╡ ea542271-01c2-4962-a708-804b23a861b9
 md"""
@@ -106,21 +81,15 @@ md"""
 
 # ╔═╡ c47a50b8-c930-4c96-9b34-2772186634d9
 # (1.6) Finally, use the generated seq, obj, and sys to simulate the FID
-raw = simulate(obj, seq, sys)
+# ...
 
 # ╔═╡ 7a66ab47-918f-4582-895f-1b4690562051
 # (1.7) Plot the resulting raw data with plot_signal
-plot_signal(raw; slider=false)
+# ...
 
 # ╔═╡ 1231b832-47b1-4ccb-9b56-a67838598cc7
 # (1.8) Is the signal the same as `plot(t, exp.(-t ./ T2))`?
-begin
-	t = range(0, 50, 100)
-	plot(
-		scatter(x=t, y=20.0.*exp.(-t ./ 50)),
-		Layout(yaxis_range=[0, 20.1])
-	)
-end
+# ...
 
 # ╔═╡ e4c80c24-20fd-42e5-9dcd-a65958569c01
 md"""
@@ -128,20 +97,35 @@ md"""
 
 $(Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/GRE.gif", :width=>"400px"))
 
-The gradient echo is one of the first steps to create an image. The big 
-breakthrough was the addition of linearly increasing magnetic fields, or gradients, to encode the spin's positions in their frequency (Mmmh, someone said Fourier?). This works due to the fact that the frequency $$f$$ of a spin is 
+The gradient echo is one of the first steps to create an image. The big
+breakthrough was the addition of linearly increasing magnetic fields, or gradients, to encode the spin's positions in their frequency (Mmmh, someone said Fourier?). This works due to the fact that the frequency $$f$$ of a spin is
 
 $$f(x) = \frac{\gamma}{2\pi} B_z(x) = \frac{\gamma}{2\pi} G_x x.$$
 
 Let's create a different sequence.
  - Create a 90-deg hard RF pulse and put it in a variable `seq_gre`
  - (2.1) Create a gradient with area `-Ax` using `gx_pre = Grad(A,T,rise,fall)` append to `seq_gre`. As an optional challenge, put `gx_pre.rise` and `gx_pre.fall` so the satisfy the `sys` requierements
- - (2.2) Append a `Sequence` block called `readout` that includes: 
+ - (2.2) Append a `Sequence` block called `readout` that includes:
    - A gradient of twice the area, or `2Ax`. Call it `gx`
    - An `ADC` with `adc2.delay = gx.rise` and `adc2.T = gx.T`
  - (2.3) Plot `seq_gre` and its k-space
  - (2.4) Plot the $$k$$-space with the `plot_kspace` function
 """
+
+# ╔═╡ 9179aa40-bb40-4a36-ae1e-00ae42935a5f
+# (2.1) Create a gradient `gx_pre`, use the variable `Ax`!!
+# ...
+
+# (2.2) Append a `Sequence` block called `readout`
+# ...
+
+# ╔═╡ 8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
+# (2.3) Plot `seq_gre` and the k-space
+# ...
+
+# ╔═╡ 3abca406-2e6b-4b37-8835-65cfad9d0caa
+# (2.4) Plot the $k$-space with the `plot_kspace` function
+# ...
 
 # ╔═╡ 74666c1a-2673-4936-982b-6229bf92af66
 md"""
@@ -151,44 +135,21 @@ md"""
  - (2.8) Do you notice anything weird? If the answer is yes, try adjusting `Ax` to change the `FOV` of the acquisition
 """
 
-# ╔═╡ 0f96a83d-96ef-4768-9330-87c466e35c93
-# (2.8) Do you notice anything weird? Change Ax!
-@bind Ax Slider(range(0, 20, 20)*1e-5, default=10e-5) # Gradient's area in [T/m s]
-
-# ╔═╡ 9179aa40-bb40-4a36-ae1e-00ae42935a5f
-# (2.1) Create a gradient `gx_pre`, use the variable `Ax`!!
-begin
-	T_gx_pre = 10e-3
-	gx_pre = Grad(-Ax/T_gx_pre, T_gx_pre, 0, 0)
-	seq_gre = Sequence()
-	seq_gre += rf
-	seq_gre += gx_pre
-# (2.2) Append a `Sequence` block called `readout`
-	gx = Grad(2*Ax/(2T_gx_pre), 2T_gx_pre, 0, 0)
-	adc2 = ADC(100, 2T_gx_pre)
-	readout = Sequence([gx;;], [RF(0,0);;], [adc2])
-	seq_gre += readout
-end
-
-# ╔═╡ 8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
-# (2.3) Plot `seq_gre` and the k-space
-plot_seq(seq_gre; slider=false)
-
-# ╔═╡ 3abca406-2e6b-4b37-8835-65cfad9d0caa
-# (2.4) Plot the $k$-space with the `plot_kspace` function
-plot_kspace(seq_gre)
-
 # ╔═╡ ada602d2-4f4b-4fb4-a763-8a639e05ff38
 # (2.5) Simulate the seq_gre sequence
-raw_gre = simulate(obj, seq_gre, sys)
+# ...
 
 # ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
 # (2.6) Plot the simulated signal
-signal_gre = plot_signal(raw_gre; slider=false)
+# ...
 
 # ╔═╡ 9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # (2.7) Reconstruct the 1D image
-recon_gre = plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+# ...
+
+# ╔═╡ 0f96a83d-96ef-4768-9330-87c466e35c93
+# (2.8) Do you notice anything weird? Change Ax!
+# ...
 
 # ╔═╡ 97104c46-e81f-444a-957f-0bbb1b02f1b8
 md"""
@@ -215,56 +176,46 @@ In this excercise we will simplify this distribution, but we will obtain a simil
 
 """
 
-# ╔═╡ ee7e81e7-484c-44a8-a191-f73e24707ce9
-# (3.1) Create the obj_t2star phantom 
-begin
-    # (3.1.1) Empty phantom
-	obj_t2star = Phantom{Float64}(x=[])
-    # (3.1.2) Iterate over linear off-resonance distribution
-	linear_offresonance_distribution = 2π .* range(-10, 10, 20)
-	for off = linear_offresonance_distribution
-		# (3.1.3) Copy original phantom and modify off-resonance
-	    aux = copy(obj)
-		aux.Δw .= off
-		aux.y  .+= off * 1e-6  # So the distribution is visible
-		# (3.1.4) Update the phantom
-		obj_t2star += aux
-	end
-	# (3.1.5) Divide the proton density
-	obj_t2star.ρ .= 1.0 / 20.0 
-	obj_t2star.name = "T2 star phantom"  # Change the name of the phantom
-end
+# ╔═╡ 9f3683c1-4dfb-419b-9e04-f93bb7f80503
+# (3.1) Create a copy of the original phantom obj_t2star = copy(obj)
+  # (3.1.1) Empty phantom
+  # ...
+  # (3.1.2) Iterate over linear off-resonance distribution
+  # ...
+    # (3.1.3) Copy original phantom and modify off-resonance
+	# ...
+	# (3.1.4) Update the phantom
+	# ...
+  # (3.1.5) Divide the proton density
+  # ...
 
 # ╔═╡ 2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
 # (3.2) Plot obj_t2star
-plot_phantom_map(obj_t2star, :Δw)
+# ...
 
 # ╔═╡ 27686262-1a1e-45fa-b4ee-90ae1d9ee34e
 md"""
- - (3.3) Simulate the `seq_gre` sequence
- - (3.4) Plot the simulated signal
- - (3.5) Compare the plot in (3.5) with (2.6)
- - (3.6) Reconstruct the 1D image
+ - (3.4) Simulate the `seq_gre` sequence
+ - (3.5) Plot the simulated signal
+ - (3.6) Compare the plot in (3.5) with (2.6)
+ - (3.7) Reconstruct the 1D image
 """
 
 # ╔═╡ e4ef5145-a63c-4f91-ac04-3b5bf16c0842
 # (3.3) Simulate the seq_gre sequence
-raw_t2_star_gre = simulate(obj_t2star, seq_gre, sys)
+# ...
 
 # ╔═╡ 1a83d897-705b-443d-89a4-ea5e3e6a3c07
 # (3.4) Plot the simulated signal
-signal_t2_star_gre = plot_signal(raw_t2_star_gre; slider=false)
+# ...
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
 # (3.5) Compare the plot in (3.5) with (2.6)
-[signal_gre; signal_t2_star_gre]
+# ...
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
 # (3.6) Reconstruct the 1D image
-recon_t2_star_gre = plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
-
-# ╔═╡ f2d388d5-4cda-4a0b-be50-ea2cdc283692
-[recon_gre recon_t2_star_gre]
+# ...
 
 # ╔═╡ 3357a283-a234-4d15-8fdf-7fbec58b33a7
 md"""
@@ -285,24 +236,27 @@ Our sequence consists of:
  - (4.6) Plot `seq_se` and its k-space. Is the k-space the same as `seq_gre` in (2.3)?
 """
 
-# ╔═╡ 27e65680-22a0-4079-b6df-d60a3218e52e
+# ╔═╡ c8a37593-3028-4e50-ad07-dc81edba45c8
 # (4.1) A 90deg hard RF pulse
-begin
-	seq_se = Sequence()
-	seq_se += rf
+# ...
+
 # (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
-	seq_se += -1*gx_pre
-	seq_se += (0.0+2.0im)*rf
+# ...
+
 # (4.3) A 180deg hard RF pulse
-	seq_se += readout
-end
+# ...
+
+# ╔═╡ 75ee6dbe-598a-47be-9655-3de3bc015281
+# (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in TE
+# ...
+
+# ╔═╡ 68d88987-3de7-42ae-9380-91ffae3ca40b
+# (4.5) Create concatenating these blocks into a sequence called `seq_se`
+# ...
 
 # ╔═╡ f1f3b700-5916-496f-b938-46f7f08b4eb6
 # (4.6) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
-plot_seq(seq_se; slider=false)
-
-# ╔═╡ 4e1434e1-673f-4206-a271-9edec10ebd6a
-plot_kspace(seq_se)
+# ...
 
 # ╔═╡ 45952512-aaf1-43d8-a95e-c32bb2633f42
 md"""
@@ -313,21 +267,15 @@ md"""
 
 # ╔═╡ 97479437-9ce3-4b33-9134-0f2af89bccb5
 # (4.7) Simulate using seq_se and obj_t2star
-raw_t2_star_se = simulate(obj_t2star, seq_se, sys)
+# ...
 
 # ╔═╡ 1c79b37e-d4e0-490f-9466-20ce28f017ae
 # (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
-[
-	plot_signal(raw_t2_star_se; slider=false);
-	plot_signal(raw_t2_star_gre; slider=false)
-]
+# ...
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
 # (4.9) Reconstruct the 1D image
-recon_t2_star_se = plot(abs.(KomaMRI.fftc(raw_t2_star_se.profiles[1].data)))
-
-# ╔═╡ 34824db7-13c4-45e2-befa-f027b9b585c0
-[recon_t2_star_se recon_t2_star_gre recon_gre]
+# ...
 
 # ╔═╡ fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
 md"""
@@ -1938,23 +1886,22 @@ version = "3.0.2+0"
 # ╠═9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # ╠═0f96a83d-96ef-4768-9330-87c466e35c93
 # ╟─97104c46-e81f-444a-957f-0bbb1b02f1b8
-# ╠═ee7e81e7-484c-44a8-a191-f73e24707ce9
+# ╠═9f3683c1-4dfb-419b-9e04-f93bb7f80503
 # ╠═2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
 # ╟─27686262-1a1e-45fa-b4ee-90ae1d9ee34e
 # ╠═e4ef5145-a63c-4f91-ac04-3b5bf16c0842
 # ╠═1a83d897-705b-443d-89a4-ea5e3e6a3c07
 # ╠═18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
 # ╠═4a4a6bd3-b820-479c-89e3-f3ce79a316db
-# ╠═f2d388d5-4cda-4a0b-be50-ea2cdc283692
 # ╟─3357a283-a234-4d15-8fdf-7fbec58b33a7
-# ╠═27e65680-22a0-4079-b6df-d60a3218e52e
+# ╠═c8a37593-3028-4e50-ad07-dc81edba45c8
+# ╠═75ee6dbe-598a-47be-9655-3de3bc015281
+# ╠═68d88987-3de7-42ae-9380-91ffae3ca40b
 # ╠═f1f3b700-5916-496f-b938-46f7f08b4eb6
-# ╠═4e1434e1-673f-4206-a271-9edec10ebd6a
 # ╟─45952512-aaf1-43d8-a95e-c32bb2633f42
 # ╠═97479437-9ce3-4b33-9134-0f2af89bccb5
 # ╠═1c79b37e-d4e0-490f-9466-20ce28f017ae
 # ╠═2e65ae31-f50a-462b-9744-80bf6cdb388e
-# ╠═34824db7-13c4-45e2-befa-f027b9b585c0
 # ╟─fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
 # ╠═3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
 # ╟─00000000-0000-0000-0000-000000000001
