@@ -169,6 +169,11 @@ PulseDesigner.EPI_example
 
 ## Simulation
 
+### `default_sim_params`
+```@docs
+default_sim_params
+```
+
 ### `simulate`
 ```@docs
 simulate

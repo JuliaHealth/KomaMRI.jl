@@ -150,7 +150,7 @@ julia> plot_kspace(seq)
 <object type="text/html" data="../assets/kspace-epi.html" style="width:100%; height:420px;"></object>
 ```
 
-Additionally, there are helpful sequence construction functions within a submodule of **KomaMRI** called **PulseDesigner**. These functions include [`RF_hard`](@ref), [`RF_sinc`](@ref), [`EPI`](@ref), [`radial_base`](@ref) and [`spiral_base`](@ref). For more details on how to use them, refer to the [API documentation](api.md).
+Additionally, there are helpful sequence construction functions within a submodule of **KomaMRI** called **PulseDesigner**. These functions include [`PulseDesigner.RF_hard`](@ref), [`PulseDesigner.RF_sinc`](@ref), [`PulseDesigner.EPI`](@ref), [`PulseDesigner.radial_base`](@ref) and [`PulseDesigner.spiral_base`](@ref). For more details on how to use them, refer to the [API documentation](api.md).
 
 **KomaMRI** is also compatible with [Pulseq](https://pulseq.github.io/). The package installation includes some `.seq` files in **Pulseq** format, which can be read and used as a **Sequence** struct. Here's how to read a spiral **Pulseq** file stored in the "examples" folder of **KomaMRI**:
 ```julia-repl
@@ -176,7 +176,7 @@ raw = simulate(obj, seq, sys; sim_params)
 
 ### Simulation Parameters
 
-To perform simulations, **KomaMRI** requires certain parameters. You can use the default parameters for testing, but you also have the option to customize specific simulation aspects. In the example, we use the [`default_sim_params`](@ref) function to create a dictionary with default simulation parameters. You can view the keys that can be modified by displaying the `sim_params` variable:
+To perform simulations, **KomaMRI** requires certain parameters. You can use the default parameters for testing, but you also have the option to customize specific simulation aspects. In the example, we use the [`KomaMRICore.default_sim_params`](@ref) function to create a dictionary with default simulation parameters. You can view the keys that can be modified by displaying the `sim_params` variable:
 ```julia-repl
 julia> sim_params
 Dict{String, Any} with 9 entries:
