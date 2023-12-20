@@ -1,8 +1,18 @@
 ### A Pluto.jl notebook ###
-# v0.19.32
+# v0.19.36
 
 using Markdown
 using InteractiveUtils
+
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
 
 # ╔═╡ 3e87790c-ddec-4897-a5d8-276cf7242147
 begin
@@ -15,7 +25,7 @@ using KomaMRI, PlutoPlotly, PlutoUI
 
 # ╔═╡ cc66bfed-b61b-4067-8c94-4c54b82a3b42
 md"""
-These are the versions of KomaMRI and their subpackages.
+These are the versions of KomaMRI and its subpackages.
 """
 
 # ╔═╡ 8529f36d-2d39-4b45-a821-01c8346539fd
@@ -23,14 +33,14 @@ TableOfContents() # There should be a table of contents on the right --->
 
 # ╔═╡ 6dfe338d-de85-4adb-b030-09455fae78a0
 md"""
-Welcome to the hand-on session on MRI simulation. Let's have some fun!
+Welcome to the hands-on session on MRI simulation. Let's have some fun!
 
-If you have any doubts on how to use a function, please search in the **Live Docs** at the bottom right.
+If you have any doubts about how to use a function, please search in the **Live Docs** at the bottom right.
 """
 
 # ╔═╡ 8e474add-8651-431b-b481-7a139037dbd2
 md"""# 1. Free Induction Decay (FID)
-The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse. 
+The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse.
 
 $(PlutoUI.Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/FID.png", :width=>"300px"))
 To recreate this experiment, we will need to define a `Sequence`:
@@ -38,7 +48,7 @@ To recreate this experiment, we will need to define a `Sequence`:
  - (1.2) An ADC to capture the signal in a variable `adc`, concatenate with (1.1) using `seq += adc`
  - (1.3) Plot the generated `Sequence` (check `plot_seq`'s docs)
 
-For the hardware limits use the default scanner `sys = Scanner()`. 
+For the hardware limits use the default scanner `sys = Scanner()`.
 """
 
 # ╔═╡ c6e33cb8-f42c-4643-9257-124d2804d3da
@@ -97,15 +107,15 @@ md"""
 
 $(Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/GRE.gif", :width=>"400px"))
 
-The gradient echo is one of the first steps to create an image. The big 
-breakthrough was the addition of linearly increasing magnetic fields, or gradients, to encode the spin's positions in their frequency (Mmmh, someone said Fourier?). This works due to the fact that the frequency $$f$$ of a spin is 
+The gradient echo is one of the first steps to create an image. The big
+breakthrough was the addition of linearly increasing magnetic fields, or gradients, to encode the spin's positions in their frequency (Mmmh, someone said Fourier?). This works due to the fact that the frequency $$f$$ of a spin is
 
 $$f(x) = \frac{\gamma}{2\pi} B_z(x) = \frac{\gamma}{2\pi} G_x x.$$
 
 Let's create a different sequence.
  - Create a 90-deg hard RF pulse and put it in a variable `seq_gre`
  - (2.1) Create a gradient with area `-Ax` using `gx_pre = Grad(A,T,rise,fall)` append to `seq_gre`. As an optional challenge, put `gx_pre.rise` and `gx_pre.fall` so the satisfy the `sys` requierements
- - (2.2) Append a `Sequence` block called `readout` that includes: 
+ - (2.2) Append a `Sequence` block called `readout` that includes:
    - A gradient of twice the area, or `2Ax`. Call it `gx`
    - An `ADC` with `adc2.delay = gx.rise` and `adc2.T = gx.T`
  - (2.3) Plot `seq_gre` and its k-space
@@ -114,6 +124,9 @@ Let's create a different sequence.
 
 # ╔═╡ 9179aa40-bb40-4a36-ae1e-00ae42935a5f
 # (2.1) Create a gradient `gx_pre`, use the variable `Ax`!!
+# ...
+
+# (2.2) Append a `Sequence` block called `readout`
 # ...
 
 # ╔═╡ 8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
@@ -146,13 +159,18 @@ md"""
 
 # ╔═╡ 0f96a83d-96ef-4768-9330-87c466e35c93
 # (2.8) Do you notice anything weird? Change Ax!
-# ...
+
+# ╔═╡ 2b237108-bfbc-4e52-b991-2e413194c4ef
+# Define `Ax` (value defined by a slider)
+md"""
+Ax $(@bind Ax Slider(range(0, 20, 20)*1e-5, default=10e-5, show_value=true)) [T/m s]
+"""
 
 # ╔═╡ 97104c46-e81f-444a-957f-0bbb1b02f1b8
 md"""
 # 3. $T_{2}^{*}$-decay
 
-The $$T_{2}^{*}$$-decay it the signal decay produced by microscopic distribution of off-resonance.
+The $$T_{2}^{*}$$-decay is the signal decay produced by microscopic distribution of off-resonance.
 
 $(Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/T2star.png", :width=>"400px"))
 
@@ -162,22 +180,33 @@ $$p_{\Delta w}(w) = \frac{T_2^{'}}{\pi(1+T_2^{'2} w^2)},\quad\text{with }\frac{1
 
 In this excercise we will simplify this distribution, but we will obtain a similar effect.
 
- - (3.1) Create a copy of the original phantom `obj_t2star = copy(obj)`
- - (3.2) Add a linear distribution of off-resonance to `obj_t2star.Δw .= 2π[-10, 10] rad/s` 
- - (3.3) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
+- (3.1) Create a new phantom named `obj_t2star` with spins at the same positions as the original phantom `obj`, each having a linear distribution of off-resonance. To achieve this, follow these steps:
+   * (3.1.1) Create an empty phantom called `obj_t2star`.
+   * (3.1.2) Create a linear off-resonance distribution such that the range $$2\pi [-10, 10]\,\mathrm{rad/s}$$ is covered uniformly with $$N_{\mathrm{isochromats}} = 20$$ (use the function `range(start, stop, length)`).
+   * (3.1.3) Iterate over the elements `off` of the linear distribution (`for` loop) and create copies of the original phantom (`obj_aux = copy(obj)`) and set the off-resonance of that copy to `off` with `obj_aux.Δw .= off`.
+   * (3.1.4) Update `obj_t2star` by appending the modified copies `obj_aux` (`obj_t2star += obj_aux`).
+   * (3.1.5) Finally, outside the loop, divide the proton density `obj_t2star.ρ` by $$N_{\mathrm{isochromats}} = 20$$ and rename the phantom `obj_t2star.name = "T2 star phantom"`.
+
+ - (3.2) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
 
 """
 
 # ╔═╡ 9f3683c1-4dfb-419b-9e04-f93bb7f80503
-# (3.1) Create a copy of the original phantom obj_t2star = copy(obj)
-# ...
-
-# ╔═╡ ee7e81e7-484c-44a8-a191-f73e24707ce9
-# (3.2) Add a linear distribution of off-resonance
-# ...
+# (3.1) Create the new phantom obj_t2star
+  # (3.1.1) Create an empty phantom
+  # ...
+  # (3.1.2) Define the linear off-resonance distribution
+  # ...
+    # (3.1.3) Iterate over the linear off-resonance distribution and
+	# copy the original phantom and modify its off-resonance
+	# ...
+	# (3.1.4) Update the phantom
+	# ...
+  # (3.1.5) Divide the proton density and rename the phantom
+  # ...
 
 # ╔═╡ 2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
-# (3.3) Plot obj_t2star
+# (3.2) Plot obj_t2star
 # ...
 
 # ╔═╡ 27686262-1a1e-45fa-b4ee-90ae1d9ee34e
@@ -189,19 +218,19 @@ md"""
 """
 
 # ╔═╡ e4ef5145-a63c-4f91-ac04-3b5bf16c0842
-# (3.4) Simulate the seq_gre sequence
+# (3.3) Simulate the seq_gre sequence
 # ...
 
 # ╔═╡ 1a83d897-705b-443d-89a4-ea5e3e6a3c07
-# (3.5) Plot the simulated signal
+# (3.4) Plot the simulated signal
 # ...
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
-# (3.6) Compare the plot in (3.5) with (2.6)
+# (3.5) Compare the plot in (3.4) with (2.6)
 # ...
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
-# (3.7) Reconstruct the 1D image
+# (3.6) Reconstruct the 1D image
 # ...
 
 # ╔═╡ 3357a283-a234-4d15-8fdf-7fbec58b33a7
@@ -214,7 +243,7 @@ The spin echo experiment has the advantage that the echo signal amplitud it is m
 
 For this section we will use the phantom `obj_t2star` and a new sequence `seq_se`.
 
-Our sequence consists of:
+For this sequence we will need:
  - (4.1) A 90deg hard RF pulse
  - (4.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
  - (4.3) A 180deg hard RF pulse
@@ -226,20 +255,12 @@ Our sequence consists of:
 # ╔═╡ c8a37593-3028-4e50-ad07-dc81edba45c8
 # (4.1) A 90deg hard RF pulse
 # ...
-
-# ╔═╡ ae762259-46a7-4323-bbd1-adee08a139f2
 # (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
 # ...
-
-# ╔═╡ 8968bbd1-0705-4a58-9fc8-225929ce3ac1
 # (4.3) A 180deg hard RF pulse
 # ...
-
-# ╔═╡ 75ee6dbe-598a-47be-9655-3de3bc015281
-# (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in TE
+# (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
 # ...
-
-# ╔═╡ 68d88987-3de7-42ae-9380-91ffae3ca40b
 # (4.5) Create concatenating these blocks into a sequence called `seq_se`
 # ...
 
@@ -259,7 +280,7 @@ md"""
 # ...
 
 # ╔═╡ 1c79b37e-d4e0-490f-9466-20ce28f017ae
-# (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
+# (4.8) Compare the signal obtained in (4.7) with the one at (3.4)
 # ...
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
@@ -271,14 +292,19 @@ md"""
 Congratulations! you finished the simulation hands-on session 🥳!
 """
 
-# ╔═╡ 3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
-# Run this cell to celebrate!
-html"""
-<script>
-const {default: confetti} = await import("https://cdn.skypack.dev/canvas-confetti@1")
-confetti()
-</script>
-"""
+# ╔═╡ e826311e-4d85-4d52-9107-a54f1cb1e004
+# Set this boolean to `true` when you finish
+activity_finished = false
+
+# ╔═╡ 824a814d-8bfd-4754-9b4c-317fd3ebad86
+if activity_finished
+    html"""
+    <script>
+    const {default: confetti} = await import("https://cdn.skypack.dev/canvas-confetti@1")
+    confetti()
+    </script>
+    """
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1874,9 +1900,9 @@ version = "3.0.2+0"
 # ╠═41d14dec-b852-4316-aefb-c3d08fa43216
 # ╠═9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # ╠═0f96a83d-96ef-4768-9330-87c466e35c93
+# ╟─2b237108-bfbc-4e52-b991-2e413194c4ef
 # ╟─97104c46-e81f-444a-957f-0bbb1b02f1b8
 # ╠═9f3683c1-4dfb-419b-9e04-f93bb7f80503
-# ╠═ee7e81e7-484c-44a8-a191-f73e24707ce9
 # ╠═2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
 # ╟─27686262-1a1e-45fa-b4ee-90ae1d9ee34e
 # ╠═e4ef5145-a63c-4f91-ac04-3b5bf16c0842
@@ -1885,16 +1911,13 @@ version = "3.0.2+0"
 # ╠═4a4a6bd3-b820-479c-89e3-f3ce79a316db
 # ╟─3357a283-a234-4d15-8fdf-7fbec58b33a7
 # ╠═c8a37593-3028-4e50-ad07-dc81edba45c8
-# ╠═ae762259-46a7-4323-bbd1-adee08a139f2
-# ╠═8968bbd1-0705-4a58-9fc8-225929ce3ac1
-# ╠═75ee6dbe-598a-47be-9655-3de3bc015281
-# ╠═68d88987-3de7-42ae-9380-91ffae3ca40b
 # ╠═f1f3b700-5916-496f-b938-46f7f08b4eb6
 # ╟─45952512-aaf1-43d8-a95e-c32bb2633f42
 # ╠═97479437-9ce3-4b33-9134-0f2af89bccb5
 # ╠═1c79b37e-d4e0-490f-9466-20ce28f017ae
 # ╠═2e65ae31-f50a-462b-9744-80bf6cdb388e
 # ╟─fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
-# ╠═3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
+# ╠═e826311e-4d85-4d52-9107-a54f1cb1e004
+# ╟─824a814d-8bfd-4754-9b4c-317fd3ebad86
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
