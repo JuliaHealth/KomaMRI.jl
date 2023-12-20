@@ -1,4 +1,4 @@
-# 1D Simulations
+# 1D Simulations: FID, GE, and SE
 
 This example was used in the workshop [MRI: Processing your own data](https://github.com/LIBREhub/MRI-processing-2023). In the workshop's GitHub you'll find:
  -  A presentation on [open-source software](https://github.com/LIBREhub/MRI-processing-2023/blob/main/02-simulation/day1_OpenSoftware_Nov2023.pdf) 
