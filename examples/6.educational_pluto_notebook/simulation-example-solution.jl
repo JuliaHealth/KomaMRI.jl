@@ -25,7 +25,7 @@ using KomaMRI, PlutoPlotly, PlutoUI
 
 # ╔═╡ cc66bfed-b61b-4067-8c94-4c54b82a3b42
 md"""
-These are the versions of KomaMRI and their subpackages.
+These are the versions of KomaMRI and its subpackages.
 """
 
 # ╔═╡ 8529f36d-2d39-4b45-a821-01c8346539fd
@@ -33,14 +33,14 @@ TableOfContents() # There should be a table of contents on the right --->
 
 # ╔═╡ 6dfe338d-de85-4adb-b030-09455fae78a0
 md"""
-Welcome to the hand-on session on MRI simulation. Let's have some fun!
+Welcome to the hands-on session on MRI simulation. Let's have some fun!
 
-If you have any doubts on how to use a function, please search in the **Live Docs** at the bottom right.
+If you have any doubts about how to use a function, please search in the **Live Docs** at the bottom right.
 """
 
 # ╔═╡ 8e474add-8651-431b-b481-7a139037dbd2
 md"""# 1. Free Induction Decay (FID)
-The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse. 
+The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse.
 
 $(PlutoUI.Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/FID.png", :width=>"300px"))
 To recreate this experiment, we will need to define a `Sequence`:
@@ -90,7 +90,7 @@ begin
 	obj.ρ .= 1
 	obj.T1 .= 500e-3
 	obj.T2 .= 50e-3
-	obj
+	nothing
 end
 
 # ╔═╡ 35ff3402-dc36-4b91-bec9-b4d21faf3e68
@@ -184,7 +184,13 @@ raw_gre = simulate(obj, seq_gre, sys)
 
 # ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
 # (2.6) Plot the simulated signal
-signal_gre = plot_signal(raw_gre; slider=false)
+begin
+    t_decay = range(10.587, 30.587, 100)
+    trace_decay = scatter(x=t_decay, y=20.0.*exp.(-t_decay ./ 50), name="T2-decay", marker_color="purple")
+	signal_gre = plot_signal(raw_gre; slider=false)
+    addtraces!(signal_gre, trace_decay)
+	signal_gre
+end
 
 # ╔═╡ 9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # (2.7) Reconstruct the 1D image
@@ -194,7 +200,7 @@ recon_gre = plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
 md"""
 # 3. $T_{2}^{*}$-decay
 
-The $$T_{2}^{*}$$-decay it the signal decay produced by microscopic distribution of off-resonance.
+The $$T_{2}^{*}$$-decay is the signal decay produced by microscopic distribution of off-resonance.
 
 $(Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/T2star.png", :width=>"400px"))
 
@@ -254,18 +260,34 @@ raw_t2_star_gre = simulate(obj_t2star, seq_gre, sys)
 
 # ╔═╡ 1a83d897-705b-443d-89a4-ea5e3e6a3c07
 # (3.4) Plot the simulated signal
-signal_t2_star_gre = plot_signal(raw_t2_star_gre; slider=false)
+begin
+	signal_t2_star_gre = plot_signal(raw_t2_star_gre; slider=false)
+	addtraces!(signal_t2_star_gre, trace_decay)
+	signal_t2_star_gre
+end
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
 # (3.5) Compare the plot in (3.5) with (2.6)
-[signal_gre; signal_t2_star_gre]
+begin
+	signal_layout = Layout(yaxis=attr(range=[-5, 16.5]))
+	relayout!(signal_gre, signal_layout; title="GRE-T2")
+	relayout!(signal_t2_star_gre, signal_layout; title="GRE-T2*")
+	fig_signal_2 = [signal_gre signal_t2_star_gre]
+	relayout(fig_signal_2, showlegend=false)
+end
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
 # (3.6) Reconstruct the 1D image
 recon_t2_star_gre = plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
 
-# ╔═╡ f2d388d5-4cda-4a0b-be50-ea2cdc283692
-[recon_gre recon_t2_star_gre]
+# ╔═╡ 964404f6-7f46-4df9-ad98-921948c3be69
+begin
+	recon_layout = Layout(yaxis=attr(range=[0, 0.8]))
+	relayout!(recon_gre, recon_layout; title="GRE-T2")
+	relayout!(recon_t2_star_gre, recon_layout; title="GRE-T2*")
+	fig_recon_2 = [recon_gre recon_t2_star_gre]
+	relayout(fig_recon_2, showlegend=false)
+end
 
 # ╔═╡ 3357a283-a234-4d15-8fdf-7fbec58b33a7
 md"""
@@ -277,29 +299,31 @@ The spin echo experiment has the advantage that the echo signal amplitud it is m
 
 For this section we will use the phantom `obj_t2star` and a new sequence `seq_se`.
 
-Our sequence consists of:
- - (4.1) A 90deg hard RF pulse
- - (4.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
- - (4.3) A 180deg hard RF pulse
- - (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
- - (4.5) Create concatenating these blocks into a sequence called `seq_se`
- - (4.6) Plot `seq_se` and its k-space. Is the k-space the same as `seq_gre` in (2.3)?
+- (4.1) Create a sequence called `seq_se` with the following blocks:
+  * (4.1.1) A 90deg hard RF pulse
+  * (4.1.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
+  * (4.1.3) A 180deg hard RF pulse
+  * (4.1.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
+ 
+ - (4.2) Plot `seq_se` and its k-space. Is the k-space the same as `seq_gre` in (2.3)?
 """
 
 # ╔═╡ 27e65680-22a0-4079-b6df-d60a3218e52e
-# (4.1) A 90deg hard RF pulse
+# (4.1) Create a Spin Echo sequence `seq_se`
 begin
+	# (4.1.1) A 90deg hard RF pulse
 	seq_se = Sequence()
 	seq_se += rf
-# (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
+    # (4.1.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
 	seq_se += -1*gx_pre
+	# (4.1.3) A 180deg hard RF pulse
 	seq_se += (0.0+2.0im)*rf
-# (4.3) A 180deg hard RF pulse
+	# (4.1.4) A readout gradient
 	seq_se += readout
 end
 
 # ╔═╡ f1f3b700-5916-496f-b938-46f7f08b4eb6
-# (4.6) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
+# (4.2) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
 plot_seq(seq_se; slider=false)
 
 # ╔═╡ 4e1434e1-673f-4206-a271-9edec10ebd6a
@@ -307,41 +331,39 @@ plot_kspace(seq_se)
 
 # ╔═╡ 45952512-aaf1-43d8-a95e-c32bb2633f42
 md"""
- - (4.7) Simulate using `seq_se` and `obj_t2star`
- - (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
- - (4.9) Reconstruct the 1D image
+ - (4.3) Simulate using `seq_se` and `obj_t2star`
+ - (4.4) Compare the signal obtained in (4.6) with the one at (3.5)
+ - (4.5) Reconstruct the 1D image
 """
 
 # ╔═╡ 97479437-9ce3-4b33-9134-0f2af89bccb5
-# (4.7) Simulate using seq_se and obj_t2star
+# (4.3) Simulate using seq_se and obj_t2star
 raw_t2_star_se = simulate(obj_t2star, seq_se, sys)
 
 # ╔═╡ 1c79b37e-d4e0-490f-9466-20ce28f017ae
-# (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
-[
-	plot_signal(raw_t2_star_se; slider=false);
-	plot_signal(raw_t2_star_gre; slider=false)
-]
+# (4.4) Compare the signal obtained in (4.6) with the one at (3.5)
+begin
+	signal_t2_star_se = plot_signal(raw_t2_star_se; slider=false)
+	addtraces!(signal_t2_star_se, trace_decay)
+	relayout!(signal_t2_star_se, signal_layout; title="SE")
+	fig_signal_3 = [signal_gre signal_t2_star_gre signal_t2_star_se]
+	relayout(fig_signal_3, showlegend=false)
+end
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
-# (4.9) Reconstruct the 1D image
+# (4.5) Reconstruct the 1D image
 recon_t2_star_se = plot(abs.(KomaMRI.fftc(raw_t2_star_se.profiles[1].data)))
 
 # ╔═╡ 34824db7-13c4-45e2-befa-f027b9b585c0
-[recon_t2_star_se recon_t2_star_gre recon_gre]
+begin
+	relayout!(recon_t2_star_se, recon_layout; title="SE")
+	fig_recon_3 = [recon_gre recon_t2_star_gre recon_t2_star_se]
+	relayout(fig_recon_3, showlegend=false)
+end
 
 # ╔═╡ fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
 md"""
 Congratulations! you finished the simulation hands-on session 🥳!
-"""
-
-# ╔═╡ 3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
-# Run this cell to celebrate!
-html"""
-<script>
-const {default: confetti} = await import("https://cdn.skypack.dev/canvas-confetti@1")
-confetti()
-</script>
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1946,7 +1968,7 @@ version = "3.0.2+0"
 # ╠═1a83d897-705b-443d-89a4-ea5e3e6a3c07
 # ╠═18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
 # ╠═4a4a6bd3-b820-479c-89e3-f3ce79a316db
-# ╠═f2d388d5-4cda-4a0b-be50-ea2cdc283692
+# ╠═964404f6-7f46-4df9-ad98-921948c3be69
 # ╟─3357a283-a234-4d15-8fdf-7fbec58b33a7
 # ╠═27e65680-22a0-4079-b6df-d60a3218e52e
 # ╠═f1f3b700-5916-496f-b938-46f7f08b4eb6
@@ -1957,6 +1979,5 @@ version = "3.0.2+0"
 # ╠═2e65ae31-f50a-462b-9744-80bf6cdb388e
 # ╠═34824db7-13c4-45e2-befa-f027b9b585c0
 # ╟─fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
-# ╠═3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

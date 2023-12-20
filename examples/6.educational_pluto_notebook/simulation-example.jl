@@ -25,7 +25,7 @@ using KomaMRI, PlutoPlotly, PlutoUI
 
 # ╔═╡ cc66bfed-b61b-4067-8c94-4c54b82a3b42
 md"""
-These are the versions of KomaMRI and their subpackages.
+These are the versions of KomaMRI and its subpackages.
 """
 
 # ╔═╡ 8529f36d-2d39-4b45-a821-01c8346539fd
@@ -33,9 +33,9 @@ TableOfContents() # There should be a table of contents on the right --->
 
 # ╔═╡ 6dfe338d-de85-4adb-b030-09455fae78a0
 md"""
-Welcome to the hand-on session on MRI simulation. Let's have some fun!
+Welcome to the hands-on session on MRI simulation. Let's have some fun!
 
-If you have any doubts on how to use a function, please search in the **Live Docs** at the bottom right.
+If you have any doubts about how to use a function, please search in the **Live Docs** at the bottom right.
 """
 
 # ╔═╡ 8e474add-8651-431b-b481-7a139037dbd2
@@ -122,13 +122,6 @@ Let's create a different sequence.
  - (2.4) Plot the $$k$$-space with the `plot_kspace` function
 """
 
-# ╔═╡ 2b237108-bfbc-4e52-b991-2e413194c4ef
-# Define `Ax` (value defined by a slider)
-@bind Ax Slider(range(0, 20, 20)*1e-5, default=10e-5) # Gradient's area in [T/m s]
-
-# ╔═╡ 48bb2560-370b-461e-8b1e-adc40c9e74a7
-Ax
-
 # ╔═╡ 9179aa40-bb40-4a36-ae1e-00ae42935a5f
 # (2.1) Create a gradient `gx_pre`, use the variable `Ax`!!
 # ...
@@ -166,13 +159,18 @@ md"""
 
 # ╔═╡ 0f96a83d-96ef-4768-9330-87c466e35c93
 # (2.8) Do you notice anything weird? Change Ax!
-# ...
+
+# ╔═╡ 2b237108-bfbc-4e52-b991-2e413194c4ef
+# Define `Ax` (value defined by a slider)
+md"""
+Ax $(@bind Ax Slider(range(0, 20, 20)*1e-5, default=10e-5, show_value=true)) [T/m s]
+"""
 
 # ╔═╡ 97104c46-e81f-444a-957f-0bbb1b02f1b8
 md"""
 # 3. $T_{2}^{*}$-decay
 
-The $$T_{2}^{*}$$-decay it the signal decay produced by microscopic distribution of off-resonance.
+The $$T_{2}^{*}$$-decay is the signal decay produced by microscopic distribution of off-resonance.
 
 $(Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/T2star.png", :width=>"400px"))
 
@@ -245,68 +243,52 @@ The spin echo experiment has the advantage that the echo signal amplitud it is m
 
 For this section we will use the phantom `obj_t2star` and a new sequence `seq_se`.
 
-Our sequence consists of:
- - (4.1) A 90deg hard RF pulse
- - (4.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
- - (4.3) A 180deg hard RF pulse
- - (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
- - (4.5) Create concatenating these blocks into a sequence called `seq_se`
- - (4.6) Plot `seq_se` and its k-space. Is the k-space the same as `seq_gre` in (2.3)?
+- (4.1) Create a sequence called `seq_se` concatenating the following blocks:
+  * (4.1.1) A 90deg hard RF pulse
+  * (4.1.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
+  * (4.1.3) A 180deg hard RF pulse
+  * (4.1.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
+ 
+ - (4.2) Plot `seq_se` and its k-space. Is the k-space the same as `seq_gre` in (2.3)?
 """
 
 # ╔═╡ c8a37593-3028-4e50-ad07-dc81edba45c8
-# (4.1) A 90deg hard RF pulse
+# (4.1) Create a Spin Echo sequence `seq_se`
+# (4.1.1) A 90deg hard RF pulse
 # ...
-
-# (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
+# (4.1.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
 # ...
-
-# (4.3) A 180deg hard RF pulse
+# (4.1.3) A 180deg hard RF pulse
 # ...
-
-# ╔═╡ 75ee6dbe-598a-47be-9655-3de3bc015281
-# (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in TE
-# ...
-
-# ╔═╡ 68d88987-3de7-42ae-9380-91ffae3ca40b
-# (4.5) Create concatenating these blocks into a sequence called `seq_se`
+# (4.1.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in TE
 # ...
 
 # ╔═╡ f1f3b700-5916-496f-b938-46f7f08b4eb6
-# (4.6) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
+# (4.2) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
 # ...
 
 # ╔═╡ 45952512-aaf1-43d8-a95e-c32bb2633f42
 md"""
- - (4.7) Simulate using `seq_se` and `obj_t2star`
- - (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
- - (4.9) Reconstruct the 1D image
+ - (4.3) Simulate using `seq_se` and `obj_t2star`
+ - (4.4) Compare the signal obtained in (4.6) with the one at (3.5)
+ - (4.5) Reconstruct the 1D image
 """
 
 # ╔═╡ 97479437-9ce3-4b33-9134-0f2af89bccb5
-# (4.7) Simulate using seq_se and obj_t2star
+# (4.3) Simulate using seq_se and obj_t2star
 # ...
 
 # ╔═╡ 1c79b37e-d4e0-490f-9466-20ce28f017ae
-# (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
+# (4.4) Compare the signal obtained in (4.6) with the one at (3.5)
 # ...
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
-# (4.9) Reconstruct the 1D image
+# (4.5) Reconstruct the 1D image
 # ...
 
 # ╔═╡ fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
 md"""
 Congratulations! you finished the simulation hands-on session 🥳!
-"""
-
-# ╔═╡ 3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
-# Run this cell to celebrate!
-html"""
-<script>
-const {default: confetti} = await import("https://cdn.skypack.dev/canvas-confetti@1")
-confetti()
-</script>
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1895,8 +1877,6 @@ version = "3.0.2+0"
 # ╠═7a66ab47-918f-4582-895f-1b4690562051
 # ╠═1231b832-47b1-4ccb-9b56-a67838598cc7
 # ╟─e4c80c24-20fd-42e5-9dcd-a65958569c01
-# ╠═2b237108-bfbc-4e52-b991-2e413194c4ef
-# ╠═48bb2560-370b-461e-8b1e-adc40c9e74a7
 # ╠═9179aa40-bb40-4a36-ae1e-00ae42935a5f
 # ╠═8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
 # ╠═3abca406-2e6b-4b37-8835-65cfad9d0caa
@@ -1905,6 +1885,7 @@ version = "3.0.2+0"
 # ╠═41d14dec-b852-4316-aefb-c3d08fa43216
 # ╠═9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # ╠═0f96a83d-96ef-4768-9330-87c466e35c93
+# ╟─2b237108-bfbc-4e52-b991-2e413194c4ef
 # ╟─97104c46-e81f-444a-957f-0bbb1b02f1b8
 # ╠═9f3683c1-4dfb-419b-9e04-f93bb7f80503
 # ╠═2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
@@ -1915,14 +1896,11 @@ version = "3.0.2+0"
 # ╠═4a4a6bd3-b820-479c-89e3-f3ce79a316db
 # ╟─3357a283-a234-4d15-8fdf-7fbec58b33a7
 # ╠═c8a37593-3028-4e50-ad07-dc81edba45c8
-# ╠═75ee6dbe-598a-47be-9655-3de3bc015281
-# ╠═68d88987-3de7-42ae-9380-91ffae3ca40b
 # ╠═f1f3b700-5916-496f-b938-46f7f08b4eb6
 # ╟─45952512-aaf1-43d8-a95e-c32bb2633f42
 # ╠═97479437-9ce3-4b33-9134-0f2af89bccb5
 # ╠═1c79b37e-d4e0-490f-9466-20ce28f017ae
 # ╠═2e65ae31-f50a-462b-9744-80bf6cdb388e
 # ╟─fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
-# ╠═3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
