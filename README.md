@@ -52,7 +52,7 @@ Paper: <br>[![][paper-img1]][paper-url1]
 </tr>
 </table>
 
-[julia-16]: https://img.shields.io/badge/julia-v1.6-9558B2?logo=julia
+[julia-16]: https://img.shields.io/badge/julia-v1.6_LTS-9558B2?logo=julia
 [julia-19]: https://img.shields.io/badge/julia-v1.9-9558B2?logo=julia
 
 [komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
