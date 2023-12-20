@@ -49,6 +49,10 @@ Tries to move `x` to the current GPU device. Inspired by Flux's `gpu` function.
 
 This works for functions, and any struct marked with `@functor`.
 
+Use [`cpu`](@ref) to copy back to ordinary `Array`s.
+
+See also [`f32`](@ref) and [`f64`](@ref) to change element type only.
+
 # Examples
 ```julia
 x = x |> gpu
@@ -72,6 +76,8 @@ Tries to move object to CPU. Inspired by Flux's `cpu` function.
 
 This works for functions, and any struct marked with `@functor`.
 
+See also [`gpu`](@ref).
+
 # Examples
 ```julia
 x = x |> cpu
@@ -88,15 +94,21 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs #Type piracy
 
 """
     f32(m)
+
 Converts the `eltype` of model's parameters to `Float32`
 Recurses into structs marked with `@functor`.
+
+See also [`f64`](@ref).
 """
 f32(m) = paramtype(Float32, m)
 
 """
     f64(m)
+
 Converts the `eltype` of model's parameters to `Float64` (which is Koma's default)..
 Recurses into structs marked with `@functor`.
+
+See also [`f32`](@ref).
 """
 f64(m) = paramtype(Float64, m)
 
