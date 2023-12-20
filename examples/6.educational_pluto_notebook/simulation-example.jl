@@ -25,7 +25,7 @@ using KomaMRI, PlutoPlotly, PlutoUI
 
 # ╔═╡ cc66bfed-b61b-4067-8c94-4c54b82a3b42
 md"""
-These are the versions of KomaMRI and its subpackages.
+These are the versions of KomaMRI and their subpackages.
 """
 
 # ╔═╡ 8529f36d-2d39-4b45-a821-01c8346539fd
@@ -226,7 +226,7 @@ md"""
 # ...
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
-# (3.5) Compare the plot in (3.5) with (2.6)
+# (3.5) Compare the plot in (3.4) with (2.6)
 # ...
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
@@ -243,53 +243,68 @@ The spin echo experiment has the advantage that the echo signal amplitud it is m
 
 For this section we will use the phantom `obj_t2star` and a new sequence `seq_se`.
 
-- (4.1) Create a sequence called `seq_se` concatenating the following blocks:
-  * (4.1.1) A 90deg hard RF pulse
-  * (4.1.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
-  * (4.1.3) A 180deg hard RF pulse
-  * (4.1.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
- 
- - (4.2) Plot `seq_se` and its k-space. Is the k-space the same as `seq_gre` in (2.3)?
+Our sequence consists of:
+ - (4.1) A 90deg hard RF pulse
+ - (4.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
+ - (4.3) A 180deg hard RF pulse
+ - (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
+ - (4.5) Create concatenating these blocks into a sequence called `seq_se`
+ - (4.6) Plot `seq_se` and its k-space. Is the k-space the same as `seq_gre` in (2.3)?
 """
 
 # ╔═╡ c8a37593-3028-4e50-ad07-dc81edba45c8
-# (4.1) Create a Spin Echo sequence `seq_se`
-# (4.1.1) A 90deg hard RF pulse
+# (4.1) A 90deg hard RF pulse
 # ...
-# (4.1.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
+# (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
 # ...
-# (4.1.3) A 180deg hard RF pulse
+# (4.3) A 180deg hard RF pulse
 # ...
-# (4.1.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in TE
+# (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
+# ...
+# (4.5) Create concatenating these blocks into a sequence called `seq_se`
 # ...
 
 # ╔═╡ f1f3b700-5916-496f-b938-46f7f08b4eb6
-# (4.2) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
+# (4.6) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
 # ...
 
 # ╔═╡ 45952512-aaf1-43d8-a95e-c32bb2633f42
 md"""
- - (4.3) Simulate using `seq_se` and `obj_t2star`
- - (4.4) Compare the signal obtained in (4.6) with the one at (3.5)
- - (4.5) Reconstruct the 1D image
+ - (4.7) Simulate using `seq_se` and `obj_t2star`
+ - (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
+ - (4.9) Reconstruct the 1D image
 """
 
 # ╔═╡ 97479437-9ce3-4b33-9134-0f2af89bccb5
-# (4.3) Simulate using seq_se and obj_t2star
+# (4.7) Simulate using seq_se and obj_t2star
 # ...
 
 # ╔═╡ 1c79b37e-d4e0-490f-9466-20ce28f017ae
-# (4.4) Compare the signal obtained in (4.6) with the one at (3.5)
+# (4.8) Compare the signal obtained in (4.7) with the one at (3.4)
 # ...
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
-# (4.5) Reconstruct the 1D image
+# (4.9) Reconstruct the 1D image
 # ...
 
 # ╔═╡ fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
 md"""
 Congratulations! you finished the simulation hands-on session 🥳!
 """
+
+# ╔═╡ e826311e-4d85-4d52-9107-a54f1cb1e004
+# Set this boolean to `true` when you finish
+activity_finished = false
+
+# ╔═╡ 824a814d-8bfd-4754-9b4c-317fd3ebad86
+if activity_finished
+    html"""
+    <script>
+    const {default: confetti} = await import("https://cdn.skypack.dev/canvas-confetti@1")
+    confetti()
+    </script>
+    """
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1902,5 +1917,7 @@ version = "3.0.2+0"
 # ╠═1c79b37e-d4e0-490f-9466-20ce28f017ae
 # ╠═2e65ae31-f50a-462b-9744-80bf6cdb388e
 # ╟─fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
+# ╠═e826311e-4d85-4d52-9107-a54f1cb1e004
+# ╟─824a814d-8bfd-4754-9b4c-317fd3ebad86
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

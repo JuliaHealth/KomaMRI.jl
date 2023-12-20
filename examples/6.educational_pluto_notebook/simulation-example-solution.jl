@@ -25,7 +25,7 @@ using KomaMRI, PlutoPlotly, PlutoUI
 
 # ╔═╡ cc66bfed-b61b-4067-8c94-4c54b82a3b42
 md"""
-These are the versions of KomaMRI and its subpackages.
+These are the versions of KomaMRI and their subpackages.
 """
 
 # ╔═╡ 8529f36d-2d39-4b45-a821-01c8346539fd
@@ -174,24 +174,24 @@ plot_seq(seq_gre; slider=false)
 
 # ╔═╡ 3abca406-2e6b-4b37-8835-65cfad9d0caa
 # (2.4) Plot the $k$-space with the `plot_kspace` function
-plot_kspace(seq_gre)
+kspace_gre = plot_kspace(seq_gre)
 
 # ╔═╡ ada602d2-4f4b-4fb4-a763-8a639e05ff38
 # (2.5) Simulate the seq_gre sequence
 raw_gre = simulate(obj, seq_gre, sys)
 
-# ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
-# (2.6) Plot the simulated signal
-begin
-    t_adc = range(10.587, 30.587, 100)
-	signal_gre = plot_signal(raw_gre; slider=false)
-    addtraces!(signal_gre, t2_decay(t_adc))
-	signal_gre
-end
-
 # ╔═╡ 9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # (2.7) Reconstruct the 1D image
 recon_gre = plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+
+# ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
+# (2.6) Plot the simulated signal
+begin
+    t_adc_gre = range(1e3*cumsum([0; seq_gre.DUR])[end-1:end]..., 100)
+	signal_gre = plot_signal(raw_gre; slider=false)
+    addtraces!(signal_gre, t2_decay(t_adc_gre))
+	signal_gre
+end
 
 # ╔═╡ 97104c46-e81f-444a-957f-0bbb1b02f1b8
 md"""
@@ -259,12 +259,12 @@ raw_t2_star_gre = simulate(obj_t2star, seq_gre, sys)
 # (3.4) Plot the simulated signal
 begin
 	signal_t2_star_gre = plot_signal(raw_t2_star_gre; slider=false)
-	addtraces!(signal_t2_star_gre, t2_decay(t_adc))
+	addtraces!(signal_t2_star_gre, t2_decay(t_adc_gre))
 	signal_t2_star_gre
 end
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
-# (3.5) Compare the plot in (3.5) with (2.6)
+# (3.5) Compare the plot in (3.4) with (2.6)
 begin
 	signal_layout = Layout(yaxis=attr(range=[-5, 16.5]))
 	relayout!(signal_gre, signal_layout; title="GRE-T2")
@@ -296,59 +296,68 @@ The spin echo experiment has the advantage that the echo signal amplitud it is m
 
 For this section we will use the phantom `obj_t2star` and a new sequence `seq_se`.
 
-- (4.1) Create a sequence called `seq_se` with the following blocks:
-  * (4.1.1) A 90deg hard RF pulse
-  * (4.1.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
-  * (4.1.3) A 180deg hard RF pulse
-  * (4.1.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
- 
- - (4.2) Plot `seq_se` and its k-space. Is the k-space the same as `seq_gre` in (2.3)?
+Our sequence consists of:
+ - (4.1) A 90deg hard RF pulse
+ - (4.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
+ - (4.3) A 180deg hard RF pulse
+ - (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
+ - (4.5) Create concatenating these blocks into a sequence called `seq_se`
+ - (4.6) Plot `seq_se` and its k-space. Is the k-space the same as `seq_gre` in (2.3)?
 """
 
 # ╔═╡ 27e65680-22a0-4079-b6df-d60a3218e52e
-# (4.1) Create a Spin Echo sequence `seq_se`
+# (4.5) Create concatenating these blocks into a sequence called `seq_se`
 begin
-	# (4.1.1) A 90deg hard RF pulse
+	# (4.1) A 90deg hard RF pulse
 	seq_se = Sequence()
 	seq_se += rf
-    # (4.1.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
+    # (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
 	seq_se += -1*gx_pre
-	# (4.1.3) A 180deg hard RF pulse
+	# (4.3) A 180deg hard RF pulse
 	seq_se += (0.0+2.0im)*rf
-	# (4.1.4) A readout gradient
+	# (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
 	seq_se += readout
 end
 
 # ╔═╡ f1f3b700-5916-496f-b938-46f7f08b4eb6
-# (4.2) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
+# (4.6) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
 plot_seq(seq_se; slider=false)
 
 # ╔═╡ 4e1434e1-673f-4206-a271-9edec10ebd6a
-plot_kspace(seq_se)
+kspace_se = plot_kspace(seq_se)
+
+# ╔═╡ c02f3898-10cb-4f1e-b5ef-eb42b803baed
+begin
+	relayout!(kspace_gre; title="GRE")
+	relayout!(kspace_se; title="SE")
+	fig_kspace = [kspace_gre kspace_se]
+	relayout(fig_kspace, showlegend=false)
+end
 
 # ╔═╡ 45952512-aaf1-43d8-a95e-c32bb2633f42
 md"""
- - (4.3) Simulate using `seq_se` and `obj_t2star`
- - (4.4) Compare the signal obtained in (4.6) with the one at (3.5)
- - (4.5) Reconstruct the 1D image
+ - (4.7) Simulate using `seq_se` and `obj_t2star`
+ - (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
+ - (4.9) Reconstruct the 1D image
 """
 
 # ╔═╡ 97479437-9ce3-4b33-9134-0f2af89bccb5
-# (4.3) Simulate using seq_se and obj_t2star
+# (4.7) Simulate using seq_se and obj_t2star
 raw_t2_star_se = simulate(obj_t2star, seq_se, sys)
 
 # ╔═╡ 1c79b37e-d4e0-490f-9466-20ce28f017ae
-# (4.4) Compare the signal obtained in (4.6) with the one at (3.5)
+# (4.8) Compare the signal obtained in (4.7) with the one at (3.4)
 begin
+	t_adc_se = range(1e3*cumsum([0; seq_se.DUR])[end-1:end]..., 100)
 	signal_t2_star_se = plot_signal(raw_t2_star_se; slider=false)
-	addtraces!(signal_t2_star_se, t2_decay(t_adc))
+	addtraces!(signal_t2_star_se, t2_decay(t_adc_se))
 	relayout!(signal_t2_star_se, signal_layout; title="SE")
 	fig_signal_3 = [signal_gre signal_t2_star_gre signal_t2_star_se]
 	relayout(fig_signal_3, showlegend=false)
 end
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
-# (4.5) Reconstruct the 1D image
+# (4.9) Reconstruct the 1D image
 recon_t2_star_se = plot(abs.(KomaMRI.fftc(raw_t2_star_se.profiles[1].data)))
 
 # ╔═╡ 34824db7-13c4-45e2-befa-f027b9b585c0
@@ -362,6 +371,20 @@ end
 md"""
 Congratulations! you finished the simulation hands-on session 🥳!
 """
+
+# ╔═╡ ab8dc1ce-d1ef-43a0-9495-dac931b52aec
+# Set this boolean to `true` when you finish
+activity_finished = true
+
+# ╔═╡ 58be4150-2b7a-4f9e-a7d7-40a086fd3a53
+if activity_finished
+    html"""
+    <script>
+    const {default: confetti} = await import("https://cdn.skypack.dev/canvas-confetti@1")
+    confetti()
+    </script>
+    """
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1970,11 +1993,14 @@ version = "3.0.2+0"
 # ╠═27e65680-22a0-4079-b6df-d60a3218e52e
 # ╠═f1f3b700-5916-496f-b938-46f7f08b4eb6
 # ╠═4e1434e1-673f-4206-a271-9edec10ebd6a
+# ╠═c02f3898-10cb-4f1e-b5ef-eb42b803baed
 # ╟─45952512-aaf1-43d8-a95e-c32bb2633f42
 # ╠═97479437-9ce3-4b33-9134-0f2af89bccb5
 # ╠═1c79b37e-d4e0-490f-9466-20ce28f017ae
 # ╠═2e65ae31-f50a-462b-9744-80bf6cdb388e
 # ╠═34824db7-13c4-45e2-befa-f027b9b585c0
 # ╟─fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
+# ╠═ab8dc1ce-d1ef-43a0-9495-dac931b52aec
+# ╟─58be4150-2b7a-4f9e-a7d7-40a086fd3a53
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
