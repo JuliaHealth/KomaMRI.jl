@@ -25,7 +25,7 @@ using KomaMRI, PlutoPlotly, PlutoUI
 
 # ╔═╡ cc66bfed-b61b-4067-8c94-4c54b82a3b42
 md"""
-These are the versions of KomaMRI and their subpackages.
+These are the versions of KomaMRI and its subpackages.
 """
 
 # ╔═╡ 8529f36d-2d39-4b45-a821-01c8346539fd
@@ -243,7 +243,7 @@ The spin echo experiment has the advantage that the echo signal amplitud it is m
 
 For this section we will use the phantom `obj_t2star` and a new sequence `seq_se`.
 
-Our sequence consists of:
+For this sequence we will need:
  - (4.1) A 90deg hard RF pulse
  - (4.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
  - (4.3) A 180deg hard RF pulse

@@ -25,7 +25,7 @@ using KomaMRI, PlutoPlotly, PlutoUI
 
 # ╔═╡ cc66bfed-b61b-4067-8c94-4c54b82a3b42
 md"""
-These are the versions of KomaMRI and their subpackages.
+These are the versions of KomaMRI and its subpackages.
 """
 
 # ╔═╡ 8529f36d-2d39-4b45-a821-01c8346539fd
@@ -187,7 +187,7 @@ recon_gre = plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
 # ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
 # (2.6) Plot the simulated signal
 begin
-    t_adc_gre = range(1e3*cumsum([0; seq_gre.DUR])[end-1:end]..., 100)
+	t_adc_gre = KomaMRICore.get_adc_sampling_times(seq_gre)*1e3
 	signal_gre = plot_signal(raw_gre; slider=false)
     addtraces!(signal_gre, t2_decay(t_adc_gre))
 	signal_gre
@@ -296,7 +296,7 @@ The spin echo experiment has the advantage that the echo signal amplitud it is m
 
 For this section we will use the phantom `obj_t2star` and a new sequence `seq_se`.
 
-Our sequence consists of:
+For this sequence we will need:
  - (4.1) A 90deg hard RF pulse
  - (4.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
  - (4.3) A 180deg hard RF pulse
@@ -348,7 +348,7 @@ raw_t2_star_se = simulate(obj_t2star, seq_se, sys)
 # ╔═╡ 1c79b37e-d4e0-490f-9466-20ce28f017ae
 # (4.8) Compare the signal obtained in (4.7) with the one at (3.4)
 begin
-	t_adc_se = range(1e3*cumsum([0; seq_se.DUR])[end-1:end]..., 100)
+	t_adc_se = KomaMRICore.get_adc_sampling_times(seq_se)*1e3
 	signal_t2_star_se = plot_signal(raw_t2_star_se; slider=false)
 	addtraces!(signal_t2_star_se, t2_decay(t_adc_se))
 	relayout!(signal_t2_star_se, signal_layout; title="SE")
