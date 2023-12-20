@@ -100,7 +100,8 @@ ADC
 Delay
 ```
 
-## Functions for structs
+
+## Sequence-related Functions
 
 ### `dur`
 ```@docs
@@ -158,29 +159,7 @@ is_ADC_on
 ```
 
 
-## Read Data
-
-```@meta
-CurrentModule = KomaMRIFiles
-```
-
-### `read_seq`
-```@docs
-read_seq
-```
-
-### `read_phantom_jemris`
-```@docs
-read_phantom_jemris
-```
-
-### `read_phantom_MRiLab`
-```@docs
-read_phantom_MRiLab
-```
-
-
-## Pulse Designer
+## Prebuilt Sequence Building Blocks
 
 ```@meta
 CurrentModule = KomaMRICore
@@ -221,45 +200,30 @@ PulseDesigner.spiral_base
 PulseDesigner.EPI_example
 ```
 
-## Spin Representation
 
-### `Mag`
-```@docs
-Mag
+## Input/Output
+
+```@meta
+CurrentModule = KomaMRIFiles
 ```
 
-### `Spinor`
+### `read_seq`
 ```@docs
-Spinor
+read_seq
 ```
 
-### `Rx`
+### `read_phantom_jemris`
 ```@docs
-Rx
+read_phantom_jemris
 ```
 
-### `Ry`
+### `read_phantom_MRiLab`
 ```@docs
-Ry
-```
-
-### `Rz`
-```@docs
-Rz
-```
-
-### `Q`
-```@docs
-Q
-```
-
-### `Un`
-```@docs
-Un
+read_phantom_MRiLab
 ```
 
 
-## Low Level Processing
+## Functor Functions
 
 ### `f32`
 ```@docs
@@ -302,6 +266,11 @@ simulate_slice_profile
 ### `signal_to_raw_data`
 ```@docs
 signal_to_raw_data
+```
+
+### `Mag`
+```@docs
+Mag
 ```
 
 
