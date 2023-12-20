@@ -116,10 +116,8 @@ plot_signal(raw; slider=false)
 # (1.8) Is the signal the same as `plot(t, exp.(-t ./ T2))`?
 begin
 	t = range(0, 50, 100)
-	plot(
-		scatter(x=t, y=20.0.*exp.(-t ./ 50)),
-		Layout(yaxis_range=[0, 20.1])
-	)
+	t2_decay(t) = scatter(x=t, y=20.0.*exp.(-t ./ 50), name="T2-decay", marker_color="purple")
+	plot(t2_decay(t), Layout(yaxis_range=[0, 20.1]))
 end
 
 # ╔═╡ e4c80c24-20fd-42e5-9dcd-a65958569c01
@@ -185,10 +183,9 @@ raw_gre = simulate(obj, seq_gre, sys)
 # ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
 # (2.6) Plot the simulated signal
 begin
-    t_decay = range(10.587, 30.587, 100)
-    trace_decay = scatter(x=t_decay, y=20.0.*exp.(-t_decay ./ 50), name="T2-decay", marker_color="purple")
+    t_adc = range(10.587, 30.587, 100)
 	signal_gre = plot_signal(raw_gre; slider=false)
-    addtraces!(signal_gre, trace_decay)
+    addtraces!(signal_gre, t2_decay(t_adc))
 	signal_gre
 end
 
@@ -262,7 +259,7 @@ raw_t2_star_gre = simulate(obj_t2star, seq_gre, sys)
 # (3.4) Plot the simulated signal
 begin
 	signal_t2_star_gre = plot_signal(raw_t2_star_gre; slider=false)
-	addtraces!(signal_t2_star_gre, trace_decay)
+	addtraces!(signal_t2_star_gre, t2_decay(t_adc))
 	signal_t2_star_gre
 end
 
@@ -344,7 +341,7 @@ raw_t2_star_se = simulate(obj_t2star, seq_se, sys)
 # (4.4) Compare the signal obtained in (4.6) with the one at (3.5)
 begin
 	signal_t2_star_se = plot_signal(raw_t2_star_se; slider=false)
-	addtraces!(signal_t2_star_se, trace_decay)
+	addtraces!(signal_t2_star_se, t2_decay(t_adc))
 	relayout!(signal_t2_star_se, signal_layout; title="SE")
 	fig_signal_3 = [signal_gre signal_t2_star_gre signal_t2_star_se]
 	relayout(fig_signal_3, showlegend=false)
