@@ -224,7 +224,8 @@ begin
     # (3.1.1) Create an empty phantom
 	obj_t2star = Phantom{Float64}(x=[])
     # (3.1.2) Define the linear off-resonance distribution
-	linear_offresonance_distribution = 2π .* range(-10, 10, 20)
+	Niso = 20
+	linear_offresonance_distribution = 2π .* range(-10, 10, Niso)
 	# (3.1.3) Iterate over the linear off-resonance distribution and ...
 	for off = linear_offresonance_distribution
 		# ... copy the original phantom and modify its off-resonance
@@ -235,7 +236,7 @@ begin
 		obj_t2star += aux
 	end
 	# (3.1.5) Divide the proton density and rename the phantom
-	obj_t2star.ρ .= 1.0 / 20.0 
+	obj_t2star.ρ .= 1.0 / Niso
 	obj_t2star.name = "T2 star phantom"
 end
 

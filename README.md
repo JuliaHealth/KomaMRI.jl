@@ -92,7 +92,7 @@ Paper: <br>[![][paper-img1]][paper-url1]
 
 ## News
 
-> 🟢 **[7 Dec 2023] MRI Together:** Koma was present in [MRI Together](https://mritogether.esmrmb.org/) 😼. The talk is available [here](https://www.youtube.com/watch?v=9mRQH8um4-A). Also, I uploaded the promised [educational example](https://cncastillo.github.io/KomaMRI.jl/stable/pluto-simulation/).
+> 🟢 **[7 Dec 2023] MRI Together:** Koma was present in [MRI Together](https://mritogether.esmrmb.org/) 😼. The talk is available [here](https://www.youtube.com/watch?v=9mRQH8um4-A). Also, I uploaded the promised [educational example](https://cncastillo.github.io/KomaMRI.jl/dev/educational-1d-simulation/).
 > 
 > 🟢 **[17 Nov 2023] ISMRM Pulseq's virtual meeting:** Pretty excited of being part of [this meeting](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023). The slidescan be seen [here](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023/blob/35a8da7eaa0bf42f2127e1338a440ccd4e3ef53c/slides/day3_KomaMRI_simulator_Quantitative_MRI.pdf).
 
