@@ -225,6 +225,10 @@ read_phantom_MRiLab
 
 ## Functor Functions
 
+```@meta
+CurrentModule = KomaMRICore
+```
+
 ### `f32`
 ```@docs
 f32
