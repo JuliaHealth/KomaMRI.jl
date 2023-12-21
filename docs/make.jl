@@ -80,7 +80,7 @@ makedocs(
         #"Sequence Definition" => "sequence.md";
         #"Events Definition" => "events.md";
         "Examples" => literate_examples;
-        "Educational Material 📚" => "pluto-simulation.md";
+        "Educational Material 📚" => "educational-1d-simulation.md";
         "Simulation" => "mri-theory.md";
         "API Documentation" => "api.md";
     ],
