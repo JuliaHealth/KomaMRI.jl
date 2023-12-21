@@ -18,7 +18,7 @@ Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
 ThreadsX = "ac1d9e8a-700a-412c-b207-f0111f4b6c0d"
 
 [compat]
-Adapt = "3"
+Adapt = "3, 4"
 CUDA = "3, 4, 5"
 Functors = "0.4"
 Interpolations = "0.13, 0.14, 0.15"
