@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.32
+# v0.19.36
 
 using Markdown
 using InteractiveUtils
@@ -25,7 +25,7 @@ using KomaMRI, PlutoPlotly, PlutoUI
 
 # ╔═╡ cc66bfed-b61b-4067-8c94-4c54b82a3b42
 md"""
-These are the versions of KomaMRI and their subpackages.
+These are the versions of KomaMRI and its subpackages.
 """
 
 # ╔═╡ 8529f36d-2d39-4b45-a821-01c8346539fd
@@ -33,14 +33,14 @@ TableOfContents() # There should be a table of contents on the right --->
 
 # ╔═╡ 6dfe338d-de85-4adb-b030-09455fae78a0
 md"""
-Welcome to the hand-on session on MRI simulation. Let's have some fun!
+Welcome to the hands-on session on MRI simulation. Let's have some fun!
 
-If you have any doubts on how to use a function, please search in the **Live Docs** at the bottom right.
+If you have any doubts about how to use a function, please search in the **Live Docs** at the bottom right.
 """
 
 # ╔═╡ 8e474add-8651-431b-b481-7a139037dbd2
 md"""# 1. Free Induction Decay (FID)
-The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse. 
+The free induction decay is the simplest observable NMR signal. This signal is the one that follows a single tipping RF pulse.
 
 $(PlutoUI.Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/FID.png", :width=>"300px"))
 To recreate this experiment, we will need to define a `Sequence`:
@@ -90,7 +90,7 @@ begin
 	obj.ρ .= 1
 	obj.T1 .= 500e-3
 	obj.T2 .= 50e-3
-	obj
+	nothing
 end
 
 # ╔═╡ 35ff3402-dc36-4b91-bec9-b4d21faf3e68
@@ -116,10 +116,8 @@ plot_signal(raw; slider=false)
 # (1.8) Is the signal the same as `plot(t, exp.(-t ./ T2))`?
 begin
 	t = range(0, 50, 100)
-	plot(
-		scatter(x=t, y=20.0.*exp.(-t ./ 50)),
-		Layout(yaxis_range=[0, 20.1])
-	)
+	t2_decay(t) = scatter(x=t, y=20.0.*exp.(-t ./ 50), name="T2-decay", marker_color="purple")
+	plot(t2_decay(t), Layout(yaxis_range=[0, 20.1]))
 end
 
 # ╔═╡ e4c80c24-20fd-42e5-9dcd-a65958569c01
@@ -165,8 +163,8 @@ begin
 	seq_gre += gx_pre
 # (2.2) Append a `Sequence` block called `readout`
 	gx = Grad(2*Ax/(2T_gx_pre), 2T_gx_pre, 0, 0)
-	adc_readout = ADC(100, 2T_gx_pre)
-	readout = Sequence([gx;;], [RF(0,0);;], [adc_readout])
+	adc2 = ADC(100, 2T_gx_pre)
+	readout = Sequence([gx;;], [RF(0,0);;], [adc2])
 	seq_gre += readout
 end
 
@@ -176,25 +174,30 @@ plot_seq(seq_gre; slider=false)
 
 # ╔═╡ 3abca406-2e6b-4b37-8835-65cfad9d0caa
 # (2.4) Plot the $k$-space with the `plot_kspace` function
-plot_kspace(seq_gre)
+kspace_gre = plot_kspace(seq_gre)
 
 # ╔═╡ ada602d2-4f4b-4fb4-a763-8a639e05ff38
 # (2.5) Simulate the seq_gre sequence
 raw_gre = simulate(obj, seq_gre, sys)
 
-# ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
-# (2.6) Plot the simulated signal
-plot_signal(raw_gre; slider=false)
-
 # ╔═╡ 9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # (2.7) Reconstruct the 1D image
-plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+recon_gre = plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+
+# ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
+# (2.6) Plot the simulated signal
+begin
+	t_adc_gre = KomaMRICore.get_adc_sampling_times(seq_gre)*1e3
+	signal_gre = plot_signal(raw_gre; slider=false)
+    addtraces!(signal_gre, t2_decay(t_adc_gre))
+	signal_gre
+end
 
 # ╔═╡ 97104c46-e81f-444a-957f-0bbb1b02f1b8
 md"""
 # 3. $T_{2}^{*}$-decay
 
-The $$T_{2}^{*}$$-decay it the signal decay produced by microscopic distribution of off-resonance.
+The $$T_{2}^{*}$$-decay is the signal decay produced by microscopic distribution of off-resonance.
 
 $(Resource("https://raw.githubusercontent.com/LIBREhub/MRI-processing-2023/main/02-simulation/Figures/T2star.png", :width=>"400px"))
 
@@ -204,51 +207,85 @@ $$p_{\Delta w}(w) = \frac{T_2^{'}}{\pi(1+T_2^{'2} w^2)},\quad\text{with }\frac{1
 
 In this excercise we will simplify this distribution, but we will obtain a similar effect.
 
- - (3.1) Create a copy of the original phantom `obj_t2star = copy(obj)`
- - (3.2) Add a linear distribution of off-resonance to `obj_t2star.Δw .= 2π[-10, 10] rad/s` 
- - (3.3) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
+- (3.1) Create a new phantom named `obj_t2star` with spins at the same positions as the original phantom `obj`, each having a linear distribution of off-resonance. To achieve this, follow these steps:
+   * (3.1.1) Create an empty phantom called `obj_t2star`.
+   * (3.1.2) Create a linear off-resonance distribution such that the range $$2\pi [-10, 10]\,\mathrm{rad/s}$$ is covered uniformly with $$N_{\mathrm{isochromats}} = 20$$ (use the function `range(start, stop, length)`).
+   * (3.1.3) Iterate over the elements `off` of the linear distribution (`for` loop) and create copies of the original phantom (`obj_aux = copy(obj)`) and set the off-resonance of that copy to `off` with `obj_aux.Δw .= off`.
+   * (3.1.4) Update `obj_t2star` by appending the modified copies `obj_aux` (`obj_t2star += obj_aux`).
+   * (3.1.5) Finally, outside the loop, divide the proton density `obj_t2star.ρ` by $$N_{\mathrm{isochromats}} = 20$$ and rename the phantom `obj_t2star.name = "T2 star phantom"`.
+
+ - (3.2) Plot `obj_t2star` with `plot_phantom_map(obj_t2star, :Δw)` and verify it is correct
 
 """
 
 # ╔═╡ ee7e81e7-484c-44a8-a191-f73e24707ce9
+# (3.1) Create the new obj_t2star phantom 
 begin
-# (3.1) Create a copy of the original phantom obj_t2star = copy(obj)
-	obj_t2star = copy(obj)
-# (3.2) Add a linear distribution of off-resonance
-	obj_t2star.Δw .= 2π*collect(range(-50, 50, 20))
-	obj_t2star
+    # (3.1.1) Create an empty phantom
+	obj_t2star = Phantom{Float64}(x=[])
+    # (3.1.2) Define the linear off-resonance distribution
+	Niso = 20
+	linear_offresonance_distribution = 2π .* range(-10, 10, Niso)
+	# (3.1.3) Iterate over the linear off-resonance distribution and ...
+	for off = linear_offresonance_distribution
+		# ... copy the original phantom and modify its off-resonance
+	    aux = copy(obj)
+		aux.Δw .= off
+		aux.y  .+= off * 1e-6  # So the distribution is visible
+		# (3.1.4) Update the phantom
+		obj_t2star += aux
+	end
+	# (3.1.5) Divide the proton density and rename the phantom
+	obj_t2star.ρ .= 1.0 / Niso
+	obj_t2star.name = "T2 star phantom"
 end
 
 # ╔═╡ 2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
-# (3.3) Plot obj_t2star
+# (3.2) Plot obj_t2star
 plot_phantom_map(obj_t2star, :Δw)
 
 # ╔═╡ 27686262-1a1e-45fa-b4ee-90ae1d9ee34e
 md"""
- - (3.4) Simulate the `seq_gre` sequence
- - (3.5) Plot the simulated signal
- - (3.6) Compare the plot in (3.5) with (2.6)
- - (3.7) Reconstruct the 1D image
+ - (3.3) Simulate the `seq_gre` sequence
+ - (3.4) Plot the simulated signal
+ - (3.5) Compare the plot in (3.5) with (2.6)
+ - (3.6) Reconstruct the 1D image
 """
 
 # ╔═╡ e4ef5145-a63c-4f91-ac04-3b5bf16c0842
-# (3.4) Simulate the seq_gre sequence
+# (3.3) Simulate the seq_gre sequence
 raw_t2_star_gre = simulate(obj_t2star, seq_gre, sys)
 
 # ╔═╡ 1a83d897-705b-443d-89a4-ea5e3e6a3c07
-# (3.5) Plot the simulated signal
-plot_signal(raw_t2_star_gre; slider=false)
+# (3.4) Plot the simulated signal
+begin
+	signal_t2_star_gre = plot_signal(raw_t2_star_gre; slider=false)
+	addtraces!(signal_t2_star_gre, t2_decay(t_adc_gre))
+	signal_t2_star_gre
+end
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
-# (3.6) Compare the plot in (3.5) with (2.6)
-plot_signal(raw_gre; slider=false)
+# (3.5) Compare the plot in (3.4) with (2.6)
+begin
+	signal_layout = Layout(yaxis=attr(range=[-5, 16.5]))
+	relayout!(signal_gre, signal_layout; title="GRE-T2")
+	relayout!(signal_t2_star_gre, signal_layout; title="GRE-T2*")
+	fig_signal_2 = [signal_gre signal_t2_star_gre]
+	relayout(fig_signal_2, showlegend=false)
+end
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
-# (3.7) Reconstruct the 1D image
-plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
+# (3.6) Reconstruct the 1D image
+recon_t2_star_gre = plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
 
-# ╔═╡ f2d388d5-4cda-4a0b-be50-ea2cdc283692
-plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+# ╔═╡ 964404f6-7f46-4df9-ad98-921948c3be69
+begin
+	recon_layout = Layout(yaxis=attr(range=[0, 0.8]))
+	relayout!(recon_gre, recon_layout; title="GRE-T2")
+	relayout!(recon_t2_star_gre, recon_layout; title="GRE-T2*")
+	fig_recon_2 = [recon_gre recon_t2_star_gre]
+	relayout(fig_recon_2, showlegend=false)
+end
 
 # ╔═╡ 3357a283-a234-4d15-8fdf-7fbec58b33a7
 md"""
@@ -260,7 +297,7 @@ The spin echo experiment has the advantage that the echo signal amplitud it is m
 
 For this section we will use the phantom `obj_t2star` and a new sequence `seq_se`.
 
-Our sequence consists of:
+For this sequence we will need:
  - (4.1) A 90deg hard RF pulse
  - (4.2) A `Delay` of $$\mathrm{TE}/2$$ with a positive gradient (area `Ax`)
  - (4.3) A 180deg hard RF pulse
@@ -270,14 +307,16 @@ Our sequence consists of:
 """
 
 # ╔═╡ 27e65680-22a0-4079-b6df-d60a3218e52e
-# (4.1) A 90deg hard RF pulse
+# (4.5) Create concatenating these blocks into a sequence called `seq_se`
 begin
+	# (4.1) A 90deg hard RF pulse
 	seq_se = Sequence()
 	seq_se += rf
-# (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
+    # (4.2) A `Delay` of TE/2 with a positive gradient (area `Ax`)
 	seq_se += -1*gx_pre
+	# (4.3) A 180deg hard RF pulse
 	seq_se += (0.0+2.0im)*rf
-# (4.3) A 180deg hard RF pulse
+	# (4.4) A readout gradient of area `2Ax` with an ADC (similar to (2.2)), such that the middle of the gradient and ADC are in $$\mathrm{TE}$$
 	seq_se += readout
 end
 
@@ -286,7 +325,15 @@ end
 plot_seq(seq_se; slider=false)
 
 # ╔═╡ 4e1434e1-673f-4206-a271-9edec10ebd6a
-plot_kspace(seq_se)
+kspace_se = plot_kspace(seq_se)
+
+# ╔═╡ c02f3898-10cb-4f1e-b5ef-eb42b803baed
+begin
+	relayout!(kspace_gre; title="GRE")
+	relayout!(kspace_se; title="SE")
+	fig_kspace = [kspace_gre kspace_se]
+	relayout(fig_kspace, showlegend=false)
+end
 
 # ╔═╡ 45952512-aaf1-43d8-a95e-c32bb2633f42
 md"""
@@ -300,32 +347,45 @@ md"""
 raw_t2_star_se = simulate(obj_t2star, seq_se, sys)
 
 # ╔═╡ 1c79b37e-d4e0-490f-9466-20ce28f017ae
-# (4.8) Compare the signal obtained in (4.6) with the one at (3.5)
-[
-	plot_signal(raw_t2_star_se; slider=false);
-	plot_signal(raw_t2_star_gre; slider=false)
-]
+# (4.8) Compare the signal obtained in (4.7) with the one at (3.4)
+begin
+	t_adc_se = KomaMRICore.get_adc_sampling_times(seq_se)*1e3
+	signal_t2_star_se = plot_signal(raw_t2_star_se; slider=false)
+	addtraces!(signal_t2_star_se, t2_decay(t_adc_se))
+	relayout!(signal_t2_star_se, signal_layout; title="SE")
+	fig_signal_3 = [signal_gre signal_t2_star_gre signal_t2_star_se]
+	relayout(fig_signal_3, showlegend=false)
+end
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
 # (4.9) Reconstruct the 1D image
-plot(abs.(KomaMRI.fftc(raw_t2_star_se.profiles[1].data)))
+recon_t2_star_se = plot(abs.(KomaMRI.fftc(raw_t2_star_se.profiles[1].data)))
 
 # ╔═╡ 34824db7-13c4-45e2-befa-f027b9b585c0
-plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
+begin
+	relayout!(recon_t2_star_se, recon_layout; title="SE")
+	fig_recon_3 = [recon_gre recon_t2_star_gre recon_t2_star_se]
+	relayout(fig_recon_3, showlegend=false)
+end
 
 # ╔═╡ fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
 md"""
 Congratulations! you finished the simulation hands-on session 🥳!
 """
 
-# ╔═╡ 3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
-# Run this cell to celebrate!
-html"""
-<script>
-const {default: confetti} = await import("https://cdn.skypack.dev/canvas-confetti@1")
-confetti()
-</script>
-"""
+# ╔═╡ ab8dc1ce-d1ef-43a0-9495-dac931b52aec
+# Set this boolean to `true` when you finish
+activity_finished = true
+
+# ╔═╡ 58be4150-2b7a-4f9e-a7d7-40a086fd3a53
+if activity_finished
+    html"""
+    <script>
+    const {default: confetti} = await import("https://cdn.skypack.dev/canvas-confetti@1")
+    confetti()
+    </script>
+    """
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1900,7 +1960,7 @@ version = "3.0.2+0"
 # ╟─cc66bfed-b61b-4067-8c94-4c54b82a3b42
 # ╠═3e87790c-ddec-4897-a5d8-276cf7242147
 # ╠═8529f36d-2d39-4b45-a821-01c8346539fd
-# ╠═6dfe338d-de85-4adb-b030-09455fae78a0
+# ╟─6dfe338d-de85-4adb-b030-09455fae78a0
 # ╟─8e474add-8651-431b-b481-7a139037dbd2
 # ╠═c6e33cb8-f42c-4643-9257-124d2804d3da
 # ╠═0266632d-5ca4-4196-a523-33a66dd70e0c
@@ -1929,17 +1989,19 @@ version = "3.0.2+0"
 # ╠═1a83d897-705b-443d-89a4-ea5e3e6a3c07
 # ╠═18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
 # ╠═4a4a6bd3-b820-479c-89e3-f3ce79a316db
-# ╠═f2d388d5-4cda-4a0b-be50-ea2cdc283692
+# ╠═964404f6-7f46-4df9-ad98-921948c3be69
 # ╟─3357a283-a234-4d15-8fdf-7fbec58b33a7
 # ╠═27e65680-22a0-4079-b6df-d60a3218e52e
 # ╠═f1f3b700-5916-496f-b938-46f7f08b4eb6
 # ╠═4e1434e1-673f-4206-a271-9edec10ebd6a
+# ╠═c02f3898-10cb-4f1e-b5ef-eb42b803baed
 # ╟─45952512-aaf1-43d8-a95e-c32bb2633f42
 # ╠═97479437-9ce3-4b33-9134-0f2af89bccb5
 # ╠═1c79b37e-d4e0-490f-9466-20ce28f017ae
 # ╠═2e65ae31-f50a-462b-9744-80bf6cdb388e
 # ╠═34824db7-13c4-45e2-befa-f027b9b585c0
 # ╟─fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
-# ╠═3b6b91cf-f3ad-40bc-9b3b-8bb5f395537f
+# ╠═ab8dc1ce-d1ef-43a0-9495-dac931b52aec
+# ╟─58be4150-2b7a-4f9e-a7d7-40a086fd3a53
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
