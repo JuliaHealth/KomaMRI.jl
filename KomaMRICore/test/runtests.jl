@@ -415,6 +415,8 @@ end
 end
 
 @testitem "Spinors×Mag" tags=[:core] begin
+    using KomaMRICore: Spinor, Rx, Ry, Rz, Q, Un
+
     # Spinor 2x2 representation should be equivalent to a 3x1 vector rotation
     x = rand(3); x = x./sum(x)
     θ = rand() * π

@@ -48,8 +48,6 @@ export Grad, RF, ADC, Delay
 export Mag, dur
 #Phantom
 export brain_phantom2D, brain_phantom3D
-#Spinors
-export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
 export get_kspace, rotx, roty, rotz
 #ISMRMRD
