@@ -19,6 +19,15 @@ include("other/DiffusionModel.jl")
 include("simulation/GPUFunctions.jl")
 include("simulation/SimulatorCore.jl")
 
+#Main
+export γ #gyro-magnetic ratio [Hz/T]
+export Scanner, Sequence, Phantom
+export Grad, RF, ADC, Delay
+export Mag, dur
+#Phantom
+export brain_phantom2D, brain_phantom3D
+#Secondary
+export get_kspace, rotx, roty, rotz
 #ISMRMRD
 export signal_to_raw_data
 #Simulator

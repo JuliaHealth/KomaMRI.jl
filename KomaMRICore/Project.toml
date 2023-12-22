@@ -13,7 +13,7 @@ ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 ThreadsX = "ac1d9e8a-700a-412c-b207-f0111f4b6c0d"
 
 [compat]
-Adapt = "3"
+Adapt = "3, 4"
 CUDA = "3, 4, 5"
 Functors = "0.4"
 KomaMRIBase = "0.8"

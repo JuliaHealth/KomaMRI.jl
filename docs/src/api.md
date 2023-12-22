@@ -100,28 +100,66 @@ ADC
 Delay
 ```
 
-## Read Data
 
-```@meta
-CurrentModule = KomaMRIFiles
-```
+## Sequence-related Functions
 
-### `read_seq`
+### `dur`
 ```@docs
-read_seq
+dur
 ```
 
-### `read_phantom_jemris`
+### `rotx`
 ```@docs
-read_phantom_jemris
+rotx
 ```
 
-### `read_phantom_MRiLab`
+### `roty`
 ```@docs
-read_phantom_MRiLab
+roty
 ```
 
-## Pulse Design
+### `rotz`
+```@docs
+rotz
+```
+
+### `get_kspace`
+```@docs
+get_kspace
+```
+
+### `get_M1`
+```@docs
+get_M1
+```
+
+### `get_M2`
+```@docs
+get_M2
+```
+
+### `get_flip_angles`
+```@docs
+get_flip_angles
+```
+
+### `is_RF_on`
+```@docs
+is_RF_on
+```
+
+### `is_GR_on`
+```@docs
+is_GR_on
+```
+
+### `is_ADC_on`
+```@docs
+is_ADC_on
+```
+
+
+## Prebuilt Sequence Building Blocks
 
 ```@meta
 CurrentModule = KomaMRIBase
@@ -162,10 +200,61 @@ PulseDesigner.spiral_base
 PulseDesigner.EPI_example
 ```
 
-## Simulation
+
+## Input/Output
+
+```@meta
+CurrentModule = KomaMRIFiles
+```
+
+### `read_seq`
+```@docs
+read_seq
+```
+
+### `read_phantom_jemris`
+```@docs
+read_phantom_jemris
+```
+
+### `read_phantom_MRiLab`
+```@docs
+read_phantom_MRiLab
+```
+
+
+## Functor Functions
 
 ```@meta
 CurrentModule = KomaMRICore
+```
+
+### `f32`
+```@docs
+f32
+```
+
+### `f64`
+```@docs
+f64
+```
+
+### `cpu`
+```@docs
+cpu
+```
+
+### `gpu`
+```@docs
+gpu
+```
+
+
+## Simulation
+
+### `default_sim_params`
+```@docs
+default_sim_params
 ```
 
 ### `simulate`
@@ -182,6 +271,12 @@ simulate_slice_profile
 ```@docs
 signal_to_raw_data
 ```
+
+### `Mag`
+```@docs
+Mag
+```
+
 
 ## Plots
 
@@ -237,6 +332,16 @@ plot_signal
 ### `plot_image`
 ```@docs
 plot_image
+```
+
+### `plot_dict`
+```@docs
+plot_dict
+```
+
+### `plot_seqd`
+```@docs
+plot_seqd
 ```
 
 
