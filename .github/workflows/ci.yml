@@ -82,10 +82,11 @@ jobs:
         run: |
           using Pkg
           Pkg.develop([
-          PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-          PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
-          PackageSpec(path=pwd(), subdir="KomaMRIPlots")])
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+          ])
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         with:
@@ -137,11 +138,12 @@ jobs:
           julia --project=docs -e '
             using Pkg
             Pkg.develop([
-            PackageSpec(path=pwd(), subdir="."),
-            PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-            PackageSpec(path=pwd(), subdir="KomaMRICore"),
-            PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
-            PackageSpec(path=pwd(), subdir="KomaMRIPlots")])
+                PackageSpec(path=pwd(), subdir="."),
+                PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+                PackageSpec(path=pwd(), subdir="KomaMRICore"),
+                PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+                PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+            ])
             Pkg.instantiate()'
       - run: |
           julia --project=docs -e '
