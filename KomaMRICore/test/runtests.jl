@@ -80,7 +80,7 @@ end
 
 @testitem "Bloch_CPU_single_thread" tags=[:important, :core] begin
     using Suppressor, KomaMRIBase
-    include(joinpath(@__DIR__, "test_files", "Utils.jl"))
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_jemris()
     seq = seq_epi_100x100_TE100_FOV230()
@@ -103,7 +103,7 @@ end
 
 @testitem "Bloch_CPU_multi_thread" tags=[:important, :core] begin
     using Suppressor, KomaMRIBase
-    include(joinpath(@__DIR__, "test_files", "Utils.jl"))
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_jemris()
     seq = seq_epi_100x100_TE100_FOV230()
@@ -126,7 +126,7 @@ end
 
 @testitem "Bloch_GPU" tags=[:important, :skipci, :core] begin
     using Suppressor, KomaMRIBase
-    include(joinpath(@__DIR__, "test_files", "Utils.jl"))
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_jemris()
     seq = seq_epi_100x100_TE100_FOV230()
@@ -283,7 +283,7 @@ end
 
 @testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
     using Suppressor, KomaMRIBase
-    include(joinpath(@__DIR__, "test_files", "Utils.jl"))
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     seq = seq_epi_100x100_TE100_FOV230()
     obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
