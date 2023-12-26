@@ -13,7 +13,6 @@ using CUDA
 include("rawdata/ISMRMRD.jl")
 #Datatypes
 include("datatypes/Spinor.jl")
-include("datatypes/Magnetization.jl")
 include("other/DiffusionModel.jl")
 #Simulator
 include("simulation/GPUFunctions.jl")
