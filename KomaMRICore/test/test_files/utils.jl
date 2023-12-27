@@ -60,16 +60,29 @@ function seq_epi_100x100_TE100_FOV230()
     Agyo = Area_gyo / ζgyo                                      # The amplitude of the triangular dephasing y-gradient
 
     # Define the sequence
-    seq_excitation = Sequence([Grad(0.0, 0.0)], [RF(Arf, Trf)])
-    seq_dephaser = Sequence(reshape([Grad(-Agxo, 0.0, ζgxo); Grad(Agyo, 0.0, ζgyo)], :, 1))
-    seq_epi = Sequence(vcat(
-        [(i % 2 == 0) ? Grad(Agx*(-1)^(i÷2), Tgx, ζgx) : Grad(0.0, 0.0, ζgy) for i in 0:2*Ny-1],
-        [(i % 2 == 1) ? Grad(-Agy, 0.0, ζgy)           : Grad(0.0, Tgx, ζgx) for i in 0:2*Ny-1]))
-    seq_epi.ADC = [(i % 2 == 0) ? ADC(Nx, Tadc, ΔDadc) : ADC(0, 0.0) for i in 0:2*Ny-1]
-    seq_epi = seq_epi[1:end-1]          # Remove unnecessary last blip
-    delay = Delay(TE - 1/2 * dur(seq_excitation) - dur(seq_dephaser) - 1/2 * dur(seq_epi))
+
+    # Excitation
+    ex = Sequence([Grad(0.0, 0.0)], [RF(Arf, Trf)])
+    # Dephasing gradients (moving to the corner of k-space)
+    dephaser = Sequence([Grad(-Agxo, 0.0, ζgxo); Grad(Agyo, 0.0, ζgyo);;])
+    # Readout
+    gx = Grad(Agx, Tgx, ζgx)
+    adc = ADC(Nx, Tadc, ΔDadc)
+    readout = Sequence([gx;;], [RF(0.0, 0.0);;], [adc])
+    # Blip
+    gy = -Grad(Agy, 0.0, ζgy)
+    blip_neg = Sequence([Grad(0.0, 0.0); gy;;])
+    # Sequence generation
+    epi = Sequence()
+    for i in 0:Ny-1
+        epi += readout * (-1)^i
+        epi += blip_neg
+    end
+    epi = epi[1:end-1]          # Remove unnecessary last blip
+    # Calculating delayTE
+    delayTE = Delay(TE - 1/2 * dur(ex) - dur(dephaser) - 1/2 * dur(epi))
 
     # Return the sequence
-    seq = seq_excitation + seq_dephaser + delay + seq_epi
+    seq = ex + dephaser + delayTE + epi
     return seq
 end
