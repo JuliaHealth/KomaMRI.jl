@@ -3,9 +3,7 @@ const MIN_RISE_TIME = 1e-10
 """
     array_of_ranges = kfoldperm(N, k; breaks=[])
 
-Divides a list of indices from 1 to `N` into `k` groups. Predefined breakpoints can be
-specified at specific indices using the `breaks` keyword, potentially increasing the number
-of groups.
+Divides a list of indices from 1 to `N` into `k` groups. 
 
 # Arguments
 - `N`: (`::Integer`) number of elements to be ordered
