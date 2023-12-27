@@ -311,6 +311,47 @@ always zero, and the final time corresponds to the duration of the sequence.
 get_block_start_times(seq::Sequence) = cumsum([0; seq.DUR], dims=1)
 
 """
+    samples = get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf)
+
+Returns the samples of the events of a sequence.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+
+# Keywords
+- `off_val`: (`::Float64`, `=0`) offset value for amplitude. In general, it is used for
+    not showing some points in plots by giving an `Inf` value
+- `max_rf_samples`: (`::Float64`, `=Inf`) number of maximum samples for the RF struct
+
+# Returns
+- `samples`: (`::NamedTuple`) samples of the events in the sequence
+"""
+get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
+    N = length(seq)
+    T0 = get_block_start_times(seq)
+    # GRADs
+    t_gx = reduce(vcat, [get_theo_t(seq.GR[1,i]) .+ T0[i] for i in 1:N])
+    t_gy = reduce(vcat, [get_theo_t(seq.GR[2,i]) .+ T0[i] for i in 1:N])
+    t_gz = reduce(vcat, [get_theo_t(seq.GR[3,i]) .+ T0[i] for i in 1:N])
+    A_gx = reduce(vcat, [get_theo_A(seq.GR[1,i]; off_val) for i in 1:N])
+    A_gy = reduce(vcat, [get_theo_A(seq.GR[2,i]; off_val) for i in 1:N])
+    A_gz = reduce(vcat, [get_theo_A(seq.GR[3,i]; off_val) for i in 1:N])
+    # RFs
+    t_rf =  reduce(vcat, [KomaMRIBase.get_theo_t(seq.RF[1,i]; max_rf_samples) .+ T0[i] for i in 1:N])
+    A_rf =   reduce(vcat, [KomaMRIBase.get_theo_A(rf; off_val, max_rf_samples) for rf in seq.RF])
+    # ADCs
+    t_adc = reduce(vcat, [KomaMRIBase.get_theo_t(seq.ADC[i]) .+ T0[i] for i in 1:N])
+    A_adc = reduce(vcat, [KomaMRIBase.get_theo_A(adc; off_val) for adc in seq.ADC])
+    return (
+        t_gx = t_gx, A_gx = A_gx,
+        t_gy = t_gy, A_gy = A_gy,
+        t_gz = t_gz, A_gz = A_gz,
+        t_rf = t_rf, A_rf = A_rf,
+        t_adc = t_adc, A_adc = A_adc
+    )
+end
+
+"""
     y = ⏢(A, t, ΔT, ζ1, ζ2, delay)
 
 Generates a trapezoidal waveform vector.

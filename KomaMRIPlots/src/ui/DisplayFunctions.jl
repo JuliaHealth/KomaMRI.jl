@@ -167,46 +167,44 @@ function plot_seq(
       yaxis="y",
       showlegend=true
   )
-	idx = ["Gx" "Gy" "Gz"]
-	N = length(seq)
-	O = size(seq.RF,1)
-	T0 = get_block_start_times(seq)
-	off_val = Inf #This removes the unnecessary points in the plot
-	#GRADS
-	t1x = reduce(vcat, [KomaMRIBase.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N])
-	t1y = reduce(vcat, [KomaMRIBase.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N])
-	t1z = reduce(vcat, [KomaMRIBase.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N])
-	Gx =  reduce(vcat, [KomaMRIBase.get_theo_A(seq.GR[1,i];off_val) for i=1:N])
-	Gy =  reduce(vcat, [KomaMRIBase.get_theo_A(seq.GR[2,i];off_val) for i=1:N])
-	Gz =  reduce(vcat, [KomaMRIBase.get_theo_A(seq.GR[3,i];off_val) for i=1:N])
-	#RFS
-	t2 =  reduce(vcat, [KomaMRIBase.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N])
-	R =   reduce(vcat, [KomaMRIBase.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF])
-	#ADC
-	t3 =  reduce(vcat, [KomaMRIBase.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N])
-	D =   reduce(vcat, [KomaMRIBase.get_theo_A(d;off_val) for d = seq.ADC])
-    #Plot
-	p = [scatter() for j=1:(3+2O+1)]
-	#GR
-	p[1] = scatter(x=t1x*1e3, y=Gx*1e3,name=idx[1],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
-			xaxis=xaxis,yaxis=yaxis,legendgroup="Gx",showlegend=showlegend,marker=attr(color="#636EFA"))
-	p[2] = scatter(x=t1y*1e3, y=Gy*1e3,name=idx[2],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
-			xaxis=xaxis,yaxis=yaxis,legendgroup="Gy",showlegend=showlegend,marker=attr(color="#EF553B"))
-	p[3] = scatter(x=t1z*1e3, y=Gz*1e3,name=idx[3],hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
-			xaxis=xaxis,yaxis=yaxis,legendgroup="Gz",showlegend=showlegend,marker=attr(color="#00CC96"))
-	#RF
-	for j=1:O
-		phase = angle.(R[:,j])
-		phase[R[:,j] .== Inf] .= Inf
-		p[2j-1+3] = scatter(x=t2*1e3, y=abs.(R[:,j])*1e6,name="|B1|",hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
-					xaxis=xaxis,yaxis=yaxis,legendgroup="|B1|",showlegend=showlegend,marker=attr(color="#AB63FA"))
-		p[2j+3] =   scatter(x=t2*1e3, y=phase, text=ones(size(t2)), name="<B1",hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
-					xaxis=xaxis,yaxis=yaxis,legendgroup="<B1",showlegend=showlegend,marker=attr(color="#FFA15A"))
+
+    # Get the samples of the events in the sequence
+    off_val = Inf       # This removes the unnecessary points in the plot
+    samples = get_samples(seq; off_val, max_rf_samples)
+    t_gx, t_gy, t_gz = samples.t_gx, samples.t_gy, samples.t_gz
+    t_rf, t_adc = samples.t_rf, samples.t_adc
+    A_gx, A_gy, A_gz = samples.A_gx, samples.A_gy, samples.A_gz
+    A_rf, A_adc = samples.A_rf, samples.A_adc
+
+    # Define general params and the vector of plots
+    idx = ["Gx" "Gy" "Gz"]
+	O = size(seq.RF, 1)
+	p = [scatter() for _ in 1:(3 + 2O + 1)]
+
+    # For GRADs
+	p[1] = scatter(x=t_gx*1e3, y=A_gx*1e3, name=idx[1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+		    xaxis=xaxis, yaxis=yaxis, legendgroup="Gx", showlegend=showlegend, marker=attr(color="#636EFA"))
+	p[2] = scatter(x=t_gy*1e3, y=A_gy*1e3, name=idx[2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+			xaxis=xaxis, yaxis=yaxis, legendgroup="Gy", showlegend=showlegend, marker=attr(color="#EF553B"))
+	p[3] = scatter(x=t_gz*1e3, y=A_gz*1e3,name=idx[3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+			xaxis=xaxis, yaxis=yaxis, legendgroup="Gz", showlegend=showlegend, marker=attr(color="#00CC96"))
+
+	# For RFs
+	for j in 1:O
+		phase = angle.(A_rf[:,j])
+		phase[A_rf[:,j] .== Inf] .= Inf
+		p[2j-1+3] = scatter(x=t_rf*1e3, y=abs.(A_rf[:,j])*1e6, name="|B1|", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
+					xaxis=xaxis, yaxis=yaxis, legendgroup="|B1|", showlegend=showlegend, marker=attr(color="#AB63FA"))
+		p[2j+3] =   scatter(x=t_rf*1e3, y=phase, text=ones(size(t_rf)), name="<B1", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
+					xaxis=xaxis, yaxis=yaxis, legendgroup="<B1", showlegend=showlegend, marker=attr(color="#FFA15A"))
 	end
-	#ADC
-	p[2O+3+1] = scatter(x=t3*1e3, y=D*1., name="ADC",hovertemplate="(%{x:.4f} ms, %{y:i})",
-				xaxis=xaxis,yaxis=yaxis,legendgroup="ADC",showlegend=showlegend,color=marker=attr(color="#19D3F3"))
-	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
+
+	# For ADCs
+	p[2O+3+1] = scatter(x=t_adc*1e3, y=A_adc*1.0, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
+				xaxis=xaxis, yaxis=yaxis, legendgroup="ADC", showlegend=showlegend, color=marker=attr(color="#19D3F3"))
+
+    # Return the plot
+	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0=get_block_start_times(seq))
 	return plot_koma(p, l; config)
 end
 

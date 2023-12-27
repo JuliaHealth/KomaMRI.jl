@@ -1,31 +1,21 @@
 function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
-	max_rf_samples=100
-    N = length(seq)
-    T0 = get_block_start_times(seq)
-    off_val = Inf #This removes the unnecessary points in the plot
 
-    #GRADS
-    t1x = vcat([KomaMRIBase.get_theo_t(seq.GR[1,i]) .+ T0[i] for i=1:N]...)
-    t1y = vcat([KomaMRIBase.get_theo_t(seq.GR[2,i]) .+ T0[i] for i=1:N]...)
-    t1z = vcat([KomaMRIBase.get_theo_t(seq.GR[3,i]) .+ T0[i] for i=1:N]...)
-    Gx =  vcat([KomaMRIBase.get_theo_A(seq.GR[1,i];off_val) for i=1:N]...)
-    Gy =  vcat([KomaMRIBase.get_theo_A(seq.GR[2,i];off_val) for i=1:N]...)
-    Gz =  vcat([KomaMRIBase.get_theo_A(seq.GR[3,i];off_val) for i=1:N]...)
-    GRADS = hcat(t1x, t1y, t1z, Gx, Gy, Gz)
-    #RFS
-    t2 =  vcat([KomaMRIBase.get_theo_t(seq.RF[1,i];max_rf_samples) .+ T0[i] for i=1:N]...)
-    R =   vcat([KomaMRIBase.get_theo_A(r;off_val,max_rf_samples) for r = seq.RF]...)
-    RFS = hcat(t2, R)
-    #ADC
-    t3 =  vcat([KomaMRIBase.get_theo_t(seq.ADC[i])  .+ T0[i] for i=1:N]...)
-    D =   vcat([KomaMRIBase.get_theo_A(d;off_val) for d = seq.ADC]...)
-    ADCS = hcat(t3, D)
+    # Get the samples of the events in the sequence
+    max_rf_samples = 100
+    off_val = Inf               # This removes the unnecessary points when ploting
+    samples = get_samples(seq; off_val, max_rf_samples)
 
+    # Create a dictionary with the event samples of the sequence
+    GRADS = hcat(samples.t_gx, samples.t_gy, samples.t_gz, samples.A_gx, samples.A_gy, samples.A_gz)
+    RFS = hcat(samples.t_rf, samples.A_rf)
+    ADCS = hcat(samples.t_adc, samples.A_adc)
     seq_dict = Dict("GRAD" => GRADS,
                     "RF" => RFS,
                     "ADC" => ADCS,
                     "DUR" => seq.DUR,
                     "DEF" => seq.DEF)
+
+    # Write to matlab file
     matwrite(joinpath(matfolder, matfilename), Dict("sequence" => seq_dict))
 end
 
