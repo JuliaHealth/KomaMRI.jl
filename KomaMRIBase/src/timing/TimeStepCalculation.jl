@@ -38,13 +38,6 @@ end
 Returns a vector which contains the same points as `times` but with additional points that
 have a separation of at most `dt`.
 
-!!! note
-    The last time points could not be present in the output in some cases.
-    Some time points could be duplicated in the output.
-    Duplicated time points should be removed afterwards (done by
-        [`get_variable_times`](@ref)).
-    The output represents all time points regarded during the simulation with a "nominal"
-    `dt` separation between two samples.
 
 # Arguments
 - `times`: (`::Vector{Float64}`, `[s]`) time array with key points you want to keep
