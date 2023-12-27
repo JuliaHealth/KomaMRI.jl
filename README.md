@@ -45,15 +45,14 @@ Paper: <br>[![][paper-img1]][paper-url1]
 | **Packages**                                | **Julia Compat ≥** | **Stable Version**                           | **Build Status**                       | **Code Coverage**                |
 |:------------------------------------------- |:-------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
 | 📦 [KomaMRI.jl](## "User Interface")       | ![][julia-19]      | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
-| └ 📦 [KomaMRIBase.jl](## "Structs")        | ![][julia-16]      | [![][komabase-version]][komabase-juliahub]   | [![][gh-actions-img5]][gh-actions-url] | [![][codecov-img5]][codecov-url] |
-| └ 📦 [KomaMRICore.jl](## "Simulation")     | ![][julia-16]      | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
-| └ 📦 [KomaMRIFiles.jl](## "Input/Output")  | ![][julia-16]      | [![][komaio-version]][komaio-juliahub]       | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
-| └ 📦 [KomaMRIPlots.jl](## "Plots")         | ![][julia-16]      | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
+| └ 📦 [KomaMRIBase.jl](## "Structs")        | ![][julia-19]      | [![][komabase-version]][komabase-juliahub]   | [![][gh-actions-img5]][gh-actions-url] | [![][codecov-img5]][codecov-url] |
+| └ 📦 [KomaMRICore.jl](## "Simulation")     | ![][julia-19]      | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
+| └ 📦 [KomaMRIFiles.jl](## "Input/Output")  | ![][julia-19]      | [![][komaio-version]][komaio-juliahub]       | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
+| └ 📦 [KomaMRIPlots.jl](## "Plots")         | ![][julia-19]      | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
 </td>
 </tr>
 </table>
 
-[julia-16]: https://img.shields.io/badge/julia-v1.6_LTS-9558B2?logo=julia
 [julia-19]: https://img.shields.io/badge/julia-v1.9-9558B2?logo=julia
 
 [komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
