@@ -79,7 +79,7 @@ function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nthreads=Threads.nthreads()) where {T<:Real}
 
-    parts = kfoldperm(length(obj), Nthreads, type="ordered")
+    parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
@@ -112,7 +112,7 @@ function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nthreads=Threads.nthreads()) where {T<:Real}
 
-    parts = kfoldperm(length(obj), Nthreads; type="ordered")
+    parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)

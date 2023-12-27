@@ -1,49 +1,27 @@
 const MIN_RISE_TIME = 1e-10
+
 """
-    array_of_ranges = kfoldperm(N, k; type="random", breaks=[])
+    array_of_ranges = kfoldperm(N, k; breaks=[])
 
-Divides a list of indices 1:`N` (which is in your imagination) into `k` groups.
-
-!!! note
-    It is possible to predifine some break points at specific indices with the `breaks`
-    keyword, in this case the number of groups could increase. This is useful to define
-    start and end indices of RF pulses to separate the simulation into excitation and
-    precession computations.
+Divides a list of indices from 1 to `N` into `k` groups. Predefined breakpoints can be
+specified at specific indices using the `breaks` keyword, potentially increasing the number
+of groups.
 
 # Arguments
-- `N`: (`::Int64`) the number of elements to be ordered (of an imaginary array 1:`N`)
-- `k`: (`::Int64`) the number of groups to divide the `N` elements
+- `N`: (`::Integer`) number of elements to be ordered
+- `k`: (`::Integer`) number of groups to divide the `N` elements.
 
 # Keywords
-- `type`: (`::String`, `="random"`, opts: [`"random"`, `"ordered"`]) the order type option.
-    If random, then the indices of the groups are unordered. If "ordered", then the indices
-    of the groups are sorted in an incremental order
-- `breaks`: (`::Vector{Int64}`, `=[]`) the array of indices where predefined break points
-    are placed
+- `breaks`: (`::Vector{<:Integer}`, `=[]`) array of indices where predefined breakpoints are
+    placed.
 
 # Returns
-- `array_of_ranges`: (`::Vector{UnitRange{Int64}}`) the array that contains ranges of
-    different groups (the aim target are `k` groups, but this could be increased by adding
-    elements in the `breaks` input array)
-
-# Examples
-``` julia-repl
-julia> kfoldperm(20, 3; type="ordered")
-3-element Vector{UnitRange{Int64}}:
- 1:7
- 8:14
- 15:20
-
-julia> kfoldperm(20, 3; type="ordered", breaks=[3])
-4-element Vector{UnitRange{Int64}}:
- 1:2
- 3:7
- 8:14
- 15:20
-```
+- `array_of_ranges`: (`::Vector{UnitRange{<:Integer}}`) array containing ranges of different
+    groups. The target is `k` groups, but this could increase by adding elements to the
+    `breaks` input array
 """
-function kfoldperm(N, k; type="ordered", breaks=[])
-	k = min(N,k)
+function kfoldperm(N, k; breaks=[])
+	k = min(N, k)
 	n, r = divrem(N, k) #N >= k, N < k
 	b = collect(1:n:N+1)
 	Nb = length(b)
@@ -52,12 +30,8 @@ function kfoldperm(N, k; type="ordered", breaks=[])
 	end
 	b = sort(unique(append!(b, breaks)))
 	Nbreaks = length(b) - Nb
-	if type=="random"
-		p = Random.randperm(N)
-	elseif type=="ordered"
-		p = 1:N
-	end
-	[p[r] for r in [b[i]:b[i+1]-1 for i=1:k+Nbreaks]] #TODO: use RF starts and ends differently to remove PATCH in run_sim_time_iter
+	p = 1:N
+	return [p[r] for r in [b[i]:b[i+1]-1 for i=1:k+Nbreaks]] #TODO: use RF starts and ends differently to remove PATCH in run_sim_time_iter
 end
 
 """

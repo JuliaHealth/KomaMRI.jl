@@ -552,7 +552,7 @@ skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
 	k = zeros(Nt,3)
 	#get_RF_center_breaks
 	idx_rf, rf_type = get_RF_types(seq, t)
-	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3
 		kf = 0
 		for (rf, p) in enumerate(parts)
@@ -609,7 +609,7 @@ get_M1(seq::Sequence; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
 	m1 = zeros(Nt,3)
 	#get_RF_center_breaks
 	idx_rf, rf_type = get_RF_types(seq, t)
-	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3
 		m1f = 0
 		for (rf, p) in enumerate(parts)
@@ -667,7 +667,7 @@ get_M2(seq::Sequence; Δt=1) = begin
 	m2 = zeros(Nt,3)
 	#get_RF_center_breaks
 	idx_rf, rf_type = get_RF_types(seq, t)
-	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	parts = kfoldperm(Nt, 1, breaks=idx_rf)
 	for i = 1:3
 		m2f = 0
 		for (rf, p) in enumerate(parts)
@@ -716,7 +716,7 @@ get_slew_rate(seq::Sequence; Δt=1) = begin
 	m2 = zeros(Nt,3)
 	#get_RF_center_breaks
 	idx_rf, rf_type = get_RF_types(seq, t)
-	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3
 		m2f = 0
 		for (rf, p) in enumerate(parts)
@@ -762,7 +762,7 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	m2 = zeros(Nt,3)
 	#get_RF_center_breaks
 	idx_rf, rf_type = get_RF_types(seq, t)
-	parts = kfoldperm(Nt,1,type="ordered", breaks=idx_rf)
+	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3
 		m2f = 0
 		for (rf, p) in enumerate(parts)
