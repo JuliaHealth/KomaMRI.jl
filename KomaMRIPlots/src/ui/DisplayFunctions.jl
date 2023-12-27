@@ -169,12 +169,7 @@ function plot_seq(
   )
 
     # Get the samples of the events in the sequence
-    off_val = Inf       # This removes the unnecessary points in the plot
-    samples = get_samples(seq; off_val, max_rf_samples)
-    t_gx, t_gy, t_gz = samples.t_gx, samples.t_gy, samples.t_gz
-    t_rf, t_adc = samples.t_rf, samples.t_adc
-    A_gx, A_gy, A_gz = samples.A_gx, samples.A_gy, samples.A_gz
-    A_rf, A_adc = samples.A_rf, samples.A_adc
+    samples = get_samples(seq; off_val=Inf, max_rf_samples)
 
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
@@ -182,25 +177,25 @@ function plot_seq(
 	p = [scatter() for _ in 1:(3 + 2O + 1)]
 
     # For GRADs
-	p[1] = scatter(x=t_gx*1e3, y=A_gx*1e3, name=idx[1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+	p[1] = scatter(x=samples.gx.t*1e3, y=samples.gx.A*1e3, name=idx[1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
 		    xaxis=xaxis, yaxis=yaxis, legendgroup="Gx", showlegend=showlegend, marker=attr(color="#636EFA"))
-	p[2] = scatter(x=t_gy*1e3, y=A_gy*1e3, name=idx[2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+	p[2] = scatter(x=samples.gy.t*1e3, y=samples.gy.A*1e3, name=idx[2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
 			xaxis=xaxis, yaxis=yaxis, legendgroup="Gy", showlegend=showlegend, marker=attr(color="#EF553B"))
-	p[3] = scatter(x=t_gz*1e3, y=A_gz*1e3,name=idx[3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+	p[3] = scatter(x=samples.gz.t*1e3, y=samples.gz.A*1e3, name=idx[3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
 			xaxis=xaxis, yaxis=yaxis, legendgroup="Gz", showlegend=showlegend, marker=attr(color="#00CC96"))
 
 	# For RFs
 	for j in 1:O
-		phase = angle.(A_rf[:,j])
-		phase[A_rf[:,j] .== Inf] .= Inf
-		p[2j-1+3] = scatter(x=t_rf*1e3, y=abs.(A_rf[:,j])*1e6, name="|B1|", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
+		rf_phase = angle.(samples.rf.A[:,j])
+		rf_phase[samples.rf.A[:,j] .== Inf] .= Inf
+		p[2j-1+3] = scatter(x=samples.rf.t*1e3, y=abs.(samples.rf.A[:,j])*1e6, name="|B1|", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="|B1|", showlegend=showlegend, marker=attr(color="#AB63FA"))
-		p[2j+3] =   scatter(x=t_rf*1e3, y=phase, text=ones(size(t_rf)), name="<B1", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
+		p[2j+3] = scatter(x=samples.rf.t*1e3, y=rf_phase, text=ones(size(samples.rf.t)), name="<B1", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="<B1", showlegend=showlegend, marker=attr(color="#FFA15A"))
 	end
 
 	# For ADCs
-	p[2O+3+1] = scatter(x=t_adc*1e3, y=A_adc*1.0, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
+	p[2O+3+1] = scatter(x=samples.adc.t*1e3, y=samples.adc.A*1.0, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
 				xaxis=xaxis, yaxis=yaxis, legendgroup="ADC", showlegend=showlegend, color=marker=attr(color="#19D3F3"))
 
     # Return the plot

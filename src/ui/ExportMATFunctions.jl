@@ -1,14 +1,12 @@
 function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
 
     # Get the samples of the events in the sequence
-    max_rf_samples = 100
-    off_val = Inf               # This removes the unnecessary points when ploting
-    samples = get_samples(seq; off_val, max_rf_samples)
+    samples = get_samples(seq; off_val=Inf, max_rf_samples=100)
 
     # Create a dictionary with the event samples of the sequence
-    GRADS = hcat(samples.t_gx, samples.t_gy, samples.t_gz, samples.A_gx, samples.A_gy, samples.A_gz)
-    RFS = hcat(samples.t_rf, samples.A_rf)
-    ADCS = hcat(samples.t_adc, samples.A_adc)
+    GRADS = hcat(samples.gx.t, samples.gy.t, samples.gz.t, samples.gx.A, samples.gy.A, samples.gz.A)
+    RFS = hcat(samples.rf.t, samples.rf.A)
+    ADCS = hcat(samples.adc.t, samples.adc.A)
     seq_dict = Dict("GRAD" => GRADS,
                     "RF" => RFS,
                     "ADC" => ADCS,

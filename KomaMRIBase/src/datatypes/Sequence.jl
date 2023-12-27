@@ -313,7 +313,7 @@ get_block_start_times(seq::Sequence) = cumsum([0; seq.DUR], dims=1)
 """
     samples = get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf)
 
-Returns the samples of the events in a Sequence.
+Returns the samples of the events in `seq`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -324,7 +324,9 @@ Returns the samples of the events in a Sequence.
 - `max_rf_samples`: (`::Integer`, `=Inf`) maximum number of samples for the RF struct
 
 # Returns
-- `samples`: (`::NamedTuple`) samples of the events in the sequence
+- `samples`: (`::NamedTuple`) contains samples for `gx`, `gy`, `gz`, `rf`, and `adc` events.
+    Each event, represented by `e::NamedTuple`, includes time samples (`e.t`) and amplitude
+    samples (`e.A`)
 """
 get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
     N = length(seq)
@@ -343,11 +345,11 @@ get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
     t_adc = reduce(vcat, [get_theo_t(seq.ADC[i]) .+ T0[i] for i in 1:N])
     A_adc = reduce(vcat, [get_theo_A(adc; off_val) for adc in seq.ADC])
     return (
-        t_gx = t_gx, A_gx = A_gx,
-        t_gy = t_gy, A_gy = A_gy,
-        t_gz = t_gz, A_gz = A_gz,
-        t_rf = t_rf, A_rf = A_rf,
-        t_adc = t_adc, A_adc = A_adc
+        gx = (t = t_gx, A = A_gx),
+        gy = (t = t_gy, A = A_gy),
+        gz = (t = t_gz, A = A_gz),
+        rf = (t = t_rf, A = A_rf),
+        adc = (t = t_adc, A = A_adc)
     )
 end
 
