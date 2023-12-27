@@ -59,7 +59,7 @@ Please note that every subitem in the sections **Arguments**, **Keywords**, and 
 ## Structs
 
 ```@meta
-CurrentModule = KomaMRICore
+CurrentModule = KomaMRIBase
 ```
 
 ### `Scanner`
@@ -162,7 +162,7 @@ is_ADC_on
 ## Prebuilt Sequence Building Blocks
 
 ```@meta
-CurrentModule = KomaMRICore
+CurrentModule = KomaMRIBase
 ```
 
 ### `PulseDesigner`

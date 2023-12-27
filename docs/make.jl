@@ -65,7 +65,7 @@ literate_examples = [joinpath("generated", exaname, f) for f in readdir(joinpath
 
 # Documentation structure
 makedocs(
-    modules = [KomaMRI, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
+    modules = [KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
     sitename = "KomaMRI.jl: General MRI simulation framework",
     authors = "Boris Orostica Navarrete and Carlos Castillo Passi",
     checkdocs = :exports,

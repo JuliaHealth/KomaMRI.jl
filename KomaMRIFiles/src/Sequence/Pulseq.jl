@@ -416,7 +416,7 @@ function read_seq(filename)
     seq = seq[2:end]
     # Hack for including extension and triggers
     seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
-    seq.DEF = KomaMRICore.recursive_merge(obj["definitions"], seq.DEF)
+    seq.DEF = KomaMRIBase.recursive_merge(obj["definitions"], seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = version_combined

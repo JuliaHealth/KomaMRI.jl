@@ -1,11 +1,11 @@
 name = "KomaMRIPlots"
 uuid = "76db0263-63f3-4d26-bb9a-5dba378db904"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
-version = "0.7.8"
+version = "0.8.0"
 
 [deps]
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
-KomaMRICore = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
+KomaMRIBase = "d0bc0b20-b151-4d03-b2a4-6ca51751cb9c"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 PackageExtensionCompat = "65ce6f38-6b18-4e1d-a461-8949797d7930"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
@@ -20,7 +20,7 @@ KomaPlotsPlutoPlotlyExt = "PlutoPlotly"
 
 [compat]
 Interpolations = "0.13, 0.14, 0.15"
-KomaMRICore = "0.7"
+KomaMRIBase = "0.8"
 MAT = "0.10"
 PackageExtensionCompat = "1.0"
 Pkg = "1.4"

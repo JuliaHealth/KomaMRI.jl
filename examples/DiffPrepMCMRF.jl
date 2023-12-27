@@ -1,5 +1,5 @@
 # Code used to generate moment-compensated diffusion gradient waveforms
-# Sequence optimization for diffusion prepared motion-compensated MRF 
+# Sequence optimization for diffusion prepared motion-compensated MRF
 
 using KomaMRI, KomaMRICore, JuMP, Ipopt, Dates
 using LinearAlgebra: I, Bidiagonal, norm, Diagonal, Tridiagonal
@@ -10,7 +10,7 @@ using PlotlyJS
 """"Calculates the normalized moments Mₖ = 1/tᵏ ∫ᵗG(τ)τᵏ dτ at the end of the sequence. """
 function get_Mmatrix(seq::Sequence; axis=1, τ_sample=dur(seq))
     τ = τ_sample # Seq Duration [ms]
-    T0 = cumsum([0; seq.DUR])
+    T0 = get_block_start_times(seq)
     M0, M1, M2, M3 = Float64[], Float64[], Float64[], Float64[]
     for i = 1:length(seq)
         #Gradient
@@ -49,7 +49,7 @@ function get_SRmatrix(seq::Sequence; axis = 1)
             dv = Δt
             ev = Δt[1:end-1]
             SRi = Bidiagonal(-1 ./ dv, 1 ./ ev, :U)
-            # SRi = [SRi[1,:]' ; SRi]; SRi[1,1] = 1/Δt[1] 
+            # SRi = [SRi[1,:]' ; SRi]; SRi[1,1] = 1/Δt[1]
             push!(SR, SRi)
         end
     end
@@ -77,7 +77,7 @@ end
 
 """Eddy current matrix: dG/dt * e^{-t/λ}."""
 function get_ECmatrix(seq::Sequence; axis = 1, λ = 80e-3, τ_sample=dur(seq))
-    T0 = cumsum([0; seq.DUR])
+    T0 = get_block_start_times(seq)
     EC = Float64[]
     SR = get_SRmatrix(seq)
     for i = 1:length(seq)
@@ -101,7 +101,7 @@ end
 """Eddy current matrix: dG/dt * e^{-t/λ}."""
 function get_ECmatrixM0(seq::Sequence; axis = 1, λ = 80e-3, τ_sample=dur(seq))
     τ = dur(seq) # Seq Duration [ms]
-    T0 = cumsum([0; seq.DUR])
+    T0 = get_block_start_times(seq)
     EC = Float64[]
     SR = get_SRmatrix(seq)
     for i = 1:length(seq)
@@ -115,7 +115,7 @@ function get_ECmatrixM0(seq::Sequence; axis = 1, λ = 80e-3, τ_sample=dur(seq))
             T = [sum(δ[1:j]) for j = 1:N-1]
             T = T0[i] .+ delay .+ [0; T] #Position of pulse
             #Moment calculations - P1 model
-            ec = δ * λ .+ λ^2 .* ( exp.(-(τ_sample .- T)/λ) .- exp.(-(τ_sample .- (T .+δ))/λ) ) 
+            ec = δ * λ .+ λ^2 .* ( exp.(-(τ_sample .- T)/λ) .- exp.(-(τ_sample .- (T .+δ))/λ) )
             append!(EC, - ec' * SR[i])
         end
     end
@@ -124,7 +124,7 @@ end
 
 "Calculates the `b`-matrix, such as `b`-value = g' B g [s/mm2] with g [T/m]."
 get_Bmatrix(seq::Sequence; axis=1) = begin
-    T0 = cumsum([0; seq.DUR[1:end-1]])
+    T0 = get_block_start_times(seq)[1:end-1]
     #Calculating timings
     T = Float64[]
     δ = Float64[]
@@ -155,7 +155,7 @@ end
 δ2N(δ) = floor(Int64, δ * 156250) + 2
 
 """Exports diffusion preparation waveforms for their use in the scanner."""
-function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vectors_input.txt", name="Maxwell2", 
+function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vectors_input.txt", name="Maxwell2",
     precision::Int=6, dwell_time=6.4e-6, verbose=false)
     open(filename, "w") do io
         t1 = range(0, G1.GR.dur[1] - maximum(G1.GR.delay), step=dwell_time) #length=δ2N(maximum(G1.GR.T))) #step=dwell_time) #
@@ -232,7 +232,7 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
         t = range(0, dur(G1+G2+G3), step=dwell_time)
         Gx, Gy, Gz = KomaMRICore.get_grads(G1-G2+G3, Array(t))
         bvalx = (2π*γ)^2 * 1e-6 * sum(cumsum(Gx * dwell_time).^2 * dwell_time)
-        bvaly = (2π*γ)^2 * 1e-6 * sum(cumsum(Gy * dwell_time).^2 * dwell_time) 
+        bvaly = (2π*γ)^2 * 1e-6 * sum(cumsum(Gy * dwell_time).^2 * dwell_time)
         bvalz = (2π*γ)^2 * 1e-6 * sum(cumsum(Gz * dwell_time).^2 * dwell_time)
         bval = round(bvalx+bvaly+bvalz, digits=3)
         println("bval_calc = [$bvalx $bvaly $bvalz] ($bval s/mm2)")
@@ -241,7 +241,7 @@ function write_diffprep_fwf(G1, G2, G3, bmax, Gmax, Smax; filename="./qte_vector
         println("N1 = $N1 N2 = $N2 N3 = $N3")
         date = "#Generated on $(now())\r\n"
         vars =  @sprintf "%s %s %s %s %s %s %s\r\n" "#Name"*" "^(length(name)-5) "N1"*" "^(length(string(N1))-1) "N2"*" "^(length(string(N2))-1) "N3"*" "^(length(string(N3))-1) "bval"*" "^(length(string(round(bmax,digits=1)))-3) "Gmax"*" "^(length(string(round(Gmax,digits=1)))-3) "Smax"
-        unit =  @sprintf "%s %s %s %s\r\n" "#"*" "^(length(name)+length(string(N1))+length(string(N2))+length(string(N3))+2)  "s/mm2"*" "^(length(string(bval))-3) "mT/m"*" "^(length(string(round(Gmax,digits=1)))-3) "T/m/s"  
+        unit =  @sprintf "%s %s %s %s\r\n" "#"*" "^(length(name)+length(string(N1))+length(string(N2))+length(string(N3))+2)  "s/mm2"*" "^(length(string(bval))-3) "mT/m"*" "^(length(string(round(Gmax,digits=1)))-3) "T/m/s"
         line =  @sprintf "%s %i %i %i %.1f %.1f %.1f\r\n" name N1 N2 N3 bval Gmax*1e3 Smax
         write(io, date)
         write(io, vars)
@@ -261,7 +261,7 @@ end
 dwell_time = 6.4e-6
 Gmax = 62e-3 # mT/m
 Smaxs = [70] # mT/m/ms
-axis_to_calc = ["xyz"] # ["x", "y", "z", "xyz", "xz", "yz"] 
+axis_to_calc = ["xyz"] # ["x", "y", "z", "xyz", "xz", "yz"]
 moment_to_calc = [0, 1] #[0, 1, 2]
 # 4 : HS 50ms
 # 5 : HS 55ms
@@ -293,112 +293,112 @@ if pulse_type == 1
     δ2 = 7.4944e-3
     δ3 = 3.4560e-3
     Δ1 = 13.7528e-3
-    Δ2 = 31.2564e-3    
+    Δ2 = 31.2564e-3
 elseif pulse_type == 2
     adia = "HS2"
     δ1 = 4.7040e-3
     δ2 = 9.9968e-3
     δ3 = 4.7040e-3
     Δ1 = 15.0016e-3
-    Δ2 = 35.0084e-3    
+    Δ2 = 35.0084e-3
 elseif pulse_type == 3
     adia = "HS2"
     δ1 = 5.9520e-3
     δ2 = 12.4928e-3
     δ3 = 5.9520e-3
     Δ1 = 16.2536e-3
-    Δ2 = 38.7604e-3    
+    Δ2 = 38.7604e-3
 elseif pulse_type == 4
     adia = "HS2"
     δ1 = 7.2064e-3
     δ2 = 14.9952e-3
     δ3 = 7.2064e-3
     Δ1 = 17.5024e-3
-    Δ2 = 42.5076e-3     
+    Δ2 = 42.5076e-3
 elseif pulse_type == 5
     adia = "HS2"
     δ1 = 8.4544e-3
     δ2 = 17.4912e-3
     δ3 = 8.4544e-3
     Δ1 = 18.7544e-3
-    Δ2 = 46.2596e-3    
+    Δ2 = 46.2596e-3
 elseif pulse_type == 6
     adia = "BIR4x2_3"
     δ1 = 6.9440e-3
     δ2 = 14.4704e-3
     δ3 = 6.9440e-3
     Δ1 = 10.2648e-3
-    Δ2 = 27.7684e-3     
+    Δ2 = 27.7684e-3
 elseif pulse_type == 7
     adia = "BIR4x2_3"
     δ1 = 8.1920e-3
     δ2 = 16.9728e-3
     δ3 = 8.1920e-3
     Δ1 = 11.5136e-3
-    Δ2 = 31.5204e-3    
+    Δ2 = 31.5204e-3
 elseif pulse_type == 8
     adia = "BIR4x2_3"
     δ1 = 9.4400e-3
     δ2 = 19.4688e-3
     δ3 = 9.4400e-3
     Δ1 = 12.7656e-3
-    Δ2 = 35.2724e-3    
+    Δ2 = 35.2724e-3
 elseif pulse_type == 9
     adia = "BIR4x2_3"
     δ1 = 10.6944e-3
     δ2 = 21.9712e-3
     δ3 = 10.6944e-3
     Δ1 = 14.0144e-3
-    Δ2 = 39.0196e-3    
+    Δ2 = 39.0196e-3
 elseif pulse_type == 10
     adia = "BIR4x2_3"
     δ1 = 11.9424e-3
     δ2 = 24.4672e-3
     δ3 = 11.9424e-3
     Δ1 = 15.2664e-3
-    Δ2 = 42.7716e-3    
+    Δ2 = 42.7716e-3
 elseif pulse_type == 11
     adia = "BIR4x2_5"
     δ1 = 5.9456e-3
     δ2 = 12.4736e-3
     δ3 = 5.9456e-3
     Δ1 = 11.2632e-3
-    Δ2 = 28.76668e-3     
+    Δ2 = 28.76668e-3
 elseif pulse_type == 12
     adia = "BIR4x2_5"
     δ1 = 7.1936e-3
     δ2 = 14.9696e-3
     δ3 = 7.1936e-3
     Δ1 = 12.5152e-3
-    Δ2 = 32.5188e-3    
+    Δ2 = 32.5188e-3
 elseif pulse_type == 13
     adia = "BIR4x2_5"
     δ1 = 8.4480e-3
     δ2 = 17.4720e-3
     δ3 = 8.4480e-3
     Δ1 = 13.7640e-3
-    Δ2 = 36.2660e-3    
+    Δ2 = 36.2660e-3
 elseif pulse_type == 14
     adia = "BIR4x2_5"
     δ1 = 9.6960e-3
     δ2 = 19.9744e-3
     δ3 = 9.6960e-3
     Δ1 = 15.0128e-3
-    Δ2 = 40.0180e-3    
-elseif pulse_type == 15               
+    Δ2 = 40.0180e-3
+elseif pulse_type == 15
     adia = "BIR4x2_5"
     δ1 = 10.9440e-3
     δ2 = 22.4704e-3
     δ3 = 10.9440e-3
     Δ1 = 16.2648e-3
-    Δ2 = 43.7700e-3    
+    Δ2 = 43.7700e-3
 elseif pulse_type == 16
     adia = "BIR4x2_3"
     δ1 = 13.1968e-3
     δ2 = 26.9696e-3
     δ3 = 13.1968e-3
     Δ1 = 16.5152e-3
-    Δ2 = 46.5172e-3      
+    Δ2 = 46.5172e-3
 elseif pulse_type == 17
     adia = "BIR4x2_5"
     δ1 = 12.1984e-3
@@ -418,9 +418,9 @@ end
 δ1_new = floor(Int64, δ1 / dwell_time) * dwell_time # Making the waveform match the dwell time
 δ2_new = floor(Int64, δ2 / dwell_time) * dwell_time # Making the waveform match the dwell time
 δ3_new = floor(Int64, δ3 / dwell_time) * dwell_time # Making the waveform match the dwell time
-@assert δ1_new ≈ δ1 "δ1_new = $(δ1_new*1e3) != δ1 = $(δ1*1e3)" 
-@assert δ2_new ≈ δ2 "δ2_new = $(δ2_new*1e3) != δ2 = $(δ2*1e3)" 
-@assert δ3_new ≈ δ3 "δ3_new = $(δ3_new*1e3) != δ3 = $(δ3*1e3)" 
+@assert δ1_new ≈ δ1 "δ1_new = $(δ1_new*1e3) != δ1 = $(δ1*1e3)"
+@assert δ2_new ≈ δ2 "δ2_new = $(δ2_new*1e3) != δ2 = $(δ2*1e3)"
+@assert δ3_new ≈ δ3 "δ3_new = $(δ3_new*1e3) != δ3 = $(δ3*1e3)"
 rf1 = Δ1 - δ1
 rf2 = Δ2 - δ2 - Δ1
 # Grads - Pre-defined RF waveforms.
@@ -428,7 +428,7 @@ N1 = floor(Int64, δ1 / (n_dwells * dwell_time)) + 1; println("N1opt = $N1")
 N2 = floor(Int64, δ2 / (n_dwells * dwell_time)) + 1 # δ1/N1 = δ2/N2
 N3 = floor(Int64, δ3 / (n_dwells * dwell_time)) + 1
 
-if δ3 == 0 
+if δ3 == 0
     N3 = 2
     δ3 = dwell_time
     rf2 = 0
@@ -462,7 +462,7 @@ ECM0 = zeros(length(ecc_λ), N1+N2+N3)
 for (i, λ) in enumerate(ecc_λ)
     EC[i,:] = get_ECmatrix(DIF; λ) #Eddy currents B0
     ECM0[i,:] = get_ECmatrixM0(DIF; λ) #Eddy currents
-end 
+end
 
 #EXPERIMENT
 M1 =  get_Mmatrix(DIF[1],   τ_sample=dur(DIF))  #Moments
@@ -559,7 +559,7 @@ for k = moment_to_calc #Number of moments to null
         end
         ## TO SCANNER
         path_res = "/home/ccp/DPW/G$(floor(Int,Gmax*1e3))_SR$(ceil(Int,Smax))_$axis/"
-        inv = sum(DIF[1].GR[ax].A) <= 0 #if first grdient's x area is negative, invert 
+        inv = sum(DIF[1].GR[ax].A) <= 0 #if first grdient's x area is negative, invert
         global DIF = inv ? -DIF : DIF
         # Plots
         τ = dur(DIF) * 1e3
@@ -574,7 +574,7 @@ for k = moment_to_calc #Number of moments to null
         # end
         p5 = plot_eddy_currents(DIF, ecc_λ; α=ecc_α, slider=false, range=[0,τ])
         # p6 = plot([
-        #     scatter(x=λ_spectra*1e3, y=log.(abs.(ec_spectraB0)), name="EC_B0"), 
+        #     scatter(x=λ_spectra*1e3, y=log.(abs.(ec_spectraB0)), name="EC_B0"),
         #     scatter(x=λ_spectra*1e3, y=log.(abs.(ec_spectraGradM0)), name="EC_GradM0")
         #     ])
         # p7 = KomaMRIPlots.plot_slew_rate(DIF; slider=false, range=[0,τ])
@@ -582,7 +582,7 @@ for k = moment_to_calc #Number of moments to null
         # display(p)
         savefig(p, path_res*"$seq_name.svg")
         # Write
-        write_diffprep_fwf(DIF[1], DIF[2], DIF[3], bmax, Gmax, Smax; 
+        write_diffprep_fwf(DIF[1], DIF[2], DIF[3], bmax, Gmax, Smax;
                 filename=path_res*"$seq_name.txt", name=seq_name, verbose=false)
         println( "λ0 = $(abs(round(M[1,:]'*gx/Gmax,digits=3))), λ1 = $(abs(round(M[2,:]'*gx/Gmax,digits=3))), λ2 = $(abs(round(M[3,:]'*gx/Gmax,digits=3)))" )
         println( "MX ∫g1²-∫g2²+∫g3²=$(gx1'*MX[1]*gx1 - gx2'*MX[2]*gx2 + gx3'*MX[3]*gx3)")
@@ -611,7 +611,7 @@ for k = moment_to_calc #Number of moments to null
         # display(p)
         savefig(p, path_res*"TRSE_$durT.svg")
         #Write
-        write_diffprep_fwf(DIF_ref[1], DIF_ref[2], DIF_ref[3], bmax, Gmax, Smax; 
+        write_diffprep_fwf(DIF_ref[1], DIF_ref[2], DIF_ref[3], bmax, Gmax, Smax;
             filename=path_res*"TRSE_$durT.txt", name="TRSE_$durT", verbose=false)
     end
 end
