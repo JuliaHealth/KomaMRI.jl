@@ -2,7 +2,6 @@ module KomaMRI
 
 # IMPORT PACKAGES
 using Reexport
-@reexport using KomaMRIBase
 @reexport using KomaMRICore
 @reexport using KomaMRIFiles
 @reexport using KomaMRIPlots

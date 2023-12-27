@@ -1,35 +1,30 @@
 module KomaMRICore
 
-using KomaMRIBase
-#General
+# General
 import Base.*, Base.abs
+using Reexport
 using ThreadsX
-#Printing
+# Printing
 using ProgressMeter
-#Simulation
+# Simulation
 using CUDA
 
-#Rawdata
+# KomaMRIBase
+@reexport using KomaMRIBase
+
+# Rawdata
 include("rawdata/ISMRMRD.jl")
-#Datatypes
+# Datatypes
 include("datatypes/Spinor.jl")
 include("other/DiffusionModel.jl")
-#Simulator
+# Simulator
 include("simulation/GPUFunctions.jl")
 include("simulation/SimulatorCore.jl")
 
-#Main
-export γ #gyro-magnetic ratio [Hz/T]
-export Scanner, Sequence, Phantom
-export Grad, RF, ADC, Delay
-export Mag, dur
-#Phantom
-export brain_phantom2D, brain_phantom3D
-#Secondary
-export get_kspace, rotx, roty, rotz
-#ISMRMRD
+# ISMRMRD
 export signal_to_raw_data
-#Simulator
+# Simulator
+export Mag
 export simulate, simulate_slice_profile
 
 #Package version, KomaMRICore.__VERSION__
