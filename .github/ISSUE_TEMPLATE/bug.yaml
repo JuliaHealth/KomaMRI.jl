@@ -1,0 +1,43 @@
+name: Bug Report
+description: File a bug report
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We use the GitHub issue tracker for bug reports and feature requests only.
+        If you're experiencing a problem with a particular package, open an issue on that package's repository instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Please describe the steps you took and provide any code executed to reproduce the bug, as well as any error messages that were printed.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        We need a few details to understand the issue better. Please run the following code to easily get all the relevant information (works for Julia >=1.9):
+        ```julia
+        using Pkg
+        begin
+          println("OS $(Base.Sys.MACHINE)")    # OS
+          println("Julia $VERSION")            # Julia version
+          # Koma sub-packages
+          for (_, pkg) in filter(((_, pkg),) -> occursin("KomaMRI", pkg.name), Pkg.dependencies())
+            println(pkg.name)
+          end
+        end
+        ```
+      placeholder: |
+        OS ...
+        Julia X.X.X
+        KomaMRI X.X.X
+        KomaMRICore X.X.X
+        KomaMRIPlots X.X.X
+        ...
+      render: Markdown
+    validations:
+      required: true

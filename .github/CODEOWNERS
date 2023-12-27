@@ -9,16 +9,19 @@
 # will be requested to review.
 # SRC
 src/*.jl    @cncastillo
+KomaMRIBase/src/*.jl    @cncastillo
 KomaMRICore/src/*.jl    @cncastillo
 KomaMRIPlots/src/*.jl    @cncastillo
 KomaMRIFiles/src/*.jl    @cncastillo
 # TEST
 test/*.jl    @cncastillo
+KomaMRIBase/test/*.jl    @cncastillo
 KomaMRICore/test/*.jl    @cncastillo
 KomaMRIPlots/test/*.jl    @cncastillo
 KomaMRIFiles/test/*.jl    @cncastillo
 # EXT
 ext/*.jl    @cncastillo
+KomaMRIBase/ext/*.jl    @cncastillo
 KomaMRICore/ext/*.jl    @cncastillo
 KomaMRIPlots/ext/*.jl    @cncastillo
 KomaMRIFiles/ext/*.jl    @cncastillo

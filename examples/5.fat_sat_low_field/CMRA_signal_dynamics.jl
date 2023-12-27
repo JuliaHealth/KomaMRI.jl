@@ -31,7 +31,7 @@ for i=eachindex(spin_group)
     add_trace!(p0, p1, row=1, col=1)
     add_trace!(p0, p2, row=2, col=1)
 end
-seqd = KomaMRICore.discretize(seq; sim_params)
+seqd = KomaMRICore.discretize(seq; sampling_params=sim_params)
 p3 = scatter(x=seqd.t, y=abs.(seqd.B1), name="B1",marker_color="purple",yaxis_range=[0,5])
 add_trace!(p0, p3, row=3, col=1)
 add_layout_image!(p0, attr(

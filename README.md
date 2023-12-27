@@ -4,7 +4,6 @@
 </p>
 
 <p align="center">
-<a href="https://pkg.julialang.org/detail/KomaMRI.html"><img src="https://img.shields.io/badge/julia-v1.6_(LTS)-9558B2?logo=julia" /></a>
 <a href="https://github.com/cncastillo/KomaMRI.jl/blob/master/LICENSE"><img src="http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat" /></a>
 <a href="https://github.com/invenia/BlueStyle"><img src="https://img.shields.io/badge/code%20style-blue-4495d1.svg" /></a>
 <a href="https://pkgs.genieframework.com?packages=KomaMRI"><img src="https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/KomaMRI" /></a>
@@ -43,24 +42,29 @@ Paper: <br>[![][paper-img1]][paper-url1]
 <tr>
 <td colspan="2">
 
-| **Packages**         | **Stable Version**                           | **Build Status**                       | **Code Coverage**                |
-|:---------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
-| 📦 KomaMRI.jl        | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
-| └ 📦 KomaMRICore.jl  | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
-| └ 📦 KomaMRIFiles.jl    | [![][komaio-version]][komaio-juliahub]    | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
-| └ 📦 KomaMRIPlots.jl | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
+| **Packages**                                | **Julia Compat ≥** | **Stable Version**                           | **Build Status**                       | **Code Coverage**                |
+|:------------------------------------------- |:-------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
+| 📦 [KomaMRI.jl](## "User Interface")        | ![][julia-19]      | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
+| └ 📦 [KomaMRIBase.jl](## "Structs")         | ![][julia-19]      | [![][komabase-version]][komabase-juliahub]   | [![][gh-actions-img5]][gh-actions-url] | [![][codecov-img5]][codecov-url] |
+| └ 📦 [KomaMRICore.jl](## "Simulation")      | ![][julia-19]      | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
+| └ 📦 [KomaMRIFiles.jl](## "Input/Output")   | ![][julia-19]      | [![][komafiles-version]][komafiles-juliahub] | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
+| └ 📦 [KomaMRIPlots.jl](## "Plots")          | ![][julia-19]      | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
 </td>
 </tr>
 </table>
 
+[julia-19]: https://img.shields.io/badge/julia-v1.9-9558B2?logo=julia
+
 [komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
+[komabase-version]: https://juliahub.com/docs/General/KomaMRIBase/stable/version.svg
 [komacore-version]: https://juliahub.com/docs/General/KomaMRICore/stable/version.svg
 [komaplots-version]: https://juliahub.com/docs/General/KomaMRIPlots/stable/version.svg
-[komaio-version]: https://juliahub.com/docs/General/KomaMRIFiles/stable/version.svg
+[komafiles-version]: https://juliahub.com/docs/General/KomaMRIFiles/stable/version.svg
 [komamri-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRI
+[komabase-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIBase
 [komacore-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRICore
 [komaplots-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIPlots
-[komaio-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIFiles
+[komafiles-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIFiles
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docr-url]: https://cncastillo.github.io/KomaMRI.jl/stable/
@@ -73,13 +77,15 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [gh-actions-img2]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img3]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img4]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-img5]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-url]: https://github.com/cncastillo/KomaMRI.jl/actions
 
 [codecov-img]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg
 [codecov-img1]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=komamri
 [codecov-img2]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=core
 [codecov-img3]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=plots
-[codecov-img4]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=io
+[codecov-img4]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=files
+[codecov-img5]: https://codecov.io/gh/cncastillo/KomaMRI.jl/branch/master/graph/badge.svg?flag=base
 [codecov-url]: https://codecov.io/gh/cncastillo/KomaMRI.jl
 
 [arXiv-img1]: https://img.shields.io/badge/arXiv-2107.11000-blue.svg
@@ -89,6 +95,8 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [paper-url1]: https://doi.org/10.1002/mrm.29635
 
 ## News
+
+> 🟢 **[7 Dec 2023] MRI Together:** Koma was present in [MRI Together](https://mritogether.esmrmb.org/) 😼. The talk is available [here](https://www.youtube.com/watch?v=9mRQH8um4-A). Also, I uploaded the promised [educational example](https://cncastillo.github.io/KomaMRI.jl/dev/educational-1d-simulation/).
 
 > 🟢 **[17 Nov 2023] ISMRM Pulseq's virtual meeting:** Pretty excited of being part of [this meeting](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023). The slidescan be seen [here](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023/blob/35a8da7eaa0bf42f2127e1338a440ccd4e3ef53c/slides/day3_KomaMRI_simulator_Quantitative_MRI.pdf).
 
@@ -146,7 +154,13 @@ KomaUI()
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification will emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw Data or (2) to procced with the reconstruction.
 
 ## How to Contribute
-We welcome contributions from the community! If you're interested in contributing, please read our [Contribution Guidelines](CONTRIBUTING.md) for details on how to get started.
+KomaMRI exists thanks to all our contributors:
+
+<a href="https://github.com/cncastillo/KomaMRI.jl/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=cncastillo/KomaMRI.jl" height="40px"/>
+</a>
+
+Want to be highlighted here? We welcome contributions from the community! If you're interested in contributing, please read our [Contribution Guidelines](CONTRIBUTING.md) for details on how to get started.
 
 
 ## How to Cite

@@ -35,7 +35,7 @@ precession.
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
+function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     M::Mag{T}, sim_method::Bloch) where {T<:Real}
     #Simulation
     #Motion
