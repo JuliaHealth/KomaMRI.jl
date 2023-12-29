@@ -1,11 +1,7 @@
 module KomaMRIPlots
 
 if Sys.iswindows()
-    @warn (
-        """
-        KomaMRIPlots may hang during compilation on Windows. We are working on it 👷 (refer to #274).
-        """
-    )
+@warn "\nKomaMRIPlots may hang during compilation on Windows. \nWe are currently working on it 👷 (refer to issue #274)."
 end
 
 using KomaMRIBase
