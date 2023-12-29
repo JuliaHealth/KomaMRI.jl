@@ -3,8 +3,7 @@ module KomaMRIPlots
 if Sys.iswindows()
     @warn (
         """
-        KomaMRIPlots may hang during compilation on Windows.
-        We are working on it 👷 (refer to https://github.com/cncastillo/KomaMRI.jl/issues/274).
+        KomaMRIPlots may hang during compilation on Windows. We are working on it 👷 (refer to #274).
         """
     )
 end
