@@ -45,7 +45,7 @@ Paper: <br>[![][paper-img1]][paper-url1]
 | **Packages**                                | **Julia Compat ≥** | **Stable Version**                           | **Build Status**                       | **Code Coverage**                |
 |:------------------------------------------- |:-------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
 | 📦 [KomaMRI.jl](## "User Interface")        | ![][julia-19]      | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
-| └ 📦 [KomaMRIBase.jl](## "Structs")         | ![][julia-19]      | [![][komabase-version]][komabase-juliahub]   | [![][gh-actions-img5]][gh-actions-url] | [![][codecov-img5]][codecov-url] |
+| └ 📦 [KomaMRIBase.jl](## "Custom Types")    | ![][julia-19]      | [![][komabase-version]][komabase-juliahub]   | [![][gh-actions-img5]][gh-actions-url] | [![][codecov-img5]][codecov-url] |
 | └ 📦 [KomaMRICore.jl](## "Simulation")      | ![][julia-19]      | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
 | └ 📦 [KomaMRIFiles.jl](## "Input/Output")   | ![][julia-19]      | [![][komafiles-version]][komafiles-juliahub] | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
 | └ 📦 [KomaMRIPlots.jl](## "Plots")          | ![][julia-19]      | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
