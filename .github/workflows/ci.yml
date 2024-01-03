@@ -40,6 +40,17 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
+      - name: "KomaMRIPlots dev setup"
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIPlots
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIPlots
+          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIBase
@@ -66,17 +77,6 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIFiles
-      - name: "KomaMRIPlots dev setup"
-        shell: bash
-        run: |
-          julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - uses: julia-actions/julia-buildpkg@v1
-        with:
-          project: KomaMRIPlots
-      - uses: julia-actions/julia-runtest@v1
-        with:
-          project: KomaMRIPlots
-          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - name: "KomaMRI dev setup"
         shell: julia --color=yes --project {0}
         run: |
