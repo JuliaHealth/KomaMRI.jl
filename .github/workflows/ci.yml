@@ -49,6 +49,7 @@ jobs:
         with:
           project: KomaMRIPlots
       - uses: julia-actions/julia-runtest@v1
+        continue-on-error: ${{ matrix.version == 'nightly' }}
         with:
           project: KomaMRIPlots
           prefix: ${{ matrix.prefix }}  # for `xvfb-run`
@@ -56,6 +57,7 @@ jobs:
         with:
           project: KomaMRIBase
       - uses: julia-actions/julia-runtest@v1
+        continue-on-error: ${{ matrix.version == 'nightly' }}
         with:
           project: KomaMRIBase
       - name: "KomaMRICore dev setup"
@@ -66,6 +68,7 @@ jobs:
         with:
           project: KomaMRICore
       - uses: julia-actions/julia-runtest@v1
+        continue-on-error: ${{ matrix.version == 'nightly' }}
         with:
           project: KomaMRICore
       - name: "KomaMRIFiles dev setup"
@@ -76,6 +79,7 @@ jobs:
         with:
           project: KomaMRIFiles
       - uses: julia-actions/julia-runtest@v1
+        continue-on-error: ${{ matrix.version == 'nightly' }}
         with:
           project: KomaMRIFiles
       - name: "KomaMRI dev setup"
@@ -90,6 +94,7 @@ jobs:
           ])
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+        continue-on-error: ${{ matrix.version == 'nightly' }}
         with:
           prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - uses: julia-actions/julia-processcoverage@v1
