@@ -300,3 +300,26 @@ end
     show(IOBuffer(), "text/plain", KomaMRICore.BlochDict())
     @test true
 end
+
+@testitem "simulate_slice_profile" tags=[:core] begin
+    using Suppressor
+
+    # This is a sequence with a sinc RF 30° excitation pulse
+    sys = Scanner()
+    sys.Smax = 50
+    B1 = 4.92e-6
+    Trf = 3.2e-3
+    zmax = 2e-2
+    fmax = 5e3
+    z = range(-zmax, zmax, 400)
+    Gz = fmax / (γ * zmax)
+    f = γ * Gz * z
+    seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0; 0; Gz], TBP=8)
+
+    # Simulate the slice profile
+    sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
+    M = simulate_slice_profile(seq; z, sim_params)
+
+    # For the time being, always pass the test
+    @test true
+end
