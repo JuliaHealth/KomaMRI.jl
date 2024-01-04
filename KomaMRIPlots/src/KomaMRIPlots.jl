@@ -1,9 +1,5 @@
 module KomaMRIPlots
 
-if Sys.iswindows()
-@warn "\nKomaMRIPlots may hang during compilation on Windows. \nWe are currently working on it 👷 (refer to issue #274)."
-end
-
 using KomaMRIBase
 using MAT, Interpolations, PlotlyJS
 
