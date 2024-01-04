@@ -79,7 +79,7 @@ end
 end
 
 @testitem "Bloch_CPU_single_thread" tags=[:important, :core] begin
-    using Suppressor, KomaMRIBase
+    using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_jemris()
@@ -102,7 +102,7 @@ end
 end
 
 @testitem "Bloch_CPU_multi_thread" tags=[:important, :core] begin
-    using Suppressor, KomaMRIBase
+    using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_jemris()
@@ -125,7 +125,7 @@ end
 
 
 @testitem "Bloch_GPU" tags=[:important, :skipci, :core] begin
-    using Suppressor, KomaMRIBase
+    using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_jemris()
@@ -147,7 +147,7 @@ end
 end
 
 @testitem "Bloch_CPU_RF_accuracy_single_thread" tags=[:important, :core] begin
-    using Suppressor, KomaMRIBase
+    using Suppressor
 
     Tadc = 1e-3
     Trf = Tadc
@@ -192,7 +192,7 @@ end
 end
 
 @testitem "Bloch_CPU_RF_accuracy_multi_thread" tags=[:important, :core] begin
-    using Suppressor, KomaMRIBase
+    using Suppressor
 
     Tadc = 1e-3
     Trf = Tadc
@@ -237,7 +237,7 @@ end
 end
 
 @testitem "Bloch_GPU_RF_accuracy" tags=[:important, :core] begin
-    using Suppressor, KomaMRIBase
+    using Suppressor
 
     Tadc = 1e-3
     Trf = Tadc
@@ -282,7 +282,7 @@ end
 end
 
 @testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
-    using Suppressor, KomaMRIBase
+    using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     seq = seq_epi_100x100_TE100_FOV230()
