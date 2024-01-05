@@ -16,8 +16,8 @@ function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method
 end
 
 """Magnetization initialization for Bloch simulation method."""
-function initialize_spins_state(obj::Phantom{T}, sim_method::BlochDict) where {T<:Real}
-    return initialize_spins_state(obj, Bloch())
+function initialize_spins_state(obj::Phantom{T}, seq::DiscreteSequence{T}, sim_method::BlochDict, sim_params::Dict) where {T<:Real}
+    return initialize_spins_state(obj, seq, Bloch(), sim_params)
 end
 
 """
@@ -36,13 +36,13 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
-    M::Mag{T}, sim_method::BlochDict, Ux, Uy, Uz, resetmag) where {T<:Real}
+    M::Mag{T}, sim_method::BlochDict) where {T<:Real}
     #Simulation
     #Motion
+    Ux, Uy, Uz, __ = get_displacements(p.motion, p.x, p.y, p.z, seq.t)
     xt = Ux !== nothing ? p.x .+ Ux : p.x
     yt = Uy !== nothing ? p.y .+ Uy : p.y
     zt = Uz !== nothing ? p.z .+ Uz : p.z
-
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -56,7 +56,6 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    
     #Acquired signal
     sig[:,:,1] .= transpose(Mxy[:, findall(seq.ADC)])
 
@@ -86,7 +85,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    M::Mag{T}, sim_method::BlochDict, Ux, Uy, Uz, resetmag) where {T<:Real}
-    run_spin_excitation!(p, seq, sig, M, Bloch(), Ux, Uy, Uz, resetmag) #The same as Bloch
+    M::Mag{T}, sim_method::BlochDict) where {T<:Real}
+    run_spin_excitation!(p, seq, sig, M, Bloch()) #The same as Bloch
     return nothing
 end
