@@ -1,0 +1,617 @@
+abstract type MotionModel{T <: Real} end
+
+#Motion models:
+include("phantom/motion/SimpleMotion.jl") 
+include("phantom/motion/ArbitraryMotion.jl") 
+include("phantom/motion/NoMotion.jl")
+
+
+"""
+    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
+
+The Phantom struct. Most of its field names are vectors, with each element associated with
+a property value representing a spin. This struct serves as an input for the simulation.
+
+# Arguments
+- `name`: (`::String`) phantom name
+- `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
+- `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
+- `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
+- `ρ`: (`::AbstractVector{T<:Real}`) spin proton density vector
+- `T1`: (`::AbstractVector{T<:Real}`, `[s]`) spin T1 parameter vector
+- `T2`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2 parameter vector
+- `T2s`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2s parameter vector
+- `Δw`: (`::AbstractVector{T<:Real}`, `[rad/s]`) spin off-resonance parameter vector
+- `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
+- `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
+- `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
+- `motion`: (`::MotionModel{T<:Real}`) motion model
+
+# Returns
+- `obj`: (`::Phantom`) Phantom struct
+
+# Examples
+```julia-repl
+julia> obj = Phantom(x=[0.0])
+
+julia> obj.ρ
+```
+"""
+ @with_kw mutable struct Phantom{T<:Real}
+    name::String = "spins"
+	x::AbstractVector{T}
+	y::AbstractVector{T} = zeros(size(x))
+	z::AbstractVector{T} = zeros(size(x))
+	ρ::AbstractVector{T} = ones(size(x))
+	T1::AbstractVector{T} = ones(size(x)) * 1_000_000
+	T2::AbstractVector{T} = ones(size(x)) * 1_000_000
+	T2s::AbstractVector{T} = ones(size(x)) * 1_000_000
+	#Off-resonance related
+	Δw::AbstractVector{T} = zeros(size(x))
+	#χ::Vector{SusceptibilityModel}
+	#Diffusion
+	Dλ1::AbstractVector{T} = zeros(size(x))
+	Dλ2::AbstractVector{T} = zeros(size(x))
+	Dθ::AbstractVector{T} =  zeros(size(x))
+	#Diff::Vector{DiffusionModel}  #Diffusion map
+
+	#Motion
+	motion = NoMotion()
+end
+
+
+"""Size and length of a phantom"""
+size(x::Phantom) = size(x.ρ)
+Base.length(x::Phantom) = length(x.ρ)
+# To enable to iterate and broadcast over the Phantom
+Base.iterate(x::Phantom) = (x[1], 2)
+Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i+1) : nothing
+Base.lastindex(x::Phantom) = length(x)
+Base.getindex(x::Phantom, i::Integer) = x[i:i]
+
+
+"""Compare two phantoms"""
+Base.isapprox(obj1::Phantom, obj2::Phantom)  = begin
+    obj1.x     ≈ obj2.x    &&
+    obj1.y     ≈ obj2.y    &&
+    obj1.z     ≈ obj2.z    &&
+    obj1.ρ     ≈ obj2.ρ    &&
+    obj1.T1    ≈ obj2.T1   &&
+    obj1.T2    ≈ obj2.T2   &&
+    obj1.T2s   ≈ obj2.T2s  &&
+    obj1.Δw    ≈ obj2.Δw   &&
+    obj1.Dλ1   ≈ obj2.Dλ1  &&
+    obj1.Dλ2   ≈ obj2.Dλ2  &&
+    obj1.Dθ    ≈ obj2.Dθ
+end
+
+"""
+Separate object spins in a sub-group
+"""
+Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+	Phantom(name=obj.name,
+			x=obj.x[p],
+			y=obj.y[p],
+			z=obj.z[p],
+			ρ=obj.ρ[p],
+			T1=obj.T1[p],
+			T2=obj.T2[p],
+			T2s=obj.T2s[p],
+			Δw=obj.Δw[p],
+			#Diff=obj.Diff[p], #TODO!
+			Dλ1=obj.Dλ1[p],
+			Dλ2=obj.Dλ2[p],
+			Dθ=obj.Dθ[p],
+			motion=obj.motion[p]
+			#Χ=obj.Χ[p], #TODO!
+			)
+end
+
+Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}, 
+							q::Union{AbstractRange,AbstractVector,Colon}) = begin
+	Phantom(name=obj.name,
+			x=obj.x[p],
+			y=obj.y[p],
+			z=obj.z[p],
+			ρ=obj.ρ[p],
+			T1=obj.T1[p],
+			T2=obj.T2[p],
+			T2s=obj.T2s[p],
+			Δw=obj.Δw[p],
+			#Diff=obj.Diff[p], #TODO!
+			Dλ1=obj.Dλ1[p],
+			Dλ2=obj.Dλ2[p],
+			Dθ=obj.Dθ[p],
+			motion=obj.motion[p,q]
+			#Χ=obj.Χ[p], #TODO!
+			)
+end
+
+"""Separate object spins in a sub-group (lightweigth)."""
+Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+	@views Phantom(name=obj.name,
+			x=obj.x[p],
+			y=obj.y[p],
+			z=obj.z[p],
+			ρ=obj.ρ[p],
+			T1=obj.T1[p],
+			T2=obj.T2[p],
+			T2s=obj.T2s[p],
+			Δw=obj.Δw[p],
+			#Diff=obj.Diff[p], #TODO!
+			Dλ1=obj.Dλ1[p],
+			Dλ2=obj.Dλ2[p],
+			Dθ=obj.Dθ[p],
+			motion=obj.motion[p]
+			#Χ=obj.Χ[p], #TODO!
+			)
+end
+
+Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}, 
+						q::Union{AbstractRange,AbstractVector,Colon}) = begin
+	@views Phantom(name=obj.name,
+			x=obj.x[p],
+			y=obj.y[p],
+			z=obj.z[p],
+			ρ=obj.ρ[p],
+			T1=obj.T1[p],
+			T2=obj.T2[p],
+			T2s=obj.T2s[p],
+			Δw=obj.Δw[p],
+			#Diff=obj.Diff[p], #TODO!
+			Dλ1=obj.Dλ1[p],
+			Dλ2=obj.Dλ2[p],
+			Dθ=obj.Dθ[p],
+			motion=obj.motion[p,q]
+			#Χ=obj.Χ[p], #TODO!
+			)
+end
+
+"""Addition of phantoms"""
++(s1::Phantom,s2::Phantom) = begin
+	Phantom(name=s1.name*"+"*s2.name,
+		x=[s1.x;s2.x],
+		y=[s1.y;s2.y],
+		z=[s1.z;s2.z],
+		ρ=[s1.ρ;s2.ρ],
+		T1=[s1.T1;s2.T1],
+		T2=[s1.T2;s2.T2],
+		T2s=[s1.T2s;s2.T2s],
+		Δw=[s1.Δw;s2.Δw],
+		#Diff=obj.Diff[p], #TODO!
+		Dλ1=[s1.Dλ1;s2.Dλ1],
+		Dλ2=[s1.Dλ2;s2.Dλ2],
+		Dθ=[s1.Dθ;s2.Dθ],
+		motion=s1.motion+s2.motion
+		#Χ=obj.Χ[p], #TODO!
+	)
+end
+
++(m1::MotionModel,m2::MotionModel) = SimpleMotion() # TODO: resolve this in a more sophisticated way
+
+"""Scalar multiplication of a phantom"""
+*(α::Real,obj::Phantom) = begin
+	Phantom(name=obj.name,
+		x=obj.x,
+		y=obj.y,
+		z=obj.z,
+		ρ=α*obj.ρ, #Only affects the proton density
+		T1=obj.T1,
+		T2=obj.T2,
+		T2s=obj.T2s,
+		Δw=obj.Δw,
+		#Diff=obj.Diff[p], #TODO!
+		Dλ1=obj.Dλ1,
+		Dλ2=obj.Dλ2,
+		Dθ=obj.Dθ,
+		motion=obj.motion
+		#Χ=obj.Χ[p], #TODO!
+	)
+end
+
+"""
+dims = get_dims(obj)
+"""
+function get_dims(obj::Phantom)
+	dims = [0,0,0]
+	if obj.x != zeros(length(obj.x)) dims[1] = 1 end
+	if obj.y != zeros(length(obj.x)) dims[2] = 1 end
+	if obj.z != zeros(length(obj.x)) dims[3] = 1 end
+	dims
+end
+
+
+# Movement related commands
+# StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
+# FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
+
+#TODO: jaw-pitch-roll, expand, contract, functions
+
+# Getting maps
+# get_DxDy2D(obj::Phantom) = begin
+# 	P(i) = rotz(obj.Dθ[i])[1:2,1:2];
+# 	D(i) = [obj.Dλ1[i] 0;0 obj.Dλ2[i]]
+# 	nx = [1;0]; ny = [0;1]
+# 	Dx = [nx'*P(i)'*D(i)*P(i)*nx for i=1:prod(size(obj.Dλ1))]
+# 	Dy = [ny'*P(i)'*D(i)*P(i)*ny for i=1:prod(size(obj.Dλ1))]
+# 	Dx, Dy
+# end
+
+
+"""
+    obj = heart_phantom(...)
+
+Heart-like LV phantom. The variable `α` is for streching, `β` for contraction, and `γ` for
+rotation.
+
+# Arguments
+- `α`: (`::Real`, `=1`) streching parameter
+- `β`: (`::Real`, `=1`) contraction parameter
+- `γ`: (`::Real`, `=1`) rotation parameter
+- `fat_bool`: (`::Bool`, `=false`) fat boolean parameter
+
+# Returns
+- `phantom`: (`::Phantom`) Heart-like LV phantom struct
+"""
+heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false; heart_rate=60) = begin
+	#PARAMETERS
+	FOV = 10e-2 #m Diameter ventricule
+	N = 21
+	Δxr = FOV/(N-1) #Aprox rec resolution, use Δx_pix and Δy_pix
+	Ns = 50 #number of spins per voxel
+	Δx = Δxr/sqrt(Ns) #spin separation
+	#POSITIONS
+	x = y = -FOV/2:Δx:FOV/2-Δx #spin coordinates
+	x, y = x .+ y'*0, x*0 .+ y' #grid points
+	#PHANTOM
+	⚪(R) =  (x.^2 .+ y.^2 .<= R^2)*1. #Circle of radius R
+	v = FOV/4 #m/s 1/16 th of the FOV during acquisition
+	f = heart_rate/60
+	ωHR = 2π*f 
+
+	# θ(t) = -π/4*γ*(sin.(ωHR*t).*(sin.(ωHR*t).>0)+0.25.*sin.(ωHR*t).*(sin.(ωHR*t).<0) )
+	ux(x,y,z,t) = begin
+		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(x)
+		contract = - β * v * x / (FOV/2)  #expand
+		rotate = - γ * v * y / (FOV/2)
+		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
+	end
+	uy(x,y,z,t) = begin
+		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(y)
+		contract = - β * v * y / (FOV/2)
+		rotate = γ * v * x / (FOV/2)
+		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
+	end
+	# Water spins
+	R = 9/10*FOV/2
+	r = 6/11*FOV/2
+	ring = ⚪(R) .- ⚪(r)
+	ρ = ⚪(r) .+ 0.9*ring #proton density
+	# Diffusion tensor model
+	D = 2e-9 #Diffusion of free water m2/s
+	D1, D2 = D, D/20
+	Dλ1 = D1*⚪(R) #Diffusion map
+	Dλ2 = D1*⚪(r) .+ D2*ring #Diffusion map
+	Dθ =  atan.(x,-y) .* ring #Diffusion map
+	T1 = (1400*⚪(r) .+ 1026*ring)*1e-3 #Myocardial T1
+	T2 = ( 308*⚪(r) .+ 42*ring  )*1e-3 #T2 map [s]
+	# Generating Phantoms
+	heart = Phantom(name="LeftVentricle",
+					x=x[ρ.!=0],y=y[ρ.!=0],
+					ρ=ρ[ρ.!=0],T1=T1[ρ.!=0],T2=T2[ρ.!=0],
+					Dλ1=Dλ1[ρ.!=0],Dλ2=Dλ2[ρ.!=0],Dθ=Dθ[ρ.!=0],
+					motion=SimpleMotion(ux=ux,uy=uy))
+	heart
+end
+
+"""
+# Fat spins
+ring2 = ⚪(FOV/2) .- ⚪(R) #outside fat layer
+ρ_fat = .5*ρ.*ring2
+Δw_fat = 2π*220*ring2 #fat should be dependant on B0
+T1_fat = 800*ring2*1e-3
+T2_fat = 120*ring2*1e-3 #T2 map [s]
+fat = Phantom("fat",x,y,ρ_fat,T2_fat,Δw_fat)
+#Resulting phantom
+obj = fat_bool ? heart + fat : heart #concatenating spins
+"""
+
+
+"""
+    phantom = brain_phantom2D(;axis="axial", ss=4)
+
+Creates a two-dimensional brain Phantom struct.
+
+# References
+- B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
+    digital brain phantom" NeuroImage, in review - 2006
+- B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital
+    brain phantoms for creation of validation image data bases" IEEE TMI, in review - 2006
+- https://brainweb.bic.mni.mcgill.ca/brainweb
+
+# Keywords
+- `axis`: (`::String`, `="axial"`, opts=[`"axial"`, `"coronal"`, `"sagittal"`]) orientation of the phantom
+- `ss`: (`::Integer`, `=4`) subsampling parameter in all axis
+
+# Returns
+- `obj`: (`::Phantom`) Phantom struct
+
+# Examples
+```julia-repl
+julia> obj = brain_phantom2D(; axis="sagittal", ss=1)
+
+julia> plot_phantom_map(obj, :ρ)
+```
+"""
+function brain_phantom2D(; axis="axial", ss=4)
+
+    # Get data from .mat file
+    path = @__DIR__
+    data = MAT.matread(path*"/phantom/brain2D.mat")
+    class = data[axis][1:ss:end,1:ss:end]
+
+    # Define spin position vectors
+    Δx = .5e-3*ss
+    M, N = size(class)
+    FOVx = (M-1)*Δx #[m]
+    FOVy = (N-1)*Δx #[m]
+    x = -FOVx/2:Δx:FOVx/2 #spin coordinates
+    y = -FOVy/2:Δx:FOVy/2 #spin coordinates
+    x, y = x .+ y'*0, x*0 .+ y' #grid points
+
+    # Define spin property vectors
+    T2 = (class.==23)*329 .+ #CSF
+        (class.==46)*83 .+ #GM
+        (class.==70)*70 .+ #WM
+        (class.==93)*70 .+ #FAT1
+        (class.==116)*47 .+ #MUSCLE
+        (class.==139)*329 .+ #SKIN/MUSCLE
+        (class.==162)*0 .+ #SKULL
+        (class.==185)*0 .+ #VESSELS
+        (class.==209)*70 .+ #FAT2
+        (class.==232)*329 .+ #DURA
+        (class.==255)*70 #MARROW
+    T2s = (class.==23)*58 .+ #CSF
+        (class.==46)*69 .+ #GM
+        (class.==70)*61 .+ #WM
+        (class.==93)*58 .+ #FAT1
+        (class.==116)*30 .+ #MUSCLE
+        (class.==139)*58 .+ #SKIN/MUSCLE
+        (class.==162)*0 .+ #SKULL
+        (class.==185)*0 .+ #VESSELS
+        (class.==209)*61 .+ #FAT2
+        (class.==232)*58 .+ #DURA
+        (class.==255)*61 .+#MARROW
+        (class.==255)*70 #MARROW
+    T1 = (class.==23)*2569 .+ #CSF
+        (class.==46)*833 .+ #GM
+        (class.==70)*500 .+ #WM
+        (class.==93)*350 .+ #FAT1
+        (class.==116)*900 .+ #MUSCLE
+        (class.==139)*569 .+ #SKIN/MUSCLE
+        (class.==162)*0 .+ #SKULL
+        (class.==185)*0 .+ #VESSELS
+        (class.==209)*500 .+ #FAT2
+        (class.==232)*2569 .+ #DURA
+        (class.==255)*500 #MARROW
+    ρ = (class.==23)*1 .+ #CSF
+        (class.==46)*.86 .+ #GM
+        (class.==70)*.77 .+ #WM
+        (class.==93)*1 .+ #FAT1
+        (class.==116)*1 .+ #MUSCLE
+        (class.==139)*.7 .+ #SKIN/MUSCLE
+        (class.==162)*0 .+ #SKULL
+        (class.==185)*0 .+ #VESSELS
+        (class.==209)*.77 .+ #FAT2
+        (class.==232)*1 .+ #DURA
+        (class.==255)*.77 #MARROW
+	Δw_fat = -220*2π
+	Δw = (class.==93)*Δw_fat .+ #FAT1
+		(class.==209)*Δw_fat    #FAT2
+	T1 = T1*1e-3
+	T2 = T2*1e-3
+	T2s = T2s*1e-3
+
+    # Define and return the Phantom struct
+    obj = Phantom{Float64}(
+        name = "brain2D_"*axis,
+		x = y[ρ.!=0],
+		y = x[ρ.!=0],
+		z = 0*x[ρ.!=0],
+		ρ = ρ[ρ.!=0],
+		T1 = T1[ρ.!=0],
+		T2 = T2[ρ.!=0],
+		T2s = T2s[ρ.!=0],
+		Δw = Δw[ρ.!=0],
+    )
+	return obj
+end
+
+"""
+    obj = brain_phantom3D(; ss=4)
+
+Creates a three-dimentional brain Phantom struct.
+
+# References
+- B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
+    digital brain phantom" NeuroImage, in review - 2006
+- B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital
+    brain phantoms for creation of validation image data bases" IEEE TMI, in review - 2006
+- https://brainweb.bic.mni.mcgill.ca/brainweb
+
+# Keywords
+- `ss`: (`::Integer`, `=4`) subsampling parameter in all axes
+
+# Returns
+- `obj`: (`::Phantom`) 3D Phantom struct
+
+# Examples
+```julia-repl
+julia> obj = brain_phantom3D(; ss=5)
+
+julia> plot_phantom_map(obj, :ρ)
+```
+"""
+function brain_phantom3D(;ss=4,start_end=[160, 200])
+
+    # Get data from .mat file
+    path = @__DIR__
+    data = MAT.matread(path*"/phantom/brain3D.mat")
+    class = data["data"][1:ss:end,1:ss:end,start_end[1]:ss:start_end[2]]
+
+    # Define spin position vectors
+    Δx = .5e-3*ss
+    M, N, Z = size(class)
+    FOVx = (M-1)*Δx #[m]
+    FOVy = (N-1)*Δx #[m]
+	FOVz = (Z-1)*Δx #[m]
+    xx = reshape(-FOVx/2:Δx:FOVx/2,M,1,1) #spin coordinates
+    yy = reshape(-FOVy/2:Δx:FOVy/2,1,N,1) #spin coordinates
+	zz = reshape(-FOVz/2:Δx:FOVz/2,1,1,Z) #spin coordinates
+    x = 1*xx .+ 0*yy .+ 0*zz
+	y = 0*xx .+ 1*yy .+ 0*zz
+	z = 0*xx .+ 0*yy .+ 1*zz
+
+    # Define spin property vectors
+    T2 = (class.==23)*329 .+ #CSF
+        (class.==46)*83 .+ #GM
+        (class.==70)*70 .+ #WM
+        (class.==93)*70 .+ #FAT1
+        (class.==116)*47 .+ #MUSCLE
+        (class.==139)*329 .+ #SKIN/MUSCLE
+        (class.==162)*0 .+ #SKULL
+        (class.==185)*0 .+ #VESSELS
+        (class.==209)*70 .+ #FAT2
+        (class.==232)*329 .+ #DURA
+        (class.==255)*70 #MARROW
+    T2s = (class.==23)*58 .+ #CSF
+        (class.==46)*69 .+ #GM
+        (class.==70)*61 .+ #WM
+        (class.==93)*58 .+ #FAT1
+        (class.==116)*30 .+ #MUSCLE
+        (class.==139)*58 .+ #SKIN/MUSCLE
+        (class.==162)*0 .+ #SKULL
+        (class.==185)*0 .+ #VESSELS
+        (class.==209)*61 .+ #FAT2
+        (class.==232)*58 .+ #DURA
+        (class.==255)*61 .+#MARROW
+        (class.==255)*70 #MARROW
+    T1 = (class.==23)*2569 .+ #CSF
+        (class.==46)*833 .+ #GM
+        (class.==70)*500 .+ #WM
+        (class.==93)*350 .+ #FAT1
+        (class.==116)*900 .+ #MUSCLE
+        (class.==139)*569 .+ #SKIN/MUSCLE
+        (class.==162)*0 .+ #SKULL
+        (class.==185)*0 .+ #VESSELS
+        (class.==209)*500 .+ #FAT2
+        (class.==232)*2569 .+ #DURA
+        (class.==255)*500 #MARROW
+    ρ = (class.==23)*1 .+ #CSF
+        (class.==46)*.86 .+ #GM
+        (class.==70)*.77 .+ #WM
+        (class.==93)*1 .+ #FAT1
+        (class.==116)*1 .+ #MUSCLE
+        (class.==139)*.7 .+ #SKIN/MUSCLE
+        (class.==162)*0 .+ #SKULL
+        (class.==185)*0 .+ #VESSELS
+        (class.==209)*.77 .+ #FAT2
+        (class.==232)*1 .+ #DURA
+        (class.==255)*.77 #MARROW
+	Δw_fat = -220*2π
+	Δw = (class.==93)*Δw_fat .+ #FAT1
+		(class.==209)*Δw_fat    #FAT2
+	T1 = T1*1e-3
+	T2 = T2*1e-3
+	T2s = T2s*1e-3
+
+    # Define and return the Phantom struct
+    obj = Phantom{Float64}(
+        name = "brain3D",
+		x = y[ρ.!=0],
+		y = x[ρ.!=0],
+		z = z[ρ.!=0],
+		ρ = ρ[ρ.!=0],
+		T1 = T1[ρ.!=0],
+		T2 = T2[ρ.!=0],
+		T2s = T2s[ρ.!=0],
+		Δw = Δw[ρ.!=0],
+    )
+	return obj
+end
+
+"""
+    obj = pelvis_phantom2D(; ss=4)
+
+Creates a two-dimensional pelvis Phantom struct.
+
+# Keywords
+- `ss`: (`::Integer`, `=4`) subsampling parameter
+
+# Returns
+- `obj`: (`::Phantom`) Phantom struct
+
+# Examples
+```julia-repl
+julia> obj = pelvis_phantom2D(; ss=1)
+
+julia> pelvis_phantom2D(obj, :ρ)
+```
+"""
+function pelvis_phantom2D(; ss=4)
+
+    # Get data from .mat file
+    path = @__DIR__
+    data = MAT.matread(path*"/phantom/pelvis2D.mat")
+    class = data["pelvis3D_slice"][1:ss:end,1:ss:end]
+
+    # Define spin position vectors
+    Δx = .5e-3*ss
+    M, N = size(class)
+    FOVx = (M-1)*Δx             # [m]
+    FOVy = (N-1)*Δx             # [m]
+    x = -FOVx/2:Δx:FOVx/2       # spin coordinates
+    y = -FOVy/2:Δx:FOVy/2       # spin coordinates
+    x, y = x .+ y'*0, x*0 .+ y' # grid points
+
+    # Define spin property vectors
+    ρ = (class.==51)*.001 .+    # Air
+        (class.==102)*.86 .+    # Fat
+        (class.==153)*.9 .+     # SoftTissue
+        (class.==204)*.4 .+     # SpongyBone
+        (class.==255)*.2        # CorticalBone
+    T1 = (class.==51)*.001 .+   # Air
+        (class.==102)*366 .+    # Fat
+        (class.==153)*1200 .+   # SoftTissue
+        (class.==204)*381 .+    # SpongyBone
+        (class.==255)*100       # CorticalBone
+    T2 = (class.==51)*.001 .+   # Air
+        (class.==102)*70 .+     # Fat
+        (class.==153)*80 .+     # SoftTissue
+        (class.==204)*52 .+     # SpongyBone
+        (class.==255)*.3        # CorticalBone
+    T2s = (class.==51)*.001 .+  # Air
+        (class.==102)*70 .+     # Fat
+        (class.==153)*80 .+     # SoftTissue
+        (class.==204)*52 .+     # SpongyBone
+        (class.==255)*.3        # CorticalBone
+	Δw_fat = -220 * 2π
+	Δw = (class.==102) * Δw_fat # FAT1
+	T1 = T1*1e-3
+	T2 = T2*1e-3
+	T2s = T2s*1e-3
+
+    # Define and return the Phantom struct
+    obj = Phantom{Float64}(
+        name = "pelvis2D",
+        x = y[ρ.!=0],
+        y = x[ρ.!=0],
+        z = 0*x[ρ.!=0],
+        ρ = ρ[ρ.!=0],
+        T1 = T1[ρ.!=0],
+        T2 = T2[ρ.!=0],
+        T2s = T2s[ρ.!=0],
+        Δw = Δw[ρ.!=0],
+    )
+	return obj
+end

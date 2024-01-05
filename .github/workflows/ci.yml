@@ -8,29 +8,29 @@ on:
       - master
     tags: '*'
 jobs:
-  test:
+  ci:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
+          - '1.9' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
           - '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
-          #- 'nightly'
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        arch:
-          - x64
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x64]
+        include:
+          - os: ubuntu-latest
+            prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v3
         env:
           cache-name: cache-artifacts
         with:
@@ -41,13 +41,56 @@ jobs:
             ${{ runner.os }}-test-
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIBase
       - uses: julia-actions/julia-runtest@v1
-      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIBase
+      - name: "KomaMRICore dev setup"
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+      - uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRICore
       - uses: julia-actions/julia-runtest@v1
         with:
+          project: KomaMRICore
+      - name: "KomaMRIFiles dev setup"
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIFiles
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIFiles
+      - name: "KomaMRIPlots dev setup"
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
           project: KomaMRIPlots
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIPlots
+          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
+      - name: "KomaMRI dev setup"
+        shell: julia --color=yes --project {0}
+        run: |
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+          ])
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
@@ -55,6 +98,13 @@ jobs:
         with:
           files: lcov.info
           flags: komamri
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: KomaMRIBase/src
+      - uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
+          flags: base
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRICore/src
@@ -69,18 +119,31 @@ jobs:
         with:
           files: lcov.info
           flags: plots
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: KomaMRIFiles/src
+      - uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
+          flags: files
   docs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1'
       - run: |
           julia --project=docs -e '
             using Pkg
-            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.develop([
+                PackageSpec(path=pwd(), subdir="."),
+                PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+                PackageSpec(path=pwd(), subdir="KomaMRICore"),
+                PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+                PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+            ])
             Pkg.instantiate()'
       - run: |
           julia --project=docs -e '
@@ -91,3 +154,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+  Skip:
+    if: contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip CI 🚫
+        run: echo skip ci

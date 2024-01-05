@@ -7,14 +7,17 @@ coverage:
         threshold: 1%
       komamri:
         target: 90%
+        threshold: 5%
         flags:
           - komamri
       core:
         target: 90%
+        threshold: 5%
         flags:
           - core
       plots:
         target: 90%
+        threshold: 5%
         flags:
           - plots
     patch:

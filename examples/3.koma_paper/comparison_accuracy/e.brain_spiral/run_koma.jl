@@ -19,8 +19,8 @@ seq[2].GR[2].delay = rf_dwell_time_s/2
 seq[2].ADC[1].delay = rf_dwell_time_s/2 + adc_dwell_time_s/2
 seq[2].ADC[1].T    += adc_dwell_time_s
 #Time
-simParams = Dict{String, Any}("return_type"=>"mat")
-warmup = @suppress simulate(obj,seq,sys; simParams) #warmup, to precompile
-signal = simulate(obj,seq,sys; simParams)
+sim_params = Dict{String, Any}("return_type"=>"mat")
+warmup = @suppress simulate(obj,seq,sys; sim_params) #warmup, to precompile
+signal = simulate(obj,seq,sys; sim_params)
 #Export
 matwrite("./signal_koma.mat", Dict("signal" => signal ./ prod(size(obj))); compress = true)

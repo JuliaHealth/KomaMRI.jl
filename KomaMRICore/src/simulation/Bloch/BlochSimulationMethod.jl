@@ -43,12 +43,12 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
-    sim_method::Bloch,
-) where {T<:Real}
+        p::Phantom{T}, 
+        seq::DiscreteSequence{T}, 
+        sig::AbstractArray{Complex{T}},
+        M::Mag{T}, 
+        sim_method::Bloch
+    ) where {T<:Real}
     #Simulation
     #Motion
     Ux, Uy, Uz, flags = get_displacements(p.motion, p.x, p.y, p.z, seq.t)
@@ -63,10 +63,10 @@ function run_spin_precession!(
     else
         ϕ = T(-2π * γ) .* trapz(seq.Δt', Bz)
     end
-    #Mxy preccesion and relaxation, and Mz relaxation
+    #Mxy precession and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time 
+    Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     # Flow
     if flags !== nothing
@@ -131,6 +131,6 @@ function run_spin_excitation!(
         end
     end
     #Acquired signal
-    #sig .= -0.1im #<-- This was to test if an ADC point was inside an RF block
+    #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
     return nothing
 end

@@ -1,4 +1,4 @@
-# This document replicates the results of Figure 15g of the paper "The Return of the Frequency Sweep: 
+# This document replicates the results of Figure 15g of the paper "The Return of the Frequency Sweep:
 # Designing Adiabatic Pulses for Contemporary NMR" by Michael Garwood and Lance DelaBarre.
 using KomaMRI, MAT, PlotlyJS, LinearAlgebra, ProgressMeter
 
@@ -21,13 +21,13 @@ for (i, f0) = enumerate(f0s), (j, Trf) = enumerate(Trfs), (k, ΔB1) = enumerate(
     fmax_sim = 10e3
     Gz = fmax_sim / γ
     seq = Sequence(
-        [Grad(0.,0.); Grad(0.,0.); Grad(Gz,Trf,0);;], 
+        [Grad(0.,0.); Grad(0.,0.); Grad(Gz,Trf,0);;],
         [RF(B1,Trf,Δf,0);;]
         )
-    simParams = Dict{String,Any}("Δt_rf"=>dt)
+    sim_params = Dict{String,Any}("Δt_rf"=>dt)
 
     z = range(-1, 1, 200)
-    M = simulate_slice_profile(seq; simParams, z)
+    M = simulate_slice_profile(seq; sim_params, z)
 
     f = γ*Gz*z
     p[i,j,k,1] = scatter(x=f,y=(1 .- M.z)/2,name="B1/B1_nom=$ΔB1")

@@ -1,5 +1,6 @@
+# API Documentation
 
-This page shows the documentation for the modules, structs, functions, methods and additional components available when importing the **KomaMRI.jl** package. It is very useful for reference when using directly the Julia REPL and when creating custom Julia scripts. Please, don't miss out the section [How to read the API docs](api.md#How-to-read-the-API-docs) which has important considerations to understand general aspects of the docstring structure. The following are the contents of the API Documentation:
+This page provides documentation for the modules, structs, functions, methods, and additional components available when importing the **KomaMRI** package. It serves as a valuable reference when using the **Julia REPL** directly and when creating custom **Julia** scripts. Be sure not to overlook the section [How to read the API docs](api.md#How-to-read-the-API-docs), which contains important information for understanding the general structure of docstrings. The following is the table of contents for the API Documentation:
 
 ```@contents
 Pages = ["api.md"]
@@ -8,11 +9,11 @@ Depth = 3
 
 ## How to read the API docs
 
-The API documentation has predefined "template patterns" which are meant to help the user to understand how to use modules, structs, functions, methods and every aspect necessary in order to take advantage of all the possibilities that **KomaMRI.jl** offers.
+The API documentation includes predefined "template patterns" to assist users in understanding how to use modules, structs, functions, methods, and all the necessary aspects to make the most of what **KomaMRI** has to offer.
 
-These documentation "template patterns" are based from the [Julia Blue Style](https://github.com/invenia/BlueStyle) documentation and other github repositories that works with MRI topics. However, some custom considerations were added for a better understanding and a wider perspective.
+These documentation "template patterns" are based on the J[Julia Blue Style](https://github.com/invenia/BlueStyle)  documentation and other **GitHub** repositories that deal with MRI topics. However, some custom considerations were added to enhance understanding and provide a broader perspective.
 
-Whenever you see a docstring documentation, it will have the following structure:
+When you encounter a docstring documentation, it will have the following structure:
 
 !!! docstring "KomaMRI.component_name — Component"
     ```
@@ -47,18 +48,18 @@ Whenever you see a docstring documentation, it will have the following structure
     julia> out1, out2 = component_name(arg1, arg2; kw1=valkw1, kw2=valkw2)
     ```
 
-The previous docstring block will always have first the way how it is called the component (outputs = component_name(inputs) and next a brief description about what the component does. Then a **note** block will be displayed if necessary. As general rule, the next subsections are optional: **Arguments**, **Keywords**, **Returns**, **References** and **Examples**, however they will be displayed whenever necessary. These subsections are self-explanatory, so it is intuitive to figure out what are they meant for.
+The preceding docstring block will always start with the way the component is called (outputs = component_name(inputs), followed by a brief description of what the component does. If necessary, a **note** block will be displayed. In general, the following subsections are optional: **Arguments**, **Keywords**, **Returns**, **References**, and **Examples**, but they will be provided as needed. These subsections are self-explanatory, making it intuitive to understand their purpose.
 
-Note that every subitem in the sections **Arguments**, **Keywords** and **Returns** are variables. They have practical information enclosed in parentheses plus a description. They information in parentheses is optional but very useful if it is present:
-* `::type`: is the suggested type of the variable. If the input variable is of type `::type`, then nothing can go wrong, but it is always possible to test other types. If the variable is an output, then it will always try to be forced to the type `::type`.
-* `=value`: sometimes for the inputs the is defined a default value if it is not assigned by the user.
-* `[unit]`: this is the suggested physical unit of measure of the variable. Everything it is going to be fine if you are stick with these units of measure.
-* opts: [`opt1`, `opt2`, ...]: sometimes the input value can only be interpreted if it is part of some predefined values.
+Please note that every subitem in the sections **Arguments**, **Keywords**, and **Returns** represents variables. They include practical information along with a description. The information enclosed in parentheses is optional but highly useful when provided.
+* `::type`: is the suggested type for the variable. If the input variable is of type `::type`, there won't be any issues, but it's always possible to test other subtypes. If the variable is an output, it will be forced to the type `::type` whenever possible.
+* `=value`: sometimes, for the inputs, a default value is defined if it is not assigned by the user.
+* `[unit]`: this is the suggested physical unit of measure for the variable. Everything will be fine if you stick with these units of measure.
+* opts: [`opt1`, `opt2`, ...]: sometimes, the input value can only be interpreted if it is one of the predefined values.
 
 ## Structs
 
 ```@meta
-CurrentModule = KomaMRICore
+CurrentModule = KomaMRIBase
 ```
 
 ### `Scanner`
@@ -99,7 +100,112 @@ ADC
 Delay
 ```
 
-## Read Data
+
+## Sequence-related Functions
+
+### `dur`
+```@docs
+dur
+```
+
+### `rotx`
+```@docs
+rotx
+```
+
+### `roty`
+```@docs
+roty
+```
+
+### `rotz`
+```@docs
+rotz
+```
+
+### `get_kspace`
+```@docs
+get_kspace
+```
+
+### `get_M1`
+```@docs
+get_M1
+```
+
+### `get_M2`
+```@docs
+get_M2
+```
+
+### `get_flip_angles`
+```@docs
+get_flip_angles
+```
+
+### `is_RF_on`
+```@docs
+is_RF_on
+```
+
+### `is_GR_on`
+```@docs
+is_GR_on
+```
+
+### `is_ADC_on`
+```@docs
+is_ADC_on
+```
+
+
+## Prebuilt Sequence Building Blocks
+
+```@meta
+CurrentModule = KomaMRIBase
+```
+
+### `PulseDesigner`
+```@docs
+PulseDesigner
+```
+
+### `PulseDesigner.RF_hard`
+```@docs
+PulseDesigner.RF_hard
+```
+
+### `PulseDesigner.RF_sinc`
+```@docs
+PulseDesigner.RF_sinc
+```
+
+### `PulseDesigner.EPI`
+```@docs
+PulseDesigner.EPI
+```
+
+### `PulseDesigner.radial_base`
+```@docs
+PulseDesigner.radial_base
+```
+
+### `PulseDesigner.spiral_base`
+```@docs
+PulseDesigner.spiral_base
+```
+
+### `PulseDesigner.EPI_example`
+```@docs
+PulseDesigner.EPI_example
+```
+
+
+## Input/Output
+
+```@meta
+CurrentModule = KomaMRIFiles
+```
 
 ### `read_seq`
 ```@docs
@@ -116,34 +222,40 @@ read_phantom_jemris
 read_phantom_MRiLab
 ```
 
-### `signal_to_raw_data`
-```@docs
-signal_to_raw_data
+
+## Functor Functions
+
+```@meta
+CurrentModule = KomaMRICore
 ```
 
-## Pulse Design
-
-### `PulseDesigner`
+### `f32`
 ```@docs
-PulseDesigner
+f32
 ```
 
-### `PulseDesigner.RF_hard`
+### `f64`
 ```@docs
-PulseDesigner.RF_hard
+f64
 ```
 
-### `PulseDesigner.EPI`
+### `cpu`
 ```@docs
-PulseDesigner.EPI
+cpu
 ```
 
-### `PulseDesigner.radial_base`
+### `gpu`
 ```@docs
-PulseDesigner.radial_base
+gpu
 ```
+
 
 ## Simulation
+
+### `default_sim_params`
+```@docs
+default_sim_params
+```
 
 ### `simulate`
 ```@docs
@@ -154,6 +266,17 @@ simulate
 ```@docs
 simulate_slice_profile
 ```
+
+### `signal_to_raw_data`
+```@docs
+signal_to_raw_data
+```
+
+### `Mag`
+```@docs
+Mag
+```
+
 
 ## Plots
 
@@ -181,6 +304,26 @@ plot_kspace
 plot_M0
 ```
 
+### `plot_M1`
+```@docs
+plot_M1
+```
+
+### `plot_M2`
+```@docs
+plot_M2
+```
+
+### `plot_eddy_currents`
+```@docs
+plot_eddy_currents
+```
+
+### `plot_slew_rate`
+```@docs
+plot_slew_rate
+```
+
 ### `plot_signal`
 ```@docs
 plot_signal
@@ -189,4 +332,26 @@ plot_signal
 ### `plot_image`
 ```@docs
 plot_image
+```
+
+### `plot_dict`
+```@docs
+plot_dict
+```
+
+### `plot_seqd`
+```@docs
+plot_seqd
+```
+
+
+## UI
+
+```@meta
+CurrentModule = KomaMRI
+```
+
+### `KomaUI`
+```@docs
+KomaUI
 ```

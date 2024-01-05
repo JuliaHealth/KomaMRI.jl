@@ -2,7 +2,7 @@
 *.jl.cov
 *.jl.mem
 .DS_Store
-*Manifest.toml
+**/Manifest.toml
 /test/Manifest.toml
 /dev/
 .vscode/settings.json
@@ -14,6 +14,7 @@ src/examples/sysimageSpinLab.dll
 *.gve
 *.jld2
 *.gif
+!docs/src/assets/*.gif
 *.out
 *.txt
 *.nb
@@ -22,6 +23,9 @@ qte_timings.txt
 *.nsys-rep
 *.mem
 docs/src/generated/
+docs/src/assets/logo*
+docs/src/assets/icon*
+src/ui/assets/*
 examples/3.koma_paper/comparison_accuracy/**/*.mrd
 examples/3.koma_paper/mrf/**/*.mrd
 examples/3.koma_paper/comparison_accuracy/**/*.mat

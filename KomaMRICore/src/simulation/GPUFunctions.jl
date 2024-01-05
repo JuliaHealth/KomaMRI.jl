@@ -8,17 +8,15 @@ const use_cuda = Ref{Union{Nothing,Bool}}(nothing)
 
 Simple function to print the CUDA devices available in the host.
 """
-print_gpus() = begin
+function print_gpus()
     check_use_cuda()
     if use_cuda[]
-	    println( "$(length(devices())) CUDA capable device(s)." )
-	    for (i,d) = enumerate(devices())
-	    	u = i == 1 ? "*" : " "
-	    	println( "  ($(i-1)$u) $(name(d))")
-	    end
+	    cuda_devices = [Symbol("($(i-1)$(i == 1 ? "*" : " "))") => name(d) for (i,d) = enumerate(devices())]
+		@info "$(length(devices())) CUDA capable device(s)." cuda_devices...
     else
-        println("0 CUDA capable devices(s).")
+        @info "0 CUDA capable devices(s)."
     end
+	return
 end
 
 """
@@ -27,9 +25,6 @@ Checks if the PC has a functional CUDA installation. Inspired by Flux's `check_u
 function check_use_cuda()
 	if use_cuda[] === nothing
 		use_cuda[] = CUDA.functional()
-		if use_cuda[] && !CUDA.has_cudnn()
-		@warn "CUDA.jl found cuda, but did not find libcudnn. Some functionality will not be available."
-		end
 		if !(use_cuda[])
 		@info """The GPU function is being called but the GPU is not accessible.
 					Defaulting back to the CPU. (No action is required if you want to run on the CPU).""" maxlog=1
@@ -52,7 +47,11 @@ adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
 
 Tries to move `x` to the current GPU device. Inspired by Flux's `gpu` function.
 
-This works for functions, and any struct marked with [`@functor`](@ref).
+This works for functions, and any struct marked with `@functor`.
+
+Use [`cpu`](@ref) to copy back to ordinary `Array`s.
+
+See also [`f32`](@ref) and [`f64`](@ref) to change element type only.
 
 # Examples
 ```julia
@@ -75,7 +74,9 @@ adapt_storage(to::KomaCPUAdaptor, x::AbstractRange) = x
 
 Tries to move object to CPU. Inspired by Flux's `cpu` function.
 
-This works for functions, and any struct marked with [`@functor`](@ref).
+This works for functions, and any struct marked with `@functor`.
+
+See also [`gpu`](@ref).
 
 # Examples
 ```julia
@@ -93,15 +94,21 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs #Type piracy
 
 """
     f32(m)
+
 Converts the `eltype` of model's parameters to `Float32`
-Recurses into structs marked with [`@functor`](@ref).
+Recurses into structs marked with `@functor`.
+
+See also [`f64`](@ref).
 """
 f32(m) = paramtype(Float32, m)
 
 """
     f64(m)
+
 Converts the `eltype` of model's parameters to `Float64` (which is Koma's default)..
-Recurses into structs marked with [`@functor`](@ref).
+Recurses into structs marked with `@functor`.
+
+See also [`f32`](@ref).
 """
 f64(m) = paramtype(Float64, m)
 
