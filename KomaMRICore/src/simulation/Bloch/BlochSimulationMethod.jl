@@ -7,16 +7,23 @@ include("Magnetization.jl") #Defines Mag <: SpinStateRepresentation
 
 output_Ndim(sim_method::Bloch) = 2 #time-points x coils
 
-function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::Bloch) where {T<:Real}
+function sim_output_dim(
+    obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::Bloch
+) where {T<:Real}
     return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
 end
 
 """Magnetization initialization for Bloch simulation method."""
-function initialize_spins_state(obj::Phantom{T}, sim_method::Bloch) where {T<:Real}
+function initialize_spins_state(
+    obj::Phantom{T}, seq::DiscreteSequence{T}, sim_method::Bloch, sim_params::Dict
+) where {T<:Real}
     Nspins = length(obj)
     Mxy = zeros(T, Nspins)
     Mz = obj.ρ
     Xt = Mag{T}(Mxy, Mz)
+
+    obj.motion = initialize_motion(obj.motion, seq.t, sim_params)
+
     return Xt, obj
 end
 
@@ -35,14 +42,19 @@ precession.
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
-    M::Mag{T}, sim_method::Bloch, Ux, Uy, Uz, resetmag) where {T<:Real}
+function run_spin_precession!(
+    p::Phantom{T},
+    seq::DiscreteSequence{T},
+    sig::AbstractArray{Complex{T}},
+    M::Mag{T},
+    sim_method::Bloch,
+) where {T<:Real}
     #Simulation
     #Motion
+    Ux, Uy, Uz, flags = get_displacements(p.motion, p.x, p.y, p.z, seq.t)
     xt = Ux !== nothing ? p.x .+ Ux : p.x
     yt = Uy !== nothing ? p.y .+ Uy : p.y
     zt = Uz !== nothing ? p.z .+ Uz : p.z
-    
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -54,20 +66,16 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     #Mxy preccesion and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-
     Mxy = M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2) #This assumes Δw and T2 are constant in time 
-    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) 
-
+    M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     # Flow
-    if resetmag !== nothing
-        reset = any(resetmag;dims=2)
-        resetmag = .!(cumsum(resetmag,dims=2) .>= 1)
-        Mxy .*= resetmag
+    if flags !== nothing
+        reset = any(flags; dims=2)
+        flags = .!(cumsum(flags; dims=2) .>= 1)
+        Mxy .*= flags
         M.z[reset] = p.ρ[reset]
     end
-    
     M.xy .= Mxy[:, end]
-
     #Acquired signal
     sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
@@ -88,17 +96,22 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
-function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-                              M::Mag{T}, sim_method::Bloch, Ux, Uy, Uz, resetmag) where {T<:Real}
+function run_spin_excitation!(
+    p::Phantom{T},
+    seq::DiscreteSequence{T},
+    sig::AbstractArray{Complex{T}},
+    M::Mag{T},
+    sim_method::Bloch,
+) where {T<:Real}
     #Simulation
     for i in 1:length(seq)
         s = seq[i]
-
+        p_i = p[:, i]
         #Motion
-        xt = Ux !== nothing ? p.x + reshape(@view(Ux[:,i]),(length(p.x),)) : p.x
-        yt = Uy !== nothing ? p.y + reshape(@view(Uy[:,i]),(length(p.y),)) : p.y
-        zt = Uz !== nothing ? p.z + reshape(@view(Uz[:,i]),(length(p.z),)) : p.z
-
+        Ux, Uy, Uz, flags = get_displacements(p_i.motion, p.x, p.y, p.z, s.t)
+        xt = Ux !== nothing ? p.x .+ Ux : p.x
+        yt = Uy !== nothing ? p.y .+ Uy : p.y
+        zt = Uz !== nothing ? p.z .+ Uz : p.z
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
@@ -106,13 +119,13 @@ function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
         B[B .== 0] .= eps(T)
         #Spinor Rotation
         φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
-        mul!( Q(φ, s.B1 ./ B, Bz ./ B), M )
+        mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
-        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)                                      
-        M.z  .= M.z  .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
+        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
+        M.z .= M.z .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
         # Flow
-        if resetmag !== nothing
-            reset = any(resetmag;dims=2)
+        if flags !== nothing
+            reset = any(flags; dims=2)
             M.xy[reset] .= 0
             M.z[reset] = p.ρ[reset]
         end
