@@ -107,6 +107,12 @@ f64(m) = paramtype(Float64, m)
 
 #The functor macro makes it easier to call a function in all the parameters
 @functor Phantom
+
+@functor NoMotion
+@functor SimpleMotion
+@functor ArbitraryMotion
+@functor ExplicitArbitraryMotion
+
 @functor Spinor
 @functor DiscreteSequence
 

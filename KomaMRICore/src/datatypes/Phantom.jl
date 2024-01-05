@@ -1,4 +1,10 @@
-abstract type MotionModel end
+abstract type MotionModel{T <: Real} end
+
+#Motion models:
+include("phantom/motion/SimpleMotion.jl") 
+include("phantom/motion/ArbitraryMotion.jl") 
+include("phantom/motion/NoMotion.jl")
+
 
 """
     phantom = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
@@ -44,7 +50,7 @@ The Phantom struct.
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 
 	#Motion
-	mov::MotionModel = SimpleMotion()
+	motion = NoMotion()
 end
 
 # Phantom() = Phantom(name="spin",x=zeros(1,1))
@@ -52,7 +58,7 @@ size(x::Phantom) = size(x.ρ)
 Base.length(x::Phantom) = length(x.ρ)
 
 """Separate object spins in a sub-group."""
-Base.getindex(obj::Phantom, p::AbstractRange) = begin
+Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
 	Phantom(name=obj.name,
 			x=obj.x[p],
 			y=obj.y[p],
@@ -66,31 +72,16 @@ Base.getindex(obj::Phantom, p::AbstractRange) = begin
 			Dλ1=obj.Dλ1[p],
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
-			mov=obj.mov[p]
+			motion=obj.motion[p]
 			#Χ=obj.Χ[p], #TODO!
 			)
 end
-Base.getindex(obj::Phantom, p::AbstractVector) = begin
-	Phantom(name=obj.name,
-			x=obj.x[p],
-			y=obj.y[p],
-			z=obj.z[p],
-			ρ=obj.ρ[p],
-			T1=obj.T1[p],
-			T2=obj.T2[p],
-			T2s=obj.T2s[p],
-			Δw=obj.Δw[p],
-			#Diff=obj.Diff[p], #TODO!
-			Dλ1=obj.Dλ1[p],
-			Dλ2=obj.Dλ2[p],
-			Dθ=obj.Dθ[p],
-			mov=obj.mov[p]
-			#Χ=obj.Χ[p], #TODO!
-			)
-end
+
+
 """Separate object spins in a sub-group."""
-Base.view(obj::Phantom, p::AbstractRange) = begin
-	@views Phantom(name=obj.name,
+Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}, 
+							q::Union{AbstractRange,AbstractVector,Colon}) = begin
+	Phantom(name=obj.name,
 			x=obj.x[p],
 			y=obj.y[p],
 			z=obj.z[p],
@@ -103,11 +94,13 @@ Base.view(obj::Phantom, p::AbstractRange) = begin
 			Dλ1=obj.Dλ1[p],
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
-			mov=obj.mov[p]
+			motion=obj.motion[p,q]
 			#Χ=obj.Χ[p], #TODO!
 			)
 end
-Base.view(obj::Phantom, p::AbstractVector) = begin
+
+"""Separate object spins in a sub-group."""
+Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
 	@views Phantom(name=obj.name,
 			x=obj.x[p],
 			y=obj.y[p],
@@ -121,7 +114,26 @@ Base.view(obj::Phantom, p::AbstractVector) = begin
 			Dλ1=obj.Dλ1[p],
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
-			mov=obj.mov[p]
+			motion=obj.motion[p]
+			#Χ=obj.Χ[p], #TODO!
+			)
+end
+Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}, 
+						q::Union{AbstractRange,AbstractVector,Colon}) = begin
+	@views Phantom(name=obj.name,
+			x=obj.x[p],
+			y=obj.y[p],
+			z=obj.z[p],
+			ρ=obj.ρ[p],
+			T1=obj.T1[p],
+			T2=obj.T2[p],
+			T2s=obj.T2s[p],
+			Δw=obj.Δw[p],
+			#Diff=obj.Diff[p], #TODO!
+			Dλ1=obj.Dλ1[p],
+			Dλ2=obj.Dλ2[p],
+			Dθ=obj.Dθ[p],
+			motion=obj.motion[p,q]
 			#Χ=obj.Χ[p], #TODO!
 			)
 end
@@ -142,7 +154,7 @@ end
 		Dλ1=[s1.Dλ1;s2.Dλ1],
 		Dλ2=[s1.Dλ2;s2.Dλ2],
 		Dθ=[s1.Dθ;s2.Dθ],
-		mov=s1.mov+s2.mov
+		motion=s1.motion+s2.motion
 		#Χ=obj.Χ[p], #TODO!
 	)
 end
@@ -164,7 +176,7 @@ end
 		Dλ1=obj.Dλ1,
 		Dλ2=obj.Dλ2,
 		Dθ=obj.Dθ,
-		mov=obj.mov
+		motion=obj.motion
 		#Χ=obj.Χ[p], #TODO!
 	)
 end
@@ -179,6 +191,7 @@ function get_dims(obj::Phantom)
 	if obj.z != zeros(length(obj.x)) dims[3] = 1 end
 	dims
 end
+
 
 # Movement related commands
 # StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
@@ -258,7 +271,7 @@ heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false; heart_rate=60) = begin
 					x=x[ρ.!=0],y=y[ρ.!=0],
 					ρ=ρ[ρ.!=0],T1=T1[ρ.!=0],T2=T2[ρ.!=0],
 					Dλ1=Dλ1[ρ.!=0],Dλ2=Dλ2[ρ.!=0],Dθ=Dθ[ρ.!=0],
-					mov=SimpleMotion(ux=ux,uy=uy))
+					motion=SimpleMotion(ux=ux,uy=uy))
 	heart
 end
 
@@ -550,7 +563,7 @@ function read_phantom(filename::String)
 		motion = fid["motion"]
 		model = read_attribute(motion,"model")
 		if model == "Simple"
-		# ---------- PENDING -----------
+			
 		elseif model == "Arbitrary"
 			segments = motion["segments"]
 			N = read_attribute(segments, "N")
@@ -578,7 +591,7 @@ function read_phantom(filename::String)
 				end
 			end
 
-			obj.mov = ArbitraryMotion{Float64}(dur=dur,
+			obj.motion = ArbitraryMotion{Float64}(dur=dur,
 											   K=K,
 										       Δx=Δx,
 										       Δy=Δy,
@@ -609,7 +622,7 @@ function write_phantom(obj::Phantom,filename::String)
 	HDF5.attributes(fid)["Ns"] = length(obj.x)
 	dims = get_dims(obj)
 	HDF5.attributes(fid)["Dims"] = sum(dims)
-	dynamic = is_dynamic(obj.mov)
+	dynamic = is_dynamic(obj.motion)
 	HDF5.attributes(fid)["Dynamic"] = Int(dynamic)     # 0=False, 1=True
 
 	fields = fieldnames(Phantom)[2:end]
@@ -633,26 +646,34 @@ function write_phantom(obj::Phantom,filename::String)
 	# Motion
 	if dynamic
 		motion = create_group(fid,"motion")
-		if typeof(obj.mov) <: SimpleMotion
-		# ---------- PENDING -----------
-		elseif typeof(obj.mov) <: ArbitraryMotion
-			print("")
+		if typeof(obj.motion) <: SimpleMotion
+			# HDF5.attributes(motion)["model"] = "Simple"
+			# tmp_path = tempname()*".jld2"
+			# JLD2.save(tmp_path,Dict("ux" => obj.motion.ux,
+			# 						"uy" => obj.motion.uy,
+			# 						"uz" => obj.motion.uz))
+			# tmp = h5open(tmp_path,"r")
+			# for key in keys(tmp)
+			# 	copy_object(tmp,key,motion,key)
+			# end
+
+		elseif typeof(obj.motion) <: ArbitraryMotion
 			HDF5.attributes(motion)["model"] = "Arbitrary"
 
 			segments = create_group(motion, "segments")
-			HDF5.attributes(segments)["N"] = length(obj.mov.dur) 
-			HDF5.attributes(segments)["K"] = obj.mov.K
-			segments["dur"] = obj.mov.dur
+			HDF5.attributes(segments)["N"] = length(obj.motion.dur) 
+			HDF5.attributes(segments)["K"] = obj.motion.K
+			segments["dur"] = obj.motion.dur
 
-			itp = get_itp_functions(obj.mov)[1]
-			is_mov_on = vcat((itp .!== nothing),is_fluid(obj.mov)) 
+			itp = get_itp_functions(obj.motion)[1]
+			is_mov_on = vcat((itp .!== nothing),is_fluid(obj.motion)) 
 			mov_dims = ["motionx","motiony","motionz","resetmag"] 
 			Δ = fieldnames(ArbitraryMotion)[3:6]
 			for i in 1:4
 				if is_mov_on[i]
 					motion_i = create_group(motion,mov_dims[i])
 					HDF5.attributes(motion_i)["type"] = "Explicit"
-					values = i != 4 ? getfield(obj.mov,Δ[i]) : Int.(getfield(obj.mov,Δ[i]))
+					values = i != 4 ? getfield(obj.motion,Δ[i]) : Int.(getfield(obj.motion,Δ[i]))
 					motion_i["values"] = values
 				end
 			end
@@ -666,324 +687,106 @@ end
 
 
 
+function read_phantom_MAT(folder::String; ss::Int=1, Δx=1)
+	ρ  = matread(folder*"mapaPD.mat")["PD"]
+	T1 = matread(folder*"mapaT1.mat")["T1"]
+	T2 = matread(folder*"mapaT2.mat")["T2"]
+
+	# Subsampling
+	ρ  = ρ[1:ss:end,1:ss:end,1:ss:end]
+	T1 = T1[1:ss:end,1:ss:end,1:ss:end]
+	T2 = T2[1:ss:end,1:ss:end,1:ss:end]
+
+	# Clip outliers
+	T1_percentile = percentile(T1[:],99)
+	T1[T1.>=T1_percentile].= T1_percentile;
+
+	T2_percentile = percentile(T2[:],99)
+	T2[T2.>=T2_percentile].= T2_percentile;
+
+	ρ_percentile = percentile(ρ[:],99)
+	ρ[ρ.>=ρ_percentile].= ρ_percentile;
+
+	# Normalize ρ between 0 and 1
+	mini, maxi = extrema(ρ)
+    ρ = (ρ .- mini) ./ (maxi - mini);
+
+	# Take small ρ values to 0
+	thresh = 0.2
+	ρ[ρ.<=thresh] .= 0
+
+	# Convert miliseconds into seconds
+	T1 .*= 1e-3
+	T2 .*= 1e-3
+
+	Δx *= 1e-3*ss  
+
+	M, N, L = size(ρ)
+
+	FOVx = (M-1)*Δx
+	FOVy = (N-1)*Δx
+	FOVz = (L-1)*Δx
+
+	println("Phantom dimensions: ($FOVx x $FOVy x $FOVz) m")
+
+	xx = reshape(-FOVx/2:Δx:FOVx/2,M,1,1) 
+    yy = reshape(-FOVy/2:Δx:FOVy/2,1,N,1) 
+	zz = reshape(-FOVz/2:Δx:FOVz/2,1,1,L) 
+
+	# Grid
+    # X = 1*xx .+ 0*yy .+ 0*zz
+	# Y = 0*xx .+ 1*yy .+ 0*zz
+	# Z = 0*xx .+ 0*yy .+ 1*zz
+
+	X = matread(folder*"X.mat")["X"] .* 1e-3
+	Y = matread(folder*"Y.mat")["Y"] .* 1e-3
+	Z = matread(folder*"Z.mat")["Z"] .* 1e-3
+
+	X  = X[1:ss:end,1:ss:end,1:ss:end]
+	Y  = Y[1:ss:end,1:ss:end,1:ss:end]
+	Z  = Z[1:ss:end,1:ss:end,1:ss:end]
 
 
 
+	println("Number of spins: ", length(ρ[ρ.!=0]))
 
+	name = split(folder,"/")[end]
 
+	deltaX = KomaMRICore.matread(folder*"deltaX.mat")["deltaX"] .* 1e-3
+	deltaY = KomaMRICore.matread(folder*"deltaY.mat")["deltaY"] .* 1e-3
+	deltaZ = KomaMRICore.matread(folder*"deltaZ.mat")["deltaZ"] .* 1e-3
 
+	deltaX  = deltaX[1:ss:end, 1:ss:end, 1:ss:end, :]
+	deltaY  = deltaY[1:ss:end, 1:ss:end, 1:ss:end, :]
+	deltaZ  = deltaZ[1:ss:end, 1:ss:end, 1:ss:end, :]
 
+	K = size(deltaX)[4] + 1
 
+	Δx = zeros(length(ρ[ρ.!=0]),K-1)
+	Δy = zeros(length(ρ[ρ.!=0]),K-1)
+	Δz = zeros(length(ρ[ρ.!=0]),K-1)
 
-# UNUSED FUNCTIONS --------------------
-
-"""
-phantom = read_phantom_file(filename)
-
-Reads a (.phantom) file and creates a Phantom structure from it
-"""
-function read_phantom_file(filename)
-    fid = HDF5.h5open(filename,"r")
-
-	name    = read_attribute(fid,"Name")
-	version = read_attribute(fid,"Version")
-    dims    = read_attribute(fid,"Dims")
-    dynamic = Bool(read_attribute(fid,"Dynamic"))
-    Ns      = read_attribute(fid,"Ns")
-    
-    # --------------- Spin positions -----------------
-    axis = HDF5.keys(fid["position"])
-    if dims == length(axis)
-        x = zeros(Ns)
-        y = zeros(Ns)
-        z = zeros(Ns)
-
-        if "x" in axis
-            x = read(fid["position/x"])
-            if length(x) != Ns
-                print("X vector length mismatch")   
-            end
-        end
-        if "y" in axis
-            y = read(fid["position/y"])
-            if length(y) != Ns
-                print("Y vector length mismatch")   
-            end
-        end
-        if "z" in axis
-            z = read(fid["position/z"])
-            if length(z) != Ns
-                print("Z vector length mismatch")   
-            end
-        end
-    else
-        print("Error: Phantom dimensions mismatch")
-    end
-
-    # ----------------- Contrast --------------------
-    contrast = fid["contrast"]	
-
-    # Rho
-    rho = contrast["rho"]
-    rho_type = read_attribute(rho,"type")
-
-    if rho_type == "Explicit"
-        rho_values = read(rho["values"])
-		if Ns != length(rho_values)
-			print("Error: rho vector dimensions mismatch")
-		end
-
-    elseif rho_type == "Default"
-        rho_values = ones(Ns)
-
-    elseif rho_type == "Indexed"
-        index = read(rho["values"]) 
-		if Ns == length(index)
-			rho_table = read(rho["table"])
-			Nrho = read_attribute(rho,"N")
-			if Nrho == length(rho_table)
-				rho_values = rho_table[index]
-			else
-				print("Error: rho table dimensions mismatch")
-			end
-		else
-			print("Error: rho vector dimensions mismatch")
-		end
-    end
-
-
-    # T1
-    T1 = contrast["T1"]
-    T1_type = read_attribute(T1, "type")
-
-    if T1_type == "Explicit"
-        T1_values = read(T1["values"])
-		if Ns != length(T1_values)
-			print("Error: T1 vector dimensions mismatch")
-		end
-
-    elseif T1_type == "Default"
-        T1_values = ones(Ns)
-
-    elseif T1_type == "Zero"
-        T1_values = 1e-6 .* ones(Ns)
-
-    elseif T1_type == "Indexed"
-        index = read(T1["values"]) 
-		if Ns == length(index)
-			T1_table = read(T1["table"])
-			NT1 = read_attribute(T1,"N")
-			if NT1 == length(T1_table)
-				T1_values = T1_table[index]
-			else
-				print("Error: T1 table dimensions mismatch")
-			end
-		else
-			print("Error: T1 vector dimensions mismatch")
-		end
-    end
-
-    # T2
-    T2 = contrast["T2"]
-    T2_type = read_attribute(T2, "type")
-
-    if T2_type == "Explicit"
-        T2_values = read(T2["values"])
-		if Ns != length(T2_values)
-			print("Error: T2 vector dimensions mismatch")
-		end
-
-    elseif  T2_type == "Default"
-        T2_values = 0.1 .* ones(Ns)
-
-    elseif  T2_type == "Inf"
-        T2_values = ones(Ns)
-
-    elseif  T2_type == "Indexed"
-        index = read(T2["values"]) 
-		if Ns == length(index)
-			T2_table = read(T2["table"])
-			NT2 = read_attribute(T2,"N")
-			if NT2 == length(T2_table)
-				T2_values = T2_table[index]
-			else
-				print("Error: T2 table dimensions mismatch")
-			end
-		else
-			print("Error: T2 vector dimensions mismatch")
-		end
-    end
-
-    # Δw
-    Deltaw = contrast["Deltaw"]
-    Deltaw_type = read_attribute(Deltaw, "type")
-
-    if Deltaw_type == "Explicit"
-        Deltaw_values = read(Deltaw["values"])
-		if Ns != length(Deltaw_values)
-			print("Error: Deltaw vector dimensions mismatch")
-		end
-
-    elseif  Deltaw_type == "Default"
-        Deltaw_values = 0.1 .* ones(Ns)
-
-    elseif  Deltaw_type == "Indexed"
-        index = read(Deltaw["values"]) 
-		if Ns == length(index)
-			Deltaw_table = read(Deltaw["table"])
-			NDeltaw = read_attribute(Deltaw,"N")
-			if NDeltaw == length(Deltaw_table)
-				Deltaw_values = Deltaw_table[index]
-			else
-				print("Error: Deltaw table dimensions mismatch")
-			end
-		else
-			print("Error: Deltaw vector dimensions mismatch")
-		end
-    end
-
-    # ----------------- Diffusion --------------------
-    # NOT IMPLEMENTED
-
-    # ----------------- Motion --------------------
-	if dynamic # Dynamic phantom
-		motion = fid["motion"]
-		keys = HDF5.keys(motion)
-
-		segments = motion["segments"]
-		N = read_attribute(segments, "N")
-		K = read_attribute(segments, "K")
-		dur = read(segments["dur"])
-
-		# Motion
-		Δx = zeros(Ns,K-1)
-		Δy = zeros(Ns,K-1)
-		Δz = zeros(Ns,K-1)
-
-		for key in keys
-			if key != "segments"
-				type = read_attribute(motion[key], "type")
-
-				if type == "Explicit"
-					deltas = read(motion[key]["values"])
-					if Ns != length(deltas[:,1])
-						print("Error: motion vector dimensions mismatch")
-					end
-
-				elseif type == "Indexed"
-					index = read(motion[key]["values"]) 
-					if Ns == length(index)
-						table = read(motion[key]["table"])
-						N = read_attribute(motion[key],"N")
-						if N == length(table[:,1])
-							deltas = table[index]
-						else
-							print("Error: motion table dimensions mismatch")
-						end
-					else
-						print("Error: motion vector dimensions mismatch")
-					end
-				end
-
-				if 	   key == "motionx"
-					Δx = deltas
-				elseif key == "motiony"
-					Δy = deltas
-				elseif key == "motionz"
-					Δz = deltas
-				end
-
-				if length(dur) != N
-					print("Error")
-				end
-
-				if length(deltas[1,:]) != K-1
-					print("Error")
-				end
-
-				"""
-				# Here we should process motion values. First column is the motion model ID
-				# and the rest of columns contain the values of the movement parameters for that model
-
-				motion_models = values[:,1]
-				β = Float32.(values[:,2:end])
-				u = [FuncWrapper((t)->0) for i in 1:Ns]
-
-				for i in 1:Ns
-					# 1. Linear interpolation of one segment (Constant speed): u(t) = β0 + β1t
-					if motion_models[i] == 1
-						u[i].f = (t) -> β[i,1] .+ β[i,2] .* t
-					end	
-
-					# 2. Linear interpolation of K segments (...)
-					# 3. Cubic interpolation of one segment (...)
-					# 4. Cubic interpolation of K segments (...)
-				end
-
-				phantom.dur = dur
-				phantom.K = K
-
-				pieces = cumsum(reduce(vcat, [[dur[j]/K for i in 1:K] for j in 1:length(dur)])', dims=2)
-				pieces = vec(hcat(0,pieces))
-				
-				u = [FuncWrapper((t)-> begin
-									Δ_vector = vec(hcat(0,deltas[i,:]',0))
-
-									# TODO: finish interpolation
-
-
-									
-								end) 
-					for i in 1:Ns]
-				"""
-			end
-		end
-
-		mov = ArbitraryMotion{Float64}(dur=dur,
-									   K=K,
-									   Δx=Δx,
-									   Δy=Δy,
-									   Δz=Δz)
-
-	else # Static phantom
-		mov = SimpleMotion()
+	for i in 1:K-1
+		Δx[:,i] = deltaX[:,:,:,i][ρ.!=0]
+		Δy[:,i] = deltaY[:,:,:,i][ρ.!=0]
+		Δz[:,i] = deltaZ[:,:,:,i][ρ.!=0]
 	end
 
-	phantom = Phantom{Float64}(name=name,
-							   x=x,
-							   y=y,
-							   z=z,
-							   ρ=rho_values,
-							   T1=T1_values,
-							   T2=T2_values,
-							   mov=mov)
 
-	close(fid)
+	resetmag = BitMatrix(zeros(length(ρ[ρ.!=0]),K))
 
+	phantom = Phantom{Float64}(name="Heart XCAT",
+                          		x=X[ρ.!=0],
+                          		y=Y[ρ.!=0],
+                          		z=Z[ρ.!=0],
+                          		ρ=ρ[ρ.!=0],
+                          		T1=T1[ρ.!=0],
+                          		T2=T2[ρ.!=0],
+								motion = ArbitraryMotion(dur=[1.0],
+													  K=K,
+													  Δx=Δx,
+													  Δy=Δy,
+													  Δz=Δz,
+													  resetmag=resetmag))
 	phantom
 end
-
-
-"""
-function time_partitioner(t::AbstractVector, dur::AbstractVector, pieces::AbstractVector)
-	t_aux = t
-	aux = []
-	while length(t_aux) > 0
-		push!(aux,t_aux[t_aux.<= sum(dur)])
-		filter!(x -> x > sum(dur), t_aux)
-
-		if length(t_aux) > 0
-			t_aux .-= sum(dur)
-		end
-	end
-
-	times = []
-	for cycle in aux
-		for i in 1:length(pieces)-1
-			push!(times,filter(x -> x>=pieces[i] && x<pieces[i+1], cycle))
-		end
-	end
-
-	times
-end
-"""

@@ -59,7 +59,7 @@ export read_seq
 export signal_to_raw_data
 #Phantom
 export brain_phantom2D, brain_phantom3D, read_phantom_jemris, read_phantom_MRiLab, read_phantom_NIfTI, read_phantom, write_phantom
-export initialize_motion
+export MotionModel, SimpleMotion, NoMotion, ArbitraryMotion, ExplicitArbitraryMotion
 #Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 #Secondary
