@@ -173,31 +173,3 @@ get_theo_Gi(seq, idx) = begin
 	Interpolations.deduplicate_knots!(t; move_knots=true)
 	return (t, G)
 end
-
-"""
-    t, r = get_theo_rf(seq, idx)
-
-Get the theoretical RF timings and amplitude of a sequence.
-
-!!! note
-    Experimental, not being used yet.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `idx`: (`::Int64`, opts=[1, 2]) it selects 1:B1 or 2:Δf of the RF
-
-# Returns
-- `t`: (`::Vector{Float64}`) time key points
-- `r`: (`::Vector{Float64}`) amplitude key points
-"""
-get_theo_RF(seq, idx) = begin
-	N = length(seq)
-	T0 = get_block_start_times(seq)
-	t = vcat([get_theo_t(seq.RF[i]) .+ T0[i] for i=1:N]...)
-	R = vcat([get_theo_A(seq.RF[i]; off_val=0) for i=1:N]...)
-	#Removing duplicated points
-	#TODO: do this properly. As it is now it generates a bug for slew rates that are too high
-	mask = (G .== 0)
-	# Interpolations.deduplicate_knots!(t; move_knots=true)
-	return (t[mask], R[mask])
-end
