@@ -1,6 +1,5 @@
-@with_kw mutable struct ArbitraryMotion{T} <: MotionModel
-    # Segments
-	dur::AbstractVector{T} = [1]
+@with_kw mutable struct ArbitraryMotion{T} <: MotionModel{T}
+	dur::AbstractVector{T} = [1.0]
 	K::Int = 2
 
 	# Motion
@@ -12,31 +11,23 @@
 end
 
 function ArbitraryMotion(Ns::Int)
-    ArbitraryMotion{Int}(Δx=zeros(Ns,1),
-                         Δy=zeros(Ns,1),
-                         Δz=zeros(Ns,1),
-                         resetmag=zeros(Ns,2))       
+    ArbitraryMotion(Δx=zeros(Ns,1))       
 end
 
-export ArbitraryMotion
+include("ExplicitArbitraryMotion.jl")
 
-Base.getindex(mov::ArbitraryMotion, p::AbstractRange) = begin
-    ArbitraryMotion(dur=mov.dur,
-                    K=mov.K,
-                    Δx=mov.Δx[p,:],
-                    Δy=mov.Δy[p,:],
-                    Δz=mov.Δz[p,:],
-                    resetmag=mov.resetmag[p,:])
-end
 
-Base.getindex(mov::ArbitraryMotion, p::AbstractVector) = begin
-    ArbitraryMotion(dur=mov.dur,
-                    K=mov.K,
-                    Δx=mov.Δx[p,:],
-                    Δy=mov.Δy[p,:],
-                    Δz=mov.Δz[p,:],
-                    resetmag=mov.resetmag[p,:])
+Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+    ArbitraryMotion(dur=motion.dur,
+                    K=motion.K,
+                    Δx=motion.Δx[p,:],
+                    Δy=motion.Δy[p,:],
+                    Δz=motion.Δz[p,:],
+                    resetmag=motion.resetmag[p,:])
 end
+Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}, 
+                                       q::Union{AbstractRange,AbstractVector,Colon}) = motion[p]
+
 
 +(m1::ArbitraryMotion,m2::ArbitraryMotion) = begin
     if m1.K == m2.K
@@ -52,20 +43,20 @@ end
 end
 
 """
-    limits = get_pieces_limits(obj.mov)
+    limits = get_pieces_limits(obj.motion)
 
 Returns the pieces limits from dur and K values
 
 Example: -----------------------------
-    mov.dur = [1, 0.5]
-    mov.K = 4
+    motion.dur = [1, 0.5]
+    motion.K = 4
 
     limits = [0, 0.25, 0.5, 0.75, 1, 1.125, 1.25, 1.375, 1.5]
 --------------------------------------
 """
-function get_pieces_limits(mov::ArbitraryMotion)
-	dur = mov.dur
-	K   = mov.K
+function get_pieces_limits(motion::ArbitraryMotion)
+	dur = motion.dur
+	K   = motion.K
 
 	steps = dur/K
 	mat = reduce(hcat,[steps for i in 1:K])'
@@ -82,21 +73,21 @@ end
 
 Returns an array of motion interpolation functions from a phantom
 """
-function get_itp_functions(mov::ArbitraryMotion{T}) where {T<:Real}
-    Ns = size(mov.Δx)[1]
-    limits = get_pieces_limits(mov)
+function get_itp_functions(motion::ArbitraryMotion)
+    Ns = size(motion.Δx)[1]
+    limits = get_pieces_limits(motion)
 
     Δ = zeros(Ns,length(limits),3)
-    Δ[:,:,1] = hcat(repeat(hcat(zeros(Ns,1),mov.Δx),1,length(mov.dur)),zeros(Ns,1))
-    Δ[:,:,2] = hcat(repeat(hcat(zeros(Ns,1),mov.Δy),1,length(mov.dur)),zeros(Ns,1))
-    Δ[:,:,3] = hcat(repeat(hcat(zeros(Ns,1),mov.Δz),1,length(mov.dur)),zeros(Ns,1))
+    Δ[:,:,1] = hcat(repeat(hcat(zeros(Ns,1),motion.Δx),1,length(motion.dur)),zeros(Ns,1))
+    Δ[:,:,2] = hcat(repeat(hcat(zeros(Ns,1),motion.Δy),1,length(motion.dur)),zeros(Ns,1))
+    Δ[:,:,3] = hcat(repeat(hcat(zeros(Ns,1),motion.Δz),1,length(motion.dur)),zeros(Ns,1))
 
     itpx = sum(abs.(Δ[:,:,1]);dims=2) != zeros(Ns,1) ? [interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns] : nothing
     itpy = sum(abs.(Δ[:,:,2]);dims=2) != zeros(Ns,1) ? [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns] : nothing
     itpz = sum(abs.(Δ[:,:,3]);dims=2) != zeros(Ns,1) ? [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns] : nothing
     
 
-    flags = is_fluid(mov) ? [interpolate((limits,), vcat(mov.resetmag[i,:],Bool(0)), Gridded(Constant{Previous}())) for i in 1:Ns] : nothing
+    flags = is_fluid(motion) ? [interpolate((limits,), vcat(motion.resetmag[i,:],Bool(0)), Gridded(Constant{Previous}())) for i in 1:Ns] : nothing
 
     [itpx, itpy, itpz, flags]
 end
@@ -104,15 +95,17 @@ end
 
 
 """
-    Ux, Uy, Uz = initialize_motion(obj.mov, seqd.t)
+    Ux, Uy, Uz = initialize_motion(obj.motion, seqd.t)
 """
-function initialize_motion(mov::ArbitraryMotion, 
-                           x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}; 
-                           enable_gpu::Bool=false, gpu_device::Int=0, precision::AbstractString="f32", w=nothing) where {T<:Real}
-    Ns = length(x)
-    times = mod.(t,sum(mov.dur)) # Map time values between 0 and sum(dur)
+function initialize_motion(motion::ArbitraryMotion, t::AbstractVector{T}, sim_params::Dict) where {T<:Real}
+    enable_gpu = sim_params["enable_gpu"]
+    gpu_device = sim_params["gpu_device"]
+    precision  = sim_params["precision"]
 
-    itp = get_itp_functions(mov)
+    Ns = size(motion.Δx)[1]
+    times = mod.(t,sum(motion.dur)) # Map time values between 0 and sum(dur)
+
+    itp = get_itp_functions(motion)
 
     U = [itp[i] !== nothing ? zeros(Ns,length(times)) : nothing for i in 1:4]
 
@@ -151,6 +144,7 @@ function initialize_motion(mov::ArbitraryMotion,
                 end
             end 
 
+        # In CPU
         else 
             progress_bar = Progress(length(U);desc="Initializing motion...")
             for (i, u) = enumerate(U)
@@ -159,8 +153,13 @@ function initialize_motion(mov::ArbitraryMotion,
                 next!(progress_bar)
             end
         end
+        return ExplicitArbitraryMotion(Ux    = U[1],
+                                       Uy    = U[2],
+                                       Uz    = U[3],
+                                       flags = U[4])
+    else
+        return NoMotion()
     end
-    U
 end
 
 
@@ -171,21 +170,18 @@ function interpolate_mov!(u, itp, times)
 end
 
 
-function is_dynamic(mov::ArbitraryMotion{T}) where {T<:Real}
-    itp = get_itp_functions(mov)
+function is_dynamic(motion::ArbitraryMotion)
+    itp = get_itp_functions(motion)
     return reduce(|,(itp[1:3] .!== nothing))
 end
 
-function is_fluid(mov::ArbitraryMotion{T}) where {T<:Real}
-    return any(mov.resetmag)
+function is_fluid(motion::ArbitraryMotion) 
+    return any(motion.resetmag)
 end
 
 
-
-
-
 # UNUSED
-function get_discontinuity(mov::ArbitraryMotion)
+function get_discontinuity(motion::ArbitraryMotion)
     differences(x) = begin
         diff = zeros(size(x)[1],size(x)[2]+1)
         for j in 1:size(x)[1]
@@ -196,9 +192,12 @@ function get_discontinuity(mov::ArbitraryMotion)
 
     threshold = 0.5
 
-    x = differences(mov.Δx) .> threshold
-    y = differences(mov.Δy) .> threshold
-    z = differences(mov.Δz) .> threshold
+    x = differences(motion.Δx) .> threshold
+    y = differences(motion.Δy) .> threshold
+    z = differences(motion.Δz) .> threshold
 
-    hcat(repeat((x.|y.|z),1,length(mov.dur)),BitVector(zeros(size(x)[1])))
+    hcat(repeat((x.|y.|z),1,length(motion.dur)),BitVector(zeros(size(x)[1])))
 end
+
+
+
