@@ -403,6 +403,10 @@ end
     #Test brain phantom 3D
     ph = brain_phantom3D()
     @test ph.name=="brain3D"
+
+    #Test pelvis phantom 2D
+    ph = pelvis_phantom2D()
+    @test ph.name=="pelvis2D"
 end
 
 @testitem "Scanner" tags=[:base] begin
