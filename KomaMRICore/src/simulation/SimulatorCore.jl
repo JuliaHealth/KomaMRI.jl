@@ -5,10 +5,6 @@ abstract type SpinStateRepresentation{T<:Real} end #get all available types by u
 include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
 
-#Motion models:
-include("motion/SimpleMotion.jl") 
-include("motion/ArbitraryMotion.jl") 
-
 
 """
     sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
@@ -31,22 +27,14 @@ separating the spins of the phantom `obj` in `Nthreads`.
     step))
 """
 function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod,
-    Ux,Uy,Uz,resetmag;
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nthreads = Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads, type="ordered")
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
-        ux = Ux !== nothing ? @view(Ux[p,:]) : nothing
-        uy = Uy !== nothing ? @view(Uy[p,:]) : nothing
-        uz = Uz !== nothing ? @view(Uz[p,:]) : nothing
-
-        flags = resetmag !== nothing ? @view(resetmag[p,:]) : nothing
-
-        run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method, 
-                             ux,uy,uz,flags)
+        run_spin_precession!(@view(obj[p,:]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
     end
 
     return nothing
@@ -72,22 +60,14 @@ different number threads to excecute the process.
     state for the next precession simulation step)
 """
 function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod,
-    Ux,Uy,Uz,resetmag;
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
     Nthreads=Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads; type="ordered")
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
-        ux = Ux !== nothing ? @view(Ux[p,:]) : nothing
-        uy = Uy !== nothing ? @view(Uy[p,:]) : nothing
-        uz = Uz !== nothing ? @view(Uz[p,:]) : nothing
-
-        flags = resetmag !== nothing ? @view(resetmag[p,:]) : nothing
-
-        run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method, 
-                             ux,uy,uz,flags)
+        run_spin_excitation!(@view(obj[p,:]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
     end
 
     return nothing
@@ -119,32 +99,19 @@ take advantage of CPU parallel processing.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod, 
-    Ux, Uy, Uz, resetmag;
-    Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)],
-    w=nothing, enable_gpu::Bool=true, gpu_device) where {T<:Real}
-    
+                            Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
+                            Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], w=nothing) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
     progress_bar = Progress(Nblocks;desc="Running simulation...")
 
     for (block, p) = enumerate(parts) 
-
         seq_block = @view seq[p]
-
-        ux = (Ux !== nothing) ? hcat(Ux[:,p],Ux[:,p[end]])     : nothing
-        uy = (Uy !== nothing) ? hcat(Uy[:,p],Uy[:,p[end]])     : nothing
-        uz = (Uz !== nothing) ? hcat(Uz[:,p],Uz[:,p[end]])     : nothing
-        flags = (resetmag !== nothing) ? Bool.(resetmag[:,p])  : nothing
-
-        if enable_gpu
-            device!(gpu_device)
-            ux    = ux    |> gpu
-            uy    = uy    |> gpu
-            uz    = uz    |> gpu
-            flags = flags |> gpu
-        end
+        obj_block = @view obj[:,p]
+        # IDEA: 
+        # obj_block = obj[:,p] |> gpu   # this would solve the GPU overflow problem, 
+                                        # but it would mean more data transfers between cpu and gpu
 
         # Params
         excitation_bool = is_RF_on(seq_block) && is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
@@ -153,14 +120,10 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
         dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool
-            run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method,
-                                          ux,uy,uz,flags;
-                                          Nthreads)
+            run_spin_excitation_parallel!(obj_block, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
             rfs += 1
         else
-            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method,
-                                          ux,uy,uz,flags; 
-                                          Nthreads)
+            run_spin_precession_parallel!(obj_block, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
         end
         samples += Nadc
         #Update progress
@@ -233,12 +196,8 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
     ADCflag = [any(tt .== tadc) for tt in t[2:end]] #Displaced 1 dt, sig[i]=S(ti+dt)
     seqd = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
-    Xt, obj = initialize_spins_state(obj, sim_method)
-    # Spins' motion init
-    Ux, Uy, Uz, resetmag = initialize_motion(obj.mov, obj.x, obj.y, obj.z, seqd.t; 
-                                             enable_gpu, gpu_device, precision)
-    
-                                             # Signal init
+    Xt, obj = initialize_spins_state(obj, seqd, sim_method, Dict([("enable_gpu",enable_gpu),("gpu_device",gpu_device),("precision", precision )]))
+    # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
     sig = zeros(ComplexF64, Ndims..., Nthreads)
     
@@ -267,8 +226,7 @@ function simulate(obj::Phantom, seq::Sequence, sys::Scanner; simParams=Dict{Stri
 
     # Simulation
     @info "Running simulation in the $(enable_gpu ? "GPU ($gpu_name)" : "CPU with $Nthreads thread(s)")" koma_version=__VERSION__ sim_method = sim_method spins = length(obj) time_points = length(t) adc_points=Ndims[1]
-    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method, Ux, Uy, Uz, resetmag; 
-                                                  Nblocks, Nthreads, parts, w, enable_gpu, gpu_device)
+    @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_method; Nblocks, Nthreads, parts, w)
     # Result to CPU, if already in the CPU it does nothing
     sig = sum(sig; dims=length(Ndims)+1) |> cpu
     sig .*= get_adc_phase_compensation(seq)
