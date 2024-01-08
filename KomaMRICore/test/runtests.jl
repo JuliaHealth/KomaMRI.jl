@@ -73,6 +73,12 @@ end
     sig_raw = reshape(sig_aux, length(sig_aux), 1)
     @test all(sig .== sig_raw)
 
+    seq.DEF["FOV"] = [23e-2, 23e-2, 0]
+    raw = signal_to_raw_data(sig, seq)
+    sig_aux = vcat([vec(profile.data) for profile in raw.profiles]...)
+    sig_raw = reshape(sig_aux, length(sig_aux), 1)
+    @test all(sig .== sig_raw)
+
     # Just checking to ensure that show() doesn't get stuck and that it is covered
     show(IOBuffer(), "text/plain", raw)
     @test true
