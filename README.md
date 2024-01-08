@@ -45,7 +45,7 @@ Paper: <br>[![][paper-img1]][paper-url1]
 | **Packages**                                | **Julia Compat ≥** | **Stable Version**                           | **Build Status**                       | **Code Coverage**                |
 |:------------------------------------------- |:-------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
 | 📦 [KomaMRI.jl](## "User Interface")        | ![][julia-19]      | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
-| └ 📦 [KomaMRIBase.jl](## "Structs")         | ![][julia-19]      | [![][komabase-version]][komabase-juliahub]   | [![][gh-actions-img5]][gh-actions-url] | [![][codecov-img5]][codecov-url] |
+| └ 📦 [KomaMRIBase.jl](## "Custom Types")    | ![][julia-19]      | [![][komabase-version]][komabase-juliahub]   | [![][gh-actions-img5]][gh-actions-url] | [![][codecov-img5]][codecov-url] |
 | └ 📦 [KomaMRICore.jl](## "Simulation")      | ![][julia-19]      | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
 | └ 📦 [KomaMRIFiles.jl](## "Input/Output")   | ![][julia-19]      | [![][komafiles-version]][komafiles-juliahub] | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
 | └ 📦 [KomaMRIPlots.jl](## "Plots")          | ![][julia-19]      | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
@@ -98,7 +98,7 @@ Paper: <br>[![][paper-img1]][paper-url1]
 
 > 🟢 **[7 Dec 2023] MRI Together:** Koma was present in [MRI Together](https://mritogether.esmrmb.org/) 😼. The talk is available [here](https://www.youtube.com/watch?v=9mRQH8um4-A). Also, I uploaded the promised [educational example](https://cncastillo.github.io/KomaMRI.jl/dev/educational-1d-simulation/).
 
-> 🟢 **[17 Nov 2023] ISMRM Pulseq's virtual meeting:** Pretty excited of being part of [this meeting](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023). The slidescan be seen [here](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023/blob/35a8da7eaa0bf42f2127e1338a440ccd4e3ef53c/slides/day3_KomaMRI_simulator_Quantitative_MRI.pdf).
+> 🟢 **[17 Nov 2023] ISMRM Pulseq's virtual meeting:** Pretty excited of being part of [this meeting](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023). The slides can be seen [here](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023/blob/35a8da7eaa0bf42f2127e1338a440ccd4e3ef53c/slides/day3_KomaMRI_simulator_Quantitative_MRI.pdf).
 
 > 🟢 **[27 Jul 2023] JuliaCon 2023 presentation:** I gave a talk at the MIT 😄! A video of the presentation can be seen [here](https://www.youtube.com/watch?v=WVT9wJegC6Q).
 
