@@ -23,6 +23,12 @@ using TestItems, TestItemRunner
         seq = @suppress read_seq(path*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
         @test seq.DEF["FileName"] == "radial_JEMRIS.seq"
         @test seq.DEF["PulseqVersion"] ≈ 1002001
+
+        # Test Pulseq compression-decompression
+        shape = ones(100)
+        num_samples, compressed_data = KomaMRIFiles.compress_shape(shape)
+        shape2 = KomaMRIFiles.decompress_shape(num_samples, compressed_data)
+        @test shape == shape2
     end
     # Test JEMRIS
     @testset "JEMRIS" begin
