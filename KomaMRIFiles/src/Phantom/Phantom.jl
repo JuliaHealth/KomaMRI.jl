@@ -92,12 +92,14 @@ function read_phantom(filename::String)
 				end
 			end
 
-			obj.motion = ArbitraryMotion{Float64}(dur=dur,
-											   K=K,
-										       Δx=Δx,
-										       Δy=Δy,
-											   Δz=Δz,
-											   resetmag = resetmag)
+			obj.motion = ArbitraryMotion(	
+							Float64.(dur),
+							K,
+							Float64.(Δx),
+							Float64.(Δy),
+							Float64.(Δz),
+							resetmag
+						)
 		end
 	end
 

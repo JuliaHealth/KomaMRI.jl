@@ -14,13 +14,13 @@ function read_phantom_MAT(folder::String; ss::Int=1, Δx=1)
 	T2 = T2[1:ss:end,1:ss:end,1:ss:end]
 
 	# Clip outliers
-	T1_percentile = percentile(T1[:],99)
+	T1_percentile = KomaMRIBase.percentile(T1[:],99)
 	T1[T1.>=T1_percentile].= T1_percentile;
 
-	T2_percentile = percentile(T2[:],99)
+	T2_percentile = KomaMRIBase.percentile(T2[:],99)
 	T2[T2.>=T2_percentile].= T2_percentile;
 
-	ρ_percentile = percentile(ρ[:],99)
+	ρ_percentile = KomaMRIBase.percentile(ρ[:],99)
 	ρ[ρ.>=ρ_percentile].= ρ_percentile;
 
 	# Normalize ρ between 0 and 1
@@ -68,9 +68,9 @@ function read_phantom_MAT(folder::String; ss::Int=1, Δx=1)
 
 	name = split(folder,"/")[end]
 
-	deltaX = KomaMRICore.matread(folder*"deltaX.mat")["deltaX"] .* 1e-3
-	deltaY = KomaMRICore.matread(folder*"deltaY.mat")["deltaY"] .* 1e-3
-	deltaZ = KomaMRICore.matread(folder*"deltaZ.mat")["deltaZ"] .* 1e-3
+	deltaX = matread(folder*"deltaX.mat")["deltaX"] .* 1e-3
+	deltaY = matread(folder*"deltaY.mat")["deltaY"] .* 1e-3
+	deltaZ = matread(folder*"deltaZ.mat")["deltaZ"] .* 1e-3
 
 	deltaX  = deltaX[1:ss:end, 1:ss:end, 1:ss:end, :]
 	deltaY  = deltaY[1:ss:end, 1:ss:end, 1:ss:end, :]
@@ -98,11 +98,11 @@ function read_phantom_MAT(folder::String; ss::Int=1, Δx=1)
                           		ρ=ρ[ρ.!=0],
                           		T1=T1[ρ.!=0],
                           		T2=T2[ρ.!=0],
-								motion = ArbitraryMotion(dur=[1.0],
-													  K=K,
-													  Δx=Δx,
-													  Δy=Δy,
-													  Δz=Δz,
-													  resetmag=resetmag))
+								motion = ArbitraryMotion(	[1.0],
+															K,
+															Δx,
+															Δy,
+															Δz,
+															resetmag))
 	phantom
 end
