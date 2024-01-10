@@ -3,18 +3,18 @@ const MIN_RISE_TIME = 1e-10
 """
     array_of_ranges = kfoldperm(N, k; breaks=[])
 
-Divides a list of indices from 1 to `N` into `k` groups. 
+Divides a list of indices from 1 to `N` into `k` groups.
 
 # Arguments
 - `N`: (`::Integer`) number of elements to be ordered
-- `k`: (`::Integer`) number of groups to divide the `N` elements.
+- `k`: (`::Integer`) number of groups to divide the `N` elements
 
 # Keywords
-- `breaks`: (`::Vector{<:Integer}`, `=[]`) array of indices where predefined breakpoints are
-    placed.
+- `breaks`: (`::Vector{Integer}`, `=[]`) array of indices where predefined breakpoints are
+    placed
 
 # Returns
-- `array_of_ranges`: (`::Vector{UnitRange{<:Integer}}`) array containing ranges of different
+- `array_of_ranges`: (`::Vector{UnitRange{Integer}}`) array containing ranges of different
     groups. The target is `k` groups, but this could increase by adding elements to the
     `breaks` input array
 """
@@ -35,19 +35,18 @@ end
 """
     t = points_from_key_times(times; dt)
 
-Returns a vector which contains the same points as `times` but with additional points that
-have a separation of at most `dt`.
-
+Generates a vector that includes the same points as `times`, with the addition of extra
+points separated by no more than `dt`.
 
 # Arguments
-- `times`: (`::Vector{Float64}`, `[s]`) time array with key points you want to keep
+- `times`: (`::Vector{Real}`, `[s]`) time array with points you want to keep
 
 # Keywords
-- `dt`: (`::Float64`, `[s]`) maximum delta time separation between two time samples
+- `dt`: (`::Real`, `[s]`) maximum time gap between samples
 
 # Returns
-- `t`: (`::Vector{Float64}`, `[s]`) time array with the same points as the input array but with
-    additional points that have a separation of at most `dt`.
+- `t`: (`::Vector{Float64}`, `[s]`) time array with the same points as the input but with
+    additional points separated by at most `dt`
 """
 function points_from_key_times(times; dt)
     # Fill the `t` empty vector in the `for` loop
@@ -66,7 +65,7 @@ end
 """
     t, Δt = get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 
-This function returns non-uniform time points that are relevant in the sequence `seq`.
+    This function returns non-uniform time points relevant to the sequence `seq`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -74,18 +73,18 @@ This function returns non-uniform time points that are relevant in the sequence 
 # Keywords
 - `Δt`: (`::Real`, `=1e-3`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients (by nominal we mean that the time separation should be
-    at most `Δt` when the samples are regarded by [`KomaMRI.is_ADC_on`](@ref) or
-    [`KomaMRI.is_GR_on`](@ref)), otherwise the time points are not necessary and the
-    separation will be bigger)
+    at most `Δt` when the samples are regarded by [`KomaMRIBase.is_ADC_on`](@ref) or
+    [`KomaMRIBase.is_GR_on`](@ref)), otherwise the time points are not necessary and the
+    separation will be larger)
 - `Δt_rf`: (`::Real`, `=1e-5`, `[s]`) nominal delta time separation between two time
     samples for RF excitation (by nominal we mean that the time separation should be at most
-    `Δt_rf` when the samples are regarded by [`KomaMRI.is_RF_on`](@ref), otherwise the time
-    points are not necessary and the separation will be bigger)
+    `Δt_rf` when the samples are regarded by [`KomaMRIBase.is_RF_on`](@ref), otherwise the
+    time points are not necessary and the separation will be larger)
 
 # Returns
 - `t`: (`::Vector{Float64}`, `[s]`) time array with non-uniform time values
-- `Δt`: (`::Vector{Float64}`, `[s]`) delta time array with the separation between two
-    adjacent time points of the `t` time array
+- `Δt`: (`::Vector{Float64}`, `[s]`) delta time array indicating the separation between two
+    adjacent time points in the `t` time array
 """
 function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 	t = Float64[]

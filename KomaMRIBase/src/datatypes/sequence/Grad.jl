@@ -1,13 +1,14 @@
 """
     Rx = rotx(θ::Real)
 
-Rotates vector counter-clockwise with respect to the x-axis.
+Rotates a three-dimensional vector or matrix with three rows counter-clockwise with respect
+to the x-axis.
 
 # Arguments
 - `θ`: (`::Real`, `[rad]`) rotation angle
 
 # Returns
-- `Rx`: (`::Matrix{Int64}`) rotation matrix
+- `Rx`: (`::Matrix{Real}`) rotation matrix
 """
 rotx(θ::Real) = [1		0		0
 				 0	cos(θ)	-sin(θ);
@@ -16,13 +17,14 @@ rotx(θ::Real) = [1		0		0
 """
     Ry = roty(θ::Real)
 
-Rotates vector counter-clockwise with respect to the y-axis.
+Rotates a three-dimensional vector or matrix with three rows counter-clockwise with respect
+to the y-axis.
 
 # Arguments
 - `θ`: (`::Real`, `[rad]`) rotation angle
 
 # Returns
-- `Ry`: (`::Matrix{Int64}`) rotation matrix
+- `Ry`: (`::Matrix{Real}`) rotation matrix
 """
 roty(θ::Real) = [cos(θ) 0	sin(θ);
 				 0		1		0;
@@ -31,13 +33,14 @@ roty(θ::Real) = [cos(θ) 0	sin(θ);
 """
     Rz = rotz(θ::Real)
 
-Rotates vector counter-clockwise with respect to the z-axis.
+Rotates a three-dimensional vector or matrix with three rows counter-clockwise with respect
+to the z-axis.
 
 # Arguments
 - `θ`: (`::Real`, `[rad]`) rotation angle
 
 # Returns
-- `Rz`: (`::Matrix{Int64}`) rotation matrix
+- `Rz`: (`::Matrix{Real}`) rotation matrix
 """
 rotz(θ::Real) = [cos(θ) -sin(θ)	0;
 				 sin(θ) cos(θ)	0;
@@ -49,7 +52,7 @@ rotz(θ::Real) = [cos(θ) -sin(θ)	0;
     gr = Grad(A, T, rise, delay)
     gr = Grad(A, T, rise, fall, delay)
 
-The Grad struct represents a gradient of a sequence event.
+The Grad struct represents a gradient event of a sequence.
 
 # Arguments
 - `A`: (`::Real` or `::Vector`, `[T/m]`) amplitude of the gradient
@@ -211,14 +214,14 @@ vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ?
     y = dur(x::Grad)
     y = dur(x::Vector{Grad})
 
-Duration time in [s] of Grad struct or Grad array. When the input is a gradient vector, then
-the duration is the maximum duration of all the elements of the gradient vector.
+Duration time in seconds of a Grad struct or Grad array. When the input is a gradient vector,
+the duration is the maximum duration among all the elements of the gradient vector.
 
 # Arguments
 - `x`: (`::Grad` or `::Vector{Grad}`) RF struct or RF array
 
 # Returns
-- `y`: (`::Float64`, `[s]`) duration of the RF struct or RF array
+- `y`: (`::Real`, `[s]`) duration of the RF struct or RF array
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x), dims=1)[:]

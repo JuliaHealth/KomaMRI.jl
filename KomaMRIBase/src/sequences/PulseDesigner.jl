@@ -9,7 +9,8 @@ using ..KomaMRIBase
 """
     seq = RF_hard(B1, T, sys; G=[0, 0, 0], Δf=0)
 
-Returns a sequence with a RF excitation pulse.
+Returns a sequence with a rectangular RF excitation pulse. Gradients can be added to the
+output sequence using the `G` keyword.
 
 # Arguments
 - `B1`: (`::Number`, `[T]`) RF pulse amplitude
@@ -18,10 +19,10 @@ Returns a sequence with a RF excitation pulse.
 
 # Keywords
 - `G`: (`::Vector{Real}`, `=[0, 0, 0]`, `[T/m]`) gradient amplitudes for x, y, z
-- `Δf`: (`::Real`, `=0`, `[Hz]`) RF pulse carrier frequency displacement
+- `Δf`: (`::Real`, `=0`, `[Hz]`) RF pulse resonance frequency displacement
 
 # Returns
-- `seq`: (`::Sequence`) Sequence struct with a RF pulse
+- `seq`: (`::Sequence`) Sequence struct with a rectangular RF pulse
 
 # Examples
 ```julia-repl
@@ -42,7 +43,8 @@ end
 """
 	seq = RF_sinc(B1, T, sys; G=[0, 0, 0], Δf=0, a=0.46, TBP=4)
 
-Returns a sequence with a RF sinc waveform.
+Returns a sequence with a RF sinc waveform. Gradients can be added to the output sequence
+using the `G` keyword.
 
 # References
 - Matt A. Bernstein, Kevin F. King, Xiaohong Joe Zhou, Chapter 2 - Radiofrequency Pulse
@@ -56,7 +58,7 @@ https://doi.org/10.1016/B978-012092861-3/50006-6.
 
 # Keywords
 - `G`: (`::Vector{Real}`, `=[0, 0, 0]`, `[T/m]`) gradient amplitudes for x, y, z
-- `Δf`: (`::Real`, `=0`, `[Hz]`) RF pulse carrier frequency displacement
+- `Δf`: (`::Real`, `=0`, `[Hz]`) RF pulse resonnace frequency displacement
 - `a`: (`::Real`, `=0.46`) height appodization window parameter
 - `TBP`: (`::Real`, `=4`) width appodization window parameter
 

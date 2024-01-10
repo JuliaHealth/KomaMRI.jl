@@ -3,12 +3,9 @@
     A = get_theo_A(r::RF; off_val=0, max_rf_samples=Inf)
     A = get_theo_A(d::ADC; off_val=0)
 
-Get the theoretical amplitudes of a rectangle waveform for Grad, RF or ADC structs. This are
-5 points: delay, start, rise, stop and fall.
-
-!!! note
-    In some cases the array result can have duplicated points, so it is necessary to remove
-    them whenever necessary.
+Get the theoretical amplitudes of a waveform for `Grad`, `RF`, or `ADC`` structs. In some
+cases, the resulting array may contain duplicated points, so it is necessary to remove them
+when needed.
 
 # Arguments
 - `g`: (`::Grad`) Gradient struct
@@ -16,14 +13,12 @@ Get the theoretical amplitudes of a rectangle waveform for Grad, RF or ADC struc
 - `d`: (`::ADC`) ADC truct
 
 # Keywords
-- `off_val`: (`::Float64`, `=0`) offset value for amplitude. In general, it is used for
-    not showing some points in plots by giving an `Inf` value
-- `max_rf_samples`: (`::Float64`, `=Inf`) number of maximum samples for the RF struct.
-    In general, this parameter is not necessary to set
+- `off_val`: (`::Real`, `=0`) offset value for amplitude. It is commonly used to exclude
+    specific points in plots by assigning an `Inf` value.
+- `max_rf_samples`: (`::Real`, `=Inf`) maximum number of samples for the RF struct
 
 # Returns
-- `A`: (`::Vector{Float64}`) vector with the amplitude key points of the rectangle
-    waveform
+- `A`: (`::Vector{Number}`) vector containing the amplitude samples of the waveform
 """
 get_theo_A(g::Grad; off_val=0) = begin
 	A = g.A
@@ -84,12 +79,9 @@ end
     t = get_theo_t(r::RF; max_rf_samples=Inf)
     t = get_theo_t(d::ADC)
 
-Get the theoretical times of a rectangle waveform for Grad, RF or ADC structs. This are
-5 points: delay, start, rise, stop and fall.
-
-!!! note
-    In some cases the array result can have duplicated points, so it is necessary to remove
-    them whenever necessary.
+Get the theoretical time of a waveform for `Grad`, `RF`, or `ADC`` structs. In some
+cases, the resulting array may contain duplicated points, so it is necessary to remove them
+when needed.
 
 # Arguments
 - `g`: (`::Grad`) Gradient struct
@@ -97,11 +89,10 @@ Get the theoretical times of a rectangle waveform for Grad, RF or ADC structs. T
 - `d`: (`::ADC`) ADC truct
 
 # Keywords
-- `max_rf_samples`: (`::Float64`, `=Inf`) number of maximum samples for the RF struct.
-    In general, this parameter is not necessary to set
+- `max_rf_samples`: (`::Real`, `=Inf`) maximum number of samples for the RF struct
 
 # Returns
-- `t`: (`::Vector{Float64}`) vector with the time key points of the rectangle waveform
+- `t`: (`::Vector{Real}`) vector containing the time samples of the waveform
 """
 get_theo_t(g::Grad) = begin
 	NT, T, NA = length(g.T), g.T, length(g.A)
@@ -150,15 +141,15 @@ end
 """
     t, g = get_theo_Gi(seq, idx)
 
-Get the theoretical gradient for a sequence in a defined axis.
+Obtain the theoretical times and amplitudes for a gradient within a defined axis in a sequence.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
-- `idx`: (`::Int64`, opts=[1, 2, 3]) axis x, y or z for the gradient
+- `idx`: (`::Integer`, opts=[1, 2, 3]) axis x, y or z for the gradient
 
 # Returns
-- `t`: (`::Vector{Float64}`) time key points
-- `g`: (`::Vector{Float64}`) amplitude key points
+- `t`: (`::Vector{Real}`) gradient time samples
+- `g`: (`::Vector{Real}`) gradient amplitude samples
 """
 get_theo_Gi(seq, idx) = begin
 	N = length(seq)

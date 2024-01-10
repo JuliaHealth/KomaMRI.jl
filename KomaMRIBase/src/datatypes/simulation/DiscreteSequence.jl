@@ -1,8 +1,8 @@
 """
     seqd = DiscreteSequence(Gx, Gy, Gz, B1, Δf, ADC, t, Δt)
 
-A sampled version of a Sequence struct, containing vectors for event amplitudes at specified
-times. DiscreteSequence is the struct used for simulation.
+A sampled version of a Sequence struct containing vectors representing event amplitudes at
+specified times. The DiscreteSequence struct is utilized for simulation.
 
 # Arguments
 - `Gx`: (`::AbstractVector{T<:Real}`, `[T/m]`) x-gradient vector
@@ -76,7 +76,7 @@ This function returns a sampled Sequence struct with RF and gradient time refine
 based on simulation parameters.
 
 # Arguments
-- `seq`: (`::Sequence`) sequence
+- `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
 - `sampling_params`: (`::Dict{String, Any}`, `=default_sampling_params()`) sampling

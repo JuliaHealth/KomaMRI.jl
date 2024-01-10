@@ -8,17 +8,17 @@
     seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
     seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
 
-The Sequence struct. It contains events of an MRI sequence. Most field names (except for the
-DEF field) consist of matrices or vectors, where each column index represents a sequence
-block. This struct serves as an input for the simulation.
+The Sequence struct contains events of an MRI sequence. Most field names, except for the DEF
+field, consist of matrices or vectors. In these matrices, each column index represents a
+sequence block. This struct serves as input for the simulation.
 
 # Arguments
-- `GR`: (`::Matrix{Grad}`) gradient matrix. Rows for x-y-z amplitudes and columns are for blocks
+- `GR`: (`::Matrix{Grad}`) gradient matrix. Rows for x-y-z amplitudes and columns are fo blocks
 - `RF`: (`::Matrix{RF}`) RF matrix. The 1 row is for the coil and columns are for blocks
 - `ADC`: (`::Array{ADC,1}`) ADC block vector
 - `DUR`: (`::Vector`, `[s]`) duration block vector
 - `DEF`: (`::Dict{String, Any}`) dictionary with relevant information of the sequence.
-    Possible keys could be [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
+    Possible keys include [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
     `"Num_Blocks"`, `"Nx"`, `"Ny"`, `"PulseqVersion"`, `"BlockDurationRaster"`,
     `"FileName"`, `"RadiofrequencyRasterTime"`]
 
@@ -83,7 +83,7 @@ Sequence() = Sequence([Grad(0, 0)])
 """
     str = show(io::IO, s::Sequence)
 
-Displays information about the Sequence struct `s` in the julia REPL.
+Displays information about a Sequence struct in the julia REPL.
 
 # Arguments
 - `s`: (`::Sequence`) Sequence struct
@@ -140,13 +140,13 @@ size(x::Sequence) = size(x.GR[1,:])
 
 """
     y = is_ADC_on(x::Sequence)
-    y = is_ADC_on(x::Sequence, t::Union{Array{Float64,1}, Array{Float64,2}})
+    y = is_ADC_on(x::Sequence, t::AbstractVecOrMat})
 
 Tells if the sequence `seq` has elements with ADC active, or active during time `t`.
 
 # Arguments
 - `x`: (`::Sequence`) sequence struct
-- `t`: (`::Union{Array{Float64,1}, Array{Float64,2}}`, `[s]`) time to check
+- `t`: (`::AbstractVecOrMat`, `[s]`) time to check
 
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the ADC in the sequence is active
@@ -170,13 +170,13 @@ end
 
 """
     y = is_RF_on(x::Sequence)
-    y = is_RF_on(x::Sequence, t::Vector{Float64})
+    y = is_RF_on(x::Sequence, t::Vector{Real})
 
 Tells if the sequence `seq` has elements with RF active, or active during time `t`.
 
 # Arguments
 - `x`: (`::Sequence`) Sequence struct
-- `t`: (`::Vector{Float64}`, `[s]`) time to check
+- `t`: (`::AbstractVector{Real}`, `[s]`) time to check
 
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the RF in the sequence is active
@@ -286,7 +286,7 @@ end
 """
     T = dur(x::Sequence)
 
-The total duration of the sequence in [s].
+The total duration of the sequence in seconds.
 
 # Arguments
 - `x`: (`::Sequence`) Sequence struct
@@ -306,7 +306,7 @@ always zero, and the final time corresponds to the duration of the sequence.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Returns
-- `T0`: (`::Vector`, `[s]`) start times of the blocks in a sequence
+- `T0`: (`::Vector{Real}`, `[s]`) start times of the blocks in a sequence
 """
 get_block_start_times(seq::Sequence) = cumsum([0; seq.DUR], dims=1)
 
@@ -360,16 +360,14 @@ Generates a trapezoidal waveform vector.
 
 # Arguments
 - `A`: (`::Real`) amplitude
-- `t`: (`::Vector{Float64}`, `[s]`) times to evaluate (actually it's a `1-row
-    ::Matrix{Float64}`)
+- `t`: (`::Matrix{Real}`, `[s]`) times to evaluate (it's a `1-row matrix`)
 - `ΔT`: (`::Real`, `[s]`) time duration of the top-flat
 - `ζ1`: (`::Real`, `[s]`) rise time duration
 - `ζ2`: (`::Real`, `[s]`) fall time duration
 - `delay`: (`::Real`, `[s]`) delay time
 
 # Returns
-- `y`: (`::Vector{Float64}`) trapezoidal waveform (actually it's a `1-row
-    ::Matrix{Float64}`)
+- `y`: (`::Matrix{Real}`) trapezoidal waveform (it's a `1-row matrix`)
 """
 ⏢(A, t, ΔT, ζ1, ζ2, delay) = begin
 	if sum(abs.(A)) != 0 && ΔT+ζ1+ζ2 != 0 # If no event just ignore calculations
@@ -454,15 +452,16 @@ end
 """
     B1, Δf_rf  = get_rfs(seq::Sequence, t)
 
-Returns the RF pulses and the delta frequency.
+Returns the amplitude and frequency difference with respect to the resonance frequency
+contained in a sequence structure.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
-- `t`: (`1-row ::Matrix{Float64}`, `[s]`) time points
+- `t`: (`1-row ::Matrix{Real}`, `[s]`) time points
 
 # Returns
-- `B1`: (`1-row ::Matrix{ComplexF64}`, `[T]`) vector of RF pulses
-- `Δf_rf`: (`1-row ::Matrix{Float64}`, `[Hz]`) delta frequency vector
+- `B1`: (`1-row ::Matrix{Complex}}`, `[T]`) vector of RF pulses
+- `Δf_rf`: (`1-row ::Matrix{Real}`, `[Hz]`) delta frequency vector
 """
 get_rfs(seq::Sequence, t) = begin
     ϵ = MIN_RISE_TIME
@@ -487,22 +486,22 @@ Returns all the flip angles of the RF pulses in the sequence `x`.
 - `x`: (`::Sequence`) Sequence struct
 
 # Returns
-- `y`: (`::Vector{Float64}`, `[deg]`) flip angles
+- `y`: (`::Vector{Real}`, `[deg]`) flip angles
 """
 get_flip_angles(x::Sequence) = get_flip_angle.(x.RF)[:]
 
 """
     rf_idx, rf_type = get_RF_types(seq, t)
 
-Get RF centers and types (excitation or precession). Useful for k-space calculations.
+Get the RF centers and types (excitation or precession). Useful for k-space calculations.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
-- `t`: (`::Vector{Float64}`, `[s]`) time values
+- `t`: (`::Vector{Real}`, `[s]`) time values
 
 # Returns
-- `rf_idx`: (`::Vector{Int64}`) indices of the RF centers
-- `rf_type`: (`::Vector{Int64}`, opts: [`0`, `1`]) RF type (`0`: excitation, `1`:
+- `rf_idx`: (`::Vector{Integer}`) indices of the RF centers
+- `rf_type`: (`::Vector{Integer}`, opts: [`0`, `1`]) RF type (`0`: excitation, `1`:
     precession)
 """
 function get_RF_types(seq, t)
@@ -538,8 +537,8 @@ Outputs the designed k-space trajectory of the Sequence `seq`.
     for ADC acquisition and Gradients
 
 # Returns
-- `kspace`: (`3-column ::Matrix{Float64}`) kspace
-- `kspace_adc`: (`3-column ::Matrix{Float64}`) adc kspace
+- `kspace`: (`3-column ::Matrix{Real}`) k-space
+- `kspace_adc`: (`3-column ::Matrix{Real}`) k-space sampled at ADC times
 """
 get_kspace(seq::Sequence; Δt=1,
 skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
@@ -596,8 +595,8 @@ Outputs the designed M1 of the Sequence `seq`.
     for ADC acquisition and Gradients
 
 # Returns
-- `M1`: (`3-column ::Matrix{Float64}`) First moment
-- `M1_adc`: (`3-column ::Matrix{Float64}`) First moment sampled at ADC points
+- `M1`: (`3-column ::Matrix{Real}`) first moment
+- `M1_adc`: (`3-column ::Matrix{Real}`) first moment sampled at ADC times
 """
 get_M1(seq::Sequence; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
 	t, Δt = get_variable_times(seq; Δt)
@@ -654,8 +653,8 @@ Outputs the designed M2 of the Sequence `seq`.
     for ADC acquisition and Gradients
 
 # Returns
-- `M2`: (`3-column ::Matrix{Float64}`) Second moment
-- `M2_adc`: (`3-column ::Matrix{Float64}`) Second moment sampled at ADC points
+- `M2`: (`3-column ::Matrix{Real}`) second moment
+- `M2_adc`: (`3-column ::Matrix{Real}`) second moment sampled at ADC times
 """
 get_M2(seq::Sequence; Δt=1) = begin
 	t, Δt = get_variable_times(seq; Δt)
@@ -695,7 +694,7 @@ end
 """
 	SR, SR_adc = get_slew_rate(seq::Sequence; Δt=1)
 
-Outputs the designed slew rate of the Sequence `seq`.
+Outputs the slew rate of the Sequence `seq`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -703,8 +702,8 @@ Outputs the designed slew rate of the Sequence `seq`.
     for ADC acquisition and Gradients
 
 # Returns
-- `SR`: (`3-column ::Matrix{Float64}`) Slew rate
-- `SR_adc`: (`3-column ::Matrix{Float64}`) Slew rate sampled at ADC points
+- `SR`: (`3-column ::Matrix{Real}`) slew rate
+- `SR_adc`: (`3-column ::Matrix{Real}`) slew rate sampled at ADC times
 """
 get_slew_rate(seq::Sequence; Δt=1) = begin
 	t, Δt = get_variable_times(seq; Δt)
@@ -740,17 +739,17 @@ end
 """
     EC, EC_adc = get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3)
 
-Outputs the designed eddy currents of the Sequence `seq`.
+Outputs the Eddy currents of the Sequence `seq`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 - `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients
-- `λ`: (`::Float64`, `=80e-3`, `[s]`) eddy current decay constant time
+- `λ`: (`::Real`, `=80e-3`, `[s]`) Eddy current decay constant time
 
 # Returns
-- `EC`: (`3-column ::Matrix{Float64}`) Eddy currents
-- `EC_adc`: (`3-column ::Matrix{Float64}`) Eddy currents sampled at ADC points
+- `EC`: (`3-column ::Matrix{Real}`) Eddy currents
+- `EC_adc`: (`3-column ::Matrix{Real}`) Eddy currents sampled at ADC times
 """
 get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	t, Δt = get_variable_times(seq; Δt)

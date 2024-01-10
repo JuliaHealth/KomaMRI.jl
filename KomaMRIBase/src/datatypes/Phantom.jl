@@ -1,8 +1,9 @@
 """
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
 
-The Phantom struct. Most of its field names are vectors, with each element associated with
-a property value representing a spin. This struct serves as an input for the simulation.
+The `Phantom` struct has field names that are vectors associated with spin properties. It
+allows accessing specific spin property values by indexing these vectors. This struct serves
+as input for the simulation.
 
 # Arguments
 - `name`: (`::String`) phantom name
@@ -181,7 +182,8 @@ Creates a two-dimensional brain Phantom struct.
 - https://brainweb.bic.mni.mcgill.ca/brainweb
 
 # Keywords
-- `axis`: (`::String`, `="axial"`, opts=[`"axial"`, `"coronal"`, `"sagittal"`]) orientation of the phantom
+- `axis`: (`::String`, `="axial"`, opts=[`"axial"`, `"coronal"`, `"sagittal"`]) orientation
+    of the phantom
 - `ss`: (`::Integer`, `=4`) subsampling parameter in all axis
 
 # Returns
@@ -279,7 +281,7 @@ function brain_phantom2D(; axis="axial", ss=4)
 end
 
 """
-    obj = brain_phantom3D(; ss=4)
+    obj = brain_phantom3D(; ss=4, start_end=[160, 200])
 
 Creates a three-dimentional brain Phantom struct.
 
@@ -292,6 +294,8 @@ Creates a three-dimentional brain Phantom struct.
 
 # Keywords
 - `ss`: (`::Integer`, `=4`) subsampling parameter in all axes
+- `start_end`: (`::Integer`, `=[160, 200]`) start and end indices along the z-axis.
+    Acceptable values range from 1 to 362
 
 # Returns
 - `obj`: (`::Phantom`) 3D Phantom struct
@@ -303,7 +307,7 @@ julia> obj = brain_phantom3D(; ss=5)
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom3D(;ss=4,start_end=[160, 200])
+function brain_phantom3D(; ss=4, start_end=[160, 200])
 
     # Get data from .mat file
     path = @__DIR__
