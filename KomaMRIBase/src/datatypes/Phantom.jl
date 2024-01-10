@@ -1,4 +1,4 @@
-abstract type MotionModel{T <: Real} end
+abstract type MotionModel end
 
 #Motion models:
 include("phantom/motion/SimpleMotion.jl") 
