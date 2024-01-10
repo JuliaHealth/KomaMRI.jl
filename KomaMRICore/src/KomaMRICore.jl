@@ -8,6 +8,8 @@ using ThreadsX
 using ProgressMeter
 # Simulation
 using CUDA
+# Profiling
+using NVTX
 
 # KomaMRIBase
 @reexport using KomaMRIBase
