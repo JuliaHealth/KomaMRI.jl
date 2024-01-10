@@ -2,7 +2,7 @@ using TestItems, TestItemRunner
 
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
 
-@testitem "Spinors×Mag" tags=[:base] begin
+@testitem "Spinors×Mag" tags=[:core] begin
     # Spinor 2x2 representation should be equivalent to a 3x1 vector rotation
     x = rand(3); x = x./sum(x)
     θ = rand() * π
@@ -48,15 +48,15 @@ using TestItems, TestItemRunner
     sp = s * s2
     @test sp.α ≈ s.α.*s2.α .- conj.(s2.β).*s.β && sp.β ≈ s.α.*s2.β .+ conj.(s2.α).*s.β
     φ, φ1, θ, φ2 = rand(4)
-    Rm = KomaMRIBase.Rg(φ1, θ, φ2)
+    Rm = KomaMRICore.Rg(φ1, θ, φ2)
     @test Rm.α ≈ [cos(θ/2)*exp(-1im*(φ1+φ2)/2)] && Rm.β ≈ [sin(θ/2)*exp(-1im*(φ1-φ2)/2)]
-    Rn = KomaMRIBase.Rφ(φ, θ)
+    Rn = KomaMRICore.Rφ(φ, θ)
     @test Rn.α ≈ [cos(θ/2)+0im] && Rn.β ≈ [exp(1im*φ)*sin(θ/2)]
     @test abs(s) ≈ [α^2 + β^2]
 end
 
 # Test ISMRMRD
-@testitem "signal_to_raw_data" begin
+@testitem "signal_to_raw_data" tags=[:core] begin
     using Suppressor
 
     seq = PulseDesigner.EPI_example()
@@ -68,6 +68,12 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
 
     # Test signal_to_raw_data
+    raw = signal_to_raw_data(sig, seq)
+    sig_aux = vcat([vec(profile.data) for profile in raw.profiles]...)
+    sig_raw = reshape(sig_aux, length(sig_aux), 1)
+    @test all(sig .== sig_raw)
+
+    seq.DEF["FOV"] = [23e-2, 23e-2, 0]
     raw = signal_to_raw_data(sig, seq)
     sig_aux = vcat([vec(profile.data) for profile in raw.profiles]...)
     sig_raw = reshape(sig_aux, length(sig_aux), 1)
