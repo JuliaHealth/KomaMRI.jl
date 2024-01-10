@@ -549,7 +549,7 @@ function plot_image(
         l.width = width
     end
 	#Plot
-	p = heatmap(z=image,transpose=false,zmin=zmin,zmax=zmax,colorscale="Greys")
+	p = PlotlyJS.heatmap(z=image,transpose=false,zmin=zmin,zmax=zmax,colorscale="Greys")
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
