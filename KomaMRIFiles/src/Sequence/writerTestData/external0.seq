@@ -1,0 +1,95 @@
+# Pulseq sequence file
+# Created by MATLAB mr toolbox
+
+[VERSION]
+major 1
+minor 4
+revision 1
+
+[DEFINITIONS]
+AdcRasterTime 1e-07 
+BlockDurationRaster 1e-05 
+GradientRasterTime 1e-05 
+RadiofrequencyRasterTime 1e-06 
+TotalDuration 0.61194 
+
+# Format of blocks:
+# NUM DUR RF  GX  GY  GZ  ADC  EXT
+[BLOCKS]
+ 1 3000   0   0   0   0  0  0
+ 2 1003   0   1   0   0  0  0
+ 3 3000   0   0   0   0  0  0
+ 4 1072   0   2   0   0  0  0
+ 5 3000   0   0   0   0  0  0
+ 6 1003   0   1   1   0  0  0
+ 7 3000   0   0   0   0  0  0
+ 8 1072   0   2   2   0  0  0
+ 9 3000   0   0   0   0  0  0
+10 1003   0   1   0   1  0  0
+11 3000   0   0   0   0  0  0
+12 1072   0   2   0   2  0  0
+13 3000   0   0   0   0  0  0
+14 1003   0   0   1   0  0  0
+15 3000   0   0   0   0  0  0
+16 1072   0   0   2   0  0  0
+17 3000   0   0   0   0  0  0
+18 1003   0   0   1   1  0  0
+19 3000   0   0   0   0  0  0
+20 1072   0   0   2   2  0  0
+21 3000   0   0   0   0  0  0
+22 1003   0   0   0   1  0  0
+23 3000   0   0   0   0  0  0
+24 1072   0   0   0   2  0  0
+25 3000   0   0   0   0  0  0
+26 1003   0   1   1   1  0  0
+27 3000   0   0   0   0  0  0
+28 1072   0   2   2   2  0  0
+29 3000   0   0   0   0  0  0
+30 1003   0   1   1   1  0  0
+31  22   1   0   0   0  0  0
+32 644   0   0   0   0  1  0
+
+# Format of RF events:
+# id amplitude mag_id phase_id time_shape_id delay freq phase
+# ..        Hz   ....     ....          ....    us   Hz   rad
+[RF]
+1         2500 1 2 3 100 0 0
+
+# Format of trapezoid gradients:
+# id amplitude rise flat fall delay
+# ..      Hz/m   us   us   us    us
+[TRAP]
+ 1      55348.8  10 10000  20   0
+ 2  1.32837e+06 240 10000 480   0
+
+# Format of ADC events:
+# id num dwell delay freq phase
+# ..  ..    ns    us   Hz   rad
+[ADC]
+1 512 12500 20 0 0
+
+# Sequence Shapes
+[SHAPES]
+
+shape_id 1
+num_samples 2
+1
+1
+
+shape_id 2
+num_samples 2
+0
+0
+
+shape_id 3
+num_samples 2
+0
+100
+
+
+[SIGNATURE]
+# This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added
+# It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
+# The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
+Type md5
+Hash eac9a93fec960319a0cfc0d8c3d596d1
