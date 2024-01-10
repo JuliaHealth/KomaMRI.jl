@@ -118,7 +118,6 @@ f64(m) = paramtype(Float64, m)
 @functor NoMotion
 @functor SimpleMotion
 @functor ArbitraryMotion
-@functor ExplicitArbitraryMotion
 
 @functor Spinor
 @functor DiscreteSequence
