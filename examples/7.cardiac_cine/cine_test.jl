@@ -23,7 +23,7 @@ path = "examples/2.phantoms/flow_artery_horizontal.phantom"
 phantom = read_phantom(path)
 
 ## Motion heart
-phantom = KomaMRICore.read_phantom_MAT("/datos/work/phantomXCAT_1mm_5cardPhases/"; ss=1, Δx=1)
+phantom = read_phantom_MAT("/datos/work/phantomXCAT_1mm_5cardPhases/"; ss=1, Δx=1)
 phantom = phantom[abs.(phantom.z) .< 0.005]
 phantom = phantom[abs.(phantom.x) .<= 0.06]
 phantom = phantom[abs.(phantom.y) .<= 0.06]
