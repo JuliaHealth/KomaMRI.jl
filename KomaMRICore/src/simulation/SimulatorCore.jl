@@ -5,7 +5,6 @@ abstract type SpinStateRepresentation{T<:Real} end #get all available types by u
 include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
 
-
 """
     sim_params = default_sim_params(sim_params=Dict{String,Any}())
 
@@ -83,8 +82,10 @@ function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
-    ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_precession!(@view(obj[p,:]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
+    NVTX.@range "Precession Parallel" begin
+        ThreadsX.foreach(enumerate(parts)) do (i, p)
+            run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
+        end
     end
 
     return nothing
@@ -116,8 +117,10 @@ function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
-    ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_excitation!(@view(obj[p,:]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
+    NVTX.@range "Excitation Parallel" begin
+        ThreadsX.foreach(enumerate(parts)) do (i, p)
+            run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
+        end
     end
 
     return nothing
@@ -160,11 +163,6 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
 
     for (block, p) = enumerate(parts) 
         seq_block = @view seq[p]
-        obj_block = @view obj[:,p]
-        # IDEA: 
-        # obj_block = obj[:,p] |> gpu   # this would solve the GPU overflow problem, 
-                                        # but it would mean more data transfers between cpu and gpu
-
         # Params
         # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
         Nadc = sum(seq_block.ADC)
@@ -172,10 +170,10 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
         dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool[block]
-            run_spin_excitation_parallel!(obj_block, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
+            run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
             rfs += 1
         else
-            run_spin_precession_parallel!(obj_block, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
+            run_spin_precession_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
         end
         samples += Nadc
         #Update progress
@@ -296,7 +294,7 @@ julia> plot_signal(raw)
 """
 function simulate(
     obj::Phantom, seq::Sequence, sys::Scanner; 
-    simParams=Dict{String,Any}(), w=nothing
+    sim_params=Dict{String,Any}(), w=nothing
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)

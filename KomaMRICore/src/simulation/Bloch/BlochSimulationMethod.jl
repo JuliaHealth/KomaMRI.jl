@@ -22,8 +22,6 @@ function initialize_spins_state(
     Mz = obj.ρ
     Xt = Mag{T}(Mxy, Mz)
 
-    obj.motion = initialize_motion(obj.motion, seq.t, sim_params)
-
     return Xt, obj
 end
 
@@ -42,7 +40,7 @@ precession.
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-function run_spin_precession!(
+NVTX.@annotate function run_spin_precession!(
         p::Phantom{T}, 
         seq::DiscreteSequence{T}, 
         sig::AbstractArray{Complex{T}},
@@ -51,10 +49,7 @@ function run_spin_precession!(
     ) where {T<:Real}
     #Simulation
     #Motion
-    Ux, Uy, Uz, flags = get_displacements(p.motion, p.x, p.y, p.z, seq.t)
-    xt = Ux !== nothing ? p.x .+ Ux : p.x
-    yt = Uy !== nothing ? p.y .+ Uy : p.y
-    zt = Uz !== nothing ? p.z .+ Uz : p.z
+    xt, yt, zt, flags = get_displacements(p.motion, p.x, p.y, p.z, seq.t)
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -96,7 +91,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
-function run_spin_excitation!(
+NVTX.@annotate function run_spin_excitation!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
@@ -104,14 +99,9 @@ function run_spin_excitation!(
     sim_method::Bloch,
 ) where {T<:Real}
     #Simulation
-    for i in 1:length(seq)
-        s = seq[i]
-        p_i = p[:, i]
+    for s ∈ seq
         #Motion
-        Ux, Uy, Uz, flags = get_displacements(p_i.motion, p.x, p.y, p.z, s.t)
-        xt = Ux !== nothing ? p.x .+ Ux : p.x
-        yt = Uy !== nothing ? p.y .+ Uy : p.y
-        zt = Uz !== nothing ? p.z .+ Uz : p.z
+        xt, yt, zt, flags = get_displacements(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
