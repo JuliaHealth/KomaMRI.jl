@@ -1,6 +1,7 @@
 using TestItems, TestItemRunner
 
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
+
 @testitem "Spinors×Mag" tags=[:core] begin
     # Spinor 2x2 representation should be equivalent to a 3x1 vector rotation
     x = rand(3); x = x./sum(x)
@@ -34,6 +35,7 @@ using TestItems, TestItemRunner
     xx2 = Un(θ,nx)*x; #3D rot matrix
     xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
     @test xx1 ≈ xx2
+
     # Test Spinor struct
     α, β = rand(2)
     s = Spinor(α, β)
@@ -169,7 +171,6 @@ end
     for i=1:2
         global seq += RF(B1, Trf)
         global seq += ADC(N, Tadc)
-
     end
 
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false, "Nthreads"=>1)

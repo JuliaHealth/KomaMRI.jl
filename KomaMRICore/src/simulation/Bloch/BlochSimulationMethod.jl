@@ -14,14 +14,11 @@ function sim_output_dim(
 end
 
 """Magnetization initialization for Bloch simulation method."""
-function initialize_spins_state(
-    obj::Phantom{T}, seq::DiscreteSequence{T}, sim_method::Bloch, sim_params::Dict
-) where {T<:Real}
+function initialize_spins_state(obj::Phantom{T}, sim_method::Bloch) where {T<:Real}
     Nspins = length(obj)
     Mxy = zeros(T, Nspins)
     Mz = obj.ρ
     Xt = Mag{T}(Mxy, Mz)
-
     return Xt, obj
 end
 

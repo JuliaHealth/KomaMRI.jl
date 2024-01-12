@@ -16,8 +16,8 @@ function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method
 end
 
 """Magnetization initialization for Bloch simulation method."""
-function initialize_spins_state(obj::Phantom{T}, seq::DiscreteSequence{T}, sim_method::BlochDict, sim_params::Dict) where {T<:Real}
-    return initialize_spins_state(obj, seq, Bloch(), sim_params)
+function initialize_spins_state(obj::Phantom{T}, sim_method::BlochDict) where {T<:Real}
+    return initialize_spins_state(obj, Bloch())
 end
 
 """
@@ -39,10 +39,7 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     M::Mag{T}, sim_method::BlochDict) where {T<:Real}
     #Simulation
     #Motion
-    Ux, Uy, Uz, __ = get_displacements(p.motion, p.x, p.y, p.z, seq.t)
-    xt = Ux !== nothing ? p.x .+ Ux : p.x
-    yt = Uy !== nothing ? p.y .+ Uy : p.y
-    zt = Uz !== nothing ? p.z .+ Uz : p.z
+    xt, yt, zt, flags = get_displacements(p.motion, p.x, p.y, p.z, seq.t)
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -56,6 +53,13 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
+    # Flow
+    if flags !== nothing
+        reset = any(flags; dims=2)
+        flags = .!(cumsum(flags; dims=2) .>= 1)
+        Mxy .*= flags
+        M.z[reset] = p.ρ[reset]
+    end
     #Acquired signal
     sig[:,:,1] .= transpose(Mxy[:, findall(seq.ADC)])
 

@@ -48,7 +48,6 @@ get_theo_A(r::RF; off_val=0, max_rf_samples=Inf) = begin
 		NT = length(r.T)
 		if NA > 1 && NT == 1
 			dt = repeat([r.T/NA], outer=NA)
-			dt = repeat([r.T/NA], outer=NA)
 		elseif NA > 1 && NT > 1
 			dt = r.T[:]
 		elseif NA == 1 && NT == 1
