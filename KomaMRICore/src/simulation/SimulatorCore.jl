@@ -301,7 +301,7 @@ function simulate(
     parts, excitation_bool = get_sim_ranges(seqd; Nblocks=sim_params["Nblocks"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p ∈ parts]; append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
-    Xt, obj = initialize_spins_state(obj, seqd, sim_params["sim_method"], sim_params)
+    Xt, obj = initialize_spins_state(obj, sim_params["sim_method"])
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_params["sim_method"])
     sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
