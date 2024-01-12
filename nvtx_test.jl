@@ -1,7 +1,7 @@
 using Pkg
 Pkg.activate(".")
 
-using KomaMRI 
+using KomaMRI  
 
 phantom = brain_phantom2D()[1:100]
 
