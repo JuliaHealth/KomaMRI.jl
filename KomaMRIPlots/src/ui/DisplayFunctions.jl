@@ -560,7 +560,6 @@ function plot_image(
 	return plot_koma(p, l; config)
 end
 
-
 """
 """
 function plot_cine(frames, fps; Δt=1/fps)

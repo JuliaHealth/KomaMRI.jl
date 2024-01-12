@@ -267,6 +267,7 @@ using TestItems, TestItemRunner
         t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
         t_adc =  KomaMRIBase.get_adc_sampling_times(seq)
         M2, M2_adc = KomaMRIBase.get_slew_rate(seq)
+        M2eddy, M2eddy_adc = KomaMRIBase.get_eddy_currents(seq)
         Gx, Gy, Gz = KomaMRIBase.get_grads(seq, t)
         Gmx, Gmy, Gmz = KomaMRIBase.get_grads(seq, reshape(t, 1, :))
         @test reshape(Gmx, :, 1) ≈ Gx && reshape(Gmy, :, 1) ≈ Gy && reshape(Gmz, :, 1) ≈ Gz
@@ -274,6 +275,7 @@ using TestItems, TestItemRunner
         @test is_RF_on(seq) == is_RF_on(seq, t)
         @test KomaMRIBase.is_Delay(seq) == !(is_GR_on(seq) || is_RF_on(seq) || is_ADC_on(seq))
         @test size(M2, 1) == length(Δt) && size(M2_adc, 1) == length(t_adc)
+        @test size(M2eddy, 1) == length(Δt) && size(M2eddy_adc, 1) == length(t_adc)
 
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", seq)
@@ -403,6 +405,10 @@ end
     #Test brain phantom 3D
     ph = brain_phantom3D()
     @test ph.name=="brain3D"
+
+    #Test pelvis phantom 2D
+    ph = pelvis_phantom2D()
+    @test ph.name=="pelvis2D"
 end
 
 @testitem "Scanner" tags=[:base] begin

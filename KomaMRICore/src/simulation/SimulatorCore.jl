@@ -56,6 +56,56 @@ function default_sim_params(sim_params=Dict{String,Any}())
 end
 
 """
+    sim_params = default_sim_params(sim_params=Dict{String,Any}())
+
+This function returns a dictionary containing default simulation parameters while also
+allowing the user to define some of them.
+
+# Arguments
+- `sim_params`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) user-defined dictionary with
+    simulation parameters. The following lists its keys along with their possible values:
+    * "return_type": defines the output of the [`simulate`](@ref) function. Possible values
+        are `"raw"`, `"mat"`, and `"state"`, corresponding to outputting a MRIReco
+        `RawAcquisitionData`, the signal values, and the last magnetization state of the
+        simulation, respectively
+    * "sim_method": defines the type of simulation. The default value is `Bloch()`, but you
+        can alternatively use the `BlochDict()` simulation method. Moreover, you have the
+        flexibility to create your own methods without altering the KomaMRI source code
+    * "Δt": raster time for gradients
+    * "Δt_rf": raster time for RFs
+    * "precision": defines the floating-point simulation precision. You can choose between
+        `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively.
+        It's important to note that, especially for GPU operations, using `"f32"` is
+        generally much faster
+    * "Nblocks": divides the simulation into a specified number of time blocks. This parameter
+        is designed to conserve RAM resources, as **KomaMRI** computes a series of
+        simulations consecutively, each with the specified number of blocks determined by
+        the value of `"Nblocks"`
+    * "Nthreads": divides the **Phantom** into a specified number of threads. Because spins
+        are modeled independently of each other, **KomaMRI** can solve simulations in
+        parallel threads, speeding up the execution time
+    * "gpu": is a boolean that determines whether to use GPU or CPU hardware resources, as
+        long as they are available on the host computer
+    * "gpu_device": sets the index ID of the available GPU in the host computer
+
+# Returns
+- `sim_params`: (`::Dict{String,Any}`) dictionary with simulation parameters
+"""
+function default_sim_params(sim_params=Dict{String,Any}())
+    sampling_params = KomaMRIBase.default_sampling_params()
+    get!(sim_params, "gpu", true); if sim_params["gpu"] check_use_cuda(); sim_params["gpu"] &= use_cuda[] end
+    get!(sim_params, "gpu_device", 0)
+    get!(sim_params, "Nthreads", sim_params["gpu"] ? 1 : Threads.nthreads())
+    get!(sim_params, "Nblocks", 20)
+    get!(sim_params, "Δt", sampling_params["Δt"])
+    get!(sim_params, "Δt_rf", sampling_params["Δt_rf"])
+    get!(sim_params, "sim_method", Bloch())
+    get!(sim_params, "precision", "f32")
+    get!(sim_params, "return_type", "raw")
+    return sim_params
+end
+
+"""
     sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
 
 Implementation in multiple threads for the simulation in free precession,
@@ -152,10 +202,8 @@ take advantage of CPU parallel processing.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractArray{Complex{T}},
-                            Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
-                            Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], 
-                            excitation_bool=ones(Bool, size(parts)), w=nothing
-                        ) where {T<:Real}
+    Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
+    Nblocks=1, Nthreads=Threads.nthreads(), parts=[1:length(seq)], excitation_bool=ones(Bool, size(parts)), w=nothing) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
@@ -293,7 +341,7 @@ julia> plot_signal(raw)
 ```
 """
 function simulate(
-    obj::Phantom, seq::Sequence, sys::Scanner; 
+    obj::Phantom, seq::Sequence, sys::Scanner;
     sim_params=Dict{String,Any}(), w=nothing
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined

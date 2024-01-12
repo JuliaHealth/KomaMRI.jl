@@ -2,6 +2,10 @@
 
 This page provides documentation for the modules, structs, functions, methods, and additional components available when importing the **KomaMRI** package. It serves as a valuable reference when using the **Julia REPL** directly and when creating custom **Julia** scripts. Be sure not to overlook the section [How to read the API docs](api.md#How-to-read-the-API-docs), which contains important information for understanding the general structure of docstrings. The following is the table of contents for the API Documentation:
 
+```@raw html
+<p align="center"><img width="100%" src="../assets/koma-schema-subdirs.svg"/></p>
+```
+
 ```@contents
 Pages = ["api.md"]
 Depth = 3

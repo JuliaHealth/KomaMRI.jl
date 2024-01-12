@@ -59,7 +59,6 @@ julia> obj.ρ
 	motion = NoMotion()
 end
 
-
 """Size and length of a phantom"""
 size(x::Phantom) = size(x.ρ)
 Base.length(x::Phantom) = length(x.ρ)
@@ -68,7 +67,6 @@ Base.iterate(x::Phantom) = (x[1], 2)
 Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i+1) : nothing
 Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
-
 
 """Compare two phantoms"""
 Base.isapprox(obj1::Phantom, obj2::Phantom)  = begin
@@ -88,6 +86,7 @@ end
 """
 Separate object spins in a sub-group
 """
+
 Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
 	Phantom(name=obj.name,
 			x=obj.x[p],
@@ -103,26 +102,6 @@ Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begi
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
 			motion=obj.motion[p]
-			#Χ=obj.Χ[p], #TODO!
-			)
-end
-
-Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}, 
-							q::Union{AbstractRange,AbstractVector,Colon}) = begin
-	Phantom(name=obj.name,
-			x=obj.x[p],
-			y=obj.y[p],
-			z=obj.z[p],
-			ρ=obj.ρ[p],
-			T1=obj.T1[p],
-			T2=obj.T2[p],
-			T2s=obj.T2s[p],
-			Δw=obj.Δw[p],
-			#Diff=obj.Diff[p], #TODO!
-			Dλ1=obj.Dλ1[p],
-			Dλ2=obj.Dλ2[p],
-			Dθ=obj.Dθ[p],
-			motion=obj.motion[p,q]
 			#Χ=obj.Χ[p], #TODO!
 			)
 end
@@ -143,26 +122,6 @@ Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
 			motion=obj.motion[p]
-			#Χ=obj.Χ[p], #TODO!
-			)
-end
-
-Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}, 
-						q::Union{AbstractRange,AbstractVector,Colon}) = begin
-	@views Phantom(name=obj.name,
-			x=obj.x[p],
-			y=obj.y[p],
-			z=obj.z[p],
-			ρ=obj.ρ[p],
-			T1=obj.T1[p],
-			T2=obj.T2[p],
-			T2s=obj.T2s[p],
-			Δw=obj.Δw[p],
-			#Diff=obj.Diff[p], #TODO!
-			Dλ1=obj.Dλ1[p],
-			Dλ2=obj.Dλ2[p],
-			Dθ=obj.Dθ[p],
-			motion=obj.motion[p,q]
 			#Χ=obj.Χ[p], #TODO!
 			)
 end
@@ -315,7 +274,6 @@ fat = Phantom("fat",x,y,ρ_fat,T2_fat,Δw_fat)
 #Resulting phantom
 obj = fat_bool ? heart + fat : heart #concatenating spins
 """
-
 
 """
     phantom = brain_phantom2D(;axis="axial", ss=4)
