@@ -9,8 +9,9 @@ revision 1
 [DEFINITIONS]
 AdcRasterTime 1e-07 
 BlockDurationRaster 1e-05 
-GradientRasterTime 1e-05 
-RadiofrequencyRasterTime 1e-06 
+FOV 0.01 0.01 
+GradientRasterTime 1.00016276e-05 
+RadiofrequencyRasterTime 1.00097656e-06 
 
 # Format of blocks:
 # NUM DUR RF  GX  GY  GZ  ADC  EXT
@@ -690,8 +691,8 @@ RadiofrequencyRasterTime 1e-06
 # id amplitude mag_id phase_id time_shape_id delay freq phase
 # ..        Hz   ....     ....          ....    us   Hz   rad
 [RF]
-1         1250 1 2 3 500 0 0
-2         2500 1 2 3 500 0 1.5708
+1         1250 1 2 3 500.488 0 0
+2         2500 1 2 3 500.488 0 1.5708
 
 # Format of trapezoid gradients:
 # id amplitude rise flat fall delay
@@ -811,4 +812,4 @@ num_samples 2
 # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
 # The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
 Type md5
-Hash 467c699b313b032a13ad4e45e39ae880
+Hash bfefe052fff4033d0a6903e581af9d3d

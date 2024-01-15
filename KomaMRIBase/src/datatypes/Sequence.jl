@@ -139,6 +139,14 @@ recursive_merge(x...) = x[end]
 size(x::Sequence) = size(x.GR[1,:])
 
 """
+For comparing two `Sequence`s custom types
+"""
+Base.isapprox(s1::Sequence, s2::Sequence) = begin
+    (length(s1) != length(s2)) && return false
+    return all([s1.ADC[i] ≈ s2.ADC[i] && s1.RF[i] ≈ s2.RF[i] && s1.GR[i] ≈ s2.GR[i] && s1.DUR[i] ≈ s2.DUR[i] for i ∈ 1:length(s1)])
+end
+
+"""
     y = is_ADC_on(x::Sequence)
     y = is_ADC_on(x::Sequence, t::Union{Array{Float64,1}, Array{Float64,2}})
 

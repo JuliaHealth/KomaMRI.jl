@@ -182,7 +182,9 @@ getproperty(x::Matrix{Grad}, f::Symbol) = begin
 	end
 end
 
-# Gradient comparison
+"""
+For comparing two `Grad`s custom types
+"""
 Base.isapprox(gr1::Grad, gr2::Grad) = begin
     return all(length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k ∈ fieldnames(Grad)) &&
         all(getfield(gr1, k) ≈ getfield(gr2, k) for k ∈ fieldnames(Grad))

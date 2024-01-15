@@ -1,31 +1,3 @@
-using KomaMRIFiles, KomaMRIBase, Printf, MD5
-
-
-Base.isapprox(rf1::RF, rf2::RF) = begin
-    return all(length(getfield(rf1,k)) == length(getfield(rf2,k)) for k ∈ fieldnames(RF)) &&
-        all(size(getfield(rf1,k)) == size(getfield(rf2,k)) for k ∈ fieldnames(RF)) &&
-        all(≈(getfield(rf1,k), getfield(rf2,k), atol=1e-9) for k ∈ fieldnames(RF))
-end
-
-Base.isapprox(gr1::Grad, gr2::Grad) = begin
-    return all(length(getfield(gr1,k)) ≈ length(getfield(gr2,k)) for k ∈ fieldnames(Grad)) &&
-        #all(size(getfield(gr1,k)) ≈ size(getfield(gr2,k)) for k ∈ fieldnames(Grad)) &&
-        all(getfield(gr1,k) ≈ getfield(gr2,k) for k ∈ fieldnames(Grad))
-end
-
-Base.isapprox(adc1::ADC, adc2::ADC) = begin
-    return all(length(getfield(adc1,k)) ≈ length(getfield(adc2,k)) for k ∈ fieldnames(ADC)) &&
-        #all(size(getfield(adc1,k)) ≈ size(getfield(adc2,k)) for k ∈ fieldnames(ADC)) &&
-        all(getfield(adc1,k) ≈ getfield(adc2,k) for k ∈ fieldnames(ADC))
-end
-
-Base.isapprox(s1::Sequence, s2::Sequence) = begin
-    if length(s1) != length(s2)
-        return false
-    end
-    return all([s1.ADC[i] ≈ s2.ADC[i] && s1.RF[i] ≈ s2.RF[i] && s1.GR[i] ≈ s2.GR[i] && s1.DUR[i] ≈ s2.DUR[i] for i ∈ 1:length(s1)])
-end
-
 """
     typeon_obj = get_typeon_obj(seq::Sequence, type::String)
 
@@ -448,24 +420,3 @@ function write_seq(seq::Sequence, filename)
     end
 
 end
-
-#seq_file = "cine_gre0.seq"            # false = seq0 ≈ seq1
-seq_file = "DEMO_gre0.seq"            # true  = seq0 ≈ seq1
-#seq_file = "DEMO_grep0.seq"           # true  = seq0 ≈ seq1
-#seq_file = "epi_label0.seq"           # false = seq0 ≈ seq1
-#seq_file = "epi_rs0.seq"              # Error after reading seq1
-#seq_file = "epi_se0.seq"              # true  = seq0 ≈ seq1
-#seq_file = "epi0.seq"                 # true  = seq0 ≈ seq1
-#seq_file = "epise_rs0.seq"            # false = seq0 ≈ seq1
-#seq_file = "external0.seq"            # true  = seq0 ≈ seq1
-#seq_file = "gre_rad0.seq"             # true  = seq0 ≈ seq1
-#seq_file = "spiral0.seq"              # true  = seq0 ≈ seq1
-#seq_file = "tabletop_tse_pulseq0.seq" # false = seq0 ≈ seq1
-
-
-seq0 = read_seq(seq_file)
-filename = splitext(seq_file)[1][1:end-1] * "1.seq"
-write_seq(seq0, filename)
-seq1 = read_seq(filename)
-println("seq0 ≈ seq1")
-println(seq0 ≈ seq1)
