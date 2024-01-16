@@ -68,9 +68,8 @@ using TestItems, TestItemRunner
         test_folder = joinpath(@__DIR__, "test_files", "pulseq")
 
         # Test for some .seq files
-        #filenames = ["DEMO_gre", "DEMO_grep", "epi_se", "epi", "external", "gre_rad", "spiral", "tabletop_tse_pulseq"]
+        filenames = ["DEMO_gre", "DEMO_grep", "epi_se", "epi", "external", "gre_rad", "spiral", "tabletop_tse_pulseq"]
         #filenames = ["cine_gre", "epi_label", "epi_rs", "epise_rs"]
-        filenames = ["cine_gre"]
         for seq_filename_head in filenames
             seq_filename_head = seq_filename_head
             seq_original_filename = seq_filename_head * ".seq"
@@ -80,6 +79,7 @@ using TestItems, TestItemRunner
             seq_original = @suppress read_seq(seq_original_file)
             write_seq(seq_original, seq_written_file)
             seq_written = @suppress read_seq(seq_written_file)
+            rm(seq_written_file; force=true)
             @test seq_original ≈ seq_written
         end
 
