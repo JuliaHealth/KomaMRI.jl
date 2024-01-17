@@ -27,7 +27,7 @@ body:
           println("Julia $VERSION")            # Julia version
           # Koma sub-packages
           for (_, pkg) in filter(((_, pkg),) -> occursin("KomaMRI", pkg.name), Pkg.dependencies())
-            println(pkg.name)
+            println("$(pkg.name) $(pkg.version)")
           end
         end
         ```
