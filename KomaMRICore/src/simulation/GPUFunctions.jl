@@ -95,7 +95,7 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs #Type piracy
 """
     f32(m)
 
-Converts the `eltype` of model's parameters to `Float32`
+Converts the `eltype` of model's parameters to `Float32`.
 Recurses into structs marked with `@functor`.
 
 See also [`f64`](@ref).
@@ -105,7 +105,7 @@ f32(m) = paramtype(Float32, m)
 """
     f64(m)
 
-Converts the `eltype` of model's parameters to `Float64` (which is Koma's default)..
+Converts the `eltype` of model's parameters to `Float64`.
 Recurses into structs marked with `@functor`.
 
 See also [`f32`](@ref).

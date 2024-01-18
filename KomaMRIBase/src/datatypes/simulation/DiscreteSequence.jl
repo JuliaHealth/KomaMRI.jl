@@ -96,7 +96,19 @@ function discretize(seq::Sequence; sampling_params=default_sampling_params())
 end
 
 """
-Returns a dictionary with default simulation parameters.
+    params = default_sampling_params(sampling_params=Dict{String,Any}())
+
+This function returns a dictionary containing default sampling parameters while also
+allowing the user to define some of them.
+
+# Arguments
+- `sampling_params`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) user-defined dictionary
+    with sampling parameters. The following lists its keys along with their possible values:
+    * "Δt": raster time for gradients
+    * "Δt_rf": raster time for RFs
+
+# Returns
+- `params`: (`::Dict{String,Any}`) dictionary with sampling parameters
 """
 function default_sampling_params(sampling_params=Dict{String,Any}())
     get!(sampling_params, "Δt", 1e-3)

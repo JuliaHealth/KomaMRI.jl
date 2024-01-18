@@ -233,6 +233,8 @@ read_phantom_MRiLab
 CurrentModule = KomaMRICore
 ```
 
+**KomaMRICore** has **Functors.jl** as one of its dependencies. Functors allow us to easily handle large or nested structures, enabling efficient operations on all their parameters simultaneously, such as changing the precision of values. In **KomaMRI**, four structures are treated as functors internally using the `@functor` macro: `Phantom`, `DiscreteSequence`, `Spinnor`, and `Mag`.
+
 ### `f32`
 ```@docs
 f32

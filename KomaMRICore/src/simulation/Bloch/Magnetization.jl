@@ -1,14 +1,14 @@
 """
-    mag = Mag(xy::Complex, z::Real)
+    mag = Mag(xy, z)
 
 The Magnetization struct.
 
 # Arguments
-- `xy`: (`::Complex{Float64}`) magnetization of a spin in the xy plane
-- `z`: (`::Real`) magnetization of a spin in the z plane
+- `xy`: (`::AbstractVector{Complex{Real}}`) magnetization of spins in the xy plane
+- `z`: (`::AbstractVector{Real}`) magnetization of spins in the z plane
 
 # Returns
-- `mag`: (`::Mag`) Magnetization struct
+- `mag`: (`::SpinStateRepresentation{Real}`) Magnetization struct
 """
 mutable struct Mag{T<:Real} <: SpinStateRepresentation{T}
     xy::AbstractVector{Complex{T}}

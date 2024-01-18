@@ -176,7 +176,9 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
     return nothing
 end
 
-"""Updates KomaUI's simulation progress bar."""
+"""
+Updates KomaUI's simulation progress bar.
+"""
 function update_blink_window_progress!(w::Nothing, block, Nblocks)
     return nothing
 end
@@ -271,7 +273,7 @@ of the `"return_type"` key of the `sim_params` dictionary.
     the progress bar will be considered
 
 # Returns
-- `out`: (`::Vector{Complex}` or `::SpinStateRepresentation` or `::RawAcquisitionData`) depending
+- `out`: (`::Array{Complex}` or `::SpinStateRepresentation` or `::RawAcquisitionData`) depending
     on whether "return_type" is "mat", "state" or "raw" (default), respectively
 
 # Examples
@@ -351,13 +353,14 @@ end
 """
     mag = simulate_slice_profile(seq; z, sim_params)
 
-Returns magnetization of spins distributed along `z` after running the Sequence struct.
+Returns magnetization of spins distributed along the `z` axis for a given `Sequence` struct.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `z`: (`=range(-2e-2,2e-2,200)`) range for the z axis
+- `z`: (`::AbstractVector{Real}`, `=range(-2e-2,2e-2,200)`, `[m]`) range of values in the `z`
+    axis
 - `sim_params`: (`::Dict{String, Any}`, `=Dict{String,Any}("Δt_rf"=>1e-6)`) dictionary with
     simulation parameters
 

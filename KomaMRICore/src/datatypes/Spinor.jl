@@ -17,8 +17,8 @@ This later operates on the ``2\times2`` representation of ``(x,y,z)`` as follows
 R V R^{*}``.
 
 # Arguments
-- `α`: (`::Complex{Float64}`) Cayley-Klein parameter α
-- `β`: (`::Complex{Float64}`) Cayley-Klein parameter β
+- `α`: (`::Complex{Real}`) Cayley-Klein parameter α
+- `β`: (`::Complex{Real}`) Cayley-Klein parameter β
 
 # Returns
 - `spinor`: (`::Spinor`) Spinor struct
@@ -31,6 +31,7 @@ Spinor(α::Complex{T}, β::Complex{T}) where {T<:Real} = Spinor([α], [β])
 Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
 one(T::Spinor) = Spinor(1.,0.)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
+
 """
     str = show(io::IO, s::Spinor)
 
@@ -137,6 +138,8 @@ Rφ(φ, θ) = Spinor(cos(θ/2)+0im, exp(1im*φ)*sin(θ/2))
     s = Q(φ, nxy, nz)
 
 Spinor rotation matrix. Rotation of `φ` with respect to the axis of rotation n=(nx, ny, nz).
+
+# References
 
 Pauly, J., Le Roux, P., Nishimura, D., & Macovski, A. (1991).
 Parameter relations for the Shinnar-Le Roux selective excitation pulse design algorithm
