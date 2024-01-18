@@ -535,13 +535,15 @@ Outputs the designed k-space trajectory of the Sequence `seq`.
 - `seq`: (`::Sequence`) Sequence struct
 - `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients
+- `skip_rf`: (`::Vector{Bool}`, `=zeros(Bool, sum(is_RF_on.(seq)))`) boolean vector
+    indicating if the RFs should be considered for the k-space computation, with a length
+    equal to the number of active RF blocks in a sequence
 
 # Returns
 - `kspace`: (`3-column ::Matrix{Real}`) k-space
 - `kspace_adc`: (`3-column ::Matrix{Real}`) k-space sampled at ADC times
 """
-get_kspace(seq::Sequence; Δt=1,
-skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
+get_kspace(seq::Sequence; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
 	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
@@ -593,6 +595,9 @@ Outputs the designed M1 of the Sequence `seq`.
 - `seq`: (`::Sequence`) Sequence struct
 - `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients
+- `skip_rf`: (`::Vector{Bool}`, `=zeros(Bool, sum(is_RF_on.(seq)))`) boolean vector
+    indicating if the RFs should be considered for the M1 computation, with a length
+    equal to the number of active RF blocks in a sequence
 
 # Returns
 - `M1`: (`3-column ::Matrix{Real}`) first moment

@@ -4,14 +4,14 @@
 Define colors for dark or light mode.
 
 # Arguments
-- `darkmode`: (`::Bool`) boolean that selects dark or light mode
+- `darkmode`: (`::Bool`) boolean to select dark or light mode
 
 # Returns
 - `bgcolor`: (`::String`) backgound color
 - `text_color`: (`::String`) text color
-- `plot_bgcolor`: (`::String`) color background for the plots
-- `grid_color`: (`::String`) color of the grids
-- `sep_color`: (`::String`) color of separator lines
+- `plot_bgcolor`: (`::String`) plot background color
+- `grid_color`: (`::String`) grids color
+- `sep_color`: (`::String`) separator line color
 """
 function theme_chooser(darkmode)
 	if darkmode
@@ -97,18 +97,18 @@ end
 """
     c_map_interp = interp_map(c_map, t_interp)
 
-Interpolates a color map. This is used for plotting the kspace (refer to
+Interpolates a color map. This function is utilized for plotting the k-space (see
 [`plot_kspace`](@ref)).
 
 # Arguments
-- `c_map`: (`::Vector{Vector{Any}}`)color map. Every element of this vector has a
+- `c_map`: (`::Vector{Vector{Any}}`) color map. Each element in this vector contains another
     vector with a number between 0-1 in its first element and a color string in its second
-    element. It serves as a reference to create a color map with more elements
-- `t_interp`: (`::Vector{Float64}`) the vector with values between 0-1 that are the
-    reference for interpolate the color map with more elements
+    element. It acts as a reference to create a color map with additional elements
+- `t_interp`: (`::Vector{Real}`) vector with values between 0-1 serving as the reference for
+    interpolating the color map with additional elements
 
 # Returns
-- `c_map_interp`: (`::Vector{String}`) vector with color strings with interpolated
+- `c_map_interp`: (`::Vector{String}`) vector with color strings containing interpolated
     values
 """
 function interp_map(c_map, t_interp)
@@ -139,6 +139,9 @@ Plots a sequence struct.
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
 - `title`: (`::String`, `=""`) plot title
+- `xaxis`: (`::String`, `="x"`) PlotlyJS xaxis attribute
+- `yaxis`: (`::String`, `="y"`) PlotlyJS yaxis attribute
+- `showlegend`: (`::Bool`, `=true`) display plot legend
 - `max_rf_samples`: (`::Integer`, `=100`) maximum number of RF samples
 
 # Returns
@@ -219,6 +222,9 @@ Plots the zero order moment (M0) of a Sequence struct.
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
 - `title`: (`::String`, `=""`) plot title
+- `skip_rf`: (`::Vector{Bool}`, `=zeros(Bool, sum(is_RF_on.(seq)))`) boolean vector
+    indicating if the RFs should be considered for the M0 computation, with a length
+    equal to the number of active RF blocks in a sequence
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M0 of the Sequence struct
@@ -278,6 +284,9 @@ Plots the first order moment (M1) of a Sequence struct.
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
 - `title`: (`::String`, `=""`) plot title
+- `skip_rf`: (`::Vector{Bool}`, `=zeros(Bool, sum(is_RF_on.(seq)))`) boolean vector
+    indicating if the RFs should be considered for the M1 computation, with a length
+    equal to the number of active RF blocks in a sequence
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M1 of the Sequence struct
