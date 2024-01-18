@@ -1,4 +1,4 @@
-Base.@kwdef struct BlochDict <: SimulationMethod 
+Base.@kwdef struct BlochDict <: SimulationMethod
     save_Mz::Bool=false
 end
 
@@ -21,21 +21,20 @@ function initialize_spins_state(obj::Phantom{T}, sim_method::BlochDict) where {T
 end
 
 """
-    run_spin_precession(obj, seq, Xt, sig)
+    run_spin_precession!(obj, seqd, sig, M, sim_method)
 
-Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`. It calculates S(t)
-= ∑ᵢ ρ(xᵢ) exp(- t/T2(xᵢ) ) exp(- 𝒊 γ ∫ Bz(xᵢ,t)). It performs the simulation in free
-precession.
+Conduct the simulation within the precession regime using the `BlochDict` simulation method.
+It computes the magnetization in the xy plane and in z axis. The raw signal `sig` and the
+magnetization state `M` are updated in-place, representing the result of the simulation.
 
 # Arguments
-- `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
-- `seq`: (`::Sequence`) Sequence struct
-
-# Returns
-- `S`: (`Vector{ComplexF64}`) raw signal over time
-- `M0`: (`::Vector{Mag}`) final state of the Mag vector
+- `obj`: (`::Phantom{T:<Real}`) Phantom struct
+- `seqd`: (`::DiscreteSequence{T:<Real}`) DiscreteSequence struct
+- `sig`: (`::AbstractArray{Complex{T:<Real}}`) raw signal
+- `M`: (`::Mag{T:<Real}`) magnetization state
+- `sim_method`: (`::BlochDict`) utilized for dispatching the `BlochDict` simulation method
 """
-function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
+function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     M::Mag{T}, sim_method::BlochDict) where {T<:Real}
     #Simulation
     #Motion
@@ -55,7 +54,7 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    
+
     #Acquired signal
     sig[:,:,1] .= transpose(Mxy[:, findall(seq.ADC)])
 
@@ -70,19 +69,18 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
 end
 
 """
-    M0 = run_spin_excitation(obj, seq, M0)
+    run_spin_excitation!(obj, seqd, sig, M, sim_method)
 
-It gives rise to a rotation of `M0` with an angle given by the efective magnetic field
-(including B1, gradients and off resonance) and with respect to a rotation axis.
+Conduct the simulation within the excitation regime using the `BlochDict` simulation method.
+It computes the same as the `Bloch` simulation method. The raw signal `sig` and the
+magnetization state `M` are updated in-place, representing the result of the simulation.
 
 # Arguments
-- `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
-- `seq`: (`::Sequence`) Sequence struct
-
-# Returns
-- `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (actually, it's
-    a part of the complete Mag vector and it's a part of the initial state for the next
-    precession simulation step)
+- `obj`: (`::Phantom{T:<Real}`) Phantom struct
+- `seqd`: (`::DiscreteSequence{T:<Real}`) DiscreteSequence struct
+- `sig`: (`::AbstractArray{Complex{T:<Real}}`) raw signal
+- `M`: (`::Mag{T:<Real}`) magnetization state
+- `sim_method`: (`::BlochDict`) utilized for dispatching the `BlochDict` simulation method
 """
 function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     M::Mag{T}, sim_method::BlochDict) where {T<:Real}
