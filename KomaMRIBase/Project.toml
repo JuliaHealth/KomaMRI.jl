@@ -12,7 +12,7 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
 [compat]
-Interpolations = "0.13, 0.14"
+Interpolations = "0.13, 0.14, 0.15"
 MAT = "0.10"
 MRIBase = "0.4"
 Parameters = "0.12"
