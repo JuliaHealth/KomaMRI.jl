@@ -184,7 +184,7 @@ If you use this package please acknowledge us by citing our paper.
 }
 ```
 
-## Nvidia GPU tested compatibility
+## Tested compatibility
 
 We automatically test KomaMRICore's CPU multi-threading support on the most popular operating systems. Nevertheless, for GPU support the process is more manual (until #147). Here is a summary of our automatic CPU tests and local GPU tests for multiple versions of Julia:
 
