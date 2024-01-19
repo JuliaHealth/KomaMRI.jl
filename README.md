@@ -196,6 +196,6 @@ We automatically test KomaMRI.jl using GitHub Actions. So far, we have implement
 | Julia 1.10 - latest / Windows           | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
 | Julia 1.10 - latest / Linux             | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
 | Julia 1.10 - latest / Mac               | [![][gh-actions-img]][gh-actions-url]          | ➖                |
-| Julia 1.11 - nightly / Windows          | [![][gh-actions-nightly-img]][gh-actions-url]  | ❌                 |
-| Julia 1.11 - nightly / Linux            | [![][gh-actions-nightly-img]][gh-actions-url]  | ❌                 |
-| Julia 1.11 - nightly / Mac              | [![][gh-actions-nightly-img]][gh-actions-url]  | ➖                 |
+| Julia 1.11 - nightly / Windows          | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
+| Julia 1.11 - nightly / Linux            | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
+| Julia 1.11 - nightly / Mac              | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ➖                 |
