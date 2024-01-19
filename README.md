@@ -188,14 +188,14 @@ If you use this package please acknowledge us by citing our paper.
 
 We automatically test KomaMRICore's CPU multi-threading support on the most popular operating systems. Nevertheless, for GPU support the process is more manual (until #147). Here is a summary of our automatic CPU tests and local GPU tests for multiple versions of Julia:
 
-| Julia / OS                            | CPU (CI)                                       | Nvidia GPU (local) |
+| Julia (OS)                            | CPU                                       | GPU (Nvidia) |
 |:--------------------------------------|:----------------------------------------------:|:------------------:|
-| Julia 1.9 - oldest supported / Windows  | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
-| Julia 1.9 - oldest supported / Linux    | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
-| Julia 1.9 - oldest supported / Mac      | [![][gh-actions-img]][gh-actions-url]          | ➖                |
-| Julia 1.10 - latest / Windows           | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
-| Julia 1.10 - latest / Linux             | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
-| Julia 1.10 - latest / Mac               | [![][gh-actions-img]][gh-actions-url]          | ➖                |
-| Julia 1.11 - nightly / Windows          | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
-| Julia 1.11 - nightly / Linux            | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
-| Julia 1.11 - nightly / Mac              | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ➖                 |
+| Julia 1.9 (Windows)  | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
+| Julia 1.9 (Linux)    | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
+| Julia 1.9  (Mac)      | [![][gh-actions-img]][gh-actions-url]          | ➖                |
+| Julia 1.10 (Windows)           | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
+| Julia 1.10 (Linux)             | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
+| Julia 1.10 (Mac)               | [![][gh-actions-img]][gh-actions-url]          | ➖                |
+| Julia 1.11 (Windows)          | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
+| Julia 1.11 (Linux)            | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
+| Julia 1.11 (Mac)              | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ➖                 |
