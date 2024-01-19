@@ -199,3 +199,5 @@ We automatically test KomaMRICore's CPU multi-threading support on the most popu
 | Julia 1.11 (Windows)          | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
 | Julia 1.11 (Linux)            | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
 | Julia 1.11 (Mac)              | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ➖                 |
+
+If you see any problem with this information, please let us know in the form of a GitHub issue.
