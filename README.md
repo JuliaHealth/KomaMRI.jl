@@ -186,7 +186,7 @@ If you use this package please acknowledge us by citing our paper.
 
 ## Nvidia GPU tested compatibility
 
-We automatically test KomaMRI.jl using GitHub Actions. So far, we have implemented automatic tests for the most popular operating systems on CPUs, which is precisely what the [![][gh-actions-img1]][gh-actions-url] badge reflects. Generating automatic tests for GPUs is still a work in progress; however, we ensure that everything works flawlessly on our own machines. Here is a summary table for local GPU tests:
+We automatically test KomaMRICore's CPU multi-threading support on the most popular operating systems. Nevertheless, for GPU support the process is more manual (until #147). Here is a summary of our automatic CPU tests and local GPU tests for multiple versions of Julia:
 
 | Julia / OS                            | CPU (CI)                                       | Nvidia GPU (local) |
 |:--------------------------------------|:----------------------------------------------:|:------------------:|
