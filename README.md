@@ -72,6 +72,8 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [docd-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docd-url]: https://cncastillo.github.io/KomaMRI.jl/dev/
 
+[gh-actions-nightly-img]: https://github.com/cncastillo/KomaMRI.jl/workflows/Nightly/badge.svg
+[gh-actions-nightly-url]: https://github.com/cncastillo/KomaMRI.jl/actions/workflows/nightly.yml
 [gh-actions-img]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img1]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img2]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
@@ -181,3 +183,19 @@ If you use this package please acknowledge us by citing our paper.
          eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
 }
 ```
+
+## Nvidia GPU tested compatibility
+
+We automatically test KomaMRI.jl using GitHub Actions. So far, we have implemented automatic tests for the most popular operating systems on CPUs, which is precisely what the [![][gh-actions-img1]][gh-actions-url] badge reflects. Generating automatic tests for GPUs is still a work in progress; however, we ensure that everything works flawlessly on our own machines. Here is a summary table for local GPU tests:
+
+| Julia / OS                            | CPU (CI)                                       | Nvidia GPU (local) |
+|:--------------------------------------|:----------------------------------------------:|:------------------:|
+| Julia 1.9 - oldest supported / Windows  | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
+| Julia 1.9 - oldest supported / Linux    | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
+| Julia 1.9 - oldest supported / Mac      | [![][gh-actions-img]][gh-actions-url]          | ➖                |
+| Julia 1.10 - latest / Windows           | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
+| Julia 1.10 - latest / Linux             | [![][gh-actions-img]][gh-actions-url]          | ✔️                |
+| Julia 1.10 - latest / Mac               | [![][gh-actions-img]][gh-actions-url]          | ➖                |
+| Julia 1.11 - nightly / Windows          | [![][gh-actions-nightly-img]][gh-actions-url]  | ❌                 |
+| Julia 1.11 - nightly / Linux            | [![][gh-actions-nightly-img]][gh-actions-url]  | ❌                 |
+| Julia 1.11 - nightly / Mac              | [![][gh-actions-nightly-img]][gh-actions-url]  | ➖                 |
