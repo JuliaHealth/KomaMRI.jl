@@ -21,7 +21,7 @@ include("other/DiffusionModel.jl")
 include("simulation/GPUFunctions.jl")
 include("simulation/SimulatorCore.jl")
 
-# ISMRMRD
+#ISMRMRD
 export signal_to_raw_data
 # Simulator
 export Mag

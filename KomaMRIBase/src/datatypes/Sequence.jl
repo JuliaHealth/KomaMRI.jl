@@ -138,6 +138,10 @@ recursive_merge(x...) = x[end]
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 
+# concatenation (+ for collections at once)
+Base.hcat(v::Vector{Sequence}) = Sequence(reduce(hcat, s.GR for s in v), reduce(hcat, s.RF for s in v), reduce(vcat, s.ADC for s in v), reduce(vcat, s.DUR for s in v), reduce(recursive_merge, s.DEF for s in v))
+Base.:(==)(x::Sequence, y::Sequence) = x.GR == y.GR && x.RF == y.RF && x.ADC == y.ADC && x.DUR == y.DUR && x.DEF == y.DEF
+
 """
 For comparing two `Sequence`s custom types
 """
