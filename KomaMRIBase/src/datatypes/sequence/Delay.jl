@@ -26,17 +26,7 @@ struct Delay
     end
 end
 
-"""
-    str = show(io::IO, s::Delay)
-
-Displays the delay time in milliseconds of a Delay struct in the Julia REPL.
-
-# Arguments
-- `s`: (`::Delay`) delay struct
-
-# Returns
-- `str`: (`::String`) output string message
-"""
+# Display on the REPL
 Base.show(io::IO, d::Delay) = begin
 	print(io, "Delay($(d.T*1e3)ms)")
 end

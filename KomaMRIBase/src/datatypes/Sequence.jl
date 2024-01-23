@@ -80,17 +80,7 @@ Sequence(GR::Array{Grad,1}, RF::Array{RF,1})= Sequence(reshape(GR, :, 1), reshap
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], [DUR], DEF)
 Sequence() = Sequence([Grad(0, 0)])
 
-"""
-    str = show(io::IO, s::Sequence)
-
-Displays information about a Sequence struct in the julia REPL.
-
-# Arguments
-- `s`: (`::Sequence`) Sequence struct
-
-# Returns
-- `str` (`::String`) output string message
-"""
+# Display on the REPL
 Base.show(io::IO, s::Sequence) = begin
 	compact = get(io, :compact, false)
 	if !compact

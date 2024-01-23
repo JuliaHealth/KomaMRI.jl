@@ -40,17 +40,7 @@ mutable struct RF
     end
 end
 
-"""
-    str = show(io::IO, x::RF)
-
-Displays information about the RF struct in the julia REPL.
-
-# Arguments
-- `x`: (`::RF`) RF struct
-
-# Returns
-- `str`: (`::String`) output string message
-"""
+# Display on the REPL
 Base.show(io::IO, x::RF) = begin
 	r(x) = round.(x,digits=4)
 	compact = get(io, :compact, false)

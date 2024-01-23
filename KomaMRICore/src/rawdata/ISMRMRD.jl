@@ -232,6 +232,7 @@ function signal_to_raw_data(
     return RawAcquisitionData(params, profiles)
 end
 
+# Display on the REPL
 Base.show(io::IO, raw::RawAcquisitionData) = begin
     Nt, Nc = size(raw.profiles[1].data)
     compact = get(io, :compact, false)

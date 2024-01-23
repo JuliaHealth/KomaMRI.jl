@@ -122,17 +122,7 @@ Grad(f::Function, T::Real, N::Integer=300; delay::Real=0) = begin
 end
 
 
-"""
-    str = show(io::IO, x::Grad)
-
-Displays information about the Grad struct `x` in the julia REPL.
-
-# Arguments
-- `x`: (`::Grad`) Grad struct
-
-# Returns
-- `str` (`::String`) output string message
-"""
+# Display on the REPL
 Base.show(io::IO, x::Grad) = begin
 	r(x) = round.(x,digits=4)
 	compact = get(io, :compact, false)

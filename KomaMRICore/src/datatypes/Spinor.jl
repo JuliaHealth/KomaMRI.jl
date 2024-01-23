@@ -32,17 +32,7 @@ Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
 one(T::Spinor) = Spinor(1.,0.)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 
-"""
-    str = show(io::IO, s::Spinor)
-
-Displays the spinor parameters in the julia REPL.
-
-# Arguments
-- `s`: (`::Spinor`) Spinor struct
-
-# Returns
-- `str`: (`::String`) output string message
-"""
+# Display on the REPL
 Base.show(io::IO, s::Spinor) = begin
     print(io, "Spinor(α = ", s.α, ", β = ", s.β, ")")
 end
