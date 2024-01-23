@@ -99,17 +99,17 @@ size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
 *(α::Complex{T}, x::RF) where {T<:Real} = RF(α*x.A,x.T,x.Δf,x.delay)
 
 """
-    y = dur(x::RF)
-    y = dur(x::Array{RF,1})
-    y = dur(x::Array{RF,2})
+    time = dur(rf::RF)
+    time = dur(rf::Array{RF,1})
+    time = dur(rf::Array{RF,2})
 
 Duration time in seconds of an RF struct or RF array.
 
 # Arguments
-- `x`: (`::RF` or `::Array{RF,1}` or `::Array{RF,2}`) RF struct or RF array
+- `rf`: (`::RF` or `::Array{RF,1}` or `::Array{RF,2}`) RF struct or RF array
 
 # Returns
-- `y`: (`::Real`, [`s`]) duration of the RF struct or RF array
+- `time`: (`::Real`, [`s`]) duration of the RF struct or RF array
 """
 dur(x::RF) = sum(x.T)
 dur(x::Array{RF,1}) = sum(sum(x[i].T) for i=1:size(x,1))
@@ -135,15 +135,15 @@ RF(f::Function, T::Real, N::Int64=301; delay::Real=0, Δf=0) = begin
 end
 
 """
-    α = get_flip_angle(x::RF)
+    α = get_flip_angle(rf::RF)
 
 Calculates the flip angle α [deg] of an RF struct. α = γ ∫ B1(τ) dτ
 
 # Arguments
-- `x`: (`::RF`) RF struct
+- `rf`: (`::RF`) RF struct
 
 # Returns
-- `α`: (`::Real`, `[deg]`) flip angle RF struct `x`
+- `α`: (`::Real`, `[deg]`) flip angle RF struct `rf`
 """
 get_flip_angle(x::RF) = begin
 	A, NA, T, NT = x.A, length(x.A), x.T, length(x.T)
@@ -153,16 +153,16 @@ get_flip_angle(x::RF) = begin
 end
 
 """
-    t = get_RF_center(x::RF)
+    time = get_RF_center(rf::RF)
 
-Calculates the time where is the center of the RF pulse `x`. This calculation includes the
+Calculates the time where is the center of the RF pulse `rf`. This calculation includes the
 RF delay.
 
 # Arguments
-- `x`: (`::RF`) RF struct
+- `rf`: (`::RF`) RF struct
 
 # Returns
-- `t`: (`::Real`, `[s]`) time where is the center of the RF pulse `x`
+- `time`: (`::Real`, `[s]`) time where is the center of the RF pulse `rf`
 """
 get_RF_center(x::RF) = begin
 	A, NA, T, NT, delay = x.A, length(x.A), x.T, length(x.T), x.delay

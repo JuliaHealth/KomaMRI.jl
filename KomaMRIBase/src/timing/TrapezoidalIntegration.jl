@@ -1,12 +1,6 @@
 """
     y = trapz(Δt, x)
 
-Trapezoidal integration. In practice, this function is used to integrate
-(Gx * x + Gy * y + Gz * z) * Δt for all the spins. `NΔt` is the length of `Δt`. `Ns` stands
-for the number of spins of a phantom. `x` is a matrix which rows represents different spins
-and columns are different times and the elements are the field Gx * x + Gy * y + Gz * z
-values.
-
 Trapezoidal integration. In practice, this function integrates the expression
 (Gx * x + Gy * y + Gz * z) * Δt over time for all spins. `NΔt` represents the length of the
 time interval `Δt`, and `Ns` denotes the number of spins in a phantom. The matrix `x` has
@@ -31,7 +25,8 @@ end
 """
     y = cumtrapz(Δt, x)
 
-Trapezoidal cumulative integration. Same as [`KomaMRIBase.trapz`](@ref) but it store cumulative integration results.
+Trapezoidal cumulative integration. Same as [`KomaMRIBase.trapz`](@ref) but it store
+cumulative integration results.
 
 # Arguments
 - `Δt`: (`1 x NΔt ::AbstractArray{Real}`, `[s]`) delta time 1-row array

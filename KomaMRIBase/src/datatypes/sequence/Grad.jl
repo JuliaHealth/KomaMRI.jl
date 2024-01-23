@@ -201,17 +201,17 @@ vcat(x::Array{Grad,1},y::Array{Grad,1}) = [i==1 ? x[j] : y[j] for i=1:2,j=1:leng
 vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ? y[j] : z[j] for i=1:3,j=1:length(x)]
 
 """
-    y = dur(x::Grad)
-    y = dur(x::Vector{Grad})
+    time = dur(gr::Grad)
+    time = dur(gr::Vector{Grad})
 
 Duration time in seconds of a Grad struct or Grad array. When the input is a gradient vector,
 the duration is the maximum duration among all the elements of the gradient vector.
 
 # Arguments
-- `x`: (`::Grad` or `::Vector{Grad}`) RF struct or RF array
+- `gr`: (`::Grad` or `::Vector{Grad}`) Grad struct or Grad array
 
 # Returns
-- `y`: (`::Real`, `[s]`) duration of the RF struct or RF array
+- `time`: (`::Real`, `[s]`) duration of the Grad struct or Grad array
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x), dims=1)[:]

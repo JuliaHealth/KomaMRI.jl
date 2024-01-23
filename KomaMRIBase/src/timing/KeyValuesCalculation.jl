@@ -1,16 +1,16 @@
 """
-    A = get_theo_A(g::Grad; off_val=0)
-    A = get_theo_A(r::RF; off_val=0, max_rf_samples=Inf)
-    A = get_theo_A(d::ADC; off_val=0)
+    amplitudes = get_theo_A(gr::Grad; off_val=0)
+    amplitudes = get_theo_A(rf::RF; off_val=0, max_rf_samples=Inf)
+    amplitudes = get_theo_A(adc::ADC; off_val=0)
 
 Get the theoretical amplitudes of a waveform for `Grad`, `RF`, or `ADC`` structs. In some
 cases, the resulting array may contain duplicated points, so it is necessary to remove them
 when needed.
 
 # Arguments
-- `g`: (`::Grad`) Gradient struct
-- `r`: (`::RF`) RF struct
-- `d`: (`::ADC`) ADC truct
+- `gr`: (`::Grad`) Gradient struct
+- `rf`: (`::RF`) RF struct
+- `adc`: (`::ADC`) ADC truct
 
 # Keywords
 - `off_val`: (`::Real`, `=0`) offset value for amplitude. It is commonly used to exclude
@@ -18,7 +18,7 @@ when needed.
 - `max_rf_samples`: (`::Real`, `=Inf`) maximum number of samples for the RF struct
 
 # Returns
-- `A`: (`::Vector{Number}`) vector containing the amplitude samples of the waveform
+- `amplitudes`: (`::Vector{Number}`) vector containing the amplitude samples of the waveform
 """
 get_theo_A(g::Grad; off_val=0) = begin
 	A = g.A
@@ -75,24 +75,24 @@ end
 
 
 """
-    t = get_theo_t(g::Grad)
-    t = get_theo_t(r::RF; max_rf_samples=Inf)
-    t = get_theo_t(d::ADC)
+    times = get_theo_t(gr::Grad)
+    times = get_theo_t(rf::RF; max_rf_samples=Inf)
+    times = get_theo_t(adc::ADC)
 
 Get the theoretical time of a waveform for `Grad`, `RF`, or `ADC`` structs. In some
 cases, the resulting array may contain duplicated points, so it is necessary to remove them
 when needed.
 
 # Arguments
-- `g`: (`::Grad`) Gradient struct
-- `r`: (`::RF`) RF struct
-- `d`: (`::ADC`) ADC truct
+- `gr`: (`::Grad`) Gradient struct
+- `rf`: (`::RF`) RF struct
+- `adc`: (`::ADC`) ADC truct
 
 # Keywords
 - `max_rf_samples`: (`::Real`, `=Inf`) maximum number of samples for the RF struct
 
 # Returns
-- `t`: (`::Vector{Real}`) vector containing the time samples of the waveform
+- `times`: (`::Vector{Real}`) vector containing the time samples of the waveform
 """
 get_theo_t(g::Grad) = begin
 	NT, T, NA = length(g.T), g.T, length(g.A)
@@ -139,7 +139,7 @@ end
 
 
 """
-    t, g = get_theo_Gi(seq, idx)
+    times, amplitudes = get_theo_Gi(seq, idx)
 
 Obtain the theoretical times and amplitudes for a gradient within a defined axis in a sequence.
 
@@ -148,8 +148,8 @@ Obtain the theoretical times and amplitudes for a gradient within a defined axis
 - `idx`: (`::Integer`, opts=[1, 2, 3]) axis x, y or z for the gradient
 
 # Returns
-- `t`: (`::Vector{Real}`) gradient time samples
-- `g`: (`::Vector{Real}`) gradient amplitude samples
+- `times`: (`::Vector{Real}`) gradient time samples
+- `amplitudes`: (`::Vector{Real}`) gradient amplitude samples
 """
 get_theo_Gi(seq, idx) = begin
 	N = length(seq)

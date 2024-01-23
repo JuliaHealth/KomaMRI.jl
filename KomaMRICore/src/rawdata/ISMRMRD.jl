@@ -46,7 +46,7 @@ const ISMRMRD_ACQ_USER8                               = 1b64 << ( 64 - 1 )
     raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params, ndims)
 
 Transforms the raw signal into a RawAcquisitionData struct (nearly equivalent to the ISMRMRD
-format) used for reconstruction with MRIReco.
+format) utilized for reconstruction with MRIReco.
 
 # Arguments
 - `signal`: (`::Array{Complex}`) raw signal array

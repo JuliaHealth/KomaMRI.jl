@@ -32,15 +32,15 @@ Base.show(io::IO, d::Delay) = begin
 end
 
 """
-    seq = +(s::Sequence, d::Delay)
-    seq = +(d::Delay, s::Sequence)
+    seq = +(s::Sequence, delay::Delay)
+    seq = +(delay::Delay, s::Sequence)
 
 Introduces a delay to a sequence struct, ultimately influencing the duration of the
 gradients within the sequence.
 
 # Arguments
 - `s`: (`::Sequence`) sequence struct
-- `d`: (`::Delay`) delay struct
+- `delay`: (`::Delay`) delay struct
 
 # Returns
 - `seq`: (`::Sequence`) delayed sequence
