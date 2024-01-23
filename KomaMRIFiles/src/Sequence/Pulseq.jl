@@ -942,7 +942,7 @@ function read_seq_via_blocks_as_int_array(filename)
     # in this most optimized implementation, the following lines still take
     # 45% of all the time. These have to be optimized, as we still need
     # 2s for a 2d 18point mrf seq with 64 PE lines.
-    # a 3d seq with 300 points and say 30x30 = 900 lines 
+    # a 3d seq with 300 points and say 30x30 = 900 lines
     # would take 234x longer -> 8min!
 
     seq = get_seq_from_blocks(libraries, blockEvents, blockDurations)
@@ -957,7 +957,7 @@ function read_seq_via_blocks_as_int_array(filename)
     # seq = seq[2:end]
     # Hack for including extension and triggers
     seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
-    seq.DEF = recursive_merge(libraries["definitions"], seq.DEF)
+    seq.DEF = KomaMRIBase.recursive_merge(libraries["definitions"], seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = version_combined
