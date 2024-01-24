@@ -107,20 +107,7 @@ function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Seque
             id_shape_cnt += 1
         end
         shape_ang = -angle.(obj.A)/2π  # [-0.5, 0.5]
-        #if !isempty(rfunique_ang_id)
-        #    shape_ang_unique, _ = rfunique_ang_id[1]
-        #    ang1 = unwrap_angle.(shape_ang_unique .- shape_ang_unique[1])
-        #    ang2 = unwrap_angle.(shape_ang .- shape_ang[1])
-        #    println("$(all(isapprox.(ang2, ang1, atol=1e-7))) $(ang2[1000]) $(ang1[1000])")
-        #    trace1 = scatter(; y=ang1, mode="lines")
-        #    trace2 = scatter(; y=ang2, mode="lines")
-        #    data = [trace1, trace2]
-        #    layout = Layout(; title="angles", yaxis_range=[-0.5, 0.5])
-        #    display(plot(data, layout))
-        #end
-        #if all([!(length(shape_ang) == length(shape_ang_unique) && all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])) for (shape_ang_unique,_) ∈ rfunique_ang_id])
         if all([!(length(shape_ang) == length(shape_ang_unique) && all(isapprox.(unwrap_angle.(shape_ang .- shape_ang[1]), unwrap_angle.(shape_ang_unique .- shape_ang_unique[1]), atol=1e-7))) for (shape_ang_unique,_) ∈ rfunique_ang_id])
-            #push!(rfunique_ang_id, [shape_ang, id_shape_cnt])
             push!(rfunique_ang_id, [unwrap_negative_angle.(shape_ang), id_shape_cnt])   # this always garanties non-negative shaped angles
             id_shape_cnt += 1
         end
@@ -169,36 +156,6 @@ Returns the compressed data vector `compressed_data` for the intupt vector `data
 algorithm for encoding the derivative in a run-length compressed format.
 """
 function compress(data)
-#    derivative = [[data[1]]; data[2:end] - data[1:end-1]]
-#    encoded = Tuple{Float64, Int64}[]
-#    current_value = derivative[1]
-#    count = 1
-#    for i ∈ 2:length(derivative)
-#        if derivative[i] == current_value
-#            count += 1
-#        else
-#            push!(encoded, (current_value, count))
-#            current_value = derivative[i]
-#            count = 1
-#        end
-#    end
-#    push!(encoded, (current_value, count))
-#
-#    compressed_data = []
-#    for (v,r) ∈ encoded
-#        if r == 1
-#            push!(compressed_data, v)
-#        elseif r == 2
-#            push!(compressed_data, v)
-#            push!(compressed_data, v)
-#        elseif r > 2
-#            push!(compressed_data, v)
-#            push!(compressed_data, v)
-#            push!(compressed_data, Int(r-2))
-#        end
-#    end
-#
-#    return compressed_data
     return compress_shape(data)[2]
 end
 
