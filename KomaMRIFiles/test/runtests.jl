@@ -50,26 +50,17 @@ using TestItems, TestItemRunner
     # Test WritePulseq
     @testset "WritePulseq" begin
 
-        # Temporal test results
-        #seq_filename_head = "cine_gre"            # false = (seq_original ≈ seq_written)
-        #seq_filename_head = "DEMO_gre"            # true  = (seq_original ≈ seq_written)
-        #seq_filename_head = "DEMO_grep"           # true  = (seq_original ≈ seq_written)
-        #seq_filename_head = "epi_label"           # false = (seq_original ≈ seq_written)
-        #seq_filename_head = "epi_rs"              # Error after reading seq_written
-        #seq_filename_head = "epi_se"              # true  = (seq_original ≈ seq_written)
-        #seq_filename_head = "epi"                 # true  = (seq_original ≈ seq_written)
-        #seq_filename_head = "epise_rs"            # false = (seq_original ≈ seq_written)
-        #seq_filename_head = "external"            # true  = (seq_original ≈ seq_written)
-        #seq_filename_head = "gre_rad"             # true  = (seq_original ≈ seq_written)
-        #seq_filename_head = "spiral"              # true  = (seq_original ≈ seq_written)
-        #seq_filename_head = "tabletop_tse_pulseq" # true  = (seq_original ≈ seq_written)
+        # These two are solved by changing the precission in the RF comparison (now: atol=1e-5)
+        # Note that just the angle of the RF is the problem
+        # epi_rs. rfs positions: 1, 2, 68, 69, 135, 136, 202, 203, 269, 270. wrong: 69
+        # epise_rs. rfs positions: 1, 2, 4, 61, 62, 64, 121, 122, 124. wrong: 4, 64, 124
 
         path = @__DIR__
         test_folder = joinpath(@__DIR__, "test_files", "pulseq")
 
         # Test for some .seq files
-        filenames = ["DEMO_gre", "DEMO_grep", "epi_se", "epi", "external", "gre_rad", "spiral", "tabletop_tse_pulseq"]
-        #filenames = ["cine_gre", "epi_label", "epi_rs", "epise_rs"]
+        filenames = ["DEMO_gre", "DEMO_grep", "epi_se", "epi", "external", "gre_rad",
+            "spiral", "tabletop_tse_pulseq", "cine_gre", "epi_label", "epi_rs", "epise_rs"]
         for seq_filename_head in filenames
             seq_filename_head = seq_filename_head
             seq_original_filename = seq_filename_head * ".seq"
