@@ -105,7 +105,6 @@ Base.isapprox(rf1::RF, rf2::RF) = begin
         all(size(getfield(rf1, k)) == size(getfield(rf2, k)) for k ∈ fieldnames(RF)) &&
         all(≈(getfield(rf1, k), getfield(rf2, k), atol=1e-5) for k ∈ fieldnames(RF))    # TODO: be careful with the precission!!!
 end
-Base.:(==)(x::RF, y::RF) = all(getfield(x, k) == getfield(y, k) for k ∈ fieldnames(RF))
 
 # Properties
 size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3

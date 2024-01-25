@@ -76,34 +76,4 @@ using TestItems, TestItemRunner
 
     end
 
-    @testset "read_seq_via_blocks_as_int_array" begin
-
-        # Get the .seq file path
-        path = @__DIR__
-        test_folder = joinpath(@__DIR__, "test_files", "pulseq")
-
-        filenames = ["bSSFP_FA30deg_TE10ms_TR20ms_2D_(69x64)_pulseq", "DEMO_gre",
-            "DEMO_grep", "epi_se", "epi", "external", "gre_rad", "spiral", "tabletop_tse_pulseq",
-            "cine_gre", "epi_label", "epi_rs", "epise_rs"]
-
-        # Auxiliar functions to display speed
-        time_read_seq(f) = @time @suppress read_seq(f)
-        time_read_seq_via_blocks_as_int_array(f) = @time @suppress read_seq_via_blocks_as_int_array(f)
-
-        # Force precompilation
-        time_read_seq(joinpath(test_folder, "spiral.seq"))
-        time_read_seq_via_blocks_as_int_array(joinpath(test_folder, "spiral.seq"))
-
-        # Compare for all pulseq test sequences
-        for seq_filename_head in filenames
-            seq_filename = seq_filename_head * ".seq"
-            seq_file = joinpath(test_folder, seq_filename)
-            println("File: $(seq_filename)")
-            seq = time_read_seq(seq_file)
-            seq_blocks_no_id_sort = time_read_seq_via_blocks_as_int_array(seq_file)
-            println()
-            @test seq == seq_blocks_no_id_sort
-        end
-
-    end
 end

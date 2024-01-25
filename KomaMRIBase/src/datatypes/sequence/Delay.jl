@@ -56,5 +56,3 @@ sequence.
 """
 +(s::Sequence, d::Delay) = s + Sequence([Grad(0.,d.T)])
 +(d::Delay, s::Sequence) = Sequence([Grad(0.,d.T)]) + s
-
-Base.:(==)(x::Delay, y::Delay) = all(getfield(x, k) == getfield(y, k) for k ∈ fieldnames(Delay))
