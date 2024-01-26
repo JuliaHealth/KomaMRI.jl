@@ -209,7 +209,6 @@ function write_seq(seq::Sequence, filename)
     for ioamptdfh ∈ rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha
         obj = ioamptdfh[2]
         ioamptdfh[3] = γ * maximum(abs.(obj.A))
-        ioamptdfh[7] = round(obj.delay / seq.DEF["RadiofrequencyRasterTime"]) * seq.DEF["RadiofrequencyRasterTime"] * 1e6
         ioamptdfh[8] = obj.Δf
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
         for (shape_abs_unique, id_abs) ∈ rfunique_abs_id
@@ -219,13 +218,9 @@ function write_seq(seq::Sequence, filename)
         end
         shape_ang = -angle.(obj.A)/2π
         for (shape_ang_unique, id_ang) ∈ rfunique_ang_id
-            #if length(shape_ang) == length(shape_ang_unique) && all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])
             if length(shape_ang) == length(shape_ang_unique) && all(isapprox.(unwrap_angle.(shape_ang .- shape_ang[1]), unwrap_angle.(shape_ang_unique .- shape_ang_unique[1]), atol=1e-7))
                 ioamptdfh[5] = id_ang
                 a = 2π*(shape_ang[1] - shape_ang_unique[1])
-                #if a < 0
-                #    a += 2π
-                #end
                 ioamptdfh[9] = a
             end
         end
@@ -237,6 +232,8 @@ function write_seq(seq::Sequence, filename)
                 end
             end
         end
+        delay_compensation_rf_koma = (ioamptdfh[6] == 0) * seq.DEF["RadiofrequencyRasterTime"] / 2
+        ioamptdfh[7] = round((obj.delay - delay_compensation_rf_koma) / seq.DEF["RadiofrequencyRasterTime"]) * seq.DEF["RadiofrequencyRasterTime"] * 1e6
     end
 
     # Define the table to be written for the [GRADIENTS] section

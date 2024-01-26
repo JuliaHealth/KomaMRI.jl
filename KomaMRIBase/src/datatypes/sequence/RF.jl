@@ -103,7 +103,7 @@ For comparing two `RF`s custom types
 Base.isapprox(rf1::RF, rf2::RF) = begin
     return all(length(getfield(rf1, k)) == length(getfield(rf2, k)) for k ∈ fieldnames(RF)) &&
         all(size(getfield(rf1, k)) == size(getfield(rf2, k)) for k ∈ fieldnames(RF)) &&
-        all(≈(getfield(rf1, k), getfield(rf2, k), atol=1e-5) for k ∈ fieldnames(RF))    # TODO: be careful with the precission!!!
+        all(all(isapprox.(getfield(rf1, k), getfield(rf2, k), atol=1e-9)) for k ∈ fieldnames(RF))
 end
 
 # Properties
