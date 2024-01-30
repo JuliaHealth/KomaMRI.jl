@@ -50,11 +50,11 @@ function read_definitions(io)
 end
 
 """
-read_blocks Read the [BLOCKS] section of a sequence file.
-   library=read_blocks(fid) Read blocks from file identifier of an
+read_blocks_old Read the [BLOCKS] section of a sequence file.
+   library=read_blocks_old(fid) Read blocks from file identifier of an
    open MR sequence file and return the event table.
 """
-function read_blocks(io, blockDurationRaster, version_combined)
+function read_blocks_old(io, blockDurationRaster, version_combined)
     eventTable = Dict()
     blockDurations = Dict()
     delayIDs_tmp = Dict()
@@ -86,47 +86,6 @@ function read_blocks(io, blockDurationRaster, version_combined)
     end
     sort(eventTable), sort(blockDurations), sort(delayIDs_tmp)  # this is not correct! see docstring comment!
 end
-"""
-read_blocks Read the [BLOCKS] section of a sequence file.
-   library=read_blocks(fid) Read blocks from file identifier of an
-   open MR sequence file and return the event table.
-   produces same output as read_blocks, but does not use scanf,
-   rather reads everything as int
-"""
-function read_blocks_split_instead_of_scanf(io, blockDurationRaster, version_combined)
-    eventTable = Dict()
-    blockDurations = Dict()
-    delayIDs_tmp = Dict()
-    if version_combined <= 1002001
-        NumberBlockEvents = 7
-    else
-        NumberBlockEvents = 8
-    end
-    while true
-        blockEvents = [parse(Int, d) for d in eachsplit(readline(io))]
-        if length(blockEvents) == 0
-            # empty line
-            break
-        end
-        if length(blockEvents) != NumberBlockEvents
-            error("Expected $NumberBlockEvents events but got $(length(blockEvents)).")
-        end
-        if blockEvents[1] != 0
-            if version_combined <= 1002001
-                eventTable[blockEvents[1]] = [0 blockEvents[3:end]... 0]
-            else
-                eventTable[blockEvents[1]] = [0 blockEvents[3:end]...]
-            end
-
-            if version_combined >= 1004000
-                blockDurations[blockEvents[1]] = blockEvents[2]*blockDurationRaster
-            else
-                delayIDs_tmp[blockEvents[1]] = blockEvents[2]
-            end
-        end
-    end
-    sort(eventTable), sort(blockDurations), sort(delayIDs_tmp)
-end
 
 """
 read_blocks Read the [BLOCKS] section of a sequence file.
@@ -135,7 +94,7 @@ read_blocks Read the [BLOCKS] section of a sequence file.
    as arrays or vectors, rather than dicts
 
 """
-function read_blocks_and_durs_as_arrays(io, blockDurationRaster, version_combined)
+function read_blocks(io, blockDurationRaster, version_combined)
     if version_combined <= 1002001
         NumberBlockEvents = 7
     else
@@ -365,7 +324,7 @@ end
 # See also  write
 #"""
 """
-    seq = read_seq(filename)
+    seq = read_seq_old(filename)
 
 Returns the Sequence struct from a Pulseq file with `.seq` extension.
 
@@ -379,12 +338,12 @@ Returns the Sequence struct from a Pulseq file with `.seq` extension.
 ```julia-repl
 julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
 
-julia> seq = read_seq(seq_file)
+julia> seq = read_seq_old(seq_file)
 
 julia> plot_seq(seq)
 ```
 """
-function read_seq(filename)
+function read_seq_old(filename)
     @info "Loading sequence $(basename(filename)) ..."
     version_combined = 0
     version_major = 0
@@ -412,7 +371,7 @@ function read_seq(filename)
                 if version_combined == 0
                     @error "Pulseq file MUST include [VERSION] section prior to [BLOCKS] section"
                 end
-                blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], version_combined)
+                blockEvents, blockDurations, delayInd_tmp = read_blocks_old(io, def["BlockDurationRaster"], version_combined)
             elseif  section == "[RF]"
                 if version_combined >= 1004000
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
@@ -760,7 +719,7 @@ function get_block(obj, i)
 end
 
 """
-does what get_blocks does, but for many blocks at once
+does what a concatenation of get_block does, but all blocks at once
 and works on array that contains block ids directly
 it will use all blocks (2nd dim in blockEvents) to create the resulting sequence
 """
@@ -801,8 +760,7 @@ function get_seq_from_blocks(libraries, blockEvents::Array{Int, 2}, blockDuratio
 end
 
 """
-
-    seq = read_seq_via_blocks_as_int_array(filename)
+    seq = read_seq(filename)
 
 Returns the Sequence struct from a Pulseq file with `.seq` extension.
 
@@ -821,12 +779,12 @@ Calls costly Sequence constructor only once.
 ```julia-repl
 julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
 
-julia> seq = read_seq_via_blocks_as_int_array(seq_file)
+julia> seq = read_seq(seq_file)
 
 julia> plot_seq(seq)
 ```
 """
-function read_seq_via_blocks_as_int_array(filename)
+function read_seq(filename)
     @info "Loading sequence $(basename(filename)) ..."
     version_combined = 0
     version_major = 0
@@ -854,7 +812,7 @@ function read_seq_via_blocks_as_int_array(filename)
                 if version_combined == 0
                     @error "Pulseq file MUST include [VERSION] section prior to [BLOCKS] section"
                 end
-                blockEvents, blockDurations, delayInd_tmpVec = read_blocks_and_durs_as_arrays(io, def["BlockDurationRaster"], version_combined)
+                blockEvents, blockDurations, delayInd_tmpVec = read_blocks(io, def["BlockDurationRaster"], version_combined)
             elseif  section == "[RF]"
                 if version_combined >= 1004000
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format

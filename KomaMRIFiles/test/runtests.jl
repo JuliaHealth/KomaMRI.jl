@@ -45,24 +45,24 @@ using TestItems, TestItemRunner
         @test obj.name == "brain_mrilab.mat"
     end
 
-    @testset "read_seq_via_blocks_as_int_array" begin
+    @testset "read_seq_comparison" begin
 
         # Get the .seq file path
         path = @__DIR__
         seqfile = path * "/test_files/bSSFP_FA30deg_TE10ms_TR20ms_2D_(69x64)_pulseq.seq"
 
         # Auxiliar functions to display speed
+        time_read_seq_old(f) = @time @suppress KomaMRIFiles.read_seq_old(f)
         time_read_seq(f) = @time @suppress read_seq(f)
-        time_read_seq_via_blocks_as_int_array(f) = @time @suppress read_seq_via_blocks_as_int_array(f)
 
         # Force precompilation
+        time_read_seq_old(seqfile)
         time_read_seq(seqfile)
-        time_read_seq_via_blocks_as_int_array(seqfile)
 
         # Compare sequences
-        seq = time_read_seq(seqfile)
-        seq_blocks_no_id_sort = time_read_seq_via_blocks_as_int_array(seqfile)
-        @test seq == seq_blocks_no_id_sort
+        seq_old = time_read_seq_old(seqfile)
+        seq = time_read_seq(seqfile)  # Not sorted IDs
+        @test seq_old == seq
 
     end
 end
