@@ -28,15 +28,17 @@ elseif ARGS[1] == "arbitrary"
     )
 end
 
-global sys = Scanner()
+sys = Scanner()
 
-global seq = PulseDesigner.GRE(0.04,    # FOV
-                               64,      # N
-                               5e-3,    # TE
-                               20e-3,    # TR
-                               15,       # α
-                               sys;
-                               Δf = 0)
+seq = PulseDesigner.GRE(0.04,    # FOV
+                        64,      # N
+                        5e-3,    # TE
+                        20e-3,    # TR
+                        15,       # α
+                        sys;
+                        Δf = 0)
 
 ## Simulation
+simulate(phantom, seq, sys)
+
 simulate(phantom, seq, sys)
