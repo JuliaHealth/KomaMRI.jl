@@ -21,3 +21,12 @@ function get_displacements(motion::SimpleMotion, x::AbstractVector{T}, y::Abstra
         
     xt, yt, zt, nothing
 end
+
+
+
+# ------ SimpleMotionType
+
+abstract type SimpleMotionType end
+
+# Simple Motion Types:
+include("simplemotion/Rotation.jl")
