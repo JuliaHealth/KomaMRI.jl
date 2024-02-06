@@ -51,7 +51,7 @@ export get_displacements
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 # Secondary
-export get_kspace, rotx, roty, rotz, rotation_matrix
+export get_kspace, rotx, roty, rotz, rotation_matrix, axis_angle
 # Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 # Sequence related
