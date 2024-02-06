@@ -64,7 +64,14 @@ function read_phantom(filename::String)
 		motion = fid["motion"]
 		model = read_attribute(motion,"model")
 		if model == "Simple"
+			# name = motion["name"]
+			# ux, uy, uz = get_simple_motion(name)
 			
+			# SimpleMotion(
+			# 	ux = ux,
+			# 	uy = uy,
+			# 	uz = uz
+			# )
 		elseif model == "Arbitrary"
 			segments = motion["segments"]
 			N = read_attribute(segments, "N")

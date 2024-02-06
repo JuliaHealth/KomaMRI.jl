@@ -6,8 +6,10 @@ Parameters:
 - Angular velocity
 """
 
-struct Rotation <: SimpleMotionType
-# 
+struct Rotation{T<:Real} <: SimpleMotionType
+    axis::AbstractVector{T}     # Rotation axis vector
+    point::AbstractVector{T}    # Rotation axis point
+    ω::T                        # Angular velocity [Hz]
 end
 
 function get_simple_motion(type::Rotation)
