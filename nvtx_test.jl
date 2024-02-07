@@ -3,6 +3,8 @@ Pkg.activate(".")
 
 using KomaMRI  
 
+KomaMRICore.CUDA.allowscalar() = false;
+
 phantom = brain_phantom2D()[1:100]
 
 if ARGS[1] == "simple"
@@ -30,13 +32,7 @@ end
 
 sys = Scanner()
 
-seq = PulseDesigner.GRE(0.04,    # FOV
-                        64,      # N
-                        5e-3,    # TE
-                        20e-3,    # TR
-                        15,       # α
-                        sys;
-                        Δf = 0)
+seq = PulseDesigner.EPI_example(; sys)
 
 ## Simulation
 simulate(phantom, seq, sys)
