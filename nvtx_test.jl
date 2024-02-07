@@ -11,7 +11,7 @@ if ARGS[1] == "simple"
     # Simple Motion
     print("Simple Motion\n")
     phantom.motion = SimpleMotion(
-        ux = (x,y,z,t)->sin.(t),
+        ux = (x,y,z,t)->sin.(x.*t),
         uy = (x,y,z,t)->sin.(t),
         uz = (x,y,z,t)->0
     )
