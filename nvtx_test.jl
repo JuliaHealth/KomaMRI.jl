@@ -7,7 +7,9 @@ KomaMRICore.CUDA.allowscalar() = false;
 
 phantom = brain_phantom2D()[1:100]
 
-phantom.ux = (x,y,z,t) -> sin.(2π*t)
+phantom.ux = (x,y,z,t)->sin.(x.*t)
+phantom.uy = (x,y,z,t)->sin.(t)
+phantom.uz = (x,y,z,t)->0
 
 sys = Scanner()
 
