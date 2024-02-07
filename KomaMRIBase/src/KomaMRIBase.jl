@@ -47,6 +47,7 @@ export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D
 export MotionModel, SimpleMotion, NoMotion, ArbitraryMotion
+export Rotation
 export get_positions
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
