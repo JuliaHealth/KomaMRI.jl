@@ -14,7 +14,8 @@ end
 
 function SimpleMotion(rot::Rotation)
     # Rotation matrix
-    R(t) = axis_angle.(Ref(rot.axis), 2π*rot.f*t)
+    # R(t) = axis_angle.(Ref(rot.axis), 2π*rot.f*t)
+    R(t) = [axis_angle(rot.axis,x) for x in 2π*rot.f*t] # Scalar indexing. Solve
 
     # Displace using the rotation point
     displace(x,y,z) =  [[x,y,z][i] .- rot.point[i] for i in 1:length(rot.point)]
@@ -26,7 +27,8 @@ function SimpleMotion(rot::Rotation)
         xd, yd, zd = displace(x,y,z)
         xyz = matrix(xd,yd,zd)
         display(R(t))
-        return cat(map(x -> x*xyz, R(t))...,dims=3)
+        rotated = map(x -> x*xyz, R(t))
+        return cat(rotated...,dims=3)
     end
 
     ux(x,y,z,t) = @view(rotation(x,y,z,t)[1,:,:]) .+ (rot.point[1] .- x)  
