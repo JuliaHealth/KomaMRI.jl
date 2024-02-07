@@ -79,7 +79,7 @@ function get_pieces_limits(dur::AbstractVector, K::Int)
 end
 
 
-function get_displacements(motion::ArbitraryMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}) where {T<:Real}
+function get_positions(motion::ArbitraryMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}) where {T<:Real}
     interpolate_spin_displacement(itp) = itp.(t)
     init = [x,y,z,0]
     positions = []
