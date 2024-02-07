@@ -39,7 +39,7 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     M::Mag{T}, sim_method::BlochDict) where {T<:Real}
     #Simulation
     #Motion
-    xt, yt, zt, flags = get_positions(p.motion, p.x, p.y, p.z, seq.t)
+    xt, yt, zt, flags = get_positions(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation

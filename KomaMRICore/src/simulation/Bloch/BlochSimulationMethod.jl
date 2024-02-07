@@ -46,7 +46,7 @@ NVTX.@annotate function run_spin_precession!(
     ) where {T<:Real}
     #Simulation
     #Motion
-    xt, yt, zt, flags = get_positions(p.motion, p.x, p.y, p.z, seq.t)
+    xt, yt, zt, flags = get_positions(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -99,7 +99,6 @@ NVTX.@annotate function run_spin_excitation!(
     for s ∈ seq
         #Motion
         xt, yt, zt, flags = get_positions(p.motion, p.x, p.y, p.z, s.t)
-        display(xt)
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz

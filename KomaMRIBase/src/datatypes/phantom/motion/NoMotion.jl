@@ -8,6 +8,6 @@ Base.getindex(motion::NoMotion, p::Union{AbstractRange,AbstractVector,Colon}) = 
 Base.getindex(motion::NoMotion, p::Union{AbstractRange,AbstractVector,Colon}, 
                                 q::Union{AbstractRange,AbstractVector,Colon}) = motion
 
-function get_positions(motion::NoMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}) where {T<:Real}
+function get_positions(motion::NoMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
 	x, y, z, nothing
 end
