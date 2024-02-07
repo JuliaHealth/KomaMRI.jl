@@ -44,6 +44,7 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     zt = p.z .+ p.uz(p.x, p.y, p.z, seq.t')
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
+    display(Bz)
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π * γ) .* cumtrapz(seq.Δt', Bz)
