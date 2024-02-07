@@ -10,15 +10,11 @@ Base.getindex(motion::SimpleMotion, p::AbstractRange, q::AbstractRange) = motion
 Base.getindex(motion::SimpleMotion, p::AbstractVector) = motion
 
 
-function get_positions(motion::SimpleMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractVector{T}) where {T<:Real}
-	xt = x.+ motion.ux(x, y, z, t')
-    yt = y.+ motion.uy(x, y, z, t')
-    zt = z.+ motion.uz(x, y, z, t')
-
-    xt = size(xt, 2) == 1 ? vec(xt) : xt
-    yt = size(yt, 2) == 1 ? vec(yt) : yt
-    zt = size(zt, 2) == 1 ? vec(zt) : zt
-        
+function get_positions(motion::SimpleMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t) where {T<:Real}
+	xt = x.+ motion.ux(x, y, z, t)
+    yt = y.+ motion.uy(x, y, z, t)
+    zt = z.+ motion.uz(x, y, z, t)
+      
     xt, yt, zt, nothing
 end
 
