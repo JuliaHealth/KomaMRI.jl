@@ -12,13 +12,13 @@ print("Spins: ", length(phantom.x), "\n")
 if ARGS[2] == "simple"
     # Simple Motion
     print("Simple Motion\n")
-    phantom.motion = SimpleMotion(Translation(direction = [1.0,0,0], v = 0.1))
-    # phantom.motion = SimpleMotion(Rotation(axis=[0,1,0],point=[0,0,0],f=1))
+    phantom.motion = SimpleMotion(Translation([1.0,0,0],0.1))
+    # phantom.motion = SimpleMotion(Rotation([0,1,0],[0,0,0],1))
 
 elseif ARGS[2] == "arbitrary"
     # ArbitraryMotion
     print("Arbitrary Motion\n")
-    K = 10
+    K = 2
     Ns = length(phantom.x)
     phantom.motion = ArbitraryMotion(
         [1.0],
