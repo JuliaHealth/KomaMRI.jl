@@ -5,15 +5,17 @@ using KomaMRI
 
 # KomaMRICore.CUDA.allowscalar(true)
 
-phantom = brain_phantom2D()[1:1000]
+phantom = brain_phantom2D()
+phantom = phantom[1:minimum([length(phantom.x),parse(Int64,ARGS[1])])]
+print("Spins: ", length(phantom.x), "\n")
 
-if ARGS[1] == "simple"
+if ARGS[2] == "simple"
     # Simple Motion
     print("Simple Motion\n")
     phantom.motion = SimpleMotion(Translation(direction = [1.0,0,0], v = 0.1))
     # phantom.motion = SimpleMotion(Rotation(axis=[0,1,0],point=[0,0,0],f=1))
 
-elseif ARGS[1] == "arbitrary"
+elseif ARGS[2] == "arbitrary"
     # ArbitraryMotion
     print("Arbitrary Motion\n")
     K = 10
@@ -34,4 +36,5 @@ seq = PulseDesigner.EPI_example(; sys)
 
 ## Simulation
 simulate(phantom, seq, sys)
+sleep(1)
 simulate(phantom, seq, sys)
