@@ -6,21 +6,21 @@ Parameters:
 - Velocity
 """
 
-@with_kw mutable struct Translation{T<:Real} <: SimpleMotionType
+mutable struct Translation{T<:Real} <: SimpleMotionType
     direction::AbstractVector{T}     # Translation direction 
     v::T                             # Velocity [m/s]
 end
 
-function SimpleMotion(trans::Translation)
+function SimpleMotion(type::Translation)
     # Normalize direction
-    n = normalize(trans.direction)
+    n = normalize(type.direction)
 
     # Obtain velocity vector
-    v = trans.v*n
+    v = type.v*n
 
     ux(x,y,z,t) = @view(v[1]).*t
     uy(x,y,z,t) = @view(v[2]).*t
     uz(x,y,z,t) = @view(v[3]).*t  
 
-    return SimpleMotion(type=trans,ux=ux,uy=uy,uz=uz)
+    return SimpleMotion(type,ux,uy,uz)
 end
