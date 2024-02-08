@@ -2,12 +2,17 @@
 abstract type SimpleMotionType end
 
 # -------- SimpleMotion
-@with_kw mutable struct SimpleMotion <: MotionModel
+mutable struct SimpleMotion <: MotionModel
     type::SimpleMotionType
     ux::Function = (x,y,z,t)->0
 	uy::Function = (x,y,z,t)->0
 	uz::Function = (x,y,z,t)->0
 end
+
+# IDEA:
+# struct SimpleMotion{T <: SimpleMotionType}
+#     type::T
+# end
 
 Base.getindex(motion::SimpleMotion, p::AbstractRange) = motion
 Base.getindex(motion::SimpleMotion, p::AbstractRange, q::AbstractRange) = motion
