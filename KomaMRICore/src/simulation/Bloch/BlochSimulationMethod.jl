@@ -46,7 +46,9 @@ NVTX.@annotate function run_spin_precession!(
     ) where {T<:Real}
     #Simulation
     #Motion
-    xt, yt, zt, flags = get_positions(p.motion, p.x, p.y, p.z, seq.t')
+    NVTX.@range get_positions
+        xt, yt, zt, flags = get_positions(p.motion, p.x, p.y, p.z, seq.t')
+    end
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
