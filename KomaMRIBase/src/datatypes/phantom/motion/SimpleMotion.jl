@@ -2,7 +2,7 @@
 abstract type SimpleMotionType end
 
 # -------- SimpleMotion
-mutable struct SimpleMotion <: MotionModel
+@with_kw mutable struct SimpleMotion <: MotionModel
     type::SimpleMotionType
     ux::Function = (x,y,z,t)->0
 	uy::Function = (x,y,z,t)->0
