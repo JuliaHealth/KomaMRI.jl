@@ -47,7 +47,7 @@ NVTX.@annotate function run_spin_precession!(
     #Simulation
     #Motion
     NVTX.@range "get_positions" begin
-        xt, yt, zt, flags = get_positions(p.motion, p.x, p.y, p.z, seq.t')
+        xt, yt, zt = get_positions(p.motion, p.x, p.y, p.z, seq.t')
     end
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
@@ -62,13 +62,6 @@ NVTX.@annotate function run_spin_precession!(
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
-    # Flow
-    if flags !== nothing
-        reset = any(flags; dims=2)
-        flags = .!(cumsum(flags; dims=2) .>= 1)
-        Mxy .*= flags
-        M.z[reset] = p.ρ[reset]
-    end
     M.xy .= Mxy[:, end]
     #Acquired signal
     sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
@@ -100,7 +93,7 @@ NVTX.@annotate function run_spin_excitation!(
     #Simulation
     for s ∈ seq
         #Motion
-        xt, yt, zt, flags = get_positions(p.motion, p.x, p.y, p.z, s.t)
+        xt, yt, zt = get_positions(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
@@ -112,12 +105,6 @@ NVTX.@annotate function run_spin_excitation!(
         #Relaxation
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
         M.z .= M.z .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
-        # Flow
-        if flags !== nothing
-            reset = any(flags; dims=2)
-            M.xy[reset] .= 0
-            M.z[reset] = p.ρ[reset]
-        end
     end
     #Acquired signal
     #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block

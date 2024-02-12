@@ -53,13 +53,6 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    # Flow
-    if flags !== nothing
-        reset = any(flags; dims=2)
-        flags = .!(cumsum(flags; dims=2) .>= 1)
-        Mxy .*= flags
-        M.z[reset] = p.ρ[reset]
-    end
     #Acquired signal
     sig[:,:,1] .= transpose(Mxy[:, findall(seq.ADC)])
 

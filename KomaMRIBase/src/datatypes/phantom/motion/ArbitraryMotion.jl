@@ -2,21 +2,19 @@
 	etp_x
     etp_y
     etp_z
-    etp_flags
 end
 
 function ArbitraryMotion( dur::AbstractVector{T},
                           K::Int,
                           Δx::AbstractArray{T, 2},
                           Δy::AbstractArray{T, 2},
-                          Δz::AbstractArray{T, 2},
-                          resetmag::BitMatrix ) where {T<:Real}
+                          Δz::AbstractArray{T, 2}) where {T<:Real}
 
     etp(x) = extrapolate(x,Periodic())
     Ns = size(Δx)[1]
     limits = get_pieces_limits(dur,K)
 
-    Δ = zeros(Ns,length(limits),3)
+    Δ = zeros(Ns,length(limits),4)
     Δ[:,:,1] = hcat(repeat(hcat(zeros(Ns,1),Δx),1,length(dur)),zeros(Ns,1))
     Δ[:,:,2] = hcat(repeat(hcat(zeros(Ns,1),Δy),1,length(dur)),zeros(Ns,1))
     Δ[:,:,3] = hcat(repeat(hcat(zeros(Ns,1),Δz),1,length(dur)),zeros(Ns,1))
@@ -24,30 +22,25 @@ function ArbitraryMotion( dur::AbstractVector{T},
     itpx = [interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns]
     itpy = [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns]
     itpz = [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns]
-    flags = [interpolate((limits,), vcat(resetmag[i,:],Bool(0)), Gridded(Constant{Previous}())) for i in 1:Ns]
 
     etpx = map(etp, itpx)
     etpy = map(etp, itpy)
     etpz = map(etp, itpz)
-    etpflags = map(etp, flags)
 
     ArbitraryMotion{Float64}(
         etp_x = etpx,
         etp_y = etpy,
-        etp_z = etpz,
-        etp_flags = etpflags
+        etp_z = etpz
     )
 end
 
-ArbitraryMotion(etp_x, etp_y, etp_z, etp_flags) = ArbitraryMotion{eltype(eltype(@view(etp_x[1])))}(etp_x, etp_y, etp_z, etp_flags)
-
+ArbitraryMotion(etp_x, etp_y, etp_z) = ArbitraryMotion{eltype(eltype(@view(etp_x[1])))}(etp_x, etp_y, etp_z)
 
 Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}) = begin
     ArbitraryMotion(
         etp_x = motion.etp_x[p],
         etp_y = motion.etp_y[p],
-        etp_z = motion.etp_z[p],
-        etp_flags = motion.etp_flags[p]
+        etp_z = motion.etp_z[p]
     )
 end
 
@@ -76,16 +69,13 @@ end
 
 function get_positions(motion::ArbitraryMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     interpolate_spin_displacement(itp) = itp.(t)
-    init = [x,y,z,0]
+    init = [x,y,z]
     positions = []
     
     for (i,field) in enumerate(fieldnames(ArbitraryMotion))
         etp = getproperty(motion,field)
         u = reduce(vcat,map(interpolate_spin_displacement,etp))
         xt = init[i] .+ u
-        if size(xt,2) == 1
-            xt = vec(xt)
-        end
         push!(positions, xt)
     end
     return positions
