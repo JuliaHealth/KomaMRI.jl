@@ -33,4 +33,6 @@ examples/3.koma_paper/comparison_accuracy/**/*.mat
 examples/3.koma_paper/comparison_accuracy/**/*.h5ç
 examples/2.phantoms/brain003
 examples/2.phantoms/brain004
+
 test_motion.jl
+nvtx_test.jl
