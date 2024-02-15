@@ -24,7 +24,7 @@ function get_positions(motion::SimpleMotion, x::AbstractVector{T}, y::AbstractVe
     yt = y.+ motion.uy(x, y, z, t)
     zt = z.+ motion.uz(x, y, z, t)
       
-    xt, yt, zt, nothing
+    return xt, yt, zt
 end
 
 

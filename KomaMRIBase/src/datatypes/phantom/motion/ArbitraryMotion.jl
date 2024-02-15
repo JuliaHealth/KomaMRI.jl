@@ -1,16 +1,26 @@
-@with_kw mutable struct ArbitraryMotion{T<:Real} <: MotionModel
-	etp_x
-    etp_y
-    etp_z
+# TODO: Consider different Extrapolations apart from periodic LinerInterpolator{T,ETPType}
+#       Interpolator{T,Degree,ETPType}, 
+#           Degree = Linear,Cubic.... 
+#           ETPType = Periodic, Flat...
+const LinearInterpolator = Interpolations.Extrapolation{T, 1, Interpolations.GriddedInterpolation{T, 1, V, Gridded{Linear{Throw{OnGrid}}}, Tuple{V}}, Gridded{Linear{Throw{OnGrid}}}, Periodic{Nothing}} where {T<:Real, V<:AbstractVector{T}}
+
+mutable struct ArbitraryMotion{T<:Real, V<:AbstractVector{T}} <: MotionModel
+	ux::Vector{LinearInterpolator{T, V}}
+    uy::Vector{LinearInterpolator{T, V}}
+    uz::Vector{LinearInterpolator{T, V}}
 end
 
+# Optimize: ver https://github.com/cncastillo/KomaMRI.jl/issues/73
+# t0 = [0; cumsum(dur)] 
+# time = repeat(.., [1, length(dur)])
+# time = time .+ t0'
+# time = time[:]
 function ArbitraryMotion( dur::AbstractVector{T},
                           K::Int,
                           Δx::AbstractArray{T, 2},
                           Δy::AbstractArray{T, 2},
                           Δz::AbstractArray{T, 2}) where {T<:Real}
 
-    etp(x) = extrapolate(x,Periodic())
     Ns = size(Δx)[1]
     limits = get_pieces_limits(dur,K)
 
@@ -19,28 +29,18 @@ function ArbitraryMotion( dur::AbstractVector{T},
     Δ[:,:,2] = hcat(repeat(hcat(zeros(Ns,1),Δy),1,length(dur)),zeros(Ns,1))
     Δ[:,:,3] = hcat(repeat(hcat(zeros(Ns,1),Δz),1,length(dur)),zeros(Ns,1))
 
-    itpx = [interpolate((limits,), Δ[i,:,1], Gridded(Linear())) for i in 1:Ns]
-    itpy = [interpolate((limits,), Δ[i,:,2], Gridded(Linear())) for i in 1:Ns]
-    itpz = [interpolate((limits,), Δ[i,:,3], Gridded(Linear())) for i in 1:Ns]
+    etpx = [extrapolate(interpolate((limits,), Δ[i,:,1], Gridded(Linear())), Periodic()) for i in 1:Ns]
+    etpy = [extrapolate(interpolate((limits,), Δ[i,:,2], Gridded(Linear())), Periodic()) for i in 1:Ns]
+    etpz = [extrapolate(interpolate((limits,), Δ[i,:,3], Gridded(Linear())), Periodic()) for i in 1:Ns]
 
-    etpx = map(etp, itpx)
-    etpy = map(etp, itpy)
-    etpz = map(etp, itpz)
-
-    ArbitraryMotion{Float64}(
-        etp_x = etpx,
-        etp_y = etpy,
-        etp_z = etpz
-    )
+    return ArbitraryMotion(etpx,etpy,etpz)
 end
 
-ArbitraryMotion(etp_x, etp_y, etp_z) = ArbitraryMotion{eltype(eltype(@view(etp_x[1])))}(etp_x, etp_y, etp_z)
-
 Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}) = begin
-    ArbitraryMotion(
-        etp_x = motion.etp_x[p],
-        etp_y = motion.etp_y[p],
-        etp_z = motion.etp_z[p]
+    return ArbitraryMotion(
+        motion.ux[p],
+        motion.uy[p],
+        motion.uz[p]
     )
 end
 
@@ -57,6 +57,7 @@ Example: -----------------------------
     limits = [0, 0.25, 0.5, 0.75, 1, 1.125, 1.25, 1.375, 1.5]
 --------------------------------------
 """
+# Revise this function to make it more efficient
 function get_pieces_limits(dur::AbstractVector, K::Int)
 	steps = dur/K
 	mat = reduce(hcat,[steps for i in 1:K])'
@@ -68,17 +69,11 @@ end
 
 
 function get_positions(motion::ArbitraryMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
-    interpolate_spin_displacement(itp) = itp.(t)
-    init = [x,y,z]
-    positions = []
-    
-    for (i,field) in enumerate(fieldnames(ArbitraryMotion))
-        etp = getproperty(motion,field)
-        u = reduce(vcat,map(interpolate_spin_displacement,etp))
-        xt = init[i] .+ u
-        push!(positions, xt)
-    end
-    return positions
+    xt = x .+ reduce(vcat, [etp.(t) for etp in motion.ux])
+    yt = y .+ reduce(vcat, [etp.(t) for etp in motion.uy])
+    zt = y .+ reduce(vcat, [etp.(t) for etp in motion.uz])
+
+    return xt, yt, zt
 end
 
 

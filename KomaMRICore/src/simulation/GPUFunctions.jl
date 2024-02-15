@@ -42,6 +42,21 @@ _isleaf(x) = _isbitsarray(x) || isleaf(x)
 struct KomaCUDAAdaptor end
 adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
 
+# ArbitraryMotion
+adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion) = begin 
+    ux = adapt(KomaCUDAAdaptor(), x.ux)
+	uy = adapt(KomaCUDAAdaptor(), x.uy)
+	uz = adapt(KomaCUDAAdaptor(), x.uz)
+    return ArbitraryMotion(ux,uy,uz)
+end
+adapt_storage(to::KomaCUDAAdaptor, x::Vector{LinearInterpolator{T,V}}) where {T<:Real,  V<:AbstractVector{T}} = CUDA.cu.(x)
+
+# SimpleMotion
+@functor SimpleMotion
+
+# NoMotion
+@functor NoMotion
+
 """
 	gpu(x)
 
@@ -114,10 +129,6 @@ f64(m) = paramtype(Float64, m)
 
 #The functor macro makes it easier to call a function in all the parameters
 @functor Phantom
-
-@functor NoMotion
-@functor SimpleMotion
-@functor ArbitraryMotion
 
 @functor Spinor
 @functor DiscreteSequence
