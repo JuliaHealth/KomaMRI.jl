@@ -37,7 +37,7 @@ precession.
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-NVTX.@annotate function run_spin_precession!(
+function run_spin_precession!(
         p::Phantom{T}, 
         seq::DiscreteSequence{T}, 
         sig::AbstractArray{Complex{T}},
@@ -46,9 +46,7 @@ NVTX.@annotate function run_spin_precession!(
     ) where {T<:Real}
     #Simulation
     #Motion
-    NVTX.@range "get_positions" begin
-        xt, yt, zt = get_positions(p.motion, p.x, p.y, p.z, seq.t')
-    end
+    xt, yt, zt = get_positions(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -83,7 +81,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
-NVTX.@annotate function run_spin_excitation!(
+function run_spin_excitation!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},

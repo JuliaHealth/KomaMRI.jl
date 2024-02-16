@@ -82,10 +82,8 @@ function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
-    NVTX.@range "Precession Parallel" begin
-        ThreadsX.foreach(enumerate(parts)) do (i, p)
-            run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
-        end
+    ThreadsX.foreach(enumerate(parts)) do (i, p)
+        run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
     end
 
     return nothing
@@ -117,10 +115,8 @@ function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
-    NVTX.@range "Excitation Parallel" begin
-        ThreadsX.foreach(enumerate(parts)) do (i, p)
-            run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
-        end
+    ThreadsX.foreach(enumerate(parts)) do (i, p)
+        run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
     end
 
     return nothing
