@@ -67,11 +67,13 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [komafiles-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIFiles
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[docr-url]: https://cncastillo.github.io/KomaMRI.jl/stable/
+[docr-url]: https://juliahealth.github.io/KomaMRI.jl/stable/
 
 [docd-img]: https://img.shields.io/badge/docs-dev-blue.svg
-[docd-url]: https://cncastillo.github.io/KomaMRI.jl/dev/
+[docd-url]: https://juliahealth.github.io/KomaMRI.jl/dev/
 
+[gh-actions-nightly-img]: https://github.com/cncastillo/KomaMRI.jl/workflows/Nightly/badge.svg
+[gh-actions-nightly-url]: https://github.com/cncastillo/KomaMRI.jl/actions/workflows/nightly.yml
 [gh-actions-img]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img1]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-img2]: https://github.com/cncastillo/KomaMRI.jl/workflows/CI/badge.svg
@@ -181,3 +183,21 @@ If you use this package please acknowledge us by citing our paper.
          eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
 }
 ```
+
+## Tested compatibility
+
+We automatically test KomaMRICore's CPU multi-threading support on the most popular operating systems. Nevertheless, for GPU support the process is more manual (until [#147](https://github.com/cncastillo/KomaMRI.jl/issues/147)). Here is a summary of our automatic CPU tests and local GPU tests for multiple versions of Julia:
+
+| Julia (OS)                            | CPU                                       | GPU (Nvidia) |
+|:--------------------------------------|:----------------------------------------------:|:------------------:|
+| Julia 1.9 (Windows)  | [![][gh-actions-img]][gh-actions-url]          | ✅                |
+| Julia 1.9 (Linux)    | [![][gh-actions-img]][gh-actions-url]          | ✅                |
+| Julia 1.9  (Mac)      | [![][gh-actions-img]][gh-actions-url]          | ➖                |
+| Julia 1.10 (Windows)           | [![][gh-actions-img]][gh-actions-url]          | ✅                |
+| Julia 1.10 (Linux)             | [![][gh-actions-img]][gh-actions-url]          | ✅                |
+| Julia 1.10 (Mac)               | [![][gh-actions-img]][gh-actions-url]          | ➖                |
+| Julia 1.11 (Windows)          | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
+| Julia 1.11 (Linux)            | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
+| Julia 1.11 (Mac)              | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ➖                 |
+
+If you see any problem with this information, please let us know in the form of a GitHub issue.
