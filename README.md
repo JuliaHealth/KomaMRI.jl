@@ -67,10 +67,10 @@ Paper: <br>[![][paper-img1]][paper-url1]
 [komafiles-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIFiles
 
 [docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[docr-url]: https://cncastillo.github.io/KomaMRI.jl/stable/
+[docr-url]: https://juliahealth.github.io/KomaMRI.jl/stable/
 
 [docd-img]: https://img.shields.io/badge/docs-dev-blue.svg
-[docd-url]: https://cncastillo.github.io/KomaMRI.jl/dev/
+[docd-url]: https://juliahealth.github.io/KomaMRI.jl/dev/
 
 [gh-actions-nightly-img]: https://github.com/cncastillo/KomaMRI.jl/workflows/Nightly/badge.svg
 [gh-actions-nightly-url]: https://github.com/cncastillo/KomaMRI.jl/actions/workflows/nightly.yml
