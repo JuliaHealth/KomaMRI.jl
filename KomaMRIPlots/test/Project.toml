@@ -1,0 +1,7 @@
+[deps]
+MRIFiles = "5a6f062f-bf45-497d-b654-ad17aae2a530"
+KomaMRIBase = "d0bc0b20-b151-4d03-b2a4-6ca51751cb9c"
+PlutoPlotly = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
+TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
