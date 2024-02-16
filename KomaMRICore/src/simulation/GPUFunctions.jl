@@ -51,11 +51,6 @@ adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion) = begin
 end
 adapt_storage(to::KomaCUDAAdaptor, x::Vector{LinearInterpolator{T,V}}) where {T<:Real,  V<:AbstractVector{T}} = CUDA.cu.(x)
 
-# SimpleMotion
-@functor SimpleMotion
-
-# NoMotion
-@functor NoMotion
 
 """
 	gpu(x)
