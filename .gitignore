@@ -30,5 +30,8 @@ src/ui/assets/*
 examples/3.koma_paper/comparison_accuracy/**/*.mrd
 examples/3.koma_paper/mrf/**/*.mrd
 examples/3.koma_paper/comparison_accuracy/**/*.mat
-examples/3.koma_paper/comparison_accuracy/**/*.h5
-test_motion.jl
+examples/3.koma_paper/comparison_accuracy/**/*.h5ç
+examples/2.phantoms/brain003
+examples/2.phantoms/brain004
+
+test*
