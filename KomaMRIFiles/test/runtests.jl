@@ -5,8 +5,24 @@ using TestItems, TestItemRunner
 @testitem "Files" tags=[:files] begin
     using Suppressor
 
-    # Test Pulseq
-    @testset "Pulseq" begin
+    # Test JEMRIS
+    @testset "JEMRIS" begin
+        path = @__DIR__
+        obj = read_phantom_jemris(path*"/test_files/column1d.h5")
+        @test obj.name == "column1d.h5"
+    end
+
+    # Test JEMRIS
+    @testset "MRiLab" begin
+        path = @__DIR__
+        filename = path * "/test_files/brain_mrilab.mat"
+        FRange_filename = path * "/test_files/FRange.mat" #Slab within slice thickness
+        obj = read_phantom_MRiLab(filename; FRange_filename)
+        @test obj.name == "brain_mrilab.mat"
+    end
+
+    # Test ReadPulseq
+    @testset "ReadPulseq" begin
         path = @__DIR__
         seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "epi.seq"
@@ -30,18 +46,34 @@ using TestItems, TestItemRunner
         shape2 = KomaMRIFiles.decompress_shape(num_samples, compressed_data)
         @test shape == shape2
     end
-    # Test JEMRIS
-    @testset "JEMRIS" begin
+
+    # Test WritePulseq
+    @testset "WritePulseq" begin
+
+        # These two are solved by changing the precission in the RF comparison (now: atol=1e-5)
+        # Note that just the angle of the RF is the problem
+        # epi_rs. rfs positions: 1, 2, 68, 69, 135, 136, 202, 203, 269, 270. wrong: 69
+        # epise_rs. rfs positions: 1, 2, 4, 61, 62, 64, 121, 122, 124. wrong: 4, 64, 124
+
         path = @__DIR__
-        obj = read_phantom_jemris(path*"/test_files/column1d.h5")
-        @test obj.name == "column1d.h5"
+        test_folder = joinpath(@__DIR__, "test_files", "pulseq")
+
+        # Test for some .seq files
+        filenames = ["DEMO_gre", "DEMO_grep", "epi_se", "epi", "external", "gre_rad",
+            "spiral", "tabletop_tse_pulseq", "cine_gre", "epi_label", "epi_rs", "epise_rs"]
+        for seq_filename_head in filenames
+            seq_filename_head = seq_filename_head
+            seq_original_filename = seq_filename_head * ".seq"
+            seq_written_filename = seq_filename_head * "_written.seq"
+            seq_original_file = joinpath(test_folder, seq_original_filename)
+            seq_written_file = joinpath(test_folder, seq_written_filename)
+            seq_original = @suppress read_seq(seq_original_file)
+            write_seq(seq_original, seq_written_file)
+            seq_written = @suppress read_seq(seq_written_file)
+            rm(seq_written_file; force=true)
+            @test seq_original ≈ seq_written
+        end
+
     end
-    # Test JEMRIS
-    @testset "MRiLab" begin
-        path = @__DIR__
-        filename = path * "/test_files/brain_mrilab.mat"
-        FRange_filename = path * "/test_files/FRange.mat" #Slab within slice thickness
-        obj = read_phantom_MRiLab(filename; FRange_filename)
-        @test obj.name == "brain_mrilab.mat"
-    end
+
 end

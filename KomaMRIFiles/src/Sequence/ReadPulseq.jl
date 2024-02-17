@@ -82,7 +82,7 @@ function read_blocks(io, blockDurationRaster, version_combined)
             end
         end
 
-        r == NumberBlockEvents || break #Break on white space
+        r == NumberBlockEvents || break
     end
     sort(eventTable), sort(blockDurations), sort(delayIDs_tmp)
 end
