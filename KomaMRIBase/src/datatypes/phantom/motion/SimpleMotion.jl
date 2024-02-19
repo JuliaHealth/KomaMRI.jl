@@ -1,12 +1,12 @@
 # ------ SimpleMotionType
-abstract type SimpleMotionType end
+abstract type SimpleMotionType{T<:Real} end
 
 # -------- SimpleMotion
-@with_kw mutable struct SimpleMotion <: MotionModel
-    type::SimpleMotionType
-    ux::Function = (x,y,z,t)->0
-	uy::Function = (x,y,z,t)->0
-	uz::Function = (x,y,z,t)->0
+mutable struct SimpleMotion{T<:Real} <: MotionModel
+    type::SimpleMotionType{T}
+    ux::Function
+	uy::Function
+	uz::Function
 end
 
 # IDEA:
@@ -30,7 +30,7 @@ end
 
 # --------- Simple Motion Types:
 include("simplemotion/Translation.jl")
-include("simplemotion/Rotation.jl")
+# include("simplemotion/Rotation.jl")
 
 
 
