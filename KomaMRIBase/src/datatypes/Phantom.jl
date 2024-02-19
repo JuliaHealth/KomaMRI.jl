@@ -56,7 +56,7 @@ julia> obj.ρ
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 
 	#Motion
-	motion = NoMotion()
+	motion::MotionModel = NoMotion()
 end
 
 """Size and length of a phantom"""
