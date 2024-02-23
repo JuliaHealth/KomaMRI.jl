@@ -10,18 +10,27 @@ mutable struct ArbitraryMotion{T<:Real, V<:AbstractVector{T}} <: MotionModel
     uz::Vector{LinearInterpolator{T, V}}
 end
 
+# TODO:
+# mutable struct ArbitraryMotion{T<:Real} <: MotionModel
+#     dur::AbstractVector{T}
+#     Δx::AbstractArray{T, 2}
+#     Δy::AbstractArray{T, 2}
+#     Δz::AbstractArray{T, 2}
+# end
+
 # Optimize: ver https://github.com/cncastillo/KomaMRI.jl/issues/73
 # t0 = [0; cumsum(dur)] 
 # time = repeat(.., [1, length(dur)])
 # time = time .+ t0'
 # time = time[:]
+
 function ArbitraryMotion( dur::AbstractVector{T},
-                          K::Int,
                           Δx::AbstractArray{T, 2},
                           Δy::AbstractArray{T, 2},
                           Δz::AbstractArray{T, 2}) where {T<:Real}
 
     Ns = size(Δx)[1]
+    K = size(Δx)[2] + 1
     limits = get_pieces_limits(dur,K)
 
     Δ = zeros(Ns,length(limits),4)
@@ -68,12 +77,18 @@ function get_pieces_limits(dur::AbstractVector, K::Int)
 end
 
 
-function get_positions(motion::ArbitraryMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
-    xt = x .+ reduce(vcat, [etp.(t) for etp in motion.ux])
-    yt = y .+ reduce(vcat, [etp.(t) for etp in motion.uy])
-    zt = y .+ reduce(vcat, [etp.(t) for etp in motion.uz])
-
-    return xt, yt, zt
+# TODO: Calculate interpolation functions "on the fly"
+function ux(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
+    return reduce(vcat, [etp.(t) for etp in motion.ux])
 end
+
+function uy(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
+    return reduce(vcat, [etp.(t) for etp in motion.uy])
+end
+
+function uz(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
+    return reduce(vcat, [etp.(t) for etp in motion.uz])
+end
+
 
 

@@ -46,7 +46,9 @@ function run_spin_precession!(
     ) where {T<:Real}
     #Simulation
     #Motion
-    xt, yt, zt = get_positions(p.motion, p.x, p.y, p.z, seq.t')
+    xt = p.x .+ ux(p.motion, p.x, p.y, p.z, seq.t')
+    yt = p.y .+ uy(p.motion, p.x, p.y, p.z, seq.t')
+    zt = p.z .+ uz(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
     Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
@@ -63,6 +65,7 @@ function run_spin_precession!(
     M.xy .= Mxy[:, end]
     #Acquired signal
     sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    
     return nothing
 end
 
@@ -91,7 +94,9 @@ function run_spin_excitation!(
     #Simulation
     for s ∈ seq
         #Motion
-        xt, yt, zt = get_positions(p.motion, p.x, p.y, p.z, s.t)
+        xt = p.x .+ ux(p.motion, p.x, p.y, p.z, s.t)
+        yt = p.y .+ uy(p.motion, p.x, p.y, p.z, s.t)
+        zt = p.z .+ uz(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
         ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
         Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
