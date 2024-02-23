@@ -364,9 +364,9 @@ end
     Dλ1 = [-4e-6; -2e-6; 0.; 2e-6; 4e-6]
     Dλ2 = [-6e-6; -3e-6; 0.; 3e-6; 6e-6]
     Dθ = [-8e-6; -4e-6; 0.; 4e-6; 8e-6]
-    u = (x,y,z,t)->0
-    obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, ux=u, uy=u, uz=u)
-    obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, ux=u, uy=u, uz=u)
+    u = NoMotion()
+    obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=u)
+    obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=u)
     @test obj ≈ obj2
 
     # Test size and length definitions of a phantom
@@ -374,28 +374,28 @@ end
     #@test length(obj) == length(ρ)
 
     # Test phantom comparison
-    ue = (x,y,z,t)->1
-    obe = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue, ue, ue)
+    ue = SimpleMotion([Translation(offset=[1.0, 1.0, 1.0])])
+    obe = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue)
     @test obj ≈ obe
 
     # Test phantom subset
     rng = 1:2:5
-    ug = (x,y,z,t)->-1
+    ug = SimpleMotion([Translation(offset=[1.0, 1.0, 1.0])])
     obg = Phantom(name, x[rng], y[rng], z[rng], ρ[rng], T1[rng], T2[rng], T2s[rng], Δw[rng],
-                    Dλ1[rng], Dλ2[rng], Dθ[rng], ug, ug, ug)
+                    Dλ1[rng], Dλ2[rng], Dθ[rng], ug)
     @test obj[rng] ≈ obg
     @test @view(obj[rng]) ≈ obg
 
     # Test addition of phantoms
-    ua = (x,y,z,t)->2
+    ua = SimpleMotion([Translation(offset=[2.0, 2.0, 2.0])])
     oba = Phantom(name, [x; x[rng]], [y; y[rng]], [z; z[rng]], [ρ; ρ[rng]],
                     [T1; T1[rng]], [T2; T2[rng]], [T2s; T2s[rng]], [Δw; Δw[rng]],
-                    [Dλ1; Dλ1[rng]], [Dλ2; Dλ2[rng]], [Dθ; Dθ[rng]], ua, ua, ua)
+                    [Dλ1; Dλ1[rng]], [Dλ2; Dλ2[rng]], [Dθ; Dθ[rng]], ua)
     @test obj + obg ≈ oba
 
     # Test scalar multiplication of a phantom
     c = 7.
-    obc = Phantom(name, x, y, z, c*ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, u, u, u)
+    obc = Phantom(name, x, y, z, c*ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, u)
     @test c*obj ≈ obc
 
     #Test brain phantom 2D
