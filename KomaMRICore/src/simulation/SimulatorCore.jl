@@ -345,6 +345,7 @@ function simulate(
         sim_params_raw["type_sim_parts"] = excitation_bool
         sim_params_raw["Nblocks"] = length(parts)
         sim_params_raw["sim_time_sec"] = timed_tuple.time
+        sim_params_raw["allocations"] = timed_tuple.bytes
         out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw)
     end
     return out
