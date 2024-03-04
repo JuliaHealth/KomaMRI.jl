@@ -16,21 +16,21 @@ using TestItems, TestItemRunner
     @test xx1 ≈ xx2
 
     # Rot x
-    nx = [1,0,0]
+    nx = [1.0,0,0]
     xx1 = Rx(θ)*z; #Spinor rot
     xx2 = Un(θ,nx)*x; #3D rot matrix
     xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
     @test xx1 ≈ xx2
 
     # Rot y
-    nx = [0,1,0]
+    nx = [0,1.0,0]
     xx1 = Ry(θ)*z; #Spinor rot
     xx2 = Un(θ,nx)*x; #3D rot matrix
     xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
     @test xx1 ≈ xx2
 
     # Rot z
-    nx = [0,0,1]
+    nx = [0,0,1.0]
     xx1 = Rz(θ)*z; #Spinor rot
     xx2 = Un(θ,nx)*x; #3D rot matrix
     xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
