@@ -409,7 +409,7 @@ function read_seq(filename)
     #This should only work for Pulseq files >=1.4.0
     seq = Sequence()
     for i = 1:length(blockEvents)
-        seq += get_block(obj,i)
+        seq += get_block(obj, i)
     end
     # Final details
     # Remove dummy seq block at the start, Issue #203
