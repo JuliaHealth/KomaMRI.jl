@@ -61,15 +61,21 @@ n = normalize(cross_prod);
 # Rotation angle:
 θ = asin(norm(cross_prod)/((norm(REF))*(norm(G))));
 # Rotation matrix:
-R = (norm(cross_prod)>0) ? axis_angle(n,θ) : [1.0  0    0;
-											  0    1.0  0;
-											  0    0    1.0];							
+R = (norm(cross_prod)>0) ? Un(θ,n) : [1.0  0    0;
+									  0    1.0  0;
+									  0    0    1.0];							
 end
 
-axis_angle(n::AbstractVector{<:Real},θ::Real) =  [cos(θ)+n[1]^2*(1-cos(θ))            n[1]*n[2]*(1-cos(θ))-n[3]*sin(θ)     n[1]*n[3]*(1-cos(θ))+n[2]*sin(θ);
-						 						  n[2]*n[1]*(1-cos(θ))+n[3]*sin(θ)    cos(θ)+n[2]^2*(1-cos(θ))             n[2]*n[3]*(1-cos(θ))-n[1]*sin(θ);
-												  n[3]*n[1]*(1-cos(θ))-n[2]*sin(θ)    n[3]*n[2]*(1-cos(θ))+n[1]*sin(θ)     cos(θ)+n[3]^2*(1-cos(θ))        ]
-
+## UNDER CONSTRUCTION!
+"""Matrix A such as A ⋅ b = n × b"""
+cross(n) = begin
+   nx,ny,nz = n
+    [0 -nz ny;
+     nz 0 -nx;
+    -ny nx 0]
+end
+"""Rodrigues' formula: Rotation matrix that when applied rotates with respect to "n" in an angle θ anti clock-wise"""
+Un(θ::T, n::T) where T<:Real = [1 0 0; 0 1 0; 0 0 1] * cos(θ) + sin(θ) * cross(n) + (1-cos(θ)) * (n * n')
 
 """
     gr = Grad(A, T)
