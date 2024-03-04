@@ -13,6 +13,6 @@ ux = x0 + vt
     velocity::Vector{T} = zeros(3)   # Velocity [m/s]
 end
 
-ux(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = motion_type.offset[1] .+ motion_type.velocity[1] .* t
-uy(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = motion_type.offset[2] .+ motion_type.velocity[2] .* t
-uz(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = motion_type.offset[3] .+ motion_type.velocity[3] .* t
+displacement_x(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = motion_type.offset[1] .+ motion_type.velocity[1] .* t
+displacement_y(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = motion_type.offset[2] .+ motion_type.velocity[2] .* t
+displacement_z(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = motion_type.offset[3] .+ motion_type.velocity[3] .* t

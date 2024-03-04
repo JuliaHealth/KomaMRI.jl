@@ -51,12 +51,12 @@ export MotionModel
 export SimpleMotion, NoMotion, ArbitraryMotion
 export SimpleMotionType
 export Translation
-export ux, uy, uz
+export displacement_x, displacement_y, displacement_z
 export LinearInterpolator
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 # Secondary
-export get_kspace, rotx, roty, rotz, rotation_matrix, axis_angle
+export get_kspace, rotx, roty, rotz, rotation_matrix, Un
 # Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 # Sequence related

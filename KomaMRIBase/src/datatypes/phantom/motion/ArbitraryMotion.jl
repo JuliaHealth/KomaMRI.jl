@@ -45,14 +45,6 @@ function ArbitraryMotion( dur::AbstractVector{T},
     return ArbitraryMotion(etpx,etpy,etpz)
 end
 
-Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}) = begin
-    return ArbitraryMotion(
-        motion.ux[p],
-        motion.uy[p],
-        motion.uz[p]
-    )
-end
-
 
 """
     limits = get_pieces_limits(obj.motion)
@@ -76,17 +68,24 @@ function get_pieces_limits(dur::AbstractVector, K::Int)
     limits
 end
 
+Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+    return ArbitraryMotion(
+        motion.ux[p],
+        motion.uy[p],
+        motion.uz[p]
+    )
+end
 
 # TODO: Calculate interpolation functions "on the fly"
-function ux(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
+function displacement_x(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     return reduce(vcat, [etp.(t) for etp in motion.ux])
 end
 
-function uy(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
+function displacement_y(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     return reduce(vcat, [etp.(t) for etp in motion.uy])
 end
 
-function uz(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
+function displacement_z(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     return reduce(vcat, [etp.(t) for etp in motion.uz])
 end
 

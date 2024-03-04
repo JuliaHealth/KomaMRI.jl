@@ -6,21 +6,21 @@ mutable struct SimpleMotion{S <: SimpleMotionType} <: MotionModel
     types::AbstractVector{S}
 end
 
-Base.getindex(motion::SimpleMotion, p::AbstractRange) = motion
-Base.getindex(motion::SimpleMotion, p::AbstractRange, q::AbstractRange) = motion
-Base.getindex(motion::SimpleMotion, p::AbstractVector) = motion
+Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
+Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}, 
+                                    q::Union{AbstractRange,AbstractVector,Colon}) = motion
 
 
-function ux(motion::SimpleMotion{S}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real, S<:SimpleMotionType{T}}
-    return reduce(.+, map((type) -> ux(type, x, y, z, t), motion.types))
+function displacement_x(motion::SimpleMotion{S}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real, S<:SimpleMotionType{T}}
+    return reduce(.+, map((type) -> displacement_x(type, x, y, z, t), motion.types))
 end
 
-function uy(motion::SimpleMotion{S}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real, S<:SimpleMotionType{T}}
-    return reduce(.+, map((type) -> uy(type, x, y, z, t), motion.types))
+function displacement_y(motion::SimpleMotion{S}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real, S<:SimpleMotionType{T}}
+    return reduce(.+, map((type) -> displacement_y(type, x, y, z, t), motion.types))
 end
 
-function uz(motion::SimpleMotion{S}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real, S<:SimpleMotionType{T}}
-    return reduce(.+, map((type) -> uz(type, x, y, z, t), motion.types))
+function displacement_z(motion::SimpleMotion{S}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real, S<:SimpleMotionType{T}}
+    return reduce(.+, map((type) -> displacement_z(type, x, y, z, t), motion.types))
 end
 
 # --------- Simple Motion Types:
