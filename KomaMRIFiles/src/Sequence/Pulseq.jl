@@ -499,6 +499,8 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
             gT = (gt[2:end] .- gt[1:end-1]) * Δt_gr
             G = Grad(gA,gT,0,0,delay)
         end
+    else
+	# gradient is not present, set to zero from above
     end
     G
 end
