@@ -480,7 +480,7 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         #(1)amplitude (2)rise (3)flat (4)fall (5)delay
         g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
         G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
-    elseif gradLibrary[i]["type"] == 'g' #Arbitrary gradient waveform
+    elseif gradLibrary[i]["type"] == 'g' && i!=0 #Arbitrary gradient waveform, fix from https://github.com/JuliaHealth/KomaMRI.jl/discussions/311#discussion-6251011
         #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
         g = gradLibrary[i]["data"]
         amplitude =     g[1]
