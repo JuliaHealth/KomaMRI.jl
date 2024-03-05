@@ -50,6 +50,28 @@ function read_definitions(io)
 end
 
 """
+read_definitions Read the [SIGNATURE] section of a sequence file.
+   signature=read_signature(fid) Read user signature from file
+   identifier of an open MR sequence file and return a map of
+   key/value entries.
+"""
+function read_signature(io)
+    signature = ""
+    while true
+        line = readline(io)
+        line_split = String.(split(line))
+        (length(line_split) > 0) || break #Break on white space
+        key = line_split[1]
+        if (key == "Hash")
+            value_string_array = line_split[2:end]
+            parsed_array = [tryparse(Float64, s) === nothing ? s : tryparse(Float64, s) for s = value_string_array]
+            signature = length(parsed_array) == 1 ? parsed_array[1] : parsed_array
+        end
+    end
+    return signature
+end
+
+"""
 read_blocks Read the [BLOCKS] section of a sequence file.
    library=read_blocks(fid) Read blocks from file identifier of an
    open MR sequence file and return the event table.
@@ -298,6 +320,7 @@ function read_seq(filename)
     version_minor = 0
     gradLibrary = Dict()
     def = Dict()
+    signature = AbstractString[]
     blockEvents = Dict()
     blockDurations = Dict()
     delayInd_tmp = Dict()
@@ -349,7 +372,8 @@ function read_seq(filename)
             elseif  section == "extension TRIGGERS 1"
                 triggerLibrary = read_events(io,[1 1 1e-6 1e-6])
             elseif  section == "[SIGNATURE]"
-                #Not implemented yet
+                signature = read_signature(io)
+            else
             end
 
         end
@@ -420,6 +444,7 @@ function read_seq(filename)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = version_combined
+    seq.DEF["signature"] = signature
     if !haskey(seq.DEF,"Nx")
         Nx = maximum(seq.ADC.N)
         RF_ex = (get_flip_angles(seq) .<= 90.01) .* is_RF_on.(seq)
