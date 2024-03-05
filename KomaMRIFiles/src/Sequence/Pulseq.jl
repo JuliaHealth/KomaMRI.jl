@@ -476,7 +476,9 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 """
 function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0,0)
-    if gradLibrary[i]["type"] == 't' #if trapezoidal gradient
+    if gradLibrary.count == 0
+        # no gradients, set to zero from above
+    elseif gradLibrary[i]["type"] == 't' #if trapezoidal gradient
         #(1)amplitude (2)rise (3)flat (4)fall (5)delay
         g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
         G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
@@ -499,8 +501,6 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
             gT = (gt[2:end] .- gt[1:end-1]) * Δt_gr
             G = Grad(gA,gT,0,0,delay)
         end
-    else
-	# gradient is not present, set to zero from above
     end
     G
 end
