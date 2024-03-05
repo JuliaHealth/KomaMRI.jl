@@ -476,7 +476,7 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 """
 function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0,0)
-    if gradLibrary.count == 0
+    if gradLibrary == Dict() # no gradient info in seq
         # no gradients, set to zero from above
     elseif gradLibrary[i]["type"] == 't' #if trapezoidal gradient
         #(1)amplitude (2)rise (3)flat (4)fall (5)delay
