@@ -320,7 +320,7 @@ function read_seq(filename)
     version_minor = 0
     gradLibrary = Dict()
     def = Dict()
-    signature = AbstractString[]
+    signature = ""
     blockEvents = Dict()
     blockDurations = Dict()
     delayInd_tmp = Dict()
