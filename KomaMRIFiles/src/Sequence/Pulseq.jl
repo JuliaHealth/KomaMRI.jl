@@ -481,7 +481,7 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         return G
     elseif isempty(gradLibrary) #isempty(gradLibrary) checked first or error below
         #No gradient shapes defined in seq file, set G to zero from above
-        @error "No gradients defined in seq file, but id $i used in block."
+        @error "No gradients defined in seq file [GRADIENTS] or [TRAP] sections, but id $i used in [BLOCKS]."
     elseif gradLibrary[i]["type"] == 't' #if trapezoidal gradient
         #(1)amplitude (2)rise (3)flat (4)fall (5)delay
         g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
