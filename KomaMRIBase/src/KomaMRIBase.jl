@@ -46,13 +46,17 @@ export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D
-export MotionModel, SimpleMotion, NoMotion, ArbitraryMotion
+# Motion
+export MotionModel
+export SimpleMotion, NoMotion, ArbitraryMotion
+export SimpleMotionType
 export Translation, Rotation
-export get_positions
+export get_spin_coords
+export LinearInterpolator
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 # Secondary
-export get_kspace, rotx, roty, rotz, rotation_matrix, axis_angle
+export get_kspace, rotx, roty, rotz, rotation_matrix, Un
 # Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 # Sequence related

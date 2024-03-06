@@ -41,6 +41,17 @@ _isleaf(x) = _isbitsarray(x) || isleaf(x)
 # GPU adaptor
 struct KomaCUDAAdaptor end
 adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
+# SimpleMotion
+adapt_storage(to::KomaCUDAAdaptor, x::SimpleMotionType) = adapt(Float32, x) # SimpleMotionType is not stored in GPU
+# ArbitraryMotion (PENDING)
+adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion) = begin 
+    ux = adapt(KomaCUDAAdaptor(), x.ux)
+	uy = adapt(KomaCUDAAdaptor(), x.uy)
+	uz = adapt(KomaCUDAAdaptor(), x.uz)
+    return ArbitraryMotion(ux,uy,uz)
+end
+adapt_storage(to::KomaCUDAAdaptor, x::Vector{LinearInterpolator{T,V}}) where {T<:Real,  V<:AbstractVector{T}} = CUDA.cu.(x)
+
 
 """
 	gpu(x)
@@ -91,6 +102,24 @@ paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs) #Type piracy
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs) #Type piracy
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs #Type piracy
+adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs) #Type piracy
+# SimpleMotion
+adapt_storage(T::Type{<:Real}, xs::SimpleMotionType) = begin
+	fields = []
+	for i in fieldnames(typeof(xs))
+		push!(fields, adapt(T, getfield(xs, i)))
+	end
+	return get_type(xs){T}(fields...)
+end
+
+
+# get_type(a) returns the most external type of a variable
+# Example: get_type(a::Vector{Float64}) = Vector::Type
+function get_type(a)
+	type_str = string(typeof(a))
+	name_only = match(r"([a-zA-Z]+)", type_str).match
+	return eval(Symbol(name_only))
+end
 
 """
     f32(m)
@@ -114,11 +143,7 @@ f64(m) = paramtype(Float64, m)
 
 #The functor macro makes it easier to call a function in all the parameters
 @functor Phantom
-
-@functor NoMotion
 @functor SimpleMotion
-@functor ArbitraryMotion
-
 @functor Spinor
 @functor DiscreteSequence
 

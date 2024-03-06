@@ -1,39 +1,50 @@
 """
 Simple Rotation Movement
-
+ 
 Parameters:
-- Rotation axis
-- Angular velocity
+- Offset            (α) [1x1] 
+- Rotation axis     (n) [3x1]
+- Rotation center   (c) [3x1]
+- Angular velocity  (ω) [1x1]
+
+ux = Un(ωt)(x - c) + (c - x)
+
+where Un(wt) = Icos(ωt) + sin(ωt)cross(n) + (1-cos(ωt))n.n'
 """
 
-mutable struct Rotation{T<:Real} <: SimpleMotionType
-    axis::AbstractVector{T}     # Rotation axis vector
-    point::AbstractVector{T}    # Rotation axis point
-    f::T                        # Angular velocity [Hz]
+@with_kw struct Rotation{T<:Real} <: SimpleMotionType{T}
+    offset::T = 0.0                          # Initial rotation [rad]
+    rotation_axis::Vector{T}  = [0, 0, 1.0]  # Rotation axis vector
+    rotation_center::Vector{T} = zeros(3)    # Rotation axis point
+    angular_velocity::T = 2*π                # Angular velocity [rad/s]
 end
 
-function SimpleMotion(type::Rotation)
-    # Rotation matrix
-    # R(t) = axis_angle.(Ref(type.axis), 2π*type.f*t)
-    R(t) = [axis_angle(type.axis,x) for x in 2π*type.f*t] # Scalar indexing. Solve
+displacement_x(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+    x .-= motion_type.rotation_center[1]
+    θ = motion_type.offset .+ motion_type.angular_velocity*t 
+    nx, ny, nz = motion_type.rotation_axis
+    # Rodrigues' formula
+    xr = cos.(θ) .* x + sin.(θ) .* (-nz*y + ny*z) + (1 .- cos.(θ)) .* (nx*(nx*x + ny*y + nz*z))
+    xr .+= (motion_type.rotation_center[1] .- x)
+    return xr
+end
 
-    # Displace using the rotation point
-    displace(x,y,z) =  [[x,y,z][i] .- type.point[i] for i in 1:length(type.point)]
+displacement_y(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+    y .-= motion_type.rotation_center[2]
+    θ = motion_type.offset .+ motion_type.angular_velocity*t 
+    nx, ny, nz = motion_type.rotation_axis
+    # Rodrigues' formula
+    yr = cos.(θ) .* y + sin.(θ) .* (nz*x - nx*z)  + (1 .- cos.(θ)) .* (ny*(nx*x + ny*y + nz*z))
+    yr .+= (motion_type.rotation_center[2] .- y)
+    return yr
+end
 
-    # Conversion of x,y,z into a (3 x Ns) matrix
-    matrix(x,y,z) = hcat(x,y,z)'
-
-    rotation(x,y,z,t) = begin
-        xd, yd, zd = displace(x,y,z)
-        xyz = matrix(xd,yd,zd)
-        display(R(t))
-        rotated = map(x -> x*xyz, R(t))
-        return cat(rotated...,dims=3)
-    end
-
-    ux(x,y,z,t) = @view(rotation(x,y,z,t)[1,:,:]) .+ (type.point[1] .- x)  
-    uy(x,y,z,t) = @view(rotation(x,y,z,t)[2,:,:]) .+ (type.point[2] .- y)  
-    uz(x,y,z,t) = @view(rotation(x,y,z,t)[3,:,:]) .+ (type.point[3] .- z)  
-
-    return SimpleMotion(type,ux,uy,uz)
+displacement_z(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+    z .-= motion_type.rotation_center[3]
+    θ = motion_type.offset .+ motion_type.angular_velocity*t 
+    nx, ny, nz = motion_type.rotation_axis
+    # Rodrigues' formula
+    zr = cos.(θ) .* z + sin.(θ) .* (-ny*x + nx*y) + (1 .- cos.(θ)) .* (nz*(nx*x + ny*y + nz*z))
+    zr .+= (motion_type.rotation_center[3] .- z)
+    return zr
 end

@@ -43,7 +43,6 @@ jobs:
         with:
           project: KomaMRIBase
       - name: "Run tests for KomaMRIBase"
-        continue-on-error: ${{ matrix.version == 'nightly' }}
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIBase
@@ -55,7 +54,6 @@ jobs:
         with:
           project: KomaMRICore
       - name: "Run tests for KomaMRICore"
-        continue-on-error: ${{ matrix.version == 'nightly' }}
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRICore
@@ -67,7 +65,6 @@ jobs:
         with:
           project: KomaMRIFiles
       - name: "Run tests for KomaMRIFiles"
-        continue-on-error: ${{ matrix.version == 'nightly' }}
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIFiles
@@ -79,7 +76,6 @@ jobs:
         with:
           project: KomaMRIPlots
       - name: "Run tests for KomaMRIPlots"
-        continue-on-error: ${{ matrix.version == 'nightly' }}
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIPlots
@@ -96,7 +92,6 @@ jobs:
           ])
       - uses: julia-actions/julia-buildpkg@v1
       - name: "Run tests for KomaMRI"
-        continue-on-error: ${{ matrix.version == 'nightly' }}
         uses: julia-actions/julia-runtest@v1
         with:
           prefix: ${{ matrix.prefix }}  # for `xvfb-run`

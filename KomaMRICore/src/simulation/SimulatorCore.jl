@@ -82,10 +82,8 @@ function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
-    NVTX.@range "Precession Parallel" begin
-        ThreadsX.foreach(enumerate(parts)) do (i, p)
-            run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
-        end
+    ThreadsX.foreach(enumerate(parts)) do (i, p)
+        run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
     end
 
     return nothing
@@ -117,10 +115,8 @@ function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
 
-    NVTX.@range "Excitation Parallel" begin
-        ThreadsX.foreach(enumerate(parts)) do (i, p)
-            run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
-        end
+    ThreadsX.foreach(enumerate(parts)) do (i, p)
+        run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
     end
 
     return nothing
@@ -349,6 +345,8 @@ function simulate(
         sim_params_raw["type_sim_parts"] = excitation_bool
         sim_params_raw["Nblocks"] = length(parts)
         sim_params_raw["sim_time_sec"] = timed_tuple.time
+        sim_params_raw["allocations_bytes"] = timed_tuple.bytes
+
         out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw)
     end
     return out

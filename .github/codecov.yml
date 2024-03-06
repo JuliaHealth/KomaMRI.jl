@@ -10,11 +10,21 @@ coverage:
         threshold: 5%
         flags:
           - komamri
+      base:
+        target: 90%
+        threshold: 5%
+        flags:
+          - base
       core:
         target: 90%
         threshold: 5%
         flags:
           - core
+      files:
+        target: 90%
+        threshold: 5%
+        flags:
+          - files
       plots:
         target: 90%
         threshold: 5%
@@ -41,10 +51,18 @@ flags:
     carryforward: true
     paths:
       - src/.*
+  base:
+    carryforward: true
+    paths:
+      - KomaMRIBase/src/.*
   core:
     carryforward: true
     paths:
       - KomaMRICore/src/.*
+  files:
+    carryforward: true
+    paths:
+      - KomaMRIFiles/src/.*
   plots:
     carryforward: true
     paths:

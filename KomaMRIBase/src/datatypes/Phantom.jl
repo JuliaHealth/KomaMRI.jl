@@ -56,7 +56,7 @@ julia> obj.ρ
 	#Diff::Vector{DiffusionModel}  #Diffusion map
 
 	#Motion
-	motion = NoMotion()
+	motion::MotionModel = NoMotion()
 end
 
 """Size and length of a phantom"""
@@ -146,7 +146,7 @@ end
 	)
 end
 
-+(m1::MotionModel,m2::MotionModel) = SimpleMotion() # TODO: resolve this in a more sophisticated way
++(m1::MotionModel,m2::MotionModel) = NoMotion() # TODO: resolve this in a more sophisticated way
 
 """Scalar multiplication of a phantom"""
 *(α::Real,obj::Phantom) = begin

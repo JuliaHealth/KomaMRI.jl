@@ -2,25 +2,25 @@
 Simple Translation Movement - Constant Velocity
 
 Parameters:
-- Direction
-- Velocity
+- Offset    (x0)
+- Velocity  (v)
+
+ux = x0 + vt
 """
 
-mutable struct Translation{T<:Real} <: SimpleMotionType
-    direction::AbstractVector{T}     # Translation direction 
-    v::T                             # Velocity [m/s]
+@with_kw struct Translation{T<:Real} <: SimpleMotionType{T}
+    offset::Vector{T}   = zeros(3)   # offset
+    velocity::Vector{T} = zeros(3)   # Velocity [m/s]
 end
 
-function SimpleMotion(type::Translation)
-    # Normalize direction
-    n = normalize(type.direction)
+displacement_x(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+    motion_type.offset[1] .+ motion_type.velocity[1] .* t
+end
 
-    # Obtain velocity vector
-    v = type.v*n
+displacement_y(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+    motion_type.offset[2] .+ motion_type.velocity[2] .* t
+end
 
-    ux(x,y,z,t) = @view(v[1]).*t
-    uy(x,y,z,t) = @view(v[2]).*t
-    uz(x,y,z,t) = @view(v[3]).*t  
-
-    return SimpleMotion(type,ux,uy,uz)
+displacement_z(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+    motion_type.offset[3] .+ motion_type.velocity[3] .* t
 end
