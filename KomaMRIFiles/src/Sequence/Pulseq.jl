@@ -476,13 +476,17 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 """
 function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0,0)
-    if gradLibrary == Dict() # no gradient info in seq
-        # no gradients, set to zero from above
+    if i==0 
+        #No gradient in this block, i==0 is reserved for this case
+        return G
+    elseif isempty(gradLibrary) #isempty(gradLibrary) checked first or error below
+        #No gradient shapes defined in seq file, set G to zero from above
+        @error "No gradients defined in seq file, but id $i used in block."
     elseif gradLibrary[i]["type"] == 't' #if trapezoidal gradient
         #(1)amplitude (2)rise (3)flat (4)fall (5)delay
         g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
         G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
-    elseif gradLibrary[i]["type"] == 'g' && i!=0 #Arbitrary gradient waveform, fix from https://github.com/JuliaHealth/KomaMRI.jl/discussions/311#discussion-6251011
+    elseif gradLibrary[i]["type"] == 'g' #Arbitrary gradient waveform, fix from https://github.com/JuliaHealth/KomaMRI.jl/discussions/311#discussion-6251011
         #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
         g = gradLibrary[i]["data"]
         amplitude =     g[1]
