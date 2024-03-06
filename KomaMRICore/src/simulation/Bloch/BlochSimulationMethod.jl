@@ -46,11 +46,9 @@ function run_spin_precession!(
     ) where {T<:Real}
     #Simulation
     #Motion
-    xt = p.x .+ displacement_x(p.motion, p.x, p.y, p.z, seq.t')
-    yt = p.y .+ displacement_y(p.motion, p.x, p.y, p.z, seq.t')
-    zt = p.z .+ displacement_z(p.motion, p.x, p.y, p.z, seq.t')
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
-    Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π * γ) .* cumtrapz(seq.Δt', Bz)
@@ -94,12 +92,10 @@ function run_spin_excitation!(
     #Simulation
     for s ∈ seq
         #Motion
-        xt = p.x .+ displacement_x(p.motion, p.x, p.y, p.z, s.t)
-        yt = p.y .+ displacement_y(p.motion, p.x, p.y, p.z, s.t)
-        zt = p.z .+ displacement_z(p.motion, p.x, p.y, p.z, s.t)
+        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
-        ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(xt,yt,zt)
-        Bz = (s.Gx .* xt .+ s.Gy .* yt .+ s.Gz .* zt) .+ ΔBz
+        ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B[B .== 0] .= eps(T)
         #Spinor Rotation

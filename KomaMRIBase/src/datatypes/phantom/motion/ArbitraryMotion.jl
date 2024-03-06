@@ -4,6 +4,11 @@
 #           ETPType = Periodic, Flat...
 const LinearInterpolator = Interpolations.Extrapolation{T, 1, Interpolations.GriddedInterpolation{T, 1, V, Gridded{Linear{Throw{OnGrid}}}, Tuple{V}}, Gridded{Linear{Throw{OnGrid}}}, Periodic{Nothing}} where {T<:Real, V<:AbstractVector{T}}
 
+"""
+Arbitrary Motion
+
+x = x + ux
+"""
 mutable struct ArbitraryMotion{T<:Real, V<:AbstractVector{T}} <: MotionModel
 	ux::Vector{LinearInterpolator{T, V}}
     uy::Vector{LinearInterpolator{T, V}}
@@ -77,17 +82,11 @@ Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Col
 end
 
 # TODO: Calculate interpolation functions "on the fly"
-function displacement_x(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
-    return reduce(vcat, [etp.(t) for etp in motion.ux])
+function get_spin_coords(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
+    xt = x .+ reduce(vcat, [etp.(t) for etp in motion.ux])
+    yt = y .+ reduce(vcat, [etp.(t) for etp in motion.uy])
+    zt = z .+ reduce(vcat, [etp.(t) for etp in motion.uz])
+    return xt, yt, zt
 end
-
-function displacement_y(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
-    return reduce(vcat, [etp.(t) for etp in motion.uy])
-end
-
-function displacement_z(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
-    return reduce(vcat, [etp.(t) for etp in motion.uz])
-end
-
 
 

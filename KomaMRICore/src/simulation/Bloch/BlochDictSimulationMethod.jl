@@ -39,11 +39,9 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     M::Mag{T}, sim_method::BlochDict) where {T<:Real}
     #Simulation
     #Motion
-    xt = p.x .+ displacement_x(p.motion, p.x, p.y, p.z, seq.t')
-    yt = p.y .+ displacement_y(p.motion, p.x, p.y, p.z, seq.t')
-    zt = p.z .+ displacement_z(p.motion, p.x, p.y, p.z, seq.t')
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
     #Effective field
-    Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π * γ) .* cumtrapz(seq.Δt', Bz)

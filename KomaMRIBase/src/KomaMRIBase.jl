@@ -50,8 +50,8 @@ export brain_phantom2D, brain_phantom3D, pelvis_phantom2D
 export MotionModel
 export SimpleMotion, NoMotion, ArbitraryMotion
 export SimpleMotionType
-export Translation
-export displacement_x, displacement_y, displacement_z
+export Translation, Rotation
+export get_spin_coords
 export LinearInterpolator
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
