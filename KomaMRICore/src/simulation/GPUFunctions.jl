@@ -102,14 +102,14 @@ paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs) #Type piracy
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs) #Type piracy
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs #Type piracy
-adapt_storage(T::Type{<:Real}, xs::R) where R<:Real = convert(T, xs) #Type piracy
+adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs) #Type piracy
 # SimpleMotion
 adapt_storage(T::Type{<:Real}, xs::SimpleMotionType) = begin
-	aux = get_type(xs){T}()
+	fields = []
 	for i in fieldnames(typeof(xs))
-		setfield!(aux, i, adapt(T, getfield(xs, i)))
+		push!(fields, adapt(T, getfield(xs, i)))
 	end
-	return aux
+	return get_type(xs){T}(fields...)
 end
 
 
