@@ -380,7 +380,8 @@ end
 
     # Test phantom subset
     rng = 1:2:5
-    ug = SimpleMotion([Translation(offset=[1.0, 1.0, 1.0])])
+    ug = SimpleMotion([Translation(offset=[1.0, 1.0, 1.0]),
+                       Rotation(offset=π/4, rotation_axis=[0, 0, 1.0], angular_velocity=0.0)])
     obg = Phantom(name, x[rng], y[rng], z[rng], ρ[rng], T1[rng], T2[rng], T2s[rng], Δw[rng],
                     Dλ1[rng], Dλ2[rng], Dθ[rng], ug)
     @test obj[rng] ≈ obg
