@@ -39,7 +39,7 @@ get_theo_A(g::Grad; off_val=0) = begin
 end
 
 get_theo_A(r::RF; off_val=0, max_rf_samples=Inf) = begin
-	A = [r.A r.A]'; A = A[:]
+	A = transpose([r.A r.A]); A = A[:]
 	if sum(abs.(r.A)) == 0
 		aux = off_val * [1; 1; ones(length(A)); 1]
 	else
