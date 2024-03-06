@@ -534,7 +534,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rfϕ = decompress_shape(shapeLibrary[phase_id]...)[1:end-1]
         @assert all(rfϕ.>=0) "[RF id $i] Phase waveform rfϕ must have non-negative samples (1.>=rfϕ.>=0). "
         Nrf = shapeLibrary[mag_id][1] - 1
-        rfAϕ = amplitude .* rfA .* exp.(-1im*(2π*rfϕ .+ phase))
+        rfAϕ = amplitude .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
     else
         rfA = 0
         rfϕ = 0
