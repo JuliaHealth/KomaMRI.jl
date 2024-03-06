@@ -190,8 +190,8 @@ function plot_seq(
 		rf_phase[samples.rf.A[:,j] .== Inf] .= Inf
 		p[2j-1+3] = scatter(x=samples.rf.t*1e3, y=abs.(samples.rf.A[:,j])*1e6, name="|B1|", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="|B1|", showlegend=showlegend, marker=attr(color="#AB63FA"))
-		p[2j+3] = scatter(x=samples.rf.t*1e3, y=rf_phase, text=ones(size(samples.rf.t)), name="<B1", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
-					xaxis=xaxis, yaxis=yaxis, legendgroup="<B1", showlegend=showlegend, marker=attr(color="#FFA15A"))
+		p[2j+3] = scatter(x=samples.rf.t*1e3, y=rf_phase, text=ones(size(samples.rf.t)), name="∠B1", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
+					xaxis=xaxis, yaxis=yaxis, legendgroup="∠B1", showlegend=showlegend, marker=attr(color="#FFA15A"))
 	end
 
 	# For ADCs
@@ -1011,7 +1011,8 @@ function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_p
 	Gx = scatter(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
 	Gy = scatter(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
 	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)
-	B1 = scatter(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
+	B1_abs = scatter(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
+    B1_angle = scatter(x=seqd.t*1e3, y=angle.(seqd.B1), name="∠B1", mode="markers+lines", marker_symbol=:circle)
 	ADC = scatter(x=seqd.t[seqd.ADC]*1e3, y=zeros(sum(seqd.ADC)), name="ADC", mode="markers", marker_symbol=:x)
-	plot_koma([Gx,Gy,Gz,B1,ADC])
+	plot_koma([Gx,Gy,Gz,B1_abs,B1_angle,ADC])
 end
