@@ -9,7 +9,7 @@ ux = x0 + vt
 """
 
 @with_kw struct Translation{T<:Real} <: SimpleMotionType{T}
-    offset::Vector{T}   = zeros(3)   # offset
+    offset::Vector{T}   = zeros(3)   # Initial translation [m]
     velocity::Vector{T} = zeros(3)   # Velocity [m/s]
 end
 
