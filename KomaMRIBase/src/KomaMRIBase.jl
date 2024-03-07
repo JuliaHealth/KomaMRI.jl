@@ -50,7 +50,7 @@ export brain_phantom2D, brain_phantom3D, pelvis_phantom2D
 export MotionModel
 export SimpleMotion, NoMotion, ArbitraryMotion
 export SimpleMotionType
-export Translation, Rotation
+export Translation, Rotation, Cardiac
 export get_spin_coords
 export LinearInterpolator
 # Spinors
