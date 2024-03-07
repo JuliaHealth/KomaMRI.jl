@@ -15,7 +15,7 @@ where Un(wt) = Icos(ωt) + sin(ωt)cross(n) + (1-cos(ωt))n.n'
 @with_kw struct Rotation{T<:Real} <: SimpleMotionType{T}
     offset::T = 0.0                          # Initial rotation [rad]
     rotation_axis::Vector{T}  = [0, 0, 1.0]  # Rotation axis vector
-    rotation_center::Vector{T} = zeros(3)    # Rotation axis point
+    rotation_center::Vector{T} = zeros(3)    # Rotation axis point  (TODO: check if this works correctly)
     angular_velocity::T = 2*π                # Angular velocity [rad/s]
 end
 
