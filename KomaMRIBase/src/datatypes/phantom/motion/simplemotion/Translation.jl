@@ -1,5 +1,5 @@
 """
-Simple Translation Movement - Constant Velocity
+Translation Motion - Constant Velocity
 
 Parameters:
 - Offset    (x0)

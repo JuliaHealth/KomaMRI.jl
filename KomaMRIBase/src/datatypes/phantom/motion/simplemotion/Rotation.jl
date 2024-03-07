@@ -1,5 +1,5 @@
 """
-Simple Rotation Movement
+Rotation Motion
  
 Parameters:
 - Offset            (α) [1x1] 
