@@ -5,6 +5,7 @@ A module to define different pulse sequences.
 """
 module PulseDesigner
 using ..KomaMRIBase
+using Unitful
 
 include("Grad/design.jl")
 include("RF/design.jl")
