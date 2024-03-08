@@ -7,8 +7,12 @@ module PulseDesigner
 using ..KomaMRIBase
 using Unitful
 
+uγ = γ*u"Hz/T"
+Angle{T} = Union{Quantity{T, NoDims, typeof(u"rad")}, Quantity{T, NoDims, typeof(u"°")}} where T
+
 include("Grad/design.jl")
 include("RF/design.jl")
+include("RF/block_pulse.jl")
 include("ADC/design.jl")
 
 """
