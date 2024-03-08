@@ -169,7 +169,7 @@ end
 end
 
 """
-    obj = brain_phantom2D(; axis="axial", ss=4)
+    obj = brain_phantom2D(; axis="axial", ss=4, us=1)
 
 Creates a two-dimensional brain Phantom struct.
 
@@ -182,7 +182,8 @@ Creates a two-dimensional brain Phantom struct.
 
 # Keywords
 - `axis`: (`::String`, `="axial"`, opts=[`"axial"`, `"coronal"`, `"sagittal"`]) orientation of the phantom
-- `ss`: (`::Integer`, `=4`) subsampling parameter in all axis
+- `ss`: (`::Integer`, `=4`) subsampling parameter for all axes
+- `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -194,15 +195,16 @@ julia> obj = brain_phantom2D(; axis="sagittal", ss=1)
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom2D(; axis="axial", ss=4)
+function brain_phantom2D(; axis="axial", ss=4, us=1)
 
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/brain2D.mat")
-    class = data[axis][1:ss:end,1:ss:end]
-
+    if us > 1; ss=1; end
+    class = repeat( data[axis][1:ss:end,1:ss:end], inner=[us, us])
+    
     # Define spin position vectors
-    Δx = .5e-3*ss
+    Δx = .5e-3*ss/us
     M, N = size(class)
     FOVx = (M-1)*Δx #[m]
     FOVy = (N-1)*Δx #[m]
@@ -279,7 +281,7 @@ function brain_phantom2D(; axis="axial", ss=4)
 end
 
 """
-    obj = brain_phantom3D(; ss=4)
+    obj = brain_phantom3D(; ss=4, us=1)
 
 Creates a three-dimentional brain Phantom struct.
 
@@ -292,6 +294,7 @@ Creates a three-dimentional brain Phantom struct.
 
 # Keywords
 - `ss`: (`::Integer`, `=4`) subsampling parameter in all axes
+- `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
 
 # Returns
 - `obj`: (`::Phantom`) 3D Phantom struct
@@ -303,15 +306,16 @@ julia> obj = brain_phantom3D(; ss=5)
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom3D(;ss=4,start_end=[160, 200])
+function brain_phantom3D(;ss=4,us=1,start_end=[160, 200])
 
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/brain3D.mat")
-    class = data["data"][1:ss:end,1:ss:end,start_end[1]:ss:start_end[2]]
+    if us > 1; ss=1; end
+    class = repeat( data["data"][1:ss:end,1:ss:end,start_end[1]:ss:start_end[2]], inner=[us, us, us])
 
     # Define spin position vectors
-    Δx = .5e-3*ss
+    Δx = .5e-3*ss/us
     M, N, Z = size(class)
     FOVx = (M-1)*Δx #[m]
     FOVy = (N-1)*Δx #[m]
@@ -392,12 +396,13 @@ function brain_phantom3D(;ss=4,start_end=[160, 200])
 end
 
 """
-    obj = pelvis_phantom2D(; ss=4)
+    obj = pelvis_phantom2D(; ss=4, us=1)
 
 Creates a two-dimensional pelvis Phantom struct.
 
 # Keywords
 - `ss`: (`::Integer`, `=4`) subsampling parameter
+- `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -414,10 +419,11 @@ function pelvis_phantom2D(; ss=4)
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/pelvis2D.mat")
-    class = data["pelvis3D_slice"][1:ss:end,1:ss:end]
+    if us > 1; ss=1; end
+    class = repeat( data["pelvis3D_slice"][1:ss:end,1:ss:end], inner=[us, us])
 
     # Define spin position vectors
-    Δx = .5e-3*ss
+    Δx = .5e-3*ss/us
     M, N = size(class)
     FOVx = (M-1)*Δx             # [m]
     FOVy = (N-1)*Δx             # [m]
