@@ -205,6 +205,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
     
     # Define spin position vectors
     Δx = .5e-3*ss/us
+    @info "Brain phantom 2D sample spacing is $(Δx*1000) mm."
     M, N = size(class)
     FOVx = (M-1)*Δx #[m]
     FOVy = (N-1)*Δx #[m]
@@ -316,6 +317,7 @@ function brain_phantom3D(;ss=4,us=1,start_end=[160, 200])
 
     # Define spin position vectors
     Δx = .5e-3*ss/us
+    @info "Brain phantom 3D sample spacing is $(Δx*1000) mm."
     M, N, Z = size(class)
     FOVx = (M-1)*Δx #[m]
     FOVy = (N-1)*Δx #[m]
@@ -424,6 +426,7 @@ function pelvis_phantom2D(; ss=4, us=1)
 
     # Define spin position vectors
     Δx = .5e-3*ss/us
+    @info "Pelvis phantom 2D sample spacing is $(Δx*1000) mm."
     M, N = size(class)
     FOVx = (M-1)*Δx             # [m]
     FOVy = (N-1)*Δx             # [m]
