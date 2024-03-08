@@ -414,7 +414,7 @@ julia> obj = pelvis_phantom2D(; ss=1)
 julia> pelvis_phantom2D(obj, :ρ)
 ```
 """
-function pelvis_phantom2D(; ss=4)
+function pelvis_phantom2D(; ss=4, us=1)
 
     # Get data from .mat file
     path = @__DIR__
