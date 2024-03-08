@@ -296,6 +296,7 @@ Creates a three-dimentional brain Phantom struct.
 # Keywords
 - `ss`: (`::Integer`, `=4`) subsampling parameter in all axes
 - `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
+- `start_end`: (`::Vector{Integer}`, `=[160,200]`) z index range of presampled phantom, 180 is center
 
 # Returns
 - `obj`: (`::Phantom`) 3D Phantom struct
