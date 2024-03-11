@@ -9,7 +9,7 @@
 <a href="https://pkgs.genieframework.com?packages=KomaMRI"><img src="https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/KomaMRI" /></a>
 </p>
  
-KomaMRI.jl is a Julia pacakge for highly-efficient ⚡ MRI simulations. KomaMRI was built from the ground up to be: easy-to-use, extensible, cross-platform, and powered by open-source community standards. 
+KomaMRI.jl is a Julia package for highly-efficient ⚡ MRI simulations. KomaMRI was built from the ground up to be: easy-to-use, extensible, cross-platform, and powered by open-source community standards. 
 
 <table>
 <tr><td rowspan="2">
@@ -108,7 +108,7 @@ Paper: <br>[![][paper-img1]][paper-url1]
 
 > 🟢 **[6 Mar 2023] Paper published in MRM 😃!** The open access article is available [here](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635).
 
-> 🟢 **[8 Dec 2022] KomaMRI v0.7**: Huge code rewrite, this implies improved: performance (now **5x faster**), type stability, extensibility, and more!
+> 🟢 **[8 Dec 2022] KomaMRI v0.7**: Huge code rewrite, this implies improved performance (now **5x faster**), type stability, extensibility, and more!
 
 > 🟢 **[17 May 2022] ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
 
@@ -145,7 +145,7 @@ To install just **type** the following in the Julia REPL:
 ```repl
 ] add KomaMRI
 ```
-For more information about installation insturctions refer the section [Getting Started](https://cncastillo.github.io/KomaMRI.jl/stable/getting-started/) of the documentation.
+For more information about installation instructions refer to the section [Getting Started](https://cncastillo.github.io/KomaMRI.jl/stable/getting-started/) of the documentation.
 ## First run
 KomaMRI.jl features a convenient GUI with predefined simulation inputs (i.e. `Sequence`, `Phantom`, and `Scanner`). To launch the GUI, use the following command:
 
