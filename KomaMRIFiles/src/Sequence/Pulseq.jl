@@ -529,7 +529,6 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     mag_id =        r[2] |> x->floor(Int64,x)
     phase_id =      r[3] |> x->floor(Int64,x)
     time_shape_id = r[4] |> x->floor(Int64,x)
-    delay =         r[5] + (time_shape_id==0)*Δt_rf/2
     freq =          r[6]
     phase =         r[7]
     #Amplitude and phase waveforms
@@ -552,6 +551,10 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
         rfT = (rft[2:end] .- rft[1:end-1]) * Δt_rf
     end
+
+    # Add delay for equispaced RF sample separation as long as there is a RF signal
+    delay = r[5] + (time_shape_id==0 && sum(abs.(rfAϕ)) != 0 )*Δt_rf/2
+
     R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
     R
 end
