@@ -43,6 +43,29 @@ rotz(θ::Real) = [cos(θ) -sin(θ)	0;
 				 sin(θ) cos(θ)	0;
 				 0 		0 		1]
 
+
+"""
+	R = rotation_matrix(G)
+
+Creates a rotation matrix which converts vector [0 0 1] into vector G
+"""
+rotation_matrix(G::AbstractVector{<:Real}=[0;0;0]) = begin
+# We need to create a rotation matrix which transfomrs vector [0 0 1] into vector G
+# To do this, we can use axis-angle representation, and then calculate rotation matrix with that
+# https://en.wikipedia.org/wiki/Rotation_matrix#Conversion_from_rotation_matrix_to_axis%E2%80%93angle
+REF = [0;0;1];
+# Cross product:
+global cross_prod = LinearAlgebra.cross(REF,G);
+# Rotation axis (n = axb) Normalized cross product:
+n = normalize(cross_prod);
+# Rotation angle:
+θ = asin(norm(cross_prod)/((norm(REF))*(norm(G))));
+# Rotation matrix:
+R = (norm(cross_prod)>0) ? Un(θ,n) : [1.0  0    0;
+									  0    1.0  0;
+									  0    0    1.0];							
+end
+
 """
     gr = Grad(A, T)
     gr = Grad(A, T, rise)
@@ -222,3 +245,38 @@ the duration is the maximum duration of all the elements of the gradient vector.
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x), dims=1)[:]
+
+
+get_grad_area(gr::Grad) = begin
+	x = cumsum(vcat(0, gr.rise, gr.T, gr.fall))
+
+	if 		length(gr.T) == length(gr.A) == 1
+		y = vcat(0, gr.A, gr.A, 0)
+
+	elseif  length(gr.T) >= length(gr.A)
+		y = vcat(0, gr.A, 0)
+		x = x[1:length(y)]
+
+	elseif  length(gr.T) < length(gr.A)
+		y = vcat(0, gr.A, 0)[1:length(x)]
+	end
+
+	n = length(x) - 1
+	area = 0.0
+
+	for i in 1:n
+		base = x[i+1] - x[i]
+		average_height = (y[i] + y[i+1]) / 2.0
+		area += base * average_height
+	end
+	area
+end
+
+
+set_grad_area!(gr::Grad,area::Real) = begin
+	B = gr.rise + sum(gr.T) + gr.fall
+	b = sum(gr.T)
+	G = 2*area/(B+b)
+
+	gr.A = G
+end

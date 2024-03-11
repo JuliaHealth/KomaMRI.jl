@@ -39,11 +39,9 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     M::Mag{T}, sim_method::BlochDict) where {T<:Real}
     #Simulation
     #Motion
-    xt = p.x .+ p.ux(p.x, p.y, p.z, seq.t')
-    yt = p.y .+ p.uy(p.x, p.y, p.z, seq.t')
-    zt = p.z .+ p.uz(p.x, p.y, p.z, seq.t')
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
     #Effective field
-    Bz = xt .* seq.Gx' .+ yt .* seq.Gy' .+ zt .* seq.Gz' .+ p.Δw / T(2π * γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π * γ) .* cumtrapz(seq.Δt', Bz)
@@ -55,7 +53,6 @@ function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::Abst
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    
     #Acquired signal
     sig[:,:,1] .= transpose(Mxy[:, findall(seq.ADC)])
 

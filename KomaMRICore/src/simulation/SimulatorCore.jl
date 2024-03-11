@@ -2,8 +2,8 @@ abstract type SimulationMethod end #get all available types by using subtypes(Ko
 abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
-include("Bloch/BlochSimulationMethod.jl") #Defines Bloch simulation method
-include("Bloch/BlochDictSimulationMethod.jl") #Defines BlochDict simulation method
+include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
+include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
 
 """
     sim_params = default_sim_params(sim_params=Dict{String,Any}())
@@ -77,7 +77,7 @@ separating the spins of the phantom `obj` in `Nthreads`.
 """
 function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T}, sim_method::SimulationMethod;
-    Nthreads=Threads.nthreads()) where {T<:Real}
+    Nthreads = Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
@@ -153,8 +153,9 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
     # Simulation
     rfs = 0
     samples = 1
-    progress_bar = Progress(Nblocks)
-    for (block, p) = enumerate(parts)
+    progress_bar = Progress(Nblocks;desc="Running simulation...")
+
+    for (block, p) = enumerate(parts) 
         seq_block = @view seq[p]
         # Params
         # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
@@ -320,6 +321,7 @@ function simulate(
         Xt   = Xt   |> f64 #SpinStateRepresentation
         sig  = sig  |> f64 #Signal
     end
+
     # Simulation
     @info "Running simulation in the $(sim_params["gpu"] ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version=__VERSION__ sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points=Ndims[1]
     @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_params["sim_method"]; Nblocks=length(parts), Nthreads=sim_params["Nthreads"], parts, excitation_bool, w)
@@ -344,6 +346,7 @@ function simulate(
         sim_params_raw["Nblocks"] = length(parts)
         sim_params_raw["sim_time_sec"] = timed_tuple.time
         sim_params_raw["allocations_bytes"] = timed_tuple.bytes
+
         out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw)
     end
     return out

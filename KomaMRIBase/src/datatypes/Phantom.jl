@@ -1,3 +1,11 @@
+abstract type MotionModel end
+
+#Motion models:
+include("phantom/motion/SimpleMotion.jl") 
+include("phantom/motion/ArbitraryMotion.jl") 
+include("phantom/motion/NoMotion.jl")
+
+
 """
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ux, uy, uz)
 
@@ -17,9 +25,7 @@ a property value representing a spin. This struct serves as an input for the sim
 - `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
 - `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
 - `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
-- `ux`: (`::Function`) displacement field in the x-axis
-- `uy`: (`::Function`) displacement field in the y-axis
-- `uz`: (`::Function`) displacement field in the z-axis
+- `motion`: (`::MotionModel{T<:Real}`) motion model
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -48,10 +54,9 @@ julia> obj.ρ
 	Dλ2::AbstractVector{T} = zeros(size(x))
 	Dθ::AbstractVector{T} =  zeros(size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
+
 	#Motion
-	ux::Function = (x,y,z,t)->0
-	uy::Function = (x,y,z,t)->0
-	uz::Function = (x,y,z,t)->0
+	motion::MotionModel = NoMotion()
 end
 
 """Size and length of a phantom"""
@@ -81,7 +86,8 @@ end
 """
 Separate object spins in a sub-group
 """
-Base.getindex(obj::Phantom, p::AbstractRange) = begin
+
+Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
 	Phantom(name=obj.name,
 			x=obj.x[p],
 			y=obj.y[p],
@@ -95,15 +101,13 @@ Base.getindex(obj::Phantom, p::AbstractRange) = begin
 			Dλ1=obj.Dλ1[p],
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
+			motion=obj.motion[p]
 			#Χ=obj.Χ[p], #TODO!
-			ux=obj.ux,
-			uy=obj.uy,
-			uz=obj.uz
 			)
 end
 
 """Separate object spins in a sub-group (lightweigth)."""
-Base.view(obj::Phantom, p::AbstractRange) = begin
+Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
 	@views Phantom(name=obj.name,
 			x=obj.x[p],
 			y=obj.y[p],
@@ -117,10 +121,8 @@ Base.view(obj::Phantom, p::AbstractRange) = begin
 			Dλ1=obj.Dλ1[p],
 			Dλ2=obj.Dλ2[p],
 			Dθ=obj.Dθ[p],
+			motion=obj.motion[p]
 			#Χ=obj.Χ[p], #TODO!
-			ux=obj.ux,
-			uy=obj.uy,
-			uz=obj.uz
 			)
 end
 
@@ -139,12 +141,12 @@ end
 		Dλ1=[s1.Dλ1;s2.Dλ1],
 		Dλ2=[s1.Dλ2;s2.Dλ2],
 		Dθ=[s1.Dθ;s2.Dθ],
+		motion=s1.motion+s2.motion
 		#Χ=obj.Χ[p], #TODO!
-		ux=s1.ux,
-		uy=s1.uy,
-		uz=s1.uz
 	)
 end
+
++(m1::MotionModel,m2::MotionModel) = NoMotion() # TODO: resolve this in a more sophisticated way
 
 """Scalar multiplication of a phantom"""
 *(α::Real,obj::Phantom) = begin
@@ -161,15 +163,120 @@ end
 		Dλ1=obj.Dλ1,
 		Dλ2=obj.Dλ2,
 		Dθ=obj.Dθ,
+		motion=obj.motion
 		#Χ=obj.Χ[p], #TODO!
-		ux=obj.ux,
-		uy=obj.uy,
-		uz=obj.uz
 	)
 end
 
 """
-    obj = brain_phantom2D(; axis="axial", ss=4)
+dims = get_dims(obj)
+"""
+function get_dims(obj::Phantom)
+	dims = [0,0,0]
+	if obj.x != zeros(length(obj.x)) dims[1] = 1 end
+	if obj.y != zeros(length(obj.x)) dims[2] = 1 end
+	if obj.z != zeros(length(obj.x)) dims[3] = 1 end
+	dims
+end
+
+
+# Movement related commands
+# StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
+# FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
+
+#TODO: jaw-pitch-roll, expand, contract, functions
+
+# Getting maps
+# get_DxDy2D(obj::Phantom) = begin
+# 	P(i) = rotz(obj.Dθ[i])[1:2,1:2];
+# 	D(i) = [obj.Dλ1[i] 0;0 obj.Dλ2[i]]
+# 	nx = [1;0]; ny = [0;1]
+# 	Dx = [nx'*P(i)'*D(i)*P(i)*nx for i=1:prod(size(obj.Dλ1))]
+# 	Dy = [ny'*P(i)'*D(i)*P(i)*ny for i=1:prod(size(obj.Dλ1))]
+# 	Dx, Dy
+# end
+
+
+"""
+    obj = heart_phantom(...)
+
+Heart-like LV phantom. The variable `α` is for streching, `β` for contraction, and `γ` for
+rotation.
+
+# Arguments
+- `α`: (`::Real`, `=1`) streching parameter
+- `β`: (`::Real`, `=1`) contraction parameter
+- `γ`: (`::Real`, `=1`) rotation parameter
+- `fat_bool`: (`::Bool`, `=false`) fat boolean parameter
+
+# Returns
+- `phantom`: (`::Phantom`) Heart-like LV phantom struct
+"""
+heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false; heart_rate=60) = begin
+	#PARAMETERS
+	FOV = 10e-2 #m Diameter ventricule
+	N = 21
+	Δxr = FOV/(N-1) #Aprox rec resolution, use Δx_pix and Δy_pix
+	Ns = 50 #number of spins per voxel
+	Δx = Δxr/sqrt(Ns) #spin separation
+	#POSITIONS
+	x = y = -FOV/2:Δx:FOV/2-Δx #spin coordinates
+	x, y = x .+ y'*0, x*0 .+ y' #grid points
+	#PHANTOM
+	⚪(R) =  (x.^2 .+ y.^2 .<= R^2)*1. #Circle of radius R
+	v = FOV/4 #m/s 1/16 th of the FOV during acquisition
+	f = heart_rate/60
+	ωHR = 2π*f 
+
+	# θ(t) = -π/4*γ*(sin.(ωHR*t).*(sin.(ωHR*t).>0)+0.25.*sin.(ωHR*t).*(sin.(ωHR*t).<0) )
+	ux(x,y,z,t) = begin
+		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(x)
+		contract = - β * v * x / (FOV/2)  #expand
+		rotate = - γ * v * y / (FOV/2)
+		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
+	end
+	uy(x,y,z,t) = begin
+		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(y)
+		contract = - β * v * y / (FOV/2)
+		rotate = γ * v * x / (FOV/2)
+		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
+	end
+	# Water spins
+	R = 9/10*FOV/2
+	r = 6/11*FOV/2
+	ring = ⚪(R) .- ⚪(r)
+	ρ = ⚪(r) .+ 0.9*ring #proton density
+	# Diffusion tensor model
+	D = 2e-9 #Diffusion of free water m2/s
+	D1, D2 = D, D/20
+	Dλ1 = D1*⚪(R) #Diffusion map
+	Dλ2 = D1*⚪(r) .+ D2*ring #Diffusion map
+	Dθ =  atan.(x,-y) .* ring #Diffusion map
+	T1 = (1400*⚪(r) .+ 1026*ring)*1e-3 #Myocardial T1
+	T2 = ( 308*⚪(r) .+ 42*ring  )*1e-3 #T2 map [s]
+	# Generating Phantoms
+	heart = Phantom(name="LeftVentricle",
+					x=x[ρ.!=0],y=y[ρ.!=0],
+					ρ=ρ[ρ.!=0],T1=T1[ρ.!=0],T2=T2[ρ.!=0],
+					Dλ1=Dλ1[ρ.!=0],Dλ2=Dλ2[ρ.!=0],Dθ=Dθ[ρ.!=0],
+					motion=SimpleMotion(ux=ux,uy=uy))
+	heart
+end
+
+"""
+# Fat spins
+ring2 = ⚪(FOV/2) .- ⚪(R) #outside fat layer
+ρ_fat = .5*ρ.*ring2
+Δw_fat = 2π*220*ring2 #fat should be dependant on B0
+T1_fat = 800*ring2*1e-3
+T2_fat = 120*ring2*1e-3 #T2 map [s]
+fat = Phantom("fat",x,y,ρ_fat,T2_fat,Δw_fat)
+#Resulting phantom
+obj = fat_bool ? heart + fat : heart #concatenating spins
+"""
+
+"""
+    phantom = brain_phantom2D(;axis="axial", ss=4)
 
 Creates a two-dimensional brain Phantom struct.
 
