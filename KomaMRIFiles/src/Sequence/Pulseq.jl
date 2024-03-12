@@ -497,7 +497,8 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         #Creating timings
         if time_shape_id == 0 #no time waveform
             gT = Nrf * Δt_gr
-            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay)
+            #G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay)
+            G = Grad(gA, gT, 0, 0, delay)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
             gT = (gt[2:end] .- gt[1:end-1]) * Δt_gr
@@ -522,6 +523,11 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 - `rf`: (`1x1 ::Matrix{RF}`) RF struct
 """
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
+
+    if isempty(rfLibrary) || i==0
+        return reshape([RF(0,0)], 1, 1)
+    end
+
     #Unpacking
     #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
     r = rfLibrary[i]["data"]
@@ -529,6 +535,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     mag_id =        r[2] |> x->floor(Int64,x)
     phase_id =      r[3] |> x->floor(Int64,x)
     time_shape_id = r[4] |> x->floor(Int64,x)
+    delay =         r[5] + (time_shape_id==0)*Δt_rf/2
     freq =          r[6]
     phase =         r[7]
     #Amplitude and phase waveforms
@@ -551,10 +558,6 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
         rfT = (rft[2:end] .- rft[1:end-1]) * Δt_rf
     end
-
-    # Add delay for equispaced RF sample separation as long as there is a RF signal
-    delay = r[5] + (time_shape_id==0 && sum(abs.(rfAϕ)) != 0 )*Δt_rf/2
-
     R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
     R
 end
@@ -572,8 +575,14 @@ Reads the ADC. It is used internally by [`get_block`](@ref).
 - `adc`: (`1x1 ::Vector{ADC}`) ADC struct
 """
 function read_ADC(adcLibrary, i)
+
+    if isempty(adcLibrary) || i==0
+        return [ADC(0, 0)]
+    end
+
     #Unpacking
     #(1)num (2)dwell (3)delay (4)freq (5)phase
+    # It is needed a review for this, the dwell definition may cause problems
     if !isempty(adcLibrary) # Is this the best? maybe defining i=0 is better, it works with RFs(?)
         a = adcLibrary[i]["data"]
     else
