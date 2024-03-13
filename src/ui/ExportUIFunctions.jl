@@ -120,7 +120,7 @@ end
 """
 Returns the default raw signal used by the UI.
 """
-function setup_raw()
+function setup_raw() # needs modifications for 3D?
 
     # Define the default RawAcquisitionData struct
     raw = RawAcquisitionData(
