@@ -5,11 +5,13 @@ abstract type SimpleMotionType{T<:Real} end
 Simple Motion
 
 x = x + ux
+y = y + uy
+z = z + uz
+
 """
 # -------- SimpleMotion
 mutable struct SimpleMotion{S <: SimpleMotionType} <: MotionModel
     types::AbstractVector{S}
-    # pediodicity (IDEA)
 end
 
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
@@ -23,12 +25,13 @@ function get_spin_coords(motion::SimpleMotion{S}, x::AbstractVector{T}, y::Abstr
     return xt, yt, zt
 end
 
-# --------- Simple Motion Types:
+# --------- Simple Motion Types: -------------
+# Non-periodic types: defined by an initial time (ti), a final time (tf) and a displacement      
 include("simplemotion/Translation.jl")
 include("simplemotion/Rotation.jl")
-include("simplemotion/Cardiac.jl")
+# include("simplemotion/Cardiac.jl")
                                     
-
+# Periodic types: defined by the period, the temporal symmetry and a displacement (amplitude)
 
 
 

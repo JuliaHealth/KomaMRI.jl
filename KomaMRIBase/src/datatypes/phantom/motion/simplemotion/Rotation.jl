@@ -2,49 +2,60 @@
 Rotation Motion
  
 Parameters:
-- Offset            (α) [1x1] 
-- Rotation axis     (n) [3x1]
-- Rotation center   (c) [3x1]
-- Angular velocity  (ω) [1x1]
+- Initial time   (ti)
+- Final time     (tf)
+- Rotation in x  (pitch)
+- Rotation in y  (roll)
+- Rotation in z  (yaw)
 
-ux = Un(ωt)(x - c) + (c - x)
+        [ 0,                      t <= ti
+pitch = [ pitch*(t-ti)/(tf-ti),   ti < t < tf
+        [ pitch,                  t >= tf
 
-where Un(wt) = Icos(ωt) + sin(ωt)cross(n) + (1-cos(ωt))n.n'
+        [ 0,                      t <= ti
+roll =  [ roll*(t-ti)/(tf-ti),    ti < t < tf
+        [ roll,                   t >= tf
+
+        [ 0,                      t <= ti
+yaw =   [ yaw*(t-ti)/(tf-ti),     ti < t < tf
+        [ yaw,                    t >= tf
+
+
+x' = cos(yaw)cos(roll)x + (cos(yaw)sin(roll)sin(pitch) - sin(yaw)cos(pitch))y + (cos(yaw)sin(roll)cos(pitch) + sin(yaw)sin(pitch))z
+y' = sin(yaw)cos(roll)x + (sin(yaw)sin(roll)sin(pitch) + cos(yaw)cos(pitch))y + (sin(yaw)sin(roll)cos(pitch) - cos(yaw)sin(pitch))z
+z' = -sin(roll)x        + cos(roll)sin(pitch)y                                + cos(roll)cos(pitch)z
+
+ux = x' - x
+uy = y' - y
+uz = z' - z
+
 """
 
 @with_kw struct Rotation{T<:Real} <: SimpleMotionType{T}
-    offset::T = 0.0                          # Initial rotation [rad]
-    rotation_axis::Vector{T}  = [0, 0, 1.0]  # Rotation axis vector
-    rotation_center::Vector{T} = zeros(3)    # Rotation axis point  (TODO: check if this works correctly)
-    angular_velocity::T = 2*π                # Angular velocity [rad/s]
-end
+    ti::T = 0.0
+    tf::T = 0.0
+    pitch::T = 0.0
+    roll::T = 0.0
+    yaw::T = 0.0
+end 
 
 displacement_x(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    x .-= motion_type.rotation_center[1]
-    θ = motion_type.offset .+ motion_type.angular_velocity*t 
-    nx, ny, nz = motion_type.rotation_axis
-    # Rodrigues' formula
-    xr = cos.(θ) .* x + sin.(θ) .* (-nz*y + ny*z) + (1 .- cos.(θ)) .* (nx*(nx*x + ny*y + nz*z))
-    xr .+= (motion_type.rotation_center[1] .- x)
-    return xr
+    pitch   = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.pitch  .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.pitch
+    roll    = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.roll   .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.roll
+    yaw     = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.yaw    .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.yaw  
+    return cos.(yaw) .* cos.(roll) .* x   +   (cos.(yaw) .* sin.(roll) .* sin.(pitch) .- sin.(yaw) .* cos.(pitch)) .* y   +   (cos.(yaw) .* sin.(roll) .* cos.(pitch) .+ sin.(yaw) .* sin.(pitch)) .*z   .-   x
 end
 
 displacement_y(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    y .-= motion_type.rotation_center[2]
-    θ = motion_type.offset .+ motion_type.angular_velocity*t 
-    nx, ny, nz = motion_type.rotation_axis
-    # Rodrigues' formula
-    yr = cos.(θ) .* y + sin.(θ) .* (nz*x - nx*z)  + (1 .- cos.(θ)) .* (ny*(nx*x + ny*y + nz*z))
-    yr .+= (motion_type.rotation_center[2] .- y)
-    return yr
+    pitch   = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.pitch  .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.pitch
+    roll    = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.roll   .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.roll
+    yaw     = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.yaw    .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.yaw  
+    return sin.(yaw) .* cos.(roll) .* x   +   (sin.(yaw) .* sin.(roll) .* sin.(pitch) .+ cos.(yaw) .* cos.(pitch)) .* y   +   (sin.(yaw) .* sin.(roll) .* cos.(pitch) .- cos.(yaw) .* sin.(pitch)) .* z  .-  y
 end
 
 displacement_z(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    z .-= motion_type.rotation_center[3]
-    θ = motion_type.offset .+ motion_type.angular_velocity*t 
-    nx, ny, nz = motion_type.rotation_axis
-    # Rodrigues' formula
-    zr = cos.(θ) .* z + sin.(θ) .* (-ny*x + nx*y) + (1 .- cos.(θ)) .* (nz*(nx*x + ny*y + nz*z))
-    zr .+= (motion_type.rotation_center[3] .- z)
-    return zr
+    pitch   = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.pitch  .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.pitch
+    roll    = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.roll   .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.roll
+    yaw     = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.yaw    .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.yaw  
+    return -sin.(roll) .* x   +   cos.(roll) .* sin.(pitch) .* y  .-  z 
 end
