@@ -221,8 +221,8 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         acq_data = AcquisitionData(raw_aux)
         acq_data.traj[1].circular = false #Removing circular window
         acq_data.traj[1].nodes = acq_data.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acq_data.traj[1].nodes[:])) #Normalize k-space to -.5 to .5 for NUFFT
-        Nx, Ny = raw_aux.params["reconSize"][1:2]
-        rec_params[:reconSize] = (Nx, Ny)
+        Nx, Ny, Nz = raw_aux.params["reconSize"][1:3]
+        rec_params[:reconSize] = (Nx, Ny, Nz)
         rec_params[:densityWeighting] = true
 
         # Perform reconstruction
