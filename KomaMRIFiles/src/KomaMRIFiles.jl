@@ -1,7 +1,7 @@
 module KomaMRIFiles
 
 using KomaMRIBase
-using Scanf, FileIO, HDF5, MAT , NIfTI   # IO related
+using Scanf, FileIO, HDF5, MAT # IO related
 
 using Reexport
 using MRIFiles
@@ -12,9 +12,7 @@ import MRIFiles: insertNode
 include("Sequence/Pulseq.jl")
 include("Phantom/JEMRIS.jl")
 include("Phantom/MRiLab.jl")
-include("Phantom/NIfTI.jl")
 include("Phantom/Phantom.jl")
-include("Phantom/MAT.jl")
 
 export read_seq                                     # Pulseq
 export read_phantom_jemris, read_phantom_MRiLab, 
