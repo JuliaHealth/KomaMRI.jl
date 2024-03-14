@@ -40,7 +40,7 @@ _isleaf(x) = _isbitsarray(x) || isleaf(x)
 
 # GPU adaptor
 struct KomaCUDAAdaptor end
-adapt_storage(to::KomaCUDAAdaptor, x) = adapt(CuArray, x)
+adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
 
 # ArbitraryMotion (PENDING)
 adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion) = begin 
