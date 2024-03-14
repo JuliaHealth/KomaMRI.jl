@@ -59,8 +59,8 @@ function run_spin_precession!(
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
-    M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     M.xy .= Mxy[:, end]
+    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
     sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
     
@@ -90,7 +90,7 @@ function run_spin_excitation!(
     sim_method::Bloch,
 ) where {T<:Real}
     #Simulation
-    for s ∈ seq
+    for s ∈ seq #This iterates over seq, "s = seq[i,:]"
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
