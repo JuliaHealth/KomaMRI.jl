@@ -1,4 +1,6 @@
 [deps]
+KomaMRIBase = "d0bc0b20-b151-4d03-b2a4-6ca51751cb9c"
+MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"

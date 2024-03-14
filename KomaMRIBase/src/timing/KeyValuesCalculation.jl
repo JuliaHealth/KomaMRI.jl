@@ -34,10 +34,10 @@ get_theo_A(g::Grad; off_val=0) = begin
 	end
     # To remove abrut changes in the plots
     if g.rise == 0
-        aux[2] = aux[3]
+        aux[2] = 0      # zero
     end
     if g.fall == 0
-        aux[end] = aux[end-1]
+        aux[end] = aux[end-1]   # keep the last value
     end
     # If no signal, then don't show samples
 	if sum(abs.(g.A)) == 0
