@@ -1,7 +1,7 @@
 module KomaMRIPlots
 
 using KomaMRIBase
-using MAT, Interpolations, PlotlyJS, Plots, Printf
+using MAT, Interpolations, PlotlyJS
 
 include("ui/PlotBackends.jl")
 include("ui/DisplayFunctions.jl")
