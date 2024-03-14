@@ -19,7 +19,7 @@ Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}
                                     q::Union{AbstractRange,AbstractVector,Colon}) = motion
 
 function get_spin_coords(motion::SimpleMotion{S}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real, S<:SimpleMotionType{T}}
-    xt = x .+ reduce(.+, map((type) -> displacement_x(type, x, y, z, t), motion.types)) # Periodicity could be included here
+    xt = x .+ reduce(.+, map((type) -> displacement_x(type, x, y, z, t), motion.types))
     yt = y .+ reduce(.+, map((type) -> displacement_y(type, x, y, z, t), motion.types))
     zt = z .+ reduce(.+, map((type) -> displacement_z(type, x, y, z, t), motion.types))
     return xt, yt, zt
