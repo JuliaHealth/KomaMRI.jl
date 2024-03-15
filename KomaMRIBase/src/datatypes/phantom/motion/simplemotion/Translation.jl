@@ -46,6 +46,6 @@ displacement_z(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVec
     return t_unit .* motion_type.dx
 end
 
-get_range(motion_type::Translation{T}) = begin
+get_range(motion_type::Translation) = begin
     return motion_type.ti, motion_type.tf
 end

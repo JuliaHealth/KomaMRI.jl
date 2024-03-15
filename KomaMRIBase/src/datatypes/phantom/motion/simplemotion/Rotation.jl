@@ -63,6 +63,6 @@ displacement_z(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector
     return -sin.(roll) .* x   +   cos.(roll) .* sin.(pitch) .* y  .-  z 
 end
 
-get_range(motion_type::Rotation{T}) = begin
+get_range(motion_type::Rotation) = begin
     return motion_type.ti, motion_type.tf
 end
