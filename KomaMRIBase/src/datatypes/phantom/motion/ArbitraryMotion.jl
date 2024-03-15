@@ -89,4 +89,9 @@ function get_spin_coords(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::Ab
     return xt, yt, zt
 end
 
+function get_range(motion::ArbitraryMotion)
+    # PENDING
+    return 0, 0
+end
+
 
