@@ -374,21 +374,23 @@ end
     #@test length(obj) == length(ρ)
 
     # Test phantom comparison
-    ue = SimpleMotion([Translation(offset=[1.0, 1.0, 1.0])])
+    ue = SimpleMotion([Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
+                       Rotation(ti=0.05, tf=0.5, yaw=π/2)])
     obe = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue)
     @test obj ≈ obe
 
     # Test phantom subset
     rng = 1:2:5
-    ug = SimpleMotion([Translation(offset=[1.0, 1.0, 1.0]),
-                       Rotation(offset=π/4, rotation_axis=[0, 0, 1.0], angular_velocity=0.0)])
+    ug = SimpleMotion([Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
+                       Rotation(ti=0.05, tf=0.5, yaw=π/2)])
     obg = Phantom(name, x[rng], y[rng], z[rng], ρ[rng], T1[rng], T2[rng], T2s[rng], Δw[rng],
                     Dλ1[rng], Dλ2[rng], Dθ[rng], ug)
     @test obj[rng] ≈ obg
     @test @view(obj[rng]) ≈ obg
 
     # Test addition of phantoms
-    ua = SimpleMotion([Translation(offset=[2.0, 2.0, 2.0])])
+    ua = SimpleMotion([Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
+                       Rotation(ti=0.05, tf=0.5, yaw=π/2)])
     oba = Phantom(name, [x; x[rng]], [y; y[rng]], [z; z[rng]], [ρ; ρ[rng]],
                     [T1; T1[rng]], [T2; T2[rng]], [T2s; T2s[rng]], [Δw; Δw[rng]],
                     [Dλ1; Dλ1[rng]], [Dλ2; Dλ2[rng]], [Dθ; Dθ[rng]], ua)

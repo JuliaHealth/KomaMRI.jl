@@ -66,7 +66,7 @@ function read_phantom_MRiLab(filename; B0=1.5, offset=[0,0,0], FRange_filename="
 		T2 = T2[mask],
 		T2s = T2s[mask],
 		Δw = Δw[mask],
-		ux = (x,y,z,t)->v*t,
+		motion = NoMotion(),
 	)
 	return obj
 end

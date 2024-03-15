@@ -52,16 +52,16 @@ function read_phantom_jemris(filename)
 	v = 0 # m/s
 
 	obj = Phantom{Float64}(
-					name=basename(filename),
-					x=    x[mask],
-					y=    y[mask],
-					z=    z[mask],
-					ρ=    ρ[mask],
-					T1=	 T1[mask],
-					T2=	 T2[mask],
-					T2s=T2s[mask],
-					Δw=	 Δw[mask],
-					mov = SimpleMotion(ux=(x,y,z,t)->v*t)
-					)
+	name=basename(filename),
+	x=    x[mask],
+	y=    y[mask],
+	z=    z[mask],
+	ρ=    ρ[mask],
+	T1=	 T1[mask],
+	T2=	 T2[mask],
+	T2s=T2s[mask],
+	Δw=	 Δw[mask],
+	motion = NoMotion())
+					
 	return obj
 end
