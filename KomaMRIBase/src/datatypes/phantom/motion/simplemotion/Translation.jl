@@ -32,19 +32,20 @@ uz = [ dz*(t-ti)/(tf-ti),   ti < t < tf
 end
 
 displacement_x(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_range = min.(max.(t, motion_type.ti), motion_type.tf)
-    m = motion_type.dx / (motion_type.tf - motion_type.ti)
-    return m .* (t_range .- motion_type.ti)
+    t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
+    return t_unit .* motion_type.dx
 end
 
 displacement_y(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_range = min.(max.(t, motion_type.ti), motion_type.tf)
-    m = motion_type.dy / (motion_type.tf - motion_type.ti)
-    return m .* (t_range .- motion_type.ti)
+    t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
+    return t_unit .* motion_type.dx
 end
 
 displacement_z(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_range = min.(max.(t, motion_type.ti), motion_type.tf)
-    m = motion_type.dz / (motion_type.tf - motion_type.ti)
-    return m .* (t_range .- motion_type.ti)
+    t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
+    return t_unit .* motion_type.dx
+end
+
+get_range(motion_type::Translation{T}) = begin
+    return motion_type.ti, motion_type.tf
 end

@@ -25,6 +25,12 @@ function get_spin_coords(motion::SimpleMotion{S}, x::AbstractVector{T}, y::Abstr
     return xt, yt, zt
 end
 
+function get_range(motion::SimpleMotion{S}) where {T<:Real, S<:SimpleMotionType{T}}
+    mini = minimum([get_range(type)[1] for type in motion.types])
+    maxi = maximum([get_range(type)[2] for type in motion.types])
+    return mini, maxi
+end
+
 # --------- Simple Motion Types: -------------
 # Non-periodic types: defined by an initial time (ti), a final time (tf) and a displacement      
 include("simplemotion/Translation.jl")

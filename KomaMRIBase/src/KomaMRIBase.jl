@@ -47,12 +47,12 @@ export MotionModel
 export SimpleMotion, NoMotion, ArbitraryMotion
 export SimpleMotionType
 export Translation, Rotation, Cardiac
-export get_spin_coords
+export get_spin_coords, get_range
 export LinearInterpolator
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 # Secondary
-export get_kspace, rotx, roty, rotz, rotation_matrix, Un
+export get_kspace, rotx, roty, rotz
 # Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 # Sequence related
