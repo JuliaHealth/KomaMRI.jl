@@ -652,6 +652,158 @@ function plot_kspace(
 end
 
 
+
+function plot_phantom_map2(
+		ph::Phantom,
+		key::Symbol; 
+		height=600, 
+		width=nothing, 
+		darkmode=true, 
+		view_2d=false, 
+		colorbar=true,
+		x0=-maximum(abs.([ph.x ph.y ph.z]))*1.3, 
+		xf=maximum(abs.([ph.x ph.y ph.z]))*1.3
+	)
+	path = @__DIR__
+	cmin_key = minimum(getproperty(ph,key))
+	cmax_key = maximum(getproperty(ph,key))
+	if key == :T1 || key == :T2 || key == :T2s
+		cmin_key = 0
+		factor = 1e3
+		unit = " ms"
+		if key  == :T1
+			cmax_key = 2500/factor
+			colors = MAT.matread(path*"/assets/T1cm.mat")["T1colormap"]
+			N, _ = size(colors)
+			idx = range(0,1,N) #range(0,T,N) works in Julia 1.7
+			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
+		elseif key == :T2 || key == :T2s
+			if key == :T2
+				cmax_key = 250/factor
+			end
+    		colors = MAT.matread(path*"/assets/T2cm.mat")["T2colormap"]
+			N, _ = size(colors)
+			idx = range(0,1,N) #range(0,T,N) works in Julia 1.7
+			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
+		end
+	elseif key == :x || key == :y || key == :z
+		factor = 1e2
+		unit = " cm"
+		colormap="Greys"
+	elseif key == :Δw
+		factor = 1/(2π)
+		unit = " Hz"
+		colormap="Greys"
+	else
+		factor = 1
+		cmin_key = 0
+		unit=""
+		colormap="Greys"
+	end
+	cmin_key *= factor
+	cmax_key *= factor
+
+	#Layout
+	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
+
+	l = PlotlyJS.Layout(;
+		title=ph.name*": "*string(key)*" (t = "*string(t0)*" s)",
+		xaxis_title="x",
+		yaxis_title="y",
+		plot_bgcolor=plot_bgcolor,
+		paper_bgcolor=bgcolor,
+		xaxis_gridcolor=grid_color,
+		yaxis_gridcolor=grid_color,
+		xaxis_zerolinecolor=grid_color,
+		yaxis_zerolinecolor=grid_color,
+		font_color=text_color,
+
+		xaxis_range=[x0,xf]*1e2,
+		yaxis_range=[x0,xf]*1e2,
+		zaxis_range=[x0,xf]*1e2,
+
+		sliders=[attr(
+        steps=[
+            attr(
+                label=round(t0, digits=2),
+                method="update",
+                args=[attr(visible=[fill(true, 3); fill(false, i-1); true; fill(false, 101-i)])]
+            )
+            for (i, t0) in enumerate(t)
+        ],
+        active = t
+    	)],
+		
+		scene=attr(
+			xaxis=attr(title="x",ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			yaxis=attr(title="y",ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			zaxis=attr(title="z",ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			aspectmode="manual",
+			aspectratio=attr(x=1,y=1,z=1)),
+
+		margin=attr(t=50,l=0,r=0),
+		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
+		xaxis=attr(constrain="domain"),
+		yaxis=attr(scaleanchor="x"),
+		hovermode="closest")
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
+
+	range = get_range(ph.motion)
+	t = range(range[1], range[2], 10)
+	x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.x, t')
+
+	traces = GenericTrace[]
+
+	if view_2d
+	# h = PlotlyJS.scatter( 	x=(ph.x .+ Ux)*1e2,
+	# 						y=(ph.y .+ Uy)*1e2,
+	# 						mode="markers",
+	# 						marker=attr(color=getproperty(ph,key)*factor,
+	# 									showscale=colorbar,
+	# 									colorscale=colormap,
+	# 									colorbar=attr(ticksuffix=unit, title=string(key)),
+	# 									cmin=cmin_key,
+	# 									cmax=cmax_key,
+	# 									size=4
+	# 									),
+	# 						text=round.(getproperty(ph,key)*factor,digits=4),
+	# 						hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")
+	else
+		for i in 1:length(t)
+			push!(traces, scatter3d( 
+			x=(x[:,i])*1e2,
+			y=(y[:,i])*1e2,
+			z=(z[:,i])*1e2,
+			mode="markers",
+			marker=attr(color=getproperty(ph,key)*factor,
+						showscale=colorbar,
+						colorscale=colormap,
+						colorbar=attr(ticksuffix=unit, title=string(key)),
+						cmin=cmin_key,
+						cmax=cmax_key,
+						size=2
+						),
+			text=round.(getproperty(ph,key)*factor,digits=4),
+			hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
+		end
+	end
+	config = PlotConfig(
+		displaylogo=false,
+		toImageButtonOptions=attr(
+			format="svg", # one of png, svg, jpeg, webp
+		).fields,
+		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
+	)
+	return plot_koma(h, l; config)
+end
+
+
+
 """
     p = plot_phantom_map(obj::Phantom, key::Symbol; kwargs...)
 
@@ -774,10 +926,9 @@ function plot_phantom_map(
         l.width = width
     end
 
-	Ux, Uy, Uz = initialize_motion(ph.mov, ph.x, ph.y, ph.z, [t0])
-	Ux = Ux===nothing ? 0 : reshape(Ux',(length(Ux),))
-	Uy = Uy===nothing ? 0 : reshape(Uy',(length(Uy),))
-	Uz = Uz===nothing ? 0 : reshape(Uz',(length(Uz),))
+	range = get_range(ph.motion)
+	t = range(range[1], range[2], 10)
+	x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.x, t')
 
 	if view_2d
 	h = PlotlyJS.scatter( 	x=(ph.x .+ Ux)*1e2,
