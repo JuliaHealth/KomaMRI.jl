@@ -40,22 +40,34 @@ uz = z' - z
 end 
 
 displacement_x(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    pitch   = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.pitch  .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.pitch
-    roll    = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.roll   .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.roll
-    yaw     = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.yaw    .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.yaw  
+    t_range = min.(max.(t, motion_type.ti), motion_type.tf)
+    mp = motion_type.pitch / (motion_type.tf - motion_type.ti)
+    mr = motion_type.roll  / (motion_type.tf - motion_type.ti)
+    my = motion_type.yaw   / (motion_type.tf - motion_type.ti)
+    pitch   = mp .* (t_range .- motion_type.ti)
+    roll    = mr .* (t_range .- motion_type.ti)
+    yaw     = my .* (t_range .- motion_type.ti) 
     return cos.(yaw) .* cos.(roll) .* x   +   (cos.(yaw) .* sin.(roll) .* sin.(pitch) .- sin.(yaw) .* cos.(pitch)) .* y   +   (cos.(yaw) .* sin.(roll) .* cos.(pitch) .+ sin.(yaw) .* sin.(pitch)) .*z   .-   x
 end
 
 displacement_y(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    pitch   = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.pitch  .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.pitch
-    roll    = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.roll   .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.roll
-    yaw     = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.yaw    .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.yaw  
+    t_range = min.(max.(t, motion_type.ti), motion_type.tf)
+    mp = motion_type.pitch / (motion_type.tf - motion_type.ti)
+    mr = motion_type.roll  / (motion_type.tf - motion_type.ti)
+    my = motion_type.yaw   / (motion_type.tf - motion_type.ti)
+    pitch   = mp .* (t_range .- motion_type.ti)
+    roll    = mr .* (t_range .- motion_type.ti)
+    yaw     = my .* (t_range .- motion_type.ti) 
     return sin.(yaw) .* cos.(roll) .* x   +   (sin.(yaw) .* sin.(roll) .* sin.(pitch) .+ cos.(yaw) .* cos.(pitch)) .* y   +   (sin.(yaw) .* sin.(roll) .* cos.(pitch) .- cos.(yaw) .* sin.(pitch)) .* z  .-  y
 end
 
 displacement_z(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    pitch   = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.pitch  .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.pitch
-    roll    = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.roll   .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.roll
-    yaw     = (t .<= motion_type.ti) .* 0   .+   ((t .> motion_type.ti) .& (t .< motion_type.tf)) .* motion_type.yaw    .* (t .- motion_type.ti) ./ (motion_type.tf - motion_type.ti)   .+   (t .>= motion_type.tf) .* motion_type.yaw  
+    t_range = min.(max.(t, motion_type.ti), motion_type.tf)
+    mp = motion_type.pitch / (motion_type.tf - motion_type.ti)
+    mr = motion_type.roll  / (motion_type.tf - motion_type.ti)
+    my = motion_type.yaw   / (motion_type.tf - motion_type.ti)
+    pitch   = mp .* (t_range .- motion_type.ti)
+    roll    = mr .* (t_range .- motion_type.ti)
+    yaw     = my .* (t_range .- motion_type.ti)  
     return -sin.(roll) .* x   +   cos.(roll) .* sin.(pitch) .* y  .-  z 
 end
