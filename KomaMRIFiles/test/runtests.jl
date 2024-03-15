@@ -102,10 +102,9 @@ end
     end
 
     @testset "read" begin
-
-        files = ["gr-trapezoidal"; "gr-uniformly-shaped"; "gr-time-shaped"; "rf-pulse"; "rf-uniformly-shaped"; "fid"]
         path = @__DIR__
-        for filename in files:
+        filenames = ["gr-trapezoidal"; "gr-uniformly-shaped"; "gr-time-shaped"; "rf-pulse"; "rf-uniformly-shaped"; "fid"]
+        for filename in filenames
 
             # Koma Read
             seq = read_seq("$(path)/test_files/pulseq_read_comparison/$(filename).seq")
