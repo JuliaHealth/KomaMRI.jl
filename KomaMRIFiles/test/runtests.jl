@@ -51,7 +51,7 @@ using TestItems, TestItemRunner
 end
 
 @testitem "Pulseq_Read_Comparison" tags=[:files] begin
-    using KomaMRIBase, MAT
+    using KomaMRIBase, MAT, PrettyTables
     TOLERANCE = 1e-6
 
     # Auxiliar functions
@@ -101,61 +101,140 @@ end
         return (adc.N == 1) ? [adc.T/2] .+ adc.delay : [range(0, adc.T; length=adc.N)...] .+ adc.delay
     end
 
-    @testset "read" begin
+    function koma_read(filename)
         path = @__DIR__
-        filenames = ["gr-trapezoidal"; "gr-uniformly-shaped"; "gr-time-shaped"; "rf-pulse"; "rf-uniformly-shaped"; "fid"]
-        for filename in filenames
-
-            # Koma Read
-            seq = read_seq("$(path)/test_files/pulseq_read_comparison/$(filename).seq")
-            N = length(seq)
-            T0 = KomaMRIBase.get_block_start_times(seq)
-            koma_read = Dict(
-                "rfBlocks"     => [i for i in 1:N if KomaMRIBase.is_RF_on(seq[i])],
-                "rfTimes"      => [get_theo_t_aux(seq[i].RF[1]) .+ T0[i] for i in 1:N if KomaMRIBase.is_RF_on(seq[i])],
-                "rfAmplitudes" => [get_theo_A_aux(seq[i].RF[1]) for i in 1:N if KomaMRIBase.is_RF_on(seq[i])],
-                "gxBlocks"     => [i for i in 1:N if KomaMRIBase.is_Gx_on(seq[i])],
-                "gxTimes"      => [get_theo_t_aux(seq.GR[1,i]) .+ T0[i] for i in 1:N if KomaMRIBase.is_Gx_on(seq[i])],
-                "gxAmplitudes" => [get_theo_A_aux(seq.GR[1,i]) for i in 1:N if KomaMRIBase.is_Gx_on(seq[i])],
-                "gyBlocks"     => [i for i in 1:N if KomaMRIBase.is_Gy_on(seq[i])],
-                "gyTimes"      => [get_theo_t_aux(seq.GR[2,i]) .+ T0[i] for i in 1:N if KomaMRIBase.is_Gy_on(seq[i])],
-                "gyAmplitudes" => [get_theo_A_aux(seq.GR[2,i]) for i in 1:N if KomaMRIBase.is_Gy_on(seq[i])],
-                "gzBlocks"     => [i for i in 1:N if KomaMRIBase.is_Gz_on(seq[i])],
-                "gzTimes"      => [get_theo_t_aux(seq.GR[3,i]) .+ T0[i] for i in 1:N if KomaMRIBase.is_Gz_on(seq[i])],
-                "gzAmplitudes" => [get_theo_A_aux(seq.GR[3,i]) for i in 1:N if KomaMRIBase.is_Gz_on(seq[i])],
-                "adcBlocks"    => [i for i in 1:N if KomaMRIBase.is_ADC_on(seq[i])],
-                "adcTimes"     => [get_theo_t_aux(seq.ADC[i]) .+ T0[i] for i in 1:N if KomaMRIBase.is_ADC_on(seq[i])],
+        seq = read_seq("$(path)/test_files/pulseq_read_comparison/$(filename).seq")
+        N = length(seq)
+        T0 = KomaMRIBase.get_block_start_times(seq)
+        return Dict(
+            "rf" => Dict(
+                    "blocks"     => [i for i in 1:N if KomaMRIBase.is_RF_on(seq[i])],
+                    "times"      => [get_theo_t_aux(seq[i].RF[1]) .+ T0[i] for i in 1:N if KomaMRIBase.is_RF_on(seq[i])],
+                    "amplitudes" => [get_theo_A_aux(seq[i].RF[1]) for i in 1:N if KomaMRIBase.is_RF_on(seq[i])]
+                ),
+            "gx" => Dict(
+                    "blocks"     => [i for i in 1:N if KomaMRIBase.is_Gx_on(seq[i])],
+                    "times"      => [get_theo_t_aux(seq.GR[1,i]) .+ T0[i] for i in 1:N if KomaMRIBase.is_Gx_on(seq[i])],
+                    "amplitudes" => [get_theo_A_aux(seq.GR[1,i]) for i in 1:N if KomaMRIBase.is_Gx_on(seq[i])]
+                ),
+            "gy" => Dict(
+                    "blocks"     => [i for i in 1:N if KomaMRIBase.is_Gy_on(seq[i])],
+                    "times"      => [get_theo_t_aux(seq.GR[2,i]) .+ T0[i] for i in 1:N if KomaMRIBase.is_Gy_on(seq[i])],
+                    "amplitudes" => [get_theo_A_aux(seq.GR[2,i]) for i in 1:N if KomaMRIBase.is_Gy_on(seq[i])]
+                ),
+            "gz" => Dict(
+                    "blocks"     => [i for i in 1:N if KomaMRIBase.is_Gz_on(seq[i])],
+                    "times"      => [get_theo_t_aux(seq.GR[3,i]) .+ T0[i] for i in 1:N if KomaMRIBase.is_Gz_on(seq[i])],
+                    "amplitudes" => [get_theo_A_aux(seq.GR[3,i]) for i in 1:N if KomaMRIBase.is_Gz_on(seq[i])]
+                ),
+            "adc" => Dict(
+                    "blocks"     => [i for i in 1:N if KomaMRIBase.is_ADC_on(seq[i])],
+                    "times"      => [get_theo_t_aux(seq.ADC[i]) .+ T0[i] for i in 1:N if KomaMRIBase.is_ADC_on(seq[i])],
                 )
+        )
+    end
 
-            # Pulseq Read
-            pulseq_read = matread("$(path)/test_files/pulseq_read_comparison/$(filename).mat")
-            pulseq_read["rfBlocks"] = vec(pulseq_read["rfBlocks"])
-            pulseq_read["rfTimes"]  = vec([vec(blockRfTimes) for blockRfTimes in pulseq_read["rfTimes"]])
-            pulseq_read["rfAmplitudes"]  = vec([vec(blockRfAmplitudes) for blockRfAmplitudes in pulseq_read["rfAmplitudes"]])
-            pulseq_read["gxBlocks"] = vec(pulseq_read["gxBlocks"])
-            pulseq_read["gxTimes"]  = vec([vec(blockGxTimes) for blockGxTimes in pulseq_read["gxTimes"]])
-            pulseq_read["gxAmplitudes"]  = vec([vec(blockGxAmplitudes) for blockGxAmplitudes in pulseq_read["gxAmplitudes"]])
-            pulseq_read["gyBlocks"] = vec(pulseq_read["gyBlocks"])
-            pulseq_read["gyTimes"]  = vec([vec(blockGyTimes) for blockGyTimes in pulseq_read["gyTimes"]])
-            pulseq_read["gyAmplitudes"]  = vec([vec(blockGyAmplitudes) for blockGyAmplitudes in pulseq_read["gyAmplitudes"]])
-            pulseq_read["gzBlocks"] = vec(pulseq_read["gzBlocks"])
-            pulseq_read["gzTimes"]  = vec([vec(blockGzTimes) for blockGzTimes in pulseq_read["gzTimes"]])
-            pulseq_read["gzAmplitudes"]  = vec([vec(blockGzAmplitudes) for blockGzAmplitudes in pulseq_read["gzAmplitudes"]])
-            pulseq_read["adcBlocks"] = vec(pulseq_read["adcBlocks"])
-            pulseq_read["adcTimes"]  = vec([vec(blockAdcTimes) for blockAdcTimes in pulseq_read["adcTimes"]])
+    function pulseq_read(filename)
+        path = @__DIR__
+        seq_pulseq = matread("$(path)/test_files/pulseq_read_comparison/$(filename).mat")
+        return Dict(
+            "rf" => Dict(
+                    "blocks"     => Int.(vec(seq_pulseq["rfBlocks"])),
+                    "times"      => vec([vec(blockRfTimes) for blockRfTimes in seq_pulseq["rfTimes"]]),
+                    "amplitudes" => vec([vec(blockRfAmplitudes) for blockRfAmplitudes in seq_pulseq["rfAmplitudes"]])
+                ),
+            "gx" => Dict(
+                    "blocks"     => Int.(vec(seq_pulseq["gxBlocks"])),
+                    "times"      => vec([vec(blockGxTimes) for blockGxTimes in seq_pulseq["gxTimes"]]),
+                    "amplitudes" => vec([vec(blockGxAmplitudes) for blockGxAmplitudes in seq_pulseq["gxAmplitudes"]])
+                ),
+            "gy" => Dict(
+                    "blocks"     => Int.(vec(seq_pulseq["gyBlocks"])),
+                    "times"      => vec([vec(blockGyTimes) for blockGyTimes in seq_pulseq["gyTimes"]]),
+                    "amplitudes" => vec([vec(blockGyAmplitudes) for blockGyAmplitudes in seq_pulseq["gyAmplitudes"]])
+                ),
+            "gz" => Dict(
+                    "blocks"     => Int.(vec(seq_pulseq["gzBlocks"])),
+                    "times"      => vec([vec(blockGzTimes) for blockGzTimes in seq_pulseq["gzTimes"]]),
+                    "amplitudes" => vec([vec(blockGzAmplitudes) for blockGzAmplitudes in seq_pulseq["gzAmplitudes"]])
+                ),
+            "adc" => Dict(
+                    "blocks"     => Int.(vec(seq_pulseq["adcBlocks"])),
+                    "times"      => vec([vec(blockAdcTimes) for blockAdcTimes in seq_pulseq["adcTimes"]]),
+                )
+        )
+    end
 
-            @test (all([all(.≈(koma_read["rfTimes"][i], pulseq_read["rfTimes"][i], atol=TOLERANCE)) for i in 1:length(pulseq_read["rfBlocks"])]))
-            @test (all([all(.≈(abs.(koma_read["rfAmplitudes"][i] .- pulseq_read["rfAmplitudes"][i]), 0, atol=TOLERANCE)) for i in 1:length(pulseq_read["rfBlocks"])]))
-            @test (all([all(.≈(koma_read["gxTimes"][i], pulseq_read["gxTimes"][i], atol=TOLERANCE)) for i in 1:length(pulseq_read["gxBlocks"])]))
-            @test (all([all(.≈(koma_read["gxAmplitudes"][i], pulseq_read["gxAmplitudes"][i], atol=TOLERANCE)) for i in 1:length(pulseq_read["gxBlocks"])]))
-            @test (all([all(.≈(koma_read["gyTimes"][i], pulseq_read["gyTimes"][i], atol=TOLERANCE)) for i in 1:length(pulseq_read["gyBlocks"])]))
-            @test (all([all(.≈(koma_read["gyAmplitudes"][i], pulseq_read["gyAmplitudes"][i], atol=TOLERANCE)) for i in 1:length(pulseq_read["gyBlocks"])]))
-            @test (all([all(.≈(koma_read["gzTimes"][i], pulseq_read["gzTimes"][i], atol=TOLERANCE)) for i in 1:length(pulseq_read["gzBlocks"])]))
-            @test (all([all(.≈(koma_read["gzAmplitudes"][i], pulseq_read["gzAmplitudes"][i], atol=TOLERANCE)) for i in 1:length(pulseq_read["gzBlocks"])]))
-            @test (all([all(.≈(koma_read["adcTimes"][i], pulseq_read["adcTimes"][i], atol=TOLERANCE)) for i in 1:length(pulseq_read["adcBlocks"])]))
-
+    function read_comparison(filename)
+        # Define some names of the sequence dictionaries
+        event_names = ["rf", "gx", "gy", "gz", "adc"]
+        sample_names = ["times", "amplitudes"]
+        # Read data for Koma and Pulseq
+        seq_koma = koma_read(filename)      # it reads the .seq
+        seq_pulseq = pulseq_read(filename)  # it reads the .mat (ground truth)
+        # Checks for the blocks IDs of each event
+        for event in event_names
+            blocks_koma = seq_koma[event]["blocks"]
+            blocks_pulseq = seq_pulseq[event]["blocks"]
+            same_number_of_blocks = length(blocks_koma) == length(blocks_pulseq)
+            @test same_number_of_blocks
+            if same_number_of_blocks
+                same_blocks = all(blocks_koma .== blocks_pulseq)
+                @test same_blocks
+                if !same_blocks
+                    println("Mismatch for $(event) blocks")
+                    data = [blocks_koma blocks_pulseq]
+                    pretty_table(data; header=["koma", "pulseq"])
+                end
+            else
+                println("Length mismatch for $(event):")
+                println("Koma $(length(seq_koma[event])) != Pulseq $(length(seq_pulseq[event]))")
+            end
         end
+        # Checks for the timings of each event
+        for event in event_names
+            for sample in sample_names
+                if !(event == "adc" && sample == "amplitudes")
+                    for i in 1:length(seq_pulseq[event]["blocks"])
+                        samples_koma = seq_koma[event][sample][i]
+                        samples_pulseq = seq_pulseq[event][sample][i]
+                        same_points = all(.≈(samples_koma, samples_pulseq, atol=TOLERANCE))
+                        @test same_points
+                        if !same_points
+                            println("Mismatch for $(event) $(sample). Block $(seq_pulseq[event]["blocks"][i])")
+                            data = [samples_koma samples_pulseq]
+                            pretty_table(data; header=["koma", "pulseq"])
+                            # This is just an example about how to debug locally when there are problems
+                            #if event == "gx" && sample == "amplitudes" && seq_pulseq[event]["blocks"][i] == 3
+                            #    pretty_table(data[end-10:end,:]; header=["koma", "pulseq"])
+                            #end
+                        end
+                    end
+                end
+            end
+        end
+    end
 
+    @testset "Trapezoidal_Grad" begin
+        read_comparison("gr-trapezoidal")
+    end
+    @testset "Uniformly_Shaped_Grad" begin
+        read_comparison("gr-uniformly-shaped")
+    end
+    @testset "Time_Shaped_Grad" begin
+        read_comparison("gr-time-shaped")
+    end
+    @testset "Pulse_RF" begin
+        read_comparison("rf-pulse")
+    end
+    @testset "Uniformly_Shaped_RF" begin
+        read_comparison("rf-uniformly-shaped")
+    end
+    @testset "FID" begin
+        read_comparison("fid")
+    end
+    @testset "Spiral" begin
+        read_comparison("spiral")
     end
 
 end
