@@ -10,22 +10,22 @@ z = z + uz
 
 """
 # -------- SimpleMotion
-mutable struct SimpleMotion{S <: SimpleMotionType} <: MotionModel
-    types::AbstractVector{S}
+mutable struct SimpleMotion{T<:Real} <: MotionModel
+    types::AbstractVector{SimpleMotionType{T}}
 end
 
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}, 
                                     q::Union{AbstractRange,AbstractVector,Colon}) = motion
 
-function get_spin_coords(motion::SimpleMotion{S}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real, S<:SimpleMotionType{T}}
+function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     xt = x .+ reduce(.+, map((type) -> displacement_x(type, x, y, z, t), motion.types))
     yt = y .+ reduce(.+, map((type) -> displacement_y(type, x, y, z, t), motion.types))
     zt = z .+ reduce(.+, map((type) -> displacement_z(type, x, y, z, t), motion.types))
     return xt, yt, zt
 end
 
-function get_range(motion::SimpleMotion{S}) where {T<:Real, S<:SimpleMotionType{T}}
+function get_range(motion::SimpleMotion)
     mini = minimum([get_range(type)[1] for type in motion.types])
     maxi = maximum([get_range(type)[2] for type in motion.types])
     return mini, maxi
@@ -35,12 +35,9 @@ end
 # Non-periodic types: defined by an initial time (ti), a final time (tf) and a displacement      
 include("simplemotion/Translation.jl")
 include("simplemotion/Rotation.jl")
-# include("simplemotion/Cardiac.jl")
+#TODO: strain: how do I define it?
                                     
 # Periodic types: defined by the period, the temporal symmetry and a displacement (amplitude)
-
-
-
 
 
 

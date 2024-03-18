@@ -40,10 +40,14 @@ function read_phantom(filename::String)
     name = read_attribute(fid, "Name")
     version = read_attribute(fid, "Version")
     dims = read_attribute(fid, "Dims")
-    dynamic = Bool(read_attribute(fid, "Dynamic"))
     Ns = read_attribute(fid, "Ns")
-
-    obj = Phantom(; name=name, x=zeros(Ns))
+    precision = read_attribute(fid, "Precision")
+    if precision == "f32"
+        tp = Float32
+    elseif precision == "f64"
+        tp = Float64
+    end
+    obj = Phantom{tp}(; name=name, x=zeros(Ns))
 
     # Position and contrast
     for key in ["position", "contrast"]
@@ -57,46 +61,67 @@ function read_phantom(filename::String)
         end
     end
 
+    # Diffusion (TODO)
+
     # Motion
-    if dynamic
-        motion = fid["motion"]
-        model = read_attribute(motion, "model")
-        if model == "Simple"
-		# PENDING
-        elseif model == "Arbitrary"
-            segments = motion["segments"]
-            N = read_attribute(segments, "N")
-            K = read_attribute(segments, "K")
-            dur = read(segments["dur"])
-
-            Δx = zeros(Ns, K - 1)
-            Δy = zeros(Ns, K - 1)
-            Δz = zeros(Ns, K - 1)
-
-            resetmag = zeros(Ns, K)
-
-            for key in HDF5.keys(motion)
-                if key != "segments"
-                    values = read_param(motion[key])
-                    if key == "motionx"
-                        Δx = values
-                    elseif key == "motiony"
-                        Δy = values
-                    elseif key == "motionz"
-                        Δz = values
-					end
-                end
-            end
-
-            obj.motion = ArbitraryMotion(
-                Float64.(dur), K, Float64.(Δx), Float64.(Δy), Float64.(Δz)
-            )
-        end
-    end
+    motion_group = fid["motion"]
+    obj.motion = import_motion(motion_group, tp)
 
     close(fid)
     return obj
 end
+
+function import_motion(motion_group::HDF5.Group, precision::Type)
+    model = read_attribute(motion_group, "model")
+    if model == "NoMotion"
+        return NoMotion()
+    elseif model == "SimpleMotion"
+        motion = SimpleMotion(SimpleMotionType{precision}[])
+        types_group = motion_group["types"]
+        for key in keys(types_group)
+            type_group = types_group[key]
+            type_str = match(r"^\d+_(\w+)", key).captures[1]
+            type = type_str == "Translation" ? Translation :
+                   type_str == "Rotation" ? Rotation : 
+                   nothing
+            args = []
+            for key in fieldnames(type)
+                push!(args, read_attribute(type_group, string(key)))
+            end
+            
+            push!(motion.types, type(args...))
+        end
+        return motion
+
+    #TODO: import_motion for ArbitraryMotion
+    elseif model == "ArbitraryMotion"
+    #     segments = motion["segments"]
+    #     N = read_attribute(segments, "N")
+    #     K = read_attribute(segments, "K")
+    #     dur = read(segments["dur"])
+
+    #     Δx = zeros(Ns, K - 1)
+    #     Δy = zeros(Ns, K - 1)
+    #     Δz = zeros(Ns, K - 1)
+
+    #     resetmag = zeros(Ns, K)
+
+    #     for key in HDF5.keys(motion)
+    #         if key != "segments"
+    #             values = read_param(motion[key])
+    #             if key == "motionx"
+    #                 Δx = values
+    #             elseif key == "motiony"
+    #                 Δy = values
+    #             elseif key == "motionz"
+    #                 Δz = values
+    #             end
+    #         end
+    #     end
+    end
+end
+
+
 
 """
 write_phantom(ph,filename)
@@ -110,13 +135,17 @@ function write_phantom(obj::Phantom, filename::String)
     fid = h5open(filename, "w")
 
     # Root attributes
-    HDF5.attributes(fid)["Version"] = "1.0"
+    HDF5.attributes(fid)["Version"] = "0.1"
     HDF5.attributes(fid)["Name"] = obj.name
     HDF5.attributes(fid)["Ns"] = length(obj.x)
     dims = get_dims(obj)
     HDF5.attributes(fid)["Dims"] = sum(dims)
-    dynamic = is_dynamic(obj.motion)
-    HDF5.attributes(fid)["Dynamic"] = Int(dynamic)     # 0=False, 1=True
+    # Precision
+    if eltype(obj.x) <: Float32
+        HDF5.attributes(fid)["Precision"] = "f32"
+    elseif eltype(obj.x) <: Float64
+        HDF5.attributes(fid)["Precision"] = "f64"
+    end
 
     fields = fieldnames(Phantom)[2:end]
 
@@ -132,50 +161,35 @@ function write_phantom(obj::Phantom, filename::String)
     contrast = create_group(fid, "contrast")
     for i in 4:8
         param = create_group(contrast, String(fields[i]))
-        HDF5.attributes(param)["type"] = "Explicit"
+        HDF5.attributes(param)["type"] = "Explicit" #TODO: consider "Indexed" type
         param["values"] = getfield(obj, fields[i])
     end
 
+    # Diffusion (TODO)
+
     # Motion
-    if dynamic
-        motion = create_group(fid, "motion")
-        if typeof(obj.motion) <: SimpleMotion
-            # HDF5.attributes(motion)["model"] = "Simple"
-            # tmp_path = tempname()*".jld2"
-            # JLD2.save(tmp_path,Dict("ux" => obj.motion.ux,
-            # 						"uy" => obj.motion.uy,
-            # 						"uz" => obj.motion.uz))
-            # tmp = h5open(tmp_path,"r")
-            # for key in keys(tmp)
-            # 	copy_object(tmp,key,motion,key)
-            # end
-
-        elseif typeof(obj.motion) <: ArbitraryMotion
-            HDF5.attributes(motion)["model"] = "Arbitrary"
-
-            segments = create_group(motion, "segments")
-            HDF5.attributes(segments)["N"] = length(obj.motion.dur)
-            HDF5.attributes(segments)["K"] = obj.motion.K
-            segments["dur"] = obj.motion.dur
-
-            itp = get_itp_functions(obj.motion)[1]
-            is_mov_on = vcat((itp .!== nothing), is_fluid(obj.motion))
-            mov_dims = ["motionx", "motiony", "motionz", "resetmag"]
-            Δ = fieldnames(ArbitraryMotion)[3:6]
-            for i in 1:4
-                if is_mov_on[i]
-                    motion_i = create_group(motion, mov_dims[i])
-                    HDF5.attributes(motion_i)["type"] = "Explicit"
-                    values = if i != 4
-                        getfield(obj.motion, Δ[i])
-                    else
-                        Int.(getfield(obj.motion, Δ[i]))
-                    end
-                    motion_i["values"] = values
-                end
-            end
-        end
-    end
+    motion = create_group(fid, "motion")
+    export_motion(motion, obj.motion)
 
     return close(fid)
 end
+
+function export_motion(motion_group::HDF5.Group, motion::NoMotion)
+    HDF5.attributes(motion_group)["model"] = "NoMotion"
+end
+
+function export_motion(motion_group::HDF5.Group, motion::SimpleMotion)
+    HDF5.attributes(motion_group)["model"] = "SimpleMotion"
+    types_group =  create_group(motion_group, "types")
+    counter = 1
+    for type in motion.types
+        type_group = create_group(types_group, string(counter)*"_"*match(r"^\w+", string(typeof(type))).match)
+        fields = fieldnames(typeof(type))
+        for i in 1:length(fields)
+            HDF5.attributes(type_group)[string(fields[i])] = getfield(type, fields[i])
+        end
+        counter += 1
+    end
+end
+
+#TODO: export_motion for ArbitraryMotion
