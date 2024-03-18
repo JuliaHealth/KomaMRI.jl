@@ -84,14 +84,12 @@ function read_phantom(filename::String)
                         Δy = values
                     elseif key == "motionz"
                         Δz = values
-                    elseif key == "resetmag"
-                        resetmag = Bool.(values)
-                    end
+					end
                 end
             end
 
             obj.motion = ArbitraryMotion(
-                Float64.(dur), K, Float64.(Δx), Float64.(Δy), Float64.(Δz), resetmag
+                Float64.(dur), K, Float64.(Δx), Float64.(Δy), Float64.(Δz)
             )
         end
     end
