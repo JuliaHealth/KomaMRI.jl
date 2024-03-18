@@ -91,7 +91,7 @@ end
 
 function get_range(motion::ArbitraryMotion)
     # PENDING
-    return 0, 0
+    return 0.0
 end
 
 

@@ -14,5 +14,5 @@ function get_spin_coords(motion::NoMotion, x::AbstractVector{T}, y::AbstractVect
 end
 
 function get_range(motion::NoMotion)
-    return 0, 0
+    return 0.0
 end
