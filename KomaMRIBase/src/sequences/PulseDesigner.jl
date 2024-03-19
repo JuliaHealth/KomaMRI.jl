@@ -7,8 +7,8 @@ module PulseDesigner
 using ..KomaMRIBase
 
 include("RF/block_pulse.jl")
+include("RF/sinc_pulse.jl")
 include("Grad/design.jl")
-include("RF/design.jl")
 include("ADC/design.jl")
 
 """
