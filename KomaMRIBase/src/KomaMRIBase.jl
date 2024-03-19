@@ -52,17 +52,14 @@ export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 export get_M0, get_M1, get_M2, get_kspace
 
 # PulseDesigner submodule
-include("sequences/PulseDesigner.jl")
-export PulseDesigner
-
-# Test
 struct FlipAngle val end
 struct Duration val end
 struct Bandwidth val end
 struct TimeBwProduct val end
-struct Angle end
-export FlipAngle, Duration, Bandwidth, TimeBwProduct, Angle
-include("sequences/RF/block_pulse.jl")
+export FlipAngle, Duration, Bandwidth, TimeBwProduct
+
+include("sequences/PulseDesigner.jl")
+export PulseDesigner
 
 #Package version, KomaMRIBase.__VERSION__
 using Pkg
