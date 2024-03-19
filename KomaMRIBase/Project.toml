@@ -10,7 +10,12 @@ MRIBase = "f7771a9a-6e57-4e71-863b-6e4b6a2f17df"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
-Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[weakdeps]
+Unitful = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
+
+[extensions]
+KomaMRIBaseUnitfulExt = "Unitful"
 
 [compat]
 Interpolations = "0.13, 0.14, 0.15"

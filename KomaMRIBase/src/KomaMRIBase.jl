@@ -55,6 +55,15 @@ export get_M0, get_M1, get_M2, get_kspace
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
 
+# Test
+struct FlipAngle val end
+struct Duration val end
+struct Bandwidth val end
+struct TimeBwProduct val end
+struct Angle end
+export FlipAngle, Duration, Bandwidth, TimeBwProduct, Angle
+include("sequences/RF/block_pulse.jl")
+
 #Package version, KomaMRIBase.__VERSION__
 using Pkg
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
