@@ -52,6 +52,13 @@ export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 export get_M0, get_M1, get_M2, get_kspace
 
 # PulseDesigner submodule
+struct FlipAngle val end
+struct Duration val end
+struct Bandwidth val end
+struct TimeBwProduct val end
+struct SliceThickness val end
+export FlipAngle, Duration, Bandwidth, TimeBwProduct, SliceThickness
+
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
 
