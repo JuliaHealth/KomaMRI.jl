@@ -106,7 +106,7 @@ function read_blocks(io, blockDurationRaster, version_combined)
 
         r == NumberBlockEvents || break #Break on white space
     end
-    sort!(OrderedDict(eventTable)), sort!(OrderedDict(blockDurations)), sort!(OrderedDict(delayIDs_tmp))
+    eventTable, blockDurations, delayIDs_tmp
 end
 
 """
@@ -137,7 +137,7 @@ function read_events(io, scale; type=-1, eventLibrary=Dict())
         end
         r == EventLength || break #Break on white space
     end
-    sort!(OrderedDict(eventLibrary))
+    eventLibrary
 end
 
 """
@@ -168,7 +168,7 @@ function read_shapes(io, forceConvertUncompressed)
         end
         shapeLibrary[id] = data
     end
-    sort!(OrderedDict(shapeLibrary))
+    shapeLibrary
 end
 
 """
