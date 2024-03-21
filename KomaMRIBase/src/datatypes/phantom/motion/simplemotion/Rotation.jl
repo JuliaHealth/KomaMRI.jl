@@ -1,33 +1,67 @@
 """
-Rotation Motion
+    rotation = Rotation(ti, tf, pitch, roll, yaw)
  
-Parameters:
-- Initial time   (ti)
-- Final time     (tf)
-- Rotation in x  (pitch)
-- Rotation in y  (roll)
-- Rotation in z  (yaw)
+Rotation motion struct. It produces a rotation of the phantom in the three axes: 
+x (pitch), y (roll), and z (yaw)
 
-        [ 0,                      t <= ti
-pitch = [ pitch*(t-ti)/(tf-ti),   ti < t < tf
-        [ pitch,                  t >= tf
+```math
+\begin{align*}
+ux  &= cos(\gamma)cos(\beta)x \\ 
+    &+ (cos(\gamma)sin(\beta)sin(\alpha) - sin(\gamma)cos(\alpha))y\\ 
+    &+ (cos(\gamma)sin(\beta)cos(\alpha) + sin(\gamma)sin(\alpha))z\\
+    &- x
+\end{align*}
+```
 
-        [ 0,                      t <= ti
-roll =  [ roll*(t-ti)/(tf-ti),    ti < t < tf
-        [ roll,                   t >= tf
+```math
+\begin{align*}
+uy  &= sin(\gamma)cos(\beta)x \\ 
+    &+ (sin(\gamma)sin(\beta)sin(\alpha) + cos(\gamma)cos(\alpha))y\\ 
+    &+ (sin(\gamma)sin(\beta)cos(\alpha) - cos(\gamma)sin(\alpha))z\\
+    &- y
+\end{align*}
+```
 
-        [ 0,                      t <= ti
-yaw =   [ yaw*(t-ti)/(tf-ti),     ti < t < tf
-        [ yaw,                    t >= tf
+```math
+\begin{align*}
+uz  &= -sin(\beta)x \\ 
+    &+ cos(\beta)sin(\alpha)y\\ 
+    &+ cos(\beta)cos(\alpha)z\\
+    &- z
+\end{align*}
+```
 
+where:
+    
+```math
+\alpha  = \left\{\begin{matrix}
+0, & t <= ti \\
+\frac{pitch}{tf-ti}(t-ti), & ti < t < tf \\ 
+pitch, & t >= tf
+\end{matrix}\right.
+,\qquad
+\beta  = \left\{\begin{matrix}
+0, & t <= ti \\
+\frac{roll}{tf-ti}(t-ti), & ti < t < tf \\ 
+roll, & t >= tf
+\end{matrix}\right.
+,\qquad
+\gamma  = \left\{\begin{matrix}
+0, & t <= ti \\
+\frac{yaw}{tf-ti}(t-ti), & ti < t < tf \\ 
+yaw, & t >= tf
+\end{matrix}\right.
+```
 
-x' = cos(yaw)cos(roll)x + (cos(yaw)sin(roll)sin(pitch) - sin(yaw)cos(pitch))y + (cos(yaw)sin(roll)cos(pitch) + sin(yaw)sin(pitch))z
-y' = sin(yaw)cos(roll)x + (sin(yaw)sin(roll)sin(pitch) + cos(yaw)cos(pitch))y + (sin(yaw)sin(roll)cos(pitch) - cos(yaw)sin(pitch))z
-z' = -sin(roll)x        + cos(roll)sin(pitch)y                                + cos(roll)cos(pitch)z
+# Arguments
+- `ti`: (`::Real`, `[s]`) initial time 
+- `tf`: (`::Real`, `[s]`) final time 
+- `pitch`: (`::Real`, `[º]`) rotation in x
+- `roll`: (`::Real`, `[º]`) rotation in y 
+- `yaw`: (`::Real`, `[º]`) rotation in z
 
-ux = x' - x
-uy = y' - y
-uz = z' - z
+# Returns
+- `rotation`: (`::Rotation`) Rotation struct
 
 """
 
@@ -41,26 +75,26 @@ end
 
 displacement_x(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    yaw   = t_unit .* motion_type.yaw
-    pitch = t_unit .* motion_type.pitch
-    roll  = t_unit .* motion_type.roll
-    return cos.(yaw) .* cos.(roll) .* x   +   (cos.(yaw) .* sin.(roll) .* sin.(pitch) .- sin.(yaw) .* cos.(pitch)) .* y   +   (cos.(yaw) .* sin.(roll) .* cos.(pitch) .+ sin.(yaw) .* sin.(pitch)) .*z   .-   x
+    α = t_unit .* (motion_type.pitch * 180/π)
+    β = t_unit .* (motion_type.roll * 180/π)
+    γ = t_unit .* (motion_type.yaw * 180/π)
+    return cos.(γ) .* cos.(β) .* x   +   (cos.(γ) .* sin.(β) .* sin.(α) .- sin.(γ) .* cos.(α)) .* y   +   (cos.(γ) .* sin.(β) .* cos.(α) .+ sin.(γ) .* sin.(α)) .*z   .-   x
 end
 
 displacement_y(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    yaw   = t_unit .* motion_type.yaw
-    pitch = t_unit .* motion_type.pitch
-    roll  = t_unit .* motion_type.roll
-    return sin.(yaw) .* cos.(roll) .* x   +   (sin.(yaw) .* sin.(roll) .* sin.(pitch) .+ cos.(yaw) .* cos.(pitch)) .* y   +   (sin.(yaw) .* sin.(roll) .* cos.(pitch) .- cos.(yaw) .* sin.(pitch)) .* z  .-  y
+    α = t_unit .* (motion_type.pitch * 180/π)
+    β = t_unit .* (motion_type.roll * 180/π)
+    γ = t_unit .* (motion_type.yaw * 180/π)
+    return sin.(γ) .* cos.(β) .* x   +   (sin.(γ) .* sin.(β) .* sin.(α) .+ cos.(γ) .* cos.(α)) .* y   +   (sin.(γ) .* sin.(β) .* cos.(α) .- cos.(γ) .* sin.(α)) .* z  .-  y
 end
 
 displacement_z(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    yaw   = t_unit .* motion_type.yaw
-    pitch = t_unit .* motion_type.pitch
-    roll  = t_unit .* motion_type.roll
-    return -sin.(roll) .* x   +   cos.(roll) .* sin.(pitch) .* y  .-  z 
+    α = t_unit .* (motion_type.pitch * 180/π)
+    β = t_unit .* (motion_type.roll * 180/π)
+    γ = t_unit .* (motion_type.yaw * 180/π)
+    return -sin.(β) .* x   +   cos.(β) .* sin.(α) .* y  .-  z 
 end
 
 get_range(motion_type::Rotation) = begin

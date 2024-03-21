@@ -1,24 +1,41 @@
 """
-Translation Motion
+    translation = Translation(ti, tf, dx, dy, dz)
 
-Parameters:
-- Initial time      (ti)
-- Final time        (tf)
-- Translation in x  (dx)
-- Translation in y  (dy)
-- Translation in z  (dz)
+Translation motion struct. It produces a translation of the phantom in the three directions x, y and z.
 
-     [ 0,                   t <= ti
-ux = [ dx*(t-ti)/(tf-ti),   ti < t < tf
-     [ dx,                  t >= tf
+```math
+ux  = \left\{\begin{matrix}
+0, & t <= ti \\
+\frac{dx}{tf-ti}(t-ti), & ti < t < tf \\ 
+dx, & t >= tf
+\end{matrix}\right.
+```
 
-     [ 0,                   t <= ti
-uy = [ dy*(t-ti)/(tf-ti),   ti < t < tf
-     [ dy,                  t >= tf
+```math
+uy  = \left\{\begin{matrix}
+0, & t <= ti \\
+\frac{dy}{tf-ti}(t-ti), & ti < t < tf \\ 
+dy, & t >= tf
+\end{matrix}\right.
+```
 
-     [ 0,                   t <= ti
-uz = [ dz*(t-ti)/(tf-ti),   ti < t < tf
-     [ dz,                  t >= tf
+```math
+uz  = \left\{\begin{matrix}
+0, & t <= ti \\
+\frac{dz}{tf-ti}(t-ti), & ti < t < tf \\ 
+dz, & t >= tf
+\end{matrix}\right.
+```
+
+# Arguments
+- `ti`: (`::Real`, `[s]`) initial time 
+- `tf`: (`::Real`, `[s]`) final time 
+- `dx`: (`::Real`, `[m]`) translation in x
+- `dy`: (`::Real`, `[m]`) translation in y 
+- `dz`: (`::Real`, `[m]`) translation in z
+
+# Returns
+- `translation`: (`::Translation`) Translation struct
 
 
 """
