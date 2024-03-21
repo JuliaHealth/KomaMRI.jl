@@ -10,6 +10,11 @@ Arbitrary Motion
 x = x + ux
 """
 mutable struct ArbitraryMotion{T<:Real, V<:AbstractVector{T}} <: MotionModel
+    duration::AbstractVector{T}
+    Δx::AbstractArray{T, 2}
+    Δy::AbstractArray{T, 2}
+    Δz::AbstractArray{T, 2}
+
 	ux::Vector{LinearInterpolator{T, V}}
     uy::Vector{LinearInterpolator{T, V}}
     uz::Vector{LinearInterpolator{T, V}}
@@ -47,7 +52,7 @@ function ArbitraryMotion( dur::AbstractVector{T},
     etpy = [extrapolate(interpolate((limits,), Δ[i,:,2], Gridded(Linear())), Periodic()) for i in 1:Ns]
     etpz = [extrapolate(interpolate((limits,), Δ[i,:,3], Gridded(Linear())), Periodic()) for i in 1:Ns]
 
-    return ArbitraryMotion(etpx,etpy,etpz)
+    return ArbitraryMotion(dur, Δx, Δy, Δz, etpx, etpy, etpz)
 end
 
 

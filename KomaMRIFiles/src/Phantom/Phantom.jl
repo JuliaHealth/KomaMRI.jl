@@ -4,37 +4,6 @@ phantom = read_phantom(filename)
 Reads a (.phantom) file and creates a Phantom structure from it
 """
 function read_phantom(filename::String)
-    # ----------------------------------------------
-    function read_param(param::HDF5.Group)
-        if "type" in HDF5.keys(attrs(param))
-            type = attrs(param)["type"]
-
-            if type == "Explicit"
-                values = read(param["values"])
-            elseif type == "Indexed"
-                index = read(param["values"])
-                if Ns == length(index)
-                    table = read(param["table"])
-                    N = read_attribute(param, "N")
-                    if N == length(table)
-                        values = table[index]
-                    else
-                        print("Error: $(label) table dimensions mismatch")
-                    end
-                else
-                    print("Error: $(label) vector dimensions mismatch")
-                end
-            elseif type == "Default"
-                values = "Default"
-            end
-        else
-            values = read(param["values"])
-        end
-
-        return values
-    end
-    # ----------------------------------------------
-
     fid = HDF5.h5open(filename, "r")
 
     name = read_attribute(fid, "Name")
@@ -65,13 +34,42 @@ function read_phantom(filename::String)
 
     # Motion
     motion_group = fid["motion"]
-    obj.motion = import_motion(motion_group, tp)
+    obj.motion = import_motion(Ns, motion_group, tp)
 
     close(fid)
     return obj
 end
 
-function import_motion(motion_group::HDF5.Group, precision::Type)
+function read_param(param::HDF5.Group)
+    if "type" in HDF5.keys(attrs(param))
+        type = attrs(param)["type"]
+
+        if type == "Explicit"
+            values = read(param["values"])
+        elseif type == "Indexed"
+            index = read(param["values"])
+            if Ns == length(index)
+                table = read(param["table"])
+                N = read_attribute(param, "N")
+                if N == length(table)
+                    values = table[index]
+                else
+                    print("Error: $(label) table dimensions mismatch")
+                end
+            else
+                print("Error: $(label) vector dimensions mismatch")
+            end
+        elseif type == "Default"
+            values = "Default"
+        end
+    else
+        values = read(param["values"])
+    end
+
+    return values
+end
+
+function import_motion(Ns::Int, motion_group::HDF5.Group, precision::Type)
     model = read_attribute(motion_group, "model")
     if model == "NoMotion"
         return NoMotion()
@@ -93,31 +91,25 @@ function import_motion(motion_group::HDF5.Group, precision::Type)
         end
         return motion
 
-    #TODO: import_motion for ArbitraryMotion
     elseif model == "ArbitraryMotion"
-    #     segments = motion["segments"]
-    #     N = read_attribute(segments, "N")
-    #     K = read_attribute(segments, "K")
-    #     dur = read(segments["dur"])
+        dur = read(motion["duration"])
 
-    #     Δx = zeros(Ns, K - 1)
-    #     Δy = zeros(Ns, K - 1)
-    #     Δz = zeros(Ns, K - 1)
+        dx = zeros(Ns, K - 1)
+        dy = zeros(Ns, K - 1)
+        dz = zeros(Ns, K - 1)
 
-    #     resetmag = zeros(Ns, K)
+        for key in HDF5.keys(motion)
+            values = read_param(motion[key])
+            if key == "dx"
+                dx = values
+            elseif key == "dy"
+                dy = values
+            elseif key == "dz"
+                dz = values
+            end
+        end
 
-    #     for key in HDF5.keys(motion)
-    #         if key != "segments"
-    #             values = read_param(motion[key])
-    #             if key == "motionx"
-    #                 Δx = values
-    #             elseif key == "motiony"
-    #                 Δy = values
-    #             elseif key == "motionz"
-    #                 Δz = values
-    #             end
-    #         end
-    #     end
+        return ArbitraryMotion(dur, dx, dy, dz)
     end
 end
 
@@ -185,11 +177,32 @@ function export_motion(motion_group::HDF5.Group, motion::SimpleMotion)
     for type in motion.types
         type_group = create_group(types_group, string(counter)*"_"*match(r"^\w+", string(typeof(type))).match)
         fields = fieldnames(typeof(type))
-        for i in 1:length(fields)
-            HDF5.attributes(type_group)[string(fields[i])] = getfield(type, fields[i])
+        for field in fields
+            HDF5.attributes(type_group)[string(field)] = getfield(type, fieldcount)
         end
         counter += 1
     end
 end
 
+function export_motion(motion_group::HDF5.Group, motion::ArbitraryMotion)
+    HDF5.attributes(motion_group)["model"] = "ArbitraryMotion" 
+    motion_group["duration"] = motion.duration
+
+    for key in ["dx", "dy", "dz"]
+        d_group =  create_group(motion_group, key)
+        HDF5.attributes(d_group)["type"] = "Explicit" #TODO: consider "Indexed" type
+        d_group["values"] = getfield(motion, Symbol(key))
+    end
+
+    types_group =  create_group(motion_group, "types")
+    counter = 1
+    for type in motion.types
+        type_group = create_group(types_group, string(counter)*"_"*match(r"^\w+", string(typeof(type))).match)
+        fields = fieldnames(typeof(type))
+        for field in fields
+            HDF5.attributes(type_group)[string(field)] = getfield(type, fieldcount)
+        end
+        counter += 1
+    end
+end
 #TODO: export_motion for ArbitraryMotion
