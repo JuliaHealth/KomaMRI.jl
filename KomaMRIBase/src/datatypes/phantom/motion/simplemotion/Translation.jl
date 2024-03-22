@@ -1,28 +1,28 @@
-"""
+@doc raw"""
     translation = Translation(ti, tf, dx, dy, dz)
 
 Translation motion struct. It produces a translation of the phantom in the three directions x, y and z.
 
 ```math
-ux  = \left\{\begin{matrix}
-0, & t <= ti \\
-\frac{dx}{tf-ti}(t-ti), & ti < t < tf \\ 
+ux=\left\{\begin{matrix}
+0, & t <= ti\\
+\frac{dx}{tf-ti}(t-ti), & ti < t < tf\\ 
 dx, & t >= tf
 \end{matrix}\right.
 ```
 
 ```math
-uy  = \left\{\begin{matrix}
-0, & t <= ti \\
-\frac{dy}{tf-ti}(t-ti), & ti < t < tf \\ 
+uy=\left\{\begin{matrix}
+0, & t <= ti\\
+\frac{dy}{tf-ti}(t-ti), & ti < t < tf\\ 
 dy, & t >= tf
 \end{matrix}\right.
 ```
 
 ```math
-uz  = \left\{\begin{matrix}
-0, & t <= ti \\
-\frac{dz}{tf-ti}(t-ti), & ti < t < tf \\ 
+uz=\left\{\begin{matrix}
+0, & t <= ti\\
+\frac{dz}{tf-ti}(t-ti), & ti < t < tf\\ 
 dz, & t >= tf
 \end{matrix}\right.
 ```
