@@ -697,17 +697,22 @@ function plot_phantom_map(
       kwargs...
   )
 	path = @__DIR__
-    cmin = get(kwargs, :cmin, (key == :x || key == :y || key == :z || key == :Δw) ? minimum(getproperty(obj, key)) : 0)
-    cmax = get(kwargs, :cmax, (key == :T1) ? 2.5 : (key == :T2) ? 0.25 : minimum(getproperty(ph, key)))
+    cmin_key = minimum(getproperty(ph, key))
+    cmax_key = maximum(getproperty(ph, key))
 	if key == :T1 || key == :T2 || key == :T2s
+        cmin_key = 0
 		factor = 1e3
 		unit = " ms"
 		if key  == :T1
+            cmax_key = 2500 / factor
 			colors = MAT.matread(path*"/assets/T1cm.mat")["T1colormap"]
 			N, _ = size(colors)
 			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
 			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
 		elseif key == :T2 || key == :T2s
+            if key == :T2
+				cmax_key = 250/factor
+			end
     		colors = MAT.matread(path*"/assets/T2cm.mat")["T2colormap"]
 			N, _ = size(colors)
 			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
@@ -723,11 +728,14 @@ function plot_phantom_map(
 		colormap="Greys"
 	else
 		factor = 1
+        cmin_key = 0
 		unit=""
 		colormap="Greys"
 	end
-	cmin *= factor
-	cmax *= factor
+    cmin_key = get(kwargs, :cmin, cmin_key)
+    cmax_key = get(kwargs, :cmax, cmax_key)
+	cmin_key *= factor
+	cmax_key *= factor
 	x0 = -maximum(abs.([ph.x ph.y ph.z]))*1e2
     xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
 	#Layout
@@ -767,8 +775,8 @@ function plot_phantom_map(
 									showscale=colorbar,
 									colorscale=colormap,
 									colorbar=attr(ticksuffix=unit, title=string(key)),
-									cmin=cmin,
-									cmax=cmax,
+									cmin=cmin_key,
+									cmax=cmax_key,
 									size=4
 									),
 						text=round.(getproperty(ph,key)*factor,digits=4),
@@ -782,8 +790,8 @@ function plot_phantom_map(
 										showscale=colorbar,
 										colorscale=colormap,
 										colorbar=attr(ticksuffix=unit, title=string(key)),
-										cmin=cmin,
-										cmax=cmax,
+										cmin=cmin_key,
+										cmax=cmax_key,
 										size=2
 										),
 							text=round.(getproperty(ph,key)*factor,digits=4),
