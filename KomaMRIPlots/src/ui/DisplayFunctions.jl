@@ -732,12 +732,7 @@ function plot_phantom_map(
 	cmin_key *= factor
 	cmax_key *= factor
 
-	rg = get_range(ph.motion)
-	if length(rg) > 1
-		t = range(rg[1], rg[2], 10)
-	else #NoMotion
-		t = [rg]
-	end
+	t = get_times(ph.motion)
 	x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
 	x0 = -maximum(abs.([x y z]))*1e2
@@ -803,7 +798,7 @@ function plot_phantom_map(
 			pad=attr(
 				l=30
 			),
-			steps=[
+steps=[
 				attr(
 					label=round(t0, digits=2),
 					method="update",
