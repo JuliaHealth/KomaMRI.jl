@@ -25,10 +25,12 @@ function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::Abstr
     return xt, yt, zt
 end
 
-function get_range(motion::SimpleMotion)
-    mini = minimum([get_range(type)[1] for type in motion.types])
-    maxi = maximum([get_range(type)[2] for type in motion.types])
-    return mini, maxi
+function get_times(motion::SimpleMotion)
+    ti = [get_range(type)[1] for type in motion.types]
+    tf = [get_range(type)[2] for type in motion.types]
+    times = vcat(ti, tf)
+    times = unique(sort(times))
+    return times
 end
 
 # --------- Simple Motion Types: -------------

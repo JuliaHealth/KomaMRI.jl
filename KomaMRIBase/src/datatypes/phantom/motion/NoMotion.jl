@@ -13,6 +13,6 @@ function get_spin_coords(motion::NoMotion, x::AbstractVector{T}, y::AbstractVect
     return x, y, z
 end
 
-function get_range(motion::NoMotion)
-    return 0.0
+function get_times(motion::NoMotion)
+    return [0.0]
 end

@@ -11,9 +11,9 @@ x = x + ux
 """
 mutable struct ArbitraryMotion{T<:Real, V<:AbstractVector{T}} <: MotionModel
     duration::AbstractVector{T}
-    Δx::AbstractArray{T, 2}
-    Δy::AbstractArray{T, 2}
-    Δz::AbstractArray{T, 2}
+    dx::AbstractArray{T, 2}
+    dy::AbstractArray{T, 2}
+    dz::AbstractArray{T, 2}
 
 	ux::Vector{LinearInterpolator{T, V}}
     uy::Vector{LinearInterpolator{T, V}}
@@ -80,6 +80,10 @@ end
 
 Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}) = begin
     return ArbitraryMotion(
+        motion.duration,
+        motion.dx[p,:],
+        motion.dy[p,:],
+        motion.dz[p,:],
         motion.ux[p],
         motion.uy[p],
         motion.uz[p]
@@ -94,9 +98,8 @@ function get_spin_coords(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::Ab
     return xt, yt, zt
 end
 
-function get_range(motion::ArbitraryMotion)
-    # PENDING
-    return 0.0
+function get_times(motion::ArbitraryMotion)
+    return get_pieces_limits(motion.duration, size(motion.dx)[2] + 1)
 end
 
 
