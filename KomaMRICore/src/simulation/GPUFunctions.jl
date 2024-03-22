@@ -44,10 +44,14 @@ adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
 
 # ArbitraryMotion (PENDING)
 adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion) = begin 
+	duration = adapt(KomaCUDAAdaptor(), x.duration)
+	dx = adapt(KomaCUDAAdaptor(), x.dx)
+	dy = adapt(KomaCUDAAdaptor(), x.dy)
+	dz = adapt(KomaCUDAAdaptor(), x.dz)
     ux = adapt(KomaCUDAAdaptor(), x.ux)
 	uy = adapt(KomaCUDAAdaptor(), x.uy)
 	uz = adapt(KomaCUDAAdaptor(), x.uz)
-    return ArbitraryMotion(ux,uy,uz)
+    return ArbitraryMotion(duration, dx, dy, dz, ux, uy, uz)
 end
 adapt_storage(to::KomaCUDAAdaptor, x::Vector{LinearInterpolator{T,V}}) where {T<:Real,  V<:AbstractVector{T}} = CUDA.cu.(x)
 

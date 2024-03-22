@@ -193,16 +193,5 @@ function export_motion(motion_group::HDF5.Group, motion::ArbitraryMotion)
         HDF5.attributes(d_group)["type"] = "Explicit" #TODO: consider "Indexed" type
         d_group["values"] = getfield(motion, Symbol(key))
     end
-
-    types_group =  create_group(motion_group, "types")
-    counter = 1
-    for type in motion.types
-        type_group = create_group(types_group, string(counter)*"_"*match(r"^\w+", string(typeof(type))).match)
-        fields = fieldnames(typeof(type))
-        for field in fields
-            HDF5.attributes(type_group)[string(field)] = getfield(type, fieldcount)
-        end
-        counter += 1
-    end
 end
 #TODO: export_motion for ArbitraryMotion
