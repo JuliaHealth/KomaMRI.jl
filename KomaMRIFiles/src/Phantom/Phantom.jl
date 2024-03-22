@@ -92,20 +92,23 @@ function import_motion(Ns::Int, motion_group::HDF5.Group, precision::Type)
         return motion
 
     elseif model == "ArbitraryMotion"
-        dur = read(motion["duration"])
+        dur = read(motion_group["duration"])
+        K = read_attribute(motion_group, "K")
 
         dx = zeros(Ns, K - 1)
         dy = zeros(Ns, K - 1)
         dz = zeros(Ns, K - 1)
 
-        for key in HDF5.keys(motion)
-            values = read_param(motion[key])
-            if key == "dx"
-                dx = values
-            elseif key == "dy"
-                dy = values
-            elseif key == "dz"
-                dz = values
+        for key in HDF5.keys(motion_group)
+            if key != "duration"
+                values = read_param(motion_group[key])
+                if key == "dx"
+                    dx = values
+                elseif key == "dy"
+                    dy = values
+                elseif key == "dz"
+                    dz = values
+                end
             end
         end
 
@@ -186,6 +189,7 @@ end
 
 function export_motion(motion_group::HDF5.Group, motion::ArbitraryMotion)
     HDF5.attributes(motion_group)["model"] = "ArbitraryMotion" 
+    HDF5.attributes(motion_group)["K"] = size(motion.dx)[2] + 1
     motion_group["duration"] = motion.duration
 
     for key in ["dx", "dy", "dz"]
@@ -194,4 +198,3 @@ function export_motion(motion_group::HDF5.Group, motion::ArbitraryMotion)
         d_group["values"] = getfield(motion, Symbol(key))
     end
 end
-#TODO: export_motion for ArbitraryMotion
