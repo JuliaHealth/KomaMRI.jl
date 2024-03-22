@@ -192,7 +192,7 @@ function callback_filepicker(filename::String, w::Window, obj::Phantom)
     if filename != ""
         filename_extension = splitext(filename)[end]
         if filename_extension == ".phantom" # Koma
-            obj = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(filename),"phantom")
+            obj = read_phantom(filename)
         elseif filename_extension == ".h5"  # JEMRIS
             obj = read_phantom_jemris(filename)
         end
@@ -281,9 +281,7 @@ Updates the UI with phantom plots
 """
 function view_ui_phantom!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
     display_loading!(w, "Plotting phantom ...")
-    widget_plot = @manipulate for t0_ms in 1e3*range(0, dur(seq); length=5)
-        plot_phantom_map(obj, key; t0=t0_ms, darkmode)
-    end
+    widget_plot = plot_phantom_map(obj, key; darkmode)
     div_content = dom"div"(hbox(buttons_obj...), widget_plot)
     content!(w, "div#content", div_content)
     @js_ w document.getElementById("content").dataset.content = "phantom"
