@@ -182,8 +182,9 @@ Creates a two-dimensional brain Phantom struct.
 
 # Keywords
 - `axis`: (`::String`, `="axial"`, opts=[`"axial"`, `"coronal"`, `"sagittal"`]) orientation of the phantom
-- `ss`: (`::Integer`, `=4`) subsampling parameter for all axes
-- `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
+- `ss`: (`::Integer or ::Vector{Integer}`, `=4`) subsampling parameter for all axes if scaler, per axis if 2 element vector [ssx, ssy]
+- `us`: (`::Integer or ::Vector{Integer}`, `=1`)  upsampling parameter for all axes if scaler, per axis if 2 element vector [usx, usy], if used ss is set to ss=1
+
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -192,24 +193,42 @@ Creates a two-dimensional brain Phantom struct.
 ```julia-repl
 julia> obj = brain_phantom2D(; axis="sagittal", ss=1)
 
+julia> obj = brain_phantom2D(; axis="axial", us=[1, 2])
+
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
 function brain_phantom2D(; axis="axial", ss=4, us=1)
 
+    # check for valid input    
+    @assert length( ss) <= 2 "ss=$(ss) invalid, ss can have up to two components for a 2D phantom"
+    @assert length( us) <= 2 "us=$(us) invalid, us can have up to two components for a 2D phantom"
+    if length( us) == 1
+        usx = us[1]; usy = us[1]
+    else
+        usx = us[1]; usy = us[2]
+    end
+    if length( ss) == 1
+        ssx = ss[1]; ssy = ss[1]
+    else
+        ssx = ss[1]; ssy = ss[2]
+    end
+
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/brain2D.mat")
-    if us > 1; ss=1; end
-    class = repeat( data[axis][1:ss:end,1:ss:end], inner=[us, us])
+
+    # subsample or upsample the phantom data
+    class = repeat( data[axis][1:ssx:end,1:ssy:end], inner=[usx, usy])
     
     # Define spin position vectors
-    Δx = .5e-3*ss/us
+    Δx = .5e-3*ssx/usx
+    Δy = .5e-3*ssy/usy
     M, N = size(class)
     FOVx = (M-1)*Δx #[m]
-    FOVy = (N-1)*Δx #[m]
+    FOVy = (N-1)*Δy #[m]
     x = -FOVx/2:Δx:FOVx/2 #spin coordinates
-    y = -FOVy/2:Δx:FOVy/2 #spin coordinates
+    y = -FOVy/2:Δy:FOVy/2 #spin coordinates
     x, y = x .+ y'*0, x*0 .+ y' #grid points
 
     # Define spin property vectors
@@ -293,8 +312,8 @@ Creates a three-dimentional brain Phantom struct.
 - https://brainweb.bic.mni.mcgill.ca/brainweb
 
 # Keywords
-- `ss`: (`::Integer`, `=4`) subsampling parameter in all axes
-- `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
+- `ss`: (`::Integer or ::Vector{Integer}`, `=4`) subsampling parameter for all axes if scaler, per axis if 3 element vector [ssx, ssy, ssz]
+- `us`: (`::Integer or ::Vector{Integer}`, `=1`)  upsampling parameter for all axes if scaler, per axis if 3 element vector [usx, usy, usz]
 - `start_end`: (`::Vector{Integer}`, `=[160,200]`) z index range of presampled phantom, 180 is center
 
 # Returns
@@ -304,23 +323,48 @@ Creates a three-dimentional brain Phantom struct.
 ```julia-repl
 julia> obj = brain_phantom3D(; ss=5)
 
+julia> obj = brain_phantom3D(; us=[2, 2, 1])
+
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
 function brain_phantom3D(;ss=4,us=1,start_end=[160, 200])
 
+    # check for valid input    
+    @assert length( ss) <= 3 "ss=$(ss) invalid, ss can have up to three components for a 3D phantom"
+    @assert length( us) <= 3 "us=$(us) invalid, us can have up to three components for a 3D phantom"
+    if length( us) == 1
+        usx = us[1]; usy = us[1]; usz = us[1]
+    elseif length( us) == 2
+        usx = us[1]; usy = us[2]; usz = us[2]
+        @warn "Using us=$([usx, usy, usz]) in place of us=$([usx, usy])."
+    else
+        usx = us[1]; usy = us[2]; usz = us[3]
+    end
+    if length( ss) == 1
+        ssx = ss[1]; ssy = ss[1]; ssz = ss[1]
+        @warn "Using ss=$([ssx, ssy, ssz]) in place of ss=$([ssx, ssy])."
+    elseif length( ss) == 2
+        ssx = ss[1]; ssy = ss[2]; ssz = ss[2]
+    else
+        ssx = ss[1]; ssy = ss[2]; ssz = ss[3]
+    end
+
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/brain3D.mat")
-    if us > 1; ss=1; end
-    class = repeat( data["data"][1:ss:end,1:ss:end,start_end[1]:ss:start_end[2]], inner=[us, us, us])
+
+    # subsample or upsample the phantom data
+    class = repeat( data["data"][1:ssx:end,1:ssy:end, start_end[1]:ssz:start_end[2]], inner=[usx, usy, usz])
 
     # Define spin position vectors
-    Δx = .5e-3*ss/us
+    Δx = .5e-3*ssx/usx
+    Δy = .5e-3*ssy/usy
+    Δz = .5e-3*ssz/usz
     M, N, Z = size(class)
     FOVx = (M-1)*Δx #[m]
-    FOVy = (N-1)*Δx #[m]
-	FOVz = (Z-1)*Δx #[m]
+    FOVy = (N-1)*Δy #[m]
+	FOVz = (Z-1)*Δz #[m]
     xx = reshape(-FOVx/2:Δx:FOVx/2,M,1,1) #spin coordinates
     yy = reshape(-FOVy/2:Δx:FOVy/2,1,N,1) #spin coordinates
 	zz = reshape(-FOVz/2:Δx:FOVz/2,1,1,Z) #spin coordinates
@@ -402,34 +446,52 @@ end
 Creates a two-dimensional pelvis Phantom struct.
 
 # Keywords
-- `ss`: (`::Integer`, `=4`) subsampling parameter
-- `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
+- `ss`: (`::Integer or ::Vector{Integer}`, `=4`) subsampling parameter for all axes if scaler, per axis if 2 element vector [ssx, ssy]
+- `us`: (`::Integer or ::Vector{Integer}`, `=1`)  upsampling parameter for all axes if scaler, per axis if 2 element vector [usx, usy]
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
 
 # Examples
 ```julia-repl
-julia> obj = pelvis_phantom2D(; ss=1)
+julia> obj = pelvis_phantom2D(; ss=2])
+
+julia> obj = pelvis_phantom2D(; us=[1, 2])
 
 julia> pelvis_phantom2D(obj, :ρ)
 ```
 """
 function pelvis_phantom2D(; ss=4, us=1)
 
+    # check for valid input    
+    @assert length( ss) <= 2 "ss=$(ss) invalid, ss can have up to two components for a 2D phantom"
+    @assert length( us) <= 2 "us=$(us) invalid, us can have up to two components for a 2D phantom"
+    if length( us) == 1
+        usx = us[1]; usy = us[1]
+    else
+        usx = us[1]; usy = us[2]
+    end
+    if length( ss) == 1
+        ssx = ss[1]; ssy = ss[1]
+    else
+        ssx = ss[1]; ssy = ss[2]
+    end
+
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/pelvis2D.mat")
-    if us > 1; ss=1; end
-    class = repeat( data["pelvis3D_slice"][1:ss:end,1:ss:end], inner=[us, us])
+    
+    # subsample or upsample the phantom data
+    class = repeat( data["pelvis3D_slice"][1:ssx:end,1:ssy:end], inner=[usx, usy])
 
     # Define spin position vectors
-    Δx = .5e-3*ss/us
+    Δx = .5e-3*ssx/usx
+    Δy = .5e-3*ssy/usy
     M, N = size(class)
     FOVx = (M-1)*Δx             # [m]
-    FOVy = (N-1)*Δx             # [m]
+    FOVy = (N-1)*Δy             # [m]
     x = -FOVx/2:Δx:FOVx/2       # spin coordinates
-    y = -FOVy/2:Δx:FOVy/2       # spin coordinates
+    y = -FOVy/2:Δy:FOVy/2       # spin coordinates
     x, y = x .+ y'*0, x*0 .+ y' # grid points
 
     # Define spin property vectors
