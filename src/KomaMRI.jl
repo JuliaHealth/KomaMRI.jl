@@ -1,5 +1,7 @@
 module KomaMRI
 
+# Hello world
+
 # IMPORT PACKAGES
 using Reexport
 @reexport using KomaMRICore
