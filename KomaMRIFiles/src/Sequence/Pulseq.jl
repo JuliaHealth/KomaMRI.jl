@@ -434,6 +434,28 @@ function read_seq(filename)
     for i = 1:length(blockEvents)
         seq += get_block(obj, i)
     end
+
+    # Add first and last Pulseq points
+    for gi in 1:3
+        grad_prev_last = 0
+        for bi = 1:length(blockEvents)
+            gr = seq.GR[gi, bi]
+            if sum(abs.(gr.A)) == 0     # this is for no-gradient case
+                grad_prev_last = 0
+            else
+                if length(gr.A) != 1   # this is for the uniformly-shaped or time-shaped case
+                    if gr.delay > 0
+                        grad_prev_last = 0
+                    end
+                    seq.GR[gi, bi].first = grad_prev_last
+                    # ...
+                else    # this is for the trapedoid case
+                    grad_prev_last = 0
+                end
+            end
+        end
+    end
+
     # Final details
     # Remove dummy seq block at the start, Issue #203
     seq = seq[2:end]
