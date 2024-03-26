@@ -172,6 +172,7 @@ end
     obj = brain_phantom2D(; axis="axial", ss=4, us=1)
 
 Creates a two-dimensional brain Phantom struct.
+Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm.
 
 # References
 - B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
@@ -203,6 +204,10 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
     # check for valid input    
     @assert length( ss) <= 2 "ss=$(ss) invalid, ss can have up to two components for a 2D phantom"
     @assert length( us) <= 2 "us=$(us) invalid, us can have up to two components for a 2D phantom"
+    if length( us) > 1 || prod( us) > 1
+        @info "setting ss=1 since us=$(us) defined"
+        ss = 1
+    end
     if length( us) == 1
         usx = us[1]; usy = us[1]
     else
@@ -303,6 +308,7 @@ end
     obj = brain_phantom3D(; ss=4, us=1)
 
 Creates a three-dimentional brain Phantom struct.
+Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm. 
 
 # References
 - B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
@@ -328,11 +334,15 @@ julia> obj = brain_phantom3D(; us=[2, 2, 1])
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom3D(;ss=4,us=1,start_end=[160, 200])
+function brain_phantom3D(;ss=4, us=1, start_end=[160, 200])
 
     # check for valid input    
-    @assert length( ss) <= 3 "ss=$(ss) invalid, ss can have up to three components for a 3D phantom"
-    @assert length( us) <= 3 "us=$(us) invalid, us can have up to three components for a 3D phantom"
+    @assert length( ss) <= 3 "ss=$(ss) invalid, ss can have up to three components [ssx, ssy, ssz] for a 3D phantom"
+    @assert length( us) <= 3 "us=$(us) invalid, us can have up to three components [usx, usy, usz] for a 3D phantom"
+    if length( us) > 1 || prod( us) > 1
+        @info "setting ss=1 since us=$(us) defined"
+        ss = 1
+    end
     if length( us) == 1
         usx = us[1]; usy = us[1]; usz = us[1]
     elseif length( us) == 2
@@ -342,10 +352,10 @@ function brain_phantom3D(;ss=4,us=1,start_end=[160, 200])
         usx = us[1]; usy = us[2]; usz = us[3]
     end
     if length( ss) == 1
-        ssx = ss[1]; ssy = ss[1]; ssz = ss[1]
-        @warn "Using ss=$([ssx, ssy, ssz]) in place of ss=$([ssx, ssy])."
+        ssx = ss[1]; ssy = ss[1]; ssz = ss[1]   
     elseif length( ss) == 2
         ssx = ss[1]; ssy = ss[2]; ssz = ss[2]
+        @warn "Using ss=$([ssx, ssy, ssz]) in place of ss=$([ssx, ssy])."
     else
         ssx = ss[1]; ssy = ss[2]; ssz = ss[3]
     end
@@ -444,6 +454,7 @@ end
     obj = pelvis_phantom2D(; ss=4, us=1)
 
 Creates a two-dimensional pelvis Phantom struct.
+Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm.
 
 # Keywords
 - `ss`: (`::Integer or ::Vector{Integer}`, `=4`) subsampling parameter for all axes if scaler, per axis if 2 element vector [ssx, ssy]
@@ -466,6 +477,10 @@ function pelvis_phantom2D(; ss=4, us=1)
     # check for valid input    
     @assert length( ss) <= 2 "ss=$(ss) invalid, ss can have up to two components for a 2D phantom"
     @assert length( us) <= 2 "us=$(us) invalid, us can have up to two components for a 2D phantom"
+    if length( us) > 1 || prod( us) > 1
+        @info "setting ss=1 since us=$(us) defined"
+        ss = 1
+    end
     if length( us) == 1
         usx = us[1]; usy = us[1]
     else
