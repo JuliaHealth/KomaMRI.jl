@@ -693,7 +693,8 @@ function plot_phantom_map(
       width=nothing,
       darkmode=false,
       view_2d=false,
-      colorbar=true
+      colorbar=true,
+      kwargs...
   )
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
@@ -731,8 +732,8 @@ function plot_phantom_map(
 		unit=""
 		colormap="Greys"
 	end
-	cmin_key *= factor
-	cmax_key *= factor
+	cmin_key = get(kwargs, :cmin, factor * cmin_key)
+	cmax_key = get(kwargs, :cmax, factor * cmax_key)
 	x0 = -maximum(abs.([ph.x ph.y ph.z]))*1e2
     xf =  maximum(abs.([ph.x ph.y ph.z]))*1e2
 	#Layout
