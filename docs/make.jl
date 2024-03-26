@@ -9,7 +9,7 @@ repo_root_url = "https://github.com/$base/blob/master"
 com = joinpath(dirname(@__DIR__), "assets")
 exa = joinpath(dirname(@__DIR__), "examples")
 src = joinpath(@__DIR__, "src")
-edu = joinpath(exa, "6.educational_pluto_notebook")
+edu = joinpath(exa, "6.pluto_notebooks")
 lit = joinpath(exa, "literate")
 gen = joinpath(src, "generated")
 assets = joinpath(src, "assets")
@@ -62,6 +62,7 @@ end
 ways_of_using_koma = ["ui-details.md", "programming-workflow.md", "notebooks.md"]
 create_your_own_sequence = ["sequence.md", "events.md"]
 literate_examples = [joinpath("generated", exaname, f) for f in readdir(joinpath(gen, exaname)) if is_md_file(f)]
+educational_material = ["educational-1d-simulation.md", "pluto-fat-sat-low-field.md"]
 
 # Documentation structure
 makedocs(
@@ -81,7 +82,7 @@ makedocs(
         #"Sequence Definition" => "sequence.md";
         #"Events Definition" => "events.md";
         "Examples" => literate_examples;
-        "Educational Material 📚" => "educational-1d-simulation.md";
+        "Educational Material 📚" => educational_material;
         "Simulation" => "mri-theory.md";
         "API Documentation" => "api.md";
     ],
