@@ -40,7 +40,9 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: "Build KomaMRIBase"
+        if: always()
+        uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIBase
       - name: "Run tests for KomaMRIBase"
@@ -49,10 +51,13 @@ jobs:
         with:
           project: KomaMRIBase
       - name: "KomaMRICore dev setup"
+        if: always()
         shell: bash
         run: |
           julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: "Build KomaMRICore"
+        if: always()
+        uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRICore
       - name: "Run tests for KomaMRICore"
@@ -64,7 +69,9 @@ jobs:
         shell: bash
         run: |
           julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: "Build KomaMRIFiles"
+        if: always()
+        uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIFiles
       - name: "Run tests for KomaMRIFiles"
@@ -76,7 +83,9 @@ jobs:
         shell: bash
         run: |
           julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: "Build KomaMRIPlots"
+        if: always()
+        uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIPlots
       - name: "Run tests for KomaMRIPlots"
@@ -95,44 +104,56 @@ jobs:
               PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
               PackageSpec(path=pwd(), subdir="KomaMRIPlots")
           ])
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: "Build KomaMRI"
+        if: always()
+        uses: julia-actions/julia-buildpkg@v1
       - name: "Run tests for KomaMRI"
         if: always()
         uses: julia-actions/julia-runtest@v1
         with:
           prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - uses: julia-actions/julia-processcoverage@v1
+        if: always()
         with:
           directories: src
       - uses: codecov/codecov-action@v3
+        if: always()
         with:
           files: lcov.info
           flags: komamri
       - uses: julia-actions/julia-processcoverage@v1
+        if: always()
         with:
           directories: KomaMRIBase/src
       - uses: codecov/codecov-action@v3
+        if: always()
         with:
           files: lcov.info
           flags: base
       - uses: julia-actions/julia-processcoverage@v1
+        if: always()
         with:
           directories: KomaMRICore/src
       - uses: codecov/codecov-action@v3
+        if: always()
         with:
           files: lcov.info
           flags: core
       - uses: julia-actions/julia-processcoverage@v1
+        if: always()
         with:
           directories: KomaMRIPlots/src
       - uses: codecov/codecov-action@v3
+        if: always()
         with:
           files: lcov.info
           flags: plots
       - uses: julia-actions/julia-processcoverage@v1
+        if: always()
         with:
           directories: KomaMRIFiles/src
       - uses: codecov/codecov-action@v3
+        if: always()
         with:
           files: lcov.info
           flags: files
