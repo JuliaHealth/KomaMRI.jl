@@ -132,10 +132,12 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIFiles/src
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8 # v4.1.1
         with:
           files: lcov.info
           flags: files
+          token: ${{ secrets.CODECOV_TOKEN }} # required
+          fail_ci_if_error: true
   docs:
     name: Documentation
     runs-on: ubuntu-latest
