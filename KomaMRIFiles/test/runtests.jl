@@ -91,7 +91,7 @@ end
         if Namp == 1 && Ntim == 1
             return 1e-3*γ*KomaMRIBase.get_theo_A(gr; off_val=0)
         elseif  Namp > 1 && Ntim == 1
-            return 1e-3*γ*KomaMRIBase.get_theo_A(gr; off_val=0)[2:end]
+            return 1e-3*γ*[KomaMRIBase.get_theo_A(gr; off_val=0)[2:end-1]; gr.last]
         elseif Namp > 1 && Ntim > 1
             return 1e-3*γ*KomaMRIBase.get_theo_A(gr; off_val=0)[2:end]
         end

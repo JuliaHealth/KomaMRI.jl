@@ -434,21 +434,31 @@ function read_seq(filename)
     for i = 1:length(blockEvents)
         seq += get_block(obj, i)
     end
+    # Remove dummy seq block at the start, Issue #203
+    seq = seq[2:end]
 
     # Add first and last Pulseq points
     for gi in 1:3
         grad_prev_last = 0
-        for bi = 1:length(blockEvents)
+        for bi in 1:length(seq)
             gr = seq.GR[gi, bi]
             if sum(abs.(gr.A)) == 0     # this is for no-gradient case
                 grad_prev_last = 0
             else
-                if length(gr.A) != 1   # this is for the uniformly-shaped or time-shaped case
+                if length(gr.A) > 1   # this is for the uniformly-shaped or time-shaped case
                     if gr.delay > 0
                         grad_prev_last = 0
                     end
                     seq.GR[gi, bi].first = grad_prev_last
-                    # ...
+                    if length(gr.T) > 1    # this is for time-shaped case (I assume it is the extended trapezoid case)
+                        seq.GR[gi, bi].last = gr.A[end]   #I need to check this or [end-1]
+                    else
+                        odd_step1 = [seq.GR[gi, bi].first; 2 * gr.A]
+                        odd_step2 = odd_step1 .* (mod.(1:length(odd_step1), 2) * 2 .- 1)
+                        waveform_odd_rest = cumsum(odd_step2) .* (mod.(1:length(odd_step2), 2) * 2 .- 1)
+                        seq.GR[gi, bi].last = waveform_odd_rest[end]
+                    end
+                    grad_prev_last = seq.GR[gi, bi].last
                 else    # this is for the trapedoid case
                     grad_prev_last = 0
                 end
@@ -457,8 +467,6 @@ function read_seq(filename)
     end
 
     # Final details
-    # Remove dummy seq block at the start, Issue #203
-    seq = seq[2:end]
     # Hack for including extension and triggers
     seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
     seq.DEF = KomaMRIBase.recursive_merge(obj["definitions"], seq.DEF)
@@ -479,6 +487,8 @@ function read_seq(filename)
     #Koma sequence
     return seq
 end
+
+
 
 #To Sequence
 """
