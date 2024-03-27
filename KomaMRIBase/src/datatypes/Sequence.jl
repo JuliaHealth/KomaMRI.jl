@@ -527,7 +527,7 @@ function get_RF_types(seq, t)
 	rf_idx, rf_type
 end
 
-"""
+@doc raw"""
     Mk, Mk_adc = get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
 
 Outputs the designed ``k``th-order moment of the Sequence `seq` given by the formula ``\int_0^T t^k G(t) dt``.
@@ -588,21 +588,25 @@ function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))
 end
 
 """
-Refer to [`get_Mk`](@ref)
+Outputs the designed k-space trajectory of the Sequence `seq`.
+Refer to [`get_Mk`](@ref) and [`get_M0`](@ref)
 """
 get_kspace(seq::Sequence; kwargs...) = get_Mk(seq, 0; kwargs...)
 
 """
-Refer to [`get_Mk`](@ref)
+Outputs the designed zero-order moment of the Sequence `seq`.
+Refer to [`get_Mk`](@ref) and [`get_kspace`](@ref)
 """
 get_M0(seq::Sequence; kwargs...) = get_Mk(seq, 0; kwargs...)
 
 """
+Outputs the designed 1st-order moment of the Sequence `seq`.
 Refer to [`get_Mk`](@ref)
 """
 get_M1(seq::Sequence; kwargs...) = get_Mk(seq, 1; kwargs...)
 
 """
+Outputs the designed 2nd-order moment of the Sequence `seq`.
 Refer to [`get_Mk`](@ref)
 """
 get_M2(seq::Sequence; kwargs...) = get_Mk(seq, 2; kwargs...)
