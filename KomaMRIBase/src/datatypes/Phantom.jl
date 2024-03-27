@@ -433,23 +433,19 @@ function pelvis_phantom2D(; ss=4, us=1)
     x, y = x .+ y'*0, x*0 .+ y' # grid points
 
     # Define spin property vectors
-    ρ = (class.==51)*.001 .+    # Air
-        (class.==102)*.86 .+    # Fat
+    ρ = (class.==102)*.86 .+    # Fat
         (class.==153)*.9 .+     # SoftTissue
         (class.==204)*.4 .+     # SpongyBone
         (class.==255)*.2        # CorticalBone
-    T1 = (class.==51)*.001 .+   # Air
-        (class.==102)*366 .+    # Fat
+    T1 = (class.==102)*366 .+   # Fat
         (class.==153)*1200 .+   # SoftTissue
         (class.==204)*381 .+    # SpongyBone
         (class.==255)*100       # CorticalBone
-    T2 = (class.==51)*.001 .+   # Air
-        (class.==102)*70 .+     # Fat
+    T2 = (class.==102)*70 .+    # Fat
         (class.==153)*80 .+     # SoftTissue
         (class.==204)*52 .+     # SpongyBone
         (class.==255)*.3        # CorticalBone
-    T2s = (class.==51)*.001 .+  # Air
-        (class.==102)*70 .+     # Fat
+    T2s = (class.==102)*70 .+   # Fat
         (class.==153)*80 .+     # SoftTissue
         (class.==204)*52 .+     # SpongyBone
         (class.==255)*.3        # CorticalBone
