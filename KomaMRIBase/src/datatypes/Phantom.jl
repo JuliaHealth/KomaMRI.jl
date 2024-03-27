@@ -497,7 +497,7 @@ function pelvis_phantom2D(; ss=4, us=1)
     data = MAT.matread(path*"/phantom/pelvis2D.mat")
     
     # subsample or upsample the phantom data
-    class = repeat( data["pelvis3D_slice"][1:ssx:end,1:ssy:end], inner=[usx, usy])
+    class = repeat(data["pelvis3D_slice"][1:ssx:end,1:ssy:end], inner=[usx, usy])
 
     # Define spin position vectors
     Δx = .5e-3*ssx/usx
