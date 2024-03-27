@@ -450,7 +450,7 @@ function read_seq(filename)
                         grad_prev_last = 0
                     end
                     seq.GR[gi, bi].first = grad_prev_last
-                    if length(gr.T) > 1    # this is for time-shaped case (I assume it is the extended trapezoid case)
+                    if length(gr.T) > 1 || (isdefined(gr, :time_shape_id) && gr.time_shape_id != 0)    # this is for time-shaped case (I assume it is the extended trapezoid case)
                         seq.GR[gi, bi].last = gr.A[end]   #I need to check this or [end-1]
                     else
                         odd_step1 = [seq.GR[gi, bi].first; 2 * gr.A]
@@ -524,6 +524,9 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         delay =         g[4]
         #Amplitude
         gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
+        if length(gA) == 1
+            gA = gA[1]
+        end
         Nrf = length(gA) - 1
         #Creating timings
         if time_shape_id == 0 #no time waveform
@@ -533,8 +536,12 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
             gT = (gt[2:end] .- gt[1:end-1]) * Δt_gr
+            if length(gT) == 1
+                gT = gT[1]
+            end
             G = Grad(gA,gT,0,0,delay)
         end
+        G.time_shape_id = time_shape_id
     end
     G
 end
