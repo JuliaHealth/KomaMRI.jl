@@ -528,13 +528,13 @@ function get_RF_types(seq, t)
 end
 
 """
-    kspace, kspace_adc = get_Mk(seq::Sequence, order; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
+    Mk, Mk_adc = get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
 
-Outputs the designed moment with order `order` of the Sequence `seq`.
+Outputs the designed ``k``th-order moment of the Sequence `seq` given by the formula ``\int_0^T t^k G(t) dt``.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
-- `order`: (`::Integer`) order of the moment to be computed
+- `k`: (`::Integer`) order of the moment to be computed
 - `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients
 - `skip_rf`: (`::Vector{Bool}`, `=zeros(Bool, sum(is_RF_on.(seq)))`) boolean vector which
@@ -542,10 +542,10 @@ Outputs the designed moment with order `order` of the Sequence `seq`.
     refocusing RF type
 
 # Returns
-- `kspace`: (`3-column ::Matrix{Real}`) kspace
-- `kspace_adc`: (`3-column ::Matrix{Real}`) kspace sampled at ADC times
+- `Mk`: (`3-column ::Matrix{Real}`) ``k``th-order moment
+- `Mk_adc`: (`3-column ::Matrix{Real}`) ``k``th-order moment sampled at ADC times
 """
-function get_Mk(seq::Sequence, order; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
+function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
     t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
@@ -559,7 +559,7 @@ function get_Mk(seq::Sequence, order; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(s
 	for i = 1:3
 		mkf = 0
 		for (rf, p) in enumerate(parts)
-			mk[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^order .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
+			mk[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^k .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
 			if rf > 1 # First part does not have RF
 				if !skip_rf[rf-1]
 					if rf_type[rf-1] == 0 # Excitation
@@ -587,10 +587,24 @@ function get_Mk(seq::Sequence, order; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(s
 	return Mk, Mk_adc
 end
 
-# Functions depending on get_Mk
+"""
+Refer to [`get_Mk`](@ref)
+"""
 get_kspace(seq::Sequence; kwargs...) = get_Mk(seq, 0; kwargs...)
+
+"""
+Refer to [`get_Mk`](@ref)
+"""
 get_M0(seq::Sequence; kwargs...) = get_Mk(seq, 0; kwargs...)
+
+"""
+Refer to [`get_Mk`](@ref)
+"""
 get_M1(seq::Sequence; kwargs...) = get_Mk(seq, 1; kwargs...)
+
+"""
+Refer to [`get_Mk`](@ref)
+"""
 get_M2(seq::Sequence; kwargs...) = get_Mk(seq, 2; kwargs...)
 
 """
