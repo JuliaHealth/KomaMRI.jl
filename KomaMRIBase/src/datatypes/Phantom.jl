@@ -475,9 +475,9 @@ julia> pelvis_phantom2D(obj, :ρ)
 function pelvis_phantom2D(; ss=4, us=1)
 
     # check for valid input    
-    @assert length( ss) <= 2 "ss=$(ss) invalid, ss can have up to two components for a 2D phantom"
-    @assert length( us) <= 2 "us=$(us) invalid, us can have up to two components for a 2D phantom"
-    if length( us) > 1 || prod( us) > 1
+    @assert length(ss) <= 2 "ss=$(ss) invalid, ss can have up to two components for a 2D phantom"
+    @assert length(us) <= 2 "us=$(us) invalid, us can have up to two components for a 2D phantom"
+    if length(us) > 1 || prod(us) > 1
         @info "setting ss=1 since us=$(us) defined"
         ss = 1
     end
