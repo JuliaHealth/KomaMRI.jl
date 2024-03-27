@@ -434,9 +434,39 @@ function read_seq(filename)
     for i = 1:length(blockEvents)
         seq += get_block(obj, i)
     end
-    # Final details
     # Remove dummy seq block at the start, Issue #203
     seq = seq[2:end]
+
+    # Add first and last Pulseq points
+    for gi in 1:3
+        grad_prev_last = 0
+        for bi in 1:length(seq)
+            gr = seq.GR[gi, bi]
+            if sum(abs.(gr.A)) == 0     # this is for no-gradient case
+                grad_prev_last = 0
+            else
+                if length(gr.A) > 1   # this is for the uniformly-shaped or time-shaped case
+                    if gr.delay > 0
+                        grad_prev_last = 0
+                    end
+                    seq.GR[gi, bi].first = grad_prev_last
+                    if length(gr.T) > 1 || (length(gr.T) == 1 && gr.T isa Array)   # this is for time-shaped case (I assume it is the extended trapezoid case)
+                        seq.GR[gi, bi].last = gr.A[end]   #I need to check this or [end-1]
+                    else
+                        odd_step1 = [seq.GR[gi, bi].first; 2 * gr.A]
+                        odd_step2 = odd_step1 .* (mod.(1:length(odd_step1), 2) * 2 .- 1)
+                        waveform_odd_rest = cumsum(odd_step2) .* (mod.(1:length(odd_step2), 2) * 2 .- 1)
+                        seq.GR[gi, bi].last = waveform_odd_rest[end]
+                    end
+                    grad_prev_last = seq.GR[gi, bi].last
+                else    # this is for the trapedoid case
+                    grad_prev_last = 0
+                end
+            end
+        end
+    end
+
+    # Final details
     # Hack for including extension and triggers
     seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
     seq.DEF = KomaMRIBase.recursive_merge(obj["definitions"], seq.DEF)
@@ -457,6 +487,8 @@ function read_seq(filename)
     #Koma sequence
     return seq
 end
+
+
 
 #To Sequence
 """
@@ -497,6 +529,7 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         if time_shape_id == 0 #no time waveform
             gT = Nrf * Δt_gr
             G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay)
+            #G = Grad(gA, gT, 0, 0, delay)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
             gT = (gt[2:end] .- gt[1:end-1]) * Δt_gr
@@ -521,6 +554,11 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 - `rf`: (`1x1 ::Matrix{RF}`) RF struct
 """
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
+
+    if isempty(rfLibrary) || i==0
+        return reshape([RF(0,0)], 1, 1)
+    end
+
     #Unpacking
     #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
     r = rfLibrary[i]["data"]
@@ -533,8 +571,8 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     phase =         r[7]
     #Amplitude and phase waveforms
     if amplitude != 0 && mag_id != 0
-        rfA = decompress_shape(shapeLibrary[mag_id]...)[1:end-1]
-        rfϕ = decompress_shape(shapeLibrary[phase_id]...)[1:end-1]
+        rfA = decompress_shape(shapeLibrary[mag_id]...)#[1:end-1]   # Temporal change for reading all samples from .seq
+        rfϕ = decompress_shape(shapeLibrary[phase_id]...)#[1:end-1]     # Temporal change for reading all samples from .seq
         @assert all(rfϕ.>=0) "[RF id $i] Phase waveform rfϕ must have non-negative samples (1.>=rfϕ.>=0). "
         Nrf = shapeLibrary[mag_id][1] - 1
         rfAϕ = amplitude .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
@@ -550,6 +588,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     else
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
         rfT = (rft[2:end] .- rft[1:end-1]) * Δt_rf
+        rfAϕ = rfAϕ[1:length(rfT)]  # Temporal change for RF-Pulses when reading all samples from .seq
     end
     R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
     R
@@ -568,8 +607,14 @@ Reads the ADC. It is used internally by [`get_block`](@ref).
 - `adc`: (`1x1 ::Vector{ADC}`) ADC struct
 """
 function read_ADC(adcLibrary, i)
+
+    if isempty(adcLibrary) || i==0
+        return [ADC(0, 0)]
+    end
+
     #Unpacking
     #(1)num (2)dwell (3)delay (4)freq (5)phase
+    # It is needed a review for this, the dwell definition may cause problems
     if !isempty(adcLibrary) # Is this the best? maybe defining i=0 is better, it works with RFs(?)
         a = adcLibrary[i]["data"]
     else
