@@ -202,7 +202,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
     data = MAT.matread(path*"/phantom/brain2D.mat")
     if us > 1; ss=1; end
     class = repeat( data[axis][1:ss:end,1:ss:end], inner=[us, us])
-
+    
     # Define spin position vectors
     Δx = .5e-3*ss/us
     M, N = size(class)
