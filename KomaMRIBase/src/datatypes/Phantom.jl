@@ -365,7 +365,7 @@ function brain_phantom3D(;ss=4, us=1, start_end=[160, 200])
     data = MAT.matread(path*"/phantom/brain3D.mat")
 
     # subsample or upsample the phantom data
-    class = repeat( data["data"][1:ssx:end,1:ssy:end, start_end[1]:ssz:start_end[2]], inner=[usx, usy, usz])
+    class = repeat(data["data"][1:ssx:end,1:ssy:end, start_end[1]:ssz:start_end[2]], inner=[usx, usy, usz])
 
     # Define spin position vectors
     Δx = .5e-3*ssx/usx
