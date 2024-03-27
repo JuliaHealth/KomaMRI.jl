@@ -337,9 +337,9 @@ julia> plot_phantom_map(obj, :ρ)
 function brain_phantom3D(;ss=4, us=1, start_end=[160, 200])
 
     # check for valid input    
-    @assert length( ss) <= 3 "ss=$(ss) invalid, ss can have up to three components [ssx, ssy, ssz] for a 3D phantom"
-    @assert length( us) <= 3 "us=$(us) invalid, us can have up to three components [usx, usy, usz] for a 3D phantom"
-    if length( us) > 1 || prod( us) > 1
+    @assert length(ss) <= 3 "ss=$(ss) invalid, ss can have up to three components [ssx, ssy, ssz] for a 3D phantom"
+    @assert length(us) <= 3 "us=$(us) invalid, us can have up to three components [usx, usy, usz] for a 3D phantom"
+    if length(us) > 1 || prod(us) > 1
         @info "setting ss=1 since us=$(us) defined"
         ss = 1
     end
