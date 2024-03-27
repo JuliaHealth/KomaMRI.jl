@@ -376,8 +376,8 @@ function brain_phantom3D(;ss=4, us=1, start_end=[160, 200])
     FOVy = (N-1)*Δy #[m]
 	FOVz = (Z-1)*Δz #[m]
     xx = reshape(-FOVx/2:Δx:FOVx/2,M,1,1) #spin coordinates
-    yy = reshape(-FOVy/2:Δx:FOVy/2,1,N,1) #spin coordinates
-	zz = reshape(-FOVz/2:Δx:FOVz/2,1,1,Z) #spin coordinates
+    yy = reshape(-FOVy/2:Δy:FOVy/2,1,N,1) #spin coordinates
+	zz = reshape(-FOVz/2:Δz:FOVz/2,1,1,Z) #spin coordinates
     x = 1*xx .+ 0*yy .+ 0*zz
 	y = 0*xx .+ 1*yy .+ 0*zz
 	z = 0*xx .+ 0*yy .+ 1*zz
