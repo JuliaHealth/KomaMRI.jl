@@ -343,7 +343,7 @@ function brain_phantom3D(;ss=4, us=1, start_end=[160, 200])
         @info "setting ss=1 since us=$(us) defined"
         ss = 1
     end
-    if length( us) == 1
+    if length(us) == 1
         usx = us[1]; usy = us[1]; usz = us[1]
     elseif length( us) == 2
         usx = us[1]; usy = us[2]; usz = us[2]
