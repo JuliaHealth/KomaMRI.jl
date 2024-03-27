@@ -224,7 +224,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
     data = MAT.matread(path*"/phantom/brain2D.mat")
 
     # subsample or upsample the phantom data
-    class = repeat( data[axis][1:ssx:end,1:ssy:end], inner=[usx, usy])
+    class = repeat(data[axis][1:ssx:end,1:ssy:end], inner=[usx, usy])
     
     # Define spin position vectors
     Δx = .5e-3*ssx/usx
