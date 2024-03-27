@@ -546,7 +546,7 @@ Outputs the designed ``k``th-order moment of the Sequence `seq` given by the for
 - `Mk_adc`: (`3-column ::Matrix{Real}`) ``k``th-order moment sampled at ADC times
 """
 function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
-        t, Δt = get_variable_times(seq; Δt)
+	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
 	t = t[1:end-1]
