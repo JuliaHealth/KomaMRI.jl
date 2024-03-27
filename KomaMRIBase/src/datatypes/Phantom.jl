@@ -481,7 +481,7 @@ function pelvis_phantom2D(; ss=4, us=1)
         @info "setting ss=1 since us=$(us) defined"
         ss = 1
     end
-    if length( us) == 1
+    if length(us) == 1
         usx = us[1]; usy = us[1]
     else
         usx = us[1]; usy = us[2]
