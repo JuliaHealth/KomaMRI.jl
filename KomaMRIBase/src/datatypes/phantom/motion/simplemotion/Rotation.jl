@@ -75,25 +75,25 @@ end
 
 displacement_x(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    α = t_unit .* (motion_type.pitch * 180/π)
-    β = t_unit .* (motion_type.roll * 180/π)
-    γ = t_unit .* (motion_type.yaw * 180/π)
+    α = t_unit .* (motion_type.pitch * π/180)
+    β = t_unit .* (motion_type.roll * π/180)
+    γ = t_unit .* (motion_type.yaw * π/180)
     return cos.(γ) .* cos.(β) .* x   +   (cos.(γ) .* sin.(β) .* sin.(α) .- sin.(γ) .* cos.(α)) .* y   +   (cos.(γ) .* sin.(β) .* cos.(α) .+ sin.(γ) .* sin.(α)) .*z   .-   x
 end
 
 displacement_y(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    α = t_unit .* (motion_type.pitch * 180/π)
-    β = t_unit .* (motion_type.roll * 180/π)
-    γ = t_unit .* (motion_type.yaw * 180/π)
+    α = t_unit .* (motion_type.pitch * π/180)
+    β = t_unit .* (motion_type.roll * π/180)
+    γ = t_unit .* (motion_type.yaw * π/180)
     return sin.(γ) .* cos.(β) .* x   +   (sin.(γ) .* sin.(β) .* sin.(α) .+ cos.(γ) .* cos.(α)) .* y   +   (sin.(γ) .* sin.(β) .* cos.(α) .- cos.(γ) .* sin.(α)) .* z  .-  y
 end
 
 displacement_z(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    α = t_unit .* (motion_type.pitch * 180/π)
-    β = t_unit .* (motion_type.roll * 180/π)
-    γ = t_unit .* (motion_type.yaw * 180/π)
+    α = t_unit .* (motion_type.pitch * π/180)
+    β = t_unit .* (motion_type.roll * π/180)
+    γ = t_unit .* (motion_type.yaw * π/180)
     return -sin.(β) .* x   +   cos.(β) .* sin.(α) .* y  .-  z 
 end
 
