@@ -527,170 +527,89 @@ function get_RF_types(seq, t)
 	rf_idx, rf_type
 end
 
-"""
-    kspace, kspace_adc = get_kspace(seq::Sequence; Δt=1)
+@doc raw"""
+    Mk, Mk_adc = get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
 
-Outputs the designed k-space trajectory of the Sequence `seq`.
+Computes the ``k``th-order moment of the Sequence `seq` given by the formula ``\int_0^T t^k G(t) dt``.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
+- `k`: (`::Integer`) order of the moment to be computed
 - `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients
+- `skip_rf`: (`::Vector{Bool}`, `=zeros(Bool, sum(is_RF_on.(seq)))`) boolean vector which
+    indicates whether to skip the computation for resetting the integral for excitation or
+    refocusing RF type
 
 # Returns
-- `kspace`: (`3-column ::Matrix{Float64}`) kspace
-- `kspace_adc`: (`3-column ::Matrix{Float64}`) adc kspace
+- `Mk`: (`3-column ::Matrix{Real}`) ``k``th-order moment
+- `Mk_adc`: (`3-column ::Matrix{Real}`) ``k``th-order moment sampled at ADC times
 """
-get_kspace(seq::Sequence; Δt=1,
-skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
+function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
 	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
 	t = t[1:end-1]
-	#kspace
+	# Moment
 	Nt = length(t)
-	k = zeros(Nt,3)
-	#get_RF_center_breaks
+	mk = zeros(Nt,3)
+	# get_RF_center_breaks
 	idx_rf, rf_type = get_RF_types(seq, t)
 	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3
-		kf = 0
+		mkf = 0
 		for (rf, p) in enumerate(parts)
-			k[p,i] = cumtrapz(Δt[p]', G[i][p[1]:p[end]+1]')[:] #This is the exact integral
-			if rf > 1
+			mk[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^k .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
+			if rf > 1 # First part does not have RF
 				if !skip_rf[rf-1]
 					if rf_type[rf-1] == 0 # Excitation
-						k[p,i] .-= 0
+						mk[p,i] .-= 0
 					elseif rf_type[rf-1] == 1 # Refocuse
-						k[p,i] .-= kf
+						mk[p,i] .-= mkf
 					end
 				else
-					k[p,i] .+= kf
+					mk[p,i] .+= mkf
 				end
 			end
-			kf = k[p[end],i]
+			mkf = mk[p[end],i]
 		end
 	end
-	kspace = γ * k #[m^-1]
-	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise quadratic
-	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
-	#TODO: check if this interpolation is necessary
-	ts = t .+ Δt
-	t_adc =  get_adc_sampling_times(seq)
-	kx_adc = linear_interpolation(ts,kspace[:,1],extrapolation_bc=0)(t_adc)
-	ky_adc = linear_interpolation(ts,kspace[:,2],extrapolation_bc=0)(t_adc)
-	kz_adc = linear_interpolation(ts,kspace[:,3],extrapolation_bc=0)(t_adc)
-	kspace_adc = [kx_adc ky_adc kz_adc]
-	#Final
-	kspace, kspace_adc
-end
-
-"""
-    M1, M1_adc = get_M1(seq::Sequence; Δt=1)
-
-Outputs the designed M1 of the Sequence `seq`.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
-    for ADC acquisition and Gradients
-
-# Returns
-- `M1`: (`3-column ::Matrix{Float64}`) First moment
-- `M1_adc`: (`3-column ::Matrix{Float64}`) First moment sampled at ADC points
-"""
-get_M1(seq::Sequence; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq)))) = begin
-	t, Δt = get_variable_times(seq; Δt)
-	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
-	t = t[1:end-1]
-	#kspace
-	Nt = length(t)
-	m1 = zeros(Nt,3)
-	#get_RF_center_breaks
-	idx_rf, rf_type = get_RF_types(seq, t)
-	parts = kfoldperm(Nt, 1; breaks=idx_rf)
-	for i = 1:3
-		m1f = 0
-		for (rf, p) in enumerate(parts)
-			m1[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]] .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
-			if rf > 1 #First part does not have RF
-				if !skip_rf[rf-1]
-					if rf_type[rf-1] == 0 # Excitation
-						m1[p,i] .-= 0
-					elseif rf_type[rf-1] == 1 # Refocuse
-						m1[p,i] .-= m1f
-					end
-				else
-					m1[p,i] .+= m1f
-				end
-			end
-			m1f = m1[p[end],i]
-		end
-	end
-	M1 = γ * m1 #[m^-1]
+	Mk = γ * mk #[m^-1]
 	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
 	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
 	#TODO: check if this interpolation is necessary
 	ts = t .+ Δt
 	t_adc =  get_adc_sampling_times(seq)
-	M1x_adc = linear_interpolation(ts,M1[:,1],extrapolation_bc=0)(t_adc)
-	M1y_adc = linear_interpolation(ts,M1[:,2],extrapolation_bc=0)(t_adc)
-	M1z_adc = linear_interpolation(ts,M1[:,3],extrapolation_bc=0)(t_adc)
-	M1_adc = [M1x_adc M1y_adc M1z_adc]
-	#Final
-	M1, M1_adc
+	Mkx_adc = linear_interpolation(ts, Mk[:,1],extrapolation_bc=0)(t_adc)
+	Mky_adc = linear_interpolation(ts, Mk[:,2],extrapolation_bc=0)(t_adc)
+	Mkz_adc = linear_interpolation(ts, Mk[:,3],extrapolation_bc=0)(t_adc)
+	Mk_adc = [Mkx_adc Mky_adc Mkz_adc]
+	return Mk, Mk_adc
 end
 
+"""
+Computes the k-space trajectory of the Sequence `seq`.
+Refer to [`get_Mk`](@ref) and [`get_M0`](@ref)
+"""
+get_kspace(seq::Sequence; kwargs...) = get_Mk(seq, 0; kwargs...)
 
 """
-    M2, M2_adc = get_M2(seq::Sequence; Δt=1)
-
-Outputs the designed M2 of the Sequence `seq`.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
-    for ADC acquisition and Gradients
-
-# Returns
-- `M2`: (`3-column ::Matrix{Float64}`) Second moment
-- `M2_adc`: (`3-column ::Matrix{Float64}`) Second moment sampled at ADC points
+Computes the zero-order moment of the Sequence `seq`.
+Refer to [`get_Mk`](@ref) and [`get_kspace`](@ref)
 """
-get_M2(seq::Sequence; Δt=1) = begin
-	t, Δt = get_variable_times(seq; Δt)
-	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
-	t = t[1:end-1]
-	#kspace
-	Nt = length(t)
-	m2 = zeros(Nt,3)
-	#get_RF_center_breaks
-	idx_rf, rf_type = get_RF_types(seq, t)
-	parts = kfoldperm(Nt, 1, breaks=idx_rf)
-	for i = 1:3
-		m2f = 0
-		for (rf, p) in enumerate(parts)
-			m2[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^2 .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
-			if rf > 1 #First part does not have RF
-				m2[p,i] .-= rf_type[rf-1] * m2f
-			end
-			m2f = m2[p[end],i]
-		end
-	end
-	M2 = γ * m2 #[m^-1]
-	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
-	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
-	#TODO: check if this interpolation is necessary
-	ts = t .+ Δt
-	t_adc =  get_adc_sampling_times(seq)
-	M2x_adc = linear_interpolation(ts,M2[:,1],extrapolation_bc=0)(t_adc)
-	M2y_adc = linear_interpolation(ts,M2[:,2],extrapolation_bc=0)(t_adc)
-	M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
-	M2_adc = [M2x_adc M2y_adc M2z_adc]
-	#Final
-	M2, M2_adc
-end
+get_M0(seq::Sequence; kwargs...) = get_Mk(seq, 0; kwargs...)
+
+"""
+Computes the 1st-order moment of the Sequence `seq`.
+Refer to [`get_Mk`](@ref)
+"""
+get_M1(seq::Sequence; kwargs...) = get_Mk(seq, 1; kwargs...)
+
+"""
+Computes the 2nd-order moment of the Sequence `seq`.
+Refer to [`get_Mk`](@ref)
+"""
+get_M2(seq::Sequence; kwargs...) = get_Mk(seq, 2; kwargs...)
 
 """
 	SR, SR_adc = get_slew_rate(seq::Sequence; Δt=1)
