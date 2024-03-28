@@ -147,7 +147,7 @@ function write_phantom(obj::Phantom, filename::String)
     # Spin initial positions
     pos = create_group(fid, "position")
     for i in 1:3
-        if Bool(dims[i])
+        if dims[i]
             create_group(pos, String(fields[i]))["values"] = getfield(obj, fields[i])
         end
     end
