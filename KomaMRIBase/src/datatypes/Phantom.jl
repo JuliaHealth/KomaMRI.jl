@@ -501,7 +501,7 @@ end
 
 Utility function to check the arguments of phantom generating functions.
 # Arguments
-- `nd` : (`::Integer`) subsampling parameter for all axes if scaler, per axis if 2 element vector [ssx, ssy]
+- `nd` : (`::Integer`) dimensionality of the phantom
 - `ss` : (`::Integer or ::Vector{Integer}`) subsampling parameter for all axes if scaler, per axis if a 2 or 3 element vector
 - `us` : (`::Integer or ::Vector{Integer}`)  upsampling parameter for all axes if scaler, per axis if a 2 or 3 element vector
 
