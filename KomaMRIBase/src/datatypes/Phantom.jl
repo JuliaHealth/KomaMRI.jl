@@ -172,11 +172,11 @@ end
 dims = get_dims(obj)
 """
 function get_dims(obj::Phantom)
-	dims = [0,0,0]
-	if obj.x != zeros(length(obj.x)) dims[1] = 1 end
-	if obj.y != zeros(length(obj.x)) dims[2] = 1 end
-	if obj.z != zeros(length(obj.x)) dims[3] = 1 end
-	dims
+	dims = Bool[]
+	push!(dims, any(x -> x != 0, obj.x))
+	push!(dims, any(x -> x != 0, obj.y))
+	push!(dims, any(x -> x != 0, obj.z))
+	return dims
 end
 
 
