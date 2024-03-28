@@ -54,6 +54,8 @@ end
     using KomaMRIBase, MAT, PrettyTables
     TOLERANCE = 1e-6
 
+    get_theo_A_helper(r::RF) = sum(abs.(r.A)) == 0 ? [0; 0; zeros(2*length(r.A)); 0] : [0; 0; transpose([r.A r.A])[:]; 0]
+
     # Auxiliar functions
     function get_theo_t_aux(rf::RF)
         Namp, Ntim = length(rf.A), length(rf.T)
@@ -68,9 +70,9 @@ end
     function get_theo_A_aux(rf::RF)
         Namp, Ntim = length(rf.A), length(rf.T)
         if Namp == 1 && Ntim == 1
-            return γ*KomaMRIBase.get_theo_A(rf; off_val=NaN, max_rf_samples=Inf)[2:end]
+            return γ*get_theo_A_helper(rf)[2:end]
         elseif Namp > 1 && Ntim == 1
-            amps = γ*KomaMRIBase.get_theo_A(rf; off_val=NaN, max_rf_samples=Inf)[2:end]
+            amps = γ*get_theo_A_helper(rf)[2:end]
             return [amps[1]; amps[2:end-1][[i for i in 1:length(amps)-1 if i % 2 == 0]]; amps[end]]
         end
         return []#γ*KomaMRIBase.get_theo_A(rf; off_val=NaN, max_rf_samples=Inf)[2:end]
@@ -198,15 +200,16 @@ end
                     for i in 1:length(seq_pulseq[event]["blocks"])
                         samples_koma = seq_koma[event][sample][i]
                         samples_pulseq = seq_pulseq[event][sample][i]
-                        same_points = all(.≈(samples_koma, samples_pulseq, atol=TOLERANCE))
+                        same_points = all(.≈(abs.(samples_koma .- samples_pulseq), 0, atol=TOLERANCE))
                         @test same_points
                         if !same_points
                             println("Mismatch for $(event) $(sample). Block $(seq_pulseq[event]["blocks"][i])")
                             data = [samples_koma samples_pulseq]
                             pretty_table(data; header=["koma", "pulseq"])
                             # This is just an example about how to debug locally when there are problems
-                            #if event == "gx" && sample == "amplitudes" && seq_pulseq[event]["blocks"][i] == 3
-                            #    pretty_table(data[end-10:end,:]; header=["koma", "pulseq"])
+                            #if event == "rf" && sample == "amplitudes" #&& seq_pulseq[event]["blocks"][i] == 3
+                            #    pretty_table(data[1:10,:]; header=["koma", "pulseq"])
+                            #    #pretty_table(data[end-10:end,:]; header=["koma", "pulseq"])
                             #end
                         end
                     end

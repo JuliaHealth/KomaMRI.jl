@@ -64,7 +64,7 @@ get_theo_A(r::RF; off_val=0, max_rf_samples=Inf) = begin
 		freq = exp.(1im*2π*cumsum(r.Δf.*dt)) # exp(i ∫ᵗw(t)dt)
 		added_phase = transpose([freq freq])[:]
 		A = A .* added_phase
-		A[abs.(A).<=1e-10] .= 0 #Remove small values
+		#A[abs.(A).<=1e-10] .= 0 #Remove small values
 		#Output
 		aux = [off_val; 0; A; 0]
 	end
