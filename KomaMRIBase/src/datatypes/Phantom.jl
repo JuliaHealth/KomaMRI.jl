@@ -201,23 +201,8 @@ julia> plot_phantom_map(obj, :ρ)
 """
 function brain_phantom2D(; axis="axial", ss=4, us=1)
 
-    # check for valid input    
-    @assert length(ss) <= 2 "ss=$(ss) invalid, ss can have up to two components for a 2D phantom"
-    @assert length(us) <= 2 "us=$(us) invalid, us can have up to two components for a 2D phantom"
-    if length(us) > 1 || prod(us) > 1
-        @info "setting ss=1 since us=$(us) defined"
-        ss = 1
-    end
-    if length(us) == 1
-        usx = us[1]; usy = us[1]
-    else
-        usx = us[1]; usy = us[2]
-    end
-    if length(ss) == 1
-        ssx = ss[1]; ssy = ss[1]
-    else
-        ssx = ss[1]; ssy = ss[2]
-    end
+    # check and filter input    
+    ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
     path = @__DIR__
@@ -336,29 +321,8 @@ julia> plot_phantom_map(obj, :ρ)
 """
 function brain_phantom3D(;ss=4, us=1, start_end=[160, 200])
 
-    # check for valid input    
-    @assert length(ss) <= 3 "ss=$(ss) invalid, ss can have up to three components [ssx, ssy, ssz] for a 3D phantom"
-    @assert length(us) <= 3 "us=$(us) invalid, us can have up to three components [usx, usy, usz] for a 3D phantom"
-    if length(us) > 1 || prod(us) > 1
-        @info "setting ss=1 since us=$(us) defined"
-        ss = 1
-    end
-    if length(us) == 1
-        usx = us[1]; usy = us[1]; usz = us[1]
-    elseif length( us) == 2
-        usx = us[1]; usy = us[2]; usz = us[2]
-        @warn "Using us=$([usx, usy, usz]) in place of us=$([usx, usy])."
-    else
-        usx = us[1]; usy = us[2]; usz = us[3]
-    end
-    if length(ss) == 1
-        ssx = ss[1]; ssy = ss[1]; ssz = ss[1]   
-    elseif length( ss) == 2
-        ssx = ss[1]; ssy = ss[2]; ssz = ss[2]
-        @warn "Using ss=$([ssx, ssy, ssz]) in place of ss=$([ssx, ssy])."
-    else
-        ssx = ss[1]; ssy = ss[2]; ssz = ss[3]
-    end
+    # check and filter input    
+    ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, ss, us)
 
     # Get data from .mat file
     path = @__DIR__
@@ -474,23 +438,8 @@ julia> pelvis_phantom2D(obj, :ρ)
 """
 function pelvis_phantom2D(; ss=4, us=1)
 
-    # check for valid input    
-    @assert length(ss) <= 2 "ss=$(ss) invalid, ss can have up to two components for a 2D phantom"
-    @assert length(us) <= 2 "us=$(us) invalid, us can have up to two components for a 2D phantom"
-    if length(us) > 1 || prod(us) > 1
-        @info "setting ss=1 since us=$(us) defined"
-        ss = 1
-    end
-    if length(us) == 1
-        usx = us[1]; usy = us[1]
-    else
-        usx = us[1]; usy = us[2]
-    end
-    if length(ss) == 1
-        ssx = ss[1]; ssy = ss[1]
-    else
-        ssx = ss[1]; ssy = ss[2]
-    end
+    # check and filter input    
+    ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
     path = @__DIR__
@@ -545,4 +494,69 @@ function pelvis_phantom2D(; ss=4, us=1)
         Δw = Δw[ρ.!=0],
     )
     return obj
+end
+
+"""
+    ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(nd, ss, us)
+
+Utility function to check the arguments of phantom generating functions.
+# Arguments
+- `nd` : (`::Integer`) subsampling parameter for all axes if scaler, per axis if 2 element vector [ssx, ssy]
+- `ss` : (`::Integer or ::Vector{Integer}`) subsampling parameter for all axes if scaler, per axis if a 2 or 3 element vector
+- `us` : (`::Integer or ::Vector{Integer}`)  upsampling parameter for all axes if scaler, per axis if a 2 or 3 element vector
+
+# Returns
+- `ssx, ssy, ssz`: (`::Vector{Integer}`) valid subsampling parameter per axis
+- `usx, usy, usz`: (`::Vector{Integer}`)  valid upsampling parameter per axis
+
+# Examples
+```julia-repl
+julia> ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, 1, 1)
+
+julia> ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, 4, [2, 2, 2])
+```
+"""
+function check_phantom_arguments( nd, ss, us)
+
+    # check for valid input    
+    ssz = -9999
+    usz = -9999
+    if length(us) > 1 || prod(us) > 1
+        @info "setting ss=1 since us=$(us) defined"
+        ss = 1
+    end
+    if nd == 3
+        @assert length(ss) <= 3 "ss=$(ss) invalid, ss can have up to three components [ssx, ssy, ssz] for a 3D phantom"
+        @assert length(us) <= 3 "us=$(us) invalid, us can have up to three components [usx, usy, usz] for a 3D phantom"
+        if length(us) == 1
+            usx = us[1]; usy = us[1]; usz = us[1]
+        elseif length( us) == 2
+            usx = us[1]; usy = us[2]; usz = us[2]
+            @warn "Using us=$([usx, usy, usz]) in place of us=$([usx, usy])."
+        else
+            usx = us[1]; usy = us[2]; usz = us[3]
+        end
+        if length(ss) == 1
+            ssx = ss[1]; ssy = ss[1]; ssz = ss[1]   
+        elseif length( ss) == 2
+            ssx = ss[1]; ssy = ss[2]; ssz = ss[2]
+            @warn "Using ss=$([ssx, ssy, ssz]) in place of ss=$([ssx, ssy])."
+        else
+            ssx = ss[1]; ssy = ss[2]; ssz = ss[3]
+        end    
+    elseif nd == 2    
+        @assert length(ss) <= 2 "ss=$(ss) invalid, ss can have up to two components [ssx, ssy] for a 2D phantom"
+        @assert length(us) <= 2 "us=$(us) invalid, us can have up to two components [usx, usy] for a 2D phantom"
+            if length(us) == 1
+            usx = us[1]; usy = us[1]
+        else
+            usx = us[1]; usy = us[2]
+        end
+        if length(ss) == 1
+            ssx = ss[1]; ssy = ss[1]
+        else
+            ssx = ss[1]; ssy = ss[2]
+        end
+    end
+    return ssx, ssy, ssz, usx, usy, usz
 end
