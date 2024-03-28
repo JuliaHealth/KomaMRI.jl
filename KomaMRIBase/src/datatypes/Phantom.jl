@@ -506,8 +506,8 @@ Utility function to check the arguments of phantom generating functions.
 - `us` : (`::Integer or ::Vector{Integer}`)  upsampling parameter for all axes if scaler, per axis if a 2 or 3 element vector
 
 # Returns
-- `ssx, ssy, ssz`: (`::Vector{Integer}`) valid subsampling parameter per axis
-- `usx, usy, usz`: (`::Vector{Integer}`)  valid upsampling parameter per axis
+- `ssx, ssy, ssz`: (`::Integer`) valid subsampling parameters per axis
+- `usx, usy, usz`: (`::Integer`)  valid upsampling parameters per axis
 
 # Examples
 ```julia-repl
