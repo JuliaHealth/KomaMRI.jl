@@ -109,7 +109,6 @@ jobs:
           files: lcov.info
           flags: komamri
           token: ${{ secrets.CODECOV_TOKEN }} # required
-          fail_ci_if_error: true
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIBase/src
@@ -118,7 +117,6 @@ jobs:
           files: lcov.info
           flags: base
           token: ${{ secrets.CODECOV_TOKEN }} # required
-          fail_ci_if_error: true
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRICore/src
@@ -127,7 +125,6 @@ jobs:
           files: lcov.info
           flags: core
           token: ${{ secrets.CODECOV_TOKEN }} # required
-          fail_ci_if_error: true
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIPlots/src
@@ -136,7 +133,6 @@ jobs:
           files: lcov.info
           flags: plots
           token: ${{ secrets.CODECOV_TOKEN }} # required
-          fail_ci_if_error: true
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIFiles/src
@@ -145,7 +141,6 @@ jobs:
           files: lcov.info
           flags: files
           token: ${{ secrets.CODECOV_TOKEN }} # required
-          fail_ci_if_error: true
   docs:
     name: Documentation
     runs-on: ubuntu-latest
