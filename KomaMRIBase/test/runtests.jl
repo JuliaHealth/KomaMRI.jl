@@ -382,19 +382,29 @@ end
     # Test phantom subset
     rng = 1:2:5
     ug = SimpleMotion([Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
-                       Rotation(ti=0.05, tf=0.5, yaw=π/2)])
+                       PeriodicRotation(period=0.5, asymmetry=0.5, yaw=π/2)])
     obg = Phantom(name, x[rng], y[rng], z[rng], ρ[rng], T1[rng], T2[rng], T2s[rng], Δw[rng],
                     Dλ1[rng], Dλ2[rng], Dθ[rng], ug)
     @test obj[rng] ≈ obg
     @test @view(obj[rng]) ≈ obg
 
     # Test addition of phantoms
-    ua = SimpleMotion([Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
+    ua = SimpleMotion([PeriodicTranslation(period=0.5, asymmetry=0.5, dx=0.05, dy=0.05),
                        Rotation(ti=0.05, tf=0.5, yaw=π/2)])
     oba = Phantom(name, [x; x[rng]], [y; y[rng]], [z; z[rng]], [ρ; ρ[rng]],
                     [T1; T1[rng]], [T2; T2[rng]], [T2s; T2s[rng]], [Δw; Δw[rng]],
                     [Dλ1; Dλ1[rng]], [Dλ2; Dλ2[rng]], [Dθ; Dθ[rng]], ua)
     @test obj + obg ≈ oba
+
+    # Test phantom with ArbitraryMotion
+    Ns = length(obj.x)
+    K = 10
+    obj.motion = obj2.motion = ArbitraryMotion(
+        [1.0],
+        0.01.*rand(Ns, K-1),
+        0.01.*rand(Ns, K-1),
+        0.01.*rand(Ns, K-1))   
+    @test obj ≈ obj2
 
     # Test scalar multiplication of a phantom
     c = 7.
