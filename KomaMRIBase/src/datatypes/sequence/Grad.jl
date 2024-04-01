@@ -222,38 +222,3 @@ the duration is the maximum duration of all the elements of the gradient vector.
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x), dims=1)[:]
-
-
-get_grad_area(gr::Grad) = begin
-	x = cumsum(vcat(0, gr.rise, gr.T, gr.fall))
-
-	if 		length(gr.T) == length(gr.A) == 1
-		y = vcat(0, gr.A, gr.A, 0)
-
-	elseif  length(gr.T) >= length(gr.A)
-		y = vcat(0, gr.A, 0)
-		x = x[1:length(y)]
-
-	elseif  length(gr.T) < length(gr.A)
-		y = vcat(0, gr.A, 0)[1:length(x)]
-	end
-
-	n = length(x) - 1
-	area = 0.0
-
-	for i in 1:n
-		base = x[i+1] - x[i]
-		average_height = (y[i] + y[i+1]) / 2.0
-		area += base * average_height
-	end
-	area
-end
-
-
-set_grad_area!(gr::Grad,area::Real) = begin
-	B = gr.rise + sum(gr.T) + gr.fall
-	b = sum(gr.T)
-	G = 2*area/(B+b)
-
-	gr.A = G
-end
