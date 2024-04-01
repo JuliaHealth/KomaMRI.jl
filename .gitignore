@@ -34,6 +34,4 @@ examples/3.koma_paper/comparison_accuracy/**/*.h5
 
 test*.jl
 CardiacCine.jl
-examples/2.phantoms/scripts/
-examples/2.phantoms/*
 
