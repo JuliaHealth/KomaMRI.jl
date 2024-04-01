@@ -371,7 +371,7 @@ end
 
     # Test size and length definitions of a phantom
     @test size(obj) == size(ρ)
-    #@test length(obj) == length(ρ)
+    @test length(obj) == length(ρ)
 
     # Test phantom comparison
     ue = SimpleMotion([Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
@@ -397,7 +397,7 @@ end
     @test obj + obg ≈ oba
 
     # Test phantom with ArbitraryMotion
-    Ns = length(obj.x)
+    Ns = length(obj)
     K = 10
     obj.motion = obj2.motion = ArbitraryMotion(
         [1.0],
@@ -414,14 +414,17 @@ end
     #Test brain phantom 2D
     ph = brain_phantom2D()
     @test ph.name=="brain2D_axial"
+    @test get_dims(ph)==Bool[1, 1, 0]
 
     #Test brain phantom 3D
     ph = brain_phantom3D()
     @test ph.name=="brain3D"
+    @test get_dims(ph)==Bool[1, 1, 1]
 
     #Test pelvis phantom 2D
     ph = pelvis_phantom2D()
     @test ph.name=="pelvis2D"
+    @test get_dims(ph)==Bool[1, 1, 0]
 end
 
 @testitem "Scanner" tags=[:base] begin
