@@ -10,8 +10,8 @@ z = z + uz
 
 """
 # -------- SimpleMotion
-mutable struct SimpleMotion{T<:Real} <: MotionModel
-    types::AbstractVector{SimpleMotionType{T}}
+mutable struct SimpleMotion{T<:Real, S<:SimpleMotionType{T}} <: MotionModel
+    types::AbstractVector{S}
 end
 
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
@@ -26,9 +26,7 @@ function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::Abstr
 end
 
 function get_times(motion::SimpleMotion)
-    ti = [get_range(type)[1] for type in motion.types]
-    tf = [get_range(type)[2] for type in motion.types]
-    times = vcat(ti, tf)
+    times = reduce(vcat, [get_time_nodes(type) for type in motion.types])
     times = unique(sort(times))
     return times
 end
@@ -37,12 +35,18 @@ end
 # Non-periodic types: defined by an initial time (ti), a final time (tf) and a displacement      
 include("simplemotion/Translation.jl")
 include("simplemotion/Rotation.jl")
-#TODO: strain: how do I define it?
                                     
 # Periodic types: defined by the period, the temporal symmetry and a displacement (amplitude)
+include("simplemotion/PeriodicTranslation.jl")
+include("simplemotion/PeriodicRotation.jl")
 
-
-
+normalize_time_triangular(t, period, asymmetry) = begin
+    t_rise = period * asymmetry
+    t_fall = period * (1 - asymmetry)
+    t_relative = mod.(t, period)
+    t_unit = ifelse.(t_relative .< t_rise, t_relative ./ t_rise, 1 .- (t_relative .- t_rise) ./ t_fall)
+    return t_unit
+end
 
 
 """

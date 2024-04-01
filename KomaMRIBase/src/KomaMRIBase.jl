@@ -47,7 +47,7 @@ export get_dims
 export MotionModel
 export SimpleMotion, NoMotion, ArbitraryMotion
 export SimpleMotionType
-export Translation, Rotation
+export Translation, Rotation, PeriodicTranslation, PeriodicRotation
 export get_spin_coords, get_times
 export LinearInterpolator
 # Spinors

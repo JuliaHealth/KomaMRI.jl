@@ -97,6 +97,6 @@ displacement_z(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector
     return -sin.(β) .* x   +   cos.(β) .* sin.(α) .* y  .-  z 
 end
 
-get_range(motion_type::Rotation) = begin
-    return motion_type.ti, motion_type.tf
+get_time_nodes(motion_type::Rotation) = begin
+    return [motion_type.ti, motion_type.tf]
 end
