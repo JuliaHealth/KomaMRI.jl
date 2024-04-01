@@ -368,6 +368,40 @@ end
     @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
 end
 
+@testitem "Bloch_phase_compensation" tags=[:important, :core] begin
+    using Suppressor
+
+    Tadc = 1e-3
+    Trf = Tadc
+    T1 = 1000e-3
+    T2 = 20e-3
+    Δw = 2π * 100
+    B1 = 2e-6 * (Tadc / Trf)
+    N = 6
+
+    sys = Scanner()
+    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+
+    rf_phase = 2π*rand()
+    seq1 = Sequence()
+    seq1 += RF(B1, Trf)
+    seq1 += ADC(N, Tadc)
+
+    seq2 = Sequence()
+    seq2 += RF(B1 .* exp(1im*rf_phase), Trf)
+    seq2 += ADC(N, Tadc, 0, 0, rf_phase)
+
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false, "Nthreads"=>1)
+    raw1 = @suppress simulate(obj, seq1, sys; sim_params)
+    raw2 = @suppress simulate(obj, seq2, sys; sim_params)
+
+    println(raw1.profiles[1].data)
+    println(raw2.profiles[1].data)
+
+    @test raw1.profiles[1].data ≈ raw2.profiles[1].data
+
+end
+
 @testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))

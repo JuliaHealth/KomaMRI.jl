@@ -258,8 +258,7 @@ heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false; heart_rate=60) = begin
 	heart = Phantom(name="LeftVentricle",
 					x=x[ρ.!=0],y=y[ρ.!=0],
 					ρ=ρ[ρ.!=0],T1=T1[ρ.!=0],T2=T2[ρ.!=0],
-					Dλ1=Dλ1[ρ.!=0],Dλ2=Dλ2[ρ.!=0],Dθ=Dθ[ρ.!=0],
-					motion=SimpleMotion(ux=ux,uy=uy))
+					Dλ1=Dλ1[ρ.!=0],Dλ2=Dλ2[ρ.!=0],Dθ=Dθ[ρ.!=0])
 	heart
 end
 
@@ -289,7 +288,8 @@ Creates a two-dimensional brain Phantom struct.
 
 # Keywords
 - `axis`: (`::String`, `="axial"`, opts=[`"axial"`, `"coronal"`, `"sagittal"`]) orientation of the phantom
-- `ss`: (`::Integer`, `=4`) subsampling parameter in all axis
+- `ss`: (`::Integer`, `=4`) subsampling parameter for all axes
+- `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -301,15 +301,16 @@ julia> obj = brain_phantom2D(; axis="sagittal", ss=1)
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom2D(; axis="axial", ss=4)
+function brain_phantom2D(; axis="axial", ss=4, us=1)
 
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/brain2D.mat")
-    class = data[axis][1:ss:end,1:ss:end]
-
+    if us > 1; ss=1; end
+    class = repeat( data[axis][1:ss:end,1:ss:end], inner=[us, us])
+    
     # Define spin position vectors
-    Δx = .5e-3*ss
+    Δx = .5e-3*ss/us
     M, N = size(class)
     FOVx = (M-1)*Δx #[m]
     FOVy = (N-1)*Δx #[m]
@@ -386,7 +387,7 @@ function brain_phantom2D(; axis="axial", ss=4)
 end
 
 """
-    obj = brain_phantom3D(; ss=4)
+    obj = brain_phantom3D(; ss=4, us=1)
 
 Creates a three-dimentional brain Phantom struct.
 
@@ -399,6 +400,8 @@ Creates a three-dimentional brain Phantom struct.
 
 # Keywords
 - `ss`: (`::Integer`, `=4`) subsampling parameter in all axes
+- `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
+- `start_end`: (`::Vector{Integer}`, `=[160,200]`) z index range of presampled phantom, 180 is center
 
 # Returns
 - `obj`: (`::Phantom`) 3D Phantom struct
@@ -410,15 +413,16 @@ julia> obj = brain_phantom3D(; ss=5)
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom3D(;ss=4,start_end=[160, 200])
+function brain_phantom3D(;ss=4,us=1,start_end=[160, 200])
 
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/brain3D.mat")
-    class = data["data"][1:ss:end,1:ss:end,start_end[1]:ss:start_end[2]]
+    if us > 1; ss=1; end
+    class = repeat( data["data"][1:ss:end,1:ss:end,start_end[1]:ss:start_end[2]], inner=[us, us, us])
 
     # Define spin position vectors
-    Δx = .5e-3*ss
+    Δx = .5e-3*ss/us
     M, N, Z = size(class)
     FOVx = (M-1)*Δx #[m]
     FOVy = (N-1)*Δx #[m]
@@ -499,12 +503,13 @@ function brain_phantom3D(;ss=4,start_end=[160, 200])
 end
 
 """
-    obj = pelvis_phantom2D(; ss=4)
+    obj = pelvis_phantom2D(; ss=4, us=1)
 
 Creates a two-dimensional pelvis Phantom struct.
 
 # Keywords
 - `ss`: (`::Integer`, `=4`) subsampling parameter
+- `us`: (`::Integer`, `=1`) upsampling parameter for all axes, if used ss is set to ss=1
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -516,15 +521,16 @@ julia> obj = pelvis_phantom2D(; ss=1)
 julia> pelvis_phantom2D(obj, :ρ)
 ```
 """
-function pelvis_phantom2D(; ss=4)
+function pelvis_phantom2D(; ss=4, us=1)
 
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/pelvis2D.mat")
-    class = data["pelvis3D_slice"][1:ss:end,1:ss:end]
+    if us > 1; ss=1; end
+    class = repeat( data["pelvis3D_slice"][1:ss:end,1:ss:end], inner=[us, us])
 
     # Define spin position vectors
-    Δx = .5e-3*ss
+    Δx = .5e-3*ss/us
     M, N = size(class)
     FOVx = (M-1)*Δx             # [m]
     FOVy = (N-1)*Δx             # [m]
@@ -533,23 +539,19 @@ function pelvis_phantom2D(; ss=4)
     x, y = x .+ y'*0, x*0 .+ y' # grid points
 
     # Define spin property vectors
-    ρ = (class.==51)*.001 .+    # Air
-        (class.==102)*.86 .+    # Fat
+    ρ = (class.==102)*.86 .+    # Fat
         (class.==153)*.9 .+     # SoftTissue
         (class.==204)*.4 .+     # SpongyBone
         (class.==255)*.2        # CorticalBone
-    T1 = (class.==51)*.001 .+   # Air
-        (class.==102)*366 .+    # Fat
+    T1 = (class.==102)*366 .+   # Fat
         (class.==153)*1200 .+   # SoftTissue
         (class.==204)*381 .+    # SpongyBone
         (class.==255)*100       # CorticalBone
-    T2 = (class.==51)*.001 .+   # Air
-        (class.==102)*70 .+     # Fat
+    T2 = (class.==102)*70 .+    # Fat
         (class.==153)*80 .+     # SoftTissue
         (class.==204)*52 .+     # SpongyBone
         (class.==255)*.3        # CorticalBone
-    T2s = (class.==51)*.001 .+  # Air
-        (class.==102)*70 .+     # Fat
+    T2s = (class.==102)*70 .+   # Fat
         (class.==153)*80 .+     # SoftTissue
         (class.==204)*52 .+     # SpongyBone
         (class.==255)*.3        # CorticalBone

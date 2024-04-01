@@ -50,6 +50,28 @@ function read_definitions(io)
 end
 
 """
+read_definitions Read the [SIGNATURE] section of a sequence file.
+   signature=read_signature(fid) Read user signature from file
+   identifier of an open MR sequence file and return a map of
+   key/value entries.
+"""
+function read_signature(io)
+    signature = ""
+    while true
+        line = readline(io)
+        line_split = String.(split(line))
+        (length(line_split) > 0) || break #Break on white space
+        key = line_split[1]
+        if (key == "Hash")
+            value_string_array = line_split[2:end]
+            parsed_array = [tryparse(Float64, s) === nothing ? s : tryparse(Float64, s) for s = value_string_array]
+            signature = length(parsed_array) == 1 ? parsed_array[1] : parsed_array
+        end
+    end
+    return signature
+end
+
+"""
 read_blocks Read the [BLOCKS] section of a sequence file.
    library=read_blocks(fid) Read blocks from file identifier of an
    open MR sequence file and return the event table.
@@ -84,7 +106,7 @@ function read_blocks(io, blockDurationRaster, version_combined)
 
         r == NumberBlockEvents || break #Break on white space
     end
-    sort(eventTable), sort(blockDurations), sort(delayIDs_tmp)
+    eventTable, blockDurations, delayIDs_tmp
 end
 
 """
@@ -115,7 +137,7 @@ function read_events(io, scale; type=-1, eventLibrary=Dict())
         end
         r == EventLength || break #Break on white space
     end
-    sort(eventLibrary)
+    eventLibrary
 end
 
 """
@@ -146,8 +168,7 @@ function read_shapes(io, forceConvertUncompressed)
         end
         shapeLibrary[id] = data
     end
-
-    sort(shapeLibrary)
+    shapeLibrary
 end
 
 """
@@ -298,6 +319,7 @@ function read_seq(filename)
     version_minor = 0
     gradLibrary = Dict()
     def = Dict()
+    signature = ""
     blockEvents = Dict()
     blockDurations = Dict()
     delayInd_tmp = Dict()
@@ -349,7 +371,8 @@ function read_seq(filename)
             elseif  section == "extension TRIGGERS 1"
                 triggerLibrary = read_events(io,[1 1 1e-6 1e-6])
             elseif  section == "[SIGNATURE]"
-                #Not implemented yet
+                signature = read_signature(io)
+            else
             end
 
         end
@@ -420,6 +443,7 @@ function read_seq(filename)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = version_combined
+    seq.DEF["signature"] = signature
     if !haskey(seq.DEF,"Nx")
         Nx = maximum(seq.ADC.N)
         RF_ex = (get_flip_angles(seq) .<= 90.01) .* is_RF_on.(seq)
@@ -451,6 +475,10 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 """
 function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0,0)
+    if isempty(gradLibrary) || i==0
+        return G
+    end
+
     if gradLibrary[i]["type"] == 't' #if trapezoidal gradient
         #(1)amplitude (2)rise (3)flat (4)fall (5)delay
         g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
@@ -509,7 +537,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rfϕ = decompress_shape(shapeLibrary[phase_id]...)[1:end-1]
         @assert all(rfϕ.>=0) "[RF id $i] Phase waveform rfϕ must have non-negative samples (1.>=rfϕ.>=0). "
         Nrf = shapeLibrary[mag_id][1] - 1
-        rfAϕ = amplitude .* rfA .* exp.(-1im*(2π*rfϕ .+ phase))
+        rfAϕ = amplitude .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
     else
         rfA = 0
         rfϕ = 0
