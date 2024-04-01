@@ -239,5 +239,12 @@ end
     @testset "Spiral" begin
         read_comparison("spiral")
     end
+    @testset "GRE" begin
+        read_comparison("gre")
+    end
+    @testset "EPI" begin
+        read_comparison("epi")
+    end
+
 
 end
