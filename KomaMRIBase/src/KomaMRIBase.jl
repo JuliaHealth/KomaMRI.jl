@@ -45,8 +45,8 @@ export brain_phantom2D, brain_phantom3D, pelvis_phantom2D
 export get_dims
 # Motion
 export MotionModel
-export SimpleMotion, NoMotion, ArbitraryMotion
-export SimpleMotionType
+export NoMotion, SimpleMotion, ArbitraryMotion
+export SimpleMotionType, SimpleMotionTypes
 export Translation, Rotation, PeriodicTranslation, PeriodicRotation
 export get_spin_coords, get_times
 export LinearInterpolator

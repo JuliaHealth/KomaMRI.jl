@@ -79,9 +79,9 @@ function import_motion(Ns::Int, motion_group::HDF5.Group, precision::Type)
         for key in keys(types_group)
             type_group = types_group[key]
             type_str = match(r"^\d+_(\w+)", key).captures[1]
-            type = type_str == "Translation" ? Translation :
-                   type_str == "Rotation" ? Rotation : 
-                   nothing
+            if type_str in SimpleMotionTypes 
+                type = eval(Meta.parse(type_str)) # Use of eval is controlled
+            end
             args = []
             for key in fieldnames(type)
                 push!(args, read_attribute(type_group, string(key)))
@@ -178,10 +178,10 @@ function export_motion(motion_group::HDF5.Group, motion::SimpleMotion)
     types_group =  create_group(motion_group, "types")
     counter = 1
     for type in motion.types
-        type_group = create_group(types_group, string(counter)*"_"*match(r"^\w+", string(typeof(type))).match)
+        type_group = create_group(types_group, string(counter)*"_"*match(r"(?<=\.)[^\{\}]+", string(typeof(type))).match)
         fields = fieldnames(typeof(type))
         for field in fields
-            HDF5.attributes(type_group)[string(field)] = getfield(type, fieldcount)
+            HDF5.attributes(type_group)[string(field)] = getfield(type, field)
         end
         counter += 1
     end

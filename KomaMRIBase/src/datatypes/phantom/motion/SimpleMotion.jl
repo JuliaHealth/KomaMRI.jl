@@ -1,4 +1,9 @@
-# ------ SimpleMotionType
+# ------ SimpleMotionTypes
+global SimpleMotionTypes = ["Translation", 
+                            "Rotation", 
+                            "PeriodicTranslation", 
+                            "PeriodicRotation"]
+                            
 abstract type SimpleMotionType{T<:Real} end
 
 """
