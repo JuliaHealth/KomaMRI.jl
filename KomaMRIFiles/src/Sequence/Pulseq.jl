@@ -275,6 +275,45 @@ function decompress_shape(num_samples, data; forceDecompression = false)
     w
 end
 
+"""
+    fix_first_last_grads!(seq::Sequence)
+
+Updates the Sequence `seq` with new first and last points for gradients.
+"""
+function fix_first_last_grads!(seq::Sequence)
+    # Add first and last Pulseq points
+    grad_prev_last = [0.0; 0.0; 0.0]
+    for bi in 1:length(seq)
+        for gi in 1:3
+            gr = seq.GR[gi, bi]
+            if seq.DUR[bi] > 0
+                if sum(abs.(gr.A)) == 0   # this is for no-gradient case
+                    grad_prev_last[gi] = 0.0
+                    continue
+                else
+                    if gr.A isa Vector # this is for the uniformly-shaped or time-shaped case
+                        if gr.delay > 0
+                            grad_prev_last[gi] = 0.0
+                        end
+                        seq.GR[gi, bi].first = grad_prev_last[gi]
+                        if gr.T isa Array # this is for time-shaped case (I assume it is the extended trapezoid case)
+                            seq.GR[gi, bi].last = gr.A[end]
+                        else
+                            odd_step1 = [seq.GR[gi, bi].first; 2 * gr.A]
+                            odd_step2 = odd_step1 .* (mod.(1:length(odd_step1), 2) * 2 .- 1)
+                            waveform_odd_rest = cumsum(odd_step2) .* (mod.(1:length(odd_step2), 2) * 2 .- 1)
+                            seq.GR[gi, bi].last = waveform_odd_rest[end]
+                        end
+                        grad_prev_last[gi] = seq.GR[gi, bi].last
+                    else    # this is for the trapedoid case
+                        grad_prev_last[gi] = 0.0
+                    end
+                end
+            end
+        end
+    end
+end
+
 #"""
 #READ Load sequence from file.
 #   READ(seqObj, filename, ...) Read the given filename and load sequence
@@ -436,39 +475,8 @@ function read_seq(filename)
     end
     # Remove dummy seq block at the start, Issue #203
     seq = seq[2:end]
-
-    # Add first and last Pulseq points
-    grad_prev_last = [0.0; 0.0; 0.0]
-    for bi in 1:length(seq)
-        for gi in 1:3
-            gr = seq.GR[gi, bi]
-            if seq.DUR[bi] > 0
-                if sum(abs.(gr.A)) == 0   # this is for no-gradient case
-                    grad_prev_last[gi] = 0.0
-                    continue
-                else
-                    if gr.A isa Vector # this is for the uniformly-shaped or time-shaped case
-                        if gr.delay > 0
-                            grad_prev_last[gi] = 0.0
-                        end
-                        seq.GR[gi, bi].first = grad_prev_last[gi]
-                        if gr.T isa Array # this is for time-shaped case (I assume it is the extended trapezoid case)
-                            seq.GR[gi, bi].last = gr.A[end]
-                        else
-                            odd_step1 = [seq.GR[gi, bi].first; 2 * gr.A]
-                            odd_step2 = odd_step1 .* (mod.(1:length(odd_step1), 2) * 2 .- 1)
-                            waveform_odd_rest = cumsum(odd_step2) .* (mod.(1:length(odd_step2), 2) * 2 .- 1)
-                            seq.GR[gi, bi].last = waveform_odd_rest[end]
-                        end
-                        grad_prev_last[gi] = seq.GR[gi, bi].last
-                    else    # this is for the trapedoid case
-                        grad_prev_last[gi] = 0.0
-                    end
-                end
-            end
-        end
-    end
-
+    # Add first and last points for gradients
+    fix_first_last_grads!(seq)
     # Final details
     # Hack for including extension and triggers
     seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
