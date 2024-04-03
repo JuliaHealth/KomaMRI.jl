@@ -12,13 +12,6 @@ function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method
     return (sum(seq.ADC.N), N_voxels)
 end
 
-function initialize_spins_state(obj::Phantom{T}, sim_method::BlochVoxelDict) where {T<:Real}
-    Nspins = length(obj)
-    Mxy = zeros(T, Nspins)
-    Mz = obj.ρ
-    Xt = Mag{T}(Mxy, Mz)
-    return Xt, obj
-end
 
 function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}}, 
     M::Mag{T}, sim_method::BlochVoxelDict) where {T<:Real}
