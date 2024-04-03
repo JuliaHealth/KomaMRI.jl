@@ -6,7 +6,6 @@ Base.@kwdef struct BlochVoxelDict <: SimulationMethod
     N_spins_per_voxel::Int=1
 end
 
-output_Ndim(sim_method::BlochVoxelDict) = 2
 
 function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochVoxelDict) where {T<:Real}
     N_voxels = length(obj) ÷ sim_method.N_spins_per_voxel
