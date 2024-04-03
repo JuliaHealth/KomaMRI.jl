@@ -74,8 +74,8 @@ mutable struct Grad
 	rise::Real
 	fall::Real
 	delay::Real
-    first
-    last
+	first
+	last
     function Grad(A, T, rise, fall, delay)
 		all(T .< 0) || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, fall, delay, 0, 0)
     end
