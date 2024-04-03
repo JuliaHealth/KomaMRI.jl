@@ -618,11 +618,7 @@ function read_ADC(adcLibrary, i)
     #Unpacking
     #(1)num (2)dwell (3)delay (4)freq (5)phase
     # It is needed a review for this, the dwell definition may cause problems
-    if !isempty(adcLibrary) # Is this the best? maybe defining i=0 is better, it works with RFs(?)
-        a = adcLibrary[i]["data"]
-    else
-        a = [0,0,0,0,0]
-    end
+    a = adcLibrary[i]["data"]
     num =   a[1] |> x->floor(Int64,x)
     dwell = a[2]
     delay = a[3] + dwell/2
