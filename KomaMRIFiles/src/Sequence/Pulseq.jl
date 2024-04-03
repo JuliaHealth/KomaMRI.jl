@@ -614,7 +614,6 @@ function read_ADC(adcLibrary, i)
 
     #Unpacking
     #(1)num (2)dwell (3)delay (4)freq (5)phase
-    # It is needed a review for this, the dwell definition may cause problems
     a = adcLibrary[i]["data"]
     num =   a[1] |> x->floor(Int64,x)
     dwell = a[2]
