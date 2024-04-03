@@ -491,8 +491,6 @@ function read_seq(filename)
     return seq
 end
 
-
-
 #To Sequence
 """
     grad = read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
