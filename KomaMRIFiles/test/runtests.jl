@@ -65,7 +65,7 @@ end
             amps = KomaMRIBase.get_theo_t(rf; max_rf_samples=Inf)[2:end]
             return [amps[1]; amps[2:end-1][[i for i in 1:length(amps)-1 if i % 2 == 0]]; amps[end]]
         end
-        return []#KomaMRIBase.get_theo_t(rf; max_rf_samples=Inf)[2:end]
+        return []
     end
     function get_theo_A_aux(rf::RF)
         Namp, Ntim = length(rf.A), length(rf.T)
@@ -75,29 +75,21 @@ end
             amps = γ*get_theo_A_helper(rf)[2:end]
             return [amps[1]; amps[2:end-1][[i for i in 1:length(amps)-1 if i % 2 == 0]]; amps[end]]
         end
-        return []#γ*KomaMRIBase.get_theo_A(rf; off_val=NaN, max_rf_samples=Inf)[2:end]
+        return []
     end
     function get_theo_t_aux(gr::Grad)
-        Namp, Ntim = length(gr.A), length(gr.T)
-        if Namp == 1 && Ntim == 1
+        if !(gr.A isa Vector) && !(gr.T isa Vector)
             return KomaMRIBase.get_theo_t(gr)
-        elseif Namp > 1 && Ntim == 1
-            return KomaMRIBase.get_theo_t(gr)[2:end]
-        elseif Namp > 1 && Ntim > 1
+        else
             return KomaMRIBase.get_theo_t(gr)[2:end]
         end
-        return []
     end
     function get_theo_A_aux(gr::Grad)
-        Namp, Ntim = length(gr.A), length(gr.T)
-        if Namp == 1 && Ntim == 1
+        if !(gr.A isa Vector) && !(gr.T isa Vector)
             return 1e-3*γ*KomaMRIBase.get_theo_A(gr; off_val=0)
-        elseif  Namp > 1 && Ntim == 1
-            return 1e-3*γ*[gr.first; KomaMRIBase.get_theo_A(gr; off_val=0)[3:end-1]; gr.last]
-        elseif Namp > 1 && Ntim > 1
+        else
             return 1e-3*γ*KomaMRIBase.get_theo_A(gr; off_val=0)[2:end]
         end
-        return []
     end
     function get_theo_t_aux(adc::ADC)
         return (adc.N == 1) ? [adc.T/2] .+ adc.delay : [range(0, adc.T; length=adc.N)...] .+ adc.delay
@@ -197,7 +189,7 @@ end
         for event in event_names
             for sample in sample_names
                 if !(event == "adc" && sample == "amplitudes")
-                    for i in 1:length(seq_pulseq[event]["blocks"])
+                    for i in 1:length(seq_pulseq[event]["blocks"]) #1:5
                         samples_koma = seq_koma[event][sample][i]
                         samples_pulseq = seq_pulseq[event][sample][i]
                         same_points = all(.≈(abs.(samples_koma .- samples_pulseq), 0, atol=TOLERANCE))
@@ -207,8 +199,9 @@ end
                             data = [samples_koma samples_pulseq]
                             pretty_table(data; header=["koma", "pulseq"])
                             # This is just an example about how to debug locally when there are problems
-                            #if event == "rf" && sample == "amplitudes" #&& seq_pulseq[event]["blocks"][i] == 3
-                            #    pretty_table(data[1:10,:]; header=["koma", "pulseq"])
+                            #if event == "gx" && sample == "amplitudes" #&& seq_pulseq[event]["blocks"][i] == 3
+                            #    pretty_table(data; header=["koma", "pulseq"])
+                            #    pretty_table([seq_koma[event]["times"][i] seq_pulseq[event]["times"][i]]; header=["koma_t", "pulseq_t"])
                             #    #pretty_table(data[end-10:end,:]; header=["koma", "pulseq"])
                             #end
                         end
@@ -218,33 +211,45 @@ end
         end
     end
 
-    @testset "Trapezoidal_Grad" begin
-        read_comparison("gr-trapezoidal")
-    end
-    @testset "Uniformly_Shaped_Grad" begin
-        read_comparison("gr-uniformly-shaped")
-    end
-    @testset "Time_Shaped_Grad" begin
-        read_comparison("gr-time-shaped")
-    end
-    @testset "Pulse_RF" begin
-        read_comparison("rf-pulse")
-    end
-    @testset "Uniformly_Shaped_RF" begin
-        read_comparison("rf-uniformly-shaped")
-    end
-    @testset "FID" begin
-        read_comparison("fid")
-    end
-    @testset "Spiral" begin
-        read_comparison("spiral")
-    end
-    @testset "GRE" begin
-        read_comparison("gre")
-    end
-    @testset "EPI" begin
-        read_comparison("epi")
-    end
+    @testset "Trapezoidal_Grad" read_comparison("gr-trapezoidal")
+    @testset "Uniformly_Shaped_Grad" read_comparison("gr-uniformly-shaped")
+    @testset "Time_Shaped_Grad" read_comparison("gr-time-shaped")
+    @testset "Pulse_RF" read_comparison("rf-pulse")
+    @testset "Uniformly_Shaped_RF" read_comparison("rf-uniformly-shaped")
+    @testset "FID" read_comparison("fid")
+    @testset "Spiral" read_comparison("spiral")
+    @testset "GRE" read_comparison("gre")
+    @testset "EPI" read_comparison("epi")
 
+    #@testset "cine_gre" read_comparison("cine_gre")                # success
+    #@testset "DEMO_gre0" read_comparison("DEMO_gre0")              # success
+    #@testset "DEMO_grep0" begin read_comparison("DEMO_grep0")      # success
+    #@testset "epi" read_comparison("epi")                          # success
+    #@testset "epi_lbl" read_comparison("epi_lbl")                  # success (takes long time)
+    #@testset "epi_rs" read_comparison("epi_rs")                    # fail (cannot broadcast to a common size)
+    #@testset "epi_rs_label" read_comparison("epi_rs_label")        # fail (cannot broadcast to a common size)
+    #@testset "epi_se" read_comparison("epi_se")                    # success
+    #@testset "epidiff_rs" read_comparison("epidiff_rs")            # fail (gr first)
+    #@testset "epise_rs" read_comparison("epise_rs")                # fail (gr first)
+    #@testset "fid" read_comparison("fid")                          # success
+    #@testset "gre" read_comparison("gre")                          # success
+    #@testset "gre3d" read_comparison("gre3d")                      # ??? (takes long time)
+    #@testset "gre_gt" read_comparison("gre_gt")                    # success
+    #@testset "gre_lbl" read_comparison("gre_lbl")                  # success
+    #@testset "gre_rad" read_comparison("gre_rad")                  # success
+    #@testset "gr-time-shaped" read_comparison("gr-time-shaped")    # success
+    #@testset "gr-trapezoidal" read_comparison("gr-trapezoidal")    # success
+    #@testset "MSE_test_KomaMRI" read_comparison("MSE_test_KomaMRI") # fail (cannot broadcast to a common size)
+    #@testset "press" read_comparison("press")                      # success
+    #@testset "rf-pulse" read_comparison("rf-pulse")                # success
+    #@testset "rf-time-shaped" read_comparison("rf-time-shaped")    # success
+    #@testset "rf-uniformly-shaped" read_comparison("rf-uniformly-shaped")  # success
+    #@testset "selectiveRf" read_comparison("selectiveRf")          # fail (cannot broadcast to a common size)
+    #@testset "spiral" read_comparison("spiral")                    # success
+    #@testset "trufi" read_comparison("trufi")                      # fail (gr first)
+    #@testset "tse" read_comparison("tse")                          # fail (gr first)
+    #@testset "ute" read_comparison("ute")                          # success
+    #@testset "ute_rs" read_comparison("ute_rs")                    # fail (cannot broadcast to a common size)
+    #@testset "zte_petra" read_comparison("zte_petra")              # ??? (takes long time)
 
 end

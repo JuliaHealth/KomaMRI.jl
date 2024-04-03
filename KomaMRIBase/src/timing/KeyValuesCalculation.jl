@@ -27,18 +27,11 @@ Get the theoretical amplitudes of a rectangle waveform for Grad, RF or ADC struc
 """
 get_theo_A(g::Grad; off_val=0) = begin
 	A = g.A
-	if length(A) == 1
-		aux = [off_val; 0; A; A; 0]
+    if !(g.A isa Vector) && !(g.T isa Vector)
+        aux = [off_val; 0; A; A; 0]
 	else
-		aux = [off_val; 0; A; 0]
+		aux = [off_val; g.first; A; g.last]
 	end
-    # To remove abrut changes in the plots
-    if g.rise == 0
-        aux[2] = 0      # zero
-    end
-    if g.fall == 0
-        aux[end] = aux[end-1]   # keep the last value
-    end
     # If no signal, then don't show samples
 	if sum(abs.(g.A)) == 0
 		aux *= off_val
@@ -114,12 +107,12 @@ Get the theoretical times of a rectangle waveform for Grad, RF or ADC structs. T
 get_theo_t(g::Grad) = begin
 	NT, T, NA = length(g.T), g.T, length(g.A)
 	if sum(T) != 0
-		if NA == 1 && NT == 1
+		if !(g.A isa Vector) && !(g.T isa Vector)
 			trf = [0; T]
-		elseif NA>1 && NT == 1
-			trf = cumsum([0; T/(NA-1).*ones(NA-1)])
-		elseif NA>1 && NT>1
+        elseif g.A isa Vector && g.T isa Vector
 			trf = cumsum([0; T.*ones(NT)])
+		elseif g.A isa Vector
+			trf = cumsum([0; T/(NA-1).*ones(NA-1)])
 		end
 		t = g.delay .+ g.rise .+ trf
 	else
