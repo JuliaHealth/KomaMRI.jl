@@ -491,8 +491,6 @@ function read_seq(filename)
     return seq
 end
 
-
-
 #To Sequence
 """
     grad = read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
@@ -532,7 +530,6 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         if time_shape_id == 0 #no time waveform
             gT = Nrf * Δt_gr
             G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay)
-            #G = Grad(gA, gT, 0, 0, delay)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
             gT = (gt[2:end] .- gt[1:end-1]) * Δt_gr
