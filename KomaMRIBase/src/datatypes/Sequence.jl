@@ -341,6 +341,8 @@ get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
     # RFs
     t_rf = reduce(vcat, [get_theo_t(seq.RF[1,i], :A) .+ T0[i] for i in 1:N])
     A_rf = reduce(vcat, [get_theo_A(rf, :A) for rf in seq.RF])
+    t_Δf = reduce(vcat, [get_theo_t(seq.RF[1,i], :Δf) .+ T0[i] for i in 1:N])
+    A_Δf = reduce(vcat, [get_theo_A(rf, :Δf) for rf in seq.RF])
     # ADCs
     t_adc = reduce(vcat, [get_theo_t(seq.ADC[i]) .+ T0[i] for i in 1:N])
     A_adc = reduce(vcat, [get_theo_A(adc; off_val) for adc in seq.ADC])
@@ -349,6 +351,7 @@ get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
         gy = (t = t_gy, A = A_gy),
         gz = (t = t_gz, A = A_gz),
         rf = (t = t_rf, A = A_rf),
+        Δf = (t = t_Δf, A = A_Δf),
         adc = (t = t_adc, A = A_adc)
     )
 end
@@ -466,18 +469,18 @@ Returns the RF pulses and the delta frequency.
 """
 function get_rfs(seq, t::Vector)
     r = get_theo_RF(seq, :A)
-    #df = get_theo_RF(seq, :Δf)
+    df = get_theo_RF(seq, :Δf)
     R = linear_interpolation(r..., extrapolation_bc=0)(t)
-    #DF = linear_interpolation(df..., extrapolation_bc=0)(t)
-    (R, real.(R*0))
+    DF = linear_interpolation(df..., extrapolation_bc=0)(t)
+    (R, DF)
 end
 function get_rfs(seq, t::Matrix)
 	t_vec = t[:]
     r = get_theo_RF(seq, :A)
-    #df = get_theo_RF(seq, :Δf)
+    df = get_theo_RF(seq, :Δf)
     R = linear_interpolation(r..., extrapolation_bc=0)(t_vec)
-    #DF = linear_interpolation(df..., extrapolation_bc=0)(t_vec)
-    (transpose(R), transpose(real.(R*0)))
+    DF = linear_interpolation(df..., extrapolation_bc=0)(t_vec)
+    (transpose(R), transpose(DF))
 end
 
 """
