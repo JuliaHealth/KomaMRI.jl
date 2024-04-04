@@ -1,9 +1,4 @@
 # ------ SimpleMotionTypes
-global SimpleMotionTypes = ["Translation", 
-                            "Rotation", 
-                            "PeriodicTranslation", 
-                            "PeriodicRotation"]
-                            
 abstract type SimpleMotionType{T<:Real} end
 
 """
@@ -15,8 +10,8 @@ z = z + uz
 
 """
 # -------- SimpleMotion
-mutable struct SimpleMotion{T<:Real, S<:SimpleMotionType{T}} <: MotionModel
-    types::AbstractVector{S}
+mutable struct SimpleMotion{T<:Real} <: MotionModel{T}
+    types::Vector{<:SimpleMotionType{T}}
 end
 
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
@@ -40,10 +35,12 @@ end
 # Non-periodic types: defined by an initial time (ti), a final time (tf) and a displacement      
 include("simplemotion/Translation.jl")
 include("simplemotion/Rotation.jl")
+include("simplemotion/HeartBeat.jl")
                                     
 # Periodic types: defined by the period, the temporal symmetry and a displacement (amplitude)
 include("simplemotion/PeriodicTranslation.jl")
 include("simplemotion/PeriodicRotation.jl")
+include("simplemotion/PeriodicHeartBeat.jl")
 
 normalize_time_triangular(t, period, asymmetry) = begin
     t_rise = period * asymmetry

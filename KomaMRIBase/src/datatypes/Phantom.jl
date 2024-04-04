@@ -1,4 +1,4 @@
-abstract type MotionModel end
+abstract type MotionModel{T<:Real} end
 
 #Motion models:
 include("phantom/motion/SimpleMotion.jl") 
@@ -40,23 +40,22 @@ julia> obj.ρ
  @with_kw mutable struct Phantom{T<:Real}
     name::String = "spins"
 	x::AbstractVector{T}
-	y::AbstractVector{T} = zeros(size(x))
-	z::AbstractVector{T} = zeros(size(x))
-	ρ::AbstractVector{T} = ones(size(x))
-	T1::AbstractVector{T} = ones(size(x)) * 1_000_000
-	T2::AbstractVector{T} = ones(size(x)) * 1_000_000
-	T2s::AbstractVector{T} = ones(size(x)) * 1_000_000
+	y::AbstractVector{T}   = zeros(eltype(x), size(x))
+	z::AbstractVector{T}   = zeros(eltype(x), size(x))
+	ρ::AbstractVector{T}   = ones(eltype(x), size(x))
+	T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
+	T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
+	T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
 	#Off-resonance related
-	Δw::AbstractVector{T} = zeros(size(x))
+	Δw::AbstractVector{T}  = zeros(eltype(x), size(x))
 	#χ::Vector{SusceptibilityModel}
 	#Diffusion
-	Dλ1::AbstractVector{T} = zeros(size(x))
-	Dλ2::AbstractVector{T} = zeros(size(x))
-	Dθ::AbstractVector{T} =  zeros(size(x))
+	Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
+	Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
+	Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
 	#Diff::Vector{DiffusionModel}  #Diffusion map
-
 	#Motion
-	motion::MotionModel = NoMotion()
+	motion::MotionModel{T} = NoMotion{eltype(x)}()
 end
 
 """Size and length of a phantom"""

@@ -4,7 +4,7 @@ No Motion
 x = x
 """
 
-struct NoMotion <: MotionModel end
+struct NoMotion{T<:Real} <: MotionModel{T} end
 
 Base.getindex(motion::NoMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
 Base.getindex(motion::NoMotion, p::Union{AbstractRange,AbstractVector,Colon}, 

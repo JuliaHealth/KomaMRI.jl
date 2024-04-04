@@ -19,11 +19,11 @@ The amplitude of the oscillation will be defined by dx, dy and dz
 """
 
 @with_kw struct PeriodicTranslation{T<:Real} <: SimpleMotionType{T}
-    period::T = 0.0
-    asymmetry::T = 0.5
-    dx::T = 0.0
-    dy::T = 0.0
-    dz::T = 0.0
+    period::T
+    asymmetry::T = typeof(period)(0.5)
+    dx::T        = typeof(period)(0.0)
+    dy::T        = typeof(period)(0.0)
+    dz::T        = typeof(period)(0.0)
 end
 
 displacement_x(motion_type::PeriodicTranslation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin

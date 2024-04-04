@@ -17,11 +17,11 @@ x (pitch), y (roll), and z (yaw)
 """
 
 @with_kw struct PeriodicRotation{T<:Real} <: SimpleMotionType{T}
-    period::T = 0.0
-    asymmetry::T = 0.5
-    pitch::T = 0.0
-    roll::T = 0.0
-    yaw::T = 0.0
+    period::T
+    asymmetry::T = typeof(period)(0.5)
+    pitch::T     = typeof(period)(0.0)
+    roll::T      = typeof(period)(0.0)
+    yaw::T       = typeof(period)(0.0)
 end 
 
 displacement_x(motion_type::PeriodicRotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin

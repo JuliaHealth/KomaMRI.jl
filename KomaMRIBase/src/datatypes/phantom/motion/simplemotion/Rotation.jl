@@ -65,12 +65,12 @@ yaw, & t >= tf
 
 """
 
-@with_kw struct Rotation{T<:Real} <: SimpleMotionType{T}
-    ti::T = 0.0
-    tf::T = 0.0
-    pitch::T = 0.0
-    roll::T = 0.0
-    yaw::T = 0.0
+@with_kw struct Rotation{T<:Real} <: SimpleMotionType{T} 
+    ti::T
+    tf::T
+    pitch::T = typeof(ti)(0.0)
+    roll::T  = typeof(ti)(0.0)
+    yaw::T   = typeof(ti)(0.0)
 end 
 
 displacement_x(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin

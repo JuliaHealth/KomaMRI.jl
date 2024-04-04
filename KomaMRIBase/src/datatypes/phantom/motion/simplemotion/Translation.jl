@@ -41,11 +41,11 @@ dz, & t >= tf
 """
 
 @with_kw struct Translation{T<:Real} <: SimpleMotionType{T}
-    ti::T = 0.0
-    tf::T = 0.0
-    dx::T = 0.0
-    dy::T = 0.0
-    dz::T = 0.0
+    ti::T
+    tf::T
+    dx::T = typeof(ti)(0.0)
+    dy::T = typeof(ti)(0.0)
+    dz::T = typeof(ti)(0.0)
 end
 
 displacement_x(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin

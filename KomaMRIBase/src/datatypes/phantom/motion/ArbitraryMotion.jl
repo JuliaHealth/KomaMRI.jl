@@ -9,7 +9,7 @@ Arbitrary Motion
 
 x = x + ux
 """
-mutable struct ArbitraryMotion{T<:Real, V<:AbstractVector{T}} <: MotionModel
+mutable struct ArbitraryMotion{T<:Real, V<:AbstractVector{T}} <: MotionModel{T}
     duration::AbstractVector{T}
     dx::AbstractArray{T, 2}
     dy::AbstractArray{T, 2}
