@@ -692,8 +692,19 @@ function plot_phantom_map(
       darkmode=false,
       view_2d=false,
       colorbar=true,
+	  time_samples=0,
       kwargs...
   )
+	function interpolate_times(t) # Insert intermediate time points (as many as indicated by time_samples)
+		for i in 1:length(t)-1
+			step = (t[i+1] - t[i]) / (time_samples + 1)
+			for j in 1:time_samples
+				push!(t, t[i] + j*step)
+			end
+		end
+		sort!(t)
+	end
+  
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
@@ -733,7 +744,7 @@ function plot_phantom_map(
 	cmin_key = get(kwargs, :cmin, factor * cmin_key)
 	cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-	t = get_times(ph.motion)
+	t = interpolate_times(get_times(ph.motion))
 	x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
 	x0 = -maximum(abs.([x y z]))*1e2
@@ -799,7 +810,7 @@ function plot_phantom_map(
 			pad=attr(
 				l=30
 			),
-steps=[
+		steps=[
 				attr(
 					label=round(t0, digits=2),
 					method="update",
