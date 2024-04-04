@@ -130,7 +130,7 @@ end
 
 get_theo_A(g::RF, key::Symbol; off_val=0, max_rf_samples=1) = begin
 	A = getproperty(g, key)
-    if !(g.A isa Vector) && !(g.T isa Vector)
+    if (!(g.A isa Vector) && !(g.T isa Vector)) || (length(g.A) == 1)
         aux = [off_val; 0; A; A; 0]
 	else
 		aux = [off_val; 0; A; 0]

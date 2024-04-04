@@ -1,28 +1,20 @@
 using KomaMRIBase, MAT, PrettyTables
 TOLERANCE = 1e-6
 
-get_theo_A_helper(r::RF) = sum(abs.(r.A)) == 0 ? [0; 0; zeros(2*length(r.A)); 0] : [0; 0; transpose([r.A r.A])[:]; 0]
-
 # Auxiliar functions
 function get_theo_t_aux(rf::RF)
-    Namp, Ntim = length(rf.A), length(rf.T)
-    if Namp == 1 && Ntim == 1
-        return KomaMRIBase.get_theo_t(rf; max_rf_samples=Inf)[2:end]
-    elseif Namp > 1 && Ntim == 1
-        amps = KomaMRIBase.get_theo_t(rf; max_rf_samples=Inf)[2:end]
-        return [amps[1]; amps[2:end-1][[i for i in 1:length(amps)-1 if i % 2 == 0]]; amps[end]]
+    if !(rf.A isa Vector) && !(rf.T isa Vector)
+        return KomaMRIBase.get_theo_t(rf, :A)
+    else
+        return KomaMRIBase.get_theo_t(rf, :A)[2:end]
     end
-    return []
 end
 function get_theo_A_aux(rf::RF)
-    Namp, Ntim = length(rf.A), length(rf.T)
-    if Namp == 1 && Ntim == 1
-        return γ*get_theo_A_helper(rf)[2:end]
-    elseif Namp > 1 && Ntim == 1
-        amps = γ*get_theo_A_helper(rf)[2:end]
-        return [amps[1]; amps[2:end-1][[i for i in 1:length(amps)-1 if i % 2 == 0]]; amps[end]]
+    if !(rf.A isa Vector) && !(rf.T isa Vector)
+        return γ*KomaMRIBase.get_theo_A(rf, :A)
+    else
+        return γ*KomaMRIBase.get_theo_A(rf, :A)[2:end]
     end
-    return []
 end
 function get_theo_t_aux(gr::Grad)
     if !(gr.A isa Vector) && !(gr.T isa Vector)

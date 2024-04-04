@@ -51,42 +51,41 @@ using TestItems, TestItemRunner
 end
 
 @testitem "gr-trapezoidal" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-trapezoidal") end
-#@testitem "gr-uniformly-shaped" tags=[:files] read_comparison("gr-uniformly-shaped")
-#@testitem "gr-time-shaped" tags=[:files] read_comparison("gr-time-shaped")
-#@testitem "rf-pulse" tags=[:files] read_comparison("rf-pulse")
-#@testitem "rf-uniformly-shaped" tags=[:files] read_comparison("rf-uniformly-shaped")
-#@testitem "fid" tags=[:files] read_comparison("fid")
-#@testitem "spiral" tags=[:files] read_comparison("spiral")
-#@testitem "gre" tags=[:files] read_comparison("gre")
-#@testitem "epi" tags=[:files] read_comparison("epi")
+@testitem "gr-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-uniformly-shaped") end
+#@testitem "gr-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-time-shaped") end
+@testitem "rf-pulse" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-pulse") end
+@testitem "rf-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-uniformly-shaped") end
+@testitem "fid" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("fid") end
+@testitem "spiral" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("spiral") end
+@testitem "gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre") end
+@testitem "epi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi") end
 
-#@testset "cine_gre" read_comparison("cine_gre")                # success
-#@testset "DEMO_gre0" read_comparison("DEMO_gre0")              # success
-#@testset "DEMO_grep0" begin read_comparison("DEMO_grep0")      # success
-#@testset "epi" read_comparison("epi")                          # success
-#@testset "epi_lbl" read_comparison("epi_lbl")                  # success (takes long time)
-#@testset "epi_rs" read_comparison("epi_rs")                    # fail (cannot broadcast to a common size)
-#@testset "epi_rs_label" read_comparison("epi_rs_label")        # fail (cannot broadcast to a common size)
-#@testset "epi_se" read_comparison("epi_se")                    # success
-#@testset "epidiff_rs" read_comparison("epidiff_rs")            # fail (gr first)
-#@testset "epise_rs" read_comparison("epise_rs")                # fail (gr first)
-#@testset "fid" read_comparison("fid")                          # success
-#@testset "gre" read_comparison("gre")                          # success
-#@testset "gre3d" read_comparison("gre3d")                      # ??? (takes long time)
-#@testset "gre_gt" read_comparison("gre_gt")                    # success
-#@testset "gre_lbl" read_comparison("gre_lbl")                  # success
-#@testset "gre_rad" read_comparison("gre_rad")                  # success
-#@testset "gr-time-shaped" read_comparison("gr-time-shaped")    # success
-#@testset "gr-trapezoidal" read_comparison("gr-trapezoidal")    # success
-#@testset "MSE_test_KomaMRI" read_comparison("MSE_test_KomaMRI") # fail (cannot broadcast to a common size)
-#@testset "press" read_comparison("press")                      # success
-#@testset "rf-pulse" read_comparison("rf-pulse")                # success
-#@testset "rf-time-shaped" read_comparison("rf-time-shaped")    # success
-#@testset "rf-uniformly-shaped" read_comparison("rf-uniformly-shaped")  # success
-#@testset "selectiveRf" read_comparison("selectiveRf")          # fail (cannot broadcast to a common size)
-#@testset "spiral" read_comparison("spiral")                    # success
-#@testset "trufi" read_comparison("trufi")                      # fail (gr first)
-#@testset "tse" read_comparison("tse")                          # fail (gr first)
-#@testset "ute" read_comparison("ute")                          # success
-#@testset "ute_rs" read_comparison("ute_rs")                    # fail (cannot broadcast to a common size)
-#@testset "zte_petra" read_comparison("zte_petra")              # ??? (takes long time)
+#@testitem "cine_gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("cine_gre") end
+#@testitem "DEMO_gre0" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("DEMO_gre0") end
+#@testitem "DEMO_grep0" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("DEMO_grep0") end
+#@testitem "epi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi") end
+#@testitem "epi_lbl" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_lbl") end
+#@testitem "epi_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_rs") end
+#@testitem "epi_rs_label" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_rs_label") end
+#@testitem "epi_se" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_se") end
+#@testitem "epidiff_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epidiff_rs") end
+#@testitem "epise_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epise_rs") end
+#@testitem "fid" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("fid") end
+#@testitem "gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre") end
+#@testitem "gre3d" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre3d") end
+#@testitem "gre_gt" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre_gt") end
+#@testitem "gre_lbl" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre_lbl") end
+#@testitem "gre_rad" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre_rad") end
+#@testitem "gr-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-time-shaped") end
+#@testitem "gr-trapezoidal" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-trapezoidal") end
+#@testitem "MSE_test_KomaMRI" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("MSE_test_KomaMRI") end
+#@testitem "press" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("press") end
+#@testitem "rf-pulse" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-pulse") end
+#@testitem "rf-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-time-shaped") end
+#@testitem "rf-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-uniformly-shaped") end
+#@testitem "selectiveRf" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("selectiveRf") end
+#@testitem "spiral" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("spiral") end
+#@testitem "trufi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("trufi") end
+#@testitem "ute" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("ute") end
+#@testitem "ute_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("ute_rs") end
+#@testitem "zte_petra" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("zte_petra") end
