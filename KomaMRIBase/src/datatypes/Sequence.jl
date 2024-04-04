@@ -339,8 +339,8 @@ get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
     A_gy = reduce(vcat, [get_theo_A(seq.GR[2,i]; off_val) for i in 1:N])
     A_gz = reduce(vcat, [get_theo_A(seq.GR[3,i]; off_val) for i in 1:N])
     # RFs
-    t_rf = reduce(vcat, [get_theo_t(seq.RF[1,i]; max_rf_samples) .+ T0[i] for i in 1:N])
-    A_rf = reduce(vcat, [get_theo_A(rf; off_val, max_rf_samples) for rf in seq.RF])
+    t_rf = reduce(vcat, [get_theo_t(seq.RF[1,i], :A) .+ T0[i] for i in 1:N])
+    A_rf = reduce(vcat, [get_theo_A(rf, :A) for rf in seq.RF])
     # ADCs
     t_adc = reduce(vcat, [get_theo_t(seq.ADC[i]) .+ T0[i] for i in 1:N])
     A_adc = reduce(vcat, [get_theo_A(adc; off_val) for adc in seq.ADC])
@@ -464,18 +464,20 @@ Returns the RF pulses and the delta frequency.
 - `B1`: (`1-row ::Matrix{ComplexF64}`, `[T]`) vector of RF pulses
 - `Δf_rf`: (`1-row ::Matrix{Float64}`, `[Hz]`) delta frequency vector
 """
-get_rfs(seq::Sequence, t) = begin
-    ϵ = MIN_RISE_TIME
-    # Amplitude
-    A  = seq.RF.A
-    Δf = seq.RF.Δf
-    # Timings
-    T = seq.RF.T
-    delay = seq.RF.delay
-    T0 = get_block_start_times(seq)
-    (sum([⏢(A[1,i], t .- T0[i], sum(T[i]) .- 2ϵ, ϵ, ϵ, delay[i]) for i=1:length(seq)]),
-     sum([⏢(Δf[1,i], t .- T0[i], sum(T[i]) .- 2ϵ, ϵ, ϵ, delay[i]) for i=1:length(seq)])
-    )
+function get_rfs(seq, t::Vector)
+    r = get_theo_RF(seq, :A)
+    #df = get_theo_RF(seq, :Δf)
+    R = linear_interpolation(r..., extrapolation_bc=0)(t)
+    #DF = linear_interpolation(df..., extrapolation_bc=0)(t)
+    (R, real.(R*0))
+end
+function get_rfs(seq, t::Matrix)
+	t_vec = t[:]
+    r = get_theo_RF(seq, :A)
+    #df = get_theo_RF(seq, :Δf)
+    R = linear_interpolation(r..., extrapolation_bc=0)(t_vec)
+    #DF = linear_interpolation(df..., extrapolation_bc=0)(t_vec)
+    (transpose(R), transpose(real.(R*0)))
 end
 
 """
