@@ -579,8 +579,8 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     phase =         r[7]
     #Amplitude and phase waveforms
     if amplitude != 0 && mag_id != 0
-        rfA = decompress_shape(shapeLibrary[mag_id]...)#[1:end-1]   # Temporal change for reading all samples from .seq
-        rfϕ = decompress_shape(shapeLibrary[phase_id]...)#[1:end-1]     # Temporal change for reading all samples from .seq
+        rfA = decompress_shape(shapeLibrary[mag_id]...)
+        rfϕ = decompress_shape(shapeLibrary[phase_id]...)
         @assert all(rfϕ.>=0) "[RF id $i] Phase waveform rfϕ must have non-negative samples (1.>=rfϕ.>=0). "
         Nrf = shapeLibrary[mag_id][1] - 1
         rfAϕ = amplitude .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
@@ -596,7 +596,6 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     else
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
         rfT = (rft[2:end] .- rft[1:end-1]) * Δt_rf
-        rfAϕ = rfAϕ[1:length(rfT)]  # Temporal change for RF-Pulses when reading all samples from .seq
     end
     R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
     R
