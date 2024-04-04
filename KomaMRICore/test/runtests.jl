@@ -410,7 +410,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     sim_params["sim_method"] = KomaMRICore.BlochDict()
-    sig2 = simulate(obj, seq, sys; sim_params)
+    sig2 = @suppress simulate(obj, seq, sys; sim_params)
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 
@@ -436,7 +436,7 @@ end
 
     # Simulate the slice profile
     sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
-    M = simulate_slice_profile(seq; z, sim_params)
+    M = @suppress simulate_slice_profile(seq; z, sim_params)
 
     # For the time being, always pass the test
     @test true
