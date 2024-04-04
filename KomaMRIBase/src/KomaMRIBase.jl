@@ -46,8 +46,8 @@ export get_dims
 # Motion
 export MotionModel
 export NoMotion, SimpleMotion, ArbitraryMotion
-export SimpleMotionType, SimpleMotionTypes
-export Translation, Rotation, PeriodicTranslation, PeriodicRotation
+export SimpleMotionType
+export Translation, Rotation, HeartBeat, PeriodicTranslation, PeriodicRotation, PeriodicHeartBeat
 export get_spin_coords, get_times
 export LinearInterpolator
 # Spinors
