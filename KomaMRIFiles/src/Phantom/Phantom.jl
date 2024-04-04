@@ -5,19 +5,13 @@ Reads a (.phantom) file and creates a Phantom structure from it
 """
 function read_phantom(filename::String)
     fid = HDF5.h5open(filename, "r")
-
-    name = read_attribute(fid, "Name")
+    fields = []
     version = read_attribute(fid, "Version")
     dims = read_attribute(fid, "Dims")
     Ns = read_attribute(fid, "Ns")
-    precision = read_attribute(fid, "Precision")
-    if precision == "f32"
-        tp = Float32
-    elseif precision == "f64"
-        tp = Float64
-    end
-    obj = Phantom{tp}(; name=name, x=zeros(Ns))
-
+    # Name 
+    name = read_attribute(fid, "Name")
+    push!(fields, (:name, name))
     # Position and contrast
     for key in ["position", "contrast"]
         group = fid[key]
@@ -25,17 +19,19 @@ function read_phantom(filename::String)
             param = group[label]
             values = read_param(param)
             if values != "Default"
-                setfield!(obj, Symbol(label), values)
+                push!(fields, (Symbol(label), values))
             end
         end
     end
-
     # Diffusion (TODO)
-
     # Motion
     motion_group = fid["motion"]
-    obj.motion = import_motion(Ns, motion_group, tp)
+    model = read_attribute(motion_group, "model")
+    if model != "NoMotion"
+        push!(fields, (:motion, import_motion(Ns, motion_group)))
+    end
 
+    obj = Phantom(;fields...)
     close(fid)
     return obj
 end
@@ -65,40 +61,37 @@ function read_param(param::HDF5.Group)
     else
         values = read(param["values"])
     end
-
     return values
 end
 
-function import_motion(Ns::Int, motion_group::HDF5.Group, precision::Type)
+function import_motion(Ns::Int, motion_group::HDF5.Group)
     model = read_attribute(motion_group, "model")
     if model == "NoMotion"
         return NoMotion()
     elseif model == "SimpleMotion"
-        motion = SimpleMotion(SimpleMotionType{precision}[])
         types_group = motion_group["types"]
+        types = SimpleMotionType[]
         for key in keys(types_group)
             type_group = types_group[key]
-            type_str = match(r"^\d+_(\w+)", key).captures[1]
-            if type_str in SimpleMotionTypes 
-                type = eval(Meta.parse(type_str)) # Use of eval is controlled
+            type_str = split(key, "_")[2]
+            @assert type_str in last.(split.(string.(subtypes(SimpleMotionType)), ".")) "Simple Motion Type: $(type_str) has not been implemented in KomaMRIBase $(KomaMRIBase.__VERSION__)"
+            for SMT in subtypes(SimpleMotionType)
+                args = []
+                if type_str == last(split(string(SMT), "."))
+                    for key in fieldnames(SMT)
+                        push!(args, read_attribute(type_group, string(key)))
+                    end
+                    push!(types, SMT(args...))
+                end
             end
-            args = []
-            for key in fieldnames(type)
-                push!(args, read_attribute(type_group, string(key)))
-            end
-            
-            push!(motion.types, type(args...))
         end
-        return motion
-
+        return SimpleMotion(vcat(types...))
     elseif model == "ArbitraryMotion"
         dur = read(motion_group["duration"])
         K = read_attribute(motion_group, "K")
-
         dx = zeros(Ns, K - 1)
         dy = zeros(Ns, K - 1)
         dz = zeros(Ns, K - 1)
-
         for key in HDF5.keys(motion_group)
             if key != "duration"
                 values = read_param(motion_group[key])
@@ -111,7 +104,6 @@ function import_motion(Ns::Int, motion_group::HDF5.Group, precision::Type)
                 end
             end
         end
-
         return ArbitraryMotion(dur, dx, dy, dz)
     end
 end
@@ -135,15 +127,7 @@ function write_phantom(obj::Phantom, filename::String)
     HDF5.attributes(fid)["Ns"] = length(obj.x)
     dims = get_dims(obj)
     HDF5.attributes(fid)["Dims"] = sum(dims)
-    # Precision
-    if eltype(obj.x) <: Float32
-        HDF5.attributes(fid)["Precision"] = "f32"
-    elseif eltype(obj.x) <: Float64
-        HDF5.attributes(fid)["Precision"] = "f64"
-    end
-
     fields = fieldnames(Phantom)[2:end]
-
     # Spin initial positions
     pos = create_group(fid, "position")
     for i in 1:3
@@ -151,7 +135,6 @@ function write_phantom(obj::Phantom, filename::String)
             create_group(pos, String(fields[i]))["values"] = getfield(obj, fields[i])
         end
     end
-
     # Contrast (Rho, T1, T2, T2s Deltaw)
     contrast = create_group(fid, "contrast")
     for i in 4:8
@@ -159,13 +142,10 @@ function write_phantom(obj::Phantom, filename::String)
         HDF5.attributes(param)["type"] = "Explicit" #TODO: consider "Indexed" type
         param["values"] = getfield(obj, fields[i])
     end
-
     # Diffusion (TODO)
-
     # Motion
     motion = create_group(fid, "motion")
     export_motion(motion, obj.motion)
-
     return close(fid)
 end
 
@@ -177,11 +157,11 @@ function export_motion(motion_group::HDF5.Group, motion::SimpleMotion)
     HDF5.attributes(motion_group)["model"] = "SimpleMotion"
     types_group =  create_group(motion_group, "types")
     counter = 1
-    for type in motion.types
-        type_group = create_group(types_group, string(counter)*"_"*match(r"(?<=\.)[^\{\}]+", string(typeof(type))).match)
-        fields = fieldnames(typeof(type))
+    for sm_type in motion.types
+        type_group = create_group(types_group, string(counter)*"_"*string.(typeof(sm_type).name.name))
+        fields = fieldnames(typeof(sm_type))
         for field in fields
-            HDF5.attributes(type_group)[string(field)] = getfield(type, field)
+            HDF5.attributes(type_group)[string(field)] = getfield(sm_type, field)
         end
         counter += 1
     end

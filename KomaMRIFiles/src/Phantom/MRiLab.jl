@@ -57,16 +57,16 @@ function read_phantom_MRiLab(filename; B0=1.5, offset=[0,0,0], FRange_filename="
 	v = 0 # m/s
 
 	obj = Phantom(
-        name = basename(filename),
-		x = y[mask],
-		y = -x[mask],
-		z = -z[mask],
-		ρ = ρ[mask],
-		T1 = T1[mask],
-		T2 = T2[mask],
+		name=basename(filename),
+		x   = x[mask],
+		y   = y[mask],
+		z   = z[mask],
+		ρ   = ρ[mask],
+		T1  = T1[mask],
+		T2  = T2[mask],
 		T2s = T2s[mask],
-		Δw = Δw[mask],
-		motion = NoMotion(),
+		Δw  = Δw[mask]
 	)
+	
 	return obj
 end
