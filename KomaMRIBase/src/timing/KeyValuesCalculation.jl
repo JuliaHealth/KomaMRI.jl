@@ -130,19 +130,19 @@ end
 
 get_theo_A(g::RF, key::Symbol; off_val=0, max_rf_samples=1) = begin
 	A = getproperty(g, key)
-    if (!(g.A isa Vector) && !(g.T isa Vector)) || (length(g.A) == 1)
+    if (!(getproperty(g, key) isa Vector) && !(g.T isa Vector))
         aux = [off_val; 0; A; A; 0]
 	else
 		aux = [off_val; 0; A; 0]
 	end
     # If no signal, then don't show samples
-	if sum(abs.(g.A)) == 0
+	if sum(abs.(getproperty(g, key))) == 0
 		aux *= off_val
 	end
 	aux
 end
 
-get_theo_t(g::RF, key::Symbol,) = begin
+get_theo_t(g::RF, key::Symbol) = begin
 	NT, T, NA = length(g.T), g.T, length(getproperty(g, key))
 	if sum(T) != 0
 		if !(getproperty(g, key) isa Vector) && !(g.T isa Vector)
@@ -164,12 +164,7 @@ get_theo_RF(seq, key::Symbol) = begin
 	N = length(seq)
 	T0 = get_block_start_times(seq)
 	t = vcat([get_theo_t(seq.RF[i], key) .+ T0[i] for i=1:N]...)
-	A = vcat([get_theo_A(seq.RF[i], key) for i=1:N]...) #; off_val=0 <---potential solution
-	#Removing duplicated points
-	#TODO: do this properly. As it is now it generates a bug for slew rates that are too high
-	# mask = (G .== 0) #<---potential solution
-	# t = t[mask]
-	# G = G[mask]
+	A = vcat([get_theo_A(seq.RF[i], key) for i=1:N]...)
 	Interpolations.deduplicate_knots!(t; move_knots=true)
 	return (t, A)
 end
