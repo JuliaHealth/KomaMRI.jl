@@ -156,6 +156,7 @@ get_theo_t(g::RF, key::Symbol) = begin
 	else
 		t = [g.delay; g.delay]
 	end
+    t[end] -= MIN_RISE_TIME #previous float, avoids incorrect block category
 	aux = [0; g.delay; t; g.delay+sum(g.T)]
 	aux
 end
