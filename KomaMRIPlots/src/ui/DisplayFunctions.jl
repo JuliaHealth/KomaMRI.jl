@@ -174,7 +174,7 @@ function plot_seq(
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
 	O = size(seq.RF, 1)
-	p = [scatter() for _ in 1:(3 + 2O + 1)]
+	p = [scatter() for _ in 1:(3 + 3O + 1)]
 
     # For GRADs
 	p[1] = scatter(x=samples.gx.t*1e3, y=samples.gx.A*1e3, name=idx[1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
@@ -188,15 +188,17 @@ function plot_seq(
 	for j in 1:O
 		rf_phase = angle.(samples.rf.A[:,j])
 		rf_phase[samples.rf.A[:,j] .== Inf] .= Inf
-		p[2j-1+3] = scatter(x=samples.rf.t*1e3, y=abs.(samples.rf.A[:,j])*1e6, name="|B1|", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
+		p[2j-1+3] = scatter(x=samples.rf.t*1e3, y=abs.(samples.rf.A[:,j])*1e6, name="|B1|_AM", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="|B1|", showlegend=showlegend, marker=attr(color="#AB63FA"))
-		p[2j+3] = scatter(x=samples.rf.t*1e3, y=rf_phase, text=ones(size(samples.rf.t)), name="∠B1", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
+		p[2j+3] = scatter(x=samples.rf.t*1e3, y=rf_phase, text=ones(size(samples.rf.t)), name="∠B1_AM", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="∠B1", showlegend=showlegend, marker=attr(color="#FFA15A"))
+        p[2j+4] = scatter(x=samples.Δf.t*1e3, y=samples.Δf.A[:,j]*1e-3, text=ones(size(samples.Δf.t)), name="B1_FM", hovertemplate="(%{x:.4f} ms, B1_FM: %{y:.4f} kHz)", visible="legendonly",
+                xaxis=xaxis, yaxis=yaxis, legendgroup="|B1|", showlegend=showlegend, marker=attr(color="#AB63FA"), line=attr(dash="dash"))
 	end
 
 	# For ADCs
-	p[2O+3+1] = scatter(x=samples.adc.t*1e3, y=samples.adc.A*1.0, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
-				xaxis=xaxis, yaxis=yaxis, legendgroup="ADC", showlegend=showlegend, color=marker=attr(color="#19D3F3"))
+	p[3O+3+1] = scatter(x=samples.adc.t*1e3, y=samples.adc.A*1.0, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
+				xaxis=xaxis, yaxis=yaxis, legendgroup="ADC", showlegend=showlegend, marker=attr(color="#19D3F3"))
 
     # Return the plot
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0=get_block_start_times(seq))
@@ -1015,5 +1017,6 @@ function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_p
 	B1_abs = scatter(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
     B1_angle = scatter(x=seqd.t*1e3, y=angle.(seqd.B1), name="∠B1", mode="markers+lines", marker_symbol=:circle)
 	ADC = scatter(x=seqd.t[seqd.ADC]*1e3, y=zeros(sum(seqd.ADC)), name="ADC", mode="markers", marker_symbol=:x)
-	plot_koma([Gx,Gy,Gz,B1_abs,B1_angle,ADC])
+	B1_Δf = scatter(x=seqd.t*1e3, y=abs.(seqd.Δf*1e-3), name="B1_Δf", mode="markers+lines", marker_symbol=:circle)
+    plot_koma([Gx,Gy,Gz,B1_abs,B1_angle,ADC,B1_Δf])
 end
