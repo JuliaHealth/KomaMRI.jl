@@ -22,7 +22,6 @@ displacement_x(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVecto
     Δr .-= neg .* r
     sign = (x .>= 0) .* 1 .+ (x .< 0) .* (-1)
     return sign .* Δr .* cos.(θ)
-    # return 0
 end
 
 displacement_y(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
@@ -37,14 +36,12 @@ displacement_y(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVecto
     Δr = (.!neg) .* Δr
     Δr .-= neg .* r
     sign = (x .>= 0) .* 1 .+ (x .< 0) .* (-1)
-    # return sign .* Δr .* sin.(θ)
-    return 0
+    return sign .* Δr .* sin.(θ)
 end
 
 displacement_z(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    # return t_unit .* (z .* motion_type.longitudinal_strain) 
-    return 0
+    return t_unit .* (z .* motion_type.longitudinal_strain) 
 end
 
 get_time_nodes(motion_type::HeartBeat) = begin
