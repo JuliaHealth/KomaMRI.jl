@@ -395,9 +395,6 @@ end
     raw1 = @suppress simulate(obj, seq1, sys; sim_params)
     raw2 = @suppress simulate(obj, seq2, sys; sim_params)
 
-    println(raw1.profiles[1].data)
-    println(raw2.profiles[1].data)
-
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 
 end
