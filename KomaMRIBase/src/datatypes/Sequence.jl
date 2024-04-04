@@ -357,50 +357,6 @@ get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
 end
 
 """
-    y = ⏢(A, t, ΔT, ζ1, ζ2, delay)
-
-Generates a trapezoidal waveform vector.
-
-# Arguments
-- `A`: (`::Real`) amplitude
-- `t`: (`::Vector{Float64}`, `[s]`) times to evaluate (actually it's a `1-row
-    ::Matrix{Float64}`)
-- `ΔT`: (`::Real`, `[s]`) time duration of the top-flat
-- `ζ1`: (`::Real`, `[s]`) rise time duration
-- `ζ2`: (`::Real`, `[s]`) fall time duration
-- `delay`: (`::Real`, `[s]`) delay time
-
-# Returns
-- `y`: (`::Vector{Float64}`) trapezoidal waveform (actually it's a `1-row
-    ::Matrix{Float64}`)
-"""
-⏢(A, t, ΔT, ζ1, ζ2, delay) = begin
-	if sum(abs.(A)) != 0 && ΔT+ζ1+ζ2 != 0 # If no event just ignore calculations
-		#Getting amplitudes, only supports uniformly sampled waveforms for now
-		if length(A) != 1
-			grad_raster = ΔT / length(A)
-			idx = ceil.(Int, (t .- delay .- ζ1) ./ grad_raster ) #Time to integer index
-			valid = 1 .<= idx .<= length(A)
-			idx[(!).(valid)] .= 1
-			B = A[idx] .* valid
-		else
-			B = A
-		end
-		#Trapezoidal waveform
-		aux = (ζ1    .< t .- delay .< ζ1+ΔT) .* B
-		if ζ1 != 0
-			aux .+= (0     .< t .- delay .<= ζ1) .* A[1] .* (t .- delay)./ζ1
-		end
-		if ζ2 !=0
-			aux .+= (ζ1+ΔT .<= t .- delay .< ζ1+ΔT+ζ2) .* A[end] .* (1 .- (t.-delay.-ζ1.-ΔT)./ζ2)
-		end
-	else
-		aux = zeros(size(t))
-	end
-	aux
-end
-
-"""
     Gx, Gy, Gz = get_grads(seq, t::Vector)
     Gx, Gy, Gz = get_grads(seq, t::Matrix)
 
@@ -418,41 +374,15 @@ Get the gradient array from sequence `seq` evaluated in time points `t`.
 - `Gz`: (`Vector{Float64}` or `1-row ::Matrix{Float64}`, `[T]`) gradient vector values
     in the z direction
 """
-function get_grads(seq, t::Vector)
+function get_grads(seq, t::Union{Vector, Matrix})
     gx = get_theo_Gi(seq, 1)
     gy = get_theo_Gi(seq, 2)
     gz = get_theo_Gi(seq, 3)
-    Gx = linear_interpolation(gx..., extrapolation_bc=0)(t)
-    Gy = linear_interpolation(gy..., extrapolation_bc=0)(t)
-    Gz = linear_interpolation(gz..., extrapolation_bc=0)(t)
+    Gx = linear_interpolation(gx..., extrapolation_bc=0).(t)
+    Gy = linear_interpolation(gy..., extrapolation_bc=0).(t)
+    Gz = linear_interpolation(gz..., extrapolation_bc=0).(t)
     (Gx, Gy, Gz)
 end
-function get_grads(seq, t::Matrix)
-	t_vec = t[:]
-    gx = get_theo_Gi(seq, 1)
-    gy = get_theo_Gi(seq, 2)
-    gz = get_theo_Gi(seq, 3)
-    Gx = linear_interpolation(gx..., extrapolation_bc=0)(t_vec)
-    Gy = linear_interpolation(gy..., extrapolation_bc=0)(t_vec)
-    Gz = linear_interpolation(gz..., extrapolation_bc=0)(t_vec)
-    (Gx', Gy', Gz')
-end
-# hold_interpolation(range::AbstractVector, vs::AbstractVector; extrapolation_bc = Throw()) =
-#     extrapolate(interpolate((range, ), vs, Gridded(Constant{Previous}())), 0)
-# get_grads(seq::Sequence,t) = begin
-# 	#Amplitude
-# 	A = seq.GR.A
-# 	#Grad Timings
-# 	T = seq.GR.T
-# 	ζ1 = seq.GR.rise
-# 	ζ2 = seq.GR.fall
-# 	delay = seq.GR.delay
-# 	#Sequence timings
-# 	ΔT = durs(seq) #Duration of sequence block
-# 	T0 = cumsum([0; ΔT[:]]) #Start time of each block
-# 	#Waveforms
-# 	(sum([⏢(A[j,i],t.-T0[i],T[j,i],ζ1[j,i],ζ2[j,i],delay[j,i]) for i=1:length(seq)]) for j=1:3)
-# end
 
 """
     B1, Δf_rf  = get_rfs(seq::Sequence, t)
@@ -467,20 +397,12 @@ Returns the RF pulses and the delta frequency.
 - `B1`: (`1-row ::Matrix{ComplexF64}`, `[T]`) vector of RF pulses
 - `Δf_rf`: (`1-row ::Matrix{Float64}`, `[Hz]`) delta frequency vector
 """
-function get_rfs(seq, t::Vector)
+function get_rfs(seq, t::Union{Vector, Matrix})
     r = get_theo_RF(seq, :A)
     df = get_theo_RF(seq, :Δf)
-    R = linear_interpolation(r..., extrapolation_bc=0)(t)
-    DF = linear_interpolation(df..., extrapolation_bc=0)(t)
+    R = linear_interpolation(r..., extrapolation_bc=0).(t)
+    DF = linear_interpolation(df..., extrapolation_bc=0).(t)
     (R, DF)
-end
-function get_rfs(seq, t::Matrix)
-	t_vec = t[:]
-    r = get_theo_RF(seq, :A)
-    df = get_theo_RF(seq, :Δf)
-    R = linear_interpolation(r..., extrapolation_bc=0)(t_vec)
-    DF = linear_interpolation(df..., extrapolation_bc=0)(t_vec)
-    (transpose(R), transpose(DF))
 end
 
 """
