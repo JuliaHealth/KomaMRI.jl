@@ -41,8 +41,8 @@ _isleaf(x) = _isbitsarray(x) || isleaf(x)
 # GPU adaptor
 struct KomaCUDAAdaptor end
 adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
-
-# ArbitraryMotion (PENDING)
+adapt_storage(to::KomaCUDAAdaptor, x::NoMotion) = NoMotion{Float32}()
+adapt_storage(to::KomaCUDAAdaptor, x::SimpleMotion) = f32(x)
 adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion) = begin 
 	duration = adapt(KomaCUDAAdaptor(), x.duration)
 	dx = adapt(KomaCUDAAdaptor(), x.dx)
@@ -101,12 +101,12 @@ cpu(x) = fmap(x -> adapt(KomaCPUAdaptor(), x), x)
 
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
-
 adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs) 								
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs) 			
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs) 
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
-adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype.(T, xs.types)) 
+adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype(T, xs.types)) 
+adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}() 
 
 """
     f32(m)
@@ -130,8 +130,14 @@ f64(m) = paramtype(Float64, m)
 
 #The functor macro makes it easier to call a function in all the parameters
 @functor Phantom
+
 @functor Translation
 @functor Rotation
+@functor HeartBeat
+@functor PeriodicTranslation
+@functor PeriodicRotation
+@functor PeriodicHeartBeat
+
 @functor Spinor
 @functor DiscreteSequence
 
