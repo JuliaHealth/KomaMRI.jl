@@ -145,7 +145,7 @@ end
 	)
 end
 
-+(m1::MotionModel,m2::MotionModel) = NoMotion() # TODO: resolve this in a more sophisticated way
++(m1::MotionModel{T},m2::MotionModel{T}) where T<:Real = NoMotion{T}() # TODO: resolve this in a more sophisticated way
 
 """Scalar multiplication of a phantom"""
 *(α::Real,obj::Phantom) = begin
