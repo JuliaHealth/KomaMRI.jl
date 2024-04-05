@@ -12,7 +12,7 @@ end
 displacement_x(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     r = sqrt.(x.^2 + y.^2)
-    θ = atan.(y ./ x)
+    θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
     Δ_radial = -motion_type.radial_strain * (maximum(r) .- r)
     Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
@@ -20,14 +20,13 @@ displacement_x(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVecto
     neg  = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
     Δr .-= neg .* r
-    sign = (x .>= 0) .* 1 .+ (x .< 0) .* (-1)
-    return sign .* Δr .* cos.(θ)
+    return Δr .* cos.(θ)
 end
 
 displacement_y(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     r = sqrt.(x.^2 + y.^2)
-    θ = atan.(y ./ x)
+    θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
     Δ_radial = -motion_type.radial_strain * (maximum(r) .- r)
     Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
@@ -35,8 +34,7 @@ displacement_y(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVecto
     neg  = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
     Δr .-= neg .* r
-    sign = (x .>= 0) .* 1 .+ (x .< 0) .* (-1)
-    return sign .* Δr .* sin.(θ)
+    return Δr .* sin.(θ)
 end
 
 displacement_z(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
