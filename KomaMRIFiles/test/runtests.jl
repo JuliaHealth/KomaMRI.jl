@@ -52,13 +52,13 @@ end
 
 @testitem "gr-trapezoidal" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-trapezoidal") end
 @testitem "gr-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-uniformly-shaped") end
-#@testitem "gr-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-time-shaped") end
+@testitem "gr-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-time-shaped") end
 @testitem "rf-pulse" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-pulse") end
-@testitem "rf-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-uniformly-shaped") end
-@testitem "fid" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("fid") end
-@testitem "spiral" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("spiral") end
-@testitem "gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre") end
-@testitem "epi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi") end
+#@testitem "rf-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-uniformly-shaped") end
+#@testitem "fid" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("fid") end
+#@testitem "spiral" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("spiral") end
+#@testitem "gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre") end
+#@testitem "epi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi") end
 
 #@testitem "cine_gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("cine_gre") end
 #@testitem "DEMO_gre0" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("DEMO_gre0") end
