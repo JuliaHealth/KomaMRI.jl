@@ -169,7 +169,7 @@ function plot_seq(
   )
 
     # Get the samples of the events in the sequence
-    samples = get_samples(seq; off_val=Inf, max_rf_samples)
+    samples = get_samples(seq)  #; off_val=Inf, max_rf_samples
 
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]

@@ -1,29 +1,17 @@
 """
-    A = get_theo_A(g::Grad; off_val=0)
-    A = get_theo_A(r::RF; off_val=0, max_rf_samples=Inf)
-    A = get_theo_A(d::ADC; off_val=0)
+    A = get_theo_A(g::Grad)
+    A = get_theo_A(r::RF)
+    A = get_theo_A(d::ADC)
 
-Get the theoretical amplitudes of a rectangle waveform for Grad, RF or ADC structs. This are
-5 points: delay, start, rise, stop and fall.
-
-!!! note
-    In some cases the array result can have duplicated points, so it is necessary to remove
-    them whenever necessary.
+Get the theoretical amplitudes for Grad, RF or ADC structs.
 
 # Arguments
-- `g`: (`::Grad`) Gradient struct
-- `r`: (`::RF`) RF struct
-- `d`: (`::ADC`) ADC truct
-
-# Keywords
-- `off_val`: (`::Float64`, `=0`) offset value for amplitude. In general, it is used for
-    not showing some points in plots by giving an `Inf` value
-- `max_rf_samples`: (`::Float64`, `=Inf`) number of maximum samples for the RF struct.
-    In general, this parameter is not necessary to set
+- `gr`: (`::Grad`) Gradient struct
+- `rf`: (`::RF`) RF struct
+- `adc`: (`::ADC`) ADC truct
 
 # Returns
-- `A`: (`::Vector{Float64}`) vector with the amplitude key points of the rectangle
-    waveform
+- `A`: (`::Vector{Number}`) vector with the amplitude theoretical points
 """
 function get_theo_A(gr::Grad)
     if !(gr.A isa Vector) && !(gr.T isa Vector)     # trapezoidal
@@ -38,14 +26,8 @@ function get_theo_A(rf::RF, key::Symbol)
 	end
 	return [0; rfA; 0]     # uniformly-sampled and time-shaped
 end
-get_theo_A(d::ADC; off_val=0) = begin
-	N = [1 1]'; N = N[:]
-	if d.N == 0
-		aux = off_val * [1; 1; ones(length(N)); 1]
-	else
-		aux = [off_val; 0; N; 0]
-	end
-	aux
+function get_theo_A(adc::ADC)
+    return ones(adc.N)
 end
 
 
@@ -75,29 +57,19 @@ function get_theo_t(gr::Grad)
     return cumsum([gr.delay; gr.rise; gr.T/(NA-1).*ones(NA-1); gr.fall])    # uniformly-sampled
 end
 function get_theo_t(rf::RF, key::Symbol)
-	NT, T, NA = length(g.T), g.T, length(getproperty(g, key))
-	if sum(T) != 0
-		if !(getproperty(g, key) isa Vector) && !(g.T isa Vector)
-			trf = [0; T]
-        elseif getproperty(g, key) isa Vector && g.T isa Vector
-			trf = cumsum([0; T.*ones(NT)])
-		elseif getproperty(g, key) isa Vector
-			trf = cumsum([0; T/(NA-1).*ones(NA-1)])
-		end
-		t = g.delay .+ trf
-	else
-		t = [g.delay; g.delay]
-	end
-    t[end] -= MIN_RISE_TIME #previous float, avoids incorrect block category
-	aux = [0; g.delay; t; g.delay+sum(g.T)]
-	aux
+    rfA = getproperty(rf, key)
+    if !(rfA isa Vector) && !(rf.T isa Vector)
+        return cumsum([rf.delay; 0; rf.T; 0])         # pulse
+    elseif rfA isa Vector && rf.T isa Vector
+        NT = length(rf.T)
+        return cumsum([rf.delay; 0; rf.T.*ones(NT); 0])    # time-shaped
+    end
+    NA = length(rf.A)
+    return cumsum([rf.delay; 0; rf.T/(NA-1).*ones(NA-1); 0])    # uniformly-sampled
 end
 function get_theo_t(adc::ADC)
-	t = adc.delay .+ [0; adc.T]
-	t = t[1:end-1]
-	return [0; t; adc.delay + adc.T]
+	return adc.delay .+ ((adc.N == 1) ? [adc.T/2] : [range(0, adc.T; length=adc.N)...])
 end
-
 
 """
     t, g = get_theo_Gi(seq, idx)

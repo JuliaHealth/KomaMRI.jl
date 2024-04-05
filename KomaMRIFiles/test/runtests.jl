@@ -54,17 +54,18 @@ end
 @testitem "gr-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-uniformly-shaped") end
 @testitem "gr-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-time-shaped") end
 @testitem "rf-pulse" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-pulse") end
-#@testitem "rf-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-uniformly-shaped") end
-#@testitem "fid" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("fid") end
-#@testitem "spiral" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("spiral") end
-#@testitem "gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre") end
-#@testitem "epi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi") end
+@testitem "rf-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-uniformly-shaped") end
+@testitem "rf-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-time-shaped") end
+@testitem "fid" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("fid") end
+@testitem "spiral" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("spiral") end
+@testitem "gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre") end
+@testitem "epi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi") end
 
 #@testitem "cine_gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("cine_gre") end
 #@testitem "DEMO_gre0" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("DEMO_gre0") end
 #@testitem "DEMO_grep0" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("DEMO_grep0") end
 #@testitem "epi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi") end
-#@testitem "epi_lbl" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_lbl") end
+#@testitem "epi_lbl" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_lbl") end   # takes more than 3mins
 #@testitem "epi_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_rs") end
 #@testitem "epi_rs_label" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_rs_label") end
 #@testitem "epi_se" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_se") end
@@ -72,7 +73,7 @@ end
 #@testitem "epise_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epise_rs") end
 #@testitem "fid" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("fid") end
 #@testitem "gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre") end
-#@testitem "gre3d" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre3d") end
+#@testitem "gre3d" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre3d") end      # takes more than 5min
 #@testitem "gre_gt" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre_gt") end
 #@testitem "gre_lbl" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre_lbl") end
 #@testitem "gre_rad" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre_rad") end
@@ -88,4 +89,4 @@ end
 #@testitem "trufi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("trufi") end
 #@testitem "ute" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("ute") end
 #@testitem "ute_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("ute_rs") end
-#@testitem "zte_petra" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("zte_petra") end
+#@testitem "zte_petra" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("zte_petra") end      # takes more than 5min

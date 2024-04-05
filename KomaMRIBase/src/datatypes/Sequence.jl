@@ -328,16 +328,16 @@ Returns the samples of the events in `seq`.
     Each event, represented by `e::NamedTuple`, includes time samples (`e.t`) and amplitude
     samples (`e.A`)
 """
-get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
+function get_samples(seq::Sequence) #off_val=0, max_rf_samples=Inf
     N = length(seq)
     T0 = get_block_start_times(seq)
     # GRADs
     t_gx = reduce(vcat, [get_theo_t(seq.GR[1,i]) .+ T0[i] for i in 1:N])
     t_gy = reduce(vcat, [get_theo_t(seq.GR[2,i]) .+ T0[i] for i in 1:N])
     t_gz = reduce(vcat, [get_theo_t(seq.GR[3,i]) .+ T0[i] for i in 1:N])
-    A_gx = reduce(vcat, [get_theo_A(seq.GR[1,i]; off_val) for i in 1:N])
-    A_gy = reduce(vcat, [get_theo_A(seq.GR[2,i]; off_val) for i in 1:N])
-    A_gz = reduce(vcat, [get_theo_A(seq.GR[3,i]; off_val) for i in 1:N])
+    A_gx = reduce(vcat, [get_theo_A(seq.GR[1,i]) for i in 1:N])
+    A_gy = reduce(vcat, [get_theo_A(seq.GR[2,i]) for i in 1:N])
+    A_gz = reduce(vcat, [get_theo_A(seq.GR[3,i]) for i in 1:N])
     # RFs
     t_rf = reduce(vcat, [get_theo_t(seq.RF[1,i], :A) .+ T0[i] for i in 1:N])
     A_rf = reduce(vcat, [get_theo_A(rf, :A) for rf in seq.RF])
@@ -345,7 +345,7 @@ get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
     A_Δf = reduce(vcat, [get_theo_A(rf, :Δf) for rf in seq.RF])
     # ADCs
     t_adc = reduce(vcat, [get_theo_t(seq.ADC[i]) .+ T0[i] for i in 1:N])
-    A_adc = reduce(vcat, [get_theo_A(adc; off_val) for adc in seq.ADC])
+    A_adc = reduce(vcat, [get_theo_A(adc) for adc in seq.ADC])
     return (
         gx = (t = t_gx, A = A_gx),
         gy = (t = t_gy, A = A_gy),

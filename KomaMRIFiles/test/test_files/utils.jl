@@ -1,38 +1,5 @@
 using KomaMRIBase, MAT, PrettyTables
-TOLERANCE = 1e-6
-
-# Auxiliar functions
-#function get_theo_t_aux(rf::RF)
-#    if !(rf.A isa Vector) && !(rf.T isa Vector)
-#        return KomaMRIBase.get_theo_t(rf, :A)
-#    else
-#        return KomaMRIBase.get_theo_t(rf, :A)[2:end]
-#    end
-#end
-#function get_theo_A_aux(rf::RF)
-#    if !(rf.A isa Vector) && !(rf.T isa Vector)
-#        return γ*KomaMRIBase.get_theo_A(rf, :A)
-#    else
-#        return γ*KomaMRIBase.get_theo_A(rf, :A)[2:end]
-#    end
-#end
-#function get_theo_t_aux(gr::Grad)
-#    if !(gr.A isa Vector) && !(gr.T isa Vector)
-#        return KomaMRIBase.get_theo_t(gr)
-#    else
-#        return KomaMRIBase.get_theo_t(gr)[2:end]
-#    end
-#end
-#function get_theo_A_aux(gr::Grad)
-#    if !(gr.A isa Vector) && !(gr.T isa Vector)
-#        return 1e-3*γ*KomaMRIBase.get_theo_A(gr; off_val=0)
-#    else
-#        return 1e-3*γ*KomaMRIBase.get_theo_A(gr; off_val=0)[2:end]
-#    end
-#end
-#function get_theo_t_aux(adc::ADC)
-#    return (adc.N == 1) ? [adc.T/2] .+ adc.delay : [range(0, adc.T; length=adc.N)...] .+ adc.delay
-#end
+TOLERANCE = 1e-5
 
 # For transforming Dictionary to NamedTuple recursively
 namedtuple(x) = x[:]
@@ -43,9 +10,9 @@ rename_df_key(dict::Dict) = begin
     return dict
 end
 
-function read_comparison_local(filename)
+function read_comparison(filename)
     path = @__DIR__
-    event_names = [:rf, :Δf, :gx, :gy, :gz, :adc]
+    event_names = [:rf, :gx, :gy, :gz, :adc]    #, :Δf ,
     type_names = [:t, :A]
     seq_koma = read_seq("$(path)/pulseq_read_comparison/$(filename).seq")
     seq_pulseq = namedtuple.(rename_df_key.(matread("$(path)/pulseq_read_comparison/$(filename).mat")["sequence"]))
@@ -56,9 +23,9 @@ function read_comparison_local(filename)
             for type in type_names
                 samples_koma = getproperty(getproperty(block_koma, event), type)
                 samples_pulseq = getproperty(getproperty(block_pulseq, event), type)
-                println("Block $(i): $(event).$(type)")
-                println("samples_koma: $(samples_koma)")
-                println("samples_pulseq: $(samples_pulseq)")
+                #println("Block $(i): $(event).$(type)")
+                #println("samples_koma: $(samples_koma)")
+                #println("samples_pulseq: $(samples_pulseq)")
                 same_samples = all(.≈(samples_koma, samples_pulseq, atol=TOLERANCE))
                 @test same_samples
                 if !same_samples
@@ -69,10 +36,9 @@ function read_comparison_local(filename)
             end
         end
     end
-
 end
 
-function read_comparison(filename)
+function read_comparison_github(filename)
     path = @__DIR__
     seq_koma = read_seq("$(path)/pulseq_read_comparison/$(filename).seq")
     seq_pulseq = namedtuple.(rename_df_key.(matread("$(path)/pulseq_read_comparison/$(filename).mat")["sequence"]))
