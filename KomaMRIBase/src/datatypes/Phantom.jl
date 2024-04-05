@@ -199,19 +199,18 @@ end
 """
     obj = heart_phantom(...)
 
-Heart-like LV phantom. The variable `α` is for streching, `β` for contraction, and `γ` for
-rotation.
+Heart-like LV phantom. The variable `circunferential_strain` and `radial_strain` are for streching (if positive) 
+or contraction (if negative). `rotation_angle` is for rotation.
 
 # Arguments
-- `α`: (`::Real`, `=1`) streching parameter
-- `β`: (`::Real`, `=1`) contraction parameter
-- `γ`: (`::Real`, `=1`) rotation parameter
-- `fat_bool`: (`::Bool`, `=false`) fat boolean parameter
+- `circunferential_strain`: (`::Real`, `=-0.3`) contraction parameter
+- `radial_strain`: (`::Real`, `=-0.3`) contraction parameter
+- `rotation_angle`: (`::Real`, `=1`) rotation parameter
 
 # Returns
 - `phantom`: (`::Phantom`) Heart-like LV phantom struct
 """
-heart_phantom(circunferential_strain=-0.3, radial_strain=-0.3, rotation_angle=15.0, fat_bool::Bool=false; heart_rate=60, asymmetry=0.2) = begin
+heart_phantom(circunferential_strain=-0.3, radial_strain=-0.3, rotation_angle=15.0; heart_rate=60, asymmetry=0.2) = begin
     #PARAMETERS
     FOV = 10e-2                # [m] Diameter ventricule
     N = 21
