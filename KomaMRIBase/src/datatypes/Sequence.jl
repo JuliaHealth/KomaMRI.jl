@@ -355,6 +355,29 @@ get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf) = begin
         adc = (t = t_adc, A = A_adc)
     )
 end
+function get_samples(seq::Sequence, i::Integer)
+    T0 = get_block_start_times(seq)[i]
+    t_rf = KomaMRIBase.is_RF_on(seq[i]) ? get_theo_t(seq.RF[1,i], :A) .+ T0 : []
+    t_Δf = KomaMRIBase.is_RF_on(seq[i]) ? get_theo_t(seq.RF[1,i], :Δf) .+ T0 : []
+    t_gx = KomaMRIBase.is_Gx_on(seq[i]) ? get_theo_t(seq.GR[1,i]) .+ T0 : []
+    t_gy = KomaMRIBase.is_Gy_on(seq[i]) ? get_theo_t(seq.GR[2,i]) .+ T0 : []
+    t_gz = KomaMRIBase.is_Gz_on(seq[i]) ? get_theo_t(seq.GR[3,i]) .+ T0 : []
+    t_adc = KomaMRIBase.is_ADC_on(seq[i]) ? get_theo_t(seq.ADC[i]) .+ T0 : []
+    A_rf = KomaMRIBase.is_RF_on(seq[i]) ? get_theo_A(seq.RF[1,i], :A) : []
+    A_Δf = KomaMRIBase.is_RF_on(seq[i]) ? get_theo_A(seq.RF[1,i], :Δf) : []
+    A_gx = KomaMRIBase.is_Gx_on(seq[i]) ? get_theo_A(seq.GR[1,i]) : []
+    A_gy = KomaMRIBase.is_Gy_on(seq[i]) ? get_theo_A(seq.GR[2,i]) : []
+    A_gz = KomaMRIBase.is_Gz_on(seq[i]) ? get_theo_A(seq.GR[3,i]) : []
+    A_adc = KomaMRIBase.is_ADC_on(seq[i]) ? get_theo_A(seq.ADC[i]) : []
+    return (
+        rf = (t = t_rf, A = A_rf),
+        Δf = (t = t_Δf, A = A_Δf),
+        gx = (t = t_gx, A = A_gx),
+        gy = (t = t_gy, A = A_gy),
+        gz = (t = t_gz, A = A_gz),
+        adc = (t = t_adc, A = A_adc)
+    )
+end
 
 """
     Gx, Gy, Gz = get_grads(seq, t::Vector)
