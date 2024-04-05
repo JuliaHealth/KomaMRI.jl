@@ -211,67 +211,56 @@ rotation.
 # Returns
 - `phantom`: (`::Phantom`) Heart-like LV phantom struct
 """
-heart_phantom(α=1, β=1, γ=1, fat_bool::Bool=false; heart_rate=60) = begin
-	#PARAMETERS
-	FOV = 10e-2 #m Diameter ventricule
-	N = 21
-	Δxr = FOV/(N-1) #Aprox rec resolution, use Δx_pix and Δy_pix
-	Ns = 50 #number of spins per voxel
-	Δx = Δxr/sqrt(Ns) #spin separation
-	#POSITIONS
-	x = y = -FOV/2:Δx:FOV/2-Δx #spin coordinates
-	x, y = x .+ y'*0, x*0 .+ y' #grid points
-	#PHANTOM
-	⚪(R) =  (x.^2 .+ y.^2 .<= R^2)*1. #Circle of radius R
-	v = FOV/4 #m/s 1/16 th of the FOV during acquisition
-	f = heart_rate/60
-	ωHR = 2π*f 
-
-	# θ(t) = -π/4*γ*(sin.(ωHR*t).*(sin.(ωHR*t).>0)+0.25.*sin.(ωHR*t).*(sin.(ωHR*t).<0) )
-	ux(x,y,z,t) = begin
-		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(x)
-		contract = - β * v * x / (FOV/2)  #expand
-		rotate = - γ * v * y / (FOV/2)
-		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
-	end
-	uy(x,y,z,t) = begin
-		strech = 0 #α * v * (x.^2 .+ y.^2) / (FOV/2)^2 .* sign.(y)
-		contract = - β * v * y / (FOV/2)
-		rotate = γ * v * x / (FOV/2)
-		def = (strech .+ contract .+ rotate) .* sin.(ωHR*t)
-	end
-	# Water spins
-	R = 9/10*FOV/2
-	r = 6/11*FOV/2
-	ring = ⚪(R) .- ⚪(r)
-	ρ = ⚪(r) .+ 0.9*ring #proton density
-	# Diffusion tensor model
-	D = 2e-9 #Diffusion of free water m2/s
-	D1, D2 = D, D/20
-	Dλ1 = D1*⚪(R) #Diffusion map
-	Dλ2 = D1*⚪(r) .+ D2*ring #Diffusion map
-	Dθ =  atan.(x,-y) .* ring #Diffusion map
-	T1 = (1400*⚪(r) .+ 1026*ring)*1e-3 #Myocardial T1
-	T2 = ( 308*⚪(r) .+ 42*ring  )*1e-3 #T2 map [s]
-	# Generating Phantoms
-	heart = Phantom(name="LeftVentricle",
-					x=x[ρ.!=0],y=y[ρ.!=0],
-					ρ=ρ[ρ.!=0],T1=T1[ρ.!=0],T2=T2[ρ.!=0],
-					Dλ1=Dλ1[ρ.!=0],Dλ2=Dλ2[ρ.!=0],Dθ=Dθ[ρ.!=0])
-	heart
+heart_phantom(circunferential_strain=-0.3, radial_strain=-0.3, rotation_angle=15.0, fat_bool::Bool=false; heart_rate=60, asymmetry=0.2) = begin
+    #PARAMETERS
+    FOV = 10e-2                # [m] Diameter ventricule
+    N = 21
+    Δxr = FOV/(N-1) #Aprox rec resolution, use Δx_pix and Δy_pix
+    Ns = 50 #number of spins per voxel
+    Δx = Δxr/sqrt(Ns) #spin separation
+    #POSITIONS
+    x = y = -FOV/2:Δx:FOV/2-Δx #spin coordinates
+    x, y = x .+ y'*0, x*0 .+ y' #grid points
+    #PHANTOM
+    ⚪(R) =  (x.^2 .+ y.^2 .<= R^2)*1. #Circle of radius R
+    period = 60/heart_rate     # [s] Period
+    # Water spins
+    R = 9/10*FOV/2
+    r = 6/11*FOV/2
+    ring = ⚪(R) .- ⚪(r)
+    ρ = ⚪(r) .+ 0.9*ring #proton density
+    # Diffusion tensor model
+    D = 2e-9 #Diffusion of free water m2/s
+    D1, D2 = D, D/20
+    Dλ1 = D1*⚪(R) #Diffusion map
+    Dλ2 = D1*⚪(r) .+ D2*ring #Diffusion map
+    Dθ =  atan.(x,-y) .* ring #Diffusion map
+    T1 = (1400*⚪(r) .+ 1026*ring)*1e-3 #Myocardial T1
+    T2 = ( 308*⚪(r) .+ 42*ring  )*1e-3 #T2 map [s]
+    # Generating Phantoms
+    phantom = Phantom(
+        name="LeftVentricle",
+        x=x[ρ.!=0],
+        y=y[ρ.!=0],
+        ρ=ρ[ρ.!=0],
+        T1=T1[ρ.!=0],
+        T2=T2[ρ.!=0],
+        Dλ1=Dλ1[ρ.!=0],
+        Dλ2=Dλ2[ρ.!=0],
+        Dθ=Dθ[ρ.!=0],
+        motion=SimpleMotion([
+            PeriodicHeartBeat(
+                period=period, 
+                asymmetry=asymmetry, 
+                circunferential_strain=circunferential_strain,
+                radial_strain=radial_strain),
+            PeriodicRotation(
+                period=period, 
+                asymmetry=asymmetry, 
+                yaw=rotation_angle)
+                ]))
+    return phantom
 end
-
-"""
-# Fat spins
-ring2 = ⚪(FOV/2) .- ⚪(R) #outside fat layer
-ρ_fat = .5*ρ.*ring2
-Δw_fat = 2π*220*ring2 #fat should be dependant on B0
-T1_fat = 800*ring2*1e-3
-T2_fat = 120*ring2*1e-3 #T2 map [s]
-fat = Phantom("fat",x,y,ρ_fat,T2_fat,Δw_fat)
-#Resulting phantom
-obj = fat_bool ? heart + fat : heart #concatenating spins
-"""
 
 """
     phantom = brain_phantom2D(;axis="axial", ss=4)
