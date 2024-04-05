@@ -242,7 +242,7 @@ end
     N = 6
 
     sys = Scanner()
-    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+    obj = Phantom{Float64}(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
 
     rf_phase = [0, π/2]
     seq = Sequence()
@@ -288,7 +288,7 @@ end
     N = 6
 
     sys = Scanner()
-    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+    obj = Phantom{Float64}(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
 
     rf_phase = [0, π/2]
     seq = Sequence()
@@ -334,7 +334,7 @@ end
     N = 6
 
     sys = Scanner()
-    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+    obj = Phantom{Float64}(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
 
     rf_phase = [0, π/2]
     seq = Sequence()
@@ -380,7 +380,7 @@ end
     N = 6
 
     sys = Scanner()
-    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+    obj = Phantom{Float64}(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
 
     rf_phase = 2π*rand()
     seq1 = Sequence()
