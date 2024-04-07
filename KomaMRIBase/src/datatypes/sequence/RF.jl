@@ -158,12 +158,10 @@ Calculates the flip angle α [deg] of an RF struct. α = γ ∫ B1(τ) dτ
 - `α`: (`::Int64`, `[deg]`) flip angle RF struct `x`
 """
 get_flip_angle(x::RF) = begin
-	A, NA, T, NT = x.A, length(x.A), x.T, length(x.T)
-	dT = T / NA * NT
-    if NA == 1
-        return round(360 * γ * abs(sum(A .* dT)), digits=3) # Pulseq
-    end
-	return round(360 * γ * abs(sum(0.5*(A[1:end-1] + A[2:end]) .* dT)), digits=3) # Trapezoidal integration
+    dt = diff(time(x, :A))
+    B1 = ampl(x)
+    α = round(360.0 * γ * abs(trapz(dt, B1)); digits=3)
+	return α
 end
 
 """
