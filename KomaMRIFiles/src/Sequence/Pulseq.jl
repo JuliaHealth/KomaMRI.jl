@@ -77,9 +77,9 @@ read_blocks Read the [BLOCKS] section of a sequence file.
    open MR sequence file and return the event table.
 """
 function read_blocks(io, blockDurationRaster, version_combined)
-    eventTable = Dict()
-    blockDurations = Dict()
-    delayIDs_tmp = Dict()
+    eventTable = Dict{Int64, Vector{Int64}}()
+    blockDurations = Dict{Int64, Float64}()
+    delayIDs_tmp = Dict{Int64, Float64}()
     while true
         if version_combined <= 1002001
             NumberBlockEvents = 7
@@ -87,14 +87,15 @@ function read_blocks(io, blockDurationRaster, version_combined)
             NumberBlockEvents = 8
         end
 
-        fmt = Scanf.Format("%i "^NumberBlockEvents)
-        r, blockEvents... = scanf(readline(io), fmt, zeros(Int,NumberBlockEvents)...)
+        read_event = readline(io)
+        !isempty(read_event) || break
+        blockEvents = parse.(Int64, split(read_event))
 
         if blockEvents[1] != 0
             if version_combined <= 1002001
-                eventTable[blockEvents[1]] = [0 blockEvents[3:end]... 0]
+                eventTable[blockEvents[1]] = Int64[0; blockEvents[3:end]...; 0]
             else
-                eventTable[blockEvents[1]] = [0 blockEvents[3:end]...]
+                eventTable[blockEvents[1]] = Int64[0; blockEvents[3:end]...]
             end
 
             if version_combined >= 1004000
@@ -104,7 +105,7 @@ function read_blocks(io, blockDurationRaster, version_combined)
             end
         end
 
-        r == NumberBlockEvents || break #Break on white space
+        length(blockEvents) == NumberBlockEvents || break #Break on white space
     end
     eventTable, blockDurations, delayIDs_tmp
 end
@@ -154,8 +155,8 @@ function read_shapes(io, forceConvertUncompressed)
         _, num_samples = @scanf(readline(io), "num_samples %i", Int)
         shape = Float64[]
         while true #Reading shape data
-            r, data_point = @scanf(readline(io), "%f", Float64)
-            r == 1 || break #Break if no sample
+            data_point = tryparse(Float64, readline(io))
+            !isnothing(data_point) || break #Break if no sample
             append!(shape, data_point)
         end
         # check if conversion is needed: in v1.4.x we use length(data)==num_samples
@@ -314,23 +315,6 @@ function fix_first_last_grads!(seq::Sequence)
     end
 end
 
-#"""
-#READ Load sequence from file.
-#   READ(seqObj, filename, ...) Read the given filename and load sequence
-#   data into sequence object.
-#
-#   optional parwameter 'detectRFuse' can be given to let the function
-#   infer the currently missing flags concerning the intended use of the RF
-#   pulses (excitation, refocusing, etc). These are important for the
-#   k-space trajectory calculation
-#
-#   Examples:
-#   Load the sequence defined in gre.seq in my_sequences directory
-#
-#       read(seqObj,'my_sequences/gre.seq')
-#
-# See also  write
-#"""
 """
     seq = read_seq(filename)
 
@@ -352,7 +336,7 @@ julia> plot_seq(seq)
 ```
 """
 function read_seq(filename)
-    @info "Loading sequence $(basename(filename)) ..."
+    #@info "Loading sequence $(basename(filename)) ..."
     version_combined = 0
     version_major = 0
     version_minor = 0
@@ -420,7 +404,7 @@ function read_seq(filename)
     if version_combined < 1004000
         # scan through the RF objects
         for i = 0:length(rfLibrary)-1
-            rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]' 0 rfLibrary[i]["data"][4:end]']
+            rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]' 0.0 rfLibrary[i]["data"][4:end]']
         end
         # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
         for i = 0:length(gradLibrary)-1
@@ -441,7 +425,7 @@ function read_seq(filename)
             end
             if gradLibrary[i]["type"] == 'g'
                 #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-                gradLibrary[i]["data"] = [gradLibrary[i]["data"][1:2]; 0; gradLibrary[i]["data"][3:end]]
+                gradLibrary[i]["data"] = [gradLibrary[i]["data"][1:2]; 0.0; gradLibrary[i]["data"][3:end]]
             end
         end
         # for versions prior to 1.4.0 blockDurations have not been initialized
@@ -474,27 +458,20 @@ function read_seq(filename)
         seq += get_block(obj, i)
     end
     # Remove dummy seq block at the start, Issue #203
-    seq = seq[2:end]
+    # seq = seq[2:end]
     # Add first and last points for gradients
     fix_first_last_grads!(seq)
     # Final details
     # Hack for including extension and triggers
     seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
-    seq.DEF = KomaMRIBase.recursive_merge(obj["definitions"], seq.DEF)
+    seq.DEF = merge(obj["definitions"], seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = version_combined
     seq.DEF["signature"] = signature
-    if !haskey(seq.DEF,"Nx")
-        Nx = maximum(seq.ADC.N)
-        RF_ex = (get_flip_angles(seq) .<= 90.01) .* is_RF_on.(seq)
-        Nz = max(length(unique(seq.RF[RF_ex].Δf)), 1)
-        Ny = sum(is_ADC_on.(seq)) / Nz |> x->floor(Int,x)
-
-        seq.DEF["Nx"] = Nx  #Number of samples per ADC
-        seq.DEF["Ny"] = Ny  #Number of ADC events
-        seq.DEF["Nz"] = Nz  #Number of unique RF frequencies, in a 3D acquisition this should not work
-    end
+    seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC))
+    seq.DEF["Ny"] = get(seq.DEF, "Ny", sum(map(is_ADC_on, seq)))
+    seq.DEF["Nz"] = get(seq.DEF, "Ny", 1)
     #Koma sequence
     return seq
 end
@@ -515,7 +492,7 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 - `grad`: (::Grad) Gradient struct
 """
 function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
-    G = Grad(0,0)
+    G = Grad(0.0,0.0)
     if isempty(gradLibrary) || i==0
         return G
     end
@@ -540,8 +517,8 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
             G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
-            gT = (gt[2:end] .- gt[1:end-1]) * Δt_gr
-            G = Grad(gA,gT,0,0,delay)
+            gT = diff(gt) * Δt_gr
+            G = Grad(gA,gT,0.0,0.0,delay)
         end
     end
     G
@@ -564,7 +541,7 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
 
     if isempty(rfLibrary) || i==0
-        return reshape([RF(0,0)], 1, 1)
+        return reshape([RF(0.0,0.0)], 1, 1)
     end
 
     #Unpacking
@@ -585,17 +562,14 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         Nrf = shapeLibrary[mag_id][1] - 1
         rfAϕ = amplitude .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
     else
-        rfA = 0
-        rfϕ = 0
-        Nrf = 0
-        rfAϕ = 0
+        rfAϕ = ComplexF64[0.0]
     end
     #Creating timings
     if time_shape_id == 0 #no time waveform
         rfT = Nrf * Δt_rf
     else
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
-        rfT = (rft[2:end] .- rft[1:end-1]) * Δt_rf
+        rfT = diff(rft) * Δt_rf
     end
     R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
     R
@@ -731,10 +705,10 @@ function get_block(obj, i)
     A = read_ADC(obj["adcLibrary"], iadc)
 
     #DUR
-    D = [obj["blockDurations"][i]]
+    D = Float64[obj["blockDurations"][i]]
 
     #Extensions
-    E = Dict("extension"=>[iext]) #read_Extension(obj["extensionLibrary"], iext, i)
+    E = Dict{String, Any}()#read_Extension(obj["extensionLibrary"], iext, i)
 
     #Sequence block definition
     s = Sequence(G,R,A,D,E)
