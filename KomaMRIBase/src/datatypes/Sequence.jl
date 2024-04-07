@@ -333,7 +333,7 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc])
     gr_samples = (;) # Empty NamedTuples
     adc_samples = (;) # Empty NamedTuples
     T0 = get_block_start_times(seq)
-    fill_if_empty(x) = isempty(x.t) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
+    fill_if_empty(x) = isempty(x.t) && length(range) == length(seq) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
     # RF
     if :rf in events
         t_rf = reduce(vcat, T0[i] .+ time(seq.RF[1,i], :A)  for i in range)

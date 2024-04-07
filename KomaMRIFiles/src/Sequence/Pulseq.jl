@@ -457,9 +457,7 @@ function read_seq(filename)
     for i = 1:length(blockEvents)
         seq += get_block(obj, i)
     end
-    # Remove dummy seq block at the start, Issue #203
-    # seq = seq[2:end]
-    # Add first and last points for gradients
+    # Add first and last points for gradients #320
     fix_first_last_grads!(seq)
     # Final details
     # Hack for including extension and triggers
