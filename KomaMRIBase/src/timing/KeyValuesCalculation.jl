@@ -1,7 +1,7 @@
 """
-    A = get_theo_A(g::Grad)
-    A = get_theo_A(r::RF)
-    A = get_theo_A(d::ADC)
+    A = ampl(g::Grad)
+    A = ampl(r::RF)
+    A = ampl(d::ADC)
 
 Get the theoretical amplitudes for Grad, RF or ADC structs.
 
@@ -13,28 +13,47 @@ Get the theoretical amplitudes for Grad, RF or ADC structs.
 # Returns
 - `A`: (`::Vector{Number}`) vector with the amplitude theoretical points
 """
-function get_theo_A(gr::Grad)
+function ampl(gr::Grad)
+    if !is_on(gr)
+        return Float64[]
+    end
     if !(gr.A isa Vector) && !(gr.T isa Vector)     # trapezoidal
-        return [0; gr.A; gr.A; 0]
+        return [gr.first; gr.A; gr.A; gr.last]
 	end
-	return [0; gr.A; 0]     # uniformly-sampled and time-shaped
+	return [gr.first; gr.A; gr.last]     # uniformly-sampled and time-shaped
 end
-function get_theo_A(rf::RF, key::Symbol)
-	rfA = getproperty(rf, key)
-    if !(rfA isa Vector) && !(rf.T isa Vector)      # pulse
-        return [0; rfA; rfA; 0]
+function ampl(rf::RF)
+    if !is_on(rf)
+        return ComplexF64[]
+    end
+	rfA = rf.A
+    if !(rfA isa Vector)
+        return ComplexF64[0.0; rfA; rfA; 0.0]
 	end
-	return [0; rfA; 0]     # uniformly-sampled and time-shaped
+	return ComplexF64[0.0; rfA; 0.0]     # uniformly-sampled and time-shaped
 end
-function get_theo_A(adc::ADC)
-    return ones(adc.N)
+function freq(rf::RF)
+    if !is_on(rf)
+        return Float64[]
+    end
+	rfA = rf.Δf
+    if !(rfA isa Vector)
+        return [0.0; rfA; rfA; 0.0]
+	end
+	return [0.0; rfA; 0.0]     # uniformly-sampled and time-shaped
+end
+function ampl(adc::ADC)
+    if !is_on(adc)
+        return Bool[]
+    end
+    return ones(Bool, adc.N)
 end
 
 
 """
-    t = get_theo_t(gr::Grad)
-    t = get_theo_t(rf::RF)
-    t = get_theo_t(adc::ADC)
+    t = time(gr::Grad)
+    t = time(rf::RF)
+    t = time(adc::ADC)
 
 Get the theoretical times for Grad, RF or ADC structs.
 
@@ -46,64 +65,53 @@ Get the theoretical times for Grad, RF or ADC structs.
 # Returns
 - `t`: (`::Vector{Number}`) vector with the time theoretical points
 """
-function get_theo_t(gr::Grad)
+function time(gr::Grad)
+    if !is_on(gr)
+        return Float64[]
+    end
     if !(gr.A isa Vector) && !(gr.T isa Vector)
-        return cumsum([gr.delay; gr.rise; gr.T; gr.fall])   # trapezoidal
+        t = cumsum([gr.delay; gr.rise; gr.T; gr.fall])   # trapezoidal
     elseif gr.A isa Vector && gr.T isa Vector
         NT = length(gr.T)
-        return cumsum([gr.delay; gr.rise; gr.T.*ones(NT); gr.fall])    # time-shaped
+        t =  cumsum([gr.delay; gr.rise; gr.T.*ones(NT); gr.fall])    # time-shaped
+    else
+        NA = length(gr.A)
+        t = cumsum([gr.delay; gr.rise; gr.T/(NA-1).*ones(NA-1); gr.fall]) # uniformly-sampled
     end
-    NA = length(gr.A)
-    return cumsum([gr.delay; gr.rise; gr.T/(NA-1).*ones(NA-1); gr.fall])    # uniformly-sampled
+    t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
+    return t
 end
-function get_theo_t(rf::RF, key::Symbol)
+function time(rf::RF, key::Symbol)
+    if !is_on(rf)
+        return Float64[]
+    end
     rfA = getproperty(rf, key)
     if !(rfA isa Vector) && !(rf.T isa Vector)
-        return cumsum([rf.delay; 0; rf.T; 0])         # pulse
+        t =  cumsum([rf.delay; 0.0; rf.T; 0.0])         # pulse
     elseif rfA isa Vector && rf.T isa Vector
         NT = length(rf.T)
-        return cumsum([rf.delay; 0; rf.T.*ones(NT); 0])    # time-shaped
+        t =  cumsum([rf.delay; 0.0; rf.T.*ones(NT); 0.0])    # time-shaped
+    elseif !(rfA isa Vector)
+        t =  cumsum([rf.delay; 0.0; sum(rf.T); 0.0]) # df constant
+    else
+        NA = length(rf.A)
+        t = cumsum([rf.delay; 0.0; rf.T/(NA-1).*ones(NA-1); 0.0])    # uniformly-sampled
     end
-    NA = length(rf.A)
-    return cumsum([rf.delay; 0; rf.T/(NA-1).*ones(NA-1); 0])    # uniformly-sampled
+    t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
+    return t
 end
-function get_theo_t(adc::ADC)
-	return adc.delay .+ ((adc.N == 1) ? [adc.T/2] : [range(0, adc.T; length=adc.N)...])
-end
-
-"""
-    t, g = get_theo_Gi(seq, idx)
-
-Get the theoretical gradient for a sequence in a defined axis.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `idx`: (`::Int64`, opts=[1, 2, 3]) axis x, y or z for the gradient
-
-# Returns
-- `t`: (`::Vector{Float64}`) time key points
-- `g`: (`::Vector{Float64}`) amplitude key points
-"""
-get_theo_Gi(seq, idx) = begin
-	N = length(seq)
-	T0 = get_block_start_times(seq)
-	t = vcat([get_theo_t(seq.GR[idx,i]) .+ T0[i] for i=1:N]...)
-	G = vcat([get_theo_A(seq.GR[idx,i]) for i=1:N]...) #; off_val=0 <---potential solution
-	#Removing duplicated points
-	#TODO: do this properly. As it is now it generates a bug for slew rates that are too high
-	# mask = (G .== 0) #<---potential solution
-	# t = t[mask]
-	# G = G[mask]
-	Interpolations.deduplicate_knots!(t; move_knots=true)
-	return (t, G)
+function time(adc::ADC)
+    if !is_on(adc)
+        return range(0.0,0.0,0) #empty
+    end
+	if adc.N != 1
+        t = range(0.0, adc.T; length=adc.N) .+ adc.delay
+    else
+        t = range(adc.T/2, adc.T/2, 1) .+ adc.delay
+    end
+    return t
 end
 
-
-get_theo_RF(seq, key::Symbol) = begin
-	N = length(seq)
-	T0 = get_block_start_times(seq)
-	t = vcat([get_theo_t(seq.RF[i], key) .+ T0[i] for i=1:N]...)
-	A = vcat([get_theo_A(seq.RF[i], key) for i=1:N]...)
-	Interpolations.deduplicate_knots!(t; move_knots=true)
-	return (t, A)
-end
+is_on(x::Grad) = any(x->abs.(x) > .0, x.A)
+is_on(x::RF)   = any(x->abs.(x) > .0, x.A)
+is_on(x::ADC)  = x.N > 0
