@@ -35,10 +35,11 @@ mutable struct Sequence
 	Sequence(GR, RF, ADC, DUR, DEF) = begin
 		@assert size(GR,2) .== size(RF,2) .== length(ADC) .== length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
 		M,N = size(GR)
-		new([i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i=1:3, j=1:N],
+        GR_new = [i <= M ? GR[i,j] : Grad(0.0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay, 0.0, 0.0) for i=1:3, j=1:N]
+		new(GR_new,
 			RF,
 			ADC,
-			maximum([GR.dur RF.dur ADC.dur DUR],dims=2)[:],
+			DUR, #maximum(Float64[GR.dur RF.dur ADC.dur DUR],dims=2)[:],
 			DEF)
 	end
 end
@@ -46,39 +47,38 @@ end
 # Main Constructors
 function Sequence(GR)
 	M, N = size(GR)
-    gr = [i <= M ? GR[i,j] : Grad(0, 0) for i in 1:3, j in 1:N]
-    rf = reshape([RF(0, 0) for i in 1:N], 1, :)
-    adc = [ADC(0, 0) for _ = 1:N]
-    return Sequence(gr, rf, adc, GR.dur, Dict())
+    gr = [i <= M ? GR[i,j] : Grad(0.0, 0.0) for i in 1:3, j in 1:N]
+    rf = reshape([RF(0.0, 0.0) for i in 1:N], 1, :)
+    adc = [ADC(0, 0.0) for _ = 1:N]
+    return Sequence(gr, rf, adc, GR.dur, Dict{String, Any}())
 end
 function Sequence(GR, RF)
 	@assert size(GR, 2) .== size(RF, 2) "The number of Gradient, and RF objects must be the same."
 	M, N = size(GR)
-    gr = [i <= M ? GR[i,j] : Grad(0, 0) for i in 1:3, j in 1:N]
-    adc = [ADC(0, 0) for _ in 1:N]
+    gr = [i <= M ? GR[i,j] : Grad(0.0, 0.0) for i in 1:3, j in 1:N]
+    adc = [ADC(0, 0.0) for _ in 1:N]
     dur = maximum([GR.dur RF.dur], dims=2)[:]
-	return Sequence(gr, RF, adc, dur, Dict())
+	return Sequence(gr, RF, adc, dur, Dict{String, Any}())
 end
 function Sequence(GR, RF, ADC)
 	@assert size(GR, 2) .== size(RF, 2) .== length(ADC) "The number of Gradient, RF, and ADC objects must be the same."
 	M, N = size(GR)
     gr = [i <= M ? GR[i,j] : Grad(0, 0) for i in 1:3, j in 1:N]
     dur = maximum([GR.dur RF.dur ADC.dur], dims=2)[:]
-	return Sequence(gr, RF, ADC, dur, Dict())
+	return Sequence(gr, RF, ADC, dur, Dict{String, Any}())
 end
 function Sequence(GR, RF, ADC, DUR)
 	@assert size(GR, 2) .== size(RF, 2) .== length(ADC) .== length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
 	M, N = size(GR)
-    gr = [i <= M ? GR[i,j] : Grad(0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i in 1:3, j in 1:N]
-    dur = maximum([GR.dur RF.dur ADC.dur DUR], dims=2)[:]
-	return Sequence(gr, RF, ADC, dur, Dict())
+    gr = [i <= M ? GR[i,j] : Grad(0.0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i in 1:3, j in 1:N]
+	return Sequence(gr, RF, ADC, DUR, Dict{String, Any}())
 end
 
 # Other constructors
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,1,:))
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1})= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0) for i in 1:size(GR, 2)])
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], [DUR], DEF)
-Sequence() = Sequence([Grad(0, 0)])
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1})= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0.0) for i in 1:size(GR, 2)])
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], Float64[DUR], DEF)
+Sequence() = Sequence([Grad(0.0, 0.0)])
 
 """
     str = show(io::IO, s::Sequence)
@@ -113,11 +113,11 @@ Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
 
 #Arithmetic operations
-recursive_merge(x::AbstractDict...) = merge(recursive_merge, x...)
-recursive_merge(x::AbstractVector...) = cat(x...; dims=1)
+recursive_merge(x::Dict{K, V}) where {K, V} = merge(recursive_merge, x...)
+recursive_merge(x::Vector) = cat(x...; dims=1)
 recursive_merge(x...) = x[end]
-+(x::Sequence, y::Sequence) = Sequence([x.GR  y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], recursive_merge(x.DEF, y.DEF))
--(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], recursive_merge(x.DEF, y.DEF))
++(x::Sequence, y::Sequence) = Sequence([x.GR  y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
+-(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
 -(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.DEF)
 *(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF, x.ADC, x.DUR, x.DEF)
 *(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF, x.ADC, x.DUR, x.DEF)
@@ -308,7 +308,7 @@ always zero, and the final time corresponds to the duration of the sequence.
 # Returns
 - `T0`: (`::Vector`, `[s]`) start times of the blocks in a sequence
 """
-get_block_start_times(seq::Sequence) = cumsum([0; seq.DUR], dims=1)
+get_block_start_times(seq::Sequence) = cumsum([0.0; seq.DUR], dims=1)
 
 """
     samples = get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf)
@@ -328,56 +328,50 @@ Returns the samples of the events in `seq`.
     Each event, represented by `e::NamedTuple`, includes time samples (`e.t`) and amplitude
     samples (`e.A`)
 """
-function get_samples(seq::Sequence) #off_val=0, max_rf_samples=Inf
-    N = length(seq)
+function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc])
+    rf_samples = (;) # Empty NamedTuples
+    gr_samples = (;) # Empty NamedTuples
+    adc_samples = (;) # Empty NamedTuples
     T0 = get_block_start_times(seq)
-    # GRADs
-    t_gx = reduce(vcat, [get_theo_t(seq.GR[1,i]) .+ T0[i] for i in 1:N])
-    t_gy = reduce(vcat, [get_theo_t(seq.GR[2,i]) .+ T0[i] for i in 1:N])
-    t_gz = reduce(vcat, [get_theo_t(seq.GR[3,i]) .+ T0[i] for i in 1:N])
-    A_gx = reduce(vcat, [get_theo_A(seq.GR[1,i]) for i in 1:N])
-    A_gy = reduce(vcat, [get_theo_A(seq.GR[2,i]) for i in 1:N])
-    A_gz = reduce(vcat, [get_theo_A(seq.GR[3,i]) for i in 1:N])
-    # RFs
-    t_rf = reduce(vcat, [get_theo_t(seq.RF[1,i], :A) .+ T0[i] for i in 1:N])
-    A_rf = reduce(vcat, [get_theo_A(rf, :A) for rf in seq.RF])
-    t_Δf = reduce(vcat, [get_theo_t(seq.RF[1,i], :Δf) .+ T0[i] for i in 1:N])
-    A_Δf = reduce(vcat, [get_theo_A(rf, :Δf) for rf in seq.RF])
-    # ADCs
-    t_adc = reduce(vcat, [get_theo_t(seq.ADC[i]) .+ T0[i] for i in 1:N])
-    A_adc = reduce(vcat, [get_theo_A(adc) for adc in seq.ADC])
-    return (
-        gx = (t = t_gx, A = A_gx),
-        gy = (t = t_gy, A = A_gy),
-        gz = (t = t_gz, A = A_gz),
-        rf = (t = t_rf, A = A_rf),
-        Δf = (t = t_Δf, A = A_Δf),
-        adc = (t = t_adc, A = A_adc)
-    )
+    fill_if_empty(x) = isempty(x.t) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
+    # RF
+    if :rf in events
+        t_rf = reduce(vcat, T0[i] .+ time(seq.RF[1,i], :A)  for i in range)
+        t_Δf = reduce(vcat, T0[i] .+ time(seq.RF[1,i], :Δf) for i in range)
+        A_rf = reduce(vcat, ampl(seq.RF[1,i])      for i in range)
+        A_Δf = reduce(vcat, freq(seq.RF[1,i])      for i in range)
+        rf_samples = (
+            rf  = fill_if_empty((t = t_rf, A = A_rf)),
+            Δf  = fill_if_empty((t = t_Δf, A = A_Δf))
+            )
+    end
+    # Gradients
+    if :gr in events
+        t_gx = reduce(vcat, T0[i] .+ time(seq.GR[1,i]) for i in range)
+        t_gy = reduce(vcat, T0[i] .+ time(seq.GR[2,i]) for i in range)
+        t_gz = reduce(vcat, T0[i] .+ time(seq.GR[3,i]) for i in range)
+        A_gx = reduce(vcat, ampl(seq.GR[1,i]) for i in range)
+        A_gy = reduce(vcat, ampl(seq.GR[2,i]) for i in range)
+        A_gz = reduce(vcat, ampl(seq.GR[3,i]) for i in range)
+        gr_samples = (
+                gx  = fill_if_empty((t = t_gx, A = A_gx)),
+                gy  = fill_if_empty((t = t_gy, A = A_gy)),
+                gz  = fill_if_empty((t = t_gz, A = A_gz))
+                )
+    end
+    # ADC
+    if :adc in events
+        t_aq = reduce(vcat, T0[i] .+ time(seq.ADC[i]) for i in range)
+        A_aq = reduce(vcat, ampl(seq.ADC[i]) for i in range)
+        adc_samples = (
+                adc = fill_if_empty((t = t_aq, A = A_aq)),
+                )
+    end
+    # Merging events
+    event_samples = merge(rf_samples, gr_samples, adc_samples)
+    return event_samples
 end
-function get_samples(seq::Sequence, i::Integer)
-    T0 = get_block_start_times(seq)[i]
-    t_rf = KomaMRIBase.is_RF_on(seq[i]) ? get_theo_t(seq.RF[1,i], :A) .+ T0 : Float64[]
-    t_Δf = KomaMRIBase.is_RF_on(seq[i]) ? get_theo_t(seq.RF[1,i], :Δf) .+ T0 : Float64[]
-    t_gx = KomaMRIBase.is_Gx_on(seq[i]) ? get_theo_t(seq.GR[1,i]) .+ T0 : Float64[]
-    t_gy = KomaMRIBase.is_Gy_on(seq[i]) ? get_theo_t(seq.GR[2,i]) .+ T0 : Float64[]
-    t_gz = KomaMRIBase.is_Gz_on(seq[i]) ? get_theo_t(seq.GR[3,i]) .+ T0 : Float64[]
-    t_adc = KomaMRIBase.is_ADC_on(seq[i]) ? get_theo_t(seq.ADC[i]) .+ T0 : Float64[]
-    A_rf = KomaMRIBase.is_RF_on(seq[i]) ? get_theo_A(seq.RF[1,i], :A) : Float64[]
-    A_Δf = KomaMRIBase.is_RF_on(seq[i]) ? get_theo_A(seq.RF[1,i], :Δf) : Float64[]
-    A_gx = KomaMRIBase.is_Gx_on(seq[i]) ? get_theo_A(seq.GR[1,i]) : Float64[]
-    A_gy = KomaMRIBase.is_Gy_on(seq[i]) ? get_theo_A(seq.GR[2,i]) : Float64[]
-    A_gz = KomaMRIBase.is_Gz_on(seq[i]) ? get_theo_A(seq.GR[3,i]) : Float64[]
-    A_adc = KomaMRIBase.is_ADC_on(seq[i]) ? get_theo_A(seq.ADC[i]) : Float64[]
-    return (
-        rf = (t = t_rf, A = A_rf),
-        Δf = (t = t_Δf, A = A_Δf),
-        gx = (t = t_gx, A = A_gx),
-        gy = (t = t_gy, A = A_gy),
-        gz = (t = t_gz, A = A_gz),
-        adc = (t = t_adc, A = A_adc)
-    )
-end
+get_samples(seq::Sequence; kwargs...) = get_samples(seq, 1:length(seq); kwargs...)
 
 """
     Gx, Gy, Gz = get_grads(seq, t::Vector)
@@ -398,13 +392,11 @@ Get the gradient array from sequence `seq` evaluated in time points `t`.
     in the z direction
 """
 function get_grads(seq, t::Union{Vector, Matrix})
-    gx = get_theo_Gi(seq, 1)
-    gy = get_theo_Gi(seq, 2)
-    gz = get_theo_Gi(seq, 3)
-    Gx = linear_interpolation(gx..., extrapolation_bc=0).(t)
-    Gy = linear_interpolation(gy..., extrapolation_bc=0).(t)
-    Gz = linear_interpolation(gz..., extrapolation_bc=0).(t)
-    (Gx, Gy, Gz)
+    grad_samples = get_samples(seq; events=[:gr])
+    for event in grad_samples
+        Interpolations.deduplicate_knots!(event.t; move_knots=true)
+    end
+    return Tuple(linear_interpolation(event..., extrapolation_bc=0.0).(t) for event in grad_samples)
 end
 
 """
@@ -421,11 +413,11 @@ Returns the RF pulses and the delta frequency.
 - `Δf_rf`: (`1-row ::Matrix{Float64}`, `[Hz]`) delta frequency vector
 """
 function get_rfs(seq, t::Union{Vector, Matrix})
-    r = get_theo_RF(seq, :A)
-    df = get_theo_RF(seq, :Δf)
-    R = linear_interpolation(r..., extrapolation_bc=0).(t)
-    DF = linear_interpolation(df..., extrapolation_bc=0).(t)
-    (R, DF)
+    rf_samples = get_samples(seq; events=[:rf])
+    for event in rf_samples
+        Interpolations.deduplicate_knots!(event.t; move_knots=true)
+    end
+    return Tuple(linear_interpolation(event..., extrapolation_bc=0.0).(t) for event in rf_samples)
 end
 
 """
