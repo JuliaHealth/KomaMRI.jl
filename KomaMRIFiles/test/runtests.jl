@@ -50,43 +50,33 @@ using TestItems, TestItemRunner
     end
 end
 
-@testitem "gr-trapezoidal" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-trapezoidal") end
-@testitem "gr-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-uniformly-shaped") end
-@testitem "gr-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-time-shaped") end
-@testitem "rf-pulse" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-pulse") end
-@testitem "rf-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-uniformly-shaped") end
-@testitem "rf-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-time-shaped") end
-@testitem "fid" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("fid") end
-@testitem "spiral" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("spiral") end
-@testitem "gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre") end
-@testitem "epi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi") end
+@testitem "Pulseq compat" tags=[:files, :pulseq] begin
+    using MAT, KomaMRIBase, Suppressor
 
-#@testitem "cine_gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("cine_gre") end
-#@testitem "DEMO_gre0" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("DEMO_gre0") end
-#@testitem "DEMO_grep0" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("DEMO_grep0") end
-#@testitem "epi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi") end
-#@testitem "epi_lbl" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_lbl") end   # takes more than 3mins
-#@testitem "epi_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_rs") end
-#@testitem "epi_rs_label" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_rs_label") end
-#@testitem "epi_se" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epi_se") end
-#@testitem "epidiff_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epidiff_rs") end
-#@testitem "epise_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("epise_rs") end
-#@testitem "fid" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("fid") end
-#@testitem "gre" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre") end
-#@testitem "gre3d" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre3d") end      # takes more than 5min
-#@testitem "gre_gt" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre_gt") end
-#@testitem "gre_lbl" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre_lbl") end
-#@testitem "gre_rad" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gre_rad") end
-#@testitem "gr-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-time-shaped") end
-#@testitem "gr-trapezoidal" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("gr-trapezoidal") end
-#@testitem "MSE_test_KomaMRI" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("MSE_test_KomaMRI") end
-#@testitem "press" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("press") end
-#@testitem "rf-pulse" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-pulse") end
-#@testitem "rf-time-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-time-shaped") end
-#@testitem "rf-uniformly-shaped" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("rf-uniformly-shaped") end
-#@testitem "selectiveRf" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("selectiveRf") end
-#@testitem "spiral" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("spiral") end
-#@testitem "trufi" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("trufi") end
-#@testitem "ute" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("ute") end
-#@testitem "ute_rs" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("ute_rs") end
-#@testitem "zte_petra" tags=[:files] begin include(joinpath(@__DIR__, "test_files", "utils.jl")), read_comparison("zte_petra") end      # takes more than 5min
+    # Aux functions
+    inside(x) = x[2:end-1]
+    namedtuple(x) = x[:]
+    namedtuple(d::Dict) = (; (Symbol(k == "df" ? "Δf" : k) => namedtuple(v) for (k,v) in d)...)
+    not_empty = ((ek, ep),) -> !isempty(ep.t)
+
+    # Reading files
+    path         = joinpath(@__DIR__, "test_files/pulseq_read_comparison")
+    pulseq_files = filter(endswith(".seq"), readdir(path)) .|> x -> splitext(x)[1]
+    for pulseq_file in pulseq_files
+        #@show pulseq_file
+        seq_koma   = @suppress read_seq("$path/$pulseq_file.seq")
+        seq_pulseq = matread("$path/$pulseq_file.mat")["sequence"] .|> namedtuple
+        @testset "$pulseq_file" begin
+            for i in 1:length(seq_koma)
+                blk_koma   = get_samples(seq_koma, i)
+                blk_pulseq = NamedTuple{keys(blk_koma)}(seq_pulseq[i]) # Reorder keys
+                for (ev_koma, ev_pulseq) in Iterators.filter(not_empty, zip(blk_koma, blk_pulseq))
+                    @test ev_koma.t ≈ ev_pulseq.t
+                    @test inside(ev_koma.A) ≈ inside(ev_pulseq.A)
+                    @test first(ev_koma.A)  ≈ first(ev_pulseq.A) || ev_koma.t[2] ≈ ev_koma.t[1]
+                    @test last(ev_koma.A)   ≈ last(ev_pulseq.A)
+                end
+            end
+        end
+    end
+end
