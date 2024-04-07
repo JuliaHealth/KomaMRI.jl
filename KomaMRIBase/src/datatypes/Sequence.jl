@@ -33,10 +33,11 @@ mutable struct Sequence
 	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
 	#Ext::Array{Extension,1}
 	Sequence(GR, RF, ADC, DUR, DEF) = begin
-		@assert size(GR,2) .== size(RF,2) .== length(ADC) .== length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
-		M,N = size(GR)
-        GR_new = [i <= M ? GR[i,j] : Grad(0.0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay, 0.0, 0.0) for i=1:3, j=1:N]
-		new(GR_new,
+		@assert size(GR, 2) == size(RF,2) == length(ADC) == length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
+        if size(GR, 1) < 3
+            GR = vcat(GR, (0.0 .* GR[1:1, :] for i=1:3-size(GR, 1))...)
+        end
+		new(GR,
 			RF,
 			ADC,
 			DUR, #maximum(Float64[GR.dur RF.dur ADC.dur DUR],dims=2)[:],
@@ -46,39 +47,34 @@ end
 
 # Main Constructors
 function Sequence(GR)
-	M, N = size(GR)
-    gr = [i <= M ? GR[i,j] : Grad(0.0, 0.0) for i in 1:3, j in 1:N]
-    rf = reshape([RF(0.0, 0.0) for i in 1:N], 1, :)
-    adc = [ADC(0, 0.0) for _ = 1:N]
-    return Sequence(gr, rf, adc, GR.dur, Dict{String, Any}())
+    rf = reshape([RF(0.0, 0.0) for i in 1:size(GR, 2)], 1, :)
+    adc = [ADC(0, 0.0) for _ = 1:size(GR, 2)]
+    return Sequence(GR, rf, adc, GR.dur, Dict{String, Any}())
 end
 function Sequence(GR, RF)
-	@assert size(GR, 2) .== size(RF, 2) "The number of Gradient, and RF objects must be the same."
-	M, N = size(GR)
-    gr = [i <= M ? GR[i,j] : Grad(0.0, 0.0) for i in 1:3, j in 1:N]
-    adc = [ADC(0, 0.0) for _ in 1:N]
-    dur = maximum([GR.dur RF.dur], dims=2)[:]
-	return Sequence(gr, RF, adc, dur, Dict{String, Any}())
+    adc = [ADC(0, 0.0) for _ in 1:size(GR, 2)]
+    DUR = maximum([GR.dur RF.dur], dims=2)[:]
+	return Sequence(GR, RF, adc, DUR, Dict{String, Any}())
 end
 function Sequence(GR, RF, ADC)
-	@assert size(GR, 2) .== size(RF, 2) .== length(ADC) "The number of Gradient, RF, and ADC objects must be the same."
-	M, N = size(GR)
-    gr = [i <= M ? GR[i,j] : Grad(0, 0) for i in 1:3, j in 1:N]
-    dur = maximum([GR.dur RF.dur ADC.dur], dims=2)[:]
-	return Sequence(gr, RF, ADC, dur, Dict{String, Any}())
+    DUR = maximum([GR.dur RF.dur ADC.dur], dims=2)[:]
+	return Sequence(GR, RF, ADC, DUR, Dict{String, Any}())
 end
 function Sequence(GR, RF, ADC, DUR)
-	@assert size(GR, 2) .== size(RF, 2) .== length(ADC) .== length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
-	M, N = size(GR)
-    gr = [i <= M ? GR[i,j] : Grad(0.0, GR[1,j].T, GR[1,j].rise, GR[1,j].fall, GR[1,j].delay) for i in 1:3, j in 1:N]
-	return Sequence(gr, RF, ADC, DUR, Dict{String, Any}())
+    return Sequence(GR, RF, ADC, DUR, Dict{String, Any}())
 end
 
 # Other constructors
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,1,:))
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1})= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0.0) for i in 1:size(GR, 2)])
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], Float64[DUR], DEF)
-Sequence() = Sequence([Grad(0.0, 0.0)])
+Sequence() = Sequence(
+    Matrix{Grad}(undef, 3, 0),
+    Matrix{RF}(undef, 1, 0),
+    Vector{ADC}(undef, 0),
+    Vector{Float64}(undef, 0),
+    Dict{String, Any}()
+    )
 
 """
     str = show(io::IO, s::Sequence)
@@ -93,12 +89,16 @@ Displays information about the Sequence struct `s` in the julia REPL.
 """
 Base.show(io::IO, s::Sequence) = begin
 	compact = get(io, :compact, false)
-	if !compact
-		nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
-		print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | DEF: $(length(s.DEF)) ]")
-	else
-		print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
-	end
+    if length(s) > 0
+        if !compact
+            nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
+            print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | DEF: $(length(s.DEF)) ]")
+        else
+            print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
+        end
+    else
+        print(io, "Sequence[]")
+    end
 end
 
 #Sequence operations
@@ -116,11 +116,11 @@ Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k
 recursive_merge(x::Dict{K, V}) where {K, V} = merge(recursive_merge, x...)
 recursive_merge(x::Vector) = cat(x...; dims=1)
 recursive_merge(x...) = x[end]
-+(x::Sequence, y::Sequence) = Sequence([x.GR  y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
--(x::Sequence, y::Sequence) = Sequence([x.GR -y.GR], [x.RF y.RF], [x.ADC; y.ADC], [x.DUR; y.DUR], merge(x.DEF, y.DEF))
++(x::Sequence, y::Sequence) = Sequence(hcat(x.GR,  y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), merge(x.DEF, y.DEF))
+-(x::Sequence, y::Sequence) = Sequence(hcat(x.GR, -y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), merge(x.DEF, y.DEF))
 -(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.DEF)
-*(x::Sequence, α::Real) = Sequence(α*x.GR, x.RF, x.ADC, x.DUR, x.DEF)
-*(α::Real, x::Sequence) = Sequence(α*x.GR, x.RF, x.ADC, x.DUR, x.DEF)
+*(x::Sequence, α::Real) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
+*(α::Real, x::Sequence) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
 *(x::Sequence, α::ComplexF64) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
 *(α::ComplexF64, x::Sequence) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
 *(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
@@ -130,11 +130,11 @@ recursive_merge(x...) = x[end]
 +(s::Sequence, g::Grad) = s + Sequence(reshape([g],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 +(g::Grad, s::Sequence) = Sequence(reshape([g],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #RF operations
-+(s::Sequence, r::RF) = s + Sequence(reshape([Grad(0,0)],1,1),reshape([r],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(r::RF, s::Sequence) = Sequence(reshape([Grad(0,0)],1,1),reshape([r],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(s::Sequence, r::RF) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(r::RF, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #ADC operations
-+(s::Sequence, a::ADC) = s + Sequence(reshape([Grad(0,0)],1,1),reshape([RF(0,0)],1,1),[a]) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(a::ADC, s::Sequence) = Sequence(reshape([Grad(0,0)],1,1),reshape([RF(0,0)],1,1),[a]) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(s::Sequence, a::ADC) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(a::ADC, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 
@@ -151,7 +151,7 @@ Tells if the sequence `seq` has elements with ADC active, or active during time 
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the ADC in the sequence is active
 """
-is_ADC_on(x::Sequence) = any(x.ADC.N .> 0)
+is_ADC_on(x::Sequence) = any(x-> x > 0, x.ADC.N)
 is_ADC_on(x::Sequence, t::AbstractVecOrMat) = begin
 	N = length(x)
 	ΔT = durs(x)
