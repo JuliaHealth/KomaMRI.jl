@@ -46,8 +46,6 @@ function generate_seq_time_layout_config(title, width, height, range, slider, sh
 			font_color=text_color,
 			yaxis_fixedrange = false,
 			xaxis=attr(
-                # tickmode= show_seq_blocks ? "array" : "linear",
-                # tickvals=T0*1e3,
 				ticksuffix=" ms",
 				domain=range[:],
 				range=range[:],
@@ -64,6 +62,9 @@ function generate_seq_time_layout_config(title, width, height, range, slider, sh
 				),
 			margin=attr(t=0,l=0,r=0,b=0)
 		)
+    if show_seq_blocks
+        l.xaxis["tickvals"] = T0 * 1e3
+    end
 	if height !== nothing
 		l.height = height
 	end
