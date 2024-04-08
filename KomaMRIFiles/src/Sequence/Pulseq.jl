@@ -336,7 +336,7 @@ julia> plot_seq(seq)
 ```
 """
 function read_seq(filename)
-    #@info "Loading sequence $(basename(filename)) ..."
+    @info "Loading sequence $(basename(filename)) ..."
     version_combined = 0
     version_major = 0
     version_minor = 0
@@ -460,13 +460,14 @@ function read_seq(filename)
     # Add first and last points for gradients #320
     fix_first_last_grads!(seq)
     # Final details
-    # Hack for including extension and triggers
+    # Hack for including extension and triggers, this will be done properly for #308 and #323
     seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
     seq.DEF = merge(obj["definitions"], seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = version_combined
     seq.DEF["signature"] = signature
+    # Guessing recon dimensions
     seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC))
     seq.DEF["Ny"] = get(seq.DEF, "Ny", sum(map(is_ADC_on, seq)))
     seq.DEF["Nz"] = get(seq.DEF, "Ny", 1)
