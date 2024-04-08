@@ -120,3 +120,5 @@ function get_adc_phase_compensation(seq)
   end
   return phase
 end
+
+dur(adc::ADC) = adc.delay + adc.T

@@ -246,7 +246,7 @@ function decompress_shape(num_samples, data; forceDecompression = false)
 
         countPack = 1       # counter 1: points to the current compressed sample
         countUnpack = 1     # counter 2: points to the current uncompressed sample
-        for i = 1:length(dataPackMarkers)
+        for i = eachindex(dataPackMarkers)
             nextPack = dataPackMarkers[i] # careful, this index may have "false positives" , e.g. if the value 3 repeats 3 times, then we will have 3 3 3
             currUnpackSamples = nextPack - countPack
             if currUnpackSamples < 0 # this rejects false positives
@@ -703,7 +703,7 @@ function get_block(obj, i)
     A = read_ADC(obj["adcLibrary"], iadc)
 
     #DUR
-    D = Float64[obj["blockDurations"][i]]
+    D = Float64[max(obj["blockDurations"][i], dur(Gx), dur(Gy), dur(Gz), dur(R), dur(A[1]))]
 
     #Extensions
     E = Dict{String, Any}()#read_Extension(obj["extensionLibrary"], iext, i)
