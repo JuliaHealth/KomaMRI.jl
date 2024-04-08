@@ -22,25 +22,35 @@ function ampl(gr::Grad)
 	end
 	return [gr.first; gr.A; gr.last]     # uniformly-sampled and time-shaped
 end
-function ampl(rf::RF)
+function ampl(rf::RF; freq_in_phase=false)
     if !is_on(rf)
         return ComplexF64[]
     end
-	rfA = rf.A
-    if !(rfA isa Vector)
-        return ComplexF64[0.0; rfA; rfA; 0.0]
-	end
-	return ComplexF64[0.0; rfA; 0.0]     # uniformly-sampled and time-shaped
+    if !(rf.A isa Vector)
+        A = ComplexF64[0.0; rf.A; rf.A; 0.0]
+	else
+        A = ComplexF64[0.0; rf.A; 0.0]     # uniformly-sampled and time-shaped
+    end
+    if freq_in_phase
+        t0 = time(rf, :Δf)
+        t  = time(rf)
+        Interpolations.deduplicate_knots!(t0; move_knots=true)
+        Interpolations.deduplicate_knots!(t; move_knots=true)
+        f = linear_interpolation(t0, freq(rf)).(t)
+        A = A .* exp.(im*2π*[0; cumtrapz(diff(t), f)])
+    end
+	return A
 end
 function freq(rf::RF)
     if !is_on(rf)
         return Float64[]
     end
-	rfA = rf.Δf
-    if !(rfA isa Vector)
-        return [0.0; rfA; rfA; 0.0]
-	end
-	return [0.0; rfA; 0.0]     # uniformly-sampled and time-shaped
+    if !(rf.Δf isa Vector)
+        df = [0.0; rf.Δf; rf.Δf; 0.0]
+	else
+        df = [0.0; rf.Δf; 0.0]     # uniformly-sampled and time-shaped
+    end
+	return df
 end
 function ampl(adc::ADC)
     if !is_on(adc)
@@ -100,6 +110,7 @@ function time(rf::RF, key::Symbol)
     t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
     return t
 end
+time(rf::RF) = time(rf, :A)
 function time(adc::ADC)
     if !is_on(adc)
         return range(0.0,0.0,0) #empty

@@ -328,7 +328,7 @@ Returns the samples of the events in `seq`.
     Each event, represented by `e::NamedTuple`, includes time samples (`e.t`) and amplitude
     samples (`e.A`)
 """
-function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc])
+function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phase=false)
     rf_samples = (;) # Empty NamedTuples
     gr_samples = (;) # Empty NamedTuples
     adc_samples = (;) # Empty NamedTuples
@@ -336,10 +336,10 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc])
     fill_if_empty(x) = isempty(x.t) && length(range) == length(seq) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
     # RF
     if :rf in events
-        t_rf = reduce(vcat, T0[i] .+ time(seq.RF[1,i], :A)  for i in range)
-        t_Δf = reduce(vcat, T0[i] .+ time(seq.RF[1,i], :Δf) for i in range)
-        A_rf = reduce(vcat, ampl(seq.RF[1,i])      for i in range)
-        A_Δf = reduce(vcat, freq(seq.RF[1,i])      for i in range)
+        t_rf = reduce(vcat, T0[i] .+ time(seq.RF[1,i], :A)   for i in range)
+        t_Δf = reduce(vcat, T0[i] .+ time(seq.RF[1,i], :Δf)  for i in range)
+        A_rf = reduce(vcat, ampl(seq.RF[1,i]; freq_in_phase) for i in range)
+        A_Δf = reduce(vcat, freq(seq.RF[1,i])                for i in range)
         rf_samples = (
             rf  = fill_if_empty((t = t_rf, A = A_rf)),
             Δf  = fill_if_empty((t = t_Δf, A = A_Δf))

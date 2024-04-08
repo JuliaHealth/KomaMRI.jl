@@ -46,8 +46,8 @@ function generate_seq_time_layout_config(title, width, height, range, slider, sh
 			font_color=text_color,
 			yaxis_fixedrange = false,
 			xaxis=attr(
-                tickmode= show_seq_blocks ? "array" : "linear",
-                tickvals=T0*1e3,
+                # tickmode= show_seq_blocks ? "array" : "linear",
+                # tickvals=T0*1e3,
 				ticksuffix=" ms",
 				domain=range[:],
 				range=range[:],
@@ -128,6 +128,7 @@ Plots a sequence struct.
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
 - `title`: (`::String`, `=""`) plot title
+- `freq_in_phase`: (`::Bool`, `=true`) Include FM modulation in RF phase
 - `gl`: (`::Bool`, `=false`) use `PlotlyJS.scattergl` backend (faster)
 - `max_rf_samples`: (`::Integer`, `=100`) maximum number of RF samples
 - `show_adc`: (`::Bool`, `=false`) plot ADC samples with markers
@@ -156,10 +157,11 @@ function plot_seq(
       xaxis="x",
       yaxis="y",
       showlegend=true,
+      freq_in_phase=false,
       # Performance related
       gl=false,
       max_rf_samples=100,
-      show_adc=true
+      show_adc=false
   )
 
     # Aux functions
@@ -167,7 +169,7 @@ function plot_seq(
     usrf(x) = length(x) > max_rf_samples ? ([@view x[1]; @view x[2:(length(x)÷max_rf_samples):end-1]; @view x[end]]) : x
     usadc(x) = show_adc || isempty(x) ? x : [first(x); last(x)]
     # Get the samples of the events in the sequence
-    seq_samples = (get_samples(seq, i) for i in 1:length(seq))
+    seq_samples = (get_samples(seq, i; freq_in_phase) for i in 1:length(seq))
     gx  = (A=reduce(vcat, [block.gx.A; Inf]        for block in seq_samples),
            t=reduce(vcat, [block.gx.t; Inf]        for block in seq_samples))
     gy  = (A=reduce(vcat, [block.gy.A; Inf]        for block in seq_samples),
@@ -196,14 +198,18 @@ function plot_seq(
 
 	# For RFs
 	for j in 1:O
-		rf_phase = angle.(rf.A[:,j])
-		rf_phase[rf.A[:,j] .== Inf] .= Inf
-		p[2j-1+3] = scatter_fun(x=rf.t*1e3, y=abs.(rf.A[:,j])*1e6, name="|B1|_AM", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
+        rf_amp = abs.(rf.A[:,j])
+        rf_phase = angle.(rf.A[:,j])
+        rf_phase[rf_amp .== Inf] .= Inf # Avoid weird jumps
+        # Plot RF
+		p[2j-1+3] = scatter_fun(x=rf.t*1e3, y=rf_amp*1e6, name="|B1|_AM", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="|B1|_AM", showlegend=showlegend, marker=attr(color="#AB63FA"))
 		p[2j+3] = scatter_fun(x=rf.t*1e3, y=rf_phase, text=ones(size(rf.t)), name="∠B1_AM", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="∠B1_AM", showlegend=showlegend, marker=attr(color="#FFA15A"))
-        p[2j+4] = scatter_fun(x=Δf.t*1e3, y=Δf.A[:,j]*1e-3, text=ones(size(Δf.t)), name="B1_FM", hovertemplate="(%{x:.4f} ms, B1_FM: %{y:.4f} kHz)", visible="legendonly",
-                xaxis=xaxis, yaxis=yaxis, legendgroup="B1_FM", showlegend=showlegend, marker=attr(color="#AB63FA"), line=attr(dash="dot"))
+        if !freq_in_phase
+            p[2j+4] = scatter_fun(x=Δf.t*1e3, y=Δf.A[:,j]*1e-3, text=ones(size(Δf.t)), name="B1_FM", hovertemplate="(%{x:.4f} ms, B1_FM: %{y:.4f} kHz)", visible="legendonly",
+                    xaxis=xaxis, yaxis=yaxis, legendgroup="B1_FM", showlegend=showlegend, marker=attr(color="#AB63FA"), line=attr(dash="dot"))
+        end
 	end
 
 	# For ADCs
