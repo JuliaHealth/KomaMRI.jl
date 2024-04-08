@@ -33,19 +33,6 @@ end
 function generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
 	#LAYOUT
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	#Shapes
-	shapes = []
-    N = length(T0)
-	if show_seq_blocks
-		aux = [line(
-			xref="x", yref="paper",
-			x0=T0[i]*1e3, y0=0,
-			x1=T0[i]*1e3, y1=1,
-			line=attr(color=sep_color, width=1),
-            layer="below"
-			) for i = 1:N]
-		append!(shapes, aux)
-	end
 	l = Layout(;title=title, hovermode="closest",
 			xaxis_title="",
 			modebar=attr(orientation="h", yanchor="bottom", xanchor="right", y=1, x=0, bgcolor=bgcolor, color=text_color, activecolor=plot_bgcolor),
@@ -59,6 +46,8 @@ function generate_seq_time_layout_config(title, width, height, range, slider, sh
 			font_color=text_color,
 			yaxis_fixedrange = false,
 			xaxis=attr(
+                tickmode= show_seq_blocks ? "array" : "linear",
+                tickvals=T0*1e3,
 				ticksuffix=" ms",
 				domain=range[:],
 				range=range[:],
@@ -73,7 +62,6 @@ function generate_seq_time_layout_config(title, width, height, range, slider, sh
 						]
 					),
 				),
-			shapes = shapes,
 			margin=attr(t=0,l=0,r=0,b=0)
 		)
 	if height !== nothing
