@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>MRI Theory · KomaMRI.jl: General MRI simulation framework</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/extra-styles.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img class="docs-light-only" src="../assets/logo.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/><img class="docs-dark-only" src="../assets/logo-dark.svg" alt="KomaMRI.jl: General MRI simulation framework logo"/></a><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../getting-started/">Getting Started</a></li><li><span class="tocitem">Ways of Using KomaMRI</span><ul><li><a class="tocitem" href="../ui-details/">User Interface</a></li><li><a class="tocitem" href="../programming-workflow/">Julia Scripts</a></li><li><a class="tocitem" href="../notebooks/">Notebooks</a></li></ul></li><li><a class="tocitem" href="../create-your-own-phantom/">Create Your Own Phantom</a></li><li><span class="tocitem">Create Your Own Sequence</span><ul><li><a class="tocitem" href="../sequence/">Sequence</a></li><li><a class="tocitem" href="../events/">Sequence Events</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../generated/examples/01-FID/">Free Induction Decay</a></li><li><a class="tocitem" href="../generated/examples/02-SmallTipApproximation/">Small Tip Angle Approximation</a></li><li><a class="tocitem" href="../generated/examples/03-ChemicalShiftEPI/">Chemical Shift in an EPI sequence</a></li><li><a class="tocitem" href="../generated/examples/04-3DSliceSelective/">Slice Selective Acquisition of 3D Phantom</a></li></ul></li><li><span class="tocitem">Educational Material 📚</span><ul><li><a class="tocitem" href="../educational-1d-simulation/">1D Simulations: FID, GE, and SE</a></li><li><a class="tocitem" href="../pluto-fat-sat-low-field/">Fat Saturation in Low Field</a></li></ul></li><li><a class="tocitem" href="../mri-theory/">Simulation</a></li><li><a class="tocitem" href="../api/">API Documentation</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>MRI Theory</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>MRI Theory</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaHealth/KomaMRI.jl/blob/master/docs/src/mri-theory-informal.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="MRI-Theory"><a class="docs-heading-anchor" href="#MRI-Theory">MRI Theory</a><a id="MRI-Theory-1"></a><a class="docs-heading-anchor-permalink" href="#MRI-Theory" title="Permalink"></a></h1><p>This section is meant to be a general overview or summary of the main MRI concepts and insights. It is a good starting point to show up the most relevant components involved and how they are related for <strong>raw signal</strong> acquisition and image reconstruction. The idea is to have a fresh and clear understanding of what is happening behind the scenes when using the <strong>KomaMRI.jl</strong> package. Some light background in Differential Equations, Signal Processing and Fourier Theory is advisable to follow along.   </p><h2 id="Raw-Signal-Generation"><a class="docs-heading-anchor" href="#Raw-Signal-Generation">Raw Signal Generation</a><a id="Raw-Signal-Generation-1"></a><a class="docs-heading-anchor-permalink" href="#Raw-Signal-Generation" title="Permalink"></a></h2><p>In order to generate an <strong>image</strong> from a <strong>phantom</strong> object with a <strong>scanner</strong> system and <strong>sequence</strong> signals, its necessary to acquire a <strong>raw signal</strong> <span>$s(t)$</span>. This signal can be though as the sum of all spin magnetizations <span>$M$</span> of the object:</p><p class="math-container">\[s(t) =
+\int_{x} \int_{y} \int_{z}
+\underbrace{
+M(x, y, z, t)
+}_{\approx \: \alpha \: image(x,y,z)} 
+\: \mathrm{d}z \: \mathrm{d}y \: \mathrm{d}x\]</p><p>Note that the magnitude of the magnetization is kind of proportional to the <strong>image</strong>. In real life it&#39;s not possible to get directly all the spin magnetizations, however it&#39;s possible to obtain the sum of all of them in the <strong>raw signal</strong>. To avoid losing image information in the sum operation, every spin magnetization resonates with different Larmor frequencies which values depend on the position <span>$(x,y,z)$</span> (i.e. modulated or encoded with the basis of the spatial frequency domain). Thus the <strong>raw signal</strong> can be thought as:</p><p class="math-container">\[\begin{align} \tag{1}
+
+s(t) \approx
+\int_{x} \int_{y} \int_{z}
+\underbrace{
+m(x, y, z)
+}_{\alpha \: image(x,y,z)}
+\underbrace{
+e^{-j 2 \pi [k_x(t) x + k_y(t) y + k_z(t) z]}
+}_{modulation \: basis} 
+\: \mathrm{d}z \: \mathrm{d}y \: \mathrm{d}x
+
+\end{align}\]</p><p>where:</p><p class="math-container">\[\vec{k}(t) =
+\begin{pmatrix}
+k_x(t) \\
+k_y(t) \\
+k_z(t)
+\end{pmatrix} =
+\frac{2\pi}{\gamma}
+\begin{pmatrix}
+\int_{0}^{t} G_x(\tau) \mathrm{d} \tau\\
+\int_{0}^{t} G_y(\tau) \mathrm{d} \tau\\
+\int_{0}^{t} G_z(\tau) \mathrm{d} \tau\\
+\end{pmatrix}
+\;\;\; , \;\;\;
+\begin{matrix*}[l]
+\gamma: \: gyromagnetic \: ratio \\
+G_i(t): \: input \: gradient \: signals
+\end{matrix*}\]</p><p>In the above expressions, we can see that the frequency of each spin can be manipulated by applying input <strong>gradient</strong> signals (or a gradient field). In practice, this gradient field is applied in the longitudinal axis <span>$\hat{z}$</span> (but it is always dependent on the <span>$(x,y,z)$</span> position), which makes the spins able to resonate (or precess) at different Larmor frequencies after another input <strong>RF</strong> pulse excite them in the transverse direction. Both inputs, the <strong>gradient</strong> signal and the <strong>RF</strong> pulse, are part of the effective magnetic field <span>$\vec{B}(t)$</span>:</p><p class="math-container">\[\vec{B}(t) = 
+\begin{pmatrix}
+B_{1,x}(t) \\
+B_{1,y}(t) \\
+G_x(t) x + G_y(t) y + G_z(t) z\\
+\end{pmatrix}
+\;\;\; , \;\;\;
+\begin{matrix*}[l]
+B_{1,i}(t): \: input \: RF \: pulse \: (transverse) \\
+G_i(t):     \: input \: gradients \: (longitudinal)
+\end{matrix*}\]</p><p>It&#39;s important to highlight that the coil that senses the <strong>raw signal</strong> can only detects magnetization components oriented in the transverse direction. For this reason is necessary to apply the short <strong>RF</strong> signal orthogonally to the longitudinal <span>$\hat{z}$</span> axe.</p><p>One of the primary concerns, to generate an image is to design proper input signals for the effective magnetic field <span>$\vec{B}(t)$</span>. In particular, by inspecting equation <code>(1)</code>, it&#39;s possible to manipulate the <strong>spacial frequencies</strong> <span>$k_x(t)$</span>, <span>$k_y(t)$</span> and <span>$k_z(t)$</span> by applying the <strong>gradients</strong> <span>$G_x(t)$</span>, <span>$G_y(t)$</span> and <span>$G_z(t)$</span>. Thus, we have information of the <strong>raw signal</strong> <span>$s(t)$</span> an the basis <span>$e^{-j 2 \pi [k_x(t) x + k_y(t) y + k_z(t) z]}$</span>. Mathematically speaking, every sample of the <strong>raw signal</strong> is the Fourier transform of the magnetization <span>$m(x,y,z)$</span> for a specific point of the <span>$spacial frequency$</span> domain:</p><p class="math-container">\[s(t) = Fourier\{\:m \: \}(k_x(t),\: k_y(t),\: k_z(t))\]</p><p>Therefore, to get the magnetization <span>$m(x,y,z)$</span> for all the points in the <span>$spacial$</span> domain its necessary to solve the inverse problem with enough points to cover the complete <span>$spacial frequency$</span> domain, which can be achieved by following a trajectory over time applying different gradient signals (i.e. a trajectory to complete the <strong>k-space</strong>).</p><h2 id="K-Space-and-Acquisition"><a class="docs-heading-anchor" href="#K-Space-and-Acquisition">K-Space and Acquisition</a><a id="K-Space-and-Acquisition-1"></a><a class="docs-heading-anchor-permalink" href="#K-Space-and-Acquisition" title="Permalink"></a></h2><p>Note that the trajectory to cover the <strong>k-space</strong> eventually can have any continuos shape, however it cannot fill the complete space. Furthermore, due to natural hardware restrictions, the continuos trajectory is sampled during the acquisition of the <strong>raw signal</strong> <span>$s[t]$</span>. Thus, every discrete point of <span>$s[t]$</span> represents a discrete point in the <strong>k-space</strong>.</p><p>Intuitively, it is desirable to get many points as possible and homogeneously distributed in the <strong>k-space</strong>. In particular, since the theory behind the <strong>raw signal generation</strong> is intimately related with the Fourier Transform, a natural way to cover the <strong>k-space</strong> is by taken a discrete mesh grid of points (trajectories and samples separated by small cubes). In this case, it is possible to apply Fourier theory to define the minimal <strong>k-space</strong> resolution (separation of the samples in the <strong>k-space</strong>) to set space dimensions (Field of Views) and prevent aliasing in the image, and define maximal limits in the <strong>k-space</strong> to set space resolution in the image.</p><p class="math-container">\[\underbrace{
+\Delta k_i
+}_{k-space \: resolution}
+\longrightarrow
+\underbrace{
+FOV_i
+}_{space \: width \: bounds} \]</p><p class="math-container">\[\underbrace{
+W_{k_i}
+}_{k-space \: width \: bounds}
+\longrightarrow
+\underbrace{
+\Delta i
+}_{space \: resolution} \]</p><p class="math-container">\[\forall i \in \{x,\: y, \: z\}\]</p><p>Even though a mesh grid of discrete points is the natural way of thinking to cover the <strong>k-space</strong>, it is always possible possible to apply more exotic <strong>k-space</strong> trajectories, which could be helpful, for instance, to reduce the complete acquisition time. Keep in mind though, this fact must be regarded when solving the inverse problem for obtaining the image, for example by applying and interpolation function before taking the inverse Fourier Transform.</p><h2 id="Spin-Dynamics"><a class="docs-heading-anchor" href="#Spin-Dynamics">Spin Dynamics</a><a id="Spin-Dynamics-1"></a><a class="docs-heading-anchor-permalink" href="#Spin-Dynamics" title="Permalink"></a></h2><p>It&#39;s important to point out that all the magnetization spins are independent from each other, so we could separate the <strong>phantom</strong> object into multiple spins and solve the <strong>Bloch Equations</strong> for every magnetization vector <span>$\vec{M}$</span> independently:</p><p class="math-container">\[\frac{\mathrm{d} \vec{M}}{\mathrm{d} t} =
+  \gamma \vec{M} \times \vec{B}
+- \frac{M_x \hat{x} + M_y \hat{y}}{T_2}
+- \frac{M_z \hat{x} + M_0 \hat{y}}{T_1}\]</p><p>or:</p><p class="math-container">\[\begin{align} \tag{2}
+
+\frac{\mathrm{d}}{\mathrm{d}t} \vec{M} =
+\underbrace{
+\gamma
+\begin{bmatrix}
+ 0   &amp;  B_z &amp; -B_y \\
+-B_z &amp;  0   &amp;  B_x \\
+ B_y &amp; -B_x &amp;  0
+\end{bmatrix}
+\vec{M}
+}_\text{rotation} 
+-
+\underbrace{
+\begin{bmatrix}
+\tfrac{1}{T_2} &amp; 0 &amp; 0 \\
+0 &amp; \tfrac{1}{T_2} &amp; 0 \\
+0 &amp; 0 &amp; \tfrac{1}{T_1}
+\end{bmatrix}
+\vec{M}
+}_\text{relaxation} 
++
+\underbrace{
+\begin{bmatrix}
+0 \\
+0 \\
+\tfrac{M_0}{T_1}
+\end{bmatrix}
+}_\text{steady-state} 
+
+\end{align}\]</p><p class="math-container">\[\begin{matrix*}[l]
+\gamma: &amp; gyromagnetic \: ratio \\
+T_2:    &amp; transverse \: relaxation \: time \: constant \\
+T_1:    &amp; longitudinal \: relaxation \: time \: constant
+\end{matrix*}\]</p><p class="math-container">\[\vec{M}(t) =
+\begin{pmatrix}
+M_x(t) \\
+M_y(t) \\
+M_z(t)
+\end{pmatrix}
+\;\;\; , \;\;\;
+\vec{B}(t) = 
+\begin{pmatrix}
+B_x(t) \\
+B_y(t) \\
+B_z(t)
+\end{pmatrix} =
+\begin{pmatrix}
+B_{1,x}(t) \\
+B_{1,y}(t) \\
+G_x(t) x + G_y(t) y + G_z(t) z\\
+\end{pmatrix}\]</p><p class="math-container">\[\begin{matrix*}[l]
+B_{1,i}(t): &amp; input \: RF \: pulse \: (transverse) \\
+G_i(t):     &amp; input \: gradients \: (longitudinal)
+\end{matrix*}\]</p><p>Note that equation <code>(2)</code> can be separated into three parts:</p><ul><li>Rotation: governed by the inputs RF pulse and gradient signals. It gives an initial excitation and the oscillatory behavior for different Larmor frequencies, respectively. </li><li>Relaxation: gives the decay behavior (the magnetization envelope) after the excitation of the spins.</li><li>Steady-State: spins points towards the longitudinal direction after a while.</li></ul><p>Thus, to get the <strong>raw signal</strong> <span>$s(t)$</span> it&#39;s necessary to solve the <strong>Bloch equations</strong> (equation <code>(2)</code>) for every spin of the <strong>phantom</strong> object, then sum up the contributions of all of them and finally consider just the components of the transverse plane:</p><p class="math-container">\[s(t) = s_{xy}(t)
+\;\;\; , \;\;\;
+s_{xy}(t) = s_{x}(t) + j s_{y}(t)\]</p><p class="math-container">\[\begin{pmatrix}
+s_{x}(t) \\
+s_{y}(t) \\
+s_{z}(t)
+\end{pmatrix} =
+\int_{x} \int_{y} \int_{z}
+\vec{M}(x, y, z, t)
+\: \mathrm{d}z \: \mathrm{d}y \: \mathrm{d}x\]</p></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Monday 8 April 2024 22:57">Monday 8 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
