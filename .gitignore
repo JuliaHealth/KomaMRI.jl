@@ -31,8 +31,5 @@ examples/3.koma_paper/comparison_accuracy/**/*.mrd
 examples/3.koma_paper/mrf/**/*.mrd
 examples/3.koma_paper/comparison_accuracy/**/*.mat
 examples/3.koma_paper/comparison_accuracy/**/*.h5
-
-test*.jl
-CardiacCine.jl
 /KomaMRIFiles/test/test_files/*.phantom
 
