@@ -73,28 +73,30 @@ yaw, & t >= tf
     yaw::T   = typeof(ti)(0.0)
 end 
 
-displacement_x(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+is_composable(motion_type::Rotation) = true
+
+position_x(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     α = t_unit .* (motion_type.pitch * π/180)
     β = t_unit .* (motion_type.roll * π/180)
     γ = t_unit .* (motion_type.yaw * π/180)
-    return cos.(γ) .* cos.(β) .* x   +   (cos.(γ) .* sin.(β) .* sin.(α) .- sin.(γ) .* cos.(α)) .* y   +   (cos.(γ) .* sin.(β) .* cos.(α) .+ sin.(γ) .* sin.(α)) .*z   .-   x
+    return cos.(γ) .* cos.(β) .* x   +   (cos.(γ) .* sin.(β) .* sin.(α) .- sin.(γ) .* cos.(α)) .* y   +   (cos.(γ) .* sin.(β) .* cos.(α) .+ sin.(γ) .* sin.(α)) .* z
 end
 
-displacement_y(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+position_y(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     α = t_unit .* (motion_type.pitch * π/180)
     β = t_unit .* (motion_type.roll * π/180)
     γ = t_unit .* (motion_type.yaw * π/180)
-    return sin.(γ) .* cos.(β) .* x   +   (sin.(γ) .* sin.(β) .* sin.(α) .+ cos.(γ) .* cos.(α)) .* y   +   (sin.(γ) .* sin.(β) .* cos.(α) .- cos.(γ) .* sin.(α)) .* z  .-  y
+    return sin.(γ) .* cos.(β) .* x   +   (sin.(γ) .* sin.(β) .* sin.(α) .+ cos.(γ) .* cos.(α)) .* y   +   (sin.(γ) .* sin.(β) .* cos.(α) .- cos.(γ) .* sin.(α)) .* z
 end
 
-displacement_z(motion_type::Rotation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+position_z(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     α = t_unit .* (motion_type.pitch * π/180)
     β = t_unit .* (motion_type.roll * π/180)
     γ = t_unit .* (motion_type.yaw * π/180)
-    return -sin.(β) .* x   +   cos.(β) .* sin.(α) .* y  .-  z 
+    return -sin.(β) .* x   +   cos.(β) .* sin.(α) .* y
 end
 
 get_time_nodes(motion_type::Rotation) = begin

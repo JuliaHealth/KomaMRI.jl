@@ -4,10 +4,13 @@
 @with_kw struct PeriodicHeartBeat{T<:Real} <: SimpleMotionType{T} 
     period::T
     asymmetry::T              = typeof(period)(0.5)
+    ti::T                     = typeof(period)(0.0)
     circunferential_strain::T = typeof(period)(0.0)
     radial_strain::T          = typeof(period)(0.0)
     longitudinal_strain::T    = typeof(period)(0.0)
 end 
+
+is_composable(motion_type::PeriodicHeartBeat) = false
 
 displacement_x(motion_type::PeriodicHeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)

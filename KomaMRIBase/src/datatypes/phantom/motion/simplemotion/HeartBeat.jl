@@ -9,6 +9,8 @@
     longitudinal_strain::T    = typeof(ti)(0.0)
 end 
 
+is_composable(motion_type::HeartBeat) = false
+
 displacement_x(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     r = sqrt.(x.^2 + y.^2)
