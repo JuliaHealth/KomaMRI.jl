@@ -1,9 +1,9 @@
-const MIN_RISE_TIME = 1e-10
+const MIN_RISE_TIME = 1e-14
 
 """
     array_of_ranges = kfoldperm(N, k; breaks=[])
 
-Divides a list of indices from 1 to `N` into `k` groups. 
+Divides a list of indices from 1 to `N` into `k` groups.
 
 # Arguments
 - `N`: (`::Integer`) number of elements to be ordered
@@ -100,7 +100,7 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 			t1 = t0 + delay
 			t2 = t1 + sum(T)
 			rf0 = t0 + get_RF_center(y) #get_RF_center includes delays
-			taux = points_from_key_times([t1,t1+ϵ,rf0,t2-ϵ,t2]; dt=Δt_rf) # Arbitrary RF. Points (t1+ϵ, t2-ϵ) added to fix bug with ADCs
+			taux = points_from_key_times([t1, t1 + ϵ, rf0, t2 - ϵ, t2]; dt=Δt_rf)
 			append!(t, taux)
 		end
 		if is_GR_on(s)
@@ -109,8 +109,8 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 			if is_Gy_on(s) append!(active_gradients, s.GR.y) end
 			if is_Gz_on(s) append!(active_gradients, s.GR.z) end
 			for y = active_gradients
-				ts = get_theo_t(y) .+ t0
-				taux = points_from_key_times([ts[1]+ϵ; ts; ts[end]-ϵ]; dt=Δt) #The ±ϵ fixes #
+				ts = time(y) .+ t0
+				taux = points_from_key_times([ts[1] + ϵ; ts; ts[end] - ϵ]; dt=Δt)
 				append!(t, taux)
 			end
 		end
