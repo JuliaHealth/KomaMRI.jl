@@ -758,14 +758,14 @@ function plot_phantom_map(
 			x=(x[:,i])*1e2,
 			y=(y[:,i])*1e2,
 			mode="markers",
-			marker=attr(color=getproperty(ph,key)*factor,
-						showscale=colorbar,
-						colorscale=colormap,
-						colorbar=attr(ticksuffix=unit, title=string(key)),
-						cmin=cmin_key,
-						cmax=cmax_key,
-						size=4
-						),
+			marker=attr(
+				color=getproperty(ph,key)*factor,
+				showscale=colorbar,
+				colorscale=colormap,
+				colorbar=attr(ticksuffix=unit, title=string(key)),
+				cmin=cmin_key,
+				cmax=cmax_key,
+				size=4),
 			visible=i==1,
 			showlegend=false,
 			text=round.(getproperty(ph,key)*factor,digits=4),
@@ -778,14 +778,14 @@ function plot_phantom_map(
 				y=(y[:,i])*1e2,
 				z=(z[:,i])*1e2,
 				mode="markers",
-				marker=attr(color=getproperty(ph,key)*factor,
-							showscale=colorbar,
-							colorscale=colormap,
-							colorbar=attr(ticksuffix=unit, title=string(key)),
-							cmin=cmin_key,
-							cmax=cmax_key,
-							size=2
-							),
+				marker=attr(
+					color=getproperty(ph,key)*factor,
+					showscale=colorbar,
+					colorscale=colormap,
+					colorbar=attr(ticksuffix=unit, title=string(key)),
+					cmin=cmin_key,
+					cmax=cmax_key,
+					size=2),
 				visible=i==1,
 				showlegend=false,
 				text=round.(getproperty(ph,key)*factor,digits=4),
@@ -805,35 +805,30 @@ function plot_phantom_map(
 		xaxis_zerolinecolor=grid_color,
 		yaxis_zerolinecolor=grid_color,
 		font_color=text_color,
-		sliders=[attr(
-			visible=length(t)>1,
-			pad=attr(
-				l=30
-			),
-		steps=[
-				attr(
-					label=round(t0, digits=2),
-					method="update",
-					args=[attr(visible=[fill(false, i-1); true; fill(false, length(t)-i)])]
-				)
-				for (i, t0) in enumerate(t)
-			],
-			currentvalue=attr(
-				prefix="t = ",
-				suffix=" s",
-				xanchor="right",
-				font=attr(
-					color="#888",
-					size=20
-				)
-			)
-    	)],
+		sliders=[
+			attr(
+				visible=length(t)>1,
+				pad=attr(l=30),
+				steps=[
+					attr(
+						label=round(t0, digits=2),
+						method="update",
+						args=[attr(visible=[fill(false, i-1); true; fill(false, length(t)-i)])]
+						)
+					for (i, t0) in enumerate(t)],
+					currentvalue=attr(
+						prefix="t = ",
+						suffix=" s",
+						xanchor="right",
+						font=attr(
+							color="#888",
+							size=20)))],
 		scene=attr(
 			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			yaxis=attr(title="y",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			zaxis=attr(title="z",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			aspectmode="manual",
-			aspectratio=attr(x=1,y=1,z=1)),
+			aspectratio=attr(x=1, y=1, z=1)),
 		margin=attr(t=50,l=0,r=0),
 		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
 		xaxis=attr(constrain="domain"),

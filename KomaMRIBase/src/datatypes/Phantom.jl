@@ -178,24 +178,6 @@ function get_dims(obj::Phantom)
 	return dims
 end
 
-
-# Movement related commands
-# StartAt(s::Phantom,t0::Float64) = Phantom(s.name,s.x,s.y,s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->s.ux(x,y,t.+t0),(x,y,t)->s.uy(x,y,t.+t0))
-# FreezeAt(s::Phantom,t0::Float64) = Phantom(s.name*"STILL",s.x.+s.ux(s.x,s.y,t0),s.y.+s.uy(s.x,s.y,t0),s.ρ,s.T2,s.Δw,s.Dλ1,s.Dλ2,s.Dθ,(x,y,t)->0,(x,y,t)->0)
-
-#TODO: jaw-pitch-roll, expand, contract, functions
-
-# Getting maps
-# get_DxDy2D(obj::Phantom) = begin
-# 	P(i) = rotz(obj.Dθ[i])[1:2,1:2];
-# 	D(i) = [obj.Dλ1[i] 0;0 obj.Dλ2[i]]
-# 	nx = [1;0]; ny = [0;1]
-# 	Dx = [nx'*P(i)'*D(i)*P(i)*nx for i=1:prod(size(obj.Dλ1))]
-# 	Dy = [ny'*P(i)'*D(i)*P(i)*ny for i=1:prod(size(obj.Dλ1))]
-# 	Dx, Dy
-# end
-
-
 """
     obj = heart_phantom(...)
 

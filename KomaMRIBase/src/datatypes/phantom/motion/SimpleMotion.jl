@@ -56,15 +56,3 @@ normalize_time_triangular(t, period, asymmetry) = begin
     return t_unit
 end
 
-
-"""
-Idea for motion pipeline (simple motion composition)
-
-positions = x, y, z
-for type in motion.types
-positions = get_coords(type, positions...)
-end
-return positions
-"""
-# +(x::SimpleMotionType, y::SimpleMotionType)
-
