@@ -94,5 +94,6 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/cncastillo/KomaMRI.jl.git",
+    repo = "github.com/JuliaHealth/KomaMRI.jl.git",
+    push_preview = true,
 )

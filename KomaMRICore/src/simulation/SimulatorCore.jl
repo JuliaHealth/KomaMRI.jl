@@ -80,7 +80,7 @@ function run_spin_precession_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     Nthreads=Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads)
-    dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
+    dims = [Colon() for i=1:ndims(sig)-1] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
@@ -113,7 +113,7 @@ function run_spin_excitation_parallel!(obj::Phantom{T}, seq::DiscreteSequence{T}
     Nthreads=Threads.nthreads()) where {T<:Real}
 
     parts = kfoldperm(length(obj), Nthreads)
-    dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
+    dims = [Colon() for i=1:ndims(sig)-1] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_excitation!(@view(obj[p]), seq, @view(sig[dims...,i]), @view(Xt[p]), sim_method)
@@ -160,7 +160,7 @@ function run_sim_time_iter!(obj::Phantom, seq::DiscreteSequence, sig::AbstractAr
         # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
         Nadc = sum(seq_block.ADC)
         acq_samples = samples:samples+Nadc-1
-        dims = [Colon() for i=1:output_Ndim(sim_method)] # :,:,:,... Ndim times
+        dims = [Colon() for i=1:ndims(sig)-1] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool[block]
             run_spin_excitation_parallel!(obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads)
@@ -324,7 +324,7 @@ function simulate(
     @info "Running simulation in the $(sim_params["gpu"] ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version=__VERSION__ sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points=Ndims[1]
     @time timed_tuple = @timed run_sim_time_iter!(obj, seqd, sig, Xt, sim_params["sim_method"]; Nblocks=length(parts), Nthreads=sim_params["Nthreads"], parts, excitation_bool, w)
     # Result to CPU, if already in the CPU it does nothing
-    sig = sum(sig; dims=length(Ndims)+1) |> cpu
+    sig = sum(sig; dims=length(Ndims)+1) |> cpu #Sum over threads
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
     if sim_params["gpu"] GC.gc(true); CUDA.reclaim() end
@@ -343,6 +343,7 @@ function simulate(
         sim_params_raw["type_sim_parts"] = excitation_bool
         sim_params_raw["Nblocks"] = length(parts)
         sim_params_raw["sim_time_sec"] = timed_tuple.time
+        sim_params_raw["allocations_bytes"] = timed_tuple.bytes
         out = signal_to_raw_data(sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw)
     end
     return out
