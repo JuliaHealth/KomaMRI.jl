@@ -170,18 +170,18 @@ function plot_seq(
     usadc(x) = show_adc || isempty(x) ? x : [first(x); last(x)]
     # Get the samples of the events in the sequence
     seq_samples = (get_samples(seq, i; freq_in_phase) for i in 1:length(seq))
-    gx  = (A=reduce(vcat, [block.gx.A; Inf]        for block in seq_samples),
-           t=reduce(vcat, [block.gx.t; Inf]        for block in seq_samples))
-    gy  = (A=reduce(vcat, [block.gy.A; Inf]        for block in seq_samples),
-           t=reduce(vcat, [block.gy.t; Inf]        for block in seq_samples))
-    gz  = (A=reduce(vcat, [block.gz.A; Inf]        for block in seq_samples),
-           t=reduce(vcat, [block.gz.t; Inf]        for block in seq_samples))
-    rf  = (A=reduce(vcat, [usrf(block.rf.A); Inf]  for block in seq_samples),
-           t=reduce(vcat, [usrf(block.rf.t); Inf]  for block in seq_samples))
-    Δf  = (A=reduce(vcat, [usrf(block.Δf.A); Inf]  for block in seq_samples),
-           t=reduce(vcat, [usrf(block.Δf.t); Inf]  for block in seq_samples))
-    adc = (A=reduce(vcat, [usadc(block.adc.A); Inf]       for block in seq_samples),
-           t=reduce(vcat, [usadc(block.adc.t); Inf]       for block in seq_samples))
+    gx  = (A=reduce(vcat, sum(abs.(block.gx.A)) == 0 ? block.gx.A * Inf : [block.gx.A; Inf] for block in seq_samples),
+           t=reduce(vcat, sum(abs.(block.gx.A)) == 0 ? block.gx.t : [block.gx.t; Inf] for block in seq_samples))
+    gy  = (A=reduce(vcat, sum(abs.(block.gy.A)) == 0 ? block.gy.A * Inf : [block.gy.A; Inf] for block in seq_samples),
+           t=reduce(vcat, sum(abs.(block.gy.A)) == 0 ? block.gy.t : [block.gy.t; Inf] for block in seq_samples))
+    gz  = (A=reduce(vcat, sum(abs.(block.gz.A)) == 0 ? block.gz.A * Inf : [block.gz.A; Inf] for block in seq_samples),
+           t=reduce(vcat, sum(abs.(block.gz.A)) == 0 ? block.gz.t : [block.gz.t; Inf] for block in seq_samples))
+    rf  = (A=reduce(vcat, sum(abs.(block.rf.A)) == 0 ? usrf(block.rf.A) * Inf : [usrf(block.rf.A); Inf] for block in seq_samples),
+           t=reduce(vcat, sum(abs.(block.rf.A)) == 0 ? usrf(block.rf.t) : [usrf(block.rf.t); Inf] for block in seq_samples))
+    Δf  = (A=reduce(vcat, sum(abs.(block.Δf.A)) == 0 ? usrf(block.Δf.A) * Inf : [usrf(block.Δf.A); Inf] for block in seq_samples),
+           t=reduce(vcat, sum(abs.(block.Δf.A)) == 0 ? usrf(block.Δf.t) : [usrf(block.Δf.t); Inf] for block in seq_samples))
+    adc = (A=reduce(vcat, sum(abs.(block.adc.A)) == 0 ? (usadc(block.adc.A).+1) * Inf : [usadc(block.adc.A); Inf] for block in seq_samples),
+           t=reduce(vcat, sum(abs.(block.adc.A)) == 0 ? usadc(block.adc.t) : [usadc(block.adc.t); Inf] for block in seq_samples))
 
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
