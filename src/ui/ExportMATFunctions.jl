@@ -1,17 +1,23 @@
 function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
 
     # Get the samples of the events in the sequence
-    samples = get_samples(seq; off_val=Inf, max_rf_samples=100)
+    samples = get_samples(seq)
 
     # Create a dictionary with the event samples of the sequence
-    GRADS = hcat(samples.gx.t, samples.gy.t, samples.gz.t, samples.gx.A, samples.gy.A, samples.gz.A)
-    RFS = hcat(samples.rf.t, samples.rf.A)
+    Gx = hcat(samples.gx.t, samples.gx.A)
+    Gy = hcat(samples.gy.t, samples.gy.A)
+    Gz = hcat(samples.gz.t, samples.gz.A)
+    RF_AM = hcat(samples.rf.t, samples.rf.A)
+    RF_FM = hcat(samples.Δf.t, samples.Δf.A)
     ADCS = hcat(samples.adc.t, samples.adc.A)
-    seq_dict = Dict("GRAD" => GRADS,
-                    "RF" => RFS,
-                    "ADC" => ADCS,
-                    "DUR" => seq.DUR,
-                    "DEF" => seq.DEF)
+    seq_dict = Dict(
+        "Gx" => Gx,
+        "Gy" => Gy,
+        "Gz" => Gz,
+        "RF_AM" => RF_AM,
+        "RF_FM" => RF_FM,
+        "ADCS" => ADCS
+    )
 
     # Write to matlab file
     matwrite(joinpath(matfolder, matfilename), Dict("sequence" => seq_dict))
