@@ -140,7 +140,9 @@ Plots a sequence struct.
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
 - `title`: (`::String`, `=""`) plot title
+- `gl`: (`::Bool`, `=false`) use `PlotlyJS.scattergl` backend (faster)
 - `max_rf_samples`: (`::Integer`, `=100`) maximum number of RF samples
+- `show_adc`: (`::Bool`, `=false`) plot ADC samples with markers
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the Sequence struct
@@ -864,7 +866,8 @@ function plot_signal(
       slider=true,
       show_sim_blocks=false,
       darkmode=false,
-      range=[]
+      range=[],
+      gl=false
   )
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
@@ -953,10 +956,11 @@ function plot_signal(
     if width !== nothing
         l.width = width
     end
-	p = [scatter() for j=1:3]
+    scatter_fun = gl ? scattergl : scatter
+	p = [scatter_fun() for j=1:3]
 	p[1] = scatter(x=t,y=abs.(signal), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
-	p[2] = scatter(x=t,y=real.(signal),name="Re{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
-	p[3] = scatter(x=t,y=imag.(signal),name="Im{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[2] = scatter_fun(x=t,y=real.(signal),name="Re{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[3] = scatter_fun(x=t,y=imag.(signal),name="Im{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(

@@ -250,7 +250,7 @@ function view_ui!(seq::Sequence, w::Window; type="sequence", darkmode=true)
     # Add loading progress and then a plot to the UI depending on type of the plot
     if type == "sequence"
         display_loading!(w, "Plotting sequence ...")
-        long_seq = lenght(seq) > 1000
+        long_seq = length(seq) > 1000
         widget_plot = plot_seq(seq; darkmode, range=[0 30], slider=!long_seq, gl=long_seq, show_adc=false)
         content!(w, "div#content", dom"div"(widget_plot))
         @js_ w document.getElementById("content").dataset.content = "sequence"
