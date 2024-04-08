@@ -54,5 +54,10 @@ sequence.
 # Returns
 - `seq`: (`::Sequence`) delayed sequence
 """
-+(s::Sequence, d::Delay) = s + Sequence([Grad(0.,d.T)])
-+(d::Delay, s::Sequence) = Sequence([Grad(0.,d.T)]) + s
++(s::Sequence, d::Delay) = s + empty_seq(d.T)
++(d::Delay, s::Sequence) = empty_seq(d.T) + s
+function empty_seq(T)
+    seq = Sequence([Grad(0., 0.);;])
+    seq.DUR[1] = T
+    return seq
+end
