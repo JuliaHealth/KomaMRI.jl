@@ -14,10 +14,8 @@ include("Phantom/JEMRIS.jl")
 include("Phantom/MRiLab.jl")
 include("Phantom/Phantom.jl")
 
-export read_seq                                     # Pulseq
-export read_phantom_jemris, read_phantom_MRiLab, 
-       read_phantom_NIfTI, read_phantom_MAT,
-       read_phantom, write_phantom                  # Phantom
+export read_seq                                                                     # Pulseq
+export read_phantom_jemris, read_phantom_MRiLab, read_phantom, write_phantom        # Phantom
 
 # Package version: KomaMRIFiles.__VERSION__
 using Pkg
