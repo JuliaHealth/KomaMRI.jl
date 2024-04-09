@@ -91,3 +91,34 @@ using TestItems, TestItemRunner
         @test obj.name == "brain2D_axial_arbitrarymotion"
     end
 end
+
+@testitem "Pulseq compat" tags=[:files, :pulseq] begin
+    using MAT, KomaMRIBase, Suppressor
+
+    # Aux functions
+    inside(x) = x[2:end-1]
+    namedtuple(x) = x[:]
+    namedtuple(d::Dict) = (; (Symbol(k == "df" ? "Δf" : k) => namedtuple(v) for (k,v) in d)...)
+    not_empty = ((ek, ep),) -> !isempty(ep.t)
+
+    # Reading files
+    path         = joinpath(@__DIR__, "test_files/pulseq_read_comparison")
+    pulseq_files = filter(endswith(".seq"), readdir(path)) .|> x -> splitext(x)[1]
+    for pulseq_file in pulseq_files
+        #@show pulseq_file
+        seq_koma   = @suppress read_seq("$path/$pulseq_file.seq")
+        seq_pulseq = matread("$path/$pulseq_file.mat")["sequence"] .|> namedtuple
+        @testset "$pulseq_file" begin
+            for i in 1:length(seq_koma)
+                blk_koma   = get_samples(seq_koma, i)
+                blk_pulseq = NamedTuple{keys(blk_koma)}(seq_pulseq[i]) # Reorder keys
+                for (ev_koma, ev_pulseq) in Iterators.filter(not_empty, zip(blk_koma, blk_pulseq))
+                    @test ev_koma.t ≈ ev_pulseq.t
+                    @test inside(ev_koma.A) ≈ inside(ev_pulseq.A)
+                    @test first(ev_koma.A)  ≈ first(ev_pulseq.A) || ev_koma.t[2] ≈ ev_koma.t[1]
+                    @test last(ev_koma.A)   ≈ last(ev_pulseq.A)
+                end
+            end
+        end
+    end
+end

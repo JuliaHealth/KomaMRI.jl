@@ -293,10 +293,11 @@ end
     rf_phase = [0, π/2]
     seq = Sequence()
     seq += ADC(N, Tadc)
-    for i=1:2
-        global seq += RF(B1 .* exp(1im*rf_phase[i]), Trf)
-        global seq += ADC(N, Tadc)
-    end
+    seq += RF(B1 .* exp(1im*rf_phase[1]), Trf)
+    seq += ADC(N, Tadc)
+    seq += RF(B1 .* exp(1im*rf_phase[2]), Trf)
+    seq += ADC(N, Tadc)
+
 
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false)
     raw = @suppress simulate(obj, seq, sys; sim_params)
@@ -339,10 +340,10 @@ end
     rf_phase = [0, π/2]
     seq = Sequence()
     seq += ADC(N, Tadc)
-    for i=1:2
-        global seq += RF(B1 .* exp(1im*rf_phase[i]), Trf)
-        global seq += ADC(N, Tadc)
-    end
+    seq += RF(B1 .* exp(1im*rf_phase[1]), Trf)
+    seq += ADC(N, Tadc)
+    seq += RF(B1 .* exp(1im*rf_phase[2]), Trf)
+    seq += ADC(N, Tadc)
 
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>true)
     raw = @suppress simulate(obj, seq, sys; sim_params)
@@ -395,9 +396,6 @@ end
     raw1 = @suppress simulate(obj, seq1, sys; sim_params)
     raw2 = @suppress simulate(obj, seq2, sys; sim_params)
 
-    println(raw1.profiles[1].data)
-    println(raw2.profiles[1].data)
-
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 
 end
@@ -413,7 +411,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     sim_params["sim_method"] = KomaMRICore.BlochDict()
-    sig2 = simulate(obj, seq, sys; sim_params)
+    sig2 = @suppress simulate(obj, seq, sys; sim_params)
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 
@@ -439,7 +437,7 @@ end
 
     # Simulate the slice profile
     sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
-    M = simulate_slice_profile(seq; z, sim_params)
+    M = @suppress simulate_slice_profile(seq; z, sim_params)
 
     # For the time being, always pass the test
     @test true

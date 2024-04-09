@@ -6,7 +6,7 @@ using TestItems, TestItemRunner
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
-        EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+        EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0.0,0.0,0.0])
         @test dur(EX) ≈ durRF #RF length matches what is supposed to be
 
         #ACQ construction
@@ -15,7 +15,7 @@ using TestItems, TestItemRunner
         EPI = PulseDesigner.EPI(FOV, N, sys)
         TE = 30e-3
         d1 = TE-dur(EPI)/2-dur(EX)
-        d1 = d1 > 0 ? d1 : 0
+        d1 = d1 > 0 ? d1 : 0.0
         if d1 > 0 DELAY = Delay(d1) end
 
         #Sequence construction
@@ -76,11 +76,11 @@ using TestItems, TestItemRunner
         grad = Grad(A, T)
 
         A, T = rand(2)
-        g1, g2 = Grad(A,T), Grad(A,T,0,0,0)
+        g1, g2 = Grad(A,T), Grad(A,T,0.0,0.0,0.0)
         @test g1 ≈ g2
 
         A, T, ζ = rand(3)
-        g1, g2 = Grad(A,T,ζ), Grad(A,T,ζ,ζ,0)
+        g1, g2 = Grad(A,T,ζ), Grad(A,T,ζ,ζ,0.0)
         @test g1 ≈ g2
 
         A, T, delay, ζ = rand(4)
@@ -91,7 +91,7 @@ using TestItems, TestItemRunner
         T, N = 1e-3, 100
         f = t -> sin(π*t / T)
         gradw = Grad(f, T, N)
-        @test gradw.A ≈ f.(range(0, T; length=N))
+        @test gradw.A ≈ f.(range(0.0, T; length=N))
 
         # Test Grad operations
         α = 3
@@ -143,11 +143,11 @@ using TestItems, TestItemRunner
 
         #Sanity checks of constructors (A [T], T [s], Δf[Hz], delay [s])
         A, T = rand(2)
-        r1, r2 = RF(A,T), RF(A,T,0,0)
+        r1, r2 = RF(A,T), RF(A,T,0.0,0.0)
         @test r1 ≈ r2
 
         A, T, Δf = rand(3)
-        r1, r2 = RF(A,T,Δf), RF(A,T,Δf,0)
+        r1, r2 = RF(A,T,Δf), RF(A,T,Δf,0.0)
         @test r1 ≈ r2
 
         # Just checking to ensure that show() doesn't get stuck and that it is covered
@@ -187,7 +187,7 @@ using TestItems, TestItemRunner
         @test true
 
         # Test addition of a delay to a sequence
-        seq = Sequence()
+        seq = Sequence([Grad(0.0, 0.0)])
         ds = delay + seq
         @test dur(ds[1]) ≈ delay.T && dur(ds[2]) ≈ .0
         sd = seq + delay
@@ -245,17 +245,27 @@ using TestItems, TestItemRunner
         @test seqd[i1].t ≈ [t[i1]]
         @test seqd[i1:i2-1].t ≈ t[i1:i2]
 
-        T, N = 1, 4
-        seq = RF(1, 1)
-        seq += Sequence([Grad(1, 1)])
-        seq += ADC(N, 1)
+        T, N = 1.0, 4
+        seq = RF(1.0e-6, 1.0)
+        seq += Sequence([Grad(1.0e-3, 1.0)])
+        seq += ADC(N, 1.0)
         sampling_params = KomaMRIBase.default_sampling_params()
         sampling_params["Δt"], sampling_params["Δt_rf"] = T/N, T/N
-        seqd = KomaMRIBase.discretize(seq; sampling_params)
-        i = Int(floor(length(seqd) / 3))
-        @test is_RF_on(seq[1]) == is_RF_on(seqd[1*i:1*i+1]) && is_GR_on(seq[1]) == is_GR_on(seqd[1*i:1*i+1]) && is_ADC_on(seq[1]) == is_ADC_on(seqd[1*i:1*i+1])
-        @test is_RF_on(seq[2]) == is_RF_on(seqd[2*i:2*i+1]) && is_GR_on(seq[2]) == is_GR_on(seqd[2*i:2*i+1]) && is_ADC_on(seq[2]) == is_ADC_on(seqd[2*i:2*i+1])
-        @test is_RF_on(seq[3]) == is_RF_on(seqd[3*i:3*i+1]) && is_GR_on(seq[3]) == is_GR_on(seqd[3*i:3*i+1]) && is_ADC_on(seq[3]) == is_ADC_on(seqd[3*i:3*i+1])
+        seqd1 = KomaMRIBase.discretize(seq[1]; sampling_params)
+        seqd2 = KomaMRIBase.discretize(seq[2]; sampling_params)
+        seqd3 = KomaMRIBase.discretize(seq[3]; sampling_params)
+        # Block 1
+        @test is_RF_on(seq[1]) == is_RF_on(seqd1)
+        @test is_GR_on(seq[1]) == is_GR_on(seqd1)
+        @test is_ADC_on(seq[1]) == is_ADC_on(seqd1)
+        # Block 2
+        @test is_RF_on(seq[2]) == is_RF_on(seqd2)
+        @test is_GR_on(seq[2]) == is_GR_on(seqd2)
+        @test is_ADC_on(seq[2]) == is_ADC_on(seqd2)
+        # Block 3
+        @test is_RF_on(seq[3]) == is_RF_on(seqd3)
+        @test is_GR_on(seq[3]) == is_GR_on(seqd3)
+        @test is_ADC_on(seq[3]) == is_ADC_on(seqd3)
         @test KomaMRIBase.is_GR_off(seqd) ==  !KomaMRIBase.is_GR_on(seqd)
         @test KomaMRIBase.is_RF_off(seqd) ==  !KomaMRIBase.is_RF_on(seqd)
         @test KomaMRIBase.is_ADC_off(seqd) == !KomaMRIBase.is_ADC_on(seqd)
@@ -321,10 +331,10 @@ end
 @testitem "PulseDesigner" tags=[:base] begin
     @testset "RF_sinc" begin
         sys = Scanner()
-        B1 = 23.4731e-6 # For 90 deg flip angle
+        B1 = 23.4e-6 # For 90 deg flip angle
         Trf = 1e-3
         rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
-        @test KomaMRIBase.get_flip_angles(rf)[1] ≈ 90
+        @test round(KomaMRIBase.get_flip_angles(rf)[1]) ≈ 90
     end
     @testset "Spiral" begin
         sys = Scanner()

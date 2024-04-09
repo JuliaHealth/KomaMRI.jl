@@ -1,0 +1,41 @@
+# Pulseq sequence file
+# Created by MATLAB mr toolbox
+
+[VERSION]
+major 1
+minor 4
+revision 1
+
+[DEFINITIONS]
+AdcRasterTime 1e-07 
+BlockDurationRaster 1e-05 
+GradientRasterTime 1e-05 
+Name gr-trapezoidal 
+RadiofrequencyRasterTime 1e-06 
+
+# Format of blocks:
+# NUM DUR RF  GX  GY  GZ  ADC  EXT
+[BLOCKS]
+1 100   0   1   0   0  0  0
+2 100   0   1   0   0  0  0
+3 100   0   1   0   0  0  0
+4 100   0   1   0   0  0  0
+5 100   0   1   0   0  0  0
+6 100   0   1   0   0  0  0
+7 100   0   1   0   0  0  0
+8 100   0   1   0   0  0  0
+9 100   0   1   0   0  0  0
+
+# Format of trapezoid gradients:
+# id amplitude rise flat fall delay
+# ..      Hz/m   us   us   us    us
+[TRAP]
+ 1       425760  60  880  60   0
+
+
+[SIGNATURE]
+# This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added
+# It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
+# The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
+Type md5
+Hash 8b87c2b1caad8dcb8f25257b285e11ad
