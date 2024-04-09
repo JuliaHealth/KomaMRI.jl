@@ -469,8 +469,8 @@ function read_seq(filename)
     seq.DEF["signature"] = signature
     # Guessing recon dimensions
     seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC))
-    seq.DEF["Ny"] = get(seq.DEF, "Ny", sum(map(is_ADC_on, seq)))
-    seq.DEF["Nz"] = get(seq.DEF, "Ny", 1)
+    seq.DEF["Nz"] = get(seq.DEF, "Nz", length(unique(seq.RF.Δf)))
+    seq.DEF["Ny"] = get(seq.DEF, "Ny", sum(map(is_ADC_on, seq)) ÷ seq.DEF["Nz"])
     #Koma sequence
     return seq
 end
