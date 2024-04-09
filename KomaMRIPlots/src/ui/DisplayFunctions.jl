@@ -224,8 +224,20 @@ function plot_seq(
         p[2j+3] = scatter_fun(x=rf.t*1e3, y=rf_phase*frf, text=ones(size(rf.t)), name="∠B1_AM", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="∠B1_AM", showlegend=showlegend, marker=attr(color="#FFA15A"))
         if !freq_in_phase
-            p[2j+4] = scatter_fun(x=Δf.t*1e3, y=Δf.A[:,j]*1e-3*frf, text=ones(size(Δf.t)), name="B1_FM", hovertemplate="(%{x:.4f} ms, B1_FM: %{y:.4f} kHz)", visible="legendonly",
-                    xaxis=xaxis, yaxis=yaxis, legendgroup="B1_FM", showlegend=showlegend, marker=attr(color="#AB63FA"), line=attr(dash="dot"))
+            p[2j + 4] = scatter_fun(;
+                x=Δf.t * 1e3,
+                y=Δf.A[:, j] * 1e-3 * frf,
+                text=ones(size(Δf.t)),
+                name="B1_FM",
+                hovertemplate="(%{x:.4f} ms, B1_FM: %{y:.4f} kHz)",
+                visible="legendonly",
+                xaxis=xaxis,
+                yaxis=yaxis,
+                legendgroup="B1_FM",
+                showlegend=showlegend,
+                marker=attr(; color="#AB63FA"),
+                line=attr(; dash="dot"),
+            )
         end
 	end
 
