@@ -243,8 +243,18 @@ function plot_seq(
 
     # For ADCs
     fa = is_ADC_on(seq) ? 0.0 : Inf
-	p[3O+3+1] = scatter_fun(x=adc.t*1e3, y=adc.A*fa, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
-				xaxis=xaxis, yaxis=yaxis, legendgroup="ADC", showlegend=showlegend, mode=(show_adc ? "markers" : "line"), marker=attr(color="#19D3F3"))
+    p[3O + 3 + 1] = scatter_fun(;
+        x=adc.t * 1e3,
+        y=adc.A * fa,
+        name="ADC",
+        hovertemplate="(%{x:.4f} ms, %{y:i})",
+        xaxis=xaxis,
+        yaxis=yaxis,
+        legendgroup="ADC",
+        showlegend=showlegend,
+        mode=(show_adc ? "markers" : "line"),
+        marker=attr(; color="#19D3F3"),
+    )
 
     # Return the plot
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0=get_block_start_times(seq))
