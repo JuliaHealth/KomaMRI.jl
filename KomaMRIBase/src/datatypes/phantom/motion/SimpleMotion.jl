@@ -23,13 +23,14 @@ Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}
 function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     xi, yi, zi = x, y, z
     composable_motions = motion.types[is_composable.(motion.types)]
-    sort!(composable_motions, by= m->m.ti)
+    sort!(composable_motions, by=m->get_time_nodes(m)[1])
     for motion in composable_motions
-        xi, yi, zi = position_x(motion, xi, yi, zi, t), position_y(motion, xi, yi, zi, t), position_z(motion, xi, yi, zi, t)
+        xi, yi, zi = xi .+ displacement_x(motion, xi, yi, zi, t), yi .+ displacement_y(motion, xi, yi, zi, t), zi .+ displacement_z(motion, xi, yi, zi, t)
     end
-    xt = xi .+ reduce(.+, map((type) -> !is_composable(type) ? displacement_x(type, x, y, z, t) : 0, motion.types))
-    yt = yi .+ reduce(.+, map((type) -> !is_composable(type) ? displacement_y(type, x, y, z, t) : 0, motion.types))
-    zt = zi .+ reduce(.+, map((type) -> !is_composable(type) ? displacement_z(type, x, y, z, t) : 0, motion.types))
+    additive_motions = motion.types[(!is_composable).(motion.types)]
+    xt = xi .+ reduce(.+, map(type -> displacement_x(type, x, y, z, t), additive_motions))
+    yt = yi .+ reduce(.+, map(type -> displacement_y(type, x, y, z, t), additive_motions))
+    zt = zi .+ reduce(.+, map(type -> displacement_z(type, x, y, z, t), additive_motions))
     return xt, yt, zt
 end
 

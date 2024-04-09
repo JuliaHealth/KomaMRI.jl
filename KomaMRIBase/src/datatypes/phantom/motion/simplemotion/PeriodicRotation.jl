@@ -19,7 +19,6 @@ x (pitch), y (roll), and z (yaw)
 @with_kw struct PeriodicRotation{T<:Real} <: SimpleMotionType{T}
     period::T
     asymmetry::T = typeof(period)(0.5)
-    ti::T        = typeof(period)(0.0)
     pitch::T     = typeof(period)(0.0)
     roll::T      = typeof(period)(0.0)
     yaw::T       = typeof(period)(0.0)

@@ -21,7 +21,6 @@ The amplitude of the oscillation will be defined by dx, dy and dz
 @with_kw struct PeriodicTranslation{T<:Real} <: SimpleMotionType{T}
     period::T
     asymmetry::T = typeof(period)(0.5)
-    ti::T        = typeof(period)(0.0)
     dx::T        = typeof(period)(0.0)
     dy::T        = typeof(period)(0.0)
     dz::T        = typeof(period)(0.0)

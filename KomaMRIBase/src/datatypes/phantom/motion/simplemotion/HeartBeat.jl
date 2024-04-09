@@ -9,7 +9,9 @@
     longitudinal_strain::T    = typeof(ti)(0.0)
 end 
 
-displacement_x(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+is_composable(motion_type::HeartBeat) = true
+
+displacement_x(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
@@ -23,7 +25,7 @@ displacement_x(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVecto
     return Δr .* cos.(θ)
 end
 
-displacement_y(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+displacement_y(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
@@ -37,7 +39,7 @@ displacement_y(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVecto
     return Δr .* sin.(θ)
 end
 
-displacement_z(motion_type::HeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+displacement_z(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     return t_unit .* (z .* motion_type.longitudinal_strain) 
 end

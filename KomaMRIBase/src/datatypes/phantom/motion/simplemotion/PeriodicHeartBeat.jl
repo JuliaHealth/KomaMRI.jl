@@ -4,13 +4,14 @@
 @with_kw struct PeriodicHeartBeat{T<:Real} <: SimpleMotionType{T} 
     period::T
     asymmetry::T              = typeof(period)(0.5)
-    ti::T                     = typeof(period)(0.0)
     circunferential_strain::T = typeof(period)(0.0)
     radial_strain::T          = typeof(period)(0.0)
     longitudinal_strain::T    = typeof(period)(0.0)
 end 
 
-displacement_x(motion_type::PeriodicHeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+is_composable(motion_type::PeriodicHeartBeat) = true
+
+displacement_x(motion_type::PeriodicHeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
@@ -24,7 +25,7 @@ displacement_x(motion_type::PeriodicHeartBeat{T}, x::AbstractVector{T}, y::Abstr
     return Δr .* cos.(θ)
 end
 
-displacement_y(motion_type::PeriodicHeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+displacement_y(motion_type::PeriodicHeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
@@ -38,7 +39,7 @@ displacement_y(motion_type::PeriodicHeartBeat{T}, x::AbstractVector{T}, y::Abstr
     return Δr .* sin.(θ)
 end
 
-displacement_z(motion_type::PeriodicHeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+displacement_z(motion_type::PeriodicHeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
     return t_unit .* (z .* motion_type.longitudinal_strain) 
 end
