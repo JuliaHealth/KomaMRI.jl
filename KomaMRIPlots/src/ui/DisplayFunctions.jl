@@ -214,9 +214,9 @@ function plot_seq(
 
 	# For RFs
     frf = is_RF_on(seq) ? 1.0 : Inf
-	for j in 1:O
-        rf_amp = abs.(rf.A[:,j])
-        rf_phase = angle.(rf.A[:,j])
+    for j in 1:O
+        rf_amp = abs.(rf.A[:, j])
+        rf_phase = angle.(rf.A[:, j])
         rf_phase[rf_amp .== Inf] .= Inf # Avoid weird jumps
         # Plot RF
 		p[2j-1+3] = scatter_fun(x=rf.t*1e3, y=rf_amp*1e6*frf, name="|B1|_AM", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
