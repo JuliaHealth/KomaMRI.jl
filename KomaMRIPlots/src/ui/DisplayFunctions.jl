@@ -239,7 +239,7 @@ function plot_seq(
                 line=attr(; dash="dot"),
             )
         end
-	end
+    end
 
 	# For ADCs
     fa = is_ADC_on(seq) ? 0.0 : Inf
