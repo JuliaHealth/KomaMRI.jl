@@ -48,8 +48,6 @@ dz, & t >= tf
     dz::T = typeof(ti)(0.0)
 end
 
-is_composable(motion_type::Translation) = false
-
 displacement_x(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
     return t_unit .* motion_type.dx

@@ -27,8 +27,6 @@ The amplitude of the oscillation will be defined by dx, dy and dz
     dz::T        = typeof(period)(0.0)
 end
 
-is_composable(motion_type::PeriodicTranslation) = false
-
 displacement_x(motion_type::PeriodicTranslation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
     return t_unit .* motion_type.dx

@@ -1,5 +1,7 @@
-# ------ SimpleMotionTypes
+# ------ SimpleMotionType
 abstract type SimpleMotionType{T<:Real} end
+
+is_composable(motion_type::SimpleMotionType) = false
 
 """
 Simple Motion

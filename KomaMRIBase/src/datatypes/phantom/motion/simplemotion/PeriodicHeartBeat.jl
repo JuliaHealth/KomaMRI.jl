@@ -10,8 +10,6 @@
     longitudinal_strain::T    = typeof(period)(0.0)
 end 
 
-is_composable(motion_type::PeriodicHeartBeat) = false
-
 displacement_x(motion_type::PeriodicHeartBeat{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
     r = sqrt.(x.^2 + y.^2)
