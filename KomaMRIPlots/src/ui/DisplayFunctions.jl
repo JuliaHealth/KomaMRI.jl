@@ -241,7 +241,7 @@ function plot_seq(
         end
     end
 
-	# For ADCs
+    # For ADCs
     fa = is_ADC_on(seq) ? 0.0 : Inf
 	p[3O+3+1] = scatter_fun(x=adc.t*1e3, y=adc.A*fa, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
 				xaxis=xaxis, yaxis=yaxis, legendgroup="ADC", showlegend=showlegend, mode=(show_adc ? "markers" : "line"), marker=attr(color="#19D3F3"))
