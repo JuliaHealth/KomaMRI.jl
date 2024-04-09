@@ -28,9 +28,9 @@ function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::Abstr
         xi, yi, zi = xi .+ displacement_x(motion, xi, yi, zi, t), yi .+ displacement_y(motion, xi, yi, zi, t), zi .+ displacement_z(motion, xi, yi, zi, t)
     end
     additive_motions = motion.types[(!is_composable).(motion.types)]
-    xt = xi .+ reduce(.+, map(type -> displacement_x(type, x, y, z, t), additive_motions))
-    yt = yi .+ reduce(.+, map(type -> displacement_y(type, x, y, z, t), additive_motions))
-    zt = zi .+ reduce(.+, map(type -> displacement_z(type, x, y, z, t), additive_motions))
+    xt = xi .+ reduce(.+, map(type -> displacement_x(type, x, y, z, t), additive_motions); init=0)
+    yt = yi .+ reduce(.+, map(type -> displacement_y(type, x, y, z, t), additive_motions); init=0)
+    zt = zi .+ reduce(.+, map(type -> displacement_z(type, x, y, z, t), additive_motions); init=0)
     return xt, yt, zt
 end
 
