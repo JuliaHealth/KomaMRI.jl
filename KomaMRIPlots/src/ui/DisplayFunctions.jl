@@ -772,25 +772,95 @@ function plot_phantom_map(
 			hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
 		end
 	else
-		for i in 1:length(t)
-			push!(traces, scatter3d( 
-				x=(x[:,i])*1e2,
-				y=(y[:,i])*1e2,
-				z=(z[:,i])*1e2,
-				mode="markers",
-				marker=attr(
-					color=getproperty(ph,key)*factor,
-					showscale=colorbar,
-					colorscale=colormap,
-					colorbar=attr(ticksuffix=unit, title=string(key)),
-					cmin=cmin_key,
-					cmax=cmax_key,
-					size=2),
-				visible=i==1,
-				showlegend=false,
-				text=round.(getproperty(ph,key)*factor,digits=4),
-				hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
-		end
+		#generate the initial frame
+		trace = [scatter3d(
+			x=(x[:,1])*1e2,
+			y=(y[:,1])*1e2,
+			z=(z[:,1])*1e2,
+			mode="markers",
+			marker=attr(
+				color=getproperty(ph,key)*factor,
+				showscale=colorbar,
+				colorscale=colormap,
+				colorbar=attr(ticksuffix=unit, title=string(key)),
+				cmin=cmin_key,
+				cmax=cmax_key,
+				size=2),
+			showlegend=false,
+			text=round.(getproperty(ph,key)*factor,digits=4),
+			hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")]
+		
+		#store all frames in a vector
+		frames = PlotlyFrame[
+			frame(
+				data = [attr(
+					x=(x[:,i])*1e2,
+					y=(y[:,i])*1e2,
+					z=(z[:,i])*1e2, 
+					zmin=0,
+					zmax=1)],
+				name = "frame_$i", #update frame name
+				traces = [0],
+			) for i in 1:length(t)
+		]
+
+		#define the slider for manually viewing the frames
+		sliders_attr = [
+			attr(
+				visible=length(t)>1,
+				pad=attr(l=30),
+				steps=[
+					attr(
+						label=round(t0, digits=2),
+						method="animate",
+						args=[
+							["frame_$i"], #match the name of the frame again
+							attr(
+								visible=[fill(false, i-1); true; fill(false, length(t)-i)],
+								mode = "immediate",
+								transition = attr(duration = 0),
+								frame = attr(duration = 5, redraw = true))]
+					) for (i, t0) in enumerate(t)],
+					currentvalue=attr(
+						prefix="t = ",
+						suffix=" s",
+						xanchor="right",
+						font=attr(
+							color="#888",
+							size=20)))
+		]
+
+		#define the displaying time per played frame (in milliseconds)
+		dt_frame = 500
+
+		#define the play and pause buttons
+		buttons_attr = [
+			attr(
+				label = "Play",
+				method = "animate",
+				args = [
+					nothing,
+					attr(
+						fromcurrent = true,
+						transition = (duration = dt_frame,),
+						frame = attr(duration = dt_frame, redraw = true),
+					),
+				],
+			),
+			attr(
+				label = "Pause",
+				method = "animate",
+				args = [
+					[nothing],
+					attr(
+						mode = "immediate",
+						fromcurrent = true,
+						transition = attr(duration = dt_frame),
+						frame = attr(duration = dt_frame, redraw = true),
+					),
+				],
+			),
+		]
 	end
 
 	#Layout
@@ -805,24 +875,22 @@ function plot_phantom_map(
 		xaxis_zerolinecolor=grid_color,
 		yaxis_zerolinecolor=grid_color,
 		font_color=text_color,
-		sliders=[
+		# add buttons to play the animation
+		updatemenus = [
 			attr(
-				visible=length(t)>1,
-				pad=attr(l=30),
-				steps=[
-					attr(
-						label=round(t0, digits=2),
-						method="update",
-						args=[attr(visible=[fill(false, i-1); true; fill(false, length(t)-i)])]
-						)
-					for (i, t0) in enumerate(t)],
-					currentvalue=attr(
-						prefix="t = ",
-						suffix=" s",
-						xanchor="right",
-						font=attr(
-							color="#888",
-							size=20)))],
+				x = 0.5,
+				y = 0,
+				yanchor = "top",
+				xanchor = "center",
+				showactive = true,
+				direction = "left",
+				type = "buttons",
+				pad = attr(t = 180, r = 10),
+				buttons = buttons_attr,
+			),
+		],
+		# #add the sliders
+		sliders=sliders_attr,
 		scene=attr(
 			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			yaxis=attr(title="y",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
@@ -842,14 +910,7 @@ function plot_phantom_map(
         l.width = width
     end
 
-	config = PlotConfig(
-		displaylogo=false,
-		toImageButtonOptions=attr(
-			format="svg", # one of png, svg, jpeg, webp
-		).fields,
-		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
-	)
-	return PlotlyJS.plot(traces, l)
+	return Plot(trace, l, frames)
 end
 
 """
