@@ -190,31 +190,36 @@ function plot_seq(
 	p = [scatter_fun() for _ in 1:(3 + 3O + 1)]
 
     # For GRADs
-	p[1] = scatter(x=gx.t*1e3, y=gx.A*1e3, name=idx[1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+    fgx = is_Gy_on(seq) ? 1.0 : Inf
+    fgy = is_Gx_on(seq) ? 1.0 : Inf
+    fgz = is_Gz_on(seq) ? 1.0 : Inf
+	p[1] = scatter(x=gx.t*1e3, y=gx.A*1e3*fgx, name=idx[1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
 		    xaxis=xaxis, yaxis=yaxis, legendgroup="Gx", showlegend=showlegend, marker=attr(color="#636EFA"))
-	p[2] = scatter(x=gy.t*1e3, y=gy.A*1e3, name=idx[2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+    p[2] = scatter(x=gy.t*1e3, y=gy.A*1e3*fgy, name=idx[2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
 			xaxis=xaxis, yaxis=yaxis, legendgroup="Gy", showlegend=showlegend, marker=attr(color="#EF553B"))
-	p[3] = scatter(x=gz.t*1e3, y=gz.A*1e3, name=idx[3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+    p[3] = scatter(x=gz.t*1e3, y=gz.A*1e3*fgz, name=idx[3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
 			xaxis=xaxis, yaxis=yaxis, legendgroup="Gz", showlegend=showlegend, marker=attr(color="#00CC96"))
 
 	# For RFs
+    frf = is_RF_on(seq) ? 1.0 : Inf
 	for j in 1:O
         rf_amp = abs.(rf.A[:,j])
         rf_phase = angle.(rf.A[:,j])
         rf_phase[rf_amp .== Inf] .= Inf # Avoid weird jumps
         # Plot RF
-		p[2j-1+3] = scatter_fun(x=rf.t*1e3, y=rf_amp*1e6, name="|B1|_AM", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
+		p[2j-1+3] = scatter_fun(x=rf.t*1e3, y=rf_amp*1e6*frf, name="|B1|_AM", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="|B1|_AM", showlegend=showlegend, marker=attr(color="#AB63FA"))
-		p[2j+3] = scatter_fun(x=rf.t*1e3, y=rf_phase, text=ones(size(rf.t)), name="∠B1_AM", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
+        p[2j+3] = scatter_fun(x=rf.t*1e3, y=rf_phase*frf, text=ones(size(rf.t)), name="∠B1_AM", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
 					xaxis=xaxis, yaxis=yaxis, legendgroup="∠B1_AM", showlegend=showlegend, marker=attr(color="#FFA15A"))
         if !freq_in_phase
-            p[2j+4] = scatter_fun(x=Δf.t*1e3, y=Δf.A[:,j]*1e-3, text=ones(size(Δf.t)), name="B1_FM", hovertemplate="(%{x:.4f} ms, B1_FM: %{y:.4f} kHz)", visible="legendonly",
+            p[2j+4] = scatter_fun(x=Δf.t*1e3, y=Δf.A[:,j]*1e-3*frf, text=ones(size(Δf.t)), name="B1_FM", hovertemplate="(%{x:.4f} ms, B1_FM: %{y:.4f} kHz)", visible="legendonly",
                     xaxis=xaxis, yaxis=yaxis, legendgroup="B1_FM", showlegend=showlegend, marker=attr(color="#AB63FA"), line=attr(dash="dot"))
         end
 	end
 
 	# For ADCs
-	p[3O+3+1] = scatter_fun(x=adc.t*1e3, y=adc.A*0, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
+    fa = is_ADC_on(seq) ? 0.0 : Inf
+	p[3O+3+1] = scatter_fun(x=adc.t*1e3, y=adc.A*fa, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
 				xaxis=xaxis, yaxis=yaxis, legendgroup="ADC", showlegend=showlegend, mode=(show_adc ? "markers" : "line"), marker=attr(color="#19D3F3"))
 
     # Return the plot
