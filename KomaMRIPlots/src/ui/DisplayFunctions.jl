@@ -171,18 +171,30 @@ function plot_seq(
     usadc(x) = show_adc || isempty(x) ? x : [first(x); last(x)]
     # Get the samples of the events in the sequence
     seq_samples = (get_samples(seq, i; freq_in_phase) for i in 1:length(seq))
-    gx  = (A=reduce(vcat, [block.gx.A; Inf] for block in seq_samples),
-           t=reduce(vcat, [block.gx.t; Inf] for block in seq_samples))
-    gy  = (A=reduce(vcat, [block.gy.A; Inf] for block in seq_samples),
-           t=reduce(vcat, [block.gy.t; Inf] for block in seq_samples))
-    gz  = (A=reduce(vcat, [block.gz.A; Inf] for block in seq_samples),
-           t=reduce(vcat, [block.gz.t; Inf] for block in seq_samples))
-    rf  = (A=reduce(vcat, [usrf(block.rf.A); Inf] for block in seq_samples),
-           t=reduce(vcat, [usrf(block.rf.t); Inf] for block in seq_samples))
-    Δf  = (A=reduce(vcat, [usrf(block.Δf.A); Inf] for block in seq_samples),
-           t=reduce(vcat, [usrf(block.Δf.t); Inf] for block in seq_samples))
-    adc = (A=reduce(vcat, [usadc(block.adc.A); Inf] for block in seq_samples),
-           t=reduce(vcat, [usadc(block.adc.t); Inf] for block in seq_samples))
+    gx = (
+        A=reduce(vcat, [block.gx.A; Inf] for block in seq_samples),
+        t=reduce(vcat, [block.gx.t; Inf] for block in seq_samples),
+    )
+    gy = (
+        A=reduce(vcat, [block.gy.A; Inf] for block in seq_samples),
+        t=reduce(vcat, [block.gy.t; Inf] for block in seq_samples),
+    )
+    gz = (
+        A=reduce(vcat, [block.gz.A; Inf] for block in seq_samples),
+        t=reduce(vcat, [block.gz.t; Inf] for block in seq_samples),
+    )
+    rf = (
+        A=reduce(vcat, [usrf(block.rf.A); Inf] for block in seq_samples),
+        t=reduce(vcat, [usrf(block.rf.t); Inf] for block in seq_samples),
+    )
+    Δf = (
+        A=reduce(vcat, [usrf(block.Δf.A); Inf] for block in seq_samples),
+        t=reduce(vcat, [usrf(block.Δf.t); Inf] for block in seq_samples),
+    )
+    adc = (
+        A=reduce(vcat, [usadc(block.adc.A); Inf] for block in seq_samples),
+        t=reduce(vcat, [usadc(block.adc.t); Inf] for block in seq_samples),
+    )
 
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
