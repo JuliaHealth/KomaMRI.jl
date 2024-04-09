@@ -96,11 +96,8 @@ end
 """
     phase = get_adc_phase_compensation(seq)
 
-Returns the array of phases for every acquired sample in the sequence `seq`.
-
-!!! note
-    This function is useful to compensate the phase when the RF pulse has a phase too. Refer
-    to the end of the [`run_sim_time_iter`](@ref) function to see its usage.
+Returns the array of phases for every acquired sample in the sequence `seq`. This function
+is useful to compensate the phase when the RF pulse has a phase too.
 
 # Arguments
 - `seq`: (`::Sequence`) sequence struct
