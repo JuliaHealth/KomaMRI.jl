@@ -220,7 +220,8 @@ end
     sim_params = Dict{String, Any}(
         "gpu"=>true,
         "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat"
+        "return_type"=>"mat", 
+        "precision"=>"f64"
     )
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))

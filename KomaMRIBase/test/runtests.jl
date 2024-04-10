@@ -382,20 +382,25 @@ end
     @test size(obj) == size(ρ)
     @test length(obj) == length(ρ)
 
-    # Test phantom comparison
+    # Test simple motion types
+    t = [0.0, 0.1, 0.2]
     ue = SimpleMotion([
         Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
         Rotation(ti=0.05, tf=0.5, yaw=π / 2),
+        HeartBeat(ti=0.05, tf=0.5, circunferential_strain=-0.1, radial_strain=-0.1),
+        PeriodicTranslation(period=0.5, asymmetry=0.5, dz=0.01),
+        PeriodicRotation(period=0.5, asymmetry=0.5, yaw=π / 2),
+        PeriodicHeartBeat(period=0.5, circunferential_strain=-0.1, radial_strain=-0.1)
     ])
+    xt, yt, zt = get_spin_coords(ue, obj.x, obj.y, obj.z, t')
+    @test xt != yt !=zt
+    
+    # Test phantom comparison
     obe = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue)
     @test obj ≈ obe
 
     # Test phantom subset
     rng = 1:2:5
-    ug = SimpleMotion([
-        Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
-        PeriodicRotation(period=0.5, asymmetry=0.5, yaw=π / 2),
-    ])
     obg = Phantom(
         name,
         x[rng],
@@ -409,7 +414,7 @@ end
         Dλ1[rng],
         Dλ2[rng],
         Dθ[rng],
-        ug,
+        ue,
     )
     @test obj[rng] ≈ obg
     @test @view(obj[rng]) ≈ obg
@@ -479,8 +484,6 @@ end
 @testitem "TrapezoidalIntegration" tags=[:base] begin
     dt = Float64[1 1 1 1]
     x  = Float64[0 1 2 1 0]
-
     @test KomaMRIBase.trapz(dt, x)[1] ≈ 4 #Triangle area = bh/2, with b = 4 and h = 2
-
     @test KomaMRIBase.cumtrapz(dt, x) ≈ [0.5 2 3.5 4]
 end

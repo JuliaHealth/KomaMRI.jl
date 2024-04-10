@@ -66,9 +66,7 @@ end
 
 function import_motion(Ns::Int, motion_group::HDF5.Group)
     model = read_attribute(motion_group, "model")
-    if model == "NoMotion"
-        return NoMotion()
-    elseif model == "SimpleMotion"
+    if model == "SimpleMotion"
         types_group = motion_group["types"]
         types = SimpleMotionType[]
         for key in keys(types_group)
