@@ -239,7 +239,7 @@ function plot_seq(
         marker=attr(; color="#00CC96"),
     )
 
-	# For RFs
+    # For RFs
     frf = is_RF_on(seq) ? 1.0 : Inf
     for j in 1:O
         rf_amp = abs.(rf.A[:, j])
