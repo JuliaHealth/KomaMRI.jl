@@ -265,7 +265,8 @@ function plot_seq(
         slider,
         show_seq_blocks,
         darkmode;
-        T0=get_block_start_times(seq))
+        T0=get_block_start_times(seq),
+    )
     return plot_koma(p, l; config)
 end
 
