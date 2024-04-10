@@ -4,5 +4,8 @@ on:
 jobs:
   code-style:
     runs-on: ubuntu-latest
+    permissions:
+        contents: read
+        pull-requests: write 
     steps:
       - uses: julia-actions/julia-format@v2
