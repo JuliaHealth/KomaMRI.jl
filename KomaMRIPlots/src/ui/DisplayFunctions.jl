@@ -1215,15 +1215,58 @@ julia> plot_seqd(seq)
 ```
 """
 function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_params())
-	seqd = KomaMRIBase.discretize(seq; sampling_params)
-	Gx       = scattergl(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
-	Gy       = scattergl(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
-	Gz       = scattergl(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)
-	B1_abs   = scattergl(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
-    B1_angle = scattergl(x=seqd.t*1e3, y=angle.(seqd.B1), name="∠B1", mode="markers+lines", marker_symbol=:circle)
-	ADC      = scattergl(x=seqd.t[seqd.ADC]*1e3, y=zeros(sum(seqd.ADC)), name="ADC", mode="markers", marker_symbol=:x)
-	B1_Δf    = scattergl(x=seqd.t*1e3, y=abs.(seqd.Δf*1e-3), name="B1_Δf", mode="markers+lines", marker_symbol=:circle, visible="legendonly")
-    plot_koma([Gx,Gy,Gz,B1_abs,B1_angle,ADC,B1_Δf])
+    seqd = KomaMRIBase.discretize(seq; sampling_params)
+    Gx = scattergl(
+        x=seqd.t * 1e3,
+        y=seqd.Gx * 1e3,
+        name="Gx",
+        mode="markers+lines",
+        marker_symbol=:circle,
+    )
+    Gy = scattergl(
+        x=seqd.t * 1e3,
+        y=seqd.Gy * 1e3,
+        name="Gy",
+        mode="markers+lines",
+        marker_symbol=:circle,
+    )
+    Gz = scattergl(
+        x=seqd.t * 1e3,
+        y=seqd.Gz * 1e3,
+        name="Gz",
+        mode="markers+lines",
+        marker_symbol=:circle,
+    )
+    B1_abs = scattergl(
+        x=seqd.t * 1e3,
+        y=abs.(seqd.B1 * 1e6),
+        name="|B1|",
+        mode="markers+lines",
+        marker_symbol=:circle,
+    )
+    B1_angle = scattergl(
+        x=seqd.t * 1e3,
+        y=angle.(seqd.B1),
+        name="∠B1",
+        mode="markers+lines",
+        marker_symbol=:circle,
+    )
+    ADC = scattergl(
+        x=seqd.t[seqd.ADC] * 1e3,
+        y=zeros(sum(seqd.ADC)),
+        name="ADC",
+        mode="markers",
+        marker_symbol=:x,
+    )
+    B1_Δf = scattergl(
+        x=seqd.t * 1e3,
+        y=abs.(seqd.Δf * 1e-3),
+        name="B1_Δf",
+        mode="markers+lines",
+        marker_symbol=:circle,
+        visible="legendonly",
+    )
+    return plot_koma([Gx, Gy, Gz, B1_abs, B1_angle, ADC, B1_Δf])
 end
 
 

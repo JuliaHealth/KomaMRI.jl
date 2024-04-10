@@ -33,8 +33,13 @@ precession.
 - `S`: (`Vector{ComplexF64}`) raw signal over time
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
-function run_spin_precession!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    M::Mag{T}, sim_method::SimulationMethod) where {T<:Real}
+function run_spin_precession!(
+    p::Phantom{T},
+    seq::DiscreteSequence{T},
+    sig::AbstractArray{Complex{T}},
+    M::Mag{T},
+    sim_method::SimulationMethod,
+) where {T<:Real}
     #Simulation
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
@@ -73,8 +78,13 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     a part of the complete Mag vector and it's a part of the initial state for the next
     precession simulation step)
 """
-function run_spin_excitation!(p::Phantom{T}, seq::DiscreteSequence{T}, sig::AbstractArray{Complex{T}},
-    M::Mag{T}, sim_method::SimulationMethod) where {T<:Real}
+function run_spin_excitation!(
+    p::Phantom{T},
+    seq::DiscreteSequence{T},
+    sig::AbstractArray{Complex{T}},
+    M::Mag{T},
+    sim_method::SimulationMethod,
+) where {T<:Real}
     #Simulation
     for s ∈ seq #This iterates over seq, "s = seq[i,:]"
         #Motion
