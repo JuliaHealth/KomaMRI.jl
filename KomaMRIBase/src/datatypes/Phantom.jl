@@ -5,7 +5,6 @@ include("phantom/motion/SimpleMotion.jl")
 include("phantom/motion/ArbitraryMotion.jl") 
 include("phantom/motion/NoMotion.jl")
 
-
 """
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
 
@@ -39,8 +38,8 @@ julia> obj.ρ
 """
  @with_kw mutable struct Phantom{T<:Real}
     name::String = "spins"
-	  x::AbstractVector{T}
-	  y::AbstractVector{T}   = zeros(eltype(x), size(x))
+	x::AbstractVector{T}
+	y::AbstractVector{T}   = zeros(eltype(x), size(x))
     z::AbstractVector{T}   = zeros(eltype(x), size(x))
     ρ::AbstractVector{T}   = ones(eltype(x), size(x))
     T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
@@ -86,47 +85,50 @@ end
 Separate object spins in a sub-group
 """
 Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
-	Phantom(name=obj.name,
-			x=obj.x[p],
-			y=obj.y[p],
-			z=obj.z[p],
-			ρ=obj.ρ[p],
-			T1=obj.T1[p],
-			T2=obj.T2[p],
-			T2s=obj.T2s[p],
-			Δw=obj.Δw[p],
-			#Diff=obj.Diff[p], #TODO!
-			Dλ1=obj.Dλ1[p],
-			Dλ2=obj.Dλ2[p],
-			Dθ=obj.Dθ[p],
-			motion=obj.motion[p]
-			#Χ=obj.Χ[p], #TODO!
-			)
+	Phantom(
+        name=obj.name,
+		x=obj.x[p],
+		y=obj.y[p],
+		z=obj.z[p],
+		ρ=obj.ρ[p],
+		T1=obj.T1[p],
+		T2=obj.T2[p],
+		T2s=obj.T2s[p],
+		Δw=obj.Δw[p],
+		#Diff=obj.Diff[p], #TODO!
+		Dλ1=obj.Dλ1[p],
+		Dλ2=obj.Dλ2[p],
+		Dθ=obj.Dθ[p],
+        #Χ=obj.Χ[p], #TODO!
+		motion=obj.motion[p]
+		)
 end
 
 """Separate object spins in a sub-group (lightweigth)."""
 Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
-	@views Phantom(name=obj.name,
-			x=obj.x[p],
-			y=obj.y[p],
-			z=obj.z[p],
-			ρ=obj.ρ[p],
-			T1=obj.T1[p],
-			T2=obj.T2[p],
-			T2s=obj.T2s[p],
-			Δw=obj.Δw[p],
-			#Diff=obj.Diff[p], #TODO!
-			Dλ1=obj.Dλ1[p],
-			Dλ2=obj.Dλ2[p],
-			Dθ=obj.Dθ[p],
-			motion=obj.motion[p]
-			#Χ=obj.Χ[p], #TODO!
-			)
+	@views Phantom(
+        name=obj.name,
+		x=obj.x[p],
+		y=obj.y[p],
+		z=obj.z[p],
+		ρ=obj.ρ[p],
+		T1=obj.T1[p],
+		T2=obj.T2[p],
+		T2s=obj.T2s[p],
+		Δw=obj.Δw[p],
+		#Diff=obj.Diff[p], #TODO!
+		Dλ1=obj.Dλ1[p],
+		Dλ2=obj.Dλ2[p],
+		Dθ=obj.Dθ[p],
+		motion=obj.motion[p]
+		#Χ=obj.Χ[p], #TODO!
+	)
 end
 
 """Addition of phantoms"""
 +(s1::Phantom,s2::Phantom) = begin
-	Phantom(name=s1.name*"+"*s2.name,
+    Phantom(
+        name=s1.name*"+"*s2.name,
 		x=[s1.x;s2.x],
 		y=[s1.y;s2.y],
 		z=[s1.z;s2.z],
@@ -148,7 +150,8 @@ end
 
 """Scalar multiplication of a phantom"""
 *(α::Real,obj::Phantom) = begin
-	Phantom(name=obj.name,
+	Phantom(
+        name=obj.name,
 		x=obj.x,
 		y=obj.y,
 		z=obj.z,
