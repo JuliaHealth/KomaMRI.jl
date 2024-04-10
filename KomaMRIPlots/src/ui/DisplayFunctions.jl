@@ -198,8 +198,8 @@ function plot_seq(
 
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
-	O = size(seq.RF, 1)
-	p = [scatter_fun() for _ in 1:(3 + 3O + 1)]
+    O = size(seq.RF, 1)
+    p = [scatter_fun() for _ in 1:(3 + 3O + 1)]
 
     # For GRADs
     fgx = is_Gy_on(seq) ? 1.0 : Inf
@@ -257,8 +257,16 @@ function plot_seq(
     )
 
     # Return the plot
-	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0=get_block_start_times(seq))
-	return plot_koma(p, l; config)
+    l, config = generate_seq_time_layout_config(
+        title,
+        width,
+        height,
+        range,
+        slider,
+        show_seq_blocks,
+        darkmode;
+        T0=get_block_start_times(seq))
+    return plot_koma(p, l; config)
 end
 
 """

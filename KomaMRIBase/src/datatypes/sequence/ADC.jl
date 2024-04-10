@@ -110,16 +110,16 @@ involving RF spoiling.
 - `comp`: (`::Vector{Complex}`, `[rad]`) array of phase compensations for every acquired sample
 """
 function get_adc_phase_compensation(seq)
-  phase = ComplexF32[]
-  for i = 1:length(seq)
-      if is_ADC_on(seq[i])
-          N = seq.ADC[i].N
-          ϕ = seq.ADC[i].ϕ
-          aux = ones(N) .* exp(-1im*ϕ)
-          append!(phase, aux)
-      end
-  end
-  return phase
+    phase = ComplexF32[]
+    for i = 1:length(seq)
+        if is_ADC_on(seq[i])
+            N = seq.ADC[i].N
+            ϕ = seq.ADC[i].ϕ
+            aux = ones(N) .* exp(-1im*ϕ)
+            append!(phase, aux)
+        end
+    end
+    return phase
 end
 
 dur(adc::ADC) = adc.delay + adc.T
