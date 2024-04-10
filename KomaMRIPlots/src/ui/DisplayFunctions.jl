@@ -709,9 +709,10 @@ function plot_phantom_map(
       height=700,
       width=nothing,
       darkmode=false,
-      view_2d=false,
+      view_2d=sum(get_dims(ph))<3,
       colorbar=true,
 	  time_samples=0,
+	  max_points=10000,
       kwargs...
   )
 	function interpolate_times(t) # Insert intermediate time points (as many as indicated by time_samples)
@@ -723,7 +724,23 @@ function plot_phantom_map(
 		end
 		sort!(t)
 	end
+
+	# IDEA: subsample phantoms which are too large
+	# function decimate_uniform_phantom(ph::Phantom, num_points::Int)
+	# 	dimx, dimy, dimz = get_dims(ph)
+	# 	ss = Int(ceil((length(ph)/num_points)^(1/sum(get_dims(ph)))))
+	# 	ssx = dimx ? ss : 1
+	# 	ssy = dimy ? ss : 1
+	# 	ssz = dimz ? ss : 1
+	# 	ix = sortperm(ph.x)[1:ssx:end]
+	# 	iy = sortperm(ph.y)[1:ssy:end]
+	# 	iz = sortperm(ph.z)[1:ssz:end]
+	# 	idx = intersect(ix,iy,iz)
+	# 	return ph[idx]
+	# end
   
+	# ph = decimate_uniform_phantom(ph, max_points)
+
 	path = @__DIR__
 	cmin_key = minimum(getproperty(ph,key))
 	cmax_key = maximum(getproperty(ph,key))
@@ -769,13 +786,10 @@ function plot_phantom_map(
 	x0 = -maximum(abs.([x y z]))*1e2
     xf =  maximum(abs.([x y z]))*1e2
 
-	traces = GenericTrace[]
-
 	if view_2d
-		for i in 1:length(t)
-		push!(traces, scatter( 
-			x=(x[:,i])*1e2,
-			y=(y[:,i])*1e2,
+		trace = [scatter( 
+			x=(x[:,1])*1e2,
+			y=(y[:,1])*1e2,
 			mode="markers",
 			marker=attr(
 				color=getproperty(ph,key)*factor,
@@ -785,13 +799,22 @@ function plot_phantom_map(
 				cmin=cmin_key,
 				cmax=cmax_key,
 				size=4),
-			visible=i==1,
 			showlegend=false,
 			text=round.(getproperty(ph,key)*factor,digits=4),
-			hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
-		end
+			hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")]
+		frames = PlotlyFrame[
+			frame(
+				data = [attr(
+					x=(x[:,i])*1e2,
+					y=(y[:,i])*1e2,
+					z=(z[:,i])*1e2, 
+					zmin=0,
+					zmax=1)],
+				name = "frame_$i", #update frame name
+				traces = [0],
+			) for i in 1:length(t)
+		]
 	else
-		#generate the initial frame
 		trace = [scatter3d(
 			x=(x[:,1])*1e2,
 			y=(y[:,1])*1e2,
@@ -808,8 +831,6 @@ function plot_phantom_map(
 			showlegend=false,
 			text=round.(getproperty(ph,key)*factor,digits=4),
 			hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")]
-		
-		#store all frames in a vector
 		frames = PlotlyFrame[
 			frame(
 				data = [attr(
@@ -822,75 +843,76 @@ function plot_phantom_map(
 				traces = [0],
 			) for i in 1:length(t)
 		]
-
-		#define the slider for manually viewing the frames
-		sliders_attr = [
-			attr(
-				visible=length(t)>1,
-				pad=attr(b=10, t=60),
-				len=0.85,
-				x=0.15,
-				y=0.1,
-				t=0,
-				steps=[
-					attr(
-						label=round(t0, digits=2),
-						method="animate",
-						args=[
-							["frame_$i"], #match the name of the frame again
-							attr(
-								visible=[fill(false, i-1); true; fill(false, length(t)-i)],
-								mode = "immediate",
-								transition = attr(duration = 0),
-								frame = attr(duration = 5, redraw = true))]
-					) for (i, t0) in enumerate(t)],
-					currentvalue=attr(
-						prefix="t = ",
-						suffix=" s",
-						xanchor="right",
-						font=attr(
-							color="#888",
-							size=20)))
-		]
-
-		#define the displaying time per played frame (in milliseconds)
-		dt_frame = 500
-
-		#define the play and pause buttons
-		buttons_attr = [
-			attr(
-				label = "&#9654;", # play symbol
-				method = "animate",
-				args = [
-					nothing,
-					attr(
-						fromcurrent = true,
-						transition = (duration = dt_frame,),
-						frame = attr(duration = dt_frame, redraw = true),
-					),
-				],
-			),
-			attr(
-				label = "&#9724;", # pause symbol
-				method = "animate",
-				args = [
-					[nothing],
-					attr(
-						mode = "immediate",
-						fromcurrent = true,
-						transition = attr(duration = dt_frame),
-						frame = attr(duration = dt_frame, redraw = true),
-					),
-				],
-			),
-		]
 	end
+
+	sliders_attr = [
+		attr(
+			visible=length(t)>1,
+			pad=attr(b=10, t=60),
+			len=0.85,
+			x=0.15,
+			y=0.1,
+			t=0,
+			steps=[
+				attr(
+					label=round(t0, digits=2),
+					method="animate",
+					args=[
+						["frame_$i"],
+						attr(
+							visible=[fill(false, i-1); true; fill(false, length(t)-i)],
+							mode = "immediate",
+							transition = attr(duration = 0),
+							frame = attr(duration = 5, redraw = true))]
+				) for (i, t0) in enumerate(t)],
+				currentvalue=attr(
+					prefix="t = ",
+					suffix=" s",
+					xanchor="right",
+					font=attr(
+						color="#888",
+						size=20)))
+	]
+
+	dt_frame = 500
+
+	buttons_attr = [
+		attr(
+			label = "&#9654;", # play symbol
+			method = "animate",
+			args = [
+				nothing,
+				attr(
+					fromcurrent = true,
+					transition = (duration = dt_frame,),
+					frame = attr(duration = dt_frame, redraw = true),
+				),
+			],
+		),
+		attr(
+			label = "&#9724;", # pause symbol
+			method = "animate",
+			args = [
+				[nothing],
+				attr(
+					mode = "immediate",
+					fromcurrent = true,
+					transition = attr(duration = dt_frame),
+					frame = attr(duration = dt_frame, redraw = true),
+				),
+			],
+		),
+	]
 
 	#Layout
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 	l = Layout(;title=ph.name*": "*string(key),
 		xaxis_title="x",
 		yaxis_title="y",
+		xaxis_range=[x0, xf],
+		yaxis_range=[x0, xf],
+		xaxis_ticksuffix=" cm",
+		yaxis_ticksuffix=" cm",
 		plot_bgcolor=plot_bgcolor,
 		paper_bgcolor=bgcolor,
 		xaxis_gridcolor=grid_color,
@@ -898,7 +920,6 @@ function plot_phantom_map(
 		xaxis_zerolinecolor=grid_color,
 		yaxis_zerolinecolor=grid_color,
 		font_color=text_color,
-		# add buttons to play the animation
 		updatemenus = [
 			attr(
 				visible=length(t)>1,
@@ -913,7 +934,6 @@ function plot_phantom_map(
 				buttons = buttons_attr,
 			),
 		],
-		# #add the sliders
 		sliders=sliders_attr,
 		scene=attr(
 			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
