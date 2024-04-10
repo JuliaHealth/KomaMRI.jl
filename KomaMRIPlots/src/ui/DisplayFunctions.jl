@@ -687,7 +687,7 @@ julia> plot_phantom_map(obj3D, :ρ)
 function plot_phantom_map(
       ph::Phantom,
       key::Symbol;
-      height=600,
+      height=700,
       width=nothing,
       darkmode=false,
       view_2d=false,
@@ -808,7 +808,11 @@ function plot_phantom_map(
 		sliders_attr = [
 			attr(
 				visible=length(t)>1,
-				pad=attr(l=30),
+				pad=attr(b=10, t=60),
+				len=0.85,
+				x=0.15,
+				y=0.1,
+				t=0,
 				steps=[
 					attr(
 						label=round(t0, digits=2),
@@ -836,7 +840,7 @@ function plot_phantom_map(
 		#define the play and pause buttons
 		buttons_attr = [
 			attr(
-				label = "Play",
+				label = "&#9654;", # play symbol
 				method = "animate",
 				args = [
 					nothing,
@@ -848,7 +852,7 @@ function plot_phantom_map(
 				],
 			),
 			attr(
-				label = "Pause",
+				label = "&#9724;", # pause symbol
 				method = "animate",
 				args = [
 					[nothing],
@@ -878,14 +882,15 @@ function plot_phantom_map(
 		# add buttons to play the animation
 		updatemenus = [
 			attr(
-				x = 0.5,
-				y = 0,
+				visible=length(t)>1,
+				x = 0.1,
+				y = 0.05,
 				yanchor = "top",
 				xanchor = "center",
 				showactive = true,
 				direction = "left",
 				type = "buttons",
-				pad = attr(t = 180, r = 10),
+				pad = attr(r = 10, t = 70),
 				buttons = buttons_attr,
 			),
 		],
@@ -897,7 +902,7 @@ function plot_phantom_map(
 			zaxis=attr(title="z",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
 			aspectmode="manual",
 			aspectratio=attr(x=1, y=1, z=1)),
-		margin=attr(t=50,l=0,r=0),
+		margin=attr(t=50,l=0,r=0,b=0),
 		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
 		xaxis=attr(constrain="domain"),
 		yaxis=attr(scaleanchor="x"),
