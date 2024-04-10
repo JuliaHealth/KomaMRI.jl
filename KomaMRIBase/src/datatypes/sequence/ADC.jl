@@ -115,7 +115,7 @@ function get_adc_phase_compensation(seq)
         if is_ADC_on(seq[i])
             N = seq.ADC[i].N
             ϕ = seq.ADC[i].ϕ
-            aux = ones(N) .* exp(-1im*ϕ)
+            aux = ones(N) .* exp(-1im * ϕ)
             append!(phase, aux)
         end
     end
