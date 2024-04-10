@@ -53,18 +53,26 @@ using TestItems, TestItemRunner
         path = @__DIR__
         # NoMotion
         filename = path * "/test_files/brain_nomotion.phantom"
-        obj = KomaMRIFiles.brain_phantom2D()
+        obj = KomaMRIFiles.brain_phantom3D()
         obj.name = "brain2D_axial_nomotion"
         write_phantom(obj, filename)
         # SimpleMotion
         filename = path * "/test_files/brain_simplemotion.phantom"
-        obj = KomaMRIFiles.brain_phantom2D()
+        obj = KomaMRIFiles.brain_phantom3D()
         obj.name = "brain2D_axial_simplemotion"
-        obj.motion = KomaMRIFiles.SimpleMotion([KomaMRIFiles.PeriodicRotation(period=1.0, yaw=10.0)])
+        obj.motion = KomaMRIFiles.SimpleMotion([
+            KomaMRIFiles.PeriodicRotation(
+                period=1.0, 
+                yaw=45.0),
+            KomaMRIFiles.Translation(
+                ti=0.0,
+                tf=0.5,
+                dy=0.02
+        )])
         write_phantom(obj, filename)
         # ArbitraryMotion
         filename = path * "/test_files/brain_arbitrarymotion.phantom"
-        obj = KomaMRIFiles.brain_phantom2D()
+        obj = KomaMRIFiles.brain_phantom3D()
         obj.name = "brain2D_axial_arbitrarymotion"
         Ns = KomaMRIFiles.length(obj)
         K = 10
