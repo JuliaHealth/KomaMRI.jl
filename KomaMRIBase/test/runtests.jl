@@ -359,21 +359,21 @@ end
     end
 end
 
-@testitem "Phantom" tags=[:base] begin
+@testitem "Phantom" tags = [:base] begin
 
     # Test phantom struct creation
     name = "Bulks"
-    x = [-2e-3; -1e-3; 0.; 1e-3; 2e-3]
-    y = [-4e-3; -2e-3; 0.; 2e-3; 4e-3]
-    z = [-6e-3; -3e-3; 0.; 3e-3; 6e-3]
-    ρ = [.2; .4; .6; .8; 1.]
-    T1 = [.9; .9; .5; .25; .4]
-    T2 = [.09; .05; .04; .07; .005]
-    T2s = [.1; .06; .05; .08; .015]
-    Δw = [-2e-6; -1e-6; 0.; 1e-6; 2e-6]
-    Dλ1 = [-4e-6; -2e-6; 0.; 2e-6; 4e-6]
-    Dλ2 = [-6e-6; -3e-6; 0.; 3e-6; 6e-6]
-    Dθ = [-8e-6; -4e-6; 0.; 4e-6; 8e-6]
+    x = [-2e-3; -1e-3; 0.0; 1e-3; 2e-3]
+    y = [-4e-3; -2e-3; 0.0; 2e-3; 4e-3]
+    z = [-6e-3; -3e-3; 0.0; 3e-3; 6e-3]
+    ρ = [0.2; 0.4; 0.6; 0.8; 1.0]
+    T1 = [0.9; 0.9; 0.5; 0.25; 0.4]
+    T2 = [0.09; 0.05; 0.04; 0.07; 0.005]
+    T2s = [0.1; 0.06; 0.05; 0.08; 0.015]
+    Δw = [-2e-6; -1e-6; 0.0; 1e-6; 2e-6]
+    Dλ1 = [-4e-6; -2e-6; 0.0; 2e-6; 4e-6]
+    Dλ2 = [-6e-6; -3e-6; 0.0; 3e-6; 6e-6]
+    Dθ = [-8e-6; -4e-6; 0.0; 4e-6; 8e-6]
     obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
     obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
     @test obj ≈ obj2
@@ -383,62 +383,89 @@ end
     @test length(obj) == length(ρ)
 
     # Test phantom comparison
-    ue = SimpleMotion([Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
-                       Rotation(ti=0.05, tf=0.5, yaw=π/2)])
+    ue = SimpleMotion([
+        Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
+        Rotation(ti=0.05, tf=0.5, yaw=π / 2),
+    ])
     obe = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue)
     @test obj ≈ obe
 
     # Test phantom subset
     rng = 1:2:5
-    ug = SimpleMotion([Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
-                       PeriodicRotation(period=0.5, asymmetry=0.5, yaw=π/2)])
-    obg = Phantom(name, x[rng], y[rng], z[rng], ρ[rng], T1[rng], T2[rng], T2s[rng], Δw[rng],
-                    Dλ1[rng], Dλ2[rng], Dθ[rng], ug)
+    ug = SimpleMotion([
+        Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
+        PeriodicRotation(period=0.5, asymmetry=0.5, yaw=π / 2),
+    ])
+    obg = Phantom(
+        name,
+        x[rng],
+        y[rng],
+        z[rng],
+        ρ[rng],
+        T1[rng],
+        T2[rng],
+        T2s[rng],
+        Δw[rng],
+        Dλ1[rng],
+        Dλ2[rng],
+        Dθ[rng],
+        ug,
+    )
     @test obj[rng] ≈ obg
     @test @view(obj[rng]) ≈ obg
 
     # Test addition of phantoms
-    ua = SimpleMotion([PeriodicTranslation(period=0.5, asymmetry=0.5, dx=0.05, dy=0.05),
-                       Rotation(ti=0.05, tf=0.5, yaw=π/2)])
-    oba = Phantom(name, [x; x[rng]], [y; y[rng]], [z; z[rng]], [ρ; ρ[rng]],
-                    [T1; T1[rng]], [T2; T2[rng]], [T2s; T2s[rng]], [Δw; Δw[rng]],
-                    [Dλ1; Dλ1[rng]], [Dλ2; Dλ2[rng]], [Dθ; Dθ[rng]], ua)
+    ua = SimpleMotion([
+        PeriodicTranslation(period=0.5, asymmetry=0.5, dx=0.05, dy=0.05),
+        Rotation(ti=0.05, tf=0.5, yaw=π / 2),
+    ])
+    oba = Phantom(
+        name,
+        [x; x[rng]],
+        [y; y[rng]],
+        [z; z[rng]],
+        [ρ; ρ[rng]],
+        [T1; T1[rng]],
+        [T2; T2[rng]],
+        [T2s; T2s[rng]],
+        [Δw; Δw[rng]],
+        [Dλ1; Dλ1[rng]],
+        [Dλ2; Dλ2[rng]],
+        [Dθ; Dθ[rng]],
+        ua,
+    )
     @test obj + obg ≈ oba
 
     # Test phantom with ArbitraryMotion
     Ns = length(obj)
     K = 10
-    obj.motion = obj2.motion = ArbitraryMotion(
-        [1.0],
-        0.01.*rand(Ns, K-1),
-        0.01.*rand(Ns, K-1),
-        0.01.*rand(Ns, K-1))   
+    obj.motion = obj2.motion = ArbitraryMotion([1.0], 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1))
     @test obj ≈ obj2
 
     # Test scalar multiplication of a phantom
     c = 7
-    obc = Phantom(name, x, y, z, c*ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue)
-    @test c*obj ≈ obc
+    obc = Phantom(name, x, y, z, c * ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue)
+    @test c * obj ≈ obc
 
     #Test brain phantom 2D
     ph = brain_phantom2D()
-    @test ph.name=="brain2D_axial"
-    @test get_dims(ph)==Bool[1, 1, 0]
+    @test ph.name == "brain2D_axial"
+    @test get_dims(ph) == Bool[1, 1, 0]
 
     #Test brain phantom 3D
     ph = brain_phantom3D()
-    @test ph.name=="brain3D"
-    @test get_dims(ph)==Bool[1, 1, 1]
+    @test ph.name == "brain3D"
+    @test get_dims(ph) == Bool[1, 1, 1]
 
     #Test pelvis phantom 2D
     ph = pelvis_phantom2D()
-    @test ph.name=="pelvis2D"
-    @test get_dims(ph)==Bool[1, 1, 0]
+    @test ph.name == "pelvis2D"
+    @test get_dims(ph) == Bool[1, 1, 0]
 
     #Test heart phantom
     ph = heart_phantom()
-    @test ph.name=="LeftVentricle"
-    @test get_dims(ph)==Bool[1, 1, 0]
+    @test ph.name == "LeftVentricle"
+    @test get_dims(ph) == Bool[1, 1, 0]
 end
 
 @testitem "Scanner" tags=[:base] begin

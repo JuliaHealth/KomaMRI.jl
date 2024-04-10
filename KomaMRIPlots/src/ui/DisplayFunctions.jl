@@ -704,257 +704,310 @@ julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
 function plot_phantom_map(
-      ph::Phantom,
-      key::Symbol;
-      height=700,
-      width=nothing,
-      darkmode=false,
-      view_2d=sum(get_dims(ph))<3,
-      colorbar=true,
-	  time_samples=0,
-	  max_points=10000,
-      kwargs...
-  )
-	function interpolate_times(t) # Insert intermediate time points (as many as indicated by time_samples)
-		for i in 1:length(t)-1
-			step = (t[i+1] - t[i]) / (time_samples + 1)
-			for j in 1:time_samples
-				push!(t, t[i] + j*step)
-			end
-		end
-		sort!(t)
-	end
+    ph::Phantom,
+    key::Symbol;
+    height=700,
+    width=nothing,
+    darkmode=false,
+    view_2d=sum(get_dims(ph)) < 3,
+    colorbar=true,
+    time_samples=0,
+    max_points=10000,
+    kwargs...,
+)
+    function interpolate_times(t) # Insert intermediate time points (as many as indicated by time_samples)
+        for i in 1:(length(t) - 1)
+            step = (t[i + 1] - t[i]) / (time_samples + 1)
+            for j in 1:time_samples
+                push!(t, t[i] + j * step)
+            end
+        end
+        return sort!(t)
+    end
 
-	# IDEA: subsample phantoms which are too large
-	# function decimate_uniform_phantom(ph::Phantom, num_points::Int)
-	# 	dimx, dimy, dimz = get_dims(ph)
-	# 	ss = Int(ceil((length(ph)/num_points)^(1/sum(get_dims(ph)))))
-	# 	ssx = dimx ? ss : 1
-	# 	ssy = dimy ? ss : 1
-	# 	ssz = dimz ? ss : 1
-	# 	ix = sortperm(ph.x)[1:ssx:end]
-	# 	iy = sortperm(ph.y)[1:ssy:end]
-	# 	iz = sortperm(ph.z)[1:ssz:end]
-	# 	idx = intersect(ix,iy,iz)
-	# 	return ph[idx]
-	# end
-  
-	# ph = decimate_uniform_phantom(ph, max_points)
+    # IDEA: subsample phantoms which are too large
+    # function decimate_uniform_phantom(ph::Phantom, num_points::Int)
+    # 	dimx, dimy, dimz = get_dims(ph)
+    # 	ss = Int(ceil((length(ph)/num_points)^(1/sum(get_dims(ph)))))
+    # 	ssx = dimx ? ss : 1
+    # 	ssy = dimy ? ss : 1
+    # 	ssz = dimz ? ss : 1
+    # 	ix = sortperm(ph.x)[1:ssx:end]
+    # 	iy = sortperm(ph.y)[1:ssy:end]
+    # 	iz = sortperm(ph.z)[1:ssz:end]
+    # 	idx = intersect(ix,iy,iz)
+    # 	return ph[idx]
+    # end
 
-	path = @__DIR__
-	cmin_key = minimum(getproperty(ph,key))
-	cmax_key = maximum(getproperty(ph,key))
-	if key == :T1 || key == :T2 || key == :T2s
-		cmin_key = 0
-		factor = 1e3
-		unit = " ms"
-		if key  == :T1
-			cmax_key = 2500/factor
-			colors = MAT.matread(path*"/assets/T1cm.mat")["T1colormap"]
-			N, _ = size(colors)
-			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
-			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
-		elseif key == :T2 || key == :T2s
-			if key == :T2
-				cmax_key = 250/factor
-			end
-    		colors = MAT.matread(path*"/assets/T2cm.mat")["T2colormap"]
-			N, _ = size(colors)
-			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
-			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
-		end
-	elseif key == :x || key == :y || key == :z
-		factor = 1e2
-		unit = " cm"
-		colormap="Greys"
-	elseif key == :Δw
-		factor = 1/(2π)
-		unit = " Hz"
-		colormap="Greys"
-	else
-		factor = 1
-		cmin_key = 0
-		unit=""
-		colormap="Greys"
-	end
-	cmin_key = get(kwargs, :cmin, factor * cmin_key)
-	cmax_key = get(kwargs, :cmax, factor * cmax_key)
+    # ph = decimate_uniform_phantom(ph, max_points)
 
-	t = interpolate_times(get_times(ph.motion))
-	x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
+    path = @__DIR__
+    cmin_key = minimum(getproperty(ph, key))
+    cmax_key = maximum(getproperty(ph, key))
+    if key == :T1 || key == :T2 || key == :T2s
+        cmin_key = 0
+        factor = 1e3
+        unit = " ms"
+        if key == :T1
+            cmax_key = 2500 / factor
+            colors = MAT.matread(path * "/assets/T1cm.mat")["T1colormap"]
+            N, _ = size(colors)
+            idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
+            colormap = [
+                [
+                    idx[n],
+                    "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))",
+                ] for n in 1:N
+            ]
+        elseif key == :T2 || key == :T2s
+            if key == :T2
+                cmax_key = 250 / factor
+            end
+            colors = MAT.matread(path * "/assets/T2cm.mat")["T2colormap"]
+            N, _ = size(colors)
+            idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
+            colormap = [
+                [
+                    idx[n],
+                    "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))",
+                ] for n in 1:N
+            ]
+        end
+    elseif key == :x || key == :y || key == :z
+        factor = 1e2
+        unit = " cm"
+        colormap = "Greys"
+    elseif key == :Δw
+        factor = 1 / (2π)
+        unit = " Hz"
+        colormap = "Greys"
+    else
+        factor = 1
+        cmin_key = 0
+        unit = ""
+        colormap = "Greys"
+    end
+    cmin_key = get(kwargs, :cmin, factor * cmin_key)
+    cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-	x0 = -maximum(abs.([x y z]))*1e2
-    xf =  maximum(abs.([x y z]))*1e2
+    t = interpolate_times(get_times(ph.motion))
+    x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
-	if view_2d
-		trace = [scatter( 
-			x=(x[:,1])*1e2,
-			y=(y[:,1])*1e2,
-			mode="markers",
-			marker=attr(
-				color=getproperty(ph,key)*factor,
-				showscale=colorbar,
-				colorscale=colormap,
-				colorbar=attr(ticksuffix=unit, title=string(key)),
-				cmin=cmin_key,
-				cmax=cmax_key,
-				size=4),
-			showlegend=false,
-			text=round.(getproperty(ph,key)*factor,digits=4),
-			hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")]
-		frames = PlotlyFrame[
-			frame(
-				data = [attr(
-					x=(x[:,i])*1e2,
-					y=(y[:,i])*1e2,
-					z=(z[:,i])*1e2, 
-					zmin=0,
-					zmax=1)],
-				name = "frame_$i", #update frame name
-				traces = [0],
-			) for i in 1:length(t)
-		]
-	else
-		trace = [scatter3d(
-			x=(x[:,1])*1e2,
-			y=(y[:,1])*1e2,
-			z=(z[:,1])*1e2,
-			mode="markers",
-			marker=attr(
-				color=getproperty(ph,key)*factor,
-				showscale=colorbar,
-				colorscale=colormap,
-				colorbar=attr(ticksuffix=unit, title=string(key)),
-				cmin=cmin_key,
-				cmax=cmax_key,
-				size=2),
-			showlegend=false,
-			text=round.(getproperty(ph,key)*factor,digits=4),
-			hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>")]
-		frames = PlotlyFrame[
-			frame(
-				data = [attr(
-					x=(x[:,i])*1e2,
-					y=(y[:,i])*1e2,
-					z=(z[:,i])*1e2, 
-					zmin=0,
-					zmax=1)],
-				name = "frame_$i", #update frame name
-				traces = [0],
-			) for i in 1:length(t)
-		]
-	end
+    x0 = -maximum(abs.([x y z])) * 1e2
+    xf = maximum(abs.([x y z])) * 1e2
 
-	sliders_attr = [
-		attr(
-			visible=length(t)>1,
-			pad=attr(b=10, t=60),
-			len=0.85,
-			x=0.15,
-			y=0.1,
-			t=0,
-			steps=[
-				attr(
-					label=round(t0, digits=2),
-					method="animate",
-					args=[
-						["frame_$i"],
-						attr(
-							visible=[fill(false, i-1); true; fill(false, length(t)-i)],
-							mode = "immediate",
-							transition = attr(duration = 0),
-							frame = attr(duration = 5, redraw = true))]
-				) for (i, t0) in enumerate(t)],
-				currentvalue=attr(
-					prefix="t = ",
-					suffix=" s",
-					xanchor="right",
-					font=attr(
-						color="#888",
-						size=20)))
-	]
+    if view_2d
+        trace = [
+            scatter(;
+                x=(x[:, 1]) * 1e2,
+                y=(y[:, 1]) * 1e2,
+                mode="markers",
+                marker=attr(;
+                    color=getproperty(ph, key) * factor,
+                    showscale=colorbar,
+                    colorscale=colormap,
+                    colorbar=attr(; ticksuffix=unit, title=string(key)),
+                    cmin=cmin_key,
+                    cmax=cmax_key,
+                    size=4,
+                ),
+                showlegend=false,
+                text=round.(getproperty(ph, key) * factor, digits=4),
+                hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>",
+            ),
+        ]
+        frames = PlotlyFrame[
+            frame(;
+                data=[
+                    attr(;
+                        x=(x[:, i]) * 1e2,
+                        y=(y[:, i]) * 1e2,
+                        z=(z[:, i]) * 1e2,
+                        zmin=0,
+                        zmax=1,
+                    ),
+                ],
+                name="frame_$i", 
+                traces=[0],
+            ) for i in 1:length(t)
+        ]
+    else
+        trace = [
+            scatter3d(;
+                x=(x[:, 1]) * 1e2,
+                y=(y[:, 1]) * 1e2,
+                z=(z[:, 1]) * 1e2,
+                mode="markers",
+                marker=attr(;
+                    color=getproperty(ph, key) * factor,
+                    showscale=colorbar,
+                    colorscale=colormap,
+                    colorbar=attr(; ticksuffix=unit, title=string(key)),
+                    cmin=cmin_key,
+                    cmax=cmax_key,
+                    size=2,
+                ),
+                showlegend=false,
+                text=round.(getproperty(ph, key) * factor, digits=4),
+                hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>",
+            ),
+        ]
+        frames = PlotlyFrame[
+            frame(;
+                data=[
+                    attr(;
+                        x=(x[:, i]) * 1e2,
+                        y=(y[:, i]) * 1e2,
+                        z=(z[:, i]) * 1e2,
+                        zmin=0,
+                        zmax=1,
+                    ),
+                ],
+                name="frame_$i",
+                traces=[0],
+            ) for i in 1:length(t)
+        ]
+    end
 
-	dt_frame = 500
+    sliders_attr = [
+        attr(;
+            visible=length(t) > 1,
+            pad=attr(; b=10, t=60),
+            len=0.85,
+            x=0.15,
+            y=0.1,
+            t=0,
+            steps=[
+                attr(;
+                    label=round(t0; digits=2),
+                    method="animate",
+                    args=[
+                        ["frame_$i"],
+                        attr(;
+                            visible=[fill(false, i - 1); true; fill(false, length(t) - i)],
+                            mode="immediate",
+                            transition=attr(; duration=0),
+                            frame=attr(; duration=5, redraw=true),
+                        ),
+                    ],
+                ) for (i, t0) in enumerate(t)
+            ],
+            currentvalue=attr(;
+                prefix="t = ",
+                suffix=" s",
+                xanchor="right",
+                font=attr(; color="#888", size=20),
+            ),
+        ),
+    ]
 
-	buttons_attr = [
-		attr(
-			label = "&#9654;", # play symbol
-			method = "animate",
-			args = [
-				nothing,
-				attr(
-					fromcurrent = true,
-					transition = (duration = dt_frame,),
-					frame = attr(duration = dt_frame, redraw = true),
-				),
-			],
-		),
-		attr(
-			label = "&#9724;", # pause symbol
-			method = "animate",
-			args = [
-				[nothing],
-				attr(
-					mode = "immediate",
-					fromcurrent = true,
-					transition = attr(duration = dt_frame),
-					frame = attr(duration = dt_frame, redraw = true),
-				),
-			],
-		),
-	]
+    dt_frame = 500
 
-	#Layout
-	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = Layout(;title=ph.name*": "*string(key),
-		xaxis_title="x",
-		yaxis_title="y",
-		xaxis_range=[x0, xf],
-		yaxis_range=[x0, xf],
-		xaxis_ticksuffix=" cm",
-		yaxis_ticksuffix=" cm",
-		plot_bgcolor=plot_bgcolor,
-		paper_bgcolor=bgcolor,
-		xaxis_gridcolor=grid_color,
-		yaxis_gridcolor=grid_color,
-		xaxis_zerolinecolor=grid_color,
-		yaxis_zerolinecolor=grid_color,
-		font_color=text_color,
-		updatemenus = [
-			attr(
-				visible=length(t)>1,
-				x = 0.1,
-				y = 0.05,
-				yanchor = "top",
-				xanchor = "center",
-				showactive = true,
-				direction = "left",
-				type = "buttons",
-				pad = attr(r = 10, t = 70),
-				buttons = buttons_attr,
-			),
-		],
-		sliders=sliders_attr,
-		scene=attr(
-			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
-			yaxis=attr(title="y",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
-			zaxis=attr(title="z",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
-			aspectmode="manual",
-			aspectratio=attr(x=1, y=1, z=1)),
-		margin=attr(t=50,l=0,r=0,b=0),
-		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
-		xaxis=attr(constrain="domain"),
-		yaxis=attr(scaleanchor="x"),
-		hovermode="closest")
+    buttons_attr = [
+        attr(;
+            label="&#9654;", # play symbol
+            method="animate",
+            args=[
+                nothing,
+                attr(;
+                    fromcurrent=true,
+                    transition=(duration=dt_frame,),
+                    frame=attr(; duration=dt_frame, redraw=true),
+                ),
+            ],
+        ),
+        attr(;
+            label="&#9724;", # pause symbol
+            method="animate",
+            args=[
+                [nothing],
+                attr(;
+                    mode="immediate",
+                    fromcurrent=true,
+                    transition=attr(; duration=dt_frame),
+                    frame=attr(; duration=dt_frame, redraw=true),
+                ),
+            ],
+        ),
+    ]
 
-	if height !== nothing
-		l.height = height
+    #Layout
+    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
+    l = Layout(;
+        title=ph.name * ": " * string(key),
+        xaxis_title="x",
+        yaxis_title="y",
+        xaxis_range=[x0, xf],
+        yaxis_range=[x0, xf],
+        xaxis_ticksuffix=" cm",
+        yaxis_ticksuffix=" cm",
+        plot_bgcolor=plot_bgcolor,
+        paper_bgcolor=bgcolor,
+        xaxis_gridcolor=grid_color,
+        yaxis_gridcolor=grid_color,
+        xaxis_zerolinecolor=grid_color,
+        yaxis_zerolinecolor=grid_color,
+        font_color=text_color,
+        updatemenus=[
+            attr(;
+                visible=length(t) > 1,
+                x=0.1,
+                y=0.05,
+                yanchor="top",
+                xanchor="center",
+                showactive=true,
+                direction="left",
+                type="buttons",
+                pad=attr(; r=10, t=70),
+                buttons=buttons_attr,
+            ),
+        ],
+        sliders=sliders_attr,
+        scene=attr(;
+            xaxis=attr(;
+                title="x",
+                range=[x0, xf],
+                ticksuffix=" cm",
+                backgroundcolor=plot_bgcolor,
+                gridcolor=grid_color,
+                zerolinecolor=grid_color,
+            ),
+            yaxis=attr(;
+                title="y",
+                range=[x0, xf],
+                ticksuffix=" cm",
+                backgroundcolor=plot_bgcolor,
+                gridcolor=grid_color,
+                zerolinecolor=grid_color,
+            ),
+            zaxis=attr(;
+                title="z",
+                range=[x0, xf],
+                ticksuffix=" cm",
+                backgroundcolor=plot_bgcolor,
+                gridcolor=grid_color,
+                zerolinecolor=grid_color,
+            ),
+            aspectmode="manual",
+            aspectratio=attr(; x=1, y=1, z=1),
+        ),
+        margin=attr(; t=50, l=0, r=0, b=0),
+        modebar=attr(;
+            orientation="h", bgcolor=bgcolor, color=text_color, activecolor=plot_bgcolor
+        ),
+        xaxis=attr(; constrain="domain"),
+        yaxis=attr(; scaleanchor="x"),
+        hovermode="closest",
+    )
+
+    if height !== nothing
+        l.height = height
     end
     if width !== nothing
         l.width = width
     end
 
-	return Plot(trace, l, frames)
+    return Plot(trace, l, frames)
 end
 
 """

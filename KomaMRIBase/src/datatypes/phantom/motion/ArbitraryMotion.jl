@@ -9,15 +9,14 @@ Arbitrary Motion
 
 x = x + ux
 """
-mutable struct ArbitraryMotion{T<:Real, V<:AbstractVector{T}} <: MotionModel{T}
+mutable struct ArbitraryMotion{T<:Real,V<:AbstractVector{T}} <: MotionModel{T}
     duration::AbstractVector{T}
-    dx::AbstractArray{T, 2}
-    dy::AbstractArray{T, 2}
-    dz::AbstractArray{T, 2}
-
-	ux::Vector{LinearInterpolator{T, V}}
-    uy::Vector{LinearInterpolator{T, V}}
-    uz::Vector{LinearInterpolator{T, V}}
+    dx::AbstractArray{T,2}
+    dy::AbstractArray{T,2}
+    dz::AbstractArray{T,2}
+    ux::Vector{LinearInterpolator{T,V}}
+    uy::Vector{LinearInterpolator{T,V}}
+    uz::Vector{LinearInterpolator{T,V}}
 end
 
 # TODO:
