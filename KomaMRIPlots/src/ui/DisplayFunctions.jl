@@ -33,18 +33,6 @@ end
 function generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0)
 	#LAYOUT
 	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	#Shapes
-	shapes = []
-    N = length(T0)
-	if show_seq_blocks
-		aux = [line(
-			xref="x", yref="paper",
-			x0=T0[i]*1e3, y0=0,
-			x1=T0[i]*1e3, y1=1,
-			line=attr(color=sep_color, width=2),
-			) for i = 1:N]
-		append!(shapes, aux)
-	end
 	l = Layout(;title=title, hovermode="closest",
 			xaxis_title="",
 			modebar=attr(orientation="h", yanchor="bottom", xanchor="right", y=1, x=0, bgcolor=bgcolor, color=text_color, activecolor=plot_bgcolor),
@@ -72,9 +60,11 @@ function generate_seq_time_layout_config(title, width, height, range, slider, sh
 						]
 					),
 				),
-			shapes = shapes,
 			margin=attr(t=0,l=0,r=0,b=0)
 		)
+    if show_seq_blocks
+        l.xaxis["tickvals"] = T0 * 1e3
+    end
 	if height !== nothing
 		l.height = height
 	end
@@ -139,7 +129,10 @@ Plots a sequence struct.
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
 - `title`: (`::String`, `=""`) plot title
+- `freq_in_phase`: (`::Bool`, `=true`) Include FM modulation in RF phase
+- `gl`: (`::Bool`, `=false`) use `PlotlyJS.scattergl` backend (faster)
 - `max_rf_samples`: (`::Integer`, `=100`) maximum number of RF samples
+- `show_adc`: (`::Bool`, `=false`) plot ADC samples with markers
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the Sequence struct
@@ -160,43 +153,69 @@ function plot_seq(
       slider=false,
       show_seq_blocks=false,
       darkmode=false,
-      max_rf_samples=Inf,
       range=[],
       title="",
       xaxis="x",
       yaxis="y",
-      showlegend=true
+      showlegend=true,
+      freq_in_phase=false,
+      # Performance related
+      gl=false,
+      max_rf_samples=100,
+      show_adc=false
   )
 
+    # Aux functions
+    scatter_fun = gl ? scattergl : scatter
+    usrf(x) = length(x) > max_rf_samples ? ([@view x[1]; @view x[2:(length(x)÷max_rf_samples):end-1]; @view x[end]]) : x
+    usadc(x) = show_adc || isempty(x) ? x : [first(x); last(x)]
     # Get the samples of the events in the sequence
-    samples = get_samples(seq; off_val=Inf, max_rf_samples)
+    seq_samples = (get_samples(seq, i; freq_in_phase) for i in 1:length(seq))
+    gx  = (A=reduce(vcat, [block.gx.A; Inf]        for block in seq_samples),
+           t=reduce(vcat, [block.gx.t; Inf]        for block in seq_samples))
+    gy  = (A=reduce(vcat, [block.gy.A; Inf]        for block in seq_samples),
+           t=reduce(vcat, [block.gy.t; Inf]        for block in seq_samples))
+    gz  = (A=reduce(vcat, [block.gz.A; Inf]        for block in seq_samples),
+           t=reduce(vcat, [block.gz.t; Inf]        for block in seq_samples))
+    rf  = (A=reduce(vcat, [usrf(block.rf.A); Inf]  for block in seq_samples),
+           t=reduce(vcat, [usrf(block.rf.t); Inf]  for block in seq_samples))
+    Δf  = (A=reduce(vcat, [usrf(block.Δf.A); Inf]  for block in seq_samples),
+           t=reduce(vcat, [usrf(block.Δf.t); Inf]  for block in seq_samples))
+    adc = (A=reduce(vcat, [usadc(block.adc.A); Inf]       for block in seq_samples),
+           t=reduce(vcat, [usadc(block.adc.t); Inf]       for block in seq_samples))
 
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
 	O = size(seq.RF, 1)
-	p = [scatter() for _ in 1:(3 + 2O + 1)]
+	p = [scatter_fun() for _ in 1:(3 + 3O + 1)]
 
     # For GRADs
-	p[1] = scatter(x=samples.gx.t*1e3, y=samples.gx.A*1e3, name=idx[1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+	p[1] = scatter(x=gx.t*1e3, y=gx.A*1e3, name=idx[1], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
 		    xaxis=xaxis, yaxis=yaxis, legendgroup="Gx", showlegend=showlegend, marker=attr(color="#636EFA"))
-	p[2] = scatter(x=samples.gy.t*1e3, y=samples.gy.A*1e3, name=idx[2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+	p[2] = scatter(x=gy.t*1e3, y=gy.A*1e3, name=idx[2], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
 			xaxis=xaxis, yaxis=yaxis, legendgroup="Gy", showlegend=showlegend, marker=attr(color="#EF553B"))
-	p[3] = scatter(x=samples.gz.t*1e3, y=samples.gz.A*1e3, name=idx[3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
+	p[3] = scatter(x=gz.t*1e3, y=gz.A*1e3, name=idx[3], hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
 			xaxis=xaxis, yaxis=yaxis, legendgroup="Gz", showlegend=showlegend, marker=attr(color="#00CC96"))
 
 	# For RFs
 	for j in 1:O
-		rf_phase = angle.(samples.rf.A[:,j])
-		rf_phase[samples.rf.A[:,j] .== Inf] .= Inf
-		p[2j-1+3] = scatter(x=samples.rf.t*1e3, y=abs.(samples.rf.A[:,j])*1e6, name="|B1|", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
-					xaxis=xaxis, yaxis=yaxis, legendgroup="|B1|", showlegend=showlegend, marker=attr(color="#AB63FA"))
-		p[2j+3] = scatter(x=samples.rf.t*1e3, y=rf_phase, text=ones(size(samples.rf.t)), name="∠B1", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
-					xaxis=xaxis, yaxis=yaxis, legendgroup="∠B1", showlegend=showlegend, marker=attr(color="#FFA15A"))
+        rf_amp = abs.(rf.A[:,j])
+        rf_phase = angle.(rf.A[:,j])
+        rf_phase[rf_amp .== Inf] .= Inf # Avoid weird jumps
+        # Plot RF
+		p[2j-1+3] = scatter_fun(x=rf.t*1e3, y=rf_amp*1e6, name="|B1|_AM", hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
+					xaxis=xaxis, yaxis=yaxis, legendgroup="|B1|_AM", showlegend=showlegend, marker=attr(color="#AB63FA"))
+		p[2j+3] = scatter_fun(x=rf.t*1e3, y=rf_phase, text=ones(size(rf.t)), name="∠B1_AM", hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)", visible="legendonly",
+					xaxis=xaxis, yaxis=yaxis, legendgroup="∠B1_AM", showlegend=showlegend, marker=attr(color="#FFA15A"))
+        if !freq_in_phase
+            p[2j+4] = scatter_fun(x=Δf.t*1e3, y=Δf.A[:,j]*1e-3, text=ones(size(Δf.t)), name="B1_FM", hovertemplate="(%{x:.4f} ms, B1_FM: %{y:.4f} kHz)", visible="legendonly",
+                    xaxis=xaxis, yaxis=yaxis, legendgroup="B1_FM", showlegend=showlegend, marker=attr(color="#AB63FA"), line=attr(dash="dot"))
+        end
 	end
 
 	# For ADCs
-	p[2O+3+1] = scatter(x=samples.adc.t*1e3, y=samples.adc.A*1.0, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
-				xaxis=xaxis, yaxis=yaxis, legendgroup="ADC", showlegend=showlegend, color=marker=attr(color="#19D3F3"))
+	p[3O+3+1] = scatter_fun(x=adc.t*1e3, y=adc.A*0, name="ADC", hovertemplate="(%{x:.4f} ms, %{y:i})",
+				xaxis=xaxis, yaxis=yaxis, legendgroup="ADC", showlegend=showlegend, mode=(show_adc ? "markers" : "line"), marker=attr(color="#19D3F3"))
 
     # Return the plot
 	l, config = generate_seq_time_layout_config(title, width, height, range, slider, show_seq_blocks, darkmode; T0=get_block_start_times(seq))
@@ -955,7 +974,8 @@ function plot_signal(
       slider=true,
       show_sim_blocks=false,
       darkmode=false,
-      range=[]
+      range=[],
+      gl=false
   )
 	not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
 	t = []
@@ -1044,10 +1064,11 @@ function plot_signal(
     if width !== nothing
         l.width = width
     end
-	p = [scatter() for j=1:3]
+    scatter_fun = gl ? scattergl : scatter
+	p = [scatter_fun() for j=1:3]
 	p[1] = scatter(x=t,y=abs.(signal), name="|S(t)|",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
-	p[2] = scatter(x=t,y=real.(signal),name="Re{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
-	p[3] = scatter(x=t,y=imag.(signal),name="Im{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[2] = scatter_fun(x=t,y=real.(signal),name="Re{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
+	p[3] = scatter_fun(x=t,y=imag.(signal),name="Im{S(t)}",hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)")
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
@@ -1122,13 +1143,14 @@ julia> plot_seqd(seq)
 """
 function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_params())
 	seqd = KomaMRIBase.discretize(seq; sampling_params)
-	Gx = scatter(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
-	Gy = scatter(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
-	Gz = scatter(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)
-	B1_abs = scatter(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
-    B1_angle = scatter(x=seqd.t*1e3, y=angle.(seqd.B1), name="∠B1", mode="markers+lines", marker_symbol=:circle)
-	ADC = scatter(x=seqd.t[seqd.ADC]*1e3, y=zeros(sum(seqd.ADC)), name="ADC", mode="markers", marker_symbol=:x)
-	plot_koma([Gx,Gy,Gz,B1_abs,B1_angle,ADC])
+	Gx       = scattergl(x=seqd.t*1e3, y=seqd.Gx*1e3, name="Gx", mode="markers+lines", marker_symbol=:circle)
+	Gy       = scattergl(x=seqd.t*1e3, y=seqd.Gy*1e3, name="Gy", mode="markers+lines", marker_symbol=:circle)
+	Gz       = scattergl(x=seqd.t*1e3, y=seqd.Gz*1e3, name="Gz", mode="markers+lines", marker_symbol=:circle)
+	B1_abs   = scattergl(x=seqd.t*1e3, y=abs.(seqd.B1*1e6), name="|B1|", mode="markers+lines", marker_symbol=:circle)
+    B1_angle = scattergl(x=seqd.t*1e3, y=angle.(seqd.B1), name="∠B1", mode="markers+lines", marker_symbol=:circle)
+	ADC      = scattergl(x=seqd.t[seqd.ADC]*1e3, y=zeros(sum(seqd.ADC)), name="ADC", mode="markers", marker_symbol=:x)
+	B1_Δf    = scattergl(x=seqd.t*1e3, y=abs.(seqd.Δf*1e-3), name="B1_Δf", mode="markers+lines", marker_symbol=:circle, visible="legendonly")
+    plot_koma([Gx,Gy,Gz,B1_abs,B1_angle,ADC,B1_Δf])
 end
 
 
