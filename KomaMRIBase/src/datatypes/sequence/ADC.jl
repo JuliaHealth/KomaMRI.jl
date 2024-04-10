@@ -111,7 +111,7 @@ involving RF spoiling.
 """
 function get_adc_phase_compensation(seq)
     phase = ComplexF32[]
-    for i = 1:length(seq)
+    for i in 1:length(seq)
         if is_ADC_on(seq[i])
             N = seq.ADC[i].N
             ϕ = seq.ADC[i].ϕ
