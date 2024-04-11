@@ -52,7 +52,7 @@ using TestItems, TestItemRunner
     end
 end
 
-@testitem "Pulseq compat" tags=[:files, :pulseq] begin
+@testitem "Pulseq compat" tags = [:files, :pulseq] begin
     using MAT, KomaMRIBase, Suppressor
 
     # Aux functions
