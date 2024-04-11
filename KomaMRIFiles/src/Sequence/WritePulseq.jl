@@ -201,7 +201,7 @@ function write_seq(seq::Sequence, filename)
         blk = bodrxyzae[1]
         bd = seq.DUR[blk] / seq.DEF["BlockDurationRaster"]
         bdr = round(bd)
-        if abs(bdr-bd) > 1e-6
+        if abs(bdr - bd) > 1e-6
             @warn "Block $blk duration rounded"
         end
         bodrxyzae[3] = bdr
