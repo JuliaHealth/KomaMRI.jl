@@ -130,8 +130,8 @@ recursive_merge(x...) = x[end]
 +(s::Sequence, g::Grad) = s + Sequence(reshape([g],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 +(g::Grad, s::Sequence) = Sequence(reshape([g],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #RF operations
-+(s::Sequence, r::RF) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(r::RF, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(s::Sequence, r::RF) = s + Sequence(reshape([Grad(0.0, 0.0)], 1, 1), reshape([r], 1, 1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(r::RF, s::Sequence) = Sequence(reshape([Grad(0.0, 0.0)], 1, 1), reshape([r], 1, 1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #ADC operations
 function +(s::Sequence, a::ADC)
     return s + Sequence(reshape([Grad(0.0, 0.0)], 1, 1), reshape([RF(0.0, 0.0)], 1, 1), [a])
