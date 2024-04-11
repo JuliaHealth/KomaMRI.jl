@@ -204,8 +204,15 @@ function write_seq(seq::Sequence, filename)
                 end
             end
         end
-        delay_compensation_rf_koma = (ioamptdfh[6] == 0) * seq.DEF["RadiofrequencyRasterTime"] / 2
-        ioamptdfh[7] = round((obj.delay - delay_compensation_rf_koma) / seq.DEF["RadiofrequencyRasterTime"]) * seq.DEF["RadiofrequencyRasterTime"] * 1e6
+        delay_compensation_rf_koma =
+            (ioamptdfh[6] == 0) * seq.DEF["RadiofrequencyRasterTime"] / 2
+        ioamptdfh[7] =
+            round(
+                (obj.delay - delay_compensation_rf_koma) /
+                seq.DEF["RadiofrequencyRasterTime"],
+            ) *
+            seq.DEF["RadiofrequencyRasterTime"] *
+            1e6
     end
 
     # Define the table to be written for the [GRADIENTS] section
