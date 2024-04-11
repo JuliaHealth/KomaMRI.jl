@@ -53,10 +53,9 @@ neccessary to add the input vector `unique_obj_id` which contains the uniques ob
 Grad, or ADC) with its repective ID.
 """
 function get_type_blk_obj_id(seq::Sequence, type::String, unique_obj_id::Vector)
-
-    type_blk_obj_id = [[blk, get_obj(s, type), 0] for (blk, s) ∈ enumerate(seq)]
-    for boi ∈ type_blk_obj_id
-        for (obj_unique, id_unique) ∈ unique_obj_id
+    type_blk_obj_id = [[blk, get_obj(s, type), 0] for (blk, s) in enumerate(seq)]
+    for boi in type_blk_obj_id
+        for (obj_unique, id_unique) in unique_obj_id
             if boi[2] ≈ obj_unique
                 boi[3] = id_unique
             end
