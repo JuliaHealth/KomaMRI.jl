@@ -402,7 +402,8 @@ function write_seq(seq::Sequence, filename)
             @printf(fid, "# id amplitude rise flat fall delay\n")
             @printf(fid, "# ..      Hz/m   us   us   us    us\n")
             @printf(fid, "[TRAP]\n")
-            for (id, _, amp, rise, flat, fall, delay) ∈ trap_idx_obj_amp_rise_flat_fall_delay
+            for (id, _, amp, rise, flat, fall, delay) in
+                trap_idx_obj_amp_rise_flat_fall_delay
                 @printf(fid, "%2d %12g %3d %4d %3d %3d\n", id, amp, rise, flat, fall, delay)
             end
             @printf(fid, "\n")
