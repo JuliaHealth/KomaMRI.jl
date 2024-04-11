@@ -94,8 +94,13 @@ function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Seque
             push!(rfunique_abs_id, [shape_abs, id_shape_cnt])
             id_shape_cnt += 1
         end
-        shape_ang = mod.(angle.(obj.A), 2π)/2π
-        if all([!(length(shape_ang) == length(shape_ang_unique) && all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])) for (shape_ang_unique,_) ∈ rfunique_ang_id])
+        shape_ang = mod.(angle.(obj.A), 2π) / 2π
+        if all([
+            !(
+                length(shape_ang) == length(shape_ang_unique) &&
+                all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])
+            ) for (shape_ang_unique, _) in rfunique_ang_id
+        ])
             push!(rfunique_ang_id, [shape_ang, id_shape_cnt])
             id_shape_cnt += 1
         end
