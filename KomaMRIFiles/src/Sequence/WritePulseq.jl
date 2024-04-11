@@ -120,7 +120,6 @@ function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Seque
     return rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt
 end
 
-
 """
     gradunique_amp_id, gradunique_tim_id, id_shape_cnt = get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
 
