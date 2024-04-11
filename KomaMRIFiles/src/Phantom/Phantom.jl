@@ -149,7 +149,8 @@ function export_motion(motion_group::HDF5.Group, motion::SimpleMotion)
     types_group =  create_group(motion_group, "types")
     counter = 1
     for sm_type in motion.types
-        type_group = create_group(types_group, string(counter)*"_"*string.(typeof(sm_type).name.name))
+		simple_motion_type = typeof(sm_type).name.name
+        type_group = create_group(types_group, "$counter_$simple_motion_type")
         fields = fieldnames(typeof(sm_type))
         for field in fields
             HDF5.attributes(type_group)[string(field)] = getfield(sm_type, field)
