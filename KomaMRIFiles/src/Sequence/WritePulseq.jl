@@ -2,7 +2,7 @@
     typeon_obj = get_typeon_obj(seq::Sequence, type::String)
 
 Returns the vector `typeon_obj` of objects (RF, Grad or ADC) where the object is on in a
-given sequence `seq` according to the `type` ∈ ["rf", "gr", "adc"] argument.
+given sequence `seq` according to the `type` in ["rf", "gr", "adc"] argument.
 """
 function get_typeon_obj(seq::Sequence, type::String)
     type == "rf" && return [s.RF[1] for s in seq if is_RF_on(s)]
@@ -33,7 +33,7 @@ end
     obj = get_obj(s::Sequence, type::String)
 
 Returns the object (RF, Grad or ADC) of a Sequence `s` (ideally a one-block sequence)
-according to the input `type` ∈ ["rf", "gx", "gy", "gz", "adc"]).
+according to the input `type` in ["rf", "gx", "gy", "gz", "adc"]).
 """
 function get_obj(s::Sequence, type::String)
     type == "rf" && return s.RF[1]
@@ -48,7 +48,7 @@ end
     type_blk_obj_id = get_type_blk_obj_id(seq::Sequence, type::String, unique_obj_id::Vector)
 
 Returns the vector `type_blk_obj_id` of vectors [blk, obj, id] for all the blocks `blk` of a
-sequence `seq` according to the `type` ∈ ["rf", "gx", "gy", "gz", "adc"] chosen. It is
+sequence `seq` according to the `type` in ["rf", "gx", "gy", "gz", "adc"] chosen. It is
 neccessary to add the input vector `unique_obj_id` which contains the uniques objects (RF,
 Grad, or ADC) with its repective ID.
 """
@@ -188,29 +188,24 @@ function write_seq(seq::Sequence, filename)
 
     # Define the table to be written for the [BLOCKS] section
     @warn "EXTENSIONS will not be handled"
-    rf_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "rf", rfunique_obj_id)]
-    gx_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "gx", grunique_obj_id)]
-    gy_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "gy", grunique_obj_id)]
-    gz_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "gz", grunique_obj_id)]
+    rf_id  = [id for (_, _, id) in get_type_blk_obj_id(seq, "rf",  rfunique_obj_id)]
+    gx_id  = [id for (_, _, id) in get_type_blk_obj_id(seq, "gx",  grunique_obj_id)]
+    gy_id  = [id for (_, _, id) in get_type_blk_obj_id(seq, "gy",  grunique_obj_id)]
+    gz_id  = [id for (_, _, id) in get_type_blk_obj_id(seq, "gz",  grunique_obj_id)]
     adc_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "adc", adcunique_obj_id)]
-    blk_obj_dur_rf_gx_gy_gz_adc_ext = [
-        [b, s, 0, rf_id[b], gx_id[b], gy_id[b], gz_id[b], adc_id[b], 0] for
-        (b, s) in enumerate(seq)
-    ]
+    blk_obj_dur_rf_gx_gy_gz_adc_ext = [[b, s, 0, rf_id[b], gx_id[b], gy_id[b], gz_id[b], adc_id[b], 0] for (b, s) in enumerate(seq)]
     for bodrxyzae in blk_obj_dur_rf_gx_gy_gz_adc_ext
         blk = bodrxyzae[1]
         bd = seq.DUR[blk] / seq.DEF["BlockDurationRaster"]
         bdr = round(bd)
-        if abs(bdr - bd) > 1e-6
+        if abs(bdr-bd) > 1e-6
             @warn "Block $blk duration rounded"
         end
         bodrxyzae[3] = bdr
     end
 
     # Define the table to be written for the [RF] section
-    rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha = [
-        [idx, obj, 0, 0, 0, 0, 0, 0, 0] for (obj, idx) in rfunique_obj_id
-    ]
+    rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha = [[idx, obj, 0, 0, 0, 0, 0, 0, 0] for (obj, idx) in rfunique_obj_id]
     for ioamptdfh in rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha
         obj = ioamptdfh[2]
         ioamptdfh[3] = γ * maximum(abs.(obj.A))
@@ -221,15 +216,11 @@ function write_seq(seq::Sequence, filename)
                 ioamptdfh[4] = id_abs
             end
         end
-        shape_ang = mod.(angle.(obj.A), 2π) / 2π
+        shape_ang = mod.(angle.(obj.A), 2π)/2π
         for (shape_ang_unique, id_ang) in rfunique_ang_id
-            if length(shape_ang) == length(shape_ang_unique) &&
-                all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])
+            if length(shape_ang) == length(shape_ang_unique) && all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])
                 ioamptdfh[5] = id_ang
-                ioamptdfh[9] = angle(
-                    sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
-                    length(shape_ang),
-                )
+                ioamptdfh[9] = angle(sum(exp.(1im*2π*shape_ang) .* exp.(-1im*2π*shape_ang_unique))/length(shape_ang))
             end
         end
         if isa(obj.T, Vector{<:Number})
@@ -334,7 +325,7 @@ function write_seq(seq::Sequence, filename)
             sorted_keys = sort(collect(keys(seq.DEF)))
             for key in sorted_keys
                 val = seq.DEF[key]
-                if key ∈ [
+                if key in [
                     "AdcRasterTime",
                     "BlockDurationRaster",
                     "GradientRasterTime",
@@ -368,7 +359,7 @@ function write_seq(seq::Sequence, filename)
             nBlocks = length(seq)
             idFormatWidth = length(string(nBlocks))
             idFormatStr = "%" * string(idFormatWidth) * "d "
-            for (blk, _, dur, rf, gx, gy, gz, adc, ext) ∈ blk_obj_dur_rf_gx_gy_gz_adc_ext
+            for (blk, _, dur, rf, gx, gy, gz, adc, ext) in blk_obj_dur_rf_gx_gy_gz_adc_ext
                 Printf.format(fid, Printf.Format(idFormatStr * "%3d %3d %3d %3d %3d %2d %2d\n"), blk, dur, rf, gx, gy, gz, adc, ext)
             end
             @printf(fid, "\n")
@@ -379,7 +370,7 @@ function write_seq(seq::Sequence, filename)
             @printf(fid, "# id amplitude mag_id phase_id time_shape_id delay freq phase\n")
             @printf(fid, "# ..        Hz   ....     ....          ....    us   Hz   rad\n")
             @printf(fid, "[RF]\n")
-            for (id, _, amp, magid, phaid, timeid, delay, freq, phase) ∈ rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha
+            for (id, _, amp, magid, phaid, timeid, delay, freq, phase) in rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha
                 @printf(fid, "%d %12g %d %d %d %g %g %g\n", id, amp, magid, phaid, timeid, delay, freq, phase)
             end
             @printf(fid, "\n")
@@ -391,7 +382,7 @@ function write_seq(seq::Sequence, filename)
             @printf(fid, "# id amplitude amp_shape_id time_shape_id delay\n") # do we need delay ???
             @printf(fid, "# ..      Hz/m       ..         ..          us\n")
             @printf(fid, "[GRADIENTS]\n")
-            for (id, _, amp, ampid, timeid, delay) ∈ grad_idx_obj_amp_iamp_itim_delay
+            for (id, _, amp, ampid, timeid, delay) in grad_idx_obj_amp_iamp_itim_delay
                 @printf(fid, "%d %12g %d %d %d\n", id, amp, ampid, timeid, delay)
             end
             @printf(fid, "\n")
@@ -402,8 +393,7 @@ function write_seq(seq::Sequence, filename)
             @printf(fid, "# id amplitude rise flat fall delay\n")
             @printf(fid, "# ..      Hz/m   us   us   us    us\n")
             @printf(fid, "[TRAP]\n")
-            for (id, _, amp, rise, flat, fall, delay) in
-                trap_idx_obj_amp_rise_flat_fall_delay
+            for (id, _, amp, rise, flat, fall, delay) in trap_idx_obj_amp_rise_flat_fall_delay
                 @printf(fid, "%2d %12g %3d %4d %3d %3d\n", id, amp, rise, flat, fall, delay)
             end
             @printf(fid, "\n")
@@ -414,8 +404,7 @@ function write_seq(seq::Sequence, filename)
             @printf(fid, "# id num dwell delay freq phase\n")
             @printf(fid, "# ..  ..    ns    us   Hz   rad\n")
             @printf(fid, "[ADC]\n")
-            for (id, _, num, dwell, delay, freq, phase) in
-                adc_idx_obj_num_dwell_delay_freq_phase
+            for (id, _, num, dwell, delay, freq, phase) in adc_idx_obj_num_dwell_delay_freq_phase
                 @printf(fid, "%d %d %.0f %.0f %g %g\n", id, num, dwell, delay, freq, phase)
             end
             @printf(fid, "\n")
@@ -424,10 +413,10 @@ function write_seq(seq::Sequence, filename)
         if !isempty(shape_data_id_num)
             @printf(fid, "# Sequence Shapes\n")
             @printf(fid, "[SHAPES]\n\n")
-            for (data, id, num) ∈ shape_data_id_num
+            for (data, id, num) in shape_data_id_num
                 @printf(fid, "shape_id %d\n", id)
                 @printf(fid, "num_samples %d\n", num)
-                [@printf(fid, "%.9g\n", datai) for datai ∈ data]
+                [@printf(fid, "%.9g\n", datai) for datai in data]
                 @printf(fid, "\n")
             end
         end
