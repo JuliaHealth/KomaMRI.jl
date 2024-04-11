@@ -131,7 +131,12 @@ function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::S
     gradunique_amp_id, gradunique_tim_id = [], []
     for (obj, _) in gradunique_obj_id
         shape_amp = obj.A / magsign(obj.A)
-        if all([!(length(shape_amp) == length(shape_amp_unique) && shape_amp ≈ shape_amp_unique) for (shape_amp_unique,_) ∈ gradunique_amp_id])
+        if all([
+            !(
+                length(shape_amp) == length(shape_amp_unique) &&
+                shape_amp ≈ shape_amp_unique
+            ) for (shape_amp_unique, _) in gradunique_amp_id
+        ])
             push!(gradunique_amp_id, [shape_amp, id_shape_cnt])
             id_shape_cnt = id_shape_cnt + 1
         end
