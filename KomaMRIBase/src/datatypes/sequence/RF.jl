@@ -78,7 +78,7 @@ directly without the need to iterate elementwise.
 - `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector with the property defined by the
     symbol `f` for all elements of the RF vector or matrix `x`
 """
-getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x,f)
+getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x, f)
 getproperty(x::Matrix{RF}, f::Symbol) = begin
     if f == :Bx
         real.(getproperty.(x, :A))

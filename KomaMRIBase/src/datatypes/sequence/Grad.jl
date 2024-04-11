@@ -167,7 +167,7 @@ directly without the need to iterate elementwise.
 - `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector or matrix with the property defined
     by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
-getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
+getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x, f)
 getproperty(x::Matrix{Grad}, f::Symbol) = begin
     if f == :x
         x[1, :]
@@ -185,9 +185,10 @@ end
 """
 For comparing two `Grad`s custom types
 """
-Base.isapprox(gr1::Grad, gr2::Grad) = begin
-    return all(length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k ∈ fieldnames(Grad)) &&
-        all(all(getfield(gr1, k) .≈ getfield(gr2, k)) for k ∈ fieldnames(Grad))
+function Base.isapprox(gr1::Grad, gr2::Grad)
+    return all(
+        length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k in fieldnames(Grad)
+    ) && all(all(getfield(gr1, k) .≈ getfield(gr2, k)) for k in fieldnames(Grad))
 end
 
 # Gradient operations
