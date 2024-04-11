@@ -49,54 +49,43 @@ using TestItems, TestItemRunner
         @test obj.name == "brain_mrilab.mat"
     end
     # Test Phantom (.phantom)
-    @testset "WritePhantom" begin
+    @testset "Phantom" begin
+        using KomaMRIBase
         path = @__DIR__
         # NoMotion
         filename = path * "/test_files/brain_nomotion.phantom"
-        obj = KomaMRIFiles.brain_phantom3D()
-        obj.name = "brain2D_axial_nomotion"
-        write_phantom(obj, filename)
+        obj1 = brain_phantom2D()
+        write_phantom(obj1, filename)
+        obj2 = read_phantom(filename)
+        @test obj1 == obj2
         # SimpleMotion
         filename = path * "/test_files/brain_simplemotion.phantom"
-        obj = KomaMRIFiles.brain_phantom3D()
-        obj.name = "brain2D_axial_simplemotion"
-        obj.motion = KomaMRIFiles.SimpleMotion([
-            KomaMRIFiles.PeriodicRotation(
+        obj1 = brain_phantom2D()
+        obj1.motion = SimpleMotion([
+            PeriodicRotation(
                 period=1.0, 
                 yaw=45.0),
-            KomaMRIFiles.Translation(
+            Translation(
                 ti=0.0,
                 tf=0.5,
                 dy=0.02
         )])
-        write_phantom(obj, filename)
+        write_phantom(obj1, filename)
+        obj2 = read_phantom(filename)
+        @test obj1 == obj2
         # ArbitraryMotion
         filename = path * "/test_files/brain_arbitrarymotion.phantom"
-        obj = KomaMRIFiles.brain_phantom3D()
-        obj.name = "brain2D_axial_arbitrarymotion"
-        Ns = KomaMRIFiles.length(obj)
+        obj1 = brain_phantom2D()
+        Ns = length(obj1)
         K = 10
-        obj.motion = KomaMRIFiles.ArbitraryMotion(
+        obj1.motion = ArbitraryMotion(
             [1.0],
             0.01.*rand(Ns, K-1),
             0.01.*rand(Ns, K-1),
             0.01.*rand(Ns, K-1))     
-        write_phantom(obj, filename)
-    end
-    @testset "ReadPhantom" begin
-        path = @__DIR__
-        # NoMotion
-        filename = path * "/test_files/brain_nomotion.phantom"
-        obj = read_phantom(filename)
-        @test obj.name == "brain2D_axial_nomotion"
-        # SimpleMotion
-        filename = path * "/test_files/brain_simplemotion.phantom"
-        obj = read_phantom(filename)
-        @test obj.name == "brain2D_axial_simplemotion"
-        # ArbitraryMotion
-        filename = path * "/test_files/brain_arbitrarymotion.phantom"
-        obj = read_phantom(filename)
-        @test obj.name == "brain2D_axial_arbitrarymotion"
+        write_phantom(obj1, filename)
+        obj2 = read_phantom(filename)
+        @test obj1 == obj2
     end
 end
 
