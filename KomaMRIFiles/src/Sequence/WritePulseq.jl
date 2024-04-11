@@ -208,8 +208,10 @@ function write_seq(seq::Sequence, filename)
     end
 
     # Define the table to be written for the [RF] section
-    rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha = [[idx, obj, 0, 0, 0, 0, 0, 0, 0] for (obj, idx) ∈ rfunique_obj_id]
-    for ioamptdfh ∈ rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha
+    rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha = [
+        [idx, obj, 0, 0, 0, 0, 0, 0, 0] for (obj, idx) in rfunique_obj_id
+    ]
+    for ioamptdfh in rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha
         obj = ioamptdfh[2]
         ioamptdfh[3] = γ * maximum(abs.(obj.A))
         ioamptdfh[8] = obj.Δf
