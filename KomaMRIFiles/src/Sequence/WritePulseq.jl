@@ -188,13 +188,16 @@ function write_seq(seq::Sequence, filename)
 
     # Define the table to be written for the [BLOCKS] section
     @warn "EXTENSIONS will not be handled"
-    rf_id  = [id for (_, _, id) ∈ get_type_blk_obj_id(seq, "rf",  rfunique_obj_id)]
-    gx_id  = [id for (_, _, id) ∈ get_type_blk_obj_id(seq, "gx",  grunique_obj_id)]
-    gy_id  = [id for (_, _, id) ∈ get_type_blk_obj_id(seq, "gy",  grunique_obj_id)]
-    gz_id  = [id for (_, _, id) ∈ get_type_blk_obj_id(seq, "gz",  grunique_obj_id)]
-    adc_id = [id for (_, _, id) ∈ get_type_blk_obj_id(seq, "adc", adcunique_obj_id)]
-    blk_obj_dur_rf_gx_gy_gz_adc_ext = [[b, s, 0, rf_id[b], gx_id[b], gy_id[b], gz_id[b], adc_id[b], 0] for (b, s) ∈ enumerate(seq)]
-    for bodrxyzae ∈ blk_obj_dur_rf_gx_gy_gz_adc_ext
+    rf_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "rf", rfunique_obj_id)]
+    gx_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "gx", grunique_obj_id)]
+    gy_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "gy", grunique_obj_id)]
+    gz_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "gz", grunique_obj_id)]
+    adc_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "adc", adcunique_obj_id)]
+    blk_obj_dur_rf_gx_gy_gz_adc_ext = [
+        [b, s, 0, rf_id[b], gx_id[b], gy_id[b], gz_id[b], adc_id[b], 0] for
+        (b, s) in enumerate(seq)
+    ]
+    for bodrxyzae in blk_obj_dur_rf_gx_gy_gz_adc_ext
         blk = bodrxyzae[1]
         bd = seq.DUR[blk] / seq.DEF["BlockDurationRaster"]
         bdr = round(bd)
