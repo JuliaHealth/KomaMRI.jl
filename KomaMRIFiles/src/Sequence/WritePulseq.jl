@@ -216,7 +216,7 @@ function write_seq(seq::Sequence, filename)
         ioamptdfh[3] = γ * maximum(abs.(obj.A))
         ioamptdfh[8] = obj.Δf
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
-        for (shape_abs_unique, id_abs) ∈ rfunique_abs_id
+        for (shape_abs_unique, id_abs) in rfunique_abs_id
             if length(shape_abs) == length(shape_abs_unique) && shape_abs ≈ shape_abs_unique
                 ioamptdfh[4] = id_abs
             end
