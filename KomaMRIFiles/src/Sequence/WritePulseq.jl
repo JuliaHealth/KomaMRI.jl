@@ -242,8 +242,10 @@ function write_seq(seq::Sequence, filename)
     end
 
     # Define the table to be written for the [TRAP] section
-    trap_idx_obj_amp_rise_flat_fall_delay = [[idx, obj, 0, 0, 0, 0, 0] for (obj, idx) ∈ trapunique_obj_id]
-    for ioarfad ∈ trap_idx_obj_amp_rise_flat_fall_delay
+    trap_idx_obj_amp_rise_flat_fall_delay = [
+        [idx, obj, 0, 0, 0, 0, 0] for (obj, idx) in trapunique_obj_id
+    ]
+    for ioarfad in trap_idx_obj_amp_rise_flat_fall_delay
         obj = ioarfad[2]
         ioarfad[3] = γ * obj.A
         ioarfad[4] = 1e6 * obj.rise
