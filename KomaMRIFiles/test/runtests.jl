@@ -50,7 +50,6 @@ using TestItems, TestItemRunner
         shape2 = KomaMRIFiles.decompress_shape(num_samples, compressed_data)
         @test shape == shape2
     end
-
 end
 
 @testitem "Pulseq compat" tags=[:files, :pulseq] begin
