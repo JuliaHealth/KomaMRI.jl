@@ -39,22 +39,15 @@ end
 function read_param(param::HDF5.Group)
     if "type" in HDF5.keys(attrs(param))
         type = attrs(param)["type"]
-
         if type == "Explicit"
             values = read(param["values"])
         elseif type == "Indexed"
             index = read(param["values"])
-            if Ns == length(index)
-                table = read(param["table"])
-                N = read_attribute(param, "N")
-                if N == length(table)
-                    values = table[index]
-                else
-                    print("Error: $(label) table dimensions mismatch")
-                end
-            else
-                print("Error: $(label) vector dimensions mismatch")
-            end
+            @assert Ns == length(index) "Error: $(label) vector dimensions mismatch"
+            table = read(param["table"])
+            N = read_attribute(param, "N")
+            @assert N == length(table) "Error: $(label) table dimensions mismatch"
+            values = table[index]
         elseif type == "Default"
             values = "Default"
         end
