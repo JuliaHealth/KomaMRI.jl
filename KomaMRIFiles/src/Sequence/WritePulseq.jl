@@ -174,8 +174,8 @@ Writes a .seq file for a given sequence `seq` y the location `filename`
 function write_seq(seq::Sequence, filename)
 
     # Get the unique objects (RF, Grad y ADC) and its IDs
-    rfunique_obj_id  = get_typeunique_obj_id(get_typeon_obj(seq, "rf"))
-    grunique_obj_id  = get_typeunique_obj_id(get_typeon_obj(seq, "gr"))
+    rfunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "rf"))
+    grunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "gr"))
     adcunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "adc"))
     gradunique_obj_id = [[obj, id] for (obj, id) ∈ grunique_obj_id if length(obj.A) != 1]
     trapunique_obj_id = [[obj, id] for (obj, id) ∈ grunique_obj_id if length(obj.A) == 1]
