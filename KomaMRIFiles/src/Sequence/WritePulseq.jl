@@ -348,7 +348,7 @@ function write_seq(seq::Sequence, filename)
                         @printf(fid, "%s ", val)
                     else
                         if isa(val, Vector{<:Number})
-                            for v ∈ val
+                            for v in val
                                 @printf(fid, "%.9g ", v)
                             end
                         else
