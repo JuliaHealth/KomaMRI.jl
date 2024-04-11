@@ -1,6 +1,6 @@
 using TestItems, TestItemRunner
 
-@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:files in ti.tags) #verbose=true
+@run_package_tests filter = ti -> !(:skipci in ti.tags) && (:files in ti.tags) #verbose=true
 
 @testitem "Files" tags = [:files] begin
     using Suppressor

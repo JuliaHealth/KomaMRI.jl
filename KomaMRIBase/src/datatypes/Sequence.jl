@@ -127,8 +127,8 @@ recursive_merge(x...) = x[end]
 *(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
 /(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.DEF)
 #Grad operations
-+(s::Sequence, g::Grad) = s + Sequence(reshape([g],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(g::Grad, s::Sequence) = Sequence(reshape([g],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(s::Sequence, g::Grad) = s + Sequence(reshape([g], 1, 1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(g::Grad, s::Sequence) = Sequence(reshape([g], 1, 1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #RF operations
 +(s::Sequence, r::RF) = s + Sequence(reshape([Grad(0.0, 0.0)], 1, 1), reshape([r], 1, 1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 +(r::RF, s::Sequence) = Sequence(reshape([Grad(0.0, 0.0)], 1, 1), reshape([r], 1, 1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
