@@ -56,7 +56,7 @@ end
 
 import_motion!(fields::Array, Ns::Int, model::Symbol, motion_group::HDF5.Group) = import_motion!(fields, Ns, Val(model), motion_group)
 import_motion!(fields::Array, Ns::Int, model::Val{:NoMotion}, motion_group::HDF5.Group) = nothing
-import_motion!(fields::Array, Ns::Int, model::Val{:SimpleMotion}, motion_group::HDF5.Group) = begin
+function import_motion!(fields::Array, Ns::Int, model::Val{:SimpleMotion}, motion_group::HDF5.Group)
     types_group = motion_group["types"]
     types = SimpleMotionType[]
     for key in keys(types_group)
@@ -75,7 +75,7 @@ import_motion!(fields::Array, Ns::Int, model::Val{:SimpleMotion}, motion_group::
     end
     push!(fields, (:motion, SimpleMotion(vcat(types...)))) 
 end
-import_motion!(fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, motion_group::HDF5.Group) = begin
+function import_motion!(fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, motion_group::HDF5.Group)
     dur = read(motion_group["duration"])
     K = read_attribute(motion_group, "K")
     dx = zeros(Ns, K - 1)
@@ -103,38 +103,39 @@ Writes a (.phantom) file from a Phantom struct.
 """
 # By the moment, only "Explicit" type 
 # is considered when writing .phantom files
-function write_phantom(obj::Phantom, filename::String)
+function write_phantom(obj::Phantom, filename::String; store_coords=[:x, :y, :z], store_contrasts=[:ρ, :T1, :T2, :T2s, :Δw], store_motion=true)
     # Create HDF5 phantom file
     fid = h5open(filename, "w")
     # Root attributes
-    version = KomaMRIFiles.__VERSION__
-    HDF5.attributes(fid)["Version"] = "$(Int(version.major)).$(Int(version.minor)).$(Int(version.patch))"
+    HDF5.attributes(fid)["Version"] = string(KomaMRIFiles.__VERSION__)
     HDF5.attributes(fid)["Name"] = obj.name
     HDF5.attributes(fid)["Ns"] = length(obj.x)
     dims = get_dims(obj)
     HDF5.attributes(fid)["Dims"] = sum(dims)
     # Positions
     pos = create_group(fid, "position")
-    for x in [:x, :y, :z] 
+    for x in store_coords 
         create_group(pos, String(x))["values"] = getfield(obj, x)
     end
     # Contrast (Rho, T1, T2, T2s Deltaw)
     contrast = create_group(fid, "contrast")
-    for x in [:ρ, :T1, :T2, :T2s, :Δw]
+    for x in store_contrasts
         param = create_group(contrast, String(x))
         HDF5.attributes(param)["type"] = "Explicit" #TODO: consider "Indexed" type
         param["values"] = getfield(obj, x)
     end
     # Motion
-    motion_group = create_group(fid, "motion")
-    export_motion(motion_group, obj.motion)
+    if store_motion
+        motion_group = create_group(fid, "motion")
+        export_motion!(motion_group, obj.motion)
+    end
     return close(fid)
 end
 
-export_motion(motion_group::HDF5.Group, motion::NoMotion) = begin
+function export_motion!(motion_group::HDF5.Group, motion::NoMotion)
     HDF5.attributes(motion_group)["model"] = "NoMotion"   
 end
-export_motion(motion_group::HDF5.Group, motion::SimpleMotion) = begin
+function export_motion!(motion_group::HDF5.Group, motion::SimpleMotion)
     HDF5.attributes(motion_group)["model"] = "SimpleMotion"
     types_group =  create_group(motion_group, "types")
     counter = 1
@@ -147,7 +148,7 @@ export_motion(motion_group::HDF5.Group, motion::SimpleMotion) = begin
         end  
     end  
 end
-export_motion(motion_group::HDF5.Group, motion::ArbitraryMotion) = begin
+function export_motion!(motion_group::HDF5.Group, motion::ArbitraryMotion)
     HDF5.attributes(motion_group)["model"] = "ArbitraryMotion" 
     HDF5.attributes(motion_group)["K"] = size(motion.dx)[2] + 1
     motion_group["duration"] = motion.duration
