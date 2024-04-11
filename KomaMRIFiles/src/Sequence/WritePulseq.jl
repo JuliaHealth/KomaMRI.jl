@@ -256,8 +256,19 @@ function write_seq(seq::Sequence, filename)
     end
 
     # Define the table to be written for the [SHAPES] section
-    shapefull_data_id = [shapeunique_data_id_i for shapeunique_data_id ∈ [rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, gradunique_amp_id, gradunique_tim_id] for shapeunique_data_id_i ∈ shapeunique_data_id]
-    shape_data_id_num = [(length(compress(data)) == length(data) ? data : compress(data), id, length(data)) for (data, id) ∈ shapefull_data_id]
+    shapefull_data_id = [
+        shapeunique_data_id_i for shapeunique_data_id in [
+            rfunique_abs_id,
+            rfunique_ang_id,
+            rfunique_tim_id,
+            gradunique_amp_id,
+            gradunique_tim_id,
+        ] for shapeunique_data_id_i in shapeunique_data_id
+    ]
+    shape_data_id_num = [
+        (length(compress(data)) == length(data) ? data : compress(data), id, length(data))
+        for (data, id) in shapefull_data_id
+    ]
 
     # Write the .seq file
     open(filename, "w") do fid
