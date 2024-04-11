@@ -197,9 +197,10 @@ function write_seq(seq::Sequence, filename)
             end
         end
         if isa(obj.T, Vector{<:Number})
-            shape_tim = cumsum([0; obj.T])/seq.DEF["RadiofrequencyRasterTime"]
-            for (shape_tim_unique, id_tim) ∈ rfunique_tim_id
-                if length(shape_tim) == length(shape_tim_unique) && shape_tim ≈ shape_tim_unique
+            shape_tim = cumsum([0; obj.T]) / seq.DEF["RadiofrequencyRasterTime"]
+            for (shape_tim_unique, id_tim) in rfunique_tim_id
+                if length(shape_tim) == length(shape_tim_unique) &&
+                    shape_tim ≈ shape_tim_unique
                     ioamptdfh[6] = id_tim
                 end
             end
