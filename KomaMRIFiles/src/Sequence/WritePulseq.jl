@@ -252,8 +252,10 @@ function write_seq(seq::Sequence, filename)
     end
 
     # Define the table to be written for the [ADC] section
-    adc_idx_obj_num_dwell_delay_freq_phase = [[idx, obj, 0, 0, 0, 0, 0] for (obj, idx) ∈ adcunique_obj_id]
-    for ionwdfp ∈ adc_idx_obj_num_dwell_delay_freq_phase
+    adc_idx_obj_num_dwell_delay_freq_phase = [
+        [idx, obj, 0, 0, 0, 0, 0] for (obj, idx) in adcunique_obj_id
+    ]
+    for ionwdfp in adc_idx_obj_num_dwell_delay_freq_phase
         obj = ionwdfp[2]
         ionwdfp[3] = obj.N
         ionwdfp[4] = obj.T * 1e9 / (obj.N - 1)
