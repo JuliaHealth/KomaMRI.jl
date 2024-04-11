@@ -85,7 +85,12 @@ function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Seque
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id = [], [], []
     for (obj, _) in rfunique_obj_id
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
-        if all([!(length(shape_abs) == length(shape_abs_unique) && shape_abs ≈ shape_abs_unique) for (shape_abs_unique,_) ∈ rfunique_abs_id])
+        if all([
+            !(
+                length(shape_abs) == length(shape_abs_unique) &&
+                shape_abs ≈ shape_abs_unique
+            ) for (shape_abs_unique, _) in rfunique_abs_id
+        ])
             push!(rfunique_abs_id, [shape_abs, id_shape_cnt])
             id_shape_cnt += 1
         end
