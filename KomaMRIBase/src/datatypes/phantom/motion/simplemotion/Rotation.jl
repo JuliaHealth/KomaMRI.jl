@@ -77,26 +77,26 @@ is_composable(motion_type::Rotation) = true
 
 displacement_x(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    α = t_unit .* (motion_type.pitch * π/180)
-    β = t_unit .* (motion_type.roll * π/180)
-    γ = t_unit .* (motion_type.yaw * π/180)
-    return cos.(γ) .* cos.(β) .* x   +   (cos.(γ) .* sin.(β) .* sin.(α) .- sin.(γ) .* cos.(α)) .* y   +   (cos.(γ) .* sin.(β) .* cos.(α) .+ sin.(γ) .* sin.(α)) .* z .- x
+    α = t_unit .* (motion_type.pitch)
+    β = t_unit .* (motion_type.roll)
+    γ = t_unit .* (motion_type.yaw)
+    return cosd.(γ) .* cosd.(β) .* x   +   (cosd.(γ) .* sind.(β) .* sind.(α) .- sind.(γ) .* cosd.(α)) .* y   +   (cosd.(γ) .* sind.(β) .* cosd.(α) .+ sind.(γ) .* sind.(α)) .* z .- x
 end
 
 displacement_y(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    α = t_unit .* (motion_type.pitch * π/180)
-    β = t_unit .* (motion_type.roll * π/180)
-    γ = t_unit .* (motion_type.yaw * π/180)
-    return sin.(γ) .* cos.(β) .* x   +   (sin.(γ) .* sin.(β) .* sin.(α) .+ cos.(γ) .* cos.(α)) .* y   +   (sin.(γ) .* sin.(β) .* cos.(α) .- cos.(γ) .* sin.(α)) .* z .- y
+    α = t_unit .* (motion_type.pitch)
+    β = t_unit .* (motion_type.roll)
+    γ = t_unit .* (motion_type.yaw)
+    return sind.(γ) .* cosd.(β) .* x   +   (sind.(γ) .* sind.(β) .* sind.(α) .+ cosd.(γ) .* cosd.(α)) .* y   +   (sind.(γ) .* sind.(β) .* cosd.(α) .- cosd.(γ) .* sind.(α)) .* z .- y
 end
 
 displacement_z(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    α = t_unit .* (motion_type.pitch * π/180)
-    β = t_unit .* (motion_type.roll * π/180)
-    γ = t_unit .* (motion_type.yaw * π/180)
-    return -sin.(β) .* x   +   cos.(β) .* sin.(α) .* y .- z
+    α = t_unit .* (motion_type.pitch)
+    β = t_unit .* (motion_type.roll)
+    γ = t_unit .* (motion_type.yaw)
+    return -sind.(β) .* x   +   cosd.(β) .* sind.(α) .* y .- z
 end
 
 get_time_nodes(motion_type::Rotation) = begin
