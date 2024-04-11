@@ -284,7 +284,6 @@ function write_seq(seq::Sequence, filename)
 
     # Write the .seq file
     open(filename, "w") do fid
-
         @printf(fid, "# Pulseq sequence file\n")
         @printf(fid, "# Created by KomaMRI.jl \n\n") #TODO: add Koma version
 
