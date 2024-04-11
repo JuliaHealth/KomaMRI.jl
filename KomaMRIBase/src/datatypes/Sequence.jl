@@ -121,11 +121,11 @@ recursive_merge(x...) = x[end]
 -(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.DEF)
 *(x::Sequence, α::Real) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
 *(α::Real, x::Sequence) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
-*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
-*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
-*(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
-*(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
-/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.DEF)
+*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α .* x.RF, x.ADC, x.DUR, x.DEF)
+*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α .* x.RF, x.ADC, x.DUR, x.DEF)
+*(x::Sequence, A::Matrix{Float64}) = Sequence(A * x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
+*(A::Matrix{Float64}, x::Sequence) = Sequence(A * x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
+/(x::Sequence, α::Real) = Sequence(x.GR / α, x.RF, x.ADC, x.DUR, x.DEF)
 #Grad operations
 +(s::Sequence, g::Grad) = s + Sequence(reshape([g], 1, 1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 +(g::Grad, s::Sequence) = Sequence(reshape([g], 1, 1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6

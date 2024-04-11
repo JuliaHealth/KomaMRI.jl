@@ -169,17 +169,17 @@ directly without the need to iterate elementwise.
 """
 getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
 getproperty(x::Matrix{Grad}, f::Symbol) = begin
-	if f == :x
-		x[1,:]
-	elseif f == :y && size(x,1) >= 2
-		x[2,:]
-	elseif f == :z && size(x,1) >= 3
-		x[3,:]
-	elseif f == :dur
-		maximum(dur.(x), dims=1)[:]
-	else
-		getproperty.(x,f)
-	end
+    if f == :x
+        x[1, :]
+    elseif f == :y && size(x, 1) >= 2
+        x[2, :]
+    elseif f == :z && size(x, 1) >= 3
+        x[3, :]
+    elseif f == :dur
+        maximum(dur.(x); dims=1)[:]
+    else
+        getproperty.(x, f)
+    end
 end
 
 """

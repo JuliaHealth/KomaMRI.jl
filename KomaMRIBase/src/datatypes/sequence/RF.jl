@@ -80,21 +80,21 @@ directly without the need to iterate elementwise.
 """
 getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x,f)
 getproperty(x::Matrix{RF}, f::Symbol) = begin
-	if     f == :Bx
-		real.(getproperty.(x,:A))
-	elseif f == :By
-		imag.(getproperty.(x,:A))
-	elseif f == :Δf
-		getproperty.(x,:Δf)
-	elseif f == :T || f == :delay
-		getproperty.(x[1,:],f)
-	elseif f == :dur
-		T, delay = x.T, x.delay
-		ΔT = [sum(t) for t=T] .+ delay
-		ΔT
-	else
-		getproperty.(x,f)
-	end
+    if f == :Bx
+        real.(getproperty.(x, :A))
+    elseif f == :By
+        imag.(getproperty.(x, :A))
+    elseif f == :Δf
+        getproperty.(x, :Δf)
+    elseif f == :T || f == :delay
+        getproperty.(x[1, :], f)
+    elseif f == :dur
+        T, delay = x.T, x.delay
+        ΔT = [sum(t) for t in T] .+ delay
+        ΔT
+    else
+        getproperty.(x, f)
+    end
 end
 
 """
