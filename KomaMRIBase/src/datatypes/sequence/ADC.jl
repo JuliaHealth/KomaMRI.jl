@@ -88,14 +88,7 @@ function get_adc_sampling_times(seq)
     times = Float64[]
     for i = 1:length(seq)
         if is_ADC_on(seq[i])
-            δ = seq.ADC[i].delay
-            T = seq.ADC[i].T
-            N = seq.ADC[i].N
-            if N != 1
-                t = range(0, T; length=N).+T0[i].+δ #range(0,T,N) works in Julia 1.7
-            else
-                t = [T/2].+T0[i].+δ #range(0,T,N) works in Julia 1.7
-            end
+            t = time(seq.ADC[i]) .+ T0[i]
             append!(times, t)
         end
     end
@@ -129,3 +122,5 @@ function get_adc_phase_compensation(seq)
   end
   return phase
 end
+
+dur(adc::ADC) = adc.delay + adc.T

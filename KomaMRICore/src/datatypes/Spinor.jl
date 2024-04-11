@@ -47,18 +47,11 @@ Base.show(io::IO, s::Spinor) = begin
 end
 
 """
-    s = *(s1::Spinor, s2::Spinor)
+    s = *(s2::Spinor, s1::Spinor)
 
-Spinor multiplication identity: (α1,β1)×(α2,β2) = (α1 α2 - β2⋆ β1 , β2 α1 + α2⋆ β1)
-
-# Arguments
-- `s1`: (`::Spinor`) first spinor struct
-- `s2`: (`::Spinor`) second spinor struct
-
-# Returns
-- `s`: (`::Spinor`) multiplication spinnor identity result
+Spinor multiplication identity: (α2,β2) × (α1,β1) = (α1 α2 - β2⋆ β1 , β2 α1 + α2⋆ β1)
 """
-*(s1::Spinor, s2::Spinor) = begin
+*(s2::Spinor, s1::Spinor) = begin
 	Spinor(s1.α.*s2.α .- conj.(s2.β).*s1.β,
 		   s1.α.*s2.β .+ conj.(s2.α).*s1.β)
 end
@@ -66,7 +59,7 @@ end
 """
     s = Rz(φ)
 
-Spinor clockwise rotation matrix with angle `φ` with respect to z-axis.
+Spinor counter-clockwise rotation matrix with angle `φ` with respect to z-axis.
 
 # Arguments
 - `φ`: (`::Real`, `[rad]`) angle with respect to z-axis
@@ -79,7 +72,7 @@ Rz(φ) = Spinor(exp(-1im*φ/2), 0.0im)
 """
     s = Ry(θ)
 
-Spinor clockwise rotation matrix with angle `θ` with respect to y-axis.
+Spinor counter-clockwise rotation matrix with angle `θ` with respect to y-axis.
 
 # Arguments
 - `θ`: (`::Real`, `[rad]`) angle with respect to y-axis
@@ -92,7 +85,7 @@ Ry(θ) = Spinor(cos(θ/2)+0im, sin(θ/2)+0im)
 """
     s = Rx(θ)
 
-Spinor clockwise rotation matrix with angle `θ` with respect to x-axis.
+Spinor counter-clockwise rotation matrix with angle `θ` with respect to x-axis.
 
 # Arguments
 - `θ`: (`::Real`, `[rad]`) angle with respect to x-axis
@@ -103,9 +96,26 @@ Spinor clockwise rotation matrix with angle `θ` with respect to x-axis.
 Rx(θ) = Spinor(cos(θ/2)+0im, -1im*sin(θ/2))
 
 """
+    s = Rφ(φ, θ)
+
+Spinor counter-clockwise rotation matrix of angle `θ` around an axis in the xy plane.
+The rotation axis makes an angle `φ` with the axis y, or u=(sinφ, cosφ, 0).
+
+Rφ(φ,θ) = Rg(-φ,θ,φ) = Rz(-φ) Ry(θ) Rz(φ)
+
+# Arguments
+- `φ`: (`::Real`, `[rad]`) φ angle
+- `θ`: (`::Real`, `[rad]`) θ angle
+
+# Returns
+- `s`: (`::Spinor`) spinnor struct that represents the `Rφ` rotation matrix
+"""
+Rφ(φ, θ) = Spinor(cos(θ/2)+0.0im, exp(-1im*φ)*sin(θ/2))
+
+"""
     s = Rg(φ1, θ, φ2)
 
-Spinor rotation matrix: Rg(φ1, θ, φ2) = Rz(φ2) Ry(θ) Rz(φ1)
+General Spinor rotation matrix: Rg(φ1, θ, φ2) = Rz(φ2) Ry(θ) Rz(φ1)
 
 # Arguments
 - `φ1`: (`::Real`, `[rad]`) φ1 angle
@@ -117,26 +127,11 @@ Spinor rotation matrix: Rg(φ1, θ, φ2) = Rz(φ2) Ry(θ) Rz(φ1)
 """
 Rg(φ1, θ, φ2) = Spinor(cos(θ/2)*exp(-1im*(φ1+φ2)/2), sin(θ/2)*exp(-1im*(φ1-φ2)/2))
 
-"""
-    s = Rφ(φ, θ)
-
-Spinor rotation matrix with angle `θ` with axis in the xy plane u=(cosφ, sinφ).
-
-Rφ(φ,θ) = Rg(-φ,θ,φ) = Rz(φ) Ry(θ) Rz(-φ)
-
-# Arguments
-- `φ`: (`::Real`, `[rad]`) φ angle
-- `θ`: (`::Real`, `[rad]`) θ angle
-
-# Returns
-- `s`: (`::Spinor`) spinnor struct that represents the `Rφ` rotation matrix
-"""
-Rφ(φ, θ) = Spinor(cos(θ/2)+0im, exp(1im*φ)*sin(θ/2))
 
 @doc raw"""
     s = Q(φ, nxy, nz)
 
-Spinor rotation matrix. Rotation of `φ` with respect to the axis of rotation n=(nx, ny, nz).
+Spinor rotation matrix. Counter-clockwise rotation of `φ` with respect to the axis of rotation n=(nx, ny, nz).
 
 Pauly, J., Le Roux, P., Nishimura, D., & Macovski, A. (1991).
 Parameter relations for the Shinnar-Le Roux selective excitation pulse design algorithm

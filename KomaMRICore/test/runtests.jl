@@ -3,39 +3,127 @@ using TestItems, TestItemRunner
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
 
 @testitem "Spinors×Mag" tags=[:core] begin
-    # Spinor 2x2 representation should be equivalent to a 3x1 vector rotation
-    x = rand(3); x = x./sum(x)
-    θ = rand() * π
-    n = rand(3); n = n./sqrt(sum(n.^2))
-    z = Mag([x[1]+1im*x[2]], [x[3]])
+    using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
 
-    # General rotation
-    xx1 = Q(θ,n[1]+1im*n[2],n[3])*z; #Spinor rot Q.(φ, B1./B, Bz./B)
-    xx2 = Un(θ,n)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
+    ## Verifying that operators perform counter-clockwise rotations
+    v = [1, 2, 3]
+    m = Mag([complex(v[1:2]...)], [v[3]])
+    # Rx
+    @test rotx(π/2) * v    ≈ [1, -3, 2]
+    @test (Rx(π/2) * m).xy ≈ [1.0 - 3.0im]
+    @test (Rx(π/2) * m).z  ≈ [2.0]
+    # Ry
+    @test roty(π/2) * v    ≈ [3, 2, -1]
+    @test (Ry(π/2) * m).xy ≈ [3.0 + 2.0im]
+    @test (Ry(π/2) * m).z  ≈ [-1.0]
+    # Rz
+    @test rotz(π/2) * v    ≈ [-2, 1, 3]
+    @test (Rz(π/2) * m).xy ≈ [-2.0 + 1.0im]
+    @test (Rz(π/2) * m).z  ≈ [3.0]
+    # Rn
+    @test Un(π/2, [1,0,0]) * v ≈ rotx(π/2) * v
+    @test Un(π/2, [0,1,0]) * v ≈ roty(π/2) * v
+    @test Un(π/2, [0,0,1]) * v ≈ rotz(π/2) * v
+    @test (Q(π/2, 1.0+0.0im, 0.0) * m).xy ≈ (Rx(π/2) * m).xy
+    @test (Q(π/2, 1.0+0.0im, 0.0) * m).z  ≈ (Rx(π/2) * m).z
+    @test (Q(π/2, 0.0+1.0im, 0.0) * m).xy ≈ (Ry(π/2) * m).xy
+    @test (Q(π/2, 0.0+1.0im, 0.0) * m).z  ≈ (Ry(π/2) * m).z
+    @test (Q(π/2, 0.0+0.0im, 1.0) * m).xy ≈ (Rz(π/2) * m).xy
+    @test (Q(π/2, 0.0+0.0im, 1.0) * m).z  ≈ (Rz(π/2) * m).z
 
-    # Rot x
-    nx = [1,0,0]
-    xx1 = Rx(θ)*z; #Spinor rot
-    xx2 = Un(θ,nx)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
+    ## Verify that Spinor rotation = matrix rotation
+    v = rand(3)
+    n = rand(3); n = n ./ sqrt(sum(n.^2))
+    m = Mag([complex(v[1:2]...)], [v[3]])
+    φ, θ, φ1, φ2 = rand(4) * 2π
+    # Rx
+    vx = rotx(θ) * v
+    mx = Rx(θ) * m
+    @test [real(mx.xy); imag(mx.xy); mx.z] ≈ vx
+    # Ry
+    vy = roty(θ) * v
+    my = Ry(θ) * m
+    @test [real(my.xy); imag(my.xy); my.z] ≈ vy
+    # Rz
+    vz = rotz(θ) * v
+    mz = Rz(θ) * m
+    @test [real(mz.xy); imag(mz.xy); mz.z] ≈ vz
+    # Rφ
+    vφ = Un(θ, [sin(φ); cos(φ); 0.0]) * v
+    mφ = Rφ(φ,θ) * m
+    @test [real(mφ.xy); imag(mφ.xy); mφ.z] ≈ vφ
+    # Rg
+    vg = rotz(φ2) * roty(θ) * rotz(φ1) * v
+    mg = Rg(φ1,θ,φ2) * m
+    @test [real(mg.xy); imag(mg.xy); mg.z] ≈ vg
+    # Rn
+    vq = Un(θ, n) * v
+    mq = Q(θ, n[1]+n[2]*1im, n[3]) * m
+    @test [real(mq.xy); imag(mq.xy); mq.z] ≈ vq
 
-    # Rot y
-    nx = [0,1,0]
-    xx1 = Ry(θ)*z; #Spinor rot
-    xx2 = Un(θ,nx)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
+    ## Spinors satify that  |α|^2 + |β|^2 = 1
+    @test abs(Rx(θ))                     ≈ [1]
+    @test abs(Ry(θ))                     ≈ [1]
+    @test abs(Rz(θ))                     ≈ [1]
+    @test abs(Rφ(φ,θ))                   ≈ [1]
+    @test abs(Q(θ, n[1]+n[2]*1im, n[3])) ≈ [1]
 
-    # Rot z
-    nx = [0,0,1]
-    xx1 = Rz(θ)*z; #Spinor rot
-    xx2 = Un(θ,nx)*x; #3D rot matrix
-    xx1 = [real(xx1.xy[1]), imag(xx1.xy[1]), xx1.z[1]]
-    @test xx1 ≈ xx2
+    ## Checking properties of Introduction to the Shinnar-Le Roux algorithm.
+    # Rx = Rz(-π/2) * Ry(θ) * Rz(π/2)
+    @test rotx(θ) * v ≈ rotz(-π/2) * roty(θ) * rotz(π/2) * v
+    @test (Rx(θ) * m).xy ≈ (Rz(-π/2) * Ry(θ) * Rz(π/2) * m).xy
+    @test (Rx(θ) * m).z  ≈ (Rz(-π/2) * Ry(θ) * Rz(π/2) * m).z
+    # Rφ(φ,θ) = Rz(-φ) Ry(θ) Rz(φ)
+    @test (Rφ(φ,θ) * m).xy   ≈ (Rz(-φ) * Ry(θ) * Rz(φ) * m).xy
+    @test (Rφ(φ,θ) * m).z    ≈ (Rz(-φ) * Ry(θ) * Rz(φ) * m).z
+    # Rg(φ1, θ, φ2) = Rz(φ2) Ry(θ) Rz(φ1)
+    @test (Rg(φ1,θ,φ2) * m).xy   ≈ (Rz(φ2) * Ry(θ) * Rz(φ1) * m).xy
+    @test (Rg(φ1,θ,φ2) * m).z    ≈ (Rz(φ2) * Ry(θ) * Rz(φ1) * m).z
+    # Rg(-φ, θ, φ) = Rz(-φ) Ry(θ) Rz(φ) = Rφ(φ,θ)
+    @test rotz(-φ) * roty(θ) * rotz(φ) * v ≈ Un(θ, [sin(φ); cos(φ); 0.0]) * v
+    @test (Rg(φ,θ,-φ) * m).xy    ≈ (Rφ(φ,θ) * m).xy
+    @test (Rg(φ,θ,-φ) * m).z     ≈ (Rφ(φ,θ) * m).z
 
+    ## Verify trivial identities
+    # Rφ is an xy-plane rotation of θ around an axis making an angle of φ with respect to the y-axis
+    # Rφ φ=0 = Ry
+    @test (Rφ(0,θ) * m).xy   ≈ (Ry(θ) * m).xy
+    @test (Rφ(0,θ) * m).z    ≈ (Ry(θ) * m).z
+    # Rφ φ=π/2 = Rx
+    @test (Rφ(π/2,θ) * m).xy ≈ (Rx(θ) * m).xy
+    @test (Rφ(π/2,θ) * m).z  ≈ (Rx(θ) * m).z
+    # General rotation Rn
+    # Rn n=[1,0,0] = Rx
+    @test Un(θ, [1,0,0]) * v ≈ rotx(θ) * v
+    @test (Q(θ, 1.0+0.0im, 0.0) * m).xy ≈ (Rx(θ) * m).xy
+    @test (Q(θ, 1.0+0.0im, 0.0) * m).z  ≈ (Rx(θ) * m).z
+    # Rn n=[0,1,0] = Ry
+    @test Un(θ, [0,1,0]) * v ≈ roty(θ) * v
+    @test (Q(θ, 0.0+1.0im, 0.0) * m).xy ≈ (Ry(θ) * m).xy
+    @test (Q(θ, 0.0+1.0im, 0.0) * m).z  ≈ (Ry(θ) * m).z
+    # Rn n=[0,0,1] = Rz
+    @test Un(θ, [0,0,1]) * v ≈ rotz(θ) * v
+    @test (Q(θ, 0.0+0.0im, 1.0) * m).xy ≈ (Rz(θ) * m).xy
+    @test (Q(θ, 0.0+0.0im, 1.0) * m).z  ≈ (Rz(θ) * m).z
+
+    # Associativity
+    # Rx
+    @test (((Rz(-π/2) * Ry(θ)) * Rz(π/2)) * m).xy ≈ (Rx(θ) * m).xy
+    @test (((Rz(-π/2) * Ry(θ)) * Rz(π/2)) * m).z  ≈ (Rx(θ) * m).z
+    @test (Rz(-π/2) * (Ry(θ) * (Rz(π/2) * m))).xy ≈ (Rx(θ) * m).xy
+    @test (Rz(-π/2) * (Ry(θ) * (Rz(π/2) * m))).z  ≈ (Rx(θ) * m).z
+    # Rφ
+    @test (Rφ(φ,θ) * m).xy   ≈ (((Rz(-φ) * Ry(θ)) * Rz(φ)) * m).xy
+    @test (Rφ(φ,θ) * m).z    ≈ (((Rz(-φ) * Ry(θ)) * Rz(φ)) * m).z
+    @test (Rφ(φ,θ) * m).xy   ≈ ((Rz(-φ) * (Ry(θ) * Rz(φ))) * m).xy
+    @test (Rφ(φ,θ) * m).z    ≈ ((Rz(-φ) * (Ry(θ) * Rz(φ))) * m).z
+    # Rg
+    @test (Rg(φ1,θ,φ2) * m).xy   ≈ (((Rz(φ2) * Ry(θ)) * Rz(φ1)) * m).xy
+    @test (Rg(φ1,θ,φ2) * m).z    ≈ (((Rz(φ2) * Ry(θ)) * Rz(φ1)) * m).z
+    @test (Rg(φ1,θ,φ2) * m).xy   ≈ ((Rz(φ2) * (Ry(θ) * Rz(φ1))) * m).xy
+    @test (Rg(φ1,θ,φ2) * m).z    ≈ ((Rz(φ2) * (Ry(θ) * Rz(φ1))) * m).z
+
+    ## Other tests
     # Test Spinor struct
     α, β = rand(2)
     s = Spinor(α, β)
@@ -43,16 +131,6 @@ using TestItems, TestItemRunner
     # Just checking to ensure that show() doesn't get stuck and that it is covered
     show(IOBuffer(), "text/plain", s)
     @test true
-    α2, β2 = rand(2)
-    s2 = Spinor(α2, β2)
-    sp = s * s2
-    @test sp.α ≈ s.α.*s2.α .- conj.(s2.β).*s.β && sp.β ≈ s.α.*s2.β .+ conj.(s2.α).*s.β
-    φ, φ1, θ, φ2 = rand(4)
-    Rm = KomaMRICore.Rg(φ1, θ, φ2)
-    @test Rm.α ≈ [cos(θ/2)*exp(-1im*(φ1+φ2)/2)] && Rm.β ≈ [sin(θ/2)*exp(-1im*(φ1-φ2)/2)]
-    Rn = KomaMRICore.Rφ(φ, θ)
-    @test Rn.α ≈ [cos(θ/2)+0im] && Rn.β ≈ [exp(1im*φ)*sin(θ/2)]
-    @test abs(s) ≈ [α^2 + β^2]
 end
 
 # Test ISMRMRD
@@ -166,10 +244,11 @@ end
     sys = Scanner()
     obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
 
+    rf_phase = [0, π/2]
     seq = Sequence()
     seq += ADC(N, Tadc)
     for i=1:2
-        global seq += RF(B1, Trf)
+        global seq += RF(B1 .* exp(1im*rf_phase[i]), Trf)
         global seq += ADC(N, Tadc)
     end
 
@@ -183,12 +262,12 @@ end
             0.304722+0.364744im,
             0.344571+0.320455im,
             0.378217+0.272008im]
-    res2 = [0.570549+0.377122im
-            0.607214+0.299628im
-            0.633611+0.218961im
-            0.649530+0.136450im
-            0.654928+0.0534296im
-            0.649928-0.0287866im]
+    res2 = [-0.0153894+0.142582im,
+            0.00257641+0.14196im,
+            0.020146+0.13912im,
+            0.037051+0.134149im,
+            0.0530392+0.12717im,
+            0.0678774+0.11833im]
     norm2(x) = sqrt.(sum(abs.(x).^2))
     error0 = norm2(raw.profiles[1].data .- 0)
     error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
@@ -211,12 +290,14 @@ end
     sys = Scanner()
     obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
 
+    rf_phase = [0, π/2]
     seq = Sequence()
     seq += ADC(N, Tadc)
-    for i=1:2
-        global seq += RF(B1, Trf)
-        global seq += ADC(N, Tadc)
-    end
+    seq += RF(B1 .* exp(1im*rf_phase[1]), Trf)
+    seq += ADC(N, Tadc)
+    seq += RF(B1 .* exp(1im*rf_phase[2]), Trf)
+    seq += ADC(N, Tadc)
+
 
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false)
     raw = @suppress simulate(obj, seq, sys; sim_params)
@@ -228,12 +309,12 @@ end
             0.304722+0.364744im,
             0.344571+0.320455im,
             0.378217+0.272008im]
-    res2 = [0.570549+0.377122im
-            0.607214+0.299628im
-            0.633611+0.218961im
-            0.649530+0.136450im
-            0.654928+0.0534296im
-            0.649928-0.0287866im]
+    res2 = [-0.0153894+0.142582im,
+            0.00257641+0.14196im,
+            0.020146+0.13912im,
+            0.037051+0.134149im,
+            0.0530392+0.12717im,
+            0.0678774+0.11833im]
     norm2(x) = sqrt.(sum(abs.(x).^2))
     error0 = norm2(raw.profiles[1].data .- 0)
     error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
@@ -256,12 +337,13 @@ end
     sys = Scanner()
     obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
 
+    rf_phase = [0, π/2]
     seq = Sequence()
     seq += ADC(N, Tadc)
-    for i=1:2
-        global seq += RF(B1, Trf)
-        global seq += ADC(N, Tadc)
-    end
+    seq += RF(B1 .* exp(1im*rf_phase[1]), Trf)
+    seq += ADC(N, Tadc)
+    seq += RF(B1 .* exp(1im*rf_phase[2]), Trf)
+    seq += ADC(N, Tadc)
 
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>true)
     raw = @suppress simulate(obj, seq, sys; sim_params)
@@ -273,18 +355,49 @@ end
             0.304722+0.364744im,
             0.344571+0.320455im,
             0.378217+0.272008im]
-    res2 = [0.570549+0.377122im
-            0.607214+0.299628im
-            0.633611+0.218961im
-            0.649530+0.136450im
-            0.654928+0.0534296im
-            0.649928-0.0287866im]
+    res2 = [-0.0153894+0.142582im,
+            0.00257641+0.14196im,
+            0.020146+0.13912im,
+            0.037051+0.134149im,
+            0.0530392+0.12717im,
+            0.0678774+0.11833im]
     norm2(x) = sqrt.(sum(abs.(x).^2))
     error0 = norm2(raw.profiles[1].data .- 0)
     error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
     error2 = norm2(raw.profiles[3].data .- res2) ./ norm2(res2) * 100
 
     @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
+end
+
+@testitem "Bloch_phase_compensation" tags=[:important, :core] begin
+    using Suppressor
+
+    Tadc = 1e-3
+    Trf = Tadc
+    T1 = 1000e-3
+    T2 = 20e-3
+    Δw = 2π * 100
+    B1 = 2e-6 * (Tadc / Trf)
+    N = 6
+
+    sys = Scanner()
+    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+
+    rf_phase = 2π*rand()
+    seq1 = Sequence()
+    seq1 += RF(B1, Trf)
+    seq1 += ADC(N, Tadc)
+
+    seq2 = Sequence()
+    seq2 += RF(B1 .* exp(1im*rf_phase), Trf)
+    seq2 += ADC(N, Tadc, 0, 0, rf_phase)
+
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false, "Nthreads"=>1)
+    raw1 = @suppress simulate(obj, seq1, sys; sim_params)
+    raw2 = @suppress simulate(obj, seq2, sys; sim_params)
+
+    @test raw1.profiles[1].data ≈ raw2.profiles[1].data
+
 end
 
 @testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
@@ -298,7 +411,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     sim_params["sim_method"] = KomaMRICore.BlochDict()
-    sig2 = simulate(obj, seq, sys; sim_params)
+    sig2 = @suppress simulate(obj, seq, sys; sim_params)
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 
@@ -324,7 +437,7 @@ end
 
     # Simulate the slice profile
     sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
-    M = simulate_slice_profile(seq; z, sim_params)
+    M = @suppress simulate_slice_profile(seq; z, sim_params)
 
     # For the time being, always pass the test
     @test true

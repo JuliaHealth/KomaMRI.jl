@@ -24,12 +24,12 @@ jobs:
           - os: ubuntu-latest
             prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         env:
           cache-name: cache-artifacts
         with:
@@ -39,48 +39,64 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: "KomaMRIBase: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIBase
-      - name: "Run tests for KomaMRIBase"
+      - name: "KomaMRIBase: Run Tests"
+        if: '!cancelled()'
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIBase
-      - name: "KomaMRICore dev setup"
+      - name: "KomaMRICore: Development Setup"
+        if: '!cancelled()'
         shell: bash
         run: |
           julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: "KomaMRICore: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRICore
-      - name: "Run tests for KomaMRICore"
+      - name: "KomaMRICore: Run Tests"
+        if: '!cancelled()'
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRICore
-      - name: "KomaMRIFiles dev setup"
+      - name: "KomaMRIFiles: Development Setup"
+        if: '!cancelled()'
         shell: bash
         run: |
           julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: "KomaMRIFiles: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIFiles
-      - name: "Run tests for KomaMRIFiles"
+      - name: "KomaMRIFiles: Run Tests"
+        if: '!cancelled()'
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIFiles
-      - name: "KomaMRIPlots dev setup"
+      - name: "KomaMRIPlots: Development Setup"
+        if: '!cancelled()'
         shell: bash
         run: |
           julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: "KomaMRIPlots: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIPlots
-      - name: "Run tests for KomaMRIPlots"
+      - name: "KomaMRIPlots: Run Tests"
+        if: '!cancelled()'
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIPlots
           prefix: ${{ matrix.prefix }}  # for `xvfb-run`
-      - name: "KomaMRI dev setup"
+      - name: "KomaMRI: Development Setup"
+        if: '!cancelled()'
         shell: julia --color=yes --project {0}
         run: |
           using Pkg
@@ -90,8 +106,11 @@ jobs:
               PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
               PackageSpec(path=pwd(), subdir="KomaMRIPlots")
           ])
-      - uses: julia-actions/julia-buildpkg@v1
-      - name: "Run tests for KomaMRI"
+      - name: "KomaMRI: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
+      - name: "KomaMRI: Run Tests"
+        if: '!cancelled()'
         uses: julia-actions/julia-runtest@v1
         with:
           prefix: ${{ matrix.prefix }}  # for `xvfb-run`

@@ -48,6 +48,7 @@ rotz(θ::Real) = [cos(θ) -sin(θ)	0;
     gr = Grad(A, T, rise)
     gr = Grad(A, T, rise, delay)
     gr = Grad(A, T, rise, fall, delay)
+    gr = Grad(A, T, rise, fall, delay, first, last)
 
 The Grad struct represents a gradient of a sequence event.
 
@@ -74,19 +75,22 @@ mutable struct Grad
 	rise::Real
 	fall::Real
 	delay::Real
+	first
+	last
     function Grad(A, T, rise, fall, delay)
-		all(T .< 0) || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, fall, delay)
+		all(T .< 0) || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, fall, delay, 0.0, 0.0)
     end
 	function Grad(A, T, rise, delay)
-		all(T .< 0) < 0 || rise < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, rise, delay)
+		all(T .< 0) < 0 || rise < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, rise, delay, 0.0, 0.0)
     end
 	function Grad(A, T, rise)
-		all(T .< 0) < 0 || rise < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, rise, 0)
+		all(T .< 0) < 0 || rise < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, rise, 0.0, 0.0, 0.0)
     end
 	function Grad(A, T)
-		all(T .< 0) < 0 ? error("Gradient timings must be positive.") : new(A, T, 0, 0, 0)
+		all(T .< 0) < 0 ? error("Gradient timings must be positive.") : new(A, T, 0.0, 0.0, 0.0, 0.0, 0.0)
     end
 end
+
 
 """
     gr = Grad(f::Function, T::Real, N::Integer; delay::Real)
@@ -113,9 +117,9 @@ julia> seq = Sequence([gx]); plot_seq(seq)
 ```
 """
 Grad(f::Function, T::Real, N::Integer=300; delay::Real=0) = begin
-	t = range(0, T; length=N)
+	t = range(0.0, T; length=N)
 	G = f.(t)
-	return Grad(G, T, 0, 0, delay)
+	return Grad(G, T, 0.0, 0.0, delay)
 end
 
 
@@ -142,7 +146,7 @@ Base.show(io::IO, x::Grad) = begin
 		end
 	else
 		wave = length(x.A) == 1 ? "⊓" : "∿"
-		print(io, (sum(abs.(x.A)) > 0 ? wave : "⇿")*"($(r((x.delay+x.rise+x.fall+sum(x.T))*1e3)) ms)")
+		print(io, (is_on(x) ? wave : "⇿")*"($(r((x.delay+x.rise+x.fall+sum(x.T))*1e3)) ms)")
 	end
 end
 
@@ -171,12 +175,8 @@ getproperty(x::Matrix{Grad}, f::Symbol) = begin
 		x[2,:]
 	elseif f == :z && size(x,1) >= 3
 		x[3,:]
-	elseif f == :T || f == :rise || f == :fall || f == :delay
-		getproperty.(x,f)
 	elseif f == :dur
-		T, ζ1, ζ2, delay = x.T, x.rise, x.fall, x.delay
-		ΔT = [sum(t) for t=T] .+ ζ1 .+ ζ2 .+ delay
-		maximum(ΔT,dims=1)[:]
+		maximum(dur.(x), dims=1)[:]
 	else
 		getproperty.(x,f)
 	end
@@ -197,7 +197,7 @@ end
 	N, M = size(GR)
 	[sum(A[i,1:N] .* GR[:,j]) for i=1:N, j=1:M]
 end
-Base.zero(::Grad) = Grad(0,0)
+Base.zero(::Grad) = Grad(0.0,0.0)
 size(g::Grad, i::Int64) = 1 #To fix [g;g;;] concatenation of Julia 1.7.3
 /(x::Grad,α::Real) = Grad(x.A/α,x.T,x.rise,x.fall,x.delay)
 +(x::Grad,y::Grad) = Grad(x.A.+y.A,x.T,x.rise,x.fall,x.delay)

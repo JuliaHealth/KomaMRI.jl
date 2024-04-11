@@ -2,9 +2,7 @@ name: CompatHelper
 on:
   schedule:
     - cron: 0 0 * * *
-  pull_request:
-    branches:
-      - master
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
