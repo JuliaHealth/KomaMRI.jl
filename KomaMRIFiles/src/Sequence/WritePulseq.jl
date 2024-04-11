@@ -217,7 +217,7 @@ function write_seq(seq::Sequence, filename)
         ioamtd[3] = γ * magsign(obj.A)
         ioamtd[6] = round(1e6 * obj.delay)
         shape_amp = obj.A / magsign(obj.A)
-        for (shape_amp_unique, id_amp) ∈ gradunique_amp_id
+        for (shape_amp_unique, id_amp) in gradunique_amp_id
             if length(shape_amp) == length(shape_amp_unique) && shape_amp ≈ shape_amp_unique
                 ioamtd[4] = id_amp
             end
