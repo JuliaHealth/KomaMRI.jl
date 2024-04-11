@@ -17,8 +17,8 @@ mutable struct SimpleMotion{T<:Real} <: MotionModel{T}
 end
 
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
-Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}, 
-                                    q::Union{AbstractRange,AbstractVector,Colon}) = motion
+Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}, q::Union{AbstractRange,AbstractVector,Colon}) = motion
+Base.:(==)(m1::SimpleMotion, m2::SimpleMotion) = m1.types == m2.types
 
 function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     xi, yi, zi = x, y, z

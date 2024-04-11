@@ -67,18 +67,32 @@ Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
 
 """Compare two phantoms"""
-Base.isapprox(obj1::Phantom, obj2::Phantom) = begin
-    obj1.x ≈ obj2.x &&
-    obj1.y ≈ obj2.y &&
-    obj1.z ≈ obj2.z &&
-    obj1.ρ ≈ obj2.ρ &&
-    obj1.T1 ≈ obj2.T1 &&
-    obj1.T2 ≈ obj2.T2 &&
-    obj1.T2s ≈ obj2.T2s &&
-    obj1.Δw ≈ obj2.Δw &&
-    obj1.Dλ1 ≈ obj2.Dλ1 &&
-    obj1.Dλ2 ≈ obj2.Dλ2 &&
-    obj1.Dθ ≈ obj2.Dθ
+Base.:(==)(obj1::Phantom, obj2::Phantom) = begin
+    obj1.x      == obj2.x       &&
+    obj1.y      == obj2.y       &&
+    obj1.z      == obj2.z       &&
+    obj1.ρ      == obj2.ρ       &&
+    obj1.T1     == obj2.T1      &&
+    obj1.T2     == obj2.T2      &&
+    obj1.T2s    == obj2.T2s     &&
+    obj1.Δw     == obj2.Δw      &&
+    obj1.Dλ1    == obj2.Dλ1     &&
+    obj1.Dλ2    == obj2.Dλ2     &&
+    obj1.Dθ     == obj2.Dθ      &&
+    obj1.motion == obj2.motion
+end
+Base.:(≈)(obj1::Phantom, obj2::Phantom) = begin
+    obj1.x      ≈ obj2.x        &&
+    obj1.y      ≈ obj2.y        &&
+    obj1.z      ≈ obj2.z        &&
+    obj1.ρ      ≈ obj2.ρ        &&
+    obj1.T1     ≈ obj2.T1       &&
+    obj1.T2     ≈ obj2.T2       &&
+    obj1.T2s    ≈ obj2.T2s      &&
+    obj1.Δw     ≈ obj2.Δw       &&
+    obj1.Dλ1    ≈ obj2.Dλ1      &&
+    obj1.Dλ2    ≈ obj2.Dλ2      &&
+    obj1.Dθ     ≈ obj2.Dθ
 end
 
 """
