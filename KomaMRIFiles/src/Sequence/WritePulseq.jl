@@ -262,7 +262,7 @@ function write_seq(seq::Sequence, filename)
         obj = ionwdfp[2]
         ionwdfp[3] = obj.N
         ionwdfp[4] = obj.T * 1e9 / (obj.N - 1)
-        ionwdfp[5] = (obj.delay - 0.5*obj.T/(obj.N - 1)) * 1e6
+        ionwdfp[5] = (obj.delay - 0.5 * obj.T / (obj.N - 1)) * 1e6
         ionwdfp[6] = obj.Δf
         ionwdfp[7] = obj.ϕ
     end
