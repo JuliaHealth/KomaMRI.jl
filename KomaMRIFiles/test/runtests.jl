@@ -95,8 +95,20 @@ end
     test_folder = joinpath(@__DIR__, "test_files", "pulseq")
 
     # Test for some .seq files
-    filenames = ["DEMO_gre", "DEMO_grep", "epi_se", "epi", "external", "gre_rad",
-        "spiral", "tabletop_tse_pulseq", "cine_gre", "epi_label", "epi_rs", "epise_rs"]
+    filenames = [
+        "DEMO_gre",
+        "DEMO_grep",
+        "epi_se",
+        "epi",
+        "external",
+        "gre_rad",
+        "spiral",
+        "tabletop_tse_pulseq",
+        "cine_gre",
+        "epi_label",
+        "epi_rs",
+        "epise_rs",
+    ]
     for seq_filename_head in filenames
         seq_filename_head = seq_filename_head
         seq_original_filename = seq_filename_head * ".seq"
