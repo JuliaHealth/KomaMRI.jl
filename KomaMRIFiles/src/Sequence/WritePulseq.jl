@@ -414,7 +414,8 @@ function write_seq(seq::Sequence, filename)
             @printf(fid, "# id num dwell delay freq phase\n")
             @printf(fid, "# ..  ..    ns    us   Hz   rad\n")
             @printf(fid, "[ADC]\n")
-            for (id, _, num, dwell, delay, freq, phase) ∈ adc_idx_obj_num_dwell_delay_freq_phase
+            for (id, _, num, dwell, delay, freq, phase) in
+                adc_idx_obj_num_dwell_delay_freq_phase
                 @printf(fid, "%d %d %.0f %.0f %g %g\n", id, num, dwell, delay, freq, phase)
             end
             @printf(fid, "\n")
