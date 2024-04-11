@@ -147,7 +147,12 @@ For comparing two `Sequence`s custom types
 """
 Base.isapprox(s1::Sequence, s2::Sequence) = begin
     (length(s1) != length(s2)) && return false
-    return all([s1.ADC[i] ≈ s2.ADC[i] && s1.RF[i] ≈ s2.RF[i] && s1.GR[i] ≈ s2.GR[i] && s1.DUR[i] ≈ s2.DUR[i] for i ∈ 1:length(s1)])
+    return all([
+        s1.ADC[i] ≈ s2.ADC[i] &&
+        s1.RF[i] ≈ s2.RF[i] &&
+        s1.GR[i] ≈ s2.GR[i] &&
+        s1.DUR[i] ≈ s2.DUR[i] for i in 1:length(s1)
+    ])
 end
 
 """
