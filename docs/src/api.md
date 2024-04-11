@@ -216,6 +216,11 @@ CurrentModule = KomaMRIFiles
 read_seq
 ```
 
+### `write_seq`
+```@docs
+write_seq
+```
+
 ### `read_phantom_jemris`
 ```@docs
 read_phantom_jemris
