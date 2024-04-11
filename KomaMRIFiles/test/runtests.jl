@@ -120,5 +120,4 @@ end
         rm(seq_written_file; force=true)
         @test seq_original ≈ seq_written
     end
-
 end
