@@ -129,7 +129,7 @@ Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
 function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
     # Find shapes for magnitude and time gradients
     gradunique_amp_id, gradunique_tim_id = [], []
-    for (obj,_) ∈ gradunique_obj_id
+    for (obj, _) in gradunique_obj_id
         shape_amp = obj.A / magsign(obj.A)
         if all([!(length(shape_amp) == length(shape_amp_unique) && shape_amp ≈ shape_amp_unique) for (shape_amp_unique,_) ∈ gradunique_amp_id])
             push!(gradunique_amp_id, [shape_amp, id_shape_cnt])
