@@ -20,8 +20,8 @@ input vector `typeon_obj` of objects which are on.
 function get_typeunique_obj_id(typeon_obj::Vector)
     typeunique_obj_id = []
     id_cnt = 1
-    for obj ∈ typeon_obj
-        if all([!(obj ≈ obj_unique) for (obj_unique, _) ∈ typeunique_obj_id])
+    for obj in typeon_obj
+        if all([!(obj ≈ obj_unique) for (obj_unique, _) in typeunique_obj_id])
             push!(typeunique_obj_id, [obj, id_cnt])
             id_cnt += 1
         end
