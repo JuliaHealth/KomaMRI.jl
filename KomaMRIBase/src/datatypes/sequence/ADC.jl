@@ -43,8 +43,7 @@ end
 For comparing two `ADC`s custom types
 """
 Base.isapprox(adc1::ADC, adc2::ADC) = begin
-    return all(length(getfield(adc1, k)) ≈ length(getfield(adc2, k)) for k ∈ fieldnames(ADC)) &&
-        all(getfield(adc1, k) ≈ getfield(adc2, k) for k ∈ fieldnames(ADC))
+    return all(length(getfield(adc1, k)) ≈ length(getfield(adc2, k)) for k in fieldnames(ADC)) && all(getfield(adc1, k) ≈ getfield(adc2, k) for k in fieldnames(ADC))
 end
 
 """
