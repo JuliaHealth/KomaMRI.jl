@@ -172,7 +172,6 @@ end
 Writes a .seq file for a given sequence `seq` y the location `filename`
 """
 function write_seq(seq::Sequence, filename)
-
     # Get the unique objects (RF, Grad y ADC) and its IDs
     rfunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "rf"))
     grunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "gr"))
@@ -185,7 +184,6 @@ function write_seq(seq::Sequence, filename)
     gradunique_amp_id, gradunique_tim_id, _ = get_gradunique(
         gradunique_obj_id, id_shape_cnt, seq
     )
-
     # Define the table to be written for the [BLOCKS] section
     @warn "EXTENSIONS will not be handled"
     rf_id  = [id for (_, _, id) in get_type_blk_obj_id(seq, "rf",  rfunique_obj_id)]
@@ -203,7 +201,6 @@ function write_seq(seq::Sequence, filename)
         end
         bodrxyzae[3] = bdr
     end
-
     # Define the table to be written for the [RF] section
     rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha = [[idx, obj, 0, 0, 0, 0, 0, 0, 0] for (obj, idx) in rfunique_obj_id]
     for ioamptdfh in rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha
@@ -242,7 +239,6 @@ function write_seq(seq::Sequence, filename)
             seq.DEF["RadiofrequencyRasterTime"] *
             1e6
     end
-
     # Define the table to be written for the [GRADIENTS] section
     grad_idx_obj_amp_iamp_itim_delay = [
         [idx, obj, 0, 0, 0, 0] for (obj, idx) in gradunique_obj_id
@@ -267,7 +263,6 @@ function write_seq(seq::Sequence, filename)
             end
         end
     end
-
     # Define the table to be written for the [TRAP] section
     trap_idx_obj_amp_rise_flat_fall_delay = [
         [idx, obj, 0, 0, 0, 0, 0] for (obj, idx) in trapunique_obj_id
@@ -280,7 +275,6 @@ function write_seq(seq::Sequence, filename)
         ioarfad[6] = 1e6 * obj.fall
         ioarfad[7] = 1e6 * obj.delay
     end
-
     # Define the table to be written for the [ADC] section
     adc_idx_obj_num_dwell_delay_freq_phase = [
         [idx, obj, 0, 0, 0, 0, 0] for (obj, idx) in adcunique_obj_id
@@ -293,7 +287,6 @@ function write_seq(seq::Sequence, filename)
         ionwdfp[6] = obj.Δf
         ionwdfp[7] = obj.ϕ
     end
-
     # Define the table to be written for the [SHAPES] section
     shapefull_data_id = [
         shapeunique_data_id_i for shapeunique_data_id in [
@@ -308,18 +301,15 @@ function write_seq(seq::Sequence, filename)
         (length(compress(data)) == length(data) ? data : compress(data), id, length(data))
         for (data, id) in shapefull_data_id
     ]
-
     # Write the .seq file
     open(filename, "w") do fid
         @printf(fid, "# Pulseq sequence file\n")
         @printf(fid, "# Created by KomaMRI.jl \n\n") #TODO: add Koma version
-
         @printf(fid, "[VERSION]\n")
         @printf(fid, "major 1\n")
         @printf(fid, "minor 4\n")
         @printf(fid, "revision 1\n")
         @printf(fid, "\n")
-
         if !isempty(seq.DEF)
             @printf(fid, "[DEFINITIONS]\n")
             sorted_keys = sort(collect(keys(seq.DEF)))
@@ -351,7 +341,6 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-
         if !isempty(blk_obj_dur_rf_gx_gy_gz_adc_ext)
             @printf(fid, "# Format of blocks:\n")
             @printf(fid, "# NUM DUR RF  GX  GY  GZ  ADC  EXT\n")
@@ -364,7 +353,6 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-
         if !isempty(rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha)
             @printf(fid, "# Format of RF events:\n")
             @printf(fid, "# id amplitude mag_id phase_id time_shape_id delay freq phase\n")
@@ -375,7 +363,6 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-
         if !isempty(grad_idx_obj_amp_iamp_itim_delay)
             @printf(fid, "# Format of arbitrary gradients:\n")
             @printf(fid, "#   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)\n")
@@ -387,7 +374,6 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-
         if !isempty(trap_idx_obj_amp_rise_flat_fall_delay)
             @printf(fid, "# Format of trapezoid gradients:\n")
             @printf(fid, "# id amplitude rise flat fall delay\n")
@@ -398,7 +384,6 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-
         if !isempty(adc_idx_obj_num_dwell_delay_freq_phase)
             @printf(fid, "# Format of ADC events:\n")
             @printf(fid, "# id num dwell delay freq phase\n")
@@ -409,7 +394,6 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-
         if !isempty(shape_data_id_num)
             @printf(fid, "# Sequence Shapes\n")
             @printf(fid, "[SHAPES]\n\n")
@@ -420,9 +404,7 @@ function write_seq(seq::Sequence, filename)
                 @printf(fid, "\n")
             end
         end
-
     end
-
     md5hash = bytes2hex(open(md5, filename))
     open(filename, "a") do fid
         @printf(fid, "\n[SIGNATURE]\n") # the preceding new line BELONGS to the signature (and needs to be sripped away to recalculate the signature)
@@ -432,5 +414,4 @@ function write_seq(seq::Sequence, filename)
         @printf(fid, "Type md5\n")
         @printf(fid, "Hash %s\n", md5hash)
     end
-
 end
