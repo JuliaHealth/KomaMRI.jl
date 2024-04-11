@@ -76,22 +76,6 @@ function magsign(v)
 end
 
 """
-Given an angle in the range [-1, 1], it returns unwrapped values in the range [-0.5, 0.5].
-"""
-function unwrap_angle(ang)
-    (ang <= -0.5 + 1e-7) && return ang + 1.0
-    (0.5 + 1e-7 < ang) && return ang - 1.0
-    return ang
-end
-
-"""
-Given an angle in the range [-0.5, 0.5], it returns unwrapped values in the range [0, 1].
-"""
-function unwrap_negative_angle(ang)
-    return (ang < 0) ? (ang + 1.0) : (ang)
-end
-
-"""
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
 
 Returns the unique shapes for the magnitude, angle and time of the "rfunique_obj_id" vector.
@@ -106,9 +90,9 @@ function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Seque
             push!(rfunique_abs_id, [shape_abs, id_shape_cnt])
             id_shape_cnt += 1
         end
-        shape_ang = -angle.(obj.A)/2π  # [-0.5, 0.5]
-        if all([!(length(shape_ang) == length(shape_ang_unique) && all(isapprox.(unwrap_angle.(shape_ang .- shape_ang[1]), unwrap_angle.(shape_ang_unique .- shape_ang_unique[1]), atol=1e-7))) for (shape_ang_unique,_) ∈ rfunique_ang_id])
-            push!(rfunique_ang_id, [unwrap_negative_angle.(shape_ang), id_shape_cnt])   # this always garanties non-negative shaped angles
+        shape_ang = mod.(angle.(obj.A), 2π)/2π
+        if all([!(length(shape_ang) == length(shape_ang_unique) && all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])) for (shape_ang_unique,_) ∈ rfunique_ang_id])
+            push!(rfunique_ang_id, [shape_ang, id_shape_cnt])
             id_shape_cnt += 1
         end
         if isa(obj.T, Vector{<:Number})
@@ -160,17 +144,6 @@ function compress(data)
 end
 
 """
-    output = compress_if_necessary(data::Vector)
-
-Returns the vector of compressed data as long as there is a real compression. Otherwise it
-resturns the original data vector.
-"""
-function compress_if_necessary(data)
-    data_compressed = compress(data)
-    return length(data_compressed) == length(data) ? data : data_compressed
-end
-
-"""
     write_seq(seq::Sequence, filename::String)
 
 Writes a .seq file for a given sequence `seq` y the location `filename`
@@ -216,12 +189,11 @@ function write_seq(seq::Sequence, filename)
                 ioamptdfh[4] = id_abs
             end
         end
-        shape_ang = -angle.(obj.A)/2π
+        shape_ang = mod.(angle.(obj.A), 2π)/2π
         for (shape_ang_unique, id_ang) ∈ rfunique_ang_id
-            if length(shape_ang) == length(shape_ang_unique) && all(isapprox.(unwrap_angle.(shape_ang .- shape_ang[1]), unwrap_angle.(shape_ang_unique .- shape_ang_unique[1]), atol=1e-7))
+            if length(shape_ang) == length(shape_ang_unique) && all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])
                 ioamptdfh[5] = id_ang
-                a = 2π*(shape_ang[1] - shape_ang_unique[1])
-                ioamptdfh[9] = a
+                ioamptdfh[9] = angle(sum(exp.(1im*2π*shape_ang) .* exp.(-1im*2π*shape_ang_unique))/length(shape_ang))
             end
         end
         if isa(obj.T, Vector{<:Number})
@@ -281,9 +253,6 @@ function write_seq(seq::Sequence, filename)
     end
 
     # Define the table to be written for the [SHAPES] section
-    # Fix last sample of RF
-    [push!(a[1], a[1][end]) for a ∈ rfunique_abs_id]
-    [push!(a[1], a[1][end]) for a ∈ rfunique_ang_id]
     shapefull_data_id = [shapeunique_data_id_i for shapeunique_data_id ∈ [rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, gradunique_amp_id, gradunique_tim_id] for shapeunique_data_id_i ∈ shapeunique_data_id]
     shape_data_id_num = [(length(compress(data)) == length(data) ? data : compress(data), id, length(data)) for (data, id) ∈ shapefull_data_id]
 
