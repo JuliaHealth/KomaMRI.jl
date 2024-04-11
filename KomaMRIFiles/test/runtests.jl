@@ -84,7 +84,7 @@ end
     end
 end
 
-@testitem "WritePulseq" tags=[:files, :pulseq] begin
+@testitem "WritePulseq" tags = [:files, :pulseq] begin
 
     # These two are solved by changing the precission in the RF comparison (now: atol=1e-5)
     # Note that just the angle of the RF is the problem
