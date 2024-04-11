@@ -18,7 +18,12 @@ end
 
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}, q::Union{AbstractRange,AbstractVector,Colon}) = motion
-Base.:(==)(m1::SimpleMotion, m2::SimpleMotion) = m1.types == m2.types
+
+Base.:(==)(m1::SimpleMotion, m2::SimpleMotion) = reduce(&, [m1.types[i] == m2.types[i] for i in 1:length(m1.types)])
+Base.:(≈)(m1::SimpleMotion, m2::SimpleMotion)  = reduce(&, [m1.types[i]  ≈ m2.types[i] for i in 1:length(m1.types)])
+
+Base.:(==)(t1::SimpleMotionType, t2::SimpleMotionType) = (typeof(t1) == typeof(t2)) ? reduce(&, [getfield(t1, field) == getfield(t2, field) for field in fieldnames(typeof(t1))]) : false
+Base.:(≈)(t1::SimpleMotionType, t2::SimpleMotionType)  = (typeof(t1) == typeof(t2)) ? reduce(&, [getfield(t1, field)  ≈ getfield(t2, field) for field in fieldnames(typeof(t1))]) : false
 
 function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     xi, yi, zi = x, y, z

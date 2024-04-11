@@ -67,119 +67,52 @@ Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
 
 """Compare two phantoms"""
-Base.:(==)(obj1::Phantom, obj2::Phantom) = begin
-    obj1.x      == obj2.x       &&
-    obj1.y      == obj2.y       &&
-    obj1.z      == obj2.z       &&
-    obj1.ρ      == obj2.ρ       &&
-    obj1.T1     == obj2.T1      &&
-    obj1.T2     == obj2.T2      &&
-    obj1.T2s    == obj2.T2s     &&
-    obj1.Δw     == obj2.Δw      &&
-    obj1.Dλ1    == obj2.Dλ1     &&
-    obj1.Dλ2    == obj2.Dλ2     &&
-    obj1.Dθ     == obj2.Dθ      &&
-    obj1.motion == obj2.motion
-end
-Base.:(≈)(obj1::Phantom, obj2::Phantom) = begin
-    obj1.x      ≈ obj2.x        &&
-    obj1.y      ≈ obj2.y        &&
-    obj1.z      ≈ obj2.z        &&
-    obj1.ρ      ≈ obj2.ρ        &&
-    obj1.T1     ≈ obj2.T1       &&
-    obj1.T2     ≈ obj2.T2       &&
-    obj1.T2s    ≈ obj2.T2s      &&
-    obj1.Δw     ≈ obj2.Δw       &&
-    obj1.Dλ1    ≈ obj2.Dλ1      &&
-    obj1.Dλ2    ≈ obj2.Dλ2      &&
-    obj1.Dθ     ≈ obj2.Dθ
-end
+Base.:(==)(obj1::Phantom, obj2::Phantom) = reduce(&, [getfield(obj1, field) == getfield(obj2, field) for field in filter(x -> !(x in [:name]), [fieldnames(Phantom)...])])
+Base.:(≈)(obj1::Phantom, obj2::Phantom)  = reduce(&, [getfield(obj1, field)  ≈ getfield(obj2, field) for field in filter(x -> !(x in [:name]), [fieldnames(Phantom)...])])
+Base.:(==)(m1::MotionModel, m2::MotionModel) = false
+Base.:(≈)(m1::MotionModel, m2::MotionModel)  = false
 
 """
 Separate object spins in a sub-group
 """
 Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
-    Phantom(
+    fields = []
+    for field in filter(x -> !(x in [:name]), [fieldnames(Phantom)...])
+        push!(fields, (field, getfield(obj, field)[p]))
+    end
+    return Phantom(;
         name=obj.name,
-        x=obj.x[p],
-        y=obj.y[p],
-        z=obj.z[p],
-        ρ=obj.ρ[p],
-        T1=obj.T1[p],
-        T2=obj.T2[p],
-        T2s=obj.T2s[p],
-        Δw=obj.Δw[p],
-        #Diff=obj.Diff[p], #TODO!
-        Dλ1=obj.Dλ1[p],
-        Dλ2=obj.Dλ2[p],
-        Dθ=obj.Dθ[p],
-        #Χ=obj.Χ[p], #TODO!
-        motion=obj.motion[p]
+        fields...
     )
 end
 
 """Separate object spins in a sub-group (lightweigth)."""
-Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
-    @views Phantom(
-        name=obj.name,
-        x=obj.x[p],
-        y=obj.y[p],
-        z=obj.z[p],
-        ρ=obj.ρ[p],
-        T1=obj.T1[p],
-        T2=obj.T2[p],
-        T2s=obj.T2s[p],
-        Δw=obj.Δw[p],
-        #Diff=obj.Diff[p], #TODO!
-        Dλ1=obj.Dλ1[p],
-        Dλ2=obj.Dλ2[p],
-        Dθ=obj.Dθ[p],
-        #Χ=obj.Χ[p], #TODO!
-        motion=obj.motion[p]
-    )
-end
+Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = @views obj[p]
 
 """Addition of phantoms"""
-+(s1::Phantom, s2::Phantom) = begin
-    Phantom(
-        name=s1.name * "+" * s2.name,
-        x=[s1.x; s2.x],
-        y=[s1.y; s2.y],
-        z=[s1.z; s2.z],
-        ρ=[s1.ρ; s2.ρ],
-        T1=[s1.T1; s2.T1],
-        T2=[s1.T2; s2.T2],
-        T2s=[s1.T2s; s2.T2s],
-        Δw=[s1.Δw; s2.Δw],
-        #Diff=obj.Diff[p], #TODO!
-        Dλ1=[s1.Dλ1; s2.Dλ1],
-        Dλ2=[s1.Dλ2; s2.Dλ2],
-        Dθ=[s1.Dθ; s2.Dθ],
-        #Χ=obj.Χ[p], #TODO!
-        motion=s1.motion + s2.motion
++(obj1::Phantom, obj2::Phantom) = begin
+    fields = []
+    for field in filter(x -> !(x in [:name, :motion]), [fieldnames(Phantom)...])
+        push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
+    end
+    return Phantom(;
+        name=obj1.name * "+" * obj2.name, 
+        motion=obj1.motion+obj2.motion, 
+        fields...
     )
 end
 
-+(m1::MotionModel{T}, m2::MotionModel{T}) where {T<:Real} = NoMotion{T}() # TODO: resolve this in a more sophisticated way
++(m1::MotionModel{T}, m2::MotionModel{T}) where {T<:Real} = NoMotion{T}() # TODO: resolve this for all motion models
 
 """Scalar multiplication of a phantom"""
 *(α::Real, obj::Phantom) = begin
-    Phantom(
-        name=obj.name,
-        x=obj.x,
-        y=obj.y,
-        z=obj.z,
-        ρ=α * obj.ρ, #Only affects the proton density
-        T1=obj.T1,
-        T2=obj.T2,
-        T2s=obj.T2s,
-        Δw=obj.Δw,
-        #Diff=obj.Diff[p], #TODO!
-        Dλ1=obj.Dλ1,
-        Dλ2=obj.Dλ2,
-        Dθ=obj.Dθ,
-        #Χ=obj.Χ[p], #TODO!
-        motion=obj.motion
+    fields = []
+    for field in filter(x -> !(x in [:ρ]), [fieldnames(Phantom)...])
+        push!(fields, (field, getfield(obj, field)))
+    end
+    return Phantom(;
+        ρ=α*obj.ρ, 
+        fields...
     )
 end
 

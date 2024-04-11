@@ -89,15 +89,8 @@ Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Col
     )
 end
 
-Base.:(==)(m1::ArbitraryMotion, m2::ArbitraryMotion) = begin
-    m1.duration == m2.duration  &&
-    m1.dx       == m2.dx        &&
-    m1.dy       == m2.dy        &&
-    m1.dz       == m2.dz        &&
-    m1.ux       == m2.ux        &&
-    m1.uy       == m2.uy        &&
-    m1.uz       == m2.uz
-end
+Base.:(==)(m1::ArbitraryMotion, m2::ArbitraryMotion) = reduce(&, [getfield(m1, field) == getfield(m2, field) for field in fieldnames(ArbitraryMotion)])
+Base.:(≈)(m1::ArbitraryMotion, m2::ArbitraryMotion)  = reduce(&, [getfield(m1, field)  ≈ getfield(m2, field) for field in fieldnames(ArbitraryMotion)])
 
 # TODO: Calculate interpolation functions "on the fly"
 function get_spin_coords(motion::ArbitraryMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
