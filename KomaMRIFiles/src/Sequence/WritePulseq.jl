@@ -297,7 +297,15 @@ function write_seq(seq::Sequence, filename)
             sorted_keys = sort(collect(keys(seq.DEF)))
             for key in sorted_keys
                 val = seq.DEF[key]
-                if key ∈ ["AdcRasterTime", "BlockDurationRaster", "GradientRasterTime", "RadiofrequencyRasterTime", "TotalDuration", "FOV", "MaxAdcSegmentLength"]
+                if key ∈ [
+                    "AdcRasterTime",
+                    "BlockDurationRaster",
+                    "GradientRasterTime",
+                    "RadiofrequencyRasterTime",
+                    "TotalDuration",
+                    "FOV",
+                    "MaxAdcSegmentLength",
+                ]
                     @printf(fid, "%s ", key)
                     if isa(val, String)
                         @printf(fid, "%s ", val)
