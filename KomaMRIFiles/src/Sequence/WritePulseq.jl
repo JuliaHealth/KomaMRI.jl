@@ -296,7 +296,7 @@ function write_seq(seq::Sequence, filename)
         if !isempty(seq.DEF)
             @printf(fid, "[DEFINITIONS]\n")
             sorted_keys = sort(collect(keys(seq.DEF)))
-            for key ∈ sorted_keys
+            for key in sorted_keys
                 val = seq.DEF[key]
                 if key ∈ ["AdcRasterTime", "BlockDurationRaster", "GradientRasterTime", "RadiofrequencyRasterTime", "TotalDuration", "FOV", "MaxAdcSegmentLength"]
                     @printf(fid, "%s ", key)
