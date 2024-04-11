@@ -36,10 +36,10 @@ Returns the object (RF, Grad or ADC) of a Sequence `s` (ideally a one-block sequ
 according to the input `type` ∈ ["rf", "gx", "gy", "gz", "adc"]).
 """
 function get_obj(s::Sequence, type::String)
-    type == "rf"  && return s.RF[1]
-    type == "gx"  && return s.GR[1,1]
-    type == "gy"  && return s.GR[2,1]
-    type == "gz"  && return s.GR[3,1]
+    type == "rf" && return s.RF[1]
+    type == "gx" && return s.GR[1, 1]
+    type == "gy" && return s.GR[2, 1]
+    type == "gz" && return s.GR[3, 1]
     type == "adc" && return s.ADC[1]
     return Sequence()
 end
