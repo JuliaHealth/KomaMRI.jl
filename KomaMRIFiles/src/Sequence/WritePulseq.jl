@@ -209,8 +209,10 @@ function write_seq(seq::Sequence, filename)
     end
 
     # Define the table to be written for the [GRADIENTS] section
-    grad_idx_obj_amp_iamp_itim_delay = [[idx, obj, 0, 0, 0, 0] for (obj, idx) ∈ gradunique_obj_id]
-    for ioamtd ∈ grad_idx_obj_amp_iamp_itim_delay
+    grad_idx_obj_amp_iamp_itim_delay = [
+        [idx, obj, 0, 0, 0, 0] for (obj, idx) in gradunique_obj_id
+    ]
+    for ioamtd in grad_idx_obj_amp_iamp_itim_delay
         obj = ioamtd[2]
         ioamtd[3] = γ * magsign(obj.A)
         ioamtd[6] = round(1e6 * obj.delay)
