@@ -120,7 +120,7 @@ function write_phantom(obj::Phantom, filename::String)
     fid = h5open(filename, "w")
 
     # Root attributes
-    HDF5.attributes(fid)["Version"] = "0.1"
+    HDF5.attributes(fid)["Version"] = KomaMRIFiles.__VERSION__
     HDF5.attributes(fid)["Name"] = obj.name
     HDF5.attributes(fid)["Ns"] = length(obj.x)
     dims = get_dims(obj)
