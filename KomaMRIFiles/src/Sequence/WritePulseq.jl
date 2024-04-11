@@ -226,7 +226,10 @@ function write_seq(seq::Sequence, filename)
             if length(shape_ang) == length(shape_ang_unique) &&
                 all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])
                 ioamptdfh[5] = id_ang
-                ioamptdfh[9] = angle(sum(exp.(1im*2π*shape_ang) .* exp.(-1im*2π*shape_ang_unique))/length(shape_ang))
+                ioamptdfh[9] = angle(
+                    sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
+                    length(shape_ang),
+                )
             end
         end
         if isa(obj.T, Vector{<:Number})
