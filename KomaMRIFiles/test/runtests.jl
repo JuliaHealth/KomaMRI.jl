@@ -2,13 +2,13 @@ using TestItems, TestItemRunner
 
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:files in ti.tags) #verbose=true
 
-@testitem "Files" tags=[:files] begin
+@testitem "Files" tags = [:files] begin
     using Suppressor
 
     # Test JEMRIS
     @testset "JEMRIS" begin
         path = @__DIR__
-        obj = read_phantom_jemris(path*"/test_files/column1d.h5")
+        obj = read_phantom_jemris(path * "/test_files/column1d.h5")
         @test obj.name == "column1d.h5"
     end
 
@@ -24,7 +24,7 @@ using TestItems, TestItemRunner
     # Test ReadPulseq
     @testset "ReadPulseq" begin
         path = @__DIR__
-        seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+        seq = @suppress read_seq(path * "/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "epi.seq"
         @test seq.DEF["PulseqVersion"] ≈ 1004000
         @test seq.DEF["signature"] == "67ebeffe6afdf0c393834101c14f3990"
@@ -109,7 +109,6 @@ end
         "epise_rs",
     ]
     for seq_filename_head in filenames
-        seq_filename_head = seq_filename_head
         seq_original_filename = seq_filename_head * ".seq"
         seq_written_filename = seq_filename_head * "_written.seq"
         seq_original_file = joinpath(test_folder, seq_original_filename)
