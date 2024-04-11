@@ -177,10 +177,14 @@ function write_seq(seq::Sequence, filename)
     rfunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "rf"))
     grunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "gr"))
     adcunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "adc"))
-    gradunique_obj_id = [[obj, id] for (obj, id) ∈ grunique_obj_id if length(obj.A) != 1]
-    trapunique_obj_id = [[obj, id] for (obj, id) ∈ grunique_obj_id if length(obj.A) == 1]
-    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id, 1, seq)
-    gradunique_amp_id, gradunique_tim_id, _ = get_gradunique(gradunique_obj_id, id_shape_cnt, seq)
+    gradunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) != 1]
+    trapunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) == 1]
+    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(
+        rfunique_obj_id, 1, seq
+    )
+    gradunique_amp_id, gradunique_tim_id, _ = get_gradunique(
+        gradunique_obj_id, id_shape_cnt, seq
+    )
 
     # Define the table to be written for the [BLOCKS] section
     @warn "EXTENSIONS will not be handled"
