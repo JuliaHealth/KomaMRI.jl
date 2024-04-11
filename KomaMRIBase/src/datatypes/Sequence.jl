@@ -136,7 +136,7 @@ recursive_merge(x...) = x[end]
 +(s::Sequence, a::ADC) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 +(a::ADC, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #Sequence object functions
-size(x::Sequence) = size(x.GR[1,:])
+size(x::Sequence) = size(x.GR[1, :])
 
 """
 For comparing two `Sequence`s custom types
