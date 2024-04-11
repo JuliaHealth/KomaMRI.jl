@@ -133,8 +133,12 @@ recursive_merge(x...) = x[end]
 +(s::Sequence, r::RF) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 +(r::RF, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #ADC operations
-+(s::Sequence, a::ADC) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(a::ADC, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
+function +(s::Sequence, a::ADC)
+    return s + Sequence(reshape([Grad(0.0, 0.0)], 1, 1), reshape([RF(0.0, 0.0)], 1, 1), [a])
+end #Changed [a;;] for reshape(a,1,1) for Julia 1.6
+function +(a::ADC, s::Sequence)
+    return Sequence(reshape([Grad(0.0, 0.0)], 1, 1), reshape([RF(0.0, 0.0)], 1, 1), [a]) + s
+end #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1, :])
 
