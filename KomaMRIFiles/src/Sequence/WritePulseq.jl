@@ -141,8 +141,13 @@ function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::S
             id_shape_cnt = id_shape_cnt + 1
         end
         if isa(obj.T, Vector{<:Number})
-            shape_tim = cumsum([0; obj.T])/seq.DEF["GradientRasterTime"]
-            if all([!(length(shape_tim) == length(shape_tim_unique) && shape_tim ≈ shape_tim_unique) for (shape_tim_unique,_) ∈ gradunique_tim_id])
+            shape_tim = cumsum([0; obj.T]) / seq.DEF["GradientRasterTime"]
+            if all([
+                !(
+                    length(shape_tim) == length(shape_tim_unique) &&
+                    shape_tim ≈ shape_tim_unique
+                ) for (shape_tim_unique, _) in gradunique_tim_id
+            ])
                 push!(gradunique_tim_id, [shape_tim, id_shape_cnt])
                 id_shape_cnt = id_shape_cnt + 1
             end
