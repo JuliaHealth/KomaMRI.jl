@@ -83,7 +83,7 @@ Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
 function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
     # Find the unique shapes (magnitude, phase and time shapes) and assign IDs
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id = [], [], []
-    for (obj,_) ∈ rfunique_obj_id
+    for (obj, _) in rfunique_obj_id
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
         if all([!(length(shape_abs) == length(shape_abs_unique) && shape_abs ≈ shape_abs_unique) for (shape_abs_unique,_) ∈ rfunique_abs_id])
             push!(rfunique_abs_id, [shape_abs, id_shape_cnt])
