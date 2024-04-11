@@ -224,8 +224,9 @@ function write_seq(seq::Sequence, filename)
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / seq.DEF["GradientRasterTime"]
-            for (shape_tim_unique, id_tim) ∈ gradunique_tim_id
-                if length(shape_tim) == length(shape_tim_unique) && shape_tim ≈ shape_tim_unique
+            for (shape_tim_unique, id_tim) in gradunique_tim_id
+                if length(shape_tim) == length(shape_tim_unique) &&
+                    shape_tim ≈ shape_tim_unique
                     ioamtd[5] = id_tim
                 end
             end
