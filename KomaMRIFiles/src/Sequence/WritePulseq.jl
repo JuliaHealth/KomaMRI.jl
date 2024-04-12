@@ -150,16 +150,6 @@ function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::S
 end
 
 """
-    compressed_data = compress(data::Vector)
-
-Returns the compressed data vector `compressed_data` for the intupt vector `data` using the
-algorithm for encoding the derivative in a run-length compressed format.
-"""
-function compress(data)
-    return compress_shape(data)[2]
-end
-
-"""
     write_seq(seq::Sequence, filename::String)
 
 Writes a .seq file for a given sequence `seq` y the location `filename`
@@ -300,8 +290,15 @@ function write_seq(seq::Sequence, filename)
         ] for shapeunique_data_id_i in shapeunique_data_id
     ]
     shape_data_id_num = [
-        (length(compress(data)) == length(data) ? data : compress(data), id, length(data))
-        for (data, id) in shapefull_data_id
+        (
+            if length(compress_shape(data)[2]) == length(data)
+                data
+            else
+                compress_shape(data)[2]
+            end,
+            id,
+            length(data),
+        ) for (data, id) in shapefull_data_id
     ]
     # Write the .seq file
     open(filename, "w") do fid
