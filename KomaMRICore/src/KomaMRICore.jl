@@ -21,13 +21,13 @@ include("other/DiffusionModel.jl")
 include("simulation/GPUFunctions.jl")
 include("simulation/SimulatorCore.jl")
 
-#ISMRMRD
+# ISMRMRD
 export signal_to_raw_data
 # Simulator
 export Mag
 export simulate, simulate_slice_profile
 
-#Package version, KomaMRICore.__VERSION__
+# Package version, KomaMRICore.__VERSION__
 using Pkg
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
