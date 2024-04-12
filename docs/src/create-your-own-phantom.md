@@ -50,7 +50,7 @@ using KomaMRI, MAT
 
 # Get data from a .mat file
 path_koma = dirname(dirname(pathof(KomaMRI)))
-path_phantom_mat = joinpath(path_koma, "KomaMRICore", "src", "datatypes", "phantom", "pelvis2D.mat")
+path_phantom_mat = joinpath(path_koma, "KomaMRIBase", "src", "datatypes", "phantom", "pelvis2D.mat")
 data = MAT.matread(path_phantom_mat)
 class = data["pelvis3D_slice"]
 ```
@@ -78,29 +78,25 @@ x, y = x .+ y'*0, x*0 .+ y' # x and y grid points
 Now, let's define the arrays for the properties. It's essential to have prior knowledge of the property values for different tissue classes. For example, for soft tissue, we use `ρ = 0.9`, `T1 = 1200 * 1e-3`, `T2 = 80 * 1e-3`, and `T2s = 80 * 1e-3`. Additionally, we create an array mask to identify the location of a tissue's ID. For soft tissue with ID = 153, the mask is `(class .== 153)`. Finally, to obtain a property, sum all the masks with values for all tissue classes. This process is illustrated below: 
 ```julia
 # Define the proton density array
-ρ = (class.==51)*.001 .+    # Air
-    (class.==102)*.86 .+    # Fat
+ρ = (class.==102)*.86 .+    # Fat
     (class.==153)*.9 .+     # SoftTissue
     (class.==204)*.4 .+     # SpongyBone
     (class.==255)*.2        # CorticalBone
 
 # Define the T1 decay array
-T1 = (class.==51)*.001 .+   # Air
-    (class.==102)*366 .+    # Fat
+T1 = (class.==102)*366 .+   # Fat
     (class.==153)*1200 .+   # SoftTissue
     (class.==204)*381 .+    # SpongyBone
     (class.==255)*100       # CorticalBone
 
 # Define the T2 decay array
-T2 = (class.==51)*.001 .+   # Air
-    (class.==102)*70 .+     # Fat
+T2 = (class.==102)*70 .+    # Fat
     (class.==153)*80 .+     # SoftTissue
     (class.==204)*52 .+     # SpongyBone
     (class.==255)*.3        # CorticalBone
 
 # Define the T2s decay array
-T2s = (class.==51)*.001 .+  # Air
-    (class.==102)*70 .+     # Fat
+T2s = (class.==102)*70 .+   # Fat
     (class.==153)*80 .+     # SoftTissue
     (class.==204)*52 .+     # SpongyBone
     (class.==255)*.3        # CorticalBone

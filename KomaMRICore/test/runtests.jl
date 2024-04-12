@@ -293,10 +293,11 @@ end
     rf_phase = [0, π/2]
     seq = Sequence()
     seq += ADC(N, Tadc)
-    for i=1:2
-        global seq += RF(B1 .* exp(1im*rf_phase[i]), Trf)
-        global seq += ADC(N, Tadc)
-    end
+    seq += RF(B1 .* exp(1im*rf_phase[1]), Trf)
+    seq += ADC(N, Tadc)
+    seq += RF(B1 .* exp(1im*rf_phase[2]), Trf)
+    seq += ADC(N, Tadc)
+
 
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false)
     raw = @suppress simulate(obj, seq, sys; sim_params)
@@ -339,10 +340,10 @@ end
     rf_phase = [0, π/2]
     seq = Sequence()
     seq += ADC(N, Tadc)
-    for i=1:2
-        global seq += RF(B1 .* exp(1im*rf_phase[i]), Trf)
-        global seq += ADC(N, Tadc)
-    end
+    seq += RF(B1 .* exp(1im*rf_phase[1]), Trf)
+    seq += ADC(N, Tadc)
+    seq += RF(B1 .* exp(1im*rf_phase[2]), Trf)
+    seq += ADC(N, Tadc)
 
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>true)
     raw = @suppress simulate(obj, seq, sys; sim_params)
@@ -368,6 +369,37 @@ end
     @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
 end
 
+@testitem "Bloch_phase_compensation" tags=[:important, :core] begin
+    using Suppressor
+
+    Tadc = 1e-3
+    Trf = Tadc
+    T1 = 1000e-3
+    T2 = 20e-3
+    Δw = 2π * 100
+    B1 = 2e-6 * (Tadc / Trf)
+    N = 6
+
+    sys = Scanner()
+    obj = Phantom{Float64}(x=[0],T1=[T1],T2=[T2],Δw=[Δw])
+
+    rf_phase = 2π*rand()
+    seq1 = Sequence()
+    seq1 += RF(B1, Trf)
+    seq1 += ADC(N, Tadc)
+
+    seq2 = Sequence()
+    seq2 += RF(B1 .* exp(1im*rf_phase), Trf)
+    seq2 += ADC(N, Tadc, 0, 0, rf_phase)
+
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false, "Nthreads"=>1)
+    raw1 = @suppress simulate(obj, seq1, sys; sim_params)
+    raw2 = @suppress simulate(obj, seq2, sys; sim_params)
+
+    @test raw1.profiles[1].data ≈ raw2.profiles[1].data
+
+end
+
 @testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -379,7 +411,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     sim_params["sim_method"] = KomaMRICore.BlochDict()
-    sig2 = simulate(obj, seq, sys; sim_params)
+    sig2 = @suppress simulate(obj, seq, sys; sim_params)
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 
@@ -405,7 +437,7 @@ end
 
     # Simulate the slice profile
     sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
-    M = simulate_slice_profile(seq; z, sim_params)
+    M = @suppress simulate_slice_profile(seq; z, sim_params)
 
     # For the time being, always pass the test
     @test true

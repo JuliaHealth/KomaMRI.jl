@@ -30,9 +30,6 @@ In the image below, we provide a summary of how you can define **RF** events:
 <p align="center"><img width="100%" src="../assets/event-shapes-rf-horizontal.svg"/></p>
 ```
 
-!!! warning
-    In future versions of **KomaMRI**, the **RF** interpolation will change to use linear interpolation between two consecutive samples, similar to what is currently done with the **Grad** struct.
-
 Let's look at some basic examples of creating these **RF** structs and including them in a **Sequence** struct. The examples should be self-explanatory.
 
 ### RF Pulse Waveform
@@ -43,7 +40,7 @@ julia> A, T, delay =  10e-3, 0.5e-3, 0.1e-3;
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(10000.0 uT, 0.5 ms, 0.0 Hz)
 
-julia> seq = Sequence(); seq += rf; seq = seq[2:end]
+julia> seq = Sequence(); seq += rf
 Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 
 julia> plot_seq(seq; slider=false)
@@ -64,7 +61,7 @@ julia> T, delay = 0.5e-3, 0.1e-3;
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(∿ uT, 0.5 ms, 0.0 Hz)
 
-julia> seq = Sequence(); seq += rf; seq = seq[2:end]
+julia> seq = Sequence(); seq += rf
 Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 
 julia> plot_seq(seq; slider=false)
@@ -78,7 +75,7 @@ julia> plot_seq(seq; slider=false)
 ```julia-repl
 julia> tl = -4:0.2:-0.2; tr = 0.2:0.2:4
 
-julia> A = (10e-3)*[sin.(π*tl)./(π*tl); 1; sin.(π*tr)./(π*tr)]
+julia> A = (10e-3)*[sin.(π*tl)./(π*tl); 1; 1; sin.(π*tr)./(π*tr)]
 
 julia> T = [0.05e-3*ones(length(tl)); 2e-3; 0.05e-3*ones(length(tl))]
 
@@ -87,7 +84,7 @@ julia> delay = 0.1e-3;
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(∿ uT, 4.0 ms, 0.0 Hz)
 
-julia> seq = Sequence(); seq += rf; seq = seq[2:end]
+julia> seq = Sequence(); seq += rf
 Sequence[ τ = 4.1 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 
 julia> plot_seq(seq; slider=false)
@@ -214,7 +211,7 @@ julia> N, T, delay =  16, 5e-3, 1e-3;
 julia> adc = ADC(N, T, delay)
 ADC(16, 0.005, 0.001, 0.0, 0.0)
 
-julia> seq = Sequence(); seq += adc; seq = seq[2:end]
+julia> seq = Sequence(); seq += adc
 Sequence[ τ = 6.0 ms | blocks: 1 | ADC: 1 | GR: 0 | RF: 0 | DEF: 0 ]
 
 julia> plot_seq(seq; slider=false)
