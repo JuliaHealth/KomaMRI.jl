@@ -6,7 +6,10 @@ given sequence `seq` according to the `type` in ["rf", "gr", "adc"] argument.
 """
 function get_typeon_obj(seq::Sequence, type::String)
     type == "rf" && return [s.RF[1] for s in seq if is_RF_on(s)]
-    type == "gr" && return [g for s in seq for g in s.GR[:, 1] if (sum(abs.(g.A)) > 0 || g.delay > 0 || g.rise > 0 || g.fall > 0)]
+    type == "gr" && return [
+        g for s in seq for g in s.GR[:, 1] if
+        (sum(abs.(g.A)) > 0 || g.delay > 0 || g.rise > 0 || g.fall > 0)
+    ]
     type == "adc" && return [s.ADC[1] for s in seq if is_ADC_on(s)]
     return []
 end
