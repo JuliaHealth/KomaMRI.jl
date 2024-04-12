@@ -29,6 +29,8 @@ export simulate, simulate_slice_profile
 
 # Package version, KomaMRICore.__VERSION__
 using Pkg
-__VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
+__VERSION__ = VersionNumber(
+    Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]
+)
 
 end

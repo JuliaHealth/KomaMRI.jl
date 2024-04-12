@@ -20,6 +20,8 @@ export read_phantom_jemris, read_phantom_MRiLab  # Phantom
 
 # Package version: KomaMRIFiles.__VERSION__
 using Pkg
-__VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
+__VERSION__ = VersionNumber(
+    Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]
+)
 
 end # module KomaMRIFiles
