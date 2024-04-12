@@ -282,7 +282,7 @@ Updates the UI with phantom plots
 """
 function view_ui_phantom!(obj::Phantom, w::Window, seq::Sequence, buttons_obj::Vector{Widget{:button, Int64}}; key=:ρ, darkmode=true)
     display_loading!(w, "Plotting phantom ...")
-    widget_plot = plot_phantom_map(obj, key; time_samples=5, darkmode)
+    widget_plot = plot_phantom_map(obj, key; intermediate_time_samples=5, darkmode)
     div_content = dom"div"(hbox(buttons_obj...), widget_plot)
     content!(w, "div#content", div_content)
     @js_ w document.getElementById("content").dataset.content = "phantom"

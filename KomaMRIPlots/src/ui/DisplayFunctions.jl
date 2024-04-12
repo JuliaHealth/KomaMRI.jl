@@ -806,35 +806,43 @@ function plot_phantom_map(
     darkmode=false,
     view_2d=sum(get_dims(ph)) < 3,
     colorbar=true,
-    time_samples=0,
+    intermediate_time_samples=0,
+    max_time_samples=100,
     max_points=10000,
     kwargs...,
 )
-    function interpolate_times(t) # Insert intermediate time points (as many as indicated by time_samples)
+    function interpolate_times(motion::SimpleMotion) # Insert intermediate time points (as many as indicated by intermediate_time_samples)
+        t = get_times(motion)
         for i in 1:(length(t) - 1)
-            step = (t[i + 1] - t[i]) / (time_samples + 1)
-            for j in 1:time_samples
+            step = (t[i + 1] - t[i]) / (intermediate_time_samples + 1)
+            for j in 1:intermediate_time_samples
                 push!(t, t[i] + j * step)
             end
         end
         return sort!(t)
     end
+    function interpolate_times(motion::ArbitraryMotion) # Insert intermediate time points (as many as indicated by intermediate_time_samples)
+        t = get_times(motion)
+        ss = Int(ceil(length(t)/max_time_samples))
+        return t[1:ss:end]
+    end
+    interpolate_times(motion::MotionModel) = get_times(motion)
 
     # IDEA: subsample phantoms which are too large
-    # function decimate_uniform_phantom(ph::Phantom, num_points::Int)
-    # 	dimx, dimy, dimz = get_dims(ph)
-    # 	ss = Int(ceil((length(ph)/num_points)^(1/sum(get_dims(ph)))))
-    # 	ssx = dimx ? ss : 1
-    # 	ssy = dimy ? ss : 1
-    # 	ssz = dimz ? ss : 1
-    # 	ix = sortperm(ph.x)[1:ssx:end]
-    # 	iy = sortperm(ph.y)[1:ssy:end]
-    # 	iz = sortperm(ph.z)[1:ssz:end]
-    # 	idx = intersect(ix,iy,iz)
-    # 	return ph[idx]
-    # end
+    function decimate_uniform_phantom(ph::Phantom, num_points::Int)
+    	dimx, dimy, dimz = get_dims(ph)
+    	ss = Int(ceil((length(ph)/num_points)^(1/sum(get_dims(ph)))))
+    	ssx = dimx ? ss : 1
+    	ssy = dimy ? ss : 1
+    	ssz = dimz ? ss : 1
+    	ix = sortperm(ph.x)[1:ssx:end]
+    	iy = sortperm(ph.y)[1:ssy:end]
+    	iz = sortperm(ph.z)[1:ssz:end]
+    	idx = intersect(ix,iy,iz)
+    	return ph[idx]
+    end
 
-    # ph = decimate_uniform_phantom(ph, max_points)
+    ph = decimate_uniform_phantom(ph, max_points)
 
     path = @__DIR__
     cmin_key = minimum(getproperty(ph, key))
@@ -885,7 +893,7 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :cmin, factor * cmin_key)
     cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-    t = interpolate_times(get_times(ph.motion))
+    t = interpolate_times(ph.motion)
     x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
     x0 = -maximum(abs.([x y z])) * 1e2
@@ -996,7 +1004,7 @@ function plot_phantom_map(
         ),
     ]
 
-    dt_frame = 500
+    dt_frame = 250
 
     buttons_attr = [
         attr(;
