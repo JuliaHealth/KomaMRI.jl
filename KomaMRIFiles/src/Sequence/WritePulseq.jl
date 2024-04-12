@@ -1,4 +1,14 @@
 """
+Returns a boolean value indicating whether two angle vectors are equal.
+"""
+function same_angles(a1, a2)
+    if length(a1) != length(a2)
+        return false
+    end
+    return abs(sum(exp.(1im * 2π * (a1)) .* exp.(-1im * 2π * (a2)))) / length(a1) == 1
+end
+
+"""
     typeon_obj = get_typeon_obj(seq::Sequence, type::String)
 
 Returns the vector `typeon_obj` of objects (RF, Grad or ADC) where the object is on in a
@@ -89,9 +99,8 @@ function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Seque
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
         if all([
-            !(
-                length(shape_ang) == length(shape_ang_unique) &&
-                all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])
+            !same_angles(
+                shape_ang .- shape_ang[1], shape_ang_unique .- shape_ang_unique[1]
             ) for (shape_ang_unique, _) in rfunique_ang_id
         ])
             push!(rfunique_ang_id, [shape_ang, id_shape_cnt])
@@ -203,8 +212,9 @@ function write_seq(seq::Sequence, filename)
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
         for (shape_ang_unique, id_ang) in rfunique_ang_id
-            if length(shape_ang) == length(shape_ang_unique) &&
-                all(shape_ang - shape_ang_unique .≈ shape_ang[1] - shape_ang_unique[1])
+            if same_angles(
+                shape_ang .- shape_ang[1], shape_ang_unique .- shape_ang_unique[1]
+            )
                 ioamptdfh[5] = id_ang
                 ioamptdfh[9] = angle(
                     sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
