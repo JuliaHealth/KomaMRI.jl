@@ -65,16 +65,6 @@ function get_type_blk_obj_id(seq::Sequence, type::String, unique_obj_id::Vector)
 end
 
 """
-    output = magsign(v)
-
-Returns the extreme value (positive or negative) which has the maximum absolute value.
-"""
-function magsign(v)
-    a, b = extrema(v)
-    return -a > b ? a : b
-end
-
-"""
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
 
 Returns the unique shapes for the magnitude, angle and time of the "rfunique_obj_id" vector.
@@ -130,7 +120,7 @@ function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::S
     # Find shapes for magnitude and time gradients
     gradunique_amp_id, gradunique_tim_id = [], []
     for (obj, _) in gradunique_obj_id
-        shape_amp = obj.A / magsign(obj.A)
+        shape_amp = obj.A / maximum(abs.(obj.A))
         if all([
             !(
                 length(shape_amp) == length(shape_amp_unique) &&
@@ -254,9 +244,9 @@ function write_seq(seq::Sequence, filename)
     ]
     for ioamtd in grad_idx_obj_amp_iamp_itim_delay
         obj = ioamtd[2]
-        ioamtd[3] = γ * magsign(obj.A)
+        ioamtd[3] = γ * maximum(abs.(obj.A))    # this always stores positive values, the waveform vector have the respective positive or negative values
         ioamtd[6] = round(1e6 * obj.delay)
-        shape_amp = obj.A / magsign(obj.A)
+        shape_amp = obj.A / maximum(abs.(obj.A))
         for (shape_amp_unique, id_amp) in gradunique_amp_id
             if length(shape_amp) == length(shape_amp_unique) && shape_amp ≈ shape_amp_unique
                 ioamtd[4] = id_amp
