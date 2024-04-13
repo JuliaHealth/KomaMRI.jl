@@ -85,17 +85,17 @@ end
 
 displacement_y(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    α = t_unit .* (motion_type.pitch)
-    β = t_unit .* (motion_type.roll)
-    γ = t_unit .* (motion_type.yaw)
+    α = t_unit .* motion_type.pitch
+    β = t_unit .* motion_type.roll
+    γ = t_unit .* motion_type.yaw
     return sind.(γ) .* cosd.(β) .* x   +   (sind.(γ) .* sind.(β) .* sind.(α) .+ cosd.(γ) .* cosd.(α)) .* y   +   (sind.(γ) .* sind.(β) .* cosd.(α) .- cosd.(γ) .* sind.(α)) .* z .- y
 end
 
 displacement_z(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
     t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
-    α = t_unit .* (motion_type.pitch)
-    β = t_unit .* (motion_type.roll)
-    γ = t_unit .* (motion_type.yaw)
+    α = t_unit .* motion_type.pitch
+    β = t_unit .* motion_type.roll
+    γ = t_unit .* motion_type.yaw
     return -sind.(β) .* x   +   cosd.(β) .* sind.(α) .* y .- z
 end
 
