@@ -16,6 +16,6 @@ function get_spin_coords(motion::NoMotion, x::AbstractVector{T}, y::AbstractVect
     return x, y, z
 end
 
-function get_times(motion::NoMotion)
+function time_nodes(motion::NoMotion)
     return [0.0]
 end

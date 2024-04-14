@@ -28,7 +28,7 @@ Base.:(≈)(t1::SimpleMotionType, t2::SimpleMotionType)  = (typeof(t1) == typeof
 function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     xi, yi, zi = x, y, z
     composable_motions = motion.types[is_composable.(motion.types)]
-    sort!(composable_motions, by=m->get_time_nodes(m)[1])
+    sort!(composable_motions, by=m->time_nodes(m)[1])
     for motion in composable_motions
         xi, yi, zi = xi .+ displacement_x(motion, xi, yi, zi, t), yi .+ displacement_y(motion, xi, yi, zi, t), zi .+ displacement_z(motion, xi, yi, zi, t)
     end
@@ -39,10 +39,10 @@ function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::Abstr
     return xt, yt, zt
 end
 
-function get_times(motion::SimpleMotion)
-    times = reduce(vcat, [get_time_nodes(type) for type in motion.types])
-    times = unique(sort(times))
-    return times
+function time_nodes(motion::SimpleMotion)
+    time_nodes = reduce(vcat, [time_nodes(type) for type in motion.types])
+    time_nodes = unique(sort(time_nodes))
+    return time_nodes
 end
 
 # --------- Simple Motion Types: -------------

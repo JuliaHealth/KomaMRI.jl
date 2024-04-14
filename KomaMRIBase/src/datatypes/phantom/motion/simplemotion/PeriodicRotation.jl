@@ -50,6 +50,6 @@ displacement_z(motion_type::PeriodicRotation{T}, x::AbstractArray{T}, y::Abstrac
     return -sind.(β) .* x   +   cosd.(β) .* sind.(α) .* y .- z
 end
 
-get_time_nodes(motion_type::PeriodicRotation) = begin
+time_nodes(motion_type::PeriodicRotation) = begin
     return [0, motion_type.period * motion_type.asymmetry, motion_type.period]
 end

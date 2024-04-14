@@ -41,6 +41,6 @@ displacement_z(motion_type::PeriodicTranslation{T}, x::AbstractVector{T}, y::Abs
     return t_unit .* motion_type.dz
 end
 
-get_time_nodes(motion_type::PeriodicTranslation) = begin
+time_nodes(motion_type::PeriodicTranslation) = begin
     return [0, motion_type.period * motion_type.asymmetry, motion_type.period]
 end

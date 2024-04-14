@@ -99,6 +99,6 @@ displacement_z(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T
     return -sind.(β) .* x   +   cosd.(β) .* sind.(α) .* y .- z
 end
 
-get_time_nodes(motion_type::Rotation) = begin
+time_nodes(motion_type::Rotation) = begin
     return [motion_type.ti, motion_type.tf]
 end

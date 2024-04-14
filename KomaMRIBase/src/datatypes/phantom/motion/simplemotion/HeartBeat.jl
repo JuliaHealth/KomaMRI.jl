@@ -44,6 +44,6 @@ displacement_z(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{
     return t_unit .* (z .* motion_type.longitudinal_strain) 
 end
 
-get_time_nodes(motion_type::HeartBeat) = begin
+time_nodes(motion_type::HeartBeat) = begin
     return [motion_type.ti, motion_type.tf]
 end

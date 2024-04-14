@@ -44,6 +44,6 @@ displacement_z(motion_type::PeriodicHeartBeat{T}, x::AbstractArray{T}, y::Abstra
     return t_unit .* (z .* motion_type.longitudinal_strain) 
 end
 
-get_time_nodes(motion_type::PeriodicHeartBeat) = begin
+time_nodes(motion_type::PeriodicHeartBeat) = begin
     return [0, motion_type.period * motion_type.asymmetry, motion_type.period]
 end
