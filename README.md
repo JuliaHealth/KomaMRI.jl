@@ -139,7 +139,7 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 
 
 ## Installation
-To install, just **type** `] add KomaMRI` in the Julia REPL or copy-paste:
+To install, just **type** `] add KomaMRI` in the Julia REPL or copy-paste the following into the Julia REPL:
 
 ```julia
 pkg> add KomaMRI
