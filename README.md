@@ -1,17 +1,23 @@
 <p align="center">
-<img width="300px" src="./assets/logo.svg#gh-light-mode-only" title="Ko-ma (こま) is the Japanese word for spinning-top. They precess due to gravity like spins in a magnetic field."/>
-<img width="300px" src="./assets/logo-dark.svg#gh-dark-mode-only" title="Ko-ma (こま) is the Japanese word for spinning-top. They precess due to gravity like spins in a magnetic field."/>
+<img width="400px" src="./assets/logo.svg#gh-light-mode-only" title="Ko-ma (こま) is the Japanese word for spinning-top. They precess due to gravity like spins in a magnetic field."/>
+<img width="400px" src="./assets/logo-dark.svg#gh-dark-mode-only" title="Ko-ma (こま) is the Japanese word for spinning-top. They precess due to gravity like spins in a magnetic field."/>
 </p>
 
-<p align="center">
-<a href="https://github.com/cncastillo/KomaMRI.jl/blob/master/LICENSE"><img src="http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat" /></a>
-<a href="https://github.com/invenia/BlueStyle"><img src="https://img.shields.io/badge/code%20style-blue-4495d1.svg" /></a>
-<a href="https://pkgs.genieframework.com?packages=KomaMRI"><img src="https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/KomaMRI" /></a>
-</p>
+<div align="center">
  
-KomaMRI.jl is a Julia package for highly-efficient ⚡ MRI simulations. KomaMRI was built from the ground up to be: easy-to-use, extensible, cross-platform, and powered by open-source community standards. 
+[![][gh-actions-img1]][gh-actions-url] [![][codecov-img1]][codecov-url] [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://github.com/cncastillo/KomaMRI.jl/blob/master/LICENSE) [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
+<!-- <a href="https://pkgs.genieframework.com?packages=KomaMRI"><img src="https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/KomaMRI" /></a> -->
+
+[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img1]][paper-url1]
+
+</div>
+ 
+KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI was built from the ground up to be: easy to use, extensible, cross-platform, and powered by open-source community standards. 
+
+<div align="center">
 
 <table>
+
 <tr><td rowspan="2">
 <img width="350px" src="./docs/src/assets/ui-simulation.gif"/>
 </td>
@@ -30,18 +36,10 @@ KomaMRI.jl is a Julia package for highly-efficient ⚡ MRI simulations. KomaMRI 
 - Flexible API for advanced users 👨‍💻
 </td>
 </tr>
-<tr>
-<td><b>
- 
-Documentation: <br>[![][docr-img]][docr-url] [![][docd-img]][docd-url]</b></td>
-<td><b>
- 
-Paper: <br>[![][paper-img1]][paper-url1]
-</b></td>
-</tr>
-<tr>
-<td colspan="2">
+</table>
 
+<div align="center">
+ 
 | **Packages**                                | **Julia Compat ≥** | **Stable Version**                           | **Build Status**                       | **Code Coverage**                |
 |:------------------------------------------- |:-------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
 | 📦 [KomaMRI.jl](## "User Interface")        | ![][julia-19]      | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
@@ -49,9 +47,10 @@ Paper: <br>[![][paper-img1]][paper-url1]
 | └ 📦 [KomaMRICore.jl](## "Simulation")      | ![][julia-19]      | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
 | └ 📦 [KomaMRIFiles.jl](## "Input/Output")   | ![][julia-19]      | [![][komafiles-version]][komafiles-juliahub] | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
 | └ 📦 [KomaMRIPlots.jl](## "Plots")          | ![][julia-19]      | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
-</td>
-</tr>
-</table>
+
+</div>
+</div>
+
 
 [julia-19]: https://img.shields.io/badge/julia-v1.9-9558B2?logo=julia
 
