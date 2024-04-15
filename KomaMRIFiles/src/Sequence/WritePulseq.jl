@@ -1,11 +1,29 @@
+# Auxiliar structs for multiple dispatch
+struct Amp end
+struct Ang end
+
 """
-Returns a boolean value indicating whether two angle vectors are equal.
+Returns a boolean value indicating whether two vectors or vector of angles are approximately
+equal.
 """
-function same_angles(a1, a2)
+function safe_approx(v1, v2, ::Amp)
+    if length(v1) != length(v2)
+        return false
+    end
+    return v1 ≈ v2
+end
+function safe_approx(a1, a2, ::Ang)
     if length(a1) != length(a2)
         return false
     end
     return abs(sum(exp.(1im * 2π * (a1)) .* exp.(-1im * 2π * (a2)))) / length(a1) == 1
+end
+
+"""
+Returns a boolean value indicating whether a vector is present in a list of vectors.
+"""
+function not_in_list(vec, vec_list, type)
+    return all([!safe_approx(vec, arr, type) for arr in vec_list])
 end
 
 """
@@ -78,42 +96,30 @@ function get_type_blk_obj_id(seq::Sequence, type::String, unique_obj_id::Vector)
 end
 
 """
-    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
+    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, Δt_rf)
 
 Returns the unique shapes for the magnitude, angle and time of the "rfunique_obj_id" vector.
 Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
 """
-function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
+function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, Δt_rf)
     # Find the unique shapes (magnitude, phase and time shapes) and assign IDs
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id = [], [], []
     for (obj, _) in rfunique_obj_id
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
-        if all([
-            !(
-                length(shape_abs) == length(shape_abs_unique) &&
-                shape_abs ≈ shape_abs_unique
-            ) for (shape_abs_unique, _) in rfunique_abs_id
-        ])
+        if not_in_list(shape_abs, [shape for (shape, _) in rfunique_abs_id], Amp())
             push!(rfunique_abs_id, [shape_abs, id_shape_cnt])
             id_shape_cnt += 1
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
-        if all([
-            !same_angles(
-                shape_ang .- shape_ang[1], shape_ang_unique .- shape_ang_unique[1]
-            ) for (shape_ang_unique, _) in rfunique_ang_id
-        ])
+        ang = shape_ang .- shape_ang[1]
+        list_ang_unique = [shape .- shape[1] for (shape, _) in rfunique_ang_id]
+        if not_in_list(ang, list_ang_unique, Ang())
             push!(rfunique_ang_id, [shape_ang, id_shape_cnt])
             id_shape_cnt += 1
         end
         if isa(obj.T, Vector{<:Number})
-            shape_tim = cumsum([0; obj.T]) / seq.DEF["RadiofrequencyRasterTime"]
-            if all([
-                !(
-                    length(shape_tim) == length(shape_tim_unique) &&
-                    shape_tim ≈ shape_tim_unique
-                ) for (shape_tim_unique, _) in rfunique_tim_id
-            ])
+            shape_tim = cumsum([0; obj.T]) / Δt_rf
+            if not_in_list(shape_tim, [shape for (shape, _) in rfunique_tim_id], Amp())
                 push!(rfunique_tim_id, [shape_tim, id_shape_cnt])
                 id_shape_cnt += 1
             end
@@ -123,33 +129,23 @@ function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, seq::Seque
 end
 
 """
-    gradunique_amp_id, gradunique_tim_id, id_shape_cnt = get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
+    gradunique_amp_id, gradunique_tim_id, id_shape_cnt = get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, Δt_gr)
 
 Returns the unique shapes for the amplitude and time of the "gradunique_obj_id" vector.
 Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
 """
-function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, seq::Sequence)
+function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, Δt_gr)
     # Find shapes for magnitude and time gradients
     gradunique_amp_id, gradunique_tim_id = [], []
     for (obj, _) in gradunique_obj_id
         shape_amp = obj.A / maximum(abs.(obj.A))
-        if all([
-            !(
-                length(shape_amp) == length(shape_amp_unique) &&
-                shape_amp ≈ shape_amp_unique
-            ) for (shape_amp_unique, _) in gradunique_amp_id
-        ])
+        if not_in_list(shape_amp, [shape for (shape, _) in gradunique_amp_id], Amp())
             push!(gradunique_amp_id, [shape_amp, id_shape_cnt])
             id_shape_cnt = id_shape_cnt + 1
         end
         if isa(obj.T, Vector{<:Number})
-            shape_tim = cumsum([0; obj.T]) / seq.DEF["GradientRasterTime"]
-            if all([
-                !(
-                    length(shape_tim) == length(shape_tim_unique) &&
-                    shape_tim ≈ shape_tim_unique
-                ) for (shape_tim_unique, _) in gradunique_tim_id
-            ])
+            shape_tim = cumsum([0; obj.T]) / Δt_gr
+            if not_in_list(shape_tim, [shape for (shape, _) in gradunique_tim_id], Amp())
                 push!(gradunique_tim_id, [shape_tim, id_shape_cnt])
                 id_shape_cnt = id_shape_cnt + 1
             end
@@ -164,6 +160,8 @@ end
 Writes a .seq file for a given sequence `seq` y the location `filename`
 """
 function write_seq(seq::Sequence, filename)
+    Δt_rf = seq.DEF["RadiofrequencyRasterTime"]
+    Δt_gr = seq.DEF["GradientRasterTime"]
     # Get the unique objects (RF, Grad y ADC) and its IDs
     rfunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "rf"))
     grunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "gr"))
@@ -171,10 +169,10 @@ function write_seq(seq::Sequence, filename)
     gradunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) != 1]
     trapunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) == 1]
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(
-        rfunique_obj_id, 1, seq
+        rfunique_obj_id, 1, Δt_rf
     )
     gradunique_amp_id, gradunique_tim_id, _ = get_gradunique(
-        gradunique_obj_id, id_shape_cnt, seq
+        gradunique_obj_id, id_shape_cnt, Δt_gr
     )
     # Define the table to be written for the [BLOCKS] section
     @warn "EXTENSIONS will not be handled"
@@ -206,15 +204,15 @@ function write_seq(seq::Sequence, filename)
         ioamptdfh[8] = obj.Δf
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
         for (shape_abs_unique, id_abs) in rfunique_abs_id
-            if length(shape_abs) == length(shape_abs_unique) && shape_abs ≈ shape_abs_unique
+            if safe_approx(shape_abs, shape_abs_unique, Amp())
                 ioamptdfh[4] = id_abs
             end
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
+        ang = shape_ang .- shape_ang[1]
         for (shape_ang_unique, id_ang) in rfunique_ang_id
-            if same_angles(
-                shape_ang .- shape_ang[1], shape_ang_unique .- shape_ang_unique[1]
-            )
+            ang_unique = shape_ang_unique .- shape_ang_unique[1]
+            if safe_approx(ang, ang_unique, Ang())
                 ioamptdfh[5] = id_ang
                 ioamptdfh[9] = angle(
                     sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
@@ -223,23 +221,15 @@ function write_seq(seq::Sequence, filename)
             end
         end
         if isa(obj.T, Vector{<:Number})
-            shape_tim = cumsum([0; obj.T]) / seq.DEF["RadiofrequencyRasterTime"]
+            shape_tim = cumsum([0; obj.T]) / Δt_rf
             for (shape_tim_unique, id_tim) in rfunique_tim_id
-                if length(shape_tim) == length(shape_tim_unique) &&
-                    shape_tim ≈ shape_tim_unique
+                if safe_approx(shape_tim, shape_tim_unique, Amp())
                     ioamptdfh[6] = id_tim
                 end
             end
         end
-        delay_compensation_rf_koma =
-            (ioamptdfh[6] == 0) * seq.DEF["RadiofrequencyRasterTime"] / 2
-        ioamptdfh[7] =
-            round(
-                (obj.delay - delay_compensation_rf_koma) /
-                seq.DEF["RadiofrequencyRasterTime"],
-            ) *
-            seq.DEF["RadiofrequencyRasterTime"] *
-            1e6
+        delay_compensation_rf_koma = (ioamptdfh[6] == 0) * Δt_rf / 2
+        ioamptdfh[7] = round((obj.delay - delay_compensation_rf_koma) / Δt_rf) * Δt_rf * 1e6
     end
     # Define the table to be written for the [GRADIENTS] section
     grad_idx_obj_amp_iamp_itim_delay = [
@@ -251,15 +241,14 @@ function write_seq(seq::Sequence, filename)
         ioamtd[6] = round(1e6 * obj.delay)
         shape_amp = obj.A / maximum(abs.(obj.A))
         for (shape_amp_unique, id_amp) in gradunique_amp_id
-            if length(shape_amp) == length(shape_amp_unique) && shape_amp ≈ shape_amp_unique
+            if safe_approx(shape_amp, shape_amp_unique, Amp())
                 ioamtd[4] = id_amp
             end
         end
         if isa(obj.T, Vector{<:Number})
-            shape_tim = cumsum([0; obj.T]) / seq.DEF["GradientRasterTime"]
+            shape_tim = cumsum([0; obj.T]) / Δt_gr
             for (shape_tim_unique, id_tim) in gradunique_tim_id
-                if length(shape_tim) == length(shape_tim_unique) &&
-                    shape_tim ≈ shape_tim_unique
+                if safe_approx(shape_tim, shape_tim_unique, Amp())
                     ioamtd[5] = id_tim
                 end
             end
