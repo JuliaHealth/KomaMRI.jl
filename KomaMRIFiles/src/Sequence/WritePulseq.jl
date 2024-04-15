@@ -319,29 +319,19 @@ function write_seq(seq::Sequence, filename)
             sorted_keys = sort(collect(keys(seq.DEF)))
             for key in sorted_keys
                 val = seq.DEF[key]
-                if key in [
-                    "AdcRasterTime",
-                    "BlockDurationRaster",
-                    "GradientRasterTime",
-                    "RadiofrequencyRasterTime",
-                    "TotalDuration",
-                    "FOV",
-                    "MaxAdcSegmentLength",
-                ]
-                    @printf(fid, "%s ", key)
-                    if isa(val, String)
-                        @printf(fid, "%s ", val)
-                    else
-                        if isa(val, Vector{<:Number})
-                            for v in val
-                                @printf(fid, "%.9g ", v)
-                            end
-                        else
-                            @printf(fid, "%.9g ", val)
+                @printf(fid, "%s ", key)
+                if isa(val, String)
+                    @printf(fid, "%s ", val)
+                else
+                    if isa(val, Vector{<:Number})
+                        for v in val
+                            @printf(fid, "%.9g ", v)
                         end
+                    else
+                        @printf(fid, "%.9g ", val)
                     end
-                    @printf(fid, "\n")
                 end
+                @printf(fid, "\n")
             end
             @printf(fid, "\n")
         end
