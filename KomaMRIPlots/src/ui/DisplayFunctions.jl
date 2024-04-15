@@ -809,6 +809,7 @@ function plot_phantom_map(
     intermediate_time_samples=0,
     max_time_samples=100,
     max_spins=50000,
+    dt_frame=250,
     kwargs...,
 )
     function process_times(motion::SimpleMotion) 
@@ -1009,8 +1010,6 @@ function plot_phantom_map(
             ),
         ),
     ]
-
-    dt_frame = 250
 
     buttons_attr = [
         attr(;
