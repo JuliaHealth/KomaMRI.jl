@@ -1,6 +1,6 @@
 using TestItems, TestItemRunner
 
-@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:files in ti.tags) #verbose=true
+@run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:files in t_start.tags) #verbose=true
 
 @testitem "Files" tags=[:files] begin
     using Suppressor
@@ -66,8 +66,8 @@ using TestItems, TestItemRunner
                 period=1.0, 
                 yaw=45.0),
             Translation(
-                ti=0.0,
-                tf=0.5,
+                t_start=0.0,
+                t_end=0.5,
                 dy=0.02
         )])
         write_phantom(obj1, filename)

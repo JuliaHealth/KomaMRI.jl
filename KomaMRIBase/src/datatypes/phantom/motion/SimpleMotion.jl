@@ -46,7 +46,7 @@ function time_nodes(motion::SimpleMotion)
 end
 
 # --------- Simple Motion Types: -------------
-# Non-periodic types: defined by an initial time (ti), a final time (tf) and a displacement      
+# Non-periodic types: defined by an initial time (t_start), an end time (t_end) and a displacement      
 include("simplemotion/Translation.jl")
 include("simplemotion/Rotation.jl")
 include("simplemotion/HeartBeat.jl")

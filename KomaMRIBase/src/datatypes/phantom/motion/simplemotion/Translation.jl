@@ -1,35 +1,35 @@
 @doc raw"""
-    translation = Translation(ti, tf, dx, dy, dz)
+    translation = Translation(t_start, t_end, dx, dy, dz)
 
 Translation motion struct. It produces a translation of the phantom in the three directions x, y and z.
 
 ```math
 ux=\left\{\begin{matrix}
-0, & t <= ti\\
-\frac{dx}{tf-ti}(t-ti), & ti < t < tf\\ 
-dx, & t >= tf
+0, & t <= t_start\\
+\frac{dx}{t_end-t_start}(t-t_start), & t_start < t < t_end\\ 
+dx, & t >= t_end
 \end{matrix}\right.
 ```
 
 ```math
 uy=\left\{\begin{matrix}
-0, & t <= ti\\
-\frac{dy}{tf-ti}(t-ti), & ti < t < tf\\ 
-dy, & t >= tf
+0, & t <= t_start\\
+\frac{dy}{t_end-t_start}(t-t_start), & t_start < t < t_end\\ 
+dy, & t >= t_end
 \end{matrix}\right.
 ```
 
 ```math
 uz=\left\{\begin{matrix}
-0, & t <= ti\\
-\frac{dz}{tf-ti}(t-ti), & ti < t < tf\\ 
-dz, & t >= tf
+0, & t <= t_start\\
+\frac{dz}{t_end-t_start}(t-t_start), & t_start < t < t_end\\ 
+dz, & t >= t_end
 \end{matrix}\right.
 ```
 
 # Arguments
-- `ti`: (`::Real`, `[s]`) initial time 
-- `tf`: (`::Real`, `[s]`) final time 
+- `t_start`: (`::Real`, `[s]`) initial time 
+- `t_end`: (`::Real`, `[s]`) final time 
 - `dx`: (`::Real`, `[m]`) translation in x
 - `dy`: (`::Real`, `[m]`) translation in y 
 - `dz`: (`::Real`, `[m]`) translation in z
@@ -41,28 +41,28 @@ dz, & t >= tf
 """
 
 @with_kw struct Translation{T<:Real} <: SimpleMotionType{T}
-    ti::T
-    tf::T
-    dx::T = typeof(ti)(0.0)
-    dy::T = typeof(ti)(0.0)
-    dz::T = typeof(ti)(0.0)
+    t_start::T = typeof(t_end)(0.0)
+    t_end::T
+    dx::T      = typeof(t_end)(0.0)
+    dy::T      = typeof(t_end)(0.0)
+    dz::T      = typeof(t_end)(0.0)
 end
 
 displacement_x(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
+    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
     return t_unit .* motion_type.dx
 end
 
 displacement_y(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
+    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
     return t_unit .* motion_type.dy
 end
 
 displacement_z(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
+    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
     return t_unit .* motion_type.dz
 end
 
 time_nodes(motion_type::Translation) = begin
-    return [motion_type.ti, motion_type.tf]
+    return [motion_type.t_start, motion_type.t_end]
 end

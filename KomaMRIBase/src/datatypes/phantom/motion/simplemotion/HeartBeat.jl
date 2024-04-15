@@ -2,17 +2,17 @@
 """
 
 @with_kw struct HeartBeat{T<:Real} <: SimpleMotionType{T} 
-    ti::T
-    tf::T
-    circunferential_strain::T = typeof(ti)(0.0)
-    radial_strain::T          = typeof(ti)(0.0)
-    longitudinal_strain::T    = typeof(ti)(0.0)
+    t_start::T                = typeof(t_end)(0.0)
+    t_end::T
+    circunferential_strain::T = typeof(t_end)(0.0)
+    radial_strain::T          = typeof(t_end)(0.0)
+    longitudinal_strain::T    = typeof(t_end)(0.0)
 end 
 
 is_composable(motion_type::HeartBeat) = true
 
 displacement_x(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
+    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
@@ -26,7 +26,7 @@ displacement_x(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{
 end
 
 displacement_y(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
+    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
@@ -40,10 +40,10 @@ displacement_y(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{
 end
 
 displacement_z(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = min.(max.((t .- motion_type.ti)./(motion_type.tf - motion_type.ti), 0), 1)
+    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
     return t_unit .* (z .* motion_type.longitudinal_strain) 
 end
 
 time_nodes(motion_type::HeartBeat) = begin
-    return [motion_type.ti, motion_type.tf]
+    return [motion_type.t_start, motion_type.t_end]
 end

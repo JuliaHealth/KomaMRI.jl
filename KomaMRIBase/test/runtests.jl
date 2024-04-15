@@ -1,6 +1,6 @@
 using TestItems, TestItemRunner
 
-@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:base in ti.tags) #verbose=true
+@run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:base in t_start.tags) #verbose=true
 
 @testitem "Sequence" tags=[:base] begin
     @testset "Init" begin
@@ -385,9 +385,9 @@ end
     # Test simple motion types
     t = [0.0, 0.1, 0.2]
     ue = SimpleMotion([
-        Translation(ti=0.05, tf=0.5, dx=0.05, dy=0.05),
-        Rotation(ti=0.05, tf=0.5, yaw=π / 2),
-        HeartBeat(ti=0.05, tf=0.5, circunferential_strain=-0.1, radial_strain=-0.1),
+        Translation(t_start=0.05, t_end=0.5, dx=0.05, dy=0.05),
+        Rotation(t_start=0.05, t_end=0.5, yaw=π / 2),
+        HeartBeat(t_start=0.05, t_end=0.5, circunferential_strain=-0.1, radial_strain=-0.1),
         PeriodicTranslation(period=0.5, asymmetry=0.5, dz=0.01),
         PeriodicRotation(period=0.5, asymmetry=0.5, yaw=π / 2),
         PeriodicHeartBeat(period=0.5, circunferential_strain=-0.1, radial_strain=-0.1)
@@ -423,7 +423,7 @@ end
     # Test addition of phantoms
     ua = SimpleMotion([
         PeriodicTranslation(period=0.5, asymmetry=0.5, dx=0.05, dy=0.05),
-        Rotation(ti=0.05, tf=0.5, yaw=π / 2),
+        Rotation(t_start=0.05, t_end=0.5, yaw=π / 2),
     ])
     oba = Phantom(
         name,
