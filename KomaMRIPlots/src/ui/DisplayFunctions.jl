@@ -811,22 +811,17 @@ function plot_phantom_map(
     max_points=10000,
     kwargs...,
 )
-    function interpolate_times(motion::SimpleMotion) # Insert intermediate time points (as many as indicated by intermediate_time_samples)
+    function process_times(motion::SimpleMotion) # Interpolate time points (as many as indicated by intermediate_time_samples)
         t = time_nodes(motion)
-        for i in 1:(length(t) - 1)
-            step = (t[i + 1] - t[i]) / (intermediate_time_samples + 1)
-            for j in 1:intermediate_time_samples
-                push!(t, t[i] + j * step)
-            end
-        end
-        return sort!(t)
+        itp = interpolate((0:intermediate_time_samples+1:length(t)*intermediate_time_samples,), t, Gridded(Linear()))
+        return itp.(0:length(t)+intermediate_time_samples*(length(t)-1)-1)
     end
-    function interpolate_times(motion::ArbitraryMotion) # Insert intermediate time points (as many as indicated by intermediate_time_samples)
+    function process_times(motion::ArbitraryMotion) # Decimate time points so their number is smaller than max_time_samples
         t = time_nodes(motion)
-        ss = length(t) ÷ max_time_samples
+        ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
     end
-    interpolate_times(motion::MotionModel) = time_nodes(motion)
+    process_times(motion::MotionModel) = time_nodes(motion)
 
     # IDEA: subsample phantoms which are too large
     function decimate_uniform_phantom(ph::Phantom, num_points::Int)
@@ -893,7 +888,7 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :cmin, factor * cmin_key)
     cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-    t = interpolate_times(ph.motion)
+    t = process_times(ph.motion)
     x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
     x0 = -maximum(abs.([x y z])) * 1e2
