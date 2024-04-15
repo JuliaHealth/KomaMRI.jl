@@ -5,22 +5,6 @@ using TestItems, TestItemRunner
 @testitem "Files" tags = [:files] begin
     using Suppressor
 
-    # Test JEMRIS
-    @testset "JEMRIS" begin
-        path = @__DIR__
-        obj = read_phantom_jemris(path * "/test_files/column1d.h5")
-        @test obj.name == "column1d.h5"
-    end
-
-    # Test JEMRIS
-    @testset "MRiLab" begin
-        path = @__DIR__
-        filename = path * "/test_files/brain_mrilab.mat"
-        FRange_filename = path * "/test_files/FRange.mat" #Slab within slice thickness
-        obj = read_phantom_MRiLab(filename; FRange_filename)
-        @test obj.name == "brain_mrilab.mat"
-    end
-
     # Test ReadPulseq
     @testset "ReadPulseq" begin
         path = @__DIR__
@@ -49,6 +33,22 @@ using TestItems, TestItemRunner
         num_samples, compressed_data = KomaMRIFiles.compress_shape(shape)
         shape2 = KomaMRIFiles.decompress_shape(num_samples, compressed_data)
         @test shape == shape2
+    end
+
+    # Test JEMRIS
+    @testset "JEMRIS" begin
+        path = @__DIR__
+        obj = read_phantom_jemris(path * "/test_files/column1d.h5")
+        @test obj.name == "column1d.h5"
+    end
+
+    # Test JEMRIS
+    @testset "MRiLab" begin
+        path = @__DIR__
+        filename = path * "/test_files/brain_mrilab.mat"
+        FRange_filename = path * "/test_files/FRange.mat" #Slab within slice thickness
+        obj = read_phantom_MRiLab(filename; FRange_filename)
+        @test obj.name == "brain_mrilab.mat"
     end
 end
 
@@ -96,6 +96,8 @@ end
         write_seq(seq_original, seq_written_file)
         seq_written = read_seq(seq_written_file)
         rm(seq_written_file; force=true)
-        @test seq_original ≈ seq_written
+        @testset "$seq_filename_head" begin
+            @test seq_original ≈ seq_written
+        end
     end
 end
