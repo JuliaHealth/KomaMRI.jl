@@ -67,7 +67,7 @@ Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
 
 """Compare two phantoms"""
-Base.:(==)(obj1::Phantom, obj2::Phantom) = reduce(&, [getfield(obj1, field) == getfield(obj2, field) for field in filter(x -> !(x in [:name]), [fieldnames(Phantom)...])])
+Base.:(==)(obj1::Phantom, obj2::Phantom) = reduce(&, [getfield(obj1, field) == getfield(obj2, field) for field in fieldnames(Phantom)])
 Base.:(≈)(obj1::Phantom, obj2::Phantom)  = reduce(&, [getfield(obj1, field)  ≈ getfield(obj2, field) for field in filter(x -> !(x in [:name]), [fieldnames(Phantom)...])])
 Base.:(==)(m1::MotionModel, m2::MotionModel) = false
 Base.:(≈)(m1::MotionModel, m2::MotionModel)  = false
@@ -106,14 +106,9 @@ end
 
 """Scalar multiplication of a phantom"""
 *(α::Real, obj::Phantom) = begin
-    fields = []
-    for field in filter(x -> !(x in [:ρ]), [fieldnames(Phantom)...])
-        push!(fields, (field, getfield(obj, field)))
-    end
-    return Phantom(;
-        ρ=α*obj.ρ, 
-        fields...
-    )
+    obj1 = copy(obj)
+    obj1.ρ .*= α
+    return obj1
 end
 
 """
