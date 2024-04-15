@@ -1,18 +1,17 @@
-# Auxiliar structs for multiple dispatch
-struct Amp end
-struct Ang end
-
 """
-Returns a boolean value indicating whether two vectors or vector of angles are approximately
-equal.
+Returns a boolean value indicating whether two vectors are approximately equal.
 """
-function safe_approx(v1, v2, ::Amp)
+function safe_approx(v1, v2)
     if length(v1) != length(v2)
         return false
     end
     return v1 ≈ v2
 end
-function safe_approx(a1, a2, ::Ang)
+
+"""
+Returns a boolean value indicating whether two vector of angles are equal.
+"""
+function isequal_angles(a1, a2)
     if length(a1) != length(a2)
         return false
     end
@@ -22,8 +21,15 @@ end
 """
 Returns a boolean value indicating whether a vector is present in a list of vectors.
 """
-function not_in_list(vec, vec_list, type)
-    return all([!safe_approx(vec, arr, type) for arr in vec_list])
+function not_in_list(vec, vec_list)
+    return all([!safe_approx(vec, arr) for arr in vec_list])
+end
+
+"""
+Returns a boolean value indicating whether a vector is present in a list of vectors.
+"""
+function not_in_list_angles(angle, angle_list)
+    return all([!isequal_angles(angle, phase) for phase in angle_list])
 end
 
 """
@@ -106,20 +112,20 @@ function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, Δt_rf)
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id = [], [], []
     for (obj, _) in rfunique_obj_id
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
-        if not_in_list(shape_abs, [shape for (shape, _) in rfunique_abs_id], Amp())
+        if not_in_list(shape_abs, [shape for (shape, _) in rfunique_abs_id])
             push!(rfunique_abs_id, [shape_abs, id_shape_cnt])
             id_shape_cnt += 1
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
         ang = shape_ang .- shape_ang[1]
         list_ang_unique = [shape .- shape[1] for (shape, _) in rfunique_ang_id]
-        if not_in_list(ang, list_ang_unique, Ang())
+        if not_in_list_angles(ang, list_ang_unique)
             push!(rfunique_ang_id, [shape_ang, id_shape_cnt])
             id_shape_cnt += 1
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_rf
-            if not_in_list(shape_tim, [shape for (shape, _) in rfunique_tim_id], Amp())
+            if not_in_list(shape_tim, [shape for (shape, _) in rfunique_tim_id])
                 push!(rfunique_tim_id, [shape_tim, id_shape_cnt])
                 id_shape_cnt += 1
             end
@@ -139,13 +145,13 @@ function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, Δt_gr
     gradunique_amp_id, gradunique_tim_id = [], []
     for (obj, _) in gradunique_obj_id
         shape_amp = obj.A / maximum(abs.(obj.A))
-        if not_in_list(shape_amp, [shape for (shape, _) in gradunique_amp_id], Amp())
+        if not_in_list(shape_amp, [shape for (shape, _) in gradunique_amp_id])
             push!(gradunique_amp_id, [shape_amp, id_shape_cnt])
             id_shape_cnt = id_shape_cnt + 1
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_gr
-            if not_in_list(shape_tim, [shape for (shape, _) in gradunique_tim_id], Amp())
+            if not_in_list(shape_tim, [shape for (shape, _) in gradunique_tim_id])
                 push!(gradunique_tim_id, [shape_tim, id_shape_cnt])
                 id_shape_cnt = id_shape_cnt + 1
             end
@@ -204,7 +210,7 @@ function write_seq(seq::Sequence, filename)
         ioamptdfh[8] = obj.Δf
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
         for (shape_abs_unique, id_abs) in rfunique_abs_id
-            if safe_approx(shape_abs, shape_abs_unique, Amp())
+            if safe_approx(shape_abs, shape_abs_unique)
                 ioamptdfh[4] = id_abs
             end
         end
@@ -212,7 +218,7 @@ function write_seq(seq::Sequence, filename)
         ang = shape_ang .- shape_ang[1]
         for (shape_ang_unique, id_ang) in rfunique_ang_id
             ang_unique = shape_ang_unique .- shape_ang_unique[1]
-            if safe_approx(ang, ang_unique, Ang())
+            if isequal_angles(ang, ang_unique)
                 ioamptdfh[5] = id_ang
                 ioamptdfh[9] = angle(
                     sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
@@ -223,7 +229,7 @@ function write_seq(seq::Sequence, filename)
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_rf
             for (shape_tim_unique, id_tim) in rfunique_tim_id
-                if safe_approx(shape_tim, shape_tim_unique, Amp())
+                if safe_approx(shape_tim, shape_tim_unique)
                     ioamptdfh[6] = id_tim
                 end
             end
@@ -241,14 +247,14 @@ function write_seq(seq::Sequence, filename)
         ioamtd[6] = round(1e6 * obj.delay)
         shape_amp = obj.A / maximum(abs.(obj.A))
         for (shape_amp_unique, id_amp) in gradunique_amp_id
-            if safe_approx(shape_amp, shape_amp_unique, Amp())
+            if safe_approx(shape_amp, shape_amp_unique)
                 ioamtd[4] = id_amp
             end
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_gr
             for (shape_tim_unique, id_tim) in gradunique_tim_id
-                if safe_approx(shape_tim, shape_tim_unique, Amp())
+                if safe_approx(shape_tim, shape_tim_unique)
                     ioamtd[5] = id_tim
                 end
             end
