@@ -815,14 +815,14 @@ function plot_phantom_map(
     function process_times(motion::SimpleMotion) 
         t = time_nodes(motion)
         # Interpolate time points (as many as indicated by intermediate_time_samples)
-        itp = interpolate((0:intermediate_time_samples+1:length(t)*intermediate_time_samples,), t, Gridded(Linear()))
-        return itp.(0:length(t)+intermediate_time_samples*(length(t)-1)-1)
+        itp = interpolate((1 : intermediate_time_samples+1 : length(t)+intermediate_time_samples*(length(t)-1),), t, Gridded(Linear()))
+        return itp.(1:length(t)+intermediate_time_samples*(length(t)-1))
     end
     function process_times(motion::ArbitraryMotion) 
         t = time_nodes(motion)
         # Interpolate time points (as many as indicated by intermediate_time_samples)
-        itp = interpolate((0:intermediate_time_samples+1:length(t)*intermediate_time_samples,), t, Gridded(Linear()))
-        t = itp.(0:length(t)+intermediate_time_samples*(length(t)-1)-1)
+        itp = interpolate((1 : intermediate_time_samples+1 : length(t)+intermediate_time_samples*(length(t)-1),), t, Gridded(Linear()))
+        t = itp.(1:length(t)+intermediate_time_samples*(length(t)-1))
         # Decimate time points so their number is smaller than max_time_samples
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
