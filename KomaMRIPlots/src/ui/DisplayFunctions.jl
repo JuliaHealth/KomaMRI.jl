@@ -823,7 +823,7 @@ function plot_phantom_map(
     end
     function interpolate_times(motion::ArbitraryMotion) # Insert intermediate time points (as many as indicated by intermediate_time_samples)
         t = time_nodes(motion)
-        ss = length(t) % max_time_samples
+        ss = length(t) ÷ max_time_samples
         return t[1:ss:end]
     end
     interpolate_times(motion::MotionModel) = time_nodes(motion)
@@ -831,7 +831,7 @@ function plot_phantom_map(
     # IDEA: subsample phantoms which are too large
     function decimate_uniform_phantom(ph::Phantom, num_points::Int)
     	dimx, dimy, dimz = get_dims(ph)
-    	ss = (length(ph) % num_points) ^ (1/sum(get_dims(ph)))
+    	ss = Int(ceil((length(ph)/num_points) ^ (1/sum(get_dims(ph)))))
     	ssx = dimx ? ss : 1
     	ssy = dimy ? ss : 1
     	ssz = dimz ? ss : 1
