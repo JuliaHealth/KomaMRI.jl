@@ -808,16 +808,21 @@ function plot_phantom_map(
     colorbar=true,
     intermediate_time_samples=0,
     max_time_samples=100,
-    max_points=10000,
+    max_spins=50000,
     kwargs...,
 )
-    function process_times(motion::SimpleMotion) # Interpolate time points (as many as indicated by intermediate_time_samples)
+    function process_times(motion::SimpleMotion) 
         t = time_nodes(motion)
+        # Interpolate time points (as many as indicated by intermediate_time_samples)
         itp = interpolate((0:intermediate_time_samples+1:length(t)*intermediate_time_samples,), t, Gridded(Linear()))
         return itp.(0:length(t)+intermediate_time_samples*(length(t)-1)-1)
     end
-    function process_times(motion::ArbitraryMotion) # Decimate time points so their number is smaller than max_time_samples
+    function process_times(motion::ArbitraryMotion) 
         t = time_nodes(motion)
+        # Interpolate time points (as many as indicated by intermediate_time_samples)
+        itp = interpolate((0:intermediate_time_samples+1:length(t)*intermediate_time_samples,), t, Gridded(Linear()))
+        t = itp.(0:length(t)+intermediate_time_samples*(length(t)-1)-1)
+        # Decimate time points so their number is smaller than max_time_samples
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
     end
@@ -837,7 +842,13 @@ function plot_phantom_map(
     	return ph[idx]
     end
 
-    ph = decimate_uniform_phantom(ph, max_points)
+    n_spins_before_decimate = length(ph)
+    ph = decimate_uniform_phantom(ph, max_spins)
+    n_spins_after_decimate = length(ph)
+    if n_spins_before_decimate > n_spins_after_decimate
+        @warn "Only $(n_spins_after_decimate) (approximately evenly spaced) of $(n_spins_before_decimate) spins are displayed in order to avoid CPU overload. 
+         This affects display functions but not simulation functions."
+    end
 
     path = @__DIR__
     cmin_key = minimum(getproperty(ph, key))
