@@ -334,15 +334,16 @@ function write_seq(seq::Sequence, filename)
             end
         end
         if !isempty(table_gradients)
-            @printf(fid, 
-            	"""
-            	# Format of arbitrary gradients:
-            	#   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)
-            	# id amplitude amp_shape_id time_shape_id delay
-            	# ..      Hz/m       ..         ..          us
-            	[GRADIENTS]
-            	"""
-            	)
+            @printf(
+                fid,
+                """
+                # Format of arbitrary gradients:
+                #   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)
+                # id amplitude amp_shape_id time_shape_id delay
+                # ..      Hz/m       ..         ..          us
+                [GRADIENTS]
+                """
+            )
             for (id, _, amp, amp_id, time_id, delay) in table_gradients
                 @printf(fid, "%d %12g %d %d %d\n", id, amp, amp_id, time_id, delay)
             end
