@@ -258,13 +258,9 @@ function write_seq(seq::Sequence, filename)
     end
     # Define the table to be written for the [SHAPES] section
     shapefull_data_id = [
-        shapeunique_data_id_i for shapeunique_data_id in [
-            rfs_abs_id,
-            rfs_ang_id,
-            rfs_tim_id,
-            gradunique_amp_id,
-            gradunique_tim_id,
-        ] for shapeunique_data_id_i in shapeunique_data_id
+        shapeunique_data_id_i for shapeunique_data_id in
+        [rfs_abs_id, rfs_ang_id, rfs_tim_id, gradunique_amp_id, gradunique_tim_id] for
+        shapeunique_data_id_i in shapeunique_data_id
     ]
     shape_data_id_num = [
         (
