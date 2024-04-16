@@ -21,9 +21,12 @@ Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}
 
 Base.:(==)(m1::SimpleMotion, m2::SimpleMotion) = reduce(&, [m1.types[i] == m2.types[i] for i in 1:length(m1.types)])
 Base.:(≈)(m1::SimpleMotion, m2::SimpleMotion)  = reduce(&, [m1.types[i]  ≈ m2.types[i] for i in 1:length(m1.types)])
-
-Base.:(==)(t1::SimpleMotionType, t2::SimpleMotionType) = (typeof(t1) == typeof(t2)) ? reduce(&, [getfield(t1, field) == getfield(t2, field) for field in fieldnames(typeof(t1))]) : false
-Base.:(≈)(t1::SimpleMotionType, t2::SimpleMotionType)  = (typeof(t1) == typeof(t2)) ? reduce(&, [getfield(t1, field)  ≈ getfield(t2, field) for field in fieldnames(typeof(t1))]) : false
+# When they are the same type  
+Base.:(==)(t1::T, t2::T) where {T<:SimpleMotionType} = reduce(&, [getfield(t1, field) == getfield(t2, field) for field in fieldnames(T)])  
+Base.:(≈)(t1::T, t2::T)  where {T<:SimpleMotionType} = reduce(&, [getfield(t1, field)  ≈ getfield(t2, field) for field in fieldnames(T)])  
+# When they are not (default)  
+Base.:(==)(t1::SimpleMotionType, t2::SimpleMotionType) = false  
+Base.:(≈)(t1::SimpleMotionType, t2::SimpleMotionType)  = false  
 
 function get_spin_coords(motion::SimpleMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real}
     xi, yi, zi = x, y, z
