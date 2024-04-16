@@ -78,36 +78,34 @@ function get_events_blk_obj_id(event_array, events_obj_id::Vector)
 end
 
 """
-    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, Δt_rf)
-
-Returns the unique shapes for the magnitude, angle and time of the "rfunique_obj_id" vector.
+Returns the unique shapes for the magnitude, angle and time of the "rfs_obj_id" vector.
 Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
 """
-function get_rfunique(rfunique_obj_id::Vector, id_shape_cnt::Integer, Δt_rf)
+function get_rf_shapes(rfs_obj_id::Vector, id_shape_cnt::Integer, Δt_rf)
     # Find the unique shapes (magnitude, phase and time shapes) and assign IDs
-    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id = [], [], []
-    for (obj, _) in rfunique_obj_id
+    rfs_abs_id, rfs_ang_id, rfs_tim_id = [], [], []
+    for (obj, _) in rfs_obj_id
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
-        if not_in_list(shape_abs, [shape for (shape, _) in rfunique_abs_id])
-            push!(rfunique_abs_id, [shape_abs, id_shape_cnt])
+        if not_in_list(shape_abs, [shape for (shape, _) in rfs_abs_id])
+            push!(rfs_abs_id, [shape_abs, id_shape_cnt])
             id_shape_cnt += 1
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
         ang = shape_ang .- shape_ang[1]
-        list_ang_unique = [shape .- shape[1] for (shape, _) in rfunique_ang_id]
+        list_ang_unique = [shape .- shape[1] for (shape, _) in rfs_ang_id]
         if not_in_list_angles(ang, list_ang_unique)
-            push!(rfunique_ang_id, [shape_ang, id_shape_cnt])
+            push!(rfs_ang_id, [shape_ang, id_shape_cnt])
             id_shape_cnt += 1
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_rf
-            if not_in_list(shape_tim, [shape for (shape, _) in rfunique_tim_id])
-                push!(rfunique_tim_id, [shape_tim, id_shape_cnt])
+            if not_in_list(shape_tim, [shape for (shape, _) in rfs_tim_id])
+                push!(rfs_tim_id, [shape_tim, id_shape_cnt])
                 id_shape_cnt += 1
             end
         end
     end
-    return rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt
+    return rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt
 end
 
 """
@@ -145,14 +143,12 @@ function write_seq(seq::Sequence, filename)
     Δt_rf = seq.DEF["RadiofrequencyRasterTime"]
     Δt_gr = seq.DEF["GradientRasterTime"]
     # Get the unique objects (RF, Grad y ADC) and its IDs
-    rfunique_obj_id = get_events_obj_id(get_events_on(seq.RF))
+    rfs_obj_id = get_events_obj_id(get_events_on(seq.RF))
     grunique_obj_id = get_events_obj_id(get_events_on(seq.GR))
     adcunique_obj_id = get_events_obj_id(get_events_on(seq.ADC))
     gradunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) != 1]
     trapunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) == 1]
-    rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(
-        rfunique_obj_id, 1, Δt_rf
-    )
+    rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt = get_rf_shapes(rfs_obj_id, 1, Δt_rf)
     gradunique_amp_id, gradunique_tim_id, _ = get_gradunique(
         gradunique_obj_id, id_shape_cnt, Δt_gr
     )
@@ -160,7 +156,7 @@ function write_seq(seq::Sequence, filename)
     # [BLOCKS]: Define the table to be written in the [BLOCKS] section
     # Columns of table_blocks:
     # [blk, seq[blk], id_rf, id_gx, id_gy, id_gz, id_adc, id_ext]
-    r = [id for (_, _, id) in get_events_blk_obj_id(seq.RF, rfunique_obj_id)]
+    r = [id for (_, _, id) in get_events_blk_obj_id(seq.RF, rfs_obj_id)]
     x = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.x, grunique_obj_id)]
     y = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.y, grunique_obj_id)]
     z = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.z, grunique_obj_id)]
@@ -175,27 +171,27 @@ function write_seq(seq::Sequence, filename)
         end
         row[3] = bdr
     end
-    # Define the table to be written for the [RF] section
-    rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha = [
-        [idx, obj, 0, 0, 0, 0, 0, 0, 0] for (obj, idx) in rfunique_obj_id
-    ]
-    for ioamptdfh in rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha
-        obj = ioamptdfh[2]
-        ioamptdfh[3] = γ * maximum(abs.(obj.A))
-        ioamptdfh[8] = obj.Δf
+    # [RF]: Define the table to be written in the [RF] section
+    # Columns of table_rf:
+    # [id, rf_obj, amp, id_mag, id_phase, id_time, delay, freq, phase]
+    table_rf = [[id, obj, 0, 0, 0, 0, 0, 0, 0] for (obj, id) in rfs_obj_id]
+    for row in table_rf
+        obj = row[2]
+        row[3] = γ * maximum(abs.(obj.A))
+        row[8] = obj.Δf
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
-        for (shape_abs_unique, id_abs) in rfunique_abs_id
+        for (shape_abs_unique, id_abs) in rfs_abs_id
             if safe_approx(shape_abs, shape_abs_unique)
-                ioamptdfh[4] = id_abs
+                row[4] = id_abs
             end
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
         ang = shape_ang .- shape_ang[1]
-        for (shape_ang_unique, id_ang) in rfunique_ang_id
+        for (shape_ang_unique, id_ang) in rfs_ang_id
             ang_unique = shape_ang_unique .- shape_ang_unique[1]
             if isequal_angles(ang, ang_unique)
-                ioamptdfh[5] = id_ang
-                ioamptdfh[9] = angle(
+                row[5] = id_ang
+                row[9] = angle(
                     sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
                     length(shape_ang),
                 )
@@ -203,14 +199,14 @@ function write_seq(seq::Sequence, filename)
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_rf
-            for (shape_tim_unique, id_tim) in rfunique_tim_id
+            for (shape_tim_unique, id_tim) in rfs_tim_id
                 if safe_approx(shape_tim, shape_tim_unique)
-                    ioamptdfh[6] = id_tim
+                    row[6] = id_tim
                 end
             end
         end
-        delay_compensation_rf_koma = (ioamptdfh[6] == 0) * Δt_rf / 2
-        ioamptdfh[7] = round((obj.delay - delay_compensation_rf_koma) / Δt_rf) * Δt_rf * 1e6
+        delay_compensation_rf_koma = (row[6] == 0) * Δt_rf / 2
+        row[7] = round((obj.delay - delay_compensation_rf_koma) / Δt_rf) * Δt_rf * 1e6
     end
     # Define the table to be written for the [GRADIENTS] section
     grad_idx_obj_amp_iamp_itim_delay = [
@@ -262,9 +258,9 @@ function write_seq(seq::Sequence, filename)
     # Define the table to be written for the [SHAPES] section
     shapefull_data_id = [
         shapeunique_data_id_i for shapeunique_data_id in [
-            rfunique_abs_id,
-            rfunique_ang_id,
-            rfunique_tim_id,
+            rfs_abs_id,
+            rfs_ang_id,
+            rfs_tim_id,
             gradunique_amp_id,
             gradunique_tim_id,
         ] for shapeunique_data_id_i in shapeunique_data_id
@@ -314,56 +310,21 @@ function write_seq(seq::Sequence, filename)
             @printf(fid, "# Format of blocks:\n")
             @printf(fid, "# NUM DUR RF  GX  GY  GZ  ADC  EXT\n")
             @printf(fid, "[BLOCKS]\n")
-            id_format_width = length(string(length(seq)))
-            id_format_str = "%" * string(id_format_width) * "d "
-            format = Printf.Format(id_format_str * "%3d %3d %3d %3d %3d %2d %2d\n")
+            id_format_str = "%" * string(length(string(length(seq)))) * "d "
+            fmt = Printf.Format(id_format_str * "%3d %3d %3d %3d %3d %2d %2d\n")
             for (blk, _, dur, rf, gx, gy, gz, adc, ext) in table_blocks
-                Printf.format(fid, format, blk, dur, rf, gx, gy, gz, adc, ext)
+                Printf.format(fid, fmt, blk, dur, rf, gx, gy, gz, adc, ext)
             end
             @printf(fid, "\n")
         end
-        #if !isempty(blk_obj_dur_rf_gx_gy_gz_adc_ext)
-        #    @printf(fid, "# Format of blocks:\n")
-        #    @printf(fid, "# NUM DUR RF  GX  GY  GZ  ADC  EXT\n")
-        #    @printf(fid, "[BLOCKS]\n")
-        #    nBlocks = length(seq)
-        #    idFormatWidth = length(string(nBlocks))
-        #    idFormatStr = "%" * string(idFormatWidth) * "d "
-        #    for (blk, _, dur, rf, gx, gy, gz, adc, ext) in blk_obj_dur_rf_gx_gy_gz_adc_ext
-        #        Printf.format(
-        #            fid,
-        #            Printf.Format(idFormatStr * "%3d %3d %3d %3d %3d %2d %2d\n"),
-        #            blk,
-        #            dur,
-        #            rf,
-        #            gx,
-        #            gy,
-        #            gz,
-        #            adc,
-        #            ext,
-        #        )
-        #    end
-        #    @printf(fid, "\n")
-        #end
-        if !isempty(rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha)
+        if !isempty(table_rf)
             @printf(fid, "# Format of RF events:\n")
             @printf(fid, "# id amplitude mag_id phase_id time_shape_id delay freq phase\n")
             @printf(fid, "# ..        Hz   ....     ....          ....    us   Hz   rad\n")
             @printf(fid, "[RF]\n")
-            for (id, _, amp, magid, phaid, timeid, delay, freq, phase) in
-                rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha
-                @printf(
-                    fid,
-                    "%d %12g %d %d %d %g %g %g\n",
-                    id,
-                    amp,
-                    magid,
-                    phaid,
-                    timeid,
-                    delay,
-                    freq,
-                    phase
-                )
+            fmt = Printf.Format("%d %12g %d %d %d %g %g %g\n")
+            for (id, _, amp, mag_id, pha_id, time_id, delay, freq, pha) in table_rf
+                Printf.format(fid, fmt, id, amp, mag_id, pha_id, time_id, delay, freq, pha)
             end
             @printf(fid, "\n")
         end
