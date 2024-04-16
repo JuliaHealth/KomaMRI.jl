@@ -62,7 +62,7 @@ end
 ways_of_using_koma = ["ui-details.md", "programming-workflow.md", "notebooks.md"]
 create_your_own_sequence = ["sequence.md", "events.md"]
 literate_examples = [joinpath("generated", exaname, f) for f in readdir(joinpath(gen, exaname)) if is_md_file(f)]
-educational_material = ["educational-1d-simulation.md", "pluto-fat-sat-low-field.md"]
+educational_material = ["educational-1d-simulation.md", "Low-Field-CMRA-SNR-Fat-Optimization.md"]
 
 # Documentation structure
 makedocs(
