@@ -306,12 +306,13 @@ function write_seq(seq::Sequence, filename)
             end
         end
         if !isempty(table_blocks)
-            @printf(fid, 
-            """
-            # Format of blocks:
-            # NUM DUR RF  GX  GY  GZ  ADC  EXT
-            [BLOCKS]
-            """
+            @printf(
+                fid,
+                """
+                # Format of blocks:
+                # NUM DUR RF  GX  GY  GZ  ADC  EXT
+                [BLOCKS]
+                """
             )
             id_format_str = "%" * string(length(string(length(seq)))) * "d "
             fmt = Printf.Format(id_format_str * "%3d %3d %3d %3d %3d %2d %2d\n")
