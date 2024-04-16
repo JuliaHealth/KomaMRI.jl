@@ -12,7 +12,7 @@ end
 is_composable(motion_type::PeriodicHeartBeat) = true
 
 displacement_x(motion_type::PeriodicHeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
+    t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
@@ -26,7 +26,7 @@ displacement_x(motion_type::PeriodicHeartBeat{T}, x::AbstractArray{T}, y::Abstra
 end
 
 displacement_y(motion_type::PeriodicHeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
+    t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
@@ -40,7 +40,7 @@ displacement_y(motion_type::PeriodicHeartBeat{T}, x::AbstractArray{T}, y::Abstra
 end
 
 displacement_z(motion_type::PeriodicHeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
+    t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     return t_unit .* (z .* motion_type.longitudinal_strain) 
 end
 

@@ -12,7 +12,7 @@ end
 is_composable(motion_type::HeartBeat) = true
 
 displacement_x(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)  
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
@@ -26,7 +26,7 @@ displacement_x(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{
 end
 
 displacement_y(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)  
     r = sqrt.(x.^2 + y.^2)
     θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
@@ -40,7 +40,7 @@ displacement_y(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{
 end
 
 displacement_z(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)  
     return t_unit .* (z .* motion_type.longitudinal_strain) 
 end
 

@@ -76,7 +76,7 @@ end
 is_composable(motion_type::Rotation) = true
 
 displacement_x(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end) 
     α = t_unit .* (motion_type.pitch)
     β = t_unit .* (motion_type.roll)
     γ = t_unit .* (motion_type.yaw)
@@ -84,7 +84,7 @@ displacement_x(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T
 end
 
 displacement_y(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end) 
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
@@ -92,7 +92,7 @@ displacement_y(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T
 end
 
 displacement_z(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw

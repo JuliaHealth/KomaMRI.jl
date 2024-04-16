@@ -53,14 +53,21 @@ end
 include("simplemotion/Translation.jl")
 include("simplemotion/Rotation.jl")
 include("simplemotion/HeartBeat.jl")
+
+function unit_time(t, t_start, t_end)
+	if t_start == t_end
+		return t .>= motion_type.t_start # The problem with this is that it returns a BitVector (type stability issues)
+	else
+		return min.(max.((t .- t_start)./(t_end - t_start), 0.0), 1.0) 
+	end
+end
                                     
 # Periodic types: defined by the period, the temporal symmetry and a displacement (amplitude)
 include("simplemotion/PeriodicTranslation.jl")
 include("simplemotion/PeriodicRotation.jl")
 include("simplemotion/PeriodicHeartBeat.jl")
 
-normalize_time_triangular(t, period, asymmetry) = begin
-    t_rise = period * asymmetry
+function unit_time_triangular(t, period, asymmetry)
     t_fall = period * (1 - asymmetry)
     t_relative = mod.(t, period)
     t_unit = ifelse.(t_relative .< t_rise, t_relative ./ t_rise, 1 .- (t_relative .- t_rise) ./ t_fall)

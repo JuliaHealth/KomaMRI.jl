@@ -49,17 +49,17 @@ dz, & t >= t_end
 end
 
 displacement_x(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end) 
     return t_unit .* motion_type.dx
 end
 
 displacement_y(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)  
     return t_unit .* motion_type.dy
 end
 
 displacement_z(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = motion_type.t_end == motion_type.t_start ? t .>= motion_type.t_start : min.(max.((t .- motion_type.t_start)./(motion_type.t_end - motion_type.t_start), 0), 1) 
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end) 
     return t_unit .* motion_type.dz
 end
 

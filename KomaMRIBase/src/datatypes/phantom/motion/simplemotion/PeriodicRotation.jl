@@ -27,7 +27,7 @@ end
 is_composable(motion_type::PeriodicRotation) = true
 
 displacement_x(motion_type::PeriodicRotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
+    t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
@@ -35,7 +35,7 @@ displacement_x(motion_type::PeriodicRotation{T}, x::AbstractArray{T}, y::Abstrac
 end
 
 displacement_y(motion_type::PeriodicRotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
+    t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
@@ -43,7 +43,7 @@ displacement_y(motion_type::PeriodicRotation{T}, x::AbstractArray{T}, y::Abstrac
 end
 
 displacement_z(motion_type::PeriodicRotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
+    t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw

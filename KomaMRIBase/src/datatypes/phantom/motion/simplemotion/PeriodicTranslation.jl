@@ -27,17 +27,17 @@ The amplitude of the oscillation will be defined by dx, dy and dz
 end
 
 displacement_x(motion_type::PeriodicTranslation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
+    t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     return t_unit .* motion_type.dx
 end
 
 displacement_y(motion_type::PeriodicTranslation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
+    t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     return t_unit .* motion_type.dy
 end
 
 displacement_z(motion_type::PeriodicTranslation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = normalize_time_triangular(t, motion_type.period, motion_type.asymmetry)
+    t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     return t_unit .* motion_type.dz
 end
 
