@@ -293,6 +293,7 @@ function write_seq(seq::Sequence, filename)
                 """
             )
             sorted_keys = sort(collect(keys(seq.DEF)))
+            filter!(x -> x != "extension" && x != "additional_text", sorted_keys) # For now remove extensions
             for key in sorted_keys
                 val = seq.DEF[key]
                 @printf(fid, "%s ", key)
