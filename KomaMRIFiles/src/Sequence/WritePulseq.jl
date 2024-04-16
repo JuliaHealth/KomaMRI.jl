@@ -146,7 +146,7 @@ function write_seq(seq::Sequence, filename)
     # Get the unique objects (RF, Grad y ADC) and its IDs
     rfs_obj_id = get_events_obj_id(get_events_on(seq.RF))
     grunique_obj_id = get_events_obj_id(get_events_on(seq.GR))
-    adcunique_obj_id = get_events_obj_id(get_events_on(seq.ADC))
+    adcs_obj_id = get_events_obj_id(get_events_on(seq.ADC))
     gradunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) != 1]
     trapunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) == 1]
     rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt = get_rf_shapes(rfs_obj_id, 1, Δt_rf)
@@ -161,7 +161,7 @@ function write_seq(seq::Sequence, filename)
     x = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.x, grunique_obj_id)]
     y = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.y, grunique_obj_id)]
     z = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.z, grunique_obj_id)]
-    a = [id for (_, _, id) in get_events_blk_obj_id(seq.ADC, adcunique_obj_id)]
+    a = [id for (_, _, id) in get_events_blk_obj_id(seq.ADC, adcs_obj_id)]
     table_blocks = [[b, s, 0, r[b], x[b], y[b], z[b], a[b], 0] for (b, s) in enumerate(seq)]
     for row in table_blocks
         blk = row[1]
@@ -244,17 +244,17 @@ function write_seq(seq::Sequence, filename)
         ioarfad[6] = 1e6 * obj.fall
         ioarfad[7] = 1e6 * obj.delay
     end
-    # Define the table to be written for the [ADC] section
-    adc_idx_obj_num_dwell_delay_freq_phase = [
-        [idx, obj, 0, 0, 0, 0, 0] for (obj, idx) in adcunique_obj_id
-    ]
-    for ionwdfp in adc_idx_obj_num_dwell_delay_freq_phase
-        obj = ionwdfp[2]
-        ionwdfp[3] = obj.N
-        ionwdfp[4] = obj.T * 1e9 / (obj.N - 1)
-        ionwdfp[5] = (obj.delay - 0.5 * obj.T / (obj.N - 1)) * 1e6
-        ionwdfp[6] = obj.Δf
-        ionwdfp[7] = obj.ϕ
+    # [ADC]: Define the table to be written for the [ADC] section
+    # Columns of table_adc:
+    # [id, adc_obj, num, dwell, delay, freq, phase]
+    table_adc = [[id, obj, 0, 0, 0, 0, 0] for (obj, id) in adcs_obj_id]
+    for row in table_adc
+        obj = row[2]
+        row[3] = obj.N
+        row[4] = obj.T * 1e9 / (obj.N - 1)
+        row[5] = (obj.delay - 0.5 * obj.T / (obj.N - 1)) * 1e6
+        row[6] = obj.Δf
+        row[7] = obj.ϕ
     end
     # Define the table to be written for the [SHAPES] section
     shapefull_data_id = [
@@ -350,13 +350,12 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-        if !isempty(adc_idx_obj_num_dwell_delay_freq_phase)
+        if !isempty(table_adc)
             @printf(fid, "# Format of ADC events:\n")
             @printf(fid, "# id num dwell delay freq phase\n")
             @printf(fid, "# ..  ..    ns    us   Hz   rad\n")
             @printf(fid, "[ADC]\n")
-            for (id, _, num, dwell, delay, freq, phase) in
-                adc_idx_obj_num_dwell_delay_freq_phase
+            for (id, _, num, dwell, delay, freq, phase) in table_adc
                 @printf(fid, "%d %d %.0f %.0f %g %g\n", id, num, dwell, delay, freq, phase)
             end
             @printf(fid, "\n")
