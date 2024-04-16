@@ -50,7 +50,7 @@ using KomaMRI, MAT
 
 # Get data from a .mat file
 path_koma = dirname(dirname(pathof(KomaMRI)))
-path_phantom_mat = joinpath(path_koma, "KomaMRICore", "src", "datatypes", "phantom", "pelvis2D.mat")
+path_phantom_mat = joinpath(path_koma, "KomaMRIBase", "src", "datatypes", "phantom", "pelvis2D.mat")
 data = MAT.matread(path_phantom_mat)
 class = data["pelvis3D_slice"]
 ```

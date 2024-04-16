@@ -76,6 +76,7 @@ Scanner
 Phantom
 brain_phantom2D
 brain_phantom3D
+pelvis_phantom2D
 ```
 
 ### `Sequence`
@@ -127,9 +128,19 @@ roty
 rotz
 ```
 
+### `get_Mk`
+```@docs
+get_Mk
+```
+
 ### `get_kspace`
 ```@docs
 get_kspace
+```
+
+### `get_M0`
+```@docs
+get_M0
 ```
 
 ### `get_M1`
@@ -157,9 +168,83 @@ is_RF_on
 is_GR_on
 ```
 
+### `is_Gx_on`
+```@docs
+is_Gx_on
+```
+
+### `is_Gy_on`
+```@docs
+is_Gy_on
+```
+
+### `is_Gz_on`
+```@docs
+is_Gz_on
+```
+
 ### `is_ADC_on`
 ```@docs
 is_ADC_on
+```
+
+## Sampling-related Functions
+
+### `get_samples`
+```@docs
+get_samples
+```
+
+### `get_adc_sampling_times`
+```@docs
+get_adc_sampling_times
+```
+
+### `get_adc_phase_compensation`
+```@docs
+get_adc_phase_compensation
+```
+
+### `get_block_start_times`
+```@docs
+get_block_start_times
+```
+
+### `DiscreteSequence`
+```@docs
+DiscreteSequence
+```
+
+### `discretize`
+```@docs
+discretize
+```
+
+## Sampling Miscellaneous
+
+### `trapz`
+```@docs
+trapz
+```
+
+### `cumtrapz`
+```@docs
+cumtrapz
+```
+
+### `kfoldperm`
+```@docs
+kfoldperm
+```
+
+### `ampl`
+```@docs
+ampl
+```
+
+### `time`
+```@docs
+time
 ```
 
 
@@ -279,6 +364,38 @@ signal_to_raw_data
 ### `Mag`
 ```@docs
 Mag
+```
+
+## Simulation Miscellaneous
+
+### `Spinor`
+```@docs
+Spinor
+```
+
+### `Q`
+```@docs
+Q
+```
+
+### `Un`
+```@docs
+Un
+```
+
+### `Rx`
+```@docs
+Rx
+```
+
+### `Ry`
+```@docs
+Ry
+```
+
+### `Rz`
+```@docs
+Rz
 ```
 
 
