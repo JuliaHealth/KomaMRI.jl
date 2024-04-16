@@ -361,14 +361,15 @@ function write_seq(seq::Sequence, filename)
             end
         end
         if !isempty(table_adc)
-            @printf(fid, 
-            	"""
-            	# Format of ADC events:
-            	# id num dwell delay freq phase
-            	# ..  ..    ns    us   Hz   rad\n
-            	[ADC]
-            	"""
-            	)
+            @printf(
+                fid,
+                """
+                # Format of ADC events:
+                # id num dwell delay freq phase
+                # ..  ..    ns    us   Hz   rad\n
+                [ADC]
+                """
+            )
             for (id, _, num, dwell, delay, freq, phase) in table_adc
                 @printf(fid, "%d %d %.0f %.0f %g %g\n", id, num, dwell, delay, freq, phase)
             end
