@@ -272,15 +272,22 @@ function write_seq(seq::Sequence, filename)
     ]
     # Write the .seq file
     open(filename, "w") do fid
-        @printf(fid, "# Pulseq sequence file\n")
-        @printf(fid, "# Created by KomaMRI.jl \n\n") #TODO: add Koma version
-        @printf(fid, "[VERSION]\n")
-        @printf(fid, "major 1\n")
-        @printf(fid, "minor 4\n")
-        @printf(fid, "revision 1\n")
-        @printf(fid, "\n")
+        @printf(fid, 
+        """# Pulseq sequence file
+        # Created with KomaMRIFiles.jl $(KomaMRIFiles.__VERSION__)
+        
+        [VERSION]
+        major 1
+        minor 4
+        revision 2
+        """
+        )
         if !isempty(seq.DEF)
-            @printf(fid, "[DEFINITIONS]\n")
+            @printf(fid, 
+            """
+            [DEFINITIONS]
+            """
+            )
             sorted_keys = sort(collect(keys(seq.DEF)))
             for key in sorted_keys
                 val = seq.DEF[key]
@@ -296,69 +303,83 @@ function write_seq(seq::Sequence, filename)
                         @printf(fid, "%.9g ", val)
                     end
                 end
-                @printf(fid, "\n")
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_blocks)
-            @printf(fid, "# Format of blocks:\n")
-            @printf(fid, "# NUM DUR RF  GX  GY  GZ  ADC  EXT\n")
-            @printf(fid, "[BLOCKS]\n")
+            @printf(fid, 
+            """
+            # Format of blocks:
+            # NUM DUR RF  GX  GY  GZ  ADC  EXT
+            [BLOCKS]
+            """
+            )
             id_format_str = "%" * string(length(string(length(seq)))) * "d "
             fmt = Printf.Format(id_format_str * "%3d %3d %3d %3d %3d %2d %2d\n")
             for (blk, _, dur, rf, gx, gy, gz, adc, ext) in table_blocks
                 Printf.format(fid, fmt, blk, dur, rf, gx, gy, gz, adc, ext)
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_rf)
-            @printf(fid, "# Format of RF events:\n")
-            @printf(fid, "# id amplitude mag_id phase_id time_shape_id delay freq phase\n")
-            @printf(fid, "# ..        Hz   ....     ....          ....    us   Hz   rad\n")
-            @printf(fid, "[RF]\n")
+            @printf(fid, 
+            	"""
+            	# Format of RF events:
+            	# id amplitude mag_id phase_id time_shape_id delay freq phase
+            	# ..        Hz   ....     ....          ....    us   Hz   rad
+            	[RF]
+            	"""
+            	)
             fmt = Printf.Format("%d %12g %d %d %d %g %g %g\n")
             for (id, _, amp, mag_id, pha_id, time_id, delay, freq, pha) in table_rf
                 Printf.format(fid, fmt, id, amp, mag_id, pha_id, time_id, delay, freq, pha)
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_gradients)
-            @printf(fid, "# Format of arbitrary gradients:\n")
-            @printf(
-                fid,
-                "#   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)\n"
-            )
-            @printf(fid, "# id amplitude amp_shape_id time_shape_id delay\n") # do we need delay ???
-            @printf(fid, "# ..      Hz/m       ..         ..          us\n")
-            @printf(fid, "[GRADIENTS]\n")
+            @printf(fid, 
+            	"""
+            	# Format of arbitrary gradients:
+            	#   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)
+            	# id amplitude amp_shape_id time_shape_id delay
+            	# ..      Hz/m       ..         ..          us
+            	[GRADIENTS]
+            	"""
+            	)
             for (id, _, amp, amp_id, time_id, delay) in table_gradients
                 @printf(fid, "%d %12g %d %d %d\n", id, amp, amp_id, time_id, delay)
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_trap)
-            @printf(fid, "# Format of trapezoid gradients:\n")
-            @printf(fid, "# id amplitude rise flat fall delay\n")
-            @printf(fid, "# ..      Hz/m   us   us   us    us\n")
-            @printf(fid, "[TRAP]\n")
+            @printf(fid, 
+            """
+            # Format of trapezoid gradients:
+            # id amplitude rise flat fall delay
+            # ..      Hz/m   us   us   us    us
+            [TRAP]
+            """
+            )
             for (id, _, amp, rise, flat, fall, delay) in table_trap
                 @printf(fid, "%2d %12g %3d %4d %3d %3d\n", id, amp, rise, flat, fall, delay)
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_adc)
-            @printf(fid, "# Format of ADC events:\n")
-            @printf(fid, "# id num dwell delay freq phase\n")
-            @printf(fid, "# ..  ..    ns    us   Hz   rad\n")
-            @printf(fid, "[ADC]\n")
+            @printf(fid, 
+            	"""
+            	# Format of ADC events:
+            	# id num dwell delay freq phase
+            	# ..  ..    ns    us   Hz   rad\n
+            	[ADC]
+            	"""
+            	)
             for (id, _, num, dwell, delay, freq, phase) in table_adc
                 @printf(fid, "%d %d %.0f %.0f %g %g\n", id, num, dwell, delay, freq, phase)
             end
-            @printf(fid, "\n")
         end
         if !isempty(shape_data_id_num)
-            @printf(fid, "# Sequence Shapes\n")
-            @printf(fid, "[SHAPES]\n\n")
+            @printf(fid, 
+            	"""
+            	# Sequence Shapes
+            	[SHAPES]
+            	"""
+            	)
             for (data, id, num) in shape_data_id_num
                 @printf(fid, "shape_id %d\n", id)
                 @printf(fid, "num_samples %d\n", num)
@@ -369,20 +390,17 @@ function write_seq(seq::Sequence, filename)
     end
     md5hash = bytes2hex(open(md5, filename))
     open(filename, "a") do fid
-        @printf(fid, "\n[SIGNATURE]\n") # the preceding new line BELONGS to the signature (and needs to be sripped away to recalculate the signature)
         @printf(
             fid,
-            "# This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added\n"
+            """
+            [SIGNATURE]
+            # This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added
+            # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
+            # The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
+            Type md5
+            Hash %s
+            """,
+            md5hash
         )
-        @printf(
-            fid,
-            "# It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]\n"
-        )
-        @printf(
-            fid,
-            "# The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)\n"
-        )
-        @printf(fid, "Type md5\n")
-        @printf(fid, "Hash %s\n", md5hash)
     end
 end
