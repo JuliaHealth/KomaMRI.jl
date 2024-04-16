@@ -47,56 +47,34 @@ function get_events_on(event_array)
 end
 
 """
-    typeunique_obj_id = get_typeunique_obj_id(typeon_obj::Vector)
-
-Returns the vector `typeunique_obj_id` of objects (RF, Grad or ADC) which are unique given a
-input vector `typeon_obj` of objects which are on.
+Returns the a vector of vectors [obj, id] of unique events and IDs which are unique given
+an input vector of events.
 """
-function get_typeunique_obj_id(typeon_obj::Vector)
-    typeunique_obj_id = []
-    id_cnt = 1
-    for obj in typeon_obj
-        if all([!(obj ≈ obj_unique) for (obj_unique, _) in typeunique_obj_id])
-            push!(typeunique_obj_id, [obj, id_cnt])
-            id_cnt += 1
+function get_events_obj_id(events::Vector)
+    events_obj_id, id_cnt = [], 1
+    for obj in events
+        if all([!(obj ≈ obj_unique) for (obj_unique, _) in events_obj_id])
+            push!(events_obj_id, [obj, id_cnt]); id_cnt += 1
         end
     end
-    return typeunique_obj_id
+    return events_obj_id
 end
 
 """
-    obj = get_obj(s::Sequence, type::String)
-
-Returns the object (RF, Grad or ADC) of a Sequence `s` (ideally a one-block sequence)
-according to the input `type` in ["rf", "gx", "gy", "gz", "adc"]).
+Returns the vector of vectors [blk, obj, id] for all the blocks `blk` of an array of events.
+It is neccessary to add the input vector `events_obj_id` which contains the uniques objects
+(RF, Grad, or ADC) with its repective ID.
 """
-function get_obj(s::Sequence, type::String)
-    type == "rf" && return s.RF[1]
-    type == "gx" && return s.GR[1, 1]
-    type == "gy" && return s.GR[2, 1]
-    type == "gz" && return s.GR[3, 1]
-    type == "adc" && return s.ADC[1]
-    return Sequence()
-end
-
-"""
-    type_blk_obj_id = get_type_blk_obj_id(seq::Sequence, type::String, unique_obj_id::Vector)
-
-Returns the vector `type_blk_obj_id` of vectors [blk, obj, id] for all the blocks `blk` of a
-sequence `seq` according to the `type` in ["rf", "gx", "gy", "gz", "adc"] chosen. It is
-neccessary to add the input vector `unique_obj_id` which contains the uniques objects (RF,
-Grad, or ADC) with its repective ID.
-"""
-function get_type_blk_obj_id(seq::Sequence, type::String, unique_obj_id::Vector)
-    type_blk_obj_id = [[blk, get_obj(s, type), 0] for (blk, s) in enumerate(seq)]
-    for boi in type_blk_obj_id
-        for (obj_unique, id_unique) in unique_obj_id
-            if boi[2] ≈ obj_unique
-                boi[3] = id_unique
+function get_events_blk_obj_id(event_array, events_obj_id::Vector)
+    events_blk_obj_id = [[blk, obj, 0] for (blk, obj) in enumerate(event_array)]
+    for boi in events_blk_obj_id
+        for (obj, id) in events_obj_id
+            if boi[2] ≈ obj
+                boi[3] = id
             end
         end
     end
-    return type_blk_obj_id
+    return events_blk_obj_id
 end
 
 """
@@ -167,9 +145,9 @@ function write_seq(seq::Sequence, filename)
     Δt_rf = seq.DEF["RadiofrequencyRasterTime"]
     Δt_gr = seq.DEF["GradientRasterTime"]
     # Get the unique objects (RF, Grad y ADC) and its IDs
-    rfunique_obj_id = get_typeunique_obj_id(get_events_on(seq.RF))
-    grunique_obj_id = get_typeunique_obj_id(get_events_on(seq.GR))
-    adcunique_obj_id = get_typeunique_obj_id(get_events_on(seq.ADC))
+    rfunique_obj_id = get_events_obj_id(get_events_on(seq.RF))
+    grunique_obj_id = get_events_obj_id(get_events_on(seq.GR))
+    adcunique_obj_id = get_events_obj_id(get_events_on(seq.ADC))
     gradunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) != 1]
     trapunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) == 1]
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(
@@ -178,25 +156,24 @@ function write_seq(seq::Sequence, filename)
     gradunique_amp_id, gradunique_tim_id, _ = get_gradunique(
         gradunique_obj_id, id_shape_cnt, Δt_gr
     )
-    # Define the table to be written for the [BLOCKS] section
     @warn "EXTENSIONS will not be handled"
-    rf_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "rf", rfunique_obj_id)]
-    gx_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "gx", grunique_obj_id)]
-    gy_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "gy", grunique_obj_id)]
-    gz_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "gz", grunique_obj_id)]
-    adc_id = [id for (_, _, id) in get_type_blk_obj_id(seq, "adc", adcunique_obj_id)]
-    blk_obj_dur_rf_gx_gy_gz_adc_ext = [
-        [b, s, 0, rf_id[b], gx_id[b], gy_id[b], gz_id[b], adc_id[b], 0] for
-        (b, s) in enumerate(seq)
-    ]
-    for bodrxyzae in blk_obj_dur_rf_gx_gy_gz_adc_ext
-        blk = bodrxyzae[1]
+    # [BLOCKS]: Define the table to be written in the [BLOCKS] section
+    # Columns of table_blocks:
+    # [blk, seq[blk], id_rf, id_gx, id_gy, id_gz, id_adc, id_ext]
+    r = [id for (_, _, id) in get_events_blk_obj_id(seq.RF, rfunique_obj_id)]
+    x = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.x, grunique_obj_id)]
+    y = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.y, grunique_obj_id)]
+    z = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.z, grunique_obj_id)]
+    a = [id for (_, _, id) in get_events_blk_obj_id(seq.ADC, adcunique_obj_id)]
+    table_blocks = [[b, s, 0, r[b], x[b], y[b], z[b], a[b], 0] for (b, s) in enumerate(seq)]
+    for row in table_blocks
+        blk = row[1]
         bd = seq.DUR[blk] / seq.DEF["BlockDurationRaster"]
         bdr = round(bd)
         if abs(bdr - bd) > 1e-6
             @warn "Block $blk duration rounded"
         end
-        bodrxyzae[3] = bdr
+        row[3] = bdr
     end
     # Define the table to be written for the [RF] section
     rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha = [
@@ -333,29 +310,41 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-        if !isempty(blk_obj_dur_rf_gx_gy_gz_adc_ext)
+        if !isempty(table_blocks)
             @printf(fid, "# Format of blocks:\n")
             @printf(fid, "# NUM DUR RF  GX  GY  GZ  ADC  EXT\n")
             @printf(fid, "[BLOCKS]\n")
-            nBlocks = length(seq)
-            idFormatWidth = length(string(nBlocks))
-            idFormatStr = "%" * string(idFormatWidth) * "d "
-            for (blk, _, dur, rf, gx, gy, gz, adc, ext) in blk_obj_dur_rf_gx_gy_gz_adc_ext
-                Printf.format(
-                    fid,
-                    Printf.Format(idFormatStr * "%3d %3d %3d %3d %3d %2d %2d\n"),
-                    blk,
-                    dur,
-                    rf,
-                    gx,
-                    gy,
-                    gz,
-                    adc,
-                    ext,
-                )
+            id_format_width = length(string(length(seq)))
+            id_format_str = "%" * string(id_format_width) * "d "
+            format = Printf.Format(id_format_str * "%3d %3d %3d %3d %3d %2d %2d\n")
+            for (blk, _, dur, rf, gx, gy, gz, adc, ext) in table_blocks
+                Printf.format(fid, format, blk, dur, rf, gx, gy, gz, adc, ext)
             end
             @printf(fid, "\n")
         end
+        #if !isempty(blk_obj_dur_rf_gx_gy_gz_adc_ext)
+        #    @printf(fid, "# Format of blocks:\n")
+        #    @printf(fid, "# NUM DUR RF  GX  GY  GZ  ADC  EXT\n")
+        #    @printf(fid, "[BLOCKS]\n")
+        #    nBlocks = length(seq)
+        #    idFormatWidth = length(string(nBlocks))
+        #    idFormatStr = "%" * string(idFormatWidth) * "d "
+        #    for (blk, _, dur, rf, gx, gy, gz, adc, ext) in blk_obj_dur_rf_gx_gy_gz_adc_ext
+        #        Printf.format(
+        #            fid,
+        #            Printf.Format(idFormatStr * "%3d %3d %3d %3d %3d %2d %2d\n"),
+        #            blk,
+        #            dur,
+        #            rf,
+        #            gx,
+        #            gy,
+        #            gz,
+        #            adc,
+        #            ext,
+        #        )
+        #    end
+        #    @printf(fid, "\n")
+        #end
         if !isempty(rf_idx_obj_amp_imag_ipha_itim_delay_freq_pha)
             @printf(fid, "# Format of RF events:\n")
             @printf(fid, "# id amplitude mag_id phase_id time_shape_id delay freq phase\n")
