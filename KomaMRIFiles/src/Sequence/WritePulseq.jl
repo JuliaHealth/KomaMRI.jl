@@ -272,15 +272,16 @@ function write_seq(seq::Sequence, filename)
     ]
     # Write the .seq file
     open(filename, "w") do fid
-        @printf(fid, 
-        """# Pulseq sequence file
-        # Created with KomaMRIFiles.jl $(KomaMRIFiles.__VERSION__)
-        
-        [VERSION]
-        major 1
-        minor 4
-        revision 2
-        """
+        @printf(
+            fid,
+            """# Pulseq sequence file
+            # Created with KomaMRIFiles.jl $(KomaMRIFiles.__VERSION__)
+
+            [VERSION]
+            major 1
+            minor 4
+            revision 2
+            """
         )
         if !isempty(seq.DEF)
             @printf(
