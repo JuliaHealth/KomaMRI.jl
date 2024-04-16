@@ -283,10 +283,11 @@ function write_seq(seq::Sequence, filename)
         """
         )
         if !isempty(seq.DEF)
-            @printf(fid, 
-            """
-            [DEFINITIONS]
-            """
+            @printf(
+                fid,
+                """
+                [DEFINITIONS]
+                """
             )
             sorted_keys = sort(collect(keys(seq.DEF)))
             for key in sorted_keys
