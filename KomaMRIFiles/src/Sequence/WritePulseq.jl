@@ -275,13 +275,15 @@ function write_seq(seq::Sequence, filename)
         @printf(
             fid,
             """# Pulseq sequence file
-            # Created with KomaMRIFiles.jl $(KomaMRIFiles.__VERSION__)
+            # Created with KomaMRIFiles.jl %s
 
             [VERSION]
             major 1
             minor 4
             revision 2
-            """
+
+            """,
+            string(KomaMRIFiles.__VERSION__)
         )
         if !isempty(seq.DEF)
             @printf(
@@ -305,7 +307,9 @@ function write_seq(seq::Sequence, filename)
                         @printf(fid, "%.9g ", val)
                     end
                 end
+                @printf(fid, "\n")
             end
+            @printf(fid, "\n")
         end
         if !isempty(table_blocks)
             @printf(
@@ -321,6 +325,7 @@ function write_seq(seq::Sequence, filename)
             for (blk, _, dur, rf, gx, gy, gz, adc, ext) in table_blocks
                 Printf.format(fid, fmt, blk, dur, rf, gx, gy, gz, adc, ext)
             end
+            @printf(fid, "\n")
         end
         if !isempty(table_rf)
             @printf(
@@ -336,6 +341,7 @@ function write_seq(seq::Sequence, filename)
             for (id, _, amp, mag_id, pha_id, time_id, delay, freq, pha) in table_rf
                 Printf.format(fid, fmt, id, amp, mag_id, pha_id, time_id, delay, freq, pha)
             end
+            @printf(fid, "\n")
         end
         if !isempty(table_gradients)
             @printf(
@@ -351,6 +357,7 @@ function write_seq(seq::Sequence, filename)
             for (id, _, amp, amp_id, time_id, delay) in table_gradients
                 @printf(fid, "%d %12g %d %d %d\n", id, amp, amp_id, time_id, delay)
             end
+            @printf(fid, "\n")
         end
         if !isempty(table_trap)
             @printf(
@@ -365,6 +372,7 @@ function write_seq(seq::Sequence, filename)
             for (id, _, amp, rise, flat, fall, delay) in table_trap
                 @printf(fid, "%2d %12g %3d %4d %3d %3d\n", id, amp, rise, flat, fall, delay)
             end
+            @printf(fid, "\n")
         end
         if !isempty(table_adc)
             @printf(
@@ -379,6 +387,7 @@ function write_seq(seq::Sequence, filename)
             for (id, _, num, dwell, delay, freq, phase) in table_adc
                 @printf(fid, "%d %d %.0f %.0f %g %g\n", id, num, dwell, delay, freq, phase)
             end
+            @printf(fid, "\n")
         end
         if !isempty(shape_data_id_num)
             @printf(
@@ -386,6 +395,7 @@ function write_seq(seq::Sequence, filename)
                 """
                 # Sequence Shapes
                 [SHAPES]
+
                 """
             )
             for (data, id, num) in shape_data_id_num
@@ -394,6 +404,7 @@ function write_seq(seq::Sequence, filename)
                 [@printf(fid, "%.9g\n", datai) for datai in data]
                 @printf(fid, "\n")
             end
+            @printf(fid, "\n")
         end
     end
     md5hash = bytes2hex(open(md5, filename))
