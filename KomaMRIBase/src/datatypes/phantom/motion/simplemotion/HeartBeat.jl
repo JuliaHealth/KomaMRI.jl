@@ -2,8 +2,8 @@
 """
 
 @with_kw struct HeartBeat{T<:Real} <: SimpleMotionType{T} 
-    t_start::T                = typeof(t_end)(0.0)
     t_end::T
+    t_start::T                = typeof(t_end)(0.0)
     circunferential_strain::T = typeof(t_end)(0.0)
     radial_strain::T          = typeof(t_end)(0.0)
     longitudinal_strain::T    = typeof(t_end)(0.0)

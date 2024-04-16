@@ -66,8 +66,8 @@ yaw, & t >= t_end
 """
 
 @with_kw struct Rotation{T<:Real} <: SimpleMotionType{T} 
-    t_start::T = typeof(t_end)(0.0)
     t_end::T
+    t_start::T = typeof(t_end)(0.0)
     pitch::T   = typeof(t_end)(0.0)
     roll::T    = typeof(t_end)(0.0)
     yaw::T     = typeof(t_end)(0.0)

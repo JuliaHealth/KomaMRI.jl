@@ -41,8 +41,8 @@ dz, & t >= t_end
 """
 
 @with_kw struct Translation{T<:Real} <: SimpleMotionType{T}
-    t_start::T = typeof(t_end)(0.0)
     t_end::T
+    t_start::T = typeof(t_end)(0.0)
     dx::T      = typeof(t_end)(0.0)
     dy::T      = typeof(t_end)(0.0)
     dz::T      = typeof(t_end)(0.0)
