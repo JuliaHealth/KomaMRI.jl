@@ -110,29 +110,27 @@ function get_rf_shapes(rfs_obj_id::Vector, id_shape_cnt::Integer, Δt_rf)
 end
 
 """
-    gradunique_amp_id, gradunique_tim_id, id_shape_cnt = get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, Δt_gr)
-
-Returns the unique shapes for the amplitude and time of the "gradunique_obj_id" vector.
+Returns the unique shapes for the amplitude and time of the "grads_obj_id" vector.
 Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
 """
-function get_gradunique(gradunique_obj_id::Vector, id_shape_cnt::Integer, Δt_gr)
+function get_grad_shapes(grads_obj_id::Vector, id_shape_cnt::Integer, Δt_gr)
     # Find shapes for magnitude and time gradients
-    gradunique_amp_id, gradunique_tim_id = [], []
-    for (obj, _) in gradunique_obj_id
+    grads_amp_id, grads_tim_id = [], []
+    for (obj, _) in grads_obj_id
         shape_amp = obj.A / maximum(abs.(obj.A))
-        if not_in_list(shape_amp, [shape for (shape, _) in gradunique_amp_id])
-            push!(gradunique_amp_id, [shape_amp, id_shape_cnt])
+        if not_in_list(shape_amp, [shape for (shape, _) in grads_amp_id])
+            push!(grads_amp_id, [shape_amp, id_shape_cnt])
             id_shape_cnt = id_shape_cnt + 1
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_gr
-            if not_in_list(shape_tim, [shape for (shape, _) in gradunique_tim_id])
-                push!(gradunique_tim_id, [shape_tim, id_shape_cnt])
+            if not_in_list(shape_tim, [shape for (shape, _) in grads_tim_id])
+                push!(grads_tim_id, [shape_tim, id_shape_cnt])
                 id_shape_cnt = id_shape_cnt + 1
             end
         end
     end
-    return gradunique_amp_id, gradunique_tim_id, id_shape_cnt
+    return grads_amp_id, grads_tim_id, id_shape_cnt
 end
 
 """
@@ -145,22 +143,21 @@ function write_seq(seq::Sequence, filename)
     Δt_gr = seq.DEF["GradientRasterTime"]
     # Get the unique objects (RF, Grad y ADC) and its IDs
     rfs_obj_id = get_events_obj_id(get_events_on(seq.RF))
-    grunique_obj_id = get_events_obj_id(get_events_on(seq.GR))
+    grs_obj_id = get_events_obj_id(get_events_on(seq.GR))
     adcs_obj_id = get_events_obj_id(get_events_on(seq.ADC))
-    gradunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) != 1]
-    trapunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) == 1]
+    grads_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) != 1]
+    traps_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) == 1]
     rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt = get_rf_shapes(rfs_obj_id, 1, Δt_rf)
-    gradunique_amp_id, gradunique_tim_id, _ = get_gradunique(
-        gradunique_obj_id, id_shape_cnt, Δt_gr
-    )
+    grads_amp_id, grads_tim_id, _ = get_grad_shapes(grads_obj_id, id_shape_cnt, Δt_gr)
+    # Just a warning message for extensions
     @warn "EXTENSIONS will not be handled"
     # [BLOCKS]: Define the table to be written in the [BLOCKS] section
     # Columns of table_blocks:
     # [blk, seq[blk], id_rf, id_gx, id_gy, id_gz, id_adc, id_ext]
     r = [id for (_, _, id) in get_events_blk_obj_id(seq.RF, rfs_obj_id)]
-    x = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.x, grunique_obj_id)]
-    y = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.y, grunique_obj_id)]
-    z = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.z, grunique_obj_id)]
+    x = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.x, grs_obj_id)]
+    y = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.y, grs_obj_id)]
+    z = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.z, grs_obj_id)]
     a = [id for (_, _, id) in get_events_blk_obj_id(seq.ADC, adcs_obj_id)]
     table_blocks = [[b, s, 0, r[b], x[b], y[b], z[b], a[b], 0] for (b, s) in enumerate(seq)]
     for row in table_blocks
@@ -209,40 +206,40 @@ function write_seq(seq::Sequence, filename)
         delay_compensation_rf_koma = (row[6] == 0) * Δt_rf / 2
         row[7] = round((obj.delay - delay_compensation_rf_koma) / Δt_rf) * Δt_rf * 1e6
     end
-    # Define the table to be written for the [GRADIENTS] section
-    grad_idx_obj_amp_iamp_itim_delay = [
-        [idx, obj, 0, 0, 0, 0] for (obj, idx) in gradunique_obj_id
-    ]
-    for ioamtd in grad_idx_obj_amp_iamp_itim_delay
-        obj = ioamtd[2]
-        ioamtd[3] = γ * maximum(abs.(obj.A))    # this always stores positive values, the waveform vector have the respective positive or negative values
-        ioamtd[6] = round(1e6 * obj.delay)
+    # [GRADIENTS]: Define the table to be written for the [GRADIENTS] section
+    # Columns of table_gradients:
+    # [id, gr_obj, amp, id_amp, id_time, delay]
+    table_gradients = [[id, obj, 0, 0, 0, 0] for (obj, id) in grads_obj_id]
+    for row in table_gradients
+        obj = row[2]
+        row[3] = γ * maximum(abs.(obj.A))    # this always stores positive values, the waveform vector have the respective positive or negative values
+        row[6] = round(1e6 * obj.delay)
         shape_amp = obj.A / maximum(abs.(obj.A))
-        for (shape_amp_unique, id_amp) in gradunique_amp_id
+        for (shape_amp_unique, id_amp) in grads_amp_id
             if safe_approx(shape_amp, shape_amp_unique)
-                ioamtd[4] = id_amp
+                row[4] = id_amp
             end
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_gr
-            for (shape_tim_unique, id_tim) in gradunique_tim_id
+            for (shape_tim_unique, id_tim) in grads_tim_id
                 if safe_approx(shape_tim, shape_tim_unique)
-                    ioamtd[5] = id_tim
+                    row[5] = id_tim
                 end
             end
         end
     end
-    # Define the table to be written for the [TRAP] section
-    trap_idx_obj_amp_rise_flat_fall_delay = [
-        [idx, obj, 0, 0, 0, 0, 0] for (obj, idx) in trapunique_obj_id
-    ]
-    for ioarfad in trap_idx_obj_amp_rise_flat_fall_delay
-        obj = ioarfad[2]
-        ioarfad[3] = γ * obj.A
-        ioarfad[4] = 1e6 * obj.rise
-        ioarfad[5] = 1e6 * obj.T
-        ioarfad[6] = 1e6 * obj.fall
-        ioarfad[7] = 1e6 * obj.delay
+    # [TRAP]: Define the table to be written for the [TRAP] section
+    # Columns of table_trap:
+    # [id, gr_obj, amp, rise, flat, fall, delay]
+    table_trap = [[id, obj, 0, 0, 0, 0, 0] for (obj, id) in traps_obj_id]
+    for row in table_trap
+        obj = row[2]
+        row[3] = γ * obj.A
+        row[4] = 1e6 * obj.rise
+        row[5] = 1e6 * obj.T
+        row[6] = 1e6 * obj.fall
+        row[7] = 1e6 * obj.delay
     end
     # [ADC]: Define the table to be written for the [ADC] section
     # Columns of table_adc:
@@ -259,7 +256,7 @@ function write_seq(seq::Sequence, filename)
     # Define the table to be written for the [SHAPES] section
     shapefull_data_id = [
         shapeunique_data_id_i for shapeunique_data_id in
-        [rfs_abs_id, rfs_ang_id, rfs_tim_id, gradunique_amp_id, gradunique_tim_id] for
+        [rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id] for
         shapeunique_data_id_i in shapeunique_data_id
     ]
     shape_data_id_num = [
@@ -325,7 +322,7 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-        if !isempty(grad_idx_obj_amp_iamp_itim_delay)
+        if !isempty(table_gradients)
             @printf(fid, "# Format of arbitrary gradients:\n")
             @printf(
                 fid,
@@ -334,18 +331,17 @@ function write_seq(seq::Sequence, filename)
             @printf(fid, "# id amplitude amp_shape_id time_shape_id delay\n") # do we need delay ???
             @printf(fid, "# ..      Hz/m       ..         ..          us\n")
             @printf(fid, "[GRADIENTS]\n")
-            for (id, _, amp, ampid, timeid, delay) in grad_idx_obj_amp_iamp_itim_delay
-                @printf(fid, "%d %12g %d %d %d\n", id, amp, ampid, timeid, delay)
+            for (id, _, amp, amp_id, time_id, delay) in table_gradients
+                @printf(fid, "%d %12g %d %d %d\n", id, amp, amp_id, time_id, delay)
             end
             @printf(fid, "\n")
         end
-        if !isempty(trap_idx_obj_amp_rise_flat_fall_delay)
+        if !isempty(table_trap)
             @printf(fid, "# Format of trapezoid gradients:\n")
             @printf(fid, "# id amplitude rise flat fall delay\n")
             @printf(fid, "# ..      Hz/m   us   us   us    us\n")
             @printf(fid, "[TRAP]\n")
-            for (id, _, amp, rise, flat, fall, delay) in
-                trap_idx_obj_amp_rise_flat_fall_delay
+            for (id, _, amp, rise, flat, fall, delay) in table_trap
                 @printf(fid, "%2d %12g %3d %4d %3d %3d\n", id, amp, rise, flat, fall, delay)
             end
             @printf(fid, "\n")
