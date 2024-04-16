@@ -33,19 +33,17 @@ function not_in_list_angles(angle, angle_list)
 end
 
 """
-    typeon_obj = get_typeon_obj(seq::Sequence, type::String)
-
-Returns the vector `typeon_obj` of objects (RF, Grad or ADC) where the object is on in a
-given sequence `seq` according to the `type` in ["rf", "gr", "adc"] argument.
+Returns a boolean value indicating whether an event is "on".
 """
-function get_typeon_obj(seq::Sequence, type::String)
-    type == "rf" && return [s.RF[1] for s in seq if is_RF_on(s)]
-    type == "gr" && return [
-        g for s in seq for g in s.GR[:, 1] if
-        (sum(abs.(g.A)) > 0 || g.delay > 0 || g.rise > 0 || g.fall > 0)
-    ]
-    type == "adc" && return [s.ADC[1] for s in seq if is_ADC_on(s)]
-    return []
+function is_event_on(event)
+    return any([sum(abs.(getfield(event, key))) > 0 for key in fieldnames(typeof(event))])
+end
+
+"""
+Returns the vector of "on" events (RF, Grad or ADC).
+"""
+function get_events_on(event_array)
+    return [event for event in event_array if is_event_on(event)]
 end
 
 """
@@ -169,9 +167,9 @@ function write_seq(seq::Sequence, filename)
     Δt_rf = seq.DEF["RadiofrequencyRasterTime"]
     Δt_gr = seq.DEF["GradientRasterTime"]
     # Get the unique objects (RF, Grad y ADC) and its IDs
-    rfunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "rf"))
-    grunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "gr"))
-    adcunique_obj_id = get_typeunique_obj_id(get_typeon_obj(seq, "adc"))
+    rfunique_obj_id = get_typeunique_obj_id(get_events_on(seq.RF))
+    grunique_obj_id = get_typeunique_obj_id(get_events_on(seq.GR))
+    adcunique_obj_id = get_typeunique_obj_id(get_events_on(seq.ADC))
     gradunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) != 1]
     trapunique_obj_id = [[obj, id] for (obj, id) in grunique_obj_id if length(obj.A) == 1]
     rfunique_abs_id, rfunique_ang_id, rfunique_tim_id, id_shape_cnt = get_rfunique(
