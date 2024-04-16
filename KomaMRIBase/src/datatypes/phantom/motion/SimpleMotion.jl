@@ -12,7 +12,7 @@ z = z + uz
 
 """
 # -------- SimpleMotion
-mutable struct SimpleMotion{T<:Real} <: MotionModel{T}
+struct SimpleMotion{T<:Real} <: MotionModel{T}
     types::Vector{<:SimpleMotionType{T}}
 end
 
@@ -68,6 +68,7 @@ include("simplemotion/PeriodicRotation.jl")
 include("simplemotion/PeriodicHeartBeat.jl")
 
 function unit_time_triangular(t, period, asymmetry)
+    t_rise = period * asymmetry
     t_fall = period * (1 - asymmetry)
     t_relative = mod.(t, period)
     t_unit = ifelse.(t_relative .< t_rise, t_relative ./ t_rise, 1 .- (t_relative .- t_rise) ./ t_fall)
