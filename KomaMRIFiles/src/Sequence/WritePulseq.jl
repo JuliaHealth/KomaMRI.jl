@@ -348,13 +348,14 @@ function write_seq(seq::Sequence, filename)
             end
         end
         if !isempty(table_trap)
-            @printf(fid, 
-            """
-            # Format of trapezoid gradients:
-            # id amplitude rise flat fall delay
-            # ..      Hz/m   us   us   us    us
-            [TRAP]
-            """
+            @printf(
+                fid,
+                """
+                # Format of trapezoid gradients:
+                # id amplitude rise flat fall delay
+                # ..      Hz/m   us   us   us    us
+                [TRAP]
+                """
             )
             for (id, _, amp, rise, flat, fall, delay) in table_trap
                 @printf(fid, "%2d %12g %3d %4d %3d %3d\n", id, amp, rise, flat, fall, delay)
