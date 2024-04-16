@@ -374,12 +374,13 @@ function write_seq(seq::Sequence, filename)
             end
         end
         if !isempty(shape_data_id_num)
-            @printf(fid, 
-            	"""
-            	# Sequence Shapes
-            	[SHAPES]
-            	"""
-            	)
+            @printf(
+                fid,
+                """
+                # Sequence Shapes
+                [SHAPES]
+                """
+            )
             for (data, id, num) in shape_data_id_num
                 @printf(fid, "shape_id %d\n", id)
                 @printf(fid, "num_samples %d\n", num)
