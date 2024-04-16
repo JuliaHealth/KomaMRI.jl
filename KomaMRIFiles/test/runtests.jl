@@ -85,7 +85,8 @@ end
 
 @testitem "WritePulseq" tags = [:files, :pulseq] begin
     path = joinpath(@__DIR__, "test_files/pulseq_examples")
-    pulseq_files = filter(endswith(r"^(?!.*_w\.seq$).*\.seq$"), readdir(path)) .|> x -> splitext(x)[1]
+    pulseq_files =
+        filter(endswith(r"^(?!.*_w\.seq$).*\.seq$"), readdir(path)) .|> x -> splitext(x)[1]
     for pulseq_file in pulseq_files
         seq_original = read_seq("$path/$(pulseq_file).seq")
         write_seq(seq_original, "$path/$(pulseq_file)_w.seq")
