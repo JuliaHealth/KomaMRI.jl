@@ -320,14 +320,15 @@ function write_seq(seq::Sequence, filename)
             end
         end
         if !isempty(table_rf)
-            @printf(fid, 
-            	"""
-            	# Format of RF events:
-            	# id amplitude mag_id phase_id time_shape_id delay freq phase
-            	# ..        Hz   ....     ....          ....    us   Hz   rad
-            	[RF]
-            	"""
-            	)
+            @printf(
+                fid,
+                """
+                # Format of RF events:
+                # id amplitude mag_id phase_id time_shape_id delay freq phase
+                # ..        Hz   ....     ....          ....    us   Hz   rad
+                [RF]
+                """
+            )
             fmt = Printf.Format("%d %12g %d %d %d %g %g %g\n")
             for (id, _, amp, mag_id, pha_id, time_id, delay, freq, pha) in table_rf
                 Printf.format(fid, fmt, id, amp, mag_id, pha_id, time_id, delay, freq, pha)
