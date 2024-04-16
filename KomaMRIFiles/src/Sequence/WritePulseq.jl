@@ -54,7 +54,8 @@ function get_events_obj_id(events::Vector)
     events_obj_id, id_cnt = [], 1
     for obj in events
         if all([!(obj ≈ obj_unique) for (obj_unique, _) in events_obj_id])
-            push!(events_obj_id, [obj, id_cnt]); id_cnt += 1
+            push!(events_obj_id, [obj, id_cnt])
+            id_cnt += 1
         end
     end
     return events_obj_id
