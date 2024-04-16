@@ -89,7 +89,7 @@ end
     for pulseq_file in pulseq_files
         seq_original = read_seq("$path/$(pulseq_file).seq")
         write_seq(seq_original, "$path/$(pulseq_file)_w.seq")
-        seq_written  = read_seq("$path/$(pulseq_file)_w.seq")
+        seq_written = read_seq("$path/$(pulseq_file)_w.seq")
         @testset "$pulseq_file" begin
             @test seq_original ≈ seq_written
         end
