@@ -5,8 +5,10 @@ using Reexport
 using ThreadsX
 # Printing
 using ProgressMeter
-# Simulation
+# Simulation/GPU
 using CUDA
+using Adapt
+using Functors
 
 # KomaMRIBase
 @reexport using KomaMRIBase
