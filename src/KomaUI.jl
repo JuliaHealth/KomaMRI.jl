@@ -318,9 +318,11 @@ Auxiliary function to updates KomaUI's simulation progress bar.
 """
 function KomaMRICore.update_blink_window_progress!(w::Window, block, Nblocks)
     progress = string(floor(Int, block / Nblocks * 100))
-    @js_ w (@var progress = $progress;
-    document.getElementById("simul_progress").style.width = progress + "%";
-    document.getElementById("simul_progress").innerHTML = progress + "%";
-    document.getElementById("simul_progress").setAttribute("aria-valuenow", progress))
+    @js_ w (
+        @var progress = $progress;
+        document.getElementById("simul_progress").style.width = progress + "%";
+        document.getElementById("simul_progress").innerHTML = progress + "%";
+        document.getElementById("simul_progress").setAttribute("aria-valuenow", progress)
+    )
     return nothing
 end
