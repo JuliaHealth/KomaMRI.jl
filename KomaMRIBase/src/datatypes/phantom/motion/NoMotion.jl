@@ -11,7 +11,7 @@ Base.getindex(motion::NoMotion, p::Union{AbstractRange,AbstractVector,Colon}) = 
 Base.:(==)(m1::NoMotion, m2::NoMotion) = true
 Base.:(≈)(m1::NoMotion, m2::NoMotion)  = true
 
-+(m1::NoMotion{T}, m2::NoMotion{T}) where {T<:Real} = NoMotion{T}()
+Base.vcat(m1::NoMotion{T}, m2::NoMotion{T}) where {T<:Real} = NoMotion{T}()
 
 function get_spin_coords(
     motion::NoMotion,
