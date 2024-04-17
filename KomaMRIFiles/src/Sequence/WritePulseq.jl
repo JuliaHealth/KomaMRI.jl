@@ -299,14 +299,14 @@ function write_seq(seq::Sequence, filename)
     open(filename, "w") do fid
         @printf(
             fid,
-            """# Pulseq sequence file
+            """
+            # Pulseq sequence file
             # Created with KomaMRIFiles.jl %s
 
             [VERSION]
             major 1
             minor 4
             revision 2
-
             """,
             string(KomaMRIFiles.__VERSION__)
         )
@@ -314,6 +314,7 @@ function write_seq(seq::Sequence, filename)
             @printf(
                 fid,
                 """
+
                 [DEFINITIONS]
                 """
             )
@@ -335,12 +336,12 @@ function write_seq(seq::Sequence, filename)
                 end
                 @printf(fid, "\n")
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_blocks)
             @printf(
                 fid,
                 """
+
                 # Format of blocks:
                 # NUM DUR RF  GX  GY  GZ  ADC  EXT
                 [BLOCKS]
@@ -351,12 +352,12 @@ function write_seq(seq::Sequence, filename)
             for (blk, _, dur, rf, gx, gy, gz, adc, ext) in table_blocks
                 Printf.format(fid, fmt, blk, dur, rf, gx, gy, gz, adc, ext)
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_rf)
             @printf(
                 fid,
                 """
+
                 # Format of RF events:
                 # id amplitude mag_id phase_id time_shape_id delay freq phase
                 # ..        Hz   ....     ....          ....    us   Hz   rad
@@ -367,12 +368,12 @@ function write_seq(seq::Sequence, filename)
             for (id, _, amp, mag_id, pha_id, time_id, delay, freq, pha) in table_rf
                 Printf.format(fid, fmt, id, amp, mag_id, pha_id, time_id, delay, freq, pha)
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_gradients)
             @printf(
                 fid,
                 """
+
                 # Format of arbitrary gradients:
                 #   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)
                 # id amplitude amp_shape_id time_shape_id delay
@@ -383,12 +384,12 @@ function write_seq(seq::Sequence, filename)
             for (id, _, amp, amp_id, time_id, delay) in table_gradients
                 @printf(fid, "%d %12g %d %d %d\n", id, amp, amp_id, time_id, delay)
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_trap)
             @printf(
                 fid,
                 """
+
                 # Format of trapezoid gradients:
                 # id amplitude rise flat fall delay
                 # ..      Hz/m   us   us   us    us
@@ -398,27 +399,27 @@ function write_seq(seq::Sequence, filename)
             for (id, _, amp, rise, flat, fall, delay) in table_trap
                 @printf(fid, "%2d %12g %3d %4d %3d %3d\n", id, amp, rise, flat, fall, delay)
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_adc)
             @printf(
                 fid,
                 """
+
                 # Format of ADC events:
                 # id num dwell delay freq phase
-                # ..  ..    ns    us   Hz   rad\n
+                # ..  ..    ns    us   Hz   rad
                 [ADC]
                 """
             )
             for (id, _, num, dwell, delay, freq, phase) in table_adc
                 @printf(fid, "%d %d %.0f %.0f %g %g\n", id, num, dwell, delay, freq, phase)
             end
-            @printf(fid, "\n")
         end
         if !isempty(table_shapes)
             @printf(
                 fid,
                 """
+
                 # Sequence Shapes
                 [SHAPES]
 
@@ -430,7 +431,6 @@ function write_seq(seq::Sequence, filename)
                 [@printf(fid, "%.9g\n", datai) for datai in data]
                 @printf(fid, "\n")
             end
-            @printf(fid, "\n")
         end
     end
     md5hash = bytes2hex(open(md5, filename))
@@ -438,6 +438,7 @@ function write_seq(seq::Sequence, filename)
         @printf(
             fid,
             """
+
             [SIGNATURE]
             # This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added
             # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
