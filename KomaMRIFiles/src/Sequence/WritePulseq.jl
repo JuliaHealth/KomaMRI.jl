@@ -33,17 +33,13 @@ function not_in_list_angles(angle, angle_list)
 end
 
 """
-Returns a boolean value indicating whether an event is "on".
+Returns a boolean value indicating whether a gradient have vulues different from zero in its
+properties. This function it is kind of a patch for the is_on function since it covers the
+case when matlab writes gradients with zero amplitude but with delay, rise and fall different
+from zero.
 """
-function is_event_on(event)
-    return any([sum(abs.(getfield(event, key))) > 0 for key in fieldnames(typeof(event))])
-end
-
-"""
-Returns the vector of "on" events (RF, Grad or ADC).
-"""
-function get_events_on(event_array)
-    return [event for event in event_array if is_event_on(event)]
+function is_gr_considered(gr::Grad)
+    return any([sum(abs.(getfield(gr, key))) > 0 for key in fieldnames(Grad)])
 end
 
 """
@@ -283,9 +279,9 @@ function write_seq(seq::Sequence, filename)
     Δt_rf = seq.DEF["RadiofrequencyRasterTime"]
     Δt_gr = seq.DEF["GradientRasterTime"]
     # Get the unique objects (RF, Grad y ADC) and its IDs
-    rfs_obj_id = get_events_obj_id(get_events_on(seq.RF))
-    grs_obj_id = get_events_obj_id(get_events_on(seq.GR))
-    adcs_obj_id = get_events_obj_id(get_events_on(seq.ADC))
+    rfs_obj_id = get_events_obj_id(seq.RF[is_on.(seq.RF)])
+    grs_obj_id = get_events_obj_id(seq.GR[is_gr_considered.(seq.GR)])
+    adcs_obj_id = get_events_obj_id(seq.ADC[is_on.(seq.ADC)])
     grads_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) != 1]
     traps_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) == 1]
     rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt = get_rf_shapes(rfs_obj_id, 1, Δt_rf)
