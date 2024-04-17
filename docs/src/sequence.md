@@ -14,10 +14,10 @@ A **sequence** can be thought of as an ordered concatenation of blocks over time
 ```math
 \begin{matrix*}[l]
 \text{seq[i]}      &: & \text{block i of the sequence} \\
-\text{seq.RF[i]}   &: & \text{RF pulse at the i block} \\
-\text{seq.GR.x[i]} &: & \text{gradient x at the i block} \\
-\text{seq.GR.y[i]} &: & \text{gradient y at the i block} \\
-\text{seq.GR.z[i]} &: & \text{gradient z at the i block} \\
+\text{seq.RF[1, i]}   &: & \text{RF pulse at the i block} \\
+\text{seq.GR[1, i]} &: & \text{gradient x at the i block} \\
+\text{seq.GR[2, i]} &: & \text{gradient y at the i block} \\
+\text{seq.GR[3, i]} &: & \text{gradient z at the i block} \\
 \text{seq.ADC[i]}  &: & \text{acquisition at the i block} \\
 \text{seq.DUR[i]}  &: & \text{duration at the i block}
 \end{matrix*}

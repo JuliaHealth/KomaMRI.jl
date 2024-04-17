@@ -9,7 +9,7 @@ end
 
 function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict) where {T<:Real}
     out_state_dim = sim_method.save_Mz ? 2 : 1
-    return (sum(seq.ADC.N), length(obj), out_state_dim)
+    return (sum(getproperty.(seq.ADC, :N)), length(obj), out_state_dim)
 end
 
 """

@@ -46,21 +46,21 @@ mutable struct Sequence
 end
 
 # Main Constructors
-function Sequence(GR)
+function Sequence(GR::Matrix{Grad})
     rf = reshape([RF(0.0, 0.0) for i in 1:size(GR, 2)], 1, :)
     adc = [ADC(0, 0.0) for _ = 1:size(GR, 2)]
-    return Sequence(GR, rf, adc, GR.dur, Dict{String, Any}())
+    return Sequence(GR, rf, adc, dur(GR), Dict{String, Any}())
 end
-function Sequence(GR, RF)
+function Sequence(GR::Matrix{Grad}, RF::Matrix{RF})
     adc = [ADC(0, 0.0) for _ in 1:size(GR, 2)]
-    DUR = maximum([GR.dur RF.dur], dims=2)[:]
+    DUR = max.(dur(GR), dur(RF))
 	return Sequence(GR, RF, adc, DUR, Dict{String, Any}())
 end
-function Sequence(GR, RF, ADC)
-    DUR = maximum([GR.dur RF.dur ADC.dur], dims=2)[:]
+function Sequence(GR::Matrix{Grad}, RF::Matrix{RF}, ADC::Vector{ADC})
+    DUR = max.(dur(GR), dur(RF), dur(ADC))
 	return Sequence(GR, RF, ADC, DUR, Dict{String, Any}())
 end
-function Sequence(GR, RF, ADC, DUR)
+function Sequence(GR::Matrix{Grad}, RF::Matrix{RF}, ADC::Vector{ADC}, DUR::Vector)
     return Sequence(GR, RF, ADC, DUR, Dict{String, Any}())
 end
 
@@ -167,13 +167,12 @@ Tells if the sequence `seq` has elements with ADC active, or active during time 
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the ADC in the sequence is active
 """
-is_ADC_on(x::Sequence) = any(x-> x > 0, x.ADC.N)
+is_ADC_on(x::Sequence) = any(x-> x > 0, getproperty.(x.ADC, :N))
 is_ADC_on(x::Sequence, t::AbstractVecOrMat) = begin
 	N = length(x)
-	ΔT = durs(x)
-	ts = cumsum([0 ; ΔT[1:end-1]])
-	delays = x.ADC.delay
-	Ts = 	 x.ADC.dur #delat+T
+    ts = get_block_start_times(x)[1:end-1]
+	delays = getproperty.(x.ADC, :delay)
+	Ts = dur(x.ADC) #delat+T
 	t0s = ts .+ delays
 	tfs = ts .+ Ts
 	# The following just checks the ADC
@@ -200,10 +199,9 @@ Tells if the sequence `seq` has elements with RF active, or active during time `
 is_RF_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.RF] .> 0)
 is_RF_on(x::Sequence, t::AbstractVector) = begin
 	N = length(x)
-	ΔT = durs(x)
-	ts = cumsum([0 ; ΔT[1:end-1]])
-	delays = x.RF.delay
-	Ts = 	 x.RF.dur #dur = delat+T
+    ts = get_block_start_times(x)[1:end-1]
+	delays = getproperty.(x.RF, :delay)
+	Ts = dur(x.RF) #dur = delat+T
 	t0s = ts .+ delays
 	tfs = ts .+ Ts
 	# The following just checks the RF waveform
@@ -238,7 +236,7 @@ Tells if the sequence `seq` has elements with GR active in x direction.
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the GRx in the sequence is active
 """
-is_Gx_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.x] .> 0)
+is_Gx_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR[1, :]] .> 0)
 
 """
     y = is_Gy_on(x::Sequence)
@@ -251,7 +249,7 @@ Tells if the sequence `seq` has elements with GR active in y direction.
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the GRy in the sequence is active
 """
-is_Gy_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.y] .> 0)
+is_Gy_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR[2, :]] .> 0)
 
 """
     y = is_Gz_on(x::Sequence)
@@ -264,7 +262,7 @@ Tells if the sequence `seq` has elements with GR active in z direction.
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the GRz in the sequence is active
 """
-is_Gz_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.z] .> 0)
+is_Gz_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR[3, :]] .> 0)
 
 """
     y = is_Delay(x::Sequence)
@@ -280,26 +278,6 @@ Tells if the sequence `seq` is a delay.
 is_Delay(x::Sequence) = !(is_GR_on(x) || is_RF_on(x) || is_ADC_on(x))
 
 """
-    ΔT = durs(x::Sequence)
-
-Returns the array of durations of sequence's blocks in [s].
-
-# Arguments
-- `x`: (`::Sequence`) Sequence struct
-
-# Returns
-- `ΔT`: (`::Vector{Real}`, `[s]`) array of durations of sequence's blocks
-"""
-durs(x::Sequence) = begin
-	# ΔT_GR  = x.GR.dur
-	# ΔT_RF  = x.RF.dur
-	# ΔT_ADC = x.ADC.dur
-	# ΔT_DUR = x.DUR
-	# ΔT = maximum([ΔT_GR ΔT_RF ΔT_ADC ΔT_DUR],dims=2)
-	x.DUR
-end
-
-"""
     T = dur(x::Sequence)
 
 The total duration of the sequence in [s].
@@ -310,7 +288,7 @@ The total duration of the sequence in [s].
 # Returns
 - `T`: (`::Real`, `[s]`) total duration of the sequence
 """
-dur(x::Sequence) = sum(durs(x))
+dur(x::Sequence) = sum(x.DUR)
 
 """
     T0 = get_block_start_times(seq::Sequence)

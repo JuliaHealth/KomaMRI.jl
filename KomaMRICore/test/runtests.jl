@@ -436,7 +436,7 @@ end
     seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0; 0; Gz], TBP=8)
 
     # Simulate the slice profile
-    sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
+    sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF[1].A))
     M = @suppress simulate_slice_profile(seq; z, sim_params)
 
     # For the time being, always pass the test

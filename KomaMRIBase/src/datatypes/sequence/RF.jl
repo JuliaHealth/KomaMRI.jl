@@ -70,35 +70,6 @@ Base.show(io::IO, x::RF) = begin
     end
 end
 
-"""
-    y = getproperty(x::Vector{RF}, f::Symbol)
-    y = getproperty(x::Matrix{RF}, f::Symbol)
-
-Overloads Base.getproperty(). It is meant to access properties of the RF vector `x`
-directly without the need to iterate elementwise.
-
-# Arguments
-- `x`: (`::Vector{RF}` or `::Matrix{RF}`) vector or matrix of RF structs
-- `f`: (`::Symbol`, opts: [`:A`, `:Bx`, `:By`, `:T`, `:Δf`, `:delay` and `:dur`]) input
-    symbol that represents a property of the vector or matrix of RF structs
-
-# Returns
-- `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector with the property defined by the
-    symbol `f` for all elements of the RF vector or matrix `x`
-"""
-Base.getproperty(x::Vector{RF}, f::Symbol) = getfield.(x, f)
-Base.getproperty(x::Matrix{RF}, f::Symbol) = begin
-    if f == :x
-        real.(getfield.(x, :A))
-    elseif f == :y
-        imag.(getfield.(x, :A))
-    elseif f == :dur
-        dur(x)
-    else
-        getfield.(x, f)
-    end
-end
-
 # Properties
 Base.:*(α::Complex{T}, x::RF) where {T<:Real} = RF(α * x.A, x.T, x.Δf, x.delay)
 

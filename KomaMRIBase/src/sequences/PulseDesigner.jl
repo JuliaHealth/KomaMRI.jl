@@ -173,8 +173,8 @@ function EPI(FOV::Real, N::Integer, sys::Scanner)
 	# println("Pixel Δf in phase direction $(round(Δfx_pix_phase,digits=2)) Hz")
 	#Pre-wind and wind gradients
 	ϵ2 = Ta/(Ta+ζ)
-    PHASE =   Sequence([1/2*Grad(      -Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ) ;;]) #This needs to be calculated differently
-	DEPHASE = Sequence([1/2*Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ) ;;]) #for even N
+    PHASE =   Sequence(1/2*[Grad(      -Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ) ;;]) #This needs to be calculated differently
+	DEPHASE = Sequence(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ) ;;]) #for even N
 	seq = PHASE+EPI+DEPHASE
 	#Saving parameters
 	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi")

@@ -6,7 +6,7 @@ include("Magnetization.jl") #Defines Mag <: SpinStateRepresentation
 @functor Mag #Gives gpu acceleration capabilities, see GPUFunctions.jl
 
 function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::SimulationMethod) where {T<:Real}
-    return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
+    return (sum(getproperty.(seq.ADC, :N)), 1) #Nt x Ncoils, This should consider the coil info from sys
 end
 
 """Magnetization initialization for Bloch simulation method."""

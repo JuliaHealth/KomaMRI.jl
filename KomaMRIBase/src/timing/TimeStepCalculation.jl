@@ -105,9 +105,9 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 		end
 		if is_GR_on(s)
 			active_gradients = []
-			if is_Gx_on(s) append!(active_gradients, s.GR.x) end
-			if is_Gy_on(s) append!(active_gradients, s.GR.y) end
-			if is_Gz_on(s) append!(active_gradients, s.GR.z) end
+			if is_Gx_on(s) append!(active_gradients, s.GR[1, :]) end
+			if is_Gy_on(s) append!(active_gradients, s.GR[2, :]) end
+			if is_Gz_on(s) append!(active_gradients, s.GR[3, :]) end
 			for y = active_gradients
 				ts = time(y) .+ t0
 				taux = points_from_key_times([ts[1] + ϵ; ts; ts[end] - ϵ]; dt=Δt)

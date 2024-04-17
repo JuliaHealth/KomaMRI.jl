@@ -48,29 +48,6 @@ mutable struct ADC <: MRISequenceEvent
 end
 
 """
-    y = getproperty(x::Vector{ADC}, f::Symbol)
-
-Overloads Base.getproperty(). It is meant to access properties of the ADC vector `x`
-directly without the need to iterate elementwise.
-
-# Arguments
-- `x`: (`::Vector{ADC}`) vector of ADC structs
-- `f`: (`::Symbol`, opts: [`:N`, `:T`, `:delay`, `:Δf`, `:ϕ`, `:dur`]) input symbol that
-    represents a property of the ADC structs
-
-# Returns
-- `y`: (`::Vector{Any}`) vector with the property defined by the `f` for all elements of
-    the ADC vector `x`
-"""
-Base.getproperty(x::Vector{ADC}, f::Symbol) = begin
-    if f == :dur
-        dur(x)
-    else
-        getfield.(x, f)
-    end
-end
-
-"""
     times = get_adc_sampling_times(seq)
 
 Returns an array of times when the samples of the sequence `seq` are acquired.

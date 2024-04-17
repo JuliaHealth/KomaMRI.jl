@@ -716,7 +716,7 @@ function plot_kspace(
 	counter = 0
 	for s in seq
 		if is_ADC_on(s)
-			N = s.ADC.N[1]
+			N = s.ADC[1].N
 			append!(c2_idx, counter:N+counter-1)
 			counter += N
 		end

@@ -154,38 +154,6 @@ function Base.show(io::IO, x::Grad)
     end
 end
 
-"""
-    y = getproperty(x::Vector{Grad}, f::Symbol)
-    y = getproperty(x::Matrix{Grad}, f::Symbol)
-
-Overloads Base.getproperty(). It is meant to access properties of the Grad vector `x`
-directly without the need to iterate elementwise.
-
-# Arguments
-- `x`: (`::Vector{Grad}` or `::Matrix{Grad}`) vector or matrix of Grad structs
-- `f`: (`::Symbol`, opts: [`:x`, `:y`, `:z`, `:T`, `:delay`, `:rise`, `:delay`, `:dur`,
-    `:A`, `f`]) input symbol that represents a property of the vector or matrix of Grad
-    structs
-
-# Returns
-- `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector or matrix with the property defined
-    by the symbol `f` for all elements of the Grad vector or matrix `x`
-"""
-Base.getproperty(x::Vector{Grad}, f::Symbol) = getfield.(x, f)
-Base.getproperty(x::Matrix{Grad}, f::Symbol) = begin
-    if f == :x
-        x[1, :]
-    elseif f == :y
-        x[2, :]
-    elseif f == :z
-        x[3, :]
-    elseif f == :dur
-        dur(x)
-    else
-        getfield.(x, f)
-    end
-end
-
 # Gradient operations
 Base.:*(x::Grad, α::Real) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
 Base.:*(α::Real, x::Grad) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)

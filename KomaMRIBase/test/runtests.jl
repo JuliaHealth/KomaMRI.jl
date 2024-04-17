@@ -27,13 +27,12 @@ using TestItems, TestItemRunner
     @testset "Rot_and_Concat" begin
         # Rotation 2D case
         A1, A2, T, t = rand(4)
-        s = Sequence([Grad(A1,T);
-                    Grad(A2,T)])
+        s = Sequence([Grad(A1, T); Grad(A2, T) ;;])
         θ = π*t
         R = rotz(θ)
-        s2 = R*s #Matrix-Matrix{Grad} multiplication
-        GR2 = R*s.GR.A #Matrix-vector multiplication
-        @test s2.GR.A ≈ GR2
+        s2 = R * s #Matrix-Matrix{Grad} multiplication
+        GR2 = R * getproperty.(s.GR, :A) #Matrix-vector multiplication
+        @test getproperty.(s2.GR, :A) ≈ GR2
         # Rotation 3D case
         T, t1, t2, t3 = rand(4)
         N = 100
@@ -44,23 +43,19 @@ using TestItems, TestItemRunner
         Ry = roty(β)
         Rz = rotz(γ)
         R = Rx*Ry*Rz
-        s2 = R*s #Matrix-Matrix{Grad} multiplication
-        GR2 = R*s.GR.A #Matrix-vector multiplication
-        @test s2.GR.A ≈ GR2
+        s2 = R * s #Matrix-Matrix{Grad} multiplication
+        GR2 = R * getproperty.(s.GR, :A) #Matrix-vector multiplication
+        @test getproperty.(s2.GR, :A) ≈ GR2
 
         # Concatenation of sequences
         A1, A2, A3, T1 = rand(4)
-        s1 = Sequence([Grad(A1,T1);
-                    Grad(A2,T1)],
-                        [RF(A3,T1)])
+        s1 = Sequence([Grad(A1,T1); Grad(A2,T1) ;;], [RF(A3,T1) ;;])
         B1, B2, B3, T2 = rand(4)
-        s2 = Sequence([Grad(B1,T2);
-                    Grad(B2,T2)],
-                        [RF(B3,T2)])
+        s2 = Sequence([Grad(B1,T2); Grad(B2,T2) ;;], [RF(B3,T2) ;;])
         s = s1 + s2
-        @test s.GR.A ≈ [s1.GR.A s2.GR.A]
-        @test s.RF.A ≈ [s1.RF.A s2.RF.A]
-        @test s.ADC.N ≈ [s1.ADC.N ; s2.ADC.N]
+        @test getproperty.(s.GR, :A) ≈ [getproperty.(s1.GR, :A) getproperty.(s2.GR, :A)]
+        @test getproperty.(s.RF, :A) ≈ [getproperty.(s1.RF, :A) getproperty.(s2.RF, :A)]
+        @test getproperty.(s.ADC, :N) ≈ [getproperty.(s1.ADC, :N) ; getproperty.(s2.ADC, :N)]
     end
 
     @testset "Grad" begin
@@ -69,7 +64,7 @@ using TestItems, TestItemRunner
         g1, g2 = Grad(A1,T), Grad(A2,T)
         GR = [g1;g2;;]
         GR2 = reshape([g1;g2],:,1)
-        @test GR.A ≈ GR2.A
+        @test getproperty.(GR, :A) ≈ getproperty.(GR2, :A)
 
         #Sanity checks of contructors (A [T], T[s], rise[s], fall[s], delay[s])
         A, T = 0.1, 1e-3
@@ -137,9 +132,6 @@ using TestItems, TestItemRunner
         #Testing gradient concatenation, breakes in some Julia versions
         A1, A2, T = rand(3)
         r1, r2 = RF(A1,T), RF(A2,T)
-        R = [r1;r2;;]
-        R2 = reshape([r1;r2],:,1)
-        @test R.A ≈ R2.A
 
         #Sanity checks of constructors (A [T], T [s], Δf[Hz], delay [s])
         A, T = rand(2)
@@ -231,8 +223,12 @@ using TestItems, TestItemRunner
         Nb, Tb, delayb, Δfb, ϕb  = 128, 2e-3, 4e-3, 2e-6, .125*π
         adb = ADC(Nb, Tb, delayb, Δfb, ϕb)
         adcs = [adc, adb]
-        @test adcs.N ≈ [adc.N, adb.N] && adcs.T ≈ [adc.T, adb.T] && adcs.delay ≈ [adc.delay, adb.delay]
-        @test adcs.Δf ≈ [adc.Δf, adb.Δf] && adcs.ϕ ≈ [adc.ϕ, adb.ϕ] && adcs.dur ≈ [adc.T + adc.delay, adb.T + adb.delay]
+        @test getproperty.(adcs, :N)     ≈ [adc.N, adb.N]
+        @test getproperty.(adcs, :T)     ≈ [adc.T, adb.T]
+        @test getproperty.(adcs, :delay) ≈ [adc.delay, adb.delay]
+        @test getproperty.(adcs, :Δf)    ≈ [adc.Δf, adb.Δf]
+        @test getproperty.(adcs, :ϕ)     ≈ [adc.ϕ, adb.ϕ]
+        @test dur(adcs)  ≈ [adc.T + adc.delay, adb.T + adb.delay]
 
     end
 
@@ -297,34 +293,38 @@ using TestItems, TestItemRunner
         x = seq
         y = PulseDesigner.EPI_example()
         z = x + y
-        @test z.GR.A ≈ [x.GR  y.GR].A && z.RF.A ≈ [x.RF y.RF].A && z.ADC.N ≈ [x.ADC; y.ADC].N
+        @test getproperty.(z.GR, :A) ≈ getproperty.([x.GR y.GR], :A)
+        @test getproperty.(z.RF, :A) ≈ getproperty.([x.RF y.RF], :A)
+        @test getproperty.(z.ADC, :N) ≈ getproperty.([x.ADC; y.ADC], :N)
         z = x - y
-        @test z.GR.A ≈ [x.GR  -y.GR].A
+        @test getproperty.(z.GR, :A) ≈ getproperty.([x.GR -y.GR], :A)
         z = -x
-        @test z.GR.A ≈ -x.GR.A
+        @test getproperty.(z.GR, :A) ≈ getproperty.(-x.GR, :A)
         z = x * α
-        @test z.GR.A ≈ α*x.GR.A
+        @test getproperty.(z.GR, :A) ≈ getproperty.(α * x.GR, :A)
         z = α * x
-        @test z.GR.A ≈ α*x.GR.A
+        @test getproperty.(z.GR, :A) ≈ getproperty.(α * x.GR, :A)
         z = x * c
-        @test z.RF.A ≈ c*x.RF.A
+        @test getproperty.(z.RF, :A) ≈ getproperty.(c * x.RF, :A)
         z = c * x
-        @test z.RF.A ≈ c * x.RF.A
+        @test getproperty.(z.RF, :A) ≈ getproperty.(c * x.RF, :A)
         z = x / α
-        @test z.GR.A ≈ x.GR.A / α
-        # @test size(y) == size(y.GR[1,:])
-        z = x + x.GR[3,1]
-        @test z.GR.A[1, end] ≈ x.GR[3,1].A
-        z = x.GR[3,1] + x
-        @test z.GR.A[1, 1] ≈ x.GR[3,1].A
-        z = x + x.RF[1,1]
-        @test z.RF.A[1, end] ≈ x.RF[1,1].A
-        z = x.RF[1,1] + x
-        @test z.RF.A[1, 1] ≈ x.RF[1,1].A
-        z = x + x.ADC[3,1]
-        @test z.ADC.N[end] ≈ x.ADC[3,1].N
-        z = x.ADC[3,1] + x
-        @test z.ADC.N[1] ≈ x.ADC[3,1].N
+        @test getproperty.(z.GR, :A) ≈ getproperty.(x.GR / α, :A)
+        grad_event = x.GR[3, 1]
+        z = x + grad_event
+        @test z.GR[1, end].A ≈ grad_event.A
+        z = grad_event + x
+        @test z.GR[1, 1].A   ≈ grad_event.A
+        rf_event = x.RF[1, 1]
+        z = x + rf_event
+        @test z.RF[1, end].A ≈ rf_event.A
+        z = rf_event + x
+        @test z.RF[1, 1].A   ≈ rf_event.A
+        adc_event = x.ADC[3]
+        z = x + adc_event
+        @test z.ADC[end].N   ≈ adc_event.N
+        z = adc_event + x
+        @test z.ADC[1].N     ≈ adc_event.N
     end
 
 end

@@ -161,8 +161,8 @@ function signal_to_raw_data(
     current = 1
     for s = seq #Iterate over sequence blocks
         if is_ADC_on(s)
-            Nsamples = s.ADC.N[1]
-            Δt_us = floor( s.ADC.T[1] / (Nsamples - 1) * 1e6 )
+            Nsamples = s.ADC[1].N
+            Δt_us = floor( s.ADC[1].T / (Nsamples - 1) * 1e6 )
             t0_us = floor( t_acq[current] * 1e6 )
             flag  = 0
             if scan_counter == 0
