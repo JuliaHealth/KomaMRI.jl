@@ -108,7 +108,7 @@ end
 # RF comparison
 function Base.isapprox(rf1::RF, rf2::RF)
     return all(length(getfield(rf1, k)) == length(getfield(rf2, k)) for k in fieldnames(RF))
-    all(≈(getfield(rf1, k), getfield(rf2, k); atol=1e-9) for k in fieldnames(RF))
+    return all(≈(getfield(rf1, k), getfield(rf2, k); atol=1e-9) for k in fieldnames(RF))
 end
 
 # Properties
