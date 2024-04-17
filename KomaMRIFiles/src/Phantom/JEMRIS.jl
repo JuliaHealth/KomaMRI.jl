@@ -51,7 +51,7 @@ function read_phantom_jemris(filename)
     z = xx * 0 .+ yy * 0 .+ zz * 1 .+ offset[3] #spin z coordinates
     v = 0 # m/s
 
-    obj = Phantom(
+    obj = Phantom(;
         name=basename(filename),
         x=x[mask],
         y=y[mask],

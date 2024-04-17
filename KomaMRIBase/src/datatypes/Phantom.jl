@@ -37,8 +37,8 @@ julia> obj.ρ
 ```
 """
 @with_kw mutable struct Phantom{T<:Real}
-    name::String = "spins"
-    x::AbstractVector{T}
+    name::String           = "spins"
+    x                      :: AbstractVector{T}
     y::AbstractVector{T}   = zeros(eltype(x), size(x))
     z::AbstractVector{T}   = zeros(eltype(x), size(x))
     ρ::AbstractVector{T}   = ones(eltype(x), size(x))
@@ -67,8 +67,14 @@ Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
 
 """Compare two phantoms"""
-Base.:(==)(obj1::Phantom, obj2::Phantom) = reduce(&, [getfield(obj1, field) == getfield(obj2, field) for field in fieldnames(Phantom)])
-Base.:(≈)(obj1::Phantom, obj2::Phantom)  = reduce(&, [getfield(obj1, field)  ≈ getfield(obj2, field) for field in filter(x -> !(x in [:name]), [fieldnames(Phantom)...])])
+Base.:(==)(obj1::Phantom, obj2::Phantom) = reduce(
+    &,
+    [
+        getfield(obj1, field) == getfield(obj2, field) for
+        field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+    ],
+)
+Base.:(≈)(obj1::Phantom, obj2::Phantom)      = reduce(&, [getfield(obj1, field) ≈ getfield(obj2, field) for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))])
 Base.:(==)(m1::MotionModel, m2::MotionModel) = false
 Base.:(≈)(m1::MotionModel, m2::MotionModel)  = false
 
@@ -77,13 +83,10 @@ Separate object spins in a sub-group
 """
 Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
     fields = []
-    for field in filter(x -> !(x in [:name]), [fieldnames(Phantom)...])
+    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
         push!(fields, (field, getfield(obj, field)[p]))
     end
-    return Phantom(;
-        name=obj.name,
-        fields...
-    )
+    return Phantom(; name=obj.name, fields...)
 end
 
 """Separate object spins in a sub-group (lightweigth)."""
@@ -92,17 +95,11 @@ Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = @views o
 """Addition of phantoms"""
 +(obj1::Phantom, obj2::Phantom) = begin
     fields = []
-    for field in filter(x -> !(x in [:name, :motion]), [fieldnames(Phantom)...])
+    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
         push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
     end
-    return Phantom(;
-        name=obj1.name * "+" * obj2.name, 
-        motion=obj1.motion+obj2.motion, 
-        fields...
-    )
+    return Phantom(; name=obj1.name * "+" * obj2.name, fields...)
 end
-
-+(m1::MotionModel{T}, m2::MotionModel{T}) where {T<:Real} = NoMotion{T}() # TODO: resolve this for all motion models
 
 """Scalar multiplication of a phantom"""
 *(α::Real, obj::Phantom) = begin
@@ -169,7 +166,7 @@ function heart_phantom(
     T1 = (1400 * ⚪(r) .+ 1026 * ring) * 1e-3 #Myocardial T1
     T2 = (308 * ⚪(r) .+ 42 * ring) * 1e-3 #T2 map [s]
     # Generating Phantoms
-    phantom = Phantom(
+    phantom = Phantom(;
         name="LeftVentricle",
         x=x[ρ .!= 0],
         y=y[ρ .!= 0],
@@ -180,16 +177,14 @@ function heart_phantom(
         Dλ2=Dλ2[ρ .!= 0],
         Dθ=Dθ[ρ .!= 0],
         motion=SimpleMotion([
-            PeriodicHeartBeat(
+            PeriodicHeartBeat(;
                 period=period,
                 asymmetry=asymmetry,
                 circunferential_strain=circunferential_strain,
-                radial_strain=radial_strain),
-            PeriodicRotation(
-                period=period,
-                asymmetry=asymmetry,
-                yaw=rotation_angle)
-        ])
+                radial_strain=radial_strain,
+            ),
+            PeriodicRotation(; period=period, asymmetry=asymmetry, yaw=rotation_angle),
+        ]),
     )
     return phantom
 end
@@ -234,8 +229,8 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
     data = MAT.matread(path * "/phantom/brain2D.mat")
 
     # subsample or upsample the phantom data
-    class = repeat(data[axis][1:ssx:end,1:ssy:end], inner=[usx, usy])
-    
+    class = repeat(data[axis][1:ssx:end, 1:ssy:end]; inner=[usx, usy])
+
     # Define spin position vectors
     Δx = .5e-3 * ssx / usx
     Δy = .5e-3 * ssy / usy
@@ -247,7 +242,8 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
     x, y = x .+ y' * 0, x * 0 .+ y' #grid points
 
     # Define spin property vectors
-    T2 = (class .== 23) * 329 .+ #CSF
+    T2 =
+        (class .== 23) * 329 .+ #CSF
         (class .== 46) * 83 .+ #GM
         (class .== 70) * 70 .+ #WM
         (class .== 93) * 70 .+ #FAT1
@@ -258,7 +254,8 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
         (class .== 209) * 70 .+ #FAT2
         (class .== 232) * 329 .+ #DURA
         (class .== 255) * 70 #MARROW
-    T2s = (class .== 23) * 58 .+ #CSF
+    T2s =
+        (class .== 23) * 58 .+ #CSF
         (class .== 46) * 69 .+ #GM
         (class .== 70) * 61 .+ #WM
         (class .== 93) * 58 .+ #FAT1
@@ -270,7 +267,8 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
         (class .== 232) * 58 .+ #DURA
         (class .== 255) * 61 .+#MARROW
         (class .== 255) * 70 #MARROW
-    T1 = (class .== 23) * 2569 .+ #CSF
+    T1 =
+        (class .== 23) * 2569 .+ #CSF
         (class .== 46) * 833 .+ #GM
         (class .== 70) * 500 .+ #WM
         (class .== 93) * 350 .+ #FAT1
@@ -281,7 +279,8 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
         (class .== 209) * 500 .+ #FAT2
         (class .== 232) * 2569 .+ #DURA
         (class .== 255) * 500 #MARROW
-    ρ = (class .== 23) * 1 .+ #CSF
+    ρ =
+        (class .== 23) * 1 .+ #CSF
         (class .== 46) * 0.86 .+ #GM
         (class .== 70) * 0.77 .+ #WM
         (class .== 93) * 1 .+ #FAT1
@@ -293,14 +292,15 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
         (class .== 232) * 1 .+ #DURA
         (class .== 255) * 0.77 #MARROW
     Δw_fat = -220 * 2π
-    Δw = (class .== 93) * Δw_fat .+ #FAT1
+    Δw =
+        (class .== 93) * Δw_fat .+ #FAT1
         (class .== 209) * Δw_fat    #FAT2
     T1 = T1 * 1e-3
     T2 = T2 * 1e-3
     T2s = T2s * 1e-3
 
     # Define and return the Phantom struct
-    obj = Phantom{Float64}(
+    obj = Phantom{Float64}(;
         name="brain2D_" * axis,
         x=y[ρ .!= 0],
         y=x[ρ .!= 0],
@@ -309,7 +309,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
         T1=T1[ρ .!= 0],
         T2=T2[ρ .!= 0],
         T2s=T2s[ρ .!= 0],
-        Δw=Δw[ρ .!= 0]
+        Δw=Δw[ρ .!= 0],
     )
     return obj
 end
@@ -353,7 +353,10 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
     data = MAT.matread(path * "/phantom/brain3D.mat")
 
     # subsample or upsample the phantom data
-    class = repeat(data["data"][1:ssx:end,1:ssy:end, start_end[1]:ssz:start_end[2]], inner=[usx, usy, usz])
+    class = repeat(
+        data["data"][1:ssx:end, 1:ssy:end, start_end[1]:ssz:start_end[2]];
+        inner=[usx, usy, usz],
+    )
 
     # Define spin position vectors
     Δx = .5e-3 * ssx / usx
@@ -371,7 +374,8 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
     z = 0 * xx .+ 0 * yy .+ 1 * zz
 
     # Define spin property vectors
-    T2 = (class .== 23) * 329 .+ #CSF
+    T2 =
+        (class .== 23) * 329 .+ #CSF
         (class .== 46) * 83 .+ #GM
         (class .== 70) * 70 .+ #WM
         (class .== 93) * 70 .+ #FAT1
@@ -382,7 +386,8 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
         (class .== 209) * 70 .+ #FAT2
         (class .== 232) * 329 .+ #DURA
         (class .== 255) * 70 #MARROW
-    T2s = (class .== 23) * 58 .+ #CSF
+    T2s =
+        (class .== 23) * 58 .+ #CSF
         (class .== 46) * 69 .+ #GM
         (class .== 70) * 61 .+ #WM
         (class .== 93) * 58 .+ #FAT1
@@ -394,7 +399,8 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
         (class .== 232) * 58 .+ #DURA
         (class .== 255) * 61 .+#MARROW
         (class .== 255) * 70 #MARROW
-    T1 = (class .== 23) * 2569 .+ #CSF
+    T1 =
+        (class .== 23) * 2569 .+ #CSF
         (class .== 46) * 833 .+ #GM
         (class .== 70) * 500 .+ #WM
         (class .== 93) * 350 .+ #FAT1
@@ -405,7 +411,8 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
         (class .== 209) * 500 .+ #FAT2
         (class .== 232) * 2569 .+ #DURA
         (class .== 255) * 500 #MARROW
-    ρ = (class .== 23) * 1 .+ #CSF
+    ρ =
+        (class .== 23) * 1 .+ #CSF
         (class .== 46) * 0.86 .+ #GM
         (class .== 70) * 0.77 .+ #WM
         (class .== 93) * 1 .+ #FAT1
@@ -417,14 +424,15 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
         (class .== 232) * 1 .+ #DURA
         (class .== 255) * 0.77 #MARROW
     Δw_fat = -220 * 2π
-    Δw = (class .== 93) * Δw_fat .+ #FAT1
+    Δw =
+        (class .== 93) * Δw_fat .+ #FAT1
         (class .== 209) * Δw_fat    #FAT2
     T1 = T1 * 1e-3
     T2 = T2 * 1e-3
     T2s = T2s * 1e-3
 
     # Define and return the Phantom struct
-    obj = Phantom{Float64}(
+    obj = Phantom{Float64}(;
         name="brain3D",
         x=y[ρ .!= 0],
         y=x[ρ .!= 0],
@@ -433,7 +441,7 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
         T1=T1[ρ .!= 0],
         T2=T2[ρ .!= 0],
         T2s=T2s[ρ .!= 0],
-        Δw=Δw[ρ .!= 0]
+        Δw=Δw[ρ .!= 0],
     )
     return obj
 end
@@ -469,7 +477,7 @@ function pelvis_phantom2D(; ss=4, us=1)
     data = MAT.matread(path * "/phantom/pelvis2D.mat")
 
     # subsample or upsample the phantom data
-    class = repeat(data["pelvis3D_slice"][1:ssx:end,1:ssy:end], inner=[usx, usy])
+    class = repeat(data["pelvis3D_slice"][1:ssx:end, 1:ssy:end]; inner=[usx, usy])
 
     # Define spin position vectors
     Δx = .5e-3 * ssx / usx
@@ -482,19 +490,23 @@ function pelvis_phantom2D(; ss=4, us=1)
     x, y = x .+ y' * 0, x * 0 .+ y' # grid points
 
     # Define spin property vectors
-    ρ = (class .== 102) * 0.86 .+    # Fat
+    ρ =
+        (class .== 102) * 0.86 .+    # Fat
         (class .== 153) * 0.9 .+     # SoftTissue
         (class .== 204) * 0.4 .+     # SpongyBone
         (class .== 255) * 0.2        # CorticalBone
-    T1 = (class .== 102) * 366 .+   # Fat
+    T1 =
+        (class .== 102) * 366 .+   # Fat
         (class .== 153) * 1200 .+   # SoftTissue
         (class .== 204) * 381 .+    # SpongyBone
         (class .== 255) * 100       # CorticalBone
-    T2 = (class .== 102) * 70 .+    # Fat
+    T2 =
+        (class .== 102) * 70 .+    # Fat
         (class .== 153) * 80 .+     # SoftTissue
         (class .== 204) * 52 .+     # SpongyBone
         (class .== 255) * 0.3        # CorticalBone
-    T2s = (class .== 102) * 70 .+   # Fat
+    T2s =
+        (class .== 102) * 70 .+   # Fat
         (class .== 153) * 80 .+     # SoftTissue
         (class .== 204) * 52 .+     # SpongyBone
         (class .== 255) * 0.3   # CorticalBone
@@ -505,7 +517,7 @@ function pelvis_phantom2D(; ss=4, us=1)
     T2s = T2s * 1e-3
 
     # Define and return the Phantom struct
-    obj = Phantom{Float64}(
+    obj = Phantom{Float64}(;
         name="pelvis2D",
         x=y[ρ .!= 0],
         y=x[ρ .!= 0],
@@ -514,7 +526,7 @@ function pelvis_phantom2D(; ss=4, us=1)
         T1=T1[ρ .!= 0],
         T2=T2[ρ .!= 0],
         T2s=T2s[ρ .!= 0],
-        Δw=Δw[ρ .!= 0]
+        Δw=Δw[ρ .!= 0],
     )
     return obj
 end
@@ -539,7 +551,7 @@ julia> ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, 1, 1)
 julia> ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, 4, [2, 2, 2])
 ```
 """
-function check_phantom_arguments( nd, ss, us)
+function check_phantom_arguments(nd, ss, us)
     # check for valid input    
     ssz = -9999
     usz = -9999
@@ -551,33 +563,49 @@ function check_phantom_arguments( nd, ss, us)
         @assert length(ss) <= 3 "ss=$(ss) invalid, ss can have up to three components [ssx, ssy, ssz] for a 3D phantom"
         @assert length(us) <= 3 "us=$(us) invalid, us can have up to three components [usx, usy, usz] for a 3D phantom"
         if length(us) == 1
-            usx = us[1]; usy = us[1]; usz = us[1]
-        elseif length( us) == 2
-            usx = us[1]; usy = us[2]; usz = us[2]
+            usx = us[1]
+            usy = us[1]
+            usz = us[1]
+        elseif length(us) == 2
+            usx = us[1]
+            usy = us[2]
+            usz = us[2]
             @warn "Using us=$([usx, usy, usz]) in place of us=$([usx, usy])."
         else
-            usx = us[1]; usy = us[2]; usz = us[3]
+            usx = us[1]
+            usy = us[2]
+            usz = us[3]
         end
         if length(ss) == 1
-            ssx = ss[1]; ssy = ss[1]; ssz = ss[1]   
-        elseif length( ss) == 2
-            ssx = ss[1]; ssy = ss[2]; ssz = ss[2]
+            ssx = ss[1]
+            ssy = ss[1]
+            ssz = ss[1]
+        elseif length(ss) == 2
+            ssx = ss[1]
+            ssy = ss[2]
+            ssz = ss[2]
             @warn "Using ss=$([ssx, ssy, ssz]) in place of ss=$([ssx, ssy])."
         else
-            ssx = ss[1]; ssy = ss[2]; ssz = ss[3]
-        end    
-    elseif nd == 2    
+            ssx = ss[1]
+            ssy = ss[2]
+            ssz = ss[3]
+        end
+    elseif nd == 2
         @assert length(ss) <= 2 "ss=$(ss) invalid, ss can have up to two components [ssx, ssy] for a 2D phantom"
         @assert length(us) <= 2 "us=$(us) invalid, us can have up to two components [usx, usy] for a 2D phantom"
-            if length(us) == 1
-            usx = us[1]; usy = us[1]
+        if length(us) == 1
+            usx = us[1]
+            usy = us[1]
         else
-            usx = us[1]; usy = us[2]
+            usx = us[1]
+            usy = us[2]
         end
         if length(ss) == 1
-            ssx = ss[1]; ssy = ss[1]
+            ssx = ss[1]
+            ssy = ss[1]
         else
-            ssx = ss[1]; ssy = ss[2]
+            ssx = ss[1]
+            ssy = ss[2]
         end
     end
     return ssx, ssy, ssz, usx, usy, usz

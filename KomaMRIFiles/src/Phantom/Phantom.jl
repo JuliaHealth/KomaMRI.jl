@@ -28,7 +28,7 @@ function read_phantom(filename::String)
     model = read_attribute(motion_group, "model")
     import_motion!(fields, Ns, Symbol(model), motion_group)
 
-    obj = Phantom(;fields...)
+    obj = Phantom(; fields...)
     close(fid)
     return obj
 end
@@ -54,9 +54,17 @@ function read_param(param::HDF5.Group)
     return values
 end
 
-import_motion!(fields::Array, Ns::Int, model::Symbol, motion_group::HDF5.Group) = import_motion!(fields, Ns, Val(model), motion_group)
-import_motion!(fields::Array, Ns::Int, model::Val{:NoMotion}, motion_group::HDF5.Group) = nothing
-function import_motion!(fields::Array, Ns::Int, model::Val{:SimpleMotion}, motion_group::HDF5.Group)
+function import_motion!(fields::Array, Ns::Int, model::Symbol, motion_group::HDF5.Group)
+    return import_motion!(fields, Ns, Val(model), motion_group)
+end
+function import_motion!(
+    fields::Array, Ns::Int, model::Val{:NoMotion}, motion_group::HDF5.Group
+)
+    return nothing
+end
+function import_motion!(
+    fields::Array, Ns::Int, model::Val{:SimpleMotion}, motion_group::HDF5.Group
+)
     types_group = motion_group["types"]
     types = SimpleMotionType[]
     for key in keys(types_group)
@@ -73,16 +81,18 @@ function import_motion!(fields::Array, Ns::Int, model::Val{:SimpleMotion}, motio
             end
         end
     end
-    push!(fields, (:motion, SimpleMotion(vcat(types...)))) 
+    return push!(fields, (:motion, SimpleMotion(vcat(types...))))
 end
-function import_motion!(fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, motion_group::HDF5.Group)
-    dur = read(motion_group["duration"])
+function import_motion!(
+    fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, motion_group::HDF5.Group
+)
+    dur = read(motion_group["period_durations"])
     K = read_attribute(motion_group, "K")
     dx = zeros(Ns, K - 1)
     dy = zeros(Ns, K - 1)
     dz = zeros(Ns, K - 1)
     for key in HDF5.keys(motion_group)
-        if key != "duration"
+        if key != "period_durations"
             values = read_param(motion_group[key])
             if key == "dx"
                 dx = values
@@ -93,9 +103,9 @@ function import_motion!(fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, mo
             end
         end
     end
-    push!(fields, (:motion, ArbitraryMotion(dur, dx, dy, dz)))
+    return push!(fields, (:motion, ArbitraryMotion(dur, dx, dy, dz)))
 end
-        
+
 """
 write_phantom(ph,filename)
 
@@ -103,7 +113,13 @@ Writes a (.phantom) file from a Phantom struct.
 """
 # By the moment, only "Explicit" type 
 # is considered when writing .phantom files
-function write_phantom(obj::Phantom, filename::String; store_coords=[:x, :y, :z], store_contrasts=[:ρ, :T1, :T2, :T2s, :Δw], store_motion=true)
+function write_phantom(
+    obj::Phantom,
+    filename::String;
+    store_coords=[:x, :y, :z],
+    store_contrasts=[:ρ, :T1, :T2, :T2s, :Δw],
+    store_motion=true,
+)
     # Create HDF5 phantom file
     fid = h5open(filename, "w")
     # Root attributes
@@ -114,7 +130,7 @@ function write_phantom(obj::Phantom, filename::String; store_coords=[:x, :y, :z]
     HDF5.attributes(fid)["Dims"] = sum(dims)
     # Positions
     pos = create_group(fid, "position")
-    for x in store_coords 
+    for x in store_coords
         create_group(pos, String(x))["values"] = getfield(obj, x)
     end
     # Contrast (Rho, T1, T2, T2s Deltaw)
@@ -133,28 +149,28 @@ function write_phantom(obj::Phantom, filename::String; store_coords=[:x, :y, :z]
 end
 
 function export_motion!(motion_group::HDF5.Group, motion::NoMotion)
-    HDF5.attributes(motion_group)["model"] = "NoMotion"   
+    return HDF5.attributes(motion_group)["model"] = "NoMotion"
 end
 function export_motion!(motion_group::HDF5.Group, motion::SimpleMotion)
     HDF5.attributes(motion_group)["model"] = "SimpleMotion"
-    types_group =  create_group(motion_group, "types")
+    types_group = create_group(motion_group, "types")
     counter = 1
-    for (counter, sm_type) in enumerate(motion.types)  
+    for (counter, sm_type) in enumerate(motion.types)
         simple_motion_type = typeof(sm_type).name.name
         type_group = create_group(types_group, "$(counter)_$simple_motion_type")
-        fields = fieldnames(typeof(sm_type))  
-        for field in fields  
-            HDF5.attributes(type_group)[string(field)] = getfield(sm_type, field)  
-        end  
-    end  
+        fields = fieldnames(typeof(sm_type))
+        for field in fields
+            HDF5.attributes(type_group)[string(field)] = getfield(sm_type, field)
+        end
+    end
 end
 function export_motion!(motion_group::HDF5.Group, motion::ArbitraryMotion)
-    HDF5.attributes(motion_group)["model"] = "ArbitraryMotion" 
+    HDF5.attributes(motion_group)["model"] = "ArbitraryMotion"
     HDF5.attributes(motion_group)["K"] = size(motion.dx)[2] + 1
-    motion_group["duration"] = motion.duration
+    motion_group["period_durations"] = motion.period_durations
 
     for key in ["dx", "dy", "dz"]
-        d_group =  create_group(motion_group, key)
+        d_group = create_group(motion_group, key)
         HDF5.attributes(d_group)["type"] = "Explicit" #TODO: consider "Indexed" type
         d_group["values"] = getfield(motion, Symbol(key))
     end

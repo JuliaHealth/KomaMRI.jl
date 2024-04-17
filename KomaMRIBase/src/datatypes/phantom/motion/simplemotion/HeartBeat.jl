@@ -1,47 +1,66 @@
 @doc raw"""
 """
 
-@with_kw struct HeartBeat{T<:Real} <: SimpleMotionType{T} 
-    t_end::T
-    t_start::T                = typeof(t_end)(0.0)
-    circunferential_strain::T = typeof(t_end)(0.0)
-    radial_strain::T          = typeof(t_end)(0.0)
-    longitudinal_strain::T    = typeof(t_end)(0.0)
-end 
+@with_kw struct HeartBeat{T<:Real} <: SimpleMotionType{T}
+    circunferential_strain :: T
+    radial_strain          :: T
+    longitudinal_strain::T = typeof(circunferential_strain)(0.0)
+    t_start::T             = typeof(circunferential_strain)(0.0)
+    t_end::T               = typeof(circunferential_strain)(0.0)
+    @assert t_end >= t_start "t_end must be major or equal than t_start"
+end
 
 is_composable(motion_type::HeartBeat) = true
 
-displacement_x(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)  
-    r = sqrt.(x.^2 + y.^2)
+function displacement_x(
+    motion_type::HeartBeat{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
+    r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
     Δ_radial = -motion_type.radial_strain * (maximum(r) .- r)
     Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
     # Map negative radius to r=0
-    neg  = (r .+ Δr) .< 0
+    neg = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
     Δr .-= neg .* r
     return Δr .* cos.(θ)
 end
 
-displacement_y(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)  
-    r = sqrt.(x.^2 + y.^2)
+function displacement_y(
+    motion_type::HeartBeat{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
+    r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
     Δ_circunferential = motion_type.circunferential_strain * maximum(r)
     Δ_radial = -motion_type.radial_strain * (maximum(r) .- r)
     Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
     # Map negative radius to r=0
-    neg  = (r .+ Δr) .< 0
+    neg = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
     Δr .-= neg .* r
     return Δr .* sin.(θ)
 end
 
-displacement_z(motion_type::HeartBeat{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)  
-    return t_unit .* (z .* motion_type.longitudinal_strain) 
+function displacement_z(
+    motion_type::HeartBeat{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
+    return t_unit .* (z .* motion_type.longitudinal_strain)
 end
 
 time_nodes(motion_type::HeartBeat) = begin

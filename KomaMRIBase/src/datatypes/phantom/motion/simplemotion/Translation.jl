@@ -41,25 +41,44 @@ dz, & t >= t_end
 """
 
 @with_kw struct Translation{T<:Real} <: SimpleMotionType{T}
-    t_end::T
-    t_start::T = typeof(t_end)(0.0)
-    dx::T      = typeof(t_end)(0.0)
-    dy::T      = typeof(t_end)(0.0)
-    dz::T      = typeof(t_end)(0.0)
+    dx         :: T
+    dy         :: T
+    dz         :: T
+    t_start::T = typeof(dx)(0.0)
+    t_end::T   = typeof(dx)(0.0)
+    @assert t_end >= t_start "t_end must be major or equal than t_start"
 end
 
-displacement_x(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end) 
+function displacement_x(
+    motion_type::Translation{T},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
     return t_unit .* motion_type.dx
 end
 
-displacement_y(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)  
+function displacement_y(
+    motion_type::Translation{T},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
     return t_unit .* motion_type.dy
 end
 
-displacement_z(motion_type::Translation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end) 
+function displacement_z(
+    motion_type::Translation{T},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
     return t_unit .* motion_type.dz
 end
 

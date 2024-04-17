@@ -19,28 +19,46 @@ The amplitude of the oscillation will be defined by dx, dy and dz
 """
 
 @with_kw struct PeriodicTranslation{T<:Real} <: SimpleMotionType{T}
-    period::T
+    period       :: T
     asymmetry::T = typeof(period)(0.5)
     dx::T        = typeof(period)(0.0)
     dy::T        = typeof(period)(0.0)
     dz::T        = typeof(period)(0.0)
 end
 
-displacement_x(motion_type::PeriodicTranslation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+function displacement_x(
+    motion_type::PeriodicTranslation{T},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    t::AbstractArray{T},
+) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     return t_unit .* motion_type.dx
 end
 
-displacement_y(motion_type::PeriodicTranslation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+function displacement_y(
+    motion_type::PeriodicTranslation{T},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    t::AbstractArray{T},
+) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     return t_unit .* motion_type.dy
 end
 
-displacement_z(motion_type::PeriodicTranslation{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where {T<:Real} = begin
+function displacement_z(
+    motion_type::PeriodicTranslation{T},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    t::AbstractArray{T},
+) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     return t_unit .* motion_type.dz
 end
 
-time_nodes(motion_type::PeriodicTranslation) = begin
+function time_nodes(motion_type::PeriodicTranslation)
     return [0, motion_type.period * motion_type.asymmetry, motion_type.period]
 end

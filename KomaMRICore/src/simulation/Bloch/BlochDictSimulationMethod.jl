@@ -1,13 +1,15 @@
 Base.@kwdef struct BlochDict <: SimulationMethod
-    save_Mz::Bool=false
+    save_Mz::Bool = false
 end
 
 export BlochDict
 Base.show(io::IO, s::BlochDict) = begin
-	print(io, "BlochDict(save_Mz=$(s.save_Mz))")
+    print(io, "BlochDict(save_Mz=$(s.save_Mz))")
 end
 
-function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict) where {T<:Real}
+function sim_output_dim(
+    obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict
+) where {T<:Real}
     out_state_dim = sim_method.save_Mz ? 2 : 1
     return (sum(seq.ADC.N), length(obj), out_state_dim)
 end
@@ -51,11 +53,11 @@ function run_spin_precession!(
     Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     #Acquired signal
-    sig[:,:,1] .= transpose(Mxy[:, findall(seq.ADC)])
+    sig[:, :, 1] .= transpose(Mxy[:, findall(seq.ADC)])
 
     if sim_method.save_Mz
         Mz = [M.z M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1))] #Calculate intermediate points
-        sig[:,:,2] .= transpose(Mz[:, findall(seq.ADC)]) #Save state to signal
+        sig[:, :, 2] .= transpose(Mz[:, findall(seq.ADC)]) #Save state to signal
         M.z .= Mz[:, end]
     else
         M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point

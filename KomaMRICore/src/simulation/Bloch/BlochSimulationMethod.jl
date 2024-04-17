@@ -5,12 +5,16 @@ export Bloch
 include("Magnetization.jl") #Defines Mag <: SpinStateRepresentation
 @functor Mag #Gives gpu acceleration capabilities, see GPUFunctions.jl
 
-function sim_output_dim(obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::SimulationMethod) where {T<:Real}
+function sim_output_dim(
+    obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::SimulationMethod
+) where {T<:Real}
     return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
 end
 
 """Magnetization initialization for Bloch simulation method."""
-function initialize_spins_state(obj::Phantom{T}, sim_method::SimulationMethod) where {T<:Real}
+function initialize_spins_state(
+    obj::Phantom{T}, sim_method::SimulationMethod
+) where {T<:Real}
     Nspins = length(obj)
     Mxy = zeros(T, Nspins)
     Mz = obj.ρ
@@ -52,14 +56,14 @@ function run_spin_precession!(
         ϕ = T(-2π * γ) .* trapz(seq.Δt', Bz)
     end
     #Mxy precession and relaxation, and Mz relaxation
-    tp = cumsum(seq.Δt) # t' = t - t0
-    dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
+    tp   = cumsum(seq.Δt) # t' = t - t0
+    dur  = sum(seq.Δt)   # Total length, used for signal relaxation
+    Mxy  = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
     sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
-    
+
     return nothing
 end
 
@@ -86,7 +90,7 @@ function run_spin_excitation!(
     sim_method::SimulationMethod,
 ) where {T<:Real}
     #Simulation
-    for s ∈ seq #This iterates over seq, "s = seq[i,:]"
+    for s in seq #This iterates over seq, "s = seq[i,:]"
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field

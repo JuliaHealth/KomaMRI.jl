@@ -65,38 +65,61 @@ yaw, & t >= t_end
 
 """
 
-@with_kw struct Rotation{T<:Real} <: SimpleMotionType{T} 
-    t_end::T
-    t_start::T = typeof(t_end)(0.0)
-    pitch::T   = typeof(t_end)(0.0)
-    roll::T    = typeof(t_end)(0.0)
-    yaw::T     = typeof(t_end)(0.0)
-end 
+@with_kw struct Rotation{T<:Real} <: SimpleMotionType{T}
+    pitch      :: T
+    roll       :: T
+    yaw        :: T
+    t_start::T = typeof(pitch)(0.0)
+    t_end      = typeof(pitch)(0.0)
+    @assert t_end >= t_start "t_end must be major or equal than t_start"
+end
 
 is_composable(motion_type::Rotation) = true
 
-displacement_x(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end) 
+function displacement_x(
+    motion_type::Rotation{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
     α = t_unit .* (motion_type.pitch)
     β = t_unit .* (motion_type.roll)
     γ = t_unit .* (motion_type.yaw)
-    return cosd.(γ) .* cosd.(β) .* x   +   (cosd.(γ) .* sind.(β) .* sind.(α) .- sind.(γ) .* cosd.(α)) .* y   +   (cosd.(γ) .* sind.(β) .* cosd.(α) .+ sind.(γ) .* sind.(α)) .* z .- x
+    return cosd.(γ) .* cosd.(β) .* x +
+           (cosd.(γ) .* sind.(β) .* sind.(α) .- sind.(γ) .* cosd.(α)) .* y +
+           (cosd.(γ) .* sind.(β) .* cosd.(α) .+ sind.(γ) .* sind.(α)) .* z .- x
 end
 
-displacement_y(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end) 
-    α = t_unit .* motion_type.pitch
-    β = t_unit .* motion_type.roll
-    γ = t_unit .* motion_type.yaw
-    return sind.(γ) .* cosd.(β) .* x   +   (sind.(γ) .* sind.(β) .* sind.(α) .+ cosd.(γ) .* cosd.(α)) .* y   +   (sind.(γ) .* sind.(β) .* cosd.(α) .- cosd.(γ) .* sind.(α)) .* z .- y
-end
-
-displacement_z(motion_type::Rotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
+function displacement_y(
+    motion_type::Rotation{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
     t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
-    return -sind.(β) .* x   +   cosd.(β) .* sind.(α) .* y .- z
+    return sind.(γ) .* cosd.(β) .* x +
+           (sind.(γ) .* sind.(β) .* sind.(α) .+ cosd.(γ) .* cosd.(α)) .* y +
+           (sind.(γ) .* sind.(β) .* cosd.(α) .- cosd.(γ) .* sind.(α)) .* z .- y
+end
+
+function displacement_z(
+    motion_type::Rotation{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
+    α = t_unit .* motion_type.pitch
+    β = t_unit .* motion_type.roll
+    γ = t_unit .* motion_type.yaw
+    return -sind.(β) .* x + cosd.(β) .* sind.(α) .* y .- z
 end
 
 time_nodes(motion_type::Rotation) = begin

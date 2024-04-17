@@ -17,39 +17,61 @@ x (pitch), y (roll), and z (yaw)
 """
 
 @with_kw struct PeriodicRotation{T<:Real} <: SimpleMotionType{T}
-    period::T
+    period       :: T
     asymmetry::T = typeof(period)(0.5)
     pitch::T     = typeof(period)(0.0)
     roll::T      = typeof(period)(0.0)
     yaw::T       = typeof(period)(0.0)
-end 
+end
 
 is_composable(motion_type::PeriodicRotation) = true
 
-displacement_x(motion_type::PeriodicRotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
+function displacement_x(
+    motion_type::PeriodicRotation{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
-    return cosd.(γ) .* cosd.(β) .* x   +   (cosd.(γ) .* sind.(β) .* sind.(α) .- sind.(γ) .* cosd.(α)) .* y   +   (cosd.(γ) .* sind.(β) .* cosd.(α) .+ sind.(γ) .* sind.(α)) .* z .- x
+    return cosd.(γ) .* cosd.(β) .* x +
+           (cosd.(γ) .* sind.(β) .* sind.(α) .- sind.(γ) .* cosd.(α)) .* y +
+           (cosd.(γ) .* sind.(β) .* cosd.(α) .+ sind.(γ) .* sind.(α)) .* z .- x
 end
 
-displacement_y(motion_type::PeriodicRotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
+function displacement_y(
+    motion_type::PeriodicRotation{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
-    return sind.(γ) .* cosd.(β) .* x   +   (sind.(γ) .* sind.(β) .* sind.(α) .+ cosd.(γ) .* cosd.(α)) .* y   +   (sind.(γ) .* sind.(β) .* cosd.(α) .- cosd.(γ) .* sind.(α)) .* z .- y
+    return sind.(γ) .* cosd.(β) .* x +
+           (sind.(γ) .* sind.(β) .* sind.(α) .+ cosd.(γ) .* cosd.(α)) .* y +
+           (sind.(γ) .* sind.(β) .* cosd.(α) .- cosd.(γ) .* sind.(α)) .* z .- y
 end
 
-displacement_z(motion_type::PeriodicRotation{T}, x::AbstractArray{T}, y::AbstractArray{T}, z::AbstractArray{T}, t::AbstractArray{T}) where {T<:Real} = begin
+function displacement_z(
+    motion_type::PeriodicRotation{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
-    return -sind.(β) .* x   +   cosd.(β) .* sind.(α) .* y .- z
+    return -sind.(β) .* x + cosd.(β) .* sind.(α) .* y .- z
 end
 
-time_nodes(motion_type::PeriodicRotation) = begin
+function time_nodes(motion_type::PeriodicRotation)
     return [0, motion_type.period * motion_type.asymmetry, motion_type.period]
 end

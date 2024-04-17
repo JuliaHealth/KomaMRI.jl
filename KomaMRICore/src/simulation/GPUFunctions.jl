@@ -11,30 +11,34 @@ Simple function to print the CUDA devices available in the host.
 function print_gpus()
     check_use_cuda()
     if use_cuda[]
-	    cuda_devices = [Symbol("($(i-1)$(i == 1 ? "*" : " "))") => name(d) for (i,d) = enumerate(devices())]
-		@info "$(length(devices())) CUDA capable device(s)." cuda_devices...
+        cuda_devices = [
+            Symbol("($(i-1)$(i == 1 ? "*" : " "))") => name(d) for
+            (i, d) in enumerate(devices())
+        ]
+        @info "$(length(devices())) CUDA capable device(s)." cuda_devices...
     else
         @info "0 CUDA capable devices(s)."
     end
-	return
+    return nothing
 end
 
 """
 Checks if the PC has a functional CUDA installation. Inspired by Flux's `check_use_cuda` funciton.
 """
 function check_use_cuda()
-	if use_cuda[] === nothing
-		use_cuda[] = CUDA.functional()
-		if !(use_cuda[])
-		@info """The GPU function is being called but the GPU is not accessible.
-					Defaulting back to the CPU. (No action is required if you want to run on the CPU).""" maxlog=1
-		end
-	end
+    if use_cuda[] === nothing
+        use_cuda[] = CUDA.functional()
+        if !(use_cuda[])
+            @info """The GPU function is being called but the GPU is not accessible.
+               Defaulting back to the CPU. (No action is required if you want to run on the CPU).""" maxlog =
+                1
+        end
+    end
 end
 
 #Aux. funcitons to check if the variable we want to convert to CuArray is numeric
 _isbitsarray(::AbstractArray{<:Real}) = true
-_isbitsarray(::AbstractArray{T}) where T = isbitstype(T)
+_isbitsarray(::AbstractArray{T}) where {T} = isbitstype(T)
 _isbitsarray(x) = false
 _isleaf(x) = _isbitsarray(x) || isleaf(x)
 
@@ -43,18 +47,18 @@ struct KomaCUDAAdaptor end
 adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
 adapt_storage(to::KomaCUDAAdaptor, x::NoMotion) = NoMotion{Float32}()
 adapt_storage(to::KomaCUDAAdaptor, x::SimpleMotion) = f32(x)
-adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion) = begin 
-	duration = adapt(KomaCUDAAdaptor(), x.duration)
-	dx = adapt(KomaCUDAAdaptor(), x.dx)
-	dy = adapt(KomaCUDAAdaptor(), x.dy)
-	dz = adapt(KomaCUDAAdaptor(), x.dz)
-    ux = adapt(KomaCUDAAdaptor(), x.ux)
-	uy = adapt(KomaCUDAAdaptor(), x.uy)
-	uz = adapt(KomaCUDAAdaptor(), x.uz)
-    return ArbitraryMotion(duration, dx, dy, dz, ux, uy, uz)
+function adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion)
+    fields = []
+    for field in fieldnames(ArbitraryMotion)
+        push!(fields, adapt(KomaCUDAAdaptor(), getfield(x, field)))
+    end
+    return ArbitraryMotion(fields...)
 end
-adapt_storage(to::KomaCUDAAdaptor, x::Vector{LinearInterpolator{T,V}}) where {T<:Real,  V<:AbstractVector{T}} = CUDA.cu.(x)
-
+function adapt_storage(
+    to::KomaCUDAAdaptor, x::Vector{LinearInterpolator{T,V}}
+) where {T<:Real,V<:AbstractVector{T}}
+    return CUDA.cu.(x)
+end
 
 """
 	gpu(x)
@@ -73,8 +77,8 @@ x = x |> gpu
 ```
 """
 function gpu(x)
-	check_use_cuda()
-	use_cuda[] ? fmap(x -> adapt(KomaCUDAAdaptor(), x), x; exclude = _isleaf) : x
+    check_use_cuda()
+    return use_cuda[] ? fmap(x -> adapt(KomaCUDAAdaptor(), x), x; exclude=_isleaf) : x
 end
 
 #CPU adaptor
@@ -101,12 +105,12 @@ cpu(x) = fmap(x -> adapt(KomaCPUAdaptor(), x), x)
 
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
-adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs) 								
-adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs) 			
-adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs) 
+adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
+adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
+adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
-adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype(T, xs.types)) 
-adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}() 
+adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype(T, xs.types))
+adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
 
 """
     f32(m)
