@@ -134,26 +134,10 @@ function get_grad_shapes(grads_obj_id::Vector, id_shape_cnt::Integer, Δt_gr)
 end
 
 """
-    write_seq(seq::Sequence, filename::String)
-
-Writes a .seq file for a given sequence `seq` y the location `filename`
+Defines the table to be written in the [BLOCKS] section
+Columns of table_blocks: [blk, seq[blk], id_rf, id_gx, id_gy, id_gz, id_adc, id_ext]
 """
-function write_seq(seq::Sequence, filename)
-    Δt_rf = seq.DEF["RadiofrequencyRasterTime"]
-    Δt_gr = seq.DEF["GradientRasterTime"]
-    # Get the unique objects (RF, Grad y ADC) and its IDs
-    rfs_obj_id = get_events_obj_id(get_events_on(seq.RF))
-    grs_obj_id = get_events_obj_id(get_events_on(seq.GR))
-    adcs_obj_id = get_events_obj_id(get_events_on(seq.ADC))
-    grads_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) != 1]
-    traps_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) == 1]
-    rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt = get_rf_shapes(rfs_obj_id, 1, Δt_rf)
-    grads_amp_id, grads_tim_id, _ = get_grad_shapes(grads_obj_id, id_shape_cnt, Δt_gr)
-    # Just a warning message for extensions
-    @warn "EXTENSIONS will not be handled"
-    # [BLOCKS]: Define the table to be written in the [BLOCKS] section
-    # Columns of table_blocks:
-    # [blk, seq[blk], id_rf, id_gx, id_gy, id_gz, id_adc, id_ext]
+function get_table_blocks(seq, rfs_obj_id, grs_obj_id, adcs_obj_id)
     r = [id for (_, _, id) in get_events_blk_obj_id(seq.RF, rfs_obj_id)]
     x = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.x, grs_obj_id)]
     y = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.y, grs_obj_id)]
@@ -169,9 +153,14 @@ function write_seq(seq::Sequence, filename)
         end
         row[3] = bdr
     end
-    # [RF]: Define the table to be written in the [RF] section
-    # Columns of table_rf:
-    # [id, rf_obj, amp, id_mag, id_phase, id_time, delay, freq, phase]
+    return table_blocks
+end
+
+"""
+Defines the table to be written in the [RF] section
+Columns of table_rf: [id, rf_obj, amp, id_mag, id_phase, id_time, delay, freq, phase]
+"""
+function get_table_rf(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
     table_rf = [[id, obj, 0, 0, 0, 0, 0, 0, 0] for (obj, id) in rfs_obj_id]
     for row in table_rf
         obj = row[2]
@@ -206,9 +195,14 @@ function write_seq(seq::Sequence, filename)
         delay_compensation_rf_koma = (row[6] == 0) * Δt_rf / 2
         row[7] = round((obj.delay - delay_compensation_rf_koma) / Δt_rf) * Δt_rf * 1e6
     end
-    # [GRADIENTS]: Define the table to be written for the [GRADIENTS] section
-    # Columns of table_gradients:
-    # [id, gr_obj, amp, id_amp, id_time, delay]
+    return table_rf
+end
+
+"""
+Defines the table to be written in the [GRADIENTS] section
+Columns of table_gradients: [id, gr_obj, amp, id_amp, id_time, delay]
+"""
+function get_table_gradients(grads_obj_id, grads_amp_id, grads_tim_id, Δt_gr)
     table_gradients = [[id, obj, 0, 0, 0, 0] for (obj, id) in grads_obj_id]
     for row in table_gradients
         obj = row[2]
@@ -229,9 +223,14 @@ function write_seq(seq::Sequence, filename)
             end
         end
     end
-    # [TRAP]: Define the table to be written for the [TRAP] section
-    # Columns of table_trap:
-    # [id, gr_obj, amp, rise, flat, fall, delay]
+    return table_gradients
+end
+
+"""
+Defines the table to be written in the [TRAP] section
+Columns of table_trap: [id, gr_obj, amp, rise, flat, fall, delay]
+"""
+function get_table_trap(traps_obj_id)
     table_trap = [[id, obj, 0, 0, 0, 0, 0] for (obj, id) in traps_obj_id]
     for row in table_trap
         obj = row[2]
@@ -241,9 +240,14 @@ function write_seq(seq::Sequence, filename)
         row[6] = 1e6 * obj.fall
         row[7] = 1e6 * obj.delay
     end
-    # [ADC]: Define the table to be written for the [ADC] section
-    # Columns of table_adc:
-    # [id, adc_obj, num, dwell, delay, freq, phase]
+    return table_trap
+end
+
+"""
+Defines the table to be written in the [ADC] section
+Columns of table_adc: [id, adc_obj, num, dwell, delay, freq, phase]
+"""
+function get_table_adc(adcs_obj_id)
     table_adc = [[id, obj, 0, 0, 0, 0, 0] for (obj, id) in adcs_obj_id]
     for row in table_adc
         obj = row[2]
@@ -253,12 +257,48 @@ function write_seq(seq::Sequence, filename)
         row[6] = obj.Δf
         row[7] = obj.ϕ
     end
-    # [SHAPES] Define the table to be written for the [SHAPES] section
-    # Columns of table_shapes:
-    # [id, num, data]
+    return table_adc
+end
+
+"""
+Defines the table to be written for the [SHAPES] section
+Columns of table_shapes: [id, num, data]
+"""
+function get_table_shapes(rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id)
     events_data_id = [rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id]
     shapes_data_id = [s for shapes in events_data_id for s in shapes]
     table_shapes = [[id, compress_shape(data)...] for (data, id) in shapes_data_id]
+    return table_shapes
+end
+
+"""
+    write_seq(seq::Sequence, filename::String)
+
+Writes a .seq file for a given sequence `seq` y the location `filename`
+"""
+function write_seq(seq::Sequence, filename)
+    # Just a warning message for extensions
+    @warn "EXTENSIONS will not be handled"
+    # Get the raster times
+    Δt_rf = seq.DEF["RadiofrequencyRasterTime"]
+    Δt_gr = seq.DEF["GradientRasterTime"]
+    # Get the unique objects (RF, Grad y ADC) and its IDs
+    rfs_obj_id = get_events_obj_id(get_events_on(seq.RF))
+    grs_obj_id = get_events_obj_id(get_events_on(seq.GR))
+    adcs_obj_id = get_events_obj_id(get_events_on(seq.ADC))
+    grads_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) != 1]
+    traps_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) == 1]
+    rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt = get_rf_shapes(rfs_obj_id, 1, Δt_rf)
+    grads_amp_id, grads_tim_id, _ = get_grad_shapes(grads_obj_id, id_shape_cnt, Δt_gr)
+    # Get the tables to be written in the pulseq file
+    table_blocks = get_table_blocks(seq, rfs_obj_id, grs_obj_id, adcs_obj_id)
+    table_rf = get_table_rf(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
+    table_gradients = get_table_gradients(grads_obj_id, grads_amp_id, grads_tim_id, Δt_gr)
+    table_trap = get_table_trap(traps_obj_id)
+    table_adc = get_table_adc(adcs_obj_id)
+    table_shapes = get_table_shapes(
+        rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id
+    )
     # Write the .seq file
     open(filename, "w") do fid
         @printf(
