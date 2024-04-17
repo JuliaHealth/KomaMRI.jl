@@ -8,7 +8,7 @@ sys = Scanner() # hide
 
 # While in the previous examples we simulated using hard RF pulses,
 # in this demonstration we will illustrate the principles of slice selection.
-# First, let's import a 3D phantom, in this case a brain slab
+# First, let's use a 3D phantom, in this case a brain slab
 # (thickness of ``2\,\mathrm{cm}``), by calling the function [`brain_phantom3D`](@ref).
 
 obj = brain_phantom3D()
@@ -21,7 +21,7 @@ p1 = plot_phantom_map(obj, :T2 ; height=400)
 #md # <center><object type="text/html" data="../../../assets/FOLDER_NAME/3-phantom.html" style="width:50%; height:420px;"></object></center>
 #md # ```
 
-# Now, we are going to import a sequence which acquires
+# Now, we are going to read a sequence which acquires
 # 3 slices in the longitudinal axis. Note that the sequence
 # contains three EPIs to acquire 3 slices of the phantom.
 

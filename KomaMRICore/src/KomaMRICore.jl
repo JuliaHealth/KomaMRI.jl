@@ -1,7 +1,6 @@
 module KomaMRICore
 
 # General
-import Base.*, Base.abs
 using Reexport
 using ThreadsX
 # Printing

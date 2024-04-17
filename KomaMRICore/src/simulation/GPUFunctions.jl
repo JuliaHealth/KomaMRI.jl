@@ -1,5 +1,3 @@
-import Functors: @functor, functor, fmap, isleaf
-import Adapt: adapt, adapt_storage
 #Checks if CUDA is available for the session
 const use_cuda = Ref{Union{Nothing,Bool}}(nothing)
 
@@ -36,11 +34,11 @@ end
 _isbitsarray(::AbstractArray{<:Real}) = true
 _isbitsarray(::AbstractArray{T}) where T = isbitstype(T)
 _isbitsarray(x) = false
-_isleaf(x) = _isbitsarray(x) || isleaf(x)
+_isleaf(x) = _isbitsarray(x) || Functors.isleaf(x)
 
 # GPU adaptor
 struct KomaCUDAAdaptor end
-adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
+Adapt.adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
 
 """
 	gpu(x)
@@ -65,8 +63,8 @@ end
 
 #CPU adaptor
 struct KomaCPUAdaptor end
-adapt_storage(to::KomaCPUAdaptor, x::AbstractArray) = adapt(Array, x)
-adapt_storage(to::KomaCPUAdaptor, x::AbstractRange) = x
+Adapt.adapt_storage(to::KomaCPUAdaptor, x::AbstractArray) = Adapt.adapt(Array, x)
+Adapt.adapt_storage(to::KomaCPUAdaptor, x::AbstractRange) = x
 
 # To CPU
 """
@@ -88,9 +86,9 @@ cpu(x) = fmap(x -> adapt(KomaCPUAdaptor(), x), x)
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
 
-adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs) #Type piracy
-adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs) #Type piracy
-adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs #Type piracy
+Adapt.adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs) #Type piracy
+Adapt.adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs) #Type piracy
+Adapt.adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs #Type piracy
 
 """
     f32(m)

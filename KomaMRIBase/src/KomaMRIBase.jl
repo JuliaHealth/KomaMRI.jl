@@ -1,7 +1,5 @@
 module KomaMRIBase
 
-#IMPORT PACKAGES
-import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.abs, Base.getproperty
 #General
 using Reexport
 #Datatypes
@@ -18,6 +16,7 @@ global γ = 42.5774688e6; # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.57
 # Hardware
 include("datatypes/Scanner.jl")
 # Sequence
+include("datatypes/sequence/MRISequenceEvent.jl")
 include("datatypes/sequence/Grad.jl")
 include("datatypes/sequence/RF.jl")
 include("datatypes/sequence/ADC.jl")

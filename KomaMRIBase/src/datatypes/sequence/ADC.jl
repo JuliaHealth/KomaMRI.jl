@@ -22,27 +22,29 @@ julia> adc = ADC(16, 1, 0.1)
 julia> seq = Sequence(); seq += adc; plot_seq(seq)
 ```
 """
-mutable struct ADC
+mutable struct ADC <: MRISequenceEvent
     N::Int64
     T::Float64
     delay::Float64
     Δf::Float64
     ϕ::Float64
     function ADC(N, T, delay, Δf, ϕ)
-        T < 0 || delay < 0 ? error("ADC timings must be positive.") : new(N, T, delay, Δf, ϕ)
+        return if T < 0 || delay < 0
+            error("ADC timings must be positive.")
+        else
+            new(N, T, delay, Δf, ϕ)
+        end
     end
     function ADC(N, T, delay)
-		T < 0 || delay < 0 ? error("ADC timings must be positive.") : new(N, T, delay, 0, 0)
+        return if T < 0 || delay < 0
+            error("ADC timings must be positive.")
+        else
+            new(N, T, delay, 0, 0)
+        end
     end
     function ADC(N, T)
-		T < 0 ? error("ADC timings must be positive.") : new(N, T, 0, 0, 0)
+        return T < 0 ? error("ADC timings must be positive.") : new(N, T, 0, 0, 0)
     end
-end
-
-# ADC comparison
-Base.isapprox(adc1::ADC, adc2::ADC) = begin
-    return all(length(getfield(adc1, k)) ≈ length(getfield(adc2, k)) for k ∈ fieldnames(ADC))
-        all(getfield(adc1, k) ≈ getfield(adc2, k) for k ∈ fieldnames(ADC))
 end
 
 """
@@ -60,11 +62,9 @@ directly without the need to iterate elementwise.
 - `y`: (`::Vector{Any}`) vector with the property defined by the `f` for all elements of
     the ADC vector `x`
 """
-getproperty(x::Vector{ADC}, f::Symbol) = begin
+Base.getproperty(x::Vector{ADC}, f::Symbol) = begin
     if f == :dur
-		T, delay = x.T, x.delay
-		ΔT = T .+ delay
-		ΔT
+        dur(x)
     else
         getproperty.(x, f)
     end
@@ -84,7 +84,7 @@ Returns an array of times when the samples of the sequence `seq` are acquired.
 function get_adc_sampling_times(seq)
     T0 = get_block_start_times(seq)
     times = Float64[]
-    for i = 1:length(seq)
+    for i in 1:length(seq)
         if is_ADC_on(seq[i])
             t = time(seq.ADC[i]) .+ T0[i]
             append!(times, t)
@@ -123,3 +123,4 @@ function get_adc_phase_compensation(seq)
 end
 
 dur(adc::ADC) = adc.delay + adc.T
+dur(adc::Vector{ADC}) = dur.(adc)

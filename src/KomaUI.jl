@@ -316,7 +316,7 @@ end
 """
 Auxiliary function to updates KomaUI's simulation progress bar.
 """
-function update_blink_window_progress!(w::Window, block, Nblocks)
+function KomaMRICore.update_blink_window_progress!(w::Window, block, Nblocks)
     progress = string(floor(Int, block / Nblocks * 100))
     @js_ w (@var progress = $progress;
     document.getElementById("simul_progress").style.width = progress + "%";

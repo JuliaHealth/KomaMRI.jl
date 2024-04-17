@@ -55,7 +55,7 @@ julia> obj.ρ
 end
 
 """Size and length of a phantom"""
-size(x::Phantom) = size(x.ρ)
+Base.size(x::Phantom) = size(x.ρ)
 Base.length(x::Phantom) = length(x.ρ)
 # To enable to iterate and broadcast over the Phantom
 Base.iterate(x::Phantom) = (x[1], 2)
@@ -125,7 +125,7 @@ Base.view(obj::Phantom, p::AbstractRange) = begin
 end
 
 """Addition of phantoms"""
-+(s1::Phantom,s2::Phantom) = begin
+Base.:+(s1::Phantom,s2::Phantom) = begin
     Phantom(name=s1.name*"+"*s2.name,
         x=[s1.x;s2.x],
         y=[s1.y;s2.y],
@@ -147,7 +147,7 @@ end
 end
 
 """Scalar multiplication of a phantom"""
-*(α::Real,obj::Phantom) = begin
+Base.:*(α::Real,obj::Phantom) = begin
     Phantom(name=obj.name,
         x=obj.x,
         y=obj.y,
@@ -201,7 +201,7 @@ julia> plot_phantom_map(obj, :ρ)
 """
 function brain_phantom2D(; axis="axial", ss=4, us=1)
 
-    # check and filter input    
+    # check and filter input
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
@@ -210,7 +210,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
 
     # subsample or upsample the phantom data
     class = repeat(data[axis][1:ssx:end,1:ssy:end], inner=[usx, usy])
-    
+
     # Define spin position vectors
     Δx = .5e-3*ssx/usx
     Δy = .5e-3*ssy/usy
@@ -293,7 +293,7 @@ end
     obj = brain_phantom3D(; ss=4, us=1)
 
 Creates a three-dimentional brain Phantom struct.
-Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm. 
+Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm.
 
 # References
 - B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
@@ -321,7 +321,7 @@ julia> plot_phantom_map(obj, :ρ)
 """
 function brain_phantom3D(;ss=4, us=1, start_end=[160, 200])
 
-    # check and filter input    
+    # check and filter input
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, ss, us)
 
     # Get data from .mat file
@@ -438,13 +438,13 @@ julia> pelvis_phantom2D(obj, :ρ)
 """
 function pelvis_phantom2D(; ss=4, us=1)
 
-    # check and filter input    
+    # check and filter input
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path*"/phantom/pelvis2D.mat")
-    
+
     # subsample or upsample the phantom data
     class = repeat(data["pelvis3D_slice"][1:ssx:end,1:ssy:end], inner=[usx, usy])
 
@@ -518,7 +518,7 @@ julia> ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, 4, [2, 2, 2])
 """
 function check_phantom_arguments( nd, ss, us)
 
-    # check for valid input    
+    # check for valid input
     ssz = -9999
     usz = -9999
     if length(us) > 1 || prod(us) > 1
@@ -537,14 +537,14 @@ function check_phantom_arguments( nd, ss, us)
             usx = us[1]; usy = us[2]; usz = us[3]
         end
         if length(ss) == 1
-            ssx = ss[1]; ssy = ss[1]; ssz = ss[1]   
+            ssx = ss[1]; ssy = ss[1]; ssz = ss[1]
         elseif length( ss) == 2
             ssx = ss[1]; ssy = ss[2]; ssz = ss[2]
             @warn "Using ss=$([ssx, ssy, ssz]) in place of ss=$([ssx, ssy])."
         else
             ssx = ss[1]; ssy = ss[2]; ssz = ss[3]
-        end    
-    elseif nd == 2    
+        end
+    elseif nd == 2
         @assert length(ss) <= 2 "ss=$(ss) invalid, ss can have up to two components [ssx, ssy] for a 2D phantom"
         @assert length(us) <= 2 "us=$(us) invalid, us can have up to two components [usx, usy] for a 2D phantom"
             if length(us) == 1

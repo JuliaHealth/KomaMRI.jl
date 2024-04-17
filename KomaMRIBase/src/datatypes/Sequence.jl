@@ -87,12 +87,15 @@ Displays information about the Sequence struct `s` in the julia REPL.
 # Returns
 - `str` (`::String`) output string message
 """
-Base.show(io::IO, s::Sequence) = begin
-	compact = get(io, :compact, false)
+function Base.show(io::IO, s::Sequence)
+    compact = get(io, :compact, false)
     if length(s) > 0
         if !compact
             nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
-            print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | DEF: $(length(s.DEF)) ]")
+            print(
+                io,
+                "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | DEF: $(length(s.DEF)) ]",
+            )
         else
             print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
         end
@@ -113,30 +116,41 @@ Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
 
 #Arithmetic operations
-recursive_merge(x::Dict{K, V}) where {K, V} = merge(recursive_merge, x...)
-recursive_merge(x::Vector) = cat(x...; dims=1)
-recursive_merge(x...) = x[end]
-+(x::Sequence, y::Sequence) = Sequence(hcat(x.GR,  y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), merge(x.DEF, y.DEF))
--(x::Sequence, y::Sequence) = Sequence(hcat(x.GR, -y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), merge(x.DEF, y.DEF))
--(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.DEF)
-*(x::Sequence, α::Real) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
-*(α::Real, x::Sequence) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
-*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
-*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
-*(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
-*(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
-/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.DEF)
+function Base.:+(x::Sequence, y::Sequence)
+    return Sequence(
+        hcat(x.GR, y.GR),
+        hcat(x.RF, y.RF),
+        vcat(x.ADC, y.ADC),
+        vcat(x.DUR, y.DUR),
+        merge(x.DEF, y.DEF),
+    )
+end
+function Base.:-(x::Sequence, y::Sequence)
+    return Sequence(
+        hcat(x.GR, -y.GR),
+        hcat(x.RF, y.RF),
+        vcat(x.ADC, y.ADC),
+        vcat(x.DUR, y.DUR),
+        merge(x.DEF, y.DEF),
+    )
+end
+Base.:-(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.DEF)
+Base.:*(x::Sequence, α::Real) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
+Base.:*(α::Real, x::Sequence) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
+Base.:*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α .* x.RF, x.ADC, x.DUR, x.DEF)
+Base.:*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α .* x.RF, x.ADC, x.DUR, x.DEF)
+Base.:*(x::Sequence, A::Matrix{Float64}) = Sequence(A * x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
+Base.:*(A::Matrix{Float64}, x::Sequence) = Sequence(A * x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
+Base.:/(x::Sequence, α::Real) = Sequence(x.GR / α, x.RF, x.ADC, x.DUR, x.DEF)
 #Grad operations
-+(s::Sequence, g::Grad) = s + Sequence(reshape([g],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(g::Grad, s::Sequence) = Sequence(reshape([g],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
+Base.:+(s::Sequence, g::Grad) = s + Sequence([g;;])
+Base.:+(g::Grad, s::Sequence) = Sequence([g;;]) + s
 #RF operations
-+(s::Sequence, r::RF) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(r::RF, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
+Base.:+(s::Sequence, r::RF) = s + Sequence([Grad(0.0, 0.0);;], [r;;])
+Base.:+(r::RF, s::Sequence) = Sequence([Grad(0.0, 0.0);;], [r;;]) + s
 #ADC operations
-+(s::Sequence, a::ADC) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(a::ADC, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-#Sequence object functions
-size(x::Sequence) = size(x.GR[1,:])
+Base.:+(s::Sequence, a::ADC) = s + Sequence([Grad(0.0, 0.0);;], [RF(0.0, 0.0);;], [a])
+Base.:+(a::ADC, s::Sequence) = Sequence([Grad(0.0, 0.0);;], [RF(0.0, 0.0);;], [a]) + s
 
 """
     y = is_ADC_on(x::Sequence)

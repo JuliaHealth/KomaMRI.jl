@@ -127,7 +127,7 @@ We will consider an RF pulse that excites a phantom with 3 spins, and then we ac
 <details><summary>View code</summary>
 ```
 ```julia
-# Import modules
+# Loading modules
 using KomaMRI
 
 # Define sequence
@@ -183,7 +183,7 @@ We are going to consider the same setup as in the [Bloch() Method Example](#Bloc
 <details><summary>View code</summary>
 ```
 ```julia
-# Import modules
+# Loading modules
 using KomaMRI, PlotlyJS
 
 # Define sequence

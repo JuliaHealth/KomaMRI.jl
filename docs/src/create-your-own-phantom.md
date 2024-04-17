@@ -45,7 +45,7 @@ If you are familiar with the **MRI** world, you likely have a 2D or 3D array, wh
 
 In this example, we will utilize a `.mat` file containing arrays with such arrangements. The file is readily available upon installing **KomaMRI**. Let's read the file and store the 2D data in an array called `class`:"
 ```julia
-# Import necessary modules
+# Loading necessary modules
 using KomaMRI, MAT
 
 # Get data from a .mat file

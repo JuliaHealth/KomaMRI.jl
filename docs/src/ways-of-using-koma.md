@@ -142,7 +142,7 @@ As a general overview, remember the following workflow steps when using KomaMRI:
 
 Let's replicate these previous steps in a **Julia** script. You will obtain the following code, which you can copy and paste into the **Julia REPL**:
 ```julia
-# Import the package
+# Loading Koma
 using KomaMRI
 
 # Define scanner, object and sequence
@@ -434,7 +434,7 @@ Next, create a new notebook by clicking on `+ Create a new notebook`:
 <center><img src="../assets/pluto-empty-notebook.png" alt="" style="width:75%;"></center>
 ```
 
-Write and run the following code, which is identical to the [Free Induction Decay example](#Free-Induction-Decay). **Pluto** automatically installs the required modules if they are not present on your system. Additionally, note that we do not use **KomaMRI** directly since we won't be utilizing the `KomaUI()` function. Instead, we rely on the **KomaMRICore** and **KomaMRIPlots** dependencies. To display plots in **Pluto**, ensure that you import the **PlutoPlots** package:"
+Write and run the following code, which is identical to the [Free Induction Decay example](#Free-Induction-Decay). **Pluto** automatically installs the required modules if they are not present on your system. Additionally, note that we do not use **KomaMRI** directly since we won't be utilizing the `KomaUI()` function. Instead, we rely on the **KomaMRICore** and **KomaMRIPlots** dependencies. To display plots in **Pluto**, ensure that you load the **PlutoPlots** package:"
 ```@raw html
 <embed type="text/html" src="../assets/pluto-fid-example.html" style="height:1024px;width:100%;">
 ```
@@ -473,7 +473,7 @@ Proceed to write and execute the provided example:
 <details><summary>View code</summary>
 ```
 ```julia
-# Import modules
+# Loading modules
 using KomaMRICore, KomaMRIPlots
 
 # Define sequence

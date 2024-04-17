@@ -15,7 +15,7 @@ As a general overview, remember the following workflow steps when using KomaMRI:
 
 Let's replicate these previous steps in a **Julia** script. You will obtain the following code, which you can copy and paste into the **Julia REPL**:
 ```julia
-# Import the package
+# Loading Koma
 using KomaMRI
 
 # Define scanner, object and sequence

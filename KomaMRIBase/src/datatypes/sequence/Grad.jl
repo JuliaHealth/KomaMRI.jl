@@ -69,7 +69,7 @@ julia> gr = Grad(1, 1, 0.1, 0.1, 0.2)
 julia> seq = Sequence([gr]); plot_seq(seq)
 ```
 """
-mutable struct Grad
+mutable struct Grad <: MRISequenceEvent
 	A
 	T
 	rise::Real
@@ -134,20 +134,24 @@ Displays information about the Grad struct `x` in the julia REPL.
 # Returns
 - `str` (`::String`) output string message
 """
-Base.show(io::IO, x::Grad) = begin
-	r(x) = round.(x,digits=4)
-	compact = get(io, :compact, false)
-	if !compact
-		wave = length(x.A) == 1 ? r(x.A*1e3) : "∿"
-		if x.rise == x.fall == 0.
-			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(wave) mT, $(r(sum(x.T)*1e3)) ms)")
-		else
-			print(io, (x.delay>0 ? "←$(r(x.delay*1e3)) ms→ " : "")*"Grad($(wave) mT, $(r(sum(x.T)*1e3)) ms, ↑$(r(x.rise*1e3)) ms, ↓$(r(x.fall*1e3)) ms)")
-		end
-	else
-		wave = length(x.A) == 1 ? "⊓" : "∿"
-		print(io, (is_on(x) ? wave : "⇿")*"($(r((x.delay+x.rise+x.fall+sum(x.T))*1e3)) ms)")
-	end
+function Base.show(io::IO, x::Grad)
+    r(x) = round.(x, digits=4) .* 1e3
+    compact = get(io, :compact, false)
+    if !compact
+        wave = length(x.A) == 1 ? r(x.A) : "∿"
+        delay = x.delay > 0 ? "←$(r(x.delay)) ms→ " : ""
+        time = r(sum(x.T))
+        rise = r(x.rise)
+        fall = r(x.fall)
+        if rise == fall == 0.0
+            print(io, "$(delay)Grad($(wave) mT, $(time) ms)")
+        else
+            print(io, "$(delay)Grad($wave mT, $time ms, ↑$rise ms, ↓$fall ms)")
+        end
+    else
+        wave = length(x.A) == 1 ? "⊓" : "∿"
+        print(io, (is_on(x) ? wave : "⇿") * "($(r(dur(x))) ms)")
+    end
 end
 
 """
@@ -167,45 +171,39 @@ directly without the need to iterate elementwise.
 - `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector or matrix with the property defined
     by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
-getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
-getproperty(x::Matrix{Grad}, f::Symbol) = begin
+Base.getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
+Base.getproperty(x::Matrix{Grad}, f::Symbol) = begin
 	if f == :x
 		x[1,:]
-	elseif f == :y && size(x,1) >= 2
+	elseif f == :y
 		x[2,:]
-	elseif f == :z && size(x,1) >= 3
+	elseif f == :z
 		x[3,:]
 	elseif f == :dur
-		maximum(dur.(x), dims=1)[:]
+		dur(x)
 	else
 		getproperty.(x,f)
 	end
 end
 
-# Gradient comparison
-Base.isapprox(gr1::Grad, gr2::Grad) = begin
-    return all(length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k ∈ fieldnames(Grad)) &&
-        all(getfield(gr1, k) ≈ getfield(gr2, k) for k ∈ fieldnames(Grad))
-end
-
 # Gradient operations
-*(x::Grad,α::Real) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
-*(α::Real,x::Grad) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
-*(A::Matrix{Float64},GR::Matrix{Grad}) = begin
+Base.:*(x::Grad,α::Real) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
+Base.:*(α::Real,x::Grad) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
+Base.:*(A::Matrix{Float64},GR::Matrix{Grad}) = begin
 	N, M = size(GR)
 	[sum(A[i,1:N] .* GR[:,j]) for i=1:N, j=1:M]
 end
 Base.zero(::Grad) = Grad(0.0,0.0)
-size(g::Grad, i::Int64) = 1 #To fix [g;g;;] concatenation of Julia 1.7.3
-/(x::Grad,α::Real) = Grad(x.A/α,x.T,x.rise,x.fall,x.delay)
-+(x::Grad,y::Grad) = Grad(x.A.+y.A,x.T,x.rise,x.fall,x.delay)
-+(x::Array{Grad,1}, y::Array{Grad,1}) = [x[i]+y[i] for i=1:length(x)]
--(x::Grad) = -1*x
--(x::Grad,y::Grad) = Grad(x.A.-y.A,x.T,x.rise,x.fall,x.delay)
+Base.size(g::Grad, i::Int64) = 1 #To fix [g;g;;] concatenation of Julia 1.7.3
+Base.:/(x::Grad,α::Real) = Grad(x.A/α,x.T,x.rise,x.fall,x.delay)
+Base.:+(x::Grad,y::Grad) = Grad(x.A.+y.A,x.T,x.rise,x.fall,x.delay)
+Base.:+(x::Array{Grad,1}, y::Array{Grad,1}) = [x[i]+y[i] for i=1:length(x)]
+Base.:-(x::Grad) = -1*x
+Base.:-(x::Grad,y::Grad) = Grad(x.A.-y.A,x.T,x.rise,x.fall,x.delay)
 
 # Gradient functions
-vcat(x::Array{Grad,1},y::Array{Grad,1}) = [i==1 ? x[j] : y[j] for i=1:2,j=1:length(x)]
-vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ? y[j] : z[j] for i=1:3,j=1:length(x)]
+Base.vcat(x::Array{Grad,1},y::Array{Grad,1}) = [i==1 ? x[j] : y[j] for i=1:2,j=1:length(x)]
+Base.vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ? y[j] : z[j] for i=1:3,j=1:length(x)]
 
 """
     y = dur(x::Grad)
@@ -221,4 +219,5 @@ the duration is the maximum duration of all the elements of the gradient vector.
 - `y`: (`::Float64`, `[s]`) duration of the RF struct or RF array
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
-dur(x::Vector{Grad}) = maximum(dur.(x), dims=1)[:]
+dur(x::Vector{Grad}) = maximum(dur.(x))
+dur(x::Matrix{Grad}) = maximum(dur.(x), dims=1)[:]

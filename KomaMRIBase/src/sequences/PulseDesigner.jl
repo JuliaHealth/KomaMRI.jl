@@ -34,8 +34,8 @@ julia> plot_seq(seq)
 """
 function RF_hard(B1, T, sys::Scanner; G=[0, 0, 0], Δf=0)
 	ζ = sum(G) / sys.Smax
-    gr = reshape([Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T ,ζ)], :, 1)
-    rf = reshape([RF(B1, T, Δf, ζ)], :, 1)
+    gr = [Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T ,ζ) ;;]
+    rf = [RF(B1, T, Δf, ζ) ;;]
 	return Sequence(gr, rf)
 end
 
@@ -173,8 +173,8 @@ function EPI(FOV::Real, N::Integer, sys::Scanner)
 	# println("Pixel Δf in phase direction $(round(Δfx_pix_phase,digits=2)) Hz")
 	#Pre-wind and wind gradients
 	ϵ2 = Ta/(Ta+ζ)
-    PHASE =   Sequence(reshape(1/2*[Grad(      -Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) #This needs to be calculated differently
-	DEPHASE = Sequence(reshape(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) #for even N
+    PHASE =   Sequence([1/2*Grad(      -Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ) ;;]) #This needs to be calculated differently
+	DEPHASE = Sequence([1/2*Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ) ;;]) #for even N
 	seq = PHASE+EPI+DEPHASE
 	#Saving parameters
 	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi")
@@ -300,8 +300,8 @@ function spiral_base(
 		Gx = Grad(real.(G),ta,0,abs(real(G[end]))/Smax,0)
 		Gy = Grad(imag.(G),ta,0,abs(imag(G[end]))/Smax,0)
 		Gz = Grad(0,0)
-		GR = reshape([Gx; Gy; Gz], 3, 1)
-		R = reshape([RF(0,0)], 1, 1)
+		GR = [Gx; Gy; Gz ;;]
+		R = [RF(0,0) ;;]
 		Nadc = floor(Int64, ta*BW)
 		A = [ADC(Nadc,ta)]
 		seq = Sequence(GR,R,A)
@@ -331,7 +331,7 @@ julia> plot_seq(seq)
 ```
 """
 function EPI_example(; sys=Scanner())
-    B1 = sys.B1;
+    B1 = sys.B1
     durRF = π/2/(2π*γ*B1)
     EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
     N = 101

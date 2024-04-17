@@ -1,5 +1,5 @@
 """
-    delay = Delay(T)
+	delay = Delay(T)
 
 The Delay struct is meant to add a delay to a sequence by using a sum operator.
 
@@ -18,15 +18,15 @@ julia> s = Sequence([Grad(1, 1, 0.1)])
 julia> seq = delay + s; plot_seq(seq)
 ```
 """
-struct Delay
+struct Delay <: MRISequenceEvent
     T::Real
     function Delay(T)
-		T < 0 ? error("Delays must be positive.") : new(T)
+        return T < 0 ? error("Delays must be positive.") : new(T)
     end
 end
 
 """
-    str = show(io::IO, s::Delay)
+	str = show(io::IO, s::Delay)
 
 Displays the delay time in m[s] of the delay struct `s` in the julia REPL.
 
@@ -37,12 +37,12 @@ Displays the delay time in m[s] of the delay struct `s` in the julia REPL.
 - `str`: (`::String`) output string message
 """
 Base.show(io::IO, s::Delay) = begin
-	print(io, "Delay($(s.T*1e3)ms)")
+    print(io, "Delay($(s.T*1e3)ms)")
 end
 
 """
-    seq = +(s::Sequence, d::Delay)
-    seq = +(d::Delay, s::Sequence)
+	seq = +(s::Sequence, d::Delay)
+	seq = +(d::Delay, s::Sequence)
 
 Add a delay to sequence struct. It ultimately affects to the duration of the gradients of a
 sequence.
@@ -54,10 +54,10 @@ sequence.
 # Returns
 - `seq`: (`::Sequence`) delayed sequence
 """
-+(s::Sequence, d::Delay) = s + empty_seq(d.T)
-+(d::Delay, s::Sequence) = empty_seq(d.T) + s
+Base.:+(s::Sequence, d::Delay) = s + empty_seq(d.T)
+Base.:+(d::Delay, s::Sequence) = empty_seq(d.T) + s
 function empty_seq(T)
-    seq = Sequence([Grad(0., 0.);;])
+    seq = Sequence([Grad(0.0, 0.0);;])
     seq.DUR[1] = T
     return seq
 end
