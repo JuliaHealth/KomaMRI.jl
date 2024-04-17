@@ -86,16 +86,16 @@ directly without the need to iterate elementwise.
 - `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector with the property defined by the
     symbol `f` for all elements of the RF vector or matrix `x`
 """
-Base.getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x, f)
+Base.getproperty(x::Vector{RF}, f::Symbol) = getfield.(x, f)
 Base.getproperty(x::Matrix{RF}, f::Symbol) = begin
     if f == :x
-        real.(getproperty.(x, :A))
+        real.(getfield.(x, :A))
     elseif f == :y
-        imag.(getproperty.(x, :A))
+        imag.(getfield.(x, :A))
     elseif f == :dur
         dur(x)
     else
-        getproperty.(x, f)
+        getfield.(x, f)
     end
 end
 

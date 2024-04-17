@@ -171,7 +171,7 @@ directly without the need to iterate elementwise.
 - `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector or matrix with the property defined
     by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
-Base.getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x,f)
+Base.getproperty(x::Vector{Grad}, f::Symbol) = getfield.(x,f)
 Base.getproperty(x::Matrix{Grad}, f::Symbol) = begin
 	if f == :x
 		x[1,:]
@@ -182,7 +182,7 @@ Base.getproperty(x::Matrix{Grad}, f::Symbol) = begin
 	elseif f == :dur
 		dur(x)
 	else
-		getproperty.(x,f)
+		getfield.(x,f)
 	end
 end
 

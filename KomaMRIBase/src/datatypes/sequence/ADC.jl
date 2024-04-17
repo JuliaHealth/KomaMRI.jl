@@ -66,7 +66,7 @@ Base.getproperty(x::Vector{ADC}, f::Symbol) = begin
     if f == :dur
         dur(x)
     else
-        getproperty.(x, f)
+        getfield.(x, f)
     end
 end
 
