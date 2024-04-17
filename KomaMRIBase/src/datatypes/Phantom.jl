@@ -182,8 +182,11 @@ function heart_phantom(
                 asymmetry=asymmetry,
                 circunferential_strain=circunferential_strain,
                 radial_strain=radial_strain,
+                longitudinal_strain=0.0
             ),
-            PeriodicRotation(; period=period, asymmetry=asymmetry, yaw=rotation_angle),
+            PeriodicRotation(;
+                period=period, asymmetry=asymmetry, yaw=rotation_angle, pitch=0.0, roll=0.0
+            ),
         ]),
     )
     return phantom

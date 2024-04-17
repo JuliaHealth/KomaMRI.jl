@@ -17,11 +17,11 @@ x (pitch), y (roll), and z (yaw)
 """
 
 @with_kw struct PeriodicRotation{T<:Real} <: SimpleMotionType{T}
-    period       :: T
-    asymmetry::T = typeof(period)(0.5)
-    pitch::T     = typeof(period)(0.0)
-    roll::T      = typeof(period)(0.0)
-    yaw::T       = typeof(period)(0.0)
+    pitch        :: T
+    roll         :: T
+    yaw          :: T
+    period::T    = typeof(pitch)(0.0)
+    asymmetry::T = typeof(pitch)(0.5)
 end
 
 is_composable(motion_type::PeriodicRotation) = true

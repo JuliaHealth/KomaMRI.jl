@@ -2,11 +2,11 @@
 """
 
 @with_kw struct PeriodicHeartBeat{T<:Real} <: SimpleMotionType{T}
-    period                    :: T
-    asymmetry::T              = typeof(period)(0.5)
-    circunferential_strain::T = typeof(period)(0.0)
-    radial_strain::T          = typeof(period)(0.0)
-    longitudinal_strain::T    = typeof(period)(0.0)
+    circunferential_strain :: T
+    radial_strain          :: T
+    longitudinal_strain::T = typeof(circunferential_strain)(0.0)
+    period::T              = typeof(circunferential_strain)(0.0)
+    asymmetry::T           = typeof(circunferential_strain)(0.5)
 end
 
 is_composable(motion_type::PeriodicHeartBeat) = true
