@@ -14,13 +14,13 @@ seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0;0;Gz], TBP=8)
 p2 = plot_seq(seq; max_rf_samples=Inf, slider=false)
 display(p2)
 
-sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
+sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF[1].A))
 M = simulate_slice_profile(seq; z, sim_params)
 
 using PlotlyJS # hide
 s1 = scatter(x=f, y=real.(M.xy), name="Mx") # hide
 s2 = scatter(x=f, y=imag.(M.xy), name="My") # hide
-dat = seq.RF.A[1] # hide
+dat = seq.RF[1].A # hide
 N = length(dat) # hide
 dat_pad = [zeros(floor(Int64,N)); dat; zeros(floor(Int64,N))] # hide
 N_pad = length(dat_pad) # hide
@@ -34,12 +34,12 @@ pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_t
 display(pb)
 
 α_desired = 120 + 0im               # The multiplication of a complex number scales the RF pulse of a Sequence
-α = get_flip_angles(seq)[1] # Previous FA approx 30 deg
+α = get_flip_angles(seq)[1]         # Previous FA approx 30 deg
 seq = (α_desired / α) * seq         # Scaling the pulse to have a flip angle of 120
 M = simulate_slice_profile(seq; z, sim_params)
 
 s1 = scatter(x=f, y=abs.(M.xy), name="|Mxy|") # hide
-dat = seq.RF.A[1] # hide
+dat = seq.RF[1].A # hide
 N = length(dat) # hide
 dat_pad = [zeros(floor(Int64,N)); dat; zeros(floor(Int64,N))] # hide
 N_pad = length(dat_pad) # hide
