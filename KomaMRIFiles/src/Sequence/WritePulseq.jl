@@ -253,23 +253,12 @@ function write_seq(seq::Sequence, filename)
         row[6] = obj.Δf
         row[7] = obj.ϕ
     end
-    # Define the table to be written for the [SHAPES] section
-    shapefull_data_id = [
-        shapeunique_data_id_i for shapeunique_data_id in
-        [rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id] for
-        shapeunique_data_id_i in shapeunique_data_id
-    ]
-    shape_data_id_num = [
-        (
-            if length(compress_shape(data)[2]) == length(data)
-                data
-            else
-                compress_shape(data)[2]
-            end,
-            id,
-            length(data),
-        ) for (data, id) in shapefull_data_id
-    ]
+    # [SHAPES] Define the table to be written for the [SHAPES] section
+    # Columns of table_shapes:
+    # [id, num, data]
+    events_data_id = [rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id]
+    shapes_data_id = [s for shapes in events_data_id for s in shapes]
+    table_shapes = [[id, compress_shape(data)...] for (data, id) in shapes_data_id]
     # Write the .seq file
     open(filename, "w") do fid
         @printf(
@@ -390,7 +379,7 @@ function write_seq(seq::Sequence, filename)
             end
             @printf(fid, "\n")
         end
-        if !isempty(shape_data_id_num)
+        if !isempty(table_shapes)
             @printf(
                 fid,
                 """
@@ -399,7 +388,7 @@ function write_seq(seq::Sequence, filename)
 
                 """
             )
-            for (data, id, num) in shape_data_id_num
+            for (id, num, data) in table_shapes
                 @printf(fid, "shape_id %d\n", id)
                 @printf(fid, "num_samples %d\n", num)
                 [@printf(fid, "%.9g\n", datai) for datai in data]
