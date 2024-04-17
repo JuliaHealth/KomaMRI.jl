@@ -376,7 +376,7 @@ end
     Dθ = [-8e-6; -4e-6; 0.0; 4e-6; 8e-6]
     obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
     obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
-    @test obj1 ≈ obj2
+    @test obj1 == obj2
 
     # Test size and length definitions of a phantom
     @test size(obj1) == size(ρ)
@@ -385,7 +385,7 @@ end
     # Test simple motion types
     t = [0.0, 0.1, 0.2]
     ue = SimpleMotion([
-        Translation(t_start=0.05, t_end=0.5, dx=0.05, dy=0.05),
+        Translation(t_start=0.05, t_end=0.5, dx=0.05, dy=0.05, dz=0.0),
         Rotation(t_start=0.05, t_end=0.5, yaw=π / 2),
         HeartBeat(t_start=0.05, t_end=0.5, circunferential_strain=-0.1, radial_strain=-0.1),
         PeriodicTranslation(period=0.5, asymmetry=0.5, dz=0.01),
@@ -394,11 +394,13 @@ end
     ])
     xt, yt, zt = get_spin_coords(ue, obj1.x, obj1.y, obj1.z, t')
     @test xt != yt !=zt
+    # Hacer un SimpleMotion para cada SimpleMotionType
+    # xt(t=0) == x   ...
     
     # Test phantom comparison
     obj1.motion = ue
     obe = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue)
-    @test obj1 ≈ obe
+    @test obj1 == obe
 
     # Test phantom subset
     rng = 1:2:5
@@ -417,8 +419,8 @@ end
         Dθ[rng],
         ue[rng],
     )
-    @test obj1[rng] ≈ obg
-    @test @view(obj1[rng]) ≈ obg
+    @test obj1[rng] == obg
+    @test @view(obj1[rng]) == obg
 
     # Test addition of phantoms
     ua = SimpleMotion([
@@ -438,21 +440,21 @@ end
         [Dλ1; Dλ1[rng]],
         [Dλ2; Dλ2[rng]],
         [Dθ; Dθ[rng]],
-        obj1.motion + obg.motion
+        [obj1.motion; obg.motion]
     )
-    @test obj1 + obg ≈ oba
+    @test obj1 + obg == oba
 
     # Test phantom with ArbitraryMotion
     Ns = length(obj1)
     K = 10
     ua = ArbitraryMotion([1.0], 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1))
     obj1.motion = obj2.motion = ua
-    @test obj1 ≈ obj2
+    @test obj1 == obj2
 
     # Test scalar multiplication of a phantom
     c = 7
     obc = Phantom(name, x, y, z, c * ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ua)
-    @test c * obj1 ≈ obc
+    @test c * obj1 == obc
 
     #Test brain phantom 2D
     ph = brain_phantom2D()
