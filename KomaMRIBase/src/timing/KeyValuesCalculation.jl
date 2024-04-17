@@ -36,7 +36,7 @@ function ampl(rf::RF; freq_in_phase=false)
         t  = time(rf)
         Interpolations.deduplicate_knots!(t0; move_knots=true)
         Interpolations.deduplicate_knots!(t; move_knots=true)
-        f = linear_interpolation(t0, freq(rf)).(t)
+        f = linear_interpolation(t0, freq(rf); extrapolation_bc=0.0).(t)
         A = A .* exp.(im*2π*[0; cumtrapz(diff(t), f)])
     end
 	return A
