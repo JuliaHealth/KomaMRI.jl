@@ -11,11 +11,11 @@ end
 """
 Returns a boolean value indicating whether two vector of angles are equal.
 """
-function isequal_angles(a1, a2)
+function safe_approx_angles(a1, a2)
     if length(a1) != length(a2)
         return false
     end
-    return abs(sum(exp.(1im * 2π * (a1)) .* exp.(-1im * 2π * (a2)))) / length(a1) == 1
+    return abs(sum(exp.(1im * 2π * (a1)) .* exp.(-1im * 2π * (a2)))) / length(a1) ≈ 1
 end
 
 """
@@ -29,7 +29,7 @@ end
 Returns a boolean value indicating whether a vector is present in a list of vectors.
 """
 function not_in_list_angles(angle, angle_list)
-    return all([!isequal_angles(angle, phase) for phase in angle_list])
+    return all([!safe_approx_angles(angle, phase) for phase in angle_list])
 end
 
 """
@@ -172,7 +172,7 @@ function get_table_rf(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
         ang = shape_ang .- shape_ang[1]
         for (shape_ang_unique, id_ang) in rfs_ang_id
             ang_unique = shape_ang_unique .- shape_ang_unique[1]
-            if isequal_angles(ang, ang_unique)
+            if safe_approx_angles(ang, ang_unique)
                 row[5] = id_ang
                 row[9] = angle(
                     sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
