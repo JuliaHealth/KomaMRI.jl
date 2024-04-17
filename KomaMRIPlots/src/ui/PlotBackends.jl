@@ -52,7 +52,7 @@ function plot_koma(::KomaPlutoPlotlyBackend, args...; kwargs...)
         The PlutoPlotly functionality is being called but
         `PlutoPlotly.jl` must be loaded to access it.
         Add `using PlutoPlotly` to your code.
-        """ maxlog=1
+        """ maxlog = 1
         return x
     end
 end

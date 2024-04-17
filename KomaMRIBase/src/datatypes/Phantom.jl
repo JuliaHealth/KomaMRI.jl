@@ -147,8 +147,9 @@ Base.:+(s1::Phantom,s2::Phantom) = begin
 end
 
 """Scalar multiplication of a phantom"""
-Base.:*(α::Real,obj::Phantom) = begin
-    Phantom(name=obj.name,
+Base.:*(α::Real, obj::Phantom) = begin
+    Phantom(;
+        name=obj.name,
         x=obj.x,
         y=obj.y,
         z=obj.z,
@@ -209,11 +210,11 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
     data = MAT.matread(path*"/phantom/brain2D.mat")
 
     # subsample or upsample the phantom data
-    class = repeat(data[axis][1:ssx:end,1:ssy:end], inner=[usx, usy])
+    class = repeat(data[axis][1:ssx:end, 1:ssy:end]; inner=[usx, usy])
 
     # Define spin position vectors
-    Δx = .5e-3*ssx/usx
-    Δy = .5e-3*ssy/usy
+    Δx = .5e-3 * ssx / usx
+    Δy = .5e-3 * ssy / usy
     M, N = size(class)
     FOVx = (M-1)*Δx #[m]
     FOVy = (N-1)*Δy #[m]
@@ -319,7 +320,7 @@ julia> obj = brain_phantom3D(; us=[2, 2, 1])
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom3D(;ss=4, us=1, start_end=[160, 200])
+function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
 
     # check and filter input
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, ss, us)
@@ -443,10 +444,10 @@ function pelvis_phantom2D(; ss=4, us=1)
 
     # Get data from .mat file
     path = @__DIR__
-    data = MAT.matread(path*"/phantom/pelvis2D.mat")
+    data = MAT.matread(path * "/phantom/pelvis2D.mat")
 
     # subsample or upsample the phantom data
-    class = repeat(data["pelvis3D_slice"][1:ssx:end,1:ssy:end], inner=[usx, usy])
+    class = repeat(data["pelvis3D_slice"][1:ssx:end, 1:ssy:end]; inner=[usx, usy])
 
     # Define spin position vectors
     Δx = .5e-3*ssx/usx
@@ -516,7 +517,7 @@ julia> ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, 1, 1)
 julia> ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, 4, [2, 2, 2])
 ```
 """
-function check_phantom_arguments( nd, ss, us)
+function check_phantom_arguments(nd, ss, us)
 
     # check for valid input
     ssz = -9999
@@ -534,15 +535,15 @@ function check_phantom_arguments( nd, ss, us)
             usx = us[1]; usy = us[2]; usz = us[2]
             @warn "Using us=$([usx, usy, usz]) in place of us=$([usx, usy])."
         else
-            usx = us[1]; usy = us[2]; usz = us[3]
+            usx, usy, usz = us[1], us[2], us[3]
         end
         if length(ss) == 1
-            ssx = ss[1]; ssy = ss[1]; ssz = ss[1]
-        elseif length( ss) == 2
-            ssx = ss[1]; ssy = ss[2]; ssz = ss[2]
+            ssx, ssy, ssz = ss[1], ss[1], ss[1]
+        elseif length(ss) == 2
+            ssx, ssy, ssz = ss[1], ss[2], ss[2]
             @warn "Using ss=$([ssx, ssy, ssz]) in place of ss=$([ssx, ssy])."
         else
-            ssx = ss[1]; ssy = ss[2]; ssz = ss[3]
+            ssx, ssy, ssz = ss[1], ss[2], ss[3]
         end
     elseif nd == 2
         @assert length(ss) <= 2 "ss=$(ss) invalid, ss can have up to two components [ssx, ssy] for a 2D phantom"

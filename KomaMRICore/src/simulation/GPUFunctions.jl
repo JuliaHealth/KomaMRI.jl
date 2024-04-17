@@ -32,7 +32,7 @@ end
 
 #Aux. funcitons to check if the variable we want to convert to CuArray is numeric
 _isbitsarray(::AbstractArray{<:Real}) = true
-_isbitsarray(::AbstractArray{T}) where T = isbitstype(T)
+_isbitsarray(::AbstractArray{T}) where {T} = isbitstype(T)
 _isbitsarray(x) = false
 _isleaf(x) = _isbitsarray(x) || Functors.isleaf(x)
 
@@ -87,7 +87,9 @@ cpu(x) = fmap(x -> adapt(KomaCPUAdaptor(), x), x)
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
 
 Adapt.adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs) #Type piracy
-Adapt.adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs) #Type piracy
+function Adapt.adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex})
+    return convert.(Complex{T}, xs)
+end #Type piracy
 Adapt.adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs #Type piracy
 
 """

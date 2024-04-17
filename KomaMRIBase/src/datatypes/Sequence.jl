@@ -113,7 +113,9 @@ Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.
 Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF) : nothing
 Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF) : nothing
 Base.lastindex(x::Sequence) = length(x.DUR)
-Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
+function Base.copy(x::Sequence) where {Sequence}
+    return Sequence([deepcopy(getfield(x, k)) for k in fieldnames(Sequence)]...)
+end
 
 #Arithmetic operations
 function Base.:+(x::Sequence, y::Sequence)

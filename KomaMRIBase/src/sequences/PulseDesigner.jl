@@ -33,10 +33,10 @@ julia> plot_seq(seq)
 ```
 """
 function RF_hard(B1, T, sys::Scanner; G=[0, 0, 0], Δf=0)
-	ζ = sum(G) / sys.Smax
-    gr = [Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T ,ζ) ;;]
-    rf = [RF(B1, T, Δf, ζ) ;;]
-	return Sequence(gr, rf)
+    ζ = sum(G) / sys.Smax
+    gr = [Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T, ζ);;]
+    rf = [RF(B1, T, Δf, ζ);;]
+    return Sequence(gr, rf)
 end
 
 """
@@ -332,8 +332,8 @@ julia> plot_seq(seq)
 """
 function EPI_example(; sys=Scanner())
     B1 = sys.B1
-    durRF = π/2/(2π*γ*B1)
-    EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
+    durRF = π / 2 / (2π * γ * B1)
+    EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0, 0, 0])
     N = 101
     FOV = 23e-2
     EPI = PulseDesigner.EPI(FOV, N, sys)

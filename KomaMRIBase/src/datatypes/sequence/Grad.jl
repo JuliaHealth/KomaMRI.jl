@@ -171,39 +171,49 @@ directly without the need to iterate elementwise.
 - `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector or matrix with the property defined
     by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
-Base.getproperty(x::Vector{Grad}, f::Symbol) = getfield.(x,f)
+Base.getproperty(x::Vector{Grad}, f::Symbol) = getfield.(x, f)
 Base.getproperty(x::Matrix{Grad}, f::Symbol) = begin
-	if f == :x
-		x[1,:]
-	elseif f == :y
-		x[2,:]
-	elseif f == :z
-		x[3,:]
-	elseif f == :dur
-		dur(x)
-	else
-		getfield.(x,f)
-	end
+    if f == :x
+        x[1, :]
+    elseif f == :y
+        x[2, :]
+    elseif f == :z
+        x[3, :]
+    elseif f == :dur
+        dur(x)
+    else
+        getfield.(x, f)
+    end
 end
 
 # Gradient operations
-Base.:*(x::Grad,α::Real) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
-Base.:*(α::Real,x::Grad) = Grad(α*x.A,x.T,x.rise,x.fall,x.delay)
-Base.:*(A::Matrix{Float64},GR::Matrix{Grad}) = begin
-	N, M = size(GR)
-	[sum(A[i,1:N] .* GR[:,j]) for i=1:N, j=1:M]
+Base.:*(x::Grad, α::Real) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
+Base.:*(α::Real, x::Grad) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
+function Base.:*(A::Matrix{Float64}, GR::Matrix{Grad})
+    N, M = size(GR)
+    [sum(A[i, 1:N] .* GR[:, j]) for i in 1:N, j in 1:M]
 end
-Base.zero(::Grad) = Grad(0.0,0.0)
+Base.zero(::Grad) = Grad(0.0, 0.0)
 Base.size(g::Grad, i::Int64) = 1 #To fix [g;g;;] concatenation of Julia 1.7.3
-Base.:/(x::Grad,α::Real) = Grad(x.A/α,x.T,x.rise,x.fall,x.delay)
-Base.:+(x::Grad,y::Grad) = Grad(x.A.+y.A,x.T,x.rise,x.fall,x.delay)
-Base.:+(x::Array{Grad,1}, y::Array{Grad,1}) = [x[i]+y[i] for i=1:length(x)]
-Base.:-(x::Grad) = -1*x
-Base.:-(x::Grad,y::Grad) = Grad(x.A.-y.A,x.T,x.rise,x.fall,x.delay)
+Base.:/(x::Grad, α::Real) = Grad(x.A / α, x.T, x.rise, x.fall, x.delay)
+Base.:+(x::Grad, y::Grad) = Grad(x.A .+ y.A, x.T, x.rise, x.fall, x.delay)
+Base.:+(x::Array{Grad,1}, y::Array{Grad,1}) = [x[i] + y[i] for i in 1:length(x)]
+Base.:-(x::Grad) = -1 * x
+Base.:-(x::Grad, y::Grad) = Grad(x.A .- y.A, x.T, x.rise, x.fall, x.delay)
 
 # Gradient functions
-Base.vcat(x::Array{Grad,1},y::Array{Grad,1}) = [i==1 ? x[j] : y[j] for i=1:2,j=1:length(x)]
-Base.vcat(x::Array{Grad,1},y::Array{Grad,1},z::Array{Grad,1}) = [i==1 ? x[j] : i==2 ? y[j] : z[j] for i=1:3,j=1:length(x)]
+function Base.vcat(x::Array{Grad,1}, y::Array{Grad,1})
+    return [i == 1 ? x[j] : y[j] for i in 1:2, j in 1:length(x)]
+end
+function Base.vcat(x::Array{Grad,1}, y::Array{Grad,1}, z::Array{Grad,1})
+    return [if i == 1
+        x[j]
+    elseif i == 2
+        y[j]
+    else
+        z[j]
+    end for i in 1:3, j in 1:length(x)]
+end
 
 """
     y = dur(x::Grad)
@@ -220,4 +230,4 @@ the duration is the maximum duration of all the elements of the gradient vector.
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x))
-dur(x::Matrix{Grad}) = maximum(dur.(x), dims=1)[:]
+dur(x::Matrix{Grad}) = maximum(dur.(x); dims=1)[:]

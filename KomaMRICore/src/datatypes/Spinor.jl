@@ -29,7 +29,7 @@ struct Spinor{T<:Real}
 end
 Spinor(α::Complex{T}, β::Complex{T}) where {T<:Real} = Spinor([α], [β])
 Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
-Base.one(T::Spinor) = Spinor(1.,0.)
+Base.one(T::Spinor) = Spinor(1.0, 0.0)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 """
     str = show(io::IO, s::Spinor)
@@ -52,8 +52,7 @@ end
 Spinor multiplication identity: (α2,β2) × (α1,β1) = (α1 α2 - β2⋆ β1 , β2 α1 + α2⋆ β1)
 """
 Base.:*(s2::Spinor, s1::Spinor) = begin
-	Spinor(s1.α.*s2.α .- conj.(s2.β).*s1.β,
-		   s1.α.*s2.β .+ conj.(s2.α).*s1.β)
+    Spinor(s1.α .* s2.α .- conj.(s2.β) .* s1.β, s1.α .* s2.β .+ conj.(s2.α) .* s1.β)
 end
 
 """
@@ -167,4 +166,4 @@ It calculates |α|^2 + |β|^2 of the Cayley-Klein parameters.
 # Returns
 - `y`: (`::Real`) result of the abs operator
 """
-Base.abs(s::Spinor) = abs.(s.α).^2 + abs.(s.β).^2
+Base.abs(s::Spinor) = abs.(s.α) .^ 2 + abs.(s.β) .^ 2

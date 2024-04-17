@@ -124,7 +124,7 @@ using TestItems, TestItemRunner
         gr = Grad(A, T, rise, fall, delay)
         @test dur(gr) ≈ delay + rise + T + fall
         T1, T2, T3 = 1e-3, 2e-3, 3e-3
-        vt = [Grad(A1,T1); Grad(A2,T2); Grad(A3,T3)]
+        vt = [Grad(A1, T1); Grad(A2, T2); Grad(A3, T3)]
         @test dur(vt) ≈ maximum([T1, T2, T3])
 
         # Just checking to ensure that show() doesn't get stuck and that it is covered
@@ -164,10 +164,11 @@ using TestItems, TestItemRunner
         @test rft.A ≈ α * rf.A
         @test dur(rf) ≈ rf.T
         B1x, B1y, B2x, B2y, B3x, B3y, T1, T2, T3 = rand(9)
-        rf1, rf2, rf3 = RF(B1x + im*B1y, T1), RF(B1x + im*B1y, T2), RF(B3x + im*B3y, T3)
+        rf1, rf2, rf3 = RF(B1x + im * B1y, T1),
+        RF(B1x + im * B1y, T2),
+        RF(B3x + im * B3y, T3)
         rv = [rf1; rf2; rf3]
         @test dur(rv) ≈ maximum(dur.(rv))
-
     end
 
     @testset "Delay" begin
@@ -308,9 +309,9 @@ using TestItems, TestItemRunner
         z = x * c
         @test z.RF.A ≈ c*x.RF.A
         z = c * x
-        @test z.RF.A ≈ c*x.RF.A
+        @test z.RF.A ≈ c * x.RF.A
         z = x / α
-        @test z.GR.A ≈ x.GR.A/α
+        @test z.GR.A ≈ x.GR.A / α
         # @test size(y) == size(y.GR[1,:])
         z = x + x.GR[3,1]
         @test z.GR.A[1, end] ≈ x.GR[3,1].A

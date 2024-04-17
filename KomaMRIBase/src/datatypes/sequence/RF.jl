@@ -117,7 +117,7 @@ Duration time in [s] of RF struct or RF array.
 """
 dur(x::RF) = sum(x.T)
 dur(x::Vector{RF}) = maximum(dur.(x))
-dur(x::Matrix{RF}) = maximum(dur.(x), dims=1)[:]
+dur(x::Matrix{RF}) = maximum(dur.(x); dims=1)[:]
 
 """
     rf = RF_fun(f::Function, T::Real, N::Int64)

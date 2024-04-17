@@ -694,7 +694,7 @@ function get_block(obj, i)
     Gx = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, ix)
     Gy = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iy)
     Gz = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iz)
-    G = [Gx;Gy;Gz;;]
+    G = [Gx; Gy; Gz;;]
 
     #RF definition
     Δt_rf = obj["definitions"]["RadiofrequencyRasterTime"]
@@ -707,7 +707,7 @@ function get_block(obj, i)
     D = Float64[max(obj["blockDurations"][i], dur(G)[1], dur(R)[1], dur(A)[1])]
 
     #Extensions
-    E = Dict{String, Any}()#read_Extension(obj["extensionLibrary"], iext, i)
+    E = Dict{String,Any}()#read_Extension(obj["extensionLibrary"], iext, i)
 
     #Sequence block definition
     s = Sequence(G,R,A,D,E)
