@@ -43,7 +43,7 @@ M = simulate_slice_profile(seq; z, sim_params)
 using PlotlyJS # hide
 s1 = scatter(x=f, y=real.(M.xy), name="Mx") # hide
 s2 = scatter(x=f, y=imag.(M.xy), name="My") # hide
-dat = seq.RF.A[1] # hide
+dat = seq.RF[1].A # hide
 N = length(dat) # hide
 dat_pad = [zeros(floor(Int64,N)); dat; zeros(floor(Int64,N))] # hide
 N_pad = length(dat_pad) # hide
