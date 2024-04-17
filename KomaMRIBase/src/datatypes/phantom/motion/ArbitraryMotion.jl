@@ -49,6 +49,32 @@ function ArbitraryMotion(
     return ArbitraryMotion(period_durations, Δx, Δy, Δz, etpx, etpy, etpz)
 end
 
+function Base.getindex(
+    motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}
+)
+    fields = []
+    for field in filter(x -> (x in [:dx, :dy, :dz]), [fieldnames(ArbitraryMotion)...])
+        push!(fields, getfield(motion, field)[p, :])
+    end
+    for field in filter(x -> (x in [:ux, :uy, :uz]), [fieldnames(ArbitraryMotion)...])
+        push!(fields, getfield(motion, field)[p])
+    end
+    return ArbitraryMotion(motion.period_durations, fields...)
+end
+
+Base.:(==)(m1::ArbitraryMotion, m2::ArbitraryMotion) = reduce(&, [getfield(m1, field) == getfield(m2, field) for field in fieldnames(ArbitraryMotion)])
+Base.:(≈)(m1::ArbitraryMotion, m2::ArbitraryMotion)  = reduce(&, [getfield(m1, field) ≈ getfield(m2, field) for field in fieldnames(ArbitraryMotion)])
+
+function Base.vcat(m1::ArbitraryMotion, m2::ArbitraryMotion)
+    fields = []
+    @assert m1.period_durations == m2.period_durations "period_durations of both ArbitraryMotions must be the same"
+    for field in
+        Iterators.filter(x -> !(x == :period_durations), fieldnames(ArbitraryMotion))
+        push!(fields, [getfield(m1, field); getfield(m2, field)])
+    end
+    return ArbitraryMotion(m1.period_durations, fields...)
+end
+
 """
     limits = time_nodes(obj.motion)
 """
@@ -75,22 +101,6 @@ function time_nodes(period_durations::AbstractVector, K::Int)
     end
     return limits
 end
-
-function Base.getindex(
-    motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}
-)
-    fields = []
-    for field in filter(x -> (x in [:dx, :dy, :dz]), [fieldnames(ArbitraryMotion)...])
-        push!(fields, getfield(motion, field)[p, :])
-    end
-    for field in filter(x -> (x in [:ux, :uy, :uz]), [fieldnames(ArbitraryMotion)...])
-        push!(fields, getfield(motion, field)[p])
-    end
-    return ArbitraryMotion(motion.period_durations, fields...)
-end
-
-Base.:(==)(m1::ArbitraryMotion, m2::ArbitraryMotion) = reduce(&, [getfield(m1, field) == getfield(m2, field) for field in fieldnames(ArbitraryMotion)])
-Base.:(≈)(m1::ArbitraryMotion, m2::ArbitraryMotion)  = reduce(&, [getfield(m1, field) ≈ getfield(m2, field) for field in fieldnames(ArbitraryMotion)])
 
 # TODO: Calculate interpolation functions "on the fly"
 function get_spin_coords(
