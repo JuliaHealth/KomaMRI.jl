@@ -98,7 +98,9 @@ Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = @views o
     for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
         push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
     end
-    return Phantom(; name=obj1.name * "+" * obj2.name, fields...)
+    Nmaxchars = 50
+    name = first(obj1.name * "+" * obj2.name, Nmaxchars)
+    return Phantom(; name=name, fields...)
 end
 
 """Scalar multiplication of a phantom"""
