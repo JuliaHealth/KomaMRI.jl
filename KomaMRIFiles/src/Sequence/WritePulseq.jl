@@ -130,42 +130,42 @@ function get_grad_shapes(grads_obj_id::Vector, id_shape_cnt::Integer, Δt_gr)
 end
 
 """
-Defines the table to be written in the [BLOCKS] section
-Columns of table_blocks: [blk, seq[blk], id_rf, id_gx, id_gy, id_gz, id_adc, id_ext]
+Defines the library to be written in the [BLOCKS] section
+Columns of block_events: [blk, id_rf, id_gx, id_gy, id_gz, id_adc, id_ext]
 """
-function get_table_blocks(seq, rfs_obj_id, grs_obj_id, adcs_obj_id)
+function get_block_events(seq, rfs_obj_id, grs_obj_id, adcs_obj_id)
     r = [id for (_, _, id) in get_events_blk_obj_id(seq.RF, rfs_obj_id)]
     x = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.x, grs_obj_id)]
     y = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.y, grs_obj_id)]
     z = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.z, grs_obj_id)]
     a = [id for (_, _, id) in get_events_blk_obj_id(seq.ADC, adcs_obj_id)]
-    table_blocks = [[b, s, 0, r[b], x[b], y[b], z[b], a[b], 0] for (b, s) in enumerate(seq)]
-    for row in table_blocks
+    block_events = [[b, 0, r[b], x[b], y[b], z[b], a[b], 0] for (b, _) in enumerate(seq)]
+    for row in block_events
         blk = row[1]
         bd = seq.DUR[blk] / seq.DEF["BlockDurationRaster"]
         bdr = round(bd)
         if abs(bdr - bd) > 1e-6
             @warn "Block $blk duration rounded"
         end
-        row[3] = bdr
+        row[2] = bdr
     end
-    return table_blocks
+    return block_events
 end
 
 """
-Defines the table to be written in the [RF] section
-Columns of table_rf: [id, rf_obj, amp, id_mag, id_phase, id_time, delay, freq, phase]
+Defines the library to be written in the [RF] section
+Columns of rf_library: [id, amp, id_mag, id_phase, id_time, delay, freq, phase]
 """
-function get_table_rf(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
-    table_rf = [[id, obj, 0, 0, 0, 0, 0, 0, 0] for (obj, id) in rfs_obj_id]
-    for row in table_rf
-        obj = row[2]
-        row[3] = γ * maximum(abs.(obj.A))
-        row[8] = obj.Δf
+function get_rf_library(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
+    rf_library = [[id, 0., 0., 0., 0., 0., 0., 0.] for (_, id) in rfs_obj_id]
+    for (i, row) in enumerate(rf_library)
+        obj = rfs_obj_id[i][1]
+        row[2] = γ * maximum(abs.(obj.A))
+        row[7] = obj.Δf
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
         for (shape_abs_unique, id_abs) in rfs_abs_id
             if safe_approx(shape_abs, shape_abs_unique)
-                row[4] = id_abs
+                row[3] = id_abs
             end
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
@@ -173,8 +173,8 @@ function get_table_rf(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
         for (shape_ang_unique, id_ang) in rfs_ang_id
             ang_unique = shape_ang_unique .- shape_ang_unique[1]
             if safe_approx_angles(ang, ang_unique)
-                row[5] = id_ang
-                row[9] = angle(
+                row[4] = id_ang
+                row[8] = angle(
                     sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
                     length(shape_ang),
                 )
@@ -184,87 +184,87 @@ function get_table_rf(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
             shape_tim = cumsum([0; obj.T]) / Δt_rf
             for (shape_tim_unique, id_tim) in rfs_tim_id
                 if safe_approx(shape_tim, shape_tim_unique)
-                    row[6] = id_tim
+                    row[5] = id_tim
                 end
             end
         end
-        delay_compensation_rf_koma = (row[6] == 0) * Δt_rf / 2
-        row[7] = round((obj.delay - delay_compensation_rf_koma) / Δt_rf) * Δt_rf * 1e6
+        delay_compensation_rf_koma = (row[5] == 0) * Δt_rf / 2
+        row[6] = round((obj.delay - delay_compensation_rf_koma) / Δt_rf) * Δt_rf * 1e6
     end
-    return table_rf
+    return rf_library
 end
 
 """
-Defines the table to be written in the [GRADIENTS] section
-Columns of table_gradients: [id, gr_obj, amp, id_amp, id_time, delay]
+Defines the library to be written in the [GRADIENTS] section
+Columns of grad_library_arb: [id, amp, id_amp, id_time, delay]
 """
-function get_table_gradients(grads_obj_id, grads_amp_id, grads_tim_id, Δt_gr)
-    table_gradients = [[id, obj, 0, 0, 0, 0] for (obj, id) in grads_obj_id]
-    for row in table_gradients
-        obj = row[2]
-        row[3] = γ * maximum(abs.(obj.A))    # this always stores positive values, the waveform vector have the respective positive or negative values
-        row[6] = round(1e6 * obj.delay)
+function get_grad_library_arb(grads_obj_id, grads_amp_id, grads_tim_id, Δt_gr)
+    grad_library_arb = [[id, 0., 0., 0., 0.] for (_, id) in grads_obj_id]
+    for (i, row) in enumerate(grad_library_arb)
+        obj = grads_obj_id[i][1]
+        row[2] = γ * maximum(abs.(obj.A))    # this always stores positive values, the waveform vector have the respective positive or negative values
+        row[5] = round(1e6 * obj.delay)
         shape_amp = obj.A / maximum(abs.(obj.A))
         for (shape_amp_unique, id_amp) in grads_amp_id
             if safe_approx(shape_amp, shape_amp_unique)
-                row[4] = id_amp
+                row[3] = id_amp
             end
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_gr
             for (shape_tim_unique, id_tim) in grads_tim_id
                 if safe_approx(shape_tim, shape_tim_unique)
-                    row[5] = id_tim
+                    row[4] = id_tim
                 end
             end
         end
     end
-    return table_gradients
+    return grad_library_arb
 end
 
 """
-Defines the table to be written in the [TRAP] section
-Columns of table_trap: [id, gr_obj, amp, rise, flat, fall, delay]
+Defines the library to be written in the [TRAP] section
+Columns of grad_library_trap: [id, amp, rise, flat, fall, delay]
 """
-function get_table_trap(traps_obj_id)
-    table_trap = [[id, obj, 0, 0, 0, 0, 0] for (obj, id) in traps_obj_id]
-    for row in table_trap
-        obj = row[2]
-        row[3] = γ * obj.A
-        row[4] = 1e6 * obj.rise
-        row[5] = 1e6 * obj.T
-        row[6] = 1e6 * obj.fall
-        row[7] = 1e6 * obj.delay
+function get_grad_library_trap(traps_obj_id)
+    grad_library_trap = [[id, 0., 0., 0., 0., 0.] for (_, id) in traps_obj_id]
+    for (i, row) in enumerate(grad_library_trap)
+        obj = traps_obj_id[i][1]
+        row[2] = γ * obj.A
+        row[3] = 1e6 * obj.rise
+        row[4] = 1e6 * obj.T
+        row[5] = 1e6 * obj.fall
+        row[6] = 1e6 * obj.delay
     end
-    return table_trap
+    return grad_library_trap
 end
 
 """
-Defines the table to be written in the [ADC] section
-Columns of table_adc: [id, adc_obj, num, dwell, delay, freq, phase]
+Defines the library to be written in the [ADC] section
+Columns of adc_library: [id, num, dwell, delay, freq, phase]
 """
-function get_table_adc(adcs_obj_id)
-    table_adc = [[id, obj, 0, 0, 0, 0, 0] for (obj, id) in adcs_obj_id]
-    for row in table_adc
-        obj = row[2]
-        row[3] = obj.N
-        row[4] = obj.T * 1e9 / (obj.N - 1)
-        row[5] = (obj.delay - 0.5 * obj.T / (obj.N - 1)) * 1e6
-        row[6] = obj.Δf
-        row[7] = obj.ϕ
+function get_adc_library(adcs_obj_id)
+    adc_library = [[id, 0., 0., 0., 0., 0.] for (_, id) in adcs_obj_id]
+    for (i, row) in enumerate(adc_library)
+        obj = adcs_obj_id[i][1]
+        row[2] = obj.N
+        row[3] = obj.T * 1e9 / (obj.N - 1)
+        row[4] = (obj.delay - 0.5 * obj.T / (obj.N - 1)) * 1e6
+        row[5] = obj.Δf
+        row[6] = obj.ϕ
     end
-    return table_adc
+    return adc_library
 end
 
 """
-Defines the table to be written for the [SHAPES] section
-Columns of table_shapes: [id, num, data]
+Defines the library to be written for the [SHAPES] section
+Elements of shape_library: [id, num, data]
 """
-function get_table_shapes(rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id)
+function get_shape_library(rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id)
     events_data_id = [rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id]
     shapes_data_id = [s for shapes in events_data_id for s in shapes]
-    table_shapes = [[id, compress_shape(data)...] for (data, id) in shapes_data_id]
-    return table_shapes
+    shape_library = [[id, compress_shape(data)...] for (data, id) in shapes_data_id]
+    return shape_library
 end
 
 """
@@ -286,14 +286,18 @@ function write_seq(seq::Sequence, filename)
     traps_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) == 1]
     rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt = get_rf_shapes(rfs_obj_id, 1, Δt_rf)
     grads_amp_id, grads_tim_id, _ = get_grad_shapes(grads_obj_id, id_shape_cnt, Δt_gr)
-    # Get the tables to be written in the pulseq file
-    table_blocks = get_table_blocks(seq, rfs_obj_id, grs_obj_id, adcs_obj_id)
-    table_rf = get_table_rf(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
-    table_gradients = get_table_gradients(grads_obj_id, grads_amp_id, grads_tim_id, Δt_gr)
-    table_trap = get_table_trap(traps_obj_id)
-    table_adc = get_table_adc(adcs_obj_id)
-    table_shapes = get_table_shapes(
-        rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id
+    # Get the "pulseq object" with its libraries to be written in the obj file
+    obj = (
+        blockEvents=get_block_events(seq, rfs_obj_id, grs_obj_id, adcs_obj_id),
+        rfLibrary=get_rf_library(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf),
+        gradLibrary=(
+            arb=get_grad_library_arb(grads_obj_id, grads_amp_id, grads_tim_id, Δt_gr),
+            trap=get_grad_library_trap(traps_obj_id),
+        ),
+        adcLibrary=get_adc_library(adcs_obj_id),
+        shapeLibrary=get_shape_library(
+            rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id
+        ),
     )
     # Write the .seq file
     open(filename, "w") do fid
@@ -337,7 +341,7 @@ function write_seq(seq::Sequence, filename)
                 @printf(fid, "\n")
             end
         end
-        if !isempty(table_blocks)
+        if !isempty(obj.blockEvents)
             @printf(
                 fid,
                 """
@@ -349,11 +353,11 @@ function write_seq(seq::Sequence, filename)
             )
             id_format_str = "%" * string(length(string(length(seq)))) * "d "
             fmt = Printf.Format(id_format_str * "%3d %3d %3d %3d %3d %2d %2d\n")
-            for (blk, _, dur, rf, gx, gy, gz, adc, ext) in table_blocks
-                Printf.format(fid, fmt, blk, dur, rf, gx, gy, gz, adc, ext)
+            for row in obj.blockEvents
+                Printf.format(fid, fmt, row...)
             end
         end
-        if !isempty(table_rf)
+        if !isempty(obj.rfLibrary)
             @printf(
                 fid,
                 """
@@ -365,11 +369,11 @@ function write_seq(seq::Sequence, filename)
                 """
             )
             fmt = Printf.Format("%d %12g %d %d %d %g %g %g\n")
-            for (id, _, amp, mag_id, pha_id, time_id, delay, freq, pha) in table_rf
-                Printf.format(fid, fmt, id, amp, mag_id, pha_id, time_id, delay, freq, pha)
+            for row in obj.rfLibrary
+                Printf.format(fid, fmt, row...)
             end
         end
-        if !isempty(table_gradients)
+        if !isempty(obj.gradLibrary.arb)
             @printf(
                 fid,
                 """
@@ -381,11 +385,11 @@ function write_seq(seq::Sequence, filename)
                 [GRADIENTS]
                 """
             )
-            for (id, _, amp, amp_id, time_id, delay) in table_gradients
-                @printf(fid, "%d %12g %d %d %d\n", id, amp, amp_id, time_id, delay)
+            for row in obj.gradLibrary.arb
+                @printf(fid, "%d %12g %d %d %d\n", row...)
             end
         end
-        if !isempty(table_trap)
+        if !isempty(obj.gradLibrary.trap)
             @printf(
                 fid,
                 """
@@ -396,11 +400,11 @@ function write_seq(seq::Sequence, filename)
                 [TRAP]
                 """
             )
-            for (id, _, amp, rise, flat, fall, delay) in table_trap
-                @printf(fid, "%2d %12g %3d %4d %3d %3d\n", id, amp, rise, flat, fall, delay)
+            for row in obj.gradLibrary.trap
+                @printf(fid, "%2d %12g %3d %4d %3d %3d\n", row...)
             end
         end
-        if !isempty(table_adc)
+        if !isempty(obj.adcLibrary)
             @printf(
                 fid,
                 """
@@ -411,11 +415,11 @@ function write_seq(seq::Sequence, filename)
                 [ADC]
                 """
             )
-            for (id, _, num, dwell, delay, freq, phase) in table_adc
-                @printf(fid, "%d %d %.0f %.0f %g %g\n", id, num, dwell, delay, freq, phase)
+            for row in obj.adcLibrary
+                @printf(fid, "%d %d %.0f %.0f %g %g\n", row...)
             end
         end
-        if !isempty(table_shapes)
+        if !isempty(obj.shapeLibrary)
             @printf(
                 fid,
                 """
@@ -425,10 +429,10 @@ function write_seq(seq::Sequence, filename)
 
                 """
             )
-            for (id, num, data) in table_shapes
+            for (id, num, data) in obj.shapeLibrary
                 @printf(fid, "shape_id %d\n", id)
                 @printf(fid, "num_samples %d\n", num)
-                [@printf(fid, "%.9g\n", datai) for datai in data]
+                [@printf(fid, "%.9g\n", i) for i in data]
                 @printf(fid, "\n")
             end
         end
