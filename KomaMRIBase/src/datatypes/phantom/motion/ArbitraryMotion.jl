@@ -32,8 +32,8 @@ function ArbitraryMotion(
     Δz::AbstractArray{T,2},
 ) where {T<:Real}
     Ns = size(Δx)[1]
-    K = size(Δx)[2] + 1
-    limits = time_nodes(period_durations, K)
+    num_pieces = size(Δx)[2] + 1
+    limits = time_nodes(period_durations, num_pieces)
 
     #! format: off
     Δ = zeros(Ns,length(limits),4)
@@ -81,19 +81,19 @@ end
 # Revise this function to make it more efficient
 function time_nodes(motion::ArbitraryMotion)
     period_durations = motion.period_durations
-    K = size(motion.dx)[2] + 1
-    return time_nodes(period_durations, K)
+    num_pieces = size(motion.dx)[2] + 1
+    return time_nodes(period_durations, num_pieces)
 end
 
-function time_nodes(period_durations::AbstractVector, K::Int)
+function time_nodes(period_durations::AbstractVector, num_pieces::Int)
     # Pre-allocating memory
-    limits = zeros(eltype(period_durations), K * length(period_durations) + 1)
+    limits = zeros(eltype(period_durations), num_pieces * length(period_durations) + 1)
 
     idx = 1
     for i in 1:length(period_durations)
-        segment_increment = period_durations[i] / K
+        segment_increment = period_durations[i] / num_pieces
         cumulative_sum = limits[idx]  # Start from the last computed value in limits
-        for j in 1:K
+        for j in 1:num_pieces
             cumulative_sum += segment_increment
             limits[idx + 1] = cumulative_sum
             idx += 1
