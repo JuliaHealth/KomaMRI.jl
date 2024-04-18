@@ -303,25 +303,21 @@ function get_shape_library(rfmags, rfangs, rftimes, gramps, grtimes)
 end
 
 """
-    write_seq(seq::Sequence, filename::String)
-
-Writes a .seq file for a given sequence `seq` y the location `filename`
+Returns the with its libraries to be written in the obj file
 """
-function write_seq(seq::Sequence, filename)
-    # Just a warning message for extensions
-    @warn "EXTENSIONS will not be handled"
+function get_pulseq_object(seq::Sequence)
     # Get the raster times
     Δt_rf = seq.DEF["RadiofrequencyRasterTime"]
     Δt_gr = seq.DEF["GradientRasterTime"]
-    # Get the unique objects (RF, Grad y ADC) and its IDs
+    # Get the unique events and its IDs
     rfs = get_unique_events(seq.RF[is_on.(seq.RF)])
     grs = get_unique_events(seq.GR[is_gr_considered.(seq.GR)])
     adcs = get_unique_events(seq.ADC[is_on.(seq.ADC)])
     grads, traps = get_unique_gradients(grs)
     rfmags, rfangs, rftimes, cnt = get_rf_shapes(rfs, 1, Δt_rf)
     gramps, grtimes, _ = get_grad_shapes(grads, cnt, Δt_gr)
-    # Get the "pulseq object" with its libraries to be written in the obj file
-    obj = (
+    # Return the pulseq object
+    return (
         blockEvents = get_block_events(seq, rfs, grs, adcs),
         rfLibrary = get_rf_library(rfs, rfmags, rfangs, rftimes, Δt_rf),
         gradLibrary = (
@@ -331,6 +327,19 @@ function write_seq(seq::Sequence, filename)
         adcLibrary = get_adc_library(adcs),
         shapeLibrary = get_shape_library(rfmags, rfangs, rftimes, gramps, grtimes),
     )
+end
+
+"""
+    write_seq(seq::Sequence, filename::String)
+
+Writes a .seq file for a given sequence `seq` y the location `filename`
+"""
+function write_seq(seq::Sequence, filename)
+    # Just a warning message for extensions
+    @warn "EXTENSIONS will not be handled"
+    # Get the pulseq object
+    obj = get_pulseq_object(seq)
+    return obj
     # Write the .seq file
     open(filename, "w") do fid
         @printf(
