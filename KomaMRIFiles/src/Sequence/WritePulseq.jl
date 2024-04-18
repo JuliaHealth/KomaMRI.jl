@@ -43,102 +43,133 @@ function is_gr_considered(gr::Grad)
 end
 
 """
-Returns the a vector of vectors [obj, id] of unique events and IDs which are unique given
-an input vector of events.
+Returns the events and IDs which are unique given an input vector of events.
 """
-function get_events_obj_id(events::Vector)
-    events_obj_id, id_cnt = [], 1
+function get_unique_events(events::Vector)
+    events_obj, events_id, id_cnt = [], [], 1
     for obj in events
-        if all([!(obj ≈ obj_unique) for (obj_unique, _) in events_obj_id])
-            push!(events_obj_id, [obj, id_cnt])
+        if all([!(obj ≈ obj_unique) for obj_unique in events_obj])
+            push!(events_obj, obj)
+            push!(events_id, id_cnt)
             id_cnt += 1
         end
     end
-    return events_obj_id
+    return (obj = events_obj , id = events_id)
 end
 
 """
-Returns the vector of vectors [blk, obj, id] for all the blocks `blk` of an array of events.
-It is neccessary to add the input vector `events_obj_id` which contains the uniques objects
+Returns the vector of IDs for all the blocks of an array of events.
+It is neccessary to add the input vector `events` which contains the uniques objects
 (RF, Grad, or ADC) with its repective ID.
 """
-function get_events_blk_obj_id(event_array, events_obj_id::Vector)
-    events_blk_obj_id = [[blk, obj, 0] for (blk, obj) in enumerate(event_array)]
-    for boi in events_blk_obj_id
-        for (obj, id) in events_obj_id
-            if boi[2] ≈ obj
-                boi[3] = id
+function get_events_id(event_array, events)
+    events_id = fill(0, length(event_array))
+    for (blk, eve) in enumerate(event_array)
+        for (obj, id) in zip(events.obj, events.id)
+            if eve ≈ obj
+                events_id[blk] = id
+                break
             end
         end
     end
-    return events_blk_obj_id
+    return events_id
 end
 
 """
-Returns the unique shapes for the magnitude, angle and time of the "rfs_obj_id" vector.
-Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
+Separates the `grs` into the gradients with arbitrary waveform and trapezoidal
 """
-function get_rf_shapes(rfs_obj_id::Vector, id_shape_cnt::Integer, Δt_rf)
+function get_unique_gradients(grs)
+    grads = (obj = [], id = [])
+    traps = (obj = [], id = [])
+    for (obj, id) in zip(grs.obj, grs.id)
+        if length(obj.A) == 1
+            push!(traps.obj, obj)
+            push!(traps.id, id)
+        else
+            push!(grads.obj, obj)
+            push!(grads.id, id)
+        end
+    end
+    return grads, traps
+end
+
+"""
+Returns the unique shapes for the magnitude, angle and time of the `rfs` vector.
+Requires an initial integer counter `id_shape_cnt` to asign IDs incrementally.
+"""
+function get_rf_shapes(rfs, id_shape_cnt, Δt_rf)
     # Find the unique shapes (magnitude, phase and time shapes) and assign IDs
+    rfs_abs, rfs_ang, rfs_tim = [], [], []
     rfs_abs_id, rfs_ang_id, rfs_tim_id = [], [], []
-    for (obj, _) in rfs_obj_id
+    for obj in rfs.obj
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
-        if not_in_list(shape_abs, [shape for (shape, _) in rfs_abs_id])
-            push!(rfs_abs_id, [shape_abs, id_shape_cnt])
+        if not_in_list(shape_abs, rfs_abs)
+            push!(rfs_abs, shape_abs)
+            push!(rfs_abs_id, id_shape_cnt)
             id_shape_cnt += 1
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
         ang = shape_ang .- shape_ang[1]
-        list_ang_unique = [shape .- shape[1] for (shape, _) in rfs_ang_id]
+        list_ang_unique = [shape .- shape[1] for shape in rfs_ang]
         if not_in_list_angles(ang, list_ang_unique)
-            push!(rfs_ang_id, [shape_ang, id_shape_cnt])
+            push!(rfs_ang, shape_ang)
+            push!(rfs_ang_id, id_shape_cnt)
             id_shape_cnt += 1
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_rf
-            if not_in_list(shape_tim, [shape for (shape, _) in rfs_tim_id])
-                push!(rfs_tim_id, [shape_tim, id_shape_cnt])
+            if not_in_list(shape_tim, rfs_tim)
+                push!(rfs_tim, shape_tim)
+                push!(rfs_tim_id, id_shape_cnt)
                 id_shape_cnt += 1
             end
         end
     end
-    return rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt
+    rfmags = (data = rfs_abs, id = rfs_abs_id)
+    rfangs = (data = rfs_ang, id = rfs_ang_id)
+    rftimes = (data = rfs_tim, id = rfs_tim_id)
+    return rfmags, rfangs, rftimes, id_shape_cnt
 end
 
 """
-Returns the unique shapes for the amplitude and time of the "grads_obj_id" vector.
-Requires an initial integer counter "id_shape_cnt" to asign IDs incrementally.
+Returns the unique shapes for the amplitude and time of the `grads` vector.
+Requires an initial integer counter `id_shape_cnt` to asign IDs incrementally.
 """
-function get_grad_shapes(grads_obj_id::Vector, id_shape_cnt::Integer, Δt_gr)
+function get_grad_shapes(grads, id_shape_cnt, Δt_gr)
     # Find shapes for magnitude and time gradients
+    grads_amp, grads_tim = [], []
     grads_amp_id, grads_tim_id = [], []
-    for (obj, _) in grads_obj_id
+    for obj in grads.obj
         shape_amp = obj.A / maximum(abs.(obj.A))
-        if not_in_list(shape_amp, [shape for (shape, _) in grads_amp_id])
-            push!(grads_amp_id, [shape_amp, id_shape_cnt])
+        if not_in_list(shape_amp, grads_amp)
+            push!(grads_amp, shape_amp)
+            push!(grads_amp_id, id_shape_cnt)
             id_shape_cnt = id_shape_cnt + 1
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_gr
-            if not_in_list(shape_tim, [shape for (shape, _) in grads_tim_id])
-                push!(grads_tim_id, [shape_tim, id_shape_cnt])
+            if not_in_list(shape_tim, grads_tim)
+                push!(grads_tim, shape_tim)
+                push!(grads_tim_id, id_shape_cnt)
                 id_shape_cnt = id_shape_cnt + 1
             end
         end
     end
-    return grads_amp_id, grads_tim_id, id_shape_cnt
+    gramps = (data = grads_amp, id = grads_amp_id)
+    grtimes = (data = grads_tim, id = grads_tim_id)
+    return gramps, grtimes, id_shape_cnt
 end
 
 """
 Defines the library to be written in the [BLOCKS] section
 Columns of block_events: [blk, id_rf, id_gx, id_gy, id_gz, id_adc, id_ext]
 """
-function get_block_events(seq, rfs_obj_id, grs_obj_id, adcs_obj_id)
-    r = [id for (_, _, id) in get_events_blk_obj_id(seq.RF, rfs_obj_id)]
-    x = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.x, grs_obj_id)]
-    y = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.y, grs_obj_id)]
-    z = [id for (_, _, id) in get_events_blk_obj_id(seq.GR.z, grs_obj_id)]
-    a = [id for (_, _, id) in get_events_blk_obj_id(seq.ADC, adcs_obj_id)]
+function get_block_events(seq, rfs, grs, adcs)
+    r = get_events_id(seq.RF, rfs)
+    x = get_events_id(seq.GR.x, grs)
+    y = get_events_id(seq.GR.y, grs)
+    z = get_events_id(seq.GR.z, grs)
+    a = get_events_id(seq.ADC, adcs)
     block_events = [[b, 0, r[b], x[b], y[b], z[b], a[b], 0] for (b, _) in enumerate(seq)]
     for row in block_events
         blk = row[1]
@@ -156,21 +187,21 @@ end
 Defines the library to be written in the [RF] section
 Columns of rf_library: [id, amp, id_mag, id_phase, id_time, delay, freq, phase]
 """
-function get_rf_library(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
-    rf_library = [[id, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] for (_, id) in rfs_obj_id]
+function get_rf_library(rfs, rfmags, rfangs, rftimes, Δt_rf)
+    rf_library = [[id, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] for id in rfs.id]
     for (i, row) in enumerate(rf_library)
-        obj = rfs_obj_id[i][1]
+        obj = rfs.obj[i]
         row[2] = γ * maximum(abs.(obj.A))
         row[7] = obj.Δf
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
-        for (shape_abs_unique, id_abs) in rfs_abs_id
+        for (shape_abs_unique, id_abs) in zip(rfmags.data, rfmags.id)
             if safe_approx(shape_abs, shape_abs_unique)
                 row[3] = id_abs
             end
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
         ang = shape_ang .- shape_ang[1]
-        for (shape_ang_unique, id_ang) in rfs_ang_id
+        for (shape_ang_unique, id_ang) in zip(rfangs.data, rfangs.id)
             ang_unique = shape_ang_unique .- shape_ang_unique[1]
             if safe_approx_angles(ang, ang_unique)
                 row[4] = id_ang
@@ -182,7 +213,7 @@ function get_rf_library(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_rf
-            for (shape_tim_unique, id_tim) in rfs_tim_id
+            for (shape_tim_unique, id_tim) in zip(rftimes.data, rftimes.id)
                 if safe_approx(shape_tim, shape_tim_unique)
                     row[5] = id_tim
                 end
@@ -198,21 +229,21 @@ end
 Defines the library to be written in the [GRADIENTS] section
 Columns of grad_library_arb: [id, amp, id_amp, id_time, delay]
 """
-function get_grad_library_arb(grads_obj_id, grads_amp_id, grads_tim_id, Δt_gr)
-    grad_library_arb = [[id, 0.0, 0.0, 0.0, 0.0] for (_, id) in grads_obj_id]
+function get_grad_library_arb(grads, gramps, grtimes, Δt_gr)
+    grad_library_arb = [[id, 0.0, 0.0, 0.0, 0.0] for id in grads.id]
     for (i, row) in enumerate(grad_library_arb)
-        obj = grads_obj_id[i][1]
+        obj = grads.obj[i]
         row[2] = γ * maximum(abs.(obj.A))    # this always stores positive values, the waveform vector have the respective positive or negative values
         row[5] = round(1e6 * obj.delay)
         shape_amp = obj.A / maximum(abs.(obj.A))
-        for (shape_amp_unique, id_amp) in grads_amp_id
+        for (shape_amp_unique, id_amp) in zip(gramps.data, gramps.id)
             if safe_approx(shape_amp, shape_amp_unique)
                 row[3] = id_amp
             end
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_gr
-            for (shape_tim_unique, id_tim) in grads_tim_id
+            for (shape_tim_unique, id_tim) in zip(grtimes.data, grtimes.id)
                 if safe_approx(shape_tim, shape_tim_unique)
                     row[4] = id_tim
                 end
@@ -226,10 +257,10 @@ end
 Defines the library to be written in the [TRAP] section
 Columns of grad_library_trap: [id, amp, rise, flat, fall, delay]
 """
-function get_grad_library_trap(traps_obj_id)
-    grad_library_trap = [[id, 0.0, 0.0, 0.0, 0.0, 0.0] for (_, id) in traps_obj_id]
+function get_grad_library_trap(traps)
+    grad_library_trap = [[id, 0.0, 0.0, 0.0, 0.0, 0.0] for id in traps.id]
     for (i, row) in enumerate(grad_library_trap)
-        obj = traps_obj_id[i][1]
+        obj = traps.obj[i]
         row[2] = γ * obj.A
         row[3] = 1e6 * obj.rise
         row[4] = 1e6 * obj.T
@@ -243,10 +274,10 @@ end
 Defines the library to be written in the [ADC] section
 Columns of adc_library: [id, num, dwell, delay, freq, phase]
 """
-function get_adc_library(adcs_obj_id)
-    adc_library = [[id, 0.0, 0.0, 0.0, 0.0, 0.0] for (_, id) in adcs_obj_id]
+function get_adc_library(adcs)
+    adc_library = [[id, 0.0, 0.0, 0.0, 0.0, 0.0] for id in adcs.id]
     for (i, row) in enumerate(adc_library)
-        obj = adcs_obj_id[i][1]
+        obj = adcs.obj[i]
         row[2] = obj.N
         row[3] = obj.T * 1e9 / (obj.N - 1)
         row[4] = (obj.delay - 0.5 * obj.T / (obj.N - 1)) * 1e6
@@ -260,10 +291,14 @@ end
 Defines the library to be written for the [SHAPES] section
 Elements of shape_library: [id, num, data]
 """
-function get_shape_library(rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id)
-    events_data_id = [rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id]
-    shapes_data_id = [s for shapes in events_data_id for s in shapes]
-    shape_library = [[id, compress_shape(data)...] for (data, id) in shapes_data_id]
+function get_shape_library(rfmags, rfangs, rftimes, gramps, grtimes)
+    shape_library = []
+    for shapes in [rfmags, rfangs, rftimes, gramps, grtimes]
+        for (data, id) in zip(shapes.data, shapes.id)
+            num, data = compress_shape(data)
+            push!(shape_library, (id = id, num = num, data = data))
+        end
+    end
     return shape_library
 end
 
@@ -279,25 +314,22 @@ function write_seq(seq::Sequence, filename)
     Δt_rf = seq.DEF["RadiofrequencyRasterTime"]
     Δt_gr = seq.DEF["GradientRasterTime"]
     # Get the unique objects (RF, Grad y ADC) and its IDs
-    rfs_obj_id = get_events_obj_id(seq.RF[is_on.(seq.RF)])
-    grs_obj_id = get_events_obj_id(seq.GR[is_gr_considered.(seq.GR)])
-    adcs_obj_id = get_events_obj_id(seq.ADC[is_on.(seq.ADC)])
-    grads_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) != 1]
-    traps_obj_id = [[obj, id] for (obj, id) in grs_obj_id if length(obj.A) == 1]
-    rfs_abs_id, rfs_ang_id, rfs_tim_id, id_shape_cnt = get_rf_shapes(rfs_obj_id, 1, Δt_rf)
-    grads_amp_id, grads_tim_id, _ = get_grad_shapes(grads_obj_id, id_shape_cnt, Δt_gr)
+    rfs = get_unique_events(seq.RF[is_on.(seq.RF)])
+    grs = get_unique_events(seq.GR[is_gr_considered.(seq.GR)])
+    adcs = get_unique_events(seq.ADC[is_on.(seq.ADC)])
+    grads, traps = get_unique_gradients(grs)
+    rfmags, rfangs, rftimes, cnt = get_rf_shapes(rfs, 1, Δt_rf)
+    gramps, grtimes, _ = get_grad_shapes(grads, cnt, Δt_gr)
     # Get the "pulseq object" with its libraries to be written in the obj file
     obj = (
-        blockEvents=get_block_events(seq, rfs_obj_id, grs_obj_id, adcs_obj_id),
-        rfLibrary=get_rf_library(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf),
-        gradLibrary=(
-            arb=get_grad_library_arb(grads_obj_id, grads_amp_id, grads_tim_id, Δt_gr),
-            trap=get_grad_library_trap(traps_obj_id),
+        blockEvents = get_block_events(seq, rfs, grs, adcs),
+        rfLibrary = get_rf_library(rfs, rfmags, rfangs, rftimes, Δt_rf),
+        gradLibrary = (
+            arb = get_grad_library_arb(grads, gramps, grtimes, Δt_gr),
+            trap = get_grad_library_trap(traps),
         ),
-        adcLibrary=get_adc_library(adcs_obj_id),
-        shapeLibrary=get_shape_library(
-            rfs_abs_id, rfs_ang_id, rfs_tim_id, grads_amp_id, grads_tim_id
-        ),
+        adcLibrary = get_adc_library(adcs),
+        shapeLibrary = get_shape_library(rfmags, rfangs, rftimes, gramps, grtimes),
     )
     # Write the .seq file
     open(filename, "w") do fid
@@ -429,10 +461,10 @@ function write_seq(seq::Sequence, filename)
 
                 """
             )
-            for (id, num, data) in obj.shapeLibrary
-                @printf(fid, "shape_id %d\n", id)
-                @printf(fid, "num_samples %d\n", num)
-                [@printf(fid, "%.9g\n", i) for i in data]
+            for row in obj.shapeLibrary
+                @printf(fid, "shape_id %d\n", row.id)
+                @printf(fid, "num_samples %d\n", row.num)
+                [@printf(fid, "%.9g\n", i) for i in row.data]
                 @printf(fid, "\n")
             end
         end
