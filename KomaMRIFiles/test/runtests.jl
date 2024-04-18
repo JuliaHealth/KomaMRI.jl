@@ -64,11 +64,15 @@ using TestItems, TestItemRunner
         obj1.motion = SimpleMotion([
             PeriodicRotation(
                 period=1.0, 
-                yaw=45.0),
+                yaw=45.0,
+                pitch=0.0,
+                roll=0.0),
             Translation(
                 t_start=0.0,
                 t_end=0.5,
-                dy=0.02
+                dx=0.0,
+                dy=0.02,
+                dz=0.0
         )])
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
