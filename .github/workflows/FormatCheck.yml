@@ -1,3 +1,4 @@
+# Based on https://github.com/julia-actions/julia-format/blob/master/action.yml
 name: Format suggestions
 on:
   pull_request:
@@ -5,4 +6,6 @@ jobs:
   code-style:
     runs-on: ubuntu-latest
     steps:
-      - uses: julia-actions/julia-format@v2
+      - name: 'Format'
+        uses: julia-actions/julia-format@v2
+        if: ${{ failure() && contains( github.event.pull_request.labels.*.name, 'format-suggest' ) }}
