@@ -157,7 +157,7 @@ Defines the library to be written in the [RF] section
 Columns of rf_library: [id, amp, id_mag, id_phase, id_time, delay, freq, phase]
 """
 function get_rf_library(rfs_obj_id, rfs_abs_id, rfs_ang_id, rfs_tim_id, Δt_rf)
-    rf_library = [[id, 0., 0., 0., 0., 0., 0., 0.] for (_, id) in rfs_obj_id]
+    rf_library = [[id, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] for (_, id) in rfs_obj_id]
     for (i, row) in enumerate(rf_library)
         obj = rfs_obj_id[i][1]
         row[2] = γ * maximum(abs.(obj.A))
@@ -199,7 +199,7 @@ Defines the library to be written in the [GRADIENTS] section
 Columns of grad_library_arb: [id, amp, id_amp, id_time, delay]
 """
 function get_grad_library_arb(grads_obj_id, grads_amp_id, grads_tim_id, Δt_gr)
-    grad_library_arb = [[id, 0., 0., 0., 0.] for (_, id) in grads_obj_id]
+    grad_library_arb = [[id, 0.0, 0.0, 0.0, 0.0] for (_, id) in grads_obj_id]
     for (i, row) in enumerate(grad_library_arb)
         obj = grads_obj_id[i][1]
         row[2] = γ * maximum(abs.(obj.A))    # this always stores positive values, the waveform vector have the respective positive or negative values
@@ -227,7 +227,7 @@ Defines the library to be written in the [TRAP] section
 Columns of grad_library_trap: [id, amp, rise, flat, fall, delay]
 """
 function get_grad_library_trap(traps_obj_id)
-    grad_library_trap = [[id, 0., 0., 0., 0., 0.] for (_, id) in traps_obj_id]
+    grad_library_trap = [[id, 0.0, 0.0, 0.0, 0.0, 0.0] for (_, id) in traps_obj_id]
     for (i, row) in enumerate(grad_library_trap)
         obj = traps_obj_id[i][1]
         row[2] = γ * obj.A
@@ -244,7 +244,7 @@ Defines the library to be written in the [ADC] section
 Columns of adc_library: [id, num, dwell, delay, freq, phase]
 """
 function get_adc_library(adcs_obj_id)
-    adc_library = [[id, 0., 0., 0., 0., 0.] for (_, id) in adcs_obj_id]
+    adc_library = [[id, 0.0, 0.0, 0.0, 0.0, 0.0] for (_, id) in adcs_obj_id]
     for (i, row) in enumerate(adc_library)
         obj = adcs_obj_id[i][1]
         row[2] = obj.N
