@@ -78,7 +78,6 @@ end
 """
     limits = time_nodes(obj.motion)
 """
-# Revise this function to make it more efficient
 function time_nodes(motion::ArbitraryMotion)
     period_durations = motion.period_durations
     num_pieces = size(motion.dx)[2] + 1
