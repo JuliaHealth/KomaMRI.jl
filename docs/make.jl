@@ -52,16 +52,21 @@ end
 # Generate markdown, script and notebook for from the source literate files
 for (root, _, files) in walkdir(exa), file in files
     if first(split(file, "-")) == "lit"
-        file_head = split(file, ".")[1]
-        filename = replace(file, "lit-"=>"")
-        filename_head = split(filename, ".")[1]
+        file_h = split(file, ".")[1]
+        filename = replace(file, "lit-" => "")
+        filename_h = split(filename, ".")[1]
         ipath, opath = joinpath(root, file), joinpath(gen, exaname)
-        Literate.markdown(ipath, opath; repo_root_url, preprocess=preprocess_constants(filename_head, exaname) )
+        Literate.markdown(
+            ipath,
+            opath;
+            repo_root_url,
+            preprocess=preprocess_constants(filename_h, exaname),
+        )
         Literate.script(ipath, opath; repo_root_url)
         Literate.notebook(ipath, opath; execute=false)
-        mv(joinpath(opath, "$file_head.md"), joinpath(opath, "$filename_head.md"))
-        mv(joinpath(opath, "$file_head.jl"), joinpath(opath, "$filename_head.jl"))
-        mv(joinpath(opath, "$file_head.ipynb"), joinpath(opath, "$filename_head.ipynb"))
+        for e in ["md", "jl", ".ipynb"]
+            mv(joinpath(opath, "$file_h.$e"), joinpath(opath, "$filename_h.$e"); force=true)
+        end
     end
 end
 
