@@ -56,9 +56,6 @@ function Base.getindex(
     for field in filter(x -> (x in [:dx, :dy, :dz]), [fieldnames(ArbitraryMotion)...])
         push!(fields, getfield(motion, field)[p, :])
     end
-    for field in filter(x -> (x in [:ux, :uy, :uz]), [fieldnames(ArbitraryMotion)...])
-        push!(fields, getfield(motion, field)[p])
-    end
     return ArbitraryMotion(motion.period_durations, fields...)
 end
 
