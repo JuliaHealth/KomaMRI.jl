@@ -84,6 +84,7 @@ makedocs(
         "Educational Material 📚" => "educational-1d-simulation.md";
         "Simulation" => "mri-theory.md";
         "API Documentation" => "api.md";
+        "Advanced Users" => "develop.md"
     ],
     format = Documenter.HTML(
         prettyurls = true, #get(ENV, "CI", nothing) == "true",
