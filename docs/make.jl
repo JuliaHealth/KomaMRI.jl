@@ -1,6 +1,6 @@
 using Documenter, Literate, KomaMRI
 
-org, reps = :cncastillo, :KomaMRI
+org, reps = :JuliaHealth, :KomaMRI
 
 base = "$org/$reps.jl"
 repo_root_url = "https://github.com/$base/blob/master"
@@ -64,7 +64,7 @@ for (root, _, files) in walkdir(exa), file in files
         )
         Literate.script(ipath, opath; repo_root_url)
         Literate.notebook(ipath, opath; execute=false)
-        for e in ["md", "jl", ".ipynb"]
+        for e in ["md", "jl", "ipynb"]
             mv(joinpath(opath, "$file_h.$e"), joinpath(opath, "$filename_h.$e"); force=true)
         end
     end
