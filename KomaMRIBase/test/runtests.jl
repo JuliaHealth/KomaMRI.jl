@@ -438,7 +438,16 @@ end
     end
     @testset "ArbitraryMotion" begin
         ph = Phantom(x=[1.0], y=[1.0])
-        # (...)
+        Ns = length(ph)
+        period_durations = [1.0]
+        num_pieces = 10
+        dx = dy = dz = rand(Ns, num_pieces - 1)
+        arbitrarymotion = ArbitraryMotion(period_durations, dx, dy, dz)
+        t = time_nodes(arbitrarymotion)
+        xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
+        @test xt[:,2:end-1] == ph.x .+ dx
+        @test yt[:,2:end-1] == ph.y .+ dy
+        @test zt[:,2:end-1] == ph.z .+ dz
     end
 
     simplemotion = SimpleMotion([
@@ -446,14 +455,28 @@ end
         Rotation(pitch=0.0, roll=0.0, yaw=π / 2, t_start=0.05, t_end=0.5),
     ])
 
-    # Test phantom comparison
-    obj1.motion = simplemotion
-    obe = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, simplemotion)
-    @test obj1 == obe
+    Ns = length(obj1)
+    K = 10
+    arbitrarymotion = ArbitraryMotion([1.0], 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1))
 
     # Test phantom subset
+    obs1 = Phantom(
+        name,
+        x,
+        y,
+        z,
+        ρ,
+        T1,
+        T2,
+        T2s,
+        Δw,
+        Dλ1,
+        Dλ2,
+        Dθ,
+        simplemotion
+    )
     rng = 1:2:5
-    obg = Phantom(
+    obs2 = Phantom(
         name,
         x[rng],
         y[rng],
@@ -468,8 +491,13 @@ end
         Dθ[rng],
         simplemotion[rng],
     )
-    @test obj1[rng] == obg
-    @test @view(obj1[rng]) == obg
+    @test obs1[rng] == obs2
+    @test @view(obs1[rng]) == obs2
+
+    obs1.motion = arbitrarymotion
+    obs2.motion = arbitrarymotion[rng]
+    @test obs1[rng] == obs2
+    # @test @view(obs1[rng]) == obs2
 
     # Test addition of phantoms
     oba = Phantom(
@@ -485,20 +513,13 @@ end
         [Dλ1; Dλ1[rng]],
         [Dλ2; Dλ2[rng]],
         [Dθ; Dθ[rng]],
-        [obj1.motion; obg.motion]
+        [obs1.motion; obs2.motion]
     )
-    @test obj1 + obg == oba
-
-    # Test phantom with ArbitraryMotion
-    Ns = length(obj1)
-    K = 10
-    arbitrarymotion = ArbitraryMotion([1.0], 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1))
-    obj1.motion = obj2.motion = arbitrarymotion
-    @test obj1 == obj2
+    @test obs1 + obs2 == oba
 
     # Test scalar multiplication of a phantom
     c = 7
-    obc = Phantom(name, x, y, z, c * ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, arbitrarymotion)
+    obc = Phantom(name=name, x=x, y=y, z=z, ρ=c*ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
     @test c * obj1 == obc
 
     #Test brain phantom 2D
