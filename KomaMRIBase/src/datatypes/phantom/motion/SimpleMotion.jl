@@ -47,9 +47,11 @@ function get_spin_coords(
     composable_motions = motion.types[is_composable.(motion.types)]
     sort!(composable_motions; by=m -> time_nodes(m)[1])
     for motion in composable_motions
-        xi, yi, zi = xi .+ displacement_x(motion, xi, yi, zi, t),
-        yi .+ displacement_y(motion, xi, yi, zi, t),
-        zi .+ displacement_z(motion, xi, yi, zi, t)
+        xi, yi, zi = begin
+            xi .+ displacement_x(motion, xi, yi, zi, t),
+            yi .+ displacement_y(motion, xi, yi, zi, t),
+            zi .+ displacement_z(motion, xi, yi, zi, t)
+        end
     end
     additive_motions = motion.types[(!is_composable).(motion.types)]
     #! format: off
@@ -74,7 +76,7 @@ include("simplemotion/HeartBeat.jl")
 
 function unit_time(t::AbstractArray{T}, t_start::T, t_end::T) where {T<:Real}
     if t_start == t_end
-        return (t .>= motion_type.t_start) .* one(T) # The problem with this is that it returns a BitVector (type stability issues)
+        return (t .>= t_start) .* one(T) # The problem with this is that it returns a BitVector (type stability issues)
     else
         return min.(max.((t .- t_start) ./ (t_end - t_start), zero(T)), one(T))
     end
