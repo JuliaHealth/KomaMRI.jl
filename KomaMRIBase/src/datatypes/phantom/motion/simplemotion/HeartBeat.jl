@@ -2,11 +2,11 @@
 """
 
 @with_kw struct HeartBeat{T<:Real} <: SimpleMotionType{T}
-    circunferential_strain :: T
+    circumferential_strain :: T
     radial_strain          :: T
-    longitudinal_strain::T = typeof(circunferential_strain)(0.0)
-    t_start::T             = typeof(circunferential_strain)(0.0)
-    t_end::T               = typeof(circunferential_strain)(0.0)
+    longitudinal_strain::T = typeof(circumferential_strain)(0.0)
+    t_start::T             = typeof(circumferential_strain)(0.0)
+    t_end::T               = typeof(circumferential_strain)(0.0)
     @assert t_end >= t_start "t_end must be major or equal than t_start"
 end
 
@@ -22,7 +22,7 @@ function displacement_x(
     t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
     r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
-    Δ_circunferential = motion_type.circunferential_strain * maximum(r)
+    Δ_circunferential = motion_type.circumferential_strain * maximum(r)
     Δ_radial = -motion_type.radial_strain * (maximum(r) .- r)
     Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
     # Map negative radius to r=0
@@ -42,7 +42,7 @@ function displacement_y(
     t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
     r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
-    Δ_circunferential = motion_type.circunferential_strain * maximum(r)
+    Δ_circunferential = motion_type.circumferential_strain * maximum(r)
     Δ_radial = -motion_type.radial_strain * (maximum(r) .- r)
     Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
     # Map negative radius to r=0

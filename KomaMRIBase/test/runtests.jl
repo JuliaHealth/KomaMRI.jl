@@ -419,21 +419,21 @@ end
         @test yt[:,end] == ph.x .* sind(yaw) + ph.y .* cosd(yaw)
         @test zt[:,end] == ph.z
         # HeartBeat
-        circunferential_strain = -0.1
+        circumferential_strain = -0.1
         radial_strain = 0.0
         longitudinal_strain = -0.1
-        heartbeat = SimpleMotion([HeartBeat(circunferential_strain, radial_strain, longitudinal_strain, t_start, t_end)])
+        heartbeat = SimpleMotion([HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end)])
         xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
         θ = atan.(ph.y, ph.x)
-        @test xt[:,end] == ph.x .* (1 .+ circunferential_strain * maximum(r) .* cos.(θ))
-        @test yt[:,end] == ph.y .* (1 .+ circunferential_strain * maximum(r) .* sin.(θ))
+        @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
+        @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
         @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
         # PeriodicHeartBeat
-        periodicheartbeat = SimpleMotion([PeriodicHeartBeat(circunferential_strain, radial_strain, longitudinal_strain, period, asymmetry)])
+        periodicheartbeat = SimpleMotion([PeriodicHeartBeat(circumferential_strain, radial_strain, longitudinal_strain, period, asymmetry)])
         xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
-        @test xt[:,end] == ph.x .* (1 .+ circunferential_strain * maximum(r) .* cos.(θ))
-        @test yt[:,end] == ph.y .* (1 .+ circunferential_strain * maximum(r) .* sin.(θ))
+        @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
+        @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
         @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
     end
     @testset "ArbitraryMotion" begin

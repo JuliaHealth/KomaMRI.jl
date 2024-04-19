@@ -2,11 +2,11 @@
 """
 
 @with_kw struct PeriodicHeartBeat{T<:Real} <: SimpleMotionType{T}
-    circunferential_strain :: T
+    circumferential_strain :: T
     radial_strain          :: T
-    longitudinal_strain::T = typeof(circunferential_strain)(0.0)
-    period::T              = typeof(circunferential_strain)(0.0)
-    asymmetry::T           = typeof(circunferential_strain)(0.5)
+    longitudinal_strain::T = typeof(circumferential_strain)(0.0)
+    period::T              = typeof(circumferential_strain)(0.0)
+    asymmetry::T           = typeof(circumferential_strain)(0.5)
 end
 
 is_composable(motion_type::PeriodicHeartBeat) = true
@@ -21,7 +21,7 @@ function displacement_x(
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
-    Δ_circunferential = motion_type.circunferential_strain * maximum(r)
+    Δ_circunferential = motion_type.circumferential_strain * maximum(r)
     Δ_radial = -motion_type.radial_strain * (maximum(r) .- r)
     Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
     # Map negative radius to r=0
@@ -41,7 +41,7 @@ function displacement_y(
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
     r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
-    Δ_circunferential = motion_type.circunferential_strain * maximum(r)
+    Δ_circunferential = motion_type.circumferential_strain * maximum(r)
     Δ_radial = -motion_type.radial_strain * (maximum(r) .- r)
     Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
     # Map negative radius to r=0

@@ -124,11 +124,11 @@ end
 """
     obj = heart_phantom(...)
 
-Heart-like LV phantom. The variable `circunferential_strain` and `radial_strain` are for streching (if positive) 
+Heart-like LV phantom. The variable `circumferential_strain` and `radial_strain` are for streching (if positive) 
 or contraction (if negative). `rotation_angle` is for rotation.
 
 # Arguments
-- `circunferential_strain`: (`::Real`, `=-0.3`) contraction parameter
+- `circumferential_strain`: (`::Real`, `=-0.3`) contraction parameter
 - `radial_strain`: (`::Real`, `=-0.3`) contraction parameter
 - `rotation_angle`: (`::Real`, `=1`) rotation parameter
 
@@ -136,7 +136,7 @@ or contraction (if negative). `rotation_angle` is for rotation.
 - `phantom`: (`::Phantom`) Heart-like LV phantom struct
 """
 function heart_phantom(
-    circunferential_strain=-0.3,
+    circumferential_strain=-0.3,
     radial_strain=-0.3,
     rotation_angle=15.0;
     heart_rate=60,
@@ -182,7 +182,7 @@ function heart_phantom(
             PeriodicHeartBeat(;
                 period=period,
                 asymmetry=asymmetry,
-                circunferential_strain=circunferential_strain,
+                circumferential_strain=circumferential_strain,
                 radial_strain=radial_strain,
                 longitudinal_strain=0.0,
             ),
