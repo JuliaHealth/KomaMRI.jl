@@ -8,13 +8,13 @@ plu_pattern = "pluto-"
 include("utils.jl")
 
 # Documentation folders KomaMRI.jl/docs/
-doc_tutorial       = joinpath(@__DIR__, "src/tutorial")
-doc_tutorial_rep   = joinpath(@__DIR__, "src/tutorial-pluto")
-doc_howto          = joinpath(@__DIR__, "src/how-to")
-doc_explanation    = joinpath(@__DIR__, "src/explanation")
-doc_reference      = joinpath(@__DIR__, "src/reference")
+doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")
+doc_tutorial_rep   = joinpath(dirname(@__DIR__), "docs/src/tutorial-pluto")
+doc_howto          = joinpath(dirname(@__DIR__), "docs/src/how-to")
+doc_explanation    = joinpath(dirname(@__DIR__), "docs/src/explanation")
+doc_reference      = joinpath(dirname(@__DIR__), "docs/src/reference")
 
-# Copying external files to the documentation folder
+# Copying files from KomaMRI.jl/ to the documentation folder KomaMRI.jl/docs/
 # Assets
 koma_assets        = joinpath(dirname(@__DIR__), "assets")
 doc_assets         = joinpath(dirname(@__DIR__), "docs/src/assets")
