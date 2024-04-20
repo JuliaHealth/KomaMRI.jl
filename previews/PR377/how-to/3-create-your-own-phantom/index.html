@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Create Your Own Phantom · KomaMRI.jl</title><meta name="title" content="Create Your Own Phantom · KomaMRI.jl"/><meta property="og:title" content="Create Your Own Phantom · KomaMRI.jl"/><meta property="twitter:title" content="Create Your Own Phantom · KomaMRI.jl"/><meta name="description" content="Documentation for KomaMRI.jl."/><meta property="og:description" content="Documentation for KomaMRI.jl."/><meta property="twitter:description" content="Documentation for KomaMRI.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/extra-styles.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img class="docs-light-only" src="../../assets/logo.svg" alt="KomaMRI.jl logo"/><img class="docs-dark-only" src="../../assets/logo-dark.svg" alt="KomaMRI.jl logo"/></a><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">🏠 Home</a></li><li><a class="tocitem" href="../1-getting-started/">🏃 Getting Started</a></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox"/><label class="tocitem" for="menuitem-3"><span class="docs-label">🏋️ Tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../tutorial/01-FID/">Free Induction Decay</a></li><li><a class="tocitem" href="../../tutorial/02-SmallTipApproximation/">Small Tip Angle Approximation</a></li><li><a class="tocitem" href="../../tutorial/03-ChemicalShiftEPI/">Chemical Shift in an EPI sequence</a></li><li><a class="tocitem" href="../../tutorial/04-3DSliceSelective/">Slice-Selective Acquisition of 3D Phantom</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4" type="checkbox"/><label class="tocitem" for="menuitem-4"><span class="docs-label">🧑‍🔬 Reproducible Tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../tutorial-pluto/01-gradient-echo-spin-echo/">Understanding basic MRI sequences</a></li><li><a class="tocitem" href="../../tutorial-pluto/02-low-field-cmra-optimization/">Low-Field CMRA Optimization</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-5" type="checkbox" checked/><label class="tocitem" for="menuitem-5"><span class="docs-label">👨‍🍳 How to</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../2-1-use-koma-ui/">Use Koma&#39;s User Interface</a></li><li><a class="tocitem" href="../2-2-use-koma-notebooks/">Use Koma in Notebooks</a></li><li><a class="tocitem" href="../2-3-use-koma-scripts/">Use Koma in Julia Scripts</a></li><li class="is-active"><a class="tocitem" href>Create Your Own Phantom</a></li><li><a class="tocitem" href="../3-create-your-own-sequence/">Create Your Own Sequence</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-6" type="checkbox"/><label class="tocitem" for="menuitem-6"><span class="docs-label">🤔 Explanations</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../explanation/1-sequence/">Sequence</a></li><li><a class="tocitem" href="../../explanation/2-seq-events/">Sequence Events</a></li><li><a class="tocitem" href="../../explanation/3-simulation/">Simulation</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-7" type="checkbox"/><label class="tocitem" for="menuitem-7"><span class="docs-label">👨‍💻 Reference Guides</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../reference/1-api/">API Overview</a></li><li><a class="tocitem" href="../../reference/2-koma-base/">KomaMRIBase</a></li><li><a class="tocitem" href="../../reference/3-koma-core/">KomaMRICore</a></li><li><a class="tocitem" href="../../reference/4-koma-files/">KomaMRIFiles</a></li><li><a class="tocitem" href="../../reference/5-koma-plots/">KomaMRIPlots</a></li><li><a class="tocitem" href="../../reference/6-koma-mri/">KomaMRI</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">👨‍🍳 How to</a></li><li class="is-active"><a href>Create Your Own Phantom</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Create Your Own Phantom</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaHealth/KomaMRI.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/JuliaHealth/KomaMRI.jl/blob/master/docs/src/how-to/3-create-your-own-phantom.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Create-Your-Own-Phantom"><a class="docs-heading-anchor" href="#Create-Your-Own-Phantom">Create Your Own Phantom</a><a id="Create-Your-Own-Phantom-1"></a><a class="docs-heading-anchor-permalink" href="#Create-Your-Own-Phantom" title="Permalink"></a></h1><p>In this section, we will create a custom <strong>Phantom</strong> struct. While the example is presented in 2D, the concepts discussed here can be readily extended to 3D phantoms.</p><p>In <strong>KomaMRI</strong>, the creation of a <strong>Phantom</strong> struct involves defining spin position arrays (x, y, z) and spin property arrays. The indices of these arrays are then associated with independent spins.</p><p>For instance, you can create a <strong>Phantom</strong> with one spin like so:</p><pre><code class="language-julia hljs"># Define arrays of positions (spin at zero position)
+x = [0.0]
+y = [0.0]
+z = [0.0]
+
+# Define arrays of properties (for CSF tissue)
+ρ = [1.0]
+T1 = [2.569]
+T2 = [0.329]
+T2s = [0.058]
+
+# Define the phantom
+spin = Phantom(name=&quot;spin&quot;, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s)</code></pre><pre><code class="language-julia-repl hljs">Phantom{Float64}
+  name: String &quot;spin&quot;
+  x: Array{Float64}((1,)) [0.0]
+  y: Array{Float64}((1,)) [0.0]
+  z: Array{Float64}((1,)) [0.0]
+  ρ: Array{Float64}((1,)) [1.0]
+  T1: Array{Float64}((1,)) [2.569]
+  T2: Array{Float64}((1,)) [0.329]
+  T2s: Array{Float64}((1,)) [0.058]
+  Δw: Array{Float64}((1,)) [0.0]
+  Dλ1: Array{Float64}((1,)) [0.0]
+  Dλ2: Array{Float64}((1,)) [0.0]
+  Dθ: Array{Float64}((1,)) [0.0]
+  ux: #122 (function of type KomaMRICore.var&quot;#122#136&quot;)
+  uy: #123 (function of type KomaMRICore.var&quot;#123#137&quot;)
+  uz: #124 (function of type KomaMRICore.var&quot;#124#138&quot;)</code></pre><p>You can add more properties to the <strong>Phantom</strong>, such as off-resonance, diffusion parameters, and even functions of motion. However, we won&#39;t be utilizing them (except for the off-resonance parameter) to maintain simplicity.</p><p>If you are familiar with the <strong>MRI</strong> world, you likely have a 2D or 3D array, where each element contains an ID number identifying a different class of tissue. In this setup, the array axes represent spatial positions, while the elements are used for tissue identification.</p><p>In this example, we will utilize a <code>.mat</code> file containing arrays with such arrangements. The file is readily available upon installing <strong>KomaMRI</strong>. Let&#39;s read the file and store the 2D data in an array called <code>class</code>:&quot;</p><pre><code class="language-julia hljs"># Import necessary modules
+using KomaMRI, MAT
+
+# Get data from a .mat file
+path_koma = dirname(dirname(pathof(KomaMRI)))
+path_phantom_mat = joinpath(path_koma, &quot;KomaMRIBase&quot;, &quot;src&quot;, &quot;datatypes&quot;, &quot;phantom&quot;, &quot;pelvis2D.mat&quot;)
+data = MAT.matread(path_phantom_mat)
+class = data[&quot;pelvis3D_slice&quot;]</code></pre><p>You can visualize the tissue map using the <a href="../../reference/5-koma-plots/#KomaMRIPlots.plot_image"><code>plot_image</code></a> function:</p><pre><code class="language-julia hljs">plot_image(class)</code></pre><center><object type="text/html" data="../../assets/create-your-own-phantom-class-map.html" style="width:100%; height:620px;"></object></center><p>Let&#39;s define the position arrays. You need to know the distance between the spins in the original array (in this case, it is 0.5mm), and then you can determine all the positions like this (the z-component is not calculated since this is a 2D example):</p><pre><code class="language-julia hljs"># Define spin position arrays
+Δx = .5e-3                  # 0.5mm
+M, N = size(class)          # Number of spins in x and y
+FOVx = (M-1)*Δx             # Field of view in x
+FOVy = (N-1)*Δx             # Field of view in y
+x = -FOVx/2:Δx:FOVx/2       # x spin coordinates vector
+y = -FOVy/2:Δx:FOVy/2       # y spin coordinates vector
+x, y = x .+ y&#39;*0, x*0 .+ y&#39; # x and y grid points</code></pre><p>Now, let&#39;s define the arrays for the properties. It&#39;s essential to have prior knowledge of the property values for different tissue classes. For example, for soft tissue, we use <code>ρ = 0.9</code>, <code>T1 = 1200 * 1e-3</code>, <code>T2 = 80 * 1e-3</code>, and <code>T2s = 80 * 1e-3</code>. Additionally, we create an array mask to identify the location of a tissue&#39;s ID. For soft tissue with ID = 153, the mask is <code>(class .== 153)</code>. Finally, to obtain a property, sum all the masks with values for all tissue classes. This process is illustrated below: </p><pre><code class="language-julia hljs"># Define the proton density array
+ρ = (class.==102)*.86 .+    # Fat
+    (class.==153)*.9 .+     # SoftTissue
+    (class.==204)*.4 .+     # SpongyBone
+    (class.==255)*.2        # CorticalBone
+
+# Define the T1 decay array
+T1 = (class.==102)*366 .+   # Fat
+    (class.==153)*1200 .+   # SoftTissue
+    (class.==204)*381 .+    # SpongyBone
+    (class.==255)*100       # CorticalBone
+
+# Define the T2 decay array
+T2 = (class.==102)*70 .+    # Fat
+    (class.==153)*80 .+     # SoftTissue
+    (class.==204)*52 .+     # SpongyBone
+    (class.==255)*.3        # CorticalBone
+
+# Define the T2s decay array
+T2s = (class.==102)*70 .+   # Fat
+    (class.==153)*80 .+     # SoftTissue
+    (class.==204)*52 .+     # SpongyBone
+    (class.==255)*.3        # CorticalBone
+
+# Define off-resonance array
+Δw_fat = -220 * 2π
+Δw = (class.==102) * Δw_fat # FAT1
+
+# Adjust with scaling factor
+T1 = T1*1e-3
+T2 = T2*1e-3
+T2s = T2s*1e-3</code></pre><p>Finally, we can invoke the <a href="../../reference/2-koma-base/#KomaMRIBase.Phantom"><code>Phantom</code></a> constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask <code>ρ.!=0</code> to the arrays. Additionally, please note that we set the z-position array filled with zeros.</p><pre><code class="language-julia hljs"># Define the phantom
+obj = Phantom{Float64}(
+    name = &quot;custom-pelvis&quot;,
+	x = x[ρ.!=0],
+	y = y[ρ.!=0],
+	z = 0*x[ρ.!=0],
+	ρ = ρ[ρ.!=0],
+	T1 = T1[ρ.!=0],
+	T2 = T2[ρ.!=0],
+	T2s = T2s[ρ.!=0],
+	Δw = Δw[ρ.!=0],
+)</code></pre><p>We can display the <strong>Phantom</strong> struct with the <a href="../../reference/5-koma-plots/#KomaMRIPlots.plot_phantom_map"><code>plot_phantom_map</code></a> function. In this case we select the T1 decay to be displayed, but you can choose other property to be displayed:</p><pre><code class="language-julia hljs">plot_phantom_map(obj, :T1)</code></pre><object type="text/html" data="../../assets/create-your-own-phantom-plot-rho.html" style="width:100%; height:620px;"></object></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../2-3-use-koma-scripts/">« Use Koma in Julia Scripts</a><a class="docs-footer-nextpage" href="../3-create-your-own-sequence/">Create Your Own Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Saturday 20 April 2024 18:56">Saturday 20 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
