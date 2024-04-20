@@ -4,8 +4,9 @@ function move_examples_to_docs!(src_folder, dst_folder, start_pattern; remove_pa
             if !endswith(filename, ".jl")
                 continue
             end
+            # removes "pluto-"/"lit-" from the filename
             if remove_pattern
-                filename_gen = filename[(length(start_pattern) + 1):end] # removes "pluto-"
+                filename_gen = filename[(length(start_pattern) + 1):end]
             else
                 filename_gen = filename
             end
@@ -31,11 +32,11 @@ function _link_example(filename)
     return _link_example_for_filename
 end
 
-function list_md_not_lit(input_folder, output_doc_section; exclude="-----------------------", lit_start_pattern="lit-")
+function list_md_not_lit(input_folder, output_doc_section; exclude="-----------------------", lit_pattern="lit-")
     md_list = String[]
     for (root, _, files) in walkdir(input_folder)
         for filename in filter(endswith(".md"), files)
-            if startswith(lit_start_pattern, filename)
+            if startswith(lit_pattern, filename)
                 continue
             end
             if occursin(exclude, filename)
@@ -47,11 +48,11 @@ function list_md_not_lit(input_folder, output_doc_section; exclude="------------
     return md_list
 end
 
-function literate_doc_folder(input_folder, output_doc_section; lit_start_pattern="lit-")
+function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-")
     tutorial_list = []
     for (root, _, files) in walkdir(input_folder)
-        for filename in filter(startswith(lit_start_pattern), files)
-            filename_gen = splitext(filename)[1][(length(lit_start_pattern) + 1):end] # removes "lit-"
+        for filename in filter(startswith(lit_pattern), files)
+            filename_gen = splitext(filename)[1][(length(lit_pattern) + 1):end] # removes "lit-"
             tutorial_src = joinpath(input_folder, filename)
             tutorial_md  = "$output_doc_section/$filename_gen.md"
             Literate.markdown(
@@ -70,11 +71,11 @@ function literate_doc_folder(input_folder, output_doc_section; lit_start_pattern
 end
 
 # TODO: copy files with "pluto-" to docs, and remove for generated html and md
-function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; pluto_start_pattern="pluto-")
+function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pattern="pluto-")
     reproducible_list = String[]
     for (root, _, files) in walkdir(doc_tutorial_pluto)
         for filename in filter(endswith("jl"), files)
-            # if !startswith(pluto_start_pattern, filename)
+            # if !startswith(plu_pattern, filename)
             #     continue
             # end
             filename_gen  = splitext(filename)[1]

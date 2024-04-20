@@ -1,5 +1,12 @@
 using Documenter, Literate, KomaMRI, PlutoSliderServer
 
+# Setup for Literate and Pluto
+repo_base = "JuliaHealth/KomaMRI.jl"
+repo_root_url = "https://github.com/$repo_base/blob/master"
+lit_pattern = "lit-"
+plu_pattern = "pluto-"
+include("utils.jl")
+
 # Documentation folders
 doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")
 doc_tutorial_rep   = joinpath(dirname(@__DIR__), "docs/src/tutorial-pluto")
@@ -19,14 +26,7 @@ koma_tutorials_plu = joinpath(dirname(@__DIR__), "examples/4.reproducible_notebo
 move_examples_to_docs!(koma_tutorials_lit, doc_tutorial, lit_pattern)
 move_examples_to_docs!(koma_tutorials_plu, doc_tutorial_rep, plu_pattern; remove_pattern=true)
 
-# Setup for Literate and Pluto
-repo_base = "JuliaHealth/KomaMRI.jl"
-repo_root_url = "https://github.com/$repo_base/blob/master"
-lit_pattern = "lit-"
-plu_pattern = "pluto-"
-
 ## DOCUMENTATION GENERATION
-include("utils.jl")
 # Get list of documentation md files from docs/src/section
 howto_list       = list_md_not_lit(doc_howto, "how-to"; exclude="getting-started", lit_pattern)
 explanation_list = list_md_not_lit(doc_explanation, "explanation"; lit_pattern)
