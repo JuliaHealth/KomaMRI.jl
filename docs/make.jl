@@ -1,148 +1,54 @@
 using Documenter, Literate, KomaMRI, PlutoSliderServer
 
-org, reps = :JuliaHealth, :KomaMRI
+org, reps = :cncastillo, :KomaMRI
 base = "$org/$reps.jl"
 repo_root_url = "https://github.com/$base/blob/master"
+include("utils.jl")
 
 # Documentation folders
-doc_assets         = joinpath(@__DIR__, "src/assets")
-doc_tutorial       = joinpath(@__DIR__, "src/tutorial")
-doc_tutorial_pluto = joinpath(@__DIR__, "src/tutorial-pluto")
-doc_howto          = joinpath(@__DIR__, "src/how-to")
-doc_explanation    = joinpath(@__DIR__, "src/explanation")
-doc_reference      = joinpath(@__DIR__, "src/reference")
+doc_assets         = joinpath(dirname(@__DIR__), "docs/src/assets")
+doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")
+doc_tutorial_pluto = joinpath(dirname(@__DIR__), "docs/src/tutorial-pluto")
+doc_howto          = joinpath(dirname(@__DIR__), "docs/src/how-to")
+doc_explanation    = joinpath(dirname(@__DIR__), "docs/src/explanation")
+doc_reference      = joinpath(dirname(@__DIR__), "docs/src/reference")
 # External files
 koma_assets = joinpath(dirname(@__DIR__), "assets")
 koma_tutorials_lit = joinpath(dirname(@__DIR__), "examples/3.tutorials")
 koma_tutorials_plu = joinpath(dirname(@__DIR__), "examples/4.reproducible_notebooks")
+lit_start_pattern = "lit-"
+pluto_start_pattern = "pluto-"
 
 # Copying external files to the documentation folder
-# docs/assets
 cp(joinpath(koma_assets, "logo.svg"), joinpath(doc_assets, "logo.svg"); force=true)
-cp(
-    joinpath(koma_assets, "logo-dark.svg"),
-    joinpath(doc_assets, "logo-dark.svg");
-    force=true,
-)
-# docs/src
-# Literate
-lit_start_pattern = "lit-"
-for (root, _, files) in walkdir(koma_tutorials_lit)
-    for filename in filter(startswith(lit_start_pattern), files)
-        if !endswith(filename, ".jl")
-            continue
-        end
-        cp(joinpath(root, filename), joinpath(doc_tutorial, filename); force=true)
-    end
-end
-# Pluto
-pluto_start_pattern = "pluto-"
-for (root, _, files) in walkdir(koma_tutorials_plu)
-    for filename in filter(startswith(pluto_start_pattern), files)
-        if !endswith(filename, ".jl")
-            continue
-        end
-        filename_gen = filename[(length(pluto_start_pattern) + 1):end] # removes "pluto-"
-        cp(joinpath(root, filename), joinpath(doc_tutorial_pluto, filename_gen); force=true)
-    end
-end
+cp(joinpath(koma_assets, "logo-dark.svg"), joinpath(doc_assets, "logo-dark.svg"); force=true)
+move_pattern_from_examples_to_docs!(koma_tutorials_lit, doc_tutorial, lit_start_pattern)
+move_pattern_from_examples_to_docs!(koma_tutorials_plu, doc_tutorial_pluto, pluto_start_pattern)
 
-# Based on https://github.com/jump-dev/JuMP.jl/blob/master/docs/make.jl
-# Add Literate links after the title
-function _link_example(filename)
-    function _link_example_for_filename(content)
-        title_line = findfirst(r"\n# .+?\n", content)
-        line = content[title_line]
-        badges = """
-
-        #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename.jl)
-        #md # [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename.ipynb)
-
-        """
-        return replace(content, line => line * badges)
-    end
-    return _link_example_for_filename
-end
-
-# TUTORIALS: Generate markdown, script and notebook from the source literate files
-tutorial_list = []
-for (root, _, files) in walkdir(doc_tutorial)
-    for filename in filter(startswith(lit_start_pattern), files)
-        filename_gen = splitext(filename)[1][(length(lit_start_pattern) + 1):end] # removes "lit-"
-        tutorial_src = joinpath(doc_tutorial, filename)
-        # tutorial_out = joinpath(doc_tutorial, filename_gen)
-        tutorial_md  = "tutorial/$filename_gen.md"
-        Literate.markdown(
-            tutorial_src,
-            doc_tutorial;
-            repo_root_url,
-            preprocess=_link_example(filename_gen),
-            name=filename_gen,
-        )
-        Literate.script(tutorial_src, doc_tutorial; name=filename_gen, repo_root_url)
-        Literate.notebook(tutorial_src, doc_tutorial; name=filename_gen, execute=false)
-        push!(tutorial_list, tutorial_md)
-    end
-end
+## DOCUMENTATION GENERATION
+# Get list of doc md files
+howto_list = list_md_not_lit(doc_howto, "how-to"; exclude="getting-started", lit_start_pattern)
+explanation_list = list_md_not_lit(doc_explanation, "explanation"; lit_start_pattern)
+reference_list = list_md_not_lit(doc_reference, "reference"; lit_start_pattern)
+# Add literate examples strarting with "lit-"
+lit_howto_list = literate_doc_folder(doc_howto, "how-to")
+lit_explanation_list = literate_doc_folder(doc_explanation, "explanation")
+lit_reference_list = literate_doc_folder(doc_reference, "reference")
+# Tutorials can only be literate, and reproducible tutorials are pluto
+tutorial_list = literate_doc_folder(doc_tutorial, "tutorial"; lit_start_pattern)
+reproducible_list =  pluto_directory_to_html_pattern(doc_tutorial_pluto, "tutorial-pluto"; pluto_start_pattern)
+# Combine md files in docs with lit and pluto (copied from koma examples)
+append!(howto_list, lit_howto_list)
+append!(explanation_list, lit_explanation_list)
+append!(reference_list, lit_reference_list)
+# Sorting files to order documentation sections
 sort!(tutorial_list)
-
-# REPRODUCIBLE TUTORIALS
-reproducible_list = String[]
-for (root, _, files) in walkdir(doc_tutorial_pluto)
-    for filename in filter(endswith("jl"), files)
-        filename_gen  = splitext(filename)[1]
-        tutorial_src  = joinpath(doc_tutorial_pluto, filename)
-        tutorial_md   = joinpath(doc_tutorial_pluto, "$filename_gen.md")
-        # HTML to Markdown
-        frontmatter = PlutoSliderServer.Pluto.frontmatter(tutorial_src)
-        iframe = """
-        # $(frontmatter["title"])
-
-        ```@raw html
-        <iframe type="text/html" src="../$filename_gen.html" style="height:100vh;width:100%;"></iframe>
-        ```
-        """
-        open(tutorial_md, "w") do file
-            write(file, iframe)
-        end
-        push!(reproducible_list, "tutorial-pluto/$filename_gen.md")
-    end
-end
 sort!(reproducible_list)
-# Pluto to HTML
-PlutoSliderServer.export_directory(doc_tutorial_pluto)
-
-# HOW-TO GUIDES
-howto_list = String[]
-for (root, _, files) in walkdir(doc_howto)
-    for filename in filter(endswith(".md"), files)
-        if occursin("getting-started", filename)
-            continue
-        end
-        push!(howto_list, "how-to/$filename")
-    end
-end
 sort!(howto_list)
-
-# EXPLANATIONS
-explanation_list = String[]
-for (root, _, files) in walkdir(doc_explanation)
-    for filename in filter(endswith(".md"), files)
-        push!(explanation_list, "explanation/$filename")
-    end
-end
 sort!(explanation_list)
-
-# REFERENCE GUIDES
-reference_list = String[]
-for (root, _, files) in walkdir(doc_reference)
-    for filename in filter(endswith(".md"), files)
-        push!(reference_list, "reference/$filename")
-    end
-end
 sort!(reference_list)
 
-# Documentation structure
+# Generate documentation
 makedocs(;
     modules=[KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
     sitename="KomaMRI.jl",
@@ -164,5 +70,4 @@ makedocs(;
         assets=["assets/extra-styles.css"],
     ),
 )
-
 deploydocs(; repo="github.com/JuliaHealth/KomaMRI.jl.git", push_preview=true)

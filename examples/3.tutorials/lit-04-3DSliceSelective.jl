@@ -1,4 +1,4 @@
-# # Slice Selective Acquisition of 3D Phantom
+# # Slice-Selective Acquisition of 3D Phantom
 
 using KomaMRI # hide
 sys = Scanner() # hide
