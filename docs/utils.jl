@@ -1,10 +1,14 @@
-function move_pattern_from_examples_to_docs!(src_folder, dst_folder, start_pattern)
+function move_examples_to_docs!(src_folder, dst_folder, start_pattern; remove_pattern=false)
     for (root, _, files) in walkdir(src_folder)
         for filename in filter(startswith(start_pattern), files)
             if !endswith(filename, ".jl")
                 continue
             end
-            filename_gen = filename[(length(start_pattern) + 1):end] # removes "pluto-"
+            if remove_pattern
+                filename_gen = filename[(length(start_pattern) + 1):end] # removes "pluto-"
+            else
+                filename_gen = filename
+            end
             cp(joinpath(root, filename), joinpath(dst_folder, filename_gen); force=true)
         end
     end
@@ -66,7 +70,7 @@ function literate_doc_folder(input_folder, output_doc_section; lit_start_pattern
 end
 
 # TODO: copy files with "pluto-" to docs, and remove for generated html and md
-function pluto_directory_to_html_pattern(doc_tutorial_pluto, doc_output_section; pluto_start_pattern="pluto-")
+function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; pluto_start_pattern="pluto-")
     reproducible_list = String[]
     for (root, _, files) in walkdir(doc_tutorial_pluto)
         for filename in filter(endswith("jl"), files)
