@@ -23,7 +23,8 @@ src/examples/sysimageSpinLab.dll
 qte_timings.txt
 *.nsys-rep
 *.mem
-docs/src/generated/
+docs/src/tutorial/*
+docs/src/tutorial-pluto/*
 docs/src/assets/logo*
 docs/src/assets/icon*
 src/ui/assets/*
