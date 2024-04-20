@@ -57,7 +57,7 @@ end
 # plot_signal(raw; range=[50.5, 54]) #; show_sim_blocks=true)
 
 # To profile this code use:
-# nsys launch julia --project=. --color=yes examples/3.koma_paper/comparison_mrilab/MRiLab_speed.jl
+# nsys launch julia --project=. --color=yes examples/5.koma_paper/comparison_mrilab/MRiLab_speed.jl
 # Then, open the report by using NVIDIA Nsight Systems with nsys-ui
 # using CUDA
 # CUDA.@profile ( simulate(phantom, seq, sys; sim_params) );

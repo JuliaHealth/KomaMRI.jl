@@ -2,7 +2,7 @@ The scripts in this folder are meant to replicate the results of Koma's paper.
 
 They require to have a working installation of JEMRIS and Koma.
 
-You should be located in the directory "examples/3.koma_paper/comparison_jemris/" to run them.
+You should be located in the directory "examples/5.koma_paper/comparison_jemris/" to run them.
 
 The main script can run for both simulators:
 
