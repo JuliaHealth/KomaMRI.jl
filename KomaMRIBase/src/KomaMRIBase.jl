@@ -39,13 +39,11 @@ export dur, get_block_start_times, get_samples
 export DiscreteSequence
 export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
-export time, ampl, freq
+export times, ampls, freqs
 # This are also used for simulation
 export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D
-# Spinors
-export Spinor, Rx, Ry, Rz, Q, Un
 # Secondary
 export get_kspace, rotx, roty, rotz
 # Additionals
