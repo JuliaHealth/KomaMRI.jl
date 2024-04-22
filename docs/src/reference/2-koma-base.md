@@ -90,8 +90,9 @@ is_ADC_on
 DiscreteSequence
 discretize
 get_samples
-time
-ampl
+times
+ampls
+freqs
 ```
 
 ### Other functions
