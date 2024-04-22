@@ -3,15 +3,15 @@
     A = ampls(r::RF)
     A = ampls(d::ADC)
 
-Get the theoretical amplitudes for Grad, RF or ADC structs.
+Get amplitude samples of MRI sequence event.
 
 # Arguments
 - `gr`: (`::Grad`) Gradient struct
 - `rf`: (`::RF`) RF struct
-- `adc`: (`::ADC`) ADC truct
+- `adc`: (`::ADC`) ADC struct
 
 # Returns
-- `A`: (`::Vector{Number}`) vector with the amplitude theoretical points
+- `A`: (`::Vector{Number}`) vector with amplitude samples
 """
 function ampls(gr::Grad)
     if !is_on(gr)
@@ -41,6 +41,17 @@ function ampls(rf::RF; freq_in_phase=false)
     end
 	return A
 end
+"""
+    f = freqs(r::RF)
+
+Get frequency samples of MRI sequence event.
+
+# Arguments
+- `rf`: (`::RF`) RF struct
+
+# Returns
+- `f`: (`::Vector{Number}`) vector with frequency samples
+"""
 function freqs(rf::RF)
     if !is_on(rf)
         return Float64[]
@@ -65,15 +76,15 @@ end
     t = times(rf::RF)
     t = times(adc::ADC)
 
-Get the theoretical times for Grad, RF or ADC structs.
+Get time samples of MRI sequence event.
 
 # Arguments
 - `gr`: (`::Grad`) Gradient struct
 - `rf`: (`::RF`) RF struct
-- `adc`: (`::ADC`) ADC truct
+- `adc`: (`::ADC`) ADC struct
 
 # Returns
-- `t`: (`::Vector{Number}`) vector with the time theoretical points
+- `t`: (`::Vector{Number}`) vector with time samples
 """
 function times(gr::Grad)
     if !is_on(gr)
