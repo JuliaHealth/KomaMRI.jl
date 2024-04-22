@@ -202,8 +202,8 @@ function plot_seq(
     p = [scatter_fun() for _ in 1:(3 + 3O + 1)]
 
     # For GRADs
-    fgx = is_Gy_on(seq) ? 1.0 : Inf
-    fgy = is_Gx_on(seq) ? 1.0 : Inf
+    fgx = is_Gx_on(seq) ? 1.0 : Inf
+    fgy = is_Gy_on(seq) ? 1.0 : Inf
     fgz = is_Gz_on(seq) ? 1.0 : Inf
     p[1] = scatter_fun(;
         x=gx.t * 1e3,
