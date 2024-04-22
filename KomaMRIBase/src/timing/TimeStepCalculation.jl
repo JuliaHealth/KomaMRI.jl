@@ -89,10 +89,11 @@ This function returns non-uniform time points that are relevant in the sequence 
 """
 function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 	t = Float64[]
-	ϵ = MIN_RISE_TIME #Small Float64
+	ϵ = MIN_RISE_TIME # Small Float64
 	T0 = get_block_start_times(seq)
 	for i = 1:length(seq)
-		s = seq[i] #Current sequence block
+        t_block = Float64[]
+		s = seq[i] # Current sequence block
 		t0 = T0[i]
 		if is_RF_on(s)
 			y = s.RF[1]
@@ -101,7 +102,7 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 			t2 = t1 + sum(T)
 			rf0 = t0 + get_RF_center(y) #get_RF_center includes delays
 			taux = points_from_key_times([t1, t1 + ϵ, rf0, t2 - ϵ, t2]; dt=Δt_rf)
-			append!(t, taux)
+            append!(t_block, taux)
 		end
 		if is_GR_on(s)
 			active_gradients = []
@@ -109,20 +110,23 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5)
 			if is_Gy_on(s) append!(active_gradients, s.GR.y) end
 			if is_Gz_on(s) append!(active_gradients, s.GR.z) end
 			for y = active_gradients
-				ts = time(y) .+ t0
+				ts = times(y) .+ t0
 				taux = points_from_key_times([ts[1] + ϵ; ts; ts[end] - ϵ]; dt=Δt)
-				append!(t, taux)
+                append!(t_block, taux)
 			end
 		end
+        if is_ADC_on(s)
+            append!(t_block, times(s.ADC[1]) .+ t0) # get_adc_sampling_times(seq) uses times(s.ADC[1]) .+ T0[i]
+        end
+        append!(t, t_block)
 	end
-	#Adding ADC samples, and removing repeated points
-	tadc = get_adc_sampling_times(seq)
-	t = sort(unique([t; tadc])) #Removing repeated points
-	#Fixes a problem with ADC at the start and end of the seq
+	# Removing repeated points
+	sort!(unique!(t))
+	# Fixes a problem with ADC at the start and end of the seq
 	t0 = t[1]   - ϵ
 	tf = t[end] + ϵ
 	t = [t0; t; tf]
-	#Final time points
+	# Time difference
 	Δt = t[2:end] .- t[1:end-1]
 	t, Δt
 end
