@@ -58,12 +58,16 @@ julia> KomaUI()
 ```
 ![](assets/dev-launch-ui.png)
 
+Let's see what is the default phantom in the user interface by clicking in the `Phantom dropdown` and then press the `View Phantom` button:
+
+![](assets/dev-default-phantom-brain.png) 
+
 
 ## Make changes to your Fork
 
-So far so good. However you want to make some changes to your Github Fork and even you want to contribute to the KomaMRI project. But baby steps first, let's make some local changes in the local git repo. In the following example we will change the visualization of the UI, we will simply replace the central icon by some text.
+So far so good. However you want to make some changes to your Github Fork and even you want to contribute to the KomaMRI project. But baby steps first, let's make some local changes in the local git repo. In the following example we will change the default phantom displayed in the user interface.
 
-First create a branch with a descriptive name, in this case `patch-ui-icon`:
+First create a branch with a descriptive name, in this case `patch-ui-default-phantom`:
 
 ![](assets/dev-branch.png)
 ![](assets/dev-branch-name.png)
