@@ -82,8 +82,7 @@ function times(gr::Grad)
     if !(gr.A isa Vector) && !(gr.T isa Vector)
         t = cumsum([gr.delay; gr.rise; gr.T; gr.fall])   # trapezoidal
     elseif gr.A isa Vector && gr.T isa Vector
-        NT = length(gr.T)
-        t =  cumsum([gr.delay; gr.rise; gr.T.*ones(NT); gr.fall])    # time-shaped
+        t =  cumsum([gr.delay; gr.rise; gr.T; gr.fall])    # time-shaped
     else
         NA = length(gr.A)
         t = cumsum([gr.delay; gr.rise; gr.T/(NA-1).*ones(NA-1); gr.fall]) # uniformly-sampled
@@ -99,8 +98,7 @@ function times(rf::RF, key::Symbol)
     if !(rfA isa Vector) && !(rf.T isa Vector)
         t =  cumsum([rf.delay; 0.0; rf.T; 0.0])         # pulse
     elseif rfA isa Vector && rf.T isa Vector
-        NT = length(rf.T)
-        t =  cumsum([rf.delay; 0.0; rf.T.*ones(NT); 0.0])    # time-shaped
+        t =  cumsum([rf.delay; 0.0; rf.T; 0.0])    # time-shaped
     elseif !(rfA isa Vector)
         t =  cumsum([rf.delay; 0.0; sum(rf.T); 0.0]) # df constant
     else
