@@ -339,7 +339,6 @@ function write_seq(seq::Sequence, filename)
     @warn "EXTENSIONS will not be handled"
     # Get the pulseq object
     obj = get_pulseq_object(seq)
-    return obj
     # Write the .seq file
     open(filename, "w") do fid
         @printf(
