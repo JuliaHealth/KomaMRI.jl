@@ -65,7 +65,7 @@ Let's see what is the default phantom in the user interface by clicking in the `
 You can close the KomaMRI user interface.
 
 
-## Make changes to your Fork
+## Make changes to remote repos
 
 So far so good. However you want to make some changes to your Github Fork and even you want to contribute to the KomaMRI project. But baby steps first, let's make some local changes in the local git repo. In the following example we will change the default phantom displayed in the user interface.
 
@@ -98,7 +98,7 @@ And commit the changes:
 
 ![](assets/dev-commit-changes.png)
 
-Let's upload these changes in your github fork:
+Let's upload these changes in your github fork or to the official KomaMRI repo by selecting the `origin` or the `upstream` option:
 
 ![](assets/dev-publish.png)
 
