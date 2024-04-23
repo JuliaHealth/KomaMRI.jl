@@ -106,3 +106,40 @@ Let's upload these changes in your github fork or to the official KomaMRI repo b
 
 ![](assets/dev-pullreq-name.png)
 
+
+## About Julia Environments and Subdirectories
+
+So far, the `KomaMRI` package have 4 subdirectories `KomaMRIBase`, `KomaMRICore`, `KomaMRIPlots` and `KomaMRIFiles`. These subdirectories are proper julia packages by themselves, so they have their own `Project.toml` which need to resolve an environment defined ultimately by a `Manifest.toml`.
+
+This is how these packages are related:
+* `KomaMRIBase` doesn't depend on any of these other subdirectories.
+* `KomaMRICore` depends directly on `KomaMRIBase`
+* `KomaMRIPlots` depends directly on `KomaMRIBase`
+* `KomaMRIFiles` depends directly on `KomaMRIBase`
+* `KomaMRI` depends directly on `KomaMRICore`, `KomaMRIPlots` and `KomaMRIFiles`
+
+If you want to edit only the direct contents of one of these packages, you simply need to activate the julia package and then instantiate to generate the `Manifest.toml`. However, if you want to make changes that involve the packages and it's direct dependencies you need to create an environment that indicates so.
+
+For instance, to edit `KomaMRICore` and its direct dependency `KomaMRIBase`:
+```julia-repl
+user@machine /path/to/KomaMRI.jl
+$ julia
+
+julia> Pkg.activate("KomaMRICore")
+
+julia> Pkg.develop(PackageSpec(; path="KomaMRIBase"))
+
+julia> Pkg.instantiate()
+```
+
+For instance, to edit `KomaMRICore` and all the subdirectories:
+```julia-repl
+user@machine /path/to/KomaMRI.jl
+$ julia
+
+julia> Pkg.activate("KomaMRICore")
+
+julia> Pkg.develop([PackageSpec(path=pwd(), subdir="./KomaMRIBase"), PackageSpec(path=pwd(), subdir="./KomaMRICore"), PackageSpec(path=pwd(), subdir="./KomaMRIFiles"), PackageSpec(path=pwd(), subdir="./KomaMRIPlots")])
+
+julia> Pkg.instantiate()
+```
