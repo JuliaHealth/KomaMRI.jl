@@ -62,6 +62,8 @@ Let's see what is the default phantom in the user interface by clicking in the `
 
 ![](assets/dev-default-phantom-brain.png) 
 
+You can close the KomaMRI user interface.
+
 
 ## Make changes to your Fork
 
@@ -72,6 +74,35 @@ First create a branch with a descriptive name, in this case `patch-ui-default-ph
 ![](assets/dev-branch.png)
 ![](assets/dev-branch-name.png)
 
+In this new branch, we are going to edit the `setup_phantom` function located in the file `src/ui/ExportUIFunctions.jl`. We simply replace the line where a brain phantom is defined by the function `pelvis_brain2D`: 
 
-* Setup development environments
+![](assets/dev-branch-edit.png)
+
+Then, you need to compile the function `setup_phantom`, simply put the cursor in a place inside the function `setup_phantom` and then press `Alt + Enter`:
+
+![](assets/dev-branch-compile.png)
+
+Now, let's see what is the new default phantom in the user interface by clicking in the `Phantom dropdown` and then press the `View Phantom` button:
+
+```julia-repl
+julia> KomaUI()
+```
+
+![](assets/dev-default-phantom-pelvis.png)
+
+Everything looks good, let's stage the changes:
+
+![](assets/dev-stage-changes.png)
+
+And commit the changes:
+
+![](assets/dev-commit-changes.png)
+
+Let's upload these changes in your github fork:
+
+![](assets/dev-publish.png)
+
+![](assets/dev-pullreq.png)
+
+![](assets/dev-pullreq-name.png)
 
