@@ -96,7 +96,7 @@ Everything looks good; we effectively changed the default phantom. Let's stage t
 
 ![](../assets/dev-stage-changes.png)
 
-And commit the changes:
+And commit the changes with a descriptive name:
 
 ![](../assets/dev-commit-changes.png)
 
