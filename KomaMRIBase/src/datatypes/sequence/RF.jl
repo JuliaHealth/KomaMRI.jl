@@ -158,10 +158,10 @@ Calculates the flip angle α [deg] of an RF struct. α = γ ∫ B1(τ) dτ
 - `α`: (`::Int64`, `[deg]`) flip angle RF struct `x`
 """
 get_flip_angle(x::RF) = begin
-    dt = diff(time(x, :A))
-    B1 = ampl(x)
+    dt = diff(times(x))
+    B1 = ampls(x)
     α = round(360.0 * γ * abs(trapz(dt, B1)); digits=3)
-	return α
+    return α
 end
 
 """
@@ -177,11 +177,8 @@ RF delay.
 - `t`: (`::Int64`, `[s]`) time where is the center of the RF pulse `x`
 """
 get_RF_center(x::RF) = begin
-	A, NA, T, NT, delay = x.A, length(x.A), x.T, length(x.T), x.delay
-	dT = T / NA * NT .* ones(NA)
-	t = cumsum([0; dT])[1:end-1]
-	t_center = sum(abs.(A) .* t) ./ sum(abs.(A))
-	idx = argmin(abs.(t .- t_center))
-	t_center += delay + dT[idx]/2
-	return t_center
+    t = times(x)
+    B1 = ampls(x)
+    t_center = sum(abs.(B1) .* t) ./ sum(abs.(B1))
+    return t_center
 end
