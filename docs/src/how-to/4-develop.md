@@ -12,30 +12,30 @@ If you really want to stay in tune with the most recent features, test some idea
 
 Once everything is installed, you need to create a fork of the KomaMRI repo in your Github account. Go to the official KomaMRI repo https://github.com/JuliaHealth/KomaMRI.jl and follow the bellow steps:
 
-![](assets/dev-fork.png)
-![](assets/dev-fork-create.png)
+![](../assets/dev-fork.png)
+![](../assets/dev-fork-create.png)
 
 Now, your fork of KomaMRI should look like this:
 
-![](assets/dev-fork-github.png)
+![](../assets/dev-fork-github.png)
 
 Now you need to clone your fork of the KomaMRI repo. Open VScode and do the steps bellow, make sure you replace the `<your-user-name>` with your github user name and select a memorable location to store the local git project:
 
-![](assets/dev-clone-fork.png)
+![](../assets/dev-clone-fork.png)
 
 You should have the git project opened in VScode:
 
-![](assets/dev-vscode-git-project.png)
+![](../assets/dev-vscode-git-project.png)
 
 Everything looks good. Let's run KomaMRI, but before you can do so, you need to setup the Julia environment. The information of the environment is ultimately defined by the file `Manifest.toml`, however you don't have that file yet. So you need to create it from the information of the `Project.toml`.
 
 Let's select the environment of our KomaMRI project:
 
-![](assets/dev-vscode-select-komamri-environment.png)
+![](../assets/dev-vscode-select-komamri-environment.png)
 
 Now, open a Julia REPL:
 
-![](assets/dev-open-julia-repl.png)
+![](../assets/dev-open-julia-repl.png)
 
 In the Julia REPL you have to type the following:
 ```julia-repl
@@ -46,7 +46,7 @@ julia> Pkg.develop([PackageSpec(path=pwd(), subdir="./KomaMRIBase"), PackageSpec
 julia> Pkg.instantiate()
 ```
 
-![](assets/dev-komamri-environment.png)
+![](../assets/dev-komamri-environment.png)
 
 The `using Pkg` simply imports the `Pkg` module which is the package manager of Julia. The `Pkg.develop(...)` creates the `Manifest.toml` file considering de local folders `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles` and `KomaMRIPlots`. Finally, the `Pkg.instantiate()` installs all the dependencies from the `Manifest.toml`.
 
@@ -56,11 +56,11 @@ julia> using KomaMRI
 
 julia> KomaUI()
 ```
-![](assets/dev-launch-ui.png)
+![](../assets/dev-launch-ui.png)
 
 Let's see what is the default phantom in the user interface by clicking in the `Phantom dropdown` and then press the `View Phantom` button:
 
-![](assets/dev-default-phantom-brain.png) 
+![](../assets/dev-default-phantom-brain.png) 
 
 You can close the KomaMRI user interface.
 
@@ -71,16 +71,16 @@ So far so good. However you want to make some changes to your Github Fork and ev
 
 First create a branch with a descriptive name, in this case `patch-ui-default-phantom`:
 
-![](assets/dev-branch.png)
-![](assets/dev-branch-name.png)
+![](../assets/dev-branch.png)
+![](../assets/dev-branch-name.png)
 
 In this new branch, we are going to edit the `setup_phantom` function located in the file `src/ui/ExportUIFunctions.jl`. We simply replace the line where a brain phantom is defined by the function `pelvis_brain2D`: 
 
-![](assets/dev-branch-edit.png)
+![](../assets/dev-branch-edit.png)
 
 Then, you need to compile the function `setup_phantom`, simply put the cursor in a place inside the function `setup_phantom` and then press `Alt + Enter`:
 
-![](assets/dev-branch-compile.png)
+![](../assets/dev-branch-compile.png)
 
 Now, let's see what is the new default phantom in the user interface by clicking in the `Phantom dropdown` and then press the `View Phantom` button:
 
@@ -88,23 +88,23 @@ Now, let's see what is the new default phantom in the user interface by clicking
 julia> KomaUI()
 ```
 
-![](assets/dev-default-phantom-pelvis.png)
+![](../assets/dev-default-phantom-pelvis.png)
 
 Everything looks good, let's stage the changes:
 
-![](assets/dev-stage-changes.png)
+![](../assets/dev-stage-changes.png)
 
 And commit the changes:
 
-![](assets/dev-commit-changes.png)
+![](../assets/dev-commit-changes.png)
 
 Let's upload these changes in your github fork or to the official KomaMRI repo by selecting the `origin` or the `upstream` option:
 
-![](assets/dev-publish.png)
+![](../assets/dev-publish.png)
 
-![](assets/dev-pullreq.png)
+![](../assets/dev-pullreq.png)
 
-![](assets/dev-pullreq-name.png)
+![](../assets/dev-pullreq-name.png)
 
 
 ## About Julia Environments and Subdirectories

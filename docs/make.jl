@@ -57,7 +57,6 @@ makedocs(;
         "👨‍🍳 How to" => sort(howto_list),
         "🤔 Explanations" => sort(explanation_list),
         "👨‍💻 Reference Guides" => sort(reference_list),
-        "Advanced Users" => "develop.md"
     ],
     format=Documenter.HTML(;
         prettyurls=true, #get(ENV, "CI", nothing) == "true",
