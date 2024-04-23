@@ -19,11 +19,12 @@ Now, your fork of KomaMRI should look like this:
 
 ![](../assets/dev-fork-github.png)
 
-Now you need to clone your fork of the KomaMRI repo. Open VScode and do the steps bellow, make sure you replace the `<your-user-name>` with your github user name and select a memorable location to store the local git project:
+Now you need to clone your fork of the KomaMRI repo. In julia you can do this by opening a terminal and typing (make sure you change the `<github-username>`):
+```julia-repl
+(@v1.10) pkg> dev https://github.com/<github-username>/KomaMRI.jl
+```
 
-![](../assets/dev-clone-fork.png)
-
-You should have the git project opened in VScode:
+This saves the local git project at the `~/.julia/dev/KomaMRI/` directory. You can open VScode and open this folder, it should look like this:
 
 ![](../assets/dev-vscode-git-project.png)
 
@@ -37,18 +38,12 @@ Now, open a Julia REPL:
 
 ![](../assets/dev-open-julia-repl.png)
 
-In the Julia REPL you have to type the following:
+In the Julia REPL you have to create the `Manifest.toml` file with the `develop` command considering de local folders `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles` and `KomaMRIPlots`. Additionally you can install all the dependencies listed in the `Manifest.toml` with the `instantiate` command:
 ```julia-repl
-julia> using Pkg
+(KomaMRI) pkg> dev ./KomaMRIBase ./KomaMRICore ./KomaMRIFiles ./KomaMRIPlots
 
-julia> Pkg.develop([PackageSpec(path=pwd(), subdir="./KomaMRIBase"), PackageSpec(path=pwd(), subdir="./KomaMRICore"), PackageSpec(path=pwd(), subdir="./KomaMRIFiles"), PackageSpec(path=pwd(), subdir="./KomaMRIPlots")])
-
-julia> Pkg.instantiate()
+(KomaMRI) pkg> instantiate
 ```
-
-![](../assets/dev-komamri-environment.png)
-
-The `using Pkg` simply imports the `Pkg` module which is the package manager of Julia. The `Pkg.develop(...)` creates the `Manifest.toml` file considering de local folders `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles` and `KomaMRIPlots`. Finally, the `Pkg.instantiate()` installs all the dependencies from the `Manifest.toml`.
 
 With these steps your environment is setup. You can now run the KomaMRI user interface:
 ```julia-repl
@@ -67,7 +62,7 @@ You can close the KomaMRI user interface.
 
 ## Make changes to remote repos
 
-So far so good. However you want to make some changes to your Github Fork and even you want to contribute to the KomaMRI project. But baby steps first, let's make some local changes in the local git repo. In the following example we will change the default phantom displayed in the user interface.
+So far so good. However you want to make some changes to your Github Fork and even you want to contribute to the KomaMRI project. But first, let's make some local changes in the local git repo. In the following example we will change the default phantom displayed in the user interface.
 
 First create a branch with a descriptive name, in this case `patch-ui-default-phantom`:
 
@@ -118,28 +113,24 @@ This is how these packages are related:
 * `KomaMRIFiles` depends directly on `KomaMRIBase`
 * `KomaMRI` depends directly on `KomaMRICore`, `KomaMRIPlots` and `KomaMRIFiles`
 
-If you want to edit only the direct contents of one of these packages, you simply need to activate the julia package and then instantiate to generate the `Manifest.toml`. However, if you want to make changes that involve the packages and it's direct dependencies you need to create an environment that indicates so.
+If you want to edit only the direct contents of one of these packages, you simply need to activate the julia package and then instantiate to generate the `Manifest.toml` and install dependencies. However, if you want to make changes that involve the packages and it's direct dependencies you need to create an environment that indicates so.
 
-For instance, to edit `KomaMRICore` and its direct dependency `KomaMRIBase`:
+For instance, to edit `KomaMRICore` and its direct dependency `KomaMRIBase` you need to create the `Manifest.toml` like so:
 ```julia-repl
-user@machine /path/to/KomaMRI.jl
+user@machine ~/.julia/dev/KomaMRI
 $ julia
 
-julia> Pkg.activate("KomaMRICore")
+(@v1.10) pkg> activate KomaMRICore
 
-julia> Pkg.develop(PackageSpec(; path="KomaMRIBase"))
-
-julia> Pkg.instantiate()
+(KomaMRICore) pkg> dev ./KomaMRIBase
 ```
 
-For instance, to edit `KomaMRICore` and all the subdirectories:
+And for creating the `Manifest.toml` file of `KomaMRI`which considers all the subdirectories you have to do:
 ```julia-repl
-user@machine /path/to/KomaMRI.jl
+user@machine ~/.julia/dev/KomaMRI
 $ julia
 
-julia> Pkg.activate("KomaMRICore")
+(@v1.10) pkg> activate .
 
-julia> Pkg.develop([PackageSpec(path=pwd(), subdir="./KomaMRIBase"), PackageSpec(path=pwd(), subdir="./KomaMRICore"), PackageSpec(path=pwd(), subdir="./KomaMRIFiles"), PackageSpec(path=pwd(), subdir="./KomaMRIPlots")])
-
-julia> Pkg.instantiate()
+(KomaMRI) pkg> dev ./KomaMRIBase ./KomaMRICore ./KomaMRIFiles ./KomaMRIPlots
 ```
