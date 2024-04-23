@@ -1,6 +1,0 @@
-This script assumes that you have two NVIDIA GPUs and KomaMRI installed.
-
-To run the script run as
-	sh run_test.sh
-If trying it in a dev version of KomaMRI you can specify the environment as an argument (cd'd to KomaMRI.jl/examples/3.koma_paper/comparison_speed/)
-	sh run_test.sh --project=../../../

@@ -90,7 +90,8 @@ function discretize(seq::Sequence; sampling_params=default_sampling_params())
     B1, Δf     = get_rfs(seq, t)
     Gx, Gy, Gz = get_grads(seq, t)
     tadc       = get_adc_sampling_times(seq)
-    ADCflag    = [any(tt .== tadc) for tt in t] #Displaced 1 dt, sig[i]=S(ti+dt)
+    tadc_set = Set(tadc)
+    ADCflag = [tt in tadc_set for tt in t] # Displaced 1 dt, sig[i]=S(ti+dt)
     seqd       = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
     return seqd
 end

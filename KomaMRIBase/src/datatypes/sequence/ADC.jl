@@ -86,42 +86,45 @@ Returns an array of times when the samples of the sequence `seq` are acquired.
 """
 function get_adc_sampling_times(seq)
     T0 = get_block_start_times(seq)
-    times = Float64[]
+    t = zeros(Float64, sum(seq.ADC.N))
+    idx = 1
     for i = 1:length(seq)
         if is_ADC_on(seq[i])
-            t = time(seq.ADC[i]) .+ T0[i]
-            append!(times, t)
+            N = seq.ADC[i].N
+            t[idx:idx+N-1] .= times(seq.ADC[i]) .+ T0[i]
+            idx += N
         end
     end
-    return times
+    return t
 end
 
 """
-    phase = get_adc_phase_compensation(seq)
+    comp = get_adc_phase_compensation(seq)
 
-Returns the array of phases for every acquired sample in the sequence `seq`.
-
-!!! note
-    This function is useful to compensate the phase when the RF pulse has a phase too. Refer
-    to the end of the [`run_sim_time_iter`](@ref) function to see its usage.
+Returns an array of phase compensation factors, ``\\exp(-\\mathrm{i}\\varphi)``, which are
+used to compensate the acquired signal ``S`` by applying the operation
+``S_{\\mathrm{comp}} = S \\exp(-\\mathrm{i}\\varphi)`` after the simulation. This compensation
+is necessary because the signal typically exhibits a phase offset of ``\\varphi`` following
+RF excitation with a phase of ``\\varphi``. Such pulses are commonly employed in sequences
+involving RF spoiling.
 
 # Arguments
 - `seq`: (`::Sequence`) sequence struct
 
 # Returns
-- `phase`: (`::Vector{Complex{Int64}}`, `[rad]`) array of phases for every acquired sample
+- `comp`: (`::Vector{Complex}`, `[rad]`) array of phase compensations for every acquired sample
 """
 function get_adc_phase_compensation(seq)
-  phase = ComplexF32[]
-  for i = 1:length(seq)
-      if is_ADC_on(seq[i])
-          N = seq.ADC[i].N
-          ϕ = seq.ADC[i].ϕ
-          aux = ones(N) .* exp(-1im*ϕ)
-          append!(phase, aux)
-      end
-  end
-  return phase
+    phase = ComplexF32[]
+    for i in 1:length(seq)
+        if is_ADC_on(seq[i])
+            N = seq.ADC[i].N
+            ϕ = seq.ADC[i].ϕ
+            aux = ones(N) .* exp(-1im * ϕ)
+            append!(phase, aux)
+        end
+    end
+    return phase
 end
 
 dur(adc::ADC) = adc.delay + adc.T
