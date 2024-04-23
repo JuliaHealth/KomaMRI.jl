@@ -1,4 +1,4 @@
-# Advanced users for KomaMRI
+# Advanced Users
 
 If you really want to stay in tune with the most recent features, test some ideas or even contribute to the KomaMRI project, it is necessary to install and configure some tools in your machine:
 * Juliaup: this is the manager for installing different versions of Julia.
