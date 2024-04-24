@@ -77,10 +77,12 @@ It is neccessary to add the input vector `events` which contains the uniques obj
 function get_events_id(event_array, events)
     events_id = fill(0, length(event_array))
     for (blk, eve) in enumerate(event_array)
-        for (obj, id) in zip(events.obj, events.id)
-            if eve ≈ obj
-                events_id[blk] = id
-                break
+        if is_on(eve)
+            for (obj, id) in zip(events.obj, events.id)
+                if eve ≈ obj
+                    events_id[blk] = id
+                    break
+                end
             end
         end
     end
