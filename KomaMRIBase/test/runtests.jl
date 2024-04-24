@@ -360,7 +360,7 @@ end
 end
 
 @testitem "Phantom" tags = [:base] begin
-
+    using Suppressor
     # Test phantom struct creation
     name = "Bulks"
     x = [-2e-3; -1e-3; 0.0; 1e-3; 2e-3]
@@ -442,7 +442,7 @@ end
         period_durations = [1.0]
         num_pieces = 10
         dx = dy = dz = rand(Ns, num_pieces - 1)
-        arbitrarymotion = ArbitraryMotion(period_durations, dx, dy, dz)
+        arbitrarymotion = @suppress ArbitraryMotion(period_durations, dx, dy, dz)
         t = time_nodes(arbitrarymotion)
         xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
         @test xt[:,2:end-1] == ph.x .+ dx
@@ -457,7 +457,7 @@ end
 
     Ns = length(obj1)
     K = 10
-    arbitrarymotion = ArbitraryMotion([1.0], 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1))
+    arbitrarymotion = @suppress ArbitraryMotion([1.0], 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1))
 
     # Test phantom subset
     obs1 = Phantom(

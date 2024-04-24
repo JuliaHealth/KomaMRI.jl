@@ -166,7 +166,7 @@ end
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    sig_jemris = signal_jemris()
+    sig_jemris = signal_sphere_jemris()
     seq = seq_epi_100x100_TE100_FOV230()
     obj = phantom_sphere()
     sys = Scanner()
@@ -189,7 +189,7 @@ end
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    sig_jemris = signal_jemris()
+    sig_jemris = signal_sphere_jemris()
     seq = seq_epi_100x100_TE100_FOV230()
     obj = phantom_sphere()
     sys = Scanner()
@@ -212,7 +212,7 @@ end
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    sig_jemris = signal_jemris()
+    sig_jemris = signal_sphere_jemris()
     seq = seq_epi_100x100_TE100_FOV230()
     obj = phantom_sphere()
     sys = Scanner()
@@ -400,6 +400,57 @@ end
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 
 end
+
+@testitem "Bloch SimpleMotion" tags=[:important, :core] begin
+    using Suppressor
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()  
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain()
+    obj.motion = SimpleMotion([Translation(t_end=10.0, dx=0.0, dy=1.0, dz=0.0)])
+    sim_params = Dict{String, Any}(
+        "gpu"=>true,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat", 
+        "precision"=>"f64"
+    )
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+@testitem "Bloch ArbitraryMotion"  tags=[:important, :core] begin
+    using Suppressor
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()  
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain()
+    Ns = length(obj)
+    period_durations=[20.0]
+    dx = dz = zeros(Ns, 1)
+    dy = 1.0 .* ones(Ns, 1)
+    obj.motion = @suppress ArbitraryMotion(
+        period_durations,
+        dx,
+        dy,
+        dz)    
+    sim_params = Dict{String, Any}(
+        "gpu"=>true,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat", 
+        "precision"=>"f64"
+    )
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
 
 @testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
     using Suppressor
