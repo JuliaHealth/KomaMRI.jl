@@ -46,7 +46,7 @@ function get_spin_coords(
     xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
     # Composable motions: they need to be run sequentially
     for motion in Iterators.filter(is_composable, motion.types)
-        aux = xt, yt, zt
+        aux = xt .+ 0, yt .+ 0, zt .+ 0
         xt .+= displacement_x(motion, aux..., t)
         yt .+= displacement_y(motion, aux..., t)
         zt .+= displacement_z(motion, aux..., t)
