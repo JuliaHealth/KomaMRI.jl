@@ -276,10 +276,9 @@ function view_ui!(seq::Sequence, w::Window; type="sequence", darkmode=true)
     # Add loading progress and then a plot to the UI depending on type of the plot
     if type == "sequence"
         display_loading!(w, "Plotting sequence ...")
-        long_seq = length(seq) > 1000
-        widget_plot = plot_seq(
-            seq; darkmode, range=[0 30], slider=!long_seq, gl=long_seq, show_adc=false
-        )
+        long_seq = length(seq) > 1_000
+        time_end = !long_seq ? 30 : dur(seq) * 1e3
+        widget_plot = plot_seq(seq; darkmode, range=[0 time_end], slider=!long_seq, gl=long_seq, show_adc=false)
         content!(w, "div#content", dom"div"(widget_plot))
         @js_ w document.getElementById("content").dataset.content = "sequence"
     elseif type == "kspace"

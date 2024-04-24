@@ -1,98 +1,68 @@
-using Documenter, Literate, KomaMRI
+using Documenter, Literate, KomaMRI, PlutoSliderServer
 
-org, reps = :cncastillo, :KomaMRI
+# Setup for Literate and Pluto
+repo_base = "JuliaHealth/KomaMRI.jl"
+repo_root_url = "https://github.com/$repo_base/blob/master"
+lit_pattern = "lit-"
+plu_pattern = "pluto-"
+include("utils.jl")
 
-base = "$org/$reps.jl"
-repo_root_url = "https://github.com/$base/blob/master"
+# Documentation folders KomaMRI.jl/docs/
+doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")
+doc_tutorial_rep   = joinpath(dirname(@__DIR__), "docs/src/tutorial-pluto")
+doc_howto          = joinpath(dirname(@__DIR__), "docs/src/how-to")
+doc_explanation    = joinpath(dirname(@__DIR__), "docs/src/explanation")
+doc_reference      = joinpath(dirname(@__DIR__), "docs/src/reference")
 
-# Define some paths
-com = joinpath(dirname(@__DIR__), "assets")
-exa = joinpath(dirname(@__DIR__), "examples")
-src = joinpath(@__DIR__, "src")
-edu = joinpath(exa, "6.educational_pluto_notebook")
-lit = joinpath(exa, "literate")
-gen = joinpath(src, "generated")
-assets = joinpath(src, "assets")
-exaname = "examples"
-eduname = "educational-examples"
+# Copying files from KomaMRI.jl/ to the documentation folder KomaMRI.jl/docs/
+# Assets
+koma_assets        = joinpath(dirname(@__DIR__), "assets")
+doc_assets         = joinpath(dirname(@__DIR__), "docs/src/assets")
+cp(joinpath(koma_assets, "logo.svg"), joinpath(doc_assets, "logo.svg"); force=true)
+cp(joinpath(koma_assets, "logo-dark.svg"), joinpath(doc_assets, "logo-dark.svg"); force=true)
+# Tutorials
+koma_tutorials_lit = joinpath(dirname(@__DIR__), "examples/3.tutorials")
+koma_tutorials_plu = joinpath(dirname(@__DIR__), "examples/4.reproducible_notebooks")
+move_examples_to_docs!(koma_tutorials_lit, doc_tutorial, lit_pattern)
+move_examples_to_docs!(koma_tutorials_plu, doc_tutorial_rep, plu_pattern; remove_pattern=true)
 
-# Create empty folders for in the assets directory for the literate generated sections
-mkpath(joinpath(assets, exaname))
-mkpath(joinpath(gen, exaname))
-mkpath(joinpath(gen, eduname))
+## DOCUMENTATION GENERATION
+# Get list of documentation md files from docs/src/section
+howto_list       = list_md_not_lit(doc_howto, "how-to"; exclude="getting-started", lit_pattern)
+explanation_list = list_md_not_lit(doc_explanation, "explanation"; lit_pattern)
+reference_list   = list_md_not_lit(doc_reference, "reference"; lit_pattern)
+# Add literate examples strarting with "lit-" from docs/src/section
+lit_howto_list       = literate_doc_folder(doc_howto, "how-to")
+lit_explanation_list = literate_doc_folder(doc_explanation, "explanation")
+lit_reference_list   = literate_doc_folder(doc_reference, "reference")
+# Tutorials (Literate only), and reproducible tutorials (Pluto only)
+tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern)
+reproducible_list =  pluto_directory_to_html(doc_tutorial_rep, "tutorial-pluto"; plu_pattern)
+# Combine md files in docs/src/section with Literate-generated md files
+append!(howto_list, lit_howto_list)
+append!(explanation_list, lit_explanation_list)
+append!(reference_list, lit_reference_list)
 
-# Copy the logos into the assets folder if necessary
-logo, logo_dark = joinpath(assets, "logo.svg"), joinpath(assets, "logo-dark.svg")
-(!isfile(logo)) && cp(joinpath(com, "logo.svg"), logo)
-(!isfile(logo_dark)) && cp(joinpath(com, "logo-dark.svg"), logo_dark)
-
-# Auxiliar function to check if a file has .html extension
-function is_html_file(filename)
-    return splitext(filename)[2] == ".html"
-end
-
-# Copy html files for Pluto educational example
-for (root, _, files) ∈ walkdir(edu), file ∈ files
-    if is_html_file(file)
-        ipath, opath = joinpath(root, file), joinpath(gen, eduname, file)
-        cp(ipath, opath; force=true)
-    end
-end
-
-# Auxiliar function to replace texts into literate .jl files previous processing
-function preprocess_constants(file, folder)
-    return content -> content = replace(content, "FILE_NAME" => file, "FOLDER_NAME" => folder)
-end
-
-# Auxiliar function to check if a file has .md extension
-function is_md_file(filename)
-    return splitext(filename)[2] == ".md"
-end
-
-# Generate markdown, script and notebook for from the source literate file
-for (root, _, files) ∈ walkdir(joinpath(lit, exaname)), file ∈ files
-    file_minus_ext = split(file, ".")[1]
-    ipath, opath = joinpath(root, file), joinpath(gen, exaname)
-    Literate.markdown(ipath, opath; repo_root_url, preprocess=preprocess_constants(file_minus_ext, exaname) )
-    Literate.script(ipath, opath; repo_root_url)
-    Literate.notebook(ipath, opath; execute=false)
-end
-
-# Create some subsections
-ways_of_using_koma = ["ui-details.md", "programming-workflow.md", "notebooks.md"]
-create_your_own_sequence = ["sequence.md", "events.md"]
-literate_examples = [joinpath("generated", exaname, f) for f in readdir(joinpath(gen, exaname)) if is_md_file(f)]
-
-# Documentation structure
-makedocs(
-    modules = [KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
-    sitename = "KomaMRI.jl: General MRI simulation framework",
-    authors = "Boris Orostica Navarrete and Carlos Castillo Passi",
-    checkdocs = :exports,
-    pages = [
-        "Home" => "index.md";
-        "Getting Started" => "getting-started.md";
-        "Ways of Using KomaMRI" => ways_of_using_koma;
-        #"Simulation with User Interface" => "ui-details.md";
-        #"Simulation with Scripts" => "programming-workflow.md";
-        #"Notebooks" => "notebooks.md";
-        "Create Your Own Phantom" => "create-your-own-phantom.md";
-        "Create Your Own Sequence" => create_your_own_sequence;
-        #"Sequence Definition" => "sequence.md";
-        #"Events Definition" => "events.md";
-        "Examples" => literate_examples;
-        "Educational Material 📚" => "educational-1d-simulation.md";
-        "Simulation" => "mri-theory.md";
-        "API Documentation" => "api.md";
+# Generate documentation
+makedocs(;
+    modules=[KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
+    sitename="KomaMRI.jl",
+    authors="Boris Orostica Navarrete and Carlos Castillo Passi",
+    checkdocs=:exports,
+    pages=[
+        "🏠 Home" => "index.md",
+        "🏃 Getting Started" => "how-to/1-getting-started.md",
+        "🏋️ Tutorials" => sort(tutorial_list),
+        "🧑‍🔬 Reproducible Tutorials" => sort(reproducible_list),
+        "👨‍🍳 How to" => sort(howto_list),
+        "🤔 Explanations" => sort(explanation_list),
+        "👨‍💻 Reference Guides" => sort(reference_list),
     ],
-    format = Documenter.HTML(
-        prettyurls = true, #get(ENV, "CI", nothing) == "true",
-        sidebar_sitename = false,
-        assets = ["assets/extra-styles.css"]
-    )
+    format=Documenter.HTML(;
+        prettyurls=true, #get(ENV, "CI", nothing) == "true",
+        sidebar_sitename=false,
+        collapselevel=1,
+        assets=["assets/extra-styles.css"],
+    ),
 )
-
-deploydocs(
-    repo = "github.com/JuliaHealth/KomaMRI.jl.git",
-    push_preview = true,
-)
+deploydocs(; repo="github.com/JuliaHealth/KomaMRI.jl.git", push_preview=true)

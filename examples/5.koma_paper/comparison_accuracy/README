@@ -1,0 +1,27 @@
+The scripts in this folder are meant to replicate the results of Koma's paper.
+
+They require to have a working installation of JEMRIS and Koma.
+
+You should be located in the directory "examples/5.koma_paper/comparison_jemris/" to run them.
+
+The main script can run for both simulators:
+
+	./run_all_examples.sh
+
+Only for JEMRIS:
+
+	./run_all_examples.sh jemris
+
+Only for Koma:
+
+	./run_all_examples.sh koma
+
+Or you can specify an environment in case you want to test a dev branch of Koma:
+
+	./run_all_examples.sh koma --project=../../../../
+	
+You can also select an specific example (a,b,c,d,e,f):
+
+	./run_all_examples.sh koma --project=../../../../ e
+
+Then, the NMRSE can be computed by running the script "calculate_simulation_error.m".

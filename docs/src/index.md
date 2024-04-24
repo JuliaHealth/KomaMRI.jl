@@ -8,17 +8,7 @@
 <p align="center"><img class="display-light-only" width="100%" src="assets/koma-schema.svg"/></p>
 <p align="center"><img class="display-dark-only"  width="100%" src="assets/koma-schema-dark.svg""/></p>
 ```
-
-**KomaMRI** can be used in different environments:
-
-* **User Interface**: User-friendly interaction. No Julia programming skills are required. Refer to the [User Interface Section](ui-details.md) to dive into the details of how to use the GUI.
-
-* **Scripts** : Basic knowledge of **Julia** is required. Refer to the [Scripts Section](programming-workflow.md) to follow a basic workflow on how to work with **KomaMRI**.
-
-* **Notebooks**: Basic knowledge of **Julia** is required. This serves as an alternative development environment featuring user-friendly interactive tools. For guidance on setting up these environments, refer to the [Notebooks Section](notebooks.md).
-
-If you are new to **KomaMRI**, we recommend starting with the [Getting Started Section](getting-started.md) to install **Julia**, **KomaMRI**, and perform your first simulation.
-
+We organized the documentation following the philosophy presented by [David Laing](https://documentation.divio.com/).
 
 ## Features
 
@@ -26,7 +16,7 @@ Some of the features of **KomaMRI** are:
 * Fast simulations by using CPU and GPU parallelization 🏃💨.
 * Open Source, so anyone can include additional features 🆙.
 * Compatibility with community-standards 🤝 like Pulseq `.seq` and ISMRMRD `.mrd`.
-* Compatibility with [Pluto](notebooks.md#Pluto) and [Jupyter](notebooks.md#Jupyter) notebooks 🎈
+* Compatibility with [Pluto](how-to/2-2-use-koma-notebooks.md#Pluto) and [Jupyter](how-to/2-2-use-koma-notebooks.md#Jupyter) notebooks 🎈
 * Cross-platform 🌐 thanks to the use of the Julia programming language.
 * Friendly user interface for people with no programming skills 😌.
 * Flexible API for advanced users 👨‍💻.

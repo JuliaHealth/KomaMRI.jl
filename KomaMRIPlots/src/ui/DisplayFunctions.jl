@@ -187,14 +187,8 @@ function plot_seq(
 
     # Aux functions
     scatter_fun = gl ? scattergl : scatter
-    function usrf(x)
-        return if length(x) > max_rf_samples
-            ([@view x[1]; @view x[2:(length(x) ÷ max_rf_samples):(end - 1)]; @view x[end]])
-        else
-            x
-        end
-    end
-    usadc(x) = show_adc || isempty(x) ? x : [first(x); last(x)]
+    usrf(x) = length(x) > max_rf_samples ? ([@view x[1]; @view x[2:(length(x)÷max_rf_samples):end-1]; @view x[end]]) : x
+    usadc(x; ampl_edge=1.0) = show_adc || isempty(x) ? x : [ampl_edge * first(x); 1.0 * first(x); 1.0 * last(x); ampl_edge * last(x)]
     # Get the samples of the events in the sequence
     seq_samples = (get_samples(seq, i; freq_in_phase) for i in 1:length(seq))
     gx = (
@@ -218,7 +212,7 @@ function plot_seq(
         t=reduce(vcat, [usrf(block.Δf.t); Inf] for block in seq_samples),
     )
     adc = (
-        A=reduce(vcat, [usadc(block.adc.A); Inf] for block in seq_samples),
+        A=reduce(vcat, [usadc(block.adc.A; ampl_edge=0.0); Inf] for block in seq_samples),
         t=reduce(vcat, [usadc(block.adc.t); Inf] for block in seq_samples),
     )
 
@@ -228,10 +222,10 @@ function plot_seq(
     p = [scatter_fun() for _ in 1:(3 + 3O + 1)]
 
     # For GRADs
-    fgx = is_Gy_on(seq) ? 1.0 : Inf
-    fgy = is_Gx_on(seq) ? 1.0 : Inf
+    fgx = is_Gx_on(seq) ? 1.0 : Inf
+    fgy = is_Gy_on(seq) ? 1.0 : Inf
     fgz = is_Gz_on(seq) ? 1.0 : Inf
-    p[1] = scatter(;
+    p[1] = scatter_fun(;
         x=gx.t * 1e3,
         y=gx.A * 1e3 * fgx,
         name=idx[1],
@@ -242,7 +236,7 @@ function plot_seq(
         showlegend=showlegend,
         marker=attr(; color="#636EFA"),
     )
-    p[2] = scatter(;
+    p[2] = scatter_fun(;
         x=gy.t * 1e3,
         y=gy.A * 1e3 * fgy,
         name=idx[2],
@@ -253,7 +247,7 @@ function plot_seq(
         showlegend=showlegend,
         marker=attr(; color="#EF553B"),
     )
-    p[3] = scatter(;
+    p[3] = scatter_fun(;
         x=gz.t * 1e3,
         y=gz.A * 1e3 * fgz,
         name=idx[3],
@@ -315,7 +309,7 @@ function plot_seq(
     end
 
     # For ADCs
-    fa = is_ADC_on(seq) ? 0.0 : Inf
+    fa = is_ADC_on(seq) ? 1.0 : Inf
     p[3O + 3 + 1] = scatter_fun(;
         x=adc.t * 1e3,
         y=adc.A * fa,
@@ -1378,7 +1372,7 @@ Plots a raw signal in ISMRMRD format.
 
 # Examples
 ```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/3.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq");
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq");
 
 julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq(seq_file)
 
