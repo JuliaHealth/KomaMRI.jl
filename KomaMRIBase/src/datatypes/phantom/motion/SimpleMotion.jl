@@ -1,7 +1,7 @@
 # ------ SimpleMotionType
 abstract type SimpleMotionType{T<:Real} end
 
-is_composable(motion_type::SimpleMotionType) = false
+is_composable(motion_type::SimpleMotionType{T}) where {T<:Real} = false
 
 """
 Simple Motion
@@ -43,22 +43,20 @@ function get_spin_coords(
     z::AbstractVector{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    xi, yi, zi = x, y, z
-    composable_motions = motion.types[is_composable.(motion.types)]
-    sort!(composable_motions; by=m -> time_nodes(m)[1])
-    for motion in composable_motions
-        xi, yi, zi = begin
-            xi .+ displacement_x(motion, xi, yi, zi, t),
-            yi .+ displacement_y(motion, xi, yi, zi, t),
-            zi .+ displacement_z(motion, xi, yi, zi, t)
-        end
+    xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
+    # Composable motions: they need to be run sequentially
+    for motion in Iterators.filter(is_composable, motion.types)
+        aux = xt, yt, zt
+        xt .+= displacement_x(motion, aux..., t)
+        yt .+= displacement_y(motion, aux..., t)
+        zt .+= displacement_z(motion, aux..., t)
     end
-    additive_motions = motion.types[(!is_composable).(motion.types)]
-    #! format: off
-    xt = xi .+ reduce(.+, map(type -> displacement_x(type, x, y, z, t), additive_motions); init=0)
-    yt = yi .+ reduce(.+, map(type -> displacement_y(type, x, y, z, t), additive_motions); init=0)
-    zt = zi .+ reduce(.+, map(type -> displacement_z(type, x, y, z, t), additive_motions); init=0)
-    #! format: on
+    # Additive motions: these motions can be run in parallel
+    for motion in Iterators.filter(!is_composable, motion.types)
+        xt .+= displacement_x(motion, x, y, z, t)
+        yt .+= displacement_y(motion, x, y, z, t)
+        zt .+= displacement_z(motion, x, y, z, t)
+    end
     return xt, yt, zt
 end
 
@@ -66,6 +64,10 @@ function time_nodes(motion::SimpleMotion)
     nodes = reduce(vcat, [time_nodes(type) for type in motion.types])
     nodes = unique(sort(nodes))
     return nodes
+end
+
+function sort_motions!(motion::SimpleMotion)
+    return sort!(motion.types; by=m -> time_nodes(m)[1])
 end
 
 # --------- Simple Motion Types: -------------

@@ -52,7 +52,7 @@ export NoMotion, SimpleMotion, ArbitraryMotion
 export SimpleMotionType
 export Translation, Rotation, HeartBeat
 export PeriodicTranslation, PeriodicRotation, PeriodicHeartBeat
-export get_spin_coords, time_nodes
+export get_spin_coords, time_nodes, sort_motions!
 export LinearInterpolator
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un

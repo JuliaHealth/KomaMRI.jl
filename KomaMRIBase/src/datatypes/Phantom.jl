@@ -121,6 +121,10 @@ function get_dims(obj::Phantom)
     return dims
 end
 
+function sort_motions!(motion::MotionModel) 
+    return nothing
+end
+
 """
     obj = heart_phantom(...)
 
