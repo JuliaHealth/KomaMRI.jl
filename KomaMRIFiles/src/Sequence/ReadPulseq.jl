@@ -520,7 +520,8 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
             G = Grad(gA,gT,0.0,0.0,delay)
         end
     end
-    G
+    # If the amplitude of the gradient is zero, then return a zero gradient
+    return sum(abs.(G.A)) == 0 ? Grad(0.0, 0.0) : G
 end
 
 """

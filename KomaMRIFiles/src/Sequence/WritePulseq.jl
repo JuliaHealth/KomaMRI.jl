@@ -55,16 +55,6 @@ function not_in_list_angles(angle, angle_list)
 end
 
 """
-Returns a boolean value indicating whether a gradient have vulues different from zero in its
-properties. This function it is kind of a patch for the is_on function since it covers the
-case when matlab writes gradients with zero amplitude but with delay, rise and fall different
-from zero.
-"""
-function is_gr_considered(gr::Grad)
-    return any([sum(abs.(getfield(gr, key))) > 0 for key in fieldnames(Grad)])
-end
-
-"""
 Returns the events and IDs which are unique given an input vector of events.
 """
 function get_unique_events(events::Vector)
@@ -338,7 +328,7 @@ function get_pulseq_object(seq::Sequence)
     Δt_gr = seq.DEF["GradientRasterTime"]
     # Get the unique events and its IDs
     rfs = get_unique_events(seq.RF[is_on.(seq.RF)])
-    grs = get_unique_events(seq.GR[is_gr_considered.(seq.GR)])
+    grs = get_unique_events(seq.GR[is_on.(seq.GR)])
     adcs = get_unique_events(seq.ADC[is_on.(seq.ADC)])
     grads, traps = get_unique_gradients(grs)
     rfmags, rfangs, rftimes, cnt = get_rf_shapes(rfs, 1, Δt_rf)
