@@ -1,5 +1,5 @@
 """
-phantom = read_phantom(filename)
+    read_phantom(filename)
 
 Reads a (.phantom) file and creates a Phantom structure from it
 """
@@ -107,7 +107,7 @@ function import_motion!(
 end
 
 """
-write_phantom(ph,filename)
+    write_phantom(ph,filename)
 
 Writes a (.phantom) file from a Phantom struct.
 """
