@@ -50,7 +50,11 @@ adapt_storage(to::KomaCUDAAdaptor, x::SimpleMotion) = f32(x)
 function adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion)
     fields = []
     for field in fieldnames(ArbitraryMotion)
-        push!(fields, adapt(KomaCUDAAdaptor(), getfield(x, field)))
+        if field in (:ux, :uy, :uz) 
+            push!(fields, adapt(KomaCUDAAdaptor(), getfield(x, field)))
+        else
+            push!(fields, f32(getfield(x, field)))
+        end
     end
     return ArbitraryMotion(fields...)
 end
@@ -111,6 +115,13 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
 adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype(T, xs.types))
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
+function adapt_storage(T::Type{<:Real}, xs::ArbitraryMotion) 
+    fields = []
+    for field in fieldnames(ArbitraryMotion)
+        push!(fields, paramtype(T, getfield(xs, field)))
+    end
+    return ArbitraryMotion(fields...)
+end
 
 """
     f32(m)

@@ -16,10 +16,10 @@ Arbitrary Motion
 x = x + ux
 """
 struct ArbitraryMotion{T<:Real,V<:AbstractVector{T}} <: MotionModel{T}
-    period_durations::AbstractVector{T}
-    dx::AbstractArray{T,2}
-    dy::AbstractArray{T,2}
-    dz::AbstractArray{T,2}
+    period_durations::Vector{T}
+    dx::Array{T,2}
+    dy::Array{T,2}
+    dz::Array{T,2}
     ux::Vector{LinearInterpolator{T,V}}
     uy::Vector{LinearInterpolator{T,V}}
     uz::Vector{LinearInterpolator{T,V}}
@@ -31,7 +31,8 @@ function ArbitraryMotion(
     Δy::AbstractArray{T,2},
     Δz::AbstractArray{T,2},
 ) where {T<:Real}
-    @warn "Note that ArbitraryMotion is under development so it is not optimized so far" maxlog=1
+    @warn "Note that ArbitraryMotion is under development so it is not optimized so far" maxlog =
+        1
     Ns = size(Δx)[1]
     num_pieces = size(Δx)[2] + 1
     limits = time_nodes(period_durations, num_pieces)
@@ -54,10 +55,16 @@ function Base.getindex(
     motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}
 )
     fields = []
-    for field in filter(x -> (x in [:dx, :dy, :dz]), [fieldnames(ArbitraryMotion)...])
-        push!(fields, getfield(motion, field)[p, :])
+    for field in fieldnames(ArbitraryMotion)
+        if field in (:dx, :dy, :dz)
+            push!(fields, getfield(motion, field)[p, :])
+        elseif field in (:ux, :uy, :uz)
+            push!(fields, getfield(motion, field)[p])
+        else
+            push!(fields, getfield(motion, field))
+        end
     end
-    return ArbitraryMotion(motion.period_durations, fields...)
+    return ArbitraryMotion(fields...)
 end
 
 Base.:(==)(m1::ArbitraryMotion, m2::ArbitraryMotion) = reduce(&, [getfield(m1, field) == getfield(m2, field) for field in fieldnames(ArbitraryMotion)])
