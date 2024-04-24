@@ -1138,6 +1138,7 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :cmin, factor * cmin_key)
     cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
+    sort_motions!(ph.motion)
     t = process_times(ph.motion)
     x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
