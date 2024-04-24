@@ -100,13 +100,13 @@ end
 """
 For comparing two `RF`s custom types
 """
-Base.isapprox(rf1::RF, rf2::RF) = begin
-    return all(length(getfield(rf1, k)) == length(getfield(rf2, k)) for k in fieldnames(RF)) &&
-           all(size(getfield(rf1, k)) == size(getfield(rf2, k)) for k in fieldnames(RF)) &&
-           all(
-               all(isapprox.(getfield(rf1, k), getfield(rf2, k), atol=1e-9)) for
-               k in fieldnames(RF)
-           )
+function Base.isapprox(rf1::RF, rf2::RF)
+    for k in fieldnames(RF)
+        if length(getfield(rf1, k)) != length(getfield(rf2, k))
+            return false
+        end
+    end
+    return all(≈(getfield(rf1, k), getfield(rf2, k), atol=1e-9) for k in fieldnames(RF))
 end
 
 # Properties

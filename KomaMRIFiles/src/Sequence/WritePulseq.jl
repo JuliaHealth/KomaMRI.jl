@@ -22,14 +22,36 @@ end
 Returns a boolean value indicating whether a vector is present in a list of vectors.
 """
 function not_in_list(vec, vec_list)
-    return all([!safe_approx(vec, arr) for arr in vec_list])
+    for arr in vec_list
+        if safe_approx(vec, arr)
+            return false
+        end
+    end
+    return true
+end
+
+"""
+Returns a boolean value indicating whether a event is present in a list of events.
+"""
+function not_in_list_event(event, event_list)
+    for obj in event_list
+        if event ≈ obj
+            return false
+        end
+    end
+    return true
 end
 
 """
 Returns a boolean value indicating whether a vector is present in a list of vectors.
 """
 function not_in_list_angles(angle, angle_list)
-    return all([!safe_approx_angles(angle, phase) for phase in angle_list])
+    for phase in angle_list
+        if safe_approx_angles(angle, phase)
+            return false
+        end
+    end
+    return true
 end
 
 """
@@ -48,7 +70,7 @@ Returns the events and IDs which are unique given an input vector of events.
 function get_unique_events(events::Vector)
     events_obj, events_id, id_cnt = [], [], 1
     for obj in events
-        if all([!(obj ≈ obj_unique) for obj_unique in events_obj])
+        if not_in_list_event(obj, events_obj)
             push!(events_obj, obj)
             push!(events_id, id_cnt)
             id_cnt += 1
@@ -197,6 +219,7 @@ function get_rf_library(rfs, rfmags, rfangs, rftimes, Δt_rf)
         for (shape_abs_unique, id_abs) in zip(rfmags.data, rfmags.id)
             if safe_approx(shape_abs, shape_abs_unique)
                 row[3] = id_abs
+                break
             end
         end
         shape_ang = mod.(angle.(obj.A), 2π) / 2π
@@ -209,6 +232,7 @@ function get_rf_library(rfs, rfmags, rfangs, rftimes, Δt_rf)
                     sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
                     length(shape_ang),
                 )
+                break
             end
         end
         if isa(obj.T, Vector{<:Number})
@@ -216,6 +240,7 @@ function get_rf_library(rfs, rfmags, rfangs, rftimes, Δt_rf)
             for (shape_tim_unique, id_tim) in zip(rftimes.data, rftimes.id)
                 if safe_approx(shape_tim, shape_tim_unique)
                     row[5] = id_tim
+                    break
                 end
             end
         end
@@ -239,6 +264,7 @@ function get_grad_library_arb(grads, gramps, grtimes, Δt_gr)
         for (shape_amp_unique, id_amp) in zip(gramps.data, gramps.id)
             if safe_approx(shape_amp, shape_amp_unique)
                 row[3] = id_amp
+                break
             end
         end
         if isa(obj.T, Vector{<:Number})
@@ -246,6 +272,7 @@ function get_grad_library_arb(grads, gramps, grtimes, Δt_gr)
             for (shape_tim_unique, id_tim) in zip(grtimes.data, grtimes.id)
                 if safe_approx(shape_tim, shape_tim_unique)
                     row[4] = id_tim
+                    break
                 end
             end
         end
@@ -336,7 +363,7 @@ Writes a .seq file for a given sequence `seq` y the location `filename`
 """
 function write_seq(seq::Sequence, filename)
     # Just a warning message for extensions
-    @warn "EXTENSIONS will not be handled"
+    #@warn "EXTENSIONS will not be handled"
     # Get the pulseq object
     obj = get_pulseq_object(seq)
     # Write the .seq file

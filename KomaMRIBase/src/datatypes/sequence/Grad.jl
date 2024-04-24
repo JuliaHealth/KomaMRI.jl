@@ -186,9 +186,12 @@ end
 For comparing two `Grad`s custom types
 """
 function Base.isapprox(gr1::Grad, gr2::Grad)
-    return all(
-        length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k in fieldnames(Grad)
-    ) && all(all(getfield(gr1, k) .≈ getfield(gr2, k)) for k in fieldnames(Grad))
+    for k in fieldnames(Grad)
+        if length(getfield(gr1, k)) != length(getfield(gr2, k))
+            return false
+        end
+    end
+    return all(getfield(gr1, k) ≈ getfield(gr2, k) for k in fieldnames(Grad))
 end
 
 # Gradient operations
