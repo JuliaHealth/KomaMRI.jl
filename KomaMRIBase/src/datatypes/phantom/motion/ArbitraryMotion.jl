@@ -31,6 +31,7 @@ function ArbitraryMotion(
     Δy::AbstractArray{T,2},
     Δz::AbstractArray{T,2},
 ) where {T<:Real}
+    @warn "Note that ArbitraryMotion is under development so it is not optimized so far" maxlog=1
     Ns = size(Δx)[1]
     num_pieces = size(Δx)[2] + 1
     limits = time_nodes(period_durations, num_pieces)
