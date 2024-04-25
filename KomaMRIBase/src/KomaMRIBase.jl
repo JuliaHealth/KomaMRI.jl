@@ -45,7 +45,6 @@ export times, ampls, freqs
 export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
-export get_dims
 # Motion
 export MotionModel
 export NoMotion, SimpleMotion, ArbitraryMotion

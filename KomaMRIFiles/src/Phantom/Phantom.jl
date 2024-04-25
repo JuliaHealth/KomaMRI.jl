@@ -126,7 +126,7 @@ function write_phantom(
     HDF5.attributes(fid)["Version"] = string(KomaMRIFiles.__VERSION__)
     HDF5.attributes(fid)["Name"] = obj.name
     HDF5.attributes(fid)["Ns"] = length(obj.x)
-    dims = get_dims(obj)
+    dims = KomaMRIBase.get_dims(obj)
     HDF5.attributes(fid)["Dims"] = sum(dims)
     # Positions
     pos = create_group(fid, "position")

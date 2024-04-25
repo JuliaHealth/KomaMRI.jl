@@ -1024,7 +1024,7 @@ function plot_phantom_map(
     height=700,
     width=nothing,
     darkmode=false,
-    view_2d=sum(get_dims(ph)) < 3,
+    view_2d=sum(KomaMRIBase.get_dims(ph)) < 3,
     colorbar=true,
     intermediate_time_samples=0,
     max_time_samples=100,
@@ -1033,7 +1033,7 @@ function plot_phantom_map(
     kwargs...,
 )
     function process_times(motion::SimpleMotion)
-        t = time_nodes(motion)
+        t = times(motion)
         # Interpolate time points (as many as indicated by intermediate_time_samples)
         itp = interpolate(
             (
@@ -1045,7 +1045,7 @@ function plot_phantom_map(
         return itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
     end
     function process_times(motion::ArbitraryMotion)
-        t = time_nodes(motion)
+        t = times(motion)
         # Interpolate time points (as many as indicated by intermediate_time_samples)
         itp = interpolate(
             (
@@ -1059,12 +1059,12 @@ function plot_phantom_map(
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
     end
-    process_times(motion::MotionModel) = time_nodes(motion)
+    process_times(motion::MotionModel) = times(motion)
 
     # IDEA: subsample phantoms which are too large
     function decimate_uniform_phantom(ph::Phantom, num_points::Int)
-        dimx, dimy, dimz = get_dims(ph)
-        ss = Int(ceil((length(ph) / num_points)^(1 / sum(get_dims(ph)))))
+        dimx, dimy, dimz = KomaMRIBase.get_dims(ph)
+        ss = Int(ceil((length(ph) / num_points)^(1 / sum(KomaMRIBase.get_dims(ph)))))
         ssx = dimx ? ss : 1
         ssy = dimy ? ss : 1
         ssz = dimz ? ss : 1
