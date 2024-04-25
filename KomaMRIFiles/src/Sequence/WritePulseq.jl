@@ -1,45 +1,11 @@
 """
-Returns a boolean value indicating whether two vectors are approximately equal.
-"""
-function safe_approx(v1, v2)
-    if length(v1) != length(v2)
-        return false
-    end
-    return v1 ≈ v2
-end
-
-"""
 Returns a boolean value indicating whether two vector of angles are equal.
 """
-function safe_approx_angles(a1, a2)
+function safe_equal_angles(a1, a2)
     if length(a1) != length(a2)
         return false
     end
-    return abs(sum(exp.(1im * 2π * (a1)) .* exp.(-1im * 2π * (a2)))) / length(a1) ≈ 1
-end
-
-"""
-Returns a boolean value indicating whether a vector is present in a list of vectors.
-"""
-function not_in_list(vec, vec_list)
-    for arr in vec_list
-        if safe_approx(vec, arr)
-            return false
-        end
-    end
-    return true
-end
-
-"""
-Returns a boolean value indicating whether a event is present in a list of events.
-"""
-function not_in_list_event(event, event_list)
-    for obj in event_list
-        if event ≈ obj
-            return false
-        end
-    end
-    return true
+    return abs(sum(exp.(1im * 2π * a1) .* exp.(-1im * 2π * a2)) / length(a1)) == 1
 end
 
 """
@@ -47,7 +13,7 @@ Returns a boolean value indicating whether a vector is present in a list of vect
 """
 function not_in_list_angles(angle, angle_list)
     for phase in angle_list
-        if safe_approx_angles(angle, phase)
+        if safe_equal_angles(angle, phase)
             return false
         end
     end
@@ -60,7 +26,7 @@ Returns the events and IDs which are unique given an input vector of events.
 function get_unique_events(events::Vector)
     events_obj, events_id, id_cnt = [], [], 1
     for obj in events
-        if not_in_list_event(obj, events_obj)
+        if !(obj in events_obj)
             push!(events_obj, obj)
             push!(events_id, id_cnt)
             id_cnt += 1
@@ -117,7 +83,7 @@ function get_rf_shapes(rfs, id_shape_cnt, Δt_rf)
     rfs_abs_id, rfs_ang_id, rfs_tim_id = [], [], []
     for obj in rfs.obj
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
-        if not_in_list(shape_abs, rfs_abs)
+        if !(shape_abs in rfs_abs)
             push!(rfs_abs, shape_abs)
             push!(rfs_abs_id, id_shape_cnt)
             id_shape_cnt += 1
@@ -132,7 +98,7 @@ function get_rf_shapes(rfs, id_shape_cnt, Δt_rf)
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_rf
-            if not_in_list(shape_tim, rfs_tim)
+            if !(shape_tim in rfs_tim)
                 push!(rfs_tim, shape_tim)
                 push!(rfs_tim_id, id_shape_cnt)
                 id_shape_cnt += 1
@@ -155,14 +121,14 @@ function get_grad_shapes(grads, id_shape_cnt, Δt_gr)
     grads_amp_id, grads_tim_id = [], []
     for obj in grads.obj
         shape_amp = obj.A / maximum(abs.(obj.A))
-        if not_in_list(shape_amp, grads_amp)
+        if !(shape_amp in grads_amp)
             push!(grads_amp, shape_amp)
             push!(grads_amp_id, id_shape_cnt)
             id_shape_cnt = id_shape_cnt + 1
         end
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_gr
-            if not_in_list(shape_tim, grads_tim)
+            if !(shape_tim in grads_tim)
                 push!(grads_tim, shape_tim)
                 push!(grads_tim_id, id_shape_cnt)
                 id_shape_cnt = id_shape_cnt + 1
@@ -209,7 +175,7 @@ function get_rf_library(rfs, rfmags, rfangs, rftimes, Δt_rf)
         row[7] = obj.Δf
         shape_abs = abs.(obj.A) / maximum(abs.(obj.A))
         for (shape_abs_unique, id_abs) in zip(rfmags.data, rfmags.id)
-            if safe_approx(shape_abs, shape_abs_unique)
+            if shape_abs == shape_abs_unique
                 row[3] = id_abs
                 break
             end
@@ -218,7 +184,7 @@ function get_rf_library(rfs, rfmags, rfangs, rftimes, Δt_rf)
         ang = shape_ang .- shape_ang[1]
         for (shape_ang_unique, id_ang) in zip(rfangs.data, rfangs.id)
             ang_unique = shape_ang_unique .- shape_ang_unique[1]
-            if safe_approx_angles(ang, ang_unique)
+            if safe_equal_angles(ang, ang_unique)
                 row[4] = id_ang
                 row[8] = angle(
                     sum(exp.(1im * 2π * shape_ang) .* exp.(-1im * 2π * shape_ang_unique)) /
@@ -230,7 +196,7 @@ function get_rf_library(rfs, rfmags, rfangs, rftimes, Δt_rf)
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_rf
             for (shape_tim_unique, id_tim) in zip(rftimes.data, rftimes.id)
-                if safe_approx(shape_tim, shape_tim_unique)
+                if shape_tim == shape_tim_unique
                     row[5] = id_tim
                     break
                 end
@@ -254,7 +220,7 @@ function get_grad_library_arb(grads, gramps, grtimes, Δt_gr)
         row[5] = round(1e6 * obj.delay)
         shape_amp = obj.A / maximum(abs.(obj.A))
         for (shape_amp_unique, id_amp) in zip(gramps.data, gramps.id)
-            if safe_approx(shape_amp, shape_amp_unique)
+            if shape_amp == shape_amp_unique
                 row[3] = id_amp
                 break
             end
@@ -262,7 +228,7 @@ function get_grad_library_arb(grads, gramps, grtimes, Δt_gr)
         if isa(obj.T, Vector{<:Number})
             shape_tim = cumsum([0; obj.T]) / Δt_gr
             for (shape_tim_unique, id_tim) in zip(grtimes.data, grtimes.id)
-                if safe_approx(shape_tim, shape_tim_unique)
+                if shape_tim == shape_tim_unique
                     row[4] = id_tim
                     break
                 end
