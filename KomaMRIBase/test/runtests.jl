@@ -443,7 +443,7 @@ end
         num_pieces = 10
         dx = dy = dz = rand(Ns, num_pieces - 1)
         arbitrarymotion = @suppress ArbitraryMotion(period_durations, dx, dy, dz)
-        t = time_nodes(arbitrarymotion)
+        t = times(arbitrarymotion)
         xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
         @test xt[:,2:end-1] == ph.x .+ dx
         @test yt[:,2:end-1] == ph.y .+ dy

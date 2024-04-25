@@ -82,6 +82,6 @@ function displacement_z(
     return t_unit .* motion_type.dz
 end
 
-time_nodes(motion_type::Translation) = begin
+times(motion_type::Translation) = begin
     return [motion_type.t_start, motion_type.t_end]
 end

@@ -23,6 +23,6 @@ function get_spin_coords(
     return x, y, z
 end
 
-function time_nodes(motion::NoMotion)
+function times(motion::NoMotion)
     return [0.0]
 end

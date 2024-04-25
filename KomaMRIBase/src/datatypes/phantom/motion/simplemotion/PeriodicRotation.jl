@@ -72,6 +72,6 @@ function displacement_z(
     return -sind.(β) .* x + cosd.(β) .* sind.(α) .* y .- z
 end
 
-function time_nodes(motion_type::PeriodicRotation)
+function times(motion_type::PeriodicRotation)
     return [0, motion_type.period * motion_type.asymmetry, motion_type.period]
 end

@@ -60,14 +60,14 @@ function get_spin_coords(
     return xt, yt, zt
 end
 
-function time_nodes(motion::SimpleMotion)
-    nodes = reduce(vcat, [time_nodes(type) for type in motion.types])
+function times(motion::SimpleMotion)
+    nodes = reduce(vcat, [times(type) for type in motion.types])
     nodes = unique(sort(nodes))
     return nodes
 end
 
 function sort_motions!(motion::SimpleMotion)
-    return sort!(motion.types; by=m -> time_nodes(m)[1])
+    return sort!(motion.types; by=m -> times(m)[1])
 end
 
 # --------- Simple Motion Types: -------------

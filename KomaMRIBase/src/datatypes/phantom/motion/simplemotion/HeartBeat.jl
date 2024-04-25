@@ -63,6 +63,6 @@ function displacement_z(
     return t_unit .* (z .* motion_type.longitudinal_strain)
 end
 
-time_nodes(motion_type::HeartBeat) = begin
+times(motion_type::HeartBeat) = begin
     return [motion_type.t_start, motion_type.t_end]
 end

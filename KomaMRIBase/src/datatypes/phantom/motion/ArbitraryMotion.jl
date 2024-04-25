@@ -31,11 +31,10 @@ function ArbitraryMotion(
     Δy::AbstractArray{T,2},
     Δz::AbstractArray{T,2},
 ) where {T<:Real}
-    @warn "Note that ArbitraryMotion is under development so it is not optimized so far" maxlog =
-        1
+    @warn "Note that ArbitraryMotion is under development so it is not optimized so far" maxlog = 1
     Ns = size(Δx)[1]
     num_pieces = size(Δx)[2] + 1
-    limits = time_nodes(period_durations, num_pieces)
+    limits = times(period_durations, num_pieces)
 
     #! format: off
     Δ = zeros(Ns,length(limits),4)
@@ -81,15 +80,15 @@ function Base.vcat(m1::ArbitraryMotion, m2::ArbitraryMotion)
 end
 
 """
-    limits = time_nodes(obj.motion)
+    limits = times(obj.motion)
 """
-function time_nodes(motion::ArbitraryMotion)
+function times(motion::ArbitraryMotion)
     period_durations = motion.period_durations
     num_pieces = size(motion.dx)[2] + 1
-    return time_nodes(period_durations, num_pieces)
+    return times(period_durations, num_pieces)
 end
 
-function time_nodes(period_durations::AbstractVector, num_pieces::Int)
+function times(period_durations::AbstractVector, num_pieces::Int)
     # Pre-allocating memory
     limits = zeros(eltype(period_durations), num_pieces * length(period_durations) + 1)
 

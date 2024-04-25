@@ -59,6 +59,6 @@ function displacement_z(
     return t_unit .* motion_type.dz
 end
 
-function time_nodes(motion_type::PeriodicTranslation)
+function times(motion_type::PeriodicTranslation)
     return [0, motion_type.period * motion_type.asymmetry, motion_type.period]
 end

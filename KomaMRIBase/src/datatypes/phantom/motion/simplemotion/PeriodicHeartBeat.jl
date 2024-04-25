@@ -62,6 +62,6 @@ function displacement_z(
     return t_unit .* (z .* motion_type.longitudinal_strain)
 end
 
-function time_nodes(motion_type::PeriodicHeartBeat)
+function times(motion_type::PeriodicHeartBeat)
     return [0, motion_type.period * motion_type.asymmetry, motion_type.period]
 end

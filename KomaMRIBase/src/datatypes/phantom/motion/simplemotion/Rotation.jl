@@ -122,6 +122,6 @@ function displacement_z(
     return -sind.(β) .* x + cosd.(β) .* sind.(α) .* y .- z
 end
 
-time_nodes(motion_type::Rotation) = begin
+times(motion_type::Rotation) = begin
     return [motion_type.t_start, motion_type.t_end]
 end
