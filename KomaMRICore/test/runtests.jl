@@ -208,7 +208,7 @@ end
 end
 
 
-@testitem "Bloch_GPU" tags=[:important, :skipci, :core] begin
+@testitem "Bloch_GPU" tags=[:important, :skipci, :core, :gpu] begin
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -324,7 +324,7 @@ end
     @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
 end
 
-@testitem "Bloch_GPU_RF_accuracy" tags=[:important, :core] begin
+@testitem "Bloch_GPU_RF_accuracy" tags=[:important, :core, :skipci, :gpu] begin
     using Suppressor
 
     Tadc = 1e-3
@@ -401,7 +401,106 @@ end
 
 end
 
-@testitem "Bloch SimpleMotion" tags=[:important, :core] begin
+@testitem "Bloch CPU_single_thread SimpleMotion" tags=[:important, :core] begin
+    using Suppressor
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()  
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain()
+    obj.motion = SimpleMotion([Translation(t_end=10.0, dx=0.0, dy=1.0, dz=0.0)])
+    sim_params = Dict{String, Any}(
+        "gpu"=>false,
+        "Nthreads"=>1,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat"
+    )
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+@testitem "Bloch CPU_single_thread ArbitraryMotion"  tags=[:important, :core, :skipci, :gpu] begin
+    using Suppressor
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()  
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain()
+    Ns = length(obj)
+    period_durations=[20.0]
+    dx = dz = zeros(Ns, 1)
+    dy = 1.0 .* ones(Ns, 1)
+    obj.motion = @suppress ArbitraryMotion(
+        period_durations,
+        dx,
+        dy,
+        dz)    
+    sim_params = Dict{String, Any}(
+        "gpu"=>false,
+        "Nthreads"=>1,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat"
+    )
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+
+@testitem "Bloch CPU_multi_thread SimpleMotion" tags=[:important, :core] begin
+    using Suppressor
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()  
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain()
+    obj.motion = SimpleMotion([Translation(t_end=10.0, dx=0.0, dy=1.0, dz=0.0)])
+    sim_params = Dict{String, Any}(
+        "gpu"=>false,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat"
+    )
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+@testitem "Bloch CPU_multi_thread ArbitraryMotion"  tags=[:important, :core, :skipci, :gpu] begin
+    using Suppressor
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()  
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain()
+    Ns = length(obj)
+    period_durations=[20.0]
+    dx = dz = zeros(Ns, 1)
+    dy = 1.0 .* ones(Ns, 1)
+    obj.motion = @suppress ArbitraryMotion(
+        period_durations,
+        dx,
+        dy,
+        dz)    
+    sim_params = Dict{String, Any}(
+        "gpu"=>false,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat"
+    )
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+@testitem "Bloch GPU SimpleMotion" tags=[:important, :core, :skipci, :gpu] begin
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -422,7 +521,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch ArbitraryMotion"  tags=[:important, :core] begin
+@testitem "Bloch GPU ArbitraryMotion"  tags=[:important, :core, :skipci, :gpu] begin
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
