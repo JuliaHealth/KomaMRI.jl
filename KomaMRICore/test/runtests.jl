@@ -422,7 +422,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch CPU_single_thread ArbitraryMotion"  tags=[:important, :core, :skipci, :gpu] begin
+@testitem "Bloch CPU_single_thread ArbitraryMotion"  tags=[:important, :core] begin
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -472,7 +472,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch CPU_multi_thread ArbitraryMotion"  tags=[:important, :core, :skipci, :gpu] begin
+@testitem "Bloch CPU_multi_thread ArbitraryMotion"  tags=[:important, :core] begin
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
