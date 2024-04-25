@@ -525,22 +525,22 @@ end
     #Test brain phantom 2D
     ph = brain_phantom2D()
     @test ph.name == "brain2D_axial"
-    @test get_dims(ph) == Bool[1, 1, 0]
+    @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 0]
 
     #Test brain phantom 3D
     ph = brain_phantom3D()
     @test ph.name == "brain3D"
-    @test get_dims(ph) == Bool[1, 1, 1]
+    @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 1]
 
     #Test pelvis phantom 2D
     ph = pelvis_phantom2D()
     @test ph.name == "pelvis2D"
-    @test get_dims(ph) == Bool[1, 1, 0]
+    @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 0]
 
     #Test heart phantom
     ph = heart_phantom()
     @test ph.name == "LeftVentricle"
-    @test get_dims(ph) == Bool[1, 1, 0]
+    @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 0]
 end
 
 @testitem "Scanner" tags=[:base] begin
