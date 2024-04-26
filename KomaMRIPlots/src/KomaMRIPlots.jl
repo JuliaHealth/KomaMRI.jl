@@ -16,9 +16,4 @@ export plot_seq, plot_M0, plot_M1, plot_M2, plot_eddy_currents, plot_seqd,
 using Pkg
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
-# Add timeout for Kaleido
-function __init__()
-    PlotlyJS.PlotlyKaleido.start(; timeout=60)
-end
-
 end

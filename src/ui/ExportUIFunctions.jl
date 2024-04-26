@@ -28,10 +28,6 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
     sidebarcss = joinpath(css,"sidebars.css")
     # Custom icons
     icons = joinpath(css,"icons.css")
-
-    # Add timeout for Kaleido
-    KomaMRIPlots.PlotlyJS.PlotlyKaleido.start(; timeout=60)
-
     ## WINDOW
     w = Blink.Window(Dict(
         "title"=>"KomaUI",
