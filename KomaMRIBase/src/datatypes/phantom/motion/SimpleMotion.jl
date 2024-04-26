@@ -4,14 +4,16 @@ abstract type SimpleMotionType{T<:Real} end
 is_composable(motion_type::SimpleMotionType{T}) where {T<:Real} = false
 
 """
-Simple Motion
+    motion = SimpleMotion(types)
 
-x = x + ux
-y = y + uy
-z = z + uz
+SimpleMotion model
 
+# Arguments
+- `types`: (`::Vector{<:SimpleMotionType{T}}`) vector of simple motion types
+
+# Returns
+- `motion`: (`::SimpleMotion`) SimpleMotion struct
 """
-# -------- SimpleMotion
 struct SimpleMotion{T<:Real} <: MotionModel{T}
     types::Vector{<:SimpleMotionType{T}}
 end
@@ -36,6 +38,21 @@ Base.:(≈)(t1::T, t2::T) where {T<:SimpleMotionType}  = reduce(&, [getfield(t1,
 Base.:(==)(t1::SimpleMotionType, t2::SimpleMotionType) = false
 Base.:(≈)(t1::SimpleMotionType, t2::SimpleMotionType)  = false
 
+"""
+    x, y, z = het_spin_coords(motion, x, y, z, t')
+
+Calculates the position of each spin at a set of arbitrary time instants, i.e. the time steps of the simulation. 
+
+# Arguments
+- `motion`: (`::MotionModel`) phantom motion
+- `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
+- `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
+- `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
+- `t`: (`::AbstractArray{T<:Real}`) horizontal array of time instants
+
+# Returns
+- `z, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
+"""
 function get_spin_coords(
     motion::SimpleMotion{T},
     x::AbstractVector{T},

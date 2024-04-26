@@ -4,20 +4,17 @@
 PeriodicTranslation motion struct. It produces a periodic translation of the phantom in the three directions x, y and z.
 The amplitude of the oscillation will be defined by dx, dy and dz
 
-
 # Arguments
-- `period`: (`::Real`, `[s]`) period 
-- `asymmetry`: (`::Real`)  asymmetry factor, between 0 and 1
 - `dx`: (`::Real`, `[m]`) translation in x
 - `dy`: (`::Real`, `[m]`) translation in y 
 - `dz`: (`::Real`, `[m]`) translation in z
+- `period`: (`::Real`, `[s]`) period 
+- `asymmetry`: (`::Real`)  asymmetry factor, between 0 and 1
 
 # Returns
 - `periodic_translation`: (`::PeriodicTranslation`) PeriodicTranslation struct
 
-
 """
-
 @with_kw struct PeriodicTranslation{T<:Real} <: SimpleMotionType{T}
     dx           :: T
     dy           :: T

@@ -1,5 +1,5 @@
 """
-    read_phantom(filename)
+    phantom = read_phantom(filename)
 
 Reads a (.phantom) file and creates a Phantom structure from it
 """
@@ -107,13 +107,13 @@ function import_motion!(
 end
 
 """
-    write_phantom(ph,filename)
+    phantom = write_phantom(ph,filename)
 
 Writes a (.phantom) file from a Phantom struct.
 """
-# By the moment, only "Explicit" type 
-# is considered when writing .phantom files
 function write_phantom(
+    # By the moment, only "Explicit" type 
+    # is considered when writing .phantom files
     obj::Phantom,
     filename::String;
     store_coords=[:x, :y, :z],

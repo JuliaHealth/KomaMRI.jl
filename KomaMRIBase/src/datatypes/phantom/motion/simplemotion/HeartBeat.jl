@@ -1,6 +1,19 @@
 @doc raw"""
-"""
+    heartbeat = HeartBeat(t_start, t_end, dx, dy, dz)
 
+HeartBeat struct. It produces a heartbeat-like motion, characterised by three types of strain:
+Circumferential, Radial and Longitudinal
+
+# Arguments
+- `circumferential_strain`: (`::Real`, `=-0.3`) contraction parameter
+- `radial_strain`: (`::Real`, `=-0.3`) contraction parameter
+- `longitudinal_strain`: (`::Real`, `=1`) contraction parameter
+- `t_start`: (`::Real`, `[s]`) initial time 
+- `t_end`: (`::Real`, `[s]`) final time 
+
+# Returns
+- `heartbeat`: (`::HeartBeat`) HeartBeat struct
+"""
 @with_kw struct HeartBeat{T<:Real} <: SimpleMotionType{T}
     circumferential_strain :: T
     radial_strain          :: T

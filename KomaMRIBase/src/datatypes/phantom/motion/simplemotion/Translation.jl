@@ -28,18 +28,16 @@ dz, & t >= t_end
 ```
 
 # Arguments
-- `t_start`: (`::Real`, `[s]`) initial time 
-- `t_end`: (`::Real`, `[s]`) final time 
 - `dx`: (`::Real`, `[m]`) translation in x
 - `dy`: (`::Real`, `[m]`) translation in y 
 - `dz`: (`::Real`, `[m]`) translation in z
+- `t_start`: (`::Real`, `[s]`) initial time 
+- `t_end`: (`::Real`, `[s]`) final time 
 
 # Returns
 - `translation`: (`::Translation`) Translation struct
 
-
 """
-
 @with_kw struct Translation{T<:Real} <: SimpleMotionType{T}
     dx         :: T
     dy         :: T

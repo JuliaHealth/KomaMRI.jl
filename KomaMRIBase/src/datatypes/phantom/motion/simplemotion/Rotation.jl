@@ -54,17 +54,16 @@ yaw, & t >= t_end
 ```
 
 # Arguments
-- `t_start`: (`::Real`, `[s]`) initial time 
-- `t_end`: (`::Real`, `[s]`) final time 
 - `pitch`: (`::Real`, `[º]`) rotation in x
 - `roll`: (`::Real`, `[º]`) rotation in y 
 - `yaw`: (`::Real`, `[º]`) rotation in z
+- `t_start`: (`::Real`, `[s]`) initial time 
+- `t_end`: (`::Real`, `[s]`) final time 
 
 # Returns
 - `rotation`: (`::Rotation`) Rotation struct
 
 """
-
 @with_kw struct Rotation{T<:Real} <: SimpleMotionType{T}
     pitch      :: T
     roll       :: T

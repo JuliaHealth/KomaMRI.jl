@@ -5,17 +5,16 @@ PeriodicRotation motion struct. It produces a rotation of the phantom in the thr
 x (pitch), y (roll), and z (yaw)
 
 # Arguments
-- `period`: (`::Real`, `[s]`) period 
-- `asymmetry`: (`::Real`)  asymmetry factor, between 0 and 1
 - `pitch`: (`::Real`, `[º]`) rotation in x
 - `roll`: (`::Real`, `[º]`) rotation in y 
 - `yaw`: (`::Real`, `[º]`) rotation in z
+- `period`: (`::Real`, `[s]`) period 
+- `asymmetry`: (`::Real`)  asymmetry factor, between 0 and 1
 
 # Returns
-- `periodic_rotation`: (`::PeriodicRotation`) Rotation struct
+- `periodic_rotation`: (`::PeriodicRotation`) PeriodicRotation struct
 
 """
-
 @with_kw struct PeriodicRotation{T<:Real} <: SimpleMotionType{T}
     pitch        :: T
     roll         :: T
