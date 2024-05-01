@@ -118,7 +118,9 @@ function displacement_z(
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
-    return -sind.(β) .* x + cosd.(β) .* sind.(α) .* y .- z
+    return -sind.(β) .* x + 
+            cosd.(β) .* sind.(α) .* y +
+            cosd.(β) .* cosd.(α) .* z .- z
 end
 
 times(motion_type::Rotation) = begin
