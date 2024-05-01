@@ -18,7 +18,7 @@ obj.Δw .= 0 # Removes the off-resonance
 #md #     ```
 
 obj.motion = SimpleMotion([Rotation(t_start=0.0, t_end=0.5, pitch=15.0, roll=0.0, yaw=45.0)])
-p1 = plot_phantom_map(obj2, :T2 ; height=600, intermediate_time_samples=4)
+p1 = plot_phantom_map(obj, :T2 ; height=600, intermediate_time_samples=4)
 #md savefig(p1, "../assets/5-phantom.html") # hide
 #jl display(p1)
 
@@ -44,12 +44,12 @@ p2 = plot_seq(seq; range=[0 40], slider=true, height=300)
 raw1 = simulate(obj, seq, sys)
 raw2 = simulate(obj, Delay(0.5) + seq, sys)
 
-# Let's note the effect of motion in both reconstructions:s
+# Let's note the effect of motion in both reconstructions:
 ## Get the acquisition data
 acq1 = AcquisitionData(raw1)
 acq2 = AcquisitionData(raw2)
 acq1.traj[1].circular = false #This is to remove the circular mask
-acq2.traj[1].circular = false #This is to remove the circular mask
+acq2.traj[1].circular = false 
 
 ## Setting up the reconstruction parameters
 Nx, Ny = raw.params["reconSize"][1:2]
