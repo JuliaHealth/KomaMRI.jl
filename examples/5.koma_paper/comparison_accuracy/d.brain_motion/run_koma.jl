@@ -1,7 +1,7 @@
 using KomaMRI, Suppressor, MAT
 
 obj = @suppress read_phantom_jemris("../../../2.phantoms/brain.h5")
-obj.uy = (x,y,z,t)-> 0.1f0 * t
+obj.uy = (x,y,z,t)-> 0.1f0 * t # Hacer que el fichero brain_motion.phantom tenga este movimiento (con SimpleMotion y ArbitraryMotion)
 seq = @suppress read_seq("../sequences/EPI/epi_100x100_TE100_FOV230.seq")
 sys = Scanner()
 #Time
