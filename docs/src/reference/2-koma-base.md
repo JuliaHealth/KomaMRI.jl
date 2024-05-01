@@ -16,6 +16,30 @@ Phantom
 brain_phantom2D
 brain_phantom3D
 pelvis_phantom2D
+heart_phantom
+```
+
+### `MotionModel`
+```@docs
+get_spin_coords
+```
+
+### `SimpleMotion <: MotionModel`
+
+```@docs
+SimpleMotion
+Translation
+Rotation
+HeartBeat
+PeriodicTranslation
+PeriodicRotation
+PeriodicHeartBeat
+```
+
+### `ArbitraryMotion <: MotionModel`
+
+```@docs
+ArbitraryMotion
 ```
 
 ## `Sequence`-related functions
