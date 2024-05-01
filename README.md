@@ -12,7 +12,7 @@
 
 </div>
  
-KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI was built from the ground up to be: easy to use, extensible, cross-platform, and powered by open-source community standards. 
+KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI was built from the ground up to be: easy to use, extensible, cross-platform, and powered by open-source community standards.
 
 <div align="center">
 
