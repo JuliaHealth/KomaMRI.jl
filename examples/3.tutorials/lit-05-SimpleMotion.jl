@@ -56,7 +56,7 @@ Nx, Ny = raw.params["reconSize"][1:2]
 reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny))
 
 image1 = reconstruction(acq1, reconParams)
-image2 = reconstruction(acq1, reconParams)
+image2 = reconstruction(acq2, reconParams)
 
 ## Plotting the recon
 p3 = plot_image(abs.(image1[:, :, 1]); height=400)
