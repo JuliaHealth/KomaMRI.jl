@@ -1028,7 +1028,7 @@ function plot_phantom_map(
     colorbar=true,
     intermediate_time_samples=0,
     max_time_samples=100,
-    max_spins=50000,
+    max_spins=100000,
     dt_frame=250,
     kwargs...,
 )
