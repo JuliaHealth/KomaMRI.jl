@@ -1,6 +1,6 @@
 using TestItems, TestItemRunner
 
-@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:files in ti.tags) #verbose=true
+@run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:files in t_start.tags) #verbose=true
 
 @testitem "Files" tags=[:files] begin
     using Suppressor
@@ -40,13 +40,56 @@ using TestItems, TestItemRunner
         obj = read_phantom_jemris(path*"/test_files/column1d.h5")
         @test obj.name == "column1d.h5"
     end
-    # Test JEMRIS
+    # Test MRiLab
     @testset "MRiLab" begin
         path = @__DIR__
         filename = path * "/test_files/brain_mrilab.mat"
         FRange_filename = path * "/test_files/FRange.mat" #Slab within slice thickness
         obj = read_phantom_MRiLab(filename; FRange_filename)
         @test obj.name == "brain_mrilab.mat"
+    end
+    # Test Phantom (.phantom)
+    @testset "Phantom" begin
+        using KomaMRIBase
+        path = @__DIR__
+        # NoMotion
+        filename = path * "/test_files/brain_nomotion.phantom"
+        obj1 = brain_phantom2D()
+        write_phantom(obj1, filename)
+        obj2 = read_phantom(filename)
+        @test obj1 == obj2
+        # SimpleMotion
+        filename = path * "/test_files/brain_simplemotion.phantom"
+        obj1 = brain_phantom2D()
+        obj1.motion = SimpleMotion([
+            PeriodicRotation(
+                period=1.0, 
+                yaw=45.0,
+                pitch=0.0,
+                roll=0.0),
+            Translation(
+                t_start=0.0,
+                t_end=0.5,
+                dx=0.0,
+                dy=0.02,
+                dz=0.0
+        )])
+        write_phantom(obj1, filename)
+        obj2 = read_phantom(filename)
+        @test obj1 == obj2
+        # ArbitraryMotion
+        filename = path * "/test_files/brain_arbitrarymotion.phantom"
+        obj1 = brain_phantom2D()
+        Ns = length(obj1)
+        K = 10
+        obj1.motion = ArbitraryMotion(
+            [1.0],
+            0.01.*rand(Ns, K-1),
+            0.01.*rand(Ns, K-1),
+            0.01.*rand(Ns, K-1))     
+        write_phantom(obj1, filename)
+        obj2 = read_phantom(filename)
+        @test obj1 == obj2
     end
 end
 
