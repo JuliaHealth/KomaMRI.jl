@@ -52,7 +52,7 @@ acq1.traj[1].circular = false #This is to remove the circular mask
 acq2.traj[1].circular = false 
 
 ## Setting up the reconstruction parameters
-Nx, Ny = raw.params["reconSize"][1:2]
+Nx, Ny = raw1.params["reconSize"][1:2]
 reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny))
 
 image1 = reconstruction(acq1, reconParams)
