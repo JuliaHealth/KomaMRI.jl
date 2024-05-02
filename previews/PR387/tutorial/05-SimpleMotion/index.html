@@ -11,8 +11,45 @@
   RF_ring_down_T: Float64 2.0e-5
   RF_dead_time_T: Float64 0.0001
   ADC_dead_time_T: Float64 1.0e-5
-</code></pre><p>This tutorial illustrates how we can add simple motion to phantoms.</p><p><a href="../05-SimpleMotion.jl"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt/></a> <a href="../05-SimpleMotion.ipynb"><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt/></a></p><p>We will also see how phantoms can be stored and loaded from <span>$.phantom$</span> files.</p><p>First, we load a static 3D brain phantom:</p><pre><code class="language-julia hljs">obj1 = brain_phantom3D()
-obj1.Δw .= 0 # Removes the off-resonance
-p1 = plot_phantom_map(obj1, :T2 ; height=400)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/3-phantom.html&quot;</code></pre><center><object type="text/html" data="../../assets/3-phantom.html" style="width:50%; height:420px;"></object></center><p>Now, we will make a copy of the phantom, to which we will add Rotation Motion to recreate the patient&#39;s movement inside the scanner.</p><p>Note how rotations are defined with respect to the 3 axes:</p><center><img src="../../assets/head_rotation_axis.png" width="300"></center><pre><code class="language-julia hljs">obj2 = copy(obj1)
-obj2.motion = SimpleMotion([Rotation(t_start=0.0, t_end=0.25, pitch=15.0, roll=0.0, yaw=45.0)])
-p2 = plot_phantom_map(obj2, :T2 ; height=400, intermediate_time_samples=4)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/3-phantom.html&quot;</code></pre><center><object type="text/html" data="../../assets/3-phantom.html" style="width:50%; height:420px;"></object></center><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../04-3DSliceSelective/">« Slice-Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../../tutorial-pluto/01-gradient-echo-spin-echo/">Understanding basic MRI sequences »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.0 on <span class="colophon-date" title="Wednesday 1 May 2024 09:52">Wednesday 1 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><p>This tutorial illustrates how we can add simple motion to phantoms. We will also see how phantoms can be stored and loaded from <span>$.phantom$</span> files.</p><p><a href="../05-SimpleMotion.jl"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt/></a> <a href="../05-SimpleMotion.ipynb"><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt/></a></p><p>First, we load a static 3D brain phantom:</p><pre><code class="language-julia hljs">obj = brain_phantom3D()
+obj.Δw .= 0 # Removes the off-resonance</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">71326-element Vector{Float64}:
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ ⋮
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0</code></pre><p>Now, we will add Rotation Motion to recreate the patient&#39;s movement inside the scanner.</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>Note how rotations are defined with respect to the 3 axes:</p><center><img src="../../assets/head_rotation_axis.png" width="200"></center></div></div><pre><code class="language-julia hljs">obj.motion = SimpleMotion([Rotation(t_start=0.0, t_end=0.5, pitch=15.0, roll=0.0, yaw=45.0)])
+p1 = plot_phantom_map(obj, :T2 ; height=600, intermediate_time_samples=4)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-phantom.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-phantom.html" style="width:50%; height:420px;"></object></center><p>Then, we will load an EPI sequence</p><pre><code class="language-julia hljs">seq_file = joinpath(dirname(pathof(KomaMRI)), &quot;../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq&quot;)
+seq = read_seq(seq_file)
+p2 = plot_seq(seq; range=[0 40], slider=true, height=300)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-seq.html&quot;</code></pre><object type="text/html" data="../../assets/5-seq.html" style="width:100%; height:320px;"></object><p>Now, we will run two simulations: the first with the sequence starting at <span>$t=0.0$</span>, and the second adding a 0.5s initial delay to the sequence:</p><pre><code class="language-julia hljs"># Simulate
+raw1 = simulate(obj, seq, sys)
+raw2 = simulate(obj, Delay(0.5) + seq, sys)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">RawAcquisitionData[SeqName: epi_100x100_TE100_FOV230 | 100 Profile(s) of 100×1]</code></pre><p>Let&#39;s note the effect of motion in both reconstructions:</p><pre><code class="language-julia hljs"># Get the acquisition data
+acq1 = AcquisitionData(raw1)
+acq2 = AcquisitionData(raw2)
+acq1.traj[1].circular = false #This is to remove the circular mask
+acq2.traj[1].circular = false
+
+# Setting up the reconstruction parameters
+Nx, Ny = raw1.params[&quot;reconSize&quot;][1:2]
+reconParams = Dict{Symbol,Any}(:reco=&gt;&quot;direct&quot;, :reconSize=&gt;(Nx, Ny))
+
+image1 = reconstruction(acq1, reconParams)
+image2 = reconstruction(acq2, reconParams)
+
+# Plotting the recon
+p3 = plot_image(abs.(image1[:, :, 1]); height=400)
+p4 = plot_image(abs.(image2[:, :, 1]); height=400)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon2.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object></center><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../04-3DSliceSelective/">« Slice-Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../../tutorial-pluto/01-gradient-echo-spin-echo/">Understanding basic MRI sequences »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Thursday 2 May 2024 13:31">Thursday 2 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
