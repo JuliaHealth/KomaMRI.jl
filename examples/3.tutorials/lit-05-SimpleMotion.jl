@@ -31,8 +31,8 @@ p1 = plot_phantom_map(obj, :T2 ; height=600, intermediate_time_samples=4)
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq")
 seq = read_seq(seq_file)
 p2 = plot_seq(seq; range=[0 40], slider=true, height=300)
-#md savefig(p3, "../assets/5-seq.html") # hide
-#jl display(p3)
+#md savefig(p2, "../assets/5-seq.html") # hide
+#jl display(p2)
 
 #md # ```@raw html
 #md # <object type="text/html" data="../../assets/5-seq.html" style="width:100%; height:320px;"></object>
