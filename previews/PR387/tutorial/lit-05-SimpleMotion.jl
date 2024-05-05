@@ -12,17 +12,17 @@ obj = brain_phantom2D()
 obj.Δw .= 0 # hide
 
 # The `SimpleMotion` model includes a list of `SimpleMotionType`'s, to enabling mix-and-matching simple motions.
-# In this example, we will add a [`Rotation`](@ref) of 20 degrees around the z-axis with duration of 200 ms.
+# In this example, we will add a [`Rotation`](@ref) of 45 degrees around the z-axis with duration of 200 ms.
 
 obj.motion = SimpleMotion([
-    Rotation(t_start=0.0, t_end=200e-3, yaw=20.0, pitch=0.0, roll=0.0)
+    Rotation(t_start=0.0, t_end=200e-3, yaw=45.0, pitch=0.0, roll=0.0)
     ])
 p1 = plot_phantom_map(obj, :T2 ; height=400, intermediate_time_samples=4)
 #md savefig(p1, "../assets/5-phantom.html") # hide
 #jl display(p1)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/5-phantom.html" style="width:50%; height:420px;"></object></center>
+#md # <center><object type="text/html" data="../../assets/5-phantom.html" style="width:65%; height:420px;"></object></center>
 #md # ```
 
 ## Read Sequence # hide
@@ -41,18 +41,18 @@ image1 = reconstruction(acq1, reconParams) # hide
 
 # If we simulate an EPI sequence with acquisition duration (183.989 ms) comparable with the motion's duration (200 ms),
 # we will observe motion-induced artifacts in the reconstructed image.
-## Plotting the recon
+## Plotting the recon # hide
 p3 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 #md savefig(p3, "../assets/5-recon1.html") # hide
 #jl display(p3)
 
 #md # ```@raw html
 #md # <center>
-#md # <object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:400px;"></object>
+#md # <object type="text/html" data="../../assets/5-recon1.html" style="width:65%; height:420px;"></object>
 #md # </center>
 #md # ```
 
-# The severity of the artifacts can vary depending on the used acquisition duration and `k`-space trajectory.
+# The severity of the artifacts can vary depending on the acquisition duration and `k`-space trajectory.
 # Below, we show the effect of the same motion in an spiral acquisition (dur. 39 ms, which is 5 times faster than the motion.)
 
 ## Read Sequence # hide
@@ -75,6 +75,6 @@ p4 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 
 #md # ```@raw html
 #md # <center>
-#md # <object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:400px;"></object>
+#md # <object type="text/html" data="../../assets/5-recon2.html" style="width:65%; height:420px;"></object>
 #md # </center>
 #md # ```

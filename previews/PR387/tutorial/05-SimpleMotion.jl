@@ -5,7 +5,7 @@ obj = brain_phantom2D()
 obj.Δw .= 0 # hide
 
 obj.motion = SimpleMotion([
-    Rotation(t_start=0.0, t_end=200e-3, yaw=20.0, pitch=0.0, roll=0.0)
+    Rotation(t_start=0.0, t_end=200e-3, yaw=45.0, pitch=0.0, roll=0.0)
     ])
 p1 = plot_phantom_map(obj, :T2 ; height=400, intermediate_time_samples=4)
 display(p1)
@@ -25,7 +25,7 @@ Nx, Ny = raw1.params["reconSize"][1:2] # hide
 reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
 image1 = reconstruction(acq1, reconParams) # hide
 
-# Plotting the recon
+# Plotting the recon # hide
 p3 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 display(p3)
 
