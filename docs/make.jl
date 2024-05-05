@@ -63,6 +63,7 @@ makedocs(;
         sidebar_sitename=false,
         collapselevel=1,
         assets=["assets/extra-styles.css"],
+        prerender=true
     ),
 )
 deploydocs(; repo="github.com/JuliaHealth/KomaMRI.jl.git", push_preview=true)
