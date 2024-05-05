@@ -12,9 +12,13 @@ We organized the documentation following the philosophy presented by [David Lain
 
 !!! details "How to Cite Koma"
     If you use Koma, please cite our paper:
+
     **Plain Text:**
+
     Castillo-Passi, C, Coronado, R, Varela-Mattatall, G, Alberola-López, C, Botnar, R, Irarrazaval, P. KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration. Magn Reson Med. 2023; 1- 14. doi: 10.1002/mrm.29635
+
     **BibTex:**
+    
     ```bibtex
     @article{https://doi.org/10.1002/mrm.29635,
             author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
