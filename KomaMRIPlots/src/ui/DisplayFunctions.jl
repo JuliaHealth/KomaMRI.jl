@@ -1028,8 +1028,8 @@ function plot_phantom_map(
     colorbar=true,
     intermediate_time_samples=0,
     max_time_samples=100,
-    max_spins=100000,
-    dt_frame=250,
+    max_spins=100_000,
+    frame_duration_ms=250,
     kwargs...,
 )
     function process_times(motion::SimpleMotion)
@@ -1075,12 +1075,9 @@ function plot_phantom_map(
         return ph[idx]
     end
 
-    n_spins_before_decimate = length(ph)
-    ph = decimate_uniform_phantom(ph, max_spins)
-    n_spins_after_decimate = length(ph)
-    if n_spins_before_decimate > n_spins_after_decimate
-        @warn "Only $(n_spins_after_decimate) (approximately evenly spaced) of $(n_spins_before_decimate) spins are displayed in order to avoid CPU overload. 
-         This affects display functions but not simulation functions."
+    if length(ph) > max_spins
+        ph = decimate_uniform_phantom(ph, max_spins)
+        @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)." maxlog=1
     end
 
     path = @__DIR__
@@ -1252,8 +1249,8 @@ function plot_phantom_map(
                 nothing,
                 attr(;
                     fromcurrent=true,
-                    transition=(duration=dt_frame,),
-                    frame=attr(; duration=dt_frame, redraw=true),
+                    transition=(duration=frame_duration_ms,),
+                    frame=attr(; duration=frame_duration_ms, redraw=true),
                 ),
             ],
         ),
@@ -1265,8 +1262,8 @@ function plot_phantom_map(
                 attr(;
                     mode="immediate",
                     fromcurrent=true,
-                    transition=attr(; duration=dt_frame),
-                    frame=attr(; duration=dt_frame, redraw=true),
+                    transition=attr(; duration=frame_duration_ms),
+                    frame=attr(; duration=frame_duration_ms, redraw=true),
                 ),
             ],
         ),
