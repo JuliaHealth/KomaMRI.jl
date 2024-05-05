@@ -11,16 +11,16 @@ p1 = plot_phantom_map(obj, :T2 ; height=600, motion_samples=4)
 display(p1)
 
 
-# Read Sequence
+# Read Sequence # hide
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq") # hide
 seq = read_seq(seq_file) # hide
 
-# Simulate
-raw1 = simulate(obj, seq, sys)
+# Simulate # hide
+raw1 = simulate(obj, seq, sys) # hide
 
-# Recon
-acq1 = AcquisitionData(raw1)
-acq1.traj[1].circular = false #This is to remove the circular mask
+# Recon # hide
+acq1 = AcquisitionData(raw1) # hide
+acq1.traj[1].circular = false # hide
 Nx, Ny = raw1.params["reconSize"][1:2] # hide
 reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
 image1 = reconstruction(acq1, reconParams) # hide
@@ -29,20 +29,20 @@ image1 = reconstruction(acq1, reconParams) # hide
 p3 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 display(p3)
 
-# Read Sequence
+# Read Sequence # hide
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/Spiral/spiral_100x100_FOV230_SPZ_INTER1.seq") # hide
 seq = read_seq(seq_file) # hide
 
-# Simulate
-raw1 = simulate(obj, seq, sys)
+# Simulate # hide
+raw1 = simulate(obj, seq, sys) # hide
 
-# Recon
-acq1 = AcquisitionData(raw1)
+# Recon # hide
+acq1 = AcquisitionData(raw1) # hide
 Nx, Ny = raw1.params["reconSize"][1:2] # hide
 reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
 image1 = reconstruction(acq1, reconParams) # hide
 
-# Plotting the recon
+# Plotting the recon # hide
 p4 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 display(p4)
 

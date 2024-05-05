@@ -7,25 +7,28 @@
 \text{seq.GR.z[i]} &amp;: &amp; \text{gradient z at the i block} \\
 \text{seq.ADC[i]}  &amp;: &amp; \text{acquisition at the i block} \\
 \text{seq.DUR[i]}  &amp;: &amp; \text{duration at the i block}
-\end{matrix*}\]</p><p>The best way to understand the <strong>Sequence</strong> struct in <strong>KomaMRI</strong> is by examining the source code where this struct is defined:</p><pre><code class="language-julia hljs">mutable struct Sequence
-    GR::Array{Grad,2}
-    RF::Array{RF,2}
-    ADC::Array{ADC,1}
-    DUR::Array{Any,1}
-    DEF::Dict{String,Any}
-end</code></pre><p>As you can see, a <strong>Sequence</strong> struct contains 5 field names: &#39;&#39;DEF&#39;&#39; contains information for reconstruction steps (so it is not mandatory to fill it), &#39;&#39;DUR&#39;&#39; is a vector that contains the time durations of each block, &#39;&#39;ADC&#39;&#39; is also a vector with the acquisition samples for every block (an vector of <strong>ADC</strong> structs), &#39;&#39;GR&#39;&#39; is a 2D matrix which 3 rows representing the x-y-z gradients and columns having the samples of each block (a matrix of <strong>Grad</strong> structs) and &#39;&#39;RF&#39;&#39; is also a 2D matrix where each row represents a different coil and the columns are for different block samples too (a matrix of <strong>RF</strong> structs). The <strong>RF</strong>, <strong>Grad</strong> and <strong>ADC</strong> are MRI events that will be explained in the section <a href="../2-seq-events/">Events Definitions</a>.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>So far, <strong>KomaMRI</strong> can only manage one coil for RF excitations. However, in future versions, parallel transmit pTX will be managed by adding more ``rows&#39;&#39; to the RF matrix of the Sequence field name.</p></div></div><p>In order to understand how a <strong>Sequence</strong> struct can be manipulated in <strong>Julia</strong>, let&#39;s use the EPI sequence example. You can display basic information of the <strong>Sequence</strong> variable in the <strong>Julia REPL</strong>:</p><pre><code class="language-julia-repl hljs">julia&gt; seq = PulseDesigner.EPI_example()
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 5 ]</code></pre><p>As you can see, this <strong>Sequence</strong> has 204 blocks, 1 of these blocks has an <strong>RF</strong> struct with values different from zero, there are 205 number of <strong>Grad</strong> structs considering the x-y-z components, 101 <strong>ADC</strong> structs acquire samples of some blocks and 62.846 ms is the total time duration of the complete <strong>Sequence</strong>.</p><p>To display the sequence in an graph, we can use the <a href="../../reference/5-koma-plots/#KomaMRIPlots.plot_seq"><code>plot_seq</code></a> function:</p><pre><code class="language-julia-repl hljs">julia&gt; plot_seq(seq; slider=false)</code></pre><object type="text/html" data="../../assets/seq-epi-example-full.html" style="width:100%; height:420px;"></object><p>This way, you can see exactly where the <strong>RF</strong>, <strong>Grad</strong> and <strong>ADC</strong> structs are located in time.</p><p>You can access and filter information for the <strong>RF</strong>, <strong>Grad</strong>, <strong>ADC</strong>, and <strong>DUR</strong> field names of a <strong>Sequence</strong> using the dot notation. This allows you to display helpful information about the organization of the <strong>Sequence</strong> struct:</p><pre><code class="language-julia-repl hljs">julia&gt; seq.RF
-1×204 Matrix{RF}:
+\end{matrix*}\]</p><p>The best way to understand the <strong>Sequence</strong> struct in <strong>KomaMRI</strong> is by examining the source code where this struct is defined:</p><pre><code class="language-julia hljs"><span class="hljs-keyword">mutable struct</span> Sequence
+    GR::<span class="hljs-built_in">Array</span>{Grad,<span class="hljs-number">2</span>}
+    RF::<span class="hljs-built_in">Array</span>{RF,<span class="hljs-number">2</span>}
+    ADC::<span class="hljs-built_in">Array</span>{ADC,<span class="hljs-number">1</span>}
+    DUR::<span class="hljs-built_in">Array</span>{<span class="hljs-built_in">Any</span>,<span class="hljs-number">1</span>}
+    DEF::<span class="hljs-built_in">Dict</span>{<span class="hljs-built_in">String</span>,<span class="hljs-built_in">Any</span>}
+<span class="hljs-keyword">end</span>
+</code></pre><p>As you can see, a <strong>Sequence</strong> struct contains 5 field names: &#39;&#39;DEF&#39;&#39; contains information for reconstruction steps (so it is not mandatory to fill it), &#39;&#39;DUR&#39;&#39; is a vector that contains the time durations of each block, &#39;&#39;ADC&#39;&#39; is also a vector with the acquisition samples for every block (an vector of <strong>ADC</strong> structs), &#39;&#39;GR&#39;&#39; is a 2D matrix which 3 rows representing the x-y-z gradients and columns having the samples of each block (a matrix of <strong>Grad</strong> structs) and &#39;&#39;RF&#39;&#39; is also a 2D matrix where each row represents a different coil and the columns are for different block samples too (a matrix of <strong>RF</strong> structs). The <strong>RF</strong>, <strong>Grad</strong> and <strong>ADC</strong> are MRI events that will be explained in the section <a href="../2-seq-events/">Events Definitions</a>.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>So far, <strong>KomaMRI</strong> can only manage one coil for RF excitations. However, in future versions, parallel transmit pTX will be managed by adding more ``rows&#39;&#39; to the RF matrix of the Sequence field name.</p></div></div><p>In order to understand how a <strong>Sequence</strong> struct can be manipulated in <strong>Julia</strong>, let&#39;s use the EPI sequence example. You can display basic information of the <strong>Sequence</strong> variable in the <strong>Julia REPL</strong>:</p><pre><code class="language-julia-repl hljs"><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> seq = PulseDesigner.EPI_example()
+</span>Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 5 ]
+</code></pre><p>As you can see, this <strong>Sequence</strong> has 204 blocks, 1 of these blocks has an <strong>RF</strong> struct with values different from zero, there are 205 number of <strong>Grad</strong> structs considering the x-y-z components, 101 <strong>ADC</strong> structs acquire samples of some blocks and 62.846 ms is the total time duration of the complete <strong>Sequence</strong>.</p><p>To display the sequence in an graph, we can use the <a href="../../reference/5-koma-plots/#KomaMRIPlots.plot_seq"><code>plot_seq</code></a> function:</p><pre><code class="language-julia-repl hljs"><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> plot_seq(seq; slider=<span class="hljs-literal">false</span>)</span>
+</code></pre><object type="text/html" data="../../assets/seq-epi-example-full.html" style="width:100%; height:420px;"></object><p>This way, you can see exactly where the <strong>RF</strong>, <strong>Grad</strong> and <strong>ADC</strong> structs are located in time.</p><p>You can access and filter information for the <strong>RF</strong>, <strong>Grad</strong>, <strong>ADC</strong>, and <strong>DUR</strong> field names of a <strong>Sequence</strong> using the dot notation. This allows you to display helpful information about the organization of the <strong>Sequence</strong> struct:</p><pre><code class="language-julia-repl hljs"><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> seq.RF
+</span>1×204 Matrix{RF}:
  ⊓(0.5872 ms)  ⇿(0.0 ms)  ⇿(0.0 ms)  …  ⇿(0.0 ms)  ⇿(0.0 ms)   
 
-julia&gt; seq.GR
-3×204 Matrix{Grad}:
+<span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> seq.GR
+</span>3×204 Matrix{Grad}:
  ⇿(0.5872 ms)  ⊓(0.4042 ms)  ⊓(0.4042 ms)  …  ⇿(0.2062 ms)  ⊓(0.4042 ms)  ⊓(0.4042 ms)
  ⇿(0.5872 ms)  ⊓(0.4042 ms)  ⇿(0.4042 ms)     ⊓(0.2062 ms)  ⇿(0.4042 ms)  ⊓(0.4042 ms)
  ⇿(0.5872 ms)  ⇿(0.0 ms)     ⇿(0.0 ms)        ⇿(0.0 ms)     ⇿(0.0 ms)     ⇿(0.0 ms)
 
-julia&gt; seq.ADC
-204-element Vector{ADC}:
+<span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> seq.ADC
+</span>204-element Vector{ADC}:
  ADC(0, 0.0, 0.0, 0.0, 0.0)
  ADC(0, 0.0, 0.0, 0.0, 0.0)
  ADC(101, 0.00019999999999999998, 0.00010211565434713023, 0.0, 0.0)
@@ -33,26 +36,29 @@ julia&gt; seq.ADC
  ADC(101, 0.00019999999999999998, 0.00010211565434713023, 0.0, 0.0)
  ADC(0, 0.0, 0.0, 0.0, 0.0)
 
-julia&gt; seq.DUR
-204-element Vector{Float64}:
+<span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> seq.DUR
+</span>204-element Vector{Float64}:
  0.0005871650124959989
  0.0004042313086942605
  0.0004042313086942605
  ⋮
  0.0004042313086942605
- 0.0004042313086942605</code></pre><p>Additionally, you can access a subset of blocks in a <strong>Sequence</strong> by slicing or indexing. The result will also be a <strong>Sequence</strong> struct, allowing you to perform the same operations as you would with a full Sequence. For example, if you want to analyze the first 11 blocks, you can do the following:</p><pre><code class="language-julia-repl hljs">julia&gt; seq[1:11]
-Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]
+ 0.0004042313086942605
+</code></pre><p>Additionally, you can access a subset of blocks in a <strong>Sequence</strong> by slicing or indexing. The result will also be a <strong>Sequence</strong> struct, allowing you to perform the same operations as you would with a full Sequence. For example, if you want to analyze the first 11 blocks, you can do the following:</p><pre><code class="language-julia-repl hljs"><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> seq[<span class="hljs-number">1</span>:<span class="hljs-number">11</span>]
+</span>Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]
 
-julia&gt; seq[1:11].GR
-3×11 Matrix{Grad}:
+<span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> seq[<span class="hljs-number">1</span>:<span class="hljs-number">11</span>].GR
+</span>3×11 Matrix{Grad}:
  ⇿(0.5872 ms)  ⊓(0.4042 ms)  ⊓(0.4042 ms)   …  ⊓(0.4042 ms)  ⇿(0.2062 ms)  ⊓(0.4042 ms)
  ⇿(0.5872 ms)  ⊓(0.4042 ms)  ⇿(0.4042 ms)      ⇿(0.4042 ms)  ⊓(0.2062 ms)  ⇿(0.4042 ms)
  ⇿(0.5872 ms)  ⇿(0.0 ms)     ⇿(0.0 ms)        ⇿(0.0 ms)     ⇿(0.0 ms)     ⇿(0.0 ms)
 
-julia&gt; plot_seq(seq[1:11]; slider=false)</code></pre><object type="text/html" data="../../assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px;"></object><h2 id="Concatenation-of-Sequences"><a class="docs-heading-anchor" href="#Concatenation-of-Sequences">Concatenation of Sequences</a><a id="Concatenation-of-Sequences-1"></a><a class="docs-heading-anchor-permalink" href="#Concatenation-of-Sequences" title="Permalink"></a></h2><p>Sequences can be concatenated side by side. The example below demonstrates how to concatenate sequences:</p><pre><code class="language-julia-repl hljs">julia&gt; s = PulseDesigner.EPI_example()[1:11]
-Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]
+<span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> plot_seq(seq[<span class="hljs-number">1</span>:<span class="hljs-number">11</span>]; slider=<span class="hljs-literal">false</span>)</span>
+</code></pre><object type="text/html" data="../../assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px;"></object><h2 id="Concatenation-of-Sequences"><a class="docs-heading-anchor" href="#Concatenation-of-Sequences">Concatenation of Sequences</a><a id="Concatenation-of-Sequences-1"></a><a class="docs-heading-anchor-permalink" href="#Concatenation-of-Sequences" title="Permalink"></a></h2><p>Sequences can be concatenated side by side. The example below demonstrates how to concatenate sequences:</p><pre><code class="language-julia-repl hljs"><span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> s = PulseDesigner.EPI_example()[<span class="hljs-number">1</span>:<span class="hljs-number">11</span>]
+</span>Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]
 
-julia&gt; seq = s + s + s
-Sequence[ τ = 11.512 ms | blocks: 33 | ADC: 15 | GR: 33 | RF: 3 | DEF: 5 ]
+<span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> seq = s + s + s
+</span>Sequence[ τ = 11.512 ms | blocks: 33 | ADC: 15 | GR: 33 | RF: 3 | DEF: 5 ]
 
-julia&gt; plot_seq(seq; slider=false)</code></pre><object type="text/html" data="../../assets/seq-concatenation.html" style="width:100%; height:420px;"></object></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../how-to/3-create-your-own-sequence/">« Create Your Own Sequence</a><a class="docs-footer-nextpage" href="../2-seq-events/">Sequence Events »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Sunday 5 May 2024 06:25">Sunday 5 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="hljs-meta prompt_">julia&gt;</span><span class="language-julia"> plot_seq(seq; slider=<span class="hljs-literal">false</span>)</span>
+</code></pre><object type="text/html" data="../../assets/seq-concatenation.html" style="width:100%; height:420px;"></object></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../how-to/3-create-your-own-sequence/">« Create Your Own Sequence</a><a class="docs-footer-nextpage" href="../2-seq-events/">Sequence Events »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Sunday 5 May 2024 07:00">Sunday 5 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

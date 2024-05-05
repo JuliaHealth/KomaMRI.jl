@@ -11,7 +11,8 @@
   RF_ring_down_T: Float64 2.0e-5
   RF_dead_time_T: Float64 0.0001
   ADC_dead_time_T: Float64 1.0e-5
-</code></pre><p><a href="../05-SimpleMotion.jl"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt/></a> <a href="../05-SimpleMotion.ipynb"><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt/></a></p><p>It can also be interesting to see the effect of the patient&#39;s motion during an MRI scan. For this, Koma provides the ability to add <a href="../../reference/2-koma-base/#MotionModel"><code>MotionModel</code></a>&#39;s to the phantom. In this tutorial, we will show how to add a <a href="../../reference/2-koma-base/#KomaMRIBase.SimpleMotion"><code>SimpleMotion</code></a> model to a 2D brain phantom.</p><p>First, let&#39;s load the 2D brain phantom used in the previous tutorials:</p><pre><code class="language-julia hljs">obj = brain_phantom2D()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6506-element Vector{Float64}:
+</code></pre><p><a href="../05-SimpleMotion.jl"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt/></a> <a href="../05-SimpleMotion.ipynb"><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt/></a></p><p>It can also be interesting to see the effect of the patient&#39;s motion during an MRI scan. For this, Koma provides the ability to add <a href="../../reference/2-koma-base/#MotionModel"><code>MotionModel</code></a>&#39;s to the phantom. In this tutorial, we will show how to add a <a href="../../reference/2-koma-base/#KomaMRIBase.SimpleMotion"><code>SimpleMotion</code></a> model to a 2D brain phantom.</p><p>First, let&#39;s load the 2D brain phantom used in the previous tutorials:</p><pre><code class="language-julia hljs">obj = brain_phantom2D()
+</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6506-element Vector{Float64}:
  0.0
  0.0
  0.0
@@ -32,16 +33,10 @@
  0.0
  0.0
  0.0</code></pre><p>The <code>SimpleMotion</code> model includes a list of <code>SimpleMotionType</code>&#39;s, to enabling mix-and-matching simple motions. In this example, we will add a <a href="../../reference/2-koma-base/#KomaMRIBase.Rotation"><code>Rotation</code></a> of 20 degrees around the z-axis with duration of 200 ms.</p><pre><code class="language-julia hljs">obj.motion = SimpleMotion([
-    Rotation(t_start=0.0, t_end=200e-3, yaw=20.0, pitch=0.0, roll=0.0)
+    Rotation(t_start=<span class="hljs-number">0.0</span>, t_end=<span class="hljs-number">200e-3</span>, yaw=<span class="hljs-number">20.0</span>, pitch=<span class="hljs-number">0.0</span>, roll=<span class="hljs-number">0.0</span>)
     ])
-p1 = plot_phantom_map(obj, :T2 ; height=600, motion_samples=4)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-phantom.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-phantom.html" style="width:50%; height:520px;"></object></center><pre><code class="language-julia hljs"># Read Sequence
-
-# Simulate
-raw1 = simulate(obj, seq, sys)
-
-# Recon
-acq1 = AcquisitionData(raw1)
-acq1.traj[1].circular = false #This is to remove the circular mask</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6-dimensional AxisArray{ComplexF32,6,...} with axes:
+p1 = plot_phantom_map(obj, :T2 ; height=<span class="hljs-number">600</span>, motion_samples=<span class="hljs-number">4</span>)
+</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-phantom.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-phantom.html" style="width:50%; height:420px;"></object></center><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6-dimensional AxisArray{ComplexF32,6,...} with axes:
     :x, (0.0:2.323232421875:230.00000976562498) mm
     :y, (0.0:2.3232322692871095:229.99999465942383) mm
     :z, (0.0:1.0:0.0) mm
@@ -69,12 +64,9 @@ And data, a 100×100×1×1×1×1 Array{ComplexF32, 6}:
   0.00242842+0.00118218im     -0.00325626-0.000268948im
  -0.00240834-0.00116924im      0.00322149+0.000266469im
   0.00237345+0.001157im       -0.00318957-0.000260306im
- -0.00233839-0.00113359im      0.00313583+0.000238995im</code></pre><p>If we simulate an EPI sequence with acquisition duration (183.989 ms) comparable with the motion&#39;s duration (200 ms), we will observe motion-induced artifacts in the reconstructed image.</p><pre><code class="language-julia hljs"># Plotting the recon</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon1.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object></center><p>The severity of the artifacts can vary depending on the used acquisition duration and <code>k</code>-space trajectory. Below, we show the effect of the same motion in an spiral acquisition (dur. 39 ms, which is 5 times faster than the motion.)</p><pre><code class="language-julia hljs"># Read Sequence
-
-# Simulate
-raw1 = simulate(obj, seq, sys)
-
-# Recon
-acq1 = AcquisitionData(raw1)
-
-# Plotting the recon</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon2.html&quot;</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../04-3DSliceSelective/">« Slice-Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../../tutorial-pluto/01-gradient-echo-spin-echo/">Understanding basic MRI sequences »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Sunday 5 May 2024 06:25">Sunday 5 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ -0.00233839-0.00113359im      0.00313583+0.000238995im</code></pre><p>If we simulate an EPI sequence with acquisition duration (183.989 ms) comparable with the motion&#39;s duration (200 ms), we will observe motion-induced artifacts in the reconstructed image.</p><pre><code class="language-julia hljs"><span class="hljs-comment"># Plotting the recon</span>
+</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon1.html&quot;</code></pre><center>
+<object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:400px;"></object>
+</center><p>The severity of the artifacts can vary depending on the used acquisition duration and <code>k</code>-space trajectory. Below, we show the effect of the same motion in an spiral acquisition (dur. 39 ms, which is 5 times faster than the motion.)</p><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon2.html&quot;</code></pre><center>
+<object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:400px;"></object>
+</center><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../04-3DSliceSelective/">« Slice-Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../../tutorial-pluto/01-gradient-echo-spin-echo/">Understanding basic MRI sequences »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Sunday 5 May 2024 07:00">Sunday 5 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
