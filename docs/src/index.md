@@ -19,7 +19,7 @@ We organized the documentation following the philosophy presented by [David Lain
 
     **BibTex:**
     
-    ```bibtex
+    ```
     @article{https://doi.org/10.1002/mrm.29635,
             author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
             title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
