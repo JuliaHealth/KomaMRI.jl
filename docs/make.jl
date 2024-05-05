@@ -1,4 +1,4 @@
-using Documenter, Literate, KomaMRI, PlutoSliderServer
+using Documenter, Literate, KomaMRI, PlutoSliderServer, NodeJS_16_jll
 
 # Setup for Literate and Pluto
 repo_base = "JuliaHealth/KomaMRI.jl"
@@ -63,7 +63,8 @@ makedocs(;
         sidebar_sitename=false,
         collapselevel=1,
         assets=["assets/extra-styles.css"],
-        prerender=true
+        prerender=true,
+        node = NodeJS_16_jll.node()
     ),
 )
 deploydocs(; repo="github.com/JuliaHealth/KomaMRI.jl.git", push_preview=true)
