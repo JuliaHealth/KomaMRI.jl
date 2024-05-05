@@ -22,19 +22,19 @@ p1 = plot_phantom_map(obj, :T2 ; height=600, motion_samples=4)
 #jl display(p1)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/5-phantom.html" style="width:50%; height:520px;"></object></center>
+#md # <center><object type="text/html" data="../../assets/5-phantom.html" style="width:50%; height:420px;"></object></center>
 #md # ```
 
-## Read Sequence
+## Read Sequence # hide
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq") # hide
 seq = read_seq(seq_file) # hide
 
-## Simulate
-raw1 = simulate(obj, seq, sys)
+## Simulate # hide
+raw1 = simulate(obj, seq, sys) # hide
 
-## Recon
-acq1 = AcquisitionData(raw1)
-acq1.traj[1].circular = false #This is to remove the circular mask
+## Recon # hide
+acq1 = AcquisitionData(raw1) # hide
+acq1.traj[1].circular = false # hide
 Nx, Ny = raw1.params["reconSize"][1:2] # hide
 reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
 image1 = reconstruction(acq1, reconParams) # hide
@@ -47,26 +47,34 @@ p3 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 #jl display(p3)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object></center>
+#md # <center>
+#md # <object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:400px;"></object>
+#md # </center>
 #md # ```
 
 # The severity of the artifacts can vary depending on the used acquisition duration and `k`-space trajectory.
 # Below, we show the effect of the same motion in an spiral acquisition (dur. 39 ms, which is 5 times faster than the motion.)
 
-## Read Sequence
+## Read Sequence # hide
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/Spiral/spiral_100x100_FOV230_SPZ_INTER1.seq") # hide
 seq = read_seq(seq_file) # hide
 
-## Simulate
-raw1 = simulate(obj, seq, sys)
+## Simulate # hide
+raw1 = simulate(obj, seq, sys) # hide
 
-## Recon
-acq1 = AcquisitionData(raw1)
+## Recon # hide
+acq1 = AcquisitionData(raw1) # hide
 Nx, Ny = raw1.params["reconSize"][1:2] # hide
 reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
 image1 = reconstruction(acq1, reconParams) # hide
 
-## Plotting the recon
+## Plotting the recon # hide
 p4 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 #md savefig(p4, "../assets/5-recon2.html") # hide
 #jl display(p4)
+
+#md # ```@raw html
+#md # <center>
+#md # <object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:400px;"></object>
+#md # </center>
+#md # ```
