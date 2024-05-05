@@ -7,7 +7,7 @@ obj.Δw .= 0 # hide
 obj.motion = SimpleMotion([
     Rotation(t_start=0.0, t_end=200e-3, yaw=20.0, pitch=0.0, roll=0.0)
     ])
-p1 = plot_phantom_map(obj, :T2 ; height=600, motion_samples=4)
+p1 = plot_phantom_map(obj, :T2 ; height=400, intermediate_time_samples=4)
 display(p1)
 
 
