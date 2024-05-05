@@ -1,71 +1,72 @@
-# # Simple Motion Definition and Simulation
+# # Patient's Motion During Acquisition
 
 using KomaMRI # hide
 sys = Scanner() # hide
 
-# This tutorial illustrates how we can add simple motion to phantoms. We will also see how phantoms can be stored and loaded from ``.phantom`` files.
+# It can also be interesting to see the effect of the patient's motion during an MRI scan.
+# For this, Koma provides the ability to add [`MotionModel`](@ref)'s to the phantom.
+# In this tutorial, we will show how to add a [`SimpleMotion`](@ref) model to a 2D brain phantom.
 
-# First, we load a static 3D brain phantom:
-obj = brain_phantom3D()
-obj.Δw .= 0 # Removes the off-resonance
+# First, let's load the 2D brain phantom used in the previous tutorials:
+obj = brain_phantom2D()
+obj.Δw .= 0 # hide
 
-# Now, we will add Rotation Motion to recreate the patient's movement inside the scanner.
+# The `SimpleMotion` model includes a list of `SimpleMotionType`'s, to enabling mix-and-matching simple motions.
+# In this example, we will add a [`Rotation`](@ref) of 20 degrees around the z-axis with duration of 200 ms.
 
-#md # !!! note
-#md #     Note how rotations are defined with respect to the 3 axes:
-#md #     ```@raw html
-#md #     <center><img src="../../assets/head_rotation_axis.png" width="200"></center>
-#md #     ```
-
-obj.motion = SimpleMotion([Rotation(t_start=0.0, t_end=0.5, pitch=15.0, roll=0.0, yaw=45.0)])
-p1 = plot_phantom_map(obj, :T2 ; height=600, intermediate_time_samples=4)
+obj.motion = SimpleMotion([
+    Rotation(t_start=0.0, t_end=200e-3, yaw=20.0, pitch=0.0, roll=0.0)
+    ])
+p1 = plot_phantom_map(obj, :T2 ; height=600, motion_samples=4)
 #md savefig(p1, "../assets/5-phantom.html") # hide
 #jl display(p1)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/5-phantom.html" style="width:50%; height:420px;"></object></center>
+#md # <center><object type="text/html" data="../../assets/5-phantom.html" style="width:50%; height:520px;"></object></center>
 #md # ```
 
-# Then, we will load an EPI sequence
+## Read Sequence
+seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq") # hide
+seq = read_seq(seq_file) # hide
 
-seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq")
-seq = read_seq(seq_file)
-p2 = plot_seq(seq; range=[0 40], slider=true, height=300)
-#md savefig(p2, "../assets/5-seq.html") # hide
-#jl display(p2)
-
-#md # ```@raw html
-#md # <object type="text/html" data="../../assets/5-seq.html" style="width:100%; height:320px;"></object>
-#md # ```
-
-# Now, we will run two simulations: the first with the sequence starting at ``t=0.0``, 
-# and the second adding a 0.5s initial delay to the sequence:
-## Simulate 
+## Simulate
 raw1 = simulate(obj, seq, sys)
-raw2 = simulate(obj, Delay(0.5) + seq, sys)
 
-# Let's note the effect of motion in both reconstructions:
-## Get the acquisition data
+## Recon
 acq1 = AcquisitionData(raw1)
-acq2 = AcquisitionData(raw2)
 acq1.traj[1].circular = false #This is to remove the circular mask
-acq2.traj[1].circular = false 
+Nx, Ny = raw1.params["reconSize"][1:2] # hide
+reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
+image1 = reconstruction(acq1, reconParams) # hide
 
-## Setting up the reconstruction parameters
-Nx, Ny = raw1.params["reconSize"][1:2]
-reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny))
-
-image1 = reconstruction(acq1, reconParams)
-image2 = reconstruction(acq2, reconParams)
-
+# If we simulate an EPI sequence with acquisition duration (183.989 ms) comparable with the motion's duration (200 ms),
+# we will observe motion-induced artifacts in the reconstructed image.
 ## Plotting the recon
-p3 = plot_image(abs.(image1[:, :, 1]); height=400)
-p4 = plot_image(abs.(image2[:, :, 1]); height=400)
+p3 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 #md savefig(p3, "../assets/5-recon1.html") # hide
-#md savefig(p4, "../assets/5-recon2.html") # hide
 #jl display(p3)
-#jl display(p4)
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object></center>
 #md # ```
+
+# The severity of the artifacts can vary depending on the used acquisition duration and `k`-space trajectory.
+# Below, we show the effect of the same motion in an spiral acquisition (dur. 39 ms, which is 5 times faster than the motion.)
+
+## Read Sequence
+seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/Spiral/spiral_100x100_FOV230_SPZ_INTER1.seq") # hide
+seq = read_seq(seq_file) # hide
+
+## Simulate
+raw1 = simulate(obj, seq, sys)
+
+## Recon
+acq1 = AcquisitionData(raw1)
+Nx, Ny = raw1.params["reconSize"][1:2] # hide
+reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
+image1 = reconstruction(acq1, reconParams) # hide
+
+## Plotting the recon
+p4 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
+#md savefig(p4, "../assets/5-recon2.html") # hide
+#jl display(p4)
