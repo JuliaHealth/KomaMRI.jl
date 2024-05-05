@@ -33,7 +33,6 @@ We organized the documentation following the philosophy presented by [David Lain
 
 ## Features
 
-Some of the features of **KomaMRI** are:
 * Fast simulations by using CPU and GPU parallelization 🏃💨.
 * Open Source, so anyone can include additional features 🆙.
 * Compatibility with community-standards 🤝 like Pulseq `.seq` and ISMRMRD `.mrd`.
@@ -45,7 +44,6 @@ Some of the features of **KomaMRI** are:
 
 ## Potential Use Cases
 
-We see Koma being used in:
 * The generation of synthetic data to train Machine Learning models.
 * To test novel pulse sequences before implementing them directly in a real scanner (with a Pulseq sequence).
 * Teaching exercises for **MRI** acquisition or reconstruction.
