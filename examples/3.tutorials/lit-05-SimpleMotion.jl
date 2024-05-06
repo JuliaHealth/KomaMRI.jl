@@ -17,20 +17,20 @@ obj.Δw .= 0 # hide
 obj.motion = SimpleMotion([
     Rotation(t_start=0.0, t_end=200e-3, yaw=45.0, pitch=0.0, roll=0.0)
     ])
-p1 = plot_phantom_map(obj, :T2 ; height=400, intermediate_time_samples=4)
+p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4)
 #md savefig(p1, "../assets/5-phantom.html") # hide
 #jl display(p1)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/5-phantom.html" style="width:65%; height:420px;"></object></center>
+#md # <center><object type="text/html" data="../../assets/5-phantom.html" style="width:85%; height:470px;"></object></center>
 #md # ```
 
 ## Read Sequence # hide
-seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq") # hide
-seq = read_seq(seq_file) # hide
+seq_file1 = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq") # hide
+seq1 = read_seq(seq_file1) # hide
 
 ## Simulate # hide
-raw1 = simulate(obj, seq, sys) # hide
+raw1 = simulate(obj, seq1, sys) # hide
 
 ## Recon # hide
 acq1 = AcquisitionData(raw1) # hide
@@ -52,29 +52,4 @@ p3 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 #md # </center>
 #md # ```
 
-# The severity of the artifacts can vary depending on the acquisition duration and `k`-space trajectory.
-# Below, we show the effect of the same motion in an spiral acquisition (dur. 39 ms, which is 5 times faster than the motion.)
-
-## Read Sequence # hide
-seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/Spiral/spiral_100x100_FOV230_SPZ_INTER1.seq") # hide
-seq = read_seq(seq_file) # hide
-
-## Simulate # hide
-raw1 = simulate(obj, seq, sys) # hide
-
-## Recon # hide
-acq1 = AcquisitionData(raw1) # hide
-Nx, Ny = raw1.params["reconSize"][1:2] # hide
-reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
-image1 = reconstruction(acq1, reconParams) # hide
-
-## Plotting the recon # hide
-p4 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
-#md savefig(p4, "../assets/5-recon2.html") # hide
-#jl display(p4)
-
-#md # ```@raw html
-#md # <center>
-#md # <object type="text/html" data="../../assets/5-recon2.html" style="width:65%; height:420px;"></object>
-#md # </center>
-#md # ```
+# The severity of the artifacts can vary depending on the acquisition duration and $k$-space trajectory.
