@@ -10,10 +10,11 @@ using Parameters
 using Interpolations
 #Reconstruction
 using MRIBase
-@reexport using MRIBase: Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader, EncodingCounters, Limit
+@reexport using MRIBase:
+    Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader, EncodingCounters, Limit
 using MAT   # For loading example phantoms
 
-global γ = 42.5774688e6; # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
+global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
 # Hardware
 include("datatypes/Scanner.jl")
@@ -39,13 +40,19 @@ export dur, get_block_start_times, get_samples
 export DiscreteSequence
 export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
-export time, ampl, freq
+export times, ampls, freqs
 # This are also used for simulation
 export kfoldperm, trapz, cumtrapz
 # Phantom
-export brain_phantom2D, brain_phantom3D, pelvis_phantom2D
-# Spinors
-export Spinor, Rx, Ry, Rz, Q, Un
+export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
+# Motion
+export MotionModel
+export NoMotion, SimpleMotion, ArbitraryMotion
+export SimpleMotionType
+export Translation, Rotation, HeartBeat
+export PeriodicTranslation, PeriodicRotation, PeriodicHeartBeat
+export get_spin_coords, sort_motions!
+export LinearInterpolator
 # Secondary
 export get_kspace, rotx, roty, rotz
 # Additionals
@@ -59,6 +66,8 @@ export PulseDesigner
 
 #Package version, KomaMRIBase.__VERSION__
 using Pkg
-__VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
+__VERSION__ = VersionNumber(
+    Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]
+)
 
 end # module KomaMRIBase

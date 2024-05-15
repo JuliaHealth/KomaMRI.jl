@@ -1,6 +1,6 @@
 using TestItems, TestItemRunner
 
-@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:base in ti.tags) #verbose=true
+@run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:base in t_start.tags) #verbose=true
 
 @testitem "Sequence" tags=[:base] begin
     @testset "Init" begin
@@ -359,66 +359,188 @@ end
     end
 end
 
-@testitem "Phantom" tags=[:base] begin
-
+@testitem "Phantom" tags = [:base] begin
+    using Suppressor
     # Test phantom struct creation
     name = "Bulks"
-    x = [-2e-3; -1e-3; 0.; 1e-3; 2e-3]
-    y = [-4e-3; -2e-3; 0.; 2e-3; 4e-3]
-    z = [-6e-3; -3e-3; 0.; 3e-3; 6e-3]
-    ρ = [.2; .4; .6; .8; 1.]
-    T1 = [.9; .9; .5; .25; .4]
-    T2 = [.09; .05; .04; .07; .005]
-    T2s = [.1; .06; .05; .08; .015]
-    Δw = [-2e-6; -1e-6; 0.; 1e-6; 2e-6]
-    Dλ1 = [-4e-6; -2e-6; 0.; 2e-6; 4e-6]
-    Dλ2 = [-6e-6; -3e-6; 0.; 3e-6; 6e-6]
-    Dθ = [-8e-6; -4e-6; 0.; 4e-6; 8e-6]
-    u = (x,y,z,t)->0
-    obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, ux=u, uy=u, uz=u)
-    obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, ux=u, uy=u, uz=u)
-    @test obj ≈ obj2
+    x = [-2e-3; -1e-3; 0.0; 1e-3; 2e-3]
+    y = [-4e-3; -2e-3; 0.0; 2e-3; 4e-3]
+    z = [-6e-3; -3e-3; 0.0; 3e-3; 6e-3]
+    ρ = [0.2; 0.4; 0.6; 0.8; 1.0]
+    T1 = [0.9; 0.9; 0.5; 0.25; 0.4]
+    T2 = [0.09; 0.05; 0.04; 0.07; 0.005]
+    T2s = [0.1; 0.06; 0.05; 0.08; 0.015]
+    Δw = [-2e-6; -1e-6; 0.0; 1e-6; 2e-6]
+    Dλ1 = [-4e-6; -2e-6; 0.0; 2e-6; 4e-6]
+    Dλ2 = [-6e-6; -3e-6; 0.0; 3e-6; 6e-6]
+    Dθ = [-8e-6; -4e-6; 0.0; 4e-6; 8e-6]
+    obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
+    obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
+    @test obj1 == obj2
 
     # Test size and length definitions of a phantom
-    @test size(obj) == size(ρ)
-    #@test length(obj) == length(ρ)
+    @test size(obj1) == size(ρ)
+    @test length(obj1) == length(ρ)
 
-    # Test phantom comparison
-    ue = (x,y,z,t)->1
-    obe = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, ue, ue, ue)
-    @test obj ≈ obe
+    # Test obtaining spin psositions 
+    @testset "SimpleMotion" begin
+        ph = Phantom(x=[1.0], y=[1.0])
+        t_start=0.0; t_end=1.0 
+        t = collect(range(t_start, t_end, 11))
+        period = 2.0
+        asymmetry = 0.5
+        # Translation
+        dx, dy, dz = [1.0, 0.0, 0.0]
+        vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
+        translation = SimpleMotion([Translation(dx, dy, dz, t_start, t_end)])
+        xt, yt, zt = get_spin_coords(translation, ph.x, ph.y, ph.z, t')
+        @test xt == ph.x .+ vx.*t'
+        @test yt == ph.y .+ vy.*t'
+        @test zt == ph.z .+ vz.*t'
+        # PeriodicTranslation
+        periodictranslation = SimpleMotion([PeriodicTranslation(dx, dy, dz, period, asymmetry)])
+        xt, yt, zt = get_spin_coords(periodictranslation, ph.x, ph.y, ph.z, t')
+        @test xt == ph.x .+ vx.*t'
+        @test yt == ph.y .+ vy.*t'
+        @test zt == ph.z .+ vz.*t'
+        # Rotation (2D)
+        pitch = 0.0
+        roll = 0.0
+        yaw = 45.0
+        rotation = SimpleMotion([Rotation(pitch, roll, yaw, t_start, t_end)])
+        xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
+        @test xt[:,end] == ph.x .* cosd(yaw) - ph.y .* sind(yaw)
+        @test yt[:,end] == ph.x .* sind(yaw) + ph.y .* cosd(yaw)
+        @test zt[:,end] == ph.z
+        # PeriodicRotation (2D)
+        periodicrotation = SimpleMotion([PeriodicRotation(pitch, roll, yaw, period, asymmetry)])
+        xt, yt, zt = get_spin_coords(periodicrotation, ph.x, ph.y, ph.z, t')
+        @test xt[:,end] == ph.x .* cosd(yaw) - ph.y .* sind(yaw)
+        @test yt[:,end] == ph.x .* sind(yaw) + ph.y .* cosd(yaw)
+        @test zt[:,end] == ph.z
+        # HeartBeat
+        circumferential_strain = -0.1
+        radial_strain = 0.0
+        longitudinal_strain = -0.1
+        heartbeat = SimpleMotion([HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end)])
+        xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
+        r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
+        θ = atan.(ph.y, ph.x)
+        @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
+        @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
+        @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
+        # PeriodicHeartBeat
+        periodicheartbeat = SimpleMotion([PeriodicHeartBeat(circumferential_strain, radial_strain, longitudinal_strain, period, asymmetry)])
+        xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
+        @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
+        @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
+        @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
+    end
+    @testset "ArbitraryMotion" begin
+        ph = Phantom(x=[1.0], y=[1.0])
+        Ns = length(ph)
+        period_durations = [1.0]
+        num_pieces = 10
+        dx = dy = dz = rand(Ns, num_pieces - 1)
+        arbitrarymotion = @suppress ArbitraryMotion(period_durations, dx, dy, dz)
+        t = times(arbitrarymotion)
+        xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
+        @test xt[:,2:end-1] == ph.x .+ dx
+        @test yt[:,2:end-1] == ph.y .+ dy
+        @test zt[:,2:end-1] == ph.z .+ dz
+    end
+
+    simplemotion = SimpleMotion([
+        PeriodicTranslation(dx=0.05, dy=0.05, dz=0.0, period=0.5, asymmetry=0.5),
+        Rotation(pitch=0.0, roll=0.0, yaw=π / 2, t_start=0.05, t_end=0.5),
+    ])
+
+    Ns = length(obj1)
+    K = 10
+    arbitrarymotion = @suppress ArbitraryMotion([1.0], 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1))
 
     # Test phantom subset
+    obs1 = Phantom(
+        name,
+        x,
+        y,
+        z,
+        ρ,
+        T1,
+        T2,
+        T2s,
+        Δw,
+        Dλ1,
+        Dλ2,
+        Dθ,
+        simplemotion
+    )
     rng = 1:2:5
-    ug = (x,y,z,t)->-1
-    obg = Phantom(name, x[rng], y[rng], z[rng], ρ[rng], T1[rng], T2[rng], T2s[rng], Δw[rng],
-                    Dλ1[rng], Dλ2[rng], Dθ[rng], ug, ug, ug)
-    @test obj[rng] ≈ obg
-    @test @view(obj[rng]) ≈ obg
+    obs2 = Phantom(
+        name,
+        x[rng],
+        y[rng],
+        z[rng],
+        ρ[rng],
+        T1[rng],
+        T2[rng],
+        T2s[rng],
+        Δw[rng],
+        Dλ1[rng],
+        Dλ2[rng],
+        Dθ[rng],
+        simplemotion[rng],
+    )
+    @test obs1[rng] == obs2
+    @test @view(obs1[rng]) == obs2
+
+    obs1.motion = arbitrarymotion
+    obs2.motion = arbitrarymotion[rng]
+    @test obs1[rng] == obs2
+    # @test @view(obs1[rng]) == obs2
 
     # Test addition of phantoms
-    ua = (x,y,z,t)->2
-    oba = Phantom(name, [x; x[rng]], [y; y[rng]], [z; z[rng]], [ρ; ρ[rng]],
-                    [T1; T1[rng]], [T2; T2[rng]], [T2s; T2s[rng]], [Δw; Δw[rng]],
-                    [Dλ1; Dλ1[rng]], [Dλ2; Dλ2[rng]], [Dθ; Dθ[rng]], ua, ua, ua)
-    @test obj + obg ≈ oba
+    oba = Phantom(
+        name,
+        [x; x[rng]],
+        [y; y[rng]],
+        [z; z[rng]],
+        [ρ; ρ[rng]],
+        [T1; T1[rng]],
+        [T2; T2[rng]],
+        [T2s; T2s[rng]],
+        [Δw; Δw[rng]],
+        [Dλ1; Dλ1[rng]],
+        [Dλ2; Dλ2[rng]],
+        [Dθ; Dθ[rng]],
+        [obs1.motion; obs2.motion]
+    )
+    @test obs1 + obs2 == oba
 
     # Test scalar multiplication of a phantom
-    c = 7.
-    obc = Phantom(name, x, y, z, c*ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, u, u, u)
-    @test c*obj ≈ obc
+    c = 7
+    obc = Phantom(name=name, x=x, y=y, z=z, ρ=c*ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
+    @test c * obj1 == obc
 
     #Test brain phantom 2D
     ph = brain_phantom2D()
-    @test ph.name=="brain2D_axial"
+    @test ph.name == "brain2D_axial"
+    @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 0]
 
     #Test brain phantom 3D
     ph = brain_phantom3D()
-    @test ph.name=="brain3D"
+    @test ph.name == "brain3D"
+    @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 1]
 
     #Test pelvis phantom 2D
     ph = pelvis_phantom2D()
-    @test ph.name=="pelvis2D"
+    @test ph.name == "pelvis2D"
+    @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 0]
+
+    #Test heart phantom
+    ph = heart_phantom()
+    @test ph.name == "LeftVentricle"
+    @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 0]
 end
 
 @testitem "Scanner" tags=[:base] begin
@@ -432,8 +554,6 @@ end
 @testitem "TrapezoidalIntegration" tags=[:base] begin
     dt = Float64[1 1 1 1]
     x  = Float64[0 1 2 1 0]
-
     @test KomaMRIBase.trapz(dt, x)[1] ≈ 4 #Triangle area = bh/2, with b = 4 and h = 2
-
     @test KomaMRIBase.cumtrapz(dt, x) ≈ [0.5 2 3.5 4]
 end

@@ -29,8 +29,8 @@ function plot_koma(args...; kwargs...)
         plot_koma(KomaPlutoPlotlyBackend(), args...; kwargs...)
     else
         error("""
-        Unsupported KomaMRIPlots backend: $GPU_BACKEND.
-        Supported backends are: $GPU_BACKENDS.
+        Unsupported KomaMRIPlots backend: $PLOT_BACKEND.
+        Supported backends are: $PLOT_BACKENDS.
         """)
     end
 end
@@ -53,7 +53,7 @@ function plot_koma(::KomaPlutoPlotlyBackend, args...; kwargs...)
         `PlutoPlotly.jl` must be loaded to access it.
         Add `using PlutoPlotly` or `import PlutoPlotly` to your code.
         """ maxlog=1
-        return x
+        return nothing
     end
 end
 function _plutoplotly_plot end

@@ -8,17 +8,28 @@
 <p align="center"><img class="display-light-only" width="100%" src="assets/koma-schema.svg"/></p>
 <p align="center"><img class="display-dark-only"  width="100%" src="assets/koma-schema-dark.svg""/></p>
 ```
+We organized the documentation following the philosophy presented by [David Laing](https://documentation.divio.com/).
 
-**KomaMRI** can be used in different environments:
+!!! details "How to Cite Koma"
+    If you use Koma, please cite our paper:
 
-* **User Interface**: User-friendly interaction. No Julia programming skills are required. Refer to the [User Interface Section](ui-details.md) to dive into the details of how to use the GUI.
+    **Plain Text:**
 
-* **Scripts** : Basic knowledge of **Julia** is required. Refer to the [Scripts Section](programming-workflow.md) to follow a basic workflow on how to work with **KomaMRI**.
+    Castillo-Passi, C, Coronado, R, Varela-Mattatall, G, Alberola-López, C, Botnar, R, Irarrazaval, P. KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration. Magn Reson Med. 2023; 1- 14. doi: 10.1002/mrm.29635
 
-* **Notebooks**: Basic knowledge of **Julia** is required. This serves as an alternative development environment featuring user-friendly interactive tools. For guidance on setting up these environments, refer to the [Notebooks Section](notebooks.md).
-
-If you are new to **KomaMRI**, we recommend starting with the [Getting Started Section](getting-started.md) to install **Julia**, **KomaMRI**, and perform your first simulation.
-
+    **BibTex:**
+    
+    ```bibtex
+    @article{https://doi.org/10.1002/mrm.29635,
+            author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
+            title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
+            journal = {Magnetic Resonance in Medicine},
+            keywords = {Bloch equations, GPU, GUI, Julia, open source, simulation},
+            doi = {https://doi.org/10.1002/mrm.29635},
+            url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
+            eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
+    }
+    ```
 
 ## Features
 
@@ -26,7 +37,8 @@ Some of the features of **KomaMRI** are:
 * Fast simulations by using CPU and GPU parallelization 🏃💨.
 * Open Source, so anyone can include additional features 🆙.
 * Compatibility with community-standards 🤝 like Pulseq `.seq` and ISMRMRD `.mrd`.
-* Compatibility with [Pluto](notebooks.md#Pluto) and [Jupyter](notebooks.md#Jupyter) notebooks 🎈
+* Compatibility with [Pluto](how-to/2-2-use-koma-notebooks.md#Pluto) and [Jupyter](how-to/2-2-use-koma-notebooks.md#Jupyter) notebooks 🎈
+* Interactive visualizations using PlotlyJS.jl 📲
 * Cross-platform 🌐 thanks to the use of the Julia programming language.
 * Friendly user interface for people with no programming skills 😌.
 * Flexible API for advanced users 👨‍💻.

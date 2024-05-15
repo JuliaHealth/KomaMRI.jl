@@ -1,8 +1,16 @@
 using HDF5
 
-function signal_jemris()
+function signal_sphere_jemris()
     path = @__DIR__
     sig = h5open(joinpath(path, "jemris_signals_epi_sphere_cs.h5"))["/signal/channels/00"]
+    sig = sig[1,:] + 1im*sig[2,:]
+    sig = sig[:]
+    return sig
+end
+
+function signal_brain_motion_jemris()
+    path = @__DIR__
+    sig = h5open(joinpath(path, "jemris_signals_epi_brain_motion.h5"))["/signal/channels/00"]
     sig = sig[1,:] + 1im*sig[2,:]
     sig = sig[:]
     return sig
@@ -14,6 +22,47 @@ function phantom_sphere()
     x, y, z, ρ = fid["x"][:], fid["y"][:], fid["z"][:], fid["ρ"][:]
     T1, T2, T2s, Δw = fid["T1"][:], fid["T2"][:], fid["T2s"][:], fid["Δw"][:]
     return Phantom(; name="sphere", x, y, z, ρ, T1, T2, T2s, Δw)
+end
+
+function phantom_brain()
+    path = @__DIR__
+    fid = h5open(joinpath(path, "../../../examples/2.phantoms/brain.h5"), "r")
+    data = read(fid["sample/data"])
+    Δx = read(fid["sample/resolution"]) * 1e-3 #[m]
+    offset = read(fid["sample/offset"]) * 1e-3 #[m]
+    mask = data[1, :, :, :] .!= 0
+    #Maps
+    ρ = data[1, :, :, :]
+    T1 = 1e-3 ./ data[2, :, :, :]
+    T2 = 1e-3 ./ data[3, :, :, :]
+    T2s = 1e-3 ./ data[4, :, :, :]
+    Δw = data[5, :, :, :]
+    #Positions
+    X, Y, Z = size(ρ)
+    FOVx = (X - 1) * Δx[1] #[m]
+    FOVy = (Y - 1) * Δx[2] #[m]
+    FOVz = (Z - 1) * Δx[3] #[m]
+    xx = reshape(((-FOVx / 2):Δx[1]:(FOVx / 2)), :, 1, 1) #[(-FOVx/2:Δx[1]:FOVx/2)...;]
+    yy = reshape(((-FOVy / 2):Δx[2]:(FOVy / 2)), 1, :, 1) #[(-FOVy/2:Δx[2]:FOVy/2)...;;]
+    zz = reshape(((-FOVz / 2):Δx[3]:(FOVz / 2)), 1, 1, :) #[(-FOVz/2:Δx[3]:FOVz/2)...;;;]
+    x = xx * 1 .+ yy * 0 .+ zz * 0 .+ offset[1] #spin x coordinates
+    y = xx * 0 .+ yy * 1 .+ zz * 0 .+ offset[2] #spin y coordinates
+    z = xx * 0 .+ yy * 0 .+ zz * 1 .+ offset[3] #spin z coordinates
+    v = 0 # m/s
+
+    obj = Phantom(;
+        name="brain",
+        x=x[mask],
+        y=y[mask],
+        z=z[mask],
+        ρ=ρ[mask],
+        T1=T1[mask],
+        T2=T2[mask],
+        T2s=T2s[mask],
+        Δw=Δw[mask],
+    )
+
+    return obj
 end
 
 function seq_epi_100x100_TE100_FOV230()

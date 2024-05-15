@@ -26,6 +26,8 @@ export signal_to_raw_data
 # Simulator
 export Mag
 export simulate, simulate_slice_profile
+# Spinors
+export Spinor, Rx, Ry, Rz, Q, Un
 
 #Package version, KomaMRICore.__VERSION__
 using Pkg

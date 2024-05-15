@@ -336,10 +336,10 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     fill_if_empty(x) = isempty(x.t) && length(range) == length(seq) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
     # RF
     if :rf in events
-        t_rf = reduce(vcat, T0[i] .+ time(seq.RF[1,i], :A)   for i in range)
-        t_Δf = reduce(vcat, T0[i] .+ time(seq.RF[1,i], :Δf)  for i in range)
-        A_rf = reduce(vcat, ampl(seq.RF[1,i]; freq_in_phase) for i in range)
-        A_Δf = reduce(vcat, freq(seq.RF[1,i])                for i in range)
+        t_rf = reduce(vcat, T0[i] .+ times(seq.RF[1,i], :A)   for i in range)
+        t_Δf = reduce(vcat, T0[i] .+ times(seq.RF[1,i], :Δf)  for i in range)
+        A_rf = reduce(vcat, ampls(seq.RF[1,i]; freq_in_phase) for i in range)
+        A_Δf = reduce(vcat, freqs(seq.RF[1,i])                for i in range)
         rf_samples = (
             rf  = fill_if_empty((t = t_rf, A = A_rf)),
             Δf  = fill_if_empty((t = t_Δf, A = A_Δf))
@@ -347,12 +347,12 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     end
     # Gradients
     if :gr in events
-        t_gx = reduce(vcat, T0[i] .+ time(seq.GR[1,i]) for i in range)
-        t_gy = reduce(vcat, T0[i] .+ time(seq.GR[2,i]) for i in range)
-        t_gz = reduce(vcat, T0[i] .+ time(seq.GR[3,i]) for i in range)
-        A_gx = reduce(vcat, ampl(seq.GR[1,i]) for i in range)
-        A_gy = reduce(vcat, ampl(seq.GR[2,i]) for i in range)
-        A_gz = reduce(vcat, ampl(seq.GR[3,i]) for i in range)
+        t_gx = reduce(vcat, T0[i] .+ times(seq.GR[1,i]) for i in range)
+        t_gy = reduce(vcat, T0[i] .+ times(seq.GR[2,i]) for i in range)
+        t_gz = reduce(vcat, T0[i] .+ times(seq.GR[3,i]) for i in range)
+        A_gx = reduce(vcat, ampls(seq.GR[1,i]) for i in range)
+        A_gy = reduce(vcat, ampls(seq.GR[2,i]) for i in range)
+        A_gz = reduce(vcat, ampls(seq.GR[3,i]) for i in range)
         gr_samples = (
                 gx  = fill_if_empty((t = t_gx, A = A_gx)),
                 gy  = fill_if_empty((t = t_gy, A = A_gy)),
@@ -361,8 +361,8 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     end
     # ADC
     if :adc in events
-        t_aq = reduce(vcat, T0[i] .+ time(seq.ADC[i]) for i in range)
-        A_aq = reduce(vcat, ampl(seq.ADC[i]) for i in range)
+        t_aq = reduce(vcat, T0[i] .+ times(seq.ADC[i]) for i in range)
+        A_aq = reduce(vcat, ampls(seq.ADC[i]) for i in range)
         adc_samples = (
                 adc = fill_if_empty((t = t_aq, A = A_aq)),
                 )
