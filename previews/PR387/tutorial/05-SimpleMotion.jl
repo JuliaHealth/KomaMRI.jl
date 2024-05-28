@@ -62,13 +62,11 @@ KomaMRIPlots.restyle!(p4,1:3, name=["Δx", "Δy", "Δz"]) # hide
 
 display(p4)
 
-# Get k-space
 _, kspace = get_kspace(seq1)
-# Phase shift: ΔΦcor = 2π(kx*Δx + ky*Δy + kz*Δz)
 ΔΦ = 2π*sum(kspace .* displacements, dims=2)
 
 acq1.kdata[1] .*= exp.(im*ΔΦ)
-# Reconstruct # hide
+
 image2 = reconstruction(acq1, reconParams) # hide
 
 p5 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
