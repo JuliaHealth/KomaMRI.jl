@@ -31,9 +31,9 @@
  0.0
  0.0
  0.0
- 0.0</code></pre><p>The <code>SimpleMotion</code> model includes a list of <code>SimpleMotionType</code>&#39;s, to enabling mix-and-matching simple motions. In this example, we will add a <a href="../../reference/2-koma-base/#KomaMRIBase.Rotation"><code>Rotation</code></a> of 45 degrees around the z-axis with duration of 200 ms:</p><pre><code class="language-julia hljs">obj.motion = SimpleMotion([
+ 0.0</code></pre><h3 id="Head-Rotation"><a class="docs-heading-anchor" href="#Head-Rotation">Head Rotation</a><a id="Head-Rotation-1"></a><a class="docs-heading-anchor-permalink" href="#Head-Rotation" title="Permalink"></a></h3><p>The <code>SimpleMotion</code> model includes a list of <code>SimpleMotionType</code>&#39;s, to enabling mix-and-matching simple motions. In this example, we will add a <a href="../../reference/2-koma-base/#KomaMRIBase.Rotation"><code>Rotation</code></a> of 45 degrees around the z-axis with duration of 200 ms:</p><pre><code class="language-julia hljs">obj.motion = SimpleMotion([
     Rotation(t_start=0.0, t_end=200e-3, yaw=45.0, pitch=0.0, roll=0.0)
-    ])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-phantom1.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-phantom1.html" style="width:85%; height:470px;"></object></center><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6-dimensional AxisArray{ComplexF32,6,...} with axes:
+])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-phantom1.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-phantom1.html" style="width:85%; height:470px;"></object></center><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6-dimensional AxisArray{ComplexF32,6,...} with axes:
     :x, (0.0:2.323232421875:230.00000976562498) mm
     :y, (0.0:2.3232322692871095:229.99999465942383) mm
     :z, (0.0:1.0:0.0) mm
@@ -63,7 +63,7 @@ And data, a 100×100×1×1×1×1 Array{ComplexF32, 6}:
    0.00236496-0.00454363im     -0.00371683+0.00341258im
   -0.00266815+0.00449912im      0.00410315-0.0034453im</code></pre><p>If we simulate an EPI sequence with acquisition duration (183.989 ms) comparable with the motion&#39;s duration (200 ms), we will observe motion-induced artifacts in the reconstructed image.</p><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon1.html&quot;</code></pre><center>
 <object type="text/html" data="../../assets/5-recon1.html" style="width:65%; height:420px;"></object>
-</center><p>The severity of the artifacts can vary depending on the acquisition duration and <span>$k$</span>-space trajectory.</p><h3 id="Corrected-reconstruction"><a class="docs-heading-anchor" href="#Corrected-reconstruction">Corrected reconstruction</a><a id="Corrected-reconstruction-1"></a><a class="docs-heading-anchor-permalink" href="#Corrected-reconstruction" title="Permalink"></a></h3><p>Now, let&#39;s redefine the phantom&#39;s motion with a <a href="../../reference/2-koma-base/#KomaMRIBase.Translation"><code>Translation</code></a> of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):</p><pre><code class="language-julia hljs">obj.motion = SimpleMotion([
+</center><p>The severity of the artifacts can vary depending on the acquisition duration and <span>$k$</span>-space trajectory.</p><h3 id="Head-Translation-and-Corrected-reconstruction"><a class="docs-heading-anchor" href="#Head-Translation-and-Corrected-reconstruction">Head Translation and Corrected reconstruction</a><a id="Head-Translation-and-Corrected-reconstruction-1"></a><a class="docs-heading-anchor-permalink" href="#Head-Translation-and-Corrected-reconstruction" title="Permalink"></a></h3><p>Now, let&#39;s redefine the phantom&#39;s motion with a <a href="../../reference/2-koma-base/#KomaMRIBase.Translation"><code>Translation</code></a> of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):</p><pre><code class="language-julia hljs">obj.motion = SimpleMotion([
     Translation(t_start=0.0, t_end=200e-3, dx=2e-2, dy=0.0, dz=0.0)
 ])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-phantom2.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-phantom2.html" style="width:85%; height:470px;"></object></center><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6-dimensional AxisArray{ComplexF32,6,...} with axes:
     :x, (0.0:2.323232421875:230.00000976562498) mm
@@ -93,17 +93,28 @@ And data, a 100×100×1×1×1×1 Array{ComplexF32, 6}:
  -0.00422632-0.000383092im       0.00211033+0.00344983im
   0.00404591-0.00029854im       -0.00151472-0.002727im
  -0.00402314+0.000420772im       0.00126349+0.00239078im
-  0.00404351-0.000473891im      -0.00112416-0.0021514im</code></pre><p>Once simulation is done, it is possible to perform a corrected reconstrution in order to revert the motion effect in the final image. This can be achieved by multiplying each sample of the acquired signal by a phase which is proportional to the displacement in each direction (Δx, Δy, Δz) at the time instant when the sample was acquired:</p><p class="math-container">\[S(k_x, k_y, k_z)_{\text{cor}} = S(k_x, k_y, k_z)_{\text{orig}} \cdot e^{i \Delta \phi_{\text{cor}}} = S(k_x, k_y, k_z)_{\text{orig}} \cdot e^{i 2 \pi (k_x \Delta x + k_y \Delta y + k_z \Delta z)}\]</p><p>We need to obtain the displacements in every ADC sampling time of the sequence:</p><pre><code class="language-julia hljs">sample_times = get_adc_sampling_times(seq1)
-
-# Since translation is a rigid motion,
-# we can obtain the displacements only for one spin,
-# as the displacements of the rest will be the same.
+  0.00404351-0.000473891im      -0.00112416-0.0021514im</code></pre><p>Once simulation is done, it is possible to perform a corrected reconstrution in order to revert the motion effect in the final image. This can be achieved by multiplying each sample of the acquired signal by a phase which is proportional to the displacement in each direction (Δx, Δy, Δz) at the time instant when the sample was acquired <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4930872/">[Godenschweger, 2016]</a>:</p><p class="math-container">\[S(k_x, k_y, k_z)_{\text{cor}} = S(k_x, k_y, k_z)_{\text{orig}} \cdot e^{i \Delta \phi_{\text{cor}}} = S(k_x, k_y, k_z)_{\text{orig}} \cdot e^{i 2 \pi (k_x \Delta x + k_y \Delta y + k_z \Delta z)}\]</p><p>We need to obtain the displacements in every ADC sampling time of the sequence. Since translation is a rigid motion, we can obtain the displacements only for one spin, as the displacements of the rest will be the same.</p><pre><code class="language-julia hljs">sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-displacements.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-displacements.html" style="width:90%; height:470px;"></object></center><p>We can now get the necessary phase shift for each sample:</p><pre><code class="language-julia hljs"># Get k-space
 _, kspace = get_kspace(seq1)
-# Phase correction: ΔΦcor = 2π(kx*Δx + ky*Δy + kz*Δz)
-ΔΦ = 2π*sum(kspace .* displacements, dims=2)
-# Apply phase correction
-acq2 = copy(acq1)
-acq2.kdata[1] .*= exp.(im*ΔΦ)
-# Reconstruct
-image2 = reconstruction(acq2, reconParams)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon3.html&quot;</code></pre><p>On the left, you can see the original reconstructed image, with no motion correction. On the right, the result of the corrected reconstruction we have just seen.</p><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon3.html" style="width:50%; height:420px;"></object><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../04-3DSliceSelective/">« Slice-Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../../tutorial-pluto/01-gradient-echo-spin-echo/">Understanding basic MRI sequences »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Tuesday 28 May 2024 11:56">Tuesday 28 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+# Phase shift: ΔΦcor = 2π(kx*Δx + ky*Δy + kz*Δz)
+ΔΦ = 2π*sum(kspace .* displacements, dims=2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">10000×1 Matrix{Float64}:
+  -2.2168799808855355
+  -2.1734194622549206
+  -2.1299043072314237
+  -2.0863345158150435
+  -2.0427100880057805
+  -1.9990310238036346
+  -1.955297323208591
+  -1.91150898622068
+  -1.867666012839886
+  -1.8237684030662096
+   ⋮
+ -20.81754910439773
+ -21.320337778170042
+ -21.82318108833385
+ -22.326079034891926
+ -22.82903161784289
+ -23.332038837185337
+ -23.835100692922065
+ -24.338217185050286
+ -24.84138831357277</code></pre><p>And we apply the phase correction:</p><pre><code class="language-julia hljs">acq1.kdata[1] .*= exp.(im*ΔΦ)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon3.html&quot;</code></pre><p>On the left, you can see the original reconstructed image, with no motion correction. On the right, the result of the corrected reconstruction we have just seen.</p><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon3.html" style="width:50%; height:420px;"></object><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../04-3DSliceSelective/">« Slice-Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../../tutorial-pluto/01-gradient-echo-spin-echo/">Understanding basic MRI sequences »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Tuesday 28 May 2024 19:07">Tuesday 28 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

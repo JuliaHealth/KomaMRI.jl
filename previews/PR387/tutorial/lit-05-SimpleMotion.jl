@@ -11,12 +11,14 @@ sys = Scanner() # hide
 obj = brain_phantom2D()
 obj.Δw .= 0 # hide
 
+# ### Head Rotation
+#
 # The `SimpleMotion` model includes a list of `SimpleMotionType`'s, to enabling mix-and-matching simple motions.
 # In this example, we will add a [`Rotation`](@ref) of 45 degrees around the z-axis with duration of 200 ms:
 
 obj.motion = SimpleMotion([
     Rotation(t_start=0.0, t_end=200e-3, yaw=45.0, pitch=0.0, roll=0.0)
-    ])
+])
 p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
 
 #md savefig(p1, "../assets/5-phantom1.html") # hide
@@ -55,7 +57,7 @@ p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 
 # The severity of the artifacts can vary depending on the acquisition duration and $k$-space trajectory.
 
-# ### Corrected reconstruction
+# ### Head Translation and Corrected reconstruction
 #
 # Now, let's redefine the phantom's motion with a [`Translation`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
 obj.motion = SimpleMotion([
@@ -83,18 +85,17 @@ image1 = reconstruction(acq1, reconParams) # hide
 # in order to revert the motion effect in the final image. 
 # This can be achieved by multiplying each sample of the acquired signal 
 # by a phase which is proportional to the displacement in each direction (Δx, Δy, Δz)
-# at the time instant when the sample was acquired:
+# at the time instant when the sample was acquired [[Godenschweger, 2016]](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4930872/):
 
 # ```math
 # S(k_x, k_y, k_z)_{\text{cor}} = S(k_x, k_y, k_z)_{\text{orig}} \cdot e^{i \Delta \phi_{\text{cor}}} = S(k_x, k_y, k_z)_{\text{orig}} \cdot e^{i 2 \pi (k_x \Delta x + k_y \Delta y + k_z \Delta z)}
 # ```
 
-# We need to obtain the displacements in every ADC sampling time of the sequence:
+# We need to obtain the displacements in every ADC sampling time of the sequence.
+# Since translation is a rigid motion, 
+# we can obtain the displacements only for one spin, 
+# as the displacements of the rest will be the same.
 sample_times = get_adc_sampling_times(seq1)
-
-## Since translation is a rigid motion, 
-## we can obtain the displacements only for one spin, 
-## as the displacements of the rest will be the same.
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)
 
 p4 = KomaMRIPlots.plot( # hide
@@ -117,13 +118,13 @@ KomaMRIPlots.restyle!(p4,1:3, name=["Δx", "Δy", "Δz"]) # hide
 # We can now get the necessary phase shift for each sample:
 ## Get k-space
 _, kspace = get_kspace(seq1)
-## Phase correction: ΔΦcor = 2π(kx*Δx + ky*Δy + kz*Δz)
+## Phase shift: ΔΦcor = 2π(kx*Δx + ky*Δy + kz*Δz)
 ΔΦ = 2π*sum(kspace .* displacements, dims=2)
-## Apply phase correction
-acq2 = copy(acq1)
-acq2.kdata[1] .*= exp.(im*ΔΦ)
-## Reconstruct
-image2 = reconstruction(acq2, reconParams)
+
+# And we apply the phase correction:
+acq1.kdata[1] .*= exp.(im*ΔΦ)
+## Reconstruct # hide
+image2 = reconstruction(acq1, reconParams) # hide
 
 p5 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 p6 = plot_image(abs.(image2[:, :, 1]); height=400) # hide

@@ -6,7 +6,7 @@ obj.Δw .= 0 # hide
 
 obj.motion = SimpleMotion([
     Rotation(t_start=0.0, t_end=200e-3, yaw=45.0, pitch=0.0, roll=0.0)
-    ])
+])
 p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
 
 display(p1)
@@ -48,10 +48,6 @@ reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
 image1 = reconstruction(acq1, reconParams) # hide
 
 sample_times = get_adc_sampling_times(seq1)
-
-# Since translation is a rigid motion,
-# we can obtain the displacements only for one spin,
-# as the displacements of the rest will be the same.
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)
 
 p4 = KomaMRIPlots.plot( # hide
@@ -68,13 +64,12 @@ display(p4)
 
 # Get k-space
 _, kspace = get_kspace(seq1)
-# Phase correction: ΔΦcor = 2π(kx*Δx + ky*Δy + kz*Δz)
+# Phase shift: ΔΦcor = 2π(kx*Δx + ky*Δy + kz*Δz)
 ΔΦ = 2π*sum(kspace .* displacements, dims=2)
-# Apply phase correction
-acq2 = copy(acq1)
-acq2.kdata[1] .*= exp.(im*ΔΦ)
-# Reconstruct
-image2 = reconstruction(acq2, reconParams)
+
+acq1.kdata[1] .*= exp.(im*ΔΦ)
+# Reconstruct # hide
+image2 = reconstruction(acq1, reconParams) # hide
 
 p5 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 p6 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
