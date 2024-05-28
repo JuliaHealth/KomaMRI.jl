@@ -6,8 +6,6 @@ using Reexport
 using ThreadsX
 # Printing
 using ProgressMeter
-# Simulation
-using CUDA
 
 # KomaMRIBase
 @reexport using KomaMRIBase
@@ -32,5 +30,10 @@ export Spinor, Rx, Ry, Rz, Q, Un
 #Package version, KomaMRICore.__VERSION__
 using Pkg
 __VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
+
+using PackageExtensionCompat
+function __init__()
+    @require_extensions
+end
 
 end
