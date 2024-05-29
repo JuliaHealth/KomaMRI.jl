@@ -1,31 +1,9 @@
 @doc raw"""
     translation = Translation(t_start, t_end, dx, dy, dz)
 
-Translation motion struct. It produces a translation of the phantom in the three directions x, y and z.
-
-```math
-ux=\left\{\begin{matrix}
-0, & t <= t_start\\
-\frac{dx}{t_end-t_start}(t-t_start), & t_start < t < t_end\\ 
-dx, & t >= t_end
-\end{matrix}\right.
-```
-
-```math
-uy=\left\{\begin{matrix}
-0, & t <= t_start\\
-\frac{dy}{t_end-t_start}(t-t_start), & t_start < t < t_end\\ 
-dy, & t >= t_end
-\end{matrix}\right.
-```
-
-```math
-uz=\left\{\begin{matrix}
-0, & t <= t_start\\
-\frac{dz}{t_end-t_start}(t-t_start), & t_start < t < t_end\\ 
-dz, & t >= t_end
-\end{matrix}\right.
-```
+Translation motion struct. It produces a linear translation of the phantom.
+Its fields are the final displacements in the three axes (dx, dy, dz) 
+and the start and end times of the translation.
 
 # Arguments
 - `dx`: (`::Real`, `[m]`) translation in x
@@ -37,6 +15,10 @@ dz, & t >= t_end
 # Returns
 - `translation`: (`::Translation`) Translation struct
 
+# Examples
+```julia-repl
+julia> tr = Translation(dx=0.01, dy=0.02, dz=0.03, t_start=0.0, t_end=0.5)
+```
 """
 @with_kw struct Translation{T<:Real} <: SimpleMotionType{T}
     dx         :: T
