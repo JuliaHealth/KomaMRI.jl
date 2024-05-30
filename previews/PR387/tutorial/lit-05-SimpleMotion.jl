@@ -4,7 +4,7 @@ using KomaMRI # hide
 sys = Scanner() # hide
 
 # It can also be interesting to see the effect of the patient's motion during an MRI scan.
-# For this, Koma provides the ability to add [`MotionModel`](@ref)'s to the phantom.
+# For this, Koma provides the ability to add `motion <: MotionModel` to the phantom.
 # In this tutorial, we will show how to add a [`SimpleMotion`](@ref) model to a 2D brain phantom.
 
 # First, let's load the 2D brain phantom used in the previous tutorials:
@@ -57,7 +57,7 @@ p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 
 # The severity of the artifacts can vary depending on the acquisition duration and $k$-space trajectory.
 
-# ### Head Translation and Corrected reconstruction
+# ### Head Translation
 #
 # Now, let's redefine the phantom's motion with a [`Translation`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
 obj.motion = SimpleMotion([
@@ -81,6 +81,8 @@ Nx, Ny = raw1.params["reconSize"][1:2] # hide
 reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
 image1 = reconstruction(acq1, reconParams) # hide
 
+# ### Motion-Corrected Reconstruction
+# 
 # Once simulation is done, it is possible to perform a corrected reconstrution 
 # in order to revert the motion effect in the final image. 
 # This can be achieved by multiplying each sample of the acquired signal 
@@ -132,9 +134,11 @@ p6 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
 #jl display(p5)
 #jl display(p6)
 
-# On the left, you can see the original reconstructed image,
-# with no motion correction. On the right, the result 
-# of the corrected reconstruction we have just seen.
+# On the left, you can see the original reconstructed image 
+# and the artifact produced by the translation in x.
+# On the right, the result of the motion-corrected reconstruction, 
+# where we have achieved an image similar to the one 
+# we would have obtained from simulating over a static phantom.
 
 #md # ```@raw html
 #md # <object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon3.html" style="width:50%; height:420px;"></object>
