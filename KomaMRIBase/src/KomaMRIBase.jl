@@ -10,10 +10,11 @@ using Parameters
 using Interpolations
 #Reconstruction
 using MRIBase
-@reexport using MRIBase: Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader, EncodingCounters, Limit
+@reexport using MRIBase:
+    Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader, EncodingCounters, Limit
 using MAT   # For loading example phantoms
 
-global γ = 42.5774688e6; # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
+global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
 # Hardware
 include("datatypes/Scanner.jl")
@@ -43,7 +44,15 @@ export times, ampls, freqs
 # This are also used for simulation
 export kfoldperm, trapz, cumtrapz
 # Phantom
-export brain_phantom2D, brain_phantom3D, pelvis_phantom2D
+export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
+# Motion
+export MotionModel
+export NoMotion, SimpleMotion, ArbitraryMotion
+export SimpleMotionType
+export Translation, Rotation, HeartBeat
+export PeriodicTranslation, PeriodicRotation, PeriodicHeartBeat
+export get_spin_coords, sort_motions!
+export LinearInterpolator
 # Secondary
 export get_kspace, rotx, roty, rotz
 # Additionals

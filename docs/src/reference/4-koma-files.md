@@ -16,4 +16,6 @@ write_seq
 ```@docs
 read_phantom_jemris
 read_phantom_MRiLab
+read_phantom
+write_phantom
 ```
