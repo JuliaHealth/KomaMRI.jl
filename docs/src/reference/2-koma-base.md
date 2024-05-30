@@ -32,7 +32,7 @@ SimpleMotion
 ```
 
 ### `SimpleMotion types`
-<!-- This should be eventually located at Explanation section -->
+[comment]: <> (This should be eventually located at Explanation section) 
 There are two main types of simple motions: periodic and non-periodic.
 - **Non-periodic** motions are defined by the start time (`t_start`), the end time (`t_end`),
 and the maximum amplitude of the movement, which is reached (with constant velocity) at t=`t_end`. 

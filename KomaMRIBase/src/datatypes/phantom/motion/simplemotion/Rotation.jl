@@ -6,9 +6,7 @@ x (pitch), y (roll), and z (yaw).
 We follow the RAS (Right-Anterior-Superior) orientation, 
 and the rotations are applied following the right-hand rule (counter-clockwise):
 
-```@raw html
-<p align="center"><img width="100%" src="../assets/head-rotation-axis.svg"/></p>
-```
+![Head Rotation Axis](../assets/head-rotation-axis.svg)
 
 The applied rotation matrix is obtained as follows: 
 ```math
