@@ -15,11 +15,11 @@ const LinearInterpolator = Interpolations.Extrapolation{
 
 ArbitraryMotion model. For this motion model, it is necessary to define 
 motion for each spin independently, in x (`dx`), y (`dy`) and z (`dz`).
-`dx`, `dy` and `dz` are three matrixes, of (``N_{spins}`` x ``N_{discrete\,times}``) each.
+`dx`, `dy` and `dz` are three matrixes, of (``N_{spins}`` x ``N_{discrete\\,times}``) each.
 This means that each row corresponds to a spin trajectory over a set of discrete time instants.
 `period_durations` is a vector that contains the period for periodic (one element) or 
 pseudo-periodic (two or more elements) motion.
-The discrete time instants are calculated diving `period_durations` by ``N_{discrete\,times}``.
+The discrete time instants are calculated diving `period_durations` by ``N_{discrete\\,times}``.
 
 This motion model is useful for defining arbitrarly complex motion, specially
 for importing the spin trajectories from another source, like XCAT or a CFD.
