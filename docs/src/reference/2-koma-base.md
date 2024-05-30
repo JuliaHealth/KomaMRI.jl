@@ -32,11 +32,14 @@ SimpleMotion
 ```
 
 ### `SimpleMotion types`
+<!-- This should be eventually located at Explanation section -->
 There are two main types of simple motions: periodic and non-periodic.
 - **Non-periodic** motions are defined by the start time (`t_start`), the end time (`t_end`),
-and the maximum amplitude of the movement, which is reached (with constant velocity) at t=`t_end`. Examples of these non-periodic motions are `Translation`, `Rotation` and `HeartBeat`.
+and the maximum amplitude of the movement, which is reached (with constant velocity) at t=`t_end`. 
+Examples of these non-periodic motions are [`Translation`](@ref), [`Rotation`](@ref) and [`HeartBeat`](@ref).
 - **Periodic** motions are defined by the `period`, the time `asymmetry` factor,
-and the maximum amplitude of the movement, which is reached (with constant velocity) at t=`period`*`asymmetry`. Examples of these periodic motions are `PeriodicTranslation`, `PeriodicRotation` and `PeriodicHeartBeat`.
+and the maximum amplitude of the movement, which is reached (with constant velocity) at t=`period`*`asymmetry`. 
+Examples of these periodic motions are [`PeriodicTranslation`](@ref), [`PeriodicRotation`](@ref) and [`PeriodicHeartBeat`](@ref).
 
 ```@docs
 Translation
