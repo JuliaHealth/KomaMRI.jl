@@ -2,6 +2,7 @@ module KomaMRICore
 
 # General
 import Base.*, Base.abs
+import KernelAbstractions as KA
 using Reexport
 using ThreadsX
 # Printing
@@ -16,6 +17,7 @@ include("rawdata/ISMRMRD.jl")
 include("datatypes/Spinor.jl")
 include("other/DiffusionModel.jl")
 # Simulator
+include("simulation/Functors.jl")
 include("simulation/GPUFunctions.jl")
 include("simulation/SimulatorCore.jl")
 

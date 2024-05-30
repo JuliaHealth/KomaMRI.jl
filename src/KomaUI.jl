@@ -64,9 +64,6 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     is_first_sim = true
     is_first_rec = true
 
-    # Print GPU information
-    KomaMRICore.print_gpus()
-
     # Handle "View" sidebar buttons
     handle(w, "index") do _
         content!(w, "div#content", index)

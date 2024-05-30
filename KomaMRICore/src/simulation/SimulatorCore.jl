@@ -44,11 +44,7 @@ allowing the user to define some of them.
 function default_sim_params(sim_params=Dict{String,Any}())
     sampling_params = KomaMRIBase.default_sampling_params()
     get!(sim_params, "gpu", true)
-    if sim_params["gpu"]
-        check_use_cuda()
-        sim_params["gpu"] &= use_cuda[]
-    end
-    get!(sim_params, "gpu_device", 0)
+    get!(sim_params, "gpu_device", nothing)
     get!(sim_params, "Nthreads", sim_params["gpu"] ? 1 : Threads.nthreads())
     get!(sim_params, "Nblocks", 20)
     get!(sim_params, "Δt", sampling_params["Δt"])
@@ -334,16 +330,15 @@ function simulate(
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_params["sim_method"])
     sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
-    # Objects to GPU
-    if sim_params["gpu"] #Default
-        device!(sim_params["gpu_device"])
-        gpu_name = name.(devices())[sim_params["gpu_device"] + 1]
-        obj = obj |> gpu #Phantom
-        seqd = seqd |> gpu #DiscreteSequence
-        Xt = Xt |> gpu #SpinStateRepresentation
-        sig = sig |> gpu #Signal
-    end
-    if sim_params["precision"] == "f32" #Default
+    backend = sim_params["gpu"] ? get_backend() : KA.CPU()
+    sim_params["gpu"] &= backend isa KA.GPU
+    if !KA.supports_float64(backend)
+        @info """ Backend: '$(name(backend))' does not support 64-bit precision 
+        floating point operations. Converting to type Float32.
+        """
+    else
+    #Precision
+    if sim_params["precision"] == "f32" || !KA.supports_float64(backend)  #Default
         obj  = obj |> f32 #Phantom
         seqd = seqd |> f32 #DiscreteSequence
         Xt   = Xt |> f32 #SpinStateRepresentation
@@ -353,6 +348,15 @@ function simulate(
         seqd = seqd |> f64 #DiscreteSequence
         Xt   = Xt |> f64 #SpinStateRepresentation
         sig  = sig |> f64 #Signal
+    end
+    # Objects to GPU
+    if sim_params["gpu"] #Default
+        isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
+        gpu_name = gpu_name(backend)
+        obj = gpu(obj, backend) #Phantom
+        seqd = gpu(seqd, backend) #DiscreteSequence
+        Xt = gpu(Xt, backend) #SpinStateRepresentation
+        sig = gpu(sig, backend) #Signal
     end
 
     # Simulation
@@ -376,10 +380,8 @@ function simulate(
     sig = sum(sig; dims=length(Ndims) + 1) |> cpu #Sum over threads
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
-    if sim_params["gpu"]
-        GC.gc(true)
-        CUDA.reclaim()
-    end
+    #Possibly unecessary
+    sim_params["gpu"] && reclaim_gpu(backend)
     # Output
     if sim_params["return_type"] == "state"
         out = Xt
