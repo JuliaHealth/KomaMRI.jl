@@ -46,23 +46,15 @@ _isleaf(x) = _isbitsarray(x) || isleaf(x)
 struct KomaCUDAAdaptor end
 adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
 adapt_storage(to::KomaCUDAAdaptor, x::NoMotion) = NoMotion{Float32}()
-adapt_storage(to::KomaCUDAAdaptor, x::SimpleMotion) = f32(x)
+adapt_storage(to::KomaCUDAAdaptor, x::SimpleMotion) = f32(x) 
 function adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion)
     fields = []
     for field in fieldnames(ArbitraryMotion)
-        if field in (:ux, :uy, :uz) 
-            push!(fields, adapt(KomaCUDAAdaptor(), getfield(x, field)))
-        else
-            push!(fields, f32(getfield(x, field)))
-        end
+        push!(fields, f32(getfield(x, field)))
     end
     return ArbitraryMotion(fields...)
 end
-function adapt_storage(
-    to::KomaCUDAAdaptor, x::Vector{LinearInterpolator{T,V}}
-) where {T<:Real,V<:AbstractVector{T}}
-    return CUDA.cu.(x)
-end
+
 
 """
 	gpu(x)

@@ -2,52 +2,16 @@
 #       Interpolator{T,Degree,ETPType}, 
 #           Degree = Linear,Cubic.... 
 #           ETPType = Periodic, Flat...
-const LinearInterpolator = Interpolations.Extrapolation{
-    T,
-    1,
-    Interpolations.GriddedInterpolation{T,1,V,Gridded{Linear{Throw{OnGrid}}},Tuple{V}},
-    Gridded{Linear{Throw{OnGrid}}},
-    Periodic{Nothing},
-} where {T<:Real,V<:AbstractVector{T}}
-
 """
 Arbitrary Motion
 
 x = x + ux
 """
-struct ArbitraryMotion{T<:Real,V<:AbstractVector{T}} <: MotionModel{T}
+struct ArbitraryMotion{T} <: MotionModel{T}
     period_durations::Vector{T}
-    dx::Array{T,2}
-    dy::Array{T,2}
-    dz::Array{T,2}
-    ux::Vector{LinearInterpolator{T,V}}
-    uy::Vector{LinearInterpolator{T,V}}
-    uz::Vector{LinearInterpolator{T,V}}
-end
-
-function ArbitraryMotion(
-    period_durations::AbstractVector{T},
-    Δx::AbstractArray{T,2},
-    Δy::AbstractArray{T,2},
-    Δz::AbstractArray{T,2},
-) where {T<:Real}
-    @warn "Note that ArbitraryMotion is under development so it is not optimized so far" maxlog = 1
-    Ns = size(Δx)[1]
-    num_pieces = size(Δx)[2] + 1
-    limits = times(period_durations, num_pieces)
-
-    #! format: off
-    Δ = zeros(Ns,length(limits),4)
-    Δ[:,:,1] = hcat(repeat(hcat(zeros(Ns,1),Δx),1,length(period_durations)),zeros(Ns,1))
-    Δ[:,:,2] = hcat(repeat(hcat(zeros(Ns,1),Δy),1,length(period_durations)),zeros(Ns,1))
-    Δ[:,:,3] = hcat(repeat(hcat(zeros(Ns,1),Δz),1,length(period_durations)),zeros(Ns,1))
-   
-    etpx = [extrapolate(interpolate((limits,), Δ[i,:,1], Gridded(Linear())), Periodic()) for i in 1:Ns]
-    etpy = [extrapolate(interpolate((limits,), Δ[i,:,2], Gridded(Linear())), Periodic()) for i in 1:Ns]
-    etpz = [extrapolate(interpolate((limits,), Δ[i,:,3], Gridded(Linear())), Periodic()) for i in 1:Ns]
-    #! format: on
-
-    return ArbitraryMotion(period_durations, Δx, Δy, Δz, etpx, etpy, etpz)
+    dx::Matrix{T}
+    dy::Matrix{T}
+    dz::Matrix{T}
 end
 
 function Base.getindex(
@@ -57,8 +21,6 @@ function Base.getindex(
     for field in fieldnames(ArbitraryMotion)
         if field in (:dx, :dy, :dz)
             push!(fields, getfield(motion, field)[p, :])
-        elseif field in (:ux, :uy, :uz)
-            push!(fields, getfield(motion, field)[p])
         else
             push!(fields, getfield(motion, field))
         end
@@ -105,16 +67,46 @@ function times(period_durations::AbstractVector, num_pieces::Int)
     return limits
 end
 
-# TODO: Calculate interpolation functions "on the fly"
+
+function get_itp_functions(motion::ArbitraryMotion{T}, Ns::Int) where {T<:Real}
+    dx = hcat(repeat(hcat(zeros(Ns, 1), motion.dx), 1, length(motion.period_durations)), zeros(Ns, 1))
+    dy = hcat(repeat(hcat(zeros(Ns, 1), motion.dy), 1, length(motion.period_durations)), zeros(Ns, 1))
+    dz = hcat(repeat(hcat(zeros(Ns, 1), motion.dz), 1, length(motion.period_durations)), zeros(Ns, 1))
+    if Ns > 1
+        nodes = (times(motion), [i for i=1:Ns])
+        itpx = extrapolate(interpolate(nodes, dx, (Gridded(Linear(), NoInterp()))), Periodic())
+        itpy = extrapolate(interpolate(nodes, dy, (Gridded(Linear(), NoInterp()))), Periodic())
+        itpz = extrapolate(interpolate(nodes, dz, (Gridded(Linear(), NoInterp()))), Periodic())
+    else
+        nodes = (times(motion), )
+        itpx = extrapolate(interpolate(nodes, dx[:], (Gridded(Linear()), )), Periodic())
+        itpy = extrapolate(interpolate(nodes, dy[:], (Gridded(Linear()), )), Periodic())
+        itpz = extrapolate(interpolate(nodes, dz[:], (Gridded(Linear()), )), Periodic())
+    end
+    return itpx, itpy, itpz
+end
+
+function get_itp_results(itpx, itpy, itpz, t, Ns)
+    if Ns > 1
+        id = 0 .* similar(t, Ns) .+ (1:Ns)
+        # Grid
+        idx = 1*id .+ 0*t # spin id
+        t   = 0*id .+ 1*t # time instants
+        return itpx.(idx, t), itpy.(idx, t), itpz.(idx, t)
+    else
+        return itpx.(t), itpy.(t), itpz.(t)
+    end
+end
+
 function get_spin_coords(
     motion::ArbitraryMotion{T},
-    x::AbstractVector{T},
-    y::AbstractVector{T},
-    z::AbstractVector{T},
+    x::Vector{T},
+    y::Vector{T},
+    z::Vector{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    xt = x .+ reduce(vcat, [etp.(t) for etp in motion.ux])
-    yt = y .+ reduce(vcat, [etp.(t) for etp in motion.uy])
-    zt = z .+ reduce(vcat, [etp.(t) for etp in motion.uz])
-    return xt, yt, zt
+    Ns = size(motion.dx)[1]
+    itp = get_itp_functions(motion, Ns)
+    ux, uy, uz = get_itp_results(itp..., t, Ns)
+    return x .+ ux, y .+ uy, z .+ uz
 end

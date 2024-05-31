@@ -7,7 +7,7 @@ using Reexport
 #Datatypes
 using Parameters
 #Simulation
-using Interpolations
+@reexport using Interpolations
 #Reconstruction
 using MRIBase
 @reexport using MRIBase:
