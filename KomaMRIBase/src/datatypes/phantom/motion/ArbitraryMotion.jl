@@ -2,6 +2,27 @@
 #       Interpolator{T,Degree,ETPType}, 
 #           Degree = Linear,Cubic.... 
 #           ETPType = Periodic, Flat...
+
+const Interpolator = Interpolations.Extrapolation{
+    T,
+    N,
+    Interpolations.GriddedInterpolation{
+        T,
+        N,
+        V,
+        Itp,
+        K
+    },
+    Itp,
+    Interpolations.Periodic{Nothing}
+} where {
+    T<:Real,
+    N,
+    V<:AbstractArray{T},
+    K<:Tuple{Vararg{AbstractVector{T}}},
+    Itp<:Tuple{Vararg{Union{Interpolations.Gridded{Linear{Throw{OnGrid}}}, Interpolations.NoInterp}}}
+}
+
 """
 Arbitrary Motion
 
@@ -69,14 +90,14 @@ end
 
 
 function get_itp_functions(motion::ArbitraryMotion{T}, Ns::Int) where {T<:Real}
-    dx = hcat(repeat(hcat(zeros(Ns, 1), motion.dx), 1, length(motion.period_durations)), zeros(Ns, 1))
-    dy = hcat(repeat(hcat(zeros(Ns, 1), motion.dy), 1, length(motion.period_durations)), zeros(Ns, 1))
-    dz = hcat(repeat(hcat(zeros(Ns, 1), motion.dz), 1, length(motion.period_durations)), zeros(Ns, 1))
+    dx = hcat(repeat(hcat(zeros(T ,Ns, 1), motion.dx), 1, length(motion.period_durations)), zeros(T ,Ns, 1))
+    dy = hcat(repeat(hcat(zeros(T ,Ns, 1), motion.dy), 1, length(motion.period_durations)), zeros(T ,Ns, 1))
+    dz = hcat(repeat(hcat(zeros(T ,Ns, 1), motion.dz), 1, length(motion.period_durations)), zeros(T ,Ns, 1))
     if Ns > 1
-        nodes = (times(motion), [i for i=1:Ns])
-        itpx = extrapolate(interpolate(nodes, dx, (Gridded(Linear(), NoInterp()))), Periodic())
-        itpy = extrapolate(interpolate(nodes, dy, (Gridded(Linear(), NoInterp()))), Periodic())
-        itpz = extrapolate(interpolate(nodes, dz, (Gridded(Linear(), NoInterp()))), Periodic())
+        nodes = ([i*one(T) for i=1:Ns], times(motion))
+        itpx = extrapolate(interpolate(nodes, dx, (NoInterp(), Gridded(Linear()))), Periodic())
+        itpy = extrapolate(interpolate(nodes, dy, (NoInterp(), Gridded(Linear()))), Periodic())
+        itpz = extrapolate(interpolate(nodes, dz, (NoInterp(), Gridded(Linear()))), Periodic())
     else
         nodes = (times(motion), )
         itpx = extrapolate(interpolate(nodes, dx[:], (Gridded(Linear()), )), Periodic())
@@ -86,9 +107,16 @@ function get_itp_functions(motion::ArbitraryMotion{T}, Ns::Int) where {T<:Real}
     return itpx, itpy, itpz
 end
 
-function get_itp_results(itpx, itpy, itpz, t, Ns)
+function get_itp_results(
+    itpx::Interpolator{T}, 
+    itpy::Interpolator{T}, 
+    itpz::Interpolator{T}, 
+    t::AbstractArray{T}, 
+    Ns::Int
+) where {T<:Real}
     if Ns > 1
-        id = 0 .* similar(t, Ns) .+ (1:Ns)
+        id = similar(t, Ns)
+        id .= (1:Ns)
         # Grid
         idx = 1*id .+ 0*t # spin id
         t   = 0*id .+ 1*t # time instants

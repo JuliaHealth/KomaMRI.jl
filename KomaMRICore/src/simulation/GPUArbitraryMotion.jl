@@ -6,11 +6,12 @@ function get_spin_coords(
     t::AbstractArray{T},
 ) where {T<:Real}
     Ns = size(motion.dx)[1]
-    itpx, itpy, itpz = get_itp_functions(motion, Ns)
-    if x isa CuArray
-        itpx = adapt(CuArray{Float32}, itpx)
-        itpy = adapt(CuArray{Float32}, itpy)
-        itpz = adapt(CuArray{Float32}, itpz)  # Problem: too many CPU -> GPU transfers
-    end
-    return (x, y, z) .+ get_itp_results(itpx, itpy, itpz, Ns)
+    itpx, itpy, itpz = KomaMRIBase.get_itp_functions(motion, Ns)
+    # To GPU
+    itpx = adapt(CuArray{T}, itpx)
+    itpy = adapt(CuArray{T}, itpy)
+    itpz = adapt(CuArray{T}, itpz)  # Problem: too many CPU -> GPU transfers
+    ux, uy, uz = KomaMRIBase.get_itp_results(itpx, itpy, itpz, t, Ns)
+    return x .+ ux, y .+ uy, z .+ uz
 end
+
