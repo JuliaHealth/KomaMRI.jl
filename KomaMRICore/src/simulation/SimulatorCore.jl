@@ -335,7 +335,8 @@ function simulate(
     backend = get_backend(sim_params["gpu"])
     if !KA.supports_float64(backend) && sim_params["precision"] == "f64"
         @info """ Backend: '$(name(backend))' does not support 64-bit precision 
-        floating point operations. Converting to type Float32.
+        floating point operations. Automatically converting to type Float32.
+        (set sim_param["precision"] = "f32" to avoid seeing this message).
         """ maxlog=1
     end
     if sim_params["precision"] == "f64" && KA.supports_float64(backend)
