@@ -36,7 +36,9 @@ allowing the user to define some of them.
         parallel threads, speeding up the execution time
     * "gpu": is a boolean that determines whether to use GPU or CPU hardware resources, as
         long as they are available on the host computer
-    * "gpu_device": sets the index ID of the available GPU in the host computer
+    * "gpu_device": default value is 'nothing'. If set to integer or device instance, calls the
+        corresponding function to set the device of the available GPU in the host computer 
+        (e.g. CUDA.device!)
 
 # Returns
 - `sim_params`: (`::Dict{String,Any}`) dictionary with simulation parameters
@@ -330,27 +332,26 @@ function simulate(
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_params["sim_method"])
     sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
-    backend = sim_params["gpu"] ? get_backend() : KA.CPU()
-    sim_params["gpu"] &= backend isa KA.GPU
-    if !KA.supports_float64(backend)
+    backend = get_backend(sim_params["gpu"])
+    if !KA.supports_float64(backend) && sim_params["precision"] == "f64"
         @info """ Backend: '$(name(backend))' does not support 64-bit precision 
         floating point operations. Converting to type Float32.
-        """
-    else
-    #Precision
-    if sim_params["precision"] == "f32" || !KA.supports_float64(backend)  #Default
-        obj  = obj |> f32 #Phantom
-        seqd = seqd |> f32 #DiscreteSequence
-        Xt   = Xt |> f32 #SpinStateRepresentation
-        sig  = sig |> f32 #Signal
-    elseif sim_params["precision"] == "f64"
+        """ maxlog=1
+    end
+    if sim_params["precision"] == "f64" && KA.supports_float64(backend)
         obj  = obj |> f64 #Phantom
         seqd = seqd |> f64 #DiscreteSequence
         Xt   = Xt |> f64 #SpinStateRepresentation
         sig  = sig |> f64 #Signal
+    else
+        #Precision  #Default
+        obj  = obj |> f32 #Phantom
+        seqd = seqd |> f32 #DiscreteSequence
+        Xt   = Xt |> f32 #SpinStateRepresentation
+        sig  = sig |> f32 #Signal
     end
     # Objects to GPU
-    if sim_params["gpu"] #Default
+    if backend isa KA.GPU
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
         gpu_name = gpu_name(backend)
         obj = gpu(obj, backend) #Phantom
@@ -360,7 +361,7 @@ function simulate(
     end
 
     # Simulation
-    @info "Running simulation in the $(sim_params["gpu"] ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
+    @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
         __VERSION__ sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
         seqd.t
     ) adc_points = Ndims[1]
@@ -380,8 +381,6 @@ function simulate(
     sig = sum(sig; dims=length(Ndims) + 1) |> cpu #Sum over threads
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
-    #Possibly unecessary
-    sim_params["gpu"] && reclaim_gpu(backend)
     # Output
     if sim_params["return_type"] == "state"
         out = Xt
