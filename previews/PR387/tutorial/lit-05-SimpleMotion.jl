@@ -11,13 +11,16 @@ sys = Scanner() # hide
 obj = brain_phantom2D()
 obj.Δw .= 0 # hide
 
-# ### Head Rotation
-#
 # The `SimpleMotion` model includes a list of `SimpleMotionType`'s, to enabling mix-and-matching simple motions.
-# In this example, we will add a [`Rotation`](@ref) of 45 degrees around the z-axis with duration of 200 ms:
+# These are [`Translation`](@ref), [`Rotation`](@ref), [`HeartBeat`](@ref) and their periodic versions
+# [`PeriodicTranslation`](@ref), [`PeriodicRotation`](@ref) and [`PeriodicHeartBeat`](@ref).
+
+# ### Head Translation
+#
+# In this example, we will add a [`Translation`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
 
 obj.motion = SimpleMotion([
-    Rotation(t_start=0.0, t_end=200e-3, yaw=45.0, pitch=0.0, roll=0.0)
+    Translation(t_start=0.0, t_end=200e-3, dx=2e-2, dy=0.0, dz=0.0)
 ])
 p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
 
@@ -57,30 +60,6 @@ p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 
 # The severity of the artifacts can vary depending on the acquisition duration and $k$-space trajectory.
 
-# ### Head Translation
-#
-# Now, let's redefine the phantom's motion with a [`Translation`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
-obj.motion = SimpleMotion([
-    Translation(t_start=0.0, t_end=200e-3, dx=2e-2, dy=0.0, dz=0.0)
-])
-p3 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
-#md savefig(p3, "../assets/5-phantom2.html") # hide
-#jl display(p3)
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/5-phantom2.html" style="width:85%; height:470px;"></object></center>
-#md # ```
-
-## Simulate # hide
-raw1 = simulate(obj, seq1, sys) # hide
-
-## Recon # hide
-acq1 = AcquisitionData(raw1) # hide
-acq1.traj[1].circular = false # hide
-Nx, Ny = raw1.params["reconSize"][1:2] # hide
-reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
-image1 = reconstruction(acq1, reconParams) # hide
-
 # ### Motion-Corrected Reconstruction
 # 
 # Once simulation is done, it is possible to perform a corrected reconstrution 
@@ -100,7 +79,7 @@ image1 = reconstruction(acq1, reconParams) # hide
 sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)
 
-p4 = KomaMRIPlots.plot( # hide
+p3 = KomaMRIPlots.plot( # hide
     sample_times, # hide
     displacements .* 1e2, # hide
     KomaMRIPlots.Layout( # hide
@@ -108,10 +87,10 @@ p4 = KomaMRIPlots.plot( # hide
         xaxis_title = "time (s)", # hide
         yaxis_title = "Displacement (cm)" # hide
     )) # hide
-KomaMRIPlots.restyle!(p4,1:3, name=["Δx", "Δy", "Δz"]) # hide
+KomaMRIPlots.restyle!(p3,1:3, name=["Δx", "Δy", "Δz"]) # hide
 
-#md savefig(p4, "../assets/5-displacements.html") # hide
-#jl display(p4)
+#md savefig(p3, "../assets/5-displacements.html") # hide
+#jl display(p3)
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/5-displacements.html" style="width:90%; height:470px;"></object></center>
@@ -126,13 +105,12 @@ acq1.kdata[1] .*= exp.(im*ΔΦ)
 
 image2 = reconstruction(acq1, reconParams) # hide
 
-p5 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
-p6 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
+p4 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
 
-#md savefig(p5, "../assets/5-recon2.html") # hide
-#md savefig(p6, "../assets/5-recon3.html") # hide
-#jl display(p5)
-#jl display(p6)
+#md savefig(p4, "../assets/5-recon2.html") # hide
+
+#jl display(p2)
+#jl display(p4)
 
 # On the left, you can see the original reconstructed image 
 # and the artifact produced by the translation in x.
@@ -141,5 +119,5 @@ p6 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
 # we would have obtained from simulating over a static phantom.
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon3.html" style="width:50%; height:420px;"></object>
+#md # <object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object>
 #md # ```

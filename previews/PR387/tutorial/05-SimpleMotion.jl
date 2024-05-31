@@ -5,7 +5,7 @@ obj = brain_phantom2D()
 obj.Δw .= 0 # hide
 
 obj.motion = SimpleMotion([
-    Rotation(t_start=0.0, t_end=200e-3, yaw=45.0, pitch=0.0, roll=0.0)
+    Translation(t_start=0.0, t_end=200e-3, dx=2e-2, dy=0.0, dz=0.0)
 ])
 p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
 
@@ -30,27 +30,10 @@ image1 = reconstruction(acq1, reconParams) # hide
 p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 display(p2)
 
-obj.motion = SimpleMotion([
-    Translation(t_start=0.0, t_end=200e-3, dx=2e-2, dy=0.0, dz=0.0)
-])
-p3 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
-display(p3)
-
-
-# Simulate # hide
-raw1 = simulate(obj, seq1, sys) # hide
-
-# Recon # hide
-acq1 = AcquisitionData(raw1) # hide
-acq1.traj[1].circular = false # hide
-Nx, Ny = raw1.params["reconSize"][1:2] # hide
-reconParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(Nx, Ny)) # hide
-image1 = reconstruction(acq1, reconParams) # hide
-
 sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)
 
-p4 = KomaMRIPlots.plot( # hide
+p3 = KomaMRIPlots.plot( # hide
     sample_times, # hide
     displacements .* 1e2, # hide
     KomaMRIPlots.Layout( # hide
@@ -58,9 +41,9 @@ p4 = KomaMRIPlots.plot( # hide
         xaxis_title = "time (s)", # hide
         yaxis_title = "Displacement (cm)" # hide
     )) # hide
-KomaMRIPlots.restyle!(p4,1:3, name=["Δx", "Δy", "Δz"]) # hide
+KomaMRIPlots.restyle!(p3,1:3, name=["Δx", "Δy", "Δz"]) # hide
 
-display(p4)
+display(p3)
 
 _, kspace = get_kspace(seq1)
 ΔΦ = 2π*sum(kspace .* displacements, dims=2)
@@ -69,10 +52,10 @@ acq1.kdata[1] .*= exp.(im*ΔΦ)
 
 image2 = reconstruction(acq1, reconParams) # hide
 
-p5 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
-p6 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
+p4 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
 
-display(p5)
-display(p6)
+
+display(p2)
+display(p4)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
