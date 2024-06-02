@@ -97,7 +97,7 @@ KomaMRIPlots.restyle!(p3,1:3, name=["Δx", "Δy", "Δz"]) # hide
 _, kspace = get_kspace(seq1)
 ΔΦ = 2π*sum(kspace .* displacements, dims=2)
 
-# And we apply the phase correction:
+# And apply it to the acquired signal to correct its phase:
 acq1.kdata[1] .*= exp.(im*ΔΦ)
 
 image2 = reconstruction(acq1, reconParams) # hide
