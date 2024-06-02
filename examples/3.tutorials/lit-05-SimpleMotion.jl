@@ -109,11 +109,7 @@ p4 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
 #jl display(p2)
 #jl display(p4)
 
-# On the left, you can see the original reconstructed image 
-# and the artifact produced by the translation in x.
-# On the right, the result of the motion-corrected reconstruction, 
-# where we have achieved an image similar to the one 
-# we would have obtained from simulating over a static phantom.
+# Finally, we compare the original image ▶️ and the motion-corrected reconstruction ⏸️:
 
 #md # ```@raw html
 #md # <object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object>
