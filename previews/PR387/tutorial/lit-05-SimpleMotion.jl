@@ -71,10 +71,8 @@ p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 # S_{\mathrm{MC}}\left(t\right)=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}\Delta\phi_{\mathrm{corr}}}=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}2\pi\boldsymbol{k}\left(t\right)\cdot\boldsymbol{u}\left(t\right)}
 # ```
 
-# We need to obtain the displacements in every ADC sampling time of the sequence.
-# Since translation is a rigid motion, 
-# we can obtain the displacements only for one spin, 
-# as the displacements of the rest will be the same.
+# In practice, we would need to estimate or measure the motion before performing a motion-corrected reconstruction, but for this example, we will directly use the displacement functions ``\boldsymbol{u}(\boldsymbol{x}, t)`` defined by `obj.motion::SimpleMotion`. 
+# Since translations are rigid motions (``\boldsymbol{u}(\boldsymbol{x}, t)=\boldsymbol{u}(t)`` no position dependence), we can obtain the required displacements by calculating ``\boldsymbol{u}(\boldsymbol{x}=\boldsymbol{0},\ t=t_{\mathrm{adc}})``.
 sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)
 
@@ -99,7 +97,7 @@ KomaMRIPlots.restyle!(p3,1:3, name=["Δx", "Δy", "Δz"]) # hide
 _, kspace = get_kspace(seq1)
 ΔΦ = 2π*sum(kspace .* displacements, dims=2)
 
-# And we apply the phase correction:
+# And apply it to the acquired signal to correct its phase:
 acq1.kdata[1] .*= exp.(im*ΔΦ)
 
 image2 = reconstruction(acq1, reconParams) # hide
