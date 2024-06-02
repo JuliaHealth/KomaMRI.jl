@@ -90,7 +90,7 @@ KomaMRIPlots.restyle!(p3,1:3, name=["Δx", "Δy", "Δz"]) # hide
 #jl display(p3)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/5-displacements.html" style="width:90%; height:470px;"></object></center>
+#md # <center><object type="text/html" data="../../assets/5-displacements.html" style="width:80%; height:300px;"></object></center>
 #md # ```
 
 # We can now get the necessary phase shift for each sample:
