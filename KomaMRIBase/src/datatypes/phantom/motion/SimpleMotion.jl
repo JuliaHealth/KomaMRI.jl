@@ -51,7 +51,7 @@ Base.:(==)(t1::SimpleMotionType, t2::SimpleMotionType) = false
 Base.:(≈)(t1::SimpleMotionType, t2::SimpleMotionType)  = false
 
 """
-    x, y, z = get_spin_coords(motion, x, y, z, t')
+    x, y, z = get_spin_coords(motion, x, y, z, t)
 
 Calculates the position of each spin at a set of arbitrary time instants, i.e. the time steps of the simulation. 
 For each dimension (x, y, z), the output matrix has ``N_{\text{spins}}`` rows and `length(t)` columns.
