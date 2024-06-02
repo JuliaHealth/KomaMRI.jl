@@ -62,14 +62,13 @@ p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 
 # ### Motion-Corrected Reconstruction
 # 
-# Once simulation is done, it is possible to perform a corrected reconstrution 
-# in order to revert the motion effect in the final image. 
-# This can be achieved by multiplying each sample of the acquired signal 
-# by a phase which is proportional to the displacement in each direction (Δx, Δy, Δz)
-# at the time instant when the sample was acquired [[Godenschweger, 2016]](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4930872/):
+# To correct for the motion-induced artifacts we can perform a motion-corrected reconstruction. 
+# This can be achieved by multiplying each sample of the acquired signal  ``S(t)``
+# by a phase shift ``\Delta\phi_{\mathrm{corr}}`` proportional to the displacement ``\boldsymbol{u}(t)``
+# [[Godenschweger, 2016]](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4930872/):
 
 # ```math
-# S(k_x, k_y, k_z)_{\text{cor}} = S(k_x, k_y, k_z)_{\text{orig}} \cdot e^{i \Delta \phi_{\text{cor}}} = S(k_x, k_y, k_z)_{\text{orig}} \cdot e^{i 2 \pi (k_x \Delta x + k_y \Delta y + k_z \Delta z)}
+# S_{\mathrm{MC}}\left(t\right)=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}\Delta\phi_{\mathrm{corr}}}=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}2\pi\boldsymbol{k}\left(t\right)\cdot\boldsymbol{u}\left(t\right)}
 # ```
 
 # We need to obtain the displacements in every ADC sampling time of the sequence.
