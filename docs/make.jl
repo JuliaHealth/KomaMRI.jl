@@ -13,16 +13,17 @@ doc_tutorial_rep   = joinpath(dirname(@__DIR__), "docs/src/tutorial-pluto")
 doc_howto          = joinpath(dirname(@__DIR__), "docs/src/how-to")
 doc_explanation    = joinpath(dirname(@__DIR__), "docs/src/explanation")
 doc_reference      = joinpath(dirname(@__DIR__), "docs/src/reference")
+# For Tutorials: Literate and Pluto
+koma_assets        = joinpath(dirname(@__DIR__), "assets")
+doc_assets         = joinpath(dirname(@__DIR__), "docs/src/assets")
+koma_tutorials_lit = joinpath(dirname(@__DIR__), "examples/3.tutorials")
+koma_tutorials_plu = joinpath(dirname(@__DIR__), "examples/4.reproducible_notebooks")
 
 # Copying files from KomaMRI.jl/ to the documentation folder KomaMRI.jl/docs/
 # Assets
-koma_assets        = joinpath(dirname(@__DIR__), "assets")
-doc_assets         = joinpath(dirname(@__DIR__), "docs/src/assets")
 cp(joinpath(koma_assets, "logo.svg"), joinpath(doc_assets, "logo.svg"); force=true)
 cp(joinpath(koma_assets, "logo-dark.svg"), joinpath(doc_assets, "logo-dark.svg"); force=true)
-# Tutorials
-koma_tutorials_lit = joinpath(dirname(@__DIR__), "examples/3.tutorials")
-koma_tutorials_plu = joinpath(dirname(@__DIR__), "examples/4.reproducible_notebooks")
+# Tutorials: Literate and Pluto
 move_examples_to_docs!(koma_tutorials_lit, doc_tutorial, lit_pattern)
 move_examples_to_docs!(koma_tutorials_plu, doc_tutorial_rep, plu_pattern; remove_pattern=true)
 
@@ -38,7 +39,7 @@ lit_reference_list   = literate_doc_folder(doc_reference, "reference")
 # Tutorials (Literate only), and reproducible tutorials (Pluto only)
 tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern)
 reproducible_list =  pluto_directory_to_html(doc_tutorial_rep, "tutorial-pluto"; plu_pattern)
-# Combine md files in docs/src/section with Literate-generated md files
+# Combine md files in docs/src/section with Literate/Pluto-generated md files
 append!(howto_list, lit_howto_list)
 append!(explanation_list, lit_explanation_list)
 append!(reference_list, lit_reference_list)
@@ -47,7 +48,7 @@ append!(reference_list, lit_reference_list)
 makedocs(;
     modules=[KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
     sitename="KomaMRI.jl",
-    authors="Boris Orostica Navarrete and Carlos Castillo Passi",
+    authors="Carlos Castillo Passi and Boris Orostica Navarrete",
     checkdocs=:exports,
     pages=[
         "🏠 Home" => "index.md",
@@ -65,4 +66,7 @@ makedocs(;
         assets=["assets/extra-styles.css"],
     ),
 )
-deploydocs(; repo="github.com/JuliaHealth/KomaMRI.jl.git", push_preview=true)
+deploydocs(;
+    repo="github.com/JuliaHealth/KomaMRI.jl.git", 
+    push_preview=!isempty(ARGS) ? ARGS[1]=="push_preview" : false
+)

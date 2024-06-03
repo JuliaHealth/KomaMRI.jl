@@ -19,14 +19,14 @@ jobs:
         version:
           - '1.9' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
           - '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-12] # macos-latest] <- M1 Mac was generating problems #386, commented for now
         arch: [x64]
         include:
           - os: ubuntu-latest
             prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
@@ -118,7 +118,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
-      - uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8 # v4.1.1
+      - uses: codecov/codecov-action@v4
         with:
           files: lcov.info
           flags: komamri
@@ -126,7 +126,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIBase/src
-      - uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8 # v4.1.1
+      - uses: codecov/codecov-action@v4
         with:
           files: lcov.info
           flags: base
@@ -134,7 +134,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRICore/src
-      - uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8 # v4.1.1
+      - uses: codecov/codecov-action@v4
         with:
           files: lcov.info
           flags: core
@@ -142,7 +142,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIPlots/src
-      - uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8 # v4.1.1
+      - uses: codecov/codecov-action@v4
         with:
           files: lcov.info
           flags: plots
@@ -150,20 +150,22 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIFiles/src
-      - uses: codecov/codecov-action@c16abc29c95fcf9174b58eb7e1abf4c866893bc8 # v4.1.1
+      - uses: codecov/codecov-action@v4
         with:
           files: lcov.info
           flags: files
           token: ${{ secrets.CODECOV_TOKEN }} # required
   docs:
+    if: '!cancelled()'
     name: Documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: '1'
-      - run: |
+      - name: "Documentation dev environment setup"
+        run: |
           julia --project=docs -e '
             using Pkg
             Pkg.develop([
@@ -174,12 +176,21 @@ jobs:
                 PackageSpec(path=pwd(), subdir="KomaMRIPlots")
             ])
             Pkg.instantiate()'
-      - run: |
+      - name: "Testing documentation (doctest)"
+        run: |
           julia --project=docs -e '
             using Documenter: doctest
             using KomaMRI
-            doctest(KomaMRI)' # change MYPACKAGE to the name of your package
-      - run: julia --project=docs docs/make.jl
+            doctest(KomaMRI)'
+      - if: ${{ !contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
+        name: "Building documentation (docs/make.jl)"
+        run: julia --project=docs docs/make.jl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+      - if: ${{ contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
+        name: "Building documentation (docs/make.jl) - [PR] PUSH_PREVIEW"
+        run: julia --project=docs docs/make.jl push_preview
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
