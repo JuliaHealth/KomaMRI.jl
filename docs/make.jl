@@ -66,4 +66,7 @@ makedocs(;
         assets=["assets/extra-styles.css"],
     ),
 )
-deploydocs(; repo="github.com/JuliaHealth/KomaMRI.jl.git", push_preview=true)
+deploydocs(;
+    repo="github.com/JuliaHealth/KomaMRI.jl.git", 
+    push_preview=!isempty(ARGS) ? ARGS[1]=="push_preview" : false
+)
