@@ -7,7 +7,7 @@
 #> tags = ["CMRA", "Low Field", "Optimization"]
 #> date = "2024-04-16"
 #> description = "Optimizing sequence to improve SNR and fat supression."
-#> 
+#>
 #>     [[frontmatter.author]]
 #>     name = "Carlos Castillo Passi"
 #>     url = "https://avatars.githubusercontent.com/u/5957134?s=400&u=fe62a2a899ced18e8b882cebde6b1eefe6a1222c&v=4"
@@ -90,7 +90,7 @@ begin
 	Trf = 500e-6  			# 500 [ms]
 	B1 = 1 / (360*γ*Trf)    # B1 amplitude [uT]
 	Tadc = 1e-6 			# 1us
-	
+
 	# Prepulses
 	Tfatsat = 26.624e-3     # 26.6 [ms]
 	T2prep_duration = 50e-3 # 50 [ms]
@@ -100,7 +100,7 @@ begin
 	dummy_heart_beats = 3 	# Steady-state
 	TR = 5.3e-3             # 5.3 [ms] RF Low SAR
 	TE = TR / 2 			# bSSFP condition
-	iNAV_lines = 6          # FatSat-Acq delay: iNAV_lines * TR 
+	iNAV_lines = 6          # FatSat-Acq delay: iNAV_lines * TR
 	iNAV_flip_angle = 3.2   # 3.2 [deg]
 	im_segments = 20        # Acquisitino window: im_segments * TR
 
@@ -108,14 +108,14 @@ begin
 	im_flip_angle = 110    # 110 [deg]
 	FatSat_flip_angle = 180 # 180 [deg]
 
-	seq_params = (; 
-		dummy_heart_beats, 
+	seq_params = (;
+		dummy_heart_beats,
 		iNAV_lines,
-		im_segments, 
-		iNAV_flip_angle, 
+		im_segments,
+		iNAV_flip_angle,
 		im_flip_angle,
-		T2prep_duration, 
-		FatSat_flip_angle, 
+		T2prep_duration,
+		FatSat_flip_angle,
 		RR
 	)
 
@@ -125,7 +125,7 @@ end
 # ╔═╡ a15d6b64-f8ee-4ee4-812c-d49cf5ea784d
 md"""
 ## 1.4. Phantom
-Each tissue was represented with 200 isochromats distributed along the $z$-axis to simulate gradient spoiling effects. The isochromats for each tissue were inside a 1D voxel of size $1.5\,\mathrm{mm}$. The values for $T_1$ and $T_2$ for blood, myocardial muscle, and fat at 0.55T were obtained from the work of Campbell-Washburn, et al. Fat spins were simulated using a chemical shift of $-3.4\,\mathrm{ppm}$, simulating regular fat with $T_1=183\,\mathrm{ms}$, and fast-recovering fat with $T_1=130\,\mathrm{ms}$. 
+Each tissue was represented with 200 isochromats distributed along the $z$-axis to simulate gradient spoiling effects. The isochromats for each tissue were inside a 1D voxel of size $1.5\,\mathrm{mm}$. The values for $T_1$ and $T_2$ for blood, myocardial muscle, and fat at 0.55T were obtained from the work of Campbell-Washburn, et al. Fat spins were simulated using a chemical shift of $-3.4\,\mathrm{ppm}$, simulating regular fat with $T_1=183\,\mathrm{ms}$, and fast-recovering fat with $T_1=130\,\mathrm{ms}$.
 """
 
 # ╔═╡ f0a81c9f-5616-4663-948f-a4084e1719af
@@ -162,7 +162,7 @@ begin
 	    end
 	    return seq
 	end
-	
+
 	function T2prep(TE; sample=false)
 	    seq = Sequence()
 	    seq += RF(90 * B1, Trf)
@@ -176,7 +176,7 @@ begin
 	    end
 	    return seq
 	end
-	
+
 	function bSSFP(iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample=false)
 	    k = 0
 	    seq = Sequence()
@@ -206,14 +206,14 @@ end
 # ╔═╡ 7890f81e-cb15-48d2-a80c-9d73f9516056
 begin
 	function CMRA(
-				dummy_heart_beats, 
-				iNAV_lines, 
-				im_segments, 
-				iNAV_flip_angle, 
+				dummy_heart_beats,
+				iNAV_lines,
+				im_segments,
+				iNAV_flip_angle,
 				im_flip_angle,
-				T2prep_duration=50e-3, 
-				FatSat_flip_angle=180, 
-				RR=1.0; 
+				T2prep_duration=50e-3,
+				FatSat_flip_angle=180,
+				RR=1.0;
 				sample_recovery=zeros(Bool, dummy_heart_beats+1)
 				)
 		# Seq init
@@ -228,15 +228,15 @@ begin
 	        seq += t2p
 	        seq += fatsat
 	        seq += bssfp
-			# RR interval consideration 
+			# RR interval consideration
 			RRdelay = RR  - dur(bssfp) - dur(t2p) - dur(fatsat)
 	        seq += sample ? ADC(80, RRdelay) : Delay(RRdelay)
 	    end
 	    return seq
 	end
-	
+
 	md"""- `CMRA` (show/hide code)
-	
+
 	```julia
 	# Seq init
 	seq = Sequence()
@@ -249,7 +249,7 @@ begin
 		seq += t2p
 		seq += fatsat
 		seq += bssfp
-		# RR interval consideration 
+		# RR interval consideration
 		RRdelay = RR  - dur(bssfp) - dur(t2p) - dur(fatsat)
 		seq += Delay(RRdelay)
 	end
@@ -259,9 +259,9 @@ end
 # ╔═╡ f57a2b6c-eb4c-45bd-8058-4a60b038925d
 begin
 	function cardiac_phantom(off; off_fat=fat_freq)
-	    myocard = Phantom{Float64}(x=dx, ρ=0.6*ones(Niso), T1=701e-3*ones(Niso),  
+	    myocard = Phantom{Float64}(x=dx, ρ=0.6*ones(Niso), T1=701e-3*ones(Niso),
 	                               T2=58e-3*ones(Niso),    Δw=2π*off*ones(Niso))
-	    blood =   Phantom{Float64}(x=dx, ρ=0.7*ones(Niso), T1=1122e-3*ones(Niso), 
+	    blood =   Phantom{Float64}(x=dx, ρ=0.7*ones(Niso), T1=1122e-3*ones(Niso),
 	                               T2=263e-3*ones(Niso),   Δw=2π*off*ones(Niso))
 	    fat1 =    Phantom{Float64}(x=dx, ρ=1.0*ones(Niso), T1=183e-3*ones(Niso),
 	                               T2=93e-3*ones(Niso),    Δw=2π*(off_fat + off)*ones(Niso))
@@ -276,7 +276,7 @@ end
 # ╔═╡ f21e9e59-25c3-4f06-8de4-792cb305eb01
 md"""# 2. Simulation
 
-Two simulation experiments were performed to optimize the sequence parameters, (1) to optimize the imaging flip angle, and (2) to optimize the FatSat flip angle. 
+Two simulation experiments were performed to optimize the sequence parameters, (1) to optimize the imaging flip angle, and (2) to optimize the FatSat flip angle.
 
 """
 
@@ -312,16 +312,16 @@ plot_seq(seq; show_adc=true, range=[2900, 3325], slider=true)
 begin
 	phantom_T1 = plot(
 		scatter(
-			x=obj.x * 1e3, 
-			y=obj.T1 * 1e3, 
+			x=obj.x * 1e3,
+			y=obj.T1 * 1e3,
 			mode="markers",
 			marker=attr(;
-				color=obj.T1 * 1e3, 
+				color=obj.T1 * 1e3,
 				colorscale=[
 					[0.0, "black"],
 					[183.0/maximum(obj.T1 .* 1e3), "green"],
-					[701.0/maximum(obj.T1 .* 1e3), "blue"], 
-					[1122.0/maximum(obj.T1 .* 1e3), "red"], 			
+					[701.0/maximum(obj.T1 .* 1e3), "blue"],
+					[1122.0/maximum(obj.T1 .* 1e3), "red"],
 				],
 				cmin=0.0,
 				cmax=1122.0,
@@ -345,16 +345,16 @@ begin
 	)
 	phantom_T2 = plot(
 		scatter(
-			x=obj.x * 1e3, 
-			y=obj.T2 * 1e3, 
+			x=obj.x * 1e3,
+			y=obj.T2 * 1e3,
 			mode="markers",
 			marker=attr(;
-				color=obj.T2 * 1e3, 
+				color=obj.T2 * 1e3,
 				colorscale=[
 					[0.0, "black"],
 					[58.0/maximum(obj.T2 .* 1e3), "blue"],
 					[93.0/maximum(obj.T2 .* 1e3), "green"],
-					[263.0/maximum(obj.T2 .* 1e3), "red"], 			
+					[263.0/maximum(obj.T2 .* 1e3), "red"],
 				],
 				cmin=0.0,
 				cmax=263.0,
@@ -391,31 +391,31 @@ begin
 
     # Plot
     p0 = make_subplots(
-		rows=2, 
-		cols=1, 
-		subplot_titles=["Mxy" "Mz" "Sequence"], 
-		shared_xaxes=true, 
+		rows=2,
+		cols=1,
+		subplot_titles=["Mxy" "Mz" "Sequence"],
+		shared_xaxes=true,
 		vertical_spacing=0.1
 	)
     for i=eachindex(spin_group)
         p1 = scatter(
-			x=t, y=Mxy(i), 
-			name=labs[i], 
-			legendgroup=labs[i], 
+			x=t, y=Mxy(i),
+			name=labs[i],
+			legendgroup=labs[i],
 			marker_color=cols[i]
 		)
         p2 = scatter(
-			x=t, 
-			y=Mz(i), 
-			name=labs[i], 
-			legendgroup=labs[i], 
-			showlegend=false, 
+			x=t,
+			y=Mz(i),
+			name=labs[i],
+			legendgroup=labs[i],
+			showlegend=false,
 			marker_color=cols[i]
 		)
         add_trace!(p0, p1, row=1, col=1)
         add_trace!(p0, p2, row=2, col=1)
     end
-	relayout!(p0, 
+	relayout!(p0,
 		yaxis_range=[0, 0.4],
 		xaxis_range=[RR*dummy_heart_beats, RR*dummy_heart_beats+.250]
 	)
@@ -548,7 +548,7 @@ begin
 		name="|Blood-Myoc|",legendgroup="|Blood-Myoc|",
 		showlegend=false,
 		fill="toself",
-		fillcolor="rgba(255,0,255,0.2)", 
+		fillcolor="rgba(255,0,255,0.2)",
 		line=attr(color="rgba(0,0,0,0)"),
 		hoverinfo="none"
 	)
@@ -702,7 +702,7 @@ md"""# References
 # ╔═╡ abea2c43-d83e-4438-8cd3-4be06b8174b3
 md"""# Reproducibility
 
-This [Pluto notebook](https://plutojl.org/) it is reproducible by defaults, as it has an embedded `Project.toml` and `Manifest.toml`, that store the exact package versions used to create this notebook.""" 
+This [Pluto notebook](https://plutojl.org/) is reproducible by default, as it has an embedded `Project.toml` and `Manifest.toml`, that store the exact package versions used to create the notebook."""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
