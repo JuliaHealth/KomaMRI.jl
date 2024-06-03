@@ -7,5 +7,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 'Format'
-        uses: julia-actions/julia-format@v2
+        uses: julia-actions/julia-format@v3
         if: ${{ failure() && contains( github.event.pull_request.labels.*.name, 'format-suggest' ) }}
