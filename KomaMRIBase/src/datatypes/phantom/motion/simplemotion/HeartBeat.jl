@@ -5,14 +5,19 @@ HeartBeat struct. It produces a heartbeat-like motion, characterised by three ty
 Circumferential, Radial and Longitudinal
 
 # Arguments
-- `circumferential_strain`: (`::Real`, `=-0.3`) contraction parameter
-- `radial_strain`: (`::Real`, `=-0.3`) contraction parameter
-- `longitudinal_strain`: (`::Real`, `=1`) contraction parameter
+- `circumferential_strain`: (`::Real`) contraction parameter
+- `radial_strain`: (`::Real`) contraction parameter
+- `longitudinal_strain`: (`::Real`) contraction parameter
 - `t_start`: (`::Real`, `[s]`) initial time 
 - `t_end`: (`::Real`, `[s]`) final time 
 
 # Returns
 - `heartbeat`: (`::HeartBeat`) HeartBeat struct
+
+# Examples
+```julia-repl
+julia> hb = HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudinal_strain=0.0, t_start=0.2, t_end=0.5)
+```
 """
 @with_kw struct HeartBeat{T<:Real} <: SimpleMotionType{T}
     circumferential_strain :: T
