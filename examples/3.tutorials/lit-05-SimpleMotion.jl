@@ -84,7 +84,7 @@ p3 = KomaMRIPlots.plot( # hide
         xaxis_title = "time (s)", # hide
         yaxis_title = "Displacement (cm)" # hide
     )) # hide
-KomaMRIPlots.restyle!(p3,1:3, name=["Δx", "Δy", "Δz"]) # hide
+KomaMRIPlots.restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) # hide
 
 #md savefig(p3, "../assets/5-displacements.html") # hide
 #jl display(p3)
