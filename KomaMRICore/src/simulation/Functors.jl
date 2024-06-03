@@ -2,10 +2,9 @@ import Adapt: adapt, adapt_storage
 import Functors: @functor, functor, fmap, isleaf
 
 #Aux. funcitons to check if the variable we want to convert to CuArray is numeric
-_isleaf(x) = Functors.isleaf(x)
+_isleaf(x) = isleaf(x)
 _isleaf(::AbstractArray{<:Number}) = true
 _isleaf(::AbstractArray{T}) where T = isbitstype(T)
-_isleaf(::AbstractRNG) = true
 
 """
 	gpu(x)
@@ -40,7 +39,7 @@ See also [`gpu`](@ref).
 x = x |> cpu
 ```
 """
-cpu(x) = KA.get_backend(x) isa KA.CPU ? x : fmap(x -> adapt(KA.CPU(), x), x, exclude=_isleaf)
+cpu(x) = fmap(x -> adapt(KA.CPU(), x), x, exclude=_isleaf)
 
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)

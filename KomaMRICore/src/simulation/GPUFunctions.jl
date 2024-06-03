@@ -34,9 +34,10 @@ function get_backend(use_gpu::Bool)
 
     if isempty(LOADED_BACKENDS[])
         @info """ 
-        The GPU functionality is being called but a GPU backend must be loaded
-        to access it. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your code.
-        Defaulting back to the CPU. (No action is required if you want to run on the CPU).
+          The GPU functionality is being called but no GPU backend is loaded 
+          to access it. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your 
+          code. Defaulting back to the CPU. (No action is required if you want
+          to run on the CPU).
         """ maxlog=1
         BACKEND[] = KA.CPU()
         return BACKEND[]
@@ -56,16 +57,16 @@ function get_backend(use_gpu::Bool)
         @info """Using  backend: '$name(BACKEND[])'"""  maxlog = 1
         return BACKEND[]
     elseif length(functional_gpu_backends) == 0
-        @info """ Defaulting back to the CPU. (No action is required if you want to run on the CPU). """ maxlog = 1
+        @info """Defaulting back to the CPU. (No action is required if you want to run on the CPU). """ maxlog = 1
         BACKEND[] = KA.CPU()
         return BACKEND[]
     else
         # Will probably never get here
         @info """
-        Multiple functional backends have been loaded and KomaMRI does not know which one
-        to use. Ensure that your code contains only one 'using' statement for the GPU backend
-        you wish to use. Defaulting back to the CPU. (No action is required if you want to run 
-        on the CPU).
+          Multiple functional backends have been loaded and KomaMRI does not 
+          know which one to use. Ensure that your code contains only one 'using' 
+          statement for the GPU backend you wish to use. Defaulting back to the 
+          CPU. (No action is required if you want to run on the CPU).
         """ maxlog = 1
         BACKEND[] = KA.CPU()
         return BACKEND[]
