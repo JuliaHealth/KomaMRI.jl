@@ -41,7 +41,7 @@ p3 = KomaMRIPlots.plot( # hide
         xaxis_title = "time (s)", # hide
         yaxis_title = "Displacement (cm)" # hide
     )) # hide
-KomaMRIPlots.restyle!(p3,1:3, name=["Δx", "Δy", "Δz"]) # hide
+KomaMRIPlots.restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) # hide
 
 display(p3)
 
