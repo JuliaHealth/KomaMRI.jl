@@ -78,9 +78,7 @@ Base.:(≈)(obj1::Phantom, obj2::Phantom)      = reduce(&, [getfield(obj1, field
 Base.:(==)(m1::MotionModel, m2::MotionModel) = false
 Base.:(≈)(m1::MotionModel, m2::MotionModel)  = false
 
-"""
-Separate object spins in a sub-group
-"""
+"""Separate object spins in a sub-group"""
 Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
     fields = []
     for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
@@ -110,9 +108,7 @@ end
     return obj1
 end
 
-"""
-dims = get_dims(obj)
-"""
+"""dims = get_dims(obj)"""
 function get_dims(obj::Phantom)
     dims = Bool[]
     push!(dims, any(x -> x != 0, obj.x))
@@ -128,7 +124,7 @@ end
 """
     obj = heart_phantom(...)
 
-Heart-like LV phantom. The variable `circumferential_strain` and `radial_strain` are for streching (if positive) 
+Heart-like LV 2D phantom. The variable `circumferential_strain` and `radial_strain` are for streching (if positive) 
 or contraction (if negative). `rotation_angle` is for rotation.
 
 # Arguments

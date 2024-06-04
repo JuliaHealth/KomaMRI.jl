@@ -11,6 +11,7 @@ Scanner
 ```
 
 ## `Phantom`-related functions 
+
 ```@docs
 Phantom
 brain_phantom2D
@@ -19,7 +20,8 @@ pelvis_phantom2D
 heart_phantom
 ```
 
-### `MotionModel`
+### `MotionModel`-related functions
+
 ```@docs
 get_spin_coords
 ```
@@ -28,6 +30,11 @@ get_spin_coords
 
 ```@docs
 SimpleMotion
+```
+
+### `SimpleMotion types`
+
+```@docs
 Translation
 Rotation
 HeartBeat
