@@ -5,6 +5,7 @@ import Functors: @functor, functor, fmap, isleaf
 _isleaf(x) = isleaf(x)
 _isleaf(::AbstractArray{<:Number}) = true
 _isleaf(::AbstractArray{T}) where T = isbitstype(T)
+_isleaf(::AbstractRange) = true
 
 """
 	gpu(x)

@@ -333,7 +333,9 @@ function simulate(
     Ndims = sim_output_dim(obj, seq, sys, sim_params["sim_method"])
     sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
     backend = get_backend(sim_params["gpu"])
+    sim_params["gpu"] &= backend isa KA.GPU
     if !KA.supports_float64(backend) && sim_params["precision"] == "f64"
+        sim_params[precision] = "f32"
         @info """ Backend: '$(name(backend))' does not support 64-bit precision 
         floating point operations. Automatically converting to type Float32.
         (set sim_param["precision"] = "f32" to avoid seeing this message).
@@ -392,6 +394,7 @@ function simulate(
         sim_params_raw = copy(sim_params)
         sim_params_raw["sim_method"] = string(sim_params["sim_method"])
         sim_params_raw["gpu"] = sim_params["gpu"]
+        sim_params_raw["gpu_device"] = backend isa KA.GPU ? gpu_name : "nothing"
         sim_params_raw["Nthreads"] = sim_params["Nthreads"]
         sim_params_raw["t_sim_parts"] = t_sim_parts
         sim_params_raw["type_sim_parts"] = excitation_bool
