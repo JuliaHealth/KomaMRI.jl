@@ -6,13 +6,25 @@ is_composable(motion_type::SimpleMotionType{T}) where {T<:Real} = false
 """
     motion = SimpleMotion(types)
 
-SimpleMotion model
+SimpleMotion model. It allows for the definition of motion by means of simple parameters.
+The `SimpleMotion` struct is composed by only one field, called `types`, 
+which is a vector of simple motion types. This vector will contain as many elements
+as simple motions we want to combine.
 
 # Arguments
 - `types`: (`::Vector{<:SimpleMotionType{T}}`) vector of simple motion types
 
 # Returns
 - `motion`: (`::SimpleMotion`) SimpleMotion struct
+
+# Examples
+```julia-repl
+julia> motion = SimpleMotion([
+            Translation(dx=0.01, dy=0.02, dz=0.0, t_start=0.0, t_end=0.5),
+            Rotation(pitch=15.0, roll=0.0, yaw=20.0, t_start=0.1, t_end=0.5),
+            HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudinal_strain=0.0, t_start=0.2, t_end=0.5)
+        ])
+```
 """
 struct SimpleMotion{T<:Real} <: MotionModel{T}
     types::Vector{<:SimpleMotionType{T}}
@@ -39,9 +51,10 @@ Base.:(==)(t1::SimpleMotionType, t2::SimpleMotionType) = false
 Base.:(≈)(t1::SimpleMotionType, t2::SimpleMotionType)  = false
 
 """
-    x, y, z = het_spin_coords(motion, x, y, z, t')
+    x, y, z = get_spin_coords(motion, x, y, z, t)
 
 Calculates the position of each spin at a set of arbitrary time instants, i.e. the time steps of the simulation. 
+For each dimension (x, y, z), the output matrix has ``N_{\text{spins}}`` rows and `length(t)` columns.
 
 # Arguments
 - `motion`: (`::MotionModel`) phantom motion
@@ -51,7 +64,7 @@ Calculates the position of each spin at a set of arbitrary time instants, i.e. t
 - `t`: (`::AbstractArray{T<:Real}`) horizontal array of time instants
 
 # Returns
-- `z, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
+- `x, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
 """
 function get_spin_coords(
     motion::SimpleMotion{T},

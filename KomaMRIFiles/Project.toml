@@ -19,6 +19,7 @@ Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
 [compat]
 FileIO = "1"
 HDF5 = "0.16, 0.17"
+InteractiveUtils = "1"
 KomaMRIBase = "0.8"
 MAT = "0.10"
 MD5 = "0.2"

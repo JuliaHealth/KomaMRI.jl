@@ -11,9 +11,37 @@ const LinearInterpolator = Interpolations.Extrapolation{
 } where {T<:Real,V<:AbstractVector{T}}
 
 """
-Arbitrary Motion
+    motion = ArbitraryMotion(period_durations, dx, dy, dz)
 
-x = x + ux
+ArbitraryMotion model. For this motion model, it is necessary to define 
+motion for each spin independently, in x (`dx`), y (`dy`) and z (`dz`).
+`dx`, `dy` and `dz` are three matrixes, of (``N_{spins}`` x ``N_{discrete\\,times}``) each.
+This means that each row corresponds to a spin trajectory over a set of discrete time instants.
+`period_durations` is a vector that contains the period for periodic (one element) or 
+pseudo-periodic (two or more elements) motion.
+The discrete time instants are calculated diving `period_durations` by ``N_{discrete\\,times}``.
+
+This motion model is useful for defining arbitrarly complex motion, specially
+for importing the spin trajectories from another source, like XCAT or a CFD.
+
+# Arguments
+- `period_durations`: (`Vector{T}`) 
+- `dx`: (`::Array{T,2}`) matrix for displacements in x
+- `dy`: (`::Array{T,2}`) matrix for displacements in y
+- `dz`: (`::Array{T,2}`) matrix for displacements in z
+
+# Returns
+- `motion`: (`::ArbitraryMotion`) ArbitraryMotion struct
+
+# Examples
+```julia-repl
+julia> motion = ArbitraryMotion(
+            [1.0], 
+            0.01.*rand(1000, 10), 
+            0.01.*rand(1000, 10), 
+            0.01.*rand(1000, 10)
+        )
+```
 """
 struct ArbitraryMotion{T<:Real,V<:AbstractVector{T}} <: MotionModel{T}
     period_durations::Vector{T}
@@ -27,27 +55,27 @@ end
 
 function ArbitraryMotion(
     period_durations::AbstractVector{T},
-    Δx::AbstractArray{T,2},
-    Δy::AbstractArray{T,2},
-    Δz::AbstractArray{T,2},
+    dx::AbstractArray{T,2},
+    dy::AbstractArray{T,2},
+    dz::AbstractArray{T,2},
 ) where {T<:Real}
     @warn "Note that ArbitraryMotion is under development so it is not optimized so far" maxlog = 1
-    Ns = size(Δx)[1]
-    num_pieces = size(Δx)[2] + 1
+    Ns = size(dx)[1]
+    num_pieces = size(dx)[2] + 1
     limits = times(period_durations, num_pieces)
 
     #! format: off
     Δ = zeros(Ns,length(limits),4)
-    Δ[:,:,1] = hcat(repeat(hcat(zeros(Ns,1),Δx),1,length(period_durations)),zeros(Ns,1))
-    Δ[:,:,2] = hcat(repeat(hcat(zeros(Ns,1),Δy),1,length(period_durations)),zeros(Ns,1))
-    Δ[:,:,3] = hcat(repeat(hcat(zeros(Ns,1),Δz),1,length(period_durations)),zeros(Ns,1))
+    Δ[:,:,1] = hcat(repeat(hcat(zeros(Ns,1),dx),1,length(period_durations)),zeros(Ns,1))
+    Δ[:,:,2] = hcat(repeat(hcat(zeros(Ns,1),dy),1,length(period_durations)),zeros(Ns,1))
+    Δ[:,:,3] = hcat(repeat(hcat(zeros(Ns,1),dz),1,length(period_durations)),zeros(Ns,1))
    
     etpx = [extrapolate(interpolate((limits,), Δ[i,:,1], Gridded(Linear())), Periodic()) for i in 1:Ns]
     etpy = [extrapolate(interpolate((limits,), Δ[i,:,2], Gridded(Linear())), Periodic()) for i in 1:Ns]
     etpz = [extrapolate(interpolate((limits,), Δ[i,:,3], Gridded(Linear())), Periodic()) for i in 1:Ns]
     #! format: on
 
-    return ArbitraryMotion(period_durations, Δx, Δy, Δz, etpx, etpy, etpz)
+    return ArbitraryMotion(period_durations, dx, dy, dz, etpx, etpy, etpz)
 end
 
 function Base.getindex(
