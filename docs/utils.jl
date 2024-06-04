@@ -25,6 +25,7 @@ function _link_example(filename)
 
         #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename.jl)
         #md # [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename.ipynb)
+        #md # [![](https://mybinder.org/badge_logo.svg)](@__BINDER_ROOT_URL__/$filename.ipynb)
 
         """
         return replace(content, line => badges * line)
