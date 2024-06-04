@@ -24,9 +24,37 @@ const Interpolator = Interpolations.Extrapolation{
 }
 
 """
-Arbitrary Motion
+    motion = ArbitraryMotion(period_durations, dx, dy, dz)
 
-x = x + ux
+ArbitraryMotion model. For this motion model, it is necessary to define 
+motion for each spin independently, in x (`dx`), y (`dy`) and z (`dz`).
+`dx`, `dy` and `dz` are three matrixes, of (``N_{spins}`` x ``N_{discrete\\,times}``) each.
+This means that each row corresponds to a spin trajectory over a set of discrete time instants.
+`period_durations` is a vector that contains the period for periodic (one element) or 
+pseudo-periodic (two or more elements) motion.
+The discrete time instants are calculated diving `period_durations` by ``N_{discrete\\,times}``.
+
+This motion model is useful for defining arbitrarly complex motion, specially
+for importing the spin trajectories from another source, like XCAT or a CFD.
+
+# Arguments
+- `period_durations`: (`Vector{T}`) 
+- `dx`: (`::Array{T,2}`) matrix for displacements in x
+- `dy`: (`::Array{T,2}`) matrix for displacements in y
+- `dz`: (`::Array{T,2}`) matrix for displacements in z
+
+# Returns
+- `motion`: (`::ArbitraryMotion`) ArbitraryMotion struct
+
+# Examples
+```julia-repl
+julia> motion = ArbitraryMotion(
+            [1.0], 
+            0.01.*rand(1000, 10), 
+            0.01.*rand(1000, 10), 
+            0.01.*rand(1000, 10)
+        )
+```
 """
 struct ArbitraryMotion{T} <: MotionModel{T}
     period_durations::Vector{T}

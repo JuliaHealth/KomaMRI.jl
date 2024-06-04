@@ -5,9 +5,9 @@ HeartBeat struct. It produces a heartbeat-like motion, characterised by three ty
 Circumferential, Radial and Longitudinal
 
 # Arguments
-- `circumferential_strain`: (`::Real`, `=-0.3`) contraction parameter
-- `radial_strain`: (`::Real`, `=-0.3`) contraction parameter
-- `longitudinal_strain`: (`::Real`, `=1`) contraction parameter
+- `circumferential_strain`: (`::Real`) contraction parameter
+- `radial_strain`: (`::Real`) contraction parameter
+- `longitudinal_strain`: (`::Real`) contraction parameter
 - `period`: (`::Real`, `[s]`) period 
 - `asymmetry`: (`::Real`)  asymmetry factor, between 0 and 1
 
