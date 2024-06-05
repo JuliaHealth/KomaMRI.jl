@@ -1,11 +1,9 @@
 [deps]
-KomaMRI = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 PlutoPlotly = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
-KomaMRI = "0.8"
 Pluto = "0.19"
 PlutoPlotly = "0.4"
 PlutoUI = "0.7"
