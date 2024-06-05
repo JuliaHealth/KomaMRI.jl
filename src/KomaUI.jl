@@ -61,8 +61,8 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     mat_folder = tempdir()
 
     # Print gpu information
-    if (haskey(sim_params, "gpu") && sim_params["gpu"] != false)
-        KomaMRICore.print_gpus()
+    if !(haskey(sim_params, "gpu") && sim_params["gpu"] == false)
+        KomaMRICore.print_devices()
     end
 
     # Boleans to indicate first time for precompilation

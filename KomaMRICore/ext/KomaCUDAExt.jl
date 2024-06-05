@@ -1,14 +1,14 @@
 module KomaCUDAExt
 
 using CUDA
-using KomaMRICore
+import KomaMRICore
 
-name(::CUDABackend) = "CUDA"
-isfunctional(::CUDABackend) = CUDA.functional()
-set_device!(::CUDABackend, val) = CUDA.device!(val)
-gpu_name(::CUDABackend) = CUDA.name(CUDA.device())
+KomaMRICore.name(::CUDABackend) = "CUDA"
+KomaMRICore.isfunctional(::CUDABackend) = CUDA.functional()
+KomaMRICore.set_device!(::CUDABackend, val) = CUDA.device!(val)
+KomaMRICore.device_name(::CUDABackend) = CUDA.name(CUDA.device())
 
-function print_gpus(::CUDABackend)
+function KomaMRICore.print_devices(::CUDABackend)
     devices = [
         Symbol("($(i-1)$(i == 1 ? "*" : " "))") => CUDA.name(d) for
         (i, d) in enumerate(CUDA.devices())

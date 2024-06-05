@@ -1,12 +1,12 @@
 const LOADED_BACKENDS = Ref{Vector{KA.GPU}}([])
 const BACKEND = Ref{Union{KA.Backend,Nothing}}(nothing)
 
-name(::KA.CPU) = "CPU"
+device_name(backend) = @error "device_name called with invalid backend type $(typeof(backend))"
 isfunctional(::KA.CPU) = true
 isfunctional(x) = false
+print_devices(backend) = @error "print_devices called with invalid backend type $(typeof(backend))"
+name(::KA.CPU) = "CPU"
 set_device!(backend, val) = @error "set_device! called with invalid parameter types: '$(typeof(backend))', '$(typeof(val))'" 
-gpu_name(backend) = @error "gpu_name called with invalid backend type $(typeof(backend))"
-print_gpus(backend) = @error "print_gpus called with invalid backend type $(typeof(backend))"
 
 """
     get_backend(use_gpu)
@@ -54,7 +54,7 @@ function get_backend(use_gpu::Bool)
     
     if length(functional_gpu_backends) == 1
         BACKEND[] = functional_gpu_backends[1]
-        @info """Using  backend: '$name(BACKEND[])'"""  maxlog = 1
+        @info """Using  backend: '$(name(BACKEND[]))'"""  maxlog = 1
         return BACKEND[]
     elseif length(functional_gpu_backends) == 0
         @info """Defaulting back to the CPU. (No action is required if you want to run on the CPU). """ maxlog = 1
@@ -74,11 +74,11 @@ function get_backend(use_gpu::Bool)
 end
 
 """
-    print_gpus()
+    print_devices()
 
 Simple function to print available GPU devices 
 """
-function print_gpus()
+function print_devices()
     backend = get_backend(true)
-    backend isa KA.GPU && print_gpus(backend)
+    backend isa KA.GPU && print_devices(backend)
 end

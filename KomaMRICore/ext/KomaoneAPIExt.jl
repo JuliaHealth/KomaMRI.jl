@@ -1,14 +1,14 @@
 module KomaoneAPIExt
 
 using oneAPI
-using KomaMRICore
+import KomaMRICore
 
-name(::oneAPIBackend) = "oneAPI"
-isfunctional(::oneAPIBackend) = oneAPI.functional()
-set_device(::oneAPIBackend, val) = oneAPI.device!(val)
-gpu_name(::oneAPIBackend) = oneAPI.properties(oneAPI.device()).name
+KomaMRICore.name(::oneAPIBackend) = "oneAPI"
+KomaMRICore.isfunctional(::oneAPIBackend) = oneAPI.functional()
+KomaMRICore.set_device!(::oneAPIBackend, val) = oneAPI.device!(val)
+KomaMRICore.device_name(::oneAPIBackend) = oneAPI.properties(oneAPI.device()).name
 
-function print_gpus(::oneAPIBackend)
+function KomaMRICore.print_devices(::oneAPIBackend)
     devices = [
         Symbol("($(i-1)$(i == 1 ? "*" : " "))") => oneAPI.properties(d).name for
         (i, d) in enumerate(oneAPI.devices())

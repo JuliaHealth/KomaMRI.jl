@@ -1,16 +1,16 @@
 module KomaMetalExt
 
 using Metal
-using KomaMRICore
+import KomaMRICore
 
-name(::MetalBackend) = "Metal"
-isfunctional(::MetalBackend) = Metal.functional()
-set_device!(::MetalBackend, device_index::Integer) = device_index == 1 || @warn "Metal does not support multiple gpu devices. Ignoring the device setting."
-set_device!(::MetalBackend, dev::Metal.MTLDevice) = Metal.device!(dev)
-gpu_name(::MetalBackend) = String(Metal.current_device().name)
+KomaMRICore.name(::MetalBackend) = "Metal"
+KomaMRICore.isfunctional(::MetalBackend) = Metal.functional()
+KomaMRICore.set_device!(::MetalBackend, device_index::Integer) = device_index == 1 || @warn "Metal does not support multiple gpu devices. Ignoring the device setting."
+KomaMRICore.set_device!(::MetalBackend, dev::Metal.MTLDevice) = Metal.device!(dev)
+KomaMRICore.device_name(::MetalBackend) = String(Metal.current_device().name)
 
-function print_gpus(::MetalBackend)
-    @info "Metal device type: $gpu_name(::MetalBackend)"
+function KomaMRICore.print_devices(::MetalBackend)
+    @info "Metal device type: $(KomaMRICore.device_name(MetalBackend()))"
 end
 
 function __init__()
