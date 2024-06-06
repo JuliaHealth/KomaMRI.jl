@@ -19,7 +19,7 @@ block. This struct serves as an input for the simulation.
 - `DUR`: (`::Vector`, `[s]`) duration block vector
 - `DEF`: (`::Dict{String, Any}`) dictionary with relevant information of the sequence.
     Possible keys could be [`"GradientRasterTime"`, `"RadiofrequencyRasterTime"`, `"AdcRasterTime"`,
-    `"BlockDurationRaster"`, `"Name"`, `"FOV"`, `"TE"`, `"TR'", `"TotalDuration"`, `"Num_Blocks"`,
+    `"BlockDurationRaster"`, `"Name"`, `"FOV"`, `"TE"`, `"TR"`, `"TotalDuration"`, `"Num_Blocks"`,
     `"Nx"`, `"Ny"`, `"Nz"`, `"PulseqVersion"`, `"FileName"`]
 
 # Returns
