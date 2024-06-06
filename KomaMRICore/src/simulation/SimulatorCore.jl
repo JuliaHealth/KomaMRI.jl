@@ -182,7 +182,6 @@ function run_sim_time_iter!(
         seq_block = @view seq[p]
         # Params
         # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
-        println(seq_block.ADC)
         Nadc = sum(seq_block.ADC)
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
