@@ -25,7 +25,7 @@ include("simulation/SimulatorCore.jl")
 export signal_to_raw_data
 # Simulator
 export Mag
-export simulate, simulate_slice_profile
+export simulate, simulate_slice_profile, default_sim_params
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 
