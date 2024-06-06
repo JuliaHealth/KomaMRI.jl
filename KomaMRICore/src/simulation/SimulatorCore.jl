@@ -182,6 +182,7 @@ function run_sim_time_iter!(
         seq_block = @view seq[p]
         # Params
         # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
+        println(seq_block.ADC)
         Nadc = sum(seq_block.ADC)
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
@@ -356,7 +357,7 @@ function simulate(
     # Objects to GPU
     if backend isa KA.GPU
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
-        device_name = device_name(backend)
+        gpu_name = device_name(backend)
         obj = gpu(obj, backend) #Phantom
         seqd = gpu(seqd, backend) #DiscreteSequence
         Xt = gpu(Xt, backend) #SpinStateRepresentation
@@ -364,7 +365,7 @@ function simulate(
     end
 
     # Simulation
-    @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($device_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
+    @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
         __VERSION__ sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
         seqd.t
     ) adc_points = Ndims[1]
@@ -394,7 +395,7 @@ function simulate(
         sim_params_raw = copy(sim_params)
         sim_params_raw["sim_method"] = string(sim_params["sim_method"])
         sim_params_raw["gpu"] = sim_params["gpu"]
-        sim_params_raw["gpu_device"] = backend isa KA.GPU ? device_name : "nothing"
+        sim_params_raw["gpu_device"] = backend isa KA.GPU ? gpu_name : "nothing"
         sim_params_raw["Nthreads"] = sim_params["Nthreads"]
         sim_params_raw["t_sim_parts"] = t_sim_parts
         sim_params_raw["type_sim_parts"] = excitation_bool
