@@ -89,6 +89,7 @@ function signal_to_raw_data(
     Nx = get(seq.DEF, "Nx", 1)
     Ny = get(seq.DEF, "Ny", 1)
     Nz = get(seq.DEF, "Nz", 1)
+    Ns = get(seq.DEF, "Ns", 1) # number of slices or slabs
     Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
     if ndims != Nd_seq; @warn("Seqfile is $Nd_seq dimensional but recon is $ndims."); end
     if haskey(seq.DEF, "FOV")
@@ -130,17 +131,17 @@ function signal_to_raw_data(
         # "trajectoryDescription"          => Dict{String, Any}("comment"=>""), #You can put wathever you want here: comment, bandwidth, MaxGradient_G_per_cm, MaxSlewRate_G_per_cm_per_s, interleaves, etc
         #encoding
         #   encodedSpace
-        "encodedSize"                    => [Nx, Ny, Nz],                        #encodedSpace>matrixSize
+        "encodedSize"                    => [Nx, Ny, Nz],                       #encodedSpace>matrixSize
         "encodedFOV"                     => Float32.([FOVx, FOVy, FOVz]*1e3),   #encodedSpace>fieldOfView_mm
         #   reconSpace
-        "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, Nz+Nz%2],              #reconSpace>matrixSize
+        "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, Nz+Nz%2],        #reconSpace>matrixSize
         "reconFOV"                       => Float32.([FOVx, FOVy, FOVz]*1e3),   #reconSpace>fieldOfView_mm
         #encodingLimits
         "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
         "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
         "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)),  #min, max, center, e.g. partition encoding number
         "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, 0, 0),                     #min, max, center, e.g. imaging slice number
+        "enc_lim_slice"                  => Limit(0, Ns-1, ceil(Int, Ns / 2)),  #min, max, center, e.g. imaging slice number
         "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
         "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
         "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
@@ -160,8 +161,10 @@ function signal_to_raw_data(
     profiles = Profile[]
     t_acq = get_adc_sampling_times(seq)
     Nadcs = sum(is_ADC_on.(seq))
-    NadcsPerImage = floor(Int, Nadcs / Nz)
+    NadcsPerSlice = floor(Int, Nadcs / Ns)
+    NadcsPerPE1 = floor(Int, Nadcs / Nz)
     scan_counter = 0
+    ns = 0
     nz = 0
     current = 1
     for s = seq #Iterate over sequence blocks
@@ -202,9 +205,9 @@ function signal_to_raw_data(
                 Float32.((0, 0, 0)), #patient_table_position float32x3: Patient table off-center
                 EncodingCounters( #idx uint16x17: Encoding loop counters
                     UInt16(scan_counter), #kspace_encode_step_1 uint16: e.g. phase encoding line number
-                    UInt16(0), #kspace_encode_step_2 uint16: e.g. partition encoding number
+                    UInt16(nz), #kspace_encode_step_2 uint16: e.g. partition encoding number
                     UInt16(0), #average uint16: e.g. signal average number
-                    UInt16(nz), #slice uint16: e.g. imaging slice number
+                    UInt16(ns), #slice uint16: e.g. imaging slice number
                     UInt16(0), #contrast uint16: e.g. echo number in multi-echo
                     UInt16(0), #phase uint16: e.g. cardiac phase number
                     UInt16(0), #repetition uint16: e.g. dynamic number for dynamic scanning
@@ -224,8 +227,12 @@ function signal_to_raw_data(
             #Update counters
             scan_counter += 1
             current += Nsamples
-            if scan_counter % NadcsPerImage == 0 #For now only Nz is considered
-                nz += 1 #another image
+            if scan_counter % NadcsPerSlice == 0
+                ns += 1 #another slice
+                scan_counter = 0 #reset counter
+            end
+            if scan_counter % NadcsPerPE1 == 0 #Using Ns for slice number
+                nz += 1 #another kspace_encode_step_2
                 scan_counter = 0 #reset counter
             end
         end
