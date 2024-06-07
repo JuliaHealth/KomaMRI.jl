@@ -229,11 +229,13 @@ function signal_to_raw_data(
             current += Nsamples
             if scan_counter % NadcsPerSlice == 0
                 ns += 1 #another slice
-                scan_counter = 0 #reset counter
-            elseif scan_counter % NadcsPerPE1 == 0 #Using Ns for slice number
-                nz += 1 #another kspace_encode_step_2
-                scan_counter = 0 #reset counter
+                #scan_counter = 0 #reset counter
             end
+            if scan_counter % NadcsPerPE1 == 0 #Using Ns for slice number
+                nz += 1 #another kspace_encode_step_2
+                #scan_counter = 0 #reset counter
+            end
+            # more here for other counters, i.e. dynamic
         end
     end
 
