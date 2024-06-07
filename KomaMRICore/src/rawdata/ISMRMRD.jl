@@ -161,8 +161,8 @@ function signal_to_raw_data(
     profiles = Profile[]
     t_acq = get_adc_sampling_times(seq)
     Nadcs = sum(is_ADC_on.(seq))
-    NadcsPerSlice = floor(Int, Nadcs / Ns)
-    NadcsPerPE1 = floor(Int, Nadcs / Nz)
+    NadcsPerSlice = floor(Int, Nadcs / Ns) +1
+    NadcsPerPE1 = floor(Int, Nadcs / Nz) +1
     scan_counter = 0
     ns = 0
     nz = 0
