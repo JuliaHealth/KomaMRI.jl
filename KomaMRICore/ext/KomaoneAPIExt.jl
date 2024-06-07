@@ -8,7 +8,7 @@ KomaMRICore.isfunctional(::oneAPIBackend) = oneAPI.functional()
 KomaMRICore.set_device!(::oneAPIBackend, val) = oneAPI.device!(val)
 KomaMRICore.device_name(::oneAPIBackend) = oneAPI.properties(oneAPI.device()).name
 
-function KomaMRICore.print_devices(::oneAPIBackend)
+function KomaMRICore._print_devices(::oneAPIBackend)
     devices = [
         Symbol("($(i-1)$(i == 1 ? "*" : " "))") => oneAPI.properties(d).name for
         (i, d) in enumerate(oneAPI.devices())

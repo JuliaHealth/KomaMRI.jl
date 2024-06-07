@@ -8,7 +8,7 @@ KomaMRICore.isfunctional(::CUDABackend) = CUDA.functional()
 KomaMRICore.set_device!(::CUDABackend, val) = CUDA.device!(val)
 KomaMRICore.device_name(::CUDABackend) = CUDA.name(CUDA.device())
 
-function KomaMRICore.print_devices(::CUDABackend)
+function KomaMRICore._print_devices(::CUDABackend)
     devices = [
         Symbol("($(i-1)$(i == 1 ? "*" : " "))") => CUDA.name(d) for
         (i, d) in enumerate(CUDA.devices())

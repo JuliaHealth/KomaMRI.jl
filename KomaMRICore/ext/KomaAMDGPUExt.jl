@@ -9,7 +9,7 @@ KomaMRICore.set_device!(::ROCBackend, dev_idx::Integer) = AMDGPU.device_id!(dev_
 KomaMRICore.set_device!(::ROCBackend, dev::AMDGPU.HIPDevice) = AMDGPU.device!(dev)
 KomaMRICore.device_name(::ROCBackend) = AMDGPU.device().name
 
-function KomaMRICore.print_devices(::ROCBackend)
+function KomaMRICore._print_devices(::ROCBackend)
     devices = [
         Symbol("($(i-1)$(i == 1 ? "*" : " "))") => d.name for
         (i, d) in enumerate(AMDGPU.devices())

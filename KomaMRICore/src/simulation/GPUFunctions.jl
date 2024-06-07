@@ -4,7 +4,8 @@ const BACKEND = Ref{Union{KA.Backend,Nothing}}(nothing)
 device_name(backend) = @error "device_name called with invalid backend type $(typeof(backend))"
 isfunctional(::KA.CPU) = true
 isfunctional(x) = false
-print_devices(backend) = @error "print_devices called with invalid backend type $(typeof(backend))"
+_print_devices(backend) = @error "_print_devices called with invalid backend type $(typeof(backend))"
+_print_devices(::KA.CPU) = @info "CPU: $(length(Sys.cpu_info())) x $(Sys.cpu_info()[1].model)"
 name(::KA.CPU) = "CPU"
 set_device!(backend, val) = @error "set_device! called with invalid parameter types: '$(typeof(backend))', '$(typeof(val))'" 
 
@@ -76,9 +77,16 @@ end
 """
     print_devices()
 
-Simple function to print available GPU devices 
+# Arguments
+- 'use_gpu':  ('::Bool') If true, check for loaded / functional GPU backends and print
+appropriate warnings if no GPU backends have been loaded
+
+Simple function to print available devices. Calls internal get_backend() function to
+get the appropriate GPU / CPU backend and prints device information.
 """
-function print_devices()
-    backend = get_backend(true)
-    backend isa KA.GPU && print_devices(backend)
+function print_devices(use_gpu = true)
+    backend = get_backend(use_gpu)
+    _print_devices(backend)
 end
+
+export print_devices
