@@ -230,8 +230,7 @@ function signal_to_raw_data(
             if scan_counter % NadcsPerSlice == 0
                 ns += 1 #another slice
                 scan_counter = 0 #reset counter
-            end
-            if scan_counter % NadcsPerPE1 == 0 #Using Ns for slice number
+            elseif scan_counter % NadcsPerPE1 == 0 #Using Ns for slice number
                 nz += 1 #another kspace_encode_step_2
                 scan_counter = 0 #reset counter
             end
