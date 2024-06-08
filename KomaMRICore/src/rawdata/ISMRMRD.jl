@@ -43,7 +43,7 @@ const ISMRMRD_ACQ_USER6                               = 1b64 << ( 62 - 1 )
 const ISMRMRD_ACQ_USER7                               = 1b64 << ( 63 - 1 )
 const ISMRMRD_ACQ_USER8                               = 1b64 << ( 64 - 1 )
 """
-    raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params)
+    raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params, ndims)
 
 Transforms the raw signal into a RawAcquisitionData struct (nearly equivalent to the ISMRMRD
 format) used for reconstruction with MRIReco.
@@ -56,6 +56,7 @@ format) used for reconstruction with MRIReco.
 - `phantom_name`: (`::String`, `="Phantom"`) phantom name
 - `sys`: (`::Scanner`, `=Scanner()`) Scanner struct
 - `sim_params`: (`::Dict{String, Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
+- `ndims` : (`::Integer`, `=2`) number of dimensions of the reconstruction
 
 # Returns
 - `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct
@@ -70,15 +71,18 @@ julia> sim_params = KomaMRICore.default_sim_params(); sim_params["return_type"] 
 
 julia> signal = simulate(obj, seq, sys; sim_params)
 
-julia> raw = signal_to_raw_data(signal, seq)
+julia> raw = signal_to_raw_data(signal, seq; ndims=3)
 
 julia> plot_signal(raw)
 ```
 """
 function signal_to_raw_data(
     signal, seq;
-    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=-1,
+    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=0,
 )
+
+    @debug "Something going funny here, making 960 extra profiles for ge3d_cac.seq! *** CAC 240608"
+
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information
@@ -106,7 +110,7 @@ function signal_to_raw_data(
         FOVz = Ny * Δx[3]
     end
     Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
-    if ndims > -1 #just in case ndims is provided in a call
+    if ndims < 0 #just in case ndims is provided in a call
         if ndims != Nd_seq; @warn("Seqfile is $Nd_seq dimensional but .mrd file will be $ndims."); end
     else
         ndims = Nd_seq
@@ -148,11 +152,11 @@ function signal_to_raw_data(
         "reconSize"                      => [Nx, Ny, Nz],                       #reconSpace>matrixSize
         "reconFOV"                       => Float32.([FOVx, FOVy, FOVz]*1e3),   #reconSpace>fieldOfView_mm
         #encodingLimits
-        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)-1),#min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)-1),#min, max, center, e.g. partition encoding number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)-1),#min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)),#min, max, center, e.g. phase encoding line number
+        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)),#min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)),#min, max, center, e.g. partition encoding number
         "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, Ns-1, ceil(Int, Ns / 2)-1),#min, max, center, e.g. imaging slice number
+        "enc_lim_slice"                  => Limit(0, Ns-1, ceil(Int, Ns / 2)),#min, max, center, e.g. imaging slice number
         "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
         "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
         "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
@@ -240,11 +244,11 @@ function signal_to_raw_data(
             current += Nsamples
             if scan_counter % NadcsPerSlice == 0
                 ns += 1 #another slice
-                #scan_counter = 0 #reset counter
+                scan_counter = 0 #reset counter
             end
             if scan_counter % NadcsPerPE1 == 0 #Using Ns for slice number
                 nz += 1 #another kspace_encode_step_2
-                #scan_counter = 0 #reset counter
+                scan_counter = 0 #reset counter
             end
             # more here for other counters, i.e. dynamic
         end
