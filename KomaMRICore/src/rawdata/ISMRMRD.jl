@@ -86,9 +86,10 @@ function signal_to_raw_data(
     maxk = maximum(ktraj, dims=1)
     Wk = maxk .- mink
     idxs_zero = findall(iszero, Wk)  #check for zeros
-    @debug Wk
-    Wk[idxs_zero] .= 1.0 #replace zero elements
+    @debug Wk idxs_zero
+    Wk[idxs_zero] .= 1e6
     Δx = 1 ./ Wk[1:3] #[m] x-y-z
+    @debug "After fixes:" Wk Δx
     Nx = get(seq.DEF, "Nx", 1)
     Ny = get(seq.DEF, "Ny", 1)
     Nz = get(seq.DEF, "Nz", 1)
@@ -102,11 +103,11 @@ function signal_to_raw_data(
         if FOVz > 1 FOVz *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
         Nx = round(Int64, FOVx / Δx[1])
         Ny = round(Int64, FOVy / Δx[2])
-        Nz = round(Int64, FOVy / Δx[3])
+        Nz = round(Int64, FOVy / Δx[3])      
     else
         FOVx = Nx * Δx[1]
         FOVy = Ny * Δx[2]
-        FOVz = Nz * Δx[3]
+        FOVz = Ny * Δx[3]
     end
     #It needs to be transposed for the raw data
     ktraj = maximum(2*abs.(ktraj[:])) == 0 ? transpose(ktraj) : transpose(ktraj)./ maximum(2*abs.(ktraj[:]))
@@ -140,11 +141,11 @@ function signal_to_raw_data(
         "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, Nz+Nz%2],        #reconSpace>matrixSize
         "reconFOV"                       => Float32.([FOVx, FOVy, FOVz]*1e3),   #reconSpace>fieldOfView_mm
         #encodingLimits
-        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)),  #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)-1),  #min, max, center, e.g. phase encoding line number
+        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)-1),  #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)-1),  #min, max, center, e.g. partition encoding number
         "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, Ns-1, ceil(Int, Ns / 2)),  #min, max, center, e.g. imaging slice number
+        "enc_lim_slice"                  => Limit(0, Ns-1, ceil(Int, Ns / 2)-1),  #min, max, center, e.g. imaging slice number
         "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
         "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
         "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
