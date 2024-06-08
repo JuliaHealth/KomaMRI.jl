@@ -111,7 +111,11 @@ function signal_to_raw_data(
     else
         ndims = Nd_seq
     end
-    @info "Creating $ndims dimensional ISMRMRD file ..."   
+    if ndims == 2
+        @info "Creating 2D ISMRMRD file ..."
+    else        
+        @info "Creating 3D ISMRMRD file ..."
+    end  
     #It needs to be transposed for the raw data
     ktraj = maximum(2*abs.(ktraj[:])) == 0 ? transpose(ktraj) : transpose(ktraj)./ maximum(2*abs.(ktraj[:]))
 

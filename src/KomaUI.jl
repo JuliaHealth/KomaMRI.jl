@@ -231,7 +231,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
             @info "Running 2D reconstruction ..."
         else        
             rec_params[:reconSize] = (Nx, Ny, Nz)
-            @info "Running 2D reconstruction ..."
+            @info "Running 3D reconstruction ..."
         end
         rec_aux = @timed reconstruction(acq_data, rec_params)
         image  = reshape(rec_aux.value.data, Nx, Ny, :)
