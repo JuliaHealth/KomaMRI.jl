@@ -77,7 +77,7 @@ julia> plot_signal(raw)
 """
 function signal_to_raw_data(
     signal, seq;
-    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
+    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=-1,
 )
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
     #Number of samples and FOV
@@ -86,16 +86,12 @@ function signal_to_raw_data(
     maxk = maximum(ktraj, dims=1)
     Wk = maxk .- mink
     idxs_zero = findall(iszero, Wk)  #check for zeros
-    @debug Wk idxs_zero
     Wk[idxs_zero] .= 1e6
     Δx = 1 ./ Wk[1:3] #[m] x-y-z
-    @debug "After fixes:" Wk Δx
     Nx = get(seq.DEF, "Nx", 1)
     Ny = get(seq.DEF, "Ny", 1)
     Nz = get(seq.DEF, "Nz", 1)
     Ns = get(seq.DEF, "Ns", 1) # number of slices or slabs
-    Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
-    if ndims != Nd_seq; @warn("Seqfile is $Nd_seq dimensional but recon is $ndims."); end
     if haskey(seq.DEF, "FOV")
         FOVx, FOVy, FOVz = seq.DEF["FOV"] #[m]
         if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
@@ -109,6 +105,13 @@ function signal_to_raw_data(
         FOVy = Ny * Δx[2]
         FOVz = Ny * Δx[3]
     end
+    Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
+    if ndims > -1 #just in case ndims is provided in a call
+        if ndims != Nd_seq; @warn("Seqfile is $Nd_seq dimensional but .mrd file will be $ndims."); end
+    else
+        ndims = Nd_seq
+    end
+    @info "Creating $ndims dimensional ISMRMRD file ..."   
     #It needs to be transposed for the raw data
     ktraj = maximum(2*abs.(ktraj[:])) == 0 ? transpose(ktraj) : transpose(ktraj)./ maximum(2*abs.(ktraj[:]))
 
@@ -138,14 +141,14 @@ function signal_to_raw_data(
         "encodedSize"                    => [Nx, Ny, Nz],                       #encodedSpace>matrixSize
         "encodedFOV"                     => Float32.([FOVx, FOVy, FOVz]*1e3),   #encodedSpace>fieldOfView_mm
         #   reconSpace
-        "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, Nz+Nz%2],        #reconSpace>matrixSize
+        "reconSize"                      => [Nx, Ny, Nz],                       #reconSpace>matrixSize
         "reconFOV"                       => Float32.([FOVx, FOVy, FOVz]*1e3),   #reconSpace>fieldOfView_mm
         #encodingLimits
-        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)-1),  #min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)-1),  #min, max, center, e.g. partition encoding number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)-1),  #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)-1),#min, max, center, e.g. phase encoding line number
+        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)-1),#min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)-1),#min, max, center, e.g. partition encoding number
         "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, Ns-1, ceil(Int, Ns / 2)-1),  #min, max, center, e.g. imaging slice number
+        "enc_lim_slice"                  => Limit(0, Ns-1, ceil(Int, Ns / 2)-1),#min, max, center, e.g. imaging slice number
         "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
         "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
         "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning

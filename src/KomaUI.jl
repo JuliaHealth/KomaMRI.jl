@@ -217,19 +217,24 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
 
         # Get the value of the raw signal and prepare for reconstruction
         raw_aux = raw_ui[]
+        traj_dims = convert(Int32, raw_aux.profiles[1].head.trajectory_dimensions)
         raw_aux.profiles = raw_aux.profiles[getproperty.(getproperty.(raw_aux.profiles, :head), :flags) .!= 268435456] #Extra profile in JEMRIS simulations
         acq_data = AcquisitionData(raw_aux)
         acq_data.traj[1].circular = false #Removing circular window
         acq_data.traj[1].nodes = acq_data.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acq_data.traj[1].nodes[:])) #Normalize k-space to -.5 to .5 for NUFFT
-        Nx, Ny, Nz = raw_aux.params["reconSize"][1:3]
-        rec_params[:reconSize] = (Nx, Ny, Nz)
-        rec_params[:densityWeighting] = true
+        Nx, Ny, Nz = raw_aux.params["reconSize"]
 
         # Perform reconstruction
-        @info "Running reconstruction ..."
+        rec_params[:densityWeighting] = true
+        if traj_dims == 2
+            rec_params[:reconSize] = (Nx, Ny)
+            @info "Running 2D reconstruction ..."
+        else        
+            rec_params[:reconSize] = (Nx, Ny, Nz)
+            @info "Running 2D reconstruction ..."
+        end
         rec_aux = @timed reconstruction(acq_data, rec_params)
         image  = reshape(rec_aux.value.data, Nx, Ny, :)
-
         # After Recon go to Image
         recon_time = rec_aux.time
         @js_ w (document.getElementById("recon!").innerHTML = "Reconstruct!")
