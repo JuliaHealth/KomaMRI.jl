@@ -85,7 +85,10 @@ function signal_to_raw_data(
     mink = minimum(ktraj, dims=1)
     maxk = maximum(ktraj, dims=1)
     Wk = maxk .- mink
-    Δx = 1 ./ Wk[1:3] #[m] Only x-y
+    idxs_zero = findall(iszero, Wk)  #check for zeros
+    @debug Wk
+    Wk[idxs_zero] .= 1.0 #replace zero elements
+    Δx = 1 ./ Wk[1:3] #[m] x-y-z
     Nx = get(seq.DEF, "Nx", 1)
     Ny = get(seq.DEF, "Ny", 1)
     Nz = get(seq.DEF, "Nz", 1)
