@@ -13,6 +13,13 @@ function KomaMRICore._print_devices(::MetalBackend)
     @info "Metal device type: $(KomaMRICore.device_name(MetalBackend()))"
 end
 
+#Temporary workaround for https://github.com/JuliaGPU/Metal.jl/issues/348
+#Once run_spin_excitation! and run_spin_precession! are kernel-based, this code
+#can be removed
+Base.cumsum(x::MtlVector) = convert(MtlVector, cumsum(KomaMRICore.cpu(x)))
+Base.cumsum(x::MtlArray{T}; dims) where T = convert(MtlArray{T}, cumsum(KomaMRICore.cpu(x), dims=dims))
+Base.findall(x::MtlVector{Bool}) = convert(MtlVector, findall(KomaMRICore.cpu(x)))
+
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], MetalBackend())
 end
