@@ -1,7 +1,11 @@
 [deps]
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
 Blink = "ad839575-38b3-5650-b840-f874b8c74a25"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Interact = "c601a237-2ae4-5e1e-952c-7a85b0c7eef1"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
+Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
+oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
 TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
