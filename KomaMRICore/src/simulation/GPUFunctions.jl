@@ -26,7 +26,11 @@ loaded and functional, otherwise KomaMRI will default to using the CPU.
 - 'backend': (::KernelAbstractions.backend) The backend to use
 """
 function get_backend(use_gpu::Bool)
-    if !isnothing(BACKEND[]) return BACKEND[] end
+    if !isnothing(BACKEND[])
+        # The backend can be set and still need to change based on the value of
+        # use_gpu, e.g. if switching between CPU and GPU while running tests
+        ((BACKEND[] isa KA.GPU) == use_gpu) && return BACKEND[]
+    end
 
     if !use_gpu
         BACKEND[] = KA.CPU()
