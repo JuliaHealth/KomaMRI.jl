@@ -1,5 +1,4 @@
 using TestItems, TestItemRunner
-using AMDGPU, CUDA, Metal, oneAPI
 
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:koma in ti.tags) #verbose=true
 
