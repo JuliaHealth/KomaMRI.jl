@@ -209,6 +209,7 @@ end
 
 
 @testitem "Bloch_GPU" tags=[:important, :skipci, :core, :gpu] begin
+    using AMDGPU, CUDA, Metal, oneAPI
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -325,6 +326,7 @@ end
 end
 
 @testitem "Bloch_GPU_RF_accuracy" tags=[:important, :core, :skipci, :gpu] begin
+    using AMDGPU, CUDA, Metal, oneAPI
     using Suppressor
 
     Tadc = 1e-3
@@ -501,6 +503,7 @@ end
 end
 
 @testitem "Bloch GPU SimpleMotion" tags=[:important, :core, :skipci, :gpu] begin
+    using AMDGPU, CUDA, Metal, oneAPI
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -522,6 +525,7 @@ end
 end
 
 @testitem "Bloch GPU ArbitraryMotion"  tags=[:important, :core, :skipci, :gpu] begin
+    using AMDGPU, CUDA, Metal, oneAPI
     using Suppressor
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 

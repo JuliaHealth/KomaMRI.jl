@@ -1,160 +1,95 @@
-import Functors: @functor, functor, fmap, isleaf
-import Adapt: adapt, adapt_storage
-#Checks if CUDA is available for the session
-const use_cuda = Ref{Union{Nothing,Bool}}(nothing)
+const LOADED_BACKENDS = Ref{Vector{KA.GPU}}([])
+const BACKEND = Ref{Union{KA.Backend,Nothing}}(nothing)
+
+device_name(backend) = @error "device_name called with invalid backend type $(typeof(backend))"
+isfunctional(::KA.CPU) = true
+isfunctional(x) = false
+_print_devices(backend) = @error "_print_devices called with invalid backend type $(typeof(backend))"
+_print_devices(::KA.CPU) = @info "CPU: $(length(Sys.cpu_info())) x $(Sys.cpu_info()[1].model)"
+name(::KA.CPU) = "CPU"
+set_device!(backend, val) = @error "set_device! called with invalid parameter types: '$(typeof(backend))', '$(typeof(val))'" 
 
 """
-    print_gpus()
+    get_backend(use_gpu)
 
-Simple function to print the CUDA devices available in the host.
+Gets the simulation backend to use. If use_gpu=false or there are no available GPU backends, 
+returns CPU(), else, returns the GPU backend (currently either CUDABackend(), MetalBackend(), 
+ROCBackend(), or oneAPIBackend()).
+
+The GPU package for the corresponding backend (CUDA.jl, Metal.jl, AMDGPU.jl, or oneAPI.jl) must be
+loaded and functional, otherwise KomaMRI will default to using the CPU.
+
+# Arguments
+- 'use_gpu': ('::Bool') If true, attempt to use GPU and check for available backends
+
+# Returns
+- 'backend': (::KernelAbstractions.backend) The backend to use
 """
-function print_gpus()
-    check_use_cuda()
-    if use_cuda[]
-        cuda_devices = [
-            Symbol("($(i-1)$(i == 1 ? "*" : " "))") => name(d) for
-            (i, d) in enumerate(devices())
-        ]
-        @info "$(length(devices())) CUDA capable device(s)." cuda_devices...
-    else
-        @info "0 CUDA capable devices(s)."
+function get_backend(use_gpu::Bool)
+    if !isnothing(BACKEND[])
+        # The backend can be set and still need to change based on the value of
+        # use_gpu, e.g. if switching between CPU and GPU while running tests
+        ((BACKEND[] isa KA.GPU) == use_gpu) && return BACKEND[]
     end
-    return nothing
-end
 
-"""
-Checks if the PC has a functional CUDA installation. Inspired by Flux's `check_use_cuda` funciton.
-"""
-function check_use_cuda()
-    if use_cuda[] === nothing
-        use_cuda[] = CUDA.functional()
-        if !(use_cuda[])
-            @info """The GPU function is being called but the GPU is not accessible.
-               Defaulting back to the CPU. (No action is required if you want to run on the CPU).""" maxlog =
-                1
-        end
+    if !use_gpu
+        BACKEND[] = KA.CPU()
+        return BACKEND[]
     end
-end
 
-#Aux. funcitons to check if the variable we want to convert to CuArray is numeric
-_isbitsarray(::AbstractArray{<:Real}) = true
-_isbitsarray(::AbstractArray{T}) where {T} = isbitstype(T)
-_isbitsarray(x) = false
-_isleaf(x) = _isbitsarray(x) || isleaf(x)
+    if isempty(LOADED_BACKENDS[])
+        @info """ 
+          The GPU functionality is being called but no GPU backend is loaded 
+          to access it. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your 
+          code. Defaulting back to the CPU. (No action is required if you want
+          to run on the CPU).
+        """ maxlog=1
+        BACKEND[] = KA.CPU()
+        return BACKEND[]
+    end
 
-# GPU adaptor
-struct KomaCUDAAdaptor end
-adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
-adapt_storage(to::KomaCUDAAdaptor, x::NoMotion) = NoMotion{Float32}()
-adapt_storage(to::KomaCUDAAdaptor, x::SimpleMotion) = f32(x)
-function adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion)
-    fields = []
-    for field in fieldnames(ArbitraryMotion)
-        if field in (:ux, :uy, :uz) 
-            push!(fields, adapt(KomaCUDAAdaptor(), getfield(x, field)))
+    functional_gpu_backends = []
+    for backend in LOADED_BACKENDS[]
+        if isfunctional(backend)
+            push!(functional_gpu_backends, backend)
         else
-            push!(fields, f32(getfield(x, field)))
+            @warn "Loaded backend $(name(backend)) is not functional" maxlog=1
         end
     end
-    return ArbitraryMotion(fields...)
-end
-function adapt_storage(
-    to::KomaCUDAAdaptor, x::Vector{LinearInterpolator{T,V}}
-) where {T<:Real,V<:AbstractVector{T}}
-    return CUDA.cu.(x)
-end
-
-"""
-	gpu(x)
-
-Tries to move `x` to the current GPU device. Inspired by Flux's `gpu` function.
-
-This works for functions, and any struct marked with `@functor`.
-
-Use [`cpu`](@ref) to copy back to ordinary `Array`s.
-
-See also [`f32`](@ref) and [`f64`](@ref) to change element type only.
-
-# Examples
-```julia
-x = x |> gpu
-```
-"""
-function gpu(x)
-    check_use_cuda()
-    return use_cuda[] ? fmap(x -> adapt(KomaCUDAAdaptor(), x), x; exclude=_isleaf) : x
-end
-
-#CPU adaptor
-struct KomaCPUAdaptor end
-adapt_storage(to::KomaCPUAdaptor, x::AbstractArray) = adapt(Array, x)
-adapt_storage(to::KomaCPUAdaptor, x::AbstractRange) = x
-
-# To CPU
-"""
-	cpu(x)
-
-Tries to move object to CPU. Inspired by Flux's `cpu` function.
-
-This works for functions, and any struct marked with `@functor`.
-
-See also [`gpu`](@ref).
-
-# Examples
-```julia
-x = x |> cpu
-```
-"""
-cpu(x) = fmap(x -> adapt(KomaCPUAdaptor(), x), x)
-
-#Precision
-paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
-adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
-adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
-adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
-adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
-adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype(T, xs.types))
-adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
-function adapt_storage(T::Type{<:Real}, xs::ArbitraryMotion) 
-    fields = []
-    for field in fieldnames(ArbitraryMotion)
-        push!(fields, paramtype(T, getfield(xs, field)))
+    
+    if length(functional_gpu_backends) == 1
+        BACKEND[] = functional_gpu_backends[1]
+        @info """Using  backend: '$(name(BACKEND[]))'"""  maxlog = 1
+        return BACKEND[]
+    elseif length(functional_gpu_backends) == 0
+        @info """Defaulting back to the CPU. (No action is required if you want to run on the CPU). """ maxlog = 1
+        BACKEND[] = KA.CPU()
+        return BACKEND[]
+    else
+        # Will probably never get here
+        @info """
+          Multiple functional backends have been loaded and KomaMRI does not 
+          know which one to use. Ensure that your code contains only one 'using' 
+          statement for the GPU backend you wish to use. Defaulting back to the 
+          CPU. (No action is required if you want to run on the CPU).
+        """ maxlog = 1
+        BACKEND[] = KA.CPU()
+        return BACKEND[]
     end
-    return ArbitraryMotion(fields...)
 end
 
 """
-    f32(m)
+    print_devices()
 
-Converts the `eltype` of model's parameters to `Float32`
-Recurses into structs marked with `@functor`.
+Simple function to print available devices. Calls internal get_backend() function to
+get the appropriate GPU / CPU backend and prints device information.
 
-See also [`f64`](@ref).
+# Arguments
+- 'use_gpu':  ('::Bool') If true, check for loaded / functional GPU backends and print appropriate warnings if no GPU backends have been loaded
 """
-f32(m) = paramtype(Float32, m)
+function print_devices(use_gpu = true)
+    backend = get_backend(use_gpu)
+    _print_devices(backend)
+end
 
-"""
-    f64(m)
-
-Converts the `eltype` of model's parameters to `Float64` (which is Koma's default)..
-Recurses into structs marked with `@functor`.
-
-See also [`f32`](@ref).
-"""
-f64(m) = paramtype(Float64, m)
-
-#The functor macro makes it easier to call a function in all the parameters
-@functor Phantom
-
-@functor Translation
-@functor Rotation
-@functor HeartBeat
-@functor PeriodicTranslation
-@functor PeriodicRotation
-@functor PeriodicHeartBeat
-
-@functor Spinor
-@functor DiscreteSequence
-
-#Exporting functions
-export gpu, cpu, f32, f64
+export print_devices
