@@ -289,17 +289,17 @@ function estimate_seq_recon_dimension(
     Ns = ceil(Int64, get(seq.DEF, "Ns", 1)) # number of slices or slabs
     if haskey(seq.DEF, "FOV")
         FOVx, FOVy, FOVz = seq.DEF["FOV"] #[m]
-        if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        if FOVy > 1 FOVy *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        if FOVz > 1 FOVz *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        if Nx == 1 Nx = ceil(Int64, FOVx / Δx[1]) end
-        if Ny == 1 Ny = ceil(Int64, FOVy / Δx[2]) end
-        if Nz == 1 Nz = ceil(Int64, FOVy / Δx[3]) end      
+        if FOVx > 1  FOVx *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
+        if FOVy > 1  FOVy *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
+        if FOVz > 1  FOVz *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
+        if Nx < 2  Nx = ceil(Int64, FOVx / Δx[1])  end
+        if Ny < 2  Ny = ceil(Int64, FOVy / Δx[2])  end
+        if Nz < 2  Nz = ceil(Int64, FOVy / Δx[3])  end      
     else
         @warn "Estimating FOV parameters from seq.DEF Nx, Ny, Nz and traj."
-        FOVx = Nx * Δx[1]
-        FOVy = Ny * Δx[2]
-        FOVz = Ny * Δx[3]
+        if Nx > 1  FOVx = Nx * Δx[1]  else FOVx = 0  end
+        if Ny > 1  FOVy = Ny * Δx[2]  else FOVy = 0  end
+        if Ny > 1  FOVz = Nz * Δx[3]  else FOVz = 0  end
     end
     Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
     s_ktraj = size( ktraj)
