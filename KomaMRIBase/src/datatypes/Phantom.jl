@@ -78,7 +78,11 @@ Base.:(≈)(obj1::Phantom, obj2::Phantom)      = reduce(&, [getfield(obj1, field
 Base.:(==)(m1::MotionModel, m2::MotionModel) = false
 Base.:(≈)(m1::MotionModel, m2::MotionModel)  = false
 
-"""Separate object spins in a sub-group"""
+"""
+    obj = obj[p]
+
+Separate object spins in a sub-group
+"""
 Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
     fields = []
     for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
