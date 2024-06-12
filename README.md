@@ -5,10 +5,9 @@
 
 <div align="center">
  
-[![][gh-actions-img1]][gh-actions-url] [![][codecov-img1]][codecov-url] [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/LICENSE) [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
-<!-- <a href="https://pkgs.genieframework.com?packages=KomaMRI"><img src="https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/KomaMRI" /></a> -->
+![][julia-19] [![][gh-actions-komamri]][gh-actions-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url]
 
-[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img1]][paper-url1]
+[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url]
 
 </div>
  
@@ -25,6 +24,7 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 </tr>
 <tr>
 <td>
+<div align="left">
  
 - Fast simulations with CPU/GPU parallelization 🏃💨
 - Extensible, so anyone can include new features 🆙
@@ -34,82 +34,34 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 - Friendly GUI (using web technologies) 😌
 - Compatible with modern notebooks [🎈](## "Pluto and Jupyter") 
 - Flexible API for advanced users 👨‍💻
+</div>
 </td>
 </tr>
 </table>
 
 <div align="center">
  
-| **Packages**                                | **Julia Compat ≥** | **Stable Version**                           | **Build Status**                       | **Code Coverage**                |
-|:------------------------------------------- |:-------------------|:---------------------------------------------|:---------------------------------------|:---------------------------------|
-| 📦 [KomaMRI.jl](## "User Interface")        | ![][julia-19]      | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-img1]][gh-actions-url] | [![][codecov-img1]][codecov-url] |
-| └ 📦 [KomaMRIBase.jl](## "Custom Types")    | ![][julia-19]      | [![][komabase-version]][komabase-juliahub]   | [![][gh-actions-img5]][gh-actions-url] | [![][codecov-img5]][codecov-url] |
-| └ 📦 [KomaMRICore.jl](## "Simulation")      | ![][julia-19]      | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-img2]][gh-actions-url] | [![][codecov-img2]][codecov-url] |
-| └ 📦 [KomaMRIFiles.jl](## "Input/Output")   | ![][julia-19]      | [![][komafiles-version]][komafiles-juliahub] | [![][gh-actions-img4]][gh-actions-url] | [![][codecov-img4]][codecov-url] |
-| └ 📦 [KomaMRIPlots.jl](## "Plots")          | ![][julia-19]      | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-img3]][gh-actions-url] | [![][codecov-img3]][codecov-url] |
+| **Packages**                                | **Stable Version**                           | **Build Status**                            | **Code Coverage**                     | **Downloads**                                       |
+|:------------------------------------------- |:---------------------------------------------|:--------------------------------------------|:--------------------------------------|:----------------------------------------------------|
+| 📦 [KomaMRI.jl](## "User Interface")        | [![][komamri-version]][komamri-juliahub]     | [![][gh-actions-komamri]][gh-actions-url]   | [![][codecov-komamri]][codecov-url]   | [![][downloads-komamri]][downloads-komamri-url]     |
+| └ 📦 [KomaMRIBase.jl](## "Custom Types")    | [![][komabase-version]][komabase-juliahub]   | [![][gh-actions-komabase]][gh-actions-url]  | [![][codecov-komabase]][codecov-url]  | [![][downloads-komabase]][downloads-komabase-url]   |
+| └ 📦 [KomaMRICore.jl](## "Simulation")      | [![][komacore-version]][komacore-juliahub]   | [![][gh-actions-komacore]][gh-actions-url]  | [![][codecov-komacore]][codecov-url]  | [![][downloads-komacore]][downloads-komacore-url]   |
+| └ 📦 [KomaMRIFiles.jl](## "Input/Output")   | [![][komafiles-version]][komafiles-juliahub] | [![][gh-actions-komafiles]][gh-actions-url] | [![][codecov-komafiles]][codecov-url] | [![][downloads-komafiles]][downloads-komafiles-url] |
+| └ 📦 [KomaMRIPlots.jl](## "Plots")          | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-komaplots]][gh-actions-url] | [![][codecov-komaplots]][codecov-url] | [![][downloads-komaplots]][downloads-komaplots-url] |
 
 </div>
 </div>
-
-
-[julia-19]: https://img.shields.io/badge/julia-v1.9-9558B2?logo=julia
-
-[komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
-[komabase-version]: https://juliahub.com/docs/General/KomaMRIBase/stable/version.svg
-[komacore-version]: https://juliahub.com/docs/General/KomaMRICore/stable/version.svg
-[komaplots-version]: https://juliahub.com/docs/General/KomaMRIPlots/stable/version.svg
-[komafiles-version]: https://juliahub.com/docs/General/KomaMRIFiles/stable/version.svg
-[komamri-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRI
-[komabase-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIBase
-[komacore-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRICore
-[komaplots-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIPlots
-[komafiles-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIFiles
-
-[docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[docr-url]: https://juliahealth.github.io/KomaMRI.jl/stable/
-
-[docd-img]: https://img.shields.io/badge/docs-dev-blue.svg
-[docd-url]: https://juliahealth.github.io/KomaMRI.jl/dev/
-
-[gh-actions-nightly-img]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/Nightly/badge.svg
-[gh-actions-nightly-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/nightly.yml
-[gh-actions-img]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-img1]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-img2]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-img3]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-img4]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-img5]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions
-
-[codecov-img]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg
-[codecov-img1]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=komamri
-[codecov-img2]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=core
-[codecov-img3]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=plots
-[codecov-img4]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=files
-[codecov-img5]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=base
-[codecov-url]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl
-
-[arXiv-img1]: https://img.shields.io/badge/arXiv-2107.11000-blue.svg
-[arXiv-url1]: https://arxiv.org/abs/2301.02702
-
-[paper-img1]: https://img.shields.io/badge/doi-10.1002/mrm.29635-blue.svg
-[paper-url1]: https://doi.org/10.1002/mrm.29635
 
 ## News
 
-> 🟢 **[7 Dec 2023] MRI Together:** Koma was present in [MRI Together](https://mritogether.esmrmb.org/) 😼. The talk is available [here](https://www.youtube.com/watch?v=9mRQH8um4-A). Also, I uploaded the promised [educational example](https://JuliaHealth.github.io/KomaMRI.jl/dev/educational-1d-simulation/).
-
-> 🟢 **[17 Nov 2023] ISMRM Pulseq's virtual meeting:** Pretty excited of being part of [this meeting](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023). The slides can be seen [here](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023/blob/35a8da7eaa0bf42f2127e1338a440ccd4e3ef53c/slides/day3_KomaMRI_simulator_Quantitative_MRI.pdf).
-
-> 🟢 **[27 Jul 2023] JuliaCon 2023 presentation:** I gave a talk at the MIT 😄! A video of the presentation can be seen [here](https://www.youtube.com/watch?v=WVT9wJegC6Q).
-
-> 🟢 **[29 Jun 2023] [KomaMRI.jl's paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635) was chosen as a July editor's pick in MRM 🥳!**
-
-> 🟢 **[6 Mar 2023] Paper published in MRM 😃!** The open access article is available [here](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635).
-
-> 🟢 **[8 Dec 2022] KomaMRI v0.7**: Huge code rewrite, this implies improved performance (now **5x faster**), type stability, extensibility, and more!
-
-> 🟢 **[17 May 2022] ISMRM 2022 presentation**: My abstract presentation is now uploaded [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8)
+- **(7 Dec 2023)** Koma was present in [MRI Together](https://mritogether.esmrmb.org/) 😼. The talk is available [here](https://www.youtube.com/watch?v=9mRQH8um4-A). Also, I uploaded the promised [educational example](https://juliahealth.org/KomaMRI.jl/stable/tutorial-pluto/01-gradient-echo-spin-echo/).
+- **(17 Nov 2023)** Pretty excited of being part of [ISMRM Pulseq's virtual meeting](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023). The slides available [here](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023/blob/35a8da7eaa0bf42f2127e1338a440ccd4e3ef53c/slides/day3_KomaMRI_simulator_Quantitative_MRI.pdf).
+- **(27 Jul 2023)** I gave a talk at MIT 😄 for [JuliaCon 2023](https://juliacon.org/2023/)! A video of the presentation can be seen [here](https://www.youtube.com/watch?v=WVT9wJegC6Q).
+- **(29 Jun 2023)** [KomaMRI.jl's paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635) was chosen as a July editor's pick in MRM 🥳!
+- **(6 Mar 2023)** Paper published in MRM 😃!
+- **(8 Dec 2022)** [KomaMRI v0.7](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.7.0): improved performance (**5x faster**), type stability, extensibility, and more!
+- **(17 May 2022)** [ISMRM 2022 digital poster](https://archive.ismrm.org/2022/2815.html) presented in London, UK. Recording [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8). Name change [MRIsim.jl -> KomaMRI.jl](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.6.0).
+- **(Aug 2020)** [Prehistoric version](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.2.1-alpha) of Koma, MRIsim, presented as an [ISMRM 2020 digital poster](https://cds.ismrm.org/protected/20MProceedings/PDFfiles/4437.html) (virtual conference).
 
 <details>
 <summary> <samp>&#9776; Roadmap</samp></summary>
@@ -187,16 +139,79 @@ If you use this package, please cite our paper.
 
 We automatically test KomaMRICore's CPU multi-threading support on the most popular operating systems. Nevertheless, for GPU support, the process is more manual (until [#147](https://github.com/JuliaHealth/KomaMRI.jl/issues/147)). Here is a summary of our automatic CPU tests and local GPU tests for multiple versions of Julia:
 
+<div align="center">
+
 | Julia (OS)                            | CPU                                       | GPU (Nvidia) |
 |:--------------------------------------|:----------------------------------------------:|:------------------:|
-| Julia 1.9 (Windows)  | [![][gh-actions-img]][gh-actions-url]          | ✅                |
-| Julia 1.9 (Linux)    | [![][gh-actions-img]][gh-actions-url]          | ✅                |
-| Julia 1.9  (Mac)      | [![][gh-actions-img]][gh-actions-url]          | ➖                |
-| Julia 1.10 (Windows)           | [![][gh-actions-img]][gh-actions-url]          | ✅                |
-| Julia 1.10 (Linux)             | [![][gh-actions-img]][gh-actions-url]          | ✅                |
-| Julia 1.10 (Mac)               | [![][gh-actions-img]][gh-actions-url]          | ➖                |
-| Julia 1.11 (Windows)          | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
-| Julia 1.11 (Linux)            | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ❌                 |
-| Julia 1.11 (Mac)              | [![][gh-actions-nightly-img]][gh-actions-nightly-url]  | ➖                 |
+| Julia 1.9 (Windows)  | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
+| Julia 1.9 (Linux)    | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
+| Julia 1.9  (Mac)      | [![][gh-actions-komamri]][gh-actions-url]          | ➖                |
+| Julia 1.10 (Windows)           | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
+| Julia 1.10 (Linux)             | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
+| Julia 1.10 (Mac)               | [![][gh-actions-komamri]][gh-actions-url]          | ➖                |
+| Julia 1.11 (Windows)          | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌                 |
+| Julia 1.11 (Linux)            | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌                 |
+| Julia 1.11 (Mac)              | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ➖                 |
+
+</div>
 
 If you see any problem with this information, please let us know in the form of a GitHub issue.
+
+<!-- VARIABLES -->
+<!-- Julia compat -->
+[julia-19]: https://img.shields.io/badge/julia-v1.9-9558B2?logo=julia
+<!-- Package -->
+[komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
+[komabase-version]: https://juliahub.com/docs/General/KomaMRIBase/stable/version.svg
+[komacore-version]: https://juliahub.com/docs/General/KomaMRICore/stable/version.svg
+[komafiles-version]: https://juliahub.com/docs/General/KomaMRIFiles/stable/version.svg
+[komaplots-version]: https://juliahub.com/docs/General/KomaMRIPlots/stable/version.svg
+[komamri-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRI
+[komabase-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIBase
+[komacore-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRICore
+[komafiles-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIFiles
+[komaplots-juliahub]: https://juliahub.com/ui/Packages/General/KomaMRIPlots
+<!-- Documentation -->
+[docr-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docd-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docr-url]: https://juliahealth.github.io/KomaMRI.jl/stable/
+[docd-url]: https://juliahealth.github.io/KomaMRI.jl/dev/
+<!-- CI -->
+[gh-actions-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-komabase]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-komacore]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-komafiles]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-komaplots]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-komamri-nightly]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/Nightly/badge.svg
+[gh-actions-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions
+[gh-actions-nightly-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/nightly.yml
+<!-- License -->
+[license]: http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat
+[license-url]: https://github.com/JuliaHealth/KomaMRI.jl/blob/master/LICENSE
+<!-- Julia Blue -->
+[julia-blue]: https://img.shields.io/badge/code%20style-blue-4495d1.svg
+[julia-blue-url]: https://github.com/invenia/BlueStyle
+<!-- Codecoverage -->
+[codecov-img]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg
+[codecov-komamri]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=komamri
+[codecov-komabase]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=base
+[codecov-komacore]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=core
+[codecov-komafiles]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=files
+[codecov-komaplots]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=plots
+[codecov-url]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl
+<!-- Paper -->
+[arXiv-img]: https://img.shields.io/badge/arXiv-2107.11000-blue.svg
+[paper-img]: https://img.shields.io/badge/doi-10.1002/mrm.29635-blue.svg
+[arXiv-url]: https://arxiv.org/abs/2301.02702
+[paper-url]: https://doi.org/10.1002/mrm.29635
+<!-- Downloads -->
+[downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRI&query=total_requests&suffix=%2Fmonth&label=Downloads
+[downloads-komabase]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRIBase&query=total_requests&suffix=%2Fmonth&label=Downloads
+[downloads-komacore]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRICore&query=total_requests&suffix=%2Fmonth&label=Downloads
+[downloads-komafiles]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRIFiles&query=total_requests&suffix=%2Fmonth&label=Downloads
+[downloads-komaplots]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRIPlots&query=total_requests&suffix=%2Fmonth&label=Downloads
+[downloads-komamri-url]: http://juliapkgstats.com/pkg/KomaMRI
+[downloads-komabase-url]: http://juliapkgstats.com/pkg/KomaMRIBase
+[downloads-komacore-url]: http://juliapkgstats.com/pkg/KomaMRICore
+[downloads-komafiles-url]: http://juliapkgstats.com/pkg/KomaMRIFiles
+[downloads-komaplots-url]: http://juliapkgstats.com/pkg/KomaMRIPlots
