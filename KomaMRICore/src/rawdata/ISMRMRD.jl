@@ -154,9 +154,10 @@ function signal_to_raw_data(
     profiles = Profile[]
     t_acq = get_adc_sampling_times(seq)
     Nro = sum(is_ADC_on.(seq))
-    NroPerPE1   = floor(Int, Nro / (Ny*Ns*Nz))
-    NroPerSlice = floor(Int, Nro / Ns)
-    NroPerPE2   = floor(Int, Nro / Nz)
+    Nyt = max(Ny, 1); Nst = max(Ns, 1); Nzt = max(Nz, 1) #zero is really one...
+    NroPerPE1   = floor(Int, Nro / (Nyt*Nst*Nzt))
+    NroPerSlice = floor(Int, Nro / Nst)
+    NroPerPE2   = floor(Int, Nro / Nzt)
     scan_counter = 0
     ny = 0 #PE1 counter
     ns = 0 #Slice counter
@@ -298,9 +299,9 @@ function estimate_seq_recon_dimension(
         if Nz == 1  Nz = ceil(Int64, FOVz / Δx[3])  end      
     else
         @warn "Estimating FOV parameters from seq.DEF Nx, Ny, Nz and traj."
-        if !Wk_el_iszero[1]  FOVx = Nx * Δx[1]  else FOVx = 0  end
-        if !Wk_el_iszero[2]  FOVy = Ny * Δx[2]  else FOVy = 0  end
-        if !Wk_el_iszero[3]  FOVz = Nz * Δx[3]  else FOVz = 0  end
+        if !Wk_el_iszero[1]  FOVx = Nx * Δx[1]  else FOVx = 1  end
+        if !Wk_el_iszero[2]  FOVy = Ny * Δx[2]  else FOVy = 1  end
+        if !Wk_el_iszero[3]  FOVz = Nz * Δx[3]  else FOVz = 1  end
     end
     Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
     s_ktraj = size( ktraj)
