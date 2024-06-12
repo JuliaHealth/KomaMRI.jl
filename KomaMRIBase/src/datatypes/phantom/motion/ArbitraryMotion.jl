@@ -117,7 +117,8 @@ function times(period_durations::AbstractVector, num_pieces::Int)
 end
 
 
-function get_itp_functions(motion::ArbitraryMotion{T}, Ns::Int) where {T<:Real}
+function get_itp_functions(motion::ArbitraryMotion{T}) where {T<:Real}
+    Ns = size(motion.dx)[1]
     dx = hcat(repeat(hcat(zeros(T ,Ns, 1), motion.dx), 1, length(motion.period_durations)), zeros(T ,Ns, 1))
     dy = hcat(repeat(hcat(zeros(T ,Ns, 1), motion.dy), 1, length(motion.period_durations)), zeros(T ,Ns, 1))
     dz = hcat(repeat(hcat(zeros(T ,Ns, 1), motion.dz), 1, length(motion.period_durations)), zeros(T ,Ns, 1))
@@ -140,11 +141,12 @@ function get_itp_results(
     itpy::Interpolator{T}, 
     itpz::Interpolator{T}, 
     t::AbstractArray{T}, 
-    Ns::Int
+    range::AbstractRange
 ) where {T<:Real}
+    Ns = length(range)
     if Ns > 1
         id = similar(t, Ns)
-        id .= (1:Ns)
+        id .= range
         # Grid
         idx = 1*id .+ 0*t # spin id
         t   = 0*id .+ 1*t # time instants
@@ -159,10 +161,47 @@ function get_spin_coords(
     x::Vector{T},
     y::Vector{T},
     z::Vector{T},
-    t::AbstractArray{T},
+    t::AbstractArray{T}
 ) where {T<:Real}
-    Ns = size(motion.dx)[1]
-    itp = get_itp_functions(motion, Ns)
-    ux, uy, uz = get_itp_results(itp..., t, Ns)
+    itp = get_itp_functions(motion)
+    ux, uy, uz = get_itp_results(itp..., t, 1:length(x))
+    return x .+ ux, y .+ uy, z .+ uz
+end
+
+function initialize_motion(motion::ArbitraryMotion)
+    itp = get_itp_functions(motion)
+    return ExplicitArbitraryMotion(itp..., 1:size(motion.dx)[1])
+end
+
+
+"""
+    motion = ExplicitArbitraryMotion(period_durations, dx, dy, dz)
+
+ExplicitArbitraryMotion model.
+
+"""
+mutable struct ExplicitArbitraryMotion{T} <: MotionModel{T}
+    itpx::Interpolator{T}
+    itpy::Interpolator{T}
+    itpz::Interpolator{T}
+    range::Union{AbstractRange,AbstractVector{T},Colon}
+end
+
+function Base.getindex(
+    motion::ExplicitArbitraryMotion{T}, p::Union{AbstractRange,AbstractVector{T},Colon}
+) where {T<:Real}
+    motion.range = p
+    return motion
+end
+  
+
+function get_spin_coords(
+    motion::ExplicitArbitraryMotion{T},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    t::AbstractArray{T}
+) where {T<:Real}
+    ux, uy, uz = get_itp_results(motion.itpx, motion.itpy, motion.itpz, t, motion.range)
     return x .+ ux, y .+ uy, z .+ uz
 end

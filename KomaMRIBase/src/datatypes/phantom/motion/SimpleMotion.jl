@@ -71,7 +71,7 @@ function get_spin_coords(
     x::AbstractVector{T},
     y::AbstractVector{T},
     z::AbstractVector{T},
-    t::AbstractArray{T},
+    t::AbstractArray{T}
 ) where {T<:Real}
     xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
     # Composable motions: they need to be run sequentially
@@ -96,8 +96,8 @@ function times(motion::SimpleMotion)
     return nodes
 end
 
-function sort_motions!(motion::SimpleMotion)
-    return sort!(motion.types; by=m -> times(m)[1])
+function initialize_motion(motion::SimpleMotion)
+    return SimpleMotion(sort(motion.types; by=m -> times(m)[1]))
 end
 
 # --------- Simple Motion Types: -------------

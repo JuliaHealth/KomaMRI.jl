@@ -117,8 +117,8 @@ function get_dims(obj::Phantom)
     return dims
 end
 
-function sort_motions!(motion::MotionModel) 
-    return nothing
+function initialize_motion(motion::MotionModel) 
+    return motion
 end
 
 """

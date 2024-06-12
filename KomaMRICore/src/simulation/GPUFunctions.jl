@@ -45,8 +45,9 @@ _isleaf(x) = _isbitsarray(x) || isleaf(x)
 # GPU adaptor
 struct KomaCUDAAdaptor end
 adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
-adapt_storage(to::KomaCUDAAdaptor, x::MotionModel) = f32(x) # Motion models are not passed to GPU
-
+adapt_storage(to::KomaCUDAAdaptor, x::MotionModel) = f32(x) 
+adapt_storage(to::KomaCUDAAdaptor, x::ArbitraryMotion) = adapt(KomaCUDAAdaptor(), ExplicitArbitraryMotion(KomaMRIBase.get_itp_functions(x)...))
+adapt_storage(to::KomaCUDAAdaptor, x::ExplicitArbitraryMotion) = ExplicitArbitraryMotion(adapt.(Ref(CuArray{Float32}), getfield.(Ref(x), fieldnames(ExplicitArbitraryMotion)))...)
 
 """
 	gpu(x)
@@ -101,6 +102,7 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
 adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype(T, xs.types))
 adapt_storage(T::Type{<:Real}, xs::ArbitraryMotion) = ArbitraryMotion( (paramtype.(Ref(T), getfield.(Ref(xs), fieldnames(ArbitraryMotion))))... )
+adapt_storage(T::Type{<:Real}, xs::ExplicitArbitraryMotion) = ExplicitArbitraryMotion( (paramtype.(Ref(T), getfield.(Ref(xs), fieldnames(ExplicitArbitraryMotion))))... )
 
 """
     f32(m)

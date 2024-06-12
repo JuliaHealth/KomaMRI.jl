@@ -449,6 +449,21 @@ end
         @test yt[:,2:end-1] == ph.y .+ dy
         @test zt[:,2:end-1] == ph.z .+ dz
     end
+    @testset "ExplicitArbitraryMotion" begin
+        ph = Phantom(x=[1.0], y=[1.0])
+        Ns = length(ph)
+        period_durations = [1.0]
+        num_pieces = 10
+        dx = dy = dz = rand(Ns, num_pieces - 1)
+        arbitrarymotion = @suppress ArbitraryMotion(period_durations, dx, dy, dz)
+        explicitarbitrarymotion = initialize_motion(arbitrarymotion)
+        t = collect(0:0.1:1)
+        xta, yta, zta = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
+        xte, yte, zte = get_spin_coords(explicitarbitrarymotion, ph.x, ph.y, ph.z, t')
+        @test xta == xte
+        @test yta == yte
+        @test zta == zte
+    end
 
     simplemotion = SimpleMotion([
         PeriodicTranslation(dx=0.05, dy=0.05, dz=0.0, period=0.5, asymmetry=0.5),

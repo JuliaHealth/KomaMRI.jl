@@ -47,12 +47,12 @@ export kfoldperm, trapz, cumtrapz
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion
 export MotionModel
-export NoMotion, SimpleMotion, ArbitraryMotion
+export NoMotion, SimpleMotion, ArbitraryMotion, ExplicitArbitraryMotion
 export SimpleMotionType
 export Translation, Rotation, HeartBeat
 export PeriodicTranslation, PeriodicRotation, PeriodicHeartBeat
-export get_spin_coords, sort_motions!
-export LinearInterpolator
+export get_spin_coords, initialize_motion
+export Interpolator
 # Secondary
 export get_kspace, rotx, roty, rotz
 # Additionals
