@@ -22,6 +22,7 @@ Base.findall(x::MtlVector{Bool}) = convert(MtlVector, findall(KomaMRICore.cpu(x)
 
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], MetalBackend())
+    @warn "Due to https://github.com/JuliaGPU/Metal.jl/issues/348, some functions may need to run on the CPU. Performance may be impacted as a result."
 end
 
 end
