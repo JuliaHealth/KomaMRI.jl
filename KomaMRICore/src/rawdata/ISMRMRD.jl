@@ -95,7 +95,7 @@ function signal_to_raw_data(
     elseif ndims == 3        
         @info "Creating 3D ISMRMRD file ..."
     else
-        @warn("Seqfile is $Nd_seq dimensional which is not yet supported.")
+        @info("Creating a $ndims dimensional ISMRMRD file...")
     end
   
     #It needs to be transposed for the raw data
@@ -281,7 +281,7 @@ function estimate_seq_recon_dimension(
     maxk = maximum(ktraj, dims=1)
     Wk = maxk .- mink
     idxs_zero = findall(iszero, Wk)  #check for zeros
-    Wk[idxs_zero] .= 1e6
+    Wk[idxs_zero] .= 1.0e6
     Δx = 1 ./ Wk[1:3] #[m] x-y-z
     Nx = ceil(Int64, get(seq.DEF, "Nx", 1))
     Ny = ceil(Int64, get(seq.DEF, "Ny", 1))
@@ -292,14 +292,14 @@ function estimate_seq_recon_dimension(
         if FOVx > 1  FOVx *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVy > 1  FOVy *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVz > 1  FOVz *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
-        if Nx == 1  Nx = ceil(Int64, FOVx / Δx[1])  end
-        if Ny == 1  Ny = ceil(Int64, FOVy / Δx[2])  end
-        if Nz == 1  Nz = ceil(Int64, FOVy / Δx[3])  end      
+        #if Nx == 1  Nx = ceil(Int64, FOVx / Δx[1])  end
+        #if Ny == 1  Ny = ceil(Int64, FOVy / Δx[2])  end
+        #if Nz == 1  Nz = ceil(Int64, FOVy / Δx[3])  end      
     else
         @warn "Estimating FOV parameters from seq.DEF Nx, Ny, Nz and traj."
-        if Nx >= 1  FOVx = Nx * Δx[1]  else FOVx = 0  end
-        if Ny >= 1  FOVy = Ny * Δx[2]  else FOVy = 0  end
-        if Ny >= 1  FOVz = Nz * Δx[3]  else FOVz = 0  end
+        if ~idx_zero[1]  FOVx = Nx * Δx[1]  else FOVx = 0  end
+        if ~idx_zero[2]  FOVy = Ny * Δx[2]  else FOVy = 0  end
+        if ~idx_zero[3]  FOVz = Nz * Δx[3]  else FOVz = 0  end
     end
     Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
     s_ktraj = size( ktraj)
