@@ -792,8 +792,8 @@ function plot_image(
     image;
     height=600,
     width=nothing,
-    zmin=minimum(abs.(image[:])),
-    zmax=maximum(abs.(image[:])),
+    zmin=minimum(image[:]),
+    zmax=maximum(image[:]),
     darkmode=false,
     title="",
 )
@@ -1360,7 +1360,7 @@ Plots a raw signal in ISMRMRD format.
 - `width`: (`::Integer`, `=nothing`) plot width
 - `height`: (`::Integer`, `=nothing`) plot height
 - `slider`: (`::Bool`, `=true`) boolean to indicate whether to display a slider
-- `show_seq_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
+- `show_sim_blocks`: (`::Bool`, `=false`) boolean to indicate whether to display sequence blocks
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
 
