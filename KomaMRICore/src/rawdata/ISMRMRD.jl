@@ -281,25 +281,26 @@ function estimate_seq_recon_dimension(
     maxk = maximum(ktraj, dims=1)
     Wk = maxk .- mink
     idxs_zero = findall(iszero, Wk)  #check for zeros
+    Wk_el_iszero = iszero.( Wk) # bool array for later
     Wk[idxs_zero] .= 1.0e6
     Δx = 1 ./ Wk[1:3] #[m] x-y-z
     Nx = ceil(Int64, get(seq.DEF, "Nx", 1))
     Ny = ceil(Int64, get(seq.DEF, "Ny", 1))
     Nz = ceil(Int64, get(seq.DEF, "Nz", 1))
     Ns = ceil(Int64, get(seq.DEF, "Ns", 1)) # number of slices or slabs
-    if haskey(seq.DEF, "FOV")
+    if haskey(seq.DEF, "FOV")   #needs info or warning for other substitutions???
         FOVx, FOVy, FOVz = seq.DEF["FOV"] #[m]
         if FOVx > 1  FOVx *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVy > 1  FOVy *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVz > 1  FOVz *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
-        #if Nx == 1  Nx = ceil(Int64, FOVx / Δx[1])  end
-        #if Ny == 1  Ny = ceil(Int64, FOVy / Δx[2])  end
-        #if Nz == 1  Nz = ceil(Int64, FOVy / Δx[3])  end      
+        if Nx == 1  Nx = ceil(Int64, FOVx / Δx[1])  end
+        if Ny == 1  Ny = ceil(Int64, FOVy / Δx[2])  end
+        if Nz == 1  Nz = ceil(Int64, FOVz / Δx[3])  end      
     else
         @warn "Estimating FOV parameters from seq.DEF Nx, Ny, Nz and traj."
-        if ~idx_zero[1]  FOVx = Nx * Δx[1]  else FOVx = 0  end
-        if ~idx_zero[2]  FOVy = Ny * Δx[2]  else FOVy = 0  end
-        if ~idx_zero[3]  FOVz = Nz * Δx[3]  else FOVz = 0  end
+        if !Wk_el_iszero[1]  FOVx = Nx * Δx[1]  else FOVx = 0  end
+        if !Wk_el_iszero[2]  FOVy = Ny * Δx[2]  else FOVy = 0  end
+        if !Wk_el_iszero[3]  FOVz = Nz * Δx[3]  else FOVz = 0  end
     end
     Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
     s_ktraj = size( ktraj)
