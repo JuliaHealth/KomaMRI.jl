@@ -792,8 +792,8 @@ function plot_image(
     image;
     height=600,
     width=nothing,
-    zmin=minimum(abs.(image[:])),
-    zmax=maximum(abs.(image[:])),
+    zmin=minimum(image[:]),
+    zmax=maximum(image[:]),
     darkmode=false,
     title="",
 )
