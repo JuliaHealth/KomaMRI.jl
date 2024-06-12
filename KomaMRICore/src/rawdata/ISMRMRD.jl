@@ -43,7 +43,7 @@ const ISMRMRD_ACQ_USER6                               = 1b64 << ( 62 - 1 )
 const ISMRMRD_ACQ_USER7                               = 1b64 << ( 63 - 1 )
 const ISMRMRD_ACQ_USER8                               = 1b64 << ( 64 - 1 )
 """
-    raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params, ndims=2)
+    raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params, ndims=2, use_ndseq=false)
 
 Transforms the raw signal into a RawAcquisitionData struct (nearly equivalent to the ISMRMRD
 format) used for reconstruction with MRIReco.
@@ -57,6 +57,7 @@ format) used for reconstruction with MRIReco.
 - `sys`: (`::Scanner`, `=Scanner()`) Scanner struct
 - `sim_params`: (`::Dict{String, Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
 - `ndims` : (`::Integer`, `=2`) number of dimensions of the reconstruction
+- `use_ndseq` = (`Bool`, `=false`) attempts to estimate dimension of reconstruction from seq file
 
 # Returns
 - `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct
