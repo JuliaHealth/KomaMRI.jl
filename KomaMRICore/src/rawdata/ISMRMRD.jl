@@ -292,9 +292,9 @@ function estimate_seq_recon_dimension(
         if FOVx > 1  FOVx *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVy > 1  FOVy *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVz > 1  FOVz *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
-        if Nx < 2  Nx = ceil(Int64, FOVx / Δx[1])  end
-        if Ny < 2  Ny = ceil(Int64, FOVy / Δx[2])  end
-        if Nz < 2  Nz = ceil(Int64, FOVy / Δx[3])  end      
+        if Nx == 1  Nx = ceil(Int64, FOVx / Δx[1])  end
+        if Ny == 1  Ny = ceil(Int64, FOVy / Δx[2])  end
+        if Nz == 1  Nz = ceil(Int64, FOVy / Δx[3])  end      
     else
         @warn "Estimating FOV parameters from seq.DEF Nx, Ny, Nz and traj."
         if Nx > 1  FOVx = Nx * Δx[1]  else FOVx = 0  end
