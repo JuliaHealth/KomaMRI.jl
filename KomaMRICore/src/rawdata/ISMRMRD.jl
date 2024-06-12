@@ -297,9 +297,9 @@ function estimate_seq_recon_dimension(
         if Nz == 1  Nz = ceil(Int64, FOVy / Δx[3])  end      
     else
         @warn "Estimating FOV parameters from seq.DEF Nx, Ny, Nz and traj."
-        if Nx > 1  FOVx = Nx * Δx[1]  else FOVx = 0  end
-        if Ny > 1  FOVy = Ny * Δx[2]  else FOVy = 0  end
-        if Ny > 1  FOVz = Nz * Δx[3]  else FOVz = 0  end
+        if Nx >= 1  FOVx = Nx * Δx[1]  else FOVx = 0  end
+        if Ny >= 1  FOVy = Ny * Δx[2]  else FOVy = 0  end
+        if Ny >= 1  FOVz = Nz * Δx[3]  else FOVz = 0  end
     end
     Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
     s_ktraj = size( ktraj)
