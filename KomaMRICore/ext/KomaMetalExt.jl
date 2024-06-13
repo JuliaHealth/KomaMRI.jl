@@ -9,6 +9,23 @@ KomaMRICore.set_device!(::MetalBackend, device_index::Integer) = device_index ==
 KomaMRICore.set_device!(::MetalBackend, dev::Metal.MTLDevice) = Metal.device!(dev)
 KomaMRICore.device_name(::MetalBackend) = String(Metal.current_device().name)
 
+function adapt_storage(::MetalBackend, x::ArbitraryMotion)
+    fields = []
+    for field in fieldnames(ArbitraryMotion)
+        if field in (:ux, :uy, :uz) 
+            push!(fields, adapt(::MetalBackend, getfield(x, field)))
+        else
+            push!(fields, f32(getfield(x, field)))
+        end
+    end
+    return ArbitraryMotion(fields...)
+end
+function adapt_storage(
+    ::MetalBackend, x::Vector{LinearInterpolator{T,V}}
+) where {T<:Real,V<:AbstractVector{T}}
+    return Metal.mtl.(x)
+end
+
 function KomaMRICore._print_devices(::MetalBackend)
     @info "Metal device type: $(KomaMRICore.device_name(MetalBackend()))"
 end
