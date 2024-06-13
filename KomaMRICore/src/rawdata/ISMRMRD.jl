@@ -79,7 +79,7 @@ julia> plot_signal(raw)
 """
 function signal_to_raw_data(
     signal, seq;
-    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2, use_ndseq=false
+    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2, use_ndseq=true
 )
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
 
