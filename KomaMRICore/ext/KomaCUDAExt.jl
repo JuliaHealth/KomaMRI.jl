@@ -8,19 +8,19 @@ KomaMRICore.isfunctional(::CUDABackend) = CUDA.functional()
 KomaMRICore.set_device!(::CUDABackend, val) = CUDA.device!(val)
 KomaMRICore.device_name(::CUDABackend) = CUDA.name(CUDA.device())
 
-function adapt_storage(::CUDABackend, x::ArbitraryMotion)
+function adapt_storage(::CUDABackend, x::KomaMRICore.ArbitraryMotion)
     fields = []
-    for field in fieldnames(ArbitraryMotion)
+    for field in fieldnames(KomaMRICore.ArbitraryMotion)
         if field in (:ux, :uy, :uz) 
-            push!(fields, adapt(::CUDABackend, getfield(x, field)))
+            push!(fields, adapt(CUDABackend(), getfield(x, field)))
         else
             push!(fields, f32(getfield(x, field)))
         end
     end
-    return ArbitraryMotion(fields...)
+    return KomaMRICore.ArbitraryMotion(fields...)
 end
 function adapt_storage(
-    ::CUDABackend, x::Vector{LinearInterpolator{T,V}}
+    ::CUDABackend, x::Vector{KomaMRICore.LinearInterpolator{T,V}}
 ) where {T<:Real,V<:AbstractVector{T}}
     return CUDA.cu.(x)
 end
