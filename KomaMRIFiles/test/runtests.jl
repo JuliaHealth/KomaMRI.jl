@@ -82,8 +82,11 @@ using TestItems, TestItemRunner
         obj1 = brain_phantom2D()
         Ns = length(obj1)
         K = 10
+        t_start = 0.0
+        t_end = 1.0
         obj1.motion = ArbitraryMotion(
-            [1.0],
+            t_start,
+            t_end,
             0.01.*rand(Ns, K-1),
             0.01.*rand(Ns, K-1),
             0.01.*rand(Ns, K-1))     

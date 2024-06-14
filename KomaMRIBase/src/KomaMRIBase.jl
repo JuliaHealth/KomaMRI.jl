@@ -31,6 +31,7 @@ include("datatypes/Phantom.jl")
 include("datatypes/simulation/DiscreteSequence.jl")
 include("timing/TimeStepCalculation.jl")
 include("timing/TrapezoidalIntegration.jl")
+include("timing/UnitTime.jl")
 
 # Main
 export γ    # gyro-magnetic ratio [Hz/T]
@@ -47,11 +48,11 @@ export kfoldperm, trapz, cumtrapz
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion
 export MotionModel
-export NoMotion, SimpleMotion, ArbitraryMotion, ExplicitArbitraryMotion
+export NoMotion, SimpleMotion, ArbitraryMotion
 export SimpleMotionType
 export Translation, Rotation, HeartBeat
 export PeriodicTranslation, PeriodicRotation, PeriodicHeartBeat
-export get_spin_coords, initialize_motion
+export get_spin_coords, initialize_motion!
 export Interpolator
 # Secondary
 export get_kspace, rotx, roty, rotz

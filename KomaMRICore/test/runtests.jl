@@ -431,11 +431,13 @@ end
     sys = Scanner()
     obj = phantom_brain()
     Ns = length(obj)
-    period_durations=[20.0]
-    dx = dz = zeros(Ns, 1)
-    dy = 1.0 .* ones(Ns, 1)
+    t_start = 0.0
+    t_end = 10.0
+    dx = dz = zeros(Ns, 2)
+    dy = 1.0 .* hcat(zeros(Ns,1), ones(Ns,1))
     obj.motion = @suppress ArbitraryMotion(
-        period_durations,
+        t_start,
+        t_end,
         dx,
         dy,
         dz)    
@@ -481,14 +483,16 @@ end
     sys = Scanner()
     obj = phantom_brain()
     Ns = length(obj)
-    period_durations=[20.0]
-    dx = dz = zeros(Ns, 1)
-    dy = 1.0 .* ones(Ns, 1)
+    t_start = 0.0
+    t_end = 10.0
+    dx = dz = zeros(Ns, 2)
+    dy = 1.0 .* hcat(zeros(Ns,1), ones(Ns,1))
     obj.motion = @suppress ArbitraryMotion(
-        period_durations,
+        t_start,
+        t_end,
         dx,
         dy,
-        dz)    
+        dz)  
     sim_params = Dict{String, Any}(
         "gpu"=>false,
         "sim_method"=>KomaMRICore.Bloch(),
@@ -530,14 +534,16 @@ end
     sys = Scanner()
     obj = phantom_brain()
     Ns = length(obj)
-    period_durations=[20.0]
-    dx = dz = zeros(Ns, 1)
-    dy = 1.0 .* ones(Ns, 1)
+    t_start = 0.0
+    t_end = 10.0
+    dx = dz = zeros(Ns, 2)
+    dy = 1.0 .* hcat(zeros(Ns,1), ones(Ns,1))
     obj.motion = @suppress ArbitraryMotion(
-        period_durations,
+        t_start,
+        t_end,
         dx,
         dy,
-        dz)    
+        dz)  
     sim_params = Dict{String, Any}(
         "gpu"=>true,
         "sim_method"=>KomaMRICore.Bloch(),

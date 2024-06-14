@@ -86,13 +86,14 @@ end
 function import_motion!(
     fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, motion_group::HDF5.Group
 )
-    dur = read(motion_group["period_durations"])
+    t_start = read(motion_group["t_start"])
+    t_end = read(motion_group["t_end"])
     K = read_attribute(motion_group, "K")
     dx = zeros(Ns, K - 1)
     dy = zeros(Ns, K - 1)
     dz = zeros(Ns, K - 1)
     for key in HDF5.keys(motion_group)
-        if key != "period_durations"
+        if !(key in ["t_start", "t_end"])
             values = read_param(motion_group[key])
             if key == "dx"
                 dx = values
@@ -103,7 +104,7 @@ function import_motion!(
             end
         end
     end
-    return push!(fields, (:motion, ArbitraryMotion(dur, dx, dy, dz)))
+    return push!(fields, (:motion, ArbitraryMotion(t_start, t_end, dx, dy, dz)))
 end
 
 """
@@ -167,7 +168,8 @@ end
 function export_motion!(motion_group::HDF5.Group, motion::ArbitraryMotion)
     HDF5.attributes(motion_group)["model"] = "ArbitraryMotion"
     HDF5.attributes(motion_group)["K"] = size(motion.dx)[2] + 1
-    motion_group["period_durations"] = motion.period_durations
+    motion_group["t_start"] = motion.t_start
+    motion_group["t_end"] = motion.t_end
 
     for key in ["dx", "dy", "dz"]
         d_group = create_group(motion_group, key)

@@ -439,30 +439,16 @@ end
     @testset "ArbitraryMotion" begin
         ph = Phantom(x=[1.0], y=[1.0])
         Ns = length(ph)
-        period_durations = [1.0]
+        t_start = 0.0
+        t_end = 1.0
         num_pieces = 10
         dx = dy = dz = rand(Ns, num_pieces - 1)
-        arbitrarymotion = @suppress ArbitraryMotion(period_durations, dx, dy, dz)
+        arbitrarymotion = @suppress ArbitraryMotion(t_start, t_end, dx, dy, dz)
         t = times(arbitrarymotion)
         xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
-        @test xt[:,2:end-1] == ph.x .+ dx
-        @test yt[:,2:end-1] == ph.y .+ dy
-        @test zt[:,2:end-1] == ph.z .+ dz
-    end
-    @testset "ExplicitArbitraryMotion" begin
-        ph = Phantom(x=[1.0], y=[1.0])
-        Ns = length(ph)
-        period_durations = [1.0]
-        num_pieces = 10
-        dx = dy = dz = rand(Ns, num_pieces - 1)
-        arbitrarymotion = @suppress ArbitraryMotion(period_durations, dx, dy, dz)
-        explicitarbitrarymotion = initialize_motion(arbitrarymotion)
-        t = collect(0:0.1:1)
-        xta, yta, zta = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
-        xte, yte, zte = get_spin_coords(explicitarbitrarymotion, ph.x, ph.y, ph.z, t')
-        @test xta == xte
-        @test yta == yte
-        @test zta == zte
+        @test xt == ph.x .+ dx
+        @test yt == ph.y .+ dy
+        @test zt == ph.z .+ dz
     end
 
     simplemotion = SimpleMotion([
@@ -472,7 +458,9 @@ end
 
     Ns = length(obj1)
     K = 10
-    arbitrarymotion = @suppress ArbitraryMotion([1.0], 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1))
+    t_start = 0.0
+    t_end = 1.0
+    arbitrarymotion = @suppress ArbitraryMotion(t_start, t_end, 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1), 0.01 .* rand(Ns, K - 1))
 
     # Test phantom subset
     obs1 = Phantom(

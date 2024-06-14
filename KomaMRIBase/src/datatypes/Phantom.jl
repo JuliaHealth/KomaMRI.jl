@@ -69,10 +69,7 @@ Base.getindex(x::Phantom, i::Integer) = x[i:i]
 """Compare two phantoms"""
 Base.:(==)(obj1::Phantom, obj2::Phantom) = reduce(
     &,
-    [
-        getfield(obj1, field) == getfield(obj2, field) for
-        field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
-    ],
+    [getfield(obj1, field) == getfield(obj2, field) for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))],
 )
 Base.:(≈)(obj1::Phantom, obj2::Phantom)      = reduce(&, [getfield(obj1, field) ≈ getfield(obj2, field) for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))])
 Base.:(==)(m1::MotionModel, m2::MotionModel) = false
@@ -117,8 +114,8 @@ function get_dims(obj::Phantom)
     return dims
 end
 
-function initialize_motion(motion::MotionModel) 
-    return motion
+function initialize_motion!(motion::MotionModel) 
+    return nothing
 end
 
 """

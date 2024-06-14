@@ -19,9 +19,8 @@ function initialize_spins_state(
     Mxy = zeros(T, Nspins)
     Mz = obj.ρ
     Xt = Mag{T}(Mxy, Mz)
-    obj2 = copy(obj)
-    obj2.motion = initialize_motion(obj.motion)
-    return Xt, obj2
+    initialize_motion!(obj.motion)
+    return Xt, obj
 end
 
 """

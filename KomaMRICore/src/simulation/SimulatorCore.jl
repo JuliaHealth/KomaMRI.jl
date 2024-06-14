@@ -353,8 +353,7 @@ function simulate(
         seqd = seqd |> f64 #DiscreteSequence
         Xt   = Xt |> f64 #SpinStateRepresentation
         sig  = sig |> f64 #Signal
-    end
-
+    end   
     # Simulation
     @info "Running simulation in the $(sim_params["gpu"] ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
         __VERSION__ sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(

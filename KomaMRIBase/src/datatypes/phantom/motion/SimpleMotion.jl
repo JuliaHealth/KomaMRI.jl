@@ -96,8 +96,8 @@ function times(motion::SimpleMotion)
     return nodes
 end
 
-function initialize_motion(motion::SimpleMotion)
-    return SimpleMotion(sort(motion.types; by=m -> times(m)[1]))
+function initialize_motion!(motion::SimpleMotion)
+    sort!(motion.types; by=m -> times(m)[1])
 end
 
 # --------- Simple Motion Types: -------------
@@ -106,28 +106,8 @@ include("simplemotion/Translation.jl")
 include("simplemotion/Rotation.jl")
 include("simplemotion/HeartBeat.jl")
 
-function unit_time(t::AbstractArray{T}, t_start::T, t_end::T) where {T<:Real}
-    if t_start == t_end
-        return (t .>= t_start) .* one(T) # The problem with this is that it returns a BitVector (type stability issues)
-    else
-        return min.(max.((t .- t_start) ./ (t_end - t_start), zero(T)), one(T))
-    end
-end
-
 # Periodic types: defined by the period, the temporal symmetry and a displacement (amplitude)
 include("simplemotion/PeriodicTranslation.jl")
 include("simplemotion/PeriodicRotation.jl")
 include("simplemotion/PeriodicHeartBeat.jl")
 
-function unit_time_triangular(t, period, asymmetry)
-    t_rise = period * asymmetry
-    t_fall = period * (1 - asymmetry)
-    t_relative = mod.(t, period)
-    t_unit =
-        ifelse.(
-            t_relative .< t_rise,
-            t_relative ./ t_rise,
-            1 .- (t_relative .- t_rise) ./ t_fall,
-        )
-    return t_unit
-end

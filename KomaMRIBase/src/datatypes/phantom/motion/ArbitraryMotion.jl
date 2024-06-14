@@ -3,25 +3,29 @@
 #           Degree = Linear,Cubic.... 
 #           ETPType = Periodic, Flat...
 
-const Interpolator = Interpolations.Extrapolation{
-    T,
-    N,
-    Interpolations.GriddedInterpolation{
-        T,
-        N,
-        V,
-        Itp,
-        K
-    },
-    Itp,
-    Interpolations.Periodic{Nothing}
+const Interpolator = Interpolations.GriddedInterpolation{
+    T,N,V,Itp,K
 } where {
     T<:Real,
     N,
     V<:AbstractArray{T},
+    Itp<:Tuple{ Vararg{ Union{Interpolations.Gridded{Linear{Throw{OnGrid}}},Interpolations.NoInterp} } },
     K<:Tuple{Vararg{AbstractVector{T}}},
-    Itp<:Tuple{Vararg{Union{Interpolations.Gridded{Linear{Throw{OnGrid}}}, Interpolations.NoInterp}}}
 }
+
+function GriddedInterpolation(
+    nodes::NType,
+    A::AType
+) where {T<:Real, AType<:AbstractArray{T}, NType<:Tuple{Vararg{AbstractVector{T}}}}
+    Ns, _ = size(A)
+    if Ns > 1
+        ITPType = Tuple{NoInterp, Gridded{Linear{Throw{OnGrid}}}}
+        return Interpolations.GriddedInterpolation{T, 2, typeof(A), ITPType, typeof(nodes)}(nodes, A, (NoInterp(), Gridded(Linear())))
+    else
+        ITPType = Tuple{Gridded{Linear{Throw{OnGrid}}}}
+        return Interpolations.GriddedInterpolation{T, 1, typeof(A[:]), ITPType, typeof((nodes[2], ))}((nodes[2], ), A[:], (Gridded(Linear()), ))
+    end
+end
 
 """
     motion = ArbitraryMotion(period_durations, dx, dy, dz)
@@ -57,10 +61,11 @@ julia> motion = ArbitraryMotion(
 ```
 """
 struct ArbitraryMotion{T} <: MotionModel{T}
-    period_durations::Vector{T}
-    dx::Matrix{T}
-    dy::Matrix{T}
-    dz::Matrix{T}
+    t_start::T
+    t_end::T
+    dx::AbstractArray{T}
+    dy::AbstractArray{T}
+    dz::AbstractArray{T}
 end
 
 function Base.getindex(
@@ -82,57 +87,38 @@ Base.:(≈)(m1::ArbitraryMotion, m2::ArbitraryMotion)  = reduce(&, [getfield(m1,
 
 function Base.vcat(m1::ArbitraryMotion, m2::ArbitraryMotion)
     fields = []
-    @assert m1.period_durations == m2.period_durations "period_durations of both ArbitraryMotions must be the same"
-    for field in
-        Iterators.filter(x -> !(x == :period_durations), fieldnames(ArbitraryMotion))
+    @assert (m1.t_start == m2.t_start) && (m1.t_end == m2.t_end) "starting and ending times must be the same"
+    for field in (:dx, :dy, :dz)
         push!(fields, [getfield(m1, field); getfield(m2, field)])
     end
-    return ArbitraryMotion(m1.period_durations, fields...)
+    return ArbitraryMotion(m1.t_start, m1.t_end, fields...)
 end
 
 """
     limits = times(obj.motion)
 """
 function times(motion::ArbitraryMotion)
-    period_durations = motion.period_durations
-    num_pieces = size(motion.dx)[2] + 1
-    return times(period_durations, num_pieces)
-end
-
-function times(period_durations::AbstractVector, num_pieces::Int)
-    # Pre-allocating memory
-    limits = zeros(eltype(period_durations), num_pieces * length(period_durations) + 1)
-
-    idx = 1
-    for i in 1:length(period_durations)
-        segment_increment = period_durations[i] / num_pieces
-        cumulative_sum = limits[idx]  # Start from the last computed value in limits
-        for j in 1:num_pieces
-            cumulative_sum += segment_increment
-            limits[idx + 1] = cumulative_sum
-            idx += 1
-        end
-    end
-    return limits
+    return collect(range(motion.t_start, motion.t_end, length=size(motion.dx)[2]))
 end
 
 
-function get_itp_functions(motion::ArbitraryMotion{T}) where {T<:Real}
-    Ns = size(motion.dx)[1]
-    dx = hcat(repeat(hcat(zeros(T ,Ns, 1), motion.dx), 1, length(motion.period_durations)), zeros(T ,Ns, 1))
-    dy = hcat(repeat(hcat(zeros(T ,Ns, 1), motion.dy), 1, length(motion.period_durations)), zeros(T ,Ns, 1))
-    dz = hcat(repeat(hcat(zeros(T ,Ns, 1), motion.dz), 1, length(motion.period_durations)), zeros(T ,Ns, 1))
-    if Ns > 1
-        nodes = ([i*one(T) for i=1:Ns], times(motion))
-        itpx = extrapolate(interpolate(nodes, dx, (NoInterp(), Gridded(Linear()))), Periodic())
-        itpy = extrapolate(interpolate(nodes, dy, (NoInterp(), Gridded(Linear()))), Periodic())
-        itpz = extrapolate(interpolate(nodes, dz, (NoInterp(), Gridded(Linear()))), Periodic())
-    else
-        nodes = (times(motion), )
-        itpx = extrapolate(interpolate(nodes, dx[:], (Gridded(Linear()), )), Periodic())
-        itpy = extrapolate(interpolate(nodes, dy[:], (Gridded(Linear()), )), Periodic())
-        itpz = extrapolate(interpolate(nodes, dz[:], (Gridded(Linear()), )), Periodic())
-    end
+function get_itp_functions(
+    dx::AbstractArray{T},
+    dy::AbstractArray{T},
+    dz::AbstractArray{T}
+    ) where {T<:Real}
+    Ns, Nt = size(dx)
+
+    t = similar(dx, Nt)
+    t .= 0:(Nt-1)
+
+    id = similar(dx, Ns)
+    id .= 1:Ns
+
+    itpx = GriddedInterpolation((id, t ./ (Nt-1)), dx)
+    itpy = GriddedInterpolation((id, t ./ (Nt-1)), dy)
+    itpz = GriddedInterpolation((id, t ./ (Nt-1)), dz)
+
     return itpx, itpy, itpz
 end
 
@@ -140,13 +126,12 @@ function get_itp_results(
     itpx::Interpolator{T}, 
     itpy::Interpolator{T}, 
     itpz::Interpolator{T}, 
-    t::AbstractArray{T}, 
-    range::AbstractRange
+    t::AbstractArray{T}
 ) where {T<:Real}
-    Ns = length(range)
+    Ns = ndims(itpx.coefs) == 1 ? 1 : size(itpx.coefs,1)
     if Ns > 1
         id = similar(t, Ns)
-        id .= range
+        id .= 1:Ns
         # Grid
         idx = 1*id .+ 0*t # spin id
         t   = 0*id .+ 1*t # time instants
@@ -158,50 +143,12 @@ end
 
 function get_spin_coords(
     motion::ArbitraryMotion{T},
-    x::Vector{T},
-    y::Vector{T},
-    z::Vector{T},
-    t::AbstractArray{T}
-) where {T<:Real}
-    itp = get_itp_functions(motion)
-    ux, uy, uz = get_itp_results(itp..., t, 1:length(x))
-    return x .+ ux, y .+ uy, z .+ uz
-end
-
-function initialize_motion(motion::ArbitraryMotion)
-    itp = get_itp_functions(motion)
-    return ExplicitArbitraryMotion(itp..., 1:size(motion.dx)[1])
-end
-
-
-"""
-    motion = ExplicitArbitraryMotion(period_durations, dx, dy, dz)
-
-ExplicitArbitraryMotion model.
-
-"""
-mutable struct ExplicitArbitraryMotion{T} <: MotionModel{T}
-    itpx::Interpolator{T}
-    itpy::Interpolator{T}
-    itpz::Interpolator{T}
-    range::Union{AbstractRange,AbstractVector{T},Colon}
-end
-
-function Base.getindex(
-    motion::ExplicitArbitraryMotion{T}, p::Union{AbstractRange,AbstractVector{T},Colon}
-) where {T<:Real}
-    motion.range = p
-    return motion
-end
-  
-
-function get_spin_coords(
-    motion::ExplicitArbitraryMotion{T},
     x::AbstractVector{T},
     y::AbstractVector{T},
     z::AbstractVector{T},
     t::AbstractArray{T}
 ) where {T<:Real}
-    ux, uy, uz = get_itp_results(motion.itpx, motion.itpy, motion.itpz, t, motion.range)
+    itp = get_itp_functions(motion.dx, motion.dy, motion.dz)
+    ux, uy, uz = get_itp_results(itp..., unit_time(t, motion.t_start, motion.t_end))
     return x .+ ux, y .+ uy, z .+ uz
 end
