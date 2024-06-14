@@ -5,7 +5,7 @@ For non-periodic motions
 """
 function unit_time(t::AbstractArray{T}, t_start::T, t_end::T) where {T<:Real}
     if t_start == t_end
-        return (t .>= t_start) .* one(T) # The problem with this is that it returns a BitVector (type stability issues)
+        return (t .>= t_start) .* one(T)
     else
         return min.(max.((t .- t_start) ./ (t_end - t_start), zero(T)), one(T))
     end
