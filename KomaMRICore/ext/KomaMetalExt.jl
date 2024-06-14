@@ -2,6 +2,7 @@ module KomaMetalExt
 
 using Metal
 import KomaMRICore
+import Adapt
 
 KomaMRICore.name(::MetalBackend) = "Metal"
 KomaMRICore.isfunctional(::MetalBackend) = Metal.functional()
@@ -9,18 +10,19 @@ KomaMRICore.set_device!(::MetalBackend, device_index::Integer) = device_index ==
 KomaMRICore.set_device!(::MetalBackend, dev::Metal.MTLDevice) = Metal.device!(dev)
 KomaMRICore.device_name(::MetalBackend) = String(Metal.current_device().name)
 
-function adapt_storage(::MetalBackend, x::KomaMRICore.ArbitraryMotion)
+Adapt.adapt_storage(::MetalBackend, x::KomaMRICore.SimpleMotion) = KomaMRICore.f32(x)
+function Adapt.adapt_storage(::MetalBackend, x::KomaMRICore.ArbitraryMotion)
     fields = []
     for field in fieldnames(KomaMRICore.ArbitraryMotion)
         if field in (:ux, :uy, :uz) 
-            push!(fields, adapt(MetalBackend(), getfield(x, field)))
+            push!(fields, Adapt.adapt(MetalBackend(), getfield(x, field)))
         else
-            push!(fields, f32(getfield(x, field)))
+            push!(fields, KomaMRICore.f32(getfield(x, field)))
         end
     end
     return KomaMRICore.ArbitraryMotion(fields...)
 end
-function adapt_storage(
+function Adapt.adapt_storage(
     ::MetalBackend, x::Vector{KomaMRICore.LinearInterpolator{T,V}}
 ) where {T<:Real,V<:AbstractVector{T}}
     return Metal.mtl.(x)

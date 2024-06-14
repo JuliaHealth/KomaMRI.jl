@@ -2,24 +2,26 @@ module KomaoneAPIExt
 
 using oneAPI
 import KomaMRICore
+import Adapt
 
 KomaMRICore.name(::oneAPIBackend) = "oneAPI"
 KomaMRICore.isfunctional(::oneAPIBackend) = oneAPI.functional()
 KomaMRICore.set_device!(::oneAPIBackend, val) = oneAPI.device!(val)
 KomaMRICore.device_name(::oneAPIBackend) = oneAPI.properties(oneAPI.device()).name
 
-function adapt_storage(::oneAPIBackend, x::KomaMRICore.ArbitraryMotion)
+Adapt.adapt_storage(::oneAPIBackend, x::KomaMRICore.SimpleMotion) = KomaMRICore.f32(x)
+function Adapt.adapt_storage(::oneAPIBackend, x::KomaMRICore.ArbitraryMotion)
     fields = []
     for field in fieldnames(KomaMRICore.ArbitraryMotion)
         if field in (:ux, :uy, :uz) 
-            push!(fields, adapt(oneAPIBackend(), getfield(x, field)))
+            push!(fields, Adapt.adapt(oneAPIBackend(), getfield(x, field)))
         else
-            push!(fields, f32(getfield(x, field)))
+            push!(fields, KomaMRICore.f32(getfield(x, field)))
         end
     end
     return KomaMRICore.ArbitraryMotion(fields...)
 end
-function adapt_storage(
+function Adapt.adapt_storage(
     ::oneAPIBackend, x::Vector{KomaMRICore.LinearInterpolator{T,V}}
 ) where {T<:Real,V<:AbstractVector{T}}
     return oneAPI.oneArray.(x)

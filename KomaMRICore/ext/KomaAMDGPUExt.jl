@@ -2,6 +2,7 @@ module KomaAMDGPUExt
 
 using AMDGPU
 import KomaMRICore
+import Adapt
 
 KomaMRICore.name(::ROCBackend) = "AMDGPU"
 KomaMRICore.isfunctional(::ROCBackend) = AMDGPU.functional()
@@ -9,18 +10,19 @@ KomaMRICore.set_device!(::ROCBackend, dev_idx::Integer) = AMDGPU.device_id!(dev_
 KomaMRICore.set_device!(::ROCBackend, dev::AMDGPU.HIPDevice) = AMDGPU.device!(dev)
 KomaMRICore.device_name(::ROCBackend) = AMDGPU.device().name
 
-function adapt_storage(::ROCBackend, x::KomaMRICore.ArbitraryMotion)
+Adapt.adapt_storage(::ROCBackend, x::KomaMRICore.SimpleMotion) = KomaMRICore.f32(x)
+function Adapt.adapt_storage(::ROCBackend, x::KomaMRICore.ArbitraryMotion)
     fields = []
     for field in fieldnames(KomaMRICore.ArbitraryMotion)
         if field in (:ux, :uy, :uz) 
-            push!(fields, adapt(ROCBackend(), getfield(x, field)))
+            push!(fields, Adapt.adapt(ROCBackend(), getfield(x, field)))
         else
-            push!(fields, f32(getfield(x, field)))
+            push!(fields, KomaMRICore.f32(getfield(x, field)))
         end
     end
     return KomaMRICore.ArbitraryMotion(fields...)
 end
-function adapt_storage(
+function Adapt.adapt_storage(
     ::ROCBackend, x::Vector{KomaMRICore.LinearInterpolator{T,V}}
 ) where {T<:Real,V<:AbstractVector{T}}
     return AMDGPU.rocconvert.(x)
