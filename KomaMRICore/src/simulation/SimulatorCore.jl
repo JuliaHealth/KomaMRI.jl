@@ -341,6 +341,13 @@ function simulate(
         (set sim_param["precision"] = "f32" to avoid seeing this message).
         """ maxlog=1
     end
+    if sim_params["precision"] == "f32"
+        #Precision  #Default
+        obj  = obj |> f32 #Phantom
+        seqd = seqd |> f32 #DiscreteSequence
+        Xt   = Xt |> f32 #SpinStateRepresentation
+        sig  = sig |> f32 #Signal
+    end
     # Objects to GPU
     if backend isa KA.GPU
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
@@ -356,12 +363,6 @@ function simulate(
         Xt   = Xt |> f64 #SpinStateRepresentation
         sig  = sig |> f64 #Signal
     else
-        #Precision  #Default
-        obj  = obj |> f32 #Phantom
-        seqd = seqd |> f32 #DiscreteSequence
-        Xt   = Xt |> f32 #SpinStateRepresentation
-        sig  = sig |> f32 #Signal
-    end
 
     # Simulation
     @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
