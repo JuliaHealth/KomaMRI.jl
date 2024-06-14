@@ -10,6 +10,7 @@ KomaMRICore.set_device!(::MetalBackend, device_index::Integer) = device_index ==
 KomaMRICore.set_device!(::MetalBackend, dev::Metal.MTLDevice) = Metal.device!(dev)
 KomaMRICore.device_name(::MetalBackend) = String(Metal.current_device().name)
 
+Adapt.adapt_storage(::MetalBackend, x::KomaMRICore.NoMotion) = KomaMRICore.NoMotion{Float32}()
 Adapt.adapt_storage(::MetalBackend, x::KomaMRICore.SimpleMotion) = KomaMRICore.f32(x)
 function Adapt.adapt_storage(::MetalBackend, x::KomaMRICore.ArbitraryMotion)
     fields = []

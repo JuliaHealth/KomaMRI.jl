@@ -10,6 +10,7 @@ KomaMRICore.set_device!(::ROCBackend, dev_idx::Integer) = AMDGPU.device_id!(dev_
 KomaMRICore.set_device!(::ROCBackend, dev::AMDGPU.HIPDevice) = AMDGPU.device!(dev)
 KomaMRICore.device_name(::ROCBackend) = AMDGPU.device().name
 
+Adapt.adapt_storage(::ROCBackend, x::KomaMRICore.NoMotion) = KomaMRICore.NoMotion{Float32}()
 Adapt.adapt_storage(::ROCBackend, x::KomaMRICore.SimpleMotion) = KomaMRICore.f32(x)
 function Adapt.adapt_storage(::ROCBackend, x::KomaMRICore.ArbitraryMotion)
     fields = []

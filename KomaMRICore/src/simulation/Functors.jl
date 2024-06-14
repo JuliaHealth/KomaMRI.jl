@@ -1,14 +1,14 @@
 import Adapt: adapt, adapt_storage
 import Functors: @functor, functor, fmap, isleaf
 
-#Aux. funcitons to check if the variable we want to convert to CuArray is numeric
+#Aux. funcitons to check if the variable we want to move to the GPU is numeric
 _isleaf(x) = isleaf(x)
 _isleaf(::AbstractArray{<:Number}) = true
 _isleaf(::AbstractArray{T}) where T = isbitstype(T)
 _isleaf(::AbstractRange) = true
 
 """
-	gpu(x)
+	gpu(x, backend)
 
 Tries to move `x` to the GPU backend specified in the 'backend' parameter. 
 

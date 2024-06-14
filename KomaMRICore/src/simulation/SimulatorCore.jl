@@ -341,6 +341,15 @@ function simulate(
         (set sim_param["precision"] = "f32" to avoid seeing this message).
         """ maxlog=1
     end
+    # Objects to GPU
+    if backend isa KA.GPU
+        isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
+        gpu_name = device_name(backend)
+        obj = gpu(obj, backend) #Phantom
+        seqd = gpu(seqd, backend) #DiscreteSequence
+        Xt = gpu(Xt, backend) #SpinStateRepresentation
+        sig = gpu(sig, backend) #Signal
+    end
     if sim_params["precision"] == "f64" && KA.supports_float64(backend)
         obj  = obj |> f64 #Phantom
         seqd = seqd |> f64 #DiscreteSequence
@@ -352,15 +361,6 @@ function simulate(
         seqd = seqd |> f32 #DiscreteSequence
         Xt   = Xt |> f32 #SpinStateRepresentation
         sig  = sig |> f32 #Signal
-    end
-    # Objects to GPU
-    if backend isa KA.GPU
-        isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
-        gpu_name = device_name(backend)
-        obj = gpu(obj, backend) #Phantom
-        seqd = gpu(seqd, backend) #DiscreteSequence
-        Xt = gpu(Xt, backend) #SpinStateRepresentation
-        sig = gpu(sig, backend) #Signal
     end
 
     # Simulation

@@ -9,6 +9,7 @@ KomaMRICore.isfunctional(::oneAPIBackend) = oneAPI.functional()
 KomaMRICore.set_device!(::oneAPIBackend, val) = oneAPI.device!(val)
 KomaMRICore.device_name(::oneAPIBackend) = oneAPI.properties(oneAPI.device()).name
 
+Adapt.adapt_storage(::oneAPIBackend, x::KomaMRICore.NoMotion) = KomaMRICore.NoMotion{Float32}()
 Adapt.adapt_storage(::oneAPIBackend, x::KomaMRICore.SimpleMotion) = KomaMRICore.f32(x)
 function Adapt.adapt_storage(::oneAPIBackend, x::KomaMRICore.ArbitraryMotion)
     fields = []

@@ -9,6 +9,7 @@ KomaMRICore.isfunctional(::CUDABackend) = CUDA.functional()
 KomaMRICore.set_device!(::CUDABackend, val) = CUDA.device!(val)
 KomaMRICore.device_name(::CUDABackend) = CUDA.name(CUDA.device())
 
+Adapt.adapt_storage(::CUDABackend, x::KomaMRICore.NoMotion) = KomaMRICore.NoMotion{Float32}()
 Adapt.adapt_storage(::CUDABackend, x::KomaMRICore.SimpleMotion) = KomaMRICore.f32(x)
 function Adapt.adapt_storage(::CUDABackend, x::KomaMRICore.ArbitraryMotion)
     fields = []
