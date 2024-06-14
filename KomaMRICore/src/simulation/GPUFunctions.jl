@@ -45,8 +45,7 @@ _isleaf(x) = _isbitsarray(x) || isleaf(x)
 # GPU adaptor
 struct KomaCUDAAdaptor end
 adapt_storage(to::KomaCUDAAdaptor, x) = CUDA.cu(x)
-adapt_storage(to::KomaCUDAAdaptor, x::Real) = f32(x)
-adapt_storage(to::KomaCUDAAdaptor, x::MotionModel) = f32(x) 
+adapt_storage(to::KomaCUDAAdaptor, x::Union{Real, NoMotion, Array{<:SimpleMotionType}}) = f32(x)
 """
 	gpu(x)
 
@@ -96,10 +95,7 @@ adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
-
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
-adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype(T, xs.types))
-
 """
     f32(m)
 
@@ -121,18 +117,21 @@ See also [`f32`](@ref).
 f64(m) = paramtype(Float64, m)
 
 #The functor macro makes it easier to call a function in all the parameters
+# Phantom
 @functor Phantom
-
+# SimpleMotion
+@functor SimpleMotion
 @functor Translation
 @functor Rotation
 @functor HeartBeat
 @functor PeriodicTranslation
 @functor PeriodicRotation
 @functor PeriodicHeartBeat
-
+# ArbitraryMotion
 @functor ArbitraryMotion
-
+# Spinor
 @functor Spinor
+# DiscreteSequence
 @functor DiscreteSequence
 
 #Exporting functions
