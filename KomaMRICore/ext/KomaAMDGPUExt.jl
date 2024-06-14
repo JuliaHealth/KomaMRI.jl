@@ -10,19 +10,6 @@ KomaMRICore.set_device!(::ROCBackend, dev_idx::Integer) = AMDGPU.device_id!(dev_
 KomaMRICore.set_device!(::ROCBackend, dev::AMDGPU.HIPDevice) = AMDGPU.device!(dev)
 KomaMRICore.device_name(::ROCBackend) = AMDGPU.device().name
 
-Adapt.adapt_storage(::ROCBackend, x::KomaMRICore.NoMotion) = KomaMRICore.NoMotion{Float32}()
-Adapt.adapt_storage(::ROCBackend, x::KomaMRICore.SimpleMotion) = KomaMRICore.f32(x)
-function Adapt.adapt_storage(::ROCBackend, x::KomaMRICore.ArbitraryMotion)
-    fields = []
-    for field in fieldnames(KomaMRICore.ArbitraryMotion)
-        if field in (:ux, :uy, :uz) 
-            push!(fields, Adapt.adapt(ROCBackend(), getfield(x, field)))
-        else
-            push!(fields, KomaMRICore.f32(getfield(x, field)))
-        end
-    end
-    return KomaMRICore.ArbitraryMotion(fields...)
-end
 function Adapt.adapt_storage(
     ::ROCBackend, x::Vector{KomaMRICore.LinearInterpolator{T,V}}
 ) where {T<:Real,V<:AbstractVector{T}}

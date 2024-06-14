@@ -337,11 +337,16 @@ function simulate(
     if !KA.supports_float64(backend) && sim_params["precision"] == "f64"
         sim_params["precision"] = "f32"
         @info """ Backend: '$(name(backend))' does not support 64-bit precision 
-        floating point operations. Simulation types will be converted to Float32.
+        floating point operations. Automatically converting to type Float32.
         (set sim_param["precision"] = "f32" to avoid seeing this message).
         """ maxlog=1
     end
-    if sim_params["precision"] == "f32"
+    if sim_params["precision"] == "f64" && KA.supports_float64(backend)
+        obj  = obj |> f64 #Phantom
+        seqd = seqd |> f64 #DiscreteSequence
+        Xt   = Xt |> f64 #SpinStateRepresentation
+        sig  = sig |> f64 #Signal
+    else
         #Precision  #Default
         obj  = obj |> f32 #Phantom
         seqd = seqd |> f32 #DiscreteSequence
@@ -356,12 +361,6 @@ function simulate(
         seqd = gpu(seqd, backend) #DiscreteSequence
         Xt = gpu(Xt, backend) #SpinStateRepresentation
         sig = gpu(sig, backend) #Signal
-    end
-    if sim_params["precision"] == "f64" && KA.supports_float64(backend)
-        obj  = obj |> f64 #Phantom
-        seqd = seqd |> f64 #DiscreteSequence
-        Xt   = Xt |> f64 #SpinStateRepresentation
-        sig  = sig |> f64 #Signal
     end
 
     # Simulation

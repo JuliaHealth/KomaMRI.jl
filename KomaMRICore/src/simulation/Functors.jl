@@ -42,6 +42,21 @@ x = x |> cpu
 """
 cpu(x) = fmap(x -> adapt(KA.CPU(), x), x, exclude=_isleaf)
 
+#MotionModel structs
+adapt_storage(::KA.GPU, x::NoMotion) = x
+adapt_storage(::KA.GPU, x::SimpleMotion) = x
+function adapt_storage(backend::KA.GPU, xs::ArbitraryMotion)
+    fields = []
+    for field in fieldnames(ArbitraryMotion)
+        if field in (:ux, :uy, :uz)
+            push!(fields, adapt(backend, getfield(xs, field)))
+        else
+            push!(fields, getfield(xs, field))
+        end
+    end
+    return KomaMRICore.ArbitraryMotion(fields...)
+end
+
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
 adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)

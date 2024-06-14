@@ -10,19 +10,6 @@ KomaMRICore.set_device!(::MetalBackend, device_index::Integer) = device_index ==
 KomaMRICore.set_device!(::MetalBackend, dev::Metal.MTLDevice) = Metal.device!(dev)
 KomaMRICore.device_name(::MetalBackend) = String(Metal.current_device().name)
 
-Adapt.adapt_storage(::MetalBackend, x::KomaMRICore.NoMotion) = KomaMRICore.NoMotion{Float32}()
-Adapt.adapt_storage(::MetalBackend, x::KomaMRICore.SimpleMotion) = KomaMRICore.f32(x)
-function Adapt.adapt_storage(::MetalBackend, x::KomaMRICore.ArbitraryMotion)
-    fields = []
-    for field in fieldnames(KomaMRICore.ArbitraryMotion)
-        if field in (:ux, :uy, :uz) 
-            push!(fields, Adapt.adapt(MetalBackend(), getfield(x, field)))
-        else
-            push!(fields, KomaMRICore.f32(getfield(x, field)))
-        end
-    end
-    return KomaMRICore.ArbitraryMotion(fields...)
-end
 function Adapt.adapt_storage(
     ::MetalBackend, x::Vector{KomaMRICore.LinearInterpolator{T,V}}
 ) where {T<:Real,V<:AbstractVector{T}}
