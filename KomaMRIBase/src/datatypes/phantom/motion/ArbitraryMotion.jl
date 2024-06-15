@@ -71,7 +71,7 @@ end
 function Base.getindex(
     motion::ArbitraryMotion, p::Union{AbstractRange,AbstractVector,Colon}
 )
-    return ArbitraryMotion(motion.t_start, motion.t_tend, motion.dx[p,:], motion.dy[p,:], motion.dz[p,:])
+    return ArbitraryMotion(motion.t_start, motion.t_end, motion.dx[p,:], motion.dy[p,:], motion.dz[p,:])
 end
 
 Base.:(==)(m1::ArbitraryMotion, m2::ArbitraryMotion) = reduce(&, [getfield(m1, field) == getfield(m2, field) for field in fieldnames(ArbitraryMotion)])
