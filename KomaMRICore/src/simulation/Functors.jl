@@ -1,14 +1,14 @@
 import Adapt: adapt, adapt_storage
 import Functors: @functor, functor, fmap, isleaf
 
-#Aux. funcitons to check if the variable we want to convert to CuArray is numeric
+#Aux. funcitons to check if the variable we want to move to the GPU is numeric
 _isleaf(x) = isleaf(x)
 _isleaf(::AbstractArray{<:Number}) = true
 _isleaf(::AbstractArray{T}) where T = isbitstype(T)
 _isleaf(::AbstractRange) = true
 
 """
-	gpu(x)
+	gpu(x, backend)
 
 Tries to move `x` to the GPU backend specified in the 'backend' parameter. 
 
@@ -41,6 +41,21 @@ x = x |> cpu
 ```
 """
 cpu(x) = fmap(x -> adapt(KA.CPU(), x), x, exclude=_isleaf)
+
+#MotionModel structs
+adapt_storage(::KA.GPU, x::NoMotion) = x
+adapt_storage(::KA.GPU, x::SimpleMotion) = x
+function adapt_storage(backend::KA.GPU, xs::ArbitraryMotion)
+    fields = []
+    for field in fieldnames(ArbitraryMotion)
+        if field in (:ux, :uy, :uz)
+            push!(fields, adapt(backend, getfield(xs, field)))
+        else
+            push!(fields, getfield(xs, field))
+        end
+    end
+    return KomaMRICore.ArbitraryMotion(fields...)
+end
 
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
