@@ -383,6 +383,15 @@ end
     @test length(obj1) == length(ρ)
 
     # Test obtaining spin psositions 
+    @testset "NoMotion" begin
+        ph = Phantom(x=[1.0, 2.0], y=[1.0, 2.0])
+        t_start=0.0; t_end=1.0 
+        t = collect(range(t_start, t_end, 11))
+        xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
+        @test xt == ph.x
+        @test yt == ph.y
+        @test zt == ph.z
+    end
     @testset "SimpleMotion" begin
         ph = Phantom(x=[1.0], y=[1.0])
         t_start=0.0; t_end=1.0 
@@ -437,7 +446,21 @@ end
         @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
     end
     @testset "ArbitraryMotion" begin
+        # 1 spin
         ph = Phantom(x=[1.0], y=[1.0])
+        Ns = length(ph)
+        t_start = 0.0
+        t_end = 1.0
+        num_pieces = 10
+        dx = dy = dz = rand(Ns, num_pieces - 1)
+        arbitrarymotion = @suppress ArbitraryMotion(t_start, t_end, dx, dy, dz)
+        t = times(arbitrarymotion)
+        xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
+        @test xt == ph.x .+ dx
+        @test yt == ph.y .+ dy
+        @test zt == ph.z .+ dz
+        # More than 1 spin
+        ph = Phantom(x=[1.0, 2.0], y=[1.0, 2.0])
         Ns = length(ph)
         t_start = 0.0
         t_end = 1.0
