@@ -60,12 +60,14 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     rec_params = merge(Dict{Symbol,Any}(:reco=>"direct"), rec)
     mat_folder = tempdir()
 
+    # Print gpu information
+    if !(haskey(sim_params, "gpu") && sim_params["gpu"] == false)
+        KomaMRICore.print_devices()
+    end
+
     # Boleans to indicate first time for precompilation
     is_first_sim = true
     is_first_rec = true
-
-    # Print GPU information
-    KomaMRICore.print_gpus()
 
     # Handle "View" sidebar buttons
     handle(w, "index") do _
