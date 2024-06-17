@@ -58,6 +58,8 @@ using TestItems, TestItemRunner
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
         @test obj1 == obj2
+    end
+    @testset "SimpleMotion" begin
         # SimpleMotion
         filename = path * "/test_files/brain_simplemotion.phantom"
         obj1 = brain_phantom2D()
@@ -77,6 +79,8 @@ using TestItems, TestItemRunner
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
         @test obj1 == obj2
+    end
+    @testset "ArbitraryMotion" begin
         # ArbitraryMotion
         filename = path * "/test_files/brain_arbitrarymotion.phantom"
         obj1 = brain_phantom2D()
