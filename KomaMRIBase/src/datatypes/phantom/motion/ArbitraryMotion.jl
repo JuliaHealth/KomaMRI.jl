@@ -90,7 +90,7 @@ end
     limits = times(obj.motion)
 """
 function times(motion::ArbitraryMotion)
-    return collect(range(motion.t_start, motion.t_end, length=size(motion.dx)[2]))
+    return range(motion.t_start, motion.t_end, length=size(motion.dx, 2))
 end
 
 
