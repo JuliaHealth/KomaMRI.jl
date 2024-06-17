@@ -78,12 +78,8 @@ Base.:(==)(m1::ArbitraryMotion, m2::ArbitraryMotion) = reduce(&, [getfield(m1, f
 Base.:(≈)(m1::ArbitraryMotion, m2::ArbitraryMotion)  = reduce(&, [getfield(m1, field) ≈ getfield(m2, field) for field in fieldnames(ArbitraryMotion)])
 
 function Base.vcat(m1::ArbitraryMotion, m2::ArbitraryMotion)
-    fields = []
-    @assert (m1.t_start == m2.t_start) && (m1.t_end == m2.t_end) "starting and ending times must be the same"
-    for field in (:dx, :dy, :dz)
-        push!(fields, [getfield(m1, field); getfield(m2, field)])
-    end
-    return ArbitraryMotion(m1.t_start, m1.t_end, fields...)
+    @assert (m1.t_start == m2.t_start) && (m1.t_end == m2.t_end) "Starting and ending times must be the same"
+    return ArbitraryMotion(m1.t_start, m1.t_end, [m1.dx; m2.dx], [m1.dy; m2.dy], [m1.dz; m2.dz])
 end
 
 """
