@@ -1,5 +1,117 @@
 steps:
-  - label: "Example Test"
-    command: echo "Hello!"
+  - label: "AMDGPU: Run tests on v{{matrix.version}}"
+    matrix:
+      setup:
+        version:
+          - "1.9"
+    env:
+      CI: BUILDKITE
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "{{matrix.version}}"
+    command:
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="."),
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+          ])'
+      
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          Pkg.test("KomaMRICore"; test_args=["AMDGPU"])'
     agents:
       queue: "juliagpu"
+      rocm: "*"
+    timeout_in_minutes: 120
+
+  - label: "CUDA: Run tests on v{{matrix.version}}"
+    matrix:
+      setup:
+        version:
+          - "1.9"
+    env:
+      CI: BUILDKITE
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "{{matrix.version}}"
+    command:
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="."),
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+          ])'
+      
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          Pkg.test("KomaMRICore"; test_args=["CUDA"])'
+    agents:
+      queue: "juliagpu"
+      cuda: "*"
+    timeout_in_minutes: 120
+
+  - label: "Metal: Run tests on v{{matrix.version}}"
+    matrix:
+      setup:
+        version:
+          - "1.9"
+    env:
+      CI: BUILDKITE
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "{{matrix.version}}"
+    command:
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="."),
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+          ])'
+      
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          Pkg.test("KomaMRICore"; test_args=["Metal"])'
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "aarch64"
+    timeout_in_minutes: 120
+
+  - label: "oneAPI: Run tests on v{{matrix.version}}"
+    matrix:
+      setup:
+        version:
+          - "1.9"
+    env:
+      CI: BUILDKITE
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "{{matrix.version}}"
+    command:
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="."),
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+          ])'
+      
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          Pkg.test("KomaMRICore"; test_args=["oneAPI"])'
+    agents:
+      queue: "juliagpu"
+      intel: "*"
+    timeout_in_minutes: 120
