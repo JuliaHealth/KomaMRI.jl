@@ -7,7 +7,7 @@ using Reexport
 #Datatypes
 using Parameters
 #Simulation
-@reexport using Interpolations
+using Interpolations
 #Reconstruction
 using MRIBase
 @reexport using MRIBase:
@@ -52,8 +52,7 @@ export NoMotion, SimpleMotion, ArbitraryMotion
 export SimpleMotionType
 export Translation, Rotation, HeartBeat
 export PeriodicTranslation, PeriodicRotation, PeriodicHeartBeat
-export get_spin_coords, initialize_motion!
-export Interpolator
+export get_spin_coords
 # Secondary
 export get_kspace, rotx, roty, rotz
 # Additionals
