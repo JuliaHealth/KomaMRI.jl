@@ -410,8 +410,7 @@ end
     sig_jemris = signal_brain_motion_jemris()  
     seq = seq_epi_100x100_TE100_FOV230()
     sys = Scanner()
-    obj = phantom_brain()
-    obj.motion = SimpleMotion([Translation(t_end=10.0, dx=0.0, dy=1.0, dz=0.0)])
+    obj = phantom_brain_simple_motion()
     sim_params = Dict{String, Any}(
         "gpu"=>false,
         "Nthreads"=>1,
@@ -431,18 +430,7 @@ end
     sig_jemris = signal_brain_motion_jemris()  
     seq = seq_epi_100x100_TE100_FOV230()
     sys = Scanner()
-    obj = phantom_brain()
-    Ns = length(obj)
-    t_start = 0.0
-    t_end = 10.0
-    dx = dz = zeros(Ns, 2)
-    dy = 1.0 .* hcat(zeros(Ns,1), ones(Ns,1))
-    obj.motion = @suppress ArbitraryMotion(
-        t_start,
-        t_end,
-        dx,
-        dy,
-        dz)    
+    obj = phantom_brain_arbitrary_motion()
     sim_params = Dict{String, Any}(
         "gpu"=>false,
         "Nthreads"=>1,
@@ -463,8 +451,7 @@ end
     sig_jemris = signal_brain_motion_jemris()  
     seq = seq_epi_100x100_TE100_FOV230()
     sys = Scanner()
-    obj = phantom_brain()
-    obj.motion = SimpleMotion([Translation(t_end=10.0, dx=0.0, dy=1.0, dz=0.0)])
+    obj = phantom_brain_simple_motion()
     sim_params = Dict{String, Any}(
         "gpu"=>false,
         "sim_method"=>KomaMRICore.Bloch(),
@@ -483,18 +470,7 @@ end
     sig_jemris = signal_brain_motion_jemris()  
     seq = seq_epi_100x100_TE100_FOV230()
     sys = Scanner()
-    obj = phantom_brain()
-    Ns = length(obj)
-    t_start = 0.0
-    t_end = 10.0
-    dx = dz = zeros(Ns, 2)
-    dy = 1.0 .* hcat(zeros(Ns,1), ones(Ns,1))
-    obj.motion = @suppress ArbitraryMotion(
-        t_start,
-        t_end,
-        dx,
-        dy,
-        dz)  
+    obj = phantom_brain_arbitrary_motion()
     sim_params = Dict{String, Any}(
         "gpu"=>false,
         "sim_method"=>KomaMRICore.Bloch(),
@@ -514,8 +490,7 @@ end
     sig_jemris = signal_brain_motion_jemris()  
     seq = seq_epi_100x100_TE100_FOV230()
     sys = Scanner()
-    obj = phantom_brain()
-    obj.motion = SimpleMotion([Translation(t_end=10.0, dx=0.0, dy=1.0, dz=0.0)])
+    obj = phantom_brain_simple_motion()
     sim_params = Dict{String, Any}(
         "gpu"=>true,
         "sim_method"=>KomaMRICore.Bloch(),
@@ -536,18 +511,7 @@ end
     sig_jemris = signal_brain_motion_jemris()  
     seq = seq_epi_100x100_TE100_FOV230()
     sys = Scanner()
-    obj = phantom_brain()
-    Ns = length(obj)
-    t_start = 0.0
-    t_end = 10.0
-    dx = dz = zeros(Ns, 2)
-    dy = 1.0 .* hcat(zeros(Ns,1), ones(Ns,1))
-    obj.motion = @suppress ArbitraryMotion(
-        t_start,
-        t_end,
-        dx,
-        dy,
-        dz)  
+    obj = phantom_brain_arbitrary_motion()
     sim_params = Dict{String, Any}(
         "gpu"=>true,
         "sim_method"=>KomaMRICore.Bloch(),
