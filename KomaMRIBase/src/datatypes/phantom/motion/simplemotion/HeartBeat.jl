@@ -25,7 +25,7 @@ julia> hb = HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudi
     longitudinal_strain::T = typeof(circumferential_strain)(0.0)
     t_start::T             = typeof(circumferential_strain)(0.0)
     t_end::T               = typeof(circumferential_strain)(0.0)
-    @assert t_end >= t_start "t_end must be major or equal than t_start"
+    @assert t_end >= t_start "t_end must be greater or equal than t_start"
 end
 
 is_composable(motion_type::HeartBeat) = true

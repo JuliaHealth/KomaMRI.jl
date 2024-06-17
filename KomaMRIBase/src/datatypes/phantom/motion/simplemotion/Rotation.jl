@@ -58,7 +58,7 @@ julia> rt = Rotation(pitch=15.0, roll=0.0, yaw=20.0, t_start=0.1, t_end=0.5)
     yaw        :: T
     t_start::T = typeof(pitch)(0.0)
     t_end      = typeof(pitch)(0.0)
-    @assert t_end >= t_start "t_end must be major or equal than t_start"
+    @assert t_end >= t_start "t_end must be greater or equal than t_start"
 end
 
 is_composable(motion_type::Rotation) = true

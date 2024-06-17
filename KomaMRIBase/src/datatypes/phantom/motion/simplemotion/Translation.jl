@@ -26,7 +26,7 @@ julia> tr = Translation(dx=0.01, dy=0.02, dz=0.03, t_start=0.0, t_end=0.5)
     dz         :: T
     t_start::T = typeof(dx)(0.0)
     t_end::T   = typeof(dx)(0.0)
-    @assert t_end >= t_start "t_end must be major or equal than t_start"
+    @assert t_end >= t_start "t_end must be greater or equal than t_start"
 end
 
 function displacement_x(
