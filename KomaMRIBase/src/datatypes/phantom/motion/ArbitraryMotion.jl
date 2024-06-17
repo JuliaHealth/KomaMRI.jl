@@ -10,13 +10,13 @@ const Interpolator = Interpolations.GriddedInterpolation{
     N,
     V<:AbstractArray{T},
     Itp<:Tuple{ Vararg{ Union{Interpolations.Gridded{Linear{Throw{OnGrid}}},Interpolations.NoInterp} } },
-    K<:Tuple{Vararg{AbstractVector{T}}},
+    K<:Tuple{Vararg{AbstractRange{T}}},
 }
 
 function GriddedInterpolation(
     nodes::NType,
     A::AType
-) where {T<:Real, AType<:AbstractArray{T}, NType<:Tuple{Vararg{AbstractVector{T}}}}
+) where {T<:Real, AType<:AbstractArray{T}, NType<:Tuple{Vararg{AbstractRange{T}}}}
     Ns, _ = size(A)
     if Ns > 1
         ITPType = Tuple{NoInterp, Gridded{Linear{Throw{OnGrid}}}}
@@ -101,15 +101,10 @@ function get_itp_functions(
     ) where {T<:Real}
     Ns, Nt = size(dx)
 
-    t = similar(dx, Nt)
-    t .= range(0,1,Nt)
 
-    id = similar(dx, Ns)
-    id .= 1:Ns
-
-    itpx = GriddedInterpolation((id, t), dx)
-    itpy = GriddedInterpolation((id, t), dy)
-    itpz = GriddedInterpolation((id, t), dz)
+    itpx = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), dx)
+    itpy = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), dy)
+    itpz = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), dz)
 
     return itpx, itpy, itpz
 end
