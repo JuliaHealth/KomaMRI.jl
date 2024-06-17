@@ -9,15 +9,13 @@ steps:
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-    command:
+    command: |
       julia -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
-              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
           ])'
       
       julia -e 'println("--- :julia: Running tests")
@@ -38,15 +36,13 @@ steps:
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-    command:
+    command: |
       julia -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
-              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
           ])'
       
       julia -e 'println("--- :julia: Running tests")
@@ -67,15 +63,13 @@ steps:
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-    command:
+    command: |
       julia -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
-              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
           ])'
       
       julia -e 'println("--- :julia: Running tests")
@@ -97,15 +91,13 @@ steps:
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-    command:
+    command: |
       julia -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
-              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
           ])'
       
       julia -e 'println("--- :julia: Running tests")
