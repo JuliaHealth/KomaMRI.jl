@@ -122,6 +122,8 @@ function get_itp_results(
 ) where {T<:Real}
     Ns = ndims(itpx.coefs) == 1 ? 1 : size(itpx.coefs,1)
     if Ns > 1
+        id = similar(t, Ns)
+        id .= 1:Ns
         # Grid
         idx = 1*id .+ 0*t # spin id
         t   = 0*id .+ 1*t # time instants
