@@ -61,6 +61,7 @@ using TestItems, TestItemRunner
     end
     @testset "SimpleMotion" begin
         # SimpleMotion
+        path = @__DIR__
         filename = path * "/test_files/brain_simplemotion.phantom"
         obj1 = brain_phantom2D()
         obj1.motion = SimpleMotion([
@@ -82,6 +83,7 @@ using TestItems, TestItemRunner
     end
     @testset "ArbitraryMotion" begin
         # ArbitraryMotion
+        path = @__DIR__
         filename = path * "/test_files/brain_arbitrarymotion.phantom"
         obj1 = brain_phantom2D()
         Ns = length(obj1)
