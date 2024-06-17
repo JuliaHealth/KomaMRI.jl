@@ -94,19 +94,15 @@ function times(motion::ArbitraryMotion)
 end
 
 
-function get_itp_functions(
-    dx::AbstractArray{T},
-    dy::AbstractArray{T},
-    dz::AbstractArray{T}
-    ) where {T<:Real}
-    Ns, Nt = size(dx)
-    itpx = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), dx)
-    itpy = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), dy)
-    itpz = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), dz)
+function interpolate(motion::ArbitraryMotion{T}) where {T<:Real}
+    Ns, Nt = size(motion.dx)
+    itpx = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), motion.dx)
+    itpy = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), motion.dy)
+    itpz = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), motion.dz)
     return itpx, itpy, itpz
 end
 
-function get_itp_results(
+function resample(
     itpx::Interpolator{T}, 
     itpy::Interpolator{T}, 
     itpz::Interpolator{T}, 
@@ -127,7 +123,7 @@ function get_spin_coords(
     z::AbstractVector{T},
     t::AbstractArray{T}
 ) where {T<:Real}
-    itp = get_itp_functions(motion.dx, motion.dy, motion.dz)
-    ux, uy, uz = get_itp_results(itp..., unit_time(t, motion.t_start, motion.t_end))
+    motion_functions = interpolate(motion)
+    ux, uy, uz = resample(motion_functions..., unit_time(t, motion.t_start, motion.t_end))
     return x .+ ux, y .+ uy, z .+ uz
 end
