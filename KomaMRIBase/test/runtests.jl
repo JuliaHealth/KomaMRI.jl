@@ -452,7 +452,9 @@ end
         t_start = 0.0
         t_end = 1.0
         num_pieces = 10
-        dx = dy = dz = rand(Ns, num_pieces - 1)
+        dx = rand(Ns, num_pieces - 1)
+        dy = rand(Ns, num_pieces - 1)
+        dz = rand(Ns, num_pieces - 1)
         arbitrarymotion = @suppress ArbitraryMotion(t_start, t_end, dx, dy, dz)
         t = times(arbitrarymotion)
         xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
@@ -465,7 +467,9 @@ end
         t_start = 0.0
         t_end = 1.0
         num_pieces = 10
-        dx = dy = dz = rand(Ns, num_pieces - 1)
+        dx = rand(Ns, num_pieces - 1)
+        dy = rand(Ns, num_pieces - 1)
+        dz = rand(Ns, num_pieces - 1)
         arbitrarymotion = @suppress ArbitraryMotion(t_start, t_end, dx, dy, dz)
         t = times(arbitrarymotion)
         xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
