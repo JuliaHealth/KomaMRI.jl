@@ -88,22 +88,9 @@ function import_motion!(
 )
     t_start = read(motion_group["t_start"])
     t_end = read(motion_group["t_end"])
-    K = read_attribute(motion_group, "K")
-    dx = zeros(Ns, K - 1)
-    dy = zeros(Ns, K - 1)
-    dz = zeros(Ns, K - 1)
-    for key in HDF5.keys(motion_group)
-        if !(key in ["t_start", "t_end"])
-            values = read_param(motion_group[key])
-            if key == "dx"
-                dx = values
-            elseif key == "dy"
-                dy = values
-            elseif key == "dz"
-                dz = values
-            end
-        end
-    end
+    dx = read(motion_group["dx"])  
+    dy = read(motion_group["dy"])  
+    dz = read(motion_group["dz"])  
     return push!(fields, (:motion, ArbitraryMotion(t_start, t_end, dx, dy, dz)))
 end
 
@@ -167,13 +154,9 @@ function export_motion!(motion_group::HDF5.Group, motion::SimpleMotion)
 end
 function export_motion!(motion_group::HDF5.Group, motion::ArbitraryMotion)
     HDF5.attributes(motion_group)["model"] = "ArbitraryMotion"
-    HDF5.attributes(motion_group)["K"] = size(motion.dx)[2] + 1
     motion_group["t_start"] = motion.t_start
     motion_group["t_end"] = motion.t_end
-
-    for key in ["dx", "dy", "dz"]
-        d_group = create_group(motion_group, key)
-        HDF5.attributes(d_group)["type"] = "Explicit" #TODO: consider "Indexed" type
-        d_group["values"] = getfield(motion, Symbol(key))
-    end
+    motion_group["dx"] = motion.dx
+    motion_group["dy"] = motion.dy
+    motion_group["dz"] = motion.dz
 end
