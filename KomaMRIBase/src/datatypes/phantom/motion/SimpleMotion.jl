@@ -97,7 +97,7 @@ function times(motion::SimpleMotion)
 end
 
 function initialize_motion!(motion::SimpleMotion)
-    sort!(motion.types; by=m -> times(m)[1])
+    return sort!(motion.types; by=m -> times(m)[1])
 end
 
 # --------- Simple Motion Types: -------------
