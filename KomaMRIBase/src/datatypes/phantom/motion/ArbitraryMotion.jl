@@ -100,12 +100,9 @@ function get_itp_functions(
     dz::AbstractArray{T}
     ) where {T<:Real}
     Ns, Nt = size(dx)
-
-
     itpx = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), dx)
     itpy = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), dy)
     itpz = GriddedInterpolation((one(T):Ns, range(0,one(T),Nt)), dz)
-
     return itpx, itpy, itpz
 end
 
@@ -117,12 +114,7 @@ function get_itp_results(
 ) where {T<:Real}
     Ns = ndims(itpx.coefs) == 1 ? 1 : size(itpx.coefs,1)
     if Ns > 1
-        id = similar(t, Ns)
-        id .= 1:Ns
-        # Grid
-        idx = 1*id .+ 0*t # spin id
-        t   = 0*id .+ 1*t # time instants
-        return itpx.(idx, t), itpy.(idx, t), itpz.(idx, t)
+        return itpx.(1:Ns, t), itpy.(1:Ns, t), itpz.(1:Ns, t)
     else
         return itpx.(t), itpy.(t), itpz.(t)
     end
