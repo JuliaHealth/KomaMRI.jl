@@ -102,14 +102,14 @@ function get_itp_functions(
     Ns, Nt = size(dx)
 
     t = similar(dx, Nt)
-    t .= 0:(Nt-1)
+    t .= range(0,1,Nt)
 
     id = similar(dx, Ns)
     id .= 1:Ns
 
-    itpx = GriddedInterpolation((id, t ./ (Nt-1)), dx)
-    itpy = GriddedInterpolation((id, t ./ (Nt-1)), dy)
-    itpz = GriddedInterpolation((id, t ./ (Nt-1)), dz)
+    itpx = GriddedInterpolation((id, t), dx)
+    itpy = GriddedInterpolation((id, t), dy)
+    itpz = GriddedInterpolation((id, t), dz)
 
     return itpx, itpy, itpz
 end
@@ -122,8 +122,6 @@ function get_itp_results(
 ) where {T<:Real}
     Ns = ndims(itpx.coefs) == 1 ? 1 : size(itpx.coefs,1)
     if Ns > 1
-        id = similar(t, Ns)
-        id .= 1:Ns
         # Grid
         idx = 1*id .+ 0*t # spin id
         t   = 0*id .+ 1*t # time instants
