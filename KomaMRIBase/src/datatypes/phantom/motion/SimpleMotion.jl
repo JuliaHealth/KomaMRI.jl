@@ -31,13 +31,7 @@ struct SimpleMotion{T<:Real} <: MotionModel{T}
 end
 
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
-function Base.getindex(
-    motion::SimpleMotion,
-    p::Union{AbstractRange,AbstractVector,Colon},
-    q::Union{AbstractRange,AbstractVector,Colon},
-)
-    return motion
-end
+Base.view(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
 
 Base.vcat(m1::SimpleMotion, m2::SimpleMotion) = SimpleMotion([m1.types; m2.types])
 

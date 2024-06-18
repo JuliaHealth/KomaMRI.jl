@@ -85,7 +85,13 @@ Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begi
 end
 
 """Separate object spins in a sub-group (lightweigth)."""
-Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = @views obj[p]
+Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+    fields = []
+    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+        push!(fields, (field, @view(getfield(obj, field)[p])))
+    end
+    return Phantom(; name=obj.name, fields...)
+end
 
 """Addition of phantoms"""
 +(obj1::Phantom, obj2::Phantom) = begin

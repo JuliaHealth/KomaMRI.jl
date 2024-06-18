@@ -7,6 +7,7 @@ x = x
 struct NoMotion{T<:Real} <: MotionModel{T} end
 
 Base.getindex(motion::NoMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
+Base.view(motion::NoMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
 
 Base.:(==)(m1::NoMotion, m2::NoMotion) = true
 Base.:(≈)(m1::NoMotion, m2::NoMotion)  = true
