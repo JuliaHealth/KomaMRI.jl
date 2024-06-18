@@ -67,13 +67,13 @@ julia> t_unit = KomaMRIBase.unit_time_triangular([0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
 """
 function unit_time_triangular(t::AbstractArray{T}, period::T, asymmetry::T) where {T<:Real}
     t_rise = period * asymmetry
-    t_fall = period * (1 - asymmetry)
+    t_fall = period * (oneunit(T) - asymmetry)
     t_relative = mod.(t, period)
     t_unit =
         ifelse.(
             t_relative .< t_rise,
             t_relative ./ t_rise,
-            1 .- (t_relative .- t_rise) ./ t_fall,
+            oneunit(T) .- (t_relative .- t_rise) ./ t_fall,
         )
     return t_unit
 end
