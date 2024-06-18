@@ -50,7 +50,7 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = [M.xy M.xy .* exp.(1im .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
+    Mxy = [M.xy M.xy .* exp.(Complex{T}(1im) .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     #Acquired signal
     sig[:, :, 1] .= transpose(Mxy[:, findall(seq.ADC)])
