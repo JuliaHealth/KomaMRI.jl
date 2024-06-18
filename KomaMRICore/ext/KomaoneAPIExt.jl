@@ -25,7 +25,7 @@ end
 
 #Temporary workaround since oneAPI.jl (similar to Metal) does not support some array operations
 #Once run_spin_excitation! and run_spin_precession! are kernel-based, this code can be removed
-Base.cumsum(x::oneVector) = convert(oneVector, cumsum(KomaMRICore.cpu(x)))
+Base.cumsum(x::oneVector{T}) where T = convert(oneVector{T}, cumsum(KomaMRICore.cpu(x)))
 Base.cumsum(x::oneArray{T}; dims) where T = convert(oneArray{T}, cumsum(KomaMRICore.cpu(x), dims=dims))
 Base.findall(x::oneVector{Bool}) = convert(oneVector, findall(KomaMRICore.cpu(x)))
 
