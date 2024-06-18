@@ -1,5 +1,5 @@
 @doc raw"""
-    periodic_rotation = PeriodicRotation(period, asymmetry, pitch, roll, yaw)
+    periodic_rotation = PeriodicRotation(pitch, roll, yaw, period, asymmetry)
  
 PeriodicRotation motion struct. It produces a rotation of the phantom in the three axes: 
 x (pitch), y (roll), and z (yaw)

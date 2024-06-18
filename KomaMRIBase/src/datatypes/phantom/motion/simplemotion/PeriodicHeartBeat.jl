@@ -1,5 +1,5 @@
 @doc raw"""
-    periodic_heartbeat = PeriodicHeartBeat(t_start, t_end, dx, dy, dz)
+    periodic_heartbeat = PeriodicHeartBeat(circumferential_strain, radial_strain, longitudinal_strain, period, asymmetry)
 
 HeartBeat struct. It produces a heartbeat-like motion, characterised by three types of strain:
 Circumferential, Radial and Longitudinal
