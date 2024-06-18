@@ -29,7 +29,7 @@ Base.findall(x::MtlVector{Bool}) = convert(MtlVector, findall(KomaMRICore.cpu(x)
 
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], MetalBackend())
-    @warn "Metal does not support all array operations used by KomaMRI (https://github.com/JuliaGPU/Metal.jl/issues/348). GPU performance may be negatively impacted"
+    @warn "Metal does not support all array operations used by KomaMRI (https://github.com/JuliaGPU/Metal.jl/issues/348). GPU performance may be slower than expected"
 end
 
 end
