@@ -141,17 +141,17 @@ We automatically test KomaMRICore's CPU multi-threading support on the most popu
 
 <div align="center">
 
-| Julia (OS)                            | CPU                                       | GPU (Nvidia) |
-|:--------------------------------------|:----------------------------------------------:|:------------------:|
-| Julia 1.9 (Windows)  | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
-| Julia 1.9 (Linux)    | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
-| Julia 1.9  (Mac)      | [![][gh-actions-komamri]][gh-actions-url]          | ➖                |
-| Julia 1.10 (Windows)           | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
-| Julia 1.10 (Linux)             | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
-| Julia 1.10 (Mac)               | [![][gh-actions-komamri]][gh-actions-url]          | ➖                |
-| Julia 1.11 (Windows)          | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌                 |
-| Julia 1.11 (Linux)            | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌                 |
-| Julia 1.11 (Mac)              | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ➖                 |
+| Julia (OS)           | CPU                                                        | GPU (Nvidia) |
+|:---------------------|:----------------------------------------------------------:|:------------:|
+| Julia 1.9 (Windows)  | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
+| Julia 1.9 (Linux)    | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
+| Julia 1.9  (Mac)     | [![][gh-actions-komamri]][gh-actions-url]                  | ➖           |
+| Julia 1.10 (Windows) | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
+| Julia 1.10 (Linux)   | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
+| Julia 1.10 (Mac)     | [![][gh-actions-komamri]][gh-actions-url]                  | ➖           |
+| Julia 1.11 (Windows) | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌           |
+| Julia 1.11 (Linux)   | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌           |
+| Julia 1.11 (Mac)     | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ➖           |
 
 </div>
 
