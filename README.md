@@ -5,7 +5,7 @@
 
 <div align="center">
  
-![][julia-19] [![][gh-actions-komamri]][gh-actions-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url]
+![][julia-19] [![][gh-actions-komamri]][gh-actions-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url]
 
 [![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url]
 
@@ -205,6 +205,7 @@ If you see any problem with this information, please let us know in the form of 
 [arXiv-url]: https://arxiv.org/abs/2301.02702
 [paper-url]: https://doi.org/10.1002/mrm.29635
 <!-- Downloads -->
+[total-downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Ftotal_downloads%2FKomaMRI&query=total_requests&label=Downloads
 [downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRI&query=total_requests&suffix=%2Fmonth&label=Downloads
 [downloads-komabase]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRIBase&query=total_requests&suffix=%2Fmonth&label=Downloads
 [downloads-komacore]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRICore&query=total_requests&suffix=%2Fmonth&label=Downloads
