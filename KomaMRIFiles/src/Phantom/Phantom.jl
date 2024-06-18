@@ -5,13 +5,13 @@ Reads a (.phantom) file and creates a Phantom structure from it
 """
 function read_phantom(filename::String)
     fid = HDF5.h5open(filename, "r")
-    fields = []
+    phantom_fields = []
     version = read_attribute(fid, "Version")
     dims = read_attribute(fid, "Dims")
     Ns = read_attribute(fid, "Ns")
     # Name 
     name = read_attribute(fid, "Name")
-    push!(fields, (:name, name))
+    push!(phantom_fields, (:name, name))
     # Position and contrast
     for key in ["position", "contrast"]
         group = fid[key]
@@ -19,16 +19,16 @@ function read_phantom(filename::String)
             param = group[label]
             values = read_param(param)
             if values != "Default"
-                push!(fields, (Symbol(label), values))
+                push!(phantom_fields, (Symbol(label), values))
             end
         end
     end
     # Motion
     motion_group = fid["motion"]
     model = read_attribute(motion_group, "model")
-    import_motion!(fields, Ns, Symbol(model), motion_group)
+    import_motion!(phantom_fields, Ns, Symbol(model), motion_group)
 
-    obj = Phantom(; fields...)
+    obj = Phantom(; phantom_fields...)
     close(fid)
     return obj
 end
@@ -54,16 +54,16 @@ function read_param(param::HDF5.Group)
     return values
 end
 
-function import_motion!(fields::Array, Ns::Int, model::Symbol, motion_group::HDF5.Group)
-    return import_motion!(fields, Ns, Val(model), motion_group)
+function import_motion!(phantom_fields::Array, Ns::Int, model::Symbol, motion_group::HDF5.Group)
+    return import_motion!(phantom_fields, Ns, Val(model), motion_group)
 end
 function import_motion!(
-    fields::Array, Ns::Int, model::Val{:NoMotion}, motion_group::HDF5.Group
+    phantom_fields::Array, Ns::Int, model::Val{:NoMotion}, motion_group::HDF5.Group
 )
     return nothing
 end
 function import_motion!(
-    fields::Array, Ns::Int, model::Val{:SimpleMotion}, motion_group::HDF5.Group
+    phantom_fields::Array, Ns::Int, model::Val{:SimpleMotion}, motion_group::HDF5.Group
 )
     types_group = motion_group["types"]
     types = SimpleMotionType[]
@@ -81,17 +81,17 @@ function import_motion!(
             end
         end
     end
-    return push!(fields, (:motion, SimpleMotion(vcat(types...))))
+    return push!(phantom_fields, (:motion, SimpleMotion(vcat(types...))))
 end
 function import_motion!(
-    fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, motion_group::HDF5.Group
+    phantom_fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, motion_group::HDF5.Group
 )
     t_start = read(motion_group["t_start"])
     t_end = read(motion_group["t_end"])
     dx = read(motion_group["dx"])  
     dy = read(motion_group["dy"])  
     dz = read(motion_group["dz"])  
-    return push!(fields, (:motion, ArbitraryMotion(t_start, t_end, dx, dy, dz)))
+    return push!(phantom_fields, (:motion, ArbitraryMotion(t_start, t_end, dx, dy, dz)))
 end
 
 """
@@ -146,8 +146,8 @@ function export_motion!(motion_group::HDF5.Group, motion::SimpleMotion)
     for (counter, sm_type) in enumerate(motion.types)
         simple_motion_type = typeof(sm_type).name.name
         type_group = create_group(types_group, "$(counter)_$simple_motion_type")
-        fields = fieldnames(typeof(sm_type))
-        for field in fields
+        phantom_fields = fieldnames(typeof(sm_type))
+        for field in phantom_fields
             HDF5.attributes(type_group)[string(field)] = getfield(sm_type, field)
         end
     end
