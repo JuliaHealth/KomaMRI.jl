@@ -65,8 +65,7 @@ function run_spin_precession!(
     exp_argument1 = one_im .* ϕ
     exp_argument2 = - tp' ./ p.T2
     exp_argument = exp_argument1 .+ exp_argument2
-    println(typeof(exp_argument))
-    exp_result = exp.(exp_argument)
+    exp_result = exp.(real.(exp_argument)) .* (cos.(imag.(exp_argument)) .+ Complex{T}(0,1) * sin.(imag.(exp_argument)))
     elementwise_multiplication = M.xy .* exp_result
     Mxy = [M.xy elementwise_multiplication]
     M.xy .= Mxy[:, end]

@@ -166,7 +166,7 @@ end
     sim_params = KomaMRICore.default_sim_params()
     sim_params["return_type"] = "mat"
     sim_params["gpu"] = USE_GPU
-    sig = simulate(obj, seq, sys; sim_params)
+    sig = @suppress simulate(obj, seq, sys; sim_params)
 
     # Test signal_to_raw_data
     raw = signal_to_raw_data(sig, seq)
