@@ -382,7 +382,7 @@ end
     @test size(obj1) == size(ρ)
     @test length(obj1) == length(ρ)
 
-    # Test obtaining spin psositions 
+    # Test obtaining spin positions 
     @testset "NoMotion" begin
         ph = Phantom(x=[1.0, 2.0], y=[1.0, 2.0])
         t_start=0.0; t_end=1.0 
@@ -444,6 +444,34 @@ end
         @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
         @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
         @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
+        # ----- t_start = t_end --------
+        t_start = t_end = 0.0
+        t = [-0.5, -0.25, 0.0, 0.25, 0.5]
+        # Translation
+        translation = SimpleMotion([Translation(dx, dy, dz, t_start, t_end)])
+        xt, yt, zt = get_spin_coords(translation, ph.x, ph.y, ph.z, t')
+        @test xt == ph.x .+ dx*[0, 0, 1, 1, 1]'
+        @test yt == ph.y .+ dy*[0, 0, 1, 1, 1]'
+        @test zt == ph.z .+ dz*[0, 0, 1, 1, 1]'
+        # Rotation
+        rotation = SimpleMotion([Rotation(pitch, roll, yaw, t_start, t_end)])
+        xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
+        dx = cosd(yaw) .- ph.y .* sind(yaw)
+        dy = sind(yaw) .+ ph.y .* cosd(yaw)
+        @test xt == [ph.x   ph.x   ph.x .* dx   ph.x .* dx   ph.x .* dx]
+        @test yt == [ph.y   ph.y   ph.y .* dy   ph.y .* dy   ph.y .* dy]
+        @test zt == [ph.z   ph.z   ph.z         ph.z         ph.z      ]
+        # HeartBeat
+        heartbeat = SimpleMotion([HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end)])
+        xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
+        r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
+        θ = atan.(ph.y, ph.x)
+        dx = (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
+        dy = (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
+        dz = (1 .+ longitudinal_strain)
+        @test xt == [ph.x   ph.x   ph.x .* dx   ph.x .* dx   ph.x .* dx]
+        @test yt == [ph.y   ph.y   ph.y .* dy   ph.y .* dy   ph.y .* dy]
+        @test zt == [ph.z   ph.z   ph.z .* dz   ph.z .* dz   ph.z .* dz]
     end
     @testset "ArbitraryMotion" begin
         # 1 spin
