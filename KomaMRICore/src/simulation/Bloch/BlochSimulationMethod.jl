@@ -59,15 +59,7 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     tp   = cumsum(seq.Δt) # t' = t - t0
     dur  = sum(seq.Δt)   # Total length, used for signal relaxation
-    #Mxy  = [M.xy M.xy .* exp.(Complex{T}(1im) .* ϕ .- tp' ./ p.T2)] #This assumes Δw and T2 are constant in time
-    #Temporary: split line above into multiple lines so we can see where it fails for oneAPI
-    one_im = Complex{T}(0,1)
-    exp_argument1 = one_im .* ϕ
-    exp_argument2 = - tp' ./ p.T2
-    exp_argument = exp_argument1 .+ exp_argument2
-    exp_result = exp.(real.(exp_argument)) .* (cos.(imag.(exp_argument)) .+ Complex{T}(0,1) * sin.(imag.(exp_argument)))
-    elementwise_multiplication = M.xy .* exp_result
-    Mxy = [M.xy elementwise_multiplication]
+    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Acquired signal
