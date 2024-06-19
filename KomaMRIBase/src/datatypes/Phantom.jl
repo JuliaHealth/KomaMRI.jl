@@ -120,10 +120,6 @@ function get_dims(obj::Phantom)
     return dims
 end
 
-function initialize_motion(motion::MotionModel) 
-    return motion
-end
-
 """
     obj = heart_phantom(...)
 

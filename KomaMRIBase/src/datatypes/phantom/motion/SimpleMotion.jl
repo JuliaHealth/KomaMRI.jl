@@ -69,6 +69,7 @@ function get_spin_coords(
     z::AbstractVector{T},
     t::AbstractArray{T}
 ) where {T<:Real}
+    motion = sort_motions(motion)
     xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
     # Composable motions: they need to be run sequentially
     for motion in Iterators.filter(is_composable, motion.types)
@@ -92,16 +93,14 @@ function times(motion::SimpleMotion)
     return nodes
 end
 
-function initialize_motion(motion::SimpleMotion)
-    return SimpleMotion(TupleTools.sort(motion.types; by=m -> times(m)[1])) 
-end
+# utils: Sort Motion 
+include("simplemotion/_utils.jl")
 
-# --------- Simple Motion Types: -------------
+# Simple Motion Types:
 # Non-periodic types: defined by an initial time (t_start), an end time (t_end) and a displacement      
 include("simplemotion/Translation.jl")
 include("simplemotion/Rotation.jl")
 include("simplemotion/HeartBeat.jl")
-
 # Periodic types: defined by the period, the temporal symmetry and a displacement (amplitude)
 include("simplemotion/PeriodicTranslation.jl")
 include("simplemotion/PeriodicRotation.jl")
