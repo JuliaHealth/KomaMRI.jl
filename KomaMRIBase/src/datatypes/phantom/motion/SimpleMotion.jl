@@ -69,7 +69,7 @@ function get_spin_coords(
     z::AbstractVector{T},
     t::AbstractArray{T}
 ) where {T<:Real}
-    motion = sort_motions(motion)
+    motion = sort_motion(motion)
     xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
     # Composable motions: they need to be run sequentially
     for motion in Iterators.filter(is_composable, motion.types)
