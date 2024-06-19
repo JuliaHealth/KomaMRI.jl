@@ -5,7 +5,7 @@
 
 <div align="center">
  
-![][julia-19] [![][gh-actions-komamri]][gh-actions-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url]
+![][julia-19] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url]
 
 [![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url]
 
@@ -141,17 +141,17 @@ We automatically test KomaMRICore's CPU multi-threading support on the most popu
 
 <div align="center">
 
-| Julia (OS)                            | CPU                                       | GPU (Nvidia) |
-|:--------------------------------------|:----------------------------------------------:|:------------------:|
-| Julia 1.9 (Windows)  | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
-| Julia 1.9 (Linux)    | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
-| Julia 1.9  (Mac)      | [![][gh-actions-komamri]][gh-actions-url]          | ➖                |
-| Julia 1.10 (Windows)           | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
-| Julia 1.10 (Linux)             | [![][gh-actions-komamri]][gh-actions-url]          | ✅                |
-| Julia 1.10 (Mac)               | [![][gh-actions-komamri]][gh-actions-url]          | ➖                |
-| Julia 1.11 (Windows)          | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌                 |
-| Julia 1.11 (Linux)            | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌                 |
-| Julia 1.11 (Mac)              | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ➖                 |
+| Julia (OS)           | CPU                                                        | GPU (Nvidia) |
+|:---------------------|:----------------------------------------------------------:|:------------:|
+| Julia 1.9 (Windows)  | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
+| Julia 1.9 (Linux)    | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
+| Julia 1.9  (Mac)     | [![][gh-actions-komamri]][gh-actions-url]                  | ➖           |
+| Julia 1.10 (Windows) | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
+| Julia 1.10 (Linux)   | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
+| Julia 1.10 (Mac)     | [![][gh-actions-komamri]][gh-actions-url]                  | ➖           |
+| Julia 1.11 (Windows) | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌           |
+| Julia 1.11 (Linux)   | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌           |
+| Julia 1.11 (Mac)     | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ➖           |
 
 </div>
 
@@ -176,6 +176,9 @@ If you see any problem with this information, please let us know in the form of 
 [docd-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docr-url]: https://juliahealth.github.io/KomaMRI.jl/stable/
 [docd-url]: https://juliahealth.github.io/KomaMRI.jl/dev/
+<!-- Buildkite -->
+[buildkite-badge]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg
+[buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl
 <!-- CI -->
 [gh-actions-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-komabase]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
@@ -205,6 +208,7 @@ If you see any problem with this information, please let us know in the form of 
 [arXiv-url]: https://arxiv.org/abs/2301.02702
 [paper-url]: https://doi.org/10.1002/mrm.29635
 <!-- Downloads -->
+[total-downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Ftotal_downloads%2FKomaMRI&query=total_requests&label=Downloads
 [downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRI&query=total_requests&suffix=%2Fmonth&label=Downloads
 [downloads-komabase]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRIBase&query=total_requests&suffix=%2Fmonth&label=Downloads
 [downloads-komacore]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRICore&query=total_requests&suffix=%2Fmonth&label=Downloads
