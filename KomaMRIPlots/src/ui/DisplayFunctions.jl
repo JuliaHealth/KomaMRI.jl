@@ -1032,19 +1032,7 @@ function plot_phantom_map(
     frame_duration_ms=250,
     kwargs...,
 )
-    function process_times(motion::SimpleMotion)
-        t = times(motion)
-        # Interpolate time points (as many as indicated by intermediate_time_samples)
-        itp = interpolate(
-            (
-                1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)),
-            ),
-            t,
-            Gridded(Linear()),
-        )
-        return itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
-    end
-    function process_times(motion::ArbitraryMotion)
+    function process_times(motion::MotionModel)
         t = times(motion)
         # Interpolate time points (as many as indicated by intermediate_time_samples)
         itp = interpolate(
