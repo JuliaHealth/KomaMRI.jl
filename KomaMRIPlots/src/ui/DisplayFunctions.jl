@@ -1042,7 +1042,7 @@ function plot_phantom_map(
     end
 
     function process_times(motion::SimpleMotion)
-        motion = KomaMRIBase.initialize_motion(motion)
+        motion = KomaMRIBase.sort_motion(motion)
         return interpolate_times(motion)
     end
     function process_times(motion::ArbitraryMotion)
