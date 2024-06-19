@@ -5,16 +5,15 @@ Sorts, with respect to time, the motion types of a `SimpleMotion` instance.
 No allocations, since it uses the TupleTools.sort method
 """
 function sort_motion(motion::SimpleMotion)
-    return SimpleMotion(sort(motion.types; by=m -> times(m)[1])) 
+    return SimpleMotion(_sort(motion.types, isless, m -> times(m)[1])) 
 end
 
 
 """
-    sort(t::Tuple; lt=isless, by=identity, rev::Bool=false) -> ::Tuple
+    _sort(t::Tuple; lt=isless, by=identity, rev::Bool=false) -> ::Tuple
 
 Sorts the tuple `t`. Extracted from TupleTools.jl
 """
-sort(t::Tuple; lt=isless, by=identity, rev::Bool=false) = _sort(t, lt, by, rev)
 @inline function _sort(t::Tuple, lt=isless, by=identity, rev::Bool=false)
     t1, t2 = _split(t)
     t1s = _sort(t1, lt, by, rev)
