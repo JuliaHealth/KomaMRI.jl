@@ -42,9 +42,6 @@ x = x |> cpu
 """
 cpu(x) = fmap(x -> adapt(KA.CPU(), x), x, exclude=_isleaf)
 
-#MotionModel structs
-adapt_storage(::KA.GPU, x::SimpleMotion) = x
-
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
 adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
@@ -52,7 +49,6 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
-adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype(T, xs.types))
 
 """
     f32(m)
@@ -78,6 +74,7 @@ f64(m) = paramtype(Float64, m)
 # Phantom
 @functor Phantom
 # SimpleMotion
+@functor SimpleMotion
 @functor Translation
 @functor Rotation
 @functor HeartBeat

@@ -8,32 +8,34 @@ is_composable(motion_type::SimpleMotionType{T}) where {T<:Real} = false
 
 SimpleMotion model. It allows for the definition of motion by means of simple parameters.
 The `SimpleMotion` struct is composed by only one field, called `types`, 
-which is a vector of simple motion types. This vector will contain as many elements
+which is a tuple of simple motion types. This tuple will contain as many elements
 as simple motions we want to combine.
 
 # Arguments
-- `types`: (`::Vector{<:SimpleMotionType{T}}`) vector of simple motion types
+- `types`: (`::Tuple{Vararg{<:SimpleMotionType{T}}}`) vector of simple motion types
 
 # Returns
 - `motion`: (`::SimpleMotion`) SimpleMotion struct
 
 # Examples
 ```julia-repl
-julia> motion = SimpleMotion([
+julia> motion = SimpleMotion(
             Translation(dx=0.01, dy=0.02, dz=0.0, t_start=0.0, t_end=0.5),
             Rotation(pitch=15.0, roll=0.0, yaw=20.0, t_start=0.1, t_end=0.5),
             HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudinal_strain=0.0, t_start=0.2, t_end=0.5)
-        ])
+        )
 ```
 """
 struct SimpleMotion{T<:Real} <: MotionModel{T}
-    types::Vector{<:SimpleMotionType{T}}
+    types::Tuple{Vararg{<:SimpleMotionType{T}}}
 end
+
+SimpleMotion(types...) = SimpleMotion(types)
 
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
 Base.view(motion::SimpleMotion, p::Union{AbstractRange,AbstractVector,Colon}) = motion
 
-Base.vcat(m1::SimpleMotion, m2::SimpleMotion) = SimpleMotion([m1.types; m2.types])
+Base.vcat(m1::SimpleMotion, m2::SimpleMotion) = SimpleMotion(m1.types..., m2.types...)
 
 Base.:(==)(m1::SimpleMotion, m2::SimpleMotion) = reduce(&, [m1.types[i] == m2.types[i] for i in 1:length(m1.types)])
 Base.:(≈)(m1::SimpleMotion, m2::SimpleMotion)  = reduce(&, [m1.types[i] ≈ m2.types[i] for i in 1:length(m1.types)])
@@ -90,8 +92,8 @@ function times(motion::SimpleMotion)
     return nodes
 end
 
-function initialize_motion!(motion::SimpleMotion)
-    return sort!(motion.types; by=m -> times(m)[1])
+function initialize_motion(motion::SimpleMotion)
+    return SimpleMotion(TupleTools.sort(motion.types; by=m -> times(m)[1])) 
 end
 
 # --------- Simple Motion Types: -------------

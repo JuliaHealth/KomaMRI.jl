@@ -120,8 +120,8 @@ function get_dims(obj::Phantom)
     return dims
 end
 
-function initialize_motion!(motion::MotionModel) 
-    return nothing
+function initialize_motion(motion::MotionModel) 
+    return motion
 end
 
 """
@@ -181,7 +181,7 @@ function heart_phantom(
         Dλ1=Dλ1[ρ .!= 0],
         Dλ2=Dλ2[ρ .!= 0],
         Dθ=Dθ[ρ .!= 0],
-        motion=SimpleMotion([
+        motion=SimpleMotion(
             PeriodicHeartBeat(;
                 period=period,
                 asymmetry=asymmetry,
@@ -192,7 +192,7 @@ function heart_phantom(
             PeriodicRotation(;
                 period=period, asymmetry=asymmetry, yaw=rotation_angle, pitch=0.0, roll=0.0
             ),
-        ]),
+        ),
     )
     return phantom
 end

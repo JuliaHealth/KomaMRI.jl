@@ -19,9 +19,9 @@ obj.Δw .= 0 # hide
 #
 # In this example, we will add a [`Translation`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
 
-obj.motion = SimpleMotion([
+obj.motion = SimpleMotion(
     Translation(t_start=0.0, t_end=200e-3, dx=2e-2, dy=0.0, dz=0.0)
-])
+)
 p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
 
 #md savefig(p1, "../assets/5-phantom1.html") # hide

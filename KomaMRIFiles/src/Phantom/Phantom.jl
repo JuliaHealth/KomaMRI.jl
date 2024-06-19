@@ -81,7 +81,7 @@ function import_motion!(
             end
         end
     end
-    return push!(phantom_fields, (:motion, SimpleMotion(vcat(types...))))
+    return push!(phantom_fields, (:motion, SimpleMotion((types...))))
 end
 function import_motion!(
     phantom_fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, motion_group::HDF5.Group

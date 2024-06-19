@@ -18,7 +18,7 @@ end
 
 function phantom_brain_simple_motion()
     obj = phantom_brain()
-    obj.motion = SimpleMotion([Translation(t_end=10.0, dx=0.0, dy=1.0, dz=0.0)])
+    obj.motion = SimpleMotion(Translation(t_end=10.0, dx=0.0, dy=1.0, dz=0.0))
     return obj
 end
 

@@ -64,7 +64,7 @@ using TestItems, TestItemRunner
         path = @__DIR__
         filename = path * "/test_files/brain_simplemotion.phantom"
         obj1 = brain_phantom2D()
-        obj1.motion = SimpleMotion([
+        obj1.motion = SimpleMotion(
             PeriodicRotation(
                 period=1.0, 
                 yaw=45.0,
@@ -76,7 +76,8 @@ using TestItems, TestItemRunner
                 dx=0.0,
                 dy=0.02,
                 dz=0.0
-        )])
+            )
+        )
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
         @test obj1 == obj2

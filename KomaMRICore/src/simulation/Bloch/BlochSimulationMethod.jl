@@ -19,7 +19,7 @@ function initialize_spins_state(
     Mxy = zeros(T, Nspins)
     Mz = obj.ρ
     Xt = Mag{T}(Mxy, Mz)
-    KomaMRIBase.initialize_motion!(obj.motion)
+    obj.motion = KomaMRIBase.initialize_motion(obj.motion)
     return Xt, obj
 end
 

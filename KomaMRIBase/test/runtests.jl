@@ -401,13 +401,13 @@ end
         # Translation
         dx, dy, dz = [1.0, 0.0, 0.0]
         vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
-        translation = SimpleMotion([Translation(dx, dy, dz, t_start, t_end)])
+        translation = SimpleMotion(Translation(dx, dy, dz, t_start, t_end))
         xt, yt, zt = get_spin_coords(translation, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ vx.*t'
         @test yt == ph.y .+ vy.*t'
         @test zt == ph.z .+ vz.*t'
         # PeriodicTranslation
-        periodictranslation = SimpleMotion([PeriodicTranslation(dx, dy, dz, period, asymmetry)])
+        periodictranslation = SimpleMotion(PeriodicTranslation(dx, dy, dz, period, asymmetry))
         xt, yt, zt = get_spin_coords(periodictranslation, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ vx.*t'
         @test yt == ph.y .+ vy.*t'
@@ -416,13 +416,13 @@ end
         pitch = 0.0
         roll = 0.0
         yaw = 45.0
-        rotation = SimpleMotion([Rotation(pitch, roll, yaw, t_start, t_end)])
+        rotation = SimpleMotion(Rotation(pitch, roll, yaw, t_start, t_end))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
         @test xt[:,end] == ph.x .* cosd(yaw) - ph.y .* sind(yaw)
         @test yt[:,end] == ph.x .* sind(yaw) + ph.y .* cosd(yaw)
         @test zt[:,end] == ph.z
         # PeriodicRotation (2D)
-        periodicrotation = SimpleMotion([PeriodicRotation(pitch, roll, yaw, period, asymmetry)])
+        periodicrotation = SimpleMotion(PeriodicRotation(pitch, roll, yaw, period, asymmetry))
         xt, yt, zt = get_spin_coords(periodicrotation, ph.x, ph.y, ph.z, t')
         @test xt[:,end] == ph.x .* cosd(yaw) - ph.y .* sind(yaw)
         @test yt[:,end] == ph.x .* sind(yaw) + ph.y .* cosd(yaw)
@@ -431,7 +431,7 @@ end
         circumferential_strain = -0.1
         radial_strain = 0.0
         longitudinal_strain = -0.1
-        heartbeat = SimpleMotion([HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end)])
+        heartbeat = SimpleMotion(HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end))
         xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
         θ = atan.(ph.y, ph.x)
@@ -439,7 +439,7 @@ end
         @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
         @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
         # PeriodicHeartBeat
-        periodicheartbeat = SimpleMotion([PeriodicHeartBeat(circumferential_strain, radial_strain, longitudinal_strain, period, asymmetry)])
+        periodicheartbeat = SimpleMotion(PeriodicHeartBeat(circumferential_strain, radial_strain, longitudinal_strain, period, asymmetry))
         xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
         @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
         @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
@@ -448,13 +448,13 @@ end
         t_start = t_end = 0.0
         t = [-0.5, -0.25, 0.0, 0.25, 0.5]
         # Translation
-        translation = SimpleMotion([Translation(dx, dy, dz, t_start, t_end)])
+        translation = SimpleMotion(Translation(dx, dy, dz, t_start, t_end))
         xt, yt, zt = get_spin_coords(translation, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ dx*[0, 0, 1, 1, 1]'
         @test yt == ph.y .+ dy*[0, 0, 1, 1, 1]'
         @test zt == ph.z .+ dz*[0, 0, 1, 1, 1]'
         # Rotation
-        rotation = SimpleMotion([Rotation(pitch, roll, yaw, t_start, t_end)])
+        rotation = SimpleMotion(Rotation(pitch, roll, yaw, t_start, t_end))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
         dx = cosd(yaw) .- ph.y .* sind(yaw)
         dy = sind(yaw) .+ ph.y .* cosd(yaw)
@@ -462,7 +462,7 @@ end
         @test yt == [ph.y   ph.y   ph.y .* dy   ph.y .* dy   ph.y .* dy]
         @test zt == [ph.z   ph.z   ph.z         ph.z         ph.z      ]
         # HeartBeat
-        heartbeat = SimpleMotion([HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end)])
+        heartbeat = SimpleMotion(HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end))
         xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
         θ = atan.(ph.y, ph.x)
@@ -506,10 +506,10 @@ end
         @test zt == ph.z .+ dz
     end
 
-    simplemotion = SimpleMotion([
+    simplemotion = SimpleMotion(
         PeriodicTranslation(dx=0.05, dy=0.05, dz=0.0, period=0.5, asymmetry=0.5),
         Rotation(pitch=0.0, roll=0.0, yaw=π / 2, t_start=0.05, t_end=0.5),
-    ])
+    )
 
     Ns = length(obj1)
     Nt = 3
