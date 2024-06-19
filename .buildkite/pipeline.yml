@@ -6,9 +6,15 @@ steps:
           - "1.10"
     env:
       CI: BUILDKITE
+      CODECOV_FLAGS: core
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
+      - JuliaCI/julia-coverage#v1:
+          codecov: true
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
     command: |
       julia -e 'println("--- :julia: Instantiating project")
           using Pkg
@@ -20,7 +26,7 @@ steps:
       
       julia -e 'println("--- :julia: Running tests")
           using Pkg
-          Pkg.test("KomaMRICore"; test_args=["AMDGPU"])'
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
     agents:
       queue: "juliagpu"
       rocm: "*"
@@ -33,9 +39,15 @@ steps:
           - "1.9"
     env:
       CI: BUILDKITE
+      CODECOV_FLAGS: core
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
+      - JuliaCI/julia-coverage#v1:
+          codecov: true
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
     command: |
       julia -e 'println("--- :julia: Instantiating project")
           using Pkg
@@ -47,7 +59,7 @@ steps:
       
       julia -e 'println("--- :julia: Running tests")
           using Pkg
-          Pkg.test("KomaMRICore"; test_args=["CUDA"])'
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
     agents:
       queue: "juliagpu"
       cuda: "*"
@@ -60,9 +72,15 @@ steps:
           - "1.9"
     env:
       CI: BUILDKITE
+      CODECOV_FLAGS: core
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
+      - JuliaCI/julia-coverage#v1:
+          codecov: true
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
     command: |
       julia -e 'println("--- :julia: Instantiating project")
           using Pkg
@@ -74,7 +92,7 @@ steps:
       
       julia -e 'println("--- :julia: Running tests")
           using Pkg
-          Pkg.test("KomaMRICore"; test_args=["Metal"])'
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["Metal"])'
     agents:
       queue: "juliaecosystem"
       os: "macos"
@@ -88,9 +106,15 @@ steps:
           - "1.9"
     env:
       CI: BUILDKITE
+      CODECOV_FLAGS: core
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
+      - JuliaCI/julia-coverage#v1:
+          codecov: true
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
     command: |
       julia -e 'println("--- :julia: Instantiating project")
           using Pkg
@@ -102,7 +126,7 @@ steps:
       
       julia -e 'println("--- :julia: Running tests")
           using Pkg
-          Pkg.test("KomaMRICore"; test_args=["oneAPI"])'
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
     agents:
       queue: "juliagpu"
       intel: "*"
