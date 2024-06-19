@@ -5,7 +5,7 @@
 
 <div align="center">
  
-![][julia-19] [![][gh-actions-komamri]][gh-actions-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url]
+![][julia-19] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url]
 
 [![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url]
 
@@ -176,6 +176,9 @@ If you see any problem with this information, please let us know in the form of 
 [docd-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docr-url]: https://juliahealth.github.io/KomaMRI.jl/stable/
 [docd-url]: https://juliahealth.github.io/KomaMRI.jl/dev/
+<!-- Buildkite -->
+[buildkite-badge]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg
+[buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl
 <!-- CI -->
 [gh-actions-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-komabase]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
