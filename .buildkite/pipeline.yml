@@ -4,9 +4,6 @@ steps:
       setup:
         version:
           - "1.10"
-    env:
-      CI: BUILDKITE
-      CODECOV_FLAGS: core
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
@@ -37,9 +34,6 @@ steps:
       setup:
         version:
           - "1.9"
-    env:
-      CI: BUILDKITE
-      CODECOV_FLAGS: core
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
@@ -70,9 +64,6 @@ steps:
       setup:
         version:
           - "1.9"
-    env:
-      CI: BUILDKITE
-      CODECOV_FLAGS: core
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
@@ -104,9 +95,6 @@ steps:
       setup:
         version:
           - "1.9"
-    env:
-      CI: BUILDKITE
-      CODECOV_FLAGS: core
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
@@ -131,3 +119,8 @@ steps:
       queue: "juliagpu"
       intel: "*"
     timeout_in_minutes: 120
+
+env:
+  CI: BUILDKITE
+  CODECOV_FLAGS: core
+  SECRET_CODECOV_TOKEN: "uUW2pU78xML2A2BJ2XiKxFNfc9U6oi+LI8UyfPKitDxKOFD8iAagdimiHH/sETc6qJ8UUXAPvzID8Z9cpgL8UNolAiMvjf9kebCS5wbQlb0n+YkUpUzE16uDF8mhEiTuSc/R4WJ7x05f61A6L6JzEl51jGn+9KrMMI+S3UomaMHpbcyCxcxbcL3seYm24ikt0KSsTxfVvaoPSVVXpwjGrYa8hRtxUrnrnIXoIoOMgOzLlr7Puuik0BZDgOgo0NAltTmoFMaZtz4AQmFyi+JGQVp56ZctuiD8mjAtR0I4RRUt5/0Wvd9IT3ZqqT6sJUVZMdeRcUX97iV/8STJ40NYoQ==;U2FsdGVkX1/fX384FHt+KLaJfMVk2I7BDUAxPCqzHRON43EWqHAxRTeuKVI008JkFRyG+ICO+gnYYVHA+cdBTg=="
