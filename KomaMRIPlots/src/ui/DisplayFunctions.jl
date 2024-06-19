@@ -1032,24 +1032,29 @@ function plot_phantom_map(
     frame_duration_ms=250,
     kwargs...,
 )
-    function process_times(motion::MotionModel)
+
+    function interpolate_times(motion::MotionModel)
         t = times(motion)
         # Interpolate time points (as many as indicated by intermediate_time_samples)
-        itp = interpolate(
-            (
-                1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)),
-            ),
-            t,
-            Gridded(Linear()),
-        )
+        itp = interpolate((1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
         t = itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
+        return t
+    end
+
+    function process_times(motion::SimpleMotion)
+        motion = KomaMRIBase.initialize_motion(motion)
+        return interpolate_times(motion)
+    end
+    function process_times(motion::ArbitraryMotion)
+        t = interpolate_times(motion)
         # Decimate time points so their number is smaller than max_time_samples
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
     end
-    process_times(motion::MotionModel) = times(motion)
+    function process_times(motion::MotionModel)
+        return times(motion)
+    end
 
-    # IDEA: subsample phantoms which are too large
     function decimate_uniform_phantom(ph::Phantom, num_points::Int)
         dimx, dimy, dimz = KomaMRIBase.get_dims(ph)
         ss = Int(ceil((length(ph) / num_points)^(1 / sum(KomaMRIBase.get_dims(ph)))))
@@ -1117,7 +1122,6 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :cmin, factor * cmin_key)
     cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-    ph.motion = KomaMRIBase.initialize_motion(ph.motion)
     t = process_times(ph.motion)
     x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
