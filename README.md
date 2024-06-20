@@ -137,17 +137,18 @@ If you use this package, please cite our paper.
 
 ## Tested compatibility
 
-All parallel backends are tested on Linux using the latest stable release of Julia (besides Apple silicon). 
+All parallel backends are tested on Linux (besides Apple silicon) using the latest stable release, Julia 1 (stable), and Julia 1.9 (compat). 
 
 <div align="center">
 
-| KomaMRICore          | CPU (multi-threaded)                | GPU (Nvidia)                        | GPU (AMD)                        | GPU (Apple silicon)                | GPU (Intel oneAPI)                 | 
+| KomaMRICore          | CPU (multi-threaded)                | GPU (Nvidia)                        | GPU (AMD)                        | GPU (Apple)                        | GPU (Intel)                        | 
 |:---------------------|:-----------------------------------:|:-----------------------------------:|:--------------------------------:|:----------------------------------:|:----------------------------------:|
+| Julia 1.9            | [![][cpu-compat]][buildkite-url]    | [![][nvidia-compat]][buildkite-url] | [![][amd-compat]][buildkite-url] | [![][apple-compat]][buildkite-url] | [![][intel-compat]][buildkite-url] |
 | Julia 1              | [![][cpu-stable]][buildkite-url]    | [![][nvidia-stable]][buildkite-url] | [![][amd-stable]][buildkite-url] | [![][apple-stable]][buildkite-url] | [![][intel-stable]][buildkite-url] |
 
 </div>
 
-Single-threaded compatibility is also tested using Julia 1.9 (compat) in all major operating systems (OS).
+Single-threaded compatibility is tested in all major operating systems (OS).
 
 <div align="center">
 
@@ -190,6 +191,13 @@ If you see any problem with this information, please let us know in a GitHub iss
 [amd-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=AMDGPU%3A%20Run%20tests%20on%20v1
 [apple-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=Metal%3A%20Run%20tests%20on%20v1
 [intel-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=oneAPI%3A%20Run%20tests%20on%20v1
+
+[cpu-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CPU%3A%20Run%20tests%20on%20v1.9
+[nvidia-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CUDA%3A%20Run%20tests%20on%20v1.9
+[amd-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=AMDGPU%3A%20Run%20tests%20on%20v1.9
+[apple-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=Metal%3A%20Run%20tests%20on%20v1.9
+[intel-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=oneAPI%3A%20Run%20tests%20on%20v1.9
+
 [buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl/builds?branch=master
 <!-- CI -->
 [gh-actions-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
