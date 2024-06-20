@@ -106,9 +106,9 @@ steps:
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              PackageSpec("Metal")
-          ])'
-      
+          ])
+          Pkg.add(; name = "Metal")'
+      rm test/Manifest.toml
       julia -e 'println("--- :julia: Running tests")
           using Pkg
           Pkg.test("KomaMRICore"; test_args=["Metal"])'
