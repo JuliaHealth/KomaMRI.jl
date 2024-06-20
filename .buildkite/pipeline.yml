@@ -14,14 +14,13 @@ steps:
             - KomaMRICore/src
             - KomaMRICore/ext
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
-      
+
       julia -e 'println("--- :julia: Running tests")
           using Pkg
           Pkg.test("KomaMRICore"; coverage=true, julia_args=`--threads=auto`)'
@@ -43,10 +42,9 @@ steps:
             - KomaMRICore/src
             - KomaMRICore/ext
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])
@@ -75,10 +73,9 @@ steps:
             - KomaMRICore/src
             - KomaMRICore/ext
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])
@@ -102,10 +99,9 @@ steps:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])
@@ -135,10 +131,9 @@ steps:
             - KomaMRICore/src
             - KomaMRICore/ext
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])
