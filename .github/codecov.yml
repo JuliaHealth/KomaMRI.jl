@@ -59,6 +59,7 @@ flags:
     carryforward: true
     paths:
       - KomaMRICore/src/.*
+      - KomaMRICore/ext/.*
   files:
     carryforward: true
     paths:
@@ -67,3 +68,4 @@ flags:
     carryforward: true
     paths:
       - KomaMRIPlots/src/.*
+      - KomaMRIPlots/ext/.*
