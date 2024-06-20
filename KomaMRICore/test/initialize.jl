@@ -2,23 +2,19 @@ using Pkg
 using Suppressor
 
 const USE_GPU = if "AMDGPU" in ARGS
-    @suppress Pkg.add("AMDGPU")
-    using AMDGPU
+    using AMDGPU # ] add AMDGPU to KomaMRICore/test/Project.toml 
     @info "Testing AMD" maxlog=1
     true
 elseif "CUDA" in ARGS
-    @suppress Pkg.add("CUDA")
-    using CUDA
+    using CUDA # ] add CUDA to KomaMRICore/test/Project.toml 
     @info "Testing CUDA" maxlog=1
     true
 elseif "Metal" in ARGS
-    @suppress Pkg.add("Metal")
-    using Metal
+    using Metal # ] add Metal to KomaMRICore/test/Project.toml 
     @info "Testing Metal" maxlog=1
     true
 elseif "oneAPI" in ARGS
-    @suppress Pkg.add("oneAPI")
-    using oneAPI
+    using oneAPI # ] add oneAPI to KomaMRICore/test/Project.toml 
     @info "Testing oneAPI" maxlog=1
     true
 else
