@@ -42,26 +42,26 @@
     :repetitions, 1:1
 And data, a 100×100×1×1×1×1 Array{ComplexF32, 6}:
 [:, :, 1, 1, 1, 1] =
-  0.00411377-0.000469754im  …  -0.000972696-0.00195308im
- -0.00398527+0.000507354im       0.00101914+0.00182996im
-  0.00407952-0.000459515im     -0.000967019-0.00167904im
- -0.00410527+0.000419835im      0.000906305+0.00156362im
-  0.00412611-0.000362656im     -0.000915985-0.0014754im
-  -0.0041735+0.000329798im  …     0.0008887+0.0013983im
-  0.00424922-0.000274385im     -0.000851396-0.00133107im
-  -0.0042936+0.000225768im      0.000840571+0.00125917im
-  0.00438266-0.000158745im     -0.000778977-0.00117536im
- -0.00445383+8.83016f-5im       0.000773095+0.00112528im
+   0.0041105-0.00046608im   …  -0.000971767-0.00195299im
+ -0.00398766+0.000507914im       0.00102202+0.00183233im
+  0.00408301-0.000459702im     -0.000966935-0.0016777im
+ -0.00410346+0.000415513im      0.000908357+0.00156159im
+  0.00412727-0.000363012im     -0.000916332-0.00147359im
+ -0.00416948+0.00033257im   …   0.000889278+0.00140171im
+  0.00425031-0.000273173im     -0.000853207-0.00132881im
+ -0.00429472+0.000226018im      0.000839712+0.00125998im
+  0.00438336-0.00015847im      -0.000781125-0.00117376im
+  -0.0044541+8.88903f-5im       0.000772335+0.00112582im
             ⋮               ⋱  
-  -0.0182532-0.0433338im         -0.0524994-0.0343448im
-  -0.0397376-0.0153356im         -0.0168885-0.00941176im
-  0.00538142+0.00621095im         -0.010212-0.00134653im
- -0.00133315-0.00795109im        0.00644349+0.00536672im
-  0.00671847-0.00260168im   …   -0.00535758+0.000500769im
- -0.00422632-0.000383092im       0.00211033+0.00344983im
-  0.00404591-0.00029854im       -0.00151472-0.002727im
- -0.00402314+0.000420772im       0.00126349+0.00239078im
-  0.00404351-0.000473891im      -0.00112416-0.0021514im</code></pre><p>If we simulate an EPI sequence with acquisition duration (183.989 ms) comparable with the motion&#39;s duration (200 ms), we will observe motion-induced artifacts in the reconstructed image.</p><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon1.html&quot;</code></pre><center>
+  -0.0182518-0.0433327im            -0.0525-0.0343427im
+  -0.0397366-0.0153351im         -0.0168888-0.00941176im
+  0.00538102+0.0062113im         -0.0102125-0.00134754im
+ -0.00133175-0.0079485im         0.00644289+0.00536756im
+  0.00671843-0.00260503im   …   -0.00535596+0.00049927im
+ -0.00422736-0.000386005im       0.00210967+0.0034501im
+  0.00404419-0.000302772im      -0.00151377-0.00272563im
+ -0.00402105+0.000422096im       0.00126263+0.00239259im
+  0.00404499-0.000466331im      -0.00112531-0.00215157im</code></pre><p>If we simulate an EPI sequence with acquisition duration (183.989 ms) comparable with the motion&#39;s duration (200 ms), we will observe motion-induced artifacts in the reconstructed image.</p><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon1.html&quot;</code></pre><center>
 <object type="text/html" data="../../assets/5-recon1.html" style="width:65%; height:420px;"></object>
 </center><p>The severity of the artifacts can vary depending on the acquisition duration and <span>$k$</span>-space trajectory.</p><h3 id="Motion-Corrected-Reconstruction"><a class="docs-heading-anchor" href="#Motion-Corrected-Reconstruction">Motion-Corrected Reconstruction</a><a id="Motion-Corrected-Reconstruction-1"></a><a class="docs-heading-anchor-permalink" href="#Motion-Corrected-Reconstruction" title="Permalink"></a></h3><p>To correct for the motion-induced artifacts we can perform a motion-corrected reconstruction. This can be achieved by multiplying each sample of the acquired signal  <span>$S(t)$</span> by a phase shift <span>$\Delta\phi_{\mathrm{corr}}$</span> proportional to the displacement <span>$\boldsymbol{u}(t)$</span> <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4930872/">[Godenschweger, 2016]</a>:</p><p class="math-container">\[S_{\mathrm{MC}}\left(t\right)=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}\Delta\phi_{\mathrm{corr}}}=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}2\pi\boldsymbol{k}\left(t\right)\cdot\boldsymbol{u}\left(t\right)}\]</p><p>In practice, we would need to estimate or measure the motion before performing a motion-corrected reconstruction, but for this example, we will directly use the displacement functions <span>$\boldsymbol{u}(\boldsymbol{x}, t)$</span> defined by <code>obj.motion::SimpleMotion</code>. Since translations are rigid motions (<span>$\boldsymbol{u}(\boldsymbol{x}, t)=\boldsymbol{u}(t)$</span> no position dependence), we can obtain the required displacements by calculating <span>$\boldsymbol{u}(\boldsymbol{x}=\boldsymbol{0},\ t=t_{\mathrm{adc}})$</span>.</p><pre><code class="language-julia hljs">sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-displacements.html&quot;</code></pre><center><object type="text/html" data="../../assets/5-displacements.html" style="width:80%; height:300px;"></object></center><p>We can now get the necessary phase shift for each sample:</p><pre><code class="language-julia hljs">_, kspace = get_kspace(seq1)
@@ -85,4 +85,4 @@ displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_tim
  -23.332038837185337
  -23.835100692922065
  -24.338217185050286
- -24.84138831357277</code></pre><p>And apply it to the acquired signal to correct its phase:</p><pre><code class="language-julia hljs">acq1.kdata[1] .*= exp.(im*ΔΦ)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon2.html&quot;</code></pre><p>Finally, we compare the original image ▶️ and the motion-corrected reconstruction ⏸️:</p><object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../04-3DSliceSelective/">« Slice-Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../../tutorial-pluto/01-gradient-echo-spin-echo/">Understanding basic MRI sequences »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Thursday 20 June 2024 15:04">Thursday 20 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ -24.84138831357277</code></pre><p>And apply it to the acquired signal to correct its phase:</p><pre><code class="language-julia hljs">acq1.kdata[1] .*= exp.(im*ΔΦ)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/5-recon2.html&quot;</code></pre><p>Finally, we compare the original image ▶️ and the motion-corrected reconstruction ⏸️:</p><object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../04-3DSliceSelective/">« Slice-Selective Acquisition of 3D Phantom</a><a class="docs-footer-nextpage" href="../../tutorial-pluto/01-gradient-echo-spin-echo/">Understanding basic MRI sequences »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Thursday 20 June 2024 17:39">Thursday 20 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
