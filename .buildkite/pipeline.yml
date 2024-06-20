@@ -108,7 +108,7 @@ steps:
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])
+          ])'
 
       julia -e 'println("--- :julia: Running tests")
           using Pkg
