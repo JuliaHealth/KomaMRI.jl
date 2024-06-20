@@ -106,6 +106,7 @@ steps:
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              PackageSpec("Metal")
           ])'
       
       julia -e 'println("--- :julia: Running tests")
