@@ -70,19 +70,28 @@ function get_spin_coords(
     t::AbstractArray{T}
 ) where {T<:Real}
     motion = sort_motion(motion)
+    # Buffers for positions:
     xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
+    # Buffers for displacements:
+    ux, uy, uz = similar(xt), similar(yt), similar(zt) 
+
     # Composable motions: they need to be run sequentially
     for motion in Iterators.filter(is_composable, motion.types)
-        aux = xt .+ 0, yt .+ 0, zt .+ 0
-        xt .+= displacement_x(motion, aux..., t)
-        yt .+= displacement_y(motion, aux..., t)
-        zt .+= displacement_z(motion, aux..., t)
+        displacement_x!(ux, motion, xt, yt, zt, t)
+        displacement_y!(uy, motion, xt, yt, zt, t)
+        displacement_z!(uz, motion, xt, yt, zt, t)
+        xt .+= ux
+        yt .+= uy
+        zt .+= uz
     end
     # Additive motions: these motions can be run in parallel
     for motion in Iterators.filter(!is_composable, motion.types)
-        xt .+= displacement_x(motion, x, y, z, t)
-        yt .+= displacement_y(motion, x, y, z, t)
-        zt .+= displacement_z(motion, x, y, z, t)
+        displacement_x!(ux, motion, x, y, z, t)
+        displacement_y!(uy, motion, x, y, z, t)
+        displacement_z!(uz, motion, x, y, z, t)
+        xt .+= ux
+        yt .+= uy
+        zt .+= uz
     end
     return xt, yt, zt
 end

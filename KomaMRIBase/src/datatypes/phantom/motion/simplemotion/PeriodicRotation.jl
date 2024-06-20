@@ -25,7 +25,8 @@ end
 
 is_composable(motion_type::PeriodicRotation) = true
 
-function displacement_x(
+function displacement_x!(
+    ux::AbstractArray{T},
     motion_type::PeriodicRotation{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -36,12 +37,14 @@ function displacement_x(
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
-    return cosd.(γ) .* cosd.(β) .* x +
-           (cosd.(γ) .* sind.(β) .* sind.(α) .- sind.(γ) .* cosd.(α)) .* y +
-           (cosd.(γ) .* sind.(β) .* cosd.(α) .+ sind.(γ) .* sind.(α)) .* z .- x
+    ux .= cosd.(γ) .* cosd.(β) .* x +
+         (cosd.(γ) .* sind.(β) .* sind.(α) .- sind.(γ) .* cosd.(α)) .* y +
+         (cosd.(γ) .* sind.(β) .* cosd.(α) .+ sind.(γ) .* sind.(α)) .* z .- x
+    return nothing
 end
 
-function displacement_y(
+function displacement_y!(
+    uy::AbstractArray{T},
     motion_type::PeriodicRotation{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -52,12 +55,14 @@ function displacement_y(
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
-    return sind.(γ) .* cosd.(β) .* x +
-           (sind.(γ) .* sind.(β) .* sind.(α) .+ cosd.(γ) .* cosd.(α)) .* y +
-           (sind.(γ) .* sind.(β) .* cosd.(α) .- cosd.(γ) .* sind.(α)) .* z .- y
+    uy .= sind.(γ) .* cosd.(β) .* x +
+         (sind.(γ) .* sind.(β) .* sind.(α) .+ cosd.(γ) .* cosd.(α)) .* y +
+         (sind.(γ) .* sind.(β) .* cosd.(α) .- cosd.(γ) .* sind.(α)) .* z .- y
+    return nothing
 end
 
-function displacement_z(
+function displacement_z!(
+    uz::AbstractArray{T},
     motion_type::PeriodicRotation{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -68,9 +73,10 @@ function displacement_z(
     α = t_unit .* motion_type.pitch
     β = t_unit .* motion_type.roll
     γ = t_unit .* motion_type.yaw
-    return -sind.(β) .* x + 
-            cosd.(β) .* sind.(α) .* y +
-            cosd.(β) .* cosd.(α) .* z .- z
+    uz .= -sind.(β) .* x + 
+           cosd.(β) .* sind.(α) .* y +
+           cosd.(β) .* cosd.(α) .* z .- z
+    return nothing
 end
 
 function times(motion_type::PeriodicRotation)

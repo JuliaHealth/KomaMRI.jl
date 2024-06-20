@@ -29,7 +29,8 @@ julia> tr = Translation(dx=0.01, dy=0.02, dz=0.03, t_start=0.0, t_end=0.5)
     @assert t_end >= t_start "t_end must be greater or equal than t_start"
 end
 
-function displacement_x(
+function displacement_x!(
+    ux::AbstractArray{T},
     motion_type::Translation{T},
     x::AbstractVector{T},
     y::AbstractVector{T},
@@ -37,10 +38,12 @@ function displacement_x(
     t::AbstractArray{T},
 ) where {T<:Real}
     t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
-    return t_unit .* motion_type.dx
+    ux .= t_unit .* motion_type.dx
+    return nothing
 end
 
-function displacement_y(
+function displacement_y!(
+    uy::AbstractArray{T},
     motion_type::Translation{T},
     x::AbstractVector{T},
     y::AbstractVector{T},
@@ -48,10 +51,12 @@ function displacement_y(
     t::AbstractArray{T},
 ) where {T<:Real}
     t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
-    return t_unit .* motion_type.dy
+    uy .= t_unit .* motion_type.dy
+    return nothing
 end
 
-function displacement_z(
+function displacement_z!(
+    uz::AbstractArray{T},
     motion_type::Translation{T},
     x::AbstractVector{T},
     y::AbstractVector{T},
@@ -59,7 +64,8 @@ function displacement_z(
     t::AbstractArray{T},
 ) where {T<:Real}
     t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
-    return t_unit .* motion_type.dz
+    uz .= t_unit .* motion_type.dz
+    return nothing
 end
 
 times(motion_type::Translation) = begin

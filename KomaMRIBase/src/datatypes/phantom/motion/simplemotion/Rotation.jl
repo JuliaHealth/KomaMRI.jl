@@ -63,7 +63,8 @@ end
 
 is_composable(motion_type::Rotation) = true
 
-function displacement_x(
+function displacement_x!(
+    ux::AbstractArray{T},
     motion_type::Rotation{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -74,12 +75,14 @@ function displacement_x(
     α = t_unit .* (motion_type.yaw)
     β = t_unit .* (motion_type.roll)
     γ = t_unit .* (motion_type.pitch)
-    return cosd.(α) .* cosd.(β) .* x +
-           (cosd.(α) .* sind.(β) .* sind.(γ) .- sind.(α) .* cosd.(γ)) .* y +
-           (cosd.(α) .* sind.(β) .* cosd.(γ) .+ sind.(α) .* sind.(γ)) .* z .- x
+    ux .= cosd.(α) .* cosd.(β) .* x +
+         (cosd.(α) .* sind.(β) .* sind.(γ) .- sind.(α) .* cosd.(γ)) .* y +
+         (cosd.(α) .* sind.(β) .* cosd.(γ) .+ sind.(α) .* sind.(γ)) .* z .- x
+    return nothing
 end
 
-function displacement_y(
+function displacement_y!(
+    uy::AbstractArray{T},
     motion_type::Rotation{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -90,12 +93,14 @@ function displacement_y(
     α = t_unit .* (motion_type.yaw)
     β = t_unit .* (motion_type.roll)
     γ = t_unit .* (motion_type.pitch)
-    return sind.(α) .* cosd.(β) .* x +
-           (sind.(α) .* sind.(β) .* sind.(γ) .+ cosd.(α) .* cosd.(γ)) .* y +
-           (sind.(α) .* sind.(β) .* cosd.(γ) .- cosd.(α) .* sind.(γ)) .* z .- y
+    uy .= sind.(α) .* cosd.(β) .* x +
+         (sind.(α) .* sind.(β) .* sind.(γ) .+ cosd.(α) .* cosd.(γ)) .* y +
+         (sind.(α) .* sind.(β) .* cosd.(γ) .- cosd.(α) .* sind.(γ)) .* z .- y
+    return nothing
 end
 
-function displacement_z(
+function displacement_z!(
+    uz::AbstractArray{T},
     motion_type::Rotation{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -106,9 +111,10 @@ function displacement_z(
     α = t_unit .* (motion_type.yaw)
     β = t_unit .* (motion_type.roll)
     γ = t_unit .* (motion_type.pitch)
-    return -sind.(β) .* x + 
+    uz .=  -sind.(β) .* x + 
             cosd.(β) .* sind.(γ) .* y +
             cosd.(β) .* cosd.(γ) .* z .- z
+    return nothing
 end
 
 times(motion_type::Rotation) = begin
