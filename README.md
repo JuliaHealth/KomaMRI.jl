@@ -141,7 +141,7 @@ All parallel backends are tested on Linux (besides Apple silicon) using the late
 
 <div align="center">
 
-| KomaMRICore          | CPU (multi-threaded)                | GPU (Nvidia)                        | GPU (AMD)                        | GPU (Apple)                        | GPU (Intel)                        | 
+| KomaMRICore          | CPU                                 | GPU (Nvidia)                        | GPU (AMD)                        | GPU (Apple)                        | GPU (Intel)                        | 
 |:---------------------|:-----------------------------------:|:-----------------------------------:|:--------------------------------:|:----------------------------------:|:----------------------------------:|
 | Julia 1.9            | [![][cpu-compat]][buildkite-url]    | [![][nvidia-compat]][buildkite-url] | [![][amd-compat]][buildkite-url] | [![][apple-compat]][buildkite-url] | [![][intel-compat]][buildkite-url] |
 | Julia 1              | [![][cpu-stable]][buildkite-url]    | [![][nvidia-stable]][buildkite-url] | [![][amd-stable]][buildkite-url] | [![][apple-stable]][buildkite-url] | [![][intel-stable]][buildkite-url] |
