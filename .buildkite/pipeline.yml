@@ -49,11 +49,11 @@ steps:
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])'
+          ])
+          Pkg.add("AMDGPU")'
       
       julia -e 'println("--- :julia: Running tests")
           using Pkg
-          Pkg.add("AMDGPU")
           Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
     agents:
       queue: "juliagpu"
@@ -81,11 +81,11 @@ steps:
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])'
+          ])
+          Pkg.add("CUDA")'
       
       julia -e 'println("--- :julia: Running tests")
           using Pkg
-          Pkg.add("CUDA")
           Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
     agents:
       queue: "juliagpu"
@@ -108,11 +108,11 @@ steps:
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])'
+          ])
+          Pkg.add("Metal")'
 
       julia -e 'println("--- :julia: Running tests")
           using Pkg
-          Pkg.add("Metal")
           Pkg.test("KomaMRICore"; test_args=["Metal"])'
     agents:
       queue: "juliaecosystem"
@@ -141,11 +141,11 @@ steps:
               PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])'
+          ])
+          Pkg.add("oneAPI")'
       
       julia -e 'println("--- :julia: Running tests")
           using Pkg
-          Pkg.add("oneAPI")
           Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
     agents:
       queue: "juliagpu"
