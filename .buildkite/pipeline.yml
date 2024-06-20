@@ -24,7 +24,7 @@ steps:
       
       julia -e 'println("--- :julia: Running tests")
           using Pkg
-          Pkg.test("KomaMRICore"; coverage=true, julia_args=[`--threads=auto`])'
+          Pkg.test("KomaMRICore"; coverage=true, julia_args=`--threads=auto`)'
     agents:
       queue: "juliagpu"
     timeout_in_minutes: 120
