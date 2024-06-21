@@ -8,6 +8,34 @@ _isleaf(::AbstractArray{T}) where T = isbitstype(T)
 _isleaf(::AbstractRange) = true
 
 """
+    gpu(x)
+
+Moves 'x' to the GPU. For this function to work, a GPU backend will need to be
+loaded with 'using AMDGPU / CUDA / Metal / oneAPI.
+
+This works for functions, and any struct marked with `@functor`.
+
+Use [`cpu`](@ref) to copy back to ordinary `Array`s.
+
+See also [`f32`](@ref) and [`f64`](@ref) to change element type only.
+
+# Examples
+```julia
+using CUDA
+x = gpu(x)
+```
+"""
+function gpu(x)
+    get_backend(true)
+    
+    if (BACKEND[] isa KA.GPU)
+        return gpu(x, BACKEND[])
+    else
+        @error "function 'gpu' called with no functional backends available. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your code and try again"
+    end
+end
+
+"""
 	gpu(x, backend)
 
 Tries to move `x` to the GPU backend specified in the 'backend' parameter. 

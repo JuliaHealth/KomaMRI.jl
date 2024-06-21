@@ -1,6 +1,27 @@
 using TestItems, TestItemRunner
 
-@run_package_tests filter=ti->!(:skipci in ti.tags)&&(:core in ti.tags) #verbose=true
+### NOTE: by default, tests are run on the CPU with the number of threads set to 
+#   Threads.nthreads(). To run on a specific GPU backend, pass the name of the 
+#   trigger package ("AMDGPU", "CUDA", "Metal", or "oneAPI") as a test argument. 
+#   
+#   Example:
+#
+#   import Pkg
+#   Pkg.test("KomaMRICore"; test_args=["CUDA"])
+#
+#   To run on the cpu with a specific number of threads, pass the number of threads 
+#   as a julia argument.
+#
+#   Example:
+#   
+#   import Pkg
+#   Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
+###
+
+#Environment variable set by CI
+const CI = get(ENV, "CI", nothing)
+
+@run_package_tests filter=ti->(:core in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
 @testitem "Spinors×Mag" tags=[:core] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
@@ -136,6 +157,7 @@ end
 # Test ISMRMRD
 @testitem "signal_to_raw_data" tags=[:core] begin
     using Suppressor
+    include("initialize.jl")
 
     seq = PulseDesigner.EPI_example()
     sys = Scanner()
@@ -143,6 +165,7 @@ end
 
     sim_params = KomaMRICore.default_sim_params()
     sim_params["return_type"] = "mat"
+    sim_params["gpu"] = USE_GPU
     sig = @suppress simulate(obj, seq, sys; sim_params)
 
     # Test signal_to_raw_data
@@ -162,8 +185,9 @@ end
     @test true
 end
 
-@testitem "Bloch_CPU_single_thread" tags=[:important, :core] begin
+@testitem "Bloch" tags=[:important, :core] begin
     using Suppressor
+    include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_sphere_jemris()
@@ -172,8 +196,7 @@ end
     sys = Scanner()
 
     sim_params = Dict{String, Any}(
-        "gpu"=>false,
-        "Nthreads"=>1,
+        "gpu"=>USE_GPU,
         "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat"
     )
@@ -185,55 +208,9 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch_CPU_multi_thread" tags=[:important, :core] begin
+@testitem "Bloch_RF_accuracy" tags=[:important, :core] begin
     using Suppressor
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_sphere_jemris()
-    seq = seq_epi_100x100_TE100_FOV230()
-    obj = phantom_sphere()
-    sys = Scanner()
-
-    sim_params = Dict{String, Any}(
-        "gpu"=>false,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
-
-@testitem "Bloch_GPU" tags=[:important, :skipci, :core, :gpu] begin
-    using AMDGPU, CUDA, Metal, oneAPI
-    using Suppressor
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_sphere_jemris()
-    seq = seq_epi_100x100_TE100_FOV230()
-    obj = phantom_sphere()
-    sys = Scanner()
-
-    sim_params = Dict{String, Any}(
-        "gpu"=>true,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat", 
-        "precision"=>"f64"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
-@testitem "Bloch_CPU_RF_accuracy_single_thread" tags=[:important, :core] begin
-    using Suppressor
+    include("initialize.jl")
 
     Tadc = 1e-3
     Trf = Tadc
@@ -254,101 +231,7 @@ end
         global seq += ADC(N, Tadc)
     end
 
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false, "Nthreads"=>1)
-    raw = @suppress simulate(obj, seq, sys; sim_params)
-
-    #Mathematica-simulated Bloch equation result
-    res1 = [0.153592+0.46505im,
-            0.208571+0.437734im,
-            0.259184+0.40408im,
-            0.304722+0.364744im,
-            0.344571+0.320455im,
-            0.378217+0.272008im]
-    res2 = [-0.0153894+0.142582im,
-            0.00257641+0.14196im,
-            0.020146+0.13912im,
-            0.037051+0.134149im,
-            0.0530392+0.12717im,
-            0.0678774+0.11833im]
-    norm2(x) = sqrt.(sum(abs.(x).^2))
-    error0 = norm2(raw.profiles[1].data .- 0)
-    error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
-    error2 = norm2(raw.profiles[3].data .- res2) ./ norm2(res2) * 100
-
-    @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
-end
-
-@testitem "Bloch_CPU_RF_accuracy_multi_thread" tags=[:important, :core] begin
-    using Suppressor
-
-    Tadc = 1e-3
-    Trf = Tadc
-    T1 = 1000e-3
-    T2 = 20e-3
-    Δw = 2π * 100
-    B1 = 2e-6 * (Tadc / Trf)
-    N = 6
-
-    sys = Scanner()
-    obj = Phantom{Float64}(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
-
-    rf_phase = [0, π/2]
-    seq = Sequence()
-    seq += ADC(N, Tadc)
-    seq += RF(B1 .* exp(1im*rf_phase[1]), Trf)
-    seq += ADC(N, Tadc)
-    seq += RF(B1 .* exp(1im*rf_phase[2]), Trf)
-    seq += ADC(N, Tadc)
-
-
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false)
-    raw = @suppress simulate(obj, seq, sys; sim_params)
-
-    #Mathematica-simulated Bloch equation result
-    res1 = [0.153592+0.46505im,
-            0.208571+0.437734im,
-            0.259184+0.40408im,
-            0.304722+0.364744im,
-            0.344571+0.320455im,
-            0.378217+0.272008im]
-    res2 = [-0.0153894+0.142582im,
-            0.00257641+0.14196im,
-            0.020146+0.13912im,
-            0.037051+0.134149im,
-            0.0530392+0.12717im,
-            0.0678774+0.11833im]
-    norm2(x) = sqrt.(sum(abs.(x).^2))
-    error0 = norm2(raw.profiles[1].data .- 0)
-    error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
-    error2 = norm2(raw.profiles[3].data .- res2) ./ norm2(res2) * 100
-
-    @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
-end
-
-@testitem "Bloch_GPU_RF_accuracy" tags=[:important, :core, :skipci, :gpu] begin
-    using AMDGPU, CUDA, Metal, oneAPI
-    using Suppressor
-
-    Tadc = 1e-3
-    Trf = Tadc
-    T1 = 1000e-3
-    T2 = 20e-3
-    Δw = 2π * 100
-    B1 = 2e-6 * (Tadc / Trf)
-    N = 6
-
-    sys = Scanner()
-    obj = Phantom{Float64}(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
-
-    rf_phase = [0, π/2]
-    seq = Sequence()
-    seq += ADC(N, Tadc)
-    seq += RF(B1 .* exp(1im*rf_phase[1]), Trf)
-    seq += ADC(N, Tadc)
-    seq += RF(B1 .* exp(1im*rf_phase[2]), Trf)
-    seq += ADC(N, Tadc)
-
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>true)
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU)
     raw = @suppress simulate(obj, seq, sys; sim_params)
 
     #Mathematica-simulated Bloch equation result
@@ -374,6 +257,7 @@ end
 
 @testitem "Bloch_phase_compensation" tags=[:important, :core] begin
     using Suppressor
+    include("initialize.jl")
 
     Tadc = 1e-3
     Trf = Tadc
@@ -395,16 +279,16 @@ end
     seq2 += RF(B1 .* exp(1im*rf_phase), Trf)
     seq2 += ADC(N, Tadc, 0, 0, rf_phase)
 
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>false, "Nthreads"=>1)
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU)
     raw1 = @suppress simulate(obj, seq1, sys; sim_params)
     raw2 = @suppress simulate(obj, seq2, sys; sim_params)
 
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
-
 end
 
-@testitem "Bloch CPU_single_thread SimpleMotion" tags=[:important, :core] begin
+@testitem "Bloch SimpleMotion" tags=[:important, :core, :skipci] begin
     using Suppressor
+    include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_brain_motion_jemris()  
@@ -412,8 +296,7 @@ end
     sys = Scanner()
     obj = phantom_brain_simple_motion()
     sim_params = Dict{String, Any}(
-        "gpu"=>false,
-        "Nthreads"=>1,
+        "gpu"=>USE_GPU,
         "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat"
     )
@@ -423,8 +306,9 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch CPU_single_thread ArbitraryMotion"  tags=[:important, :core] begin
+@testitem "Bloch ArbitraryMotion"  tags=[:important, :core, :skipci] begin
     using Suppressor
+    include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_brain_motion_jemris()  
@@ -432,8 +316,7 @@ end
     sys = Scanner()
     obj = phantom_brain_arbitrary_motion()
     sim_params = Dict{String, Any}(
-        "gpu"=>false,
-        "Nthreads"=>1,
+        "gpu"=>USE_GPU,
         "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat"
     )
@@ -443,96 +326,18 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-
-@testitem "Bloch CPU_multi_thread SimpleMotion" tags=[:important, :core] begin
+@testitem "BlochDict" tags=[:important, :core] begin
     using Suppressor
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_brain_motion_jemris()  
-    seq = seq_epi_100x100_TE100_FOV230()
-    sys = Scanner()
-    obj = phantom_brain_simple_motion()
-    sim_params = Dict{String, Any}(
-        "gpu"=>false,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
-@testitem "Bloch CPU_multi_thread ArbitraryMotion"  tags=[:important, :core] begin
-    using Suppressor
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_brain_motion_jemris()  
-    seq = seq_epi_100x100_TE100_FOV230()
-    sys = Scanner()
-    obj = phantom_brain_arbitrary_motion()
-    sim_params = Dict{String, Any}(
-        "gpu"=>false,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
-@testitem "Bloch GPU SimpleMotion" tags=[:important, :core, :skipci, :gpu] begin
-    using AMDGPU, CUDA, Metal, oneAPI
-    using Suppressor
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_brain_motion_jemris()  
-    seq = seq_epi_100x100_TE100_FOV230()
-    sys = Scanner()
-    obj = phantom_brain_simple_motion()
-    sim_params = Dict{String, Any}(
-        "gpu"=>true,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat", 
-        "precision"=>"f64"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
-@testitem "Bloch GPU ArbitraryMotion"  tags=[:important, :core, :skipci, :gpu] begin
-    using AMDGPU, CUDA, Metal, oneAPI
-    using Suppressor
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_brain_motion_jemris()  
-    seq = seq_epi_100x100_TE100_FOV230()
-    sys = Scanner()
-    obj = phantom_brain_arbitrary_motion()
-    sim_params = Dict{String, Any}(
-        "gpu"=>true,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat", 
-        "precision"=>"f64"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
-
-@testitem "BlochDict_CPU_single_thread" tags=[:important, :core] begin
-    using Suppressor
+    include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     seq = seq_epi_100x100_TE100_FOV230()
     obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
     sys = Scanner()
-    sim_params = Dict("gpu"=>false, "Nthreads"=>1, "sim_method"=>KomaMRICore.Bloch(), "return_type"=>"mat")
+    sim_params = Dict(
+        "gpu"=>USE_GPU, 
+        "sim_method"=>KomaMRICore.Bloch(), 
+        "return_type"=>"mat")
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     sim_params["sim_method"] = KomaMRICore.BlochDict()
@@ -547,6 +352,7 @@ end
 
 @testitem "simulate_slice_profile" tags=[:core] begin
     using Suppressor
+    include("initialize.jl")
 
     # This is a sequence with a sinc RF 30° excitation pulse
     sys = Scanner()
@@ -561,7 +367,9 @@ end
     seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0; 0; Gz], TBP=8)
 
     # Simulate the slice profile
-    sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
+    sim_params = Dict{String, Any}(
+        "Δt_rf" => Trf / length(seq.RF.A[1]),
+        "gpu" => USE_GPU)
     M = @suppress simulate_slice_profile(seq; z, sim_params)
 
     # For the time being, always pass the test

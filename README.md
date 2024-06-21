@@ -137,25 +137,33 @@ If you use this package, please cite our paper.
 
 ## Tested compatibility
 
-We automatically test KomaMRICore's CPU multi-threading support on the most popular operating systems. Nevertheless, for GPU support, the process is more manual (until [#147](https://github.com/JuliaHealth/KomaMRI.jl/issues/147)). Here is a summary of our automatic CPU tests and local GPU tests for multiple versions of Julia:
+All parallel backends are tested on Linux (besides Apple silicon) using the latest stable release, Julia 1 (stable), and Julia 1.9 (compat). 
 
 <div align="center">
 
-| Julia (OS)           | CPU                                                        | GPU (Nvidia) |
-|:---------------------|:----------------------------------------------------------:|:------------:|
-| Julia 1.9 (Windows)  | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
-| Julia 1.9 (Linux)    | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
-| Julia 1.9  (Mac)     | [![][gh-actions-komamri]][gh-actions-url]                  | ➖           |
-| Julia 1.10 (Windows) | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
-| Julia 1.10 (Linux)   | [![][gh-actions-komamri]][gh-actions-url]                  | ✅           |
-| Julia 1.10 (Mac)     | [![][gh-actions-komamri]][gh-actions-url]                  | ➖           |
-| Julia 1.11 (Windows) | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌           |
-| Julia 1.11 (Linux)   | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ❌           |
-| Julia 1.11 (Mac)     | [![][gh-actions-komamri-nightly]][gh-actions-nightly-url]  | ➖           |
+| KomaMRICore          | CPU                                 | GPU (Nvidia)                        | GPU (AMD)                        | GPU (Apple)                        | GPU (Intel)                        | 
+|:---------------------|:-----------------------------------:|:-----------------------------------:|:--------------------------------:|:----------------------------------:|:----------------------------------:|
+| Julia 1.9            | [![][cpu-compat]][buildkite-url]    | [![][nvidia-compat]][buildkite-url] | [![][amd-compat]][buildkite-url] | [![][apple-compat]][buildkite-url] | [![][intel-compat]][buildkite-url] |
+| Julia 1              | [![][cpu-stable]][buildkite-url]    | [![][nvidia-stable]][buildkite-url] | [![][amd-stable]][buildkite-url] | [![][apple-stable]][buildkite-url] | [![][intel-stable]][buildkite-url] |
 
 </div>
 
-If you see any problem with this information, please let us know in the form of a GitHub issue.
+Single-threaded compatibility is tested in all major operating systems (OS).
+
+<div align="center">
+
+| KomaMRI              | CPU (single-threaded)                     |
+|:---------------------|:-----------------------------------------:|
+| Julia 1.9 (Windows)  | [![][gh-actions-komamri]][gh-actions-url] |
+| Julia 1.9 (Linux)    | [![][gh-actions-komamri]][gh-actions-url] |
+| Julia 1.9  (Mac OS)  | [![][gh-actions-komamri]][gh-actions-url] |
+| Julia 1 (Windows)    | [![][gh-actions-komamri]][gh-actions-url] |
+| Julia 1 (Linux)      | [![][gh-actions-komamri]][gh-actions-url] |
+| Julia 1 (Mac OS)     | [![][gh-actions-komamri]][gh-actions-url] |
+
+</div>
+
+If you see any problem with this information, please let us know in a GitHub issue.
 
 <!-- VARIABLES -->
 <!-- Julia compat -->
@@ -178,7 +186,19 @@ If you see any problem with this information, please let us know in the form of 
 [docd-url]: https://juliahealth.github.io/KomaMRI.jl/dev/
 <!-- Buildkite -->
 [buildkite-badge]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg
-[buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl
+[cpu-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CPU%3A%20Run%20tests%20on%20v1
+[nvidia-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CUDA%3A%20Run%20tests%20on%20v1
+[amd-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=AMDGPU%3A%20Run%20tests%20on%20v1
+[apple-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=Metal%3A%20Run%20tests%20on%20v1
+[intel-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=oneAPI%3A%20Run%20tests%20on%20v1
+
+[cpu-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CPU%3A%20Run%20tests%20on%20v1.9
+[nvidia-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CUDA%3A%20Run%20tests%20on%20v1.9
+[amd-compat]: https://img.shields.io/badge/build-failing-red?logo=buildkite&logoColor=white
+[apple-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=Metal%3A%20Run%20tests%20on%20v1.9
+[intel-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=oneAPI%3A%20Run%20tests%20on%20v1.9
+
+[buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl/builds?branch=master
 <!-- CI -->
 [gh-actions-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-komabase]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
