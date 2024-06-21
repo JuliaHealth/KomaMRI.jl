@@ -125,7 +125,8 @@ end
 
 function resample(itpx::Interpolator2D{T}, itpy::Interpolator2D{T}, itpz::Interpolator2D{T}, t::AbstractArray{T}) where {T<:Real}
     Ns = size(itpx.coefs, 1)
-    id = range(oneunit(T), T(Ns), Ns)
+    id = similar(itpx.coefs, Ns)
+    id .= range(oneunit(T), T(Ns), Ns)
     return itpx.(id, t), itpy.(id, t), itpz.(id, t)
 end
 
