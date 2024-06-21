@@ -127,10 +127,6 @@ function resample(itpx::Interpolator2D{T}, itpy::Interpolator2D{T}, itpz::Interp
     Ns = size(itpx.coefs, 1)
     id = similar(itpx.coefs, Ns)
     copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
-
-    println("Typeof itpx:")
-    println(typeof(itpx))
-
     return itpx.(id, t), itpy.(id, t), itpz.(id, t)
 end
 
