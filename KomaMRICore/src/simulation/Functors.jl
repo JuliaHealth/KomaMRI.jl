@@ -22,7 +22,7 @@ See also [`f32`](@ref) and [`f64`](@ref) to change element type only.
 # Examples
 ```julia
 using CUDA
-x = gpu(x)
+x = x |> gpu
 ```
 """
 function gpu(x)
@@ -31,7 +31,8 @@ function gpu(x)
     if (BACKEND[] isa KA.GPU)
         return gpu(x, BACKEND[])
     else
-        @error "function 'gpu' called with no functional backends available. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your code and try again"
+        @warn "function 'gpu' called with no functional backends available. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your code and try again"
+        return x
     end
 end
 

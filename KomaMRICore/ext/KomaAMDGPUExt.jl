@@ -12,7 +12,7 @@ KomaMRICore.device_name(::ROCBackend) = AMDGPU.HIP.name(AMDGPU.device())
 
 function KomaMRICore._print_devices(::ROCBackend)
     devices = [
-        Symbol("($(i-1)$(i == 1 ? "*" : " "))") => d.name for
+        Symbol("($(i-1)$(i == 1 ? "*" : " "))") => AMDGPU.HIP.name(d) for
         (i, d) in enumerate(AMDGPU.devices())
     ]
     @info "$(length(AMDGPU.devices())) AMD capable device(s)." devices...

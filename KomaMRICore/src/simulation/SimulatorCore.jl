@@ -2,6 +2,7 @@ abstract type SimulationMethod end #get all available types by using subtypes(Ko
 abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
+include("Bloch/KernelFunctions.jl")
 include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
 
@@ -82,7 +83,8 @@ function run_spin_precession_parallel!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
-    sim_method::SimulationMethod;
+    sim_method::SimulationMethod,
+    backend::KA.Backend;
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
@@ -90,7 +92,7 @@ function run_spin_precession_parallel!(
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method
+            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend
         )
     end
 
@@ -166,7 +168,8 @@ function run_sim_time_iter!(
     seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
-    sim_method::SimulationMethod;
+    sim_method::SimulationMethod,
+    backend::KA.Backend;
     Nblocks=1,
     Nthreads=Threads.nthreads(),
     parts=[1:length(seq)],
@@ -193,7 +196,7 @@ function run_sim_time_iter!(
             rfs += 1
         else
             run_spin_precession_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads
+                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend; Nthreads
             )
         end
         samples += Nadc
@@ -357,10 +360,10 @@ function simulate(
     if backend isa KA.GPU
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
         gpu_name = device_name(backend)
-        obj = gpu(obj, backend) #Phantom
-        seqd = gpu(seqd, backend) #DiscreteSequence
-        Xt = gpu(Xt, backend) #SpinStateRepresentation
-        sig = gpu(sig, backend) #Signal
+        obj = obj |> gpu #Phantom
+        seqd = seqd |> gpu #DiscreteSequence
+        Xt = Xt |> gpu #SpinStateRepresentation
+        sig = sig |> gpu #Signal
     end
 
     # Simulation
@@ -373,7 +376,8 @@ function simulate(
         seqd,
         sig,
         Xt,
-        sim_params["sim_method"];
+        sim_params["sim_method"],
+        backend;
         Nblocks=length(parts),
         Nthreads=sim_params["Nthreads"],
         parts,

@@ -1,3 +1,5 @@
+## COV_EXCL_START
+
 module KomaMetalExt
 
 using Metal
@@ -27,3 +29,5 @@ function __init__()
 end
 
 end
+
+## COV_EXCL_STOP
