@@ -14,7 +14,7 @@ steps:
             - KomaMRICore/src
             - KomaMRICore/ext
     command: |
-      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
+      julia -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
@@ -42,12 +42,14 @@ steps:
             - KomaMRICore/src
             - KomaMRICore/ext
     command: |
-      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
+      julia -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])
+          ])'
+      
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add AMDGPU to test environment")
           Pkg.add("AMDGPU")'
       
       julia -e 'println("--- :julia: Running tests")
@@ -73,12 +75,14 @@ steps:
             - KomaMRICore/src
             - KomaMRICore/ext
     command: |
-      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
+      julia -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])
+          ])'
+      
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
           Pkg.add("CUDA")'
       
       julia -e 'println("--- :julia: Running tests")
@@ -99,12 +103,14 @@ steps:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
     command: |
-      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
+      julia -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])
+          ])'
+      
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
           Pkg.add("Metal")'
 
       julia -e 'println("--- :julia: Running tests")
@@ -131,12 +137,14 @@ steps:
             - KomaMRICore/src
             - KomaMRICore/ext
     command: |
-      julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
+      julia -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])
+          ])'
+      
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
           Pkg.add("oneAPI")'
       
       julia -e 'println("--- :julia: Running tests")
