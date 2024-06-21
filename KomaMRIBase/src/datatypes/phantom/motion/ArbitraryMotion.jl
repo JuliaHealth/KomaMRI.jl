@@ -117,7 +117,8 @@ end
 
 function resample(itpx::Interpolator2D{T}, itpy::Interpolator2D{T}, itpz::Interpolator2D{T}, t::AbstractArray{T}) where {T<:Real}
     Ns = size(itpx.coefs, 1)
-    return itpx.(1:Ns, t), itpy.(1:Ns, t), itpz.(1:Ns, t)
+    id = range(oneunit(T), T(Ns), Ns)
+    return itpx.(id, t), itpy.(id, t), itpz.(id, t)
 end
 
 function get_spin_coords(
