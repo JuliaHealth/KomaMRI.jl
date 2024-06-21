@@ -44,6 +44,7 @@ function run_spin_precession!(
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
+    backend::KA.Backend
 ) where {T<:Real}
     #Simulation
     #Motion
@@ -52,7 +53,7 @@ function run_spin_precession!(
     Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw / T(2π * γ)
     #Rotation
     if is_ADC_on(seq)
-        ϕ = T(-2π * γ) .* cumtrapz(seq.Δt', Bz)
+        ϕ = T(-2π * γ) .* KomaMRIBase.cumtrapz(seq.Δt', Bz, backend)
     else
         ϕ = T(-2π * γ) .* trapz(seq.Δt', Bz)
     end
