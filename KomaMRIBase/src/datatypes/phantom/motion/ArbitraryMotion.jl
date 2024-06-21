@@ -9,7 +9,7 @@ const Interpolator1D = Interpolations.GriddedInterpolation{
     T<:Real,
     V<:AbstractArray{T},
     Itp<:Tuple{Interpolations.Gridded{Linear{Throw{OnGrid}}}},
-    K<:Tuple{AbstractRange{T}},
+    K<:Tuple{AbstractVector{T}},
 }
 
 const Interpolator2D = Interpolations.GriddedInterpolation{
@@ -18,7 +18,7 @@ const Interpolator2D = Interpolations.GriddedInterpolation{
     T<:Real,
     V<:AbstractArray{T},
     Itp<:Tuple{Interpolations.NoInterp, Interpolations.Gridded{Linear{Throw{OnGrid}}}},
-    K<:Tuple{AbstractRange{T}, AbstractRange{T}},
+    K<:Tuple{AbstractVector{T}, AbstractVector{T}},
 }
 
 """
@@ -94,7 +94,8 @@ end
 
 function interpolate(motion::ArbitraryMotion{T}, Ns::Val{1}) where {T<:Real}
     _, Nt = size(motion.dx)
-    t = range(zero(T), oneunit(T), Nt)
+    t = similar(motion.dx, Nt)
+    t .= range(0,1,Nt)
     itpx = GriddedInterpolation((t, ), motion.dx[:], (Gridded(Linear()), ))
     itpy = GriddedInterpolation((t, ), motion.dy[:], (Gridded(Linear()), ))
     itpz = GriddedInterpolation((t, ), motion.dz[:], (Gridded(Linear()), ))
@@ -103,8 +104,10 @@ end
 
 function interpolate(motion::ArbitraryMotion{T}, Ns::Val) where {T<:Real}
     Ns, Nt = size(motion.dx)
-    id = range(oneunit(T), T(Ns), Ns)
-    t  = range(zero(T), oneunit(T), Nt)
+    t = similar(motion.dx, Nt)
+    t .= range(0,1,Nt)
+    id = similar(motion.dx, Ns)
+    id .= 1:Ns
     itpx = GriddedInterpolation((id, t), motion.dx, (NoInterp(), Gridded(Linear())))
     itpy = GriddedInterpolation((id, t), motion.dy, (NoInterp(), Gridded(Linear())))
     itpz = GriddedInterpolation((id, t), motion.dz, (NoInterp(), Gridded(Linear())))
