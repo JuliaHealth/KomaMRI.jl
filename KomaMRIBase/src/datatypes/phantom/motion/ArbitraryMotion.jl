@@ -96,7 +96,7 @@ function interpolate(motion::ArbitraryMotion{T}, Ns::Val{1}) where {T<:Real}
     _, Nt = size(motion.dx)
 
     t = similar(motion.dx, Nt)
-    t .= LinRange(zero(T), oneunit(T), Nt)
+    copyto!(t, collect(range(zero(T), oneunit(T), Nt)))
 
     itpx = GriddedInterpolation((t, ), motion.dx[:], (Gridded(Linear()), ))
     itpy = GriddedInterpolation((t, ), motion.dy[:], (Gridded(Linear()), ))
@@ -108,10 +108,10 @@ function interpolate(motion::ArbitraryMotion{T}, Ns::Val) where {T<:Real}
     Ns, Nt = size(motion.dx)
 
     id = similar(motion.dx, Ns)
-    id .= LinRange(oneunit(T), T(Ns), Ns)
+    copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
 
     t = similar(motion.dx, Nt)
-    t .= LinRange(zero(T), oneunit(T), Nt)
+    copyto!(t, collect(range(zero(T), oneunit(T), Nt)))
 
     itpx = GriddedInterpolation((id, t), motion.dx, (NoInterp(), Gridded(Linear())))
     itpy = GriddedInterpolation((id, t), motion.dy, (NoInterp(), Gridded(Linear())))
@@ -126,7 +126,7 @@ end
 function resample(itpx::Interpolator2D{T}, itpy::Interpolator2D{T}, itpz::Interpolator2D{T}, t::AbstractArray{T}) where {T<:Real}
     Ns = size(itpx.coefs, 1)
     id = similar(itpx.coefs, Ns)
-    id .= LinRange(oneunit(T), T(Ns), Ns)
+    copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
     return itpx.(id, t), itpy.(id, t), itpz.(id, t)
 end
 
