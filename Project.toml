@@ -1,3 +1,8 @@
+name = "KomaMRI"
+uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
+authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
+version = "0.8.2"
+
 [deps]
 PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
