@@ -1,8 +1,9 @@
 using TestItems, TestItemRunner
 
 ### NOTE: by default, tests are run on the CPU with the number of threads set to 
-#   Threads.nthreads(). To run on a specific GPU backend, pass the name of the 
-#   trigger package ("AMDGPU", "CUDA", "Metal", or "oneAPI") as a test argument. 
+#   Threads.nthreads(). To run on a specific GPU backend, add the name of the 
+#   backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the test/Project.toml
+#   file in KomaMRICore and pass the name as a test argument.
 #   
 #   Example:
 #
@@ -383,5 +384,22 @@ end
     M = @suppress simulate_slice_profile(seq; z, sim_params)
 
     # For the time being, always pass the test
+    @test true
+end
+
+@testitem "GPU Functions" tags=[:core] begin
+    using Suppressor
+    import KernelAbstractions as KA
+    include("initialize.jl")
+
+    x = ones(Float32, 1000)
+    if USE_GPU
+        x = x |> gpu
+        @test KA.get_backend(x) isa KA.GPU
+    else
+        @test true
+    end
+
+    @suppress print_devices()
     @test true
 end
