@@ -185,18 +185,18 @@ If you see any problem with this information, please let us know in a GitHub iss
 [docr-url]: https://juliahealth.github.io/KomaMRI.jl/stable/
 [docd-url]: https://juliahealth.github.io/KomaMRI.jl/dev/
 <!-- Buildkite -->
-[buildkite-badge]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg
-[cpu-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CPU%3A%20Run%20tests%20on%20v1
-[nvidia-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CUDA%3A%20Run%20tests%20on%20v1
-[amd-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=AMDGPU%3A%20Run%20tests%20on%20v1
-[apple-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=Metal%3A%20Run%20tests%20on%20v1
-[intel-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=oneAPI%3A%20Run%20tests%20on%20v1
+[buildkite-badge]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master
+[cpu-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=CPU%3A%20Run%20tests%20on%20v1
+[nvidia-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=CUDA%3A%20Run%20tests%20on%20v1
+[amd-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=AMDGPU%3A%20Run%20tests%20on%20v1
+[apple-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=Metal%3A%20Run%20tests%20on%20v1
+[intel-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=oneAPI%3A%20Run%20tests%20on%20v1
 
-[cpu-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CPU%3A%20Run%20tests%20on%20v1.9
-[nvidia-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=CUDA%3A%20Run%20tests%20on%20v1.9
+[cpu-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=CPU%3A%20Run%20tests%20on%20v1.9
+[nvidia-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=CUDA%3A%20Run%20tests%20on%20v1.9
 [amd-compat]: https://img.shields.io/badge/build-failing-red?logo=buildkite&logoColor=white
-[apple-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=Metal%3A%20Run%20tests%20on%20v1.9
-[intel-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?step=oneAPI%3A%20Run%20tests%20on%20v1.9
+[apple-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=Metal%3A%20Run%20tests%20on%20v1.9
+[intel-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=oneAPI%3A%20Run%20tests%20on%20v1.9
 
 [buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl/builds?branch=master
 <!-- CI -->
