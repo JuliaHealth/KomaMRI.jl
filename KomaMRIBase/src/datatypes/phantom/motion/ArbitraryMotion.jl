@@ -92,14 +92,9 @@ function GriddedInterpolation(nodes, A, ITP)
     return Interpolations.GriddedInterpolation{eltype(A), length(nodes), typeof(A), typeof(ITP), typeof(nodes)}(nodes, A, ITP)
 end
 
-function rangeT(start::T, stop::T, length::Int) where {T<:Real}
-    r = range(start, stop, length)
-    return StepRangeLen{T,T,T}(start, T(r.step), length)
-end
-
 function interpolate(motion::ArbitraryMotion{T}, Ns::Val{1}) where {T<:Real}
     _, Nt = size(motion.dx)
-    t = LinRange(zero(T), oneunit(T), Nt)
+    t = range(zero(T), oneunit(T), Nt)
     itpx = GriddedInterpolation((t, ), motion.dx[:], (Gridded(Linear()), ))
     itpy = GriddedInterpolation((t, ), motion.dy[:], (Gridded(Linear()), ))
     itpz = GriddedInterpolation((t, ), motion.dz[:], (Gridded(Linear()), ))
@@ -108,8 +103,8 @@ end
 
 function interpolate(motion::ArbitraryMotion{T}, Ns::Val) where {T<:Real}
     Ns, Nt = size(motion.dx)
-    id = LinRange(oneunit(T), T(Ns), Ns)
-    t  = LinRange(zero(T), oneunit(T), Nt)
+    id = range(oneunit(T), T(Ns), Ns)
+    t  = range(zero(T), oneunit(T), Nt)
     itpx = GriddedInterpolation((id, t), motion.dx, (NoInterp(), Gridded(Linear())))
     itpy = GriddedInterpolation((id, t), motion.dy, (NoInterp(), Gridded(Linear())))
     itpz = GriddedInterpolation((id, t), motion.dz, (NoInterp(), Gridded(Linear())))
