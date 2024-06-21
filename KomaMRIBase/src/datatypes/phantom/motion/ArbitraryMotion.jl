@@ -95,7 +95,7 @@ end
 function interpolate(motion::ArbitraryMotion{T}, Ns::Val{1}) where {T<:Real}
     _, Nt = size(motion.dx)
     t = similar(motion.dx, Nt)
-    t .= range(0,1,Nt)
+    t .= range(zero(T), oneunit(T), Nt)
     itpx = GriddedInterpolation((t, ), motion.dx[:], (Gridded(Linear()), ))
     itpy = GriddedInterpolation((t, ), motion.dy[:], (Gridded(Linear()), ))
     itpz = GriddedInterpolation((t, ), motion.dz[:], (Gridded(Linear()), ))
@@ -105,9 +105,9 @@ end
 function interpolate(motion::ArbitraryMotion{T}, Ns::Val) where {T<:Real}
     Ns, Nt = size(motion.dx)
     t = similar(motion.dx, Nt)
-    t .= range(0,1,Nt)
+    t .= range(zero(T), oneunit(T), Nt)
     id = similar(motion.dx, Ns)
-    id .= 1:Ns
+    id .= range(oneunit(T), T(Ns), Ns)
     itpx = GriddedInterpolation((id, t), motion.dx, (NoInterp(), Gridded(Linear())))
     itpy = GriddedInterpolation((id, t), motion.dy, (NoInterp(), Gridded(Linear())))
     itpz = GriddedInterpolation((id, t), motion.dz, (NoInterp(), Gridded(Linear())))
