@@ -393,12 +393,20 @@ end
     include("initialize.jl")
 
     x = ones(Float32, 1000)
-    if USE_GPU
-        x = x |> gpu
-        @test KA.get_backend(x) isa KA.GPU
-    else
-        @test true
+    @suppress begin
+        y = x |> gpu
+        if USE_GPU
+            @test KA.get_backend(y) isa KA.GPU
+            y = y |> cpu
+            @test KA.get_backend(y) isa KA.CPU
+        else
+            # Test that gpu and cpu are no-ops
+            @test y == x
+            y = y |> cpu
+            @test y == x
+        end
     end
+
 
     @suppress print_devices()
     @test true

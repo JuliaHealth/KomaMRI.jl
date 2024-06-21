@@ -1,6 +1,7 @@
 using KernelAbstractions: @index, @kernel
 
 ## COV_EXCL_START
+#! format: off
 
 """
     cumsum2_kernel
@@ -19,6 +20,7 @@ in-place on the input matrix without allocating additional memory.
     end
 end
 
+#! format: on
 ## COV_EXCL_STOP
 
 """
