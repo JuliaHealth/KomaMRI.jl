@@ -50,6 +50,7 @@ steps:
           ])'
       
       julia --project=KomaMRICore/test -e 'println("--- :julia: Add AMDGPU to test environment")
+          using Pkg
           Pkg.add("AMDGPU")'
       
       julia -e 'println("--- :julia: Running tests")
@@ -83,6 +84,7 @@ steps:
           ])'
       
       julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
+          using Pkg
           Pkg.add("CUDA")'
       
       julia -e 'println("--- :julia: Running tests")
@@ -111,6 +113,7 @@ steps:
           ])'
       
       julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
+          using Pkg
           Pkg.add("Metal")'
 
       julia -e 'println("--- :julia: Running tests")
@@ -145,6 +148,7 @@ steps:
           ])'
       
       julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
+          using Pkg
           Pkg.add("oneAPI")'
       
       julia -e 'println("--- :julia: Running tests")
