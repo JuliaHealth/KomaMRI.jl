@@ -1,5 +1,7 @@
 using KernelAbstractions: @index, @kernel
 
+## COV_EXCL_START
+
 """
     cumsum2_kernel
 
@@ -16,6 +18,8 @@ in-place on the input matrix without allocating additional memory.
         @inbounds A[i, k] += A[i, k-1]
     end
 end
+
+## COV_EXCL_STOP
 
 """
     cumtrapz

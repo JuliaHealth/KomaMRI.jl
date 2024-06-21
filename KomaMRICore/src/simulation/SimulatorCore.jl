@@ -360,10 +360,10 @@ function simulate(
     if backend isa KA.GPU
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
         gpu_name = device_name(backend)
-        obj = gpu(obj, backend) #Phantom
-        seqd = gpu(seqd, backend) #DiscreteSequence
-        Xt = gpu(Xt, backend) #SpinStateRepresentation
-        sig = gpu(sig, backend) #Signal
+        obj = obj |> gpu #Phantom
+        seqd = seqd |> gpu #DiscreteSequence
+        Xt = Xt |> gpu #SpinStateRepresentation
+        sig = sig |> gpu #Signal
     end
 
     # Simulation

@@ -22,7 +22,7 @@ See also [`f32`](@ref) and [`f64`](@ref) to change element type only.
 # Examples
 ```julia
 using CUDA
-x = gpu(x)
+x = x |> gpu
 ```
 """
 function gpu(x)
