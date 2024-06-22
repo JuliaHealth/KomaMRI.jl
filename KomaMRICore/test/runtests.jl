@@ -326,6 +326,7 @@ end
     # NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
     # @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 
+    # 1D 
     # ITP Creation
     x = [1.0]
     Ns = length(x)
@@ -334,18 +335,38 @@ end
     Nt = 10
     dx = rand(Ns, Nt)
     t = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
-
     dx = dx |> f32 |> gpu 
     t =  t  |> f32 |> gpu 
-
     itpx = KomaMRIBase.GriddedInterpolation((t, ), dx[:], (KomaMRIBase.Gridded(KomaMRIBase.Linear()), ));
-
-
     # ITP Call
     tq = collect(0:0.1:1)'
     tq = tq |> f32 |> gpu 
     tq = KomaMRIBase.unit_time(tq, t_start, t_end)
     ux = itpx.(tq)
+    println(typeof(ux))
+    @test true
+
+    # 2D
+    # ITP Creation
+    x = [1.0, 2.0]
+    Ns = length(x)
+    t_start = 0.0f0
+    t_end = 1.0f0
+    Nt = 10
+    dx = rand(Ns, Nt)
+    id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
+    t  = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
+    dx = dx |> f32 |> gpu 
+    id = id |> f32 |> gpu 
+    t =  t  |> f32 |> gpu 
+    itpx = KomaMRIBase.GriddedInterpolation((id, t), dx, (KomaMRIBase.NoInterp(), KomaMRIBase.Gridded(KomaMRIBase.Linear())));
+    # ITP Call
+    id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
+    tq = collect(0:0.1:1)'
+    id = id |> f32 |> gpu 
+    tq = tq |> f32 |> gpu 
+    tq = KomaMRIBase.unit_time(tq, t_start, t_end)
+    ux = itpx.(id, tq)
     println(typeof(ux))
     @test true
 end
