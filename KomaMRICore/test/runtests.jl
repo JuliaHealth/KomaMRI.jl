@@ -24,7 +24,7 @@ const CI = get(ENV, "CI", nothing)
 
 @run_package_tests filter=ti->(:core in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
-@testitem "Spinors×Mag" tags=[:core, :skipci] begin
+@testitem "Spinors×Mag" tags=[:core] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
 
     ## Verifying that operators perform counter-clockwise rotations
@@ -156,7 +156,7 @@ const CI = get(ENV, "CI", nothing)
 end
 
 # Test ISMRMRD
-@testitem "signal_to_raw_data" tags=[:core, :skipci] begin
+@testitem "signal_to_raw_data" tags=[:core] begin
     using Suppressor
     include("initialize.jl")
 
@@ -186,7 +186,7 @@ end
     @test true
 end
 
-@testitem "Bloch" tags=[:important, :core, :skipci] begin
+@testitem "Bloch" tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -209,7 +209,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch_RF_accuracy" tags=[:important, :core, :skipci] begin
+@testitem "Bloch_RF_accuracy" tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
 
@@ -256,7 +256,7 @@ end
     @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
 end
 
-@testitem "Bloch_phase_compensation" tags=[:important, :core, :skipci] begin
+@testitem "Bloch_phase_compensation" tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
 
@@ -287,7 +287,7 @@ end
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 end
 
-@testitem "Bloch SimpleMotion" tags=[:important, :core, :skipci] begin
+@testitem "Bloch SimpleMotion" tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -325,54 +325,9 @@ end
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-
-    # 1D 
-    # ITP Creation
-    # x = [1.0]
-    # Ns = length(x)
-    # t_start = 0.0f0
-    # t_end = 1.0f0
-    # Nt = 10
-    # dx = rand(Ns, Nt)
-    # t = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
-    # dx = dx |> f32 |> gpu 
-    # t =  t  |> f32 |> gpu 
-    # itpx = KomaMRIBase.GriddedInterpolation((t, ), dx[:], (KomaMRIBase.Gridded(KomaMRIBase.Linear()), ));
-    # # ITP Call
-    # tq = collect(0:0.1:1)'
-    # tq = tq |> f32 |> gpu 
-    # tq = KomaMRIBase.unit_time(tq, t_start, t_end)
-    # ux = itpx.(tq)
-    # println(typeof(ux))
-    # @test true
-
-    # 2D
-    # ITP Creation
-    # x = [1.0, 2.0]
-    # Ns = length(x)
-    # t_start = 0.0f0
-    # t_end = 1.0f0
-    # Nt = 10
-    # dx = rand(Ns, Nt)
-    # id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
-    # t  = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
-    # dx = dx |> f32
-    # id = id |> f32 
-    # t =  t  |> f32
-    # itpx = KomaMRIBase.GriddedInterpolation((id, t), dx, (KomaMRIBase.Gridded(KomaMRIBase.Linear()), KomaMRIBase.Gridded(KomaMRIBase.Linear())));
-    # itpx = itpx |> gpu
-    # # ITP Call
-    # id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
-    # tq = collect(0:0.1:1)'
-    # id = id |> f32 |> gpu 
-    # tq = tq |> f32 |> gpu 
-    # tq = KomaMRIBase.unit_time(tq, t_start, t_end)
-    # ux = itpx.(id, tq)
-    # println(typeof(ux))
-    # @test true
 end
 
-@testitem "BlochDict" tags=[:important, :core, :skipci] begin
+@testitem "BlochDict" tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -396,7 +351,7 @@ end
     @test true
 end
 
-@testitem "simulate_slice_profile" tags=[:core, :skipci] begin
+@testitem "simulate_slice_profile" tags=[:core] begin
     using Suppressor
     include("initialize.jl")
 
@@ -422,7 +377,7 @@ end
     @test true
 end
 
-@testitem "GPU Functions" tags=[:core, :skipci] begin
+@testitem "GPU Functions" tags=[:core] begin
     using Suppressor
     import KernelAbstractions as KA
     include("initialize.jl")
