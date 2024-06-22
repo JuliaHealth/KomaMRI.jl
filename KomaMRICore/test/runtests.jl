@@ -335,15 +335,15 @@ end
     dx = rand(Ns, Nt)
     t = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
 
-    dx = dx |> gpu |> f32
-    t =  t  |> gpu |> f32
+    dx = dx |> f32 |> gpu 
+    t =  t  |> f32 |> gpu 
 
     itpx = KomaMRIBase.GriddedInterpolation((t, ), dx[:], (KomaMRIBase.Gridded(KomaMRIBase.Linear()), ));
 
 
     # ITP Call
     tq = collect(0:0.1:1)'
-    tq = tq |> gpu |> f32
+    tq = tq |> f32 |> gpu 
     tq = KomaMRIBase.unit_time(tq, t_start, t_end)
     ux = itpx.(tq)
     println(typeof(ux))
