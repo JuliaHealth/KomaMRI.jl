@@ -356,10 +356,11 @@ end
     dx = rand(Ns, Nt)
     id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
     t  = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
-    dx = dx |> f32 |> gpu 
-    id = id |> f32 |> gpu 
-    t =  t  |> f32 |> gpu 
+    dx = dx |> f32
+    id = id |> f32 
+    t =  t  |> f32
     itpx = KomaMRIBase.GriddedInterpolation((id, t), dx, (KomaMRIBase.NoInterp(), KomaMRIBase.Gridded(KomaMRIBase.Linear())));
+    itpx = itpx |> gpu
     # ITP Call
     id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
     tq = collect(0:0.1:1)'
