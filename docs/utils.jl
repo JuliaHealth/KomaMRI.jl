@@ -66,8 +66,7 @@ function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-
                 name=filename_gen
             )
             Literate.script(tutorial_src, input_folder; name=filename_gen, repo_root_url)
-            Literate.notebook(tutorial_src, input_folder; name=filename_gen, execute=false, 
-                binder_root_url=)
+            Literate.notebook(tutorial_src, input_folder; name=filename_gen, execute=false)
             push!(tutorial_list, tutorial_md)
         end
     end
