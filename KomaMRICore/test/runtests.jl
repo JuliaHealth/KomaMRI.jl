@@ -312,19 +312,19 @@ end
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    # sig_jemris = signal_brain_motion_jemris()  
-    # seq = seq_epi_100x100_TE100_FOV230()
-    # sys = Scanner()
-    # obj = phantom_brain_arbitrary_motion()
-    # sim_params = Dict{String, Any}(
-    #     "gpu"=>USE_GPU,
-    #     "sim_method"=>KomaMRICore.Bloch(),
-    #     "return_type"=>"mat"
-    # )
-    # sig = simulate(obj, seq, sys; sim_params)
-    # sig = sig / prod(size(obj))
-    # NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    # @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+    sig_jemris = signal_brain_motion_jemris()  
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain_arbitrary_motion()
+    sim_params = Dict{String, Any}(
+        "gpu"=>USE_GPU,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat"
+    )
+    sig = simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 
     # 1D 
     # ITP Creation
@@ -348,28 +348,28 @@ end
 
     # 2D
     # ITP Creation
-    x = [1.0, 2.0]
-    Ns = length(x)
-    t_start = 0.0f0
-    t_end = 1.0f0
-    Nt = 10
-    dx = rand(Ns, Nt)
-    id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
-    t  = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
-    dx = dx |> f32
-    id = id |> f32 
-    t =  t  |> f32
-    itpx = KomaMRIBase.GriddedInterpolation((id, t), dx, (KomaMRIBase.Gridded(KomaMRIBase.Linear()), KomaMRIBase.Gridded(KomaMRIBase.Linear())));
-    itpx = itpx |> gpu
-    # ITP Call
-    id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
-    tq = collect(0:0.1:1)'
-    id = id |> f32 |> gpu 
-    tq = tq |> f32 |> gpu 
-    tq = KomaMRIBase.unit_time(tq, t_start, t_end)
-    ux = itpx.(id, tq)
-    println(typeof(ux))
-    @test true
+    # x = [1.0, 2.0]
+    # Ns = length(x)
+    # t_start = 0.0f0
+    # t_end = 1.0f0
+    # Nt = 10
+    # dx = rand(Ns, Nt)
+    # id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
+    # t  = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
+    # dx = dx |> f32
+    # id = id |> f32 
+    # t =  t  |> f32
+    # itpx = KomaMRIBase.GriddedInterpolation((id, t), dx, (KomaMRIBase.Gridded(KomaMRIBase.Linear()), KomaMRIBase.Gridded(KomaMRIBase.Linear())));
+    # itpx = itpx |> gpu
+    # # ITP Call
+    # id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
+    # tq = collect(0:0.1:1)'
+    # id = id |> f32 |> gpu 
+    # tq = tq |> f32 |> gpu 
+    # tq = KomaMRIBase.unit_time(tq, t_start, t_end)
+    # ux = itpx.(id, tq)
+    # println(typeof(ux))
+    # @test true
 end
 
 @testitem "BlochDict" tags=[:important, :core, :skipci] begin

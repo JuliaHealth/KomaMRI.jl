@@ -8,7 +8,7 @@ const Interpolator1D = Interpolations.GriddedInterpolation{
 } where {
     T<:Real,
     V<:AbstractArray{T},
-    Itp<:Tuple{Interpolations.Gridded{Linear{Throw{OnGrid}}}},
+    Itp<:Interpolations.Gridded{Linear{Throw{OnGrid}}},
     K<:Tuple{AbstractVector{T}},
 }
 
@@ -17,7 +17,7 @@ const Interpolator2D = Interpolations.GriddedInterpolation{
 } where {
     T<:Real,
     V<:AbstractArray{T},
-    Itp<:Tuple{Interpolations.NoInterp, Interpolations.Gridded{Linear{Throw{OnGrid}}}},
+    Itp<:Interpolations.Gridded{Linear{Throw{OnGrid}}},
     K<:Tuple{AbstractVector{T}, AbstractVector{T}},
 }
 
@@ -94,28 +94,20 @@ end
 
 function interpolate(motion::ArbitraryMotion{T}, Ns::Val{1}) where {T<:Real}
     _, Nt = size(motion.dx)
-
-    t = similar(motion.dx, Nt)
-    copyto!(t, collect(range(zero(T), oneunit(T), Nt)))
-
-    itpx = GriddedInterpolation((t, ), motion.dx[:], (Gridded(Linear()), ))
-    itpy = GriddedInterpolation((t, ), motion.dy[:], (Gridded(Linear()), ))
-    itpz = GriddedInterpolation((t, ), motion.dz[:], (Gridded(Linear()), ))
+    t = similar(motion.dx, Nt); copyto!(t, collect(range(zero(T), oneunit(T), Nt)))
+    itpx = GriddedInterpolation((t, ), motion.dx[:], Gridded(Linear()))
+    itpy = GriddedInterpolation((t, ), motion.dy[:], Gridded(Linear()))
+    itpz = GriddedInterpolation((t, ), motion.dz[:], Gridded(Linear()))
     return itpx, itpy, itpz
 end
 
 function interpolate(motion::ArbitraryMotion{T}, Ns::Val) where {T<:Real}
     Ns, Nt = size(motion.dx)
-
-    id = similar(motion.dx, Ns)
-    copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
-
-    t = similar(motion.dx, Nt)
-    copyto!(t, collect(range(zero(T), oneunit(T), Nt)))
-
-    itpx = GriddedInterpolation((id, t), motion.dx, (NoInterp(), Gridded(Linear())))
-    itpy = GriddedInterpolation((id, t), motion.dy, (NoInterp(), Gridded(Linear())))
-    itpz = GriddedInterpolation((id, t), motion.dz, (NoInterp(), Gridded(Linear())))
+    id = similar(motion.dx, Ns); copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
+    t = similar(motion.dx, Nt);  copyto!(t, collect(range(zero(T), oneunit(T), Nt)))
+    itpx = GriddedInterpolation((id, t), motion.dx, Gridded(Linear()))
+    itpy = GriddedInterpolation((id, t), motion.dy, Gridded(Linear()))
+    itpz = GriddedInterpolation((id, t), motion.dz, Gridded(Linear()))
     return itpx, itpy, itpz
 end
 
@@ -127,16 +119,7 @@ function resample(itpx::Interpolator2D{T}, itpy::Interpolator2D{T}, itpz::Interp
     Ns = size(itpx.coefs, 1)
     id = similar(itpx.coefs, Ns)
     copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
-
-    # Grid
-    idx = 1*id .+ 0*t
-    t   = 0*id .+ 1*t
-
-    println("Type of idx: ", typeof(idx))
-    println("Type of t: ", typeof(t))
-    println("Type of itpx: ", typeof(itpx), '\n')
-
-    return itpx.(idx, t), itpy.(idx, t), itpz.(idx, t)
+    return itpx.(id, t), itpy.(id, t), itpz.(id, t)
 end
 
 function get_spin_coords(
