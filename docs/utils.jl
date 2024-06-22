@@ -21,11 +21,14 @@ function _link_example(filename)
     function _link_example_for_filename(content)
         title_line = findfirst(r"\n# .+?\n", content)
         line = content[title_line]
+        githubs_binder_link = @__BINDER_ROOT_URL__
+        koma_version = split(githubs_binder_link, "=")[2]
+        binder_link = "https://mybinder.org/v2/gh/$repo_base/master?urlpath=git-pull?repo=https://github.com/$repo_base&urlpath=lab/tree/KomaMRI.jl/$koma_version"
         badges = """
 
         #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename.jl)
         #md # [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename.ipynb)
-        #md # [![](https://mybinder.org/badge_logo.svg)](@__BINDER_ROOT_URL__/tutorial/$filename.ipynb)
+        #md # [![](https://mybinder.org/badge_logo.svg)]($binder_link/tutorial/$filename.ipynb)
 
         """
         return replace(content, line => badges * line)
@@ -61,10 +64,11 @@ function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-
                 input_folder;
                 repo_root_url,
                 preprocess=_link_example(filename_gen),
-                name=filename_gen,
+                name=filename_gen
             )
             Literate.script(tutorial_src, input_folder; name=filename_gen, repo_root_url)
-            Literate.notebook(tutorial_src, input_folder; name=filename_gen, execute=false)
+            Literate.notebook(tutorial_src, input_folder; name=filename_gen, execute=false, 
+                binder_root_url=)
             push!(tutorial_list, tutorial_md)
         end
     end
@@ -84,9 +88,14 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             tutorial_md   = joinpath(doc_tutorial_pluto, "$filename_gen.md")
             # HTML to Markdown
             frontmatter = PlutoSliderServer.Pluto.frontmatter(tutorial_src)
+            githubs_binder_link = @__BINDER_ROOT_URL__
+            koma_version = split(githubs_binder_link, "=")[2]
+            binder_link = "https://mybinder.org/v2/gh/$repo_base/master?urlpath=git-pull?repo=https://github.com/$repo_base&urlpath=pluto/open?path=/home/jovyan/$koma_version"
             iframe = """
             # $(frontmatter["title"])
 
+            #md # [![](https://mybinder.org/badge_logo.svg)]($binder_link/tutorial-pluto/$filename.jl)
+            
             ```@raw html
             <iframe type="text/html" src="../$filename_gen.html" style="height:100vh;width:100%;"></iframe>
             ```
