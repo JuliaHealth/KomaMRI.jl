@@ -27,7 +27,7 @@ function _link_example(filename)
 
         #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename.jl)
         #md # [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename.ipynb)
-        #md # [![](https://mybinder.org/badge_logo.svg)]($binder_link/tutorial/$filename.ipynb)
+        #md # [![](https://mybinder.org/badge_logo.svg)]($binder_link/tutorial/$filename.ipynb&branch=gh-pages)
 
         """
         return replace(content, line => badges * line)
@@ -86,12 +86,12 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             tutorial_md   = joinpath(doc_tutorial_pluto, "$filename_gen.md")
             # HTML to Markdown
             frontmatter = PlutoSliderServer.Pluto.frontmatter(tutorial_src)
-            koma_version = "dev"
-            binder_link = "https://mybinder.org/v2/gh/$repo_base/master?urlpath=git-pull?repo=https://github.com/$repo_base&urlpath=pluto/open?path=/home/jovyan/$koma_version"
+            binder_link = "https://mybinder.org/v2/gh/$repo_base/master?urlpath=pluto"
             iframe = """
             # $(frontmatter["title"])
 
-            #md # [![](https://mybinder.org/badge_logo.svg)]($binder_link/tutorial-pluto/$filename.jl)
+            [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename)
+            [![](https://mybinder.org/badge_logo.svg)]($binder_link/open?path=examples/4.reproducible_notebooks/pluto-$filename)
             
             ```@raw html
             <iframe type="text/html" src="../$filename_gen.html" style="height:100vh;width:100%;"></iframe>
