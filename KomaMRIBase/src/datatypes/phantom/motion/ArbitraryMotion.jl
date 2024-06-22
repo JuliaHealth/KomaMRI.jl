@@ -128,11 +128,15 @@ function resample(itpx::Interpolator2D{T}, itpy::Interpolator2D{T}, itpz::Interp
     id = similar(itpx.coefs, Ns)
     copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
 
-    println("Type of id: ", typeof(id))
+    # Grid
+    idx = 1*id .+ 0*t
+    t   = 0*id .+ 1*t
+
+    println("Type of idx: ", typeof(idx))
     println("Type of t: ", typeof(t))
     println("Type of itpx: ", typeof(itpx), '\n')
 
-    return itpx.(id, t), itpy.(id, t), itpz.(id, t)
+    return itpx.(idx, t), itpy.(idx, t), itpz.(idx, t)
 end
 
 function get_spin_coords(
