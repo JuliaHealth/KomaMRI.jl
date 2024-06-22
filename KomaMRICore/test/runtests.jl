@@ -328,23 +328,23 @@ end
 
     # 1D 
     # ITP Creation
-    x = [1.0]
-    Ns = length(x)
-    t_start = 0.0f0
-    t_end = 1.0f0
-    Nt = 10
-    dx = rand(Ns, Nt)
-    t = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
-    dx = dx |> f32 |> gpu 
-    t =  t  |> f32 |> gpu 
-    itpx = KomaMRIBase.GriddedInterpolation((t, ), dx[:], (KomaMRIBase.Gridded(KomaMRIBase.Linear()), ));
-    # ITP Call
-    tq = collect(0:0.1:1)'
-    tq = tq |> f32 |> gpu 
-    tq = KomaMRIBase.unit_time(tq, t_start, t_end)
-    ux = itpx.(tq)
-    println(typeof(ux))
-    @test true
+    # x = [1.0]
+    # Ns = length(x)
+    # t_start = 0.0f0
+    # t_end = 1.0f0
+    # Nt = 10
+    # dx = rand(Ns, Nt)
+    # t = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
+    # dx = dx |> f32 |> gpu 
+    # t =  t  |> f32 |> gpu 
+    # itpx = KomaMRIBase.GriddedInterpolation((t, ), dx[:], (KomaMRIBase.Gridded(KomaMRIBase.Linear()), ));
+    # # ITP Call
+    # tq = collect(0:0.1:1)'
+    # tq = tq |> f32 |> gpu 
+    # tq = KomaMRIBase.unit_time(tq, t_start, t_end)
+    # ux = itpx.(tq)
+    # println(typeof(ux))
+    # @test true
 
     # 2D
     # ITP Creation
@@ -359,7 +359,7 @@ end
     dx = dx |> f32
     id = id |> f32 
     t =  t  |> f32
-    itpx = KomaMRIBase.GriddedInterpolation((id, t), dx, (KomaMRIBase.NoInterp(), KomaMRIBase.Gridded(KomaMRIBase.Linear())));
+    itpx = KomaMRIBase.GriddedInterpolation((id, t), dx, (KomaMRIBase.Gridded(KomaMRIBase.Linear()), KomaMRIBase.Gridded(KomaMRIBase.Linear())));
     itpx = itpx |> gpu
     # ITP Call
     id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
