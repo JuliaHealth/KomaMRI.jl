@@ -7,3 +7,4 @@ dependencies:
   - plotly              
   - webio-jupyter-extension
   - nbgitpuller
+  - jupyter-pluto-proxy
