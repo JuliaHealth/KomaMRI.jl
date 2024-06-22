@@ -329,8 +329,8 @@ end
     # ITP Creation
     x = [1.0]
     Ns = length(x)
-    t_start = 0.0
-    t_end = 1.0
+    t_start = 0.0f0
+    t_end = 1.0f0
     Nt = 10
     dx = rand(Ns, Nt)
     t = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
