@@ -354,17 +354,13 @@ end
     t_end = 1.0f0
     Nt = 10
     dx = rand(Ns, Nt)
-    id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
-    t  = collect(range(zero(eltype(dx)), oneunit(eltype(dx)), Nt))
-    dx = dx |> f32
-    id = id |> f32 
-    t =  t  |> f32
+    dx = dx |> f32 |> gpu
+    id = range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns)
+    t  = range(zero(eltype(dx)), oneunit(eltype(dx)), Nt)
     itpx = KomaMRIBase.GriddedInterpolation((id, t), dx, (KomaMRIBase.Gridded(KomaMRIBase.Linear()), KomaMRIBase.Gridded(KomaMRIBase.Linear())));
-    itpx = itpx |> gpu
     # ITP Call
-    id = collect(range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns))
+    id = range(oneunit(eltype(dx)), eltype(dx)(Ns), Ns)
     tq = collect(0:0.1:1)'
-    id = id |> f32 |> gpu 
     tq = tq |> f32 |> gpu 
     tq = KomaMRIBase.unit_time(tq, t_start, t_end)
     ux = itpx.(id, tq)
