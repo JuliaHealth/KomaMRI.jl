@@ -1130,7 +1130,7 @@ function plot_phantom_map(
 
     if view_2d
         trace = [
-            scattergl(;
+            scatter(;
                 x=(x[:, 1]) * 1e2,
                 y=(y[:, 1]) * 1e2,
                 mode="markers",
