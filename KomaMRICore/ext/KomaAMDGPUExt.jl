@@ -8,7 +8,7 @@ KomaMRICore.name(::ROCBackend) = "AMDGPU"
 KomaMRICore.isfunctional(::ROCBackend) = AMDGPU.functional()
 KomaMRICore.set_device!(::ROCBackend, dev_idx::Integer) = AMDGPU.device_id!(dev_idx)
 KomaMRICore.set_device!(::ROCBackend, dev::AMDGPU.HIPDevice) = AMDGPU.device!(dev)
-KomaMRICore.device_name(::ROCBackend) = AMDGPU.device().name
+KomaMRICore.device_name(::ROCBackend) = AMDGPU.HIP.name(AMDGPU.device())
 
 function Adapt.adapt_storage(
     ::ROCBackend, x::Vector{KomaMRICore.LinearInterpolator{T,V}}
@@ -18,7 +18,7 @@ end
 
 function KomaMRICore._print_devices(::ROCBackend)
     devices = [
-        Symbol("($(i-1)$(i == 1 ? "*" : " "))") => d.name for
+        Symbol("($(i-1)$(i == 1 ? "*" : " "))") => AMDGPU.HIP.name(d) for
         (i, d) in enumerate(AMDGPU.devices())
     ]
     @info "$(length(AMDGPU.devices())) AMD capable device(s)." devices...
