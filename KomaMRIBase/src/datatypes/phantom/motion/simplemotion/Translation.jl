@@ -1,5 +1,5 @@
 @doc raw"""
-    translation = Translation(t_start, t_end, dx, dy, dz)
+    translation = Translation(dx, dy, dz, t_start, t_end)
 
 Translation motion struct. It produces a linear translation of the phantom.
 Its fields are the final displacements in the three axes (dx, dy, dz) 

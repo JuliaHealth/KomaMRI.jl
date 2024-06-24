@@ -1,5 +1,5 @@
 @doc raw"""
-    periodic_translation = PeriodicTranslation(period, asymmetry, dx, dy, dz)
+    periodic_translation = PeriodicTranslation(dx, dy, dz, period, asymmetry)
 
 PeriodicTranslation motion struct. It produces a periodic translation of the phantom in the three directions x, y and z.
 The amplitude of the oscillation will be defined by dx, dy and dz

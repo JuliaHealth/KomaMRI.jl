@@ -1070,7 +1070,7 @@ function plot_phantom_map(
 
     if length(ph) > max_spins
         ph = decimate_uniform_phantom(ph, max_spins)
-        @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)." maxlog=1
+        @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)."
     end
 
     path = @__DIR__
@@ -1130,7 +1130,7 @@ function plot_phantom_map(
 
     if view_2d
         trace = [
-            scatter(;
+            scattergl(;
                 x=(x[:, 1]) * 1e2,
                 y=(y[:, 1]) * 1e2,
                 mode="markers",

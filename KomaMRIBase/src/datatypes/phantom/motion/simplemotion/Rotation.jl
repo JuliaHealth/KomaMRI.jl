@@ -1,5 +1,5 @@
 @doc raw"""
-    rotation = Rotation(t_start, t_end, pitch, roll, yaw)
+    rotation = Rotation(pitch, roll, yaw, t_start, t_end)
  
 Rotation motion struct. It produces a rotation of the phantom in the three axes: 
 x (pitch), y (roll), and z (yaw).
