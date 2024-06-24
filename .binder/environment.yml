@@ -6,3 +6,5 @@ dependencies:
   - jupyterlab >=3.1,<4 # the docs specify this, but the metadata doesn't
   - plotly              
   - webio-jupyter-extension
+  - nbgitpuller
+  - jupyter-pluto-proxy
