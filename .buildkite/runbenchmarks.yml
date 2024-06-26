@@ -135,11 +135,12 @@ steps:
       BENCHMARK_GROUP: oneAPI
     timeout_in_minutes: 120
 
+  - wait: ~
+
   - label: "Combine benchmarks"
     plugins:
       - JuliaCI/julia#v1:
           version: "1"
-    wait: ~
     command: |
       buildkite-agent artifact download 'bench/results/*' bench/results/
 
