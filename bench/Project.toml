@@ -1,0 +1,5 @@
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+KomaMRI = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
