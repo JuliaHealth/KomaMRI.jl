@@ -327,13 +327,13 @@ end
     # @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 
     N = 5
-    x = collect(range(0f0, 1f0, N)) 
+    x = range(0f0, 1f0, N)
     y = rand(Float32, N)
 
     itp = KomaMRIBase.Interpolations.interpolate((x,), y, KomaMRIBase.Interpolations.Gridded(KomaMRIBase.Interpolations.Linear()))
     cuitp = itp |> gpu;
 
-    xp = rand(Float32, N); xp = xp |> gpu;
+    xp = range(0f0, 1f0, N)
 
     u = cuitp.(xp)
 end
