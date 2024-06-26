@@ -327,13 +327,13 @@ end
     # @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 
     N = 5
-    x = range(0f0, 1f0, N)
+    x = range(0f0, 1f0, N); x = StepRangeLen{Float32,Float32,Float32}(0f0, Float32(x.step), N) # "Force" range step type to be Float32
     y = rand(Float32, N)
 
     itp = KomaMRIBase.Interpolations.interpolate((x,), y, KomaMRIBase.Interpolations.Gridded(KomaMRIBase.Interpolations.Linear()))
     cuitp = itp |> gpu;
 
-    xp = range(0f0, 1f0, N)
+    xp = range(0f0, 1f0, N); xp = StepRangeLen{Float32,Float32,Float32}(0f0, Float32(xp.step), N) # "Force" range step type to be Float32
 
     u = cuitp.(xp)
 end
