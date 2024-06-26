@@ -5,7 +5,7 @@ steps:
       queue: "juliaecosystem"
       sandbox_capable: true
 
-  #To-do: update to only trigger on pull requests / pushes to main branch
+  #To-do: update to only trigger on push to main or first pull request commit
   - label: ":pipeline: Launch Benchmarks"
     command: buildkite-agent pipeline upload .buildkite/runbenchmarks.yml
     agents:

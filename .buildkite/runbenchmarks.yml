@@ -4,10 +4,9 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
@@ -27,10 +26,9 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
@@ -55,10 +53,9 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
@@ -83,10 +80,9 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
@@ -112,10 +108,9 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia -e 'println("--- :julia: Instantiating project")
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
-              PackageSpec(path=pwd(), subdir="."),
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'

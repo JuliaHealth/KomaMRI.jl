@@ -2,8 +2,7 @@ function setup_benchmarks(suite::BenchmarkGroup, backend::String, num_cpu_thread
     # Benchmark 1: from lit-04-3DSliceSelective.jl
     sys1 = Scanner()
     obj1 = brain_phantom3D()
-    seq1_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/epi_multislice.seq")
-    seq1 = @suppress read_seq(seq1_file)
+    seq1 = PulseDesginer.EPI_example()
     
     if backend == "CPU"
         for n in num_cpu_threads
@@ -28,7 +27,7 @@ function setup_benchmarks(suite::BenchmarkGroup, backend::String, num_cpu_thread
     Trf = 1e-3
     rf = PulseDesigner.RF_sinc(B1, Trf, sys2; TBP=4, a=0.46)
     α_desired = 90 + 0im
-    α =  KomaMRI.get_flip_angles(rf)[1]
+    α =  get_flip_angles(rf)[1]
     rf *= α_desired / α #Linearly adjusts B1 to obtain desired FA
     # Spiral sequence
     TE = 50e-3  # 50e-3 [s]
@@ -41,10 +40,7 @@ function setup_benchmarks(suite::BenchmarkGroup, backend::String, num_cpu_thread
     for i = 1:Nint
         seq2 += rf + delayTE + spiral(i - 1) + delayTR
     end
-    obj2_filepath = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_speed/phantom")
-    obj2_filename = joinpath(obj2_filepath, "brain_mrilab.mat")
-    obj2_FRange_filename = joinpath(obj2_filepath, "FRange.mat")
-    obj2 = read_phantom_MRiLab(obj2_filename; FRange_filename=obj2_FRange_filename)
+    obj2 = brain_phantom2D()
 
     if backend == "CPU"
         for n in num_cpu_threads

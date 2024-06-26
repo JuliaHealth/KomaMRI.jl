@@ -1,4 +1,5 @@
-using KomaMRI
+using KomaMRIBase
+using KomaMRICore
 using Pkg
 using Suppressor
 using BenchmarkTools
