@@ -334,8 +334,8 @@ end
     cuitp = itp |> gpu;
 
     # ITP Call
-    xp = rand(N); xp = xp |> gpu;
-
+    xp = rand(Float32, N); xp = xp |> gpu;
+    
     u = cuitp.(xp)
 end
 
