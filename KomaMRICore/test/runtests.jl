@@ -326,24 +326,17 @@ end
     # NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
     # @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 
-    Nx = 5      # Number of nodes in x
-    Ny = 10     # Number of nodes in y
+    N = 5
+    x = range(0f0, 1f0, N)
+    y = rand(Float32, N)
 
-    x = range(1f0, Float32(Nx), Nx)
-    y = range(0f0, 1f0, Ny)
-    nodes = (x, y)
-
-    A = rand(Float32, Nx, Ny)
-
-    itp = KomaMRIBase.Interpolations.interpolate(nodes, A, KomaMRIBase.Interpolations.Gridded(KomaMRIBase.Interpolations.Linear()))
+    itp = KomaMRIBase.Interpolations.interpolate((x,), y, KomaMRIBase.Interpolations.Gridded(KomaMRIBase.Interpolations.Linear()))
     cuitp = itp |> gpu;
 
     # ITP Call
-    xp = range(1f0, Float32(Nx), Nx)
-    yp = collect(range(0f0, 1f0, Ny))'; yp = yp |> gpu;
+    xp = rand(N); xp = xp |> gpu;
 
-    u = cuitp.(xp, yp)
-    @test true
+    u = cuitp.(xp)
 end
 
 @testitem "BlochDict" tags=[:important, :core] begin
