@@ -2,7 +2,7 @@ function setup_benchmarks(suite::BenchmarkGroup, backend::String, num_cpu_thread
     # Benchmark 1: from lit-04-3DSliceSelective.jl
     sys1 = Scanner()
     obj1 = brain_phantom3D()
-    seq1 = PulseDesginer.EPI_example()
+    seq1 = PulseDesigner.EPI_example()
     
     if backend == "CPU"
         for n in num_cpu_threads
