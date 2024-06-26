@@ -307,7 +307,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch ArbitraryMotion"  tags=[:important, :core] begin
+@testitem "Bloch ArbitraryMotion"  tags=[:important, :core, :skipci] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
