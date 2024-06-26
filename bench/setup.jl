@@ -3,7 +3,7 @@ function setup_benchmarks(suite::BenchmarkGroup, backend::String, num_cpu_thread
     sys1 = Scanner()
     obj1 = brain_phantom3D()[1:10000]
     seq1 = PulseDesigner.EPI_example()
-    
+     
     if backend == "CPU"
         for n in num_cpu_threads
             sim_params = Dict{String,Any}("Nblocks"=>20,"gpu"=>false,"Nthreads"=>n)
