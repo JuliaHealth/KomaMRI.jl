@@ -328,23 +328,20 @@ end
 
     Nx = 5      # Number of nodes in x
     Ny = 10     # Number of nodes in y
-    
-    A = rand(Float32, Nx, Ny)
+
     x = range(1f0, Float32(Nx), Nx)
     y = range(0f0, 1f0, Ny)
     nodes = (x, y)
-    ITP = KomaMRIBase.Interpolations.Gridded(KomaMRIBase.Interpolations.Linear())
-    
-    itp = KomaMRIBase.Interpolations.GriddedInterpolation{eltype(A), length(nodes), typeof(A), typeof(ITP), typeof(nodes)}(nodes, A, ITP)
-    cuitp = itp |> gpu; # adapt it to GPU memory
-    
+
+    A = rand(Float32, Nx, Ny)
+
+    itp = KomaMRIBase.Interpolations.interpolate(nodes, A, KomaMRIBase.Interpolations.Gridded(KomaMRIBase.Interpolations.Linear()))
+    cuitp = itp |> gpu;
+
     # ITP Call
-    xp = collect(range(1f0, Float32(Nx), Nx))
-    yp = collect(range(0f0, 1f0, Ny))'
-    
     xp = range(1f0, Float32(Nx), Nx)
-    yp = yp |> gpu;
-    
+    yp = collect(range(0f0, 1f0, Ny))'; yp = yp |> gpu;
+
     u = cuitp.(xp, yp)
     @test true
 end
