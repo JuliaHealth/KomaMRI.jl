@@ -24,7 +24,7 @@ const CI = get(ENV, "CI", nothing)
 
 @run_package_tests filter=ti->(:core in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
-@testitem "Spinors×Mag" tags=[:core, :skipci] begin
+@testitem "Spinors×Mag" tags=[:core] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
 
     ## Verifying that operators perform counter-clockwise rotations
@@ -156,7 +156,7 @@ const CI = get(ENV, "CI", nothing)
 end
 
 # Test ISMRMRD
-@testitem "signal_to_raw_data" tags=[:core, :skipci] begin
+@testitem "signal_to_raw_data" tags=[:core] begin
     using Suppressor
     include("initialize.jl")
 
@@ -186,7 +186,7 @@ end
     @test true
 end
 
-@testitem "Bloch" tags=[:important, :core, :skipci] begin
+@testitem "Bloch" tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -209,7 +209,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch_RF_accuracy" tags=[:important, :core, :skipci] begin
+@testitem "Bloch_RF_accuracy" tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
 
@@ -256,7 +256,7 @@ end
     @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
 end
 
-@testitem "Bloch_phase_compensation" tags=[:important, :core, :skipci] begin
+@testitem "Bloch_phase_compensation" tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
 
@@ -312,30 +312,19 @@ end
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    # sig_jemris = signal_brain_motion_jemris()  
-    # seq = seq_epi_100x100_TE100_FOV230()
-    # sys = Scanner()
-    # obj = phantom_brain_arbitrary_motion()
-    # sim_params = Dict{String, Any}(
-    #     "gpu"=>USE_GPU,
-    #     "sim_method"=>KomaMRICore.Bloch(),
-    #     "return_type"=>"mat"
-    # )
-    # sig = @suppress simulate(obj, seq, sys; sim_params)
-    # sig = sig / prod(size(obj))
-    # NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    # @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-
-    N = 5
-    x = range(0f0, 1f0, N); x = StepRangeLen{Float32,Float32,Float32}(0f0, Float32(x.step), N) # "Force" range step type to be Float32
-    y = rand(Float32, N)
-
-    itp = KomaMRIBase.Interpolations.interpolate((x,), y, KomaMRIBase.Interpolations.Gridded(KomaMRIBase.Interpolations.Linear()))
-    cuitp = itp |> gpu;
-
-    xp = range(0f0, 1f0, N); xp = StepRangeLen{Float32,Float32,Float32}(0f0, Float32(xp.step), N) # "Force" range step type to be Float32
-
-    u = cuitp.(xp)
+    sig_jemris = signal_brain_motion_jemris()  
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain_arbitrary_motion()
+    sim_params = Dict{String, Any}(
+        "gpu"=>USE_GPU,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat"
+    )
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
 @testitem "BlochDict" tags=[:important, :core] begin
