@@ -333,7 +333,7 @@ end
     x = range(1f0, Float32(Nx), Nx)
     y = range(0f0, 1f0, Ny)
     nodes = (x, y)
-    ITP = KomaMRIBase.Interpolations.Gridded(Linear())
+    ITP = KomaMRIBase.Interpolations.Gridded(KomaMRIBase.Interpolations.Linear())
     
     itp = KomaMRIBase.Interpolations.GriddedInterpolation{eltype(A), length(nodes), typeof(A), typeof(ITP), typeof(nodes)}(nodes, A, ITP)
     cuitp = itp |> gpu; # adapt it to GPU memory
