@@ -1,5 +1,5 @@
 @doc raw"""
-    heartbeat = HeartBeat(t_start, t_end, dx, dy, dz)
+    heartbeat = HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end)
 
 HeartBeat struct. It produces a heartbeat-like motion, characterised by three types of strain:
 Circumferential, Radial and Longitudinal
@@ -25,12 +25,13 @@ julia> hb = HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudi
     longitudinal_strain::T = typeof(circumferential_strain)(0.0)
     t_start::T             = typeof(circumferential_strain)(0.0)
     t_end::T               = typeof(circumferential_strain)(0.0)
-    @assert t_end >= t_start "t_end must be major or equal than t_start"
+    @assert t_end >= t_start "t_end must be greater or equal than t_start"
 end
 
 is_composable(motion_type::HeartBeat) = true
 
-function displacement_x(
+function displacement_x!(
+    ux::AbstractArray{T},
     motion_type::HeartBeat{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -47,10 +48,12 @@ function displacement_x(
     neg = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
     Δr .-= neg .* r
-    return Δr .* cos.(θ)
+    ux .= Δr .* cos.(θ)
+    return nothing
 end
 
-function displacement_y(
+function displacement_y!(
+    uy::AbstractArray{T},
     motion_type::HeartBeat{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -67,10 +70,12 @@ function displacement_y(
     neg = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
     Δr .-= neg .* r
-    return Δr .* sin.(θ)
+    uy .= Δr .* sin.(θ)
+    return nothing
 end
 
-function displacement_z(
+function displacement_z!(
+    uz::AbstractArray{T},
     motion_type::HeartBeat{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -78,7 +83,8 @@ function displacement_z(
     t::AbstractArray{T},
 ) where {T<:Real}
     t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
-    return t_unit .* (z .* motion_type.longitudinal_strain)
+    uz .= t_unit .* (z .* motion_type.longitudinal_strain)
+    return nothing
 end
 
 times(motion_type::HeartBeat) = begin
