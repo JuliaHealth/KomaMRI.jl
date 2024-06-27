@@ -18,6 +18,12 @@ const CUDA_results = BenchmarkTools.load(CUDA_filepath)[1]
 const Metal_results = BenchmarkTools.load(Metal_filepath)[1]
 const oneAPI_results = BenchmarkTools.load(oneAPI_filepath)[1]
 
+@assert CPU_results isa BenchmarkTools.BenchmarkGroup
+@assert AMDGPU_results isa BenchmarkTools.BenchmarkGroup
+@assert CUDA_results isa BenchmarkTools.BenchmarkGroup
+@assert Metal_results isa BenchmarkTools.BenchmarkGroup
+@assert oneAPI_results isa BenchmarkTools.BenchmarkGroup
+
 # Add other results to CPU results
 for benchark in keys(CPU_results)
     for sim_method in keys(CPU_results[benchmark])

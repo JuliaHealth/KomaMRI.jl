@@ -146,7 +146,7 @@ steps:
       julia --project=bench -e 'println("--- :julia: Combining Benchmarks")
           include("bench/aggregate.jl")'
     artifact_paths:
-      - "bench/results/*"
+      - "bench/results/combinedbenchmarks.json"
     agents:
       queue: "juliagpu"
     timeout_in_minutes: 10
