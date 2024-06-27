@@ -20,10 +20,10 @@ if ispath(oneAPI_filepath) oneAPI_results = BenchmarkTools.load(oneAPI_filepath)
 @assert CPU_results isa BenchmarkTools.BenchmarkGroup
 for benchmark in keys(CPU_results)
     for sim_method in keys(CPU_results[benchmark])
-        AMDGPU_results isa BenchmarkTools.BenchmarkGroup && CPU_results[benchmark][sim_method]["GPU"]["AMDGPU"] = AMDGPU_results[benchmark][sim_method]["GPU"]["AMDGPU"]
-        CUDA_results isa BenchmarkTools.BenchmarkGroup && CPU_results[benchmark][sim_method]["GPU"]["CUDA"] = CUDA_results[benchmark][sim_method]["GPU"]["CUDA"]
-        Metal_results isa BenchmarkTools.BenchmarkGroup && CPU_results[benchmark][sim_method]["GPU"]["Metal"] = Metal_results[benchmark][sim_method]["GPU"]["Metal"]
-        oneAPI_results isa BenchmarkTools.BenchmarkGroup && CPU_results[benchmark][sim_method]["GPU"]["oneAPI"] = oneAPI_results[benchmark][sim_method]["GPU"]["oneAPI"]
+        if AMDGPU_results isa BenchmarkTools.BenchmarkGroup CPU_results[benchmark][sim_method]["GPU"]["AMDGPU"] = AMDGPU_results[benchmark][sim_method]["GPU"]["AMDGPU"] end
+        if CUDA_results isa BenchmarkTools.BenchmarkGroup CPU_results[benchmark][sim_method]["GPU"]["CUDA"] = CUDA_results[benchmark][sim_method]["GPU"]["CUDA"] end
+        if Metal_results isa BenchmarkTools.BenchmarkGroup CPU_results[benchmark][sim_method]["GPU"]["Metal"] = Metal_results[benchmark][sim_method]["GPU"]["Metal"] end
+        if oneAPI_results isa BenchmarkTools.BenchmarkGroup CPU_results[benchmark][sim_method]["GPU"]["oneAPI"] = oneAPI_results[benchmark][sim_method]["GPU"]["oneAPI"] end
     end
 end
 
