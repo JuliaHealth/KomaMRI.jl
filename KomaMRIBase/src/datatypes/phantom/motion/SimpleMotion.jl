@@ -102,8 +102,8 @@ function times(motion::SimpleMotion)
     return nodes
 end
 
-# utils: Sort Motion 
-include("simplemotion/_utils.jl")
+# Sort Motion 
+include("simplemotion/sorting.jl")
 
 # Simple Motion Types:
 # Non-periodic types: defined by an initial time (t_start), an end time (t_end) and a displacement      
