@@ -53,6 +53,7 @@ jobs:
       - name: Upload Benchmark Results
         if: ${{ steps.download.download_state == success && steps.locate.path != '' }}
         uses: benchmark-action/github-action-benchmark@v1
+        with:
           name: KomaMRI Benchmarks
           tool: 'julia'
           output-file-path: ${{ steps.locate.path }}
