@@ -11,12 +11,15 @@ steps:
     plugins:
       - monebag/monorepo-diff#v2.5.9:
           diff: ".buildkite/scripts/diff.sh $BUILDKITE_COMMIT"
+          log_level: "debug"
           interpolation: false
           watch:
             - path:
                 - "KomaMRICore/src/"
                 - "KomaMRICore/ext/"
+                - "KomaMRICore/Project.toml"
                 - "KomaMRIBase/src/"
+                - "KomaMRICore/Project.toml"
                 - "bench/"
                 - ".buildkite/"
                 - "Project.toml"
