@@ -11,7 +11,7 @@ steps:
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
       
-      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
+      julia --project=bench --threads=auto -e 'println("--- :julia: Run Benchmarks")
           include("bench/runbenchmarks.jl")'
     artifact_paths: 
       - "bench/results/*"
@@ -138,6 +138,10 @@ steps:
           version: "1"
     command: |
       buildkite-agent artifact download "bench/results/*" .
+
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.instantiate()'
 
       julia --project=bench -e 'println("--- :julia: Combining Benchmarks")
           include("bench/aggregate.jl")'
