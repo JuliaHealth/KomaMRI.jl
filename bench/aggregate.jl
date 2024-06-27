@@ -25,7 +25,7 @@ const oneAPI_results = BenchmarkTools.load(oneAPI_filepath)[1]
 @assert oneAPI_results isa BenchmarkTools.BenchmarkGroup
 
 # Add other results to CPU results
-for benchark in keys(CPU_results)
+for benchmark in keys(CPU_results)
     for sim_method in keys(CPU_results[benchmark])
         CPU_results[benchmark][sim_method]["GPU"]["AMDGPU"] = AMD_results[benchmark][sim_method]["GPU"]["AMDGPU"]
         CPU_results[benchmark][sim_method]["GPU"]["CUDA"] = CUDA_results[benchmark][sim_method]["GPU"]["CUDA"]
