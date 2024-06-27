@@ -392,13 +392,10 @@ end
         @test yt == ph.y
         @test zt == ph.z
     end
-    @testset "SimpleMotion" begin
+    @testset "Translation" begin
         ph = Phantom(x=[1.0], y=[1.0])
         t_start=0.0; t_end=1.0 
         t = collect(range(t_start, t_end, 11))
-        period = 2.0
-        asymmetry = 0.5
-        # Translation
         dx, dy, dz = [1.0, 0.0, 0.0]
         vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
         translation = SimpleMotion(Translation(dx, dy, dz, t_start, t_end))
@@ -406,28 +403,75 @@ end
         @test xt == ph.x .+ vx.*t'
         @test yt == ph.y .+ vy.*t'
         @test zt == ph.z .+ vz.*t'
-        # PeriodicTranslation
+        # ----- t_start = t_end --------
+        t_start = t_end = 0.0
+        t = [-0.5, -0.25, 0.0, 0.25, 0.5]
+        translation = SimpleMotion(Translation(dx, dy, dz, t_start, t_end))
+        xt, yt, zt = get_spin_coords(translation, ph.x, ph.y, ph.z, t')
+        @test xt == ph.x .+ dx*[0, 0, 1, 1, 1]'
+        @test yt == ph.y .+ dy*[0, 0, 1, 1, 1]'
+        @test zt == ph.z .+ dz*[0, 0, 1, 1, 1]'
+    end
+    @testset "PeriodicTranslation" begin
+        ph = Phantom(x=[1.0], y=[1.0])
+        t_start=0.0; t_end=1.0 
+        t = collect(range(t_start, t_end, 11))
+        period = 2.0
+        asymmetry = 0.5
+        dx, dy, dz = [1.0, 0.0, 0.0]
+        vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
         periodictranslation = SimpleMotion(PeriodicTranslation(dx, dy, dz, period, asymmetry))
         xt, yt, zt = get_spin_coords(periodictranslation, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ vx.*t'
         @test yt == ph.y .+ vy.*t'
         @test zt == ph.z .+ vz.*t'
-        # Rotation (2D)
-        pitch = 0.0
+    end
+    @testset "Rotation" begin
+        ph = Phantom(x=[1.0], y=[1.0])
+        t_start=0.0; t_end=1.0 
+        t = collect(range(t_start, t_end, 11))
+        pitch = 45.0
         roll = 0.0
         yaw = 45.0
         rotation = SimpleMotion(Rotation(pitch, roll, yaw, t_start, t_end))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
-        @test xt[:,end] == ph.x .* cosd(yaw) - ph.y .* sind(yaw)
-        @test yt[:,end] == ph.x .* sind(yaw) + ph.y .* cosd(yaw)
-        @test zt[:,end] == ph.z
-        # PeriodicRotation (2D)
+        r = vcat(ph.x, ph.y, ph.z)
+        R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
+        rot_x, rot_y, rot_z = R*r
+        @test xt[end ,end] ≈ rot_x
+        @test yt[end ,end] ≈ rot_y
+        @test zt[end ,end] ≈ rot_z
+        # ----- t_start = t_end --------
+        t_start = t_end = 0.0
+        t = [-0.5, -0.25, 0.0, 0.25, 0.5]
+        rotation = SimpleMotion(Rotation(pitch, roll, yaw, t_start, t_end))
+        xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
+        @test xt ≈ [ph.x   ph.x   rot_x   rot_x   rot_x]
+        @test yt ≈ [ph.y   ph.y   rot_y   rot_y   rot_y]
+        @test zt ≈ [ph.z   ph.z   rot_z   rot_z   rot_z]
+    end
+    @testset "PeriodicRotation" begin
+        ph = Phantom(x=[1.0], y=[1.0])
+        t_start=0.0; t_end=1.0 
+        t = collect(range(t_start, t_end, 11))
+        period = 2.0
+        asymmetry = 0.5
+        pitch = 45.0
+        roll = 0.0
+        yaw = 45.0
         periodicrotation = SimpleMotion(PeriodicRotation(pitch, roll, yaw, period, asymmetry))
         xt, yt, zt = get_spin_coords(periodicrotation, ph.x, ph.y, ph.z, t')
-        @test xt[:,end] == ph.x .* cosd(yaw) - ph.y .* sind(yaw)
-        @test yt[:,end] == ph.x .* sind(yaw) + ph.y .* cosd(yaw)
-        @test zt[:,end] == ph.z
-        # HeartBeat
+        r = vcat(ph.x, ph.y, ph.z)
+        R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
+        rot_x, rot_y, rot_z = R*r
+        @test xt[end ,end] ≈ rot_x
+        @test yt[end ,end] ≈ rot_y
+        @test zt[end ,end] ≈ rot_z
+    end
+    @testset "HeartBeat" begin
+        ph = Phantom(x=[1.0], y=[1.0])
+        t_start=0.0; t_end=1.0 
+        t = collect(range(t_start, t_end, 11))
         circumferential_strain = -0.1
         radial_strain = 0.0
         longitudinal_strain = -0.1
@@ -438,30 +482,9 @@ end
         @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
         @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
         @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
-        # PeriodicHeartBeat
-        periodicheartbeat = SimpleMotion(PeriodicHeartBeat(circumferential_strain, radial_strain, longitudinal_strain, period, asymmetry))
-        xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
-        @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
-        @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
-        @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
         # ----- t_start = t_end --------
         t_start = t_end = 0.0
         t = [-0.5, -0.25, 0.0, 0.25, 0.5]
-        # Translation
-        translation = SimpleMotion(Translation(dx, dy, dz, t_start, t_end))
-        xt, yt, zt = get_spin_coords(translation, ph.x, ph.y, ph.z, t')
-        @test xt == ph.x .+ dx*[0, 0, 1, 1, 1]'
-        @test yt == ph.y .+ dy*[0, 0, 1, 1, 1]'
-        @test zt == ph.z .+ dz*[0, 0, 1, 1, 1]'
-        # Rotation
-        rotation = SimpleMotion(Rotation(pitch, roll, yaw, t_start, t_end))
-        xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
-        dx = cosd(yaw) .- ph.y .* sind(yaw)
-        dy = sind(yaw) .+ ph.y .* cosd(yaw)
-        @test xt == [ph.x   ph.x   ph.x .* dx   ph.x .* dx   ph.x .* dx]
-        @test yt == [ph.y   ph.y   ph.y .* dy   ph.y .* dy   ph.y .* dy]
-        @test zt == [ph.z   ph.z   ph.z         ph.z         ph.z      ]
-        # HeartBeat
         heartbeat = SimpleMotion(HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end))
         xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
@@ -472,6 +495,23 @@ end
         @test xt == [ph.x   ph.x   ph.x .* dx   ph.x .* dx   ph.x .* dx]
         @test yt == [ph.y   ph.y   ph.y .* dy   ph.y .* dy   ph.y .* dy]
         @test zt == [ph.z   ph.z   ph.z .* dz   ph.z .* dz   ph.z .* dz]
+    end
+    @testset "PeriodicHeartBeat" begin
+        ph = Phantom(x=[1.0], y=[1.0])
+        t_start=0.0; t_end=1.0 
+        t = collect(range(t_start, t_end, 11))
+        period = 2.0
+        asymmetry = 0.5
+        circumferential_strain = -0.1
+        radial_strain = 0.0
+        longitudinal_strain = -0.1
+        periodicheartbeat = SimpleMotion(PeriodicHeartBeat(circumferential_strain, radial_strain, longitudinal_strain, period, asymmetry))
+        xt, yt, zt = get_spin_coords(periodicheartbeat, ph.x, ph.y, ph.z, t')
+        r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
+        θ = atan.(ph.y, ph.x)
+        @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
+        @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
+        @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
     end
     @testset "ArbitraryMotion" begin
         # 1 spin
