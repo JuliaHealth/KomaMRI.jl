@@ -42,8 +42,7 @@ steps:
     artifact_paths: 
       - "bench/results/*"
     agents:
-      queue: "benchmark"
-      gpu: "*"
+      queue: "juliagpu"
       rocm: "*"
     env:
       BENCHMARK_GROUP: AMDGPU
@@ -98,8 +97,7 @@ steps:
     artifact_paths: 
       - "bench/results/*"
     agents:
-      queue: "benchmark"
-      gpu: "*"
+      queue: "juliaecosystem"
       os: "macos"
       arch: "aarch64"
     env:
@@ -127,8 +125,7 @@ steps:
     artifact_paths: 
       - "bench/results/*"
     agents:
-      queue: "benchmark"
-      gpu: "*"
+      queue: "juliagpu"
       intel: "*"
     env:
       BENCHMARK_GROUP: oneAPI
