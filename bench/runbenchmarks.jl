@@ -6,7 +6,7 @@ using BenchmarkTools
 
 const SUITE = BenchmarkGroup()
 BenchmarkTools.DEFAULT_PARAMETERS.gcsample = true
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 5
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 60
 
 # To run benchmarks on a specific GPU backend, add AMDGPU / CUDA / Metal / oneAPI
 # to bench/Project.toml and change the variable below to the backend name

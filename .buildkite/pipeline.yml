@@ -2,12 +2,25 @@ steps:
   - label: ":pipeline: Launch Tests"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
     agents:
-      queue: "juliaecosystem"
-      sandbox_capable: true
+      queue: "juliagpu"
 
-  #To-do: update to only trigger on push to main or first pull request commit
   - label: ":pipeline: Launch Benchmarks"
-    command: buildkite-agent pipeline upload .buildkite/runbenchmarks.yml
+    if: build.message !~ /skip benchmarks/
     agents:
-      queue: "juliaecosystem"
-      sandbox_capable: true
+      queue: "juliagpu"
+    plugins:
+      - monebag/monorepo-diff#v2.5.9:
+          diff: ".buildkite/scripts/diff.sh $BUILDKITE_COMMIT"
+          interpolation: false
+          watch:
+            - path:
+                - "KomaMRICore/src/"
+                - "KomaMRICore/ext/"
+                - "KomaMRIBase/src/"
+                - "bench/"
+                - ".buildkite/"
+                - "Project.toml"
+              config:
+                command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
+                agents:
+                  queue: "juliagpu"
