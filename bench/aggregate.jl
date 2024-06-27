@@ -27,7 +27,7 @@ const oneAPI_results = BenchmarkTools.load(oneAPI_filepath)[1]
 # Add other results to CPU results
 for benchmark in keys(CPU_results)
     for sim_method in keys(CPU_results[benchmark])
-        CPU_results[benchmark][sim_method]["GPU"]["AMDGPU"] = AMD_results[benchmark][sim_method]["GPU"]["AMDGPU"]
+        CPU_results[benchmark][sim_method]["GPU"]["AMDGPU"] = AMDGPU_results[benchmark][sim_method]["GPU"]["AMDGPU"]
         CPU_results[benchmark][sim_method]["GPU"]["CUDA"] = CUDA_results[benchmark][sim_method]["GPU"]["CUDA"]
         CPU_results[benchmark][sim_method]["GPU"]["Metal"] = Metal_results[benchmark][sim_method]["GPU"]["Metal"]
         CPU_results[benchmark][sim_method]["GPU"]["oneAPI"] = oneAPI_results[benchmark][sim_method]["GPU"]["oneAPI"]
