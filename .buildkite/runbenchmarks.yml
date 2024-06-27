@@ -16,7 +16,7 @@ steps:
     artifact_paths: 
       - "bench/results/*"
     agents:
-      queue: "juliagpu"
+      queue: "benchmark"
     env:
       BENCHMARK_GROUP: CPU
     timeout_in_minutes: 120
@@ -42,7 +42,8 @@ steps:
     artifact_paths: 
       - "bench/results/*"
     agents:
-      queue: "juliagpu"
+      queue: "benchmark"
+      gpu: "*"
       rocm: "*"
     env:
       BENCHMARK_GROUP: AMDGPU
@@ -69,7 +70,8 @@ steps:
     artifact_paths: 
       - "bench/results/*"
     agents:
-      queue: "juliagpu"
+      queue: "benchmark"
+      gpu: "*"
       cuda: "*"
     env:
       BENCHMARK_GROUP: CUDA
@@ -96,7 +98,8 @@ steps:
     artifact_paths: 
       - "bench/results/*"
     agents:
-      queue: "juliaecosystem"
+      queue: "benchmark"
+      gpu: "*"
       os: "macos"
       arch: "aarch64"
     env:
@@ -124,7 +127,8 @@ steps:
     artifact_paths: 
       - "bench/results/*"
     agents:
-      queue: "juliagpu"
+      queue: "benchmark"
+      gpu: "*"
       intel: "*"
     env:
       BENCHMARK_GROUP: oneAPI
