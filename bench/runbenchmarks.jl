@@ -34,7 +34,6 @@ end
 
 include("setup.jl")
 setup_benchmarks(SUITE, BENCHMARK_GROUP, BENCHMARK_CPU_THREADS)
-BenchmarkTools.tune!(SUITE; verbose=true)
 results = BenchmarkTools.run(SUITE; verbose=true)
 filepath = joinpath(dirname(@__FILE__), "results")
 mkpath(filepath)
