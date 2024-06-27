@@ -9,18 +9,18 @@ steps:
     agents:
       queue: "juliagpu"
     plugins:
-      - monebag/monorepo-diff#v2.5.9:
+      - monorepo-diff#v1.0.1:
           diff: ".buildkite/scripts/diff.sh $BUILDKITE_COMMIT"
           interpolation: false
           watch:
             - path:
-                - "KomaMRICore/src/"
-                - "KomaMRICore/ext/"
+                - "KomaMRICore/src/**"
+                - "KomaMRICore/ext/**"
                 - "KomaMRICore/Project.toml"
-                - "KomaMRIBase/src/"
+                - "KomaMRIBase/src/**"
                 - "KomaMRICore/Project.toml"
-                - "bench/"
-                - ".buildkite/"
+                - "bench/**"
+                - ".buildkite/**"
                 - "Project.toml"
               config:
                 command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
