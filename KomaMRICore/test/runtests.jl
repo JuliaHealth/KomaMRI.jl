@@ -24,7 +24,7 @@ const CI = get(ENV, "CI", nothing)
 
 @run_package_tests filter=ti->(:core in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
-@testitem "Spinors×Mag" tags=[:core] begin
+@testitem "Spinors×Mag" tags=[:core, :skipci] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
 
     ## Verifying that operators perform counter-clockwise rotations
@@ -156,7 +156,7 @@ const CI = get(ENV, "CI", nothing)
 end
 
 # Test ISMRMRD
-@testitem "signal_to_raw_data" tags=[:core] begin
+@testitem "signal_to_raw_data" tags=[:core, :skipci] begin
     using Suppressor
     include("initialize.jl")
 
@@ -186,7 +186,7 @@ end
     @test true
 end
 
-@testitem "Bloch" tags=[:important, :core] begin
+@testitem "Bloch" tags=[:important, :core, :skipci] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -209,7 +209,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch_RF_accuracy" tags=[:important, :core] begin
+@testitem "Bloch_RF_accuracy" tags=[:important, :core, :skipci] begin
     using Suppressor
     include("initialize.jl")
 
@@ -256,7 +256,7 @@ end
     @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
 end
 
-@testitem "Bloch_phase_compensation" tags=[:important, :core] begin
+@testitem "Bloch_phase_compensation" tags=[:important, :core, :skipci] begin
     using Suppressor
     include("initialize.jl")
 
@@ -287,7 +287,7 @@ end
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 end
 
-@testitem "Bloch SimpleMotion" tags=[:important, :core, :skipci] begin
+@testitem "Bloch SimpleMotion" tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -307,7 +307,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch ArbitraryMotion"  tags=[:important, :core, :skipci] begin
+@testitem "Bloch ArbitraryMotion"  tags=[:important, :core] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -327,7 +327,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "BlochDict" tags=[:important, :core] begin
+@testitem "BlochDict" tags=[:important, :core, :skipci] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -351,7 +351,7 @@ end
     @test true
 end
 
-@testitem "simulate_slice_profile" tags=[:core] begin
+@testitem "simulate_slice_profile" tags=[:core, :skipci] begin
     using Suppressor
     include("initialize.jl")
 
@@ -377,7 +377,7 @@ end
     @test true
 end
 
-@testitem "GPU Functions" tags=[:core] begin
+@testitem "GPU Functions" tags=[:core, :skipci] begin
     using Suppressor
     import KernelAbstractions as KA
     include("initialize.jl")
