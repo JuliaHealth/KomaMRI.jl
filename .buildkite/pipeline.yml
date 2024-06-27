@@ -14,13 +14,13 @@ steps:
           interpolation: false
           watch:
             - path:
-                - "KomaMRICore/src/**"
-                - "KomaMRICore/ext/**"
+                - "KomaMRICore/src/**/*"
+                - "KomaMRICore/ext/**/*"
                 - "KomaMRICore/Project.toml"
-                - "KomaMRIBase/src/**"
-                - "KomaMRICore/Project.toml"
-                - "bench/**"
-                - ".buildkite/**"
+                - "KomaMRIBase/src/**/*"
+                - "KomaMRIBase/Project.toml"
+                - "bench/**/*"
+                - ".buildkite/**/*"
                 - "Project.toml"
               config:
                 command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
