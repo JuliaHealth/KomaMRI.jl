@@ -48,7 +48,7 @@ jobs:
       - name: Locate Benchmarks Artifact
         id: locate
         if: ${{ steps.download.outputs.download-state == 'success'}}
-        run: echo "path=$(find /github/workspace/artifacts -type f -name combinedbenchmarks.json 2>/dev/null)" >> $GITHUB_OUTPUT
+        run: echo "path=$(find github/workspace/artifacts -type f -name combinedbenchmarks.json 2>/dev/null)" >> $GITHUB_OUTPUT
 
       - name: Upload Benchmark Results
         if: ${{ steps.download.outputs.download-state == 'success' && steps.locate.outputs.path != '' }}
