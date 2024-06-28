@@ -49,14 +49,13 @@ jobs:
         if: ${{ steps.download.download_state == 'success'}}
         run: echo "path=$(find artifacts -type f -name combinedbenchmarks.json)" >> $GITHUB_OUTPUT
 
-
       - name: Upload Benchmark Results
-        if: ${{ steps.download.download_state == 'success' && steps.locate.path != '' }}
+        if: ${{ steps.download.download_state == 'success' && steps.locate.outputs.path != '' }}
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: KomaMRI Benchmarks
           tool: 'julia'
-          output-file-path: ${{ steps.locate.path }}
+          output-file-path: ${{ steps.locate.outputs.path }}
           summary-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-always: true
