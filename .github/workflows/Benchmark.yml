@@ -47,11 +47,11 @@ jobs:
 
       - name: Locate Benchmarks Artifact
         id: locate
-        if: ${{ steps.download.download_state == 'success'}}
-        run: echo "path=$(find artifacts -type f -name combinedbenchmarks.json)" >> $GITHUB_OUTPUT
+        if: ${{ steps.download.outputs.download_state == 'success'}}
+        run: echo "path=$(find /github/workspace/artifacts -type f -name combinedbenchmarks.json)" >> $GITHUB_OUTPUT
 
       - name: Upload Benchmark Results
-        if: ${{ steps.download.download_state == 'success' && steps.locate.outputs.path != '' }}
+        if: ${{ steps.download.outputs.download_state == 'success' && steps.locate.outputs.path != '' }}
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: KomaMRI Benchmarks
