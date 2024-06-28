@@ -25,6 +25,7 @@ on:
       - "bench/**/*"
       - ".buildkite/**/*"
       - "Project.toml"
+      - ".github/**/*" #TO-DO: remove this
 
 jobs:
   benchmark:
