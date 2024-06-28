@@ -12,7 +12,7 @@ which is a tuple of simple motion types. This tuple will contain as many element
 as simple motions we want to combine.
 
 # Arguments
-- `types`: (`::Tuple{Vararg{<:SimpleMotionType{T}}}`) vector of simple motion types
+- `types`: (`::Tuple{Vararg{<:SimpleMotionType{T}}}`) tuple of simple motion types
 
 # Returns
 - `motion`: (`::SimpleMotion`) SimpleMotion struct
