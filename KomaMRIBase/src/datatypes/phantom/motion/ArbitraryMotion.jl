@@ -28,7 +28,7 @@ ArbitraryMotion model. For this motion model, it is necessary to define
 motion for each spin independently, in x (`dx`), y (`dy`) and z (`dz`).
 `dx`, `dy` and `dz` are three matrixes, of (``N_{spins}`` x ``N_{discrete\\,times}``) each.
 This means that each row corresponds to a spin trajectory over a set of discrete time instants.
-The duration of the movement is determined by `t_start` and `t_end`
+The motion duration is determined by `t_start` and `t_end`.
 The discrete time instants are evenly spaced, (``dt = \frac{t_{end} - t_{start}}{N_{discrete\\,times}}``). 
 
 This motion model is useful for defining arbitrarly complex motion, specially
