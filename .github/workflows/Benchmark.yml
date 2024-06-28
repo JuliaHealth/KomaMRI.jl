@@ -1,6 +1,5 @@
 name: Benchmarks
 permissions:
-  metadata: read
   contents: read
   statuses: read
 on: 
