@@ -7,7 +7,6 @@ steps:
           - "2"
           - "4"
           - "8"
-          - "16"
     plugins:
       - JuliaCI/julia#v1:
           version: "1"

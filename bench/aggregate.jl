@@ -1,7 +1,7 @@
 using BenchmarkTools
 
 const GPU_BACKENDS = ["AMDGPU", "CUDA", "Metal", "oneAPI"]
-const NUM_CPU_THREADS = [1, 2, 4, 8, 16]
+const NUM_CPU_THREADS = [1, 2, 4, 8]
 
 #Start with CPU benchmarks for 1 thread and add other results
 const CPU_results_1thread_filepath = joinpath(dirname(@__FILE__), "results", "CPUbenchmarks1threads.json")
