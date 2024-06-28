@@ -6,16 +6,16 @@ using BenchmarkTools
 
 const SUITE = BenchmarkGroup()
 BenchmarkTools.DEFAULT_PARAMETERS.gcsample = true
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 60
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 120
 
 # To run benchmarks on a specific GPU backend, add AMDGPU / CUDA / Metal / oneAPI
-# to bench/Project.toml and change the variable below to the backend name
+# to bench/Project.toml and change BENCHMARK_GROUP to the backend name
 const BENCHMARK_GROUP = get(ENV, "BENCHMARK_GROUP", "CPU")
+const BENCHMARK_CPU_THREADS = parse(Int64, get(ENV, "BENCHMARK_CPU_THREADS", "1"))
 
 # Number of CPU threads to benchmarks on 
-const BENCHMARK_CPU_THREADS = (1,2,4,8)
-if BENCHMARK_GROUP == "CPU" && Threads.nthreads() < maximum(BENCHMARK_CPU_THREADS)
-    @error "More CPU threads were requested than are available. Change the JULIA_NUM_THREADS environment variable or pass --threads=$(maximum(BENCHMARK_CPU_THREADS)) as a julia argument"
+if BENCHMARK_CPU_THREADS > Threads.nthreads()
+    @error "More CPU threads were requested than are available. Change the JULIA_NUM_THREADS environment variable or pass --threads=$(BENCHMARK_CPU_THREADS) as a julia argument"
 end
 
 if BENCHMARK_GROUP == "AMDGPU"
@@ -39,6 +39,8 @@ setup_benchmarks(SUITE, BENCHMARK_GROUP, BENCHMARK_CPU_THREADS)
 results = BenchmarkTools.run(SUITE; verbose=true)
 filepath = joinpath(dirname(@__FILE__), "results")
 mkpath(filepath)
-filename = string(BENCHMARK_GROUP, "benchmarks.json")
+filename = BENCHMARK_GROUP == "CPU" ? 
+    string("CPUbenchmarks", BENCHMARK_CPU_THREADS, "threads.json") : 
+    string(BENCHMARK_GROUP, "benchmarks.json")
 BenchmarkTools.save(joinpath(filepath, filename), median(results))
 @info "Saved results to $(joinpath(filepath, filename))"

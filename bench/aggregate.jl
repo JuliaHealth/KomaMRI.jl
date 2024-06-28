@@ -1,30 +1,50 @@
 using BenchmarkTools
 
-AMDGPU_results = nothing 
-CUDA_results = nothing
-Metal_results = nothing
-oneAPI_results = nothing
-const CPU_filepath = joinpath(dirname(@__FILE__), "results", "CPUbenchmarks.json")
-const AMDGPU_filepath = joinpath(dirname(@__FILE__), "results", "AMDGPUbenchmarks.json")
-const CUDA_filepath = joinpath(dirname(@__FILE__), "results", "CUDAbenchmarks.json")
-const Metal_filepath = joinpath(dirname(@__FILE__), "results", "Metalbenchmarks.json")
-const oneAPI_filepath = joinpath(dirname(@__FILE__), "results", "oneAPIbenchmarks.json")
+const GPU_BACKENDS = ["AMDGPU", "CUDA", "Metal", "oneAPI"]
+const NUM_CPU_THREADS = [1, 2, 4, 8, 16]
 
-if ispath(CPU_filepath) CPU_results = BenchmarkTools.load(CPU_filepath)[1] end
-if ispath(AMDGPU_filepath) AMDGPU_results = BenchmarkTools.load(AMDGPU_filepath)[1] end
-if ispath(CUDA_filepath) CUDA_results = BenchmarkTools.load(CUDA_filepath)[1] end
-if ispath(Metal_filepath) Metal_results = BenchmarkTools.load(Metal_filepath)[1] end
-if ispath(oneAPI_filepath) oneAPI_results = BenchmarkTools.load(oneAPI_filepath)[1] end
+#Start with CPU benchmarks for 1 thread and add other results
+const CPU_results_1thread_filepath = joinpath(dirname(@__FILE__), "results", "CPUbenchmarks1threads.json")
+@assert(ispath(CPU_results_1thread_filepath))
+const RESULTS = BenchmarkTools.load(CPU_results_1thread_filepath)
+@assert RESULTS isa BenchmarkTools.BenchmarkGroup
 
-# Add other results to CPU results
-@assert CPU_results isa BenchmarkTools.BenchmarkGroup
-for benchmark in keys(CPU_results)
-    for sim_method in keys(CPU_results[benchmark])
-        if AMDGPU_results isa BenchmarkTools.BenchmarkGroup CPU_results[benchmark][sim_method]["GPU"]["AMDGPU"] = AMDGPU_results[benchmark][sim_method]["GPU"]["AMDGPU"] end
-        if CUDA_results isa BenchmarkTools.BenchmarkGroup CPU_results[benchmark][sim_method]["GPU"]["CUDA"] = CUDA_results[benchmark][sim_method]["GPU"]["CUDA"] end
-        if Metal_results isa BenchmarkTools.BenchmarkGroup CPU_results[benchmark][sim_method]["GPU"]["Metal"] = Metal_results[benchmark][sim_method]["GPU"]["Metal"] end
-        if oneAPI_results isa BenchmarkTools.BenchmarkGroup CPU_results[benchmark][sim_method]["GPU"]["oneAPI"] = oneAPI_results[benchmark][sim_method]["GPU"]["oneAPI"] end
+for n in NUM_CPU_THREADS
+    filename = string("CPUbenchmarks", n, "threads.json")
+    filepath = joinpath(dirname(@__FILE__), "results", filename)
+    if !ispath(filepath)
+        @warn "No file found at path: $(filepath)"
+    else
+        nthreads_results = BenchmarkTools.load(filepath)[1]
+        if nthreads_results isa BenchmarkTools.BenchmarkGroup
+            for benchmark in keys(RESULTS)
+                for sim_method in keys(RESULTS[benchmark])
+                    RESULTS[benchmark][sim_method]["CPU"][string(n, " ", "thread(s)")] = nthreads_results[benchmark][sim_method]["CPU"][string(n, " ", "thread(s)")]
+                end
+            end
+        else
+            @warn "Unexpected file format for file at path: $(filepath)"
+        end
     end
 end
 
-BenchmarkTools.save(joinpath(dirname(@__FILE__), "results", "combinedbenchmarks.json"), CPU_results)
+for backend in GPU_BACKENDS
+    filename = string(backend, "benchmarks.json")
+    filepath = joinpath(dirname(@__FILE__), "results", filename)
+    if !ispath(filepath)
+        @warn "No file found at path: $(filepath)"
+    else
+        backend_results = BenchmarkTools.load(filepath)[1]
+        if backend_results isa BenchmarkTools.BenchmarkGroup
+            for benchmark in keys(RESULTS)
+                for sim_method in keys(RESULTS[benchmark])
+                    RESULTS[benchmark][sim_method]["GPU"][backend] = backend_results[benchmark][sim_method]["GPU"][backend]
+                end
+            end
+        else
+            @warn "Unexpected file format for file at path: $(filepath)"
+        end
+    end
+end
+
+BenchmarkTools.save(joinpath(dirname(@__FILE__), "results", "combinedbenchmarks.json"), RESULTS)

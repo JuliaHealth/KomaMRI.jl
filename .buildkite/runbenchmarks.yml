@@ -1,5 +1,13 @@
 steps:
-  - label: "CPU: Run Benchmarks"
+  - label: "CPU: Run Benchmarks with {{matrix.threads}} thread(s)"
+    matrix:
+      setup:
+        threads:
+          - "1"
+          - "2"
+          - "4"
+          - "8"
+          - "16"
     plugins:
       - JuliaCI/julia#v1:
           version: "1"
@@ -19,6 +27,7 @@ steps:
       queue: "benchmark"
     env:
       BENCHMARK_GROUP: CPU
+      BENCHMARK_CPU_THREADS: "{{matrix.threads}}"
     timeout_in_minutes: 120
 
   - label: "AMDGPU: Run Benchmarks"
