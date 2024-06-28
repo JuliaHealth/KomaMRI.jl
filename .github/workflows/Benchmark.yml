@@ -40,10 +40,6 @@ jobs:
           ignore_job_states: timed_out,failed
           output_path: artifacts
           log_level: DEBUG #TO-DO: remove this
-          permissions:
-            metadata: read
-            contents: read
-            statuses: read
 
       - name: Locate Benchmarks Artifact
         id: locate
