@@ -49,6 +49,8 @@ jobs:
         id: locate
         if: ${{ steps.download.outputs.download-state == 'success' }}
         run: |
+          pwd
+          ls
           echo $(find github/workspace/artifacts -type f -name combinedbenchmarks.json)
           echo "path=$(find github/workspace/artifacts -type f -name combinedbenchmarks.json 2>/dev/null)" >> $GITHUB_OUTPUT
 
