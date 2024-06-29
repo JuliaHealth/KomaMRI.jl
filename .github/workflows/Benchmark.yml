@@ -54,6 +54,7 @@ jobs:
           echo $(find artifacts -type f -name combinedbenchmarks.json)
           echo "path=$(find artifacts -type f -name combinedbenchmarks.json 2>/dev/null)" >> $GITHUB_OUTPUT
 
+      - uses: actions/checkout@v4
       - name: Upload Benchmark Results
         if: ${{ steps.locate.outputs.path != '' }}
         uses: benchmark-action/github-action-benchmark@v1
