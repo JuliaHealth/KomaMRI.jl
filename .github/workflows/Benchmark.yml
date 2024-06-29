@@ -1,7 +1,9 @@
 name: Benchmarks
 permissions:
-  contents: read
+  contents: write # contents permission to update benchmark contents in gh-pages branch
   statuses: read
+  deployments: write # deployments permission to deploy GitHub pages website
+
 on: 
   pull_request:
     branches:
