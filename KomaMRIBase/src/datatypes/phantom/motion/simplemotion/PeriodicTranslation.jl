@@ -1,5 +1,5 @@
 @doc raw"""
-    periodic_translation = PeriodicTranslation(period, asymmetry, dx, dy, dz)
+    periodic_translation = PeriodicTranslation(dx, dy, dz, period, asymmetry)
 
 PeriodicTranslation motion struct. It produces a periodic translation of the phantom in the three directions x, y and z.
 The amplitude of the oscillation will be defined by dx, dy and dz
@@ -23,7 +23,8 @@ The amplitude of the oscillation will be defined by dx, dy and dz
     asymmetry::T = typeof(dx)(0.5)
 end
 
-function displacement_x(
+function displacement_x!(
+    ux::AbstractArray{T},
     motion_type::PeriodicTranslation{T},
     x::AbstractVector{T},
     y::AbstractVector{T},
@@ -31,10 +32,12 @@ function displacement_x(
     t::AbstractArray{T},
 ) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
-    return t_unit .* motion_type.dx
+    ux .= t_unit .* motion_type.dx
+    return nothing
 end
 
-function displacement_y(
+function displacement_y!(
+    uy::AbstractArray{T},
     motion_type::PeriodicTranslation{T},
     x::AbstractVector{T},
     y::AbstractVector{T},
@@ -42,10 +45,12 @@ function displacement_y(
     t::AbstractArray{T},
 ) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
-    return t_unit .* motion_type.dy
+    uy .= t_unit .* motion_type.dy
+    return nothing
 end
 
-function displacement_z(
+function displacement_z!(
+    uz::AbstractArray{T},
     motion_type::PeriodicTranslation{T},
     x::AbstractVector{T},
     y::AbstractVector{T},
@@ -53,7 +58,8 @@ function displacement_z(
     t::AbstractArray{T},
 ) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
-    return t_unit .* motion_type.dz
+    uz .= t_unit .* motion_type.dz
+    return nothing
 end
 
 function times(motion_type::PeriodicTranslation)

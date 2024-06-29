@@ -792,8 +792,8 @@ function plot_image(
     image;
     height=600,
     width=nothing,
-    zmin=minimum(abs.(image[:])),
-    zmax=maximum(abs.(image[:])),
+    zmin=minimum(image[:]),
+    zmax=maximum(image[:]),
     darkmode=false,
     title="",
 )
@@ -1032,36 +1032,29 @@ function plot_phantom_map(
     frame_duration_ms=250,
     kwargs...,
 )
-    function process_times(motion::SimpleMotion)
+
+    function interpolate_times(motion::MotionModel)
         t = times(motion)
         # Interpolate time points (as many as indicated by intermediate_time_samples)
-        itp = interpolate(
-            (
-                1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)),
-            ),
-            t,
-            Gridded(Linear()),
-        )
-        return itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
+        itp = interpolate((1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
+        t = itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
+        return t
+    end
+
+    function process_times(motion::SimpleMotion)
+        motion = KomaMRIBase.sort_motion(motion)
+        return interpolate_times(motion)
     end
     function process_times(motion::ArbitraryMotion)
-        t = times(motion)
-        # Interpolate time points (as many as indicated by intermediate_time_samples)
-        itp = interpolate(
-            (
-                1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)),
-            ),
-            t,
-            Gridded(Linear()),
-        )
-        t = itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
+        t = interpolate_times(motion)
         # Decimate time points so their number is smaller than max_time_samples
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
     end
-    process_times(motion::MotionModel) = times(motion)
+    function process_times(motion::MotionModel)
+        return times(motion)
+    end
 
-    # IDEA: subsample phantoms which are too large
     function decimate_uniform_phantom(ph::Phantom, num_points::Int)
         dimx, dimy, dimz = KomaMRIBase.get_dims(ph)
         ss = Int(ceil((length(ph) / num_points)^(1 / sum(KomaMRIBase.get_dims(ph)))))
@@ -1077,7 +1070,7 @@ function plot_phantom_map(
 
     if length(ph) > max_spins
         ph = decimate_uniform_phantom(ph, max_spins)
-        @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)." maxlog=1
+        @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)."
     end
 
     path = @__DIR__
@@ -1129,7 +1122,6 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :cmin, factor * cmin_key)
     cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-    sort_motions!(ph.motion)
     t = process_times(ph.motion)
     x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
