@@ -51,8 +51,8 @@ jobs:
         run: |
           pwd
           ls
-          echo $(find github/workspace/artifacts -type f -name combinedbenchmarks.json)
-          echo "path=$(find github/workspace/artifacts -type f -name combinedbenchmarks.json 2>/dev/null)" >> $GITHUB_OUTPUT
+          echo $(find artifacts -type f -name combinedbenchmarks.json)
+          echo "path=$(find artifacts -type f -name combinedbenchmarks.json 2>/dev/null)" >> $GITHUB_OUTPUT
 
       - name: Upload Benchmark Results
         if: ${{ steps.locate.outputs.path != '' }}
