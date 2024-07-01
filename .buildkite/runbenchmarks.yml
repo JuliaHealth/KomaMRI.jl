@@ -1,0 +1,163 @@
+steps:
+  - label: "CPU: Run Benchmarks with {{matrix.threads}} thread(s)"
+    matrix:
+      setup:
+        threads:
+          - "1"
+          - "2"
+          - "4"
+          - "8"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+      
+      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
+          include("bench/runbenchmarks.jl")'
+    artifact_paths: 
+      - "bench/results/*"
+    agents:
+      queue: "benchmark"
+    env:
+      BENCHMARK_GROUP: CPU
+      JULIA_NUM_THREADS: "{{matrix.threads}}"
+    timeout_in_minutes: 120
+
+  - label: "AMDGPU: Run Benchmarks"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=bench -e 'println("---:julia: Add AMDGPU to bench environment")
+          using Pkg
+          Pkg.add("AMDGPU")'
+      
+      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
+          include("bench/runbenchmarks.jl")'
+    artifact_paths: 
+      - "bench/results/*"
+    agents:
+      queue: "juliagpu"
+      rocm: "*"
+      rocmgpu: "gfx1101"
+    env:
+      BENCHMARK_GROUP: AMDGPU
+    timeout_in_minutes: 120
+
+  - label: "CUDA: Run Benchmarks"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=bench -e 'println("---:julia: Add CUDA to bench environment")
+          using Pkg
+          Pkg.add("CUDA")'
+      
+      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
+          include("bench/runbenchmarks.jl")'
+    artifact_paths: 
+      - "bench/results/*"
+    agents:
+      queue: "benchmark"
+      gpu: "rtx2070"
+      cuda: "*"
+    env:
+      BENCHMARK_GROUP: CUDA
+    timeout_in_minutes: 120
+
+  - label: "Metal: Run Benchmarks"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=bench -e 'println("---:julia: Add Metal to bench environment")
+          using Pkg
+          Pkg.add("Metal")'
+      
+      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
+          include("bench/runbenchmarks.jl")'
+    artifact_paths: 
+      - "bench/results/*"
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "aarch64"
+    env:
+      BENCHMARK_GROUP: Metal
+    timeout_in_minutes: 120
+
+  - label: "oneAPI: Run Benchmarks"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=bench -e 'println("---:julia: Add CUDA to bench environment")
+          using Pkg
+          Pkg.add("oneAPI")'
+      
+      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
+          include("bench/runbenchmarks.jl")'
+    artifact_paths: 
+      - "bench/results/*"
+    agents:
+      queue: "juliagpu"
+      intel: "*"
+    env:
+      BENCHMARK_GROUP: oneAPI
+    timeout_in_minutes: 120
+
+  - wait: ~
+
+  - label: "Combine benchmarks"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      buildkite-agent artifact download "bench/results/*" .
+
+      julia --project=bench -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.instantiate()'
+
+      julia --project=bench -e 'println("--- :julia: Combining Benchmarks")
+          include("bench/aggregate.jl")'
+    artifact_paths:
+      - "bench/results/combinedbenchmarks.json"
+    agents:
+      queue: "juliagpu"
+    timeout_in_minutes: 10
+
