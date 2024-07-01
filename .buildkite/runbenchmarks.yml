@@ -52,6 +52,7 @@ steps:
     agents:
       queue: "juliagpu"
       rocm: "*"
+      rocmgpu: "gfx1031"
     env:
       BENCHMARK_GROUP: AMDGPU
     timeout_in_minutes: 120
