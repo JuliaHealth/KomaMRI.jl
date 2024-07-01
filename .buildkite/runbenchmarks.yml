@@ -78,7 +78,7 @@ steps:
       - "bench/results/*"
     agents:
       queue: "benchmark"
-      gpu: "*"
+      gpu: "rtx2070"
       cuda: "*"
     env:
       BENCHMARK_GROUP: CUDA
