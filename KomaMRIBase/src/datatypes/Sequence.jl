@@ -18,9 +18,9 @@ block. This struct serves as an input for the simulation.
 - `ADC`: (`::Array{ADC,1}`) ADC block vector
 - `DUR`: (`::Vector`, `[s]`) duration block vector
 - `DEF`: (`::Dict{String, Any}`) dictionary with relevant information of the sequence.
-    Possible keys could be [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
-    `"Num_Blocks"`, `"Nx"`, `"Ny"`, `"PulseqVersion"`, `"BlockDurationRaster"`,
-    `"FileName"`, `"RadiofrequencyRasterTime"`]
+    Possible keys could be [`"GradientRasterTime"`, `"RadiofrequencyRasterTime"`, `"AdcRasterTime"`,
+    `"BlockDurationRaster"`, `"Name"`, `"FOV"`, `"TE"`, `"TR"`, `"TotalDuration"`, `"Num_Blocks"`,
+    `"Nx"`, `"Ny"`, `"Nz"`, `"PulseqVersion"`, `"FileName"`]
 
 # Returns
 - `seq`: (`::Sequence`) Sequence struct
