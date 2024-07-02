@@ -69,10 +69,7 @@ Base.getindex(x::Phantom, i::Integer) = x[i:i]
 """Compare two phantoms"""
 Base.:(==)(obj1::Phantom, obj2::Phantom) = reduce(
     &,
-    [
-        getfield(obj1, field) == getfield(obj2, field) for
-        field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
-    ],
+    [getfield(obj1, field) == getfield(obj2, field) for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))],
 )
 Base.:(≈)(obj1::Phantom, obj2::Phantom)      = reduce(&, [getfield(obj1, field) ≈ getfield(obj2, field) for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))])
 Base.:(==)(m1::MotionModel, m2::MotionModel) = false
@@ -88,7 +85,13 @@ Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begi
 end
 
 """Separate object spins in a sub-group (lightweigth)."""
-Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = @views obj[p]
+Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+    fields = []
+    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+        push!(fields, (field, @view(getfield(obj, field)[p])))
+    end
+    return Phantom(; name=obj.name, fields...)
+end
 
 """Addition of phantoms"""
 +(obj1::Phantom, obj2::Phantom) = begin
@@ -115,10 +118,6 @@ function get_dims(obj::Phantom)
     push!(dims, any(x -> x != 0, obj.y))
     push!(dims, any(x -> x != 0, obj.z))
     return dims
-end
-
-function sort_motions!(motion::MotionModel) 
-    return nothing
 end
 
 """
@@ -178,7 +177,7 @@ function heart_phantom(
         Dλ1=Dλ1[ρ .!= 0],
         Dλ2=Dλ2[ρ .!= 0],
         Dθ=Dθ[ρ .!= 0],
-        motion=SimpleMotion([
+        motion=SimpleMotion(
             PeriodicHeartBeat(;
                 period=period,
                 asymmetry=asymmetry,
@@ -189,7 +188,7 @@ function heart_phantom(
             PeriodicRotation(;
                 period=period, asymmetry=asymmetry, yaw=rotation_angle, pitch=0.0, roll=0.0
             ),
-        ]),
+        ),
     )
     return phantom
 end
