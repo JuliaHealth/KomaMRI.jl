@@ -1,14 +1,14 @@
 using TestItems, TestItemRunner
 
-@run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:files in t_start.tags) #verbose=true
+@run_package_tests filter = ti -> !(:skipci in ti.tags) && (:files in ti.tags) #verbose=true
 
-@testitem "Files" tags=[:files] begin
+@testitem "Files" tags = [:files] begin
     using Suppressor
 
-    # Test Pulseq
-    @testset "Pulseq" begin
+    # Test ReadPulseq
+    @testset "ReadPulseq" begin
         path = @__DIR__
-        seq = @suppress read_seq(path*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+        seq = @suppress read_seq(path * "/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "epi.seq"
         @test seq.DEF["PulseqVersion"] ≈ 1004000
         @test seq.DEF["signature"] == "67ebeffe6afdf0c393834101c14f3990"
@@ -34,10 +34,11 @@ using TestItems, TestItemRunner
         shape2 = KomaMRIFiles.decompress_shape(num_samples, compressed_data)
         @test shape == shape2
     end
+
     # Test JEMRIS
     @testset "JEMRIS" begin
         path = @__DIR__
-        obj = read_phantom_jemris(path*"/test_files/column1d.h5")
+        obj = read_phantom_jemris(path * "/test_files/column1d.h5")
         @test obj.name == "column1d.h5"
     end
     # Test MRiLab
@@ -103,7 +104,7 @@ using TestItems, TestItemRunner
     end
 end
 
-@testitem "Pulseq compat" tags=[:files, :pulseq] begin
+@testitem "Pulseq compat" tags = [:files, :pulseq] begin
     using MAT, KomaMRIBase, Suppressor
 
     # Aux functions
@@ -113,7 +114,7 @@ end
     not_empty = ((ek, ep),) -> !isempty(ep.t)
 
     # Reading files
-    path         = joinpath(@__DIR__, "test_files/pulseq_read_comparison")
+    path = joinpath(@__DIR__, "test_files/pulseq_examples")
     pulseq_files = filter(endswith(".seq"), readdir(path)) .|> x -> splitext(x)[1]
     for pulseq_file in pulseq_files
         #@show pulseq_file
@@ -130,6 +131,20 @@ end
                     @test last(ev_koma.A)   ≈ last(ev_pulseq.A)
                 end
             end
+        end
+    end
+end
+
+@testitem "WritePulseq" tags = [:files, :pulseq] begin
+    path = joinpath(@__DIR__, "test_files/pulseq_examples")
+    pulseq_files =
+        filter(endswith(r"^(?!.*_w\.seq$).*\.seq$"), readdir(path)) .|> x -> splitext(x)[1]
+    for pulseq_file in pulseq_files
+        seq_original = read_seq("$path/$(pulseq_file).seq")
+        write_seq(seq_original, "$path/$(pulseq_file)_w.seq")
+        seq_written = read_seq("$path/$(pulseq_file)_w.seq")
+        @testset "$pulseq_file" begin
+            @test seq_original ≈ seq_written
         end
     end
 end

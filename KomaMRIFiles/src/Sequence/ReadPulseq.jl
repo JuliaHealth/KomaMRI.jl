@@ -520,7 +520,7 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
             G = Grad(gA,gT,0.0,0.0,delay)
         end
     end
-    G
+    return G
 end
 
 """
