@@ -31,7 +31,7 @@ elseif BENCHMARK_GROUP == "oneAPI"
     using oneAPI # ] add oneAPI to benchmarks/Project.toml 
     @info "Running oneAPI benchmarks" maxlog=1
 else
-    @info "Running CPU benchmarks with $(BENCHMARK_CPU_THREADS) thread(s)"
+    @info "Running CPU benchmarks with $(BENCHMARK_CPU_THREADS) thread(s)" maxlog=1
 end
 
 include("setup.jl")
