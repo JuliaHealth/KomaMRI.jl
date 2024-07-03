@@ -7,7 +7,7 @@ permissions:
 on: 
   pull_request:
     branches:
-      - main
+      - master
     paths:
       - "KomaMRICore/src/**/*"
       - "KomaMRICore/ext/**/*"
@@ -19,7 +19,7 @@ on:
       - "Project.toml"
   push:
     branches:
-      - main
+      - master
     paths:
       - "KomaMRICore/src/**/*"
       - "KomaMRICore/ext/**/*"
