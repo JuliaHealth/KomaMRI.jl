@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.42
+# v0.19.43
 
 #> [frontmatter]
 #> title = "Understanding basic MRI sequences"
@@ -181,7 +181,7 @@ raw_gre = simulate(obj, seq_gre, sys)
 # (2.7) Reconstruct the 1D image
 begin
     fftc(x; dims=[1,2]) = fftshift(fft(ifftshift(x, dims), dims), dims)/prod(size(x)[dims])
-    recon_gre = plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+    recon_gre = plot(abs.(fftc(raw_gre.profiles[1].data)))
 end
 
 # ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
@@ -276,7 +276,7 @@ end
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
 # (3.6) Reconstruct the 1D image
-recon_t2_star_gre = plot(abs.(KomaMRI.fftc(raw_t2_star_gre.profiles[1].data)))
+recon_t2_star_gre = plot(abs.(fftc(raw_t2_star_gre.profiles[1].data)))
 
 # ╔═╡ 964404f6-7f46-4df9-ad98-921948c3be69
 begin
@@ -359,7 +359,7 @@ end
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
 # (4.9) Reconstruct the 1D image
-recon_t2_star_se = plot(abs.(KomaMRI.fftc(raw_t2_star_se.profiles[1].data)))
+recon_t2_star_se = plot(abs.(fftc(raw_t2_star_se.profiles[1].data)))
 
 # ╔═╡ 34824db7-13c4-45e2-befa-f027b9b585c0
 begin
@@ -390,12 +390,14 @@ end
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 KomaMRICore = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
 KomaMRIPlots = "76db0263-63f3-4d26-bb9a-5dba378db904"
 PlutoPlotly = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
+FFTW = "~1.8.0"
 KomaMRICore = "~0.8.3"
 KomaMRIPlots = "~0.8.3"
 PlutoPlotly = "~0.4.6"
@@ -408,7 +410,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "ac4a136318692ed9929d4df54938b984e4c67341"
+project_hash = "0f2e80720e96a9c2feec29eaa1a1b0b2acbb995f"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
