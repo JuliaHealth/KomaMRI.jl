@@ -10,7 +10,7 @@ steps:
       queue: "juliagpu"
     plugins:
       - monorepo-diff#v1.0.1:
-          diff: ".buildkite/scripts/diff.sh $BUILDKITE_COMMIT"
+          diff: "git diff --name-only HEAD~1"
           interpolation: false
           watch:
             - path:
