@@ -20,7 +20,6 @@ on:
   push:
     branches:
       - main
-      - benchmark #TO-DO: remove this
     paths:
       - "KomaMRICore/src/**/*"
       - "KomaMRICore/ext/**/*"
@@ -30,7 +29,6 @@ on:
       - "benchmarks/**/*"
       - ".buildkite/**/*"
       - "Project.toml"
-      - ".github/**/*" #TO-DO: remove this
 
 jobs:
   benchmark:
@@ -46,7 +44,6 @@ jobs:
           ignore_build_states: blocked,canceled,skipped,not_run,failed
           ignore_job_states: timed_out,failed
           output_path: artifacts
-          log_level: DEBUG #TO-DO: remove this
 
       - name: Locate Benchmarks Artifact
         id: locate
