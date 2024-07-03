@@ -154,8 +154,7 @@ Tells if the sequence `seq` has elements with ADC active, or active during time 
 is_ADC_on(x::Sequence) = any(x-> x > 0, x.ADC.N)
 is_ADC_on(x::Sequence, t::AbstractVecOrMat) = begin
 	N = length(x)
-	ΔT = durs(x)
-	ts = cumsum([0 ; ΔT[1:end-1]])
+	ts = get_block_start_times(x)[1:end-1]
 	delays = x.ADC.delay
 	Ts = 	 x.ADC.dur #delat+T
 	t0s = ts .+ delays
@@ -184,8 +183,7 @@ Tells if the sequence `seq` has elements with RF active, or active during time `
 is_RF_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.RF] .> 0)
 is_RF_on(x::Sequence, t::AbstractVector) = begin
 	N = length(x)
-	ΔT = durs(x)
-	ts = cumsum([0 ; ΔT[1:end-1]])
+	ts = get_block_start_times(x)[1:end-1]
 	delays = x.RF.delay
 	Ts = 	 x.RF.dur #dur = delat+T
 	t0s = ts .+ delays
@@ -264,26 +262,6 @@ Tells if the sequence `seq` is a delay.
 is_Delay(x::Sequence) = !(is_GR_on(x) || is_RF_on(x) || is_ADC_on(x))
 
 """
-    ΔT = durs(x::Sequence)
-
-Returns the array of durations of sequence's blocks in [s].
-
-# Arguments
-- `x`: (`::Sequence`) Sequence struct
-
-# Returns
-- `ΔT`: (`::Vector{Real}`, `[s]`) array of durations of sequence's blocks
-"""
-durs(x::Sequence) = begin
-	# ΔT_GR  = x.GR.dur
-	# ΔT_RF  = x.RF.dur
-	# ΔT_ADC = x.ADC.dur
-	# ΔT_DUR = x.DUR
-	# ΔT = maximum([ΔT_GR ΔT_RF ΔT_ADC ΔT_DUR],dims=2)
-	x.DUR
-end
-
-"""
     T = dur(x::Sequence)
 
 The total duration of the sequence in [s].
@@ -294,7 +272,7 @@ The total duration of the sequence in [s].
 # Returns
 - `T`: (`::Real`, `[s]`) total duration of the sequence
 """
-dur(x::Sequence) = sum(durs(x))
+dur(x::Sequence) = sum(x.DUR)
 
 """
     T0 = get_block_start_times(seq::Sequence)
