@@ -63,24 +63,31 @@
         margin: 8px 0;
         width: 100%;
         display: flex;
-        flex-direction: column;
-      }
-      .benchmark-title {
-        font-size: 3rem;
-        font-weight: 600;
-        word-break: break-word;
-        text-align: center;
-      }
-      .benchmark-graphs {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-around;
         align-items: center;
+        justify-content: center;
         flex-wrap: wrap;
-        width: 100%;
       }
-      .benchmark-chart {
-        max-width: 1000px;
+      .chartCard {
+        margin: 10px;
+        width: 50vw;
+        height: 50vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .option-container {
+        display: flex;
+      }
+      .option-label {
+        margin-right: 8px;
+      }
+      .option {
+        margin-right: 4px;
+      }
+      .disabled {
+        color: #ccc;
+        cursor: default;
+        pointer-events: none;
       }
     </style>
     <title>Benchmarks</title>
@@ -96,6 +103,12 @@
         <strong class="header-label">Repository:</strong>
         <a id="repository-link" rel="noopener"></a>
       </div>
+      <div class="option-container">
+        <strong class="option-label">Option:</strong>
+        <a id="option-time" class="option">time</a>
+        <a id="option-memory" class="option">memory</a>
+        <a id="option-allocations" class="option">allocations</a>
+      </div>
     </header>
     <main id="main"></main>
     <footer>
@@ -109,21 +122,19 @@
     <script id="main-script">
       'use strict';
       (function() {
+        // Get option from query string
+        const pageOption = new URLSearchParams(document.location.search).get("option") ?? "time";
+
         // Colors from https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
-        const toolColors = {
-          cargo: '#dea584',
-          go: '#00add8',
-          benchmarkjs: '#f1e05a',
-          benchmarkluau: '#000080',
-          pytest: '#3572a5',
-          googlecpp: '#f34b7d',
-          catch2: '#f34b7d',
-          julia: '#a270ba',
-          jmh: '#b07219',
-          benchmarkdotnet: '#178600',
-          customBiggerIsBetter: '#38ff38',
-          customSmallerIsBetter: '#ff3838',
-          _: '#333333'
+        const backendToColor = {
+          "1 thread(s)": "#00add8",
+          "2 thread(s)": "#a270ba",
+          "4 thread(s)": "#dea584",
+          "8 thread(s)": "#f1e05a",
+          "AMDGPU": "#5D6D7E",
+          "CUDA": "#EC7063",
+          "Metal": "#F4D03F",
+          "oneAPI": "#52BE80"
         };
 
         function init() {
@@ -133,11 +144,31 @@
               const {commit, date, tool, benches} = entry;
               for (const bench of benches) {
                 const result = { commit, date, tool, bench };
-                const arr = map.get(bench.name);
-                if (arr === undefined) {
-                  map.set(bench.name, [result]);
+                const splitted_name = bench.name.split("/");
+                const benchmarkName = splitted_name[0];
+                const simMethod = splitted_name[1];
+                const device = splitted_name[2];
+                const backend = splitted_name[3];
+                
+                if (map.get(benchmarkName) === undefined) {
+                  map.set(benchmarkName, new Map());
+                }
+
+                const mapBenchmarkName = map.get(benchmarkName);
+                if (mapBenchmarkName.get(simMethod) === undefined) {
+                  mapBenchmarkName.set(simMethod, new Map());
+                }
+
+                const mapSimMethod = mapBenchmarkName.get(simMethod);
+                if (mapSimMethod.get(device) === undefined) {
+                  mapSimMethod.set(device, new Map());
+                }
+
+                const mapDevice = mapSimMethod.get(device);
+                if (mapDevice.get(backend) === undefined) {
+                  mapDevice.set(backend, [result]);
                 } else {
-                  arr.push(result);
+                  mapDevice.get(backend).push(result);
                 }
               }
             }
@@ -151,6 +182,17 @@
           const repoLink = document.getElementById('repository-link');
           repoLink.href = data.repoUrl;
           repoLink.textContent = data.repoUrl;
+
+          // Render option links
+          const options = ["time", "memory", "allocations"]
+          for (const option of options) {
+            const optionLink = document.getElementById("option-" + option);
+            if (option === pageOption) {
+              optionLink.classList.add("disabled");
+            } else {
+              optionLink.href = window.location.href.split('?')[0] + "?option=" + option;
+            }
+          }
 
           // Render footer
           document.getElementById('dl-button').onclick = () => {
@@ -170,24 +212,57 @@
 
         function renderAllChars(dataSets) {
 
-          function renderGraph(parent, name, dataset) {
+          function renderGraph(parent, name, graphData) {
             const canvas = document.createElement('canvas');
-            canvas.className = 'benchmark-chart';
+            canvas.width = 10;
             parent.appendChild(canvas);
 
-            const color = toolColors[dataset.length > 0 ? dataset[0].tool : '_'];
+            const datasets = [];
             const data = {
-              labels: dataset.map(d => d.commit.id.slice(0, 7)),
-              datasets: [
-                {
-                  label: name,
-                  data: dataset.map(d => d.bench.value),
-                  borderColor: color,
-                  backgroundColor: color + '60', // Add alpha for #rrggbbaa
-                }
-              ],
+              labels: graphData
+                .entries()
+                .next()
+                .value[1].map((d) => d.commit.id.slice(0, 7)),
+              datasets,
             };
+
+            const backendIndices = new Map();
+            const backendNames = [...graphData.keys()].sort();
+            let datasetIndex = 0;
+
+            for (const backendName of backendNames) {
+              const backendData = graphData.get(backendName);
+              const color = backendToColor[backendName];
+              const lineData = {
+                label: backendName,
+                data: backendData.map(d => {
+                    switch (pageOption) {
+                      case "memory":
+                        return Number(d.bench.extra.split('\n').find(val => val.split("=")[0] === "memory")?.split("=")[1]) / 1e6;
+                      case "allocations":
+                        return Number(d.bench.extra.split('\n').find(val => val.split("=")[0] === "allocs")?.split("=")[1]);
+                      case "allocations":
+                      case "time":
+                      default:
+                        return d.bench.value / 1e6; 
+                    } 
+                  }),
+                borderColor: color,
+                fill: false,
+              };
+              datasets.push(lineData);
+              backendIndices.set(datasetIndex, backendName)
+              datasetIndex++;
+            }
+
+            const yAxisLabel = pageOption === "time" ? "Time (ms)" : 
+                                pageOption === "memory" ? "Memory (MB)" : 
+                                '';
             const options = {
+              title: {
+                display: true,
+                text: name.toUpperCase(),
+              },
               scales: {
                 xAxes: [
                   {
@@ -201,7 +276,7 @@
                   {
                     scaleLabel: {
                       display: true,
-                      labelString: dataset.length > 0 ? dataset[0].bench.unit : '',
+                      labelString: yAxisLabel,
                     },
                     ticks: {
                       beginAtZero: true,
@@ -212,33 +287,40 @@
               tooltips: {
                 callbacks: {
                   afterTitle: items => {
-                    const {index} = items[0];
-                    const data = dataset[index];
-                    return '\n' + data.commit.message + '\n\n' + data.commit.timestamp + ' committed by @' + data.commit.committer.username + '\n';
+                    const item = items[0];
+                    const datasetIndex = item.datasetIndex;
+                    const dataIndex = item.index;
+                    const commit = graphData.get(backendIndices.get(datasetIndex))[dataIndex].commit;
+                    return '\n' + commit.message + '\n\n' + commit.timestamp + ' committed by @' + commit.committer.username + '\n';
                   },
                   label: item => {
-                    let label = item.value;
-                    const { range, unit } = dataset[item.index].bench;
+                    const datasetIndex = item.datasetIndex;
+                    const backendName = backendIndices.get(datasetIndex);
+                    let label = backendName + ': ' + item.value;
+                    const unit = pageOption === "memory" ? "MB" :
+                                  pageOption === "allocations" ? "allocations" :
+                                  "ms";
                     label += ' ' + unit;
-                    if (range) {
-                      label += ' (' + range + ')';
-                    }
                     return label;
                   },
                   afterLabel: item => {
-                    const { extra } = dataset[item.index].bench;
+                    const datasetIndex = item.datasetIndex;
+                    const dataIndex = item.index;
+                    const { extra } = graphData.get(backendIndices.get(datasetIndex))[dataIndex].bench;
                     return extra ? '\n' + extra : '';
                   }
                 }
               },
               onClick: (_mouseEvent, activeElems) => {
                 if (activeElems.length === 0) {
+                  console.log("got here");
                   return;
                 }
-                // XXX: Undocumented. How can we know the index?
-                const index = activeElems[0]._index;
-                const url = dataset[index].commit.url;
-                window.open(url, '_blank');
+
+                const datasetIndex = activeElems[0]._datasetIndex;
+                const dataIndex = activeElems[0]._index;
+                const url = graphData.get(backendIndices.get(datasetIndex))[dataIndex].commit.url;
+                window.open(url, "_blank");
               },
             };
 
@@ -249,28 +331,30 @@
             });
           }
 
-          function renderBenchSet(name, benchSet, main) {
-            const setElem = document.createElement('div');
-            setElem.className = 'benchmark-set';
-            main.appendChild(setElem);
+          function renderRow(benchmarkName, simMethod, rowData, parent) {
+            const graphsElem = document.createElement("div");
+            graphsElem.className = "chartCard";
+            parent.appendChild(graphsElem);
 
-            const nameElem = document.createElement('h1');
-            nameElem.className = 'benchmark-title';
-            nameElem.textContent = name;
-            setElem.appendChild(nameElem);
-
-            const graphsElem = document.createElement('div');
-            graphsElem.className = 'benchmark-graphs';
-            setElem.appendChild(graphsElem);
-
-            for (const [benchName, benches] of benchSet.entries()) {
-              renderGraph(graphsElem, benchName, benches)
+            const devices = [...rowData.keys()].sort();
+            for (const device of devices) {
+              const graphTitle = benchmarkName + " + " + simMethod + " + " + device;
+              renderGraph(graphsElem, graphTitle, rowData.get(device));
             }
           }
 
           const main = document.getElementById('main');
-          for (const {name, dataSet} of dataSets) {
-            renderBenchSet(name, dataSet, main);
+          const div1 = document.createElement("div");
+          div1.className = "benchmark-set";
+          main.appendChild(div1);
+          const dataSet = dataSets[0].dataSet;
+          const benchmarkNames = [...dataSet.keys()].sort();
+          const simMethods = [...dataSet.get(benchmarkNames[0]).keys()].sort();
+
+          for (const benchmarkName of benchmarkNames) {
+            for (const simMethod of simMethods) {
+              renderRow(benchmarkName, simMethod, dataSet.get(benchmarkName).get(simMethod), div1);
+            }
           }
         }
 
