@@ -11,17 +11,17 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia --project=bench -e 'println("--- :julia: Instantiating project")
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
       
-      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
-          include("bench/runbenchmarks.jl")'
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
     artifact_paths: 
-      - "bench/results/*"
+      - "benchmarks/results/*"
     agents:
       queue: "benchmark"
     env:
@@ -34,21 +34,21 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia --project=bench -e 'println("--- :julia: Instantiating project")
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
 
-      julia --project=bench -e 'println("---:julia: Add AMDGPU to bench environment")
+      julia --project=benchmarks -e 'println("---:julia: Add AMDGPU to benchmarks environment")
           using Pkg
           Pkg.add("AMDGPU")'
       
-      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
-          include("bench/runbenchmarks.jl")'
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
     artifact_paths: 
-      - "bench/results/*"
+      - "benchmarks/results/*"
     agents:
       queue: "juliagpu"
       rocm: "*"
@@ -62,21 +62,21 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia --project=bench -e 'println("--- :julia: Instantiating project")
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
 
-      julia --project=bench -e 'println("---:julia: Add CUDA to bench environment")
+      julia --project=benchmarks -e 'println("---:julia: Add CUDA to benchmarks environment")
           using Pkg
           Pkg.add("CUDA")'
       
-      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
-          include("bench/runbenchmarks.jl")'
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
     artifact_paths: 
-      - "bench/results/*"
+      - "benchmarks/results/*"
     agents:
       queue: "benchmark"
       gpu: "rtx2070"
@@ -90,21 +90,21 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia --project=bench -e 'println("--- :julia: Instantiating project")
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
 
-      julia --project=bench -e 'println("---:julia: Add Metal to bench environment")
+      julia --project=benchmarks -e 'println("---:julia: Add Metal to benchmarks environment")
           using Pkg
           Pkg.add("Metal")'
       
-      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
-          include("bench/runbenchmarks.jl")'
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
     artifact_paths: 
-      - "bench/results/*"
+      - "benchmarks/results/*"
     agents:
       queue: "juliaecosystem"
       os: "macos"
@@ -118,21 +118,21 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      julia --project=bench -e 'println("--- :julia: Instantiating project")
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),
           ])'
 
-      julia --project=bench -e 'println("---:julia: Add CUDA to bench environment")
+      julia --project=benchmarks -e 'println("---:julia: Add CUDA to benchmarks environment")
           using Pkg
           Pkg.add("oneAPI")'
       
-      julia --project=bench -e 'println("--- :julia: Run Benchmarks")
-          include("bench/runbenchmarks.jl")'
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
     artifact_paths: 
-      - "bench/results/*"
+      - "benchmarks/results/*"
     agents:
       queue: "juliagpu"
       intel: "*"
@@ -147,16 +147,16 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
     command: |
-      buildkite-agent artifact download "bench/results/*" .
+      buildkite-agent artifact download "benchmarks/results/*" .
 
-      julia --project=bench -e 'println("--- :julia: Instantiating project")
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
           using Pkg
           Pkg.instantiate()'
 
-      julia --project=bench -e 'println("--- :julia: Combining Benchmarks")
-          include("bench/aggregate.jl")'
+      julia --project=benchmarks -e 'println("--- :julia: Combining Benchmarks")
+          include("benchmarks/aggregate.jl")'
     artifact_paths:
-      - "bench/results/combinedbenchmarks.json"
+      - "benchmarks/results/combinedbenchmarks.json"
     agents:
       queue: "juliagpu"
     timeout_in_minutes: 10

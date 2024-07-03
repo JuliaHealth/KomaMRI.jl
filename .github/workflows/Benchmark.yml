@@ -14,7 +14,7 @@ on:
       - "KomaMRICore/Project.toml"
       - "KomaMRIBase/src/**/*"
       - "KomaMRIBase/Project.toml"
-      - "bench/**/*"
+      - "benchmarks/**/*"
       - ".buildkite/**/*"
       - "Project.toml"
   push:
@@ -27,7 +27,7 @@ on:
       - "KomaMRICore/Project.toml"
       - "KomaMRIBase/src/**/*"
       - "KomaMRIBase/Project.toml"
-      - "bench/**/*"
+      - "benchmarks/**/*"
       - ".buildkite/**/*"
       - "Project.toml"
       - ".github/**/*" #TO-DO: remove this

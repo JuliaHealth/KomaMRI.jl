@@ -19,7 +19,7 @@ steps:
                 - "KomaMRICore/Project.toml"
                 - "KomaMRIBase/src/**/*"
                 - "KomaMRIBase/Project.toml"
-                - "bench/**/*"
+                - "benchmarks/**/*"
                 - ".buildkite/**/*"
                 - "Project.toml"
               config:
