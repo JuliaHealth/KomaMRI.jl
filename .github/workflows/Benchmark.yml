@@ -60,7 +60,7 @@ jobs:
           name: KomaMRI Benchmarks
           tool: 'julia'
           output-file-path: ${{ steps.locate.outputs.path }}
-          benchmark-data-dir-path: "bench"
+          benchmark-data-dir-path: "benchmarks"
           summary-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-always: true
