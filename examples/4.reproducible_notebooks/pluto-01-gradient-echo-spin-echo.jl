@@ -20,7 +20,7 @@ macro bind(def, element)
 end
 
 # ╔═╡ d6b1729a-874d-11ee-151a-9b0fcce2c4fd
-using KomaMRICore, KomaMRIPlots, PlutoPlotly, PlutoUI
+using KomaMRICore, KomaMRIPlots, FFTW, PlutoPlotly, PlutoUI
 
 # ╔═╡ 5df97874-f09c-4173-a2f6-893db322ccaf
 md"# Understanding basic MRI sequences"
@@ -179,7 +179,10 @@ raw_gre = simulate(obj, seq_gre, sys)
 
 # ╔═╡ 9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
 # (2.7) Reconstruct the 1D image
-recon_gre = plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+begin
+    fftc(x; dims=[1,2]) = fftshift(fft(ifftshift(x, dims), dims), dims)/prod(size(x)[dims])
+    recon_gre = plot(abs.(KomaMRI.fftc(raw_gre.profiles[1].data)))
+end
 
 # ╔═╡ 41d14dec-b852-4316-aefb-c3d08fa43216
 # (2.6) Plot the simulated signal
