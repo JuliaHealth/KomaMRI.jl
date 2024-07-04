@@ -105,10 +105,16 @@ getproperty(x::Matrix{RF}, f::Symbol) = begin
     end
 end
 
-# RF comparison
+"""
+For comparing two `RF`s custom types
+"""
 function Base.isapprox(rf1::RF, rf2::RF)
-    return all(length(getfield(rf1, k)) == length(getfield(rf2, k)) for k in fieldnames(RF))
-    return all(≈(getfield(rf1, k), getfield(rf2, k); atol=1e-9) for k in fieldnames(RF))
+    for k in fieldnames(RF)
+        if length(getfield(rf1, k)) != length(getfield(rf2, k))
+            return false
+        end
+    end
+    return all(≈(getfield(rf1, k), getfield(rf2, k), atol=1e-9) for k in fieldnames(RF))
 end
 
 # Properties

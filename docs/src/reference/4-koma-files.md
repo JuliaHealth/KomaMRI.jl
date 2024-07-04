@@ -8,6 +8,7 @@ CurrentModule = KomaMRIFiles
 
 ```@docs
 read_seq
+write_seq
 ```
 
 ## Phantom
