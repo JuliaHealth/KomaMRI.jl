@@ -1,166 +1,29 @@
 steps:
-  - label: "CPU: Run tests on v{{matrix.version}}"
-    matrix:
-      setup:
-        version:
-          - "1.9"
-          - "1"
-    plugins:
-      - JuliaCI/julia#v1:
-          version: "{{matrix.version}}"
-      - JuliaCI/julia-coverage#v1:
-          codecov: true
-          dirs:
-            - KomaMRICore/src
-            - KomaMRICore/ext
-    command: |
-      julia -e 'println("--- :julia: Instantiating project")
-          using Pkg
-          Pkg.develop([
-              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-              PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])'
-
-      julia -e 'println("--- :julia: Running tests")
-          using Pkg
-          Pkg.test("KomaMRICore"; coverage=true, julia_args=`--threads=auto`)'
+  - label: ":pipeline: Launch Tests"
+    command: buildkite-agent pipeline upload .buildkite/runtests.yml
     agents:
       queue: "juliagpu"
-    timeout_in_minutes: 120
-    
-  - label: "AMDGPU: Run tests on v{{matrix.version}}"
-    matrix:
-      setup:
-        version:
-          - "1"
-    plugins:
-      - JuliaCI/julia#v1:
-          version: "{{matrix.version}}"
-      - JuliaCI/julia-coverage#v1:
-          codecov: true
-          dirs:
-            - KomaMRICore/src
-            - KomaMRICore/ext
-    command: |
-      julia -e 'println("--- :julia: Instantiating project")
-          using Pkg
-          Pkg.develop([
-              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-              PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])'
-      
-      julia --project=KomaMRICore/test -e 'println("--- :julia: Add AMDGPU to test environment")
-          using Pkg
-          Pkg.add("AMDGPU")'
-      
-      julia -e 'println("--- :julia: Running tests")
-          using Pkg
-          Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
+
+  - label: ":pipeline: Launch Benchmarks"
+    if: build.message !~ /skip benchmarks/
     agents:
       queue: "juliagpu"
-      rocm: "*"
-    timeout_in_minutes: 120
-
-  - label: "CUDA: Run tests on v{{matrix.version}}"
-    matrix:
-      setup:
-        version:
-          - "1.9"
-          - "1"
     plugins:
-      - JuliaCI/julia#v1:
-          version: "{{matrix.version}}"
-      - JuliaCI/julia-coverage#v1:
-          codecov: true
-          dirs:
-            - KomaMRICore/src
-            - KomaMRICore/ext
-    command: |
-      julia -e 'println("--- :julia: Instantiating project")
-          using Pkg
-          Pkg.develop([
-              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-              PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])'
-      
-      julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
-          using Pkg
-          Pkg.add("CUDA")'
-      
-      julia -e 'println("--- :julia: Running tests")
-          using Pkg
-          Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
-    agents:
-      queue: "juliagpu"
-      cuda: "*"
-    timeout_in_minutes: 120
+      - monorepo-diff#v1.0.1:
+          diff: "git diff --name-only HEAD~1"
+          interpolation: false
+          watch:
+            - path:
+                - "KomaMRICore/src/**/*"
+                - "KomaMRICore/ext/**/*"
+                - "KomaMRICore/Project.toml"
+                - "KomaMRIBase/src/**/*"
+                - "KomaMRIBase/Project.toml"
+                - "benchmarks/**/*"
+                - ".buildkite/**/*"
+                - "Project.toml"
+              config:
+                command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
+                agents:
+                  queue: "juliagpu"
 
-  - label: "Metal: Run tests on v{{matrix.version}}"
-    matrix:
-      setup:
-        version:
-          - "1.9"
-          - "1"
-    plugins:
-      - JuliaCI/julia#v1:
-          version: "{{matrix.version}}"
-    command: |
-      julia -e 'println("--- :julia: Instantiating project")
-          using Pkg
-          Pkg.develop([
-              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-              PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])'
-      
-      julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
-          using Pkg
-          Pkg.add("Metal")'
-
-      julia -e 'println("--- :julia: Running tests")
-          using Pkg
-          Pkg.test("KomaMRICore"; test_args=["Metal"])'
-    agents:
-      queue: "juliaecosystem"
-      os: "macos"
-      arch: "aarch64"
-    timeout_in_minutes: 120
-
-  - label: "oneAPI: Run tests on v{{matrix.version}}"
-    matrix:
-      setup:
-        version:
-          - "1.9"
-          - "1"
-    plugins:
-      - JuliaCI/julia#v1:
-          version: "{{matrix.version}}"
-      - JuliaCI/julia-coverage#v1:
-          codecov: true
-          dirs:
-            - KomaMRICore/src
-            - KomaMRICore/ext
-    command: |
-      julia -e 'println("--- :julia: Instantiating project")
-          using Pkg
-          Pkg.develop([
-              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-              PackageSpec(path=pwd(), subdir="KomaMRICore"),
-          ])'
-      
-      julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
-          using Pkg
-          Pkg.add("oneAPI")'
-      
-      julia -e 'println("--- :julia: Running tests")
-          using Pkg
-          Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
-    agents:
-      queue: "juliagpu"
-      intel: "*"
-    timeout_in_minutes: 120
-
-env:
-  CI: BUILDKITE
-  CODECOV_FLAGS: core
-  JULIA_PKG_SERVER: ""
-  SECRET_CODECOV_TOKEN: "lUmUVYkTlE8u0mR/ymv5rtE1A59wXZmQ3miRkmKciC/4+xHPNjpeIJ03FupuC1ElGBeX0m6DDFavZ9burLosGxbBYIPziBQZ5P9NdPDZjBdo7NM3QSSBeUfDsDYbHsYglfJZ35UL6Pd2YTAkJG0ePrTpfUaBb9rcll926NdqUP0vE2hbR2leKFFgBVNtK9Zf+NE7hO3meZQEZ+sN5tA7xGr24A3Ay7ckPg5HbPPD3KII2/fLtW+w0fQUfJdXNFrajJ0FyNE0kNLDlIzoYN6XM4yUeLBXoyXFHnqT5dSu7pqrByEk/ptYpjUzKFoRSnDQy+p8vrx9e/iAVf3lwwgwWA==;U2FsdGVkX1+IZLGTj2FNEy4XvUQbzkZFEwUpwIdRDCKrEea5O/OKGV5vYJufty3m9yniE+av4937HabS9dO1RA=="
