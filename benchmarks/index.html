@@ -291,7 +291,7 @@
                     const datasetIndex = item.datasetIndex;
                     const dataIndex = item.index;
                     const commit = graphData.get(backendIndices.get(datasetIndex))[dataIndex].commit;
-                    return '\n' + commit.message + '\n\n' + commit.timestamp + ' committed by @' + commit.committer.username + '\n';
+                    return '\n' + commit.message + '\n\n' + commit.timestamp + ' committed by @' + commit.author.username + '\n';
                   },
                   label: item => {
                     const datasetIndex = item.datasetIndex;
