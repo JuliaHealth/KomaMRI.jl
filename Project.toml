@@ -1,7 +1,7 @@
 name = "KomaMRI"
 uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
-version = "0.9.0"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
+version = "0.9.0"
 
 [deps]
 AssetRegistry = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
@@ -21,7 +21,7 @@ AssetRegistry = "0.1"
 Blink = "0.12"
 FFTW = "1.0"
 Interact = "0.10"
-KomaMRICore = "0.9"
+KomaMRICore = "0.9, 0.8"
 KomaMRIFiles = "0.9"
 KomaMRIPlots = "0.9"
 MAT = "0.10"
