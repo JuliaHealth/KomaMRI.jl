@@ -53,15 +53,18 @@ using TestItems, TestItemRunner
         using KomaMRIBase
         path = @__DIR__
         # NoMotion
-        filename = path * "/test_files/brain_nomotion.phantom"
+        filename = path * "/test_files/brain_nomotion_w.phantom"
         obj1 = brain_phantom2D()
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
         @test obj1 == obj2
+    end
+    @testset "SimpleMotion" begin
         # SimpleMotion
-        filename = path * "/test_files/brain_simplemotion.phantom"
+        path = @__DIR__
+        filename = path * "/test_files/brain_simplemotion_w.phantom"
         obj1 = brain_phantom2D()
-        obj1.motion = SimpleMotion([
+        obj1.motion = SimpleMotion(
             PeriodicRotation(
                 period=1.0, 
                 yaw=45.0,
@@ -73,17 +76,24 @@ using TestItems, TestItemRunner
                 dx=0.0,
                 dy=0.02,
                 dz=0.0
-        )])
+            )
+        )
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
         @test obj1 == obj2
+    end
+    @testset "ArbitraryMotion" begin
         # ArbitraryMotion
-        filename = path * "/test_files/brain_arbitrarymotion.phantom"
+        path = @__DIR__
+        filename = path * "/test_files/brain_arbitrarymotion_w.phantom"
         obj1 = brain_phantom2D()
         Ns = length(obj1)
         K = 10
+        t_start = 0.0
+        t_end = 1.0
         obj1.motion = ArbitraryMotion(
-            [1.0],
+            t_start,
+            t_end,
             0.01.*rand(Ns, K-1),
             0.01.*rand(Ns, K-1),
             0.01.*rand(Ns, K-1))     

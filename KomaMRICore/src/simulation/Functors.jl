@@ -71,36 +71,13 @@ x = x |> cpu
 """
 cpu(x) = fmap(x -> adapt(KA.CPU(), x), x, exclude=_isleaf)
 
-#MotionModel structs
-adapt_storage(::KA.GPU, x::NoMotion) = x
-adapt_storage(::KA.GPU, x::SimpleMotion) = x
-function adapt_storage(backend::KA.GPU, xs::ArbitraryMotion)
-    fields = []
-    for field in fieldnames(ArbitraryMotion)
-        if field in (:ux, :uy, :uz)
-            push!(fields, adapt(backend, getfield(xs, field)))
-        else
-            push!(fields, getfield(xs, field))
-        end
-    end
-    return KomaMRICore.ArbitraryMotion(fields...)
-end
-
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
 adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
-adapt_storage(T::Type{<:Real}, xs::SimpleMotion) = SimpleMotion(paramtype(T, xs.types))
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
-function adapt_storage(T::Type{<:Real}, xs::ArbitraryMotion) 
-    fields = []
-    for field in fieldnames(ArbitraryMotion)
-        push!(fields, paramtype(T, getfield(xs, field)))
-    end
-    return ArbitraryMotion(fields...)
-end
 
 """
     f32(m)
@@ -123,16 +100,21 @@ See also [`f32`](@ref).
 f64(m) = paramtype(Float64, m)
 
 #The functor macro makes it easier to call a function in all the parameters
+# Phantom
 @functor Phantom
-
+# SimpleMotion
+@functor SimpleMotion
 @functor Translation
 @functor Rotation
 @functor HeartBeat
 @functor PeriodicTranslation
 @functor PeriodicRotation
 @functor PeriodicHeartBeat
-
+# ArbitraryMotion
+@functor ArbitraryMotion
+# Spinor
 @functor Spinor
+# DiscreteSequence
 @functor DiscreteSequence
 
 export gpu, cpu, f32, f64

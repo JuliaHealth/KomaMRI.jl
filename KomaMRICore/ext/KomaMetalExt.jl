@@ -12,12 +12,6 @@ KomaMRICore.set_device!(::MetalBackend, device_index::Integer) = device_index ==
 KomaMRICore.set_device!(::MetalBackend, dev::Metal.MTLDevice) = Metal.device!(dev)
 KomaMRICore.device_name(::MetalBackend) = String(Metal.current_device().name)
 
-function Adapt.adapt_storage(
-    ::MetalBackend, x::Vector{KomaMRICore.LinearInterpolator{T,V}}
-) where {T<:Real,V<:AbstractVector{T}}
-    return Metal.mtl.(x)
-end
-
 function KomaMRICore._print_devices(::MetalBackend)
     @info "Metal device type: $(KomaMRICore.device_name(MetalBackend()))"
 end

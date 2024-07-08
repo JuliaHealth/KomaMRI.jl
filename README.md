@@ -5,7 +5,7 @@
 
 <div align="center">
  
-![][julia-19] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url]
+![][julia-19] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url] ![][gh-starts-komamri]
 
 [![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url]
 
@@ -16,16 +16,13 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 <div align="center">
 
 <table>
-
-<tr><td rowspan="2">
-<img width="350px" src="./docs/src/assets/ui-simulation.gif"/>
-</td>
- <td><b>Features:</b></td>
+<tr>
+<td rowspan="2" width="50%"><img width="100%" src="./docs/src/assets/ui-simulation.gif"/></td>
+<td align="left" width="50%"><b>Features:</b></td>
 </tr>
 <tr>
-<td>
-<div align="left">
- 
+<td align="left">
+
 - Fast simulations with CPU/GPU parallelization 🏃💨
 - Extensible, so anyone can include new features 🆙
 - Supports community-standards [🤝](## "Pulseq and ISMRMRD") 
@@ -34,10 +31,11 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 - Friendly GUI (using web technologies) 😌
 - Compatible with modern notebooks [🎈](## "Pluto and Jupyter") 
 - Flexible API for advanced users 👨‍💻
-</div>
 </td>
 </tr>
 </table>
+
+</div>
 
 <div align="center">
  
@@ -50,7 +48,14 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 | └ 📦 [KomaMRIPlots.jl](## "Plots")          | [![][komaplots-version]][komaplots-juliahub] | [![][gh-actions-komaplots]][gh-actions-url] | [![][codecov-komaplots]][codecov-url] | [![][downloads-komaplots]][downloads-komaplots-url] |
 
 </div>
-</div>
+
+## Table of Contents  
+- [News](#news)  
+- [Installation](#installation)
+- [First run](#first-run)
+- [How to Contribute](#how-to-contribute)
+- [How to Cite](#how-to-cite)
+- [Tested compatibility](#tested-compatibility) 
 
 ## News
 
@@ -169,7 +174,7 @@ If you see any problem with this information, please let us know in a GitHub iss
 <!-- Julia compat -->
 [julia-19]: https://img.shields.io/badge/julia-v1.9-9558B2?logo=julia
 <!-- Package -->
-[komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg
+[komamri-version]: https://juliahub.com/docs/General/KomaMRI/stable/version.svg?color=blue
 [komabase-version]: https://juliahub.com/docs/General/KomaMRIBase/stable/version.svg
 [komacore-version]: https://juliahub.com/docs/General/KomaMRICore/stable/version.svg
 [komafiles-version]: https://juliahub.com/docs/General/KomaMRIFiles/stable/version.svg
@@ -206,7 +211,7 @@ If you see any problem with this information, please let us know in a GitHub iss
 [gh-actions-komafiles]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-komaplots]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
 [gh-actions-komamri-nightly]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/Nightly/badge.svg
-[gh-actions-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions
+[gh-actions-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml
 [gh-actions-nightly-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/nightly.yml
 <!-- License -->
 [license]: http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat
@@ -239,3 +244,6 @@ If you see any problem with this information, please let us know in a GitHub iss
 [downloads-komacore-url]: http://juliapkgstats.com/pkg/KomaMRICore
 [downloads-komafiles-url]: http://juliapkgstats.com/pkg/KomaMRIFiles
 [downloads-komaplots-url]: http://juliapkgstats.com/pkg/KomaMRIPlots
+<!-- Stars -->
+[gh-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/
+[gh-starts-komamri]: https://img.shields.io/github/stars/JuliaHealth/KomaMRI.jl?style=flat&label=Stars&color=blue&logo=data:image/svg%2bxml;base64,PHN2ZyB3aWR0aD0iMzI1IiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KCiA8Zz4KICA8dGl0bGU+TGF5ZXIgMTwvdGl0bGU+CiAgPGcgaWQ9InN1cmZhY2U5MSI+CiAgIDxwYXRoIGlkPSJzdmdfMSIgZmlsbC1ydWxlPSJub256ZXJvIiBmaWxsPSJyZ2IoNzkuNiUsMjMuNSUsMjAlKSIgZD0ibTE1MC44OTg0NCwyMjVjMCw0MS40MjE4OCAtMzMuNTc4MTMsNzUgLTc1LDc1Yy00MS40MjE4OCwwIC03NSwtMzMuNTc4MTIgLTc1LC03NWMwLC00MS40MjE4NyAzMy41NzgxMiwtNzUgNzUsLTc1YzQxLjQyMTg3LDAgNzUsMzMuNTc4MTMgNzUsNzUiLz4KICAgPHBhdGggaWQ9InN2Z18yIiBmaWxsLXJ1bGU9Im5vbnplcm8iIGZpbGw9InJnYigyMiUsNTkuNiUsMTQuOSUpIiBkPSJtMjM3LjUsNzVjMCw0MS40MjE4OCAtMzMuNTc4MTIsNzUgLTc1LDc1Yy00MS40MjE4NywwIC03NSwtMzMuNTc4MTIgLTc1LC03NWMwLC00MS40MjE4NyAzMy41NzgxMywtNzUgNzUsLTc1YzQxLjQyMTg4LDAgNzUsMzMuNTc4MTMgNzUsNzUiLz4KICAgPHBhdGggaWQ9InN2Z18zIiBmaWxsLXJ1bGU9Im5vbnplcm8iIGZpbGw9InJnYig1OC40JSwzNC41JSw2OS44JSkiIGQ9Im0zMjQuMTAxNTYsMjI1YzAsNDEuNDIxODggLTMzLjU3ODEyLDc1IC03NSw3NWMtNDEuNDIxODcsMCAtNzUsLTMzLjU3ODEyIC03NSwtNzVjMCwtNDEuNDIxODcgMzMuNTc4MTMsLTc1IDc1LC03NWM0MS40MjE4OCwwIDc1LDMzLjU3ODEzIDc1LDc1Ii8+CiAgPC9nPgogIDx0ZXh0IGZvbnQtd2VpZ2h0PSJib2xkIiBzdHJva2U9IiNmZmZmZmYiIHRyYW5zZm9ybT0ibWF0cml4KDUuOTczOTUwNjYwNzU4ODcxLDAsMCw1Ljk3Mzk1MDY2MDc1ODg3MSwtOTc0LjY3NzUzNzYxMDY3NTEsLTI0NS44MTg4ODY5MjMwMDUzNSkgIiB4bWw6c3BhY2U9InByZXNlcnZlIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBpZD0ic3ZnXzYiIHk9IjYyLjE2NTIxIiB4PSIxODMiIG9wYWNpdHk9InVuZGVmaW5lZCIgZmlsbC1vcGFjaXR5PSJudWxsIiBzdHJva2Utb3BhY2l0eT0ibnVsbCIgc3Ryb2tlLWRhc2hhcnJheT0ibnVsbCIgc3Ryb2tlLXdpZHRoPSIwIiBmaWxsPSIjZmZmZmZmIj7impU8L3RleHQ+CiAgPHRleHQgZm9udC13ZWlnaHQ9ImJvbGQiIHN0cm9rZT0iI2ZmZmZmZiIgdHJhbnNmb3JtPSJtYXRyaXgoNS45NzM5NTA2NjA3NTg4NzEsMCwwLDUuOTczOTUwNjYwNzU4ODcxLC05NzQuNjc3NTM3NjEwNjc1MSwtMjQ1LjgxODg4NjkyMzAwNTM1KSAiIHhtbDpzcGFjZT0icHJlc2VydmUiIHRleHQtYW5jaG9yPSJzdGFydCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGlkPSJzdmdfNyIgeT0iODcuNDQxNjIiIHg9IjE2OC4yNjkzOCIgb3BhY2l0eT0idW5kZWZpbmVkIiBmaWxsLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1vcGFjaXR5PSJudWxsIiBzdHJva2UtZGFzaGFycmF5PSJudWxsIiBzdHJva2Utd2lkdGg9IjAiIGZpbGw9IiNmZmZmZmYiPuKalTwvdGV4dD4KICA8dGV4dCBmb250LXdlaWdodD0iYm9sZCIgc3Ryb2tlPSIjZmZmZmZmIiB0cmFuc2Zvcm09Im1hdHJpeCg1Ljk3Mzk1MDY2MDc1ODg3MSwwLDAsNS45NzM5NTA2NjA3NTg4NzEsLTk3NC42Nzc1Mzc2MTA2NzUxLC0yNDUuODE4ODg2OTIzMDA1MzUpICIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgaWQ9InN2Z185IiB5PSI4Ny40NDE2MiIgeD0iMTk3LjU2MzIzIiBvcGFjaXR5PSJ1bmRlZmluZWQiIGZpbGwtb3BhY2l0eT0ibnVsbCIgc3Ryb2tlLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1kYXNoYXJyYXk9Im51bGwiIHN0cm9rZS13aWR0aD0iMCIgZmlsbD0iI2ZmZmZmZiI+4pqVPC90ZXh0PgogPC9nPgo8L3N2Zz4=

@@ -1,5 +1,5 @@
 @doc raw"""
-    periodic_heartbeat = PeriodicHeartBeat(t_start, t_end, dx, dy, dz)
+    periodic_heartbeat = PeriodicHeartBeat(circumferential_strain, radial_strain, longitudinal_strain, period, asymmetry)
 
 HeartBeat struct. It produces a heartbeat-like motion, characterised by three types of strain:
 Circumferential, Radial and Longitudinal
@@ -24,7 +24,8 @@ end
 
 is_composable(motion_type::PeriodicHeartBeat) = true
 
-function displacement_x(
+function displacement_x!(
+    ux::AbstractArray{T},
     motion_type::PeriodicHeartBeat{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -41,10 +42,12 @@ function displacement_x(
     neg = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
     Δr .-= neg .* r
-    return Δr .* cos.(θ)
+    ux .= Δr .* cos.(θ)
+    return nothing
 end
 
-function displacement_y(
+function displacement_y!(
+    uy::AbstractArray{T},
     motion_type::PeriodicHeartBeat{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -61,10 +64,12 @@ function displacement_y(
     neg = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
     Δr .-= neg .* r
-    return Δr .* sin.(θ)
+    uy .= Δr .* sin.(θ)
+    return nothing
 end
 
-function displacement_z(
+function displacement_z!(
+    uz::AbstractArray{T},
     motion_type::PeriodicHeartBeat{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
@@ -72,7 +77,8 @@ function displacement_z(
     t::AbstractArray{T},
 ) where {T<:Real}
     t_unit = unit_time_triangular(t, motion_type.period, motion_type.asymmetry)
-    return t_unit .* (z .* motion_type.longitudinal_strain)
+    uz .= t_unit .* (z .* motion_type.longitudinal_strain)
+    return nothing
 end
 
 function times(motion_type::PeriodicHeartBeat)
