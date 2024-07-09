@@ -84,7 +84,7 @@ function signal_to_raw_data(
     version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
 
     #Estimate sequence reconstruction dimension, using seq.DEF and potentially other information
-    Nd_seq, Nx, Ny, Nz, Ns, FOVx, FOVy, FOVz, Δx, ktraj = estimate_seq_recon_dimension(signal, seq; sim_params)
+    Nd_seq, Nx, Ny, Nz, Ns, FOVx, FOVy, FOVz, Δx, ktraj = estimate_seq_recon_dimension(seq; sim_params)
     if use_ndseq
         if ndims != Nd_seq; @warn("Using estimated dimension of $Nd_seq for .mrd file."); ndims = Nd_seq; end
     else
@@ -243,12 +243,11 @@ function signal_to_raw_data(
 end
 
 """
-    Nd_seq, Nx, Ny, Nz, Ns, FOVx, FOVy, FOVz, Δx = estimate_seq_recon_dimension(signal, seq; sim_params)
+    Nd_seq, Nx, Ny, Nz, Ns, FOVx, FOVy, FOVz, Δx = estimate_seq_recon_dimension(seq; sim_params)
 
 Utility function for the best estimate of the reconstruction dimension.
 
 # Arguments
-- `signal`: (`::Matrix{Complex}`) raw signal matrix
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
@@ -272,11 +271,11 @@ julia> Nd_seq = estimate_seq_recon_dimension(seq, signal; sim_params)
 julia> OUTPUT ****
 ```
 """
-function estimate_seq_recon_dimension(
-    signal, seq; sim_params=Dict{String,Any}(),
+function estimate_seq_recon_dimension(seq; sim_params=Dict{String,Any}(),
 )
-
-    #Number of samples and FOV
+    #remove signal and sim_params...not needed   
+    
+    #K-space info
     _, ktraj = get_kspace(seq) #kspace information
     mink = minimum(ktraj, dims=1)
     maxk = maximum(ktraj, dims=1)
@@ -285,6 +284,26 @@ function estimate_seq_recon_dimension(
     Wk_el_iszero = iszero.( Wk) # bool array for later
     Wk[idxs_zero] .= 1.0e6
     Δx = 1 ./ Wk[1:3] #[m] x-y-z
+    
+    
+    #estimate sequence acquisition structure
+    Ns_seq = length(unique(seq.RF.Δf)) #slices, slabs, or Cartesean off-center, need to & with ADC *** CAC 240708
+    Np_seq = maximum(adc.N for adc = seq.ADC) #readout length
+    Nv_seq = sum(map(is_ADC_on, seq)) #total number of readouts or views
+    @debug "Ns_seq, Np_seq, Nv_seq = $Ns_seq, $Np_seq, $Nv_seq"
+    
+    # Guessing Cartesean recon dimensions
+    # ideally all estimates of recon dimensions in one place, as late as possible, non-Cartesean ?? *** CAC 240708
+    seq.DEF["Ns"] = get(seq.DEF, "Ns", length(unique(seq.RF.Δf))) #slices or slabs
+    seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC)) #readout length
+    seq.DEF["Ny"] = get(seq.DEF, "Ny", sum(map(is_ADC_on, seq)) ÷ seq.DEF["Nx"]) #pe1
+    seq.DEF["Nz"] = get(seq.DEF, "Nz", sum(map(is_ADC_on, seq)) ÷ seq.DEF["Ny"]) #pe2
+    
+    # some guesses
+    seq_3d=false; seq_2d=false; seq_nd=false; seq_cartesean=false; seq_radial=false; seq_spiral=false
+    if Ns_seq == Nv_seq; seq_rad = true; end
+    
+    # explicit reads from seq.DEF
     Nx = ceil(Int64, get(seq.DEF, "Nx", 1))
     Ny = ceil(Int64, get(seq.DEF, "Ny", 1))
     Nz = ceil(Int64, get(seq.DEF, "Nz", 1))
