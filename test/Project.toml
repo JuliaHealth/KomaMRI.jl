@@ -1,4 +1,5 @@
 [deps]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Blink = "ad839575-38b3-5650-b840-f874b8c74a25"
 Interact = "c601a237-2ae4-5e1e-952c-7a85b0c7eef1"
 KomaMRI = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"

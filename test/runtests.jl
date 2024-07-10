@@ -130,3 +130,8 @@ end
     end
 
 end
+
+@testitem "Aqua" tags=[:koma, :aqua] begin
+    using Aqua
+    Aqua.test_all(KomaMRI)
+end

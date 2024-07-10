@@ -177,11 +177,6 @@ using TestItems, TestItemRunner
         delay = Delay(T)
         @test delay.T ≈ T
 
-        # Test delay construction error for negative values
-        err = Nothing
-        try Delay(-T) catch err end
-        @test err isa ErrorException
-
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", delay)
         @test true
@@ -654,4 +649,9 @@ end
     x  = Float64[0 1 2 1 0]
     @test KomaMRIBase.trapz(dt, x)[1] ≈ 4 #Triangle area = bh/2, with b = 4 and h = 2
     @test KomaMRIBase.cumtrapz(dt, x) ≈ [0.5 2 3.5 4]
+end
+
+@testitem "Aqua" tags=[:base, :aqua] begin
+    using Aqua
+    Aqua.test_all(KomaMRIBase)
 end

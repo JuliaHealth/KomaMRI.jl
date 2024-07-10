@@ -5,3 +5,8 @@ using TestItems, TestItemRunner
 #GUI tests
 include("GUI_PlotlyJS_backend_test.jl")
 include("GUI_PlutoPlotly_backend_test.jl")
+
+@testitem "Aqua" tags=[:plots, :aqua] begin
+    using Aqua
+    Aqua.test_all(KomaMRIPlots)
+end

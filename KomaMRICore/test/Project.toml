@@ -1,4 +1,5 @@
 [deps]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 KomaMRIBase = "d0bc0b20-b151-4d03-b2a4-6ca51751cb9c"
