@@ -21,7 +21,10 @@ julia> seq = delay + s; plot_seq(seq)
 struct Delay
     T::Real
     function Delay(T)
-		T < 0 ? error("Delays must be positive.") : new(T)
+	 	if T < 0
+            error("Delays must be positive.")
+        end
+        return new(T)
     end
 end
 
@@ -57,7 +60,7 @@ sequence.
 +(s::Sequence, d::Delay) = s + empty_seq(d.T)
 +(d::Delay, s::Sequence) = empty_seq(d.T) + s
 function empty_seq(T)
-    seq = Sequence([Grad(0., 0.);;])
+    seq = Sequence([Grad(0., 0.);;]) # 1-block empty sequence (!= Sequence(), which is a 0-block empty sequence)
     seq.DUR[1] = T
     return seq
 end
