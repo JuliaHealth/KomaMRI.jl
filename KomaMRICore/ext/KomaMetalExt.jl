@@ -3,6 +3,7 @@
 module KomaMetalExt
 
 using Metal
+using Suppressor
 import KomaMRICore
 import Adapt
 
@@ -16,16 +17,9 @@ function KomaMRICore._print_devices(::MetalBackend)
     @info "Metal device type: $(KomaMRICore.device_name(MetalBackend()))"
 end
 
-#Temporary workaround for https://github.com/JuliaGPU/Metal.jl/issues/348
-#Once run_spin_excitation! and run_spin_precession! are kernel-based, this code
-#can be removed
-Base.cumsum(x::MtlVector{T}) where T = convert(MtlVector{T}, cumsum(KomaMRICore.cpu(x)))
-Base.cumsum(x::MtlArray{T}; dims) where T = convert(MtlArray{T}, cumsum(KomaMRICore.cpu(x), dims=dims))
-Base.findall(x::MtlVector{Bool}) = convert(MtlVector, findall(KomaMRICore.cpu(x)))
-
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], MetalBackend())
-    @warn "Metal does not support all array operations used by KomaMRI (https://github.com/JuliaGPU/Metal.jl/issues/348). GPU performance may be slower than expected"
+    @suppress Metal.allowscalar(true)
 end
 
 end

@@ -1,8 +1,8 @@
 abstract type SimulationMethod end #get all available types by using subtypes(KomaMRI.SimulationMethod)
 abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
+abstract type PreallocResult{T<:Real} end #get all available types by using subtypes(KomaMRI.PreallocResult)
 
 #Defined methods:
-include("Bloch/KernelFunctions.jl")
 include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
 
@@ -84,7 +84,8 @@ function run_spin_precession_parallel!(
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
-    backend::KA.Backend;
+    backend::KA.Backend,
+    prealloc::PreallocResult;
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
@@ -92,7 +93,7 @@ function run_spin_precession_parallel!(
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend
+            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend, @view(prealloc[p])
         )
     end
 
@@ -180,6 +181,7 @@ function run_sim_time_iter!(
     rfs = 0
     samples = 1
     progress_bar = Progress(Nblocks; desc="Running simulation...")
+    prealloc_result = prealloc(sim_method, obj, Xt) 
 
     for (block, p) in enumerate(parts)
         seq_block = @view seq[p]
@@ -196,7 +198,7 @@ function run_sim_time_iter!(
             rfs += 1
         else
             run_spin_precession_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend; Nthreads
+                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_result; Nthreads
             )
         end
         samples += Nadc
