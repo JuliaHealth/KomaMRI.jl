@@ -22,7 +22,7 @@ using TestItems, TestItemRunner
 #Environment variable set by CI
 const CI = get(ENV, "CI", nothing)
 
-@run_package_tests filter=ti->(:core in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
+@run_package_tests filter=ti->(:motion in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
 @testitem "Spinors×Mag" tags=[:core] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
@@ -287,7 +287,7 @@ end
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 end
 
-@testitem "Bloch SimpleMotion" tags=[:important, :core, :skipci] begin
+@testitem "Bloch SimpleMotion" tags=[:important, :core, :motion] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -307,7 +307,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch ArbitraryMotion"  tags=[:important, :core, :skipci] begin
+@testitem "Bloch ArbitraryMotion"  tags=[:important, :core, :motion] begin
     using Suppressor
     include("initialize.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))

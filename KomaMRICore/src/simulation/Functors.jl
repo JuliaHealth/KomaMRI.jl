@@ -6,7 +6,6 @@ _isleaf(x) = isleaf(x)
 _isleaf(::AbstractArray{<:Number}) = true
 _isleaf(::AbstractArray{T}) where T = isbitstype(T)
 _isleaf(::AbstractRange) = true
-
 """
     gpu(x)
 
@@ -52,9 +51,8 @@ See also [`f32`](@ref) and [`f64`](@ref) to change element type only.
 x = gpu(x, CUDABackend())
 ```
 """
-function gpu(x, backend::KA.GPU)
-    return fmap(x -> adapt(backend, x), x; exclude=_isleaf)
-end
+gpu(x, backend::KA.GPU) = fmap(x -> adapt(backend, x), x; exclude=_isleaf)
+adapt_storage(backend::KA.GPU, xs::MotionVector) = MotionVector(gpu.(xs.motions, Ref(backend)))
 
 # To CPU
 """
@@ -78,6 +76,7 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
+adapt_storage(T::Type{<:Real}, xs::MotionVector) = MotionVector(paramtype.(T, xs.motions))
 
 """
     f32(m)
@@ -102,16 +101,13 @@ f64(m) = paramtype(Float64, m)
 #The functor macro makes it easier to call a function in all the parameters
 # Phantom
 @functor Phantom
-# SimpleMotion
-@functor SimpleMotion
 @functor Translation
 @functor Rotation
 @functor HeartBeat
-@functor PeriodicTranslation
-@functor PeriodicRotation
-@functor PeriodicHeartBeat
-# ArbitraryMotion
-@functor ArbitraryMotion
+@functor Trajectory
+@functor FlowTrajectory
+@functor TimeRange
+@functor Periodic
 # Spinor
 @functor Spinor
 # DiscreteSequence

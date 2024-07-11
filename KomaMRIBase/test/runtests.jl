@@ -398,7 +398,7 @@ end
         t = collect(range(t_start, t_end, 11))
         dx, dy, dz = [1.0, 0.0, 0.0]
         vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
-        translation = SimpleMotion(Translation(dx, dy, dz, t_start, t_end))
+        translation = MotionVector(Translation(TimeRange(t_start, t_end), dx, dy, dz))
         xt, yt, zt = get_spin_coords(translation, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ vx.*t'
         @test yt == ph.y .+ vy.*t'
@@ -406,7 +406,7 @@ end
         # ----- t_start = t_end --------
         t_start = t_end = 0.0
         t = [-0.5, -0.25, 0.0, 0.25, 0.5]
-        translation = SimpleMotion(Translation(dx, dy, dz, t_start, t_end))
+        translation = MotionVector(Translation(TimeRange(t_start, t_end), dx, dy, dz))
         xt, yt, zt = get_spin_coords(translation, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ dx*[0, 0, 1, 1, 1]'
         @test yt == ph.y .+ dy*[0, 0, 1, 1, 1]'
@@ -420,7 +420,7 @@ end
         asymmetry = 0.5
         dx, dy, dz = [1.0, 0.0, 0.0]
         vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
-        periodictranslation = SimpleMotion(PeriodicTranslation(dx, dy, dz, period, asymmetry))
+        periodictranslation = MotionVector(Translation(Periodic(period, asymmetry), dx, dy, dz))
         xt, yt, zt = get_spin_coords(periodictranslation, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ vx.*t'
         @test yt == ph.y .+ vy.*t'
@@ -433,7 +433,7 @@ end
         pitch = 45.0
         roll = 0.0
         yaw = 45.0
-        rotation = SimpleMotion(Rotation(pitch, roll, yaw, t_start, t_end))
+        rotation = MotionVector(Rotation(TimeRange(t_start, t_end), pitch, roll, yaw))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
         r = vcat(ph.x, ph.y, ph.z)
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
@@ -444,7 +444,7 @@ end
         # ----- t_start = t_end --------
         t_start = t_end = 0.0
         t = [-0.5, -0.25, 0.0, 0.25, 0.5]
-        rotation = SimpleMotion(Rotation(pitch, roll, yaw, t_start, t_end))
+        rotation = MotionVector(Rotation(TimeRange(t_start, t_end), pitch, roll, yaw))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
         @test xt ≈ [ph.x   ph.x   rot_x   rot_x   rot_x]
         @test yt ≈ [ph.y   ph.y   rot_y   rot_y   rot_y]
@@ -459,7 +459,7 @@ end
         pitch = 45.0
         roll = 0.0
         yaw = 45.0
-        periodicrotation = SimpleMotion(PeriodicRotation(pitch, roll, yaw, period, asymmetry))
+        periodicrotation = MotionVector(Rotation(Periodic(period, asymmetry), pitch, roll, yaw))
         xt, yt, zt = get_spin_coords(periodicrotation, ph.x, ph.y, ph.z, t')
         r = vcat(ph.x, ph.y, ph.z)
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
@@ -475,7 +475,7 @@ end
         circumferential_strain = -0.1
         radial_strain = 0.0
         longitudinal_strain = -0.1
-        heartbeat = SimpleMotion(HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end))
+        heartbeat = MotionVector(HeartBeat(TimeRange(t_start, t_end), circumferential_strain, radial_strain, longitudinal_strain))
         xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
         θ = atan.(ph.y, ph.x)
@@ -485,7 +485,7 @@ end
         # ----- t_start = t_end --------
         t_start = t_end = 0.0
         t = [-0.5, -0.25, 0.0, 0.25, 0.5]
-        heartbeat = SimpleMotion(HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, t_start, t_end))
+        heartbeat = MotionVector(HeartBeat(TimeRange(t_start, t_end), circumferential_strain, radial_strain, longitudinal_strain))
         xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
         θ = atan.(ph.y, ph.x)
@@ -505,7 +505,7 @@ end
         circumferential_strain = -0.1
         radial_strain = 0.0
         longitudinal_strain = -0.1
-        periodicheartbeat = SimpleMotion(PeriodicHeartBeat(circumferential_strain, radial_strain, longitudinal_strain, period, asymmetry))
+        periodicheartbeat = MotionVector(HeartBeat(Periodic(period, asymmetry), circumferential_strain, radial_strain, longitudinal_strain))
         xt, yt, zt = get_spin_coords(periodicheartbeat, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
         θ = atan.(ph.y, ph.x)
@@ -513,7 +513,7 @@ end
         @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
         @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
     end
-    @testset "ArbitraryMotion" begin
+    @testset "Trajectory" begin
         # 1 spin
         ph = Phantom(x=[1.0], y=[1.0])
         Ns = length(ph)
@@ -523,8 +523,8 @@ end
         dx = rand(Ns, Nt)
         dy = rand(Ns, Nt)
         dz = rand(Ns, Nt)
-        arbitrarymotion = @suppress ArbitraryMotion(t_start, t_end, dx, dy, dz)
-        t = times(arbitrarymotion)
+        arbitrarymotion = MotionVector(Trajectory(TimeRange(t_start, t_end), dx, dy, dz))
+        t = range(t_start, t_end, Nt)
         xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ dx
         @test yt == ph.y .+ dy
@@ -538,24 +538,24 @@ end
         dx = rand(Ns, Nt)
         dy = rand(Ns, Nt)
         dz = rand(Ns, Nt)
-        arbitrarymotion = @suppress ArbitraryMotion(t_start, t_end, dx, dy, dz)
-        t = times(arbitrarymotion)
+        arbitrarymotion = MotionVector(Trajectory(TimeRange(t_start, t_end), dx, dy, dz))
+        t = range(t_start, t_end, Nt)
         xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ dx
         @test yt == ph.y .+ dy
         @test zt == ph.z .+ dz
     end
 
-    simplemotion = SimpleMotion(
-        PeriodicTranslation(dx=0.05, dy=0.05, dz=0.0, period=0.5, asymmetry=0.5),
-        Rotation(pitch=0.0, roll=0.0, yaw=π / 2, t_start=0.05, t_end=0.5),
+    simplemotion = MotionVector(
+        Translation(times=Periodic(period=0.5, asymmetry=0.5), dx=0.05, dy=0.05, dz=0.0),
+        Rotation(times=TimeRange(t_start=0.05, t_end=0.5), pitch=0.0, roll=0.0, yaw=π / 2)
     )
 
     Ns = length(obj1)
     Nt = 3
     t_start = 0.0
     t_end = 1.0
-    arbitrarymotion = @suppress ArbitraryMotion(t_start, t_end, 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt))
+    arbitrarymotion = MotionVector(Trajectory(TimeRange(t_start, t_end), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt)))
 
     # Test phantom subset
     obs1 = Phantom(
@@ -611,7 +611,7 @@ end
         [Dλ1; Dλ1[rng]],
         [Dλ2; Dλ2[rng]],
         [Dθ; Dθ[rng]],
-        [obs1.motion; obs2.motion]
+        vcat(obs1.motion, obs2.motion, length(obs1), length(obs2))
     )
     @test obs1 + obs2 == oba
 

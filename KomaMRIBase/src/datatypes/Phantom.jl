@@ -1,9 +1,9 @@
-abstract type MotionModel{T<:Real} end
-
-#Motion models:
-include("phantom/motion/SimpleMotion.jl")
-include("phantom/motion/ArbitraryMotion.jl")
-include("phantom/motion/NoMotion.jl")
+# TimeScale:
+include("../timing/TimeScale.jl")
+# Motion:
+abstract type AbstractMotion{T<:Real} end
+include("phantom/Motion.jl")
+include("phantom/NoMotion.jl")
 
 """
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
@@ -54,7 +54,7 @@ julia> obj.ρ
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::MotionModel{T} = NoMotion{eltype(x)}()
+    motion::AbstractMotion{T} = NoMotion{eltype(x)}()
 end
 
 """Size and length of a phantom"""
@@ -67,18 +67,29 @@ Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
 
 """Compare two phantoms"""
-Base.:(==)(obj1::Phantom, obj2::Phantom) = reduce(
-    &,
-    [getfield(obj1, field) == getfield(obj2, field) for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))],
-)
-Base.:(≈)(obj1::Phantom, obj2::Phantom)      = reduce(&, [getfield(obj1, field) ≈ getfield(obj2, field) for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))])
-Base.:(==)(m1::MotionModel, m2::MotionModel) = false
-Base.:(≈)(m1::MotionModel, m2::MotionModel)  = false
+function Base.:(==)(obj1::Phantom, obj2::Phantom)
+    return reduce(
+        &,
+        [
+            getfield(obj1, field) == getfield(obj2, field) for
+            field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+        ],
+    )
+end
+function Base.:(≈)(obj1::Phantom, obj2::Phantom)
+    return reduce(
+        &,
+        [
+            getfield(obj1, field) ≈ getfield(obj2, field) for
+            field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+        ],
+    )
+end
 
 """Separate object spins in a sub-group"""
 Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
     fields = []
-    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+    for field in Iterators.filter(x -> x != :name, fieldnames(Phantom))
         push!(fields, (field, getfield(obj, field)[p]))
     end
     return Phantom(; name=obj.name, fields...)
@@ -87,7 +98,7 @@ end
 """Separate object spins in a sub-group (lightweigth)."""
 Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
     fields = []
-    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+    for field in Iterators.filter(x -> x != :name, fieldnames(Phantom))
         push!(fields, (field, @view(getfield(obj, field)[p])))
     end
     return Phantom(; name=obj.name, fields...)
@@ -95,13 +106,17 @@ end
 
 """Addition of phantoms"""
 +(obj1::Phantom, obj2::Phantom) = begin
-    fields = []
-    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
-        push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
-    end
     Nmaxchars = 50
     name = first(obj1.name * "+" * obj2.name, Nmaxchars)
-    return Phantom(; name=name, fields...)
+    fields = []
+    for field in Iterators.filter(x -> x != :name, fieldnames(Phantom))
+        push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
+    end
+    return Phantom(; 
+        name=name, 
+        fields..., 
+        motion=vcat(obj1.motion, obj2.motion, length(obj1), length(obj2))
+    )
 end
 
 """Scalar multiplication of a phantom"""
@@ -177,16 +192,18 @@ function heart_phantom(
         Dλ1=Dλ1[ρ .!= 0],
         Dλ2=Dλ2[ρ .!= 0],
         Dθ=Dθ[ρ .!= 0],
-        motion=SimpleMotion(
-            PeriodicHeartBeat(;
-                period=period,
-                asymmetry=asymmetry,
+        motion=MotionVector(
+            HeartBeat(;
+                times=Periodic(; period=period, asymmetry=asymmetry),
                 circumferential_strain=circumferential_strain,
                 radial_strain=radial_strain,
                 longitudinal_strain=0.0,
             ),
-            PeriodicRotation(;
-                period=period, asymmetry=asymmetry, yaw=rotation_angle, pitch=0.0, roll=0.0
+            Rotation(;
+                times=Periodic(; period=period, asymmetry=asymmetry),
+                yaw=rotation_angle,
+                pitch=0.0,
+                roll=0.0,
             ),
         ),
     )

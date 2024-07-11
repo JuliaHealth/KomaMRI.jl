@@ -25,8 +25,7 @@ function read_phantom(filename::String)
     end
     # Motion
     motion_group = fid["motion"]
-    model = read_attribute(motion_group, "model")
-    import_motion!(phantom_fields, Ns, Symbol(model), motion_group)
+    import_motion!(phantom_fields, motion_group)
 
     obj = Phantom(; phantom_fields...)
     close(fid)
@@ -54,44 +53,56 @@ function read_param(param::HDF5.Group)
     return values
 end
 
-function import_motion!(phantom_fields::Array, Ns::Int, model::Symbol, motion_group::HDF5.Group)
-    return import_motion!(phantom_fields, Ns, Val(model), motion_group)
-end
-function import_motion!(
-    phantom_fields::Array, Ns::Int, model::Val{:NoMotion}, motion_group::HDF5.Group
-)
-    return nothing
-end
-function import_motion!(
-    phantom_fields::Array, Ns::Int, model::Val{:SimpleMotion}, motion_group::HDF5.Group
-)
-    types_group = motion_group["types"]
-    types = SimpleMotionType[]
-    for key in keys(types_group)
-        type_group = types_group[key]
-        type_str = split(key, "_")[2]
-        @assert type_str in last.(split.(string.(subtypes(SimpleMotionType)), ".")) "Simple Motion Type: $(type_str) has not been implemented in KomaMRIBase $(KomaMRIBase.__VERSION__)"
-        for SMT in subtypes(SimpleMotionType)
+function import_motion!(phantom_fields::Array, motion_group::HDF5.Group)
+    T = eltype(phantom_fields[2][2])
+    motion_type = read_attribute(motion_group, "type")
+    if motion_type == "MotionVector"
+        simple_motion_types    = last.(split.(string.(reduce(vcat,(subtypes(subtypes(Motion)[2])))), "."))
+        arbitrary_motion_types = last.(split.(string.(reduce(vcat,(subtypes(subtypes(Motion)[1])))), "."))
+        motion_array = Motion{T}[]
+        for key in keys(motion_group)
+            type_group = motion_group[key]
+            type_str = split(key, "_")[2]
+            @assert type_str in vcat(simple_motion_types, arbitrary_motion_types) "Motion Type: $(type_str) has not been implemented in KomaMRIBase $(KomaMRIBase.__VERSION__)"
             args = []
-            if type_str == last(split(string(SMT), "."))
-                for key in fieldnames(SMT)
-                    push!(args, read_attribute(type_group, string(key)))
+            for smtype in subtypes(SimpleMotion)
+                if type_str == last(split(string(smtype), "."))
+                    times = import_time_range(type_group["times"])
+                    type_fields = filter(x -> x != :times, fieldnames(smtype))
+                    for key in type_fields
+                        push!(args, read_attribute(type_group, string(key)))
+                    end
+                    push!(motion_array, smtype(times, args...))
                 end
-                push!(types, SMT(args...))
+            end
+            for amtype in subtypes(ArbitraryMotion)
+                if type_str == last(split(string(amtype), "."))
+                    times = import_time_range(type_group["times"])
+                    type_fields = filter(x -> x != :times, fieldnames(amtype))
+                    for key in type_fields
+                        push!(args, read(type_group[string(key)]))
+                    end
+                    push!(motion_array, amtype(times, args...))
+                end
             end
         end
+        return push!(phantom_fields, (:motion, MotionVector(motion_array)))
+    elseif motion_type == "NoMotion"
+        return push!(phantom_fields, (:motion, NoMotion{T}()))
     end
-    return push!(phantom_fields, (:motion, SimpleMotion((types...))))
 end
-function import_motion!(
-    phantom_fields::Array, Ns::Int, model::Val{:ArbitraryMotion}, motion_group::HDF5.Group
-)
-    t_start = read(motion_group["t_start"])
-    t_end = read(motion_group["t_end"])
-    dx = read(motion_group["dx"])  
-    dy = read(motion_group["dy"])  
-    dz = read(motion_group["dz"])  
-    return push!(phantom_fields, (:motion, ArbitraryMotion(t_start, t_end, dx, dy, dz)))
+
+function import_time_range(times_group::HDF5.Group)
+    time_scale_type = read_attribute(times_group, "type")
+    for tstype in subtypes(TimeScale)
+        if time_scale_type == last(split(string(tstype), "."))
+            args = []
+            for key in filter(x -> x != :type, fieldnames(tstype))
+                push!(args, read_attribute(times_group, string(key)))
+            end
+            return tstype(args...)
+        end
+    end
 end
 
 """
@@ -136,27 +147,34 @@ function write_phantom(
     return close(fid)
 end
 
-function export_motion!(motion_group::HDF5.Group, motion::NoMotion)
-    return HDF5.attributes(motion_group)["model"] = "NoMotion"
-end
-function export_motion!(motion_group::HDF5.Group, motion::SimpleMotion)
-    HDF5.attributes(motion_group)["model"] = "SimpleMotion"
-    types_group = create_group(motion_group, "types")
-    counter = 1
-    for (counter, sm_type) in enumerate(motion.types)
-        simple_motion_type = typeof(sm_type).name.name
-        type_group = create_group(types_group, "$(counter)_$simple_motion_type")
-        phantom_fields = fieldnames(typeof(sm_type))
-        for field in phantom_fields
-            HDF5.attributes(type_group)[string(field)] = getfield(sm_type, field)
+function export_motion!(motion_group::HDF5.Group, mv::MotionVector{T}) where {T<:Real}
+    HDF5.attributes(motion_group)["type"] = "MotionVector"
+    for (counter, m) in enumerate(mv.motions)
+        type_name = typeof(m).name.name
+        type_group = create_group(motion_group, "$(counter)_$type_name")
+        export_time_range!(type_group, m.times)
+        type_fields = filter(x -> x != :times, fieldnames(typeof(m)))
+        for field in type_fields
+            field_value = getfield(m, field)
+            if typeof(field_value) <: Number
+                HDF5.attributes(type_group)[string(field)] = field_value
+            elseif typeof(field_value) <: AbstractArray
+                type_group[string(field)] = field_value
+            end
         end
     end
 end
-function export_motion!(motion_group::HDF5.Group, motion::ArbitraryMotion)
-    HDF5.attributes(motion_group)["model"] = "ArbitraryMotion"
-    motion_group["t_start"] = motion.t_start
-    motion_group["t_end"] = motion.t_end
-    motion_group["dx"] = motion.dx
-    motion_group["dy"] = motion.dy
-    motion_group["dz"] = motion.dz
+
+function export_motion!(motion_group::HDF5.Group, motion::NoMotion{T}) where {T<:Real}
+    HDF5.attributes(motion_group)["type"] = "NoMotion"
+end
+
+function export_time_range!(type_group::HDF5.Group, times::TimeScale)
+    times_name = typeof(times).name.name
+    times_group = create_group(type_group, "times")
+    HDF5.attributes(times_group)["type"] = string(times_name)
+    for field in fieldnames(typeof(times))
+        field_value = getfield(times, field)
+        HDF5.attributes(times_group)[string(field)] = field_value
+    end
 end

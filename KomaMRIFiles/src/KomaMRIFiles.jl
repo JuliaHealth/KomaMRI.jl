@@ -2,7 +2,6 @@ module KomaMRIFiles
 
 using KomaMRIBase
 using Scanf, FileIO, HDF5, MAT, InteractiveUtils # IO related
-
 using Reexport
 using MRIFiles
 import MRIFiles: insertNode
