@@ -48,7 +48,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     sampling_params = KomaMRIBase.default_sampling_params()
     get!(sim_params, "gpu", true)
     get!(sim_params, "gpu_device", nothing)
-    get!(sim_params, "Nthreads", sim_params["gpu"] ? 1 : Threads.nthreads())
+    get!(sim_params, "Nthreads", Threads.nthreads())
     get!(sim_params, "Nblocks", 20)
     get!(sim_params, "Δt", sampling_params["Δt"])
     get!(sim_params, "Δt_rf", sampling_params["Δt_rf"])
@@ -336,9 +336,12 @@ function simulate(
     Xt, obj = initialize_spins_state(obj, sim_params["sim_method"])
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_params["sim_method"])
-    sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
     backend = get_backend(sim_params["gpu"])
     sim_params["gpu"] &= backend isa KA.GPU
+    if sim_params["gpu"]
+        sim_params["Nthreads"] = 1
+    end
+    sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
     if !KA.supports_float64(backend) && sim_params["precision"] == "f64"
         sim_params["precision"] = "f32"
         @info """ Backend: '$(name(backend))' does not support 64-bit precision 
