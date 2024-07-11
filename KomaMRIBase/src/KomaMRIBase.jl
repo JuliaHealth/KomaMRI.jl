@@ -48,7 +48,7 @@ export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion
 export AbstractMotion, Motion, MotionVector, NoMotion
 export SimpleMotion, ArbitraryMotion
-export Static, Translation, Rotation, HeartBeat, Trajectory, FlowTrajectory
+export Translation, Rotation, HeartBeat, Trajectory, FlowTrajectory
 export TimeScale, TimeRange, Periodic
 export sort_motions!, get_spin_coords
 # Secondary
