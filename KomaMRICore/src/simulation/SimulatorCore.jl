@@ -327,6 +327,13 @@ function simulate(
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
+    #Warn if user is trying to run on CPU without enabling multi-threading
+    if (!sim_params["gpu"] && Threads.nthreads() == 1)
+        @info """
+            Simulation will be run on the CPU with only 1 thread. To
+            enable multi-threading, start julia with --threads=auto.
+        """ maxlog=1
+    end
     # Simulation init
     seqd = discretize(seq; sampling_params=sim_params) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; Nblocks=sim_params["Nblocks"]) # Generating simulation blocks
