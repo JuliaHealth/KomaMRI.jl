@@ -49,9 +49,9 @@ julia> obj.ρ
     Δw::AbstractVector{T} = zeros(eltype(x), size(x))
     #χ::Vector{SusceptibilityModel}
     #Diffusion
-    Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
+    # Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
+    # Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
+    # Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
     motion::MotionModel{T} = NoMotion{eltype(x)}()
@@ -159,11 +159,11 @@ function heart_phantom(
     ring = ⚪(R) .- ⚪(r)
     ρ = ⚪(r) .+ 0.9 * ring #proton density
     # Diffusion tensor model
-    D = 2e-9 #Diffusion of free water m2/s
-    D1, D2 = D, D / 20
-    Dλ1 = D1 * ⚪(R) #Diffusion map
-    Dλ2 = D1 * ⚪(r) .+ D2 * ring #Diffusion map
-    Dθ = atan.(x, -y) .* ring #Diffusion map
+    # D = 2e-9 #Diffusion of free water m2/s
+    # D1, D2 = D, D / 20
+    # Dλ1 = D1 * ⚪(R) #Diffusion map
+    # Dλ2 = D1 * ⚪(r) .+ D2 * ring #Diffusion map
+    # Dθ = atan.(x, -y) .* ring #Diffusion map
     T1 = (1400 * ⚪(r) .+ 1026 * ring) * 1e-3 #Myocardial T1
     T2 = (308 * ⚪(r) .+ 42 * ring) * 1e-3 #T2 map [s]
     # Generating Phantoms
@@ -174,9 +174,9 @@ function heart_phantom(
         ρ=ρ[ρ .!= 0],
         T1=T1[ρ .!= 0],
         T2=T2[ρ .!= 0],
-        Dλ1=Dλ1[ρ .!= 0],
-        Dλ2=Dλ2[ρ .!= 0],
-        Dθ=Dθ[ρ .!= 0],
+        # Dλ1=Dλ1[ρ .!= 0],
+        # Dλ2=Dλ2[ρ .!= 0],
+        # Dθ=Dθ[ρ .!= 0],
         motion=SimpleMotion(
             PeriodicHeartBeat(;
                 period=period,

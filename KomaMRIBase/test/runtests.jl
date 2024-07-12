@@ -371,11 +371,8 @@ end
     T2 = [0.09; 0.05; 0.04; 0.07; 0.005]
     T2s = [0.1; 0.06; 0.05; 0.08; 0.015]
     Δw = [-2e-6; -1e-6; 0.0; 1e-6; 2e-6]
-    Dλ1 = [-4e-6; -2e-6; 0.0; 2e-6; 4e-6]
-    Dλ2 = [-6e-6; -3e-6; 0.0; 3e-6; 6e-6]
-    Dθ = [-8e-6; -4e-6; 0.0; 4e-6; 8e-6]
-    obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
-    obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
+    obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw)
+    obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw)
     @test obj1 == obj2
 
     # Test size and length definitions of a phantom
@@ -558,7 +555,7 @@ end
     arbitrarymotion = @suppress ArbitraryMotion(t_start, t_end, 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt))
 
     # Test phantom subset
-    obs1 = Phantom(
+    obs1 = Phantom(;
         name,
         x,
         y,
@@ -568,26 +565,20 @@ end
         T2,
         T2s,
         Δw,
-        Dλ1,
-        Dλ2,
-        Dθ,
-        simplemotion
+        motion=simplemotion
     )
     rng = 1:2:5
-    obs2 = Phantom(
+    obs2 = Phantom(;
         name,
-        x[rng],
-        y[rng],
-        z[rng],
-        ρ[rng],
-        T1[rng],
-        T2[rng],
-        T2s[rng],
-        Δw[rng],
-        Dλ1[rng],
-        Dλ2[rng],
-        Dθ[rng],
-        simplemotion[rng],
+        x=x[rng],
+        y=y[rng],
+        z=z[rng],
+        ρ=ρ[rng],
+        T1=T1[rng],
+        T2=T2[rng],
+        T2s=T2s[rng],
+        Δw=Δw[rng],
+        motion=simplemotion[rng],
     )
     @test obs1[rng] == obs2
     @test @view(obs1[rng]) == obs2
@@ -598,26 +589,23 @@ end
     # @test @view(obs1[rng]) == obs2
 
     # Test addition of phantoms
-    oba = Phantom(
+    oba = Phantom(;
         name,
-        [x; x[rng]],
-        [y; y[rng]],
-        [z; z[rng]],
-        [ρ; ρ[rng]],
-        [T1; T1[rng]],
-        [T2; T2[rng]],
-        [T2s; T2s[rng]],
-        [Δw; Δw[rng]],
-        [Dλ1; Dλ1[rng]],
-        [Dλ2; Dλ2[rng]],
-        [Dθ; Dθ[rng]],
-        [obs1.motion; obs2.motion]
+        x=[x; x[rng]],
+        y=[y; y[rng]],
+        z=[z; z[rng]],
+        ρ=[ρ; ρ[rng]],
+        T1=[T1; T1[rng]],
+        T2=[T2; T2[rng]],
+        T2s=[T2s; T2s[rng]],
+        Δw=[Δw; Δw[rng]],
+        motion=[obs1.motion; obs2.motion]
     )
     @test obs1 + obs2 == oba
 
     # Test scalar multiplication of a phantom
     c = 7
-    obc = Phantom(name=name, x=x, y=y, z=z, ρ=c*ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
+    obc = Phantom(name=name, x=x, y=y, z=z, ρ=c*ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw)
     @test c * obj1 == obc
 
     #Test brain phantom 2D
