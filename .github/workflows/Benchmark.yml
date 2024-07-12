@@ -30,7 +30,7 @@ on:
 
 jobs:
   benchmark:
-    if: "!contains(github.event.head_commit.message, '[skip benchmarks]')"
+    if: ${{ !contains(github.event.head_commit.message, '[skip benchmarks]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +56,7 @@ jobs:
           tool: 'julia'
           output-file-path: ${{ steps.locate.outputs.path }}
           benchmark-data-dir-path: "benchmarks"
-          summary-always: true
+          summary-always: true # I think this doesn't work on PRs
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-always: true
           alert-threshold: "150%"
