@@ -1,8 +1,4 @@
 name: Benchmarks
-permissions:
-  contents: write # contents permission to update benchmark contents in gh-pages branch
-  statuses: read
-  deployments: write # deployments permission to deploy GitHub pages website
 
 on: 
   pull_request:
@@ -32,8 +28,12 @@ on:
 
 jobs:
   benchmark:
-    if: "!contains(github.event.head_commit.message, '[skip benchmarks]')"
+    if: ${{ !contains(github.event.head_commit.message, '[skip benchmarks]') }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # contents permission to update benchmark contents in gh-pages branch
+      statuses: read
+      deployments: write # deployments permission to deploy GitHub pages website
     steps:
       - uses: actions/checkout@v4
       - name: Download Buildkite Artifacts
@@ -58,7 +58,7 @@ jobs:
           tool: 'julia'
           output-file-path: ${{ steps.locate.outputs.path }}
           benchmark-data-dir-path: "benchmarks"
-          summary-always: true
+          # summary-always: true # I think this doesn't work on PRs
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-always: true
           alert-threshold: "150%"
