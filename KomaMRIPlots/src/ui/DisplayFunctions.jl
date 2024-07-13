@@ -235,6 +235,7 @@ function plot_seq(
         legendgroup="Gx",
         showlegend=showlegend,
         marker=attr(; color="#636EFA"),
+        mode="lines",
     )
     p[2] = scatter_fun(;
         x=gy.t * 1e3,
@@ -246,6 +247,7 @@ function plot_seq(
         legendgroup="Gy",
         showlegend=showlegend,
         marker=attr(; color="#EF553B"),
+        mode="lines",
     )
     p[3] = scatter_fun(;
         x=gz.t * 1e3,
@@ -257,6 +259,7 @@ function plot_seq(
         legendgroup="Gz",
         showlegend=showlegend,
         marker=attr(; color="#00CC96"),
+        mode="lines",
     )
 
     # For RFs
@@ -276,6 +279,7 @@ function plot_seq(
             legendgroup="|B1|_AM",
             showlegend=showlegend,
             marker=attr(; color="#AB63FA"),
+            mode="lines",
         )
         p[2j + 3] = scatter_fun(;
             x=rf.t * 1e3,
@@ -289,6 +293,7 @@ function plot_seq(
             legendgroup="∠B1_AM",
             showlegend=showlegend,
             marker=attr(; color="#FFA15A"),
+            mode="lines",
         )
         if !freq_in_phase
             p[2j + 4] = scatter_fun(;
@@ -304,6 +309,7 @@ function plot_seq(
                 showlegend=showlegend,
                 marker=attr(; color="#AB63FA"),
                 line=attr(; dash="dot"),
+                mode="lines",
             )
         end
     end
@@ -319,7 +325,7 @@ function plot_seq(
         yaxis=yaxis,
         legendgroup="ADC",
         showlegend=showlegend,
-        mode=(show_adc ? "markers" : "line"),
+        mode=(show_adc ? "markers" : "lines"),
         marker=attr(; color="#19D3F3"),
     )
 
@@ -1583,51 +1589,67 @@ function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_p
         x=seqd.t * 1e3,
         y=seqd.Gx * 1e3,
         name="Gx",
+        legendgroup="Gx",
         mode="markers+lines",
         marker_symbol=:circle,
+        marker=attr(; color="#636EFA"),
     )
     Gy = scattergl(;
         x=seqd.t * 1e3,
         y=seqd.Gy * 1e3,
         name="Gy",
+        legendgroup="Gy",
         mode="markers+lines",
         marker_symbol=:circle,
+        marker=attr(; color="#EF553B"),
     )
     Gz = scattergl(;
         x=seqd.t * 1e3,
         y=seqd.Gz * 1e3,
         name="Gz",
+        legendgroup="Gz",
         mode="markers+lines",
         marker_symbol=:circle,
+        marker=attr(; color="#00CC96"),
     )
     B1_abs = scattergl(;
         x=seqd.t * 1e3,
         y=abs.(seqd.B1 * 1e6),
-        name="|B1|",
+        name="|B1|_AM",
+        legendgroup="|B1|_AM",
         mode="markers+lines",
         marker_symbol=:circle,
+        marker=attr(; color="#AB63FA"),
     )
     B1_angle = scattergl(;
         x=seqd.t * 1e3,
         y=angle.(seqd.B1),
-        name="∠B1",
+        name="∠B1_AM",
+        legendgroup="∠B1_AM",
         mode="markers+lines",
         marker_symbol=:circle,
+        visible="legendonly",
+        marker=attr(; color="#FFA15A"),
+    )
+    B1_Δf = scattergl(;
+        x=seqd.t * 1e3,
+        y=abs.(seqd.Δf * 1e-3),
+        name="B1_FM",
+        legendgroup="B1_FM",
+        mode="markers+lines",
+        marker_symbol=:circle,
+        visible="legendonly",
+        marker=attr(; color="#AB63FA"),
     )
     ADC = scattergl(;
         x=seqd.t[seqd.ADC] * 1e3,
         y=zeros(sum(seqd.ADC)),
         name="ADC",
+        legendgroup="ADC",
         mode="markers",
         marker_symbol=:x,
+        marker=attr(; color="#19D3F3"),
     )
-    B1_Δf = scattergl(;
-        x=seqd.t * 1e3,
-        y=abs.(seqd.Δf * 1e-3),
-        name="B1_Δf",
-        mode="markers+lines",
-        marker_symbol=:circle,
-        visible="legendonly",
-    )
-    return plot_koma([Gx, Gy, Gz, B1_abs, B1_angle, ADC, B1_Δf])
+    
+    return plot_koma([Gx, Gy, Gz, B1_abs, B1_angle, B1_Δf, ADC])
 end

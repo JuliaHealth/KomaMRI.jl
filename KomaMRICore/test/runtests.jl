@@ -401,3 +401,8 @@ end
     @suppress print_devices()
     @test true
 end
+
+@testitem "Aqua" tags=[:core, :aqua] begin
+    using Aqua
+    Aqua.test_all(KomaMRICore)
+end

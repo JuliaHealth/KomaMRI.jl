@@ -133,3 +133,8 @@ end
         end
     end
 end
+
+@testitem "Aqua" tags=[:files, :aqua] begin
+    using Aqua
+    Aqua.test_all(KomaMRIFiles)
+end

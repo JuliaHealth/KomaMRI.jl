@@ -106,7 +106,7 @@ end
 
 """Scalar multiplication of a phantom"""
 *(α::Real, obj::Phantom) = begin
-    obj1 = copy(obj)
+    obj1 = deepcopy(obj)
     obj1.ρ .*= α
     return obj1
 end

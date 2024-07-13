@@ -84,32 +84,28 @@ mutable struct Grad
     first
     last
     function Grad(A, T, rise, fall, delay)
-        return if all(T .< 0) || rise < 0 || fall < 0 || delay < 0
+        if all(T .< 0) || rise < 0 || fall < 0 || delay < 0
             error("Gradient timings must be positive.")
-        else
-            new(A, T, rise, fall, delay, 0.0, 0.0)
         end
+        return new(A, T, rise, fall, delay, 0.0, 0.0)
     end
     function Grad(A, T, rise, delay)
-        return if all(T .< 0) < 0 || rise < 0 || delay < 0
+        if all(T .< 0) || rise < 0 || delay < 0
             error("Gradient timings must be positive.")
-        else
-            new(A, T, rise, rise, delay, 0.0, 0.0)
         end
+        return new(A, T, rise, rise, delay, 0.0, 0.0)
     end
     function Grad(A, T, rise)
-        return if all(T .< 0) < 0 || rise < 0
+        if all(T .< 0) || rise < 0
             error("Gradient timings must be positive.")
-        else
-            new(A, T, rise, rise, 0.0, 0.0, 0.0)
         end
+        return new(A, T, rise, rise, 0.0, 0.0, 0.0)
     end
     function Grad(A, T)
-        return if all(T .< 0) < 0
+        if all(T .< 0)
             error("Gradient timings must be positive.")
-        else
-            new(A, T, 0.0, 0.0, 0.0, 0.0, 0.0)
         end
+        return new(A, T, 0.0, 0.0, 0.0, 0.0, 0.0)
     end
 end
 
