@@ -1,7 +1,7 @@
 name = "KomaMRI"
 uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
-version = "0.9.0-DEV"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
+version = "0.9.0-DEV"
 
 [deps]
 AssetRegistry = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
@@ -13,7 +13,6 @@ KomaMRIFiles = "fcf631a6-1c7e-4e88-9e64-b8888386d9dc"
 KomaMRIPlots = "76db0263-63f3-4d26-bb9a-5dba378db904"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 MRIReco = "bdf86e05-2d2b-5731-a332-f3fe1f9e047f"
-Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
 [compat]
@@ -26,7 +25,6 @@ KomaMRIFiles = "0.9"
 KomaMRIPlots = "0.9"
 MAT = "0.10"
 MRIReco = "0.6, 0.7, 0.8"
-Pkg = "1.4"
 Reexport = "1"
 julia = "1.9"
 

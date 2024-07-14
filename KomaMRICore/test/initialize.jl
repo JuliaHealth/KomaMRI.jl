@@ -1,4 +1,3 @@
-using Pkg
 using Suppressor
 
 const USE_GPU = if "AMDGPU" in ARGS
@@ -21,5 +20,3 @@ else
     @info "Testing on the CPU with $(Threads.nthreads()) thread(s)" maxlog=1
     false
 end
-
-using KomaMRICore

@@ -368,7 +368,7 @@ function simulate(
 
     # Simulation
     @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
-        __VERSION__ sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
+        pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
         seqd.t
     ) adc_points = Ndims[1]
     @time timed_tuple = @timed run_sim_time_iter!(

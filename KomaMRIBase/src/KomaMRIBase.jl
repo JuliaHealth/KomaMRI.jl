@@ -64,10 +64,4 @@ export get_Mk, get_kspace, get_M0, get_M1, get_M2
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
 
-#Package version, KomaMRIBase.__VERSION__
-using Pkg
-__VERSION__ = VersionNumber(
-    Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]
-)
-
 end # module KomaMRIBase
