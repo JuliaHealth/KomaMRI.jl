@@ -1,6 +1,6 @@
 name = "KomaMRI"
 uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
-version = "0.9.0"
+version = "0.9.0-DEV"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [deps]

@@ -21,6 +21,7 @@ steps:
                 - "KomaMRIBase/Project.toml"
                 - "benchmarks/**/*"
                 - ".buildkite/**/*"
+                - ".github/workflows/Benchmark.yml"
                 - "Project.toml"
               config:
                 command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
