@@ -28,7 +28,7 @@ display(p2)
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq")
 seq = read_seq(seq_file)
 
-raw = simulate(obj, seq, sys)
+raw = simulate(obj, seq, sys) # hide
 acq = AcquisitionData(raw) # hide
 acq.traj[1].circular = false # hide
 Nx, Ny = raw.params["reconSize"][1:2] # hide
