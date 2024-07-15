@@ -113,12 +113,12 @@ function signal_to_raw_data(
         #AcquisitionSystemInformation
         "systemVendor"                   => "KomaMRI.jl", #String
         "systemModel"                    => string(pkgversion(@__MODULE__)), #String
-        "systemFieldStrength_T"          => sys.B0, #Float
+        "systemFieldStrength_T"          => sys.limits.B0, #Float
         "institutionName"                => "Pontificia Universidad Catolica de Chile", #String
         #subjectInformation
         "patientName"                    => phantom_name,
         #experimentalConditions
-        "H1resonanceFrequency_Hz"        => floor(Int64, γ * sys.B0), #Long (Int)
+        "H1resonanceFrequency_Hz"        => floor(Int64, γ * sys.limits.B0), #Long (Int)
         #measurementInformation
         "protocolName"                   => haskey(seq.DEF,"Name") ? seq.DEF["Name"] : "NoName", #String
         # "trajectoryDescription"          => Dict{String, Any}("comment"=>""), #You can put wathever you want here: comment, bandwidth, MaxGradient_G_per_cm, MaxSlewRate_G_per_cm_per_s, interleaves, etc

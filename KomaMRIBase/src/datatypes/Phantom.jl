@@ -46,6 +46,8 @@ julia> obj.ρ
     Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
+    #EXPERIMENTAL: Coils
+    coil_sens::AbstractMatrix{T} = ones(eltype(x), size(x, 1), 1)
     #Motion
     motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
 end
@@ -76,16 +78,17 @@ end
 """Separate object spins in a sub-group"""
 function Base.getindex(obj::Phantom, p)
     fields = []
-    for field in NON_STRING_PHANTOM_FIELDS
+    for field in Iterators.filter(x -> !(x == :name) && !(x == :coil_sens), fieldnames(Phantom))
         push!(fields, (field, getfield(obj, field)[p]))
     end
-    return Phantom(; name=obj.name, fields...)
+    push!(fields, (:coil_sens, getfield(obj, :coil_sens)[p, :]))
 end
 function Base.view(obj::Phantom, p)
     fields = []
-    for field in NON_STRING_PHANTOM_FIELDS
+    for field in Iterators.filter(x -> !(x == :name) && !(x == :coil_sens), fieldnames(Phantom))
         push!(fields, (field, @view(getfield(obj, field)[p])))
     end
+    push!(fields, (:coil_sens, @view(getfield(obj, :coil_sens)[p, :])))
     return Phantom(; name=obj.name, fields...)
 end
 
