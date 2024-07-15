@@ -15,7 +15,7 @@ xr = -FOV[1]/2:Δx:FOV[1]/2  # x spin coordinates vector
 x = [x for (x, y, z) in Iterators.product(xr, xr, xr)][ρ .!= 0]
 y = [y for (x, y, z) in Iterators.product(xr, xr, xr)][ρ .!= 0]
 z = [z for (x, y, z) in Iterators.product(xr, xr, xr)][ρ .!= 0]
-coil_sens = 1.0 * sphere["b1m"][:][ρ .!= 0] #./ maximum(abs.(sphere["b1m"][:][ρ .!= 0]))
+coil_sens = 1.0 * sphere["b1m"][:][ρ .!= 0] ./ maximum(abs.(sphere["b1m"][:][ρ .!= 0]))
 ρ = 1.0 * ρ[ρ .!= 0]
 obj = Phantom(; x, y, z, ρ, coil_sens)
 p1 = plot_phantom_map(obj, :coil_sens ; height=400, width=400, darkmode=true)
@@ -30,8 +30,9 @@ p1 = plot_phantom_map(obj, :coil_sens ; height=400, width=400, darkmode=true)
 # Now we will interpolate the coils into a brain phantom:
 
 using KomaMRI.KomaMRIBase.Interpolations: LinearInterpolation
+coil_sens = sphere["b1m"] ./ maximum(abs.(sphere["b1m"][:]))
 obj = brain_phantom2D()
-obj.coil_sens .= LinearInterpolation((xr,xr,xr), sphere["b1m"]).(obj.x, obj.y, obj.z)
+obj.coil_sens .= LinearInterpolation((xr,xr,xr), coil_sens).(obj.x, obj.y, obj.z)
 p2 = plot_phantom_map(obj, :coil_sens ; height=400, width=400, darkmode=true)
 #md savefig(p2, "../assets/6-phantom2.html") # hide
 #jl display(p2)
