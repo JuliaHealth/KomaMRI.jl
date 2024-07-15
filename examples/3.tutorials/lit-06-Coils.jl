@@ -1,4 +1,4 @@
-# # Experimental: Simulating with coils and parallel imaging
+# # Experimental: Simulating with realistic coils
 
 using KomaMRI, MAT # hide
 sys = Scanner() # hide
@@ -7,7 +7,7 @@ sys = Scanner() # hide
 # To plot the coil sensitivities we will use the Phantom object:
 ph_file = joinpath(dirname(pathof(KomaMRI)), "../examples/2.phantoms/sphere_fields.mat")
 sphere = matread(ph_file)
-Δx = 1.1e-3                   # 5mm
+Δx = 1e-3                   # 5mm
 N = size(sphere["b1m"])  # Number of spins
 FOV = (N .- 1) .* Δx    # Field of view
 xr = -FOV[1]/2:Δx:FOV[1]/2  # x spin coordinates vector
@@ -27,12 +27,12 @@ p1 = plot_phantom_map(obj, :coil_sens ; height=400, width=400, darkmode=true)
 #md # <object type="text/html" data="../../assets/6-phantom1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/2-phantom2.html" style="width:50%; height:420px;"></object>
 #md # ```
 
-# Now we will interpolate the coils into a brain phantom:
+# Now we will interpolate the coils into a brain phantom (this will be done internally):
 
-using KomaMRI.KomaMRIBase.Interpolations: LinearInterpolation
+using Interpolations
 coil_sens = sphere["b1m"] ./ maximum(abs.(sphere["b1m"][:]))
 obj = brain_phantom2D()
-obj.coil_sens .= LinearInterpolation((xr,xr,xr), coil_sens).(obj.x, obj.y, obj.z)
+obj.coil_sens .= LinearInterpolation((xr,xr,xr), coil_sens, extrapolation_bc=0).(obj.x, obj.y, obj.z)
 p2 = plot_phantom_map(obj, :coil_sens ; height=400, width=400, darkmode=true)
 #md savefig(p2, "../assets/6-phantom2.html") # hide
 #jl display(p2)
