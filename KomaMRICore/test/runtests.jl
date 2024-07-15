@@ -1,22 +1,32 @@
 using TestItems, TestItemRunner
 
-### NOTE: by default, tests are run on the CPU with the number of threads set to 
-#   Threads.nthreads(). To run on a specific GPU backend, add the name of the 
+### NOTE: by default, tests are run on the CPU with the number of threads set to
+#   Threads.nthreads(). To run on a specific GPU backend, add the name of the
 #   backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the test/Project.toml
 #   file in KomaMRICore and pass the name as a test argument.
-#   
+#
 #   Example:
 #
 #   import Pkg
 #   Pkg.test("KomaMRICore"; test_args=["CUDA"])
 #
-#   To run on the cpu with a specific number of threads, pass the number of threads 
+#   To run on the cpu with a specific number of threads, pass the number of threads
 #   as a julia argument.
 #
 #   Example:
-#   
+#
 #   import Pkg
 #   Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
+#
+#   For changing the default backend used for testing,
+#   modify the [preferences.KomaMRICore] section in the test/Project.toml:
+#
+#     [preferences.KomaMRICore]
+#     test_backend = "CPU"
+#
+#   For the backend preference to take effect, you need to:
+#   - REPL testing: No action needed. `] test` should pick up the preference right away.
+#   - VSCode testing: You need to restart VSCode.
 ###
 
 #Environment variable set by CI
@@ -158,7 +168,7 @@ end
 # Test ISMRMRD
 @testitem "signal_to_raw_data" tags=[:core] begin
     using Suppressor
-    include("initialize.jl")
+    include("initialize_backend.jl")
 
     seq = PulseDesigner.EPI_example()
     sys = Scanner()
@@ -188,7 +198,7 @@ end
 
 @testitem "Bloch" tags=[:important, :core] begin
     using Suppressor
-    include("initialize.jl")
+    include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     sig_jemris = signal_sphere_jemris()
@@ -211,7 +221,7 @@ end
 
 @testitem "Bloch_RF_accuracy" tags=[:important, :core] begin
     using Suppressor
-    include("initialize.jl")
+    include("initialize_backend.jl")
 
     Tadc = 1e-3
     Trf = Tadc
@@ -258,7 +268,7 @@ end
 
 @testitem "Bloch_phase_compensation" tags=[:important, :core] begin
     using Suppressor
-    include("initialize.jl")
+    include("initialize_backend.jl")
 
     Tadc = 1e-3
     Trf = Tadc
@@ -289,10 +299,10 @@ end
 
 @testitem "Bloch SimpleMotion" tags=[:important, :core, :skipci] begin
     using Suppressor
-    include("initialize.jl")
+    include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    sig_jemris = signal_brain_motion_jemris()  
+    sig_jemris = signal_brain_motion_jemris()
     seq = seq_epi_100x100_TE100_FOV230()
     sys = Scanner()
     obj = phantom_brain_simple_motion()
@@ -309,10 +319,10 @@ end
 
 @testitem "Bloch ArbitraryMotion"  tags=[:important, :core, :skipci] begin
     using Suppressor
-    include("initialize.jl")
+    include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    sig_jemris = signal_brain_motion_jemris()  
+    sig_jemris = signal_brain_motion_jemris()
     seq = seq_epi_100x100_TE100_FOV230()
     sys = Scanner()
     obj = phantom_brain_arbitrary_motion()
@@ -329,15 +339,15 @@ end
 
 @testitem "BlochDict" tags=[:important, :core] begin
     using Suppressor
-    include("initialize.jl")
+    include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     seq = seq_epi_100x100_TE100_FOV230()
     obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
     sys = Scanner()
     sim_params = Dict(
-        "gpu"=>USE_GPU, 
-        "sim_method"=>KomaMRICore.Bloch(), 
+        "gpu"=>USE_GPU,
+        "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat")
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
@@ -353,7 +363,7 @@ end
 
 @testitem "simulate_slice_profile" tags=[:core] begin
     using Suppressor
-    include("initialize.jl")
+    include("initialize_backend.jl")
 
     # This is a sequence with a sinc RF 30° excitation pulse
     sys = Scanner()
@@ -380,23 +390,24 @@ end
 @testitem "GPU Functions" tags=[:core] begin
     using Suppressor
     import KernelAbstractions as KA
-    include("initialize.jl")
+    include("initialize_backend.jl")
 
     x = ones(Float32, 1000)
+
     @suppress begin
-        y = x |> gpu
         if USE_GPU
+            y = x |> gpu
             @test KA.get_backend(y) isa KA.GPU
             y = y |> cpu
             @test KA.get_backend(y) isa KA.CPU
         else
             # Test that gpu and cpu are no-ops
+            y = x |> gpu
             @test y == x
             y = y |> cpu
             @test y == x
         end
     end
-
 
     @suppress print_devices()
     @test true
