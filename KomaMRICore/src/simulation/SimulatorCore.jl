@@ -79,6 +79,7 @@ separating the spins of the phantom `obj` in `Nthreads`.
 function run_spin_precession_parallel!(
     obj::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Scanner,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -91,7 +92,7 @@ function run_spin_precession_parallel!(
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend, @view(prealloc[p])
+            @view(obj[p]), seq, @view(sys[p]), @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend, @view(prealloc[p])
         )
     end
 
@@ -167,6 +168,7 @@ take advantage of CPU parallel processing.
 function run_sim_time_iter!(
     obj::Phantom,
     seq::DiscreteSequence,
+    sys::Scanner,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -199,7 +201,7 @@ function run_sim_time_iter!(
             rfs += 1
         else
             run_spin_precession_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_block(prealloc_result, block); Nthreads
+                obj, seq_block, sys, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_block(prealloc_result, block); Nthreads
             )
         end
         samples += Nadc
@@ -378,6 +380,7 @@ function simulate(
         seqd = seqd |> gpu #DiscreteSequence
         Xt = Xt |> gpu #SpinStateRepresentation
         sig = sig |> gpu #Signal
+        sys = sys |> gpu #Scanner
         precalc = precalc |> gpu #Info calculated prior to simulation
     end
 
@@ -389,6 +392,7 @@ function simulate(
     @time timed_tuple = @timed run_sim_time_iter!(
         obj,
         seqd,
+        sys,
         sig,
         Xt,
         sim_params["sim_method"],

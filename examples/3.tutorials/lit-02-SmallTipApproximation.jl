@@ -4,7 +4,7 @@
 
 using KomaMRI # hide
 sys = Scanner() # hide
-sys.Smax = 50 # hide
+sys.limits.Smax = 50 # hide
 
 # In this example, we will showcase a common approximation in MRI, the small tip angle approximation.
 # For this, we will simulate a slice profile for spins with positions ``z\in[-2,\,2]\,\mathrm{cm}``

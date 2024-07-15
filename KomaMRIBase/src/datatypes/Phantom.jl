@@ -34,7 +34,7 @@ julia> obj.ρ
     x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
     y::AbstractVector{T}   = zeros(eltype(x), size(x))
     z::AbstractVector{T}   = zeros(eltype(x), size(x))
-    ρ::AbstractVector{T}   = ones(eltype(x), size(x))
+    ρ::Union{AbstractVector{T}, AbstractVector{Complex{T}}}   = ones(eltype(x), size(x))
     T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
     T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
     T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
@@ -46,6 +46,8 @@ julia> obj.ρ
     Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
+    #EXPERIMENTAL: Coils
+    coil_sens::AbstractMatrix{T} = ones(eltype(x), size(x, 1), 1)
     #Motion
     motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
 end
@@ -76,16 +78,17 @@ end
 """Separate object spins in a sub-group"""
 function Base.getindex(obj::Phantom, p)
     fields = []
-    for field in NON_STRING_PHANTOM_FIELDS
+    for field in Iterators.filter(x -> !(x == :name) && !(x == :coil_sens), fieldnames(Phantom))
         push!(fields, (field, getfield(obj, field)[p]))
     end
-    return Phantom(; name=obj.name, fields...)
+    push!(fields, (:coil_sens, getfield(obj, :coil_sens)[p, :]))
 end
 function Base.view(obj::Phantom, p)
     fields = []
-    for field in NON_STRING_PHANTOM_FIELDS
+    for field in Iterators.filter(x -> !(x == :name) && !(x == :coil_sens), fieldnames(Phantom))
         push!(fields, (field, @view(getfield(obj, field)[p])))
     end
+    push!(fields, (:coil_sens, @view(getfield(obj, :coil_sens)[p, :])))
     return Phantom(; name=obj.name, fields...)
 end
 
@@ -124,7 +127,7 @@ end
         heart_rate, asymmetry
     )
 
-Heart-like LV 2D phantom. The variable `circumferential_strain` and `radial_strain` are for streching (if positive) 
+Heart-like LV 2D phantom. The variable `circumferential_strain` and `radial_strain` are for streching (if positive)
 or contraction (if negative). `rotation_angle` is for rotation.
 
 # Keywords
@@ -227,7 +230,7 @@ julia> plot_phantom_map(obj, :ρ)
 ```
 """
 function brain_phantom2D(; axis="axial", ss=4, us=1)
-    # check and filter input    
+    # check and filter input
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
@@ -323,7 +326,7 @@ end
     obj = brain_phantom3D(; ss=4, us=1, start_end=[160,200])
 
 Creates a three-dimentional brain Phantom struct.
-Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm. 
+Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm.
 
 # References
 - B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
@@ -350,7 +353,7 @@ julia> plot_phantom_map(obj, :ρ)
 ```
 """
 function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
-    # check and filter input    
+    # check and filter input
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, ss, us)
 
     # Get data from .mat file
@@ -473,7 +476,7 @@ julia> pelvis_phantom2D(obj, :ρ)
 ```
 """
 function pelvis_phantom2D(; ss=4, us=1)
-    # check and filter input    
+    # check and filter input
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
@@ -556,7 +559,7 @@ julia> ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, 4, [2, 2, 2])
 ```
 """
 function check_phantom_arguments(nd, ss, us)
-    # check for valid input    
+    # check for valid input
     ssz = -9999
     usz = -9999
     if length(us) > 1 || prod(us) > 1

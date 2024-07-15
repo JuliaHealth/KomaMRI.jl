@@ -48,6 +48,7 @@ that they can be re-used from block to block.
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Scanner{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::Bloch,

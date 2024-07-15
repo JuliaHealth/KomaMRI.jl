@@ -6,6 +6,26 @@ struct BlochSimple <: SimulationMethod end
 
 export BlochSimple
 
+
+function sim_output_dim(
+    obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::SimulationMethod
+) where {T<:Real}
+    # Determine the number of coils
+    n_coils = size(obj.coil_sens, 2)
+    return (sum(seq.ADC.N), n_coils) # Nt x Ncoils
+end
+
+"""Magnetization initialization for Bloch simulation method."""
+function initialize_spins_state(
+    obj::Phantom{T}, sim_method::SimulationMethod
+) where {T<:Real}
+    Nspins = length(obj)
+    Mxy = zeros(T, Nspins)
+    Mz = obj.ρ
+    Xt = Mag{T}(Mxy, Mz)
+    return Xt, obj
+end
+
 """
     run_spin_precession(obj, seq, Xt, sig)
 
@@ -24,6 +44,7 @@ precession.
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Scanner,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
@@ -51,7 +72,7 @@ function run_spin_precession!(
     outflow_spin_reset!(Mxy, seq.t', p.motion)
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
     #Acquired signal
-    sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    acquire_signal!(sig, sys.rf_coils, Mxy[:, findall(seq.ADC)])
     return nothing
 end
 

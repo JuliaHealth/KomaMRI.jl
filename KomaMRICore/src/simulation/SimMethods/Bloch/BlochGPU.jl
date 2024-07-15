@@ -125,6 +125,7 @@ end
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Scanner{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::Bloch,
@@ -159,7 +160,8 @@ function run_spin_precession!(
             outflow_spin_reset!(pre.Mxy, seq_block.tp_ADC', p.motion; seq_t=seq.t)
         end
 
-        sig .= transpose(sum(pre.Mxy; dims=1))
+        acquire_signal!(sig, sys.rf_coils, pre.Mxy)
+        #sig .= transpose(sum(pre.Mxy; dims=1))
     end
     
     #Mxy precession and relaxation, and Mz relaxation
