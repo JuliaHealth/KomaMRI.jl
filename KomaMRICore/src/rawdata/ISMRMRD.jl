@@ -79,7 +79,6 @@ function signal_to_raw_data(
     signal, seq;
     phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
 )
-    version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information
     mink = minimum(ktraj, dims=1)
@@ -113,7 +112,7 @@ function signal_to_raw_data(
     params = Dict(
         #AcquisitionSystemInformation
         "systemVendor"                   => "KomaMRI.jl", #String
-        "systemModel"                    => "v"*version, #String
+        "systemModel"                    => string(pkgversion(@__MODULE__)), #String
         "systemFieldStrength_T"          => sys.B0, #Float
         "institutionName"                => "Pontificia Universidad Catolica de Chile", #String
         #subjectInformation

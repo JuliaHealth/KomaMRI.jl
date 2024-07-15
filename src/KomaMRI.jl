@@ -28,8 +28,4 @@ include("KomaUI.jl")
 export KomaUI
 export sys_ui, seq_ui, obj_ui, raw_ui, img_ui
 
-#Package version, KomaMRI.__VERSION__
-using Pkg
-__VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
-
 end
