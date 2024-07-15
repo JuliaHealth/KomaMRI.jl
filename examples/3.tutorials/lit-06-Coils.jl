@@ -24,7 +24,7 @@ p1 = plot_phantom_map(obj, :coil_sens ; height=400, width=400, darkmode=true)
 #jl display(p1)
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../assets/6-phantom1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/2-phantom2.html" style="width:50%; height:420px;"></object>
+#md # <center><object type="text/html" data="../../assets/6-phantom1.html" style="width:50%; height:420px;"></object></center>
 #md # ```
 
 # Now we will interpolate the coils into a brain phantom (this will be done internally):
@@ -38,7 +38,7 @@ p2 = plot_phantom_map(obj, :coil_sens ; height=400, width=400, darkmode=true)
 #jl display(p2)
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../assets/6-phantom2.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/2-phantom2.html" style="width:50%; height:420px;"></object>
+#md # <center><object type="text/html" data="../../assets/6-phantom2.html" style="width:50%; height:420px;"></object></center>
 #md # ```
 
 # Then, we will load an EPI sequence.
@@ -47,7 +47,7 @@ seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparis
 seq = read_seq(seq_file)
 # And simulate:
 
-raw = simulate(obj, seq, sys)
+raw = simulate(obj, seq, sys) # hide
 acq = AcquisitionData(raw) # hide
 acq.traj[1].circular = false # hide
 Nx, Ny = raw.params["reconSize"][1:2] # hide
@@ -58,6 +58,6 @@ p3 = plot_image(slice_abs; height=400) # hide
 #md savefig(p3, "../assets/6-recon.html") # hide
 #jl display(p3)
 
-# #md # ```@raw html
-# #md # <center><object type="text/html" data="../../assets/6-recon.html" style="width:65%; height:420px;"></object></center>
-# #md # ```
+#md # ```@raw html
+#md # <center><object type="text/html" data="../../assets/6-recon.html" style="width:65%; height:420px;"></object></center>
+#md # ```
