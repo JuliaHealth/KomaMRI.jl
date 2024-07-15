@@ -27,6 +27,10 @@ using TestItems, TestItemRunner
 #   For the backend preference to take effect, you need to:
 #   - REPL testing: No action needed. `] test` should pick up the preference right away.
 #   - VSCode testing: You need to restart VSCode.
+#
+#   Sadly, LocalPreferences.toml are not picked up by VScode (that could be .gitignore'd),
+#   so we had put them into the test/Project.toml.
+#
 ###
 
 #Environment variable set by CI
