@@ -1337,7 +1337,7 @@ function plot_phantom_map(
         l.width = width
     end
 
-    return Plot(trace, l, frames)
+    return plot_koma(trace, l, frames)
 end
 
 """
