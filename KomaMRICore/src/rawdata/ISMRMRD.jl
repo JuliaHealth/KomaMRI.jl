@@ -130,11 +130,11 @@ function signal_to_raw_data(
         "reconSize"                      => [Nx, Ny, Nz],                       #reconSpace>matrixSize
         "reconFOV"                       => Float32.([FOVx, FOVy, FOVz]*1e3),   #reconSpace>fieldOfView_mm
         #encodingLimits
-        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, ceil(Int, Nz / 2)),  #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, floor(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
+        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, floor(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, floor(Int, Nz / 2)),  #min, max, center, e.g. partition encoding number
         "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, Ns-1, ceil(Int, Ns / 2)),  #min, max, center, e.g. imaging slice number
+        "enc_lim_slice"                  => Limit(0, Ns-1, floor(Int, Ns / 2)),  #min, max, center, e.g. imaging slice number
         "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
         "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
         "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
@@ -154,10 +154,11 @@ function signal_to_raw_data(
     profiles = Profile[]
     t_acq = get_adc_sampling_times(seq)
     Nro = sum(is_ADC_on.(seq))
-    Nyt = max(Ny, 1); Nst = max(Ns, 1); Nzt = max(Nz, 1) #zero is really one...
-    NroPerPE1   = floor(Int, Nro / (Nyt*Nst*Nzt))
-    NroPerSlice = floor(Int, Nro / Nst)
-    NroPerPE2   = floor(Int, Nro / Nzt)
+    #Nyt = max(Ny, 1); Nst = max(Ns, 1); Nzt = max(Nz, 1) #zero is really one...move to estimate_seq_recon_dimension
+    NroPerPE1   = ceil(Int, Nro / (Ny*Nz*Ns))
+    NroPerSlice = ceil(Int, Nro / Ns)
+    NroPerPE2   = ceil(Int, Nro / Nz)
+    @debug "Nro, NroPerPE1, NroPerSlice, NroPerPE2 = $Nro, $NroPerPE1, $NroPerSlice, $NroPerPE2"
     scan_counter = 0
     ny = 0 #PE1 counter
     ns = 0 #Slice counter
@@ -174,9 +175,9 @@ function signal_to_raw_data(
                 flag += ISMRMRD_ACQ_FIRST_IN_SLICE
                 if Nz > 1; flag += ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP2; end
             elseif scan_counter == Nro - 1 #Needs fixing? CAC 240609 ***
-                #flag += ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1
-                #flag += ISMRMRD_ACQ_LAST_IN_SLICE
-                #if Nz > 1; flag += ISMRMRD_ACQ_LAST_IN_ENCODE_STEP2; end
+                flag += ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1
+                flag += ISMRMRD_ACQ_LAST_IN_SLICE
+                if Nz > 1; flag += ISMRMRD_ACQ_LAST_IN_ENCODE_STEP2; end
             end
             #Header of profile data, head::AcquisitionHeader
             head = AcquisitionHeader(
@@ -225,20 +226,22 @@ function signal_to_raw_data(
             #Update counters
             scan_counter += 1 #another ro
             current += Nsamples
+            if scan_counter % NroPerPE1 == 0
+                ny += 1 #another kspace_encode_step_1
+            end
+            ny = ny % Ny
+            if scan_counter % NroPerPE2 == 0
+                nz += 1 #another kspace_encode_step_2
+            end
+            nz = nz % Nz
             if  scan_counter % NroPerSlice == 0
                 ns += 1 #another slice
             end
-            if scan_counter % NroPerPE1 == 0
-                ny += 1 #another kspace_encode_step_2
-            end
-            if scan_counter % NroPerPE2 == 0
-                ny = 0
-                nz += 1 #another kspace_encode_step_2
-            end
+            ns = ns % Ns
             # more here for other counters, i.e. dynamic
         end
     end
-
+    @debug "scan_counter, ny, nz, ns = $scan_counter, $ny, $nz, $ns"
     return RawAcquisitionData(params, profiles)
 end
 
@@ -251,7 +254,7 @@ Utility function for the best estimate of the reconstruction dimension.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `sim_params`: (`::Dict{String, Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
+- `sim_params`: (`::Dict{String, Any}`, `=Dict{String,Any}()`) simulation parameter dictionary (IGNORED)
 
 # Returns
 - `Nd_seq`: (`Int`) Estimated reconstruction dimension of seq.
@@ -282,9 +285,8 @@ function estimate_seq_recon_dimension(seq; sim_params=Dict{String,Any}(),
     Wk = maxk .- mink
     idxs_zero = findall(iszero, Wk)  #check for zeros
     Wk_el_iszero = iszero.( Wk) # bool array for later
-    Wk[idxs_zero] .= 1.0e6
+    Wk[idxs_zero] .= 1.0e-6
     Δx = 1 ./ Wk[1:3] #[m] x-y-z
-    
     
     #estimate sequence acquisition structure
     Ns_seq = length(unique(seq.RF.Δf)) #slices, slabs, or Cartesean off-center, need to & with ADC *** CAC 240708
@@ -292,37 +294,85 @@ function estimate_seq_recon_dimension(seq; sim_params=Dict{String,Any}(),
     Nv_seq = sum(map(is_ADC_on, seq)) #total number of readouts or views
     @debug "Ns_seq, Np_seq, Nv_seq = $Ns_seq, $Np_seq, $Nv_seq"
     
-    # Guessing Cartesean recon dimensions
-    # ideally all estimates of recon dimensions in one place, as late as possible, non-Cartesean ?? *** CAC 240708
-    seq.DEF["Ns"] = get(seq.DEF, "Ns", length(unique(seq.RF.Δf))) #slices or slabs
-    seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC)) #readout length
-    seq.DEF["Ny"] = get(seq.DEF, "Ny", sum(map(is_ADC_on, seq)) ÷ seq.DEF["Nx"]) #pe1
-    seq.DEF["Nz"] = get(seq.DEF, "Nz", sum(map(is_ADC_on, seq)) ÷ seq.DEF["Ny"]) #pe2
+    #estimate FOV and N from sequence and K-space info
+    FOVx_k = Np_seq*Δx[1]
+    FOVy_k = Np_seq*Δx[2]
+    FOVz_k = Np_seq*Δx[3]
+    Nx_k = ceil(Int64, FOVx_k / Δx[1])
+    Ny_k = ceil(Int64, FOVy_k / Δx[2])
+    Nz_k = ceil(Int64, FOVz_k / Δx[3])
+    @debug "FOVx_k, FOVy_k, FOVz_k = $FOVx_k, $FOVy_k, $FOVz_k"
+    @debug "Nx_k, Ny_k, Nz_k = $Nx_k, $Ny_k, $Nz_k"
     
     # some guesses
-    seq_3d=false; seq_2d=false; seq_nd=false; seq_cartesean=false; seq_radial=false; seq_spiral=false
-    if Ns_seq == Nv_seq; seq_rad = true; end
+    seq_2d=false; seq_3d=false; seq_cartesean=false; seq_radial=false; seq_spiral=false
+    if FOVz_k > 100
+        seq_2d=true
+    elseif FOVz_k > 0
+        seq_3d=true
+    else
+        @warn "This seq file does not seem to be an imaging sequence."    
+    end
+    if Np_seq > 5*Nv_seq
+        seq_spiral = true
+    elseif Ns_seq == Nv_seq
+        seq_radial=true
+    else
+        seq_cartesean=true
+    end
+    @debug "seq_2d, seq_3d, seq_cartesean, seq_radial, seq_spiral = $seq_2d, $seq_3d, $seq_cartesean, $seq_radial, $seq_spiral"
+    
+    # Guessing Cartesean recon dimensions
+    # ideally all estimates of recon dimensions in one place, as late as possible, non-Cartesean ?? *** CAC 240708
+    Ns = get(seq.DEF, "Ns", Ns_seq) #slices or slabs
+    Nx = get(seq.DEF, "Nx", Np_seq)
+    if seq_cartesean
+        if seq_2d
+            Ny = get(seq.DEF, "Ny", ceil(Int64, Nv_seq/Ns)) #pe1
+            Nz = 1
+        elseif seq_3d
+            Ny = get(seq.DEF, "Ny", Ny_k) #pe1
+            Nz = get(seq.DEF, "Nz", ceil(Int64, Nv_seq/Ny_k)) #pe2
+        end
+    else
+        Ny = ceil(Int64, Nv_seq/Ns)
+        Nz = 1
+    end
     
     # explicit reads from seq.DEF
-    Nx = ceil(Int64, get(seq.DEF, "Nx", 1))
-    Ny = ceil(Int64, get(seq.DEF, "Ny", 1))
-    Nz = ceil(Int64, get(seq.DEF, "Nz", 1))
-    Ns = ceil(Int64, get(seq.DEF, "Ns", 1)) # number of slices or slabs
+    #Nx = ceil(Int64, get(seq.DEF, "Nx", 1))
+    #Ny = ceil(Int64, get(seq.DEF, "Ny", 1))
+    #Nz = ceil(Int64, get(seq.DEF, "Nz", 1))
+    #Ns = ceil(Int64, get(seq.DEF, "Ns", 1)) # number of slices or slabs
+    
+    #if Nx == 1  Nx = ceil(Int64, FOVx / Δx[1])  end
+    #if Ny == 1  Ny = ceil(Int64, FOVy / Δx[2])  end
+    #if Nz == 1  Nz = ceil(Int64, FOVz / Δx[3])  end  
+
     if haskey(seq.DEF, "FOV")   #needs info or warning for other substitutions???
         FOVx, FOVy, FOVz = seq.DEF["FOV"] #[m]
-        if FOVx > 1  FOVx *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
-        if FOVy > 1  FOVy *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
-        if FOVz > 1  FOVz *= 1e-3  end #mm to m, older versions of Pulseq saved FOV in mm
-        if Nx == 1  Nx = ceil(Int64, FOVx / Δx[1])  end
-        if Ny == 1  Ny = ceil(Int64, FOVy / Δx[2])  end
-        if Nz == 1  Nz = ceil(Int64, FOVz / Δx[3])  end      
-    else
-        @warn "Estimating FOV parameters from seq.DEF Nx, Ny, Nz and traj."
-        if !Wk_el_iszero[1]  FOVx = Nx * Δx[1]  else FOVx = 1  end
-        if !Wk_el_iszero[2]  FOVy = Ny * Δx[2]  else FOVy = 1  end
-        if !Wk_el_iszero[3]  FOVz = Nz * Δx[3]  else FOVz = 1  end
+        if FOVx > 1.0
+            FOVx *= 1e-3
+            FOVy *= 1e-3
+            FOVz *= 1e-3
+            @warn "Scaling FOV to m from older pulseq file mm."
+        end
+        if seq_3d
+            FOVz = FOVz
+        else
+            FOVz = 0.0
+        end  
+    elseif seq_cartesean
+        @warn "Estimating FOV parameters from k-space."
+        FOVx = FOVx_k
+        FOVy = FOVy_k
+        if seq_3d
+            FOVz = FOVz_k
+        else
+            FOVz = 0.0
+        end
     end
-    Nd_seq = (Nx > 1) + (Ny > 1) + (Nz > 1)
+    Nd_seq = (FOVx > .05) + (FOVy > .05) + (FOVz > .05)
     s_ktraj = size( ktraj)
     @debug "Nd_seq = $Nd_seq"
     @debug "Nx, Ny, Nz, Ns = $Nx, $Ny, $Nz, $Ns"
