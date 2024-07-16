@@ -5,6 +5,7 @@ abstract type PreallocResult{T<:Real} end #get all available types by using subt
 #Defined methods:
 include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
 include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
+include("Bloch/KernelFunctions.jl")
 
 """
     sim_params = default_sim_params(sim_params=Dict{String,Any}())
