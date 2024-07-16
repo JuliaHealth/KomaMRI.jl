@@ -1,7 +1,6 @@
 module KomaAMDGPUExt
 
 using AMDGPU
-using Suppressor
 import KomaMRICore
 import Adapt
 
@@ -21,7 +20,6 @@ end
 
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], ROCBackend())
-    @suppress AMDGPU.allowscalar(true)
 end
 
 end

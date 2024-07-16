@@ -36,7 +36,7 @@ function run_spin_precession!(
     M::Mag{T},
     sim_method::BlochDict,
     backend::KA.Backend,
-    prealloc::BlochPrealloc
+    prealloc::PreallocResult
 ) where {T<:Real}
     #Simulation
     #Motion

@@ -1,7 +1,6 @@
 module KomaCUDAExt
 
 using CUDA
-using Suppressor
 import KomaMRICore
 import Adapt
 
@@ -20,7 +19,6 @@ end
 
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], CUDABackend())
-    @suppress CUDA.allowscalar(true)
 end
 
 end

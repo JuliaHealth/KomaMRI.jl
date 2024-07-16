@@ -1,7 +1,6 @@
 module KomaoneAPIExt
 
 using oneAPI
-using Suppressor
 import KomaMRICore
 import Adapt
 
@@ -18,9 +17,15 @@ function KomaMRICore._print_devices(::oneAPIBackend)
     @info "$(length(oneAPI.devices())) oneAPI capable device(s)." devices...
 end
 
+#Temporary workaround since oneAPI.jl (similar to Metal) does not support some array operations
+#Once run_spin_excitation! and run_spin_precession! are kernel-based, this code can be removed
+Base.cumsum(x::oneVector{T}) where T = convert(oneVector{T}, cumsum(KomaMRICore.cpu(x)))
+Base.cumsum(x::oneArray{T}; dims) where T = convert(oneArray{T}, cumsum(KomaMRICore.cpu(x), dims=dims))
+Base.findall(x::oneVector{Bool}) = convert(oneVector, findall(KomaMRICore.cpu(x)))
+
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], oneAPIBackend())
-    @suppress oneAPI.allowscalar(true)
+    @warn "oneAPI does not support all array operations used by KomaMRI. GPU performance may be slower than expected"
 end
 
 end

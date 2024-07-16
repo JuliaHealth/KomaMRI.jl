@@ -1,11 +1,10 @@
 abstract type SimulationMethod end #get all available types by using subtypes(KomaMRI.SimulationMethod)
 abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
-abstract type PreallocResult{T<:Real} end #get all available types by using subtypes(KomaMRI.PreallocResult)
 
 #Defined methods:
-include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
-include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
-include("Bloch/KernelFunctions.jl")
+include("SimMethods/SimulationMethod.jl")  #Defines Bloch simulation method
+include("SimMethods/BlochDict/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
+include("SimMethods/Bloch/BlochCPU.jl") #Defines specialized Bloch functions for CPU
 
 """
     sim_params = default_sim_params(sim_params=Dict{String,Any}())
@@ -182,7 +181,7 @@ function run_sim_time_iter!(
     rfs = 0
     samples = 1
     progress_bar = Progress(Nblocks; desc="Running simulation...")
-    prealloc_result = prealloc(sim_method, obj, Xt) 
+    prealloc_result = prealloc(sim_method, backend, obj, Xt) 
 
     for (block, p) in enumerate(parts)
         seq_block = @view seq[p]
