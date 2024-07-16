@@ -30,8 +30,4 @@ export simulate, simulate_slice_profile, default_sim_params
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 
-#Package version, KomaMRICore.__VERSION__
-using Pkg
-__VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
-
 end
