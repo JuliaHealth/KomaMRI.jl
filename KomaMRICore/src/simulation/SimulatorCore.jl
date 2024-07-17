@@ -292,13 +292,9 @@ end
     out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; sim_params, w)
 
 Returns the raw signal or the last state of the magnetization according to the value
-of the `"return_type"` key of the `sim_params` dictionary. By default, it prints the `@time`
-information of `run_sim_time_iter` and simulation details such as the number of spins,
-the simulation method, the time points to consider, and the ADC points to be acquired.
+of the `"return_type"` key of the `sim_params` dictionary. 
 
-Note: The information obtained through `@time out = simulate(obj, seq, sys)` will differ from 
-the report of `out = simulate(obj, seq, sys)` as the latter one does not consider complementary 
-processes to `run_sim_time_iter`.
+This is a wrapper function to `run_sim_time_iter`, which converts the inputs to the appropriate types and discretizes the sequence before simulation. The reported simulation time only considers `run_sim_time_iter`, as the preprocessing duration should be negligible compared to the simulation time (if this is not the case, please file a bug report). 
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
