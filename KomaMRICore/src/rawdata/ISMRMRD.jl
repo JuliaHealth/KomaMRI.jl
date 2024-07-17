@@ -245,7 +245,7 @@ function signal_to_raw_data(
 end
 
 """
-    Nd_seq, Nx, Ny, Nz, Ns, FOVx, FOVy, FOVz, Δx = estimate_seq_recon_dimension(seq; sim_params)
+    Nd_seq, Nx, Ny, Nz, Ns, FOVx, FOVy, FOVz, Δx, ktraj = estimate_seq_recon_dimension(seq; sim_params)
 
 Utility function for the best estimate of the reconstruction dimension.
 
@@ -266,11 +266,7 @@ julia> sys, obj, seq = Scanner(), brain_phantom2D(), read_seq(seq_file)
 
 julia> sim_params = KomaMRICore.default_sim_params(); sim_params["return_type"] = "mat"
 
-julia> signal = simulate(obj, seq, sys; sim_params)
-
-julia> Nd_seq = estimate_seq_recon_dimension(seq, signal; sim_params)
-
-julia> OUTPUT ****
+julia> Nd_seq = estimate_seq_recon_dimension(seq; sim_params)
 ```
 """
 function estimate_seq_recon_dimension(seq; sim_params=Dict{String,Any}(),
@@ -323,15 +319,15 @@ function estimate_seq_recon_dimension(seq; sim_params=Dict{String,Any}(),
     
     # Guessing Cartesean recon dimensions
     # ideally all estimates of recon dimensions in one place, as late as possible, non-Cartesean ?? *** CAC 240708
-    Ns = get(seq.DEF, "Ns", Ns_seq) #slices or slabs
-    Nx = get(seq.DEF, "Nx", Np_seq)
+    Ns = Int64(get(seq.DEF, "Ns", Ns_seq)) #slices or slabs
+    Nx = Int64(get(seq.DEF, "Nx", Np_seq))
     if seq_cartesean
         if seq_2d
-            Ny = get(seq.DEF, "Ny", ceil(Int64, Nv_seq/Ns)) #pe1
+            Ny = Int64(get(seq.DEF, "Ny", ceil(Int64, Nv_seq/Ns))) #pe1
             Nz = 1
         elseif seq_3d
-            Ny = get(seq.DEF, "Ny", Ny_k) #pe1
-            Nz = get(seq.DEF, "Nz", ceil(Int64, Nv_seq/Ny_k)) #pe2
+            Ny = Int64(get(seq.DEF, "Ny", Ny_k)) #pe1
+            Nz = Int64(get(seq.DEF, "Nz", ceil(Int64, Nv_seq/Ny_k))) #pe2
         end
     else
         Ny = ceil(Int64, Nv_seq/Ns)
