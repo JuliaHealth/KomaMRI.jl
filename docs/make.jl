@@ -1,4 +1,4 @@
-using Documenter, Literate, KomaMRI, PlutoSliderServer
+using Documenter, Literate, KomaMRI, PlutoSliderServer, DocumenterVitepress
 
 # Setup for Literate and Pluto
 repo_base = "JuliaHealth/KomaMRI.jl"
@@ -59,14 +59,25 @@ makedocs(;
         "🤔 Explanations" => sort(explanation_list),
         "👨‍💻 Reference Guides" => sort(reference_list),
     ],
-    format=Documenter.HTML(;
-        prettyurls=true, #get(ENV, "CI", nothing) == "true",
-        sidebar_sitename=false,
-        collapselevel=1,
-        assets=["assets/extra-styles.css"],
+    format=DocumenterVitepress.MarkdownVitepress(;
+        repo="juliahealth.org/KomaMRI.jl/",
+        md_output_path = ".",
+        build_vitepress = false,
+        # prettyurls=true, #get(ENV, "CI", nothing) == "true",
+        # sidebar_sitename=false,
+        # collapselevel=1,
+        # assets=["assets/extra-styles.css"],
     ),
+    clean=false,
 )
 deploydocs(;
     repo="github.com/JuliaHealth/KomaMRI.jl.git", 
-    push_preview=!isempty(ARGS) ? ARGS[1]=="push_preview" : false
+    push_preview=!isempty(ARGS) ? ARGS[1]=="push_preview" : false,
+    target="build",
 )
+
+#Local dev
+# Session 1
+# using LiveServer; servedocs(foldername="docs/")
+# Session 2, cd docs
+# using DocumenterVitepress; DocumenterVitepress.dev_docs("build", md_output_path="")
