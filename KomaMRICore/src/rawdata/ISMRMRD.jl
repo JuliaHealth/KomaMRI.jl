@@ -129,11 +129,11 @@ function signal_to_raw_data(
         "reconSize"                      => [Nx, Ny, Nz],                       #reconSpace>matrixSize
         "reconFOV"                       => Float32.([FOVx, FOVy, FOVz]*1e3),   #reconSpace>fieldOfView_mm
         #encodingLimits
-        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, floor(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
-        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, floor(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, floor(Int, Nz / 2)),  #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, floor(Int, Nx / 2)), #min, max, center, e.g. phase encoding line number
+        "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, floor(Int, Ny / 2)), #min, max, center, e.g. partition encoding number
+        "enc_lim_kspace_encoding_step_2" => Limit(0, Nz-1, floor(Int, Nz / 2)), #min, max, center, e.g. partition encoding number
         "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, Ns-1, floor(Int, Ns / 2)),  #min, max, center, e.g. imaging slice number
+        "enc_lim_slice"                  => Limit(0, Ns-1, floor(Int, Ns / 2)), #min, max, center, e.g. imaging slice number
         "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
         "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
         "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
