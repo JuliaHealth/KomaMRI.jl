@@ -103,6 +103,8 @@ function run_spin_excitation!(
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
+    backend::KA.Backend,
+    prealloc::PreallocResult
 ) where {T<:Real}
     #Simulation
     for s in seq #This iterates over seq, "s = seq[i,:]"

@@ -124,7 +124,9 @@ function run_spin_excitation_parallel!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
-    sim_method::SimulationMethod;
+    sim_method::SimulationMethod,
+    backend::KA.Backend,
+    prealloc::PreallocResult;
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
@@ -132,7 +134,7 @@ function run_spin_excitation_parallel!(
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_excitation!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method
+            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend, @view(prealloc[p])
         )
     end
 
@@ -193,7 +195,7 @@ function run_sim_time_iter!(
         # Simulation wrappers
         if excitation_bool[block]
             run_spin_excitation_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads
+                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_result; Nthreads
             )
             rfs += 1
         else
