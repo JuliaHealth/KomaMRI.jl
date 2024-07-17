@@ -81,7 +81,7 @@ function signal_to_raw_data(
     signal, seq;
     phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2, use_ndseq=true
 )
-    version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
+
     #Number of samples and FOV
     Nd_seq, Nx, Ny, Nz, Ns, FOVx, FOVy, FOVz, Δx, ktraj = estimate_seq_recon_dimension(seq; sim_params)
     if use_ndseq
@@ -111,7 +111,7 @@ function signal_to_raw_data(
     params = Dict(
         #AcquisitionSystemInformation
         "systemVendor"                   => "KomaMRI.jl", #String
-        "systemModel"                    => "v"*version, #String
+        "systemModel"                    => string(pkgversion(@__MODULE__)), #String
         "systemFieldStrength_T"          => sys.B0, #Float
         "institutionName"                => "Pontificia Universidad Catolica de Chile", #String
         #subjectInformation
@@ -203,7 +203,7 @@ function signal_to_raw_data(
                 Float32.((0, 0, 0)), #patient_table_position float32x3: Patient table off-center
                 EncodingCounters( #idx uint16x17: Encoding loop counters
                     UInt16(ny), #kspace_encode_step_1 uint16: e.g. phase encoding line number
-                    UInt16(nz), #slice uint16: e.g. imaging slice number
+                    UInt16(nz), #kspace_encode_step_2 uint16: e.g. partition encoding number
                     UInt16(0),  #average uint16: e.g. signal average number
                     UInt16(ns), #slice uint16: e.g. imaging slice number
                     UInt16(0),  #contrast uint16: e.g. echo number in multi-echo
