@@ -296,7 +296,9 @@ end
     out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; sim_params, w)
 
 Returns the raw signal or the last state of the magnetization according to the value
-of the `"return_type"` key of the `sim_params` dictionary.
+of the `"return_type"` key of the `sim_params` dictionary. 
+
+This is a wrapper function to `run_sim_time_iter`, which converts the inputs to the appropriate types and discretizes the sequence before simulation. The reported simulation time only considers `run_sim_time_iter`, as the preprocessing duration should be negligible compared to the simulation time (if this is not the case, please file a bug report). 
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
@@ -382,7 +384,7 @@ function simulate(
 
     # Simulation
     @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
-        __VERSION__ sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
+        pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
         seqd.t
     ) adc_points = Ndims[1]
     @time timed_tuple = @timed run_sim_time_iter!(
