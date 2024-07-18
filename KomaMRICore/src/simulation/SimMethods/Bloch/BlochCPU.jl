@@ -82,7 +82,7 @@ function run_spin_precession!(
         @. Bz_new = x * seq.Gx[seq_idx] + y * seq.Gy[seq_idx] + z * seq.Gz[seq_idx] + p.Δw / T(2π * γ)
         
         #Rotation
-        @. ϕ += (Bz_old + Bz_new) * T(-2π * γ) * seq.Δt[seq_idx-1] / T(2)
+        @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[seq_idx-1]
 
         #Acquired Signal
         if seq_idx <= length(seq.ADC) && seq.ADC[seq_idx]
@@ -137,9 +137,9 @@ function run_spin_excitation!(
         @. B = sqrt(abs(s.B1)^2 + abs(Bz)^2)
         @. B[B == 0] = eps(T)
         #Spinor Rotation
-        @. φ = T(-2π * γ) * (B * s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler 
-        @. α = cos(φ / T(2)) - Complex{T}(im) * (Bz / B) * sin(φ / T(2))
-        @. β = -Complex{T}(im) * (s.B1 / B) * sin(φ / T(2))
+        @. φ = T(-π * γ) * (B * s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler 
+        @. α = cos(φ) - Complex{T}(im) * (Bz / B) * sin(φ)
+        @. β = -Complex{T}(im) * (s.B1 / B) * sin(φ)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
