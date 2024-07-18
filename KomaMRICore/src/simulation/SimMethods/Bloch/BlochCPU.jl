@@ -82,7 +82,7 @@ function run_spin_precession!(
         @. Bz_new = x * seq.Gx[seq_idx] + y * seq.Gy[seq_idx] + z * seq.Gz[seq_idx] + p.Δw / T(2π * γ)
         
         #Rotation
-        @. ϕ += (Bz_old + Bz_new) * T(-2π * γ) * seq.Δt[seq_idx-1] / 2
+        @. ϕ += (Bz_old + Bz_new) * T(-2π * γ) * seq.Δt[seq_idx-1] / T(2)
 
         #Acquired Signal
         if seq_idx <= length(seq.ADC) && seq.ADC[seq_idx]
@@ -96,7 +96,7 @@ function run_spin_precession!(
 
     #Final Spin-State
     @. M.xy = M.xy * exp(-t_seq / p.T2) * cis(ϕ)
-    @. M.z = M.z * exp(-t_seq / p.T1) + p.ρ * (1 - exp(-t_seq / p.T1))
+    @. M.z = M.z * exp(-t_seq / p.T1) + p.ρ * (T(1) - exp(-t_seq / p.T1))
 
     return nothing
 end
@@ -138,12 +138,12 @@ function run_spin_excitation!(
         @. B[B == 0] = eps(T)
         #Spinor Rotation
         @. φ = T(-2π * γ) * (B * s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler 
-        @. α = cos(φ / 2) - 1im * (Bz / B) * sin(φ / 2)
-        @. β = -1im * (s.B1 / B) * sin(φ / 2)
+        @. α = cos(φ / T(2)) - Complex{T}(im) * (Bz / B) * sin(φ / T(2))
+        @. β = -Complex{T}(im) * (s.B1 / B) * sin(φ / T(2))
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
-        @. M.z = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))
+        @. M.z = M.z * exp(-s.Δt / p.T1) + p.ρ * (T(1) - exp(-s.Δt / p.T1))
     end
     #Acquired signal
     #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
