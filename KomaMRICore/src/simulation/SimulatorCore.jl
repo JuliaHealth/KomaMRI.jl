@@ -2,9 +2,7 @@ abstract type SimulationMethod end #get all available types by using subtypes(Ko
 abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
-include("SimMethods/SimulationMethod.jl")  #Defines Bloch simulation method
-include("SimMethods/BlochDict/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
-include("SimMethods/Bloch/BlochCPU.jl") #Defines specialized Bloch functions for CPU
+include("SimMethods/SimulationMethod.jl")  #Defines simulation methods
 
 """
     sim_params = default_sim_params(sim_params=Dict{String,Any}())
