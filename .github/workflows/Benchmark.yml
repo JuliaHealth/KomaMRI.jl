@@ -58,7 +58,7 @@ jobs:
           tool: 'julia'
           output-file-path: ${{ steps.locate.outputs.path }}
           benchmark-data-dir-path: "benchmarks"
-          summary-always: true
+          summary-always: true # I think this doesn't work on PRs
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-always: true
           alert-threshold: "150%"
