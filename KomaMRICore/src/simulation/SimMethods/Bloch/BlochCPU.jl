@@ -86,7 +86,7 @@ function run_spin_precession!(
 
         #Acquired Signal
         if seq_idx <= length(seq.ADC) && seq.ADC[seq_idx]
-            Mxy .= exp.(-t_seq ./ p.T2) .* (M.xy .* (cos.(ϕ) .+ im .* sin.(ϕ)))
+            Mxy .= exp.(-t_seq ./ p.T2) .* M.xy .* cis.(ϕ)
             sig[ADC_idx] = sum(Mxy) 
             ADC_idx += 1
         end
@@ -95,7 +95,7 @@ function run_spin_precession!(
     end
 
     #Final Spin-State
-    M.xy .= M.xy .* exp.(-t_seq ./ p.T2) .* (cos.(ϕ) .+ im .* sin.(ϕ))
+    M.xy .= M.xy .* exp.(-t_seq ./ p.T2) .* cis.(ϕ)
     M.z .= M.z .* exp.(-t_seq ./ p.T1) .+ p.ρ .* (1 .- exp.(-t_seq ./ p.T1))
 
     return nothing
