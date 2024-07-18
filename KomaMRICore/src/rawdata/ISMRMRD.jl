@@ -282,9 +282,11 @@ function estimate_seq_recon_dimension(seq; sim_params=Dict{String,Any}(),
     Wk_el_iszero = iszero.( Wk) # bool array for later
     Wk[idxs_zero] .= 1.0e-6
     Δx = 1 ./ Wk[1:3] #[m] x-y-z
-    
+    k_radius= mapslices(norm, ktraj, dims=2) #limit to first N readouts?
+    k_radius_norm = k_radius ./ maximum(k_radius)
+
     #estimate sequence acquisition structure
-    Ns_seq = length(unique(seq.RF.Δf)) #slices, slabs, or Cartesean off-center, need to & with ADC *** CAC 240708
+    Ns_seq = length(unique(seq.RF.Δf)) #slices, slabs, or Cartesean off-center, preps need to & with ADC *** CAC 240708
     Np_seq = maximum(adc.N for adc = seq.ADC) #readout length
     Nv_seq = sum(map(is_ADC_on, seq)) #total number of readouts or views
     @debug "Ns_seq, Np_seq, Nv_seq = $Ns_seq, $Np_seq, $Nv_seq"
@@ -310,7 +312,7 @@ function estimate_seq_recon_dimension(seq; sim_params=Dict{String,Any}(),
     end
     if Np_seq > 5*Nv_seq
         seq_spiral = true
-    elseif Ns_seq == Nv_seq
+    elseif sum( k_radius_norm .< 3/Np_seq) >= Nv_seq #Center of K-space highly sampled
         seq_radial=true
     else
         seq_cartesean=true
@@ -330,7 +332,9 @@ function estimate_seq_recon_dimension(seq; sim_params=Dict{String,Any}(),
             Nz = Int64(get(seq.DEF, "Nz", ceil(Int64, Nv_seq/Ny_k))) #pe2
         end
     else
-        Ny = ceil(Int64, Nv_seq/Ns)
+        @warn "Non-Cartesean recon is still under development."
+        Ny = ceil(Int64, Nv_seq)
+        if Ny == 1 Ns = 1 end #sinle shot spiral
         Nz = 1
     end
     
@@ -346,11 +350,11 @@ function estimate_seq_recon_dimension(seq; sim_params=Dict{String,Any}(),
 
     if haskey(seq.DEF, "FOV")   #needs info or warning for other substitutions???
         FOVx, FOVy, FOVz = seq.DEF["FOV"] #[m]
-        if FOVx > 1.0
-            FOVx *= 1e-3
-            FOVy *= 1e-3
-            FOVz *= 1e-3
-            @warn "Scaling FOV to m from older pulseq file mm."
+        if FOVx > 1.0 #do this in steps until < 1?? seems like mm or cm possible
+            FOVx *= 1e-2
+            FOVy *= 1e-2
+            FOVz *= 1e-2
+            @warn "Scaling FOV to m from older pulseq file cm."
         end
         if seq_3d
             FOVz = FOVz

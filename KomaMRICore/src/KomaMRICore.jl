@@ -22,6 +22,7 @@ include("simulation/Functors.jl")
 include("simulation/SimulatorCore.jl")
 
 # ISMRMRD
+using LinearAlgebra
 #export signal_to_raw_data
 export signal_to_raw_data, estimate_seq_recon_dimension # *** CAC 240708 for debugging
 # Simulator
