@@ -45,23 +45,23 @@ Parameter relations for the Shinnar-Le Roux selective excitation pulse design al
 (NMR imaging).
 IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 """
-mul!(s::Spinor, M::Mag) = begin
+mul!(s::Spinor{T}, M::Mag) where {T<:Real} = begin
     M_aux = Mag(
-        2 .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
-        (abs.(s.α).^2 .-abs.(s.β).^2).*M.z.-2 .*real.(s.α.*s.β.*conj.(M.xy))
+        T(2) .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
+        (abs.(s.α).^2 .-abs.(s.β).^2).*M.z.-T(2) .*real.(s.α.*s.β.*conj.(M.xy))
      )
     M.xy .= M_aux.xy
     M.z  .= M_aux.z
 end
-mul!(s::Spinor, M::Mag, Maux_xy, Maux_z) = begin
-    @. Maux_xy = 2*conj(s.α)*s.β*M.z+conj(s.α)^2*M.xy-s.β^2*conj(M.xy)
-    @. Maux_z = (abs(s.α)^2 -abs(s.β)^2)*M.z-2 *real(s.α*s.β*conj(M.xy))
+mul!(s::Spinor{T}, M::Mag, Maux_xy, Maux_z) where {T<:Real} = begin
+    @. Maux_xy = T(2)*conj(s.α)*s.β*M.z+conj(s.α)^2*M.xy-s.β^2*conj(M.xy)
+    @. Maux_z = (abs(s.α)^2 -abs(s.β)^2)*M.z-T(2) *real(s.α*s.β*conj(M.xy))
     @. M.xy = Maux_xy
     @. M.z = Maux_z
 end
-*(s::Spinor, M::Mag) = begin
+*(s::Spinor{T}, M::Mag) where {T<:Real} = begin
     Mag(
-        2 .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
-        (abs.(s.α).^2 .-abs.(s.β).^2).*M.z.-2 .*real.(s.α.*s.β.*conj.(M.xy))
+        T(2) .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
+        (abs.(s.α).^2 .-abs.(s.β).^2).*M.z.-T(2) .*real.(s.α.*s.β.*conj.(M.xy))
      )
 end
