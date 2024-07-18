@@ -64,7 +64,7 @@ function run_spin_precession!(
     ϕ = prealloc.Bz_3
     Mxy = prealloc.Mxy_1
     fill!(ϕ, zero(T))
-    Bz_old .= x[:,1] .* seq.Gx[1] .+ y[:,1] .* seq.Gy[1] .+ z[:,1] .* seq.Gz[1] .+ p.Δw ./ T(2π .* γ)
+    @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + p.Δw / T(2π * γ)
 
     # Fill sig[1] if needed
     ADC_idx = 1
@@ -79,14 +79,14 @@ function run_spin_precession!(
         t_seq += seq.Δt[seq_idx-1]
 
         #Effective Field
-        Bz_new .= x .* seq.Gx[seq_idx] .+ y .* seq.Gy[seq_idx] .+ z .* seq.Gz[seq_idx] .+ p.Δw ./ T(2π .* γ)
+        @. Bz_new = x * seq.Gx[seq_idx] + y * seq.Gy[seq_idx] + z * seq.Gz[seq_idx] + p.Δw / T(2π * γ)
         
         #Rotation
-        ϕ .= ϕ .+ (Bz_old .+ Bz_new) .* (T(-2π .* γ) .* seq.Δt[seq_idx-1] ./ 2)
+        @. ϕ += (Bz_old + Bz_new) * T(-2π * γ) * seq.Δt[seq_idx-1] / 2
 
         #Acquired Signal
         if seq_idx <= length(seq.ADC) && seq.ADC[seq_idx]
-            Mxy .= exp.(-t_seq ./ p.T2) .* M.xy .* cis.(ϕ)
+            @. Mxy = exp(-t_seq / p.T2) * M.xy * cis(ϕ)
             sig[ADC_idx] = sum(Mxy) 
             ADC_idx += 1
         end
@@ -95,8 +95,8 @@ function run_spin_precession!(
     end
 
     #Final Spin-State
-    M.xy .= M.xy .* exp.(-t_seq ./ p.T2) .* cis.(ϕ)
-    M.z .= M.z .* exp.(-t_seq ./ p.T1) .+ p.ρ .* (1 .- exp.(-t_seq ./ p.T1))
+    @. M.xy = M.xy * exp(-t_seq / p.T2) * cis(ϕ)
+    @. M.z = M.z * exp(-t_seq / p.T1) + p.ρ * (1 - exp(-t_seq / p.T1))
 
     return nothing
 end
@@ -126,24 +126,24 @@ function run_spin_excitation!(
     Maux_z = prealloc.Bz_5
 
     #Can be calculated outside of loop
-    ΔBz .= p.Δw ./ T(2π .* γ)
+    @. ΔBz = p.Δw / T(2π * γ)
 
     #Simulation
     for s in seq #This iterates over seq, "s = seq[i,:]"
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
-        Bz .= (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        B .= sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
-        B[B .== 0] .= eps(T)
+        @. Bz = (s.Gx * x + s.Gy * y + s.Gz * z) + ΔBz - s.Δf / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        @. B = sqrt(abs(s.B1)^2 + abs(Bz)^2)
+        @. B[B == 0] = eps(T)
         #Spinor Rotation
-        φ .= T(-2π .* γ) .* (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler 
-        α .= cos.(φ ./ 2) .- 1im .* (Bz ./ B) .* sin.(φ ./ 2)
-        β .= -1im .* (s.B1 ./ B) .* sin.(φ ./ 2)
+        @. φ = T(-2π * γ) * (B * s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler 
+        @. α = cos(φ / 2) - 1im * (Bz / B) * sin(φ / 2)
+        @. β = -1im * (s.B1 / B) * sin(φ / 2)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
-        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
-        M.z .= M.z .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
+        @. M.xy = M.xy * exp(-s.Δt / p.T2)
+        @. M.z = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))
     end
     #Acquired signal
     #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
