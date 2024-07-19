@@ -19,6 +19,7 @@ on:
       - "benchmarks/**/*"
       - ".buildkite/**/*"
       - "Project.toml"
+      - ".github/workflows/Benchmark.yml"
   push:
     branches:
       - master
@@ -32,6 +33,7 @@ on:
       - "benchmarks/**/*"
       - ".buildkite/**/*"
       - "Project.toml"
+      - ".github/workflows/Benchmark.yml"
 
 jobs:
   benchmark:
