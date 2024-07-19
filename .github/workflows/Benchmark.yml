@@ -3,9 +3,10 @@ permissions:
   contents: write # contents permission to update benchmark contents in gh-pages branch
   statuses: read
   deployments: write # deployments permission to deploy GitHub pages website
+  pull-requests: write
 
 on: 
-  pull_request:
+  pull_request_target:
     branches:
       - master
     paths:
@@ -58,9 +59,10 @@ jobs:
           tool: 'julia'
           output-file-path: ${{ steps.locate.outputs.path }}
           benchmark-data-dir-path: "benchmarks"
-          summary-always: true # I think this doesn't work on PRs
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          # comment-on-alert: true
           comment-always: true
+          summary-always: true
           alert-threshold: "150%"
           fail-on-alert: false
           auto-push: ${{ github.event_name != 'pull_request' }}
