@@ -1,39 +1,39 @@
-"""Stores arrays for use in Bloch CPU run_spin_precession function."""
+"""Stores preallocated structs for use in Bloch CPU run_spin_precession function."""
 struct BlochCPUPrealloc{T} <: PreallocResult{T}
-    Bz_1::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    Bz_2::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    Bz_3::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    Bz_4::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    Bz_5::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    Mxy_1::AbstractVector{Complex{T}}     # Vector{Complex{T}}(Nspins x 1)
-    Mxy_2::AbstractVector{Complex{T}}     # Vector{Complex{T}}(Nspins x 1)
-    Mxy_3::AbstractVector{Complex{T}}     # Vector{Complex{T}}(Nspins x 1)
+    M::Mag{T}                               # Mag{T}
+    Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
+    Bz_new::AbstractVector{T}               # Vector{T}(Nspins x 1)
+    ϕ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
+    φ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
+    Rot::Spinor{T}                          # Spinor{T}
 end
 
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
     @views BlochCPUPrealloc(
-        p.Bz_1[i],
-        p.Bz_2[i],
-        p.Bz_3[i],
-        p.Bz_4[i],
-        p.Bz_5[i],
-        p.Mxy_1[i],
-        p.Mxy_2[i],
-        p.Mxy_3[i]
+        p.M[i],
+        p.Bz_old[i],
+        p.Bz_new[i],
+        p.ϕ[i],
+        p.φ[i],
+        p.Rot[i]
     )
 end
 
 """Preallocates arrays for use in run_spin_precession."""
 function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}) where {T<:Real}
     return BlochCPUPrealloc(
+        Mag(
+            similar(M.xy),
+            similar(M.z)
+        ),
         similar(obj.x),
         similar(obj.x),
         similar(obj.x),
         similar(obj.x),
-        similar(obj.x),
-        similar(M.xy),
-        similar(M.xy),
-        similar(M.xy)
+        Spinor(
+            similar(M.xy),
+            similar(M.xy)
+        )
     )
 end
 
@@ -59,10 +59,10 @@ function run_spin_precession!(
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1,:]')
     
     #Initialize arrays
-    Bz_old = prealloc.Bz_1
-    Bz_new = prealloc.Bz_2
-    ϕ = prealloc.Bz_3
-    Mxy = prealloc.Mxy_1
+    Bz_old = prealloc.Bz_old
+    Bz_new = prealloc.Bz_new
+    ϕ = prealloc.ϕ
+    Mxy = prealloc.M.xy
     fill!(ϕ, zero(T))
     @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + p.Δw / T(2π * γ)
 
@@ -116,14 +116,14 @@ function run_spin_excitation!(
     backend::KA.CPU,
     prealloc::BlochCPUPrealloc
 ) where {T<:Real}
-    ΔBz = prealloc.Bz_1
-    Bz = prealloc.Bz_2
-    B = prealloc.Bz_3
-    φ = prealloc.Bz_4
-    α = prealloc.Mxy_1
-    β = prealloc.Mxy_2
-    Maux_xy = prealloc.Mxy_3
-    Maux_z = prealloc.Bz_5
+    ΔBz = prealloc.Bz_old
+    Bz = prealloc.Bz_new
+    B = prealloc.ϕ
+    φ = prealloc.φ
+    α = prealloc.Rot.α
+    β = prealloc.Rot.β
+    Maux_xy = prealloc.M.xy
+    Maux_z = prealloc.M.z
 
     #Can be calculated outside of loop
     @. ΔBz = p.Δw / T(2π * γ)
