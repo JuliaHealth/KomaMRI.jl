@@ -35,6 +35,6 @@ Base.view(p::DefaultPreAlloc, i::UnitRange) = p
 prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}) where {T<:Real} = DefaultPreAlloc{T}()
 
 include("KernelFunctions.jl")
-include("BlochSimple/BlochSimpleSimulationMethod.jl")
+include("BlochSimple/BlochSimple.jl")
 include("Bloch/BlochCPU.jl")
-include("BlochDict/BlochDictSimulationMethod.jl")
+include("BlochDict/BlochDict.jl")
