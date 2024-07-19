@@ -9,7 +9,6 @@ on:
   pull_request:
     branches:
       - master
-      - main
     paths:
       - "KomaMRICore/src/**/*"
       - "KomaMRICore/ext/**/*"
@@ -23,7 +22,6 @@ on:
   push:
     branches:
       - master
-      - main
     paths:
       - "KomaMRICore/src/**/*"
       - "KomaMRICore/ext/**/*"
