@@ -1,9 +1,7 @@
-"""
-Simplest sim method, works for GPU and CPU but not optimized for either. Although Bloch()
-is the simulation method chosen if none is passed, the run_spin_precession! and
-run_spin_excitation! functions in this file are dispatched to at the most abstract level,
-so new simulation methods will start by using these functions.
-"""
+#Simplest sim method, works for GPU and CPU but not optimized for either. Although Bloch()
+#is the simulation method chosen if none is passed, the run_spin_precession! and
+#run_spin_excitation! functions in this file are dispatched to at the most abstract level,
+#so new simulation methods will start by using these functions.
 struct BlochSimple <: SimulationMethod end
 
 export BlochSimple
