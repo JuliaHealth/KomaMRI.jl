@@ -2,7 +2,6 @@
 struct Bloch <: SimulationMethod end
 
 export Bloch
-
 include("Magnetization.jl")
 
 @functor Mag #Gives gpu acceleration capabilities, see GPUFunctions.jl
@@ -34,6 +33,7 @@ Base.view(p::DefaultPreAlloc, i::UnitRange) = p
 """Default preallocation function."""
 prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}) where {T<:Real} = DefaultPreAlloc{T}()
 
+include("../../datatypes/VectorSU2.jl")
 include("KernelFunctions.jl")
 include("BlochSimple/BlochSimple.jl")
 include("Bloch/BlochCPU.jl")
