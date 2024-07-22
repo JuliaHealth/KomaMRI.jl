@@ -1,39 +1,27 @@
 """Stores preallocated structs for use in Bloch CPU run_spin_precession function."""
-struct BlochCPUPrealloc{T} <: PreallocResult{T}
-    M::Mag{T}                               # Mag{T}
-    Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    Bz_new::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    ϕ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
-    φ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
-    Rot::Spinor{T}                          # Spinor{T}
+mutable struct BlochCPUPrealloc{T} <: PreallocResult{T}
+    B_old::VectorSU2{T}         # Vector{T}(Nspins x 1)
+    B_new::VectorSU2{T}         # Vector{T}(Nspins x 1)
+    φ::AbstractVector{T}        # Vector{T}(Nspins x 1)
+    Rot::Spinor{T}              # Spinor{T}
 end
 
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
-    @views BlochCPUPrealloc(
-        p.M[i],
-        p.Bz_old[i],
-        p.Bz_new[i],
-        p.ϕ[i],
-        p.φ[i],
-        p.Rot[i]
+    BlochCPUPrealloc(
+        @view(p.B_old[i]),
+        @view(p.B_new[i]),
+        @view(p.φ[i]),
+        @view(p.Rot[i])
     )
 end
 
 """Preallocates arrays for use in run_spin_precession."""
 function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}) where {T<:Real}
     return BlochCPUPrealloc(
-        Mag(
-            similar(M.xy),
-            similar(M.z)
-        ),
-        similar(obj.x),
-        similar(obj.x),
-        similar(obj.x),
-        similar(obj.x),
-        Spinor(
-            similar(M.xy),
-            similar(M.xy)
-        )
+        VectorSU2(zero(M.xy), zero(M.z)), #TODO: change this to not use M.xy
+        VectorSU2(zero(M.xy), zero(M.z)),
+        zero(obj.x),
+        Spinor(zero(M.xy), zero(M.xy))
     )
 end
 
@@ -52,52 +40,39 @@ function run_spin_precession!(
     M::Mag{T},
     sim_method::Bloch,
     backend::KA.CPU,
-    prealloc::BlochCPUPrealloc
+    pre::BlochCPUPrealloc
 ) where {T<:Real}
-    #Simulation
-    #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1,:]')
-    
-    #Initialize arrays
-    Bz_old = prealloc.Bz_old
-    Bz_new = prealloc.Bz_new
-    ϕ = prealloc.ϕ
-    Mxy = prealloc.M.xy
-    fill!(ϕ, zero(T))
-    @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + p.Δw / T(2π * γ)
-
-    # Fill sig[1] if needed
+    # Initialize
     ADC_idx = 1
-    if (seq.ADC[1])
-        sig[1] = sum(M.xy)
-        ADC_idx += 1
-    end
-
-    t_seq = zero(T) # Time
-    for seq_idx=2:length(seq.t)
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[seq_idx,:]')
-        t_seq += seq.Δt[seq_idx-1]
-
-        #Effective Field
-        @. Bz_new = x * seq.Gx[seq_idx] + y * seq.Gy[seq_idx] + z * seq.Gz[seq_idx] + p.Δw / T(2π * γ)
-        
-        #Rotation
-        @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[seq_idx-1]
-
-        #Acquired Signal
-        if seq_idx <= length(seq.ADC) && seq.ADC[seq_idx]
-            @. Mxy = exp(-t_seq / p.T2) * M.xy * cis(ϕ)
-            sig[ADC_idx] = sum(Mxy) 
+    Δt = zero(T) # Time
+    pre.φ .= zero(T)
+    # Simulation    
+    for i in 1:length(seq.Δt)
+        # Bz_eff(tn+1)
+        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i+1,:]')
+        @. pre.B_new.z = x * seq.Gx[i+1] + y * seq.Gy[i+1] + z * seq.Gz[i+1] + p.Δw / T(2π * γ)
+        # Rotation angle
+        @. pre.φ += T(-2π * γ) * (pre.B_old.z + pre.B_new.z) * seq.Δt[i] / 2
+        Δt += seq.Δt[i]
+        # Acquire signal
+        if seq.ADC[i+1] # TODO: || sim_method.sample_all
+            # Decay + Rot
+            @. M.xy *= exp(-Δt / p.T2) * cis(pre.φ)
+            # Sample
+            sig[ADC_idx] = sum(M.xy) 
             ADC_idx += 1
+            # Reset, decay and rot operators
+            Δt = zero(T)
+            pre.φ .= zero(T)
         end
-
-        Bz_old, Bz_new = Bz_new, Bz_old
+        # Update
+        pre.B_old.z .= pre.B_new.z
     end
-
-    #Final Spin-State
-    @. M.xy = M.xy * exp(-t_seq / p.T2) * cis(ϕ)
-    @. M.z = M.z * exp(-t_seq / p.T1) + p.ρ * (T(1) - exp(-t_seq / p.T1))
-
+    pre.B_old.xy .= zero(Complex{T})
+    # Final Spin-State
+    t_total = sum(seq.Δt)
+    @. M.xy *= exp(-Δt / p.T2) * cis(pre.φ)
+    @. M.z = M.z * exp(-t_total / p.T1) + p.ρ * (1 - exp(-t_total / p.T1))
     return nothing
 end
 
@@ -114,38 +89,31 @@ function run_spin_excitation!(
     M::Mag{T},
     sim_method::Bloch,
     backend::KA.CPU,
-    prealloc::BlochCPUPrealloc
+    pre::BlochCPUPrealloc
 ) where {T<:Real}
-    ΔBz = prealloc.Bz_old
-    Bz = prealloc.Bz_new
-    B = prealloc.ϕ
-    φ = prealloc.φ
-    α = prealloc.Rot.α
-    β = prealloc.Rot.β
-    Maux_xy = prealloc.M.xy
-    Maux_z = prealloc.M.z
-
-    #Can be calculated outside of loop
-    @. ΔBz = p.Δw / T(2π * γ)
-
-    #Simulation
-    for s in seq #This iterates over seq, "s = seq[i,:]"
-        #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
-        #Effective field
-        @. Bz = (s.Gx * x + s.Gy * y + s.Gz * z) + ΔBz - s.Δf / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        @. B = sqrt(abs(s.B1)^2 + abs(Bz)^2)
-        @. B[B == 0] = eps(T)
-        #Spinor Rotation
-        @. φ = T(-π * γ) * (B * s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler 
-        @. α = cos(φ) - Complex{T}(im) * (Bz / B) * sin(φ)
-        @. β = -Complex{T}(im) * (s.B1 / B) * sin(φ)
-        mul!(Spinor(α, β), M, Maux_xy, Maux_z)
-        #Relaxation
-        @. M.xy = M.xy * exp(-s.Δt / p.T2)
-        @. M.z = M.z * exp(-s.Δt / p.T1) + p.ρ * (T(1) - exp(-s.Δt / p.T1))
+    # Init
+    sample = 1
+    # Simulation
+    for i in 1:length(seq.Δt)
+        # Motion
+        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i+1, :])
+        # Effective field
+        @. pre.B_new.xy = seq.B1[i+1]
+        @. pre.B_new.z  = (seq.Gx[i+1] * x + seq.Gy[i+1] * y + seq.Gz[i+1] * z) + p.Δw / T(2π * γ) - seq.Δf[i+1] / T(γ)
+        # Rotation
+        calculateRot!(pre, seq.Δt[i])
+        mul!(pre.Rot, M)
+        # Relaxation
+        @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
+        @. M.z  = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (1 - exp(-seq.Δt[i] / p.T1))
+        # Sample
+        if seq.ADC[i+1]
+            sig[sample] .= sum(M.xy)
+            sample += 1
+        end
+        # Update
+        pre.B_old.xy .= pre.B_new.xy
+        pre.B_old.z  .= pre.B_new.z
     end
-    #Acquired signal
-    #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
     return nothing
 end
