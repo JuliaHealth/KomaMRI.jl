@@ -187,7 +187,7 @@ function run_sim_time_iter!(
         seq_block = @view seq[p]
         # Params
         # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
-        Nadc = sum(seq_block.ADC)
+        Nadc = sum(seq_block.ADC[2:end]) # The first sample is considered in the previous block
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
         # Simulation wrappers
@@ -230,7 +230,7 @@ function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
     start_idx_rf_block = 0
     start_idx_gr_block = 0
     #Split 1:N into Nblocks like kfoldperm
-    N = length(seqd.Δt)
+    N = length(seqd.t)
     k = min(N, Nblocks)
     n, r = divrem(N, k) #N >= k, N < k
     breaks = collect(1:n:(N + 1))
@@ -239,43 +239,43 @@ function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
     end
     breaks = breaks[2:(end - 1)] #Remove borders,
     #Iterate over B1 values to decide the simulation UnitRanges
-    for i in eachindex(seqd.Δt)
+    for i in eachindex(seqd.t)
         if abs(seqd.B1[i]) > 1e-9 #TODO: This is needed as the function ⏢ in get_rfs is not very accurate
             if start_idx_rf_block == 0 #End RF block
-                start_idx_rf_block = i
+                start_idx_rf_block = i - 1
             end
             if start_idx_gr_block > 0 #End of GR block
-                push!(ranges, start_idx_gr_block:(i - 1))
+                push!(ranges, start_idx_gr_block:i-1)
                 push!(ranges_bool, false)
                 start_idx_gr_block = 0
             end
         else
             if start_idx_gr_block == 0 #Start GR block
-                start_idx_gr_block = i
+                start_idx_gr_block = i - 1
             end
             if start_idx_rf_block > 0 #End of RF block
-                push!(ranges, start_idx_rf_block:(i - 1))
+                push!(ranges, start_idx_rf_block:i-1)
                 push!(ranges_bool, true)
                 start_idx_rf_block = 0
             end
         end
         #More subdivisions
-        if i in breaks
-            if start_idx_rf_block > 0 #End of RF block
-                if length(start_idx_rf_block:(i - 1)) > 1
-                    push!(ranges, start_idx_rf_block:(i - 1))
-                    push!(ranges_bool, true)
-                    start_idx_rf_block = i
-                end
-            end
-            if start_idx_gr_block > 0 #End of RF block
-                if length(start_idx_gr_block:(i - 1)) > 1
-                    push!(ranges, start_idx_gr_block:(i - 1))
-                    push!(ranges_bool, false)
-                    start_idx_gr_block = i
-                end
-            end
-        end
+        # if i in breaks
+        #     if start_idx_rf_block > 0 #End of RF block
+        #         if length(start_idx_rf_block:(i - 1)) > 1
+        #             push!(ranges, start_idx_rf_block:(i - 1))
+        #             push!(ranges_bool, true)
+        #             start_idx_rf_block = i - 1
+        #         end
+        #     end
+        #     if start_idx_gr_block > 0 #End of RF block
+        #         if length(start_idx_gr_block:(i - 1)) > 1
+        #             push!(ranges, start_idx_gr_block:(i - 1))
+        #             push!(ranges_bool, false)
+        #             start_idx_gr_block = i
+        #         end
+        #     end
+        # end
     end
     #Finishing the UnitRange's
     if start_idx_rf_block > 0
