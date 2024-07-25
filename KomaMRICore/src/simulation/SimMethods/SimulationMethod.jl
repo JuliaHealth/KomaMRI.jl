@@ -26,15 +26,24 @@ end
 
 abstract type PreallocResult{T<:Real} end
 
-"""Default preallocation struct, stores nothing."""
-struct DefaultPreAlloc{T} <: PreallocResult{T} end
+abstract type PrecalcResult{T<:Real} end
 
-Base.view(p::DefaultPreAlloc, i::UnitRange) = p
+"""Default preallocation struct, stores nothing."""
+struct DefaultPrealloc{T} <: PreallocResult{T} end
+
+Base.view(p::PreallocResult, i::UnitRange) = p
+prealloc_block(p::PreallocResult, i::Integer) = p
+
+"""Default precalculation struct, stores nothing."""
+struct DefaultPrecalc{T} <: PrecalcResult{T} end
 
 """Default preallocation function."""
-prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}) where {T<:Real} = DefaultPreAlloc{T}()
+prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, precalc) where {T<:Real} = DefaultPrealloc{T}()
 
-include("KernelFunctions.jl")
+"""Default precalc function."""
+precalculate(sim_method::SimulationMethod, backend::KA.Backend, seq::DiscreteSequence{T}, parts::Vector{UnitRange{S}}, excitation_bool::Vector{Bool}) where {T<:Real,S<:Integer} = DefaultPrecalc{T}()
+
 include("BlochSimple/BlochSimple.jl")
 include("Bloch/BlochCPU.jl")
+include("Bloch/BlochGPU.jl")
 include("BlochDict/BlochDict.jl")

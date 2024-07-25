@@ -37,7 +37,7 @@ function run_spin_precession!(
     Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
     #Rotation
     if is_ADC_on(seq)
-        ϕ = T(-2π .* γ) .* KomaMRIBase.cumtrapz(seq.Δt', Bz, backend)
+        ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)
     else
         ϕ = T(-2π .* γ) .* trapz(seq.Δt', Bz)
     end

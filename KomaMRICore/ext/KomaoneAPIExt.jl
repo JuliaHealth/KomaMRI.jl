@@ -8,6 +8,7 @@ KomaMRICore.name(::oneAPIBackend) = "oneAPI"
 KomaMRICore.isfunctional(::oneAPIBackend) = oneAPI.functional()
 KomaMRICore.set_device!(::oneAPIBackend, val) = oneAPI.device!(val)
 KomaMRICore.device_name(::oneAPIBackend) = oneAPI.properties(oneAPI.device()).name
+KomaMRICore._cis(x) = cos(x) + im * sin(x)
 
 function KomaMRICore._print_devices(::oneAPIBackend)
     devices = [
@@ -20,8 +21,36 @@ end
 #Temporary workaround since oneAPI.jl (similar to Metal) does not support some array operations
 #Once run_spin_excitation! and run_spin_precession! are kernel-based, this code can be removed
 Base.cumsum(x::oneVector{T}) where T = convert(oneVector{T}, cumsum(KomaMRICore.cpu(x)))
-Base.cumsum(x::oneArray{T}; dims) where T = convert(oneArray{T}, cumsum(KomaMRICore.cpu(x), dims=dims))
 Base.findall(x::oneVector{Bool}) = convert(oneVector, findall(KomaMRICore.cpu(x)))
+
+"""Naive cumsum implementation for matrix, parallelizes along the first dimension"""
+Base.cumsum(A::oneArray{T}; dims) where T = begin
+    dims == 2 || @error "oneAPI cumsum implementation only supports keyword argument dims=2"
+    backend = oneAPIBackend()
+    B = similar(A)
+    cumsum_kernel = naive_cumsum!(backend)
+    cumsum_kernel(B, A, ndrange=size(A,1))
+    synchronize(backend)
+    return B
+end
+
+Base.cumsum!(B::oneArray{T}, A::oneArray{T}; dims) where T = begin
+    dims == 2 || @error "oneAPI cumsum implementation only supports keyword argument dims=2"
+    backend = oneAPIBackend()
+    cumsum_kernel = naive_cumsum!(backend)
+    cumsum_kernel(B, A, ndrange=size(A,1))
+    synchronize(backend)
+end
+
+using KernelAbstractions: @index, @kernel, @Const
+
+@kernel function naive_cumsum!(B, @Const(A))
+    i = @index(Global)
+
+    for k ∈ 2:size(A, 2)
+        @inbounds B[i, k] += A[i, k-1]
+    end
+end
 
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], oneAPIBackend())

@@ -28,6 +28,11 @@ function trapz(Δt::AbstractVector{T}, x::AbstractVector{TX}) where {T<:Real, TX
     y = sum(y)
     return y
 end
+function trapz!(Δt::AbstractMatrix{T}, x::AbstractMatrix{TX}, Tz::AbstractMatrix{TX}) where {T<:Real, TX<:Union{T, Complex{T}}}
+    Tz .= (x[:, 2:end] .+ x[:, 1:end-1]) .* (Δt / 2)
+    ϕ = sum(Tz, dims=2)
+    return ϕ
+end
 
 """
     y = cumtrapz(Δt, x)
@@ -53,4 +58,8 @@ function cumtrapz(Δt::AbstractVector{T}, x::AbstractVector{T}) where {T<:Real}
     y = (x[2:end] .+ x[1:end-1]) .* (Δt ./ 2)
     y = cumsum(y)
     return y
+end
+function cumtrapz!(Δt::AbstractArray{T}, x::AbstractArray{T}, Tz::AbstractArray{T}, ϕ::AbstractArray{T}) where {T<:Real}
+    Tz .= (x[:,2:end] .+ x[:,1:end-1]) .* (Δt ./ 2)
+    cumsum!(ϕ, Tz, dims=2)
 end

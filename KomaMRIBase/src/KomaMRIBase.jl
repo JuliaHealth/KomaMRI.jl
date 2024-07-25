@@ -14,7 +14,7 @@ using MRIBase
     Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader, EncodingCounters, Limit
 using MAT   # For loading example phantoms
 
-global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
+const global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
 # Hardware
 include("datatypes/Scanner.jl")
@@ -43,7 +43,7 @@ export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
 export times, ampls, freqs
 # This are also used for simulation
-export kfoldperm, trapz, cumtrapz
+export kfoldperm, trapz, cumtrapz, trapz!, cumtrapz!
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion

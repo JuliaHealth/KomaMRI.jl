@@ -1,4 +1,4 @@
-"""Stores preallocated structs for use in Bloch CPU run_spin_precession function."""
+"""Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochCPUPrealloc{T} <: PreallocResult{T}
     M::Mag{T}                               # Mag{T}
     Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
@@ -19,8 +19,8 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
     )
 end
 
-"""Preallocates arrays for use in run_spin_precession."""
-function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}) where {T<:Real}
+"""Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
+function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, precalc) where {T<:Real}
     return BlochCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -33,7 +33,7 @@ function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}
             similar(M.xy),
             similar(M.xy)
         ),
-        obj.Δw ./ T(2π .* γ) #Avoids repeated calculation
+        obj.Δw ./ T(2π .* γ)
     )
 end
 
