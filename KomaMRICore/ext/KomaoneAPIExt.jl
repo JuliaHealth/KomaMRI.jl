@@ -44,6 +44,7 @@ end
 
 using KernelAbstractions: @index, @kernel, @Const
 
+## COV_EXCL_START
 @kernel function naive_cumsum!(B, @Const(A))
     i = @index(Global)
 
@@ -51,6 +52,7 @@ using KernelAbstractions: @index, @kernel, @Const
         @inbounds B[i, k] += A[i, k-1]
     end
 end
+## COV_EXCL_STOP
 
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], oneAPIBackend())
