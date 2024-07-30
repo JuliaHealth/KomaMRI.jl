@@ -146,33 +146,3 @@ function run_spin_precession!(
 
     return nothing
 end
-
-function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
-    sim_method::Bloch,
-    backend::KA.GPU,
-    prealloc::BlochGPUPrecalc
-) where {T<:Real}
-    #Simulation
-    for s in seq #This iterates over seq, "s = seq[i,:]"
-        #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
-        #Effective field
-        ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
-        B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
-        B[B .== 0] .= eps(T)
-        #Spinor Rotation
-        φ = T(-2π .* γ) .* (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
-        mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
-        #Relaxation
-        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
-        M.z .= M.z .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
-    end
-    #Acquired signal
-    #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
-    return nothing
-end
