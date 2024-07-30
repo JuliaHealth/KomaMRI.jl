@@ -48,7 +48,7 @@ end
 @kernel function naive_cumsum!(B, @Const(A))
     i = @index(Global)
 
-    cur_val = 0.0
+    cur_val = 0.0f0
     for k ∈ 1:size(A, 2)
         @inbounds cur_val += A[i, k]
         @inbounds B[i, k] = cur_val
