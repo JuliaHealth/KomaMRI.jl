@@ -48,8 +48,10 @@ end
 @kernel function naive_cumsum!(B, @Const(A))
     i = @index(Global)
 
-    for k ∈ 2:size(A, 2)
-        @inbounds B[i, k] += A[i, k-1]
+    cur_val = 0.0
+    for k ∈ 1:size(A, 2)
+        @inbounds cur_val += A[i, k]
+        @inbounds B[i, k] = cur_val
     end
 end
 ## COV_EXCL_STOP
