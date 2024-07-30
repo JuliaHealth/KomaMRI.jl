@@ -23,6 +23,8 @@ end
 Base.cumsum(x::oneVector{T}) where T = convert(oneVector{T}, cumsum(KomaMRICore.cpu(x)))
 Base.findall(x::oneVector{Bool}) = convert(oneVector, findall(KomaMRICore.cpu(x)))
 
+using KernelAbstractions: @index, @kernel, @Const, synchronize
+
 """Naive cumsum implementation for matrix, parallelizes along the first dimension"""
 Base.cumsum(A::oneArray{T}; dims) where T = begin
     dims == 2 || @error "oneAPI cumsum implementation only supports keyword argument dims=2"
@@ -41,8 +43,6 @@ Base.cumsum!(B::oneArray{T}, A::oneArray{T}; dims) where T = begin
     cumsum_kernel(B, A, ndrange=size(A,1))
     synchronize(backend)
 end
-
-using KernelAbstractions: @index, @kernel, @Const
 
 ## COV_EXCL_START
 @kernel function naive_cumsum!(B, @Const(A))
