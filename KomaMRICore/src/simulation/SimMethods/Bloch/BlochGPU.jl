@@ -145,4 +145,4 @@ function run_spin_precession!(
     end
 
     return nothing
-end
+end 
