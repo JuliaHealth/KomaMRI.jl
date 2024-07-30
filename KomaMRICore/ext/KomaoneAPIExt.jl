@@ -8,7 +8,7 @@ KomaMRICore.name(::oneAPIBackend) = "oneAPI"
 KomaMRICore.isfunctional(::oneAPIBackend) = oneAPI.functional()
 KomaMRICore.set_device!(::oneAPIBackend, val) = oneAPI.device!(val)
 KomaMRICore.device_name(::oneAPIBackend) = oneAPI.properties(oneAPI.device()).name
-KomaMRICore._cis(x) = cos(x) + im * sin(x)
+@inline KomaMRICore._cis(x) = cos(x) + im * sin(x)
 
 function KomaMRICore._print_devices(::oneAPIBackend)
     devices = [

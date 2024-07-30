@@ -23,7 +23,7 @@ end
 function precalculate(
     sim_method::Bloch, 
     backend::KA.GPU,
-    seq::DiscreteSequence{T}, 
+    seq::DiscreteSequence{T},
     parts::Vector{UnitRange{S}}, 
     excitation_bool::Vector{Bool}
 ) where {T<:Real,S<:Integer}
@@ -100,46 +100,48 @@ function run_spin_precession!(
     M::Mag{T},
     sim_method::Bloch,
     backend::KA.GPU,
-    prealloc::BlochGPUPrealloc
+    pre::BlochGPUPrealloc
 ) where {T<:Real}
     #Simulation
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     
     #Initialize arrays
-    seq_block = prealloc.seq_properties[1]
-    dur  = seq_block.dur   # Total length, used for signal relaxation
-    ϕ_indices = seq_block.ϕ_indices # Indices of ϕ corresponding to ADC point
-    tp = seq_block.tp_ADC
-    Bz = @view prealloc.Bz[:,1:length(seq.t)]
-    Tz = @view prealloc.Tz[:,1:length(seq.t)-1]
-    scaled_Δw = prealloc.scaled_Δw
+    seq_block = pre.seq_properties[1]
+    Bz = @view pre.Bz[:,1:length(seq.t)]
+    Tz = @view pre.Tz[:,1:length(seq.t)-1]
+    
     #Effective field
-    Bz .= x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ scaled_Δw
+    Bz .= x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ pre.scaled_Δw
 
     if seq_block.nADC > 0
-        #Use preallocated arrays
-        ϕ = @view prealloc.ϕ[:,1:length(seq.t)-1]
-        Mxy = @view prealloc.Mxy[:,1:seq_block.nADC]
         #Rotation
-        cumtrapz!(seq.Δt', Bz, Tz, ϕ)
-        ϕ .= ϕ .* T(-2π .* γ)
+        ϕ = @view pre.ϕ[:,1:length(seq.t)-1]
+        Mxy = @view pre.Mxy[:,1:seq_block.nADC]
+        cumtrapz!(ϕ, Tz, seq.Δt', Bz)
+        ϕ_ADC = @view ϕ[:,seq_block.ϕ_indices]
+
         if seq_block.first_ADC
             Mxy[:,1] .= M.xy
-            Mxy[:,2:end] .= M.xy .* exp.(-tp' ./ p.T2) .* _cis.(ϕ[:,ϕ_indices])
+            Mxy[:,2:end] .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
         else
-            Mxy .= M.xy .* exp.(-tp' ./ p.T2) .* _cis.(ϕ[:,ϕ_indices])
+            Mxy .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
         end
+
         #Mxy precession and relaxation, and Mz relaxation
-        M.xy .= M.xy .* exp.(-dur ./ p.T2) .* _cis.(ϕ[:,end])
-        M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-dur ./ p.T1))
-        sig .= transpose(sum(Mxy, dims=1))
+        M.z  .= M.z .* exp.(-seq_block.dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-seq_block.dur ./ p.T1))
+        M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* _cis.(ϕ[:,end])
+        
+        #Acquired signal
+        sig .= transpose(sum(Mxy; dims=1))
     else
         #Rotation
-        ϕ = T(-2π .* γ) .* trapz!(seq.Δt', Bz, Tz)
+        ϕ = @view pre.ϕ[:,1]
+        trapz!(ϕ, Tz, seq.Δt', Bz)
+
         #Mxy precession and relaxation, and Mz relaxation
-        M.xy .= M.xy .* exp.(-dur ./ p.T2) .* _cis.(ϕ)
-        M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-dur ./ p.T1))
+        M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* _cis.(ϕ)
+        M.z  .= M.z .* exp.(-seq_block.dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-seq_block.dur ./ p.T1))
     end
 
     return nothing
