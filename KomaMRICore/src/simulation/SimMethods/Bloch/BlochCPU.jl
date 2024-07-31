@@ -1,11 +1,11 @@
-"""Stores preallocated structs for use in Bloch CPU run_spin_precession function."""
+"""Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochCPUPrealloc{T} <: PreallocResult{T}
     M::Mag{T}                               # Mag{T}
     Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
     Bz_new::AbstractVector{T}               # Vector{T}(Nspins x 1)
     ϕ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
-    φ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
     Rot::Spinor{T}                          # Spinor{T}
+    ΔBz::AbstractVector{T}            # Vector{T}(Nspins x 1)
 end
 
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
@@ -14,13 +14,13 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
         p.Bz_old[i],
         p.Bz_new[i],
         p.ϕ[i],
-        p.φ[i],
-        p.Rot[i]
+        p.Rot[i],
+        p.ΔBz[i]
     )
 end
 
-"""Preallocates arrays for use in run_spin_precession."""
-function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}) where {T<:Real}
+"""Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
+function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, precalc) where {T<:Real}
     return BlochCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -29,11 +29,11 @@ function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}
         similar(obj.x),
         similar(obj.x),
         similar(obj.x),
-        similar(obj.x),
         Spinor(
             similar(M.xy),
             similar(M.xy)
-        )
+        ),
+        obj.Δw ./ T(2π .* γ)
     )
 end
 
@@ -63,8 +63,9 @@ function run_spin_precession!(
     Bz_new = prealloc.Bz_new
     ϕ = prealloc.ϕ
     Mxy = prealloc.M.xy
+    ΔBz = prealloc.ΔBz
     fill!(ϕ, zero(T))
-    @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + p.Δw / T(2π * γ)
+    @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + ΔBz
 
     # Fill sig[1] if needed
     ADC_idx = 1
@@ -79,7 +80,7 @@ function run_spin_precession!(
         t_seq += seq.Δt[seq_idx-1]
 
         #Effective Field
-        @. Bz_new = x * seq.Gx[seq_idx] + y * seq.Gy[seq_idx] + z * seq.Gz[seq_idx] + p.Δw / T(2π * γ)
+        @. Bz_new = x * seq.Gx[seq_idx] + y * seq.Gy[seq_idx] + z * seq.Gz[seq_idx] + ΔBz
         
         #Rotation
         @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[seq_idx-1]
@@ -116,17 +117,14 @@ function run_spin_excitation!(
     backend::KA.CPU,
     prealloc::BlochCPUPrealloc
 ) where {T<:Real}
-    ΔBz = prealloc.Bz_old
-    Bz = prealloc.Bz_new
-    B = prealloc.ϕ
-    φ = prealloc.φ
+    Bz = prealloc.Bz_old
+    B = prealloc.Bz_new
+    φ = prealloc.ϕ
     α = prealloc.Rot.α
     β = prealloc.Rot.β
+    ΔBz = prealloc.ΔBz
     Maux_xy = prealloc.M.xy
     Maux_z = prealloc.M.z
-
-    #Can be calculated outside of loop
-    @. ΔBz = p.Δw / T(2π * γ)
 
     #Simulation
     for s in seq #This iterates over seq, "s = seq[i,:]"

@@ -174,6 +174,7 @@ function run_sim_time_iter!(
     Nblocks=1,
     Nthreads=Threads.nthreads(),
     parts=[1:length(seq)],
+    precalc=nothing,
     excitation_bool=ones(Bool, size(parts)),
     w=nothing,
 ) where {T<:Real}
@@ -181,7 +182,7 @@ function run_sim_time_iter!(
     rfs = 0
     samples = 1
     progress_bar = Progress(Nblocks; desc="Running simulation...")
-    prealloc_result = prealloc(sim_method, backend, obj, Xt) 
+    prealloc_result = prealloc(sim_method, backend, obj, Xt, maximum(length.(parts))+1, precalc)
 
     for (block, p) in enumerate(parts)
         seq_block = @view seq[p]
@@ -193,12 +194,12 @@ function run_sim_time_iter!(
         # Simulation wrappers
         if excitation_bool[block]
             run_spin_excitation_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_result; Nthreads
+                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_block(prealloc_result, block); Nthreads
             )
             rfs += 1
         else
             run_spin_precession_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_result; Nthreads
+                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_block(prealloc_result, block); Nthreads
             )
         end
         samples += Nadc
@@ -370,6 +371,7 @@ function simulate(
         Xt   = Xt |> f32 #SpinStateRepresentation
         sig  = sig |> f32 #Signal
     end
+    precalc = precalculate(sim_params["sim_method"], backend, seqd, parts, excitation_bool)
     # Objects to GPU
     if backend isa KA.GPU
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
@@ -378,6 +380,7 @@ function simulate(
         seqd = seqd |> gpu #DiscreteSequence
         Xt = Xt |> gpu #SpinStateRepresentation
         sig = sig |> gpu #Signal
+        precalc = precalc |> gpu #Info calculated prior to simulation
     end
 
     # Simulation
@@ -396,6 +399,7 @@ function simulate(
         Nthreads=sim_params["Nthreads"],
         parts,
         excitation_bool,
+        precalc,
         w,
     )
     # Result to CPU, if already in the CPU it does nothing
