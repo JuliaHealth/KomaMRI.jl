@@ -40,7 +40,7 @@ function add_benchmark_to_suite(suite::BenchmarkGroup, benchmark_name::String, b
     if backend == "CPU"
         suite[benchmark_name]["Bloch"]["CPU"][string(num_cpu_threads, " ", "thread(s)")] = @benchmarkable @suppress simulate($obj, $seq, $sys; sim_params=$sim_params)
     else
-        suite[benchmark_name]["Bloch"]["GPU"][backend] = @benchmarkable @suppress GPU.@sync simulate($obj, $seq, $sys; sim_params=$sim_params)
+        suite[benchmark_name]["Bloch"]["GPU"][backend] = @benchmarkable @suppress simulate($obj, $seq, $sys; sim_params=$sim_params)
     end
 end
 

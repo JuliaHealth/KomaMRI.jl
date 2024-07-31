@@ -20,19 +20,15 @@ end
 
 if BENCHMARK_GROUP == "AMDGPU"
     using AMDGPU # ] add AMDGPU to benchmarks/Project.toml
-    import AMDGPU as GPU
     @info "Running AMDGPU benchmarks" maxlog=1
 elseif BENCHMARK_GROUP == "CUDA"
     using CUDA # ] add CUDA to benchmarks/Project.toml
-    import CUDA as GPU
     @info "Running CUDA benchmarks" maxlog=1
 elseif BENCHMARK_GROUP == "Metal"
     using Metal # ] add Metal to benchmarks/Project.toml
-    import Metal as GPU
     @info "Running Metal benchmarks" maxlog=1
 elseif BENCHMARK_GROUP == "oneAPI"
     using oneAPI # ] add oneAPI to benchmarks/Project.toml
-    import oneAPI as GPU
     @info "Running oneAPI benchmarks" maxlog=1
 else
     @info "Running CPU benchmarks with $(BENCHMARK_CPU_THREADS) thread(s)" maxlog=1
