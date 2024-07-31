@@ -5,7 +5,7 @@ struct BlochCPUPrealloc{T} <: PreallocResult{T}
     Bz_new::AbstractVector{T}               # Vector{T}(Nspins x 1)
     ϕ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
     Rot::Spinor{T}                          # Spinor{T}
-    scaled_Δw::AbstractVector{T}            # Vector{T}(Nspins x 1)
+    ΔBz::AbstractVector{T}            # Vector{T}(Nspins x 1)
 end
 
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
@@ -15,7 +15,7 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
         p.Bz_new[i],
         p.ϕ[i],
         p.Rot[i],
-        p.scaled_Δw[i]
+        p.ΔBz[i]
     )
 end
 
@@ -63,9 +63,9 @@ function run_spin_precession!(
     Bz_new = prealloc.Bz_new
     ϕ = prealloc.ϕ
     Mxy = prealloc.M.xy
-    scaled_Δw = prealloc.scaled_Δw
+    ΔBz = prealloc.ΔBz
     fill!(ϕ, zero(T))
-    @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + scaled_Δw
+    @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + ΔBz
 
     # Fill sig[1] if needed
     ADC_idx = 1
@@ -80,7 +80,7 @@ function run_spin_precession!(
         t_seq += seq.Δt[seq_idx-1]
 
         #Effective Field
-        @. Bz_new = x * seq.Gx[seq_idx] + y * seq.Gy[seq_idx] + z * seq.Gz[seq_idx] + scaled_Δw
+        @. Bz_new = x * seq.Gx[seq_idx] + y * seq.Gy[seq_idx] + z * seq.Gz[seq_idx] + ΔBz
         
         #Rotation
         @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[seq_idx-1]
@@ -122,7 +122,7 @@ function run_spin_excitation!(
     φ = prealloc.ϕ
     α = prealloc.Rot.α
     β = prealloc.Rot.β
-    scaled_Δw = prealloc.scaled_Δw
+    ΔBz = prealloc.ΔBz
     Maux_xy = prealloc.M.xy
     Maux_z = prealloc.M.z
 
@@ -131,7 +131,7 @@ function run_spin_excitation!(
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
-        @. Bz = (s.Gx * x + s.Gy * y + s.Gz * z) + scaled_Δw - s.Δf / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        @. Bz = (s.Gx * x + s.Gy * y + s.Gz * z) + ΔBz - s.Δf / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         @. B = sqrt(abs(s.B1)^2 + abs(Bz)^2)
         @. B[B == 0] = eps(T)
         #Spinor Rotation

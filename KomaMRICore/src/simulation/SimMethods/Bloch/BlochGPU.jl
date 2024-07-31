@@ -1,9 +1,10 @@
 """These properties are redundant with seq.Δt and seq.ADC, but it is much faster
 to calculate them on the CPU before the simulation is run."""
 struct SeqBlockProperties{T<:Real}
+    length::Int64
     nADC::Int64
     first_ADC::Bool
-    ϕ_indices::AbstractVector{Int64}
+    ADC_indices::AbstractVector{Int64}
     tp_ADC::AbstractVector{T}
     dur::T
 end
@@ -32,23 +33,25 @@ function precalculate(
         seq_block = @view seq[p]
         if excitation_bool[block]
             push!(seq_properties, SeqBlockProperties(
-                0,
+                length(seq_block.t),
+                count(seq_block.ADC),
                 false,
                 Int64[],
                 T[],
                 zero(T)
             ))
         else
-            ϕ_indices = findall(seq_block.ADC) .- 1
-            if (length(ϕ_indices) > 0 && first(ϕ_indices) == 0)
-                deleteat!(ϕ_indices, 1)
+            ADC_indices = findall(seq_block.ADC) .- 1
+            if seq_block.ADC[1]
+                deleteat!(ADC_indices, 1)
             end
             tp = cumsum(seq_block.Δt)
             push!(seq_properties, SeqBlockProperties(
+                length(seq_block.t),
                 count(seq_block.ADC),
                 seq_block.ADC[1],
-                ϕ_indices,
-                tp[ϕ_indices],
+                ADC_indices,
+                tp[ADC_indices],
                 last(tp)
             ))
         end
@@ -61,21 +64,23 @@ end
 struct BlochGPUPrealloc{T} <: PreallocResult{T}
     seq_properties::AbstractVector{SeqBlockProperties{T}}
     Bz::AbstractMatrix{T}
-    Tz::AbstractMatrix{T}
-    ϕ::AbstractMatrix{T}
+    Δϕ::AbstractMatrix{T}
+    ϕ::AbstractArray{T}
     Mxy::AbstractMatrix{Complex{T}}
-    scaled_Δw::AbstractVector{T}
+    ΔBz::AbstractVector{T}
 end
 
 Base.view(p::BlochGPUPrealloc{T}, i::UnitRange) where {T<:Real} = p
 function prealloc_block(p::BlochGPUPrealloc{T}, i::Integer) where {T<:Real}
+    seq_block = p.seq_properties[i]
+
     return BlochGPUPrealloc(
-        p.seq_properties[i,:],
-        p.Bz,
-        p.Tz,
-        p.ϕ,
-        p.Mxy,
-        p.scaled_Δw
+        [seq_block],
+        view(p.Bz,:,1:seq_block.length),
+        view(p.Δϕ,:,1:seq_block.length-1),
+        seq_block.nADC > 0 ? view(p.ϕ,:,1:seq_block.length-1) : view(p.ϕ,:,1),
+        view(p.Mxy,:,1:seq_block.nADC),
+        p.ΔBz
     )
 end
 
@@ -93,6 +98,16 @@ function prealloc(sim_method::Bloch, backend::KA.GPU, obj::Phantom{T}, M::Mag{T}
     )
 end
 
+@inline function calculate_precession!(Δϕ::AbstractArray{T}, Δt::AbstractArray{T}, Bz::AbstractArray{T}) where {T<:Real}
+    Δϕ .= (Bz[:,2:end] .+ Bz[:,1:end-1]) .* Δt .* T(-π .* γ)
+end
+@inline function apply_precession!(ϕ::AbstractVector{T}, Δϕ::AbstractArray{T}) where {T<:Real}
+    ϕ .= sum(Δϕ, dims=2)
+end
+function apply_precession!(ϕ::AbstractArray{T}, Δϕ::AbstractArray{T}) where {T<:Real}
+    cumsum!(ϕ, Δϕ, dims=2)
+end
+
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
@@ -106,43 +121,33 @@ function run_spin_precession!(
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     
-    #Initialize arrays
+    #Sequence block info
     seq_block = pre.seq_properties[1]
-    Bz = @view pre.Bz[:,1:length(seq.t)]
-    Tz = @view pre.Tz[:,1:length(seq.t)-1]
     
     #Effective field
-    Bz .= x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ pre.scaled_Δw
+    pre.Bz .= x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ pre.ΔBz
 
+    #Rotation
+    calculate_precession!(pre.Δϕ, seq.Δt', pre.Bz)
+    # Reduces Δϕ Nspins x Nt to ϕ Nspins x Nt, if Nadc = 0, to Nspins x 1 
+    apply_precession!(pre.ϕ, pre.Δϕ)
+
+    #Acquired signal
     if seq_block.nADC > 0
-        #Rotation
-        ϕ = @view pre.ϕ[:,1:length(seq.t)-1]
-        Mxy = @view pre.Mxy[:,1:seq_block.nADC]
-        cumtrapz!(ϕ, Tz, seq.Δt', Bz)
-        ϕ_ADC = @view ϕ[:,seq_block.ϕ_indices]
-
+        ϕ_ADC = @view pre.ϕ[:,seq_block.ADC_indices]
         if seq_block.first_ADC
-            Mxy[:,1] .= M.xy
-            Mxy[:,2:end] .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
+            pre.Mxy[:,1] .= M.xy
+            pre.Mxy[:,2:end] .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
         else
-            Mxy .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
+            pre.Mxy .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
         end
 
-        #Mxy precession and relaxation, and Mz relaxation
-        M.z  .= M.z .* exp.(-seq_block.dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-seq_block.dur ./ p.T1))
-        M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* _cis.(ϕ[:,end])
-        
-        #Acquired signal
-        sig .= transpose(sum(Mxy; dims=1))
-    else
-        #Rotation
-        ϕ = @view pre.ϕ[:,1]
-        trapz!(ϕ, Tz, seq.Δt', Bz)
-
-        #Mxy precession and relaxation, and Mz relaxation
-        M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* _cis.(ϕ)
-        M.z  .= M.z .* exp.(-seq_block.dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-seq_block.dur ./ p.T1))
+        sig .= transpose(sum(pre.Mxy; dims=1))
     end
+
+    #Mxy precession and relaxation, and Mz relaxation
+    M.z  .= M.z .* exp.(-seq_block.dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-seq_block.dur ./ p.T1))
+    M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* _cis.(pre.ϕ[:,end])
 
     return nothing
 end 

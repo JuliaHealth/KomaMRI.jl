@@ -43,7 +43,7 @@ export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
 export times, ampls, freqs
 # This are also used for simulation
-export kfoldperm, trapz, cumtrapz, trapz!, cumtrapz!
+export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion

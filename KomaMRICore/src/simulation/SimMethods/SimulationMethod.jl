@@ -24,8 +24,10 @@ function initialize_spins_state(
     return Xt, obj
 end
 
+"""Stores pre-allocated arrays for use in run_spin_precession! and run_spin_excitation!"""
 abstract type PreallocResult{T<:Real} end
 
+"""Stores information precalculated before the simulation objects are moved to the GPU."""
 abstract type PrecalcResult{T<:Real} end
 
 """Default preallocation struct, stores nothing."""
