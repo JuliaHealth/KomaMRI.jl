@@ -9,6 +9,7 @@ KomaMRICore.isfunctional(::ROCBackend) = AMDGPU.functional()
 KomaMRICore.set_device!(::ROCBackend, dev_idx::Integer) = AMDGPU.device_id!(dev_idx)
 KomaMRICore.set_device!(::ROCBackend, dev::AMDGPU.HIPDevice) = AMDGPU.device!(dev)
 KomaMRICore.device_name(::ROCBackend) = AMDGPU.HIP.name(AMDGPU.device())
+@inline KomaMRICore._cis(x) = cis(x)
 
 function KomaMRICore._print_devices(::ROCBackend)
     devices = [

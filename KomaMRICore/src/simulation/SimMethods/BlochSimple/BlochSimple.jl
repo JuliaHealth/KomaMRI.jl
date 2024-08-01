@@ -1,27 +1,10 @@
-struct Bloch <: SimulationMethod end
+#Simplest sim method, works for GPU and CPU but not optimized for either. Although Bloch()
+#is the simulation method chosen if none is passed, the run_spin_precession! and
+#run_spin_excitation! functions in this file are dispatched to at the most abstract level,
+#so new simulation methods will start by using these functions.
+struct BlochSimple <: SimulationMethod end
 
-export Bloch
-
-include("Magnetization.jl") #Defines Mag <: SpinStateRepresentation
-@functor Mag #Gives gpu acceleration capabilities, see GPUFunctions.jl
-
-function sim_output_dim(
-    obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::SimulationMethod
-) where {T<:Real}
-    return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
-end
-
-"""Magnetization initialization for Bloch simulation method."""
-function initialize_spins_state(
-    obj::Phantom{T}, sim_method::SimulationMethod
-) where {T<:Real}
-    Nspins = length(obj)
-    Mxy = zeros(T, Nspins)
-    Mz = obj.ρ
-    Xt = Mag{T}(Mxy, Mz)
-    sort_motions!(obj.motion)
-    return Xt, obj
-end
+export BlochSimple
 
 """
     run_spin_precession(obj, seq, Xt, sig)
@@ -44,23 +27,24 @@ function run_spin_precession!(
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
-    backend::KA.Backend
+    backend::KA.Backend,
+    prealloc::PreallocResult
 ) where {T<:Real}
     #Simulation
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
-    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw / T(2π * γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
     #Rotation
     if is_ADC_on(seq)
-        ϕ = T(-2π * γ) .* KomaMRIBase.cumtrapz(seq.Δt', Bz, backend)
+        ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)
     else
-        ϕ = T(-2π * γ) .* trapz(seq.Δt', Bz)
+        ϕ = T(-2π .* γ) .* trapz(seq.Δt', Bz)
     end
     #Mxy precession and relaxation, and Mz relaxation
     tp   = cumsum(seq.Δt) # t' = t - t0
     dur  = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im * sin.(ϕ))] #This assumes Δw and T2 are constant in time
+    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im .* sin.(ϕ))] #This assumes Δw and T2 are constant in time
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     reset_magnetization!(M, Mxy, p.motion, seq.t')
     M.xy .= Mxy[:, end]
@@ -91,18 +75,20 @@ function run_spin_excitation!(
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
+    backend::KA.Backend,
+    prealloc::PreallocResult
 ) where {T<:Real}
     #Simulation
     for s in seq #This iterates over seq, "s = seq[i,:]"
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
-        ΔBz = p.Δw ./ T(2π * γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B[B .== 0] .= eps(T)
         #Spinor Rotation
-        φ = T(-2π * γ) * (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
+        φ = T(-2π .* γ) .* (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)

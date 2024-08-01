@@ -122,7 +122,7 @@ function write_phantom(
     # Create HDF5 phantom file
     fid = h5open(filename, "w")
     # Root attributes
-    HDF5.attributes(fid)["Version"] = string(KomaMRIFiles.__VERSION__)
+    HDF5.attributes(fid)["Version"] = string(pkgversion(KomaMRIFiles))
     HDF5.attributes(fid)["Name"] = obj.name
     HDF5.attributes(fid)["Ns"] = length(obj.x)
     dims = KomaMRIBase.get_dims(obj)

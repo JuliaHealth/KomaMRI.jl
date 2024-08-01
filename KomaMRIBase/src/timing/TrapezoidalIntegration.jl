@@ -45,12 +45,12 @@ Trapezoidal cumulative integration over time for every spin of a phantom.
     phantom
 """
 function cumtrapz(Δt::AbstractArray{T}, x::AbstractArray{T}) where {T<:Real}
-    y =  (x[:, 2:end] .+ x[:, 1:end-1]) .* (Δt / 2)
+    y =  (x[:, 2:end] .+ x[:, 1:end-1]) .* (Δt ./ 2)
     y = cumsum(y, dims=2)
     return y
 end
 function cumtrapz(Δt::AbstractVector{T}, x::AbstractVector{T}) where {T<:Real}
-    y = (x[2:end] .+ x[1:end-1]) .* (Δt / 2)
+    y = (x[2:end] .+ x[1:end-1]) .* (Δt ./ 2)
     y = cumsum(y)
     return y
 end
