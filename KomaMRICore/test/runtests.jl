@@ -36,7 +36,7 @@ using TestItems, TestItemRunner
 #Environment variable set by CI
 const CI = get(ENV, "CI", nothing)
 
-@run_package_tests filter=ti->(:motion in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
+@run_package_tests filter=ti->(:core in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
 @testitem "Spinors×Mag" tags=[:core] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
