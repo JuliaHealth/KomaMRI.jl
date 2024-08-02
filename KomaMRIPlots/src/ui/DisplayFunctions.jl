@@ -265,12 +265,15 @@ function plot_seq(
         rf_amp = abs.(rf.A[:, j])
         rf_phase = angle.(rf.A[:, j])
         rf_phase[rf_amp .== Inf] .= Inf # Avoid weird jumps
+        # Flip angle
+        α = reduce(vcat, [KomaMRIBase.get_flip_angle(seq[b].RF[j, b]) * ones(length(block.rf.A)); Inf] for (b, block) in enumerate(seq_samples))
         # Plot RF
         p[2j - 1 + 3] = scatter_fun(;
             x=rf.t * 1e3,
             y=rf_amp * 1e6 * frf,
+            text=α,
             name="|B1|_AM",
-            hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
+            hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)<br>α=%{text:.2f} deg",
             xaxis=xaxis,
             yaxis=yaxis,
             legendgroup="|B1|_AM",
