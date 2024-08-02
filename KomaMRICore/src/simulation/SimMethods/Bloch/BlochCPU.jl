@@ -101,14 +101,14 @@ function run_spin_excitation!(
         @. pre.B_new.xy = seq.B1[i+1]
         @. pre.B_new.z  = (seq.Gx[i+1] * x + seq.Gy[i+1] * y + seq.Gz[i+1] * z) + p.Δw / T(2π * γ) - seq.Δf[i+1] / T(γ)
         # Rotation
-        calculateRot!(pre, seq.Δt[i])
+        calculateRot!(pre, seq.Δt[i], sim_method)
         mul!(pre.Rot, M)
         # Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
         @. M.z  = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (1 - exp(-seq.Δt[i] / p.T1))
         # Sample
         if seq.ADC[i+1]
-            sig[sample] .= sum(M.xy)
+            sig[sample, :] .= sum(M.xy)
             sample += 1
         end
         # Update

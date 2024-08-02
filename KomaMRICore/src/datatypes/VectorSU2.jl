@@ -12,11 +12,18 @@ Base.:/(V::VectorSU2, α) = VectorSU2(V.xy/α, V.z/α)
 Base.:+(V1::VectorSU2, V2::VectorSU2) = VectorSU2(V1.xy .+ V2.xy, V1.z .+ V2.z)
 
 # Definition of Spinor from VectorSU2
-function calculateRot!(pre::PreallocResult{T}, Δt::T) where {T}
-    # Beff = pre.B_new
-    Beff = (pre.B_old + pre.B_new) / 2
-    absBeff = abs(Beff)
-    # absBeff[absBeff .== zero(T)] .= eps(T) # not sure why this is needed, in RF block this should be non-zero
+function calculateRot!(pre::PreallocResult{T}, Δt::T, sim_method::Bloch) where {T}
+    if sim_method.rf_ode_order == 2
+        # 1st order
+        Beff = (pre.B_old + pre.B_new) / 2
+        absBeff = abs(Beff)
+    elseif sim_method.rf_ode_order == 1
+        # 0th order
+        Beff = pre.B_old
+        absBeff = abs(Beff)
+        absBeff[absBeff .== zero(T)] .= eps(T) # not sure why this is needed, in RF block this should be non-zero
+    end
+    # Rot
     @. pre.φ = T(-2π * γ) * absBeff * Δt 
     @. pre.Rot.α = cos(pre.φ/2) - Complex{T}(im) * (Beff.z / absBeff) * sin(pre.φ/2)
     @. pre.Rot.β = -Complex{T}(im) * (Beff.xy / absBeff) * sin(pre.φ/2)

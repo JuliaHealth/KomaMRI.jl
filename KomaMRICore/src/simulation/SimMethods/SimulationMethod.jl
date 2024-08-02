@@ -1,5 +1,8 @@
 #Bloch is the default simulation method
-struct Bloch <: SimulationMethod end
+struct Bloch <: SimulationMethod
+    rf_ode_order::Int
+end
+Bloch() = Bloch(1)
 
 export Bloch
 include("Magnetization.jl")
