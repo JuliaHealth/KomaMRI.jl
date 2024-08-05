@@ -22,10 +22,12 @@ include("simulation/Functors.jl")
 include("simulation/SimulatorCore.jl")
 
 # ISMRMRD
-export signal_to_raw_data
+using LinearAlgebra
+#export signal_to_raw_data
+export signal_to_raw_data, estimate_seq_recon_dimension # *** CAC 240708 for debugging
 # Simulator
 export Mag
-export simulate, simulate_slice_profile
+export simulate, simulate_slice_profile, default_sim_params
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 

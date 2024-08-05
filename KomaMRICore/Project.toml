@@ -11,6 +11,7 @@ KomaMRIBase = "d0bc0b20-b151-4d03-b2a4-6ca51751cb9c"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 ThreadsX = "ac1d9e8a-700a-412c-b207-f0111f4b6c0d"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [weakdeps]
 AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
