@@ -52,7 +52,7 @@ x = gpu(x, CUDABackend())
 ```
 """
 gpu(x, backend::KA.GPU) = fmap(x -> adapt(backend, x), x; exclude=_isleaf)
-adapt_storage(backend::KA.GPU, xs::MotionVector) = MotionVector(gpu.(xs.motions, Ref(backend)))
+adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
 
 # To CPU
 """
@@ -76,7 +76,7 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
-adapt_storage(T::Type{<:Real}, xs::MotionVector) = MotionVector(paramtype.(T, xs.motions))
+adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
 
 """
     f32(m)

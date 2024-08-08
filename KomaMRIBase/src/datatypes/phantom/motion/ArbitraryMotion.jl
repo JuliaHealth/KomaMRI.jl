@@ -19,13 +19,13 @@ const Interpolator2D = Interpolations.GriddedInterpolation{
 """
     ArbitraryMotion
 """
-abstract type ArbitraryMotion{T<:Real} <: Motion{T} end
+abstract type ArbitraryMotion{T<:Real} <: AbstractMotion{T} end
 
 function Base.getindex(motion::ArbitraryMotion, p::Union{AbstractRange, AbstractVector, Colon, Integer})
-    return typeof(motion)(motion.times, [getfield(motion, d)[p,:] for d in filter(x -> x != :times, fieldnames(typeof(motion)))]...)
+    return typeof(motion)(motion.time, [getfield(motion, d)[p,:] for d in filter(x -> x != :time, fieldnames(typeof(motion)))]...)
 end
 function Base.view(motion::ArbitraryMotion, p::Union{AbstractRange, AbstractVector, Colon, Integer})
-    return typeof(motion)(motion.times, [@view(getfield(motion, d)[p,:]) for d in filter(x -> x != :times, fieldnames(typeof(motion)))]...)
+    return typeof(motion)(motion.time, [@view(getfield(motion, d)[p,:]) for d in filter(x -> x != :time, fieldnames(typeof(motion)))]...)
 end
 
 Base.:(==)(m1::ArbitraryMotion, m2::ArbitraryMotion) = (typeof(m1) == typeof(m2)) & reduce(&, [getfield(m1, field) == getfield(m2, field) for field in fieldnames(typeof(m1))])
@@ -68,7 +68,7 @@ function displacement_x!(
     t::AbstractArray{T},
 ) where {T<:Real}
     itp = interpolate(motion.dx, Gridded(Linear()), Val(size(x,1)))
-    ux .= resample(itp, unit_time(t, motion.times))
+    ux .= resample(itp, unit_time(t, motion.time))
     return nothing
 end
 
@@ -81,7 +81,7 @@ function displacement_y!(
     t::AbstractArray{T},
 ) where {T<:Real}
     itp = interpolate(motion.dy, Gridded(Linear()), Val(size(x,1)))
-    uy .= resample(itp, unit_time(t, motion.times))
+    uy .= resample(itp, unit_time(t, motion.time))
     return nothing
 end
 
@@ -94,7 +94,7 @@ function displacement_z!(
     t::AbstractArray{T},
 ) where {T<:Real}
     itp = interpolate(motion.dz, Gridded(Linear()), Val(size(x,1)))
-    uz .= resample(itp, unit_time(t, motion.times))
+    uz .= resample(itp, unit_time(t, motion.time))
     return nothing
 end
 

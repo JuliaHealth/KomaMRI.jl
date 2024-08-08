@@ -1,11 +1,11 @@
-struct NoMotion{T<:Real} <: AbstractMotion{T} end
+struct NoMotion{T<:Real} <: AbstractMotionList{T} end
 
 Base.getindex(mv::NoMotion, p::Union{AbstractRange, AbstractVector, Colon, Integer}) = mv 
 Base.view(mv::NoMotion, p::Union{AbstractRange, AbstractVector, Colon, Integer})     = mv
 
 """ Addition of NoMotions """
-Base.vcat(m1::NoMotion{T}, m2::AbstractMotion{T}, Ns1::Int, Ns2::Int) where {T<:Real} = m2
-Base.vcat(m1::AbstractMotion{T}, m2::NoMotion{T}, Ns1::Int, Ns2::Int) where {T<:Real} = m1
+Base.vcat(m1::NoMotion{T}, m2::AbstractMotionList{T}, Ns1::Int, Ns2::Int) where {T<:Real} = m2
+Base.vcat(m1::AbstractMotionList{T}, m2::NoMotion{T}, Ns1::Int, Ns2::Int) where {T<:Real} = m1
 
 Base.:(==)(m1::NoMotion{T}, m2::NoMotion{T}) where {T<:Real} = true
 Base.:(≈)(m1::NoMotion{T}, m2::NoMotion{T}) where {T<:Real}  = true

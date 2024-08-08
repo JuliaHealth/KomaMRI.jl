@@ -21,7 +21,7 @@ julia> motion = SimpleMotion(
         )
 ```
 """
-abstract type SimpleMotion{T<:Real} <: Motion{T} end
+abstract type SimpleMotion{T<:Real} <: AbstractMotion{T} end
 
 Base.getindex(motion::SimpleMotion, p::Union{AbstractRange, AbstractVector, Colon, Integer}) = motion
 Base.view(motion::SimpleMotion, p::Union{AbstractRange, AbstractVector, Colon, Integer}) = motion

@@ -1,7 +1,7 @@
 # TimeScale:
 include("../timing/TimeScale.jl")
 # Motion:
-abstract type AbstractMotion{T<:Real} end
+abstract type AbstractMotionList{T<:Real} end
 include("phantom/Motion.jl")
 include("phantom/NoMotion.jl")
 
@@ -54,7 +54,7 @@ julia> obj.ρ
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::AbstractMotion{T} = NoMotion{eltype(x)}()
+    motion::AbstractMotionList{T} = NoMotion{eltype(x)}()
 end
 
 """Size and length of a phantom"""
@@ -192,15 +192,15 @@ function heart_phantom(
         Dλ1=Dλ1[ρ .!= 0],
         Dλ2=Dλ2[ρ .!= 0],
         Dθ=Dθ[ρ .!= 0],
-        motion=MotionVector(
+        motion=MotionList(
             HeartBeat(;
-                times=Periodic(; period=period, asymmetry=asymmetry),
+                time=Periodic(; period=period, asymmetry=asymmetry),
                 circumferential_strain=circumferential_strain,
                 radial_strain=radial_strain,
                 longitudinal_strain=0.0,
             ),
             Rotation(;
-                times=Periodic(; period=period, asymmetry=asymmetry),
+                time=Periodic(; period=period, asymmetry=asymmetry),
                 yaw=rotation_angle,
                 pitch=0.0,
                 roll=0.0,

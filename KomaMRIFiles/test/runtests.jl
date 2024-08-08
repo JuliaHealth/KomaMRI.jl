@@ -64,14 +64,14 @@ using TestItems, TestItemRunner
         path = @__DIR__
         filename = path * "/test_files/brain_simplemotion_w.phantom"
         obj1 = brain_phantom2D()
-        obj1.motion = MotionVector(
+        obj1.motion = MotionList(
             Rotation(
-                times=Periodic(period=1.0),
+                time=Periodic(period=1.0),
                 yaw=45.0,
                 pitch=0.0,
                 roll=0.0),
             Translation(
-                times=TimeRange(t_start=0.0, t_end=0.5),
+                time=TimeRange(t_start=0.0, t_end=0.5),
                 dx=0.0,
                 dy=0.02,
                 dz=0.0
@@ -90,7 +90,7 @@ using TestItems, TestItemRunner
         K = 10
         t_start = 0.0
         t_end = 1.0
-        obj1.motion = MotionVector(Trajectory(
+        obj1.motion = MotionList(Trajectory(
             TimeRange(t_start, t_end),
             0.01.*rand(Ns, K-1),
             0.01.*rand(Ns, K-1),

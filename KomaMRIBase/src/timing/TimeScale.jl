@@ -1,12 +1,12 @@
-abstract type TimeScale{T<:Real} end
+abstract type AbstractTimeSpan{T<:Real} end
 
-@with_kw struct TimeRange{T<:Real} <: TimeScale{T} 
+@with_kw struct TimeRange{T<:Real} <: AbstractTimeSpan{T} 
    t_start  ::T 
    t_end    ::T = t_start
    @assert t_end >= t_start "t_end must be greater or equal than t_start"
 end
 
-@with_kw struct Periodic{T<:Real} <: TimeScale{T}
+@with_kw struct Periodic{T<:Real} <: AbstractTimeSpan{T}
    period::T
    asymmetry::T = eltype(period)(0.5)
 end
@@ -46,8 +46,7 @@ function unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
     if ts.t_start == ts.t_end
         return (t .>= ts.t_start) .* oneunit(T)
     else
-        tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
-        return min.(tmp, oneunit(T))
+        return min.(max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T)), oneunit(T))
     end
 end
 

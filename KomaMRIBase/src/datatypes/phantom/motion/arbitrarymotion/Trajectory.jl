@@ -1,5 +1,5 @@
-struct Trajectory{T<:Real, TS<:TimeScale{T}} <: ArbitraryMotion{T}
-    times::TS
+struct Trajectory{T<:Real, TS<:AbstractTimeSpan{T}} <: ArbitraryMotion{T}
+    time::TS
     dx::AbstractArray{T}
     dy::AbstractArray{T}
     dz::AbstractArray{T}

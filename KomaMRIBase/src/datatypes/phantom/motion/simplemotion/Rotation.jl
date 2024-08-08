@@ -1,5 +1,5 @@
 @doc raw"""
-    rotation = Rotation(times, pitch, roll, yaw)
+    rotation = Rotation(time, pitch, roll, yaw)
  
 Rotation motion struct. It produces a rotation of the phantom in the three axes: 
 x (pitch), y (roll), and z (yaw).
@@ -38,7 +38,7 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 ```
 
 # Arguments
-- `times`: (`::TimeScale{T<:Real}`, `[s]`) time scale
+- `time`: (`::AbstractTimeSpan{T<:Real}`, `[s]`) time scale
 - `pitch`: (`::Real`, `[º]`) rotation in x
 - `roll`: (`::Real`, `[º]`) rotation in y 
 - `yaw`: (`::Real`, `[º]`) rotation in z
@@ -48,15 +48,19 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 
 # Examples
 ```julia-repl
-julia> rt = Rotation(times=TimeRange(0.0, 0.5), pitch=15.0, roll=0.0, yaw=20.0)
+julia> rt = Rotation(time=TimeRange(0.0, 0.5), pitch=15.0, roll=0.0, yaw=20.0)
 ```
 """
-@with_kw struct Rotation{T<:Real, TS<:TimeScale{T}} <: SimpleMotion{T}
-    times      :: TS
+@with_kw struct Rotation{T<:Real, TS<:AbstractTimeSpan{T}} <: SimpleMotion{T}
+    time      :: TS
     pitch      :: T
     roll       :: T
     yaw        :: T
 end
+
+RotationX(time::AbstractTimeSpan{T}, pitch::T) where {T<:Real} = Rotation(time, pitch, zero(T), zero(T))
+RotationY(time::AbstractTimeSpan{T}, roll::T) where {T<:Real}  = Rotation(time, zero(T), roll, zero(T))
+RotationZ(time::AbstractTimeSpan{T}, yaw::T) where {T<:Real}   = Rotation(time, zero(T), zero(T), yaw)
 
 is_composable(motion::Rotation) = true
 
@@ -68,7 +72,7 @@ function displacement_x!(
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion.times)
+    t_unit = unit_time(t, motion.time)
     α = t_unit .* (motion.yaw)
     β = t_unit .* (motion.roll)
     γ = t_unit .* (motion.pitch)
@@ -86,7 +90,7 @@ function displacement_y!(
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion.times)
+    t_unit = unit_time(t, motion.time)
     α = t_unit .* (motion.yaw)
     β = t_unit .* (motion.roll)
     γ = t_unit .* (motion.pitch)
@@ -104,7 +108,7 @@ function displacement_z!(
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion.times)
+    t_unit = unit_time(t, motion.time)
     α = t_unit .* (motion.yaw)
     β = t_unit .* (motion.roll)
     γ = t_unit .* (motion.pitch)

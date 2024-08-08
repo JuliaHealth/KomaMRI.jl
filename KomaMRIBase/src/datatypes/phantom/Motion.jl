@@ -1,53 +1,53 @@
-abstract type Motion{T<:Real} end
+abstract type AbstractMotion{T<:Real} end
 
-is_composable(m::Motion) = false
+is_composable(m::AbstractMotion) = false
 
-struct MotionVector{T<:Real} <: AbstractMotion{T}
-    motions::Vector{<:Motion{T}}
+struct MotionList{T<:Real} <: AbstractMotionList{T}
+    motions::Vector{<:AbstractMotion{T}}
 end
 
-MotionVector(motions...) = length([motions]) > 0 ? MotionVector([motions...]) : @error "You must provide at least one motion as input argument. If you do not want to define motion, use `NoMotion{T}()`"
+MotionList(motions...) = length([motions]) > 0 ? MotionList([motions...]) : @error "You must provide at least one motion as input argument. If you do not want to define motion, use `NoMotion{T}()`"
 
 include("motion/SimpleMotion.jl")
 include("motion/ArbitraryMotion.jl")
 
-Base.getindex(mv::MotionVector, p::Union{AbstractRange, AbstractVector, Colon, Integer}) = MotionVector(getindex.(mv.motions, Ref(p))) 
-Base.view(mv::MotionVector, p::Union{AbstractRange, AbstractVector, Colon, Integer})     = MotionVector(view.(mv.motions, Ref(p)))
+Base.getindex(mv::MotionList, p::Union{AbstractRange, AbstractVector, Colon, Integer}) = MotionList(getindex.(mv.motions, Ref(p))) 
+Base.view(mv::MotionList, p::Union{AbstractRange, AbstractVector, Colon, Integer})     = MotionList(view.(mv.motions, Ref(p)))
 
-""" Addition of MotionVectors """
-function Base.vcat(m1::MotionVector{T}, m2::MotionVector{T}, Ns1::Int, Ns2::Int) where {T<:Real}
+""" Addition of MotionLists """
+function Base.vcat(m1::MotionList{T}, m2::MotionList{T}, Ns1::Int, Ns2::Int) where {T<:Real}
     mv1 = m1.motions
-    mv1_aux = Motion{T}[]
+    mv1_aux = AbstractMotion{T}[]
     for i in 1:length(mv1)
         if typeof(mv1[i]) <: ArbitraryMotion
             zeros1 = similar(mv1[i].dx, Ns2, size(mv1[i].dx, 2))
             zeros1 .= zero(T)
-            push!(mv1_aux, typeof(mv1[i])(mv1[i].times, [[getfield(mv1[i], d); zeros1] for d in filter(x -> x != :times, fieldnames(typeof(mv1[i])))]...)) 
+            push!(mv1_aux, typeof(mv1[i])(mv1[i].time, [[getfield(mv1[i], d); zeros1] for d in filter(x -> x != :time, fieldnames(typeof(mv1[i])))]...)) 
         else
             push!(mv1_aux, mv1[i])
         end
     end
     mv2 = m2.motions
-    mv2_aux = Motion{T}[]
+    mv2_aux = AbstractMotion{T}[]
     for i in 1:length(mv2)
         if typeof(mv2[i]) <: ArbitraryMotion
             zeros2 = similar(mv2[i].dx, Ns1, size(mv2[i].dx, 2))
             zeros2 .= zero(T)
-            push!(mv2_aux, typeof(mv2[i])(mv2[i].times, [[zeros2; getfield(mv2[i], d)] for d in filter(x -> x != :times, fieldnames(typeof(mv2[i])))]...))
+            push!(mv2_aux, typeof(mv2[i])(mv2[i].time, [[zeros2; getfield(mv2[i], d)] for d in filter(x -> x != :time, fieldnames(typeof(mv2[i])))]...))
         else
             push!(mv2_aux, mv2[i])
         end
     end
-    return MotionVector([mv1_aux; mv2_aux])
+    return MotionList([mv1_aux; mv2_aux])
 end
 
 """ Compare two motion vectors """
-function Base.:(==)(mv1::MotionVector{T}, mv2::MotionVector{T}) where {T<:Real}
+function Base.:(==)(mv1::MotionList{T}, mv2::MotionList{T}) where {T<:Real}
     sort_motions!(mv1)
     sort_motions!(mv2)
     return reduce(&, mv1.motions .== mv2.motions)
 end
-function Base.:(≈)(mv1::MotionVector{T}, mv2::MotionVector{T}) where {T<:Real} 
+function Base.:(≈)(mv1::MotionList{T}, mv2::MotionList{T}) where {T<:Real} 
     sort_motions!(mv1)
     sort_motions!(mv2)
     return reduce(&, mv1.motions .≈ mv2.motions)
@@ -60,7 +60,7 @@ Calculates the position of each spin at a set of arbitrary time instants, i.e. t
 For each dimension (x, y, z), the output matrix has ``N_{\text{spins}}`` rows and `length(t)` columns.
 
 # Arguments
-- `motion`: (`::Vector{<:Motion{T<:Real}}`) phantom motion
+- `motion`: (`::Vector{<:AbstractMotion{T<:Real}}`) phantom motion
 - `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
 - `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
 - `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
@@ -70,7 +70,7 @@ For each dimension (x, y, z), the output matrix has ``N_{\text{spins}}`` rows an
 - `x, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
 """
 function get_spin_coords(
-    mv::MotionVector{T},
+    mv::MotionList{T},
     x::AbstractVector{T},
     y::AbstractVector{T},
     z::AbstractVector{T},
@@ -81,7 +81,7 @@ function get_spin_coords(
     # Buffers for displacements:
     ux, uy, uz = similar(xt), similar(yt), similar(zt) 
 
-    # Composable motions: they need to be run sequentially
+    # Composable motions: they need to be run sequentially. Note that they depend on xt, yt , and zt
     for m in Iterators.filter(is_composable, mv.motions)
         displacement_x!(ux, m, xt, yt, zt, t)
         displacement_y!(uy, m, xt, yt, zt, t)
@@ -105,16 +105,17 @@ end
 """
     times = times(motion)
 """
-times(m::Motion) = times(m.times)
-times(mv::MotionVector{T}) where {T<:Real} = begin
+times(m::AbstractMotion) = times(m.time)
+times(mv::MotionList{T}) where {T<:Real} = begin
     nodes = reduce(vcat, [times(m) for m in mv.motions]; init=[zero(T)])
     return unique(sort(nodes))
 end
 
 """
-    sort_motions!
+    sort_motions!(motion_list)
+sort_motions motions in a list according to their starting time
 """
-function sort_motions!(mv::MotionVector{T}) where {T<:Real}
+function sort_motions!(mv::MotionList{T}) where {T<:Real}
     sort!(mv.motions; by=m -> times(m)[1])
     return nothing
 end

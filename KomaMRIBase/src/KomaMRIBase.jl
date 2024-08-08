@@ -46,10 +46,12 @@ export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion
-export AbstractMotion, Motion, MotionVector, NoMotion
+export MotionList, NoMotion
 export SimpleMotion, ArbitraryMotion
-export Translation, Rotation, HeartBeat, Trajectory, FlowTrajectory
-export TimeScale, TimeRange, Periodic
+export Translation, TranslationX, TranslationY, TranslationZ
+export Rotation, RotationX, RotationY, RotationZ 
+export HeartBeat, Trajectory, FlowTrajectory
+export AbstractTimeSpan, TimeRange, Periodic
 export sort_motions!, get_spin_coords
 # Secondary
 export get_kspace, rotx, roty, rotz
