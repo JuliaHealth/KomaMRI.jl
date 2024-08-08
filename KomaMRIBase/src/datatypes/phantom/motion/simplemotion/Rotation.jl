@@ -1,5 +1,5 @@
 @doc raw"""
-    rotation = Rotation(pitch, roll, yaw, t_start, t_end)
+    rotation = Rotation(time, pitch, roll, yaw)
  
 Rotation motion struct. It produces a rotation of the phantom in the three axes: 
 x (pitch), y (roll), and z (yaw).
@@ -38,43 +38,44 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 ```
 
 # Arguments
+- `time`: (`::AbstractTimeSpan{T<:Real}`, `[s]`) time scale
 - `pitch`: (`::Real`, `[º]`) rotation in x
 - `roll`: (`::Real`, `[º]`) rotation in y 
 - `yaw`: (`::Real`, `[º]`) rotation in z
-- `t_start`: (`::Real`, `[s]`) initial time 
-- `t_end`: (`::Real`, `[s]`) final time 
 
 # Returns
 - `rotation`: (`::Rotation`) Rotation struct
 
 # Examples
 ```julia-repl
-julia> rt = Rotation(pitch=15.0, roll=0.0, yaw=20.0, t_start=0.1, t_end=0.5)
+julia> rt = Rotation(time=TimeRange(0.0, 0.5), pitch=15.0, roll=0.0, yaw=20.0)
 ```
 """
-@with_kw struct Rotation{T<:Real} <: SimpleMotionType{T}
+@with_kw struct Rotation{T<:Real, TS<:AbstractTimeSpan{T}} <: SimpleMotion{T}
+    time      :: TS
     pitch      :: T
     roll       :: T
     yaw        :: T
-    t_start::T = typeof(pitch)(0.0)
-    t_end      = typeof(pitch)(0.0)
-    @assert t_end >= t_start "t_end must be greater or equal than t_start"
 end
 
-is_composable(motion_type::Rotation) = true
+RotationX(time::AbstractTimeSpan{T}, pitch::T) where {T<:Real} = Rotation(time, pitch, zero(T), zero(T))
+RotationY(time::AbstractTimeSpan{T}, roll::T) where {T<:Real}  = Rotation(time, zero(T), roll, zero(T))
+RotationZ(time::AbstractTimeSpan{T}, yaw::T) where {T<:Real}   = Rotation(time, zero(T), zero(T), yaw)
+
+is_composable(motion::Rotation) = true
 
 function displacement_x!(
     ux::AbstractArray{T},
-    motion_type::Rotation{T},
+    motion::Rotation{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
-    α = t_unit .* (motion_type.yaw)
-    β = t_unit .* (motion_type.roll)
-    γ = t_unit .* (motion_type.pitch)
+    t_unit = unit_time(t, motion.time)
+    α = t_unit .* (motion.yaw)
+    β = t_unit .* (motion.roll)
+    γ = t_unit .* (motion.pitch)
     ux .= cosd.(α) .* cosd.(β) .* x +
          (cosd.(α) .* sind.(β) .* sind.(γ) .- sind.(α) .* cosd.(γ)) .* y +
          (cosd.(α) .* sind.(β) .* cosd.(γ) .+ sind.(α) .* sind.(γ)) .* z .- x
@@ -83,16 +84,16 @@ end
 
 function displacement_y!(
     uy::AbstractArray{T},
-    motion_type::Rotation{T},
+    motion::Rotation{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
-    α = t_unit .* (motion_type.yaw)
-    β = t_unit .* (motion_type.roll)
-    γ = t_unit .* (motion_type.pitch)
+    t_unit = unit_time(t, motion.time)
+    α = t_unit .* (motion.yaw)
+    β = t_unit .* (motion.roll)
+    γ = t_unit .* (motion.pitch)
     uy .= sind.(α) .* cosd.(β) .* x +
          (sind.(α) .* sind.(β) .* sind.(γ) .+ cosd.(α) .* cosd.(γ)) .* y +
          (sind.(α) .* sind.(β) .* cosd.(γ) .- cosd.(α) .* sind.(γ)) .* z .- y
@@ -101,22 +102,18 @@ end
 
 function displacement_z!(
     uz::AbstractArray{T},
-    motion_type::Rotation{T},
+    motion::Rotation{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion_type.t_start, motion_type.t_end)
-    α = t_unit .* (motion_type.yaw)
-    β = t_unit .* (motion_type.roll)
-    γ = t_unit .* (motion_type.pitch)
+    t_unit = unit_time(t, motion.time)
+    α = t_unit .* (motion.yaw)
+    β = t_unit .* (motion.roll)
+    γ = t_unit .* (motion.pitch)
     uz .=  -sind.(β) .* x + 
             cosd.(β) .* sind.(γ) .* y +
             cosd.(β) .* cosd.(γ) .* z .- z
     return nothing
-end
-
-times(motion_type::Rotation) = begin
-    return [motion_type.t_start, motion_type.t_end]
 end

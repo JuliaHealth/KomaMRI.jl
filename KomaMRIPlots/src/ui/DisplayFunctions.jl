@@ -1033,26 +1033,22 @@ function plot_phantom_map(
     kwargs...,
 )
 
-    function interpolate_times(motion::MotionModel)
+    function interpolate_times(motion::AbstractMotion{T}) where {T<:Real}
         t = times(motion)
-        # Interpolate time points (as many as indicated by intermediate_time_samples)
-        itp = interpolate((1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
-        t = itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
+        if length(t)>1
+            # Interpolate time points (as many as indicated by intermediate_time_samples)
+            itp = interpolate((1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
+            t = itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
+        end
         return t
     end
 
-    function process_times(motion::SimpleMotion)
-        motion = KomaMRIBase.sort_motion(motion)
-        return interpolate_times(motion)
-    end
-    function process_times(motion::ArbitraryMotion)
+    function process_times(motion::AbstractMotion{T}) where {T<:Real}
+        sort_motions!(motion)
         t = interpolate_times(motion)
         # Decimate time points so their number is smaller than max_time_samples
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
-    end
-    function process_times(motion::MotionModel)
-        return times(motion)
     end
 
     function decimate_uniform_phantom(ph::Phantom, num_points::Int)

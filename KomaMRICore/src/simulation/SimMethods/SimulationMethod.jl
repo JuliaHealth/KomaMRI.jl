@@ -21,6 +21,7 @@ function initialize_spins_state(
     Mxy = zeros(T, Nspins)
     Mz = obj.ρ
     Xt = Mag{T}(Mxy, Mz)
+    sort_motions!(obj.motion)
     return Xt, obj
 end
 
