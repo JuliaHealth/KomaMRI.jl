@@ -46,7 +46,7 @@ export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion
-export MotionList, NoMotion
+export AbstractMotion, MotionList, NoMotion
 export SimpleMotion, ArbitraryMotion
 export Translation, TranslationX, TranslationY, TranslationZ
 export Rotation, RotationX, RotationY, RotationZ 
