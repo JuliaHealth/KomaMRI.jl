@@ -25,7 +25,7 @@ KomaMetalExt = "Metal"
 KomaoneAPIExt = "oneAPI"
 
 [compat]
-AMDGPU = "0.9"
+AMDGPU = "0.9, 1"
 Adapt = "3, 4"
 CUDA = "3, 4, 5"
 Functors = "0.4"
