@@ -38,9 +38,6 @@ SimpleMotion
 Translation
 Rotation
 HeartBeat
-PeriodicTranslation
-PeriodicRotation
-PeriodicHeartBeat
 ```
 
 ### `ArbitraryMotion <: MotionModel`
