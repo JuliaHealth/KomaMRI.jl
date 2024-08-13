@@ -20,19 +20,20 @@ pelvis_phantom2D
 heart_phantom
 ```
 
-### `MotionModel`-related functions
+### `MotionList`-related functions
 
 ```@docs
+sort_motions!
 get_spin_coords
 ```
 
-### `SimpleMotion <: MotionModel`
+### `SimpleMotion <: AbstractMotion`
 
 ```@docs
 SimpleMotion
 ```
 
-### `SimpleMotion types`
+### `SimpleMotion` types
 
 ```@docs
 Translation
@@ -40,10 +41,17 @@ Rotation
 HeartBeat
 ```
 
-### `ArbitraryMotion <: MotionModel`
+### `ArbitraryMotion <: AbstractMotion`
 
 ```@docs
 ArbitraryMotion
+```
+
+### `ArbitraryMotion` types
+
+```@docs
+Trajectory
+FlowTrajectory
 ```
 
 ## `Sequence`-related functions
