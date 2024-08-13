@@ -4,16 +4,12 @@ using KomaMRI # hide
 sys = Scanner() # hide
 
 # It can also be interesting to see the effect of the patient's motion during an MRI scan.
-# For this, Koma provides the ability to add `motion <: MotionModel` to the phantom.
-# In this tutorial, we will show how to add a [`SimpleMotion`](@ref) model to a 2D brain phantom.
+# For this, Koma provides the ability to add `motion <: AbstractMotionList` to the phantom.
+# In this tutorial, we will show how to add a [`Translation`](@ref) motion to a 2D brain phantom.
 
 # First, let's load the 2D brain phantom used in the previous tutorials:
 obj = brain_phantom2D()
 obj.Δw .= 0 # hide
-
-# The `SimpleMotion` model includes a list of `SimpleMotionType`'s, to enabling mix-and-matching simple motions.
-# These are [`Translation`](@ref), [`Rotation`](@ref), [`HeartBeat`](@ref) and their periodic versions
-# [`PeriodicTranslation`](@ref), [`PeriodicRotation`](@ref) and [`PeriodicHeartBeat`](@ref).
 
 # ### Head Translation
 #
