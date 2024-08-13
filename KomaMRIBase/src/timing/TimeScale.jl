@@ -46,7 +46,8 @@ function unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
     if ts.t_start == ts.t_end
         return (t .>= ts.t_start) .* oneunit(T)
     else
-        return min.(max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T)), oneunit(T))
+        tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
+        return min.(tmp, oneunit(T))
     end
 end
 
