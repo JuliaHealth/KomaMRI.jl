@@ -386,7 +386,7 @@ end
     sig = sig / prod(size(obj))
 
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-
+    
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
@@ -408,6 +408,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    println("NMRSE SimpleMotion BlochSimple: ", NMRSE(sig, sig_jemris))
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
@@ -429,6 +430,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    println("NMRSE ArbitraryMotion BlochSimple: ", NMRSE(sig, sig_jemris))
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
