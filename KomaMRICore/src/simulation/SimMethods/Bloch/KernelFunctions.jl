@@ -1,44 +1,51 @@
 using KernelAbstractions: @kernel, @Const, @index, @uniform, @groupsize, @localmem
 
-#=
-macro myunroll(N)
-    exp = []
-    var1 = esc(quote
-        for t=1:$N
-            β[i_g] = -im * nxy[i_g, t] * sin(φ[i_g, t] / 2)
-        end
-    end)
-    return var1
-    push!(exp, var1)
-    return esc(quote
-        $exp[1]
-        $exp[2]
-    end)
-end
-=#
-
-@kernel function apply_excitation!(α, β, Mxy_tmp, Mz_tmp, Mxy, Mz, Bz, B, φ, nxy, nz, ΔT1, ΔT2, ρ)
+@kernel function apply_excitation!(Mxy, Mz, @Const(φ), @Const(B1), @Const(Bz), @Const(B), @Const(ΔT1), @Const(ΔT2), @Const(ρ))
     i_g = @index(Global)
-    #i_l = @index(Local)
+    i_l = @index(Local)
 
-    T = eltype(Bz)
-    #@uniform N = @groupsize()[1]
-    #@uniform N_Δt = size(φ, 2)
+    @uniform T = eltype(φ)
+    @uniform N = @groupsize()[1]
+    @uniform N_Δt = size(φ, 2)
 
-    #s_α = @localmem Complex{T} (N,)
-    #s_β = @localmem Complex{T} (N,)
-    #s_Mxy_tmp = @localmem Complex{T} (N,)
-    #s_Mz_tmp = @localmem T (N,)
+    s_α_r = @localmem T (N,)
+    s_α_i = @localmem T (N,)
+    s_β_i = @localmem T (N,)
+    s_β_r = @localmem T (N,)
+    s_Mxy_r = @localmem T (N,)
+    s_Mxy_i = @localmem T (N,)
+    s_Mxy_new_r = @localmem T (N,)
+    s_Mxy_new_i = @localmem T (N,)
+    s_Mz = @localmem T (N,)
+    s_Mz_new = @localmem T (N,)
+    s_ρ = @localmem T (N,)
 
-    N = size(φ, 2)
-    #KA.Extras.LoopInfo.@unroll 
-    @inbounds for t=1:N
-        α[i_g] = cos(φ[i_g, t] / 2) - 1im * nz[i_g, t] * sin(φ[i_g, t] / 2)
-        β[i_g] = -im * nxy[i_g, t] * sin(φ[i_g, t] / 2)
-        Mxy_tmp[i_g] = 2 * conj(α[i_g]) * β[i_g] * Mz[i_g] + conj(α[i_g])^2 * Mxy[i_g] - β[i_g]^2 * conj(Mxy[i_g])
-        Mz_tmp[i_g] = (abs(α[i_g])^2 - abs(β[i_g])^2) * Mz[i_g] - 2 * real(α[i_g] * β[i_g] * conj(Mxy[i_g]))
-        Mxy[i_g] = Mxy_tmp[i_g] * exp(-ΔT2[i_g, t])
-        Mz[i_g] = Mz_tmp[i_g] * exp(-ΔT1[i_g, t]) + ρ[i_g] * (1 - exp(-ΔT1[i_g, t]))
+    @inbounds s_Mxy_r[i_l] = real(Mxy[i_g])
+    @inbounds s_Mxy_i[i_l]  = imag(Mxy[i_g])
+    @inbounds s_Mz[i_l] = Mz[i_g]
+    @inbounds s_ρ[i_l] = ρ[i_g]
+
+    for t = 1 : N_Δt
+        @inbounds sin_φ = sin(φ[i_g, t])
+        @inbounds cos_φ = cos(φ[i_g, t])
+        @inbounds s_α_r[i_l] = cos_φ
+        @inbounds s_α_i[i_l] = -(Bz[i_g, t] / B[i_g, t]) * sin_φ
+        @inbounds s_β_r[i_l] = (imag(B1[t]) / B[i_g, t]) * sin_φ
+        @inbounds s_β_i[i_l] = -(real(B1[t]) / B[i_g, t]) * sin_φ
+        @inbounds s_Mxy_new_r[i_l] = 2 * (s_Mxy_i[i_l] * (s_α_r[i_l] * s_α_i[i_l] - s_β_r[i_l] * s_β_i[i_l]) +
+                                    s_Mz[i_l] * (s_α_i[i_l] * s_β_i[i_l] + s_α_r[i_l] * s_β_r[i_l])) +
+                                    s_Mxy_r[i_l] * (s_α_r[i_l]^2 - s_α_i[i_l]^2 - s_β_r[i_l]^2 + s_β_i[i_l]^2)
+        @inbounds s_Mxy_new_i[i_l] = -2 * (s_Mxy_r[i_l] * (s_α_r[i_l] * s_α_i[i_l] + s_β_r[i_l] * s_β_i[i_l]) -
+                                    s_Mz[i_l] * (s_α_r[i_l] * s_β_i[i_l] - s_α_i[i_l] * s_β_r[i_l])) +
+                                    s_Mxy_i[i_l] * (s_α_r[i_l]^2 - s_α_i[i_l]^2 + s_β_r[i_l]^2 - s_β_i[i_l]^2)
+        @inbounds s_Mz_new[i_l] = s_Mz[i_l] * (s_α_r[i_l]^2 + s_α_i[i_l]^2 - s_β_r[i_l]^2 - s_β_i[i_l]^2) -
+                                    2 * (s_Mxy_r[i_l] * (s_α_r[i_l] * s_β_r[i_l] - s_α_i[i_l] * s_β_i[i_l]) +
+                                    s_Mxy_i[i_l] * (s_α_r[i_l] * s_β_i[i_l] + s_α_i[i_l] * s_β_r[i_l]))
+        @inbounds s_Mxy_r[i_l] = s_Mxy_new_r[i_l] * ΔT2[i_g, t]
+        @inbounds s_Mxy_i[i_l] = s_Mxy_new_i[i_l] * ΔT2[i_g, t]
+        @inbounds s_Mz[i_l] = s_Mz_new[i_l] * ΔT1[i_g, t] + s_ρ[i_l] * (1 - ΔT1[i_g, t])
     end
-    #@myunroll n
+
+    @inbounds Mxy[i_g] = s_Mxy_r[i_l] + 1im * s_Mxy_i[i_l]
+    @inbounds Mz[i_g] = s_Mz[i_l]
 end

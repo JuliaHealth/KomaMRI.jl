@@ -68,8 +68,6 @@ struct BlochGPUPrealloc{T} <: PreallocResult{T}
     Bz::AbstractMatrix{T}
     B::AbstractMatrix{T}
     φ::AbstractMatrix{T}
-    nxy::AbstractMatrix{T}
-    nz::AbstractMatrix{T}
     ΔT1::AbstractMatrix{T}
     ΔT2::AbstractMatrix{T}
     Δϕ::AbstractMatrix{T}
@@ -87,8 +85,6 @@ function prealloc_block(p::BlochGPUPrealloc{T}, i::Integer) where {T<:Real}
         view(p.Bz,:,1:seq_block.length),
         view(p.B,:,1:seq_block.length),
         view(p.φ,:,1:seq_block.length-1),
-        view(p.nxy,:,1:seq_block.length),
-        view(p.nz,:,1:seq_block.length),
         view(p.ΔT1,:,1:seq_block.length-1),
         view(p.ΔT2,:,1:seq_block.length-1),
         view(p.Δϕ,:,1:seq_block.length-1),
@@ -107,8 +103,6 @@ function prealloc(sim_method::Bloch, backend::KA.GPU, obj::Phantom{T}, M::Mag{T}
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length)),
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length)),
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length-1)),
-        KA.zeros(backend, T, (size(obj.x, 1), max_block_length)),
-        KA.zeros(backend, T, (size(obj.x, 1), max_block_length)),
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length-1)),
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length-1)),
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length-1)),
@@ -170,7 +164,7 @@ function run_spin_precession!(
     M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* _cis.(pre.ϕ[:,end])
 
     return nothing
-end 
+end
 
 function run_spin_excitation!(
     p::Phantom{T},
@@ -188,41 +182,17 @@ function run_spin_excitation!(
     pre.Bz .= (x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz') .+ pre.ΔBz .- seq.Δf' ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
     pre.B .= sqrt.(abs.(seq.B1') .^ 2 .+ abs.(pre.Bz) .^ 2)
     pre.B[pre.B .== 0] .= eps(T)
-    pre.φ .= T(-2π .* γ) .* (pre.B[:,1:end-1] .* seq.Δt')
-    pre.nxy .= seq.B1' ./ pre.B
-    pre.nz .= pre.Bz ./ pre.B
-    pre.ΔT1 .= seq.Δt' ./ p.T1
-    pre.ΔT2 .= seq.Δt' ./ p.T2
+    
+    #Spinor Rotation
+    pre.φ .= T(-π .* γ) .* (pre.B[:,1:end-1] .* seq.Δt') # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
+    
+    #Relaxation
+    pre.ΔT1 .= exp.(-seq.Δt' ./ p.T1)
+    pre.ΔT2 .= exp.(-seq.Δt' ./ p.T2)
 
-    Mxy = similar(M.xy)
-    Mz = similar(M.z)
-    α = similar(M.xy)
-    β = similar(M.xy)
-    apply_excitation!(backend, 256)(α, β, Mxy, Mz, M.xy, M.z, pre.Bz, pre.B, pre.φ, pre.nxy, pre.nz, pre.ΔT1, pre.ΔT2, p.ρ; ndrange=size(M.xy,1))
+    #Excitation
+    apply_excitation!(backend, 512)(M.xy, M.z, pre.φ, seq.B1, pre.Bz, pre.B, pre.ΔT1, pre.ΔT2, p.ρ, ndrange=size(M.xy,1))
     KA.synchronize(backend)
 
-    #=
-    #Simulation
-    count = 0
-    for s in seq #This iterates over seq, "s = seq[i,:]"
-        count += 1
-        #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
-        #Effective field
-        ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
-        B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
-        B[B .== 0] .= eps(T)
-        #Spinor Rotation
-        φ = T(-2π .* γ) .* (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
-        mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
-        #Relaxation
-        tmp = -s.Δt ./ p.T1
-        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
-        M.z .= M.z .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
-    end
-    =#
-    #Acquired signal
-    #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
     return nothing
 end
