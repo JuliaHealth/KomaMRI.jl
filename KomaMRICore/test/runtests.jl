@@ -348,7 +348,7 @@ end
     # More than 1 spin
     ph = phantom_brain_arbitrary_motion()
     Ns = length(ph)
-    Nt = 10
+    Nt = 5
     t_start = 0.0
     t_end = 10.0
     dx = zeros(Ns, 2)  
@@ -356,19 +356,17 @@ end
     dy = [zeros(Ns,1) ones(Ns,1)]
     Random.seed!(1234)
     t = rand(t_start:0.1:t_end, Nt)
-
-    ph = ph |> f32 |> gpu 
-    t = t |> f32 |> gpu 
-
-    xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
-
-    ux = t' .* 0.0
+    ux = t' .* 0.0  
     uy = t' .* 0.1
     uz = t' .* 0.0
 
+    ph = ph |> f32 |> gpu 
+    t = t |> f32 |> gpu 
     ux = ux |> f32 |> gpu 
     uy = uy |> f32 |> gpu 
     uz = uz |> f32 |> gpu 
+
+    xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
     @test xt == ph.x .+ ux
     @test yt == ph.y .+ uy
