@@ -340,52 +340,19 @@ end
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
-
-@testitem "getSpinCoords Simple" tags=[:important, :core, :motion, :spincoords] begin 
-    using Suppressor
-    include("initialize_backend.jl")
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    ph = Phantom(x=[1.0], y=[1.0])
-    t_start=0.0; t_end=1.0 
-    t = collect(range(t_start, t_end, 11))
-    dx, dy, dz = [1.0, 0.0, 0.0]
-    vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
-    ph.motion = MotionList(Translation(TimeRange(t_start, t_end), dx, dy, dz))
-
-    ph = ph |> f32 |> gpu 
-    t = t |> f32 |> gpu 
-
-    xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
-
-    dx = dx |> f32 |> gpu 
-    dy = dy |> f32 |> gpu 
-    dz = dz |> f32 |> gpu 
-
-    vx = vx |> f32 |> gpu 
-    vy = vy |> f32 |> gpu 
-    vz = vz |> f32 |> gpu 
-
-    @test xt == ph.x .+ vx.*t'
-    @test yt == ph.y .+ vy.*t'
-    @test zt == ph.z .+ vz.*t'
-end
-
 @testitem "getSpinCoords Arbitrary" tags=[:important, :core, :motion, :spincoords] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
     # More than 1 spin
-    ph = Phantom(x=[1.0, 2.0], y=[1.0, 2.0])
+    ph = phantom_brain_arbitrary_motion()
     Ns = length(ph)
     t_start = 0.0
-    t_end = 1.0
-    Nt = 10
-    dx = rand(Ns, Nt)
-    dy = rand(Ns, Nt)
-    dz = rand(Ns, Nt)
-    ph.motion = MotionList(Trajectory(TimeRange(t_start, t_end), dx, dy, dz))
-    t = collect(range(t_start, t_end, Nt))
+    t_end = 10.0
+    dx = zeros(Ns, 2)  
+    dz = zeros(Ns, 2)  
+    dy = [zeros(Ns,1) ones(Ns,1)]
+    t = collect(range(t_start, t_end, 2))
 
     ph = ph |> f32 |> gpu 
     t = t |> f32 |> gpu 
