@@ -341,7 +341,33 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "getSpinCoords" tags=[:important, :core, :motion, :spincoords] begin
+@testitem "getSpinCoords Simple" tags=[:important, :core, :motion, :spincoords] begin
+    using Suppressor
+    include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    ph = Phantom(x=[1.0], y=[1.0])
+    t_start=0.0; t_end=1.0 
+    t = collect(range(t_start, t_end, 11))
+    dx, dy, dz = [1.0, 0.0, 0.0]
+    vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
+    ph.motion = MotionList(Translation(TimeRange(t_start, t_end), dx, dy, dz))
+
+    ph = ph |> f32 |> gpu 
+    t = t |> f32 |> gpu 
+
+    xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
+
+    dx = dx |> f32 |> gpu 
+    dy = dy |> f32 |> gpu 
+    dz = dz |> f32 |> gpu 
+
+    @test xt == ph.x .+ vx.*t'
+    @test yt == ph.y .+ vy.*t'
+    @test zt == ph.z .+ vz.*t'
+end
+
+@testitem "getSpinCoords Arbitrary" tags=[:important, :core, :motion, :spincoords] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -365,6 +391,7 @@ end
     dx = dx |> f32 |> gpu 
     dy = dy |> f32 |> gpu 
     dz = dz |> f32 |> gpu 
+
     @test xt == ph.x .+ dx
     @test yt == ph.y .+ dy
     @test zt == ph.z .+ dz
