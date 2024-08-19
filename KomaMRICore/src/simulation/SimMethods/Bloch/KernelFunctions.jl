@@ -1,5 +1,7 @@
 using KernelAbstractions: @kernel, @Const, @index, @uniform, @groupsize, @localmem
 
+## COV_EXCL_START
+
 @kernel function apply_excitation!(Mxy, Mz, @Const(φ), @Const(B1), @Const(Bz), @Const(B), @Const(ΔT1), @Const(ΔT2), @Const(ρ))
     i_g = @index(Global)
     i_l = @index(Local)
@@ -49,3 +51,5 @@ using KernelAbstractions: @kernel, @Const, @index, @uniform, @groupsize, @localm
     @inbounds Mxy[i_g] = s_Mxy_r[i_l] + 1im * s_Mxy_i[i_l]
     @inbounds Mz[i_g] = s_Mz[i_l]
 end
+
+## COV_EXCL_STOP
