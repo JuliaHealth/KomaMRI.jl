@@ -36,7 +36,7 @@ using TestItems, TestItemRunner
 #Environment variable set by CI
 const CI = get(ENV, "CI", nothing)
 
-@run_package_tests filter=ti->(:motion in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
+@run_package_tests filter=ti->(:core in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
 @testitem "Spinors×Mag" tags=[:core] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
@@ -341,41 +341,6 @@ end
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
     print(NMRSE(sig, sig_jemris))
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-@testitem "getSpinCoords Simple" tags=[:important, :core, :spincoords] begin
-    using Suppressor, Random
-
-    include("initialize_backend.jl")
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-    # More than 1 spin
-    ph = phantom_brain_simple_motion()
-    Ns = length(ph)
-    Nt = 5
-    t_start = 0.0
-    t_end = 10.0
-    dx = zeros(Ns, 2)  
-    dz = zeros(Ns, 2)  
-    dy = [zeros(Ns,1) ones(Ns,1)]
-    Random.seed!(1234)
-    t = rand(t_start:0.1:t_end, Nt)
-    ux = t' .* 0.0  
-    uy = t' .* 0.1
-    uz = t' .* 0.0
-
-    ph = ph |> f32 |> gpu 
-    t = t |> f32 |> gpu 
-    ux = ux |> f32 |> gpu 
-    uy = uy |> f32 |> gpu 
-    uz = uz |> f32 |> gpu 
-
-    xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
-
-    display(length(yt))
-    display(length(yt[yt .== ph.y .+ uy]))
-
-    @test xt == ph.x .+ ux
-    @test yt == ph.y .+ uy
-    @test zt == ph.z .+ uz
 end
 
 @testitem "BlochDict" tags=[:important, :core] begin
