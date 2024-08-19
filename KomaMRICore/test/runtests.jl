@@ -36,7 +36,7 @@ using TestItems, TestItemRunner
 #Environment variable set by CI
 const CI = get(ENV, "CI", nothing)
 
-@run_package_tests filter=ti->(:core in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
+@run_package_tests filter=ti->(:spincoords in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
 @testitem "Spinors×Mag" tags=[:core] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
@@ -339,6 +339,54 @@ end
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+@testitem "getSpinCoords" tags=[:important, :core, :motion, :spincoords] begin
+    using Suppressor
+    include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    # 1 spin
+    ph = Phantom(x=[1.0], y=[1.0])
+    Ns = length(ph)
+    t_start = 0.0
+    t_end = 1.0
+    Nt = 10
+    dx = rand(Ns, Nt)
+    dy = rand(Ns, Nt)
+    dz = rand(Ns, Nt)
+    ph.motion = MotionList(Trajectory(TimeRange(t_start, t_end), dx, dy, dz))
+    t = collect(range(t_start, t_end, Nt))
+    ph = ph |> gpu
+    t = t |> gpu
+    xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
+    dx = dx |> gpu
+    dy = dy |> gpu
+    dz = dz |> gpu
+    @test xt == ph.x .+ dx
+    @test yt == ph.y .+ dy
+    @test zt == ph.z .+ dz
+
+    # More than 1 spin
+    ph = Phantom(x=[1.0, 2.0], y=[1.0, 2.0])
+    Ns = length(ph)
+    t_start = 0.0
+    t_end = 1.0
+    Nt = 10
+    dx = rand(Ns, Nt)
+    dy = rand(Ns, Nt)
+    dz = rand(Ns, Nt)
+    ph.motion = MotionList(Trajectory(TimeRange(t_start, t_end), dx, dy, dz))
+    t = collect(range(t_start, t_end, Nt))
+    ph = ph |> gpu
+    t = t |> gpu
+    xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
+    dx = dx |> gpu
+    dy = dy |> gpu
+    dz = dz |> gpu
+    @test xt == ph.x .+ dx
+    @test yt == ph.y .+ dy
+    @test zt == ph.z .+ dz
 end
 
 @testitem "BlochDict" tags=[:important, :core] begin
