@@ -36,7 +36,7 @@ using TestItems, TestItemRunner
 #Environment variable set by CI
 const CI = get(ENV, "CI", nothing)
 
-@run_package_tests filter=ti->(:spincoords in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
+@run_package_tests filter=ti->(:motion in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
 @testitem "Spinors×Mag" tags=[:core] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
@@ -318,6 +318,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    print(NMRSE(sig, sig_jemris))
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
@@ -338,9 +339,10 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    print(NMRSE(sig, sig_jemris))
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
-@testitem "getSpinCoords Simple" tags=[:important, :core, :motion, :spincoords] begin
+@testitem "getSpinCoords Simple" tags=[:important, :core, :spincoords] begin
     using Suppressor, Random
 
     include("initialize_backend.jl")
