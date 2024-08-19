@@ -340,13 +340,13 @@ end
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
-@testitem "getSpinCoords Arbitrary" tags=[:important, :core, :motion, :spincoords] begin
+@testitem "getSpinCoords Simple" tags=[:important, :core, :motion, :spincoords] begin
     using Suppressor, Random
 
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
     # More than 1 spin
-    ph = phantom_brain_arbitrary_motion()
+    ph = phantom_brain_simple_motion()
     Ns = length(ph)
     Nt = 5
     t_start = 0.0
