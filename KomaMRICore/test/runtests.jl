@@ -362,6 +362,10 @@ end
     dy = dy |> f32 |> gpu 
     dz = dz |> f32 |> gpu 
 
+    vx = vx |> f32 |> gpu 
+    vy = vy |> f32 |> gpu 
+    vz = vz |> f32 |> gpu 
+
     @test xt == ph.x .+ vx.*t'
     @test yt == ph.y .+ vy.*t'
     @test zt == ph.z .+ vz.*t'
