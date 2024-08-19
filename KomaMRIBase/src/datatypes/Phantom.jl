@@ -200,11 +200,16 @@ Creates a two-dimensional brain Phantom struct.
 Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm.
 
 # References
-- B. Aubert-Broche, D.L. Collins, A.C. Evans: "A new improved version of the realistic
-    digital brain phantom" NeuroImage, in review - 2006
-- B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital
-    brain phantoms for creation of validation image data bases" IEEE TMI, in review - 2006
-- https://brainweb.bic.mni.mcgill.ca/brainweb
+-  Aubert-Broche, B., Alan C. Evans, and Louis Collins. 
+    "A new improved version of the realistic digital brain phantom." NeuroImage 32, no. 1 (2006): 138-145. (Aubert-Broche, B. et al., 2006a)
+- Aubert-Broche, B., Mark Griffin, G. Bruce Pike, Alan C. Evans, and D. Louis Collins. 
+    "Twenty new digital brain phantoms for creation of validation image data bases." IEEE transactions on medical imaging 25, no. 11 (2006): 1410-1416. (Aubert-Broche, B. et al., 2006b)
+- https://brainweb.bic.mni.mcgill.ca/brainweb/tissue_mr_parameters.txt (BrainWeb)
+
+## Reproducibility notes
+- T1, T2, T2* and PD Values for CSF, GM, WM, FAT, MUSCLE, SKIN/MUSCLE, SKULL, VESSELS, FAT2, DURA, MARROW are extracted from (Aubert-Broche, B. et al., 2006a)
+- The T1 value for muscle is extracted from (Brainweb) as (Aubert-Broche, B. et al., 2006a) reports a 00 value. 
+- The T1 value of SKIN/MUSCLE is different between (BrainWeb) and (Aubert-Broche, B. et al., 2006a), we used the latter one.
 
 # Keywords
 - `axis`: (`::String`, `="axial"`, opts=[`"axial"`, `"coronal"`, `"sagittal"`]) orientation of the phantom
@@ -269,8 +274,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
         (class .== 185) * 0 .+ #VESSELS
         (class .== 209) * 61 .+ #FAT2
         (class .== 232) * 58 .+ #DURA
-        (class .== 255) * 61 .+#MARROW
-        (class .== 255) * 70 #MARROW
+        (class .== 255) * 61 #MARROW
     T1 =
         (class .== 23) * 2569 .+ #CSF
         (class .== 46) * 833 .+ #GM
@@ -289,7 +293,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
         (class .== 70) * 0.77 .+ #WM
         (class .== 93) * 1 .+ #FAT1
         (class .== 116) * 1 .+ #MUSCLE
-        (class .== 139) * 0.7 .+ #SKIN/MUSCLE
+        (class .== 139) * 1 .+ #SKIN/MUSCLE
         (class .== 162) * 0 .+ #SKULL
         (class .== 185) * 0 .+ #VESSELS
         (class .== 209) * 0.77 .+ #FAT2
