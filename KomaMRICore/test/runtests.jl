@@ -341,7 +341,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "getSpinCoords Simple" tags=[:important, :core, :motion, :spincoords] begin
+@testitem "getSpinCoords Simple" tags=[:important, :core, :motion, :spincoords] begin 
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
