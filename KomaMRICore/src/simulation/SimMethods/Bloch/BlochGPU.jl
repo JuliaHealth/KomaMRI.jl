@@ -181,7 +181,6 @@ function run_spin_excitation!(
     #Effective Field
     pre.Bz .= (x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz') .+ pre.ΔBz .- seq.Δf' ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
     pre.B .= sqrt.(abs.(seq.B1') .^ 2 .+ abs.(pre.Bz) .^ 2)
-    pre.B[pre.B .== 0] .= eps(T)
     
     #Spinor Rotation
     pre.φ .= T(-π .* γ) .* (pre.B[:,1:end-1] .* seq.Δt') # TODO: Use trapezoidal integration here (?),  this is just Forward Euler

@@ -27,25 +27,31 @@ using KernelAbstractions: @kernel, @Const, @index, @uniform, @groupsize, @localm
     @inbounds s_Mz[i_l] = Mz[i_g]
     @inbounds s_ρ[i_l] = ρ[i_g]
 
-    for t = 1 : N_Δt
-        @inbounds sin_φ = sin(φ[i_g, t])
-        @inbounds cos_φ = cos(φ[i_g, t])
-        @inbounds s_α_r[i_l] = cos_φ
-        @inbounds s_α_i[i_l] = -(Bz[i_g, t] / B[i_g, t]) * sin_φ
-        @inbounds s_β_r[i_l] = (imag(B1[t]) / B[i_g, t]) * sin_φ
-        @inbounds s_β_i[i_l] = -(real(B1[t]) / B[i_g, t]) * sin_φ
-        @inbounds s_Mxy_new_r[i_l] = 2 * (s_Mxy_i[i_l] * (s_α_r[i_l] * s_α_i[i_l] - s_β_r[i_l] * s_β_i[i_l]) +
-                                    s_Mz[i_l] * (s_α_i[i_l] * s_β_i[i_l] + s_α_r[i_l] * s_β_r[i_l])) +
-                                    s_Mxy_r[i_l] * (s_α_r[i_l]^2 - s_α_i[i_l]^2 - s_β_r[i_l]^2 + s_β_i[i_l]^2)
-        @inbounds s_Mxy_new_i[i_l] = -2 * (s_Mxy_r[i_l] * (s_α_r[i_l] * s_α_i[i_l] + s_β_r[i_l] * s_β_i[i_l]) -
-                                    s_Mz[i_l] * (s_α_r[i_l] * s_β_i[i_l] - s_α_i[i_l] * s_β_r[i_l])) +
-                                    s_Mxy_i[i_l] * (s_α_r[i_l]^2 - s_α_i[i_l]^2 + s_β_r[i_l]^2 - s_β_i[i_l]^2)
-        @inbounds s_Mz_new[i_l] = s_Mz[i_l] * (s_α_r[i_l]^2 + s_α_i[i_l]^2 - s_β_r[i_l]^2 - s_β_i[i_l]^2) -
-                                    2 * (s_Mxy_r[i_l] * (s_α_r[i_l] * s_β_r[i_l] - s_α_i[i_l] * s_β_i[i_l]) +
-                                    s_Mxy_i[i_l] * (s_α_r[i_l] * s_β_i[i_l] + s_α_i[i_l] * s_β_r[i_l]))
-        @inbounds s_Mxy_r[i_l] = s_Mxy_new_r[i_l] * ΔT2[i_g, t]
-        @inbounds s_Mxy_i[i_l] = s_Mxy_new_i[i_l] * ΔT2[i_g, t]
-        @inbounds s_Mz[i_l] = s_Mz_new[i_l] * ΔT1[i_g, t] + s_ρ[i_l] * (1 - ΔT1[i_g, t])
+    @inbounds for t = 1 : N_Δt
+        sin_φ = sin(φ[i_g, t]) #TO-DO: use sincos once oneAPI releases version with https://github.com/JuliaGPU/oneAPI.jl/commit/260a4dda0ea223dbf0893de7b4a13d994ae27bd1
+        cos_φ = cos(φ[i_g, t])
+        s_α_r[i_l] = cos_φ
+        if (iszero(B[i_g, t]))
+            s_α_i[i_l] = -(Bz[i_g, t] / (B[i_g, t] + eps(T))) * sin_φ
+            s_β_r[i_l] = (imag(B1[t]) / (B[i_g, t] + eps(T))) * sin_φ
+            s_β_i[i_l] = -(real(B1[t]) / (B[i_g, t] + eps(T))) * sin_φ
+        else
+            s_α_i[i_l] = -(Bz[i_g, t] / B[i_g, t]) * sin_φ
+            s_β_r[i_l] = (imag(B1[t]) / B[i_g, t]) * sin_φ
+            s_β_i[i_l] = -(real(B1[t]) / B[i_g, t]) * sin_φ
+        end
+            s_Mxy_new_r[i_l] = 2 * (s_Mxy_i[i_l] * (s_α_r[i_l] * s_α_i[i_l] - s_β_r[i_l] * s_β_i[i_l]) +
+                                s_Mz[i_l] * (s_α_i[i_l] * s_β_i[i_l] + s_α_r[i_l] * s_β_r[i_l])) +
+                                s_Mxy_r[i_l] * (s_α_r[i_l]^2 - s_α_i[i_l]^2 - s_β_r[i_l]^2 + s_β_i[i_l]^2)
+            s_Mxy_new_i[i_l] = -2 * (s_Mxy_r[i_l] * (s_α_r[i_l] * s_α_i[i_l] + s_β_r[i_l] * s_β_i[i_l]) -
+                                s_Mz[i_l] * (s_α_r[i_l] * s_β_i[i_l] - s_α_i[i_l] * s_β_r[i_l])) +
+                                s_Mxy_i[i_l] * (s_α_r[i_l]^2 - s_α_i[i_l]^2 + s_β_r[i_l]^2 - s_β_i[i_l]^2)
+            s_Mz_new[i_l] = s_Mz[i_l] * (s_α_r[i_l]^2 + s_α_i[i_l]^2 - s_β_r[i_l]^2 - s_β_i[i_l]^2) -
+                            2 * (s_Mxy_r[i_l] * (s_α_r[i_l] * s_β_r[i_l] - s_α_i[i_l] * s_β_i[i_l]) +
+                            s_Mxy_i[i_l] * (s_α_r[i_l] * s_β_i[i_l] + s_α_i[i_l] * s_β_r[i_l]))
+        s_Mxy_r[i_l] = s_Mxy_new_r[i_l] * ΔT2[i_g, t]
+        s_Mxy_i[i_l] = s_Mxy_new_i[i_l] * ΔT2[i_g, t]
+        s_Mz[i_l] = s_Mz_new[i_l] * ΔT1[i_g, t] + s_ρ[i_l] * (1 - ΔT1[i_g, t])
     end
 
     @inbounds Mxy[i_g] = s_Mxy_r[i_l] + 1im * s_Mxy_i[i_l]
