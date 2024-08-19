@@ -301,7 +301,7 @@ end
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 end
 
-@testitem "Bloch SimpleMotion" tags=[:important, :core, :motion] begin
+@testitem "Bloch SimpleMotion" tags=[:important, :core, :motion] begin 
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
