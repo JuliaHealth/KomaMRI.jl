@@ -345,28 +345,6 @@ end
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    # 1 spin
-    ph = Phantom(x=[1.0], y=[1.0])
-    Ns = length(ph)
-    t_start = 0.0
-    t_end = 1.0
-    Nt = 10
-    dx = rand(Ns, Nt)
-    dy = rand(Ns, Nt)
-    dz = rand(Ns, Nt)
-    ph.motion = MotionList(Trajectory(TimeRange(t_start, t_end), dx, dy, dz))
-    t = collect(range(t_start, t_end, Nt))
-    ph = ph |> gpu |> f32
-    t = t |> gpu |> f32
-    xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
-    dx = dx |> gpu |> f32
-    dy = dy |> gpu |> f32
-    dz = dz |> gpu |> f32
-    @test xt == ph.x .+ dx
-    @test yt == ph.y .+ dy
-    @test zt == ph.z .+ dz
-
     # More than 1 spin
     ph = Phantom(x=[1.0, 2.0], y=[1.0, 2.0])
     Ns = length(ph)
@@ -378,12 +356,15 @@ end
     dz = rand(Ns, Nt)
     ph.motion = MotionList(Trajectory(TimeRange(t_start, t_end), dx, dy, dz))
     t = collect(range(t_start, t_end, Nt))
-    ph = ph |> gpu |> f32
-    t = t |> gpu |> f32
+
+    ph = ph |> f32 |> gpu 
+    t = t |> f32 |> gpu 
+
     xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
-    dx = dx |> gpu |> f32
-    dy = dy |> gpu |> f32
-    dz = dz |> gpu |> f32
+
+    dx = dx |> f32 |> gpu 
+    dy = dy |> f32 |> gpu 
+    dz = dz |> f32 |> gpu 
     @test xt == ph.x .+ dx
     @test yt == ph.y .+ dy
     @test zt == ph.z .+ dz
