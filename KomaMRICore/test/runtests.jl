@@ -368,6 +368,9 @@ end
 
     xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
+    display(length(yt))
+    display(length(yt[yt .== ph.y .+ uy]))
+
     @test xt == ph.x .+ ux
     @test yt == ph.y .+ uy
     @test zt == ph.z .+ uz
