@@ -341,31 +341,38 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 @testitem "getSpinCoords Arbitrary" tags=[:important, :core, :motion, :spincoords] begin
-    using Suppressor
+    using Suppressor, Random
+
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
     # More than 1 spin
     ph = phantom_brain_arbitrary_motion()
     Ns = length(ph)
+    Nt = 10
     t_start = 0.0
     t_end = 10.0
     dx = zeros(Ns, 2)  
     dz = zeros(Ns, 2)  
     dy = [zeros(Ns,1) ones(Ns,1)]
-    t = collect(range(t_start, t_end, 2))
+    Random.seed!(1234)
+    t = rand(t_start:0.1:t_end, Nt)
 
     ph = ph |> f32 |> gpu 
     t = t |> f32 |> gpu 
 
     xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
 
-    dx = dx |> f32 |> gpu 
-    dy = dy |> f32 |> gpu 
-    dz = dz |> f32 |> gpu 
+    ux = t' .* 0.0
+    uy = t' .* 0.1
+    uz = t' .* 0.0
 
-    @test xt == ph.x .+ dx
-    @test yt == ph.y .+ dy
-    @test zt == ph.z .+ dz
+    ux = ux |> f32 |> gpu 
+    uy = uy |> f32 |> gpu 
+    uz = uz |> f32 |> gpu 
+
+    @test xt == ph.x .+ ux
+    @test yt == ph.y .+ uy
+    @test zt == ph.z .+ uz
 end
 
 @testitem "BlochDict" tags=[:important, :core] begin
