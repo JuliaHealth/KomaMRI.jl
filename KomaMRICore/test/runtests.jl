@@ -357,12 +357,12 @@ end
     dz = rand(Ns, Nt)
     ph.motion = MotionList(Trajectory(TimeRange(t_start, t_end), dx, dy, dz))
     t = collect(range(t_start, t_end, Nt))
-    ph = ph |> gpu
-    t = t |> gpu
+    ph = ph |> gpu |> f32
+    t = t |> gpu |> f32
     xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
-    dx = dx |> gpu
-    dy = dy |> gpu
-    dz = dz |> gpu
+    dx = dx |> gpu |> f32
+    dy = dy |> gpu |> f32
+    dz = dz |> gpu |> f32
     @test xt == ph.x .+ dx
     @test yt == ph.y .+ dy
     @test zt == ph.z .+ dz
@@ -378,12 +378,12 @@ end
     dz = rand(Ns, Nt)
     ph.motion = MotionList(Trajectory(TimeRange(t_start, t_end), dx, dy, dz))
     t = collect(range(t_start, t_end, Nt))
-    ph = ph |> gpu
-    t = t |> gpu
+    ph = ph |> gpu |> f32
+    t = t |> gpu |> f32
     xt, yt, zt = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
-    dx = dx |> gpu
-    dy = dy |> gpu
-    dz = dz |> gpu
+    dx = dx |> gpu |> f32
+    dy = dy |> gpu |> f32
+    dz = dz |> gpu |> f32
     @test xt == ph.x .+ dx
     @test yt == ph.y .+ dy
     @test zt == ph.z .+ dz
