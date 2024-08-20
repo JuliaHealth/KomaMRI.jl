@@ -1,4 +1,4 @@
-module KomaMRICore
+module KomaMRICore 
 
 # General
 import Base.*, Base.abs
