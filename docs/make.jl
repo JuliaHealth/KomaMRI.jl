@@ -1,4 +1,4 @@
-using Documenter, Literate, KomaMRI, PlutoSliderServer, DocumenterVitepress
+using Documenter, Literate, KomaMRI, PlutoSliderServer
 
 # Setup for Literate and Pluto
 repo_base = "JuliaHealth/KomaMRI.jl"
