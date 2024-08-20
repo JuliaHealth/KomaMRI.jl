@@ -5,8 +5,8 @@
 **KomaMRI** generates **raw data** by solving the **Bloch equations** using the specified **scanner**, **phantom** and **sequence**. It also provides a Graphical User Interface (GUI) that encapsulates the whole imaging pipeline (simulation and reconstruction).
 
 ```@raw html
-<p align="center"><img class="display-light-only" width="100%" src="assets/koma-schema.svg"/></p>
-<p align="center"><img class="display-dark-only"  width="100%" src="assets/koma-schema-dark.svg""/></p>
+<p align="center"><img class="docs-light-only" width="100%" src="assets/koma-schema.svg"/></p>
+<p align="center"><img class="docs-dark-only"  width="100%" src="assets/koma-schema-dark.svg""/></p>
 ```
 We organized the documentation following the philosophy presented by [David Laing](https://documentation.divio.com/).
 
