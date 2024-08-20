@@ -9,10 +9,6 @@ _print_devices(::KA.CPU) = @info "CPU: $(length(Sys.cpu_info())) x $(Sys.cpu_inf
 name(::KA.CPU) = "CPU"
 set_device!(backend, val) = @error "set_device! called with invalid parameter types: '$(typeof(backend))', '$(typeof(val))'" 
 
-#oneAPI.jl doesn't support cis (https://github.com/JuliaGPU/oneAPI.jl/pull/443), so
-#for now we use a custom function for each backend to implement
-function _cis end
-
 """
     get_backend(use_gpu)
 

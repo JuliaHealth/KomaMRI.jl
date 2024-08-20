@@ -3,7 +3,6 @@ permissions:
   contents: write # contents permission to update benchmark contents in gh-pages branch
   statuses: read
   deployments: write # deployments permission to deploy GitHub pages website
-  pull-requests: write
 
 on: 
   pull_request:
@@ -18,7 +17,6 @@ on:
       - "benchmarks/**/*"
       - ".buildkite/**/*"
       - "Project.toml"
-      - ".github/workflows/Benchmark.yml"
   push:
     branches:
       - master
@@ -31,11 +29,10 @@ on:
       - "benchmarks/**/*"
       - ".buildkite/**/*"
       - "Project.toml"
-      - ".github/workflows/Benchmark.yml"
 
 jobs:
   benchmark:
-    if: ${{ !contains(github.event.head_commit.message, '[skip benchmarks]') }}
+    if: "!contains(github.event.head_commit.message, '[skip benchmarks]')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,10 +58,9 @@ jobs:
           tool: 'julia'
           output-file-path: ${{ steps.locate.outputs.path }}
           benchmark-data-dir-path: "benchmarks"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          # comment-on-alert: true
-          comment-always: true
           summary-always: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-always: true
           alert-threshold: "150%"
           fail-on-alert: false
           auto-push: ${{ github.event_name != 'pull_request' }}

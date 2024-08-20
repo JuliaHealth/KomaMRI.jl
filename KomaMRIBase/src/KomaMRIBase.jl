@@ -14,7 +14,7 @@ using MRIBase
     Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader, EncodingCounters, Limit
 using MAT   # For loading example phantoms
 
-const global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
+global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
 # Hardware
 include("datatypes/Scanner.jl")
@@ -63,5 +63,11 @@ export get_Mk, get_kspace, get_M0, get_M1, get_M2
 # PulseDesigner submodule
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
+
+#Package version, KomaMRIBase.__VERSION__
+using Pkg
+__VERSION__ = VersionNumber(
+    Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]
+)
 
 end # module KomaMRIBase

@@ -182,34 +182,34 @@ Base.show(io::IO, x::Grad) = begin
 end
 
 """
-    y = getproperty(x::Array{Grad}, f::Symbol)
+    y = getproperty(x::Vector{Grad}, f::Symbol)
+    y = getproperty(x::Matrix{Grad}, f::Symbol)
 
 Overloads Base.getproperty(). It is meant to access properties of the Grad vector `x`
 directly without the need to iterate elementwise.
 
 # Arguments
-- `x`: (`::Array{Grad}`) vector or matrix of Grad structs
+- `x`: (`::Vector{Grad}` or `::Matrix{Grad}`) vector or matrix of Grad structs
 - `f`: (`::Symbol`, opts: [`:x`, `:y`, `:z`, `:T`, `:delay`, `:rise`, `:delay`, `:dur`,
     `:A`, `f`]) input symbol that represents a property of the vector or matrix of Grad
     structs
 
 # Returns
-- `y`: (`::Array{Any}`) vector or matrix with the property defined
+- `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector or matrix with the property defined
     by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
-getproperty(x::Array{Grad}, f::Symbol) = begin
+getproperty(x::Vector{Grad}, f::Symbol) = getproperty.(x, f)
+getproperty(x::Matrix{Grad}, f::Symbol) = begin
     if f == :x
-        @view x[1, :]
+        x[1, :]
     elseif f == :y && size(x, 1) >= 2
-        @view x[2, :]
+        x[2, :]
     elseif f == :z && size(x, 1) >= 3
-        @view x[3, :]
+        x[3, :]
     elseif f == :dur
-        dur(x)
-    elseif f in fieldnames(Grad)
-        getfield.(x, f)
+        maximum(dur.(x); dims=1)[:]
     else
-        getfield(x, f)
+        getproperty.(x, f)
     end
 end
 
@@ -221,15 +221,17 @@ function Base.isapprox(gr1::Grad, gr2::Grad)
 end
 
 # Gradient operations
-# zeros(Grad, M, N)
-Base.zero(::Type{Grad}) = Grad(0.0, 0.0)
-# Rotation
-Base.zero(::Grad) = Grad(0.0, 0.0)
-*(α::Real, x::Grad) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
-+(x::Grad, y::Grad) = Grad(x.A .+ y.A, x.T, x.rise, x.fall, x.delay)
-# Others
 *(x::Grad, α::Real) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
+*(α::Real, x::Grad) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
+function *(A::Matrix{Float64}, GR::Matrix{Grad})
+    N, M = size(GR)
+    return [sum(A[i, 1:N] .* GR[:, j]) for i in 1:N, j in 1:M]
+end
+Base.zero(::Grad) = Grad(0.0, 0.0)
+size(g::Grad, i::Int64) = 1 #To fix [g;g;;] concatenation of Julia 1.7.3
 /(x::Grad, α::Real) = Grad(x.A / α, x.T, x.rise, x.fall, x.delay)
++(x::Grad, y::Grad) = Grad(x.A .+ y.A, x.T, x.rise, x.fall, x.delay)
++(x::Array{Grad,1}, y::Array{Grad,1}) = [x[i] + y[i] for i in 1:length(x)]
 -(x::Grad) = -1 * x
 -(x::Grad, y::Grad) = Grad(x.A .- y.A, x.T, x.rise, x.fall, x.delay)
 
@@ -252,16 +254,15 @@ end
 """
     y = dur(x::Grad)
     y = dur(x::Vector{Grad})
-    y = dur(x::Matrix{Grad})
 
-Duration time in [s] of Grad struct or Grad Array.
+Duration time in [s] of Grad struct or Grad array. When the input is a gradient vector, then
+the duration is the maximum duration of all the elements of the gradient vector.
 
 # Arguments
-- `x`: (`::Grad` or `::Vector{Grad}` or `::Matrix{Grad}`) Grad struct or Grad Array
+- `x`: (`::Grad` or `::Vector{Grad}`) RF struct or RF array
 
 # Returns
-- `y`: (`::Float64`, `[s]`) duration of the Grad struct or Grad Array
+- `y`: (`::Float64`, `[s]`) duration of the RF struct or RF array
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x); dims=1)[:]
-dur(x::Matrix{Grad}) = maximum(dur.(x); dims=1)[:]

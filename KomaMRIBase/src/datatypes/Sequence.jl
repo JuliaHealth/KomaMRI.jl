@@ -154,7 +154,8 @@ Tells if the sequence `seq` has elements with ADC active, or active during time 
 is_ADC_on(x::Sequence) = any(x-> x > 0, x.ADC.N)
 is_ADC_on(x::Sequence, t::AbstractVecOrMat) = begin
 	N = length(x)
-	ts = get_block_start_times(x)[1:end-1]
+	ΔT = durs(x)
+	ts = cumsum([0 ; ΔT[1:end-1]])
 	delays = x.ADC.delay
 	Ts = 	 x.ADC.dur #delat+T
 	t0s = ts .+ delays
@@ -183,7 +184,8 @@ Tells if the sequence `seq` has elements with RF active, or active during time `
 is_RF_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.RF] .> 0)
 is_RF_on(x::Sequence, t::AbstractVector) = begin
 	N = length(x)
-	ts = get_block_start_times(x)[1:end-1]
+	ΔT = durs(x)
+	ts = cumsum([0 ; ΔT[1:end-1]])
 	delays = x.RF.delay
 	Ts = 	 x.RF.dur #dur = delat+T
 	t0s = ts .+ delays
@@ -262,6 +264,26 @@ Tells if the sequence `seq` is a delay.
 is_Delay(x::Sequence) = !(is_GR_on(x) || is_RF_on(x) || is_ADC_on(x))
 
 """
+    ΔT = durs(x::Sequence)
+
+Returns the array of durations of sequence's blocks in [s].
+
+# Arguments
+- `x`: (`::Sequence`) Sequence struct
+
+# Returns
+- `ΔT`: (`::Vector{Real}`, `[s]`) array of durations of sequence's blocks
+"""
+durs(x::Sequence) = begin
+	# ΔT_GR  = x.GR.dur
+	# ΔT_RF  = x.RF.dur
+	# ΔT_ADC = x.ADC.dur
+	# ΔT_DUR = x.DUR
+	# ΔT = maximum([ΔT_GR ΔT_RF ΔT_ADC ΔT_DUR],dims=2)
+	x.DUR
+end
+
+"""
     T = dur(x::Sequence)
 
 The total duration of the sequence in [s].
@@ -272,7 +294,7 @@ The total duration of the sequence in [s].
 # Returns
 - `T`: (`::Real`, `[s]`) total duration of the sequence
 """
-dur(x::Sequence) = sum(x.DUR)
+dur(x::Sequence) = sum(durs(x))
 
 """
     T0 = get_block_start_times(seq::Sequence)
@@ -314,10 +336,10 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     fill_if_empty(x) = isempty(x.t) && length(range) == length(seq) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
     # RF
     if :rf in events
-        t_rf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :A)   for i in range])
-        t_Δf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :Δf)  for i in range])
-        A_rf = reduce(vcat, [ampls(seq.RF[1,i]; freq_in_phase) for i in range])
-        A_Δf = reduce(vcat, [freqs(seq.RF[1,i])                for i in range])
+        t_rf = reduce(vcat, T0[i] .+ times(seq.RF[1,i], :A)   for i in range)
+        t_Δf = reduce(vcat, T0[i] .+ times(seq.RF[1,i], :Δf)  for i in range)
+        A_rf = reduce(vcat, ampls(seq.RF[1,i]; freq_in_phase) for i in range)
+        A_Δf = reduce(vcat, freqs(seq.RF[1,i])                for i in range)
         rf_samples = (
             rf  = fill_if_empty((t = t_rf, A = A_rf)),
             Δf  = fill_if_empty((t = t_Δf, A = A_Δf))
@@ -325,12 +347,12 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     end
     # Gradients
     if :gr in events
-        t_gx = reduce(vcat, [T0[i] .+ times(seq.GR[1,i]) for i in range])
-        t_gy = reduce(vcat, [T0[i] .+ times(seq.GR[2,i]) for i in range])
-        t_gz = reduce(vcat, [T0[i] .+ times(seq.GR[3,i]) for i in range])
-        A_gx = reduce(vcat, [ampls(seq.GR[1,i]) for i in range])
-        A_gy = reduce(vcat, [ampls(seq.GR[2,i]) for i in range])
-        A_gz = reduce(vcat, [ampls(seq.GR[3,i]) for i in range])
+        t_gx = reduce(vcat, T0[i] .+ times(seq.GR[1,i]) for i in range)
+        t_gy = reduce(vcat, T0[i] .+ times(seq.GR[2,i]) for i in range)
+        t_gz = reduce(vcat, T0[i] .+ times(seq.GR[3,i]) for i in range)
+        A_gx = reduce(vcat, ampls(seq.GR[1,i]) for i in range)
+        A_gy = reduce(vcat, ampls(seq.GR[2,i]) for i in range)
+        A_gz = reduce(vcat, ampls(seq.GR[3,i]) for i in range)
         gr_samples = (
                 gx  = fill_if_empty((t = t_gx, A = A_gx)),
                 gy  = fill_if_empty((t = t_gy, A = A_gy)),
@@ -339,8 +361,8 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     end
     # ADC
     if :adc in events
-        t_aq = reduce(vcat, [T0[i] .+ times(seq.ADC[i]) for i in range])
-        A_aq = reduce(vcat, [ampls(seq.ADC[i]) for i in range])
+        t_aq = reduce(vcat, T0[i] .+ times(seq.ADC[i]) for i in range)
+        A_aq = reduce(vcat, ampls(seq.ADC[i]) for i in range)
         adc_samples = (
                 adc = fill_if_empty((t = t_aq, A = A_aq)),
                 )

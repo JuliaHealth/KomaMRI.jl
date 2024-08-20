@@ -70,7 +70,7 @@ function import_motion!(
     for key in keys(types_group)
         type_group = types_group[key]
         type_str = split(key, "_")[2]
-        @assert type_str in last.(split.(string.(subtypes(SimpleMotionType)), ".")) "Simple Motion Type: $(type_str) has not been implemented in KomaMRIBase $(pkgversion(KomaMRIBase))"
+        @assert type_str in last.(split.(string.(subtypes(SimpleMotionType)), ".")) "Simple Motion Type: $(type_str) has not been implemented in KomaMRIBase $(KomaMRIBase.__VERSION__)"
         for SMT in subtypes(SimpleMotionType)
             args = []
             if type_str == last(split(string(SMT), "."))
@@ -111,7 +111,7 @@ function write_phantom(
     # Create HDF5 phantom file
     fid = h5open(filename, "w")
     # Root attributes
-    HDF5.attributes(fid)["Version"] = string(pkgversion(KomaMRIFiles))
+    HDF5.attributes(fid)["Version"] = string(KomaMRIFiles.__VERSION__)
     HDF5.attributes(fid)["Name"] = obj.name
     HDF5.attributes(fid)["Ns"] = length(obj.x)
     dims = KomaMRIBase.get_dims(obj)

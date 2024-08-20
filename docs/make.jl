@@ -60,14 +60,13 @@ makedocs(;
         "👨‍💻 Reference Guides" => sort(reference_list),
     ],
     format=Documenter.HTML(;
-        prettyurls=true,
+        prettyurls=true, #get(ENV, "CI", nothing) == "true",
         sidebar_sitename=false,
         collapselevel=1,
-        assets=["assets/hide-documenter-example-output.css"],
+        assets=["assets/extra-styles.css"],
     ),
-    clean=false,
 )
 deploydocs(;
     repo="github.com/JuliaHealth/KomaMRI.jl.git", 
-    push_preview=!isempty(ARGS) ? ARGS[1]=="push_preview" : false,
+    push_preview=!isempty(ARGS) ? ARGS[1]=="push_preview" : false
 )

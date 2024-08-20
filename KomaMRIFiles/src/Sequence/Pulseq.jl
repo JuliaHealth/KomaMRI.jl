@@ -704,7 +704,7 @@ function get_block(obj, i)
     A = read_ADC(obj["adcLibrary"], iadc)
 
     #DUR
-    D = Float64[max(obj["blockDurations"][i], dur(Gx), dur(Gy), dur(Gz), dur(R[1]), dur(A[1]))]
+    D = Float64[max(obj["blockDurations"][i], dur(Gx), dur(Gy), dur(Gz), dur(R), dur(A[1]))]
 
     #Extensions
     E = Dict{String, Any}()#read_Extension(obj["extensionLibrary"], iext, i)

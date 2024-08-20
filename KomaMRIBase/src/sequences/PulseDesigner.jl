@@ -34,8 +34,8 @@ julia> plot_seq(seq)
 """
 function RF_hard(B1, T, sys::Scanner; G=[0, 0, 0], Δf=0)
 	ζ = sum(G) / sys.Smax
-    gr = [Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T ,ζ) ;;]
-    rf = [RF(B1, T, Δf, ζ) ;;]
+    gr = reshape([Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T ,ζ)], :, 1)
+    rf = reshape([RF(B1, T, Δf, ζ)], :, 1)
 	return Sequence(gr, rf)
 end
 
@@ -159,10 +159,9 @@ function EPI(FOV::Real, N::Integer, sys::Scanner)
 	*string(round(1/(γ*Gmax*FOV),digits=2))*" us.") : 0
 	ϵ1 = Δτ/(Δτ+ζ)
 	#EPI base
-	GR = zeros(Grad, 3, length(0:2*Ny-2))
-	GR.x .= [mod(i,2)==0 ? Grad(Ga*(-1)^(i/2),Ta,ζ) : Grad(0.,Δτ,ζ) for i=0:2*Ny-2]
-	GR.y .= [mod(i,2)==1 ? ϵ1*Grad(Ga,Δτ,ζ) :         Grad(0.,Ta,ζ) for i=0:2*Ny-2]
-	EPI = Sequence(GR)
+	EPI = Sequence(vcat(
+	    [mod(i,2)==0 ? Grad(Ga*(-1)^(i/2),Ta,ζ) : Grad(0.,Δτ,ζ) for i=0:2*Ny-2],  #Gx
+	 	[mod(i,2)==1 ? ϵ1*Grad(Ga,Δτ,ζ) :         Grad(0.,Ta,ζ) for i=0:2*Ny-2])) #Gy
 	EPI.ADC = [mod(i,2)==1 ? ADC(0,Δτ,ζ) : ADC(N,Ta,ζ) for i=0:2*Ny-2]
 	# Relevant parameters
 	Δfx_pix = 1/Ta
@@ -174,8 +173,8 @@ function EPI(FOV::Real, N::Integer, sys::Scanner)
 	# println("Pixel Δf in phase direction $(round(Δfx_pix_phase,digits=2)) Hz")
 	#Pre-wind and wind gradients
 	ϵ2 = Ta/(Ta+ζ)
-    PHASE =   Sequence(1/2*[Grad(      -Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ); Grad(0.,0.);;]) #This needs to be calculated differently
-	DEPHASE = Sequence(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ); Grad(0.,0.);;]) #for even N
+    PHASE =   Sequence(reshape(1/2*[Grad(      -Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) #This needs to be calculated differently
+	DEPHASE = Sequence(reshape(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) #for even N
 	seq = PHASE+EPI+DEPHASE
 	#Saving parameters
 	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi")

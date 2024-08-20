@@ -62,11 +62,11 @@ directly without the need to iterate elementwise.
 """
 getproperty(x::Vector{ADC}, f::Symbol) = begin
     if f == :dur
-		dur.(x)
-    elseif f in fieldnames(ADC)
-        getfield.(x, f)
+		T, delay = x.T, x.delay
+		ΔT = T .+ delay
+		ΔT
     else
-        getfield(x, f)
+        getproperty.(x, f)
     end
 end
 

@@ -71,31 +71,37 @@ Base.show(io::IO, x::RF) = begin
 end
 
 """
-    y = getproperty(x::Array{RF}, f::Symbol)
+    y = getproperty(x::Vector{RF}, f::Symbol)
+    y = getproperty(x::Matrix{RF}, f::Symbol)
 
 Overloads Base.getproperty(). It is meant to access properties of the RF vector `x`
 directly without the need to iterate elementwise.
 
 # Arguments
-- `x`: (`::Array{RF}`) vector or matrix of RF structs
+- `x`: (`::Vector{RF}` or `::Matrix{RF}`) vector or matrix of RF structs
 - `f`: (`::Symbol`, opts: [`:A`, `:Bx`, `:By`, `:T`, `:Δf`, `:delay` and `:dur`]) input
     symbol that represents a property of the vector or matrix of RF structs
 
 # Returns
-- `y`: (`::Array{Any}`) vector or matrix with the property defined by the
+- `y`: (`::Vector{Any}` or `::Matrix{Any}`) vector with the property defined by the
     symbol `f` for all elements of the RF vector or matrix `x`
 """
+getproperty(x::Vector{RF}, f::Symbol) = getproperty.(x, f)
 getproperty(x::Matrix{RF}, f::Symbol) = begin
     if f == :Bx
-        real.(getfield.(x, :A))
+        real.(getproperty.(x, :A))
     elseif f == :By
-        imag.(getfield.(x, :A))
+        imag.(getproperty.(x, :A))
+    elseif f == :Δf
+        getproperty.(x, :Δf)
+    elseif f == :T || f == :delay
+        getproperty.(x[1, :], f)
     elseif f == :dur
-        dur(x)
-    elseif f in fieldnames(RF)
-        getfield.(x, f)
+        T, delay = x.T, x.delay
+        ΔT = [sum(t) for t in T] .+ delay
+        ΔT
     else
-        getfield(x, f)
+        getproperty.(x, f)
     end
 end
 
@@ -112,20 +118,22 @@ size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
 
 """
     y = dur(x::RF)
-    y = dur(x::Vector{RF})
-    y = dur(x::Matrix{RF})
+    y = dur(x::Array{RF,1})
+    y = dur(x::Array{RF,2})
 
-Duration time in [s] of RF struct or RF Array.
+Duration time in [s] of RF struct or RF array.
 
 # Arguments
-- `x`: (`::RF` or `::Vector{RF}` or `::Matrix{RF}`) RF struct or RF array
+- `x`: (`::RF` or `::Array{RF,1}` or `::Array{RF,2}`) RF struct or RF array
 
 # Returns
 - `y`: (`::Float64`, [`s`]) duration of the RF struct or RF array
 """
-dur(x::RF) = x.delay + sum(x.T)
-dur(x::Vector{RF}) = maximum(dur.(x); dims=1)[:]
-dur(x::Matrix{RF}) = maximum(dur.(x); dims=1)[:]
+dur(x::RF) = sum(x.T)
+dur(x::Array{RF,1}) = sum(sum(x[i].T) for i in 1:size(x, 1))
+function dur(x::Array{RF,2})
+    return maximum(sum([sum(x[i, j].T) for i in 1:size(x, 1), j in 1:size(x, 2)]; dims=2))
+end
 
 """
     rf = RF_fun(f::Function, T::Real, N::Int64)

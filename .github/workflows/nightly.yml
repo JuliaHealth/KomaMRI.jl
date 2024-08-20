@@ -1,4 +1,4 @@
-name: PreRelease
+name: Nightly
 on:
   pull_request:
     branches:
@@ -8,8 +8,8 @@ on:
       - master
     tags: '*'
 jobs:
-  prerelease:
-    if: ${{ contains( github.event.pull_request.labels.*.name, 'pre-release' ) }} 
+  nightly:
+    if: "contains(github.event.head_commit.message, '[nightly]')"
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
@@ -17,8 +17,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - 'pre' # Latest version of Julia under development (you can expect many packages not to work with this version)
-        os: [ubuntu-latest, windows-latest, macos-12] # macos-latest] <- M1 Mac was generating problems #386, commented for now
+          - 'nightly' # Latest version of Julia under development (you can expect many packages not to work with this version)
+        os: [ubuntu-latest, windows-latest, macos-latest]
         arch: [x64]
         include:
           - os: ubuntu-latest
