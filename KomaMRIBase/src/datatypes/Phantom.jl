@@ -204,7 +204,7 @@ Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 m
     digital brain phantom" NeuroImage, in review - 2006
 - B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital
     brain phantoms for creation of validation image data bases" IEEE TMI, in review - 2006
-- https://brainweb.bic.mni.mcgill.ca/brainweb
+- https://brainweb.bic.mni.mcgill.ca/brainweb/tissue_mr_parameters.txt
 
 # Keywords
 - `axis`: (`::String`, `="axial"`, opts=[`"axial"`, `"coronal"`, `"sagittal"`]) orientation of the phantom
@@ -269,8 +269,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
         (class .== 185) * 0 .+ #VESSELS
         (class .== 209) * 61 .+ #FAT2
         (class .== 232) * 58 .+ #DURA
-        (class .== 255) * 61 .+#MARROW
-        (class .== 255) * 70 #MARROW
+        (class .== 255) * 61 #MARROW
     T1 =
         (class .== 23) * 2569 .+ #CSF
         (class .== 46) * 833 .+ #GM
@@ -289,7 +288,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
         (class .== 70) * 0.77 .+ #WM
         (class .== 93) * 1 .+ #FAT1
         (class .== 116) * 1 .+ #MUSCLE
-        (class .== 139) * 0.7 .+ #SKIN/MUSCLE
+        (class .== 139) * 1 .+ #SKIN/MUSCLE
         (class .== 162) * 0 .+ #SKULL
         (class .== 185) * 0 .+ #VESSELS
         (class .== 209) * 0.77 .+ #FAT2
@@ -329,7 +328,7 @@ Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 m
     digital brain phantom" NeuroImage, in review - 2006
 - B. Aubert-Broche, M. Griffin, G.B. Pike, A.C. Evans and D.L. Collins: "20 new digital
     brain phantoms for creation of validation image data bases" IEEE TMI, in review - 2006
-- https://brainweb.bic.mni.mcgill.ca/brainweb
+- https://brainweb.bic.mni.mcgill.ca/brainweb/tissue_mr_parameters.txt
 
 # Keywords
 - `ss`: (`::Integer or ::Vector{Integer}`, `=4`) subsampling parameter for all axes if scaler, per axis if 3 element vector [ssx, ssy, ssz]
@@ -401,8 +400,7 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
         (class .== 185) * 0 .+ #VESSELS
         (class .== 209) * 61 .+ #FAT2
         (class .== 232) * 58 .+ #DURA
-        (class .== 255) * 61 .+#MARROW
-        (class .== 255) * 70 #MARROW
+        (class .== 255) * 61 #MARROW
     T1 =
         (class .== 23) * 2569 .+ #CSF
         (class .== 46) * 833 .+ #GM
@@ -421,7 +419,7 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
         (class .== 70) * 0.77 .+ #WM
         (class .== 93) * 1 .+ #FAT1
         (class .== 116) * 1 .+ #MUSCLE
-        (class .== 139) * 0.7 .+ #SKIN/MUSCLE
+        (class .== 139) * 1 .+ #SKIN/MUSCLE
         (class .== 162) * 0 .+ #SKULL
         (class .== 185) * 0 .+ #VESSELS
         (class .== 209) * 0.77 .+ #FAT2
