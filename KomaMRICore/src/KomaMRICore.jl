@@ -19,7 +19,7 @@ include("other/DiffusionModel.jl")
 # Simulator
 include("simulation/GPUFunctions.jl")
 include("simulation/Functors.jl")
-include("simulation/SimulatorCore.jl")
+include("simulation/SimulatorCore.jl") 
 
 # ISMRMRD
 export signal_to_raw_data
