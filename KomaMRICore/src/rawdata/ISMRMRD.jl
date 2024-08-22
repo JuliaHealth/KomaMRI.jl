@@ -238,3 +238,12 @@ Base.show(io::IO, raw::RawAcquisitionData) = begin
         print(io, "RawAcqData[$seq_name | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
     end
 end
+
+Base.:+(sig1::RawAcquisitionData, sig2::RawAcquisitionData) = RawAcquisitionData(
+    sig1.params,
+    [Profile(
+        sig1.profiles[i].head,
+        sig1.profiles[i].traj,
+        sig1.profiles[i].data .+ sig2.profiles[i].data
+    ) for i=1:length(sig1.profiles)]
+)
