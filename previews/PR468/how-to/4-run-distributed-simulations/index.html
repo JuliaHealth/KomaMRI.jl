@@ -17,19 +17,9 @@ end
 
 #Distribute simulation across workers, fetch into array of worker signals
 worker_signals = fetch.([ @spawnat pid begin
-    device!(i-1) #Sets device for this worker, note that CUDA devices are indexed from 0
+    KomaMRICore.set_device!(i-1) #Sets device for this worker, note that CUDA devices are indexed from 0
     simulate(obj[parts[i]], seq, sys)
 end for (i, pid) in enumerate(workers()) ])
-
-#If using RawAcquisitionData as the return format, this function is needed to combine RawAcquisition structs
-Base.:+(sig1::RawAcquisitionData, sig2::RawAcquisitionData) = RawAcquisitionData(
-    sig1.params,
-    [Profile(
-        sig1.profiles[i].head,
-        sig1.profiles[i].traj,
-        sig1.profiles[i].data .+ sig2.profiles[i].data
-    ) for i=1:length(sig1.profiles)]
-)
 
 #Final signal
 signal = reduce(+, worker_signals)</code></pre><h2 id="Using-Multiple-Nodes-in-an-HPC-Cluster"><a class="docs-heading-anchor" href="#Using-Multiple-Nodes-in-an-HPC-Cluster">Using Multiple Nodes in an HPC Cluster</a><a id="Using-Multiple-Nodes-in-an-HPC-Cluster-1"></a><a class="docs-heading-anchor-permalink" href="#Using-Multiple-Nodes-in-an-HPC-Cluster" title="Permalink"></a></h2><p>In other cases, it may be useful to run a simulation on multiple compute nodes if the problem is too large to fit into memory for a single computer, or if the number of desired workers is greater than the amount of CPU cores available. The process for using multiple compute nodes is similar to using multiple GPUs. The following script uses the package ClusterManagers.jl to initialize worker process on a SLURM cluster based on the number of tasks specified in the #SBATCH –ntasks directive:</p><pre><code class="language-julia hljs">using Distributed
@@ -52,15 +42,5 @@ worker_signals = fetch.([ @spawnat pid begin
     simulate(obj[parts[i]], seq, sys)
 end for (i, pid) in enumerate(workers()) ])
 
-#If using RawAcquisitionData as the return format, this function is needed to combine RawAcquisition structs
-Base.:+(sig1::RawAcquisitionData, sig2::RawAcquisitionData) = RawAcquisitionData(
-    sig1.params,
-    [Profile(
-        sig1.profiles[i].head,
-        sig1.profiles[i].traj,
-        sig1.profiles[i].data .+ sig2.profiles[i].data
-    ) for i=1:length(sig1.profiles)]
-)
-
 #Final Signal
-signal = reduce(+, worker_signals)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../3-create-your-own-sequence/">« Create Your Own Sequence</a><a class="docs-footer-nextpage" href="../../explanation/1-sequence/">Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.6.0 on <span class="colophon-date" title="Thursday 22 August 2024 20:14">Thursday 22 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+signal = reduce(+, worker_signals)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../3-create-your-own-sequence/">« Create Your Own Sequence</a><a class="docs-footer-nextpage" href="../../explanation/1-sequence/">Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.6.0 on <span class="colophon-date" title="Thursday 22 August 2024 20:17">Thursday 22 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
