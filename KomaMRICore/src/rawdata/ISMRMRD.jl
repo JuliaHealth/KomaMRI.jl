@@ -247,3 +247,13 @@ Base.:+(sig1::RawAcquisitionData, sig2::RawAcquisitionData) = RawAcquisitionData
         sig1.profiles[i].data .+ sig2.profiles[i].data
     ) for i=1:length(sig1.profiles)]
 )
+
+Base.isapprox(sig1::RawAcquisitionData, sig2::RawAcquisitionData; kwargs...) = begin
+    (length(sig1.profiles) == length(sig2.profiles)) || return false
+
+    for i=1:length(sig1.profiles)
+        isapprox(sig1.profiles[i].data, sig2.profiles[i].data; kwargs...) || return false
+    end
+
+    return true
+end
