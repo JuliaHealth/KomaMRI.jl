@@ -25,19 +25,9 @@ end
 
 #Distribute simulation across workers, fetch into array of worker signals
 worker_signals = fetch.([ @spawnat pid begin
-    device!(i-1) #Sets device for this worker, note that CUDA devices are indexed from 0
+    KomaMRICore.set_device!(i-1) #Sets device for this worker, note that CUDA devices are indexed from 0
     simulate(obj[parts[i]], seq, sys)
 end for (i, pid) in enumerate(workers()) ])
-
-#If using RawAcquisitionData as the return format, this function is needed to combine RawAcquisition structs
-Base.:+(sig1::RawAcquisitionData, sig2::RawAcquisitionData) = RawAcquisitionData(
-    sig1.params,
-    [Profile(
-        sig1.profiles[i].head,
-        sig1.profiles[i].traj,
-        sig1.profiles[i].data .+ sig2.profiles[i].data
-    ) for i=1:length(sig1.profiles)]
-)
 
 #Final signal
 signal = reduce(+, worker_signals)
@@ -67,16 +57,6 @@ end
 worker_signals = fetch.([ @spawnat pid begin
     simulate(obj[parts[i]], seq, sys)
 end for (i, pid) in enumerate(workers()) ])
-
-#If using RawAcquisitionData as the return format, this function is needed to combine RawAcquisition structs
-Base.:+(sig1::RawAcquisitionData, sig2::RawAcquisitionData) = RawAcquisitionData(
-    sig1.params,
-    [Profile(
-        sig1.profiles[i].head,
-        sig1.profiles[i].traj,
-        sig1.profiles[i].data .+ sig2.profiles[i].data
-    ) for i=1:length(sig1.profiles)]
-)
 
 #Final Signal
 signal = reduce(+, worker_signals)
