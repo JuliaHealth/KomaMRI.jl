@@ -1,4 +1,4 @@
-# Run Distributed Simulations
+# Run Distributed Simulations 
 
 While KomaMRI provides built-in support for CPU and GPU parallelization, running simulations distributed across multiple GPUs or compute nodes is not automatically supported. However, it is possible to do so manually with Distributed.jl. The following examples demonstrate how:
 
