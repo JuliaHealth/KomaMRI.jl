@@ -29,7 +29,7 @@ worker_signals = fetch.([ @spawnat pid begin
     simulate(obj[parts[i]], seq, sys)
 end for (i, pid) in enumerate(workers()) ])
 
-#If using RawAcquisitionData as the return format, this function is need to combine RawAcquisition structs
+#If using RawAcquisitionData as the return format, this function is needed to combine RawAcquisition structs
 Base.:+(sig1::RawAcquisitionData, sig2::RawAcquisitionData) = RawAcquisitionData(
     sig1.params,
     [Profile(
@@ -68,7 +68,7 @@ worker_signals = fetch.([ @spawnat pid begin
     simulate(obj[parts[i]], seq, sys)
 end for (i, pid) in enumerate(workers()) ])
 
-#If using RawAcquisitionData as the return format, this function is need to combine RawAcquisition structs
+#If using RawAcquisitionData as the return format, this function is needed to combine RawAcquisition structs
 Base.:+(sig1::RawAcquisitionData, sig2::RawAcquisitionData) = RawAcquisitionData(
     sig1.params,
     [Profile(
