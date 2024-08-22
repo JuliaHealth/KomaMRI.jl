@@ -35,7 +35,7 @@ signal = reduce(+, worker_signals)
 
 ## Using Multiple Nodes in an HPC Cluster
 
-In other cases, it may be useful to run a simulation on multiple compute nodes if the problem is too large to fit into memory for a single computer, or if the number of desired workers is greater than the amount of CPU cores available. The process for using multiple compute nodes is similar to using multiple GPUs. The following script uses the package ClusterManagers.jl to initialize worker process on a SLURM cluster based on the number of tasks specified in the #SBATCH --ntasks directive:
+In other cases, it may be useful to run a simulation on multiple compute nodes if the problem is too large to fit into memory for a single computer, or if the number of desired workers is greater than the amount of CPU cores available. The following script uses the package ClusterManagers.jl to initialize worker process on a SLURM cluster based on the number of tasks specified in the #SBATCH --ntasks directive:
 
 ```julia
 using Distributed
