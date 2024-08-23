@@ -24,21 +24,18 @@ addprocs(length(devices()))
     parts = kfoldperm(length(obj), nworkers())
 end
 
-#Distribute simulation across workers, fetch into array of results for each worker
-workers_raw = fetch.([ @spawnat pid begin
+#Distribute simulation across workers
+raw = Distributed.@distributed (+) for i=1:nworkers()
     KomaMRICore.set_device!(i-1) #Sets device for this worker, note that CUDA devices are indexed from 0
     simulate(obj[parts[i]], seq, sys)
-end for (i, pid) in enumerate(workers()) ])
-
-#Final signal
-raw = reduce(+, workers_raw)</code></pre><h2 id="Using-Multiple-Nodes-in-an-HPC-Cluster"><a class="docs-heading-anchor" href="#Using-Multiple-Nodes-in-an-HPC-Cluster">Using Multiple Nodes in an HPC Cluster</a><a id="Using-Multiple-Nodes-in-an-HPC-Cluster-1"></a><a class="docs-heading-anchor-permalink" href="#Using-Multiple-Nodes-in-an-HPC-Cluster" title="Permalink"></a></h2><p>The script below uses the package ClusterManagers.jl to initialize worker processes on a SLURM cluster based on the number of tasks specified in the #SBATCH –ntasks directive. This can be useful to divide simulation work among multiple compute nodes if the problem is too large to fit into memory for a single computer, or if the number of desired workers is greater than the typical number of CPU cores available. An illustration of this is shown below:</p><p align="center"><img width="90%" src="../../assets/KomamultiNodeCPU.svg"/></p><details class="admonition is-details"><summary class="admonition-header">SLURM Script Requesting Multiple Nodes</summary><div class="admonition-body"><pre><code class="language-sh hljs">#!/bin/bash
+end</code></pre><h2 id="Using-Multiple-Nodes-in-an-HPC-Cluster"><a class="docs-heading-anchor" href="#Using-Multiple-Nodes-in-an-HPC-Cluster">Using Multiple Nodes in an HPC Cluster</a><a id="Using-Multiple-Nodes-in-an-HPC-Cluster-1"></a><a class="docs-heading-anchor-permalink" href="#Using-Multiple-Nodes-in-an-HPC-Cluster" title="Permalink"></a></h2><p>The script below uses the package ClusterManagers.jl to initialize worker processes on a SLURM cluster based on the number of tasks specified in the #SBATCH –ntasks directive. This can be useful to divide simulation work among multiple compute nodes if the problem is too large to fit into memory for a single computer, or if the number of desired workers is greater than the typical number of CPU cores available. An illustration of this is shown below:</p><p align="center"><img width="90%" src="../../assets/KomamultiNodeCPU.svg"/></p><details class="admonition is-details"><summary class="admonition-header">SLURM Script Requesting Multiple Nodes</summary><div class="admonition-body"><pre><code class="language-sh hljs">#!/bin/bash
 #SBATCH --job-name           # Enter job name here
 #SBATCH -t                   # Enter max runtime for job
 #SBATCH -p                   # Enter partition on which to run the job
 #SBATCH --nodes              # Enter number of nodes on which to run the job
 #SBATCH --ntasks             # Should be equal to number of nodes
 #SBATCH --ntasks-per-node=1  # Run each task on a separate node
-#SBATCH --cpus-per-task      # Enter number of CPU threads to use on each node (alternatively, leave this blank and define JULIA_NUM_THREADS on each node)
+#SBATCH --cpus-per-task      # Enter number of CPU threads to use per node
 #SBATCH -o                   # Enter file path to write stdout to
 #SBATCH -e                   # Enter file path to write stderr to
 
@@ -57,10 +54,7 @@ addprocs(SlurmManager(parse(Int, ENV[&quot;SLURM_NTASKS&quot;])))
     parts = kfoldperm(length(obj), nworkers())
 end
 
-#Distribute simulation across workers, fetch into array of results for each worker
-workers_raw = fetch.([ @spawnat pid begin
+#Distribute simulation across workers
+raw = Distributed.@distributed (+) for i=1:nworkers()
     simulate(obj[parts[i]], seq, sys)
-end for (i, pid) in enumerate(workers()) ])
-
-#Final Signal
-raw = reduce(+, workers_raw)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../3-create-your-own-sequence/">« Create Your Own Sequence</a><a class="docs-footer-nextpage" href="../../explanation/1-sequence/">Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.6.0 on <span class="colophon-date" title="Friday 23 August 2024 01:50">Friday 23 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../3-create-your-own-sequence/">« Create Your Own Sequence</a><a class="docs-footer-nextpage" href="../../explanation/1-sequence/">Sequence »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.6.0 on <span class="colophon-date" title="Friday 23 August 2024 16:38">Friday 23 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
