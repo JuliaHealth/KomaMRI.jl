@@ -1,18 +1,17 @@
 abstract type AbstractTimeSpan{T<:Real} end
 
+# TimeRange
 @with_kw struct TimeRange{T<:Real} <: AbstractTimeSpan{T} 
    t_start  ::T 
-   t_end    ::T = t_start
+   t_end    ::T
    @assert t_end >= t_start "t_end must be greater or equal than t_start"
 end
 
-@with_kw struct Periodic{T<:Real} <: AbstractTimeSpan{T}
-   period::T
-   asymmetry::T = eltype(period)(0.5)
-end
+""" Constructors """
+TimeRange(t_start) = TimeRange(t_start, t_start)
 
-times(ts::TimeRange)                   = [ts.t_start, ts.t_end]
-times(ts::Periodic{T}) where {T<:Real} = [zero(T), ts.period * ts.asymmetry, ts.period] 
+""" times """
+times(ts::TimeRange) = [ts.t_start, ts.t_end]
 
 """
     t_unit = unit_time(t, time_range)
@@ -50,6 +49,20 @@ function unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
         return min.(tmp, oneunit(T))
     end
 end
+
+
+
+# Periodic
+@with_kw struct Periodic{T<:Real} <: AbstractTimeSpan{T}
+   period::T
+   asymmetry::T = typeof(period)(0.5)
+end
+
+""" Constructors """
+Periodic(period) = Periodic(period, typeof(period)(0.5))
+
+""" times """
+times(ts::Periodic{T}) where {T<:Real} = [zero(T), ts.period * ts.asymmetry, ts.period] 
 
 """
     t_unit = unit_time(t, periodic)

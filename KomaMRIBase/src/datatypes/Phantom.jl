@@ -1,10 +1,3 @@
-# TimeScale:
-include("../timing/TimeScale.jl")
-# Motion:
-abstract type AbstractMotionList{T<:Real} end
-include("phantom/Motion.jl")
-include("phantom/NoMotion.jl")
-
 """
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
 
@@ -54,7 +47,7 @@ julia> obj.ρ
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::AbstractMotionList{T} = NoMotion{eltype(x)}()
+    motion::AbstractMotionSet{T} = NoMotion{eltype(x)}() 
 end
 
 """Size and length of a phantom"""
@@ -65,38 +58,35 @@ Base.iterate(x::Phantom) = (x[1], 2)
 Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i + 1) : nothing
 Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
+Base.getindex(x::Phantom, c::Colon) = x[1:length(x)]
+Base.view(x::Phantom, i::Integer) = @view(x[i:i])
+Base.view(x::Phantom, c::Colon) = @view(x[1:length(x)])
 
 """Compare two phantoms"""
 function Base.:(==)(obj1::Phantom, obj2::Phantom)
     return reduce(
         &,
-        [
-            getfield(obj1, field) == getfield(obj2, field) for
-            field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
-        ],
+        [getfield(obj1, field) == getfield(obj2, field) for
+         field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))],
     )
 end
 function Base.:(≈)(obj1::Phantom, obj2::Phantom)
     return reduce(
         &,
-        [
-            getfield(obj1, field) ≈ getfield(obj2, field) for
-            field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
-        ],
+        [getfield(obj1, field) ≈ getfield(obj2, field) for
+         field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))],
     )
 end
 
 """Separate object spins in a sub-group"""
-Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+Base.getindex(obj::Phantom, p::AbstractVector) = begin
     fields = []
     for field in Iterators.filter(x -> x != :name, fieldnames(Phantom))
         push!(fields, (field, getfield(obj, field)[p]))
     end
     return Phantom(; name=obj.name, fields...)
 end
-
-"""Separate object spins in a sub-group (lightweigth)."""
-Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+Base.view(obj::Phantom, p::AbstractVector) = begin
     fields = []
     for field in Iterators.filter(x -> x != :name, fieldnames(Phantom))
         push!(fields, (field, @view(getfield(obj, field)[p])))
@@ -109,14 +99,13 @@ end
     Nmaxchars = 50
     name = first(obj1.name * "+" * obj2.name, Nmaxchars)
     fields = []
-    for field in Iterators.filter(x -> x != :name, fieldnames(Phantom))
+    for field in Iterators.filter(x -> !(x in (:name, :motion)), fieldnames(Phantom))
         push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
     end
     return Phantom(; 
-        name=name, 
+        name = name, 
         fields..., 
-        motion=vcat(obj1.motion, obj2.motion, length(obj1), length(obj2))
-    )
+        motion = vcat(obj1.motion, obj2.motion, length(obj1), length(obj2)))
 end
 
 """Scalar multiplication of a phantom"""
@@ -193,17 +182,14 @@ function heart_phantom(
         Dλ2=Dλ2[ρ .!= 0],
         Dθ=Dθ[ρ .!= 0],
         motion=MotionList(
-            HeartBeat(;
-                time=Periodic(; period=period, asymmetry=asymmetry),
-                circumferential_strain=circumferential_strain,
-                radial_strain=radial_strain,
-                longitudinal_strain=0.0,
+            HeartBeat(
+                circumferential_strain,
+                radial_strain,
+                0.0,
+                Periodic(; period=period, asymmetry=asymmetry),
             ),
-            Rotation(;
-                time=Periodic(; period=period, asymmetry=asymmetry),
-                yaw=rotation_angle,
-                pitch=0.0,
-                roll=0.0,
+            Rotate(
+                0.0, 0.0, rotation_angle, Periodic(; period=period, asymmetry=asymmetry)
             ),
         ),
     )

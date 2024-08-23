@@ -301,7 +301,7 @@ end
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 end
 
-@testitem "Bloch SimpleMotion" tags=[:important, :core, :motion] begin 
+@testitem "Bloch SimpleAction" tags=[:important, :core, :motion] begin 
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -318,11 +318,11 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    println("NMRSE SimpleMotion: ", NMRSE(sig, sig_jemris))
+    println("NMRSE SimpleAction: ", NMRSE(sig, sig_jemris))
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "Bloch ArbitraryMotion"  tags=[:important, :core, :motion] begin
+@testitem "Bloch ArbitraryAction"  tags=[:important, :core, :motion] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -339,7 +339,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    println("NMRSE ArbitraryMotion: ", NMRSE(sig, sig_jemris))
+    println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
@@ -390,7 +390,7 @@ end
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "BlochSimple SimpleMotion" tags=[:important, :core, :motion] begin
+@testitem "BlochSimple SimpleAction" tags=[:important, :core, :motion] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -408,11 +408,11 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    println("NMRSE SimpleMotion BlochSimple: ", NMRSE(sig, sig_jemris))
+    println("NMRSE SimpleAction BlochSimple: ", NMRSE(sig, sig_jemris))
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
-@testitem "BlochSimple ArbitraryMotion" tags=[:important, :core, :motion] begin
+@testitem "BlochSimple ArbitraryAction" tags=[:important, :core, :motion] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -430,7 +430,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    println("NMRSE ArbitraryMotion BlochSimple: ", NMRSE(sig, sig_jemris))
+    println("NMRSE ArbitraryAction BlochSimple: ", NMRSE(sig, sig_jemris))
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 

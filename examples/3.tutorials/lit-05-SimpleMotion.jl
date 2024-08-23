@@ -4,8 +4,8 @@ using KomaMRI # hide
 sys = Scanner() # hide
 
 # It can also be interesting to see the effect of the patient's motion during an MRI scan.
-# For this, Koma provides the ability to add `motion <: AbstractMotionList` to the phantom.
-# In this tutorial, we will show how to add a [`Translation`](@ref) motion to a 2D brain phantom.
+# For this, Koma provides the ability to add `motion <: AbstractMotionSet` to the phantom.
+# In this tutorial, we will show how to add a [`Translate`](@ref) motion to a 2D brain phantom.
 
 # First, let's load the 2D brain phantom used in the previous tutorials:
 obj = brain_phantom2D()
@@ -13,10 +13,10 @@ obj.Δw .= 0 # hide
 
 # ### Head Translation
 #
-# In this example, we will add a [`Translation`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
+# In this example, we will add a [`Translate`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
 
 obj.motion = MotionList(
-    Translation(time=TimeRange(t_start=0.0, t_end=200e-3), dx=2e-2, dy=0.0, dz=0.0)
+    Translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
 )
 p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
 
@@ -67,7 +67,7 @@ p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 # S_{\mathrm{MC}}\left(t\right)=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}\Delta\phi_{\mathrm{corr}}}=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}2\pi\boldsymbol{k}\left(t\right)\cdot\boldsymbol{u}\left(t\right)}
 # ```
 
-# In practice, we would need to estimate or measure the motion before performing a motion-corrected reconstruction, but for this example, we will directly use the displacement functions ``\boldsymbol{u}(\boldsymbol{x}, t)`` defined by `obj.motion::SimpleMotion`. 
+# In practice, we would need to estimate or measure the motion before performing a motion-corrected reconstruction, but for this example, we will directly use the displacement functions ``\boldsymbol{u}(\boldsymbol{x}, t)`` defined by `obj.motion::SimpleAction`. 
 # Since translations are rigid motions (``\boldsymbol{u}(\boldsymbol{x}, t)=\boldsymbol{u}(t)`` no position dependence), we can obtain the required displacements by calculating ``\boldsymbol{u}(\boldsymbol{x}=\boldsymbol{0},\ t=t_{\mathrm{adc}})``.
 sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)

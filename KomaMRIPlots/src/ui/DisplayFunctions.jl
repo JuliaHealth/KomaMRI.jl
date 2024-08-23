@@ -1033,7 +1033,7 @@ function plot_phantom_map(
     kwargs...,
 )
 
-    function interpolate_times(motion::AbstractMotionList{T}) where {T<:Real}
+    function interpolate_times(motion::KomaMRIBase.AbstractMotionSet{T}) where {T<:Real}
         t = times(motion)
         if length(t)>1
             # Interpolate time points (as many as indicated by intermediate_time_samples)
@@ -1043,7 +1043,7 @@ function plot_phantom_map(
         return t
     end
 
-    function process_times(motion::AbstractMotionList{T}) where {T<:Real}
+    function process_times(motion::KomaMRIBase.AbstractMotionSet{T}) where {T<:Real}
         sort_motions!(motion)
         t = interpolate_times(motion)
         # Decimate time points so their number is smaller than max_time_samples

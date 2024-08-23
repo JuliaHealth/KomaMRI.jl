@@ -53,6 +53,7 @@ x = gpu(x, CUDABackend())
 """
 gpu(x, backend::KA.GPU) = fmap(x -> adapt(backend, x), x; exclude=_isleaf)
 adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
+adapt_storage(backend::KA.GPU, xs::Motion) = Motion(gpu(xs.action, backend), gpu(xs.time, backend), xs.spins)
 
 # To CPU
 """
@@ -77,6 +78,7 @@ adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
 adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
+adapt_storage(T::Type{<:Real}, xs::Motion) = Motion(paramtype(T, xs.action), paramtype(T, xs.time), xs.spins)
 
 """
     f32(m)
@@ -101,11 +103,11 @@ f64(m) = paramtype(Float64, m)
 #The functor macro makes it easier to call a function in all the parameters
 # Phantom
 @functor Phantom
-@functor Translation
-@functor Rotation
+@functor Translate
+@functor Rotate
 @functor HeartBeat
-@functor Trajectory
-@functor FlowTrajectory
+@functor Path
+@functor FlowPath
 @functor TimeRange
 @functor Periodic
 # Spinor

@@ -25,6 +25,8 @@ include("datatypes/sequence/ADC.jl")
 include("timing/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
 include("datatypes/sequence/Delay.jl")
+# Motion
+include("motion/MotionSet.jl")
 # Phantom
 include("datatypes/Phantom.jl")
 # Simulator
@@ -46,12 +48,12 @@ export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion
-export AbstractMotion, AbstractMotionList, MotionList, NoMotion
-export SimpleMotion, ArbitraryMotion
-export Translation, TranslationX, TranslationY, TranslationZ
-export Rotation, RotationX, RotationY, RotationZ 
-export HeartBeat, Trajectory, FlowTrajectory
-export AbstractTimeSpan, TimeRange, Periodic
+export MotionList, NoMotion, Motion
+export Translate, TranslateX, TranslateY, TranslateZ
+export Rotate, RotateX, RotateY, RotateZ 
+export HeartBeat, Path, FlowPath
+export TimeRange, Periodic
+export SpinRange, AllSpins
 export sort_motions!, get_spin_coords
 # Secondary
 export get_kspace, rotx, roty, rotz

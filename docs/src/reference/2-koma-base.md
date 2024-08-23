@@ -27,31 +27,31 @@ sort_motions!
 get_spin_coords
 ```
 
-### `SimpleMotion <: AbstractMotion`
+### `SimpleAction <: AbstractActionSpan`
 
 ```@docs
-SimpleMotion
+SimpleAction
 ```
 
-### `SimpleMotion` types
+### `SimpleAction` types
 
 ```@docs
-Translation
-Rotation
+Translate
+Rotate
 HeartBeat
 ```
 
-### `ArbitraryMotion <: AbstractMotion`
+### `ArbitraryAction <: AbstractActionSpan`
 
 ```@docs
-ArbitraryMotion
+ArbitraryAction
 ```
 
-### `ArbitraryMotion` types
+### `ArbitraryAction` types
 
 ```@docs
-Trajectory
-FlowTrajectory
+Path
+FlowPath
 ```
 
 ## `Sequence`-related functions

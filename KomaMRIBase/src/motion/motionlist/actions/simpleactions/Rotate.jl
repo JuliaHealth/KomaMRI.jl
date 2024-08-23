@@ -1,7 +1,7 @@
 @doc raw"""
-    rotation = Rotation(time, pitch, roll, yaw)
+    rotate = Rotate(pitch, roll, yaw)
  
-Rotation motion struct. It produces a rotation of the phantom in the three axes: 
+Rotate motion struct. It produces a rotation of the phantom in the three axes: 
 x (pitch), y (roll), and z (yaw).
 We follow the RAS (Right-Anterior-Superior) orientation, 
 and the rotations are applied following the right-hand rule (counter-clockwise):
@@ -38,44 +38,41 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 ```
 
 # Arguments
-- `time`: (`::AbstractTimeSpan{T<:Real}`, `[s]`) time scale
 - `pitch`: (`::Real`, `[º]`) rotation in x
 - `roll`: (`::Real`, `[º]`) rotation in y 
 - `yaw`: (`::Real`, `[º]`) rotation in z
 
 # Returns
-- `rotation`: (`::Rotation`) Rotation struct
+- `rotate`: (`::Rotate`) Rotate struct
 
 # Examples
 ```julia-repl
-julia> rt = Rotation(time=TimeRange(0.0, 0.5), pitch=15.0, roll=0.0, yaw=20.0)
+julia> rt = Rotate(pitch=15.0, roll=0.0, yaw=20.0)
 ```
 """
-@with_kw struct Rotation{T<:Real, TS<:AbstractTimeSpan{T}} <: SimpleMotion{T}
-    time      :: TS
+@with_kw struct Rotate{T<:Real} <: SimpleAction{T}
     pitch      :: T
     roll       :: T
     yaw        :: T
 end
 
-RotationX(time::AbstractTimeSpan{T}, pitch::T) where {T<:Real} = Rotation(time, pitch, zero(T), zero(T))
-RotationY(time::AbstractTimeSpan{T}, roll::T) where {T<:Real}  = Rotation(time, zero(T), roll, zero(T))
-RotationZ(time::AbstractTimeSpan{T}, yaw::T) where {T<:Real}   = Rotation(time, zero(T), zero(T), yaw)
+RotateX(pitch::T) where {T<:Real} = Rotate(pitch, zero(T), zero(T))
+RotateY(roll::T) where {T<:Real}  = Rotate(zero(T), roll, zero(T))
+RotateZ(yaw::T) where {T<:Real}   = Rotate(zero(T), zero(T), yaw)
 
-is_composable(motion::Rotation) = true
+is_composable(action::Rotate) = true
 
 function displacement_x!(
     ux::AbstractArray{T},
-    motion::Rotation{T},
+    action::Rotate{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion.time)
-    α = t_unit .* (motion.yaw)
-    β = t_unit .* (motion.roll)
-    γ = t_unit .* (motion.pitch)
+    α = t .* (action.yaw)
+    β = t .* (action.roll)
+    γ = t .* (action.pitch)
     ux .= cosd.(α) .* cosd.(β) .* x +
          (cosd.(α) .* sind.(β) .* sind.(γ) .- sind.(α) .* cosd.(γ)) .* y +
          (cosd.(α) .* sind.(β) .* cosd.(γ) .+ sind.(α) .* sind.(γ)) .* z .- x
@@ -84,16 +81,15 @@ end
 
 function displacement_y!(
     uy::AbstractArray{T},
-    motion::Rotation{T},
+    action::Rotate{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion.time)
-    α = t_unit .* (motion.yaw)
-    β = t_unit .* (motion.roll)
-    γ = t_unit .* (motion.pitch)
+    α = t .* (action.yaw)
+    β = t .* (action.roll)
+    γ = t .* (action.pitch)
     uy .= sind.(α) .* cosd.(β) .* x +
          (sind.(α) .* sind.(β) .* sind.(γ) .+ cosd.(α) .* cosd.(γ)) .* y +
          (sind.(α) .* sind.(β) .* cosd.(γ) .- cosd.(α) .* sind.(γ)) .* z .- y
@@ -102,16 +98,15 @@ end
 
 function displacement_z!(
     uz::AbstractArray{T},
-    motion::Rotation{T},
+    action::Rotate{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion.time)
-    α = t_unit .* (motion.yaw)
-    β = t_unit .* (motion.roll)
-    γ = t_unit .* (motion.pitch)
+    α = t .* (action.yaw)
+    β = t .* (action.roll)
+    γ = t .* (action.pitch)
     uz .=  -sind.(β) .* x + 
             cosd.(β) .* sind.(γ) .* y +
             cosd.(β) .* cosd.(γ) .* z .- z

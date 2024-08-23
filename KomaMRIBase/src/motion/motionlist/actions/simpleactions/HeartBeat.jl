@@ -1,11 +1,10 @@
 @doc raw"""
-    heartbeat = HeartBeat(time, circumferential_strain, radial_strain, longitudinal_strain)
+    heartbeat = HeartBeat(circumferential_strain, radial_strain, longitudinal_strain)
 
 HeartBeat struct. It produces a heartbeat-like motion, characterised by three types of strain:
 Circumferential, Radial and Longitudinal
 
 # Arguments
-- `time`: (`::AbstractTimeSpan{T<:Real}`, `[s]`) time scale
 - `circumferential_strain`: (`::Real`) contraction parameter
 - `radial_strain`: (`::Real`) contraction parameter
 - `longitudinal_strain`: (`::Real`) contraction parameter
@@ -15,32 +14,30 @@ Circumferential, Radial and Longitudinal
 
 # Examples
 ```julia-repl
-julia> hb = HeartBeat(time=Periodic(period=1.0, asymmetry=0.3), circumferential_strain=-0.3, radial_strain=-0.2, longitudinal_strain=0.0)
+julia> hb = HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudinal_strain=0.0)
 ```
 """
-@with_kw struct HeartBeat{T<:Real, TS<:AbstractTimeSpan{T}} <: SimpleMotion{T}
-    time                  :: TS
+@with_kw struct HeartBeat{T<:Real} <: SimpleAction{T}
     circumferential_strain :: T
     radial_strain          :: T
-    longitudinal_strain    :: T = typeof(circumferential_strain)(0.0)
+    longitudinal_strain    :: T
 end
 
-is_composable(motion::HeartBeat) = true
+is_composable(action::HeartBeat) = true
 
 function displacement_x!(
     ux::AbstractArray{T},
-    motion::HeartBeat{T},
+    action::HeartBeat{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion.time)
     r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
-    Δ_circunferential = motion.circumferential_strain * maximum(r)
-    Δ_radial = -motion.radial_strain * (maximum(r) .- r)
-    Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
+    Δ_circunferential = action.circumferential_strain * maximum(r)
+    Δ_radial = -action.radial_strain * (maximum(r) .- r)
+    Δr = t .* (Δ_circunferential .+ Δ_radial)
     # Map negative radius to r=0
     neg = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
@@ -51,18 +48,17 @@ end
 
 function displacement_y!(
     uy::AbstractArray{T},
-    motion::HeartBeat{T},
+    action::HeartBeat{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion.time)
     r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
-    Δ_circunferential = motion.circumferential_strain * maximum(r)
-    Δ_radial = -motion.radial_strain * (maximum(r) .- r)
-    Δr = t_unit .* (Δ_circunferential .+ Δ_radial)
+    Δ_circunferential = action.circumferential_strain * maximum(r)
+    Δ_radial = -action.radial_strain * (maximum(r) .- r)
+    Δr = t .* (Δ_circunferential .+ Δ_radial)
     # Map negative radius to r=0
     neg = (r .+ Δr) .< 0
     Δr = (.!neg) .* Δr
@@ -73,13 +69,12 @@ end
 
 function displacement_z!(
     uz::AbstractArray{T},
-    motion::HeartBeat{T},
+    action::HeartBeat{T},
     x::AbstractArray{T},
     y::AbstractArray{T},
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    t_unit = unit_time(t, motion.time)
-    uz .= t_unit .* (z .* motion.longitudinal_strain)
+    uz .= t .* (z .* action.longitudinal_strain)
     return nothing
 end
