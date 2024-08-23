@@ -65,7 +65,7 @@ raw = reduce(+, workers_raw)
 The script below uses the package ClusterManagers.jl to initialize worker processes on a SLURM cluster based on the number of tasks specified in the #SBATCH --ntasks directive. This can be useful to divide simulation work among multiple compute nodes if the problem is too large to fit into memory for a single computer, or if the number of desired workers is greater than the typical number of CPU cores available. An illustration of this is shown below:
 
 ```@raw html
-<p align="center"><img width="90%" src="../../assets/KomamultiNodeCPU.png"/></p>
+<p align="center"><img width="90%" src="../../assets/KomamultiNodeCPU.svg"/></p>
 ```
 
 !!! details "SLURM Script Requesting Multiple Nodes"
