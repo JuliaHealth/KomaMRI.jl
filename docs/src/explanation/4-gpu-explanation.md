@@ -9,7 +9,7 @@ KomaMRI uses a vendor agnostic approach to GPU parallelization in order to suppo
 
 ## Choosing a GPU Backend
 
-To determine which backend to use, KomaMRI uses [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)) (introduced in Julia 1.9) to avoid having the packagaes for each GPU backend as explicit dependencies. This means that the user is responsible for loading the backend package (e.g. `using CUDA`) at the beginning of their code, or prior to calling KomaUI(), otherwise, Koma will default back to the CPU. Once this is done, no further action is recquired! The simulation objects will automatically be moved to the GPU and back once the simulation is finished. When the simulation is run a message will be shown with either the GPU device being used or the number of CPU threads if running on the CPU.
+To determine which backend to use, KomaMRI uses [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)) (introduced in Julia 1.9) to avoid having the packages for each GPU backend as explicit dependencies. This means that the user is responsible for loading the backend package (e.g. `using CUDA`) at the beginning of their code, or prior to calling KomaUI(), otherwise, Koma will default back to the CPU. Once this is done, no further action is recquired! The simulation objects will automatically be moved to the GPU and back once the simulation is finished. When the simulation is run a message will be shown with either the GPU device being used or the number of CPU threads if running on the CPU.
 
 ## How Objects are moved to the GPU
 
