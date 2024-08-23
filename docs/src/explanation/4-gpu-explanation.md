@@ -25,7 +25,7 @@ KomaMRI has three different simulation methods, all of which can run on the GPU:
 
 Of the three methods, `Bloch` is the most optimized, and has separate implementations specialized for the CPU and GPU. `BlochSimple` is equivalent to `Bloch` in the operations it performs, but less optimized and easier to understand. `BlochDict` can be understood as an extension of `BlochSimple` that outputs a more complete signal. 
 
-`BlochSimple` and `Bloch` take slightly different approaches to GPU parallelization. `BlochSimple` exclusively uses array broadcasting, with parallelization on the arrays being done implicitly by the GPU compiler. In constrast, `Bloch` uses explicit GPU kernels where advantageous, using package `KernelAbstractions.jl`. Readers curious about the performance improvements between `Bloch` and `BlochSimple` may want to look at the following pull reqeusts:
+`BlochSimple` and `Bloch` take slightly different approaches to GPU parallelization. `BlochSimple` exclusively uses array broadcasting, with parallelization on the arrays being done implicitly by the GPU compiler. In constrast, `Bloch` uses explicit GPU kernels where advantageous, using package `KernelAbstractions.jl`. Readers curious about the performance improvements between `Bloch` and `BlochSimple` may be interested to look at the following pull reqeusts:
 
 * [(459) Optimize run_spin_precession! for GPU](https://github.com/JuliaHealth/KomaMRI.jl/pull/459)
 * [(462) Optimize run_spin_excitation! for GPU](https://github.com/JuliaHealth/KomaMRI.jl/pull/462)
