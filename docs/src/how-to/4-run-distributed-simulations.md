@@ -82,17 +82,6 @@ This SBATCH script requests 20 separate nodes, with each taking a single task. T
     #SBATCH --cpus-per-task=4                          # 4 CPUs per task
     #SBATCH -o /mnt/workspace/%u/slurm-out/%test.out   # Enter file path to write stdout to
     #SBATCH -e /mnt/workspace/%u/slurm-out/%test.err   # Enter file path to write stderr to
-    
-    #!/bin/bash
-    #SBATCH --job-name           # Enter job name here
-    #SBATCH -t                   # Enter max runtime for job
-    #SBATCH -p                   # Enter partition on which to run the job
-    #SBATCH --nodes              # Enter number of nodes on which to run the job
-    #SBATCH --ntasks             # Should be equal to number of nodes
-    #SBATCH --ntasks-per-node=1  # Run each task on a separate node
-    #SBATCH --cpus-per-task      # Enter number of CPU threads to use per node
-    #SBATCH -o                   # Enter file path to write stdout to
-    #SBATCH -e                   # Enter file path to write stderr to
 
     julia/1.10.2
     julia script.jl
