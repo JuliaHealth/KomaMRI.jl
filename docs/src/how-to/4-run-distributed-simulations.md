@@ -50,14 +50,11 @@ addprocs(length(devices()))
     parts = kfoldperm(length(obj), nworkers())
 end
 
-#Distribute simulation across workers, fetch into array of results for each worker
-workers_raw = fetch.([ @spawnat pid begin
+#Distribute simulation across workers
+raw = Distributed.@distributed (+) for i=1:nworkers()
     KomaMRICore.set_device!(i-1) #Sets device for this worker, note that CUDA devices are indexed from 0
     simulate(obj[parts[i]], seq, sys)
-end for (i, pid) in enumerate(workers()) ])
-
-#Final signal
-raw = reduce(+, workers_raw)
+end
 ```
 
 ## Using Multiple Nodes in an HPC Cluster
@@ -78,7 +75,7 @@ The script below uses the package ClusterManagers.jl to initialize worker proces
     #SBATCH --nodes              # Enter number of nodes on which to run the job
     #SBATCH --ntasks             # Should be equal to number of nodes
     #SBATCH --ntasks-per-node=1  # Run each task on a separate node
-    #SBATCH --cpus-per-task      # Enter number of CPU threads to use on each node (alternatively, leave this blank and define JULIA_NUM_THREADS on each node)
+    #SBATCH --cpus-per-task      # Enter number of CPU threads to use per node
     #SBATCH -o                   # Enter file path to write stdout to
     #SBATCH -e                   # Enter file path to write stderr to
     
@@ -101,11 +98,8 @@ addprocs(SlurmManager(parse(Int, ENV["SLURM_NTASKS"])))
     parts = kfoldperm(length(obj), nworkers())
 end
 
-#Distribute simulation across workers, fetch into array of results for each worker
-workers_raw = fetch.([ @spawnat pid begin
+#Distribute simulation across workers
+raw = Distributed.@distributed (+) for i=1:nworkers()
     simulate(obj[parts[i]], seq, sys)
-end for (i, pid) in enumerate(workers()) ])
-
-#Final Signal
-raw = reduce(+, workers_raw)
+end
 ```
