@@ -10,10 +10,10 @@ The following two examples demonstrate how to use Distributed.jl to run a simula
 
 ## Using Multiple GPUs
 
-To run a simulation using multiple GPUs, the phantom object can be divided using the kfoldperm function. Distributed.jl can then be used to start one Julia worker process per available device so that each device simulates a different part of the object. The results can then be fetched asynchronously by the main process and combined to produce a final signal, as shown in the diagram below: 
+To run a simulation using multiple GPUs, the phantom object can be divided using the kfoldperm function. Distributed.jl can then be used to start one Julia worker process per available device so that each device simulates a different part of the object. The results can then be fetched asynchronously by the main process and combined to produce a final signal. This process is shown in the diagram below: 
 
 ```@raw html
-<p align="center"><img width="90%" src="../../assets/KomamultiNode.svg"/></p>
+<p align="center"><img width="90%" src="../../assets/KomamultiGPU.svg"/></p>
 ```
 
 The code for doing so is shown below:
