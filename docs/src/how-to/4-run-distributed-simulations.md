@@ -83,7 +83,7 @@ This SBATCH script requests 20 separate nodes, with each taking a single task. T
     #SBATCH -o /mnt/workspace/%u/slurm-out/%test.out   # Enter file path to write stdout to
     #SBATCH -e /mnt/workspace/%u/slurm-out/%test.err   # Enter file path to write stderr to
 
-    julia/1.10.2
+    module load julia/1.10.2
     julia script.jl
     ```
 
