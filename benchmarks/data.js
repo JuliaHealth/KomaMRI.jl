@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1724171664557,
+  "lastUpdate": 1724433864389,
   "repoUrl": "https://github.com/JuliaHealth/KomaMRI.jl",
   "entries": {
     "KomaMRI Benchmarks": [
@@ -1560,6 +1560,126 @@ window.BENCHMARK_DATA = {
             "value": 60779232,
             "unit": "ns",
             "extra": "gctime=0\nmemory=23315608\nallocs=179040\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ryanakierulf@gmail.com",
+            "name": "rkierulf",
+            "username": "rkierulf"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a26d5985c2843a9ab2ced4b623fbb6e75c243041",
+          "message": "Add Distributed Examples to Documentation (#468)\n\n* Create 4-run-distributed-simulations.md\r\n\r\nAdd distributed examples in \"how-to\" section\r\n\r\n* Update 4-run-distributed-simulations.md\r\n\r\nCorrect typo\r\n\r\n* Add space\r\n\r\n* Make use case for multi-node simulation clearer\r\n\r\n* Add set_device! override without backend parameter\r\n\r\n* Add function for combining two RawAcquisitionData structs\r\n\r\n* Simplify example scripts\r\n\r\n* Remove sentence\r\n\r\n* Add isapprox function for testing\r\n\r\n* Add RawAcquisitionData test\r\n\r\n* Add images to assets folder\r\n\r\n* Update examples\r\n\r\n* Delete docs/src/assets/KomamultiGPU.svg\r\n\r\n* Delete docs/src/assets/KomamultiNode.svg\r\n\r\n* Delete docs/src/assets/KomamultiNodeCPU.svg\r\n\r\n* Add files via upload\r\n\r\n* Fix broken image\r\n\r\n* Use correct image for multiGPU\r\n\r\n* Update to use distributed macro",
+          "timestamp": "2024-08-23T12:01:27-05:00",
+          "tree_id": "636479d01ce73a3098391ec30e9fb9b20575dd00",
+          "url": "https://github.com/JuliaHealth/KomaMRI.jl/commit/a26d5985c2843a9ab2ced4b623fbb6e75c243041"
+        },
+        "date": 1724433849937,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "MRI Lab/Bloch/CPU/2 thread(s)",
+            "value": 224991845.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=70624808\nallocs=620867\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/CPU/4 thread(s)",
+            "value": 174863887,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=101997120\nallocs=1139788\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/CPU/8 thread(s)",
+            "value": 90572834,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=164637904\nallocs=2178085\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/CPU/1 thread(s)",
+            "value": 347400444,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=54957568\nallocs=361434\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/CUDA",
+            "value": 57092571.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=26599952\nallocs=198023\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/oneAPI",
+            "value": 522866366,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=53185760\nallocs=405130\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/Metal",
+            "value": 568303458,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=32741992\nallocs=343064\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/AMDGPU",
+            "value": 36981171,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=26020472\nallocs=148469\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/2 thread(s)",
+            "value": 1151416902,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=71980896\nallocs=883236\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/4 thread(s)",
+            "value": 580233533,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=113065288\nallocs=1606321\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/8 thread(s)",
+            "value": 341164837,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=195312136\nallocs=3054104\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/1 thread(s)",
+            "value": 1930414196.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=51446624\nallocs=521237\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/CUDA",
+            "value": 101438582.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=23401104\nallocs=196399\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/oneAPI",
+            "value": 636188156.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=36376880\nallocs=302152\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/Metal",
+            "value": 565478250,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=26781704\nallocs=265921\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/AMDGPU",
+            "value": 60929383,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=23315672\nallocs=179039\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
           }
         ]
       }
