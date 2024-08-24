@@ -6,11 +6,6 @@ struct AllSpins <: AbstractSpinSpan end
 Base.getindex(spins::AllSpins, p::AbstractVector) = Colon(), spins
 Base.view(spins::AllSpins, p::AbstractVector) = Colon(), spins
 
-Base.getindex(x, p::AllSpins) = x
-Base.getindex(x, p::AllSpins, q) = x[:, q]
-Base.view(x, p::AllSpins) = x
-Base.view(x, p::AllSpins, q) = @view(x[:, q])
-
 get_idx(spins::AllSpins) = Colon()
 has_spins(spins::AllSpins) = true
 
@@ -24,22 +19,17 @@ SpinRange(range::BitVector) = SpinRange(findall(x->x==true, range))
 
 function Base.getindex(spins::SpinRange, p::AbstractVector)
     idx = get_idx(spins.range, p)
-    spin_range = SpinRange(spins.range[idx])
+    spin_range = SpinRange(spins.range[idx] .- minimum(p) .+ 1)
     return idx, spin_range
 end
 function Base.view(spins::SpinRange, p::AbstractVector)
     idx = get_idx(spins.range, p)
-    spin_range = SpinRange(@view(spins.range[idx]))
+    spin_range = SpinRange(@view(spins.range[idx]) .- minimum(p) .+ 1)
     return idx, spin_range
 end
 
 Base.getindex(spins::SpinRange, b::BitVector) = spins[findall(x->x==true, b)]
 Base.view(spins::SpinRange, b::BitVector) = @view(spins[findall(x->x==true, b)])
-
-Base.getindex(x, p::SpinRange) = x[p.range]
-Base.getindex(x, p::SpinRange, q) = x[p.range, q]
-Base.view(x, p::SpinRange) = @view(x[p.range])
-Base.view(x, p::SpinRange, q) = @view(x[p.range, q])
 
 Base.:(==)(sr1::SpinRange, sr2::SpinRange) = sr1.range == sr2.range
 
