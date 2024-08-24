@@ -3,8 +3,8 @@ abstract type AbstractSpinSpan end
 # AllSpins
 struct AllSpins <: AbstractSpinSpan end
 
-Base.getindex(spins::AllSpins, p::AbstractVector) = Colon(), spins
-Base.view(spins::AllSpins, p::AbstractVector) = Colon(), spins
+Base.getindex(spins::AllSpins, p::AbstractVector) = p, spins
+Base.view(spins::AllSpins, p::AbstractVector) = p, spins
 
 get_idx(spins::AllSpins) = Colon()
 has_spins(spins::AllSpins) = true
