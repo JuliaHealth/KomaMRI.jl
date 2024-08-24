@@ -76,8 +76,8 @@ function get_spin_coords(
     # Buffers for positions:
     xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
     # Buffers for displacements:
-    ux, uy, uz = xt .* 0, yt .* 0, zt .* 0
-    # Composable motions: they need to be run sequentially. Note that they depend on xt, yt , and zt
+    ux, uy, uz = xt .* zero(T), yt .* zero(T), zt .* zero(T)
+    # Composable motions: they need to be run sequentially. Note that they depend on xt, yt, and zt
     for m in Iterators.filter(is_composable, ml.motions)
         t_unit = unit_time(t, m.time)
         idx = get_idx(m.spins)
@@ -85,7 +85,7 @@ function get_spin_coords(
         displacement_y!(@view(uy[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         xt .+= ux; yt .+= uy; zt .+= uz
-        ux .*= 0; uy .*= 0; uz .*= 0
+        ux .*= zero(T); uy .*= zero(T); uz .*= zero(T)
     end
     # Additive motions: these motions can be run in parallel
     for m in Iterators.filter(!is_composable, ml.motions)
@@ -95,7 +95,7 @@ function get_spin_coords(
         displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         xt .+= ux; yt .+= uy; zt .+= uz
-        ux .*= 0; uy .*= 0; uz .*= 0
+        ux .*= zero(T); uy .*= zero(T); uz .*= zero(T)
     end
     return xt, yt, zt
 end
