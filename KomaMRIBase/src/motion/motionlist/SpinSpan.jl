@@ -1,6 +1,10 @@
 abstract type AbstractSpinSpan end
 
-# AllSpins
+"""
+    as = AllSpin()
+
+AllSpin struct. (...)  
+"""
 struct AllSpins <: AbstractSpinSpan end
 
 Base.getindex(spins::AllSpins, p::AbstractVector) = p, spins
@@ -9,7 +13,11 @@ Base.view(spins::AllSpins, p::AbstractVector) = p, spins
 get_idx(spins::AllSpins) = Colon()
 has_spins(spins::AllSpins) = true
 
-# SpinRange
+"""
+    sr = SpinRange(range)
+
+SpinRange struct. (...)  
+"""
 @with_kw struct SpinRange <: AbstractSpinSpan 
     range::AbstractVector
 end

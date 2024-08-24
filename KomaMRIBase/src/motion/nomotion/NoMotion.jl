@@ -1,3 +1,8 @@
+"""
+    nm = NoMotion{T<:Real}()
+
+NoMotion struct. (...)  
+"""
 struct NoMotion{T<:Real} <: AbstractMotionSet{T} end
 
 Base.getindex(mv::NoMotion, p::AbstractVector) = mv 

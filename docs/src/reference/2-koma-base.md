@@ -23,33 +23,23 @@ heart_phantom
 ### `MotionList`-related functions
 
 ```@docs
+NoMotion
+MotionList
+Motion
 sort_motions!
 get_spin_coords
+TimeRange
+Periodic
+AllSpins
+SpinRange
 ```
 
-### `SimpleAction <: AbstractActionSpan`
-
-```@docs
-SimpleAction
-```
-
-### `SimpleAction` types
+### `AbstractActionSpan` types
 
 ```@docs
 Translate
 Rotate
 HeartBeat
-```
-
-### `ArbitraryAction <: AbstractActionSpan`
-
-```@docs
-ArbitraryAction
-```
-
-### `ArbitraryAction` types
-
-```@docs
 Path
 FlowPath
 ```
