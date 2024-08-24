@@ -1,6 +1,10 @@
 abstract type AbstractTimeSpan{T<:Real} end
 
-# TimeRange
+"""
+    tr = TimeRange(t_start, t_end)
+
+TimeRange struct. (...)
+"""
 @with_kw struct TimeRange{T<:Real} <: AbstractTimeSpan{T} 
    t_start  ::T 
    t_end    ::T
@@ -52,7 +56,11 @@ end
 
 
 
-# Periodic
+"""
+    p = Periodic(period, asymmetry)
+
+Periodic struct. (...)
+"""
 @with_kw struct Periodic{T<:Real} <: AbstractTimeSpan{T}
    period::T
    asymmetry::T = typeof(period)(0.5)

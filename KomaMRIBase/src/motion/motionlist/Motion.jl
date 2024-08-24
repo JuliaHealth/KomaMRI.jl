@@ -1,3 +1,8 @@
+"""
+    m = Motion(action, time, spins)
+
+Motion struct. (...)
+"""
 @with_kw mutable struct Motion{T<:Real}
     action::AbstractActionSpan{T}
     time::AbstractTimeSpan{T}

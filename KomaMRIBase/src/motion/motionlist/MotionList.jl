@@ -1,3 +1,8 @@
+"""
+    m_list = MotionList(motion_array...)
+
+MotionList struct. (...)
+"""
 struct MotionList{T<:Real} <: AbstractMotionSet{T}
     motions::Vector{<:Motion{T}}
 end
