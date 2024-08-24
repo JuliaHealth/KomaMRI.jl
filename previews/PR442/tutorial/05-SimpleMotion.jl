@@ -5,7 +5,7 @@ obj = brain_phantom2D()
 obj.Δw .= 0 # hide
 
 obj.motion = MotionList(
-    Translation(time=TimeRange(t_start=0.0, t_end=200e-3), dx=2e-2, dy=0.0, dz=0.0)
+    Translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
 )
 p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
 
