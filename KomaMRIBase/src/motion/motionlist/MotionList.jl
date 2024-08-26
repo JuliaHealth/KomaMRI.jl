@@ -45,15 +45,20 @@ end
 
 """ Compare two MotionLists """
 function Base.:(==)(mv1::MotionList{T}, mv2::MotionList{T}) where {T<:Real}
+    if length(mv1) != length(mv2) return false end
     sort_motions!(mv1)
     sort_motions!(mv2)
     return reduce(&, mv1.motions .== mv2.motions)
 end
 function Base.:(≈)(mv1::MotionList{T}, mv2::MotionList{T}) where {T<:Real} 
+    if length(mv1) != length(mv2) return false end
     sort_motions!(mv1)
     sort_motions!(mv2)
     return reduce(&, mv1.motions .≈ mv2.motions)
 end
+
+""" MotionList length """
+Base.length(m::MotionList) = length(m.motions)
 
 """
     x, y, z = get_spin_coords(motion, x, y, z, t)
@@ -108,7 +113,7 @@ end
 """
     times = times(motion)
 """
-times(ml::MotionList{T}) where {T<:Real} = begin
+function times(ml::MotionList{T}) where {T<:Real}
     nodes = reduce(vcat, [times(m) for m in ml.motions]; init=[zero(T)])
     return unique(sort(nodes))
 end
