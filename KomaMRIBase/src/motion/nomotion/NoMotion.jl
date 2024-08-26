@@ -14,10 +14,8 @@ function Base.vcat(m1::NoMotion{T}, m2::AbstractMotionSet{T}, Ns1::Int, Ns2::Int
     mv_aux = Motion{T}[]
     for m in m2.motions
         m_aux = copy(m)
-        if m_aux.spins == Colon()
-            m_aux.spins = 1:Ns2
-        end
-        m_aux.spins = m_aux.spins .+ Ns1
+        m_aux.spins = expand(m_aux.spins, Ns2)
+        m_aux.spins = SpinRange(m_aux.spins.range .+ Ns1)
         push!(mv_aux, m_aux)
     end
     return MotionList(mv_aux)
@@ -26,9 +24,7 @@ function Base.vcat(m1::AbstractMotionSet{T}, m2::NoMotion{T}, Ns1::Int, Ns2::Int
     mv_aux = Motion{T}[]
     for m in m1.motions
         m_aux = copy(m)
-        if m_aux.spins == Colon()
-            m_aux.spins = 1:Ns1
-        end
+        m_aux.spins = expand(m_aux.spins, Ns1)
         push!(mv_aux, m_aux)
     end
     return MotionList(mv_aux)

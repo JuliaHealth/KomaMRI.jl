@@ -27,13 +27,11 @@ SpinRange(range::BitVector) = SpinRange(findall(x->x==true, range))
 
 function Base.getindex(spins::SpinRange, p::AbstractVector)
     idx = get_idx(spins.range, p)
-    spin_range = SpinRange(spins.range[idx] .- minimum(p) .+ 1)
-    return idx, spin_range
+    return get_idx(p, spins.range), SpinRange(idx)
 end
 function Base.view(spins::SpinRange, p::AbstractVector)
     idx = get_idx(spins.range, p)
-    spin_range = SpinRange(@view(spins.range[idx]) .- minimum(p) .+ 1)
-    return idx, spin_range
+    return get_idx(p, spins.range), SpinRange(idx)
 end
 
 Base.getindex(spins::SpinRange, b::BitVector) = spins[findall(x->x==true, b)]
@@ -46,7 +44,7 @@ has_spins(spins::SpinRange) = length(spins.range) > 0
 
 # Auxiliary functions
 function get_idx(spin_range::AbstractVector, p::AbstractVector)
-    idx = findall(x -> x in p, spin_range)
+    idx = findall(x -> x in spin_range, p)
     return (length(idx) > 0 && idx == collect(first(idx):last(idx))) ? (first(idx):last(idx)) : idx
 end
 
