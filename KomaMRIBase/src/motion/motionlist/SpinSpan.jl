@@ -39,6 +39,8 @@ Base.view(spins::SpinRange, b::BitVector) = @view(spins[findall(x->x==true, b)])
 
 Base.:(==)(sr1::SpinRange, sr2::SpinRange) = sr1.range == sr2.range
 
+Base.length(sr::SpinRange) = length(sr.range)
+
 get_idx(spins::SpinRange) = spins.range
 has_spins(spins::SpinRange) = length(spins.range) > 0
 
