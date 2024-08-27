@@ -69,7 +69,7 @@ KomaUI()
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification will emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw Data or (2) to proceed with the reconstruction.
 
 > [!IMPORTANT]
-> Starting from **KomaMRI v0.9** we are using [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)) to deal with GPU dependencies, meaning that to run simulations on the GPU, installing (`add CUDA/AMDGPU/Metal/oneAPI`) and loading (`using CUDA/AMDGPU/Metal/oneAPI`) the desired backend will be necessary (see [GPU Parallelization](https://JuliaHealth.github.io/KomaMRI.jl/dev/explanation/4-gpu-explanation) and [Tested compatibility](README.md##tested-compatibility)).  
+> Starting from **KomaMRI v0.9** we are using [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)) to deal with GPU dependencies, meaning that to run simulations on the GPU, installing (`add CUDA/AMDGPU/Metal/oneAPI`) and loading (`using CUDA/AMDGPU/Metal/oneAPI`) the desired backend will be necessary (see [GPU Parallelization](https://JuliaHealth.github.io/KomaMRI.jl/dev/explanation/4-gpu-explanation) and [Tested compatibility](#tested-compatibility)).  
 
 ## How to Contribute
 KomaMRI exists thanks to all our contributors:
