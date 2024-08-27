@@ -86,12 +86,12 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
  - [ ] Coil sensitivities,
  - [ ] Cardiac phantoms and triggers.
  - [ ] <img src="https://latex.codecogs.com/gif.latex?T_{2}^{*}"> decay,
- 
+
  Next:
  - [ ] Diffusion models with Laplacian Eigen Functions,
  - [ ] Magnetic susceptibility,
  - [ ] Use [PackageCompiler.jl](https://julialang.github.io/PackageCompiler.jl/dev/apps.html) to build a ditributable core or app.
- 
+
 </details>
 
 
@@ -100,16 +100,22 @@ To install, just **type** `] add KomaMRI` in the Julia REPL or copy-paste the fo
 
 ```julia
 pkg> add KomaMRI
+pkg> add CUDA     # Optional: Install desired GPU backend (CUDA, AMDGPU, Metal, or oneAPI)
+
 ```
-For more information about installation instructions, refer to the section [Getting Started](https://JuliaHealth.github.io/KomaMRI.jl/stable/getting-started/) of the documentation.
+For more information about installation instructions, refer to the section [Getting Started](https://JuliaHealth.github.io/KomaMRI.jl/dev/how-to/1-getting-started) of the documentation.
 ## First run
 KomaMRI.jl features a convenient GUI with predefined simulation inputs (i.e. `Sequence`, `Phantom`, and `Scanner`). To launch the GUI, use the following command:
 
 ```julia
 using KomaMRI
+using CUDA        # Optional: Load GPU backend (default: CPU)
 KomaUI()
 ```
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification will emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw Data or (2) to proceed with the reconstruction.
+
+> [!IMPORTANT]
+> Starting from **KomaMRI v0.9** we are using [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)) to deal with GPU dependencies, meaning that to run simulations on the GPU, installing (`add CUDA/AMDGPU/Metal/oneAPI`) and loading (`using CUDA/AMDGPU/Metal/oneAPI`) the desired backend will be necessary (see [GPU Parallelization](https://JuliaHealth.github.io/KomaMRI.jl/dev/explanation/4-gpu-explanation) and [Tested compatibility](#tested-compatibility)).  
 
 ## How to Contribute
 KomaMRI exists thanks to all our contributors:
