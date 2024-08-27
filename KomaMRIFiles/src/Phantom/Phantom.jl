@@ -164,3 +164,6 @@ end
 function export_motion_subfield!(field_group::HDF5.Group, subfield::Array, subname::String)
     field_group[subname] = subfield
 end
+function export_motion_subfield!(field_group::HDF5.Group, subfield::BitMatrix, subname::String)
+    field_group[subname] = Int.(subfield)
+end

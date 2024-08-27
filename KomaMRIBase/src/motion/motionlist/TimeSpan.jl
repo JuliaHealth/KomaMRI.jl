@@ -104,11 +104,12 @@ function unit_time(t::AbstractArray{T}, ts::Periodic{T}) where {T<:Real}
     t_rise = ts.period * ts.asymmetry
     t_fall = ts.period * (oneunit(T) - ts.asymmetry)
     t_relative = mod.(t, ts.period)
-    t_unit =
-        ifelse.(
-            t_relative .< t_rise,
-            t_relative ./ t_rise,
-            oneunit(T) .- (t_relative .- t_rise) ./ t_fall,
-        )
+    if t_rise == 0
+        t_unit = ifelse.(t_relative .< t_rise, zero(T), oneunit(T) .- t_relative ./ t_fall)
+    elseif t_fall == 0
+        t_unit = ifelse.(t_relative .< t_rise, t_relative ./ t_rise, oneunit(T))
+    else
+        t_unit = ifelse.( t_relative .< t_rise, t_relative ./ t_rise, oneunit(T) .- (t_relative .- t_rise) ./ t_fall)
+    end
     return t_unit
 end

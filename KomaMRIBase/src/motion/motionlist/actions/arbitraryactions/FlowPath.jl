@@ -23,3 +23,5 @@ julia> fp = FlowPath(dx=[0.01 0.02], dy=[0.02 0.03], dz=[0.03 0.04], spin_reset=
     dz::AbstractArray{T}
     spin_reset::AbstractArray{Bool}
 end
+
+FlowPath(dx::AbstractArray{T}, dy::AbstractArray{T}, dz::AbstractArray{T}, spin_reset::Array) where T<:Real = FlowPath(dx, dy, dz, Bool.(spin_reset))
