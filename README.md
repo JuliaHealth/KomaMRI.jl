@@ -49,6 +49,52 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 
 </div>
 
+## Table of Contents  
+- [News](#news)  
+- [Installation](#installation)
+- [First run](#first-run)
+- [How to Contribute](#how-to-contribute)
+- [How to Cite](#how-to-cite)
+- [Tested compatibility](#tested-compatibility) 
+
+## News
+
+- **(7 Dec 2023)** Koma was present in [MRI Together](https://mritogether.esmrmb.org/) 😼. The talk is available [here](https://www.youtube.com/watch?v=9mRQH8um4-A). Also, I uploaded the promised [educational example](https://juliahealth.org/KomaMRI.jl/stable/tutorial-pluto/01-gradient-echo-spin-echo/).
+- **(17 Nov 2023)** Pretty excited of being part of [ISMRM Pulseq's virtual meeting](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023). The slides available [here](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023/blob/35a8da7eaa0bf42f2127e1338a440ccd4e3ef53c/slides/day3_KomaMRI_simulator_Quantitative_MRI.pdf).
+- **(27 Jul 2023)** I gave a talk at MIT 😄 for [JuliaCon 2023](https://juliacon.org/2023/)! A video of the presentation can be seen [here](https://www.youtube.com/watch?v=WVT9wJegC6Q).
+- **(29 Jun 2023)** [KomaMRI.jl's paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635) was chosen as a July editor's pick in MRM 🥳!
+- **(6 Mar 2023)** Paper published in MRM 😃!
+- **(8 Dec 2022)** [KomaMRI v0.7](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.7.0): improved performance (**5x faster**), type stability, extensibility, and more!
+- **(17 May 2022)** [ISMRM 2022 digital poster](https://archive.ismrm.org/2022/2815.html) presented in London, UK. Recording [here!](https://www.youtube.com/watch?v=tH_XUnoSJK8). Name change [MRIsim.jl -> KomaMRI.jl](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.6.0).
+- **(Aug 2020)** [Prehistoric version](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.2.1-alpha) of Koma, MRIsim, presented as an [ISMRM 2020 digital poster](https://cds.ismrm.org/protected/20MProceedings/PDFfiles/4437.html) (virtual conference).
+
+<details>
+<summary> <samp>&#9776; Roadmap</samp></summary>
+
+ v1.0: 
+ - [x] Phantom and Sequence data types,
+ - [x] Spin precession in gradient-only blocks (simulation optimization),
+ - [x] GPU acceleration using CUDA.jl,
+ - [x] RF excitation,
+ - [x] GPU accelaration of RF excitation,
+ - [x] Scanner data-type: <img src="https://latex.codecogs.com/gif.latex?B_0,\,B_1,\,G_{\max},\,S_{\max}">, etc.,
+ - [x] [Pulseq](https://github.com/imr-framework/pypulseq) IO,
+ - [x] Signal "Raw Output" dictionary ([ISMRMRD](https://ismrmrd.github.io/)),
+ - [x] [MRIReco.jl](https://magneticresonanceimaging.github.io/MRIReco.jl/latest/) for the reconstruciton,
+ - [ ] Documentation,
+ - [ ] [Auxiliary Pulseq functions](https://github.com/imr-framework/pypulseq/tree/master/pypulseq),
+ - [ ] Coil sensitivities,
+ - [ ] Cardiac phantoms and triggers.
+ - [ ] <img src="https://latex.codecogs.com/gif.latex?T_{2}^{*}"> decay,
+
+ Next:
+ - [ ] Diffusion models with Laplacian Eigen Functions,
+ - [ ] Magnetic susceptibility,
+ - [ ] Use [PackageCompiler.jl](https://julialang.github.io/PackageCompiler.jl/dev/apps.html) to build a ditributable core or app.
+
+</details>
+
+
 ## Installation
 To install, just **type** `] add KomaMRI` in the Julia REPL or copy-paste the following into the Julia REPL:
 
