@@ -2,7 +2,7 @@
     heartbeat = HeartBeat(circumferential_strain, radial_strain, longitudinal_strain)
 
 HeartBeat struct. It produces a heartbeat-like motion, characterised by three types of strain:
-Circumferential, Radial and Longitudinal
+circumferential, radial and longitudinal
 
 # Arguments
 - `circumferential_strain`: (`::Real`) contraction parameter
@@ -14,7 +14,7 @@ Circumferential, Radial and Longitudinal
 
 # Examples
 ```julia-repl
-julia> hb = HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudinal_strain=0.0)
+julia> heartbeat = HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudinal_strain=0.0)
 ```
 """
 @with_kw struct HeartBeat{T<:Real} <: SimpleAction{T}

@@ -1,9 +1,18 @@
 abstract type AbstractSpinSpan end
 
 """
-    as = AllSpin()
+    allspins = AllSpins()
 
-AllSpin struct. (...)  
+AllSpin struct. It is a specialized type that inherits from AbstractSpinSpan
+and is used to cover all the spins of a phantom.
+
+# Returns
+- `allspins`: (`::AllSpins`) AllSpins struct
+
+# Examples
+```julia-repl
+julia> allspins = AllSpins()
+```
 """
 struct AllSpins <: AbstractSpinSpan end
 
@@ -13,10 +22,25 @@ Base.view(spins::AllSpins, p::AbstractVector) = p, spins
 get_idx(spins::AllSpins) = Colon()
 has_spins(spins::AllSpins) = true
 
-"""
-    sr = SpinRange(range)
 
-SpinRange struct. (...)  
+"""
+    spinrange = SpinRange(range)
+
+SpinRange struct. It is a specialized type that inherits from AbstractSpinSpan
+and is used to select a certain range and number of spins.
+
+# Arguments
+- `range`: (`::AbstractVector`) spin id's. This argument can be a Range, a Vector or a BitVector
+
+# Returns
+- `spinrange`: (`::SpinRange`) SpinRange struct
+
+# Examples
+```julia-repl
+julia> spinrange = SpinRange(1:10)
+julia> spinrange = SpinRange([1, 3, 5, 7])
+julia> spinrange = SpinRange(obj.x .> 0)
+```
 """
 @with_kw struct SpinRange <: AbstractSpinSpan 
     range::AbstractVector

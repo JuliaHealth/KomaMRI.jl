@@ -1,7 +1,7 @@
 @doc raw"""
     rotate = Rotate(pitch, roll, yaw)
  
-Rotate motion struct. It produces a rotation of the phantom in the three axes: 
+Rotate struct. It produces a rotation in the three axes: 
 x (pitch), y (roll), and z (yaw).
 We follow the RAS (Right-Anterior-Superior) orientation, 
 and the rotations are applied following the right-hand rule (counter-clockwise):
@@ -47,7 +47,7 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 
 # Examples
 ```julia-repl
-julia> rt = Rotate(pitch=15.0, roll=0.0, yaw=20.0)
+julia> rotate = Rotate(pitch=15.0, roll=0.0, yaw=20.0)
 ```
 """
 @with_kw struct Rotate{T<:Real} <: SimpleAction{T}

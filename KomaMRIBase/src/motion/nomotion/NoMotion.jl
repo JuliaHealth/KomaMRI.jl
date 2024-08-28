@@ -1,7 +1,15 @@
 """
-    nm = NoMotion{T<:Real}()
+    nomotion = NoMotion{T<:Real}()
 
-NoMotion struct. (...)  
+NoMotion struct. It is used to create static phantoms.
+
+# Returns
+- `nomotion`: (`::NoMotion`) NoMotion struct
+
+# Examples
+```julia-repl
+julia> nomotion = NoMotion{Float64}()
+```
 """
 struct NoMotion{T<:Real} <: AbstractMotionSet{T} end
 

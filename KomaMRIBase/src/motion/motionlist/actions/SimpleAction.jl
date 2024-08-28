@@ -1,8 +1,3 @@
-"""
-    SimpleAction
-
-(...)
-"""
 abstract type SimpleAction{T<:Real} <: AbstractActionSpan{T} end
 
 Base.getindex(action::SimpleAction, p::Union{AbstractVector, Colon}) = action

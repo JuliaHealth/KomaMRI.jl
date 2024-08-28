@@ -1,7 +1,7 @@
 @doc raw"""
-    translation = Translate(dx, dy, dz)
+    translate = Translate(dx, dy, dz)
 
-Translate motion struct. It produces a linear translation of the phantom.
+Translate struct. It produces a linear translation.
 Its fields are the final displacements in the three axes (dx, dy, dz).
 
 # Arguments
@@ -14,7 +14,7 @@ Its fields are the final displacements in the three axes (dx, dy, dz).
 
 # Examples
 ```julia-repl
-julia> tr = Translate(dx=0.01, dy=0.02, dz=0.03)
+julia> translate = Translate(dx=0.01, dy=0.02, dz=0.03)
 ```
 """
 @with_kw struct Translate{T<:Real} <: SimpleAction{T}

@@ -20,18 +20,20 @@ pelvis_phantom2D
 heart_phantom
 ```
 
-### `MotionList`-related functions
+## `Motion`-related functions
 
+### `AbstractMotionSet` types and related functions
 ```@docs
 NoMotion
 MotionList
-Motion
 sort_motions!
 get_spin_coords
-TimeRange
-Periodic
-AllSpins
-SpinRange
+```
+
+### `Motion`
+
+```@docs
+Motion
 ```
 
 ### `AbstractActionSpan` types
@@ -42,6 +44,21 @@ Rotate
 HeartBeat
 Path
 FlowPath
+```
+
+### `AbstractTimeSpan` types and related functions
+
+```@docs
+TimeRange
+Periodic
+unit_time
+```
+
+### `AbstractSpinSapn` types
+
+```@docs
+AllSpins
+SpinRange
 ```
 
 ## `Sequence`-related functions

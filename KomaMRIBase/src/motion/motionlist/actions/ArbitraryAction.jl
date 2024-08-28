@@ -16,11 +16,6 @@ const Interpolator2D = Interpolations.GriddedInterpolation{
     K<:Tuple{AbstractVector{T}, AbstractVector{T}},
 }
 
-"""
-    ArbitraryAction
-
-(...)
-"""
 abstract type ArbitraryAction{T<:Real} <: AbstractActionSpan{T} end
 
 function Base.getindex(action::ArbitraryAction, p::Union{AbstractVector, Colon})

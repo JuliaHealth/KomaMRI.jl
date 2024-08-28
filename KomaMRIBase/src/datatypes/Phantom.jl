@@ -17,7 +17,7 @@ a property value representing a spin. This struct serves as an input for the sim
 - `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
 - `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
 - `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
-- `motion`: (`::MotionModel{T<:Real}`) motion model
+- `motion`: (`::AbstractMotionSet{T<:Real}`) motion set
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -125,25 +125,30 @@ function get_dims(obj::Phantom)
 end
 
 """
-    obj = heart_phantom(...)
+    obj = heart_phantom(
+        circumferential_strain, radial_strain, rotation_angle; 
+        heart_rate, asymmetry
+    )
 
 Heart-like LV 2D phantom. The variable `circumferential_strain` and `radial_strain` are for streching (if positive) 
 or contraction (if negative). `rotation_angle` is for rotation.
 
-# Arguments
-- `circumferential_strain`: (`::Real`, `=-0.3`) contraction parameter
-- `radial_strain`: (`::Real`, `=-0.3`) contraction parameter
-- `rotation_angle`: (`::Real`, `=1`) rotation parameter
+# Keywords
+- `circumferential_strain`: (`::Real`, `=-0.3`) contraction parameter. Between -1 and 1
+- `radial_strain`: (`::Real`, `=-0.3`) contraction parameter. Between -1 and 1
+- `rotation_angle`: (`::Real`, `=15.0`, `[º]`) maximum rotation angle
+- `heart_rate`: (`::Real`, `=60`, `[bpm]`) heartbeat frequency
+- `temporal_asymmetry`: (`::Real`, `=0.2`) time fraction of the period in which the systole occurs. Therefore, diastole lasts for `period * (1 - temporal_asymmetry)`
 
 # Returns
-- `phantom`: (`::Phantom`) Heart-like LV phantom struct
+- `obj`: (`::Phantom`) Heart-like LV phantom struct
 """
-function heart_phantom(
+function heart_phantom(;
     circumferential_strain=-0.3,
     radial_strain=-0.3,
-    rotation_angle=15.0;
+    rotation_angle=15.0,
     heart_rate=60,
-    asymmetry=0.2,
+    temporal_asymmetry=0.2,
 )
     #PARAMETERS
     FOV = 10e-2 # [m] Diameter ventricule
@@ -186,10 +191,10 @@ function heart_phantom(
                 circumferential_strain,
                 radial_strain,
                 0.0,
-                Periodic(; period=period, asymmetry=asymmetry),
+                Periodic(; period=period, asymmetry=temporal_asymmetry),
             ),
             Rotate(
-                0.0, 0.0, rotation_angle, Periodic(; period=period, asymmetry=asymmetry)
+                0.0, 0.0, rotation_angle, Periodic(; period=period, asymmetry=temporal_asymmetry)
             ),
         ),
     )

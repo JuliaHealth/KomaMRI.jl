@@ -1,7 +1,14 @@
 @doc raw"""
-    flowpath = FlowPath(dx, dy, dz)
+    flowpath = FlowPath(dx, dy, dz, spin_reset)
 
-FlowPath motion struct. (...)
+FlowPath struct. This action is the same as `Path`, 
+except that it includes an additional field, called `spin_reset`, 
+which accounts for spins leaving the volume and being remapped 
+to another input position. When this happens, the magnetization 
+state of these spins must be reset during the simulation. 
+
+As with the `dx`, `dy` and `dz` matrices, "spin_reset" 
+has a size of (``N_{spins}}`` x ``N_{discrete times}``).
 
 # Arguments
 - `dx`: (`::AbstractArray{T<:Real}`, `[m]`) displacements in x
@@ -14,7 +21,12 @@ FlowPath motion struct. (...)
 
 # Examples
 ```julia-repl
-julia> fp = FlowPath(dx=[0.01 0.02], dy=[0.02 0.03], dz=[0.03 0.04], spin_reset=[false, false])
+julia> flowpath = FlowPath(
+           dx=[0.01 0.02; 0.02 0.03], 
+           dy=[0.02 0.03; 0.03 0.04], 
+           dz=[0.03 0.04; 0.04 -0.04],
+           spin_reset=[false false; false true]
+       )
 ```
 """
 @with_kw struct FlowPath{T<:Real} <: ArbitraryAction{T}
