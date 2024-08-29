@@ -1,12 +1,12 @@
 steps:
-  - label: ":pipeline: NoMotion Tests"
+  - label: ":pipeline: Upload NoMotion Tests"
     env:
       TEST_GROUP: "nomotion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
     agents:
       queue: "juliagpu"
 
-  - label: ":pipeline: Motion Tests"
+  - label: ":pipeline: Upload Motion Tests"
     env:
       TEST_GROUP: "motion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
