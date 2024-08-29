@@ -1,5 +1,5 @@
 steps:
-  - group: ":julia: Tests"
+  - group: ":julia: ({{env.TEST_GROUP}}) Tests"
     steps:
       - label: "CPU: Run tests on v{{matrix.version}}"
         matrix:
