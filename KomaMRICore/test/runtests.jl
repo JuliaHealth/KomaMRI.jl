@@ -37,6 +37,8 @@ using TestItems, TestItemRunner
 const CI    = get(ENV, "CI", nothing)
 const group = get(ENV, "TEST_GROUP", :core) |> Symbol
 
+println("GROUP: ", group)
+
 @run_package_tests filter=ti->(group in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
 @testitem "Spinors×Mag" tags=[:core, :nomotion] begin
