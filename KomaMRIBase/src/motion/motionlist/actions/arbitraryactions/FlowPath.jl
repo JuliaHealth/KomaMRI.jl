@@ -17,7 +17,7 @@ has a size of (``N_{spins} \times \; N_{discrete\,times}``).
 - `spin_reset`: (`::AbstractArray{Bool}`) reset spin state flags
 
 # Returns
-- `flowpath: (`::FlowPath`) FlowPath struct
+- `flowpath`: (`::FlowPath`) FlowPath struct
 
 # Examples
 ```julia-repl
