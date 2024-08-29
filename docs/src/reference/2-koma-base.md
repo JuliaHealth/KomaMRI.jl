@@ -40,6 +40,7 @@ Motion
 
 ```@docs
 Translate
+Translate(dx, dy, dz, time, spins)
 Rotate
 HeartBeat
 Path
