@@ -29,7 +29,5 @@ export Mag
 export simulate, simulate_slice_profile
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
-# Flow
-export reset_magnetization!
 
 end

@@ -10,7 +10,6 @@ CurrentModule = KomaMRICore
 simulate
 simulate_slice_profile
 default_sim_params
-reset_magnetization!
 ```
 
 ## GPU helper functions
