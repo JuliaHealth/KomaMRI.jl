@@ -7,8 +7,8 @@ which accounts for spins leaving the volume and being remapped
 to another input position. When this happens, the magnetization 
 state of these spins must be reset during the simulation. 
 
-As with the `dx`, `dy` and `dz` matrices, "spin_reset" 
-has a size of (``N_{spins}}`` x ``N_{discrete times}``).
+As with the `dx`, `dy` and `dz` matrices, `spin_reset`
+has a size of (``N_{spins} \times \; N_{discrete\,times}``).
 
 # Arguments
 - `dx`: (`::AbstractArray{T<:Real}`, `[m]`) displacements in x

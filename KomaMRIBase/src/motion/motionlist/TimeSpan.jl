@@ -34,7 +34,7 @@ times(ts::TimeRange) = [ts.t_start, ts.t_end]
     t_unit = unit_time(t, time_range)
 
 The `unit_time` function normalizes a given array of time values t 
-to a unit interval [0, 1] based on a specified start time t_start and end time t_end. 
+to a unit interval [0, 1] based on a specified start time `t_start` and end time `t_end`. 
 This function is used for non-periodic motions, where each element of t is transformed 
 to fit within the range [0, 1] based on the provided start and end times.
 
@@ -53,10 +53,11 @@ julia> t_unit = KomaMRIBase.unit_time([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], TimeRange(
 6-element Vector{Float64}:
  0.0
  0.0
- 0.3333333333333333
- 0.6666666666666666
+ 0.333
+ 0.666
  1.0
  1.0
+```
 """
 function unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
     if ts.t_start == ts.t_end
@@ -118,7 +119,7 @@ or normalizing time values in periodic processes.
 
 # Examples
 ```julia-repl
-julia> t_unit = KomaMRIBase.unit_time_triangular([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], Periodic(4.0, 0.5))
+julia> t_unit = KomaMRIBase.unit_time([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], Periodic(4.0, 0.5))
 6-element Vector{Float64}:
  0.0
  0.5
@@ -126,6 +127,7 @@ julia> t_unit = KomaMRIBase.unit_time_triangular([0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
  0.5
  0.0
  0.5
+```
 """
 function unit_time(t::AbstractArray{T}, ts::Periodic{T}) where {T<:Real}
     t_rise = ts.period * ts.asymmetry

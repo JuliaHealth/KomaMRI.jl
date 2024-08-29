@@ -85,13 +85,13 @@ end
 Base.length(m::MotionList) = length(m.motions)
 
 """
-    x, y, z = get_spin_coords(motion, x, y, z, t)
+    x, y, z = get_spin_coords(motionset, x, y, z, t)
 
 Calculates the position of each spin at a set of arbitrary time instants, i.e. the time steps of the simulation. 
 For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `length(t)` columns.
 
 # Arguments
-- `motion`: (`::MotionList{T<:Real}`) phantom motion
+- `motionset`: (`::AbstractMotionSet{T<:Real}`) phantom motion
 - `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
 - `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
 - `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
@@ -143,8 +143,16 @@ function times(ml::MotionList{T}) where {T<:Real}
 end
 
 """
-    sort_motions!(motion_list)
-sort_motions motions in a list according to their starting time
+    sort_motions!(motionset)
+Sorts motions in a list according to their starting time. It modifies the original list.
+If `motionset::NoMotion`, this function does nothing.
+If `motionset::MotionList`, this function sorts its motions.
+
+# Arguments
+- `motionset`: (`::AbstractMotionSet{T<:Real}`) phantom motion
+
+# Returns
+- `nothing`
 """
 function sort_motions!(mv::MotionList{T}) where {T<:Real}
     sort!(mv.motions; by=m -> times(m)[1])

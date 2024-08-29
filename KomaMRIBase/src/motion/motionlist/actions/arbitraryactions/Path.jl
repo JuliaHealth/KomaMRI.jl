@@ -8,7 +8,7 @@ as occurs for the `Translate`, `Rotate` and `HeartBeat` actions.
 
 For this action, it is necessary to define 
 motion for each spin independently, in x (`dx`), y (`dy`) and z (`dz`).
-`dx`, `dy` and `dz` are now three matrixes, of (``N_{\t{spins}}``* x ``N_{discrete\\,times}``) each.
+`dx`, `dy` and `dz` are now three matrixes, of (``N_{spins}* \times \; N_{discrete\,times}``) each.
 This means that each row corresponds to a spin trajectory over a set of discrete time instants.
 
 !!! note

@@ -3,7 +3,7 @@ abstract type AbstractSpinSpan end
 """
     allspins = AllSpins()
 
-AllSpin struct. It is a specialized type that inherits from AbstractSpinSpan
+AllSpins struct. It is a specialized type that inherits from AbstractSpinSpan
 and is used to cover all the spins of a phantom.
 
 # Returns
