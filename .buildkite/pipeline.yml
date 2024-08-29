@@ -1,5 +1,14 @@
 steps:
-  - label: ":pipeline: Launch Tests"
+  - label: ":pipeline: Core Tests"
+    env:
+      TEST_GROUP: "core"
+    command: buildkite-agent pipeline upload .buildkite/runtests.yml
+    agents:
+      queue: "juliagpu"
+
+  - label: ":pipeline: Motion Tests"
+    env:
+      TEST_GROUP: "motion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
     agents:
       queue: "juliagpu"
