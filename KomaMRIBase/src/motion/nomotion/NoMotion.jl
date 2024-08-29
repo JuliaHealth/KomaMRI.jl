@@ -56,7 +56,4 @@ end
 """
 times(mv::NoMotion{T}) where {T<:Real} = [zero(T)]
 
-"""
-    sort_motions!
-"""
 sort_motions!(mv::NoMotion) =  nothing
