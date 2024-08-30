@@ -484,14 +484,16 @@ end
 
     x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
 
-    display(@view(x[10:10]))
-    display(@view((obj.x .+ vx .* t')[10:10]))
+    obj = obj |> cpu
+    t   = t   |> cpu
+
+    x = x |> cpu
+    y = y |> cpu
+    z = z |> cpu
 
     @test x ≈ (obj.x .+ vx .* t')
-    # @test y ≈ obj.y .+ vy .* t'
-    # @test z ≈ obj.z .+ vz .* t'
-
-    @test true
+    @test y ≈ (obj.y .+ vy .* t')
+    @test z ≈ (obj.z .+ vz .* t')
 
     # sim_params = Dict{String, Any}(
     #     "gpu"=>USE_GPU,
