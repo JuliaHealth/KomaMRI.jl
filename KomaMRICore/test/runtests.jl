@@ -469,12 +469,12 @@ end
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    sig_jemris = signal_brain_motion_jemris()
-    seq = seq_epi_100x100_TE100_FOV230()
-    sys = Scanner()
-    obj = phantom_brain_arbitrary_motion()
-
     for i in 1:10
+        sig_jemris = signal_brain_motion_jemris()
+        seq = seq_epi_100x100_TE100_FOV230()
+        sys = Scanner()
+        obj = phantom_brain_arbitrary_motion()
+
         vx = 0.0f0
         vy = 0.1f0
         vz = 0.0f0
