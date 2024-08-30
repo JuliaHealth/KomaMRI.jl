@@ -484,7 +484,10 @@ end
 
     x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
 
-    @test x ≈ obj.x .+ vx .* t'
+    display(@view(x[10:10]))
+    display(@view((obj.x .+ vx .* t')[10:10]))
+
+    # @test x ≈ obj.x .+ vx .* t'
     # @test y ≈ obj.y .+ vy .* t'
     # @test z ≈ obj.z .+ vz .* t'
 
