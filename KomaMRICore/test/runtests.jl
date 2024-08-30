@@ -474,37 +474,37 @@ end
     sys = Scanner()
     obj = phantom_brain_arbitrary_motion()
 
-    vx = 0.0f0
-    vy = 0.1f0
-    vz = 0.0f0
-    t = collect(0:0.1:10)
+    # vx = 0.0f0
+    # vy = 0.1f0
+    # vz = 0.0f0
+    # t = collect(0:0.1:10)
 
-    obj = obj |> f32 |> gpu 
-    t   = t   |> f32 |> gpu
+    # obj = obj |> f32 |> gpu 
+    # t   = t   |> f32 |> gpu
 
-    x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
+    # x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
 
-    obj = obj |> cpu
-    t   = t   |> cpu
+    # obj = obj |> cpu
+    # t   = t   |> cpu
 
-    x = x |> cpu
-    y = y |> cpu
-    z = z |> cpu
+    # x = x |> cpu
+    # y = y |> cpu
+    # z = z |> cpu
 
-    @test x ≈ (obj.x .+ vx .* t')
-    @test y ≈ (obj.y .+ vy .* t')
-    @test z ≈ (obj.z .+ vz .* t')
+    # @test x ≈ (obj.x .+ vx .* t')
+    # @test y ≈ (obj.y .+ vy .* t')
+    # @test z ≈ (obj.z .+ vz .* t')
 
-    # sim_params = Dict{String, Any}(
-    #     "gpu"=>USE_GPU,
-    #     "sim_method"=>KomaMRICore.Bloch(),
-    #     "return_type"=>"mat"
-    # )
-    # sig = simulate(obj, seq, sys; sim_params)
-    # sig = sig / prod(size(obj))
-    # NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    # println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
-    # @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+    sim_params = Dict{String, Any}(
+        "gpu"=>USE_GPU,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat"
+    )
+    sig = simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
 
 @testitem "BlochSimple ArbitraryAction" tags=[:core] begin
