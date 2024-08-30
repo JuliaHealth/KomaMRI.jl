@@ -474,9 +474,9 @@ end
     sys = Scanner()
     obj = phantom_brain_arbitrary_motion()
 
-    vx = 0.0
-    vy = 0.1
-    vz = 0.0
+    vx = 0.0f0
+    vy = 0.1f0
+    vz = 0.0f0
     t = collect(0:0.1:10)
 
     obj = obj |> f32 |> gpu 
