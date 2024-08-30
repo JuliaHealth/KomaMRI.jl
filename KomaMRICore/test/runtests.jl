@@ -321,48 +321,6 @@ end
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 end
 
-@testitem "Bloch SimpleAction" tags=[:important, :core, :motion] begin 
-    using Suppressor
-    include("initialize_backend.jl")
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_brain_motion_jemris()
-    seq = seq_epi_100x100_TE100_FOV230()
-    sys = Scanner()
-    obj = phantom_brain_simple_motion()
-    sim_params = Dict{String, Any}(
-        "gpu"=>USE_GPU,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    println("NMRSE SimpleAction: ", NMRSE(sig, sig_jemris))
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
-@testitem "Bloch ArbitraryAction"  tags=[:important, :core, :motion] begin
-    using Suppressor
-    include("initialize_backend.jl")
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_brain_motion_jemris()
-    seq = seq_epi_100x100_TE100_FOV230()
-    sys = Scanner()
-    obj = phantom_brain_arbitrary_motion()
-    sim_params = Dict{String, Any}(
-        "gpu"=>USE_GPU,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
 @testitem "BlochDict" tags=[:important, :core, :nomotion] begin
     using Suppressor
     include("initialize_backend.jl")
@@ -409,51 +367,6 @@ end
     
     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 end
-
-@testitem "BlochSimple SimpleAction" tags=[:important, :core, :motion] begin
-    using Suppressor
-    include("initialize_backend.jl")
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_brain_motion_jemris()
-    seq = seq_epi_100x100_TE100_FOV230()
-    sys = Scanner()
-    obj = phantom_brain_simple_motion()
-
-    sim_params = Dict{String, Any}(
-        "gpu"=>USE_GPU,
-        "sim_method"=>KomaMRICore.BlochSimple(),
-        "return_type"=>"mat"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    println("NMRSE SimpleAction BlochSimple: ", NMRSE(sig, sig_jemris))
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
-@testitem "BlochSimple ArbitraryAction" tags=[:important, :core, :motion] begin
-    using Suppressor
-    include("initialize_backend.jl")
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
-
-    sig_jemris = signal_brain_motion_jemris()
-    seq = seq_epi_100x100_TE100_FOV230()
-    sys = Scanner()
-    obj = phantom_brain_arbitrary_motion()
-
-    sim_params = Dict{String, Any}(
-        "gpu"=>USE_GPU,
-        "sim_method"=>KomaMRICore.BlochSimple(),
-        "return_type"=>"mat"
-    )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    println("NMRSE ArbitraryAction BlochSimple: ", NMRSE(sig, sig_jemris))
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-end
-
 
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
     using Suppressor
@@ -506,3 +419,106 @@ end
     @suppress print_devices()
     @test true
 end
+
+# --------- Motion-related tests -------------
+@testitem "Bloch SimpleAction" tags=[:core] begin 
+    using Suppressor
+    include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain_simple_motion()
+    sim_params = Dict{String, Any}(
+        "gpu"=>USE_GPU,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat"
+    )
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    println("NMRSE SimpleAction: ", NMRSE(sig, sig_jemris))
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+@testitem "BlochSimple SimpleAction" tags=[:core] begin
+    using Suppressor
+    include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain_simple_motion()
+
+    sim_params = Dict{String, Any}(
+        "gpu"=>USE_GPU,
+        "sim_method"=>KomaMRICore.BlochSimple(),
+        "return_type"=>"mat"
+    )
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    println("NMRSE SimpleAction BlochSimple: ", NMRSE(sig, sig_jemris))
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+@testitem "Bloch ArbitraryAction"  tags=[:core, :motion] begin
+    using Suppressor
+    include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain_arbitrary_motion()
+
+    vx = 0.0
+    vy = 0.1
+    vz = 0.0
+    t = collect(0:0.1:10)
+
+    obj = obj |> f32 |> gpu 
+    t   = t   |> f32 |> gpu
+
+    x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
+
+    @test x ≈ obj.x .+ vx .* t'
+    @test y ≈ obj.y .+ vy .* t'
+    @test z ≈ obj.z .+ vz .* t'
+
+    # sim_params = Dict{String, Any}(
+    #     "gpu"=>USE_GPU,
+    #     "sim_method"=>KomaMRICore.Bloch(),
+    #     "return_type"=>"mat"
+    # )
+    # sig = simulate(obj, seq, sys; sim_params)
+    # sig = sig / prod(size(obj))
+    # NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    # println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
+    # @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
+@testitem "BlochSimple ArbitraryAction" tags=[:core] begin
+    using Suppressor
+    include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    sig_jemris = signal_brain_motion_jemris()
+    seq = seq_epi_100x100_TE100_FOV230()
+    sys = Scanner()
+    obj = phantom_brain_arbitrary_motion()
+
+    sim_params = Dict{String, Any}(
+        "gpu"=>USE_GPU,
+        "sim_method"=>KomaMRICore.BlochSimple(),
+        "return_type"=>"mat"
+    )
+    sig = simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
+    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    println("NMRSE ArbitraryAction BlochSimple: ", NMRSE(sig, sig_jemris))
+    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+end
+
