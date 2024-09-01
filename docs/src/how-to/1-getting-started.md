@@ -24,10 +24,10 @@ Then press `Ctrl+C` or `backspace` to return to the `julia>` prompt.
 ---
 ## My First MRI Simulation
 
-For our first simulation we will use **KomaMRI**'s graphical user interface (GUI). For this, you will first need to load **KomaMRI** by typing `using KomaMRI`, and then launch the GUI with the [`KomaUI`](@ref) function.
+For our first simulation we will use **KomaMRI**'s graphical user interface (GUI). For this, you will first need to load **KomaMRI** by typing `using KomaMRI`, and then launch the GUI with the [`KomaUI`](@ref) function. Note that if you want to run simulations on the GPU (for example, using CUDA), then `using CUDA` is also necessary (see [GPU Parallelization](../explanation/4-gpu-explanation.md)).  
 
 ```julia-repl
-julia> using KomaMRI
+julia> using KomaMRI, CUDA
 
 julia> KomaUI()
 ```

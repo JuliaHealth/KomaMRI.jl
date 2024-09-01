@@ -169,7 +169,26 @@ const CI = get(ENV, "CI", nothing)
     @test true
 end
 
-# Test ISMRMRD
+@testitem "ISMRMRD" tags=[:core] begin
+    using Suppressor
+    include("initialize_backend.jl")
+
+    seq = PulseDesigner.EPI_example()
+    sys = Scanner()
+    obj = brain_phantom2D()
+    parts = kfoldperm(length(obj), 2)
+
+    sim_params = KomaMRICore.default_sim_params()
+    sim_params["return_type"] = "raw"
+    sim_params["gpu"] = USE_GPU
+
+    sig1 = @suppress simulate(obj[parts[1]], seq, sys; sim_params)
+    sig2 = @suppress simulate(obj[parts[2]], seq, sys; sim_params)
+    sig = @suppress simulate(obj, seq, sys; sim_params)
+
+    @test isapprox(sig, sig1 + sig2; rtol=0.001)
+end
+
 @testitem "signal_to_raw_data" tags=[:core] begin
     using Suppressor
     include("initialize_backend.jl")
