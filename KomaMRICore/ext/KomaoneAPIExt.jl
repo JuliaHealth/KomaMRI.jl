@@ -64,8 +64,9 @@ end
 
 ## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
 KomaMRIBase.unit_time(t::oneArray, ts::KomaMRIBase.TimeRange) = begin
-    KomaMRIBase.unit_time(t, ts)
+    tmp = KomaMRIBase.unit_time(t, ts)
     KA.synchronize(KA.get_backend(t))
+    return tmp
 end
 
 end
