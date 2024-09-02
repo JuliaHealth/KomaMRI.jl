@@ -66,6 +66,7 @@ end
 KomaMRIBase.unit_time(t::oneArray, ts::KomaMRIBase.TimeRange) = begin
     tmp = KomaMRIBase.unit_time(t, ts)
     KA.synchronize(KA.get_backend(t))
+    pritnln("Unit Time oneAPI")
     return tmp
 end
 
