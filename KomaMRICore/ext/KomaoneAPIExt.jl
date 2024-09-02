@@ -4,6 +4,7 @@ using oneAPI
 import KomaMRICore
 import KomaMRICore.KomaMRIBase
 import Adapt
+import LinearAlgebra
 
 KomaMRICore.name(::oneAPIBackend) = "oneAPI"
 KomaMRICore.isfunctional(::oneAPIBackend) = oneAPI.functional()
@@ -62,7 +63,7 @@ function __init__()
     @warn "oneAPI does not support all array operations used by KomaMRI. GPU performance may be slower than expected"
 end
 
-const AdjointOneArray{T, N, M} = Adjoint{T, oneArray{T, N, M}} where {T, N, M}
+const AdjointOneArray{T, N, M} = LinearAlgebra.Adjoint{T, oneArray{T, N, M}} where {T, N, M}
 ## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
 KomaMRICore.unit_time(t::AdjointOneArray, ts::KomaMRIBase.TimeRange) = begin
     tmp = KomaMRIBase.unit_time(t, ts)
