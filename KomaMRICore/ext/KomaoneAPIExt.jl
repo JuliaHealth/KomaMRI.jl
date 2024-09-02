@@ -61,4 +61,10 @@ function __init__()
     @warn "oneAPI does not support all array operations used by KomaMRI. GPU performance may be slower than expected"
 end
 
+## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
+KomaMRIBase.unit_time(t::OneVector, ts::TimeRange) = begin
+    KomaMRIBase.unit_time(time, t)
+    KA.synchronize(KA.get_backend(t))
+end
+
 end
