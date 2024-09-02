@@ -53,7 +53,7 @@ function resample(itp::Interpolator2D{T}, t::AbstractArray{T}) where {T<:Real}
     Ns = size(itp.coefs, 1)
     id = similar(itp.coefs, Ns)
     copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
-    _ = sum(t) # Dummy (oneAPI bug)
+    # _ = sum(t) # Dummy (oneAPI bug)
     return itp.(id, t)
 end
 
@@ -79,7 +79,8 @@ function displacement_y!(
     t::AbstractArray{T},
 ) where {T<:Real}
     itp = interpolate(action.dy, Gridded(Linear()), Val(size(action.dy,1)))
-    uy .= resample(itp, t)
+    uy_s = resample(itp, t)
+    uy .= uy_s
     return nothing
 end
 
