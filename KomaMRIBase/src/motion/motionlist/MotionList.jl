@@ -118,7 +118,6 @@ function get_spin_coords(
         displacement_x!(@view(ux[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
-        display(uy)
         xt .+= ux; yt .+= uy; zt .+= uz
         ux .*= zero(T); uy .*= zero(T); uz .*= zero(T)
     end
@@ -129,7 +128,6 @@ function get_spin_coords(
         displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
-        display(uy)
         xt .+= ux; yt .+= uy; zt .+= uz
         ux .*= zero(T); uy .*= zero(T); uz .*= zero(T)
     end

@@ -181,7 +181,7 @@ function run_sim_time_iter!(
     # Simulation
     rfs = 0
     samples = 1
-    progress_bar = Progress(Nblocks; desc="Running simulation...")
+    # progress_bar = Progress(Nblocks; desc="Running simulation...")
     prealloc_result = prealloc(sim_method, backend, obj, Xt, maximum(length.(parts))+1, precalc)
 
     for (block, p) in enumerate(parts)
@@ -204,13 +204,13 @@ function run_sim_time_iter!(
         end
         samples += Nadc
         #Update progress
-        next!(
-            progress_bar;
-            showvalues=[
-                (:simulated_blocks, block), (:rf_blocks, rfs), (:acq_samples, samples - 1)
-            ],
-        )
-        update_blink_window_progress!(w, block, Nblocks)
+        # next!(
+        #     progress_bar;
+        #     showvalues=[
+        #         (:simulated_blocks, block), (:rf_blocks, rfs), (:acq_samples, samples - 1)
+        #     ],
+        # )
+        # update_blink_window_progress!(w, block, Nblocks)
     end
     return nothing
 end
@@ -382,10 +382,10 @@ function simulate(
     end
 
     # Simulation
-    @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
-        pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
-        seqd.t
-    ) adc_points = Ndims[1]
+    # @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
+    #     pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
+    #     seqd.t
+    # ) adc_points = Ndims[1]
     @time timed_tuple = @timed run_sim_time_iter!(
         obj,
         seqd,
