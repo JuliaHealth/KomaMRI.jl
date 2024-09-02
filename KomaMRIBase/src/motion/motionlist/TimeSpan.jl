@@ -65,7 +65,7 @@ function unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
     else
         tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
         t = min.(tmp, oneunit(T))
-        _ = sum(t) # Dummy (oneAPI bug)
+        # _ = sum(t) # Dummy (oneAPI bug)
         return t
     end
 end
