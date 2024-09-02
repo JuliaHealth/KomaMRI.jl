@@ -77,7 +77,6 @@ function displacement_y!(
     z::AbstractArray{T},
     t::AbstractArray{T},
 ) where {T<:Real}
-    display(size(uy))
     itp = interpolate(action.dy, Gridded(Linear()), Val(size(action.dy,1)))
     uy .= resample(itp, t)
     return nothing
