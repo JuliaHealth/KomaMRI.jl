@@ -469,7 +469,7 @@ end
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    for i in 1:10
+    for i in 1:20
         sig_jemris = signal_brain_motion_jemris()
         seq = seq_epi_100x100_TE100_FOV230()
         sys = Scanner()
