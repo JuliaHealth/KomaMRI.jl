@@ -8,6 +8,7 @@ using ThreadsX
 # Printing
 using ProgressMeter
 
+include("simulation/TimeSpan.jl")
 # KomaMRIBase
 @reexport using KomaMRIBase
 
@@ -19,7 +20,6 @@ include("other/DiffusionModel.jl")
 # Simulator
 include("simulation/GPUFunctions.jl")
 include("simulation/Functors.jl")
-include("simulation/TimeSpan.jl")
 include("simulation/SimulatorCore.jl")
 include("simulation/Flow.jl")
 
