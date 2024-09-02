@@ -2,6 +2,7 @@ module KomaoneAPIExt
 
 using oneAPI
 import KomaMRICore
+import KomaMRICore.KomaMRIBase
 import Adapt
 
 KomaMRICore.name(::oneAPIBackend) = "oneAPI"
@@ -62,7 +63,7 @@ function __init__()
 end
 
 ## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
-KomaMRICore.KomaMRIBase.unit_time(t::oneVector, ts::TimeRange) = begin
+KomaMRIBase.unit_time(t::oneVector, ts::KomaMRIBase.TimeRange) = begin
     KomaMRIBase.unit_time(t, ts)
     KA.synchronize(KA.get_backend(t))
 end
