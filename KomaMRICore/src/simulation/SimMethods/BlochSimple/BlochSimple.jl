@@ -32,7 +32,7 @@ function run_spin_precession!(
 ) where {T<:Real}
     #Simulation
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, permutedims(seq.t))
     #Effective field
     Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
     #Rotation
@@ -46,7 +46,7 @@ function run_spin_precession!(
     dur  = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im .* sin.(ϕ))] #This assumes Δw and T2 are constant in time
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
-    reset_magnetization!(M, Mxy, p.motion, seq.t')
+    reset_magnetization!(M, Mxy, p.motion, permutedims(seq.t))
     M.xy .= Mxy[:, end]
     #Acquired signal
     sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
