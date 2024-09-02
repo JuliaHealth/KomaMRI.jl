@@ -134,8 +134,6 @@ function run_spin_precession!(
     #Simulation
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
-    m = minimum([size(y,2), 8])
-    println("y:  ",@view(y[1:1, 1:m]), "\n")
     #Sequence block info
     seq_block = pre.seq_properties[1]
     
