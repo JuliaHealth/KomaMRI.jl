@@ -124,7 +124,7 @@ function get_spin_coords(
     end
     # Additive motions: these motions can be run in parallel
     for m in Iterators.filter(!is_composable, ml.motions)
-        println("t_unit: ", t_unit)
+        t_unit = unit_time(t, m.time)
         idx = get_idx(m.spins)
         displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
