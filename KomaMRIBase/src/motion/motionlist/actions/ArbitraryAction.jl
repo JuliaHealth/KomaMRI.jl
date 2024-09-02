@@ -117,7 +117,8 @@ function displacement_y(
     t::AbstractArray{T},
 ) where {T<:Real}
     itp = interpolate(action.dy, Gridded(Linear()), Val(size(action.dy,1)))
-    uy = resample(itp, t)
+    uy_s = resample(itp, t)
+    uy .= uy_s
     m = minimum([size(uy,2), 8])
     # println("t:  ", @view(t[1, 1:m]))
     println("uy: ", @view(uy[1, 1:m]))
