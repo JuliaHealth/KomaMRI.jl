@@ -53,6 +53,8 @@ function resample(itp::Interpolator2D{T}, t::AbstractArray{T}) where {T<:Real}
     Ns = size(itp.coefs, 1)
     id = similar(itp.coefs, Ns)
     copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
+    m = minimum([size(t,2), 8])
+    println("t:  ", @view(t[1, 1:m]))
     return itp.(id, t)
 end
 
@@ -117,8 +119,7 @@ function displacement_y(
     t::AbstractArray{T},
 ) where {T<:Real}
     itp = interpolate(action.dy, Gridded(Linear()), Val(size(action.dy,1)))
-    uy = similar(x, size(x, 1), size(t, 2))
-    uy .= resample(itp, t)
+    uy = resample(itp, t)
     m = minimum([size(uy,2), 8])
     # println("t:  ", @view(t[1, 1:m]))
     println("uy: ", @view(uy[1, 1:m]))
