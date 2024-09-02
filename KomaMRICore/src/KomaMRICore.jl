@@ -19,6 +19,7 @@ include("other/DiffusionModel.jl")
 # Simulator
 include("simulation/GPUFunctions.jl")
 include("simulation/Functors.jl")
+include("simulation/TimeSpan.jl")
 include("simulation/SimulatorCore.jl")
 include("simulation/Flow.jl")
 
