@@ -133,7 +133,7 @@ function run_spin_precession!(
 ) where {T<:Real}
     #Simulation
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, permutedims(seq.t))
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Sequence block info
     seq_block = pre.seq_properties[1]
     
@@ -175,7 +175,7 @@ function run_spin_excitation!(
     pre::BlochGPUPrealloc
 ) where {T<:Real}
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, permutedims(seq.t))
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
 
     #Effective Field
     pre.Bz .= (x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz') .+ pre.ΔBz .- seq.Δf' ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)

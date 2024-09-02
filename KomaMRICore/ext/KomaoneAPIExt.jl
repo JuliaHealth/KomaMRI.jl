@@ -62,8 +62,9 @@ function __init__()
     @warn "oneAPI does not support all array operations used by KomaMRI. GPU performance may be slower than expected"
 end
 
+const AdjointOneArray{T, N, M} = Adjoint{T, oneArray{T, N, M}} where {T, N, M}
 ## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
-KomaMRIBase.unit_time(t::oneArray, ts::KomaMRIBase.TimeRange) = begin
+KomaMRIBase.unit_time(t::AdjointOneArray, ts::KomaMRIBase.TimeRange) = begin
     tmp = KomaMRIBase.unit_time(t, ts)
     KA.synchronize(KA.get_backend(t))
     pritnln("Unit Time oneAPI")
