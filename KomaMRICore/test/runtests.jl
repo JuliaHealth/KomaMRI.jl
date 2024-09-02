@@ -469,32 +469,11 @@ end
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    for i in 1:8
+    for i in 1:15
         sig_jemris = signal_brain_motion_jemris()
         seq = seq_epi_100x100_TE100_FOV230()
         sys = Scanner()
         obj = phantom_brain_arbitrary_motion()
-
-        # vx = 0.0f0
-        # vy = 0.1f0
-        # vz = 0.0f0
-        # t = collect(0:0.1:10)
-
-        # obj = obj |> f32 |> gpu 
-        # t   = t   |> f32 |> gpu
-
-        # x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
-
-        # obj = obj |> cpu
-        # t   = t   |> cpu
-
-        # x = x |> cpu
-        # y = y |> cpu
-        # z = z |> cpu
-
-        # @test x ≈ (obj.x .+ vx .* t')
-        # @test y ≈ (obj.y .+ vy .* t')
-        # @test z ≈ (obj.z .+ vz .* t')
 
         sim_params = Dict{String, Any}(
             "gpu"=>USE_GPU,

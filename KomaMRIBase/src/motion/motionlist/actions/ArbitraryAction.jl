@@ -98,5 +98,41 @@ function displacement_z!(
     return nothing
 end
 
+
+
+
+function displacement_x(
+    action::ArbitraryAction{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    itp = interpolate(action.dx, Gridded(Linear()), Val(size(action.dx,1)))
+    return resample(itp, t)
+end
+
+function displacement_y(
+    action::ArbitraryAction{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    itp = interpolate(action.dy, Gridded(Linear()), Val(size(action.dy,1)))
+    return resample(itp, t)
+end
+
+function displacement_z(
+    action::ArbitraryAction{T},
+    x::AbstractArray{T},
+    y::AbstractArray{T},
+    z::AbstractArray{T},
+    t::AbstractArray{T},
+) where {T<:Real}
+    itp = interpolate(action.dz, Gridded(Linear()), Val(size(action.dz,1)))
+    return resample(itp, t)
+end
+
 include("arbitraryactions/Path.jl")
 include("arbitraryactions/FlowPath.jl")
