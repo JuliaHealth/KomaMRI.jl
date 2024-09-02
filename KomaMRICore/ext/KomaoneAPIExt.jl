@@ -62,8 +62,8 @@ function __init__()
 end
 
 ## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
-KomaMRIBase.unit_time(t::OneVector, ts::TimeRange) = begin
-    KomaMRIBase.unit_time(time, t)
+KomaMRICore.unit_time(t::OneVector, ts::TimeRange) = begin
+    KomaMRIBase.unit_time(t, ts)
     KA.synchronize(KA.get_backend(t))
 end
 
