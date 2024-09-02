@@ -1,8 +1,7 @@
 module KomaoneAPIExt
 
 using oneAPI
-import KomaMRICore
-import KomaMRICore.KomaMRIBase
+import KomaMRICore, KomaMRIBase
 import Adapt
 import LinearAlgebra
 
