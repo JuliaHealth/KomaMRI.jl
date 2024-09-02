@@ -59,18 +59,14 @@ julia> t_unit = KomaMRIBase.unit_time([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], TimeRange(
  1.0
 ```
 """
-function unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
+function unit_time(t::Array{T}, ts::TimeRange{T}) where {T<:Real}
     if ts.t_start == ts.t_end
         return (t .>= ts.t_start) .* oneunit(T)
     else
         tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
-        t = min.(tmp, oneunit(T))
-        # _ = sum(t) # Dummy (oneAPI bug)
-        KA.synchronize(KA.get_backend(t))
-        return t
+        return min.(tmp, oneunit(T))
     end
 end
-
 
 
 """
