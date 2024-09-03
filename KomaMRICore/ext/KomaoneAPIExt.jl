@@ -2,6 +2,7 @@ module KomaoneAPIExt
 
 using oneAPI
 import KomaMRICore, KomaMRIBase
+import KomaMRICore.KA
 import Adapt
 import LinearAlgebra
 
@@ -70,8 +71,8 @@ function KomaMRIBase.unit_time(t::AdjointOneArray{T, N, M}, ts::KomaMRIBase.Time
     else
         tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
         t = min.(tmp, oneunit(T))
-        # oneAPI.synchronize()
-        _ = sum(t)
+        KA.synchronize(KA.get_backend(t))
+        # _ = sum(t)
         return t
     end
 end
