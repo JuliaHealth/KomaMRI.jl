@@ -469,7 +469,7 @@ end
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    for i in 1:8
+    # for i in 1:8
     #     sig_jemris = signal_brain_motion_jemris()
     #     seq = seq_epi_100x100_TE100_FOV230()
     #     sys = Scanner()
@@ -485,17 +485,22 @@ end
     #     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
     #     println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
     #     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+    # end
 
-        tr = TimeRange(0.0f0, 1.0f0)
 
+    tr = TimeRange(0.0f0, 1.0f0)
+
+    ux_cpu = zeros(Float32, (size(d,1), size(t_unit,2)))
+    ux_gpu = ux_cpu |> gpu
+    
+    for i in 1:10
         # cpu
         d = rand(Float32, (2, 2))
         t = (collect(-1:0.01:2) |> f32)'
         t_unit = KomaMRIBase.unit_time(t, tr)
-        ux_cpu = zeros(Float32, (size(d,1), size(t_unit,2)))
-        ux_gpu = ux_cpu |> gpu
+        
         itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
-        ux_cpu = KomaMRIBase.resample(itp, t_unit) 
+        ux_cpu .= KomaMRIBase.resample(itp, t_unit) 
 
         # gpu
         d = d |> gpu
@@ -503,9 +508,10 @@ end
         t_unit = KomaMRIBase.unit_time(t, tr) 
         itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
         ux_gpu .= KomaMRIBase.resample(itp, t_unit)
-        ux_gpu = ux_gpu |> cpu
 
-        @test ux_cpu ≈ ux_gpu
+        @test ux_cpu ≈ (ux_gpu |> cpu)
+
+        ux_gpu .*= 0.0f0
     end
 end
 
