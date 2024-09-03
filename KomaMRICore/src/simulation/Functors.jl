@@ -51,9 +51,9 @@ See also [`f32`](@ref) and [`f64`](@ref) to change element type only.
 x = gpu(x, CUDABackend())
 ```
 """
-gpu(x, backend::KA.GPU) = fmap(x -> adapt(backend, x), x; exclude=_isleaf)
-adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
-adapt_storage(backend::KA.GPU, xs::Motion) = Motion(gpu(xs.action, backend), gpu(xs.time, backend), xs.spins)
+function gpu(x, backend::KA.GPU)
+    fmap(x -> adapt(backend, x), x; exclude=_isleaf)
+end
 
 # To CPU
 """
@@ -76,9 +76,6 @@ adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
-adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
-adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
-adapt_storage(T::Type{<:Real}, xs::Motion) = Motion(paramtype(T, xs.action), paramtype(T, xs.time), xs.spins)
 
 """
     f32(m)
@@ -99,6 +96,13 @@ Recurses into structs marked with `@functor`.
 See also [`f32`](@ref).
 """
 f64(m) = paramtype(Float64, m)
+
+# Koma motion-related adapts
+adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
+adapt_storage(backend::KA.GPU, xs::Motion) = Motion(gpu(xs.action, backend), gpu(xs.time, backend), xs.spins)
+adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
+adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
+adapt_storage(T::Type{<:Real}, xs::Motion) = Motion(paramtype(T, xs.action), paramtype(T, xs.time), xs.spins)
 
 #The functor macro makes it easier to call a function in all the parameters
 # Phantom

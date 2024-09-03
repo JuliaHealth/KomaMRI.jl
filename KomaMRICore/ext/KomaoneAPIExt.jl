@@ -1,8 +1,9 @@
 module KomaoneAPIExt
 
 using oneAPI
-import KomaMRICore
+import KomaMRICore, KomaMRIBase
 import Adapt
+import LinearAlgebra
 
 KomaMRICore.name(::oneAPIBackend) = "oneAPI"
 KomaMRICore.isfunctional(::oneAPIBackend) = oneAPI.functional()
@@ -59,6 +60,19 @@ end
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], oneAPIBackend())
     @warn "oneAPI does not support all array operations used by KomaMRI. GPU performance may be slower than expected"
+end
+
+const AdjointOneArray{T, N, M} = LinearAlgebra.Adjoint{T, oneArray{T, N, M}} where {T<:Real, N, M}
+## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
+function KomaMRIBase.unit_time(t::AdjointOneArray{T, N, M}, ts::KomaMRIBase.TimeRange{T}) where {T<:Real, N, M}
+    if ts.t_start == ts.t_end
+        return (t .>= ts.t_start) .* oneunit(T)
+    else
+        tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
+        t = min.(tmp, oneunit(T))
+        _ = t
+        return t
+    end
 end
 
 end
