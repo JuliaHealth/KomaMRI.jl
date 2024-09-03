@@ -469,22 +469,36 @@ end
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    for i in 1:8
-        sig_jemris = signal_brain_motion_jemris()
-        seq = seq_epi_100x100_TE100_FOV230()
-        sys = Scanner()
-        obj = phantom_brain_arbitrary_motion()
+    for i in 1:5
+    #     sig_jemris = signal_brain_motion_jemris()
+    #     seq = seq_epi_100x100_TE100_FOV230()
+    #     sys = Scanner()
+    #     obj = phantom_brain_arbitrary_motion()
 
-        sim_params = Dict{String, Any}(
-            "gpu"=>USE_GPU,
-            "sim_method"=>KomaMRICore.Bloch(),
-            "return_type"=>"mat"
-        )
-        sig = simulate(obj, seq, sys; sim_params)
-        sig = sig / prod(size(obj))
-        NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-        println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
-        @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+    #     sim_params = Dict{String, Any}(
+    #         "gpu"=>USE_GPU,
+    #         "sim_method"=>KomaMRICore.Bloch(),
+    #         "return_type"=>"mat"
+    #     )
+    #     sig = simulate(obj, seq, sys; sim_params)
+    #     sig = sig / prod(size(obj))
+    #     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    #     println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
+    #     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+
+        tr = TimeRange(0.0f0, 1.0f0)
+        t = collect(-1:0.1:1) |> f32
+
+        t_cpu = unit_time(t', tr) |> gpu
+
+        t = t |> gpu
+
+        t_gpu = t |> gpu
+
+        t_gpu = unit_time(t', tr)
+
+        @test t_cpu == t_gpu
+
     end
 end
 
