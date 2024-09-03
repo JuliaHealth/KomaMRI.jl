@@ -488,13 +488,28 @@ end
 
         tr = TimeRange(0.0f0, 1.0f0)
 
-        t = collect(-1:0.1:1) |> f32
-        t_cpu = KomaMRIBase.unit_time(t', tr) |> gpu
+        # cpu
+        t = (collect(-1:0.01:2) |> f32)'
+        t_unit = KomaMRIBase.unit_time(t, tr)
 
-        t = t |> gpu
-        t_gpu = KomaMRIBase.unit_time(t', tr)
+        d = rand(Float32, (2, 2))
 
-        @test t_cpu == t_gpu
+        itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
+        ux_cpu = zeros(Float32, (size(d,1), size(t_unit,2)))
+        ux_gpu = ux_cpu |> gpu
+        ux_cpu = KomaMRIBase.resample(itp, t_unit) |> gpu
+
+        # gpu
+        t = (collect(-1:0.01:2) |> f32 |> gpu)'
+        t_unit = KomaMRIBase.unit_time(t, tr) 
+
+        d = d |> gpu
+        itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
+
+        ux_gpu .= KomaMRIBase.resample(itp, t_unit)
+
+
+        @test ux_cpu ≈ ux_gpu
 
     end
 end
