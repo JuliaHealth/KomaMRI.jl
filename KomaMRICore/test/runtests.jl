@@ -487,15 +487,12 @@ end
     #     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
 
         tr = TimeRange(0.0f0, 1.0f0)
-        t = collect(-1:0.1:1) |> f32
 
-        t_cpu = unit_time(t', tr) |> gpu
+        t = collect(-1:0.1:1) |> f32
+        t_cpu = KomaMRIBase.unit_time(t', tr) |> gpu
 
         t = t |> gpu
-
-        t_gpu = t |> gpu
-
-        t_gpu = unit_time(t', tr)
+        t_gpu = KomaMRIBase.unit_time(t', tr)
 
         @test t_cpu == t_gpu
 
