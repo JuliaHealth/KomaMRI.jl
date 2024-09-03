@@ -63,9 +63,9 @@ function __init__()
     @warn "oneAPI does not support all array operations used by KomaMRI. GPU performance may be slower than expected"
 end
 
-const AdjointOneArray{T, N, M} = LinearAlgebra.Adjoint{T, oneArray{T, N, M}} where {T, N, M}
+const AdjointOneArray{T, N, M} = LinearAlgebra.Adjoint{T, oneArray{T, N, M}} where {T<:Real, N, M}
 ## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
-function KomaMRIBase.unit_time(t::AdjointOneArray{T, N, M}, ts::KomaMRIBase.TimeRange{T}) where {T, N, M}
+function KomaMRIBase.unit_time(t::AdjointOneArray{T, N, M}, ts::KomaMRIBase.TimeRange{T}) where {T<:Real, N, M}
     if ts.t_start == ts.t_end
         return (t .>= ts.t_start) .* oneunit(T)
     else
