@@ -70,7 +70,7 @@ function KomaMRIBase.unit_time(t::AdjointOneArray{T, N, M}, ts::KomaMRIBase.Time
     else
         tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
         t = min.(tmp, oneunit(T))
-        _ = t
+        _ = sum(t)
         return t
     end
 end
