@@ -65,14 +65,9 @@ end
 const AdjointOneArray{T, N, M} = LinearAlgebra.Adjoint{T, oneArray{T, N, M}} where {T<:Real, N, M}
 ## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
 function KomaMRIBase.unit_time(t::AdjointOneArray{T, N, M}, ts::KomaMRIBase.TimeRange{T}) where {T<:Real, N, M}
-    if ts.t_start == ts.t_end
-        return (t .>= ts.t_start) .* oneunit(T)
-    else
-        tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
-        t = min.(tmp, oneunit(T))
-        _ = sum(t)
-        return t
-    end
+    t_unit = KomaMRIBase._unit_time(t, ts)
+    _ = sum(t_unit)
+    return t_unit
 end
 
 end
