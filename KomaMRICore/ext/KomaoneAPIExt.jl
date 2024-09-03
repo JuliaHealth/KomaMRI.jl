@@ -75,15 +75,17 @@ function KomaMRIBase.unit_time(t::AdjointOneArray{T, N, M}, ts::KomaMRIBase.Time
 
         tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
 
-        # KA.synchronize(KA.get_backend(t))
         # _ = sum(t)
 
         # mask .= (tmp .<= oneunit(T))
         # return tmp .* mask .+ .!mask
 
-        println("oneAPI unit_time")
+        t = min.(tmp, oneunit(T))
+        # _ = t
 
-        return min.(tmp, oneunit(T))
+        KA.synchronize(KA.get_backend(t))
+
+        return t
     end
 end
 

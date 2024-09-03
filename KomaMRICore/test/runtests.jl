@@ -469,52 +469,52 @@ end
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    # for i in 1:8
-    #     sig_jemris = signal_brain_motion_jemris()
-    #     seq = seq_epi_100x100_TE100_FOV230()
-    #     sys = Scanner()
-    #     obj = phantom_brain_arbitrary_motion()
+    for i in 1:8
+        sig_jemris = signal_brain_motion_jemris()
+        seq = seq_epi_100x100_TE100_FOV230()
+        sys = Scanner()
+        obj = phantom_brain_arbitrary_motion()
 
-    #     sim_params = Dict{String, Any}(
-    #         "gpu"=>USE_GPU,
-    #         "sim_method"=>KomaMRICore.Bloch(),
-    #         "return_type"=>"mat"
-    #     )
-    #     sig = simulate(obj, seq, sys; sim_params)
-    #     sig = sig / prod(size(obj))
-    #     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    #     println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
-    #     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-    # end
-
-
-    tr = TimeRange(0.0f0, 1.0f0)
-
-    time = collect(-1:0.01:2)
-
-    ux_cpu = zeros(Float32, (2, length(time)))
-    ux_gpu = ux_cpu |> gpu
-    
-    for i in 1:10
-        # cpu
-        d = rand(Float32, (2, 2))
-        t = (time |> f32)'
-        t_unit = KomaMRIBase.unit_time(t, tr)
-        
-        itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
-        ux_cpu .= KomaMRIBase.resample(itp, t_unit) 
-
-        # gpu
-        d = d |> gpu
-        t = (time |> f32 |> gpu)'
-        t_unit = KomaMRIBase.unit_time(t, tr) 
-        itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
-        ux_gpu .= KomaMRIBase.resample(itp, t_unit)
-
-        @test ux_cpu ≈ (ux_gpu |> cpu)
-
-        ux_gpu .*= 0.0f0
+        sim_params = Dict{String, Any}(
+            "gpu"=>USE_GPU,
+            "sim_method"=>KomaMRICore.Bloch(),
+            "return_type"=>"mat"
+        )
+        sig = simulate(obj, seq, sys; sim_params)
+        sig = sig / prod(size(obj))
+        NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+        println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
+        @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
     end
+
+
+    # tr = TimeRange(0.0f0, 1.0f0)
+
+    # time = collect(-1:0.01:2)
+
+    # ux_cpu = zeros(Float32, (2, length(time)))
+    # ux_gpu = ux_cpu |> gpu
+    
+    # for i in 1:10
+    #     # cpu
+    #     d = rand(Float32, (2, 2))
+    #     t = (time |> f32)'
+    #     t_unit = KomaMRIBase.unit_time(t, tr)
+        
+    #     itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
+    #     ux_cpu .= KomaMRIBase.resample(itp, t_unit) 
+
+    #     # gpu
+    #     d = d |> gpu
+    #     t = (time |> f32 |> gpu)'
+    #     t_unit = KomaMRIBase.unit_time(t, tr) 
+    #     itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
+    #     ux_gpu .= KomaMRIBase.resample(itp, t_unit)
+
+    #     @test ux_cpu ≈ (ux_gpu |> cpu)
+
+    #     ux_gpu .*= 0.0f0
+    # end
 end
 
 @testitem "BlochSimple ArbitraryAction" tags=[:core] begin
