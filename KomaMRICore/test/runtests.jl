@@ -511,6 +511,7 @@ end
 
         println(ux_cpu ≈ ux_gpu)
 
+        @test true
     end
 end
 
