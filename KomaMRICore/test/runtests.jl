@@ -469,6 +469,7 @@ end
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
+    for i in 1:8
     #     sig_jemris = signal_brain_motion_jemris()
     #     seq = seq_epi_100x100_TE100_FOV230()
     #     sys = Scanner()
@@ -488,29 +489,24 @@ end
         tr = TimeRange(0.0f0, 1.0f0)
 
         # cpu
+        d = rand(Float32, (2, 2))
         t = (collect(-1:0.01:2) |> f32)'
         t_unit = KomaMRIBase.unit_time(t, tr)
-
-        d = rand(Float32, (2, 2))
-
-        itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
         ux_cpu = zeros(Float32, (size(d,1), size(t_unit,2)))
         ux_gpu = ux_cpu |> gpu
-        ux_cpu = KomaMRIBase.resample(itp, t_unit) |> gpu
+        itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
+        ux_cpu = KomaMRIBase.resample(itp, t_unit) 
 
         # gpu
+        d = d |> gpu
         t = (collect(-1:0.01:2) |> f32 |> gpu)'
         t_unit = KomaMRIBase.unit_time(t, tr) 
-
-        d = d |> gpu
         itp = KomaMRIBase.interpolate(d, KomaMRIBase.Gridded(KomaMRIBase.Linear()), Val(size(d,1)))
-
         ux_gpu .= KomaMRIBase.resample(itp, t_unit)
+        ux_gpu = ux_gpu |> cpu
 
-
-        println(ux_cpu ≈ ux_gpu)
-
-        @test true
+        @test ux_cpu ≈ ux_gpu
+    end
 end
 
 @testitem "BlochSimple ArbitraryAction" tags=[:core] begin
