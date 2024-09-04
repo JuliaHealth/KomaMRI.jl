@@ -53,9 +53,9 @@ function resample(itp::Interpolator2D{T}, t::AbstractArray{T}) where {T<:Real}
     Ns = size(itp.coefs, 1)
     id = similar(itp.coefs, Ns)
     copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
-    println(@view(t[1:2]))
+    println(@view(t[1:4]))
     r = itp.(id, t)
-    println(@view(r[1:2]), '\n')
+    println(@view(r[1:4]), '\n')
     return r
 end
 
