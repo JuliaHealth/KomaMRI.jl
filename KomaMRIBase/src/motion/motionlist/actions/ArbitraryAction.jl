@@ -80,7 +80,7 @@ function displacement_y!(
 ) where {T<:Real}
     itp = interpolate(action.dy, Gridded(Linear()), Val(size(action.dy,1)))
     uy .= resample(itp, t)
-    m = minimum(8, size(uy, 2))
+    m = minimum([8, size(uy, 2)])
     println(@view(uy[1, 1:m]))
     return nothing
 end
