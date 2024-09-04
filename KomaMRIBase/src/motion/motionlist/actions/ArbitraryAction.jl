@@ -79,6 +79,8 @@ function displacement_y!(
 ) where {T<:Real}
     itp = interpolate(action.dy, Gridded(Linear()), Val(size(action.dy,1)))
     uy .= resample(itp, t)
+    println(@view(t[1:3]))
+    println(@view(uy[1:3]), '\n')
     return nothing
 end
 
