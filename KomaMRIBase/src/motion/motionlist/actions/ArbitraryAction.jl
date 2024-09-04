@@ -53,8 +53,10 @@ function resample(itp::Interpolator2D{T}, t::AbstractArray{T}) where {T<:Real}
     Ns = size(itp.coefs, 1)
     id = similar(itp.coefs, Ns)
     copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
-    println(@view(t[1:3]))
-    return itp.(id, t)
+    println(@view(t[1:2]))
+    r = itp.(id, t)
+    println(@view(r[1:2]), '\n')
+    return r
 end
 
 function displacement_x!(
