@@ -66,33 +66,26 @@ end
 const AdjointOneArray{T, N, M} = LinearAlgebra.Adjoint{T, oneArray{T, N, M}} where {T<:Real, N, M}
 ## Extend KomaMRIBase.unit_time (until bug with oneAPI is solved)
 function KomaMRIBase.unit_time(t::AdjointOneArray{T, N, M}, ts::KomaMRIBase.TimeRange{T}) where {T<:Real, N, M}
-    if ts.t_start == ts.t_end
-        return (t .>= ts.t_start) .* oneunit(T)
-    else
-        # tmp = (t .- ts.t_start) ./ (ts.t_end - ts.t_start)
-        # mask = (tmp .> zero(T))
-        # tmp .*= mask
+    # tmp = (t .- ts.t_start) ./ (ts.t_end - ts.t_start)
+    # mask = (tmp .> zero(T))
+    # tmp .*= mask
 
-        # tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
+    # tmp = max.((t .- ts.t_start) ./ (ts.t_end - ts.t_start), zero(T))
 
-        # _ = sum(t)
+    # _ = sum(t)
 
-        # mask .= (tmp .<= oneunit(T))
-        # return tmp .* mask .+ .!mask
+    # mask .= (tmp .<= oneunit(T))
+    # return tmp .* mask .+ .!mask
 
-        # t = min.(tmp, oneunit(T))
+    # t = min.(tmp, oneunit(T))
 
-        # _ = sum(t)
+    # _ = sum(t)
 
-        t_unit = KomaMRIBase._unit_time(t, ts)
+    t_unit = KomaMRIBase._unit_time(t, ts)
 
-        
+    # KA.synchronize(KA.get_backend(t))
 
-
-        # KA.synchronize(KA.get_backend(t))
-
-        return t_unit
-    end
+    return t_unit
 end
 
 end
