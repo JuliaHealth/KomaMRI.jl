@@ -60,6 +60,9 @@ julia> t_unit = KomaMRIBase.unit_time([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], TimeRange(
 ```
 """
 function unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
+    return _unit_time(t, ts)
+end
+function _unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
     if ts.t_start == ts.t_end
         return (t .>= ts.t_start) .* oneunit(T)
     else

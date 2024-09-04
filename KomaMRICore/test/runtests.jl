@@ -483,7 +483,7 @@ end
         sig = simulate(obj, seq, sys; sim_params)
         sig = sig / prod(size(obj))
         NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-        println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
+        # println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
         @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
     end
 
