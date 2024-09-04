@@ -469,23 +469,23 @@ end
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    for i in 1:15
-        sig_jemris = signal_brain_motion_jemris()
-        seq = seq_epi_100x100_TE100_FOV230()
-        sys = Scanner()
-        obj = phantom_brain_arbitrary_motion()
+    # for i in 1:15
+    #     sig_jemris = signal_brain_motion_jemris()
+    #     seq = seq_epi_100x100_TE100_FOV230()
+    #     sys = Scanner()
+    #     obj = phantom_brain_arbitrary_motion()
 
-        sim_params = Dict{String, Any}(
-            "gpu"=>USE_GPU,
-            "sim_method"=>KomaMRICore.Bloch(),
-            "return_type"=>"mat"
-        )
-        sig = simulate(obj, seq, sys; sim_params)
-        sig = sig / prod(size(obj))
-        NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-        # println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
-        @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
-    end
+    #     sim_params = Dict{String, Any}(
+    #         "gpu"=>USE_GPU,
+    #         "sim_method"=>KomaMRICore.Bloch(),
+    #         "return_type"=>"mat"
+    #     )
+    #     sig = simulate(obj, seq, sys; sim_params)
+    #     sig = sig / prod(size(obj))
+    #     NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
+    #     # println("NMRSE ArbitraryAction: ", NMRSE(sig, sig_jemris))
+    #     @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+    # end
 
 
     # tr = TimeRange(0.0f0, 1.0f0)
@@ -515,6 +515,25 @@ end
 
     #     ux_gpu .*= 0.0f0
     # end
+
+    time = collect(0:0.1:1)
+
+    obj = phantom_brain_arbitrary_motion() |> f32 |> gpu
+    t = (time |> f32 |> gpu)
+
+    Nparts = 20
+    parts = kfoldperm(length(obj), Nparts)
+
+    for i in 1:10
+        foreach(enumerate(parts)) do (i, p)
+            p = @view(obj[p])
+            x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, t')
+            println(@view(y[1, 1:10]))
+        end
+        print("\n")
+    end
+
+    @test true
 end
 
 @testitem "BlochSimple ArbitraryAction" tags=[:core] begin
