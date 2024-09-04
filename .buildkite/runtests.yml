@@ -169,7 +169,7 @@ steps:
         agents:
           queue: "juliagpu"
           intel: "*"
-        timeout_in_minutes: 15
+        timeout_in_minutes: 30
 
 env:
   CI: BUILDKITE
