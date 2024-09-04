@@ -86,7 +86,7 @@ function KomaMRIBase.unit_time(t::AdjointOneArray{T, N, M}, ts::KomaMRIBase.Time
 
         t_unit = KomaMRIBase._unit_time(t, ts)
 
-        println(@view(t_unit[1:3]))
+        
 
 
         # KA.synchronize(KA.get_backend(t))
