@@ -134,7 +134,6 @@ function run_spin_precession!(
     #Simulation
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
-    
     #Sequence block info
     seq_block = pre.seq_properties[1]
     
@@ -190,7 +189,7 @@ function run_spin_excitation!(
     pre.ΔT2 .= exp.(-seq.Δt' ./ p.T2)
 
     #Excitation
-    apply_excitation!(backend, 512)(M.xy, M.z, pre.φ, seq.B1, pre.Bz, pre.B, pre.ΔT1, pre.ΔT2, p.ρ, ndrange=size(M.xy,1))
+    apply_excitation!(backend, 256)(M.xy, M.z, pre.φ, seq.B1, pre.Bz, pre.B, pre.ΔT1, pre.ΔT2, p.ρ, ndrange=size(M.xy,1))
     KA.synchronize(backend)
 
     return nothing

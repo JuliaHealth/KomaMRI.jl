@@ -25,14 +25,7 @@ end
 
 is_composable(action::HeartBeat) = true
 
-function displacement_x!(
-    ux::AbstractArray{T},
-    action::HeartBeat{T},
-    x::AbstractArray{T},
-    y::AbstractArray{T},
-    z::AbstractArray{T},
-    t::AbstractArray{T},
-) where {T<:Real}
+function displacement_x!(ux, action::HeartBeat, x, y, z, t)
     r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
     Δ_circunferential = action.circumferential_strain * maximum(r)
@@ -46,14 +39,7 @@ function displacement_x!(
     return nothing
 end
 
-function displacement_y!(
-    uy::AbstractArray{T},
-    action::HeartBeat{T},
-    x::AbstractArray{T},
-    y::AbstractArray{T},
-    z::AbstractArray{T},
-    t::AbstractArray{T},
-) where {T<:Real}
+function displacement_y!(uy, action::HeartBeat, x, y, z, t)
     r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
     Δ_circunferential = action.circumferential_strain * maximum(r)
@@ -67,14 +53,7 @@ function displacement_y!(
     return nothing
 end
 
-function displacement_z!(
-    uz::AbstractArray{T},
-    action::HeartBeat{T},
-    x::AbstractArray{T},
-    y::AbstractArray{T},
-    z::AbstractArray{T},
-    t::AbstractArray{T},
-) where {T<:Real}
+function displacement_z!(uz, action::HeartBeat, x, y, z, t)
     uz .= t .* (z .* action.longitudinal_strain)
     return nothing
 end

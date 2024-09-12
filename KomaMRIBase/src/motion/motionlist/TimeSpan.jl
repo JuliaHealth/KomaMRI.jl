@@ -59,10 +59,7 @@ julia> t_unit = KomaMRIBase.unit_time([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], TimeRange(
  1.0
 ```
 """
-function unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
-    return _unit_time(t, ts)
-end
-function _unit_time(t::AbstractArray{T}, ts::TimeRange{T}) where {T<:Real}
+function unit_time(t, ts::TimeRange{T}) where {T<:Real}
     if ts.t_start == ts.t_end
         return (t .>= ts.t_start) .* oneunit(T)
     else
@@ -131,7 +128,7 @@ julia> t_unit = KomaMRIBase.unit_time([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], Periodic(4
  0.5
 ```
 """
-function unit_time(t::AbstractArray{T}, ts::Periodic{T}) where {T<:Real}
+function unit_time(t, ts::Periodic{T}) where {T<:Real}
     t_rise = ts.period * ts.asymmetry
     t_fall = ts.period * (oneunit(T) - ts.asymmetry)
     t_relative = mod.(t, ts.period)

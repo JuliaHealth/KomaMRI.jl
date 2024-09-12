@@ -27,38 +27,17 @@ TranslateX(dx::T) where {T<:Real} = Translate(dx, zero(T), zero(T))
 TranslateY(dy::T) where {T<:Real} = Translate(zero(T), dy, zero(T))
 TranslateZ(dz::T) where {T<:Real} = Translate(zero(T), zero(T), dz)
 
-function displacement_x!(
-    ux::AbstractArray{T},
-    action::Translate{T},
-    x::AbstractVector{T},
-    y::AbstractVector{T},
-    z::AbstractVector{T},
-    t::AbstractArray{T},
-) where {T<:Real}
+function displacement_x!(ux, action::Translate, x, y, z, t)
     ux .= t.* action.dx
     return nothing
 end
 
-function displacement_y!(
-    uy::AbstractArray{T},
-    action::Translate{T},
-    x::AbstractVector{T},
-    y::AbstractVector{T},
-    z::AbstractVector{T},
-    t::AbstractArray{T},
-) where {T<:Real}
+function displacement_y!(uy, action::Translate, x, y, z, t)
     uy .= t .* action.dy
     return nothing
 end
 
-function displacement_z!(
-    uz::AbstractArray{T},
-    action::Translate{T},
-    x::AbstractVector{T},
-    y::AbstractVector{T},
-    z::AbstractVector{T},
-    t::AbstractArray{T},
-) where {T<:Real}
+function displacement_z!(uz, action::Translate, x, y, z, t)
     uz .= t .* action.dz
     return nothing
 end

@@ -33,7 +33,5 @@ julia> flowpath = FlowPath(
     dx::AbstractArray{T}
     dy::AbstractArray{T}
     dz::AbstractArray{T}
-    spin_reset::AbstractArray{Bool}
+    spin_reset::AbstractArray{T}
 end
-
-FlowPath(dx::AbstractArray{T}, dy::AbstractArray{T}, dz::AbstractArray{T}, spin_reset::Array) where T<:Real = FlowPath(dx, dy, dz, Bool.(spin_reset))

@@ -53,7 +53,7 @@ function run_spin_precession!(
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im .* sin.(ϕ))] #This assumes Δw and T2 are constant in time
-    reset_magnetization!(M, Mxy, p.motion, seq.t')
+    reset_magnetization!(M, Mxy, p.motion, seq.t', p.ρ)
     M.xy .= Mxy[:, end]
     #Acquired signal
     sig[:, :, 1] .= transpose(Mxy[:, findall(seq.ADC)])

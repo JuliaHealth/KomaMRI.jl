@@ -140,7 +140,7 @@ steps:
           setup:
             version:
               - "1.9"
-              - "1"
+              # - "1"
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"

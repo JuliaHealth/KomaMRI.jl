@@ -62,53 +62,34 @@ RotateZ(yaw::T) where {T<:Real}   = Rotate(zero(T), zero(T), yaw)
 
 is_composable(action::Rotate) = true
 
-function displacement_x!(
-    ux::AbstractArray{T},
-    action::Rotate{T},
-    x::AbstractArray{T},
-    y::AbstractArray{T},
-    z::AbstractArray{T},
-    t::AbstractArray{T},
-) where {T<:Real}
-    α = t .* (action.yaw)
-    β = t .* (action.roll)
-    γ = t .* (action.pitch)
-    ux .= cosd.(α) .* cosd.(β) .* x +
-         (cosd.(α) .* sind.(β) .* sind.(γ) .- sind.(α) .* cosd.(γ)) .* y +
-         (cosd.(α) .* sind.(β) .* cosd.(γ) .+ sind.(α) .* sind.(γ)) .* z .- x
+function displacement_x!(ux, action::Rotate, x, y, z, t)   
+    # Not using sind and cosd functions until bug with oneAPI is solved: 
+    # https://github.com/JuliaGPU/oneAPI.jl/issues/65
+    α = t .* (action.yaw*π/180)
+    β = t .* (action.roll*π/180)
+    γ = t .* (action.pitch*π/180)
+    ux .= cos.(α) .* cos.(β) .* x +
+         (cos.(α) .* sin.(β) .* sin.(γ) .- sin.(α) .* cos.(γ)) .* y +
+         (cos.(α) .* sin.(β) .* cos.(γ) .+ sin.(α) .* sin.(γ)) .* z .- x
     return nothing
 end
 
-function displacement_y!(
-    uy::AbstractArray{T},
-    action::Rotate{T},
-    x::AbstractArray{T},
-    y::AbstractArray{T},
-    z::AbstractArray{T},
-    t::AbstractArray{T},
-) where {T<:Real}
-    α = t .* (action.yaw)
-    β = t .* (action.roll)
-    γ = t .* (action.pitch)
-    uy .= sind.(α) .* cosd.(β) .* x +
-         (sind.(α) .* sind.(β) .* sind.(γ) .+ cosd.(α) .* cosd.(γ)) .* y +
-         (sind.(α) .* sind.(β) .* cosd.(γ) .- cosd.(α) .* sind.(γ)) .* z .- y
+function displacement_y!(uy, action::Rotate, x, y, z, t)
+    α = t .* (action.yaw*π/180)
+    β = t .* (action.roll*π/180)
+    γ = t .* (action.pitch*π/180)
+    uy .= sin.(α) .* cos.(β) .* x +
+         (sin.(α) .* sin.(β) .* sin.(γ) .+ cos.(α) .* cos.(γ)) .* y +
+         (sin.(α) .* sin.(β) .* cos.(γ) .- cos.(α) .* sin.(γ)) .* z .- y
     return nothing
 end
 
-function displacement_z!(
-    uz::AbstractArray{T},
-    action::Rotate{T},
-    x::AbstractArray{T},
-    y::AbstractArray{T},
-    z::AbstractArray{T},
-    t::AbstractArray{T},
-) where {T<:Real}
-    α = t .* (action.yaw)
-    β = t .* (action.roll)
-    γ = t .* (action.pitch)
-    uz .=  -sind.(β) .* x + 
-            cosd.(β) .* sind.(γ) .* y +
-            cosd.(β) .* cosd.(γ) .* z .- z
+function displacement_z!(uz, action::Rotate, x, y, z, t)
+    α = t .* (action.yaw*π/180)
+    β = t .* (action.roll*π/180)
+    γ = t .* (action.pitch*π/180)
+    uz .=  -sin.(β) .* x + 
+            cos.(β) .* sin.(γ) .* y +
+            cos.(β) .* cos.(γ) .* z .- z
     return nothing
 end
