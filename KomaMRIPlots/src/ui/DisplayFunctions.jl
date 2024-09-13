@@ -1019,12 +1019,12 @@ julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
 function plot_phantom_map(
-    ph::Phantom,
+    obj::Phantom,
     key::Symbol;
     height=700,
     width=nothing,
     darkmode=false,
-    view_2d=sum(KomaMRIBase.get_dims(ph)) < 3,
+    view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
     colorbar=true,
     intermediate_time_samples=0,
     max_time_samples=100,
@@ -1033,7 +1033,7 @@ function plot_phantom_map(
     kwargs...,
 )
 
-    function interpolate_times(motion::KomaMRIBase.AbstractMotionSet{T}) where {T<:Real}
+    function interpolate_times(motion)
         t = times(motion)
         if length(t)>1
             # Interpolate time points (as many as indicated by intermediate_time_samples)
@@ -1043,35 +1043,35 @@ function plot_phantom_map(
         return t
     end
 
-    function process_times(motion::KomaMRIBase.AbstractMotionSet{T}) where {T<:Real}
-        sort_motions!(motion)
+    function process_times(motion)
+        KomaMRIBase.sort_motions!(motion)
         t = interpolate_times(motion)
         # Decimate time points so their number is smaller than max_time_samples
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
     end
 
-    function decimate_uniform_phantom(ph::Phantom, num_points::Int)
-        dimx, dimy, dimz = KomaMRIBase.get_dims(ph)
-        ss = Int(ceil((length(ph) / num_points)^(1 / sum(KomaMRIBase.get_dims(ph)))))
+    function decimate_uniform_phantom(obj, num_points::Int)
+        dimx, dimy, dimz = KomaMRIBase.get_dims(obj)
+        ss = Int(ceil((length(obj) / num_points)^(1 / sum(KomaMRIBase.get_dims(obj)))))
         ssx = dimx ? ss : 1
         ssy = dimy ? ss : 1
         ssz = dimz ? ss : 1
-        ix = sortperm(ph.x)[1:ssx:end]
-        iy = sortperm(ph.y)[1:ssy:end]
-        iz = sortperm(ph.z)[1:ssz:end]
+        ix = sortperm(obj.x)[1:ssx:end]
+        iy = sortperm(obj.y)[1:ssy:end]
+        iz = sortperm(obj.z)[1:ssz:end]
         idx = intersect(ix, iy, iz)
-        return ph[idx]
+        return obj[idx]
     end
 
-    if length(ph) > max_spins
-        ph = decimate_uniform_phantom(ph, max_spins)
+    if length(obj) > max_spins
+        obj = decimate_uniform_phantom(obj, max_spins)
         @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)."
     end
 
     path = @__DIR__
-    cmin_key = minimum(getproperty(ph, key))
-    cmax_key = maximum(getproperty(ph, key))
+    cmin_key = minimum(getproperty(obj, key))
+    cmax_key = maximum(getproperty(obj, key))
     if key == :T1 || key == :T2 || key == :T2s
         cmin_key = 0
         factor = 1e3
@@ -1118,8 +1118,8 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :cmin, factor * cmin_key)
     cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-    t = process_times(ph.motion)
-    x, y, z = get_spin_coords(ph.motion, ph.x, ph.y, ph.z, t')
+    t = process_times(obj.motion)
+    x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
 
     x0 = -maximum(abs.([x y z])) * 1e2
     xf = maximum(abs.([x y z])) * 1e2
@@ -1131,7 +1131,7 @@ function plot_phantom_map(
                 y=(y[:, 1]) * 1e2,
                 mode="markers",
                 marker=attr(;
-                    color=getproperty(ph, key) * factor,
+                    color=getproperty(obj, key) * factor,
                     showscale=colorbar,
                     colorscale=colormap,
                     colorbar=attr(; ticksuffix=unit, title=string(key)),
@@ -1176,7 +1176,7 @@ function plot_phantom_map(
                     size=2,
                 ),
                 showlegend=false,
-                text=round.(getproperty(ph, key) * factor, digits=4),
+                text=round.(getproperty(obj, key) * factor, digits=4),
                 hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>",
             ),
         ]
@@ -1260,7 +1260,7 @@ function plot_phantom_map(
     #Layout
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
     l = Layout(;
-        title=ph.name * ": " * string(key),
+        title=obj.name * ": " * string(key),
         xaxis_title="x",
         yaxis_title="y",
         xaxis_range=[x0, xf],

@@ -98,8 +98,8 @@ See also [`f32`](@ref).
 f64(m) = paramtype(Float64, m)
 
 # Koma motion-related adapts
-adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
-adapt_storage(backend::KA.GPU, xs::Motion) = Motion(gpu(xs.action, backend), gpu(xs.time, backend), xs.spins)
+adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(adapt.(Ref(backend), xs.motions))
+adapt_storage(backend::KA.GPU, xs::Motion) = Motion(adapt(backend, xs.action), adapt(backend, xs.time), xs.spins)
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
 adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
 adapt_storage(T::Type{<:Real}, xs::Motion) = Motion(paramtype(T, xs.action), paramtype(T, xs.time), xs.spins)

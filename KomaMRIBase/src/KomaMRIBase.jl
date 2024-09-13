@@ -54,7 +54,7 @@ export Rotate, RotateX, RotateY, RotateZ
 export HeartBeat, Path, FlowPath
 export TimeRange, Periodic
 export SpinRange, AllSpins
-export sort_motions!, get_spin_coords
+export get_spin_coords
 # Secondary
 export get_kspace, rotx, roty, rotz
 # Additionals

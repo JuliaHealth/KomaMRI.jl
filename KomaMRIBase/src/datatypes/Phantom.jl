@@ -50,6 +50,9 @@ julia> obj.ρ
     motion::AbstractMotionSet{T} = NoMotion{eltype(x)}() 
 end
 
+non_string_phantom_fields = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
+vector_phantom_fields     = Iterators.filter(x -> fieldtype(Phantom, x) <: AbstractVector, fieldnames(Phantom))
+
 """Size and length of a phantom"""
 size(x::Phantom) = size(x.ρ)
 Base.length(x::Phantom) = length(x.ρ)
@@ -58,37 +61,29 @@ Base.iterate(x::Phantom) = (x[1], 2)
 Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i + 1) : nothing
 Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
-Base.getindex(x::Phantom, c::Colon) = x[1:length(x)]
 Base.view(x::Phantom, i::Integer) = @view(x[i:i])
-Base.view(x::Phantom, c::Colon) = @view(x[1:length(x)])
 
 """Compare two phantoms"""
 function Base.:(==)(obj1::Phantom, obj2::Phantom)
-    return reduce(
-        &,
-        [getfield(obj1, field) == getfield(obj2, field) for
-         field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))],
-    )
+    if length(obj1) != length(obj2) return false end
+    return reduce(&, [getfield(obj1, field) == getfield(obj2, field) for field in non_string_phantom_fields])
 end
 function Base.:(≈)(obj1::Phantom, obj2::Phantom)
-    return reduce(
-        &,
-        [getfield(obj1, field) ≈ getfield(obj2, field) for
-         field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))],
-    )
+    if length(obj1) != length(obj2) return false end
+    return reduce(&, [getfield(obj1, field)  ≈ getfield(obj2, field) for field in non_string_phantom_fields])
 end
 
 """Separate object spins in a sub-group"""
-Base.getindex(obj::Phantom, p::AbstractVector) = begin
+function Base.getindex(obj::Phantom, p)
     fields = []
-    for field in Iterators.filter(x -> x != :name, fieldnames(Phantom))
+    for field in non_string_phantom_fields
         push!(fields, (field, getfield(obj, field)[p]))
     end
     return Phantom(; name=obj.name, fields...)
 end
-Base.view(obj::Phantom, p::AbstractVector) = begin
+function Base.view(obj::Phantom, p)
     fields = []
-    for field in Iterators.filter(x -> x != :name, fieldnames(Phantom))
+    for field in non_string_phantom_fields
         push!(fields, (field, @view(getfield(obj, field)[p])))
     end
     return Phantom(; name=obj.name, fields...)
@@ -96,10 +91,9 @@ end
 
 """Addition of phantoms"""
 +(obj1::Phantom, obj2::Phantom) = begin
-    Nmaxchars = 50
-    name = first(obj1.name * "+" * obj2.name, Nmaxchars)
+    name = first(obj1.name * "+" * obj2.name, 50) # The name is limited to 50 characters
     fields = []
-    for field in Iterators.filter(x -> !(x in (:name, :motion)), fieldnames(Phantom))
+    for field in vector_phantom_fields
         push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
     end
     return Phantom(; 
@@ -326,7 +320,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
 end
 
 """
-    obj = brain_phantom3D(; ss=4, us=1)
+    obj = brain_phantom3D(; ss=4, us=1, start_end=[160,200])
 
 Creates a three-dimentional brain Phantom struct.
 Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm. 

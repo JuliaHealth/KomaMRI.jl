@@ -238,9 +238,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
 
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+    @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
 @testitem "Bloch_RF_accuracy" tags=[:important, :core, :nomotion] begin
@@ -287,7 +285,7 @@ end
     error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
     error2 = norm2(raw.profiles[3].data .- res2) ./ norm2(res2) * 100
 
-    @test  error0 + error1 + error2 < 0.1 #NMRSE < 0.1%
+    @test  error0 + error1 + error2 < 0.1 #NRMSE < 0.1%
 end
 
 @testitem "Bloch_phase_compensation" tags=[:important, :core, :nomotion] begin
@@ -363,9 +361,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
 
-    NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-    
-    @test NMRSE(sig, sig_jemris) < 1 #NMRSE < 1%
+    @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
@@ -422,7 +418,7 @@ end
 
 # --------- Motion-related tests -------------
 # We compare with the result given by OrdinaryDiffEqTsit5
-@testitem "Motion" tags=[:core, :motion] begin 
+@testitem "Motion" tags=[:core, :motion] begin
     using Suppressor, OrdinaryDiffEqTsit5
     include("initialize_backend.jl")
 
@@ -453,55 +449,56 @@ end
     y0 = [0.1]
     z0 = [0.0]
 
-    for m in motions
-        motion = MotionList(m)
+    for sim_method in [KomaMRICore.Bloch(), KomaMRICore.BlochSimple(), KomaMRICore.BlochDict()]
+        @testset "$(typeof(sim_method))" begin
+            for m in motions
+                motion = MotionList(m)
 
-        coords(t) = get_spin_coords(motion, x0, y0, z0, t)
-        x(t) = (coords(t)[1])[1]
-        y(t) = (coords(t)[2])[1]
-        z(t) = (coords(t)[3])[1]
+                coords(t) = get_spin_coords(motion, x0, y0, z0, t)
+                x(t) = (coords(t)[1])[1]
+                y(t) = (coords(t)[2])[1]
+                z(t) = (coords(t)[3])[1]
 
-        ## Solving using DiffEquations.jl
-        function bloch!(dm, m, p, t)
-            mx, my, mz = m
-            bx, by, bz = [B1e(t) * cos(φ), B1e(t) * sin(φ), (x(t) * Gx + y(t) * Gy + z(t) * Gz)]
-            dm[1] = -mx / T2 + γ * bz * my - γ * by * mz
-            dm[2] = -γ * bz * mx - my / T2 + γ * bx * mz
-            dm[3] =  γ * by * mx - γ * bx * my - mz / T1 + M0 / T1
-            return nothing
-        end
-        m0 = [0.0, 0.0, 1.0]
-        tspan = (0.0, duration)
-        prob = ODEProblem(bloch!, m0, tspan)
-        # Only at ADC points
-        tadc = range(Trf, duration, Nadc)
-        sol = @time solve(prob, Tsit5(), saveat = tadc, abstol = 1e-9, reltol = 1e-9)
-        sol_diffeq = hcat(sol.u...)'
-        mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
+                ## Solving using DiffEquations.jl
+                function bloch!(dm, m, p, t)
+                    mx, my, mz = m
+                    bx, by, bz = [B1e(t) * cos(φ), B1e(t) * sin(φ), (x(t) * Gx + y(t) * Gy + z(t) * Gz)]
+                    dm[1] = -mx / T2 + γ * bz * my - γ * by * mz
+                    dm[2] = -γ * bz * mx - my / T2 + γ * bx * mz
+                    dm[3] =  γ * by * mx - γ * bx * my - mz / T1 + M0 / T1
+                    return nothing
+                end
+                m0 = [0.0, 0.0, 1.0]
+                tspan = (0.0, duration)
+                prob = ODEProblem(bloch!, m0, tspan)
+                # Only at ADC points
+                tadc = range(Trf, duration, Nadc)
+                sol = @time solve(prob, Tsit5(), saveat = tadc, abstol = 1e-9, reltol = 1e-9)
+                sol_diffeq = hcat(sol.u...)'
+                mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
 
-        ## Solving using KomaMRICore.jl
-        # Creating Sequence
-        seq = Sequence()
-        seq += RF(cis(φ) .* B1, Trf)
-        seq.GR[1,1] = Grad(Gx, duration)
-        seq.GR[2,1] = Grad(Gy, duration)
-        seq.GR[3,1] = Grad(Gz, duration)
-        seq.ADC[1] = ADC(Nadc, duration-Trf, Trf)
-        # Creating object
-        obj = Phantom(x = x0, y = y0, z = z0, ρ = [M0], T1 = [T1], T2 = [T2], motion = motion)
-        # Scanner
-        sys = Scanner()
-        # Simulation
-        for sim_method in [KomaMRICore.Bloch(), KomaMRICore.BlochSimple(), KomaMRICore.BlochDict()]
-            sim_params = Dict{String, Any}(
-                "sim_method"=>sim_method,
-                "return_type"=>"mat"
-            )
-            raw_aux = @suppress simulate(obj, seq, sys; sim_params)
-            raw = raw_aux[:, 1, 1]
-
-            NMRSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
-            @test NMRSE(raw, mxy_diffeq) < 1
+                ## Solving using KomaMRICore.jl
+                # Creating Sequence
+                seq = Sequence()
+                seq += RF(cis(φ) .* B1, Trf)
+                seq.GR[1,1] = Grad(Gx, duration)
+                seq.GR[2,1] = Grad(Gy, duration)
+                seq.GR[3,1] = Grad(Gz, duration)
+                seq.ADC[1] = ADC(Nadc, duration-Trf, Trf)
+                # Creating object
+                obj = Phantom(x = x0, y = y0, z = z0, ρ = [M0], T1 = [T1], T2 = [T2], motion = motion)
+                # Scanner
+                sys = Scanner()
+                # Simulation
+                sim_params = Dict{String, Any}(
+                    "sim_method"=>sim_method,
+                    "return_type"=>"mat",
+                    "gpu" => USE_GPU
+                )
+                raw_aux = @suppress simulate(obj, seq, sys; sim_params)
+                raw = raw_aux[:, 1, 1]
+                @test NRMSE(raw, mxy_diffeq) < 1
+            end
         end
     end
 end

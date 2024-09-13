@@ -16,12 +16,12 @@ const Interpolator2D = Interpolations.GriddedInterpolation{
     K<:Tuple{AbstractVector{T}, AbstractVector{T}},
 }
 
-abstract type ArbitraryAction{T<:Real} <: AbstractActionSpan{T} end
+abstract type ArbitraryAction{T<:Real} <: AbstractAction{T} end
 
-function Base.getindex(action::ArbitraryAction, p::Union{AbstractVector, Colon})
+function Base.getindex(action::ArbitraryAction, p)
     return typeof(action)([getfield(action, d)[p,:] for d in fieldnames(typeof(action))]...)
 end
-function Base.view(action::ArbitraryAction, p::Union{AbstractVector, Colon})
+function Base.view(action::ArbitraryAction, p)
     return typeof(action)([@view(getfield(action, d)[p,:]) for d in fieldnames(typeof(action))]...)
 end
 

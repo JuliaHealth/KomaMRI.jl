@@ -35,14 +35,14 @@ end
 MotionList(motions...) = length([motions]) > 0 ? MotionList([motions...]) : @error "You must provide at least one motion as input argument. If you do not want to define motion, use `NoMotion{T}()`"
 
 """ MotionList sub-group """
-function Base.getindex(mv::MotionList{T}, p::AbstractVector) where {T<:Real}
+function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
     motion_array_aux = Motion{T}[]
     for m in mv.motions
         add_motion!(motion_array_aux, m[p])
     end
     return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion{T}()
 end
-function Base.view(mv::MotionList{T}, p::AbstractVector) where {T<:Real}
+function Base.view(mv::MotionList{T}, p) where {T<:Real}
     motion_array_aux = Motion{T}[]
     for m in mv.motions
         add_motion!(motion_array_aux, @view(m[p]))
@@ -95,7 +95,7 @@ For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `
 - `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
 - `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
 - `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
-- `t`: (`::AbstractArray{T<:Real}`) horizontal array of time instants
+- `t`: horizontal array of time instants
 
 # Returns
 - `x, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
@@ -103,6 +103,8 @@ For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `
 function get_spin_coords(
     ml::MotionList{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
 ) where {T<:Real}
+    # Sort motions
+    sort_motions!(ml)
     # Buffers for positions:
     xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
     # Buffers for displacements:
@@ -134,12 +136,13 @@ end
     times = times(motion)
 """
 function times(ml::MotionList{T}) where {T<:Real}
-    nodes = reduce(vcat, [times(m) for m in ml.motions]; init=[zero(T)])
+    nodes = reduce(vcat, [times(m) for m in ml.motions])
     return unique(sort(nodes))
 end
 
 """
     sort_motions!(motionset)
+
 Sorts motions in a list according to their starting time. It modifies the original list.
 If `motionset::NoMotion`, this function does nothing.
 If `motionset::MotionList`, this function sorts its motions.
@@ -150,9 +153,7 @@ If `motionset::MotionList`, this function sorts its motions.
 # Returns
 - `nothing`
 """
-function sort_motions!(mv::MotionList{T}) where {T<:Real}
-    sort!(mv.motions; by=m -> times(m)[1])
+function sort_motions!(m::MotionList)
+    sort!(m.motions; by=m -> times(m)[1])
     return nothing
 end
-
-

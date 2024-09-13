@@ -157,3 +157,5 @@ function seq_epi_100x100_TE100_FOV230()
     seq = ex + dephaser + delayTE + epi
     return seq
 end
+
+NRMSE(x, x_true) = sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.

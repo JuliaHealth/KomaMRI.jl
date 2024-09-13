@@ -157,7 +157,7 @@ function run_spin_precession!(
 
         sig .= transpose(sum(pre.Mxy; dims=1))
     end
-
+    
     #Mxy precession and relaxation, and Mz relaxation
     M.z  .= M.z .* exp.(-seq_block.dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-seq_block.dur ./ p.T1))
     M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* _cis.(pre.ϕ[:,end])

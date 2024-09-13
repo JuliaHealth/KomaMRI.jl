@@ -26,7 +26,6 @@ heart_phantom
 ```@docs
 NoMotion
 MotionList
-sort_motions!
 get_spin_coords
 ```
 
@@ -36,7 +35,7 @@ get_spin_coords
 Motion
 ```
 
-### `AbstractActionSpan` types
+### `AbstractAction` types
 
 ```@docs
 Translate

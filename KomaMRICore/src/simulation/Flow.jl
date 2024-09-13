@@ -1,20 +1,16 @@
 """
     reset_magnetization!
 """
-function reset_magnetization!(M::Mag{T}, Mxy::AbstractArray{Complex{T}}, motion::NoMotion{T}, t::AbstractArray{T}, ρ) where {T<:Real}
+function reset_magnetization!(M::Mag{T}, Mxy::AbstractArray{Complex{T}}, motion, t, ρ) where {T<:Real}
    return nothing
 end
 
-function reset_magnetization!(M::Mag{T}, Mxy::AbstractArray{Complex{T}}, motion::MotionList{T}, t::AbstractArray{T}, ρ) where {T<:Real}
+function reset_magnetization!(M::Mag{T}, Mxy::AbstractArray{Complex{T}}, motion::MotionList{T}, t, ρ) where {T<:Real}
    for m in motion.motions
       t_unit = KomaMRIBase.unit_time(t, m.time)
       idx = KomaMRIBase.get_idx(m.spins)
       reset_magnetization!(@view(M[idx]), @view(Mxy[idx, :]), m.action, t_unit, @view(ρ[idx]))
    end
-   return nothing
-end
-
-function reset_magnetization!(M::Mag{T}, Mxy::AbstractArray{Complex{T}}, action::KomaMRIBase.AbstractActionSpan{T}, t, ρ) where {T<:Real}
    return nothing
 end
 

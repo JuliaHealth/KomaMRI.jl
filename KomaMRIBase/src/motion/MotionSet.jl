@@ -4,9 +4,8 @@ abstract type AbstractMotionSet{T<:Real} end
 include("nomotion/NoMotion.jl")
 
 # MotionList
-include("motionlist/ActionSpan.jl")
+include("motionlist/Action.jl")
 include("motionlist/SpinSpan.jl")
 include("motionlist/TimeSpan.jl")
 include("motionlist/Motion.jl")
 include("motionlist/MotionList.jl")
-

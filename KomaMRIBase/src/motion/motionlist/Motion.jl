@@ -10,7 +10,7 @@ which the motion takes place, and `spins`, which indicates the spins
 that are affected by that motion.
 
 # Arguments
-- `action`: (`::AbstractActionSpan{T<:Real}`) action, such as [`Translate`](@ref) or [`Rotate`](@ref)
+- `action`: (`::AbstractAction{T<:Real}`) action, such as [`Translate`](@ref) or [`Rotate`](@ref)
 - `time`: (`::AbstractTimeSpan{T<:Real}`, `=TimeRange(0.0)`) time information about the motion
 - `spins`: (`::AbstractSpinSpan`, `=AllSpins()`) spin indexes affected by the motion
 
@@ -27,7 +27,7 @@ julia> motion =  Motion(
 ```
 """
 @with_kw mutable struct Motion{T<:Real}
-    action::AbstractActionSpan{T}
+    action::AbstractAction{T}
     time  ::AbstractTimeSpan{T}   = TimeRange(zero(typeof(action).parameters[1]))
     spins ::AbstractSpinSpan      = AllSpins()
 end
@@ -162,16 +162,16 @@ Base.:(==)(m1::Motion, m2::Motion) = (typeof(m1) == typeof(m2)) & reduce(&, [get
 Base.:(≈)(m1::Motion, m2::Motion)  = (typeof(m1) == typeof(m2)) & reduce(&, [getfield(m1, field)  ≈ getfield(m2, field) for field in fieldnames(typeof(m1))])
 
 """ Motion sub-group """
-function Base.getindex(m::Motion, p::AbstractVector)
+function Base.getindex(m::Motion, p)
     idx, spin_range = m.spins[p]
     return Motion(m.action[idx], m.time, spin_range)
 end
-function Base.view(m::Motion, p::AbstractVector)
+function Base.view(m::Motion, p)
     idx, spin_range = @view(m.spins[p])
     return Motion(@view(m.action[idx]), m.time, spin_range)
 end
 
 # Auxiliary functions
 times(m::Motion) = times(m.time)
-add_motion!(motion_array, motion) = has_spins(motion.spins) ? push!(motion_array, motion) : nothing
+add_motion!(motion_array, motion) = typeof(motion.spins) <: SpinRange ? push!(motion_array, motion) : nothing
 is_composable(m::Motion) = is_composable(m.action)

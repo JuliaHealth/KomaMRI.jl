@@ -10,11 +10,9 @@ function read_phantom(filename::String)
     # Version
     file_version = VersionNumber(read_attribute(fid, "Version"))
     program_version = pkgversion(KomaMRIFiles)
-    if file_version.major != program_version.major | file_version.minor != program_version.minor
-        @warn "Version mismatch detected:
-         File version: $file_version
-         KomaMRIFiles version: $program_version
-         This may lead to compatibility issues. Please update the file or the program to the matching version."
+    if file_version.major != program_version.major
+        @warn "Version mismatch detected: $file_version (file) vs $program_version (Koma)
+         This may lead to compatibility issues. Please update the file or the program."
     end
     phantom_fields = []
     # Name 
@@ -107,7 +105,8 @@ function write_phantom(
     obj::Phantom,
     filename::String;
     store_coords=[:x, :y, :z],
-    store_contrasts=[:ρ, :T1, :T2, :T2s, :Δw]
+    store_contrasts=[:ρ, :T1, :T2, :T2s, :Δw],
+    store_motion=true
 )
     # Create HDF5 phantom file
     fid = h5open(filename, "w")
@@ -128,7 +127,7 @@ function write_phantom(
         contrast[String(x)] = getfield(obj, x)
     end
     # Motion
-    if typeof(obj.motion) <: MotionList
+    if (typeof(obj.motion) <: MotionList) & store_motion
         motion_group = create_group(fid, "motion")
         export_motion!(motion_group, obj.motion)
     end

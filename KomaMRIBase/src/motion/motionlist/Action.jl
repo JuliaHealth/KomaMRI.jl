@@ -1,6 +1,6 @@
-abstract type AbstractActionSpan{T<:Real} end
+abstract type AbstractAction{T<:Real} end
 
-is_composable(m::AbstractActionSpan) = false
+is_composable(m::AbstractAction) = false
 
 # Simple actions
 include("actions/SimpleAction.jl")

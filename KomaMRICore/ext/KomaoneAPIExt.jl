@@ -1,9 +1,8 @@
 module KomaoneAPIExt
 
 using oneAPI
-import KomaMRICore, KomaMRIBase
+import KomaMRICore
 import Adapt
-import LinearAlgebra
 
 KomaMRICore.name(::oneAPIBackend) = "oneAPI"
 KomaMRICore.isfunctional(::oneAPIBackend) = oneAPI.functional()
