@@ -5,7 +5,7 @@ steps:
         matrix:
           setup:
             version:
-              - "1.9"
+              - "1.10"
               - "1"
         plugins:
           - JuliaCI/julia#v1:
@@ -36,6 +36,7 @@ steps:
         matrix:
           setup:
             version:
+              - "1.10"
               - "1"
         plugins:
           - JuliaCI/julia#v1:
@@ -61,7 +62,7 @@ steps:
           
           julia -e 'println("--- :julia: Running tests")
               using Pkg
-              Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU", ])'
+              Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
         agents:
           queue: "juliagpu"
           rocm: "*"
@@ -71,7 +72,7 @@ steps:
         matrix:
           setup:
             version:
-              - "1.9"
+              - "1.10"
               - "1"
         plugins:
           - JuliaCI/julia#v1:
@@ -107,7 +108,7 @@ steps:
         matrix:
           setup:
             version:
-              - "1.9"
+              - "1.10"
               - "1"
         plugins:
           - JuliaCI/julia#v1:
@@ -139,8 +140,8 @@ steps:
         matrix:
           setup:
             version:
-              - "1.9"
-              # - "1"
+              - "1.10"
+              - "1"
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
