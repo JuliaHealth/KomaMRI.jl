@@ -421,6 +421,7 @@ end
 @testitem "Motion" tags=[:core, :motion] begin
     using Suppressor, OrdinaryDiffEqTsit5
     include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     Nadc = 25
     M0 = 1.0
@@ -438,7 +439,7 @@ end
     Gz = 0
 
     motions = [
-        Translate(0.0, 0.1, 0.0, TimeRange(0.0, 1.0)),
+        Translate(0.1, 0.1, 0.0, TimeRange(0.0, 1.0)),
         Rotate(0.0, 0.0, 45.0, TimeRange(0.0, 1.0)),
         HeartBeat(-0.6, 0.0, 0.0, Periodic(1.0)),
         Path([0.0 0.0], [0.0 1.0], [0.0 0.0], TimeRange(0.0, 10.0)),
