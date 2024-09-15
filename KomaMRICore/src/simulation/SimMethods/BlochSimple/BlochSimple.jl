@@ -44,7 +44,7 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     tp   = cumsum(seq.Δt) # t' = t - t0
     dur  = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* _cis.(ϕ)] #This assumes Δw and T2 are constant in time
+    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im .* sin.(ϕ))] #This assumes Δw and T2 are constant in time
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     reset_magnetization!(M, Mxy, p.motion, seq.t', p.ρ)
     M.xy .= Mxy[:, end]
