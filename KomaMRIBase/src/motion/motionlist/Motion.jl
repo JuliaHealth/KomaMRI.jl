@@ -173,5 +173,4 @@ end
 
 # Auxiliary functions
 times(m::Motion) = times(m.time)
-add_motion!(motion_array, motion) = typeof(motion.spins) <: SpinRange ? push!(motion_array, motion) : nothing
 is_composable(m::Motion) = is_composable(m.action)

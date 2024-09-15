@@ -38,14 +38,14 @@ MotionList(motions...) = length([motions]) > 0 ? MotionList([motions...]) : @err
 function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
     motion_array_aux = Motion{T}[]
     for m in mv.motions
-        add_motion!(motion_array_aux, m[p])
+        push!(motion_array_aux, m[p])
     end
     return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion{T}()
 end
 function Base.view(mv::MotionList{T}, p) where {T<:Real}
     motion_array_aux = Motion{T}[]
     for m in mv.motions
-        add_motion!(motion_array_aux, @view(m[p]))
+        push!(motion_array_aux, @view(m[p]))
     end
     return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion{T}()
 end
@@ -112,7 +112,7 @@ function get_spin_coords(
     # Composable motions: they need to be run sequentially. Note that they depend on xt, yt, and zt
     for m in Iterators.filter(is_composable, ml.motions)
         t_unit = unit_time(t, m.time)
-        idx = get_idx(m.spins)
+        idx = get_indexing_range(m.spins)
         displacement_x!(@view(ux[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
@@ -122,7 +122,7 @@ function get_spin_coords(
     # Additive motions: these motions can be run in parallel
     for m in Iterators.filter(!is_composable, ml.motions)
         t_unit = unit_time(t, m.time)
-        idx = get_idx(m.spins)
+        idx = get_indexing_range(m.spins)
         displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)

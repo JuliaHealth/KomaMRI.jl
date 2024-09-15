@@ -19,7 +19,7 @@ struct AllSpins <: AbstractSpinSpan end
 # Functions
 Base.getindex(spins::AllSpins, p) = p, spins
 Base.view(spins::AllSpins, p) = p, spins
-get_idx(spins::AllSpins) = Colon()
+get_indexing_range(spins::AllSpins) = Colon()
 expand(sr::AllSpins, Ns::Int) = SpinRange(1:Ns)
 
 """
@@ -66,6 +66,6 @@ function Base.view(spins::SpinRange, p)
 end
 Base.:(==)(sr1::SpinRange, sr2::SpinRange) = sr1.range == sr2.range
 Base.length(sr::SpinRange) = length(sr.range)
-get_idx(spins::SpinRange) = spins.range
+get_indexing_range(spins::SpinRange) = spins.range
 expand(sr::SpinRange, Ns::Int) = sr
 intersect_idx(a, b) = findall(x -> x in a, b)
