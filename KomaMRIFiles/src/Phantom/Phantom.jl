@@ -135,7 +135,7 @@ function write_phantom(
 end
 
 function export_motion!(motion_group::HDF5.Group, motion_list::MotionList)
-    sort_motions!(motion_list)
+    KomaMRIBase.sort_motions!(motion_list)
     for (counter, m) in enumerate(motion_list.motions)
         motion = create_group(motion_group, "motion_$(counter)")
         for key in fieldnames(Motion) # action, time, spins
