@@ -1140,7 +1140,7 @@ function plot_phantom_map(
                     size=4,
                 ),
                 showlegend=false,
-                text=round.(getproperty(ph, key) * factor, digits=4),
+                text=round.(getproperty(obj, key) * factor, digits=4),
                 hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>",
             ),
         ]
@@ -1167,7 +1167,7 @@ function plot_phantom_map(
                 z=(z[:, 1]) * 1e2,
                 mode="markers",
                 marker=attr(;
-                    color=getproperty(ph, key) * factor,
+                    color=getproperty(obj, key) * factor,
                     showscale=colorbar,
                     colorscale=colormap,
                     colorbar=attr(; ticksuffix=unit, title=string(key)),

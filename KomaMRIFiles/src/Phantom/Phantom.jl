@@ -11,8 +11,8 @@ function read_phantom(filename::String)
     file_version = VersionNumber(read_attribute(fid, "Version"))
     program_version = pkgversion(KomaMRIFiles)
     if file_version.major != program_version.major
-        @warn "Version mismatch detected: $file_version (file) vs $program_version (Koma)
-         This may lead to compatibility issues. Please update the file or the program."
+        @warn "KomaMRIFiles: Version mismatch detected: $file_version (used to write .phantom) vs $program_version (installed)
+         This may lead to compatibility issues. "
     end
     phantom_fields = []
     # Name 

@@ -35,11 +35,7 @@ Base.:(==)(m1::NoMotion{T}, m2::NoMotion{T}) where {T<:Real} = true
 Base.:(≈)(m1::NoMotion{T}, m2::NoMotion{T}) where {T<:Real}  = true
 
 function get_spin_coords(
-    mv::NoMotion{T},
-    x::AbstractVector{T},
-    y::AbstractVector{T},
-    z::AbstractVector{T},
-    t::AbstractArray{T}
+    mv::NoMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
 ) where {T<:Real}
     return x, y, z
 end

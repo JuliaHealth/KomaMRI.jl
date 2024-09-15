@@ -8,7 +8,7 @@ end
 function reset_magnetization!(M::Mag{T}, Mxy::AbstractArray{Complex{T}}, motion::MotionList{T}, t, ρ) where {T<:Real}
    for m in motion.motions
       t_unit = KomaMRIBase.unit_time(t, m.time)
-      idx = KomaMRIBase.get_idx(m.spins)
+      idx = KomaMRIBase.get_indexing_range(m.spins)
       reset_magnetization!(@view(M[idx]), @view(Mxy[idx, :]), m.action, t_unit, @view(ρ[idx]))
    end
    return nothing
