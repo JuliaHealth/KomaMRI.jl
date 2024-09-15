@@ -50,8 +50,8 @@ julia> obj.ρ
     motion::AbstractMotionSet{T} = NoMotion{eltype(x)}() 
 end
 
-non_string_phantom_fields = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
-vector_phantom_fields     = Iterators.filter(x -> fieldtype(Phantom, x) <: AbstractVector, fieldnames(Phantom))
+const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
+const VECTOR_PHANTOM_FIELDS     = Iterators.filter(x -> fieldtype(Phantom, x) <: AbstractVector, fieldnames(Phantom))
 
 """Size and length of a phantom"""
 size(x::Phantom) = size(x.ρ)
@@ -66,24 +66,24 @@ Base.view(x::Phantom, i::Integer) = @view(x[i:i])
 """Compare two phantoms"""
 function Base.:(==)(obj1::Phantom, obj2::Phantom)
     if length(obj1) != length(obj2) return false end
-    return reduce(&, [getfield(obj1, field) == getfield(obj2, field) for field in non_string_phantom_fields])
+    return reduce(&, [getfield(obj1, field) == getfield(obj2, field) for field in NON_STRING_PHANTOM_FIELDS])
 end
 function Base.:(≈)(obj1::Phantom, obj2::Phantom)
     if length(obj1) != length(obj2) return false end
-    return reduce(&, [getfield(obj1, field)  ≈ getfield(obj2, field) for field in non_string_phantom_fields])
+    return reduce(&, [getfield(obj1, field)  ≈ getfield(obj2, field) for field in NON_STRING_PHANTOM_FIELDS])
 end
 
 """Separate object spins in a sub-group"""
 function Base.getindex(obj::Phantom, p)
     fields = []
-    for field in non_string_phantom_fields
+    for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, getfield(obj, field)[p]))
     end
     return Phantom(; name=obj.name, fields...)
 end
 function Base.view(obj::Phantom, p)
     fields = []
-    for field in non_string_phantom_fields
+    for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, @view(getfield(obj, field)[p])))
     end
     return Phantom(; name=obj.name, fields...)
@@ -93,7 +93,7 @@ end
 +(obj1::Phantom, obj2::Phantom) = begin
     name = first(obj1.name * "+" * obj2.name, 50) # The name is limited to 50 characters
     fields = []
-    for field in vector_phantom_fields
+    for field in VECTOR_PHANTOM_FIELDS
         push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
     end
     return Phantom(; 
