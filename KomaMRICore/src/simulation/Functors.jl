@@ -52,7 +52,7 @@ x = gpu(x, CUDABackend())
 ```
 """
 function gpu(x, backend::KA.GPU)
-    fmap(x -> adapt(backend, x), x; exclude=_isleaf)
+    return fmap(x -> adapt(backend, x), x; exclude=_isleaf)
 end
 
 # To CPU
@@ -98,8 +98,7 @@ See also [`f32`](@ref).
 f64(m) = paramtype(Float64, m)
 
 # Koma motion-related adapts
-adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(adapt.(Ref(backend), xs.motions))
-adapt_storage(backend::KA.GPU, xs::Motion) = Motion(adapt(backend, xs.action), adapt(backend, xs.time), xs.spins)
+adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
 adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
 adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
 adapt_storage(T::Type{<:Real}, xs::Motion) = Motion(paramtype(T, xs.action), paramtype(T, xs.time), xs.spins)
@@ -107,6 +106,7 @@ adapt_storage(T::Type{<:Real}, xs::Motion) = Motion(paramtype(T, xs.action), par
 #The functor macro makes it easier to call a function in all the parameters
 # Phantom
 @functor Phantom
+@functor Motion
 @functor Translate
 @functor Rotate
 @functor HeartBeat
