@@ -1,3 +1,15 @@
+# We defined two types of Interpolation objects: Interpolator1D and Interpolator2D
+# 1D is for interpolating for 1 spin
+# 2D is for interpolating for 2 or more spins
+# This dispatch based on the number of spins wouldn't be necessary if it weren't for this:
+# https://github.com/JuliaMath/Interpolations.jl/issues/603
+# 
+# Once this issue is solved, this file should be simpler. 
+# We should then be able to define a single method for functions:
+#   - interpolate
+#   - resample
+# and delete the Interpolator1D and Interpolator2D definitions
+
 const Interpolator1D = Interpolations.GriddedInterpolation{
     T,1,V,Itp,K
 } where {
