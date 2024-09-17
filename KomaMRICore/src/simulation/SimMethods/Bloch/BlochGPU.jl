@@ -197,7 +197,7 @@ function run_spin_excitation!(
     pre.ΔT2 .= exp.(-seq.Δt' ./ p.T2)
 
     #Excitation
-    apply_excitation!(backend, 256)(M.xy, M.z, pre.φ, seq.B1, pre.Bz, pre.B, pre.ΔT1, pre.ΔT2, p.ρ, ndrange=size(M.xy,1))
+    apply_excitation!(backend, 512)(M.xy, M.z, pre.φ, seq.B1, pre.Bz, pre.B, pre.ΔT1, pre.ΔT2, p.ρ, ndrange=size(M.xy,1))
     KA.synchronize(backend)
 
     #Reset Spin-State (Magnetization). Only for FlowPath
