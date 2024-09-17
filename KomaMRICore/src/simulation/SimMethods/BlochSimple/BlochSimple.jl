@@ -46,11 +46,12 @@ function run_spin_precession!(
     dur  = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im .* sin.(ϕ))] #This assumes Δw and T2 are constant in time
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
-    reset_magnetization!(M, Mxy, p.motion, seq.t', p.ρ)
+    #Reset Spin-State (Magnetization). Only for FlowPath
+    outflow_spin_reset!(Mxy, seq.t', p.motion)
+    outflow_spin_reset!(M.z, seq.t', p.motion; M0=p.ρ)
     M.xy .= Mxy[:, end]
     #Acquired signal
     sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
-
     return nothing
 end
 
@@ -93,7 +94,9 @@ function run_spin_excitation!(
         #Relaxation
         M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
         M.z .= M.z .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
-        reset_magnetization!(M, M.xy, p.motion, s.t, p.ρ)
+        #Reset Spin-State (Magnetization). Only for FlowPath
+        outflow_spin_reset!(M.xy, s.t, p.motion)
+        outflow_spin_reset!(M.z,  s.t, p.motion; M0=p.ρ)
     end
     #Acquired signal
     #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block

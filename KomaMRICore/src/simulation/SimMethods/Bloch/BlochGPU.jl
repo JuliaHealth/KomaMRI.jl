@@ -151,8 +151,12 @@ function run_spin_precession!(
         if seq_block.first_ADC
             pre.Mxy[:,1] .= M.xy
             pre.Mxy[:,2:end] .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
+            #Reset Spin-State (Magnetization). Only for FlowPath
+            outflow_spin_reset!(pre.Mxy, seq_block.tp_ADC', p.motion; seq_t=seq.t', add_t0=true)
         else
             pre.Mxy .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
+            #Reset Spin-State (Magnetization). Only for FlowPath
+            outflow_spin_reset!(pre.Mxy, seq_block.tp_ADC', p.motion; seq_t=seq.t')
         end
 
         sig .= transpose(sum(pre.Mxy; dims=1))
@@ -161,6 +165,10 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     M.z  .= M.z .* exp.(-seq_block.dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-seq_block.dur ./ p.T1))
     M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* _cis.(pre.ϕ[:,end])
+
+    #Reset Spin-State (Magnetization). Only for FlowPath
+    outflow_spin_reset!(M.xy, seq.t', p.motion)
+    outflow_spin_reset!(M.z,  seq.t', p.motion; M0=p.ρ)
 
     return nothing
 end
@@ -191,6 +199,10 @@ function run_spin_excitation!(
     #Excitation
     apply_excitation!(backend, 256)(M.xy, M.z, pre.φ, seq.B1, pre.Bz, pre.B, pre.ΔT1, pre.ΔT2, p.ρ, ndrange=size(M.xy,1))
     KA.synchronize(backend)
+
+    #Reset Spin-State (Magnetization). Only for FlowPath
+    outflow_spin_reset!(M.xy, seq.t', p.motion)
+    outflow_spin_reset!(M.z,  seq.t', p.motion; M0=p.ρ) # TODO: reset state inside kernel
 
     return nothing
 end
