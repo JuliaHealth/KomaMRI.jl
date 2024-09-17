@@ -38,7 +38,7 @@ end
 init_magnetization(M, M0) = M0
 init_magnetization(M, M0::Real) = begin
    x = similar(M, size(M,1))
-   x .*= M0
+   x .= M0
    return x
 end
 
