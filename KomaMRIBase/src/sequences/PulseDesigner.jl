@@ -345,6 +345,275 @@ function EPI_example(; sys=Scanner())
     return seq
 end
 
-
-export EPI, radial_base, EPI_example
+function EPI_dur(duration::Real,FOV::Real,sys::Scanner)
+	Δt = sys.ADC_Δt
+	FOV_min = 1/(γ*Δt*sys.Gmax)
+	@assert FOV ≥ FOV_min "FOV should be at least bigger than $(ceil(FOV_min))"
+    let
+        epi, epi_new = Sequence(), Sequence()
+        for n in 1:2:5001
+            epi_new = PulseDesigner.EPI(FOV, n, sys)
+            if dur(epi_new) ≤ duration
+                epi = epi_new
+            else
+                d = Delay(duration - dur(epi))
+                seq = d + epi
+                return seq
+            end
+        end
+    end
 end
+function EPI_pablo(FOV::Real, N::Integer, sys::Scanner; Δt=sys.ADC_Δt)
+	Gmax = sys.Gmax
+	Nx = Ny = N #Square acquisition
+	Δx = FOV/(Nx-1)
+	Ta = Δt*(Nx-1) #4-8 us
+    Δτ = Ta/(Ny-1)
+	Ga = 1/(γ*Δt*FOV)
+	ζ = Ga / sys.Smax
+	if Ga > Gmax
+		println("Ga=$(Ga*1e3) mT/m exceeds Gmax=$(Gmax*1e3) mT/m, increasing Δt to Δt_min="*string(round(1e6/(γ*Gmax*FOV),digits=2))*" us...")
+		return EPI_pablo(FOV, N, sys; Δt=1/(γ*Gmax*0.99*FOV))
+	end
+	ϵ1 = Δτ/(Δτ+ζ)
+	#EPI base
+	epi = Sequence(vcat(
+	    [mod(i,2)==0 ? Grad(Ga*(-1)^(i/2),Ta,ζ) : Grad(0.,Δτ,ζ) for i=0:2*Ny-2],  #Gx
+	 	[mod(i,2)==1 ? ϵ1*Grad(Ga,Δτ,ζ) :         Grad(0.,Ta,ζ) for i=0:2*Ny-2])) #Gy
+	epi.ADC = [mod(i,2)==1 ? ADC(0,Δτ,ζ) : ADC(N,Ta,ζ) for i=0:2*Ny-2]
+	# Relevant parameters
+	Δfx_pix = 1/Ta
+	Δt_phase = (Ta+2ζ)*Ny + (Δτ+2ζ)*Ny
+	Δfx_pix_phase = 1/Δt_phase
+	#Pre-wind and wind gradients
+	ϵ2 = Ta/(Ta+ζ)
+    PHASE =   Sequence(reshape(1/2*[Grad(      -Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) #This needs to be calculated differently
+	DEPHASE = Sequence(reshape(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) #for even N
+	seq = PHASE+epi+DEPHASE
+	#Saving parameters
+	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi")
+	return seq
+end
+function EPI_dif(duration::Real,FOV::Real,sys::Scanner)
+	#Δt = sys.ADC_Δt
+	#FOV_min = 1/(γ*Δt*sys.Gmax)
+	#@assert FOV ≥ FOV_min "FOV should be at least bigger than $(FOV_min)"
+	epi = PulseDesigner.EPI_pablo(FOV,128,sys)
+	d = Delay(duration - dur(epi))
+	seq = d+epi
+	return seq
+end
+
+"""
+    seq = diffusion_SE(b_value::Int, b_vector::Vector, δ::Real, Δ::Real, TE::Real; sys::Scanner = Scanner(), ξ::Real = sys.Gmax/sys.Smax)
+
+Returns a Spin-Echo sequence with two diffusion gradients of width δ and a gap of Δ since the beginning of the first diffusion pulse.
+
+#Arguments
+- `b_value`: (`::Int` [s/mm^2]) b-value of the gradient
+- `b_vector`: (`::Vector`) normalized position of the gradient in q-space
+- `δ`: (`::Real` [s]) duration of each diffusion gradient pulse
+- `Δ`: (`::Real` [s]) gap between gradient pulses
+- `TE`: (`::Real` [s]) Echo time of the sequence
+- `sys`: (`::Scanner`) Scanner struct
+
+#Keywords
+- `ξ`: (`::Real` `=sys.Gmax/sys.Smax`) rise/fall times of the gradients
+
+#Returns
+- `seq`: (`::Sequence`) Spin-Echo sequence struct with the desired amplitude and gradients' orientation
+
+#Examples
+```julia-repl
+
+julia> b_value = 1000
+
+julia> b_vector = [-0.0348169195723329, 0.0869745652700947, -0.995601932052952]
+
+julia> δ = 0.0106
+
+julia> Δ = 0.0735
+
+julia> TE = 150e-3
+
+julia> seq = diffusion_SE(b_value, b_vector, δ, Δ, TE)
+
+julia> plot_seq(seq)
+```
+"""
+function diffusion_SE(b_value::Int, b_vector::Vector, δ::Real, Δ::Real, TE::Real, sys::Scanner; ξ::Real = sys.Gmax/sys.Smax)
+	@assert size(b_vector,1) == 3 "b_vector must be a 3 element vector"
+	@assert 1 - sqrt(b_vector'*b_vector) < 1e-11 "b_vector must be normalized"
+	seq = Sequence()
+	b_value < 1e6 ? b_value *=  1e6 : nothing
+	b_max = (γ*2*π)^2*sys.Gmax^2*(δ^2*(Δ - δ/3) + ξ^3/3 - δ*ξ^2/6)
+	@assert b_value < b_max "With that parameters the maximum allowed b-value is: $(floor(b_max*1e-6))"
+	G = Grad(1,δ,ξ,ξ)
+	R = hcat(b_vector,zeros(3,2))
+	A = sqrt(b_value/b_max)*sys.Gmax
+	durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+	rf = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+	rf_inv = (0 + 2.0im)*rf
+	delay_grad = Delay((Δ-dur(G))/2)
+	@assert TE/2 > durRF/2 + dur(G)+(Δ-dur(G))/2 "With that parameters, the minimum allowed TE is: $((durRF/2+dur(G)+Δ/2)*2e3) ms"
+	delay = Delay(TE/2 - durRF - dur(G) - (Δ-dur(G))/2)
+	seq = rf+delay+G+delay_grad+rf_inv+delay_grad+G+delay
+	@show dur(rf+delay+G+delay_grad+rf_inv+delay_grad+G)*1e3
+	seq = R*A*seq
+	return seq
+end
+
+"""
+    seq = diffusion_GRE(b_value::Int, b_vector::Vector, δ::Real, TE::Real,;sys::Scanner = Scanner(), ξ::Real = sys.Gmax/sys.Smax)
+
+Returns a Gradient-Echo sequence with two diffusion gradients of width δ.
+
+#Arguments
+- `b_value`: (`::Int` [s/mm^2]) b-value of the gradient
+- `b_vector`: (`::Vector`) normalized position of the gradient in q-space
+- `δ`: (`::Real` [s]) duration of each diffusion gradient pulse
+- `TE`: (`::Real` [s]) Echo time of the sequence
+- `sys`: (`::Scanner`) Scanner struct
+
+#Keywords
+- `ξ`: (`::Real` `=sys.Gmax/sys.Smax`) rise/fall times of the gradients
+
+#Returns
+- `seq`: (`::Sequence`) Spin-Echo sequence struct with the desired amplitude and gradients' orientation
+
+#Examples
+```julia-repl
+
+julia> b_value = 100
+
+julia> b_vector = [-0.0348169195723329, 0.0869745652700947, -0.995601932052952]
+
+julia> δ = 0.0106
+
+julia> TE = 50e-3
+
+julia> seq = diffusion_GRE(b_value, b_vector, δ, Δ, TE)
+
+julia> plot_seq(seq)
+```
+"""
+function diffusion_GRE(b_value::Int, b_vector::Vector, δ::Real, TE::Real, sys::Scanner;ξ::Real = sys.Gmax/sys.Smax)
+	@assert size(b_vector,1) == 3 "b_vector must be a 3 element vector"
+	@assert 1 - sqrt(b_vector'*b_vector) < 1e-11 "b_vector must be normalized"
+	seq = Sequence()
+	b_value < 1e6 ? b_value = b_value * 1e6 : nothing
+	b_max = 2/3*(γ*2*pi)^2*sys.Gmax^2*(δ^2*(2δ/3 + 2ξ)  + ξ^3/3 - δ*ξ/6)
+	@assert b_value < b_max "With that parameters the maximum allowed b-value is: $(floor(b_max*1e-6))"
+	G = Grad(1,δ,ξ,ξ)
+	R = hcat(b_vector,zeros(3,2))
+	A = sqrt(b_value/b_max)*sys.Gmax
+	durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+	rf = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+	@assert TE/2 > durRF/4 + dur(G) "With that parameters the maximum allowed TE is: $((durRF/4+dur(G))*2e3) ms "	delay = Delay(TE/2 - durRF/4 - dur(G)) #Arbitrary, maybe it should be greater
+	delay = Delay(TE/2 - durRF - dur(G))
+	seq = rf+delay+G+(-G)+delay
+	seq = R*A*seq
+	return seq
+end
+
+
+"""
+    seq = diffusion_STEAM(b_value::Int, b_vector::Vector, δ::Real, TM::Real, TE::Real,;sys::Scanner = Scanner(), ξ::Real = sys.Gmax/sys.Smax)
+Returns a Spin-Echo sequence with two diffusion gradients of width δ and a gap of TM between two last RF pulses.
+
+#Arguments
+- `b_value`: (`::Int` [s/mm^2]) b-value of the gradient
+- `b_vector`: (`::Vector`) normalized position of the gradient in q-space
+- `δ`: (`::Real` [s]) duration of each diffusion gradient pulse
+- `TM`: (`::Real` [s]) gap between two last RF pulses
+- `TE`: (`::Real` [s]) Echo time of the sequence
+- `sys`: (`::Scanner`) Scanner struct
+
+#Keywords
+- `ξ`: (`::Real` `=sys.Gmax/sys.Smax`) rise/fall times of the gradients
+
+#Returns
+- `seq`: (`::Sequence`) Spin-Echo sequence struct with the desired amplitude and gradients' orientation
+
+#Examples
+```julia-repl
+
+julia> b_value = 1000
+
+julia> b_vector = [-0.0348169195723329, 0.0869745652700947, -0.995601932052952]
+
+julia> δ = 0.0106
+
+julia> TM = 0.0735
+
+julia> TE = 150e-3
+
+julia> seq = diffusion_STEAM(b_value, b_vector, δ, TM, TE)
+
+julia> plot_seq(seq)
+```
+"""
+function diffusion_STEAM(b_value::Int, b_vector::Vector, δ::Real, TM::Real, TE::Real, sys::Scanner; ξ::Real = sys.Gmax/sys.Smax)
+	@assert size(b_vector,1) == 3 "b_vector must be a 3 element vector"
+	@assert 1 - sqrt(b_vector'*b_vector) < 1e-11 "b_vector must be normalized"
+	seq = Sequence()
+	G = Grad(1,δ,ξ,ξ)
+	b_value < 1e6 ? b_value = b_value * 1e6 : nothing
+	b_max = (γ*2*pi)^2*sys.Gmax^2*(δ^2*((dur(G)+TM-ξ) - δ/3) + ξ^3/3 - δ*ξ^2/6)
+	@assert b_value < b_max "With that parameters the maximum allowed b-value is: $(floor(b_max*1e-6))"
+	
+	R = hcat(b_vector,zeros(3,2))
+	A = sqrt(b_value/b_max)*sys.Gmax
+	durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+	rf = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+	@assert TE/2 > durRF/2 + dur(G) "With that parameters, the minimum allowed TE is: $((durRF/2+dur(G)+Δ/2)*2e3) ms"
+	delay = Delay(TE/2 - durRF - dur(G))
+	seq = rf+delay+G+rf+Delay(TM)+rf+G+delay
+	seq = R*A*seq
+	return seq
+end
+
+function diffusion_SE_EPI(b_value::Int, b_vector::Vector, δ::Real, Δ::Real, TE::Real, FOV::Real, sys::Scanner; ξ::Real = sys.Gmax/sys.Smax)
+	@assert size(b_vector,1) == 3 "b_vector must be a 3 element vector"
+	# @assert 1 - sqrt(b_vector'*b_vector) < 1e-6 "b_vector must be normalized"
+	seq = Sequence()
+	b_value < 1e6 ? b_value *=  1e6 : nothing
+	b_max = (γ*2*π)^2*sys.Gmax^2*(δ^2*(Δ - δ/3) + ξ^3/3 - δ*ξ^2/6)
+	@assert b_value < b_max "With that parameters the maximum allowed b-value is: $(floor(b_max*1e-6))"
+	G = Grad(1,δ,ξ,ξ)
+	R = hcat(b_vector,zeros(3,2))
+	A = sqrt(b_value/b_max)*sys.Gmax
+	durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+	rf = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+	rf_inv = (0 + 2.0im)*rf
+	delay_grad = Delay((Δ-dur(G))/2)
+	@assert TE/2 > durRF/2 + dur(G)+(Δ-dur(G))/2 "With that parameters, the minimum allowed TE is: $((durRF/2+dur(G)+Δ/2)*2e3) ms"
+	delay = Delay(TE/2 - durRF - dur(G) - (Δ-dur(G))/2)
+	@show epi , t= EPI_dif(2*delay.T,50e-2,sys),2*delay.T
+	seq = rf+delay+G+delay_grad+rf_inv+delay_grad+G
+	@show dur(rf+delay+G+delay_grad+rf_inv+delay_grad+G)*1e3
+	seq = R*A*seq
+	return seq+EPI_dif(2*delay.T,FOV,sys)
+end
+
+function diffusion_STEAM_EPI(b_value::Int, b_vector::Vector, δ::Real, TM::Real, TE::Real, FOV::Real, sys::Scanner; ξ::Real = sys.Gmax/sys.Smax)
+	@assert size(b_vector,1) == 3 "b_vector must be a 3 element vector"
+	@assert 1 - sqrt(b_vector'*b_vector) < 1e-5 "b_vector must be normalized"
+	seq = Sequence()
+	G = Grad(1,δ,ξ,ξ)
+	b_value < 1e6 ? b_value = b_value * 1e6 : nothing
+	b_max = (γ*2*pi)^2*sys.Gmax^2*(δ^2*((dur(G)+TM-ξ) - δ/3) + ξ^3/3 - δ*ξ^2/6)
+	@assert b_value < b_max "With that parameters the maximum allowed b-value is: $(floor(b_max*1e-6))"
+	
+	R = hcat(b_vector,zeros(3,2))
+	A = sqrt(b_value/b_max)*sys.Gmax
+	durRF = π/2/(2π*γ*sys.B1); #90-degree hard excitation pulse
+	rf = PulseDesigner.RF_hard(sys.B1, durRF, sys)
+	@assert TE/2 > durRF/2 + dur(G) "With that parameters, the minimum allowed TE is: $((durRF/2+dur(G)+Δ/2)*2e3) ms"
+	delay = Delay(TE/2 - durRF - dur(G))
+	seq = rf+delay+G+rf+Delay(TM)+rf+G
+	seq = R*A*seq
+	return seq+EPI_dif(2*delay.T,FOV,sys)
+end
+
+export EPI, radial_base, EPI_example end

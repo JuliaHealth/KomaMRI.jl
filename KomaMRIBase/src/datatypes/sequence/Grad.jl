@@ -49,6 +49,58 @@ rotz(θ::Real) = [
     0   0   1
 ]
 
+
+"""
+    Rx = rotxdeg(θ::Real)
+
+Rotates vector counter-clockwise with respect to the x-axis.
+
+# Arguments
+- `θ`: (`::Real`, `[degrees]`) rotation angle
+
+# Returns
+- `Rx`: (`::Matrix{Int64}`) rotation matrix
+"""
+rotxdeg(θ::Real) = [
+    1  0  0
+    0 cos(θ*180/π) -sin(θ*180/π)
+    0 sin(θ*180/π) cos(θ*180/π)
+]
+
+"""
+    Ry = rotydeg(θ::Real)
+
+Rotates vector counter-clockwise with respect to the y-axis.
+
+# Arguments
+- `θ`: (`::Real`, `[deg]`) rotation angle
+
+# Returns
+- `Ry`: (`::Matrix{Int64}`) rotation matrix
+"""
+rotydeg(θ::Real) = [
+    cos(θ*180/π) 0 sin(θ*180/π)
+    0  1  0
+    -sin(θ*180/π) 0  cos(θ*180/π)
+]
+
+"""
+    Rz = rotzdeg(θ::Real)
+
+Rotates vector counter-clockwise with respect to the z-axis.
+
+# Arguments
+- `θ`: (`::Real`, `[deg]`) rotation angle
+
+# Returns
+- `Rz`: (`::Matrix{Int64}`) rotation matrix
+"""
+rotzdeg(θ::Real) = [
+    cos(θ*180/π) -sin(θ*180/π) 0
+    sin(θ*180/π) cos(θ*180/π) 0
+    0   0   1
+]
+
 """
     gr = Grad(A, T)
     gr = Grad(A, T, rise)
