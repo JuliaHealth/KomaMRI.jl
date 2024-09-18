@@ -24,7 +24,7 @@ function outflow_spin_reset!(
     replace_by=0,
     seq_t=0,
     add_t0=false,
-) where T
+)
    # Initialize time: add t0 and normalize
    ts = KomaMRIBase.unit_time(init_time(t, seq_t, add_t0), time_span)
    # Get spin state range affected by the spin span
