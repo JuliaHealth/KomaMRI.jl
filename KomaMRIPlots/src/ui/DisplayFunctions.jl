@@ -1018,17 +1018,23 @@ julia> plot_phantom_map(obj2D, :ρ)
 julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
+function plot_phantom_map(obj::Phantom, key::Symbol; kwargs...)
+    plot_phantom_map(obj, key, obj.motion; kwargs...)
+end
+
+# Plot dynamic phantom (For now, we define two different methods for static and dynamic phantoms)
 function plot_phantom_map(
     obj::Phantom,
-    key::Symbol;
+    key::Symbol,
+    m::MotionList;
     height=700,
     width=nothing,
     darkmode=false,
     view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
     colorbar=true,
+    max_spins=100_000,
     intermediate_time_samples=0,
     max_time_samples=100,
-    max_spins=100_000,
     frame_duration_ms=250,
     kwargs...,
 )
@@ -1118,8 +1124,8 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :cmin, factor * cmin_key)
     cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-    t = process_times(obj.motion)
-    x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
+    t = process_times(m)
+    x, y, z = get_spin_coords(m, obj.x, obj.y, obj.z, t')
 
     x0 = -maximum(abs.([x y z])) * 1e2
     xf = maximum(abs.([x y z])) * 1e2
@@ -1335,6 +1341,154 @@ function plot_phantom_map(
 
     return Plot(trace, l, frames)
 end
+
+# Plot static phantom (For now, we define two different methods for static and dynamic phantoms)
+function plot_phantom_map(
+    obj::Phantom,
+    key::Symbol,
+    m::NoMotion;
+    height=700,
+    width=nothing,
+    darkmode=false,
+    view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
+    colorbar=true,
+    max_spins=100_000,
+    kwargs...,
+)
+    function decimate_uniform_phantom(obj, num_points::Int)
+        dimx, dimy, dimz = KomaMRIBase.get_dims(obj)
+        ss = Int(ceil((length(obj) / num_points)^(1 / sum(KomaMRIBase.get_dims(obj)))))
+        ssx = dimx ? ss : 1
+        ssy = dimy ? ss : 1
+        ssz = dimz ? ss : 1
+        ix = sortperm(obj.x)[1:ssx:end]
+        iy = sortperm(obj.y)[1:ssy:end]
+        iz = sortperm(obj.z)[1:ssz:end]
+        idx = intersect(ix, iy, iz)
+        return obj[idx]
+    end
+
+    if length(obj) > max_spins
+        obj = decimate_uniform_phantom(obj, max_spins)
+        @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)."
+    end
+
+    path = @__DIR__
+	cmin_key = minimum(getproperty(obj,key))
+	cmax_key = maximum(getproperty(obj,key))
+	if key == :T1 || key == :T2 || key == :T2s
+		cmin_key = 0
+		factor = 1e3
+		unit = " ms"
+		if key  == :T1
+			cmax_key = 2500/factor
+			colors = MAT.matread(path*"/assets/T1cm.mat")["T1colormap"]
+			N, _ = size(colors)
+			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
+			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
+		elseif key == :T2 || key == :T2s
+			if key == :T2
+				cmax_key = 250/factor
+			end
+    		colors = MAT.matread(path*"/assets/T2cm.mat")["T2colormap"]
+			N, _ = size(colors)
+			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
+			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
+		end
+	elseif key == :x || key == :y || key == :z
+		factor = 1e2
+		unit = " cm"
+		colormap="Greys"
+	elseif key == :Δw
+		factor = 1/(2π)
+		unit = " Hz"
+		colormap="Greys"
+	else
+		factor = 1
+		cmin_key = 0
+		unit=""
+		colormap="Greys"
+	end
+	cmin_key = get(kwargs, :cmin, factor * cmin_key)
+	cmax_key = get(kwargs, :cmax, factor * cmax_key)
+	x0 = -maximum(abs.([obj.x obj.y obj.z]))*1e2
+    xf =  maximum(abs.([obj.x obj.y obj.z]))*1e2
+	#Layout
+	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
+	l = Layout(;
+        title=obj.name*": "*string(key),
+		xaxis_title="x",
+		yaxis_title="y",
+		plot_bgcolor=plot_bgcolor,
+		paper_bgcolor=bgcolor,
+		xaxis_gridcolor=grid_color,
+		yaxis_gridcolor=grid_color,
+		xaxis_zerolinecolor=grid_color,
+		yaxis_zerolinecolor=grid_color,
+		font_color=text_color,
+		scene=attr(
+			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			yaxis=attr(title="y",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			zaxis=attr(title="z",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
+			aspectmode="manual",
+			aspectratio=attr(x=1,y=1,z=1)),
+		margin=attr(t=50,l=0,r=0),
+		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
+		xaxis=attr(constrain="domain"),
+		yaxis=attr(scaleanchor="x"),
+		hovermode="closest")
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
+	if view_2d
+        h = scatter( 
+            x=obj.x*1e2,
+            y=obj.y*1e2,
+            mode="markers",
+            marker=attr(
+                color=getproperty(obj,key)*factor,
+                showscale=colorbar,
+                colorscale=colormap,
+                colorbar=attr(ticksuffix=unit, title=string(key)),
+                cmin=cmin_key,
+                cmax=cmax_key,
+                size=4
+            ),
+            text=round.(getproperty(obj,key)*factor,digits=4),
+            hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"
+        )
+	else
+        h = scatter3d(
+            x=obj.x*1e2,
+            y=obj.y*1e2,
+            z=obj.z*1e2,
+            mode="markers",
+            marker=attr(
+                color=getproperty(obj,key)*factor,
+                showscale=colorbar,
+                colorscale=colormap,
+                colorbar=attr(ticksuffix=unit, title=string(key)),
+                cmin=cmin_key,
+                cmax=cmax_key,
+                size=2
+            ),
+            text=round.(getproperty(obj,key)*factor,digits=4),
+            hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"
+        )
+	end
+	config = PlotConfig(
+		displaylogo=false,
+		toImageButtonOptions=attr(
+			format="svg", # one of png, svg, jpeg, webp
+		).fields,
+		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
+	)
+	return plot_koma(h, l; config)
+end
+
 
 """
     p = plot_signal(raw::RawAcquisitionData; kwargs...)
