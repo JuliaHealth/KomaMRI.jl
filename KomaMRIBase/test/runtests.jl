@@ -26,9 +26,10 @@ using TestItems, TestItemRunner
 
     @testset "Rot_and_Concat" begin
         # Rotation 2D case
-        A1, A2, T, t = rand(4)
+        A1, A2, A3, T, t = rand(5)
         s = Sequence([Grad(A1,T);
-                    Grad(A2,T)])
+                      Grad(A2,T);
+                      Grad(A3,T);;])
         θ = π*t
         R = rotz(θ)
         s2 = R*s #Matrix-Matrix{Grad} multiplication
@@ -96,7 +97,6 @@ using TestItems, TestItemRunner
         # Test Grad operations
         α = 3
         gradt = α * grad
-        @test size(grad, 1) == 1
         @test gradt.A ≈ α * grad.A
         gradt = grad * α
         @test gradt.A ≈ α * grad.A
@@ -165,8 +165,8 @@ using TestItems, TestItemRunner
         @test dur(rf) ≈ rf.T
         B1x, B1y, B2x, B2y, B3x, B3y, T1, T2, T3 = rand(9)
         rf1, rf2, rf3 = RF(B1x + im*B1y, T1), RF(B1x + im*B1y, T2), RF(B3x + im*B3y, T3)
-        rv = [rf1; rf2; rf3]
-        @test dur(rv) ≈ sum(dur.(rv))
+        rv = [rf1; rf2; rf3 ;;]
+        @test dur(rv) ≈ maximum(dur.(rv); dims=1)
 
     end
 

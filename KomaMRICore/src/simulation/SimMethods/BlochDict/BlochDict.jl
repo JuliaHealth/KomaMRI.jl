@@ -35,23 +35,24 @@ function run_spin_precession!(
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::BlochDict,
-    backend::KA.Backend
+    backend::KA.Backend,
+    prealloc::PreallocResult
 ) where {T<:Real}
     #Simulation
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
-    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw / T(2π * γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
     #Rotation
     if is_ADC_on(seq)
-        ϕ = T(-2π * γ) .* KomaMRIBase.cumtrapz(seq.Δt', Bz, backend)
+        ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)
     else
-        ϕ = T(-2π * γ) .* trapz(seq.Δt', Bz)
+        ϕ = T(-2π .* γ) .* trapz(seq.Δt', Bz)
     end
     #Mxy precession and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im * sin.(ϕ))] #This assumes Δw and T2 are constant in time
+    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im .* sin.(ϕ))] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     #Acquired signal
     sig[:, :, 1] .= transpose(Mxy[:, findall(seq.ADC)])

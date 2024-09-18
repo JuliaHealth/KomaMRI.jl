@@ -22,10 +22,4 @@ export plot_seq,
     plot_image,
     plot_dict
 
-#Package version, KomaMRIPlots.__VERSION__
-using Pkg
-__VERSION__ = VersionNumber(
-    Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]
-)
-
 end
