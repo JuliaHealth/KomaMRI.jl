@@ -19,8 +19,8 @@ end
 # M[i]
 Base.getindex(M::Mag, i::Integer) = Mag(M.xy[i,:], M.z[i,:])
 # M[a:b]
-Base.getindex(M::Mag, i::UnitRange) = Mag(M.xy[i], M.z[i])
-Base.view(M::Mag, i::UnitRange) = @views Mag(M.xy[i], M.z[i])
+Base.getindex(M::Mag, i) = Mag(M.xy[i], M.z[i])
+Base.view(M::Mag, i) = @views Mag(M.xy[i], M.z[i])
 
 # Definition of rotation Spinor×SpinStateRepresentation
 @doc raw"""

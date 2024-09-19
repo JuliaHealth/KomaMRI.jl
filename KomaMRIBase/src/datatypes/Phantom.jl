@@ -1,10 +1,3 @@
-abstract type MotionModel{T<:Real} end
-
-#Motion models:
-include("phantom/motion/SimpleMotion.jl")
-include("phantom/motion/ArbitraryMotion.jl")
-include("phantom/motion/NoMotion.jl")
-
 """
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
 
@@ -24,7 +17,7 @@ a property value representing a spin. This struct serves as an input for the sim
 - `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
 - `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
 - `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
-- `motion`: (`::MotionModel{T<:Real}`) motion model
+- `motion`: (`::AbstractMotion{T<:Real}`) motion
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -54,8 +47,11 @@ julia> obj.ρ
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::MotionModel{T} = NoMotion{eltype(x)}()
+    motion::AbstractMotion{T} = NoMotion{eltype(x)}() 
 end
+
+const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
+const VECTOR_PHANTOM_FIELDS     = Iterators.filter(x -> fieldtype(Phantom, x) <: AbstractVector, fieldnames(Phantom))
 
 """Size and length of a phantom"""
 size(x::Phantom) = size(x.ρ)
@@ -65,29 +61,29 @@ Base.iterate(x::Phantom) = (x[1], 2)
 Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i + 1) : nothing
 Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
+Base.view(x::Phantom, i::Integer) = @view(x[i:i])
 
 """Compare two phantoms"""
-Base.:(==)(obj1::Phantom, obj2::Phantom) = reduce(
-    &,
-    [getfield(obj1, field) == getfield(obj2, field) for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))],
-)
-Base.:(≈)(obj1::Phantom, obj2::Phantom)      = reduce(&, [getfield(obj1, field) ≈ getfield(obj2, field) for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))])
-Base.:(==)(m1::MotionModel, m2::MotionModel) = false
-Base.:(≈)(m1::MotionModel, m2::MotionModel)  = false
+function Base.:(==)(obj1::Phantom, obj2::Phantom)
+    if length(obj1) != length(obj2) return false end
+    return reduce(&, [getfield(obj1, field) == getfield(obj2, field) for field in NON_STRING_PHANTOM_FIELDS])
+end
+function Base.:(≈)(obj1::Phantom, obj2::Phantom)
+    if length(obj1) != length(obj2) return false end
+    return reduce(&, [getfield(obj1, field)  ≈ getfield(obj2, field) for field in NON_STRING_PHANTOM_FIELDS])
+end
 
 """Separate object spins in a sub-group"""
-Base.getindex(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+function Base.getindex(obj::Phantom, p)
     fields = []
-    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+    for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, getfield(obj, field)[p]))
     end
     return Phantom(; name=obj.name, fields...)
 end
-
-"""Separate object spins in a sub-group (lightweigth)."""
-Base.view(obj::Phantom, p::Union{AbstractRange,AbstractVector,Colon}) = begin
+function Base.view(obj::Phantom, p)
     fields = []
-    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+    for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, @view(getfield(obj, field)[p])))
     end
     return Phantom(; name=obj.name, fields...)
@@ -95,13 +91,15 @@ end
 
 """Addition of phantoms"""
 +(obj1::Phantom, obj2::Phantom) = begin
+    name = first(obj1.name * "+" * obj2.name, 50) # The name is limited to 50 characters
     fields = []
-    for field in Iterators.filter(x -> !(x == :name), fieldnames(Phantom))
+    for field in VECTOR_PHANTOM_FIELDS
         push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
     end
-    Nmaxchars = 50
-    name = first(obj1.name * "+" * obj2.name, Nmaxchars)
-    return Phantom(; name=name, fields...)
+    return Phantom(; 
+        name = name, 
+        fields..., 
+        motion = vcat(obj1.motion, obj2.motion, length(obj1), length(obj2)))
 end
 
 """Scalar multiplication of a phantom"""
@@ -121,25 +119,30 @@ function get_dims(obj::Phantom)
 end
 
 """
-    obj = heart_phantom(...)
+    obj = heart_phantom(
+        circumferential_strain, radial_strain, rotation_angle; 
+        heart_rate, asymmetry
+    )
 
 Heart-like LV 2D phantom. The variable `circumferential_strain` and `radial_strain` are for streching (if positive) 
 or contraction (if negative). `rotation_angle` is for rotation.
 
-# Arguments
-- `circumferential_strain`: (`::Real`, `=-0.3`) contraction parameter
-- `radial_strain`: (`::Real`, `=-0.3`) contraction parameter
-- `rotation_angle`: (`::Real`, `=1`) rotation parameter
+# Keywords
+- `circumferential_strain`: (`::Real`, `=-0.3`) contraction parameter. Between -1 and 1
+- `radial_strain`: (`::Real`, `=-0.3`) contraction parameter. Between -1 and 1
+- `rotation_angle`: (`::Real`, `=15.0`, `[º]`) maximum rotation angle
+- `heart_rate`: (`::Real`, `=60`, `[bpm]`) heartbeat frequency
+- `temporal_asymmetry`: (`::Real`, `=0.2`) time fraction of the period in which the systole occurs. Therefore, diastole lasts for `period * (1 - temporal_asymmetry)`
 
 # Returns
-- `phantom`: (`::Phantom`) Heart-like LV phantom struct
+- `obj`: (`::Phantom`) Heart-like LV phantom struct
 """
-function heart_phantom(
+function heart_phantom(;
     circumferential_strain=-0.3,
     radial_strain=-0.3,
-    rotation_angle=15.0;
+    rotation_angle=15.0,
     heart_rate=60,
-    asymmetry=0.2,
+    temporal_asymmetry=0.2,
 )
     #PARAMETERS
     FOV = 10e-2 # [m] Diameter ventricule
@@ -177,16 +180,15 @@ function heart_phantom(
         Dλ1=Dλ1[ρ .!= 0],
         Dλ2=Dλ2[ρ .!= 0],
         Dθ=Dθ[ρ .!= 0],
-        motion=SimpleMotion(
-            PeriodicHeartBeat(;
-                period=period,
-                asymmetry=asymmetry,
-                circumferential_strain=circumferential_strain,
-                radial_strain=radial_strain,
-                longitudinal_strain=0.0,
+        motion=MotionList(
+            HeartBeat(
+                circumferential_strain,
+                radial_strain,
+                0.0,
+                Periodic(; period=period, asymmetry=temporal_asymmetry),
             ),
-            PeriodicRotation(;
-                period=period, asymmetry=asymmetry, yaw=rotation_angle, pitch=0.0, roll=0.0
+            Rotate(
+                0.0, 0.0, rotation_angle, Periodic(; period=period, asymmetry=temporal_asymmetry)
             ),
         ),
     )
@@ -318,7 +320,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
 end
 
 """
-    obj = brain_phantom3D(; ss=4, us=1)
+    obj = brain_phantom3D(; ss=4, us=1, start_end=[160,200])
 
 Creates a three-dimentional brain Phantom struct.
 Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 mm. 
