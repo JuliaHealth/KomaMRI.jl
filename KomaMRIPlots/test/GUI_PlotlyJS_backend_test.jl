@@ -38,7 +38,7 @@
 
     @testset "GUI_motion_phantom" begin
         ph = brain_phantom2D()    #2D phantom
-        ph.motion = MotionList(Translate(0.1, 0.1, 0.1, TimeRange(1:0), SpinRange(1:1000)))
+        ph.motion = MotionList(Translate(0.1, 0.1, 0.1, TimeRange(0.0, 1.0), SpinRange(1:1000)))
 
         @testset "plot_motion_phantom_map_rho" begin
             plot_phantom_map(ph, :ρ, width=800, height=600) #Plotting the phantom's rho map
