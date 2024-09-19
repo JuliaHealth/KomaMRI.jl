@@ -27,7 +27,7 @@ julia>  motionlist = MotionList(
         )
 ```
 """
-struct MotionList{T<:Real} <: AbstractMotionSet{T}
+struct MotionList{T<:Real} <: AbstractMotion{T}
     motions::Vector{<:Motion{T}}
 end
 
@@ -91,7 +91,7 @@ Calculates the position of each spin at a set of arbitrary time instants, i.e. t
 For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `length(t)` columns.
 
 # Arguments
-- `motionset`: (`::AbstractMotionSet{T<:Real}`) phantom motion
+- `motionset`: (`::AbstractMotion{T<:Real}`) phantom motion
 - `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
 - `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
 - `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
@@ -148,7 +148,7 @@ If `motionset::NoMotion`, this function does nothing.
 If `motionset::MotionList`, this function sorts its motions.
 
 # Arguments
-- `motionset`: (`::AbstractMotionSet{T<:Real}`) phantom motion
+- `motionset`: (`::AbstractMotion{T<:Real}`) phantom motion
 
 # Returns
 - `nothing`

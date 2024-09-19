@@ -11,7 +11,7 @@ NoMotion struct. It is used to create static phantoms.
 julia> nomotion = NoMotion{Float64}()
 ```
 """
-struct NoMotion{T<:Real} <: AbstractMotionSet{T} end
+struct NoMotion{T<:Real} <: AbstractMotion{T} end
 
 Base.getindex(mv::NoMotion, p) = mv 
 Base.view(mv::NoMotion, p)     = mv

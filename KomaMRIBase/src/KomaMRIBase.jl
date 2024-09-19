@@ -26,7 +26,7 @@ include("timing/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
 include("datatypes/sequence/Delay.jl")
 # Motion
-include("motion/MotionSet.jl")
+include("motion/AbstractMotion.jl")
 # Phantom
 include("datatypes/Phantom.jl")
 # Simulator

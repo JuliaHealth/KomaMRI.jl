@@ -17,7 +17,7 @@ a property value representing a spin. This struct serves as an input for the sim
 - `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
 - `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
 - `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
-- `motion`: (`::AbstractMotionSet{T<:Real}`) motion set
+- `motion`: (`::AbstractMotion{T<:Real}`) motion
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -47,7 +47,7 @@ julia> obj.ρ
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::AbstractMotionSet{T} = NoMotion{eltype(x)}() 
+    motion::AbstractMotion{T} = NoMotion{eltype(x)}() 
 end
 
 const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))

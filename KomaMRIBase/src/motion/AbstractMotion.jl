@@ -1,4 +1,4 @@
-abstract type AbstractMotionSet{T<:Real} end
+abstract type AbstractMotion{T<:Real} end
 
 # NoMotion
 include("nomotion/NoMotion.jl")

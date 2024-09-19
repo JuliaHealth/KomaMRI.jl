@@ -22,7 +22,7 @@ heart_phantom
 
 ## `Motion`-related functions
 
-### `AbstractMotionSet` types and related functions
+### `AbstractMotion` types and related functions
 ```@docs
 NoMotion
 MotionList
