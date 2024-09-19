@@ -31,7 +31,7 @@ function outflow_spin_reset!(
    idx = KomaMRIBase.get_indexing_range(spin_span)
    spin_state_matrix = @view(spin_state_matrix[idx, :])
    # Obtain mask
-   itp  = KomaMRIBase.interpolate(action.spin_reset, KomaMRIBase.Gridded(KomaMRIBase.Constant{KomaMRIBase.Previous}()), Val(size(action.spin_reset, 1)))
+   itp  = KomaMRIBase.interpolate(action.spin_reset, KomaMRIBase.Gridded(KomaMRIBase.Constant{KomaMRIBase.Previous}()), Val(size(action.spin_reset, 1)), t)
    mask = KomaMRIBase.resample(itp, ts)
    mask .= (cumsum(mask; dims=2) .== 0)
    # Modify spin state: reset and replace by initial value
@@ -56,7 +56,7 @@ function outflow_spin_reset!(
    idx = KomaMRIBase.get_indexing_range(spin_span)
    M = @view(M[idx])
    # Obtain mask
-   itp  = KomaMRIBase.interpolate(action.spin_reset, KomaMRIBase.Gridded(KomaMRIBase.Constant{KomaMRIBase.Previous}()), Val(size(action.spin_reset, 1)))
+   itp  = KomaMRIBase.interpolate(action.spin_reset, KomaMRIBase.Gridded(KomaMRIBase.Constant{KomaMRIBase.Previous}()), Val(size(action.spin_reset, 1)), t)
    mask = KomaMRIBase.resample(itp, ts)
    mask .= (cumsum(mask; dims=2) .== 0)
    mask = @view(mask[:, end])

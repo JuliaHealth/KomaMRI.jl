@@ -11,21 +11,23 @@
 # and delete the Interpolator1D and Interpolator2D definitions
 
 const Interpolator1D = Interpolations.GriddedInterpolation{
-    T,1,V,Itp,K
+    TCoefs,1,V,Itp,K
 } where {
-    T<:Real,
-    V<:AbstractArray{<:Union{T,Bool}},
+    TCoefs<:Real,
+    TNodes<:Real,
+    V<:AbstractArray{TCoefs},
     Itp<:Interpolations.Gridded,
-    K<:Tuple{AbstractVector{T}},
+    K<:Tuple{AbstractVector{TNodes}},
 }
 
 const Interpolator2D = Interpolations.GriddedInterpolation{
-    T,2,V,Itp,K
+    TCoefs,2,V,Itp,K
 } where {
-    T<:Real,
-    V<:AbstractArray{<:Union{T,Bool}},
+    TCoefs<:Real,
+    TNodes<:Real,
+    V<:AbstractArray{TCoefs},
     Itp<:Interpolations.Gridded,
-    K<:Tuple{AbstractVector{T}, AbstractVector{T}},
+    K<:Tuple{AbstractVector{TNodes}, AbstractVector{TNodes}},
 }
 
 abstract type ArbitraryAction{T<:Real} <: AbstractAction{T} end
@@ -44,48 +46,50 @@ function GriddedInterpolation(nodes, A, ITP)
     return Interpolations.GriddedInterpolation{eltype(A), length(nodes), typeof(A), typeof(ITP), typeof(nodes)}(nodes, A, ITP)
 end
 
-function interpolate(d::AbstractArray{T}, ITPType, Ns::Val{1}) where {T<:Real}
+function interpolate(d, ITPType, Ns::Val{1}, t)
     _, Nt = size(d)
-    t = similar(d, Nt); copyto!(t, collect(range(zero(T), oneunit(T), Nt)))
-    return GriddedInterpolation((t, ), d[:], ITPType)
+    t_knots = _similar(t, Nt); copyto!(t_knots, collect(range(zero(eltype(t)), oneunit(eltype(t)), Nt)))
+    return GriddedInterpolation((t_knots, ), d[:], ITPType)
 end
 
-function interpolate(d::AbstractArray{T}, ITPType, Ns::Val) where {T<:Real}
+function interpolate(d, ITPType, Ns::Val, t)
     Ns, Nt = size(d)
-    id = similar(d, Ns); copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
-    t = similar(d, Nt);  copyto!(t, collect(range(zero(T), oneunit(T), Nt)))
-    return GriddedInterpolation((id, t), d, ITPType)
+    id_knots = _similar(t, Ns); copyto!(id_knots, collect(range(oneunit(eltype(t)), eltype(t)(Ns), Ns)))
+    t_knots  = _similar(t, Nt); copyto!(t_knots,  collect(range(zero(eltype(t)), oneunit(eltype(t)), Nt)))
+    return GriddedInterpolation((id_knots, t_knots), d, ITPType)
 end
 
-function resample(itp::Interpolator1D{T}, t) where {T<:Real}
+function resample(itp::Interpolator1D, t)
     return itp.(t)
 end
 
-function resample(itp::Interpolator2D{T}, t) where {T<:Real}
+function resample(itp::Interpolator2D, t)
     Ns = size(itp.coefs, 1)
-    id = similar(itp.coefs, Ns)
-    copyto!(id, collect(range(oneunit(T), T(Ns), Ns)))
+    id = _similar(t, Ns)
+    copyto!(id, collect(range(oneunit(eltype(t)), eltype(t)(Ns), Ns)))
     return itp.(id, t)
 end
 
 function displacement_x!(ux, action::ArbitraryAction, x, y, z, t)
-    itp = interpolate(action.dx, Gridded(Linear()), Val(size(action.dx,1)))
+    itp = interpolate(action.dx, Gridded(Linear()), Val(size(action.dx,1)), t)
     ux .= resample(itp, t)
     return nothing
 end
 
 function displacement_y!(uy, action::ArbitraryAction, x, y, z, t)
-    itp = interpolate(action.dy, Gridded(Linear()), Val(size(action.dy,1)))
+    itp = interpolate(action.dy, Gridded(Linear()), Val(size(action.dy,1)), t)
     uy .= resample(itp, t)
     return nothing
 end
 
 function displacement_z!(uz, action::ArbitraryAction, x, y, z, t)
-    itp = interpolate(action.dz, Gridded(Linear()), Val(size(action.dz,1)))
+    itp = interpolate(action.dz, Gridded(Linear()), Val(size(action.dz,1)), t)
     uz .= resample(itp, t)
     return nothing
 end
 
+_similar(a, N) = similar(a, N)
+_similar(a::Real, N) = zeros(typeof(a), N)
 
 include("arbitraryactions/Path.jl")
 include("arbitraryactions/FlowPath.jl")
