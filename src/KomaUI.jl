@@ -40,7 +40,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     Observables.clear(img_ui)
 
     # For phantom sub-buttons
-    fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
+    fieldnames_obj = [fieldnames(Phantom)[[5:end-5;end]]...] # TODO should this be more explicit on which symbols to include rather than using indices?
     widgets_button_obj = button.(string.(fieldnames_obj))
 
     # Setup the Blink window
