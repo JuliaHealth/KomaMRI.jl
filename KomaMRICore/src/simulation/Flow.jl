@@ -31,12 +31,10 @@ function outflow_spin_reset!(
    idx = KomaMRIBase.get_indexing_range(spin_span)
    spin_state_matrix = @view(spin_state_matrix[idx, :])
    # Obtain mask
-   itp  = KomaMRIBase.interpolate(action.spin_reset, KomaMRIBase.Gridded(KomaMRIBase.Constant{KomaMRIBase.Previous}()), Val(size(action.spin_reset, 1)), t)
-   mask = KomaMRIBase.resample(itp, ts)
-   mask .= (cumsum(mask; dims=2) .== 0)
+   mask = get_mask(action.spin_reset, ts)
    # Modify spin state: reset and replace by initial value
-   spin_state_matrix .*= mask
-   spin_state_matrix .+= replace_by .* (1 .- mask)
+   spin_state_matrix .*= (1 .- mask)
+   spin_state_matrix .+= replace_by .* mask
    return nothing
 end
 
@@ -56,20 +54,31 @@ function outflow_spin_reset!(
    idx = KomaMRIBase.get_indexing_range(spin_span)
    M = @view(M[idx])
    # Obtain mask
-   itp  = KomaMRIBase.interpolate(action.spin_reset, KomaMRIBase.Gridded(KomaMRIBase.Constant{KomaMRIBase.Previous}()), Val(size(action.spin_reset, 1)), t)
-   mask = KomaMRIBase.resample(itp, ts)
-   mask .= (cumsum(mask; dims=2) .== 0)
+   mask = get_mask(action.spin_reset, ts)
    mask = @view(mask[:, end])
    # Modify spin state: reset and replace by initial value
-   M.xy .*= mask
-   M.z  .*= mask
-   M.xy .+= 0          .* (1 .- mask)
-   M.z  .+= replace_by .* (1 .- mask)
+   M.xy .*= (1 .- mask)
+   M.z  .*= (1 .- mask)
+   M.xy .+= 0          .* mask
+   M.z  .+= replace_by .* mask
    return nothing
 end
 
-init_time(t, seq_t, add_t0) = t
-init_time(t, seq_t::AbstractArray, add_t0) = begin
+function init_time(t, seq_t::AbstractArray, add_t0)
    t1 = @view(seq_t[1])
    return add_t0 ? [t1 (t1 .+ t)] : t1 .+ t
+end
+function init_time(t, seq_t, add_t0)
+   return t
+end
+
+function get_mask(spin_reset, t::Real)
+   itp  = KomaMRIBase.interpolate(spin_reset, KomaMRIBase.Gridded(KomaMRIBase.Constant{KomaMRIBase.Previous}()), Val(size(spin_reset, 1)), t)
+   return KomaMRIBase.resample(itp, t)
+end
+function get_mask(spin_reset, t::AbstractArray)
+   itp  = KomaMRIBase.interpolate(spin_reset, KomaMRIBase.Gridded(KomaMRIBase.Constant{KomaMRIBase.Previous}()), Val(size(spin_reset, 1)), t)
+   mask = KomaMRIBase.resample(itp, t)
+   mask .= accumulate(|, mask; dims=2)
+   return mask
 end
