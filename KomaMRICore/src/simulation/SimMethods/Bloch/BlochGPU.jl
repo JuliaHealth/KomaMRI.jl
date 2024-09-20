@@ -189,7 +189,7 @@ function run_spin_excitation!(
 
     #Effective Field
     pre.Bz .= (x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz') .+ pre.ΔBz .- seq.Δf' ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-    pre.B1 .= seq.B1' .* p.B1
+    pre.B1 .= transpose(seq.B1) .* p.B1
     pre.B .= sqrt.(abs.(pre.B1) .^ 2 .+ abs.(pre.Bz) .^ 2)
     
     #Spinor Rotation
