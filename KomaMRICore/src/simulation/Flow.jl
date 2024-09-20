@@ -79,6 +79,6 @@ end
 function get_mask(spin_reset, t::AbstractArray)
    itp  = KomaMRIBase.interpolate(spin_reset, KomaMRIBase.Gridded(KomaMRIBase.Constant{KomaMRIBase.Previous}()), Val(size(spin_reset, 1)), t)
    mask = KomaMRIBase.resample(itp, t)
-   mask .= accumulate(|, mask; dims=2)
+   mask .= (cumsum(mask; dims=2) .== 1)
    return mask
 end
