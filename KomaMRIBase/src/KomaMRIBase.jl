@@ -25,13 +25,14 @@ include("datatypes/sequence/ADC.jl")
 include("timing/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
 include("datatypes/sequence/Delay.jl")
+# Motion
+include("motion/AbstractMotion.jl")
 # Phantom
 include("datatypes/Phantom.jl")
 # Simulator
 include("datatypes/simulation/DiscreteSequence.jl")
 include("timing/TimeStepCalculation.jl")
 include("timing/TrapezoidalIntegration.jl")
-include("timing/UnitTime.jl")
 
 # Main
 export γ    # gyro-magnetic ratio [Hz/T]
@@ -47,11 +48,12 @@ export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion
-export MotionModel
-export NoMotion, SimpleMotion, ArbitraryMotion
-export SimpleMotionType
-export Translation, Rotation, HeartBeat
-export PeriodicTranslation, PeriodicRotation, PeriodicHeartBeat
+export MotionList, NoMotion, Motion
+export Translate, TranslateX, TranslateY, TranslateZ
+export Rotate, RotateX, RotateY, RotateZ 
+export HeartBeat, Path, FlowPath
+export TimeRange, Periodic
+export SpinRange, AllSpins
 export get_spin_coords
 # Secondary
 export get_kspace, rotx, roty, rotz

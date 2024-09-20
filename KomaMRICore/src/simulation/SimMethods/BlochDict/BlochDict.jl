@@ -54,15 +54,21 @@ function run_spin_precession!(
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im .* sin.(ϕ))] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
+    #Reset Spin-State (Magnetization). Only for FlowPath
+    outflow_spin_reset!(Mxy, seq.t', p.motion)
     #Acquired signal
     sig[:, :, 1] .= transpose(Mxy[:, findall(seq.ADC)])
 
     if sim_method.save_Mz
         Mz = [M.z M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1))] #Calculate intermediate points
+        #Reset Spin-State (Magnetization). Only for FlowPath
+        outflow_spin_reset!(Mz, seq.t', p.motion; replace_by=p.ρ)
         sig[:, :, 2] .= transpose(Mz[:, findall(seq.ADC)]) #Save state to signal
         M.z .= Mz[:, end]
     else
         M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point
     end
+    #Reset Spin-State (Magnetization). Only for FlowPath
+    outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
     return nothing
 end
