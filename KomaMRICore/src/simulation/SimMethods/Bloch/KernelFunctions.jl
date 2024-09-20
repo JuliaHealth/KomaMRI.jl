@@ -32,13 +32,13 @@ using KernelAbstractions: @kernel, @Const, @index, @uniform, @groupsize, @localm
         cos_φ = cos(φ[i_g, t])
         s_α_r[i_l] = cos_φ
         if (iszero(B[i_g, t]))
-            s_α_i[i_l] = -(Bz[i_g, t] / (B[i_g, t] + eps(T))) * sin_φ
-            s_β_r[i_l] = (imag(B1[t]) / (B[i_g, t] + eps(T))) * sin_φ
-            s_β_i[i_l] = -(real(B1[t]) / (B[i_g, t] + eps(T))) * sin_φ
+            s_α_i[i_l] = -(Bz[i_g, t] / (B[i_g, t] + eps(T))) * sin_φ # why not zero?
+            s_β_r[i_l] = (imag(B1[i_g, t]) / (B[i_g, t] + eps(T))) * sin_φ
+            s_β_i[i_l] = -(real(B1[i_g, t]) / (B[i_g, t] + eps(T))) * sin_φ
         else
             s_α_i[i_l] = -(Bz[i_g, t] / B[i_g, t]) * sin_φ
-            s_β_r[i_l] = (imag(B1[t]) / B[i_g, t]) * sin_φ
-            s_β_i[i_l] = -(real(B1[t]) / B[i_g, t]) * sin_φ
+            s_β_r[i_l] = (imag(B1[i_g, t]) / B[i_g, t]) * sin_φ
+            s_β_i[i_l] = -(real(B1[i_g, t]) / B[i_g, t]) * sin_φ
         end
             s_Mxy_new_r[i_l] = 2 * (s_Mxy_i[i_l] * (s_α_r[i_l] * s_α_i[i_l] - s_β_r[i_l] * s_β_i[i_l]) +
                                 s_Mz[i_l] * (s_α_i[i_l] * s_β_i[i_l] + s_α_r[i_l] * s_β_r[i_l])) +
