@@ -40,8 +40,8 @@ end
 
 function export_2_mat_phantom(phantom, matfolder; matfilename="phantom.mat")
     phantom_dict = Dict("name" => phantom.name,
-                "columns" => ["x", "y", "z", "rho", "T1", "T2", "T2s", "delta_omega"],
-                "data" => hcat(phantom.x, phantom.y, phantom.z, phantom.ρ, phantom.T1, phantom.T2, phantom.T2s, phantom.Δw))
+                "columns" => ["x", "y", "z", "rho", "T1", "T2", "T2s", "delta_omega", "B1"],
+                "data" => hcat(phantom.x, phantom.y, phantom.z, phantom.ρ, phantom.T1, phantom.T2, phantom.T2s, phantom.Δw, phantom.B1))
     matwrite(joinpath(matfolder, matfilename), Dict("phantom" => phantom_dict))
 end
 

@@ -6,7 +6,7 @@ include("phantom/motion/ArbitraryMotion.jl")
 include("phantom/motion/NoMotion.jl")
 
 """
-    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion, B1)
 
 The Phantom struct. Most of its field names are vectors, with each element associated with
 a property value representing a spin. This struct serves as an input for the simulation.
@@ -25,6 +25,7 @@ a property value representing a spin. This struct serves as an input for the sim
 - `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
 - `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
 - `motion`: (`::MotionModel{T<:Real}`) motion model
+- `B1`: (`::AbstractVector{Complex{T<:Real}}`) spin transmit B1 parameter vector
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -55,6 +56,7 @@ julia> obj.ρ
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
     motion::MotionModel{T} = NoMotion{eltype(x)}()
+    B1::AbstractVector{Complex{T}} = Complex.(ones(eltype(x), size(x)))
 end
 
 """Size and length of a phantom"""

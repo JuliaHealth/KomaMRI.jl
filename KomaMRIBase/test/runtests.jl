@@ -374,8 +374,9 @@ end
     Dλ1 = [-4e-6; -2e-6; 0.0; 2e-6; 4e-6]
     Dλ2 = [-6e-6; -3e-6; 0.0; 3e-6; 6e-6]
     Dθ = [-8e-6; -4e-6; 0.0; 4e-6; 8e-6]
-    obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
-    obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
+    B1 = Complex.([0.8; 0.9; 1.0; 1.1; 1.2])
+    obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, B1=B1)
+    obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, B1=B1)
     @test obj1 == obj2
 
     # Test size and length definitions of a phantom
@@ -571,7 +572,8 @@ end
         Dλ1,
         Dλ2,
         Dθ,
-        simplemotion
+        simplemotion,
+        B1
     )
     rng = 1:2:5
     obs2 = Phantom(
@@ -588,6 +590,7 @@ end
         Dλ2[rng],
         Dθ[rng],
         simplemotion[rng],
+        B1[rng]
     )
     @test obs1[rng] == obs2
     @test @view(obs1[rng]) == obs2
@@ -611,13 +614,14 @@ end
         [Dλ1; Dλ1[rng]],
         [Dλ2; Dλ2[rng]],
         [Dθ; Dθ[rng]],
-        [obs1.motion; obs2.motion]
+        [obs1.motion; obs2.motion],
+        [B1; B1[rng]]
     )
     @test obs1 + obs2 == oba
 
     # Test scalar multiplication of a phantom
     c = 7
-    obc = Phantom(name=name, x=x, y=y, z=z, ρ=c*ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
+    obc = Phantom(name=name, x=x, y=y, z=z, ρ=c*ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, B1=B1)
     @test c * obj1 == obc
 
     #Test brain phantom 2D
