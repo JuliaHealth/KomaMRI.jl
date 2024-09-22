@@ -18,7 +18,7 @@ end
 
 function phantom_brain_simple_motion()
     obj = phantom_brain()
-    obj.motion = SimpleMotion(Translation(t_end=10.0, dx=0.0, dy=1.0, dz=0.0))
+    obj.motion = MotionList(Translate(0.0, 1.0, 0.0, TimeRange(0.0, 10.0)))
     return obj
 end
 
@@ -30,12 +30,11 @@ function phantom_brain_arbitrary_motion()
     dx = zeros(Ns, 2)  
     dz = zeros(Ns, 2)  
     dy = [zeros(Ns,1) ones(Ns,1)]
-    obj.motion = ArbitraryMotion(
-        t_start,
-        t_end,
+    obj.motion = MotionList(Path(
         dx,
         dy,
-        dz)
+        dz,
+        TimeRange(t_start, t_end)))
     return obj
 end
 
@@ -157,4 +156,8 @@ function seq_epi_100x100_TE100_FOV230()
     # Return the sequence
     seq = ex + dephaser + delayTE + epi
     return seq
+end
+
+function NRMSE(x, x_true) 
+    return sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
 end

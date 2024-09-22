@@ -79,7 +79,6 @@ function signal_to_raw_data(
     signal, seq;
     phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
 )
-    version = string(VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "..", "Project.toml"))["version"]))
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information
     mink = minimum(ktraj, dims=1)
@@ -113,7 +112,7 @@ function signal_to_raw_data(
     params = Dict(
         #AcquisitionSystemInformation
         "systemVendor"                   => "KomaMRI.jl", #String
-        "systemModel"                    => "v"*version, #String
+        "systemModel"                    => string(pkgversion(@__MODULE__)), #String
         "systemFieldStrength_T"          => sys.B0, #Float
         "institutionName"                => "Pontificia Universidad Catolica de Chile", #String
         #subjectInformation
@@ -238,4 +237,23 @@ Base.show(io::IO, raw::RawAcquisitionData) = begin
     else
         print(io, "RawAcqData[$seq_name | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
     end
+end
+
+Base.:+(sig1::RawAcquisitionData, sig2::RawAcquisitionData) = RawAcquisitionData(
+    sig1.params,
+    [Profile(
+        sig1.profiles[i].head,
+        sig1.profiles[i].traj,
+        sig1.profiles[i].data .+ sig2.profiles[i].data
+    ) for i=1:length(sig1.profiles)]
+)
+
+Base.isapprox(sig1::RawAcquisitionData, sig2::RawAcquisitionData; kwargs...) = begin
+    (length(sig1.profiles) == length(sig2.profiles)) || return false
+
+    for i=1:length(sig1.profiles)
+        isapprox(sig1.profiles[i].data, sig2.profiles[i].data; kwargs...) || return false
+    end
+
+    return true
 end

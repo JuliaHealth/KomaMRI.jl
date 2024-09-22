@@ -14,7 +14,7 @@ using MRIBase
     Profile, RawAcquisitionData, AcquisitionData, AcquisitionHeader, EncodingCounters, Limit
 using MAT   # For loading example phantoms
 
-global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
+const global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
 # Hardware
 include("datatypes/Scanner.jl")
@@ -25,13 +25,14 @@ include("datatypes/sequence/ADC.jl")
 include("timing/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
 include("datatypes/sequence/Delay.jl")
+# Motion
+include("motion/AbstractMotion.jl")
 # Phantom
 include("datatypes/Phantom.jl")
 # Simulator
 include("datatypes/simulation/DiscreteSequence.jl")
 include("timing/TimeStepCalculation.jl")
 include("timing/TrapezoidalIntegration.jl")
-include("timing/UnitTime.jl")
 
 # Main
 export γ    # gyro-magnetic ratio [Hz/T]
@@ -47,11 +48,12 @@ export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion
-export MotionModel
-export NoMotion, SimpleMotion, ArbitraryMotion
-export SimpleMotionType
-export Translation, Rotation, HeartBeat
-export PeriodicTranslation, PeriodicRotation, PeriodicHeartBeat
+export MotionList, NoMotion, Motion
+export Translate, TranslateX, TranslateY, TranslateZ
+export Rotate, RotateX, RotateY, RotateZ 
+export HeartBeat, Path, FlowPath
+export TimeRange, Periodic
+export SpinRange, AllSpins
 export get_spin_coords
 # Secondary
 export get_kspace, rotx, roty, rotz
@@ -63,11 +65,5 @@ export get_Mk, get_kspace, get_M0, get_M1, get_M2
 # PulseDesigner submodule
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
-
-#Package version, KomaMRIBase.__VERSION__
-using Pkg
-__VERSION__ = VersionNumber(
-    Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]
-)
 
 end # module KomaMRIBase

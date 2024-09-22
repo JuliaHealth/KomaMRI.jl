@@ -6,7 +6,6 @@ _isleaf(x) = isleaf(x)
 _isleaf(::AbstractArray{<:Number}) = true
 _isleaf(::AbstractArray{T}) where T = isbitstype(T)
 _isleaf(::AbstractRange) = true
-
 """
     gpu(x)
 
@@ -77,7 +76,6 @@ adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
-adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
 
 """
     f32(m)
@@ -99,19 +97,22 @@ See also [`f32`](@ref).
 """
 f64(m) = paramtype(Float64, m)
 
+# Koma motion-related adapts
+adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
+adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
+adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
+
 #The functor macro makes it easier to call a function in all the parameters
 # Phantom
 @functor Phantom
-# SimpleMotion
-@functor SimpleMotion
-@functor Translation
-@functor Rotation
+@functor Motion
+@functor Translate
+@functor Rotate
 @functor HeartBeat
-@functor PeriodicTranslation
-@functor PeriodicRotation
-@functor PeriodicHeartBeat
-# ArbitraryMotion
-@functor ArbitraryMotion
+@functor Path
+@functor FlowPath
+@functor TimeRange
+@functor Periodic
 # Spinor
 @functor Spinor
 # DiscreteSequence

@@ -1,4 +1,4 @@
-module KomaMRICore
+module KomaMRICore 
 
 # General
 import Base.*, Base.abs
@@ -20,6 +20,7 @@ include("other/DiffusionModel.jl")
 include("simulation/GPUFunctions.jl")
 include("simulation/Functors.jl")
 include("simulation/SimulatorCore.jl")
+include("simulation/Flow.jl")
 
 # ISMRMRD
 export signal_to_raw_data
@@ -28,9 +29,5 @@ export Mag
 export simulate, simulate_slice_profile
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
-
-#Package version, KomaMRICore.__VERSION__
-using Pkg
-__VERSION__ = VersionNumber(Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
 
 end
