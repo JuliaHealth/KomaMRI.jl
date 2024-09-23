@@ -30,6 +30,11 @@
             @test true                #If the previous line fails the test will fail
         end
 
+        @testset "plot_phantom_map_B1" begin
+            plot_phantom_map(ph, :B1) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+
         @testset "plot_phantom_map_2dview" begin
             plot_phantom_map(ph, :ρ, view_2d=true) #Plotting the phantom's rho map
             @test true                #If the previous line fails the test will fail
@@ -62,6 +67,11 @@
 
         @testset "plot_motion_phantom_map_w" begin
             plot_phantom_map(ph, :Δw) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+
+        @testset "plot_motion_phantom_map_B1" begin
+            plot_phantom_map(ph, :B1) #Plotting the phantom's rho map
             @test true                #If the previous line fails the test will fail
         end
 
