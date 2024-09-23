@@ -59,7 +59,7 @@ function run_spin_precession!(
 ) where {T<:Real}
     #Simulation
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1,:]')
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1])
     
     #Initialize arrays
     Bz_old = prealloc.Bz_old
@@ -79,7 +79,7 @@ function run_spin_precession!(
 
     t_seq = zero(T) # Time
     for seq_idx=2:length(seq.t)
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[seq_idx,:]')
+        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[seq_idx])
         t_seq += seq.Δt[seq_idx-1]
 
         #Effective Field
@@ -93,7 +93,7 @@ function run_spin_precession!(
             @. Mxy = exp(-t_seq / p.T2) * M.xy * cis(ϕ)
 
             #Reset Spin-State (Magnetization). Only for FlowPath
-            outflow_spin_reset!(Mxy, seq.t[seq_idx,:]', p.motion)
+            outflow_spin_reset!(Mxy, seq.t[seq_idx], p.motion)
 
             sig[ADC_idx] = sum(Mxy) 
             ADC_idx += 1
