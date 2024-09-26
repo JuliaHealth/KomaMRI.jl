@@ -409,6 +409,8 @@ function simulate(
         out = Xt
     elseif sim_params["return_type"] == "mat"
         out = sig
+    elseif sim_params["return_type"] == "full"
+        out = Dict("state" => Xt, "mat" => sig)
     elseif sim_params["return_type"] == "raw"
         # To visually check the simulation blocks
         sim_params_raw = copy(sim_params)
