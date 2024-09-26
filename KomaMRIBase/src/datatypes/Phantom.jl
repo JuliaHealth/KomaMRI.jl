@@ -18,8 +18,6 @@ a property value representing a spin. This struct serves as an input for the sim
 - `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
 - `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
 - `motion`: (`::AbstractMotion{T<:Real}`) motion
-- `Mz`: (`::AbstractVector{ComplexF32}`) transverse magnetization parameter vector, only for storage purposes
-- `Mxy`: (`::AbstractVector{ComplexF32}`) longitudinal magnetization parameter vector, only for storage purposes
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -31,7 +29,7 @@ julia> obj = Phantom(x=[0.0])
 julia> obj.ρ
 ```
 """
-@with_kw mutable struct Phantom{T<:Number}
+@with_kw mutable struct Phantom{T<:Real}
     name::String           = "spins"
     x                      :: AbstractVector{T}
     y::AbstractVector{T}   = zeros(eltype(x), size(x))
@@ -50,8 +48,6 @@ julia> obj.ρ
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
     motion::AbstractMotion{T} = NoMotion{eltype(x)}() 
-    Mxy::AbstractVector{ComplexF32} = zeros(eltype(x), size(x)) .+ 0im
-    Mz::AbstractVector{ComplexF32} = zeros(eltype(x), size(x)) .+ 0im
 end
 
 const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
