@@ -199,6 +199,7 @@ function heart_phantom(;
     return phantom
 end
 
+
 """
     phantom = brain_phantom2D(;axis="axial", ss=4)
 
@@ -261,9 +262,127 @@ function brain_phantom2D(; axis="axial", ss=4, us=1, tissue_properties = nothing
     y = (-FOVy / 2):Δy:(FOVy / 2) #spin coordinates
     x, y = x .+ y' * 0, x * 0 .+ y' #grid points
 
-    # Get tissue properties
-    T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(class, tissue_properties)
-    Δw = -2π.*Δw    
+
+    if !isnothing(custom_values)
+        # Define spin property vectors
+        T2 =
+            (class .== 23) * custom_values["T2"][1] .+ #CSF
+            (class .== 46) * custom_values["T2"][2] .+ #GM
+            (class .== 70) * custom_values["T2"][3] .+ #WM
+            (class .== 93) * custom_values["T2"][4] .+ #FAT1
+            (class .== 116) * custom_values["T2"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["T2"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["T2"][7] .+ #SKULL
+            (class .== 185) * custom_values["T2"][8] .+ #VESSELS
+            (class .== 209) * custom_values["T2"][9] .+ #FAT2
+            (class .== 232) * custom_values["T2"][10] .+ #DURA
+            (class .== 255) * custom_values["T2"][11] #MARROW
+        T2s =
+            (class .== 23) * custom_values["T2s"][1] .+ #CSF
+            (class .== 46) * custom_values["T2s"][2] .+ #GM
+            (class .== 70) * custom_values["T2s"][3] .+ #WM
+            (class .== 93) * custom_values["T2s"][4] .+ #FAT1
+            (class .== 116) * custom_values["T2s"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["T2s"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["T2s"][7] .+ #SKULL
+            (class .== 185) * custom_values["T2s"][8] .+ #VESSELS
+            (class .== 209) * custom_values["T2s"][9] .+ #FAT2
+            (class .== 232) * custom_values["T2s"][10] .+ #DURA
+            (class .== 255) * custom_values["T2s"][11] #MARROW
+        T1 =
+            (class .== 23) * custom_values["T1"][1] .+ #CSF
+            (class .== 46) * custom_values["T1"][2] .+ #GM
+            (class .== 70) * custom_values["T1"][3] .+ #WM
+            (class .== 93) * custom_values["T1"][4] .+ #FAT1
+            (class .== 116) * custom_values["T1"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["T1"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["T1"][7] .+ #SKULL
+            (class .== 185) * custom_values["T1"][8] .+ #VESSELS
+            (class .== 209) * custom_values["T1"][9] .+ #FAT2
+            (class .== 232) * custom_values["T1"][10] .+ #DURA
+            (class .== 255) * custom_values["T1"][11] #MARROW
+        ρ =
+            (class .== 23) * custom_values["ρ"][1] .+ #CSF
+            (class .== 46) * custom_values["ρ"][2] .+ #GM
+            (class .== 70) * custom_values["ρ"][3] .+ #WM
+            (class .== 93) * custom_values["ρ"][4] .+ #FAT1
+            (class .== 116) * custom_values["ρ"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["ρ"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["ρ"][7] .+ #SKULL
+            (class .== 185) * custom_values["ρ"][8] .+ #VESSELS
+            (class .== 209) * custom_values["ρ"][9] .+ #FAT2
+            (class .== 232) * custom_values["ρ"][10] .+ #DURA
+            (class .== 255) * custom_values["ρ"][11] #MARROW
+        
+        Δw =
+            (class .== 23) * custom_values["Δw"][1] .+ #CSF
+            (class .== 46) * custom_values["Δw"][2] .+ #GM
+            (class .== 70) * custom_values["Δw"][3] .+ #WM
+            (class .== 93) * custom_values["Δw"][4] .+ #FAT1
+            (class .== 116) * custom_values["Δw"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["Δw"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["Δw"][7] .+ #SKULL
+            (class .== 185) * custom_values["Δw"][8] .+ #VESSELS
+            (class .== 209) * custom_values["Δw"][9] .+ #FAT2
+            (class .== 232) * custom_values["Δw"][10] .+ #DURA
+            (class .== 255) * custom_values["Δw"][11] #MARROW
+        Δw = -2π.*Δw
+
+    else
+        # Define spin property vectors
+        T2 =
+            (class .== 23) * 329 .+ #CSF
+            (class .== 46) * 83 .+ #GM
+            (class .== 70) * 70 .+ #WM
+            (class .== 93) * 70 .+ #FAT1
+            (class .== 116) * 47 .+ #MUSCLE
+            (class .== 139) * 329 .+ #SKIN/MUSCLE
+            (class .== 162) * 0 .+ #SKULL
+            (class .== 185) * 0 .+ #VESSELS
+            (class .== 209) * 70 .+ #FAT2
+            (class .== 232) * 329 .+ #DURA
+            (class .== 255) * 70 #MARROW
+        T2s =
+            (class .== 23) * 58 .+ #CSF
+            (class .== 46) * 69 .+ #GM
+            (class .== 70) * 61 .+ #WM
+            (class .== 93) * 58 .+ #FAT1
+            (class .== 116) * 30 .+ #MUSCLE
+            (class .== 139) * 58 .+ #SKIN/MUSCLE
+            (class .== 162) * 0 .+ #SKULL
+            (class .== 185) * 0 .+ #VESSELS
+            (class .== 209) * 61 .+ #FAT2
+            (class .== 232) * 58 .+ #DURA
+            (class .== 255) * 61 #MARROW
+        T1 =
+            (class .== 23) * 2569 .+ #CSF
+            (class .== 46) * 833 .+ #GM
+            (class .== 70) * 500 .+ #WM
+            (class .== 93) * 350 .+ #FAT1
+            (class .== 116) * 900 .+ #MUSCLE
+            (class .== 139) * 569 .+ #SKIN/MUSCLE
+            (class .== 162) * 0 .+ #SKULL
+            (class .== 185) * 0 .+ #VESSELS
+            (class .== 209) * 500 .+ #FAT2
+            (class .== 232) * 2569 .+ #DURA
+            (class .== 255) * 500 #MARROW
+        ρ =
+            (class .== 23) * 1 .+ #CSF
+            (class .== 46) * 0.86 .+ #GM
+            (class .== 70) * 0.77 .+ #WM
+            (class .== 93) * 1 .+ #FAT1
+            (class .== 116) * 1 .+ #MUSCLE
+            (class .== 139) * 1 .+ #SKIN/MUSCLE
+            (class .== 162) * 0 .+ #SKULL
+            (class .== 185) * 0 .+ #VESSELS
+            (class .== 209) * 0.77 .+ #FAT2
+            (class .== 232) * 1 .+ #DURA
+            (class .== 255) * 0.77 #MARROW
+        Δw_fat = -220 * 2π
+        Δw =
+            (class .== 93) * Δw_fat .+ #FAT1
+            (class .== 209) * Δw_fat    #FAT2
+    end
     T1 = T1 * 1e-3
     T2 = T2 * 1e-3
     T2s = T2s * 1e-3
@@ -352,9 +471,126 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200], tissue_properties=n
     y = 0 * xx .+ 1 * yy .+ 0 * zz
     z = 0 * xx .+ 0 * yy .+ 1 * zz
 
-    # Get tissue properties
-    T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(class, tissue_properties)
-    Δw = -2π.*Δw
+    if !isnothing(custom_values)
+        # Define spin property vectors
+        T2 =
+            (class .== 23) * custom_values["T2"][1] .+ #CSF
+            (class .== 46) * custom_values["T2"][2] .+ #GM
+            (class .== 70) * custom_values["T2"][3] .+ #WM
+            (class .== 93) * custom_values["T2"][4] .+ #FAT1
+            (class .== 116) * custom_values["T2"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["T2"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["T2"][7] .+ #SKULL
+            (class .== 185) * custom_values["T2"][8] .+ #VESSELS
+            (class .== 209) * custom_values["T2"][9] .+ #FAT2
+            (class .== 232) * custom_values["T2"][10] .+ #DURA
+            (class .== 255) * custom_values["T2"][11] #MARROW
+        T2s =
+            (class .== 23) * custom_values["T2s"][1] .+ #CSF
+            (class .== 46) * custom_values["T2s"][2] .+ #GM
+            (class .== 70) * custom_values["T2s"][3] .+ #WM
+            (class .== 93) * custom_values["T2s"][4] .+ #FAT1
+            (class .== 116) * custom_values["T2s"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["T2s"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["T2s"][7] .+ #SKULL
+            (class .== 185) * custom_values["T2s"][8] .+ #VESSELS
+            (class .== 209) * custom_values["T2s"][9] .+ #FAT2
+            (class .== 232) * custom_values["T2s"][10] .+ #DURA
+            (class .== 255) * custom_values["T2s"][11] #MARROW
+        T1 =
+            (class .== 23) * custom_values["T1"][1] .+ #CSF
+            (class .== 46) * custom_values["T1"][2] .+ #GM
+            (class .== 70) * custom_values["T1"][3] .+ #WM
+            (class .== 93) * custom_values["T1"][4] .+ #FAT1
+            (class .== 116) * custom_values["T1"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["T1"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["T1"][7] .+ #SKULL
+            (class .== 185) * custom_values["T1"][8] .+ #VESSELS
+            (class .== 209) * custom_values["T1"][9] .+ #FAT2
+            (class .== 232) * custom_values["T1"][10] .+ #DURA
+            (class .== 255) * custom_values["T1"][11] #MARROW
+        ρ =
+            (class .== 23) * custom_values["ρ"][1] .+ #CSF
+            (class .== 46) * custom_values["ρ"][2] .+ #GM
+            (class .== 70) * custom_values["ρ"][3] .+ #WM
+            (class .== 93) * custom_values["ρ"][4] .+ #FAT1
+            (class .== 116) * custom_values["ρ"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["ρ"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["ρ"][7] .+ #SKULL
+            (class .== 185) * custom_values["ρ"][8] .+ #VESSELS
+            (class .== 209) * custom_values["ρ"][9] .+ #FAT2
+            (class .== 232) * custom_values["ρ"][10] .+ #DURA
+            (class .== 255) * custom_values["ρ"][11] #MARROW
+        
+        Δw =
+            (class .== 23) * custom_values["Δw"][1] .+ #CSF
+            (class .== 46) * custom_values["Δw"][2] .+ #GM
+            (class .== 70) * custom_values["Δw"][3] .+ #WM
+            (class .== 93) * custom_values["Δw"][4] .+ #FAT1
+            (class .== 116) * custom_values["Δw"][5] .+ #MUSCLE
+            (class .== 139) * custom_values["Δw"][6] .+ #SKIN/MUSCLE
+            (class .== 162) * custom_values["Δw"][7] .+ #SKULL
+            (class .== 185) * custom_values["Δw"][8] .+ #VESSELS
+            (class .== 209) * custom_values["Δw"][9] .+ #FAT2
+            (class .== 232) * custom_values["Δw"][10] .+ #DURA
+            (class .== 255) * custom_values["Δw"][11] #MARROW
+        Δw = -2π.*Δw
+
+    else
+        # Define spin property vectors
+        T2 =
+            (class .== 23) * 329 .+ #CSF
+            (class .== 46) * 83 .+ #GM
+            (class .== 70) * 70 .+ #WM
+            (class .== 93) * 70 .+ #FAT1
+            (class .== 116) * 47 .+ #MUSCLE
+            (class .== 139) * 329 .+ #SKIN/MUSCLE
+            (class .== 162) * 0 .+ #SKULL
+            (class .== 185) * 0 .+ #VESSELS
+            (class .== 209) * 70 .+ #FAT2
+            (class .== 232) * 329 .+ #DURA
+            (class .== 255) * 70 #MARROW
+        T2s =
+            (class .== 23) * 58 .+ #CSF
+            (class .== 46) * 69 .+ #GM
+            (class .== 70) * 61 .+ #WM
+            (class .== 93) * 58 .+ #FAT1
+            (class .== 116) * 30 .+ #MUSCLE
+            (class .== 139) * 58 .+ #SKIN/MUSCLE
+            (class .== 162) * 0 .+ #SKULL
+            (class .== 185) * 0 .+ #VESSELS
+            (class .== 209) * 61 .+ #FAT2
+            (class .== 232) * 58 .+ #DURA
+            (class .== 255) * 61 #MARROW
+        T1 =
+            (class .== 23) * 2569 .+ #CSF
+            (class .== 46) * 833 .+ #GM
+            (class .== 70) * 500 .+ #WM
+            (class .== 93) * 350 .+ #FAT1
+            (class .== 116) * 900 .+ #MUSCLE
+            (class .== 139) * 569 .+ #SKIN/MUSCLE
+            (class .== 162) * 0 .+ #SKULL
+            (class .== 185) * 0 .+ #VESSELS
+            (class .== 209) * 500 .+ #FAT2
+            (class .== 232) * 2569 .+ #DURA
+            (class .== 255) * 500 #MARROW
+        ρ =
+            (class .== 23) * 1 .+ #CSF
+            (class .== 46) * 0.86 .+ #GM
+            (class .== 70) * 0.77 .+ #WM
+            (class .== 93) * 1 .+ #FAT1
+            (class .== 116) * 1 .+ #MUSCLE
+            (class .== 139) * 1 .+ #SKIN/MUSCLE
+            (class .== 162) * 0 .+ #SKULL
+            (class .== 185) * 0 .+ #VESSELS
+            (class .== 209) * 0.77 .+ #FAT2
+            (class .== 232) * 1 .+ #DURA
+            (class .== 255) * 0.77 #MARROW
+        Δw_fat = -220 * 2π
+        Δw =
+            (class .== 93) * Δw_fat .+ #FAT1
+            (class .== 209) * Δw_fat    #FAT2
+    end
     T1 = T1 * 1e-3
     T2 = T2 * 1e-3
     T2s = T2s * 1e-3
