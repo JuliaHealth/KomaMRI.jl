@@ -34,7 +34,11 @@ using TestItems, TestItemRunner
         R = rotz(θ)
         s2 = R*s #Matrix-Matrix{Grad} multiplication
         GR2 = R*s.GR.A #Matrix-vector multiplication
-        @test s2.GR.A ≈ GR2
+        @test s2.GR.A    ≈ GR2
+        @test s.GR.T     == s2.GR.T
+        @test s.GR.delay == s2.GR.delay
+        @test s.GR.rise  == s2.GR.rise
+        @test s.GR.fall  == s2.GR.fall
         # Rotation 3D case
         T, t1, t2, t3 = rand(4)
         N = 100
@@ -47,8 +51,11 @@ using TestItems, TestItemRunner
         R = Rx*Ry*Rz
         s2 = R*s #Matrix-Matrix{Grad} multiplication
         GR2 = R*s.GR.A #Matrix-vector multiplication
-        @test s2.GR.A ≈ GR2
-
+        @test s2.GR.A    ≈ GR2
+        @test s.GR.T     == s2.GR.T
+        @test s.GR.delay == s2.GR.delay
+        @test s.GR.rise  == s2.GR.rise
+        @test s.GR.fall  == s2.GR.fall
         # Concatenation of sequences
         A1, A2, A3, T1 = rand(4)
         s1 = Sequence([Grad(A1,T1);
