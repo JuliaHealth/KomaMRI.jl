@@ -224,13 +224,20 @@ julia> obj = brain_phantom2D(; axis="sagittal", ss=1)
 
 julia> obj = brain_phantom2D(; axis="axial", us=[1, 2])
 
-julia> phantom_values = Dict(
-    #CSF, GM, WM, FAT1, MUSCLE, SKIN/MUSCLE, SKULL, VESSELS, FAT2, DURA, MARROW
-    "T1"=> [2569, 1153, 746, 0, 0, 0, 0, 0, 0, 0, 0], 
-    "T2" => [329, 83, 70, 0, 0, 0, 0, 0, 0, 0, 0],
-    "T2s" => [58, 69, 61, 0, 0, 0, 0, 0, 0, 0, 0],
-    "ρ" => [1, 0.86, 0.77, 0, 0, 0, 0, 0, 0, 0, 0],
-    "Δw" => [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+julia> phantom_values = 
+    Dict(
+        # T1, T2, T2*, ρ, Δw
+        "CSF" => [2569, 329, 58, 1, 0],
+        "GM" => [1153, 83, 69, 0.86, 0],
+        "WM" => [746, 70, 61, 0.77, 0],
+        "FAT1" => [0, 0, 0, 0, 0],
+        "MUSCLE" => [0, 0, 0, 0, 0],
+        "SKIN/MUSCLE" => [0, 0, 0, 0, 0],
+        "SKULL" => [0, 0, 0, 0, 0],
+        "VESSELS" => [0, 0, 0, 0, 0],
+        "FAT2" => [0, 0, 0, 0, 0],
+        "DURA" => [0, 0, 0, 0, 0],
+        "MARROW" => [0, 0, 0, 0, 0])
 julia> obj = brain_phantom2D(; tissue_properties=phantom_values)
 
 julia> plot_phantom_map(obj, :ρ)
@@ -308,13 +315,20 @@ julia> obj = brain_phantom3D(; ss=5)
 
 julia> obj = brain_phantom3D(; us=[2, 2, 1])
 
-julia> phantom_values = Dict(
-    #CSF, GM, WM, FAT1, MUSCLE, SKIN/MUSCLE, SKULL, VESSELS, FAT2, DURA, MARROW
-    "T1"=> [2569, 1153, 746, 0, 0, 0, 0, 0, 0, 0, 0], 
-    "T2" => [329, 83, 70, 0, 0, 0, 0, 0, 0, 0, 0],
-    "T2s" => [58, 69, 61, 0, 0, 0, 0, 0, 0, 0, 0],
-    "ρ" => [1, 0.86, 0.77, 0, 0, 0, 0, 0, 0, 0, 0],
-    "Δw" => [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+julia> phantom_values = 
+    Dict(
+        # T1, T2, T2*, ρ, Δw
+        "CSF" => [2569, 329, 58, 1, 0],
+        "GM" => [1153, 83, 69, 0.86, 0],
+        "WM" => [746, 70, 61, 0.77, 0],
+        "FAT1" => [0, 0, 0, 0, 0],
+        "MUSCLE" => [0, 0, 0, 0, 0],
+        "SKIN/MUSCLE" => [0, 0, 0, 0, 0],
+        "SKULL" => [0, 0, 0, 0, 0],
+        "VESSELS" => [0, 0, 0, 0, 0],
+        "FAT2" => [0, 0, 0, 0, 0],
+        "DURA" => [0, 0, 0, 0, 0],
+        "MARROW" => [0, 0, 0, 0, 0])
 julia> obj = brain_phantom3D(; tissue_properties=phantom_values)
 
 julia> plot_phantom_map(obj, :ρ)
