@@ -162,7 +162,9 @@ E_iso_y = abs.(S1_iso_y)./abs.(S0_iso[1,1,1]) # Computing attenuation as the rat
 E_iso_z = abs.(S1_iso_z)./abs.(S0_iso[1,1,1]) # Computing attenuation as the ratio between diffusion and baseline
 E_iso_eq = abs.(S1_iso_eq)./abs.(S0_iso[1,1,1]) # Computing attenuation as the ratio between diffusion and baseline
 
-E_iso_theoretical = exp.(-b.*1e6.*2e-9)
+E_theoretical = exp.(-b.*1e6.*2e-9)
+
+E_iso = [E_iso_x E_iso_y E_iso_z E_iso_eq E_theoretical]
 
 S0_x = simulate(phantom_x, seq_baseline, sys; sim_params) # Simulation of the baseline acquisition
 S1_x_x = ComplexF32[]
@@ -184,15 +186,25 @@ E_x_y = abs.(S1_x_y)./abs.(S0_x[1,1,1]) # Computing attenuation as the ratio bet
 E_x_z = abs.(S1_x_z)./abs.(S0_x[1,1,1]) # Computing attenuation as the ratio between diffusion and baseline
 E_x_eq = abs.(S1_x_eq)./abs.(S0_x[1,1,1]) # Computing attenuation as the ratio between diffusion and baseline
 
+E_x = [E_x_x E_x_y E_x_z E_x_eq E_theoretical]
 ## Plotting isotropic attenuation
 
-using Plots
+using PlotlyJS
 
-plot([300,600,900,1200,2000,3600],E_iso_x,label="Attenuation with [1,0,0] b-vector",title="Isotropic diffusivity")
-plot!([300,600,900,1200,2000,3600],E_iso_y,label="Attenuation with [0,1,0] b-vector")
-plot!([300,600,900,1200,2000,3600],E_iso_z,label="Attenuation with [0,0,1] b-vector")
-plot!([300,600,900,1200,2000,3600],E_iso_eq,label="Attenuation with [√3/3,√3/3,√3/3] b-vector")
-plot!([300,600,900,1200,2000,3600],E_iso_theoretical,label="Theoretical attenuation")
+trace_1_iso = scatter(x = b, y = E_iso_x, name = "[1,0,0] b-vector")
+trace_2_iso = scatter(x = b, y = E_iso_y, name = "[0,1,0] b-vector")
+trace_3_iso = scatter(x = b, y = E_iso_z, name = "[0,0,1] b-vector")
+trace_4_iso = scatter(x = b, y = E_iso_eq, name = "[√3/3,√3/3,√3/3] b-vector")
+trace_5_iso = scatter(x = b, y = E_theoretical, name = "Theoretical")
+
+layout_iso = Layout(;
+    title=attr(; text    = "Isotropic diffusivity", y       = 0.95, x       = 0.5, xanchor = "center", yanchor = "top")
+)
+
+fig_iso = plot([trace_1_iso, trace_2_iso, trace_3_iso, trace_4_iso, trace_5_iso],layout_iso)
+relayout!(fig_iso; xaxis=attr(; tickmode = "array", tickvals = [300, 600, 900, 1200, 2000, 3600]))
+fig_iso
+
 
 # In this figure all sequences get similar results since the placement of the gradients does not affect
 # the received signal. The random nature of Brownian motion makes the differences in signal loss in the different
@@ -200,11 +212,20 @@ plot!([300,600,900,1200,2000,3600],E_iso_theoretical,label="Theoretical attenuat
 
 ## Plotting x-axis attenuation
 
-plot([300,600,900,1200,2000,3600],E_x_x,label="Attenuation with [1,0,0] b-vector",title="X-axis diffusivity",xlabel = "b-value",ylabel = "attenuation")
-plot!([300,600,900,1200,2000,3600],E_x_y,label="Attenuation with [0,1,0] b-vector")
-plot!([300,600,900,1200,2000,3600],E_x_z,label="Attenuation with [0,0,1] b-vector")
-plot!([300,600,900,1200,2000,3600],E_x_eq,label="Attenuation with [√3/3,√3/3,√3/3] b-vector")
-plot!([300,600,900,1200,2000,3600],E_iso_theoretical,label="Theoretical attenuation")
+trace_1_x = scatter(x = b, y = E_x_x, name = "[1,0,0] b-vector")
+trace_2_x = scatter(x = b, y = E_x_y, name = "[0,1,0] b-vector")
+trace_3_x = scatter(x = b, y = E_x_z, name = "[0,0,1] b-vector")
+trace_4_x = scatter(x = b, y = E_x_eq, name = "[√3/3,√3/3,√3/3] b-vector")
+trace_5_x = scatter(x = b, y = E_theoretical, name = "Theoretical")
+
+layout_x = Layout(;
+    title=attr(; text    = "X-axis diffusivity", y       = 0.95, x       = 0.5, xanchor = "center", yanchor = "top")
+)
+
+fig_x = plot([trace_1_x, trace_2_x, trace_3_x, trace_4_x, trace_5_x], layout_x)
+
+relayout!(fig_x; xaxis=attr(; tickmode = "array", tickvals = [300, 600, 900, 1200, 2000, 3600]))
+fig_x
 
 # In this figure, y and z b-vectors do not get diffusion signal at all, as they remain in 1. 
 # The gradient placed in the x axis receive an amount of signal similar to the first scenario, relatable to the theoretical value.
