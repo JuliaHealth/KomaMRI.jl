@@ -56,7 +56,7 @@ function run_spin_precession!(
 ) where {T<:Real}
     #Simulation
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1,:]')
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1])
     
     #Initialize arrays
     Bz_old = prealloc.Bz_old
@@ -76,7 +76,7 @@ function run_spin_precession!(
 
     t_seq = zero(T) # Time
     for seq_idx=2:length(seq.t)
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[seq_idx,:]')
+        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[seq_idx])
         t_seq += seq.Δt[seq_idx-1]
 
         #Effective Field
@@ -88,6 +88,10 @@ function run_spin_precession!(
         #Acquired Signal
         if seq_idx <= length(seq.ADC) && seq.ADC[seq_idx]
             @. Mxy = exp(-t_seq / p.T2) * M.xy * cis(ϕ)
+
+            #Reset Spin-State (Magnetization). Only for FlowPath
+            outflow_spin_reset!(Mxy, seq.t[seq_idx], p.motion)
+
             sig[ADC_idx] = sum(Mxy) 
             ADC_idx += 1
         end
@@ -98,6 +102,9 @@ function run_spin_precession!(
     #Final Spin-State
     @. M.xy = M.xy * exp(-t_seq / p.T2) * cis(ϕ)
     @. M.z = M.z * exp(-t_seq / p.T1) + p.ρ * (T(1) - exp(-t_seq / p.T1))
+    
+    #Reset Spin-State (Magnetization). Only for FlowPath
+    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
 
     return nothing
 end
@@ -142,6 +149,9 @@ function run_spin_excitation!(
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
         @. M.z = M.z * exp(-s.Δt / p.T1) + p.ρ * (T(1) - exp(-s.Δt / p.T1))
+        
+        #Reset Spin-State (Magnetization). Only for FlowPath
+        outflow_spin_reset!(M,  s.t, p.motion; replace_by=p.ρ)
     end
     #Acquired signal
     #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block

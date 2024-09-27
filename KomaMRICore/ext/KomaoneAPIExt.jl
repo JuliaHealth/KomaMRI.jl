@@ -47,8 +47,9 @@ end
 ## COV_EXCL_START
 @kernel function naive_cumsum!(B, @Const(A))
     i = @index(Global)
+    T = eltype(A)
 
-    cur_val = 0.0f0
+    cur_val = zero(T)
     for k ∈ 1:size(A, 2)
         @inbounds cur_val += A[i, k]
         @inbounds B[i, k] = cur_val

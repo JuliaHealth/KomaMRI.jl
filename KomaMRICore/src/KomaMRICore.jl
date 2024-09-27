@@ -1,4 +1,4 @@
-module KomaMRICore
+module KomaMRICore 
 
 # General
 import Base.*, Base.abs
@@ -20,6 +20,7 @@ include("other/DiffusionModel.jl")
 include("simulation/GPUFunctions.jl")
 include("simulation/Functors.jl")
 include("simulation/SimulatorCore.jl")
+include("simulation/Flow.jl")
 
 # ISMRMRD
 using LinearAlgebra
