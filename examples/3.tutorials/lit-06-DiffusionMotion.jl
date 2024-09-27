@@ -198,7 +198,9 @@ trace_4_iso = scatter(x = b, y = E_iso_eq, name = "[√3/3,√3/3,√3/3] b-vect
 trace_5_iso = scatter(x = b, y = E_theoretical, name = "Theoretical")
 
 layout_iso = Layout(;
-    title=attr(; text    = "Isotropic diffusivity", y       = 0.95, x       = 0.5, xanchor = "center", yanchor = "top")
+    title=attr(; text    = "Isotropic diffusivity", y       = 0.95, x       = 0.5, xanchor = "center", yanchor = "top"),
+    xaxis_title = "b-value",
+    yaxis_title = "Attenuation"
 )
 
 fig_iso = plot([trace_1_iso, trace_2_iso, trace_3_iso, trace_4_iso, trace_5_iso],layout_iso)
@@ -219,12 +221,14 @@ trace_4_x = scatter(x = b, y = E_x_eq, name = "[√3/3,√3/3,√3/3] b-vector")
 trace_5_x = scatter(x = b, y = E_theoretical, name = "Theoretical")
 
 layout_x = Layout(;
-    title=attr(; text    = "X-axis diffusivity", y       = 0.95, x       = 0.5, xanchor = "center", yanchor = "top")
+    title=attr(; text    = "X-axis diffusivity", y       = 0.95, x       = 0.5, xanchor = "center", yanchor = "top"),
+    xaxis_title = "b-value",
+    yaxis_title = "Attenuation"
 )
 
 fig_x = plot([trace_1_x, trace_2_x, trace_3_x, trace_4_x, trace_5_x], layout_x)
 
-relayout!(fig_x; xaxis=attr(; tickmode = "array", tickvals = [300, 600, 900, 1200, 2000, 3600]))
+relayout!(fig_x; xaxis=attr(; tickmode="array", tickvals=[300, 600, 900, 1200, 2000, 3600]))
 fig_x
 
 # In this figure, y and z b-vectors do not get diffusion signal at all, as they remain in 1. 
