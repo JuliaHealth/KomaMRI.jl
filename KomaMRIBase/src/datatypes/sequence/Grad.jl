@@ -226,12 +226,12 @@ Base.zero(::Type{Grad}) = Grad(0.0, 0.0)
 # Rotation
 Base.zero(::Grad) = Grad(0.0, 0.0)
 *(α::Real, x::Grad) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
-+(x::Grad, y::Grad) = Grad(x.A .+ y.A, x.T, x.rise, x.fall, x.delay)
++(x::Grad, y::Grad) = Grad(x.A .+ y.A, max(x.T, y.T), max(x.rise, y.rise), max(x.fall, y.fall), max(x.delay, y.delay)) #TODO: solve this in a better way (by "stacking" gradients) issue #487
 # Others
 *(x::Grad, α::Real) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
 /(x::Grad, α::Real) = Grad(x.A / α, x.T, x.rise, x.fall, x.delay)
 -(x::Grad) = -1 * x
--(x::Grad, y::Grad) = Grad(x.A .- y.A, x.T, x.rise, x.fall, x.delay)
+-(x::Grad, y::Grad) = Grad(x.A .- y.A, max(x.T, y.T), max(x.rise, y.rise), max(x.fall, y.fall), max(x.delay, y.delay)) #TODO: solve this in a better way (by "stacking" gradients) issue #487
 
 # Gradient functions
 function vcat(x::Array{Grad,1}, y::Array{Grad,1})

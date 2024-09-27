@@ -30,6 +30,7 @@ function outflow_spin_reset!(
    # Get spin state range affected by the spin span
    idx = KomaMRIBase.get_indexing_range(spin_span)
    spin_state_matrix = @view(spin_state_matrix[idx, :])
+   replace_by = replace_view(replace_by, idx)
    # Obtain mask
    mask = get_mask(action.spin_reset, ts)
    # Modify spin state: reset and replace by initial value
@@ -53,6 +54,7 @@ function outflow_spin_reset!(
    # Get spin state range affected by the spin span
    idx = KomaMRIBase.get_indexing_range(spin_span)
    M = @view(M[idx])
+   replace_by = replace_view(replace_by, idx)
    # Obtain mask
    mask = get_mask(action.spin_reset, ts)
    mask = @view(mask[:, end])
@@ -70,6 +72,13 @@ function init_time(t, seq_t::AbstractArray, add_t0)
 end
 function init_time(t, seq_t, add_t0)
    return t
+end
+
+function replace_view(replace_by::AbstractArray, idx)
+   return @view(replace_by[idx])
+end
+function replace_view(replace_by, idx)
+   return replace_by
 end
 
 function get_mask(spin_reset, t::Real)
