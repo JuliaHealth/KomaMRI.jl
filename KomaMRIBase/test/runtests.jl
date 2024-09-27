@@ -555,14 +555,14 @@ end
 
     simplemotion = MotionList(
         Translate(0.05, 0.05, 0.0, Periodic(period=0.5, asymmetry=0.5)),
-        Rotate(0.0, 0.0, 90.0, TimeRange(t_start=0.05, t_end=0.5))
+        Rotate(0.0, 0.0, 90.0, TimeRange(t_start=0.05, t_end=0.5), SpinRange(1:3))
     )
 
     Ns = length(obj1)
     Nt = 3
     t_start = 0.0
     t_end = 1.0
-    arbitrarymotion = MotionList(Path(0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), TimeRange(t_start, t_end)))
+    arbitrarymotion = MotionList(Path(0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), TimeRange(t_start, t_end), SpinRange(2:2:4)))
 
     # Test phantom subset
     obs1 = Phantom(
@@ -602,7 +602,6 @@ end
     obs1.motion = arbitrarymotion
     obs2.motion = arbitrarymotion[rng]
     @test obs1[rng] == obs2
-    # @test @view(obs1[rng]) == obs2
 
     # Test addition of phantoms
     oba = Phantom(

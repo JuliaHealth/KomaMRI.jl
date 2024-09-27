@@ -38,14 +38,14 @@ MotionList(motions...) = length([motions]) > 0 ? MotionList([motions...]) : @err
 function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
     motion_array_aux = Motion{T}[]
     for m in mv.motions
-        push!(motion_array_aux, m[p])
+        m[p] !== nothing ? push!(motion_array_aux, m[p]) : nothing
     end
     return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion{T}()
 end
 function Base.view(mv::MotionList{T}, p) where {T<:Real}
     motion_array_aux = Motion{T}[]
     for m in mv.motions
-        push!(motion_array_aux, @view(m[p]))
+        @view(m[p]) !== nothing ? push!(motion_array_aux, @view(m[p])) : nothing
     end
     return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion{T}()
 end
