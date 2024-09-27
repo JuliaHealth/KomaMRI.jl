@@ -1033,7 +1033,6 @@ function plot_phantom_map(
     max_spins=20_000,
     intermediate_time_samples=0,
     max_time_samples=100,
-    frame_duration_ms=250,
     kwargs...,
 )
     function interpolate_times(motion)
@@ -1073,27 +1072,37 @@ function plot_phantom_map(
         unit = " ms"
         if key == :T1
             cmax_key = 2500 / factor
-            colors = MAT.matread(path * "/assets/T1cm.mat")["T1colormap"]
+            colors = MAT.matread(path * "/assets/T1cm.mat")["T1colormap"][1:70:end, :]
             N, _ = size(colors)
             idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
             colormap = [
-                [
+                (
                     idx[n],
-                    "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))",
-                ] for n in 1:N
+                    string("rgb(", 
+                        floor(Int, colors[n,1] * 255), ",",
+                        floor(Int, colors[n,2] * 255), ",",
+                        floor(Int, colors[n,3] * 255), ")"
+                        )
+                ) 
+                for n in 1:N
             ]
         elseif key == :T2 || key == :T2s
             if key == :T2
                 cmax_key = 250 / factor
             end
-            colors = MAT.matread(path * "/assets/T2cm.mat")["T2colormap"]
+            colors = MAT.matread(path * "/assets/T2cm.mat")["T2colormap"][1:70:end, :]
             N, _ = size(colors)
             idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
             colormap = [
-                [
+                (
                     idx[n],
-                    "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))",
-                ] for n in 1:N
+                    string("rgb(", 
+                        floor(Int, colors[n,1] * 255), ",",
+                        floor(Int, colors[n,2] * 255), ",",
+                        floor(Int, colors[n,3] * 255), ")"
+                        )
+                ) 
+                for n in 1:N
             ]
         end
     elseif key == :x || key == :y || key == :z
