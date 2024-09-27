@@ -58,12 +58,12 @@ end
 # Functions
 function Base.getindex(spins::SpinRange, p)
     idx = intersect_idx(spins.range, p)
-    return intersect_idx(p, spins.range), SpinRange(idx)
+    l = length(idx)
+    intersect  = l >= 1 ? intersect_idx(p, spins.range) : nothing
+    spin_range = l >= 2 ? SpinRange(idx) : (l == 1 ? SpinRange(idx[1]:idx[1]) : nothing)
+    return intersect, spin_range
 end
-function Base.view(spins::SpinRange, p)
-    idx = intersect_idx(spins.range, p)
-    return intersect_idx(p, spins.range), SpinRange(idx)
-end
+Base.view(spins::SpinRange, p) = spins[p]
 Base.:(==)(sr1::SpinRange, sr2::SpinRange) = sr1.range == sr2.range
 Base.length(sr::SpinRange) = length(sr.range)
 get_indexing_range(spins::SpinRange) = spins.range

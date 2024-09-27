@@ -1001,6 +1001,10 @@ Plots a phantom map for a specific spin parameter given by `key`.
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D scatter plot
 - `colorbar`: (`::Bool`, `=true`) boolean to indicate whether to display a colorbar
+- `max_spins`:(`::Int`, `=100_000`) maximum number of displayed spins
+- `intermediate_time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
+- `max_time_samples`:(`::Int`, `=100`) maximum number of time samples
+- `frame_duration_ms`:(`::Int`, `=250`) time in miliseconds between two frames 
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the phantom map for a specific spin parameter
@@ -1058,16 +1062,8 @@ function plot_phantom_map(
     end
 
     function decimate_uniform_phantom(obj, num_points::Int)
-        dimx, dimy, dimz = KomaMRIBase.get_dims(obj)
-        ss = Int(ceil((length(obj) / num_points)^(1 / sum(KomaMRIBase.get_dims(obj)))))
-        ssx = dimx ? ss : 1
-        ssy = dimy ? ss : 1
-        ssz = dimz ? ss : 1
-        ix = sortperm(obj.x)[1:ssx:end]
-        iy = sortperm(obj.y)[1:ssy:end]
-        iz = sortperm(obj.z)[1:ssz:end]
-        idx = intersect(ix, iy, iz)
-        return obj[idx]
+        ss = Int(ceil(length(obj) / num_points))
+        return obj[1:ss:end]
     end
 
     if length(obj) > max_spins
@@ -1124,8 +1120,8 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :cmin, factor * cmin_key)
     cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-    t = process_times(m)
-    x, y, z = get_spin_coords(m, obj.x, obj.y, obj.z, t')
+    t = process_times(obj.motion)
+    x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
 
     x0 = -maximum(abs.([x y z])) * 1e2
     xf = maximum(abs.([x y z])) * 1e2
@@ -1356,16 +1352,8 @@ function plot_phantom_map(
     kwargs...,
 )
     function decimate_uniform_phantom(obj, num_points::Int)
-        dimx, dimy, dimz = KomaMRIBase.get_dims(obj)
-        ss = Int(ceil((length(obj) / num_points)^(1 / sum(KomaMRIBase.get_dims(obj)))))
-        ssx = dimx ? ss : 1
-        ssy = dimy ? ss : 1
-        ssz = dimz ? ss : 1
-        ix = sortperm(obj.x)[1:ssx:end]
-        iy = sortperm(obj.y)[1:ssy:end]
-        iz = sortperm(obj.z)[1:ssz:end]
-        idx = intersect(ix, iy, iz)
-        return obj[idx]
+        ss = Int(ceil(length(obj) / num_points))
+        return obj[1:ss:end]
     end
 
     if length(obj) > max_spins
@@ -1444,7 +1432,7 @@ function plot_phantom_map(
         l.width = width
     end
 	if view_2d
-        h = scatter( 
+        h = scattergl( 
             x=obj.x*1e2,
             y=obj.y*1e2,
             mode="markers",
