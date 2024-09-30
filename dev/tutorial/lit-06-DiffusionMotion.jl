@@ -1,4 +1,4 @@
-# # Diffusion MRI using the PGSE sequence
+# # Isotropic Diffusion MRI
 
 using KomaMRI # hide
 using PlotlyJS # hide
@@ -9,7 +9,7 @@ using Random # hide
 # This is not the most efficient way of simulating diffusion, but it is a good way to understand the phenomenon.
 # In particular, we will going to simulate isotropic diffusion, characterized by the Apparent Diffusion Coefficient (ADC).
 
-# # Creating a phantom with isotropic diffusion
+# ## Creating a phantom with isotropic diffusion
 
 # First we will define a `Phantom` without motion containing ``1_000`` spins. The spins will have the same
 # relaxation times ``T_1 = 1000\,\mathrm{ms}`` and ``T_2 = 100\,\mathrm{ms}``, and will be placed at the origin.
@@ -51,14 +51,14 @@ p1 = plot_phantom_map(obj, :T1; time_samples=Nt)
 #jl display(p1)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/6-displacements.html" style="width:85%; height:470px;"></object></center>
+#md # <center><object type="text/html" data="../../assets/6-displacements.html" style="width:65%;"></object></center>
 #md # ```
 
 # The plot shows the random walk of spins due to diffusion, also known as Brownian motion.
 # This motion was named after Robert Brown, who first described the phenomenon in 1827 while
 # looking at pollen suspended in water under a microscope.
 
-# # Pulse Gradient Spin Echo (PGSE) sequence
+# ## Pulse Gradient Spin Echo (PGSE) sequence
 
 # The classical sequence used to measure diffusion is the pulse gradient spin echo (PGSE)
 # introduced by Stejskal and Tanner in 1965. This sequence is characterized by the use of two diffusion
@@ -123,7 +123,7 @@ function bvalue(seq)
 end
 b = bvalue(seq) # bvalue in s/mm^2 # hide
 
-# # Simulating the PGSE sequence
+# ## Simulating the PGSE sequence
 # To be able to quantify the ADC, we need to simulate the signal attenuation for different b-values.
 # For this, we will scale the gradient amplitude of the sequence to obtain the desired b-value.
 # We will store the sequences in a vector `seqs` and simulate the signal for each one of them.
@@ -135,10 +135,10 @@ for bval_target in bvals
     seq_b = gradient_scaling * seq
     push!(seqs, seq_b)
 end
-println("Sequence b-values: ", round.(bvalue.(seqs), digits=2)') # hide
+println("Sequence b-values: ", round.(bvalue.(seqs), digits=2)')
 
-# To simulate, we will broadcast the `simulate` function over the sequences and store the signals in a vector `S`.
-# The `Ref(x)` is used to avoid broadcasting the `obj` and `sys` arguments (they will remain constant for all `seqs`).
+# To simulate, we will broadcast the `simulate` function over the sequences and store the signals in a vector `Sb`.
+# The `Ref`'s are used to avoid broadcasting the `obj` and `sys` arguments (they will remain constant for all `seqs`).
 
 sim_params = KomaMRICore.default_sim_params()
 sim_params["return_type"] = "mat"

@@ -67,7 +67,7 @@ for bval_target in bvals
     seq_b = gradient_scaling * seq
     push!(seqs, seq_b)
 end
-println("Sequence b-values: ", round.(bvalue.(seqs), digits=2)') # hide
+println("Sequence b-values: ", round.(bvalue.(seqs), digits=2)')
 
 sim_params = KomaMRICore.default_sim_params()
 sim_params["return_type"] = "mat"
