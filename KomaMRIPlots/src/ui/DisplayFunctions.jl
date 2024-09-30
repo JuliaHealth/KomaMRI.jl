@@ -1002,7 +1002,7 @@ Plots a phantom map for a specific spin parameter given by `key`.
 - `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D scatter plot
 - `colorbar`: (`::Bool`, `=true`) boolean to indicate whether to display a colorbar
 - `max_spins`:(`::Int`, `=100_000`) maximum number of displayed spins
-- `intermediate_time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
+- `time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
 - `max_time_samples`:(`::Int`, `=100`) maximum number of time samples
 - `frame_duration_ms`:(`::Int`, `=250`) time in miliseconds between two frames 
 
@@ -1031,16 +1031,16 @@ function plot_phantom_map(
     view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
     colorbar=true,
     max_spins=20_000,
-    intermediate_time_samples=0,
+    time_samples=0,
     max_time_samples=100,
     kwargs...,
 )
     function interpolate_times(motion)
         t = times(motion)
         if length(t)>1
-            # Interpolate time points (as many as indicated by intermediate_time_samples)
-            itp = interpolate((1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
-            t = itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
+            # Interpolate time points (as many as indicated by time_samples)
+            itp = interpolate((1:(time_samples + 1):(length(t) + time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
+            t = itp.(1:(length(t) + time_samples * (length(t) - 1)))
         end
         return t
     end
