@@ -1,4 +1,4 @@
-# # Isotropic Diffusion MRI
+# Diffusion Weighted Imaging
 
 using KomaMRI # hide
 using PlotlyJS # hide
@@ -121,21 +121,19 @@ function bvalue(seq)
     b = (2π * γ * G * δ)^2 * (Δ - δ/3)
     return b * 1e-6
 end
-b = bvalue(seq) # bvalue in s/mm^2 # hide
 
-# ## Simulating the PGSE sequence
-# To be able to quantify the ADC, we need to simulate the signal attenuation for different b-values.
-# For this, we will scale the gradient amplitude of the sequence to obtain the desired b-value.
+# ## Diffusion Weighted Imaging (DWI)
+# For DWI, multiple b-values are acquired to determine the tissue's ADC.
+# For this, we will scale the gradient's amplitude of the previous sequence to obtain a desired b-value.
 # We will store the sequences in a vector `seqs` and simulate the signal for each one of them.
 
 seqs = Sequence[] # Vector of sequences
 bvals = [0, 250, 500, 1000, 1500, 2000] # b-values in s/mm^2
 for bval_target in bvals
-    gradient_scaling = sqrt(bval_target / b)
+    gradient_scaling = sqrt(bval_target / bvalue(seq))
     seq_b = gradient_scaling * seq
     push!(seqs, seq_b)
 end
-println("Sequence b-values: ", round.(bvalue.(seqs), digits=2)')
 
 # To simulate, we will broadcast the `simulate` function over the sequences and store the signals in a vector `Sb`.
 # The `Ref`'s are used to avoid broadcasting the `obj` and `sys` arguments (they will remain constant for all `seqs`).
