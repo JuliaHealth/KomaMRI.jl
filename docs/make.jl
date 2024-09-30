@@ -48,7 +48,7 @@ append!(reference_list, lit_reference_list)
 makedocs(;
     modules=[KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
     sitename="KomaMRI.jl",
-    authors="Carlos Castillo Passi and Boris Orostica Navarrete",
+    authors="Carlos Castillo Passi and collaborators",
     checkdocs=:exports,
     pages=[
         "🏠 Home" => "index.md",
