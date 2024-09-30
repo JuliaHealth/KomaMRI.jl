@@ -13,7 +13,7 @@ D = 2e-9               # Diffusion Coefficient of water in m^2/s
 T = 100e-3             # Duration of the motion
 Nt = 100               # Number of time steps
 Δt = T / (Nt - 1)      # Time sep
-Δr = sqrt.(2 * D * Δt) # √ Mean square displacement
+Δr = sqrt(2 * D * Δt) # √ Mean square displacement
 
 rng = MersenneTwister(1234) # Setting up the random seed
 dx = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
@@ -22,7 +22,7 @@ dz = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
 
 random_walk = Path(dx, dy, dz, TimeRange(0.0, T))
 obj.motion = MotionList(random_walk)
-p1 = plot_phantom_map(obj, :T1; time_samples=Nt)
+p1 = plot_phantom_map(obj, :T1; time_samples=Nt÷4, height=450)
 
 display(p1)
 
@@ -58,22 +58,20 @@ function bvalue(seq)
     b = (2π * γ * G * δ)^2 * (Δ - δ/3)
     return b * 1e-6
 end
-b = bvalue(seq) # bvalue in s/mm^2 # hide
 
 seqs = Sequence[] # Vector of sequences
 bvals = [0, 250, 500, 1000, 1500, 2000] # b-values in s/mm^2
 for bval_target in bvals
-    gradient_scaling = sqrt(bval_target / b)
+    gradient_scaling = sqrt(bval_target / bvalue(seq))
     seq_b = gradient_scaling * seq
     push!(seqs, seq_b)
 end
-println("Sequence b-values: ", round.(bvalue.(seqs), digits=2)')
 
 sim_params = KomaMRICore.default_sim_params()
 sim_params["return_type"] = "mat"
 sim_params["Δt"] = Δt # Set max. grad. time step to fit diffusion time step
 
-signals = simulate.(Ref(obj), seqs, Ref(sys); sim_params)
+signals = simulate.(Ref(obj), seqs, Ref(sys); sim_params) # simulate broadcasted over seqs
 
 Sb = [sb[1] for sb in signals] # Reshaping the simulated signals
 bvals_si = bvals .* 1e6 # Convert b-values from s/mm^2 to s/m^2
