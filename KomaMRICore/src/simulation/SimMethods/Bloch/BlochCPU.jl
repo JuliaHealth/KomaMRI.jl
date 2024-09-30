@@ -43,7 +43,7 @@ end
 Alternate implementation of the run_spin_precession! function in BlochSimpleSimulationMethod.jl 
 optimized for the CPU. Uses a loop to step through time instead of allocating a matrix of size 
 NSpins x seq.t. The Bz_old, Bz_new, ϕ, and Mxy arrays are pre-allocated in run_sim_time_iter! so 
-that they can be re-used from block to block.
+that they can be re-used from block to block. 
 """
 function run_spin_precession!(
     p::Phantom{T},
