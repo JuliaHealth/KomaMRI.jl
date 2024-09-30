@@ -5,7 +5,7 @@ using PlotlyJS # hide
 using Random # hide
 
 # The purpose of this tutorial is to showcase the simulation of diffusion-related effects. 
-# For this, we are going to define a `Path <: Motion` to simulate the Brownian motion of spins.
+# For this, we are going to define a [`Path`](@ref) motion to simulate the Brownian motion of spins.
 # This is not the most efficient way of simulating diffusion, but it is a good way to understand the phenomenon.
 # In particular, we will going to simulate isotropic diffusion, characterized by the Apparent Diffusion Coefficient (ADC).
 
@@ -34,7 +34,7 @@ D = 2e-9               # Diffusion Coefficient of water in m^2/s
 T = 100e-3             # Duration of the motion
 Nt = 100               # Number of time steps
 Δt = T / (Nt - 1)      # Time sep
-Δr = sqrt(2 * D * Δt) # √ Mean square displacement
+Δr = sqrt(2 * D * Δt)  # √ Mean square displacement
 
 # Random walk is defined as the cumulative sum of random displacements:
 rng = MersenneTwister(1234) # Setting up the random seed
@@ -117,7 +117,7 @@ function bvalue(seq)
     block, axis = 2, 1 # Gx from second block
     G = seq.GR[axis, block].A
     δ = seq.GR[axis, block].T
-    Δ = dur(seq[1:2]) # Because there is no space in between
+    Δ = dur(seq[2:3]) # Because there are no gaps
     b = (2π * γ * G * δ)^2 * (Δ - δ/3)
     return b * 1e-6
 end
