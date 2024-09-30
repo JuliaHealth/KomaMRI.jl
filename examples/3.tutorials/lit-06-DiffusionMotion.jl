@@ -1,11 +1,11 @@
-# # Diffusion
+# Diffusion MRI using the PGSE sequence
 
 using KomaMRI # hide
 using PlotlyJS # hide
 using Random # hide
 
-# The purpose of this tutorial is to showcase the simulation of diffusion-related effects on the acquisition
-# of the MRI signal. For this, we are going to define a `Path <: Motion` to simulate the Brownian motion of spins.
+# The purpose of this tutorial is to showcase the simulation of diffusion-related effects. 
+# For this, we are going to define a `Path <: Motion` to simulate the Brownian motion of spins.
 # This is not the most efficient way of simulating diffusion, but it is a good way to understand the phenomenon.
 # In particular, we will going to simulate isotropic diffusion, characterized by the Apparent Diffusion Coefficient (ADC).
 
@@ -36,7 +36,7 @@ Nt = 100               # Number of time steps
 Δt = T / (Nt - 1)      # Time sep
 Δr = sqrt.(2 * D * Δt) # √ Mean square displacement
 
-# Random walk
+# Random walk: Xt 
 rng = MersenneTwister(1234) # Setting up the random seed
 dx = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
 dy = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
@@ -53,6 +53,10 @@ p1 = plot_phantom_map(obj, :T1; intermediate_time_samples=Nt)
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/6-displacements.html" style="width:80%; height:300px;"></object></center>
 #md # ```
+
+# The plot shows the random walk of spins due to diffusion, also known as Brownian motion.
+# This motion was named after Robert Brown, who first described the phenomenon in 1827 while
+# looking at pollen suspended in water under a microscope.
 
 # # Pulse Gradient Spin Echo (PGSE) sequence
 
@@ -95,7 +99,7 @@ p2 = plot_seq(seq; show_adc=true) # Plotting the sequence
 #md # <center><object type="text/html" data="../../assets/6-pgse_sequence.html" style="width:80%; height:300px;"></object></center>
 #md # ```
 
-# For the isotropic diffusion, the signal attenuation is given by the Stejskal-Tanner equation:
+# For the isotropic diffusion, the signal attenuation is given by the Stejskal-Tanner formula:
 #
 # ```math
 # E = \exp\left(-b \cdot D\right)
