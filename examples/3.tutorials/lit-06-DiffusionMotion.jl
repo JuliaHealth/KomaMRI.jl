@@ -1,4 +1,4 @@
-# Diffusion Weighted Imaging
+# # Diffusion-induced Signal Attenuation
 
 using KomaMRI # hide
 using PlotlyJS # hide
@@ -9,9 +9,9 @@ using Random # hide
 # This is not the most efficient way of simulating diffusion, but it is a good way to understand the phenomenon.
 # In particular, we will going to simulate isotropic diffusion, characterized by the Apparent Diffusion Coefficient (ADC).
 
-# ## Creating a phantom with isotropic diffusion
+# ### Creating a phantom with isotropic diffusion
 
-# First we will define a `Phantom` without motion containing ``1_000`` spins. The spins will have the same
+# First we will define a `Phantom` without motion containing ``10,000`` spins. The spins will have the same
 # relaxation times ``T_1 = 1000\,\mathrm{ms}`` and ``T_2 = 100\,\mathrm{ms}``, and will be placed at the origin.
 
 Nspins = 10_000 
@@ -34,7 +34,7 @@ D = 2e-9               # Diffusion Coefficient of water in m^2/s
 T = 100e-3             # Duration of the motion
 Nt = 100               # Number of time steps
 Δt = T / (Nt - 1)      # Time sep
-Δr = sqrt.(2 * D * Δt) # √ Mean square displacement
+Δr = sqrt(2 * D * Δt) # √ Mean square displacement
 
 # Random walk is defined as the cumulative sum of random displacements:
 rng = MersenneTwister(1234) # Setting up the random seed
@@ -45,20 +45,20 @@ dz = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
 # Including the `random_walk` into the `Phantom` definition:
 random_walk = Path(dx, dy, dz, TimeRange(0.0, T))
 obj.motion = MotionList(random_walk)
-p1 = plot_phantom_map(obj, :T1; time_samples=Nt)
+p1 = plot_phantom_map(obj, :T1; time_samples=Nt÷4, height=450)
 
 #md savefig(p1, "../assets/6-displacements.html") # hide
 #jl display(p1)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/6-displacements.html" style="width:65%;"></object></center>
+#md # <center><object type="text/html" data="../../assets/6-displacements.html" style="width:85%; height:470px;"></object></center>
 #md # ```
 
 # The plot shows the random walk of spins due to diffusion, also known as Brownian motion.
 # This motion was named after Robert Brown, who first described the phenomenon in 1827 while
 # looking at pollen suspended in water under a microscope.
 
-# ## Pulse Gradient Spin Echo (PGSE) sequence
+# ### Pulse Gradient Spin Echo (PGSE) sequence
 
 # The classical sequence used to measure diffusion is the pulse gradient spin echo (PGSE)
 # introduced by Stejskal and Tanner in 1965. This sequence is characterized by the use of two diffusion
@@ -96,19 +96,19 @@ p2 = plot_seq(seq; show_adc=true) # Plotting the sequence
 #jl display(p2)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/6-pgse_sequence.html" style="width:80%; height:300px;"></object></center>
+#md # <center><object type="text/html" data="../../assets/6-pgse_sequence.html" style="width:100%; height:300px;"></object></center>
 #md # ```
 
 # For the isotropic diffusion, the signal attenuation is given by the Stejskal-Tanner formula:
 #
 # ```math
-# E = \exp\left(-b \cdot D\right)
+# E = \exp\left(-b D\right)
 # ```
 #
 # where \(b\) is the b-value, defined as:
 #
 # ```math
-# b = \gamma^{2} \cdot G^{2} \cdot \delta^{2} \cdot \left(\Delta - \delta/3\right)
+# b = (\gamma G \delta)^{2} \cdot \left(\Delta - \delta/3\right)
 # ```
 #
 # where ``\gamma`` is the gyromagnetic ratio, ``G`` is the gradient amplitude, ``\delta`` is the gradient duration,
@@ -122,7 +122,7 @@ function bvalue(seq)
     return b * 1e-6
 end
 
-# ## Diffusion Weighted Imaging (DWI)
+# ### Diffusion Weighted Imaging (DWI)
 # For DWI, multiple b-values are acquired to determine the tissue's ADC.
 # For this, we will scale the gradient's amplitude of the previous sequence to obtain a desired b-value.
 # We will store the sequences in a vector `seqs` and simulate the signal for each one of them.
@@ -142,7 +142,7 @@ sim_params = KomaMRICore.default_sim_params()
 sim_params["return_type"] = "mat"
 sim_params["Δt"] = Δt # Set max. grad. time step to fit diffusion time step
 
-signals = simulate.(Ref(obj), seqs, Ref(sys); sim_params)
+signals = simulate.(Ref(obj), seqs, Ref(sys); sim_params) # simulate broadcasted over seqs
 
 Sb = [sb[1] for sb in signals] # Reshaping the simulated signals
 bvals_si = bvals .* 1e6 # Convert b-values from s/mm^2 to s/m^2
