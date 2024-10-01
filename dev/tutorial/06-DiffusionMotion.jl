@@ -13,7 +13,7 @@ D = 2e-9               # Diffusion Coefficient of water in m^2/s
 T = 100e-3             # Duration of the motion
 Nt = 100               # Number of time steps
 Δt = T / (Nt - 1)      # Time sep
-Δr = sqrt(2 * D * Δt) # √ Mean square displacement
+Δr = sqrt(2 * D * Δt)  # √ Mean square displacement
 
 rng = MersenneTwister(1234) # Setting up the random seed
 dx = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
@@ -54,7 +54,7 @@ function bvalue(seq)
     block, axis = 2, 1 # Gx from second block
     G = seq.GR[axis, block].A
     δ = seq.GR[axis, block].T
-    Δ = dur(seq[1:2]) # Because there is no space in between
+    Δ = dur(seq[2:3]) # Because there are no gaps
     b = (2π * γ * G * δ)^2 * (Δ - δ/3)
     return b * 1e-6
 end
