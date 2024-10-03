@@ -1002,7 +1002,7 @@ Plots a phantom map for a specific spin parameter given by `key`.
 - `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D scatter plot
 - `colorbar`: (`::Bool`, `=true`) boolean to indicate whether to display a colorbar
 - `max_spins`:(`::Int`, `=100_000`) maximum number of displayed spins
-- `intermediate_time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
+- `time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
 - `max_time_samples`:(`::Int`, `=100`) maximum number of time samples
 - `frame_duration_ms`:(`::Int`, `=250`) time in miliseconds between two frames 
 
@@ -1022,33 +1022,25 @@ julia> plot_phantom_map(obj2D, :ρ)
 julia> plot_phantom_map(obj3D, :ρ)
 ```
 """
-function plot_phantom_map(obj::Phantom, key::Symbol; kwargs...)
-    plot_phantom_map(obj, key, obj.motion; kwargs...)
-end
-
-# Plot dynamic phantom (For now, we define two different methods for static and dynamic phantoms)
 function plot_phantom_map(
     obj::Phantom,
-    key::Symbol,
-    m::MotionList;
+    key::Symbol;
     height=700,
     width=nothing,
     darkmode=false,
     view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
     colorbar=true,
-    max_spins=100_000,
-    intermediate_time_samples=0,
+    max_spins=20_000,
+    time_samples=0,
     max_time_samples=100,
-    frame_duration_ms=250,
     kwargs...,
 )
-
     function interpolate_times(motion)
         t = times(motion)
         if length(t)>1
-            # Interpolate time points (as many as indicated by intermediate_time_samples)
-            itp = interpolate((1:(intermediate_time_samples + 1):(length(t) + intermediate_time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
-            t = itp.(1:(length(t) + intermediate_time_samples * (length(t) - 1)))
+            # Interpolate time points (as many as indicated by time_samples)
+            itp = interpolate((1:(time_samples + 1):(length(t) + time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
+            t = itp.(1:(length(t) + time_samples * (length(t) - 1)))
         end
         return t
     end
@@ -1080,27 +1072,37 @@ function plot_phantom_map(
         unit = " ms"
         if key == :T1
             cmax_key = 2500 / factor
-            colors = MAT.matread(path * "/assets/T1cm.mat")["T1colormap"]
+            colors = MAT.matread(path * "/assets/T1cm.mat")["T1colormap"][1:70:end, :]
             N, _ = size(colors)
             idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
             colormap = [
-                [
+                (
                     idx[n],
-                    "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))",
-                ] for n in 1:N
+                    string("rgb(", 
+                        floor(Int, colors[n,1] * 255), ",",
+                        floor(Int, colors[n,2] * 255), ",",
+                        floor(Int, colors[n,3] * 255), ")"
+                        )
+                ) 
+                for n in 1:N
             ]
         elseif key == :T2 || key == :T2s
             if key == :T2
                 cmax_key = 250 / factor
             end
-            colors = MAT.matread(path * "/assets/T2cm.mat")["T2colormap"]
+            colors = MAT.matread(path * "/assets/T2cm.mat")["T2colormap"][1:70:end, :]
             N, _ = size(colors)
             idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
             colormap = [
-                [
+                (
                     idx[n],
-                    "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))",
-                ] for n in 1:N
+                    string("rgb(", 
+                        floor(Int, colors[n,1] * 255), ",",
+                        floor(Int, colors[n,2] * 255), ",",
+                        floor(Int, colors[n,3] * 255), ")"
+                        )
+                ) 
+                for n in 1:N
             ]
         end
     elseif key == :x || key == :y || key == :z
@@ -1126,191 +1128,77 @@ function plot_phantom_map(
     x0 = -maximum(abs.([x y z])) * 1e2
     xf = maximum(abs.([x y z])) * 1e2
 
-    if view_2d
-        trace = [
-            scatter(;
-                x=(x[:, 1]) * 1e2,
-                y=(y[:, 1]) * 1e2,
+    traces = GenericTrace[]
+
+	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
+
+    l = Layout(;title=obj.name*": "*string(key))
+
+    if view_2d # 2D
+        # Layout config
+        l[:xaxis] = attr(
+            title="x",
+            range=[x0, xf],
+            ticksuffix=" cm",
+            backgroundcolor=plot_bgcolor,
+            gridcolor=grid_color,
+            zerolinecolor=grid_color,
+            scaleanchor="y"
+        )
+        l[:yaxis] = attr(
+            title="y",
+            range=[x0, xf],
+            ticksuffix=" cm",
+            backgroundcolor=plot_bgcolor,
+            gridcolor=grid_color,
+            zerolinecolor=grid_color,
+            scaleratio=1
+        )
+        l[:autosize] = true
+        # Add traces
+        for i in 1:length(t)
+            push!(traces, scattergl( 
+                x=(x[:,i])*1e2,
+                y=(y[:,i])*1e2,
                 mode="markers",
-                marker=attr(;
-                    color=getproperty(obj, key) * factor,
-                    showscale=colorbar,
-                    colorscale=colormap,
-                    colorbar=attr(; ticksuffix=unit, title=string(key)),
-                    cmin=cmin_key,
-                    cmax=cmax_key,
-                    size=4,
-                ),
+                marker=attr(color=getproperty(obj,key)*factor,
+                            showscale=colorbar,
+                            colorscale=colormap,
+                            colorbar=attr(ticksuffix=unit, title=string(key)),
+                            cmin=cmin_key,
+                            cmax=cmax_key,
+                            size=4
+                            ),
+                visible=i==1,
                 showlegend=false,
-                text=round.(getproperty(obj, key) * factor, digits=4),
-                hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>",
-            ),
-        ]
-        frames = PlotlyFrame[
-            frame(;
-                data=[
-                    attr(;
-                        x=(x[:, i]) * 1e2,
-                        y=(y[:, i]) * 1e2,
-                        z=(z[:, i]) * 1e2,
-                        zmin=0,
-                        zmax=1,
-                    ),
-                ],
-                name="frame_$i",
-                traces=[0],
-            ) for i in 1:length(t)
-        ]
-    else
-        trace = [
-            scatter3d(;
-                x=(x[:, 1]) * 1e2,
-                y=(y[:, 1]) * 1e2,
-                z=(z[:, 1]) * 1e2,
-                mode="markers",
-                marker=attr(;
-                    color=getproperty(obj, key) * factor,
-                    showscale=colorbar,
-                    colorscale=colormap,
-                    colorbar=attr(; ticksuffix=unit, title=string(key)),
-                    cmin=cmin_key,
-                    cmax=cmax_key,
-                    size=2,
-                ),
-                showlegend=false,
-                text=round.(getproperty(obj, key) * factor, digits=4),
-                hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>",
-            ),
-        ]
-        frames = PlotlyFrame[
-            frame(;
-                data=[
-                    attr(;
-                        x=(x[:, i]) * 1e2,
-                        y=(y[:, i]) * 1e2,
-                        z=(z[:, i]) * 1e2,
-                        zmin=0,
-                        zmax=1,
-                    ),
-                ],
-                name="frame_$i",
-                traces=[0],
-            ) for i in 1:length(t)
-        ]
-    end
-
-    sliders_attr = [
-        attr(;
-            visible=length(t) > 1,
-            pad=attr(; b=10, t=60),
-            len=0.85,
-            x=0.15,
-            y=0.1,
-            t=0,
-            steps=[
-                attr(;
-                    label=round(t0; digits=2),
-                    method="animate",
-                    args=[
-                        ["frame_$i"],
-                        attr(;
-                            visible=[fill(false, i - 1); true; fill(false, length(t) - i)],
-                            mode="immediate",
-                            transition=attr(; duration=0),
-                            frame=attr(; duration=5, redraw=true),
-                        ),
-                    ],
-                ) for (i, t0) in enumerate(t)
-            ],
-            currentvalue=attr(;
-                prefix="t = ",
-                suffix=" s",
-                xanchor="right",
-                font=attr(; color="#888", size=20),
-            ),
-        ),
-    ]
-
-    buttons_attr = [
-        attr(;
-            label="&#9654;", # play symbol
-            method="animate",
-            args=[
-                nothing,
-                attr(;
-                    fromcurrent=true,
-                    transition=(duration=frame_duration_ms,),
-                    frame=attr(; duration=frame_duration_ms, redraw=true),
-                ),
-            ],
-        ),
-        attr(;
-            label="&#9724;", # pause symbol
-            method="animate",
-            args=[
-                [nothing],
-                attr(;
-                    mode="immediate",
-                    fromcurrent=true,
-                    transition=attr(; duration=frame_duration_ms),
-                    frame=attr(; duration=frame_duration_ms, redraw=true),
-                ),
-            ],
-        ),
-    ]
-
-    #Layout
-    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-    l = Layout(;
-        title=obj.name * ": " * string(key),
-        xaxis_title="x",
-        yaxis_title="y",
-        xaxis_range=[x0, xf],
-        yaxis_range=[x0, xf],
-        xaxis_ticksuffix=" cm",
-        yaxis_ticksuffix=" cm",
-        plot_bgcolor=plot_bgcolor,
-        paper_bgcolor=bgcolor,
-        xaxis_gridcolor=grid_color,
-        yaxis_gridcolor=grid_color,
-        xaxis_zerolinecolor=grid_color,
-        yaxis_zerolinecolor=grid_color,
-        font_color=text_color,
-        updatemenus=[
-            attr(;
-                visible=length(t) > 1,
-                x=0.1,
-                y=0.05,
-                yanchor="top",
-                xanchor="center",
-                showactive=true,
-                direction="left",
-                type="buttons",
-                pad=attr(; r=10, t=70),
-                buttons=buttons_attr,
-            ),
-        ],
-        sliders=sliders_attr,
-        scene=attr(;
-            xaxis=attr(;
+                text=round.(getproperty(obj,key)*factor,digits=4),
+                hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
+        end
+    else # 3D
+        # Layout config
+        l[:scene] = attr(
+            xaxis=attr(
                 title="x",
                 range=[x0, xf],
+                fixedrange=true,
                 ticksuffix=" cm",
                 backgroundcolor=plot_bgcolor,
                 gridcolor=grid_color,
                 zerolinecolor=grid_color,
             ),
-            yaxis=attr(;
+            yaxis=attr(
                 title="y",
                 range=[x0, xf],
+                fixedrange=true,
                 ticksuffix=" cm",
                 backgroundcolor=plot_bgcolor,
                 gridcolor=grid_color,
                 zerolinecolor=grid_color,
             ),
-            zaxis=attr(;
+            zaxis=attr(
                 title="z",
                 range=[x0, xf],
+                fixedrange=true,
                 ticksuffix=" cm",
                 backgroundcolor=plot_bgcolor,
                 gridcolor=grid_color,
@@ -1318,163 +1206,64 @@ function plot_phantom_map(
             ),
             aspectmode="manual",
             aspectratio=attr(; x=1, y=1, z=1),
-        ),
-        margin=attr(; t=50, l=0, r=0, b=0),
-        modebar=attr(;
-            orientation="h", bgcolor=bgcolor, color=text_color, activecolor=plot_bgcolor
-        ),
-        xaxis=attr(; constrain="domain"),
-        yaxis=attr(; scaleanchor="x"),
-        hovermode="closest",
-    )
+        )
+        # Add traces
+        for i in 1:length(t)
+            push!(traces, scatter3d( 
+                x=(x[:,i])*1e2,
+                y=(y[:,i])*1e2,
+                z=(z[:,i])*1e2,
+                mode="markers",
+                marker=attr(color=getproperty(obj,key)*factor,
+                            showscale=colorbar,
+                            colorscale=colormap,
+                            colorbar=attr(ticksuffix=unit, title=string(key)),
+                            cmin=cmin_key,
+                            cmax=cmax_key,
+                            size=2
+                            ),
+                visible=i==1,
+                showlegend=false,
+                text=round.(getproperty(obj,key)*factor,digits=4),
+                hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
+        end
+    end
 
-    if height !== nothing
-        l.height = height
+    # Config the rest of the layout
+    l[:paper_bgcolor] = bgcolor
+    l[:plot_bgcolor] = plot_bgcolor
+    l[:font_color] = text_color
+    l[:sliders] = [attr(
+        visible=length(t) > 1,
+        pad=attr(l=30, b=30),
+        steps=[
+            attr(
+                label=round(t0*1e3),
+                method="update",
+                args=[attr(visible=[fill(false, i-1); true; fill(false, length(t) - i)])]
+            )
+            for (i, t0) in enumerate(t)
+        ],
+        currentvalue_prefix="x = ",
+        currentvalue_suffix="ms",
+    )]
+    l[:margin] = attr(t=50, l=0, r=0)
+    l[:modebar] = attr(orientation="h", bgcolor=bgcolor, color=text_color, activecolor=plot_bgcolor)
+
+	if height !== nothing
+		l.height = height
     end
     if width !== nothing
         l.width = width
     end
-
-    return Plot(trace, l, frames)
-end
-
-# Plot static phantom (For now, we define two different methods for static and dynamic phantoms)
-function plot_phantom_map(
-    obj::Phantom,
-    key::Symbol,
-    m::NoMotion;
-    height=700,
-    width=nothing,
-    darkmode=false,
-    view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
-    colorbar=true,
-    max_spins=100_000,
-    kwargs...,
-)
-    function decimate_uniform_phantom(obj, num_points::Int)
-        ss = Int(ceil(length(obj) / num_points))
-        return obj[1:ss:end]
-    end
-
-    if length(obj) > max_spins
-        obj = decimate_uniform_phantom(obj, max_spins)
-        @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)."
-    end
-
-    path = @__DIR__
-	cmin_key = minimum(getproperty(obj,key))
-	cmax_key = maximum(getproperty(obj,key))
-	if key == :T1 || key == :T2 || key == :T2s
-		cmin_key = 0
-		factor = 1e3
-		unit = " ms"
-		if key  == :T1
-			cmax_key = 2500/factor
-			colors = MAT.matread(path*"/assets/T1cm.mat")["T1colormap"]
-			N, _ = size(colors)
-			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
-			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
-		elseif key == :T2 || key == :T2s
-			if key == :T2
-				cmax_key = 250/factor
-			end
-    		colors = MAT.matread(path*"/assets/T2cm.mat")["T2colormap"]
-			N, _ = size(colors)
-			idx = range(0,1;length=N) #range(0,T,N) works in Julia 1.7
-			colormap = [[idx[n], "rgb($(floor(Int,colors[n,1]*255)),$(floor(Int,colors[n,2]*255)),$(floor(Int,colors[n,3]*255)))"] for n=1:N]
-		end
-	elseif key == :x || key == :y || key == :z
-		factor = 1e2
-		unit = " cm"
-		colormap="Greys"
-	elseif key == :Δw
-		factor = 1/(2π)
-		unit = " Hz"
-		colormap="Greys"
-	else
-		factor = 1
-		cmin_key = 0
-		unit=""
-		colormap="Greys"
-	end
-	cmin_key = get(kwargs, :cmin, factor * cmin_key)
-	cmax_key = get(kwargs, :cmax, factor * cmax_key)
-	x0 = -maximum(abs.([obj.x obj.y obj.z]))*1e2
-    xf =  maximum(abs.([obj.x obj.y obj.z]))*1e2
-	#Layout
-	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
-	l = Layout(;
-        title=obj.name*": "*string(key),
-		xaxis_title="x",
-		yaxis_title="y",
-		plot_bgcolor=plot_bgcolor,
-		paper_bgcolor=bgcolor,
-		xaxis_gridcolor=grid_color,
-		yaxis_gridcolor=grid_color,
-		xaxis_zerolinecolor=grid_color,
-		yaxis_zerolinecolor=grid_color,
-		font_color=text_color,
-		scene=attr(
-			xaxis=attr(title="x",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
-			yaxis=attr(title="y",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
-			zaxis=attr(title="z",range=[x0,xf],ticksuffix=" cm",backgroundcolor=plot_bgcolor,gridcolor=grid_color,zerolinecolor=grid_color),
-			aspectmode="manual",
-			aspectratio=attr(x=1,y=1,z=1)),
-		margin=attr(t=50,l=0,r=0),
-		modebar=attr(orientation="h",bgcolor=bgcolor,color=text_color,activecolor=plot_bgcolor),
-		xaxis=attr(constrain="domain"),
-		yaxis=attr(scaleanchor="x"),
-		hovermode="closest")
-    if height !== nothing
-        l.height = height
-    end
-    if width !== nothing
-        l.width = width
-    end
-	if view_2d
-        h = scattergl( 
-            x=obj.x*1e2,
-            y=obj.y*1e2,
-            mode="markers",
-            marker=attr(
-                color=getproperty(obj,key)*factor,
-                showscale=colorbar,
-                colorscale=colormap,
-                colorbar=attr(ticksuffix=unit, title=string(key)),
-                cmin=cmin_key,
-                cmax=cmax_key,
-                size=4
-            ),
-            text=round.(getproperty(obj,key)*factor,digits=4),
-            hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"
-        )
-	else
-        h = scatter3d(
-            x=obj.x*1e2,
-            y=obj.y*1e2,
-            z=obj.z*1e2,
-            mode="markers",
-            marker=attr(
-                color=getproperty(obj,key)*factor,
-                showscale=colorbar,
-                colorscale=colormap,
-                colorbar=attr(ticksuffix=unit, title=string(key)),
-                cmin=cmin_key,
-                cmax=cmax_key,
-                size=2
-            ),
-            text=round.(getproperty(obj,key)*factor,digits=4),
-            hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"
-        )
-	end
 	config = PlotConfig(
 		displaylogo=false,
 		toImageButtonOptions=attr(
 			format="svg", # one of png, svg, jpeg, webp
 		).fields,
-		modeBarButtonsToRemove=["zoom", "pan", "tableRotation", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
+		modeBarButtonsToRemove=["zoom", "pan", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
 	)
-	return plot_koma(h, l; config)
+	return plot_koma(traces, l; config)
 end
 
 
