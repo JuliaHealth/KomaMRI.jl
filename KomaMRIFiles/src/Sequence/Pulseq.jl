@@ -468,9 +468,11 @@ function read_seq(filename)
     seq.DEF["PulseqVersion"] = version_combined
     seq.DEF["signature"] = signature
     # Guessing recon dimensions
-    seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC))
-    seq.DEF["Nz"] = get(seq.DEF, "Nz", length(unique(seq.RF.Δf)))
-    seq.DEF["Ny"] = get(seq.DEF, "Ny", sum(map(is_ADC_on, seq)) ÷ seq.DEF["Nz"])
+    # ideally all estimates of recon dimensions in one place, as late as possible, i.e. not here, non-Cartesean ?? *** CAC 240708
+    #seq.DEF["Ns"] = get(seq.DEF, "Ns", length(unique(seq.RF.Δf))) #slices or slabs
+    #seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC)) #readout length
+    #seq.DEF["Ny"] = get(seq.DEF, "Ny", sum(map(is_ADC_on, seq)) ÷ seq.DEF["Nx"]) #pe1
+    #seq.DEF["Nz"] = get(seq.DEF, "Nz", sum(map(is_ADC_on, seq)) ÷ seq.DEF["Ny"]) #pe2
     #Koma sequence
     return seq
 end
