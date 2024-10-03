@@ -3,9 +3,9 @@
 
 #> [frontmatter]
 #> image = "https://upload.wikimedia.org/wikipedia/commons/a/a0/Textformatting.svg"
-#> title = "Low-Field CMRA Optimization"
-#> tags = ["CMRA", "Low Field", "Optimization"]
-#> date = "2024-04-16"
+#> title = "Low-Field BOOST Optimization"
+#> tags = ["BOOST", "Low Field", "Optimization"]
+#> date = "2024-10-03"
 #> description = "Optimizing sequence to improve SNR and fat supression."
 #> 
 #>     [[frontmatter.author]]
