@@ -1,6 +1,7 @@
 # # Patient's Motion During Acquisition
 
 using KomaMRI # hide
+using PlotlyJS # hide
 sys = Scanner() # hide
 
 # It can also be interesting to see the effect of the patient's motion during an MRI scan.
@@ -18,7 +19,7 @@ obj.Δw .= 0 # hide
 obj.motion = MotionList(
     Translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
 )
-p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
+p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4) # hide
 
 #md savefig(p1, "../assets/5-phantom1.html") # hide
 #jl display(p1)
@@ -72,15 +73,15 @@ p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)
 
-p3 = KomaMRIPlots.plot( # hide
+p3 = plot( # hide
     sample_times, # hide
     displacements .* 1e2, # hide
-    KomaMRIPlots.Layout( # hide
+    Layout( # hide
         title = "Head displacement in x, y and z", # hide
         xaxis_title = "time (s)", # hide
         yaxis_title = "Displacement (cm)" # hide
     )) # hide
-KomaMRIPlots.restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) # hide
+restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) # hide
 
 #md savefig(p3, "../assets/5-displacements.html") # hide
 #jl display(p3)
