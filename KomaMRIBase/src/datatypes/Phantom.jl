@@ -47,7 +47,7 @@ julia> obj.ρ
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::AbstractMotion{T} = NoMotion{eltype(x)}() 
+    motion::AbstractMotion{T} = NoMotion{eltype(x)}()
 end
 
 const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
@@ -195,6 +195,7 @@ function heart_phantom(;
     return phantom
 end
 
+
 """
     phantom = brain_phantom2D(;axis="axial", ss=4)
 
@@ -212,7 +213,7 @@ Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 m
 - `axis`: (`::String`, `="axial"`, opts=[`"axial"`, `"coronal"`, `"sagittal"`]) orientation of the phantom
 - `ss`: (`::Integer or ::Vector{Integer}`, `=4`) subsampling parameter for all axes if scaler, per axis if 2 element vector [ssx, ssy]
 - `us`: (`::Integer or ::Vector{Integer}`, `=1`)  upsampling parameter for all axes if scaler, per axis if 2 element vector [usx, usy], if used ss is set to ss=1
-
+- `tissue_properties`: (`::Dict`, `=Dict()`) phantom tissue properties in SI units considering the available tissues
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -223,11 +224,28 @@ julia> obj = brain_phantom2D(; axis="sagittal", ss=1)
 
 julia> obj = brain_phantom2D(; axis="axial", us=[1, 2])
 
+julia> phantom_values = 
+    Dict(
+        # T1, T2, T2*, ρ, Δw
+        "CSF"           =>  [2.569, 0.329, 0.058, 1, 0],
+        "GM"            =>  [1.153, 0.083, 0.069, 0.86, 0],
+        "WM"            =>  [0.746, 0.070, 0.061, 0.77, 0],
+        "FAT1"          =>  [0, 0, 0, 0, 0],
+        "MUSCLE"        =>  [0, 0, 0, 0, 0],
+        "SKIN/MUSCLE"   =>  [0, 0, 0, 0, 0],
+        "SKULL"         =>  [0, 0, 0, 0, 0],
+        "VESSELS"       =>  [0, 0, 0, 0, 0],
+        "FAT2"          =>  [0, 0, 0, 0, 0],
+        "DURA"          =>  [0, 0, 0, 0, 0],
+        "MARROW" => [0, 0, 0, 0, 0])
+julia> obj = brain_phantom2D(; tissue_properties=phantom_values)
+
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom2D(; axis="axial", ss=4, us=1)
+function brain_phantom2D(; axis="axial", ss=4, us=1, tissue_properties = Dict())
     # check and filter input    
+    # check more spins 
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
@@ -235,74 +253,20 @@ function brain_phantom2D(; axis="axial", ss=4, us=1)
     data = MAT.matread(path * "/phantom/brain2D.mat")
 
     # subsample or upsample the phantom data
-    class = repeat(data[axis][1:ssx:end, 1:ssy:end]; inner=[usx, usy])
+    labels = repeat(data[axis][1:ssx:end, 1:ssy:end]; inner=[usx, usy])
 
     # Define spin position vectors
     Δx = .5e-3 * ssx / usx
     Δy = .5e-3 * ssy / usy
-    M, N = size(class)
+    M, N = size(labels)
     FOVx = (M - 1) * Δx #[m]
     FOVy = (N - 1) * Δy #[m]
     x = (-FOVx / 2):Δx:(FOVx / 2) #spin coordinates
     y = (-FOVy / 2):Δy:(FOVy / 2) #spin coordinates
     x, y = x .+ y' * 0, x * 0 .+ y' #grid points
 
-    # Define spin property vectors
-    T2 =
-        (class .== 23) * 329 .+ #CSF
-        (class .== 46) * 83 .+ #GM
-        (class .== 70) * 70 .+ #WM
-        (class .== 93) * 70 .+ #FAT1
-        (class .== 116) * 47 .+ #MUSCLE
-        (class .== 139) * 329 .+ #SKIN/MUSCLE
-        (class .== 162) * 0 .+ #SKULL
-        (class .== 185) * 0 .+ #VESSELS
-        (class .== 209) * 70 .+ #FAT2
-        (class .== 232) * 329 .+ #DURA
-        (class .== 255) * 70 #MARROW
-    T2s =
-        (class .== 23) * 58 .+ #CSF
-        (class .== 46) * 69 .+ #GM
-        (class .== 70) * 61 .+ #WM
-        (class .== 93) * 58 .+ #FAT1
-        (class .== 116) * 30 .+ #MUSCLE
-        (class .== 139) * 58 .+ #SKIN/MUSCLE
-        (class .== 162) * 0 .+ #SKULL
-        (class .== 185) * 0 .+ #VESSELS
-        (class .== 209) * 61 .+ #FAT2
-        (class .== 232) * 58 .+ #DURA
-        (class .== 255) * 61 #MARROW
-    T1 =
-        (class .== 23) * 2569 .+ #CSF
-        (class .== 46) * 833 .+ #GM
-        (class .== 70) * 500 .+ #WM
-        (class .== 93) * 350 .+ #FAT1
-        (class .== 116) * 900 .+ #MUSCLE
-        (class .== 139) * 569 .+ #SKIN/MUSCLE
-        (class .== 162) * 0 .+ #SKULL
-        (class .== 185) * 0 .+ #VESSELS
-        (class .== 209) * 500 .+ #FAT2
-        (class .== 232) * 2569 .+ #DURA
-        (class .== 255) * 500 #MARROW
-    ρ =
-        (class .== 23) * 1 .+ #CSF
-        (class .== 46) * 0.86 .+ #GM
-        (class .== 70) * 0.77 .+ #WM
-        (class .== 93) * 1 .+ #FAT1
-        (class .== 116) * 1 .+ #MUSCLE
-        (class .== 139) * 1 .+ #SKIN/MUSCLE
-        (class .== 162) * 0 .+ #SKULL
-        (class .== 185) * 0 .+ #VESSELS
-        (class .== 209) * 0.77 .+ #FAT2
-        (class .== 232) * 1 .+ #DURA
-        (class .== 255) * 0.77 #MARROW
-    Δw_fat = -220 * 2π
-    Δw =
-        (class .== 93) * Δw_fat .+ #FAT1
-        (class .== 209) * Δw_fat    #FAT2
-    T1 = T1 * 1e-3
-    T2 = T2 * 1e-3
-    T2s = T2s * 1e-3
+    # Get tissue properties
+    T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels, tissue_properties)
 
     # Define and return the Phantom struct
     obj = Phantom{Float64}(;
@@ -336,6 +300,7 @@ Default ss=4 sample spacing is 2 mm. Original file (ss=1) sample spacing is .5 m
 - `ss`: (`::Integer or ::Vector{Integer}`, `=4`) subsampling parameter for all axes if scaler, per axis if 3 element vector [ssx, ssy, ssz]
 - `us`: (`::Integer or ::Vector{Integer}`, `=1`)  upsampling parameter for all axes if scaler, per axis if 3 element vector [usx, usy, usz]
 - `start_end`: (`::Vector{Integer}`, `=[160,200]`) z index range of presampled phantom, 180 is center
+- `tissue_properties`: (`::Dict`, `=Dict()`) phantom tissue properties in SI units considering the available tissues
 
 # Returns
 - `obj`: (`::Phantom`) 3D Phantom struct
@@ -346,19 +311,35 @@ julia> obj = brain_phantom3D(; ss=5)
 
 julia> obj = brain_phantom3D(; us=[2, 2, 1])
 
+julia> phantom_values = 
+    Dict(
+        # T1, T2, T2*, ρ, Δw
+        "CSF"           =>  [2.569, 0.329, 0.058, 1, 0],
+        "GM"            =>  [1.153, 0.083, 0.069, 0.86, 0],
+        "WM"            =>  [0.746, 0.070, 0.061, 0.77, 0],
+        "FAT1"          =>  [0, 0, 0, 0, 0],
+        "MUSCLE"        =>  [0, 0, 0, 0, 0],
+        "SKIN/MUSCLE"   =>  [0, 0, 0, 0, 0],
+        "SKULL"         =>  [0, 0, 0, 0, 0],
+        "VESSELS"       =>  [0, 0, 0, 0, 0],
+        "FAT2"          =>  [0, 0, 0, 0, 0],
+        "DURA"          =>  [0, 0, 0, 0, 0],
+        "MARROW" => [0, 0, 0, 0, 0])
+julia> obj = brain_phantom2D(; tissue_properties=phantom_values)
+
 julia> plot_phantom_map(obj, :ρ)
 ```
 """
-function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
+function brain_phantom3D(; ss=4, us=1, start_end=[160, 200], tissue_properties=Dict())
     # check and filter input    
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, ss, us)
-
+    
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path * "/phantom/brain3D.mat")
 
     # subsample or upsample the phantom data
-    class = repeat(
+    labels = repeat(
         data["data"][1:ssx:end, 1:ssy:end, start_end[1]:ssz:start_end[2]];
         inner=[usx, usy, usz],
     )
@@ -367,7 +348,7 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
     Δx = .5e-3 * ssx / usx
     Δy = .5e-3 * ssy / usy
     Δz = .5e-3 * ssz / usz
-    M, N, Z = size(class)
+    M, N, Z = size(labels)
     FOVx = (M - 1) * Δx #[m]
     FOVy = (N - 1) * Δy #[m]
     FOVz = (Z - 1) * Δz #[m]
@@ -377,63 +358,9 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200])
     x = 1 * xx .+ 0 * yy .+ 0 * zz
     y = 0 * xx .+ 1 * yy .+ 0 * zz
     z = 0 * xx .+ 0 * yy .+ 1 * zz
-
-    # Define spin property vectors
-    T2 =
-        (class .== 23) * 329 .+ #CSF
-        (class .== 46) * 83 .+ #GM
-        (class .== 70) * 70 .+ #WM
-        (class .== 93) * 70 .+ #FAT1
-        (class .== 116) * 47 .+ #MUSCLE
-        (class .== 139) * 329 .+ #SKIN/MUSCLE
-        (class .== 162) * 0 .+ #SKULL
-        (class .== 185) * 0 .+ #VESSELS
-        (class .== 209) * 70 .+ #FAT2
-        (class .== 232) * 329 .+ #DURA
-        (class .== 255) * 70 #MARROW
-    T2s =
-        (class .== 23) * 58 .+ #CSF
-        (class .== 46) * 69 .+ #GM
-        (class .== 70) * 61 .+ #WM
-        (class .== 93) * 58 .+ #FAT1
-        (class .== 116) * 30 .+ #MUSCLE
-        (class .== 139) * 58 .+ #SKIN/MUSCLE
-        (class .== 162) * 0 .+ #SKULL
-        (class .== 185) * 0 .+ #VESSELS
-        (class .== 209) * 61 .+ #FAT2
-        (class .== 232) * 58 .+ #DURA
-        (class .== 255) * 61 #MARROW
-    T1 =
-        (class .== 23) * 2569 .+ #CSF
-        (class .== 46) * 833 .+ #GM
-        (class .== 70) * 500 .+ #WM
-        (class .== 93) * 350 .+ #FAT1
-        (class .== 116) * 900 .+ #MUSCLE
-        (class .== 139) * 569 .+ #SKIN/MUSCLE
-        (class .== 162) * 0 .+ #SKULL
-        (class .== 185) * 0 .+ #VESSELS
-        (class .== 209) * 500 .+ #FAT2
-        (class .== 232) * 2569 .+ #DURA
-        (class .== 255) * 500 #MARROW
-    ρ =
-        (class .== 23) * 1 .+ #CSF
-        (class .== 46) * 0.86 .+ #GM
-        (class .== 70) * 0.77 .+ #WM
-        (class .== 93) * 1 .+ #FAT1
-        (class .== 116) * 1 .+ #MUSCLE
-        (class .== 139) * 1 .+ #SKIN/MUSCLE
-        (class .== 162) * 0 .+ #SKULL
-        (class .== 185) * 0 .+ #VESSELS
-        (class .== 209) * 0.77 .+ #FAT2
-        (class .== 232) * 1 .+ #DURA
-        (class .== 255) * 0.77 #MARROW
-    Δw_fat = -220 * 2π
-    Δw =
-        (class .== 93) * Δw_fat .+ #FAT1
-        (class .== 209) * Δw_fat    #FAT2
-    T1 = T1 * 1e-3
-    T2 = T2 * 1e-3
-    T2s = T2s * 1e-3
+     
+    # Get tissue properties
+    T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels, tissue_properties)
 
     # Define and return the Phantom struct
     obj = Phantom{Float64}(;
@@ -482,7 +409,7 @@ function pelvis_phantom2D(; ss=4, us=1)
 
     # subsample or upsample the phantom data
     class = repeat(data["pelvis3D_slice"][1:ssx:end, 1:ssy:end]; inner=[usx, usy])
-
+    
     # Define spin position vectors
     Δx = .5e-3 * ssx / usx
     Δy = .5e-3 * ssy / usy
@@ -612,5 +539,61 @@ function check_phantom_arguments(nd, ss, us)
             ssy = ss[2]
         end
     end
+    
     return ssx, ssy, ssz, usx, usy, usz
+end
+
+"""
+    T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels, tissue_properties = nothing)
+
+This function returns the default brain tissue properties using a labels identifier Matrix
+# Arguments
+- `labels` : (`::Matrix`) the labels identifier matrix of the phantom
+- `tissue_properties` : (`::Dict`, `=Dict()`) phantom tissue properties in ms and Hz considering the available tissues
+
+# Returns
+- `T1, T2, T2s, ρ, Δw`: (`::Matrix`) matrices of the same size of labels with the tissues properties information
+
+# Examples
+```julia-repl
+julia> T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels, tissue_properties)
+
+julia> T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels)
+```
+"""
+function default_brain_tissue_properties(labels, tissue_properties = Dict())
+    # Load default tissue properties
+    default_properties = Dict(
+        # T1, T2, T2*, ρ, Δw
+        "CSF" => [2.569, 0.329, 0.058, 1, 0],
+        "GM" => [0.833, 0.083, 0.069, 0.86, 0],
+        "WM" => [0.500, 0.070, 0.061, 0.77, 0],
+        "FAT1" => [0.350, 0.070, 0.058, 1, -3.84], #-220 Hz
+        "MUSCLE" => [0.900, 0.047, 0.030, 1, 0],
+        "SKIN/MUSCLE" => [0.569, 0.329, 0.058, 1, 0],
+        "SKULL" => [0, 0, 0, 0, 0],
+        "VESSELS" => [0, 0, 0, 0, 0],
+        "FAT2" => [0.500, 0.070, 0.061, 0.77, -3.84], #-220 Hz
+        "DURA" => [2.569, 0.329, 0.058, 1, 0],
+        "MARROW" => [0.500, 0.070, 0.061, 0.77, 0])
+    
+    tissue_properties = merge(default_properties, tissue_properties)
+    properties = []
+    for i=1:5
+        temp =
+        (labels .== 23) * tissue_properties["CSF"][i] .+ #CSF
+        (labels .== 46) * tissue_properties["GM"][i] .+ #GM
+        (labels .== 70) * tissue_properties["WM"][i] .+ #WM
+        (labels .== 93) * tissue_properties["FAT1"][i] .+ #FAT1
+        (labels .== 116) * tissue_properties["MUSCLE"][i] .+ #MUSCLE
+        (labels .== 139) * tissue_properties["SKIN/MUSCLE"][i] .+ #SKIN/MUSCLE
+        (labels .== 162) * tissue_properties["SKULL"][i] .+ #SKULL
+        (labels .== 185) * tissue_properties["VESSELS"][i] .+ #VESSELS
+        (labels .== 209) * tissue_properties["FAT2"][i] .+ #FAT2
+        (labels .== 232) * tissue_properties["DURA"][i] .+ #DURA
+        (labels .== 255) * tissue_properties["MARROW"][i] #MARROW
+        push!(properties, temp)
+    end
+
+    return properties
 end
