@@ -578,23 +578,22 @@ function default_brain_tissue_properties(labels, tissue_properties = Dict())
         "MARROW" => [0.500, 0.070, 0.061, 0.77, 0])
     
     tissue_properties = merge(default_properties, tissue_properties)
-    flat_labels = reshape(labels, :)
-    properties = zeros(length(flat_labels)..., 5)
+    properties = []
     for i=1:5
-        properties[:, i] = 
-        (flat_labels .== 23) * tissue_properties["CSF"][i] .+ #CSF
-        (flat_labels .== 46) * tissue_properties["GM"][i] .+ #GM
-        (flat_labels .== 70) * tissue_properties["WM"][i] .+ #WM
-        (flat_labels .== 93) * tissue_properties["FAT1"][i] .+ #FAT1
-        (flat_labels .== 116) * tissue_properties["MUSCLE"][i] .+ #MUSCLE
-        (flat_labels .== 139) * tissue_properties["SKIN/MUSCLE"][i] .+ #SKIN/MUSCLE
-        (flat_labels .== 162) * tissue_properties["SKULL"][i] .+ #SKULL
-        (flat_labels .== 185) * tissue_properties["VESSELS"][i] .+ #VESSELS
-        (flat_labels .== 209) * tissue_properties["FAT2"][i] .+ #FAT2
-        (flat_labels .== 232) * tissue_properties["DURA"][i] .+ #DURA
-        (flat_labels .== 255) * tissue_properties["MARROW"][i] #MARROW
+        temp =
+        (labels .== 23) * tissue_properties["CSF"][i] .+ #CSF
+        (labels .== 46) * tissue_properties["GM"][i] .+ #GM
+        (labels .== 70) * tissue_properties["WM"][i] .+ #WM
+        (labels .== 93) * tissue_properties["FAT1"][i] .+ #FAT1
+        (labels .== 116) * tissue_properties["MUSCLE"][i] .+ #MUSCLE
+        (labels .== 139) * tissue_properties["SKIN/MUSCLE"][i] .+ #SKIN/MUSCLE
+        (labels .== 162) * tissue_properties["SKULL"][i] .+ #SKULL
+        (labels .== 185) * tissue_properties["VESSELS"][i] .+ #VESSELS
+        (labels .== 209) * tissue_properties["FAT2"][i] .+ #FAT2
+        (labels .== 232) * tissue_properties["DURA"][i] .+ #DURA
+        (labels .== 255) * tissue_properties["MARROW"][i] #MARROW
+        push!(properties, temp)
     end
-    properties = reshape(properties, (size(labels)..., 5))
 
-    return selectdim(properties, ndims(properties), 1), selectdim(properties, ndims(properties), 2), selectdim(properties, ndims(properties), 3), selectdim(properties, ndims(properties), 4), selectdim(properties, ndims(properties), 5)
+    return properties
 end
