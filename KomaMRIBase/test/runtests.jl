@@ -34,7 +34,11 @@ using TestItems, TestItemRunner
         R = rotz(θ)
         s2 = R*s #Matrix-Matrix{Grad} multiplication
         GR2 = R*s.GR.A #Matrix-vector multiplication
-        @test s2.GR.A ≈ GR2
+        @test s2.GR.A    ≈ GR2
+        @test s.GR.T     == s2.GR.T
+        @test s.GR.delay == s2.GR.delay
+        @test s.GR.rise  == s2.GR.rise
+        @test s.GR.fall  == s2.GR.fall
         # Rotation 3D case
         T, t1, t2, t3 = rand(4)
         N = 100
@@ -47,8 +51,11 @@ using TestItems, TestItemRunner
         R = Rx*Ry*Rz
         s2 = R*s #Matrix-Matrix{Grad} multiplication
         GR2 = R*s.GR.A #Matrix-vector multiplication
-        @test s2.GR.A ≈ GR2
-
+        @test s2.GR.A    ≈ GR2
+        @test s.GR.T     == s2.GR.T
+        @test s.GR.delay == s2.GR.delay
+        @test s.GR.rise  == s2.GR.rise
+        @test s.GR.fall  == s2.GR.fall
         # Concatenation of sequences
         A1, A2, A3, T1 = rand(4)
         s1 = Sequence([Grad(A1,T1);
@@ -549,14 +556,14 @@ end
 
     simplemotion = MotionList(
         Translate(0.05, 0.05, 0.0, Periodic(period=0.5, asymmetry=0.5)),
-        Rotate(0.0, 0.0, 90.0, TimeRange(t_start=0.05, t_end=0.5))
+        Rotate(0.0, 0.0, 90.0, TimeRange(t_start=0.05, t_end=0.5), SpinRange(1:3))
     )
 
     Ns = length(obj1)
     Nt = 3
     t_start = 0.0
     t_end = 1.0
-    arbitrarymotion = MotionList(Path(0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), TimeRange(t_start, t_end)))
+    arbitrarymotion = MotionList(Path(0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), TimeRange(t_start, t_end), SpinRange(2:2:4)))
 
     # Test phantom subset
     obs1 = Phantom(
@@ -598,7 +605,6 @@ end
     obs1.motion = arbitrarymotion
     obs2.motion = arbitrarymotion[rng]
     @test obs1[rng] == obs2
-    # @test @view(obs1[rng]) == obs2
 
     # Test addition of phantoms
     oba = Phantom(
