@@ -8,7 +8,6 @@ KomaMRICore.name(::CUDABackend) = "CUDA"
 KomaMRICore.isfunctional(::CUDABackend) = CUDA.functional()
 KomaMRICore.set_device!(::CUDABackend, val) = CUDA.device!(val)
 KomaMRICore.device_name(::CUDABackend) = CUDA.name(CUDA.device())
-@inline KomaMRICore._cis(x) = cis(x)
 
 function KomaMRICore._print_devices(::CUDABackend)
     devices = [
