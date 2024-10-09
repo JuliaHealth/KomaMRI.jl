@@ -37,7 +37,7 @@ struct MotionList{T<:Real}
 end
 
 """ Constructors """
-MotionList(motions...) = length([motions]) > 0 ? MotionList([motions...]) : @error "You must provide at least one motion as input argument. If you do not want to define motion, use `NoMotion{T}()`"
+MotionList(motions::Motion...) = length([motions]) > 0 ? MotionList([motions...]) : @error "You must provide at least one motion as input argument. If you do not want to define motion, use `NoMotion{T}()`"
 
 """ MotionList sub-group """
 function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
