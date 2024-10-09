@@ -24,7 +24,7 @@ From the programming perspective, it is needed to call the [`simulate`](@ref) fu
 | `"gpu"` | is a boolean that determines whether to use GPU or CPU hardware resources, as long as they are available on the host computer. |
 | `"gpu_device"` | sets the index ID of the available GPU in the host computer. |
 
-For instance, if you want to perform a simulation on the CPU with float64 precision using the `BlochDict()` method (assuming you have already defined `obj` and `seq`), you can do so like this:
+For instance, if you want to perform a simulation on the CPU with float64 precision using the `BlochDict()` method (assuming you have already defined `obj`, `seq` and `sys`), you can do so like this:
 ```julia
 # Set non-default simulation parameters and run simulation
 sim_params = KomaMRICore.default_sim_params() 
