@@ -1,7 +1,6 @@
 # # Phantom
 
-using KomaMRIBase # hide
-using PlotlyJS # hide
+using KomaMRI # hide
 
 # The first input argument that **KomaMRI** needs for simulating is the phantom. 
 

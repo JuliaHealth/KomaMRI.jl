@@ -46,6 +46,20 @@ function Motion(action, spins::AbstractSpinSpan)
     return Motion(action, TimeRange(t_start=zero(T), t_end=eps(T)), spins)
 end
 
+# Main constructors
+function Motion(action) 
+    T = first(typeof(action).parameters)
+    return Motion(action, TimeRange(zero(T)), AllSpins())
+end
+function Motion(action, time::AbstractTimeSpan)
+    T = first(typeof(action).parameters)
+    return Motion(action, time, AllSpins())
+end
+function Motion(action, spins::AbstractSpinSpan)
+    T = first(typeof(action).parameters)
+    return Motion(action, TimeRange(zero(T)), spins)
+end
+
 # Custom constructors
 """
     translate = Translate(dx, dy, dz, time, spins)
