@@ -1,6 +1,6 @@
 # # Phantom
 
-using KomaMRI # hide
+using KomaMRI #hide
 
 # The first input argument that **KomaMRI** needs for simulating is the phantom. 
 
@@ -59,6 +59,22 @@ using KomaMRI # hide
 # To get an even better understanding on how it works, let's look at an example of a brain phantom:
 
 obj = brain_phantom2D()
+# ```julia-repl
+# Phantom{Float64}
+#   name: String "brain2D_axial"
+#   x: Array{Float64}((6506,)) [-0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084  …  0.084, 0.084, 0.084, 0.084, 0.086, 0.086, 0.086, 0.086, 0.086, 0.086]
+#   y: Array{Float64}((6506,)) [-0.03, -0.028, -0.026, -0.024, -0.022, -0.02, -0.018, -0.016, -0.014, -0.012  …  0.006, 0.008, 0.01, 0.012, -0.008, -0.006, -0.004, -0.002, 0.0, 0.002]
+#   z: Array{Float64}((6506,)) [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0  …  0.0, 0.0, 0.0, 0.0, -0.0, -0.0, -0.0, -0.0, 0.0, 0.0]
+#   ρ: Array{Float64}((6506,)) [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0  …  1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+#   T1: Array{Float64}((6506,)) [0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569  …  0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569]
+#   T2: Array{Float64}((6506,)) [0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329  …  0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329]
+#   T2s: Array{Float64}((6506,)) [0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058  …  0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058]
+#   Δw: Array{Float64}((6506,)) [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0  …  -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]
+#   Dλ1: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+#   Dλ2: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+#   Dθ: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+#   motion: NoMotion{Float64} NoMotion{Float64}()
+# ```
 
 # You can visualize the **Phantom** struct using the [`plot_phantom_map`](@ref) function, 
 # which is part of the **KomaMRIPlots** subdependency. This function plots the magnitude of a property for 
@@ -67,7 +83,7 @@ obj = brain_phantom2D()
 
 p1 = plot_phantom_map(obj, :T1; height=450)
 
-#md savefig(p1, "../assets/doc-1-phantom.html") # hide
+#md savefig(p1, "../assets/doc-1-phantom.html") #hide
 #jl display(p1)
 
 #md # ```@raw html
@@ -75,11 +91,28 @@ p1 = plot_phantom_map(obj, :T1; height=450)
 #md # ```
 
 # You can access and filter information for the all the field names of a **Phantom** using the dot notation:
-obj.name
-#-
-obj.x
-#-
-obj.motion
+
+# ```julia-repl
+# julia> obj.name
+# "brain2D_axial"
+# ```
+
+# ```julia-repl
+# julia> obj.x
+# 6506-element Vector{Float64}:
+#  -0.084
+#  -0.084
+#  -0.084
+#   ⋮
+#   0.086
+#   0.086
+#   0.086
+# ```
+
+# ```julia-repl
+# julia> obj.motion
+# NoMotion{Float64}()
+# ```
 
 # ## Phantom Operations
 
@@ -90,10 +123,10 @@ obj.motion
 # It is possible to access a subset of spins in a **Phantom** by slicing or indexing. The result will also be a 
 # **Phantom** struct, allowing you to perform the same operations as you would with a full Phantom:
 
-obj[1:1000]
-p2 = plot_phantom_map(obj[1:1000], :T2 ; height=450) # hide
+obj[1:2000]
+p2 = plot_phantom_map(obj[1:1000], :T2 ; height=450) #hide
 
-#md savefig(p2, "../assets/tut-5-phantom-subset.html") # hide
+#md savefig(p2, "../assets/tut-5-phantom-subset.html") #hide
 #jl display(p2)
 
 #md # ```@raw html
@@ -104,11 +137,11 @@ p2 = plot_phantom_map(obj[1:1000], :T2 ; height=450) # hide
 
 # In the same way, we can add two or more phantoms, resulting in another [`Phantom`](@ref) struct:
 obj2 = pelvis_phantom2D()
-obj2.motion = MotionList(Translate(0.0, 0.0, -0.5, TimeRange(0.0)))
+obj2.x .+= 0.1; obj.x.-= 0.1 #hide
 obj_sum = obj + obj2
-p3 = plot_phantom_map(obj_sum, :T1 ; height=450) # hide
+p3 = plot_phantom_map(obj_sum, :T1 ; height=450) #hide
 
-#md savefig(p3, "../assets/tut-5-phantom-sum.html") # hide
+#md savefig(p3, "../assets/tut-5-phantom-sum.html") #hide
 #jl display(p3)
 
 #md # ```@raw html
@@ -119,9 +152,28 @@ p3 = plot_phantom_map(obj_sum, :T1 ; height=450) # hide
 
 # Finally, multiplying a phantom by a scalar multiplies its proton density (`ρ`) by that amount:
 obj_mul = 3*obj
-obj.ρ
-#-
-obj_mul.ρ
+
+# ```julia-repl
+# julia> obj.ρ
+# 6506-element Vector{Float64}:
+#  1.0
+#  1.0
+#  1.0
+#  ⋮
+#  1.0
+#  1.0
+#  1.0
+#  
+# julia> obj_mul.ρ
+# 6506-element Vector{Float64}:
+#  3.0
+#  3.0
+#  3.0
+#  ⋮
+#  3.0
+#  3.0
+#  3.0
+# ```
 
 # ## Phantom Storage and Sharing
 # Phantoms can be stored and shared thanks to our new [Phantom File Format](3-phantom-format.md).
