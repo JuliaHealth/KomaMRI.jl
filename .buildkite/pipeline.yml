@@ -15,27 +15,27 @@ steps:
     agents:
       queue: "juliagpu"
 
-  - label: ":pipeline: Launch Benchmarks"
-    if: build.message !~ /skip benchmarks/
-    agents:
-      queue: "juliagpu"
-    plugins:
-      - monorepo-diff#v1.0.1:
-          diff: "git diff --name-only HEAD~1"
-          interpolation: false
-          watch:
-            - path:
-                - "KomaMRICore/src/**/*"
-                - "KomaMRICore/ext/**/*"
-                - "KomaMRICore/Project.toml"
-                - "KomaMRIBase/src/**/*"
-                - "KomaMRIBase/Project.toml"
-                - "benchmarks/**/*"
-                - ".buildkite/**/*"
-                - ".github/workflows/Benchmark.yml"
-                - "Project.toml"
-              config:
-                command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
-                agents:
-                  queue: "juliagpu"
+   - label: ":pipeline: Launch Benchmarks"
+     if: build.message !~ /skip benchmarks/
+     agents:
+       queue: "juliagpu"
+     plugins:
+       - monorepo-diff#v1.0.1:
+           diff: "git diff --name-only HEAD~1"
+           interpolation: false
+           watch:
+             - path:
+                 - "KomaMRICore/src/**/*"
+                 - "KomaMRICore/ext/**/*"
+                 - "KomaMRICore/Project.toml"
+                 - "KomaMRIBase/src/**/*"
+                 - "KomaMRIBase/Project.toml"
+                 - "benchmarks/**/*"
+                 - ".buildkite/**/*"
+                 - ".github/workflows/Benchmark.yml"
+                 - "Project.toml"
+               config:
+                 command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
+                 agents:
+                   queue: "juliagpu"
 
