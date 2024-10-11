@@ -14,27 +14,27 @@ For all these reasons, it is the ideal file format for storing phantoms.
 ### Phantom File Tree
 
 ```@raw html
-<p><img class="docs-light-only" width="80%" src="assets/ph-phantom-file-format-light.svg"/></p>
-<p><img class="docs-dark-only"  width="80%" src="assets/ph-phantom-file-format-dark.svg"/></p>
+<p><img class="docs-light-only" width="80%" src="../../assets/ph-phantom-file-format-light.svg"/></p>
+<p><img class="docs-dark-only"  width="80%" src="../../assets/ph-phantom-file-format-dark.svg"/></p>
 ```
 
 ### Action types
 
 ```@raw html
-<p><img class="docs-light-only" width="80%" src="assets/ph-action-types-light.svg"/></p>
-<p><img class="docs-dark-only"  width="80%" src="assets/ph-action-types-dark.svg"/></p>
+<p><img class="docs-light-only" width="80%" src="../../assets/ph-action-types-light.svg"/></p>
+<p><img class="docs-dark-only"  width="80%" src="../../assets/ph-action-types-dark.svg"/></p>
 ```
 
 ### TimeSpan types
 
 ```@raw html
-<p><img class="docs-light-only" width="80%" src="assets/ph-timespan-types-light.svg"/></p>
-<p><img class="docs-dark-only"  width="80%" src="assets/ph-timespan-types-dark.svg"/></p>
+<p><img class="docs-light-only" width="80%" src="../../assets/ph-timespan-types-light.svg"/></p>
+<p><img class="docs-dark-only"  width="80%" src="../../assets/ph-timespan-types-dark.svg"/></p>
 ```
 
 ### SpinSpan types
 
 ```@raw html
-<p><img class="docs-light-only" width="80%" src="assets/ph-spinspan-types-light.svg"/></p>
-<p><img class="docs-dark-only"  width="80%" src="assets/ph-spinspan-types-dark.svg"/></p>
+<p><img class="docs-light-only" width="80%" src="../../assets/ph-spinspan-types-light.svg"/></p>
+<p><img class="docs-dark-only"  width="80%" src="../../assets/ph-spinspan-types-dark.svg"/></p>
 ```
