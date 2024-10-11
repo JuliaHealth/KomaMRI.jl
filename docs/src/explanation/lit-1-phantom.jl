@@ -105,7 +105,7 @@ p2 = plot_phantom_map(obj[1:1000], :T2 ; height=450) # hide
 # In the same way, we can add two or more phantoms, resulting in another [`Phantom`](@ref) struct:
 obj2 = pelvis_phantom2D()
 obj2.motion = MotionList(Translate(0.0, 0.0, -0.5, TimeRange(0.0)))
-obj_sum = obj1 + obj2
+obj_sum = obj + obj2
 p3 = plot_phantom_map(obj_sum, :T1 ; height=450) # hide
 
 #md savefig(p3, "../assets/tut-5-phantom-sum.html") # hide
