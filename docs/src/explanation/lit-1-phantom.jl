@@ -63,9 +63,9 @@ obj = brain_phantom2D()
 # You can visualize the **Phantom** struct using the [`plot_phantom_map`](@ref) function, 
 # which is part of the **KomaMRIPlots** subdependency. This function plots the magnitude of a property for 
 # each magnetization at a specific spatial position. You can observe properties such as proton density 
-# and relaxation times, so feel free to replace the `:ρ` symbol with another property of the phantom in the example below:
+# and relaxation times, so feel free to replace the `:T1` symbol with another property of the phantom in the example below:
 
-p1 = plot_phantom_map(obj, :ρ; height=450)
+p1 = plot_phantom_map(obj, :T1; height=450)
 
 #md savefig(p1, "../assets/doc-1-phantom.html") # hide
 #jl display(p1)

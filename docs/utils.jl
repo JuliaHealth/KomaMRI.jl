@@ -65,7 +65,8 @@ function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-
                 input_folder;
                 repo_root_url,
                 preprocess=_link_example(filename_gen),
-                name=filename_gen
+                name=filename_gen,
+                execute=true
             )
             Literate.script(tutorial_src, input_folder; name=filename_gen, repo_root_url)
             Literate.notebook(tutorial_src, input_folder; name=filename_gen, execute=false)
