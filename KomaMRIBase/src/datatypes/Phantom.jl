@@ -31,7 +31,7 @@ julia> obj.ρ
 """
 @with_kw mutable struct Phantom{T<:Real}
     name::String           = "spins"
-    x                      :: AbstractVector{T}
+    x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
     y::AbstractVector{T}   = zeros(eltype(x), size(x))
     z::AbstractVector{T}   = zeros(eltype(x), size(x))
     ρ::AbstractVector{T}   = ones(eltype(x), size(x))
