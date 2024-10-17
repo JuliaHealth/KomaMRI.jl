@@ -115,7 +115,7 @@ function get_dims(obj::Phantom)
     push!(dims, any(x -> x != 0, obj.x))
     push!(dims, any(x -> x != 0, obj.y))
     push!(dims, any(x -> x != 0, obj.z))
-    return dims
+    return sum(dims) > 0 ? dims : Bool[1, 0, 0]
 end
 
 """

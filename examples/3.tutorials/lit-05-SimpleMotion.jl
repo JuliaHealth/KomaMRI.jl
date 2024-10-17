@@ -21,11 +21,11 @@ obj.motion = MotionList(
 )
 p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4) # hide
 
-#md savefig(p1, "../assets/5-phantom1.html") # hide
+#md savefig(p1, "../assets/tut-5-phantom.html") # hide
 #jl display(p1)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/5-phantom1.html" style="width:85%; height:470px;"></object></center>
+#md # <center><object type="text/html" data="../../assets/tut-5-phantom.html" style="width:85%; height:470px;"></object></center>
 #md # ```
 
 ## Read Sequence # hide
@@ -46,12 +46,12 @@ image1 = reconstruction(acq1, reconParams) # hide
 # we will observe motion-induced artifacts in the reconstructed image.
 ## Plotting the recon # hide
 p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
-#md savefig(p2, "../assets/5-recon1.html") # hide
+#md savefig(p2, "../assets/tut-5-recon1.html") # hide
 #jl display(p2)
 
 #md # ```@raw html
 #md # <center>
-#md # <object type="text/html" data="../../assets/5-recon1.html" style="width:65%; height:420px;"></object>
+#md # <object type="text/html" data="../../assets/tut-5-recon1.html" style="width:65%; height:420px;"></object>
 #md # </center>
 #md # ```
 
@@ -83,11 +83,11 @@ p3 = plot( # hide
     )) # hide
 restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) # hide
 
-#md savefig(p3, "../assets/5-displacements.html") # hide
+#md savefig(p3, "../assets/tut-5-displacements.html") # hide
 #jl display(p3)
 
 #md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/5-displacements.html" style="width:80%; height:300px;"></object></center>
+#md # <center><object type="text/html" data="../../assets/tut-5-displacements.html" style="width:80%; height:300px;"></object></center>
 #md # ```
 
 # We can now get the necessary phase shift for each sample:
@@ -101,7 +101,7 @@ image2 = reconstruction(acq1, reconParams) # hide
 
 p4 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
 
-#md savefig(p4, "../assets/5-recon2.html") # hide
+#md savefig(p4, "../assets/tut-5-recon2.html") # hide
 
 #jl display(p2)
 #jl display(p4)
@@ -109,5 +109,5 @@ p4 = plot_image(abs.(image2[:, :, 1]); height=400) # hide
 # Finally, we compare the original image ▶️ and the motion-corrected reconstruction ⏸️:
 
 #md # ```@raw html
-#md # <object type="text/html" data="../../assets/5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/5-recon2.html" style="width:50%; height:420px;"></object>
+#md # <object type="text/html" data="../../assets/tut-5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/tut-5-recon2.html" style="width:50%; height:420px;"></object>
 #md # ```
