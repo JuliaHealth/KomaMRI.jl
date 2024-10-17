@@ -5,7 +5,7 @@ using PlotlyJS # hide
 sys = Scanner() # hide
 
 # It can also be interesting to see the effect of the patient's motion during an MRI scan.
-# For this, Koma provides the ability to add `motion <: AbstractMotion` to the phantom.
+# For this, Koma provides the ability to add `motion` to the phantom.
 # In this tutorial, we will show how to add a [`Translate`](@ref) motion to a 2D brain phantom.
 
 # First, let's load the 2D brain phantom used in the previous tutorials:

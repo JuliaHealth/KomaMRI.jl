@@ -1,3 +1,8 @@
+include("motionlist/Action.jl")
+include("motionlist/SpinSpan.jl")
+include("motionlist/TimeSpan.jl")
+include("motionlist/Motion.jl")
+
 """
     motionlist = MotionList(motions...)
 
@@ -27,7 +32,7 @@ julia>  motionlist = MotionList(
         )
 ```
 """
-struct MotionList{T<:Real} <: AbstractMotion{T}
+struct MotionList{T<:Real}
     motions::Vector{<:Motion{T}}
 end
 
@@ -40,14 +45,14 @@ function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
     for m in mv.motions
         m[p] !== nothing ? push!(motion_array_aux, m[p]) : nothing
     end
-    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion{T}()
+    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion()
 end
 function Base.view(mv::MotionList{T}, p) where {T<:Real}
     motion_array_aux = Motion{T}[]
     for m in mv.motions
         @view(m[p]) !== nothing ? push!(motion_array_aux, @view(m[p])) : nothing
     end
-    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion{T}()
+    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion()
 end
 
 """ Addition of MotionLists """
@@ -91,7 +96,7 @@ Calculates the position of each spin at a set of arbitrary time instants, i.e. t
 For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `length(t)` columns.
 
 # Arguments
-- `motionset`: (`::AbstractMotion{T<:Real}`) phantom motion
+- `motion`: (`::Union{NoMotion, MotionList{T<:Real}}`) phantom motion
 - `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
 - `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
 - `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
@@ -133,27 +138,27 @@ function get_spin_coords(
 end
 
 """
-    times = times(motion)
+    times = times(motion, T)
 """
-function times(ml::MotionList{T}) where {T<:Real}
-    nodes = reduce(vcat, [times(m) for m in ml.motions])
+function times(ml::MotionList{T}, ::Type{T}) where {T<:Real}
+    nodes = reduce(vcat, [times(m, T) for m in ml.motions])
     return unique(sort(nodes))
 end
 
 """
-    sort_motions!(motionset)
+    sort_motions!(motion)
 
 Sorts motions in a list according to their starting time. It modifies the original list.
 If `motionset::NoMotion`, this function does nothing.
 If `motionset::MotionList`, this function sorts its motions.
 
 # Arguments
-- `motionset`: (`::AbstractMotion{T<:Real}`) phantom motion
+- `motion`: (`::Union{NoMotion, MotionList{T<:Real}}`) phantom motion
 
 # Returns
 - `nothing`
 """
-function sort_motions!(m::MotionList)
-    sort!(m.motions; by=m -> times(m)[1])
+function sort_motions!(m::MotionList{T}) where {T<:Real}
+    sort!(m.motions; by=m -> times(m, T)[1])
     return nothing
 end
