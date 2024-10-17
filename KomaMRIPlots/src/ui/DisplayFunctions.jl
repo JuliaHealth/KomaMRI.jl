@@ -1135,9 +1135,21 @@ function plot_phantom_map(
     l = Layout(;title=obj.name*": "*string(key))
 
     if view_2d # 2D
+        function get_displayed_dims(v)
+            if sum(v) == 1
+                idx = argmax(v)[1] 
+                return [idx in [1, 3], idx in [1, 2], idx in [2,3]]
+            else
+                return v
+            end
+        end 
+
         # Layout config
+        dims = get_displayed_dims(KomaMRIBase.get_dims(obj))
+        axis = ["x", "y", "z"][dims]
+        
         l[:xaxis] = attr(
-            title="x",
+            title=axis[1],
             range=[x0, xf],
             ticksuffix=" cm",
             backgroundcolor=plot_bgcolor,
@@ -1146,7 +1158,7 @@ function plot_phantom_map(
             scaleanchor="y"
         )
         l[:yaxis] = attr(
-            title="y",
+            title=axis[2],
             range=[x0, xf],
             ticksuffix=" cm",
             backgroundcolor=plot_bgcolor,
@@ -1158,8 +1170,8 @@ function plot_phantom_map(
         # Add traces
         for i in 1:length(t)
             push!(traces, scattergl( 
-                x=(x[:,i])*1e2,
-                y=(y[:,i])*1e2,
+                x=dims[1]           ? (x[:,i])*1e2 : (y[:,i])*1e2,
+                y=dims[1] & dims[2] ? (y[:,i])*1e2 : (z[:,i])*1e2,
                 mode="markers",
                 marker=attr(color=getproperty(obj,key)*factor,
                             showscale=colorbar,
