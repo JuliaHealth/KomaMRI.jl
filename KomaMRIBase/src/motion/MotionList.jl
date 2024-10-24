@@ -140,8 +140,8 @@ end
 """
     times = times(motion, T)
 """
-function times(ml::MotionList{T}, ::Type{T}) where {T<:Real}
-    nodes = reduce(vcat, [times(m, T) for m in ml.motions])
+function times(ml::MotionList)
+    nodes = reduce(vcat, [times(m) for m in ml.motions])
     return unique(sort(nodes))
 end
 
@@ -158,7 +158,7 @@ If `motionset::MotionList`, this function sorts its motions.
 # Returns
 - `nothing`
 """
-function sort_motions!(m::MotionList{T}) where {T<:Real}
-    sort!(m.motions; by=m -> times(m, T)[1])
+function sort_motions!(m::MotionList)
+    sort!(m.motions; by=m -> times(m)[1])
     return nothing
 end

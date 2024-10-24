@@ -1035,19 +1035,18 @@ function plot_phantom_map(
     max_time_samples=100,
     kwargs...,
 )
-    function interpolate_times(motion, T)
-        t = times(motion, T)
+    function process_times(::NoMotion)
+        return [zero(eltype(obj.x))]
+    end
+
+    function process_times(motion::MotionList) 
+        KomaMRIBase.sort_motions!(motion)
+        t = times(motion)
         if length(t)>1
             # Interpolate time points (as many as indicated by time_samples)
             itp = interpolate((1:(time_samples + 1):(length(t) + time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
             t = itp.(1:(length(t) + time_samples * (length(t) - 1)))
         end
-        return t
-    end
-
-    function process_times(motion, T) 
-        KomaMRIBase.sort_motions!(motion)
-        t = interpolate_times(motion, T)
         # Decimate time points so their number is smaller than max_time_samples
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
@@ -1122,8 +1121,7 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :cmin, factor * cmin_key)
     cmax_key = get(kwargs, :cmax, factor * cmax_key)
 
-    T = typeof(obj).parameters[1]
-    t = process_times(obj.motion, T)
+    t = process_times(obj.motion)
     x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
 
     x0 = -maximum(abs.([x y z])) * 1e2

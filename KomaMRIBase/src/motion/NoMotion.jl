@@ -39,15 +39,3 @@ function get_spin_coords(
 ) where {T<:Real}
     return x, y, z
 end
-
-"""
-    times = times(motion, T)
-"""
-times(::NoMotion, ::Type{T}) where {T<:Real}  = [zero(T)]
-
-"""
-    sort_motions!(nomotion)
-"""
-function sort_motions!(::NoMotion)
-    return nothing
-end

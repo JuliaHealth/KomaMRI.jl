@@ -186,5 +186,5 @@ function Base.view(m::Motion, p)
 end
 
 # Auxiliary functions
-times(m::Motion{T}, ::Type{T}) where {T<:Real} = times(m.time)
+times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
