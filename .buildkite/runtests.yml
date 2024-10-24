@@ -29,8 +29,8 @@ steps:
               using Pkg
               Pkg.test("KomaMRICore"; coverage=true, julia_args=`--threads=auto`)'
         agents:
-          queue: "juliagpu"
-        timeout_in_minutes: 60
+          queue: "juliaecosystem"
+        timeout_in_minutes: 10
         
       - label: "AMDGPU: Run tests on v{{matrix.version}}"
         matrix:
