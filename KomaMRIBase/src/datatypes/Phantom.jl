@@ -17,7 +17,7 @@ a property value representing a spin. This struct serves as an input for the sim
 - `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
 - `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
 - `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
-- `motion`: (`::AbstractMotion{T<:Real}`) motion
+- `motion`: (`::Union{NoMotion, MotionList{T<:Real}}`) motion
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -31,7 +31,7 @@ julia> obj.ρ
 """
 @with_kw mutable struct Phantom{T<:Real}
     name::String           = "spins"
-    x                      :: AbstractVector{T}
+    x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
     y::AbstractVector{T}   = zeros(eltype(x), size(x))
     z::AbstractVector{T}   = zeros(eltype(x), size(x))
     ρ::AbstractVector{T}   = ones(eltype(x), size(x))
@@ -47,7 +47,7 @@ julia> obj.ρ
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::AbstractMotion{T} = NoMotion{eltype(x)}() 
+    motion::Union{NoMotion, MotionList{T}} = NoMotion()
 end
 
 const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
@@ -115,7 +115,7 @@ function get_dims(obj::Phantom)
     push!(dims, any(x -> x != 0, obj.x))
     push!(dims, any(x -> x != 0, obj.y))
     push!(dims, any(x -> x != 0, obj.z))
-    return dims
+    return sum(dims) > 0 ? dims : Bool[1, 0, 0]
 end
 
 """

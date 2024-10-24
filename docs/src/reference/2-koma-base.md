@@ -22,17 +22,11 @@ heart_phantom
 
 ## `Motion`-related functions
 
-### `AbstractMotion` types and related functions
 ```@docs
 NoMotion
+Motion
 MotionList
 get_spin_coords
-```
-
-### `Motion`
-
-```@docs
-Motion
 ```
 
 ### `AbstractAction` types
