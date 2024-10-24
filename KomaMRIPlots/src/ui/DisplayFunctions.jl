@@ -1255,7 +1255,7 @@ function plot_phantom_map(
             )
             for (i, t0) in enumerate(t)
         ],
-        currentvalue_prefix="x = ",
+        currentvalue_prefix="t = ",
         currentvalue_suffix="ms",
     )]
     l[:margin] = attr(t=50, l=0, r=0)
