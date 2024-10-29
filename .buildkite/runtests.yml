@@ -10,9 +10,6 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-        env:
-          TEST_GROUP: $TEST_GROUP
-          JULIA_NUM_THREADS: "8"
         command: |
           julia -e 'println("--- :julia: Instantiating project")
               using Pkg
@@ -27,6 +24,10 @@ steps:
         agents:
           arch: "aarch64" 
           queue: "juliaecosystem"
+          num_cpus: "4"
+        env:
+          TEST_GROUP: $TEST_GROUP
+          JULIA_NUM_THREADS: "8"
         timeout_in_minutes: 30
         
       - label: "AMDGPU: Run tests on v{{matrix.version}}"

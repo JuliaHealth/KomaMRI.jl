@@ -27,7 +27,7 @@ steps:
         agents:
           arch: "aarch64"
           queue: "juliaecosystem"
-          num_cpus: "4"
+          num_cpus: "8"
         env:
           BENCHMARK_GROUP: CPU
           JULIA_NUM_THREADS: "{{matrix.threads}}"
