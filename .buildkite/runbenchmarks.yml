@@ -25,11 +25,12 @@ steps:
         artifact_paths: 
           - "benchmarks/results/*"
         agents:
+          arch: "aarch64"
           queue: "juliaecosystem"
         env:
           BENCHMARK_GROUP: CPU
           JULIA_NUM_THREADS: "{{matrix.threads}}"
-        timeout_in_minutes: 10
+        timeout_in_minutes: 15
 
       - label: "AMDGPU: Run Benchmarks"
         plugins:
