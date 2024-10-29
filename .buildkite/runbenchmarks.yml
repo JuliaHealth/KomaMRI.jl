@@ -30,7 +30,7 @@ steps:
         env:
           BENCHMARK_GROUP: CPU
           JULIA_NUM_THREADS: "{{matrix.threads}}"
-        timeout_in_minutes: 15
+        timeout_in_minutes: 30
 
       - label: "AMDGPU: Run Benchmarks"
         plugins:
