@@ -20,14 +20,14 @@ steps:
 
           julia -e 'println("--- :julia: Running tests")
               using Pkg
-              Pkg.test("KomaMRICore"; julia_args=`--threads=8`)'
+              Pkg.test("KomaMRICore"; julia_args=`--threads=4`)'
         agents:
           arch: "aarch64" 
           queue: "juliaecosystem"
           num_cpus: "4"
         env:
           TEST_GROUP: $TEST_GROUP
-          JULIA_NUM_THREADS: "8"
+          JULIA_NUM_THREADS: "4"
         timeout_in_minutes: 30
         
       - label: "AMDGPU: Run tests on v{{matrix.version}}"
