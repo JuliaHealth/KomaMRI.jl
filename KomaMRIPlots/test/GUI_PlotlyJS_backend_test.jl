@@ -36,6 +36,41 @@
         end
     end
 
+    @testset "GUI_motion_phantom" begin
+        ph = brain_phantom2D()    #2D phantom
+        ph.motion = MotionList(Translate(0.1, 0.1, 0.1, TimeRange(0.0, 1.0), SpinRange(1:1000)))
+
+        @testset "plot_motion_phantom_map_rho" begin
+            plot_phantom_map(ph, :ρ, width=800, height=600, max_spins=1_000) #Plotting the phantom's rho map (set max_spins=1_000)
+            @test true                #If the previous line fails the test will fail
+        end
+
+        @testset "plot_motion_phantom_map_T1" begin
+            plot_phantom_map(ph, :T1) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+
+        @testset "plot_motion_phantom_map_T2" begin
+            plot_phantom_map(ph, :T2) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+
+        @testset "plot_motion_phantom_map_x" begin
+            plot_phantom_map(ph, :x) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+
+        @testset "plot_motion_phantom_map_w" begin
+            plot_phantom_map(ph, :Δw) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+
+        @testset "plot_motion_phantom_map_2dview" begin
+            plot_phantom_map(ph, :ρ, view_2d=true) #Plotting the phantom's rho map
+            @test true                #If the previous line fails the test will fail
+        end
+    end
+
     @testset "GUI_seq" begin
         #KomaCore definition of a sequence:
         #RF construction

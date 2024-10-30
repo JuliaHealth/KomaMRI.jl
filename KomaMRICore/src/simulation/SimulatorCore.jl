@@ -2,8 +2,7 @@ abstract type SimulationMethod end #get all available types by using subtypes(Ko
 abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
-include("Bloch/BlochSimulationMethod.jl")       #Defines Bloch simulation method
-include("Bloch/BlochDictSimulationMethod.jl")   #Defines BlochDict simulation method
+include("SimMethods/SimulationMethod.jl")  #Defines simulation methods
 
 """
     sim_params = default_sim_params(sim_params=Dict{String,Any}())
@@ -36,7 +35,9 @@ allowing the user to define some of them.
         parallel threads, speeding up the execution time
     * "gpu": is a boolean that determines whether to use GPU or CPU hardware resources, as
         long as they are available on the host computer
-    * "gpu_device": sets the index ID of the available GPU in the host computer
+    * "gpu_device": default value is 'nothing'. If set to integer or device instance, calls the
+        corresponding function to set the device of the available GPU in the host computer 
+        (e.g. CUDA.device!)
 
 # Returns
 - `sim_params`: (`::Dict{String,Any}`) dictionary with simulation parameters
@@ -44,12 +45,8 @@ allowing the user to define some of them.
 function default_sim_params(sim_params=Dict{String,Any}())
     sampling_params = KomaMRIBase.default_sampling_params()
     get!(sim_params, "gpu", true)
-    if sim_params["gpu"]
-        check_use_cuda()
-        sim_params["gpu"] &= use_cuda[]
-    end
-    get!(sim_params, "gpu_device", 0)
-    get!(sim_params, "Nthreads", sim_params["gpu"] ? 1 : Threads.nthreads())
+    get!(sim_params, "gpu_device", nothing)
+    get!(sim_params, "Nthreads", Threads.nthreads())
     get!(sim_params, "Nblocks", 20)
     get!(sim_params, "Δt", sampling_params["Δt"])
     get!(sim_params, "Δt_rf", sampling_params["Δt_rf"])
@@ -84,7 +81,9 @@ function run_spin_precession_parallel!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
-    sim_method::SimulationMethod;
+    sim_method::SimulationMethod,
+    backend::KA.Backend,
+    prealloc::PreallocResult;
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
@@ -92,7 +91,7 @@ function run_spin_precession_parallel!(
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method
+            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend, @view(prealloc[p])
         )
     end
 
@@ -123,7 +122,9 @@ function run_spin_excitation_parallel!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
-    sim_method::SimulationMethod;
+    sim_method::SimulationMethod,
+    backend::KA.Backend,
+    prealloc::PreallocResult;
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
@@ -131,7 +132,7 @@ function run_spin_excitation_parallel!(
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_excitation!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method
+            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend, @view(prealloc[p])
         )
     end
 
@@ -168,10 +169,12 @@ function run_sim_time_iter!(
     seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
-    sim_method::SimulationMethod;
+    sim_method::SimulationMethod,
+    backend::KA.Backend;
     Nblocks=1,
     Nthreads=Threads.nthreads(),
     parts=[1:length(seq)],
+    precalc=nothing,
     excitation_bool=ones(Bool, size(parts)),
     w=nothing,
 ) where {T<:Real}
@@ -179,6 +182,7 @@ function run_sim_time_iter!(
     rfs = 0
     samples = 1
     progress_bar = Progress(Nblocks; desc="Running simulation...")
+    prealloc_result = prealloc(sim_method, backend, obj, Xt, maximum(length.(parts))+1, precalc)
 
     for (block, p) in enumerate(parts)
         seq_block = @view seq[p]
@@ -190,12 +194,12 @@ function run_sim_time_iter!(
         # Simulation wrappers
         if excitation_bool[block]
             run_spin_excitation_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads
+                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_block(prealloc_result, block); Nthreads
             )
             rfs += 1
         else
             run_spin_precession_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method; Nthreads
+                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_block(prealloc_result, block); Nthreads
             )
         end
         samples += Nadc
@@ -291,7 +295,9 @@ end
     out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; sim_params, w)
 
 Returns the raw signal or the last state of the magnetization according to the value
-of the `"return_type"` key of the `sim_params` dictionary.
+of the `"return_type"` key of the `sim_params` dictionary. 
+
+This is a wrapper function to `run_sim_time_iter`, which converts the inputs to the appropriate types and discretizes the sequence before simulation. The reported simulation time only considers `run_sim_time_iter`, as the preprocessing duration should be negligible compared to the simulation time (if this is not the case, please file a bug report). 
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
@@ -324,6 +330,11 @@ function simulate(
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
+    #Warn if user is trying to run on CPU without enabling multi-threading
+    if (!sim_params["gpu"] && Threads.nthreads() == 1)
+        @info """Simulation will be run on the CPU with only 1 thread. To enable multi-threading, start julia with --threads=auto
+        """ maxlog=1
+    end
     # Simulation init
     seqd = discretize(seq; sampling_params=sim_params) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; Nblocks=sim_params["Nblocks"]) # Generating simulation blocks
@@ -333,31 +344,46 @@ function simulate(
     Xt, obj = initialize_spins_state(obj, sim_params["sim_method"])
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_params["sim_method"])
-    sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
-    # Objects to GPU
-    if sim_params["gpu"] #Default
-        device!(sim_params["gpu_device"])
-        gpu_name = name.(devices())[sim_params["gpu_device"] + 1]
-        obj = obj |> gpu #Phantom
-        seqd = seqd |> gpu #DiscreteSequence
-        Xt = Xt |> gpu #SpinStateRepresentation
-        sig = sig |> gpu #Signal
+    backend = get_backend(sim_params["gpu"])
+    sim_params["gpu"] &= backend isa KA.GPU
+    if sim_params["gpu"]
+        sim_params["Nthreads"] = 1
     end
-    if sim_params["precision"] == "f32" #Default
-        obj  = obj |> f32 #Phantom
-        seqd = seqd |> f32 #DiscreteSequence
-        Xt   = Xt |> f32 #SpinStateRepresentation
-        sig  = sig |> f32 #Signal
-    elseif sim_params["precision"] == "f64"
+    sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
+    if !KA.supports_float64(backend) && sim_params["precision"] == "f64"
+        sim_params["precision"] = "f32"
+        @info """ Backend: '$(name(backend))' does not support 64-bit precision 
+        floating point operations. Automatically converting to type Float32.
+        (set sim_param["precision"] = "f32" to avoid seeing this message).
+        """ maxlog=1
+    end
+    if sim_params["precision"] == "f64" && KA.supports_float64(backend)
         obj  = obj |> f64 #Phantom
         seqd = seqd |> f64 #DiscreteSequence
         Xt   = Xt |> f64 #SpinStateRepresentation
         sig  = sig |> f64 #Signal
+    else
+        #Precision  #Default
+        obj  = obj |> f32 #Phantom
+        seqd = seqd |> f32 #DiscreteSequence
+        Xt   = Xt |> f32 #SpinStateRepresentation
+        sig  = sig |> f32 #Signal
+    end
+    precalc = precalculate(sim_params["sim_method"], backend, seqd, parts, excitation_bool)
+    # Objects to GPU
+    if backend isa KA.GPU
+        isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
+        gpu_name = device_name(backend)
+        obj = obj |> gpu #Phantom
+        seqd = seqd |> gpu #DiscreteSequence
+        Xt = Xt |> gpu #SpinStateRepresentation
+        sig = sig |> gpu #Signal
+        precalc = precalc |> gpu #Info calculated prior to simulation
     end
 
     # Simulation
-    @info "Running simulation in the $(sim_params["gpu"] ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
-        __VERSION__ sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
+    @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
+        pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
         seqd.t
     ) adc_points = Ndims[1]
     @time timed_tuple = @timed run_sim_time_iter!(
@@ -365,21 +391,19 @@ function simulate(
         seqd,
         sig,
         Xt,
-        sim_params["sim_method"];
+        sim_params["sim_method"],
+        backend;
         Nblocks=length(parts),
         Nthreads=sim_params["Nthreads"],
         parts,
         excitation_bool,
+        precalc,
         w,
     )
     # Result to CPU, if already in the CPU it does nothing
     sig = sum(sig; dims=length(Ndims) + 1) |> cpu #Sum over threads
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
-    if sim_params["gpu"]
-        GC.gc(true)
-        CUDA.reclaim()
-    end
     # Output
     if sim_params["return_type"] == "state"
         out = Xt
@@ -390,6 +414,7 @@ function simulate(
         sim_params_raw = copy(sim_params)
         sim_params_raw["sim_method"] = string(sim_params["sim_method"])
         sim_params_raw["gpu"] = sim_params["gpu"]
+        sim_params_raw["gpu_device"] = backend isa KA.GPU ? gpu_name : "nothing"
         sim_params_raw["Nthreads"] = sim_params["Nthreads"]
         sim_params_raw["t_sim_parts"] = t_sim_parts
         sim_params_raw["type_sim_parts"] = excitation_bool

@@ -1,0 +1,10 @@
+# environment.yml from https://discourse.jupyter.org/t/jupyter-webio-in-binder/14476/5
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - jupyterlab >=3.1,<4 # the docs specify this, but the metadata doesn't
+  - plotly              
+  - webio-jupyter-extension
+  - nbgitpuller
+  - jupyter-pluto-proxy

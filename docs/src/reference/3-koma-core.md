@@ -12,9 +12,11 @@ simulate_slice_profile
 default_sim_params
 ```
 
-## Adapt converters for GPU
+## GPU helper functions
 
 ```@docs
+get_backend
+print_devices
 gpu
 cpu
 f32

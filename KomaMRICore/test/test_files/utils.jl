@@ -16,6 +16,28 @@ function signal_brain_motion_jemris()
     return sig
 end
 
+function phantom_brain_simple_motion()
+    obj = phantom_brain()
+    obj.motion = MotionList(Translate(0.0, 1.0, 0.0, TimeRange(0.0, 10.0)))
+    return obj
+end
+
+function phantom_brain_arbitrary_motion()
+    obj = phantom_brain()
+    Ns = length(obj)
+    t_start = 0.0
+    t_end = 10.0
+    dx = zeros(Ns, 2)  
+    dz = zeros(Ns, 2)  
+    dy = [zeros(Ns,1) ones(Ns,1)]
+    obj.motion = MotionList(Path(
+        dx,
+        dy,
+        dz,
+        TimeRange(t_start, t_end)))
+    return obj
+end
+
 function phantom_sphere()
     path = @__DIR__
     fid = h5open(joinpath(path, "phantom_sphere.h5"), "r")
@@ -134,4 +156,8 @@ function seq_epi_100x100_TE100_FOV230()
     # Return the sequence
     seq = ex + dephaser + delayTE + epi
     return seq
+end
+
+function NRMSE(x, x_true) 
+    return sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
 end

@@ -53,40 +53,39 @@ using TestItems, TestItemRunner
         using KomaMRIBase
         path = @__DIR__
         # NoMotion
-        filename = path * "/test_files/brain_nomotion.phantom"
+        filename = path * "/test_files/brain_nomotion_w.phantom"
         obj1 = brain_phantom2D()
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
         @test obj1 == obj2
-        # SimpleMotion
-        filename = path * "/test_files/brain_simplemotion.phantom"
+    end
+    @testset "SimpleAction" begin
+        # SimpleAction
+        path = @__DIR__
+        filename = path * "/test_files/brain_simplemotion_w.phantom"
         obj1 = brain_phantom2D()
-        obj1.motion = SimpleMotion([
-            PeriodicRotation(
-                period=1.0, 
-                yaw=45.0,
-                pitch=0.0,
-                roll=0.0),
-            Translation(
-                t_start=0.0,
-                t_end=0.5,
-                dx=0.0,
-                dy=0.02,
-                dz=0.0
-        )])
+        obj1.motion = MotionList(
+            Rotate(0.0, 0.0, 45.0, Periodic(period=1.0)),
+            Translate(0.0, 0.02, 0.0, TimeRange(t_start=0.0, t_end=0.5))
+        )
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
         @test obj1 == obj2
-        # ArbitraryMotion
-        filename = path * "/test_files/brain_arbitrarymotion.phantom"
+    end
+    @testset "ArbitraryAction" begin
+        # ArbitraryAction
+        path = @__DIR__
+        filename = path * "/test_files/brain_arbitrarymotion_w.phantom"
         obj1 = brain_phantom2D()
         Ns = length(obj1)
         K = 10
-        obj1.motion = ArbitraryMotion(
-            [1.0],
+        t_start = 0.0
+        t_end = 1.0
+        obj1.motion = MotionList(Path(
             0.01.*rand(Ns, K-1),
             0.01.*rand(Ns, K-1),
-            0.01.*rand(Ns, K-1))     
+            0.01.*rand(Ns, K-1),
+            TimeRange(t_start, t_end)))  
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
         @test obj1 == obj2

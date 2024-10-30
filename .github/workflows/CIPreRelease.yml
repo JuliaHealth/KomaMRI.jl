@@ -1,0 +1,116 @@
+name: PreRelease
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+    tags: '*'
+jobs:
+  prerelease:
+    if: ${{ contains( github.event.pull_request.labels.*.name, 'pre-release' ) }} 
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - 'pre' # Latest version of Julia under development (you can expect many packages not to work with this version)
+        os: [ubuntu-latest, windows-latest, macos-12] # macos-latest] <- M1 Mac was generating problems #386, commented for now
+        arch: [x64]
+        include:
+          - os: ubuntu-latest
+            prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: actions/cache@v4
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - name: "KomaMRIBase: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIBase
+      - name: "KomaMRIBase: Run Tests"
+        if: '!cancelled()'
+        uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIBase
+      - name: "KomaMRICore: Development Setup"
+        if: '!cancelled()'
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+      - name: "KomaMRICore: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRICore
+      - name: "KomaMRICore: Run Tests"
+        if: '!cancelled()'
+        uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRICore
+      - name: "KomaMRIFiles: Development Setup"
+        if: '!cancelled()'
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+      - name: "KomaMRIFiles: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIFiles
+      - name: "KomaMRIFiles: Run Tests"
+        if: '!cancelled()'
+        uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIFiles
+      - name: "KomaMRIPlots: Development Setup"
+        if: '!cancelled()'
+        shell: bash
+        run: |
+          julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+      - name: "KomaMRIPlots: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: KomaMRIPlots
+      - name: "KomaMRIPlots: Run Tests"
+        if: '!cancelled()'
+        uses: julia-actions/julia-runtest@v1
+        with:
+          project: KomaMRIPlots
+          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
+      - name: "KomaMRI: Development Setup"
+        if: '!cancelled()'
+        shell: julia --color=yes --project {0}
+        run: |
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+          ])
+      - name: "KomaMRI: Build"
+        if: '!cancelled()'
+        uses: julia-actions/julia-buildpkg@v1
+      - name: "KomaMRI: Run Tests"
+        if: '!cancelled()'
+        uses: julia-actions/julia-runtest@v1
+        with:
+          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
