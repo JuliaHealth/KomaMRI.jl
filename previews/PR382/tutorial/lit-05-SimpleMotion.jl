@@ -1,28 +1,25 @@
 # # Patient's Motion During Acquisition
 
 using KomaMRI # hide
+using PlotlyJS # hide
 sys = Scanner() # hide
 
 # It can also be interesting to see the effect of the patient's motion during an MRI scan.
-# For this, Koma provides the ability to add `motion <: MotionModel` to the phantom.
-# In this tutorial, we will show how to add a [`SimpleMotion`](@ref) model to a 2D brain phantom.
+# For this, Koma provides the ability to add `motion <: AbstractMotion` to the phantom.
+# In this tutorial, we will show how to add a [`Translate`](@ref) motion to a 2D brain phantom.
 
 # First, let's load the 2D brain phantom used in the previous tutorials:
 obj = brain_phantom2D()
 obj.Δw .= 0 # hide
 
-# The `SimpleMotion` model includes a list of `SimpleMotionType`'s, to enabling mix-and-matching simple motions.
-# These are [`Translation`](@ref), [`Rotation`](@ref), [`HeartBeat`](@ref) and their periodic versions
-# [`PeriodicTranslation`](@ref), [`PeriodicRotation`](@ref) and [`PeriodicHeartBeat`](@ref).
-
 # ### Head Translation
 #
-# In this example, we will add a [`Translation`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
+# In this example, we will add a [`Translate`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
 
-obj.motion = SimpleMotion([
-    Translation(t_start=0.0, t_end=200e-3, dx=2e-2, dy=0.0, dz=0.0)
-])
-p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
+obj.motion = MotionList(
+    Translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
+)
+p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4) # hide
 
 #md savefig(p1, "../assets/5-phantom1.html") # hide
 #jl display(p1)
@@ -71,20 +68,20 @@ p2 = plot_image(abs.(image1[:, :, 1]); height=400) # hide
 # S_{\mathrm{MC}}\left(t\right)=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}\Delta\phi_{\mathrm{corr}}}=S\left(t\right)\cdot\mathrm{e}^{\mathrm{i}2\pi\boldsymbol{k}\left(t\right)\cdot\boldsymbol{u}\left(t\right)}
 # ```
 
-# In practice, we would need to estimate or measure the motion before performing a motion-corrected reconstruction, but for this example, we will directly use the displacement functions ``\boldsymbol{u}(\boldsymbol{x}, t)`` defined by `obj.motion::SimpleMotion`. 
+# In practice, we would need to estimate or measure the motion before performing a motion-corrected reconstruction, but for this example, we will directly use the displacement functions ``\boldsymbol{u}(\boldsymbol{x}, t)`` defined by `obj.motion::MotionList`. 
 # Since translations are rigid motions (``\boldsymbol{u}(\boldsymbol{x}, t)=\boldsymbol{u}(t)`` no position dependence), we can obtain the required displacements by calculating ``\boldsymbol{u}(\boldsymbol{x}=\boldsymbol{0},\ t=t_{\mathrm{adc}})``.
 sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)
 
-p3 = KomaMRIPlots.plot( # hide
+p3 = plot( # hide
     sample_times, # hide
     displacements .* 1e2, # hide
-    KomaMRIPlots.Layout( # hide
+    Layout( # hide
         title = "Head displacement in x, y and z", # hide
         xaxis_title = "time (s)", # hide
         yaxis_title = "Displacement (cm)" # hide
     )) # hide
-KomaMRIPlots.restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) # hide
+restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) # hide
 
 #md savefig(p3, "../assets/5-displacements.html") # hide
 #jl display(p3)

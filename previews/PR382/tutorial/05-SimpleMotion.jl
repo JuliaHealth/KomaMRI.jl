@@ -1,13 +1,14 @@
 using KomaMRI # hide
+using PlotlyJS # hide
 sys = Scanner() # hide
 
 obj = brain_phantom2D()
 obj.Δw .= 0 # hide
 
-obj.motion = SimpleMotion([
-    Translation(t_start=0.0, t_end=200e-3, dx=2e-2, dy=0.0, dz=0.0)
-])
-p1 = plot_phantom_map(obj, :T2 ; height=450, intermediate_time_samples=4) # hide
+obj.motion = MotionList(
+    Translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
+)
+p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4) # hide
 
 display(p1)
 
@@ -33,15 +34,15 @@ display(p2)
 sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)
 
-p3 = KomaMRIPlots.plot( # hide
+p3 = plot( # hide
     sample_times, # hide
     displacements .* 1e2, # hide
-    KomaMRIPlots.Layout( # hide
+    Layout( # hide
         title = "Head displacement in x, y and z", # hide
         xaxis_title = "time (s)", # hide
         yaxis_title = "Displacement (cm)" # hide
     )) # hide
-KomaMRIPlots.restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) # hide
+restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) # hide
 
 display(p3)
 
