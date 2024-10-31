@@ -25,11 +25,13 @@ steps:
         artifact_paths: 
           - "benchmarks/results/*"
         agents:
-          queue: "benchmark"
+          arch: "aarch64"
+          queue: "juliaecosystem"
+          num_cpus: "8"
         env:
           BENCHMARK_GROUP: CPU
           JULIA_NUM_THREADS: "{{matrix.threads}}"
-        timeout_in_minutes: 120
+        timeout_in_minutes: 30
 
       - label: "AMDGPU: Run Benchmarks"
         plugins:
@@ -57,7 +59,7 @@ steps:
           rocmgpu: "gfx1101"
         env:
           BENCHMARK_GROUP: AMDGPU
-        timeout_in_minutes: 120
+        timeout_in_minutes: 30
 
       - label: "CUDA: Run Benchmarks"
         plugins:
@@ -85,7 +87,7 @@ steps:
           cuda: "*"
         env:
           BENCHMARK_GROUP: CUDA
-        timeout_in_minutes: 120
+        timeout_in_minutes: 30
 
       - label: "Metal: Run Benchmarks"
         plugins:
@@ -113,7 +115,7 @@ steps:
           arch: "aarch64"
         env:
           BENCHMARK_GROUP: Metal
-        timeout_in_minutes: 120
+        timeout_in_minutes: 30
 
       - label: "oneAPI: Run Benchmarks"
         plugins:
@@ -140,7 +142,7 @@ steps:
           intel: "*"
         env:
           BENCHMARK_GROUP: oneAPI
-        timeout_in_minutes: 120
+        timeout_in_minutes: 30
 
       - wait: ~
 

@@ -52,7 +52,7 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* (cos.(ϕ) .+ im .* sin.(ϕ))] #This assumes Δw and T2 are constant in time
+    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ)] #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(Mxy, seq.t', p.motion)
