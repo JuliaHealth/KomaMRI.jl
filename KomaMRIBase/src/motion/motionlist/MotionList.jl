@@ -1,7 +1,7 @@
-include("motionlist/Action.jl")
-include("motionlist/SpinSpan.jl")
-include("motionlist/TimeSpan.jl")
-include("motionlist/Motion.jl")
+include("Action.jl")
+include("SpinSpan.jl")
+include("TimeSpan.jl")
+include("Motion.jl")
 
 """
     motionlist = MotionList(motions...)
@@ -138,7 +138,7 @@ function get_spin_coords(
 end
 
 """
-    times = times(motion, T)
+    times = times(motion)
 """
 function times(ml::MotionList)
     nodes = reduce(vcat, [times(m) for m in ml.motions])
