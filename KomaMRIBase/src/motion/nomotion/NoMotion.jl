@@ -1,5 +1,5 @@
 """
-    nomotion = NoMotion{T<:Real}()
+    nomotion = NoMotion()
 
 NoMotion struct. It is used to create static phantoms.
 
@@ -8,18 +8,18 @@ NoMotion struct. It is used to create static phantoms.
 
 # Examples
 ```julia-repl
-julia> nomotion = NoMotion{Float64}()
+julia> nomotion = NoMotion()
 ```
 """
-struct NoMotion{T<:Real} <: AbstractMotion{T} end
+struct NoMotion end
 
 Base.getindex(mv::NoMotion, p) = mv 
 Base.view(mv::NoMotion, p)     = mv
 
 """ Addition of NoMotions """
-Base.vcat(m1::NoMotion, m2::NoMotion, Ns1, Ns2) = m1
-Base.vcat(m1, m2::NoMotion, Ns1, Ns2) = vcat(m2, m1, 0, Ns1)
-function Base.vcat(m1::NoMotion{T}, m2, Ns1, Ns2) where {T}
+Base.vcat(m1::NoMotion,   m2::NoMotion, Ns1, Ns2) = m1
+Base.vcat(m1::MotionList, m2::NoMotion, Ns1, Ns2) = vcat(m2, m1, 0, Ns1)
+function Base.vcat(m1::NoMotion, m2::MotionList{T}, Ns1, Ns2) where {T}
     mv_aux = Motion{T}[]
     for m in m2.motions
         m_aux = copy(m)
@@ -31,23 +31,11 @@ function Base.vcat(m1::NoMotion{T}, m2, Ns1, Ns2) where {T}
 end
 
 """ Compare two NoMotions """
-Base.:(==)(m1::NoMotion{T}, m2::NoMotion{T}) where {T<:Real} = true
-Base.:(≈)(m1::NoMotion{T}, m2::NoMotion{T}) where {T<:Real}  = true
+Base.:(==)(m1::NoMotion, m2::NoMotion) = true
+Base.:(≈)(m1::NoMotion, m2::NoMotion)   = true
 
 function get_spin_coords(
-    mv::NoMotion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
+    mv::NoMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
 ) where {T<:Real}
     return x, y, z
-end
-
-"""
-    times = times(motion)
-"""
-times(mv::NoMotion{T}) where {T<:Real} = [zero(T)]
-
-"""
-    sort_motions!(motionset)
-"""
-function sort_motions!(m::NoMotion)
-    return nothing
 end

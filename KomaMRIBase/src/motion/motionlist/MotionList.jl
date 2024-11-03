@@ -1,3 +1,8 @@
+include("Action.jl")
+include("SpinSpan.jl")
+include("TimeSpan.jl")
+include("Motion.jl")
+
 """
     motionlist = MotionList(motions...)
 
@@ -27,12 +32,12 @@ julia>  motionlist = MotionList(
         )
 ```
 """
-struct MotionList{T<:Real} <: AbstractMotion{T}
+struct MotionList{T<:Real}
     motions::Vector{<:Motion{T}}
 end
 
 """ Constructors """
-MotionList(motions...) = length([motions]) > 0 ? MotionList([motions...]) : @error "You must provide at least one motion as input argument. If you do not want to define motion, use `NoMotion{T}()`"
+MotionList(motions::Motion...) = length([motions]) > 0 ? MotionList([motions...]) : @error "You must provide at least one motion as input argument. If you do not want to define motion, use `NoMotion{T}()`"
 
 """ MotionList sub-group """
 function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
@@ -40,14 +45,14 @@ function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
     for m in mv.motions
         m[p] !== nothing ? push!(motion_array_aux, m[p]) : nothing
     end
-    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion{T}()
+    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion()
 end
 function Base.view(mv::MotionList{T}, p) where {T<:Real}
     motion_array_aux = Motion{T}[]
     for m in mv.motions
         @view(m[p]) !== nothing ? push!(motion_array_aux, @view(m[p])) : nothing
     end
-    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion{T}()
+    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion()
 end
 
 """ Addition of MotionLists """
@@ -91,7 +96,7 @@ Calculates the position of each spin at a set of arbitrary time instants, i.e. t
 For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `length(t)` columns.
 
 # Arguments
-- `motionset`: (`::AbstractMotion{T<:Real}`) phantom motion
+- `motion`: (`::Union{NoMotion, MotionList{T<:Real}}`) phantom motion
 - `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
 - `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
 - `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
@@ -135,20 +140,20 @@ end
 """
     times = times(motion)
 """
-function times(ml::MotionList{T}) where {T<:Real}
+function times(ml::MotionList)
     nodes = reduce(vcat, [times(m) for m in ml.motions])
     return unique(sort(nodes))
 end
 
 """
-    sort_motions!(motionset)
+    sort_motions!(motion)
 
 Sorts motions in a list according to their starting time. It modifies the original list.
 If `motionset::NoMotion`, this function does nothing.
 If `motionset::MotionList`, this function sorts its motions.
 
 # Arguments
-- `motionset`: (`::AbstractMotion{T<:Real}`) phantom motion
+- `motion`: (`::Union{NoMotion, MotionList{T<:Real}}`) phantom motion
 
 # Returns
 - `nothing`

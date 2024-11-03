@@ -1035,19 +1035,18 @@ function plot_phantom_map(
     max_time_samples=100,
     kwargs...,
 )
-    function interpolate_times(motion)
+    function process_times(::NoMotion)
+        return [zero(eltype(obj.x))]
+    end
+
+    function process_times(motion::MotionList) 
+        KomaMRIBase.sort_motions!(motion)
         t = times(motion)
         if length(t)>1
             # Interpolate time points (as many as indicated by time_samples)
             itp = interpolate((1:(time_samples + 1):(length(t) + time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
             t = itp.(1:(length(t) + time_samples * (length(t) - 1)))
         end
-        return t
-    end
-
-    function process_times(motion)
-        KomaMRIBase.sort_motions!(motion)
-        t = interpolate_times(motion)
         # Decimate time points so their number is smaller than max_time_samples
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
@@ -1135,9 +1134,21 @@ function plot_phantom_map(
     l = Layout(;title=obj.name*": "*string(key))
 
     if view_2d # 2D
+        function get_displayed_dims(v)
+            if sum(v) == 1
+                idx = argmax(v)[1] 
+                return [idx in [1, 3], idx in [1, 2], idx in [2,3]]
+            else
+                return v
+            end
+        end 
+
         # Layout config
+        dims = get_displayed_dims(KomaMRIBase.get_dims(obj))
+        axis = ["x", "y", "z"][dims]
+        
         l[:xaxis] = attr(
-            title="x",
+            title=axis[1],
             range=[x0, xf],
             ticksuffix=" cm",
             backgroundcolor=plot_bgcolor,
@@ -1146,7 +1157,7 @@ function plot_phantom_map(
             scaleanchor="y"
         )
         l[:yaxis] = attr(
-            title="y",
+            title=axis[2],
             range=[x0, xf],
             ticksuffix=" cm",
             backgroundcolor=plot_bgcolor,
@@ -1158,8 +1169,8 @@ function plot_phantom_map(
         # Add traces
         for i in 1:length(t)
             push!(traces, scattergl( 
-                x=(x[:,i])*1e2,
-                y=(y[:,i])*1e2,
+                x=dims[1]           ? (x[:,i])*1e2 : (y[:,i])*1e2,
+                y=dims[1] & dims[2] ? (y[:,i])*1e2 : (z[:,i])*1e2,
                 mode="markers",
                 marker=attr(color=getproperty(obj,key)*factor,
                             showscale=colorbar,
@@ -1244,7 +1255,7 @@ function plot_phantom_map(
             )
             for (i, t0) in enumerate(t)
         ],
-        currentvalue_prefix="x = ",
+        currentvalue_prefix="t = ",
         currentvalue_suffix="ms",
     )]
     l[:margin] = attr(t=50, l=0, r=0)
