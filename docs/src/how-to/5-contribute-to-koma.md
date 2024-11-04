@@ -105,7 +105,6 @@ In the `Create` tab that appears, select `JuliaHealth/master` as the base and th
 
 To finish your pull request, give your pull request a description that explains the issue or feature you are addresing in your branch, and press the Create button.
 
-*"Fill Pull request" Image*
 ![](../assets/fill-pull-request.png)
 
 >💡 **Tips for a successful Pull Request:**
