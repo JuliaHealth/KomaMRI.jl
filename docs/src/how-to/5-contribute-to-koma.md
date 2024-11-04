@@ -73,4 +73,17 @@ This will open a menu to select an starting point for your branch. Select `my-fo
 
 ## How to Commit
 
+If you have already created your first modifications in your local version of the repository, you will want to commit your changes in your public branch.
+To do this, in VScode go to the Source Control tab.
+
+Assuming you are currently in your `my-new-feature` branch, the Source Control panel should show your changes to the project and the option to create a commit message.
+
+*"Source control panel" Image*
+
+If you put your mouse over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
+
+Write down a message that describes your changes you are stageing to the project, and press the Commit button.
+
+>💡 If you want to make sure if the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
+
 ## How to create a pull request
