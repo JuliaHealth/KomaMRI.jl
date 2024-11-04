@@ -74,13 +74,14 @@ This will open a menu to select an starting point for your branch. Select `my-fo
 ## How to Commit
 
 If you have already created your first modifications in your local version of the repository, you will want to commit your changes in your public branch.
-To do this, in VScode go to the Source Control tab.
+
+To do this, in VScode go to the Source Control panel in the Activity Bar.
 
 Assuming you are currently in your `my-new-feature` branch, the Source Control panel should show your changes to the project and the option to create a commit message.
 
 *"Source control panel" Image*
 
-If you put your mouse over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
+If you hove over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
 
 Write down a message that describes your changes you are stageing to the project, and press the Commit button.
 
@@ -89,3 +90,19 @@ Press Sync Changes to push your commit into your branch.
 >💡 If you want to make sure if the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
 
 ## How to create a pull request
+
+If you want to send your commited new version of the repository, you can create a pull request that will be reviewed by a Koma certified developer.
+
+To create this pull request, in VScode, go to the `GitHub Pull Request` panel in the Activity Bar and hove over the `Pull request` tab. This should show a Create pull request icon to press.
+
+*"Create Pull request" Image*
+
+In the `Create` tab that appears, select `JuliaHealth/master` as the base and the branch you are working with to merge.
+
+To finish your pull request, give your pull request a description that explains the issue or feature you are addresing in your branch, and press the Create button.
+
+*"Fill Pull request" Image*
+>💡 **Tips for a successful Pull Request:**
+>   - Try to address one issue or feature per pull request to make it easier for reviewers.
+>   - Provide all the context necesary, including all the information of the related issue or added feature.
+>   - Respond to feedback and suggestions to make adjustments based on the reviewers comments.
