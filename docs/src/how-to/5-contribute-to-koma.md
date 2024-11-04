@@ -84,6 +84,8 @@ If you put your mouse over the `Changes` tab, it should show a `+` icon. Press i
 
 Write down a message that describes your changes you are stageing to the project, and press the Commit button.
 
+Press Sync Changes to push your commit into your branch.
+
 >💡 If you want to make sure if the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
 
 ## How to create a pull request
