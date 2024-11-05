@@ -60,6 +60,21 @@ This will create the option to provide a repository URL. Here is where you will 
 
 >💡Press `Yes` when prompted to constantly fetch in the future.
 
+The Julia extension should automatically detect the `KomaMRI` environment. To check this, look at the status bar (bottom) end you should see `Julia env: KomaMRI`. If this is not the case, click the option in the menu bar and select KomaMRI.jl.
+
+#### KomaMRI monorepo setup
+
+As KomaMRI.jl contains multiple packages in one GitHub repository, you need to specify that you want to use your local copies (instead of the ones available on the Julia registries) with:
+```shell
+(KomaMRI) pkg> dev ./KomaMRIBase ./KomaMRICore ./KomaMRIFiles ./KomaMRIPlots
+```
+Finally, use the `instantiate` command to install all the required packages (specified in the `Project.toml`):
+```shell
+(KomaMRI) pkg> instantiate
+```
+
+This will also include all the specific package versions into the `Manifest.toml`. The `Manifest.toml` should not be updated to the repo when making a commit or pull request. Thus, it is present in the `.gitignore`.
+
 ### Create a New Branch for your Feature
 
 If you did correctly follow the previous steps you will have correctly created your fork connected to the original Koma repository. Now, if you want to create your own changes, you will need to create a new branch from your fork.
