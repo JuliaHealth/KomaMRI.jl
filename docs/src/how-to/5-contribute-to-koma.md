@@ -131,9 +131,7 @@ To finish your pull request, give your pull request a description that explains 
 
 ## Reporting Issues
 
-First off, we assume that you have read the available [Documentation](https://cncastillo.github.io/KomaMRI.jl).
-
-Before you report an issue, it is best to search for existing [Issues](https://github.com/cncastillo/KomaMRI.jl/issues) that might help you. In case you have found a suitable issue and still need clarification, you can write your question in this issue.
+Before you report an isue, we assume that you have read the available [Documentation](https://cncastillo.github.io/KomaMRI.jl) and recomend you to to search for existing [Issues](https://github.com/cncastillo/KomaMRI.jl/issues) that might help you. In case you have found a suitable issue and still need clarification, you can write your question in this issue.
 
 If you then still feel the need to report an issue, we recommend the following:
 
