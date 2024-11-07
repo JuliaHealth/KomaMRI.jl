@@ -1,6 +1,24 @@
-# Contribute to Koma
+# Contributing Guidelines
 
-If you're interested in contributing to Koma, this document will guide you through configuring everything you need to get started. By contributing, you help enhance the functionality, usability, and performance of the Koma ecosystem. Whether you're fixing bugs, adding features, or improving documentation, your efforts are welcomed because it help us to advancing the project. Before you begin, it's necessary to install and configure a few essential tools on your machine to ensure a smooth development experience:
+## Reporting Issues
+
+First off, we assume that you have read the available [Documentation](https://cncastillo.github.io/KomaMRI.jl).
+
+Before you report an issue, it is best to search for existing [Issues](https://github.com/cncastillo/KomaMRI.jl/issues) that might help you. In case you have found a suitable issue and still need clarification, you can write your question in this issue.
+
+If you then still feel the need to report an issue, we recommend the following:
+
+- Open an [Issue](https://github.com/cncastillo/KomaMRI.jl/issues/new).
+- Provide as much context as you can about what you're running into.
+- Provide project and platform versions, depending on what seems relevant.
+
+We will then take care of the issue as soon as possible.
+
+# How to Contribute
+
+If you're interested in contributing to Koma, this document will guide you through configuring everything you need to get started. 
+
+Before you begin, it's necessary to install and configure a few essential tools on your machine to ensure a smooth development experience:
 
 - **Juliaup:** This is the manager for installing different versions of Julia.
 - **Julia:** This is the programming language. It is advisable to install it with Juliaup.
@@ -12,7 +30,7 @@ If you're interested in contributing to Koma, this document will guide you throu
     - "GitHub Pull Requests" for collaboration with GitHub.
 
 ## Installing KomaMRI as a developer
-### Clone KomaMRI repository
+### 1. Clone KomaMRI repository
 
 To install the dev version of Koma, we will use the Julia REPL:
 ```julia-repl
@@ -20,7 +38,7 @@ pkg> dev KomaMRI
 ``` 
 This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.julia/dev/KomaMRI/` directory.
 
-### Create your Fork of KomaMRI
+### 2. Create your Fork of KomaMRI
 
 You need to create a fork of the KomaMRI repository in GitHub. This allows you to have your own copy of the repository to work on without modifying the original repository.
 
@@ -29,7 +47,7 @@ Go to the official [KomaMRI repository](https://github.com/JuliaHealth/KomaMRI.j
 ![](../assets/create-fork-step1.png)
 ![](../assets/create-fork-step2.png)
 
-### Access Your GitHub Account in VSCode
+### 3. Access Your GitHub Account in VSCode
 
 Now, you need to ensure that your GitHub account is connected to VSCode. This allows you to clone repositories, create branches, and manage pull request directrly within VSCode.
 
@@ -43,7 +61,7 @@ git config --global user.name
 git config --global user.email
 ```
 
-### Open Your Forked Repository in VSCode
+### 4. Open Your Forked Repository in VSCode
 
 In VSCode, click on **File** -> **Open Folder...** and select your `~/.julia/dev/KomaMRI/` directory.
 
@@ -62,7 +80,7 @@ This will create the option to provide a repository URL. Here is where you will 
 
 The Julia extension should automatically detect the `KomaMRI` environment. To check this, look at the status bar (bottom) end you should see `Julia env: KomaMRI`. If this is not the case, click the option in the menu bar and select KomaMRI.jl.
 
-#### KomaMRI monorepo setup
+### 5. KomaMRI monorepo setup
 
 As KomaMRI.jl contains multiple packages in one GitHub repository, you need to specify that you want to use your local copies (instead of the ones available on the Julia registries) with:
 ```shell
@@ -75,7 +93,7 @@ Finally, use the `instantiate` command to install all the required packages (spe
 
 This will also include all the specific package versions into the `Manifest.toml`. The `Manifest.toml` should not be updated to the repo when making a commit or pull request. Thus, it is present in the `.gitignore`.
 
-### Create a New Branch for your Feature
+### 6. Create a New Branch for your Feature
 
 If you did correctly follow the previous steps you will have correctly created your fork connected to the original Koma repository. Now, if you want to create your own changes, you will need to create a new branch from your fork.
 
