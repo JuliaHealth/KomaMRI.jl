@@ -47,7 +47,7 @@ julia> obj.ρ
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::AbstractMotion{T} = NoMotion{eltype(x)}()
+    motion::Union{NoMotion, MotionList{T}} = NoMotion()
 end
 
 const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
