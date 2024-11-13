@@ -1,17 +1,15 @@
 # Contribute to Koma
 
-If you're interested in contributing to Koma, this document will guide you through configuring everything you need to get started. 
+If you're interested in contributing to Koma, this document will guide you through configuring everything you need to get started. By contributing, you help enhance the functionality, usability, and performance of the Koma ecosystem. Whether you're fixing bugs, adding features, or improving documentation, your efforts are welcomed because it help us to advancing the project. Before you begin, it's necessary to install and configure a few essential tools on your machine to ensure a smooth development experience:
 
-Before you begin, it's necessary to install and configure a few essential tools on your machine to ensure a smooth development experience:
-
-- **Juliaup:** This is the manager for installing different versions of Julia.
-- **Julia:** This is the programming language. It is advisable to install it with Juliaup.
-- **Git:** This is a version control system handy for coding.
-- **GitHub:** This is a cloud-based Git repository handy for managing the KomaMRI project. You need to create an account.
-- **VScode:** This is a code editor with support for development operations.
-- **VScode Plugins:** They enable VSCode to have more handy features. We recommend you install the following: 
-    - "Julia" for Julia development
-    - "GitHub Pull Requests" for collaboration with GitHub.
+- Juliaup
+- Julia
+- Git
+- GitHub
+- VScode
+- VScode Plugins: 
+    - Julia 
+    - GitHub Pull Requests
 
 ## Installing KomaMRI as a developer
 ### 1. Clone KomaMRI repository
