@@ -24,9 +24,9 @@ This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.juli
 
 ### 2. Create your Fork of KomaMRI
 
-You need to create a fork of the KomaMRI repository in GitHub. This allows you to have your own copy of the repository to work on without modifying the original repository.
+If you try to commit or generate a pull request at this point, you will get an `Access denied` error. This is because you need to create a fork before you can contribute to this repository directly (unless you are included as a collaborator!).
 
-Go to the official [KomaMRI repository](https://github.com/JuliaHealth/KomaMRI.jl) and follow the steps below:
+To create this fork, go to the official [KomaMRI repository](https://github.com/JuliaHealth/KomaMRI.jl) and follow the steps below:
 
 ![](../assets/create-fork-step1.png)
 ![](../assets/create-fork-step2.png)
