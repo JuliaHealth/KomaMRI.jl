@@ -18,7 +18,7 @@ To install the dev version of Koma, we will use the Julia REPL:
 ```julia-repl
 pkg> dev KomaMRI
 ``` 
-This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.julia/dev/KomaMRI/` directory if you are in a MacOS or Linux operative system, or `C:\Users\<user-name>\.julia\dev\KomaMRI` if you are using Windows, where `<user-name>` should be replaced with your Windows user.
+This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.julia/dev/KomaMRI/` directory if you are in a MacOS or Linux operative system, or `C:/Users/<user-name>/.julia/dev/KomaMRI/` if you are using Windows, where `<user-name>` should be replaced with your Windows user.
 
 ### 2. Create your Fork of KomaMRI
 
