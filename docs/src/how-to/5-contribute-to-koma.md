@@ -20,7 +20,7 @@ pkg> dev KomaMRI
 ``` 
 This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.julia/dev/KomaMRI/` directory if you are in a MacOS or Linux operative system, or `C:/Users/<user-name>/.julia/dev/KomaMRI/` if you are using Windows, where `<user-name>` should be replaced with your Windows user.
 
-### 2. Create your Fork of KomaMRI
+### 2. Create your fork of KomaMRI
 
 If you try to commit or generate a pull request at this point, you will get an `Access denied` error. This is because you need to create a fork before you can contribute to this repository directly (unless you are included as a collaborator!).
 
@@ -29,7 +29,7 @@ To create this fork, go to the official [KomaMRI repository](https://github.com/
 ![](../assets/create-fork-step1.png)
 ![](../assets/create-fork-step2.png)
 
-### 3. Access Your GitHub Account in VSCode
+### 3. Access your GitHub account in VSCode
 
 Now, you need to ensure that your GitHub account is connected to VSCode. This allows you to clone repositories, create branches, and manage pull request directrly within VSCode.
 
@@ -43,7 +43,7 @@ git config --global user.name
 git config --global user.email
 ```
 
-### 4. Open Your Forked Repository in VSCode
+### 4. Open your forked repository in VSCode
 
 In VSCode, click on **File** -> **Open Folder...** and select your `~/.julia/dev/KomaMRI/` directory.
 
@@ -75,7 +75,7 @@ Finally, use the `instantiate` command to install all the required packages (spe
 
 This will also include all the specific package versions into the `Manifest.toml`. The `Manifest.toml` should not be updated to the repo when making a commit or pull request. Thus, it is present in the `.gitignore`.
 
-### 6. Create a New Branch for your Feature
+### 6. Create a new branch for your feature
 
 If you did correctly follow the previous steps you will have correctly created your fork connected to the original Koma repository. Now, if you want to create your own changes, you will need to create a new branch from your fork.
 
@@ -90,7 +90,7 @@ This will open a menu to select an starting point for your branch. Select `my-fo
 
 >💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output.
 
-## How to Commit
+## How to commit
 
 If you have already created your first modifications in your local version of the repository, you will want to commit your changes in your public branch.
 
