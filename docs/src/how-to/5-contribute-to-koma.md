@@ -128,15 +128,3 @@ To finish your pull request, give your pull request a description that explains 
 >   - Try to address one issue or feature per pull request to make it easier for reviewers.
 >   - Provide all the context necesary, including all the information of the related issue or added feature.
 >   - Respond to feedback and suggestions to make adjustments based on the reviewers comments.
-
-## Reporting Issues
-
-Before you report an isue, we assume that you have read the available [Documentation](https://cncastillo.github.io/KomaMRI.jl) and recomend you to to search for existing [Issues](https://github.com/cncastillo/KomaMRI.jl/issues) that might help you. In case you have found a suitable issue and still need clarification, you can write your question in this issue.
-
-If you then still feel the need to report an issue, we recommend the following:
-
-- Open an [Issue](https://github.com/cncastillo/KomaMRI.jl/issues/new).
-- Provide as much context as you can about what you're running into.
-- Provide project and platform versions, depending on what seems relevant.
-
-We will then take care of the issue as soon as possible.
