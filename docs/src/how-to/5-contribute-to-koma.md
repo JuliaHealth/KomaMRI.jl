@@ -36,10 +36,10 @@ Now, you need to ensure that your GitHub account is connected to VSCode. This al
 - Sign in to your GitHub account if you're not already signed in.
 
 >💡You can also check if your `git` credentials are correctlly added to your machine by writing in the VScode terminal:
-```shell
-git config --global user.name
-git config --global user.email
-```
+>```shell
+>git config --global user.name
+>git config --global user.email
+>```
 
 ### 4. Open your forked repository in VSCode
 
