@@ -245,7 +245,6 @@ julia> plot_phantom_map(obj, :ρ)
 """
 function brain_phantom2D(; axis="axial", ss=4, us=1, tissue_properties = Dict())
     # check and filter input    
-    # check more spins 
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
