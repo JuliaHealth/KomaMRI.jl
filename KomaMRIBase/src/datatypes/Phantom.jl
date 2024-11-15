@@ -195,7 +195,6 @@ function heart_phantom(;
     return phantom
 end
 
-
 """
     phantom = brain_phantom2D(;axis="axial", ss=4)
 
