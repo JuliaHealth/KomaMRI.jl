@@ -325,7 +325,7 @@ julia> phantom_values =
         "FAT2"          =>  [0, 0, 0, 0, 0],
         "DURA"          =>  [0, 0, 0, 0, 0],
         "MARROW" => [0, 0, 0, 0, 0])
-julia> obj = brain_phantom2D(; tissue_properties=phantom_values)
+julia> obj = brain_phantom3D(; tissue_properties=phantom_values)
 
 julia> plot_phantom_map(obj, :ρ)
 ```
