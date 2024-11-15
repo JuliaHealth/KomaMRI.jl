@@ -333,7 +333,6 @@ julia> plot_phantom_map(obj, :ρ)
 function brain_phantom3D(; ss=4, us=1, start_end=[160, 200], tissue_properties=Dict())
     # check and filter input    
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, ss, us)
-    
     # Get data from .mat file
     path = @__DIR__
     data = MAT.matread(path * "/phantom/brain3D.mat")
