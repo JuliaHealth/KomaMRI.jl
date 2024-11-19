@@ -60,13 +60,32 @@ The Julia extension should automatically detect the `KomaMRI` environment. To ch
 
 ### 5. KomaMRI monorepo setup
 
-As KomaMRI.jl contains multiple packages in one GitHub repository, you need to specify that you want to use your local copies (instead of the ones available on the Julia registries) with:
+As KomaMRI.jl contains multiple packages in one GitHub repository, you need to specify that you want to use your local copies (instead of the ones available on the Julia registries) and using the `instantiate` command to install all the required packages (specified in `project.toml`) with the following script:
+
 ```shell
-(KomaMRI) pkg> dev ./KomaMRIBase ./KomaMRICore ./KomaMRIFiles ./KomaMRIPlots
+pkg> activate KomaMRICore
+pkg> dev ./KomaMRIBase
+pkg> instantiate
+
+pkg> activate KomaMRIFiles
+pkg> dev ./KomaMRIBase
+pkg> instantiate
+
+pkg> activate KomaMRIPlots
+pkg> dev ./KomaMRIBase
+pkg> instantiate
+
+pkg> activate .
+pkg> dev ./KomaMRICore ./KomaMRIFiles ./KomaMRIPlots
+pkg> instantiate
 ```
-Finally, use the `instantiate` command to install all the required packages (specified in the `Project.toml`):
+In case you want to contribute specifically in documentation, you will need to use the `docs` enviroment with the following script:
+
 ```shell
-(KomaMRI) pkg> instantiate
+pkg> activate docs
+pkg> dev ./KomaMRI
+pkg> instantiate
+
 ```
 
 This will also include all the specific package versions into the `Manifest.toml`. The `Manifest.toml` should not be updated to the repo when making a commit or pull request. Thus, it is present in the `.gitignore`.
