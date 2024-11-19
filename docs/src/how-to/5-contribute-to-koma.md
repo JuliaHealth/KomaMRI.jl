@@ -24,8 +24,8 @@ If you try to commit or generate a pull request at this point, you will get an `
 
 To create this fork, go to the official [KomaMRI repository](https://github.com/JuliaHealth/KomaMRI.jl) and follow the steps below:
 
-![](../assets/create-fork-step1.png)
-![](../assets/create-fork-step2.png)
+<p align="center"><img width="100%" src=../assets/create-fork-step1.png/></p>
+<p align="center"><img width="100%" src=../assets/create-fork-step2.png/></p>
 
 ### 3. Access your GitHub account in VSCode
 
@@ -45,16 +45,16 @@ Now, you need to ensure that your GitHub account is connected to VSCode. This al
 
 In VSCode, click on **File** -> **Open Folder...** and select your `~/.julia/dev/KomaMRI/` directory (`C:\Users\<user-name>\.julia\dev\KomaMRI\` if you are using Windows).
 
-![](../assets/open-folder.png)
+<p align="center"><img width="100%" src=../assets/open-folder.png/></p>
 
 Now add the fork URL by clicking **Source Control** -> **...** -> **Remote** -> **Add Remote...**
 
-![](../assets/add-remote.png)
+<p align="center"><img width="100%" src=../assets/add-remote.png/></p>
 
 This will create the option to provide a repository URL. Here is where you will paste your fork URL and give it the name `my-fork`.
 
-![](../assets/create-remote-step1.png)
-![](../assets/create-remote-step2.png)
+<p align="center"><img width="100%" src=../assets/create-remote-step1.png/></p>
+<p align="center"><img width="100%" src=../assets/create-remote-step2.png/></p>
 
 >💡Press `Yes` when prompted to constantly fetch in the future.
 
@@ -79,12 +79,11 @@ If you did correctly follow the previous steps you will have correctly created y
 
 To create this new branch, go to **Source Control** -> **...** -> **Branch** -> **Create Branch form...**
 
-![](../assets/add-branch.png)
-
+<p align="center"><img width="100%" src=../assets/add-branch.png /></p>
 This will open a menu to select an starting point for your branch. Select `my-fork/master` as your starting point, and give it the name `my-new-feature`.
 
-![](../assets/create-branch-step1.png)
-![](../assets/create-branch-step2.png)
+<p align="center"><img width="100%" src=../assets/create-branch-step1.png/></p>
+<p align="center"><img width="100%" src=../assets/create-branch-step2.png/></p>
 
 >💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output.
 
@@ -96,7 +95,7 @@ To do this, in VScode go to the Source Control panel in the Activity Bar.
 
 Assuming you are currently in your `my-new-feature` branch, the Source Control panel should show your changes to the project and the option to create a commit message.
 
-![](../assets/how-to-commit.png)
+<p align="center"><img width="65%" src=../assets/how-to-commit.png/></p>
 
 If you hove over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
 
@@ -112,13 +111,13 @@ If you want to send your commited new version of the repository, you can create 
 
 To create this pull request, in VScode, go to the `GitHub Pull Request` panel in the Activity Bar and hove over the `Pull request` tab. This should show a Create pull request icon to press.
 
-![](../assets/create-pull-request.png)
+<p align="center"><img width="65%" src=../assets/create-pull-request.png/></p>
 
 In the `Create` tab that appears, select `JuliaHealth/master` as the base and the branch you are working with to merge.
 
 To finish your pull request, give your pull request a description that explains the issue or feature you are addresing in your branch, and press the Create button.
 
-![](../assets/fill-pull-request.png)
+<p align="center"><img width="65%" src=../assets/fill-pull-request.png/></p>
 
 >💡 **Tips for a successful Pull Request:**
 >   - Try to address one issue or feature per pull request to make it easier for reviewers.
