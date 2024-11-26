@@ -63,7 +63,7 @@ makedocs(;
         prettyurls=true,
         sidebar_sitename=false,
         collapselevel=1,
-        assets=["assets/hide-documenter-example-output.css"],
+        assets=["assets/hide-documenter-example-output.css","assets/center-images.css"],
     ),
     clean=false,
 )
