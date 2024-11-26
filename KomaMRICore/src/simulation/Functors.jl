@@ -100,7 +100,6 @@ f64(m) = paramtype(Float64, m)
 # Koma motion-related adapts
 adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
 adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
-adapt_storage(T::Type{<:Real}, xs::NoMotion) = NoMotion{T}()
 
 #The functor macro makes it easier to call a function in all the parameters
 # Phantom

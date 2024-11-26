@@ -1035,19 +1035,18 @@ function plot_phantom_map(
     max_time_samples=100,
     kwargs...,
 )
-    function interpolate_times(motion)
+    function process_times(::NoMotion)
+        return [zero(eltype(obj.x))]
+    end
+
+    function process_times(motion::MotionList) 
+        KomaMRIBase.sort_motions!(motion)
         t = times(motion)
         if length(t)>1
             # Interpolate time points (as many as indicated by time_samples)
             itp = interpolate((1:(time_samples + 1):(length(t) + time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
             t = itp.(1:(length(t) + time_samples * (length(t) - 1)))
         end
-        return t
-    end
-
-    function process_times(motion)
-        KomaMRIBase.sort_motions!(motion)
-        t = interpolate_times(motion)
         # Decimate time points so their number is smaller than max_time_samples
         ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
         return t[1:ss:end]
