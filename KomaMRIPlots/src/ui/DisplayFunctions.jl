@@ -1002,7 +1002,7 @@ Plots a phantom map for a specific spin parameter given by `key`.
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D scatter plot
 - `colorbar`: (`::Bool`, `=true`) boolean to indicate whether to display a colorbar
-- `max_spins`:(`::Int`, `=100_000`) maximum number of displayed spins
+- `max_spins`:(`::Int`, `=20_000`) maximum number of displayed spins
 - `time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
 - `frame_duration_ms`:(`::Int`, `=250`) time in miliseconds between two frames 
 
