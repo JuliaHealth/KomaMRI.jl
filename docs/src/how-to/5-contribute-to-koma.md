@@ -13,7 +13,7 @@ If you're interested in contributing to Koma, this document will guide you throu
 ### 1. Clone KomaMRI repository
 
 To install the dev version of Koma, we will use the Julia REPL:
-```julia-repl
+```julia
 pkg> dev KomaMRI
 ``` 
 This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.julia/dev/KomaMRI/` directory if you are in a MacOS or Linux operative system, or `C:\Users\<user-name>\.julia\dev\KomaMRI\` if you are using Windows, where `<user-name>` should be replaced with your Windows user.
@@ -59,29 +59,28 @@ The Julia extension should automatically detect the `KomaMRI` environment. To ch
 
 ### 5. KomaMRI monorepo setup
 
-As KomaMRI.jl contains multiple packages in one GitHub repository, you need to specify that you want to use your local copies (instead of the ones available on the Julia registries) and using the `instantiate` command to install all the required packages (specified in `project.toml`) with the following script:
+As KomaMRI.jl contains multiple packages in one GitHub repository, you need to specify that you want to use your local copies (instead of the ones available on the Julia registries) and using the `instantiate` command to install all the required packages (specified in `Project.toml`) with the following script:
 
-```julia-repl
-using Pkg
-Pkg.activate("KomaMRICore")
-Pkg.develop(path = "./KomaMRIBase")
-
-Pkg.activate("KomaMRIFiles")
-Pkg.develop(path = "./KomaMRIBase")
-
-Pkg.activate("KomaMRIPlots")
-Pkg.develop(path = "./KomaMRIBase")
-
-Pkg.activate(".")
-Pkg.develop(path = "./KomaMRICore")
-Pkg.develop(path = "./KomaMRIFiles")
-Pkg.develop(path = "./KomaMRIPlots")
+```julia
+using Pkg  
+# Koma sub-packages dev setup  
+koma_subpkgs = ["KomaMRICore", "KomaMRIFiles", "KomaMRIPlots"]  
+for pkg in koma_subpkgs  
+    Pkg.activate(pkg)  
+    Pkg.develop(path = "./KomaMRIBase")  
+end  
+# Main package (KomaMRI) dev setup  
+Pkg.activate(".")  
+for pkg in koma_subpkgs  
+    Pkg.develop(path = "./$pkg")  
+end
 ```
 In case you want to contribute specifically in documentation, you will need to use the `docs` enviroment with the following script:
 
-```julia-repl
+```julia
 Pkg.activate("docs")
 Pkg.develop(path = ".")
+Pkg.instantiate()
 ```
 
 This will also include all the specific package versions into the `Manifest.toml`. The `Manifest.toml` should not be updated to the repo when making a commit or pull request. Thus, it is present in the `.gitignore`.
