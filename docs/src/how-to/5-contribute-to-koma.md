@@ -24,10 +24,9 @@ If you try to commit or generate a pull request at this point, you will get an `
 
 To create this fork, go to the official [KomaMRI repository](https://github.com/JuliaHealth/KomaMRI.jl) and follow the steps below:
 
-```@raw html
-    <img src="../../assets/create-fork-step1.png">
-    <img src="../../assets/create-fork-step2.png">
-```
+![](../assets/create-fork-step1.png)
+![](../assets/create-fork-step2.png)
+
 ### 3. Access your GitHub account in VSCode
 
 Now, you need to ensure that your GitHub account is connected to VSCode. This allows you to clone repositories, create branches, and manage pull request directrly within VSCode.
@@ -53,10 +52,9 @@ Now add the fork URL by clicking **Source Control** -> **...** -> **Remote** -> 
 ```
 This will create the option to provide a repository URL. Here is where you will paste your fork URL and give it the name `my-fork`.
 
-```@raw html
-    <img src="../../assets/create-remote-step1.png">
-    <img src="../../assets/create-remote-step2.png">
-```
+![](../assets/create-remote-step1.png)
+![](../assets/create-remote-step1.png)
+
 >💡Press `Yes` when prompted to constantly fetch in the future.
 
 The Julia extension should automatically detect the `KomaMRI` environment. To check this, look at the status bar (bottom) end you should see `Julia env: KomaMRI`. If this is not the case, click the option in the menu bar and select KomaMRI.jl.
@@ -101,10 +99,10 @@ To create this new branch, go to **Source Control** -> **...** -> **Branch** -> 
 ```
 This will open a menu to select an starting point for your branch. Select `my-fork/master` as your starting point, and give it the name `my-new-feature`.
 
-```@raw html
-    <img src="../../assets/create-branch-step1.png">
-    <img src="../../assets/create-branch-step2.png">
-```
+
+![](../assets/create-branch-step1.png)
+![](../assets/create-branch-step1.png)
+
 >💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output.
 
 ## How to commit
