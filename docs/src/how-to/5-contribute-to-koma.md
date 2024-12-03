@@ -84,6 +84,7 @@ Pkg.activate(".")
 for pkg in koma_subpkgs  
     Pkg.develop(path = "./$pkg")  
 end
+Pkg.instantiate()
 ```
 In case you want to contribute specifically in documentation, you will need to use the `docs` enviroment with the following script:
 
