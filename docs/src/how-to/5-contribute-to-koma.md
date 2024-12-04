@@ -53,7 +53,7 @@ Now add the fork URL by clicking **Source Control** -> **...** -> **Remote** -> 
 This will create the option to provide a repository URL. Here is where you will paste your fork URL and give it the name `my-fork`.
 
 ![](../assets/create-remote-step1.png)
-![](../assets/create-remote-step1.png)
+![](../assets/create-remote-step2.png)
 
 >💡Press `Yes` when prompted to constantly fetch in the future.
 
@@ -101,7 +101,7 @@ This will open a menu to select an starting point for your branch. Select `my-fo
 
 
 ![](../assets/create-branch-step1.png)
-![](../assets/create-branch-step1.png)
+![](../assets/create-branch-step2.png)
 
 >💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output.
 
