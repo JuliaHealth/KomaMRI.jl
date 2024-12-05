@@ -185,6 +185,21 @@ function Base.view(m::Motion, p)
     return idx !== nothing ? Motion(@view(m.action[idx]), m.time, spin_range) : nothing
 end
 
+"""
+    x, y, z = get_spin_coords(motion, x, y, z, t)
+"""
+function get_spin_coords(
+    m::Motion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
+) where {T<:Real}
+    ux, uy, uz = x .+ 0*t, y .+ 0*t, z .+ 0*t # Buffers for displacements
+    t_unit = unit_time(t, m.time)
+    idx = get_indexing_range(m.spins)
+    displacement_x!(@view(ux[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
+    displacement_y!(@view(uy[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
+    displacement_z!(@view(uz[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
+    return x .+ ux, y .+ uy, z .+ uz
+end
+
 # Auxiliary functions
 times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
