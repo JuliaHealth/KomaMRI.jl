@@ -1030,7 +1030,7 @@ function plot_phantom_map(
     view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
     colorbar=true,
     max_spins=20_000,
-    time_samples=0,
+    time_samples= obj.motion isa NoMotion ? 0 : length(times(obj.motion)),
     kwargs...,
 )
     function process_times(::NoMotion)
@@ -1038,25 +1038,27 @@ function plot_phantom_map(
     end
 
     function process_times(motion)
-        time_nodes = times(motion) 
-        time_min, time_max = minimum(time_nodes), maximum(time_nodes)
-        t = collect(range(time_min, time_max, length=time_samples))
-        merged_times = sort(unique([t; time_nodes]))
-        if length(merged_times) > time_samples
-            to_keep = time_nodes
-            remaining = setdiff(merged_times, to_keep)
-            num_needed = time_samples - length(to_keep)
-            extra = remaining[round.(Int, range(1, length(remaining), length=num_needed))]
-            final_times = sort([to_keep; extra])
-        elseif length(merged_times) < time_samples
-            extra_points = setdiff(t, merged_times)
-            extra_needed = time_samples - length(merged_times)
-            additional = sort(extra_points)[1:extra_needed]
-            final_times = sort([merged_times; additional])
+        time_nodes = times(motion)
+        if length(time_nodes) > 1
+            time_min, time_max = minimum(time_nodes), maximum(time_nodes)
+            t = collect(range(time_min, time_max, length=time_samples))
+            merged_times = sort(unique([t; time_nodes]))
+            if length(merged_times) > time_samples
+                to_keep = time_nodes
+                remaining = setdiff(merged_times, to_keep)
+                num_needed = time_samples - length(to_keep)
+                extra = remaining[round.(Int, range(1, length(remaining), length=num_needed))]
+                merged_times = sort([to_keep; extra])
+            elseif length(merged_times) < time_samples
+                extra_points = setdiff(t, merged_times)
+                extra_needed = time_samples - length(merged_times)
+                additional = sort(extra_points)[1:extra_needed]
+                merged_times = sort([merged_times; additional])
+            end
+            return merged_times
         else
-            final_times = merged_times
+            return time_nodes
         end
-        return final_times
     end
     
     function decimate_uniform_phantom(obj, num_points::Int)

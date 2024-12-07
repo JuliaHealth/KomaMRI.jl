@@ -178,11 +178,11 @@ Base.:(≈)(m1::Motion, m2::Motion)  = (typeof(m1) == typeof(m2)) & reduce(&, [g
 """ Motion sub-group """
 function Base.getindex(m::Motion, p)
     idx, spin_range = m.spins[p]
-    return idx !== nothing ? Motion(m.action[idx], m.time, spin_range) : nothing
+    return idx !== nothing ? Motion(m.action[idx], m.time, spin_range) : NoMotion()
 end
 function Base.view(m::Motion, p)
     idx, spin_range = @view(m.spins[p])
-    return idx !== nothing ? Motion(@view(m.action[idx]), m.time, spin_range) : nothing
+    return idx !== nothing ? Motion(@view(m.action[idx]), m.time, spin_range) : NoMotion()
 end
 
 """
