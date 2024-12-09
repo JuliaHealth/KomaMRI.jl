@@ -13,7 +13,7 @@ If you're interested in contributing to Koma, this document will guide you throu
 ### 1. Clone KomaMRI repository
 
 To install the dev version of Koma, we will use the Julia REPL:
-```julia-repl
+```julia
 pkg> dev KomaMRI
 ``` 
 This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.julia/dev/KomaMRI/` directory if you are in a MacOS or Linux operative system, or `C:\Users\<user-name>\.julia\dev\KomaMRI\` if you are using Windows, where `<user-name>` should be replaced with your Windows user.
@@ -36,21 +36,20 @@ Now, you need to ensure that your GitHub account is connected to VSCode. This al
 - Sign in to your GitHub account if you're not already signed in.
 
 >💡You can also check if your `git` credentials are correctlly added to your machine by writing in the VScode terminal:
-```shell
-git config --global user.name
-git config --global user.email
-```
+>```shell
+>git config --global user.name
+>git config --global user.email
+>```
 
 ### 4. Open your forked repository in VSCode
 
 In VSCode, click on **File** -> **Open Folder...** and select your `~/.julia/dev/KomaMRI/` directory (`C:\Users\<user-name>\.julia\dev\KomaMRI\` if you are using Windows).
 
-![](../assets/open-folder.png)
-
 Now add the fork URL by clicking **Source Control** -> **...** -> **Remote** -> **Add Remote...**
 
-![](../assets/add-remote.png)
-
+```@raw html
+    <img width="80%" src="../../assets/add-remote.png">
+```
 This will create the option to provide a repository URL. Here is where you will paste your fork URL and give it the name `my-fork`.
 
 ![](../assets/create-remote-step1.png)
@@ -62,13 +61,29 @@ The Julia extension should automatically detect the `KomaMRI` environment. To ch
 
 ### 5. KomaMRI monorepo setup
 
-As KomaMRI.jl contains multiple packages in one GitHub repository, you need to specify that you want to use your local copies (instead of the ones available on the Julia registries) with:
-```shell
-(KomaMRI) pkg> dev ./KomaMRIBase ./KomaMRICore ./KomaMRIFiles ./KomaMRIPlots
+As KomaMRI.jl contains multiple packages in one GitHub repository, you need to specify that you want to use your local copies (instead of the ones available on the Julia registries) and using the `instantiate` command to install all the required packages (specified in `Project.toml`) with the following script:
+
+```julia
+using Pkg  
+# Koma sub-packages dev setup  
+koma_subpkgs = ["KomaMRICore", "KomaMRIFiles", "KomaMRIPlots"]  
+for pkg in koma_subpkgs  
+    Pkg.activate(pkg)  
+    Pkg.develop(path = "./KomaMRIBase")  
+end  
+# Main package (KomaMRI) dev setup  
+Pkg.activate(".")  
+for pkg in koma_subpkgs  
+    Pkg.develop(path = "./$pkg")  
+end
+Pkg.instantiate()
 ```
-Finally, use the `instantiate` command to install all the required packages (specified in the `Project.toml`):
-```shell
-(KomaMRI) pkg> instantiate
+In case you want to contribute specifically in documentation, you will need to use the `docs` enviroment with the following script:
+
+```julia
+Pkg.activate("docs")
+Pkg.develop(path = ".")
+Pkg.instantiate()
 ```
 
 This will also include all the specific package versions into the `Manifest.toml`. The `Manifest.toml` should not be updated to the repo when making a commit or pull request. Thus, it is present in the `.gitignore`.
@@ -79,9 +94,11 @@ If you did correctly follow the previous steps you will have correctly created y
 
 To create this new branch, go to **Source Control** -> **...** -> **Branch** -> **Create Branch form...**
 
-![](../assets/add-branch.png)
-
+```@raw html
+    <img width="80%" src="../../assets/add-branch.png">
+```
 This will open a menu to select an starting point for your branch. Select `my-fork/master` as your starting point, and give it the name `my-new-feature`.
+
 
 ![](../assets/create-branch-step1.png)
 ![](../assets/create-branch-step2.png)
@@ -96,8 +113,9 @@ To do this, in VScode go to the Source Control panel in the Activity Bar.
 
 Assuming you are currently in your `my-new-feature` branch, the Source Control panel should show your changes to the project and the option to create a commit message.
 
-![](../assets/how-to-commit.png)
-
+```@raw html
+    <img width="60%" src="../../assets/how-to-commit.png">
+```
 If you hove over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
 
 Write down a message that describes your changes you are stageing to the project, and press the Commit button.
@@ -112,14 +130,17 @@ If you want to send your commited new version of the repository, you can create 
 
 To create this pull request, in VScode, go to the `GitHub Pull Request` panel in the Activity Bar and hove over the `Pull request` tab. This should show a Create pull request icon to press.
 
-![](../assets/create-pull-request.png)
+```@raw html
+    <img width="60%" src="../../assets/create-pull-request.png">
+```
 
 In the `Create` tab that appears, select `JuliaHealth/master` as the base and the branch you are working with to merge.
 
-To finish your pull request, give your pull request a description that explains the issue or feature you are addresing in your branch, and press the Create button.
+To finish your pull request, give it a name with a clear mention of the  subject of the contribution you made, and a description that explains the issue or feature you are addresing in your branch, and press the Create button.
 
-![](../assets/fill-pull-request.png)
-
+```@raw html
+    <img width="60%" src="../../assets/fill-pull-request.png">
+```
 >💡 **Tips for a successful Pull Request:**
 >   - Try to address one issue or feature per pull request to make it easier for reviewers.
 >   - Provide all the context necesary, including all the information of the related issue or added feature.
