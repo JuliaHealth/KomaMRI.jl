@@ -400,7 +400,6 @@ end
     t_end = 1.0
     arbitrarymotion = Path(0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), TimeRange(t_start, t_end), SpinRange(2:2:4))
 
-    # Test phantom subset
     obs1 = Phantom(
         name,
         x,
@@ -416,6 +415,8 @@ end
         Dθ,
         simplemotion
     )
+
+    # Test phantom subset (simple range)
     rng = 1:2:5
     obs2 = Phantom(
         name,
@@ -456,6 +457,15 @@ end
         vcat(obs1.motion, obs2.motion, length(obs1), length(obs2))
     )
     @test obs1 + obs2 == oba
+
+    # Test phantom subset (BitVector range)
+    obs3 = copy(obs1)
+    obs4 = copy(obs1)
+    rng = obs3.x .> 0
+    obs3.motion = Translate(5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(rng))
+    obs4.motion = Translate(5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(1:length(obs4)))
+    @test obs3[rng] == obs4[rng]
+    @test obs3[rng].motion == obs4.motion[rng]
 
     # Test scalar multiplication of a phantom
     c = 7
