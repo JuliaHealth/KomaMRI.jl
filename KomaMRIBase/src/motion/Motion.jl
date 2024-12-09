@@ -191,7 +191,7 @@ end
 function get_spin_coords(
     m::Motion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
 ) where {T<:Real}
-    ux, uy, uz = x .+ 0*t, y .+ 0*t, z .+ 0*t # Buffers for displacements
+    ux, uy, uz = x .* 0*t, y .* 0*t, z .* 0*t # Buffers for displacements
     t_unit = unit_time(t, m.time)
     idx = get_indexing_range(m.spins)
     displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
