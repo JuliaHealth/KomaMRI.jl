@@ -336,7 +336,7 @@ function simulate(
         """ maxlog=1
     end
     # Simulation init
-    seqd = discretize(seq; sampling_params=sim_params) # Sampling of Sequence waveforms
+    seqd = discretize(seq; sampling_params=sim_params, motion=obj.motion) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; Nblocks=sim_params["Nblocks"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
