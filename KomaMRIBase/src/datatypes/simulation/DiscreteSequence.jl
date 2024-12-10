@@ -87,7 +87,7 @@ based on simulation parameters.
 """
 function discretize(seq::Sequence; sampling_params=default_sampling_params(), add_times=[])
     t, Δt      = get_variable_times(seq; Δt=sampling_params["Δt"], Δt_rf=sampling_params["Δt_rf"])
-    sort!(unique!(append!(t, add_times)))
+    sort!(append!(t, add_times))
     B1, Δf     = get_rfs(seq, t)
     Gx, Gy, Gz = get_grads(seq, t)
     tadc       = get_adc_sampling_times(seq)
