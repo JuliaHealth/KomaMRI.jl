@@ -203,5 +203,5 @@ end
 # Auxiliary functions
 times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
-get_jump_times(m::Motion) = get_jump_times(m.action, m.time)
-get_jump_times(::AbstractAction, ::AbstractTimeSpan) = []
+add_jump_times!(t, m::Motion) = add_jump_times!(t, m.action, m.time)
+add_jump_times!(t, ::AbstractAction, ::AbstractTimeSpan) = nothing

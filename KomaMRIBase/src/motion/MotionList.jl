@@ -203,10 +203,8 @@ function sort_motions!(m::MotionList)
     return nothing
 end
 
-function get_jump_times(ml::MotionList{T}) where {T<:Real}
-    jump_times = T[]
+function add_jump_times!(t, ml::MotionList)
     for m in ml.motions
-        append!(jump_times, get_jump_times(m))
+        add_jump_times!(t, m)
     end
-    return jump_times
 end
