@@ -35,3 +35,4 @@ julia> flowpath = FlowPath(
     dz::AbstractArray{T}
     spin_reset::AbstractArray{Bool}
 end
+get_jump_times(a::FlowPath, t::AbstractTimeSpan) = (times(t)[end] - times(t)[1])/(size(a.spin_reset)[2]-1) * (getindex.(findall(a.spin_reset .== 1), 2) .- 1) .- 1e-6

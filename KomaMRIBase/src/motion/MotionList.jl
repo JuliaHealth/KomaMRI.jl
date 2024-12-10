@@ -1,6 +1,6 @@
-include("Action.jl")
 include("SpinSpan.jl")
 include("TimeSpan.jl")
+include("Action.jl")
 include("Motion.jl")
 
 """
@@ -201,4 +201,12 @@ If `motionset::MotionList`, this function sorts its motions.
 function sort_motions!(m::MotionList)
     sort!(m.motions; by=m -> times(m)[1])
     return nothing
+end
+
+function get_jump_times(ml::MotionList{T}) where {T<:Real}
+    jump_times = T[]
+    for m in ml.motions
+        append!(jump_times, get_jump_times(m))
+    end
+    return jump_times
 end

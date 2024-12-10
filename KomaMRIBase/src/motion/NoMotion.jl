@@ -49,3 +49,4 @@ function get_spin_coords(
 ) where {T<:Real}
     return x, y, z
 end
+get_jump_times(::NoMotion) = []
