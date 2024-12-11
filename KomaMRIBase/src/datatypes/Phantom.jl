@@ -225,18 +225,18 @@ julia> obj = brain_phantom2D(; axis="axial", us=[1, 2])
 
 julia> phantom_values = 
     Dict(
-        # T1, T2, T2*, ρ, Δw
-        "CSF"           =>  [2.569, 0.329, 0.058, 1, 0],
-        "GM"            =>  [1.153, 0.083, 0.069, 0.86, 0],
-        "WM"            =>  [0.746, 0.070, 0.061, 0.77, 0],
-        "FAT1"          =>  [0, 0, 0, 0, 0],
-        "MUSCLE"        =>  [0, 0, 0, 0, 0],
-        "SKIN/MUSCLE"   =>  [0, 0, 0, 0, 0],
-        "SKULL"         =>  [0, 0, 0, 0, 0],
-        "VESSELS"       =>  [0, 0, 0, 0, 0],
-        "FAT2"          =>  [0, 0, 0, 0, 0],
-        "DURA"          =>  [0, 0, 0, 0, 0],
-        "MARROW" => [0, 0, 0, 0, 0])
+        # ρ, T1, T2, T2*, Δw
+        "CSF"           => [1,      2.569,  0.329,  0.058,  0],
+        "GM"            => [0.86,   0.833,  0.083,  0.069,  0],
+        "WM"            => [0.77,   0.500,  0.070,  0.061,  0],
+        "FAT1"          => [0,      0,      0,      0,      0],
+        "MUSCLE"        => [0,      0,      0,      0,      0],
+        "SKIN/MUSCLE"   => [0,      0,      0,      0,      0],
+        "SKULL"         => [0,      0,      0,      0,      0],
+        "VESSELS"       => [0,      0,      0,      0,      0],
+        "FAT2"          => [0,      0,      0,      0,      0],
+        "DURA"          => [0,      0,      0,      0,      0],
+        "MARROW"        => [0,      0,      0,      0,      0])
 julia> obj = brain_phantom2D(; tissue_properties=phantom_values)
 
 julia> plot_phantom_map(obj, :ρ)
@@ -264,8 +264,8 @@ function brain_phantom2D(; axis="axial", ss=4, us=1, tissue_properties = Dict())
     x, y = x .+ y' * 0, x * 0 .+ y' #grid points
 
     # Get tissue properties
-    T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels, tissue_properties)
-
+    ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties)
+    println("size of ", size(T1))
     # Define and return the Phantom struct
     obj = Phantom{Float64}(;
         name="brain2D_" * axis,
@@ -311,18 +311,18 @@ julia> obj = brain_phantom3D(; us=[2, 2, 1])
 
 julia> phantom_values = 
     Dict(
-        # T1, T2, T2*, ρ, Δw
-        "CSF"           =>  [2.569, 0.329, 0.058, 1, 0],
-        "GM"            =>  [1.153, 0.083, 0.069, 0.86, 0],
-        "WM"            =>  [0.746, 0.070, 0.061, 0.77, 0],
-        "FAT1"          =>  [0, 0, 0, 0, 0],
-        "MUSCLE"        =>  [0, 0, 0, 0, 0],
-        "SKIN/MUSCLE"   =>  [0, 0, 0, 0, 0],
-        "SKULL"         =>  [0, 0, 0, 0, 0],
-        "VESSELS"       =>  [0, 0, 0, 0, 0],
-        "FAT2"          =>  [0, 0, 0, 0, 0],
-        "DURA"          =>  [0, 0, 0, 0, 0],
-        "MARROW" => [0, 0, 0, 0, 0])
+        # ρ, T1, T2, T2*, Δw
+        "CSF"           => [1,      2.569,  0.329,  0.058,  0],
+        "GM"            => [0.86,   0.833,  0.083,  0.069,  0],
+        "WM"            => [0.77,   0.500,  0.070,  0.061,  0],
+        "FAT1"          => [0,      0,      0,      0,      0],
+        "MUSCLE"        => [0,      0,      0,      0,      0],
+        "SKIN/MUSCLE"   => [0,      0,      0,      0,      0],
+        "SKULL"         => [0,      0,      0,      0,      0],
+        "VESSELS"       => [0,      0,      0,      0,      0],
+        "FAT2"          => [0,      0,      0,      0,      0],
+        "DURA"          => [0,      0,      0,      0,      0],
+        "MARROW"        => [0,      0,      0,      0,      0])
 julia> obj = brain_phantom3D(; tissue_properties=phantom_values)
 
 julia> plot_phantom_map(obj, :ρ)
@@ -357,7 +357,7 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200], tissue_properties=D
     z = 0 * xx .+ 0 * yy .+ 1 * zz
      
     # Get tissue properties
-    T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels, tissue_properties)
+    ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties)
 
     # Define and return the Phantom struct
     obj = Phantom{Float64}(;
@@ -540,7 +540,7 @@ function check_phantom_arguments(nd, ss, us)
 end
 
 """
-    T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels, tissue_properties = nothing)
+    ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties = nothing)
 
 This function returns the default brain tissue properties using a labels identifier Matrix
 # Arguments
@@ -548,48 +548,46 @@ This function returns the default brain tissue properties using a labels identif
 - `tissue_properties` : (`::Dict`, `=Dict()`) phantom tissue properties in ms and Hz considering the available tissues
 
 # Returns
-- `T1, T2, T2s, ρ, Δw`: (`::Matrix`) matrices of the same size of labels with the tissues properties information
+- `ρ, T1, T2, T2s, Δw`: (`::Matrix`) matrices of the same size of labels with the tissues properties information
 
 # Examples
 ```julia-repl
-julia> T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels, tissue_properties)
+julia> ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties)
 
-julia> T1, T2, T2s, ρ, Δw = default_brain_tissue_properties(labels)
+julia> ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels)
 ```
 """
 function default_brain_tissue_properties(labels, tissue_properties = Dict())
     # Load default tissue properties
     default_properties = Dict(
-        # T1, T2, T2*, ρ, Δw
-        "CSF" => [2.569, 0.329, 0.058, 1, 0],
-        "GM" => [0.833, 0.083, 0.069, 0.86, 0],
-        "WM" => [0.500, 0.070, 0.061, 0.77, 0],
-        "FAT1" => [0.350, 0.070, 0.058, 1, -3.84], #-220 Hz
-        "MUSCLE" => [0.900, 0.047, 0.030, 1, 0],
-        "SKIN/MUSCLE" => [0.569, 0.329, 0.058, 1, 0],
-        "SKULL" => [0, 0, 0, 0, 0],
-        "VESSELS" => [0, 0, 0, 0, 0],
-        "FAT2" => [0.500, 0.070, 0.061, 0.77, -3.84], #-220 Hz
-        "DURA" => [2.569, 0.329, 0.058, 1, 0],
-        "MARROW" => [0.500, 0.070, 0.061, 0.77, 0])
+        # ρ, T1, T2, T2*, Δw
+        "CSF"           => [1,      2.569,  0.329,  0.058,  0],
+        "GM"            => [0.86,   0.833,  0.083,  0.069,  0],
+        "WM"            => [0.77,   0.500,  0.070,  0.061,  0],
+        "FAT1"          => [1,      0.350,  0.070,  0.058,  -220*2π], #-220 Hz
+        "MUSCLE"        => [1,      0.900,  0.047,  0.030,  0],
+        "SKIN/MUSCLE"   => [1,      0.569,  0.329,  0.058,  0],
+        "SKULL"         => [0,      0,      0,      0,      0],
+        "VESSELS"       => [0,      0,      0,      0,      0],
+        "FAT2"          => [0.77,   0.500,  0.070,  0.061,  -220*2π], #-220 Hz
+        "DURA"          => [1,      2.569,  0.329,  0.058,  0],
+        "MARROW"        => [0.77,   0.500,  0.070,  0.061,  0])
     
     tissue_properties = merge(default_properties, tissue_properties)
-    properties = []
-    for i=1:5
-        temp =
-        (labels .== 23) * tissue_properties["CSF"][i] .+ #CSF
-        (labels .== 46) * tissue_properties["GM"][i] .+ #GM
-        (labels .== 70) * tissue_properties["WM"][i] .+ #WM
-        (labels .== 93) * tissue_properties["FAT1"][i] .+ #FAT1
-        (labels .== 116) * tissue_properties["MUSCLE"][i] .+ #MUSCLE
-        (labels .== 139) * tissue_properties["SKIN/MUSCLE"][i] .+ #SKIN/MUSCLE
-        (labels .== 162) * tissue_properties["SKULL"][i] .+ #SKULL
-        (labels .== 185) * tissue_properties["VESSELS"][i] .+ #VESSELS
-        (labels .== 209) * tissue_properties["FAT2"][i] .+ #FAT2
-        (labels .== 232) * tissue_properties["DURA"][i] .+ #DURA
-        (labels .== 255) * tissue_properties["MARROW"][i] #MARROW
-        push!(properties, temp)
+    props = ["ρ", "T1", "T2", "T2s", "Δw"]
+    Nproperties = length(props) 
+    tissue_labels = [23, 46, 70, 93, 116, 139, 162, 185, 209, 232, 255]
+    tissue_texts = ["CSF", "GM", "WM", "FAT1", "MUSCLE", "SKIN/MUSCLE", "SKULL", "VESSELS", "FAT2", "DURA", "MARROW"]
+    data_properties = zeros(Nproperties, size(labels)...)
+    dims = size(data_properties)
+    for i=1:Nproperties
+        for (label, tissue) in zip(tissue_labels, tissue_texts)
+            data_properties[i, ntuple(j -> 1:dims[j+1], length(dims)-1)...] += (labels .== label)*tissue_properties[tissue][i]
+        end
     end
-
+    # To make it a tuple of five elements
+    properties = Tuple(data_properties[i, :, :, :] for i in 1:size(data_properties, 1))
+    # To avoid singleton dimensions
+    properties = Tuple(reshape(item, filter(d -> d>1, size(item))...) for item in properties)
     return properties
 end
