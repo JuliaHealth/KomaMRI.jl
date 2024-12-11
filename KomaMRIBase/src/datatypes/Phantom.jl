@@ -265,7 +265,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1, tissue_properties = Dict())
 
     # Get tissue properties
     ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties)
-    println("size of ", size(T1))
+    
     # Define and return the Phantom struct
     obj = Phantom{Float64}(;
         name="brain2D_" * axis,
