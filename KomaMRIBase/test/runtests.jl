@@ -687,6 +687,8 @@ end
             [Δw; Δw[rng]], [Dλ1; Dλ1[rng]], [Dλ2; Dλ2[rng]], [Dθ; Dθ[rng]], 
             vcat(obj1.motion, obj2.motion, length(obj1), length(obj2))
         )
+        # NOTE: these vcat methods must be simplified once the Vector{<:Motion} approach is accomplished: 
+        # https://github.com/JuliaHealth/KomaMRI.jl/issues/480
         # NoMotion + NoMotion
         @test obj1 + obj2 == oba
         # NoMotion + MotionList
