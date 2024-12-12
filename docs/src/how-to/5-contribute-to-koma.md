@@ -24,9 +24,7 @@ If you try to commit or generate a pull request at this point, you will get an `
 
 To create this fork, go to the official [KomaMRI repository](https://github.com/JuliaHealth/KomaMRI.jl) and follow the steps below:
 
-```@raw html
-    <img src="../../assets/create-fork-step1.png" style="max-width: 100%; height: auto;">
-```
+![](../assets/create-fork-step1.png)
 ![](../assets/create-fork-step2.png)
 
 ### 3. Access your GitHub account in VSCode
@@ -101,10 +99,7 @@ To create this new branch, go to **Source Control** -> **...** -> **Branch** -> 
 ```
 This will open a menu to select an starting point for your branch. Select `my-fork/master` as your starting point, and give it the name `my-new-feature`.
 
-
-```@raw html
-    <img src="../../assets/create-branch-step1.png" style="max-width: 100%; height: auto;">
-```
+![](../assets/create-branch-step1.png)
 ![](../assets/create-branch-step2.png)
 
 >💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output.
