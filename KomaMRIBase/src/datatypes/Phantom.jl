@@ -252,6 +252,8 @@ function brain_phantom2D(; axis="axial", ss=4, us=1, tissue_properties = Dict())
 
     # subsample or upsample the phantom data
     labels = repeat(data[axis][1:ssx:end, 1:ssy:end]; inner=[usx, usy])
+    # to make it compatible with default_brain_tissue_properties
+    labels = reshape(labels, (size(labels, 1), size(labels, 2), 1))
 
     # Define spin position vectors
     Δx = .5e-3 * ssx / usx
@@ -262,6 +264,8 @@ function brain_phantom2D(; axis="axial", ss=4, us=1, tissue_properties = Dict())
     x = (-FOVx / 2):Δx:(FOVx / 2) #spin coordinates
     y = (-FOVy / 2):Δy:(FOVy / 2) #spin coordinates
     x, y = x .+ y' * 0, x * 0 .+ y' #grid points
+    x = reshape(x, (size(x, 1), size(x, 2), 1))
+    y = reshape(y, (size(y, 1), size(y, 2), 1))
 
     # Get tissue properties
     ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties)
@@ -575,19 +579,16 @@ function default_brain_tissue_properties(labels, tissue_properties = Dict())
     
     tissue_properties = merge(default_properties, tissue_properties)
     props = ["ρ", "T1", "T2", "T2s", "Δw"]
-    Nproperties = length(props) 
-    tissue_labels = [23, 46, 70, 93, 116, 139, 162, 185, 209, 232, 255]
-    tissue_texts = ["CSF", "GM", "WM", "FAT1", "MUSCLE", "SKIN/MUSCLE", "SKULL", "VESSELS", "FAT2", "DURA", "MARROW"]
+    Nproperties = length(props)
+    # Order: CSF, DURA, FAT1, FAT2, GM, MARROW, MUSCLE, SKIN/MUSCLE, SKULL, vESSELS, WM
+    tissue_labels = [23, 232, 93, 209, 46, 255, 116, 139, 162, 185, 70]
+    tissue_texts = sort(collect(keys(default_properties)))#
     data_properties = zeros(Nproperties, size(labels)...)
-    dims = size(data_properties)
     for i=1:Nproperties
         for (label, tissue) in zip(tissue_labels, tissue_texts)
-            data_properties[i, ntuple(j -> 1:dims[j+1], length(dims)-1)...] += (labels .== label)*tissue_properties[tissue][i]
+            data_properties[i, :, :, :] += (labels .== label)*tissue_properties[tissue][i]
         end
     end
-    # To make it a tuple of five elements
-    properties = Tuple(data_properties[i, :, :, :] for i in 1:size(data_properties, 1))
-    # To avoid singleton dimensions
-    properties = Tuple(reshape(item, filter(d -> d>1, size(item))...) for item in properties)
-    return properties
+    
+    return (data_properties[i,:,:,:] for i in 1:Nproperties)
 end
