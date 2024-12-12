@@ -1,6 +1,6 @@
-include("Action.jl")
 include("SpinSpan.jl")
 include("TimeSpan.jl")
+include("Action.jl")
 include("Motion.jl")
 
 """
@@ -36,27 +36,24 @@ struct MotionList{T<:Real}
     motions::Vector{<:Motion{T}}
 end
 
+# NOTE: this constructor must be simplified once the Vector{<:Motion} approach is accomplished: 
+# https://github.com/JuliaHealth/KomaMRI.jl/issues/480
 """ Constructors """
-MotionList(motions::Motion...) = length([motions]) > 0 ? MotionList([motions...]) : @error "You must provide at least one motion as input argument. If you do not want to define motion, use `NoMotion{T}()`"
-
-""" MotionList sub-group """
-function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
-    motion_array_aux = Motion{T}[]
-    for m in mv.motions
-        m[p] !== nothing ? push!(motion_array_aux, m[p]) : nothing
-    end
-    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion()
-end
-function Base.view(mv::MotionList{T}, p) where {T<:Real}
-    motion_array_aux = Motion{T}[]
-    for m in mv.motions
-        @view(m[p]) !== nothing ? push!(motion_array_aux, @view(m[p])) : nothing
-    end
-    return length(motion_array_aux) > 0 ? MotionList(motion_array_aux) : NoMotion()
+function MotionList(motions::Motion...) 
+    if length(motions) == 0
+        return NoMotion()
+    elseif length(motions) == 1
+        return motions[1]
+    else
+        return MotionList([motions...])
+    end 
 end
 
-""" Addition of MotionLists """
-function Base.vcat(m1::MotionList{T}, m2::MotionList{T}, Ns1::Int, Ns2::Int) where {T<:Real}
+# NOTE: these vcat methods must be simplified once the Vector{<:Motion} approach is accomplished: 
+# https://github.com/JuliaHealth/KomaMRI.jl/issues/480
+""" Addition of MotionLists """ 
+# MotionList + MotionList
+function Base.vcat(m1::MotionList{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
     mv_aux = Motion{T}[]
     for m in m1.motions
         m_aux = copy(m)
@@ -69,7 +66,50 @@ function Base.vcat(m1::MotionList{T}, m2::MotionList{T}, Ns1::Int, Ns2::Int) whe
         m_aux.spins = SpinRange(m_aux.spins.range .+ Ns1)
         push!(mv_aux, m_aux)
     end
-    return MotionList(mv_aux)
+    return MotionList(mv_aux...)
+end
+# Motion + Motion
+function Base.vcat(m1::Motion{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real}
+    mv_aux = Motion{T}[]
+    m_aux = copy(m1)
+    m_aux.spins = expand(m_aux.spins, Ns1)
+    push!(mv_aux, m_aux)
+    m_aux = copy(m2)
+    m_aux.spins = expand(m_aux.spins, Ns2)
+    m_aux.spins = SpinRange(m_aux.spins.range .+ Ns1)
+    push!(mv_aux, m_aux)
+    return MotionList(mv_aux...)
+end
+# Motion + MotionList
+Base.vcat(m1::MotionList{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real} = vcat(m2, m1, Ns2, Ns1)
+function Base.vcat(m1::Motion{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
+    mv_aux = Motion{T}[]
+    m_aux = copy(m1)
+    m_aux.spins = expand(m_aux.spins, Ns1)
+    push!(mv_aux, m_aux)
+    for m in m2.motions
+        m_aux = copy(m)
+        m_aux.spins = expand(m_aux.spins, Ns2)
+        m_aux.spins = SpinRange(m_aux.spins.range .+ Ns1)
+        push!(mv_aux, m_aux)
+    end
+    return MotionList(mv_aux...)
+end
+
+""" MotionList sub-group """
+function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
+    motion_array_aux = Motion{T}[]
+    for m in mv.motions
+        m[p] isa NoMotion ? nothing : push!(motion_array_aux, m[p])
+    end
+    return MotionList(motion_array_aux...)
+end
+function Base.view(mv::MotionList{T}, p) where {T<:Real}
+    motion_array_aux = Motion{T}[]
+    for m in mv.motions
+        @view(m[p]) isa NoMotion ? nothing : push!(motion_array_aux, @view(m[p]))
+    end
+    return MotionList(motion_array_aux...)
 end
 
 """ Compare two MotionLists """
@@ -161,4 +201,10 @@ If `motionset::MotionList`, this function sorts its motions.
 function sort_motions!(m::MotionList)
     sort!(m.motions; by=m -> times(m)[1])
     return nothing
+end
+
+function add_jump_times!(t, ml::MotionList)
+    for m in ml.motions
+        add_jump_times!(t, m)
+    end
 end

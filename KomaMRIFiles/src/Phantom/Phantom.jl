@@ -47,7 +47,7 @@ function import_motion!(phantom_fields::Array, motion_group::HDF5.Group)
         end
         push!(motion_array, Motion(; motion_fields...))
     end
-    push!(phantom_fields, (:motion, MotionList(motion_array)))
+    push!(phantom_fields, (:motion, MotionList(motion_array...)))
 end
 
 function import_motion_field!(motion_fields::Array, motion::HDF5.Group, name::String)
@@ -127,13 +127,14 @@ function write_phantom(
         contrast[String(x)] = getfield(obj, x)
     end
     # Motion
-    if (typeof(obj.motion) <: MotionList) & store_motion
+    if !(obj.motion isa NoMotion) & store_motion
         motion_group = create_group(fid, "motion")
         export_motion!(motion_group, obj.motion)
     end
     return close(fid)
 end
 
+export_motion!(motion_group::HDF5.Group, motion::Motion) = export_motion!(motion_group, MotionList([motion]))
 function export_motion!(motion_group::HDF5.Group, motion_list::MotionList)
     KomaMRIBase.sort_motions!(motion_list)
     for (counter, m) in enumerate(motion_list.motions)
