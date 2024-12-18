@@ -572,7 +572,7 @@ end
         dx = rand(Ns, Nt)
         dy = rand(Ns, Nt)
         dz = rand(Ns, Nt)
-        arbitrarymotion = FlowPath(dx, dy, dz, collect(Bool.(zeros(Ns, Nt))), TimeRange(t_start, t_end))
+        arbitrarymotion = FlowPath(dx, dy, dz, Bool.(zeros(Ns, Nt)), TimeRange(t_start, t_end))
         t = range(t_start, t_end, Nt)
         xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ dx
@@ -587,7 +587,7 @@ end
         dx = rand(Ns, Nt)
         dy = rand(Ns, Nt)
         dz = rand(Ns, Nt)
-        arbitrarymotion = FlowPath(dx, dy, dz, collect(Bool.(zeros(Ns, Nt))), TimeRange(t_start, t_end))
+        arbitrarymotion = FlowPath(dx, dy, dz, Bool.(zeros(Ns, Nt)), TimeRange(t_start, t_end))
         t = range(t_start, t_end, Nt)
         xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ dx
