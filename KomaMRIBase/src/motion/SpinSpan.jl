@@ -1,5 +1,7 @@
 abstract type AbstractSpinSpan end
 
+Base.:(≈)(s1::AbstractSpinSpan, s2::AbstractSpinSpan) = (typeof(s1) == typeof(s2)) & reduce(&, [getfield(s1, field)  ≈ getfield(s2, field) for field in fieldnames(typeof(s1))]; init=true)
+
 """
     allspins = AllSpins()
 
@@ -64,7 +66,6 @@ function Base.getindex(spins::SpinRange, p)
     return intersect, spin_range
 end
 Base.view(spins::SpinRange, p) = spins[p]
-Base.:(==)(sr1::SpinRange, sr2::SpinRange) = sr1.range == sr2.range
 Base.length(sr::SpinRange) = length(sr.range)
 get_indexing_range(spins::SpinRange) = spins.range
 expand(sr::SpinRange, Ns::Int) = sr

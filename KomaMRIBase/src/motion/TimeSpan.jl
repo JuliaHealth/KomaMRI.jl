@@ -1,5 +1,7 @@
 abstract type AbstractTimeSpan{T<:Real} end
 
+Base.:(≈)(t1::AbstractTimeSpan, t2::AbstractTimeSpan) = (typeof(t1) == typeof(t2)) & reduce(&, [getfield(t1, field)  ≈ getfield(t2, field) for field in fieldnames(typeof(t1))])
+
 """
     timerange = TimeRange(t_start, t_end)
 
