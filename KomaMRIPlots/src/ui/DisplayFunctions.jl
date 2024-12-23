@@ -1080,42 +1080,20 @@ function plot_phantom_map(
         unit = " ms"
         if key == :T1
             cmax_key = 2500 / factor
-            colors = relaxationColorMap("T1")
+            colors =
+                replace.(string.(relaxationColorMap("T1") .* 255), "RGB{Float64}" => "rgb")
             N = length(colors)
-            idx = range(0, 1; length=N)
-        
-            # Create the colormap
-            colormap = [
-                (
-                    idx[n],
-                    string("rgb(",
-                        floor(Int, colors[n].r * 255), ",",
-                        floor(Int, colors[n].g * 255), ",",
-                        floor(Int, colors[n].b * 255), ")"
-                    )
-                )
-                for n in 1:N
-            ]        
+            indices = range(0.0; stop=1.0, length=N)
+            colormap = [(idx, color) for (idx, color) in zip(indices, colors)]
         elseif key == :T2 || key == :T2s
             if key == :T2
                 cmax_key = 250 / factor
             end
-            colors = relaxationColorMap("T2")
+            colors =
+                replace.(string.(relaxationColorMap("T2") .* 255), "RGB{Float64}" => "rgb")
             N = length(colors)
-            idx = range(0, 1; length=N)
-        
-            # Create the colormap
-            colormap = [
-                (
-                    idx[n],
-                    string("rgb(",
-                        floor(Int, colors[n].r * 255), ",",
-                        floor(Int, colors[n].g * 255), ",",
-                        floor(Int, colors[n].b * 255), ")"
-                    )
-                )
-                for n in 1:N
-            ]    
+            indices = range(0.0; stop=1.0, length=N)
+            colormap = [(idx, color) for (idx, color) in zip(indices, colors)]
         end
     elseif key == :x || key == :y || key == :z
         factor = 1e2
