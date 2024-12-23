@@ -980,11 +980,11 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
             "resetCameraLastSave3d",
             "orbitRotation",
             "resetCameraDefault3d",
-        ],
-        )
-        return plot_koma(p, l; config)
-    end
-    
+    ],
+    )
+    return plot_koma(p, l; config)
+end
+
 """
     p = plot_phantom_map(obj::Phantom, key::Symbol; kwargs...)
 
