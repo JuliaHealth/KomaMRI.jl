@@ -441,7 +441,7 @@ end
     motions = [
         Translate(0.1, 0.1, 0.0, TimeRange(0.0, 1.0)),
         Rotate(0.0, 0.0, 45.0, TimeRange(0.0, 1.0)),
-        HeartBeat(-0.6, 0.0, 0.0, Periodic(1.0)),
+        HeartBeat(-0.6, 0.0, 0.0, Periodic(period=1.0)),
         Path([0.0 0.0], [0.0 1.0], [0.0 0.0], TimeRange(0.0, 10.0)),
         FlowPath([0.0 0.0], [0.0 1.0], [0.0 0.0], [false false], TimeRange(0.0, 10.0))
     ]

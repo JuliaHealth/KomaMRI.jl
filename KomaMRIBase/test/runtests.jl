@@ -545,7 +545,7 @@ end
         asymmetry = 0.5
         dx, dy, dz = [1.0, 0.0, 0.0]
         vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
-        periodictranslation = Translate(dx, dy, dz, Periodic(period, asymmetry))
+        periodictranslation = Translate(dx, dy, dz, Periodic(period=period, asymmetry=asymmetry))
         xt, yt, zt = get_spin_coords(periodictranslation, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ vx.*t'
         @test yt == ph.y .+ vy.*t'
@@ -584,7 +584,7 @@ end
         pitch = 45.0
         roll = 0.0
         yaw = 45.0
-        periodicrotation = Rotate(pitch, roll, yaw, Periodic(period, asymmetry))
+        periodicrotation = Rotate(pitch, roll, yaw, Periodic(period=period, asymmetry=asymmetry))
         xt, yt, zt = get_spin_coords(periodicrotation, ph.x, ph.y, ph.z, t')
         r = vcat(ph.x, ph.y, ph.z)
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
@@ -630,7 +630,7 @@ end
         circumferential_strain = -0.1
         radial_strain = 0.0
         longitudinal_strain = -0.1
-        periodicheartbeat = HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, Periodic(period, asymmetry))
+        periodicheartbeat = HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, Periodic(period=period, asymmetry=asymmetry))
         xt, yt, zt = get_spin_coords(periodicheartbeat, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
         θ = atan.(ph.y, ph.x)
