@@ -980,7 +980,7 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
             "resetCameraLastSave3d",
             "orbitRotation",
             "resetCameraDefault3d",
-        ],
+    ],
     )
     return plot_koma(p, l; config)
 end
@@ -1080,38 +1080,20 @@ function plot_phantom_map(
         unit = " ms"
         if key == :T1
             cmax_key = 2500 / factor
-            colors = MAT.matread(path * "/assets/T1cm.mat")["T1colormap"][1:70:end, :]
-            N, _ = size(colors)
-            idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
-            colormap = [
-                (
-                    idx[n],
-                    string("rgb(", 
-                        floor(Int, colors[n,1] * 255), ",",
-                        floor(Int, colors[n,2] * 255), ",",
-                        floor(Int, colors[n,3] * 255), ")"
-                        )
-                ) 
-                for n in 1:N
-            ]
+            colors =
+                replace.(string.(relaxationColorMap("T1") .* 255), "RGB{Float64}" => "rgb")
+            N = length(colors)
+            indices = range(0.0; stop=1.0, length=N)
+            colormap = [(idx, color) for (idx, color) in zip(indices, colors)]
         elseif key == :T2 || key == :T2s
             if key == :T2
                 cmax_key = 250 / factor
             end
-            colors = MAT.matread(path * "/assets/T2cm.mat")["T2colormap"][1:70:end, :]
-            N, _ = size(colors)
-            idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
-            colormap = [
-                (
-                    idx[n],
-                    string("rgb(", 
-                        floor(Int, colors[n,1] * 255), ",",
-                        floor(Int, colors[n,2] * 255), ",",
-                        floor(Int, colors[n,3] * 255), ")"
-                        )
-                ) 
-                for n in 1:N
-            ]
+            colors =
+                replace.(string.(relaxationColorMap("T2") .* 255), "RGB{Float64}" => "rgb")
+            N = length(colors)
+            indices = range(0.0; stop=1.0, length=N)
+            colormap = [(idx, color) for (idx, color) in zip(indices, colors)]
         end
     elseif key == :x || key == :y || key == :z
         factor = 1e2
