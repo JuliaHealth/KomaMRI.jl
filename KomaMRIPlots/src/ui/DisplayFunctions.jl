@@ -1240,7 +1240,7 @@ function plot_phantom_map(
         pad=attr(l=30, b=30),
         steps=[
             attr(
-                label=round(t0*1e3),
+                label=round(t0*1e3; digits=2),
                 method="update",
                 args=[attr(visible=[fill(false, i-1); true; fill(false, length(t) - i)])]
             )
