@@ -91,13 +91,14 @@ julia> periodic = Periodic(1.0, 0.2)
 @with_kw struct Periodic{T<:Real} <: AbstractTimeSpan{T}
    period::T
    asymmetry::T = typeof(period)(0.5)
+   t_start::T = zero(typeof(period))
 end
 
 """ Constructors """
 Periodic(period) = Periodic(period, typeof(period)(0.5))
 
 """ times """
-times(ts::Periodic{T}) where {T<:Real} = [zero(T), ts.period * ts.asymmetry, ts.period] 
+times(ts::Periodic{T}) where {T<:Real} = ts.t_start .+ [0, ts.period * ts.asymmetry, ts.period] 
 
 """
     t_unit = unit_time(t, periodic)
@@ -140,4 +141,41 @@ function unit_time(t, ts::Periodic{T}) where {T<:Real}
         t_unit = ifelse.( t_relative .< t_rise, t_relative ./ t_rise, oneunit(T) .- (t_relative .- t_rise) ./ t_fall)
     end
     return t_unit
+end
+
+
+"""
+    timecurve = TimeCurve(x, y, periodic, delay)
+
+TimeCurve struct. It is a specialized type that inherits from AbstractTimeSpan and 
+defines a time curve. It is defined by the `x` and `y` vectors, an optional `periodic`
+flag, and an optional delay.
+
+# Arguments
+- `x`: (`::AbstractVector{<:Real}`, `[s]`) time vector
+- `y`: (`::AbstractVector{<:Real}`) y vector, it needs to be scaled between 0 and 1
+- `periodic`: (`::Bool`, `=false`) indicates whether the time curve should be periodically repeated
+- `delyay`: (`<:Real`, `=0.0`) initial delay which takes effect before the time curve
+
+# Returns
+- `timecurve`: (`::TimeCurve`) TimeCurve struct
+
+# Examples
+```julia-repl
+julia> timecurve = TimeCurve(x=[0.0, 0.1, 0.3, 0.4], y=[0.0, 0.6, 0.2, 0.0], periodic=true, delay=0.0)
+```
+"""
+@with_kw struct TimeCurve{T<:Real} <: AbstractTimeSpan{T} 
+    x::AbstractVector{T}
+    y::AbstractVector{T}
+    periodic::Bool = false
+    t_start::T=x[1]
+end
+
+""" times """
+times(tc::TimeCurve) = tc.x
+""" unit_time """
+function unit_time(t, tc::TimeCurve{T}) where T<:Real
+    itp = GriddedInterpolation((tc.x, ), tc.y, Gridded(Linear()))
+    return extrapolate(itp, tc.periodic ? Interpolations.Periodic() : Flat()).(t)
 end

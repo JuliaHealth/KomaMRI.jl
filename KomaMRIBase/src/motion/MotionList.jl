@@ -199,7 +199,7 @@ If `motionset::MotionList`, this function sorts its motions.
 - `nothing`
 """
 function sort_motions!(m::MotionList)
-    sort!(m.motions; by=m -> times(m)[1])
+    sort!(m.motions; by=m -> m.time.t_start)
     return nothing
 end
 
