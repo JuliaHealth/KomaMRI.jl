@@ -1,3 +1,4 @@
+include("Interpolation.jl")
 include("SpinSpan.jl")
 include("TimeSpan.jl")
 include("Action.jl")
