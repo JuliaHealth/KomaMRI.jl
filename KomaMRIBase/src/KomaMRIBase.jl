@@ -53,7 +53,7 @@ export MotionList, NoMotion, Motion
 export Translate, TranslateX, TranslateY, TranslateZ
 export Rotate, RotateX, RotateY, RotateZ 
 export HeartBeat, Path, FlowPath
-export TimeRange, Periodic
+export TimeRange, Periodic, TimeCurve
 export SpinRange, AllSpins
 export get_spin_coords
 # Secondary

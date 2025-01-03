@@ -44,11 +44,10 @@ FlowPath
 FlowPath(dx, dy, dz, spin_reset, time, spins)
 ```
 
-### `AbstractTimeSpan` types and related functions
+### `TimeCurve` types and related functions
 
 ```@docs
-TimeRange
-Periodic
+TimeCurve
 unit_time
 ```
 
