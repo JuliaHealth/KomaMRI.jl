@@ -57,5 +57,10 @@ function resample(itp::Interpolator2D, t)
     return itp.(id, t)
 end
 
+function interpolate_times(t, t_unit, periodic, tq)
+    itp = GriddedInterpolation((t, ), t_unit, Gridded(Linear()))
+    return extrapolate(itp, periodic ? Interpolations.Periodic() : Flat()).(tq)
+end
+
 _similar(a, N) = similar(a, N)
 _similar(a::Real, N) = zeros(typeof(a), N)

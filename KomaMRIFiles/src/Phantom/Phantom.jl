@@ -57,19 +57,17 @@ function import_motion_field!(motion_fields::Array, motion::HDF5.Group, name::St
     get_subtypes(t::Type) = reduce(vcat,(subtypes(t)))
     get_subtype_strings(t::Type) = last.(split.(string.(get_subtypes(t::Type)), "."))
     
-    subtype_strings = reduce(vcat, get_subtype_strings.([
+    subtype_strings = [reduce(vcat, get_subtype_strings.([
         KomaMRIBase.SimpleAction,
         KomaMRIBase.ArbitraryAction,
-        KomaMRIBase.AbstractTimeSpan,
         KomaMRIBase.AbstractSpinSpan
-    ]))
+    ])); "TimeCurve"] 
 
-    subtype_vector = reduce(vcat, get_subtypes.([
+    subtype_vector = [reduce(vcat, get_subtypes.([
         KomaMRIBase.SimpleAction,
         KomaMRIBase.ArbitraryAction,
-        KomaMRIBase.AbstractTimeSpan,
         KomaMRIBase.AbstractSpinSpan
-    ]))
+    ])); KomaMRIBase.TimeCurve]
 
     motion_subfields = []
     for (i, subtype_string) in enumerate(subtype_strings)
