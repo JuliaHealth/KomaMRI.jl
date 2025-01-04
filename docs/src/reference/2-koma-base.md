@@ -48,7 +48,8 @@ FlowPath(dx, dy, dz, spin_reset, time, spins)
 
 ```@docs
 TimeCurve
-unit_time
+TimeRange
+Periodic
 ```
 
 ### `AbstractSpinSapn` types

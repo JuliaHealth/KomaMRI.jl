@@ -67,10 +67,47 @@ check_unique(t::Vector) = length(t) == length(unique(t))
 TimeCurve(t, t_unit, periodic, periods) = TimeCurve(t=t, t_unit=t_unit, periodic=periodic, periods=periods)
 TimeCurve(t, t_unit) = TimeCurve(t=t, t_unit=t_unit)
 # Custom constructors
-# --- TimeRange
+"""
+    timerange = TimeRange(t_start, t_end)
+
+The `TimeRange` function is a custom constructor for the `TimeCurve` struct. 
+It allows defining a simple time interval, with start and end times.
+
+# Arguments
+- `t_start`: (`::Real`, `[s]`, `=0.0`) start time
+- `t_end`: (`::Real`, `[s]`, `=1.0`) end time
+
+# Returns
+- `timerange`: (`::TimeCurve`) TimeCurve struct
+
+# Examples
+```julia-repl
+julia> timerange = TimeRange(t_start=0.6, t_end=1.4)
+```
+![Time Range](../assets/time-range.svg)
+"""
 TimeRange(t_start::T, t_end::T) where T = TimeCurve(t=[t_start, t_end], t_unit=[zero(T), oneunit(T)])
 TimeRange(; t_start=0.0, t_end=1.0)     = TimeRange(t_start, t_end)
-# --- Periodic
+"""
+    periodic = Periodic(period, asymmetry)
+
+The `Periodic` function is a custom constructor for the `TimeCurve` struct.
+It allows defining time intervals that repeat periodically with a triangular period. 
+It includes a measure of asymmetry in order to recreate a asymmetric period.
+
+# Arguments
+- `period`: (`::Real`, `[s]`, `=1.0`) period duration
+- `asymmetry`: (`::Real`, `=0.5`) temporal asymmetry factor. Between 0 and 1.
+
+# Returns
+- `periodic`: (`::TimeCurve`) TimeCurve struct
+
+# Examples
+```julia-repl
+julia> periodic = Periodic(period=1.0, asymmetry=0.2)
+```
+![Periodic](../assets/periodic.svg)
+"""
 Periodic(period::T, asymmetry::T) where T = TimeCurve(t=[zero(T), period*asymmetry, period], t_unit=[zero(T), oneunit(T), zero(T)])
 Periodic(; period=1.0, asymmetry=0.5)     = Periodic(period, asymmetry)
 
@@ -78,11 +115,13 @@ Periodic(; period=1.0, asymmetry=0.5)     = Periodic(period, asymmetry)
 Base.:(==)(t1::TimeCurve, t2::TimeCurve) = reduce(&, [getfield(t1, field) == getfield(t2, field) for field in fieldnames(typeof(t1))])
 Base.:(≈)(t1::TimeCurve, t2::TimeCurve)  = reduce(&, [getfield(t1, field)  ≈ getfield(t2, field) for field in fieldnames(typeof(t1))])
 
-""" times & unit_time functions """
-# Although the implementation of these two functions 
-# when per is a vector is valid for all cases, it performs 
-# unnecessary and costly operations when per is a scalar. Therefore, 
-# it has been decided to use method dispatch between these two cases.
+""" times & unit_time """
+# Although the implementation of these two functions when `per` is a vector is valid 
+# for all cases, it performs unnecessary and costly operations when `per` is a scalar. 
+# Therefore, it has been decided to use method dispatch between these two cases.
+function times(t, per::Real)
+    return per .* t
+end
 function times(t, per::AbstractVector)
     tr      = repeat(t, length(per))
     scale   = repeat(per, inner=[length(t)])
@@ -90,12 +129,9 @@ function times(t, per::AbstractVector)
     tr     .= (tr .* scale) .+ offsets
     return tr
 end
-function unit_time(tq, t, t_unit, periodic, per::AbstractVector)
-    return interpolate_times(times(t, per), repeat(t_unit, length(per)), periodic, tq)
-end
-function times(t, per::Real)
-    return per .* t
-end
 function unit_time(tq, t, t_unit, periodic, per::Real)
     return interpolate_times(t .* per, t_unit, periodic, tq)
+end
+function unit_time(tq, t, t_unit, periodic, per::AbstractVector)
+    return interpolate_times(times(t, per), repeat(t_unit, length(per)), periodic, tq)
 end
