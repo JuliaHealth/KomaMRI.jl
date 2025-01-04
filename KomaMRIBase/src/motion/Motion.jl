@@ -28,14 +28,14 @@ julia> motion =  Motion(
 """
 @with_kw mutable struct Motion{T<:Real}
     action::AbstractAction{T}
-    time  ::TimeCurve{T}      = TimeRange(t_start=-oneunit(typeof(action).parameters[1]), t_end=zero(typeof(action).parameters[1]))
+    time  ::TimeCurve{T}      = TimeRange(t_start=zero(typeof(action).parameters[1]), t_end=eps(typeof(action).parameters[1]))
     spins ::AbstractSpinSpan  = AllSpins()
 end
 
 # Main constructors
 function Motion(action) 
     T = first(typeof(action).parameters)
-    return Motion(action, TimeRange(t_start=-oneunit(T), t_end=zero(T)), AllSpins())
+    return Motion(action, TimeRange(t_start=zero(T), t_end=eps(T)), AllSpins())
 end
 function Motion(action, time::TimeCurve)
     T = first(typeof(action).parameters)
@@ -43,7 +43,7 @@ function Motion(action, time::TimeCurve)
 end
 function Motion(action, spins::AbstractSpinSpan)
     T = first(typeof(action).parameters)
-    return Motion(action, TimeRange(t_start=-oneunit(T), t_end=zero(T)), spins)
+    return Motion(action, TimeRange(t_start=zero(T), t_end=eps(T)), spins)
 end
 
 # Custom constructors
@@ -65,7 +65,7 @@ end
 julia> translate = Translate(0.01, 0.02, 0.03, TimeRange(0.0, 1.0), SpinRange(1:10))
 ```
 """
-function Translate(dx, dy, dz, time=TimeRange(t_start=-oneunit(eltype(dx)), t_end=zero(eltype(dx))), spins=AllSpins())
+function Translate(dx, dy, dz, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
     return Motion(Translate(dx, dy, dz), time, spins)
 end
 
@@ -87,7 +87,7 @@ end
 julia> rotate = Rotate(15.0, 0.0, 20.0, TimeRange(0.0, 1.0), SpinRange(1:10))
 ```
 """
-function Rotate(pitch, roll, yaw, time=TimeRange(t_start=-oneunit(eltype(pitch)), t_end=zero(eltype(pitch))), spins=AllSpins())
+function Rotate(pitch, roll, yaw, time=TimeRange(t_start=zero(eltype(pitch)), t_end=eps(eltype(pitch))), spins=AllSpins())
     return Motion(Rotate(pitch, roll, yaw), time, spins)
 end
 
@@ -109,7 +109,7 @@ end
 julia> heartbeat = HeartBeat(-0.3, -0.2, 0.0, TimeRange(0.0, 1.0), SpinRange(1:10))
 ```
 """
-function HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, time=TimeRange(t_start=-oneunit(eltype(circumferential_strain)), t_end=zero(eltype(circumferential_strain))), spins=AllSpins())
+function HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, time=TimeRange(t_start=zero(eltype(circumferential_strain)), t_end=eps(eltype(circumferential_strain))), spins=AllSpins())
     return Motion(HeartBeat(circumferential_strain, radial_strain, longitudinal_strain), time, spins)
 end
 
@@ -137,7 +137,7 @@ julia> path = Path(
        )
 ```
 """
-function Path(dx, dy, dz, time=TimeRange(t_start=-oneunit(eltype(dx)), t_end=zero(eltype(dx))), spins=AllSpins())
+function Path(dx, dy, dz, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
     return Motion(Path(dx, dy, dz), time, spins)
 end
 
@@ -167,7 +167,7 @@ julia> flowpath = FlowPath(
        )
 ```
 """
-function FlowPath(dx, dy, dz, spin_reset, time=TimeRange(t_start=-oneunit(eltype(dx)), t_end=zero(eltype(dx))), spins=AllSpins())
+function FlowPath(dx, dy, dz, spin_reset, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
     return Motion(FlowPath(dx, dy, dz, spin_reset), time, spins)
 end
 
@@ -192,7 +192,7 @@ function get_spin_coords(
     m::Motion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
 ) where {T<:Real}
     ux, uy, uz = x .* (0*t), y .* (0*t), z .* (0*t) # Buffers for displacements
-    t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.duration)
+    t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
     idx = get_indexing_range(m.spins)
     displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
     displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
@@ -201,7 +201,7 @@ function get_spin_coords(
 end
 
 # Auxiliary functions
-times(m::Motion) = times(m.time.t, m.time.duration)
+times(m::Motion) = times(m.time.t, m.time.periods)
 is_composable(m::Motion) = is_composable(m.action)
 add_jump_times!(t, m::Motion) = add_jump_times!(t, m.action, m.time)
 add_jump_times!(t, ::AbstractAction, ::TimeCurve) = nothing

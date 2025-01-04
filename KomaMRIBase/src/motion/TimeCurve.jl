@@ -1,28 +1,60 @@
 """
-    timecurve = TimeCurve(t, t_unit, periodic, duration)
+    timecurve = TimeCurve(t, t_unit, periodic, periods)
 
-TimeCurve struct. It is a specialized type that defines a time curve. 
-(...)
+TimeCurve struct. It is a specialized type that defines a time curve, which represents 
+the temporal behavior of motion. This curve is defined by two vectors: 
+`t` and `t_unit`, which represent the horizontal (x-axis) and vertical (y-axis) axes 
+of the curve, respectively. To some extent, this curve can be associated with animation curves,
+commonly found in software for video editing, 3D scene creation, or video game development.
+
+Additionally, the TimeCurve struct contains two more fields, independent of each other:
+`periodic` is a Boolean that indicates whether the time curve should be repeated periodically.
+`periods` contains as many elements as repetitions are desired in the time curve. 
+Each element specifies the scaling factor for that repetition.
 
 # Arguments
 - `t`: (`::AbstractVector{<:Real}`, `[s]`) time vector
 - `t_unit`: (`::AbstractVector{<:Real}`) y vector, it needs to be scaled between 0 and 1
 - `periodic`: (`::Bool`, `=false`) indicates whether the time curve should be periodically repeated
-- `duration`: (`::Union{<:Real,AbstractVector{<:Real}}`, `=1.0`)
+- `periods`: (`::Union{<:Real,AbstractVector{<:Real}}`, `=1.0`): represents the relative duration 
+    of each period with respect to the baseline duration defined by `t[end] - t[1]`. 
+    In other words, it acts as a scaling factor to lengthen or shorten specific periods. 
+    This allows for the creation of patterns such as arrhythmias or other variations in periodicity.
 
 # Returns
 - `timecurve`: (`::TimeCurve`) TimeCurve struct
 
 # Examples
+1. Non-periodic motion with a single repetition.
 ```julia-repl
-julia> timecurve = TimeCurve(t=[0.0, 0.1, 0.3, 0.4], t_unit=[0.0, 0.6, 0.2, 0.0], periodic=true)
+julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 0.2, 0.5, 1.0])
 ```
+![Time Curve 1](../assets/time-curve-1.svg)
+
+2. Periodic motion with a single repetition.
+```julia-repl
+julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 1.0, 1.0, 0.0], periodic=true)
+```
+![Time Curve 2](../assets/time-curve-2.svg)
+
+3. Non-periodic motion with multiple repetitions.
+```julia-repl
+julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 1.0, 1.0, 0.0], periods=[1.0, 0.5, 1.5])
+```
+![Time Curve 3](../assets/time-curve-3.svg)
+
+4. Periodic motion with multiple repetitions.
+```julia-repl
+julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 1.0, 1.0, 0.0], periods=[1.0, 0.5, 1.5], periodic=true)
+```
+![Time Curve 4](../assets/time-curve-4.svg)
+
 """
 @with_kw struct TimeCurve{T<:Real}
     t::AbstractVector{T}
     t_unit::AbstractVector{T}
     periodic::Bool                       = false
-    duration::Union{T,AbstractVector{T}} = oneunit(eltype(t))
+    periods::Union{T,AbstractVector{T}} = oneunit(eltype(t))
     t_start::T                           = t[1]
     t_end::T                             = t[end]
     @assert check_unique(t) "Vector t=$(t) contains duplicate elements. Please ensure all elements in t are unique and try again"
@@ -32,7 +64,7 @@ check_unique(t) = true
 check_unique(t::Vector) = length(t) == length(unique(t))
 
 # Main Constructors
-TimeCurve(t, t_unit, periodic, duration) = TimeCurve(t=t, t_unit=t_unit, periodic=periodic, duration=duration)
+TimeCurve(t, t_unit, periodic, periods) = TimeCurve(t=t, t_unit=t_unit, periodic=periodic, periods=periods)
 TimeCurve(t, t_unit) = TimeCurve(t=t, t_unit=t_unit)
 # Custom constructors
 # --- TimeRange
@@ -46,22 +78,24 @@ Periodic(; period=1.0, asymmetry=0.5)     = Periodic(period, asymmetry)
 Base.:(==)(t1::TimeCurve, t2::TimeCurve) = reduce(&, [getfield(t1, field) == getfield(t2, field) for field in fieldnames(typeof(t1))])
 Base.:(≈)(t1::TimeCurve, t2::TimeCurve)  = reduce(&, [getfield(t1, field)  ≈ getfield(t2, field) for field in fieldnames(typeof(t1))])
 
-""" times """
-function times(t, dur::AbstractVector)
-    tr      = repeat(t, length(dur))
-    scale   = repeat(dur, inner=[length(t)])
-    offsets = repeat(vcat(0, cumsum(dur)[1:end-1]), inner=[length(t)])
+""" times & unit_time functions """
+# Although the implementation of these two functions 
+# when per is a vector is valid for all cases, it performs 
+# unnecessary and costly operations when per is a scalar. Therefore, 
+# it has been decided to use method dispatch between these two cases.
+function times(t, per::AbstractVector)
+    tr      = repeat(t, length(per))
+    scale   = repeat(per, inner=[length(t)])
+    offsets = repeat(vcat(0, cumsum(per)[1:end-1]), inner=[length(t)])
     tr     .= (tr .* scale) .+ offsets
     return tr
 end
-function times(t, dur::Real)
-    return dur .* t
+function unit_time(tq, t, t_unit, periodic, per::AbstractVector)
+    return interpolate_times(times(t, per), repeat(t_unit, length(per)), periodic, tq)
 end
-
-""" unit_time """
-function unit_time(tq, t, t_unit, periodic, dur::Real)
-    return interpolate_times(t .* dur, t_unit, periodic, tq)
+function times(t, per::Real)
+    return per .* t
 end
-function unit_time(tq, t, t_unit, periodic, dur)
-    return interpolate_times(times(t, dur), repeat(t_unit, length(dur)), periodic, tq)
+function unit_time(tq, t, t_unit, periodic, per::Real)
+    return interpolate_times(t .* per, t_unit, periodic, tq)
 end

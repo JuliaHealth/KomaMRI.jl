@@ -502,7 +502,7 @@ end
         # TimeCurve constructors
         time = TimeRange(t_start=0.0, t_end=1.0)
         time = Periodic(period=1.0, asymmetry=0.5)
-        time = TimeCurve([-1.0, 0.0], [0.0, 1.0])
+        time = TimeCurve([0.0, eps()], [0.0, 1.0])
 
         m = Motion(action, time, spins)
 
