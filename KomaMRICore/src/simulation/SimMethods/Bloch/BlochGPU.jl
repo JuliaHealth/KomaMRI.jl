@@ -150,11 +150,11 @@ function run_spin_precession!(
         ϕ_ADC = @view pre.ϕ[:,seq_block.ADC_indices]
         if seq_block.first_ADC
             pre.Mxy[:,1] .= M.xy
-            pre.Mxy[:,2:end] .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
+            pre.Mxy[:,2:end] .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* cis.(ϕ_ADC)
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(pre.Mxy, seq_block.tp_ADC', p.motion; seq_t=seq.t, add_t0=true)
         else
-            pre.Mxy .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* _cis.(ϕ_ADC)
+            pre.Mxy .= M.xy .* exp.(-seq_block.tp_ADC' ./ p.T2) .* cis.(ϕ_ADC)
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(pre.Mxy, seq_block.tp_ADC', p.motion; seq_t=seq.t)
         end
@@ -164,7 +164,7 @@ function run_spin_precession!(
     
     #Mxy precession and relaxation, and Mz relaxation
     M.z  .= M.z .* exp.(-seq_block.dur ./ p.T1) .+ p.ρ .* (T(1) .- exp.(-seq_block.dur ./ p.T1))
-    M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* _cis.(pre.ϕ[:,end])
+    M.xy .= M.xy .* exp.(-seq_block.dur ./ p.T2) .* cis.(pre.ϕ[:,end])
 
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)

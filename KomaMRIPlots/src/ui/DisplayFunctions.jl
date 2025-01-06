@@ -980,7 +980,7 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
             "resetCameraLastSave3d",
             "orbitRotation",
             "resetCameraDefault3d",
-        ],
+    ],
     )
     return plot_koma(p, l; config)
 end
@@ -1003,7 +1003,6 @@ Plots a phantom map for a specific spin parameter given by `key`.
 - `colorbar`: (`::Bool`, `=true`) boolean to indicate whether to display a colorbar
 - `max_spins`:(`::Int`, `=100_000`) maximum number of displayed spins
 - `time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
-- `max_time_samples`:(`::Int`, `=100`) maximum number of time samples
 - `frame_duration_ms`:(`::Int`, `=250`) time in miliseconds between two frames 
 
 # Returns
@@ -1031,28 +1030,37 @@ function plot_phantom_map(
     view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
     colorbar=true,
     max_spins=20_000,
-    time_samples=0,
-    max_time_samples=100,
+    time_samples= obj.motion isa NoMotion ? 0 : length(times(obj.motion)),
     kwargs...,
 )
-    function interpolate_times(motion)
-        t = times(motion)
-        if length(t)>1
-            # Interpolate time points (as many as indicated by time_samples)
-            itp = interpolate((1:(time_samples + 1):(length(t) + time_samples * (length(t) - 1)), ), t, Gridded(Linear()))
-            t = itp.(1:(length(t) + time_samples * (length(t) - 1)))
-        end
-        return t
+    function process_times(::NoMotion)
+        return [zero(eltype(obj.x))]
     end
 
     function process_times(motion)
-        KomaMRIBase.sort_motions!(motion)
-        t = interpolate_times(motion)
-        # Decimate time points so their number is smaller than max_time_samples
-        ss = length(t) > max_time_samples ? length(t) ÷ max_time_samples : 1
-        return t[1:ss:end]
+        time_nodes = times(motion)
+        if length(time_nodes) > 1
+            time_min, time_max = minimum(time_nodes), maximum(time_nodes)
+            t = collect(range(time_min, time_max, length=time_samples))
+            merged_times = sort(unique([t; time_nodes]))
+            if length(merged_times) > time_samples
+                to_keep = time_nodes
+                remaining = setdiff(merged_times, to_keep)
+                num_needed = time_samples - length(to_keep)
+                extra = remaining[round.(Int, range(1, length(remaining), length=num_needed))]
+                merged_times = sort([to_keep; extra])
+            elseif length(merged_times) < time_samples
+                extra_points = setdiff(t, merged_times)
+                extra_needed = time_samples - length(merged_times)
+                additional = sort(extra_points)[1:extra_needed]
+                merged_times = sort([merged_times; additional])
+            end
+            return merged_times
+        else
+            return time_nodes
+        end
     end
-
+    
     function decimate_uniform_phantom(obj, num_points::Int)
         ss = Int(ceil(length(obj) / num_points))
         return obj[1:ss:end]
@@ -1072,38 +1080,20 @@ function plot_phantom_map(
         unit = " ms"
         if key == :T1
             cmax_key = 2500 / factor
-            colors = MAT.matread(path * "/assets/T1cm.mat")["T1colormap"][1:70:end, :]
-            N, _ = size(colors)
-            idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
-            colormap = [
-                (
-                    idx[n],
-                    string("rgb(", 
-                        floor(Int, colors[n,1] * 255), ",",
-                        floor(Int, colors[n,2] * 255), ",",
-                        floor(Int, colors[n,3] * 255), ")"
-                        )
-                ) 
-                for n in 1:N
-            ]
+            colors =
+                replace.(string.(relaxationColorMap("T1") .* 255), "RGB{Float64}" => "rgb")
+            N = length(colors)
+            indices = range(0.0; stop=1.0, length=N)
+            colormap = [(idx, color) for (idx, color) in zip(indices, colors)]
         elseif key == :T2 || key == :T2s
             if key == :T2
                 cmax_key = 250 / factor
             end
-            colors = MAT.matread(path * "/assets/T2cm.mat")["T2colormap"][1:70:end, :]
-            N, _ = size(colors)
-            idx = range(0, 1; length=N) #range(0,T,N) works in Julia 1.7
-            colormap = [
-                (
-                    idx[n],
-                    string("rgb(", 
-                        floor(Int, colors[n,1] * 255), ",",
-                        floor(Int, colors[n,2] * 255), ",",
-                        floor(Int, colors[n,3] * 255), ")"
-                        )
-                ) 
-                for n in 1:N
-            ]
+            colors =
+                replace.(string.(relaxationColorMap("T2") .* 255), "RGB{Float64}" => "rgb")
+            N = length(colors)
+            indices = range(0.0; stop=1.0, length=N)
+            colormap = [(idx, color) for (idx, color) in zip(indices, colors)]
         end
     elseif key == :x || key == :y || key == :z
         factor = 1e2
@@ -1135,9 +1125,21 @@ function plot_phantom_map(
     l = Layout(;title=obj.name*": "*string(key))
 
     if view_2d # 2D
+        function get_displayed_dims(v)
+            if sum(v) == 1
+                idx = argmax(v)[1] 
+                return [idx in [1, 3], idx in [1, 2], idx in [2,3]]
+            else
+                return v
+            end
+        end 
+
         # Layout config
+        dims = get_displayed_dims(KomaMRIBase.get_dims(obj))
+        axis = ["x", "y", "z"][dims]
+        
         l[:xaxis] = attr(
-            title="x",
+            title=axis[1],
             range=[x0, xf],
             ticksuffix=" cm",
             backgroundcolor=plot_bgcolor,
@@ -1146,7 +1148,7 @@ function plot_phantom_map(
             scaleanchor="y"
         )
         l[:yaxis] = attr(
-            title="y",
+            title=axis[2],
             range=[x0, xf],
             ticksuffix=" cm",
             backgroundcolor=plot_bgcolor,
@@ -1158,8 +1160,8 @@ function plot_phantom_map(
         # Add traces
         for i in 1:length(t)
             push!(traces, scattergl( 
-                x=(x[:,i])*1e2,
-                y=(y[:,i])*1e2,
+                x=dims[1]           ? (x[:,i])*1e2 : (y[:,i])*1e2,
+                y=dims[1] & dims[2] ? (y[:,i])*1e2 : (z[:,i])*1e2,
                 mode="markers",
                 marker=attr(color=getproperty(obj,key)*factor,
                             showscale=colorbar,
@@ -1244,7 +1246,7 @@ function plot_phantom_map(
             )
             for (i, t0) in enumerate(t)
         ],
-        currentvalue_prefix="x = ",
+        currentvalue_prefix="t = ",
         currentvalue_suffix="ms",
     )]
     l[:margin] = attr(t=50, l=0, r=0)
