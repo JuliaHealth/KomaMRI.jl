@@ -386,7 +386,7 @@ end
     @testset "Subset" begin
         rotate = Rotate(10.0, 20.0, 40.0)
         translate = Translate(0.1, 0.2, 0.3)
-        time = TimeRange(0.0, 0.0)
+        time = TimeRange(0.0, eps())
         spins = AllSpins()
         rng = rng = 1:2:5
         # NoMotion
