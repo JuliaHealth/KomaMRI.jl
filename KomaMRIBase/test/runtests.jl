@@ -369,9 +369,12 @@ end
 @testitem "Motion" tags=[:base] begin
     @testset "Constructors" begin
         action = Rotate(10.0, 20.0, 40.0)
-        time = TimeRange(0.0, 0.0)
         spins = AllSpins()
-        # Motion
+        # TimeCurve constructors
+        time = TimeRange(t_start=0.0, t_end=1.0)
+        time = Periodic(period=1.0, asymmetry=0.5)
+        time = TimeCurve([0.0, eps()], [0.0, 1.0])
+        # Motion constructors
         m = Motion(action, time, spins)
         @test Motion(action) == m
         @test Motion(action, time) == m
@@ -420,14 +423,6 @@ end
         @test xt == ph.x .+ vx.*t'
         @test yt == ph.y .+ vy.*t'
         @test zt == ph.z .+ vz.*t'
-        # ----- t_start = t_end --------
-        t_start = t_end = 0.0
-        t = [-0.5, -0.25, 0.0, 0.25, 0.5]
-        translation = Translate(dx, dy, dz, TimeRange(t_start, t_end))
-        xt, yt, zt = get_spin_coords(translation, ph.x, ph.y, ph.z, t')
-        @test xt == ph.x .+ dx*[0, 0, 1, 1, 1]'
-        @test yt == ph.y .+ dy*[0, 0, 1, 1, 1]'
-        @test zt == ph.z .+ dz*[0, 0, 1, 1, 1]'
     end
     @testset "PeriodicTranslate" begin
         ph = Phantom(x=[1.0], y=[1.0])
@@ -437,7 +432,7 @@ end
         asymmetry = 0.5
         dx, dy, dz = [1.0, 0.0, 0.0]
         vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
-        periodictranslation = Translate(dx, dy, dz, Periodic(period, asymmetry))
+        periodictranslation = Translate(dx, dy, dz, Periodic(period=period, asymmetry=asymmetry))
         xt, yt, zt = get_spin_coords(periodictranslation, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ vx.*t'
         @test yt == ph.y .+ vy.*t'
@@ -458,14 +453,6 @@ end
         @test xt[end ,end] ≈ rot_x
         @test yt[end ,end] ≈ rot_y
         @test zt[end ,end] ≈ rot_z
-        # ----- t_start = t_end --------
-        t_start = t_end = 0.0
-        t = [-0.5, -0.25, 0.0, 0.25, 0.5]
-        rotation = Rotate(pitch, roll, yaw, TimeRange(t_start, t_end))
-        xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
-        @test xt ≈ [ph.x   ph.x   rot_x   rot_x   rot_x]
-        @test yt ≈ [ph.y   ph.y   rot_y   rot_y   rot_y]
-        @test zt ≈ [ph.z   ph.z   rot_z   rot_z   rot_z]
     end
     @testset "PeriodicRotation" begin
         ph = Phantom(x=[1.0], y=[1.0])
@@ -476,7 +463,7 @@ end
         pitch = 45.0
         roll = 0.0
         yaw = 45.0
-        periodicrotation = Rotate(pitch, roll, yaw, Periodic(period, asymmetry))
+        periodicrotation = Rotate(pitch, roll, yaw, Periodic(period=period, asymmetry=asymmetry))
         xt, yt, zt = get_spin_coords(periodicrotation, ph.x, ph.y, ph.z, t')
         r = vcat(ph.x, ph.y, ph.z)
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
@@ -499,19 +486,6 @@ end
         @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
         @test yt[:,end] == ph.y .* (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
         @test zt[:,end] == ph.z .* (1 .+ longitudinal_strain)
-        # ----- t_start = t_end --------
-        t_start = t_end = 0.0
-        t = [-0.5, -0.25, 0.0, 0.25, 0.5]
-        heartbeat = HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, TimeRange(t_start, t_end))
-        xt, yt, zt = get_spin_coords(heartbeat, ph.x, ph.y, ph.z, t')
-        r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
-        θ = atan.(ph.y, ph.x)
-        dx = (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
-        dy = (1 .+ circumferential_strain * maximum(r) .* sin.(θ))
-        dz = (1 .+ longitudinal_strain)
-        @test xt == [ph.x   ph.x   ph.x .* dx   ph.x .* dx   ph.x .* dx]
-        @test yt == [ph.y   ph.y   ph.y .* dy   ph.y .* dy   ph.y .* dy]
-        @test zt == [ph.z   ph.z   ph.z .* dz   ph.z .* dz   ph.z .* dz]
     end
     @testset "PeriodicHeartBeat" begin
         ph = Phantom(x=[1.0], y=[1.0])
@@ -522,7 +496,7 @@ end
         circumferential_strain = -0.1
         radial_strain = 0.0
         longitudinal_strain = -0.1
-        periodicheartbeat = HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, Periodic(period, asymmetry))
+        periodicheartbeat = HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, Periodic(period=period, asymmetry=asymmetry))
         xt, yt, zt = get_spin_coords(periodicheartbeat, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
         θ = atan.(ph.y, ph.x)
