@@ -1,4 +1,4 @@
-"""
+@doc raw"""
     timecurve = TimeCurve(t, t_unit, periodic, periods)
 
 TimeCurve struct. It is a specialized type that defines a time curve, which represents 
