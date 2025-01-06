@@ -110,8 +110,7 @@ adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.mot
 @functor HeartBeat
 @functor Path
 @functor FlowPath
-@functor TimeRange
-@functor Periodic
+@functor TimeCurve
 # Spinor
 @functor Spinor
 # DiscreteSequence

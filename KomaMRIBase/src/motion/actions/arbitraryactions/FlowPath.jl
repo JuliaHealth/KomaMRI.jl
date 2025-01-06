@@ -36,7 +36,7 @@ julia> flowpath = FlowPath(
     spin_reset::AbstractArray{Bool}
 end
 
-function add_jump_times!(t, a::FlowPath, time_span::AbstractTimeSpan) 
-    jump_times = (times(time_span)[end] - times(time_span)[1])/(size(a.spin_reset)[2]-1) * (getindex.(findall(a.spin_reset .== 1), 2) .- 1) .- 1e-6
+function add_jump_times!(t, a::FlowPath, tc::TimeCurve) 
+    jump_times = (tc.t_end - tc.t_start)/(size(a.spin_reset)[2]-1) * (getindex.(findall(a.spin_reset .== 1), 2) .- 1) .- 1e-6
     append!(t, jump_times)
 end

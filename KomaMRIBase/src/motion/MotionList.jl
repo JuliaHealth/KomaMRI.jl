@@ -1,5 +1,6 @@
+include("Interpolation.jl")
 include("SpinSpan.jl")
-include("TimeSpan.jl")
+include("TimeCurve.jl")
 include("Action.jl")
 include("Motion.jl")
 
@@ -156,7 +157,7 @@ function get_spin_coords(
     ux, uy, uz = xt .* zero(T), yt .* zero(T), zt .* zero(T)
     # Composable motions: they need to be run sequentially. Note that they depend on xt, yt, and zt
     for m in Iterators.filter(is_composable, ml.motions)
-        t_unit = unit_time(t, m.time)
+        t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
         idx = get_indexing_range(m.spins)
         displacement_x!(@view(ux[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
@@ -166,7 +167,7 @@ function get_spin_coords(
     end
     # Additive motions: these motions can be run in parallel
     for m in Iterators.filter(!is_composable, ml.motions)
-        t_unit = unit_time(t, m.time)
+        t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
         idx = get_indexing_range(m.spins)
         displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
@@ -199,7 +200,7 @@ If `motionset::MotionList`, this function sorts its motions.
 - `nothing`
 """
 function sort_motions!(m::MotionList)
-    sort!(m.motions; by=m -> times(m)[1])
+    sort!(m.motions; by=m -> m.time.t_start)
     return nothing
 end
 
