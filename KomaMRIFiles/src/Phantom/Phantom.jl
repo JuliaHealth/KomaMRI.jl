@@ -47,7 +47,7 @@ function import_motion!(phantom_fields::Array, motion_group::HDF5.Group)
         end
         push!(motion_array, Motion(; motion_fields...))
     end
-    push!(phantom_fields, (:motion, MotionList(motion_array)))
+    push!(phantom_fields, (:motion, MotionList(motion_array...)))
 end
 
 function import_motion_field!(motion_fields::Array, motion::HDF5.Group, name::String)
@@ -57,19 +57,17 @@ function import_motion_field!(motion_fields::Array, motion::HDF5.Group, name::St
     get_subtypes(t::Type) = reduce(vcat,(subtypes(t)))
     get_subtype_strings(t::Type) = last.(split.(string.(get_subtypes(t::Type)), "."))
     
-    subtype_strings = reduce(vcat, get_subtype_strings.([
+    subtype_strings = [reduce(vcat, get_subtype_strings.([
         KomaMRIBase.SimpleAction,
         KomaMRIBase.ArbitraryAction,
-        KomaMRIBase.AbstractTimeSpan,
         KomaMRIBase.AbstractSpinSpan
-    ]))
+    ])); "TimeCurve"] 
 
-    subtype_vector = reduce(vcat, get_subtypes.([
+    subtype_vector = [reduce(vcat, get_subtypes.([
         KomaMRIBase.SimpleAction,
         KomaMRIBase.ArbitraryAction,
-        KomaMRIBase.AbstractTimeSpan,
         KomaMRIBase.AbstractSpinSpan
-    ]))
+    ])); KomaMRIBase.TimeCurve]
 
     motion_subfields = []
     for (i, subtype_string) in enumerate(subtype_strings)
@@ -89,6 +87,9 @@ function import_motion_subfield!(motion_subfields::Array, subfield_value::Union{
     return nothing
 end
 function import_motion_subfield!(motion_subfields::Array, subfield_value::String, key::String)
+    if subfield_value in ["true", "false"]
+        return push!(motion_subfields, subfield_value == "true" ? true : false)
+    end
     endpoints = parse.(Int, split(subfield_value, ":"))
     range = length(endpoints) == 3 ? (endpoints[1]:endpoints[2]:endpoints[3]) : (endpoints[1]:endpoints[2])
     push!(motion_subfields, range)
@@ -127,13 +128,14 @@ function write_phantom(
         contrast[String(x)] = getfield(obj, x)
     end
     # Motion
-    if (typeof(obj.motion) <: MotionList) & store_motion
+    if !(obj.motion isa NoMotion) & store_motion
         motion_group = create_group(fid, "motion")
         export_motion!(motion_group, obj.motion)
     end
     return close(fid)
 end
 
+export_motion!(motion_group::HDF5.Group, motion::Motion) = export_motion!(motion_group, MotionList([motion]))
 function export_motion!(motion_group::HDF5.Group, motion_list::MotionList)
     KomaMRIBase.sort_motions!(motion_list)
     for (counter, m) in enumerate(motion_list.motions)
@@ -165,4 +167,7 @@ function export_motion_subfield!(field_group::HDF5.Group, subfield::Array, subna
 end
 function export_motion_subfield!(field_group::HDF5.Group, subfield::BitMatrix, subname::String)
     field_group[subname] = Int.(subfield)
+end
+function export_motion_subfield!(field_group::HDF5.Group, subfield::Bool, subname::String)
+    field_group[subname] = string(subfield)
 end

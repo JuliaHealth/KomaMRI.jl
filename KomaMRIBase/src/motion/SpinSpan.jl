@@ -69,3 +69,5 @@ Base.length(sr::SpinRange) = length(sr.range)
 get_indexing_range(spins::SpinRange) = spins.range
 expand(sr::SpinRange, Ns::Int) = sr
 intersect_idx(a, b) = findall(x -> x in a, b)
+intersect_idx(a, b::BitVector) = findall(x -> x in a, findall(x->x==true, b))
+intersect_idx(a::BitVector, b) = findall(x -> x in findall(x->x==true, a), b)

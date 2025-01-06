@@ -1,0 +1,5 @@
+img {
+  display: block; /* Ensures the image behaves as a block element */
+  margin-left: auto;
+  margin-right: auto;
+}
