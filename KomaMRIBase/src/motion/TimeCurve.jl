@@ -26,24 +26,32 @@ Each element specifies the scaling factor for that repetition.
 
 # Examples
 1. Non-periodic motion with a single repetition:
+      
     ```julia-repl
     julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 0.2, 0.5, 1.0])
     ```
+    
     ![Time Curve 1](../assets/time-curve-1.svg)
 2. Periodic motion with a single repetition:
+    
     ```julia-repl
     julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 1.0, 1.0, 0.0], periodic=true)
     ```
+    
     ![Time Curve 2](../assets/time-curve-2.svg)
 3. Non-periodic motion with multiple repetitions:
+    
     ```julia-repl
     julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 1.0, 1.0, 0.0], periods=[1.0, 0.5, 1.5])
     ```
+    
     ![Time Curve 3](../assets/time-curve-3.svg)
 4. Periodic motion with multiple repetitions:
+    
     ```julia-repl
     julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 1.0, 1.0, 0.0], periods=[1.0, 0.5, 1.5], periodic=true)
     ```
+    
     ![Time Curve 4](../assets/time-curve-4.svg)
 """
 @with_kw struct TimeCurve{T<:Real}
