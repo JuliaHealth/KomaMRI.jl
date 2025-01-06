@@ -49,7 +49,7 @@ FlowPath(dx, dy, dz, spin_reset, time, spins)
 ```@docs
 TimeCurve
 TimeRange
-Periodic
+Periodic 
 ```
 
 ### `AbstractSpinSapn` types
