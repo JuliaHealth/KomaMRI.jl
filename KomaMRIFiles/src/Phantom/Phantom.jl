@@ -162,12 +162,12 @@ end
 function export_motion_subfield!(field_group::HDF5.Group, subfield::AbstractRange, subname::String)
     HDF5.attributes(field_group)[subname] = step(subfield) == 1 ? "$(first(subfield)):$(last(subfield))" : "$(first(subfield)):$(step(subfield)):$(last(subfield))"
 end
+function export_motion_subfield!(field_group::HDF5.Group, subfield::Bool, subname::String)
+    HDF5.attributes(field_group)[subname] = string(subfield)
+end
 function export_motion_subfield!(field_group::HDF5.Group, subfield::Array, subname::String)
     field_group[subname] = subfield
 end
 function export_motion_subfield!(field_group::HDF5.Group, subfield::BitMatrix, subname::String)
     field_group[subname] = Int.(subfield)
-end
-function export_motion_subfield!(field_group::HDF5.Group, subfield::Bool, subname::String)
-    field_group[subname] = string(subfield)
 end
