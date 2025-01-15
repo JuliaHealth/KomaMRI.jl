@@ -74,8 +74,10 @@ function import_motion_field!(motion_fields::Array, motion::HDF5.Group, name::St
         if type == subtype_string
             for subname in fieldnames(subtype_vector[i]) # dx, dy, dz, pitch, roll...
                 key = string(subname)
-                subfield_value = key in keys(field_group) ? read(field_group, key) : read_attribute(field_group, key)
-                import_motion_subfield!(motion_subfields, subfield_value, key)
+                if !(key in ["t_start", "t_end"])
+                    subfield_value = key in keys(field_group) ? read(field_group, key) : read_attribute(field_group, key)
+                    import_motion_subfield!(motion_subfields, subfield_value, key)
+                end
             end
             push!(motion_fields, (Symbol(name), subtype_vector[i](motion_subfields...)))
         end
@@ -152,7 +154,7 @@ function export_motion_field!(field_group::HDF5.Group, field_value)
     HDF5.attributes(field_group)["type"] = string(typeof(field_value).name.name)
     for subname in fieldnames(typeof(field_value)) # dx, dy, dz, pitch, roll...
         subfield = getfield(field_value, subname)
-        export_motion_subfield!(field_group, subfield, string(subname))
+        !(string(subname) in ["t_start", "t_end"]) ? export_motion_subfield!(field_group, subfield, string(subname)) : nothing
     end
 end
 
