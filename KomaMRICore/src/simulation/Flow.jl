@@ -2,16 +2,15 @@ function outflow_spin_reset!(args...; kwargs...)
    return nothing
 end
 
-function outflow_spin_reset!(
-   spin_state_matrix, t, motion::MotionList; 
-   replace_by=0, seq_t=0, add_t0=false
-)
-   for m in motion.motions   
-      outflow_spin_reset!(
-         spin_state_matrix, t, m.action, m.time, m.spins; 
-         replace_by=replace_by, seq_t=seq_t, add_t0=add_t0
-      )
+function outflow_spin_reset!(spin_state_matrix, t, ml::MotionList; replace_by=0, seq_t=0, add_t0=false)
+   for m in ml.motions   
+      outflow_spin_reset!(spin_state_matrix, t, m; replace_by=replace_by, seq_t=seq_t, add_t0=add_t0)
    end
+   return nothing
+end
+
+function outflow_spin_reset!(spin_state_matrix, t, m::Motion; replace_by=0, seq_t=0, add_t0=false) 
+   outflow_spin_reset!(spin_state_matrix, t, m.action, m.time, m.spins; replace_by=replace_by, seq_t=seq_t, add_t0=add_t0)
    return nothing
 end
 
