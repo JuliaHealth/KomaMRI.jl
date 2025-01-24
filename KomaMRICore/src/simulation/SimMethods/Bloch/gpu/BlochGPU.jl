@@ -39,7 +39,6 @@ function run_spin_precession!(
         Val(!(p.motion isa NoMotion)), Val(length(M.xy)), Val(groupsize), Val(next_least_power_of_two(groupsize)), Val(groupsize - next_least_power_of_two(groupsize)), 
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
-    KA.synchronize(backend)
 
     AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
     sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
@@ -71,7 +70,6 @@ function run_spin_excitation!(
         Val(!(p.motion isa NoMotion)), 
         ndrange=size(M.xy,1)
     )
-    KA.synchronize(backend)
 
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ) # TODO: reset state inside kernel
