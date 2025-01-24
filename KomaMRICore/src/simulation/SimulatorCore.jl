@@ -208,6 +208,7 @@ function run_sim_time_iter!(
                 obj, seq_block, sys, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_block(prealloc_result, block); Nthreads
             )
         end
+        KA.synchronize(backend)
         samples += Nadc
         #Update progress
         next!(
@@ -218,8 +219,6 @@ function run_sim_time_iter!(
         )
         update_blink_window_progress!(w, block, Nblocks)
     end
-    # Ensure simulation is actually finished before reporting the final time 
-    KA.synchronize(backend)
 
     return nothing
 end
