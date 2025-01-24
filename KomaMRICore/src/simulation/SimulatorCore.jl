@@ -210,7 +210,6 @@ function run_sim_time_iter!(
         end
         samples += Nadc
         #Update progress
-        KA.synchronize(backend)
         next!(
             progress_bar;
             showvalues=[
@@ -219,6 +218,9 @@ function run_sim_time_iter!(
         )
         update_blink_window_progress!(w, block, Nblocks)
     end
+    # Ensure simulation is actually finished before reporting the final time 
+    KA.synchronize(backend)
+
     return nothing
 end
 
