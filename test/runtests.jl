@@ -38,10 +38,9 @@ end
 @testitem "KomaUI" tags=[:koma] begin
 
     using Blink
+    # Opens KomaUI
 
-    # Opens UI
-    w = KomaUI(return_window=true) 
-
+    w = KomaUI(return_window=true)
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
     end
