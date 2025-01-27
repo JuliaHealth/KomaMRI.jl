@@ -39,7 +39,7 @@
         Bz_prev = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz
     end
 
-    ADC_idx = 1 
+    ADC_idx = 1
     if s_ADC[1]
         @synchronize()
         reduce_block!(sig_group_r, sig_group_i, i_l, GROUPSIZE, GROUPSIZE_CLOSEST_POWER_OF_TWO, GROUPSIZE_REMAINDER)
@@ -61,7 +61,7 @@
             ϕ += (Bz_prev + Bz_next) * T(-π * γ) * Δt
         end
 
-        if ADC_idx < s_length && s_ADC[s_idx]
+        if s_idx < s_length && s_ADC[s_idx]
             if i <= N_SPINS
                 ΔT2 = exp(-t / T2)
                 cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
