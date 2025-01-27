@@ -568,27 +568,32 @@ function default_brain_tissue_properties(labels, tissue_properties = Dict())
         "CSF"           => [1,      2.569,  0.329,  0.058,  0],
         "GM"            => [0.86,   0.833,  0.083,  0.069,  0],
         "WM"            => [0.77,   0.500,  0.070,  0.061,  0],
-        "FAT1"          => [1,      0.350,  0.070,  0.058,  -220*2π], #-220 Hz
+        "FAT1"          => [1,      0.350,  0.070,  0.058,  -220 * 2π], #-220 Hz
         "MUSCLE"        => [1,      0.900,  0.047,  0.030,  0],
         "SKIN/MUSCLE"   => [1,      0.569,  0.329,  0.058,  0],
         "SKULL"         => [0,      0,      0,      0,      0],
         "VESSELS"       => [0,      0,      0,      0,      0],
-        "FAT2"          => [0.77,   0.500,  0.070,  0.061,  -220*2π], #-220 Hz
+        "FAT2"          => [0.77,   0.500,  0.070,  0.061,  -220 * 2π], #-220 Hz
         "DURA"          => [1,      2.569,  0.329,  0.058,  0],
         "MARROW"        => [0.77,   0.500,  0.070,  0.061,  0])
     
     tissue_properties = merge(default_properties, tissue_properties)
     props = ["ρ", "T1", "T2", "T2s", "Δw"]
     Nproperties = length(props)
-    # Order: CSF, DURA, FAT1, FAT2, GM, MARROW, MUSCLE, SKIN/MUSCLE, SKULL, vESSELS, WM
-    tissue_labels = [23, 232, 93, 209, 46, 255, 116, 139, 162, 185, 70]
-    tissue_texts = sort(collect(keys(default_properties)))#
+    # Order: CSF, DURA, FAT1, FAT2, GM, MARROW, MUSCLE, SKIN/MUSCLE, SKULL, VESSELS, WM
+    tissues_labels = Dict("CSF" => 23, "DURA" => 232, "FAT1" => 93, "FAT2" => 209, "GM" => 46, "MARROW" => 255, "MUSCLE" => 116, "SKIN/MUSCLE" => 139, "SKULL" => 162, "VESSELS" => 185, "WM" => 70)
     data_properties = zeros(Nproperties, size(labels)...)
     for i=1:Nproperties
-        for (label, tissue) in zip(tissue_labels, tissue_texts)
-            data_properties[i, :, :, :] += (labels .== label)*tissue_properties[tissue][i]
+        for (label, tissue) in tissues_labels
+            data_properties[i, :, :, :] += (labels .== label) * tissue_properties[tissue][i]
         end
     end
     
+    for i=1:Nproperties
+        for (label, tissue) in zip(tissue_labels, tissue_texts)
+            data_properties[i, :, :, :] += (labels .== label) * tissue_properties[tissue][i]
+        end
+    end
+
     return (data_properties[i,:,:,:] for i in 1:Nproperties)
 end
