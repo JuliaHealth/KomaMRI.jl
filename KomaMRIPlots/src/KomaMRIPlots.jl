@@ -2,6 +2,7 @@ module KomaMRIPlots
 
 using KomaMRIBase
 using MAT, Interpolations, PlotlyJS
+using QMRIColors
 
 include("ui/PlotBackends.jl")
 include("ui/DisplayFunctions.jl")
