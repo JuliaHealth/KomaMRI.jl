@@ -58,7 +58,7 @@ steps:
               using Pkg
               Pkg.add("AMDGPU")'
           
-          julia -g2 -e 'println("--- :julia: Running tests")
+          julia -e 'println("--- :julia: Running tests")
               using Pkg
               Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
         agents:
@@ -94,7 +94,7 @@ steps:
               using Pkg
               Pkg.add("CUDA")'
           
-          julia -g2 -e 'println("--- :julia: Running tests")
+          julia -e 'println("--- :julia: Running tests")
               using Pkg
               Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
         agents:
