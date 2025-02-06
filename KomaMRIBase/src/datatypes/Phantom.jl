@@ -584,13 +584,7 @@ function default_brain_tissue_properties(labels, tissue_properties = Dict())
     tissues_labels = Dict("CSF" => 23, "DURA" => 232, "FAT1" => 93, "FAT2" => 209, "GM" => 46, "MARROW" => 255, "MUSCLE" => 116, "SKIN/MUSCLE" => 139, "SKULL" => 162, "VESSELS" => 185, "WM" => 70)
     data_properties = zeros(Nproperties, size(labels)...)
     for i=1:Nproperties
-        for (label, tissue) in tissues_labels
-            data_properties[i, :, :, :] += (labels .== label) * tissue_properties[tissue][i]
-        end
-    end
-    
-    for i=1:Nproperties
-        for (label, tissue) in zip(tissue_labels, tissue_texts)
+        for (tissue, label) in tissues_labels
             data_properties[i, :, :, :] += (labels .== label) * tissue_properties[tissue][i]
         end
     end
