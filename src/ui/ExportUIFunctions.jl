@@ -39,6 +39,7 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
             "width" => 1200,
             "height" => 800,
             :show => show_window,
+            "webPreferences" => Dict("sandbox" => false) # Disable sandbox
         );
         async=false,
     )

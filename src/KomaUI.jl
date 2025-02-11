@@ -326,3 +326,4 @@ function update_blink_window_progress!(w::Window, block, Nblocks)
     document.getElementById("simul_progress").setAttribute("aria-valuenow", progress))
     return nothing
 end
+
