@@ -40,7 +40,6 @@ end
     using Blink
     # Opens KomaUI
 
-    @unsafe_blink
     w = KomaUI(return_window=true)
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
