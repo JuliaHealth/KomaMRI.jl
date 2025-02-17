@@ -45,22 +45,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
 
     # Setup the Blink window
     w, index = setup_blink_window(; darkmode, frame, dev_tools, show_window)
-
-    @eval AtomShell begin
-        function init(; debug = false)
-            electron() # Check path exists
-            p, dp = port(), port()
-            debug && inspector(dp)
-            dbg = debug ? "--debug=$dp" : []
-            proc = (debug ? run_rdr : run)(
-                `$(electron()) --no-sandbox $dbg $mainjs port $p`; wait=false)
-            conn = try_connect(ip"127.0.0.1", p)
-            shell = Electron(proc, conn)
-            initcbs(shell)
-            return shell
-        end
-    end
-
+    
     # Setup default simulation inputs (they have observables)
     @sync begin
         @async sys_ui[] = setup_scanner()
