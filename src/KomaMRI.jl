@@ -8,7 +8,9 @@ using Reexport
 import KomaMRICore: update_blink_window_progress!
 
 # GUI
-using Blink, Interact, AssetRegistry
+using Blink, Interact, AssetRegistry, Blink.AtomShell
+using Sockets: @ip_str
+using Blink.AtomShell: port, inspector, try_connect, electron, initcbs, mainjs
 using MAT
 
 # Reconstruction
@@ -20,6 +22,9 @@ using MRIReco
 @reexport using MRIReco: reconstruction
 
 #GUI
+
+include("ui/UnsafeBlink.jl")
+using .MacroUnsafeBlink
 include("ui/ExportMATFunctions.jl")
 include("ui/ExportUIFunctions.jl")
 include("KomaUI.jl")
