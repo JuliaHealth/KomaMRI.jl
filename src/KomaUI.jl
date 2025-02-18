@@ -31,7 +31,7 @@ julia> KomaUI()
 ```
 """
 function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), return_window=false, show_window=true, dev_tools=false)
-
+    
     # To avoid generating multiple observables
     Observables.clear(seq_ui)
     Observables.clear(obj_ui)
@@ -44,8 +44,8 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     widgets_button_obj = button.(string.(fieldnames_obj))
 
     # Setup the Blink window
+    @unsafe_blink
     w, index = setup_blink_window(; darkmode, frame, dev_tools, show_window)
-    
     # Setup default simulation inputs (they have observables)
     @sync begin
         @async sys_ui[] = setup_scanner()
