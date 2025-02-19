@@ -14,7 +14,6 @@ KomaMRIPlots = "76db0263-63f3-4d26-bb9a-5dba378db904"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 MRIReco = "bdf86e05-2d2b-5731-a332-f3fe1f9e047f"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
-Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [compat]
 AssetRegistry = "0.1"
@@ -27,7 +26,6 @@ KomaMRIPlots = "0.9"
 MAT = "0.10"
 MRIReco = "0.6, 0.7, 0.8, 0.9"
 Reexport = "1"
-Sockets = "1.11.0"
 julia = "1.9"
 
 [workspace]
