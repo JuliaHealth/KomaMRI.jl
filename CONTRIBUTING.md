@@ -22,39 +22,13 @@ We will then take care of the issue as soon as possible.
 
 ## How to Contribute
 
-1. **Fork KomaMRI Repository**: Fork the [KomaMRI.jl repository](https://github.com/cncastillo/KomaMRI.jl) to your GitHub account to create a personal copy.
+- **Use VSCode to create contributions**: Please follow the instructions in ["How to contribute to Koma"](docs/src/how-to/5-contribute-to-koma.md) that describes the contribution process through VSCode.
 
-2. **Clone Fork to Local Machine**: Clone your fork of the repository to your local machine using the following Git command:
+- **Implement Code Changes**: Introduce your modifications, ensuring adherence to the [Julia Blue Style Guidelines](https://github.com/invenia/BlueStyle). For new features, include informative comments, docstrings, and consider enriching the documentation with relevant examples.
 
-   ```bash
-   git clone git@github.com:<your-username>/KomaMRI.jl.git
-   ```
+- **Validate Changes with Tests**: Execute existing tests to verify the compatibility of your alterations with the current functionality. If applicable, incorporate additional tests to validate your new contributions.
 
-3. **Create Contribution Branch**: Create a new branch dedicated to your contribution within the cloned repository.
-
-   ```bash
-   git checkout -b feature/your-feature
-   ```
-
-4. **Implement Code Changes**: Introduce your modifications, ensuring adherence to the [Julia Blue Style Guidelines](https://github.com/invenia/BlueStyle). For new features, include informative comments, docstrings, and consider enriching the documentation with relevant examples.
-
-5. **Validate Changes with Tests**: Execute existing tests to verify the compatibility of your alterations with the current functionality. If applicable, incorporate additional tests to validate your new contributions.
-
-6. **Commit Code Changes**: Commit your modifications with a precise and descriptive commit message using the following Git command:
-
-   ```bash
-   git commit -m "Add a concise summary of your changes"
-   ```
-
-7. **Push Changes to Your Fork**: Push your committed changes to the corresponding branch on your forked repository:
-
-   ```bash
-   git push origin feature/your-feature
-   ```
-
-8. **Initiate Pull Request (PR)**: Propose your changes by creating a pull request against the `master` branch of the KomaMRI repository. Provide a clear title and a detailed description of your modifications. Ensure that your pull request is linked to an issue by including its #ID in the description.
-
-9. **Undergo Code Review**: Subject your code to review by maintainers, who will provide feedback and may request further adjustments before merging.
+- **Undergo Code Review**: Subject your code to review by maintainers, who will provide feedback and may request further adjustments before merging.
 
 
 ## License
