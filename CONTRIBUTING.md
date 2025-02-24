@@ -22,7 +22,7 @@ We will then take care of the issue as soon as possible.
 
 ## How to Contribute
 
-- **Use VSCode to create contributions**: Please follow the instructions in ["How to contribute to Koma"](docs/src/how-to/5-contribute-to-koma.md) that describes the contribution process through VSCode.
+- **Recommended way to contribute**: Please follow the instructions in ["How to contribute to Koma"](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/docs/src/how-to/5-contribute-to-koma.md) that describes the contribution process through VSCode.
 
 - **Implement Code Changes**: Introduce your modifications, ensuring adherence to the [Julia Blue Style Guidelines](https://github.com/invenia/BlueStyle). For new features, include informative comments, docstrings, and consider enriching the documentation with relevant examples.
 
