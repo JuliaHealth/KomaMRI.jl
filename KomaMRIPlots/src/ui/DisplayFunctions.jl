@@ -796,6 +796,7 @@ function plot_image(
     zmax=maximum(image[:]),
     darkmode=false,
     title="",
+    colorscale="Greys"
 )
     #Layout
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -825,7 +826,7 @@ function plot_image(
         l.width = width
     end
     #Plot
-    p = heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale="Greys")
+    p = heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale=colorscale)
     config = PlotConfig(;
         displaylogo=false,
         toImageButtonOptions=attr(;
