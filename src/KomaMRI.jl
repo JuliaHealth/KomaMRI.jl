@@ -22,8 +22,6 @@ using MRIReco
 
 #GUI
 
-include("ui/UnsafeBlink.jl")
-using .MacroUnsafeBlink
 include("ui/ExportMATFunctions.jl")
 include("ui/ExportUIFunctions.jl")
 include("KomaUI.jl")
