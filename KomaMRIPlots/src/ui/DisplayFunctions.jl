@@ -1073,14 +1073,14 @@ function plot_phantom_map(
     end
 
     path = @__DIR__
-    cmin_key = minimum(getproperty(obj, key))
-    cmax_key = maximum(getproperty(obj, key))
+    zmin_key = minimum(getproperty(obj, key))
+    zmax_key = maximum(getproperty(obj, key))
     if key == :T1 || key == :T2 || key == :T2s
-        cmin_key = 0
+        zmin_key = 0
         factor = 1e3
         unit = " ms"
         if key == :T1
-            cmax_key = 2500 / factor
+            zmax_key = 2500 / factor
             colors =
                 replace.(string.(relaxationColorMap("T1") .* 255), "RGB{Float64}" => "rgb")
             N = length(colors)
@@ -1088,7 +1088,7 @@ function plot_phantom_map(
             colormap = [(idx, color) for (idx, color) in zip(indices, colors)]
         elseif key == :T2 || key == :T2s
             if key == :T2
-                cmax_key = 250 / factor
+                zmax_key = 250 / factor
             end
             colors =
                 replace.(string.(relaxationColorMap("T2") .* 255), "RGB{Float64}" => "rgb")
@@ -1106,12 +1106,12 @@ function plot_phantom_map(
         colormap = "Greys"
     else
         factor = 1
-        cmin_key = 0
+        zmin_key = 0
         unit = ""
         colormap = "Greys"
     end
-    cmin_key = get(kwargs, :cmin, factor * cmin_key)
-    cmax_key = get(kwargs, :cmax, factor * cmax_key)
+    zmin_key = get(kwargs, :zmin, factor * zmin_key)
+    zmax_key = get(kwargs, :zmax, factor * zmax_key)
 
     t = process_times(obj.motion)
     x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
@@ -1168,8 +1168,8 @@ function plot_phantom_map(
                             showscale=colorbar,
                             colorscale=colormap,
                             colorbar=attr(ticksuffix=unit, title=string(key)),
-                            cmin=cmin_key,
-                            cmax=cmax_key,
+                            zmin=zmin_key,
+                            zmax=zmax_key,
                             size=4
                             ),
                 visible=i==1,
@@ -1221,8 +1221,8 @@ function plot_phantom_map(
                             showscale=colorbar,
                             colorscale=colormap,
                             colorbar=attr(ticksuffix=unit, title=string(key)),
-                            cmin=cmin_key,
-                            cmax=cmax_key,
+                            zmin=zmin_key,
+                            zmax=zmax_key,
                             size=2
                             ),
                 visible=i==1,
