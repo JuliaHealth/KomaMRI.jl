@@ -1168,8 +1168,8 @@ function plot_phantom_map(
                             showscale=colorbar,
                             colorscale=colormap,
                             colorbar=attr(ticksuffix=unit, title=string(key)),
-                            zmin=cmin_key,
-                            zmax=cmax_key,
+                            cmin=cmin_key,
+                            cmax=cmax_key,
                             size=4
                             ),
                 visible=i==1,
@@ -1221,8 +1221,8 @@ function plot_phantom_map(
                             showscale=colorbar,
                             colorscale=colormap,
                             colorbar=attr(ticksuffix=unit, title=string(key)),
-                            zmin=cmin_key,
-                            zmax=cmax_key,
+                            cmin=cmin_key,
+                            cmax=cmax_key,
                             size=2
                             ),
                 visible=i==1,
