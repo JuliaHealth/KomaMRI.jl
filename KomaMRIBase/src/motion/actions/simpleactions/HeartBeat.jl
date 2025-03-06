@@ -23,8 +23,6 @@ julia> heartbeat = HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, lo
     longitudinal_strain    :: T
 end
 
-is_composable(action::HeartBeat) = true
-
 function displacement_x!(ux, action::HeartBeat, x, y, z, t)
     r = sqrt.(x .^ 2 + y .^ 2)
     θ = atan.(y, x)
