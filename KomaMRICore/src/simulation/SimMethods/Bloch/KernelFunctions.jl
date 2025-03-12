@@ -28,8 +28,7 @@ using KernelAbstractions: @kernel, @Const, @index, @uniform, @groupsize, @localm
     @inbounds s_ρ[i_l] = ρ[i_g]
 
     @inbounds for t = 1 : N_Δt
-        sin_φ = sin(φ[i_g, t]) #TO-DO: use sincos once oneAPI releases version with https://github.com/JuliaGPU/oneAPI.jl/commit/260a4dda0ea223dbf0893de7b4a13d994ae27bd1
-        cos_φ = cos(φ[i_g, t])
+        sin_φ, cos_φ = sincos(φ[i_g, t])
         s_α_r[i_l] = cos_φ
         if (iszero(B[i_g, t]))
             s_α_i[i_l] = -(Bz[i_g, t] / (B[i_g, t] + eps(T))) * sin_φ # why not zero?
