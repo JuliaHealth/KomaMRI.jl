@@ -1,14 +1,17 @@
 using KernelAbstractions: @kernel, @Const, @index, @uniform, @localmem, @synchronize, @groupsize
+using KernelAbstractions.Extras: @unroll
+
+## COV_EXCL_START
 
 #Used for getting spin coordinates inside precession and excitation kernels
 @inline function get_spin_coordinates(x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, i::Integer, t::Integer) where {T<:Real} 
-    (x[i], y[i], z[i]) 
+    @inbounds (x[i], y[i], z[i]) 
 end
 @inline function get_spin_coordinates(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatrix{T}, i::Integer, t::Integer) where {T<:Real} 
-    (x[i, t], y[i, t], z[i, t]) 
+    @inbounds (x[i, t], y[i, t], z[i, t]) 
 end
 
-# Returns the next least power of two starting from n, used to calculate remaining indexes in block-level reduction
+# Returns the next least power of two starting from n, used to calculate remaining indexes in the first step of a threadgroup-level reduction.
 @inline function next_least_power_of_two(n)
     return  n < 2 ? 1 :
             n < 4 ? 2 :
@@ -23,83 +26,38 @@ end
             1024
 end
 
-@inline function reduce_block!(s_data1, s_data2, i, N, N_closest, R)
-    if N == 1024u16
-        if i <= 512u16
-            s_data1[i] = s_data1[i] + s_data1[i + 512u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 512u16]
-        end
-    elseif N != N_closest
-        #If workgroup size is not a power of two, need to take care of
-        #remaining indices before entering next if statement
-        if i <= R
-            s_data1[i] = s_data1[i] + s_data1[i + N_closest]
-            s_data2[i] = s_data2[i] + s_data2[i + N_closest]
-        end
-    end
-    @synchronize()
-    if N >= 512u16
-        if i <= 256u16
-            s_data1[i] = s_data1[i] + s_data1[i + 256u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 256u16]
-        end
-        @synchronize()
-    end
-    if N >= 256u16
-        if i <= 128u16
-            s_data1[i] = s_data1[i] + s_data1[i + 128u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 128u16]
-        end
-        @synchronize()
-    end
-    if N >= 128u16
-        if i <= 64u16
-            s_data1[i] = s_data1[i] + s_data1[i + 64u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 64u16]
+@inline function num_reduction_iterations(n)
+    return  n == 2 ? 1 :
+            n == 4 ? 2 :
+            n == 8 ? 3 :
+            n == 16 ? 4 :
+            n == 32 ? 5 :
+            n == 64 ? 6 :
+            n == 128 ? 7 :
+            n == 256 ? 8 :
+            n == 512 ? 9 :
+            10
+end
+
+@inline function reduce_signal!(sig_r, sig_i, i_l, N)
+    N_closest = next_least_power_of_two(N)
+    if N != N_closest
+        R = UInt32(N - N_closest)
+        if i_l <= R
+            @inbounds sig_r[i_l] = sig_r[i_l] + sig_r[i_l + N_closest]
+            @inbounds sig_i[i_l] = sig_i[i_l] + sig_i[i_l + N_closest]
         end
         @synchronize()
     end
 
-    if N >= 64u16
-        if i <= 32u16
-            s_data1[i] = s_data1[i] + s_data1[i + 32u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 32u16]
-        end
-        @synchronize()
-    end
-    if N >= 32u16
-        if i <= 16u16
-            s_data1[i] = s_data1[i] + s_data1[i + 16u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 16u16]
-        end
-        @synchronize()
-    end
-    if N >= 16u16
-        if i <= 8u16
-            s_data1[i] = s_data1[i] + s_data1[i + 8u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 8u16]
-        end
-        @synchronize()
-    end
-    if N >= 8u16
-        if i <= 4u16
-            s_data1[i] = s_data1[i] + s_data1[i + 4u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 4u16]
-        end
-        @synchronize()
-    end
-    if N >= 4u16
-        if i <= 2u16
-            s_data1[i] = s_data1[i] + s_data1[i + 2u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 2u16]
-        end
-        @synchronize()
-    end
-    if N >= 2u16
-        if i <= 1u16
-            s_data1[i] = s_data1[i] + s_data1[i + 1u16]
-            s_data2[i] = s_data2[i] + s_data2[i + 1u16]
+    @unroll for k=1:num_reduction_iterations(N_closest)
+        offset = N_closest >> k
+        if i_l <= offset
+            @inbounds sig_r[i_l] = sig_r[i_l] + sig_r[i_l + offset]
+            @inbounds sig_i[i_l] = sig_i[i_l] + sig_i[i_l + offset]
         end
         @synchronize()
     end
 end
+
+## COV_EXCL_STOP

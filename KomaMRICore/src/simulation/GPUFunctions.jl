@@ -12,12 +12,11 @@ name(::KA.CPU) = "CPU"
 set_device!(backend, val) = @error "set_device! called with invalid parameter types: '$(typeof(backend))', '$(typeof(val))'" 
 set_device!(val) = set_device!(get_backend(true), val)
 
-#Copied from AcceleratedKernels.jl: https://github.com/JuliaGPU/AcceleratedKernels.jl/blob/00a9c0e7a36d6e02a51dbd13032a9165caab7909/src/utils.jl#L34
-struct TypeWrap{T} end
-TypeWrap(T) = TypeWrap{T}()
-Base.:*(x::Number, ::TypeWrap{T}) where T = T(x)
+struct Literal{T} end
+Literal(T) = Literal{T}()
+Base.:*(x::Number, ::Literal{T}) where T = T(x)
 
-const u16 = TypeWrap(UInt16)
+const u32 = Literal(UInt32)
 
 """
     get_backend(use_gpu)

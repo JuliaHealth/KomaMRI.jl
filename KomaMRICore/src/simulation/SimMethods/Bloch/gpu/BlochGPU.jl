@@ -31,15 +31,17 @@ function run_spin_precession!(
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
 
+    #Precession
     precession_kernel!(backend, groupsize)(
-        pre.sig_output, 
-        M.xy, M.z, 
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, 
-        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, 
-        Val(!(p.motion isa NoMotion)), Val(length(M.xy)), Val(groupsize), Val(next_least_power_of_two(groupsize)), Val(groupsize - next_least_power_of_two(groupsize)), 
+        pre.sig_output,
+        M.xy, M.z,
+        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.Δt)+1),
+        Val(!(p.motion isa NoMotion)),
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
 
+    #Signal
     AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
     sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
 
@@ -64,11 +66,11 @@ function run_spin_excitation!(
 
     #Excitation
     excitation_kernel!(backend, groupsize)(
-        M.xy, M.z, 
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, 
-        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, 
-        Val(!(p.motion isa NoMotion)), 
-        ndrange=size(M.xy,1)
+        M.xy, M.z,
+        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, UInt32(length(seq.Δt)),
+        Val(!(p.motion isa NoMotion)),
+        ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
 
     #Reset Spin-State (Magnetization). Only for FlowPath
