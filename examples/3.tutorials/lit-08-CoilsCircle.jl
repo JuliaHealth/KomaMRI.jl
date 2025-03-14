@@ -23,7 +23,8 @@ end
 coil_sens = hcat(coil_sensitivities...)
 
 # Assign to object
-sys.rf_coils = ArbitraryRFCoils(obj.x, obj.y, obj.z, complex.(coil_sens), complex.(ones(size(coil_sens))))
+sys.rf_coils = RFCoilsSensDefinedAtPhantomPositions(complex.(coil_sens))
+#sys.rf_coils = ArbitraryRFCoils(obj.x, obj.y, obj.z, complex.(coil_sens), complex.(ones(size(coil_sens))))
 
 seq_file = joinpath(
     dirname(pathof(KomaMRI)),
@@ -33,7 +34,7 @@ seq = read_seq(seq_file)
 # And simulate:
 
 sim_params = KomaMRICore.default_sim_params()
-sim_params["sim_method"] = BlochSimple()
+sim_params["sim_method"] = Bloch()
 raw = simulate(obj, seq, sys; sim_params)
 
 acq = AcquisitionData(raw) # hide
