@@ -46,8 +46,6 @@ julia> obj.ρ
     Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
-    #EXPERIMENTAL: Coils
-    coil_sens::AbstractMatrix{T} = ones(eltype(x), size(x, 1), 1)
     #Motion
     motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
 end
