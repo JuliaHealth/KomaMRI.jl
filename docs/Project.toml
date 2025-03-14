@@ -1,7 +1,10 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 KomaMRI = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
+MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
+MRIReco = "bdf86e05-2d2b-5731-a332-f3fe1f9e047f"
 PlotlyJS = "f0f68f2c-4968-5e81-91da-67840de0976a"
 PlutoSliderServer = "2fc8631c-6f24-4c5b-bca7-cbb509c42db4"
 
