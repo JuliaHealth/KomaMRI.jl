@@ -993,8 +993,8 @@ Plots a phantom map for a specific spin parameter given by `key`.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
-- `key`: (`::Symbol`, opts: [`:ρ`, `:T1`, `:T2`, `:T2s`, `:x`, `:y`, `:z`]) symbol for
-    displaying different parameters of the phantom spins
+- `key`: (`::Symbol`, opts: [`:ρ`, `:T1`, `:T2`, `:T2s`, `:x`, `:y`, `:z`, `:Δw`, `:B1`]) 
+    symbol for displaying different parameters of the phantom spins
 
 # Keywords
 - `height`: (`::Integer`, `=600`) plot height
@@ -1073,8 +1073,9 @@ function plot_phantom_map(
     end
 
     path = @__DIR__
-    cmin_key = minimum(getproperty(obj, key))
-    cmax_key = maximum(getproperty(obj, key))
+    this_map = getproperty(obj, key)
+    cmin_key = minimum(real.(this_map)) # allow for complex maps
+    cmax_key = maximum(real.(this_map))
     if key == :T1 || key == :T2 || key == :T2s
         cmin_key = 0
         factor = 1e3
@@ -1103,6 +1104,11 @@ function plot_phantom_map(
     elseif key == :Δw
         factor = 1 / (2π)
         unit = " Hz"
+        colormap = "Greys"
+    elseif key == :B1
+        factor = 1
+        this_map = real.(this_map)
+        unit = ""
         colormap = "Greys"
     else
         factor = 1
@@ -1164,7 +1170,7 @@ function plot_phantom_map(
                 x=dims[1]           ? (x[:,i])*1e2 : (y[:,i])*1e2,
                 y=dims[1] & dims[2] ? (y[:,i])*1e2 : (z[:,i])*1e2,
                 mode="markers",
-                marker=attr(color=getproperty(obj,key)*factor,
+                marker=attr(color=this_map*factor,
                             showscale=colorbar,
                             colorscale=colormap,
                             colorbar=attr(ticksuffix=unit, title=string(key)),
@@ -1174,7 +1180,7 @@ function plot_phantom_map(
                             ),
                 visible=i==1,
                 showlegend=false,
-                text=round.(getproperty(obj,key)*factor,digits=4),
+                text=round.(this_map*factor,digits=4),
                 hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
         end
     else # 3D
@@ -1217,7 +1223,7 @@ function plot_phantom_map(
                 y=(y[:,i])*1e2,
                 z=(z[:,i])*1e2,
                 mode="markers",
-                marker=attr(color=getproperty(obj,key)*factor,
+                marker=attr(color=this_map*factor,
                             showscale=colorbar,
                             colorscale=colormap,
                             colorbar=attr(ticksuffix=unit, title=string(key)),
@@ -1227,7 +1233,7 @@ function plot_phantom_map(
                             ),
                 visible=i==1,
                 showlegend=false,
-                text=round.(getproperty(obj,key)*factor,digits=4),
+                text=round.(this_map*factor,digits=4),
                 hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
         end
     end

@@ -3,6 +3,7 @@ struct BlochCPUPrealloc{T} <: PreallocResult{T}
     M::Mag{T}                               # Mag{T}
     Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
     Bz_new::AbstractVector{T}               # Vector{T}(Nspins x 1)
+    B1::AbstractVector{Complex{T}}          # Vector{Complex{T}}(Nspins x 1)
     ϕ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
     Rot::Spinor{T}                          # Spinor{T}
     ΔBz::AbstractVector{T}            # Vector{T}(Nspins x 1)
@@ -13,6 +14,7 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
         p.M[i],
         p.Bz_old[i],
         p.Bz_new[i],
+        p.B1[i],
         p.ϕ[i],
         p.Rot[i],
         p.ΔBz[i]
@@ -28,12 +30,13 @@ function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}
         ),
         similar(obj.x),
         similar(obj.x),
+        similar(obj.x, Complex{eltype(obj.x)}),
         similar(obj.x),
         Spinor(
             similar(M.xy),
             similar(M.xy)
         ),
-        obj.Δw ./ T(2π .* γ)
+        obj.Δw ./ T(2π .* γ)  # Why is this not similar(obj.x)?
     )
 end
 
@@ -126,6 +129,7 @@ function run_spin_excitation!(
 ) where {T<:Real}
     Bz = prealloc.Bz_old
     B = prealloc.Bz_new
+    B1 = prealloc.B1
     φ = prealloc.ϕ
     α = prealloc.Rot.α
     β = prealloc.Rot.β
@@ -139,12 +143,13 @@ function run_spin_excitation!(
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
         @. Bz = (s.Gx * x + s.Gy * y + s.Gz * z) + ΔBz - s.Δf / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        @. B = sqrt(abs(s.B1)^2 + abs(Bz)^2)
+        @. B1 = s.B1 * p.B1 # Take B1+ transmit RF field map into account. This is a vector of complex numbers
+        @. B = sqrt(abs(B1)^2 + abs(Bz)^2)
         @. B[B == 0] = eps(T)
         #Spinor Rotation
         @. φ = T(-π * γ) * (B * s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler 
         @. α = cos(φ) - Complex{T}(im) * (Bz / B) * sin(φ)
-        @. β = -Complex{T}(im) * (s.B1 / B) * sin(φ)
+        @. β = -Complex{T}(im) * (B1 / B) * sin(φ)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)

@@ -67,6 +67,7 @@ struct BlochGPUPrealloc{T} <: PreallocResult{T}
     seq_properties::AbstractVector{SeqBlockProperties{T}}
     Bz::AbstractMatrix{T}
     B::AbstractMatrix{T}
+    B1::AbstractMatrix{Complex{T}}
     φ::AbstractMatrix{T}
     ΔT1::AbstractMatrix{T}
     ΔT2::AbstractMatrix{T}
@@ -84,6 +85,7 @@ function prealloc_block(p::BlochGPUPrealloc{T}, i::Integer) where {T<:Real}
         [seq_block],
         view(p.Bz,:,1:seq_block.length),
         view(p.B,:,1:seq_block.length),
+        view(p.B1,:,1:seq_block.length),
         view(p.φ,:,1:seq_block.length-1),
         view(p.ΔT1,:,1:seq_block.length-1),
         view(p.ΔT2,:,1:seq_block.length-1),
@@ -102,6 +104,7 @@ function prealloc(sim_method::Bloch, backend::KA.GPU, obj::Phantom{T}, M::Mag{T}
         precalc.seq_properties,
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length)),
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length)),
+        KA.zeros(backend, Complex{T}, (size(obj.x, 1), max_block_length)),
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length-1)),
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length-1)),
         KA.zeros(backend, T, (size(obj.x, 1), max_block_length-1)),
@@ -186,7 +189,8 @@ function run_spin_excitation!(
 
     #Effective Field
     pre.Bz .= (x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz') .+ pre.ΔBz .- seq.Δf' ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-    pre.B .= sqrt.(abs.(seq.B1') .^ 2 .+ abs.(pre.Bz) .^ 2)
+    pre.B1 .= transpose(seq.B1) .* p.B1
+    pre.B .= sqrt.(abs.(pre.B1) .^ 2 .+ abs.(pre.Bz) .^ 2)
     
     #Spinor Rotation
     pre.φ .= T(-π .* γ) .* (pre.B[:,1:end-1] .* seq.Δt') # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
@@ -196,7 +200,7 @@ function run_spin_excitation!(
     pre.ΔT2 .= exp.(-seq.Δt' ./ p.T2)
 
     #Excitation
-    apply_excitation!(backend, 512)(M.xy, M.z, pre.φ, seq.B1, pre.Bz, pre.B, pre.ΔT1, pre.ΔT2, p.ρ, ndrange=size(M.xy,1))
+    apply_excitation!(backend, 512)(M.xy, M.z, pre.φ, pre.B1, pre.Bz, pre.B, pre.ΔT1, pre.ΔT2, p.ρ, ndrange=size(M.xy,1))
     KA.synchronize(backend)
 
     #Reset Spin-State (Magnetization). Only for FlowPath

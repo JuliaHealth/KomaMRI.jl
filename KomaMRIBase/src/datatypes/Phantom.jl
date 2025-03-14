@@ -1,5 +1,5 @@
 """
-    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion, B1)
 
 The Phantom struct. Most of its field names are vectors, with each element associated with
 a property value representing a spin. This struct serves as an input for the simulation.
@@ -18,6 +18,7 @@ a property value representing a spin. This struct serves as an input for the sim
 - `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
 - `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
 - `motion`: (`::Union{NoMotion, Motion{T<:Real} MotionList{T<:Real}}`) motion
+- `B1`: (`::AbstractVector{Complex{T<:Real}}`) spin transmit B1 parameter vector
 
 # Returns
 - `obj`: (`::Phantom`) Phantom struct
@@ -48,6 +49,7 @@ julia> obj.ρ
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
     motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
+    B1::AbstractVector{Complex{T}} = Complex.(ones(eltype(x), size(x)))
 end
 
 const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
