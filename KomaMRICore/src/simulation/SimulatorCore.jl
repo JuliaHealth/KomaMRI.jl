@@ -189,6 +189,9 @@ function run_sim_time_iter!(
     progress_bar = Progress(Nblocks; desc="Running simulation...")
     prealloc_result = prealloc(sim_method, backend, obj, Xt, maximum(length.(parts))+1, precession_groupsize)
 
+    (precession_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
+    (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
+
     for (block, p) in enumerate(parts)
         seq_block = @view seq[p]
         # Params

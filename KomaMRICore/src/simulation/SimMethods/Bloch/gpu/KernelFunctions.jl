@@ -39,13 +39,17 @@ end
             10
 end
 
-@inline function reduce_signal!(sig_r, sig_i, i_l, N)
+@inline function reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, ::Val{false})
+    @inbounds sig_group_r[i_l] = sig_r
+    @inbounds sig_group_i[i_l] = sig_i
+    @synchronize()
+
     N_closest = next_least_power_of_two(N)
     if N != N_closest
         R = UInt32(N - N_closest)
         if i_l <= R
-            @inbounds sig_r[i_l] = sig_r[i_l] + sig_r[i_l + N_closest]
-            @inbounds sig_i[i_l] = sig_i[i_l] + sig_i[i_l + N_closest]
+            @inbounds sig_group_r[i_l] = sig_group_r[i_l] + sig_group_r[i_l + N_closest]
+            @inbounds sig_group_i[i_l] = sig_group_i[i_l] + sig_group_i[i_l + N_closest]
         end
         @synchronize()
     end
@@ -53,11 +57,37 @@ end
     @unroll for k=1:num_reduction_iterations(N_closest)
         offset = N_closest >> k
         if i_l <= offset
-            @inbounds sig_r[i_l] = sig_r[i_l] + sig_r[i_l + offset]
-            @inbounds sig_i[i_l] = sig_i[i_l] + sig_i[i_l + offset]
+            @inbounds sig_group_r[i_l] = sig_group_r[i_l] + sig_group_r[i_l + offset]
+            @inbounds sig_group_i[i_l] = sig_group_i[i_l] + sig_group_i[i_l + offset]
         end
         @synchronize()
     end
+
+    return sig_group_r[i_l], sig_group_i[i_l]
+end
+
+@inline function reduce_warp(val1, val2)
+    @unroll for k=0:4
+        val1 = val1 + shfl_down(val1, 1u32 << k)
+        val2 = val2 + shfl_down(val2, 1u32 << k)
+    end
+    return val1, val2
+end
+
+@inline function reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, ::Val{true})
+    sig_r, sig_i = reduce_warp(sig_r, sig_i)
+
+    if i_l % 32u32 == 1u32
+        @inbounds sig_group_r[i_l ÷ 1u32 + 1u32] = sig_r
+        @inbounds sig_group_i[i_l ÷ 1u32 + 1u32] = sig_i
+    end
+
+    @synchronize()
+
+    @inbounds sig_r = (i_l <= UInt32(N) ÷ 32u32) ? sig_r[i_l] : zero(T)
+    @inbounds sig_i = (i_l <= UInt32(N) ÷ 32u32) ? sig_i[i_l] : zero(T)
+
+    return reduce_warp(sig_r, sig_i)
 end
 
 ## COV_EXCL_STOP

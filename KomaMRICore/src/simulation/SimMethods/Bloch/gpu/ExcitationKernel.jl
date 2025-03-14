@@ -56,10 +56,10 @@
                         2 * (Mxy_r * (α_r * β_r - α_i * β_i) +
                         Mxy_i * (α_r * β_i + α_i * β_r))
             
+            ΔT1 = exp(-Δt / T1)
             ΔT2 = exp(-Δt / T2)
             Mxy_r = Mxy_new_r * ΔT2
             Mxy_i = Mxy_new_i * ΔT2
-            ΔT1 = exp(-Δt / T1)
             Mz = Mz_new * ΔT1 + ρ * (T(1) - ΔT1)
             s_idx += 1u32
         end

@@ -6,8 +6,13 @@ import Adapt
 
 KomaMRICore.name(::CUDABackend) = "CUDA"
 KomaMRICore.isfunctional(::CUDABackend) = CUDA.functional()
+KomaMRICore.supports_warp_reduction(::MetalBackend) = true
 KomaMRICore.set_device!(::CUDABackend, val) = CUDA.device!(val)
 KomaMRICore.device_name(::CUDABackend) = CUDA.name(CUDA.device())
+
+@inline function KomaMRICore.shfl_down(val, offset)
+    CUDA.shfl_down_sync(0xffffffff, val, offset)
+end
 
 function KomaMRICore._print_devices(::CUDABackend)
     devices = [
