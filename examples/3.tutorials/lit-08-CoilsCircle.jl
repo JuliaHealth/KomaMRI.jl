@@ -23,7 +23,6 @@ end
 coil_sens = hcat(coil_sensitivities...)
 
 # Assign to object
-obj.coil_sens = coil_sens
 sys.rf_coils = ArbitraryRFCoils(obj.x, obj.y, obj.z, complex.(coil_sens), complex.(ones(size(coil_sens))))
 
 seq_file = joinpath(
