@@ -1110,8 +1110,8 @@ function plot_phantom_map(
         unit = ""
         colormap = "Greys"
     end
-    cmin_key = get(kwargs, :cmin, factor * cmin_key)
-    cmax_key = get(kwargs, :cmax, factor * cmax_key)
+    cmin_key = get(kwargs, :zmin, factor * cmin_key)
+    cmax_key = get(kwargs, :zmax, factor * cmax_key)
 
     t = process_times(obj.motion)
     x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
