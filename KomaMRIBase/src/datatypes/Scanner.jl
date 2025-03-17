@@ -108,11 +108,11 @@ function getproperty(sys::Scanner, key::Symbol)
     end
 end
 
-function get_n_coils(rf_coils::UniformRFCoils)
+function get_n_coils(rf_coils::RFCoils)
     return 1
 end
 
-function get_n_coils(rf_coils::RFCoils)
+function get_n_coils(rf_coils::RFCoilsSensDefinedAtPhantomPositions)
     return size(rf_coils.coil_sens, 2)
 end
 
