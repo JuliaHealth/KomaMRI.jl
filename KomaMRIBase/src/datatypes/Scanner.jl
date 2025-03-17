@@ -108,4 +108,12 @@ function getproperty(sys::Scanner, key::Symbol)
     end
 end
 
-export ArbitraryRFCoils, RFCoilsSensDefinedAtPhantomPositions, UniformRFCoils, acquire_signal!, HardwareLimits, LinearXYZGradients
+function get_n_coils(rf_coils::UniformRFCoils)
+    return 1
+end
+
+function get_n_coils(rf_coils::RFCoils)
+    return size(rf_coils.coil_sens, 2)
+end
+
+export ArbitraryRFCoils, RFCoilsSensDefinedAtPhantomPositions, UniformRFCoils, acquire_signal!, HardwareLimits, LinearXYZGradients, get_n_coils

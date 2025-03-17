@@ -161,7 +161,6 @@ function run_spin_precession!(
         end
 
         acquire_signal!(sig, sys.rf_coils, pre.Mxy)
-        #sig .= transpose(sum(pre.Mxy; dims=1))
     end
     
     #Mxy precession and relaxation, and Mz relaxation

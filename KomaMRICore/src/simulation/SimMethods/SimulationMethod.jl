@@ -11,7 +11,7 @@ function sim_output_dim(
     obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::SimulationMethod
 ) where {T<:Real}
     # Determine the number of coils
-    n_coils = size(sys.rf_coils.coil_sens, 2)
+    n_coils = get_n_coils(sys.rf_coils)
     return (sum(seq.ADC.N), n_coils) # Nt x Ncoils
 end
 

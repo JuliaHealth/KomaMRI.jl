@@ -20,8 +20,7 @@ seq = read_seq(seq_file)
 sim_params = KomaMRICore.default_sim_params()
 sim_params["sim_method"] = Bloch()
 raw = simulate(obj, seq, sys; sim_params)
-#raw = simulate(obj, seq, sys) # hide
-##
+
 acq = AcquisitionData(raw) # hide
 acq.traj[1].circular = false # hide
 Nx, Ny = raw.params["reconSize"][1:2] # hide
