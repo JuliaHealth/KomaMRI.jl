@@ -1,11 +1,11 @@
 # # Experimental: Simulating with realistic coils
 
-using KomaMRI, MAT, MRIReco, MRIReco.RegularizedLeastSquares, Interpolations # hide
+using KomaMRI # hide
 obj = brain_phantom2D()
-coil_sens1 = exp.(-π * (((obj.x) .+ 0.1) .^ 2 / 0.01) .+ ((obj.y) .^ 2 / 0.01))
-coil_sens2 = exp.(-π * (((obj.x) .- 0.1) .^ 2 / 0.01) .+ ((obj.y) .^ 2 / 0.01))
-coil_sens3 = exp.(-π * ((obj.x) .^ 2 / 0.01) .+ (((obj.y) .+ 0.1) .^ 2 / 0.01))
-coil_sens4 = exp.(-π * ((obj.x) .^ 2 / 0.01) .+ (((obj.y) .- 0.1) .^ 2 / 0.01))
+coil_sens1 = exp.(-π * (((obj.x) .+ 0.1) .^ 2 / 0.02) .+ ((obj.y) .^ 2 / 0.02))
+coil_sens2 = exp.(-π * (((obj.x) .- 0.1) .^ 2 / 0.02) .+ ((obj.y) .^ 2 / 0.02))
+coil_sens3 = exp.(-π * ((obj.x) .^ 2 / 0.02) .+ (((obj.y) .+ 0.1) .^ 2 / 0.02))
+coil_sens4 = exp.(-π * ((obj.x) .^ 2 / 0.02) .+ (((obj.y) .- 0.1) .^ 2 / 0.02))
 coil_sens = hcat(coil_sens1, coil_sens2, coil_sens3, coil_sens4)
 sys = Scanner()
 sys.rf_coils = RFCoilsSensDefinedAtPhantomPositions(complex.(coil_sens))
@@ -29,18 +29,16 @@ Nx, Ny = raw.params["reconSize"][1:2] # hide
 params = Dict{Symbol,Any}()
 params[:reco] = "multiCoil"
 params[:reconSize] = (Nx, Ny)
-params[:reg] = L2Regularization(1.e-3)       # regularization
 params[:iterations] = 40
-params[:solver] = CGNR
 
 # Coil sensitivities interpolated to reconstruction points
 FOV = 230e-3
 xq = range(-FOV / 2, FOV / 2, Nx)
 yq = range(-FOV / 2, FOV / 2, Ny)
-coil_sens1 = exp.(-π * (((xq) .+ 0.1) .^ 2 / 0.01) .+ ((yq') .^ 2 / 0.01))
-coil_sens2 = exp.(-π * (((xq) .- 0.1) .^ 2 / 0.01) .+ ((yq') .^ 2 / 0.01))
-coil_sens3 = exp.(-π * ((xq) .^ 2 / 0.1) .+ (((yq') .+ 0.1) .^ 2 / 0.01))
-coil_sens4 = exp.(-π * ((xq) .^ 2 / 0.1) .+ (((yq') .- 0.1) .^ 2 / 0.01))
+coil_sens1 = exp.(-π * (((xq) .+ 0.1) .^ 2 / 0.02) .+ ((yq') .^ 2 / 0.02))
+coil_sens2 = exp.(-π * (((xq) .- 0.1) .^ 2 / 0.02) .+ ((yq') .^ 2 / 0.02))
+coil_sens3 = exp.(-π * ((xq) .^ 2 / 0.1) .+ (((yq') .+ 0.1) .^ 2 / 0.02))
+coil_sens4 = exp.(-π * ((xq) .^ 2 / 0.1) .+ (((yq') .- 0.1) .^ 2 / 0.02))
 coil_sens_recon = Float32.([coil_sens1[:] coil_sens2[:] coil_sens3[:] coil_sens4[:]])
 params[:senseMaps] = reshape(complex.(coil_sens_recon), Nx, Ny, 1, size(coil_sens_recon, 2))
 

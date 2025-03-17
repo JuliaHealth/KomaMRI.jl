@@ -100,4 +100,12 @@ function acquire_signal!(sig, rf_coils::RFCoilsSensDefinedAtPhantomPositions, Mx
     return nothing
 end
 
+function getproperty(sys::Scanner, key::Symbol)
+    if key in fieldnames(HardwareLimits)
+        return getfield(sys.limits, key)
+    else
+        return getfield(sys, key)
+    end
+end
+
 export ArbitraryRFCoils, RFCoilsSensDefinedAtPhantomPositions, UniformRFCoils, acquire_signal!, HardwareLimits, LinearXYZGradients
