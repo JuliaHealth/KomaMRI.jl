@@ -149,7 +149,7 @@ IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 
 # Arguments
 - `φ`: (`::Real`, `[rad]`) φ angle
-- `nxy`: (`::Real`) nxy factor
+- `nxy`: (`::Complex`) nxy factor
 - `nz`: (`::Real`) nz factor
 
 # Returns
