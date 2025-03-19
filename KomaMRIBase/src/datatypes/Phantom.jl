@@ -359,7 +359,7 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200], tissue_properties=D
     x = 1 * xx .+ 0 * yy .+ 0 * zz
     y = 0 * xx .+ 1 * yy .+ 0 * zz
     z = 0 * xx .+ 0 * yy .+ 1 * zz
-
+      
     # Get tissue properties
     ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties)
 
