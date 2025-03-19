@@ -123,6 +123,20 @@ Press Sync Changes to push your commit into your branch.
 
 >💡 If you want to make sure if the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
 
+## How to test your contributions
+
+In Koma, various tests are designed to verify the correctness of the current state of the code, including your contributions once incorporated. Depending on the package where you made your changes (`KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots`), you need to activate the corresponding environment and run the tests.
+
+For example, if your contributions are in `KomaMRICore`, you should use the following commands:
+
+```julia
+using Pkg
+Pkg.activate("KomaMRICore")
+Pkg.test()
+```
+
+If your contributions do not affect the correct execution of the code, the tests will return a message indicating that your changes have successfully passed.
+
 ## How to create a pull request
 
 If you want to send your commited new version of the repository, you can create a pull request that will be reviewed by a Koma certified developer.
