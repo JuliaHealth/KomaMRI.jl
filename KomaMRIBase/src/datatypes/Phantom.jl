@@ -362,7 +362,7 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200], tissue_properties=D
 
     # Get tissue properties
     ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties)
-
+      
     # Define and return the Phantom struct
     obj = Phantom{Float64}(;
         name="brain3D",
