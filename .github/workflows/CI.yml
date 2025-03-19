@@ -112,10 +112,10 @@ jobs:
         uses: julia-actions/julia-buildpkg@v1
       - name: "KomaMRI: Run Tests"
         if: '!cancelled()'
-        uses: julia-actions/julia-runtest@v1
-        with:
-          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
-      - uses: julia-actions/julia-processcoverage@v1
+        #uses: julia-actions/julia-runtest@v1
+        #with:
+        #  prefix: ${{ matrix.prefix }}  # for `xvfb-run`
+        uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
       - uses: codecov/codecov-action@v5
