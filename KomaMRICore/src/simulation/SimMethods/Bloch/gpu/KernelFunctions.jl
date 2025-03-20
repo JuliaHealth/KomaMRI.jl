@@ -78,15 +78,15 @@ end
     sig_r, sig_i = reduce_warp(sig_r, sig_i)
 
     if i_l % 32u32 == 1u32
-        @inbounds sig_group_r[i_l ÷ 1u32 + 1u32] = sig_r
-        @inbounds sig_group_i[i_l ÷ 1u32 + 1u32] = sig_i
+        @inbounds sig_group_r[i_l ÷ 32u32 + 1u32] = sig_r
+        @inbounds sig_group_i[i_l ÷ 32u32 + 1u32] = sig_i
     end
 
     @synchronize()
 
-    @inbounds sig_r = (i_l <= UInt32(N) ÷ 32u32) ? sig_r[i_l] : zero(T)
-    @inbounds sig_i = (i_l <= UInt32(N) ÷ 32u32) ? sig_i[i_l] : zero(T)
-
+    @inbounds sig_r = (i_l <= UInt32(N) ÷ 32u32) ? sig_group_r[i_l] : zero(T)
+    @inbounds sig_i = (i_l <= UInt32(N) ÷ 32u32) ? sig_group_i[i_l] : zero(T)
+    
     return reduce_warp(sig_r, sig_i)
 end
 
