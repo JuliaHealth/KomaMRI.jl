@@ -62,7 +62,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     widgets_button_obj = button.(string.(fieldnames_obj))
 
     # Setup the Blink window
-    @unsafe_blink
+    #@unsafe_blink
     w, index = setup_blink_window(; darkmode, frame, dev_tools, show_window)
     # Setup default simulation inputs (they have observables)
     @sync begin
