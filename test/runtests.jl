@@ -39,7 +39,7 @@ end
 
     using Blink
     # Opens KomaUI
-    w = KomaUI(return_window=true)
+    w = KomaUI(return_window=true, show_window=false)
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
     end
