@@ -12,6 +12,7 @@ macro unsafe_blink()
             p, dp = Blink.AtomShell.port(), Blink.AtomShell.port()
             debug && Blink.AtomShell.inspector(dp)
             dbg = debug ? "--debug=$dp" : []
+            println(dbg)
             proc = (debug ? Blink.AtomShell.run_rdr : Blink.AtomShell.run)(
                 `$(Blink.AtomShell.electron()) --no-sandbox $dbg $(Blink.AtomShell.mainjs) port $p`; wait=false)
             conn = Blink.AtomShell.try_connect(ip"127.0.0.1", p)
@@ -62,7 +63,7 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     widgets_button_obj = button.(string.(fieldnames_obj))
 
     # Setup the Blink window
-    #@unsafe_blink
+    @unsafe_blink
     w, index = setup_blink_window(; darkmode, frame, dev_tools, show_window)
     # Setup default simulation inputs (they have observables)
     @sync begin

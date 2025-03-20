@@ -40,7 +40,7 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
             "height" => 800,
             :show => show_window,
         );
-        async=true,
+        async=false,
     )
 
     ## NAV BAR
