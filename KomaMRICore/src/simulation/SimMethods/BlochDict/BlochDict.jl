@@ -51,6 +51,7 @@ function run_spin_precession!(
         ϕ = T(-2π .* γ) .* trapz(seq.Δt', Bz)
     end
     #Mxy precession and relaxation, and Mz relaxation
+    println(seq.Δt)
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ)] #This assumes Δw and T2 are constant in time
