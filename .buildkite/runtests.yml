@@ -46,6 +46,7 @@ steps:
                 - KomaMRICore/ext
         env:
           TEST_GROUP: $TEST_GROUP
+          HIP_LAUNCH_BLOCKING: 1
         command: |
           julia -e 'println("--- :julia: Instantiating project")
               using Pkg
