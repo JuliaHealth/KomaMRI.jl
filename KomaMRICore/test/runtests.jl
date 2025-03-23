@@ -339,7 +339,7 @@ end
     sig = @suppress simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
     sim_params["sim_method"] = KomaMRICore.BlochDict()
-    sig2 = simulate(obj, seq, sys; sim_params)
+    sig2 = @suppress simulate(obj, seq, sys; sim_params)
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 
