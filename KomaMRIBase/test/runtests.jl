@@ -606,6 +606,7 @@ end
     Dλ1 = [-4e-6; -2e-6; 0.0; 2e-6; 4e-6]
     Dλ2 = [-6e-6; -3e-6; 0.0; 3e-6; 6e-6]
     Dθ = [-8e-6; -4e-6; 0.0; 4e-6; 8e-6]
+    B1 = Complex.([0.8; 0.9; 1.0; 1.1; 1.2])
     # Motion
     Ns = length(x)
     Nt = 3
@@ -615,26 +616,26 @@ end
     rotate = Rotate(0.0, 0.0, 90.0, TimeRange(t_start=0.05, t_end=0.5), SpinRange(1:3))
     path = Path(0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), TimeRange(t_start, t_end), SpinRange(2:2:4))
     @testset "Comparison" begin
-        obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate))
-        obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate))
+        obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate), B1=B1)
+        obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate), B1=B1)
         @test obj1 == obj2
         obj2.x .+= 1e-10
         @test obj1 ≈ obj2
     end
     @testset "Size and Length" begin
-        obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate))
+        obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate), B1=B1)
         @test size(obj1) == size(ρ)
         @test length(obj1) == length(ρ)
     end
     @testset "Subset" begin 
         motion = MotionList(translate, rotate)
-        obj1 = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+        obj1 = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion, B1)
         rng = 1:2:5
         obj2 = Phantom(
             name, x[rng], y[rng], z[rng], 
             ρ[rng], T1[rng], T2[rng], T2s[rng], 
             Δw[rng], Dλ1[rng], Dλ2[rng], Dθ[rng], 
-            motion[rng]
+            motion[rng], B1[rng]
         )
         # Phantom subset
         @test obj1[rng] == obj2
@@ -652,14 +653,15 @@ end
         @test obj1[rng].motion == obj3.motion[rng]
     end
     @testset "Addition" begin
-        obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
+        obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, B1=B1)
         rng = 1:2:5
         obj2 = obj1[rng]
         oba = Phantom(
             name, [x; x[rng]], [y; y[rng]], [z; z[rng]], 
             [ρ; ρ[rng]], [T1; T1[rng]], [T2; T2[rng]], [T2s; T2s[rng]], 
             [Δw; Δw[rng]], [Dλ1; Dλ1[rng]], [Dλ2; Dλ2[rng]], [Dθ; Dθ[rng]], 
-            vcat(obj1.motion, obj2.motion, length(obj1), length(obj2))
+            vcat(obj1.motion, obj2.motion, length(obj1), length(obj2),
+            [B1; B1[rng]])
         )
         # NOTE: these vcat methods must be simplified once the Vector{<:Motion} approach is accomplished: 
         # https://github.com/JuliaHealth/KomaMRI.jl/issues/480
@@ -706,9 +708,9 @@ end
         @test obj1 + obj2 == oba
     end 
     @testset "Scalar multiplication" begin
-        obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate))
+        obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate), B1=B1)
         c = 7
-        obc = Phantom(name=name, x=x, y=y, z=z, ρ=c*ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate))
+        obc = Phantom(name=name, x=x, y=y, z=z, ρ=c*ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(translate, rotate), B1=B1)
         @test c * obj1 == obc
     end
     @testset "Brain Phantom 2D" begin
