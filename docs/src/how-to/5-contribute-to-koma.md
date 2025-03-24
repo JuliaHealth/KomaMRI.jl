@@ -123,6 +123,85 @@ Press Sync Changes to push your commit into your branch.
 
 >💡 If you want to make sure if the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
 
+## How to Test Your Contributions
+
+In Koma, various tests are designed to verify the correctness of the current state of the code, including your contributions once incorporated. Depending on the package where you made your changes (`KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots`) or directly to `KomaMRI`, you need to run the corresponding test as follows:
+
+### Test `KomaMRI`:
+
+There are two options to run the test:
+
+- **Using VSCode**: On the activity bar, open the `Testing` extension and select the "▶" icon next to the word `KomaMRI` to run the test. The results will be displayed in the `Test Results` panel.
+- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
+    ```julia
+    activate .; test
+    ```
+
+### Test `KomaMRIBase`:
+
+There are two options to run the test:
+
+- **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRIBase` to run the test. The results will be displayed in the `Test Results` panel.
+- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
+    ```julia
+    activate .; test KomaMRIBase
+    ```
+
+### Test `KomaMRICore`:
+
+In this package, you may want to test the use of GPU or multiple threads. For this reason, the recommended option to run the test is using the Julia REPL. However, if you want to run the test by default on the CPU with the number of threads set to `Threads.nthreads()`, you can also use VSCode. On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
+
+Using the Julia REPL, by default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To run on a specific GPU backend, add the name of the backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore` and pass the name as a test argument.
+
+Example:
+```julia
+import Pkg
+Pkg.test("KomaMRICore"; test_args=["CUDA"])
+```
+To run on the CPU with a specific number of threads, pass the number of threads as a Julia argument.
+
+Example:
+```julia
+import Pkg
+Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
+```    
+To change the default backend used for testing, modify the `[preferences.KomaMRICore]` section in the test/Project.toml file:
+
+```julia
+[preferences.KomaMRICore]
+test_backend = "CPU"
+```
+
+For the backend preference to take effect, you need to:
+
+- **REPL Testing**: No action needed. `] test` should pick up the preference immediately.
+- **VSCode Testing**: You need to restart VSCode.
+
+>Sadly, `LocalPreferences.toml` files are not picked up by VSCode (they could be `.gitignore`'d), so we put them into the `test/Project.toml` file instead.
+
+### Test `KomaMRIFiles`:
+
+There are two options to run the test:
+
+- **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRIFiles` to run the test. The results will be displayed in the `Test Results` panel.
+- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
+    ```julia
+    activate .; test KomaMRIFiles
+    ```
+
+### Test `KomaMRIPlots`:
+
+There are two options to run the test:
+
+- **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRIPlots` to run the test. The results will be displayed in the `Test Results` panel.
+- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
+    ```julia
+    activate .; test KomaMRIPlots
+    ```
+
+If your contributions do not affect the correct execution of the code, the tests will return a message indicating that your changes have successfully passed.
+
+
 ## How to create a pull request
 
 If you want to send your commited new version of the repository, you can create a pull request that will be reviewed by a Koma certified developer.
