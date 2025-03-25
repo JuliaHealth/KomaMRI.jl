@@ -129,24 +129,24 @@ In Koma, various tests are designed to verify the correctness of the current sta
 
 ### Test `KomaMRI`:
 
-There are two options to run the test:
-
-- **Using VSCode**: On the activity bar, open the `Testing` extension and select the "▶" icon next to the word `KomaMRI` to run the test. The results will be displayed in the `Test Results` panel.
-- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
+In the Julia REPL open the Julia package manager mode by pressing `]`, then run the following script:
     ```julia
     activate .; test
     ```
 
-### Test `KomaMRIBase`:
+### Test `KomaMRIBase`, `KomaMRIPlots`, `KomaMRIFiles`:
 
 There are two options to run the test:
 
-- **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRIBase` to run the test. The results will be displayed in the `Test Results` panel.
+- **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel.
+
+    >The `KomaMRI` test is not intended to be used this way, because the UI will not open correctly and the test will fail.
 - **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
     ```julia
-    activate .; test KomaMRIBase
+    activate .; test [package]
     ```
-
+    with `[package]` being the selected package to be tested (`KomaMRIBase`, `KomaMRIPlots`, `KomaMRIFiles`).
+    
 ### Test `KomaMRICore`:
 
 In this package, you may want to test the use of GPU or multiple threads. For this reason, the recommended option to run the test is using the Julia REPL. However, if you want to run the test by default on the CPU with the number of threads set to `Threads.nthreads()`, you can also use VSCode. On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
@@ -178,26 +178,6 @@ For the backend preference to take effect, you need to:
 - **VSCode Testing**: You need to restart VSCode.
 
 >Sadly, `LocalPreferences.toml` files are not picked up by VSCode (they could be `.gitignore`'d), so we put them into the `test/Project.toml` file instead.
-
-### Test `KomaMRIFiles`:
-
-There are two options to run the test:
-
-- **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRIFiles` to run the test. The results will be displayed in the `Test Results` panel.
-- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
-    ```julia
-    activate .; test KomaMRIFiles
-    ```
-
-### Test `KomaMRIPlots`:
-
-There are two options to run the test:
-
-- **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRIPlots` to run the test. The results will be displayed in the `Test Results` panel.
-- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
-    ```julia
-    activate .; test KomaMRIPlots
-    ```
 
 If your contributions do not affect the correct execution of the code, the tests will return a message indicating that your changes have successfully passed.
 
