@@ -67,11 +67,10 @@ function run_spin_precession!(
     ΔBz = prealloc.ΔBz
     fill!(ϕ, zero(T))
     @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + ΔBz
-
     # Fill sig[1] if needed
     ADC_idx = 1
     if (seq.ADC[1])
-        sig[1] = sum(M.xy)
+        sig[1] = sum(sys.rf_coils.coil_sens .* M.xy)
         ADC_idx += 1
     end
 
@@ -92,8 +91,11 @@ function run_spin_precession!(
 
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[seq_idx], p.motion)
-            acquire_signal!(sig[ADC_idx,:], sys.rf_coils, Mxy)
             #sig[ADC_idx] = sum(Mxy) 
+            acquire_signal!(sig, sys.rf_coils, Mxy, ADC_idx)
+            #for i in 1:size(sys.rf_coils.coil_sens, 2)
+            #    sig[ADC_idx, i] = sum(sys.rf_coils.coil_sens[:, i] .* Mxy)
+            #end
             ADC_idx += 1
         end
 
