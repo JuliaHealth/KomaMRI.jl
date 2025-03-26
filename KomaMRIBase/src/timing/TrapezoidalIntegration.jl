@@ -46,7 +46,6 @@ Trapezoidal cumulative integration over time for every spin of a phantom.
 """
 function cumtrapz(Δt::AbstractArray{T}, x::AbstractArray{T}) where {T<:Real}
     y =  (x[:, 2:end] .+ x[:, 1:end-1]) .* (Δt ./ 2)
-    haskey(ENV, "AMD_DEBUG") && println(y)
     y = cumsum(y, dims=2)
     return y
 end
