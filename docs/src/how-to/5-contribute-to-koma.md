@@ -181,6 +181,16 @@ For the backend preference to take effect, you need to:
 
 If your contributions do not affect the correct execution of the code, the tests will return a message indicating that your changes have successfully passed.
 
+### Adding a new test
+
+In case your contribution generates a new function that is not currently tested, the code coverage will decrease when the pull request is analyzed, creating an automatic comment indicating the problem. To include this contribution in the tests, you must incorporate your function into the runtest.jl file corresponding to the package where you made your contribution.
+
+To add this new test, you must follow these steps:
+
+1. In VSCode, press `Ctrl + p` to open the search bar and type `runtest.jl` to select the desired file according to the package.
+2. Once the file is selected, you will see the tests distributed in `@testitem` that contain `@testset`. Check if the contribution to test fulfills the conditions for an existing `@testitem`. If not, create a new `@testitem`.
+3. Open a `@testset` inside the `@testitem`, and create a small proof of concept that validates the contribution (use the surrounding `@testset` as a guide).
+4. To finish your test, add a `@test` macro followed by the verification of the proof of concept. This macro will pass the test if the boolean value of the result is true.
 
 ## How to create a pull request
 
