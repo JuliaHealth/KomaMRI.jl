@@ -100,19 +100,6 @@ function acquire_signal!(sig, rf_coils::RFCoilsSensDefinedAtPhantomPositions, Mx
     return nothing
 end
 
-function acquire_signal!(sig, rf_coils::UniformRFCoils, Mxy, ADC_idx)
-    sig[ADC_idx] = sum(Mxy)
-    return nothing
-end
-
-
-function acquire_signal!(sig, rf_coils::RFCoilsSensDefinedAtPhantomPositions, Mxy, ADC_idx)    
-    for i in 1:size(rf_coils.coil_sens, 2)
-        sig[ADC_idx, i] = sum(rf_coils.coil_sens[:, i] .* Mxy)
-    end
-    return nothing
-end
-
 function getproperty(sys::Scanner, key::Symbol)
     if key in fieldnames(HardwareLimits)
         return getfield(sys.limits, key)
