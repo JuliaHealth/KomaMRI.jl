@@ -108,6 +108,14 @@ function getproperty(sys::Scanner, key::Symbol)
     end
 end
 
+function Base.setproperty!(sys::Scanner, key::Symbol, value)
+    if key in fieldnames(HardwareLimits)
+        setfield!(sys.limits, key, convert(Float64, value))  # Convert value to the correct type
+    else
+        setfield!(sys, key, value)
+    end
+end
+
 function get_n_coils(rf_coils::RFCoils)
     return 1
 end
