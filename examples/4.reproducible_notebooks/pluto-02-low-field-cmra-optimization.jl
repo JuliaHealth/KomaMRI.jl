@@ -718,7 +718,7 @@ Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 [compat]
 KomaMRICore = "~0.9.1"
 KomaMRIPlots = "~0.9.1"
-PlutoPlotly = "~0.6.2"
+PlutoPlotly = "~0.5.0"
 PlutoUI = "~0.7.58"
 ProgressLogging = "~0.1.4"
 Suppressor = "~0.2.7"
