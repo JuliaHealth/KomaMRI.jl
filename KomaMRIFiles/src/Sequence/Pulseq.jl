@@ -142,6 +142,44 @@ function read_events(io, scale; type=-1, eventLibrary=Dict())
 end
 
 """
+read_labels Read a label section of a sequence file.
+   library=read_labels(fid) Read label data from file identifier of
+   an open MR sequence file and return a library of labels.
+
+   library=read_labels(...,library) Append new labels to the given
+   library.
+"""
+function read_labels(io; eventLibrary=Dict())
+    while true
+        fmt = Scanf.Format("%i %i %s")
+        r, data... = scanf(readline(io), fmt, Int, Int, String)
+        id = floor(Int, data[1])
+        eventLibrary[id] = Dict("data"=>data[2:3])
+        r == 3 || break #Break on white space
+    end
+    eventLibrary
+end
+
+"""
+read_extension_blocks Read the extension blocks section of a sequence file.
+   library=read_extension_blocks(fid) Read extension blocks data from file identifier of
+   an open MR sequence file and return a library of labels.
+
+   library=read_extension_blocks(...,library) Append new blocks to the given
+   library.
+"""
+function read_extension_blocks(io; eventLibrary=Dict())
+    while true
+        fmt = Scanf.Format("%i %i %i %i")
+        r, data... = scanf(readline(io), fmt, Int, Int, Int, Int)
+        id = floor(Int, data[1])
+        eventLibrary[id] = Dict("data"=>data[2:4])
+        r == 4 || break #Break on white space
+    end
+    eventLibrary
+end
+
+"""
 read_shapes Read the [SHAPES] section of a sequence file.
    library=read_shapes(fid) Read shapes from file identifier of an
    open MR sequence file and return a library of shapes.
@@ -352,11 +390,18 @@ function read_seq(filename)
     shapeLibrary = Dict()
     extensionLibrary = Dict()
     triggerLibrary = Dict()
+    extensionStringAndID = Dict{AbstractString,Int}()
+    labelsetLibrary = Dict()
+    labelincLibrary = Dict()
     #Reading file and storing data
     open(filename) do io
         while !eof(io)
+
             section = readline(io)
-            if      section == "[DEFINITIONS]"
+            #Main.@infiltrate
+            if typeof(section) == String && (isempty(section) || section[1] == '#')
+                #skip useless line
+            elseif     section == "[DEFINITIONS]"
                 def = read_definitions(io)
             elseif  section == "[VERSION]"
                 version_major, version_minor, _, version_combined = read_version(io)
@@ -390,12 +435,32 @@ function read_seq(filename)
             elseif  section == "[SHAPES]"
                 shapeLibrary = read_shapes(io, (version_major==1 && version_minor<4))
             elseif  section == "[EXTENSIONS]"
-                extensionLibrary = read_events(io,[1 1 1]) #For now, it reads the extensions but it does not take it them into account
-            elseif  section == "extension TRIGGERS 1"
-                triggerLibrary = read_events(io,[1 1 1e-6 1e-6])
+                extensionLibrary = read_extension_blocks(io)
             elseif  section == "[SIGNATURE]"
                 signature = read_signature(io)
             else
+                if startswith(section, "extension")
+                    extension = section[11:end]
+                    if startswith(extension, "TRIGGERS")
+                        id = parse(Int, extension[9:end])
+                        extensionStringAndID["TRIGGERS"] = id
+                        triggerLibrary = read_events(io, [1, 1, 1e-6, 1e-6]; eventLibrary = triggerLibrary)
+                    elseif startswith(extension, "LABELSET")
+                        id = parse(Int, extension[9:end])
+                        extensionStringAndID["LABELSET"] =  id
+                        labelsetLibrary = read_labels(io;eventLibrary=labelsetLibrary)
+                    elseif startswith(extension, "LABELINC")
+                        id = parse(Int, extension[9:end])
+                        extensionStringAndID["LABELINC"] = id
+                        labelincLibrary = read_labels(io; eventLibrary=labelincLibrary)
+                    elseif startswith(extension, "DELAYS")
+                        @warn "DELAYS extension is not handle"
+                    else
+                        @warn "Ignoring unknown extension, input string: $extension"
+                    end
+                else
+                    @error "Unknown section code: $section"
+                end
             end
 
         end
