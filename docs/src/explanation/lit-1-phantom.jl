@@ -40,7 +40,7 @@ using KomaMRI #hide
 #     Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
 #     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
 #     #Motion
-#     motion::AbstractMotion{T} = NoMotion{eltype(x)}() 
+#     motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
 # end
 # ```
 
@@ -48,7 +48,7 @@ using KomaMRI #hide
 # the `name` (self-explanatory) and `motion` (explained below) fields.
 # These vectors represent object properties, with each element holding a value associated 
 # with a single magnetization (i.e. a single spin).
-# Specifically, `x`, `y` and `z` are the spatial (starting) coordinates of each spin. 
+# Specifically, `x`, `y` and `z` are the initial spatial coordinates of each spin. 
 # `ρ` stands for the proton density, and `T1`, `T2` and `T2s` (standing for T2*) 
 # are the well-known relaxation times. `Δw` accounts for off-resonance effects.
 # `Dλ1`, `Dλ2` and `Dθ` are diffusion-related fields which are not in use at the moment.
@@ -73,7 +73,7 @@ obj = brain_phantom2D()
 #   Dλ1: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 #   Dλ2: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 #   Dθ: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-#   motion: NoMotion{Float64} NoMotion{Float64}()
+#   motion: NoMotion NoMotion()
 # ```
 
 # You can visualize the **Phantom** struct using the [`plot_phantom_map`](@ref) function, 
@@ -111,7 +111,7 @@ p1 = plot_phantom_map(obj, :T1; height=450)
 
 # ```julia-repl
 # julia> obj.motion
-# NoMotion{Float64}()
+# NoMotion()
 # ```
 
 # ## Phantom Operations
