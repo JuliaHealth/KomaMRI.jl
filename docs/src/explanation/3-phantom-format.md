@@ -32,5 +32,5 @@ For all these reasons, it is the ideal file format for storing phantoms.
 ### SpinSpan types
 
 ```@raw html
-<p><img width="80%" src="../../assets/ph-spinspan-types.svg"/></p>
+<p><img width="80%" src="../../assets/ph-spins.svg"/></p>
 ```
