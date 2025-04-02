@@ -49,15 +49,15 @@ end
 # Main constructors
 function Motion(action) 
     T = first(typeof(action).parameters)
-    return Motion(action, TimeRange(zero(T)), AllSpins())
+    return Motion(action, TimeRange(t_start=zero(T), t_end=eps(T)), AllSpins())
 end
-function Motion(action, time::AbstractTimeSpan)
+function Motion(action, time::TimeCurve)
     T = first(typeof(action).parameters)
     return Motion(action, time, AllSpins())
 end
 function Motion(action, spins::AbstractSpinSpan)
     T = first(typeof(action).parameters)
-    return Motion(action, TimeRange(zero(T)), spins)
+    return Motion(action, TimeRange(t_start=zero(T), t_end=eps(T)), spins)
 end
 
 # Custom constructors
