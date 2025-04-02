@@ -402,7 +402,7 @@ PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 FFTW = "~1.8.1"
 KomaMRICore = "~0.9.1"
 KomaMRIPlots = "~0.9.1"
-PlutoPlotly = "~0.5.0"
+PlutoPlotly = "~0.5.0" # Do not upgrade to v0.6^ until https://github.com/JuliaHealth/KomaMRI.jl/issues/559 is solved
 PlutoUI = "~0.7.62"
 """
 
