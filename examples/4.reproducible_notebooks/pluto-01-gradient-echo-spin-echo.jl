@@ -222,7 +222,7 @@ In this excercise we will simplify this distribution, but we will obtain a simil
 # (3.1) Create the new obj_t2star phantom 
 begin
     # (3.1.1) Create an empty phantom
-	obj_t2star = Phantom{Float64}(x=[])
+	obj_t2star = Phantom()
     # (3.1.2) Define the linear off-resonance distribution
 	Niso = 20
 	linear_offresonance_distribution = 2π .* range(-10, 10, Niso)

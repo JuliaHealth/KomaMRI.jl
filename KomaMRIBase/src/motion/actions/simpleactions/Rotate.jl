@@ -60,8 +60,6 @@ RotateX(pitch::T) where {T<:Real} = Rotate(pitch, zero(T), zero(T))
 RotateY(roll::T) where {T<:Real}  = Rotate(zero(T), roll, zero(T))
 RotateZ(yaw::T) where {T<:Real}   = Rotate(zero(T), zero(T), yaw)
 
-is_composable(action::Rotate) = true
-
 function displacement_x!(ux, action::Rotate, x, y, z, t)   
     # Not using sind and cosd functions until bug with oneAPI is solved: 
     # https://github.com/JuliaGPU/oneAPI.jl/issues/65
