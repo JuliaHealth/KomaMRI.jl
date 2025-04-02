@@ -83,8 +83,6 @@ Generate a virtual object:
 """
 
 # ╔═╡ d16efa62-dce7-4ec3-9e3c-b5e1677377fc
-# ╠═╡ disabled = true
-#=╠═╡
 # (1.4) A Phantom with 20 spins
 begin
 	obj = Phantom(x=collect(range(-1e-3,1e-3,20)))
@@ -93,10 +91,6 @@ begin
 	obj.T2 .= 50e-3
 	nothing
 end
-  ╠═╡ =#
-
-# ╔═╡ 3577cf8f-0426-4d89-ba0a-064e36363eed
-obj = brain_phantom2D()
 
 # ╔═╡ 35ff3402-dc36-4b91-bec9-b4d21faf3e68
 # (1.5) Plot the generated Phantom
@@ -1537,7 +1531,6 @@ version = "17.4.0+2"
 # ╠═0975547d-67d9-4e6b-88ff-a9dd06a7f9ef
 # ╟─f11a2fa2-eff9-4979-b739-3da2b24a9a45
 # ╠═d16efa62-dce7-4ec3-9e3c-b5e1677377fc
-# ╠═3577cf8f-0426-4d89-ba0a-064e36363eed
 # ╠═35ff3402-dc36-4b91-bec9-b4d21faf3e68
 # ╟─ea542271-01c2-4962-a708-804b23a861b9
 # ╠═c47a50b8-c930-4c96-9b34-2772186634d9
