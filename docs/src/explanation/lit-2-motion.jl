@@ -169,7 +169,7 @@ p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
 
 obj.motion = Rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins())
 
-p2 = plot_phantom_map(obj, :T1; time_samples=11; height=440) #hide
+p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 
 #md savefig(p2, "../assets/doc-2-rotate.html") #hide
 #jl display(p2)
@@ -185,7 +185,7 @@ p2 = plot_phantom_map(obj, :T1; time_samples=11; height=440) #hide
 
 obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002))
 
-p3 = plot_phantom_map(obj, :T1; time_samples=11; height=440) #hide
+p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 
 #md savefig(p3, "../assets/doc-2-subset.html") #hide
 #jl display(p3)
@@ -221,7 +221,7 @@ obj2.motion = MotionList(
 
 obj = obj1 + obj2
 
-p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true; height=440) # hide
+p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) # hide
 
 #md savefig(p4, "../assets/doc-2-combination.html") #hide
 #jl display(p4)
