@@ -204,10 +204,10 @@ p3 = plot_phantom_map(obj, :T1; time_samples=11) #hide
 # different time spans. In the top phantom, the translation takes place from 0 to 0.5 seconds, followed by the 
 # rotation from 0.5 to 1 second. In the bottom phantom, both motions happen over the same time span, from 0 to 1 second:
 
-obj1 = brain_phantom2D()
-obj2 = copy(obj1)
-obj1.x .-= 20e-2; obj2.x .-= 20e-2
-obj1.y .+= 12e-2; obj2.y .-= 12e-2
+obj1 = brain_phantom2D() #hide
+obj2 = copy(obj1) #hide
+obj1.x .-= 20e-2; obj2.x .-= 20e-2 #hide
+obj1.y .+= 12e-2; obj2.y .-= 12e-2 #hide
 
 obj1.motion = MotionList(
     Translate(40e-2, 0.0, 0.0, TimeRange(0.0, 0.5),AllSpins()),
@@ -221,7 +221,7 @@ obj2.motion = MotionList(
 
 obj = obj1 + obj2
 
-p4 = plot_phantom_map(obj1, :T1; time_samples=11, view_2d=true) # hide
+p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true) # hide
 
 #md savefig(p4, "../assets/doc-2-combination.html") #hide
 #jl display(p4)
