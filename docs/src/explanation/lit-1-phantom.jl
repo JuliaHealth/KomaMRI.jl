@@ -56,7 +56,7 @@ using KomaMRI #hide
 # when simulating in order to obtain the spin positions at each time step. For more information about
 # motion, refer to [Motion](2-motion.md) section.
 
-# To get an even better understanding on how it works, let's look at an example of a brain phantom:
+# To get an even better understanding on how this structure works, let's look at an example of a brain phantom:
 
 obj = brain_phantom2D()
 # ```julia-repl
