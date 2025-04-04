@@ -4,16 +4,16 @@ using KomaMRI # hide
 obj = brain_phantom2D() # hide
 
 # Koma can easily simulate the effects of motion during acquisitions. 
-# As introduced in the [previous section](lit-1-phantom.md), the motion-related information
+# As introduced in the [previous section](1-phantom.md), the motion-related information
 # of the phantom is stored in the `motion` field of its structure.
 
 # Koma's motion model has been designed to accomodate a variety of real-world scenarios, including:
 
-# - [Patient motion inside a scanner](../../../examples/lit-05-SimpleMotion.jl), which may involve simultaneous or sequential translations and rotations of body parts during the acquisition.
+# - [Patient motion inside a scanner](../tutorial/05-SimpleMotion.md), which may involve simultaneous or sequential translations and rotations of body parts during the acquisition.
 # - Myocardial motion, including simulataneous contraction, rotation, torsion, and translation motion within the cardiac cycle.
 # - Pseudo-periodic heart patterns, caused by variations in heart rate or arrhythmias that prevent the heart's motion from being perfectly periodic.
 # - Flow through blood vessels, where the spin trajectories or fluid fields may have been obtained from Computational Fluid Dynamics (CFD) simulations.
-# - [Diffusion](../../../lit-06-DiffusionMotion.jl), which can be modeled, among many other ways, as microscopic Brownian spin trajectories.
+# - [Diffusion](../tutorial/06-DiffusionMotion.md), which can be modeled, among many other ways, as microscopic Brownian spin trajectories.
 
 # ... And, ultimately, any type of motion you can think of, no matter how complex!
 
