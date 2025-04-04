@@ -98,7 +98,7 @@ obj.motion = MotionList(
 
 # This enables you to create any type of curve, and thus, any kind of motion pattern over time.
 
-# A full description of this structure, including examples and constructors, can be found in the [TimeCurve](@ref timecurve_api) API reference.
+# A full description of this structure, including examples and constructors, can be found in the [`TimeCurve` API reference](../reference/2-koma-base.md#KomaMRIBase.TimeCurve).
 
 # ### The `spins` field
 # Finally, the `spins` field must be an instance of the [`AbstractSpinSpan`](../reference/2-koma-base.md#AbstractSpinSpan-types) type.
