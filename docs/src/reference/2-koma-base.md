@@ -47,7 +47,7 @@ FlowPath(dx, dy, dz, spin_reset, time, spins)
 ### `TimeCurve` types and related functions
 
 ```@docs
-[TimeCurve](@id timecurve_api)
+TimeCurve
 TimeRange
 Periodic 
 ```
