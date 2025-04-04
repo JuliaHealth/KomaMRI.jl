@@ -98,7 +98,7 @@ obj.motion = MotionList(
 
 # This enables you to create any type of curve, and thus, any kind of motion pattern over time.
 
-# A full description of this structure, including examples and constructors, can be found in the [TimeCurve](@ref) API reference.
+# A full description of this structure, including examples and constructors, can be found in the [`TimeCurve` API reference](../reference/2-koma-base.md#KomaMRIBase.TimeCurve).
 
 # ### The `spins` field
 # Finally, the `spins` field must be an instance of the [`AbstractSpinSpan`](../reference/2-koma-base.md#AbstractSpinSpan-types) type.
@@ -136,7 +136,7 @@ for (i, x) in enumerate([x,y,z]) # hide
 end # hide
 obj = Phantom( x=x[ρ .!= 0], y=y[ρ .!= 0], z=z[ρ .!= 0], T1 = T1[ρ .!= 0] ) # hide
 
-p = plot_phantom_map(obj, :T1; height=450) #hide
+p = plot_phantom_map(obj, :T1; height=440) #hide
 
 #md savefig(p, "../assets/doc-2-phantom.html") #hide
 #jl display(p)
@@ -154,7 +154,7 @@ obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins())
 # Let’s plot this phantom and see how it moves. The `time_samples` argument specifies the number of time samples to be plotted.
 # You can use the bottom slider to scroll through time and check its exact position at each moment: 
 
-p1 = plot_phantom_map(obj, :T1; time_samples=11)
+p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
 
 #md savefig(p1, "../assets/doc-2-translate.html") #hide
 #jl display(p1)
@@ -169,7 +169,7 @@ p1 = plot_phantom_map(obj, :T1; time_samples=11)
 
 obj.motion = Rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins())
 
-p2 = plot_phantom_map(obj, :T1; time_samples=11) #hide
+p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 
 #md savefig(p2, "../assets/doc-2-rotate.html") #hide
 #jl display(p2)
@@ -185,7 +185,7 @@ p2 = plot_phantom_map(obj, :T1; time_samples=11) #hide
 
 obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002))
 
-p3 = plot_phantom_map(obj, :T1; time_samples=11) #hide
+p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 
 #md savefig(p3, "../assets/doc-2-subset.html") #hide
 #jl display(p3)
@@ -221,7 +221,7 @@ obj2.motion = MotionList(
 
 obj = obj1 + obj2
 
-p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true) # hide
+p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) # hide
 
 #md savefig(p4, "../assets/doc-2-combination.html") #hide
 #jl display(p4)

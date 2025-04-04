@@ -34,25 +34,25 @@ for (i, x) in enumerate([x,y,z]) # hide
 end # hide
 obj = Phantom( x=x[ρ .!= 0], y=y[ρ .!= 0], z=z[ρ .!= 0], T1 = T1[ρ .!= 0] ) # hide
 
-p = plot_phantom_map(obj, :T1; height=450) #hide
+p = plot_phantom_map(obj, :T1; height=440) #hide
 
 display(p)
 
 obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins())
 
-p1 = plot_phantom_map(obj, :T1; time_samples=11)
+p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
 
 display(p1)
 
 obj.motion = Rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins())
 
-p2 = plot_phantom_map(obj, :T1; time_samples=11) #hide
+p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 
 display(p2)
 
 obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002))
 
-p3 = plot_phantom_map(obj, :T1; time_samples=11) #hide
+p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 
 display(p3)
 
@@ -73,7 +73,7 @@ obj2.motion = MotionList(
 
 obj = obj1 + obj2
 
-p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true) # hide
+p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) # hide
 
 display(p4)
 
