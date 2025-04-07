@@ -111,7 +111,7 @@ obj.motion = MotionList(
 # centered at the origin and aligned with the coordinate axes. To make the motion easier to visualize, 
 # each face of the cube is given a different T1 value:
 
-# Phantom construction # hide
+#jl # Phantom construction
 L = 1e-3 # hide
 Δx = 20e-6 # hide
 x = y = z = -L/2:Δx:L/2 # hide
