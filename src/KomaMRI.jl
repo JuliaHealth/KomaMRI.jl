@@ -9,6 +9,7 @@ import KomaMRICore: update_blink_window_progress!
 
 # GUI
 using Blink, Interact, AssetRegistry
+using Blink.Sockets: @ip_str
 using MAT
 
 # Reconstruction
@@ -20,6 +21,7 @@ using MRIReco
 @reexport using MRIReco: reconstruction
 
 #GUI
+
 include("ui/ExportMATFunctions.jl")
 include("ui/ExportUIFunctions.jl")
 include("KomaUI.jl")
@@ -27,5 +29,6 @@ include("KomaUI.jl")
 # Export the UI and the observables
 export KomaUI
 export sys_ui, seq_ui, obj_ui, raw_ui, img_ui
+
 
 end
