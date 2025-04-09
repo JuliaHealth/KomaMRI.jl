@@ -771,10 +771,13 @@ function get_block(obj, i)
     #DUR
     D = Float64[max(obj["blockDurations"][i], dur(Gx), dur(Gy), dur(Gz), dur(R[1]), dur(A[1]))]
 
-    #Extensions
-    E = Dict{String, Any}()#read_Extension(obj["extensionLibrary"], iext, i)
+     #Extensions
+     E = [Vector{Extension}[]]#read_Extension(obj["extensionLibrary"], iext, i)
+
+    # Definitition
+    DEF = Dict{String,Any}()
 
     #Sequence block definition
-    s = Sequence(G,R,A,D,E)
+    s = Sequence(G,R,A,D,E,DEF)
     s
 end

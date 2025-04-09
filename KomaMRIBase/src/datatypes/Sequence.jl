@@ -30,10 +30,10 @@ mutable struct Sequence
 	RF::Array{RF,2}			  #RF pulses in coil and time
 	ADC::Array{ADC,1}		  #ADC in time
 	DUR::Vector				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
+	EXT::Vector{Vector{Extension}}
 	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
-	#Ext::Array{Extension,1}
-	Sequence(GR, RF, ADC, DUR, DEF) = begin
-		@assert size(GR, 2) == size(RF,2) == length(ADC) == length(DUR) "The number of Gradient, RF, ADC, and DUR objects must be the same."
+	Sequence(GR, RF, ADC, DUR, EXT, DEF) = begin
+		@assert size(GR, 2) == size(RF,2) == length(ADC) == length(DUR) "The number of Gradient, RF, ADC, DUR and EXT objects must be the same."
         if size(GR, 1) < 3
             GR = vcat(GR, (0.0 .* GR[1:1, :] for i=1:3-size(GR, 1))...)
         end
@@ -41,6 +41,7 @@ mutable struct Sequence
 			RF,
 			ADC,
 			DUR, #maximum(Float64[GR.dur RF.dur ADC.dur DUR],dims=2)[:],
+			EXT,
 			DEF)
 	end
 end
@@ -49,31 +50,39 @@ end
 function Sequence(GR)
     rf = reshape([RF(0.0, 0.0) for i in 1:size(GR, 2)], 1, :)
     adc = [ADC(0, 0.0) for _ = 1:size(GR, 2)]
-    return Sequence(GR, rf, adc, GR.dur, Dict{String, Any}())
+		ext = [Vector{Extension}[] for _ = 1:size(GR, 2)]
+    return Sequence(GR, rf, adc, GR.dur, ext, Dict{String, Any}())
 end
 function Sequence(GR, RF)
     adc = [ADC(0, 0.0) for _ in 1:size(GR, 2)]
-    DUR = maximum([GR.dur RF.dur], dims=2)[:]
-	return Sequence(GR, RF, adc, DUR, Dict{String, Any}())
+    dur = maximum([GR.dur RF.dur], dims=2)[:]
+		ext = [Vector{Extension}[] for _ = 1:size(GR, 2)]
+	return Sequence(GR, RF, adc, dur, ext,Dict{String, Any}())
 end
 function Sequence(GR, RF, ADC)
-    DUR = maximum([GR.dur RF.dur ADC.dur], dims=2)[:]
-	return Sequence(GR, RF, ADC, DUR, Dict{String, Any}())
+    dur = maximum([GR.dur RF.dur ADC.dur], dims=2)[:]
+		ext = [Vector{Extension}[] for _ = 1:size(GR, 2)]
+	return Sequence(GR, RF, ADC, dur, ext, Dict{String, Any}())
 end
 function Sequence(GR, RF, ADC, DUR)
-    return Sequence(GR, RF, ADC, DUR, Dict{String, Any}())
+		ext = [Vector{Extension}[] for _ = 1:size(GR, 2)]
+    return Sequence(GR, RF, ADC, DUR, ext, Dict{String, Any}())
+end
+function Sequence(GR, RF, ADC, DUR, EXT)
+	return Sequence(GR, RF, ADC, DUR, EXT, Dict{String, Any}())
 end
 
 # Other constructors
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,1,:))
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1})= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0.0) for i in 1:size(GR, 2)])
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], Float64[DUR], DEF)
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, EXT, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], Float64[DUR], EXT,DEF)
 Sequence() = Sequence(
     Matrix{Grad}(undef, 3, 0),
     Matrix{RF}(undef, 1, 0),
     Vector{ADC}(undef, 0),
     Vector{Float64}(undef, 0),
-    Dict{String, Any}()
+		Vector{Vector{Extension}}(undef,0),
+		Dict{String, Any}()
     )
 
 """
@@ -92,7 +101,7 @@ Base.show(io::IO, s::Sequence) = begin
     if length(s) > 0
         if !compact
             nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
-            print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | DEF: $(length(s.DEF)) ]")
+            print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | EXT: $(length(s.DEF)) | DEF: $(length(s.DEF)) ]")
         else
             print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
         end
@@ -103,12 +112,12 @@ end
 
 #Sequence operations
 Base.length(x::Sequence) = length(x.DUR)
-Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1], x.ADC[1], x.DUR[1], x.DEF), 2)
-Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF), i+1) : nothing
-Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF)
-Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF)
-Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF) : nothing
-Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.DEF) : nothing
+Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1], x.ADC[1], x.DUR[1],x.EXT[1], x.DEF), 2)
+Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF), i+1) : nothing
+Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF)
+Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i],x.EXT[i], x.DEF)
+Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF) : nothing
+Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF) : nothing
 Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
 
@@ -116,16 +125,16 @@ Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k
 recursive_merge(x::Dict{K, V}) where {K, V} = merge(recursive_merge, x...)
 recursive_merge(x::Vector) = cat(x...; dims=1)
 recursive_merge(x...) = x[end]
-+(x::Sequence, y::Sequence) = Sequence(hcat(x.GR,  y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), merge(x.DEF, y.DEF))
--(x::Sequence, y::Sequence) = Sequence(hcat(x.GR, -y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), merge(x.DEF, y.DEF))
--(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.DEF)
-*(x::Sequence, α::Real) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
-*(α::Real, x::Sequence) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.DEF)
-*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
-*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.DEF)
-*(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
-*(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.DEF) #TODO: change this, Rotation fo waveforms is broken
-/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.DEF)
++(x::Sequence, y::Sequence) = Sequence(hcat(x.GR,  y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), vcat(x.EXT,y.EXT),merge(x.DEF, y.DEF))
+-(x::Sequence, y::Sequence) = Sequence(hcat(x.GR, -y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), vcat(x.EXT,y.EXT),merge(x.DEF, y.DEF))
+-(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.EXT,x.DEF)
+*(x::Sequence, α::Real) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
+*(α::Real, x::Sequence) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
+*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
+*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
+*(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.EXT, x.DEF) #TODO: change this, Rotation fo waveforms is broken
+*(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.EXT, x.DEF) #TODO: change this, Rotation fo waveforms is broken
+/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
 #Grad operations
 +(s::Sequence, g::Grad) = s + Sequence(reshape([g],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
 +(g::Grad, s::Sequence) = Sequence(reshape([g],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
