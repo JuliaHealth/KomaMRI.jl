@@ -27,6 +27,8 @@ x |> f32 |> gpu # Float32 CuArray
 
 To change the precision level used for the entire simulation, the `sim_params["precision"]` parameter can be set to either `f32` or `f64` (Note that for most GPUs, Float32 operations are considerably faster compared with Float64). In addition, the `sim_params["gpu"]` option can be set to true or false to enable / disable the gpu functionality (if set to true, the backend package will still need to be loaded beforehand):
 
+Two other simulation parameters, `gpu_groupsize_precession` and `gpu_groupsize_excitation` are exposed to allow adjusting the number of threads in each threadgroup within the `run_spin_precession!` and `run_spin_excitation!` gpu kernels. By default, they are both 256, however, on some devices other values may result in faster performance. The gpu groupsize must be a multiple of 32 between 32 and no higher than 1024, otherwise the simulation will throw an error.
+
 ```julia
 using KomaMRI
 using CUDA
@@ -57,18 +59,21 @@ KomaMRI has three different simulation methods, all of which can run on the GPU:
 * `BlochDict`: [BlochDict.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/BlochDict/BlochDict.jl)
 * `Bloch`: [BlochCPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/Bloch/BlochCPU.jl) / [BlochGPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/Bloch/BlochGPU.jl)
 
-`BlochSimple` is the simplest method and prioritizes readability. 
+`BlochSimple` uses array-based methods which are simpler to understand compared with the more optimized `Bloch` implementation.
 
 `BlochDict` can be understood as an extension to `BlochSimple` that outputs a more detailed signal.
 
-`Bloch` is equivalent to `BlochSimple` in the operations it performs, but is much faster since it has been optimized both for the CPU and GPU. The CPU implementation prioritizes conserving memory, and makes extensive use of pre-allocation for the simulation arrays. Unlike the GPU implementation, it does not allocate a matrix of size `Number of Spins x Number of Time Points` in each block, instead using a for loop to step through time.
+`Bloch` is equivalent to `BlochSimple` in the operations it performs, but has separate implementations optimized for both the CPU and GPU. The CPU implementation uses array broadcasting for computation and preallocates all simulation arrays to conserve memory. The simulation arrays are 1-dimensional with length equal to the number of spins in the phantom and are updated at each time step. The GPU implementation also uses preallocation and a similar loop-based computation strategy, but does so using kernels for spin precession and excitation implemented using the `KernelAbstractions.jl` package. A key advantage of using kernel-based methods is that intermediate values compuated based on phantom and sequence properties can be stored in registers without having to write back to GPU global memory, which has much higher memory latency compared with the CPU. Other optimizations within the kernels include:
 
-In contrast, the GPU implementation divides work among as many threads as possible at the beginning of the `run_spin_precession!` and `run_spin_excitation!` functions. For the CPU implementation, this would not be beneficial since there are far less CPU threads available compared with the GPU. Preallocation is also used via the same `prealloc` function used in `BlochCPU.jl`, where a struct of arrays is allocated at the beginning of the simulation that can be re-used in each simulation block. In addition, a `precalc` function is called before moving the simulation objects to the GPU to do certain calculations that are faster on the CPU beforehand.
+* Reducing the output signal value at each time step within the kernel so that the first thread for each thread group writes the sum of the signal values for each thread in the threadgroup to GPU global memory. This reduces the number of GPU global memory reads + writes needed for the output signal from `Number of Spins x Number of Time Points` to `Number of Spins x Number of Time Points / Number of Threads in Threadgroup`, improving scalability for large phantom objects.
 
-Compared with `BlochSimple`, which only uses array broadcasting for parallelization, `Bloch` also uses kernel-based methods in its `run_spin_excitation!` function for operations which need to be done sequentially. The [kernel implementation](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/Bloch/KernelFunctions.jl) uses shared memory to store the necessary arrays for applying the spin excitation for fast memory access, and separates the complex arrays into real and imaginary components to avoid bank conflicts.
+* Using julia's `Val` type to specialize at compile-time on properties unique to the simulation inputs. For example, whether the phantom exibits spin motion is passed as either `Val(true)` or `Val(false)` to the precession kernel so that different kernels will be compiled for phantoms with or without motion. For the kernel compiled for phantoms without motion, there will be no runtime check of the motion type of the phantom, and everything inside the `if MOTION` statements in the kernel will be compiled out, saving register space and enabling further compiler optimizations. This strategy enables adding support in the future for less common use cases without negatively impacting performance for simulations not using these features.
 
-The performance differences between Bloch and BlochSimple can be seen on the KomaMRI [benchmarks page](https://juliahealth.org/KomaMRI.jl/benchmarks/). The first data point is from when `Bloch` was what is now `BlochSimple`, before a more optimized implementation was created. The following three pull requests are primarily responsible for the performance differences between `Bloch` and `BlochSimple`:
+* Since GPU registers are limited and can hurt GPU occupancy if a kernel uses a high number, their use is minimized by working with real and imaginary components directly rather than abstracting complex number math, using unsigned int32 literal values instead of Julia's default `Int64`, and inlining all functions called from within the kernels.
+
+The performance differences between Bloch and BlochSimple can be seen on the KomaMRI [benchmarks page](https://juliahealth.org/KomaMRI.jl/benchmarks/). The first data point is from when `Bloch` was what is now `BlochSimple`, before a more optimized implementation was created. The following pull requests are primarily responsible for the performance differences between `Bloch` and `BlochSimple`:
 
 * [(443) Optimize run_spin_precession! and run_spin_excitation! for CPU](https://github.com/JuliaHealth/KomaMRI.jl/pull/443)
 * [(459) Optimize run_spin_precession! for GPU](https://github.com/JuliaHealth/KomaMRI.jl/pull/459)
 * [(462) Optimize run_spin_excitation! for GPU](https://github.com/JuliaHealth/KomaMRI.jl/pull/462)
+* [(537) Faster Bloch GPU](https://github.com/JuliaHealth/KomaMRI.jl/pull/537)
