@@ -75,7 +75,7 @@ end
 # Other constructors
 Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,1,:))
 Sequence(GR::Array{Grad,1}, RF::Array{RF,1})= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0.0) for i in 1:size(GR, 2)])
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, EXT, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], Float64[DUR], EXT,DEF)
+Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, EXT, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], Float64[DUR], [EXT],DEF)
 Sequence() = Sequence(
     Matrix{Grad}(undef, 3, 0),
     Matrix{RF}(undef, 1, 0),
@@ -101,7 +101,7 @@ Base.show(io::IO, s::Sequence) = begin
     if length(s) > 0
         if !compact
             nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
-            print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | EXT: $(length(s.DEF)) | DEF: $(length(s.DEF)) ]")
+            print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | EXT: $(length(s.EXT)) | DEF: $(length(s.DEF)) ]")
         else
             print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
         end

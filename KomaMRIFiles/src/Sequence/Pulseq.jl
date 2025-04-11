@@ -390,7 +390,7 @@ function read_seq(filename)
     shapeLibrary = Dict()
     extensionLibrary = Dict()
     triggerLibrary = Dict()
-    extensionStringAndID = Dict{AbstractString,Int}()
+    extensionType = Dict()
     labelsetLibrary = Dict()
     labelincLibrary = Dict()
     #Reading file and storing data
@@ -398,7 +398,6 @@ function read_seq(filename)
         while !eof(io)
 
             section = readline(io)
-            #Main.@infiltrate
             if typeof(section) == String && (isempty(section) || section[1] == '#')
                 #skip useless line
             elseif     section == "[DEFINITIONS]"
@@ -443,15 +442,15 @@ function read_seq(filename)
                     extension = section[11:end]
                     if startswith(extension, "TRIGGERS")
                         id = parse(Int, extension[9:end])
-                        extensionStringAndID["TRIGGERS"] = id
+                        extensionType[id] = Dict("data"=>"TRIGGERS")
                         triggerLibrary = read_events(io, [1, 1, 1e-6, 1e-6]; eventLibrary = triggerLibrary)
                     elseif startswith(extension, "LABELSET")
                         id = parse(Int, extension[9:end])
-                        extensionStringAndID["LABELSET"] =  id
+                        extensionType[id] = Dict("data"=>"LABELSET")
                         labelsetLibrary = read_labels(io;eventLibrary=labelsetLibrary)
                     elseif startswith(extension, "LABELINC")
                         id = parse(Int, extension[9:end])
-                        extensionStringAndID["LABELINC"] = id
+                        extensionType[id] = Dict("data"=>"LABELINC")
                         labelincLibrary = read_labels(io; eventLibrary=labelincLibrary)
                     elseif startswith(extension, "DELAYS")
                         @warn "DELAYS extension is not handle"
@@ -515,6 +514,9 @@ function read_seq(filename)
         "shapeLibrary"=>shapeLibrary,
         "extensionLibrary"=>extensionLibrary,
         "triggerLibrary"=>triggerLibrary,
+        "labelsetLibrary"=>labelsetLibrary,
+        "labelincLibrary"=>labelsetLibrary,
+        "extensionType"=>extensionType,
         "definitions"=>def)
     #Transforming Dictionary to Sequence object
     #This should only work for Pulseq files >=1.4.0
@@ -526,7 +528,7 @@ function read_seq(filename)
     fix_first_last_grads!(seq)
     # Final details
     # Hack for including extension and triggers, this will be done properly for #308 and #323
-    seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
+    #seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
     seq.DEF = merge(obj["definitions"], seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
@@ -671,6 +673,7 @@ function read_ADC(adcLibrary, i)
     A
 end
 
+#=
 """
     ext = read_Extension(extensionLibrary, triggerLibrary, i)
 
@@ -737,6 +740,7 @@ function read_Extension(extensionLibrary, triggerLibrary)
     end
     return additional_text
 end
+=#
 
 """
     seq = get_block(obj, i)
@@ -772,7 +776,9 @@ function get_block(obj, i)
     D = Float64[max(obj["blockDurations"][i], dur(Gx), dur(Gy), dur(Gz), dur(R[1]), dur(A[1]))]
 
      #Extensions
-     E = [Vector{Extension}[]]#read_Extension(obj["extensionLibrary"], iext, i)
+     E = read_extension(obj["extensionLibrary"], obj["extensionType"],obj["triggerLibrary"],obj["labelsetLibrary"],
+     obj["labelincLibrary"],iext)
+     #E = [Vector{Extension}[]]#read_Extension(obj["extensionLibrary"], iext, i)
 
     # Definitition
     DEF = Dict{String,Any}()
@@ -781,3 +787,35 @@ function get_block(obj, i)
     s = Sequence(G,R,A,D,E,DEF)
     s
 end
+
+function read_extension(extensionLibrary,extensionType,triggerLibrary,labelsetLibrary,labelincLibrary,i)
+    EXT = [Extension[]]
+
+    if isempty(extensionLibrary) || i==0
+        return EXT
+    end
+
+    # type ref next_id
+    # next_id of 0 terminates the list
+    type, ref, next_id = extensionLibrary[i]["data"]
+
+    while true
+        if extensionType[type]["data"] == "LABELSET"
+            push!(EXT[1],LabelSet(labelsetLibrary[ref]["data"]...))
+        elseif extensionType[type]["data"] == "LABELINC"
+            push!(EXT[1],LabelInc(labelincLibrary[ref]["data"]...))
+        elseif extensionType[type]["data"] == "TRIGGERS"
+            push!(EXT[1],Trigger(triggerLibrary[ref]["data"]...))
+        else
+            @warn "Extension type not implemented"
+        end
+
+        if next_id == 0
+            break
+        else
+            type, ref, next_id = extensionLibrary[next_id]["data"]
+        end
+    end
+
+    return EXT
+ end
