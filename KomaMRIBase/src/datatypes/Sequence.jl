@@ -32,7 +32,8 @@ mutable struct Sequence
 	DUR::Vector				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
 	EXT::Vector{Vector{Extension}}
 	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
-	Sequence(GR, RF, ADC, DUR, EXT, DEF) = begin
+	label::Vector{AdcLabels}
+	Sequence(GR, RF, ADC, DUR, EXT, DEF,label=AdcLabels[]) = begin
 		@assert size(GR, 2) == size(RF,2) == length(ADC) == length(DUR) "The number of Gradient, RF, ADC, DUR and EXT objects must be the same."
         if size(GR, 1) < 3
             GR = vcat(GR, (0.0 .* GR[1:1, :] for i=1:3-size(GR, 1))...)
@@ -42,7 +43,8 @@ mutable struct Sequence
 			ADC,
 			DUR, #maximum(Float64[GR.dur RF.dur ADC.dur DUR],dims=2)[:],
 			EXT,
-			DEF)
+			DEF,
+			label)
 	end
 end
 
@@ -630,4 +632,39 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	M2_adc = [M2x_adc M2y_adc M2z_adc]
 	#Final
 	M2, M2_adc
+end
+
+function get_label(seq::Sequence, nBlocks::Int=length(seq.EXT))
+  if nBlocks > length(seq.EXT)
+    @warn "i = $i is superior to the n° of blocks in the sequence. All the labels will be filled"
+    nBlocks = length(seq.EXT)
+  end
+
+  labels = AdcLabels[]
+  label = AdcLabels()
+
+  for b = 1:nBlocks
+    for val in seq.EXT[b][typeof.(seq.EXT[b]) .== LabelSet]
+      setproperty!(label, Symbol(val.labelstring), val.labelvalue)
+    end
+
+    for val in seq.EXT[b][typeof.(seq.EXT[b]) .== LabelInc]
+      setproperty!(label,Symbol(val.labelstring),getproperty(label,Symbol(val.labelstring)) + val.labelvalue)
+    end
+    push!(labels,deepcopy(label))
+  end
+
+  return labels
+end
+
+# Add the getproperty method for the label field
+function Base.getproperty(seq::Sequence, sym::Symbol)
+	if sym == :label
+			if isempty(getfield(seq, :label))
+					setfield!(seq, :label, get_label(seq))
+			end
+			return getfield(seq, :label)
+	else
+			return getfield(seq, sym)
+	end
 end
