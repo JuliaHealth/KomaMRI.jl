@@ -515,7 +515,7 @@ function read_seq(filename)
         "extensionLibrary"=>extensionLibrary,
         "triggerLibrary"=>triggerLibrary,
         "labelsetLibrary"=>labelsetLibrary,
-        "labelincLibrary"=>labelsetLibrary,
+        "labelincLibrary"=>labelincLibrary,
         "extensionType"=>extensionType,
         "definitions"=>def)
     #Transforming Dictionary to Sequence object
@@ -778,7 +778,6 @@ function get_block(obj, i)
      #Extensions
      E = read_extension(obj["extensionLibrary"], obj["extensionType"],obj["triggerLibrary"],obj["labelsetLibrary"],
      obj["labelincLibrary"],iext)
-     #E = [Vector{Extension}[]]#read_Extension(obj["extensionLibrary"], iext, i)
 
     # Definitition
     DEF = Dict{String,Any}()
