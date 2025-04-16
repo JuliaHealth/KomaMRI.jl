@@ -668,3 +668,20 @@ function Base.getproperty(seq::Sequence, sym::Symbol)
 			return getfield(seq, sym)
 	end
 end
+
+function extract_field_values(adc_labels, field)
+	return [getfield(adc_label, field) for adc_label in adc_labels]
+end
+
+function Base.maximum(label::Vector{AdcLabels})
+	maxLabel = AdcLabels()
+	field_names = fieldnames(eltype(label))
+	max_values = Dict{Symbol, Any}()
+
+	for field in field_names
+			field_values = extract_field_values(label, field)
+			setproperty!(maxLabel,field,maximum(field_values))
+	end
+
+	return maxLabel
+end
