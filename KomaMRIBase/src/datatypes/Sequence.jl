@@ -653,20 +653,7 @@ function get_label(seq::Sequence, nBlocks::Int=length(seq.EXT))
     end
     push!(labels,deepcopy(label))
   end
-
   return labels
-end
-
-# Add the getproperty method for the label field
-function Base.getproperty(seq::Sequence, sym::Symbol)
-	if sym == :label
-			if isempty(getfield(seq, :label))
-					setfield!(seq, :label, get_label(seq))
-			end
-			return getfield(seq, :label)
-	else
-			return getfield(seq, sym)
-	end
 end
 
 function extract_field_values(adc_labels, field)
