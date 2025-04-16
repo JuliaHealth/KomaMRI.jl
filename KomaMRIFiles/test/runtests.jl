@@ -36,7 +36,8 @@ using TestItems, TestItemRunner, KomaMRIBase
 
         # Test label capability
         seq = @suppress read_seq(path*"/test_files/label_test.seq") 
-        m = maximum(seq.label)
+        label = get_label(seq)
+        m = maximum(label)
         a = AdcLabels(4,0,0,0,0,0,0,2,0,0,0,0)
         bool = true
         for field in fieldnames(typeof(m))
