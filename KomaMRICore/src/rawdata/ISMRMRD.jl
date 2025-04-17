@@ -108,6 +108,10 @@ function signal_to_raw_data(
             sim_params[key] = Int(val)
         end
     end
+
+    # get the maximum of encoding counters
+    label = get_label(seq)
+    max_enc = maximum(label)
     #XML header
     params = Dict(
         #AcquisitionSystemInformation
@@ -132,14 +136,14 @@ function signal_to_raw_data(
         #encodingLimits
         "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
         "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, 0, 0),                     #min, max, center, e.g. partition encoding number
-        "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, 0, 0),                     #min, max, center, e.g. imaging slice number
-        "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
-        "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
-        "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
-        "enc_lim_set"                    => Limit(0, 0, 0),                     #min, max, center, e.g. flow encoding set
-        "enc_lim_segment"                => Limit(0, 0, 0),                     #min, max, center, e.g. segment number for segmented acquisition
+        "enc_lim_kspace_encoding_step_2" => Limit(0, 0, max_enc.PAR),                     #min, max, center, e.g. partition encoding number
+        "enc_lim_average"                => Limit(0, 0, max_enc.AVG),                     #min, max, center, e.g. signal average number
+        "enc_lim_slice"                  => Limit(0, 0, max_enc.SLC),                     #min, max, center, e.g. imaging slice number
+        "enc_lim_contrast"               => Limit(0, 0, max_enc.ECO),                     #min, max, center, e.g. echo number in multi-echo
+        "enc_lim_phase"                  => Limit(0, 0, max_enc.PHS),                     #min, max, center, e.g. cardiac phase number
+        "enc_lim_repetition"             => Limit(0, 0, max_enc.REP),                     #min, max, center, e.g. dynamic number for dynamic scanning
+        "enc_lim_set"                    => Limit(0, 0, max_enc.SET),                     #min, max, center, e.g. flow encoding set
+        "enc_lim_segment"                => Limit(0, 0, max_enc.SEG),                     #min, max, center, e.g. segment number for segmented acquisition
         "trajectory"                     => "other",
         #sequenceParameters
         # "TR"                             => 0,
@@ -158,7 +162,7 @@ function signal_to_raw_data(
     scan_counter = 0
     nz = 0
     current = 1
-    for s = seq #Iterate over sequence blocks
+    for (b,s) = enumerate(seq) #Iterate over sequence blocks
         if is_ADC_on(s)
             Nsamples = s.ADC.N[1]
             Δt_us = floor( s.ADC.T[1] / (Nsamples - 1) * 1e6 )
@@ -195,15 +199,15 @@ function signal_to_raw_data(
                 Float32.((0, 0, 1)), #slice_dir float32x3: Directional cosines of the slice direction
                 Float32.((0, 0, 0)), #patient_table_position float32x3: Patient table off-center
                 EncodingCounters( #idx uint16x17: Encoding loop counters
-                    UInt16(scan_counter), #kspace_encode_step_1 uint16: e.g. phase encoding line number
-                    UInt16(0), #kspace_encode_step_2 uint16: e.g. partition encoding number
-                    UInt16(0), #average uint16: e.g. signal average number
-                    UInt16(nz), #slice uint16: e.g. imaging slice number
-                    UInt16(0), #contrast uint16: e.g. echo number in multi-echo
-                    UInt16(0), #phase uint16: e.g. cardiac phase number
-                    UInt16(0), #repetition uint16: e.g. dynamic number for dynamic scanning
-                    UInt16(0), #set uint16: e.g. flow encoding set
-                    UInt16(0), #segment uint16: e.g. segment number for segmented acquisition
+                    UInt16(max_enc.LIN > 0 ? label[b].LIN : scan_counter), #kspace_encode_step_1 uint16: e.g. phase encoding line number
+                    UInt16((max_enc.LIN > 0 || max_enc.PAR) ? label[b].PAR : nz), #kspace_encode_step_2 uint16: e.g. partition encoding number
+                    UInt16(label[b].AVG), #average uint16: e.g. signal average number
+                    UInt16(label[b].SLC), #slice uint16: e.g. imaging slice number
+                    UInt16(label[b].ECO), #contrast uint16: e.g. echo number in multi-echo
+                    UInt16(label[b].PHS), #phase uint16: e.g. cardiac phase number
+                    UInt16(label[b].REP), #repetition uint16: e.g. dynamic number for dynamic scanning
+                    UInt16(label[b].SET), #set uint16: e.g. flow encoding set
+                    UInt16(label[b].SEG), #segment uint16: e.g. segment number for segmented acquisition
                     Tuple(UInt16(0) for i=1:8) #user uint16x8: Free user parameters
                 ),
                 Tuple(Int32(0) for i=1:8), #user_int int32x8: Free user parameters
@@ -218,7 +222,7 @@ function signal_to_raw_data(
             #Update counters
             scan_counter += 1
             current += Nsamples
-            if scan_counter % NadcsPerImage == 0 #For now only Nz is considered
+            if scan_counter % NadcsPerImage == 0 #For now only   is considered
                 nz += 1 #another image
                 scan_counter = 0 #reset counter
             end
