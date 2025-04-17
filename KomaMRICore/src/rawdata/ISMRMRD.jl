@@ -175,6 +175,12 @@ function signal_to_raw_data(
                 flag += ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1
                 flag += ISMRMRD_ACQ_LAST_IN_SLICE
             end
+            #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
+            traj = ktraj[1:ndims, current:current+Nsamples-1]
+            #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
+            dat =  signal[current:current+Nsamples-1, :]
+            #Find the center of the readout
+            idx_center = findfirst(x -> x > 0,traj[1,:]) - 1 # might not work for some complex trajectories
             #Header of profile data, head::AcquisitionHeader
             head = AcquisitionHeader(
                 UInt16(1), #version uint16: First unsigned int indicates the version
@@ -189,7 +195,7 @@ function signal_to_raw_data(
                 Tuple(UInt64(0) for i=1:16), #channel_mask uint64x16: Active coils on current acquisiton
                 UInt16(0), #discard_pre uint16: Samples to be discarded at the beginning of acquisition
                 UInt16(0), #discard_post uint16: Samples to be discarded at the end of acquisition
-                UInt16(0), #center_sample uint16: Sample at the center of k-space
+                UInt16(idx_center), #center_sample uint16: Sample at the center of k-space
                 UInt16(0), #encoding_space_ref uint16: Reference to an encoding space, typically only one per acquisition
                 UInt16(ndims), #trajectory_dimensions uint16: Indicates the dimensionality of the trajectory vector (0 means no trajectory)
                 Float32(Δt_us), #sample_time_us float32: Time between samples in micro seconds, sampling BW
@@ -213,10 +219,6 @@ function signal_to_raw_data(
                 Tuple(Int32(0) for i=1:8), #user_int int32x8: Free user parameters
                 Tuple(Float32(0) for i=1:8) #user_float float32x8: Free user parameters
             )
-            #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
-            traj = ktraj[1:ndims, current:current+Nsamples-1]
-            #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
-            dat =  signal[current:current+Nsamples-1, :]
             #Saving profile
             push!(profiles, Profile(head, Float32.(traj), ComplexF32.(dat)))
             #Update counters
