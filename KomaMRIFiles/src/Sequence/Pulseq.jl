@@ -799,6 +799,7 @@ function read_extension(extensionLibrary,extensionType,triggerLibrary,labelsetLi
     type, ref, next_id = extensionLibrary[i]["data"]
 
     while true
+        length(extensionType) < type ? (@warn "extension type n°$type does not exist"; break) : nothing
         if extensionType[type]["data"] == "LABELSET"
             push!(EXT[1],LabelSet(labelsetLibrary[ref]["data"]...))
         elseif extensionType[type]["data"] == "LABELINC"

@@ -92,8 +92,8 @@ function signal_to_raw_data(
         FOVx, FOVy, _ = seq.DEF["FOV"] #[m]
         if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVy > 1 FOVy *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        Nx = round(Int64, FOVx / Δx[1])
-        Ny = round(Int64, FOVy / Δx[2])
+        Nx = ceil(Int64, FOVx / Δx[1])
+        Ny = ceil(Int64, FOVy / Δx[2])
     else
         FOVx = Nx * Δx[1]
         FOVy = Ny * Δx[2]
@@ -206,9 +206,9 @@ function signal_to_raw_data(
                 Float32.((0, 0, 0)), #patient_table_position float32x3: Patient table off-center
                 EncodingCounters( #idx uint16x17: Encoding loop counters
                     UInt16(max_enc.LIN > 0 ? label[b].LIN : scan_counter), #kspace_encode_step_1 uint16: e.g. phase encoding line number
-                    UInt16((max_enc.LIN > 0 || max_enc.PAR) ? label[b].PAR : nz), #kspace_encode_step_2 uint16: e.g. partition encoding number
+                    UInt16(max_enc.PAR > 0 ? label[b].PAR : 0), #kspace_encode_step_2 uint16: e.g. partition encoding number
                     UInt16(label[b].AVG), #average uint16: e.g. signal average number
-                    UInt16(label[b].SLC), #slice uint16: e.g. imaging slice number
+                    UInt16(max_enc.SLC > 0 ? label[b].SLC : nz), #slice uint16: e.g. imaging slice number
                     UInt16(label[b].ECO), #contrast uint16: e.g. echo number in multi-echo
                     UInt16(label[b].PHS), #phase uint16: e.g. cardiac phase number
                     UInt16(label[b].REP), #repetition uint16: e.g. dynamic number for dynamic scanning
