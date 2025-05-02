@@ -126,7 +126,7 @@ KomaMRI exists thanks to all our contributors:
   <img src="https://contrib.rocks/image?repo=JuliaHealth/KomaMRI.jl" height="40px"/>
 </a>
 
-Want to be highlighted here? We welcome contributions from the community! If you're interested in contributing, please read "[Contribute to Koma](docs/src/how-to/5-contribute-to-koma.md)" for details on how to get started.
+Want to be highlighted here? We welcome contributions from the community! If you're interested in contributing, please read "[CONTRIBUTING](CONTRIBUTING.md)" for details on how to get started.
 
 
 ## How to Cite
