@@ -19,7 +19,7 @@ PlutoPlotly = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
 KomaPlotsPlutoPlotlyExt = "PlutoPlotly"
 
 [compat]
-Interpolations = "0.13, 0.14, 0.15"
+Interpolations = "0.13, 0.14, 0.15, 0.16"
 Kaleido_jll = "0.1"
 KomaMRIBase = "0.9"
 MAT = "0.10"
