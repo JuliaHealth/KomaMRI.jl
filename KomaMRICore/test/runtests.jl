@@ -242,8 +242,9 @@ end
 end
 
 @testitem "Bloch_RF_accuracy" tags=[:important, :core, :nomotion] begin
-    using Suppressor
+    using Suppressor, OrdinaryDiffEqTsit5
     include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     Tadc = 1e-3
     Trf = Tadc
@@ -252,40 +253,59 @@ end
     Δw = 2π * 100
     B1 = 2e-6 * (Tadc / Trf)
     N = 6
+    Nadc = 25
+    M0 = 1.0
+    duration = 2*Trf
+    γ = 2π * 42.58e6
+    φ = π / 4
+    B1e(t) = B1 * (0 <= t <= Trf)
 
-    sys = Scanner()
-    obj = Phantom{Float64}(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
+    Gx = 1e-3
+    Gy = 1e-3
+    Gz = 0
 
-    rf_phase = [0, π/2]
-    seq = Sequence()
-    seq += ADC(N, Tadc)
-    for i=1:2
-        global seq += RF(B1 .* exp(1im*rf_phase[i]), Trf)
-        global seq += ADC(N, Tadc)
+    coords(t) = get_spin_coords(NoMotion(), x0, y0, z0, t)
+    x(t) = (coords(t)[1])[1]
+    y(t) = (coords(t)[2])[1]
+    z(t) = (coords(t)[3])[1]
+
+    ## Solving using DiffEquations.jl
+    function bloch!(dm, m, p, t)
+        mx, my, mz = m
+        bx, by, bz = [B1e(t) * cos(φ), B1e(t) * sin(φ), (x(t) * Gx + y(t) * Gy + z(t) * Gz)]
+        dm[1] = -mx / T2 + γ * bz * my - γ * by * mz
+        dm[2] = -γ * bz * mx - my / T2 + γ * bx * mz
+        dm[3] =  γ * by * mx - γ * bx * my - mz / T1 + M0 / T1
+        return nothing
     end
+    m0 = [0.0, 0.0, 1.0]
+    tspan = (0.0, duration)
+    prob = ODEProblem(bloch!, m0, tspan)
+    # Only at ADC points
+    x0 = [0.1]
+    y0 = [0.1]
+    z0 = [0.0]
+    tadc = range(Trf, duration, Nadc)
+    sol = @time solve(prob, Tsit5(), saveat = tadc, abstol = 1e-9, reltol = 1e-9)
+    sol_diffeq = hcat(sol.u...)'
+    mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
 
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU)
-    raw = @suppress simulate(obj, seq, sys; sim_params)
-
-    #Mathematica-simulated Bloch equation result
-    res1 = [0.153592+0.46505im,
-            0.208571+0.437734im,
-            0.259184+0.40408im,
-            0.304722+0.364744im,
-            0.344571+0.320455im,
-            0.378217+0.272008im]
-    res2 = [-0.0153894+0.142582im,
-            0.00257641+0.14196im,
-            0.020146+0.13912im,
-            0.037051+0.134149im,
-            0.0530392+0.12717im,
-            0.0678774+0.11833im]
-    norm2(x) = sqrt.(sum(abs.(x).^2))
-    error0 = norm2(raw.profiles[1].data .- 0)
-    error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
-    error2 = norm2(raw.profiles[3].data .- res2) ./ norm2(res2) * 100
-
-    @test  error0 + error1 + error2 < 0.1 #NRMSE < 0.1%
+    ## Solving using KomaMRI
+    sys = Scanner()
+    obj = Phantom(x = x0, y = y0, z = z0, ρ = [M0], T1 = [T1], T2 = [T2])
+    rf_phase = [0, π/2]
+    # Creating Sequence
+    seq = Sequence()
+    seq += RF(cis(φ) .* B1, Trf)
+    seq.GR[1,1] = Grad(Gx, duration)
+    seq.GR[2,1] = Grad(Gy, duration)
+    seq.GR[3,1] = Grad(Gz, duration)
+    seq.ADC[1] = ADC(Nadc, duration-Trf, Trf)
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU, "return_type"=>"mat")
+    raw_aux = @suppress simulate(obj, seq, sys; sim_params)
+    raw = raw_aux[:, 1, 1]
+    @test size(raw) == size(mxy_diffeq)
+    @test NRMSE(raw, mxy_diffeq) < 1
 end
 
 @testitem "Bloch_phase_compensation" tags=[:important, :core, :nomotion] begin
