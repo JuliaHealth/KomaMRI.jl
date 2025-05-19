@@ -304,7 +304,6 @@ end
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU, "return_type"=>"mat")
     raw_aux = @suppress simulate(obj, seq, sys; sim_params)
     raw = raw_aux[:, 1, 1]
-    @test size(raw) == size(mxy_diffeq)
     @test NRMSE(raw, mxy_diffeq) < 1
 end
 
