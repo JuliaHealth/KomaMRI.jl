@@ -361,12 +361,14 @@ function simulate(
     end
     if sim_params["precision"] == "f64" && KA.supports_float64(backend)
         obj  = obj |> f64 #Phantom
+        sys = sys |> f64 #Scanner
         seqd = seqd |> f64 #DiscreteSequence
         Xt   = Xt |> f64 #SpinStateRepresentation
         sig  = sig |> f64 #Signal
     else
         #Precision  #Default
         obj  = obj |> f32 #Phantom
+        sys = sys |> f32 #Scanner
         seqd = seqd |> f32 #DiscreteSequence
         Xt   = Xt |> f32 #SpinStateRepresentation
         sig  = sig |> f32 #Signal

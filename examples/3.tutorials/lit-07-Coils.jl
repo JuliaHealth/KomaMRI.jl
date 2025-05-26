@@ -9,7 +9,7 @@ coil_sens4 = exp.(-π * ((obj.x) .^ 2 / 0.02) .+ (((obj.y) .- 0.1) .^ 2 / 0.02))
 coil_sens = hcat(coil_sens1, coil_sens2, coil_sens3, coil_sens4)
 sys = Scanner()
 sys.rf_coils = RFCoilsSensDefinedAtPhantomPositions(complex.(coil_sens))
-#sys.rf_coils = ArbitraryRFCoils(obj.x, obj.y, obj.z, complex.(coil_sens), complex.(coil_sens))
+sys.rf_coils = ArbitraryRFCoils(obj.x, obj.y, obj.z, complex.(coil_sens), complex.(coil_sens))
 seq_file = joinpath(
     dirname(pathof(KomaMRI)),
     "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq",

@@ -87,17 +87,32 @@ function Base.view(rf_coils::UniformRFCoils, p)
     return rf_coils
 end
 
-function acquire_signal!(sig, rf_coils::UniformRFCoils, Mxy)
+function Base.view(rf_coils::ArbitraryRFCoils, p)
+    return ArbitraryRFCoils(rf_coils.x[p], rf_coils.y[p], rf_coils.z[p], rf_coils.coil_sens[p,:], rf_coils.B1⁺[p,:])
+end
+
+function acquire_signal!(sig, rf_coils::UniformRFCoils, Mxy, phantom_positions)
     sig .= transpose(sum(Mxy; dims=1))
     return nothing
 end
 
-
-function acquire_signal!(sig, rf_coils::RFCoilsSensDefinedAtPhantomPositions, Mxy)
+function acquire_signal!(sig, rf_coils::RFCoilsSensDefinedAtPhantomPositions, Mxy, phantom_positions)
     for i in 1:size(rf_coils.coil_sens, 2)
         sig[:, i] .= transpose(sum(rf_coils.coil_sens[:, i] .* Mxy; dims=1))
     end
     return nothing
+end
+
+function acquire_signal!(sig, rf_coils::ArbitraryRFCoils, Mxy, phantom_positions)
+    coils_cords = hcat(rf_coils.x, rf_coils.y, rf_coils.z)
+    if coils_cords == phantom_positions
+        """Skipping interpolation, coordinates match"""
+    else
+        #Interpolate coil_sens
+        println("Interpolating coil_sens (to do)")
+    end
+    #Acquire signal
+    acquire_signal!(sig, RFCoilsSensDefinedAtPhantomPositions(rf_coils.coil_sens), Mxy, phantom_positions)
 end
 
 function getproperty(sys::Scanner, key::Symbol)
@@ -121,6 +136,10 @@ function get_n_coils(rf_coils::RFCoils)
 end
 
 function get_n_coils(rf_coils::RFCoilsSensDefinedAtPhantomPositions)
+    return size(rf_coils.coil_sens, 2)
+end
+
+function get_n_coils(rf_coils::ArbitraryRFCoils)
     return size(rf_coils.coil_sens, 2)
 end
 
