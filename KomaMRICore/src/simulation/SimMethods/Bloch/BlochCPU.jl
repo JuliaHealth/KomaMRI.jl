@@ -51,6 +51,7 @@ that they can be re-used from block to block.
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Scanner,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::Bloch,
@@ -69,11 +70,10 @@ function run_spin_precession!(
     ΔBz = prealloc.ΔBz
     fill!(ϕ, zero(T))
     @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + ΔBz
-
     # Fill sig[1] if needed
     ADC_idx = 1
     if (seq.ADC[1])
-        sig[1] = sum(M.xy)
+        sig[1] = sum(sys.rf_coils.coil_sens .* M.xy)
         ADC_idx += 1
     end
 
@@ -94,8 +94,7 @@ function run_spin_precession!(
 
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[seq_idx], p.motion)
-
-            sig[ADC_idx] = sum(Mxy) 
+            acquire_signal!(transpose(@view(sig[ADC_idx,:])), sys.rf_coils, Mxy, hcat(p.x, p.y, p.z))
             ADC_idx += 1
         end
 

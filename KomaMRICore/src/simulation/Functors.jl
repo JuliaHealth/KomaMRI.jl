@@ -105,6 +105,7 @@ adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.mot
 # Phantom
 @functor Phantom
 @functor Motion
+@functor Scanner
 @functor Translate
 @functor Rotate
 @functor HeartBeat

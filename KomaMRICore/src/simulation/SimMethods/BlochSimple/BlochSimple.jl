@@ -24,6 +24,7 @@ precession.
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Scanner,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
@@ -51,7 +52,7 @@ function run_spin_precession!(
     outflow_spin_reset!(Mxy, seq.t', p.motion)
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
     #Acquired signal
-    sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    acquire_signal!(sig, sys.rf_coils, Mxy[:, findall(seq.ADC)], hcat(p.x, p.y, p.z))
     return nothing
 end
 
