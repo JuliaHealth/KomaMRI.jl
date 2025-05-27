@@ -370,7 +370,7 @@ end
 
     # This is a sequence with a sinc RF 30° excitation pulse
     sys = Scanner()
-    sys.Smax = 50
+    sys.Smax = 50.0
     B1 = 4.92e-6
     Trf = 3.2e-3
     zmax = 2e-2
