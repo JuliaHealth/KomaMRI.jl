@@ -101,7 +101,7 @@ Base.show(io::IO, s::Sequence) = begin
     if length(s) > 0
         if !compact
             nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
-            print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | EXT: $(length(s.EXT)) | DEF: $(length(s.DEF)) ]")
+            print(io, "Sequence[ τ = $(round(dur(s)*1e3;digits=3)) ms | blocks: $(length(s)) | ADC: $(sum(is_ADC_on.(s))) | GR: $nGRs | RF: $(sum(is_RF_on.(s))) | EXT: $(sum(isempty.(s.EXT))) | DEF: $(length(s.DEF)) ]")
         else
             print(io, "Sequence[τ = $(round(dur(s)*1e3;digits=3)) ms]")
         end
