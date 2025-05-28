@@ -56,23 +56,6 @@ function default_sim_params(sim_params=Dict{String,Any}())
     return sim_params
 end
 
-function interpolate_coils(obj::Phantom, rf_coils::UniformRFCoils)
-    return rf_coils
-end
-
-function interpolate_coils(obj::Phantom, rf_coils::RFCoilsSensDefinedAtPhantomPositions)
-    return rf_coils
-end
-
-function interpolate_coils(obj::Phantom, rf_coils::ArbitraryRFCoils)
-    if obj.x == rf_coils.x && obj.y == rf_coils.y && obj.z == rf_coils.z
-        # No need to interpolate.
-        return rf_coils
-    else
-
-        return interpolated_rf_coils
-    end
-end
 """
     sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
 
@@ -96,7 +79,7 @@ separating the spins of the phantom `obj` in `Nthreads`.
 function run_spin_precession_parallel!(
     obj::Phantom{T},
     seq::DiscreteSequence{T},
-    sys::Scanner,
+    sys::Scanner{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -106,7 +89,6 @@ function run_spin_precession_parallel!(
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
     dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
-    sys.rf_coils = interpolate_coils(obj, sys.rf_coils)
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(
             @view(obj[p]), seq, @view(sys[p]), @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend, @view(prealloc[p])
