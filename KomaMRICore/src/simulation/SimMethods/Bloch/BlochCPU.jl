@@ -91,7 +91,7 @@ function run_spin_precession!(
 
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[seq_idx], p.motion)
-            acquire_signal!(transpose(@view(sig[ADC_idx,:])), sys.rf_coils, Mxy, hcat(p.x, p.y, p.z))
+            acquire_signal!(transpose(@view(sig[ADC_idx,:])), sys.rf_coils, Mxy)
             ADC_idx += 1
         end
 

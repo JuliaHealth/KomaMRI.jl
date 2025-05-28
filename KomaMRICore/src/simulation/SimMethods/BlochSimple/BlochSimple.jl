@@ -52,7 +52,7 @@ function run_spin_precession!(
     outflow_spin_reset!(Mxy, seq.t', p.motion)
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
     #Acquired signal
-    acquire_signal!(sig, sys.rf_coils, Mxy[:, findall(seq.ADC)], hcat(p.x, p.y, p.z))
+    acquire_signal!(sig, sys.rf_coils, Mxy[:, findall(seq.ADC)])
     return nothing
 end
 
