@@ -58,6 +58,23 @@ function default_sim_params(sim_params=Dict{String,Any}())
     return sim_params
 end
 
+function interpolate_coils(obj::Phantom, rf_coils::UniformRFCoils)
+    return rf_coils
+end
+
+function interpolate_coils(obj::Phantom, rf_coils::RFCoilsSensDefinedAtPhantomPositions)
+    return rf_coils
+end
+
+function interpolate_coils(obj::Phantom, rf_coils::ArbitraryRFCoils)
+    if obj.x == rf_coils.x && obj.y == rf_coils.y && obj.z == rf_coils.z
+        # No need to interpolate.
+        return rf_coils
+    else
+
+        return interpolated_rf_coils
+    end
+end
 """
     sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
 
