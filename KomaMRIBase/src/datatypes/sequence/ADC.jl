@@ -117,7 +117,9 @@ function get_adc_phase_compensation(seq)
         if is_ADC_on(seq[i])
             N = seq.ADC[i].N
             ϕ = seq.ADC[i].ϕ
-            aux = ones(N) .* exp(-1im * ϕ)
+            t = KomaMRIBase.times(seq.ADC[i])
+            Δf = seq.ADC[i].Δf
+            aux = exp(-1im * ϕ) .* exp.(-1im * 2π * Δf * t)
             append!(phase, aux)
         end
     end
