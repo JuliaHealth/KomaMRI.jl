@@ -107,7 +107,7 @@ julia> periodic = Periodic(period=1.0, asymmetry=0.2)
 ```
 ![Periodic](../assets/periodic.svg)
 """
-Periodic(period::T, asymmetry::T) where T = TimeCurve(t=[zero(T), period*asymmetry, period], t_unit=[zero(T), oneunit(T), zero(T)])
+Periodic(period::T, asymmetry::T) where T = TimeCurve(t=[zero(T), period*asymmetry, period], t_unit=[zero(T), oneunit(T), zero(T)], periodic=true)
 Periodic(; period=1.0, asymmetry=0.5)     = Periodic(period, asymmetry)
 
 """ Compare two TimeCurves """

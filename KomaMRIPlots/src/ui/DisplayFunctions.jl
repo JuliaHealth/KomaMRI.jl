@@ -796,6 +796,7 @@ function plot_image(
     zmax=maximum(image[:]),
     darkmode=false,
     title="",
+    colorscale="Greys"
 )
     #Layout
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -825,7 +826,7 @@ function plot_image(
         l.width = width
     end
     #Plot
-    p = heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale="Greys")
+    p = heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale=colorscale)
     config = PlotConfig(;
         displaylogo=false,
         toImageButtonOptions=attr(;
@@ -1109,8 +1110,8 @@ function plot_phantom_map(
         unit = ""
         colormap = "Greys"
     end
-    cmin_key = get(kwargs, :cmin, factor * cmin_key)
-    cmax_key = get(kwargs, :cmax, factor * cmax_key)
+    cmin_key = get(kwargs, :zmin, factor * cmin_key)
+    cmax_key = get(kwargs, :zmax, factor * cmax_key)
 
     t = process_times(obj.motion)
     x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
