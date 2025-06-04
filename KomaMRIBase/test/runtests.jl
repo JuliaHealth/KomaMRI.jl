@@ -242,6 +242,34 @@ using TestItems, TestItemRunner
 
     end
 
+    @testset "EXT" begin
+
+        lInc = LabelInc(1,"LIN")
+        lSet = LabelSet(1,"ECO")
+        lSet2 = LabelSet(0,"LIN")
+
+        d = Sequence([Grad(0,0.1)])
+        seq = Sequence()
+        d.EXT = [[lInc]]; 
+        seq += d
+        seq += d
+        d.EXT = [[lInc,lSet]]
+        seq += d
+        d.EXT = [[lInc]]; 
+        seq += d
+        d.EXT = [[lSet2]]; 
+        seq += d
+        d.EXT = [[]]; 
+        seq += d
+
+        l = get_label(seq)
+        LIN_vec = [l[i].LIN for i in eachindex(l)] 
+        @test LIN_vec == vec([1 2 3 4 0 0])
+
+        ECO_vec = [l[i].ECO for i in eachindex(l)] 
+        @test ECO_vec == vec([0 0 1 1 1 1])
+    end
+
     @testset "DiscreteSequence" begin
         path = joinpath(@__DIR__, "test_files")
         seq = PulseDesigner.EPI_example()
