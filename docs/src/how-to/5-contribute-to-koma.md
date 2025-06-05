@@ -125,31 +125,34 @@ Press Sync Changes to push your commit into your branch.
 
 ## How to Test Your Contributions
 
-In Koma, various tests are designed to verify the correctness of the current state of the code, including your contributions once incorporated. Depending on the package where you made your changes (`KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots`) or directly to `KomaMRI`, you need to run the corresponding test as follows:
+In Koma, we have tests to verify the correctness of the current state of the code. Depending on the package where you made your changes, `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots` or `KomaMRI`, follows the instructions below to test them correctly:
 
 ### Test `KomaMRI`:
 
 In the Julia REPL open the Julia package manager mode by pressing `]`, then run the following script:
-    ```julia
-    activate .; test
-    ```
 
-### Test `KomaMRIBase`, `KomaMRIPlots`, `KomaMRIFiles`:
+```julia
+activate .
+test
+```
 
-There are two options to run the test:
+This should open the UI and all buttons will be clicked to test their functionality.
+
+For all of these packages tests look the same. There are two options to run the tests:
+
 
 - **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel.
 
-    >The `KomaMRI` test is not intended to be used this way, because the UI will not open correctly and the test will fail.
 - **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
     ```julia
-    activate .; test [package]
+    activate [package]
+    test [package]
     ```
     with `[package]` being the selected package to be tested (`KomaMRIBase`, `KomaMRIPlots`, `KomaMRIFiles`).
     
 ### Test `KomaMRICore`:
+In this package, you may want to run tests using the CPU or a GPU. By default the tests will run on the CPU, with the number of threads set to `Threads.nthreads()`. You can run them using the Julia REPL (`] activate ; test KomaMRICore`) or VSCode.  To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
 
-In this package, you may want to test the use of GPU or multiple threads. For this reason, the recommended option to run the test is using the Julia REPL. However, if you want to run the test by default on the CPU with the number of threads set to `Threads.nthreads()`, you can also use VSCode. On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
 
 Using the Julia REPL, by default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To run on a specific GPU backend, add the name of the backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore` and pass the name as a test argument.
 
