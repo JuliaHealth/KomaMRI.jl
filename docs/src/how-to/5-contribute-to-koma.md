@@ -143,12 +143,13 @@ For all of these packages tests look the same. There are two options to run the 
 
 - **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel.
 
-- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script:
-    ```julia
-    activate [package]
-    test [package]
-    ```
-    with `[package]` being the selected package to be tested (`KomaMRIBase`, `KomaMRIPlots`, `KomaMRIFiles`).
+- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script, with `[package]` being the selected package to be tested (`KomaMRIBase`, `KomaMRIPlots`, `KomaMRIFiles`):
+
+```julia
+activate [package]
+test [package]
+```
+
     
 ### Test `KomaMRICore`:
 In this package, you may want to run tests using the CPU or a GPU. By default the tests will run on the CPU, with the number of threads set to `Threads.nthreads()`. You can run them using the Julia REPL (`] activate ; test KomaMRICore`) or VSCode.  To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
