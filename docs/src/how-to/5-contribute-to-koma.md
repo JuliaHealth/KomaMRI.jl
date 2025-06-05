@@ -123,6 +123,79 @@ Press Sync Changes to push your commit into your branch.
 
 >💡 If you want to make sure if the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
 
+## How to Test Your Contributions
+
+In Koma, we have tests to verify the correctness of the current state of the code. Depending on the package where you made your changes, `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots` or `KomaMRI`, follows the instructions below to test them correctly:
+
+### Test `KomaMRI`:
+
+In the Julia REPL open the Julia package manager mode by pressing `]`, then run the following script:
+
+```julia
+activate .
+test
+```
+
+This should open the UI and all buttons will be clicked to test their functionality.
+
+For all of these packages tests look the same. There are two options to run the tests:
+
+
+- **Using VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel.
+
+- **Using the Julia REPL**: Open the Julia package manager mode by pressing `]`, then run the following script, with `[package]` being the selected package to be tested (`KomaMRIBase`, `KomaMRIPlots`, `KomaMRIFiles`):
+
+```julia
+activate [package]
+test [package]
+```
+
+    
+### Test `KomaMRICore`:
+In this package, you may want to run tests using the CPU or a GPU. By default the tests will run on the CPU, with the number of threads set to `Threads.nthreads()`. You can run them using the Julia REPL (`] activate ; test KomaMRICore`) or VSCode.  To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
+
+
+Using the Julia REPL, by default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To run on a specific GPU backend, add the name of the backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore` and pass the name as a test argument.
+
+Example:
+```julia
+import Pkg
+Pkg.test("KomaMRICore"; test_args=["CUDA"])
+```
+To run on the CPU with a specific number of threads, pass the number of threads as a Julia argument.
+
+Example:
+```julia
+import Pkg
+Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
+```    
+To change the default backend used for testing, modify the `[preferences.KomaMRICore]` section in the test/Project.toml file:
+
+```julia
+[preferences.KomaMRICore]
+test_backend = "CPU"
+```
+
+For the backend preference to take effect, you need to:
+
+- **REPL Testing**: No action needed. `] test` should pick up the preference immediately.
+- **VSCode Testing**: You need to restart VSCode.
+
+>Sadly, `LocalPreferences.toml` files are not picked up by VSCode (they could be `.gitignore`'d), so we put them into the `test/Project.toml` file instead.
+
+If your contributions do not affect the correct execution of the code, the tests will return a message indicating that your changes have successfully passed.
+
+### Adding a new test
+
+In case your contribution generates a new function that is not currently tested, the code coverage will decrease when the pull request is analyzed, creating an automatic comment indicating the problem. To include this contribution in the tests, you must incorporate your function into the runtest.jl file corresponding to the package where you made your contribution.
+
+To add this new test, you must follow these steps:
+
+1. In VSCode, press `Ctrl + p` to open the search bar and type `runtest.jl` to select the desired file according to the package.
+2. Once the file is selected, you will see the tests distributed in `@testitem` that contain `@testset`. Check if the contribution to test fulfills the conditions for an existing `@testitem`. If not, create a new `@testitem`.
+3. Open a `@testset` inside the `@testitem`, and create a small proof of concept that validates the contribution (use the surrounding `@testset` as a guide).
+4. To finish your test, add a `@test` macro followed by the verification of the proof of concept. This macro will pass the test if the boolean value of the result is true.
+
 ## How to create a pull request
 
 If you want to send your commited new version of the repository, you can create a pull request that will be reviewed by a Koma certified developer.
