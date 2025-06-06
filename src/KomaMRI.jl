@@ -9,6 +9,7 @@ import KomaMRICore: update_blink_window_progress!
 
 # GUI
 using Blink, Interact, AssetRegistry
+using Blink.Sockets: @ip_str
 using MAT
 
 # Reconstruction
