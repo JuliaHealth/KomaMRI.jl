@@ -102,7 +102,7 @@ This will open a menu to select an starting point for your branch. Select `my-fo
 ![](../assets/create-branch-step1.png)
 ![](../assets/create-branch-step2.png)
 
->💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output.
+>💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output. 
 
 ## How to commit
 
