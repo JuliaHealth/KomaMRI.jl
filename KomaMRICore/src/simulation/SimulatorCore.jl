@@ -465,7 +465,7 @@ function simulate_slice_profile(
 )
     sim_params["return_type"] = "state"
     sys = Scanner()
-    obj = Phantom{Float64}(; x=zeros(size(z)), z=Array(z))
+    obj = Phantom(; x=zeros(size(z)), z=Array(z))
     mag = simulate(obj, seq, sys; sim_params)
     return mag
 end
