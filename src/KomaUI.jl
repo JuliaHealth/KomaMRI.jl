@@ -20,7 +20,7 @@ Launch the Koma's UI.
 - `return_window`: (`::Bool`, `=false`) make the `out` be either 'nothing' or the Blink window,
     depending on whether the `return_window` keyword argument is set to true
 - `show_window`: (`::Bool`, `=true`) display the Blink window
-
+ 
 # Returns
 - `out`: (`::Nothing` or `::Blink.AtomShell.Window`) returns either 'nothing' or the Blink
     window, depending on whether the `return_window` keyword argument is set to true.
