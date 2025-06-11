@@ -2,8 +2,6 @@
 
 using KomaMRI # hide
 
-using CUDA
-
 include("../1.sequences/koma_scripts/bSFFP_cine.jl")
 include("utils/plot_cine.jl")
 
