@@ -48,7 +48,6 @@ function bSSFP(
 				  [RF(amplitude .* unit_wf, pulse_duration, f0, ζ_ss) RF(0,0)])
 
 	# Acquisition ----------------------------------------------
-	# Square acquisition (Nx = Ny = N) 
 	# PHASE
 	area_step = Δk / γ
 	G_step = area_step / (T_phase + ζ_phase)

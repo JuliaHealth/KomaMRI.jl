@@ -2,8 +2,8 @@
 
 using KomaMRI # hide
 
-include("../1.sequences/koma_scripts/bSFFP_cine.jl")
-include("utils/plot_cine.jl")
+include(joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/koma_scripts/bSSFP_cine.jl")) # hide
+include(joinpath(dirname(pathof(KomaMRI)), "../examples/3.tutorials/utils/plot_cine.jl"))
 
 sys = Scanner() # hide
 

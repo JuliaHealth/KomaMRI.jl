@@ -5,8 +5,8 @@ function plot_cine(frames, fps; Δt=1/fps, filename="cine_recon.gif")
 	x = 0:size(frames[1])[2]-1
 	y = 1:size(frames[1])[1]
 
-	global_min = minimum(reduce(vcat, frames))  # Mínimo global en todos los frames
-    global_max = maximum(reduce(vcat, frames))  # Máximo global en todos los frames
+	global_min = minimum(reduce(vcat, frames))
+    global_max = maximum(reduce(vcat, frames))
 
 	t = 0
 
