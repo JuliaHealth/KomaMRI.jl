@@ -139,7 +139,7 @@ pkg> test
 
 This should open the UI and all buttons will be clicked to test their functionality.
 
-### Test `KomaMRIBase`, `KomaMRIFiles`, `KomaMRIPlots` or `KomaMRI`:
+### Test `KomaMRIBase`, `KomaMRIFiles` or `KomaMRIPlots`:
 
 For all of these packages tests look the same. There are two options to run the tests:
 
@@ -161,7 +161,7 @@ In this package, you may want to run tests using the CPU or a GPU. By default th
 To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
 
 ```@raw html
-    <img width="40%" src="../../assets/test-KomaMRICore.png">
+    <img width="40%" src="../../assets/test-komamricore.png">
 ```
 
 **Using the Julia REPL:**
@@ -206,28 +206,27 @@ To test your function, add a test into the `runtest.jl` file corresponding to th
 
 Test example:
 ```julia
-@testitem "Phantom" tags = [:base] begin
-    @testset "Brain Phantom 2D" begin
-        ph = brain_phantom2D()
-        @test ph.name == "brain2D_axial"
-        @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 0]
+@testitem "my math" tags = [:base] begin # @testitem: Runnable from VSCode
+    @testset "plus operation" begin # @testset: Adds a name to section
+        @test 1 + 1 == 2 # @test boolean: Test. You can include multiple tests per section
+        @test 4 + 1 == 5
     end
-    @testset "Brain Phantom 3D" begin
-        ph = brain_phantom3D()
-        @test ph.name == "brain3D"
-        @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 1]
+    @testset "minus operation" begin
+        @test 1 - 1 == 0
     end
 end
 ```
-Once the file is selected, check whether the contribution to test fulfills the conditions for an existing `@testitem`. If not, create a new `@testitem` that contains tags according to the implications of the contribution. The possible tags are:
+Once the file is selected, check whether the contribution to test fulfills the conditions for an existing `@testitem`. If not, create a new `@testitem`.
+
+Please add `tags` in your `@testitem`'s for them to work properly. The possible tags are:
 
 - KomaMRIBase: `:base`
-- KomaMRICore: `:core`
+- KomaMRICore: You must include `:core` and **one** of the following:
+    - Test uses motion: `:motion`
+    - Test does not use motion: `:nomotion`
 - KomaMRIPlots: `:plots`
 - KomaMRIFiles: `:files`
 - KomaMRI: `:koma`
-- Uses motion: `:motion`
-- Uses no-motion: `:nomotion`
 
 ## How to create a pull request
 
