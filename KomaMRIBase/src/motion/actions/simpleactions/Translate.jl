@@ -17,7 +17,7 @@ Its fields are the final displacements in the three axes (dx, dy, dz).
 julia> translate = Translate(dx=0.01, dy=0.02, dz=0.03)
 ```
 """
-@with_kw struct Translate{T<:Real} <: SimpleAction{T}
+@with_kw mutable struct Translate{T<:Real} <: SimpleAction{T}
     dx         :: T
     dy         :: T
     dz         :: T

@@ -48,7 +48,7 @@ julia> path = Path(
        )
 ```
 """
-@with_kw struct Path{T<:Real} <: ArbitraryAction{T}
+@with_kw mutable struct Path{T<:Real} <: ArbitraryAction{T}
     dx::AbstractArray{T}
     dy::AbstractArray{T}
     dz::AbstractArray{T}

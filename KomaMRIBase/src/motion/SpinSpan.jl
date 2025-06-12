@@ -16,7 +16,7 @@ and is used to cover all the spins of a phantom.
 julia> allspins = AllSpins()
 ```
 """
-struct AllSpins <: AbstractSpinSpan end
+mutable struct AllSpins <: AbstractSpinSpan end
 
 # Functions
 Base.getindex(spins::AllSpins, p) = p, spins
@@ -43,7 +43,7 @@ julia> spinrange = SpinRange([1, 3, 5, 7])
 julia> spinrange = SpinRange(obj.x .> 0)
 ```
 """
-@with_kw struct SpinRange <: AbstractSpinSpan 
+@with_kw mutable struct SpinRange <: AbstractSpinSpan 
     range::AbstractRange
 end
 
