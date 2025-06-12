@@ -29,6 +29,7 @@ frames1 = reconstruct_cine(raw1, seq, N_matrix, N_phases) # hide
 
 fps = 25 # hide
 p2 = plot_cine(frames1, fps; Δt=TR, filename="../assets/tut-7-frames1.gif"); # hide
+display(p2)
 
 RRs = [900, 1100, 1000, 1000, 1000, 800] .* 1e-3
 
@@ -42,6 +43,8 @@ raw2 = simulate(obj, seq, sys) # hide
 # Reconstruction # hide
 frames2 = reconstruct_cine(raw2, seq, N_matrix, N_phases) # hide
 
+plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif")
+
 seq = bSSFP_cine(
     FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys;
     N_dummy_cycles = 40, adc_duration = adc_duration,
@@ -51,5 +54,7 @@ seq = bSSFP_cine(
 raw3 = simulate(obj, seq, sys) # hide
 # Reconstruction # hide
 frames3 = reconstruct_cine(raw3, seq, N_matrix, N_phases) # hide
+
+plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif")
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

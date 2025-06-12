@@ -56,7 +56,8 @@ frames1 = reconstruct_cine(raw1, seq, N_matrix, N_phases) # hide
 
 fps = 25 # hide
 p2 = plot_cine(frames1, fps; Δt=TR, filename="../assets/tut-7-frames1.gif"); # hide
-#jl #nb display(p2)
+#jl display(p2)
+#nb display(p2)
 
 #md # ```@raw html
 #md # <center><object data="../../assets/tut-7-frames1.gif" style="width:40%"></object></center>
@@ -88,7 +89,8 @@ raw2 = simulate(obj, seq, sys) # hide
 ## Reconstruction # hide
 frames2 = reconstruct_cine(raw2, seq, N_matrix, N_phases) # hide
 
-#jl #nb plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif")
+#jl plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif")
+#nb plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif")
 
 # ### 3. Prospective Triggering: Resynchronized Acquisition
 # To correct this, we synchronize the sequence by providing it the same RR variability as the phantom:
@@ -105,7 +107,8 @@ raw3 = simulate(obj, seq, sys) # hide
 ## Reconstruction # hide
 frames3 = reconstruct_cine(raw3, seq, N_matrix, N_phases) # hide
 
-#jl #nb plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif") # hide
+#jl plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif")
+#nb plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif")
 
 #md # Below we compare the results from the desynchronized 👎 and resynchronized 🕐 acquisitions:
 #md plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../assets/tut-7-frames_comparison.gif"); #hide
