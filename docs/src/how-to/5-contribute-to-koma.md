@@ -1,6 +1,6 @@
 # Contribute to Koma
 
-If you're interested in contributing to Koma, this document will guide you through configuring everything you need to get started. By contributing, you help enhance the functionality, usability, and performance of the Koma ecosystem. Your efforts are welcomed because it help us to advancing the project. Before you begin, it's necessary to install and configure a few essential tools on your machine to ensure a smooth development experience:
+If you're interested in contributing to Koma, this document will guide you through the setup process. Before you begin, make sure to install and configure a few essential tools on your machine to ensure a smooth development experience:
 
 - Git
 - GitHub
@@ -26,7 +26,8 @@ To create this fork, go to the official [KomaMRI repository](https://github.com/
 
 ![](../assets/create-fork-step1.png)
 ![](../assets/create-fork-step2.png)
-
+ 
+  
 ### 3. Access your GitHub account in VSCode
 
 Now, you need to ensure that your GitHub account is connected to VSCode. This allows you to clone repositories, create branches, and manage pull request directrly within VSCode.
@@ -54,7 +55,8 @@ This will create the option to provide a repository URL. Here is where you will 
 
 ![](../assets/create-remote-step1.png)
 ![](../assets/create-remote-step2.png)
-
+ 
+  
 >💡Press `Yes` when prompted to constantly fetch in the future.
 
 The Julia extension should automatically detect the `KomaMRI` environment. To check this, look at the status bar (bottom) end you should see `Julia env: KomaMRI`. If this is not the case, click the option in the menu bar and select KomaMRI.jl.
@@ -102,7 +104,7 @@ This will open a menu to select an starting point for your branch. Select `my-fo
 ![](../assets/create-branch-step1.png)
 ![](../assets/create-branch-step2.png)
 
->💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output.
+>💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output. 
 
 ## How to commit
 
@@ -123,6 +125,109 @@ Press Sync Changes to push your commit into your branch.
 
 >💡 If you want to make sure if the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
 
+## How to Test Your Contributions
+
+Depending on the package where you made your changes, `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots` or `KomaMRI`, follows the instructions below to test them correctly:
+
+### Test `KomaMRI`:
+
+In the Julia REPL run the following script:
+
+```julia
+pkg> test
+```
+
+This should open the UI and all buttons will be clicked to test their functionality.
+
+### Test `KomaMRIBase`, `KomaMRIFiles` or `KomaMRIPlots`:
+
+For all of these packages tests look the same. There are two options to run the tests:
+
+
+- **Test with VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel.
+
+- **Test with Julia REPL**: Run the following script after replacing `[package]` with the selected `KomaMRIBase`, `KomaMRIPlots` or `KomaMRIFiles` package:
+
+```julia
+pkg> test [package]
+```
+
+    
+### Test `KomaMRICore`:
+In this package, you may want to run tests using the CPU or a GPU. By default the tests will run on the CPU, with the number of threads set to `Threads.nthreads()`. You can run them using the Julia REPL or VSCode.  
+
+**Using VSCode:**
+
+To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
+
+```@raw html
+    <img width="40%" src="../../assets/test-komamricore.png">
+```
+
+**Using the Julia REPL:**
+
+By default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To run on a specific GPU backend, add the name of the backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore` and pass the name as a test argument.
+
+Examples:
+
+- To run on the GPU using CUDA.
+    ```julia
+    import Pkg
+    Pkg.test("KomaMRICore"; test_args=["CUDA"])
+    ```
+
+- To run on the CPU with a specific number of threads, pass the number of threads as a Julia argument.
+
+    ```julia
+    import Pkg
+    Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
+    ```    
+- To change the default backend used for testing, modify the `[preferences.KomaMRICore]` section in the test/Project.toml file:
+
+    ```julia
+    [preferences.KomaMRICore]
+    test_backend = "CPU"
+    ```
+
+For the backend preference to take effect, you need to:
+
+- **REPL Testing**: No action needed. `] test` should pick up the preference immediately.
+- **VSCode Testing**: You need to restart VSCode.
+
+    >Sadly, `LocalPreferences.toml` files are not picked up by VSCode (they could be `.gitignore`'d), so we put them into the `test/Project.toml` file instead.
+
+If your contributions do not affect the correct execution of the code, the tests will return a message indicating that your changes have successfully passed.
+
+## Adding a new test
+
+In case your contribution generates a new function that is not currently tested, **the code coverage will decrease** when the pull request is analyzed, creating an automatic comment if the code coverage goes below a threshold.
+
+To test your function, add a test into the `runtest.jl` file corresponding to the package where you made your contribution.
+
+Test example:
+```julia
+@testitem "my math" tags = [:base] begin # @testitem: Runnable from VSCode
+    @testset "plus operation" begin # @testset: Adds a name to section
+        @test 1 + 1 == 2 # @test boolean: Test. You can include multiple tests per section
+        @test 4 + 1 == 5
+    end
+    @testset "minus operation" begin
+        @test 1 - 1 == 0
+    end
+end
+```
+Once the file is selected, check whether the contribution to test fulfills the conditions for an existing `@testitem`. If not, create a new `@testitem`.
+
+Please add `tags` in your `@testitem`'s for them to work properly. The possible tags are:
+
+- KomaMRIBase: `:base`
+- KomaMRICore: You must include `:core` and **one** of the following:
+    - Test uses motion: `:motion`
+    - Test does not use motion: `:nomotion`
+- KomaMRIPlots: `:plots`
+- KomaMRIFiles: `:files`
+- KomaMRI: `:koma`
+
 ## How to create a pull request
 
 If you want to send your commited new version of the repository, you can create a pull request that will be reviewed by a Koma certified developer.
@@ -140,6 +245,8 @@ To finish your pull request, give it a name with a clear mention of the  subject
 ```@raw html
     <img width="50%" src="../../assets/fill-pull-request.png">
 ```
+ 
+  
 >💡 **Tips for a successful Pull Request:**
 >   - Try to address one issue or feature per pull request to make it easier for reviewers.
 >   - Provide all the context necesary, including all the information of the related issue or added feature.
