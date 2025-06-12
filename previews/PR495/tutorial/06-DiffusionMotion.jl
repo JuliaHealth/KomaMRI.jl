@@ -21,7 +21,7 @@ dy = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
 dz = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
 
 random_walk = Path(dx, dy, dz, TimeRange(0.0, T))
-obj.motion = MotionList(random_walk)
+obj.motion = random_walk
 p1 = plot_phantom_map(obj, :T1; time_samples=Nt÷4, height=450)
 
 display(p1)
