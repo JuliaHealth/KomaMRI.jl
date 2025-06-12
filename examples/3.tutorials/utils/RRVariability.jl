@@ -171,3 +171,77 @@ function scale_rf_waveform(unit_wf, flip_angle_rad, sys::Scanner)
 
     return (flip_angle_rad / unit_flip_angle)
 end
+
+function plot_cine(frames, fps; Δt=1/fps, filename="cine_recon.gif", width=400, height=400)
+
+	x = 0:size(frames[1])[2]-1
+	y = 1:size(frames[1])[1]
+
+	global_min = minimum(reduce(vcat, frames))
+    global_max = maximum(reduce(vcat, frames))
+
+	t = 0
+
+	if ndims(frames) == 1
+		n_frames = length(frames)
+		n_cines = 1
+	else
+		n_frames, n_cines = size(frames)
+	end
+
+	anim = @animate for i in 1:n_frames
+		t += Δt
+		l = (1, n_cines)
+		plots = []
+		for j in 1:n_cines
+			push!(plots, Plots.plot!(
+				Plots.heatmap(
+					x,y,frames[i,j]',color=:greys; 
+					aspect_ratio=:equal, 
+					colorbar=true, 
+					clim=(global_min, global_max),
+					size=(n_cines * width, height),
+				),
+				title="t = "*Printf.@sprintf("%.3f", t)*"s", 
+				xlims=(minimum(x), maximum(x)), 
+				ylims=(minimum(y), maximum(y))
+			))
+		end
+		Plots.plot(plots..., layout=l)
+	end
+
+	gif(anim, filename, fps = fps)
+end
+
+function reconstruct_cine(raw, seq, N_matrix, N_phases)
+	frames = []
+	@info "Running reconstruction"
+	@time begin
+		recParams = Dict{Symbol,Any}(:reco=>"direct")
+		Nx = Ny = N_matrix
+		recParams[:reconSize] = (Nx, Ny)
+		recParams[:densityWeighting] = false
+		acqData = AcquisitionData(raw)
+		_, ktraj = get_kspace(seq)
+		for i in 1:N_phases
+			acqAux = copy(acqData)
+			range = reduce(vcat,[j*(N_matrix*N_phases).+((i-1)*N_matrix.+(1:N_matrix)) for j in 0:N_matrix-1])
+			## Kdata
+			acqAux.kdata[1] = reshape(acqAux.kdata[1][range],(N_matrix^2,1))
+			## Traj
+			acqAux.traj[1].circular = false
+			acqAux.traj[1].nodes = transpose(ktraj[:, 1:2])[:,range]
+			acqAux.traj[1].nodes = acqAux.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acqAux.traj[1].nodes[:]))
+			acqAux.traj[1].numProfiles = N_matrix
+			acqAux.traj[1].times = acqAux.traj[1].times[range]
+			## subsampleIndices
+			acqAux.subsampleIndices[1] = acqAux.subsampleIndices[1][1:N_matrix^2]
+			## Reconstruction
+			aux = @timed reconstruction(acqAux, recParams)
+			image  = reshape(aux.value.data,Nx,Ny,:)
+			image_aux = abs.(image[:,:,1])
+			push!(frames,image_aux)
+		end
+	end
+	return frames
+end
