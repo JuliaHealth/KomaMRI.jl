@@ -50,7 +50,7 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 julia> rotate = Rotate(pitch=15.0, roll=0.0, yaw=20.0)
 ```
 """
-@with_kw struct Rotate{T<:Real} <: SimpleAction{T}
+@with_kw mutable struct Rotate{T<:Real} <: SimpleAction{T}
     pitch      :: T
     roll       :: T
     yaw        :: T
