@@ -133,7 +133,7 @@ Depending on the package where you made your changes, `KomaMRIBase`, `KomaMRICor
 
 In the Julia REPL run the following script:
 
-```julia
+```
 pkg> test
 ```
 
@@ -144,19 +144,27 @@ This should open the UI and all buttons will be clicked to test their functional
 For all of these packages tests look the same. There are two options to run the tests:
 
 
-- **Test with VSCode**: On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel.
+- **Test with VSCode**: 
 
-- **Test with Julia REPL**: Run the following script after replacing `[package]` with the selected `KomaMRIBase`, `KomaMRIPlots` or `KomaMRIFiles` package:
+    On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel. 
 
-```julia
-pkg> test [package]
-```
+    ```@raw html
+    <img width="40%" src="../../assets/test-komamribase.png">
+    ```
+
+- **Test with Julia REPL**: 
+
+    Run the following script after replacing `[package]` with the selected `KomaMRIBase`, `KomaMRIPlots` or `KomaMRIFiles` package:
+
+    ```
+    pkg> test [package]
+    ```
 
     
 ### Test `KomaMRICore`:
-In this package, you may want to run tests using the CPU or a GPU. By default the tests will run on the CPU, with the number of threads set to `Threads.nthreads()`. You can run them using the Julia REPL or VSCode.  
+In this package, you may want to run tests using the CPU or GPU. By default the tests will run on the CPU, with the number of threads set to `Threads.nthreads()`. You can run KomaMRICore tests using the Julia REPL or VSCode, but some changes are required to choose the backed to be tested.
 
-**Using VSCode:**
+**Test with VSCode:**
 
 To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
 
@@ -164,49 +172,51 @@ To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, e
     <img width="40%" src="../../assets/test-komamricore.png">
 ```
 
-**Using the Julia REPL:**
+To change the default backend used for testing, modify the `[preferences.KomaMRICore]` section in KomaMRICore/test/project.toml file:
 
-By default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To run on a specific GPU backend, add the name of the backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore` and pass the name as a test argument.
+```julia
+[preferences.KomaMRICore]
+test_backend = "CPU"
+```
+The variable `test_backend` can be changed to “CPU”, “CUDA”, “AMDGPU”, “Metal”, or “oneAPI”. After this change, **restart VSCode**. Make sure that the required backend is installed in Julia’s global environment before testing. This is, for example, `@v1.10` for Julia 1.10.
+
+**Test with Julia REPL:**
+
+By default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To choose a specific backend, two methods exists: 
+
+**Method 1 - Using Preferences:** Add the name of the backend ("CPU","CUDA","AMDGPU","Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore`. Then, test as usual:
+
+```
+pkg> test KomaMRICore
+```
+
+**Method 2 - Using test arguments:** This method is used in Buildkite's CI, and ist is best visualised by the use of examples.
 
 Examples:
+- To run on the GPU using CUDA:
 
-- To run on the GPU using CUDA.
-    ```julia
-    import Pkg
-    Pkg.test("KomaMRICore"; test_args=["CUDA"])
     ```
-
-- To run on the CPU with a specific number of threads, pass the number of threads as a Julia argument.
-
-    ```julia
     import Pkg
+
+    Pkg.test("KomaMRICore"; test_args=`CUDA`)
+    ```    
+- To run on the CPU with a specific number of threads, pass the number of threads as a Julia argument:
+
+    ```
+    import Pkg
+
     Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
     ```    
-- To change the default backend used for testing, modify the `[preferences.KomaMRICore]` section in the test/Project.toml file:
-
-    ```julia
-    [preferences.KomaMRICore]
-    test_backend = "CPU"
-    ```
-
-For the backend preference to take effect, you need to:
-
-- **REPL Testing**: No action needed. `] test` should pick up the preference immediately.
-- **VSCode Testing**: You need to restart VSCode.
-
-    >Sadly, `LocalPreferences.toml` files are not picked up by VSCode (they could be `.gitignore`'d), so we put them into the `test/Project.toml` file instead.
-
-If your contributions do not affect the correct execution of the code, the tests will return a message indicating that your changes have successfully passed.
 
 ## Adding a new test
 
-In case your contribution generates a new function that is not currently tested, **the code coverage will decrease** when the pull request is analyzed, creating an automatic comment if the code coverage goes below a threshold.
+In case your contribution generates a method that is not currently tested, **the code coverage will decrease** when the pull request is analyzed, creating an automatic comment if the code coverage goes below a threshold.
 
-To test your function, add a test into the `runtest.jl` file corresponding to the package where you made your contribution.
+To test your function, add a test into the `runtests.jl` file corresponding to the package where you made your contribution.
 
 Test example:
 ```julia
-@testitem "my math" tags = [:base] begin # @testitem: Runnable from VSCode
+@testitem "my math" tags = [:base] begin # @testitem: Runnable from VSCode (tag them!)
     @testset "plus operation" begin # @testset: Adds a name to section
         @test 1 + 1 == 2 # @test boolean: Test. You can include multiple tests per section
         @test 4 + 1 == 5
