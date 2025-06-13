@@ -17,7 +17,7 @@ circumferential, radial and longitudinal
 julia> heartbeat = HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudinal_strain=0.0)
 ```
 """
-@with_kw mutable struct HeartBeat{T<:Real} <: SimpleAction{T}
+@with_kw struct HeartBeat{T<:Real} <: SimpleAction{T}
     circumferential_strain :: T
     radial_strain          :: T
     longitudinal_strain    :: T
