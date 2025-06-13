@@ -9,13 +9,15 @@ obj = heart_phantom()
 p1 = plot_phantom_map(obj, :T1 ; height=450, time_samples=21) # hide
 display(p1)
 
+obj.motion
+
 RRs          = [1.0]       # [s] constant RR interval
 N_matrix     = 50          # image size = N x N
 N_phases     = 40          # Number of cardiac phases
 FOV          = 0.11        # [m]
 TR           = 20e-3       # [s]
 flip_angle   = 10          # [º]
-adc_duration = 0.2e-3
+adc_duration = 0.2e-3      # [s]
 
 seq = bSSFP_cine(
     FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys;
@@ -35,8 +37,11 @@ RRs = [900, 1100, 1000, 1000, 1000, 800] .* 1e-3
 
 
 # Apply the new RRs to the phantom (both contraction and rotation):
-obj.motion.motions[1].time.periods = RRs
-obj.motion.motions[2].time.periods = RRs
+obj.motion.motions[1].time.periods = RRs # Contraction (HeartBeat)
+obj.motion.motions[2].time.periods = RRs # Rotation
+
+p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=40) # hide
+display(p3)
 
 # Simulation  # hide
 raw2 = simulate(obj, seq, sys) # hide
