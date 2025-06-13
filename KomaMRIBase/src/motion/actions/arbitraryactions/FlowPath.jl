@@ -29,7 +29,7 @@ julia> flowpath = FlowPath(
        )
 ```
 """
-@with_kw mutable struct FlowPath{T<:Real} <: ArbitraryAction{T}
+@with_kw struct FlowPath{T<:Real} <: ArbitraryAction{T}
     dx::AbstractArray{T}
     dy::AbstractArray{T}
     dz::AbstractArray{T}

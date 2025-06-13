@@ -51,7 +51,7 @@ julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 1.0, 1.0, 0.0]
 ```
 ![Time Curve 4](../assets/time-curve-4.svg)
 """
-@with_kw mutable struct TimeCurve{T<:Real}
+@with_kw struct TimeCurve{T<:Real}
     t::AbstractVector{T}
     t_unit::AbstractVector{T}
     periodic::Bool                       = false
