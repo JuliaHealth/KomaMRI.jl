@@ -1,17 +1,17 @@
 # # Chemical Shift in an EPI sequence
 
-using KomaMRI # hide
-sys = Scanner() # hide
+using KomaMRI, Suppressor #hide
+sys = Scanner(); #hide
 
 # For a more realistic example, we will use a brain phantom.
 
 obj = brain_phantom2D() # a slice of a brain
 p1 = plot_phantom_map(obj, :T2 ; height=400, width=400, view_2d=true)
 p2 = plot_phantom_map(obj, :Δw ; height=400, width=400, view_2d=true)
-#md savefig(p1, "../assets/2-phantom1.html") # hide
-#md savefig(p2, "../assets/2-phantom2.html") # hide
+#md savefig(p1, "../assets/2-phantom1.html")  #hide
+#md savefig(p2, "../assets/2-phantom2.html"); #hide
 #jl display(p1)
-#jl display(p2)
+#jl display(p2);
 
 # At the left, you can see the ``T_2`` map of the phantom,
 # and at the right, the off-resonance ``\Delta\omega``.
@@ -28,10 +28,10 @@ p2 = plot_phantom_map(obj, :Δw ; height=400, width=400, view_2d=true)
 # we will be able visualize the effect of the chemical shift.
 
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq")
-seq = read_seq(seq_file)
+seq = @suppress read_seq(seq_file)
 p3 = plot_seq(seq; range=[0 40], slider=true, height=300)
-#md savefig(p3, "../assets/2-seq.html") # hide
-#jl display(p3)
+#md savefig(p3, "../assets/2-seq.html"); #hide
+#jl display(p3);
 
 #md # Feel free to explore the sequence's plot 🔍 below!
 
@@ -41,10 +41,10 @@ p3 = plot_seq(seq; range=[0 40], slider=true, height=300)
 
 # If we simulate this sequence we will end up with the following signal.
 
-raw = simulate(obj, seq, sys)
+raw = @suppress simulate(obj, seq, sys)
 p4 = plot_signal(raw; range=[98.4 103.4] , height=300)
-#md savefig(p4, "../assets/2-signal.html") # hide
-#jl display(p4)
+#md savefig(p4, "../assets/2-signal.html"); #hide
+#jl display(p4);
 
 #md # ```@raw html
 #md # <object type="text/html" data="../../assets/2-signal.html" style="width:100%; height:320px;"></object>
@@ -67,8 +67,8 @@ image = reconstruction(acq, reconParams)
 ## Plotting the recon
 slice_abs = abs.(image[:, :, 1])
 p5 = plot_image(slice_abs; height=400)
-#md savefig(p5, "../assets/2-recon.html") # hide
-#jl display(p5)
+#md savefig(p5, "../assets/2-recon.html"); #hide
+#jl display(p5);
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/2-recon.html" style="width:65%; height:420px;"></object></center>

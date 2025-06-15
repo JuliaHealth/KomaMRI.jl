@@ -16,7 +16,7 @@
     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
     #Motion
     motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
-end</code></pre><p>This structure consists of several elements. Most of them are vectors, except for the <code>name</code> (self-explanatory) and <code>motion</code> (explained below) fields. These vectors represent object properties, with each element holding a value associated with a single magnetization (i.e. a single spin). Specifically, <code>x</code>, <code>y</code> and <code>z</code> are the initial spatial coordinates of each spin. <code>ρ</code> stands for the proton density, and <code>T1</code>, <code>T2</code> and <code>T2s</code> (standing for T2*) are the well-known relaxation times. <code>Δw</code> accounts for off-resonance effects. <code>Dλ1</code>, <code>Dλ2</code> and <code>Dθ</code> are diffusion-related fields which are not in use at the moment. Last, the <code>motion</code> field stands for spin displacements, which are added to <code>x</code>, <code>y</code> and <code>z</code> when simulating in order to obtain the spin positions at each time step. For more information about motion, refer to <a href="../2-motion/">Motion</a> section.</p><p>To get an even better understanding on how this structure works, let&#39;s look at an example of a brain phantom:</p><pre><code class="language-julia hljs">obj = brain_phantom2D()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Phantom{Float64}
+end</code></pre><p>This structure consists of several elements. Most of them are vectors, except for the <code>name</code> (self-explanatory) and <code>motion</code> (explained below) fields. These vectors represent object properties, with each element holding a value associated with a single magnetization (i.e. a single spin). Specifically, <code>x</code>, <code>y</code> and <code>z</code> are the initial spatial coordinates of each spin. <code>ρ</code> stands for the proton density, and <code>T1</code>, <code>T2</code> and <code>T2s</code> (standing for T2*) are the well-known relaxation times. <code>Δw</code> accounts for off-resonance effects. <code>Dλ1</code>, <code>Dλ2</code> and <code>Dθ</code> are diffusion-related fields which are not in use at the moment. Last, the <code>motion</code> field stands for spin displacements, which are added to <code>x</code>, <code>y</code> and <code>z</code> when simulating in order to obtain the spin positions at each time step. For more information about motion, refer to <a href="../2-motion/">Motion</a> section.</p><p>To get an even better understanding on how this structure works, let&#39;s look at an example of a brain phantom:</p><pre><code class="language-julia hljs">obj = brain_phantom2D()</code></pre><pre><code class="nohighlight hljs">Phantom{Float64}
   name: String &quot;brain2D_axial&quot;
   x: Array{Float64}((6506,)) [-0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084  …  0.084, 0.084, 0.084, 0.084, 0.086, 0.086, 0.086, 0.086, 0.086, 0.086]
   y: Array{Float64}((6506,)) [-0.03, -0.028, -0.026, -0.024, -0.022, -0.02, -0.018, -0.016, -0.014, -0.012  …  0.006, 0.008, 0.01, 0.012, -0.008, -0.006, -0.004, -0.002, 0.0, 0.002]
@@ -30,46 +30,35 @@ end</code></pre><p>This structure consists of several elements. Most of them are
   Dλ2: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   Dθ: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   motion: NoMotion NoMotion()
-</code></pre><pre><code class="language-julia-repl hljs">Phantom{Float64}
-  name: String &quot;brain2D_axial&quot;
-  x: Array{Float64}((6506,)) [-0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084, -0.084  …  0.084, 0.084, 0.084, 0.084, 0.086, 0.086, 0.086, 0.086, 0.086, 0.086]
-  y: Array{Float64}((6506,)) [-0.03, -0.028, -0.026, -0.024, -0.022, -0.02, -0.018, -0.016, -0.014, -0.012  …  0.006, 0.008, 0.01, 0.012, -0.008, -0.006, -0.004, -0.002, 0.0, 0.002]
-  z: Array{Float64}((6506,)) [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0  …  0.0, 0.0, 0.0, 0.0, -0.0, -0.0, -0.0, -0.0, 0.0, 0.0]
-  ρ: Array{Float64}((6506,)) [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0  …  1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-  T1: Array{Float64}((6506,)) [0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569  …  0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569]
-  T2: Array{Float64}((6506,)) [0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329  …  0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329]
-  T2s: Array{Float64}((6506,)) [0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058  …  0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058]
-  Δw: Array{Float64}((6506,)) [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0  …  -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]
-  Dλ1: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  Dλ2: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  Dθ: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  motion: NoMotion NoMotion()</code></pre><p>You can visualize the <strong>Phantom</strong> struct using the <a href="../../reference/5-koma-plots/#KomaMRIPlots.plot_phantom_map"><code>plot_phantom_map</code></a> function, which is part of the <strong>KomaMRIPlots</strong> subdependency. This function plots the magnitude of a property for each magnetization at a specific spatial position. You can observe properties such as proton density and relaxation times, so feel free to replace the <code>:T1</code> symbol with another property of the phantom in the example below:</p><pre><code class="language-julia hljs">p1 = plot_phantom_map(obj, :T1; height=450)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/doc-1-phantom.html&quot;</code></pre><center><object type="text/html" data="../../assets/doc-1-phantom.html" style="width:85%; height:470px;"></object></center><p>You can access and filter information for the all the field names of a <strong>Phantom</strong> using the dot notation:</p><pre><code class="language-julia-repl hljs">julia&gt; obj.name
-&quot;brain2D_axial&quot;</code></pre><pre><code class="language-julia-repl hljs">julia&gt; obj.x
-6506-element Vector{Float64}:
+</code></pre><p>You can visualize the <strong>Phantom</strong> struct using the <a href="../../reference/5-koma-plots/#KomaMRIPlots.plot_phantom_map"><code>plot_phantom_map</code></a> function, which is part of the <strong>KomaMRIPlots</strong> subdependency. This function plots the magnitude of a property for each magnetization at a specific spatial position. You can observe properties such as proton density and relaxation times, so feel free to replace the <code>:T1</code> symbol with another property of the phantom in the example below:</p><pre><code class="language-julia hljs">p1 = plot_phantom_map(obj, :T1; height=450)</code></pre><center><object type="text/html" data="../../assets/doc-1-phantom.html" style="width:85%; height:470px;"></object></center><p>You can access and filter information for the all the field names of a <strong>Phantom</strong> using the dot notation:</p><pre><code class="language-julia hljs">obj.name</code></pre><pre><code class="nohighlight hljs">&quot;brain2D_axial&quot;</code></pre><pre><code class="language-julia hljs">obj.x</code></pre><pre><code class="nohighlight hljs">6506-element Vector{Float64}:
+ -0.084
+ -0.084
+ -0.084
+ -0.084
+ -0.084
+ -0.084
+ -0.084
  -0.084
  -0.084
  -0.084
   ⋮
+  0.084
+  0.084
+  0.084
   0.086
   0.086
-  0.086</code></pre><pre><code class="language-julia-repl hljs">julia&gt; obj.motion
-NoMotion()</code></pre><h2 id="Phantom-Operations"><a class="docs-heading-anchor" href="#Phantom-Operations">Phantom Operations</a><a id="Phantom-Operations-1"></a><a class="docs-heading-anchor-permalink" href="#Phantom-Operations" title="Permalink"></a></h2><p>In addition, <strong>KomaMRI</strong> supports some phantom operations:</p><h3 id="Phantom-Subset"><a class="docs-heading-anchor" href="#Phantom-Subset">Phantom Subset</a><a id="Phantom-Subset-1"></a><a class="docs-heading-anchor-permalink" href="#Phantom-Subset" title="Permalink"></a></h3><p>It is possible to access a subset of spins in a <strong>Phantom</strong> by slicing or indexing. The result will also be a <strong>Phantom</strong> struct, allowing you to perform the same operations as you would with a full Phantom:</p><pre><code class="language-julia hljs">obj[1:2000]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/tut-5-phantom-subset.html&quot;</code></pre><center><object type="text/html" data="../../assets/tut-5-phantom-subset.html" style="width:85%; height:470px;"></object></center><h3 id="Combination-of-Phantoms"><a class="docs-heading-anchor" href="#Combination-of-Phantoms">Combination of Phantoms</a><a id="Combination-of-Phantoms-1"></a><a class="docs-heading-anchor-permalink" href="#Combination-of-Phantoms" title="Permalink"></a></h3><p>In the same way, we can add two or more phantoms, resulting in another <a href="../../reference/2-koma-base/#KomaMRIBase.Phantom"><code>Phantom</code></a> struct:</p><pre><code class="language-julia hljs">obj2 = pelvis_phantom2D()
-obj_sum = obj + obj2</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;../assets/tut-5-phantom-sum.html&quot;</code></pre><center><object type="text/html" data="../../assets/tut-5-phantom-sum.html" style="width:85%; height:470px;"></object></center><h3 id="Scalar-multiplication-of-a-Phantom"><a class="docs-heading-anchor" href="#Scalar-multiplication-of-a-Phantom">Scalar multiplication of a Phantom</a><a id="Scalar-multiplication-of-a-Phantom-1"></a><a class="docs-heading-anchor-permalink" href="#Scalar-multiplication-of-a-Phantom" title="Permalink"></a></h3><p>Finally, multiplying a phantom by a scalar multiplies its proton density (<code>ρ</code>) by that amount:</p><pre><code class="language-julia hljs">obj_mul = 3*obj</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Phantom{Float64}
-  name: String &quot;brain2D_axial&quot;
-  x: Array{Float64}((6506,)) [-0.184, -0.184, -0.184, -0.184, -0.184, -0.184, -0.184, -0.184, -0.184, -0.184  …  -0.016, -0.016, -0.016, -0.016, -0.014000000000000012, -0.014000000000000012, -0.014000000000000012, -0.014000000000000012, -0.014000000000000012, -0.014000000000000012]
-  y: Array{Float64}((6506,)) [-0.03, -0.028, -0.026, -0.024, -0.022, -0.02, -0.018, -0.016, -0.014, -0.012  …  0.006, 0.008, 0.01, 0.012, -0.008, -0.006, -0.004, -0.002, 0.0, 0.002]
-  z: Array{Float64}((6506,)) [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0  …  0.0, 0.0, 0.0, 0.0, -0.0, -0.0, -0.0, -0.0, 0.0, 0.0]
-  ρ: Array{Float64}((6506,)) [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0  …  3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0]
-  T1: Array{Float64}((6506,)) [0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569  …  0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569, 0.569]
-  T2: Array{Float64}((6506,)) [0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329  …  0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329, 0.329]
-  T2s: Array{Float64}((6506,)) [0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058  …  0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058, 0.058]
-  Δw: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  Dλ1: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  Dλ2: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  Dθ: Array{Float64}((6506,)) [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  motion: NoMotion NoMotion()
-</code></pre><pre><code class="language-julia-repl hljs">julia&gt; obj.ρ
-6506-element Vector{Float64}:
+  0.086
+  0.086
+  0.086
+  0.086</code></pre><pre><code class="language-julia hljs">obj.motion</code></pre><pre><code class="nohighlight hljs">NoMotion()</code></pre><h2 id="Phantom-Operations"><a class="docs-heading-anchor" href="#Phantom-Operations">Phantom Operations</a><a id="Phantom-Operations-1"></a><a class="docs-heading-anchor-permalink" href="#Phantom-Operations" title="Permalink"></a></h2><p>In addition, <strong>KomaMRI</strong> supports some phantom operations:</p><h3 id="Phantom-Subset"><a class="docs-heading-anchor" href="#Phantom-Subset">Phantom Subset</a><a id="Phantom-Subset-1"></a><a class="docs-heading-anchor-permalink" href="#Phantom-Subset" title="Permalink"></a></h3><p>It is possible to access a subset of spins in a <strong>Phantom</strong> by slicing or indexing. The result will also be a <strong>Phantom</strong> struct, allowing you to perform the same operations as you would with a full Phantom:</p><pre><code class="language-julia hljs">obj[1:2000]</code></pre><center><object type="text/html" data="../../assets/tut-5-phantom-subset.html" style="width:85%; height:470px;"></object></center><h3 id="Combination-of-Phantoms"><a class="docs-heading-anchor" href="#Combination-of-Phantoms">Combination of Phantoms</a><a id="Combination-of-Phantoms-1"></a><a class="docs-heading-anchor-permalink" href="#Combination-of-Phantoms" title="Permalink"></a></h3><p>In the same way, we can add two or more phantoms, resulting in another <a href="../../reference/2-koma-base/#KomaMRIBase.Phantom"><code>Phantom</code></a> struct:</p><pre><code class="language-julia hljs">obj2 = pelvis_phantom2D()
+obj_sum = obj + obj2</code></pre><center><object type="text/html" data="../../assets/tut-5-phantom-sum.html" style="width:85%; height:470px;"></object></center><h3 id="Scalar-multiplication-of-a-Phantom"><a class="docs-heading-anchor" href="#Scalar-multiplication-of-a-Phantom">Scalar multiplication of a Phantom</a><a id="Scalar-multiplication-of-a-Phantom-1"></a><a class="docs-heading-anchor-permalink" href="#Scalar-multiplication-of-a-Phantom" title="Permalink"></a></h3><p>Finally, multiplying a phantom by a scalar multiplies its proton density (<code>ρ</code>) by that amount:</p><pre><code class="language-julia hljs">obj_mul = 3*obj;</code></pre><pre><code class="language-julia hljs">obj.ρ</code></pre><pre><code class="nohighlight hljs">6506-element Vector{Float64}:
+ 1.0
+ 1.0
+ 1.0
+ 1.0
+ 1.0
+ 1.0
+ 1.0
  1.0
  1.0
  1.0
@@ -77,13 +66,29 @@ obj_sum = obj + obj2</code></pre><pre class="documenter-example-output"><code cl
  1.0
  1.0
  1.0
-
-julia&gt; obj_mul.ρ
-6506-element Vector{Float64}:
+ 1.0
+ 1.0
+ 1.0
+ 1.0
+ 1.0
+ 1.0</code></pre><pre><code class="language-julia hljs">obj_mul.ρ</code></pre><pre><code class="nohighlight hljs">6506-element Vector{Float64}:
+ 3.0
+ 3.0
+ 3.0
+ 3.0
+ 3.0
+ 3.0
+ 3.0
  3.0
  3.0
  3.0
  ⋮
  3.0
  3.0
- 3.0</code></pre><h2 id="Phantom-Storage-and-Sharing"><a class="docs-heading-anchor" href="#Phantom-Storage-and-Sharing">Phantom Storage and Sharing</a><a id="Phantom-Storage-and-Sharing-1"></a><a class="docs-heading-anchor-permalink" href="#Phantom-Storage-and-Sharing" title="Permalink"></a></h2><p>Phantoms can be stored and shared thanks to our new <a href="../3-phantom-format/">Phantom File Format</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../how-to/5-contribute-to-koma/">« Contribute to Koma</a><a class="docs-footer-nextpage" href="../2-motion/">Motion »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.12.0 on <span class="colophon-date" title="Friday 13 June 2025 11:52">Friday 13 June 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ 3.0
+ 3.0
+ 3.0
+ 3.0
+ 3.0
+ 3.0
+ 3.0</code></pre><h2 id="Phantom-Storage-and-Sharing"><a class="docs-heading-anchor" href="#Phantom-Storage-and-Sharing">Phantom Storage and Sharing</a><a id="Phantom-Storage-and-Sharing-1"></a><a class="docs-heading-anchor-permalink" href="#Phantom-Storage-and-Sharing" title="Permalink"></a></h2><p>Phantoms can be stored and shared thanks to our new <a href="../3-phantom-format/">Phantom File Format</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../how-to/5-contribute-to-koma/">« Contribute to Koma</a><a class="docs-footer-nextpage" href="../2-motion/">Motion »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.12.0 on <span class="colophon-date" title="Sunday 15 June 2025 22:01">Sunday 15 June 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
