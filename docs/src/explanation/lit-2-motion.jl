@@ -1,7 +1,7 @@
 # # Motion
 
-using KomaMRI # hide
-obj = brain_phantom2D() # hide
+using KomaMRI #hide
+obj = brain_phantom2D(); #hide
 
 # Koma can easily simulate the effects of motion during acquisitions. 
 # As introduced in the [previous section](1-phantom.md), the motion-related information
@@ -37,12 +37,12 @@ obj = brain_phantom2D() # hide
 
 # ### `NoMotion` struct
 # `NoMotion` is the default type for static phantoms. Since its structure has no fields, making a phantom static is as simple as:
-obj.motion = NoMotion()
+obj.motion = NoMotion();
 
 # ### `Motion` struct
 # The `Motion` struct contains information about a basic motion, understood as the combination of an `action`, a `time` curve and a `spins` span.
 # This three fields will be described in detail later. Here is an example of how to assign a motion to a phantom in this case:
-obj.motion = Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins())
+obj.motion = Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins());
 
 # !!! note
 #     There are `Motion` constructors that simplify its definition:
@@ -57,7 +57,7 @@ obj.motion = Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins())
 obj.motion = MotionList(
     Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins()),
     Motion(Rotate(0.0, 0.0, 45.0), Periodic(1.0, 0.5), SpinRange(1:1000))
-)
+);
 
 # ## The `Motion` structure and its fields
 # The `Motion` struct is the basic building block for defining motion in Koma. 
@@ -112,34 +112,32 @@ obj.motion = MotionList(
 # each face of the cube is given a different T1 value:
 
 #jl # Phantom construction
-L = 1e-3 # hide
-Δx = 20e-6 # hide
-x = y = z = -L/2:Δx:L/2 # hide
-xx = reshape(x, (length(x),1,1)) # hide
-yy = reshape(y, (1,length(y),1)) # hide 
-zz = reshape(z, (1,1,length(z))) # hide 
-x = 1*xx .+ 0*yy .+ 0*zz # hide
-y = 0*xx .+ 1*yy .+ 0*zz # hide
-z = 0*xx .+ 0*yy .+ 1*zz # hide
-◼(L) =((abs.(x) .<= L/2) .& (abs.(y) .<= L/2) .& (abs.(z) .<= L/2)) # hide
-cube = ◼(L) - ◼(L - Δx) # Hollow cube # hide 
-ρ = 1.0*cube #proton density # hide
-T1 = copy(ρ) # hide
-T1s = [100, 500, 1000, 2500, 2000, 1500] .* 1e-3 # hide
-idx_T1 = 1 # hide
-ϵ = 1e-5 # hide
-for (i, x) in enumerate([x,y,z]) # hide
-    for (j, L) in enumerate([-L/2, L/2]) # hide
-        T1[(L - ϵ) .<= x .<= (L + ϵ)] .= T1s[idx_T1] # hide
-        global idx_T1 += 1 # hide
-    end # hide
-end # hide
-obj = Phantom( x=x[ρ .!= 0], y=y[ρ .!= 0], z=z[ρ .!= 0], T1 = T1[ρ .!= 0] ) # hide
-
-p = plot_phantom_map(obj, :T1; height=440) #hide
-
-#md savefig(p, "../assets/doc-2-phantom.html") #hide
-#jl display(p)
+L = 1e-3 #hide
+Δx = 20e-6 #hide
+x = y = z = -L/2:Δx:L/2 #hide
+xx = reshape(x, (length(x),1,1)) #hide
+yy = reshape(y, (1,length(y),1)) #hide 
+zz = reshape(z, (1,1,length(z))) #hide 
+x = 1*xx .+ 0*yy .+ 0*zz #hide
+y = 0*xx .+ 1*yy .+ 0*zz #hide
+z = 0*xx .+ 0*yy .+ 1*zz #hide
+◼(L) =((abs.(x) .<= L/2) .& (abs.(y) .<= L/2) .& (abs.(z) .<= L/2)) #hide
+cube = ◼(L) - ◼(L - Δx) # Hollow cube #hide 
+ρ = 1.0*cube #proton density #hide
+T1 = copy(ρ) #hide
+T1s = [100, 500, 1000, 2500, 2000, 1500] .* 1e-3 #hide
+idx_T1 = 1 #hide
+ϵ = 1e-5 #hide
+for (i, x) in enumerate([x,y,z]) #hide
+    for (j, L) in enumerate([-L/2, L/2]) #hide
+        T1[(L - ϵ) .<= x .<= (L + ϵ)] .= T1s[idx_T1] #hide
+        global idx_T1 += 1 #hide
+    end #hide
+end #hide
+obj = Phantom( x=x[ρ .!= 0], y=y[ρ .!= 0], z=z[ρ .!= 0], T1 = T1[ρ .!= 0] ); #hide
+p = plot_phantom_map(obj, :T1; height=440); #hide
+#md savefig(p, "../assets/doc-2-phantom.html"); #hide
+#jl display(p);
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/doc-2-phantom.html" style="width:85%; height:470px;"></object></center>
@@ -149,14 +147,13 @@ p = plot_phantom_map(obj, :T1; height=440) #hide
 # In this first example, we've added a translational motion of -0.5, 0.6, and 0.7 mm along the
 # three spatial directions. The motion lasts for 1 second and affects the entire phantom:
 
-obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins())
+obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins());
 
 # Let’s plot this phantom and see how it moves. The `time_samples` argument specifies the number of time samples to be plotted.
 # You can use the bottom slider to scroll through time and check its exact position at each moment: 
 
 p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
-
-#md savefig(p1, "../assets/doc-2-translate.html") #hide
+#md savefig(p1, "../assets/doc-2-translate.html"); #hide
 #jl display(p1)
 
 #md # ```@raw html
@@ -167,12 +164,11 @@ p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
 # In this case, we add a rotational motion to the phantom: 90º around the y-axis and 75º around
 # the z-axis. Like before, the motion lasts for 1 second and affects all spins in the phantom:
 
-obj.motion = Rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins())
+obj.motion = Rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins());
 
 p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
-
-#md savefig(p2, "../assets/doc-2-rotate.html") #hide
-#jl display(p2)
+#md savefig(p2, "../assets/doc-2-rotate.html"); #hide
+#jl display(p2);
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/doc-2-rotate.html" style="width:85%; height:470px;"></object></center>
@@ -183,12 +179,11 @@ p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 # This can be done using the [`SpinRange`](@ref) structure, where you specify the indices of the spins that
 # should be affected. In this example, we apply a translational motion to the upper half of the phantom:
 
-obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002))
+obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002));
 
-p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
-
-#md savefig(p3, "../assets/doc-2-subset.html") #hide
-#jl display(p3)
+p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440); #hide
+#md savefig(p3, "../assets/doc-2-subset.html"); #hide
+#jl display(p3);
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/doc-2-subset.html" style="width:85%; height:470px;"></object></center>
@@ -208,7 +203,6 @@ obj1 = brain_phantom2D() #hide
 obj2 = copy(obj1) #hide
 obj1.x .-= 20e-2; obj2.x .-= 20e-2 #hide
 obj1.y .+= 12e-2; obj2.y .-= 12e-2 #hide
-
 obj1.motion = MotionList(
     Translate(40e-2, 0.0, 0.0, TimeRange(0.0, 0.5),AllSpins()),
     Rotate(0.0, 0.0, 90.0, TimeRange(0.5, 1.0),AllSpins()),
@@ -220,11 +214,9 @@ obj2.motion = MotionList(
 )
 
 obj = obj1 + obj2
-
-p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) # hide
-
-#md savefig(p4, "../assets/doc-2-combination.html") #hide
-#jl display(p4)
+p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
+#md savefig(p4, "../assets/doc-2-combination.html"); #hide
+#jl display(p4);
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/doc-2-combination.html" style="width:85%; height:470px;"></object></center>
