@@ -210,7 +210,7 @@ function plot_cine(frames, fps; Δt=1/fps, filename="cine_recon.gif", width=400,
 		Plots.plot(plots..., layout=l)
 	end
 
-	gif(anim, filename, fps = fps)
+	gif(anim, filename, fps = fps);
 end
 
 function reconstruct_cine(raw, seq, N_matrix, N_phases)

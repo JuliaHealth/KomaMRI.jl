@@ -16,15 +16,15 @@ Trf = 3.2e-3
 zmax = 2e-2
 fmax = 5e3
 z = range(-zmax, zmax, 400)
-Gz = fmax / (γ * zmax)
-f = γ * Gz * z # hide
+Gz = fmax / (γ * zmax);
+f = γ * Gz * z; #hide
 
 # The designed RF pulse is presented in the figure below,
 # where the additional gradient refocuses the spins' phase after the excitation.
 
 seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0;0;Gz], TBP=8)
 p2 = plot_seq(seq; max_rf_samples=Inf, slider=false)
-#md savefig(p2, "../assets/42-seq.html") # hide
+#md savefig(p2, "../assets/42-seq.html"); #hide
 #jl display(p2)
 
 #md # ```@raw html
@@ -35,23 +35,23 @@ p2 = plot_seq(seq; max_rf_samples=Inf, slider=false)
 # Note that we modified `Δt_rf` in `sim_params` to match the resolution of the waveform.
 
 sim_params = Dict{String, Any}("Δt_rf" => Trf / length(seq.RF.A[1]))
-M = simulate_slice_profile(seq; z, sim_params)
+M = @suppress simulate_slice_profile(seq; z, sim_params)
 
-using PlotlyJS # hide
-s1 = scatter(x=f, y=real.(M.xy), name="Mx") # hide
-s2 = scatter(x=f, y=imag.(M.xy), name="My") # hide
-dat = seq.RF.A[1] # hide
-N = length(dat) # hide
-dat_pad = [zeros(floor(Int64,N)); dat; zeros(floor(Int64,N))] # hide
-N_pad = length(dat_pad) # hide
+using PlotlyJS #hide
+s1 = scatter(x=f, y=real.(M.xy), name="Mx") #hide
+s2 = scatter(x=f, y=imag.(M.xy), name="My") #hide
+dat = seq.RF.A[1] #hide
+N = length(dat) #hide
+dat_pad = [zeros(floor(Int64,N)); dat; zeros(floor(Int64,N))] #hide
+N_pad = length(dat_pad) #hide
 U = 1 / (Trf) * N / N_pad #hide
-u = range(0, (N_pad - 1) * U; step=U) # hide
-u = u .- maximum(u) / 2 .- U/2 # hide
-FT_dat_pad = abs.(KomaMRI.fftc(dat_pad; dims=1)) # hide
-scale_factor = maximum(abs.(M.xy)) / maximum(FT_dat_pad) # hide
-s3 = scatter(x=u, y=FT_dat_pad*scale_factor, name="|FT(B₁(t))|", line=attr(dash="dash")) # hide
-pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax])) # hide
-#md savefig(pb, "../assets/4b-profile.html") # hide
+u = range(0, (N_pad - 1) * U; step=U) #hide
+u = u .- maximum(u) / 2 .- U/2 #hide
+FT_dat_pad = abs.(KomaMRI.fftc(dat_pad; dims=1)) #hide
+scale_factor = maximum(abs.(M.xy)) / maximum(FT_dat_pad) #hide
+s3 = scatter(x=u, y=FT_dat_pad*scale_factor, name="|FT(B₁(t))|", line=attr(dash="dash")) #hide
+pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax])) #hide
+#md savefig(pb, "../assets/4b-profile.html"); #hide
 #jl display(pb)
 
 #md # This produces the following slice profile:
@@ -66,23 +66,23 @@ pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_t
 # But what will happen if we use a flip angle of 120 deg instead?
 
 α_desired = 120 + 0im               # The multiplication of a complex number scales the RF pulse of a Sequence
-α = get_flip_angles(seq)[1] # Previous FA approx 30 deg
+α = get_flip_angles(seq)[1]         # Previous FA approx 30 deg
 seq = (α_desired / α) * seq         # Scaling the pulse to have a flip angle of 120
-M = simulate_slice_profile(seq; z, sim_params)
+M = @suppress simulate_slice_profile(seq; z, sim_params);
 
-s1 = scatter(x=f, y=abs.(M.xy), name="|Mxy|") # hide
-dat = seq.RF.A[1] # hide
-N = length(dat) # hide
-dat_pad = [zeros(floor(Int64,N)); dat; zeros(floor(Int64,N))] # hide
-N_pad = length(dat_pad) # hide
+s1 = scatter(x=f, y=abs.(M.xy), name="|Mxy|") #hide
+dat = seq.RF.A[1] #hide
+N = length(dat) #hide
+dat_pad = [zeros(floor(Int64,N)); dat; zeros(floor(Int64,N))] #hide
+N_pad = length(dat_pad) #hide
 U = 1 / (Trf) * N / N_pad #hide
-u = range(0, (N_pad - 1) * U; step=U) # hide
-u = u .- maximum(u) / 2 .- U/2 # hide
-FT_dat_pad = abs.(KomaMRI.fftc(dat_pad; dims=1)) # hide
-scale_factor = maximum(abs.(M.xy)) / maximum(FT_dat_pad) # hide
-s2 = scatter(x=u, y=FT_dat_pad*scale_factor, name="|FT(B₁(t))|", line=attr(dash="dash")) # hide
-pa = plot([s1,s2], Layout(title="120 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax])) # hide
-#md savefig(pa, "../assets/4a-profile.html") # hide
+u = range(0, (N_pad - 1) * U; step=U) #hide
+u = u .- maximum(u) / 2 .- U/2 #hide
+FT_dat_pad = abs.(KomaMRI.fftc(dat_pad; dims=1)) #hide
+scale_factor = maximum(abs.(M.xy)) / maximum(FT_dat_pad) #hide
+s2 = scatter(x=u, y=FT_dat_pad*scale_factor, name="|FT(B₁(t))|", line=attr(dash="dash")) #hide
+pa = plot([s1,s2], Layout(title="120 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax])) #hide
+#md savefig(pa, "../assets/4a-profile.html"); #hide
 #jl display(pa)
 
 #md # ```@raw html
