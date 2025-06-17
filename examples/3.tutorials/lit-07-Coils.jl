@@ -1,18 +1,19 @@
-# # Experimental: Simulating with realistic coils
+ # # Experimental: Simulating with realistic coils
 
 using KomaMRI # hide
 obj = brain_phantom2D()
-coils_x = obj.x#[1:2:end-1]
-coils_y = obj.y#[1:2:end-1]
-coils_z = obj.z#[1:2:end-1]
-coil_sens1 = exp.(-π * (((coils_x) .+ 0.1) .^ 2 / 0.02) .+ ((coils_y) .^ 2 / 0.02))
-coil_sens2 = exp.(-π * (((coils_x) .- 0.1) .^ 2 / 0.02) .+ ((coils_y) .^ 2 / 0.02))
-coil_sens3 = exp.(-π * ((coils_x) .^ 2 / 0.02) .+ (((coils_y) .+ 0.1) .^ 2 / 0.02))
-coil_sens4 = exp.(-π * ((coils_x) .^ 2 / 0.02) .+ (((coils_y) .- 0.1) .^ 2 / 0.02))
-coil_sens = hcat(coil_sens1, coil_sens2, coil_sens3, coil_sens4)
-sys = Scanner()
-#sys.rf_coils = RFCoilsSensDefinedAtPhantomPositions(complex.(coil_sens))
-sys.rf_coils = ArbitraryRFCoils(coils_x, coils_y, coils_z, complex.(coil_sens), complex.(coil_sens))
+max_x = maximum(abs.(obj.x))
+max_y = maximum(abs.(obj.y))
+max_z = maximum(abs.(obj.z))
+x = range(-max_x, max_x, 11)
+y = range(-max_x, max_x, 11)
+z = range(-max_x, max_x, 11)
+coil_sens1 = [exp(-π * ((x + 0.1) ^ 2 / 0.02) + (y ^ 2 / 0.02)) for x in x, y in y, z in z]
+coil_sens2 = [exp(-π * ((x - 0.1) ^ 2 / 0.02) + (y ^ 2 / 0.02)) for x in x, y in y, z in z]
+coil_sens3 = [exp(-π * (x ^ 2 / 0.02) + ((y + 0.1) ^ 2 / 0.02)) for x in x, y in y, z in z]
+coil_sens4 = [exp(-π * (x ^ 2 / 0.02) + ((y - 0.1) ^ 2 / 0.02)) for x in x, y in y, z in z]
+coil_sens = cat(complex.(coil_sens1), complex.(coil_sens2), complex.(coil_sens3), complex.(coil_sens4); dims=4)
+sys = Scanner(rf_coils = ArbitraryRFCoils(collect(x), collect(y), collect(z), coil_sens, coil_sens))
 seq_file = joinpath(
     dirname(pathof(KomaMRI)),
     "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq",

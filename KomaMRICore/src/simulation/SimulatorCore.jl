@@ -378,6 +378,7 @@ function simulate(
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
         gpu_name = device_name(backend)
         obj = obj |> gpu #Phantom
+        sys = sys |> gpu #Scanner
         seqd = seqd |> gpu #DiscreteSequence
         Xt = Xt |> gpu #SpinStateRepresentation
         sig = sig |> gpu #Signal
