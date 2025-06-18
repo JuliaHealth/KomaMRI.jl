@@ -7,7 +7,7 @@
  
 ![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url] ![][gh-starts-komamri]
 
-[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url] ![Static Badge][OSI2-img]
+[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url] ![][OSI2-img]
 
 </div>
  
