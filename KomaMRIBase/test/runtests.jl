@@ -268,6 +268,17 @@ using TestItems, TestItemRunner
 
         ECO_vec = [l[i].ECO for i in eachindex(l)] 
         @test ECO_vec == vec([0 0 1 1 1 1])
+
+        # Modification of the label directly in the sequence
+        lSetPhs = LabelSet(2,"PHS")
+        seq.EXT[4] = [lSetPhs]
+        l = get_label(seq)
+
+        LIN_vec = [l[i].LIN for i in eachindex(l)] 
+        @test LIN_vec == vec([1 2 3 3 0 0])
+        SET_vec = [l[i].SET for i in eachindex(l)] 
+        @test SET_vec == vec([0 0 0 2 2 2])
+
     end
 
     @testset "DiscreteSequence" begin
