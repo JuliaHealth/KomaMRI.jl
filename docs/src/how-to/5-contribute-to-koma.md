@@ -144,7 +144,7 @@ This should open the UI and all buttons will be clicked to test their functional
 For all of these packages tests look the same. There are two options to run the tests:
 
 
-- **Test with VSCode**: 
+**Test with VSCode**: 
 
     On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel. 
 
@@ -152,7 +152,7 @@ For all of these packages tests look the same. There are two options to run the 
     <img width="40%" src="../../assets/test-komamribase.png">
     ```
 
-- **Test with Julia REPL**: 
+**Test with Julia REPL**: 
 
     Run the following script after replacing `[package]` with the selected `KomaMRIBase`, `KomaMRIPlots` or `KomaMRIFiles` package:
 
