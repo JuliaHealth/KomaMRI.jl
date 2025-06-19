@@ -91,6 +91,10 @@ function Base.view(sys::Scanner{T, GradType, RFType}, p) where {T, GradType <: G
     return Scanner(limits=sys.limits, gradients=sys.gradients, rf_coils=@view(sys.rf_coils[p]))
  end
 
+ function Base.view(rf_coils::RFCoilsSensDefinedAtPhantomPositions, p)
+    return RFCoilsSensDefinedAtPhantomPositions(@view rf_coils.coil_sens[p,:])
+end
+
 function acquire_signal!(sig, obj, rf_coils::UniformRFCoils, Mxy)
     sig .= transpose(sum(Mxy; dims=1))
     return nothing
@@ -104,9 +108,12 @@ function acquire_signal!(sig, obj, rf_coils::RFCoilsSensDefinedAtPhantomPosition
 end
 
 function acquire_signal!(sig, obj, rf_coils::ArbitraryRFCoils, Mxy)
-    interpolated_coil_sens = [LinearInterpolation((rf_coils.x, rf_coils.y, rf_coils.z), rf_coils.coil_sens[:,:,:,i], extrapolation_bc=0).(obj.x, obj.y, obj.z) for i in 1:size(rf_coils.coil_sens, 4)]
-    for i in 1:size(rf_coils.coil_sens, 2)
-        sig[:, i] .= transpose(sum(rf_coils.coil_sens[:, i] .* Mxy; dims=1))
+    interpolated_coil_sens = Array{ComplexF32}(undef, length(obj.x), size(rf_coils.coil_sens, 4))
+    for i in 1:size(rf_coils.coil_sens, 4)
+        interpolated_coil_sens[:,i] = LinearInterpolation((rf_coils.x, rf_coils.y, rf_coils.z), rf_coils.coil_sens[:,:,:,i], extrapolation_bc=0).(obj.x, obj.y, obj.z)
+    end
+    for i in 1:size(interpolated_coil_sens, 2)
+        sig[:, i] .= sum(interpolated_coil_sens[:, i] .* Mxy, dims=1)
     end
     return nothing
 end
