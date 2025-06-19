@@ -146,19 +146,19 @@ For all of these packages tests look the same. There are two options to run the 
 
 **Test with VSCode**: 
 
-    On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel. 
+On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel. 
 
-    ```@raw html
-    <img width="40%" src="../../assets/test-komamribase.png">
-    ```
+```@raw html
+<img width="40%" src="../../assets/test-komamribase.png">
+```
 
 **Test with Julia REPL**: 
 
-    Run the following script after replacing `[package]` with the selected `KomaMRIBase`, `KomaMRIPlots` or `KomaMRIFiles` package:
+Run the following script after replacing `[package]` with the selected `KomaMRIBase`, `KomaMRIPlots` or `KomaMRIFiles` package:
 
-    ```
-    pkg> test [package]
-    ```
+```
+pkg> test [package]
+```
 
     
 ### Test `KomaMRICore`:
@@ -195,18 +195,18 @@ pkg> test KomaMRICore
 Examples:
 - To run on the GPU using CUDA:
 
-    ```
-    import Pkg
+```
+import Pkg
 
-    Pkg.test("KomaMRICore"; test_args=`CUDA`)
-    ```    
+Pkg.test("KomaMRICore"; test_args=`CUDA`)
+```    
 - To run on the CPU with a specific number of threads, pass the number of threads as a Julia argument:
 
-    ```
-    import Pkg
+```
+import Pkg
 
-    Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
-    ```    
+Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
+```    
 
 ## Adding a new test
 
