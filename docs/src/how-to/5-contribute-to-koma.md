@@ -4,8 +4,8 @@ If you're interested in contributing to Koma, this document will guide you throu
 
 - Git
 - GitHub
-- VScode
-- VScode Plugins: 
+- VSCode
+- VSCode Plugins: 
     - Julia 
     - GitHub Pull Requests
 
@@ -16,7 +16,7 @@ To install the dev version of Koma, we will use the Julia REPL:
 ```julia
 pkg> dev KomaMRI
 ``` 
-This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.julia/dev/KomaMRI/` directory if you are in a MacOS or Linux operative system, or `C:\Users\<user-name>\.julia\dev\KomaMRI\` if you are using Windows, where `<user-name>` should be replaced with your Windows user.
+This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.julia/dev/KomaMRI/` directory if you are in a macOS or Linux operating system, or `C:\Users\<user-name>\.julia\dev\KomaMRI\` if you are using Windows, where `<user-name>` should be replaced with your Windows user.
 
 ### 2. Create Your Fork Of KomaMRI
 
@@ -30,13 +30,13 @@ To create this fork, go to the official [KomaMRI repository](https://github.com/
   
 ### 3. Access Your GitHub Account In VSCode
 
-Now, you need to ensure that your GitHub account is connected to VSCode. This allows you to clone repositories, create branches, and manage pull request directrly within VSCode.
+Now, you need to ensure that your GitHub account is connected to VSCode. This allows you to clone repositories, create branches, and manage pull requests directly within VSCode.
 
 - Open VSCode.
 - Go to the **Source Control** tab.
 - Sign in to your GitHub account if you're not already signed in.
 
->💡You can also check if your `git` credentials are correctlly added to your machine by writing in the VScode terminal:
+>💡You can also check if your `git` credentials are correctly added to your machine by writing in the VSCode terminal:
 >```shell
 >git config --global user.name
 >git config --global user.email
@@ -59,7 +59,7 @@ This will create the option to provide a repository URL. Here is where you will 
   
 >💡Press `Yes` when prompted to constantly fetch in the future.
 
-The Julia extension should automatically detect the `KomaMRI` environment. To check this, look at the status bar (bottom) end you should see `Julia env: KomaMRI`. If this is not the case, click the option in the menu bar and select KomaMRI.jl.
+The Julia extension should automatically detect the `KomaMRI` environment. To check this, look at the status bar (bottom) and you should see `Julia env: KomaMRI`. If this is not the case, click the option in the menu bar and select KomaMRI.jl.
 
 ### 5. KomaMRI Monorepo Setup
 
@@ -80,7 +80,7 @@ for pkg in koma_subpkgs
 end
 Pkg.instantiate()
 ```
-In case you want to contribute specifically to documentation, you will need to use the `docs` enviroment with the following script:
+In case you want to contribute specifically to documentation, you will need to use the `docs` environment with the following script:
 
 ```julia
 Pkg.activate("docs")
@@ -99,31 +99,31 @@ To create this new branch, go to **Source Control** -> **...** -> **Branch** -> 
 ```@raw html
     <img width="80%" src="../../assets/add-branch.png">
 ```
-This will open a menu to select an starting point for your branch. Select `my-fork/master` as your starting point, and give it the name `my-new-feature`.
+This will open a menu to select a starting point for your branch. Select `my-fork/master` as your starting point, and give it the name `my-new-feature`.
 
 ![](../assets/create-branch-step1.png)
 ![](../assets/create-branch-step2.png)
 
->💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output. 
+>💡In your VSCode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output. 
 
 ## How To Commit
 
 If you have already created your first modifications in your local version of the repository, you will want to commit your changes in your public branch.
 
-To do this, in VScode go to the Source Control panel in the Activity Bar.
+To do this, in VSCode go to the Source Control panel in the Activity Bar.
 
 Assuming you are currently in your `my-new-feature` branch, the Source Control panel should show your changes to the project and the option to create a commit message.
 
 ```@raw html
     <img width="40%" src="../../assets/how-to-commit.png">
 ```
-If you hove over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
+If you hover over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
 
-Write down a message that describes the changes you are stageing to the project, and press the Commit button.
+Write down a message that describes the changes you are staging to the project, and press the Commit button.
 
-Press Sync Changes to push your commit into your branch.
+Press **Sync Changes** to push your commit into your branch (this step is equivalent to `git push ...`).
 
->💡 If you want to make sure the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
+>💡 If you want to make sure the commit was correctly done, check your GitHub repository and see if the changes you committed are present.
 
 ## How to Test Your Contributions
 
@@ -162,7 +162,7 @@ pkg> test [package]
 
     
 ### Test `KomaMRICore`:
-In this package, you may want to run tests using the CPU or GPU. By default the tests will run on the CPU, with the number of threads set to `Threads.nthreads()`. You can run KomaMRICore tests using the Julia REPL or VSCode, but some changes are required to choose the backed to be tested.
+In this package, you may want to run tests using the CPU or GPU. By default the tests will run on the CPU, with the number of threads set to `Threads.nthreads()`. You can run KomaMRICore tests using the Julia REPL or VSCode, but some changes are required to choose the backend to be tested.
 
 **Test With VSCode:**
 
@@ -182,7 +182,7 @@ The variable `test_backend` can be changed to “CPU”, “CUDA”, “AMDGPU�
 
 **Test With Julia REPL:**
 
-By default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To choose a specific backend, two methods exists: 
+By default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To choose a specific backend, two methods exist: 
 
 **Method 1 - Using Preferences:** Add the name of the backend ("CPU","CUDA","AMDGPU","Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore`. Then, test as usual:
 
@@ -240,9 +240,9 @@ Please add `tags` in your `@testitem`'s for them to work properly. The possible 
 
 ## How To Create A Pull Request
 
-If you want to send your commited new version of the repository, you can create a pull request that will be reviewed by a Koma certified developer.
+If you want to send your committed new version of the repository, you can create a pull request that will be reviewed by a Koma certified developer.
 
-To create this pull request, in VScode, go to the `GitHub Pull Request` panel in the Activity Bar and hove over the `Pull request` tab. This should show a Create pull request icon to press.
+To create this pull request, in VSCode, go to the `GitHub Pull Request` panel in the Activity Bar and hover over the `Pull request` tab. This should show a Create pull request icon to press.
 
 ```@raw html
     <img width="50%" src="../../assets/create-pull-request.png">
@@ -250,7 +250,7 @@ To create this pull request, in VScode, go to the `GitHub Pull Request` panel in
 
 In the `Create` tab that appears, select `JuliaHealth/master` as the base and the branch you are working with to merge.
 
-To finish your pull request, give it a name with a clear mention of the  subject of the contribution you made, and a description that explains the issue or feature you are addresing in your branch, and press the Create button.
+To finish your pull request, give it a name with a clear mention of the subject of the contribution you made, and a description that explains the issue or feature you are addressing in your branch, and press the Create button.
 
 ```@raw html
     <img width="50%" src="../../assets/fill-pull-request.png">
@@ -259,5 +259,5 @@ To finish your pull request, give it a name with a clear mention of the  subject
   
 >💡 **Tips For A Successful Pull Request:**
 >   - Try to address one issue or feature per pull request to make it easier for reviewers.
->   - Provide all the context necesary, including all the information of the related issue or added feature.
->   - Respond to feedback and suggestions to make adjustments based on the reviewers comments.
+>   - Provide all the context necessary, including all the information of the related issue or added feature.
+>   - Respond to feedback and suggestions to make adjustments based on the reviewers' comments.
