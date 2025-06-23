@@ -39,9 +39,9 @@ end
     if Sys.islinux()
         debug = Base.get_bool_env("CI", false) ? false : true
         enable_unsafe_electron(debug)
-        using Blink
     end
     # Opens UI
+    using Blink
     w = KomaUI(return_window=true)
 
     @testset "Open UI" begin
