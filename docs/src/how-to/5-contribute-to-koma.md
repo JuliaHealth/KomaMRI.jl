@@ -18,7 +18,7 @@ pkg> dev KomaMRI
 ``` 
 This command will clone KomaMRI.jl's repository (`dev` version) to your `~/.julia/dev/KomaMRI/` directory if you are in a MacOS or Linux operative system, or `C:\Users\<user-name>\.julia\dev\KomaMRI\` if you are using Windows, where `<user-name>` should be replaced with your Windows user.
 
-### 2. Create your fork of KomaMRI
+### 2. Create Your Fork Of KomaMRI
 
 If you try to commit or generate a pull request at this point, you will get an `Access denied` error. This is because you need to create a fork before you can contribute to this repository directly (unless you are included as a collaborator!).
 
@@ -28,7 +28,7 @@ To create this fork, go to the official [KomaMRI repository](https://github.com/
 ![](../assets/create-fork-step2.png)
  
   
-### 3. Access your GitHub account in VSCode
+### 3. Access Your GitHub Account In VSCode
 
 Now, you need to ensure that your GitHub account is connected to VSCode. This allows you to clone repositories, create branches, and manage pull request directrly within VSCode.
 
@@ -42,7 +42,7 @@ Now, you need to ensure that your GitHub account is connected to VSCode. This al
 >git config --global user.email
 >```
 
-### 4. Open your forked repository in VSCode
+### 4. Open Your Forked Repository In VSCode
 
 In VSCode, click on **File** -> **Open Folder...** and select your `~/.julia/dev/KomaMRI/` directory (`C:\Users\<user-name>\.julia\dev\KomaMRI\` if you are using Windows).
 
@@ -61,7 +61,7 @@ This will create the option to provide a repository URL. Here is where you will 
 
 The Julia extension should automatically detect the `KomaMRI` environment. To check this, look at the status bar (bottom) end you should see `Julia env: KomaMRI`. If this is not the case, click the option in the menu bar and select KomaMRI.jl.
 
-### 5. KomaMRI monorepo setup
+### 5. KomaMRI Monorepo Setup
 
 As KomaMRI.jl contains multiple packages in one GitHub repository, you need to specify that you want to use your local copies (instead of the ones available on the Julia registries) and using the `instantiate` command to install all the required packages (specified in `Project.toml`) with the following script:
 
@@ -80,7 +80,7 @@ for pkg in koma_subpkgs
 end
 Pkg.instantiate()
 ```
-In case you want to contribute specifically in documentation, you will need to use the `docs` enviroment with the following script:
+In case you want to contribute specifically to documentation, you will need to use the `docs` enviroment with the following script:
 
 ```julia
 Pkg.activate("docs")
@@ -90,9 +90,9 @@ Pkg.instantiate()
 
 This will also include all the specific package versions into the `Manifest.toml`. The `Manifest.toml` should not be updated to the repo when making a commit or pull request. Thus, it is present in the `.gitignore`.
 
-### 6. Create a new branch for your feature
+### 6. Create A New Branch For Your Feature
 
-If you did correctly follow the previous steps you will have correctly created your fork connected to the original Koma repository. Now, if you want to create your own changes, you will need to create a new branch from your fork.
+If you correctly followed the previous steps you will have created your fork connected to the original Koma repository. Now, if you want to create your own changes, you will need to create a new branch from your fork.
 
 To create this new branch, go to **Source Control** -> **...** -> **Branch** -> **Create Branch form...**
 
@@ -106,7 +106,7 @@ This will open a menu to select an starting point for your branch. Select `my-fo
 
 >💡In your VScode terminal use `git status` to check if your branch is correctly created. Your branch should be listed at the top of the output. 
 
-## How to commit
+## How To Commit
 
 If you have already created your first modifications in your local version of the repository, you will want to commit your changes in your public branch.
 
@@ -119,15 +119,15 @@ Assuming you are currently in your `my-new-feature` branch, the Source Control p
 ```
 If you hove over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
 
-Write down a message that describes your changes you are stageing to the project, and press the Commit button.
+Write down a message that describes the changes you are stageing to the project, and press the Commit button.
 
 Press Sync Changes to push your commit into your branch.
 
->💡 If you want to make sure if the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
+>💡 If you want to make sure the commit was correctly done, check your GitHub repository and see if the changes you commited are present.
 
 ## How to Test Your Contributions
 
-Depending on the package where you made your changes, `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots` or `KomaMRI`, follows the instructions below to test them correctly:
+Depending on the package where you made your changes, `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots` or `KomaMRI`, follow the instructions below to test them correctly:
 
 ### Test `KomaMRI`:
 
@@ -144,7 +144,7 @@ This should open the UI and all buttons will be clicked to test their functional
 For all of these packages tests look the same. There are two options to run the tests:
 
 
-**Test with VSCode**: 
+**Test With VSCode**: 
 
 On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel. 
 
@@ -152,7 +152,7 @@ On the activity bar, open the `Testing` extension, expand the available tests, a
 <img width="40%" src="../../assets/test-komamribase.png">
 ```
 
-**Test with Julia REPL**: 
+**Test With Julia REPL**: 
 
 Run the following script after replacing `[package]` with the selected `KomaMRIBase`, `KomaMRIPlots` or `KomaMRIFiles` package:
 
@@ -164,7 +164,7 @@ pkg> test [package]
 ### Test `KomaMRICore`:
 In this package, you may want to run tests using the CPU or GPU. By default the tests will run on the CPU, with the number of threads set to `Threads.nthreads()`. You can run KomaMRICore tests using the Julia REPL or VSCode, but some changes are required to choose the backed to be tested.
 
-**Test with VSCode:**
+**Test With VSCode:**
 
 To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
 
@@ -180,7 +180,7 @@ test_backend = "CPU"
 ```
 The variable `test_backend` can be changed to “CPU”, “CUDA”, “AMDGPU”, “Metal”, or “oneAPI”. After this change, **restart VSCode**. Make sure that the required backend is installed in Julia’s global environment before testing. This is, for example, `@v1.10` for Julia 1.10.
 
-**Test with Julia REPL:**
+**Test With Julia REPL:**
 
 By default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To choose a specific backend, two methods exists: 
 
@@ -190,7 +190,7 @@ By default, tests are run on the CPU with the number of threads set to `Threads.
 pkg> test KomaMRICore
 ```
 
-**Method 2 - Using test arguments:** This method is used in Buildkite's CI, and ist is best visualised by the use of examples.
+**Method 2 - Using Test Arguments:** This method is used in Buildkite's CI, and it is best visualised by the use of examples.
 
 Examples:
 - To run on the GPU using CUDA:
@@ -208,7 +208,7 @@ import Pkg
 Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
 ```    
 
-## Adding a new test
+## Adding A New Test
 
 In case your contribution generates a method that is not currently tested, **the code coverage will decrease** when the pull request is analyzed, creating an automatic comment if the code coverage goes below a threshold.
 
@@ -226,7 +226,7 @@ Test example:
     end
 end
 ```
-Once the file is selected, check whether the contribution to test fulfills the conditions for an existing `@testitem`. If not, create a new `@testitem`.
+Once the file is selected, check whether the contribution to the test fulfills the conditions for an existing `@testitem`. If not, create a new `@testitem`.
 
 Please add `tags` in your `@testitem`'s for them to work properly. The possible tags are:
 
@@ -238,7 +238,7 @@ Please add `tags` in your `@testitem`'s for them to work properly. The possible 
 - KomaMRIFiles: `:files`
 - KomaMRI: `:koma`
 
-## How to create a pull request
+## How To Create A Pull Request
 
 If you want to send your commited new version of the repository, you can create a pull request that will be reviewed by a Koma certified developer.
 
@@ -257,7 +257,7 @@ To finish your pull request, give it a name with a clear mention of the  subject
 ```
  
   
->💡 **Tips for a successful Pull Request:**
+>💡 **Tips For A Successful Pull Request:**
 >   - Try to address one issue or feature per pull request to make it easier for reviewers.
 >   - Provide all the context necesary, including all the information of the related issue or added feature.
 >   - Respond to feedback and suggestions to make adjustments based on the reviewers comments.
