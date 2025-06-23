@@ -5,22 +5,20 @@ obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
 raw_ui = Observable{RawAcquisitionData}(setup_raw())
 img_ui = Observable{Array{ComplexF64}}([0.0im 0.; 0. 0.])
 
-macro unsafe_blink()
-    Core.eval(@__MODULE__, quote 
-        function Blink.AtomShell.init(; debug = false)
-            Blink.AtomShell.electron() # Check path exists
-            p, dp = Blink.AtomShell.port(), Blink.AtomShell.port()
-            debug && Blink.AtomShell.inspector(dp)
-            dbg = debug ? "--debug=$dp" : []
-            proc = (debug ? Blink.AtomShell.run_rdr : Blink.AtomShell.run)(
-                `$(Blink.AtomShell.electron()) --no-sandbox $dbg $(Blink.AtomShell.mainjs) port $p`; wait=false)
-            conn = Blink.AtomShell.try_connect(ip"127.0.0.1", p)
-            shell = Blink.AtomShell.Electron(proc, conn)
-            Blink.AtomShell.initcbs(shell)
-            return shell
-        end
-    end)
-    return nothing  # Avoid returning an unevaluated expression
+function enable_unsafe_electron(deb)
+    @eval Blink.AtomShell Window(args...; kwargs...) = Window(shell(; debug = $deb), args...; kwargs...)
+    @eval Blink.AtomShell function init(; debug = $deb)
+        electron() # Check path exists
+        p, dp = port(), port()
+        debug && inspector(dp)
+        dbg = debug ? "--inspect=$dp" : []
+        cmd = `$(electron()) --no-sandbox $dbg $mainjs port $p`
+        proc = (debug ? run_rdr : run)(cmd; wait = false)
+        conn = try_connect(ip"127.0.0.1", p)
+        shell = Electron(proc, conn)
+        initcbs(shell)
+        return shell
+    end
 end
 
 """
@@ -62,7 +60,6 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     widgets_button_obj = button.(string.(fieldnames_obj))
 
     # Setup the Blink window
-    @unsafe_blink
     w, index = setup_blink_window(; darkmode, frame, dev_tools, show_window)
 
     # Setup default simulation inputs (they have observables)
