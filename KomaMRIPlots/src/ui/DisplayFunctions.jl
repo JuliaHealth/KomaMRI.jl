@@ -796,6 +796,7 @@ function plot_image(
     zmax=maximum(image[:]),
     darkmode=false,
     title="",
+    colorscale="Greys"
 )
     #Layout
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
@@ -825,7 +826,7 @@ function plot_image(
         l.width = width
     end
     #Plot
-    p = heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale="Greys")
+    p = heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale=colorscale)
     config = PlotConfig(;
         displaylogo=false,
         toImageButtonOptions=attr(;
@@ -1001,9 +1002,8 @@ Plots a phantom map for a specific spin parameter given by `key`.
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D scatter plot
 - `colorbar`: (`::Bool`, `=true`) boolean to indicate whether to display a colorbar
-- `max_spins`:(`::Int`, `=100_000`) maximum number of displayed spins
+- `max_spins`:(`::Int`, `=20_000`) maximum number of displayed spins
 - `time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
-- `frame_duration_ms`:(`::Int`, `=250`) time in miliseconds between two frames 
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the phantom map for a specific spin parameter
@@ -1109,8 +1109,8 @@ function plot_phantom_map(
         unit = ""
         colormap = "Greys"
     end
-    cmin_key = get(kwargs, :cmin, factor * cmin_key)
-    cmax_key = get(kwargs, :cmax, factor * cmax_key)
+    cmin_key = get(kwargs, :zmin, factor * cmin_key)
+    cmax_key = get(kwargs, :zmax, factor * cmax_key)
 
     t = process_times(obj.motion)
     x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
@@ -1240,7 +1240,7 @@ function plot_phantom_map(
         pad=attr(l=30, b=30),
         steps=[
             attr(
-                label=round(t0*1e3),
+                label=round(t0*1e3; digits=2),
                 method="update",
                 args=[attr(visible=[fill(false, i-1); true; fill(false, length(t) - i)])]
             )

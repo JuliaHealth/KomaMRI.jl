@@ -83,7 +83,9 @@ Scanner
 
 The Phantom struct created in this example represents a slice of a brain. To create it, we use the function `brain_phantom2D`, which is part of the subdependency **KomaMRICore**. While **KomaMRI** provides some phantom examples for experimentation, you may also want to create your custom **Phantom** struct tailored to your specific requirements.
 
-The **Phantom** struct contains MRI parameters related to the magnetization properties of an object. These parameters include magnetization positions, proton density, relaxation times, off-resonance, among others. To view all the keys and values of the object, you can do so in the **Julia REPL** as follows:
+The **Phantom** struct contains MRI parameters related to the magnetization properties of an object. These parameters include magnetization positions, proton density, relaxation times, off-resonance, among others.
+For more information about Koma's Phantom and what it can do, as well as how to store and share it, check out the [Phantom](../explanation/1-phantom.md) section.
+To view all the keys and values of the object, you can do so in the **Julia REPL** as follows:
 ```julia-repl
 julia> obj
 Phantom{Float64}
@@ -99,11 +101,11 @@ Phantom{Float64}
   Dλ1: Array{Float64}((6506,)) [0.0, 0.0,  …  0.0, 0.0]
   Dλ2: Array{Float64}((6506,)) [0.0, 0.0,  …  0.0, 0.0]
   Dθ: Array{Float64}((6506,)) [0.0, 0.0,  …  0.0, 0.0]
+  motion: NoMotion{Float64} NoMotion{Float64}()
 ...
 ```
-As you can see, attributes of the **Phantom** struct are vectors representing object properties, with each element holding a value associated with a single magnetization.
 
-You can also visualize the **Phantom** struct using the [`plot_phantom_map`](@ref) function, which is part of the **KomaMRIPlots** subdependency. This function plots the magnitude of a property for each magnetization at a specific spatial position. You can observe properties such as proton density and relaxation times, so feel free to replace the `:ρ` symbol with another property of the phantom in the example below:
+You can also visualize the **Phantom** struct using the [`plot_phantom_map`](@ref) function:
 ```julia-repl
 julia> plot_phantom_map(obj, :ρ)
 ```
@@ -126,7 +128,7 @@ julia> plot_phantom_map(sphere, :T2)
 
 The **Sequence** struct in the example represents one of the most basic MRI sequences. It excites the object with a 90° RF pulse and then uses EPI gradients to fill the k-space in a "square" manner. While you may want to create your sequences for experiments, you can always use some of the examples already available in **KomaMRI**.
 
-In MRI, the sequence must be carefully designed with precise timing to obtain an image. It includes subcomponents such as gradients, radio-frequency excitation signals, and sample acquisition. For more information on constructing a **Sequence** struct, refer to the [Sequence](../explanation/1-sequence.md) section.
+In MRI, the sequence must be carefully designed with precise timing to obtain an image. It includes subcomponents such as gradients, radio-frequency excitation signals, and sample acquisition. For more information on constructing a **Sequence** struct, refer to the [Sequence](../explanation/4-sequence.md) section.
 
 You can view general information about a **Sequence** struct by displaying it in the **Julia REPL**:
 ```julia-repl
@@ -191,7 +193,7 @@ Dict{String, Any} with 9 entries:
   "Δt_rf"       => 5.0e-5
 ```
 
-All of these parameters deserve special attention. We will explain some of the most important ones here. For instance, `"Δt"` and `"Δt_rf"` represent the raster times for the gradients and RFs. `"return_type"` specifies the type of variable returned by the simulator (by default, it returns an object ready for use with **MRIReco** for reconstruction, but you can use the value `"mat"` to return a simple vector). `"gpu"` indicates whether you want to use your GPU device for simulations, and `"precision"` sets the floating-point precision. For more details on how to set these parameters, please refer to the [Simulation Parameters Section](../explanation/3-simulation.md).
+All of these parameters deserve special attention. We will explain some of the most important ones here. For instance, `"Δt"` and `"Δt_rf"` represent the raster times for the gradients and RFs. `"return_type"` specifies the type of variable returned by the simulator (by default, it returns an object ready for use with **MRIReco** for reconstruction, but you can use the value `"mat"` to return a simple vector). `"gpu"` indicates whether you want to use your GPU device for simulations, and `"precision"` sets the floating-point precision. For more details on how to set these parameters, please refer to the [Simulation Parameters Section](../explanation/6-simulation.md).
 
 
 ### Raw Signal

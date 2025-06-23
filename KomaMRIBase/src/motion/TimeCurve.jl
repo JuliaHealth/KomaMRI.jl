@@ -14,7 +14,9 @@ Each element specifies the scaling factor for that repetition.
 
 # Arguments
 - `t`: (`::AbstractVector{<:Real}`, `[s]`) time vector
-- `t_unit`: (`::AbstractVector{<:Real}`) y vector, it needs to be scaled between 0 and 1
+- `t_unit`: (`::AbstractVector{<:Real}`) y vector, it needs to be scaled between 0 and 1. 0 
+    represents the start of the motion, while 1 represents the end. 
+    The values in between represent the intermediate states of the motion.
 - `periodic`: (`::Bool`, `=false`) indicates whether the time curve should be periodically repeated
 - `periods`: (`::Union{<:Real,AbstractVector{<:Real}}`, `=1.0`): represents the relative duration 
     of each period with respect to the baseline duration defined by `t[end] - t[1]`. 
@@ -107,7 +109,7 @@ julia> periodic = Periodic(period=1.0, asymmetry=0.2)
 ```
 ![Periodic](../assets/periodic.svg)
 """
-Periodic(period::T, asymmetry::T) where T = TimeCurve(t=[zero(T), period*asymmetry, period], t_unit=[zero(T), oneunit(T), zero(T)])
+Periodic(period::T, asymmetry::T) where T = TimeCurve(t=[zero(T), period*asymmetry, period], t_unit=[zero(T), oneunit(T), zero(T)], periodic=true)
 Periodic(; period=1.0, asymmetry=0.5)     = Periodic(period, asymmetry)
 
 """ Compare two TimeCurves """
