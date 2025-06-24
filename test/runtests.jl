@@ -35,13 +35,13 @@ using TestItems, TestItemRunner
 #
 #end
 @testitem "KomaUI" tags=[:koma] begin
-    is_CI = Base.get_bool_env("CI", false)
     @static if Sys.islinux()
+        is_CI = Base.get_bool_env("CI", false)
         KomaMRI.enable_unsafe_electron(!is_CI)
     end
     # Opens UI
     using Blink: @js, close
-    w = KomaUI(return_window=!is_CI)
+    w = KomaUI()
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
     end
