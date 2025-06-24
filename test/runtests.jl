@@ -42,19 +42,7 @@ using TestItems, TestItemRunner
     # Opens UI
     using Blink
     #w = KomaUI(return_window=true)
-    w = Blink.Window(
-        Dict(
-            "title" => "KomaUI",
-            "autoHideMenuBar" => true,
-            "frame" => frame, #removes title bar
-            "node-integration" => true,
-            :icon => app_icon,
-            "width" => 1200,
-            "height" => 800,
-            :show => show_window,
-        );
-        async=false,
-    )
+    w = Blink.Window()
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
     end
