@@ -36,9 +36,9 @@ using TestItems, TestItemRunner
 end
 
 @testitem "KomaUI" tags=[:koma] begin
-    if Sys.islinux()
+    @static if Sys.islinux()
         debug = Base.get_bool_env("CI", false) ? false : true
-        enable_unsafe_electron(debug)
+        KomaMRI.enable_unsafe_electron(debug)
     end
     # Opens UI
     using Blink
