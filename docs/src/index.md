@@ -6,7 +6,7 @@
 
 ```@raw html
 <p align="center"><img class="docs-light-only" width="100%" src="assets/koma-schema.svg"/></p>
-<p align="center"><img class="docs-dark-only"  width="100%" src="assets/koma-schema-dark.svg""/></p>
+<p align="center"><img class="docs-dark-only"  width="100%" src="assets/koma-schema-dark.svg"/></p>
 ```
 We organized the documentation following the philosophy presented by [David Laing](https://documentation.divio.com/).
 
