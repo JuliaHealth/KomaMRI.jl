@@ -40,7 +40,7 @@ using TestItems, TestItemRunner
         KomaMRI.enable_unsafe_electron(!is_CI)
     end
     # Opens UI
-    using Blink: @js, close
+    using Blink
     w = KomaUI()
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
