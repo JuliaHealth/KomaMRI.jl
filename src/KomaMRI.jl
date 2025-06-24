@@ -28,6 +28,5 @@ include("KomaUI.jl")
 # Export the UI and the observables
 export KomaUI
 export sys_ui, seq_ui, obj_ui, raw_ui, img_ui
-export enable_unsafe_electron
 
 end
