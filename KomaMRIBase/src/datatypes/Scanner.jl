@@ -108,7 +108,7 @@ function acquire_signal!(sig, obj, rf_coils::RFCoilsSensDefinedAtPhantomPosition
 end
 
 function acquire_signal!(sig, obj, rf_coils::ArbitraryRFCoils, Mxy)
-    interpolated_coil_sens = Array{ComplexF32}(undef, length(obj.x), size(rf_coils.coil_sens, 4))
+    interpolated_coil_sens = similar(rf_coils.coil_sens, length(obj.x), size(rf_coils.coil_sens, 4))
     for i in 1:size(rf_coils.coil_sens, 4)
         interpolated_coil_sens[:,i] = LinearInterpolation((rf_coils.x, rf_coils.y, rf_coils.z), rf_coils.coil_sens[:,:,:,i], extrapolation_bc=0).(obj.x, obj.y, obj.z)
     end
