@@ -41,8 +41,7 @@ using TestItems, TestItemRunner
     end
     # Opens UI
     using Blink
-    #w = KomaUI(return_window=true)
-    w = Blink.Window()
+    w = KomaUI(return_window=true)
     @testset "Open UI" begin
         @test "index" == @js w document.getElementById("content").dataset.content
     end
