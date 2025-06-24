@@ -36,7 +36,7 @@ using TestItems, TestItemRunner
 end
 
 @testitem "KomaUI" tags=[:koma] begin
-    @static if Sys.islinux()
+    @static if Sys.islinux() || Sys.isapple()
         debug = Base.get_bool_env("CI", false) ? false : true
         KomaMRI.enable_unsafe_electron(debug)
     end
