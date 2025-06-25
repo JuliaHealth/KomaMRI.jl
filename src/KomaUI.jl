@@ -5,6 +5,8 @@ obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
 raw_ui = Observable{RawAcquisitionData}(setup_raw())
 img_ui = Observable{Array{ComplexF64}}([0.0im 0.; 0. 0.])
 
+# Temporary fix for ubuntu
+# https://github.com/JuliaGizmos/Blink.jl/issues/325
 function enable_unsafe_electron(deb)
     @eval Blink.AtomShell Window(args...; kwargs...) = Window(shell(; debug = $deb), args...; kwargs...)
     @eval Blink.AtomShell function init(; debug = $deb)
