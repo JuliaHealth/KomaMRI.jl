@@ -70,7 +70,6 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
 
     #Update GUI's home
     body!(w, *(sidebar, index); async=false) #async false is important to set the background correctly
-    sleep(5)
     if darkmode
         @js_ w document.getElementById("main").style = "background-color:rgb(13,16,17);"
     end
