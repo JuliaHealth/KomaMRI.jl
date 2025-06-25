@@ -26,11 +26,6 @@ jobs:
             prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
     steps:
       - uses: actions/checkout@v4
-      - name: Ubuntu dependencies
-        if: startsWith(matrix.os, 'ubuntu')
-        run: |
-          sudo apt -y update
-          sudo apt -y install lynx  # for debugging Electron
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}

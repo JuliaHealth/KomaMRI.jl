@@ -35,10 +35,17 @@ using TestItems, TestItemRunner
 #
 #end
 @testitem "KomaUI" tags=[:koma] begin
+
+    is_CI = Base.get_bool_env("CI", false)
+
     @static if Sys.islinux()
-        is_CI = Base.get_bool_env("CI", false)
         KomaMRI.enable_unsafe_electron(!is_CI)
     end
+
+    # Unfortunally Blink doesnot work on macOS in GitHub's CI
+    # https://github.com/JuliaGizmos/Blink.jl/issues/325
+    if !(Sys.isapple() && is_CI)
+    
     # Opens UI
     using Blink
     w = KomaUI(return_window=true)
@@ -129,4 +136,5 @@ using TestItems, TestItemRunner
         close(w)
     end
 
+    end # if !(Sys.isapple() && is_CI)
 end
