@@ -44,97 +44,96 @@ using TestItems, TestItemRunner
 
     # Unfortunally Blink doesnot work on macOS in GitHub's CI
     # https://github.com/JuliaGizmos/Blink.jl/issues/325
-    if !(Sys.isapple() && is_CI)
-    
-    # Opens UI
-    using Blink
-    w = KomaUI(return_window=true)
-    @testset "Open UI" begin
-        @test "index" == @js w document.getElementById("content").dataset.content
-    end
+    if !(Sys.isapple()) && is_CI
+        # Opens UI
+        using Blink
+        w = KomaUI(return_window=true)
+        @testset "Open UI" begin
+            @test "index" == @js w document.getElementById("content").dataset.content
+        end
 
-#    @testset "PulsesGUI" begin
-#        @js w document.getElementById("button_pulses_seq").click()
-#        @test "sequence" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_pulses_kspace").click()
-#        @test "kspace" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_pulses_M0").click()
-#        @test "m0" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_pulses_M1").click()
-#        @test "m1" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_pulses_M2").click()
-#        @test "m2" == @js w document.getElementById("content").dataset.content
-#    end
-#
-#    @testset "PhantomGUI" begin
-#        @js w document.getElementById("button_phantom").click()
-#        @test "phantom" == @js w document.getElementById("content").dataset.content
-#    end
-#
-#    @testset "ParamsGUI" begin
-#        @js w document.getElementById("button_scanner").click()
-#        @test "scanneparams" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_sim_params").click()
-#        @test "simparams" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_rec_params").click()
-#        @test "recparams" == @js w document.getElementById("content").dataset.content
-#    end
-#
-#    @testset "Simulation" begin
-#        @js w document.getElementById("simulate!").click()
-#        @test "sig" == @js w document.getElementById("content").dataset.content
-#    end
-#
-#    @testset "SignalGUI" begin
-#        @js w document.getElementById("button_sig").click()
-#        @test "sig" == @js w document.getElementById("content").dataset.content
-#    end
-#
-#    @testset "Reconstruction" begin
-#        @js w document.getElementById("recon!").click()
-#        @test "absi" == @js w document.getElementById("content").dataset.content
-#    end
-#
-#    @testset "ReconGUI" begin
-#        @js w document.getElementById("button_reconstruction_absI").click()
-#        @test "absi" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_reconstruction_angI").click()
-#        @test "angi" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_reconstruction_absK").click()
-#        @test "absk" == @js w document.getElementById("content").dataset.content
-#    end
-#
-#    @testset "ExportToMAT" begin
-#        @js w document.getElementById("button_matfolder").click()
-#        @test "matfolder" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_matfolderseq").click()
-#        @test "matfolderseq" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_matfolderpha").click()
-#        @test "matfolderpha" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_matfoldersca").click()
-#        @test "matfoldersca" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_matfolderraw").click()
-#        @test "matfolderraw" == @js w document.getElementById("content").dataset.content
-#
-#        @js w document.getElementById("button_matfolderima").click()
-#        @test "matfolderima" == @js w document.getElementById("content").dataset.content
-#    end
+    #    @testset "PulsesGUI" begin
+    #        @js w document.getElementById("button_pulses_seq").click()
+    #        @test "sequence" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_pulses_kspace").click()
+    #        @test "kspace" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_pulses_M0").click()
+    #        @test "m0" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_pulses_M1").click()
+    #        @test "m1" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_pulses_M2").click()
+    #        @test "m2" == @js w document.getElementById("content").dataset.content
+    #    end
+    #
+    #    @testset "PhantomGUI" begin
+    #        @js w document.getElementById("button_phantom").click()
+    #        @test "phantom" == @js w document.getElementById("content").dataset.content
+    #    end
+    #
+    #    @testset "ParamsGUI" begin
+    #        @js w document.getElementById("button_scanner").click()
+    #        @test "scanneparams" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_sim_params").click()
+    #        @test "simparams" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_rec_params").click()
+    #        @test "recparams" == @js w document.getElementById("content").dataset.content
+    #    end
+    #
+    #    @testset "Simulation" begin
+    #        @js w document.getElementById("simulate!").click()
+    #        @test "sig" == @js w document.getElementById("content").dataset.content
+    #    end
+    #
+    #    @testset "SignalGUI" begin
+    #        @js w document.getElementById("button_sig").click()
+    #        @test "sig" == @js w document.getElementById("content").dataset.content
+    #    end
+    #
+    #    @testset "Reconstruction" begin
+    #        @js w document.getElementById("recon!").click()
+    #        @test "absi" == @js w document.getElementById("content").dataset.content
+    #    end
+    #
+    #    @testset "ReconGUI" begin
+    #        @js w document.getElementById("button_reconstruction_absI").click()
+    #        @test "absi" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_reconstruction_angI").click()
+    #        @test "angi" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_reconstruction_absK").click()
+    #        @test "absk" == @js w document.getElementById("content").dataset.content
+    #    end
+    #
+    #    @testset "ExportToMAT" begin
+    #        @js w document.getElementById("button_matfolder").click()
+    #        @test "matfolder" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_matfolderseq").click()
+    #        @test "matfolderseq" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_matfolderpha").click()
+    #        @test "matfolderpha" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_matfoldersca").click()
+    #        @test "matfoldersca" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_matfolderraw").click()
+    #        @test "matfolderraw" == @js w document.getElementById("content").dataset.content
+    #
+    #        @js w document.getElementById("button_matfolderima").click()
+    #        @test "matfolderima" == @js w document.getElementById("content").dataset.content
+    #    end
 
-    if !isnothing(w)
-        close(w)
-    end
+        if !isnothing(w)
+            close(w)
+        end
 
     end # if !(Sys.isapple() && is_CI)
 end
