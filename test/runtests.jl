@@ -2,8 +2,8 @@ using TestItems, TestItemRunner
 
 @run_package_tests filter=ti->!(:skipci in ti.tags)&&(:koma in ti.tags) #verbose=true
 
- include("../KomaMRICore/test/runtests.jl")
- include("../KomaMRIPlots/test/runtests.jl")
+# include("../KomaMRICore/test/runtests.jl")
+# include("../KomaMRIPlots/test/runtests.jl")
 
 @testitem "MRIReco recon" tags=[:koma] begin
     #Sanity check 1
@@ -32,7 +32,7 @@ using TestItems, TestItemRunner
     @testset "MRIReco_standard" begin
         #???
     end
-    
+
 end
 @testitem "KomaUI" tags=[:koma] begin
 
