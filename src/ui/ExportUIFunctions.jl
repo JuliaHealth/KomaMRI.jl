@@ -42,7 +42,7 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
         );
         async=false,
     )
-    sleep(10)
+    
     ## NAV BAR
     sidebar = open(f -> read(f, String), komamri_src_ui * "/html/sidebar.html")
     sidebar = replace(sidebar, "LOGO" => logo)
