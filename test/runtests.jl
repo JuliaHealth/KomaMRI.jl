@@ -36,6 +36,7 @@ using TestItems, TestItemRunner
 #end
 @testitem "KomaUI" tags=[:koma] begin
 
+    using Blink
     is_CI = Base.get_bool_env("CI", false)
 
     @static if Sys.islinux()
@@ -46,7 +47,6 @@ using TestItems, TestItemRunner
     # https://github.com/JuliaGizmos/Blink.jl/issues/325
     if !(Sys.isapple()) && is_CI
         # Opens UI
-        using Blink
         w = KomaUI(return_window=true)
         @testset "Open UI" begin
             @test "index" == @js w document.getElementById("content").dataset.content
