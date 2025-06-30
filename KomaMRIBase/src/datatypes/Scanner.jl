@@ -109,8 +109,11 @@ end
 
 function acquire_signal!(sig, obj, rf_coils::ArbitraryRFCoils, Mxy)
     interpolated_coil_sens = similar(rf_coils.coil_sens, length(obj.x), size(rf_coils.coil_sens, 4))
+    coords = collect(zip(obj.x, obj.y, obj.z)) 
     for i in 1:size(rf_coils.coil_sens, 4)
-        interpolated_coil_sens[:,i] = LinearInterpolation((rf_coils.x, rf_coils.y, rf_coils.z), rf_coils.coil_sens[:,:,:,i], extrapolation_bc=0).(obj.x, obj.y, obj.z)
+        itp = GriddedInterpolation((rf_coils.x, rf_coils.y, rf_coils.z), rf_coils.coil_sens[:,:,:,i], Gridded(Linear()))
+        eitp = extrapolate(itp, 0.0 + 0.0im)
+        interpolated_coil_sens[:,i] = map(p -> eitp(p...), coords)
     end
     for i in 1:size(interpolated_coil_sens, 2)
         sig[:, i] .= sum(interpolated_coil_sens[:, i] .* Mxy, dims=1)
@@ -132,6 +135,10 @@ end
 
 function get_n_coils(rf_coils::RFCoilsSensDefinedAtPhantomPositions)
     return size(rf_coils.coil_sens, 2)
+end
+
+function get_n_coils(rf_coils::ArbitraryRFCoils)
+    return size(rf_coils.coil_sens, 4)
 end
 
 

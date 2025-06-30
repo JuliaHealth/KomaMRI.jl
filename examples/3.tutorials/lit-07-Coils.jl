@@ -38,10 +38,10 @@ params[:iterations] = 40
 FOV = 230e-3
 xq = range(-FOV / 2, FOV / 2, Nx)
 yq = range(-FOV / 2, FOV / 2, Ny)
-coil_sens1 = exp.(-π * (((xq) .+ 0.1) .^ 2 / 0.02) .+ ((yq') .^ 2 / 0.02))
-coil_sens2 = exp.(-π * (((xq) .- 0.1) .^ 2 / 0.02) .+ ((yq') .^ 2 / 0.02))
-coil_sens3 = exp.(-π * ((xq) .^ 2 / 0.1) .+ (((yq') .+ 0.1) .^ 2 / 0.02))
-coil_sens4 = exp.(-π * ((xq) .^ 2 / 0.1) .+ (((yq') .- 0.1) .^ 2 / 0.02))
+coil_sens1 = [exp(-π * ((x + 0.1) ^ 2 / 0.02) + (y ^ 2 / 0.02)) for x in xq, y in yq]
+coil_sens2 = [exp(-π * ((x - 0.1) ^ 2 / 0.02) + (y ^ 2 / 0.02)) for x in xq, y in yq]
+coil_sens3 = [exp(-π * (x ^ 2 / 0.02) + ((y + 0.1) ^ 2 / 0.02)) for x in xq, y in yq]
+coil_sens4 = [exp(-π * (x ^ 2 / 0.02) + ((y - 0.1) ^ 2 / 0.02)) for x in xq, y in yq]
 coil_sens_recon = Float32.([coil_sens1[:] coil_sens2[:] coil_sens3[:] coil_sens4[:]])
 params[:senseMaps] = reshape(complex.(coil_sens_recon), Nx, Ny, 1, size(coil_sens_recon, 2))
 

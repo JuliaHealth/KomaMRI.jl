@@ -70,7 +70,7 @@ function run_spin_precession!(
     # Fill sig[1] if needed
     ADC_idx = 1
     if (seq.ADC[1])
-        sig[1] = sum(sys.rf_coils.coil_sens .* M.xy)
+        acquire_signal!(transpose(@view(sig[ADC_idx,:])), p, sys.rf_coils, Mxy)
         ADC_idx += 1
     end
 
