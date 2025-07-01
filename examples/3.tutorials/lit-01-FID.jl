@@ -39,7 +39,7 @@ p1 = plot_seq(seq; slider=false, height=300)
 # Now, we will define a `Phantom` with a single spin at ``x=0``
 # with ``T_1=1000\,\mathrm{ms}`` and ``T_2=100\,\mathrm{ms}``.
 
-obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3]);
+obj = Phantom(x=[0.], T1=[1000e-3], T2=[100e-3]);
 
 # Finally, to simulate we will need to use the function [`simulate`](@ref) 
 # (note how the use of the `@suppress` macro prevents internal messages from being printed by the function):
@@ -63,7 +63,7 @@ p2 = plot_signal(raw; slider=false, height=300)
 # We will use ``\Delta f=-100\,\mathrm{Hz}``.
 # For this, we will need to add a definition for `Δw` in our `Phantom`
 
-obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3], Δw=[-2π*100])# and simulate again.
+obj = Phantom(x=[0.], T1=[1000e-3], T2=[100e-3], Δw=[-2π*100])# and simulate again.
 
 raw = @suppress simulate(obj, seq, sys)
 p3 = plot_signal(raw; slider=false, height=300)

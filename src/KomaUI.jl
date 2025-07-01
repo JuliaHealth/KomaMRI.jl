@@ -1,7 +1,7 @@
 # Define observables exported observables
 sys_ui = Observable{Scanner}(Scanner())
 seq_ui = Observable{Sequence}(Sequence())
-obj_ui = Observable{Phantom{Float64}}(Phantom{Float64}(x=[0.0]))
+obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
 raw_ui = Observable{RawAcquisitionData}(setup_raw())
 img_ui = Observable{Array{ComplexF64}}([0.0im 0.; 0. 0.])
 
@@ -38,7 +38,7 @@ Launch the Koma's UI.
 - `return_window`: (`::Bool`, `=false`) make the `out` be either 'nothing' or the Blink window,
     depending on whether the `return_window` keyword argument is set to true
 - `show_window`: (`::Bool`, `=true`) display the Blink window
-
+ 
 # Returns
 - `out`: (`::Nothing` or `::Blink.AtomShell.Window`) returns either 'nothing' or the Blink
     window, depending on whether the `return_window` keyword argument is set to true.
