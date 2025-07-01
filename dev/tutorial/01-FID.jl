@@ -16,14 +16,14 @@ seq += acq        # adding ADC-only block
 p1 = plot_seq(seq; slider=false, height=300)
 display(p1);
 
-obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3]);
+obj = Phantom(x=[0.], T1=[1000e-3], T2=[100e-3]);
 
 raw = @suppress simulate(obj, seq, sys);
 
 p2 = plot_signal(raw; slider=false, height=300)
 display(p2);
 
-obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3], Δw=[-2π*100])# and simulate again.
+obj = Phantom(x=[0.], T1=[1000e-3], T2=[100e-3], Δw=[-2π*100])# and simulate again.
 
 raw = @suppress simulate(obj, seq, sys)
 p3 = plot_signal(raw; slider=false, height=300)
