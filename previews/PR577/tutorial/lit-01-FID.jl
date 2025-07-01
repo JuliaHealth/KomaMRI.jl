@@ -39,7 +39,7 @@ p1 = plot_seq(seq; slider=false, height=300)
 # Now, we will define a `Phantom` with a single spin at ``x=0``
 # with ``T_1=1000\,\mathrm{ms}`` and ``T_2=100\,\mathrm{ms}``.
 
-obj = Phantom(x=[0.], T1=[1000e-3], T2=[100e-3])
+obj = Phantom(x=[0.], T1=[1000e-3], T2=[100e-3]);
 
 # Finally, to simulate we will need to use the function [`simulate`](@ref) 
 # (note how the use of the `@suppress` macro prevents internal messages from being printed by the function):
