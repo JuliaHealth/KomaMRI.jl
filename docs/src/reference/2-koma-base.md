@@ -52,7 +52,7 @@ TimeRange
 Periodic 
 ```
 
-### `AbstractSpinSapn` types
+### `AbstractSpinSpan` types
 
 ```@docs
 AllSpins
