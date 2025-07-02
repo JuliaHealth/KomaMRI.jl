@@ -439,38 +439,40 @@ end
         @test zt == ph.z .+ vz.*t'
     end
     @testset "Rotate" begin
-        ph = Phantom(x=[1.0], y=[1.0])
+        ph = Phantom(x=[1.0, 1.0, -1.0, -1.0], y=[1.0, -1.0, 1.0, -1.0])
         t_start=0.0; t_end=1.0 
         t = collect(range(t_start, t_end, 11))
         pitch = 45.0
-        roll = 0.0
+        roll = 45.0
         yaw = 45.0
         rotation = Rotate(pitch, roll, yaw, TimeRange(t_start, t_end))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
-        r = vcat(ph.x, ph.y, ph.z)
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
-        rot_x, rot_y, rot_z = R*r
-        @test xt[end ,end] ≈ rot_x
-        @test yt[end ,end] ≈ rot_y
-        @test zt[end ,end] ≈ rot_z
+        r = hcat(ph.x, ph.y, ph.z)'
+        rotated = R * r 
+        rot_x, rot_y, rot_z = eachrow(rotated)
+        @test xt[: ,end] ≈ rot_x
+        @test yt[: ,end] ≈ rot_y
+        @test zt[: ,end] ≈ rot_z
     end
     @testset "PeriodicRotation" begin
-        ph = Phantom(x=[1.0], y=[1.0])
+        ph = Phantom(x=[1.0, 1.0, -1.0, -1.0], y=[1.0, -1.0, 1.0, -1.0])
         t_start=0.0; t_end=1.0 
         t = collect(range(t_start, t_end, 11))
         period = 2.0
         asymmetry = 0.5
         pitch = 45.0
-        roll = 0.0
+        roll = 45.0
         yaw = 45.0
         periodicrotation = Rotate(pitch, roll, yaw, Periodic(period=period, asymmetry=asymmetry))
         xt, yt, zt = get_spin_coords(periodicrotation, ph.x, ph.y, ph.z, t')
-        r = vcat(ph.x, ph.y, ph.z)
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
-        rot_x, rot_y, rot_z = R*r
-        @test xt[end ,end] ≈ rot_x
-        @test yt[end ,end] ≈ rot_y
-        @test zt[end ,end] ≈ rot_z
+        r = hcat(ph.x, ph.y, ph.z)'
+        rotated = R * r 
+        rot_x, rot_y, rot_z = eachrow(rotated)
+        @test xt[: ,end] ≈ rot_x
+        @test yt[: ,end] ≈ rot_y
+        @test zt[: ,end] ≈ rot_z
     end
     @testset "HeartBeat" begin
         ph = Phantom(x=[1.0], y=[1.0])
@@ -569,7 +571,7 @@ end
         @test zt == ph.z .+ dz
     end
     @testset "Translate + Rotate" begin
-        ph = Phantom(x=[1.0], y=[1.0])
+        ph = Phantom(x=[1.0, 1.0, -1.0, -1.0], y=[1.0, -1.0, 1.0, -1.0])
         t_start=0.0; t_end=1.0 
         t = collect(range(t_start, t_end, 11))
         # Translate
@@ -577,17 +579,18 @@ end
         vx, vy, vz = [dx, dy, dz] ./ (t_end - t_start)
         translation = Translate(dx, dy, dz, TimeRange(t_start, t_end))
         # Rotate
-        pitch, roll, yaw = [45.0, 0.0, 45.0]
+        pitch, roll, yaw = [45.0, 45.0, 45.0]
         rotation = Rotate(pitch, roll, yaw, TimeRange(t_start, t_end))
-        r = vcat(ph.x, ph.y, ph.z)
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
-        rot_x, rot_y, rot_z = R*r
+        r = hcat(ph.x, ph.y, ph.z)'
+        rotated = R * r 
+        rot_x, rot_y, rot_z = eachrow(rotated)
         # Combination into a MotionList
         motion = MotionList(translation, rotation)
         xt, yt, zt = get_spin_coords(motion, ph.x, ph.y, ph.z, t')
-        @test xt[end ,end] ≈ rot_x + vx*t[end]
-        @test yt[end ,end] ≈ rot_y + vy*t[end]
-        @test zt[end ,end] ≈ rot_z + vz*t[end]        
+        @test xt[: ,end] ≈ rot_x .+ vx*t[end]
+        @test yt[: ,end] ≈ rot_y .+ vy*t[end]
+        @test zt[: ,end] ≈ rot_z .+ vz*t[end]
     end
 end
 
