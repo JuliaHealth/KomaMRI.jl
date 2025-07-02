@@ -242,50 +242,56 @@ end
 end
 
 @testitem "Bloch_RF_accuracy" tags=[:important, :core, :nomotion] begin
-    using Suppressor
+    using Suppressor, OrdinaryDiffEqTsit5
     include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
+    # Seq params
     Tadc = 1e-3
     Trf = Tadc
+    B1 = 2e-6 * (Tadc / Trf)
+    rf_phase = [0, π/2]
+    Nadc = 6
+    # Phantom params
+    M0 = 1.0
     T1 = 1000e-3
     T2 = 20e-3
     Δw = 2π * 100
-    B1 = 2e-6 * (Tadc / Trf)
-    N = 6
-
-    sys = Scanner()
-    obj = Phantom{Float64}(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
-
-    rf_phase = [0, π/2]
+    
+    ## Solving using KomaMRI
     seq = Sequence()
-    seq += ADC(N, Tadc)
+    seq += ADC(Nadc, Tadc)
     for i=1:2
-        global seq += RF(B1 .* exp(1im*rf_phase[i]), Trf)
-        global seq += ADC(N, Tadc)
+        global seq += RF(B1 .* cis(rf_phase[i]), Trf)
+        global seq += ADC(Nadc, Tadc)
     end
+    sys = Scanner()
+    obj = Phantom(x = [0.], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "return_type"=>"mat")
+    raw_aux = @suppress simulate(obj, seq, sys; sim_params)
+    raw = raw_aux[:, 1, 1] # Convert solution to complex vector
 
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU)
-    raw = @suppress simulate(obj, seq, sys; sim_params)
+    ## Solving using DiffEquations.jl
+    B1e(t) = KomaMRIBase.get_rfs(seq, [t])[1][1]
+    duration = dur(seq)
+    function bloch!(dm, m, p, t)
+        mx, my, mz = m
+        bx, by, bz = [real(B1e(t)), imag(B1e(t)), Δw / (2π * γ)]
+        dm[1] = -mx / T2 + 2π * γ * bz * my - 2π * γ * by * mz
+        dm[2] = -2π * γ * bz * mx - my / T2 + 2π * γ * bx * mz
+        dm[3] =  2π * γ * by * mx - 2π * γ * bx * my - mz / T1 + M0 / T1
+        return nothing
+    end
+    m0 = [0.0, 0.0, M0]
+    tspan = (0.0, duration)
+    prob = ODEProblem(bloch!, m0, tspan)
+    tadc = get_adc_sampling_times(seq)
+    sol = @time solve(prob, Tsit5(), saveat = tadc, dtmax=1e-6)
+    # Convert solution to complex vector
+    sol_diffeq = hcat(sol.u...)'
+    mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
 
-    #Mathematica-simulated Bloch equation result
-    res1 = [0.153592+0.46505im,
-            0.208571+0.437734im,
-            0.259184+0.40408im,
-            0.304722+0.364744im,
-            0.344571+0.320455im,
-            0.378217+0.272008im]
-    res2 = [-0.0153894+0.142582im,
-            0.00257641+0.14196im,
-            0.020146+0.13912im,
-            0.037051+0.134149im,
-            0.0530392+0.12717im,
-            0.0678774+0.11833im]
-    norm2(x) = sqrt.(sum(abs.(x).^2))
-    error0 = norm2(raw.profiles[1].data .- 0)
-    error1 = norm2(raw.profiles[2].data .- res1) ./ norm2(res1) * 100
-    error2 = norm2(raw.profiles[3].data .- res2) ./ norm2(res2) * 100
-
-    @test  error0 + error1 + error2 < 0.1 #NRMSE < 0.1%
+    @test NRMSE(raw, mxy_diffeq) < 0.1
 end
 
 @testitem "Bloch_phase_compensation" tags=[:important, :core, :nomotion] begin
@@ -301,7 +307,7 @@ end
     N = 6
 
     sys = Scanner()
-    obj = Phantom{Float64}(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
+    obj = Phantom(x=[0.],T1=[T1],T2=[T2],Δw=[Δw])
 
     rf_phase = 2π*rand()
     seq1 = Sequence()
@@ -325,7 +331,7 @@ end
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
     seq = seq_epi_100x100_TE100_FOV230()
-    obj = Phantom{Float64}(x=[0.], T1=[1000e-3], T2=[100e-3])
+    obj = Phantom(x=[0.], T1=[1000e-3], T2=[100e-3])
     sys = Scanner()
     sim_params = Dict(
         "gpu"=>USE_GPU,
