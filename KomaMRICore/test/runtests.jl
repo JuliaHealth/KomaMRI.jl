@@ -290,7 +290,6 @@ end
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "return_type"=>"mat")
     raw_aux = @suppress simulate(obj, seq, sys; sim_params)
     raw = raw_aux[:, 1, 1]
-    println("NRMSE: ", NRMSE(raw, mxy_diffeq))
     @test NRMSE(raw, mxy_diffeq) < 0.1
 end
 
