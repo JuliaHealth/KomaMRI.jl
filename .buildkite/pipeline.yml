@@ -1,5 +1,6 @@
 steps:
   - label: ":pipeline: Upload NoMotion Tests"
+    if: build.message !~ /skip ci/
     env:
       TEST_GROUP: "nomotion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
@@ -7,6 +8,7 @@ steps:
       queue: "juliagpu"
 
   - label: ":pipeline: Upload Motion Tests"
+    if: build.message !~ /skip ci/
     env:
       TEST_GROUP: "motion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
