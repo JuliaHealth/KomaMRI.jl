@@ -266,7 +266,7 @@ end
 
     ## Solving using DiffEquations.jl
     B1e(t) = KomaMRIBase.get_rfs(seq, [t])[1][1]
-    duration = 3 * Tadc + 2 * Trf
+    duration = dur(seq)
     function bloch!(dm, m, p, t)
     mx, my, mz = m
     bx, by, bz = [real(B1e(t)), imag(B1e(t)), Δw / (2π * γ)]
