@@ -1,8 +1,8 @@
 # # Diffusion-induced Signal Attenuation
 
-using KomaMRI # hide
-using PlotlyJS # hide
-using Random # hide
+using KomaMRI #hide
+using PlotlyJS #hide
+using Random, Suppressor #hide
 
 # The purpose of this tutorial is to showcase the simulation of diffusion-related effects. 
 # For this, we are going to define a [`Path`](@ref) motion to simulate the Brownian motion of spins.
@@ -19,7 +19,7 @@ obj = Phantom(;
     x  = zeros(Nspins),
     T1 = ones(Nspins) * 1000e-3,
     T2 = ones(Nspins) * 100e-3,
-)
+);
 
 # Now we will define the Brownian motion of the spins using the [`Path`](@ref) motion definition.
 # The motion will be defined by the displacements in the x, y, and z directions (`dx`, `dy`, and `dz`) 
@@ -30,26 +30,24 @@ obj = Phantom(;
 # ```
 # where ``D`` is the diffusion coefficient and ``Δt`` is time step duration.
 
-D = 2e-9               # Diffusion Coefficient of water in m^2/s
-T = 100e-3             # Duration of the motion
-Nt = 100               # Number of time steps
-Δt = T / (Nt - 1)      # Time sep
-Δr = sqrt(2 * D * Δt)  # √ Mean square displacement
+D = 2e-9                # Diffusion Coefficient of water in m^2/s
+T = 100e-3              # Duration of the motion
+Nt = 100                # Number of time steps
+Δt = T / (Nt - 1)       # Time sep
+Δr = sqrt(2 * D * Δt);  # √ Mean square displacement
 
 # Random walk is defined as the cumulative sum of random displacements:
 rng = MersenneTwister(1234) # Setting up the random seed
 dx = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
 dy = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
-dz = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2)
+dz = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2);
 
 # Including the `random_walk` into the `Phantom` definition:
 random_walk = Path(dx, dy, dz, TimeRange(0.0, T))
-obj.motion = MotionList(random_walk)
+obj.motion = random_walk
 p1 = plot_phantom_map(obj, :T1; time_samples=Nt÷4, height=450)
-
-#md savefig(p1, "../assets/6-displacements.html") # hide
+#md savefig(p1, "../assets/6-displacements.html"); #hide
 #jl display(p1)
-
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/6-displacements.html" style="width:85%; height:470px;"></object></center>
 #md # ```
@@ -71,17 +69,17 @@ sys   = Scanner()
 durRF = 1e-3 
 B1    = (π / 2) / (2π * γ * durRF)
 rf90  = PulseDesigner.RF_hard(B1, durRF, sys)
-rf180 = (0.0 + 2im) * rf90
+rf180 = (0.0 + 2im) * rf90;
 
 # Now we generate the gradients:
 G = 30e-3            # Gradient amplitude
 δ = 30e-3            # Duration of the gradient
 Δ = durRF + δ        # Time between the two gradients
-gx_diff = Grad(G, δ)
+gx_diff = Grad(G, δ);
 
 # Finally, we generate the ADC:
 adc_dwell_time = 1e-6
-adc = ADC(1, adc_dwell_time, durRF/2 - adc_dwell_time/2) # ADCs with N=1 are positioned at the center
+adc = ADC(1, adc_dwell_time, durRF/2 - adc_dwell_time/2); # ADCs with N=1 are positioned at the center
 
 # Obtaining the PGSE sequence:
 seq = Sequence()
@@ -91,9 +89,8 @@ seq += rf180
 seq += gx_diff
 seq += adc
 p2 = plot_seq(seq; show_adc=true) # Plotting the sequence 
-
-#md savefig(p2, "../assets/6-pgse_sequence.html") # hide
-#jl display(p2)
+#md savefig(p2, "../assets/6-pgse_sequence.html"); #hide
+#jl display(p2);
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/6-pgse_sequence.html" style="width:100%; height:300px;"></object></center>
@@ -120,7 +117,7 @@ function bvalue(seq)
     Δ = dur(seq[2:3]) # Because there are no gaps
     b = (2π * γ * G * δ)^2 * (Δ - δ/3)
     return b * 1e-6
-end
+end;
 
 # ### Diffusion Weighted Imaging (DWI)
 # For DWI, multiple b-values are acquired to determine the tissue's ADC.
@@ -140,23 +137,21 @@ end
 
 sim_params = KomaMRICore.default_sim_params()
 sim_params["return_type"] = "mat"
-sim_params["Δt"] = Δt # Set max. grad. time step to fit diffusion time step
+sim_params["Δt"] = Δt; # Set max. grad. time step to fit diffusion time step
 
-signals = simulate.(Ref(obj), seqs, Ref(sys); sim_params) # simulate broadcasted over seqs
+signals = @suppress simulate.(Ref(obj), seqs, Ref(sys); sim_params); # simulate broadcasted over seqs
 
 Sb = [sb[1] for sb in signals] # Reshaping the simulated signals
-bvals_si = bvals .* 1e6 # Convert b-values from s/mm^2 to s/m^2
+bvals_si = bvals .* 1e6; # Convert b-values from s/mm^2 to s/m^2
 
 E_simulated   = abs.(Sb) ./ abs.(Sb[1])
-E_theoretical = exp.(-bvals_si .* D)
-
-s_sim  = scatter(x=bvals, y=E_simulated,   name="Simulated") # hide
-s_theo = scatter(x=bvals, y=E_theoretical, name="exp(-b D)", line=attr(dash="dash")) # hide
-layout = Layout(title="Diffusion-induced signal attenuation E(b)", xaxis=attr(title="b-value [s/mm^2]")) # hide
-p3 = plot([s_sim, s_theo], layout) # hide
-
-#md savefig(p3, "../assets/6-pgse_signal_attenuation.html") # hide
-#jl display(p3)
+E_theoretical = exp.(-bvals_si .* D);
+s_sim  = scatter(x=bvals, y=E_simulated,   name="Simulated") #hide
+s_theo = scatter(x=bvals, y=E_theoretical, name="exp(-b D)", line=attr(dash="dash")) #hide
+layout = Layout(title="Diffusion-induced signal attenuation E(b)", xaxis=attr(title="b-value [s/mm^2]")) #hide
+p3 = plot([s_sim, s_theo], layout); #hide
+#md savefig(p3, "../assets/6-pgse_signal_attenuation.html"); #hide
+#jl display(p3);
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/6-pgse_signal_attenuation.html" style="width:80%; height:400px;"></object></center>
