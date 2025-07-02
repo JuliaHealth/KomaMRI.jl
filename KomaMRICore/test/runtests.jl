@@ -246,50 +246,51 @@ end
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
+    # Seq params
     Tadc = 1e-3
     Trf = Tadc
+    B1 = 2e-6 * (Tadc / Trf)
+    rf_phase = [0, π/2]
+    Nadc = 6
+    # Phantom params
+    M0 = 1.0
     T1 = 1000e-3
     T2 = 20e-3
     Δw = 2π * 100
-    B1 = 2e-6 * (Tadc / Trf)
-    N = 6
-    M0 = 1.0
-
-    # Creating Sequence
-    rf_phase = [0, π/2]
+    
+    ## Solving using KomaMRI
     seq = Sequence()
-    seq += ADC(N, Tadc)
+    seq += ADC(Nadc, Tadc)
     for i=1:2
-        global seq += RF(B1 .* exp(1im*rf_phase[i]), Trf)
-        global seq += ADC(N, Tadc)
+        global seq += RF(B1 .* cis(rf_phase[i]), Trf)
+        global seq += ADC(Nadc, Tadc)
     end
+    sys = Scanner()
+    obj = Phantom(x = [0.], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "return_type"=>"mat")
+    raw_aux = @suppress simulate(obj, seq, sys; sim_params)
+    raw = raw_aux[:, 1, 1] # Convert solution to complex vector
 
     ## Solving using DiffEquations.jl
     B1e(t) = KomaMRIBase.get_rfs(seq, [t])[1][1]
     duration = dur(seq)
     function bloch!(dm, m, p, t)
-    mx, my, mz = m
-    bx, by, bz = [real(B1e(t)), imag(B1e(t)), Δw / (2π * γ)]
-    dm[1] = -mx / T2 + 2π * γ * bz * my - 2π * γ * by * mz
-    dm[2] = -2π * γ * bz * mx - my / T2 + 2π * γ * bx * mz
-    dm[3] =  2π * γ * by * mx - 2π * γ * bx * my - mz / T1 + M0 / T1
+        mx, my, mz = m
+        bx, by, bz = [real(B1e(t)), imag(B1e(t)), Δw / (2π * γ)]
+        dm[1] = -mx / T2 + 2π * γ * bz * my - 2π * γ * by * mz
+        dm[2] = -2π * γ * bz * mx - my / T2 + 2π * γ * bx * mz
+        dm[3] =  2π * γ * by * mx - 2π * γ * bx * my - mz / T1 + M0 / T1
         return nothing
     end
     m0 = [0.0, 0.0, M0]
     tspan = (0.0, duration)
     prob = ODEProblem(bloch!, m0, tspan)
-    # Only at ADC points
     tadc = get_adc_sampling_times(seq)
     sol = @time solve(prob, Tsit5(), saveat = tadc, dtmax=1e-6)
+    # Convert solution to complex vector
     sol_diffeq = hcat(sol.u...)'
     mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
 
-    ## Solving using KomaMRI
-    sys = Scanner()
-    obj = Phantom(x = [0.], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "return_type"=>"mat")
-    raw_aux = @suppress simulate(obj, seq, sys; sim_params)
-    raw = raw_aux[:, 1, 1]
     @test NRMSE(raw, mxy_diffeq) < 0.1
 end
 
