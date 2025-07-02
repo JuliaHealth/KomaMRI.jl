@@ -253,58 +253,45 @@ end
     Δw = 2π * 100
     B1 = 2e-6 * (Tadc / Trf)
     N = 6
-    Nadc = 25
     M0 = 1.0
-    duration = 2*Trf
-    γ = 2π * 42.58e6
-    φ = π / 4
-    B1e(t) = B1 * (0 <= t <= Trf)
 
-    Gx = 1e-3
-    Gy = 1e-3
-    Gz = 0
-
-    coords(t) = get_spin_coords(NoMotion(), x0, y0, z0, t)
-    x(t) = (coords(t)[1])[1]
-    y(t) = (coords(t)[2])[1]
-    z(t) = (coords(t)[3])[1]
+    # Creating Sequence
+    rf_phase = [0, π/2]
+    seq = Sequence()
+    seq += ADC(N, Tadc)
+    for i=1:2
+        global seq += RF(B1 .* exp(1im*rf_phase[i]), Trf)
+        global seq += ADC(N, Tadc)
+    end
 
     ## Solving using DiffEquations.jl
+    B1e(t) = KomaMRIBase.get_rfs(seq, [t])[1][1]
+    duration = 3 * Tadc + 2 * Trf
     function bloch!(dm, m, p, t)
-        mx, my, mz = m
-        bx, by, bz = [B1e(t) * cos(φ), B1e(t) * sin(φ), (x(t) * Gx + y(t) * Gy + z(t) * Gz)]
-        dm[1] = -mx / T2 + γ * bz * my - γ * by * mz
-        dm[2] = -γ * bz * mx - my / T2 + γ * bx * mz
-        dm[3] =  γ * by * mx - γ * bx * my - mz / T1 + M0 / T1
+    mx, my, mz = m
+    bx, by, bz = [real(B1e(t)), imag(B1e(t)), Δw / (2π * γ)]
+    dm[1] = -mx / T2 + 2π * γ * bz * my - 2π * γ * by * mz
+    dm[2] = -2π * γ * bz * mx - my / T2 + 2π * γ * bx * mz
+    dm[3] =  2π * γ * by * mx - 2π * γ * bx * my - mz / T1 + M0 / T1
         return nothing
     end
-    m0 = [0.0, 0.0, 1.0]
+    m0 = [0.0, 0.0, M0]
     tspan = (0.0, duration)
     prob = ODEProblem(bloch!, m0, tspan)
     # Only at ADC points
-    x0 = [0.1]
-    y0 = [0.1]
-    z0 = [0.0]
-    tadc = range(Trf, duration, Nadc)
-    sol = @time solve(prob, Tsit5(), saveat = tadc, abstol = 1e-9, reltol = 1e-9)
+    tadc = get_adc_sampling_times(seq)
+    sol = @time solve(prob, Tsit5(), saveat = tadc, dtmax=1e-6)
     sol_diffeq = hcat(sol.u...)'
     mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
 
     ## Solving using KomaMRI
     sys = Scanner()
-    obj = Phantom(x = x0, y = y0, z = z0, ρ = [M0], T1 = [T1], T2 = [T2])
-    rf_phase = [0, π/2]
-    # Creating Sequence
-    seq = Sequence()
-    seq += RF(cis(φ) .* B1, Trf)
-    seq.GR[1,1] = Grad(Gx, duration)
-    seq.GR[2,1] = Grad(Gy, duration)
-    seq.GR[3,1] = Grad(Gz, duration)
-    seq.ADC[1] = ADC(Nadc, duration-Trf, Trf)
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU, "return_type"=>"mat")
+    obj = Phantom(x = [0.], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
+    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "return_type"=>"mat")
     raw_aux = @suppress simulate(obj, seq, sys; sim_params)
     raw = raw_aux[:, 1, 1]
-    @test NRMSE(raw, mxy_diffeq) < 1
+    println("NRMSE: ", NRMSE(raw, mxy_diffeq))
+    @test NRMSE(raw, mxy_diffeq) < 0.1
 end
 
 @testitem "Bloch_phase_compensation" tags=[:important, :core, :nomotion] begin
