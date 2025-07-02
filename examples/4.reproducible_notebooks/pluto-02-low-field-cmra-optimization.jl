@@ -259,13 +259,13 @@ end
 # ╔═╡ f57a2b6c-eb4c-45bd-8058-4a60b038925d
 begin
 	function cardiac_phantom(off; off_fat=fat_freq)
-	    myocard = Phantom{Float64}(x=dx, ρ=0.6*ones(Niso), T1=701e-3*ones(Niso),
+	    myocard = Phantom(x=dx, ρ=0.6*ones(Niso), T1=701e-3*ones(Niso),
 	                               T2=58e-3*ones(Niso),    Δw=2π*off*ones(Niso))
-	    blood =   Phantom{Float64}(x=dx, ρ=0.7*ones(Niso), T1=1122e-3*ones(Niso),
+	    blood =   Phantom(x=dx, ρ=0.7*ones(Niso), T1=1122e-3*ones(Niso),
 	                               T2=263e-3*ones(Niso),   Δw=2π*off*ones(Niso))
-	    fat1 =    Phantom{Float64}(x=dx, ρ=1.0*ones(Niso), T1=183e-3*ones(Niso),
+	    fat1 =    Phantom(x=dx, ρ=1.0*ones(Niso), T1=183e-3*ones(Niso),
 	                               T2=93e-3*ones(Niso),    Δw=2π*(off_fat + off)*ones(Niso))
-	    fat2 =    Phantom{Float64}(x=dx, ρ=1.0*ones(Niso), T1=130e-3*ones(Niso),
+	    fat2 =    Phantom(x=dx, ρ=1.0*ones(Niso), T1=130e-3*ones(Niso),
 	                               T2=93e-3*ones(Niso),    Δw=2π*(off_fat + off)*ones(Niso))
 	    obj = myocard + blood + fat1 + fat2
 	    return obj
