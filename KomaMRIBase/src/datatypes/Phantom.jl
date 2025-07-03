@@ -79,14 +79,12 @@ function Base.getindex(obj::Phantom, p)
     for field in Iterators.filter(x -> !(x == :name) && !(x == :coil_sens), fieldnames(Phantom))
         push!(fields, (field, getfield(obj, field)[p]))
     end
-    push!(fields, (:coil_sens, getfield(obj, :coil_sens)[p, :]))
 end
 function Base.view(obj::Phantom, p)
     fields = []
     for field in Iterators.filter(x -> !(x == :name) && !(x == :coil_sens), fieldnames(Phantom))
         push!(fields, (field, @view(getfield(obj, field)[p])))
     end
-    push!(fields, (:coil_sens, @view(getfield(obj, :coil_sens)[p, :])))
     return Phantom(; name=obj.name, fields...)
 end
 

@@ -25,12 +25,12 @@ coil_sens = cat(complex.(coil_sens1), complex.(coil_sens2), complex.(coil_sens3)
 sys = Scanner(rf_coils = ArbitraryRFCoils(collect(x), collect(y), collect(z), coil_sens, coil_sens))
 
 #FOR RFCoilsSensDefinedAtPhantomPositions
-#coil_sens1 = [coil1(x,y,z) for (x,y,z) in zip(obj.x, obj.y, obj.z)]
-#coil_sens2 = [coil2(x,y,z) for (x,y,z) in zip(obj.x, obj.y, obj.z)]
-#coil_sens3 = [coil3(x,y,z) for (x,y,z) in zip(obj.x, obj.y, obj.z)]
-#coil_sens4 = [coil4(x,y,z) for (x,y,z) in zip(obj.x, obj.y, obj.z)]
-#coil_sens = cat(complex.(coil_sens1), complex.(coil_sens2), complex.(coil_sens3), complex.(coil_sens4); dims=2)
-#sys = Scanner(rf_coils = RFCoilsSensDefinedAtPhantomPositions(coil_sens))
+coil_sens1 = [coil1(x,y,z) for (x,y,z) in zip(obj.x, obj.y, obj.z)]
+coil_sens2 = [coil2(x,y,z) for (x,y,z) in zip(obj.x, obj.y, obj.z)]
+coil_sens3 = [coil3(x,y,z) for (x,y,z) in zip(obj.x, obj.y, obj.z)]
+coil_sens4 = [coil4(x,y,z) for (x,y,z) in zip(obj.x, obj.y, obj.z)]
+coil_sens = cat(complex.(coil_sens1), complex.(coil_sens2), complex.(coil_sens3), complex.(coil_sens4); dims=2)
+sys = Scanner(rf_coils = RFCoilsSensDefinedAtPhantomPositions(coil_sens))
 
 
 seq_file = joinpath(

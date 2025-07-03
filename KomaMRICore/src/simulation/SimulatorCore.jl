@@ -94,7 +94,7 @@ function run_spin_precession_parallel!(
     dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(
-            @view(obj[p]), seq, @view(sys[p]), @view(sig[dims..., i]), @view(Xt[p]), sim_method, backend, @view(prealloc[p])
+            @view(obj[p]), seq, @view(sys[p]), @view(sig[dims..., i]), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
         )
     end
 
@@ -208,7 +208,7 @@ function run_sim_time_iter!(
             rfs += 1
         else
             run_spin_precession_parallel!(
-                obj, seq_block, sys, @view(sig[acq_samples, dims...]), Xt, sim_method, backend, prealloc_block(prealloc_result, block); Nthreads
+                obj, seq_block, sys, @view(sig[acq_samples, dims...]), Xt, sim_method, precession_groupsize, backend, prealloc_result; Nthreads
             )
         end
         KA.synchronize(backend)
