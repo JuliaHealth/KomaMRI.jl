@@ -125,7 +125,7 @@ Press the button that says "Simulate!" to do your first simulation :). Then, a n
 KomaMRI exists thanks to all our contributors:
 
 <a href="https://github.com/JuliaHealth/KomaMRI.jl/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JuliaHealth/KomaMRI.jl" height="40px"/>
+  <img src="https://contrib.rocks/image?repo=JuliaHealth/KomaMRI.jl" height="60px"/>
 </a>
 
 Want to be highlighted here? We welcome contributions from the community! If you're interested in contributing, please read "[CONTRIBUTING](CONTRIBUTING.md)" for details on how to get started.
