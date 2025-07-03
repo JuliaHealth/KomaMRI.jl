@@ -214,13 +214,13 @@ If you see any problem with this information, please let us know in a GitHub iss
 [apple-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=Metal%3A%20Run%20tests%20on%20v1.10
 [intel-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=oneAPI%3A%20Run%20tests%20on%20v1.10
 
-[buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl/builds?branch=master
+[buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl/builds
 <!-- CI -->
-[gh-actions-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-komabase]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-komacore]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-komafiles]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-komaplots]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
+[gh-actions-komabase]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
+[gh-actions-komacore]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
+[gh-actions-komafiles]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
+[gh-actions-komaplots]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
 [gh-actions-komamri-nightly]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/Nightly/badge.svg
 [gh-actions-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml
 [gh-actions-nightly-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/nightly.yml
