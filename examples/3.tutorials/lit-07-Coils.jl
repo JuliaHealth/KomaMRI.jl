@@ -57,12 +57,11 @@ params[:iterations] = 40
 FOV = 230e-3
 xq = range(-FOV / 2, FOV / 2, Nx)
 yq = range(-FOV / 2, FOV / 2, Ny)
-coil_sens1 = [coil1(x,y,0) for x in xq, y in yq]
-coil_sens2 = [coil2(x,y,0) for x in xq, y in yq]
-coil_sens3 = [coil3(x,y,0) for x in xq, y in yq]
-coil_sens4 = [coil4(x,y,0) for x in xq, y in yq]
-coil_sens_recon = Float32.([coil_sens1[:] coil_sens2[:] coil_sens3[:] coil_sens4[:]])
-params[:senseMaps] = reshape(complex.(coil_sens_recon), Nx, Ny, 1, size(coil_sens_recon, 2))
+coil_sens1 = ComplexF32.([coil1(x,y,0) for x in xq, y in yq])
+coil_sens2 = ComplexF32.([coil2(x,y,0) for x in xq, y in yq])
+coil_sens3 = ComplexF32.([coil3(x,y,0) for x in xq, y in yq])
+coil_sens4 = ComplexF32.([coil4(x,y,0) for x in xq, y in yq])
+params[:senseMaps] = cat(coil_sens1, coil_sens2, coil_sens3, coil_sens4; dims=4)
 
 # do reconstruction
 Ireco = reconstruction(acq, params)
