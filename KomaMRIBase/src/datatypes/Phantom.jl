@@ -76,13 +76,14 @@ end
 """Separate object spins in a sub-group"""
 function Base.getindex(obj::Phantom, p)
     fields = []
-    for field in Iterators.filter(x -> !(x == :name) && !(x == :coil_sens), fieldnames(Phantom))
+    for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, getfield(obj, field)[p]))
     end
+    return Phantom(; name=obj.name, fields...)
 end
 function Base.view(obj::Phantom, p)
     fields = []
-    for field in Iterators.filter(x -> !(x == :name) && !(x == :coil_sens), fieldnames(Phantom))
+    for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, @view(getfield(obj, field)[p])))
     end
     return Phantom(; name=obj.name, fields...)
