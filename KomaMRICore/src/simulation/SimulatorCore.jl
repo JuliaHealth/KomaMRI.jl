@@ -391,7 +391,6 @@ function simulate(
         seqd = seqd |> gpu #DiscreteSequence
         Xt = Xt |> gpu #SpinStateRepresentation
         sig = sig |> gpu #Signal
-        precalc = precalc |> gpu #Info calculated prior to simulation
     end
 
     # Simulation

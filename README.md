@@ -5,9 +5,11 @@
 
 <div align="center">
  
-![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url] ![][gh-starts-komamri]
+![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][total-downloads-komamri]][downloads-komamri-url]
 
-[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url] [![][OSI2-img]][OSI2-url]
+[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url] 
+
+[![][OSI2-img]][OSI2-url]
 
 </div>
  
@@ -58,7 +60,7 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 - [Tested compatibility](#tested-compatibility) 
 
 ## News
-- **(16 Jun 2025)** [KomaMRI v0.9.1](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.9.1) has received a perfect score in the Open Source Imaging Initiative (OSI²) CAB Review 🥳!. Read the full review report [here](https://gitlab.com/osiiev/cab/-/blob/main/review/projects/KomaMRI/v0.9.1/review_report.md).
+- **(16 Jun 2025)** [KomaMRI v0.9.1](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.9.1) has received a perfect score in the Open Source Imaging Initiative (OSI²) CAB Review 🥳! Read the full review report [here](https://gitlab.com/osiiev/cab/-/blob/main/review/projects/KomaMRI/v0.9.1/review_report.md).
 - **(1 Oct 2024)** [KomaMRI v0.9](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.9.0): device-agnostic simulations, improved performance (**4-5x faster and 80x less memory**), distributed simulations, GPU benchmarking, mix-and-match motion definitions, improved dynamic phantom plotting, and a new phantom file format!
 - **(29 Aug 2024)** Our first GSoC student, Ryan Kierulf, presented his fantastic work at the JuliaHealth monthly meeting 🥳! (presentation available [here](https://www.youtube.com/watch?v=R6Z20G0J4bM)) More info in the docs: [GPU Parallelization](https://juliahealth.org/KomaMRI.jl/dev/explanation/7-gpu-explanation/), [Distributed Simulations](https://juliahealth.org/KomaMRI.jl/dev/how-to/4-run-distributed-simulations/) and [Ryan's JuliaHealth blog](https://juliahealth.org/JuliaHealthBlog/posts/ryan-gsoc/Ryan_GSOC.html)
 - **(7 Dec 2023)** Koma was present in [MRI Together](https://mritogether.esmrmb.org/) 😼. The talk is available [here](https://www.youtube.com/watch?v=9mRQH8um4-A). Also, I uploaded the promised [educational example](https://juliahealth.org/KomaMRI.jl/stable/tutorial-pluto/01-gradient-echo-spin-echo/).
@@ -242,7 +244,7 @@ If you see any problem with this information, please let us know in a GitHub iss
 [arXiv-url]: https://arxiv.org/abs/2301.02702
 [paper-url]: https://doi.org/10.1002/mrm.29635
 <!-- Downloads -->
-[total-downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Ftotal_downloads%2FKomaMRI&query=total_requests&label=Downloads
+[total-downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Ftotal_downloads%2FKomaMRICore&query=total_requests&label=Downloads
 [downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRI&query=total_requests&suffix=%2Fmonth&label=Downloads
 [downloads-komabase]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRIBase&query=total_requests&suffix=%2Fmonth&label=Downloads
 [downloads-komacore]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRICore&query=total_requests&suffix=%2Fmonth&label=Downloads
