@@ -5,9 +5,11 @@
 
 <div align="center">
  
-![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url] ![][gh-starts-komamri]
+![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][total-downloads-komamri]][downloads-komamri-url]
 
-[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url] [![][OSI2-img]][OSI2-url]
+[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url] 
+
+[![][OSI2-img]][OSI2-url]
 
 </div>
  
