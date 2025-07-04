@@ -740,20 +740,11 @@ end
     B0, B1, Gmax, Smax = 1.5, 10e-6, 60e-3, 500.0
     ADC_Δt, seq_Δt, GR_Δt, RF_Δt = 2e-6, 1e-5, 1e-5, 1e-6
     RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T = 20e-6, 100e-6, 10e-6
-    limits = HardwareLimits(
-        B0 = B0, 
-        B1 = B1, 
-        Gmax = Gmax, 
-        Smax = Smax, 
-        ADC_Δt = ADC_Δt, 
-        seq_Δt = seq_Δt, 
-        GR_Δt = GR_Δt, 
-        RF_Δt = RF_Δt, 
-        RF_ring_down_T = RF_ring_down_T, 
-        RF_dead_time_T = RF_dead_time_T, 
-        ADC_dead_time_T = ADC_dead_time_T
-    )
-    sys = Scanner(limits = limits)
+    sys = Scanner(limits = HardwareLimits(
+        B0, B1, Gmax,Smax, 
+        ADC_Δt, seq_Δt, GR_Δt, RF_Δt,
+        RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T
+        ))
     @test sys.B0 ≈ B0 && sys.B1 ≈ B1 && sys.Gmax ≈ Gmax && sys.Smax ≈ Smax
 end
 
