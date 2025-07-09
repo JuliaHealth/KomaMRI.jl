@@ -11,7 +11,7 @@ steps:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
         command: |
-          julia -e 'println("--- :julia: Instantiating project")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
               using Pkg
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
@@ -47,7 +47,7 @@ steps:
         env:
           TEST_GROUP: $TEST_GROUP
         command: |
-          julia -e 'println("--- :julia: Instantiating project")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
               using Pkg
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
@@ -83,7 +83,7 @@ steps:
         env:
           TEST_GROUP: $TEST_GROUP
         command: |
-          julia -e 'println("--- :julia: Instantiating project")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
               using Pkg
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
@@ -114,7 +114,7 @@ steps:
         env:
           TEST_GROUP: $TEST_GROUP
         command: |
-          julia -e 'println("--- :julia: Instantiating project")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
               using Pkg
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
@@ -151,7 +151,7 @@ steps:
         env:
           TEST_GROUP: $TEST_GROUP
         command: |
-          julia -e 'println("--- :julia: Instantiating project")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
               using Pkg
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
