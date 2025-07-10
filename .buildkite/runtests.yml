@@ -18,7 +18,7 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
               ])'
 
-          julia -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
               using Pkg
               Pkg.test("KomaMRICore")'
         agents:
@@ -58,7 +58,7 @@ steps:
               using Pkg
               Pkg.add("AMDGPU")'
           
-          julia -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
               using Pkg
               Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
         agents:
@@ -94,7 +94,7 @@ steps:
               using Pkg
               Pkg.add("CUDA")'
           
-          julia -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
               using Pkg
               Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
         agents:
@@ -125,7 +125,7 @@ steps:
               using Pkg
               Pkg.add("Metal")'
 
-          julia -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
               using Pkg
               Pkg.test("KomaMRICore"; test_args=["Metal"])'
         agents:
@@ -162,7 +162,7 @@ steps:
               using Pkg
               Pkg.add("oneAPI")'
           
-          julia -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
               using Pkg
               Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
         agents:
