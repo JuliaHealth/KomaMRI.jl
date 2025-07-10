@@ -46,8 +46,11 @@ steps:
         env:
           TEST_GROUP: $TEST_GROUP
         command: |
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
+          julia -e 'println("--- :julia: Instantiating project")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
@@ -57,8 +60,11 @@ steps:
               using Pkg
               Pkg.add("AMDGPU")'
           
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
+          julia -e 'println("--- :julia: Running tests")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
         agents:
           queue: "juliagpu"
@@ -82,8 +88,11 @@ steps:
         env:
           TEST_GROUP: $TEST_GROUP
         command: |
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
+          julia -e 'println("--- :julia: Instantiating project")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
@@ -93,8 +102,11 @@ steps:
               using Pkg
               Pkg.add("CUDA")'
 
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
+          julia -e 'println("--- :julia: Running tests")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
         agents:
           queue: "juliagpu"
@@ -113,8 +125,11 @@ steps:
         env:
           TEST_GROUP: $TEST_GROUP
         command: |
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
+          julia -e 'println("--- :julia: Instantiating project")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
@@ -124,8 +139,11 @@ steps:
               using Pkg
               Pkg.add("Metal")'
 
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
+          julia -e 'println("--- :julia: Running tests")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.test("KomaMRICore"; test_args=["Metal"])'
         agents:
           queue: "juliaecosystem"
@@ -150,8 +168,11 @@ steps:
         env:
           TEST_GROUP: $TEST_GROUP
         command: |
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Instantiating project")
+          julia -e 'println("--- :julia: Instantiating project")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
@@ -161,8 +182,11 @@ steps:
               using Pkg
               Pkg.add("oneAPI")'
 
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
+          julia -e 'println("--- :julia: Running tests")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
         agents:
           queue: "juliagpu"
