@@ -17,7 +17,7 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               ])'
 
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
               using Pkg
               Pkg.test()'
         agents:
@@ -56,15 +56,12 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
               ])'
           
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Add AMDGPU to test environment")
+          julia -e 'println("--- :julia: Add AMDGPU to test environment")
               using Pkg
               Pkg.add("AMDGPU")'
           
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
               using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
         agents:
           queue: "juliagpu"
@@ -98,15 +95,12 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
               ])'
           
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
+          julia -e 'println("--- :julia: Add CUDA to test environment")
               using Pkg
               Pkg.add("CUDA")'
           
-          julia -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
               using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
         agents:
           queue: "juliagpu"
@@ -135,15 +129,12 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
               ])'
           
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
+          julia -e 'println("--- :julia: Add Metal to test environment")
               using Pkg
               Pkg.add("Metal")'
 
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
               using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
               Pkg.test("KomaMRICore"; test_args=["Metal"])'
         agents:
           queue: "juliaecosystem"
@@ -178,15 +169,12 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
               ])'
           
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
+          julia -e 'println("--- :julia: Add oneAPI to test environment")
               using Pkg
               Pkg.add("oneAPI")'
           
-          julia -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Running tests")
               using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
         agents:
           queue: "juliagpu"
