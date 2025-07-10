@@ -55,7 +55,7 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               ])'
           
-          julia --project=KomaMRICore -e 'println("--- :julia: Add AMDGPU to test environment")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Add AMDGPU to test environment")
               using Pkg
               Pkg.add("AMDGPU")'
           
@@ -93,7 +93,7 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               ])'
           
-          julia --project=KomaMRICore -e 'println("--- :julia: Add CUDA to test environment")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
               using Pkg
               Pkg.add("CUDA")'
           
@@ -126,7 +126,7 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               ])'
           
-          julia --project=KomaMRICore -e 'println("--- :julia: Add Metal to test environment")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
               using Pkg
               Pkg.add("Metal")'
 
@@ -165,7 +165,7 @@ steps:
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               ])'
           
-          julia --project=KomaMRICore -e 'println("--- :julia: Add oneAPI to test environment")
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
               using Pkg
               Pkg.add("oneAPI")'
           
