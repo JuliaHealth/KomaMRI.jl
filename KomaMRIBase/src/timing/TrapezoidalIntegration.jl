@@ -19,12 +19,12 @@ Trapezoidal integration for every spin of a phantom.
     of (Gx * x + Gy * y + Gz * z) * Δt for every spin of a phantom
 """
 function trapz(Δt::AbstractMatrix{T}, x::AbstractMatrix{TX}) where {T<:Real, TX<:Union{T, Complex{T}}}
-    y = (x[:, 2:end] .+ x[:, 1:end-1]) .* (Δt / 2)
+    y = @views (x[:, 2:end] .+ x[:, 1:end-1]) .* (Δt / 2)
     y = sum(y, dims=2)
     return y
 end
 function trapz(Δt::AbstractVector{T}, x::AbstractVector{TX}) where {T<:Real, TX<:Union{T, Complex{T}}}
-    y = (x[2:end] .+ x[1:end-1]) .* (Δt / 2)
+    y = @views (x[2:end] .+ x[1:end-1]) .* (Δt / 2)
     y = sum(y)
     return y
 end
@@ -45,12 +45,12 @@ Trapezoidal cumulative integration over time for every spin of a phantom.
     phantom
 """
 function cumtrapz(Δt::AbstractArray{T}, x::AbstractArray{T}) where {T<:Real}
-    y =  (x[:, 2:end] .+ x[:, 1:end-1]) .* (Δt ./ 2)
+    y = @views (x[:, 2:end] .+ x[:, 1:end-1]) .* (Δt ./ 2)
     y = cumsum(y, dims=2)
     return y
 end
 function cumtrapz(Δt::AbstractVector{T}, x::AbstractVector{T}) where {T<:Real}
-    y = (x[2:end] .+ x[1:end-1]) .* (Δt ./ 2)
+    y = @views (x[2:end] .+ x[1:end-1]) .* (Δt ./ 2)
     y = cumsum(y)
     return y
 end

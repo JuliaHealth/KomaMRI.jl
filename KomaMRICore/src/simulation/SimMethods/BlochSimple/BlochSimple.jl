@@ -52,7 +52,7 @@ function run_spin_precession!(
     outflow_spin_reset!(Mxy, seq.t', p.motion)
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
     #Acquired signal
-    sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    sig .= @views transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
 end
 
