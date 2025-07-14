@@ -38,8 +38,10 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-          - JuliaCI/julia-coverage#v1:
+          - cncastillo/julia-coverage:
               codecov: true
+              flags:
+                - core
               dirs:
                 - KomaMRICore/src
                 - KomaMRICore/ext
@@ -80,8 +82,10 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-          - JuliaCI/julia-coverage#v1:
+          - cncastillo/julia-coverage:
               codecov: true
+              flags:
+                - core
               dirs:
                 - KomaMRICore/src
                 - KomaMRICore/ext
@@ -160,8 +164,10 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-          - JuliaCI/julia-coverage#v1:
+          - cncastillo/julia-coverage:
               codecov: true
+              flags:
+                - core
               dirs:
                 - KomaMRICore/src
                 - KomaMRICore/ext
