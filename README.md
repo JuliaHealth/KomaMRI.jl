@@ -25,8 +25,8 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 <tr>
 <td align="left">
 
-- Fast simulations with CPU/GPU parallelization 🏃💨
-- Extensible, so anyone can include new features 🆙
+- Fast parallel simulations on CPU and GPU 🏃💨
+- Extensible, add your own features! 🆙
 - Supports community-standards [🤝](## "Pulseq and ISMRMRD") 
 - Interactive visualizations using PlotlyJS.jl 📲
 - Cross-platform (Windows, Mac & Linux) 🌐
