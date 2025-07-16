@@ -38,7 +38,7 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-          - cncastillo/julia-coverage:
+          - JuliaCI/julia-coverage:
               codecov: true
               flags:
                 - core
@@ -82,7 +82,7 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-          - cncastillo/julia-coverage:
+          - JuliaCI/julia-coverage:
               codecov: true
               flags:
                 - core
@@ -164,7 +164,7 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-          - cncastillo/julia-coverage:
+          - JuliaCI/julia-coverage:
               codecov: true
               flags:
                 - core
