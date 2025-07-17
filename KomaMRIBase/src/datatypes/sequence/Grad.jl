@@ -1,13 +1,14 @@
 """
     Rx = rotx(θ::Real)
 
-Rotates vector counter-clockwise with respect to the x-axis.
+Rotates a three-dimensional vector or matrix with three rows counter-clockwise with respect
+to the x-axis.
 
 # Arguments
 - `θ`: (`::Real`, `[rad]`) rotation angle
 
 # Returns
-- `Rx`: (`::Matrix{Int64}`) rotation matrix
+- `Rx`: (`::Matrix{Real}`) rotation matrix
 """
 rotx(θ::Real) = [
     1  0  0
@@ -18,13 +19,14 @@ rotx(θ::Real) = [
 """
     Ry = roty(θ::Real)
 
-Rotates vector counter-clockwise with respect to the y-axis.
+Rotates a three-dimensional vector or matrix with three rows counter-clockwise with respect
+to the y-axis.
 
 # Arguments
 - `θ`: (`::Real`, `[rad]`) rotation angle
 
 # Returns
-- `Ry`: (`::Matrix{Int64}`) rotation matrix
+- `Ry`: (`::Matrix{Real}`) rotation matrix
 """
 roty(θ::Real) = [
     cos(θ) 0 sin(θ)
@@ -35,13 +37,14 @@ roty(θ::Real) = [
 """
     Rz = rotz(θ::Real)
 
-Rotates vector counter-clockwise with respect to the z-axis.
+Rotates a three-dimensional vector or matrix with three rows counter-clockwise with respect
+to the z-axis.
 
 # Arguments
 - `θ`: (`::Real`, `[rad]`) rotation angle
 
 # Returns
-- `Rz`: (`::Matrix{Int64}`) rotation matrix
+- `Rz`: (`::Matrix{Teal}`) rotation matrix
 """
 rotz(θ::Real) = [
     cos(θ) -sin(θ) 0
@@ -56,7 +59,7 @@ rotz(θ::Real) = [
     gr = Grad(A, T, rise, fall, delay)
     gr = Grad(A, T, rise, fall, delay, first, last)
 
-The Grad struct represents a gradient of a sequence event.
+The Grad struct represents a gradient event of a sequence.
 
 # Arguments
 - `A`: (`::Real` or `::Vector`, `[T/m]`) amplitude of the gradient
@@ -143,17 +146,7 @@ Grad(f::Function, T::Real, N::Integer=300; delay::Real=0) = begin
     return Grad(G, T, 0.0, 0.0, delay)
 end
 
-"""
-    str = show(io::IO, x::Grad)
-
-Displays information about the Grad struct `x` in the julia REPL.
-
-# Arguments
-- `x`: (`::Grad`) Grad struct
-
-# Returns
-- `str` (`::String`) output string message
-"""
+# Display on the REPL
 Base.show(io::IO, x::Grad) = begin
     r(x) = round.(x, digits=4)
     compact = get(io, :compact, false)
@@ -250,17 +243,17 @@ function vcat(x::Array{Grad,1}, y::Array{Grad,1}, z::Array{Grad,1})
 end
 
 """
-    y = dur(x::Grad)
-    y = dur(x::Vector{Grad})
-    y = dur(x::Matrix{Grad})
+    time = dur(gr::Grad)
+    time = dur(gr::Vector{Grad})
+    time = dur(gr::Matrix{Grad})
 
-Duration time in [s] of Grad struct or Grad Array.
+Duration time in seconds of Grad struct or Grad Array.
 
 # Arguments
-- `x`: (`::Grad` or `::Vector{Grad}` or `::Matrix{Grad}`) Grad struct or Grad Array
+- `gr`: (`::Grad` or `::Vector{Grad}` or `::Matrix{Grad}`) Grad struct or Grad Array
 
 # Returns
-- `y`: (`::Float64`, `[s]`) duration of the Grad struct or Grad Array
+- `time`: (`::Real`, `[s]`) duration of the Grad struct or Grad Array
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
 dur(x::Vector{Grad}) = maximum(dur.(x); dims=1)[:]

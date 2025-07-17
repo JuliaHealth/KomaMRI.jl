@@ -1,8 +1,9 @@
 """
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
 
-The Phantom struct. Most of its field names are vectors, with each element associated with
-a property value representing a spin. This struct serves as an input for the simulation.
+The `Phantom` struct has field names that are vectors associated with spin properties. It
+allows accessing specific spin property values by indexing these vectors. This struct serves
+as input for the simulation.
 
 # Arguments
 - `name`: (`::String`) phantom name

@@ -8,9 +8,9 @@
     seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
     seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
 
-The Sequence struct. It contains events of an MRI sequence. Most field names (except for the
-DEF field) consist of matrices or vectors, where each column index represents a sequence
-block. This struct serves as an input for the simulation.
+The Sequence struct contains events of an MRI sequence. Most field names, except for the DEF
+field, consist of matrices or vectors. In these matrices, each column index represents a
+sequence block. This struct serves as input for the simulation.
 
 # Arguments
 - `GR`: (`::Matrix{Grad}`) gradient matrix. Rows for x-y-z amplitudes and columns are for blocks
@@ -18,7 +18,7 @@ block. This struct serves as an input for the simulation.
 - `ADC`: (`::Array{ADC,1}`) ADC block vector
 - `DUR`: (`::Vector`, `[s]`) duration block vector
 - `DEF`: (`::Dict{String, Any}`) dictionary with relevant information of the sequence.
-    Possible keys could be [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
+    Possible keys include [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
     `"Num_Blocks"`, `"Nx"`, `"Ny"`, `"PulseqVersion"`, `"BlockDurationRaster"`,
     `"FileName"`, `"RadiofrequencyRasterTime"`]
 
@@ -76,17 +76,7 @@ Sequence() = Sequence(
     Dict{String, Any}()
     )
 
-"""
-    str = show(io::IO, s::Sequence)
-
-Displays information about the Sequence struct `s` in the julia REPL.
-
-# Arguments
-- `s`: (`::Sequence`) Sequence struct
-
-# Returns
-- `str` (`::String`) output string message
-"""
+# Display on the REPL
 Base.show(io::IO, s::Sequence) = begin
 	compact = get(io, :compact, false)
     if length(s) > 0
@@ -140,13 +130,13 @@ size(x::Sequence) = size(x.GR[1,:])
 
 """
     y = is_ADC_on(x::Sequence)
-    y = is_ADC_on(x::Sequence, t::Union{Array{Float64,1}, Array{Float64,2}})
+    y = is_ADC_on(x::Sequence, t::AbstractVecOrMat)
 
 Tells if the sequence `seq` has elements with ADC active, or active during time `t`.
 
 # Arguments
 - `x`: (`::Sequence`) sequence struct
-- `t`: (`::Union{Array{Float64,1}, Array{Float64,2}}`, `[s]`) time to check
+- `t`: (`::AbstractVecOrMat`, `[s]`) time to check
 
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the ADC in the sequence is active
@@ -169,13 +159,13 @@ end
 
 """
     y = is_RF_on(x::Sequence)
-    y = is_RF_on(x::Sequence, t::Vector{Float64})
+    y = is_RF_on(x::Sequence, t::Vector{Real})
 
 Tells if the sequence `seq` has elements with RF active, or active during time `t`.
 
 # Arguments
 - `x`: (`::Sequence`) Sequence struct
-- `t`: (`::Vector{Float64}`, `[s]`) time to check
+- `t`: (`::AbstractVector{Real}`, `[s]`) time to check
 
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the RF in the sequence is active
@@ -264,7 +254,7 @@ is_Delay(x::Sequence) = !(is_GR_on(x) || is_RF_on(x) || is_ADC_on(x))
 """
     T = dur(x::Sequence)
 
-The total duration of the sequence in [s].
+The total duration of the sequence in seconds.
 
 # Arguments
 - `x`: (`::Sequence`) Sequence struct
@@ -284,7 +274,7 @@ always zero, and the final time corresponds to the duration of the sequence.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Returns
-- `T0`: (`::Vector`, `[s]`) start times of the blocks in a sequence
+- `T0`: (`::Vector{Real}`, `[s]`) start times of the blocks in a sequence
 """
 get_block_start_times(seq::Sequence) = cumsum([0.0; seq.DUR], dims=1)
 
@@ -380,15 +370,16 @@ end
 """
     B1, Δf_rf  = get_rfs(seq::Sequence, t)
 
-Returns the RF pulses and the delta frequency.
+Returns the amplitude and frequency difference with respect to the resonance frequency
+contained in a sequence structure.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
-- `t`: (`1-row ::Matrix{Float64}`, `[s]`) time points
+- `t`: (`1-row ::Matrix{Real}`, `[s]`) time points
 
 # Returns
-- `B1`: (`1-row ::Matrix{ComplexF64}`, `[T]`) vector of RF pulses
-- `Δf_rf`: (`1-row ::Matrix{Float64}`, `[Hz]`) delta frequency vector
+- `B1`: (`1-row ::Matrix{Complex}`, `[T]`) vector of RF pulses
+- `Δf_rf`: (`1-row ::Matrix{Real}`, `[Hz]`) delta frequency vector
 """
 function get_rfs(seq, t::Union{Vector, Matrix})
     rf_samples = get_samples(seq; events=[:rf])
@@ -407,22 +398,22 @@ Returns all the flip angles of the RF pulses in the sequence `x`.
 - `x`: (`::Sequence`) Sequence struct
 
 # Returns
-- `y`: (`::Vector{Float64}`, `[deg]`) flip angles
+- `y`: (`::Vector{Real}`, `[deg]`) flip angles
 """
 get_flip_angles(x::Sequence) = get_flip_angle.(x.RF)[:]
 
 """
     rf_idx, rf_type = get_RF_types(seq, t)
 
-Get RF centers and types (excitation or precession). Useful for k-space calculations.
+Get the RF centers and types (excitation or precession). Useful for k-space calculations.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
-- `t`: (`::Vector{Float64}`, `[s]`) time values
+- `t`: (`::Vector{Real}`, `[s]`) time values
 
 # Returns
-- `rf_idx`: (`::Vector{Int64}`) indices of the RF centers
-- `rf_type`: (`::Vector{Int64}`, opts: [`0`, `1`]) RF type (`0`: excitation, `1`:
+- `rf_idx`: (`::Vector{Integer}`) indices of the RF centers
+- `rf_type`: (`::Vector{Integer}`, opts: [`0`, `1`]) RF type (`0`: excitation, `1`:
     precession)
 """
 function get_RF_types(seq, t)
