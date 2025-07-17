@@ -115,9 +115,12 @@ function get_adc_phase_compensation(seq)
     phase = ComplexF32[]
     for i in 1:length(seq)
         if is_ADC_on(seq[i])
-            N = seq.ADC[i].N
-            ϕ = seq.ADC[i].ϕ
-            aux = ones(N) .* exp(-1im * ϕ)
+            adc = seq.ADC[i]
+            N = adc.N
+            ϕ = adc.ϕ
+            t = times(adc)
+            Δf = adc.Δf
+            aux = exp.(-1im .* (2π .* Δf .* t .+ ϕ))
             append!(phase, aux)
         end
     end
