@@ -7,7 +7,7 @@ struct BlochSimple <: SimulationMethod end
 export BlochSimple
 
 """
-    run_spin_precession(obj, seq, Xt, sig)
+    run_spin_precession!(obj, seq, sig, M)
 
 Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`. It calculates S(t)
 = ∑ᵢ ρ(xᵢ) exp(- t/T2(xᵢ) ) exp(- 𝒊 γ ∫ Bz(xᵢ,t)). It performs the simulation in free
@@ -15,7 +15,9 @@ precession.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
-- `seq`: (`::Sequence`) Sequence struct
+- `seq`: (`::DiscreteSequence{T:<Real}`) DiscreteSequence struct
+- `sig`: (`::AbstractArray{Complex{T:<Real}}`) raw signal
+- `M`: (`::Mag{T:<Real}`) magnetization state
 
 # Returns
 - `S`: (`Vector{ComplexF64}`) raw signal over time
@@ -57,14 +59,19 @@ function run_spin_precession!(
 end
 
 """
-    M0 = run_spin_excitation(obj, seq, M0)
+    run_spin_excitation!(obj, seqd, sig, M, sim_method)
 
-It gives rise to a rotation of `M0` with an angle given by the efective magnetic field
-(including B1, gradients and off resonance) and with respect to a rotation axis.
+Conduct the simulation within the excitation regime using the `Bloch` simulation method.
+This regime gives rise to a rotation of magnetization with an angle determined by the
+effective magnetic field (including B1, gradients, and off-resonance) and with respect to a
+rotation axis. The raw signal `sig` and the magnetization state `M` are updated in-place,
+representing the result of the simulation.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
-- `seq`: (`::Sequence`) Sequence struct
+- `seq`: (`::DiscreteSequence{T:<Real}`) DiscreteSequence struct
+- `sig`: (`::AbstractArray{Complex{T:<Real}}`) raw signal
+- `M`: (`::Mag{T:<Real}`) magnetization state
 
 # Returns
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (actually, it's
