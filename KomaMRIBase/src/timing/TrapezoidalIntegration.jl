@@ -1,21 +1,19 @@
 """
     y = trapz(Δt, x)
 
-Trapezoidal integration for every spin of a phantom.
-
-!!! note
-    In practice, this function is used to integrate (Gx * x + Gy * y + Gz * z) * Δt for all
-    the spins. `NΔt` is the length of `Δt`. `Ns` stands for the number of spins of a phantom.
-    `x` is a matrix which rows represents different spins and columns are different times
-    and the elements are the field Gx * x + Gy * y + Gz * z values.
+Trapezoidal integration. In practice, this function integrates the expression
+(Gx * x + Gy * y + Gz * z) * Δt over time for all spins. `NΔt` represents the length of the
+time interval `Δt`, and `Ns` denotes the number of spins in a phantom. The matrix `x` has
+rows representing different spins and columns representing different times, with elements
+corresponding to the field values (Gx * x + Gy * y + Gz * z).
 
 # Arguments
-- `Δt`: (`1 x NΔt ::Matrix{Float64}`, `[s]`) delta time 1-row array
-- `x`: (`Ns x (NΔt+1) ::Matrix{Float64}`, `[T]`) magnitude of the field Gx * x + Gy * y +
-    Gz * z
+- `Δt`: (`1 x NΔt ::AbstractArray{Real}`, `[s]`) delta time 1-row array
+- `x`: (`Ns x (NΔt+1) ::AbstractArray{Real}`, `[T]`) magnitude of the field
+    Gx * x + Gy * y + Gz * z
 
 # Returns
-- `y`: (`Ns x 1 ::Matrix{Float64}`, `[T*s]`) vector where every element is the integral
+- `y`: (`Ns x 1 ::AbstractArray{Real}`, `[T*s]`) vector where every element is the integral
     of (Gx * x + Gy * y + Gz * z) * Δt for every spin of a phantom
 """
 function trapz(Δt::AbstractMatrix{T}, x::AbstractMatrix{TX}) where {T<:Real, TX<:Union{T, Complex{T}}}
@@ -32,15 +30,16 @@ end
 """
     y = cumtrapz(Δt, x)
 
-Trapezoidal cumulative integration over time for every spin of a phantom.
+Trapezoidal cumulative integration. Same as [`KomaMRIBase.trapz`](@ref) but it store
+cumulative integration results.
 
 # Arguments
-- `Δt`: (`1 x NΔt ::Matrix{Float64}`, `[s]`) delta time 1-row array
-- `x`: (`Ns x (NΔt+1) ::Matrix{Float64}`, `[T]`) magnitude of the field Gx * x + Gy * y +
+- `Δt`: (`1 x NΔt ::AbstractArray{Real}`, `[s]`) delta time 1-row array
+- `x`: (`Ns x (NΔt+1) ::AbstractArray{Real}`, `[T]`) magnitude of the field Gx * x + Gy * y +
     Gz * z
 
 # Returns
-- `y`: (`Ns x NΔt ::Matrix{Float64}`, `[T*s]`) matrix where every column is the
+- `y`: (`Ns x NΔt ::AbstractArray{Real}`, `[T*s]`) matrix where every column is the
     cumulative integration over time of (Gx * x + Gy * y + Gz * z) * Δt for every spin of a
     phantom
 """
