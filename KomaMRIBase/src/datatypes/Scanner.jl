@@ -2,8 +2,8 @@
     sys = Scanner(B0, B1, Gmax, Smax, ADC_Δt, seq_Δt, GR_Δt, RF_Δt,
         RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T)
 
-The Scanner struct. It contains hardware limitations of the MRI resonator. It is an input
-for the simulation.
+The `Scanner` struct contains the hardware limitations of an MRI resonator and serves as an
+input for the simulation.
 
 # Arguments
 - `B0`: (`::Real`, `=1.5`, `[T]`) main magnetic field strength

@@ -13,7 +13,9 @@ function sim_output_dim(
     return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
 end
 
-"""Magnetization initialization for Bloch simulation method."""
+"""
+Magnetization initialization for Bloch simulation method.
+"""
 function initialize_spins_state(
     obj::Phantom{T}, sim_method::SimulationMethod
 ) where {T<:Real}
@@ -24,15 +26,21 @@ function initialize_spins_state(
     return Xt, obj
 end
 
-"""Stores pre-allocated arrays for use in run_spin_precession! and run_spin_excitation!"""
+"""
+Stores pre-allocated arrays for use in run_spin_precession! and run_spin_excitation!
+"""
 abstract type PreallocResult{T<:Real} end
 
-"""Default preallocation struct, stores nothing."""
+"""
+Default preallocation struct, stores nothing.
+"""
 struct DefaultPrealloc{T} <: PreallocResult{T} end
 
 Base.view(p::PreallocResult, i::UnitRange) = p
 
-"""Default preallocation function."""
+"""
+Default preallocation function.
+"""
 prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} = DefaultPrealloc{T}()
 
 include("BlochSimple/BlochSimple.jl")

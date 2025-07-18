@@ -59,24 +59,21 @@ function default_sim_params(sim_params=Dict{String,Any}())
 end
 
 """
-    sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
+    run_spin_precession_parallel!(obj, seq, sig, Xt, sim_method; Nthreads)
 
-Implementation in multiple threads for the simulation in free precession,
-separating the spins of the phantom `obj` in `Nthreads`.
+Conduct the simulation in parallel within the excitation regime. The raw signal `sig` and
+the magnetization state `Xt` are updated in-place, representing the result of the simulation.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
-- `seq`: (`::Sequence`) Sequence struct
+- `seq`: (`::DiscreteSequence{T:<Real}`) DiscreteSequence struct
+- `sig`: (`::AbstractArray{Complex{T:<Real}}`) raw signal
+- `Xt`: (`::SpinStateRepresentation{T:<Real}`) magnetization state
+- `sim_method`: (`::SimulationMethod`) defines the simulation method
 
 # Keywords
-- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
+- `Nthreads`: (`::Integer`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
-
-# Returns
-- `sig`: (`Vector{ComplexF64}`) raw signal over time
-- `Xt`: (`::Vector{Mag}`) final state of the Mag vector (or the initial state for the
-    next simulation step (the next step can be another precession step or an excitation
-    step))
 """
 function run_spin_precession_parallel!(
     obj::Phantom{T},
@@ -102,23 +99,21 @@ function run_spin_precession_parallel!(
 end
 
 """
-    M0 = run_spin_excitation_parallel(obj, seq, Xt; Nthreads)
+    run_spin_excitation_parallel!(obj, seq, sig, Xt, sim_method; Nthreads)
 
-It gives rise to a rotation of M0 with an angle given by the efective magnetic field
-(including B1, gradients and off resonance) and with respect to a rotation axis. It uses
-different number threads to excecute the process.
+Conduct the simulation in parallel within the excitation regime. The raw signal `sig` and
+the magnetization state `Xt` are updated in-place, representing the result of the simulation.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
-- `seq`: (`::Sequence`) Sequence struct
+- `seq`: (`::DiscreteSequence{T:<Real}`) DiscreteSequence struct
+- `sig`: (`::AbstractArray{Complex{T:<Real}}`) raw signal
+- `Xt`: (`::SpinStateRepresentation{T:<Real}`) magnetization state
+- `sim_method`: (`::SimulationMethod`) defines the simulation method
 
 # Keywords
-- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
+- `Nthreads`: (`::Integer`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
-
-# Returns
-- `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (or the initial
-    state for the next precession simulation step)
 """
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
@@ -144,29 +139,31 @@ function run_spin_excitation_parallel!(
 end
 
 """
-    S_interp, M0 = run_sim_time_iter(obj, seq, t, Δt; Nblocks, Nthreads, gpu, w)
+    run_sim_time_iter!(obj, seq, sig, Xt, sim_method; kargs...)
 
-Performs the simulation over the total time vector `t` by dividing the time into `Nblocks`
-parts to reduce RAM usage and spliting the spins of the phantom `obj` into `Nthreads` to
-take advantage of CPU parallel processing.
+The simulation runs by updating the raw signal `sig` and the magnetization state `Xt`
+in-place, and these updated values represent the result of the simulation. The simulation is
+conducted over different time `parts` for excitation and precession regimes. The variable
+`Nblocks` determines the number of these `parts` to help reduce RAM usage. Additionally, the
+phantom `obj` is divided into `Nthreads` to leverage parallel processing.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
-- `seq`: (`::Sequence`) Sequence struct
-- `t`: (`::Vector{Float64}`, `[s]`) non-uniform time vector
-- `Δt`: (`::Vector{Float64}`, `[s]`) delta time of `t`
+- `seq`: (`::DiscreteSequence`) DiscreteSequence struct
+- `sig`: (`::AbstractArray{Complex{T:<Real}}`) raw signal
+- `Xt`: (`::SpinStateRepresentation{T:<Real}`) magnetization state
+- `sim_method`: (`::SimulationMethod`) defines the simulation method
 
 # Keywords
-- `Nblocks`: (`::Int`, `=16`) number of groups for spliting the simulation over time
-- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
+- `Nblocks`: (`::Integer`, `=1`) number of groups for spliting the simulation over time
+- `Nthreads`: (`::Integer`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
 - `gpu`: (`::Function`) function that represents the gpu of the host
+- `parts`: (`::Vector{UnitRange}`, `=[1:length(seq)]`) parts where the simulation is splited
+- `excitation_bool`: (`::Vector{Bool}`, `=ones(Bool, size(parts)`) indicates where an RF is
+    on in the simulation `parts`
 - `w`: (`::Any`, `=nothing`) flag to regard a progress bar in the blink window UI. If
     this variable is differnet from nothing, then the progress bar is considered
-
-# Returns
-- `S_interp`: (`::Vector{ComplexF64}`) interpolated raw signal
-- `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_sim_time_iter!(
     obj::Phantom,
@@ -225,7 +222,9 @@ function run_sim_time_iter!(
     return nothing
 end
 
-"""Updates KomaUI's simulation progress bar."""
+"""
+Updates KomaUI's simulation progress bar.
+"""
 function update_blink_window_progress!(w::Nothing, block, Nblocks)
     return nothing
 end
@@ -321,7 +320,7 @@ This is a wrapper function to `run_sim_time_iter`, which converts the inputs to 
     the progress bar will be considered
 
 # Returns
-- `out`: (`::Vector{Complex}` or `::SpinStateRepresentation` or `::RawAcquisitionData`) depending
+- `out`: (`::Array{Complex}` or `::SpinStateRepresentation` or `::RawAcquisitionData`) depending
     on whether "return_type" is "mat", "state" or "raw" (default), respectively
 
 # Examples
@@ -441,13 +440,14 @@ end
 """
     mag = simulate_slice_profile(seq; z, sim_params)
 
-Returns magnetization of spins distributed along `z` after running the Sequence struct.
+Returns magnetization of spins distributed along the `z` axis for a given `Sequence` struct.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `z`: (`=range(-2e-2,2e-2,200)`) range for the z axis
+- `z`: (`::AbstractVector{Real}`, `=range(-2e-2,2e-2,200)`, `[m]`) range of values in the `z`
+    axis
 - `sim_params`: (`::Dict{String, Any}`, `=Dict{String,Any}("Δt_rf"=>1e-6)`) dictionary with
     simulation parameters
 

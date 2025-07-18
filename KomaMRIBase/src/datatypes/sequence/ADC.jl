@@ -3,14 +3,14 @@
     adc = ADC(N, T, delay)
     adc = ADC(N, T, delay, Δf, ϕ)
 
-The ADC struct represents the Analog to Digital Converter (ADC) of a sequence event.
+The ADC struct represents the Analog to Digital Converter (ADC) event of a sequence.
 
 # Arguments
-- `N`: (`::Int64`) number of acquired samples
-- `T`: (`::Float64`, [`s`]) duration to acquire the samples
-- `delay`: (`::Float64`, [`s`]) delay time to start the acquisition
-- `Δf`: (`::Float64`, [`Hz`]) delta frequency. It is meant to compensate RF pulse phases
-- `ϕ`: (`::Float64`, `[rad]`) phase. It is meant to compensate RF pulse phases
+- `N`: (`::Integer`) number of acquired samples
+- `T`: (`::Real`, [`s`]) duration to acquire the samples
+- `delay`: (`::Real`, [`s`]) delay time to start the acquisition
+- `Δf`: (`::Real`, [`Hz`]) delta frequency. It is meant to compensate RF pulse phases
+- `ϕ`: (`::Real`, `[rad]`) phase. It is meant to compensate RF pulse phases
 
 # Returns
 - `adc`: (`::ADC`) ADC struct
@@ -48,8 +48,8 @@ end
 """
     y = getproperty(x::Vector{ADC}, f::Symbol)
 
-Overloads Base.getproperty(). It is meant to access properties of the ADC vector `x`
-directly without the need to iterate elementwise.
+Overloads Base.getproperty() to facilitate direct access to properties of the ADC vector `x`
+without the need for elementwise iteration.
 
 # Arguments
 - `x`: (`::Vector{ADC}`) vector of ADC structs
@@ -57,8 +57,8 @@ directly without the need to iterate elementwise.
     represents a property of the ADC structs
 
 # Returns
-- `y`: (`::Vector{Any}`) vector with the property defined by the `f` for all elements of
-    the ADC vector `x`
+- `y`: (`::Vector{Any}`) vector with the property defined by the `f` for all elements of the ADC
+    vector `x`
 """
 getproperty(x::Vector{ADC}, f::Symbol) = begin
     if f == :dur
@@ -79,7 +79,7 @@ Returns an array of times when the samples of the sequence `seq` are acquired.
 - `seq`: (`::Sequence`) sequence struct
 
 # Returns
-- `times`: (`::Vector{Float64}`, `[s]`) time array when samples are acquired
+- `times`: (`::Vector{Float64}`, `[s]`) time array douring sample acquisition
 """
 function get_adc_sampling_times(seq)
     T0 = get_block_start_times(seq)
@@ -109,7 +109,7 @@ involving RF spoiling.
 - `seq`: (`::Sequence`) sequence struct
 
 # Returns
-- `comp`: (`::Vector{Complex}`, `[rad]`) array of phase compensations for every acquired sample
+- `comp`: (`::Vector{Complex}`, `[rad]`) array of phase compensations for each acquired sample
 """
 function get_adc_phase_compensation(seq)
     phase = ComplexF32[]

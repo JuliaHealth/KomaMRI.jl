@@ -15,15 +15,18 @@ function sim_output_dim(
 end
 
 """
-    run_spin_precession(obj, seq, Xt, sig)
+    run_spin_precession!(obj, seq, sig, M, sim_method)
 
-Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`. It calculates S(t)
-= ∑ᵢ ρ(xᵢ) exp(- t/T2(xᵢ) ) exp(- 𝒊 γ ∫ Bz(xᵢ,t)). It performs the simulation in free
-precession.
+Conduct the simulation within the precession regime using the `BlochDict` simulation method.
+It computes the magnetization in the xy plane and in z axis. The raw signal `sig` and the
+magnetization state `M` are updated in-place, representing the result of the simulation.
 
 # Arguments
-- `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
-- `seq`: (`::Sequence`) Sequence struct
+- `obj`: (`::Phantom{T:<Real}`) Phantom struct
+- `seq`: (`::DiscreteSequence{T:<Real}`) DiscreteSequence struct
+- `sig`: (`::AbstractArray{Complex{T:<Real}}`) raw signal
+- `M`: (`::Mag{T:<Real}`) magnetization state
+- `sim_method`: (`::BlochDict`) utilized for dispatching the `BlochDict` simulation method
 
 # Returns
 - `S`: (`Vector{ComplexF64}`) raw signal over time

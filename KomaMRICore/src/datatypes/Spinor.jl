@@ -17,8 +17,8 @@ This later operates on the ``2\times2`` representation of ``(x,y,z)`` as follows
 R V R^{*}``.
 
 # Arguments
-- `α`: (`::Complex{Float64}`) Cayley-Klein parameter α
-- `β`: (`::Complex{Float64}`) Cayley-Klein parameter β
+- `α`: (`::Complex{Real}`) Cayley-Klein parameter α
+- `β`: (`::Complex{Real}`) Cayley-Klein parameter β
 
 # Returns
 - `spinor`: (`::Spinor`) Spinor struct
@@ -32,17 +32,8 @@ Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
 one(T::Spinor) = Spinor(1.,0.)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 Base.view(s::Spinor, i::UnitRange) = @views Spinor(s.α[i], s.β[i])
-"""
-    str = show(io::IO, s::Spinor)
 
-Displays the spinor parameters in the julia REPL.
-
-# Arguments
-- `s`: (`::Spinor`) Spinor struct
-
-# Returns
-- `str`: (`::String`) output string message
-"""
+# Display on the REPL
 Base.show(io::IO, s::Spinor) = begin
     print(io, "Spinor(α = ", s.α, ", β = ", s.β, ")")
 end
@@ -133,6 +124,8 @@ Rg(φ1, θ, φ2) = Spinor(cos(θ/2)*exp(-1im*(φ1+φ2)/2), sin(θ/2)*exp(-1im*(�
     s = Q(φ, nxy, nz)
 
 Spinor rotation matrix. Counter-clockwise rotation of `φ` with respect to the axis of rotation n=(nx, ny, nz).
+
+# References
 
 Pauly, J., Le Roux, P., Nishimura, D., & Macovski, A. (1991).
 Parameter relations for the Shinnar-Le Roux selective excitation pulse design algorithm

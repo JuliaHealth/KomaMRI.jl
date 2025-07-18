@@ -1,7 +1,7 @@
 """
-    A = ampls(g::Grad)
-    A = ampls(r::RF)
-    A = ampls(d::ADC)
+    amplitudes = ampls(gr::Grad)
+    amplitudes = ampls(rf::RF)
+    amplitudes = ampls(adc::ADC)
 
 Get amplitude samples of MRI sequence event.
 
@@ -11,7 +11,7 @@ Get amplitude samples of MRI sequence event.
 - `adc`: (`::ADC`) ADC struct
 
 # Returns
-- `A`: (`::Vector{Number}`) vector with amplitude samples
+- `amplitudes`: (`::Vector{Number}`) vector containing the amplitude samples of the waveform
 """
 function ampls(gr::Grad)
     if !is_on(gr)
@@ -84,7 +84,7 @@ Get time samples of MRI sequence event.
 - `adc`: (`::ADC`) ADC struct
 
 # Returns
-- `t`: (`::Vector{Number}`) vector with time samples
+- `times`: (`::Vector{Real}`) vector containing the time samples of the waveform
 """
 function times(gr::Grad)
     if !is_on(gr)
