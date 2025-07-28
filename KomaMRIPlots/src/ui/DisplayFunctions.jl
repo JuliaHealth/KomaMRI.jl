@@ -216,10 +216,12 @@ function plot_seq(
         t=reduce(vcat, [usadc(block.adc.t); Inf] for block in seq_samples),
     )
 
+    label = get_label(seq)
+
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
     O = size(seq.RF, 1)
-    p = [scatter_fun() for _ in 1:(3 + 3O + 1)]
+    p = [scatter_fun() for _ in 1:(3 + 3O + 1 + length(label))]
 
     # For GRADs
     fgx = is_Gx_on(seq) ? 1.0 : Inf
@@ -323,6 +325,34 @@ function plot_seq(
         marker=attr(; color="#19D3F3"),
     )
 
+    #############################
+    ###### show label
+    ############################
+
+    uslabel(x; ampl_edge=1.0) = false || isempty(x) ? x : [ampl_edge * first(x)]
+    label_symbol = fieldnames(AdcLabels)
+
+    t=reduce(vcat, [uslabel(block.adc.t); Inf] for block in seq_samples)
+    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
+    for (i,sym) in enumerate(label_symbol)
+        lab_vec = [getfield(label[j],sym) for j in eachindex(label)]
+        color = colors[mod1(i, length(colors))]
+        p[3O + 3 + 1 + i] = scatter_fun(;
+            x= t * 1e3,
+            y= lab_vec,
+            name=string(sym),
+            hovertemplate="(%{x:.4f} ms, %{y:i})",
+            xaxis=xaxis,
+            yaxis=yaxis,
+            legendgroup=string(sym),
+            showlegend=showlegend,
+            mode=("markers"),
+            marker=attr(; color=color, symbol="x"),
+        )
+    end
+
+    ###############################
+    ###############################
     # Return the plot
     l, config = generate_seq_time_layout_config(
         title,
@@ -1121,7 +1151,7 @@ function plot_phantom_map(
 
     traces = GenericTrace[]
 
-	bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
+    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
 
     l = Layout(;title=obj.name*": "*string(key))
 
@@ -1253,20 +1283,20 @@ function plot_phantom_map(
     l[:margin] = attr(t=50, l=0, r=0)
     l[:modebar] = attr(orientation="h", bgcolor=bgcolor, color=text_color, activecolor=plot_bgcolor)
 
-	if height !== nothing
-		l.height = height
+    if height !== nothing
+        l.height = height
     end
     if width !== nothing
         l.width = width
     end
-	config = PlotConfig(
-		displaylogo=false,
-		toImageButtonOptions=attr(
-			format="svg", # one of png, svg, jpeg, webp
-		).fields,
-		modeBarButtonsToRemove=["zoom", "pan", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
-	)
-	return plot_koma(traces, l; config)
+    config = PlotConfig(
+        displaylogo=false,
+        toImageButtonOptions=attr(
+            format="svg", # one of png, svg, jpeg, webp
+        ).fields,
+        modeBarButtonsToRemove=["zoom", "pan", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
+    )
+    return plot_koma(traces, l; config)
 end
 
 
@@ -1460,23 +1490,23 @@ Generates an HTML table based on the dictionary `dict`.
 function plot_dict(dict::Dict)
     html = """
     <table class="table table-dark table-striped">
-    	<thead>
-    		<tr>
-    		<th scope="col">#</th>
-    		<th scope="col">Name</th>
-    		<th scope="col">Value</th>
-    		</tr>
-    	</thead>
-    	<tbody>
+        <thead>
+            <tr>
+            <th scope="col">#</th>
+            <th scope="col">Name</th>
+            <th scope="col">Value</th>
+            </tr>
+        </thead>
+        <tbody>
     """
     i = 1
     for (key, val) in dict
         html *= """
-        	<tr>
-        		<th scope="row">$i</th>
-        		<td>$(string(key))</td>
-        		<td>$(string(val))</td>
-        	</tr>
+            <tr>
+                <th scope="row">$i</th>
+                <td>$(string(key))</td>
+                <td>$(string(val))</td>
+            </tr>
         """
         i += 1
     end
