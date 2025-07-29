@@ -33,6 +33,35 @@ end
 function generate_seq_time_layout_config(
     title, width, height, range, slider, show_seq_blocks, darkmode; T0
 )
+
+    label_symbol = fieldnames(AdcLabels)
+    num_labels = length(label_symbol)
+    # Assume non-label traces are first (e.g. 3 + 3O + 1)
+    # Let non_label_count be the number of non-label traces
+    # For dropdown, always show non-label traces, and only one label trace
+    non_label_count = 7  # Adjust this if your non-label traces count changes
+    # Add 'none' option to hide all label traces
+    buttons = [
+        attr(
+            label = "none",
+            method = "restyle",
+            args = [
+                attr(visible = vcat([true for _ in 1:non_label_count], fill(false, num_labels)))
+            ]
+        )
+    ]
+    # Add one button per label fieldname (only one label trace visible at a time)
+    append!(buttons, [
+        attr(
+            label = string(sym),
+            method = "restyle",
+            args = [
+                attr(visible = vcat([true for _ in 1:non_label_count], [j == i for j in 1:num_labels]))
+            ]
+        ) for (i, sym) in enumerate(label_symbol)
+    ])
+
+
     #LAYOUT
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
     l = Layout(;
@@ -50,6 +79,19 @@ function generate_seq_time_layout_config(
             activecolor=plot_bgcolor,
         ),
         legend=attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0),
+        ####label
+        updatemenus = [
+        attr(
+            type = "dropdown",
+            y = 1,
+            orientation="h",
+            yanchor="bottom",
+            bgcolor="white",
+            color=text_color,
+            buttons = buttons
+        )
+        ],
+        ######
         plot_bgcolor=plot_bgcolor,
         paper_bgcolor=bgcolor,
         xaxis_gridcolor=grid_color,
@@ -345,9 +387,10 @@ function plot_seq(
             xaxis=xaxis,
             yaxis=yaxis,
             legendgroup=string(sym),
-            showlegend=showlegend,
+            showlegend=false,
             mode=("markers"),
             marker=attr(; color=color, symbol="x"),
+            visible=false,
         )
     end
 
