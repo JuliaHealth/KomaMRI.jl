@@ -378,11 +378,11 @@ function plot_seq(
     t_center_adc = t_center[isadc]
 
     label_symbol = fieldnames(AdcLabels)
-    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
+    #colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
     for (i,sym) in enumerate(label_symbol)
         lab_vec = [getfield(label[j],sym) for j in eachindex(label)]
         lab_adc = lab_vec[isadc]
-        color = colors[mod1(i, length(colors))]
+        #color = colors[mod1(i, length(colors))]
         p[3O + 3 + 1 + i] = scatter_fun(;
             x= t_center_adc * 1e3,
             y= lab_adc,
@@ -393,7 +393,7 @@ function plot_seq(
             legendgroup=string(sym),
             showlegend=false,
             mode=("markers"),
-            marker=attr(; color=color, symbol="x"),
+            marker=attr(; color="#000000", symbol="x"),
             visible=false,
         )
     end
