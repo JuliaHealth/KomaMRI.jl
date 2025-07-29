@@ -370,18 +370,22 @@ function plot_seq(
     #############################
     ###### show label
     ############################
+    isadc = is_ADC_on.(seq)
+    d = [ seq[i].DUR[1] for i in eachindex(seq.DUR)]
+    d2 = [0;d]
+    dcum = cumsum(d2)
+    t_center = dcum[1:end-1] + d/2
+    t_center_adc = t_center[isadc]
 
-    uslabel(x; ampl_edge=1.0) = false || isempty(x) ? x : [ampl_edge * first(x)]
     label_symbol = fieldnames(AdcLabels)
-
-    t=reduce(vcat, [uslabel(block.adc.t); Inf] for block in seq_samples)
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
     for (i,sym) in enumerate(label_symbol)
         lab_vec = [getfield(label[j],sym) for j in eachindex(label)]
+        lab_adc = lab_vec[isadc]
         color = colors[mod1(i, length(colors))]
         p[3O + 3 + 1 + i] = scatter_fun(;
-            x= t * 1e3,
-            y= lab_vec,
+            x= t_center_adc * 1e3,
+            y= lab_adc,
             name=string(sym),
             hovertemplate="(%{x:.4f} ms, %{y:i})",
             xaxis=xaxis,
