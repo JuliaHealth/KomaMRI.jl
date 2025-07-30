@@ -41,8 +41,7 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 - `pitch`: (`::Real`, `[º]`) rotation in x
 - `roll`: (`::Real`, `[º]`) rotation in y 
 - `yaw`: (`::Real`, `[º]`) rotation in z
-- `center`: (`::NTuple{3,Real}` or `nothing`) optional center of rotation, given in global coordinates
-If `nothing` (default), the rotation is performed around the phantom’s center of mass.
+- `center`: (`::NTuple{3,Real}` or `nothing`) optional center of rotation, given in global coordinates. If `nothing` (default), the rotation is performed around the phantom’s center of mass.
 
 # Notes
 - Rotations are applied around the point specified in `center`. If omitted, the rotation is centered at the phantom’s center of mass.
