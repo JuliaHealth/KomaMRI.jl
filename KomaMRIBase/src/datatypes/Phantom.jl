@@ -146,7 +146,7 @@ function heart_phantom(;
 )
     #PARAMETERS
     FOV = 10e-2 # [m] Diameter ventricule
-    N = 21
+    N = 10
     Δxr = FOV / (N - 1) #Aprox rec resolution, use Δx_pix and Δy_pix
     Ns = 50 #number of spins per voxel
     Δx = Δxr / sqrt(Ns) #spin separation
