@@ -1,4 +1,5 @@
 using KomaMRI #hide
+using PlotlyJS #hide
 obj = brain_phantom2D(); #hide
 
 obj.motion = NoMotion();
@@ -68,5 +69,34 @@ obj2.motion = MotionList(
 obj = obj1 + obj2
 p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
 display(p4);
+
+obj = brain_phantom2D();
+
+tx = [5, -2, -3,  6,  4, -1] .* 1e-3; # Translation in x [m]
+ty = [-5, 2,  4, -2, -3,  5] .* 1e-3; # Translation in y [m]
+rz = [4, -7,  6,  2, -5,  4] .* 1e0;  # Rotation in z    [º]
+
+rotation_center = (0.0, -3.0, 0.0) .* 1e-2; # Rotation around the neck
+dt = 0.03;
+
+translations = [Translate(tx[i], ty[i], 0.0, TimeRange(dt*(i-1),dt*i)) for i in 1:length(tx)];
+rotations    = [Rotate(0.0, 0.0, rz[i], TimeRange(dt*(i-1),dt*i); center=rotation_center) for i in 1:length(rz)];
+
+obj.motion = MotionList(vcat(translations,rotations));
+
+p5 = plot_phantom_map(obj, :T1; time_samples=20, view_2d=true, height=440) #hide
+display(p5);
+
+
+p6 = plot( #hide
+    0:dt:dt*length(tx) .*1e3, #hide
+    [cumsum(tx) * 1e3 cumsum(ty) * 1e3 cumsum(rz)], #hide
+    Layout( #hide
+        title = "Head motion profile", #hide
+        xaxis_title = "time (ms)", #hide
+        yaxis_title = "Position" #hide
+    )) #hide
+restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]); #hide
+display(p6);
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

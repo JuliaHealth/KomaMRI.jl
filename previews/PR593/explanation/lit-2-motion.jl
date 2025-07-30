@@ -1,6 +1,7 @@
 # # Motion
 
 using KomaMRI #hide
+using PlotlyJS #hide
 obj = brain_phantom2D(); #hide
 
 # Koma can easily simulate the effects of motion during acquisitions. 
@@ -195,7 +196,7 @@ p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440); #hide
 # or happen one after another. Both cases are fully supported, so you're free to combine different 
 # effects across various parts of the phantom and time intervals, creating as complex a motion pattern as you need.
 
-# This final example shows two brain phantoms undergoing the same translational and rotational motions, but with
+# This example shows two brain phantoms undergoing the same translational and rotational motions, but with
 # different time spans. In the top phantom, the translation takes place from 0 to 0.5 seconds, followed by the 
 # rotation from 0.5 to 1 second. In the bottom phantom, both motions happen over the same time span, from 0 to 1 second:
 
@@ -220,4 +221,45 @@ p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
 
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/doc-2-combination.html" style="width:85%; height:470px;"></object></center>
+#md # ```
+
+# ### Realistic head motion
+# As a more realistic final example, let's try to replicate the head motion made by a patient inside the scanner.
+# This motion consists of a series of translations and rotations, with the rotation center being the neck:
+obj = brain_phantom2D();
+
+tx = [5, -2, -3,  6,  4, -1] .* 1e-3; # Translation in x [m]
+ty = [-5, 2,  4, -2, -3,  5] .* 1e-3; # Translation in y [m]
+rz = [4, -7,  6,  2, -5,  4] .* 1e0;  # Rotation in z    [º]
+
+rotation_center = (0.0, -3.0, 0.0) .* 1e-2; # Rotation around the neck
+dt = 0.03;
+
+translations = [Translate(tx[i], ty[i], 0.0, TimeRange(dt*(i-1),dt*i)) for i in 1:length(tx)];
+rotations    = [Rotate(0.0, 0.0, rz[i], TimeRange(dt*(i-1),dt*i); center=rotation_center) for i in 1:length(rz)];
+
+obj.motion = MotionList(vcat(translations,rotations));
+
+p5 = plot_phantom_map(obj, :T1; time_samples=20, view_2d=true, height=440) #hide
+#md savefig(p5, "../assets/doc-2-realistic.html"); #hide
+#jl display(p5);
+
+#md # ```@raw html
+#md # <center><object type="text/html" data="../../assets/doc-2-realistic.html" style="width:85%; height:470px;"></object></center>
+#md # ```
+
+p6 = plot( #hide
+    0:dt:dt*length(tx) .*1e3, #hide
+    [cumsum(tx) * 1e3 cumsum(ty) * 1e3 cumsum(rz)], #hide
+    Layout( #hide
+        title = "Head motion profile", #hide
+        xaxis_title = "time (ms)", #hide
+        yaxis_title = "Position" #hide
+    )) #hide
+restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]); #hide
+#md savefig(p6, "../assets/doc-2-displacements.html"); #hide
+#jl display(p6);
+
+#md # ```@raw html
+#md # <center><object type="text/html" data="../../assets/doc-2-displacements.html" style="width:85%; height:300px;"></object></center>
 #md # ```
