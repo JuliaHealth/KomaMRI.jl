@@ -45,7 +45,7 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 
 # Notes
 - Rotations are applied around the point specified in `center`. If omitted, the rotation is centered at the phantom’s center of mass.
-- If `cx`, `cy`, or `cz` are non-zero, the rotation center is interpreted as a fixed point in space (absolute/global coordinates).
+- If `center` is not null, the rotation center is interpreted as a fixed point in space (absolute/global coordinates).
 - This design ensures that consecutive or inverse rotations behave consistently and predictably, since the rotation center does not change with object transformations.
 
 # Returns
@@ -55,7 +55,7 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 ```julia-repl
 julia> rotate = Rotate(pitch=15.0, roll=0.0, yaw=20.0)
 
-julia> rotate = Rotate(pitch=0.0, roll=45.0, yaw=0.0, cx=5.0, cy=0.0, cz=0.0)
+julia> rotate = Rotate(pitch=0.0, roll=45.0, yaw=0.0, center=(5e-3,0.0,0.0))
 # Rotates around a point 5 mm to the right of the center of mass
 ```
 """
