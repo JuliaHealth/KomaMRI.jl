@@ -11,12 +11,10 @@ coil4(x,y,z) = exp(-π * (x ^ 2 / coil_spread + (y - coil_offset) ^ 2 / coil_spr
 obj = brain_phantom3D()
 
 #FOR ArbitraryRFCoils
-max_x = maximum(abs.(obj.x))
-max_y = maximum(abs.(obj.y))
-max_z = maximum(abs.(obj.z))
-x = range(-max_x, max_x, 11)
-y = range(-max_y, max_y, 11)
-z = range(-max_z, max_z, 11)
+coil_range = 0.11
+npoints = 11
+coords = LinRange(-coil_range, coil_range, npoints)
+x, y, z = coords, coords, coords
 coil_sens1 = [coil1(x,y,z) for x in x, y in y, z in z]
 coil_sens2 = [coil2(x,y,z) for x in x, y in y, z in z]
 coil_sens3 = [coil3(x,y,z) for x in x, y in y, z in z]

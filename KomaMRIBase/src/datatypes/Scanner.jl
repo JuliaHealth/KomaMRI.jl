@@ -109,19 +109,10 @@ end
 
 function acquire_signal!(sig, obj, rf_coils::ArbitraryRFCoils, Mxy)
     interpolated_coil_sens = similar(rf_coils.coil_sens, length(obj.x), size(rf_coils.coil_sens, 4))
-    z_var = maximum(obj.z) - minimum(obj.z)
     for i in 1:size(rf_coils.coil_sens, 4)
-        if z_var < 1e-8
-            # 2D phantom case
-            base_itp = GriddedInterpolation((rf_coils.x, rf_coils.y), rf_coils.coil_sens[:,:,1,i], Gridded(Linear()))
-            itp = extrapolate(base_itp, 0f0)
-            interpolated_coil_sens[:,i] = itp.(obj.x, obj.y)
-        else
-            # 3D phantom case
-            base_itp = GriddedInterpolation((rf_coils.x, rf_coils.y, rf_coils.z), rf_coils.coil_sens[:,:,:,i], Gridded(Linear()))
-            itp = extrapolate(base_itp, 0f0)
-            interpolated_coil_sens[:,i] = itp.(obj.x, obj.y, obj.z)
-        end
+        base_itp = GriddedInterpolation((rf_coils.x, rf_coils.y, rf_coils.z), rf_coils.coil_sens[:,:,:,i], Gridded(Linear()))
+        itp = extrapolate(base_itp, 0f0)
+        interpolated_coil_sens[:,i] = itp.(obj.x, obj.y, obj.z)
         sig[:, i] .= transpose(sum(interpolated_coil_sens[:, i] .* Mxy, dims=1))
     end
     return nothing
