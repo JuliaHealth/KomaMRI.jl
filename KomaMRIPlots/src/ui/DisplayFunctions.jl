@@ -38,14 +38,13 @@ function generate_seq_time_layout_config(
     # Assume non-label traces are first (e.g. 3 + 3O + 1)
     # Let non_label_count be the number of non-label traces
     # For dropdown, always show non-label traces, and only one label trace
-    non_label_count = 7  # Adjust this if your non-label traces count changes
-    # Add 'none' option to hide all label traces
+     # Add 'none' option to hide all label traces
     buttons = [
         attr(
             label = "none",
             method = "restyle",
             args = [
-                attr(visible = vcat([true for _ in 1:non_label_count], fill(false, num_labels)))
+                attr(visible = vcat([1,1,1,1,"legendonly","legendonly",1], fill(false, num_labels)))
             ]
         )
     ]
@@ -55,7 +54,7 @@ function generate_seq_time_layout_config(
             label = string(sym),
             method = "restyle",
             args = [
-                attr(visible = vcat([true for _ in 1:non_label_count], [j == i for j in 1:num_labels]))
+                attr(visible = vcat([1,1,1,1,"legendonly","legendonly",1], [j == i for j in 1:num_labels]))
             ]
         ) for (i, sym) in enumerate(label_to_show)
     ])
