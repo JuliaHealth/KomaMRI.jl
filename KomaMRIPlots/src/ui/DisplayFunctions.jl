@@ -370,6 +370,8 @@ function plot_seq(
     #############################
     ###### show label
     ############################
+    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
+  
     isadc = is_ADC_on.(seq)
     d = [ seq[i].DUR[1] for i in eachindex(seq.DUR)]
     d2 = [0;d]
@@ -393,7 +395,7 @@ function plot_seq(
             legendgroup=string(sym),
             showlegend=false,
             mode=("markers"),
-            marker=attr(; color="#000000", symbol="x"),
+            marker=attr(; color=sep_color, symbol="x"),
             visible=false,
         )
     end
