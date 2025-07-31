@@ -31,11 +31,10 @@ function theme_chooser(darkmode)
 end
 
 function generate_seq_time_layout_config(
-    title, width, height, range, slider, show_seq_blocks, darkmode; T0
+    title, width, height, range, slider, show_seq_blocks, darkmode; T0,         label_to_show
 )
 
-    label_symbol = fieldnames(AdcLabels)
-    num_labels = length(label_symbol)
+    num_labels = length(label_to_show)
     # Assume non-label traces are first (e.g. 3 + 3O + 1)
     # Let non_label_count be the number of non-label traces
     # For dropdown, always show non-label traces, and only one label trace
@@ -58,7 +57,7 @@ function generate_seq_time_layout_config(
             args = [
                 attr(visible = vcat([true for _ in 1:non_label_count], [j == i for j in 1:num_labels]))
             ]
-        ) for (i, sym) in enumerate(label_symbol)
+        ) for (i, sym) in enumerate(label_to_show)
     ])
 
 
@@ -83,14 +82,31 @@ function generate_seq_time_layout_config(
         updatemenus = [
         attr(
             type = "dropdown",
-            y = 1,
+            yref="paper",
+            xref="paper",
+            y=0.95,
+            x=-0.03,
+            align="middle",
             orientation="h",
-            yanchor="bottom",
+
             bgcolor="white",
             color=text_color,
             buttons = buttons
         )
         ],
+        #### annotation
+        annotations=[
+        attr(
+            text="Available<br>Labels",
+            yref="paper",
+            xref="paper",
+            y=1.02,
+            x=-0.09,
+            showarrow=false,
+            font=attr(size=14,color=text_color),
+        )
+        ],
+        
         ######
         plot_bgcolor=plot_bgcolor,
         paper_bgcolor=bgcolor,
@@ -380,24 +396,31 @@ function plot_seq(
     t_center_adc = t_center[isadc]
 
     label_symbol = fieldnames(AdcLabels)
+    count_label = 0
+    sym_vec=[]
     #colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
-    for (i,sym) in enumerate(label_symbol)
+    for sym in label_symbol
         lab_vec = [getfield(label[j],sym) for j in eachindex(label)]
         lab_adc = lab_vec[isadc]
-        #color = colors[mod1(i, length(colors))]
-        p[3O + 3 + 1 + i] = scatter_fun(;
-            x= t_center_adc * 1e3,
-            y= lab_adc,
-            name=string(sym),
-            hovertemplate="(%{x:.4f} ms, %{y:i})",
-            xaxis=xaxis,
-            yaxis=yaxis,
-            legendgroup=string(sym),
-            showlegend=false,
-            mode=("markers"),
-            marker=attr(; color=sep_color, symbol="x"),
-            visible=false,
-        )
+
+        if maximum(lab_adc) > 0
+            count_label = count_label + 1
+            push!(sym_vec,sym)
+            #color = colors[mod1(i, length(colors))]
+            p[3O + 3 + 1 + count_label] = scatter_fun(;
+                x= t_center_adc * 1e3,
+                y= lab_adc,
+                name=string(sym),
+                hovertemplate="(%{x:.4f} ms, %{y:i})",
+                xaxis=xaxis,
+                yaxis=yaxis,
+                legendgroup=string(sym),
+                showlegend=false,
+                mode=("markers"),
+                marker=attr(; color=sep_color, symbol="x"),
+                visible=false,
+            )
+        end
     end
 
     ###############################
@@ -412,6 +435,7 @@ function plot_seq(
         show_seq_blocks,
         darkmode;
         T0=get_block_start_times(seq),
+        label_to_show = sym_vec
     )
     return plot_koma(p, l; config)
 end
