@@ -1,7 +1,7 @@
 # # Motion
 
 using KomaMRI #hide
-using PlotlyJS #hide
+using PlotlyJS, Random #hide
 obj = brain_phantom2D(); #hide
 
 # Koma can easily simulate the effects of motion during acquisitions. 
