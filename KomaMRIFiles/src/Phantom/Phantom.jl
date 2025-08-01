@@ -92,6 +92,9 @@ function import_motion_subfield!(motion_subfields::Array, subfield_value::String
     if subfield_value in ["true", "false"]
         return push!(motion_subfields, subfield_value == "true" ? true : false)
     end
+    if subfield_value == "nothing"
+        return push!(motion_subfields, nothing)
+    end
     endpoints = parse.(Int, split(subfield_value, ":"))
     range = length(endpoints) == 3 ? (endpoints[1]:endpoints[2]:endpoints[3]) : (endpoints[1]:endpoints[2])
     push!(motion_subfields, range)
@@ -172,4 +175,7 @@ function export_motion_subfield!(field_group::HDF5.Group, subfield::Array, subna
 end
 function export_motion_subfield!(field_group::HDF5.Group, subfield::BitMatrix, subname::String)
     field_group[subname] = Int.(subfield)
+end
+function export_motion_subfield!(field_group::HDF5.Group, subfield::Nothing, subname::String)
+    field_group[subname] = "nothing"
 end

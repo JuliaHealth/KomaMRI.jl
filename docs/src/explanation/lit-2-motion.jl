@@ -1,6 +1,7 @@
 # # Motion
 
 using KomaMRI #hide
+using PlotlyJS, Random #hide
 obj = brain_phantom2D(); #hide
 
 # Koma can easily simulate the effects of motion during acquisitions. 
@@ -56,7 +57,7 @@ obj.motion = Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins());
 # An example of how this would be used is:
 obj.motion = MotionList(
     Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins()),
-    Motion(Rotate(0.0, 0.0, 45.0), Periodic(1.0, 0.5), SpinRange(1:1000))
+    Motion(Rotate(0.0, 0.0, 45.0, (0.0, 0.0, 0.0)), Periodic(1.0, 0.5), SpinRange(1:1000))
 );
 
 # ## The `Motion` structure and its fields
@@ -195,7 +196,7 @@ p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440); #hide
 # or happen one after another. Both cases are fully supported, so you're free to combine different 
 # effects across various parts of the phantom and time intervals, creating as complex a motion pattern as you need.
 
-# This final example shows two brain phantoms undergoing the same translational and rotational motions, but with
+# This example shows two brain phantoms undergoing the same translational and rotational motions, but with
 # different time spans. In the top phantom, the translation takes place from 0 to 0.5 seconds, followed by the 
 # rotation from 0.5 to 1 second. In the bottom phantom, both motions happen over the same time span, from 0 to 1 second:
 
@@ -221,3 +222,53 @@ p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
 #md # ```@raw html
 #md # <center><object type="text/html" data="../../assets/doc-2-combination.html" style="width:85%; height:470px;"></object></center>
 #md # ```
+
+# ### Realistic head motion
+# As a more realistic final example, let's try to replicate the head motion made by a patient inside the scanner.
+# This motion consists of a series of translations and rotations, with the rotation center being the neck:
+obj = brain_phantom2D()
+
+Random.seed!(1234) #hide  
+
+Nintervals = 10  
+interval_dur = 0.1 
+tra_x = rand(-5:5, Nintervals) .* 1e-3 # Translation in x [m]  
+tra_y = rand(-5:5, Nintervals) .* 1e-3 # Translation in y [m]  
+rot_z = rand(-5:5, Nintervals) .* 1e0  # Rotation in z    [º]  
+rot_center = (0.0, -3.0, 0.0)  .* 1e-2 # Rotation around the neck  
+
+motion_list = Motion[] 
+for i in 1:Nintervals  
+    t_interval = TimeRange(interval_dur * (i-1), interval_dur * i)  
+    tra = Translate(tra_x[i], tra_y[i], 0.0, t_interval) 
+    rot = Rotate(0.0, 0.0, rot_z[i], t_interval; center=rot_center)  
+    push!(motion_list, [tra, rot]...)  
+end  
+
+obj.motion = MotionList(motion_list...);  
+
+p5 = plot_phantom_map(obj, :T1; time_samples=21, view_2d=true, height=440) #hide
+#md savefig(p5, "../assets/doc-2-realistic.html"); #hide
+#jl display(p5);
+
+#md # ```@raw html
+#md # <center><object type="text/html" data="../../assets/doc-2-realistic.html" style="width:85%; height:470px;"></object></center>
+#md # ```
+
+p6 = plot( #hide
+    (0:interval_dur:interval_dur*length(tra_x)) .* 1e3, #hide
+    [cumsum([0, tra_x...]) * 1e3 cumsum([0, tra_y...]) * 1e3 cumsum([0, rot_z...])], #hide
+    Layout( #hide
+        title = "Head motion profile", #hide
+        xaxis_title = "time (ms)", #hide
+        yaxis_title = "Position" #hide
+    )) #hide
+restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]) #hide
+#md savefig(p6, "../assets/doc-2-displacements.html"); #hide
+#jl display(p6);
+
+#md # ```@raw html
+#md # <center><object type="text/html" data="../../assets/doc-2-displacements.html" style="width:85%; height:300px;"></object></center>
+#md # ```
+
+# A simulation and motion-corrected reconstruction based on a similar, slightly simplified head motion is available [here](../tutorial/05-SimpleMotion.md).

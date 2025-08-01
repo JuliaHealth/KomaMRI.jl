@@ -87,8 +87,8 @@ end
 julia> rotate = Rotate(15.0, 0.0, 20.0, TimeRange(0.0, 1.0), SpinRange(1:10))
 ```
 """
-function Rotate(pitch, roll, yaw, time=TimeRange(t_start=zero(eltype(pitch)), t_end=eps(eltype(pitch))), spins=AllSpins())
-    return Motion(Rotate(pitch, roll, yaw), time, spins)
+function Rotate(pitch, roll, yaw, time=TimeRange(t_start=zero(eltype(pitch)), t_end=eps(eltype(pitch))), spins=AllSpins(); center=nothing)
+    return Motion(Rotate(pitch, roll, yaw, center), time, spins)
 end
 
 """
