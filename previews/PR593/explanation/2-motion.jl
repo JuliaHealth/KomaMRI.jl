@@ -1,5 +1,5 @@
 using KomaMRI #hide
-using PlotlyJS #hide
+using PlotlyJS, Random #hide
 obj = brain_phantom2D(); #hide
 
 obj.motion = NoMotion();
@@ -70,33 +70,40 @@ obj = obj1 + obj2
 p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
 display(p4);
 
-obj = brain_phantom2D();
+obj = brain_phantom2D()
 
-tx = [5, -2, -3,  6,  4, -1] .* 1e-3; # Translation in x [m]
-ty = [-5, 2,  4, -2, -3,  5] .* 1e-3; # Translation in y [m]
-rz = [4, -7,  6,  2, -5,  4] .* 1e0;  # Rotation in z    [º]
+Random.seed!(1234) #hide
 
-rotation_center = (0.0, -3.0, 0.0) .* 1e-2; # Rotation around the neck
-dt = 0.03;
+Nintervals = 10
+interval_dur = 0.1
+tra_x = rand(-5:5, Nintervals) .* 1e-3 # Translation in x [m]
+tra_y = rand(-5:5, Nintervals) .* 1e-3 # Translation in y [m]
+rot_z = rand(-5:5, Nintervals) .* 1e0  # Rotation in z    [º]
+rot_center = (0.0, -3.0, 0.0)  .* 1e-2 # Rotation around the neck
 
-translations = [Translate(tx[i], ty[i], 0.0, TimeRange(dt*(i-1),dt*i)) for i in 1:length(tx)];
-rotations    = [Rotate(0.0, 0.0, rz[i], TimeRange(dt*(i-1),dt*i); center=rotation_center) for i in 1:length(rz)];
+motion_list = Motion[]
+for i in 1:Nintervals
+    t_interval = TimeRange(interval_dur * (i-1), interval_dur * i)
+    tra = Translate(tra_x[i], tra_y[i], 0.0, t_interval)
+    rot = Rotate(0.0, 0.0, rot_z[i], t_interval; center=rot_center)
+    push!(motion_list, [tra, rot]...)
+end
 
-obj.motion = MotionList(vcat(translations,rotations));
+obj.motion = MotionList(motion_list...);
 
-p5 = plot_phantom_map(obj, :T1; time_samples=20, view_2d=true, height=440) #hide
+p5 = plot_phantom_map(obj, :T1; time_samples=21, view_2d=true, height=440) #hide
 display(p5);
 
 
 p6 = plot( #hide
-    0:dt:dt*length(tx) .*1e3, #hide
-    [cumsum(tx) * 1e3 cumsum(ty) * 1e3 cumsum(rz)], #hide
+    (0:interval_dur:interval_dur*length(tra_x)) .* 1e3, #hide
+    [cumsum([0, tra_x...]) * 1e3 cumsum([0, tra_y...]) * 1e3 cumsum([0, rot_z...])], #hide
     Layout( #hide
         title = "Head motion profile", #hide
         xaxis_title = "time (ms)", #hide
         yaxis_title = "Position" #hide
     )) #hide
-restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]); #hide
+restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]) #hide
 display(p6);
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
