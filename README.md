@@ -5,9 +5,11 @@
 
 <div align="center">
  
-![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][license]][license-url] [![][julia-blue]][julia-blue-url] [![][total-downloads-komamri]][downloads-komamri-url] ![][gh-starts-komamri]
+![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][total-downloads-komamri]][downloads-komamri-url]
 
-[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url]
+[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url] 
+
+[![][OSI2-img]][OSI2-url]
 
 </div>
  
@@ -23,8 +25,8 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 <tr>
 <td align="left">
 
-- Fast simulations with CPU/GPU parallelization 🏃💨
-- Extensible, so anyone can include new features 🆙
+- Fast parallel simulations on CPU and GPU 🏃💨
+- Extensible, add your own features! 🆙
 - Supports community-standards [🤝](## "Pulseq and ISMRMRD") 
 - Interactive visualizations using PlotlyJS.jl 📲
 - Cross-platform (Windows, Mac & Linux) 🌐
@@ -58,9 +60,9 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 - [Tested compatibility](#tested-compatibility) 
 
 ## News
-
+- **(16 Jun 2025)** [KomaMRI v0.9.1](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.9.1) has received a **perfect score** in the Open Source Imaging Initiative (OSI²) CAB Review 🥳! Read the full review report [here](https://gitlab.com/osiiev/cab/-/blob/main/review/projects/KomaMRI/v0.9.1/review_report.md).
 - **(1 Oct 2024)** [KomaMRI v0.9](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.9.0): device-agnostic simulations, improved performance (**4-5x faster and 80x less memory**), distributed simulations, GPU benchmarking, mix-and-match motion definitions, improved dynamic phantom plotting, and a new phantom file format!
-- **(29 Aug 2024)** Our first GSoC student, Ryan Kierulf, presented his fantastic work at the JuliaHealth monthly meeting 🥳! (presentation available [here](https://www.youtube.com/watch?v=R6Z20G0J4bM)) More info in the docs: [GPU Parallelization](https://juliahealth.org/KomaMRI.jl/dev/explanation/4-gpu-explanation/), [Distributed Simulations](https://juliahealth.org/KomaMRI.jl/dev/how-to/4-run-distributed-simulations/) and [Ryan's JuliaHealth blog](https://juliahealth.org/JuliaHealthBlog/posts/ryan-gsoc/Ryan_GSOC.html)
+- **(29 Aug 2024)** Our first GSoC student, Ryan Kierulf, presented his fantastic work at the JuliaHealth monthly meeting 🥳! (presentation available [here](https://www.youtube.com/watch?v=R6Z20G0J4bM)) More info in the docs: [GPU Parallelization](https://juliahealth.org/KomaMRI.jl/dev/explanation/7-gpu-explanation/), [Distributed Simulations](https://juliahealth.org/KomaMRI.jl/dev/how-to/4-run-distributed-simulations/) and [Ryan's JuliaHealth blog](https://juliahealth.org/JuliaHealthBlog/posts/ryan-gsoc/Ryan_GSOC.html)
 - **(7 Dec 2023)** Koma was present in [MRI Together](https://mritogether.esmrmb.org/) 😼. The talk is available [here](https://www.youtube.com/watch?v=9mRQH8um4-A). Also, I uploaded the promised [educational example](https://juliahealth.org/KomaMRI.jl/stable/tutorial-pluto/01-gradient-echo-spin-echo/).
 - **(17 Nov 2023)** Pretty excited of being part of [ISMRM Pulseq's virtual meeting](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023). The slides available [here](https://github.com/pulseq/ISMRM-Virtual-Meeting--November-15-17-2023/blob/35a8da7eaa0bf42f2127e1338a440ccd4e3ef53c/slides/day3_KomaMRI_simulator_Quantitative_MRI.pdf).
 - **(27 Jul 2023)** I gave a talk at MIT 😄 for [JuliaCon 2023](https://juliacon.org/2023/)! A video of the presentation can be seen [here](https://www.youtube.com/watch?v=WVT9wJegC6Q).
@@ -117,13 +119,13 @@ KomaUI()
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification will emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw Data or (2) to proceed with the reconstruction.
 
 > [!IMPORTANT]
-> Starting from **KomaMRI v0.9** we are using [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)) to deal with GPU dependencies, meaning that to run simulations on the GPU, installing (`add CUDA/AMDGPU/Metal/oneAPI`) and loading (`using CUDA/AMDGPU/Metal/oneAPI`) the desired backend will be necessary (see [GPU Parallelization](https://JuliaHealth.github.io/KomaMRI.jl/dev/explanation/4-gpu-explanation) and [Tested compatibility](#tested-compatibility)).  
+> Starting from **KomaMRI v0.9** we are using [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)) to deal with GPU dependencies, meaning that to run simulations on the GPU, installing (`add CUDA/AMDGPU/Metal/oneAPI`) and loading (`using CUDA/AMDGPU/Metal/oneAPI`) the desired backend will be necessary (see [GPU Parallelization](https://JuliaHealth.github.io/KomaMRI.jl/dev/explanation/7-gpu-explanation) and [Tested compatibility](#tested-compatibility)).  
 
 ## How to Contribute
 KomaMRI exists thanks to all our contributors:
 
 <a href="https://github.com/JuliaHealth/KomaMRI.jl/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JuliaHealth/KomaMRI.jl" height="40px"/>
+  <img src="https://contrib.rocks/image?repo=JuliaHealth/KomaMRI.jl" height="60px"/>
 </a>
 
 Want to be highlighted here? We welcome contributions from the community! If you're interested in contributing, please read "[CONTRIBUTING](CONTRIBUTING.md)" for details on how to get started.
@@ -212,13 +214,13 @@ If you see any problem with this information, please let us know in a GitHub iss
 [apple-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=Metal%3A%20Run%20tests%20on%20v1.10
 [intel-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=oneAPI%3A%20Run%20tests%20on%20v1.10
 
-[buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl/builds?branch=master
+[buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl/builds
 <!-- CI -->
-[gh-actions-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-komabase]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-komacore]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-komafiles]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
-[gh-actions-komaplots]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/CI/badge.svg
+[gh-actions-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
+[gh-actions-komabase]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
+[gh-actions-komacore]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
+[gh-actions-komafiles]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
+[gh-actions-komaplots]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml/badge.svg?branch=master
 [gh-actions-komamri-nightly]: https://github.com/JuliaHealth/KomaMRI.jl/workflows/Nightly/badge.svg
 [gh-actions-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/CI.yml
 [gh-actions-nightly-url]: https://github.com/JuliaHealth/KomaMRI.jl/actions/workflows/nightly.yml
@@ -242,7 +244,7 @@ If you see any problem with this information, please let us know in a GitHub iss
 [arXiv-url]: https://arxiv.org/abs/2301.02702
 [paper-url]: https://doi.org/10.1002/mrm.29635
 <!-- Downloads -->
-[total-downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Ftotal_downloads%2FKomaMRI&query=total_requests&label=Downloads
+[total-downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Ftotal_downloads%2FKomaMRICore&query=total_requests&label=Downloads
 [downloads-komamri]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRI&query=total_requests&suffix=%2Fmonth&label=Downloads
 [downloads-komabase]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRIBase&query=total_requests&suffix=%2Fmonth&label=Downloads
 [downloads-komacore]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Fmonthly_downloads%2FKomaMRICore&query=total_requests&suffix=%2Fmonth&label=Downloads
@@ -256,3 +258,6 @@ If you see any problem with this information, please let us know in a GitHub iss
 <!-- Stars -->
 [gh-komamri]: https://github.com/JuliaHealth/KomaMRI.jl/
 [gh-starts-komamri]: https://img.shields.io/github/stars/JuliaHealth/KomaMRI.jl?style=flat&label=Stars&color=blue&logo=data:image/svg%2bxml;base64,PHN2ZyB3aWR0aD0iMzI1IiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KCiA8Zz4KICA8dGl0bGU+TGF5ZXIgMTwvdGl0bGU+CiAgPGcgaWQ9InN1cmZhY2U5MSI+CiAgIDxwYXRoIGlkPSJzdmdfMSIgZmlsbC1ydWxlPSJub256ZXJvIiBmaWxsPSJyZ2IoNzkuNiUsMjMuNSUsMjAlKSIgZD0ibTE1MC44OTg0NCwyMjVjMCw0MS40MjE4OCAtMzMuNTc4MTMsNzUgLTc1LDc1Yy00MS40MjE4OCwwIC03NSwtMzMuNTc4MTIgLTc1LC03NWMwLC00MS40MjE4NyAzMy41NzgxMiwtNzUgNzUsLTc1YzQxLjQyMTg3LDAgNzUsMzMuNTc4MTMgNzUsNzUiLz4KICAgPHBhdGggaWQ9InN2Z18yIiBmaWxsLXJ1bGU9Im5vbnplcm8iIGZpbGw9InJnYigyMiUsNTkuNiUsMTQuOSUpIiBkPSJtMjM3LjUsNzVjMCw0MS40MjE4OCAtMzMuNTc4MTIsNzUgLTc1LDc1Yy00MS40MjE4NywwIC03NSwtMzMuNTc4MTIgLTc1LC03NWMwLC00MS40MjE4NyAzMy41NzgxMywtNzUgNzUsLTc1YzQxLjQyMTg4LDAgNzUsMzMuNTc4MTMgNzUsNzUiLz4KICAgPHBhdGggaWQ9InN2Z18zIiBmaWxsLXJ1bGU9Im5vbnplcm8iIGZpbGw9InJnYig1OC40JSwzNC41JSw2OS44JSkiIGQ9Im0zMjQuMTAxNTYsMjI1YzAsNDEuNDIxODggLTMzLjU3ODEyLDc1IC03NSw3NWMtNDEuNDIxODcsMCAtNzUsLTMzLjU3ODEyIC03NSwtNzVjMCwtNDEuNDIxODcgMzMuNTc4MTMsLTc1IDc1LC03NWM0MS40MjE4OCwwIDc1LDMzLjU3ODEzIDc1LDc1Ii8+CiAgPC9nPgogIDx0ZXh0IGZvbnQtd2VpZ2h0PSJib2xkIiBzdHJva2U9IiNmZmZmZmYiIHRyYW5zZm9ybT0ibWF0cml4KDUuOTczOTUwNjYwNzU4ODcxLDAsMCw1Ljk3Mzk1MDY2MDc1ODg3MSwtOTc0LjY3NzUzNzYxMDY3NTEsLTI0NS44MTg4ODY5MjMwMDUzNSkgIiB4bWw6c3BhY2U9InByZXNlcnZlIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBpZD0ic3ZnXzYiIHk9IjYyLjE2NTIxIiB4PSIxODMiIG9wYWNpdHk9InVuZGVmaW5lZCIgZmlsbC1vcGFjaXR5PSJudWxsIiBzdHJva2Utb3BhY2l0eT0ibnVsbCIgc3Ryb2tlLWRhc2hhcnJheT0ibnVsbCIgc3Ryb2tlLXdpZHRoPSIwIiBmaWxsPSIjZmZmZmZmIj7impU8L3RleHQ+CiAgPHRleHQgZm9udC13ZWlnaHQ9ImJvbGQiIHN0cm9rZT0iI2ZmZmZmZiIgdHJhbnNmb3JtPSJtYXRyaXgoNS45NzM5NTA2NjA3NTg4NzEsMCwwLDUuOTczOTUwNjYwNzU4ODcxLC05NzQuNjc3NTM3NjEwNjc1MSwtMjQ1LjgxODg4NjkyMzAwNTM1KSAiIHhtbDpzcGFjZT0icHJlc2VydmUiIHRleHQtYW5jaG9yPSJzdGFydCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGlkPSJzdmdfNyIgeT0iODcuNDQxNjIiIHg9IjE2OC4yNjkzOCIgb3BhY2l0eT0idW5kZWZpbmVkIiBmaWxsLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1vcGFjaXR5PSJudWxsIiBzdHJva2UtZGFzaGFycmF5PSJudWxsIiBzdHJva2Utd2lkdGg9IjAiIGZpbGw9IiNmZmZmZmYiPuKalTwvdGV4dD4KICA8dGV4dCBmb250LXdlaWdodD0iYm9sZCIgc3Ryb2tlPSIjZmZmZmZmIiB0cmFuc2Zvcm09Im1hdHJpeCg1Ljk3Mzk1MDY2MDc1ODg3MSwwLDAsNS45NzM5NTA2NjA3NTg4NzEsLTk3NC42Nzc1Mzc2MTA2NzUxLC0yNDUuODE4ODg2OTIzMDA1MzUpICIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgaWQ9InN2Z185IiB5PSI4Ny40NDE2MiIgeD0iMTk3LjU2MzIzIiBvcGFjaXR5PSJ1bmRlZmluZWQiIGZpbGwtb3BhY2l0eT0ibnVsbCIgc3Ryb2tlLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1kYXNoYXJyYXk9Im51bGwiIHN0cm9rZS13aWR0aD0iMCIgZmlsbD0iI2ZmZmZmZiI+4pqVPC90ZXh0PgogPC9nPgo8L3N2Zz4=
+<!-- OSI2 -->
+[OSI2-url]: https://gitlab.com/osiiev/cab/-/blob/main/review/projects/KomaMRI/v0.9.1/review_report.md
+[OSI2-img]: https://img.shields.io/badge/DIN%20SPEC%203105-OSI²_CAB:_1.1/31-3498DB?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIiBpZD0iRWJlbmVfMSIgeD0iMCIgeT0iMCIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNzcwLjEgNzcwIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA3NzAuMSA3NzAiPjxzdHlsZT4uc3Qxe2NsaXAtcGF0aDp1cmwoI1NWR0lEXzJfKTtmaWxsOiMzNzUzNmN9PC9zdHlsZT48ZGVmcz48cGF0aCBpZD0iU1ZHSURfMV8iIGQ9Ik0wIDBoNzcwdjc3MEgweiIvPjwvZGVmcz48Y2xpcFBhdGggaWQ9IlNWR0lEXzJfIj48dXNlIHhsaW5rOmhyZWY9IiNTVkdJRF8xXyIgc3R5bGU9Im92ZXJmbG93OnZpc2libGUiLz48L2NsaXBQYXRoPjxwYXRoIGQ9Ik00MTEgMjk2YTEwMiAxMDIgMCAwIDEgMzkgMjIgOTIgOTIgMCAwIDEgMTMgMTE3bC04IDExYy00IDUtOSA5LTE0IDEybDE4IDIyIDExIDE0IDQtM2ExMzcgMTM3IDAgMCAwIDQ5LTEwNmMwLTU1LTM1LTExOS0xMTAtMTM2bC0xOS0yaC0xOGMtMTAgMS0yMCAyLTMwIDUtMTggNS0zNyAxNC01NCAzMGExMzQgMTM0IDAgMCAwLTQ1IDkzdjIwbDIgMTkgMyA5YTEyOSAxMjkgMCAwIDAgNDcgNzBsMTAtMTMgMTgtMjNhOTIgOTIgMCAwIDEtMzItNDdsLTEtNC0yLTE2di0xMGwyLTE0YTkyIDkyIDAgMCAxIDExNy03MCIgc3R5bGU9ImNsaXAtcGF0aDp1cmwoI1NWR0lEXzJfKTtmaWxsOiMzYTk3ZDMiLz48cGF0aCBkPSJNNDI0IDcxNWEzMzAgMzMwIDAgMCAwIDI5MS0yODlsLTQ1LTZhMjgyIDI4MiAwIDAgMS0xNjYgMjI2Yy0yOCAxMy01NyAyMS04NiAyNGw2IDQ1ek01NSA0MjZhMzMwIDMzMCAwIDAgMCAyODggMjg5bDYtNDZhMjg5IDI4OSAwIDAgMS0yNDgtMjQ3bC0xLTItNDUgNnpNMzQ0IDU1QTMzNSAzMzUgMCAwIDAgNTUgMzQ2bDQ2IDVhMjgyIDI4MiAwIDAgMSA5OC0xODVjNDktNDEgMTAwLTU5IDE0OS02NmgxbC01LTQ1em03NSA0NWEyODIgMjgyIDAgMCAxIDI0MiAyMDcgMjQ4IDI0OCAwIDAgMSA5IDQ0bDQ1LTV2LTFjLTYtNTctMzgtMTQwLTk1LTE5NS02Ni02My0xMzEtODctMTk2LTk1bC02IDQ1aDF6IiBjbGFzcz0ic3QxIi8+PHBhdGggZD0iTTU2MCAzMDRhMTk0IDE5NCAwIDAgMS0yMyAyMDFsMzUgMjcgNi04YTIzNCAyMzQgMCAwIDAgNDUtMTU2IDIzMyAyMzMgMCAwIDAtNTEtMTMxbC0zNiAyOWM5IDEyIDIwIDI5IDI0IDM4TTUzMSAxOTdjLTE1LTExLTMwLTIxLTQ4LTI5bC0yMC04LTIwLTZhMjQyIDI0MiAwIDAgMC0yMDUgNDRsMjggMzZhMTkwIDE5MCAwIDAgMSAyMzctMWwyOC0zNnpNMTk4IDIzOWE0ODQgNDg0IDAgMCAwLTI0IDM2bC0xMCAyMmEyMzYgMjM2IDAgMCAwIDMzIDIzM2wzNi0yOC0xNC0yMGMtMjEtMzQtMzUtOTMtMjEtMTQ0bDYtMTggOC0yMGEyOTcgMjk3IDAgMCAxIDIyLTMzbC0zNi0yOHoiIGNsYXNzPSJzdDEiLz48cGF0aCBkPSJNNTMxIDU3M2MtMTUgMTEtMzAgMjAtNDggMjhsLTIwIDktMjAgNWEyNDIgMjQyIDAgMCAxLTIwNS00NGwyOC0zNmExOTAgMTkwIDAgMCAwIDIzNyAybDI4IDM2eiIgc3R5bGU9ImNsaXAtcGF0aDp1cmwoI1NWR0lEXzJfKTtmaWxsOiMzODk1ZDIiLz48L3N2Zz4=&labelColor=white

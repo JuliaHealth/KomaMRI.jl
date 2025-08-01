@@ -11,16 +11,15 @@ steps:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
         command: |
-          julia -e 'println("--- :julia: Instantiating project")
+          julia --project=KomaMRICore -e 'println("--- :julia: Instantiating project")
               using Pkg
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-                  PackageSpec(path=pwd(), subdir="KomaMRICore"),
               ])'
 
-          julia -e 'println("--- :julia: Running tests")
+          julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
               using Pkg
-              Pkg.test("KomaMRICore")'
+              Pkg.test()'
         agents:
           arch: "aarch64" 
           queue: "juliaecosystem"
@@ -39,8 +38,10 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-          - JuliaCI/julia-coverage#v1:
+          - JuliaCI/julia-coverage:
               codecov: true
+              flags:
+                - core
               dirs:
                 - KomaMRICore/src
                 - KomaMRICore/ext
@@ -49,6 +50,9 @@ steps:
         command: |
           julia -e 'println("--- :julia: Instantiating project")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
@@ -60,6 +64,9 @@ steps:
           
           julia -e 'println("--- :julia: Running tests")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
         agents:
           queue: "juliagpu"
@@ -75,8 +82,10 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-          - JuliaCI/julia-coverage#v1:
+          - JuliaCI/julia-coverage:
               codecov: true
+              flags:
+                - core
               dirs:
                 - KomaMRICore/src
                 - KomaMRICore/ext
@@ -85,6 +94,9 @@ steps:
         command: |
           julia -e 'println("--- :julia: Instantiating project")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
@@ -93,9 +105,12 @@ steps:
           julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
               using Pkg
               Pkg.add("CUDA")'
-          
+
           julia -e 'println("--- :julia: Running tests")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
         agents:
           queue: "juliagpu"
@@ -116,6 +131,9 @@ steps:
         command: |
           julia -e 'println("--- :julia: Instantiating project")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
@@ -127,6 +145,9 @@ steps:
 
           julia -e 'println("--- :julia: Running tests")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.test("KomaMRICore"; test_args=["Metal"])'
         agents:
           queue: "juliaecosystem"
@@ -143,8 +164,10 @@ steps:
         plugins:
           - JuliaCI/julia#v1:
               version: "{{matrix.version}}"
-          - JuliaCI/julia-coverage#v1:
+          - JuliaCI/julia-coverage:
               codecov: true
+              flags:
+                - core
               dirs:
                 - KomaMRICore/src
                 - KomaMRICore/ext
@@ -153,6 +176,9 @@ steps:
         command: |
           julia -e 'println("--- :julia: Instantiating project")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.develop([
                   PackageSpec(path=pwd(), subdir="KomaMRIBase"),
                   PackageSpec(path=pwd(), subdir="KomaMRICore"),
@@ -161,9 +187,12 @@ steps:
           julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
               using Pkg
               Pkg.add("oneAPI")'
-          
+
           julia -e 'println("--- :julia: Running tests")
               using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
         agents:
           queue: "juliagpu"

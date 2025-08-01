@@ -27,6 +27,7 @@ function run_spin_precession!(
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
+    groupsize,
     backend::KA.Backend,
     prealloc::PreallocResult
 ) where {T<:Real}
@@ -51,7 +52,7 @@ function run_spin_precession!(
     outflow_spin_reset!(Mxy, seq.t', p.motion)
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
     #Acquired signal
-    sig .= transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    sig .= @views transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
 end
 
@@ -76,6 +77,7 @@ function run_spin_excitation!(
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
+    groupsize,
     backend::KA.Backend,
     prealloc::PreallocResult
 ) where {T<:Real}
@@ -87,7 +89,7 @@ function run_spin_excitation!(
         ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
-        B[B .== 0] .= eps(T)
+        B .+= (B .== 0) .* eps(T)
         #Spinor Rotation
         φ = T(-2π .* γ) .* (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)

@@ -146,7 +146,7 @@ function heart_phantom(;
 )
     #PARAMETERS
     FOV = 10e-2 # [m] Diameter ventricule
-    N = 21
+    N = 10
     Δxr = FOV / (N - 1) #Aprox rec resolution, use Δx_pix and Δy_pix
     Ns = 50 #number of spins per voxel
     Δx = Δxr / sqrt(Ns) #spin separation
@@ -271,7 +271,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1, tissue_properties = Dict())
     ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties)
     
     # Define and return the Phantom struct
-    obj = Phantom{Float64}(;
+    obj = Phantom(;
         name="brain2D_" * axis,
         x=y[ρ .!= 0],
         y=x[ρ .!= 0],
@@ -364,7 +364,7 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200], tissue_properties=D
     ρ, T1, T2, T2s, Δw = default_brain_tissue_properties(labels, tissue_properties)
 
     # Define and return the Phantom struct
-    obj = Phantom{Float64}(;
+    obj = Phantom(;
         name="brain3D",
         x=y[ρ .!= 0],
         y=x[ρ .!= 0],
@@ -448,7 +448,7 @@ function pelvis_phantom2D(; ss=4, us=1)
     T2s = T2s * 1e-3
 
     # Define and return the Phantom struct
-    obj = Phantom{Float64}(;
+    obj = Phantom(;
         name="pelvis2D",
         x=y[ρ .!= 0],
         y=x[ρ .!= 0],
