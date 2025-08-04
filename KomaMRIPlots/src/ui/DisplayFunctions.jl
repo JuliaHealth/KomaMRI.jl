@@ -41,7 +41,7 @@ function generate_seq_time_layout_config(
      # Add 'none' option to hide all label traces
     buttons = [
         attr(
-            label = "none",
+            label = "Labels (none)",
             method = "restyle",
             args = [
                 attr(visible = vcat([1,1,1,1,"legendonly","legendonly",1], fill(false, num_labels)))
@@ -83,7 +83,7 @@ function generate_seq_time_layout_config(
             type = "dropdown",
             yref="paper",
             xref="paper",
-            y=0.95,
+            y=1,
             x=-0.03,
             align="middle",
             orientation="h",
@@ -91,18 +91,6 @@ function generate_seq_time_layout_config(
             bgcolor="white",
             color=text_color,
             buttons = buttons
-        )
-        ],
-        #### annotation
-        annotations=[
-        attr(
-            text="Available<br>Labels",
-            yref="paper",
-            xref="paper",
-            y=1.02,
-            x=-0.09,
-            showarrow=false,
-            font=attr(size=14,color=text_color),
         )
         ],
         

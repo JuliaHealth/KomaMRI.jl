@@ -180,7 +180,9 @@ function signal_to_raw_data(
             #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
             dat =  signal[current:current+Nsamples-1, :]
             #Find the center of the readout
-            idx_center = findfirst(x -> x > 0,traj[1,:]) - 1 # might not work for some complex trajectories
+
+            idx_center = findfirst(x -> x > 0,traj[1,:])
+            idx_center = isnothing(idx_center) ? 0 : idx_center - 1 # might not work for some complex trajectories
             #Header of profile data, head::AcquisitionHeader
             head = AcquisitionHeader(
                 UInt16(1), #version uint16: First unsigned int indicates the version
