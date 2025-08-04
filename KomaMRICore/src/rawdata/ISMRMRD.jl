@@ -181,8 +181,8 @@ function signal_to_raw_data(
             dat =  signal[current:current+Nsamples-1, :]
             #Find the center of the readout
 
-            idx_center = findfirst(x -> x > 0,traj[1,:])
-            idx_center = isnothing(idx_center) ? 0 : idx_center - 1 # might not work for some complex trajectories
+            idx_center = 0#findfirst(x -> x > 0,traj[1,:])
+            idx_center = isnothing(idx_center) || idx_center == 0 ? 0 : idx_center - 1 # might not work for some complex trajectories
             #Header of profile data, head::AcquisitionHeader
             head = AcquisitionHeader(
                 UInt16(1), #version uint16: First unsigned int indicates the version
