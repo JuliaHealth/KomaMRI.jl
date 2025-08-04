@@ -1,4 +1,5 @@
 using KomaMRI #hide
+using PlotlyJS, Random #hide
 obj = brain_phantom2D(); #hide
 
 obj.motion = NoMotion();
@@ -7,7 +8,7 @@ obj.motion = Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins());
 
 obj.motion = MotionList(
     Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins()),
-    Motion(Rotate(0.0, 0.0, 45.0), Periodic(1.0, 0.5), SpinRange(1:1000))
+    Motion(Rotate(0.0, 0.0, 45.0, (0.0, 0.0, 0.0)), Periodic(1.0, 0.5), SpinRange(1:1000))
 );
 
 L = 1e-3 #hide
@@ -68,5 +69,41 @@ obj2.motion = MotionList(
 obj = obj1 + obj2
 p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
 display(p4);
+
+obj = brain_phantom2D()
+
+Random.seed!(1234) #hide
+
+Nintervals = 10
+interval_dur = 0.1
+tra_x = rand(-5:5, Nintervals) .* 1e-3 # Translation in x [m]
+tra_y = rand(-5:5, Nintervals) .* 1e-3 # Translation in y [m]
+rot_z = rand(-5:5, Nintervals) .* 1e0  # Rotation in z    [º]
+rot_center = (0.0, -3.0, 0.0)  .* 1e-2 # Rotation around the neck
+
+motion_list = Motion[]
+for i in 1:Nintervals
+    t_interval = TimeRange(interval_dur * (i-1), interval_dur * i)
+    tra = Translate(tra_x[i], tra_y[i], 0.0, t_interval)
+    rot = Rotate(0.0, 0.0, rot_z[i], t_interval; center=rot_center)
+    push!(motion_list, [tra, rot]...)
+end
+
+obj.motion = MotionList(motion_list...);
+
+p5 = plot_phantom_map(obj, :T1; time_samples=21, view_2d=true, height=440) #hide
+display(p5);
+
+
+p6 = plot( #hide
+    (0:interval_dur:interval_dur*length(tra_x)) .* 1e3, #hide
+    [cumsum([0, tra_x...]) * 1e3 cumsum([0, tra_y...]) * 1e3 cumsum([0, rot_z...])], #hide
+    Layout( #hide
+        title = "Head motion profile", #hide
+        xaxis_title = "time (ms)", #hide
+        yaxis_title = "Position" #hide
+    )) #hide
+restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]) #hide
+display(p6);
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
