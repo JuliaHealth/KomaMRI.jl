@@ -92,8 +92,8 @@ function signal_to_raw_data(
         FOVx, FOVy, _ = seq.DEF["FOV"] #[m]
         if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVy > 1 FOVy *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        Nx = ceil(Int64, FOVx / Δx[1])
-        Ny = ceil(Int64, FOVy / Δx[2])
+        Nx = isnothing(get(seq.DEF, "Nx", nothing)) ? ceil(Int64, FOVx / Δx[1]) : Nx
+        Ny = isnothing(get(seq.DEF, "Ny", nothing)) ? ceil(Int64, FOVy / Δx[2]) : Ny
     else
         FOVx = Nx * Δx[1]
         FOVy = Ny * Δx[2]
