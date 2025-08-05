@@ -31,7 +31,7 @@ function theme_chooser(darkmode)
 end
 
 function generate_seq_time_layout_config(
-    title, width, height, range, slider, show_seq_blocks, darkmode; T0,         label_to_show
+    title, width, height, range, slider, show_seq_blocks, darkmode; T0,         label_to_show=0
 )
 
     num_labels = length(label_to_show)

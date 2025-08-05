@@ -35,6 +35,8 @@ using TestItems, TestItemRunner, KomaMRIBase
         @test shape == shape2
 
         # Test label capability
+        using KomaMRIBase
+        
         seq = @suppress read_seq(path*"/test_files/label_test.seq") 
         label = get_label(seq)
         m = maximum(label)

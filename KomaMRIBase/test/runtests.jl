@@ -276,8 +276,8 @@ using TestItems, TestItemRunner
 
         LIN_vec = [l[i].LIN for i in eachindex(l)] 
         @test LIN_vec == vec([1 2 3 3 0 0])
-        SET_vec = [l[i].SET for i in eachindex(l)] 
-        @test SET_vec == vec([0 0 0 2 2 2])
+        PHS_vec = [l[i].PHS for i in eachindex(l)] 
+        @test PHS_vec == vec([0 0 0 2 2 2])
 
     end
 
