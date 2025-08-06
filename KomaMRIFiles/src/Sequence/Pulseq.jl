@@ -527,8 +527,7 @@ function read_seq(filename)
     # Add first and last points for gradients #320
     fix_first_last_grads!(seq)
     # Final details
-    # Hack for including extension and triggers, this will be done properly for #308 and #323
-    #seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
+    #Temporary hack
     seq.DEF = merge(obj["definitions"], seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
@@ -673,75 +672,6 @@ function read_ADC(adcLibrary, i)
     A
 end
 
-#=
-"""
-    ext = read_Extension(extensionLibrary, triggerLibrary, i)
-
-Reads the Extension. It is used internally by [`get_block`](@ref).
-
-# Arguments
-- `extensionLibrary`: (`::Dict{String, Any}`) the "extensionLibrary" dictionary
-- `i`: (`::Int64`) index of the ext in the block event
-
-# Returns
-- `ext`: (`1x1 ::Vector{ADC}`) Extension struct
-"""
-function read_Extension(extensionLibrary, triggerLibrary)
-    # Only uses triggers and one extension per block
-    # Unpacking
-    # Extensions
-    # (1)id (2)type (3)ref (4)next_id
-    # if !isempty(extensionLibrary)
-    #     e = extensionLibrary[i]["data"]
-    # else
-    #     e = [0,0,0,0]
-    # end
-    # type    = e[1] |> x->floor(Int64,x) #1=Trigger
-    # ref     = e[2] |> x->floor(Int64,x)
-    # next_id = e[3] |> x->floor(Int64,x)
-    # Trigger
-    # (1)id (2)type (3)channel (4)delay (5)duration
-    # if !isempty(triggerLibrary)
-    #     t = triggerLibrary[ref]["data"]
-    # else
-    #     t = [0,0,0,0]
-    # end
-    # type     = t[1] |> x->floor(Int64,x)
-    # channel  = t[2] |> x->floor(Int64,x)
-    # delay    = t[3]
-    # duration = t[4]
-    #Definition
-    # trig = Trigger(type, channel, delay, duration)
-    # E = [Extension([trig])]
-    # E = Dict("extension"=>[ref])
-    additional_text =
-    """# Format of extension lists:
-    # id type ref next_id
-    # next_id of 0 terminates the list
-    # Extension list is followed by extension specifications
-    [EXTENSIONS]
-    """
-    for id = eachindex(extensionLibrary)
-        (id == 0) && continue
-        type, ref, next_id = floor.(Int64, extensionLibrary[id]["data"])
-        additional_text *= "$id $type $ref $next_id\n"
-    end
-    additional_text *=
-    """
-
-    # Extension specification for digital output and input triggers:
-    # id type channel delay (us) duration (us)
-    extension TRIGGERS 1
-    """
-    for id = eachindex(triggerLibrary)
-        (id == 0) && continue
-        type, channel, delay, duration = floor.(Int64, round.([1 1 1e6 1e6] .* triggerLibrary[id]["data"]))
-        additional_text *= "$id $type $channel $delay $duration\n"
-    end
-    return additional_text
-end
-=#
-
 """
     seq = get_block(obj, i)
 
@@ -787,6 +717,25 @@ function get_block(obj, i)
     s
 end
 
+"""
+    EXT = read_extension(extensionLibrary, extensionType, triggerLibrary, labelsetLibrary, labelincLibrary, i)
+
+Reads the extension(s) for a block event in a Pulseq sequence file.
+
+# Arguments
+- `extensionLibrary`: (`::Dict{K, V}`) the extension library dictionary
+- `extensionType`: (`::Dict{K, V}`) the extension type dictionary
+- `triggerLibrary`: (`::Dict{K, V}`) the trigger library dictionary
+- `labelsetLibrary`: (`::Dict{K, V}`) the labelset library dictionary
+- `labelincLibrary`: (`::Dict{K, V}`) the labelinc library dictionary
+- `i`: (`::Int64`) index of the extension in the block event
+
+# Returns
+- `EXT`: (`Vector{Extension}`) vector of Extension objects for the block event
+
+# Details
+The available extension object are currently `LabelSet`, `LabelInc` and `Trigger``
+"""
 function read_extension(extensionLibrary,extensionType,triggerLibrary,labelsetLibrary,labelincLibrary,i)
     EXT = [Extension[]]
 

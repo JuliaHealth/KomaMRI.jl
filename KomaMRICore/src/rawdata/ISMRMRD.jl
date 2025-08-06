@@ -226,7 +226,7 @@ function signal_to_raw_data(
             #Update counters
             scan_counter += 1
             current += Nsamples
-            if scan_counter % NadcsPerImage == 0 #For now only   is considered
+            if scan_counter % NadcsPerImage == 0 #For now only Nz is considered
                 nz += 1 #another image
                 scan_counter = 0 #reset counter
             end
