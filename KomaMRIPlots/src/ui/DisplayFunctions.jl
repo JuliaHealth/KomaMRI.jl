@@ -390,7 +390,7 @@ function plot_seq(
         lab_vec = [getfield(label[j],sym) for j in eachindex(label)]
         lab_adc = lab_vec[isadc]
 
-        if maximum(lab_adc) > 0
+        if ~isempty(lab_adc)
             count_label = count_label + 1
             push!(sym_vec,sym)
             #color = colors[mod1(i, length(colors))]

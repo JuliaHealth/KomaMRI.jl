@@ -62,7 +62,7 @@ export get_kspace, rotx, roty, rotz
 # Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on, get_label
 # Sequence related
-export get_Mk, get_kspace, get_M0, get_M1, get_M2
+export get_Mk, get_kspace, get_M0, get_M1, get_M2, get_label
 
 # PulseDesigner submodule
 include("sequences/PulseDesigner.jl")
