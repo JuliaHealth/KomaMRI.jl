@@ -368,7 +368,7 @@ end
 
 @testitem "Motion" tags=[:base] begin
     @testset "Constructors" begin
-        action = Rotate(10.0, 20.0, 40.0)
+        action = Rotate(10.0, 20.0, 40.0, (0.0, 0.0, 0.0))
         spins = AllSpins()
         # TimeCurve constructors
         time = TimeRange(t_start=0.0, t_end=1.0)
@@ -384,7 +384,7 @@ end
         @test MotionList(m) == m
     end
     @testset "Subset" begin
-        rotate = Rotate(10.0, 20.0, 40.0)
+        rotate = Rotate(10.0, 20.0, 40.0, (0.0, 0.0, 0.0))
         translate = Translate(0.1, 0.2, 0.3)
         time = TimeRange(0.0, eps())
         spins = AllSpins()
@@ -445,6 +445,7 @@ end
         pitch = 45.0
         roll = 45.0
         yaw = 45.0
+        # One single rotation
         rotation = Rotate(pitch, roll, yaw, TimeRange(t_start, t_end))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
@@ -454,6 +455,18 @@ end
         @test xt[: ,end] ≈ rot_x
         @test yt[: ,end] ≈ rot_y
         @test zt[: ,end] ≈ rot_z
+        # Check if two consecutive rotations (α and β) produce the same result as a single (α + β) rotation
+        t = [1.0] 
+        r1 = MotionList(
+            Rotate(0.0, 0.0, yaw/2, TimeRange(t_start, t_end/2)),
+            Rotate(0.0, 0.0, yaw/2, TimeRange(t_end/2, t_end))
+        )
+        r2 = Rotate(0.0, 0.0, yaw, TimeRange(t_start, t_end))
+        xt1, yt1, zt1 = get_spin_coords(r1, ph.x, ph.y, ph.z, t)
+        xt2, yt2, zt2 = get_spin_coords(r2, ph.x, ph.y, ph.z, t)
+        @test xt1 ≈ xt2
+        @test yt1 ≈ yt2
+        @test zt1 ≈ zt2
     end
     @testset "PeriodicRotation" begin
         ph = Phantom(x=[1.0, 1.0, -1.0, -1.0], y=[1.0, -1.0, 1.0, -1.0])
