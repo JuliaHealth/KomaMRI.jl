@@ -391,22 +391,24 @@ function plot_seq(
         lab_adc = lab_vec[isadc]
 
         if ~isempty(lab_adc)
-            count_label = count_label + 1
-            push!(sym_vec,sym)
-            #color = colors[mod1(i, length(colors))]
-            p[3O + 3 + 1 + count_label] = scatter_fun(;
-                x= t_center_adc * 1e3,
-                y= lab_adc,
-                name=string(sym),
-                hovertemplate="(%{x:.4f} ms, %{y:i})",
-                xaxis=xaxis,
-                yaxis=yaxis,
-                legendgroup=string(sym),
-                showlegend=false,
-                mode=("markers"),
-                marker=attr(; color=sep_color, symbol="x"),
-                visible=false,
-            )
+            if maximum(lab_adc) > 1
+                count_label = count_label + 1
+                push!(sym_vec,sym)
+                #color = colors[mod1(i, length(colors))]
+                p[3O + 3 + 1 + count_label] = scatter_fun(;
+                    x= t_center_adc * 1e3,
+                    y= lab_adc,
+                    name=string(sym),
+                    hovertemplate="(%{x:.4f} ms, %{y:i})",
+                    xaxis=xaxis,
+                    yaxis=yaxis,
+                    legendgroup=string(sym),
+                    showlegend=false,
+                    mode=("markers"),
+                    marker=attr(; color=sep_color, symbol="x"),
+                    visible=false,
+                )
+            end
         end
     end
 
