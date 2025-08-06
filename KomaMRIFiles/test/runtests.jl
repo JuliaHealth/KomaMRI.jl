@@ -3,7 +3,7 @@ using TestItems, TestItemRunner, KomaMRIBase
 @run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:files in t_start.tags) #verbose=true
 
 @testitem "Files" tags=[:files] begin
-    using Suppressor
+    using Suppressor, KomaMRIBase
 
     # Test Pulseq
     @testset "Pulseq" begin
@@ -66,7 +66,6 @@ using TestItems, TestItemRunner, KomaMRIBase
     end
     # Test Phantom (.phantom)
     @testset "Phantom" begin
-        using KomaMRIBase
         path = @__DIR__
         # NoMotion
         filename = path * "/test_files/brain_nomotion_w.phantom"
