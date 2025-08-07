@@ -225,7 +225,7 @@ The `EXTENSION` field in the `Sequence` struct is used to store additional metad
 
 
 
-### LabelInc and LabelSet
+### LabelInc and LabelSet extension
 
 The `LabelInc` and `LabelSet` functions are used to create labels that can be added to the `EXTENSION` field of a `Sequence`. These labels help in managing ADC metada.
 
@@ -270,6 +270,23 @@ LabelSet(value::Int, label::String)
 - `value`: The value to set.
 - `label`: The name of the metadata field to set.
 
+### Trigger extension
+
+As described by the [Pulseq specifications](https://pulseq.github.io/specification.pdf) : `TRIGGERS extension, which
+is not a part of the core Pulseq format and MAY be subject to rapid changes`. The usage of the type / channel is system dependent and must be checked beforehand.
+
+!!! note
+    Trigger extension is implemented but currently not taken into account during the simulation 
+
+```julia
+mutable struct Trigger <: Extension 
+  type::Int # Type of trigger (system dependent). 0: undefined / unused
+  channel::Int # channel of trigger (system dependent). 0: undefined / unused
+  d1::Float64 # Delay prior to the trigger event (us)
+  d2::Float64 # Duration of trigger event (us)
+end
+```
+
 ### Example Usage
 
 Below is an example of how to use `LabelInc` and `LabelSet` to add labels to a sequence:
@@ -281,9 +298,10 @@ seq = Sequence()
 # Create labels
 lInc = LabelInc(1, "LIN")
 lSet = LabelSet(1, "ECO")
+trig = Trigger(0,1,100,500)
 
 # Add labels to the sequence
-seq.EXT = [[lInc], [lSet]]
+seq.EXT = [[lInc,trig], [lSet]]
 
 # Display the sequence
 println(seq)
@@ -315,7 +333,7 @@ In this example, both `LabelInc` and `LabelSet` are added to the `EXTENSION` fie
 By using `LabelInc` and `LabelSet`, you can effectively manage sequence metadata and ensure that your sequence is compatible with various reconstruction algorithms and formats.
 
 !!! warning
-    So far, **KomaMRI** EXTENSION only manage ADC labels. In future version, triggers and other specific Pulseq extension will be added.
+    So far, **KomaMRI** EXTENSION only manage ADC labels and Triggers. In future version, other specific Pulseq extension will be added like **Soft Delay**, **no rotation** etc.
 
 ## Combination of Events
 

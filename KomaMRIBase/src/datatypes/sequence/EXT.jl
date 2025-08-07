@@ -1,4 +1,4 @@
-export Extension, LabelInc, LabelSet, AdcLabels
+export Extension, LabelInc, LabelSet, AdcLabels, Trigger
 
 abstract type Extension end
 
@@ -13,10 +13,10 @@ mutable struct LabelSet <: Extension
 end
 
 mutable struct Trigger <: Extension 
-  type::Int
-  channel::Int
-  d1::Float64
-  d2::Float64
+  type::Int # Type of trigger (system dependent). 0: undefined / unused
+  channel::Int # channel of trigger (system dependent). 0: undefined / unused
+  d1::Float64 # Delay prior to the trigger event (us)
+  d2::Float64 # Duration of trigger event (us)
 end
 
 

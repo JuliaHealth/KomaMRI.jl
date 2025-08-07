@@ -29,7 +29,7 @@ mutable struct Sequence
 	GR::Array{Grad,2}		  #Sequence in (X, Y and Z) and time
 	RF::Array{RF,2}			  #RF pulses in coil and time
 	ADC::Array{ADC,1}		  #ADC in time
-	DUR::Vector				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
+	DUR::Array{Float64,1}				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
 	EXT::Vector{Vector{Extension}}
 	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
 	Sequence(GR, RF, ADC, DUR, EXT, DEF) = begin

@@ -247,6 +247,7 @@ using TestItems, TestItemRunner
         lInc = LabelInc(1,"LIN")
         lSet = LabelSet(1,"ECO")
         lSet2 = LabelSet(0,"LIN")
+        trig = Trigger(0,1,100,500)
 
         d = Sequence([Grad(0,0.1)])
         seq = Sequence()
@@ -257,10 +258,12 @@ using TestItems, TestItemRunner
         seq += d
         d.EXT = [[lInc]]; 
         seq += d
-        d.EXT = [[lSet2]]; 
+        d.EXT = [[lSet2,trig]]; 
         seq += d
         d.EXT = [[]]; 
         seq += d
+
+        @test seq.EXT[5][2] == trig && seq.EXT[5][1] == lSet2
 
         l = get_label(seq)
         LIN_vec = [l[i].LIN for i in eachindex(l)] 

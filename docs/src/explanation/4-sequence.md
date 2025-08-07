@@ -29,7 +29,7 @@ mutable struct Sequence
     GR::Array{Grad,2}
     RF::Array{RF,2}
     ADC::Array{ADC,1}
-    DUR::Array{Any,1}
+    DUR::Array{Float64,1}
     EXT::Vector{Vector{Extension}}
     DEF::Dict{String,Any}
 end
