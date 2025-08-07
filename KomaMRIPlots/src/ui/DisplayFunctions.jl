@@ -78,21 +78,25 @@ function generate_seq_time_layout_config(
         ),
         legend=attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0),
         ####label
-        updatemenus = [
-        attr(
-            type = "dropdown",
-            yref="paper",
-            xref="paper",
-            y=1,
-            x=-0.03,
-            align="middle",
-            orientation="h",
 
-            bgcolor="white",
-            color=text_color,
-            buttons = buttons
-        )
-        ],
+        updatemenus = [        
+        if ~isempty(label_to_show)
+            attr(
+                type = "dropdown",
+                yref="paper",
+                xref="paper",
+                y=1,
+                x=-0.03,
+                align="middle",
+                orientation="h",
+
+                bgcolor="white",
+                color=text_color,
+                buttons = buttons
+            )
+        end
+    ],
+        
         
         ######
         plot_bgcolor=plot_bgcolor,
