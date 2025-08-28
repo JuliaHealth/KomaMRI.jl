@@ -92,8 +92,8 @@ function signal_to_raw_data(
         FOVx, FOVy, _ = seq.DEF["FOV"] #[m]
         if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVy > 1 FOVy *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        Nx = round(Int64, FOVx / Δx[1])
-        Ny = round(Int64, FOVy / Δx[2])
+        Nx = isnothing(get(seq.DEF, "Nx", nothing)) ? ceil(Int64, FOVx / Δx[1]) : Nx
+        Ny = isnothing(get(seq.DEF, "Ny", nothing)) ? ceil(Int64, FOVy / Δx[2]) : Ny
     else
         FOVx = Nx * Δx[1]
         FOVy = Ny * Δx[2]
@@ -108,6 +108,10 @@ function signal_to_raw_data(
             sim_params[key] = Int(val)
         end
     end
+
+    # get the maximum of encoding counters
+    label = get_label(seq)
+    max_enc = maximum(label)
     #XML header
     params = Dict(
         #AcquisitionSystemInformation
@@ -132,14 +136,14 @@ function signal_to_raw_data(
         #encodingLimits
         "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, ceil(Int, Nx / 2)),  #min, max, center, e.g. phase encoding line number
         "enc_lim_kspace_encoding_step_1" => Limit(0, Ny-1, ceil(Int, Ny / 2)),  #min, max, center, e.g. partition encoding number
-        "enc_lim_kspace_encoding_step_2" => Limit(0, 0, 0),                     #min, max, center, e.g. partition encoding number
-        "enc_lim_average"                => Limit(0, 0, 0),                     #min, max, center, e.g. signal average number
-        "enc_lim_slice"                  => Limit(0, 0, 0),                     #min, max, center, e.g. imaging slice number
-        "enc_lim_contrast"               => Limit(0, 0, 0),                     #min, max, center, e.g. echo number in multi-echo
-        "enc_lim_phase"                  => Limit(0, 0, 0),                     #min, max, center, e.g. cardiac phase number
-        "enc_lim_repetition"             => Limit(0, 0, 0),                     #min, max, center, e.g. dynamic number for dynamic scanning
-        "enc_lim_set"                    => Limit(0, 0, 0),                     #min, max, center, e.g. flow encoding set
-        "enc_lim_segment"                => Limit(0, 0, 0),                     #min, max, center, e.g. segment number for segmented acquisition
+        "enc_lim_kspace_encoding_step_2" => Limit(0, 0, max_enc.PAR),                     #min, max, center, e.g. partition encoding number
+        "enc_lim_average"                => Limit(0, 0, max_enc.AVG),                     #min, max, center, e.g. signal average number
+        "enc_lim_slice"                  => Limit(0, 0, max_enc.SLC),                     #min, max, center, e.g. imaging slice number
+        "enc_lim_contrast"               => Limit(0, 0, max_enc.ECO),                     #min, max, center, e.g. echo number in multi-echo
+        "enc_lim_phase"                  => Limit(0, 0, max_enc.PHS),                     #min, max, center, e.g. cardiac phase number
+        "enc_lim_repetition"             => Limit(0, 0, max_enc.REP),                     #min, max, center, e.g. dynamic number for dynamic scanning
+        "enc_lim_set"                    => Limit(0, 0, max_enc.SET),                     #min, max, center, e.g. flow encoding set
+        "enc_lim_segment"                => Limit(0, 0, max_enc.SEG),                     #min, max, center, e.g. segment number for segmented acquisition
         "trajectory"                     => "other",
         #sequenceParameters
         # "TR"                             => 0,
@@ -158,7 +162,7 @@ function signal_to_raw_data(
     scan_counter = 0
     nz = 0
     current = 1
-    for s = seq #Iterate over sequence blocks
+    for (b,s) = enumerate(seq) #Iterate over sequence blocks
         if is_ADC_on(s)
             Nsamples = s.ADC.N[1]
             Δt_us = floor( s.ADC.T[1] / (Nsamples - 1) * 1e6 )
@@ -171,6 +175,14 @@ function signal_to_raw_data(
                 flag += ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1
                 flag += ISMRMRD_ACQ_LAST_IN_SLICE
             end
+            #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
+            traj = ktraj[1:ndims, current:current+Nsamples-1]
+            #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
+            dat =  signal[current:current+Nsamples-1, :]
+            #Find the center of the readout
+
+            idx_center = findfirst(x -> x > 0,traj[1,:])
+            idx_center = isnothing(idx_center) || idx_center == 0 ? 0 : idx_center - 1 # might not work for some complex trajectories
             #Header of profile data, head::AcquisitionHeader
             head = AcquisitionHeader(
                 UInt16(1), #version uint16: First unsigned int indicates the version
@@ -185,7 +197,7 @@ function signal_to_raw_data(
                 Tuple(UInt64(0) for i=1:16), #channel_mask uint64x16: Active coils on current acquisiton
                 UInt16(0), #discard_pre uint16: Samples to be discarded at the beginning of acquisition
                 UInt16(0), #discard_post uint16: Samples to be discarded at the end of acquisition
-                UInt16(0), #center_sample uint16: Sample at the center of k-space
+                UInt16(idx_center), #center_sample uint16: Sample at the center of k-space
                 UInt16(0), #encoding_space_ref uint16: Reference to an encoding space, typically only one per acquisition
                 UInt16(ndims), #trajectory_dimensions uint16: Indicates the dimensionality of the trajectory vector (0 means no trajectory)
                 Float32(Δt_us), #sample_time_us float32: Time between samples in micro seconds, sampling BW
@@ -195,24 +207,20 @@ function signal_to_raw_data(
                 Float32.((0, 0, 1)), #slice_dir float32x3: Directional cosines of the slice direction
                 Float32.((0, 0, 0)), #patient_table_position float32x3: Patient table off-center
                 EncodingCounters( #idx uint16x17: Encoding loop counters
-                    UInt16(scan_counter), #kspace_encode_step_1 uint16: e.g. phase encoding line number
-                    UInt16(0), #kspace_encode_step_2 uint16: e.g. partition encoding number
-                    UInt16(0), #average uint16: e.g. signal average number
-                    UInt16(nz), #slice uint16: e.g. imaging slice number
-                    UInt16(0), #contrast uint16: e.g. echo number in multi-echo
-                    UInt16(0), #phase uint16: e.g. cardiac phase number
-                    UInt16(0), #repetition uint16: e.g. dynamic number for dynamic scanning
-                    UInt16(0), #set uint16: e.g. flow encoding set
-                    UInt16(0), #segment uint16: e.g. segment number for segmented acquisition
+                    UInt16(max_enc.LIN > 0 ? label[b].LIN : scan_counter), #kspace_encode_step_1 uint16: e.g. phase encoding line number
+                    UInt16(max_enc.PAR > 0 ? label[b].PAR : 0), #kspace_encode_step_2 uint16: e.g. partition encoding number
+                    UInt16(label[b].AVG), #average uint16: e.g. signal average number
+                    UInt16(max_enc.SLC > 0 ? label[b].SLC : nz), #slice uint16: e.g. imaging slice number
+                    UInt16(label[b].ECO), #contrast uint16: e.g. echo number in multi-echo
+                    UInt16(label[b].PHS), #phase uint16: e.g. cardiac phase number
+                    UInt16(label[b].REP), #repetition uint16: e.g. dynamic number for dynamic scanning
+                    UInt16(label[b].SET), #set uint16: e.g. flow encoding set
+                    UInt16(label[b].SEG), #segment uint16: e.g. segment number for segmented acquisition
                     Tuple(UInt16(0) for i=1:8) #user uint16x8: Free user parameters
                 ),
                 Tuple(Int32(0) for i=1:8), #user_int int32x8: Free user parameters
                 Tuple(Float32(0) for i=1:8) #user_float float32x8: Free user parameters
             )
-            #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
-            traj = ktraj[1:ndims, current:current+Nsamples-1]
-            #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils
-            dat =  signal[current:current+Nsamples-1, :]
             #Saving profile
             push!(profiles, Profile(head, Float32.(traj), ComplexF32.(dat)))
             #Update counters
