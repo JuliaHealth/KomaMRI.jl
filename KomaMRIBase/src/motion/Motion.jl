@@ -48,7 +48,7 @@ end
 
 # Custom constructors
 """
-    translate = Translate(dx, dy, dz, time, spins)
+    tr = translate(dx, dy, dz, time, spins)
 
 # Arguments
 - `dx`: (`::Real`, `[m]`) translation in x
@@ -58,19 +58,19 @@ end
 - `spins`: (`::AbstractSpinSpan`) spin indexes affected by the motion
 
 # Returns
-- `translate`: (`::Motion`) Motion struct
+- `tr`: (`::Motion`) Motion struct
 
 # Examples
 ```julia-repl
-julia> translate = Translate(0.01, 0.02, 0.03, TimeRange(0.0, 1.0), SpinRange(1:10))
+julia> tr = translate(0.01, 0.02, 0.03, TimeRange(0.0, 1.0), SpinRange(1:10))
 ```
 """
-function Translate(dx, dy, dz, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
+function translate(dx, dy, dz, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
     return Motion(Translate(dx, dy, dz), time, spins)
 end
 
 """
-    rotate = Rotate(pitch, roll, yaw, spins)
+    rt = rotate(pitch, roll, yaw, spins)
 
 # Arguments
 - `pitch`: (`::Real`, `[º]`) rotation in x
@@ -79,20 +79,23 @@ end
 - `time`: (`::TimeCurve{T<:Real}`) time information about the motion
 - `spins`: (`::AbstractSpinSpan`) spin indexes affected by the motion
 
+# Keywords
+- `center`: (`::NTuple{3,Real}` or `nothing`) optional center of rotation, given in global coordinates. If `nothing` (default), the rotation is performed around the phantom’s center of mass.
+
 # Returns
-- `rotate`: (`::Motion`) Motion struct with [`Rotate`](@ref) action
+- `rt`: (`::Motion`) Motion struct with [`Rotate`](@ref) action
 
 # Examples
 ```julia-repl
-julia> rotate = Rotate(15.0, 0.0, 20.0, TimeRange(0.0, 1.0), SpinRange(1:10))
+julia> rt = rotate(15.0, 0.0, 20.0, TimeRange(0.0, 1.0), SpinRange(1:10))
 ```
 """
-function Rotate(pitch, roll, yaw, time=TimeRange(t_start=zero(eltype(pitch)), t_end=eps(eltype(pitch))), spins=AllSpins(); center=nothing)
+function rotate(pitch, roll, yaw, time=TimeRange(t_start=zero(eltype(pitch)), t_end=eps(eltype(pitch))), spins=AllSpins(); center=nothing)
     return Motion(Rotate(pitch, roll, yaw, center), time, spins)
 end
 
 """
-    heartbeat = HeartBeat(circumferential_strain, radial_strain, longitudinal_strainl, time, spins)
+    hb = heartbeat(circumferential_strain, radial_strain, longitudinal_strainl, time, spins)
 
 # Arguments
 - `circumferential_strain`: (`::Real`) contraction parameter
@@ -102,19 +105,19 @@ end
 - `spins`: (`::AbstractSpinSpan`) spin indexes affected by the motion
 
 # Returns
-- `heartbeat`: (`::Motion`) Motion struct with [`HeartBeat`](@ref) action
+- `hb`: (`::Motion`) Motion struct with [`HeartBeat`](@ref) action
 
 # Examples
 ```julia-repl
-julia> heartbeat = HeartBeat(-0.3, -0.2, 0.0, TimeRange(0.0, 1.0), SpinRange(1:10))
+julia> hb = heartbeat(-0.3, -0.2, 0.0, TimeRange(0.0, 1.0), SpinRange(1:10))
 ```
 """
-function HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, time=TimeRange(t_start=zero(eltype(circumferential_strain)), t_end=eps(eltype(circumferential_strain))), spins=AllSpins())
+function heartbeat(circumferential_strain, radial_strain, longitudinal_strain, time=TimeRange(t_start=zero(eltype(circumferential_strain)), t_end=eps(eltype(circumferential_strain))), spins=AllSpins())
     return Motion(HeartBeat(circumferential_strain, radial_strain, longitudinal_strain), time, spins)
 end
 
 """
-    path = Path(dx, dy, dz, time, spins)
+    pt = path(dx, dy, dz, time, spins)
 
 # Arguments
 - `dx`: (`::AbstractArray{T<:Real}`, `[m]`) displacements in x
@@ -124,11 +127,11 @@ end
 - `spins`: (`::AbstractSpinSpan`) spin indexes affected by the motion
 
 # Returns
-- `path`: (`::Motion`) Motion struct with [`Path`](@ref) action
+- `pt`: (`::Motion`) Motion struct with [`Path`](@ref) action
 
 # Examples
 ```julia-repl
-julia> path = Path(
+julia> pt = path(
           [0.01 0.02; 0.02 0.03], 
           [0.02 0.03; 0.03 0.04], 
           [0.03 0.04; 0.04 0.05], 
@@ -137,12 +140,12 @@ julia> path = Path(
        )
 ```
 """
-function Path(dx, dy, dz, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
+function path(dx, dy, dz, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
     return Motion(Path(dx, dy, dz), time, spins)
 end
 
 """
-    flowpath = FlowPath(dx, dy, dz, spin_reset, time, spins)
+    fp = flowpath(dx, dy, dz, spin_reset, time, spins)
 
 # Arguments
 - `dx`: (`::AbstractArray{T<:Real}`, `[m]`) displacements in x
@@ -153,11 +156,11 @@ end
 - `spins`: (`::AbstractSpinSpan`) spin indexes affected by the motion
 
 # Returns
-- `flowpath`: (`::Motion`) Motion struct with [`FlowPath`](@ref) action
+- `fp`: (`::Motion`) Motion struct with [`FlowPath`](@ref) action
 
 # Examples
 ```julia-repl
-julia> flowpath = FlowPath(
+julia> fp = flowpath(
           [0.01 0.02; 0.02 0.03], 
           [0.02 0.03; 0.03 0.04], 
           [0.03 0.04; 0.04 0.05], 
@@ -167,7 +170,7 @@ julia> flowpath = FlowPath(
        )
 ```
 """
-function FlowPath(dx, dy, dz, spin_reset, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
+function flowpath(dx, dy, dz, spin_reset, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
     return Motion(FlowPath(dx, dy, dz, spin_reset), time, spins)
 end
 
