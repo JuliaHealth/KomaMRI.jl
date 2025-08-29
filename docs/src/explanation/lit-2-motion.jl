@@ -62,8 +62,8 @@ obj.motion = Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins());
 # This design makes it possible to define both sequential and simultaneous concatenations of motions over time.
 # An example of how this would be used is:
 obj.motion = MotionList(
-    translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins(),
-    rotate(0.0, 0.0, 45.0, (0.0, 0.0, 0.0)), Periodic(1.0, 0.5), SpinRange(1:1000)
+    Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins()),
+    Motion(Rotate(0.0, 0.0, 45.0), Periodic(1.0, 0.5), SpinRange(1:1000))
 );
 
 # ## The `Motion` structure and its fields
