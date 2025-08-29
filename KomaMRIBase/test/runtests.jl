@@ -243,7 +243,6 @@ using TestItems, TestItemRunner
     end
 
     @testset "DiscreteSequence" begin
-        path = joinpath(@__DIR__, "test_files")
         seq = PulseDesigner.EPI_example()
         sampling_params = KomaMRIBase.default_sampling_params()
         t, Δt = KomaMRIBase.get_variable_times(seq; Δt=sampling_params["Δt"], Δt_rf=sampling_params["Δt_rf"])
@@ -279,7 +278,6 @@ using TestItems, TestItemRunner
     end
 
     @testset "SequenceFunctions" begin
-        path = joinpath(@__DIR__, "test_files")
         seq = PulseDesigner.EPI_example()
         t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
         t_adc =  KomaMRIBase.get_adc_sampling_times(seq)
@@ -512,7 +510,7 @@ end
         radial_strain = 0.0
         longitudinal_strain = -0.1
         periodic_hb = heartbeat(circumferential_strain, radial_strain, longitudinal_strain, Periodic(period=period, asymmetry=asymmetry))
-        xt, yt, zt = get_spin_coords(periodicheartbeat, ph.x, ph.y, ph.z, t')
+        xt, yt, zt = get_spin_coords(periodic_hb, ph.x, ph.y, ph.z, t')
         r = sqrt.(ph.x .^ 2 + ph.y .^ 2)
         θ = atan.(ph.y, ph.x)
         @test xt[:,end] == ph.x .* (1 .+ circumferential_strain * maximum(r) .* cos.(θ))
@@ -563,7 +561,7 @@ end
         dz = rand(Ns, Nt)
         fp = flowpath(dx, dy, dz, Bool.(zeros(Ns, Nt)), TimeRange(t_start, t_end))
         t = range(t_start, t_end, Nt)
-        xt, yt, zt = get_spin_coords(flowpath, ph.x, ph.y, ph.z, t')
+        xt, yt, zt = get_spin_coords(fp, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ dx
         @test yt == ph.y .+ dy
         @test zt == ph.z .+ dz
@@ -578,7 +576,7 @@ end
         dz = rand(Ns, Nt)
         fp = flowpath(dx, dy, dz, Bool.(zeros(Ns, Nt)), TimeRange(t_start, t_end))
         t = range(t_start, t_end, Nt)
-        xt, yt, zt = get_spin_coords(arbitrarymotion, ph.x, ph.y, ph.z, t')
+        xt, yt, zt = get_spin_coords(fp, ph.x, ph.y, ph.z, t')
         @test xt == ph.x .+ dx
         @test yt == ph.y .+ dy
         @test zt == ph.z .+ dz
@@ -629,7 +627,7 @@ end
     t_end = 1.0
     tr = translate(0.05, 0.05, 0.0, Periodic(period=0.5, asymmetry=0.5))
     rt = rotate(0.0, 0.0, 90.0, TimeRange(t_start=0.05, t_end=0.5), SpinRange(1:3))
-    path = Path(0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), TimeRange(t_start, t_end), SpinRange(2:2:4))
+    pt = path(0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), 0.01 .* rand(Ns, Nt), TimeRange(t_start, t_end), SpinRange(2:2:4))
     @testset "Comparison" begin
         obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(tr, rt))
         obj2 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(tr, rt))
