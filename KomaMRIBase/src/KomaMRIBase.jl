@@ -38,6 +38,8 @@ include("timing/TrapezoidalIntegration.jl")
 # Main
 export γ    # gyro-magnetic ratio [Hz/T]
 export Scanner, Sequence, Phantom
+export HardwareLimits, LinearXYZGradients, Gradients, RFCoils
+export ArbitraryRFCoils, RFCoilsSensDefinedAtPhantomPositions, UniformRFCoils
 export Grad, RF, ADC, Delay
 export dur, get_block_start_times, get_samples
 export DiscreteSequence
@@ -52,7 +54,7 @@ export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 export MotionList, NoMotion, Motion
 export translate, rotate, heartbeat, path, flowpath
 export Translate, TranslateX, TranslateY, TranslateZ
-export Rotate, RotateX, RotateY, RotateZ 
+export Rotate, RotateX, RotateY, RotateZ
 export HeartBeat, Path, FlowPath
 export TimeRange, Periodic, TimeCurve
 export SpinRange, AllSpins
