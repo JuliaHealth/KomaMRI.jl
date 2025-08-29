@@ -37,17 +37,17 @@ obj = Phantom( x=x[ρ .!= 0], y=y[ρ .!= 0], z=z[ρ .!= 0], T1 = T1[ρ .!= 0] );
 p = plot_phantom_map(obj, :T1; height=440); #hide
 display(p);
 
-obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins());
+obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins());
 
 p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
 display(p1)
 
-obj.motion = Rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins());
+obj.motion = rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins());
 
 p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 display(p2);
 
-obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002));
+obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002));
 
 p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440); #hide
 display(p3);
@@ -57,13 +57,13 @@ obj2 = copy(obj1) #hide
 obj1.x .-= 20e-2; obj2.x .-= 20e-2 #hide
 obj1.y .+= 12e-2; obj2.y .-= 12e-2 #hide
 obj1.motion = MotionList(
-    Translate(40e-2, 0.0, 0.0, TimeRange(0.0, 0.5),AllSpins()),
-    Rotate(0.0, 0.0, 90.0, TimeRange(0.5, 1.0),AllSpins()),
+    translate(40e-2, 0.0, 0.0, TimeRange(0.0, 0.5),AllSpins()),
+    rotate(0.0, 0.0, 90.0, TimeRange(0.5, 1.0),AllSpins()),
 )
 
 obj2.motion = MotionList(
-    Translate(40e-2, 0.0, 0.0, TimeRange(0.0, 1.0),AllSpins()),
-    Rotate(0.0, 0.0, 90.0, TimeRange(0.0, 1.0),AllSpins()),
+    translate(40e-2, 0.0, 0.0, TimeRange(0.0, 1.0),AllSpins()),
+    rotate(0.0, 0.0, 90.0, TimeRange(0.0, 1.0),AllSpins()),
 )
 
 obj = obj1 + obj2
@@ -84,8 +84,8 @@ rot_center = (0.0, -3.0, 0.0)  .* 1e-2 # Rotation around the neck
 motion_list = Motion[]
 for i in 1:Nintervals
     t_interval = TimeRange(interval_dur * (i-1), interval_dur * i)
-    tra = Translate(tra_x[i], tra_y[i], 0.0, t_interval)
-    rot = Rotate(0.0, 0.0, rot_z[i], t_interval; center=rot_center)
+    tra = translate(tra_x[i], tra_y[i], 0.0, t_interval)
+    rot = rotate(0.0, 0.0, rot_z[i], t_interval; center=rot_center)
     push!(motion_list, [tra, rot]...)
 end
 
