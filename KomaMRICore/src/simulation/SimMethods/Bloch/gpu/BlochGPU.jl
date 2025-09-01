@@ -44,7 +44,7 @@ function run_spin_precession!(
 
     #Signal
     AK.reduce(+, view(pre.sig_output,:,1:length(sig[:,1])); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig[:,1])))
-    acquire_signal!(@view(sig), p, sys.rf_coils, M.xy)
+    acquire_signal!(@view(sig[:,:]), p, sys.rf_coils, M.xy)
     
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)

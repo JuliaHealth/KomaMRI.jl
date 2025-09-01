@@ -101,7 +101,7 @@ function run_spin_precession!(
 
     #Final Spin-State
     @. M.xy = M.xy * exp(-t_seq / p.T2) * cis(ϕ)
-    @. M.z = M.z * exp(-t_seq / p.T1) + p.ρ * (T(1) - exp(-t_seq / p.T1))
+    @. M.z = M.z * exp(-t_seq / p.T1) + abs.(p.ρ) * (T(1) - exp(-t_seq / p.T1))
     
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
@@ -149,7 +149,7 @@ function run_spin_excitation!(
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
-        @. M.z = M.z * exp(-s.Δt / p.T1) + p.ρ * (T(1) - exp(-s.Δt / p.T1))
+        @. M.z = M.z * exp(-s.Δt / p.T1) + abs.(p.ρ) * (T(1) - exp(-s.Δt / p.T1))
         
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset!(M,  s.t, p.motion; replace_by=p.ρ)
