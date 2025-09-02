@@ -34,7 +34,7 @@ julia> obj.ρ
     x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
     y::AbstractVector{T}   = zeros(eltype(x), size(x))
     z::AbstractVector{T}   = zeros(eltype(x), size(x))
-    ρ::AbstractVector{T}   = ones(eltype(x), size(x))
+    ρ::AbstractVector{<:Union{T, Complex{T}}}   = ones(eltype(x), size(x))
     T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
     T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
     T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
