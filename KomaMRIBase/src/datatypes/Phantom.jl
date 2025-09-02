@@ -181,13 +181,13 @@ function heart_phantom(;
         Dλ2=Dλ2[ρ .!= 0],
         Dθ=Dθ[ρ .!= 0],
         motion=MotionList(
-            HeartBeat(
+            heartbeat(
                 circumferential_strain,
                 radial_strain,
                 0.0,
-                Periodic(; period=period, asymmetry=temporal_asymmetry),
+                Periodic(; period=period, asymmetry=temporal_asymmetry)
             ),
-            Rotate(
+            rotate(
                 0.0, 0.0, rotation_angle, Periodic(; period=period, asymmetry=temporal_asymmetry)
             ),
         ),

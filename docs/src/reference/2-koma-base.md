@@ -29,19 +29,24 @@ MotionList
 get_spin_coords
 ```
 
+## `Motion`constructors
+
+```@docs
+translate
+rotate
+heartbeat
+path
+flowpath
+```
+
 ### `AbstractAction` types
 
 ```@docs
 Translate
-Translate(dx, dy, dz, time, spins)
 Rotate
-Rotate(pitch, roll, yaw, time, spins)
 HeartBeat
-HeartBeat(circumferential_strain, radial_strain, longitudinal_strain, time, spins)
 Path
-Path(dx, dy, dz, time, spins)
 FlowPath
-FlowPath(dx, dy, dz, spin_reset, time, spins)
 ```
 
 ### `TimeCurve` types and related functions

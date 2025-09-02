@@ -52,6 +52,7 @@ export kfoldperm, trapz, cumtrapz
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 # Motion
 export MotionList, NoMotion, Motion
+export translate, rotate, heartbeat, path, flowpath
 export Translate, TranslateX, TranslateY, TranslateZ
 export Rotate, RotateX, RotateY, RotateZ
 export HeartBeat, Path, FlowPath

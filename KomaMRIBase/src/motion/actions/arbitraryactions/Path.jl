@@ -1,5 +1,5 @@
 @doc raw"""
-    path = Path(dx, dy, dz)
+    p = Path(dx, dy, dz)
 
 Path struct. For this action (and for `FlowPath`),
 motion is not defined solely on the basis of 
@@ -37,11 +37,11 @@ This means that each row corresponds to a spin trajectory over a set of discrete
 - `dz`: (`::AbstractArray{T<:Real}`, `[m]`) displacements in z
 
 # Returns
-- `path`: (`::Path`) Path struct
+- `p`: (`::Path`) Path struct
 
 # Examples
 ```julia-repl
-julia> path = Path(
+julia> p = Path(
            dx=[0.01 0.02; 0.02 0.03], 
            dy=[0.02 0.03; 0.03 0.04], 
            dz=[0.03 0.04; 0.04 0.05]
