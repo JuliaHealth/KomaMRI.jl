@@ -28,10 +28,17 @@ l = get_label(seq);
 SLC_vec = [l[i].SLC for i in eachindex(l)];
 
 # The value is equal to 0 until we reach LabelInc(1,"SLC) 
-plot(SLC_vec, Layout(
+p1 = plot(SLC_vec, Layout(
     xaxis_title="n° blocks",
     yaxis_title="SLC label"
 ))
+
+#md savefig(p1, "../assets/7-seq.html"); #hide 
+#jl display(p1); 
+
+#md # ```@raw html 
+#md # <object type="text/html" data="../../assets/7-seq.html" style="width:100%; height:320px;"></object> 
+#md # ``` 
 
 # ## Simulate the acquisition and reconstruct the data
 # Define simulation parameters and perform simulation
@@ -64,15 +71,29 @@ recParams[:densityWeighting] = true
 rec = reconstruction(acqData, recParams)
 image = abs.(reshape(rec,Nx,Ny,:));
 
-# Let's take a look at the 3 images
+# Let's take a look at the first 2 images
 
-plot_image(image[:,:,1]);
-plot_image(image[:,:,2]);
-plot_image(image[:,:,3]);
+p2 = plot_image(image[:,:,1]);
+p3 = plot_image(image[:,:,2]);
+
+
+#md savefig(p2, "../assets/7-seq-2.html"); #hide 
+#jl display(p2); 
+
+#md # ```@raw html 
+#md # <object type="text/html" data="../../assets/7-seq-2.html" style="width:480px; height:320px;"></object> 
+#md # ``` 
+
+#md savefig(p3, "../assets/7-seq-3.html"); #hide 
+#jl display(p3); 
+
+#md # ```@raw html 
+#md # <object type="text/html" data="../../assets/7-seq-3.html" style="width:480px; height:320px;"></object> 
+#md # ``` 
 
 # The signal ponderation is changing because we are acquiring the same slice position with a short TR sequence. Thus, the magnetization is not at equilibrium.
 
-# ## 
+# ## Reconstruction using the labels LIN and PAR
 # Rather than using the k-space trajectory calculated by KomaMRI and performing a NUFFT for the reconstruction, we can use the label LIN (phase encoding) and PAR (partition encoding).
 #
 # First, we will create an increment label for LIN
@@ -90,7 +111,7 @@ seq_LIN.EXT[1] = [LabelSet(-1,"LIN")];
 
 # Let's check the LIN label for each ADC
 l = get_label(seq_LIN)
-l[idx_ADC];
+l[idx_ADC][1:10]
 
 # We can now simulate the results
 raw = @suppress simulate(obj, seq_LIN, sys; sim_params)
@@ -106,4 +127,11 @@ acqData = AcquisitionData(raw,estimateProfileCenter=true);
 recParams = Dict{Symbol,Any}()
 rec = reconstruction(acqData, recParams);
 
-plot_image(abs.(rec[:,:,1]));
+p4=plot_image(abs.(rec[:,:,1]));
+
+#md savefig(p4, "../assets/7-seq-4.html"); #hide 
+#jl display(p4); 
+
+#md # ```@raw html 
+#md # <object type="text/html" data="../../assets/7-seq-4.html" style="width:480px; height:320px;"></object> 
+#md # ``` 
