@@ -30,6 +30,7 @@ allowing the user to define some of them.
         ensuring that the number of time steps per block does not exceed the `max_block_length` limit.
         This parameter is designed to conserve memory resources, as **KomaMRI** computes a series of
         simulations consecutively.
+    * "max_rf_block_length": ensures that the number of time steps per RF block does not exceed the `max_rf_block_length` limit.
     * "Nthreads": divides the **Phantom** into a specified number of threads. Because spins
         are modeled independently of each other, **KomaMRI** can solve simulations in
         parallel threads, speeding up the execution time
@@ -50,6 +51,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "gpu_groupsize_excitation", DEFAULT_EXCITATION_GROUPSIZE)
     get!(sim_params, "Nthreads", Threads.nthreads())
     get!(sim_params, "max_block_length", min(sim_params["gpu_groupsize_precession"], sim_params["gpu_groupsize_excitation"]))
+    get!(sim_params, "max_rf_block_length", Inf)
     get!(sim_params, "Δt", sampling_params["Δt"])
     get!(sim_params, "Δt_rf", sampling_params["Δt_rf"])
     get!(sim_params, "sim_method", Bloch())
@@ -256,7 +258,7 @@ with a boolean vector indicating whether each block has RF. It also ensures that
 the length of each block does not exceed `max_block_length` by splitting longer blocks
 into smaller segments.
 """
-function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf)
+function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf)
     ranges = UnitRange{Int}[]
     ranges_bool = Bool[]
     start_idx_rf_block = 0
@@ -280,7 +282,7 @@ function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf)
                 start_idx_gr_block = i
             end
             if start_idx_rf_block > 0 #End of RF block
-                split_ranges = split_range(start_idx_rf_block:(i - 1), max_block_length)
+                split_ranges = split_range(start_idx_rf_block:(i - 1), max_rf_block_length)
                 append!(ranges, split_ranges)
                 append!(ranges_bool, fill(true, length(split_ranges)))
                 start_idx_rf_block = 0
@@ -289,7 +291,7 @@ function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf)
     end
     #Finishing the UnitRange's
     if start_idx_rf_block > 0
-        split_ranges = split_range(start_idx_rf_block:N, max_block_length)
+        split_ranges = split_range(start_idx_rf_block:N, max_rf_block_length)
         append!(ranges, split_ranges)
         append!(ranges_bool, fill(true, length(split_ranges)))
     end
@@ -346,6 +348,10 @@ function simulate(
         @warn "sim_params[\"max_block_length\"] = $(sim_params["max_block_length"]) is too small, setting to 5"
         sim_params["max_block_length"] = max(sim_params["max_block_length"], 5)
     end
+    if sim_params["max_rf_block_length"] < 5
+        @warn "sim_params[\"max_rf_block_length\"] = $(sim_params["max_rf_block_length"]) is too small, setting to 5"
+        sim_params["max_rf_block_length"] = max(sim_params["max_rf_block_length"], 5)
+    end
     #Warn if user is trying to run on CPU without enabling multi-threading
     if (!sim_params["gpu"] && Threads.nthreads() == 1)
         @info """Simulation will be run on the CPU with only 1 thread. To enable multi-threading, start julia with --threads=auto
@@ -353,7 +359,7 @@ function simulate(
     end
     # Simulation init
     seqd = discretize(seq; sampling_params=sim_params, motion=obj.motion) # Sampling of Sequence waveforms
-    parts, excitation_bool = get_sim_ranges(seqd; max_block_length=sim_params["max_block_length"]) # Generating simulation blocks
+    parts, excitation_bool = get_sim_ranges(seqd; max_block_length=sim_params["max_block_length"], max_rf_block_length=sim_params["max_rf_block_length"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
@@ -426,12 +432,10 @@ function simulate(
     elseif sim_params["return_type"] == "mat"
         out = sig
     elseif sim_params["return_type"] == "raw"
-        # To visually check the simulation blocks
+        # Save info to raw data, sim_params + other useful info about the simulation
         sim_params_raw = copy(sim_params)
         sim_params_raw["sim_method"] = string(sim_params["sim_method"])
-        sim_params_raw["gpu"] = sim_params["gpu"]
         sim_params_raw["gpu_device"] = backend isa KA.GPU ? gpu_name : "nothing"
-        sim_params_raw["Nthreads"] = sim_params["Nthreads"]
         sim_params_raw["t_sim_parts"] = t_sim_parts
         sim_params_raw["type_sim_parts"] = excitation_bool
         sim_params_raw["Nblocks"] = length(parts)
