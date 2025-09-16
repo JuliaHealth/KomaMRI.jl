@@ -55,7 +55,7 @@ pd = plot([pa,pb,pc], Layout(xaxis=attr(title="z [cm]"), height=300,margin=attr(
 # Now let's simulate the acquisition.
 # Notice the three echoes, one for every slice excitation.
 
-raw = @suppress simulate(obj, seq, sys; sim_params=Dict{String,Any}("Nblocks"=>20))
+raw = @suppress simulate(obj, seq, sys)
 p3 = plot_signal(raw; slider=false, height=300)
 #md savefig(p3, "../assets/3-signal.html"); #hide
 #jl display(p3)
