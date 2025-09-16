@@ -26,10 +26,10 @@ allowing the user to define some of them.
         `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively.
         It's important to note that, especially for GPU operations, using `"f32"` is
         generally much faster
-    * "Nblocks": divides the simulation into a specified number of time blocks. This parameter
-        is designed to conserve RAM resources, as **KomaMRI** computes a series of
-        simulations consecutively, each with the specified number of blocks determined by
-        the value of `"Nblocks"`
+    * "max_block_length": divides the simulation into a specified number of time blocks,
+        ensuring that the number of time steps per block does not exceed the `max_block_length` limit.
+        This parameter is designed to conserve memory resources, as **KomaMRI** computes a series of
+        simulations consecutively.
     * "Nthreads": divides the **Phantom** into a specified number of threads. Because spins
         are modeled independently of each other, **KomaMRI** can solve simulations in
         parallel threads, speeding up the execution time
@@ -49,7 +49,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "gpu_groupsize_precession", DEFAULT_PRECESSION_GROUPSIZE)
     get!(sim_params, "gpu_groupsize_excitation", DEFAULT_EXCITATION_GROUPSIZE)
     get!(sim_params, "Nthreads", Threads.nthreads())
-    get!(sim_params, "Nblocks", 20)
+    get!(sim_params, "max_block_length", min(sim_params["gpu_groupsize_precession"], sim_params["gpu_groupsize_excitation"]))
     get!(sim_params, "Δt", sampling_params["Δt"])
     get!(sim_params, "Δt_rf", sampling_params["Δt_rf"])
     get!(sim_params, "sim_method", Bloch())
@@ -136,7 +136,8 @@ function run_spin_excitation_parallel!(
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_excitation!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), 
+            sim_method, groupsize, backend, @view(prealloc[p])
         )
     end
 
@@ -157,7 +158,7 @@ take advantage of CPU parallel processing.
 - `Δt`: (`::Vector{Float64}`, `[s]`) delta time of `t`
 
 # Keywords
-- `Nblocks`: (`::Int`, `=16`) number of groups for spliting the simulation over time
+- `Nblocks`: (`::Int`, `=1`) number of groups for spliting the simulation over time
 - `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
 - `gpu`: (`::Function`) function that represents the gpu of the host
@@ -195,19 +196,21 @@ function run_sim_time_iter!(
     for (block, p) in enumerate(parts)
         seq_block = @view seq[p]
         # Params
-        # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
         Nadc = sum(seq_block.ADC)
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool[block]
             run_spin_excitation_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, excitation_groupsize, backend, prealloc_result; Nthreads
+                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, 
+                sim_method, excitation_groupsize, backend, prealloc_result; Nthreads
             )
             rfs += 1
+
         else
             run_spin_precession_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, precession_groupsize, backend, prealloc_result; Nthreads
+                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, 
+                sim_method, precession_groupsize, backend, prealloc_result; Nthreads
             )
         end
         KA.synchronize(backend)
@@ -230,34 +233,46 @@ function update_blink_window_progress!(w::Nothing, block, Nblocks)
     return nothing
 end
 
+"""Split if simulation block is too long (more than max_block_length)"""
+function split_range(r, max_block_length)
+    if length(r) <= max_block_length
+        return [r]
+    else
+        n_splits = ceil(Int, length(r) / max_block_length)
+        split_ranges = UnitRange{Int}[]
+        split_size = max_block_length
+        for i in 0:(n_splits - 1)
+            start_idx = r.start + i * split_size
+            end_idx = min(r.start + (i + 1) * split_size - 1, r.stop)
+            push!(split_ranges, start_idx:end_idx)
+        end
+        return split_ranges
+    end
+end 
+
 """
-Separates the discrete sequence into Nblocks, ensuring that each block has either
-RF-on or RF-off. The function returns the ranges of the discrete sequence blocks along
-with a boolean vector indicating whether each block has RF.
+The function returns the ranges of the discrete sequence blocks along
+with a boolean vector indicating whether each block has RF. It also ensures that
+the length of each block does not exceed `max_block_length` by splitting longer blocks
+into smaller segments.
 """
-function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
+function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf)
     ranges = UnitRange{Int}[]
     ranges_bool = Bool[]
     start_idx_rf_block = 0
     start_idx_gr_block = 0
-    #Split 1:N into Nblocks like kfoldperm
     N = length(seqd.Δt)
-    k = min(N, Nblocks)
-    n, r = divrem(N, k) #N >= k, N < k
-    breaks = collect(1:n:(N + 1))
-    for i in eachindex(breaks)
-        breaks[i] += i > r ? r : i - 1
-    end
-    breaks = breaks[2:(end - 1)] #Remove borders,
     #Iterate over B1 values to decide the simulation UnitRanges
     for i in eachindex(seqd.Δt)
-        if abs(seqd.B1[i]) > 1e-9 #TODO: This is needed as the function ⏢ in get_rfs is not very accurate
+        is_rf = abs(seqd.B1[i]) > 0.0
+        if is_rf
             if start_idx_rf_block == 0 #End RF block
                 start_idx_rf_block = i
             end
             if start_idx_gr_block > 0 #End of GR block
-                push!(ranges, start_idx_gr_block:(i - 1))
-                push!(ranges_bool, false)
+                split_ranges = split_range(start_idx_gr_block:(i - 1), max_block_length)
+                append!(ranges, split_ranges)
+                append!(ranges_bool, fill(false, length(split_ranges)))
                 start_idx_gr_block = 0
             end
         else
@@ -265,37 +280,23 @@ function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
                 start_idx_gr_block = i
             end
             if start_idx_rf_block > 0 #End of RF block
-                push!(ranges, start_idx_rf_block:(i - 1))
-                push!(ranges_bool, true)
+                split_ranges = split_range(start_idx_rf_block:(i - 1), max_block_length)
+                append!(ranges, split_ranges)
+                append!(ranges_bool, fill(true, length(split_ranges)))
                 start_idx_rf_block = 0
-            end
-        end
-        #More subdivisions
-        if i in breaks
-            if start_idx_rf_block > 0 #End of RF block
-                if length(start_idx_rf_block:(i - 1)) > 1
-                    push!(ranges, start_idx_rf_block:(i - 1))
-                    push!(ranges_bool, true)
-                    start_idx_rf_block = i
-                end
-            end
-            if start_idx_gr_block > 0 #End of RF block
-                if length(start_idx_gr_block:(i - 1)) > 1
-                    push!(ranges, start_idx_gr_block:(i - 1))
-                    push!(ranges_bool, false)
-                    start_idx_gr_block = i
-                end
             end
         end
     end
     #Finishing the UnitRange's
     if start_idx_rf_block > 0
-        push!(ranges, start_idx_rf_block:N)
-        push!(ranges_bool, true)
+        split_ranges = split_range(start_idx_rf_block:N, max_block_length)
+        append!(ranges, split_ranges)
+        append!(ranges_bool, fill(true, length(split_ranges)))
     end
     if start_idx_gr_block > 0
-        push!(ranges, start_idx_gr_block:N)
-        push!(ranges_bool, false)
+        split_ranges = split_range(start_idx_gr_block:N, max_block_length)
+        append!(ranges, split_ranges)
+        append!(ranges_bool, fill(false, length(split_ranges)))
     end
     #Output
     return ranges, ranges_bool
@@ -340,6 +341,11 @@ function simulate(
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
+    # Limit max_block_length to be at least 5
+    if sim_params["max_block_length"] < 5
+        @warn "sim_params[\"max_block_length\"] = $(sim_params["max_block_length"]) is too small, setting to 5"
+        sim_params["max_block_length"] = max(sim_params["max_block_length"], 5)
+    end
     #Warn if user is trying to run on CPU without enabling multi-threading
     if (!sim_params["gpu"] && Threads.nthreads() == 1)
         @info """Simulation will be run on the CPU with only 1 thread. To enable multi-threading, start julia with --threads=auto
@@ -347,7 +353,7 @@ function simulate(
     end
     # Simulation init
     seqd = discretize(seq; sampling_params=sim_params, motion=obj.motion) # Sampling of Sequence waveforms
-    parts, excitation_bool = get_sim_ranges(seqd; Nblocks=sim_params["Nblocks"]) # Generating simulation blocks
+    parts, excitation_bool = get_sim_ranges(seqd; max_block_length=sim_params["max_block_length"]) # Generating simulation blocks
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
