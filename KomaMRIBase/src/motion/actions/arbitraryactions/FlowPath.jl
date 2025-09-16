@@ -1,5 +1,5 @@
 @doc raw"""
-    flowpath = FlowPath(dx, dy, dz, spin_reset)
+    f = FlowPath(dx, dy, dz, spin_reset)
 
 FlowPath struct. This action is the same as `Path`, 
 except that it includes an additional field, called `spin_reset`, 
@@ -17,11 +17,11 @@ has a size of (``N_{spins} \times \; N_{discrete\,times}``).
 - `spin_reset`: (`::AbstractArray{Bool}`) reset spin state flags
 
 # Returns
-- `flowpath`: (`::FlowPath`) FlowPath struct
+- `f`: (`::FlowPath`) FlowPath struct
 
 # Examples
 ```julia-repl
-julia> flowpath = FlowPath(
+julia> f = FlowPath(
            dx=[0.01 0.02; 0.02 0.03], 
            dy=[0.02 0.03; 0.03 0.04], 
            dz=[0.03 0.04; 0.04 -0.04],

@@ -6,7 +6,7 @@ sys = Scanner(); #hide
 
 # It can also be interesting to see the effect of the patient's motion during an MRI scan.
 # For this, Koma provides the ability to add `motion` to the phantom.
-# In this tutorial, we will show how to add a [`Translate`](@ref) motion to a 2D brain phantom.
+# In this tutorial, we will show how to add a [`translate`](@ref) motion to a 2D brain phantom.
 
 # First, let's load the 2D brain phantom used in the previous tutorials:
 obj = brain_phantom2D()
@@ -14,9 +14,9 @@ obj.Δw .= 0; #hide
 
 # ### Head Translation
 #
-# In this example, we will add a [`Translate`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
+# In this example, we will add a [`translate`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
 
-obj.motion = Translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
+obj.motion = translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
 p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4); #hide
 
 #md savefig(p1, "../assets/tut-5-phantom.html"); #hide

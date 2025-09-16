@@ -46,9 +46,15 @@ obj.motion = NoMotion();
 obj.motion = Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins());
 
 # !!! note
-#     There are `Motion` constructors that simplify its definition:
+#     There are `Motion` constructors that simplify its definition and have the same name as the actions, but written in lowercase. For example:
+# 
 #     ```julia
-#     obj.motion = Translate(0.0, 0.1, 0.2, TimeRange(0.0, 1.0), AllSpins())
+#     obj.motion = translate(0.0, 0.1, 0.2, TimeRange(0.0, 1.0), AllSpins())
+#     ```
+#
+#     This is equivalent to writing:
+#     ```julia
+#     obj.motion = Motion(Translate(0.0, 0.1, 0.2), TimeRange(0.0, 1.0), AllSpins())
 #     ```
 
 # ### `MotionList` struct
@@ -148,7 +154,7 @@ p = plot_phantom_map(obj, :T1; height=440); #hide
 # In this first example, we've added a translational motion of -0.5, 0.6, and 0.7 mm along the
 # three spatial directions. The motion lasts for 1 second and affects the entire phantom:
 
-obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins());
+obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins());
 
 # Let’s plot this phantom and see how it moves. The `time_samples` argument specifies the number of time samples to be plotted.
 # You can use the bottom slider to scroll through time and check its exact position at each moment: 
@@ -165,7 +171,7 @@ p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
 # In this case, we add a rotational motion to the phantom: 90º around the y-axis and 75º around
 # the z-axis. Like before, the motion lasts for 1 second and affects all spins in the phantom:
 
-obj.motion = Rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins());
+obj.motion = rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins());
 
 p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 #md savefig(p2, "../assets/doc-2-rotate.html"); #hide
@@ -180,7 +186,7 @@ p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 # This can be done using the [`SpinRange`](@ref) structure, where you specify the indices of the spins that
 # should be affected. In this example, we apply a translational motion to the upper half of the phantom:
 
-obj.motion = Translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002));
+obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002));
 
 p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440); #hide
 #md savefig(p3, "../assets/doc-2-subset.html"); #hide
@@ -205,13 +211,13 @@ obj2 = copy(obj1) #hide
 obj1.x .-= 20e-2; obj2.x .-= 20e-2 #hide
 obj1.y .+= 12e-2; obj2.y .-= 12e-2 #hide
 obj1.motion = MotionList(
-    Translate(40e-2, 0.0, 0.0, TimeRange(0.0, 0.5),AllSpins()),
-    Rotate(0.0, 0.0, 90.0, TimeRange(0.5, 1.0),AllSpins()),
+    translate(40e-2, 0.0, 0.0, TimeRange(0.0, 0.5),AllSpins()),
+    rotate(0.0, 0.0, 90.0, TimeRange(0.5, 1.0),AllSpins()),
 )
 
 obj2.motion = MotionList(
-    Translate(40e-2, 0.0, 0.0, TimeRange(0.0, 1.0),AllSpins()),
-    Rotate(0.0, 0.0, 90.0, TimeRange(0.0, 1.0),AllSpins()),
+    translate(40e-2, 0.0, 0.0, TimeRange(0.0, 1.0),AllSpins()),
+    rotate(0.0, 0.0, 90.0, TimeRange(0.0, 1.0),AllSpins()),
 )
 
 obj = obj1 + obj2
@@ -240,8 +246,8 @@ rot_center = (0.0, -3.0, 0.0)  .* 1e-2 # Rotation around the neck
 motion_list = Motion[] 
 for i in 1:Nintervals  
     t_interval = TimeRange(interval_dur * (i-1), interval_dur * i)  
-    tra = Translate(tra_x[i], tra_y[i], 0.0, t_interval) 
-    rot = Rotate(0.0, 0.0, rot_z[i], t_interval; center=rot_center)  
+    tra = translate(tra_x[i], tra_y[i], 0.0, t_interval) 
+    rot = rotate(0.0, 0.0, rot_z[i], t_interval; center=rot_center)  
     push!(motion_list, [tra, rot]...)  
 end  
 

@@ -1,5 +1,5 @@
 @doc raw"""
-    translate = Translate(dx, dy, dz)
+    t = Translate(dx, dy, dz)
 
 Translate struct. It produces a linear translation.
 Its fields are the final displacements in the three axes (dx, dy, dz).
@@ -10,11 +10,11 @@ Its fields are the final displacements in the three axes (dx, dy, dz).
 - `dz`: (`::Real`, `[m]`) translation in z
 
 # Returns
-- `translate`: (`::Translate`) Translate struct
+- `t`: (`::Translate`) Translate struct
 
 # Examples
 ```julia-repl
-julia> translate = Translate(dx=0.01, dy=0.02, dz=0.03)
+julia> t = Translate(dx=0.01, dy=0.02, dz=0.03)
 ```
 """
 @with_kw struct Translate{T<:Real} <: SimpleAction{T}

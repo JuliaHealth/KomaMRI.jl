@@ -1,5 +1,5 @@
 @doc raw"""
-    rotate = Rotate(pitch, roll, yaw, center=nothing)
+    r = Rotate(pitch, roll, yaw, center=nothing)
  
 Rotate struct. It produces a rotation in the three axes: 
 x (pitch), y (roll), and z (yaw).
@@ -49,13 +49,13 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 - This design ensures that consecutive or inverse rotations behave consistently and predictably, since the rotation center does not change with object transformations.
 
 # Returns
-- `rotate`: (`::Rotate`) Rotate struct
+- `r`: (`::Rotate`) Rotate struct
 
 # Examples
 ```julia-repl
-julia> rotate = Rotate(pitch=15.0, roll=0.0, yaw=20.0)
+julia> r = Rotate(pitch=15.0, roll=0.0, yaw=20.0)
 
-julia> rotate = Rotate(pitch=0.0, roll=45.0, yaw=0.0, center=(5e-3,0.0,0.0))
+julia> r = Rotate(pitch=0.0, roll=45.0, yaw=0.0, center=(5e-3,0.0,0.0))
 # Rotates around a point 5 mm to the right of the center of mass
 ```
 """

@@ -18,7 +18,7 @@ end
 
 function phantom_brain_simple_motion()
     obj = phantom_brain()
-    obj.motion = MotionList(Translate(0.0, 1.0, 0.0, TimeRange(0.0, 10.0)))
+    obj.motion = translate(0.0, 1.0, 0.0, TimeRange(0.0, 10.0))
     return obj
 end
 
@@ -30,11 +30,7 @@ function phantom_brain_arbitrary_motion()
     dx = zeros(Ns, 2)  
     dz = zeros(Ns, 2)  
     dy = [zeros(Ns,1) ones(Ns,1)]
-    obj.motion = MotionList(Path(
-        dx,
-        dy,
-        dz,
-        TimeRange(t_start, t_end)))
+    obj.motion = path(dx, dy, dz, TimeRange(t_start, t_end))
     return obj
 end
 
