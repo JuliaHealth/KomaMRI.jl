@@ -54,7 +54,7 @@ end
 
 # MRIReco splits the data into 3 when the data are converted to the AcquisitionData structure. The dimensions are (contrast / slice / repetitions)
 acqData = AcquisitionData(raw)
-acqData.kdata |> size;
+acqData.kdata |> size
 
 # For multi-slice acquisition, MRIReco uses the same trajectory. We need to crop the trajectory.
 size_readout = size(acqData.traj[1].nodes,2) / 3 |> Int
@@ -77,19 +77,13 @@ image = abs.(reshape(rec,Nx,Ny,:));
 p2 = plot_image(image[:,:,1], height=400);
 p3 = plot_image(image[:,:,2], height=400);
 
-
 #md savefig(p2, "../assets/7-seq-2.html"); #hide 
-#jl display(p2); 
-
-#md # ```@raw html 
-#md # <center><object type="text/html" data="../../assets/7-seq-2.html" style="width:65%; height:420px;"></object><\center>
-#md # ``` 
-
 #md savefig(p3, "../assets/7-seq-3.html"); #hide 
+#jl display(p2); 
 #jl display(p3); 
 
 #md # ```@raw html 
-#md # <center><object type="text/html" data="../../assets/7-seq-3.html" style="width:65%; height:420px;"></object><\center>
+#md # <object type="text/html" data="../../assets/7-seq-2.html" style="width:50%; height:380px;"></object><object type="text/html" data="../../assets/7-seq-3.html" style="width:50%; height:380px;"></object>
 #md # ``` 
 
 # The signal ponderation is changing because we are acquiring the same slice position with a short TR sequence. Thus, the magnetization is not at equilibrium.
