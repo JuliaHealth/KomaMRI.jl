@@ -463,11 +463,10 @@ function read_seq(filename)
     #This should only work for Pulseq files >=1.4.0
     seq = Sequence()
     for i = 1:length(blockEvents)
-        seq += get_block(obj, i, version_combined)
+        seq += get_block(obj, i)
     end
     # Add first and last points for gradients #320 for version <= 1.4.2
     if version_combined < 1005000
-        @warn "Changing first and last points for gradients"
         fix_first_last_grads!(seq)
     end
     # Final details
@@ -497,12 +496,11 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 - `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
 - `Δt_gr`: (`::Float64`, `[s]`) gradient raster time
 - `i`: (`::Int64`) index of the axis in the block event
-- `version_combined`: (`::Int64`) version of the Pulseq file
 
 # Returns
 - `grad`: (::Grad) Gradient struct
 """
-function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i, version_combined)
+function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0.0,0.0)
     if isempty(gradLibrary) || i==0
         return G
@@ -513,18 +511,17 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i, version_combined)
         g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
         G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
     elseif gradLibrary[i]["type"] == 'g' #Arbitrary gradient waveform
-        if version_combined >= 1005000
+        g = gradLibrary[i]["data"]
+        if length(g) == 6 # for version 1.5.x
             #(1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
-            g = gradLibrary[i]["data"]
             amplitude =     g[1]
             first_grads =   g[2]
             last_grads =    g[3]
             amp_shape_id =  g[4] |> x->floor(Int64,x)
             time_shape_id = g[5] |> x->floor(Int64,x)
             delay =         g[6]
-        else
+        else # for version 1.4.x and below
             #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-            g = gradLibrary[i]["data"]
             amplitude =     g[1]
             amp_shape_id =  g[2] |> x->floor(Int64,x)
             time_shape_id = g[3] |> x->floor(Int64,x)
@@ -556,12 +553,11 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 - `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
 - `Δt_rf`: (`::Float64`, `[s]`) RF raster time
 - `i`: (`::Int64`) index of the RF in the block event
-- `version_combined`: (`::Int64`) version of the Pulseq file
 
 # Returns
 - `rf`: (`1x1 ::Matrix{RF}`) RF struct
 """
-function read_RF(rfLibrary, shapeLibrary, Δt_rf, i, version_combined)
+function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
 
     if isempty(rfLibrary) || i==0
         return reshape([RF(0.0,0.0)], 1, 1)
@@ -569,7 +565,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i, version_combined)
 
     #Unpacking
     r = rfLibrary[i]["data"]
-    if version_combined >= 1005000
+    if length(r) == 11 # for version 1.5.x
         #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
         amplitude =     r[1]
         mag_id =        r[2] |> x->floor(Int64,x)
@@ -582,7 +578,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i, version_combined)
         freq =          r[9]
         phase =         r[10]
         use =           r[11]
-    else
+    else # for version 1.4.x and below
         #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
         amplitude =     r[1]
         mag_id =        r[2] |> x->floor(Int64,x)
@@ -621,21 +617,20 @@ Reads the ADC. It is used internally by [`get_block`](@ref).
 # Arguments
 - `adcLibrary`: (`::Dict{String, Any}`) the "adcLibrary" dictionary
 - `i`: (`::Int64`) index of the adc in the block event
-- `version_combined`: (`::Int64`) version of the Pulseq file
 
 # Returns
 - `adc`: (`1x1 ::Vector{ADC}`) ADC struct
 """
-function read_ADC(adcLibrary, i, version_combined)
+function read_ADC(adcLibrary, i)
 
     if isempty(adcLibrary) || i==0
         return [ADC(0, 0)]
     end
 
     #Unpacking
-    if version_combined >= 1005000
+    a = adcLibrary[i]["data"]
+    if length(a) == 8 # for version 1.5.x
         #(1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
-        a = adcLibrary[i]["data"]
         num =   a[1] |> x->floor(Int64,x)
         dwell = a[2]
         delay = a[3] + dwell/2
@@ -644,9 +639,8 @@ function read_ADC(adcLibrary, i, version_combined)
         freq =  a[6]
         phase = a[7]
         phase_shape_id = a[8] |> x->floor(Int64,x)
-    else
+    else # for version 1.4.x and below
         #(1)num (2)dwell (3)delay (4)freq (5)phase
-        a = adcLibrary[i]["data"]
         num =   a[1] |> x->floor(Int64,x)
         dwell = a[2]
         delay = a[3] + dwell/2
@@ -734,28 +728,27 @@ Block sequence definition. Used internally by [`read_seq`](@ref).
 # Arguments
 - `obj`: (`::Dict{String, Any}`) main dictionary
 - `i`: (`::Int64`) index of a block event
-- `version_combined`: (`::Int64`) version of the Pulseq file
 
 # Returns
 - `s`: (`::Sequence`) block Sequence struct
 """
-function get_block(obj, i, version_combined)
+function get_block(obj, i)
     #Unpacking
     idelay, irf, ix, iy, iz, iadc, iext = obj["blockEvents"][i]
 
     #Gradient definition
     Δt_gr = obj["definitions"]["GradientRasterTime"]
-    Gx = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, ix, version_combined)
-    Gy = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iy, version_combined)
-    Gz = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iz, version_combined)
+    Gx = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, ix)
+    Gy = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iy)
+    Gz = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iz)
     G = reshape([Gx;Gy;Gz],3,1) #[Gx;Gy;Gz;;]
 
     #RF definition
     Δt_rf = obj["definitions"]["RadiofrequencyRasterTime"]
-    R = read_RF(obj["rfLibrary"], obj["shapeLibrary"], Δt_rf, irf, version_combined)
+    R = read_RF(obj["rfLibrary"], obj["shapeLibrary"], Δt_rf, irf)
 
     #ADC definition
-    A = read_ADC(obj["adcLibrary"], iadc, version_combined)
+    A = read_ADC(obj["adcLibrary"], iadc)
 
     #DUR
     D = Float64[max(obj["blockDurations"][i], dur(Gx), dur(Gy), dur(Gz), dur(R[1]), dur(A[1]))]
