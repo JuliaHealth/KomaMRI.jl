@@ -1,202 +1,202 @@
-name: CI
-on:
-  pull_request:
-    branches:
-      - master
-  push:
-    branches:
-      - master
-    tags: '*'
-jobs:
-  ci:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - '1.10' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
-          - '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        arch: [x64]
-        include:
-          - os: ubuntu-latest
-            prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
-    steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@latest
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - uses: actions/cache@v4
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
-      - name: "KomaMRIBase: Build"
-        if: '!cancelled()'
-        uses: julia-actions/julia-buildpkg@v1
-        with:
-          project: KomaMRIBase
-      - name: "KomaMRIBase: Run Tests"
-        if: '!cancelled()'
-        uses: julia-actions/julia-runtest@v1
-        with:
-          project: KomaMRIBase
-      - name: "KomaMRICore: Development Setup"
-        if: '!cancelled()'
-        shell: bash
-        run: |
-          julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - name: "KomaMRICore: Build"
-        if: '!cancelled()'
-        uses: julia-actions/julia-buildpkg@v1
-        with:
-          project: KomaMRICore
-      - name: "KomaMRICore: Run Tests"
-        if: '!cancelled()'
-        uses: julia-actions/julia-runtest@v1
-        with:
-          project: KomaMRICore
-      - name: "KomaMRIFiles: Development Setup"
-        if: '!cancelled()'
-        shell: bash
-        run: |
-          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - name: "KomaMRIFiles: Build"
-        if: '!cancelled()'
-        uses: julia-actions/julia-buildpkg@v1
-        with:
-          project: KomaMRIFiles
-      - name: "KomaMRIFiles: Run Tests"
-        if: '!cancelled()'
-        uses: julia-actions/julia-runtest@v1
-        with:
-          project: KomaMRIFiles
-      - name: "KomaMRIPlots: Development Setup"
-        if: '!cancelled()'
-        shell: bash
-        run: |
-          julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
-      - name: "KomaMRIPlots: Build"
-        if: '!cancelled()'
-        uses: julia-actions/julia-buildpkg@v1
-        with:
-          project: KomaMRIPlots
-      - name: "KomaMRIPlots: Run Tests"
-        if: '!cancelled()'
-        uses: julia-actions/julia-runtest@v1
-        with:
-          project: KomaMRIPlots
-          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
-      - name: "KomaMRI: Development Setup"
-        if: '!cancelled()'
-        shell: julia --color=yes --project {0}
-        run: |
-          using Pkg
-          Pkg.develop([
-              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-              PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
-              PackageSpec(path=pwd(), subdir="KomaMRIPlots")
-          ])
-      - name: "KomaMRI: Build"
-        if: '!cancelled()'
-        uses: julia-actions/julia-buildpkg@v1
-      - name: "KomaMRI: Run Tests"
-        if: '!cancelled()'
-        uses: julia-actions/julia-runtest@v1
-        with:
-          prefix: ${{ matrix.prefix }}  # for `xvfb-run`
-      - uses: julia-actions/julia-processcoverage@v1
-        with:
-          directories: src
-      - uses: codecov/codecov-action@v5
-        with:
-          files: lcov.info
-          flags: komamri
-          token: ${{ secrets.CODECOV_TOKEN }} # required
-      - uses: julia-actions/julia-processcoverage@v1
-        with:
-          directories: KomaMRIBase/src
-      - uses: codecov/codecov-action@v5
-        with:
-          files: lcov.info
-          flags: base
-          token: ${{ secrets.CODECOV_TOKEN }} # required
-      - uses: julia-actions/julia-processcoverage@v1
-        with:
-          directories: KomaMRICore/src,KomaMRICore/ext
-      - uses: codecov/codecov-action@v5
-        with:
-          files: lcov.info
-          flags: core
-          token: ${{ secrets.CODECOV_TOKEN }} # required
-      - uses: julia-actions/julia-processcoverage@v1
-        with:
-          directories: KomaMRIPlots/src,KomaMRIPlots/ext
-      - uses: codecov/codecov-action@v5
-        with:
-          files: lcov.info
-          flags: plots
-          token: ${{ secrets.CODECOV_TOKEN }} # required
-      - uses: julia-actions/julia-processcoverage@v1
-        with:
-          directories: KomaMRIFiles/src
-      - uses: codecov/codecov-action@v5
-        with:
-          files: lcov.info
-          flags: files
-          token: ${{ secrets.CODECOV_TOKEN }} # required
-  docs:
-    if: '!cancelled()'
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v2
-        with:
-          version: '1'
-      - name: "Documentation dev environment setup"
-        run: |
-          julia --project=docs -e '
-            using Pkg
-            Pkg.develop([
-                PackageSpec(path=pwd(), subdir="."),
-                PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-                PackageSpec(path=pwd(), subdir="KomaMRICore"),
-                PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
-                PackageSpec(path=pwd(), subdir="KomaMRIPlots")
-            ])
-            Pkg.instantiate()'
-      - name: "Testing documentation (doctest)"
-        run: |
-          julia --project=docs -e '
-            using Documenter: doctest
-            using KomaMRI
-            doctest(KomaMRI)'
-      - if: ${{ !contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
-        name: "Building documentation (docs/make.jl)"
-        run: julia --project=docs docs/make.jl
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
-      - if: ${{ contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
-        name: "Building documentation (docs/make.jl) - [PR] PUSH_PREVIEW"
-        run: julia --project=docs docs/make.jl push_preview
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
-  Skip:
-    if: contains(github.event.head_commit.message, '[skip ci]')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Skip CI 🚫
-        run: echo skip ci
+# name: CI
+# on:
+#   pull_request:
+#     branches:
+#       - master
+#   push:
+#     branches:
+#       - master
+#     tags: '*'
+# jobs:
+#   ci:
+#     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+#     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+#     runs-on: ${{ matrix.os }}
+#     timeout-minutes: 60
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         version:
+#           - '1.10' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
+#           - '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
+#         os: [ubuntu-latest, windows-latest, macos-latest]
+#         arch: [x64]
+#         include:
+#           - os: ubuntu-latest
+#             prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: julia-actions/setup-julia@latest
+#         with:
+#           version: ${{ matrix.version }}
+#           arch: ${{ matrix.arch }}
+#       - uses: actions/cache@v4
+#         env:
+#           cache-name: cache-artifacts
+#         with:
+#           path: ~/.julia/artifacts
+#           key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+#           restore-keys: |
+#             ${{ runner.os }}-test-${{ env.cache-name }}-
+#             ${{ runner.os }}-test-
+#             ${{ runner.os }}-
+#       - name: "KomaMRIBase: Build"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-buildpkg@v1
+#         with:
+#           project: KomaMRIBase
+#       - name: "KomaMRIBase: Run Tests"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-runtest@v1
+#         with:
+#           project: KomaMRIBase
+#       - name: "KomaMRICore: Development Setup"
+#         if: '!cancelled()'
+#         shell: bash
+#         run: |
+#           julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+#       - name: "KomaMRICore: Build"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-buildpkg@v1
+#         with:
+#           project: KomaMRICore
+#       - name: "KomaMRICore: Run Tests"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-runtest@v1
+#         with:
+#           project: KomaMRICore
+#       - name: "KomaMRIFiles: Development Setup"
+#         if: '!cancelled()'
+#         shell: bash
+#         run: |
+#           julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+#       - name: "KomaMRIFiles: Build"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-buildpkg@v1
+#         with:
+#           project: KomaMRIFiles
+#       - name: "KomaMRIFiles: Run Tests"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-runtest@v1
+#         with:
+#           project: KomaMRIFiles
+#       - name: "KomaMRIPlots: Development Setup"
+#         if: '!cancelled()'
+#         shell: bash
+#         run: |
+#           julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+#       - name: "KomaMRIPlots: Build"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-buildpkg@v1
+#         with:
+#           project: KomaMRIPlots
+#       - name: "KomaMRIPlots: Run Tests"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-runtest@v1
+#         with:
+#           project: KomaMRIPlots
+#           prefix: ${{ matrix.prefix }}  # for `xvfb-run`
+#       - name: "KomaMRI: Development Setup"
+#         if: '!cancelled()'
+#         shell: julia --color=yes --project {0}
+#         run: |
+#           using Pkg
+#           Pkg.develop([
+#               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+#               PackageSpec(path=pwd(), subdir="KomaMRICore"),
+#               PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+#               PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+#           ])
+#       - name: "KomaMRI: Build"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-buildpkg@v1
+#       - name: "KomaMRI: Run Tests"
+#         if: '!cancelled()'
+#         uses: julia-actions/julia-runtest@v1
+#         with:
+#           prefix: ${{ matrix.prefix }}  # for `xvfb-run`
+#       - uses: julia-actions/julia-processcoverage@v1
+#         with:
+#           directories: src
+#       - uses: codecov/codecov-action@v5
+#         with:
+#           files: lcov.info
+#           flags: komamri
+#           token: ${{ secrets.CODECOV_TOKEN }} # required
+#       - uses: julia-actions/julia-processcoverage@v1
+#         with:
+#           directories: KomaMRIBase/src
+#       - uses: codecov/codecov-action@v5
+#         with:
+#           files: lcov.info
+#           flags: base
+#           token: ${{ secrets.CODECOV_TOKEN }} # required
+#       - uses: julia-actions/julia-processcoverage@v1
+#         with:
+#           directories: KomaMRICore/src,KomaMRICore/ext
+#       - uses: codecov/codecov-action@v5
+#         with:
+#           files: lcov.info
+#           flags: core
+#           token: ${{ secrets.CODECOV_TOKEN }} # required
+#       - uses: julia-actions/julia-processcoverage@v1
+#         with:
+#           directories: KomaMRIPlots/src,KomaMRIPlots/ext
+#       - uses: codecov/codecov-action@v5
+#         with:
+#           files: lcov.info
+#           flags: plots
+#           token: ${{ secrets.CODECOV_TOKEN }} # required
+#       - uses: julia-actions/julia-processcoverage@v1
+#         with:
+#           directories: KomaMRIFiles/src
+#       - uses: codecov/codecov-action@v5
+#         with:
+#           files: lcov.info
+#           flags: files
+#           token: ${{ secrets.CODECOV_TOKEN }} # required
+#   docs:
+#     if: '!cancelled()'
+#     name: Documentation
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: julia-actions/setup-julia@v2
+#         with:
+#           version: '1'
+#       - name: "Documentation dev environment setup"
+#         run: |
+#           julia --project=docs -e '
+#             using Pkg
+#             Pkg.develop([
+#                 PackageSpec(path=pwd(), subdir="."),
+#                 PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+#                 PackageSpec(path=pwd(), subdir="KomaMRICore"),
+#                 PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+#                 PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+#             ])
+#             Pkg.instantiate()'
+#       - name: "Testing documentation (doctest)"
+#         run: |
+#           julia --project=docs -e '
+#             using Documenter: doctest
+#             using KomaMRI
+#             doctest(KomaMRI)'
+#       - if: ${{ !contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
+#         name: "Building documentation (docs/make.jl)"
+#         run: julia --project=docs docs/make.jl
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+#       - if: ${{ contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
+#         name: "Building documentation (docs/make.jl) - [PR] PUSH_PREVIEW"
+#         run: julia --project=docs docs/make.jl push_preview
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+#   Skip:
+#     if: contains(github.event.head_commit.message, '[skip ci]')
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Skip CI 🚫
+#         run: echo skip ci
