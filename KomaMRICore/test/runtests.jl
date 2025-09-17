@@ -237,8 +237,8 @@ const group = get(ENV, "TEST_GROUP", :core) |> Symbol
     )
     sig = simulate(obj, seq, sys; sim_params)
     sig = sig / prod(size(obj))
-    display(sig)
-    display(sig_jemris)
+    display(sig[1:10, 1, 1])
+    display(sig_jemris[1:10, 1, 1])
 
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
