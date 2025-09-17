@@ -343,15 +343,6 @@ function simulate(
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
-    # Limit max_block_length to be at least 5
-    if sim_params["max_block_length"] < 5
-        @warn "sim_params[\"max_block_length\"] = $(sim_params["max_block_length"]) is too small, setting to 5"
-        sim_params["max_block_length"] = max(sim_params["max_block_length"], 5)
-    end
-    if sim_params["max_rf_block_length"] < 5
-        @warn "sim_params[\"max_rf_block_length\"] = $(sim_params["max_rf_block_length"]) is too small, setting to 5"
-        sim_params["max_rf_block_length"] = max(sim_params["max_rf_block_length"], 5)
-    end
     #Warn if user is trying to run on CPU without enabling multi-threading
     if (!sim_params["gpu"] && Threads.nthreads() == 1)
         @info """Simulation will be run on the CPU with only 1 thread. To enable multi-threading, start julia with --threads=auto
