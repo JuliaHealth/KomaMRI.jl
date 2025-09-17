@@ -6,7 +6,8 @@
 
 using KomaMRI, PlotlyJS, Suppressor # hide
 sys = Scanner() # hide
-obj = brain_phantom3D();
+obj = brain_phantom3D()
+obj.Δw .= 0; # Removes the off-resonance
 
 # ## How to add label to a sequence
 # Let's add the label to increment the slice for each seq_EPI block. We will add that to the first block of the sequence
@@ -73,22 +74,22 @@ image = abs.(reshape(rec,Nx,Ny,:));
 
 # Let's take a look at the first 2 images
 
-p2 = plot_image(image[:,:,1]);
-p3 = plot_image(image[:,:,2]);
+p2 = plot_image(image[:,:,1], height=400);
+p3 = plot_image(image[:,:,2], height=400);
 
 
 #md savefig(p2, "../assets/7-seq-2.html"); #hide 
 #jl display(p2); 
 
 #md # ```@raw html 
-#md # <object type="text/html" data="../../assets/7-seq-2.html" style="width:480px; height:320px;"></object> 
+#md # <center><object type="text/html" data="../../assets/7-seq-2.html" style="width:65%; height:420px;"></object><\center>
 #md # ``` 
 
 #md savefig(p3, "../assets/7-seq-3.html"); #hide 
 #jl display(p3); 
 
 #md # ```@raw html 
-#md # <object type="text/html" data="../../assets/7-seq-3.html" style="width:480px; height:320px;"></object> 
+#md # <center><object type="text/html" data="../../assets/7-seq-3.html" style="width:65%; height:420px;"></object><\center>
 #md # ``` 
 
 # The signal ponderation is changing because we are acquiring the same slice position with a short TR sequence. Thus, the magnetization is not at equilibrium.
@@ -127,11 +128,11 @@ acqData = AcquisitionData(raw,estimateProfileCenter=true);
 recParams = Dict{Symbol,Any}()
 rec = reconstruction(acqData, recParams);
 
-p4=plot_image(abs.(rec[:,:,1]));
+p4=plot_image(abs.(rec[:,:,1]), height=400);
 
 #md savefig(p4, "../assets/7-seq-4.html"); #hide 
 #jl display(p4); 
 
 #md # ```@raw html 
-#md # <object type="text/html" data="../../assets/7-seq-4.html" style="width:480px; height:320px;"></object> 
+#md # <center><object type="text/html" data="../../assets/7-seq-4.html" style="width:65%; height:420px;"></object><\center>
 #md # ``` 
