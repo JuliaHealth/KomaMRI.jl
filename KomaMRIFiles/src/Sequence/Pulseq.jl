@@ -126,11 +126,28 @@ read_events Read an event section of a sequence file.
 """
 function read_events(io, scale; type=-1, eventLibrary=Dict())
     while true
+        line = readline(io)
+        if isempty(line)
+            break
+        end
+        splited_line = split(line)
+        chars_to_check = Set(['e', 'r', 'i', 's', 'p', 'o', 'u'])
         EventLength = length(scale) + 1
-        fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
-        r, data... = scanf(readline(io), fmt, Int, zeros(Float64,EventLength-1)...)
+        if any(c -> c in chars_to_check, splited_line[end])
+            fmt = Scanf.Format("%i"*"%f "^(EventLength-2)*"%s ")
+            arguments = (Int, zeros(Float64,EventLength-2)..., String)
+        else
+            fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
+            arguments = (Int, zeros(Float64,EventLength-1)...)
+        end
+        r, data... = scanf(line, fmt, arguments...)
         id = floor(Int, data[1])
-        data = scale .* [data[2:end]...]'
+        if data[end] isa String
+            scaled  = scale[1:end-1] .* data[2:end-1]
+            data = vcat(scaled, [data[end]])
+        else
+            data  = scale .* [data[2:end]...]'
+        end
         if type != -1
             eventLibrary[id] = Dict("data"=>data, "type"=>type)
         else
@@ -367,7 +384,7 @@ function read_seq(filename)
                 blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], version_combined)
             elseif  section == "[RF]"
                 if version_combined >= 1005000
-                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 1]) # this is 1.5.x format
+                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 ""]) # this is 1.5.x format
                 elseif version_combined >= 1004000
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
