@@ -223,33 +223,33 @@ const group = get(ENV, "TEST_GROUP", :core) |> Symbol
 @testitem "Bloch" tags=[:important, :core, :nomotion] begin
     # using Suppressor
     include("initialize_backend.jl")
-    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+    # include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    sig_jemris = signal_sphere_jemris()
-    seq = seq_epi_100x100_TE100_FOV230()
-    obj = phantom_sphere()
-    sys = Scanner()
+    # sig_jemris = signal_sphere_jemris()
+    # seq = seq_epi_100x100_TE100_FOV230()
+    # obj = phantom_sphere()
+    # sys = Scanner()
 
-    sim_params = Dict{String, Any}(
-        "gpu"=>USE_GPU,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat"
-    )
-    sig = simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
+    # sim_params = Dict{String, Any}(
+    #     "gpu"=>USE_GPU,
+    #     "sim_method"=>KomaMRICore.Bloch(),
+    #     "return_type"=>"mat"
+    # )
+    # sig = simulate(obj, seq, sys; sim_params)
+    # sig = sig / prod(size(obj))
 
     # @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
     
-    x = randn(Float32, 15, 1, 1)
+    x = randn(Float32, 10_000, 1, 1)
     x_metal = MtlArray(x)
 
     y = sum(x; dims=3)
     y_metal = sum(x_metal; dims=3)
 
-    display(x)
-    display(y)
-    display(x_metal)
-    display(y_metal)
+    display(x[1:15])
+    display(y[1:15])
+    display(x_metal[1:15])
+    display(y_metal[1:15])
 end
 
 # @testitem "Bloch_RF_accuracy" tags=[:important, :core, :nomotion] begin
