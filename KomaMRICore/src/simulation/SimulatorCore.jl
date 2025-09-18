@@ -410,7 +410,11 @@ function simulate(
         w,
     )
     # Result to CPU, if already in the CPU it does nothing
-    sig = sum(sig; dims=length(Ndims) + 1) |> cpu #Sum over threads
+    display(sig[1:10, :, :])
+    sig = sum(sig; dims=length(Ndims) + 1) #Sum over threads
+    display(sig[1:10, :, :])
+    sig = sig |> cpu
+    display(sig[1:10, :, :])
     sig .*= get_adc_phase_compensation(seq)
     Xt = Xt |> cpu
     # Output
