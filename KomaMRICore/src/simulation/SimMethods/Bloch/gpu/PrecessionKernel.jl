@@ -85,7 +85,7 @@
         ΔT2 = exp(-t / T2)
         cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
         M_xy[i] = complex(ΔT2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i), ΔT2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r))
-        M_z[i] = M_z[i] * ΔT1 + p_ρ[i] * (T(1) - ΔT1)
+        M_z[i] = M_z[i] * ΔT1 + abs.(p_ρ[i]) * (T(1) - ΔT1)
     end
 end
 
