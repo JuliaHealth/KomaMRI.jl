@@ -242,11 +242,11 @@ const group = get(ENV, "TEST_GROUP", :core) |> Symbol
 
     # @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
     
-    x = randn(Float32, 3, 1)
+    x = randn(Float32, 15, 1, 1)
     x_metal = MtlArray(x)
 
-    y = sum(x; dims=2)
-    y_metal = sum(x_metal; dims=2)
+    y = sum(x; dims=3)
+    y_metal = sum(x_metal; dims=3)
 
     display(x)
     display(y)
