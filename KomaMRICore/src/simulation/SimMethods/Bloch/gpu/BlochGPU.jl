@@ -42,11 +42,10 @@ function run_spin_precession!(
     )
 
     #Signal
-    display(view(pre.sig_output_final,:,1:length(sig)))
     AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
-    display(view(pre.sig_output_final,:,1:length(sig)))
-    display(transpose(view(pre.sig_output_final,:,1:length(sig))))
+    display(sig)
     sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
+    display(sig)
 
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
