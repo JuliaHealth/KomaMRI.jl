@@ -22,6 +22,7 @@ include("datatypes/Scanner.jl")
 include("datatypes/sequence/Grad.jl")
 include("datatypes/sequence/RF.jl")
 include("datatypes/sequence/ADC.jl")
+include("datatypes/sequence/EXT.jl")
 include("timing/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
 include("datatypes/sequence/Delay.jl")
@@ -62,7 +63,7 @@ export get_kspace, rotx, roty, rotz
 # Additionals
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 # Sequence related
-export get_Mk, get_kspace, get_M0, get_M1, get_M2
+export get_Mk, get_kspace, get_M0, get_M1, get_M2, get_label
 
 # PulseDesigner submodule
 include("sequences/PulseDesigner.jl")
