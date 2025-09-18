@@ -223,22 +223,20 @@ const group = get(ENV, "TEST_GROUP", :core) |> Symbol
 @testitem "Bloch" tags=[:important, :core, :nomotion] begin
     # using Suppressor
     include("initialize_backend.jl")
-    # include(joinpath(@__DIR__, "test_files", "utils.jl"))
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
-    # sig_jemris = signal_sphere_jemris()
-    # seq = seq_epi_100x100_TE100_FOV230()
-    # obj = phantom_sphere()
-    # sys = Scanner()
+    sig_jemris = signal_sphere_jemris()
+    seq = seq_epi_100x100_TE100_FOV230()
+    obj = phantom_sphere()
+    sys = Scanner()
 
-    # sim_params = Dict{String, Any}(
-    #     "gpu"=>USE_GPU,
-    #     "sim_method"=>KomaMRICore.Bloch(),
-    #     "return_type"=>"mat"
-    # )
-    # sig = simulate(obj, seq, sys; sim_params)
-    # sig = sig / prod(size(obj))
-    # display(sig[1:10, 1, 1])
-    # display(sig_jemris[1:10, 1, 1])
+    sim_params = Dict{String, Any}(
+        "gpu"=>USE_GPU,
+        "sim_method"=>KomaMRICore.Bloch(),
+        "return_type"=>"mat"
+    )
+    sig = simulate(obj, seq, sys; sim_params)
+    sig = sig / prod(size(obj))
 
     # @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
     
