@@ -428,11 +428,11 @@ function read_seq(filename)
     # fix blocks, gradients and RF objects imported from older versions
     if version_combined < 1004000
         # scan through the RF objects
-        for i = 0:length(rfLibrary)-1
+        for i = 1:length(rfLibrary)
             rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]' 0.0 rfLibrary[i]["data"][4:end]']
         end
         # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
-        for i = 0:length(gradLibrary)-1
+        for i = 1:length(gradLibrary)
             if gradLibrary[i]["type"] == 't'
                 #(1)amplitude (2)rise (2)flat (3)fall (4)delay
                 if gradLibrary[i]["data"][2] == 0 #rise
