@@ -127,18 +127,20 @@ read_events Read an event section of a sequence file.
 function read_events(io, scale; type=-1, eventLibrary=Dict())
     while true
         line = readline(io)
-        if isempty(line)
-            break
-        end
-        splited_line = split(line)
-        chars_to_check = Set(['e', 'r', 'i', 's', 'p', 'o', 'u'])
         EventLength = length(scale) + 1
-        if any(c -> c in chars_to_check, splited_line[end])
-            fmt = Scanf.Format("%i"*"%f "^(EventLength-2)*"%s ")
-            arguments = (Int, zeros(Float64,EventLength-2)..., String)
-        else
+        if isempty(line)
             fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
             arguments = (Int, zeros(Float64,EventLength-1)...)
+        else
+            line_end = split(line)[end]
+            chars_to_check = Set(['e', 'r', 'i', 's', 'p', 'o', 'u'])
+            if any(c -> c in chars_to_check, line_end)
+                fmt = Scanf.Format("%i"*"%f "^(EventLength-2)*"%s ")
+                arguments = (Int, zeros(Float64,EventLength-2)..., String)
+            else
+                fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
+                arguments = (Int, zeros(Float64,EventLength-1)...)
+            end
         end
         r, data... = scanf(line, fmt, arguments...)
         id = floor(Int, data[1])
@@ -384,7 +386,7 @@ function read_seq(filename)
                 blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], version_combined)
             elseif  section == "[RF]"
                 if version_combined >= 1005000
-                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 ""]) # this is 1.5.x format
+                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 1]) # this is 1.5.x format
                 elseif version_combined >= 1004000
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
@@ -428,11 +430,11 @@ function read_seq(filename)
     # fix blocks, gradients and RF objects imported from older versions
     if version_combined < 1004000
         # scan through the RF objects
-        for i = 1:length(rfLibrary)
+        for i = 0:length(rfLibrary)-1
             rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]' 0.0 rfLibrary[i]["data"][4:end]']
         end
         # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
-        for i = 1:length(gradLibrary)
+        for i = 0:length(gradLibrary)-1
             if gradLibrary[i]["type"] == 't'
                 #(1)amplitude (2)rise (2)flat (3)fall (4)delay
                 if gradLibrary[i]["data"][2] == 0 #rise
