@@ -10,7 +10,6 @@ lSlcInc = LabelInc(1,"SLC");
 
 seq_EPI.EXT[1] = [lSlcInc];
 
-# Now let's merge 3 seq_EPI. We now have 1 EPI sequence without EXTENSION, then we have an increment of the SLC label, and another one at the beginning of the last seq_EPI
 seq = seq + seq_EPI + seq_EPI
 plot_seq(seq);
 
