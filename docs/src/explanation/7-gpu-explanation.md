@@ -38,7 +38,6 @@ seq = PulseDesigner.EPI_example()
 
 #Simulate on the GPU using 32-bit floating point values
 sim_params = Dict{String,Any}(
-  "Nblocks" => 20,
   "gpu" => true,
   "precision" => "f32"
   "sim_method" => Bloch(),
