@@ -60,7 +60,7 @@
             ΔT2 = exp(-Δt / T2)
             Mxy_r = Mxy_new_r * ΔT2
             Mxy_i = Mxy_new_i * ΔT2
-            Mz = Mz_new * ΔT1 + ρ * (T(1) - ΔT1)
+            Mz = Mz_new * ΔT1 + abs.(ρ) * (T(1) - ΔT1)
             s_idx += 1u32
         end
 
