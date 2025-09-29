@@ -128,5 +128,5 @@ p4=plot_image(abs.(rec[:,:,1]), height=400);
 #jl display(p4); 
 
 #md # ```@raw html 
-#md # <center><object type="text/html" data="../../assets/7-seq-4.html" style="width:65%; height:420px;"></object><\center>
+#md # <object type="text/html" data="../../assets/7-seq-4.html" style="width:65%; height:420px;"></object>
 #md # ``` 
