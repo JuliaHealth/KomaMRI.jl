@@ -1,9 +1,9 @@
-using TestItems, TestItemRunner
+using TestItems, TestItemRunner, KomaMRIBase
 
 @run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:files in t_start.tags) #verbose=true
 
 @testitem "Files" tags=[:files] begin
-    using Suppressor
+    using Suppressor, KomaMRIBase
 
     # Test Pulseq
     @testset "Pulseq" begin
@@ -33,6 +33,22 @@ using TestItems, TestItemRunner
         num_samples, compressed_data = KomaMRIFiles.compress_shape(shape)
         shape2 = KomaMRIFiles.decompress_shape(num_samples, compressed_data)
         @test shape == shape2
+
+        # Test label capability
+        using KomaMRIBase
+        
+        seq = @suppress read_seq(pth*"/test_files/label_test.seq") 
+        label = get_label(seq)
+        m = maximum(label)
+        a = AdcLabels(4,0,0,0,0,0,0,2,0,0,0,0)
+        bool = true
+        for field in fieldnames(typeof(m))
+            if getfield(m,field) != getfield(a,field)
+                bool = false
+                println(field)
+            end
+        end
+        @test bool
     end
     # Test JEMRIS
     @testset "JEMRIS" begin

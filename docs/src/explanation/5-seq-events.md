@@ -219,6 +219,121 @@ julia> plot_seq(seq; slider=false)
 ```@raw html
 <object type="text/html" data="../../assets/event-adc.html" style="width:100%; height:420px;"></object>
 ```
+## Extensions and Labels
+
+The `EXTENSION` field in the `Sequence` struct is used to store additional metadata or labels for each block in the sequence. This can be particularly useful for adding metadata headers required for formats like ISMRMRD. Labels can be used to manage sequence metadata, such as line numbers or echo numbers, which are essential for certain reconstruction algorithms.
+
+
+
+### LabelInc and LabelSet extension
+
+The `LabelInc` and `LabelSet` functions are used to create labels that can be added to the `EXTENSION` field of a `Sequence`. These labels help in managing ADC metada.
+
+Only Pulseq labels are availables. [MRD also stores other FLAGS currently not available in KomaMRI](https://ismrmrd.readthedocs.io/en/stable/mrd_raw_data.html#mrd-acquisitionflags):
+
+```julia
+mutable struct AdcLabels
+  LIN::Int
+  PAR::Int
+  SLC::Int
+  SEG::Int
+  REP::Int
+  AVG::Int
+  SET::Int
+  ECO::Int
+  PHS::Int
+  NAV::Int
+  REV::Int
+  SMS::Int
+end
+```
+
+#### LabelInc
+
+The `LabelInc` function creates a label that increments a specific metadata field by a given value. This is useful for managing fields like line numbers or echo numbers.
+
+```julia
+LabelInc(value::Int, label::String)
+```
+
+- `value`: The increment value.
+- `label`: The name of the metadata field to increment.
+
+#### LabelSet
+
+The `LabelSet` function creates a label that sets a specific metadata field to a given value. This is useful for managing fields like line numbers or echo numbers.
+
+```julia
+LabelSet(value::Int, label::String)
+```
+
+- `value`: The value to set.
+- `label`: The name of the metadata field to set.
+
+### Trigger extension
+
+As described by the [Pulseq specifications](https://pulseq.github.io/specification.pdf) : `TRIGGERS extension, which
+is not a part of the core Pulseq format and MAY be subject to rapid changes`. The usage of the type / channel is system dependent and must be checked beforehand.
+
+!!! note
+    Trigger extension is implemented but currently not taken into account during the simulation 
+
+```julia
+mutable struct Trigger <: Extension 
+  type::Int # Type of trigger (system dependent). 0: undefined / unused
+  channel::Int # channel of trigger (system dependent). 0: undefined / unused
+  d1::Float64 # Delay prior to the trigger event (us)
+  d2::Float64 # Duration of trigger event (us)
+end
+```
+
+### Example Usage
+
+Below is an example of how to use `LabelInc` and `LabelSet` to add labels to a sequence:
+
+```julia
+# Define a sequence
+seq = Sequence()
+
+# Create labels
+lInc = LabelInc(1, "LIN")
+lSet = LabelSet(1, "ECO")
+trig = Trigger(0,1,100,500)
+
+# Add labels to the sequence
+seq.EXT = [[lInc,trig], [lSet]]
+
+# Display the sequence
+println(seq)
+```
+
+In this example, `LabelInc(1, "LIN")` increments the line number by 1, and `LabelSet(1, "ECO")` sets the echo number to 1. These labels are added to the `EXTENSION` field of the sequence.
+
+### Combining Labels
+
+You can combine multiple labels for a single block by adding them to the `EXTENSION` field as a vector of labels. Here is an example:
+
+```julia
+# Define a sequence
+seq = Sequence()
+
+# Create labels
+lInc = LabelInc(1, "LIN")
+lSet = LabelSet(1, "ECO")
+
+# Add combined labels to the sequence
+seq.EXT = [[lInc, lSet]]
+
+# Display the sequence
+println(seq)
+```
+
+In this example, both `LabelInc` and `LabelSet` are added to the `EXTENSION` field of the sequence, allowing for more complex metadata management.
+
+By using `LabelInc` and `LabelSet`, you can effectively manage sequence metadata and ensure that your sequence is compatible with various reconstruction algorithms and formats.
+
+!!! warning
+    So far, **KomaMRI** EXTENSION only manage ADC labels and Triggers. In future version, other specific Pulseq extension will be added like **Soft Delay**, **no rotation** etc.
 
 ## Combination of Events
 

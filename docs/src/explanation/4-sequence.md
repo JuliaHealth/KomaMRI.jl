@@ -29,12 +29,13 @@ mutable struct Sequence
     GR::Array{Grad,2}
     RF::Array{RF,2}
     ADC::Array{ADC,1}
-    DUR::Array{Any,1}
+    DUR::Array{Float64,1}
+    EXT::Vector{Vector{Extension}}
     DEF::Dict{String,Any}
 end
 ```
 
-As you can see, a **Sequence** struct contains 5 field names: ''DEF'' contains information for reconstruction steps (so it is not mandatory to fill it), ''DUR'' is a vector that contains the time durations of each block, ''ADC'' is also a vector with the acquisition samples for every block (an vector of **ADC** structs), ''GR'' is a 2D matrix which 3 rows representing the x-y-z gradients and columns having the samples of each block (a matrix of **Grad** structs) and ''RF'' is also a 2D matrix where each row represents a different coil and the columns are for different block samples too (a matrix of **RF** structs). The **RF**, **Grad** and **ADC** are MRI events that will be explained in the section [Events Definitions](5-seq-events.md).
+As you can see, a **Sequence** struct contains 6 field names: ''DEF'' contains information for reconstruction steps (so it is not mandatory to fill it), ''DUR'' is a vector that contains the time durations of each block, ''ADC'' is also a vector with the acquisition samples for every block (a vector of **ADC** structs), ''GR'' is a 2D matrix which 3 rows representing the x-y-z gradients and columns having the samples of each block (a matrix of **Grad** structs), ''RF'' is also a 2D matrix where each row represents a different coil and the columns are for different block samples too (a matrix of **RF** structs), and ''EXT'' is a vector of vectors containing extensions for each block, currently it is used to manage labels of a sequence required if you want to fill metadata headers of the MRD format. The **RF**, **Grad**, and **ADC** are MRI events that will be explained in the section [Events Definitions](5-seq-events.md).
 
 !!! warning
     So far, **KomaMRI** can only manage one coil for RF excitations. However, in future versions, parallel transmit pTX will be managed by adding more ``rows'' to the RF matrix of the Sequence field name.
@@ -42,7 +43,7 @@ As you can see, a **Sequence** struct contains 5 field names: ''DEF'' contains i
 In order to understand how a **Sequence** struct can be manipulated in **Julia**, let's use the EPI sequence example. You can display basic information of the **Sequence** variable in the **Julia REPL**:
 ```julia-repl
 julia> seq = PulseDesigner.EPI_example()
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 5 ]
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | EXT: 0 | DEF: 5 ]
 ```
 
 As you can see, this **Sequence** has 204 blocks, 1 of these blocks has an **RF** struct with values different from zero, there are 205 number of **Grad** structs considering the x-y-z components, 101 **ADC** structs acquire samples of some blocks and 62.846 ms is the total time duration of the complete **Sequence**.
