@@ -431,16 +431,16 @@ function get_RF_types(seq, t)
 	RF_ex = (α .<= 90.01) .* RF_mask
 	RF_rf = (α .>  90.01) .* RF_mask
 	rf_idx = Int[]
-	rf_type = Int[]
+	rf_type = Int[] #cambiar a tipo RFUse
 	T0 = get_block_start_times(seq)
 	for i = 1:length(seq)
 		if is_RF_on(seq[i])
 			trf = get_RF_center(seq[i].RF[1]) + T0[i]
 			append!(rf_idx, argmin(abs.(trf.-t)))
 			if RF_ex[i]
-				append!(rf_type, 0)
+				append!(rf_type, 0) #Excitation
 			elseif RF_rf[i]
-				append!(rf_type, 1)
+				append!(rf_type, 1) #Refocuse
 			end
 		end
 	end
@@ -481,12 +481,12 @@ function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))
 		for (rf, p) in enumerate(parts)
 			mk[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^k .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
 			if rf > 1 # First part does not have RF
-				if !skip_rf[rf-1]
-					if rf_type[rf-1] == 0 # Excitation
-						mk[p,i] .-= 0
-					elseif rf_type[rf-1] == 1 # Refocuse
-						mk[p,i] .-= mkf
-					end
+				#if !skip_rf[rf-1]
+				if rf_type[rf-1] == 0 # Excitation
+					mk[p,i] .-= 0
+				elseif rf_type[rf-1] == 1 # Refocuse
+					mk[p,i] .-= mkf
+				#end
 				else
 					mk[p,i] .+= mkf
 				end

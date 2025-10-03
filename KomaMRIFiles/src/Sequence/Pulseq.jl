@@ -135,8 +135,8 @@ function read_events(io, scale; type=-1, eventLibrary=Dict())
             line_end = split(line)[end]
             chars_to_check = Set(['e', 'r', 'i', 's', 'p', 'o', 'u'])
             if any(c -> c in chars_to_check, line_end)
-                fmt = Scanf.Format("%i"*"%f "^(EventLength-2)*"%s ")
-                arguments = (Int, zeros(Float64,EventLength-2)..., String)
+                fmt = Scanf.Format("%i"*"%f "^(EventLength-2)*"%c ")
+                arguments = (Int, zeros(Float64,EventLength-2)..., Char)
             else
                 fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
                 arguments = (Int, zeros(Float64,EventLength-1)...)
@@ -144,7 +144,7 @@ function read_events(io, scale; type=-1, eventLibrary=Dict())
         end
         r, data... = scanf(line, fmt, arguments...)
         id = floor(Int, data[1])
-        if data[end] isa String
+        if data[end] isa Char
             scaled  = scale[1:end-1] .* data[2:end-1]
             data = vcat(scaled, [data[end]])
         else
@@ -606,6 +606,8 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         delay =         r[5] + (time_shape_id==0)*Δt_rf/2
         freq =          r[6]
         phase =         r[7]
+        center =        0.0
+        use =           'u'
     end
     #Amplitude and phase waveforms
     if amplitude != 0 && mag_id != 0
@@ -624,7 +626,10 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
         rfT = diff(rft) * Δt_rf
     end
-    R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
+
+    use = KomaMRIBase.get_RF_use_from_char(Val(use))
+
+    R = [RF(rfAϕ,rfT,freq,delay,center,use);;]
     R
 end
 
