@@ -50,7 +50,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "gpu_groupsize_precession", DEFAULT_PRECESSION_GROUPSIZE)
     get!(sim_params, "gpu_groupsize_excitation", DEFAULT_EXCITATION_GROUPSIZE)
     get!(sim_params, "Nthreads", Threads.nthreads())
-    get!(sim_params, "max_block_length", min(sim_params["gpu_groupsize_precession"], sim_params["gpu_groupsize_excitation"]))
+    get!(sim_params, "max_block_length", 2DEFAULT_PRECESSION_GROUPSIZE)
     get!(sim_params, "max_rf_block_length", Inf)
     get!(sim_params, "Δt", sampling_params["Δt"])
     get!(sim_params, "Δt_rf", sampling_params["Δt_rf"])
@@ -198,7 +198,7 @@ function run_sim_time_iter!(
     for (block, p) in enumerate(parts)
         seq_block = @view seq[p]
         # Params
-        Nadc = sum(seq_block.ADC)
+        Nadc = sum(seq_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
         # Simulation wrappers
@@ -237,20 +237,20 @@ end
 
 """Split if simulation block is too long (more than max_block_length)"""
 function split_range(r, max_block_length)
-    if length(r) <= max_block_length
-        return [r]
-    else
-        n_splits = ceil(Int, length(r) / max_block_length)
-        split_ranges = UnitRange{Int}[]
-        split_size = max_block_length
-        for i in 0:(n_splits - 1)
-            start_idx = r.start + i * split_size
-            end_idx = min(r.start + (i + 1) * split_size - 1, r.stop)
-            push!(split_ranges, start_idx:end_idx)
-        end
-        return split_ranges
+    Ldt = length(r) - 1                     # number of intervals (dts)
+    Ldt ≤ 0 && return UnitRange{Int}[]      # no intervals → nothing to split
+    Ldt ≤ max_block_length && return UnitRange{Int}[r]
+    out = UnitRange{Int}[]
+    s = first(r)
+    rem_dts = Ldt
+    while rem_dts > 0
+        k = min(max_block_length, rem_dts)  # number of dts in this block
+        push!(out, s:(s + k))               # k dts -> k+1 points
+        s += k                              # overlap by 1 point (the boundary)
+        rem_dts -= k
     end
-end 
+    return out
+end
 
 """
 The function returns the ranges of the discrete sequence blocks along
@@ -266,13 +266,13 @@ function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_blo
     N = length(seqd.Δt)
     #Iterate over B1 values to decide the simulation UnitRanges
     for i in eachindex(seqd.Δt)
-        is_rf = abs(seqd.B1[i]) > 0.0
+        is_rf = sum(abs.(seqd.B1[i:i+1])) > 0.0
         if is_rf
             if start_idx_rf_block == 0 #End RF block
                 start_idx_rf_block = i
             end
             if start_idx_gr_block > 0 #End of GR block
-                split_ranges = split_range(start_idx_gr_block:(i - 1), max_block_length)
+                split_ranges = split_range(start_idx_gr_block:i, max_block_length)
                 append!(ranges, split_ranges)
                 append!(ranges_bool, fill(false, length(split_ranges)))
                 start_idx_gr_block = 0
@@ -282,7 +282,7 @@ function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_blo
                 start_idx_gr_block = i
             end
             if start_idx_rf_block > 0 #End of RF block
-                split_ranges = split_range(start_idx_rf_block:(i - 1), max_rf_block_length)
+                split_ranges = split_range(start_idx_rf_block:i, max_rf_block_length)
                 append!(ranges, split_ranges)
                 append!(ranges_bool, fill(true, length(split_ranges)))
                 start_idx_rf_block = 0
