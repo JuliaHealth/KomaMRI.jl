@@ -1,3 +1,20 @@
+abstract type RFUse end
+struct Excitation <: RFUse end
+struct Refocusing <: RFUse end
+struct Inversion <: RFUse end
+struct Saturation <: RFUse end
+struct Preparation <: RFUse end
+struct Other <: RFUse end
+struct Undefined <: RFUse end
+
+get_RF_use_from_char(::Val{'e'}) = Excitation()
+get_RF_use_from_char(::Val{'r'}) = Refocusing()
+get_RF_use_from_char(::Val{'i'}) = Inversion()
+get_RF_use_from_char(::Val{'s'}) = Saturation()
+get_RF_use_from_char(::Val{'p'}) = Preparation()
+get_RF_use_from_char(::Val{'o'}) = Other()
+get_RF_use_from_char(::Val{'u'}) = Undefined()
+
 """
     rf = RF(A, T)
     rf = RF(A, T, Δf)
@@ -28,18 +45,27 @@ mutable struct RF
     T
     Δf
     delay::Real
+    center
+    use::RFUse
+    function RF(A, T, Δf, delay, center, use)
+        return if any(T .< 0) || delay < 0
+            error("RF timings must be non-negative.")
+        else
+            new(A, T, Δf, delay, center, use)
+        end
+    end
     function RF(A, T, Δf, delay)
         return if any(T .< 0) || delay < 0
             error("RF timings must be non-negative.")
         else
-            new(A, T, Δf, delay)
+            new(A, T, Δf, delay, 0.0, Undefined())
         end
     end
     function RF(A, T, Δf)
-        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, Δf, 0.0)
+        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, Δf, 0.0, 0.0, Undefined())
     end
     function RF(A, T)
-        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, 0.0, 0.0)
+        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, 0.0, 0.0, 0.0, Undefined())
     end
 end
 
