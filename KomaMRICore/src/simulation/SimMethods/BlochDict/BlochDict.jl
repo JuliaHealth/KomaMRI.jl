@@ -39,7 +39,6 @@ function run_spin_precession!(
     backend::KA.Backend,
     prealloc::PreallocResult
 ) where {T<:Real}
-    #Simulation
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
@@ -53,18 +52,18 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ)] #This assumes Δw and T2 are constant in time
+    Mxy = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(Mxy, seq.t', p.motion)
-    #Acquired signal
-    sig[:, :, 1] .= transpose(Mxy[:, findall(seq.ADC)])
+    outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
+    #Acquire signal
+    sig[:, :, 1] .= @views transpose(Mxy[:, findall(seq.ADC[2:end])])
 
     if sim_method.save_Mz
         Mz = [M.z M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1))] #Calculate intermediate points
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset!(Mz, seq.t', p.motion; replace_by=p.ρ)
-        sig[:, :, 2] .= transpose(Mz[:, findall(seq.ADC)]) #Save state to signal
+        sig[:, :, 2] .= @views transpose(Mz[:, findall(seq.ADC[2:end])]) #Save state to signal
         M.z .= Mz[:, end]
     else
         M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point
