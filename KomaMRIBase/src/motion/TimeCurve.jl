@@ -109,8 +109,16 @@ julia> periodic = Periodic(period=1.0, asymmetry=0.2)
 ```
 ![Periodic](../assets/periodic.svg)
 """
-Periodic(period::T, asymmetry::T) where T = TimeCurve(t=[zero(T), period*asymmetry, period], t_unit=[zero(T), oneunit(T), zero(T)], periodic=true)
-Periodic(; period=1.0, asymmetry=0.5)     = Periodic(period, asymmetry)
+function Periodic(period::T, asymmetry::T) where T 
+    if asymmetry == 1
+        return TimeCurve(t=[zero(T), period], t_unit=[zero(T), oneunit(T)], periodic=true)
+    elseif asymmetry == 0
+        return TimeCurve(t=[zero(T), period], t_unit=[oneunit(T), zero(T)], periodic=true)
+    else
+        return TimeCurve(t=[zero(T), period*asymmetry, period], t_unit=[zero(T), oneunit(T), zero(T)], periodic=true)
+    end
+end
+Periodic(; period=1.0, asymmetry=0.5) = Periodic(period, asymmetry)
 
 """ Compare two TimeCurves """
 Base.:(==)(t1::TimeCurve, t2::TimeCurve) = reduce(&, [getfield(t1, field) == getfield(t2, field) for field in fieldnames(typeof(t1))])
