@@ -64,10 +64,11 @@ end
 check_unique(t) = true
 check_unique(t::Vector) = length(t) == length(unique(t))
 
-# Main Constructors
+# Main TimeCurve Constructors
 TimeCurve(t, t_unit, periodic, periods) = TimeCurve(t=t, t_unit=t_unit, periodic=periodic, periods=periods)
 TimeCurve(t, t_unit) = TimeCurve(t=t, t_unit=t_unit)
-# Custom constructors
+
+# Custom constructors: TimeRange & Periodic
 """
     timerange = TimeRange(t_start, t_end)
 
@@ -89,6 +90,9 @@ julia> timerange = TimeRange(t_start=0.6, t_end=1.4)
 """
 TimeRange(t_start::T, t_end::T) where T = TimeCurve(t=[t_start, t_end], t_unit=[zero(T), oneunit(T)])
 TimeRange(; t_start=0.0, t_end=1.0)     = TimeRange(t_start, t_end)
+
+# Define our own Periodic function to avoid extending Periodic from Interpolations.jl (required since Julia 1.12)
+function Periodic end 
 """
     periodic = Periodic(period, asymmetry)
 
