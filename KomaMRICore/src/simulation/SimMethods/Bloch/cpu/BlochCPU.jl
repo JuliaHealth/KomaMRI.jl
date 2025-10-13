@@ -53,7 +53,7 @@ function run_spin_precession!(
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
-    prealloc::BlochCPUPrealloc
+    prealloc::PreallocResult{T}
 ) where {T<:Real}
     #Rename arrays
     Bz_old = prealloc.Bz_old
