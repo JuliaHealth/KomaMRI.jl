@@ -220,7 +220,7 @@ end
     @test true
 end
 
-@testitem "Bloch" tags=[:important, :core, :nomotion] begin
+@testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -328,7 +328,7 @@ end
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 end
 
-@testitem "BlochDict" tags=[:important, :core, :nomotion] begin
+@testitem "BlochDict" tags=[:important, :core, :nomotion, :blochdict] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -347,12 +347,25 @@ end
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 
+    # TODO: make this work
+    # sig_jemris = signal_sphere_jemris()
+    # seq = seq_epi_100x100_TE100_FOV230()
+    # obj = phantom_sphere()
+    # sys = Scanner()
+    # sig = simulate(obj, seq, sys; sim_params)
+    # sig = sum(sig; dims=2) / prod(size(obj))
+    # @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+
+    sim_params["sim_method"] = KomaMRICore.BlochDict(save_Mz=true)
+    sig2 = @suppress simulate(obj[1], seq[1:100], sys; sim_params)
+    @test true # Just checking that it runs, TODO: compare to DiffEq
+
     # Just checking to ensure that show() doesn't get stuck and that it is covered
     show(IOBuffer(), "text/plain", KomaMRICore.BlochDict())
     @test true
 end
 
-@testitem "BlochSimple" tags=[:important, :core, :nomotion] begin
+@testitem "BlochSimple" tags=[:important, :core, :nomotion, :blochsimple] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
