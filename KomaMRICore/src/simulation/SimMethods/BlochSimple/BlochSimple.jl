@@ -83,23 +83,30 @@ function run_spin_excitation!(
     sample = 1
     #Simulation
     for i in eachindex(seq.Δt)
+        s = @views ( # This was the previous behaviour of seq[i], but it was hidden
+            t = seq.t[i, :], tnew = seq.t[i + 1, :], Δt = seq.Δt[i, :],
+            Gx = seq.Gx[i, :], Gy = seq.Gy[i, :], Gz = seq.Gz[i, :],
+            B1 = seq.B1[i, :], Δf = seq.Δf[i, :],
+            ADC = any(seq.ADC[i + 1, :])
+        )
         #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i])
+        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
-        ΔBz = p.Δw ./ T(2π .* γ) .- seq.Δf[i] ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        Bz = (seq.Gx[i] .* x .+ seq.Gy[i] .* y .+ seq.Gz[i] .* z) .+ ΔBz
-        B = sqrt.(abs.(seq.B1[i]) .^ 2 .+ abs.(Bz) .^ 2)
+        ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
+        B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B .+= (B .== 0) .* eps(T)
         #Spinor Rotation
-        φ = T(-2π .* γ) .* (B .* seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
-        mul!(Q(φ, seq.B1[i] ./ B, Bz ./ B), M)
+        φ = T(-2π .* γ) .* (B .* s.Δt)
+        mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
-        M.xy .= M.xy .* exp.(-seq.Δt[i] ./ p.T2)
-        M.z .= M.z .* exp.(-seq.Δt[i] ./ p.T1) .+ p.ρ .* (1 .- exp.(-seq.Δt[i] ./ p.T1))
+        @. M.xy = M.xy * exp(-s.Δt / p.T2)
+        @. M.z  = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M, seq.t[i + 1, :], p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(M, s.tnew, p.motion; replace_by=p.ρ)
         #Acquire signal
-        if seq.ADC[i + 1] # ADC at the end of the time step
+        # TODO: use sim_method and sys to modify sig 
+        if s.ADC # ADC at the end of the time step
             sig[sample] = sum(M.xy) 
             sample += 1
         end

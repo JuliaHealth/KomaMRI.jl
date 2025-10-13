@@ -60,15 +60,15 @@ function run_spin_precession!(
     sig[:, :, 1] .= @views transpose(Mxy[:, findall(seq.ADC[2:end])])
 
     if sim_method.save_Mz
-        Mz = [M.z M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1))] #Calculate intermediate points
+        Mz = M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1)) #Calculate intermediate points
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(Mz, seq.t', p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(Mz, seq.t[2:end]', p.motion; replace_by=p.ρ)
         sig[:, :, 2] .= @views transpose(Mz[:, findall(seq.ADC[2:end])]) #Save state to signal
         M.z .= Mz[:, end]
     else
         M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point
     end
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     return nothing
 end
