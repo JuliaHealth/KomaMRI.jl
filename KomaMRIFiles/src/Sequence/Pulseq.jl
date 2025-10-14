@@ -126,11 +126,30 @@ read_events Read an event section of a sequence file.
 """
 function read_events(io, scale; type=-1, eventLibrary=Dict())
     while true
+        line = readline(io)
         EventLength = length(scale) + 1
-        fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
-        r, data... = scanf(readline(io), fmt, Int, zeros(Float64,EventLength-1)...)
+        if isempty(line)
+            fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
+            arguments = (Int, zeros(Float64,EventLength-1)...)
+        else
+            line_end = split(line)[end]
+            chars_to_check = Set(['e', 'r', 'i', 's', 'p', 'o', 'u'])
+            if any(c -> c in chars_to_check, line_end)
+                fmt = Scanf.Format("%i"*"%f "^(EventLength-2)*"%c ")
+                arguments = (Int, zeros(Float64,EventLength-2)..., Char)
+            else
+                fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
+                arguments = (Int, zeros(Float64,EventLength-1)...)
+            end
+        end
+        r, data... = scanf(line, fmt, arguments...)
         id = floor(Int, data[1])
-        data = scale .* [data[2:end]...]'
+        if data[end] isa Char
+            scaled  = scale[1:end-1] .* data[2:end-1]
+            data = vcat(scaled, [data[end]])
+        else
+            data  = scale .* [data[2:end]...]'
+        end
         if type != -1
             eventLibrary[id] = Dict("data"=>data, "type"=>type)
         else
@@ -410,14 +429,18 @@ function read_seq(filename)
                 end
                 blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], version_combined)
             elseif  section == "[RF]"
-                if version_combined >= 1004000
+                if version_combined >= 1005000
+                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 1]) # this is 1.5.x format
+                elseif version_combined >= 1004000
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
                     rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1]) # this is 1.3.x and below
                     # we will have to scan through the library later after all the shapes have been loaded
                 end
             elseif  section == "[GRADIENTS]"
-                if version_combined >= 1004000
+                if version_combined >= 1005000
+                    gradLibrary = read_events(io, [1/γ 1 1 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.5.x format
+                elseif version_combined >= 1004000
                     gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format
                 else
                     gradLibrary = read_events(io, [1/γ 1 1e-6];   type='g', eventLibrary=gradLibrary) # this is 1.3.x and below
@@ -425,7 +448,11 @@ function read_seq(filename)
             elseif  section == "[TRAP]"
                 gradLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6]; type='t', eventLibrary=gradLibrary);
             elseif  section == "[ADC]"
-                adcLibrary = read_events(io, [1 1e-9 1e-6 1 1])
+                if version_combined >= 1005000
+                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1 1 1 1]) # this is 1.5.x format
+                else
+                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1]) # this is 1.4.x and below
+                end
             elseif  section == "[DELAYS]"
                 if version_combined >= 1004000
                     @error "Pulseq file revision 1.4.0 and above MUST NOT contain [DELAYS] section"
@@ -524,8 +551,10 @@ function read_seq(filename)
     for i = 1:length(blockEvents)
         seq += get_block(obj, i)
     end
-    # Add first and last points for gradients #320
-    fix_first_last_grads!(seq)
+    # Add first and last points for gradients #320 for version <= 1.4.2
+    if version_combined < 1005000
+        fix_first_last_grads!(seq)
+    end
     # Final details
     #Temporary hack
     seq.DEF = merge(obj["definitions"], seq.DEF)
@@ -567,12 +596,22 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
         G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
     elseif gradLibrary[i]["type"] == 'g' #Arbitrary gradient waveform
-        #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
         g = gradLibrary[i]["data"]
-        amplitude =     g[1]
-        amp_shape_id =  g[2] |> x->floor(Int64,x)
-        time_shape_id = g[3] |> x->floor(Int64,x)
-        delay =         g[4]
+        if length(g) == 6 # for version 1.5.x
+            #(1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
+            amplitude =     g[1]
+            first_grads =   g[2]
+            last_grads =    g[3]
+            amp_shape_id =  g[4] |> x->floor(Int64,x)
+            time_shape_id = g[5] |> x->floor(Int64,x)
+            delay =         g[6]
+        else # for version 1.4.x and below
+            #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+            amplitude =     g[1]
+            amp_shape_id =  g[2] |> x->floor(Int64,x)
+            time_shape_id = g[3] |> x->floor(Int64,x)
+            delay =         g[4]
+        end
         #Amplitude
         gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
         Nrf = length(gA) - 1
@@ -610,15 +649,32 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     end
 
     #Unpacking
-    #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
     r = rfLibrary[i]["data"]
-    amplitude =     r[1]
-    mag_id =        r[2] |> x->floor(Int64,x)
-    phase_id =      r[3] |> x->floor(Int64,x)
-    time_shape_id = r[4] |> x->floor(Int64,x)
-    delay =         r[5] + (time_shape_id==0)*Δt_rf/2
-    freq =          r[6]
-    phase =         r[7]
+    if length(r) == 11 # for version 1.5.x
+        #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
+        amplitude =     r[1]
+        mag_id =        r[2] |> x->floor(Int64,x)
+        phase_id =      r[3] |> x->floor(Int64,x)
+        time_shape_id = r[4] |> x->floor(Int64,x)
+        center =        r[5]
+        delay =         r[6] + (time_shape_id==0)*Δt_rf/2
+        freq_ppm =      r[7]
+        phase_ppm =     r[8]
+        freq =          r[9]
+        phase =         r[10]
+        use =           r[11]
+    else # for version 1.4.x and below
+        #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
+        amplitude =     r[1]
+        mag_id =        r[2] |> x->floor(Int64,x)
+        phase_id =      r[3] |> x->floor(Int64,x)
+        time_shape_id = r[4] |> x->floor(Int64,x)
+        delay =         r[5] + (time_shape_id==0)*Δt_rf/2
+        freq =          r[6]
+        phase =         r[7]
+        center =        0.0
+        use =           'u'
+    end
     #Amplitude and phase waveforms
     if amplitude != 0 && mag_id != 0
         rfA = decompress_shape(shapeLibrary[mag_id]...)
@@ -636,7 +692,10 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
         rfT = diff(rft) * Δt_rf
     end
-    R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
+
+    use = KomaMRIBase.get_RF_use_from_char(Val(use))
+
+    R = [RF(rfAϕ,rfT,freq,delay,center,use);;]
     R
 end
 
@@ -659,13 +718,25 @@ function read_ADC(adcLibrary, i)
     end
 
     #Unpacking
-    #(1)num (2)dwell (3)delay (4)freq (5)phase
     a = adcLibrary[i]["data"]
-    num =   a[1] |> x->floor(Int64,x)
-    dwell = a[2]
-    delay = a[3] + dwell/2
-    freq =  a[4]
-    phase = a[5]
+    if length(a) == 8 # for version 1.5.x
+        #(1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
+        num =   a[1] |> x->floor(Int64,x)
+        dwell = a[2]
+        delay = a[3] + dwell/2
+        freq_ppm = a[4]
+        phase_ppm = a[5]
+        freq =  a[6]
+        phase = a[7]
+        phase_shape_id = a[8] |> x->floor(Int64,x)
+    else # for version 1.4.x and below
+        #(1)num (2)dwell (3)delay (4)freq (5)phase
+        num =   a[1] |> x->floor(Int64,x)
+        dwell = a[2]
+        delay = a[3] + dwell/2
+        freq =  a[4]
+        phase = a[5]
+    end
     #Definition
     T = (num-1) * dwell
     A = [ADC(num,T,delay,freq,phase)]
