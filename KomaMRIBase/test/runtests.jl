@@ -413,6 +413,8 @@ end
         # TimeCurve constructors
         time = TimeRange(t_start=0.0, t_end=1.0)
         time = Periodic(period=1.0, asymmetry=0.5)
+        time = Periodic(period=1.0, asymmetry=0.0)
+        time = Periodic(period=1.0, asymmetry=1.0)
         time = TimeCurve([0.0, eps()], [0.0, 1.0])
         # Motion constructors
         m = Motion(action, time, spins)
