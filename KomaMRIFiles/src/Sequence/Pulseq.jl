@@ -8,22 +8,22 @@ read_version Read the [VERSION] section of a sequence file.
    identifier of an open MR sequence file and return it
 """
 function read_version(io)
-    major =    @scanf(readline(io), "major %i", Int)[end]
-    minor =    @scanf(readline(io), "minor %i", Int)[end]
-    revision = @scanf(readline(io), "revision %i", Int)[end]
+    pulseq_version = VersionNumber(
+        @scanf(readline(io), "major %i", Int)[end],
+        @scanf(readline(io), "minor %i", Int)[end],
+        @scanf(readline(io), "revision %i", Int)[end],
+    )
 
-    pulseq_version = VersionNumber(major, minor, revision)
-
-    @assert major == 1 "Unsupported version_major $major"
+    @assert pulseq_version.major == 1 "Unsupported version_major $(pulseq_version.major)"
     if     pulseq_version < v"1.2.0"
-        @error "Unsupported version $major.$minor.$revision, only file format revision 1.2.0 and above are supported"
+        @error "Unsupported version $(pulseq_version), only file format revision 1.2.0 and above are supported"
     elseif pulseq_version < v"1.3.1"
-        @warn "Loading older Pulseq format file (version $major.$minor.$revision) some code may not function as expected"
+        @warn "Loading older Pulseq format file (version $(pulseq_version)) some code may not function as expected"
     elseif pulseq_version >= v"1.5.0"
-        @warn "This version of KomaMRIFiles cannot read Pulseq 1.5.0 yet (detected version $major.$minor.$revision). Track progress at https://github.com/JuliaHealth/KomaMRI.jl/pull/614"
+        @warn "This version of KomaMRIFiles cannot read Pulseq 1.5.0 yet (detected version $(pulseq_version)). Track progress at https://github.com/JuliaHealth/KomaMRI.jl/pull/614"
     end
 
-    major, minor, revision, pulseq_version
+    pulseq_version
 end
 
 """
@@ -378,8 +378,6 @@ julia> plot_seq(seq)
 function read_seq(filename)
     @info "Loading sequence $(basename(filename)) ..."
     pulseq_version = v"0.0.0"
-    version_major = 0
-    version_minor = 0
     gradLibrary = Dict()
     def = Dict()
     signature = ""
@@ -405,7 +403,7 @@ function read_seq(filename)
             elseif     section == "[DEFINITIONS]"
                 def = read_definitions(io)
             elseif  section == "[VERSION]"
-                version_major, version_minor, _, pulseq_version = read_version(io)
+                pulseq_version = read_version(io)
             elseif  section == "[BLOCKS]"
                 if pulseq_version == v"0.0.0"
                     @error "Pulseq file MUST include [VERSION] section prior to [BLOCKS] section"
@@ -434,7 +432,7 @@ function read_seq(filename)
                 end
                 tmp_delayLibrary = read_events(io, 1e-6);
             elseif  section == "[SHAPES]"
-                shapeLibrary = read_shapes(io, (version_major==1 && version_minor<4))
+                shapeLibrary = read_shapes(io, (pulseq_version.major == 1 && pulseq_version.minor < 4))
             elseif  section == "[EXTENSIONS]"
                 extensionLibrary = read_extension_blocks(io)
             elseif  section == "[SIGNATURE]"
