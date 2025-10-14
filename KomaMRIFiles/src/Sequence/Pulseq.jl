@@ -19,6 +19,8 @@ function read_version(io)
         @error "Unsupported version $major.$minor.$revision, only file format revision 1.2.0 and above are supported"
     elseif version_combined < 1003001
         @warn "Loading older Pulseq format file (version $major.$minor.$revision) some code may not function as expected"
+    elseif version_combined >= 1005000
+        @warn "This version of KomaMRIFiles cannot read Pulseq 1.5.0 yet (detected version $major.$minor.$revision). Track progress at https://github.com/JuliaHealth/KomaMRI.jl/pull/614"
     end
 
     major, minor, revision, version_combined
