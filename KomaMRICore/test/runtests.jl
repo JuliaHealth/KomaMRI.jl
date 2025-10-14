@@ -474,9 +474,7 @@ end
 
     for sim_method in [KomaMRICore.Bloch(), KomaMRICore.BlochSimple(), KomaMRICore.BlochDict()]
         @testset "$(typeof(sim_method))" begin
-            for m in motions
-                motion = MotionList(m)
-
+            for motion in motions
                 coords(t) = get_spin_coords(motion, x0, y0, z0, t)
                 x(t) = (coords(t)[1])[1]
                 y(t) = (coords(t)[2])[1]
