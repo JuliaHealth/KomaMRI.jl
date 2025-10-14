@@ -114,9 +114,9 @@ julia> periodic = Periodic(period=1.0, asymmetry=0.2)
 ![Periodic](../assets/periodic.svg)
 """
 function Periodic(period::T, asymmetry::T) where T 
-    if asymmetry == 1
+    if asymmetry == oneunit(T)
         return TimeCurve(t=[zero(T), period], t_unit=[zero(T), oneunit(T)], periodic=true)
-    elseif asymmetry == 0
+    elseif asymmetry == zero(T)
         return TimeCurve(t=[zero(T), period], t_unit=[oneunit(T), zero(T)], periodic=true)
     else
         return TimeCurve(t=[zero(T), period*asymmetry, period], t_unit=[zero(T), oneunit(T), zero(T)], periodic=true)
