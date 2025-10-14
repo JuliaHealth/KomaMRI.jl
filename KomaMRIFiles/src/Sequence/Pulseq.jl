@@ -12,18 +12,18 @@ function read_version(io)
     minor =    @scanf(readline(io), "minor %i", Int)[end]
     revision = @scanf(readline(io), "revision %i", Int)[end]
 
-    version = VersionNumber(major, minor, revision)
+    pulseq_version = VersionNumber(major, minor, revision)
 
     @assert major == 1 "Unsupported version_major $major"
-    if     version < v"1.2.0"
+    if     pulseq_version < v"1.2.0"
         @error "Unsupported version $major.$minor.$revision, only file format revision 1.2.0 and above are supported"
-    elseif version < v"1.3.1"
+    elseif pulseq_version < v"1.3.1"
         @warn "Loading older Pulseq format file (version $major.$minor.$revision) some code may not function as expected"
-    elseif version >= v"1.5.0"
+    elseif pulseq_version >= v"1.5.0"
         @warn "This version of KomaMRIFiles cannot read Pulseq 1.5.0 yet (detected version $major.$minor.$revision). Track progress at https://github.com/JuliaHealth/KomaMRI.jl/pull/614"
     end
 
-    major, minor, revision, version
+    major, minor, revision, pulseq_version
 end
 
 """
@@ -78,12 +78,12 @@ read_blocks Read the [BLOCKS] section of a sequence file.
    library=read_blocks(fid) Read blocks from file identifier of an
    open MR sequence file and return the event table.
 """
-function read_blocks(io, blockDurationRaster, version::VersionNumber)
+function read_blocks(io, blockDurationRaster, pulseq_version)
     eventTable = Dict{Int64, Vector{Int64}}()
     blockDurations = Dict{Int64, Float64}()
     delayIDs_tmp = Dict{Int64, Float64}()
     while true
-        if version <= v"1.2.1"
+        if pulseq_version <= v"1.2.1"
             NumberBlockEvents = 7
         else
             NumberBlockEvents = 8
@@ -94,13 +94,13 @@ function read_blocks(io, blockDurationRaster, version::VersionNumber)
         blockEvents = parse.(Int64, split(read_event))
 
         if blockEvents[1] != 0
-            if version <= v"1.2.1"
+            if pulseq_version <= v"1.2.1"
                 eventTable[blockEvents[1]] = Int64[0; blockEvents[3:end]...; 0]
             else
                 eventTable[blockEvents[1]] = Int64[0; blockEvents[3:end]...]
             end
 
-            if version >= v"1.4.0"
+            if pulseq_version >= v"1.4.0"
                 blockDurations[blockEvents[1]] = blockEvents[2]*blockDurationRaster
             else
                 delayIDs_tmp[blockEvents[1]] = blockEvents[2]
