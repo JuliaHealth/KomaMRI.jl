@@ -8,11 +8,52 @@ on:
       - master
     tags: '*'
 jobs:
+  changes:
+    if: ${{ (github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')) && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.changes.outputs.base }}
+      core: ${{ steps.changes.outputs.core }}
+      files: ${{ steps.changes.outputs.files }}
+      plots: ${{ steps.changes.outputs.plots }}
+      main: ${{ steps.changes.outputs.main }}
+      docs: ${{ steps.changes.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          list-files: shell
+          filters: |
+            base:
+              - 'KomaMRIBase/**'
+            core:
+              - 'KomaMRICore/**'
+            files:
+              - 'KomaMRIFiles/**'
+            plots:
+              - 'KomaMRIPlots/**'
+            main:
+              - 'src/**'
+            docs:
+              - 'docs/**'
+              - 'examples/**'
   ci:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    needs: changes
+    if: ${{ (github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')) && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (needs.changes.outputs.base == 'true' || needs.changes.outputs.core == 'true' || needs.changes.outputs.files == 'true' || needs.changes.outputs.plots == 'true' || needs.changes.outputs.main == 'true') }}
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      RUN_BASE: ${{ needs.changes.outputs.base }}
+      RUN_CORE: ${{ (needs.changes.outputs.base == 'true' || needs.changes.outputs.core == 'true') && 'true' || 'false' }}
+      RUN_FILES: ${{ (needs.changes.outputs.base == 'true' || needs.changes.outputs.files == 'true') && 'true' || 'false' }}
+      RUN_PLOTS: ${{ (needs.changes.outputs.base == 'true' || needs.changes.outputs.plots == 'true') && 'true' || 'false' }}
+      RUN_KOMA: ${{ (needs.changes.outputs.base == 'true' || needs.changes.outputs.core == 'true' || needs.changes.outputs.plots == 'true' || needs.changes.outputs.main == 'true') && 'true' || 'false' }}
     strategy:
       fail-fast: false
       matrix:
@@ -41,63 +82,63 @@ jobs:
             ${{ runner.os }}-test-
             ${{ runner.os }}-
       - name: "KomaMRIBase: Build"
-        if: '!cancelled()'
+        if: ${{ env.RUN_BASE == 'true' && !cancelled() }}
         uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIBase
       - name: "KomaMRIBase: Run Tests"
-        if: '!cancelled()'
+        if: ${{ env.RUN_BASE == 'true' && !cancelled() }}
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIBase
       - name: "KomaMRICore: Development Setup"
-        if: '!cancelled()'
+        if: ${{ env.RUN_CORE == 'true' && !cancelled() }}
         shell: bash
         run: |
           julia --color=yes --project="KomaMRICore" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
       - name: "KomaMRICore: Build"
-        if: '!cancelled()'
+        if: ${{ env.RUN_CORE == 'true' && !cancelled() }}
         uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRICore
       - name: "KomaMRICore: Run Tests"
-        if: '!cancelled()'
+        if: ${{ env.RUN_CORE == 'true' && !cancelled() }}
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRICore
       - name: "KomaMRIFiles: Development Setup"
-        if: '!cancelled()'
+        if: ${{ env.RUN_FILES == 'true' && !cancelled() }}
         shell: bash
         run: |
           julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
       - name: "KomaMRIFiles: Build"
-        if: '!cancelled()'
+        if: ${{ env.RUN_FILES == 'true' && !cancelled() }}
         uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIFiles
       - name: "KomaMRIFiles: Run Tests"
-        if: '!cancelled()'
+        if: ${{ env.RUN_FILES == 'true' && !cancelled() }}
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIFiles
       - name: "KomaMRIPlots: Development Setup"
-        if: '!cancelled()'
+        if: ${{ env.RUN_PLOTS == 'true' && !cancelled() }}
         shell: bash
         run: |
           julia --color=yes --project="KomaMRIPlots" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
       - name: "KomaMRIPlots: Build"
-        if: '!cancelled()'
+        if: ${{ env.RUN_PLOTS == 'true' && !cancelled() }}
         uses: julia-actions/julia-buildpkg@v1
         with:
           project: KomaMRIPlots
       - name: "KomaMRIPlots: Run Tests"
-        if: '!cancelled()'
+        if: ${{ env.RUN_PLOTS == 'true' && !cancelled() }}
         uses: julia-actions/julia-runtest@v1
         with:
           project: KomaMRIPlots
           prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - name: "KomaMRI: Development Setup"
-        if: '!cancelled()'
+        if: ${{ env.RUN_KOMA == 'true' && !cancelled() }}
         shell: julia --color=yes --project {0}
         run: |
           using Pkg
@@ -108,55 +149,66 @@ jobs:
               PackageSpec(path=pwd(), subdir="KomaMRIPlots")
           ])
       - name: "KomaMRI: Build"
-        if: '!cancelled()'
+        if: ${{ env.RUN_KOMA == 'true' && !cancelled() }}
         uses: julia-actions/julia-buildpkg@v1
       - name: "KomaMRI: Run Tests"
-        if: '!cancelled()'
+        if: ${{ env.RUN_KOMA == 'true' && !cancelled() }}
         uses: julia-actions/julia-runtest@v1
         with:
           prefix: ${{ matrix.prefix }}  # for `xvfb-run`
       - uses: julia-actions/julia-processcoverage@v1
+        if: ${{ env.RUN_KOMA == 'true' && !cancelled() }}
         with:
           directories: src
       - uses: codecov/codecov-action@v5
+        if: ${{ env.RUN_KOMA == 'true' && !cancelled() }}
         with:
           files: lcov.info
           flags: komamri
           token: ${{ secrets.CODECOV_TOKEN }} # required
       - uses: julia-actions/julia-processcoverage@v1
+        if: ${{ env.RUN_BASE == 'true' && !cancelled() }}
         with:
           directories: KomaMRIBase/src
       - uses: codecov/codecov-action@v5
+        if: ${{ env.RUN_BASE == 'true' && !cancelled() }}
         with:
           files: lcov.info
           flags: base
           token: ${{ secrets.CODECOV_TOKEN }} # required
       - uses: julia-actions/julia-processcoverage@v1
+        if: ${{ env.RUN_CORE == 'true' && !cancelled() }}
         with:
           directories: KomaMRICore/src,KomaMRICore/ext
       - uses: codecov/codecov-action@v5
+        if: ${{ env.RUN_CORE == 'true' && !cancelled() }}
         with:
           files: lcov.info
           flags: core
           token: ${{ secrets.CODECOV_TOKEN }} # required
       - uses: julia-actions/julia-processcoverage@v1
+        if: ${{ env.RUN_PLOTS == 'true' && !cancelled() }}
         with:
           directories: KomaMRIPlots/src,KomaMRIPlots/ext
       - uses: codecov/codecov-action@v5
+        if: ${{ env.RUN_PLOTS == 'true' && !cancelled() }}
         with:
           files: lcov.info
           flags: plots
           token: ${{ secrets.CODECOV_TOKEN }} # required
       - uses: julia-actions/julia-processcoverage@v1
+        if: ${{ env.RUN_FILES == 'true' && !cancelled() }}
         with:
           directories: KomaMRIFiles/src
       - uses: codecov/codecov-action@v5
+        if: ${{ env.RUN_FILES == 'true' && !cancelled() }}
         with:
           files: lcov.info
           flags: files
           token: ${{ secrets.CODECOV_TOKEN }} # required
   docs:
-    if: '!cancelled()'
+    needs: changes
+    if: ${{ (github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')) && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (needs.changes.outputs.docs == 'true' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'documentation'))) }}
     name: Documentation
     runs-on: ubuntu-latest
     steps:
@@ -182,20 +234,20 @@ jobs:
             using Documenter: doctest
             using KomaMRI
             doctest(KomaMRI)'
-      - if: ${{ !contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
+      - if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'documentation') }}
         name: "Building documentation (docs/make.jl)"
         run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
-      - if: ${{ contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
+      - if: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'documentation') }}
         name: "Building documentation (docs/make.jl) - [PR] PUSH_PREVIEW"
         run: julia --project=docs docs/make.jl push_preview
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
   Skip:
-    if: contains(github.event.head_commit.message, '[skip ci]')
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Skip CI 🚫
