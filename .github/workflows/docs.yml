@@ -10,35 +10,20 @@ on:
   pull_request:
     branches:
       - master
-    types: [opened, synchronize, reopened, ready_for_review, labeled]
+    paths:
+      - '.github/workflows/docs.yml'
+      - 'docs/**'
+      - 'examples/**'
 jobs:
   docs:
     if: ${{ (github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')) && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - name: Check documentation changes
-        id: docschanged
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_REF=${{ github.event.pull_request.base.sha }}
-            HEAD_REF=${{ github.event.pull_request.head.sha }}
-            if git diff --name-only "$BASE_REF" "$HEAD_REF" | grep -E '^(docs|examples)/'; then
-              echo "changed=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "changed=false" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
       - uses: julia-actions/setup-julia@v2
-        if: ${{ github.event_name == 'push' || steps.docschanged.outputs.changed == 'true' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'documentation')) }}
         with:
           version: '1'
       - name: "Documentation dev environment setup"
-        if: ${{ github.event_name == 'push' || steps.docschanged.outputs.changed == 'true' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'documentation')) }}
         run: |
           julia --project=docs -e '
             using Pkg
@@ -51,7 +36,6 @@ jobs:
             ])
             Pkg.instantiate()'
       - name: "Testing documentation (doctest)"
-        if: ${{ github.event_name == 'push' || steps.docschanged.outputs.changed == 'true' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'documentation')) }}
         run: |
           julia --project=docs -e '
             using Documenter: doctest
@@ -64,7 +48,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
       - name: "Building documentation (docs/make.jl) - [PR] PUSH_PREVIEW"
-        if: ${{ github.event_name == 'pull_request' && (steps.docschanged.outputs.changed == 'true' || contains(github.event.pull_request.labels.*.name, 'documentation')) }}
+        if: ${{ github.event_name == 'pull_request' }}
         run: julia --project=docs docs/make.jl push_preview
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
