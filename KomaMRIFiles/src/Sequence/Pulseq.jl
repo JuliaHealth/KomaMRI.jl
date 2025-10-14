@@ -12,18 +12,18 @@ function read_version(io)
     minor =    @scanf(readline(io), "minor %i", Int)[end]
     revision = @scanf(readline(io), "revision %i", Int)[end]
 
-    version_combined = 1_000_000*major+1_000*minor+revision
+    version = VersionNumber(major, minor, revision)
 
     @assert major == 1 "Unsupported version_major $major"
-    if     version_combined < 1002000
+    if     version < v"1.2.0"
         @error "Unsupported version $major.$minor.$revision, only file format revision 1.2.0 and above are supported"
-    elseif version_combined < 1003001
+    elseif version < v"1.3.1"
         @warn "Loading older Pulseq format file (version $major.$minor.$revision) some code may not function as expected"
-    elseif version_combined >= 1005000
+    elseif version >= v"1.5.0"
         @warn "This version of KomaMRIFiles cannot read Pulseq 1.5.0 yet (detected version $major.$minor.$revision). Track progress at https://github.com/JuliaHealth/KomaMRI.jl/pull/614"
     end
 
-    major, minor, revision, version_combined
+    major, minor, revision, version
 end
 
 """
@@ -78,12 +78,12 @@ read_blocks Read the [BLOCKS] section of a sequence file.
    library=read_blocks(fid) Read blocks from file identifier of an
    open MR sequence file and return the event table.
 """
-function read_blocks(io, blockDurationRaster, version_combined)
+function read_blocks(io, blockDurationRaster, version::VersionNumber)
     eventTable = Dict{Int64, Vector{Int64}}()
     blockDurations = Dict{Int64, Float64}()
     delayIDs_tmp = Dict{Int64, Float64}()
     while true
-        if version_combined <= 1002001
+        if version <= v"1.2.1"
             NumberBlockEvents = 7
         else
             NumberBlockEvents = 8
@@ -94,13 +94,13 @@ function read_blocks(io, blockDurationRaster, version_combined)
         blockEvents = parse.(Int64, split(read_event))
 
         if blockEvents[1] != 0
-            if version_combined <= 1002001
+            if version <= v"1.2.1"
                 eventTable[blockEvents[1]] = Int64[0; blockEvents[3:end]...; 0]
             else
                 eventTable[blockEvents[1]] = Int64[0; blockEvents[3:end]...]
             end
 
-            if version_combined >= 1004000
+            if version >= v"1.4.0"
                 blockDurations[blockEvents[1]] = blockEvents[2]*blockDurationRaster
             else
                 delayIDs_tmp[blockEvents[1]] = blockEvents[2]
@@ -377,7 +377,7 @@ julia> plot_seq(seq)
 """
 function read_seq(filename)
     @info "Loading sequence $(basename(filename)) ..."
-    version_combined = 0
+    pulseq_version = v"0.0.0"
     version_major = 0
     version_minor = 0
     gradLibrary = Dict()
@@ -405,21 +405,21 @@ function read_seq(filename)
             elseif     section == "[DEFINITIONS]"
                 def = read_definitions(io)
             elseif  section == "[VERSION]"
-                version_major, version_minor, _, version_combined = read_version(io)
+                version_major, version_minor, _, pulseq_version = read_version(io)
             elseif  section == "[BLOCKS]"
-                if version_combined == 0
+                if pulseq_version == v"0.0.0"
                     @error "Pulseq file MUST include [VERSION] section prior to [BLOCKS] section"
                 end
-                blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], version_combined)
+                blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], pulseq_version)
             elseif  section == "[RF]"
-                if version_combined >= 1004000
+                if pulseq_version >= v"1.4.0"
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
                     rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1]) # this is 1.3.x and below
                     # we will have to scan through the library later after all the shapes have been loaded
                 end
             elseif  section == "[GRADIENTS]"
-                if version_combined >= 1004000
+                if pulseq_version >= v"1.4.0"
                     gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format
                 else
                     gradLibrary = read_events(io, [1/γ 1 1e-6];   type='g', eventLibrary=gradLibrary) # this is 1.3.x and below
@@ -429,7 +429,7 @@ function read_seq(filename)
             elseif  section == "[ADC]"
                 adcLibrary = read_events(io, [1 1e-9 1e-6 1 1])
             elseif  section == "[DELAYS]"
-                if version_combined >= 1004000
+                if pulseq_version >= v"1.4.0"
                     @error "Pulseq file revision 1.4.0 and above MUST NOT contain [DELAYS] section"
                 end
                 tmp_delayLibrary = read_events(io, 1e-6);
@@ -467,7 +467,7 @@ function read_seq(filename)
         end
     end
     # fix blocks, gradients and RF objects imported from older versions
-    if version_combined < 1004000
+    if pulseq_version < v"1.4.0"
         # scan through the RF objects
         for i = 0:length(rfLibrary)-1
             rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]' 0.0 rfLibrary[i]["data"][4:end]']
@@ -533,7 +533,7 @@ function read_seq(filename)
     seq.DEF = merge(obj["definitions"], seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
-    seq.DEF["PulseqVersion"] = version_combined
+    seq.DEF["PulseqVersion"] = pulseq_version
     seq.DEF["signature"] = signature
     # Guessing recon dimensions
     seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC))
