@@ -16,11 +16,11 @@ function read_version(io)
 
     @assert pulseq_version.major == 1 "Unsupported version_major $(pulseq_version.major)"
     if     pulseq_version < v"1.2.0"
-        @error "Unsupported version $(pulseq_version), only file format revision 1.2.0 and above are supported"
+        @error "Unsupported Pulseq $(pulseq_version), only file format revision 1.2.0 and above are supported"
     elseif pulseq_version < v"1.3.1"
-        @warn "Loading older Pulseq format file (version $(pulseq_version)) some code may not function as expected"
+        @warn "Loading older Pulseq $(pulseq_version); some code may not function as expected"
     elseif pulseq_version >= v"1.5.0"
-        @warn "This version of KomaMRIFiles cannot read Pulseq 1.5.0 yet (detected version $(pulseq_version)). Track progress at https://github.com/JuliaHealth/KomaMRI.jl/pull/614"
+        @warn "Pulseq $(pulseq_version) not yet supported by this KomaMRIFiles release. Track progress at https://github.com/JuliaHealth/KomaMRI.jl/pull/614"
     end
 
     pulseq_version
