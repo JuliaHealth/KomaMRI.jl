@@ -1,0 +1,65 @@
+name: Docs
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/docs.yml'
+      - 'docs/**'
+      - 'examples/**'
+  pull_request:
+    branches:
+      - master
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+jobs:
+  docs:
+    if: ${{ (github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')) && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Detect Documentation Changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            docs:
+              - 'docs/**'
+              - 'examples/**'
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - name: "Documentation dev environment setup"
+        if: ${{ github.event_name == 'push' || steps.changes.outputs.docs == 'true' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'documentation')) }}
+        run: |
+          julia --project=docs -e '
+            using Pkg
+            Pkg.develop([
+                PackageSpec(path=pwd(), subdir="."),
+                PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+                PackageSpec(path=pwd(), subdir="KomaMRICore"),
+                PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+                PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+            ])
+            Pkg.instantiate()'
+      - name: "Testing documentation (doctest)"
+        if: ${{ github.event_name == 'push' || steps.changes.outputs.docs == 'true' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'documentation')) }}
+        run: |
+          julia --project=docs -e '
+            using Documenter: doctest
+            using KomaMRI
+            doctest(KomaMRI)'
+      - name: "Building documentation (docs/make.jl)"
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.docs == 'true') && !contains(github.event.pull_request.labels.*.name, 'documentation') }}
+        run: julia --project=docs docs/make.jl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+      - name: "Building documentation (docs/make.jl) - [PR] PUSH_PREVIEW"
+        if: ${{ github.event_name == 'pull_request' && (steps.changes.outputs.docs == 'true' || contains(github.event.pull_request.labels.*.name, 'documentation')) }}
+        run: julia --project=docs docs/make.jl push_preview
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
