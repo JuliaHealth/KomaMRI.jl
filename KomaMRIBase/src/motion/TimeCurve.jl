@@ -136,11 +136,9 @@ function times(t, per::Real)
     return per .* t
 end
 function times(t, per::AbstractVector)
-    tr      = repeat(t, length(per))
     scale   = repeat(per, inner=[length(t)])
-    offsets = repeat(vcat(0, cumsum(per)[1:end-1]), inner=[length(t)])
-    tr     .= (tr .* scale) .+ offsets
-    return tr
+    offsets = repeat(cumsum(vcat(0, per[1:end-1]*t[end])), inner=[length(t)])
+    return (repeat(t, length(per)) .* scale) .+ offsets
 end
 function unit_time(tq, t, t_unit, periodic, per::Real)
     return interpolate_times(t .* per, t_unit, periodic, tq)
