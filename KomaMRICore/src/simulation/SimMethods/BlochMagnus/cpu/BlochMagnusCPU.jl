@@ -138,8 +138,8 @@ end
 
 function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt::T, sim_method::BlochMagnus2) where {T}
     # Ω1_linear
-    @. θxy = (ωxy_old + ωxy_new) * Δt / 2
-    @. θz  = (ωz_old + ωz_new) * Δt / 2
+    @. θxy = (ωxy_old + ωxy_new) * (Δt / 2)
+    @. θz  = (ωz_old + ωz_new) * (Δt / 2)
     return nothing
 end
 
@@ -147,7 +147,7 @@ function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_
     # Ω1_linear
     effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, BlochMagnus2())
     # Ω2_linear (this is the complex representation of Δt²/12 (ωₙ₊₁ × ωₙ))
-    @. θxy .-= im * (ωxy_new * ωz_old - ωxy_old * ωz_new) * Δt ^ 2 / 12
-    @. θz  .-= imag(conj(ωxy_old) * ωz_new) * Δt ^ 2 / 12
+    @. θxy .-= im * (ωxy_new * ωz_old - ωxy_old * ωz_new) * (Δt ^ 2 / 12)
+    @. θz  .-= imag(conj(ωxy_old) * ωz_new) * (Δt ^ 2 / 12)
     return nothing
 end
