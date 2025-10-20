@@ -157,7 +157,7 @@ function get_spin_coords(
     ux, uy, uz = xt .* zero(T), yt .* zero(T), zt .* zero(T)
     # Composable motions: they need to be run sequentially. Note that they depend on xt, yt, and zt
     for m in Iterators.filter(is_composable, ml.motions)
-        t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
+        t_unit = unit_time(t, m.time)
         idx = get_indexing_range(m.spins)
         displacement_x!(@view(ux[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
@@ -167,7 +167,7 @@ function get_spin_coords(
     end
     # Additive motions: these motions can be run in parallel
     for m in Iterators.filter(!is_composable, ml.motions)
-        t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
+        t_unit = unit_time(t, m.time)
         idx = get_indexing_range(m.spins)
         displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
@@ -182,7 +182,7 @@ end
     times = times(motion)
 """
 function times(ml::MotionList)
-    nodes = reduce(vcat, [times(m) for m in ml.motions])
+    nodes = reduce(vcat, [times(m.time) for m in ml.motions])
     return unique(sort(nodes))
 end
 
@@ -204,8 +204,8 @@ function sort_motions!(m::MotionList)
     return nothing
 end
 
-function add_jump_times!(t, ml::MotionList)
+function add_key_time_points!(t, Δt_rise, ml::MotionList)
     for m in ml.motions
-        add_jump_times!(t, m)
+        add_key_time_points!(t, Δt_rise, m)
     end
 end

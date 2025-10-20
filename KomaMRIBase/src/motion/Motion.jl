@@ -195,7 +195,7 @@ function get_spin_coords(
     m::Motion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
 ) where {T<:Real}
     ux, uy, uz = x .* (0*t), y .* (0*t), z .* (0*t) # Buffers for displacements
-    t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
+    t_unit = unit_time(t, m.time)
     idx = get_indexing_range(m.spins)
     displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
     displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
@@ -204,7 +204,67 @@ function get_spin_coords(
 end
 
 # Auxiliary functions
-times(m::Motion) = times(m.time.t, m.time.periods)
+times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
-add_jump_times!(t, m::Motion) = add_jump_times!(t, m.action, m.time)
-add_jump_times!(t, ::AbstractAction, ::TimeCurve) = nothing
+
+function add_key_time_points!(t, Δt_rise, m::Motion)
+    add_key_time_points!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods, m.time.periodic, Δt_rise)
+end
+
+# function add_key_time_points!(t, ::AbstractAction, t_start, t_end, periods::Real, ::Val{false})
+#     return nothing
+# end
+
+# function add_key_time_points!(t, ::FlowPath, t_start, t_end, periods, ::Val{false})
+#     aux = (t_end - t_start)/(size(a.spin_reset)[2]-1) * (getindex.(findall(a.spin_reset .== 1), 2) .- 1)
+#     jump_times = times(aux, periods) .- eps(T)
+#     append!(t, jump_times[jump_times .<= t_max])
+# end
+
+# function add_key_time_points!(t, ::AbstractAction, t_start::T, t_end::T, periods::AbstractVector{T}, ::Val{false}) where T
+#     aux = T[]
+#     t_max  = maximum(t)
+#     period = sum((t_end - t_start) .* periods)
+#     add_period_times!(aux, t_start, t_end, periods)
+# end
+
+# Caso más general (sin method dispatch)
+function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic, Δt_rise::T) where T 
+    aux = T[]
+    period = sum((t_end - t_start) .* periods)
+    t_max = maximum(t)
+    
+    println("add period times ------------------")
+    add_period_times!(aux, t_start, t_end, periods, Δt_rise)
+    println("\nadd reset times ------------------")
+    add_reset_times!(aux, a, t_start, t_end, periods, Δt_rise)
+
+    if periodic
+        for n in 1:floor(t_max/period) append!(aux, aux .+ n*period) end
+    end
+
+    println("Added key points: ", aux[aux .<= t_max])
+
+    append!(t, aux[aux .<= t_max])
+end
+
+# add_period_times! ------------------------------------------------------
+function add_period_times!(t, t_start, t_end, periods, Δt_rise)
+    period_times = times([t_start, t_end], t_start, t_end, periods)
+    println("period_times = $period_times")
+
+    println("Added period times: ", period_times .+ Δt_rise .* ((-1) .^ ((1:length(period_times)) .+ 1)))
+    append!(t, period_times .+ Δt_rise .* ((-1) .^ ((1:length(period_times)) .+ 1)))
+end
+
+# add_reset_times! ------------------------------------------------------
+function add_reset_times!(t, ::AbstractAction, t_start, t_end, periods, Δt_rise)
+    return nothing 
+end
+
+function add_reset_times!(t, a::FlowPath, t_start, t_end, periods, Δt_rise)
+    aux = t_start .+ (t_end - t_start)/(size(a.spin_reset)[2]-1) * (getindex.(findall(a.spin_reset .== 1), 2) .- 1)
+    println("Aux: ", aux)
+    println("Added reset times: ", times(aux, t_start, t_end, periods) .- Δt_rise)
+    append!(t, times(aux, t_start, t_end, periods) .- Δt_rise)
+end
