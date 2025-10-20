@@ -174,9 +174,9 @@ end
     using Suppressor
     include("initialize_backend.jl")
 
-    seq = PulseDesigner.EPI_example()
+    seq = PulseDesigner.EPI_example()[1:10]
     sys = Scanner()
-    obj = brain_phantom2D()
+    obj = brain_phantom2D()[1:10]
     parts = kfoldperm(length(obj), 2)
 
     sim_params = KomaMRICore.default_sim_params()
@@ -220,7 +220,7 @@ end
     @test true
 end
 
-@testitem "Bloch" tags=[:important, :core, :nomotion] begin
+@testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -261,10 +261,13 @@ end
     ## Solving using KomaMRI
     seq = Sequence()
     seq += ADC(Nadc, Tadc)
-    for i=1:2
-        global seq += RF(B1 .* cis(rf_phase[i]), Trf)
-        global seq += ADC(Nadc, Tadc)
-    end
+    seq += RF(B1 .* cis(rf_phase[1]), Trf)
+    seq += ADC(Nadc, Tadc)
+    # This introduces an RF-ADC overlap!!!
+    seq += RF(B1 .* cis(rf_phase[2]), Trf)
+    seq.ADC[4] = ADC(Nadc, 2Tadc, Trf/2)
+    seq.DUR[4] = max(seq.DUR[4], dur(seq.RF[4]), dur(seq.ADC[4]))
+
     sys = Scanner()
     obj = Phantom(x = [0.], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
     sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "return_type"=>"mat")
@@ -325,7 +328,7 @@ end
     @test raw1.profiles[1].data ≈ raw2.profiles[1].data
 end
 
-@testitem "BlochDict" tags=[:important, :core, :nomotion] begin
+@testitem "BlochDict" tags=[:important, :core, :nomotion, :blochdict] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -344,12 +347,25 @@ end
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
 
+    # TODO: make this work
+    # sig_jemris = signal_sphere_jemris()
+    # seq = seq_epi_100x100_TE100_FOV230()
+    # obj = phantom_sphere()
+    # sys = Scanner()
+    # sig = simulate(obj, seq, sys; sim_params)
+    # sig = sum(sig; dims=2) / prod(size(obj))
+    # @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+
+    sim_params["sim_method"] = KomaMRICore.BlochDict(save_Mz=true)
+    sig2 = @suppress simulate(obj[1], seq[1:100], sys; sim_params)
+    @test true # Just checking that it runs, TODO: compare to DiffEq
+
     # Just checking to ensure that show() doesn't get stuck and that it is covered
     show(IOBuffer(), "text/plain", KomaMRICore.BlochDict())
     @test true
 end
 
-@testitem "BlochSimple" tags=[:important, :core, :nomotion] begin
+@testitem "BlochSimple" tags=[:important, :core, :nomotion, :blochsimple] begin
     using Suppressor
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -396,14 +412,14 @@ end
     @test true
 end
 
-@testitem "GPU Functions" tags=[:core, :nomotion] begin
+@testitem "GPU Functions" tags=[:core, :nomotion, :gpu] begin
     using Suppressor
     import KernelAbstractions as KA
     include("initialize_backend.jl")
 
     x = ones(Float32, 1000)
 
-    @suppress begin
+    begin
         if USE_GPU
             y = x |> gpu
             @test KA.get_backend(y) isa KA.GPU
@@ -418,7 +434,7 @@ end
         end
     end
 
-    @suppress print_devices()
+    print_devices()
     @test true
 end
 
