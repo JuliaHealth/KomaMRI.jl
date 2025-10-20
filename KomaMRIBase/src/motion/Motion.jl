@@ -190,12 +190,25 @@ end
 
 """
     x, y, z = get_spin_coords(motion, x, y, z, t)
+
+Calculates the position of each spin at a set of arbitrary time instants, i.e. the time steps of the simulation. 
+For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `length(t)` columns.
+
+# Arguments
+- `motion`: (`::Union{NoMotion, Motion{T<:Real} MotionList{T<:Real}}`) phantom motion
+- `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
+- `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
+- `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
+- `t`: horizontal array of time instants
+
+# Returns
+- `x, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
 """
 function get_spin_coords(
     m::Motion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
 ) where {T<:Real}
     ux, uy, uz = x .* (0*t), y .* (0*t), z .* (0*t) # Buffers for displacements
-    t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
+    t_unit = unit_time(t, m.time)
     idx = get_indexing_range(m.spins)
     displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
     displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
@@ -204,7 +217,38 @@ function get_spin_coords(
 end
 
 # Auxiliary functions
-times(m::Motion) = times(m.time.t, m.time.periods)
+times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
-add_jump_times!(t, m::Motion) = add_jump_times!(t, m.action, m.time)
-add_jump_times!(t, ::AbstractAction, ::TimeCurve) = nothing
+
+"""
+    add_key_time_points!(t, Δt_rise, motion)
+"""
+function add_key_time_points!(t, Δt_rise, m::Motion)
+    add_key_time_points!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods, m.time.periodic, Δt_rise)
+end
+function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic, Δt_rise::T) where T 
+    aux = T[]
+    period = sum((t_end - t_start) .* periods)
+    t_max = maximum(t)
+    add_period_times!(aux, t_start, t_end, periods, Δt_rise)
+    add_reset_times!(aux, a, t_start, t_end, periods, Δt_rise)
+    if periodic
+        for n in 1:floor(t_max/period) append!(aux, aux .+ n*period) end
+    end
+    append!(t, aux[aux .<= t_max])
+end
+
+"""
+    add_period_times!(t, t_start, t_end, periods, Δt_rise)
+"""
+function add_period_times!(t, t_start, t_end, periods, Δt_rise)
+    period_times = times([t_start, t_end], t_start, t_end, periods)
+    append!(t, period_times .+ Δt_rise .* ((-1) .^ ((1:length(period_times)) .+ 1)))
+end
+
+"""
+    add_reset_times!(t, action, t_start, t_end, periods, Δt_rise)
+"""
+function add_reset_times!(t, ::AbstractAction, t_start, t_end, periods, Δt_rise)
+    return nothing 
+end

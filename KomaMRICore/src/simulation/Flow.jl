@@ -25,7 +25,7 @@ function outflow_spin_reset!(
     add_t0=false,
 )
    # Initialize time: add t0 and normalize
-   ts = KomaMRIBase.unit_time(init_time(t, seq_t, add_t0), time_curve.t, time_curve.t_unit, time_curve.periodic, time_curve.periods)
+   ts = KomaMRIBase.unit_time(init_time(t, seq_t, add_t0), time_curve)
    # Get spin state range affected by the spin span
    idx = KomaMRIBase.get_indexing_range(spin_span)
    spin_state_matrix = @view(spin_state_matrix[idx, :])
@@ -49,7 +49,7 @@ function outflow_spin_reset!(
     add_t0=false,
 )
    # Initialize time: add t0 and normalize
-   ts = KomaMRIBase.unit_time(init_time(t, seq_t, add_t0), time_curve.t, time_curve.t_unit, time_curve.periodic, time_curve.periods)
+   ts = KomaMRIBase.unit_time(init_time(t, seq_t, add_t0), time_curve)
    # Get spin state range affected by the spin span
    idx = KomaMRIBase.get_indexing_range(spin_span)
    M = @view(M[idx])
