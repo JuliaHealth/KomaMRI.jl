@@ -2,8 +2,10 @@
 Returns the blink window with some custom styles and js logic.
 """
 function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_window=true)
-    komamri_src_ui = @__DIR__
-    komamri_root = dirname(dirname(komamri_src_ui))
+    #komamri_src_ui = @__DIR__
+    #komamri_root = dirname(dirname(komamri_src_ui))
+    komamri_root = Base.pkgdir(@__MODULE__)
+    komamri_src_ui = joinpath(komamri_root, "src/ui")
     # Asset folders
     assets = AssetRegistry.register(komamri_root * "/assets/")
     scripts = AssetRegistry.register(komamri_src_ui * "/scripts/")
@@ -152,7 +154,8 @@ end
 Updates the blink window with a loading content
 """
 function display_loading!(w::Window, msg::String)
-    komamri_src_ui = @__DIR__
+    #komamri_src_ui = @__DIR__
+    komamri_src_ui = joinpath(Base.pkgdir(@__MODULE__), "src/ui")
     loading = replace(
         open((f) -> read(f, String), komamri_src_ui * "/html/loading.html"),
         "LOADDES" => msg,

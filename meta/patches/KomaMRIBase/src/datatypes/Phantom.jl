@@ -247,6 +247,7 @@ function brain_phantom2D(; axis="axial", ss=4, us=1, tissue_properties = Dict())
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
+    #path = @__DIR__
     path = joinpath(Base.pkgdir(@__MODULE__), "src/datatypes")
     data = MAT.matread(path * "/phantom/brain2D.mat")
 
@@ -336,6 +337,7 @@ function brain_phantom3D(; ss=4, us=1, start_end=[160, 200], tissue_properties=D
     # check and filter input    
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(3, ss, us)
     # Get data from .mat file
+    #path = @__DIR__
     path = joinpath(Base.pkgdir(@__MODULE__), "src/datatypes")
     data = MAT.matread(path * "/phantom/brain3D.mat")
 
@@ -405,6 +407,7 @@ function pelvis_phantom2D(; ss=4, us=1)
     ssx, ssy, ssz, usx, usy, usz = check_phantom_arguments(2, ss, us)
 
     # Get data from .mat file
+    #path = @__DIR__
     path = joinpath(Base.pkgdir(@__MODULE__), "src/datatypes")
     data = MAT.matread(path * "/phantom/pelvis2D.mat")
 
