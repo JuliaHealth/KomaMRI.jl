@@ -85,9 +85,9 @@ version = "1.1.2"
 
 [[deps.ArrayInterface]]
 deps = ["Adapt", "LinearAlgebra"]
-git-tree-sha1 = "d2cd034553ee6ca084edaaf8ed6c9d50fd01555d"
+git-tree-sha1 = "d81ae5489e13bc03567d4fbbb06c546a5e53c857"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "7.21.0"
+version = "7.22.0"
 
     [deps.ArrayInterface.extensions]
     ArrayInterfaceBandedMatricesExt = "BandedMatrices"
@@ -159,9 +159,9 @@ version = "0.4.8"
 
 [[deps.BangBang]]
 deps = ["Accessors", "ConstructionBase", "InitialValues", "LinearAlgebra"]
-git-tree-sha1 = "ed75e6f41759e60473a86f9d7e903876cfd25648"
+git-tree-sha1 = "a49f9342fc60c2a2aaa4e0934f06755464fcf438"
 uuid = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
-version = "0.4.5"
+version = "0.4.6"
 
     [deps.BangBang.extensions]
     BangBangChainRulesCoreExt = "ChainRulesCore"
@@ -660,7 +660,7 @@ version = "0.2.6"
 
 [[deps.KomaMRIBase]]
 deps = ["Interpolations", "MAT", "MRIBase", "Parameters", "Reexport"]
-path = "KomaMRIBase"
+git-tree-sha1 = "2ae3627363b02a6f33ccc3495d0d9a11966ea680"
 uuid = "d0bc0b20-b151-4d03-b2a4-6ca51751cb9c"
 version = "0.9.6"
 
@@ -1113,7 +1113,7 @@ version = "0.8.21"
 
 [[deps.PlotlyJS]]
 deps = ["Base64", "Blink", "DelimitedFiles", "JSExpr", "JSON", "Kaleido_jll", "Markdown", "Pkg", "PlotlyBase", "PlotlyKaleido", "REPL", "Reexport", "Requires", "WebIO"]
-path = "/Users/jerdmanis/.julia/dev/PlotlyJS"
+git-tree-sha1 = "287e092914da6c91f002aafcf82a2ec065bf94a3"
 uuid = "f0f68f2c-4968-5e81-91da-67840de0976a"
 version = "0.18.17"
 
@@ -1377,9 +1377,9 @@ version = "1.7.1"
 
 [[deps.StatsBase]]
 deps = ["AliasTables", "DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
-git-tree-sha1 = "2c962245732371acd51700dbb268af311bddd719"
+git-tree-sha1 = "a136f98cefaf3e2924a66bd75173d1c891ab7453"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-version = "0.34.6"
+version = "0.34.7"
 
 [[deps.StyledStrings]]
 uuid = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
