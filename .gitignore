@@ -36,6 +36,6 @@ examples/5.koma_paper/comparison_accuracy/**/*.mat
 examples/5.koma_paper/comparison_accuracy/**/*.h5
 !examples/5.koma_paper/Manifest.toml
 *_w.phantom
-!meta/patches/WebIO/deps/bundlepaths.jl
+!/meta/patches/WebIO/deps/bundlepaths.jl 
 !meta/Manifest.toml
 !Manifest.toml
