@@ -26,4 +26,5 @@ end
 
 if :macos in target_platforms
     AppBundler.build_app(MacOS(target_arch), APP_DIR, "$build_dir/$target_name.dmg"; precompile, incremental, adhoc_signing)
+    #mv("$build_dir/$target_name", "$build_dir/$target_name.app")
 end
