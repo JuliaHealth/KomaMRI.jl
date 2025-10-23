@@ -1167,7 +1167,8 @@ function plot_phantom_map(
         @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$(max_spins)."
     end
 
-    path = @__DIR__
+    #path = @__DIR__
+    path = joinpath(Base.pkgdir(@__MODULE__), "src/ui")
     cmin_key = minimum(getproperty(obj, key))
     cmax_key = maximum(getproperty(obj, key))
     if key == :T1 || key == :T2 || key == :T2s
