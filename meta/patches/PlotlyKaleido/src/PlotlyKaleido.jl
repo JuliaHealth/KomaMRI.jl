@@ -9,13 +9,7 @@ export savefig
 
 #-----------------------------------------------------------------------------# Windows Fallback
 
-# const FALLBACK_DIR = @static if Sys.iswindows()
-#     artifact"Kaleido_fallback"
-# else
-#     ""
-# end
-
-FALLBACK_DIR() = Sys.iswindows() ? artifact"Kaleido_fallback" : ""
+FALLBACK_DIR() = @static Sys.iswindows() ? artifact"Kaleido_fallback" : ""
 
 get_kaleido_version() = read(joinpath(Kaleido_jll.artifact_dir, "version"), String)
 should_try_fallback() = Sys.iswindows() && (get_kaleido_version() !== "0.1.0")
@@ -94,6 +88,7 @@ function get_base_cmd()
     cmd = if should_try_fallback() && USE_KALEIDO_FALLBACK[]
         # For the fallback we don't fully reproduce the jll machinery as this is much simpler and should work fine for kaleido specifically on windows.
         dir = FALLBACK_DIR()
+
         Cmd(`$(joinpath(dir, "bin", "kaleido.exe"))`; dir)
     else
         dir = Kaleido_jll.artifact_dir
