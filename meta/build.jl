@@ -23,7 +23,7 @@ end
 if :windows in target_platforms
     AppBundler.build_app(Windows(target_arch), APP_DIR, "$build_dir/$target_name.msix"; precompile, incremental, adhoc_signing, windowed=false)
     #AppBundler.build_app(Windows(target_arch), APP_DIR, "$build_dir/$target_name"; precompile, incremental, adhoc_signing, windowed=false)
-    #mv("$build_dir/$target_name.msix", "$build_dir/$target_name.zip")
+    #mv("$build_dir/$target_name", "$build_dir/$target_name-moved")
 end
 
 if :macos in target_platforms
