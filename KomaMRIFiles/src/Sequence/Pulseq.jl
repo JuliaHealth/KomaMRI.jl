@@ -8,20 +8,22 @@ read_version Read the [VERSION] section of a sequence file.
    identifier of an open MR sequence file and return it
 """
 function read_version(io)
-    major =    @scanf(readline(io), "major %i", Int)[end]
-    minor =    @scanf(readline(io), "minor %i", Int)[end]
-    revision = @scanf(readline(io), "revision %i", Int)[end]
+    pulseq_version = VersionNumber(
+        @scanf(readline(io), "major %i", Int)[end],
+        @scanf(readline(io), "minor %i", Int)[end],
+        @scanf(readline(io), "revision %i", Int)[end],
+    )
 
-    version_combined = 1_000_000*major+1_000*minor+revision
-
-    @assert major == 1 "Unsupported version_major $major"
-    if     version_combined < 1002000
-        @error "Unsupported version $major.$minor.$revision, only file format revision 1.2.0 and above are supported"
-    elseif version_combined < 1003001
-        @warn "Loading older Pulseq format file (version $major.$minor.$revision) some code may not function as expected"
+    @assert pulseq_version.major == 1 "Unsupported version_major $(pulseq_version.major)"
+    if     pulseq_version < v"1.2.0"
+        @error "Unsupported Pulseq $(pulseq_version), only file format revision 1.2.0 and above are supported"
+    elseif pulseq_version < v"1.3.1"
+        @warn "Loading older Pulseq $(pulseq_version); some code may not function as expected"
+    elseif pulseq_version >= v"1.5.0"
+        @warn "Pulseq $(pulseq_version) not yet supported by this KomaMRIFiles release. Track progress at https://github.com/JuliaHealth/KomaMRI.jl/pull/614"
     end
 
-    major, minor, revision, version_combined
+    pulseq_version
 end
 
 """
@@ -76,12 +78,12 @@ read_blocks Read the [BLOCKS] section of a sequence file.
    library=read_blocks(fid) Read blocks from file identifier of an
    open MR sequence file and return the event table.
 """
-function read_blocks(io, blockDurationRaster, version_combined)
+function read_blocks(io, blockDurationRaster, pulseq_version)
     eventTable = Dict{Int64, Vector{Int64}}()
     blockDurations = Dict{Int64, Float64}()
     delayIDs_tmp = Dict{Int64, Float64}()
     while true
-        if version_combined <= 1002001
+        if pulseq_version <= v"1.2.1"
             NumberBlockEvents = 7
         else
             NumberBlockEvents = 8
@@ -92,13 +94,13 @@ function read_blocks(io, blockDurationRaster, version_combined)
         blockEvents = parse.(Int64, split(read_event))
 
         if blockEvents[1] != 0
-            if version_combined <= 1002001
+            if pulseq_version <= v"1.2.1"
                 eventTable[blockEvents[1]] = Int64[0; blockEvents[3:end]...; 0]
             else
                 eventTable[blockEvents[1]] = Int64[0; blockEvents[3:end]...]
             end
 
-            if version_combined >= 1004000
+            if pulseq_version >= v"1.4.0"
                 blockDurations[blockEvents[1]] = blockEvents[2]*blockDurationRaster
             else
                 delayIDs_tmp[blockEvents[1]] = blockEvents[2]
@@ -156,6 +158,44 @@ function read_events(io, scale; type=-1, eventLibrary=Dict())
             eventLibrary[id] = Dict("data"=>data)
         end
         r == EventLength || break #Break on white space
+    end
+    eventLibrary
+end
+
+"""
+read_labels Read a label section of a sequence file.
+   library=read_labels(fid) Read label data from file identifier of
+   an open MR sequence file and return a library of labels.
+
+   library=read_labels(...,library) Append new labels to the given
+   library.
+"""
+function read_labels(io; eventLibrary=Dict())
+    while true
+        fmt = Scanf.Format("%i %i %s")
+        r, data... = scanf(readline(io), fmt, Int, Int, String)
+        id = floor(Int, data[1])
+        eventLibrary[id] = Dict("data"=>data[2:3])
+        r == 3 || break #Break on white space
+    end
+    eventLibrary
+end
+
+"""
+read_extension_blocks Read the extension blocks section of a sequence file.
+   library=read_extension_blocks(fid) Read extension blocks data from file identifier of
+   an open MR sequence file and return a library of labels.
+
+   library=read_extension_blocks(...,library) Append new blocks to the given
+   library.
+"""
+function read_extension_blocks(io; eventLibrary=Dict())
+    while true
+        fmt = Scanf.Format("%i %i %i %i")
+        r, data... = scanf(readline(io), fmt, Int, Int, Int, Int)
+        id = floor(Int, data[1])
+        eventLibrary[id] = Dict("data"=>data[2:4])
+        r == 4 || break #Break on white space
     end
     eventLibrary
 end
@@ -356,9 +396,7 @@ julia> plot_seq(seq)
 """
 function read_seq(filename)
     @info "Loading sequence $(basename(filename)) ..."
-    version_combined = 0
-    version_major = 0
-    version_minor = 0
+    pulseq_version = v"0.0.0"
     gradLibrary = Dict()
     def = Dict()
     signature = ""
@@ -371,32 +409,38 @@ function read_seq(filename)
     shapeLibrary = Dict()
     extensionLibrary = Dict()
     triggerLibrary = Dict()
+    extensionType = Dict()
+    labelsetLibrary = Dict()
+    labelincLibrary = Dict()
     #Reading file and storing data
     open(filename) do io
         while !eof(io)
+
             section = readline(io)
-            if      section == "[DEFINITIONS]"
+            if typeof(section) == String && (isempty(section) || section[1] == '#')
+                #skip useless line
+            elseif     section == "[DEFINITIONS]"
                 def = read_definitions(io)
             elseif  section == "[VERSION]"
-                version_major, version_minor, _, version_combined = read_version(io)
+                pulseq_version = read_version(io)
             elseif  section == "[BLOCKS]"
-                if version_combined == 0
+                if pulseq_version == v"0.0.0"
                     @error "Pulseq file MUST include [VERSION] section prior to [BLOCKS] section"
                 end
-                blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], version_combined)
+                blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], pulseq_version)
             elseif  section == "[RF]"
-                if version_combined >= 1005000
+                if version_combined >= v"1.5.0"
                     rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 1]) # this is 1.5.x format
-                elseif version_combined >= 1004000
+                elseif version_combined >= v"1.4.0"
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
                     rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1]) # this is 1.3.x and below
                     # we will have to scan through the library later after all the shapes have been loaded
                 end
             elseif  section == "[GRADIENTS]"
-                if version_combined >= 1005000
+                if version_combined >= v"1.5.0"
                     gradLibrary = read_events(io, [1/γ 1 1 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.5.x format
-                elseif version_combined >= 1004000
+                elseif version_combined >= v"1.4.0"
                     gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format
                 else
                     gradLibrary = read_events(io, [1/γ 1 1e-6];   type='g', eventLibrary=gradLibrary) # this is 1.3.x and below
@@ -410,25 +454,45 @@ function read_seq(filename)
                     adcLibrary = read_events(io, [1 1e-9 1e-6 1 1]) # this is 1.4.x and below
                 end
             elseif  section == "[DELAYS]"
-                if version_combined >= 1004000
+                if pulseq_version >= v"1.4.0"
                     @error "Pulseq file revision 1.4.0 and above MUST NOT contain [DELAYS] section"
                 end
                 tmp_delayLibrary = read_events(io, 1e-6);
             elseif  section == "[SHAPES]"
-                shapeLibrary = read_shapes(io, (version_major==1 && version_minor<4))
+                shapeLibrary = read_shapes(io, (pulseq_version.major == 1 && pulseq_version.minor < 4))
             elseif  section == "[EXTENSIONS]"
-                extensionLibrary = read_events(io,[1 1 1]) #For now, it reads the extensions but it does not take it them into account
-            elseif  section == "extension TRIGGERS 1"
-                triggerLibrary = read_events(io,[1 1 1e-6 1e-6])
+                extensionLibrary = read_extension_blocks(io)
             elseif  section == "[SIGNATURE]"
                 signature = read_signature(io)
             else
+                if startswith(section, "extension")
+                    extension = section[11:end]
+                    if startswith(extension, "TRIGGERS")
+                        id = parse(Int, extension[9:end])
+                        extensionType[id] = Dict("data"=>"TRIGGERS")
+                        triggerLibrary = read_events(io, [1, 1, 1e-6, 1e-6]; eventLibrary = triggerLibrary)
+                    elseif startswith(extension, "LABELSET")
+                        id = parse(Int, extension[9:end])
+                        extensionType[id] = Dict("data"=>"LABELSET")
+                        labelsetLibrary = read_labels(io;eventLibrary=labelsetLibrary)
+                    elseif startswith(extension, "LABELINC")
+                        id = parse(Int, extension[9:end])
+                        extensionType[id] = Dict("data"=>"LABELINC")
+                        labelincLibrary = read_labels(io; eventLibrary=labelincLibrary)
+                    elseif startswith(extension, "DELAYS")
+                        @warn "DELAYS extension is not handle"
+                    else
+                        @warn "Ignoring unknown extension, input string: $extension"
+                    end
+                else
+                    @error "Unknown section code: $section"
+                end
             end
 
         end
     end
     # fix blocks, gradients and RF objects imported from older versions
-    if version_combined < 1004000
+    if pulseq_version < v"1.4.0"
         # scan through the RF objects
         for i = 0:length(rfLibrary)-1
             rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]' 0.0 rfLibrary[i]["data"][4:end]']
@@ -477,6 +541,9 @@ function read_seq(filename)
         "shapeLibrary"=>shapeLibrary,
         "extensionLibrary"=>extensionLibrary,
         "triggerLibrary"=>triggerLibrary,
+        "labelsetLibrary"=>labelsetLibrary,
+        "labelincLibrary"=>labelincLibrary,
+        "extensionType"=>extensionType,
         "definitions"=>def)
     #Transforming Dictionary to Sequence object
     #This should only work for Pulseq files >=1.4.0
@@ -489,12 +556,11 @@ function read_seq(filename)
         fix_first_last_grads!(seq)
     end
     # Final details
-    # Hack for including extension and triggers, this will be done properly for #308 and #323
-    seq.DEF["additional_text"] = read_Extension(extensionLibrary, triggerLibrary) #Temporary hack
+    #Temporary hack
     seq.DEF = merge(obj["definitions"], seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
-    seq.DEF["PulseqVersion"] = version_combined
+    seq.DEF["PulseqVersion"] = pulseq_version
     seq.DEF["signature"] = signature
     # Guessing recon dimensions
     seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC))
@@ -678,73 +744,6 @@ function read_ADC(adcLibrary, i)
 end
 
 """
-    ext = read_Extension(extensionLibrary, triggerLibrary, i)
-
-Reads the Extension. It is used internally by [`get_block`](@ref).
-
-# Arguments
-- `extensionLibrary`: (`::Dict{String, Any}`) the "extensionLibrary" dictionary
-- `i`: (`::Int64`) index of the ext in the block event
-
-# Returns
-- `ext`: (`1x1 ::Vector{ADC}`) Extension struct
-"""
-function read_Extension(extensionLibrary, triggerLibrary)
-    # Only uses triggers and one extension per block
-    # Unpacking
-    # Extensions
-    # (1)id (2)type (3)ref (4)next_id
-    # if !isempty(extensionLibrary)
-    #     e = extensionLibrary[i]["data"]
-    # else
-    #     e = [0,0,0,0]
-    # end
-    # type    = e[1] |> x->floor(Int64,x) #1=Trigger
-    # ref     = e[2] |> x->floor(Int64,x)
-    # next_id = e[3] |> x->floor(Int64,x)
-    # Trigger
-    # (1)id (2)type (3)channel (4)delay (5)duration
-    # if !isempty(triggerLibrary)
-    #     t = triggerLibrary[ref]["data"]
-    # else
-    #     t = [0,0,0,0]
-    # end
-    # type     = t[1] |> x->floor(Int64,x)
-    # channel  = t[2] |> x->floor(Int64,x)
-    # delay    = t[3]
-    # duration = t[4]
-    #Definition
-    # trig = Trigger(type, channel, delay, duration)
-    # E = [Extension([trig])]
-    # E = Dict("extension"=>[ref])
-    additional_text =
-    """# Format of extension lists:
-    # id type ref next_id
-    # next_id of 0 terminates the list
-    # Extension list is followed by extension specifications
-    [EXTENSIONS]
-    """
-    for id = eachindex(extensionLibrary)
-        (id == 0) && continue
-        type, ref, next_id = floor.(Int64, extensionLibrary[id]["data"])
-        additional_text *= "$id $type $ref $next_id\n"
-    end
-    additional_text *=
-    """
-
-    # Extension specification for digital output and input triggers:
-    # id type channel delay (us) duration (us)
-    extension TRIGGERS 1
-    """
-    for id = eachindex(triggerLibrary)
-        (id == 0) && continue
-        type, channel, delay, duration = floor.(Int64, round.([1 1 1e6 1e6] .* triggerLibrary[id]["data"]))
-        additional_text *= "$id $type $channel $delay $duration\n"
-    end
-    return additional_text
-end
-
-"""
     seq = get_block(obj, i)
 
 Block sequence definition. Used internally by [`read_seq`](@ref).
@@ -777,10 +776,66 @@ function get_block(obj, i)
     #DUR
     D = Float64[max(obj["blockDurations"][i], dur(Gx), dur(Gy), dur(Gz), dur(R[1]), dur(A[1]))]
 
-    #Extensions
-    E = Dict{String, Any}()#read_Extension(obj["extensionLibrary"], iext, i)
+     #Extensions
+     E = read_extension(obj["extensionLibrary"], obj["extensionType"],obj["triggerLibrary"],obj["labelsetLibrary"],
+     obj["labelincLibrary"],iext)
+
+    # Definitition
+    DEF = Dict{String,Any}()
 
     #Sequence block definition
-    s = Sequence(G,R,A,D,E)
+    s = Sequence(G,R,A,D,E,DEF)
     s
 end
+
+"""
+    EXT = read_extension(extensionLibrary, extensionType, triggerLibrary, labelsetLibrary, labelincLibrary, i)
+
+Reads the extension(s) for a block event in a Pulseq sequence file.
+
+# Arguments
+- `extensionLibrary`: (`::Dict{K, V}`) the extension library dictionary
+- `extensionType`: (`::Dict{K, V}`) the extension type dictionary
+- `triggerLibrary`: (`::Dict{K, V}`) the trigger library dictionary
+- `labelsetLibrary`: (`::Dict{K, V}`) the labelset library dictionary
+- `labelincLibrary`: (`::Dict{K, V}`) the labelinc library dictionary
+- `i`: (`::Int64`) index of the extension in the block event
+
+# Returns
+- `EXT`: (`Vector{Extension}`) vector of Extension objects for the block event
+
+# Details
+The available extension object are currently `LabelSet`, `LabelInc` and `Trigger``
+"""
+function read_extension(extensionLibrary,extensionType,triggerLibrary,labelsetLibrary,labelincLibrary,i)
+    EXT = [Extension[]]
+
+    if isempty(extensionLibrary) || i==0
+        return EXT
+    end
+
+    # type ref next_id
+    # next_id of 0 terminates the list
+    type, ref, next_id = extensionLibrary[i]["data"]
+
+    while true
+        length(extensionType) < type ? (@warn "extension type n°$type does not exist"; break) : nothing
+        if extensionType[type]["data"] == "LABELSET"
+            push!(EXT[1],LabelSet(labelsetLibrary[ref]["data"]...))
+        elseif extensionType[type]["data"] == "LABELINC"
+            push!(EXT[1],LabelInc(labelincLibrary[ref]["data"]...))
+        elseif extensionType[type]["data"] == "TRIGGERS"
+            push!(EXT[1],Trigger(triggerLibrary[ref]["data"]...))
+        else
+            @warn "Extension type not implemented"
+        end
+
+        if next_id == 0
+            break
+        else
+            type, ref, next_id = extensionLibrary[next_id]["data"]
+        end
+    end
+
+    return EXT
+ end

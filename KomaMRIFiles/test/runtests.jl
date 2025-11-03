@@ -1,31 +1,31 @@
-using TestItems, TestItemRunner
+using TestItems, TestItemRunner, KomaMRIBase
 
 @run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:files in t_start.tags) #verbose=true
 
 @testitem "Files" tags=[:files] begin
-    using Suppressor
+    using Suppressor, KomaMRIBase
 
     # Test Pulseq
     @testset "Pulseq" begin
         pth = @__DIR__
         seq = @suppress read_seq(pth*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "epi.seq"
-        @test seq.DEF["PulseqVersion"] ≈ 1004000
+        @test seq.DEF["PulseqVersion"] == v"1.4.0"
         @test seq.DEF["signature"] == "67ebeffe6afdf0c393834101c14f3990"
 
         seq = @suppress read_seq(pth*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "spiral.seq"
-        @test seq.DEF["PulseqVersion"] ≈ 1004000
+        @test seq.DEF["PulseqVersion"] == v"1.4.0"
         @test seq.DEF["signature"] == "efc5eb7dbaa82aba627a31ff689c8649"
 
         seq = @suppress read_seq(pth*"/test_files/epi_JEMRIS.seq") #Pulseq v1.2.1
         @test seq.DEF["FileName"] == "epi_JEMRIS.seq"
-        @test seq.DEF["PulseqVersion"] ≈ 1002001
+        @test seq.DEF["PulseqVersion"] == v"1.2.1"
         @test seq.DEF["signature"] == "f291a24409c3e8de01ddb93e124d9ff2"
 
         seq = @suppress read_seq(pth*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
         @test seq.DEF["FileName"] == "radial_JEMRIS.seq"
-        @test seq.DEF["PulseqVersion"] ≈ 1002001
+        @test seq.DEF["PulseqVersion"] == v"1.2.1"
         @test seq.DEF["signature"] == "e827cfff4436b65a6341a4fa0f6deb07"
 
         # Test Pulseq compression-decompression
@@ -33,6 +33,22 @@ using TestItems, TestItemRunner
         num_samples, compressed_data = KomaMRIFiles.compress_shape(shape)
         shape2 = KomaMRIFiles.decompress_shape(num_samples, compressed_data)
         @test shape == shape2
+
+        # Test label capability
+        using KomaMRIBase
+        
+        seq = @suppress read_seq(pth*"/test_files/label_test.seq") 
+        label = get_label(seq)
+        m = maximum(label)
+        a = AdcLabels(4,0,0,0,0,0,0,2,0,0,0,0)
+        bool = true
+        for field in fieldnames(typeof(m))
+            if getfield(m,field) != getfield(a,field)
+                bool = false
+                println(field)
+            end
+        end
+        @test bool
     end
     # Test JEMRIS
     @testset "JEMRIS" begin

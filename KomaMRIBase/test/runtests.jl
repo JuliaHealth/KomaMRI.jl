@@ -242,6 +242,48 @@ using TestItems, TestItemRunner
 
     end
 
+    @testset "EXT" begin
+
+        lInc = LabelInc(1,"LIN")
+        lSet = LabelSet(1,"ECO")
+        lSet2 = LabelSet(0,"LIN")
+        trig = Trigger(0,1,100,500)
+
+        d = Sequence([Grad(0,0.1)])
+        seq = Sequence()
+        d.EXT = [[lInc]]; 
+        seq += d
+        seq += d
+        d.EXT = [[lInc,lSet]]
+        seq += d
+        d.EXT = [[lInc]]; 
+        seq += d
+        d.EXT = [[lSet2,trig]]; 
+        seq += d
+        d.EXT = [[]]; 
+        seq += d
+
+        @test seq.EXT[5][2] == trig && seq.EXT[5][1] == lSet2
+
+        l = get_label(seq)
+        LIN_vec = [l[i].LIN for i in eachindex(l)] 
+        @test LIN_vec == vec([1 2 3 4 0 0])
+
+        ECO_vec = [l[i].ECO for i in eachindex(l)] 
+        @test ECO_vec == vec([0 0 1 1 1 1])
+
+        # Modification of the label directly in the sequence
+        lSetPhs = LabelSet(2,"PHS")
+        seq.EXT[4] = [lSetPhs]
+        l = get_label(seq)
+
+        LIN_vec = [l[i].LIN for i in eachindex(l)] 
+        @test LIN_vec == vec([1 2 3 3 0 0])
+        PHS_vec = [l[i].PHS for i in eachindex(l)] 
+        @test PHS_vec == vec([0 0 0 2 2 2])
+
+    end
+
     @testset "DiscreteSequence" begin
         seq = PulseDesigner.EPI_example()
         sampling_params = KomaMRIBase.default_sampling_params()
@@ -371,6 +413,8 @@ end
         # TimeCurve constructors
         time = TimeRange(t_start=0.0, t_end=1.0)
         time = Periodic(period=1.0, asymmetry=0.5)
+        time = Periodic(period=1.0, asymmetry=0.0)
+        time = Periodic(period=1.0, asymmetry=1.0)
         time = TimeCurve([0.0, eps()], [0.0, 1.0])
         # Motion constructors
         m = Motion(action, time, spins)
