@@ -487,8 +487,10 @@ end
         pitch = 45.0
         roll = 45.0
         yaw = 45.0
+        rotation           = rotate(pitch, roll, yaw, TimeRange(t_start, t_end))
+        rotation_displaced = rotate(pitch, roll, yaw, TimeRange(t_start, t_end); center=(0.1, 0.2, 0.3))
+        @test !(rotation ≈ rotation_displaced) & !(rotation ≈ rotation_displaced)
         # One single rotation
-        rotation = rotate(pitch, roll, yaw, TimeRange(t_start, t_end))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
         r = hcat(ph.x, ph.y, ph.z)'
@@ -647,6 +649,39 @@ end
         @test yt[: ,end] ≈ rot_y .+ vy*t[end]
         @test zt[: ,end] ≈ rot_z .+ vz*t[end]
     end
+    @testset "Key Time Points" begin
+        # Sequence duration
+        t_start = 0.0
+        t_end   = 1.5 
+
+        # TimeCurve parameters
+        t        = [0.0, 0.1, 0.3]
+        t_unit   = [0.0, 0.4, 1.0]
+        periods  = [1.0, 0.5, 2.0]
+        periodic = true
+        dx = dy = [0.0 0.0 0.0 0.0]
+        dz      = [3.0 4.0 -4. -3.]
+        reset   = [false false true false]
+        Δ = 1e-6
+
+        # Key time points ("manually" determined)
+        period_times = reduce(vcat, [t .+ [-Δ, Δ] for t in [0.0, 0.3, 0.45, 1.05, 1.35, 1.5]])
+        reset_times  = [0.2, 0.4, 0.85, 1.25, 1.45] .- Δ
+
+        # Any motion with no spin resets (only key time points derived from periods)
+        pth  = path(dx, dy, dz, TimeCurve(t, t_unit, periodic, periods), AllSpins())
+        tq = [t_start, t_end]
+        KomaMRIBase.add_key_time_points!(tq, Δ, pth)
+        key_points = period_times
+        @test sort(tq[3:end]) ≈ key_points[t_start .< key_points .< t_end]
+
+        # FlowPath with a spin reset (key time points derived from both periods and spin resets)
+        fpth = flowpath(dx, dy, dz, reset, TimeCurve(t, t_unit, periodic, periods), AllSpins())
+        tq = [t_start, t_end]
+        KomaMRIBase.add_key_time_points!(tq, Δ, fpth)
+        key_points = sort(vcat(period_times, reset_times))
+        @test sort(tq[3:end]) ≈ key_points[t_start .< key_points .< t_end]
+    end
 end
 
 @testitem "Phantom" tags = [:base] begin
@@ -678,6 +713,9 @@ end
         @test obj1 == obj2
         obj2.x .+= 1e-10
         @test obj1 ≈ obj2
+        obj1.motion = NoMotion()
+        @test !(obj1 == obj2)
+        @test !(obj1  ≈ obj2)
     end
     @testset "Size and Length" begin
         obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(tr, rt))
