@@ -3,7 +3,7 @@ Base.:(≈)(::CenterOfMass, ::CenterOfMass) = true
 Base.:(≈)(a, b) = (a isa CenterOfMass || b isa CenterOfMass) ? false : Base.≈(a, b)
 
 @doc raw"""
-    r = Rotate(pitch, roll, yaw, center=nothing)
+    r = Rotate(pitch, roll, yaw, center=CenterOfMass())
  
 Rotate struct. It produces a rotation in the three axes: 
 x (pitch), y (roll), and z (yaw).
