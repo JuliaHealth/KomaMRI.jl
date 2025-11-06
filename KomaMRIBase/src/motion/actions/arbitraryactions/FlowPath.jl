@@ -38,7 +38,7 @@ end
 
 FlowPath(dx::AbstractArray{T}, dy::AbstractArray{T}, dz::AbstractArray{T}, spin_reset::BitMatrix) where T<:Real = FlowPath(dx, dy, dz, collect(spin_reset))
 
-function add_reset_times!(t, a::FlowPath, t_start, t_end, periods, Δt_rise)
+function add_reset_times!(t, a::FlowPath, t_start, t_end, periods)
     aux = t_start .+ (t_end - t_start)/(size(a.spin_reset)[2]-1) * (getindex.(findall(a.spin_reset .== 1), 2) .- 1)
-    append!(t, times(aux, t_start, t_end, periods) .- Δt_rise)
+    append!(t, times(aux, t_start, t_end, periods) .- MIN_RISE_TIME)
 end

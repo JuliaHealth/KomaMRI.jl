@@ -86,7 +86,7 @@ based on simulation parameters.
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
 function discretize(seq::Sequence; sampling_params=default_sampling_params(), motion=NoMotion())
-    t, Δt      = get_variable_times(seq; Δt=sampling_params["Δt"], Δt_rf=sampling_params["Δt_rf"], Δt_rise=sampling_params["Δt_rise"], motion=motion)
+    t, Δt      = get_variable_times(seq; Δt=sampling_params["Δt"], Δt_rf=sampling_params["Δt_rf"], motion=motion)
     B1, Δf     = get_rfs(seq, t)
     Gx, Gy, Gz = get_grads(seq, t)
     tadc       = get_adc_sampling_times(seq)
@@ -102,6 +102,5 @@ Returns a dictionary with default simulation parameters.
 function default_sampling_params(sampling_params=Dict{String,Any}())
     get!(sampling_params, "Δt", 1e-3)
     get!(sampling_params, "Δt_rf", 5e-5)
-    get!(sampling_params, "Δt_rise", 1e-6)
     return sampling_params
 end

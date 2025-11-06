@@ -80,7 +80,7 @@ end
 - `spins`: (`::AbstractSpinSpan`) spin indexes affected by the motion
 
 # Keywords
-- `center`: (`::NTuple{3,Real}` or `nothing`) optional center of rotation, given in global coordinates. If `nothing` (default), the rotation is performed around the phantom’s center of mass.
+- `center`: (`::NTuple{3,Real}` or `::CenterOfMass`) center of rotation, given in global coordinates. Default is center of mass.
 
 # Returns
 - `rt`: (`::Motion`) Motion struct with [`Rotate`](@ref) action
@@ -90,7 +90,7 @@ end
 julia> rt = rotate(15.0, 0.0, 20.0, TimeRange(0.0, 1.0), SpinRange(1:10))
 ```
 """
-function rotate(pitch, roll, yaw, time=TimeRange(t_start=zero(eltype(pitch)), t_end=eps(eltype(pitch))), spins=AllSpins(); center=nothing)
+function rotate(pitch, roll, yaw, time=TimeRange(t_start=zero(eltype(pitch)), t_end=eps(eltype(pitch))), spins=AllSpins(); center=CenterOfMass())
     return Motion(Rotate(pitch, roll, yaw, center), time, spins)
 end
 
@@ -221,17 +221,17 @@ times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
 
 """
-    add_key_time_points!(t, Δt_rise, motion)
+    add_key_time_points!(t, motion)
 """
-function add_key_time_points!(t, Δt_rise, m::Motion)
-    add_key_time_points!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods, m.time.periodic, Δt_rise)
+function add_key_time_points!(t, m::Motion)
+    add_key_time_points!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods, m.time.periodic)
 end
-function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic, Δt_rise::T) where T 
+function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic) where T
     aux = T[]
     period = sum((t_end - t_start) .* periods)
     t_max = maximum(t)
-    add_period_times!(aux, t_start, t_end, periods, Δt_rise)
-    add_reset_times!(aux, a, t_start, t_end, periods, Δt_rise)
+    add_period_times!(aux, t_start, t_end, periods)
+    add_reset_times!(aux, a, t_start, t_end, periods)
     if periodic
         for n in 1:floor(t_max/period) append!(aux, aux .+ n*period) end
     end
@@ -239,16 +239,16 @@ function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic, Δt
 end
 
 """
-    add_period_times!(t, t_start, t_end, periods, Δt_rise)
+    add_period_times!(t, t_start, t_end, periods)
 """
-function add_period_times!(t, t_start, t_end, periods, Δt_rise)
+function add_period_times!(t, t_start, t_end, periods)
     period_times = times([t_start, t_end], t_start, t_end, periods)
-    append!(t, period_times .+ Δt_rise .* ((-1) .^ ((1:length(period_times)) .+ 1)))
+    append!(t, period_times .+ MIN_RISE_TIME .* ((-1) .^ ((1:length(period_times)) .+ 1)))
 end
 
 """
-    add_reset_times!(t, action, t_start, t_end, periods, Δt_rise)
+    add_reset_times!(t, action, t_start, t_end, periods)
 """
-function add_reset_times!(t, ::AbstractAction, t_start, t_end, periods, Δt_rise)
+function add_reset_times!(t, ::AbstractAction, t_start, t_end, periods)
     return nothing 
 end

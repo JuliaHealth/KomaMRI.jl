@@ -1,3 +1,7 @@
+struct CenterOfMass end
+Base.:(≈)(::CenterOfMass, ::CenterOfMass) = true
+Base.:(≈)(a, b) = (a isa CenterOfMass || b isa CenterOfMass) ? false : Base.≈(a, b)
+
 @doc raw"""
     r = Rotate(pitch, roll, yaw, center=nothing)
  
@@ -41,11 +45,11 @@ R &= R_z(\alpha) R_y(\beta) R_x(\gamma) \\
 - `pitch`: (`::Real`, `[º]`) rotation in x
 - `roll`: (`::Real`, `[º]`) rotation in y 
 - `yaw`: (`::Real`, `[º]`) rotation in z
-- `center`: (`::NTuple{3,Real}` or `nothing`) optional center of rotation, given in global coordinates. If `nothing` (default), the rotation is performed around the phantom’s center of mass.
+- `center`: (`::NTuple{3,Real}` or `::CenterOfMass`) optional center of rotation, given in global coordinates. Default is center of mass.
 
 # Notes
 - Rotations are applied around the point specified in `center`. If omitted, the rotation is centered at the phantom’s center of mass.
-- If `center` is not null, the rotation center is interpreted as a fixed point in space (absolute/global coordinates).
+- If `center` is not `::CenterOfMass`, the rotation center is interpreted as a fixed point in space (absolute/global coordinates).
 - This design ensures that consecutive or inverse rotations behave consistently and predictably, since the rotation center does not change with object transformations.
 
 # Returns
@@ -63,7 +67,7 @@ julia> r = Rotate(pitch=0.0, roll=45.0, yaw=0.0, center=(5e-3,0.0,0.0))
     pitch      :: T
     roll       :: T
     yaw        :: T
-    center     :: Union{Nothing,NTuple{3,T}} = nothing
+    center     :: Union{CenterOfMass,NTuple{3,T}} = CenterOfMass()
 end
 
 RotateX(pitch::T) where {T<:Real} = Rotate(pitch, zero(T), zero(T))
@@ -76,9 +80,9 @@ function displacement_x!(ux, action::Rotate, x, y, z, t)
     α = t .* (action.yaw*π/180)
     β = t .* (action.roll*π/180)
     γ = t .* (action.pitch*π/180)
-    cx = isnothing(action.center) ? sum(x) / length(x) : action.center[1]
-    cy = isnothing(action.center) ? sum(y) / length(y) : action.center[2]
-    cz = isnothing(action.center) ? sum(z) / length(z) : action.center[3]
+    cx = action.center isa CenterOfMass ? sum(x) / length(x) : action.center[1]
+    cy = action.center isa CenterOfMass ? sum(y) / length(y) : action.center[2]
+    cz = action.center isa CenterOfMass ? sum(z) / length(z) : action.center[3]
     x0 = x .- cx
     y0 = y .- cy
     z0 = z .- cz
@@ -92,9 +96,9 @@ function displacement_y!(uy, action::Rotate, x, y, z, t)
     α = t .* (action.yaw*π/180)
     β = t .* (action.roll*π/180)
     γ = t .* (action.pitch*π/180)
-    cx = isnothing(action.center) ? sum(x) / length(x) : action.center[1]
-    cy = isnothing(action.center) ? sum(y) / length(y) : action.center[2]
-    cz = isnothing(action.center) ? sum(z) / length(z) : action.center[3]
+    cx = action.center isa CenterOfMass ? sum(x) / length(x) : action.center[1]
+    cy = action.center isa CenterOfMass ? sum(y) / length(y) : action.center[2]
+    cz = action.center isa CenterOfMass ? sum(z) / length(z) : action.center[3]
     x0 = x .- cx
     y0 = y .- cy
     z0 = z .- cz
@@ -108,9 +112,9 @@ function displacement_z!(uz, action::Rotate, x, y, z, t)
     α = t .* (action.yaw*π/180)
     β = t .* (action.roll*π/180)
     γ = t .* (action.pitch*π/180)
-    cx = isnothing(action.center) ? sum(x) / length(x) : action.center[1]
-    cy = isnothing(action.center) ? sum(y) / length(y) : action.center[2]
-    cz = isnothing(action.center) ? sum(z) / length(z) : action.center[3]
+    cx = action.center isa CenterOfMass ? sum(x) / length(x) : action.center[1]
+    cy = action.center isa CenterOfMass ? sum(y) / length(y) : action.center[2]
+    cz = action.center isa CenterOfMass ? sum(z) / length(z) : action.center[3]
     x0 = x .- cx
     y0 = y .- cy
     z0 = z .- cz

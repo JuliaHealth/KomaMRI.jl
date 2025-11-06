@@ -188,8 +188,8 @@ function sort_motions!(m::MotionList)
     return nothing
 end
 
-function add_key_time_points!(t, Δt_rise, ml::MotionList)
+function add_key_time_points!(t, ml::MotionList)
     for m in ml.motions
-        add_key_time_points!(t, Δt_rise, m)
+        add_key_time_points!(t, m)
     end
 end
