@@ -1,6 +1,7 @@
 struct CenterOfMass end
 Base.:(≈)(::CenterOfMass, ::CenterOfMass) = true
-Base.:(≈)(a, b) = (a isa CenterOfMass || b isa CenterOfMass) ? false : Base.≈(a, b)
+Base.:(≈)(a::CenterOfMass, b) = false
+Base.:(≈)(a, b::CenterOfMass) = false
 
 @doc raw"""
     r = Rotate(pitch, roll, yaw, center=CenterOfMass())
@@ -70,54 +71,45 @@ julia> r = Rotate(pitch=0.0, roll=45.0, yaw=0.0, center=(5e-3,0.0,0.0))
     center     :: Union{CenterOfMass,NTuple{3,T}} = CenterOfMass()
 end
 
-RotateX(pitch::T) where {T<:Real} = Rotate(pitch, zero(T), zero(T))
-RotateY(roll::T) where {T<:Real}  = Rotate(zero(T), roll, zero(T))
-RotateZ(yaw::T) where {T<:Real}   = Rotate(zero(T), zero(T), yaw)
+RotateX(pitch::T) where {T<:Real} = Rotate(pitch=pitch,   roll=zero(T), yaw=zero(T))
+RotateY(roll::T)  where {T<:Real} = Rotate(pitch=zero(T), roll=roll,    yaw=zero(T))
+RotateZ(yaw::T)   where {T<:Real} = Rotate(pitch=zero(T), roll=zero(T), yaw=yaw)
 
-function displacement_x!(ux, action::Rotate, x, y, z, t)   
+get_center(center::CenterOfMass, x, y, z) = (sum(x) / length(x), sum(y) / length(y), sum(z) / length(z))
+get_center(center::NTuple, x, y, z)       = center
+
+function displacement_x!(ux::AbstractArray{T}, action::Rotate{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where T
     # Not using sind and cosd functions until bug with oneAPI is solved: 
     # https://github.com/JuliaGPU/oneAPI.jl/issues/65
     α = t .* (action.yaw*π/180)
     β = t .* (action.roll*π/180)
     γ = t .* (action.pitch*π/180)
-    cx = action.center isa CenterOfMass ? sum(x) / length(x) : action.center[1]
-    cy = action.center isa CenterOfMass ? sum(y) / length(y) : action.center[2]
-    cz = action.center isa CenterOfMass ? sum(z) / length(z) : action.center[3]
-    x0 = x .- cx
-    y0 = y .- cy
-    z0 = z .- cz
+    cx, cy, cz = get_center(action.center, x, y, z)
+    x0, y0, z0 = x .- cx, y .- cy, z .- cz
     ux .= cos.(α) .* cos.(β) .* x0 +
          (cos.(α) .* sin.(β) .* sin.(γ) .- sin.(α) .* cos.(γ)) .* y0 +
          (cos.(α) .* sin.(β) .* cos.(γ) .+ sin.(α) .* sin.(γ)) .* z0 .+ cx .- x
     return nothing
 end
 
-function displacement_y!(uy, action::Rotate, x, y, z, t)
+function displacement_y!(uy::AbstractArray{T}, action::Rotate{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where T
     α = t .* (action.yaw*π/180)
     β = t .* (action.roll*π/180)
     γ = t .* (action.pitch*π/180)
-    cx = action.center isa CenterOfMass ? sum(x) / length(x) : action.center[1]
-    cy = action.center isa CenterOfMass ? sum(y) / length(y) : action.center[2]
-    cz = action.center isa CenterOfMass ? sum(z) / length(z) : action.center[3]
-    x0 = x .- cx
-    y0 = y .- cy
-    z0 = z .- cz
+    cx, cy, cz = get_center(action.center, x, y, z)
+    x0, y0, z0 = x .- cx, y .- cy, z .- cz
     uy .= sin.(α) .* cos.(β) .* x0 +
          (sin.(α) .* sin.(β) .* sin.(γ) .+ cos.(α) .* cos.(γ)) .* y0 +
          (sin.(α) .* sin.(β) .* cos.(γ) .- cos.(α) .* sin.(γ)) .* z0 .+ cy .- y
     return nothing
 end
 
-function displacement_z!(uz, action::Rotate, x, y, z, t)
+function displacement_z!(uz::AbstractArray{T}, action::Rotate{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where T
     α = t .* (action.yaw*π/180)
     β = t .* (action.roll*π/180)
     γ = t .* (action.pitch*π/180)
-    cx = action.center isa CenterOfMass ? sum(x) / length(x) : action.center[1]
-    cy = action.center isa CenterOfMass ? sum(y) / length(y) : action.center[2]
-    cz = action.center isa CenterOfMass ? sum(z) / length(z) : action.center[3]
-    x0 = x .- cx
-    y0 = y .- cy
-    z0 = z .- cz
+    cx, cy, cz = get_center(action.center, x, y, z)
+    x0, y0, z0 = x .- cx, y .- cy, z .- cz
     uz .=  -sin.(β) .* x0 + 
             cos.(β) .* sin.(γ) .* y0 +
             cos.(β) .* cos.(γ) .* z0 .+ cz .- z

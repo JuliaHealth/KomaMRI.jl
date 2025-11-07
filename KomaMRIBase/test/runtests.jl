@@ -425,6 +425,14 @@ end
         @test MotionList() == NoMotion()
         @test MotionList(m) == m
     end
+    @testset "Times" begin
+        tr = translate(0.0, 0.1, 0.2, TimeRange(0.0, 1.0))
+        rt = rotate(10.0, 20.0, 30.0, TimeCurve(t=[0.0, 0.5, 0.8], t_unit=[0.0, 0.5, 1.0]))
+        ml = MotionList(rt, tr)
+        @test times(tr) == [0.0, 1.0]
+        @test times(rt) == [0.0, 0.5, 0.8]
+        @test times(ml) == [0.0, 0.5, 0.8, 1.0]
+    end
     @testset "Subset" begin
         rt = Rotate(10.0, 20.0, 40.0, (0.0, 0.0, 0.0))
         tr = Translate(0.1, 0.2, 0.3)
@@ -654,29 +662,43 @@ end
         t        = [0.0, 0.1, 0.3]
         t_unit   = [0.0, 0.4, 1.0]
         periods  = [1.0, 0.5, 2.0]
-        periodic = true
-        dx = dy = [0.0 0.0 0.0 0.0]
-        dz      = [3.0 4.0 -4. -3.]
-        reset   = [false false true false]
+        dx = dy  = [0.0 0.0 0.0 0.0]
+        dz       = [3.0 4.0 -4. -3.]
+        reset    = [false false true false]
         ϵ = KomaMRIBase.MIN_RISE_TIME
+
         # Key time points ("manually" determined):
-        period_times = [t+δ for t in (0.0, 0.3, 0.45, 1.05, 1.35, 1.5) for δ in (-ϵ, ϵ) if (t+δ) > t_start && (t+δ) < t_end]
-        reset_times  = [0.2, 0.4, 0.85, 1.25, 1.45] .- ϵ
+        # Periodic case
+        period_times_p  = [t+δ for t in (0.0, 0.3, 0.45, 1.05, 1.35, 1.5) for δ in (-ϵ, ϵ) if (t+δ) > t_start && (t+δ) < t_end]
+        reset_times_p   = [0.2, 0.4, 0.85, 1.25, 1.45] .- ϵ
+        # Non-periodic case:
+        period_times_np = [t+δ for t in (0.0, 0.3, 0.45, 1.05) for δ in (-ϵ, ϵ) if (t+δ) > t_start && (t+δ) < 1.05]
+        reset_times_np  = [0.2, 0.4, 0.85] .- ϵ
+
         # Any motion with no spin resets (only key time points derived from periods):
-        pth  = path(dx, dy, dz, TimeCurve(t, t_unit, periodic, periods), AllSpins())
+        pth  = path(dx, dy, dz, TimeCurve(t, t_unit, true, periods), AllSpins())
         seqd_t = [t_start, t_end]
         KomaMRIBase.add_key_time_points!(seqd_t, pth)
-        @test sort(seqd_t[3:end]) ≈ period_times
+        @test seqd_t ≈ [t_start; t_end; period_times_p]
         # FlowPath with a spin reset (key time points derived from both periods and spin resets):
-        fpth = flowpath(dx, dy, dz, reset, TimeCurve(t, t_unit, periodic, periods), AllSpins())
+        fpth = flowpath(dx, dy, dz, reset, TimeCurve(t, t_unit, true, periods), AllSpins())
         seqd_t = [t_start, t_end]
         KomaMRIBase.add_key_time_points!(seqd_t, fpth)
-        @test sort(seqd_t[3:end]) ≈ sort([period_times; reset_times])
+        @test sort(seqd_t) ≈ sort([t_start; t_end; period_times_p; reset_times_p])
+
         # MotionList 
+        # (periodic case)
         ml = MotionList(pth, fpth)
         seqd_t = [t_start, t_end]
         KomaMRIBase.add_key_time_points!(seqd_t, ml)
-        @test sort(unique(seqd_t[3:end])) ≈ sort([period_times; reset_times])
+        @test sort(unique(seqd_t)) ≈ sort([t_start; t_end; period_times_p; reset_times_p])
+        # (non-periodic case)
+        pth  = path(dx, dy, dz, TimeCurve(t, t_unit, false, periods), AllSpins())
+        fpth = flowpath(dx, dy, dz, reset, TimeCurve(t, t_unit, false, periods), AllSpins())
+        ml = MotionList(pth, fpth)
+        seqd_t = [t_start, t_end]
+        KomaMRIBase.add_key_time_points!(seqd_t, ml)
+        @test unique(seqd_t) ≈ [t_start; t_end; period_times_np; reset_times_np]
     end
 end
 
