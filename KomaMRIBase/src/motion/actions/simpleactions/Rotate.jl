@@ -78,7 +78,7 @@ RotateZ(yaw::T)   where {T<:Real} = Rotate(pitch=zero(T), roll=zero(T), yaw=yaw)
 get_center(center::CenterOfMass, x, y, z) = (sum(x) / length(x), sum(y) / length(y), sum(z) / length(z))
 get_center(center::NTuple, x, y, z)       = center
 
-function displacement_x!(ux::AbstractArray{T}, action::Rotate{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where T
+function displacement_x!(ux, action::Rotate, x, y, z, t)
     # Not using sind and cosd functions until bug with oneAPI is solved: 
     # https://github.com/JuliaGPU/oneAPI.jl/issues/65
     α = t .* (action.yaw*π/180)
@@ -92,7 +92,7 @@ function displacement_x!(ux::AbstractArray{T}, action::Rotate{T}, x::AbstractVec
     return nothing
 end
 
-function displacement_y!(uy::AbstractArray{T}, action::Rotate{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where T
+function displacement_y!(uy, action::Rotate, x, y, z, t)
     α = t .* (action.yaw*π/180)
     β = t .* (action.roll*π/180)
     γ = t .* (action.pitch*π/180)
@@ -104,7 +104,7 @@ function displacement_y!(uy::AbstractArray{T}, action::Rotate{T}, x::AbstractVec
     return nothing
 end
 
-function displacement_z!(uz::AbstractArray{T}, action::Rotate{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t::AbstractArray{T}) where T
+function displacement_z!(uz, action::Rotate, x, y, z, t)
     α = t .* (action.yaw*π/180)
     β = t .* (action.roll*π/180)
     γ = t .* (action.pitch*π/180)
