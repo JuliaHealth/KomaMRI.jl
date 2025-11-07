@@ -486,16 +486,17 @@ end
         @test zt == ph.z .+ vz.*t'
     end
     @testset "Rotate" begin
+        # Simple-axis Rotation Constructors
+        @test RotateX(90.0) == Rotate(90.0, 0.0, 0.0, CenterOfMass())
+        @test RotateY(90.0) == Rotate(0.0, 90.0, 0.0, CenterOfMass())
+        @test RotateZ(90.0) == Rotate(0.0, 0.0, 90.0, CenterOfMass())
+        # Test get_spin_coords
         ph = Phantom(x=[1.0, 1.0, -1.0, -1.0], y=[1.0, -1.0, 1.0, -1.0])
         t_start=0.0; t_end=1.0 
         t = collect(range(t_start, t_end, 11))
-        pitch = 45.0
-        roll = 45.0
-        yaw = 45.0
-        rotation           = rotate(pitch, roll, yaw, TimeRange(t_start, t_end))
-        rotation_displaced = rotate(pitch, roll, yaw, TimeRange(t_start, t_end); center=(0.1, 0.2, 0.3))
-        @test !(rotation ≈ rotation_displaced) & !(rotation ≈ rotation_displaced)
-        # One single rotation
+        pitch, roll, yaw = 45.0, 45.0, 45.0
+        # One single rotation (around center of mass)
+        rotation = rotate(pitch, roll, yaw, TimeRange(t_start, t_end))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
         r = hcat(ph.x, ph.y, ph.z)'
@@ -504,6 +505,18 @@ end
         @test xt[: ,end] ≈ rot_x
         @test yt[: ,end] ≈ rot_y
         @test zt[: ,end] ≈ rot_z
+        # One single rotation (around displaced center)
+        center = (0.1, 0.2, 0.3)
+        rotation_displaced = rotate(pitch, roll, yaw, TimeRange(t_start, t_end); center=center)
+        @test !(rotation ≈ rotation_displaced) & !(rotation_displaced ≈ rotation)
+        xt, yt, zt = get_spin_coords(rotation_displaced, ph.x, ph.y, ph.z, t')
+        R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
+        r = hcat(ph.x .- center[1], ph.y .- center[2], ph.z .- center[3])'
+        rotated = R * r 
+        rot_x, rot_y, rot_z = eachrow(rotated)
+        @test xt[: ,end] ≈ rot_x .+ center[1]
+        @test yt[: ,end] ≈ rot_y .+ center[2]
+        @test zt[: ,end] ≈ rot_z .+ center[3]
         # Check if two consecutive rotations (α and β) produce the same result as a single (α + β) rotation
         t = [1.0] 
         r1 = MotionList(
