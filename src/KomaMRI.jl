@@ -29,4 +29,12 @@ include("KomaUI.jl")
 export KomaUI
 export sys_ui, seq_ui, obj_ui, raw_ui, img_ui
 
+function (@main)(ARGS)
+    w = KomaUI(; return_window=true)
+    wait(w.shell.proc)
+    return
+end
+
+export main
+
 end
