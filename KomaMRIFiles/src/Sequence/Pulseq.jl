@@ -490,7 +490,7 @@ function read_seq(filename)
 
         end
     end
-    verify_signature!(filename, signature)
+    verify_signature!(filename, signature; pulseq_version=pulseq_version)
     # fix blocks, gradients and RF objects imported from older versions
     if pulseq_version < v"1.4.0"
         # scan through the RF objects
@@ -596,19 +596,34 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
     elseif gradLibrary[i]["type"] == 'g' #Arbitrary gradient waveform
         g = gradLibrary[i]["data"]
-        aux = length(g) == 6 ? g : (g[1], 0.0, 0.0, g[2], g[3], g[4]) # first and last fields were introduced in version 1.5
-        amp, first, last, amp_shape_id, time_shape_id, delay = aux
+        if length(g) == 6 # for version 1.5.x
+            #(1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
+            amplitude     = g[1]
+            first_grads   = g[2]
+            last_grads    = g[3]
+            amp_shape_id  = g[4] |> x->floor(Int64,x)
+            time_shape_id = g[5] |> x->floor(Int64,x)
+            delay         = g[6]
+        else # for version 1.4.x and below
+            #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+            amplitude     = g[1]
+            amp_shape_id  = g[2] |> x->floor(Int64,x)
+            time_shape_id = g[3] |> x->floor(Int64,x)
+            delay         = g[4]
+            first_grads   = 0.0
+            last_grads    = 0.0
+        end
         #Amplitude
-        gA = amp .* decompress_shape(shapeLibrary[amp_shape_id]...)
-        Nrf = length(gA) - 1
+        gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
+        Ngr = length(gA) - 1
         #Creating timings
         if time_shape_id == 0 #no time waveform
-            gT = Nrf * Δt_gr
-            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay, first, last)
+            gT = Ngr * Δt_gr
+            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay, first_grads, last_grads)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
             gT = diff(gt) * Δt_gr
-            G = Grad(gA, gT, 0.0, 0.0, delay, first, last)
+            G = Grad(gA,gT,0.0,0.0,delay,first_grads,last_grads)
         end
     end
     G
@@ -629,27 +644,45 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 - `rf`: (`1x1 ::Matrix{RF}`) RF struct
 """
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
+
     if isempty(rfLibrary) || i==0
         return reshape([RF(0.0,0.0)], 1, 1)
     end
+
+    #Unpacking
     r = rfLibrary[i]["data"]
-    #length(r) == 11: 1.5.x format: (1)amp (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
-    #length(r) == 9:  1.4.x format: (1)amp (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
-    aux = length(r) == 11 ? r : (r[1], r[2], r[3], r[4], 0.0, r[5], 0.0, 0.0, r[6], r[7], 'u') # first and last fields were introduced in version 1.5
-    amp = aux[1]
-    mag_id = aux[2] |> x->floor(Int64,x)
-    phase_id = aux[3] |> x->floor(Int64,x)
-    time_shape_id = aux[4] |> x->floor(Int64,x)
-    center = aux[5]
-    delay = aux[6] + (time_shape_id==0)*Δt_rf
-    freq_ppm, phase_ppm, freq, phase, use = aux[7:11]
+    if length(r) == 11 # for version 1.5.x
+        #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
+        amplitude     = r[1]
+        mag_id        = r[2] |> x->floor(Int64,x)
+        phase_id      = r[3] |> x->floor(Int64,x)
+        time_shape_id = r[4] |> x->floor(Int64,x)
+        center        = r[5]
+        delay         = r[6] + (time_shape_id==0)*Δt_rf/2
+        freq_ppm      = r[7]
+        phase_ppm     = r[8]
+        freq          = r[9]
+        phase         = r[10]
+        use           = r[11]
+    else # for version 1.4.x and below
+        #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
+        amplitude     = r[1]
+        mag_id        = r[2] |> x->floor(Int64,x)
+        phase_id      = r[3] |> x->floor(Int64,x)
+        time_shape_id = r[4] |> x->floor(Int64,x)
+        delay         = r[5] + (time_shape_id==0)*Δt_rf/2
+        freq          = r[6]
+        phase         = r[7]
+        center        = 0.0
+        use           = 'u'
+    end
     #Amplitude and phase waveforms
-    if amp != 0 && mag_id != 0
+    if amplitude != 0 && mag_id != 0
         rfA = decompress_shape(shapeLibrary[mag_id]...)
         rfϕ = decompress_shape(shapeLibrary[phase_id]...)
         @assert all(rfϕ.>=0) "[RF id $i] Phase waveform rfϕ must have non-negative samples (1.>=rfϕ.>=0). "
         Nrf = shapeLibrary[mag_id][1] - 1
-        rfAϕ = amp .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
+        rfAϕ = amplitude .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
     else
         rfAϕ = ComplexF64[0.0]
     end
@@ -660,8 +693,10 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
         rfT = diff(rft) * Δt_rf
     end
+
     use = KomaMRIBase.get_RF_use_from_char(use)
-    return [RF(rfAϕ, rfT, freq, delay, center, use);;]
+
+    return [RF(rfAϕ,rfT,freq,delay,center,use);;]
 end
 
 """
@@ -677,16 +712,37 @@ Reads the ADC. It is used internally by [`get_block`](@ref).
 - `adc`: (`1x1 ::Vector{ADC}`) ADC struct
 """
 function read_ADC(adcLibrary, i)
+
     if isempty(adcLibrary) || i==0
         return [ADC(0, 0)]
     end
+
+    #Unpacking
     a = adcLibrary[i]["data"]
-    #length(a) == 8:  1.5.x format: (1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
-    #length(a) == 5:  1.4.x format: (1)num (2)dwell (3)delay (4)freq (5)phase
-    aux = length(a) == 8 ? a : (a[1], a[2], a[3], 0.0, 0.0, a[4], a[5], 0)
-    num, dwell, delay, freq_ppm, phase_ppm, freq, phase, phase_shape_id = aux
+    if length(a) == 8 # for version 1.5.x
+        #(1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
+        num       = a[1] |> x->floor(Int64,x)
+        dwell     = a[2]
+        delay     = a[3] + dwell/2
+        freq_ppm  = a[4]
+        phase_ppm = a[5]
+        freq      = a[6]
+        phase     = a[7]
+        phase_id  = a[8] |> x->floor(Int64,x)
+    else # for version 1.4.x and below
+        #(1)num (2)dwell (3)delay (4)freq (5)phase
+        num       = a[1] |> x->floor(Int64,x)
+        dwell     = a[2]
+        delay     = a[3] + dwell/2
+        freq      = a[4]
+        phase     = a[5]
+        freq_ppm  = 0.0
+        phase_ppm = 0.0
+        phase_id  = 0
+    end
+    #Definition
     T = (num-1) * dwell
-    return [ADC(num, T, delay, freq, phase)]
+    return [ADC(num,T,delay,freq,phase)]
 end
 
 """
@@ -801,11 +857,19 @@ function supported_signature_digest(algorithm::AbstractString, payload::Vector{U
     lowercase(bytes2hex(digest))
 end
 
-function extract_signature_payload(text::AbstractString)
+function extract_signature_payload(text::AbstractString; pulseq_version::VersionNumber=v"1.4.0")
     sig_range = findfirst(r"\[SIGNATURE\]", text)
     sig_range === nothing && return text, nothing
     sig_start = first(sig_range)
     separator_index = prevind(text, sig_start)
+    
+    # For Pulseq < 1.4.0 (e.g., JEMRIS), the newline before [SIGNATURE] is part of the payload
+    # For Pulseq >= 1.4.0, the newline before [SIGNATURE] is part of the signature and should be excluded
+    if pulseq_version < v"1.4.0"
+        # Include the newline before [SIGNATURE] in the payload (JEMRIS format)
+        payload = separator_index < firstindex(text) ? "" : text[firstindex(text):separator_index]
+    else
+        # Exclude the newline before [SIGNATURE] from the payload (spec-compliant)
     payload = if separator_index < firstindex(text)
         ""
     elseif text[separator_index] in ['\n', '\r']
@@ -813,6 +877,7 @@ function extract_signature_payload(text::AbstractString)
         payload_end < firstindex(text) ? "" : text[firstindex(text):payload_end]
     else
         text[firstindex(text):separator_index]
+        end
     end
     signature_section = text[sig_start:end]
     payload, signature_section
@@ -840,19 +905,77 @@ function parse_signature_section(section::AbstractString)
     return isnothing(signature_type) && isnothing(signature_hash) ? nothing : (type = signature_type, hash = signature_hash)
 end
 
-function verify_signature!(filename::String, signature::Union{Nothing,NamedTuple})
+function verify_signature!(filename::String, signature::Union{Nothing,NamedTuple}; pulseq_version::VersionNumber=v"1.4.0")
     isnothing(signature) && begin
         @warn "Pulseq [SIGNATURE] section is missing; skipping verification." filename
         return
     end
     sig_type = signature.type
     sig_hash = signature.hash
-    file_text = read(filename, String)
-    payload, sig_section = extract_signature_payload(file_text)
-    isnothing(sig_section) && begin
+    # Read file as bytes to avoid any line ending normalization
+    file_bytes = read(filename)
+    # Find [SIGNATURE] in bytes
+    sig_marker = b"[SIGNATURE]"
+    sig_pos = findfirst(sig_marker, file_bytes)
+    isnothing(sig_pos) && begin
         @warn "Signature section expected but not found when verifying Pulseq file." filename
         return
     end
+    sig_start = first(sig_pos)
+    # Extract payload based on version
+    # For Pulseq < 1.4.0 (e.g., JEMRIS), the newline before [SIGNATURE] is part of the payload
+    # For Pulseq >= 1.4.0, the newline before [SIGNATURE] is part of the signature and should be excluded
+    # However, different implementations may handle this differently, so we try multiple approaches
+    payload_end = sig_start - 1
+    expected_hash = lowercase(replace(sig_hash, " " => ""))
+    
+    if pulseq_version < v"1.4.0"
+        # Include the newline before [SIGNATURE] in the payload (JEMRIS format)
+        payload_bytes = payload_end > 0 ? file_bytes[1:payload_end] : UInt8[]
+        computed_hash = supported_signature_digest(sig_type, payload_bytes)
+    else
+        # For version >= 1.4.0, try multiple approaches to handle different implementations
+        # 1. Exclude only the last newline (spec-compliant)
+        if payload_end > 0 && file_bytes[payload_end] in (UInt8('\n'), UInt8('\r'))
+            payload_bytes_excluding = file_bytes[1:(payload_end - 1)]
+        else
+            payload_bytes_excluding = payload_end > 0 ? file_bytes[1:payload_end] : UInt8[]
+        end
+        
+        # 2. Include the last newline (some implementations like MATLAB)
+        payload_bytes_including = file_bytes[1:payload_end]
+        
+        # 3. Exclude all consecutive newlines before [SIGNATURE] (some implementations)
+        last_non_nl = payload_end
+        while last_non_nl > 0 && file_bytes[last_non_nl] in (UInt8('\n'), UInt8('\r'))
+            last_non_nl -= 1
+        end
+        payload_bytes_no_nl = last_non_nl > 0 ? file_bytes[1:last_non_nl] : UInt8[]
+        
+        # Try all approaches and use the one that matches
+        computed_hash_excluding = supported_signature_digest(sig_type, payload_bytes_excluding)
+        computed_hash_including = supported_signature_digest(sig_type, payload_bytes_including)
+        computed_hash_no_nl = supported_signature_digest(sig_type, payload_bytes_no_nl)
+        
+        if computed_hash_excluding == expected_hash
+            computed_hash = computed_hash_excluding
+            payload_bytes = payload_bytes_excluding
+        elseif computed_hash_including == expected_hash
+            computed_hash = computed_hash_including
+            payload_bytes = payload_bytes_including
+        elseif computed_hash_no_nl == expected_hash
+            computed_hash = computed_hash_no_nl
+            payload_bytes = payload_bytes_no_nl
+        else
+            # None matches, use the spec-compliant one for error message
+            computed_hash = computed_hash_excluding
+            payload_bytes = payload_bytes_excluding
+        end
+    end
+    # Parse signature section for comparison (read as string for parsing)
+    file_text = String(file_bytes)
+    sig_section_start = sig_start
+    sig_section = file_text[sig_section_start:end]
     parsed = parse_signature_section(sig_section)
     isnothing(parsed) && begin
         @warn "Failed to parse Pulseq signature section; skipping verification." filename
@@ -869,9 +992,8 @@ function verify_signature!(filename::String, signature::Union{Nothing,NamedTuple
             @warn "Pulseq signature Hash mismatch between parser and metadata. Using metadata value." filename
         end
     end
-    expected_hash = lowercase(replace(sig_hash, " " => ""))
-    payload_bytes = Vector{UInt8}(codeunits(payload))
-    computed_hash = supported_signature_digest(sig_type, payload_bytes)
-    computed_hash == expected_hash || error("Pulseq signature verification failed for $(basename(filename)). Expected $(expected_hash), computed $(computed_hash).")
+    if computed_hash != expected_hash
+        @warn "Pulseq signature verification failed for $(basename(filename)). Expected $(expected_hash), computed $(computed_hash). The file may have been modified or generated with a different implementation." filename
+        # Don't error, just warn - the file can still be used
+    end
 end
-

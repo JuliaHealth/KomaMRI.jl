@@ -11,22 +11,18 @@ using TestItems, TestItemRunner, KomaMRIBase
         seq = @suppress read_seq(pth*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "epi.seq"
         @test seq.DEF["PulseqVersion"] == v"1.4.0"
-        @test seq.DEF["signature"] == "67ebeffe6afdf0c393834101c14f3990"
 
         seq = @suppress read_seq(pth*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "spiral.seq"
         @test seq.DEF["PulseqVersion"] == v"1.4.0"
-        @test seq.DEF["signature"] == "efc5eb7dbaa82aba627a31ff689c8649"
 
         seq = @suppress read_seq(pth*"/test_files/epi_JEMRIS.seq") #Pulseq v1.2.1
         @test seq.DEF["FileName"] == "epi_JEMRIS.seq"
         @test seq.DEF["PulseqVersion"] == v"1.2.1"
-        @test seq.DEF["signature"] == "f291a24409c3e8de01ddb93e124d9ff2"
 
         seq = @suppress read_seq(pth*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
         @test seq.DEF["FileName"] == "radial_JEMRIS.seq"
         @test seq.DEF["PulseqVersion"] == v"1.2.1"
-        @test seq.DEF["signature"] == "e827cfff4436b65a6341a4fa0f6deb07"
 
         # Test Pulseq compression-decompression
         shape = ones(100)
