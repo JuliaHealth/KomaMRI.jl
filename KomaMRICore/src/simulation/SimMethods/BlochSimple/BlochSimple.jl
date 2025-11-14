@@ -23,7 +23,7 @@ precession.
 """
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
@@ -34,7 +34,10 @@ function run_spin_precession!(
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
-    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
+    #Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
+    Bz = zeros(T, length(x), length(seq.t))
+    get_Bz_field!(Bz, seq, x, y, z)
+    Bz .+= p.Δw ./ T(2π .* γ)
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)
@@ -72,7 +75,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
 """
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
@@ -85,15 +88,14 @@ function run_spin_excitation!(
     for i in eachindex(seq.Δt)
         s = @views ( # This was the previous behaviour of seq[i], but it was hidden
             t = seq.t[i, :], tnew = seq.t[i + 1, :], Δt = seq.Δt[i, :],
-            Gx = seq.Gx[i, :], Gy = seq.Gy[i, :], Gz = seq.Gz[i, :],
             B1 = seq.B1[i, :], Δf = seq.Δf[i, :],
             ADC = any(seq.ADC[i + 1, :])
         )
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
-        ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
+        Bz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        get_Bz_field!(Bz, seq, x, y, z, i)
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B .+= (B .== 0) .* eps(T)
         #Spinor Rotation
@@ -113,3 +115,94 @@ function run_spin_excitation!(
     end
     return nothing
 end
+
+function get_Bz_field!(
+    Bz::AbstractMatrix{T},
+    seq::AbstractDiscreteSequence{T},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T}
+) where {T<:Real}
+    for i in eachindex(seq.t)
+        get_Bz_field!(Bz[:, i], seq, x, y, z, i)
+    end
+end
+
+function get_Bz_field!(
+    Bz::AbstractVector{T},
+    seq::DiscreteSequence{T},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    seq_idx::Integer
+) where {T<:Real}
+    Bz .= x * seq.Gx[seq_idx] .+ y * seq.Gy[seq_idx] .+ z * seq.Gz[seq_idx]
+end
+
+function get_Bz_field!(
+    Bz::AbstractVector{T},
+    seq::DiscreteHigherOrderSequence{T, -1},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    seq_idx::Integer
+) where {T<:Real}
+    Bz .= x * seq.G[1, seq_idx] .+ y * seq.G[2, seq_idx] .+ z * seq.G[3, seq_idx]
+    return nothing
+end
+
+function get_Bz_field!(
+    Bz::AbstractVector{T},
+    seq::DiscreteHigherOrderSequence{T, 0},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    seq_idx::Integer
+) where {T<:Real}
+    Bz .= seq.G[1, seq_idx]
+    return nothings
+end
+
+function get_Bz_field!(
+    Bz::AbstractVector{T},
+    seq::DiscreteHigherOrderSequence{T, 1},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    seq_idx::Integer
+) where {T<:Real}
+    Bz .= seq.G[1, seq_idx] .+ x * seq.G[2, seq_idx] .+ y * seq.G[3, seq_idx] .+ z * seq.G[4, seq_idx]
+    return nothing
+end
+
+function get_Bz_field!(
+    Bz::AbstractVector{T},
+    seq::DiscreteHigherOrderSequence{T, 2},
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    seq_idx::Integer
+) where {T<:Real}
+    Bz .= seq.G[1, seq_idx]
+    Bz .+= seq.G[2, seq_idx] * x
+    Bz .+= seq.G[3, seq_idx] * y
+    Bz .+= seq.G[4, seq_idx] * z
+    Bz .+= seq.G[5, seq_idx] * x .* y # XY
+    Bz .+= seq.G[6, seq_idx] * y .* z # YZ
+    Bz .+= seq.G[7, seq_idx] * (2.0.*z.^2 - x.^2 - y.^2) # Z2
+    Bz .+= seq.G[8, seq_idx] * x .* z # XZ
+    Bz .+= seq.G[9, seq_idx] * (x.^2 - y.^2) # X2-Y2
+    return nothing
+end
+
+function get_Bz_field!(
+    Bz::AbstractVector{T},
+    seq::DiscreteHigherOrderSequence,
+    x::AbstractVector{T},
+    y::AbstractVector{T},
+    z::AbstractVector{T},
+    seq_idx::Integer
+) where {T<:Real}
+    error("Chosen gradient order not supported.")
+end
+

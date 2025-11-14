@@ -90,4 +90,28 @@ end
     return reduce_warp(sig_r, sig_i)
 end
 
+@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, -1}, x, y, z, s_idx::UInt32)
+    return x * seq.G[1, s_idx] + y * seq.G[2, s_idx] + z * seq.G[3, s_idx]
+end
+
+@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, 0}, x, y, z, s_idx::UInt32)
+    return seq.G[1, s_idx]
+end
+
+@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, 1}, x, y, z, s_idx::UInt32)
+    return seq.G[1, s_idx] + x * seq.G[2, s_idx] + y * seq.G[3, s_idx] + z * seq.G[4, s_idx]
+end
+
+@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, 2}, x, y, z, s_idx::UInt32)
+    return seq.G[1, s_idx] + 
+           seq.G[2, s_idx] * x + 
+           seq.G[3, s_idx] * y + 
+           seq.G[4, s_idx] * z +
+           seq.G[5, s_idx] * x * y + 
+           seq.G[6, s_idx] * y * z + 
+           seq.G[7, s_idx] * (2.0*z^2 - x^2 - y^2) +
+           seq.G[8, s_idx] * x * z + 
+           seq.G[9, s_idx] * (x^2 - y^2)
+end
+
 ## COV_EXCL_STOP

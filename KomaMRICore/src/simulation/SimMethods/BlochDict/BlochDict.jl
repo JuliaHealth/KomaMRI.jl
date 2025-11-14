@@ -31,7 +31,7 @@ precession.
 """
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::ArbitraryDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::BlochDict,
@@ -42,7 +42,10 @@ function run_spin_precession!(
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
-    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
+    #Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
+    Bz = zeros(T, length(x), length(seq.t))
+    get_Bz_field!(Bz, seq, x, y, z)
+    Bz .+= p.Δw ./ T(2π .* γ)
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)

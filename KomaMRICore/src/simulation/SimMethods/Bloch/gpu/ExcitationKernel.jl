@@ -3,7 +3,7 @@
 @kernel unsafe_indices=true inbounds=true function excitation_kernel!(
     M_xy::AbstractVector{Complex{T}}, M_z, 
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_Spins,
-    @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), N_Δt,
+    @Const(seq::AbstractDiscreteSequence{T}), N_Δt,
     ::Val{MOTION}
 ) where {T, MOTION}
 
@@ -26,11 +26,11 @@
             if MOTION
                 x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, s_idx)
             end
-            
-            Bz = (x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx]) + ΔBz - s_Δf[s_idx] / T(γ)
-            B1_r, B1_i = reim(s_B1[s_idx])
+
+            Bz =  get_Bz!(seq, x, y, z, s_idx) + ΔBz - seq.Δf[s_idx] / T(γ)
+            B1_r, B1_i = reim(seq.B1[s_idx])
             B = sqrt(B1_r^2 + B1_i^2 + Bz^2)
-            Δt = s_Δt[s_idx]
+            Δt = seq.Δt[s_idx]
             φ = T(-π * γ) * B * Δt
             sin_φ, cos_φ = sincos(φ)
             α_r = cos_φ

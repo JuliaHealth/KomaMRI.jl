@@ -82,7 +82,7 @@ separating the spins of the phantom `obj` in `Nthreads`.
 """
 function run_spin_precession_parallel!(
     obj::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -124,7 +124,7 @@ different number threads to excecute the process.
 """
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -173,7 +173,7 @@ take advantage of CPU parallel processing.
 """
 function run_sim_time_iter!(
     obj::Phantom,
-    seq::DiscreteSequence,
+    seq::AbstractDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -258,7 +258,7 @@ with a boolean vector indicating whether each block has RF. It also ensures that
 the length of each block does not exceed `max_block_length` by splitting longer blocks
 into smaller segments.
 """
-function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf)
+function get_sim_ranges(seqd::AbstractDiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf)
     ranges = UnitRange{Int}[]
     ranges_bool = Bool[]
     start_idx_rf_block = 0

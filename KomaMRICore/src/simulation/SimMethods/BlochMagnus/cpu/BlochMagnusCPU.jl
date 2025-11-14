@@ -58,7 +58,7 @@ end
 # Use Bloch implementation for precession
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::ArbitraryDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::BlochMagnus,
@@ -72,7 +72,7 @@ end
 # This part changes a bit more
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::ArbitraryDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::BlochMagnus,
@@ -102,7 +102,10 @@ function run_spin_excitation!(
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i + 1])
         #Effective field
         @. ωxy_new = seq.B1[i + 1] * B_to_ω
-        @. ωz_new  = (seq.Gx[i + 1] * x + seq.Gy[i + 1] * y + seq.Gz[i + 1] * z + ΔBz) * B_to_ω + seq.Δf[i + 1] * T(2π)
+        get_Bz_field!(ωz_new, p, x, y, z, seq.t[i + 1])
+        ωz_new .*= B_to_ω
+        ωz_new .+= ΔBz * B_to_ω + seq.Δf[i + 1] * T(2π)
+        #@. ωz_new  = (seq.Gx[i + 1] * x + seq.Gy[i + 1] * y + seq.Gz[i + 1] * z + ΔBz) * B_to_ω + seq.Δf[i + 1] * T(2π)
         effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, seq.Δt[i], sim_method)
         #Spinor Rotation
         @. θ = sqrt(abs(θxy) ^ 2 + θz ^ 2)

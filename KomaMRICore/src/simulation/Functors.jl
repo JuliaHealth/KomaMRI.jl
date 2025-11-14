@@ -115,5 +115,6 @@ adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.mot
 @functor Spinor
 # DiscreteSequence
 @functor DiscreteSequence
+@functor DiscreteHigherOrderSequence
 
 export gpu, cpu, f32, f64

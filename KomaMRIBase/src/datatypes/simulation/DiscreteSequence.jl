@@ -1,3 +1,4 @@
+abstract type AbstractDiscreteSequence{T<:Real} end
 """
     seqd = DiscreteSequence(Gx, Gy, Gz, B1, Δf, ADC, t, Δt)
 
@@ -17,7 +18,7 @@ times. DiscreteSequence is the struct used for simulation.
 # Returns
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
-struct DiscreteSequence{T<:Real}
+struct DiscreteSequence{T<:Real} <: AbstractDiscreteSequence{T}
     Gx::AbstractVector{T}
     Gy::AbstractVector{T}
     Gz::AbstractVector{T}
@@ -28,7 +29,7 @@ struct DiscreteSequence{T<:Real}
     Δt::AbstractVector{T}
 end
 
-Base.length(seq::DiscreteSequence) = length(seq.Δt)
+Base.length(seq::AbstractDiscreteSequence) = length(seq.Δt)
 Base.getindex(seq::DiscreteSequence, i::Integer) = begin
     DiscreteSequence(seq.Gx[i, :],
                      seq.Gy[i, :],
@@ -59,15 +60,16 @@ Base.view(seq::DiscreteSequence, i::UnitRange) = begin
                      seq.t[i],
                      seq.Δt[i.start:i.stop-1])
 end
-Base.iterate(seq::DiscreteSequence) = (seq[1], 2)
-Base.iterate(seq::DiscreteSequence, i) = (i <= length(seq)) ? (seq[i], i+1) : nothing
+Base.iterate(seq::AbstractDiscreteSequence) = (seq[1], 2)
+Base.iterate(seq::AbstractDiscreteSequence, i) = (i <= length(seq)) ? (seq[i], i+1) : nothing
 
 is_GR_on(seq::DiscreteSequence) =  sum(abs.([seq.Gx; seq.Gy; seq.Gz])) != 0
-is_RF_on(seq::DiscreteSequence) =  sum(abs.(seq.B1)) != 0
-is_ADC_on(seq::DiscreteSequence) = sum(abs.(seq.ADC)) != 0
-is_GR_off(seq::DiscreteSequence) =  !is_GR_on(seq)
-is_RF_off(seq::DiscreteSequence) =  !is_RF_on(seq)
-is_ADC_off(seq::DiscreteSequence) = !is_ADC_on(seq)
+
+is_RF_on(seq::AbstractDiscreteSequence) =  sum(abs.(seq.B1)) != 0
+is_ADC_on(seq::AbstractDiscreteSequence) = sum(abs.(seq.ADC)) != 0
+is_GR_off(seq::AbstractDiscreteSequence) =  !is_GR_on(seq)
+is_RF_off(seq::AbstractDiscreteSequence) =  !is_RF_on(seq)
+is_ADC_off(seq::AbstractDiscreteSequence) = !is_ADC_on(seq)
 
 """
     seqd = discretize(seq::Sequence; sampling_params=default_sampling_params())
@@ -93,6 +95,8 @@ function discretize(seq::Sequence; sampling_params=default_sampling_params(), mo
     tadc_set = Set(tadc)
     ADCflag = [tt in tadc_set for tt in t] # Displaced 1 dt, sig[i]=S(ti+dt)
     seqd       = DiscreteSequence(Gx, Gy, Gz, complex.(B1), Δf, ADCflag, t, Δt)
+    
+    #seqd = apply_system_imperfections(seqd, sys)
     return seqd
 end
 
@@ -104,3 +108,5 @@ function default_sampling_params(sampling_params=Dict{String,Any}())
     get!(sampling_params, "Δt_rf", 5e-5)
     return sampling_params
 end
+
+#apply_system_imperfections(seqd::DiscreteSequence{T}, sys::Scanner{T, LinearXYZGradient, RFType}) where {T, RFType} = seqd
