@@ -1,7 +1,3 @@
-# # add_format(format"Pulseq", "# Pulseq sequence file", ".seq", [:Koma=>UUID("a9056882-1c2f-47b4-848d-dcb4a04f1994")])
-# module Pulseq
-# This file is a copy of the MATLAB Pulseq v1.4.0 read functions
-
 """
 read_version Read the [VERSION] section of a sequence file.
    defs=read_version(fid) Read Pulseq version from file
@@ -52,25 +48,28 @@ function read_definitions(io)
 end
 
 """
-read_definitions Read the [SIGNATURE] section of a sequence file.
+read_signature Read the [SIGNATURE] section of a sequence file.
    signature=read_signature(fid) Read user signature from file
-   identifier of an open MR sequence file and return a map of
-   key/value entries.
+   identifier of an open MR sequence file and return a NamedTuple with signature metadata.
 """
 function read_signature(io)
-    signature = ""
+    signature_type = nothing
+    signature_hash = nothing
     while true
         line = readline(io)
         line_split = String.(split(line))
         (length(line_split) > 0) || break #Break on white space
+        firstchar = first(line_split[1])
+        firstchar == '#' && continue
         key = line_split[1]
-        if (key == "Hash")
-            value_string_array = line_split[2:end]
-            parsed_array = [tryparse(Float64, s) === nothing ? s : tryparse(Float64, s) for s = value_string_array]
-            signature = length(parsed_array) == 1 ? parsed_array[1] : parsed_array
+        value = join(line_split[2:end], " ")
+        if key == "Type"
+            signature_type = strip(value)
+        elseif key == "Hash"
+            signature_hash = lowercase(replace(strip(value), " " => ""))
         end
     end
-    return signature
+    return isnothing(signature_type) && isnothing(signature_hash) ? nothing : (type = signature_type, hash = signature_hash)
 end
 
 """
@@ -399,7 +398,7 @@ function read_seq(filename)
     pulseq_version = v"0.0.0"
     gradLibrary = Dict()
     def = Dict()
-    signature = ""
+    signature = nothing
     blockEvents = Dict()
     blockDurations = Dict()
     delayInd_tmp = Dict()
@@ -429,18 +428,18 @@ function read_seq(filename)
                 end
                 blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], pulseq_version)
             elseif  section == "[RF]"
-                if version_combined >= v"1.5.0"
+                if pulseq_version >= v"1.5.0"
                     rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 1]) # this is 1.5.x format
-                elseif version_combined >= v"1.4.0"
+                elseif pulseq_version >= v"1.4.0"
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
                     rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1]) # this is 1.3.x and below
                     # we will have to scan through the library later after all the shapes have been loaded
                 end
             elseif  section == "[GRADIENTS]"
-                if version_combined >= v"1.5.0"
+                if pulseq_version >= v"1.5.0"
                     gradLibrary = read_events(io, [1/γ 1 1 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.5.x format
-                elseif version_combined >= v"1.4.0"
+                elseif pulseq_version >= v"1.4.0"
                     gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format
                 else
                     gradLibrary = read_events(io, [1/γ 1 1e-6];   type='g', eventLibrary=gradLibrary) # this is 1.3.x and below
@@ -448,7 +447,7 @@ function read_seq(filename)
             elseif  section == "[TRAP]"
                 gradLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6]; type='t', eventLibrary=gradLibrary);
             elseif  section == "[ADC]"
-                if version_combined >= 1005000
+                if pulseq_version >= v"1.5.0"
                     adcLibrary = read_events(io, [1 1e-9 1e-6 1 1 1 1 1]) # this is 1.5.x format
                 else
                     adcLibrary = read_events(io, [1 1e-9 1e-6 1 1]) # this is 1.4.x and below
@@ -470,7 +469,7 @@ function read_seq(filename)
                     if startswith(extension, "TRIGGERS")
                         id = parse(Int, extension[9:end])
                         extensionType[id] = Dict("data"=>"TRIGGERS")
-                        triggerLibrary = read_events(io, [1 1 1e-6 1e-6]; eventLibrary = triggerLibrary)
+                        triggerLibrary = read_events(io, [1, 1, 1e-6, 1e-6]; eventLibrary = triggerLibrary)
                     elseif startswith(extension, "LABELSET")
                         id = parse(Int, extension[9:end])
                         extensionType[id] = Dict("data"=>"LABELSET")
@@ -491,6 +490,7 @@ function read_seq(filename)
 
         end
     end
+    verify_signature!(filename, signature)
     # fix blocks, gradients and RF objects imported from older versions
     if pulseq_version < v"1.4.0"
         # scan through the RF objects
@@ -552,7 +552,7 @@ function read_seq(filename)
         seq += get_block(obj, i)
     end
     # Add first and last points for gradients #320 for version <= 1.4.2
-    if version_combined < 1005000
+    if pulseq_version < v"1.5.0"
         fix_first_last_grads!(seq)
     end
     # Final details
@@ -561,7 +561,6 @@ function read_seq(filename)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = pulseq_version
-    seq.DEF["signature"] = signature
     # Guessing recon dimensions
     seq.DEF["Nx"] = get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC))
     seq.DEF["Nz"] = get(seq.DEF, "Nz", length(unique(seq.RF.Δf)))
@@ -597,32 +596,19 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
     elseif gradLibrary[i]["type"] == 'g' #Arbitrary gradient waveform
         g = gradLibrary[i]["data"]
-        if length(g) == 6 # for version 1.5.x
-            #(1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
-            amplitude =     g[1]
-            first_grads =   g[2]
-            last_grads =    g[3]
-            amp_shape_id =  g[4] |> x->floor(Int64,x)
-            time_shape_id = g[5] |> x->floor(Int64,x)
-            delay =         g[6]
-        else # for version 1.4.x and below
-            #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-            amplitude =     g[1]
-            amp_shape_id =  g[2] |> x->floor(Int64,x)
-            time_shape_id = g[3] |> x->floor(Int64,x)
-            delay =         g[4]
-        end
+        aux = length(g) == 6 ? g : (g[1], 0.0, 0.0, g[2], g[3], g[4]) # first and last fields were introduced in version 1.5
+        amp, first, last, amp_shape_id, time_shape_id, delay = aux
         #Amplitude
-        gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
+        gA = amp .* decompress_shape(shapeLibrary[amp_shape_id]...)
         Nrf = length(gA) - 1
         #Creating timings
         if time_shape_id == 0 #no time waveform
             gT = Nrf * Δt_gr
-            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay)
+            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay, first, last)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
             gT = diff(gt) * Δt_gr
-            G = Grad(gA,gT,0.0,0.0,delay)
+            G = Grad(gA, gT, 0.0, 0.0, delay, first, last)
         end
     end
     G
@@ -693,7 +679,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rfT = diff(rft) * Δt_rf
     end
 
-    use = KomaMRIBase.get_RF_use_from_char(Val(use))
+    use = KomaMRIBase.get_RF_use_from_char(use)
 
     R = [RF(rfAϕ,rfT,freq,delay,center,use);;]
     R
