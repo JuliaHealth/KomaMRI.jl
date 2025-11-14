@@ -629,45 +629,27 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 - `rf`: (`1x1 ::Matrix{RF}`) RF struct
 """
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
-
     if isempty(rfLibrary) || i==0
         return reshape([RF(0.0,0.0)], 1, 1)
     end
-
-    #Unpacking
     r = rfLibrary[i]["data"]
-    if length(r) == 11 # for version 1.5.x
-        #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
-        amplitude =     r[1]
-        mag_id =        r[2] |> x->floor(Int64,x)
-        phase_id =      r[3] |> x->floor(Int64,x)
-        time_shape_id = r[4] |> x->floor(Int64,x)
-        center =        r[5]
-        delay =         r[6] + (time_shape_id==0)*Δt_rf/2
-        freq_ppm =      r[7]
-        phase_ppm =     r[8]
-        freq =          r[9]
-        phase =         r[10]
-        use =           r[11]
-    else # for version 1.4.x and below
-        #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
-        amplitude =     r[1]
-        mag_id =        r[2] |> x->floor(Int64,x)
-        phase_id =      r[3] |> x->floor(Int64,x)
-        time_shape_id = r[4] |> x->floor(Int64,x)
-        delay =         r[5] + (time_shape_id==0)*Δt_rf/2
-        freq =          r[6]
-        phase =         r[7]
-        center =        0.0
-        use =           'u'
-    end
+    #length(r) == 11: 1.5.x format: (1)amp (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
+    #length(r) == 9:  1.4.x format: (1)amp (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
+    aux = length(r) == 11 ? r : (r[1], r[2], r[3], r[4], 0.0, r[5], 0.0, 0.0, r[6], r[7], 'u') # first and last fields were introduced in version 1.5
+    amp = aux[1]
+    mag_id = aux[2] |> x->floor(Int64,x)
+    phase_id = aux[3] |> x->floor(Int64,x)
+    time_shape_id = aux[4] |> x->floor(Int64,x)
+    center = aux[5]
+    delay = aux[6] + (time_shape_id==0)*Δt_rf
+    freq_ppm, phase_ppm, freq, phase, use = aux[7:11]
     #Amplitude and phase waveforms
-    if amplitude != 0 && mag_id != 0
+    if amp != 0 && mag_id != 0
         rfA = decompress_shape(shapeLibrary[mag_id]...)
         rfϕ = decompress_shape(shapeLibrary[phase_id]...)
         @assert all(rfϕ.>=0) "[RF id $i] Phase waveform rfϕ must have non-negative samples (1.>=rfϕ.>=0). "
         Nrf = shapeLibrary[mag_id][1] - 1
-        rfAϕ = amplitude .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
+        rfAϕ = amp .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
     else
         rfAϕ = ComplexF64[0.0]
     end
@@ -678,11 +660,8 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
         rfT = diff(rft) * Δt_rf
     end
-
     use = KomaMRIBase.get_RF_use_from_char(use)
-
-    R = [RF(rfAϕ,rfT,freq,delay,center,use);;]
-    R
+    return [RF(rfAϕ, rfT, freq, delay, center, use);;]
 end
 
 """
@@ -698,35 +677,16 @@ Reads the ADC. It is used internally by [`get_block`](@ref).
 - `adc`: (`1x1 ::Vector{ADC}`) ADC struct
 """
 function read_ADC(adcLibrary, i)
-
     if isempty(adcLibrary) || i==0
         return [ADC(0, 0)]
     end
-
-    #Unpacking
     a = adcLibrary[i]["data"]
-    if length(a) == 8 # for version 1.5.x
-        #(1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
-        num =   a[1] |> x->floor(Int64,x)
-        dwell = a[2]
-        delay = a[3] + dwell/2
-        freq_ppm = a[4]
-        phase_ppm = a[5]
-        freq =  a[6]
-        phase = a[7]
-        phase_shape_id = a[8] |> x->floor(Int64,x)
-    else # for version 1.4.x and below
-        #(1)num (2)dwell (3)delay (4)freq (5)phase
-        num =   a[1] |> x->floor(Int64,x)
-        dwell = a[2]
-        delay = a[3] + dwell/2
-        freq =  a[4]
-        phase = a[5]
-    end
-    #Definition
+    #length(a) == 8:  1.5.x format: (1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
+    #length(a) == 5:  1.4.x format: (1)num (2)dwell (3)delay (4)freq (5)phase
+    aux = length(a) == 8 ? a : (a[1], a[2], a[3], 0.0, 0.0, a[4], a[5], 0)
+    num, dwell, delay, freq_ppm, phase_ppm, freq, phase, phase_shape_id = aux
     T = (num-1) * dwell
-    A = [ADC(num,T,delay,freq,phase)]
-    A
+    return [ADC(num, T, delay, freq, phase)]
 end
 
 """
@@ -825,3 +785,93 @@ function read_extension(extensionLibrary,extensionType,triggerLibrary,labelsetLi
 
     return EXT
  end
+
+# ----------------- Signature-related functions ------------------
+function supported_signature_digest(algorithm::AbstractString, payload::Vector{UInt8})
+    alg = lowercase(strip(algorithm))
+    digest = if alg == "md5"
+        md5(payload)
+    elseif alg == "sha1"
+        sha1(payload)
+    elseif alg in ("sha2", "sha256")
+        sha256(payload)
+    else
+        throw(ArgumentError("Unsupported signature algorithm '$algorithm'. Supported algorithms: md5, sha1, sha256."))
+    end
+    lowercase(bytes2hex(digest))
+end
+
+function extract_signature_payload(text::AbstractString)
+    sig_range = findfirst(r"\[SIGNATURE\]", text)
+    sig_range === nothing && return text, nothing
+    sig_start = first(sig_range)
+    separator_index = prevind(text, sig_start)
+    payload = if separator_index < firstindex(text)
+        ""
+    elseif text[separator_index] in ['\n', '\r']
+        payload_end = prevind(text, separator_index)
+        payload_end < firstindex(text) ? "" : text[firstindex(text):payload_end]
+    else
+        text[firstindex(text):separator_index]
+    end
+    signature_section = text[sig_start:end]
+    payload, signature_section
+end
+
+function parse_signature_section(section::AbstractString)
+    io = IOBuffer(section)
+    readline(io) # consume "[SIGNATURE]" header
+    signature_type = nothing
+    signature_hash = nothing
+    while !eof(io)
+        line = strip(readline(io))
+        isempty(line) && continue
+        startswith(line, '#') && continue
+        parts = split(line)
+        isempty(parts) && continue
+        key = parts[1]
+        value = join(parts[2:end], " ")
+        if key == "Type"
+            signature_type = strip(value)
+        elseif key == "Hash"
+            signature_hash = lowercase(replace(strip(value), " " => ""))
+        end
+    end
+    return isnothing(signature_type) && isnothing(signature_hash) ? nothing : (type = signature_type, hash = signature_hash)
+end
+
+function verify_signature!(filename::String, signature::Union{Nothing,NamedTuple})
+    isnothing(signature) && begin
+        @warn "Pulseq [SIGNATURE] section is missing; skipping verification." filename
+        return
+    end
+    sig_type = signature.type
+    sig_hash = signature.hash
+    file_text = read(filename, String)
+    payload, sig_section = extract_signature_payload(file_text)
+    isnothing(sig_section) && begin
+        @warn "Signature section expected but not found when verifying Pulseq file." filename
+        return
+    end
+    parsed = parse_signature_section(sig_section)
+    isnothing(parsed) && begin
+        @warn "Failed to parse Pulseq signature section; skipping verification." filename
+        return
+    end
+    parsed_type = parsed.type
+    parsed_hash = parsed.hash
+    if !isnothing(parsed_type) && !isempty(parsed_type) && lowercase(parsed_type) != lowercase(sig_type)
+        @warn "Pulseq signature Type mismatch between parser and metadata. Using '$sig_type'." filename parsed_type
+    end
+    if !isnothing(parsed_hash) && !isempty(parsed_hash)
+        parsed_hash_norm = lowercase(replace(parsed_hash, " " => ""))
+        if parsed_hash_norm != lowercase(replace(sig_hash, " " => ""))
+            @warn "Pulseq signature Hash mismatch between parser and metadata. Using metadata value." filename
+        end
+    end
+    expected_hash = lowercase(replace(sig_hash, " " => ""))
+    payload_bytes = Vector{UInt8}(codeunits(payload))
+    computed_hash = supported_signature_digest(sig_type, payload_bytes)
+    computed_hash == expected_hash || error("Pulseq signature verification failed for $(basename(filename)). Expected $(expected_hash), computed $(computed_hash).")
+end
+
