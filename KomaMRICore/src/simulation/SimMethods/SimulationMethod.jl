@@ -37,5 +37,6 @@ prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::
 
 include("BlochSimple/BlochSimple.jl")
 include("Bloch/cpu/BlochCPU.jl")
+include("BlochMagnus/cpu/BlochMagnusCPU.jl")
 include("Bloch/gpu/BlochGPU.jl")
 include("BlochDict/BlochDict.jl")
