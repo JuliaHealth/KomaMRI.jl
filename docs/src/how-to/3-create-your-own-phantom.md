@@ -112,7 +112,7 @@ T2 = T2*1e-3
 T2s = T2s*1e-3
 ```
 
-Finally, we can invoke the [`Phantom`](@ref) constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask `ρ.!=0` to the arrays. Additionally, please note that we set the z-position array filled with zeros.
+Finally, we can invoke the [`Phantom`](@ref KomaMRIBase.Phantom) constructor. However, before doing so, we choose not to store spins where the proton density is zero to avoid unnecessary data storage. This is achieved by applying the mask `ρ.!=0` to the arrays. Additionally, please note that we set the z-position array filled with zeros.
 ```julia
 # Define the phantom
 obj = Phantom(
