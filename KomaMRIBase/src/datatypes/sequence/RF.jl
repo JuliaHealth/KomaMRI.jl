@@ -7,24 +7,13 @@ struct Preparation <: RFUse end
 struct Other <: RFUse end
 struct Undefined <: RFUse end
 
-const RF_USE_CHARS = Dict(
-    'e' => Excitation(),
-    'r' => Refocusing(),
-    'i' => Inversion(),
-    's' => Saturation(),
-    'p' => Preparation(),
-    'o' => Other(),
-    'u' => Undefined(),
-)
-
-get_RF_use_from_char(c::Char) = RF_USE_CHARS[c]
-get_RF_use_from_char(u::RFUse) = u
-get_char_from_RF_use(use::RFUse) = begin
-    for (k, v) in RF_USE_CHARS
-        if v == use return k end
-    end
-    return 'u'
-end
+get_RF_use_from_char(::Val{'e'}) = Excitation()
+get_RF_use_from_char(::Val{'r'}) = Refocusing()
+get_RF_use_from_char(::Val{'i'}) = Inversion()
+get_RF_use_from_char(::Val{'s'}) = Saturation()
+get_RF_use_from_char(::Val{'p'}) = Preparation()
+get_RF_use_from_char(::Val{'o'}) = Other()
+get_RF_use_from_char(::Val{'u'}) = Undefined()
 
 """
     rf = RF(A, T)
@@ -58,11 +47,11 @@ mutable struct RF
     delay::Real
     center
     use::RFUse
-    RF(A, T, Δf, delay, center, use) = any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new(A, T, Δf, delay, center, get_RF_use_from_char(use))
-    RF(A, T, Δf, delay, center) = RF(A, T, Δf, delay, center, Undefined())
-    RF(A, T, Δf, delay) = RF(A, T, Δf, delay, 0.0)
-    RF(A, T, Δf) = RF(A, T, Δf, 0.0)
-    RF(A, T) = RF(A, T, 0.0)
+    RF(A, T, Δf, delay, center, use) = any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new(A, T, Δf, delay, center, use)
+    RF(A, T, Δf, delay, center)      = RF(A, T, Δf,  delay, center, Undefined())
+    RF(A, T, Δf, delay)              = RF(A, T, Δf,  delay, 0.0,    Undefined())
+    RF(A, T, Δf)                     = RF(A, T, Δf,  0.0,   0.0,    Undefined())
+    RF(A, T)                         = RF(A, T, 0.0, 0.0,   0.0,    Undefined())
 end
 
 """

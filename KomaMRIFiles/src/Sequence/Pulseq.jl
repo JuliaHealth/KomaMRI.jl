@@ -694,7 +694,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rfT = diff(rft) * Δt_rf
     end
 
-    use = KomaMRIBase.get_RF_use_from_char(use)
+    use = KomaMRIBase.get_RF_use_from_char(Val(use))
 
     return [RF(rfAϕ,rfT,freq,delay,center,use);;]
 end
