@@ -58,7 +58,7 @@ end
 # Use Bloch implementation for precession
 function run_spin_precession!(
     p::Phantom{T},
-    seq::ArbitraryDiscreteSequence{T},
+    seq::AbstractDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::BlochMagnus,
@@ -72,7 +72,7 @@ end
 # This part changes a bit more
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::ArbitraryDiscreteSequence{T},
+    seq::AbstractDiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::BlochMagnus,
