@@ -371,7 +371,7 @@ julia> plot_seq(seq; slider=false)
 <object type="text/html" data="../../assets/event-combination.html" style="width:100%; height:420px;"></object>
 ```
 
-Once the struct events are defined, it's important to note that to create a single block sequence, you need to provide 2D matrices of **Grad** and **RF** structs, as well as a vector of **ADC** structs as arguments in the [`Sequence`](@ref) constructor.
+Once the struct events are defined, it's important to note that to create a single block sequence, you need to provide 2D matrices of **Grad** and **RF** structs, as well as a vector of **ADC** structs as arguments in the [`Sequence`](@ref KomaMRIBase.Sequence) constructor.
 
 
 ## Algebraic manipulation
