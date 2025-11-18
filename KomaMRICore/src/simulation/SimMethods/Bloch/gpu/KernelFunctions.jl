@@ -90,19 +90,19 @@ end
     return reduce_warp(sig_r, sig_i)
 end
 
-@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, -1}, x, y, z, s_idx::UInt32)
+@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, -1}, x, y, z, s_idx::UInt32) where {T<:Real}
     return x * seq.G[1, s_idx] + y * seq.G[2, s_idx] + z * seq.G[3, s_idx]
 end
 
-@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, 0}, x, y, z, s_idx::UInt32)
+@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, 0}, x, y, z, s_idx::UInt32) where {T<:Real}
     return seq.G[1, s_idx]
 end
 
-@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, 1}, x, y, z, s_idx::UInt32)
+@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, 1}, x, y, z, s_idx::UInt32) where {T<:Real}
     return seq.G[1, s_idx] + x * seq.G[2, s_idx] + y * seq.G[3, s_idx] + z * seq.G[4, s_idx]
 end
 
-@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, 2}, x, y, z, s_idx::UInt32)
+@inline function get_Bz!(seq::DiscreteHigherOrderSequence{T, 2}, x, y, z, s_idx::UInt32) where {T<:Real}    
     return seq.G[1, s_idx] + 
            seq.G[2, s_idx] * x + 
            seq.G[3, s_idx] * y + 

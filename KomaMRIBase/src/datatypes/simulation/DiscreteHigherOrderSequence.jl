@@ -19,7 +19,7 @@ times. DiscreteHigherOrderSequence is the struct used for simulation.
 # Returns
 - `seqd`: (`::DiscreteHigherOrderSequence`) DiscreteHigherOrderSequence struct
 """
-struct DiscreteHigherOrderSequence{T<:Real, order} <: AbstractDiscreteSequence{T}
+struct DiscreteHigherOrderSequence{T<:Real, order<:Integer} <: AbstractDiscreteSequence{T}
     G::AbstractMatrix{T}
     B1::AbstractVector{Complex{T}}
     Δf::AbstractVector{T}
@@ -28,7 +28,7 @@ struct DiscreteHigherOrderSequence{T<:Real, order} <: AbstractDiscreteSequence{T
     Δt::AbstractVector{T}
 end
 
-Base.getindex(seq::DiscreteHigherOrderSequence{T, order}, i::Integer) = begin
+Base.getindex(seq::DiscreteHigherOrderSequence{T, order}, i::Integer) where {T<:Real, order<:Integer} = begin
     DiscreteHigherOrderSequence{T, order}(seq.G[:, i],
                                           seq.B1[i, :],
                                           seq.Δf[i, :],
@@ -36,7 +36,7 @@ Base.getindex(seq::DiscreteHigherOrderSequence{T, order}, i::Integer) = begin
                                           seq.t[i, :],
                                           seq.Δt[i, :])
 end
-Base.getindex(seq::DiscreteHigherOrderSequence{T, order}, i::UnitRange) = begin
+Base.getindex(seq::DiscreteHigherOrderSequence{T, order}, i::UnitRange) where {T<:Real, order<:Integer} = begin
     DiscreteHigherOrderSequence{T, order}(seq.G[:, i],
                                           seq.B1[i],
                                           seq.Δf[i],
@@ -44,7 +44,7 @@ Base.getindex(seq::DiscreteHigherOrderSequence{T, order}, i::UnitRange) = begin
                                           seq.t[i],
                                           seq.Δt[i.start:i.stop-1])
 end
-Base.view(seq::DiscreteHigherOrderSequence{T, order}, i::UnitRange) = begin
+Base.view(seq::DiscreteHigherOrderSequence{T, order}, i::UnitRange) where {T<:Real, order<:Integer} = begin
     @views DiscreteHigherOrderSequence{T, order}(seq.G[:, i],
                                                  seq.B1[i],
                                                  seq.Δf[i],
