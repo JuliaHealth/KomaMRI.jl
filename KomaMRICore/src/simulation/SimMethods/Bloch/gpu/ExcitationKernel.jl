@@ -3,7 +3,7 @@
 @kernel unsafe_indices=true inbounds=true function excitation_kernel!(
     M_xy::AbstractVector{Complex{T}}, M_z, 
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_Spins,
-    @Const(seq::AbstractDiscreteSequence{T}), N_Δt,
+    seq::AbstractDiscreteSequence{T}, N_Δt,
     ::Val{MOTION}
 ) where {T, MOTION}
 

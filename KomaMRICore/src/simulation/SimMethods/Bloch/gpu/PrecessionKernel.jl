@@ -4,7 +4,7 @@
     sig_output::AbstractMatrix{Complex{T}}, 
     M_xy, M_z, 
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
-    @Const(seq::AbstractDiscreteSequence{T}), s_length,
+    seq::AbstractDiscreteSequence{T}, s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION},
 ) where {T, MOTION, USE_WARP_REDUCTION}
 

@@ -11,7 +11,7 @@ end
 
 function get_Bz_field!(
     Bz::AbstractVector{T},
-    seq::DiscreteHigherOrderSequence{T, -1},
+    seq::DiscreteHigherOrderSequence{T, Val(-1)},
     x::AbstractVector{T},
     y::AbstractVector{T},
     z::AbstractVector{T},
@@ -23,7 +23,7 @@ end
 
 function get_Bz_field!(
     Bz::AbstractVector{T},
-    seq::DiscreteHigherOrderSequence{T, 0},
+    seq::DiscreteHigherOrderSequence{T, Val(0)},
     x::AbstractVector{T},
     y::AbstractVector{T},
     z::AbstractVector{T},
@@ -35,7 +35,7 @@ end
 
 function get_Bz_field!(
     Bz::AbstractVector{T},
-    seq::DiscreteHigherOrderSequence{T, 1},
+    seq::DiscreteHigherOrderSequence{T, Val(1)},
     x::AbstractVector{T},
     y::AbstractVector{T},
     z::AbstractVector{T},
@@ -47,7 +47,7 @@ end
 
 function get_Bz_field!(
     Bz::AbstractVector{T},
-    seq::DiscreteHigherOrderSequence{T, 2},
+    seq::DiscreteHigherOrderSequence{T, Val(2)},
     x::AbstractVector{T},
     y::AbstractVector{T},
     z::AbstractVector{T},

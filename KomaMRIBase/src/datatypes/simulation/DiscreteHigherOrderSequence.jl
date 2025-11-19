@@ -19,7 +19,7 @@ times. DiscreteHigherOrderSequence is the struct used for simulation.
 # Returns
 - `seqd`: (`::DiscreteHigherOrderSequence`) DiscreteHigherOrderSequence struct
 """
-struct DiscreteHigherOrderSequence{T<:Real, order<:Integer} <: AbstractDiscreteSequence{T}
+struct DiscreteHigherOrderSequence{T<:Real, order} <: AbstractDiscreteSequence{T}
     G::AbstractMatrix{T}
     B1::AbstractVector{Complex{T}}
     Δf::AbstractVector{T}
