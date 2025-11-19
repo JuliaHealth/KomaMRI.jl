@@ -8,25 +8,30 @@ using TestItems, TestItemRunner, KomaMRIBase
     # Test Pulseq
     @testset "Pulseq" begin
         pth = @__DIR__
-        seq = @suppress read_seq(pth*"/test_files/epi.seq") #Pulseq v1.4.0, RF arbitrary
+        seq = @suppress read_seq(pth*"/test_files/pulseq/v1.5/gre_rad.seq") #Pulseq v1.5.1
+        @test seq.DEF["FileName"] == "gre_rad.seq"
+        @test seq.DEF["PulseqVersion"] == v"1.5.1"
+        @test seq.DEF["signature"][:hash] == "80eae81bb6b808f2cb4ed5d23885009b"
+        
+        seq = @suppress read_seq(pth*"/test_files/pulseq/v1.4/epi.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "epi.seq"
         @test seq.DEF["PulseqVersion"] == v"1.4.0"
-        @test seq.DEF["signature"] == "67ebeffe6afdf0c393834101c14f3990"
+        @test seq.DEF["signature"][:hash] == "67ebeffe6afdf0c393834101c14f3990"
 
-        seq = @suppress read_seq(pth*"/test_files/spiral.seq") #Pulseq v1.4.0, RF arbitrary
+        seq = @suppress read_seq(pth*"/test_files/pulseq/v1.4/spiral.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "spiral.seq"
         @test seq.DEF["PulseqVersion"] == v"1.4.0"
-        @test seq.DEF["signature"] == "efc5eb7dbaa82aba627a31ff689c8649"
+        @test seq.DEF["signature"][:hash] == "efc5eb7dbaa82aba627a31ff689c8649"
 
-        seq = @suppress read_seq(pth*"/test_files/epi_JEMRIS.seq") #Pulseq v1.2.1
+        seq = @suppress read_seq(pth*"/test_files/pulseq/v1.2/epi_JEMRIS.seq") #Pulseq v1.2.1
         @test seq.DEF["FileName"] == "epi_JEMRIS.seq"
         @test seq.DEF["PulseqVersion"] == v"1.2.1"
-        @test seq.DEF["signature"] == "f291a24409c3e8de01ddb93e124d9ff2"
+        @test seq.DEF["signature"][:hash] == "f291a24409c3e8de01ddb93e124d9ff2"
 
-        seq = @suppress read_seq(pth*"/test_files/radial_JEMRIS.seq") #Pulseq v1.2.1
+        seq = @suppress read_seq(pth*"/test_files/pulseq/v1.2/radial_JEMRIS.seq") #Pulseq v1.2.1
         @test seq.DEF["FileName"] == "radial_JEMRIS.seq"
         @test seq.DEF["PulseqVersion"] == v"1.2.1"
-        @test seq.DEF["signature"] == "e827cfff4436b65a6341a4fa0f6deb07"
+        @test seq.DEF["signature"][:hash] == "e827cfff4436b65a6341a4fa0f6deb07"
 
         # Test Pulseq compression-decompression
         shape = ones(100)
@@ -37,7 +42,7 @@ using TestItems, TestItemRunner, KomaMRIBase
         # Test label capability
         using KomaMRIBase
         
-        seq = @suppress read_seq(pth*"/test_files/label_test.seq") 
+        seq = @suppress read_seq(pth*"/test_files/pulseq/v1.4/label_test.seq") 
         label = get_label(seq)
         m = maximum(label)
         a = AdcLabels(4,0,0,0,0,0,0,2,0,0,0,0)
@@ -53,14 +58,14 @@ using TestItems, TestItemRunner, KomaMRIBase
     # Test JEMRIS
     @testset "JEMRIS" begin
         pth = @__DIR__
-        obj = read_phantom_jemris(pth*"/test_files/column1d.h5")
+        obj = read_phantom_jemris(pth*"/test_files/phantom/column1d.h5")
         @test obj.name == "column1d.h5"
     end
     # Test MRiLab
     @testset "MRiLab" begin
         pth = @__DIR__
-        filename = pth * "/test_files/brain_mrilab.mat"
-        FRange_filename = pth * "/test_files/FRange.mat" #Slab within slice thickness
+        filename = pth * "/test_files/phantom/brain_mrilab.mat"
+        FRange_filename = pth * "/test_files/phantom/FRange.mat" #Slab within slice thickness
         obj = read_phantom_MRiLab(filename; FRange_filename)
         @test obj.name == "brain_mrilab.mat"
     end
@@ -69,7 +74,7 @@ using TestItems, TestItemRunner, KomaMRIBase
         using KomaMRIBase
         pth = @__DIR__
         # NoMotion
-        filename = pth * "/test_files/brain_nomotion_w.phantom"
+        filename = pth * "/test_files/phantom/brain_nomotion_w.phantom"
         obj1 = brain_phantom2D()
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
@@ -78,7 +83,7 @@ using TestItems, TestItemRunner, KomaMRIBase
     @testset "SimpleAction" begin
         # SimpleAction
         pth = @__DIR__
-        filename = pth * "/test_files/brain_simplemotion_w.phantom"
+        filename = pth * "/test_files/phantom/brain_simplemotion_w.phantom"
         obj1 = brain_phantom2D()
         obj1.motion = MotionList(
             rotate(0.0, 0.0, 45.0, Periodic(period=1.0)),
@@ -91,7 +96,7 @@ using TestItems, TestItemRunner, KomaMRIBase
     @testset "ArbitraryAction" begin
         # ArbitraryAction
         pth = @__DIR__
-        filename = pth * "/test_files/brain_arbitrarymotion_w.phantom"
+        filename = pth * "/test_files/phantom/brain_arbitrarymotion_w.phantom"
         obj1 = brain_phantom2D()
         Ns = length(obj1)
         K = 10
@@ -114,7 +119,7 @@ end
     not_empty = ((ek, ep),) -> !isempty(ep.t)
 
     # Reading files
-    pth          = joinpath(@__DIR__, "test_files/pulseq_read_comparison")
+    pth          = joinpath(@__DIR__, "test_files/pulseq/pulseq_read_comparison")
     pulseq_files = filter(endswith(".seq"), readdir(pth)) .|> x -> splitext(x)[1]
     for pulseq_file in pulseq_files
         #@show pulseq_file
