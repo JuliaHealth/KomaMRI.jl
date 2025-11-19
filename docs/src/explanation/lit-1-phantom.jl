@@ -6,7 +6,7 @@ import DisplayAs #hide
 # The first input argument that **KomaMRI** needs for simulating is the phantom. 
 
 # This section goes over the concept of digital phantom and shows how it applies to the specific case
-# of **KomaMRI**. We'll go into detail about the [`Phantom`](@ref) structure and its supported operations.
+# of **KomaMRI**. We'll go into detail about the [`Phantom`](@ref KomaMRIBase.Phantom) structure and its supported operations.
 
 # ## Digital Phantom
 
@@ -22,7 +22,7 @@ import DisplayAs #hide
 # Each spin is independent of the others in terms of properties, position and state.
 # This is a key feature of **KomaMRI**, as it is explained in the [Simulation](6-simulation.md) section.
 
-# Let's take a look at the definition of the [`Phantom`](@ref) struct 
+# Let's take a look at the definition of the [`Phantom`](@ref KomaMRIBase.Phantom) struct 
 # inside Koma's source code to see what it looks like:
 # ```julia
 # @with_kw mutable struct Phantom{T<:Real}
@@ -107,7 +107,7 @@ p2 = plot_phantom_map(obj[1:1000], :T2 ; height=450) #hide
 
 # ### Combination of Phantoms
 
-# In the same way, we can add two or more phantoms, resulting in another [`Phantom`](@ref) struct:
+# In the same way, we can add two or more phantoms, resulting in another [`Phantom`](@ref KomaMRIBase.Phantom) struct:
 obj2 = pelvis_phantom2D()
 obj2.x .+= 0.1; obj.x.-= 0.1 #hide
 obj_sum = obj + obj2

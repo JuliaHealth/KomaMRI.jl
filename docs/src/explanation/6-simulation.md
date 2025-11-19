@@ -8,7 +8,7 @@ The are more internal considerations in the **KomaMRI** implementation. The **Fi
 ```@raw html
 <center><img width="100%" src="../../assets/koma-solution.svg"></center>
 ```
-**Figure 1**: The sequence `seq` is discretized after calculating the required time points in the wrapper function [simulate](@ref). The time points are then divided into `Nblocks` to reduce the amount of memory used. The phantom `obj` is divided into `Nthreads`, and **KomaMRI** will use either `run_spin_excitation!` or `run_spin_precession!` depending on the regime. If an [`ADC`](@ref) object is present, the simulator will add the signal contributions of each thread to construct the acquired signal `sig[t]`. All the parameters: `Nthreads`, `Nblocks`, `Δt_rf`, and `Δt`, are passed through a dictionary called `sim_params` as an optional parameter of the simulate function.
+**Figure 1**: The sequence `seq` is discretized after calculating the required time points in the wrapper function [simulate](@ref). The time points are then divided into `Nblocks` to reduce the amount of memory used. The phantom `obj` is divided into `Nthreads`, and **KomaMRI** will use either `run_spin_excitation!` or `run_spin_precession!` depending on the regime. If an [`ADC`](@ref KomaMRIBase.ADC) object is present, the simulator will add the signal contributions of each thread to construct the acquired signal `sig[t]`. All the parameters: `Nthreads`, `Nblocks`, `Δt_rf`, and `Δt`, are passed through a dictionary called `sim_params` as an optional parameter of the simulate function.
 
 From the programming perspective, it is needed to call the [`simulate`](@ref) function with the `sim_params` dictionary keyword argument. A user can change the values of the following keys:
 
