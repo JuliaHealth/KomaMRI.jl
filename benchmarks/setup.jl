@@ -7,7 +7,7 @@ end
 
 function setup_MRILab_benchmark()
     sys = Scanner()
-    sys.Smax = 150    # [mT/m/ms]
+    sys.Smax = 150.0    # [mT/m/ms]
     sys.Gmax = 500e-3 # [T/m]
     sys.GR_Δt = 4e-6  # [s]
     FOV = 0.2         # [m]
