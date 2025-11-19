@@ -438,7 +438,7 @@ function read_seq(filename)
                 end
             elseif  section == "[GRADIENTS]"
                 if pulseq_version >= v"1.5.0"
-                    gradLibrary = read_events(io, [1/γ 1 1 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.5.x format
+                    gradLibrary = read_events(io, [1/γ 1/γ 1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.5.x format
                 elseif pulseq_version >= v"1.4.0"
                     gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format
                 else
@@ -561,6 +561,7 @@ function read_seq(filename)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = pulseq_version
+    seq.DEF["signature"] = signature
     # Guessing recon dimensions
     seq.DEF["Nx"] = trunc(Int64, get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC)))
     seq.DEF["Nz"] = trunc(Int64, get(seq.DEF, "Nz", length(unique(seq.RF.Δf))))
@@ -855,32 +856,6 @@ function supported_signature_digest(algorithm::AbstractString, payload::Vector{U
         throw(ArgumentError("Unsupported signature algorithm '$algorithm'. Supported algorithms: md5, sha1, sha256."))
     end
     lowercase(bytes2hex(digest))
-end
-
-function extract_signature_payload(text::AbstractString; pulseq_version::VersionNumber=v"1.4.0")
-    sig_range = findfirst(r"\[SIGNATURE\]", text)
-    sig_range === nothing && return text, nothing
-    sig_start = first(sig_range)
-    separator_index = prevind(text, sig_start)
-    
-    # For Pulseq < 1.4.0 (e.g., JEMRIS), the newline before [SIGNATURE] is part of the payload
-    # For Pulseq >= 1.4.0, the newline before [SIGNATURE] is part of the signature and should be excluded
-    if pulseq_version < v"1.4.0"
-        # Include the newline before [SIGNATURE] in the payload (JEMRIS format)
-        payload = separator_index < firstindex(text) ? "" : text[firstindex(text):separator_index]
-    else
-        # Exclude the newline before [SIGNATURE] from the payload (spec-compliant)
-    payload = if separator_index < firstindex(text)
-        ""
-    elseif text[separator_index] in ['\n', '\r']
-        payload_end = prevind(text, separator_index)
-        payload_end < firstindex(text) ? "" : text[firstindex(text):payload_end]
-    else
-        text[firstindex(text):separator_index]
-        end
-    end
-    signature_section = text[sig_start:end]
-    payload, signature_section
 end
 
 function parse_signature_section(section::AbstractString)
