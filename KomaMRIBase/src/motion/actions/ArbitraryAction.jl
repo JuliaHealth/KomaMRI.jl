@@ -7,9 +7,6 @@ function Base.view(action::ArbitraryAction, p)
     return typeof(action)([@view(getfield(action, d)[p,:]) for d in fieldnames(typeof(action))]...)
 end
 
-Base.:(==)(m1::ArbitraryAction, m2::ArbitraryAction) = (typeof(m1) == typeof(m2)) & reduce(&, [getfield(m1, field) == getfield(m2, field) for field in fieldnames(typeof(m1))])
-Base.:(≈)(m1::ArbitraryAction, m2::ArbitraryAction)  = (typeof(m1) == typeof(m2)) & reduce(&, [getfield(m1, field)  ≈ getfield(m2, field) for field in fieldnames(typeof(m1))])
-
 function displacement_x!(ux, action::ArbitraryAction, x, y, z, t)
     itp = interpolate(action.dx, Gridded(Linear()), Val(size(action.dx,1)), t)
     ux .= resample(itp, t)

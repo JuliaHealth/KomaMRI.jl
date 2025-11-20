@@ -159,6 +159,7 @@ jobs:
     if: '!cancelled()'
     name: Documentation
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@v2
