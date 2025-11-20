@@ -225,17 +225,36 @@ is_composable(m::Motion) = is_composable(m.action)
 """
 function add_key_time_points!(t, m::Motion)
     add_key_time_points!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods, m.time.periodic)
+    return nothing
 end
 function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic) where T
-    aux = T[]
+    isempty(t) && return
+    aux = T[] 
     period = sum((t_end - t_start) .* periods)
     t_max = maximum(t)
     add_period_times!(aux, t_start, t_end, periods)
     add_reset_times!(aux, a, t_start, t_end, periods)
-    if periodic
-        for n in 1:floor(t_max/period) append!(aux, aux .+ n*period) end
-    end
+    extend_periodic!(aux, t_max, period, Val(periodic))
     append!(t, aux[aux .<= t_max])
+    return nothing
+end
+
+"""
+    extend_periodic!(aux, t_max, period, periodic)
+"""
+function extend_periodic!(aux, t_max, period, periodic::Val{false})
+    return nothing
+end
+function extend_periodic!(aux, t_max, period, periodic::Val{true})
+    n_periods = floor(Int, t_max / period)
+    if n_periods > 0
+        initial_size = length(aux)
+        sizehint!(aux, initial_size * (n_periods + 1))
+        for n in 1:n_periods
+            append!(aux, aux[1:initial_size] .+ n*period)
+        end
+    end
+    return nothing
 end
 
 """
@@ -244,11 +263,12 @@ end
 function add_period_times!(t, t_start, t_end, periods)
     period_times = times([t_start, t_end], t_start, t_end, periods)
     append!(t, period_times .+ MIN_RISE_TIME .* ((-1) .^ ((1:length(period_times)) .+ 1)))
+    return nothing
 end
 
 """
     add_reset_times!(t, action, t_start, t_end, periods)
-"""
+""" 
 function add_reset_times!(t, ::AbstractAction, t_start, t_end, periods)
     return nothing 
 end
