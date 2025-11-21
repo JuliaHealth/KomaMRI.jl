@@ -1,7 +1,10 @@
 name = "KomaMRIPlots"
 uuid = "76db0263-63f3-4d26-bb9a-5dba378db904"
-authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 version = "0.9.5"
+authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
+
+[workspace]
+projects = ["test"]
 
 [deps]
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
@@ -21,7 +24,7 @@ KomaPlotsPlutoPlotlyExt = "PlutoPlotly"
 [compat]
 Interpolations = "0.13, 0.14, 0.15, 0.16"
 KomaMRIBase = "0.9.4"
-MAT = "0.10"
+MAT = "0.10, 0.11"
 PlotlyJS = "0.18"
 PlutoPlotly = "0.4, 0.5, 0.6"
 QMRIColors = "1"
@@ -30,6 +33,3 @@ julia = "1.9"
 
 [extras]
 PlutoPlotly = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
-
-[workspace]
-projects = ["test"]
