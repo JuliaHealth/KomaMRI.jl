@@ -66,8 +66,8 @@ function run_spin_precession!(
     Mxy = prealloc.M.xy
     ΔBz = prealloc.ΔBz
     fill!(ϕ, zero(T))
-    @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + ΔBz
-
+    Bz_old = get_Bz(seq, x, y, z, 1) + ΔBz
+    
     # Fill sig[1] if needed
     ADC_idx = 1
     if (seq.ADC[1])
@@ -81,7 +81,7 @@ function run_spin_precession!(
         t_seq += seq.Δt[seq_idx-1]
 
         #Effective Field
-        @. Bz_new = x * seq.Gx[seq_idx] + y * seq.Gy[seq_idx] + z * seq.Gz[seq_idx] + ΔBz
+        Bz_new = get_Bz(seq, x, y, z, seq_idx) + ΔBz
         
         #Rotation
         @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[seq_idx-1]
@@ -136,24 +136,24 @@ function run_spin_excitation!(
     Maux_z = prealloc.M.z
 
     #Simulation
-    for s in seq #This iterates over seq, "s = seq[i,:]"
+    for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
+        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i])
         #Effective field
-        @. Bz = (s.Gx * x + s.Gy * y + s.Gz * z) + ΔBz - s.Δf / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        @. B = sqrt(abs(s.B1)^2 + abs(Bz)^2)
+        Bz .= get_Bz(seq, x, y, z, i) .+ ΔBz .- seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        @. B = sqrt(abs(seq.B1[i])^2 + abs(Bz)^2)
         @. B[B == 0] = eps(T)
         #Spinor Rotation
-        @. φ = T(-π * γ) * (B * s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler 
+        @. φ = T(-π * γ) * (B * seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler 
         @. α = cos(φ) - Complex{T}(im) * (Bz / B) * sin(φ)
-        @. β = -Complex{T}(im) * (s.B1 / B) * sin(φ)
+        @. β = -Complex{T}(im) * (seq.B1[i] / B) * sin(φ)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
-        @. M.xy = M.xy * exp(-s.Δt / p.T2)
-        @. M.z = M.z * exp(-s.Δt / p.T1) + p.ρ * (T(1) - exp(-s.Δt / p.T1))
+        @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
+        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
         
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M,  s.t, p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=p.ρ)
     end
     #Acquired signal
     #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block

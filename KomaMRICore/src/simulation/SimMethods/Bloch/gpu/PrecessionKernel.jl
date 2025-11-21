@@ -4,7 +4,7 @@
     sig_output::AbstractMatrix{Complex{T}}, 
     M_xy, M_z, 
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
-    @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_ADC), s_length,
+    seq::AbstractDiscreteSequence, s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION},
 ) where {T, MOTION, USE_WARP_REDUCTION}
 
@@ -37,11 +37,11 @@
         ΔBz = p_ΔBz[i]
         T2 = p_T2[i]
         x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
-        Bz_prev = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz
+        Bz_prev = get_Bz(seq, x, y, z, 1) + ΔBz
     end
 
     ADC_idx = 1u32
-    if s_ADC[1]
+    if seq.ADC[1]
         sig_r, sig_i = reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
         if i_l == 1u32
             sig_output[i_g, 1] = complex(sig_r, sig_i)
@@ -56,13 +56,13 @@
                 x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, s_idx)
             end
 
-            Δt = s_Δt[s_idx-1]
+            Δt = seq.Δt[s_idx-1]
             t += Δt
-            Bz_next = x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx] + ΔBz
+            Bz_next = get_Bz(seq, x, y, z, s_idx) + ΔBz
             ϕ += (Bz_prev + Bz_next) * T(-π * γ) * Δt
         end
 
-        if s_idx < s_length && s_ADC[s_idx]
+        if s_idx < s_length && seq.ADC[s_idx]
             if i <= N_spins
                 ΔT2 = exp(-t / T2)
                 cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
