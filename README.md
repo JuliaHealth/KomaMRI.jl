@@ -60,6 +60,7 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 - [Tested compatibility](#tested-compatibility) 
 
 ## News
+- **(23 Jul 2025)** KomaMRI.jl was presented at JuliaCon 2025. Video available [here](https://youtu.be/YO-nLLfV27A?si=Us3QySMK0l1ItCvY), and slides [here](https://github.com/cncastillo/KomaMRI_JuliaCon2025).
 - **(16 Jun 2025)** [KomaMRI v0.9.1](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.9.1) has received a **perfect score** in the Open Source Imaging Initiative (OSI²) CAB Review 🥳! Read the full review report [here](https://gitlab.com/osiiev/cab/-/blob/main/review/projects/KomaMRI/v0.9.1/review_report.md).
 - **(1 Oct 2024)** [KomaMRI v0.9](https://github.com/JuliaHealth/KomaMRI.jl/releases/tag/v0.9.0): device-agnostic simulations, improved performance (**4-5x faster and 80x less memory**), distributed simulations, GPU benchmarking, mix-and-match motion definitions, improved dynamic phantom plotting, and a new phantom file format!
 - **(29 Aug 2024)** Our first GSoC student, Ryan Kierulf, presented his fantastic work at the JuliaHealth monthly meeting 🥳! (presentation available [here](https://www.youtube.com/watch?v=R6Z20G0J4bM)) More info in the docs: [GPU Parallelization](https://juliahealth.org/KomaMRI.jl/dev/explanation/7-gpu-explanation/), [Distributed Simulations](https://juliahealth.org/KomaMRI.jl/dev/how-to/4-run-distributed-simulations/) and [Ryan's JuliaHealth blog](https://juliahealth.org/JuliaHealthBlog/posts/ryan-gsoc/Ryan_GSOC.html)
