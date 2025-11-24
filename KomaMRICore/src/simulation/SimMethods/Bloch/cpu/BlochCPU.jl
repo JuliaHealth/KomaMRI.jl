@@ -66,7 +66,7 @@ function run_spin_precession!(
     Mxy = prealloc.M.xy
     ΔBz = prealloc.ΔBz
     fill!(ϕ, zero(T))
-    Bz_old = get_Bz(seq, x, y, z, 1) + ΔBz
+    Bz_old .= get_Bz(seq, x, y, z, 1) .+ ΔBz
     
     # Fill sig[1] if needed
     ADC_idx = 1
@@ -81,7 +81,7 @@ function run_spin_precession!(
         t_seq += seq.Δt[seq_idx-1]
 
         #Effective Field
-        Bz_new = get_Bz(seq, x, y, z, seq_idx) + ΔBz
+        Bz_new .= get_Bz(seq, x, y, z, seq_idx) .+ ΔBz
         
         #Rotation
         @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[seq_idx-1]
