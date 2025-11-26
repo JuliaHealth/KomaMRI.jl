@@ -297,18 +297,20 @@ function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_blo
     return ranges, ranges_bool
 end
 
-"Conditional use of @time macro"
-macro maybe_time(flag, expr)
+"""
+@maybe_time verbose expr
+
+Run `expr` under `@time` when `verbose` is true, otherwise run `expr` normally.
+"""
+macro maybe_time(verbose, expr)
     quote
-        if $(esc(flag))
+        if $(esc(verbose))
             @time $(esc(expr))
         else
             $(esc(expr))
         end
     end
 end
-
-
 
 """
     out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; sim_params, w)

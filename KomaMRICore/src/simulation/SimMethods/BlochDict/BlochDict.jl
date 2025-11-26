@@ -72,3 +72,10 @@ function run_spin_precession!(
     outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     return nothing
 end
+
+function acquire_signal!(sig, sample, M, sim_method::BlochDict)
+    sig[sample, :, 1] .= M.xy
+    if sim_method.save_Mz
+        sig[sample, :, 2] .= M.z
+    end
+end
