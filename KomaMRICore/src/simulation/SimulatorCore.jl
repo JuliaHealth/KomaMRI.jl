@@ -297,6 +297,19 @@ function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_blo
     return ranges, ranges_bool
 end
 
+"Conditional use of @time macro"
+macro maybe_time(flag, expr)
+    quote
+        if $(esc(flag))
+            @time $(esc(expr))
+        else
+            $(esc(expr))
+        end
+    end
+end
+
+
+
 """
     out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; sim_params, w)
 
@@ -392,7 +405,7 @@ function simulate(
         @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
             pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points = Ndims[1]
     end
-    ret = @timed run_sim_time_iter!(
+    @maybe_time verbose ret = @timed run_sim_time_iter!(
         obj,
         seqd,
         sig,
@@ -408,9 +421,6 @@ function simulate(
         sim_params,
         callbacks=all_callbacks,
     )
-    if verbose # This is the same as @time. Base.time_print is internal
-        Base.time_print(stdout, ret.time*1e9, ret.gcstats.allocd, ret.gcstats.total_time, Base.gc_alloc_count(ret.gcstats), ret.lock_conflicts, ret.compile_time*1e9, ret.recompile_time*1e9, true)
-    end
     # Result to CPU, if already in the CPU it does nothing
     sig = sig |> cpu
     sig = sum(sig; dims=length(Ndims) + 1) #Sum over threads, no-op for gpu (Nthreads=1)
