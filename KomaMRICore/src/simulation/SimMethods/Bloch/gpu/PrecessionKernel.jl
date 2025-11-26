@@ -42,14 +42,6 @@
     end
 
     ADC_idx = 1u32
-    if s_ADC[1]
-        sig_r, sig_i = reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
-        if i_l == 1u32
-            sig_output[i_g, 1] = complex(sig_r, sig_i)
-        end
-        ADC_idx += 1u32
-    end
-
     s_idx = 2u32
     while s_idx <= s_length
         if i <= N_spins
@@ -63,7 +55,7 @@
             ϕ += (Bz_prev + Bz_next) * T(-π * γ) * Δt
         end
 
-        if s_idx < s_length && s_ADC[s_idx]
+        if s_idx <= s_length && s_ADC[s_idx]
             if i <= N_spins
                 E2 = exp(-t / T2)
                 cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
