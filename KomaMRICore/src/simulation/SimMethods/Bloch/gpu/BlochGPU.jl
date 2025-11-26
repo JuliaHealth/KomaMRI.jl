@@ -36,7 +36,7 @@ function run_spin_precession!(
         pre.sig_output,
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
-        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.Δt)+1),
+        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)),
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
