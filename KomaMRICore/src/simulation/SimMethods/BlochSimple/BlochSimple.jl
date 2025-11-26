@@ -107,9 +107,20 @@ function run_spin_excitation!(
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            sig[sample] = sum(M.xy) 
+            acquire_signal!(sig, sample, M, sim_method)
             sample += 1
         end
     end
     return nothing
+end
+
+function acquire_signal!(sig, sample, M, sim_method::BlochSimple)
+    sig[sample, :] = sum(M.xy) 
+end
+
+function acquire_signal!(sig, sample, M, sim_method::BlochDict)
+    sig[sample, :, 1] .= M.xy
+    if sim_method.save_Mz
+        sig[sample, :, 2] .= M.z
+    end
 end
