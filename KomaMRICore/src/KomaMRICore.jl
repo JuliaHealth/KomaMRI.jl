@@ -17,6 +17,7 @@ include("rawdata/ISMRMRD.jl")
 # Datatypes
 include("datatypes/Spinor.jl")
 include("other/DiffusionModel.jl")
+include("callbacks/Callback.jl")
 # Simulator
 include("simulation/GPUFunctions.jl")
 include("simulation/Functors.jl")
@@ -30,5 +31,7 @@ export Mag
 export simulate, simulate_slice_profile
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
+# Callback
+export Callback
 
 end

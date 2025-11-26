@@ -155,7 +155,7 @@ take advantage of CPU parallel processing.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
-- `seq`: (`::Sequence`) Sequence struct
+- `seqd`: (`::DiscreteSequence`) Sequence struct
 - `t`: (`::Vector{Float64}`, `[s]`) non-uniform time vector
 - `Δt`: (`::Vector{Float64}`, `[s]`) delta time of `t`
 
@@ -163,9 +163,8 @@ take advantage of CPU parallel processing.
 - `Nblocks`: (`::Int`, `=1`) number of groups for spliting the simulation over time
 - `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
-- `gpu`: (`::Function`) function that represents the gpu of the host
-- `w`: (`::Any`, `=nothing`) flag to regard a progress bar in the blink window UI. If
-    this variable is differnet from nothing, then the progress bar is considered
+- `callbacks`: (`::Tuple`, `=()`) tuple of callback functions to be executed
+    at the end of each simulation block
 
 # Returns
 - `S_interp`: (`::Vector{ComplexF64}`) interpolated raw signal
@@ -173,7 +172,7 @@ take advantage of CPU parallel processing.
 """
 function run_sim_time_iter!(
     obj::Phantom,
-    seq::DiscreteSequence,
+    seqd::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -182,49 +181,48 @@ function run_sim_time_iter!(
     Nthreads=Threads.nthreads(),
     precession_groupsize=DEFAULT_PRECESSION_GROUPSIZE,
     excitation_groupsize=DEFAULT_EXCITATION_GROUPSIZE,
-    parts=[1:length(seq)],
+    parts=[1:length(seqd)],
     excitation_bool=ones(Bool, size(parts)),
-    w=nothing,
+    sim_params=Dict{String,Any}(),
+    callbacks=(),
 ) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
-    progress_bar = Progress(Nblocks; desc="Running simulation...")
     prealloc_result = prealloc(sim_method, backend, obj, Xt, maximum(length.(parts))+1, precession_groupsize)
 
     (precession_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
     (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
 
     for (block, p) in enumerate(parts)
-        seq_block = @view seq[p]
+        seqd_block = @view seqd[p]
         # Params
-        Nadc = sum(seq_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
+        Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool[block]
             run_spin_excitation_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, 
+                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, 
                 sim_method, excitation_groupsize, backend, prealloc_result; Nthreads
             )
             rfs += 1
 
         else
             run_spin_precession_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, 
+                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, 
                 sim_method, precession_groupsize, backend, prealloc_result; Nthreads
             )
         end
         KA.synchronize(backend)
         samples += Nadc
-        #Update progress
-        next!(
-            progress_bar;
-            showvalues=[
-                (:simulated_blocks, block), (:rf_blocks, rfs), (:acq_samples, samples - 1)
-            ],
-        )
-        update_blink_window_progress!(w, block, Nblocks)
+        # Callbacks
+        progress_info = (; block, Nblocks, rfs, samples)
+        simulation_blocks_info = (; excitation_bool, parts)
+        device_data = (; obj, seqd, sig, Xt)
+        for cb in callbacks
+            cb(progress_info, simulation_blocks_info, device_data, sim_params)
+        end
     end
 
     return nothing
@@ -322,6 +320,9 @@ This is a wrapper function to `run_sim_time_iter`, which converts the inputs to 
 - `w`: (`::Blink.AtomShell.Window`, `=nothing`) the window within which to display a
     progress bar in the Blink Window UI. If this variable is anything other than 'nothing',
     the progress bar will be considered
+- `verbose`: (`::Bool`, `=true`) flag to print or not simulation information
+- `callbacks`: (`::Tuple`, `=()`) vector of callback functions to be executed
+    at the end of each simulation block
 
 # Returns
 - `out`: (`::Vector{Complex}` or `::SpinStateRepresentation` or `::RawAcquisitionData`) depending
@@ -339,7 +340,7 @@ julia> plot_signal(raw)
 ```
 """
 function simulate(
-    obj::Phantom, seq::Sequence, sys::Scanner; sim_params=Dict{String,Any}(), w=nothing
+    obj::Phantom, seq::Sequence, sys::Scanner; sim_params=Dict{String,Any}(), verbose=true, callbacks=()
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
@@ -351,6 +352,7 @@ function simulate(
     # Simulation init
     seqd = discretize(seq; sampling_params=sim_params, motion=obj.motion) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; max_block_length=sim_params["max_block_length"], max_rf_block_length=sim_params["max_rf_block_length"]) # Generating simulation blocks
+    Nblocks = length(parts)
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
@@ -393,25 +395,30 @@ function simulate(
     end
 
     # Simulation
-    @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
-        pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
-        seqd.t
-    ) adc_points = Ndims[1]
-    @time timed_tuple = @timed run_sim_time_iter!(
+    all_callbacks = (callbacks..., Callback(verbose, 1, progressbar_callback(Nblocks)))
+    if verbose
+        @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
+            pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points = Ndims[1]
+    end
+    ret = @timed run_sim_time_iter!(
         obj,
         seqd,
         sig,
         Xt,
         sim_params["sim_method"],
         backend;
-        Nblocks=length(parts),
+        Nblocks=Nblocks,
         Nthreads=sim_params["Nthreads"],
         precession_groupsize=sim_params["gpu_groupsize_precession"],
         excitation_groupsize=sim_params["gpu_groupsize_excitation"],
         parts,
         excitation_bool,
-        w,
+        sim_params,
+        callbacks=all_callbacks,
     )
+    if verbose # This is the same as @time. Base.time_print is internal
+        Base.time_print(stdout, ret.time*1e9, ret.gcstats.allocd, ret.gcstats.total_time, Base.gc_alloc_count(ret.gcstats), ret.lock_conflicts, ret.compile_time*1e9, ret.recompile_time*1e9, true)
+    end
     # Result to CPU, if already in the CPU it does nothing
     sig = sig |> cpu
     sig = sum(sig; dims=length(Ndims) + 1) #Sum over threads, no-op for gpu (Nthreads=1)
@@ -429,9 +436,9 @@ function simulate(
         sim_params_raw["gpu_device"] = backend isa KA.GPU ? gpu_name : "nothing"
         sim_params_raw["t_sim_parts"] = t_sim_parts
         sim_params_raw["type_sim_parts"] = excitation_bool
-        sim_params_raw["Nblocks"] = length(parts)
-        sim_params_raw["sim_time_sec"] = timed_tuple.time
-        sim_params_raw["allocations_bytes"] = timed_tuple.bytes
+        sim_params_raw["Nblocks"] = Nblocks
+        sim_params_raw["sim_time_sec"] = ret.time
+        sim_params_raw["allocations_bytes"] = ret.bytes
 
         out = signal_to_raw_data(
             sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw
