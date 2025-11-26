@@ -228,11 +228,6 @@ function run_sim_time_iter!(
     return nothing
 end
 
-"""Updates KomaUI's simulation progress bar."""
-function update_blink_window_progress!(w::Nothing, block, Nblocks)
-    return nothing
-end
-
 """Split if simulation block is too long (more than max_block_length)"""
 function split_range(r, max_block_length)
     Ldt = length(r) - 1                     # number of intervals (dts)
@@ -317,9 +312,6 @@ This is a wrapper function to `run_sim_time_iter`, which converts the inputs to 
 
 # Keywords
 - `sim_params`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
-- `w`: (`::Blink.AtomShell.Window`, `=nothing`) the window within which to display a
-    progress bar in the Blink Window UI. If this variable is anything other than 'nothing',
-    the progress bar will be considered
 - `verbose`: (`::Bool`, `=true`) flag to print or not simulation information
 - `callbacks`: (`::Tuple`, `=()`) vector of callback functions to be executed
     at the end of each simulation block
