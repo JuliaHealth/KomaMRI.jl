@@ -115,5 +115,5 @@ function run_spin_excitation!(
 end
 
 function acquire_signal!(sig, sample, M, sim_method::BlochSimple)
-    sig[sample, :] = sum(M.xy) 
+    sig[sample, :] .= sum(M.xy) 
 end
