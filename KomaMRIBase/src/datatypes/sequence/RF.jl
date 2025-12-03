@@ -189,8 +189,12 @@ RF delay.
 - `t`: (`::Int64`, `[s]`) time where is the center of the RF pulse `x`
 """
 get_RF_center(x::RF) = begin
-    t = times(x)
-    B1 = ampls(x)
-    t_center = sum(abs.(B1) .* t) ./ sum(abs.(B1))
+    if x.use != Undefined() &&  x.center != 0.0
+        t_center = x.center
+    else
+        t = times(x)
+        B1 = ampls(x)
+        t_center = sum(abs.(B1) .* t) ./ sum(abs.(B1))
+    end
     return t_center
 end
