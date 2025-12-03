@@ -425,25 +425,29 @@ Get RF centers and types (excitation or precession). Useful for k-space calculat
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 - `t`: (`::Vector{Float64}`, `[s]`) time values
+- `ex_rf_th`: (`::Real`, `=90.01`, `[deg]`) flip angle threshold to distinguish between
+	excitation and precession RF types
 
 # Returns
 - `rf_idx`: (`::Vector{Int64}`) indices of the RF centers
 - `rf_type`: (`::Vector{Int64}`, opts: [`0`, `1`]) RF type (`0`: excitation, `1`:
     precession)
 """
-function get_RF_types(seq, t)
-	α = get_flip_angles(seq)
+function get_RF_types(seq, t; ex_rf_th = 90.01)
+α = get_flip_angles(seq)
 	RF_mask = is_RF_on.(seq)
-	RF_ex = (α .<= 90.01) .* RF_mask
-	RF_rf = (α .>  90.01) .* RF_mask
+	RF_ex = (α .<= ex_rf_th) .* RF_mask
+	RF_rf = (α .>  ex_rf_th) .* RF_mask
 	rf_idx = Int[]
-	rf_type = Int[] #cambiar a tipo RFUse
+	rf_type = Vector{Any}()#Int[] #cambiar a tipo RFUse
 	T0 = get_block_start_times(seq)
 	for i = 1:length(seq)
 		if is_RF_on(seq[i])
 			trf = get_RF_center(seq[i].RF[1]) + T0[i]
 			append!(rf_idx, argmin(abs.(trf.-t)))
-			if RF_ex[i]
+			if seq[i].RF.use != Undefined()
+				append!(rf_type, seq[i].RF.use)
+			elseif RF_ex[i]
 				append!(rf_type, 0) #Excitation
 			elseif RF_rf[i]
 				append!(rf_type, 1) #Refocuse
@@ -487,12 +491,18 @@ function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))
 		for (rf, p) in enumerate(parts)
 			mk[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^k .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
 			if rf > 1 # First part does not have RF
-				#if !skip_rf[rf-1]
-				if rf_type[rf-1] == 0 # Excitation
+				if rf_type[rf-1] != Undefined()
+					if rf_type[rf-1] == Excitation() # Explicit Excitation
+						mk[p,i] .-= 0
+					elseif rf_type[rf-1] == Refocusing() # Explicit Refocuse
+						mk[p,i] .-= mkf		
+					else
+						mk[p,i] .+= mkf
+					end
+				elseif rf_type[rf-1] == 0 # Excitation
 					mk[p,i] .-= 0
 				elseif rf_type[rf-1] == 1 # Refocuse
 					mk[p,i] .-= mkf
-				#end
 				else
 					mk[p,i] .+= mkf
 				end
