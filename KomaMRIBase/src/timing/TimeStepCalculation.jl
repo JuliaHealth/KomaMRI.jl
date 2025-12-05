@@ -122,7 +122,7 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
         end
         append!(t, t_block)
 	end
-	add_jump_times!(t, motion)
+	add_key_time_points!(t, motion)
 	# Removing repeated points
 	sort!(unique!(t))
 	# Fixes a problem with ADC at the start and end of the seq

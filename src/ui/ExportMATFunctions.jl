@@ -65,13 +65,8 @@ function export_2_mat_raw(raw_ismrmrd, matfolder; matfilename="raw.mat");
         dict_for_mat = Dict()
         dict_user_params = raw_ismrmrd.params["userParameters"]
         for (key, value) in dict_user_params
-            if key == "Δt_rf"
-                dict_for_mat["dt_rf"] = value
-            elseif key == "Δt"
-                dict_for_mat["dt_rf"] = value
-            else
-                dict_for_mat[key] = value
-            end
+            ascii_key = replace(key, "Δ" => "d") # MATLAB does not support non-ascii characters in variable names
+            dict_for_mat[ascii_key] = value
         end
         matwrite(joinpath(matfolder, "sim_params.mat"), dict_for_mat)
 

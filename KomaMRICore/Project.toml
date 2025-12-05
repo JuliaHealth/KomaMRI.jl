@@ -1,7 +1,7 @@
 name = "KomaMRICore"
 uuid = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
-version = "0.9.5"
+version = "0.9.6"
 
 [deps]
 AcceleratedKernels = "6a4ca0a5-0e36-4168-a932-d9be78d558f1"
@@ -32,7 +32,7 @@ Adapt = "3, 4"
 CUDA = "3, 4, 5"
 Functors = "0.4, 0.5"
 KernelAbstractions = "^0.9.34"
-KomaMRIBase = "0.9.4"
+KomaMRIBase = "0.9.7"
 Metal = "^1.2"
 ProgressMeter = "1"
 Reexport = "1"

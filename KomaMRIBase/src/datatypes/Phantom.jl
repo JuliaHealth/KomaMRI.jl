@@ -72,6 +72,9 @@ function Base.:(≈)(obj1::Phantom, obj2::Phantom)
     if length(obj1) != length(obj2) return false end
     return reduce(&, [getfield(obj1, field)  ≈ getfield(obj2, field) for field in NON_STRING_PHANTOM_FIELDS])
 end
+# Comparison between two different motion types is always false:
+Base.:(==)(::Union{NoMotion, Motion, MotionList}, ::Union{NoMotion, Motion, MotionList}) = false
+Base.:(≈)(::Union{NoMotion, Motion, MotionList},  ::Union{NoMotion, Motion, MotionList}) = false
 
 """Separate object spins in a sub-group"""
 function Base.getindex(obj::Phantom, p)

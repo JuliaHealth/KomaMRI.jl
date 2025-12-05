@@ -130,22 +130,6 @@ end
 """ MotionList length """
 Base.length(m::MotionList) = length(m.motions)
 
-"""
-    x, y, z = get_spin_coords(motionset, x, y, z, t)
-
-Calculates the position of each spin at a set of arbitrary time instants, i.e. the time steps of the simulation. 
-For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `length(t)` columns.
-
-# Arguments
-- `motion`: (`::Union{NoMotion, MotionList{T<:Real}}`) phantom motion
-- `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
-- `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
-- `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
-- `t`: horizontal array of time instants
-
-# Returns
-- `x, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
-"""
 function get_spin_coords(
     ml::MotionList{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
 ) where {T<:Real}
@@ -157,7 +141,7 @@ function get_spin_coords(
     ux, uy, uz = xt .* zero(T), yt .* zero(T), zt .* zero(T)
     # Composable motions: they need to be run sequentially. Note that they depend on xt, yt, and zt
     for m in Iterators.filter(is_composable, ml.motions)
-        t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
+        t_unit = unit_time(t, m.time)
         idx = get_indexing_range(m.spins)
         displacement_x!(@view(ux[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
@@ -167,7 +151,7 @@ function get_spin_coords(
     end
     # Additive motions: these motions can be run in parallel
     for m in Iterators.filter(!is_composable, ml.motions)
-        t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
+        t_unit = unit_time(t, m.time)
         idx = get_indexing_range(m.spins)
         displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
@@ -182,7 +166,7 @@ end
     times = times(motion)
 """
 function times(ml::MotionList)
-    nodes = reduce(vcat, [times(m) for m in ml.motions])
+    nodes = reduce(vcat, [times(m.time) for m in ml.motions])
     return unique(sort(nodes))
 end
 
@@ -190,11 +174,11 @@ end
     sort_motions!(motion)
 
 Sorts motions in a list according to their starting time. It modifies the original list.
-If `motionset::NoMotion`, this function does nothing.
-If `motionset::MotionList`, this function sorts its motions.
+If `motion::Union{NoMotion, Motion}`, this function does nothing.
+If `motion::MotionList`, this function sorts its motions.
 
 # Arguments
-- `motion`: (`::Union{NoMotion, MotionList{T<:Real}}`) phantom motion
+- `motion`: (`::Union{NoMotion, Motion{T<:Real} MotionList{T<:Real}}`) phantom motion
 
 # Returns
 - `nothing`
@@ -204,8 +188,8 @@ function sort_motions!(m::MotionList)
     return nothing
 end
 
-function add_jump_times!(t, ml::MotionList)
+function add_key_time_points!(t, ml::MotionList)
     for m in ml.motions
-        add_jump_times!(t, m)
+        add_key_time_points!(t, m)
     end
 end
