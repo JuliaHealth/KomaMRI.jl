@@ -32,6 +32,7 @@ precession.
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Scanner{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::BlochDict,

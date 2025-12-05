@@ -48,6 +48,7 @@ that they can be re-used from block to block.
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Scanner{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::Bloch,
@@ -67,11 +68,10 @@ function run_spin_precession!(
     ΔBz = prealloc.ΔBz
     fill!(ϕ, zero(T))
     @. Bz_old = x[:,1] * seq.Gx[1] + y[:,1] * seq.Gy[1] + z[:,1] * seq.Gz[1] + ΔBz
-
     # Fill sig[1] if needed
     ADC_idx = 1
     if (seq.ADC[1])
-        sig[1] = sum(M.xy)
+        acquire_signal!(transpose(@view(sig[ADC_idx,:])), p, sys.rf_coils, M.xy)
         ADC_idx += 1
     end
 
@@ -92,8 +92,7 @@ function run_spin_precession!(
 
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[seq_idx], p.motion)
-
-            sig[ADC_idx] = sum(Mxy) 
+            acquire_signal!(transpose(@view(sig[ADC_idx,:])), p, sys.rf_coils, Mxy)
             ADC_idx += 1
         end
 
@@ -102,7 +101,7 @@ function run_spin_precession!(
 
     #Final Spin-State
     @. M.xy = M.xy * exp(-t_seq / p.T2) * cis(ϕ)
-    @. M.z = M.z * exp(-t_seq / p.T1) + p.ρ * (T(1) - exp(-t_seq / p.T1))
+    @. M.z = M.z * exp(-t_seq / p.T1) + abs.(p.ρ) * (T(1) - exp(-t_seq / p.T1))
     
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
@@ -150,7 +149,7 @@ function run_spin_excitation!(
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
-        @. M.z = M.z * exp(-s.Δt / p.T1) + p.ρ * (T(1) - exp(-s.Δt / p.T1))
+        @. M.z = M.z * exp(-s.Δt / p.T1) + abs.(p.ρ) * (T(1) - exp(-s.Δt / p.T1))
         
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset!(M,  s.t, p.motion; replace_by=p.ρ)

@@ -2,9 +2,9 @@
 
 # > Based on the results in page 41 of the book "Handbook of MRI Pulse Sequences" by Bernstein et al.
 
-using KomaMRI, Suppressor #hide
-sys = Scanner() #hide
-sys.Smax = 50; #hide
+using KomaMRI # hide
+sys = Scanner() # hide
+sys.Smax = 50.0 # hide
 
 # In this example, we will showcase a common approximation in MRI, the small tip angle approximation.
 # For this, we will simulate a slice profile for spins with positions ``z\in[-2,\,2]\,\mathrm{cm}``
