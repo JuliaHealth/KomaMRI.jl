@@ -54,7 +54,7 @@
             Bz_next = x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx] + ΔBz
             ϕ += (Bz_prev + Bz_next) * T(-π * γ) * Δt
         end
-
+        # Acquire Signal
         if s_idx <= s_length && s_ADC[s_idx]
             if i <= N_spins
                 E2 = exp(-t / T2)
@@ -68,7 +68,7 @@
             end
             ADC_idx += 1u32
         end
-        
+
         Bz_prev = Bz_next
         s_idx += 1u32
     end
