@@ -1,3 +1,20 @@
+abstract type RFUse end
+struct Excitation <: RFUse end
+struct Refocusing <: RFUse end
+struct Inversion <: RFUse end
+struct Saturation <: RFUse end
+struct Preparation <: RFUse end
+struct Other <: RFUse end
+struct Undefined <: RFUse end
+
+get_RF_use_from_char(::Val{'e'}) = Excitation()
+get_RF_use_from_char(::Val{'r'}) = Refocusing()
+get_RF_use_from_char(::Val{'i'}) = Inversion()
+get_RF_use_from_char(::Val{'s'}) = Saturation()
+get_RF_use_from_char(::Val{'p'}) = Preparation()
+get_RF_use_from_char(::Val{'o'}) = Other()
+get_RF_use_from_char(::Val{'u'}) = Undefined()
+
 """
     rf = RF(A, T)
     rf = RF(A, T, Δf)
@@ -28,19 +45,13 @@ mutable struct RF
     T
     Δf
     delay::Real
-    function RF(A, T, Δf, delay)
-        return if any(T .< 0) || delay < 0
-            error("RF timings must be non-negative.")
-        else
-            new(A, T, Δf, delay)
-        end
-    end
-    function RF(A, T, Δf)
-        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, Δf, 0.0)
-    end
-    function RF(A, T)
-        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, 0.0, 0.0)
-    end
+    center
+    use::RFUse
+    RF(A, T, Δf, delay, center, use) = any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new(A, T, Δf, delay, center, use)
+    RF(A, T, Δf, delay, center)      = RF(A, T, Δf,  delay, center, Undefined())
+    RF(A, T, Δf, delay)              = RF(A, T, Δf,  delay, 0.0,    Undefined())
+    RF(A, T, Δf)                     = RF(A, T, Δf,  0.0,   0.0,    Undefined())
+    RF(A, T)                         = RF(A, T, 0.0, 0.0,   0.0,    Undefined())
 end
 
 """
@@ -100,11 +111,9 @@ getproperty(x::Matrix{RF}, f::Symbol) = begin
 end
 
 # RF comparison
-function Base.isapprox(rf1::RF, rf2::RF)
-    return all(length(getfield(rf1, k)) == length(getfield(rf2, k)) for k in fieldnames(RF))
-    return all(≈(getfield(rf1, k), getfield(rf2, k); atol=1e-9) for k in fieldnames(RF))
-end
-
+Base.:(≈)(rf1::RF, rf2::RF) = reduce(&, [getfield(rf1, field) ≈ getfield(rf2, field) for field in fieldnames(RF)])
+Base.:(≈)(u1::RFUse, u2::RFUse) = u1 == u2
+    
 # Properties
 size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
 *(α::Complex{T}, x::RF) where {T<:Real} = RF(α * x.A, x.T, x.Δf, x.delay)
