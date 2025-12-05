@@ -1,3 +1,5 @@
+abstract type AbstractDiscreteSequence end
+
 """
     seqd = DiscreteSequence(Gx, Gy, Gz, B1, Δf, ADC, t, Δt)
 
@@ -17,15 +19,18 @@ times. DiscreteSequence is the struct used for simulation.
 # Returns
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
-struct DiscreteSequence{T<:Real}
-    Gx::AbstractVector{T}
-    Gy::AbstractVector{T}
-    Gz::AbstractVector{T}
-    B1::AbstractVector{Complex{T}}
-    Δf::AbstractVector{T}
-    ADC::AbstractVector{Bool}
-    t::AbstractVector{T}
-    Δt::AbstractVector{T}
+struct DiscreteSequence{T<:Real,
+                        AT<:AbstractVector{T},
+                        ACT<:AbstractVector{Complex{T}},
+                        AB<:AbstractVector{Bool}} <: AbstractDiscreteSequence
+    Gx::AT
+    Gy::AT
+    Gz::AT
+    B1::ACT
+    Δf::AT
+    ADC::AB
+    t::AT
+    Δt::AT
 end
 
 Base.length(seq::DiscreteSequence) = length(seq.Δt)
