@@ -1,18 +1,24 @@
 ## COV_EXCL_START
 
 @kernel unsafe_indices=true inbounds=true function excitation_kernel!(
+    sig_output::AbstractMatrix{Complex{T}}, 
     M_xy::AbstractVector{Complex{T}}, M_z, 
-    @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_Spins,
-    @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), N_Δt,
-    ::Val{MOTION}
-) where {T, MOTION}
+    @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
+    @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), @Const(s_ADC), N_Δt,
+    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION},
+) where {T, MOTION, USE_WARP_REDUCTION}
 
     @uniform N = @groupsize()[1]
     i_l = @index(Local, Linear)
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    if i <= N_Spins
+    sig_group_r = @localmem T USE_WARP_REDUCTION ? 32 : N
+    sig_group_i = @localmem T USE_WARP_REDUCTION ? 32 : N
+    sig_r = zero(T)
+    sig_i = zero(T)
+
+    if i <= N_spins
         x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
         ΔBz = p_ΔBz[i]
         Mxy_r, Mxy_i = reim(M_xy[i])
@@ -21,6 +27,7 @@
         T1 = p_T1[i]
         T2 = p_T2[i]
 
+        ADC_idx = 1u32
         s_idx = 1u32
         while (s_idx <= N_Δt)
             if MOTION
@@ -61,6 +68,15 @@
             Mxy_r = Mxy_new_r * ΔT2
             Mxy_i = Mxy_new_i * ΔT2
             Mz = Mz_new * ΔT1 + ρ * (T(1) - ΔT1)
+
+            # Acquire Signal
+            if s_idx <= N_Δt && s_ADC[s_idx + 1]
+                sig_r, sig_i = reduce_signal!(Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
+                if i_l == 1u32
+                    sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
+                end
+                ADC_idx += 1u32
+            end
             s_idx += 1u32
         end
 

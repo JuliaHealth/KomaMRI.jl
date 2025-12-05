@@ -66,12 +66,17 @@ function run_spin_excitation!(
 
     #Excitation
     excitation_kernel!(backend, groupsize)(
+        pre.sig_output,
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
-        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, UInt32(length(seq.Δt)),
-        Val(!(p.motion isa NoMotion)),
+        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ADC, UInt32(length(seq.Δt)),
+        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)),
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
+
+    #Signal
+    AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
+    sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
 
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ) # TODO: reset state inside kernel
