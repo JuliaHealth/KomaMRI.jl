@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1765222537769,
+  "lastUpdate": 1765232910907,
   "repoUrl": "https://github.com/JuliaHealth/KomaMRI.jl",
   "entries": {
     "KomaMRI Benchmarks": [
@@ -4680,6 +4680,126 @@ window.BENCHMARK_DATA = {
             "value": 32527276,
             "unit": "ns",
             "extra": "gctime=0\nmemory=21206888\nallocs=208454\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pablo.villacorta@uva.es",
+            "name": "Pablo Villacorta Aylagas",
+            "username": "pvillacorta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "11d3180b2fc8717e5d695d9edd80ff180d3a1ad8",
+          "message": "Add key time points in `DiscreteSequence` when evaluating periodic and flow-related motions (#638)\n\n* First commit\n\n* Remove debug messages and update docstrings\n\n* Solve bug in `export_2_mat_raw` with non-ASCII keys\n\n* Code coverage and method dispatch for motion comparison\n\n* Address requested changes:\n- Avoid type pyracy (new `CenterOfMass` struct and related `≈` methods)\n- Remove `sampling_params[\"Δt_rise\"]` parameter\n- Use `MIN_RISE_TIME` KomaMRIBase constant\n- Clarify tests\n- Improve coverage\n\n* Commit of the following:\n- Improve `==` and `≈` definitions: remove redundant methods and dispatch basing on the abstract type\n- Solve bug when reading writing the rotation center into a phantom file\n\n* KomaMRIFiles coverage\n\n* Address requested changes:\n- Fix type pyracy\n- Fix and test `RotateX` functions\n- Fix type stability in `displacement!` (new `get_center` function)\n- Change variable name `per` -> `periods`\n- Improve test clarity\n- Add tests: `times` and non-periodic `add_key_time_points!`\n\n* Revert type restrictions (since `displacement!` functions are not exported)\n\n* Test `RotateX` and displaced rotations\n\n* Update file format svg files with rotation center information\n\n* Test timeout in docs.\n\n* Optimize `add_key_time_points!` for periodic cases\n\n* Bump base, core and files\n\n* Update Project.toml\n\nCo-authored-by: Carlos Castillo Passi <cncastillo@uc.cl>\n\n* Update Project.toml\n\nCo-authored-by: Carlos Castillo Passi <cncastillo@uc.cl>\n\n* Remove unnecesary line from CI.yml\n\n* Bump KomaBase version in KomaPlots/Project.toml\n\n* Undo KomaBase bump in KomaPlots\n\nCo-authored-by: Carlos Castillo Passi <cncastillo@uc.cl>\n\n---------\n\nCo-authored-by: Carlos Castillo Passi <cncastillo@uc.cl>",
+          "timestamp": "2025-12-08T13:49:21-08:00",
+          "tree_id": "3d68f90fd2a44c5e2dcecdfbe98a243d0c38b483",
+          "url": "https://github.com/JuliaHealth/KomaMRI.jl/commit/11d3180b2fc8717e5d695d9edd80ff180d3a1ad8"
+        },
+        "date": 1765232862749,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "MRI Lab/Bloch/CPU/2 thread(s)",
+            "value": 337633469,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=66424872\nallocs=625348\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/CPU/4 thread(s)",
+            "value": 276282606,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=95046184\nallocs=1114095\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/CPU/8 thread(s)",
+            "value": 209852165,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=152431128\nallocs=2094572\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/CPU/1 thread(s)",
+            "value": 555065232,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=52132400\nallocs=381200\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/CUDA",
+            "value": 21231134,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=23174320\nallocs=159976\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/oneAPI",
+            "value": 77053690,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=31854552\nallocs=258911\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/Metal",
+            "value": 95540333,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=25939552\nallocs=186940\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/AMDGPU",
+            "value": 24763685,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=23438656\nallocs=168481\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/2 thread(s)",
+            "value": 1592087059,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=68796896\nallocs=889490\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/4 thread(s)",
+            "value": 889539516,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=108222896\nallocs=1585737\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/8 thread(s)",
+            "value": 565401528.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=187145888\nallocs=2979565\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/1 thread(s)",
+            "value": 3029269071,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=49129096\nallocs=542307\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/CUDA",
+            "value": 32639703,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21109672\nallocs=206287\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/oneAPI",
+            "value": 121489006.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=26097664\nallocs=254258\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/Metal",
+            "value": 111152750,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=23256416\nallocs=212709\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/AMDGPU",
+            "value": 32636098,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21207016\nallocs=208464\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
           }
         ]
       }
