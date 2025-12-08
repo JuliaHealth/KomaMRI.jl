@@ -80,7 +80,7 @@ end
 - `spins`: (`::AbstractSpinSpan`) spin indexes affected by the motion
 
 # Keywords
-- `center`: (`::NTuple{3,Real}` or `nothing`) optional center of rotation, given in global coordinates. If `nothing` (default), the rotation is performed around the phantom’s center of mass.
+- `center`: (`::NTuple{3,Real}` or `::CenterOfMass`) center of rotation, given in global coordinates. Default is center of mass.
 
 # Returns
 - `rt`: (`::Motion`) Motion struct with [`Rotate`](@ref) action
@@ -90,7 +90,7 @@ end
 julia> rt = rotate(15.0, 0.0, 20.0, TimeRange(0.0, 1.0), SpinRange(1:10))
 ```
 """
-function rotate(pitch, roll, yaw, time=TimeRange(t_start=zero(eltype(pitch)), t_end=eps(eltype(pitch))), spins=AllSpins(); center=nothing)
+function rotate(pitch, roll, yaw, time=TimeRange(t_start=zero(eltype(pitch)), t_end=eps(eltype(pitch))), spins=AllSpins(); center=CenterOfMass())
     return Motion(Rotate(pitch, roll, yaw, center), time, spins)
 end
 
@@ -190,12 +190,25 @@ end
 
 """
     x, y, z = get_spin_coords(motion, x, y, z, t)
+
+Calculates the position of each spin at a set of arbitrary time instants, i.e. the time steps of the simulation. 
+For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `length(t)` columns.
+
+# Arguments
+- `motion`: (`::Union{NoMotion, Motion{T<:Real} MotionList{T<:Real}}`) phantom motion
+- `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
+- `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
+- `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
+- `t`: horizontal array of time instants
+
+# Returns
+- `x, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
 """
 function get_spin_coords(
     m::Motion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
 ) where {T<:Real}
     ux, uy, uz = x .* (0*t), y .* (0*t), z .* (0*t) # Buffers for displacements
-    t_unit = unit_time(t, m.time.t, m.time.t_unit, m.time.periodic, m.time.periods)
+    t_unit = unit_time(t, m.time)
     idx = get_indexing_range(m.spins)
     displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
     displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
@@ -204,7 +217,58 @@ function get_spin_coords(
 end
 
 # Auxiliary functions
-times(m::Motion) = times(m.time.t, m.time.periods)
+times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
-add_jump_times!(t, m::Motion) = add_jump_times!(t, m.action, m.time)
-add_jump_times!(t, ::AbstractAction, ::TimeCurve) = nothing
+
+"""
+    add_key_time_points!(t, motion)
+"""
+function add_key_time_points!(t, m::Motion)
+    add_key_time_points!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods, m.time.periodic)
+    return nothing
+end
+function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic) where T
+    isempty(t) && return
+    aux = T[] 
+    period = sum((t_end - t_start) .* periods)
+    t_max = maximum(t)
+    add_period_times!(aux, t_start, t_end, periods)
+    add_reset_times!(aux, a, t_start, t_end, periods)
+    extend_periodic!(aux, t_max, period, Val(periodic))
+    append!(t, aux[aux .<= t_max])
+    return nothing
+end
+
+"""
+    extend_periodic!(aux, t_max, period, periodic)
+"""
+function extend_periodic!(aux, t_max, period, periodic::Val{false})
+    return nothing
+end
+function extend_periodic!(aux, t_max, period, periodic::Val{true})
+    n_periods = floor(Int, t_max / period)
+    if n_periods > 0
+        initial_size = length(aux)
+        sizehint!(aux, initial_size * (n_periods + 1))
+        for n in 1:n_periods
+            append!(aux, aux[1:initial_size] .+ n*period)
+        end
+    end
+    return nothing
+end
+
+"""
+    add_period_times!(t, t_start, t_end, periods)
+"""
+function add_period_times!(t, t_start, t_end, periods)
+    period_times = times([t_start, t_end], t_start, t_end, periods)
+    append!(t, period_times .+ MIN_RISE_TIME .* ((-1) .^ ((1:length(period_times)) .+ 1)))
+    return nothing
+end
+
+"""
+    add_reset_times!(t, action, t_start, t_end, periods)
+""" 
+function add_reset_times!(t, ::AbstractAction, t_start, t_end, periods)
+    return nothing 
+end
