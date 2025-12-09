@@ -6,6 +6,7 @@
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_ADC), s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION},
+    sim_method::BlochLikeSimMethods
 ) where {T, MOTION, USE_WARP_REDUCTION}
 
     @uniform N = @groupsize()[1]

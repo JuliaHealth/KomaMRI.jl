@@ -10,7 +10,14 @@ struct BlochGPUPrealloc{T} <: PreallocResult{T}
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::Bloch, backend::KA.GPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
+function prealloc(
+    sim_method::SM, 
+    backend::KA.GPU, 
+    obj::Phantom{T}, 
+    M::Mag{T}, 
+    max_block_length::Integer, 
+    groupsize
+) where {T<:Real, SM<:BlochLikeSimMethods}
     return BlochGPUPrealloc(
         KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
         KA.zeros(backend, Complex{T}, 1, max_block_length),
@@ -23,11 +30,11 @@ function run_spin_precession!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
-    sim_method::Bloch,
+    sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real}
+) where {T<:Real, SM<:BlochLikeSimMethods}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
 
@@ -38,6 +45,7 @@ function run_spin_precession!(
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)),
+        sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
 
@@ -56,11 +64,11 @@ function run_spin_excitation!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
-    sim_method::Bloch,
+    sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real}
+) where {T<:Real, SM<:BlochLikeSimMethods}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
 
@@ -69,8 +77,9 @@ function run_spin_excitation!(
         pre.sig_output,
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
-        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ADC, UInt32(length(seq.Δt)),
+        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)),
+        sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
 
