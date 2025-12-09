@@ -1,9 +1,3 @@
-abstract type BlochMagnus <: SimulationMethod end
-struct BlochMagnus1 <: BlochMagnus end
-struct BlochMagnus2 <: BlochMagnus end
-struct BlochMagnus4 <: BlochMagnus end
-export BlochMagnus1, BlochMagnus2, BlochMagnus4
-
 """Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochMagnusCPUPrealloc{T} <: PreallocResult{T}
     M::Mag{T}                               # Mag{T}
@@ -128,22 +122,22 @@ function run_spin_excitation!(
     return nothing
 end
 
-function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt::T, sim_method::BlochMagnus1) where {T}
+function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, sim_method::BlochMagnus1)
     # Ω1_constant
     @. θxy = ωxy_old * Δt
     @. θz  = ωz_old * Δt
-    @. θxy[θxy == 0] = eps(T) # It could be that Bxy[told] or Bxy[tnew] is zero
+    @. θxy[θxy == 0] = eps(eltype(θxy)) # It could be that Bxy[told] or Bxy[tnew] is zero
     return nothing
 end
 
-function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt::T, sim_method::BlochMagnus2) where {T}
+function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, sim_method::BlochMagnus2)
     # Ω1_linear
     @. θxy = (ωxy_old + ωxy_new) * (Δt / 2)
     @. θz  = (ωz_old + ωz_new) * (Δt / 2)
     return nothing
 end
 
-function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt::T, sim_method::BlochMagnus4) where {T}
+function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, sim_method::BlochMagnus4)
     # Ω1_linear
     effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, BlochMagnus2())
     # Ω2_linear (this is the complex representation of Δt²/12 (ωₙ₊₁ × ωₙ))
