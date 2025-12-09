@@ -14,6 +14,11 @@ function sim_output_dim(
     return (sum(seq.ADC.N), length(obj), out_state_dim)
 end
 
+# To fix BlochDict for CPU parallel execution (#204)
+function split_sig_per_thread(sig, i, p, sim_method::BlochDict)
+    return @view sig[:, p, :, i]
+end
+
 """
     run_spin_precession(obj, seq, Xt, sig)
 
@@ -73,6 +78,7 @@ function run_spin_precession!(
     return nothing
 end
 
+# So we can use the same excitation function than BlochSimple
 function acquire_signal!(sig, sample, M, sim_method::BlochDict)
     sig[sample, :, 1] .= M.xy
     if sim_method.save_Mz

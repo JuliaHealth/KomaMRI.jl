@@ -60,26 +60,6 @@ function default_sim_params(sim_params=Dict{String,Any}())
     return sim_params
 end
 
-"""
-    sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
-
-Implementation in multiple threads for the simulation in free precession,
-separating the spins of the phantom `obj` in `Nthreads`.
-
-# Arguments
-- `obj`: (`::Phantom`) Phantom struct
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
-    dividing the simulation into different phantom spin parts
-
-# Returns
-- `sig`: (`Vector{ComplexF64}`) raw signal over time
-- `Xt`: (`::Vector{Mag}`) final state of the Mag vector (or the initial state for the
-    next simulation step (the next step can be another precession step or an excitation
-    step))
-"""
 function run_spin_precession_parallel!(
     obj::Phantom{T},
     seq::DiscreteSequence{T},
@@ -92,36 +72,16 @@ function run_spin_precession_parallel!(
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
-    dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
         )
     end
 
     return nothing
 end
 
-"""
-    M0 = run_spin_excitation_parallel(obj, seq, Xt; Nthreads)
-
-It gives rise to a rotation of M0 with an angle given by the efective magnetic field
-(including B1, gradients and off resonance) and with respect to a rotation axis. It uses
-different number threads to excecute the process.
-
-# Arguments
-- `obj`: (`::Phantom`) Phantom struct
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
-    dividing the simulation into different phantom spin parts
-
-# Returns
-- `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (or the initial
-    state for the next precession simulation step)
-"""
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
     seq::DiscreteSequence{T},
@@ -134,11 +94,10 @@ function run_spin_excitation_parallel!(
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
-    dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_excitation!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), 
+            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), 
             sim_method, groupsize, backend, @view(prealloc[p])
         )
     end
