@@ -425,6 +425,14 @@ end
         @test MotionList() == NoMotion()
         @test MotionList(m) == m
     end
+    @testset "Times" begin
+        tr = translate(0.0, 0.1, 0.2, TimeRange(0.0, 1.0))
+        rt = rotate(10.0, 20.0, 30.0, TimeCurve(t=[0.0, 0.5, 0.8], t_unit=[0.0, 0.5, 1.0]))
+        ml = MotionList(rt, tr)
+        @test times(tr) == [0.0, 1.0]
+        @test times(rt) == [0.0, 0.5, 0.8]
+        @test times(ml) == [0.0, 0.5, 0.8, 1.0]
+    end
     @testset "Subset" begin
         rt = Rotate(10.0, 20.0, 40.0, (0.0, 0.0, 0.0))
         tr = Translate(0.1, 0.2, 0.3)
@@ -438,10 +446,7 @@ end
         m = Motion(rt, time, spins)
         @test m[rng] == m
         # MotionList 
-        ml = MotionList(
-            Motion(rt, time, spins),
-            Motion(tr, time, spins)
-        )
+        ml = MotionList(Motion(rt, time, spins), Motion(tr, time, spins))
         @test ml[rng] == ml 
     end
     # Spin Positions
@@ -481,13 +486,16 @@ end
         @test zt == ph.z .+ vz.*t'
     end
     @testset "Rotate" begin
+        # Simple-axis Rotation Constructors
+        @test RotateX(90.0) == Rotate(90.0, 0.0, 0.0, CenterOfMass())
+        @test RotateY(90.0) == Rotate(0.0, 90.0, 0.0, CenterOfMass())
+        @test RotateZ(90.0) == Rotate(0.0, 0.0, 90.0, CenterOfMass())
+        # Test get_spin_coords
         ph = Phantom(x=[1.0, 1.0, -1.0, -1.0], y=[1.0, -1.0, 1.0, -1.0])
         t_start=0.0; t_end=1.0 
         t = collect(range(t_start, t_end, 11))
-        pitch = 45.0
-        roll = 45.0
-        yaw = 45.0
-        # One single rotation
+        pitch, roll, yaw = 45.0, 45.0, 45.0
+        # One single rotation (around center of mass)
         rotation = rotate(pitch, roll, yaw, TimeRange(t_start, t_end))
         xt, yt, zt = get_spin_coords(rotation, ph.x, ph.y, ph.z, t')
         R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
@@ -497,6 +505,18 @@ end
         @test xt[: ,end] ≈ rot_x
         @test yt[: ,end] ≈ rot_y
         @test zt[: ,end] ≈ rot_z
+        # One single rotation (around displaced center)
+        center = (0.1, 0.2, 0.3)
+        rotation_displaced = rotate(pitch, roll, yaw, TimeRange(t_start, t_end); center=center)
+        @test !(rotation ≈ rotation_displaced) & !(rotation_displaced ≈ rotation)
+        xt, yt, zt = get_spin_coords(rotation_displaced, ph.x, ph.y, ph.z, t')
+        R = rotz(π*yaw/180) * roty(π*roll/180) * rotx(π*pitch/180)
+        r = hcat(ph.x .- center[1], ph.y .- center[2], ph.z .- center[3])'
+        rotated = R * r 
+        rot_x, rot_y, rot_z = eachrow(rotated)
+        @test xt[: ,end] ≈ rot_x .+ center[1]
+        @test yt[: ,end] ≈ rot_y .+ center[2]
+        @test zt[: ,end] ≈ rot_z .+ center[3]
         # Check if two consecutive rotations (α and β) produce the same result as a single (α + β) rotation
         t = [1.0] 
         r1 = MotionList(
@@ -647,6 +667,52 @@ end
         @test yt[: ,end] ≈ rot_y .+ vy*t[end]
         @test zt[: ,end] ≈ rot_z .+ vz*t[end]
     end
+    @testset "Key Time Points" begin
+        # Sequence duration
+        t_start = 0.0
+        t_end   = 1.5 
+        # TimeCurve parameters
+        t        = [0.0, 0.1, 0.3]
+        t_unit   = [0.0, 0.4, 1.0]
+        periods  = [1.0, 0.5, 2.0]
+        dx = dy  = [0.0 0.0 0.0 0.0]
+        dz       = [3.0 4.0 -4. -3.]
+        reset    = [false false true false]
+        ϵ = KomaMRIBase.MIN_RISE_TIME
+
+        # Key time points ("manually" determined):
+        # Periodic case
+        period_times_p  = [t+δ for t in (0.0, 0.3, 0.45, 1.05, 1.35, 1.5) for δ in (-ϵ, ϵ) if (t+δ) > t_start && (t+δ) < t_end]
+        reset_times_p   = [0.2, 0.4, 0.85, 1.25, 1.45] .- ϵ
+        # Non-periodic case:
+        period_times_np = [t+δ for t in (0.0, 0.3, 0.45, 1.05) for δ in (-ϵ, ϵ) if (t+δ) > t_start && (t+δ) < 1.05]
+        reset_times_np  = [0.2, 0.4, 0.85] .- ϵ
+
+        # Any motion with no spin resets (only key time points derived from periods):
+        pth  = path(dx, dy, dz, TimeCurve(t, t_unit, true, periods), AllSpins())
+        seqd_t = [t_start, t_end]
+        KomaMRIBase.add_key_time_points!(seqd_t, pth)
+        @test seqd_t ≈ [t_start; t_end; period_times_p]
+        # FlowPath with a spin reset (key time points derived from both periods and spin resets):
+        fpth = flowpath(dx, dy, dz, reset, TimeCurve(t, t_unit, true, periods), AllSpins())
+        seqd_t = [t_start, t_end]
+        KomaMRIBase.add_key_time_points!(seqd_t, fpth)
+        @test sort(seqd_t) ≈ sort([t_start; t_end; period_times_p; reset_times_p])
+
+        # MotionList 
+        # (periodic case)
+        ml = MotionList(pth, fpth)
+        seqd_t = [t_start, t_end]
+        KomaMRIBase.add_key_time_points!(seqd_t, ml)
+        @test sort(unique(seqd_t)) ≈ sort([t_start; t_end; period_times_p; reset_times_p])
+        # (non-periodic case)
+        pth  = path(dx, dy, dz, TimeCurve(t, t_unit, false, periods), AllSpins())
+        fpth = flowpath(dx, dy, dz, reset, TimeCurve(t, t_unit, false, periods), AllSpins())
+        ml = MotionList(pth, fpth)
+        seqd_t = [t_start, t_end]
+        KomaMRIBase.add_key_time_points!(seqd_t, ml)
+        @test unique(seqd_t) ≈ [t_start; t_end; period_times_np; reset_times_np]
+    end
 end
 
 @testitem "Phantom" tags = [:base] begin
@@ -678,6 +744,9 @@ end
         @test obj1 == obj2
         obj2.x .+= 1e-10
         @test obj1 ≈ obj2
+        obj1.motion = NoMotion()
+        @test !(obj1 == obj2)
+        @test !(obj1  ≈ obj2)
     end
     @testset "Size and Length" begin
         obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(tr, rt))

@@ -49,4 +49,4 @@ function get_spin_coords(
 ) where {T<:Real}
     return x, y, z
 end
-add_jump_times!(t, ::NoMotion) = nothing
+add_key_time_points!(t, ::NoMotion) = nothing

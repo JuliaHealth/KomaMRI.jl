@@ -449,7 +449,7 @@ end
         rotate(0.0, 0.0, 45.0, TimeRange(0.0, 1.0)),
         heartbeat(-0.6, 0.0, 0.0, Periodic(period=1.0)),
         path([0.0 0.0], [0.0 1.0], [0.0 0.0], TimeRange(0.0, 10.0)),
-        flowpath([0.0 0.0], [0.0 1.0], [0.0 0.0], [false false], TimeRange(0.0, 10.0))
+        flowpath([0.0 0.0], [0.0 1.0], [0.0 0.0], [false false], TimeRange(0.0, 10.0)) # We should find a way to test this when spin_reset flags are true
     ]
 
     x0 = [0.1]
