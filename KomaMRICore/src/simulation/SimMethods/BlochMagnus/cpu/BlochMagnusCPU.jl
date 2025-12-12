@@ -126,7 +126,7 @@ function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_
     # Ω1_constant
     @. θxy = ωxy_old * Δt
     @. θz  = ωz_old * Δt
-    @. θxy[θxy == 0] = eps(eltype(θxy)) # It could be that Bxy[told] or Bxy[tnew] is zero
+    @. θxy[θxy == 0] = eps(eltype(θz)) # It could be that Bxy[told] or Bxy[tnew] is zero
     return nothing
 end
 
