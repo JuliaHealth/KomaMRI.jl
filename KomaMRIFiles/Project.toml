@@ -1,7 +1,11 @@
 name = "KomaMRIFiles"
 uuid = "fcf631a6-1c7e-4e88-9e64-b8888386d9dc"
+
+version = "0.9.8"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
-version = "0.9.7"
+
+[workspace]
+projects = ["test"]
 
 [deps]
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
@@ -17,12 +21,9 @@ Scanf = "6ef1bc8b-493b-44e1-8d40-549aa65c4b41"
 FileIO = "1"
 HDF5 = "0.16, 0.17"
 InteractiveUtils = "1"
-KomaMRIBase = "0.9.4"
-MAT = "0.10"
+KomaMRIBase = "0.9.7"
+MAT = "0.10, 0.11"
 MRIFiles = "0.1, 0.2, 0.3"
 Reexport = "1"
 Scanf = "0.5"
 julia = "1.9"
-
-[workspace]
-projects = ["test"]
