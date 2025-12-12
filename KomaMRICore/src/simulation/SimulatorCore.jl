@@ -80,7 +80,7 @@ separating the spins of the phantom `obj` in `Nthreads`.
 """
 function run_spin_precession_parallel!(
     obj::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -122,7 +122,7 @@ different number threads to excecute the process.
 """
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -170,7 +170,7 @@ take advantage of CPU parallel processing.
 """
 function run_sim_time_iter!(
     obj::Phantom,
-    seq::DiscreteSequence,
+    seq::AbstractDiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,

@@ -1,4 +1,4 @@
-import Adapt: adapt, adapt_storage
+import Adapt: adapt, adapt_storage, @adapt_structure
 import Functors: @functor, functor, fmap, isleaf
 
 #Aux. funcitons to check if the variable we want to move to the GPU is numeric
@@ -115,5 +115,6 @@ adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.mot
 @functor Spinor
 # DiscreteSequence
 @functor DiscreteSequence
+@adapt_structure DiscreteSequence
 
 export gpu, cpu, f32, f64
