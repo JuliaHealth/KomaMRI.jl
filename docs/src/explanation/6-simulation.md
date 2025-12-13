@@ -8,7 +8,8 @@ The are more internal considerations in the **KomaMRI** implementation. The **Fi
 ```@raw html
 <center><img width="100%" src="../../assets/koma-solution.svg"></center>
 ```
-**Figure 1**: The sequence `seq` is discretized after calculating the required time points in the wrapper function [simulate](@ref). The time points are then divided into `Nblocks` to reduce the amount of memory used. The phantom `obj` is divided into `Nthreads`, and **KomaMRI** will use either `run_spin_excitation!` or `run_spin_precession!` depending on the regime. If an [`ADC`](@ref KomaMRIBase.ADC) object is present, the simulator will add the signal contributions of each thread to construct the acquired signal `sig[t]`. All the parameters: `Nthreads`, `Nblocks`, `Δt_rf`, and `Δt`, are passed through a dictionary called `sim_params` as an optional parameter of the simulate function.
+**Figure 1**: The sequence `seq` is discretized after calculating the required time points in the wrapper function [simulate](@ref). The time points are then divided into `Nblocks` by using the
+`max_block_length` variable to reduce the amount of memory used. The phantom `obj` is divided into `Nthreads`, and **KomaMRI** will use either `run_spin_excitation!` or `run_spin_precession!` depending on the regime. If an [`ADC`](@ref KomaMRIBase.ADC) object is present, the simulator will add the signal contributions of each thread to construct the acquired signal `sig[t]`. All the parameters: `Nthreads`, `max_block_length`, `Δt_rf`, and `Δt`, are passed through a dictionary called `sim_params` as an optional parameter of the simulate function.
 
 From the programming perspective, it is needed to call the [`simulate`](@ref) function with the `sim_params` dictionary keyword argument. A user can change the values of the following keys:
 
@@ -19,7 +20,7 @@ From the programming perspective, it is needed to call the [`simulate`](@ref) fu
 | `"Δt"` | raster time for gradients. |
 | `"Δt_rf"` | raster time for RFs. |
 | `"precision"` | defines the floating-point simulation precision. You can choose between `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively. It's important to note that, especially for GPU operations, using `"f32"` is generally much faster. |
-| `"Nblocks"` | divides the simulation into a specified number of time blocks. This parameter is designed to conserve RAM resources, as **KomaMRI** computes a series of simulations consecutively, each with the specified number of blocks determined by the value of `"Nblocks"`. |
+| `"max_block_length"` | divides the simulation into time blocks ensuring that the number of time steps per block does not exceed the `max_block_length` limit. This parameter is designed to conserve memory resources, as **KomaMRI** computes a series of simulations consecutively. |
 | `"Nthreads"` | divides the **Phantom** into a specified number of threads. Because spins are modeled independently of each other, **KomaMRI** can solve simulations in parallel threads, speeding up the execution time. |
 | `"gpu"` | is a boolean that determines whether to use GPU or CPU hardware resources, as long as they are available on the host computer. |
 | `"gpu_device"` | sets the index ID of the available GPU in the host computer. |

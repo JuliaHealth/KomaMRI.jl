@@ -6,6 +6,7 @@
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_ADC), s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION},
+    sim_method::BlochLikeSimMethods
 ) where {T, MOTION, USE_WARP_REDUCTION}
 
     @uniform N = @groupsize()[1]
@@ -30,6 +31,7 @@
     Bz_prev = zero(T)
     Bz_next = zero(T)
 
+    # Setting per-thread (ith spin) properties, and Bz for t0
     if i <= N_spins
         Mxy_r, Mxy_i = reim(M_xy[i])
         sig_r = Mxy_r
@@ -41,14 +43,6 @@
     end
 
     ADC_idx = 1u32
-    if s_ADC[1]
-        sig_r, sig_i = reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
-        if i_l == 1u32
-            sig_output[i_g, 1] = complex(sig_r, sig_i)
-        end
-        ADC_idx += 1u32
-    end
-
     s_idx = 2u32
     while s_idx <= s_length
         if i <= N_spins
@@ -61,13 +55,13 @@
             Bz_next = x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx] + ΔBz
             ϕ += (Bz_prev + Bz_next) * T(-π * γ) * Δt
         end
-
-        if s_idx < s_length && s_ADC[s_idx]
+        # Acquire Signal
+        if s_idx <= s_length && s_ADC[s_idx]
             if i <= N_spins
-                ΔT2 = exp(-t / T2)
+                E2 = exp(-t / T2)
                 cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
-                sig_r = ΔT2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i)
-                sig_i = ΔT2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r)
+                sig_r = E2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i)
+                sig_i = E2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r)
             end
             sig_r, sig_i = reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
             if i_l == 1u32
@@ -75,17 +69,17 @@
             end
             ADC_idx += 1u32
         end
-        
+
         Bz_prev = Bz_next
         s_idx += 1u32
     end
-
+    # Save magnetization at end of block
     if i <= N_spins
-        ΔT1 = exp(-t / p_T1[i])
-        ΔT2 = exp(-t / T2)
+        E1 = exp(-t / p_T1[i])
+        E2 = exp(-t / T2)
         cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
-        M_xy[i] = complex(ΔT2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i), ΔT2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r))
-        M_z[i] = M_z[i] * ΔT1 + p_ρ[i] * (T(1) - ΔT1)
+        M_xy[i] = complex(E2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i), E2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r))
+        M_z[i] = M_z[i] * E1 + p_ρ[i] * (T(1) - E1)
     end
 end
 

@@ -183,7 +183,6 @@ To perform simulations, **KomaMRI** requires certain parameters. You can use the
 julia> sim_params
 Dict{String, Any} with 9 entries:
   "return_type" => "raw"
-  "Nblocks"     => 20
   "gpu"         => true
   "Nthreads"    => 1
   "gpu_device"  => 0
