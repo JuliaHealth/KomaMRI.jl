@@ -485,7 +485,11 @@ function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))
 		for (rf, p) in enumerate(parts)
 			mk[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^k .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
 			if rf > 1 # First part does not have RF
-				mk[p,i] .+= get_sign(rf_types[rf-1]) * mkf
+				if !skip_rf[rf-1]
+					mk[p,i] .+= mkf * get_sign(rf_types[rf-1])
+				else
+					mk[p,i] .+= mkf
+				end
 			end
 			mkf = mk[p[end],i]
 		end
