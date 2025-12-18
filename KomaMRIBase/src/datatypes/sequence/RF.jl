@@ -58,7 +58,7 @@ end
 
 function _RF_with_center(A, T, Δf, delay, use)
     rf_temp = RF(A, T, Δf, delay, 0.0, use)
-    return RF(A, T, Δf, delay, _get_RF_center(rf_temp), use)
+    return RF(A, T, Δf, delay, get_RF_center(rf_temp), use)
 end
 
 """
@@ -186,9 +186,8 @@ end
 """
     t = get_RF_center(x::RF)
 
-Calculates the time where is the center of the RF pulse `x`. This calculation includes the
-RF delay. If the center is already calculated (non-zero), it returns the stored value.
-Otherwise, it calculates it using the weighted average of times by amplitude.
+Calculates the time where is the center of the RF pulse `x` .
+It includes the RF delay and uses the weighted average of times by amplitude.
 
 # Arguments
 - `x`: (`::RF`) RF struct
@@ -196,9 +195,7 @@ Otherwise, it calculates it using the weighted average of times by amplitude.
 # Returns
 - `t`: (`::Real`, `[s]`) time where is the center of the RF pulse `x`
 """
-get_RF_center(x::RF) = x.center
-
-function _get_RF_center(x::RF)
+function get_RF_center(x::RF)
     t = times(x)
     B1 = ampls(x)
     return sum(abs.(B1) .* t) ./ sum(abs.(B1))

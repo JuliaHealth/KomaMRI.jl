@@ -436,7 +436,7 @@ function get_RF_types(seq, t)
 	rf_types = RFUse[]
 	for (i, s) in enumerate(seq[is_RF_on.(seq)])
 		rf = s.RF[1]
-		trf = get_RF_center(rf) + T0[i]
+		trf = rf.center + T0[i]
 		push!(rf_idx, argmin(abs.(trf.-t))...)
 		push!(rf_types, _get_RF_use(rf, rf.use))
 	end
