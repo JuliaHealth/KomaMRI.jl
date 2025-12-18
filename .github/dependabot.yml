@@ -18,6 +18,7 @@ updates:
     labels:
       - "dependencies"
       - "julia"
+      
   # KomaMRICore
   - package-ecosystem: "julia"
     directory: "/KomaMRICore"
@@ -27,6 +28,7 @@ updates:
     labels:
       - "dependencies"
       - "julia"
+      
   # KomaMRIFiles
   - package-ecosystem: "julia"
     directory: "/KomaMRIFiles"
@@ -36,6 +38,7 @@ updates:
     labels:
       - "dependencies"
       - "julia"
+      
   # KomaMRIPlots
   - package-ecosystem: "julia"
     directory: "/KomaMRIPlots"
@@ -45,6 +48,7 @@ updates:
     labels:
       - "dependencies"
       - "julia"
+      
   # KomaMRI
   - package-ecosystem: "julia"
     directory: "/"
