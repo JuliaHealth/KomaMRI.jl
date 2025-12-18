@@ -434,11 +434,13 @@ function get_RF_types(seq, t)
 	T0 = get_block_start_times(seq)
 	rf_idx   = Int[]
 	rf_types = RFUse[]
-	for (i, s) in enumerate(seq[is_RF_on.(seq)])
-		rf = s.RF[1]
-		trf = rf.center + T0[i]
-		push!(rf_idx, argmin(abs.(trf.-t))...)
-		push!(rf_types, _get_RF_use(rf, rf.use))
+	for (i, s) in enumerate(seq)
+		if is_RF_on(s)
+			rf = s.RF[1]
+			trf = rf.center + T0[i]
+			push!(rf_idx, argmin(abs.(trf.-t))...)
+			push!(rf_types, _get_RF_use(rf, rf.use))
+		end
 	end
 	return rf_idx, rf_types
 end
