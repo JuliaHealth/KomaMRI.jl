@@ -129,20 +129,19 @@ Base.:(==)(t1::TimeCurve, t2::TimeCurve) = reduce(&, [getfield(t1, field) == get
 Base.:(≈)(t1::TimeCurve, t2::TimeCurve)  = reduce(&, [getfield(t1, field)  ≈ getfield(t2, field) for field in fieldnames(typeof(t1))])
 
 """ times & unit_time """
-# Although the implementation of these two functions when `per` is a vector is valid 
-# for all cases, it performs unnecessary and costly operations when `per` is a scalar. 
+times(tc::TimeCurve) = times(tc.t, tc.t_start, tc.t_end, tc.periods)
+# Although the implementation of these two functions when `periods` is a vector is valid 
+# for all cases, it performs unnecessary and costly operations when `periods` is a scalar.
 # Therefore, it has been decided to use method dispatch between these two cases.
-function times(t, per::Real)
-    return per .* t
+function times(t, t_start, t_end, periods::Real)
+    return t_start .+ periods .* (t .- t_start)
 end
-function times(t, per::AbstractVector)
-    scale   = repeat(per, inner=[length(t)])
-    offsets = repeat(cumsum(vcat(0, per[1:end-1]*t[end])), inner=[length(t)])
-    return (repeat(t, length(per)) .* scale) .+ offsets
+function times(t, t_start, t_end, periods::AbstractVector)
+    scale   = repeat(periods, inner=[length(t)])
+    offsets = repeat(cumsum(vcat(0, periods[1:end-1]*(t_end - t_start))), inner=[length(t)])
+    return t_start .+ ((repeat(t, length(periods)) .- t_start).* scale) .+ offsets
 end
-function unit_time(tq, t, t_unit, periodic, per::Real)
-    return interpolate_times(t .* per, t_unit, periodic, tq)
-end
-function unit_time(tq, t, t_unit, periodic, per::AbstractVector)
-    return interpolate_times(times(t, per), repeat(t_unit, length(per)), periodic, tq)
+
+function unit_time(tq, tc::TimeCurve)
+    return interpolate_times(times(tc), repeat(tc.t_unit, length(tc.periods)), tc.periodic, tq)
 end

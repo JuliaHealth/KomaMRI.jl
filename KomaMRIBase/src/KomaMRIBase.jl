@@ -54,7 +54,7 @@ export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 export MotionList, NoMotion, Motion
 export translate, rotate, heartbeat, path, flowpath
 export Translate, TranslateX, TranslateY, TranslateZ
-export Rotate, RotateX, RotateY, RotateZ 
+export Rotate, RotateX, RotateY, RotateZ, CenterOfMass
 export HeartBeat, Path, FlowPath
 export TimeRange, Periodic, TimeCurve
 export SpinRange, AllSpins
