@@ -41,7 +41,7 @@ export γ    # gyro-magnetic ratio [Hz/T]
 export Scanner, Sequence, Phantom
 export Grad, RF, ADC, Delay
 export dur, get_block_start_times, get_samples
-export Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
+export RFuse, Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
 export DiscreteSequence
 export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
@@ -54,7 +54,7 @@ export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
 export MotionList, NoMotion, Motion
 export translate, rotate, heartbeat, path, flowpath
 export Translate, TranslateX, TranslateY, TranslateZ
-export Rotate, RotateX, RotateY, RotateZ 
+export Rotate, RotateX, RotateY, RotateZ, CenterOfMass
 export HeartBeat, Path, FlowPath
 export TimeRange, Periodic, TimeCurve
 export SpinRange, AllSpins

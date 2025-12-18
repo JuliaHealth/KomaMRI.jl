@@ -87,6 +87,7 @@ using TestItems, TestItemRunner, KomaMRIBase
         obj1 = brain_phantom2D()
         obj1.motion = MotionList(
             rotate(0.0, 0.0, 45.0, Periodic(period=1.0)),
+            rotate(0.0, 0.0, 45.0, TimeRange(t_start=0.0, t_end=0.5), SpinRange(1:100); center=(0.0, 0.0, 1.0)),
             translate(0.0, 0.02, 0.0, TimeRange(t_start=0.0, t_end=0.5))
         )
         write_phantom(obj1, filename)
@@ -102,7 +103,10 @@ using TestItems, TestItemRunner, KomaMRIBase
         K = 10
         t_start = 0.0
         t_end = 1.0
-        obj1.motion = path(0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), TimeRange(t_start, t_end)) 
+        obj1.motion = MotionList(
+            path(    0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1),                      TimeRange(t_start, t_end)),
+            flowpath(0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), 0.01.*rand(Ns, K-1), rand(Bool, Ns, K-1), TimeRange(t_start, t_end))
+        )
         write_phantom(obj1, filename)
         obj2 = read_phantom(filename)
         @test obj1 == obj2
