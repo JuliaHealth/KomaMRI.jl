@@ -618,11 +618,15 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
         Ngr = length(gA) - 1
         #Creating timings
-        if time_shape_id == 0 #no time waveform
+        if time_shape_id == 0 #no time waveform. Default time raster
             gT = Ngr * Δt_gr
+            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay, first_grads, last_grads)
+        elseif time_shape_id == -1 #New in pulseq 1.5.x: no time waveform. 1/2 of the default time raster
+            gT = Ngr * Δt_gr / 2
             G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay, first_grads, last_grads)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
+            delay += gt[1] * Δt_gr # offset due to the shape starting at a non-zero value
             gT = diff(gt) * Δt_gr
             G = Grad(gA,gT,0.0,0.0,delay,first_grads,last_grads)
         end
@@ -688,16 +692,23 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rfAϕ = ComplexF64[0.0]
     end
     #Creating timings
-    if time_shape_id == 0 #no time waveform
+    if time_shape_id == 0 #no time waveform. Default time raster
         rfT = Nrf * Δt_rf
-    else
+    elseif time_shape_id == -1 #New in pulseq 1.5.x: no time waveform. 1/2 of the default time raster
+        rfT =  Nrf * Δt_rf / 2
+    else #time waveform
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
+        delay += rft[1] * Δt_rf # offset due to the shape starting at a non-zero value
         rfT = diff(rft) * Δt_rf
     end
 
     use = KomaMRIBase.get_RF_use_from_char(Val(use))
 
-    return [RF(rfAϕ,rfT,freq,delay,center,use);;]
+    if length(r) == 11 # for version 1.5.x
+        return [RF(rfAϕ,rfT,freq,delay,center,use);;]
+    else # for version 1.4.x and below
+        return [RF(rfAϕ,rfT,freq,delay);;]
+    end
 end
 
 """

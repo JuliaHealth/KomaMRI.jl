@@ -1,0 +1,67 @@
+# Pulseq sequence file
+# Created by MATLAB mr toolbox
+
+[VERSION]
+major 1
+minor 5
+revision 1
+
+[DEFINITIONS]
+AdcRasterTime 1e-07 
+BlockDurationRaster 1e-05 
+GradientRasterTime 1e-05 
+Name gr-time-shaped 
+RadiofrequencyRasterTime 1e-06 
+
+# Format of blocks:
+# NUM DUR RF  GX  GY  GZ  ADC  EXT
+[BLOCKS]
+1  28   0   1   0   0  0  0
+2  28   0   1   0   0  0  0
+3  28   0   1   0   0  0  0
+
+# Format of arbitrary gradients:
+#   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)
+# id amplitude first last amp_shape_id time_shape_id delay
+# ..      Hz/m  Hz/m Hz/m        ..         ..          us
+[GRADIENTS]
+1        42576        42576        42576 1 2 100
+
+# Sequence Shapes
+[SHAPES]
+
+shape_id 1
+num_samples 10
+1
+0.766044443
+0.173648178
+-0.5
+-0.939692621
+-0.939692621
+-0.5
+0.173648178
+0.766044443
+1
+
+shape_id 2
+num_samples 10
+0
+1
+2
+4
+7
+8
+10
+13
+16
+18
+
+
+[SIGNATURE]
+# This is the hash of the Pulseq file, calculated right before the [SIGNATURE]
+# section was added. It can be reproduced/verified with md5sum if the file
+# trimmed to the position right above [SIGNATURE]. The new line character
+# preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away
+# for recalculating/verification)
+Type md5
+Hash 2f0a1b3f34912ad4e46ab07b4ed04b64

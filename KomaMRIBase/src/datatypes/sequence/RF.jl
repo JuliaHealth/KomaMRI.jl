@@ -46,8 +46,8 @@ mutable struct RF
     A
     T
     Δf
-    delay::Real
-    center
+    delay::Float64
+    center::Float64
     use::RFUse
     RF(A, T, Δf, delay, center, use) = any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new(A, T, Δf, delay, center, use)
     RF(A, T, Δf, delay, center)      = RF(A, T, Δf,  delay, center, Undefined())
@@ -57,8 +57,9 @@ mutable struct RF
 end
 
 function _RF_with_center(A, T, Δf, delay, use)
-    rf_temp = RF(A, T, Δf, delay, 0.0, use)
-    return RF(A, T, Δf, delay, get_RF_center(rf_temp), use)
+    rf = RF(A, T, Δf, delay, 0.0, use)
+    rf.center = get_RF_center(rf)
+    return rf
 end
 
 """
@@ -198,5 +199,6 @@ It includes the RF delay and uses the weighted average of times by amplitude.
 function get_RF_center(x::RF)
     t = times(x)
     B1 = ampls(x)
-    return sum(abs.(B1) .* t) ./ sum(abs.(B1))
+    t_center = sum(abs.(B1) .* t) ./ sum(abs.(B1))
+    return t_center
 end
