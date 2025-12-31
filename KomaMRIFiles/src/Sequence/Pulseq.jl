@@ -112,89 +112,50 @@ function read_blocks(io, blockDurationRaster, pulseq_version)
 end
 
 """
+    args = get_scanf_args(format)
+
+Generates a tuple of argument types from a scanf format string.
+"""
+function get_scanf_args(format::String)
+    type_map = Dict(
+        "%i" => Int,
+        "%d" => Int,
+        "%f" => Float64,
+        "%e" => Float64,
+        "%g" => Float64,
+        "%c" => Char,
+        "%s" => String
+    )
+    # Extract all format specifiers
+    args = Type[]
+    for m in split(format)
+        if haskey(type_map, m)
+            push!(args, type_map[m])
+        end
+    end
+    return Tuple(args)
+end
+
+"""
 read_events Read an event section of a sequence file.
-   library=read_events(fid) Read event data from file identifier of
-   an open MR sequence file and return a library of events.
+   library=read_events(fid,scale,format) Read event data and scale
+   elements according to column vector scale and format string.
 
-   library=read_events(fid,scale) Read event data and scale
-   elements according to column vector scale.
-
-   library=read_events(fid,scale,type) Attach the type string to
-   elements of the library.
-
-   library=read_events(...,library) Append new events to the given
+   library=read_events(...; eventLibrary=library) Append new events to the given
    library.
 """
-function read_events(io, scale; type=-1, eventLibrary=Dict())
+function read_events(io, scale, format; eventLibrary=Dict())
+    eventLength = length(scale) + 1
+    fmt = Scanf.Format(format)
+    args = get_scanf_args(format)
     while true
         line = readline(io)
-        EventLength = length(scale) + 1
-        if isempty(line)
-            fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
-            arguments = (Int, zeros(Float64,EventLength-1)...)
-        else
-            line_end = split(line)[end]
-            chars_to_check = Set(['e', 'r', 'i', 's', 'p', 'o', 'u'])
-            if any(c -> c in chars_to_check, line_end)
-                fmt = Scanf.Format("%i"*"%f "^(EventLength-2)*"%c ")
-                arguments = (Int, zeros(Float64,EventLength-2)..., Char)
-            else
-                fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
-                arguments = (Int, zeros(Float64,EventLength-1)...)
-            end
-        end
-        r, data... = scanf(line, fmt, arguments...)
+        isempty(line) && break
+        r, data... = scanf(line, fmt, args...)
+        r == eventLength || break #Break if not all values read
         id = floor(Int, data[1])
-        if data[end] isa Char
-            scaled  = scale[1:end-1] .* data[2:end-1]
-            data = vcat(scaled, [data[end]])
-        else
-            data  = scale .* [data[2:end]...]'
-        end
-        if type != -1
-            eventLibrary[id] = Dict("data"=>data, "type"=>type)
-        else
-            eventLibrary[id] = Dict("data"=>data)
-        end
-        r == EventLength || break #Break on white space
-    end
-    eventLibrary
-end
-
-"""
-read_labels Read a label section of a sequence file.
-   library=read_labels(fid) Read label data from file identifier of
-   an open MR sequence file and return a library of labels.
-
-   library=read_labels(...,library) Append new labels to the given
-   library.
-"""
-function read_labels(io; eventLibrary=Dict())
-    while true
-        fmt = Scanf.Format("%i %i %s")
-        r, data... = scanf(readline(io), fmt, Int, Int, String)
-        id = floor(Int, data[1])
-        eventLibrary[id] = Dict("data"=>data[2:3])
-        r == 3 || break #Break on white space
-    end
-    eventLibrary
-end
-
-"""
-read_extension_blocks Read the extension blocks section of a sequence file.
-   library=read_extension_blocks(fid) Read extension blocks data from file identifier of
-   an open MR sequence file and return a library of labels.
-
-   library=read_extension_blocks(...,library) Append new blocks to the given
-   library.
-"""
-function read_extension_blocks(io; eventLibrary=Dict())
-    while true
-        fmt = Scanf.Format("%i %i %i %i")
-        r, data... = scanf(readline(io), fmt, Int, Int, Int, Int)
-        id = floor(Int, data[1])
-        eventLibrary[id] = Dict("data"=>data[2:4])
-        r == 4 || break #Break on white space
+        data = [d isa Char ? d : s*d for (s, d) in zip(scale, data[2:end])]   
+        eventLibrary[id] = Dict("data"=>data)
     end
     eventLibrary
 end
@@ -397,6 +358,7 @@ function read_seq(filename)
     @info "Loading sequence $(basename(filename)) ..."
     pulseq_version = v"0.0.0"
     gradLibrary = Dict()
+    trapLibrary = Dict()
     def = Dict()
     signature = nothing
     blockEvents = Dict()
@@ -406,19 +368,16 @@ function read_seq(filename)
     adcLibrary = Dict()
     tmp_delayLibrary = Dict()
     shapeLibrary = Dict()
-    extensionLibrary = Dict()
-    triggerLibrary = Dict()
-    extensionType = Dict()
-    labelsetLibrary = Dict()
-    labelincLibrary = Dict()
+    extensionInstanceLibrary = Dict()
+    extensionTypeLibrary = Dict()
+    extensionSpecLibrary = Dict()
     #Reading file and storing data
     open(filename) do io
         while !eof(io)
-
             section = readline(io)
             if typeof(section) == String && (isempty(section) || section[1] == '#')
                 #skip useless line
-            elseif     section == "[DEFINITIONS]"
+            elseif section == "[DEFINITIONS]"
                 def = read_definitions(io)
             elseif  section == "[VERSION]"
                 pulseq_version = read_version(io)
@@ -429,95 +388,91 @@ function read_seq(filename)
                 blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], pulseq_version)
             elseif  section == "[RF]"
                 if pulseq_version >= v"1.5.0"
-                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 1]) # this is 1.5.x format
+                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 '\0'], "%i "*"%f "^(10)*"%c ") # this is 1.5.x format
                 elseif pulseq_version >= v"1.4.0"
-                    rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
+                    rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1], "%i "*"%f "^(7)) # this is 1.4.x format
                 else
-                    rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1]) # this is 1.3.x and below
+                    rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1], "%i "*"%f "^(6)) # this is 1.3.x and below
                     # we will have to scan through the library later after all the shapes have been loaded
                 end
             elseif  section == "[GRADIENTS]"
                 if pulseq_version >= v"1.5.0"
-                    gradLibrary = read_events(io, [1/γ 1/γ 1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.5.x format
+                    gradLibrary = read_events(io, [1/γ 1/γ 1/γ 1 1 1e-6], "%i "*"%f "^(6); eventLibrary=gradLibrary) # this is 1.5.x format
                 elseif pulseq_version >= v"1.4.0"
-                    gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format
+                    gradLibrary = read_events(io, [1/γ 1 1 1e-6], "%i "*"%f "^(4); eventLibrary=gradLibrary) # this is 1.4.x format
                 else
-                    gradLibrary = read_events(io, [1/γ 1 1e-6];   type='g', eventLibrary=gradLibrary) # this is 1.3.x and below
+                    gradLibrary = read_events(io, [1/γ 1 1e-6], "%i "*"%f "^(3); eventLibrary=gradLibrary) # this is 1.3.x and below
                 end
             elseif  section == "[TRAP]"
-                gradLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6]; type='t', eventLibrary=gradLibrary);
+                trapLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6], "%i "*"%f "^(5); eventLibrary=trapLibrary);
             elseif  section == "[ADC]"
                 if pulseq_version >= v"1.5.0"
-                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1 1 1 1]) # this is 1.5.x format
+                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1 1 1 1], "%i "*"%f "^(8)) # this is 1.5.x format
                 else
-                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1]) # this is 1.4.x and below
+                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1], "%i "*"%f "^(5)) # this is 1.4.x and below
                 end
             elseif  section == "[DELAYS]"
                 if pulseq_version >= v"1.4.0"
                     @error "Pulseq file revision 1.4.0 and above MUST NOT contain [DELAYS] section"
                 end
-                tmp_delayLibrary = read_events(io, 1e-6);
+                tmp_delayLibrary = read_events(io, 1e-6, "%i %f");
             elseif  section == "[SHAPES]"
                 shapeLibrary = read_shapes(io, (pulseq_version.major == 1 && pulseq_version.minor < 4))
             elseif  section == "[EXTENSIONS]"
-                extensionLibrary = read_extension_blocks(io)
+                extensionInstanceLibrary = read_events(io, [1 1 1], "%i "*"%i "^(3); eventLibrary=extensionInstanceLibrary)
             elseif  section == "[SIGNATURE]"
                 signature = read_signature(io)
             else
                 if startswith(section, "extension")
-                    extension = section[11:end]
-                    if startswith(extension, "TRIGGERS")
-                        id = parse(Int, extension[9:end])
-                        extensionType[id] = Dict("data"=>"TRIGGERS")
-                        triggerLibrary = read_events(io, [1, 1, 1e-6, 1e-6]; eventLibrary = triggerLibrary)
-                    elseif startswith(extension, "LABELSET")
-                        id = parse(Int, extension[9:end])
-                        extensionType[id] = Dict("data"=>"LABELSET")
-                        labelsetLibrary = read_labels(io;eventLibrary=labelsetLibrary)
-                    elseif startswith(extension, "LABELINC")
-                        id = parse(Int, extension[9:end])
-                        extensionType[id] = Dict("data"=>"LABELINC")
-                        labelincLibrary = read_labels(io; eventLibrary=labelincLibrary)
-                    elseif startswith(extension, "DELAYS")
-                        @warn "DELAYS extension is not handle"
+                    ext = section[11:end]
+                    ext_string = split(ext, " ")[1]
+                    ext_type   = KomaMRIBase.get_EXT_type_from_symbol(Val(Symbol(ext_string)))
+                    ext_id     = parse(Int, split(ext, " ")[2])
+                    if !haskey(def,"RequiredExtensions") def["RequiredExtensions"] = []  end
+
+                    if ext_type <: Extension
+                        extensionTypeLibrary[ext_id] = ext_type
+                        extensionSpecLibrary[ext_id] = read_events(io, get_scale(ext_type), "%i "*get_scanf_format(ext_type))
                     else
-                        @warn "Ignoring unknown extension, input string: $extension"
+                        if ext_string in def["RequiredExtensions"]
+                            @error "Extension $ext_string is required by the sequence but not supported by KomaMRI reader"
+                        else
+                            @warn "Ignoring unsupported extension: $ext_string"
+                        end
                     end
                 else
                     @error "Unknown section code: $section"
                 end
             end
-
         end
     end
     verify_signature!(filename, signature; pulseq_version=pulseq_version)
     # fix blocks, gradients and RF objects imported from older versions
     if pulseq_version < v"1.4.0"
         # scan through the RF objects
-        for i = 0:length(rfLibrary)-1
-            rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]' 0.0 rfLibrary[i]["data"][4:end]']
+        for i in eachindex(rfLibrary)
+            rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]; 0.0; rfLibrary[i]["data"][4:end]]
         end
-        # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
-        for i = 0:length(gradLibrary)-1
-            if gradLibrary[i]["type"] == 't'
-                #(1)amplitude (2)rise (2)flat (3)fall (4)delay
-                if gradLibrary[i]["data"][2] == 0 #rise
-                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-                        gradLibrary[i]["data"][2]  = def["gradRasterTime"]
-                    end
-                end
-                if gradLibrary[i]["data"][4] == 0 #delay
-                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-                        gradLibrary[i]["data"][4]  = def["gradRasterTime"]
-                    end
+        # scan through the trapezoidal gradient objects
+        for i in eachindex(trapLibrary)
+            #(1)amplitude (2)rise (2)flat (3)fall (4)delay
+            if trapLibrary[i]["data"][2] == 0 #rise
+                if abs(trapLibrary[i]["data"][1]) == 0 && trapLibrary[i]["data"][3] > 0
+                    trapLibrary[i]["data"][3] -= def["gradRasterTime"]
+                    trapLibrary[i]["data"][2]  = def["gradRasterTime"]
                 end
             end
-            if gradLibrary[i]["type"] == 'g'
-                #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-                gradLibrary[i]["data"] = [gradLibrary[i]["data"][1:2]; 0.0; gradLibrary[i]["data"][3:end]]
+            if trapLibrary[i]["data"][4] == 0 #delay
+                if abs(trapLibrary[i]["data"][1]) == 0 && trapLibrary[i]["data"][3] > 0
+                    trapLibrary[i]["data"][3] -= def["gradRasterTime"]
+                    trapLibrary[i]["data"][4]  = def["gradRasterTime"]
+                end
             end
+        end
+        # scan through the time-shaped gradient objects
+        for i in eachindex(gradLibrary)
+            #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+            gradLibrary[i]["data"] = [gradLibrary[i]["data"][1:2]; 0.0; gradLibrary[i]["data"][3:end]]
         end
         # for versions prior to 1.4.0 blockDurations have not been initialized
         blockDurations = zeros(length(blockEvents))
@@ -535,15 +490,14 @@ function read_seq(filename)
         "blockDurations"=>blockDurations,
         "delayInd_tmp"=>delayInd_tmp,
         "gradLibrary"=>gradLibrary,
+        "trapLibrary"=>trapLibrary,
         "rfLibrary"=>rfLibrary,
         "adcLibrary"=>adcLibrary,
         "tmp_delayLibrary"=>tmp_delayLibrary,
         "shapeLibrary"=>shapeLibrary,
-        "extensionLibrary"=>extensionLibrary,
-        "triggerLibrary"=>triggerLibrary,
-        "labelsetLibrary"=>labelsetLibrary,
-        "labelincLibrary"=>labelincLibrary,
-        "extensionType"=>extensionType,
+        "extensionInstanceLibrary"=>extensionInstanceLibrary,
+        "extensionTypeLibrary"=>extensionTypeLibrary,
+        "extensionSpecLibrary"=>extensionSpecLibrary,
         "definitions"=>def)
     #Transforming Dictionary to Sequence object
     #This should only work for Pulseq files >=1.4.0
@@ -572,12 +526,13 @@ end
 
 #To Sequence
 """
-    grad = read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
+    grad = read_Grad(gradLibrary, trapLibrary, shapeLibrary, Δt_gr, i)
 
 Reads the gradient. It is used internally by [`get_block`](@ref).
 
 # Arguments
 - `gradLibrary`: (`::Dict{K, V}`) the "gradLibrary" dictionary
+- `trapLibrary`: (`::Dict{K, V}`) the "trapLibrary" dictionary
 - `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
 - `Δt_gr`: (`::Float64`, `[s]`) gradient raster time
 - `i`: (`::Int64`) index of the axis in the block event
@@ -585,17 +540,13 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 # Returns
 - `grad`: (::Grad) Gradient struct
 """
-function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
+function read_Grad(gradLibrary, trapLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0.0,0.0)
-    if isempty(gradLibrary) || i==0
-        return G
-    end
-
-    if gradLibrary[i]["type"] == 't' #if trapezoidal gradient
+    if haskey(trapLibrary, i) # Trapezoidal gradient waveform
         #(1)amplitude (2)rise (3)flat (4)fall (5)delay
-        g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
-        G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
-    elseif gradLibrary[i]["type"] == 'g' #Arbitrary gradient waveform
+        g_A, g_rise, g_T, g_fall, g_delay = trapLibrary[i]["data"]
+        G = Grad(g_A,g_T,g_rise,g_fall,g_delay,0.0,0.0)
+    elseif haskey(gradLibrary, i) # Arbitrary gradient waveform
         g = gradLibrary[i]["data"]
         if length(g) == 6 # for version 1.5.x
             #(1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
@@ -631,7 +582,7 @@ function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
             G = Grad(gA,gT,0.0,0.0,delay,first_grads,last_grads)
         end
     end
-    G
+    return G
 end
 
 """
@@ -649,11 +600,9 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 - `rf`: (`1x1 ::Matrix{RF}`) RF struct
 """
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
-
     if isempty(rfLibrary) || i==0
         return reshape([RF(0.0,0.0)], 1, 1)
     end
-
     #Unpacking
     r = rfLibrary[i]["data"]
     if length(r) == 11 # for version 1.5.x
@@ -701,9 +650,7 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         delay += rft[1] * Δt_rf # offset due to the shape starting at a non-zero value
         rfT = diff(rft) * Δt_rf
     end
-
     use = KomaMRIBase.get_RF_use_from_char(Val(use))
-
     if length(r) == 11 # for version 1.5.x
         return [RF(rfAϕ,rfT,freq,delay,center,use);;]
     else # for version 1.4.x and below
@@ -771,13 +718,13 @@ Block sequence definition. Used internally by [`read_seq`](@ref).
 """
 function get_block(obj, i)
     #Unpacking
-    idelay, irf, ix, iy, iz, iadc, iext = obj["blockEvents"][i]
+    idur, irf, igx, igy, igz, iadc, iext = obj["blockEvents"][i]
 
     #Gradient definition
     Δt_gr = obj["definitions"]["GradientRasterTime"]
-    Gx = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, ix)
-    Gy = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iy)
-    Gz = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iz)
+    Gx = read_Grad(obj["gradLibrary"], obj["trapLibrary"], obj["shapeLibrary"], Δt_gr, igx)
+    Gy = read_Grad(obj["gradLibrary"], obj["trapLibrary"], obj["shapeLibrary"], Δt_gr, igy)
+    Gz = read_Grad(obj["gradLibrary"], obj["trapLibrary"], obj["shapeLibrary"], Δt_gr, igz)
     G = reshape([Gx;Gy;Gz],3,1) #[Gx;Gy;Gz;;]
 
     #RF definition
@@ -790,9 +737,8 @@ function get_block(obj, i)
     #DUR
     D = Float64[max(obj["blockDurations"][i], dur(Gx), dur(Gy), dur(Gz), dur(R[1]), dur(A[1]))]
 
-     #Extensions
-     E = read_extension(obj["extensionLibrary"], obj["extensionType"],obj["triggerLibrary"],obj["labelsetLibrary"],
-     obj["labelincLibrary"],iext)
+    #Extensions
+    E = read_extension(obj["extensionInstanceLibrary"], obj["extensionTypeLibrary"], obj["extensionSpecLibrary"], iext)
 
     # Definitition
     DEF = Dict{String,Any}()
@@ -803,54 +749,39 @@ function get_block(obj, i)
 end
 
 """
-    EXT = read_extension(extensionLibrary, extensionType, triggerLibrary, labelsetLibrary, labelincLibrary, i)
+    EXT = read_extension(extensionInstanceLibrary, extensionTypeLibrary, triggerLibrary, labelsetLibrary, labelincLibrary, i)
 
 Reads the extension(s) for a block event in a Pulseq sequence file.
 
 # Arguments
-- `extensionLibrary`: (`::Dict{K, V}`) the extension library dictionary
-- `extensionType`: (`::Dict{K, V}`) the extension type dictionary
-- `triggerLibrary`: (`::Dict{K, V}`) the trigger library dictionary
-- `labelsetLibrary`: (`::Dict{K, V}`) the labelset library dictionary
-- `labelincLibrary`: (`::Dict{K, V}`) the labelinc library dictionary
+- `extensionInstanceLibrary`: (`::Dict{K, V}`) the extension library dictionary
+- `extensionTypeLibrary`: (`::Dict{K, V}`) the extension type dictionary
+- `extensionSpecLibrary`: (`::Dict{K, V}`) the extension specifications dictionary
 - `i`: (`::Int64`) index of the extension in the block event
 
 # Returns
 - `EXT`: (`Vector{Extension}`) vector of Extension objects for the block event
 
 # Details
-The available extension object are currently `LabelSet`, `LabelInc` and `Trigger``
+The available extensions are currently contained in the file KomaMRIBase/src/datatypes/sequence/EXT.jl
 """
-function read_extension(extensionLibrary,extensionType,triggerLibrary,labelsetLibrary,labelincLibrary,i)
+function read_extension(extensionInstanceLibrary, extensionTypeLibrary, extensionSpecLibrary, i)
     EXT = [Extension[]]
-
-    if isempty(extensionLibrary) || i==0
+    if isempty(extensionInstanceLibrary) || i==0
         return EXT
     end
-
     # type ref next_id
     # next_id of 0 terminates the list
-    type, ref, next_id = extensionLibrary[i]["data"]
-
+    type, ref, next_id = extensionInstanceLibrary[i]["data"]
     while true
-        length(extensionType) < type ? (@warn "extension type n°$type does not exist"; break) : nothing
-        if extensionType[type]["data"] == "LABELSET"
-            push!(EXT[1],LabelSet(labelsetLibrary[ref]["data"]...))
-        elseif extensionType[type]["data"] == "LABELINC"
-            push!(EXT[1],LabelInc(labelincLibrary[ref]["data"]...))
-        elseif extensionType[type]["data"] == "TRIGGERS"
-            push!(EXT[1],Trigger(triggerLibrary[ref]["data"]...))
-        else
-            @warn "Extension type not implemented"
-        end
-
+        length(extensionTypeLibrary) < type ? (@warn "extension type n°$type does not exist"; break) : nothing
+        push!(EXT[1], extensionTypeLibrary[type](extensionSpecLibrary[type][ref]["data"]...))
         if next_id == 0
             break
         else
-            type, ref, next_id = extensionLibrary[next_id]["data"]
+            type, ref, next_id = extensionInstanceLibrary[next_id]["data"]
         end
     end
-
     return EXT
  end
 
