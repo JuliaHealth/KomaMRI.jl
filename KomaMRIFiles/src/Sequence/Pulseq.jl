@@ -432,7 +432,7 @@ function read_seq(filename)
 
                     if ext_type <: Extension
                         extensionTypeLibrary[ext_id] = ext_type
-                        extensionSpecLibrary[ext_id] = read_events(io, get_scale(ext_type), "%i "*get_scanf_format(ext_type))
+                        extensionSpecLibrary[ext_id] = read_events(io, KomaMRIBase.get_scale(ext_type), "%i "*KomaMRIBase.get_scanf_format(ext_type))
                     else
                         if ext_string in def["RequiredExtensions"]
                             @error "Extension $ext_string is required by the sequence but not supported by KomaMRI reader"

@@ -36,4 +36,3 @@ function get_scanf_format(::Type{T}) where T
 end
 
 export Extension, LabelInc, LabelSet, Trigger, SoftDelay
-export get_scale, get_scanf_format
