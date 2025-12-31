@@ -749,7 +749,7 @@ function get_block(obj, i)
 end
 
 """
-    EXT = read_extension(extensionInstanceLibrary, extensionTypeLibrary, triggerLibrary, labelsetLibrary, labelincLibrary, i)
+    EXT = read_extension(extensionInstanceLibrary, extensionTypeLibrary, extensionSpecLibrary, i)
 
 Reads the extension(s) for a block event in a Pulseq sequence file.
 
