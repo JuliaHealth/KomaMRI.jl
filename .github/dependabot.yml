@@ -1,4 +1,5 @@
 version: 2
+enable-beta-ecosystems: true
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -8,50 +9,21 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
-      
-  # KomaMRIBase
+
   - package-ecosystem: "julia"
-    directory: "/KomaMRIBase"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 100
-    labels:
-      - "dependencies"
-      - "julia"
-      
-  # KomaMRICore
-  - package-ecosystem: "julia"
-    directory: "/KomaMRICore"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 100
-    labels:
-      - "dependencies"
-      - "julia"
-      
-  # KomaMRIFiles
-  - package-ecosystem: "julia"
-    directory: "/KomaMRIFiles"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 100
-    labels:
-      - "dependencies"
-      - "julia"
-      
-  # KomaMRIPlots
-  - package-ecosystem: "julia"
-    directory: "/KomaMRIPlots"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 100
-    labels:
-      - "dependencies"
-      - "julia"
-      
-  # KomaMRI
-  - package-ecosystem: "julia"
-    directory: "/"
+    directories:
+      - "/"
+      - "/docs"
+      - "/test"
+      - "/benchmarks"
+      - "/KomaMRIBase"
+      - "/KomaMRIBase/test"
+      - "/KomaMRICore"
+      - "/KomaMRICore/test"
+      - "/KomaMRIFiles"
+      - "/KomaMRIFiles/test"
+      - "/KomaMRIPlots"
+      - "/KomaMRIPlots/test"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 100
