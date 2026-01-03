@@ -12,3 +12,5 @@ TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
 
 [preferences.KomaMRICore]
 test_backend = "CPU"
+[compat]
+Suppressor = "0.2.8"
