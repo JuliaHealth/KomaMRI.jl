@@ -11,3 +11,4 @@ Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 
 [compat]
 Documenter = "1"
+PlutoSliderServer = "1.8.0"
