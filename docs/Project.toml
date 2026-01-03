@@ -10,4 +10,5 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 
 [compat]
+DisplayAs = "0.1.6"
 Documenter = "1"
