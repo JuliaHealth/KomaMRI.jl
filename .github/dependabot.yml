@@ -8,3 +8,53 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+      
+  # KomaMRIBase
+  - package-ecosystem: "julia"
+    directory: "/KomaMRIBase"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    labels:
+      - "dependencies"
+      - "julia"
+      
+  # KomaMRICore
+  - package-ecosystem: "julia"
+    directory: "/KomaMRICore"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    labels:
+      - "dependencies"
+      - "julia"
+      
+  # KomaMRIFiles
+  - package-ecosystem: "julia"
+    directory: "/KomaMRIFiles"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    labels:
+      - "dependencies"
+      - "julia"
+      
+  # KomaMRIPlots
+  - package-ecosystem: "julia"
+    directory: "/KomaMRIPlots"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    labels:
+      - "dependencies"
+      - "julia"
+      
+  # KomaMRI
+  - package-ecosystem: "julia"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    labels:
+      - "dependencies"
+      - "julia"
