@@ -27,7 +27,7 @@ KomaoneAPIExt = "oneAPI"
 
 [compat]
 AMDGPU = "0.9, 1, 2"
-AcceleratedKernels = "^0.3.2, 0.4"
+AcceleratedKernels = "^0.3.2, 0.4, 0.4"
 Adapt = "3, 4"
 CUDA = "3, 4, 5"
 Functors = "0.4, 0.5"
