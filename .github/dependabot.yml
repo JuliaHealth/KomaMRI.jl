@@ -13,17 +13,10 @@ updates:
   - package-ecosystem: "julia"
     directories:
       - "/"
-      - "/docs"
-      - "/test"
-      - "/benchmarks"
       - "/KomaMRIBase"
-      - "/KomaMRIBase/test"
       - "/KomaMRICore"
-      - "/KomaMRICore/test"
       - "/KomaMRIFiles"
-      - "/KomaMRIFiles/test"
       - "/KomaMRIPlots"
-      - "/KomaMRIPlots/test"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 100
