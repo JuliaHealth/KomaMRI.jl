@@ -151,7 +151,7 @@ If you use this package, please cite our paper.
          doi = {https://doi.org/10.1002/mrm.29635},
          url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
          eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
-         year = {2023},
+         year = {2023}
 }
 ```
 
