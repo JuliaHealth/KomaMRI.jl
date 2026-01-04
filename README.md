@@ -144,10 +144,14 @@ If you use this package, please cite our paper.
          author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
          title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
          journal = {Magnetic Resonance in Medicine},
+         volume = {90},
+         number = {1},
+         pages = {329-342},
          keywords = {Bloch equations, GPU, GUI, Julia, open source, simulation},
          doi = {https://doi.org/10.1002/mrm.29635},
          url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
          eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
+         year = {2023}
 }
 ```
 
