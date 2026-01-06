@@ -129,7 +129,7 @@ function read_events(io, scale; format="%i "*"%f "^(length(scale)), eventLibrary
         r, data... = scanf(line, fmt, args...)
         r == eventLength || break #Break if not all values read
         id = floor(Int, data[1])
-        data = [d isa Char ? d : s*d for (s, d) in zip(scale, data[2:end])]   
+        data = [d isa Number ? s*d : d for (s, d) in zip(scale, data[2:end])]
         eventLibrary[id] = Dict("data"=>data)
     end
     eventLibrary
