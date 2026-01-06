@@ -17,12 +17,12 @@ mutable struct RF
 end
 ```
 
-As you can see, it has 4 field names: ''A'' defines amplitude, ''T'' defines duration time, ''delay'' is the distance between the 0 time and the first waveform sample and ''Δf'' is the displacement respect to the main field carrier frequency (this is for advanced users).
+As you can see, it has 4 field names: `A` defines amplitude, `T` defines duration time, `delay` is the distance between the 0 time and the first waveform sample and `Δf` is the displacement respect to the main field carrier frequency (this is for advanced users).
 
-''A'' and ''T'' can be numbers or vectors of numbers. Depending on the length of the ''A'' and ''T'', **KomaMRI** interprets different waveforms: 
-* Pulse Waveform: A and T are numbers
-* Uniformly-Sampled Waveform: A is a vector and T is a number
-* Time-Shaped Waveform: A and T are both vectors with the same length (zero-order-hold)
+`A` and `T` can be numbers or vectors of numbers. Depending on the length of the `A` and `T`, **KomaMRI** interprets different waveforms: 
+* Pulse Waveform: `A` and `T` are numbers
+* Uniformly-Sampled Waveform: `A` is a vector and `T` is a number
+* Time-Shaped Waveform: `A` and `T` are both vectors; `T` stores interval durations so `length(A) = length(T) + 1`, and the waveform is reconstructed by connecting consecutive `A` entries with piecewise-linear segments
 
 In the image below, we provide a summary of how you can define **RF** events:
 
@@ -107,12 +107,12 @@ mutable struct Grad
 end
 ```
 
-As you can see, it has 5 field names: ''A'' defines amplitude, ''T'' defines duration time, ''delay'' is the distance between the 0 time and the first waveform sample, ''rise'' and ''fall'' are the time durations of the first and last gradient ramps.
+As you can see, it has 5 field names: `A` defines amplitude, `T` defines duration time, `delay` is the distance between the 0 time and the first waveform sample, `rise` and `fall` are the time durations of the first and last gradient ramps.
 
-Just like the **RF**, ''A'' and ''T'' in the **Grad** struct can be numbers or vectors of numbers. Depending on the length of the ''A'' and ''T'', **KomaMRI** interprets different waveforms: 
-* Trapezoidal Waveform: A and T are numbers
-* Uniformly-Sampled Waveform: A is a vector and T is a number
-* Time-Shaped Waveform: A and T are both vectors, A has one sample more the T (linear interpolation)
+Just like the **RF**, `A` and `T` in the **Grad** struct can be numbers or vectors of numbers. Depending on the length of the `A` and `T`, **KomaMRI** interprets different waveforms: 
+* Trapezoidal Waveform: `A` and `T` are numbers
+* Uniformly-Sampled Waveform: `A` is a vector and `T` is a number
+* Time-Shaped Waveform: `A` and `T` are both vectors; `T` stores interval durations so `length(A) = length(T) + 1`, and the waveform is reconstructed by connecting consecutive `A` entries with piecewise-linear segments
 
 In the image below, we provide a summary of how you can define **Grad** events:
 
@@ -120,7 +120,7 @@ In the image below, we provide a summary of how you can define **Grad** events:
 <p align="center"><img width="100%" src="../../assets/event-shapes-gr-horizontal.svg"/></p>
 ```
 
-Let's look at some basic examples of creating these **Grad** structs and including them in a **Sequence** struct, focusing on the ''x'' component of the gradients. The examples should be self-explanatory.
+Let's look at some basic examples of creating these **Grad** structs and including them in a **Sequence** struct, focusing on the `x` component of the gradients. The examples should be self-explanatory.
 
 ### Gradient Trapezoidal Waveform
 
@@ -196,7 +196,7 @@ mutable struct ADC
 end
 ```
 
-As you can see, it has 5 field names: ''N'' defines number of samples, ''T'' defines total acquisition duration, ''delay'' is the distance between the 0 time and the first sampled signal, ''Δf'' and ''ϕ' are factor to correct signal acquisition (for advanced users).
+As you can see, it has 5 field names: `N` defines number of samples, `T` defines total acquisition duration, `delay` is the distance between the 0 time and the first sampled signal, `Δf` and `ϕ` are factor to correct signal acquisition (for advanced users).
 
 In the image below you can see how to define an **ADC** event:
 

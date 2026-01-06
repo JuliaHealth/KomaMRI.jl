@@ -1,7 +1,3 @@
-# # add_format(format"Pulseq", "# Pulseq sequence file", ".seq", [:Koma=>UUID("a9056882-1c2f-47b4-848d-dcb4a04f1994")])
-# module Pulseq
-# This file is a copy of the MATLAB Pulseq v1.4.0 read functions
-
 """
 read_version Read the [VERSION] section of a sequence file.
    defs=read_version(fid) Read Pulseq version from file
@@ -52,25 +48,28 @@ function read_definitions(io)
 end
 
 """
-read_definitions Read the [SIGNATURE] section of a sequence file.
+read_signature Read the [SIGNATURE] section of a sequence file.
    signature=read_signature(fid) Read user signature from file
-   identifier of an open MR sequence file and return a map of
-   key/value entries.
+   identifier of an open MR sequence file and return a NamedTuple with signature metadata.
 """
 function read_signature(io)
-    signature = ""
+    signature_type = nothing
+    signature_hash = nothing
     while true
         line = readline(io)
         line_split = String.(split(line))
         (length(line_split) > 0) || break #Break on white space
+        firstchar = first(line_split[1])
+        firstchar == '#' && continue
         key = line_split[1]
-        if (key == "Hash")
-            value_string_array = line_split[2:end]
-            parsed_array = [tryparse(Float64, s) === nothing ? s : tryparse(Float64, s) for s = value_string_array]
-            signature = length(parsed_array) == 1 ? parsed_array[1] : parsed_array
+        value = join(line_split[2:end], " ")
+        if key == "Type"
+            signature_type = strip(value)
+        elseif key == "Hash"
+            signature_hash = lowercase(replace(strip(value), " " => ""))
         end
     end
-    return signature
+    return isnothing(signature_type) && isnothing(signature_hash) ? nothing : (type = signature_type, hash = signature_hash)
 end
 
 """
@@ -114,69 +113,24 @@ end
 
 """
 read_events Read an event section of a sequence file.
-   library=read_events(fid) Read event data from file identifier of
-   an open MR sequence file and return a library of events.
+   library=read_events(fid,scale,format) Read event data and scale
+   elements according to column vector scale and format string.
 
-   library=read_events(fid,scale) Read event data and scale
-   elements according to column vector scale.
-
-   library=read_events(fid,scale,type) Attach the type string to
-   elements of the library.
-
-   library=read_events(...,library) Append new events to the given
+   library=read_events(...; eventLibrary=library) Append new events to the given
    library.
 """
-function read_events(io, scale; type=-1, eventLibrary=Dict())
+function read_events(io, scale; format="%i "*"%f "^(length(scale)), eventLibrary=Dict())
+    eventLength = length(scale) + 1
+    fmt = Scanf.Format(format)
+    args = Tuple([f == "%i" ? Int : (f == "%f" ? Float64 : (f == "%c" ? Char : String)) for f in split(format)])
     while true
-        EventLength = length(scale) + 1
-        fmt = Scanf.Format("%i"*"%f "^(EventLength-1))
-        r, data... = scanf(readline(io), fmt, Int, zeros(Float64,EventLength-1)...)
+        line = readline(io)
+        isempty(line) && break
+        r, data... = scanf(line, fmt, args...)
+        r == eventLength || break #Break if not all values read
         id = floor(Int, data[1])
-        data = scale .* [data[2:end]...]'
-        if type != -1
-            eventLibrary[id] = Dict("data"=>data, "type"=>type)
-        else
-            eventLibrary[id] = Dict("data"=>data)
-        end
-        r == EventLength || break #Break on white space
-    end
-    eventLibrary
-end
-
-"""
-read_labels Read a label section of a sequence file.
-   library=read_labels(fid) Read label data from file identifier of
-   an open MR sequence file and return a library of labels.
-
-   library=read_labels(...,library) Append new labels to the given
-   library.
-"""
-function read_labels(io; eventLibrary=Dict())
-    while true
-        fmt = Scanf.Format("%i %i %s")
-        r, data... = scanf(readline(io), fmt, Int, Int, String)
-        id = floor(Int, data[1])
-        eventLibrary[id] = Dict("data"=>data[2:3])
-        r == 3 || break #Break on white space
-    end
-    eventLibrary
-end
-
-"""
-read_extension_blocks Read the extension blocks section of a sequence file.
-   library=read_extension_blocks(fid) Read extension blocks data from file identifier of
-   an open MR sequence file and return a library of labels.
-
-   library=read_extension_blocks(...,library) Append new blocks to the given
-   library.
-"""
-function read_extension_blocks(io; eventLibrary=Dict())
-    while true
-        fmt = Scanf.Format("%i %i %i %i")
-        r, data... = scanf(readline(io), fmt, Int, Int, Int, Int)
-        id = floor(Int, data[1])
-        eventLibrary[id] = Dict("data"=>data[2:4])
-        r == 4 || break #Break on white space
+        data = [d isa Number ? s*d : d for (s, d) in zip(scale, data[2:end])]
+        eventLibrary[id] = Dict("data"=>data)
     end
     eventLibrary
 end
@@ -379,8 +333,9 @@ function read_seq(filename)
     @info "Loading sequence $(basename(filename)) ..."
     pulseq_version = v"0.0.0"
     gradLibrary = Dict()
+    trapLibrary = Dict()
     def = Dict()
-    signature = ""
+    signature = nothing
     blockEvents = Dict()
     blockDurations = Dict()
     delayInd_tmp = Dict()
@@ -388,19 +343,16 @@ function read_seq(filename)
     adcLibrary = Dict()
     tmp_delayLibrary = Dict()
     shapeLibrary = Dict()
-    extensionLibrary = Dict()
-    triggerLibrary = Dict()
-    extensionType = Dict()
-    labelsetLibrary = Dict()
-    labelincLibrary = Dict()
+    extensionInstanceLibrary = Dict()
+    extensionTypeLibrary = Dict()
+    extensionSpecLibrary = Dict()
     #Reading file and storing data
     open(filename) do io
         while !eof(io)
-
             section = readline(io)
             if typeof(section) == String && (isempty(section) || section[1] == '#')
                 #skip useless line
-            elseif     section == "[DEFINITIONS]"
+            elseif section == "[DEFINITIONS]"
                 def = read_definitions(io)
             elseif  section == "[VERSION]"
                 pulseq_version = read_version(io)
@@ -410,22 +362,30 @@ function read_seq(filename)
                 end
                 blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], pulseq_version)
             elseif  section == "[RF]"
-                if pulseq_version >= v"1.4.0"
+                if pulseq_version >= v"1.5.0"
+                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 1]; format="%i "*"%f "^(10)*"%c ") # this is 1.5.x format
+                elseif pulseq_version >= v"1.4.0"
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
                     rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1]) # this is 1.3.x and below
                     # we will have to scan through the library later after all the shapes have been loaded
                 end
             elseif  section == "[GRADIENTS]"
-                if pulseq_version >= v"1.4.0"
-                    gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format
+                if pulseq_version >= v"1.5.0"
+                    gradLibrary = read_events(io, [1/γ 1/γ 1/γ 1 1 1e-6]; eventLibrary=gradLibrary) # this is 1.5.x format
+                elseif pulseq_version >= v"1.4.0"
+                    gradLibrary = read_events(io, [1/γ 1 1 1e-6]; eventLibrary=gradLibrary) # this is 1.4.x format
                 else
-                    gradLibrary = read_events(io, [1/γ 1 1e-6];   type='g', eventLibrary=gradLibrary) # this is 1.3.x and below
+                    gradLibrary = read_events(io, [1/γ 1 1e-6]; eventLibrary=gradLibrary) # this is 1.3.x and below
                 end
             elseif  section == "[TRAP]"
-                gradLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6]; type='t', eventLibrary=gradLibrary);
+                trapLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6]; eventLibrary=trapLibrary);
             elseif  section == "[ADC]"
-                adcLibrary = read_events(io, [1 1e-9 1e-6 1 1])
+                if pulseq_version >= v"1.5.0"
+                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1 1 1 1]) # this is 1.5.x format
+                else
+                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1]) # this is 1.4.x and below
+                end
             elseif  section == "[DELAYS]"
                 if pulseq_version >= v"1.4.0"
                     @error "Pulseq file revision 1.4.0 and above MUST NOT contain [DELAYS] section"
@@ -434,63 +394,60 @@ function read_seq(filename)
             elseif  section == "[SHAPES]"
                 shapeLibrary = read_shapes(io, (pulseq_version.major == 1 && pulseq_version.minor < 4))
             elseif  section == "[EXTENSIONS]"
-                extensionLibrary = read_extension_blocks(io)
+                extensionInstanceLibrary = read_events(io, [1 1 1]; format="%i "*"%i "^(3), eventLibrary=extensionInstanceLibrary)
             elseif  section == "[SIGNATURE]"
                 signature = read_signature(io)
             else
                 if startswith(section, "extension")
-                    extension = section[11:end]
-                    if startswith(extension, "TRIGGERS")
-                        id = parse(Int, extension[9:end])
-                        extensionType[id] = Dict("data"=>"TRIGGERS")
-                        triggerLibrary = read_events(io, [1 1 1e-6 1e-6]; eventLibrary = triggerLibrary)
-                    elseif startswith(extension, "LABELSET")
-                        id = parse(Int, extension[9:end])
-                        extensionType[id] = Dict("data"=>"LABELSET")
-                        labelsetLibrary = read_labels(io;eventLibrary=labelsetLibrary)
-                    elseif startswith(extension, "LABELINC")
-                        id = parse(Int, extension[9:end])
-                        extensionType[id] = Dict("data"=>"LABELINC")
-                        labelincLibrary = read_labels(io; eventLibrary=labelincLibrary)
-                    elseif startswith(extension, "DELAYS")
-                        @warn "DELAYS extension is not handle"
+                    ext = section[11:end]
+                    ext_string = split(ext, " ")[1]
+                    ext_type   = KomaMRIBase.get_EXT_type_from_symbol(Val(Symbol(ext_string)))
+                    ext_id     = parse(Int, split(ext, " ")[2])
+                    if !haskey(def,"RequiredExtensions") def["RequiredExtensions"] = []  end
+
+                    if ext_type <: Extension
+                        extensionTypeLibrary[ext_id] = ext_type
+                        extensionSpecLibrary[ext_id] = read_events(io, KomaMRIBase.get_scale(ext_type); format="%i "*KomaMRIBase.get_scanf_format(ext_type))
                     else
-                        @warn "Ignoring unknown extension, input string: $extension"
+                        if ext_string in def["RequiredExtensions"]
+                            @error "Extension $ext_string is required by the sequence but not supported by KomaMRI reader"
+                        else
+                            @warn "Ignoring unsupported extension: $ext_string"
+                        end
                     end
                 else
                     @error "Unknown section code: $section"
                 end
             end
-
         end
     end
+    verify_signature!(filename, signature; pulseq_version=pulseq_version)
     # fix blocks, gradients and RF objects imported from older versions
     if pulseq_version < v"1.4.0"
         # scan through the RF objects
-        for i = 0:length(rfLibrary)-1
-            rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]' 0.0 rfLibrary[i]["data"][4:end]']
+        for i in eachindex(rfLibrary)
+            rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]; 0.0; rfLibrary[i]["data"][4:end]]
         end
-        # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
-        for i = 0:length(gradLibrary)-1
-            if gradLibrary[i]["type"] == 't'
-                #(1)amplitude (2)rise (2)flat (3)fall (4)delay
-                if gradLibrary[i]["data"][2] == 0 #rise
-                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-                        gradLibrary[i]["data"][2]  = def["gradRasterTime"]
-                    end
-                end
-                if gradLibrary[i]["data"][4] == 0 #delay
-                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-                        gradLibrary[i]["data"][4]  = def["gradRasterTime"]
-                    end
+        # scan through the trapezoidal gradient objects
+        for i in eachindex(trapLibrary)
+            #(1)amplitude (2)rise (2)flat (3)fall (4)delay
+            if trapLibrary[i]["data"][2] == 0 #rise
+                if abs(trapLibrary[i]["data"][1]) == 0 && trapLibrary[i]["data"][3] > 0
+                    trapLibrary[i]["data"][3] -= def["gradRasterTime"]
+                    trapLibrary[i]["data"][2]  = def["gradRasterTime"]
                 end
             end
-            if gradLibrary[i]["type"] == 'g'
-                #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-                gradLibrary[i]["data"] = [gradLibrary[i]["data"][1:2]; 0.0; gradLibrary[i]["data"][3:end]]
+            if trapLibrary[i]["data"][4] == 0 #delay
+                if abs(trapLibrary[i]["data"][1]) == 0 && trapLibrary[i]["data"][3] > 0
+                    trapLibrary[i]["data"][3] -= def["gradRasterTime"]
+                    trapLibrary[i]["data"][4]  = def["gradRasterTime"]
+                end
             end
+        end
+        # scan through the time-shaped gradient objects
+        for i in eachindex(gradLibrary)
+            #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+            gradLibrary[i]["data"] = [gradLibrary[i]["data"][1:2]; 0.0; gradLibrary[i]["data"][3:end]]
         end
         # for versions prior to 1.4.0 blockDurations have not been initialized
         blockDurations = zeros(length(blockEvents))
@@ -508,15 +465,14 @@ function read_seq(filename)
         "blockDurations"=>blockDurations,
         "delayInd_tmp"=>delayInd_tmp,
         "gradLibrary"=>gradLibrary,
+        "trapLibrary"=>trapLibrary,
         "rfLibrary"=>rfLibrary,
         "adcLibrary"=>adcLibrary,
         "tmp_delayLibrary"=>tmp_delayLibrary,
         "shapeLibrary"=>shapeLibrary,
-        "extensionLibrary"=>extensionLibrary,
-        "triggerLibrary"=>triggerLibrary,
-        "labelsetLibrary"=>labelsetLibrary,
-        "labelincLibrary"=>labelincLibrary,
-        "extensionType"=>extensionType,
+        "extensionInstanceLibrary"=>extensionInstanceLibrary,
+        "extensionTypeLibrary"=>extensionTypeLibrary,
+        "extensionSpecLibrary"=>extensionSpecLibrary,
         "definitions"=>def)
     #Transforming Dictionary to Sequence object
     #This should only work for Pulseq files >=1.4.0
@@ -524,8 +480,10 @@ function read_seq(filename)
     for i = 1:length(blockEvents)
         seq += get_block(obj, i)
     end
-    # Add first and last points for gradients #320
-    fix_first_last_grads!(seq)
+    # Add first and last points for gradients #320 for version <= 1.4.2
+    if pulseq_version < v"1.5.0"
+        fix_first_last_grads!(seq)
+    end
     # Final details
     #Temporary hack
     seq.DEF = merge(obj["definitions"], seq.DEF)
@@ -543,12 +501,13 @@ end
 
 #To Sequence
 """
-    grad = read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
+    grad = read_Grad(gradLibrary, trapLibrary, shapeLibrary, Δt_gr, i)
 
 Reads the gradient. It is used internally by [`get_block`](@ref).
 
 # Arguments
 - `gradLibrary`: (`::Dict{K, V}`) the "gradLibrary" dictionary
+- `trapLibrary`: (`::Dict{K, V}`) the "trapLibrary" dictionary
 - `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
 - `Δt_gr`: (`::Float64`, `[s]`) gradient raster time
 - `i`: (`::Int64`) index of the axis in the block event
@@ -556,37 +515,49 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 # Returns
 - `grad`: (::Grad) Gradient struct
 """
-function read_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
+function read_Grad(gradLibrary, trapLibrary, shapeLibrary, Δt_gr, i)
     G = Grad(0.0,0.0)
-    if isempty(gradLibrary) || i==0
-        return G
-    end
-
-    if gradLibrary[i]["type"] == 't' #if trapezoidal gradient
+    if haskey(trapLibrary, i) # Trapezoidal gradient waveform
         #(1)amplitude (2)rise (3)flat (4)fall (5)delay
-        g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
-        G = Grad(g_A,g_T,g_rise,g_fall,g_delay)
-    elseif gradLibrary[i]["type"] == 'g' #Arbitrary gradient waveform
-        #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+        g_A, g_rise, g_T, g_fall, g_delay = trapLibrary[i]["data"]
+        G = Grad(g_A,g_T,g_rise,g_fall,g_delay,0.0,0.0)
+    elseif haskey(gradLibrary, i) # Arbitrary gradient waveform
         g = gradLibrary[i]["data"]
-        amplitude =     g[1]
-        amp_shape_id =  g[2] |> x->floor(Int64,x)
-        time_shape_id = g[3] |> x->floor(Int64,x)
-        delay =         g[4]
+        if length(g) == 6 # for version 1.5.x
+            #(1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
+            amplitude     = g[1]
+            first_grads   = g[2]
+            last_grads    = g[3]
+            amp_shape_id  = g[4] |> x->floor(Int64,x)
+            time_shape_id = g[5] |> x->floor(Int64,x)
+            delay         = g[6]
+        else # for version 1.4.x and below
+            #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+            amplitude     = g[1]
+            amp_shape_id  = g[2] |> x->floor(Int64,x)
+            time_shape_id = g[3] |> x->floor(Int64,x)
+            delay         = g[4]
+            first_grads   = 0.0
+            last_grads    = 0.0
+        end
         #Amplitude
         gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
-        Nrf = length(gA) - 1
+        Ngr = length(gA) - 1
         #Creating timings
-        if time_shape_id == 0 #no time waveform
-            gT = Nrf * Δt_gr
-            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay)
+        if time_shape_id == 0 #no time waveform. Default time raster
+            gT = Ngr * Δt_gr
+            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay, first_grads, last_grads)
+        elseif time_shape_id == -1 #New in pulseq 1.5.x: no time waveform. 1/2 of the default time raster
+            gT = Ngr * Δt_gr / 2
+            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay, first_grads, last_grads)
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
+            delay += gt[1] * Δt_gr # offset due to the shape starting at a non-zero value
             gT = diff(gt) * Δt_gr
-            G = Grad(gA,gT,0.0,0.0,delay)
+            G = Grad(gA,gT,0.0,0.0,delay,first_grads,last_grads)
         end
     end
-    G
+    return G
 end
 
 """
@@ -604,21 +575,36 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 - `rf`: (`1x1 ::Matrix{RF}`) RF struct
 """
 function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
-
     if isempty(rfLibrary) || i==0
         return reshape([RF(0.0,0.0)], 1, 1)
     end
-
     #Unpacking
-    #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
     r = rfLibrary[i]["data"]
-    amplitude =     r[1]
-    mag_id =        r[2] |> x->floor(Int64,x)
-    phase_id =      r[3] |> x->floor(Int64,x)
-    time_shape_id = r[4] |> x->floor(Int64,x)
-    delay =         r[5] + (time_shape_id==0)*Δt_rf/2
-    freq =          r[6]
-    phase =         r[7]
+    if length(r) == 11 # for version 1.5.x
+        #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
+        amplitude     = r[1]
+        mag_id        = r[2] |> x->floor(Int64,x)
+        phase_id      = r[3] |> x->floor(Int64,x)
+        time_shape_id = r[4] |> x->floor(Int64,x)
+        center        = r[5]
+        delay         = r[6] + (time_shape_id==0)*Δt_rf/2
+        freq_ppm      = r[7]
+        phase_ppm     = r[8]
+        freq          = r[9]
+        phase         = r[10]
+        use           = r[11]
+    else # for version 1.4.x and below
+        #(1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
+        amplitude     = r[1]
+        mag_id        = r[2] |> x->floor(Int64,x)
+        phase_id      = r[3] |> x->floor(Int64,x)
+        time_shape_id = r[4] |> x->floor(Int64,x)
+        delay         = r[5] + (time_shape_id==0)*Δt_rf/2
+        freq          = r[6]
+        phase         = r[7]
+        center        = 0.0
+        use           = 'u'
+    end
     #Amplitude and phase waveforms
     if amplitude != 0 && mag_id != 0
         rfA = decompress_shape(shapeLibrary[mag_id]...)
@@ -630,14 +616,21 @@ function read_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rfAϕ = ComplexF64[0.0]
     end
     #Creating timings
-    if time_shape_id == 0 #no time waveform
+    if time_shape_id == 0 #no time waveform. Default time raster
         rfT = Nrf * Δt_rf
-    else
+    elseif time_shape_id == -1 #New in pulseq 1.5.x: no time waveform. 1/2 of the default time raster
+        rfT =  Nrf * Δt_rf / 2
+    else #time waveform
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
+        delay += rft[1] * Δt_rf # offset due to the shape starting at a non-zero value
         rfT = diff(rft) * Δt_rf
     end
-    R = reshape([RF(rfAϕ,rfT,freq,delay)],1,1)#[RF(rfAϕ,rfT,freq,delay);;]
-    R
+    use = KomaMRIBase.get_RF_use_from_char(Val(use))
+    if length(r) == 11 # for version 1.5.x
+        return [RF(rfAϕ,rfT,freq,delay,center,use);;]
+    else # for version 1.4.x and below
+        return [RF(rfAϕ,rfT,freq,delay);;]
+    end
 end
 
 """
@@ -659,17 +652,31 @@ function read_ADC(adcLibrary, i)
     end
 
     #Unpacking
-    #(1)num (2)dwell (3)delay (4)freq (5)phase
     a = adcLibrary[i]["data"]
-    num =   a[1] |> x->floor(Int64,x)
-    dwell = a[2]
-    delay = a[3] + dwell/2
-    freq =  a[4]
-    phase = a[5]
+    if length(a) == 8 # for version 1.5.x
+        #(1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
+        num       = a[1] |> x->floor(Int64,x)
+        dwell     = a[2]
+        delay     = a[3] + dwell/2
+        freq_ppm  = a[4]
+        phase_ppm = a[5]
+        freq      = a[6]
+        phase     = a[7]
+        phase_id  = a[8] |> x->floor(Int64,x)
+    else # for version 1.4.x and below
+        #(1)num (2)dwell (3)delay (4)freq (5)phase
+        num       = a[1] |> x->floor(Int64,x)
+        dwell     = a[2]
+        delay     = a[3] + dwell/2
+        freq      = a[4]
+        phase     = a[5]
+        freq_ppm  = 0.0
+        phase_ppm = 0.0
+        phase_id  = 0
+    end
     #Definition
     T = (num-1) * dwell
-    A = [ADC(num,T,delay,freq,phase)]
-    A
+    return [ADC(num,T,delay,freq,phase)]
 end
 
 """
@@ -686,13 +693,13 @@ Block sequence definition. Used internally by [`read_seq`](@ref).
 """
 function get_block(obj, i)
     #Unpacking
-    idelay, irf, ix, iy, iz, iadc, iext = obj["blockEvents"][i]
+    idur, irf, igx, igy, igz, iadc, iext = obj["blockEvents"][i]
 
     #Gradient definition
     Δt_gr = obj["definitions"]["GradientRasterTime"]
-    Gx = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, ix)
-    Gy = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iy)
-    Gz = read_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, iz)
+    Gx = read_Grad(obj["gradLibrary"], obj["trapLibrary"], obj["shapeLibrary"], Δt_gr, igx)
+    Gy = read_Grad(obj["gradLibrary"], obj["trapLibrary"], obj["shapeLibrary"], Δt_gr, igy)
+    Gz = read_Grad(obj["gradLibrary"], obj["trapLibrary"], obj["shapeLibrary"], Δt_gr, igz)
     G = reshape([Gx;Gy;Gz],3,1) #[Gx;Gy;Gz;;]
 
     #RF definition
@@ -705,9 +712,8 @@ function get_block(obj, i)
     #DUR
     D = Float64[max(obj["blockDurations"][i], dur(Gx), dur(Gy), dur(Gz), dur(R[1]), dur(A[1]))]
 
-     #Extensions
-     E = read_extension(obj["extensionLibrary"], obj["extensionType"],obj["triggerLibrary"],obj["labelsetLibrary"],
-     obj["labelincLibrary"],iext)
+    #Extensions
+    E = read_extension(obj["extensionInstanceLibrary"], obj["extensionTypeLibrary"], obj["extensionSpecLibrary"], iext)
 
     # Definitition
     DEF = Dict{String,Any}()
@@ -718,53 +724,168 @@ function get_block(obj, i)
 end
 
 """
-    EXT = read_extension(extensionLibrary, extensionType, triggerLibrary, labelsetLibrary, labelincLibrary, i)
+    EXT = read_extension(extensionInstanceLibrary, extensionTypeLibrary, extensionSpecLibrary, i)
 
 Reads the extension(s) for a block event in a Pulseq sequence file.
 
 # Arguments
-- `extensionLibrary`: (`::Dict{K, V}`) the extension library dictionary
-- `extensionType`: (`::Dict{K, V}`) the extension type dictionary
-- `triggerLibrary`: (`::Dict{K, V}`) the trigger library dictionary
-- `labelsetLibrary`: (`::Dict{K, V}`) the labelset library dictionary
-- `labelincLibrary`: (`::Dict{K, V}`) the labelinc library dictionary
+- `extensionInstanceLibrary`: (`::Dict{K, V}`) the extension library dictionary
+- `extensionTypeLibrary`: (`::Dict{K, V}`) the extension type dictionary
+- `extensionSpecLibrary`: (`::Dict{K, V}`) the extension specifications dictionary
 - `i`: (`::Int64`) index of the extension in the block event
 
 # Returns
 - `EXT`: (`Vector{Extension}`) vector of Extension objects for the block event
 
 # Details
-The available extension object are currently `LabelSet`, `LabelInc` and `Trigger``
+The available extensions are currently contained in the file KomaMRIBase/src/datatypes/sequence/EXT.jl
 """
-function read_extension(extensionLibrary,extensionType,triggerLibrary,labelsetLibrary,labelincLibrary,i)
+function read_extension(extensionInstanceLibrary, extensionTypeLibrary, extensionSpecLibrary, i)
     EXT = [Extension[]]
-
-    if isempty(extensionLibrary) || i==0
+    if isempty(extensionInstanceLibrary) || i==0
         return EXT
     end
-
     # type ref next_id
     # next_id of 0 terminates the list
-    type, ref, next_id = extensionLibrary[i]["data"]
-
+    type, ref, next_id = extensionInstanceLibrary[i]["data"]
     while true
-        length(extensionType) < type ? (@warn "extension type n°$type does not exist"; break) : nothing
-        if extensionType[type]["data"] == "LABELSET"
-            push!(EXT[1],LabelSet(labelsetLibrary[ref]["data"]...))
-        elseif extensionType[type]["data"] == "LABELINC"
-            push!(EXT[1],LabelInc(labelincLibrary[ref]["data"]...))
-        elseif extensionType[type]["data"] == "TRIGGERS"
-            push!(EXT[1],Trigger(triggerLibrary[ref]["data"]...))
-        else
-            @warn "Extension type not implemented"
-        end
-
+        length(extensionTypeLibrary) < type ? (@warn "extension type n°$type does not exist"; break) : nothing
+        push!(EXT[1], extensionTypeLibrary[type](extensionSpecLibrary[type][ref]["data"]...))
         if next_id == 0
             break
         else
-            type, ref, next_id = extensionLibrary[next_id]["data"]
+            type, ref, next_id = extensionInstanceLibrary[next_id]["data"]
         end
     end
-
     return EXT
  end
+
+# ----------------- Signature-related functions ------------------
+function supported_signature_digest(algorithm::AbstractString, payload::Vector{UInt8})
+    alg = lowercase(strip(algorithm))
+    digest = if alg == "md5"
+        md5(payload)
+    elseif alg == "sha1"
+        sha1(payload)
+    elseif alg in ("sha2", "sha256")
+        sha256(payload)
+    else
+        throw(ArgumentError("Unsupported signature algorithm '$algorithm'. Supported algorithms: md5, sha1, sha256."))
+    end
+    lowercase(bytes2hex(digest))
+end
+
+function parse_signature_section(section::AbstractString)
+    io = IOBuffer(section)
+    readline(io) # consume "[SIGNATURE]" header
+    signature_type = nothing
+    signature_hash = nothing
+    while !eof(io)
+        line = strip(readline(io))
+        isempty(line) && continue
+        startswith(line, '#') && continue
+        parts = split(line)
+        isempty(parts) && continue
+        key = parts[1]
+        value = join(parts[2:end], " ")
+        if key == "Type"
+            signature_type = strip(value)
+        elseif key == "Hash"
+            signature_hash = lowercase(replace(strip(value), " " => ""))
+        end
+    end
+    return isnothing(signature_type) && isnothing(signature_hash) ? nothing : (type = signature_type, hash = signature_hash)
+end
+
+function verify_signature!(filename::String, signature::Union{Nothing,NamedTuple}; pulseq_version::VersionNumber=v"1.4.0")
+    isnothing(signature) && begin
+        @warn "Pulseq [SIGNATURE] section is missing; skipping verification." filename
+        return
+    end
+    sig_type = signature.type
+    sig_hash = signature.hash
+    # Read file as bytes to avoid any line ending normalization
+    file_bytes = read(filename)
+    # Find [SIGNATURE] in bytes
+    sig_marker = b"[SIGNATURE]"
+    sig_pos = findfirst(sig_marker, file_bytes)
+    isnothing(sig_pos) && begin
+        @warn "Signature section expected but not found when verifying Pulseq file." filename
+        return
+    end
+    sig_start = first(sig_pos)
+    # Extract payload based on version
+    # For Pulseq < 1.4.0 (e.g., JEMRIS), the newline before [SIGNATURE] is part of the payload
+    # For Pulseq >= 1.4.0, the newline before [SIGNATURE] is part of the signature and should be excluded
+    # However, different implementations may handle this differently, so we try multiple approaches
+    payload_end = sig_start - 1
+    expected_hash = lowercase(replace(sig_hash, " " => ""))
+    
+    if pulseq_version < v"1.4.0"
+        # Include the newline before [SIGNATURE] in the payload (JEMRIS format)
+        payload_bytes = payload_end > 0 ? file_bytes[1:payload_end] : UInt8[]
+        computed_hash = supported_signature_digest(sig_type, payload_bytes)
+    else
+        # For version >= 1.4.0, try multiple approaches to handle different implementations
+        # 1. Exclude only the last newline (spec-compliant)
+        if payload_end > 0 && file_bytes[payload_end] in (UInt8('\n'), UInt8('\r'))
+            payload_bytes_excluding = file_bytes[1:(payload_end - 1)]
+        else
+            payload_bytes_excluding = payload_end > 0 ? file_bytes[1:payload_end] : UInt8[]
+        end
+        
+        # 2. Include the last newline (some implementations like MATLAB)
+        payload_bytes_including = file_bytes[1:payload_end]
+        
+        # 3. Exclude all consecutive newlines before [SIGNATURE] (some implementations)
+        last_non_nl = payload_end
+        while last_non_nl > 0 && file_bytes[last_non_nl] in (UInt8('\n'), UInt8('\r'))
+            last_non_nl -= 1
+        end
+        payload_bytes_no_nl = last_non_nl > 0 ? file_bytes[1:last_non_nl] : UInt8[]
+        
+        # Try all approaches and use the one that matches
+        computed_hash_excluding = supported_signature_digest(sig_type, payload_bytes_excluding)
+        computed_hash_including = supported_signature_digest(sig_type, payload_bytes_including)
+        computed_hash_no_nl = supported_signature_digest(sig_type, payload_bytes_no_nl)
+        
+        if computed_hash_excluding == expected_hash
+            computed_hash = computed_hash_excluding
+            payload_bytes = payload_bytes_excluding
+        elseif computed_hash_including == expected_hash
+            computed_hash = computed_hash_including
+            payload_bytes = payload_bytes_including
+        elseif computed_hash_no_nl == expected_hash
+            computed_hash = computed_hash_no_nl
+            payload_bytes = payload_bytes_no_nl
+        else
+            # None matches, use the spec-compliant one for error message
+            computed_hash = computed_hash_excluding
+            payload_bytes = payload_bytes_excluding
+        end
+    end
+    # Parse signature section for comparison (read as string for parsing)
+    file_text = String(file_bytes)
+    sig_section_start = sig_start
+    sig_section = file_text[sig_section_start:end]
+    parsed = parse_signature_section(sig_section)
+    isnothing(parsed) && begin
+        @warn "Failed to parse Pulseq signature section; skipping verification." filename
+        return
+    end
+    parsed_type = parsed.type
+    parsed_hash = parsed.hash
+    if !isnothing(parsed_type) && !isempty(parsed_type) && lowercase(parsed_type) != lowercase(sig_type)
+        @warn "Pulseq signature Type mismatch between parser and metadata. Using '$sig_type'." filename parsed_type
+    end
+    if !isnothing(parsed_hash) && !isempty(parsed_hash)
+        parsed_hash_norm = lowercase(replace(parsed_hash, " " => ""))
+        if parsed_hash_norm != lowercase(replace(sig_hash, " " => ""))
+            @warn "Pulseq signature Hash mismatch between parser and metadata. Using metadata value." filename
+        end
+    end
+    if computed_hash != expected_hash
+        @warn "Pulseq signature verification failed for $(basename(filename)). Expected $(expected_hash), computed $(computed_hash). The file may have been modified or generated with a different implementation." filename
+        # Don't error, just warn - the file can still be used
+    end
+end

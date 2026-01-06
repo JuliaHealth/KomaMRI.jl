@@ -479,7 +479,7 @@ function plot_M0(
     T0 = get_block_start_times(seq)
     #M0
     ts = t .+ Δt
-    rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
+    rf_idx, rf_types = KomaMRIBase.get_RF_types(seq, t)
     k, _ = KomaMRIBase.get_kspace(seq; Δt=1, skip_rf)
     #plots M0
     p = [scatter() for j in 1:4]
@@ -509,11 +509,11 @@ function plot_M0(
     )
     p[4] = scatter(;
         x=t[rf_idx] * 1e3,
-        y=rf_type,
+        y=t[rf_idx] * 0,
         name="RFs",
         marker=attr(; symbol="cross", size=8, color="orange"),
         mode="markers",
-        showlegend=false,
+        text=string.(rf_types)
     )
     #Layout and config
     l, config = generate_seq_time_layout_config(
@@ -568,7 +568,7 @@ function plot_M1(
     T0 = get_block_start_times(seq)
     #M1
     ts = t .+ Δt
-    rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
+    rf_idx, rf_types = KomaMRIBase.get_RF_types(seq, t)
     k, _ = KomaMRIBase.get_M1(seq; Δt=1, skip_rf)
     #plots M1
     p = [scatter() for j in 1:4]
@@ -598,11 +598,11 @@ function plot_M1(
     )
     p[4] = scatter(;
         x=t[rf_idx] * 1e3,
-        y=rf_type,
+        y=t[rf_idx] * 0,
         name="RFs",
         marker=attr(; symbol="cross", size=8, color="orange"),
         mode="markers",
-        showlegend=false,
+        text=string.(rf_types)
     )
     #Layout and config
     l, config = generate_seq_time_layout_config(
@@ -656,7 +656,7 @@ function plot_M2(
     T0 = get_block_start_times(seq)
     #M2
     ts = t .+ Δt
-    rf_idx, rf_type = KomaMRIBase.get_RF_types(seq, t)
+    rf_idx, rf_types = KomaMRIBase.get_RF_types(seq, t)
     k, _ = KomaMRIBase.get_M2(seq; Δt=1)
     #Plor M2
     p = [scatter() for j in 1:4]
@@ -686,11 +686,11 @@ function plot_M2(
     )
     p[4] = scatter(;
         x=t[rf_idx] * 1e3,
-        y=rf_type,
+        y=t[rf_idx] * 0,
         name="RFs",
         marker=attr(; symbol="cross", size=8, color="orange"),
         mode="markers",
-        showlegend=false,
+        text=string.(rf_types)
     )
     #Layout and config
     l, config = generate_seq_time_layout_config(
