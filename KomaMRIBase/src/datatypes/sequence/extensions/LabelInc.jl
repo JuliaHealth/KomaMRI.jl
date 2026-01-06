@@ -3,4 +3,6 @@ mutable struct LabelInc <: Extension
     labelstring::String
 end
 
-get_scale(::Type{LabelInc}) = [1 ""]
+get_scale(::Type{LabelInc}) = [1 1]
+get_scanf_format(::Type{LabelInc}) = "%i %s"
+get_EXT_type_from_symbol(::Val{:LABELINC}) = LabelInc

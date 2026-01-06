@@ -112,31 +112,6 @@ function read_blocks(io, blockDurationRaster, pulseq_version)
 end
 
 """
-    args = get_scanf_args(format)
-
-Generates a tuple of argument types from a scanf format string.
-"""
-function get_scanf_args(format::String)
-    type_map = Dict(
-        "%i" => Int,
-        "%d" => Int,
-        "%f" => Float64,
-        "%e" => Float64,
-        "%g" => Float64,
-        "%c" => Char,
-        "%s" => String
-    )
-    # Extract all format specifiers
-    args = Type[]
-    for m in split(format)
-        if haskey(type_map, m)
-            push!(args, type_map[m])
-        end
-    end
-    return Tuple(args)
-end
-
-"""
 read_events Read an event section of a sequence file.
    library=read_events(fid,scale,format) Read event data and scale
    elements according to column vector scale and format string.
@@ -144,10 +119,10 @@ read_events Read an event section of a sequence file.
    library=read_events(...; eventLibrary=library) Append new events to the given
    library.
 """
-function read_events(io, scale, format; eventLibrary=Dict())
+function read_events(io, scale; format="%i "*"%f "^(length(scale)), eventLibrary=Dict())
     eventLength = length(scale) + 1
     fmt = Scanf.Format(format)
-    args = get_scanf_args(format)
+    args = Tuple([f == "%i" ? Int : (f == "%f" ? Float64 : (f == "%c" ? Char : String)) for f in split(format)])
     while true
         line = readline(io)
         isempty(line) && break
@@ -388,38 +363,38 @@ function read_seq(filename)
                 blockEvents, blockDurations, delayInd_tmp = read_blocks(io, def["BlockDurationRaster"], pulseq_version)
             elseif  section == "[RF]"
                 if pulseq_version >= v"1.5.0"
-                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 '\0'], "%i "*"%f "^(10)*"%c ") # this is 1.5.x format
+                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 1]; format="%i "*"%f "^(10)*"%c ") # this is 1.5.x format
                 elseif pulseq_version >= v"1.4.0"
-                    rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1], "%i "*"%f "^(7)) # this is 1.4.x format
+                    rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
-                    rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1], "%i "*"%f "^(6)) # this is 1.3.x and below
+                    rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1]) # this is 1.3.x and below
                     # we will have to scan through the library later after all the shapes have been loaded
                 end
             elseif  section == "[GRADIENTS]"
                 if pulseq_version >= v"1.5.0"
-                    gradLibrary = read_events(io, [1/γ 1/γ 1/γ 1 1 1e-6], "%i "*"%f "^(6); eventLibrary=gradLibrary) # this is 1.5.x format
+                    gradLibrary = read_events(io, [1/γ 1/γ 1/γ 1 1 1e-6]; eventLibrary=gradLibrary) # this is 1.5.x format
                 elseif pulseq_version >= v"1.4.0"
-                    gradLibrary = read_events(io, [1/γ 1 1 1e-6], "%i "*"%f "^(4); eventLibrary=gradLibrary) # this is 1.4.x format
+                    gradLibrary = read_events(io, [1/γ 1 1 1e-6]; eventLibrary=gradLibrary) # this is 1.4.x format
                 else
-                    gradLibrary = read_events(io, [1/γ 1 1e-6], "%i "*"%f "^(3); eventLibrary=gradLibrary) # this is 1.3.x and below
+                    gradLibrary = read_events(io, [1/γ 1 1e-6]; eventLibrary=gradLibrary) # this is 1.3.x and below
                 end
             elseif  section == "[TRAP]"
-                trapLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6], "%i "*"%f "^(5); eventLibrary=trapLibrary);
+                trapLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6]; eventLibrary=trapLibrary);
             elseif  section == "[ADC]"
                 if pulseq_version >= v"1.5.0"
-                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1 1 1 1], "%i "*"%f "^(8)) # this is 1.5.x format
+                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1 1 1 1]) # this is 1.5.x format
                 else
-                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1], "%i "*"%f "^(5)) # this is 1.4.x and below
+                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1]) # this is 1.4.x and below
                 end
             elseif  section == "[DELAYS]"
                 if pulseq_version >= v"1.4.0"
                     @error "Pulseq file revision 1.4.0 and above MUST NOT contain [DELAYS] section"
                 end
-                tmp_delayLibrary = read_events(io, 1e-6, "%i %f");
+                tmp_delayLibrary = read_events(io, 1e-6);
             elseif  section == "[SHAPES]"
                 shapeLibrary = read_shapes(io, (pulseq_version.major == 1 && pulseq_version.minor < 4))
             elseif  section == "[EXTENSIONS]"
-                extensionInstanceLibrary = read_events(io, [1 1 1], "%i "*"%i "^(3); eventLibrary=extensionInstanceLibrary)
+                extensionInstanceLibrary = read_events(io, [1 1 1]; format="%i "*"%i "^(3), eventLibrary=extensionInstanceLibrary)
             elseif  section == "[SIGNATURE]"
                 signature = read_signature(io)
             else
@@ -432,7 +407,7 @@ function read_seq(filename)
 
                     if ext_type <: Extension
                         extensionTypeLibrary[ext_id] = ext_type
-                        extensionSpecLibrary[ext_id] = read_events(io, KomaMRIBase.get_scale(ext_type), "%i "*KomaMRIBase.get_scanf_format(ext_type))
+                        extensionSpecLibrary[ext_id] = read_events(io, KomaMRIBase.get_scale(ext_type); format="%i "*KomaMRIBase.get_scanf_format(ext_type))
                     else
                         if ext_string in def["RequiredExtensions"]
                             @error "Extension $ext_string is required by the sequence but not supported by KomaMRI reader"
