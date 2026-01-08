@@ -48,7 +48,6 @@ function setup_benchmarks(suite::BenchmarkGroup, backend::String, num_cpu_thread
     # Benchmark 1: from lit-04-3DSliceSelective.jl
     sys1, obj1, seq1 = setup_3DSlice_benchmark()
     sim_params1 = Dict{String,Any}(
-        "Nblocks" => 20,
         "gpu" => (backend != "CPU"),
         "Nthreads" => num_cpu_threads
     )
@@ -57,7 +56,6 @@ function setup_benchmarks(suite::BenchmarkGroup, backend::String, num_cpu_thread
     # Benchmark 2: from MRiLab_speed.jl
     sys2, obj2, seq2 = setup_MRILab_benchmark()
     sim_params2 = Dict{String,Any}(
-        "Nblocks" => 20,
         "gpu" => (backend != "CPU"),
         "Nthreads" => num_cpu_threads
     )

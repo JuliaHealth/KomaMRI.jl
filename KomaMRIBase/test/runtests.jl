@@ -291,7 +291,7 @@ using TestItems, TestItemRunner
         seqd = KomaMRIBase.discretize(seq)
         i1, i2 = rand(1:Int(floor(0.5*length(seqd)))), rand(Int(ceil(0.5*length(seqd))):length(seqd))
         @test seqd[i1].t ≈ [t[i1]]
-        @test seqd[i1:i2-1].t ≈ t[i1:i2]
+        @test seqd[i1:i2].t ≈ t[i1:i2]
 
         T, N = 1.0, 4
         seq = RF(1.0e-6, 1.0)

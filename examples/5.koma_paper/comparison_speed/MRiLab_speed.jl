@@ -37,13 +37,11 @@ phantom = read_phantom_MRiLab(filename; FRange_filename)
 ## Simulation
 if (ARGS == String[]) #No arguments, use defaults
     sim_params = Dict{String,Any}(
-        "Nblocks" => 20,
         "gpu" => true,
         "gpu_device" => 0
     )
 else
     sim_params = Dict{String,Any}(
-        "Nblocks" => 20,
         "gpu" => ARGS[1] == "gpu" ? true : false,
         "gpu_device" => parse(Int64, ARGS[2])
     )

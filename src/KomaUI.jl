@@ -173,7 +173,8 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         @js_ w (@var progressbar = $progressbar; document.getElementById("simulate!").innerHTML=progressbar)
 
         # Perform simulation
-        raw_aux = simulate(obj_ui[], seq_ui[], sys_ui[]; sim_params, w)
+        callbacks = [ui_progressbar_callback(w)]
+        raw_aux = simulate(obj_ui[], seq_ui[], sys_ui[]; sim_params, callbacks)
 
         # After simulation, display the text on the simulation button (not the progress bar)
         @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
