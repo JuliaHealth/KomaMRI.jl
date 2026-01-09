@@ -255,6 +255,7 @@ function plot_seq(
     rf = (
         A=reduce(vcat, [usrf(block.rf.A); Inf] for block in seq_samples),
         t=reduce(vcat, [usrf(block.rf.t); Inf] for block in seq_samples),
+        c=reduce(vcat, [usrf(block.rf.c); Inf] for block in seq_samples),
     )
     Δf = (
         A=reduce(vcat, [usrf(block.Δf.A); Inf] for block in seq_samples),
@@ -270,7 +271,7 @@ function plot_seq(
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
     O = size(seq.RF, 1)
-    p = [scatter_fun() for _ in 1:(3 + 3O + 1 + length(label))]
+    p = [scatter_fun() for _ in 1:(3 + 3O + 2 + length(label))]
 
     # For GRADs
     fgx = is_Gx_on(seq) ? 1.0 : Inf
@@ -315,7 +316,59 @@ function plot_seq(
     for j in 1:O
         rf_amp = abs.(rf.A[:, j])
         rf_phase = angle.(rf.A[:, j])
+        rf_times = rf.t[:, j]
+        rf_center = rf.c[:, j]
         rf_phase[rf_amp .== Inf] .= Inf # Avoid weird jumps
+        # Find amplitude at each center time using linear interpolation
+        rf_center_amp = Float64[]
+        rf_center_times = Float64[]
+        # Get unique center times (excluding Inf)
+        unique_center_times = unique(rf_center[rf_center .!= Inf])
+        for center_time in unique_center_times
+            # Find points to the left (time <= center_time) and right (time >= center_time)
+            left_mask = (rf_times .<= center_time)
+            right_mask = (rf_times .>= center_time)
+            if any(left_mask) && any(right_mask)
+                # Left side: find closest time(s) and take max amplitude
+                left_times = rf_times[left_mask]
+                left_amps = rf_amp[left_mask]
+                left_min_time = maximum(left_times)  # Closest from left
+                left_closest_mask = left_times .== left_min_time
+                left_amp = maximum(left_amps[left_closest_mask])
+                # Right side: find closest time(s) and take max amplitude
+                right_times = rf_times[right_mask]
+                right_amps = rf_amp[right_mask]
+                right_min_time = minimum(right_times)  # Closest from right
+                right_closest_mask = right_times .== right_min_time
+                right_amp = maximum(right_amps[right_closest_mask])
+                # Linear interpolation
+                if left_min_time == right_min_time
+                    # Exact match, use that amplitude
+                    interp_amp = left_amp
+                else
+                    # Linear interpolation: y = y1 + (y2 - y1) * (x - x1) / (x2 - x1)
+                    interp_amp = left_amp + (right_amp - left_amp) * (center_time - left_min_time) / (right_min_time - left_min_time)
+                end
+                push!(rf_center_times, center_time)
+                push!(rf_center_amp, interp_amp)
+            elseif any(left_mask)
+                # Only left points available, use closest
+                left_times = valid_times[left_mask]
+                left_amps = valid_amps[left_mask]
+                left_min_time = maximum(left_times)
+                left_closest_mask = left_times .== left_min_time
+                push!(rf_center_times, center_time)
+                push!(rf_center_amp, maximum(left_amps[left_closest_mask]))
+            elseif any(right_mask)
+                # Only right points available, use closest
+                right_times = valid_times[right_mask]
+                right_amps = valid_amps[right_mask]
+                right_min_time = minimum(right_times)
+                right_closest_mask = right_times .== right_min_time
+                push!(rf_center_times, center_time)
+                push!(rf_center_amp, maximum(right_amps[right_closest_mask]))
+            end
+        end
         # Plot RF
         p[2j - 1 + 3] = scatter_fun(;
             x=rf.t * 1e3,
@@ -357,11 +410,23 @@ function plot_seq(
                 line=attr(; dash="dot"),
             )
         end
+        p[2j + 5] = scatter_fun(;
+            x=rf_center_times * 1e3,
+            y=rf_center_amp * 1e6 * frf,
+            name="RF_center",
+            hovertemplate="RF center: %{x:.4f} ms<br>Amplitude: %{y:.2f} μT<extra></extra>",
+            xaxis=xaxis,
+            yaxis=yaxis,
+            legendgroup="RF_center",
+            showlegend=showlegend,
+            mode="markers",
+            marker=attr(; color="#FF0000", symbol="x"),
+        )
     end
 
     # For ADCs
     fa = is_ADC_on(seq) ? 1.0 : Inf
-    p[3O + 3 + 1] = scatter_fun(;
+    p[3O + 3 + 2] = scatter_fun(;
         x=adc.t * 1e3,
         y=adc.A * fa,
         name="ADC",
@@ -399,7 +464,7 @@ function plot_seq(
                 count_label = count_label + 1
                 push!(sym_vec,sym)
                 #color = colors[mod1(i, length(colors))]
-                p[3O + 3 + 1 + count_label] = scatter_fun(;
+                p[3O + 3 + 2 + count_label] = scatter_fun(;
                     x= t_center_adc * 1e3,
                     y= lab_adc,
                     name=string(sym),
@@ -471,7 +536,6 @@ function plot_M0(
     darkmode=false,
     range=[],
     title="",
-    skip_rf=zeros(Bool, sum(is_RF_on.(seq))),
 )
     #Times
     t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
@@ -480,7 +544,7 @@ function plot_M0(
     #M0
     ts = t .+ Δt
     rf_idx, rf_types = KomaMRIBase.get_RF_types(seq, t)
-    k, _ = KomaMRIBase.get_kspace(seq; Δt=1, skip_rf)
+    k, _ = KomaMRIBase.get_kspace(seq; Δt=1)
     #plots M0
     p = [scatter() for j in 1:4]
     p[1] = scatter(;
@@ -510,7 +574,7 @@ function plot_M0(
     p[4] = scatter(;
         x=t[rf_idx] * 1e3,
         y=t[rf_idx] * 0,
-        name="RFs",
+        name="RF_center",
         marker=attr(; symbol="cross", size=8, color="orange"),
         mode="markers",
         text=string.(rf_types)
@@ -560,7 +624,6 @@ function plot_M1(
     darkmode=false,
     range=[],
     title="",
-    skip_rf=zeros(Bool, sum(is_RF_on.(seq))),
 )
     #Times
     t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
@@ -569,7 +632,7 @@ function plot_M1(
     #M1
     ts = t .+ Δt
     rf_idx, rf_types = KomaMRIBase.get_RF_types(seq, t)
-    k, _ = KomaMRIBase.get_M1(seq; Δt=1, skip_rf)
+    k, _ = KomaMRIBase.get_M1(seq; Δt=1)
     #plots M1
     p = [scatter() for j in 1:4]
     p[1] = scatter(;
@@ -599,7 +662,7 @@ function plot_M1(
     p[4] = scatter(;
         x=t[rf_idx] * 1e3,
         y=t[rf_idx] * 0,
-        name="RFs",
+        name="RF_center",
         marker=attr(; symbol="cross", size=8, color="orange"),
         mode="markers",
         text=string.(rf_types)
@@ -687,7 +750,7 @@ function plot_M2(
     p[4] = scatter(;
         x=t[rf_idx] * 1e3,
         y=t[rf_idx] * 0,
-        name="RFs",
+        name="RF_center",
         marker=attr(; symbol="cross", size=8, color="orange"),
         mode="markers",
         text=string.(rf_types)

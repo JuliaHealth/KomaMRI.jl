@@ -70,6 +70,23 @@ function ampls(adc::ADC)
     return ones(Bool, adc.N)
 end
 
+"""
+    c = cents(rf::RF)
+
+Get center time of RF pulse. It includes the RF delay.
+
+# Arguments
+- `rf`: (`::RF`) RF struct
+
+# Returns
+- `c`: (`::Vector{Number}`) vector with center time of the RF pulse `rf`
+"""
+function cents(rf::RF)
+    if !is_on(rf)
+        return Float64[]
+    end
+    return [rf.center + rf.delay]
+end
 
 """
     t = times(gr::Grad)

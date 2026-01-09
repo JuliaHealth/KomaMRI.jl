@@ -47,18 +47,19 @@ mutable struct RF
     T
     Δf
     delay::Float64
-    center::Float64
+    center::Union{Float64, Nothing}
     use::RFUse
     RF(A, T, Δf, delay, center, use) = any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new(A, T, Δf, delay, center, use)
-    RF(A, T, Δf, delay, center)      = RF(A, T, Δf,  delay, center, Undefined())
-    RF(A, T, Δf, delay)              = _RF_with_center(A, T, Δf,  delay, Undefined())
-    RF(A, T, Δf)                     = _RF_with_center(A, T, Δf,  0.0,   Undefined())
-    RF(A, T)                         = _RF_with_center(A, T, 0.0, 0.0,   Undefined())
+    RF(A, T, Δf, delay, center)      = _RF_with_center_and_use(A, T, Δf,  delay; center=center)
+    RF(A, T, Δf, delay)              = _RF_with_center_and_use(A, T, Δf,  delay)
+    RF(A, T, Δf)                     = _RF_with_center_and_use(A, T, Δf,  0.0)
+    RF(A, T)                         = _RF_with_center_and_use(A, T, 0.0, 0.0)
 end
 
-function _RF_with_center(A, T, Δf, delay, use)
-    rf = RF(A, T, Δf, delay, 0.0, use)
-    rf.center = get_RF_center(rf)
+function _RF_with_center_and_use(A, T, Δf, delay; center=nothing)
+    rf = RF(A, T, Δf, delay, center, Undefined())
+    rf.center = center === nothing  ? get_RF_center(rf) : center
+    rf.use = get_flip_angle(rf) <= 90.01 ? Excitation() : Refocusing()
     return rf
 end
 
@@ -188,17 +189,17 @@ end
     t = get_RF_center(x::RF)
 
 Calculates the time where is the center of the RF pulse `x` .
-It includes the RF delay and uses the weighted average of times by amplitude.
+It does not include the RF delay and uses the weighted average of times by amplitude.
 
 # Arguments
 - `x`: (`::RF`) RF struct
 
 # Returns
-- `t`: (`::Real`, `[s]`) time where is the center of the RF pulse `x`
+- `t`: (`::Real` or `Nothing`, `[s]`) time where is the center of the RF pulse `x`, or `nothing` if the RF amplitude is zero
 """
 function get_RF_center(x::RF)
     t = times(x)
     B1 = ampls(x)
-    t_center = sum(abs.(B1) .* t) ./ sum(abs.(B1))
+    t_center = sum(abs.(B1) .* (t .- x.delay)) ./ sum(abs.(B1))
     return t_center
 end

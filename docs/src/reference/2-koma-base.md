@@ -139,6 +139,7 @@ get_samples
 times
 ampls
 freqs
+cents
 ```
 
 ### Other functions

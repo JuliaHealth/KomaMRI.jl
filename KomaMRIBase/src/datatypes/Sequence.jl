@@ -324,8 +324,9 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
         t_Δf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :Δf)  for i in range])
         A_rf = reduce(vcat, [ampls(seq.RF[1,i]; freq_in_phase) for i in range])
         A_Δf = reduce(vcat, [freqs(seq.RF[1,i])                for i in range])
+		c_rf = reduce(vcat, [cents(seq.RF[1,i])   			   for i in range])
         rf_samples = (
-            rf  = fill_if_empty((t = t_rf, A = A_rf)),
+            rf  = fill_if_empty((t = t_rf, A = A_rf, c = c_rf)),
             Δf  = fill_if_empty((t = t_Δf, A = A_Δf))
             )
     end
@@ -401,7 +402,7 @@ function get_rfs(seq, t::Union{Vector, Matrix})
     for event in rf_samples
         Interpolations.deduplicate_knots!(event.t; move_knots=true)
     end
-    return Tuple(linear_interpolation(event..., extrapolation_bc=0.0).(t) for event in rf_samples)
+    return Tuple(linear_interpolation(event.t, event.A, extrapolation_bc=0.0).(t) for event in rf_samples)
 end
 
 """
@@ -437,19 +438,16 @@ function get_RF_types(seq, t)
 	for (i, s) in enumerate(seq)
 		if is_RF_on(s)
 			rf = s.RF[1]
-			trf = rf.center + T0[i]
+			trf = rf.delay + rf.center + T0[i]
 			push!(rf_idx, argmin(abs.(trf.-t))...)
-			push!(rf_types, _get_RF_use(rf, rf.use))
+			push!(rf_types, rf.use)
 		end
 	end
 	return rf_idx, rf_types
 end
 
-_get_RF_use(rf::RF, use::RFUse)  = use
-_get_RF_use(rf::RF, ::Undefined) = get_flip_angle(rf) <= 90.01 ? Excitation() : Refocusing()
-
 @doc raw"""
-    Mk, Mk_adc = get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
+    Mk, Mk_adc = get_Mk(seq::Sequence, k; Δt=1)
 
 Computes the ``k``th-order moment of the Sequence `seq` given by the formula ``\int_0^T t^k G(t) dt``.
 
@@ -458,15 +456,12 @@ Computes the ``k``th-order moment of the Sequence `seq` given by the formula ``\
 - `k`: (`::Integer`) order of the moment to be computed
 - `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients
-- `skip_rf`: (`::Vector{Bool}`, `=zeros(Bool, sum(is_RF_on.(seq)))`) boolean vector which
-    indicates whether to skip the computation for resetting the integral for excitation or
-    refocusing RF type
 
 # Returns
 - `Mk`: (`3-column ::Matrix{Real}`) ``k``th-order moment
 - `Mk_adc`: (`3-column ::Matrix{Real}`) ``k``th-order moment sampled at ADC times
 """
-function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
+function get_Mk(seq::Sequence, k; Δt=1)
 	get_sign(::Excitation) =  0
 	get_sign(::Refocusing) = -1
 	get_sign(::RFUse)      =  1
@@ -485,11 +480,7 @@ function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))
 		for (rf, p) in enumerate(parts)
 			mk[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^k .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
 			if rf > 1 # First part does not have RF
-				if !skip_rf[rf-1]
-					mk[p,i] .+= mkf * get_sign(rf_types[rf-1])
-				else
-					mk[p,i] .+= mkf
-				end
+				mk[p,i] .+= mkf * get_sign(rf_types[rf-1])
 			end
 			mkf = mk[p[end],i]
 		end
