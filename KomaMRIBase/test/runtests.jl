@@ -151,11 +151,11 @@ using TestItems, TestItemRunner
         #Sanity checks of constructors (A [T], T [s], Δf[Hz], delay [s])
         A, T = rand(2)
         r1 = RF(A,T)
-        r2 = RF(A,T,0.0,0.0,r1.center,Undefined())
+        r2 = RF(A,T,0.0,0.0,r1.center)
         @test r1 ≈ r2
         A, T, Δf = rand(3)
         r1 = RF(A,T,Δf)
-        r2 = RF(A,T,Δf,0.0,r1.center,Undefined())
+        r2 = RF(A,T,Δf,0.0,r1.center)
         @test r1 ≈ r2
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", r1)
