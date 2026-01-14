@@ -104,13 +104,11 @@ end
         for field in fieldnames(typeof(m))
             if getfield(m,field) != getfield(a,field)
                 bool = false
-                println(field)
             end
         end
         @test bool
     end
     @testset "Read Comparison" begin
-        inside(x) = x[2:end-1]
         namedtuple(x) = x[:]
         namedtuple(d::Dict) = (; (Symbol(k == "df" ? "Δf" : k) => namedtuple(v) for (k,v) in d)...)
         not_empty = ((ek, ep),) -> !isempty(ep.t)
@@ -129,9 +127,7 @@ end
                         blk_pulseq = NamedTuple{keys(blk_koma)}(seq_pulseq[i]) # Reorder keys
                         for (ev_koma, ev_pulseq) in Iterators.filter(not_empty, zip(blk_koma, blk_pulseq))
                             @test ev_koma.t ≈ ev_pulseq.t
-                            @test inside(ev_koma.A) ≈ inside(ev_pulseq.A)
-                            @test first(ev_koma.A)  ≈ first(ev_pulseq.A) || ev_koma.t[2] ≈ ev_koma.t[1]
-                            @test last(ev_koma.A)   ≈ last(ev_pulseq.A)
+                            @test ev_koma.A ≈ ev_pulseq.A
                         end
                     end
                 end

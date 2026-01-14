@@ -304,20 +304,20 @@ Updates the `obj` dictionary with new first and last points for gradients.
 - This function is "replicating" the following MATLAB code:
 https://github.com/pulseq/pulseq/blob/v1.5.1/matlab/%2Bmr/%40Sequence/read.m#L325-L413
 - We are updating the `gradLibrary` entries with the new first and last points, making them compatible with the v1.5.x format.
-- Therefore, version check for gradients is not needed within `get_Grad` anymore.
 """
-function fix_first_last_grads!(obj::Dict) 
+function fix_first_last_grads!(obj::Dict, pulseq_version) 
     # Add first and last Pulseq points
     grad_prev_last = [0.0; 0.0; 0.0]
     for iB in 1:length(obj["blockEvents"])
         eventIDs = obj["blockEvents"][iB];
+        block = get_block(obj, iB, obj["definitions"]["BlockDurationRaster"], pulseq_version)
         processedGradIDs = zeros(1, 3);    
         for iG in 1:3
             g_id = eventIDs[2+iG]
             g_id > 0 || continue
             g = obj["gradLibrary"][g_id]
             grad = g["data"]
-            if g["type"] === 'g'
+            if g["type"] === 'g' # Arbitrary gradient waveform
                 # Version == 1.5.x: (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
                 # Version <= 1.4.x: (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
                 if length(grad) == 6 # Already-updated (to v1.5 format) gradLibrary entry
@@ -329,8 +329,6 @@ function fix_first_last_grads!(obj::Dict)
                 if grad[6] > 0 # delay > 0
                     grad_prev_last[iG] = 0.0 
                 end
-                
-                println("grad: $(grad)")
                 if grad[5] != 0 # time-shaped case
                     grad[3] = waveform[end]
                 else # uniformly-shaped case
@@ -339,8 +337,13 @@ function fix_first_last_grads!(obj::Dict)
                     waveform_odd_rest = cumsum(odd_step2) .* (mod.(1:length(odd_step2), 2) * 2 .- 1)
                     grad[3] = waveform_odd_rest[end]
                 end
+                grad_prev_last[iG] = dur(block.GR[iG]) + eps(Float64) < dur(block) ? 0 : grad[3] # Bookkeeping for the next gradient
+                if iG>1 && any(processedGradIDs(1:iG)==g_id)
+                    continue # avoid repeated updates if the same gradient is applied on differen gradient axes
+                end
+                processedGradIDs(iG)=g_id;
                 obj["gradLibrary"][g_id]["data"] = grad # Update the gradLibrary entry
-            else
+            else # Trapezoidal gradient waveform
                 grad_prev_last[iG] = 0.0
             end
         end
@@ -414,7 +417,7 @@ function read_seq(filename)
                 blockEvents = read_blocks(io, pulseq_version)
             elseif  section == "[RF]"
                 if pulseq_version >= v"1.5.0"
-                    rfLibrary = read_events(io, [1/γ 1 1 1 1 1e-6 1 1 1 1 1]; format="%i "*"%f "^(10)*"%c ") # this is 1.5.x format
+                    rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1e-6 1 1 1 1 1]; format="%i "*"%f "^(10)*"%c ") # this is 1.5.x format
                 elseif pulseq_version >= v"1.4.0"
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
                 else
@@ -503,7 +506,7 @@ function read_seq(filename)
     )
     # Add first and last points for gradients #320 for version <= 1.4.2
     if pulseq_version < v"1.5.0"
-        fix_first_last_grads!(obj)
+        fix_first_last_grads!(obj, pulseq_version)
     end
     #Transforming Dictionary to Sequence object
     #This should only work for Pulseq files >=1.4.0
@@ -550,13 +553,15 @@ function get_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         G = Grad(g_A,g_T,g_rise,g_fall,g_delay,0.0,0.0)
     elseif gradLibrary[i]["type"] === 'g' # Arbitrary gradient waveform
         g = gradLibrary[i]["data"]
-        # (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
-        amplitude     = g[1]
-        first_grads   = g[2]
-        last_grads    = g[3]
-        amp_shape_id  = g[4] |> x->floor(Int64,x)
-        time_shape_id = g[5] |> x->floor(Int64,x)
-        delay         = g[6]
+        v1_5 = length(g) == 6
+        # for version 1.5.x: (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
+        # for version 1.4.x and below: (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+        amplitude     =  g[1]
+        first_grads   =  v1_5 ? g[2] : 0.0
+        last_grads    =  v1_5 ? g[3] : 0.0
+        amp_shape_id  = (v1_5 ? g[4] : g[2]) |> x->floor(Int64,x)
+        time_shape_id = (v1_5 ? g[5] : g[3]) |> x->floor(Int64,x)
+        delay         =  v1_5 ? g[6] : g[4]
         #Amplitude
         gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
         Ngr = length(gA) - 1
