@@ -296,42 +296,71 @@ function decompress_shape(num_samples, data; forceDecompression = false)
 end
 
 """
-    fix_first_last_grads!(seq::Sequence)
+    fix_first_last_grads!(obj::Dict)
 
-Updates the Sequence `seq` with new first and last points for gradients.
+Updates the `obj` dictionary with new first and last points for gradients.
+
+# Notes:
+- This function is "replicating" the following MATLAB code:
+https://github.com/pulseq/pulseq/blob/v1.5.1/matlab/%2Bmr/%40Sequence/read.m#L325-L413
+- We are updating the `gradLibrary` entries with the new first and last points, making them compatible with the v1.5.x format.
+- Therefore, version check for gradients is not needed within `get_Grad` anymore.
 """
-function fix_first_last_grads!(seq::Sequence)
+function fix_first_last_grads!(obj::Dict) 
     # Add first and last Pulseq points
     grad_prev_last = [0.0; 0.0; 0.0]
-    for bi in 1:length(seq)
-        for gi in 1:3
-            gr = seq.GR[gi, bi]
-            if seq.DUR[bi] > 0
-                if sum(abs.(gr.A)) == 0   # this is for no-gradient case
-                    grad_prev_last[gi] = 0.0
+    for iB in 1:length(obj["blockEvents"])
+        eventIDs = obj["blockEvents"][iB];
+        processedGradIDs = zeros(1, 3);    
+        for iG in 1:3
+            g_id = eventIDs[2+iG]
+            g_id > 0 || continue
+            g = obj["gradLibrary"][g_id]
+            grad = g["data"]
+            if g["type"] === 'g'
+                # Version == 1.5.x: (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
+                # Version <= 1.4.x: (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+                if length(grad) == 6 # Already-updated (to v1.5 format) gradLibrary entry
                     continue
-                else
-                    if gr.A isa Vector # this is for the uniformly-shaped or time-shaped case
-                        if gr.delay > 0
-                            grad_prev_last[gi] = 0.0
-                        end
-                        seq.GR[gi, bi].first = grad_prev_last[gi]
-                        if gr.T isa Array # this is for time-shaped case (I assume it is the extended trapezoid case)
-                            seq.GR[gi, bi].last = gr.A[end]
-                        else
-                            odd_step1 = [seq.GR[gi, bi].first; 2 * gr.A]
-                            odd_step2 = odd_step1 .* (mod.(1:length(odd_step1), 2) * 2 .- 1)
-                            waveform_odd_rest = cumsum(odd_step2) .* (mod.(1:length(odd_step2), 2) * 2 .- 1)
-                            seq.GR[gi, bi].last = waveform_odd_rest[end]
-                        end
-                        grad_prev_last[gi] = seq.GR[gi, bi].last
-                    else    # this is for the trapedoid case
-                        grad_prev_last[gi] = 0.0
-                    end
                 end
+                # From here, we are dealing with version == 1.5.x
+                grad = [grad[1]; grad_prev_last[iG]; 0.0; grad[2:end]]
+                waveform = grad[1] * decompress_shape(obj["shapeLibrary"][grad[4]]...)
+                if grad[6] > 0 # delay > 0
+                    grad_prev_last[iG] = 0.0 
+                end
+                
+                println("grad: $(grad)")
+                if grad[5] != 0 # time-shaped case
+                    grad[3] = waveform[end]
+                else # uniformly-shaped case
+                    odd_step1 = [grad[2]; 2 * waveform]
+                    odd_step2 = odd_step1 .* (mod.(1:length(odd_step1), 2) * 2 .- 1)
+                    waveform_odd_rest = cumsum(odd_step2) .* (mod.(1:length(odd_step2), 2) * 2 .- 1)
+                    grad[3] = waveform_odd_rest[end]
+                end
+                obj["gradLibrary"][g_id]["data"] = grad # Update the gradLibrary entry
+            else
+                grad_prev_last[iG] = 0.0
             end
         end
     end
+end
+
+"""
+    amp_shape, time_shape = simplify_waveforms(amp_shape, time_shape)
+
+Simplifies the amplitude and time waveforms to a single value if they are constant.
+"""
+function simplify_waveforms(amp_shape, time_shape)
+    if all(x->x==amp_shape[1], amp_shape)
+        amp_shape = amp_shape[1]
+        time_shape = sum(time_shape)
+    elseif all(x->x==time_shape[1], time_shape)
+        amp_shape = amp_shape
+        time_shape = sum(time_shape)
+    end
+    return amp_shape, time_shape
 end
 
 """
@@ -470,16 +499,17 @@ function read_seq(filename)
         "extensionInstanceLibrary"=>extensionInstanceLibrary,
         "extensionTypeLibrary"=>extensionTypeLibrary,
         "extensionSpecLibrary"=>extensionSpecLibrary,
-        "definitions"=>def)
+        "definitions"=>def
+    )
+    # Add first and last points for gradients #320 for version <= 1.4.2
+    if pulseq_version < v"1.5.0"
+        fix_first_last_grads!(obj)
+    end
     #Transforming Dictionary to Sequence object
     #This should only work for Pulseq files >=1.4.0
     seq = Sequence()
     for i = 1:length(blockEvents)
         seq += get_block(obj, i, def["BlockDurationRaster"], pulseq_version)
-    end
-    # Add first and last points for gradients #320 for version <= 1.4.2
-    if pulseq_version < v"1.5.0"
-        fix_first_last_grads!(seq)
     end
     # Final details
     #Temporary hack
@@ -520,31 +550,31 @@ function get_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         G = Grad(g_A,g_T,g_rise,g_fall,g_delay,0.0,0.0)
     elseif gradLibrary[i]["type"] === 'g' # Arbitrary gradient waveform
         g = gradLibrary[i]["data"]
-        v1_5 = length(g) == 6
-        # for version 1.5.x: (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
-        # for version 1.4.x and below: (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-        amplitude     =  g[1]
-        first_grads   =  v1_5 ? g[2] : 0.0
-        last_grads    =  v1_5 ? g[3] : 0.0
-        amp_shape_id  = (v1_5 ? g[4] : g[2]) |> x->floor(Int64,x)
-        time_shape_id = (v1_5 ? g[5] : g[3]) |> x->floor(Int64,x)
-        delay         =  v1_5 ? g[6] : g[4]
+        # (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
+        amplitude     = g[1]
+        first_grads   = g[2]
+        last_grads    = g[3]
+        amp_shape_id  = g[4] |> x->floor(Int64,x)
+        time_shape_id = g[5] |> x->floor(Int64,x)
+        delay         = g[6]
         #Amplitude
         gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
         Ngr = length(gA) - 1
         #Creating timings
         if time_shape_id == 0 #no time waveform. Default time raster
             gT = Ngr * Δt_gr
-            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay, first_grads, last_grads)
+            rise, fall = Δt_gr/2, Δt_gr/2
         elseif time_shape_id == -1 #New in pulseq 1.5.x: no time waveform. 1/2 of the default time raster
             gT = Ngr * Δt_gr / 2
-            G = Grad(gA, gT, Δt_gr/2, Δt_gr/2, delay, first_grads, last_grads)
+            rise, fall = Δt_gr/2, Δt_gr/2
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
             delay += gt[1] * Δt_gr # offset due to the shape starting at a non-zero value
             gT = diff(gt) * Δt_gr
-            G = Grad(gA,gT,0.0,0.0,delay,first_grads,last_grads)
+            rise, fall = 0.0, 0.0
         end
+        gA, gT = simplify_waveforms(gA, gT)
+        G = Grad(gA, gT, rise, fall, delay, first_grads, last_grads)
     end
     return G
 end
@@ -604,6 +634,7 @@ function get_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         delay += rft[1] * Δt_rf # offset due to the shape starting at a non-zero value
         rfT = diff(rft) * Δt_rf
     end
+    rfAϕ, rfT = simplify_waveforms(rfAϕ, rfT)
     use = KomaMRIBase.get_RF_use_from_char(Val(use))
     if v1_5 # for version 1.5.x
         return [RF(rfAϕ,rfT,freq,delay,center,use);;]

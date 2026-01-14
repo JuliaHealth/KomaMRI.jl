@@ -71,24 +71,6 @@ function ampls(adc::ADC)
 end
 
 """
-    c = cents(rf::RF)
-
-Get center time of RF pulse. It includes the RF delay.
-
-# Arguments
-- `rf`: (`::RF`) RF struct
-
-# Returns
-- `c`: (`::Vector{Number}`) vector with center time of the RF pulse `rf`
-"""
-function cents(rf::RF)
-    if !is_on(rf)
-        return Float64[]
-    end
-    return [rf.center + rf.delay]
-end
-
-"""
     t = times(gr::Grad)
     t = times(rf::RF)
     t = times(adc::ADC)
@@ -118,25 +100,28 @@ function times(gr::Grad)
     t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
     return t
 end
-function times(rf::RF, key::Symbol)
+function times(rf::RF, key::Symbol=:A)
     if !is_on(rf)
         return Float64[]
     end
     rfA = getproperty(rf, key)
-    if !(rfA isa Vector) && !(rf.T isa Vector)
-        t =  cumsum([rf.delay; 0.0; rf.T; 0.0])         # pulse
-    elseif rfA isa Vector && rf.T isa Vector
-        t =  cumsum([rf.delay; 0.0; rf.T; 0.0])    # time-shaped
-    elseif !(rfA isa Vector)
-        t =  cumsum([rf.delay; 0.0; sum(rf.T); 0.0]) # df constant
+    if key !== :center
+        if !(rfA isa Vector) && !(rf.T isa Vector)
+            t =  cumsum([rf.delay; 0.0; rf.T; 0.0])         # pulse
+        elseif rfA isa Vector && rf.T isa Vector
+            t =  cumsum([rf.delay; 0.0; rf.T; 0.0])    # time-shaped
+        elseif !(rfA isa Vector)
+            t =  cumsum([rf.delay; 0.0; sum(rf.T); 0.0]) # df constant
+        else
+            NA = length(rf.A)
+            t = cumsum([rf.delay; 0.0; rf.T/(NA-1).*ones(NA-1); 0.0])    # uniformly-sampled
+        end
+        t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
     else
-        NA = length(rf.A)
-        t = cumsum([rf.delay; 0.0; rf.T/(NA-1).*ones(NA-1); 0.0])    # uniformly-sampled
+        t = [rf.delay + rf.center]
     end
-    t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
     return t
 end
-times(rf::RF) = times(rf, :A)
 function times(adc::ADC)
     if !is_on(adc)
         return range(0.0,0.0,0) #empty
