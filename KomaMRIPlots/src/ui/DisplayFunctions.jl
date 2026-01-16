@@ -240,6 +240,10 @@ function plot_seq(
     usadc(x; ampl_edge=1.0) = show_adc || isempty(x) ? x : [ampl_edge * first(x); 1.0 * first(x); 1.0 * last(x); ampl_edge * last(x)]
     # Get the samples of the events in the sequence
     seq_samples = (get_samples(seq, i; freq_in_phase) for i in 1:length(seq))
+    # Get block start times
+    T0 = get_block_start_times(seq)
+    # Get center times
+    center_times = reduce(vcat,[is_RF_on(b) ? [T0[i] + b.RF[1].delay + b.RF[1].center] : [] for (i,b) in enumerate(seq)])
     gx = (
         A=reduce(vcat, [block.gx.A; Inf] for block in seq_samples),
         t=reduce(vcat, [block.gx.t; Inf] for block in seq_samples),
@@ -255,7 +259,8 @@ function plot_seq(
     rf = (
         A=reduce(vcat, [usrf(block.rf.A); Inf] for block in seq_samples),
         t=reduce(vcat, [usrf(block.rf.t); Inf] for block in seq_samples),
-        c=reduce(vcat, [usrf(block.rf.c); Inf] for block in seq_samples),
+        ct=center_times,
+        cA=abs.(KomaMRIBase.get_rfs(seq, center_times)[1])
     )
     Δf = (
         A=reduce(vcat, [usrf(block.Δf.A); Inf] for block in seq_samples),
@@ -316,59 +321,7 @@ function plot_seq(
     for j in 1:O
         rf_amp = abs.(rf.A[:, j])
         rf_phase = angle.(rf.A[:, j])
-        rf_times = rf.t[:, j]
-        rf_center = rf.c[:, j]
         rf_phase[rf_amp .== Inf] .= Inf # Avoid weird jumps
-        # Find amplitude at each center time using linear interpolation
-        rf_center_amp = Float64[]
-        rf_center_times = Float64[]
-        # Get unique center times (excluding Inf)
-        unique_center_times = unique(rf_center[rf_center .!= Inf])
-        for center_time in unique_center_times
-            # Find points to the left (time <= center_time) and right (time >= center_time)
-            left_mask = (rf_times .<= center_time)
-            right_mask = (rf_times .>= center_time)
-            if any(left_mask) && any(right_mask)
-                # Left side: find closest time(s) and take max amplitude
-                left_times = rf_times[left_mask]
-                left_amps = rf_amp[left_mask]
-                left_min_time = maximum(left_times)  # Closest from left
-                left_closest_mask = left_times .== left_min_time
-                left_amp = maximum(left_amps[left_closest_mask])
-                # Right side: find closest time(s) and take max amplitude
-                right_times = rf_times[right_mask]
-                right_amps = rf_amp[right_mask]
-                right_min_time = minimum(right_times)  # Closest from right
-                right_closest_mask = right_times .== right_min_time
-                right_amp = maximum(right_amps[right_closest_mask])
-                # Linear interpolation
-                if left_min_time == right_min_time
-                    # Exact match, use that amplitude
-                    interp_amp = left_amp
-                else
-                    # Linear interpolation: y = y1 + (y2 - y1) * (x - x1) / (x2 - x1)
-                    interp_amp = left_amp + (right_amp - left_amp) * (center_time - left_min_time) / (right_min_time - left_min_time)
-                end
-                push!(rf_center_times, center_time)
-                push!(rf_center_amp, interp_amp)
-            elseif any(left_mask)
-                # Only left points available, use closest
-                left_times = valid_times[left_mask]
-                left_amps = valid_amps[left_mask]
-                left_min_time = maximum(left_times)
-                left_closest_mask = left_times .== left_min_time
-                push!(rf_center_times, center_time)
-                push!(rf_center_amp, maximum(left_amps[left_closest_mask]))
-            elseif any(right_mask)
-                # Only right points available, use closest
-                right_times = valid_times[right_mask]
-                right_amps = valid_amps[right_mask]
-                right_min_time = minimum(right_times)
-                right_closest_mask = right_times .== right_min_time
-                push!(rf_center_times, center_time)
-                push!(rf_center_amp, maximum(right_amps[right_closest_mask]))
-            end
-        end
         # Plot RF
         p[2j - 1 + 3] = scatter_fun(;
             x=rf.t * 1e3,
@@ -411,8 +364,8 @@ function plot_seq(
             )
         end
         p[2j + 5] = scatter_fun(;
-            x=rf_center_times * 1e3,
-            y=rf_center_amp * 1e6 * frf,
+            x=rf.ct * 1e3,
+            y=rf.cA * 1e6 * frf,
             name="RF_center",
             hovertemplate="RF center: %{x:.4f} ms<br>Amplitude: %{y:.2f} μT<extra></extra>",
             xaxis=xaxis,

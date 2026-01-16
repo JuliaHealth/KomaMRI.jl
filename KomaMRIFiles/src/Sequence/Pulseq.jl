@@ -16,7 +16,7 @@ function read_version(io)
     elseif pulseq_version < v"1.3.1"
         @warn "Loading older Pulseq $(pulseq_version); some code may not function as expected"
     elseif pulseq_version >= v"1.5.0"
-        @warn "Pulseq $(pulseq_version) not yet supported by this KomaMRIFiles release. Track progress at https://github.com/JuliaHealth/KomaMRI.jl/pull/614"
+        @info "Pulseq $(pulseq_version) is supported, but Soft Delay, Rotation, and RF Shimming extensions are not yet included\n(see https://github.com/JuliaHealth/KomaMRI.jl/issues/714)"
     end
 
     pulseq_version
@@ -574,7 +574,8 @@ function get_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
             rise, fall = Δt_gr/2, Δt_gr/2
         else
             gt = decompress_shape(shapeLibrary[time_shape_id]...)
-            delay += gt[1] * Δt_gr # offset due to the shape starting at a non-zero value
+            gt[1] == 0 || @warn "Gradient time shape $time_shape_id starting at a non-zero value $(gt[1]). This is not recommended and may not be supported properly\n (see https://github.com/pulseq/pulseq/issues/188#issuecomment-3541588756) " maxlog=1
+            delay += gt[1] * Δt_gr # offset due to the shape starting at a non-zero value. This case 
             gT = diff(gt) * Δt_gr
             rise, fall = 0.0, 0.0
         end

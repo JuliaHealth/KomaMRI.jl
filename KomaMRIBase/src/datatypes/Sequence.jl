@@ -320,13 +320,12 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     fill_if_empty(x) = isempty(x.t) && length(range) == length(seq) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
     # RF
     if :rf in events
-        t_rf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :A)      for i in range])
-        t_Δf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :Δf)     for i in range])
-		c_rf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :center) for i in range])
-        A_rf = reduce(vcat, [ampls(seq.RF[1,i]; freq_in_phase)    for i in range])
-        A_Δf = reduce(vcat, [freqs(seq.RF[1,i])                   for i in range])
+        t_rf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :A)   for i in range])
+        t_Δf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :Δf)  for i in range])
+        A_rf = reduce(vcat, [ampls(seq.RF[1,i]; freq_in_phase) for i in range])
+        A_Δf = reduce(vcat, [freqs(seq.RF[1,i])                for i in range])
         rf_samples = (
-            rf  = fill_if_empty((t = t_rf, A = A_rf, c = c_rf)),
+            rf  = fill_if_empty((t = t_rf, A = A_rf)),
             Δf  = fill_if_empty((t = t_Δf, A = A_Δf))
 		)
     end
@@ -402,7 +401,7 @@ function get_rfs(seq, t::Union{Vector, Matrix})
     for event in rf_samples
         Interpolations.deduplicate_knots!(event.t; move_knots=true)
     end
-    return Tuple(linear_interpolation(event.t, event.A, extrapolation_bc=0.0).(t) for event in rf_samples)
+    return Tuple(linear_interpolation(event..., extrapolation_bc=0.0).(t) for event in rf_samples)
 end
 
 """
@@ -438,7 +437,7 @@ function get_RF_types(seq, t)
 	for (i, s) in enumerate(seq)
 		if is_RF_on(s)
 			rf = s.RF[1]
-			trf = rf.delay + rf.center + T0[i]
+			trf = T0[i] + rf.delay + rf.center
 			push!(rf_idx, argmin(abs.(trf.-t))...)
 			push!(rf_types, rf.use)
 		end

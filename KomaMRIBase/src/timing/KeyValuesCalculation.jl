@@ -70,6 +70,7 @@ function ampls(adc::ADC)
     return ones(Bool, adc.N)
 end
 
+
 """
     t = times(gr::Grad)
     t = times(rf::RF)
@@ -100,28 +101,25 @@ function times(gr::Grad)
     t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
     return t
 end
-function times(rf::RF, key::Symbol=:A)
+function times(rf::RF, key::Symbol)
     if !is_on(rf)
         return Float64[]
     end
     rfA = getproperty(rf, key)
-    if key !== :center
-        if !(rfA isa Vector) && !(rf.T isa Vector)
-            t =  cumsum([rf.delay; 0.0; rf.T; 0.0])         # pulse
-        elseif rfA isa Vector && rf.T isa Vector
-            t =  cumsum([rf.delay; 0.0; rf.T; 0.0])    # time-shaped
-        elseif !(rfA isa Vector)
-            t =  cumsum([rf.delay; 0.0; sum(rf.T); 0.0]) # df constant
-        else
-            NA = length(rf.A)
-            t = cumsum([rf.delay; 0.0; rf.T/(NA-1).*ones(NA-1); 0.0])    # uniformly-sampled
-        end
-        t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
+    if !(rfA isa Vector) && !(rf.T isa Vector)
+        t =  cumsum([rf.delay; 0.0; rf.T; 0.0])         # pulse
+    elseif rfA isa Vector && rf.T isa Vector
+        t =  cumsum([rf.delay; 0.0; rf.T; 0.0])    # time-shaped
+    elseif !(rfA isa Vector)
+        t =  cumsum([rf.delay; 0.0; sum(rf.T); 0.0]) # df constant
     else
-        t = [rf.delay + rf.center]
+        NA = length(rf.A)
+        t = cumsum([rf.delay; 0.0; rf.T/(NA-1).*ones(NA-1); 0.0])    # uniformly-sampled
     end
+    t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
     return t
 end
+times(rf::RF) = times(rf, :A)
 function times(adc::ADC)
     if !is_on(adc)
         return range(0.0,0.0,0) #empty
