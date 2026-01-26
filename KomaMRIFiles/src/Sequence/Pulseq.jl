@@ -1,3 +1,8 @@
+const DEFAULT_DEFINITIONS = Dict("BlockDurationRaster"      => 1e-5, 
+                                 "GradientRasterTime"       => 1e-5, 
+                                 "RadiofrequencyRasterTime" => 1e-6, 
+                                 "AdcRasterTime"            => 1e-7)
+
 """
 read_version Read the [VERSION] section of a sequence file.
    defs=read_version(fid) Read Pulseq version from file
@@ -15,7 +20,7 @@ function read_version(io)
     elseif pulseq_version < v"1.3.1"
         @warn "Loading older Pulseq $(pulseq_version); some code may not function as expected"
     elseif pulseq_version >= v"1.5.0"
-        @info "Pulseq $(pulseq_version) is supported, but Soft Delay, Rotation, and RF Shimming extensions are not yet included\n(see https://github.com/JuliaHealth/KomaMRI.jl/issues/714)"
+        @info "Pulseq $(pulseq_version) is supported, but Soft Delay, Rotation, and RF Shimming extensions are not yet included\n(see https://github.com/JuliaHealth/KomaMRI.jl/issues/714)" maxlog=1
     end
     pulseq_version
 end
@@ -38,10 +43,10 @@ function read_definitions(io)
         def[key] = length(parsed_array) == 1 ? parsed_array[1] : parsed_array
     end
     #Default values
-    if !haskey(def,"BlockDurationRaster")       def["BlockDurationRaster"] = 1e-5       end
-    if !haskey(def,"GradientRasterTime")        def["GradientRasterTime"] = 1e-5        end
-    if !haskey(def,"RadiofrequencyRasterTime")  def["RadiofrequencyRasterTime"] = 1e-6  end
-    if !haskey(def,"AdcRasterTime")             def["AdcRasterTime"] = 1e-7             end
+    if !haskey(def,"BlockDurationRaster")       def["BlockDurationRaster"] = DEFAULT_DEFINITIONS["BlockDurationRaster"] end
+    if !haskey(def,"GradientRasterTime")        def["GradientRasterTime"] = DEFAULT_DEFINITIONS["GradientRasterTime"] end
+    if !haskey(def,"RadiofrequencyRasterTime")  def["RadiofrequencyRasterTime"] = DEFAULT_DEFINITIONS["RadiofrequencyRasterTime"] end
+    if !haskey(def,"AdcRasterTime")             def["AdcRasterTime"] = DEFAULT_DEFINITIONS["AdcRasterTime"] end
     return def
 end
 
@@ -180,7 +185,7 @@ function read_shapes(io, forceConvertUncompressed)
         # check if conversion is needed: in v1.4.x we use length(data)==num_samples
         # as a marker for the uncompressed (stored) data. In older versions this condition could occur by chance
         if forceConvertUncompressed && length(shape)==num_samples
-            shape = compress_shape(decompress_shape(shape, num_samples; forceDecompression=true))
+            num_samples, shape = compress_shape(decompress_shape(num_samples, shape; forceDecompression=true))
         end
         data = (num_samples, shape)
         shapeLibrary[id] = data
@@ -302,11 +307,12 @@ function fix_first_last_grads!(obj::Dict, pulseq_version)
             g = obj["gradLibrary"][g_id]
             grad = g["data"]
             if g["type"] === 'g' # Arbitrary gradient waveform
-                # Version == 1.5.x: (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
-                # Version <= 1.4.x: (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-                length(grad) == 6 && continue # Already-updated (to v1.5 format) gradLibrary entry
+                v1_5 = length(grad) == 6 # (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay 
+                v1_4 = length(grad) == 4 # (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+                v1_3 = length(grad) == 3 # (1)amplitude (2)amp_shape_id (3)delay
+                v1_5 && continue # Already-updated (to v1.5 format) gradLibrary entry
                 # From here, we are dealing with version == 1.5.x
-                grad = [grad[1]; grad_prev_last[iG]; 0.0; grad[2:end]]
+                grad = v1_4 ? [grad[1]; grad_prev_last[iG]; 0.0; grad[2:end]] : [grad[1]; grad_prev_last[iG]; 0.0; grad[2]; 0; grad[3]]
                 waveform = grad[1] * decompress_shape(obj["shapeLibrary"][grad[4]]...)
                 if grad[6] > 0 # delay > 0
                     grad_prev_last[iG] = 0.0 
@@ -320,10 +326,10 @@ function fix_first_last_grads!(obj::Dict, pulseq_version)
                     grad[3] = waveform_odd_rest[end]
                 end
                 grad_prev_last[iG] = dur(block.GR[iG]) + eps(Float64) < dur(block) ? 0 : grad[3] # Bookkeeping for the next gradient
-                if iG>1 && any(processedGradIDs(1:iG)==g_id)
+                if iG>1 && any(processedGradIDs[1:iG] .== g_id)
                     continue # avoid repeated updates if the same gradient is applied on differen gradient axes
                 end
-                processedGradIDs(iG)=g_id;
+                processedGradIDs[iG] = g_id;
                 obj["gradLibrary"][g_id]["data"] = grad # Update the gradLibrary entry
             else # Trapezoidal gradient waveform
                 grad_prev_last[iG] = 0.0
@@ -446,33 +452,7 @@ function read_seq(filename)
         end
     end
     verify_signature!(filename, signature; pulseq_version=pulseq_version)
-    # fix blocks, gradients and RF objects imported from older versions
-    if pulseq_version < v"1.4.0"
-        # scan through the RF objects
-        for i in eachindex(rfLibrary)
-            rfLibrary[i]["data"] = [rfLibrary[i]["data"][1:3]; 0.0; rfLibrary[i]["data"][4:end]]
-        end
-        for i in eachindex(gradLibrary)
-            if gradLibrary[i]["type"] === 't' # Trapezoidal gradient waveform
-                #(1)amplitude (2)rise (2)flat (3)fall (4)delay
-                if gradLibrary[i]["data"][2] == 0 #rise
-                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-                        gradLibrary[i]["data"][2]  = def["gradRasterTime"]
-                    end
-                end
-                if gradLibrary[i]["data"][4] == 0 #delay
-                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-                        gradLibrary[i]["data"][4]  = def["gradRasterTime"]
-                    end
-                end
-            elseif gradLibrary[i]["type"] === 'g' # Time-shaped gradient waveform
-                #(1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-                gradLibrary[i]["data"] = [gradLibrary[i]["data"][1:2]; 0.0; gradLibrary[i]["data"][3:end]]
-            end
-        end
-    end
+    isempty(def) && (def = DEFAULT_DEFINITIONS)
     #Sequence
     obj = Dict(
         "blockEvents"=>blockEvents,
@@ -535,15 +515,15 @@ function get_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
         gr = Grad(g_A,g_T,g_rise,g_fall,g_delay,0.0,0.0)
     elseif gradLibrary[i]["type"] === 'g' # Arbitrary gradient waveform
         g = gradLibrary[i]["data"]
-        v1_5 = length(g) == 6
-        # Version == 1.5.x: (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay
-        # Version <= 1.4.x: (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+        v1_5 = length(g) == 6 # (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay 
+        v1_4 = length(g) == 4 # (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
+        v1_3 = length(g) == 3 # (1)amplitude (2)amp_shape_id (3)delay
         amplitude     =  g[1]
         first_grads   =  v1_5 ? g[2] : 0.0
         last_grads    =  v1_5 ? g[3] : 0.0
         amp_shape_id  = (v1_5 ? g[4] : g[2]) |> x->floor(Int64,x)
-        time_shape_id = (v1_5 ? g[5] : g[3]) |> x->floor(Int64,x)
-        delay         =  v1_5 ? g[6] : g[4]
+        time_shape_id = (v1_5 ? g[5] : (v1_4 ? g[3] : 0)) |> x->floor(Int64,x)
+        delay         =  v1_5 ? g[6] : (v1_4 ? g[4] : g[3])
         #Amplitude
         gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
         Ngr = length(gA) - 1
@@ -583,22 +563,22 @@ Reads the RF. It is used internally by [`get_block`](@ref).
 """
 function get_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     rf = RF(0.0,0.0)
-    haskey(rfLibrary, i) || return [rf;;]
+    haskey(rfLibrary, i) || return [rf;;], false
     #Unpacking
     r = rfLibrary[i]["data"]
-    v1_5 = length(r) == 11
-    # Version == 1.5.x: (1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
-    # Version <= 1.4.x: (1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
+    v1_5 = length(r) == 11 # (1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
+    v1_4 = length(r) == 7  # (1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
+    v1_3 = length(r) == 6  # (1)amplitude (2)mag_id (3)phase_id (4)delay (5)freq (6)phase
     amplitude     =  r[1]
     mag_id        =  r[2] |> x->floor(Int64,x)
     phase_id      =  r[3] |> x->floor(Int64,x)
-    time_shape_id =  r[4] |> x->floor(Int64,x)
-    center        =  v1_5 ? r[5] : 0.0
-    delay         = (v1_5 ? r[6] : r[5]) + (time_shape_id==0)*Δt_rf/2
-    freq_ppm      =  v1_5 ? r[7] : 0.0
-    phase_ppm     =  v1_5 ? r[8] : 0.0
-    freq          =  v1_5 ? r[9] : r[6]
-    phase         =  v1_5 ? r[10] : r[7]
+    time_shape_id =  v1_3 ? 0 : (r[4] |> x->floor(Int64,x)); add_half_Δt_rf = !(time_shape_id>0)
+    center        =  v1_5 ? r[5]  : 0.0
+    delay         = (v1_5 ? r[6]  : (v1_4 ? r[5] : r[4])) + (add_half_Δt_rf) * Δt_rf/2
+    freq_ppm      =  v1_5 ? r[7]  : 0.0
+    phase_ppm     =  v1_5 ? r[8]  : 0.0
+    freq          =  v1_5 ? r[9]  : (v1_4 ? r[6] : r[5])
+    phase         =  v1_5 ? r[10] : (v1_4 ? r[7] : r[6])
     use           =  v1_5 ? r[11] : 'u'
     #Amplitude and phase waveforms
     if amplitude != 0 && mag_id != 0
@@ -627,7 +607,7 @@ function get_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     else # for version 1.4.x and below
         rf = RF(rfAϕ,rfT,freq,delay)
     end
-    return [rf;;]
+    return [rf;;], add_half_Δt_rf
 end
 
 """
@@ -647,9 +627,8 @@ function get_ADC(adcLibrary, i)
     haskey(adcLibrary, i) || return [adc]
     #Unpacking
     a = adcLibrary[i]["data"]
-    v1_5 = length(a) == 8
-    # Version == 1.5.x: (1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
-    # Version <= 1.4.x: (1)num (2)dwell (3)delay (4)freq (5)phase
+    v1_5 = length(a) == 8 # (1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
+    v1_4 = length(a) == 5 # (1)num (2)dwell (3)delay (4)freq (5)phase
     num       = a[1] |> x->floor(Int64,x)
     dwell     = a[2]
     delay     = a[3] + dwell/2
@@ -688,18 +667,18 @@ function get_block(obj, i, pulseq_version)
     G = reshape([Gx;Gy;Gz],3,1) #[Gx;Gy;Gz;;]
     #RF definition
     Δt_rf = obj["definitions"]["RadiofrequencyRasterTime"]
-    R = get_RF(obj["rfLibrary"], obj["shapeLibrary"], Δt_rf, irf)
+    R, add_half_Δt_rf = get_RF(obj["rfLibrary"], obj["shapeLibrary"], Δt_rf, irf)
     #ADC definition
     A = get_ADC(obj["adcLibrary"], iadc)
     #DUR
+    max_dur = max(dur(Gx), dur(Gy), dur(Gz), dur(R[1]) + (add_half_Δt_rf) * Δt_rf/2, dur(A[1]))
     if pulseq_version >= v"1.4.0" # Explicit block duration (in units of blockDurationRaster)
         duration = idur * obj["definitions"]["BlockDurationRaster"]
-        max_dur = max(dur(Gx), dur(Gy), dur(Gz), dur(R[1]), dur(A[1]))
         @assert duration ≈ max_dur || duration >= max_dur "Block duration must be greater than or approximately equal to the duration of the block events"
         D = Float64[duration]
-    else # Block duration as the sum of the delay and the duration of the block events
+    else # Block duration as the maximum between the delay and the duration of the block events
         idelay = idur > 0 ? obj["tmp_delayLibrary"][idur]["data"][1] : 0.0
-        D = Float64[idelay + max(dur(Gx), dur(Gy), dur(Gz), dur(R[1]), dur(A[1]))]
+        D = Float64[max(idelay, max_dur)]
     end
     #Extensions
     E = get_extension(obj["extensionInstanceLibrary"], obj["extensionTypeLibrary"], obj["extensionSpecLibrary"], iext)
@@ -782,7 +761,7 @@ function parse_signature_section(section::AbstractString)
 end
 
 function verify_signature!(filename::String, signature::Nothing; pulseq_version::VersionNumber=v"1.4.0")
-    @warn "Pulseq [SIGNATURE] section is missing; skipping verification." filename
+    @warn "Pulseq [SIGNATURE] section is missing; skipping verification."
     return nothing
 end
 

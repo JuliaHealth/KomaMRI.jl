@@ -114,7 +114,7 @@ end
         not_empty = ((ek, ep),) -> !isempty(ep.t)
         # Reading files
         pth          = joinpath(@__DIR__, "test_files/pulseq/pulseq_read_comparison/")
-        versions     = ["v1.4", "v1.5"]
+        versions     = ["v1.3", "v1.4", "v1.5"]
         for v in versions
             pulseq_files = filter(endswith(".seq"), readdir(pth*v)) .|> x -> splitext(x)[1]
             for pulseq_file in pulseq_files

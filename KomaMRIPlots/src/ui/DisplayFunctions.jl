@@ -260,7 +260,8 @@ function plot_seq(
         A=reduce(vcat, [usrf(block.rf.A); Inf] for block in seq_samples),
         t=reduce(vcat, [usrf(block.rf.t); Inf] for block in seq_samples),
         ct=center_times,
-        cA=abs.(KomaMRIBase.get_rfs(seq, center_times)[1])
+        cA=abs.(KomaMRIBase.get_rfs(seq, center_times)[1]),
+        cϕ=angle.(KomaMRIBase.get_rfs(seq, center_times)[1])
     )
     Δf = (
         A=reduce(vcat, [usrf(block.Δf.A); Inf] for block in seq_samples),
@@ -366,8 +367,10 @@ function plot_seq(
         p[2j + 5] = scatter_fun(;
             x=rf.ct * 1e3,
             y=rf.cA * 1e6 * frf,
+            text=rf.cϕ,
             name="RF_center",
-            hovertemplate="RF center: %{x:.4f} ms<br>Amplitude: %{y:.2f} μT<extra></extra>",
+            hovertemplate="RF center: %{x:.4f} ms<br>|B1|: %{y:.2f} μT<br>∠B1: %{text:.2f} rad<extra></extra>",
+            visible="legendonly",
             xaxis=xaxis,
             yaxis=yaxis,
             legendgroup="RF_center",
