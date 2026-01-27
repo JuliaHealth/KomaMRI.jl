@@ -1,7 +1,7 @@
 name = "KomaMRIBase"
 uuid = "d0bc0b20-b151-4d03-b2a4-6ca51751cb9c"
 
-version = "0.9.7"
+version = "0.9.8"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [workspace]

@@ -1,3 +1,20 @@
+abstract type RFUse end
+struct Excitation <: RFUse end
+struct Refocusing <: RFUse end
+struct Inversion <: RFUse end
+struct Saturation <: RFUse end
+struct Preparation <: RFUse end
+struct Other <: RFUse end
+struct Undefined <: RFUse end
+
+get_RF_use_from_char(::Val{'e'}) = Excitation()
+get_RF_use_from_char(::Val{'r'}) = Refocusing()
+get_RF_use_from_char(::Val{'i'}) = Inversion()
+get_RF_use_from_char(::Val{'s'}) = Saturation()
+get_RF_use_from_char(::Val{'p'}) = Preparation()
+get_RF_use_from_char(::Val{'o'}) = Other()
+get_RF_use_from_char(::Val{'u'}) = Undefined()
+
 """
     rf = RF(A, T)
     rf = RF(A, T, Δf)
@@ -8,10 +25,12 @@ The RF struct represents a Radio Frequency excitation of a sequence event.
 # Arguments
 - `A`: (`::Complex`, `[T]`) RF complex amplitud modulation (AM), ``B_1(t) = |B_1(t)|
     e^{i\\phi(t)} = B_{1}(t) + iB_{1,y}(t) ``
-- `T`: (`::Real`, [`s`]) RF duration
-- `Δf`: (`::Real` or `::Vector`, [`Hz`]) RF frequency difference with respect to the Larmor frequency.
+- `T`: (`::Real`, `[s]`) RF duration
+- `Δf`: (`::Real` or `::Vector`, `[Hz]`) RF frequency difference with respect to the Larmor frequency.
     This can be a number but also a vector to represent frequency modulated signals (FM).
-- `delay`: (`::Real`, [`s`]) RF delay time
+- `delay`: (`::Real`, `[s]`) RF delay time
+- `center`: (`::Real`, `[s]`) RF center time
+- `use`: (`::RFUse`) RF use type
 
 # Returns
 - `rf`: (`::RF`) the RF struct
@@ -27,20 +46,21 @@ mutable struct RF
     A
     T
     Δf
-    delay::Real
-    function RF(A, T, Δf, delay)
-        return if any(T .< 0) || delay < 0
-            error("RF timings must be non-negative.")
-        else
-            new(A, T, Δf, delay)
-        end
-    end
-    function RF(A, T, Δf)
-        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, Δf, 0.0)
-    end
-    function RF(A, T)
-        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, 0.0, 0.0)
-    end
+    delay::Float64
+    center::Union{Float64, Nothing}
+    use::RFUse
+    RF(A, T, Δf, delay, center, use) = any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new(A, T, Δf, delay, center, use)
+    RF(A, T, Δf, delay, center)      = _RF_with_center_and_use(A, T, Δf,  delay; center=center)
+    RF(A, T, Δf, delay)              = _RF_with_center_and_use(A, T, Δf,  delay)
+    RF(A, T, Δf)                     = _RF_with_center_and_use(A, T, Δf,  0.0)
+    RF(A, T)                         = _RF_with_center_and_use(A, T, 0.0, 0.0)
+end
+
+function _RF_with_center_and_use(A, T, Δf, delay; center=nothing)
+    rf = RF(A, T, Δf, delay, center, Undefined())
+    rf.center = center === nothing  ? get_RF_center(rf) : center
+    rf.use = get_flip_angle(rf) <= 90.01 ? Excitation() : Refocusing()
+    return rf
 end
 
 """
@@ -100,11 +120,9 @@ getproperty(x::Matrix{RF}, f::Symbol) = begin
 end
 
 # RF comparison
-function Base.isapprox(rf1::RF, rf2::RF)
-    return all(length(getfield(rf1, k)) == length(getfield(rf2, k)) for k in fieldnames(RF))
-    return all(≈(getfield(rf1, k), getfield(rf2, k); atol=1e-9) for k in fieldnames(RF))
-end
-
+Base.:(≈)(rf1::RF, rf2::RF) = reduce(&, [getfield(rf1, field) ≈ getfield(rf2, field) for field in fieldnames(RF)])
+Base.:(≈)(u1::RFUse, u2::RFUse) = u1 == u2
+    
 # Properties
 size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
 *(α::Complex{T}, x::RF) where {T<:Real} = RF(α * x.A, x.T, x.Δf, x.delay)
@@ -170,18 +188,18 @@ end
 """
     t = get_RF_center(x::RF)
 
-Calculates the time where is the center of the RF pulse `x`. This calculation includes the
-RF delay.
+Calculates the time where is the center of the RF pulse `x` .
+It does not include the RF delay and uses the weighted average of times by amplitude.
 
 # Arguments
 - `x`: (`::RF`) RF struct
 
 # Returns
-- `t`: (`::Int64`, `[s]`) time where is the center of the RF pulse `x`
+- `t`: (`::Real` or `Nothing`, `[s]`) time where is the center of the RF pulse `x`, or `nothing` if the RF amplitude is zero
 """
-get_RF_center(x::RF) = begin
+function get_RF_center(x::RF)
     t = times(x)
     B1 = ampls(x)
-    t_center = sum(abs.(B1) .* t) ./ sum(abs.(B1))
+    t_center = sum(abs.(B1) .* (t .- x.delay)) ./ sum(abs.(B1))
     return t_center
 end

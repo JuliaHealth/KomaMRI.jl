@@ -327,7 +327,7 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
         rf_samples = (
             rf  = fill_if_empty((t = t_rf, A = A_rf)),
             Δf  = fill_if_empty((t = t_Δf, A = A_Δf))
-            )
+		)
     end
     # Gradients
     if :gr in events
@@ -420,7 +420,7 @@ get_flip_angles(x::Sequence) = get_flip_angle.(x.RF)[:]
 """
     rf_idx, rf_type = get_RF_types(seq, t)
 
-Get RF centers and types (excitation or precession). Useful for k-space calculations.
+Get RF centers and types. Useful for k-space calculations.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -428,33 +428,25 @@ Get RF centers and types (excitation or precession). Useful for k-space calculat
 
 # Returns
 - `rf_idx`: (`::Vector{Int64}`) indices of the RF centers
-- `rf_type`: (`::Vector{Int64}`, opts: [`0`, `1`]) RF type (`0`: excitation, `1`:
-    precession)
+- `rf_types`: (`::Vector{RFUse}`) RF types
 """
 function get_RF_types(seq, t)
-	α = get_flip_angles(seq)
-	RF_mask = is_RF_on.(seq)
-	RF_ex = (α .<= 90.01) .* RF_mask
-	RF_rf = (α .>  90.01) .* RF_mask
-	rf_idx = Int[]
-	rf_type = Int[]
 	T0 = get_block_start_times(seq)
-	for i = 1:length(seq)
-		if is_RF_on(seq[i])
-			trf = get_RF_center(seq[i].RF[1]) + T0[i]
-			append!(rf_idx, argmin(abs.(trf.-t)))
-			if RF_ex[i]
-				append!(rf_type, 0)
-			elseif RF_rf[i]
-				append!(rf_type, 1)
-			end
+	rf_idx   = Int[]
+	rf_types = RFUse[]
+	for (i, s) in enumerate(seq)
+		if is_RF_on(s)
+			rf = s.RF[1]
+			trf = T0[i] + rf.delay + rf.center
+			push!(rf_idx, argmin(abs.(trf.-t))...)
+			push!(rf_types, rf.use)
 		end
 	end
-	rf_idx, rf_type
+	return rf_idx, rf_types
 end
 
 @doc raw"""
-    Mk, Mk_adc = get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
+    Mk, Mk_adc = get_Mk(seq::Sequence, k; Δt=1)
 
 Computes the ``k``th-order moment of the Sequence `seq` given by the formula ``\int_0^T t^k G(t) dt``.
 
@@ -463,15 +455,15 @@ Computes the ``k``th-order moment of the Sequence `seq` given by the formula ``\
 - `k`: (`::Integer`) order of the moment to be computed
 - `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
     for ADC acquisition and Gradients
-- `skip_rf`: (`::Vector{Bool}`, `=zeros(Bool, sum(is_RF_on.(seq)))`) boolean vector which
-    indicates whether to skip the computation for resetting the integral for excitation or
-    refocusing RF type
 
 # Returns
 - `Mk`: (`3-column ::Matrix{Real}`) ``k``th-order moment
 - `Mk_adc`: (`3-column ::Matrix{Real}`) ``k``th-order moment sampled at ADC times
 """
-function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))))
+function get_Mk(seq::Sequence, k; Δt=1)
+	get_sign(::Excitation) =  0
+	get_sign(::Refocusing) = -1
+	get_sign(::RFUse)      =  1
 	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
@@ -480,22 +472,14 @@ function get_Mk(seq::Sequence, k; Δt=1, skip_rf=zeros(Bool, sum(is_RF_on.(seq))
 	Nt = length(t)
 	mk = zeros(Nt,3)
 	# get_RF_center_breaks
-	idx_rf, rf_type = get_RF_types(seq, t)
+	idx_rf, rf_types = get_RF_types(seq, t)
 	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3
 		mkf = 0
 		for (rf, p) in enumerate(parts)
 			mk[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^k .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
 			if rf > 1 # First part does not have RF
-				if !skip_rf[rf-1]
-					if rf_type[rf-1] == 0 # Excitation
-						mk[p,i] .-= 0
-					elseif rf_type[rf-1] == 1 # Refocuse
-						mk[p,i] .-= mkf
-					end
-				else
-					mk[p,i] .+= mkf
-				end
+				mk[p,i] .+= mkf * get_sign(rf_types[rf-1])
 			end
 			mkf = mk[p[end],i]
 		end
@@ -560,7 +544,7 @@ get_slew_rate(seq::Sequence; Δt=1) = begin
 	Nt = length(t)
 	m2 = zeros(Nt,3)
 	#get_RF_center_breaks
-	idx_rf, rf_type = get_RF_types(seq, t)
+	idx_rf, rf_types = get_RF_types(seq, t)
 	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3
 		m2f = 0
@@ -606,7 +590,7 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	Nt = length(t)
 	m2 = zeros(Nt,3)
 	#get_RF_center_breaks
-	idx_rf, rf_type = get_RF_types(seq, t)
+	idx_rf, rf_types = get_RF_types(seq, t)
 	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3
 		m2f = 0
