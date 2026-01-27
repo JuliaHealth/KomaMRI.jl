@@ -452,6 +452,27 @@ function read_seq(filename)
             end
         end
     end
+    # fix trapezoidal gradients imported from older versions
+    if pulseq_version < v"1.4.0"
+        # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
+        for i in keys(gradLibrary)
+            if gradLibrary[i]["type"] == 't'
+                #(1)amplitude (2)rise (2)flat (3)fall (4)delay
+                if gradLibrary[i]["data"][2] == 0 #rise
+                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
+                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
+                        gradLibrary[i]["data"][2]  = def["gradRasterTime"]
+                    end
+                end
+                if gradLibrary[i]["data"][4] == 0 #delay
+                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
+                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
+                        gradLibrary[i]["data"][4]  = def["gradRasterTime"]
+                    end
+                end
+            end
+        end
+    end
     verify_signature!(filename, signature; pulseq_version=pulseq_version)
     isempty(def) && (def = DEFAULT_DEFINITIONS)
     #Sequence
