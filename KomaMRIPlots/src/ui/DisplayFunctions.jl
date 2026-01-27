@@ -31,21 +31,18 @@ function theme_chooser(darkmode)
 end
 
 function generate_seq_time_layout_config(
-    title, width, height, range, slider, show_seq_blocks, darkmode; T0, label_to_show=0
+    title, width, height, range, slider, show_seq_blocks, darkmode; T0, label_to_show=0, non_label_count=8
     )
 
     num_labels = length(label_to_show)
-    # Assume non-label traces are first (e.g. 3 + 3O + 1)
-    # Let non_label_count be the number of non-label traces
-    # For dropdown, always show non-label traces, and only one label trace
-     # Add 'none' option to hide all label traces
+    # For dropdown, only update label traces, leave non-label traces unchanged
+    # PlotlyJS uses 0-based indices: label traces start at non_label_count (0-based)
+    label_indices = [i-1 for i in (non_label_count+1):(non_label_count + num_labels)]
     buttons = [
         attr(
             label = "Labels (none)",
             method = "restyle",
-            args = [
-                attr(visible = vcat([1,1,1,1,"legendonly","legendonly",1], fill(false, num_labels)))
-            ]
+            args = [attr(visible = fill(false, num_labels)), label_indices]
         )
     ]
     # Add one button per label fieldname (only one label trace visible at a time)
@@ -53,9 +50,7 @@ function generate_seq_time_layout_config(
         attr(
             label = string(sym),
             method = "restyle",
-            args = [
-                attr(visible = vcat([1,1,1,1,"legendonly","legendonly",1], [j == i for j in 1:num_labels]))
-            ]
+            args = [attr(visible = [j == i for j in 1:num_labels]), label_indices]
         ) for (i, sym) in enumerate(label_to_show)
     ])
 
@@ -277,7 +272,7 @@ function plot_seq(
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
     O = size(seq.RF, 1)
-    p = [scatter_fun() for _ in 1:(3 + 3O + 2 + length(label))]
+    p = [scatter_fun() for _ in 1:(3 + 4O + 1 + length(label))]
 
     # For GRADs
     fgx = is_Gx_on(seq) ? 1.0 : Inf
@@ -324,7 +319,7 @@ function plot_seq(
         rf_phase = angle.(rf.A[:, j])
         rf_phase[rf_amp .== Inf] .= Inf # Avoid weird jumps
         # Plot RF
-        p[2j - 1 + 3] = scatter_fun(;
+        p[4 + 4(j-1)] = scatter_fun(;
             x=rf.t * 1e3,
             y=rf_amp * 1e6 * frf,
             name="|B1|_AM",
@@ -335,7 +330,7 @@ function plot_seq(
             showlegend=showlegend,
             marker=attr(; color="#AB63FA"),
         )
-        p[2j + 3] = scatter_fun(;
+        p[5 + 4(j-1)] = scatter_fun(;
             x=rf.t * 1e3,
             y=rf_phase * frf,
             text=ones(size(rf.t)),
@@ -349,7 +344,7 @@ function plot_seq(
             marker=attr(; color="#FFA15A"),
         )
         if !freq_in_phase
-            p[2j + 4] = scatter_fun(;
+            p[6 + 4(j-1)] = scatter_fun(;
                 x=Δf.t * 1e3,
                 y=Δf.A[:, j] * 1e-3 * frf,
                 text=ones(size(Δf.t)),
@@ -364,7 +359,7 @@ function plot_seq(
                 line=attr(; dash="dot"),
             )
         end
-        p[2j + 5] = scatter_fun(;
+        p[7 + 4(j-1)] = scatter_fun(;
             x=rf.ct * 1e3,
             y=rf.cA * 1e6 * frf,
             text=rf.cϕ,
@@ -382,7 +377,7 @@ function plot_seq(
 
     # For ADCs
     fa = is_ADC_on(seq) ? 1.0 : Inf
-    p[3O + 3 + 2] = scatter_fun(;
+    p[3 + 4O + 1] = scatter_fun(;
         x=adc.t * 1e3,
         y=adc.A * fa,
         name="ADC",
@@ -420,7 +415,7 @@ function plot_seq(
                 count_label = count_label + 1
                 push!(sym_vec,sym)
                 #color = colors[mod1(i, length(colors))]
-                p[3O + 3 + 2 + count_label] = scatter_fun(;
+                p[3 + 4O + 1 + count_label] = scatter_fun(;
                     x= t_center_adc * 1e3,
                     y= lab_adc,
                     name=string(sym),
@@ -449,7 +444,8 @@ function plot_seq(
         show_seq_blocks,
         darkmode;
         T0=get_block_start_times(seq),
-        label_to_show = sym_vec
+        label_to_show = sym_vec,
+        non_label_count = 3 + 4O + 1
     )
     return plot_koma(p, l; config)
 end

@@ -171,10 +171,14 @@ read_shapes Read the [SHAPES] section of a sequence file.
 """
 function read_shapes(io, forceConvertUncompressed)
     shapeLibrary = Dict()
-    readline(io)
     while true #Reading shapes
-        r, id = @scanf(readline(io), "shape_id %i", Int)
-        r == 1 || break #Break if no "shape_id id" is identified
+        eof(io) && break
+        mark(io) # Mark the position before reading the line
+        line = readline(io)
+        if isempty(line) unmark(io); continue end
+        r, id = @scanf(line, "shape_id %i", Int)
+        if r != 1 reset(io); break end # If the line is not a shape_id, reset the io and break the loop
+        unmark(io) # Unmark the position after reading the line
         _, num_samples = @scanf(readline(io), "num_samples %i", Int)
         shape = Float64[]
         while true #Reading shape data
@@ -341,13 +345,10 @@ end
 """
     amp_shape, time_shape = simplify_waveforms(amp_shape, time_shape)
 
-Simplifies the amplitude and time waveforms to a single value if they are constant.
+Simplifies the amplitude and time waveforms when time steps are uniform.
 """
 function simplify_waveforms(amp_shape, time_shape)
-    if all(x->x==amp_shape[1], amp_shape)
-        amp_shape = amp_shape[1]
-        time_shape = sum(time_shape)
-    elseif all(x->x==time_shape[1], time_shape)
+    if all(x->x==time_shape[1], time_shape)
         amp_shape = amp_shape
         time_shape = sum(time_shape)
     end
