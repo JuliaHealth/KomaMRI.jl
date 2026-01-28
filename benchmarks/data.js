@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1765232910907,
+  "lastUpdate": 1769568874596,
   "repoUrl": "https://github.com/JuliaHealth/KomaMRI.jl",
   "entries": {
     "KomaMRI Benchmarks": [
@@ -4800,6 +4800,126 @@ window.BENCHMARK_DATA = {
             "value": 32636098,
             "unit": "ns",
             "extra": "gctime=0\nmemory=21207016\nallocs=208464\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mar.stockle@gmail.com",
+            "name": "Stockless",
+            "username": "Stockless"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "43a3ab1afc5f8db568d6ad5dd749ed72984d6fbc",
+          "message": "Read Pulseq 1.5.1 (#614)\n\n* Read pulseq1.5.1\n\n* remove version_combined variable propagation\n\n* read RF char last argument correctly\n\n* move scan iterator start to 1\n\n* restore scan iterator start at 0\n\n* RF use and center handle\n\n* Commit of the following:\n- Improve Grad and RF constructors for improved readability and error handling.\n- Fix documentation typo about `A` and `T` vectors\n- Add SHA and MD5 packages for hash generation/verification\n- Improve signature generation/verification\n\n* Commit of the following:\n- Add missing signature-related functions\n- Simplify `read_RF` and `read_ADC` in the same way as `read_Grad`\n\n* Commit of the following:\n- Fix contructors, auxiliary functions and tests\n- Restore previous `read_Grads`, `read_RF`, and `read_ADC` implementations\n- Improve signature handling\n\n* Address requested changes:\n- Do not use recursive constructors\n- Come back to `get_RF_use_from_char(::Val{Char})`\n- Remove `get_RF_use_from_char`from RF constructor\n- Export RFUses\n\n* Fix cross-referencing errors (new in Documenter.jl v1.16)\n\n* Recover signature checks\n\n* Fix auxiliary functions and tests, enlarge coverage for Pulseq v1.5\n\n* Updating get_RF_types, get_RF_center, get_Mk\n\n* Address requested changes\n\n* Replace calls to `get_RF_center(rf)` to `rf.center`\n\n* Fix dummy error in `get_RF_types`\n\n* Recover  the use of `skip_rf`\n\n* Refactor RF struct and update Pulseq sequence handling\n\n- Changed `delay` and `center` fields in the `RF` struct to use `Float64` for improved precision.\n- Updated the `_RF_with_center` function to directly assign the center value from `get_RF_center`.\n- Enhanced `read_Grad` and `read_RF` functions to handle new time waveform options and adjust delays accordingly.\n- Added support for version-specific behavior in `read_RF` to accommodate differences between Pulseq versions 1.4.x and 1.5.x.\n- Introduced new test files for Pulseq sequences in both versions to ensure compatibility and correctness.\n\n* Make Extensions extensible:\n\n- Moved `AdcLabels`, `LabelInc`, `LabelSet`, and `Trigger` into separate files for better organization.\n- Updated `EXT.jl` to include new extension files and added functions to retrieve extension types from symbols.\n- New `get_scanf_format` function to generate format strings based on struct field types.\n- Modified `read_events` and `read_extension` functions to accommodate the new structure and improve extensibility.\n- Updated `read_seq` to handle new extension libraries and ensure compatibility with existing sequence files.\n\n* Un-export `get_scale` and `get_scanf_format`\n\n* Fix `read_extension` docstring\n\n* Address requested changes:\n- Remove `get_scanf_format` and `get_scanf_args`\n- Reduce the number of type Any arrays\n- Put `get_EXT_type_from_symbol` implementations inside their corresponding file\n\n* Fix type check in `read_events`\n\n* Address part of the requested changes:\n- Remove `skip_rf`\n- Modify `RF` constructor: `_RF_with_center` -> `_RF_with_center_and_use`\n- Adapt `get_RF_center` to what Pulseq does\n- Change `rf-pulse.seq` (and .mat) to consider a non-zero delay\n- \"RFs\" labels -> \"RF_center\"\n- Rename all dictionary-reading functions (`read_*`->`get_*`)\n- Simplify version handling in `get_Grad`, `get_RF` and `get_ADC`\n- Dispatch for unknown extensions\n- Display RF center in `plot_seq` (new `cents` aux function)\n- New `has_hash` variable\n- Dispatch depending on signature existance\n- Remove `blockDurations` and `delayInd_tmp` dictionaries\n- Recover 't' and 'g' gradient types, delete `trapLibrary`\n\n* Fix dummy error I forgot in KomaBase tests\n\n* Commit of the following:\n- Fix `fix_first_last_grads!` to mimic Pulseq's MATLAB implementation\n- New `simplify_waveforms` function\n- Fix RF center representation in `plot_seq`:\n   - Remove useless `cents` function\n   - Introduce `cents` functionality into `times` function\n   - Add previous blocks timing information\n- Better distribution of KomaFiles test files\n\n* - Correct RF scale\n- finish `fix_first_last_grads!`\n- Remove debugging comments\n- Recover previous `get_Grad` function\n- Simplify tests (not use `inside` function)\n\n* Changes from last meeting:\n- Simplify plot centers in `plot_seq`\n- Add warning when a gradient time shape starts at a non-zero value.\n- Update info message regarding v1.5 support\n\n* Last formatting details and remove unnecessary input argument from `get_block`\n\n* Bump KomaBase, KomaFiles and KomaPlots\n\n* Commit of the following:\n - Add phase label in RF center plot\n - Fix <=v1.3 support\n - Test files for v1.3\n\n* Return adc duration from `get_ADC` function (no effect in this PR but relevant when performing round trip tests in `write-pulseq1.5.0` branch)\n\n* Commit of the following:\n- Fix problems with labels in `plot_seq`\n- Adapt `read_events` to support slightly different files generated with other tools (e.g., gammaSTAR)\n- Add gammaSTAR-generated test file\n\n* v1.2 tests (JEMRIS and MATLAB)\n\n* Recover lines that fix trapezoids having zero amplitude and zero ramp times (just in case)\n\n---------\n\nCo-authored-by: Carlos Castillo Passi <cncastillo@uc.cl>\nCo-authored-by: Pablo Villacorta Aylagas <pablo.villacorta@uva.es>\nCo-authored-by: Guillermo Sahonero Alvarez <gsahonero@users.noreply.github.com>",
+          "timestamp": "2026-01-27T15:41:03-08:00",
+          "tree_id": "8efc4aeb5645949a48b1fa001c1c08648217120a",
+          "url": "https://github.com/JuliaHealth/KomaMRI.jl/commit/43a3ab1afc5f8db568d6ad5dd749ed72984d6fbc"
+        },
+        "date": 1769568824296,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "MRI Lab/Bloch/CPU/2 thread(s)",
+            "value": 335386708,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=65573000\nallocs=620608\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/CPU/4 thread(s)",
+            "value": 274571608,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=94197320\nallocs=1109356\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/CPU/8 thread(s)",
+            "value": 247370806,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=152182824\nallocs=2130385\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/CPU/1 thread(s)",
+            "value": 555875715,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=51280544\nallocs=376458\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/CUDA",
+            "value": 20834632,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=22316192\nallocs=155035\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/oneAPI",
+            "value": 73526556,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=31329240\nallocs=257407\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/Metal",
+            "value": 93171166,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=25053120\nallocs=182201\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/AMDGPU",
+            "value": 23841938,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=22587248\nallocs=163903\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/2 thread(s)",
+            "value": 1587890915.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=68220304\nallocs=873441\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/4 thread(s)",
+            "value": 874868400,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=107647136\nallocs=1569682\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/8 thread(s)",
+            "value": 552711225,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=190474192\nallocs=3207448\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/CPU/1 thread(s)",
+            "value": 3043255379.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=48552408\nallocs=526258\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/CUDA",
+            "value": 30774441,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=20477112\nallocs=189192\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/oneAPI",
+            "value": 117283108,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=25744672\nallocs=240304\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/Metal",
+            "value": 108879500,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=22680208\nallocs=196660\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/AMDGPU",
+            "value": 31712397,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=20630376\nallocs=192404\nparams={\"gctrial\":true,\"time_tolerance\":0.05,\"evals_set\":false,\"samples\":10000,\"evals\":1,\"gcsample\":true,\"seconds\":120,\"overhead\":0,\"memory_tolerance\":0.01}"
           }
         ]
       }
