@@ -144,6 +144,36 @@ Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 
+# Sequence comparison
+function Base.:(≈)(x::Sequence, y::Sequence)
+	has_active_events(block::Sequence) = is_GR_on(block) || is_RF_on(block) || is_ADC_on(block)
+	length(x) == length(y) || return false
+	equal_blocks = Bool[]
+	for i in 1:length(x) # Iterate over blocks
+		equal_events = Bool[]
+		bx, by = x[i], y[i]
+		for event in [:GR, :RF, :ADC]
+			ex, ey = getfield(bx, event), getfield(by, event)
+			for j in 1:size(ex, 1)
+				amp_field = hasfield(typeof(ex[j]), :A) ? :A : :N
+				non_contributing_event = (getfield(ex[j], amp_field) == getfield(ey[j], amp_field) == 0) && has_active_events(bx) && has_active_events(by)  
+				is_equal = non_contributing_event ? true : ex[j] ≈ ey[j]
+				is_equal || @info "Event $event $j is not equal: $ex[j] ≈ $ey[j]"
+				push!(equal_events, is_equal)
+			end
+		end
+		push!(equal_blocks, all(equal_events) && (bx.DUR ≈ by.DUR) && all(bx.EXT[1] .≈ by.EXT[1]))
+	end
+	# Check if all elements of one DEF dictionary are contained in the other
+	# This allows for additional definitions in either dictionary (e.g., from Pulseq format)
+	# One sequence (e.g., after read) may have more elements, but must contain at least all from the other
+	equal_definitions = (all(k -> haskey(y.DEF, k) && y.DEF[k] == x.DEF[k], keys(x.DEF)) ||
+	                     all(k -> haskey(x.DEF, k) && x.DEF[k] == y.DEF[k], keys(y.DEF)))
+
+	return all(equal_blocks)
+	# && equal_definitions TODO: compare definitions correctly
+end
+
 """
     y = is_ADC_on(x::Sequence)
     y = is_ADC_on(x::Sequence, t::Union{Array{Float64,1}, Array{Float64,2}})

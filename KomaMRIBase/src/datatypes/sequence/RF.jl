@@ -15,6 +15,14 @@ get_RF_use_from_char(::Val{'p'}) = Preparation()
 get_RF_use_from_char(::Val{'o'}) = Other()
 get_RF_use_from_char(::Val{'u'}) = Undefined()
 
+get_char_from_RF_use(::Excitation)  = 'e'
+get_char_from_RF_use(::Refocusing)  = 'r'
+get_char_from_RF_use(::Inversion)   = 'i'
+get_char_from_RF_use(::Saturation)  = 's'
+get_char_from_RF_use(::Preparation) = 'p'
+get_char_from_RF_use(::Other)       = 'o'
+get_char_from_RF_use(::Undefined)   = 'u'
+
 """
     rf = RF(A, T)
     rf = RF(A, T, Δf)
@@ -120,7 +128,12 @@ getproperty(x::Matrix{RF}, f::Symbol) = begin
 end
 
 # RF comparison
-Base.:(≈)(rf1::RF, rf2::RF) = reduce(&, [getfield(rf1, field) ≈ getfield(rf2, field) for field in fieldnames(RF)])
+Base.:(≈)(rf1::RF, rf2::RF) = all(
+    [typeof(getfield(rf1, k)) == typeof(getfield(rf2, k)) ?
+    getfield(rf1, k) ≈ getfield(rf2, k) : 
+    (length(getfield(rf1, k)) == length(getfield(rf2, k)) ? getfield(rf1, k) .≈ getfield(rf2, k) : false)
+    for k in fieldnames(RF)]
+)
 Base.:(≈)(u1::RFUse, u2::RFUse) = u1 == u2
     
 # Properties
