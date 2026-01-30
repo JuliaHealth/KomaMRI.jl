@@ -65,7 +65,8 @@
         if s_idx < s_length && s_ADC[s_idx]
             if i <= N_spins
                 ΔT2 = exp(-t / T2)
-                cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
+                cis_ϕ_i = sin(ϕ)
+                cis_ϕ_r = cos(ϕ)
                 sig_r = ΔT2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i)
                 sig_i = ΔT2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r)
             end
@@ -83,7 +84,8 @@
     if i <= N_spins
         ΔT1 = exp(-t / p_T1[i])
         ΔT2 = exp(-t / T2)
-        cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
+        cis_ϕ_i = sin(ϕ)
+        cis_ϕ_r = cos(ϕ)
         M_xy[i] = complex(ΔT2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i), ΔT2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r))
         M_z[i] = M_z[i] * ΔT1 + p_ρ[i] * (T(1) - ΔT1)
     end

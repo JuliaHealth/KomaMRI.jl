@@ -32,7 +32,8 @@
             B = sqrt(B1_r^2 + B1_i^2 + Bz^2)
             Δt = s_Δt[s_idx]
             φ = T(-π * γ) * B * Δt
-            sin_φ, cos_φ = sincos(φ)
+            sin_φ = sin(φ)
+            cos_φ = cos(φ)
             α_r = cos_φ
             if iszero(B)
                 α_i = -(Bz / (B + eps(T))) * sin_φ
