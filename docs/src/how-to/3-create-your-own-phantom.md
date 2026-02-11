@@ -3,7 +3,7 @@
 In this section, we will create some custom **Phantom** structs.
 
 In **KomaMRI**, the creation of a **Phantom** struct involves defining spin position arrays (x, y, z) and spin property arrays. 
-The indices of these arrays are then associated with independent spins. See the [Phantom explanation section](../explanation/lit-1-phantom.jl) for more
+The indices of these arrays are then associated with independent spins. See the [Phantom explanation source](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/docs/src/explanation/lit-1-phantom.jl) for more
 information about how digital phantoms work in KomaMRI. 
 
 ## Basic case: 1-spin phantom

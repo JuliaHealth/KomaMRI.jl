@@ -1,4 +1,4 @@
-using Documenter, Literate, KomaMRI, PlutoSliderServer
+using Documenter, DocumenterVitepress, Literate, KomaMRI, PlutoSliderServer
 
 # Setup for Literate and Pluto
 repo_base = "JuliaHealth/KomaMRI.jl"
@@ -59,15 +59,18 @@ makedocs(;
         "🤔 Explanations" => sort(explanation_list),
         "👨‍💻 Reference Guides" => sort(reference_list),
     ],
-    format=Documenter.HTML(;
-        prettyurls=true,
-        sidebar_sitename=false,
-        collapselevel=1,
+    format=DocumenterVitepress.MarkdownVitepress(;
+        repo = "github.com/JuliaHealth/KomaMRI.jl",
+        devbranch = "master", 
+        devurl = "dev",
         assets=["assets/hide-documenter-example-output.css","assets/center-images.css"],
     ),
     clean=false,
 )
-deploydocs(;
-    repo="github.com/JuliaHealth/KomaMRI.jl.git", 
-    push_preview=!isempty(ARGS) ? ARGS[1]=="push_preview" : false,
+DocumenterVitepress.deploydocs(;
+    repo = "github.com/JuliaHealth/KomaMRI.jl",
+    target = joinpath(@__DIR__, "build"),
+    branch = "gh-pages",
+    devbranch = "master",
+    push_preview = true,
 )
