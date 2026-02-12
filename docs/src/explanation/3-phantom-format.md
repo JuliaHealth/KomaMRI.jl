@@ -28,7 +28,7 @@ This section describes the internal structure of the `.phantom` file. While most
 ### Action types
 
 ```@raw html
-<p><img width="80%" src="../assets/ph-actions.svg"/></p></p>
+<p><img width="80%" src="../assets/ph-actions.svg"/></p>
 ```
 
 ### TimeCurve
