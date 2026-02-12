@@ -1,3 +1,28 @@
+```@raw html
+---
+# https://vitepress.dev/reference/default-theme-home-page
+layout: home
+
+hero:
+  name: KomaMRI.jl
+  text: MRI simulations in Julia
+  tagline: Fast, flexible, and GPU-accelerated magnetic resonance imaging simulations
+  image:
+    src: ./assets/logo.svg
+    alt: KomaMRI
+  actions:
+    - theme: brand
+      text: Home
+      link: /
+    - theme: alt
+      text: View on Github
+      link: https://github.com/JuliaHealth/KomaMRI.jl
+    - theme: alt
+      text: API Reference
+      link: /reference/1-api
+---
+```
+
 ## Introduction
 
 **KomaMRI** is a Julia package meant to simulate general Magnetic Resonance Imaging (MRI) scenarios. Its name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field.

@@ -43,9 +43,9 @@ end
         KomaMRI.enable_unsafe_electron(!is_CI)
     end
 
-    # Unfortunally Blink doesnot work on macOS in GitHub's CI
+    # Unfortunately Blink does not work on macOS or Windows in GitHub's CI
     # https://github.com/JuliaGizmos/Blink.jl/issues/325
-    if !(Sys.isapple() && is_CI)
+    if !(is_CI && (Sys.isapple() || Sys.iswindows()))
     # Opens UI
     w = KomaUI(return_window=true)
     @testset "Open UI" begin
