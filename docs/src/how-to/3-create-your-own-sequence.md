@@ -54,5 +54,5 @@ plot_seq(seq; range=[0 30])
 plot_kspace(seq)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/create-your-own-sequence-time.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/create-your-own-sequence-kspace.html" style="width:50%; height:420px;"></object>
+<object type="text/html" data="../assets/create-your-own-sequence-time.html" style="width:50%; height:420px;"></object><object type="text/html" data="../assets/create-your-own-sequence-kspace.html" style="width:50%; height:420px;"></object>
 ```
