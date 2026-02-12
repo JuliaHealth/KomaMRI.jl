@@ -110,7 +110,7 @@ You can also visualize the **Phantom** struct using the [`plot_phantom_map`](@re
 julia> plot_phantom_map(obj, :ρ)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/phantom-rho.html" style="width:100%; height:620px;"></object>
+<object type="text/html" data="../assets/phantom-rho.html" style="width:100%; height:620px;"></object>
 ```
 
 To utilize test phantoms included with **KomaMRI**, navigate to the "examples" folder and use the [`read_phantom_jemris`](@ref)  function to read a phantom in `.h5` format. The following steps outline how to do this in **Julia**:
@@ -121,7 +121,7 @@ julia> sphere = read_phantom_jemris(path_sphere)
 julia> plot_phantom_map(sphere, :T2)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/phantom-T2-circle.html" style="width:100%; height:620px;"></object>
+<object type="text/html" data="../assets/phantom-T2-circle.html" style="width:100%; height:620px;"></object>
 ```
 
 ### Sequence
@@ -141,7 +141,7 @@ For more precise timing checks, you can use the [`plot_seq`](@ref) function:
 julia> plot_seq(seq; range=[0 30])
 ```
 ```@raw html
-<object type="text/html" data="../../assets/plot-seq-epi.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/plot-seq-epi.html" style="width:100%; height:420px;"></object>
 ```
 
 It is important to consider how the sequence traverses through k-space. The [`plot_kspace`](@ref) function does precisely that:
@@ -149,7 +149,7 @@ It is important to consider how the sequence traverses through k-space. The [`pl
 julia> plot_kspace(seq)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/kspace-epi.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/kspace-epi.html" style="width:100%; height:420px;"></object>
 ```
 
 Additionally, there are helpful sequence construction functions within a submodule of **KomaMRI** called **PulseDesigner**. These functions include [`PulseDesigner.RF_hard`](@ref), [`PulseDesigner.RF_sinc`](@ref), [`PulseDesigner.EPI`](@ref), [`PulseDesigner.radial_base`](@ref) and [`PulseDesigner.spiral_base`](@ref). For more details on how to use them, refer to the [API documentation](../reference/1-api.md).
@@ -163,7 +163,7 @@ julia> plot_seq(spiral)
 julia> plot_kspace(spiral)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/seq-spiral-pulseq-time.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/seq-spiral-pulseq-kspace.html" style="width:50%; height:420px;"></object>
+<object type="text/html" data="../assets/seq-spiral-pulseq-time.html" style="width:50%; height:420px;"></object><object type="text/html" data="../assets/seq-spiral-pulseq-kspace.html" style="width:50%; height:420px;"></object>
 ```
 
 ## Running Simulation
@@ -214,7 +214,7 @@ You can plot the simulation result with the [`plot_signal`](@ref) function like 
 julia> plot_signal(raw)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/raw-epi-brain-default.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/raw-epi-brain-default.html" style="width:100%; height:420px;"></object>
 ```
 
 
@@ -252,7 +252,7 @@ To display the image, you can use the [`plot_image`](@ref) function which is par
 julia> plot_image(image)
 ```
 ```@raw html
-<center><object type="text/html" data="../../assets/image-default-brain.html" style="width:100%; height:620px;"></object></center>
+<center><object type="text/html" data="../assets/image-default-brain.html" style="width:100%; height:620px;"></object></center>
 ```
 
 

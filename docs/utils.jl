@@ -25,10 +25,12 @@ function _link_example(filename)
         binder_link = "https://mybinder.org/v2/gh/$repo_base/master?urlpath=git-pull"
         binder_gitpull = "?repo=https://github.com/$repo_base&urlpath=lab/tree/KomaMRI.jl/$koma_version/tutorial/$filename.ipynb&branch=gh-pages"
         binder_gitpull = replace(binder_gitpull, "?"=>"%3F", "="=>"%3D", ":"=>"%253A", "/"=>"%252F", "&"=>"%26")
+        github_jl_url = "$repo_root_url/examples/3.tutorials/lit-$filename.jl"
+        github_ipynb_url = "$repo_root_url/examples/3.tutorials/lit-$filename.ipynb"
         badges = """
 
-        #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename.jl)
-        #md # [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename.ipynb)
+        #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)]($github_jl_url)
+        #md # [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)]($github_ipynb_url)
         #md # [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
 
         """
@@ -93,11 +95,12 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             binder_link = "https://mybinder.org/v2/gh/$repo_base/master?urlpath=git-pull"
             binder_gitpull = "?repo=https://github.com/$repo_base&urlpath=pluto/open?path=KomaMRI.jl/$koma_version/tutorial-pluto/$filename&branch=gh-pages"
             binder_gitpull = replace(binder_gitpull, "?"=>"%3F", "="=>"%3D", ":"=>"%253A", "/"=>"%252F", "&"=>"%26")
+            github_jl_url = "$repo_root_url/examples/4.reproducible_notebooks/$filename"
 
             iframe = """
             # $(frontmatter["title"])
 
-            [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename)
+            [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)]($github_jl_url)
             [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
             
             ```@raw html

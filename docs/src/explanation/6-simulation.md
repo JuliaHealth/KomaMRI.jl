@@ -6,7 +6,7 @@
 
 The are more internal considerations in the **KomaMRI** implementation. The **Figure 1** summarizes the functions called to perform the simulation.
 ```@raw html
-<center><img width="100%" src="../../assets/koma-solution.svg"></center>
+<center><img width="100%" src="../assets/koma-solution.svg"></center>
 ```
 **Figure 1**: The sequence `seq` is discretized after calculating the required time points in the wrapper function [simulate](@ref). The time points are then divided into `Nblocks` to reduce the amount of memory used. The phantom `obj` is divided into `Nthreads`, and **KomaMRI** will use either `run_spin_excitation!` or `run_spin_precession!` depending on the regime. If an [`ADC`](@ref KomaMRIBase.ADC) object is present, the simulator will add the signal contributions of each thread to construct the acquired signal `sig[t]`. All the parameters: `Nthreads`, `Nblocks`, `Δt_rf`, and `Δt`, are passed through a dictionary called `sim_params` as an optional parameter of the simulate function.
 
@@ -114,7 +114,7 @@ The evolution of the magnetization can then be described as a two-step process f
 ```@raw html
 <p align="center">
 <figure>
-  <img width="60%" src="../../assets/block-equation-intuition.svg">
+  <img width="60%" src="../assets/block-equation-intuition.svg">
   <figcaption><b>Figure 2</b>: Solution of the Bloch equations for one time step can be described by (2) a rotation and (3) a relaxation step.</figcaption>
 </figure>
 </p>
@@ -154,7 +154,7 @@ julia> obj = Phantom(x=[-0.5e-3; 0.0; 0.5e-3], T1=[1000e-3; 2000e-3; 500e-3], T2
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/sim-bloch-seq.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/sim-bloch-seq.html" style="width:100%; height:420px;"></object>
 ```
 
 The resulting signal from the **Bloch()** method is the sum of magnetizations in the transverse plane (x, y):
@@ -169,7 +169,7 @@ sig = simulate(obj, seq, sys; sim_params)
 julia> plot(abs.(sig[:,1,1]))
 ```
 ```@raw html
-<object type="text/html" data="../../assets/sim-bloch-sig.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/sim-bloch-sig.html" style="width:100%; height:420px;"></object>
 ```
 
 ## BlochDict Simulation Method
@@ -210,7 +210,7 @@ julia> obj = Phantom(x=[-0.5e-3; 0.0; 0.5e-3], T1=[1000e-3; 2000e-3; 500e-3], T2
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/sim-bloch-seq.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/sim-bloch-seq.html" style="width:100%; height:420px;"></object>
 ```
 
 The resulting signal from the **BlochDict()** method comprises the individual magnetizations of all spins in both the transverse plane (x, y) and the longitudinal axis (z):
@@ -229,5 +229,5 @@ pz = plot(abs.(sig[:,:,2]));
 julia> [pxy pz]
 ```
 ```@raw html
-<object type="text/html" data="../../assets/sim-blochdict-sig.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/sim-blochdict-sig.html" style="width:100%; height:420px;"></object>
 ```

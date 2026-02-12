@@ -3,7 +3,7 @@
 In this section, we will create some custom **Phantom** structs.
 
 In **KomaMRI**, the creation of a **Phantom** struct involves defining spin position arrays (x, y, z) and spin property arrays. 
-The indices of these arrays are then associated with independent spins. See the [Phantom explanation section](../explanation/lit-1-phantom.jl) for more
+The indices of these arrays are then associated with independent spins. See the [Phantom explanation source](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/docs/src/explanation/lit-1-phantom.jl) for more
 information about how digital phantoms work in KomaMRI. 
 
 ## Basic case: 1-spin phantom
@@ -61,7 +61,7 @@ You can visualize the tissue map using the [`plot_image`](@ref) function:
 plot_image(class)
 ```
 ```@raw html
-<center><object type="text/html" data="../../assets/create-your-own-phantom-class-map.html" style="width:85%; height:470px;"></object></center>
+<center><object type="text/html" data="../assets/create-your-own-phantom-class-map.html" style="width:85%; height:470px;"></object></center>
 ```
 
 Let's define the position arrays. You need to know the distance between the spins in the original array (in this case, it is 0.5mm), and then you can determine all the positions like this (the z-component is not calculated since this is a 2D example):
@@ -133,7 +133,7 @@ We can display the **Phantom** struct with the [`plot_phantom_map`](@ref) functi
 plot_phantom_map(obj, :T1)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/create-your-own-phantom-pelvis-T1.html" style="width:85%; height:470px;"></object>
+<object type="text/html" data="../assets/create-your-own-phantom-pelvis-T1.html" style="width:85%; height:470px;"></object>
 ```
 
 ## Creating a custom flow cylinder phantom
@@ -267,7 +267,7 @@ obj = tissue + blood
 plot_phantom_map(obj, :T1; time_samples=11)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/create-your-own-phantom-flow-T1.html" style="width:85%; height:470px;"></object>
+<object type="text/html" data="../assets/create-your-own-phantom-flow-T1.html" style="width:85%; height:470px;"></object>
 ```
 
 ## Importing/exporting phantoms (.phantom file format)
