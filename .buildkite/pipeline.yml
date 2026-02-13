@@ -16,7 +16,7 @@ steps:
       queue: "juliagpu"
 
   - label: ":pipeline: Launch Benchmarks"
-    if: (build.message !~ /skip benchmarks/) && (build.pull_request.labels includes "run-gpu-ci" || build.branch == "master")
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     agents:
       queue: "juliagpu"
     plugins:
