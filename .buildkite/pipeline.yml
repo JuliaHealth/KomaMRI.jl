@@ -16,7 +16,7 @@ steps:
       queue: "juliagpu"
 
   - label: ":pipeline: Launch Benchmarks"
-    if: build.message !~ /skip benchmarks/
+    if: (build.message !~ /skip benchmarks/) && (build.pull_request.labels includes "run-gpu-ci" || build.branch == "master")
     agents:
       queue: "juliagpu"
     plugins:
@@ -38,4 +38,3 @@ steps:
                 command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
                 agents:
                   queue: "juliagpu"
-
