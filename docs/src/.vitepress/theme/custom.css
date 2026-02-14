@@ -1,0 +1,40 @@
+/* Julia REPL prompt syntax highlighting */
+
+/* emphasize prompts */
+.vp-doc .shiki .repl-prompt {
+  font-weight: 600;
+}
+
+/* Dark theme */
+.dark .vp-doc .shiki .repl-prompt-julia {
+  color: #00af00;
+}
+
+.dark .vp-doc .shiki .repl-prompt-pkg {
+  color: #00afff;
+}
+
+.dark .vp-doc .shiki .repl-prompt-help {
+  color: #ffd700;
+}
+
+.dark .vp-doc .shiki .repl-prompt-shell {
+  color: #d70000;
+}
+
+/* Light theme */
+:root:not(.dark) .vp-doc .shiki .repl-prompt-julia {
+  color: #008000;
+}
+
+:root:not(.dark) .vp-doc .shiki .repl-prompt-pkg {
+  color: #0077cc;
+}
+
+:root:not(.dark) .vp-doc .shiki .repl-prompt-help {
+  color: #b58900;
+}
+
+:root:not(.dark) .vp-doc .shiki .repl-prompt-shell {
+  color: #cc0000;
+}
