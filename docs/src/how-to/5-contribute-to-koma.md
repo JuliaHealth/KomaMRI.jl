@@ -261,3 +261,9 @@ To finish your pull request, give it a name with a clear mention of the subject 
 >   - Try to address one issue or feature per pull request to make it easier for reviewers.
 >   - Provide all the context necessary, including all the information of the related issue or added feature.
 >   - Respond to feedback and suggestions to make adjustments based on the reviewers' comments.
+
+### (Advanced) GPU CI Testing
+
+KomaMRI runs continuous integration tests on multiple GPU backends (CUDA, AMDGPU, Metal, oneAPI) via Buildkite. To control resource usage and costs, **GPU tests are not run by default** on pull requests.
+
+If your contribution affects GPU code, such as files in `KomaMRICore/ext/` or simulation kernels, please request `@cncastillo` to add the `run-gpu-ci` label to your PR.
