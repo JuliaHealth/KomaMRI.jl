@@ -262,28 +262,8 @@ To finish your pull request, give it a name with a clear mention of the subject 
 >   - Provide all the context necessary, including all the information of the related issue or added feature.
 >   - Respond to feedback and suggestions to make adjustments based on the reviewers' comments.
 
-## GPU CI Testing
+### (Advanced) GPU CI Testing
 
-KomaMRI runs continuous integration tests on multiple GPU backends (CUDA, AMDGPU, Metal, oneAPI) via Buildkite. To control resource usage and costs, GPU tests are not run by default on pull requests.
+KomaMRI runs continuous integration tests on multiple GPU backends (CUDA, AMDGPU, Metal, oneAPI) via Buildkite. To control resource usage and costs, **GPU tests are not run by default** on pull requests.
 
-### When Do GPU Tests Run?
-
-GPU tests and benchmarks automatically run when:
-1. Your PR has the **`run-gpu-ci`** label (added by a maintainer), OR
-2. Your code is merged to the `master` branch
-
-### How to Request GPU Testing
-
-If your contribution affects GPU code (in `KomaMRICore/ext/` or simulation kernels), request a maintainer to add the `run-gpu-ci` label to your PR:
-
-1. **Create your PR as usual** - Buildkite will run CPU tests and benchmarks are skipped
-2. **Ask the reviewer** - In your PR description or comments, mention "GPU testing needed" if your changes affect GPU backends
-3. **Maintainer adds label** - Once added, GPU tests will trigger automatically on all NVIDIA, AMD, Apple, and Intel GPUs
-4. **Review results** - Check the Buildkite status and results in your PR
-
-### GPU Testing on Fork PRs
-
-If you're contributing from a fork, the same process applies:
-- CPU tests run automatically
-- GPU tests require a maintainer to add the `run-gpu-ci` label (approval for GPU resource usage)
-- This prevents fork PRs from consuming expensive GPU resources without explicit approval
+If your contribution affects GPU code, such as files in `KomaMRICore/ext/` or simulation kernels, please request `@cncastillo` to add the `run-gpu-ci` label to your PR.
