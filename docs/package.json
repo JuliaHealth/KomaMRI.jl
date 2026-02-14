@@ -12,6 +12,7 @@
     "vitepress": "^1.6.3",
     "@mdit/plugin-mathjax": "^0.25.0",
     "@mdit/plugin-tex": "^0.23.1",
-    "vitepress-plugin-tabs": "^0.6.0"   
+    "vitepress-plugin-tabs": "^0.6.0",
+    "d3-format": "^3.1.0"
   }
 }
