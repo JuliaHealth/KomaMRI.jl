@@ -7,7 +7,7 @@ import {data} from "./stargazers.data";
 const props = defineProps({
   repoUrl: {
     type: String,
-    default: "https://github.com/EnzymeAD/Reactant.jl"
+    default: "https://github.com/JuliaHealth/KomaMRI.jl"
   }
 });
 
