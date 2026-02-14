@@ -49,7 +49,7 @@ In VSCode, click on **File** -> **Open Folder...** and select your `~/.julia/dev
 Now add the fork URL by clicking **Source Control** -> **...** -> **Remote** -> **Add Remote...**
 
 ```@raw html
-    <img width="80%" src="../../assets/add-remote.png">
+    <img width="80%" src="../assets/add-remote.png">
 ```
 This will create the option to provide a repository URL. Here is where you will paste your fork URL and give it the name `my-fork`.
 
@@ -97,7 +97,7 @@ If you correctly followed the previous steps you will have created your fork con
 To create this new branch, go to **Source Control** -> **...** -> **Branch** -> **Create Branch form...**
 
 ```@raw html
-    <img width="80%" src="../../assets/add-branch.png">
+    <img width="80%" src="../assets/add-branch.png">
 ```
 This will open a menu to select a starting point for your branch. Select `my-fork/master` as your starting point, and give it the name `my-new-feature`.
 
@@ -115,7 +115,7 @@ To do this, in VSCode go to the Source Control panel in the Activity Bar.
 Assuming you are currently in your `my-new-feature` branch, the Source Control panel should show your changes to the project and the option to create a commit message.
 
 ```@raw html
-    <img width="40%" src="../../assets/how-to-commit.png">
+    <img width="40%" src="../assets/how-to-commit.png">
 ```
 If you hover over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
 
@@ -149,7 +149,7 @@ For all of these packages tests look the same. There are two options to run the 
 On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel. 
 
 ```@raw html
-<img width="40%" src="../../assets/test-komamribase.png">
+<img width="40%" src="../assets/test-komamribase.png">
 ```
 
 **Test With Julia REPL**: 
@@ -169,7 +169,7 @@ In this package, you may want to run tests using the CPU or GPU. By default the 
 To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
 
 ```@raw html
-    <img width="40%" src="../../assets/test-komamricore.png">
+    <img width="40%" src="../assets/test-komamricore.png">
 ```
 
 To change the default backend used for testing, modify the `[preferences.KomaMRICore]` section in KomaMRICore/test/project.toml file:
@@ -245,7 +245,7 @@ If you want to send your committed new version of the repository, you can create
 To create this pull request, in VSCode, go to the `GitHub Pull Request` panel in the Activity Bar and hover over the `Pull request` tab. This should show a Create pull request icon to press.
 
 ```@raw html
-    <img width="50%" src="../../assets/create-pull-request.png">
+    <img width="50%" src="../assets/create-pull-request.png">
 ```
 
 In the `Create` tab that appears, select `JuliaHealth/master` as the base and the branch you are working with to merge.
@@ -253,7 +253,7 @@ In the `Create` tab that appears, select `JuliaHealth/master` as the base and th
 To finish your pull request, give it a name with a clear mention of the subject of the contribution you made, and a description that explains the issue or feature you are addressing in your branch, and press the Create button.
 
 ```@raw html
-    <img width="50%" src="../../assets/fill-pull-request.png">
+    <img width="50%" src="../assets/fill-pull-request.png">
 ```
  
   
@@ -261,3 +261,29 @@ To finish your pull request, give it a name with a clear mention of the subject 
 >   - Try to address one issue or feature per pull request to make it easier for reviewers.
 >   - Provide all the context necessary, including all the information of the related issue or added feature.
 >   - Respond to feedback and suggestions to make adjustments based on the reviewers' comments.
+
+## GPU CI Testing
+
+KomaMRI runs continuous integration tests on multiple GPU backends (CUDA, AMDGPU, Metal, oneAPI) via Buildkite. To control resource usage and costs, GPU tests are not run by default on pull requests.
+
+### When Do GPU Tests Run?
+
+GPU tests and benchmarks automatically run when:
+1. Your PR has the **`run-gpu-ci`** label (added by a maintainer), OR
+2. Your code is merged to the `master` branch
+
+### How to Request GPU Testing
+
+If your contribution affects GPU code (in `KomaMRICore/ext/` or simulation kernels), request a maintainer to add the `run-gpu-ci` label to your PR:
+
+1. **Create your PR as usual** - Buildkite will run CPU tests and benchmarks are skipped
+2. **Ask the reviewer** - In your PR description or comments, mention "GPU testing needed" if your changes affect GPU backends
+3. **Maintainer adds label** - Once added, GPU tests will trigger automatically on all NVIDIA, AMD, Apple, and Intel GPUs
+4. **Review results** - Check the Buildkite status and results in your PR
+
+### GPU Testing on Fork PRs
+
+If you're contributing from a fork, the same process applies:
+- CPU tests run automatically
+- GPU tests require a maintainer to add the `run-gpu-ci` label (approval for GPU resource usage)
+- This prevents fork PRs from consuming expensive GPU resources without explicit approval
