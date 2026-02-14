@@ -52,7 +52,6 @@ makedocs(;
     checkdocs=:exports,
     pages=[
         "Home" => "index.md",
-        "Getting Started" => "how-to/1-getting-started.md",
         "Tutorials" => sort(tutorial_list),
         "Reproducible" => sort(reproducible_list),
         "How to" => sort(howto_list),
