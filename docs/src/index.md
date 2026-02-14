@@ -5,34 +5,98 @@ layout: home
 
 hero:
   name: KomaMRI.jl
-  text: MRI simulations in Julia
-  tagline: Fast, flexible, and GPU-accelerated magnetic resonance imaging simulations
+  text: Fast and Extensible MRI Simulation in Julia
+  tagline: Pulseq in, ISMRMRD out. Fast CPU and GPU simulation with a GUI, interactive PlotlyJS visualizations, and dynamic phantoms.
   image:
-    src: ./assets/logo.svg
+    src: /assets/logo.svg
     alt: KomaMRI
   actions:
     - theme: brand
-      text: Home
-      link: /
+      text: Getting Started
+      link: /how-to/1-getting-started
     - theme: alt
-      text: View on Github
+      text: View on GitHub
       link: https://github.com/JuliaHealth/KomaMRI.jl
     - theme: alt
       text: API Reference
       link: /reference/1-api
+
+features:
+  - icon: 📦
+    title: Community Standards
+    details: Import Pulseq sequences and export raw data in ISMRMRD. Integrate directly with reconstruction and benchmarking workflows.
+    link: /how-to/3-phantom-formats
+
+  - icon: 🚀
+    title: Fast, Device Agnostic
+    details: Run on CPU and GPU with CUDA, AMDGPU, Metal, and oneAPI support. Differentiable simulations powered by Enzyme and Reactant.
+    link: /explanation/6-simulation
+
+  - icon: 🖥️
+    title: Interactive GUI
+    details: Configure scanners, phantoms, and sequences in KomaUI. Explore results with interactive PlotlyJS visualizations.
+    link: /how-to/2-1-use-koma-ui
+
+  - icon: 🌊
+    title: Dynamic Motion Models
+    details: Simulate static and dynamic phantoms. Model motion and complex spin trajectories with reusable HDF5 phantom files.
+    link: /explanation/3-phantom-format
 ---
 ```
 
 ## Introduction
 
-**KomaMRI** is a Julia package meant to simulate general Magnetic Resonance Imaging (MRI) scenarios. Its name comes from the Japanese word for spinning-top こま (ko-ma) as they precess due to gravity like spins in a magnetic field.
+**KomaMRI** is a Julia package for simulating general Magnetic Resonance Imaging (MRI) scenarios. Its name comes from the Japanese word for spinning-top こま (ko-ma), as they precess due to gravity like spins in a magnetic field.
 
 **KomaMRI** generates **raw data** by solving the **Bloch equations** using the specified **scanner**, **phantom** and **sequence**. It also provides a Graphical User Interface (GUI) that encapsulates the whole imaging pipeline (simulation and reconstruction).
 
 ```@raw html
-<p align="center"><img class="docs-light-only" width="100%" src="./assets/koma-schema.svg"/></p>
-<p align="center"><img class="docs-dark-only"  width="100%" src="./assets/koma-schema-dark.svg"/></p>
+<p align="center"><img class="docs-light-only" width="100%" src="/assets/koma-schema.svg"/></p>
+<p align="center"><img class="docs-dark-only"  width="100%" src="/assets/koma-schema-dark.svg"/></p>
 ```
+
+## Installation
+
+KomaMRI.jl is a registered Julia package and can be installed using the Julia package manager. From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
+
+```julia
+pkg> add KomaMRI
+```
+
+Or, alternatively, via the `Pkg` API:
+
+```julia
+julia> import Pkg; Pkg.add("KomaMRI")
+```
+
+## GPU Support
+
+KomaMRI supports GPU acceleration with CUDA, AMDGPU, Metal, and oneAPI. To use GPU acceleration, install the corresponding backend package:
+
+:::code-group
+
+```julia [NVIDIA GPUs]
+using Pkg
+Pkg.add("CUDA")
+```
+
+```julia [AMD GPUs]
+using Pkg
+Pkg.add("AMDGPU")
+```
+
+```julia [Apple Silicon]
+using Pkg
+Pkg.add("Metal")
+```
+
+```julia [Intel GPUs]
+using Pkg
+Pkg.add("oneAPI")
+```
+
+:::
+
 We organized the documentation following the philosophy presented by [David Laing](https://documentation.divio.com/).
 
 !!! details "How to Cite Koma"

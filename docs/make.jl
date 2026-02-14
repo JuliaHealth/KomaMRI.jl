@@ -57,13 +57,13 @@ makedocs(;
         "Reproducible Tutorials" => sort(reproducible_list),
         "How to" => sort(howto_list),
         "Explanations" => sort(explanation_list),
-        "Reference Guides" => sort(reference_list),
+        "Reference" => sort(reference_list),
     ],
     format=DocumenterVitepress.MarkdownVitepress(;
         repo = "github.com/JuliaHealth/KomaMRI.jl",
         devbranch = "master", 
         devurl = "dev",
-        assets=["assets/hide-documenter-example-output.css","assets/center-images.css"],
+        assets=["assets/hide-documenter-example-output.css","assets/center-images.css","assets/theme-images.css"],
     ),
     clean=false,
 )
