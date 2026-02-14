@@ -8,7 +8,7 @@ hero:
   text: Fast and Extensible MRI Simulation in Julia
   tagline: Pulseq in, ISMRMRD out. Fast CPU and GPU simulation with a GUI, interactive PlotlyJS visualizations, and dynamic phantoms.
   image:
-    src: /assets/logo.svg
+    src: /logo.svg
     alt: KomaMRI
   actions:
     - theme: brand

@@ -10,6 +10,7 @@ import {
 } from '@nolebase/vitepress-plugin-enhanced-readabilities/client'
 
 import VersionPicker from "@/VersionPicker.vue"
+import StarUs from '@/StarUs.vue'
 import AuthorBadge from '@/AuthorBadge.vue'
 import Authors from '@/Authors.vue'
 
@@ -24,6 +25,7 @@ export const Theme: ThemeConfig = {
   Layout() {
     return h(DefaultTheme.Layout, null, {
       'nav-bar-content-after': () => [
+        h(StarUs),
         h(NolebaseEnhancedReadabilitiesMenu), // Enhanced Readabilities menu
       ],
       // A enhanced readabilities menu for narrower screens (usually smaller than iPad Mini)

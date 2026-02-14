@@ -54,7 +54,7 @@ makedocs(;
         "Home" => "index.md",
         "Getting Started" => "how-to/1-getting-started.md",
         "Tutorials" => sort(tutorial_list),
-        "Reproducible Tutorials" => sort(reproducible_list),
+        "Reproducible" => sort(reproducible_list),
         "How to" => sort(howto_list),
         "Explanations" => sort(explanation_list),
         "Reference" => sort(reference_list),

@@ -1,4 +1,8 @@
 /* Show/hide images based on theme */
+.docs-light-only {
+  display: block;
+}
+
 .dark .docs-light-only {
   display: none;
 }
