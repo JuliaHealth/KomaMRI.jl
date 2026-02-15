@@ -65,6 +65,17 @@ makedocs(;
     ),
     clean=false,
 )
+
+# For testing the HTML assest files
+build_assets = joinpath(@__DIR__, "build/.documenter/assets")
+build_public_assets = joinpath(@__DIR__, "build/.documenter/public/assets")
+mkpath(build_public_assets)
+for file in readdir(build_assets)
+    if endswith(file, ".html")
+        cp(joinpath(build_assets, file), joinpath(build_public_assets, file); force=true)
+    end
+end
+
 DocumenterVitepress.deploydocs(;
     repo = "github.com/JuliaHealth/KomaMRI.jl",
     target = joinpath(@__DIR__, "build"),

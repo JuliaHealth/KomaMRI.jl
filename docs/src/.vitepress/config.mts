@@ -111,7 +111,6 @@ export default defineConfig({
     },
   },
   vite: {
-    assetsInclude: ['**/*.html'],
     plugins: [
       mathjax.vitePlugin,
     ],
