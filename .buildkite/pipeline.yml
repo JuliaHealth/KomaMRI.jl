@@ -1,41 +1,40 @@
-# steps:
-#   - label: ":pipeline: Upload NoMotion Tests"
-#     if: build.message !~ /skip ci/
-#     env:
-#       TEST_GROUP: "nomotion"
-#     command: buildkite-agent pipeline upload .buildkite/runtests.yml
-#     agents:
-#       queue: "juliagpu"
+steps:
+  - label: ":pipeline: Upload NoMotion Tests"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    env:
+      TEST_GROUP: "nomotion"
+    command: buildkite-agent pipeline upload .buildkite/runtests.yml
+    agents:
+      queue: "juliagpu"
 
-#   - label: ":pipeline: Upload Motion Tests"
-#     if: build.message !~ /skip ci/
-#     env:
-#       TEST_GROUP: "motion"
-#     command: buildkite-agent pipeline upload .buildkite/runtests.yml
-#     agents:
-#       queue: "juliagpu"
+  - label: ":pipeline: Upload Motion Tests"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    env:
+      TEST_GROUP: "motion"
+    command: buildkite-agent pipeline upload .buildkite/runtests.yml
+    agents:
+      queue: "juliagpu"
 
-#   - label: ":pipeline: Launch Benchmarks"
-#     if: build.message !~ /skip benchmarks/
-#     agents:
-#       queue: "juliagpu"
-#     plugins:
-#       - monorepo-diff#v1.0.1:
-#           diff: "git diff --name-only HEAD~1"
-#           interpolation: false
-#           watch:
-#             - path:
-#                 - "KomaMRICore/src/**/*"
-#                 - "KomaMRICore/ext/**/*"
-#                 - "KomaMRICore/Project.toml"
-#                 - "KomaMRIBase/src/**/*"
-#                 - "KomaMRIBase/Project.toml"
-#                 - "benchmarks/**/*"
-#                 - ".buildkite/**/*"
-#                 - ".github/workflows/Benchmark.yml"
-#                 - "Project.toml"
-#               config:
-#                 command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
-#                 agents:
-#                   queue: "juliagpu"
-
+  - label: ":pipeline: Launch Benchmarks"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    agents:
+      queue: "juliagpu"
+    plugins:
+      - monorepo-diff#v1.0.1:
+          diff: "git diff --name-only HEAD~1"
+          interpolation: false
+          watch:
+            - path:
+                - "KomaMRICore/src/**/*"
+                - "KomaMRICore/ext/**/*"
+                - "KomaMRICore/Project.toml"
+                - "KomaMRIBase/src/**/*"
+                - "KomaMRIBase/Project.toml"
+                - "benchmarks/**/*"
+                - ".buildkite/**/*"
+                - ".github/workflows/Benchmark.yml"
+                - "Project.toml"
+              config:
+                command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
+                agents:
+                  queue: "juliagpu"
