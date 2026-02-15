@@ -191,11 +191,7 @@ getproperty(x::Array{Grad}, f::Symbol) = begin
 end
 
 # Gradient comparison
-function Base.isapprox(gr1::Grad, gr2::Grad)
-    return all(
-        length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k in fieldnames(Grad)
-    ) && all(getfield(gr1, k) ≈ getfield(gr2, k) for k in fieldnames(Grad))
-end
+Base.:(≈)(gr1::Grad, gr2::Grad) = all([typeof(getfield(gr1, k)) == typeof(getfield(gr2, k)) ? getfield(gr1, k) ≈ getfield(gr2, k) : false for k in fieldnames(Grad)])
 
 # Gradient operations
 # zeros(Grad, M, N)

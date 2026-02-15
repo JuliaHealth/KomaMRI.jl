@@ -119,7 +119,7 @@ end
             pulseq_files = filter(endswith(".seq"), readdir(pth*v)) .|> x -> splitext(x)[1]
             for pulseq_file in pulseq_files
                 #@show pulseq_file
-                seq_koma   = @suppress read_seq("$pth$v/$pulseq_file.seq")
+                seq_koma   = @suppress read_seq("$pth$v/$pulseq_file.seq"; simplify_shapes=false)
                 seq_pulseq = matread("$pth$v/$pulseq_file.mat")["sequence"] .|> namedtuple
                 @testset "$v/$pulseq_file" begin
                     for i in 1:length(seq_koma)
@@ -134,4 +134,16 @@ end
             end
         end
     end
+    @testset "Round-trip Test" begin
+        include("utils.jl")
+        pth = (@__DIR__) * "/test_files/pulseq/"
+        # EPI sequence
+        filename = pth * "round_trip_test.seq"
+        seq1 = round_trip_seq()
+        qseq = quantize_to_pulseq(seq1)
+        @suppress write_seq(seq1, filename)
+        seq2 = @suppress read_seq(filename)
+        @test seq2 ≈ qseq
+    end
 end
+
