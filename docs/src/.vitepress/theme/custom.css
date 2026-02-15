@@ -39,3 +39,9 @@
 :root:not(.dark) .vp-doc .shiki .repl-prompt-shell {
   color: #cc0000;
 }
+
+/* Homepage logo size */
+.VPImage.image-src {
+  max-width: 400px !important;
+  max-height: 320px !important;
+}

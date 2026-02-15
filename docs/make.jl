@@ -51,7 +51,6 @@ makedocs(;
     authors="Carlos Castillo Passi and collaborators",
     checkdocs=:exports,
     pages=[
-        "Home" => "index.md",
         "Tutorials" => sort(tutorial_list),
         "Reproducible" => sort(reproducible_list),
         "How to" => sort(howto_list),
