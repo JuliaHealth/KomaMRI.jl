@@ -1,8 +1,9 @@
 /* Julia REPL prompt syntax highlighting */
 
-/* emphasize prompts */
+/* de-emphasize prompts */
 .vp-doc .shiki .repl-prompt {
-  font-weight: 600;
+  opacity: 0.7;
+  user-select: none;
 }
 
 /* Dark theme */

@@ -15,10 +15,10 @@ function juliaReplTransformer(): ShikiTransformer {
 
   function classify(line: string): { len: number; kind: PromptKind } {
     const rules: Array<{ kind: PromptKind; re: RegExp }> = [
-      { kind: "julia", re: /^(julia>)(\s*)/ },
-      { kind: "pkg", re: /^(\([^)]*\)\s*)?pkg>(\s*)/ },  // handles (@v1.9) pkg>
-      { kind: "help", re: /^(help\?>)(\s*)/ },
-      { kind: "shell", re: /^(shell>)(\s*)/ },
+      { kind: "julia", re: /^julia>/ },
+      { kind: "pkg", re: /^(\([^)]*\)\s*)?pkg>/ },  // handles (@v1.9) pkg>
+      { kind: "help", re: /^help\?>/ },
+      { kind: "shell", re: /^shell>/ },
     ]
 
     for (const r of rules) {
