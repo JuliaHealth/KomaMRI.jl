@@ -111,6 +111,7 @@ export default defineConfig({
     },
   },
   vite: {
+    assetsInclude: ['**/*.html'],
     plugins: [
       mathjax.vitePlugin,
     ],
@@ -139,7 +140,10 @@ export default defineConfig({
   },
   themeConfig: {
     outline: 'deep',
-    logo: 'REPLACE_ME_DOCUMENTER_VITEPRESS',
+    logo: {
+      light: '/logo.svg',
+      dark: '/logo-dark.svg'
+    },
     search: {
       provider: 'local',
       options: {
