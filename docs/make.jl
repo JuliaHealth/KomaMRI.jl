@@ -44,15 +44,6 @@ append!(howto_list, lit_howto_list)
 append!(explanation_list, lit_explanation_list)
 append!(reference_list, lit_reference_list)
 
-# Copy HTML plot files to public/assets/ BEFORE makedocs (Vitepress build happens inside makedocs)
-src_public_assets = joinpath(@__DIR__, "src/public/assets")
-mkpath(src_public_assets)
-for file in readdir(doc_assets)
-    if endswith(file, ".html")
-        cp(joinpath(doc_assets, file), joinpath(src_public_assets, file); force=true)
-    end
-end
-
 # Generate documentation
 makedocs(;
     modules=[KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],
@@ -70,6 +61,7 @@ makedocs(;
         repo = "github.com/JuliaHealth/KomaMRI.jl",
         devbranch = "master", 
         devurl = "dev",
+        keep = :minor,
         assets=["assets/hide-documenter-example-output.css","assets/center-images.css","assets/theme-images.css"],
     ),
     clean=false,
