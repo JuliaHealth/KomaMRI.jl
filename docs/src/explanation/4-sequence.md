@@ -53,7 +53,7 @@ To display the sequence in an graph, we can use the [`plot_seq`](@ref) function:
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<iframe src="../../assets/seq-epi-example-full.html" style="width:100%; height:420px; border:none;"></iframe>
+<iframe src="/assets/seq-epi-example-full.html" style="width:100%; height:420px; border:none;"></iframe>
 ```
 
 This way, you can see exactly where the **RF**, **Grad** and **ADC** structs are located in time.
@@ -103,7 +103,7 @@ julia> seq[1:11].GR
 julia> plot_seq(seq[1:11]; slider=false)
 ```
 ```@raw html
-<iframe src="../../assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px; border:none;"></iframe>
+<iframe src="/assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px; border:none;"></iframe>
 ```
 
 ## Concatenation of Sequences 
@@ -119,5 +119,5 @@ Sequence[ τ = 11.512 ms | blocks: 33 | ADC: 15 | GR: 33 | RF: 3 | DEF: 5 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<iframe src="../../assets/seq-concatenation.html" style="width:100%; height:420px; border:none;"></iframe>
+<iframe src="/assets/seq-concatenation.html" style="width:100%; height:420px; border:none;"></iframe>
 ```
