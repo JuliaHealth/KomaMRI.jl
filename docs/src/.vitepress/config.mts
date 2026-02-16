@@ -90,6 +90,7 @@ export default defineConfig({
   description: 'REPLACE_ME_DOCUMENTER_VITEPRESS',
   lastUpdated: true,
   cleanUrls: true,
+  ignoreDeadLinks: true,
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
   head: [
     ['link', { rel: 'icon', href: 'REPLACE_ME_DOCUMENTER_VITEPRESS_FAVICON' }],
