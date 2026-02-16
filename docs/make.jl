@@ -44,15 +44,6 @@ append!(howto_list, lit_howto_list)
 append!(explanation_list, lit_explanation_list)
 append!(reference_list, lit_reference_list)
 
-# Copy HTML plots to public/assets/ (testing)
-doc_public_assets = joinpath(@__DIR__, "src/public/assets")
-mkpath(doc_public_assets)
-for file in readdir(doc_assets)
-    if endswith(file, ".html")
-        cp(joinpath(doc_assets, file), joinpath(doc_public_assets, file); force=true)
-    end
-end
-
 # Generate documentation
 makedocs(;
     modules=[KomaMRI, KomaMRIBase, KomaMRICore, KomaMRIFiles, KomaMRIPlots],

@@ -27,7 +27,9 @@ function _link_example(filename)
         binder_gitpull = replace(binder_gitpull, "?"=>"%3F", "="=>"%3D", ":"=>"%253A", "/"=>"%252F", "&"=>"%26")
         badges = """
 
-        #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename.jl) [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename.ipynb) [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
+        #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename.jl)
+        #md # [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename.ipynb)
+        #md # [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
 
         """
         return replace(content, line => badges * line)
