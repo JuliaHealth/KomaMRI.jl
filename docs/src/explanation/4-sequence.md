@@ -103,7 +103,7 @@ julia> seq[1:11].GR
 julia> plot_seq(seq[1:11]; slider=false)
 ```
 ```@raw html
-<iframe src="../assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px; border:none;"></iframe>
+<iframe src="~/assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px; border:none;"></iframe>
 ```
 
 ## Concatenation of Sequences 
