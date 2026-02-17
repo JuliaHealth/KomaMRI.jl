@@ -180,15 +180,6 @@ export default defineConfig({
       ],
       '/tutorial-pluto/': [
         {
-          text: 'Reproducible Tutorials',
-          collapsed: false,
-          items: [
-            { text: 'Understanding basic MRI sequences', link: '/tutorial-pluto/01-gradient-echo-spin-echo' },
-            { text: 'Low-Field CMRA Optimization', link: '/tutorial-pluto/02-low-field-cmra-optimization' },
-            { text: 'Low-Field BOOST Optimization', link: '/tutorial-pluto/03-low-field-boost-optimization' },
-          ]
-        },
-        {
           text: 'Tutorials',
           collapsed: false,
           items: [
@@ -200,6 +191,15 @@ export default defineConfig({
             { text: 'Diffusion-induced Signal Attenuation', link: '/tutorial/06-DiffusionMotion' },
             { text: 'Cardiac Cine MRI with Arrhythmias', link: '/tutorial/07-RRVariability' },
             { text: 'Using Labels to reconstruct multi-slice / multi-contrast sequences', link: '/tutorial/07-label' },
+          ]
+        },
+        {
+          text: 'Reproducible Tutorials',
+          collapsed: false,
+          items: [
+            { text: 'Understanding basic MRI sequences', link: '/tutorial-pluto/01-gradient-echo-spin-echo' },
+            { text: 'Low-Field CMRA Optimization', link: '/tutorial-pluto/02-low-field-cmra-optimization' },
+            { text: 'Low-Field BOOST Optimization', link: '/tutorial-pluto/03-low-field-boost-optimization' },
           ]
         }
       ],
