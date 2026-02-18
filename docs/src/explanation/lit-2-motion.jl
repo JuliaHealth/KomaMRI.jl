@@ -143,7 +143,6 @@ for (i, x) in enumerate([x,y,z]) #hide
 end #hide
 obj = Phantom( x=x[ρ .!= 0], y=y[ρ .!= 0], z=z[ρ .!= 0], T1 = T1[ρ .!= 0] ); #hide
 p = plot_phantom_map(obj, :T1; height=440); #hide
-#md p
 #jl display(p);
 
 # ### Translation motion
