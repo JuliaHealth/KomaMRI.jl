@@ -9,7 +9,7 @@ First, install the **Pluto** module in your **Julia** environment. Remember to p
 ```julia-repl
 julia>
 
-@(1.9) pkg> add Pluto
+(@1.9) pkg> add Pluto
 ```
 
 Afterward, return to the **Julia Session** by pressing the `backspace` button, and then execute the `Pluto.run()` function:
