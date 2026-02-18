@@ -1,4 +1,5 @@
-img:not(a img) {
+.vp-doc > div > img,
+.vp-doc > div > p > img:only-child {
   display: block;
   margin-left: auto;
   margin-right: auto;

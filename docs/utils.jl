@@ -110,7 +110,7 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             ```
             
             ```@raw html
-            <iframe type="text/html" src="./$filename_gen.html" style="height:100vh;width:100%;"></iframe>
+            <iframe type="text/html" src="./$(filename_gen)-notebook.html" style="height:100vh;width:100%;"></iframe>
             ```
             """
             open(tutorial_md, "w") do file
@@ -121,7 +121,8 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
     end
     PlutoSliderServer.export_directory(doc_tutorial_pluto)
     for html_file in filter(endswith(".html"), readdir(doc_tutorial_pluto))
-        cp(joinpath(doc_tutorial_pluto, html_file), joinpath(public_pluto_dir, html_file); force=true)
+        name_no_ext = splitext(html_file)[1]
+        cp(joinpath(doc_tutorial_pluto, html_file), joinpath(public_pluto_dir, "$(name_no_ext)-notebook.html"); force=true)
     end
     return reproducible_list
 end
