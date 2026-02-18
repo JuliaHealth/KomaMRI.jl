@@ -17,11 +17,14 @@ doc_reference      = joinpath(dirname(@__DIR__), "docs/src/reference")
 # For Tutorials: Literate and Pluto
 koma_assets        = joinpath(dirname(@__DIR__), "assets")
 doc_assets         = joinpath(dirname(@__DIR__), "docs/src/public/assets")
+doc_assets_tmp     = joinpath(dirname(@__DIR__), "docs/src/assets")
 koma_tutorials_lit = joinpath(dirname(@__DIR__), "examples/3.tutorials")
 koma_tutorials_plu = joinpath(dirname(@__DIR__), "examples/4.reproducible_notebooks")
 
 # Copying files from KomaMRI.jl/ to the documentation folder KomaMRI.jl/docs/
 # Assets
+mkpath(doc_assets_tmp)
+mkpath(doc_assets)
 cp(joinpath(koma_assets, "logo.svg"), joinpath(doc_assets, "logo.svg"); force=true)
 cp(joinpath(koma_assets, "logo-dark.svg"), joinpath(doc_assets, "logo-dark.svg"); force=true)
 # Tutorials: Literate and Pluto
