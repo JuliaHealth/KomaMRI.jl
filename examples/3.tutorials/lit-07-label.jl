@@ -33,13 +33,7 @@ p1 = plot(SLC_vec, Layout(
     xaxis_title="n° blocks",
     yaxis_title="SLC label"
 ))
-
-#md savefig(p1, "../assets/7-seq.html"); #hide 
 #jl display(p1); 
-
-#md # ```@raw html 
-#md # <object type="text/html" data="../../assets/7-seq.html" style="width:100%; height:320px;"></object> 
-#md # ``` 
 
 # ## Simulate the acquisition and reconstruct the data
 # Define simulation parameters and perform simulation
@@ -76,15 +70,8 @@ image = abs.(reshape(rec,Nx,Ny,:));
 
 p2 = plot_image(image[:,:,1], height=400);
 p3 = plot_image(image[:,:,2], height=400);
-
-#md savefig(p2, "../assets/7-seq-2.html"); #hide 
-#md savefig(p3, "../assets/7-seq-3.html"); #hide 
 #jl display(p2); 
 #jl display(p3); 
-
-#md # ```@raw html 
-#md # <object type="text/html" data="../../assets/7-seq-2.html" style="width:50%; height:380px;"></object><object type="text/html" data="../../assets/7-seq-3.html" style="width:50%; height:380px;"></object>
-#md # ``` 
 
 # The signal ponderation is changing because we are acquiring the same slice position with a short TR sequence. Thus, the magnetization is not at equilibrium.
 
@@ -123,10 +110,4 @@ recParams = Dict{Symbol,Any}()
 rec = reconstruction(acqData, recParams);
 
 p4=plot_image(abs.(rec[:,:,1]), height=400);
-
-#md savefig(p4, "../assets/7-seq-4.html"); #hide 
 #jl display(p4); 
-
-#md # ```@raw html 
-#md # <object type="text/html" data="../../assets/7-seq-4.html" style="width:65%; height:420px;"></object>
-#md # ``` 

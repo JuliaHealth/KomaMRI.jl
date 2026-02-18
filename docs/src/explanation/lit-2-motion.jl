@@ -156,7 +156,6 @@ obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins());
 # You can use the bottom slider to scroll through time and check its exact position at each moment: 
 
 p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
-#md p1
 #jl display(p1)
 
 # ### Rotation motion
@@ -166,7 +165,6 @@ p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
 obj.motion = rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins());
 
 p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
-#md p2
 #jl display(p2);
 
 # ### Adding motion to a phantom subset
@@ -177,7 +175,6 @@ p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002));
 
 p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440); #hide
-#md p3
 #jl display(p3);
 
 # ### Motion combination
@@ -206,7 +203,6 @@ obj2.motion = MotionList(
 
 obj = obj1 + obj2
 p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
-#md p4
 #jl display(p4);
 
 # ### Realistic head motion
@@ -234,7 +230,6 @@ end
 obj.motion = MotionList(motion_list...);  
 
 p5 = plot_phantom_map(obj, :T1; time_samples=21, view_2d=true, height=440) #hide
-#md p5
 #jl display(p5);
 
 p6 = plot( #hide
@@ -246,7 +241,6 @@ p6 = plot( #hide
         yaxis_title = "Position" #hide
     )) #hide
 restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]) #hide
-#md p6
 #jl display(p6);
 
 # A simulation and motion-corrected reconstruction based on a similar, slightly simplified head motion is available [here](../tutorial/05-SimpleMotion.md).

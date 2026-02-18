@@ -21,12 +21,7 @@ obj = heart_phantom();
 
 # By default, this phantom exhibits periodic contraction and rotation with a 1-second period:
 p1 = plot_phantom_map(obj, :T1 ; height=450, time_samples=21) #hide
-#md PlotlyJS.savefig(p1, "../assets/tut-6-phantom1.html"); #hide
 #jl display(p1);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-6-phantom1.html" style="width:90%; height:470px;"></object></center>
-#md # ```
 
 # As shown in previous tutorials, the phantom's motion is defined by its `motion` field.
 # Until now, this motion has typically consisted of a single `Motion` component.
@@ -101,12 +96,8 @@ obj.motion.motions[2].time = t_curve_new;
 # Let’s visualize how the motion pattern has changed, now with variable-duration RR intervals:
 
 p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41) #hide
-#md PlotlyJS.savefig(p3, "../assets/tut-6-phantom2.html"); #hide
-#jl display(p3);
 
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-6-phantom2.html" style="width:90%; height:470px;"></object></center>
-#md # ```
+#jl display(p3);
 
 # Since the sequence still assumes a constant RR interval, it becomes unsynchronized with the phantom.
 # This results in artifacts and temporal inconsistencies in the cine images. We will showcase these images in the next section.
