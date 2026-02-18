@@ -108,7 +108,7 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             iframe = """
             # $(frontmatter["title"])
 
-            [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename) [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename_gen.ipynb) [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
+            [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename) [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
             
             ```@raw html
             <iframe type="text/html" src="../$filename_gen.html" style="height:100vh;width:100%;"></iframe>
