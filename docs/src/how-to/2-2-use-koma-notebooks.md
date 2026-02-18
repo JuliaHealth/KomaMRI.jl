@@ -13,7 +13,7 @@ julia> ]
 ```
 
 Afterward, return to the **Julia Session** by pressing the `backspace` button, and then execute the `Pluto.run()` function:
-```
+```julia-repl
 julia> using Pluto
 
 julia> Pluto.run()

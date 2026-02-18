@@ -133,7 +133,7 @@ Depending on the package where you made your changes, `KomaMRIBase`, `KomaMRICor
 
 In the Julia REPL run the following script:
 
-```
+```julia-repl
 pkg> test
 ```
 
@@ -156,7 +156,7 @@ On the activity bar, open the `Testing` extension, expand the available tests, a
 
 Run the following script after replacing `[package]` with the selected `KomaMRIBase`, `KomaMRIPlots` or `KomaMRIFiles` package:
 
-```
+```julia-repl
 pkg> test [package]
 ```
 
@@ -186,7 +186,7 @@ By default, tests are run on the CPU with the number of threads set to `Threads.
 
 **Method 1 - Using Preferences:** Add the name of the backend ("CPU","CUDA","AMDGPU","Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore`. Then, test as usual:
 
-```
+```julia-repl
 pkg> test KomaMRICore
 ```
 
@@ -195,14 +195,14 @@ pkg> test KomaMRICore
 Examples:
 - To run on the GPU using CUDA:
 
-```
+```julia
 import Pkg
 
 Pkg.test("KomaMRICore"; test_args=`CUDA`)
 ```    
 - To run on the CPU with a specific number of threads, pass the number of threads as a Julia argument:
 
-```
+```julia
 import Pkg
 
 Pkg.test("KomaMRICore"; julia_args=`--threads=4`)

@@ -392,7 +392,7 @@ rb = α * RF(A, T)
 julia> ra ≈ rb
 true
 ```
-		
+
 * Gradient scaling
 ```julia
 # Define params
