@@ -17,17 +17,17 @@ end
 
 # Based on https://github.com/jump-dev/JuMP.jl/blob/master/docs/make.jl
 # Add Literate links after the title
-function _link_example(filename, section)
+function _link_example(filename)
     function _link_example_for_filename(content)
         title_line = findfirst(r"\n# .+?\n", content)
         line = content[title_line]
         koma_version = "dev"
         binder_link = "https://mybinder.org/v2/gh/$repo_base/master?urlpath=git-pull"
-        binder_gitpull = "?repo=https://github.com/$repo_base&urlpath=lab/tree/KomaMRI.jl/$koma_version/$section/$filename.ipynb&branch=gh-pages"
+        binder_gitpull = "?repo=https://github.com/$repo_base&urlpath=lab/tree/KomaMRI.jl/$koma_version/tutorial/$filename.ipynb&branch=gh-pages"
         binder_gitpull = replace(binder_gitpull, "?"=>"%3F", "="=>"%3D", ":"=>"%253A", "/"=>"%252F", "&"=>"%26")
         badges = """
 
-        #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](/$section/$filename.jl) [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](/$section/$filename.ipynb) [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
+        #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename.jl) [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename.ipynb) [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
 
         """
         return replace(content, line => badges * line)
@@ -62,7 +62,7 @@ function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-
                 tutorial_src,
                 input_folder;
                 repo_root_url,
-                preprocess=_link_example(filename_gen, output_doc_section),
+                preprocess=_link_example(filename_gen),
                 name=filename_gen,
                 execute=true
             )
@@ -95,7 +95,7 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             iframe = """
             # $(frontmatter["title"])
 
-            [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](/$doc_output_section/$filename) [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
+            [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename) [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
             
             ```@raw html
             <iframe type="text/html" src="../$filename_gen.html" style="height:100vh;width:100%;"></iframe>
