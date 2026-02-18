@@ -7,7 +7,7 @@ You can use **KomaMRI** with popular programming environments such as **Pluto** 
 
 First, install the **Pluto** module in your **Julia** environment. Remember to press the `]` button to open the **Package Manager Session**:
 ```julia-repl
-julia>
+julia> ]
 
 (@1.9) pkg> add Pluto
 ```
