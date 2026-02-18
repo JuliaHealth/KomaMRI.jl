@@ -27,7 +27,9 @@ function _link_example(filename)
         binder_gitpull = replace(binder_gitpull, "?"=>"%3F", "="=>"%3D", ":"=>"%253A", "/"=>"%252F", "&"=>"%26")
         badges = """
 
-        #md # [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename.jl) [![](https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter)](./$filename.ipynb) [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
+        #md # ```@raw html
+        #md # <p><a href="./$filename.jl"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="./$filename.ipynb"><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt="jupyter notebook"></a> <a href="$(binder_link)$(binder_gitpull)"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></p>
+        #md # ```
 
         """
         return replace(content, line => badges * line)
@@ -53,6 +55,8 @@ end
 
 function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-")
     tutorial_list = []
+    public_dir = joinpath(dirname(input_folder), "public", output_doc_section)
+    mkpath(public_dir)
     for (_, _, files) in walkdir(input_folder)
         for filename in filter(startswith(lit_pattern), files)
             filename_gen = splitext(filename)[1][(length(lit_pattern) + 1):end] # removes "lit-"
@@ -68,6 +72,8 @@ function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-
             )
             Literate.script(tutorial_src, input_folder; name=filename_gen, repo_root_url)
             Literate.notebook(tutorial_src, input_folder; name=filename_gen, execute=false)
+            cp(joinpath(input_folder, "$filename_gen.jl"), joinpath(public_dir, "$filename_gen.jl"); force=true)
+            cp(joinpath(input_folder, "$filename_gen.ipynb"), joinpath(public_dir, "$filename_gen.ipynb"); force=true)
             push!(tutorial_list, tutorial_md)
         end
     end
@@ -94,21 +100,14 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             binder_gitpull = "?repo=https://github.com/$repo_base&urlpath=pluto/open?path=KomaMRI.jl/$koma_version/tutorial-pluto/$filename&branch=gh-pages"
             binder_gitpull = replace(binder_gitpull, "?"=>"%3F", "="=>"%3D", ":"=>"%253A", "/"=>"%252F", "&"=>"%26")
 
-            ipynb_src = joinpath(doc_tutorial_pluto, "$filename_gen.ipynb")
-            ipynb_public = joinpath(public_pluto_dir, "$filename_gen.ipynb")
-            try
-                PlutoSliderServer.Pluto.export_notebook(tutorial_src, ipynb_src)
-                cp(ipynb_src, ipynb_public; force=true)
-            catch err
-                @warn "Failed to export Pluto notebook to .ipynb" filename=filename error=err
-            end
-
             cp(tutorial_src, joinpath(public_pluto_dir, filename); force=true)
 
             iframe = """
             # $(frontmatter["title"])
 
-            [![](https://img.shields.io/badge/julia-script-9558B2?logo=julia)](./$filename) [![](https://mybinder.org/badge_logo.svg)]($(binder_link)$(binder_gitpull))
+            ```@raw html
+            <p><a href="./$filename"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="$(binder_link)$(binder_gitpull)"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></p>
+            ```
             
             ```@raw html
             <iframe type="text/html" src="../$filename_gen.html" style="height:100vh;width:100%;"></iframe>
