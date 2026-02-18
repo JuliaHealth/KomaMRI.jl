@@ -6,6 +6,7 @@ repo_root_url = "https://github.com/$repo_base/blob/master"
 lit_pattern = "lit-"
 plu_pattern = "pluto-"
 include("utils.jl")
+include("EmbeddPlotlyJSSyncPlotLiterate.jl")
 
 # Documentation folders KomaMRI.jl/docs/
 doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")

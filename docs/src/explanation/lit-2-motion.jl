@@ -143,12 +143,8 @@ for (i, x) in enumerate([x,y,z]) #hide
 end #hide
 obj = Phantom( x=x[ρ .!= 0], y=y[ρ .!= 0], z=z[ρ .!= 0], T1 = T1[ρ .!= 0] ); #hide
 p = plot_phantom_map(obj, :T1; height=440); #hide
-#md savefig(p, "../assets/doc-2-phantom.html"); #hide
+#md p
 #jl display(p);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/doc-2-phantom.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # ### Translation motion
 # In this first example, we've added a translational motion of -0.5, 0.6, and 0.7 mm along the
@@ -160,12 +156,8 @@ obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), AllSpins());
 # You can use the bottom slider to scroll through time and check its exact position at each moment: 
 
 p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
-#md savefig(p1, "../assets/doc-2-translate.html"); #hide
+#md p1
 #jl display(p1)
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/doc-2-translate.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # ### Rotation motion
 # In this case, we add a rotational motion to the phantom: 90º around the y-axis and 75º around
@@ -174,12 +166,8 @@ p1 = plot_phantom_map(obj, :T1; time_samples=11, height=440)
 obj.motion = rotate(0.0, 90.0, 75.0, TimeRange(0.0, 1.0), AllSpins());
 
 p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
-#md savefig(p2, "../assets/doc-2-rotate.html"); #hide
+#md p2
 #jl display(p2);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/doc-2-rotate.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # ### Adding motion to a phantom subset
 # Sometimes, you may want to assign motion to just a part of the phantom instead of the whole thing. 
@@ -189,12 +177,8 @@ p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002));
 
 p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440); #hide
-#md savefig(p3, "../assets/doc-2-subset.html"); #hide
+#md p3
 #jl display(p3);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/doc-2-subset.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # ### Motion combination
 # You can freely add multiple motions to a phantom, each with its own type, time span, 
@@ -222,12 +206,8 @@ obj2.motion = MotionList(
 
 obj = obj1 + obj2
 p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
-#md savefig(p4, "../assets/doc-2-combination.html"); #hide
+#md p4
 #jl display(p4);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/doc-2-combination.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # ### Realistic head motion
 # As a more realistic final example, let's try to replicate the head motion made by a patient inside the scanner.
@@ -254,12 +234,8 @@ end
 obj.motion = MotionList(motion_list...);  
 
 p5 = plot_phantom_map(obj, :T1; time_samples=21, view_2d=true, height=440) #hide
-#md savefig(p5, "../assets/doc-2-realistic.html"); #hide
+#md p5
 #jl display(p5);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/doc-2-realistic.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 p6 = plot( #hide
     (0:interval_dur:interval_dur*length(tra_x)) .* 1e3, #hide
@@ -270,11 +246,7 @@ p6 = plot( #hide
         yaxis_title = "Position" #hide
     )) #hide
 restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]) #hide
-#md savefig(p6, "../assets/doc-2-displacements.html"); #hide
+#md p6
 #jl display(p6);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/doc-2-displacements.html" style="width:85%; height:300px;"></object></center>
-#md # ```
 
 # A simulation and motion-corrected reconstruction based on a similar, slightly simplified head motion is available [here](../tutorial/05-SimpleMotion.md).

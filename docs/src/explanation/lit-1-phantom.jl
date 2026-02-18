@@ -67,12 +67,8 @@ obj = brain_phantom2D()
 # and relaxation times, so feel free to replace the `:T1` symbol with another property of the phantom in the example below:
 
 p1 = plot_phantom_map(obj, :T1; height=450)
-#md savefig(p1, "../assets/doc-1-phantom.html"); #hide
+#md p1
 #jl display(p1);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/doc-1-phantom.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # You can access and filter information for the all the field names of a **Phantom** using the dot notation:
 
@@ -98,12 +94,8 @@ obj.motion
 
 obj[1:2000]
 p2 = plot_phantom_map(obj[1:1000], :T2 ; height=450) #hide
-#md savefig(p2, "../assets/tut-5-phantom-subset.html"); #hide
+#md p2
 #jl display(p2);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-5-phantom-subset.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # ### Combination of Phantoms
 
@@ -112,12 +104,8 @@ obj2 = pelvis_phantom2D()
 obj2.x .+= 0.1; obj.x.-= 0.1 #hide
 obj_sum = obj + obj2
 p3 = plot_phantom_map(obj_sum, :T1 ; height=450) #hide
-#md savefig(p3, "../assets/tut-5-phantom-sum.html"); #hide
+#md p3
 #jl display(p3);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-5-phantom-sum.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # ### Scalar multiplication of a Phantom
 
