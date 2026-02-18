@@ -28,7 +28,7 @@ function _link_example(filename)
         badges = """
 
         #md # ```@raw html
-        #md # <p><a href="./$filename.jl"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="./$filename.ipynb"><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt="jupyter notebook"></a> <a href="$(binder_link)$(binder_gitpull)"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></p>
+        #md # <p><a href="./$filename.jl" download><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="./$filename.ipynb" download><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt="jupyter notebook"></a> <a href="$(binder_link)$(binder_gitpull)" target="_blank"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></p>
         #md # ```
 
         """
@@ -106,11 +106,11 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             # $(frontmatter["title"])
 
             ```@raw html
-            <p><a href="./$filename"><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="$(binder_link)$(binder_gitpull)"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></p>
+            <p><a href="./$filename" download><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="$(binder_link)$(binder_gitpull)" target="_blank"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></p>
             ```
             
             ```@raw html
-            <iframe type="text/html" src="../$filename_gen.html" style="height:100vh;width:100%;"></iframe>
+            <iframe type="text/html" src="./$filename_gen.html" style="height:100vh;width:100%;"></iframe>
             ```
             """
             open(tutorial_md, "w") do file
@@ -120,5 +120,8 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
         end
     end
     PlutoSliderServer.export_directory(doc_tutorial_pluto)
+    for html_file in filter(endswith(".html"), readdir(doc_tutorial_pluto))
+        cp(joinpath(doc_tutorial_pluto, html_file), joinpath(public_pluto_dir, html_file); force=true)
+    end
     return reproducible_list
 end
