@@ -15,6 +15,8 @@ layout_to_html_default_size!(fields, key::Symbol, ::Nothing) = (pop!(fields, key
 layout_to_html_default_size!(fields, key::Symbol, value::Number) = to_css_size(value)
 layout_to_html_default_size!(fields, key::Symbol, value) = throw(ArgumentError("Unsupported Plotly layout $key type: $(typeof(value))"))
 
+# This is type piracy! but it only affects the docs.
+# We are extending the `Base.show` method for the `PlotlyJS.SyncPlot` 
 function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
     # Copy is required because we pop layout width/height for Plotly's inner JSON.
     # Mutating fig.plot directly would change size(fig) and user-visible behavior.
@@ -35,8 +37,8 @@ function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
     html = String(take!(html_buffer))
     html = replace(html, "<body>" => "<body style=\"margin:0;overflow:hidden;\">")
     encoded = base64encode(html)
-    plot_width, plot_height = size(fig)
-    width = to_css_size(plot_width)
+    width = to_css_size(get(fig.plot.layout.fields, :width, nothing))
+    _, plot_height = size(fig)
     height = to_css_size(plot_height)
     write(
         io,
