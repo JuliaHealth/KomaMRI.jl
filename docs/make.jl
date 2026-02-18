@@ -64,7 +64,6 @@ makedocs(;
         repo = "github.com/JuliaHealth/KomaMRI.jl",
         devbranch = "master", 
         devurl = "dev",
-        keep = :breaking,
         assets=["assets/hide-documenter-example-output.css","assets/center-images.css","assets/theme-images.css"],
     ),
     clean=false,

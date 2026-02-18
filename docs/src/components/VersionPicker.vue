@@ -67,10 +67,10 @@ const loadVersions = async () => {
 
       if (scriptsLoaded && window.DOC_VERSIONS && window.DOCUMENTER_CURRENT_VERSION) {
         const isMinorOrSpecial = (v: string) => {
-          // Keep dev, stable, previews 
           if (v === 'dev' || v === 'stable' || v.startsWith('previews/')) return true;
-          return /^\d+\.\d+$/.test(v);
+          return /^v\d+\.\d+$/.test(v);
         };
+        
         versions.value = window.DOC_VERSIONS.filter(isMinorOrSpecial).map(v => ({
           text: v,
           link: absoluteUrl(`/${v}/`),
