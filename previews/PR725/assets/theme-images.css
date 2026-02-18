@@ -1,0 +1,16 @@
+/* Show/hide images based on theme */
+.docs-light-only {
+  display: block;
+}
+
+.dark .docs-light-only {
+  display: none;
+}
+
+.docs-dark-only {
+  display: none;
+}
+
+.dark .docs-dark-only {
+  display: block;
+}
