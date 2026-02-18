@@ -5,15 +5,14 @@ type PromptKind = "julia" | "pkg" | "help" | "shell" | null
 export function juliaReplTransformer(): ShikiTransformer {
   let promptInfoByLine: Array<{ len: number; kind: PromptKind }> = []
   let isJuliaBlock = false
+  const rules: Array<{ kind: PromptKind; re: RegExp }> = [
+    { kind: "julia", re: /^julia>/ },
+    { kind: "pkg", re: /^(\([^)]*\)\s*)?pkg>/ },  // handles (@v1.9) pkg>
+    { kind: "help", re: /^help\?>/ },
+    { kind: "shell", re: /^shell>/ },
+  ]
 
   function classify(line: string): { len: number; kind: PromptKind } {
-    const rules: Array<{ kind: PromptKind; re: RegExp }> = [
-      { kind: "julia", re: /^julia>/ },
-      { kind: "pkg", re: /^(\([^)]*\)\s*)?pkg>/ },  // handles (@v1.9) pkg>
-      { kind: "help", re: /^help\?>/ },
-      { kind: "shell", re: /^shell>/ },
-    ]
-
     for (const r of rules) {
       const m = line.match(r.re)
       if (m) return { len: m[0].length, kind: r.kind }
@@ -27,6 +26,7 @@ export function juliaReplTransformer(): ShikiTransformer {
 
     preprocess(code, options) {
       isJuliaBlock = options.lang === "julia"
+      return code
     },
 
     tokens(tokens) {
@@ -34,7 +34,7 @@ export function juliaReplTransformer(): ShikiTransformer {
         promptInfoByLine = []
         return
       }
-      
+
       promptInfoByLine = tokens.map((lineTokens) => {
         const line = lineTokens.map((t) => t.content).join("")
         return classify(line)
@@ -43,7 +43,7 @@ export function juliaReplTransformer(): ShikiTransformer {
 
     span(node, line, col) {
       if (!isJuliaBlock) return
-      
+
       const info = promptInfoByLine[line - 1]
       if (!info || !info.kind || info.len <= 0) return
 
