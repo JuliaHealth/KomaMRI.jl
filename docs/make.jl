@@ -16,7 +16,7 @@ doc_explanation    = joinpath(dirname(@__DIR__), "docs/src/explanation")
 doc_reference      = joinpath(dirname(@__DIR__), "docs/src/reference")
 # For Tutorials: Literate and Pluto
 koma_assets        = joinpath(dirname(@__DIR__), "assets")
-doc_assets         = joinpath(dirname(@__DIR__), "docs/src/assets")
+doc_assets         = joinpath(dirname(@__DIR__), "docs/src/public/assets")
 koma_tutorials_lit = joinpath(dirname(@__DIR__), "examples/3.tutorials")
 koma_tutorials_plu = joinpath(dirname(@__DIR__), "examples/4.reproducible_notebooks")
 
@@ -64,7 +64,7 @@ makedocs(;
         repo = "github.com/JuliaHealth/KomaMRI.jl",
         devbranch = "master", 
         devurl = "dev",
-        assets=["assets/hide-documenter-example-output.css","assets/center-images.css","assets/theme-images.css"],
+        assets=["public/assets/hide-documenter-example-output.css","public/assets/center-images.css","public/assets/theme-images.css"],
     ),
     clean=false,
 )
