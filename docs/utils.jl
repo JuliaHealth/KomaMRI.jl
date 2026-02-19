@@ -28,7 +28,7 @@ function _link_example(filename)
         badges = """
 
         #md # ```@raw html
-        #md # <p><a href="./$filename.jl" download><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="./$filename.ipynb" download><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt="jupyter notebook"></a> <a href="$(binder_link)$(binder_gitpull)" target="_blank"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></p>
+        #md # <p><span class="badge-row"><a href="./$filename.jl" download><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="./$filename.ipynb" download><img src="https://img.shields.io/badge/jupyter-notebook-blue?logo=jupyter" alt="jupyter notebook"></a> <a href="$(binder_link)$(binder_gitpull)" target="_blank"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></span></p>
         #md # ```
 
         """
@@ -53,22 +53,28 @@ function list_md_not_lit(input_folder, output_doc_section; exclude="------------
     return md_list
 end
 
-function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-")
+function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-", edit_commit="master", edit_repo_path=nothing)
     tutorial_list = []
     public_dir = joinpath(dirname(input_folder), "public", output_doc_section)
     mkpath(public_dir)
+    if isnothing(edit_repo_path)
+        repo_root = dirname(dirname(input_folder))
+        edit_repo_path = relpath(input_folder, repo_root)
+    end
     for (_, _, files) in walkdir(input_folder)
         for filename in filter(startswith(lit_pattern), files)
             filename_gen = splitext(filename)[1][(length(lit_pattern) + 1):end] # removes "lit-"
             tutorial_src = joinpath(input_folder, filename)
             tutorial_md  = "$output_doc_section/$filename_gen.md"
+            edit_url = "$edit_commit/$edit_repo_path/$filename"
             Literate.markdown(
                 tutorial_src,
                 input_folder;
                 repo_root_url,
                 preprocess=_link_example(filename_gen),
                 name=filename_gen,
-                execute=true
+                execute=true,
+                edit_url
             )
             Literate.script(tutorial_src, input_folder; name=filename_gen, repo_root_url)
             Literate.notebook(tutorial_src, input_folder; name=filename_gen, execute=false)
@@ -106,7 +112,7 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             # $(frontmatter["title"])
 
             ```@raw html
-            <p><a href="./$filename" download><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="$(binder_link)$(binder_gitpull)" target="_blank"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></p>
+            <p><span class="badge-row"><a href="./$filename" download><img src="https://img.shields.io/badge/julia-script-9558B2?logo=julia" alt="julia script"></a> <a href="$(binder_link)$(binder_gitpull)" target="_blank"><img src="https://mybinder.org/badge_logo.svg" alt="launch binder"></a></span></p>
             ```
             
             ```@raw html
