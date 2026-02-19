@@ -38,10 +38,10 @@ explanation_list = list_md_not_lit(doc_explanation, "explanation"; lit_pattern)
 reference_list   = list_md_not_lit(doc_reference, "reference"; lit_pattern)
 # Add literate examples strarting with "lit-" from docs/src/section
 lit_howto_list       = literate_doc_folder(doc_howto, "how-to")
-lit_explanation_list = literate_doc_folder(doc_explanation, "explanation"; edit_repo_path="docs/src/explanation")
-lit_reference_list   = literate_doc_folder(doc_reference, "reference")
+lit_explanation_list = literate_doc_folder(doc_explanation, "explanation")
+ lit_reference_list   = literate_doc_folder(doc_reference, "reference")
 # Tutorials (Literate only), and reproducible tutorials (Pluto only)
-tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern, edit_repo_path="examples/3.tutorials")
+tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern)
 reproducible_list = pluto_directory_to_html(doc_tutorial_rep, "tutorial-pluto"; plu_pattern)
 
 # Combine md files in docs/src/section with Literate/Pluto-generated md files
