@@ -41,8 +41,13 @@ lit_howto_list       = literate_doc_folder(doc_howto, "how-to")
 lit_explanation_list = literate_doc_folder(doc_explanation, "explanation")
 lit_reference_list   = literate_doc_folder(doc_reference, "reference")
 # Tutorials (Literate only), and reproducible tutorials (Pluto only)
-tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern)
+tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern, edit_repo_path="examples/3.tutorials")
 reproducible_list =  pluto_directory_to_html(doc_tutorial_rep, "tutorial-pluto"; plu_pattern)
+
+for f in readdir(doc_assets_tmp)
+    cp(joinpath(doc_assets_tmp, f), joinpath(doc_assets, f); force=true)
+end
+
 # Combine md files in docs/src/section with Literate/Pluto-generated md files
 append!(howto_list, lit_howto_list)
 append!(explanation_list, lit_explanation_list)
@@ -67,7 +72,7 @@ makedocs(;
         repo = "github.com/JuliaHealth/KomaMRI.jl",
         devbranch = "master", 
         devurl = "dev",
-        assets=["public/assets/hide-documenter-example-output.css","public/assets/center-images.css","public/assets/theme-images.css"],
+        assets=["public/assets/hide-documenter-example-output.css","public/assets/center-images.css"],
     ),
     clean=false,
 )

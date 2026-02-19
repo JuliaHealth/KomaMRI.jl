@@ -58,7 +58,7 @@ function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-
     public_dir = joinpath(dirname(input_folder), "public", output_doc_section)
     mkpath(public_dir)
     if isnothing(edit_repo_path)
-        repo_root = dirname(dirname(input_folder))
+        repo_root = dirname(dirname(dirname(input_folder)))
         edit_repo_path = relpath(input_folder, repo_root)
     end
     for (_, _, files) in walkdir(input_folder)
@@ -108,7 +108,12 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
 
             cp(tutorial_src, joinpath(public_pluto_dir, filename); force=true)
 
+            edit_path = "examples/4.reproducible_notebooks/$(plu_pattern)$(filename)"
             iframe = """
+            ```@meta
+            EditURL = "master/$edit_path"
+            ```
+
             # $(frontmatter["title"])
 
             ```@raw html
