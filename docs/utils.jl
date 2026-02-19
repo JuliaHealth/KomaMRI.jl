@@ -53,7 +53,7 @@ function list_md_not_lit(input_folder, output_doc_section; exclude="------------
     return md_list
 end
 
-function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-")
+function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-", edit_repo_path=nothing)
     tutorial_list = []
     public_dir = joinpath(dirname(input_folder), "public", output_doc_section)
     mkpath(public_dir)
@@ -62,13 +62,15 @@ function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-
             filename_gen = splitext(filename)[1][(length(lit_pattern) + 1):end] # removes "lit-"
             tutorial_src = joinpath(input_folder, filename)
             tutorial_md  = "$output_doc_section/$filename_gen.md"
+            edit_url = isnothing(edit_repo_path) ? filename : "$edit_repo_path/$filename"
             Literate.markdown(
                 tutorial_src,
                 input_folder;
                 repo_root_url,
                 preprocess=_link_example(filename_gen),
                 name=filename_gen,
-                execute=true
+                execute=true,
+                edit_url
             )
             Literate.script(tutorial_src, input_folder; name=filename_gen, repo_root_url)
             Literate.notebook(tutorial_src, input_folder; name=filename_gen, execute=false)
@@ -102,7 +104,12 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
 
             cp(tutorial_src, joinpath(public_pluto_dir, filename); force=true)
 
+            edit_path = "examples/4.reproducible_notebooks/$(plu_pattern)$(filename)"
             iframe = """
+            ```@meta
+            EditURL = "$edit_path"
+            ```
+
             # $(frontmatter["title"])
 
             ```@raw html
