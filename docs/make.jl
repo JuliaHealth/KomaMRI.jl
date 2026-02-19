@@ -41,14 +41,10 @@ lit_howto_list       = literate_doc_folder(doc_howto, "how-to")
 lit_explanation_list = literate_doc_folder(doc_explanation, "explanation")
 lit_reference_list   = literate_doc_folder(doc_reference, "reference")
 # Tutorials (Literate only), and reproducible tutorials (Pluto only)
-tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern, edit_repo_path="examples/3.tutorials")
-reproducible_list =  pluto_directory_to_html(doc_tutorial_rep, "tutorial-pluto"; plu_pattern)
+tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern)
+reproducible_list =  pluto_directory_to_html(doc_tutorial_rep, "tutorial-pluto"; plu_patter
 
-for f in readdir(doc_assets_tmp)
-    cp(joinpath(doc_assets_tmp, f), joinpath(doc_assets, f); force=true)
-end
-
-# Combine md files in docs/src/section with Literate/Pluto-generated md files
+n)# Combine md files in docs/src/section with Literate/Pluto-generated md files
 append!(howto_list, lit_howto_list)
 append!(explanation_list, lit_explanation_list)
 append!(reference_list, lit_reference_list)
