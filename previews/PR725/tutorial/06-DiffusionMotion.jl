@@ -45,7 +45,7 @@ seq += gx_diff
 seq += rf180
 seq += gx_diff
 seq += adc
-p2 = plot_seq(seq; show_adc=true) # Plotting the sequence
+p2 = plot_seq(seq; show_adc=true, height=300) # Plotting the sequence
 display(p2);
 
 function bvalue(seq)
@@ -79,7 +79,7 @@ E_theoretical = exp.(-bvals_si .* D);
 s_sim  = scatter(x=bvals, y=E_simulated,   name="Simulated") #hide
 s_theo = scatter(x=bvals, y=E_theoretical, name="exp(-b D)", line=attr(dash="dash")) #hide
 layout = Layout(title="Diffusion-induced signal attenuation E(b)", xaxis=attr(title="b-value [s/mm^2]")) #hide
-p3 = plot([s_sim, s_theo], layout); #hide
+p3 = plot([s_sim, s_theo], layout) #hide
 display(p3);
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

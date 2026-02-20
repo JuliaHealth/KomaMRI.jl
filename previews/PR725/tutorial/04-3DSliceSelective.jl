@@ -8,7 +8,7 @@ display(p1);
 
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/epi_multislice.seq")
 seq = @suppress read_seq(seq_file)
-p2 = plot_seq(seq; range=[0,10], height=400);
+p2 = plot_seq(seq; range=[0,10], height=400)
 display(p2);
 
 z = range(-2., 2., 200) * 1e-2; # -2 to 2 cm
@@ -40,8 +40,6 @@ image = reconstruction(acq, reconParams)
 p4 = plot_image(abs.(image[:, :, 1]); height=360, title="Slice 1")
 p5 = plot_image(abs.(image[:, :, 2]); height=360, title="Slice 2")
 p6 = plot_image(abs.(image[:, :, 3]); height=360, title="Slice 3")
-display(p4)
-display(p5)
-display(p6);
+display([p4 p5 p6])
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

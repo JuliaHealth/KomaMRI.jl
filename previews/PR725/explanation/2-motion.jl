@@ -70,9 +70,8 @@ obj = obj1 + obj2
 p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
 display(p4);
 
-obj = brain_phantom2D()
-
 Random.seed!(1234) #hide
+obj = brain_phantom2D()
 
 Nintervals = 10
 interval_dur = 0.1
