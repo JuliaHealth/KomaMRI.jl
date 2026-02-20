@@ -207,9 +207,8 @@ p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
 # ### Realistic head motion
 # As a more realistic final example, let's try to replicate the head motion made by a patient inside the scanner.
 # This motion consists of a series of translations and rotations, with the rotation center being the neck:
-obj = brain_phantom2D()
-
 Random.seed!(1234) #hide  
+obj = brain_phantom2D()
 
 Nintervals = 10  
 interval_dur = 0.1 
@@ -231,6 +230,7 @@ obj.motion = MotionList(motion_list...);
 p5 = plot_phantom_map(obj, :T1; time_samples=21, view_2d=true, height=440) #hide
 #jl display(p5);
 
+# The motion signals for this phantom are shown in the plot below, where you can see the translations in x and y, and the rotation around z over time.
 p6 = plot( #hide
     (0:interval_dur:interval_dur*length(tra_x)) .* 1e3, #hide
     [cumsum([0, tra_x...]) * 1e3 cumsum([0, tra_y...]) * 1e3 cumsum([0, rot_z...])], #hide
@@ -240,6 +240,7 @@ p6 = plot( #hide
         yaxis_title = "Position" #hide
     )) #hide
 restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]) #hide
+#md p6 #hide
 #jl display(p6);
 
 # A simulation and motion-corrected reconstruction based on a similar, slightly simplified head motion is available [here](../tutorial/05-SimpleMotion.md).

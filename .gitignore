@@ -19,14 +19,14 @@ src/examples/sysimageSpinLab.dll
 *.out
 *.txt
 *.nb
-.gitignore
 qte_timings.txt
 *.nsys-rep
 *.mem
 docs/src/tutorial/*
 !docs/src/tutorial/README.md
-docs/src/tutorial-pluto/*
-!docs/src/tutorial-pluto/README.md
+!docs/src/tutorial/pluto/
+docs/src/tutorial/pluto/**
+!docs/src/tutorial/pluto/README.md
 docs/src/assets/logo*
 docs/src/assets/icon*
 src/ui/assets/*

@@ -43,27 +43,7 @@ async function initializeMathJax(options: MathJaxOptions = {}) {
   }
 
   await MathJax.init(config)
-
-  const fontData = MathJax.config.svg?.fontData
-
-  if (fontData?.dynamicFiles) {
-    const dynamicFiles = fontData.dynamicFiles
-    const dynamicPrefix: string =
-      fontData.OPTIONS?.dynamicPrefix || fontData.options?.dynamicPrefix
-
-    if (dynamicPrefix) {
-      await Promise.all(
-        Object.keys(dynamicFiles).map(async (name) => {
-          try {
-            await import(/* @vite-ignore */ `${dynamicPrefix}/${name}.js`)
-            dynamicFiles[name]?.setup?.(MathJax.startup.output.font)
-          } catch {
-            // Silently ignore missing dynamic files
-          }
-        }),
-      )
-    }
-  }
+  await MathJax.startup.document.outputJax.font.loadDynamicFiles()
 }
 
 export function mathjaxPlugin(options: MathJaxOptions = {}) {

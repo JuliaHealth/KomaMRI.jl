@@ -10,7 +10,7 @@ include("EmbeddPlotlyJSSyncPlotLiterate.jl")
 
 # Documentation folders KomaMRI.jl/docs/
 doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")
-doc_tutorial_rep   = joinpath(dirname(@__DIR__), "docs/src/tutorial-pluto")
+doc_tutorial_rep   = joinpath(dirname(@__DIR__), "docs/src/tutorial/pluto")
 doc_howto          = joinpath(dirname(@__DIR__), "docs/src/how-to")
 doc_explanation    = joinpath(dirname(@__DIR__), "docs/src/explanation")
 doc_reference      = joinpath(dirname(@__DIR__), "docs/src/reference")
@@ -33,7 +33,7 @@ move_examples_to_docs!(koma_tutorials_plu, doc_tutorial_rep, plu_pattern; remove
 
 ## DOCUMENTATION GENERATION
 # Get list of documentation md files from docs/src/section
-howto_list       = list_md_not_lit(doc_howto, "how-to"; exclude="getting-started", lit_pattern)
+howto_list       = list_md_not_lit(doc_howto, "how-to"; lit_pattern)
 explanation_list = list_md_not_lit(doc_explanation, "explanation"; lit_pattern)
 reference_list   = list_md_not_lit(doc_reference, "reference"; lit_pattern)
 # Add literate examples strarting with "lit-" from docs/src/section
@@ -42,7 +42,7 @@ lit_explanation_list = literate_doc_folder(doc_explanation, "explanation")
  lit_reference_list   = literate_doc_folder(doc_reference, "reference")
 # Tutorials (Literate only), and reproducible tutorials (Pluto only)
 tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern)
-reproducible_list = pluto_directory_to_html(doc_tutorial_rep, "tutorial-pluto"; plu_pattern)
+reproducible_list = pluto_directory_to_html(doc_tutorial_rep, "tutorial/pluto"; plu_pattern)
 
 # Combine md files in docs/src/section with Literate/Pluto-generated md files
 append!(howto_list, lit_howto_list)
@@ -56,8 +56,9 @@ makedocs(;
     authors="Carlos Castillo Passi and collaborators",
     checkdocs=:exports,
     pages=[
+        "Getting Started" => "introduction/1-getting-started.md",
         "Tutorials" => [
-            "Tutorials" => sort(tutorial_list),
+            "" => sort(tutorial_list),
             "Reproducible Tutorials" => sort(reproducible_list),
         ],
         "How to" => sort(howto_list),

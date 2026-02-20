@@ -14,7 +14,7 @@ hero:
   actions:
     - theme: brand
       text: Getting Started
-      link: /how-to/1-getting-started
+      link: /introduction/1-getting-started
     - theme: alt
       text: View on GitHub
       link: https://github.com/JuliaHealth/KomaMRI.jl
@@ -26,7 +26,7 @@ features:
   - icon: 📦
     title: Community Standards
     details: Import Pulseq sequences and export raw data in ISMRMRD. Integrate directly with reconstruction and benchmarking workflows.
-    link: /how-to/3-phantom-formats
+    link: tutorial/03-ChemicalShiftEPI
 
   - icon: 🚀
     title: Fast, Device Agnostic
@@ -36,12 +36,12 @@ features:
   - icon: 🌊
     title: Dynamic Motion Models
     details: Simulate static and dynamic phantoms. Model motion and complex spin trajectories with reusable HDF5 phantom files.
-    link: /explanation/3-phantom-format
+    link: /explanation/2-motion
 
   - icon: 🖥️
     title: Interactive GUI
     details: Configure scanners, phantoms, and sequences in KomaUI. Explore results with interactive PlotlyJS visualizations.
-    link: /how-to/2-1-use-koma-ui
+    link: /how-to/1-1-use-koma-ui
 
 ---
 ```

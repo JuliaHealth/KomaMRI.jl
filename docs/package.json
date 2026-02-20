@@ -9,9 +9,11 @@
     "docs:preview": "vitepress preview build/.documenter"
   },
   "dependencies": {
+    "@mathjax/mathjax-newcm-font": "^4.1.1",
     "@nolebase/vitepress-plugin-enhanced-readabilities": "^2.15.0",
     "@mdit/plugin-mathjax": "^0.25.0",
     "@mdit/plugin-tex": "^0.23.1",
+    "d3-format": "^3.1.0",
     "markdown-it-footnote": "^4.0.0",
     "markdown-it": "^14.1.0",
     "vitepress": "^1.6.3",

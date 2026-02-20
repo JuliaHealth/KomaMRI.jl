@@ -167,7 +167,7 @@ font-feature-settings: "calt" off;
 
 mjx-container {
   display: inline-block;
-  padding: 0.5rem 0;
+  /* padding: 0.125rem 0;  */
   margin: auto 2px -2px;
   overflow: visible !important;  /* Override MathJax's overflow */
   text-align: left;

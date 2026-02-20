@@ -22,11 +22,19 @@ const navTemp = {
 }
 
 const nav = [
-  ...navTemp.nav,
+    ...navTemp.nav,
   {
     component: 'VersionPicker'
   }
 ]
+
+const sidebar = {
+  '/introduction/': navTemp.nav[0] ? [navTemp.nav[0]] : [],
+  '/tutorial/': navTemp.nav[1] ? [navTemp.nav[1]] : [],
+  '/how-to/': navTemp.nav[2] ? [navTemp.nav[2]] : [],
+  '/explanation/': navTemp.nav[3] ? [navTemp.nav[3]] : [],
+  '/reference/': navTemp.nav[4] ? [navTemp.nav[4]] : [],
+}
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -99,103 +107,7 @@ export default defineConfig({
       }
     },
     nav,
-    sidebar: {
-      '/tutorial/': [
-        {
-          text: 'Tutorials',
-          collapsed: false,
-          items: [
-            { text: 'Free Induction Decay', link: '/tutorial/01-FID' },
-            { text: 'Small Tip Angle Approximation', link: '/tutorial/02-SmallTipApproximation' },
-            { text: 'Chemical Shift in an EPI sequence', link: '/tutorial/03-ChemicalShiftEPI' },
-            { text: 'Slice-Selective Acquisition of 3D Phantom', link: '/tutorial/04-3DSliceSelective' },
-            { text: "Patient's Motion During Acquisition", link: '/tutorial/05-SimpleMotion' },
-            { text: 'Diffusion-induced Signal Attenuation', link: '/tutorial/06-DiffusionMotion' },
-            { text: 'Cardiac Cine MRI with Arrhythmias', link: '/tutorial/07-RRVariability' },
-            { text: 'Using Labels to reconstruct multi-slice / multi-contrast sequences', link: '/tutorial/07-label' },
-          ]
-        },
-        {
-          text: 'Reproducible Tutorials',
-          collapsed: false,
-          items: [
-            { text: 'Understanding basic MRI sequences', link: '/tutorial-pluto/01-gradient-echo-spin-echo' },
-            { text: 'Low-Field CMRA Optimization', link: '/tutorial-pluto/02-low-field-cmra-optimization' },
-            { text: 'Low-Field BOOST Optimization', link: '/tutorial-pluto/03-low-field-boost-optimization' },
-          ]
-        }
-      ],
-      '/tutorial-pluto/': [
-        {
-          text: 'Tutorials',
-          collapsed: false,
-          items: [
-            { text: 'Free Induction Decay', link: '/tutorial/01-FID' },
-            { text: 'Small Tip Angle Approximation', link: '/tutorial/02-SmallTipApproximation' },
-            { text: 'Chemical Shift in an EPI sequence', link: '/tutorial/03-ChemicalShiftEPI' },
-            { text: 'Slice-Selective Acquisition of 3D Phantom', link: '/tutorial/04-3DSliceSelective' },
-            { text: "Patient's Motion During Acquisition", link: '/tutorial/05-SimpleMotion' },
-            { text: 'Diffusion-induced Signal Attenuation', link: '/tutorial/06-DiffusionMotion' },
-            { text: 'Cardiac Cine MRI with Arrhythmias', link: '/tutorial/07-RRVariability' },
-            { text: 'Using Labels to reconstruct multi-slice / multi-contrast sequences', link: '/tutorial/07-label' },
-          ]
-        },
-        {
-          text: 'Reproducible Tutorials',
-          collapsed: false,
-          items: [
-            { text: 'Understanding basic MRI sequences', link: '/tutorial-pluto/01-gradient-echo-spin-echo' },
-            { text: 'Low-Field CMRA Optimization', link: '/tutorial-pluto/02-low-field-cmra-optimization' },
-            { text: 'Low-Field BOOST Optimization', link: '/tutorial-pluto/03-low-field-boost-optimization' },
-          ]
-        }
-      ],
-      '/how-to/': [
-        {
-          text: 'How To',
-          collapsed: false,
-          items: [
-            { text: 'Getting Started', link: '/how-to/1-getting-started' },
-            { text: 'Use Koma UI', link: '/how-to/2-1-use-koma-ui' },
-            { text: 'Use Koma Notebooks', link: '/how-to/2-2-use-koma-notebooks' },
-            { text: 'Use Koma Scripts', link: '/how-to/2-3-use-koma-scripts' },
-            { text: 'Create Your Own Phantom', link: '/how-to/3-create-your-own-phantom' },
-            { text: 'Create Your Own Sequence', link: '/how-to/3-create-your-own-sequence' },
-            { text: 'Run Distributed Simulations', link: '/how-to/4-run-distributed-simulations' },
-            { text: 'Contribute to Koma', link: '/how-to/5-contribute-to-koma' },
-          ]
-        }
-      ],
-      '/explanation/': [
-        {
-          text: 'Explanations',
-          collapsed: false,
-          items: [
-            { text: 'Phantom', link: '/explanation/1-phantom' },
-            { text: 'Motion', link: '/explanation/2-motion' },
-            { text: 'Phantom Format', link: '/explanation/3-phantom-format' },
-            { text: 'Sequence', link: '/explanation/4-sequence' },
-            { text: 'Sequence Events', link: '/explanation/5-seq-events' },
-            { text: 'Simulation', link: '/explanation/6-simulation' },
-            { text: 'GPU Explanation', link: '/explanation/7-gpu-explanation' },
-          ]
-        }
-      ],
-      '/reference/': [
-        {
-          text: 'Reference',
-          collapsed: false,
-          items: [
-            { text: 'API', link: '/reference/1-api' },
-            { text: 'KomaMRIBase', link: '/reference/2-koma-base' },
-            { text: 'KomaMRICore', link: '/reference/3-koma-core' },
-            { text: 'KomaMRIFiles', link: '/reference/4-koma-files' },
-            { text: 'KomaMRIPlots', link: '/reference/5-koma-plots' },
-            { text: 'KomaMRI', link: '/reference/6-koma-mri' },
-          ]
-        }
-      ],
-    },
+    sidebar,
     editLink: {
       text: 'Edit this page',
       pattern: ({ filePath }: { filePath: string }): string => {
@@ -211,6 +123,7 @@ export default defineConfig({
         if (filePath.startsWith('explanation/')) {
           const name = filePath.replace('explanation/', '').replace('.md', '')
           const litPath = `${base}/docs/src/explanation/lit-${name}.jl`
+          // TODO: this is a bit hacky, change to more robust solution
           // Only lit-generated pages (1-phantom, 2-motion) have a lit- source; others fall back to .md
           const litPages = ['1-phantom', '2-motion']
           if (litPages.includes(name)) return litPath

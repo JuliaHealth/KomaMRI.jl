@@ -70,8 +70,8 @@ image = abs.(reshape(rec,Nx,Ny,:));
 
 p2 = plot_image(image[:,:,1], height=400);
 p3 = plot_image(image[:,:,2], height=400);
-#jl display(p2); 
-#jl display(p3); 
+#md [p2 p3] #hide
+#jl display([p2 p3]); 
 
 # The signal ponderation is changing because we are acquiring the same slice position with a short TR sequence. Thus, the magnetization is not at equilibrium.
 
@@ -109,5 +109,5 @@ acqData = AcquisitionData(raw,estimateProfileCenter=true);
 recParams = Dict{Symbol,Any}()
 rec = reconstruction(acqData, recParams);
 
-p4=plot_image(abs.(rec[:,:,1]), height=400);
+p4=plot_image(abs.(rec[:,:,1]), height=400)
 #jl display(p4); 

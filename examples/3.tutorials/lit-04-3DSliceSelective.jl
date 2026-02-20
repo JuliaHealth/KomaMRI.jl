@@ -19,7 +19,7 @@ p1 = @suppress plot_phantom_map(obj, :T2 ; height=400)
 
 seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/epi_multislice.seq")
 seq = @suppress read_seq(seq_file)
-p2 = plot_seq(seq; range=[0,10], height=400);
+p2 = plot_seq(seq; range=[0,10], height=400)
 #jl display(p2);
 
 # We can take a look to the slice profiles by using the function [`simulate_slice_profile`](@ref):
@@ -58,6 +58,5 @@ image = reconstruction(acq, reconParams)
 p4 = plot_image(abs.(image[:, :, 1]); height=360, title="Slice 1")
 p5 = plot_image(abs.(image[:, :, 2]); height=360, title="Slice 2")
 p6 = plot_image(abs.(image[:, :, 3]); height=360, title="Slice 3")
-#jl display(p4)
-#jl display(p5)
-#jl display(p6);
+#md [p4 p5 p6] #hide
+#jl display([p4 p5 p6])

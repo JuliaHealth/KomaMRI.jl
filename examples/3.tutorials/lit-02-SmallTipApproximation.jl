@@ -23,7 +23,7 @@ f = γ * Gz * z; #hide
 # where the additional gradient refocuses the spins' phase after the excitation.
 
 seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0;0;Gz], TBP=8)
-p2 = plot_seq(seq; max_rf_samples=Inf, slider=false)
+p2 = plot_seq(seq; height=380, max_rf_samples=Inf, slider=false)
 #jl display(p2)
 
 # Now we will perform the simulation using the function [`simulate_slice_profile`](@ref).
@@ -45,7 +45,7 @@ u = u .- maximum(u) / 2 .- U/2 #hide
 FT_dat_pad = abs.(KomaMRI.fftc(dat_pad; dims=1)) #hide
 scale_factor = maximum(abs.(M.xy)) / maximum(FT_dat_pad) #hide
 s3 = scatter(x=u, y=FT_dat_pad*scale_factor, name="|FT(B₁(t))|", line=attr(dash="dash")) #hide
-pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax])) #hide
+pb = plot([s1,s2,s3], Layout(title="30 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax], height=380)) #hide
 #jl display(pb)
 
 # As you can see, for a flip angle of 30 deg, the slice profile is very close to
@@ -69,7 +69,7 @@ u = u .- maximum(u) / 2 .- U/2 #hide
 FT_dat_pad = abs.(KomaMRI.fftc(dat_pad; dims=1)) #hide
 scale_factor = maximum(abs.(M.xy)) / maximum(FT_dat_pad) #hide
 s2 = scatter(x=u, y=FT_dat_pad*scale_factor, name="|FT(B₁(t))|", line=attr(dash="dash")) #hide
-pa = plot([s1,s2], Layout(title="120 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax])) #hide
+pa = plot([s1,s2], Layout(title="120 deg SINC pulse (TBP=8, Hamming)", xaxis_title="Frequency [Hz]", xaxis_range=[-fmax,fmax], height=380)) #hide
 #jl display(pa)
 
 # For this case, the small tip angle approximation breaks 😢, thus, the reason for its name!

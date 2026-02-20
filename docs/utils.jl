@@ -83,7 +83,7 @@ end
 # TODO: copy files with "pluto-" to docs, and remove for generated html and md
 function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pattern="pluto-")
     reproducible_list = String[]
-    public_pluto_dir = joinpath(dirname(doc_tutorial_pluto), "public", doc_output_section)
+    public_pluto_dir = joinpath(dirname(dirname(doc_tutorial_pluto)), "public", doc_output_section)
     mkpath(public_pluto_dir)
     for (_, _, files) in walkdir(doc_tutorial_pluto)
         for filename in filter(endswith("jl"), files)
@@ -97,7 +97,7 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             frontmatter = PlutoSliderServer.Pluto.frontmatter(tutorial_src)
             koma_version = "dev"
             binder_link = "https://mybinder.org/v2/gh/$repo_base/master?urlpath=git-pull"
-            binder_gitpull = "?repo=https://github.com/$repo_base&urlpath=pluto/open?path=KomaMRI.jl/$koma_version/tutorial-pluto/$filename&branch=gh-pages"
+            binder_gitpull = "?repo=https://github.com/$repo_base&urlpath=pluto/open?path=KomaMRI.jl/$koma_version/tutorial/pluto/$filename&branch=gh-pages"
             binder_gitpull = replace(binder_gitpull, "?"=>"%3F", "="=>"%3D", ":"=>"%253A", "/"=>"%252F", "&"=>"%26")
 
             cp(tutorial_src, joinpath(public_pluto_dir, filename); force=true)

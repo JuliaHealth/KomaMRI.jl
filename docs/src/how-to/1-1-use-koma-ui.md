@@ -8,7 +8,7 @@ This section provides a comprehensive guide on using the **User Interface** of t
 
 
 ## Basic Workflow
-(You can also go to [analog steps using Scripts](2-3-use-koma-scripts.md#Basic-Workflow))
+(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Basic-Workflow))
 
 As a general overview, remember the following workflow steps when using KomaMRI:
 
@@ -27,7 +27,7 @@ julia> KomaUI()
 ```
 
 ## Loading Simulation Inputs
-(You can also go to [analog steps using Scripts](2-3-use-koma-scripts.md#Loading-Simulation-Inputs))
+(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Loading-Simulation-Inputs))
 
 The user interface has preloaded certain inputs into RAM, including the **Scanner**, **Phantom**, and **Sequence** structs. In the following subsections, we will demonstrate how to visualize these inputs.
 
@@ -83,7 +83,7 @@ And remember, you are free to interact with the plots:
 
 
 ## Running Simulation
-(You can also go to [analog steps using Scripts](2-3-use-koma-scripts.md#Running-Simulation))
+(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Running-Simulation))
 
 Once the inputs are loaded in RAM, it is possible to perform the simulation to get the **Raw Signal**.
 
@@ -102,7 +102,7 @@ Press the `Simulate!` button to perform the simulation (this may take a while). 
 ```
 
 ## Reconstructing Image using MRIReco
-(You can also go to [analog steps using Scripts](2-3-use-koma-scripts.md#Reconstructing-Image-using-MRIReco))
+(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Reconstructing-Image-using-MRIReco))
 
 Once the **Raw Signal** is loaded in RAM, it is possible to reconstruct the image.
 
@@ -121,7 +121,7 @@ Press the `Reconstruct!` button to perform the reconstruction (this may take a w
 ```
 
 ## Exporting Results to .mat File
-(You can also go to [analog steps using Scripts](2-3-use-koma-scripts.md#Exporting-Results-to-.mat-File))
+(You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Exporting-Results-to-.mat-File))
 
 The user interface has the option to save the results in `.mat` format. Simply click on the `Export to .mat` and you have the alternatives to get data independently or you can press the `All` button to have all the results given by the simulator:
 ```@raw html
