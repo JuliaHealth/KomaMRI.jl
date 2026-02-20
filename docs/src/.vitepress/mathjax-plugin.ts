@@ -24,6 +24,7 @@ async function initializeMathJax(options: MathJaxOptions = {}) {
         '[tex]/braket',
         '[tex]/mathtools',
       ],
+      paths: { mathjax: '@mathjax/src/bundle' },
     },
     tex: {
       tags: 'ams',
