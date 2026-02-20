@@ -17,13 +17,8 @@ obj.Δw .= 0; #hide
 # In this example, we will add a [`translate`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
 
 obj.motion = translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
-p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4); #hide
-
-#md savefig(p1, "../assets/tut-5-phantom.html"); #hide
+p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4) #hide
 #jl display(p1);
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-5-phantom.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 ## Read Sequence #hide
 seq_file1 = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq") #hide
 seq1 = @suppress read_seq(seq_file1); #hide
@@ -39,15 +34,8 @@ image1 = reconstruction(acq1, reconParams); #hide
 # If we simulate an EPI sequence with acquisition duration (183.989 ms) comparable with the motion's duration (200 ms),
 # we will observe motion-induced artifacts in the reconstructed image.
 ## Plotting the recon #hide
-p2 = plot_image(abs.(image1[:, :, 1]); height=400); #hide
-#md savefig(p2, "../assets/tut-5-recon1.html"); #hide
+p2 = plot_image(abs.(image1[:, :, 1]); height=400) #hide
 #jl display(p2);
-
-#md # ```@raw html
-#md # <center>
-#md # <object type="text/html" data="../../assets/tut-5-recon1.html" style="width:65%; height:420px;"></object>
-#md # </center>
-#md # ```
 
 # The severity of the artifacts can vary depending on the acquisition duration and $k$-space trajectory.
 
@@ -74,13 +62,8 @@ p3 = plot( #hide
         xaxis_title = "time (s)", #hide
         yaxis_title = "Displacement (cm)" #hide
     )) #hide
-restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]); #hide
-#md savefig(p3, "../assets/tut-5-displacements.html"); #hide
+restyle!(p3,1:3, name=["ux(t)", "uy(t)", "uz(t)"]) #hide
 #jl display(p3);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-5-displacements.html" style="width:80%; height:300px;"></object></center>
-#md # ```
 
 # We can now get the necessary phase shift for each sample:
 _, kspace = get_kspace(seq1)
@@ -90,13 +73,5 @@ _, kspace = get_kspace(seq1)
 acq1.kdata[1] .*= exp.(im*ΔΦ)
 image2 = reconstruction(acq1, reconParams) #hide
 p4 = plot_image(abs.(image2[:, :, 1]); height=400) #hide
-#md savefig(p4, "../assets/tut-5-recon2.html"); #hide
-
-#jl display(p2)
-#jl display(p4);
-
-# Finally, we compare the original image ▶️ and the motion-corrected reconstruction ⏸️:
-
-#md # ```@raw html
-#md # <object type="text/html" data="../../assets/tut-5-recon1.html" style="width:50%; height:420px;"></object><object type="text/html" data="../../assets/tut-5-recon2.html" style="width:50%; height:420px;"></object>
-#md # ```
+#md [p2 p4] #hide
+#jl display([p2 p4]);

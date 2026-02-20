@@ -6,7 +6,7 @@ This section delves into some details about how a sequence is constructed. The s
 
 Let's introduce the following simple sequence figure to expand from a visual example to a more general sequence definition:
 ```@raw html
-<p align="center"><img width="80%" src="../../assets/sequence-diagram.svg"/></p>
+<p align="center"><img width="80%" src="../assets/sequence-diagram.svg"/></p>
 ```
 
 A **sequence** can be thought of as an ordered concatenation of blocks over time. Each block is essentially a sequence with a length of 1. Every block consists of an **RF** pulse, the ``(x,y,z)`` **gradients**, and the **acquisition** of samples. Each block also has an associated time **duration**. To simplify, we will refer to these components as follows:
@@ -53,7 +53,7 @@ To display the sequence in an graph, we can use the [`plot_seq`](@ref) function:
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/seq-epi-example-full.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/seq-epi-example-full.html" style="width:100%; height:420px;"></object>
 ```
 
 This way, you can see exactly where the **RF**, **Grad** and **ADC** structs are located in time.
@@ -103,7 +103,7 @@ julia> seq[1:11].GR
 julia> plot_seq(seq[1:11]; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/seq-epi-example-some-blocks.html" style="width:100%; height:420px;"></object>
 ```
 
 ## Concatenation of Sequences 
@@ -119,5 +119,5 @@ Sequence[ τ = 11.512 ms | blocks: 33 | ADC: 15 | GR: 33 | RF: 3 | DEF: 5 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/seq-concatenation.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/seq-concatenation.html" style="width:100%; height:420px;"></object>
 ```

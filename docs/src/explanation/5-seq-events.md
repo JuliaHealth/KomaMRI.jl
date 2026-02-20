@@ -27,7 +27,7 @@ As you can see, it has 4 field names: `A` defines amplitude, `T` defines duratio
 In the image below, we provide a summary of how you can define **RF** events:
 
 ```@raw html
-<p align="center"><img width="100%" src="../../assets/event-shapes-rf-horizontal.svg"/></p>
+<p align="center"><img width="100%" src="../assets/event-shapes-rf-horizontal.svg"/></p>
 ```
 
 Let's look at some basic examples of creating these **RF** structs and including them in a **Sequence** struct. The examples should be self-explanatory.
@@ -46,7 +46,7 @@ Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/event-rf-pulse-waveform.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/event-rf-pulse-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ### RF Uniformly-Sampled Waveform
@@ -67,7 +67,7 @@ Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/event-rf-uniformly-sampled-waveform.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/event-rf-uniformly-sampled-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ### RF Time-Shaped Waveform
@@ -90,7 +90,7 @@ Sequence[ τ = 4.1 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/event-rf-time-shaped-waveform.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/event-rf-time-shaped-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 
@@ -117,7 +117,7 @@ Just like the **RF**, `A` and `T` in the **Grad** struct can be numbers or vecto
 In the image below, we provide a summary of how you can define **Grad** events:
 
 ```@raw html
-<p align="center"><img width="100%" src="../../assets/event-shapes-gr-horizontal.svg"/></p>
+<p align="center"><img width="100%" src="../assets/event-shapes-gr-horizontal.svg"/></p>
 ```
 
 Let's look at some basic examples of creating these **Grad** structs and including them in a **Sequence** struct, focusing on the `x` component of the gradients. The examples should be self-explanatory.
@@ -136,7 +136,7 @@ Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/event-gr-trapezoidal-waveform.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/event-gr-trapezoidal-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ### Gradient Uniformly-Sampled Waveform
@@ -159,7 +159,7 @@ Sequence[ τ = 12.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/event-gr-uniformly-sampled-waveform.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/event-gr-uniformly-sampled-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ### Gradient Time-Shaped Waveform
@@ -180,7 +180,7 @@ Sequence[ τ = 10.75 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/event-gr-time-shaped-waveform.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/event-gr-time-shaped-waveform.html" style="width:100%; height:420px;"></object>
 ```
 
 ## ADC
@@ -201,7 +201,7 @@ As you can see, it has 5 field names: `N` defines number of samples, `T` defines
 In the image below you can see how to define an **ADC** event:
 
 ```@raw html
-<p align="center"><img width="50%" src="../../assets/event-shapes-adc.svg"/></p>
+<p align="center"><img width="50%" src="../assets/event-shapes-adc.svg"/></p>
 ```
 
 Let's look at a basic example of defining an **ADC** struct and including it in a **Sequence** struct:
@@ -217,7 +217,7 @@ Sequence[ τ = 6.0 ms | blocks: 1 | ADC: 1 | GR: 0 | RF: 0 | DEF: 0 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/event-adc.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/event-adc.html" style="width:100%; height:420px;"></object>
 ```
 ## Extensions and Labels
 
@@ -368,7 +368,7 @@ Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 1 | GR: 3 | RF: 1 | DEF: 0 ]
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
-<object type="text/html" data="../../assets/event-combination.html" style="width:100%; height:420px;"></object>
+<object type="text/html" data="../assets/event-combination.html" style="width:100%; height:420px;"></object>
 ```
 
 Once the struct events are defined, it's important to note that to create a single block sequence, you need to provide 2D matrices of **Grad** and **RF** structs, as well as a vector of **ADC** structs as arguments in the [`Sequence`](@ref KomaMRIBase.Sequence) constructor.
@@ -392,7 +392,7 @@ rb = α * RF(A, T)
 julia> ra ≈ rb
 true
 ```
-		
+
 * Gradient scaling
 ```julia
 # Define params

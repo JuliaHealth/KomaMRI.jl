@@ -49,7 +49,7 @@ In VSCode, click on **File** -> **Open Folder...** and select your `~/.julia/dev
 Now add the fork URL by clicking **Source Control** -> **...** -> **Remote** -> **Add Remote...**
 
 ```@raw html
-    <img width="80%" src="../../assets/add-remote.png">
+    <img width="80%" src="../assets/add-remote.png">
 ```
 This will create the option to provide a repository URL. Here is where you will paste your fork URL and give it the name `my-fork`.
 
@@ -97,7 +97,7 @@ If you correctly followed the previous steps you will have created your fork con
 To create this new branch, go to **Source Control** -> **...** -> **Branch** -> **Create Branch form...**
 
 ```@raw html
-    <img width="80%" src="../../assets/add-branch.png">
+    <img width="80%" src="../assets/add-branch.png">
 ```
 This will open a menu to select a starting point for your branch. Select `my-fork/master` as your starting point, and give it the name `my-new-feature`.
 
@@ -115,7 +115,7 @@ To do this, in VSCode go to the Source Control panel in the Activity Bar.
 Assuming you are currently in your `my-new-feature` branch, the Source Control panel should show your changes to the project and the option to create a commit message.
 
 ```@raw html
-    <img width="40%" src="../../assets/how-to-commit.png">
+    <img width="40%" src="../assets/how-to-commit.png">
 ```
 If you hover over the `Changes` tab, it should show a `+` icon. Press it to stage all changes in the project.
 
@@ -133,7 +133,7 @@ Depending on the package where you made your changes, `KomaMRIBase`, `KomaMRICor
 
 In the Julia REPL run the following script:
 
-```
+```julia-repl
 pkg> test
 ```
 
@@ -149,14 +149,14 @@ For all of these packages tests look the same. There are two options to run the 
 On the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the respective package to run the test. The results will be displayed in the `Test Results` panel. 
 
 ```@raw html
-<img width="40%" src="../../assets/test-komamribase.png">
+<img width="40%" src="../assets/test-komamribase.png">
 ```
 
 **Test With Julia REPL**: 
 
 Run the following script after replacing `[package]` with the selected `KomaMRIBase`, `KomaMRIPlots` or `KomaMRIFiles` package:
 
-```
+```julia-repl
 pkg> test [package]
 ```
 
@@ -169,7 +169,7 @@ In this package, you may want to run tests using the CPU or GPU. By default the 
 To run KomaMRICore's tests, on the activity bar, open the `Testing` extension, expand the available tests, and select the "▶" icon next to the word `KomaMRICore` to run the test. The results will be displayed in the `Test Results` panel.
 
 ```@raw html
-    <img width="40%" src="../../assets/test-komamricore.png">
+    <img width="40%" src="../assets/test-komamricore.png">
 ```
 
 To change the default backend used for testing, modify the `[preferences.KomaMRICore]` section in KomaMRICore/test/project.toml file:
@@ -186,7 +186,7 @@ By default, tests are run on the CPU with the number of threads set to `Threads.
 
 **Method 1 - Using Preferences:** Add the name of the backend ("CPU","CUDA","AMDGPU","Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore`. Then, test as usual:
 
-```
+```julia-repl
 pkg> test KomaMRICore
 ```
 
@@ -195,14 +195,14 @@ pkg> test KomaMRICore
 Examples:
 - To run on the GPU using CUDA:
 
-```
+```julia
 import Pkg
 
 Pkg.test("KomaMRICore"; test_args=`CUDA`)
 ```    
 - To run on the CPU with a specific number of threads, pass the number of threads as a Julia argument:
 
-```
+```julia
 import Pkg
 
 Pkg.test("KomaMRICore"; julia_args=`--threads=4`)
@@ -245,7 +245,7 @@ If you want to send your committed new version of the repository, you can create
 To create this pull request, in VSCode, go to the `GitHub Pull Request` panel in the Activity Bar and hover over the `Pull request` tab. This should show a Create pull request icon to press.
 
 ```@raw html
-    <img width="50%" src="../../assets/create-pull-request.png">
+    <img width="50%" src="../assets/create-pull-request.png">
 ```
 
 In the `Create` tab that appears, select `JuliaHealth/master` as the base and the branch you are working with to merge.
@@ -253,7 +253,7 @@ In the `Create` tab that appears, select `JuliaHealth/master` as the base and th
 To finish your pull request, give it a name with a clear mention of the subject of the contribution you made, and a description that explains the issue or feature you are addressing in your branch, and press the Create button.
 
 ```@raw html
-    <img width="50%" src="../../assets/fill-pull-request.png">
+    <img width="50%" src="../assets/fill-pull-request.png">
 ```
  
   
