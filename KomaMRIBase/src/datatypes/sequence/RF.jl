@@ -129,10 +129,8 @@ end
 
 # RF comparison
 Base.:(≈)(rf1::RF, rf2::RF) = all(
-    [typeof(getfield(rf1, k)) == typeof(getfield(rf2, k)) ?
-    getfield(rf1, k) ≈ getfield(rf2, k) : 
-    (length(getfield(rf1, k)) == length(getfield(rf2, k)) ? getfield(rf1, k) .≈ getfield(rf2, k) : false)
-    for k in fieldnames(RF)]
+    [typeof(getfield(rf1, k)) == typeof(getfield(rf2, k)) ? getfield(rf1, k)  ≈ getfield(rf2, k) : 
+    (length(getfield(rf1, k)) == length(getfield(rf2, k)) ? getfield(rf1, k) .≈ getfield(rf2, k) : false) for k in fieldnames(RF)]
 )
 Base.:(≈)(u1::RFUse, u2::RFUse) = u1 == u2
     
