@@ -13,3 +13,4 @@ Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 [compat]
 Documenter = "1"
 DocumenterVitepress = "0.3"
+LinearOperators = "=2.12" # REMOVE THIS, this is just to avoid https://github.com/MagneticResonanceImaging/MRIReco.jl/issues/272
