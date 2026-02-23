@@ -35,7 +35,7 @@ function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
     )
 
     html = String(take!(html_buffer))
-    html = replace(html, "<body>" => "<body style=\"margin:0;overflow:hidden;\">")
+    html = replace(html, "<body>" => "<body style=\"margin:0;overflow:hidden;background:transparent;\">")
     encoded = base64encode(html)
     width = to_css_size(get(fig.plot.layout.fields, :width, nothing))
     _, plot_height = size(fig)
