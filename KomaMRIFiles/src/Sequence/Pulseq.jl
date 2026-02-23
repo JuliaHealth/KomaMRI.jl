@@ -967,11 +967,11 @@ function collect_pulseq_assets(ctx::PulseqExportContext)
 
         # 3. ADC: deduplicate and store the ID
         adc = block.ADC[1]
-        adc_id = register_adc!(assets, adc.N, adc.T, adc.delay, adc.Δf, adc.ϕ, ctx)
+        adc_id, adc_dur = register_adc!(assets, adc.N, adc.T, adc.delay, adc.Δf, adc.ϕ, ctx)
 
         # 4. Calculate block duration: must be >= max duration of all events
         # After quantization, event durations may have changed, so we need to recalculate
-        max_event_duration = max(dur(gx), dur(gy), dur(gz), dur(rf), dur(adc))
+        max_event_duration = max(dur(gx), dur(gy), dur(gz), dur(rf), adc_dur)
         block_duration = max(dur(block), max_event_duration)
         # Round to block duration raster (round up to ensure >= max_event_duration)
         duration = ceil(Int, block_duration / ctx.blockDurationRaster)
@@ -1041,57 +1041,85 @@ end
 """
     id = register_grad!(assets, A, T, rise, fall, delay, first, last, ctx)
 """
-# Arbitrary gradient waveform (into [GRADIENTS] section) (rise and fall ARE NOT USED)
-function register_grad!(assets::PulseqExportAssets, A::Vector, T, rise, fall, delay, first, last, ctx::PulseqExportContext)
+# Time-shaped waveform
+function register_grad!(assets::PulseqExportAssets, A::Vector, T::Vector, rise, fall, delay, first, last, ctx::PulseqExportContext)
     iszero(maximum(abs.(A))) && return 0
-    shape_id, time_id = register_grad_shapes!(assets.shapes, A, T, ctx.gradientRasterTime; compress=true)
-    amp   = γ * maximum(abs.(A)) # from T/m to Hz/m (nucleus-dependent)
-    delay = round(Int, delay * 1e6) # from s to us
-    first = γ * first # from T/m to Hz/m 
-    last  = γ * last  # from T/m to Hz/m
-    aux = (amp, first, last, shape_id, time_id, delay)
-    return _store_event!(assets.gradients, aux)
+    if (iszero(rise) && iszero(fall))
+        shape_id = _store_shape!(assets.shapes, A ./ maximum(abs.(A)); compress=true)
+        t_vector = cumsum([0; T]) ./ ctx.gradientRasterTime
+        time_id  = _store_shape!(assets.shapes, t_vector; compress=true)
+        amp   = γ * maximum(abs.(A)) # from T/m to Hz/m (nucleus-dependent)
+        delay = round(Int, delay * 1e6) # from s to us
+        first = γ * first # from T/m to Hz/m 
+        last  = γ * last  # from T/m to Hz/m
+        aux = (amp, first, last, shape_id, time_id, delay)
+        return _store_event!(assets.gradients, aux)
+    end
+    return register_grad!(assets, [first; A; last], [rise; T; fall], 0, 0, delay, first, last, ctx)
 end
-# Trapezoidal gradient waveform (into [TRAP] section) (first and last ARE NOT USED)
-function register_grad!(assets::PulseqExportAssets, A::Real, T, rise, fall, delay, first, last, ctx::PulseqExportContext)
+# Uniformly-sampled waveform
+function register_grad!(assets::PulseqExportAssets, A::Vector, T::Number, rise, fall, delay, first, last, ctx::PulseqExportContext)
+    iszero(maximum(abs.(A))) && return 0
+    Δgr = ctx.gradientRasterTime
+    intervals = diff(collect(range(0, T, length=length(A))))
+    if (rise == Δgr/2 && fall == Δgr/2) & all(intervals .≈ Δgr)
+        time_id   = 0
+        shape_id  = _store_shape!(assets.shapes, A ./ maximum(abs.(A)); compress=true)
+        amp       = γ * maximum(abs.(A)) # from T/m to Hz/m (nucleus-dependent)
+        delay     = round(Int, delay * 1e6) # from s to us
+        first     = γ * first # from T/m to Hz/m 
+        last      = γ * last  # from T/m to Hz/m
+        aux       = (amp, first, last, shape_id, time_id, delay)
+        return _store_event!(assets.gradients, aux)
+    end
+    return register_grad!(assets, [first; A; last], [rise; intervals; fall], 0, 0, delay, first, last, ctx)
+end
+# Trapezoidal waveform
+function register_grad!(assets::PulseqExportAssets, A::Number, T::Number, rise, fall, delay, first, last, ctx::PulseqExportContext)
     iszero(A) && return 0
-    amp   = γ * A # from T/m to Hz/m (nucleus-dependent)  
-    rise  = round(Int, rise  * 1e6) # from s to us
-    flat  = round(Int, T     * 1e6) # from s to us
-    fall  = round(Int, fall  * 1e6) # from s to us
-    delay = round(Int, delay * 1e6) # from s to us
-    aux = (amp, rise, flat, fall, delay)
-    return _store_event!(assets.trapezoids, aux)
+    if (iszero(first) && iszero(last)) 
+        amp   = γ * A # from T/m to Hz/m (nucleus-dependent)  
+        rise  = round(Int, rise  * 1e6) # from s to us
+        flat  = round(Int, T     * 1e6) # from s to us
+        fall  = round(Int, fall  * 1e6) # from s to us
+        delay = round(Int, delay * 1e6) # from s to us
+        aux = (amp, rise, flat, fall, delay)
+        return _store_event!(assets.trapezoids, aux)
+    end
+    return register_grad!(assets, [first, A, A, last], [rise, T, fall], 0, 0, delay, first, last, ctx)
 end 
-
-# A is a vector and T is a number (uniformly-sampled waveform)
-function register_grad_shapes!(shapes, A::Vector, Δgr; compress = true)
-    shape_id  = _store_shape!(shapes, A ./ maximum(abs.(A)); compress=compress)
-    return shape_id, 0
-end
-# A and T are vectors (time-shaped waveform)
-function register_grad_shapes!(shapes, A::Vector, T::Vector, Δgr; compress = true)
-    shape_id = _store_shape!(shapes, A ./ maximum(abs.(A)); compress=compress)
-    t_vector = cumsum([0;  T]) ./ Δgr
-    time_id  = _store_shape!(shapes, t_vector; compress=compress)
-    return shape_id, time_id
-end
 
 """
     id = register_adc!(assets, N, T, delay, Δf, ϕ, ctx)
+
+In Pulseq the ADC event starts at a dwell-time edge, but the first sample is taken at dwell/2
+(see [Pulseq time and shape specification](https://pulseq.github.io/pulseq_shapes_and_times.pdf)).
+Koma uses delay = time to first sample, so we store pulseq_delay = delay - dwell_s/2. For exact
+round-trip (write → read) the Koma ADC delay must be ≥ dwell_s/2; otherwise it is clamped and a
+warning is emitted.
 """
 function register_adc!(assets::PulseqExportAssets, N, T, delay, Δf, ϕ, ctx::PulseqExportContext)
-    iszero(N) && return 0
+    iszero(N) && return (0, 0.0)
     dwell_s = N == 1 ? T : T / (N - 1)
-    dwell = dwell_s * 1e9 # from s to ns
-    del = round(Int, (delay - dwell_s/2) * 1e6) # from s to us, subtract dwell/2 
+    dwell_ns = round(Int, dwell_s * 1e9)
+    # Use exact dwell that the reader will get (dwell_ns*1e-9) so write/read round-trip is exact
+    dwell_s_exact = dwell_ns * 1e-9
+    dwell = dwell_ns
+    del   = round(Int, (delay - dwell_s_exact/2) * 1e6) # from s to us, subtract dwell/2
+    if del < 0
+        @warn "ADC delay in Koma ($(round(delay*1e3, digits=4)) ms) is below dwell/2 ($(round(dwell_s*1e3/2, digits=4)) ms).
+        In Pulseq the first sample is at dwell/2, so a smaller delay cannot be represented; it is clamped to 0.
+        For exact round-trip correspondence, use ADC delay ≥ dwell/2 (e.g. via quantize_to_pulseq).
+        See https://pulseq.github.io/pulseq_shapes_and_times.pdf#page=10"
+        del = 0
+    end
     freq_ppm = 0.0
     phase_ppm = 0.0
     freq = Δf
     phase = ϕ
     phase_id = 0 # TODO: implement phase shape in Koma
     aux = (N, dwell, del, freq_ppm, phase_ppm, freq, phase, phase_id)
-    return _store_event!(assets.adc, aux)
+    return _store_event!(assets.adc, aux), delay + T - dwell_s_exact/2
 end
 
 """
@@ -1380,6 +1408,20 @@ end
 
 """
     write_seq(seq, filename)
+
+Writes a Sequence struct to a Pulseq file with `.seq` extension.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+- `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
+
+# Examples
+```julia-repl
+julia> seq = Sequence()
+julia> seq += RF(2e-6, 3e-3)
+julia> seq += ADC(100, 100e-3)
+julia> write_seq(seq, "fid.seq")
+```
 """
 function write_seq(
     seq::Sequence, filename::String;

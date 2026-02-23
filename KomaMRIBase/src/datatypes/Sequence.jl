@@ -146,32 +146,38 @@ size(x::Sequence) = size(x.GR[1,:])
 
 # Sequence comparison
 function Base.:(≈)(x::Sequence, y::Sequence)
-	has_active_events(block::Sequence) = is_GR_on(block) || is_RF_on(block) || is_ADC_on(block)
 	length(x) == length(y) || return false
+	not_empty(ev) = !isempty(ev.t)
 	equal_blocks = Bool[]
-	for i in 1:length(x) # Iterate over blocks
+	for i in 1:length(x)
 		equal_events = Bool[]
-		bx, by = x[i], y[i]
-		for event in [:GR, :RF, :ADC]
-			ex, ey = getfield(bx, event), getfield(by, event)
-			for j in 1:size(ex, 1)
-				amp_field = hasfield(typeof(ex[j]), :A) ? :A : :N
-				non_contributing_event = (getfield(ex[j], amp_field) == getfield(ey[j], amp_field) == 0) && has_active_events(bx) && has_active_events(by)  
-				is_equal = non_contributing_event ? true : ex[j] ≈ ey[j]
-				is_equal || @info "Event $event $j is not equal: $ex[j] ≈ $ey[j]"
-				push!(equal_events, is_equal)
+		equal_durs = x.DUR[i] ≈ y.DUR[i]
+		blk1, blk2 = get_samples(x, i), get_samples(y, i)
+		for key in keys(blk1)
+			ev1, ev2 = blk1[key], blk2[key]
+			(not_empty(ev1) && not_empty(ev2)) || continue
+			is_equal = if (length(ev1.A) == length(ev2.A) && length(ev1.t) == length(ev2.t))
+				ev1.A ≈ ev2.A && ev1.t ≈ ev2.t
+			else # Different number of samples: check if waveforms are the same on a common time grid
+				t_min = max(ev1.t[1], ev2.t[1])
+				t_max = min(ev1.t[end], ev2.t[end])
+				if t_max <= t_min
+					false
+				else
+					t1 = copy(ev1.t); t2 = copy(ev2.t)
+					Interpolations.deduplicate_knots!(t1; move_knots=true)
+					Interpolations.deduplicate_knots!(t2; move_knots=true)
+					common_time = range(t_min, t_max; length=max(length(ev1.t), length(ev2.t)))
+					itp1 = Interpolations.linear_interpolation(t1, ev1.A)
+					itp2 = Interpolations.linear_interpolation(t2, ev2.A)
+					all(isapprox.(itp1.(common_time), itp2.(common_time)))
+				end
 			end
+			push!(equal_events, is_equal)
 		end
-		push!(equal_blocks, all(equal_events) && (bx.DUR ≈ by.DUR) && all(bx.EXT[1] .≈ by.EXT[1]))
+		push!(equal_blocks, all(equal_events) && equal_durs)
 	end
-	# Check if all elements of one DEF dictionary are contained in the other
-	# This allows for additional definitions in either dictionary (e.g., from Pulseq format)
-	# One sequence (e.g., after read) may have more elements, but must contain at least all from the other
-	equal_definitions = (all(k -> haskey(y.DEF, k) && y.DEF[k] == x.DEF[k], keys(x.DEF)) ||
-	                     all(k -> haskey(x.DEF, k) && x.DEF[k] == y.DEF[k], keys(y.DEF)))
-
 	return all(equal_blocks)
-	# && equal_definitions TODO: compare definitions correctly
 end
 
 """
