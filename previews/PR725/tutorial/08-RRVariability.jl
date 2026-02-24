@@ -28,7 +28,7 @@ raw1 = @suppress simulate(obj, seq, sys); #hide
 frames1 = @suppress reconstruct_cine(raw1, seq, N_matrix, N_phases); #hide
 
 fps = 25 #hide
-p2 = @suppress plot_cine(frames1, fps; Δt=TR, filename="../assets/tut-7-frames1.gif"); #hide
+p2 = @suppress plot_cine(frames1, fps; Δt=TR, filename="../public/assets/tut-7-frames1.gif"); #hide
 display(p2);
 
 RRs = [900, 1100, 1000, 1000, 1000, 800] .* 1e-3;
