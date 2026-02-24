@@ -56,7 +56,7 @@ frames1 = @suppress reconstruct_cine(raw1, seq, N_matrix, N_phases); #hide
 # which look clean and temporally coherent:
 
 fps = 25 #hide
-p2 = @suppress plot_cine(frames1, fps; Δt=TR, filename="../assets/tut-7-frames1.gif"); #hide
+p2 = @suppress plot_cine(frames1, fps; Δt=TR, filename="../public/assets/tut-7-frames1.gif"); #hide
 #jl display(p2);
 #nb display(p2);
 
@@ -132,7 +132,7 @@ frames3 = @suppress reconstruct_cine(raw3, seq, N_matrix, N_phases); #hide
 #nb plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif");
 
 #md # Below, we compare the results of the desynchronized 👎 acquisition simulated in the previous section with the resynchronized 🕐 acquisition: 
-#md @suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../assets/tut-7-frames_comparison.gif"); #hide
+#md @suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../public/assets/tut-7-frames_comparison.gif"); #hide
 #md # ```@raw html
 #md # <center><object data="../../assets/tut-7-frames_comparison.gif" style="width:100%"></object></center>
 #md # ```
