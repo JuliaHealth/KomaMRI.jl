@@ -61,7 +61,7 @@ p2 = @suppress plot_cine(frames1, fps; Δt=TR, filename="../public/assets/tut-7-
 #nb display(p2);
 
 #md # ```@raw html
-#md # <center><object data="../../assets/tut-7-frames1.gif" style="width:100%; max-width:325px"></object></center>
+#md # <center><object data="../assets/tut-7-frames1.gif" style="width:100%; max-width:325px"></object></center>
 #md # ```
 
 # ### 2. Arrhythmic Phantom: Variable RR, Constant Sequence
@@ -107,8 +107,13 @@ raw2 = @suppress simulate(obj, seq, sys) #hide
 ## Reconstruction #hide
 frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
 
+#md @suppress plot_cine(frames2, fps; Δt=TR, filename="../public/assets/tut-7-frames2.gif"); #hide
 #jl plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
 #nb plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
+
+#md # ```@raw html
+#md # <center><object data="../assets/tut-7-frames2.gif" style="width:100%; max-width:325px"></object></center>
+#md # ```
 
 # ### 3. Prospective Triggering: Resynchronized Acquisition
 # To correct this, we synchronize the sequence **manually** by providing it the same RR intervals as the phantom:
@@ -134,6 +139,6 @@ frames3 = @suppress reconstruct_cine(raw3, seq, N_matrix, N_phases); #hide
 #md # Below, we compare the results of the desynchronized 👎 acquisition simulated in the previous section with the resynchronized 🕐 acquisition: 
 #md @suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../public/assets/tut-7-frames_comparison.gif"); #hide
 #md # ```@raw html
-#md # <center><object data="../../assets/tut-7-frames_comparison.gif" style="width:100%"></object></center>
+#md # <center><object data="../assets/tut-7-frames_comparison.gif" style="width:100%"></object></center>
 #md # ```
 
