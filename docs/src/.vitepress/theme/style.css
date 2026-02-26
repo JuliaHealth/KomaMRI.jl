@@ -211,43 +211,25 @@ mjx-container svg path {
   max-height: 320px !important;
 }
 
-/* Julia REPL prompt syntax highlighting (added by cncastillo) */
-/* de-emphasize prompts */
+/* Julia REPL prompt syntax highlighting */
+/* prompt token behavior */
 .vp-doc .shiki .repl-prompt {
   opacity: 1.0;
   user-select: none;
 }
 
-/* Dark theme */
-.dark .vp-doc .shiki .repl-prompt-julia {
-  color: #00af00;
-}
-
-.dark .vp-doc .shiki .repl-prompt-pkg {
-  color: #00afff;
-}
-
-.dark .vp-doc .shiki .repl-prompt-help {
-  color: #ffd700;
-}
-
-.dark .vp-doc .shiki .repl-prompt-shell {
-  color: #d70000;
-}
-
-/* Light theme */
 :root:not(.dark) .vp-doc .shiki .repl-prompt-julia {
-  color: #008000;
+  color: var(--vp-dark-green);
 }
 
 :root:not(.dark) .vp-doc .shiki .repl-prompt-pkg {
-  color: #0077cc;
+  color: var(--vp-c-brand-light);
 }
 
-:root:not(.dark) .vp-doc .shiki .repl-prompt-help {
-  color: #b58900;
+.dark .vp-doc .shiki .repl-prompt-julia {
+  color: var(--vp-dark-green-light);
 }
 
-:root:not(.dark) .vp-doc .shiki .repl-prompt-shell {
-  color: #cc0000;
+.dark .vp-doc .shiki .repl-prompt-pkg {
+  color: var(--vp-c-brand-dark);
 }
