@@ -50,9 +50,7 @@ p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41) #hide
 
 display(p3);
 
-# Simulation  #hide
 raw2 = @suppress simulate(obj, seq, sys) #hide
-# Reconstruction #hide
 frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
 
 plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
