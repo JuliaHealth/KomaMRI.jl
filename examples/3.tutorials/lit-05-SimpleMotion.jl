@@ -18,6 +18,7 @@ obj.Δw .= 0; #hide
 
 obj.motion = translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
 p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4) #hide
+#md p1 #hide
 #jl display(p1);
 
 ## Read Sequence #hide

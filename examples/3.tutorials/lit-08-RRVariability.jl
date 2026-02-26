@@ -102,10 +102,12 @@ p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41) #hide
 # Since the sequence still assumes a constant RR interval, it becomes unsynchronized with the phantom.
 # This results in artifacts and temporal inconsistencies in the cine images. We will showcase these images in the next section.
 
+## Simulation  #hide
 raw2 = @suppress simulate(obj, seq, sys) #hide
+## Reconstruction #hide
 frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
 
-#md @suppress plot_cine(frames2, fps; Δt=TR, filename="../public/assets/tut-7-frames2.gif"); #hide
+@suppress plot_cine(frames2, fps; Δt=TR, filename="../public/assets/tut-7-frames2.gif"); #hide
 #jl plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
 #nb plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
 
@@ -135,8 +137,7 @@ frames3 = @suppress reconstruct_cine(raw3, seq, N_matrix, N_phases); #hide
 #nb plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif");
 
 #md # Below, we compare the results of the desynchronized 👎 acquisition simulated in the previous section with the resynchronized 🕐 acquisition: 
-#md @suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../public/assets/tut-7-frames_comparison.gif"); #hide
+@suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../public/assets/tut-7-frames_comparison.gif"); #hide
 #md # ```@raw html
 #md # <center><object data="../assets/tut-7-frames_comparison.gif" style="width:100%"></object></center>
 #md # ```
-
