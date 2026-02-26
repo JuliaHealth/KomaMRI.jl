@@ -50,9 +50,12 @@ p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41) #hide
 
 display(p3);
 
+# Simulation  #hide
 raw2 = @suppress simulate(obj, seq, sys) #hide
+# Reconstruction #hide
 frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
 
+@suppress plot_cine(frames2, fps; Δt=TR, filename="../public/assets/tut-7-frames2.gif"); #hide
 plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
 
 seq = bSSFP_cine(
@@ -66,5 +69,7 @@ raw3 = @suppress simulate(obj, seq, sys) #hide
 frames3 = @suppress reconstruct_cine(raw3, seq, N_matrix, N_phases); #hide
 
 plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif");
+
+@suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../public/assets/tut-7-frames_comparison.gif"); #hide
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
