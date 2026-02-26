@@ -173,7 +173,7 @@ p2 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 
 obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002));
 
-p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440); #hide
+p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 #jl display(p3);
 
 # ### Motion combination

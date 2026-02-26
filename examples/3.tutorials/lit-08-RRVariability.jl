@@ -102,9 +102,7 @@ p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41) #hide
 # Since the sequence still assumes a constant RR interval, it becomes unsynchronized with the phantom.
 # This results in artifacts and temporal inconsistencies in the cine images. We will showcase these images in the next section.
 
-## Simulation  #hide
 raw2 = @suppress simulate(obj, seq, sys) #hide
-## Reconstruction #hide
 frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
 
 #md @suppress plot_cine(frames2, fps; Δt=TR, filename="../public/assets/tut-7-frames2.gif"); #hide
