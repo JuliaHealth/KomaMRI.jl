@@ -17,10 +17,8 @@ obj.Δw .= 0; #hide
 # In this example, we will add a [`translate`](@ref) of 2 cm in x, with duration of 200 ms (v = 0.1 m/s):
 
 obj.motion = translate(2e-2, 0.0, 0.0, TimeRange(t_start=0.0, t_end=200e-3))
-p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4) #hide
-#md p1 #hide
-#jl display(p1);
-
+p1 = plot_phantom_map(obj, :T2 ; height=450, time_samples=4)
+# 
 ## Read Sequence #hide
 seq_file1 = joinpath(dirname(pathof(KomaMRI)), "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq") #hide
 seq1 = @suppress read_seq(seq_file1); #hide
