@@ -21,7 +21,6 @@ p1 = plot(SLC_vec, Layout(
     xaxis_title="n° blocks",
     yaxis_title="SLC label"
 ))
-
 display(p1);
 
 sim_params = KomaMRICore.default_sim_params()
@@ -52,9 +51,7 @@ image = abs.(reshape(rec,Nx,Ny,:));
 
 p2 = plot_image(image[:,:,1], height=400);
 p3 = plot_image(image[:,:,2], height=400);
-
-display(p2);
-display(p3);
+display([p2 p3]);
 
 seq_LIN = PulseDesigner.EPI_example()
 lInc = LabelInc(1,"LIN");
@@ -79,8 +76,7 @@ acqData = AcquisitionData(raw,estimateProfileCenter=true);
 recParams = Dict{Symbol,Any}()
 rec = reconstruction(acqData, recParams);
 
-p4=plot_image(abs.(rec[:,:,1]), height=400);
-
+p4=plot_image(abs.(rec[:,:,1]), height=400)
 display(p4);
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

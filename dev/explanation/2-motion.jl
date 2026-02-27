@@ -49,7 +49,7 @@ display(p2);
 
 obj.motion = translate(-5e-4, 6e-4, 7e-4, TimeRange(0.0, 1.0), SpinRange(7500:15002));
 
-p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440); #hide
+p3 = plot_phantom_map(obj, :T1; time_samples=11, height=440) #hide
 display(p3);
 
 obj1 = brain_phantom2D() #hide
@@ -70,9 +70,8 @@ obj = obj1 + obj2
 p4 = plot_phantom_map(obj, :T1; time_samples=11, view_2d=true, height=440) #hide
 display(p4);
 
-obj = brain_phantom2D()
-
 Random.seed!(1234) #hide
+obj = brain_phantom2D()
 
 Nintervals = 10
 interval_dur = 0.1
@@ -93,7 +92,6 @@ obj.motion = MotionList(motion_list...);
 
 p5 = plot_phantom_map(obj, :T1; time_samples=21, view_2d=true, height=440) #hide
 display(p5);
-
 
 p6 = plot( #hide
     (0:interval_dur:interval_dur*length(tra_x)) .* 1e3, #hide
