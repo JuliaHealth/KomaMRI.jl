@@ -1,7 +1,7 @@
 # API Overview
 
 ```@raw html
-<p align="center"><img width="100%" src="../../assets/koma-schema-subdirs.svg"/></p>
+<p align="center"><img width="100%" src="../assets/koma-schema-subdirs.svg"/></p>
 ```
 
 KomaMRI is divided into the following sub-packages:
