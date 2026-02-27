@@ -54,7 +54,6 @@ display(p3);
 raw2 = @suppress simulate(obj, seq, sys) #hide
 # Reconstruction #hide
 frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
-
 @suppress plot_cine(frames2, fps; Δt=TR, filename="../public/assets/tut-7-frames2.gif"); #hide
 plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
 
