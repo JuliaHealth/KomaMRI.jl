@@ -37,6 +37,24 @@ export const Theme: ThemeConfig = {
     app.component('VersionPicker', VersionPicker);
     app.component('AuthorBadge', AuthorBadge)
     app.component('Authors', Authors)
+
+    // Decode HTML-escaped page titles (e.g. &#39; -> ')
+    if (typeof window !== 'undefined') {
+      const fixTitle = () => {
+        if (!document.title.includes('&')) return
+        const textarea = document.createElement('textarea')
+        textarea.innerHTML = document.title
+        document.title = textarea.value
+      }
+
+      const previousAfterRouteChange = router.onAfterRouteChange
+      router.onAfterRouteChange = async (to: string) => {
+        await previousAfterRouteChange?.(to)
+        requestAnimationFrame(fixTitle)
+      }
+
+      requestAnimationFrame(fixTitle)
+    }
   }
 }
 export default Theme
