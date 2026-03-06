@@ -88,6 +88,24 @@ end
         @test seq.DEF["PulseqVersion"] == v"1.2.1"
         @test seq.DEF["signature"][:hash] == "e827cfff4436b65a6341a4fa0f6deb07"
     end
+    @testset "Rotations" begin
+        pth = (@__DIR__ ) * "/test_files/pulseq/basic_tests/v1.5/lps.seq"
+        seq_no_rot = @suppress read_seq(pth; apply_rotations=false)
+        seq_rot    = @suppress read_seq(pth) # default apply_rotations=true
+
+        nrot_no_rot = count(ext -> ext isa QuaternionRot, Iterators.flatten(seq_no_rot.EXT))
+        nrot_rot    = count(ext -> ext isa QuaternionRot, Iterators.flatten(seq_rot.EXT))
+        @test nrot_no_rot > 0
+        @test nrot_no_rot == nrot_rot
+
+        seq_no_rot_applied = copy(seq_no_rot)
+        apply_rotations!(seq_no_rot_applied)
+        @test seq_no_rot_applied.GR.A ≈ seq_rot.GR.A
+
+        seq_rot_reversed = copy(seq_rot)
+        apply_rotations!(seq_rot_reversed; reverse=true)
+        @test seq_rot_reversed.GR.A ≈ seq_no_rot.GR.A
+    end
     @testset "Compression-Decompression" begin
         shape = ones(100)
         num_samples, compressed_data = KomaMRIFiles.compress_shape(shape)
