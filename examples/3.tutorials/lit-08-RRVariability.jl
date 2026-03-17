@@ -21,12 +21,7 @@ obj = heart_phantom();
 
 # By default, this phantom exhibits periodic contraction and rotation with a 1-second period:
 p1 = plot_phantom_map(obj, :T1 ; height=450, time_samples=21) #hide
-#md PlotlyJS.savefig(p1, "../assets/tut-6-phantom1.html"); #hide
 #jl display(p1);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-6-phantom1.html" style="width:90%; height:470px;"></object></center>
-#md # ```
 
 # As shown in previous tutorials, the phantom's motion is defined by its `motion` field.
 # Until now, this motion has typically consisted of a single `Motion` component.
@@ -61,12 +56,12 @@ frames1 = @suppress reconstruct_cine(raw1, seq, N_matrix, N_phases); #hide
 # which look clean and temporally coherent:
 
 fps = 25 #hide
-p2 = @suppress plot_cine(frames1, fps; Δt=TR, filename="../assets/tut-7-frames1.gif"); #hide
+p2 = @suppress plot_cine(frames1, fps; Δt=TR, filename="../public/assets/tut-7-frames1.gif"); #hide
 #jl display(p2);
 #nb display(p2);
 
 #md # ```@raw html
-#md # <center><object data="../../assets/tut-7-frames1.gif" style="width:100%; max-width:325px"></object></center>
+#md # <center><object data="../assets/tut-7-frames1.gif" style="width:100%; max-width:325px"></object></center>
 #md # ```
 
 # ### 2. Arrhythmic Phantom: Variable RR, Constant Sequence
@@ -101,12 +96,8 @@ obj.motion.motions[2].time = t_curve_new;
 # Let’s visualize how the motion pattern has changed, now with variable-duration RR intervals:
 
 p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41) #hide
-#md PlotlyJS.savefig(p3, "../assets/tut-6-phantom2.html"); #hide
-#jl display(p3);
 
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-6-phantom2.html" style="width:90%; height:470px;"></object></center>
-#md # ```
+#jl display(p3);
 
 # Since the sequence still assumes a constant RR interval, it becomes unsynchronized with the phantom.
 # This results in artifacts and temporal inconsistencies in the cine images. We will showcase these images in the next section.
@@ -115,7 +106,7 @@ p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41) #hide
 raw2 = @suppress simulate(obj, seq, sys) #hide
 ## Reconstruction #hide
 frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
-
+@suppress plot_cine(frames2, fps; Δt=TR, filename="../public/assets/tut-7-frames2.gif"); #hide
 #jl plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
 #nb plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
 
@@ -141,8 +132,7 @@ frames3 = @suppress reconstruct_cine(raw3, seq, N_matrix, N_phases); #hide
 #nb plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif");
 
 #md # Below, we compare the results of the desynchronized 👎 acquisition simulated in the previous section with the resynchronized 🕐 acquisition: 
-#md @suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../assets/tut-7-frames_comparison.gif"); #hide
+@suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../public/assets/tut-7-frames_comparison.gif"); #hide
 #md # ```@raw html
-#md # <center><object data="../../assets/tut-7-frames_comparison.gif" style="width:100%"></object></center>
+#md # <center><object data="../assets/tut-7-frames_comparison.gif" style="width:100%"></object></center>
 #md # ```
-
