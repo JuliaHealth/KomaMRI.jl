@@ -157,7 +157,8 @@ function read_extensions(io, ext_string, ext_type::Type{<:Extension}, ext_id, ex
     extensionSpecLibrary[ext_id] = read_events(io, KomaMRIBase.get_scale(ext_type); format="%i "*KomaMRIBase.get_scanf_format(ext_type))
 end
 function read_extensions(io, ext_string, ext_type, ext_id, extensionTypeLibrary, extensionSpecLibrary, required_extensions)
-    if ext_string == required_extensions || ext_string in required_extensions
+    required = required_extensions isa String ? [required_extensions] : required_extensions
+    if ext_string in required
         error("Extension $ext_string is required by the sequence (RequiredExtensions: $required_extensions) but not supported by KomaMRI reader")
     else
         @warn "Ignoring unsupported extension: $ext_string"
@@ -613,7 +614,6 @@ function get_RF(rfLibrary, shapeLibrary, Δt_rf, i; simplify_shapes=true)
     if amplitude != 0 && mag_id != 0
         rfA = decompress_shape(shapeLibrary[mag_id]...)
         rfϕ = decompress_shape(shapeLibrary[phase_id]...)
-        @assert all(rfϕ.>=0) "[RF id $i] Phase waveform rfϕ must have non-negative samples (1.>=rfϕ.>=0). "
         Nrf = shapeLibrary[mag_id][1] - 1
         rfAϕ = amplitude .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
     else
@@ -1010,7 +1010,7 @@ function register_rf!(assets::PulseqExportAssets, A, T, Δf, delay, center, use,
     freq_ppm     = 0.0
     phase_ppm    = 0.0
     freq_offset  = Δf
-    phase_offset = sum(angle.(A)) / length(A)
+    phase_offset = mod.(angle.(A), 2π)[1]
     use          = KomaMRIBase.get_char_from_RF_use(use)
     aux = (amp, mag_id, phase_id, time_id, center, delay, freq_ppm, phase_ppm, freq_offset, phase_offset, use)
     return _store_event!(assets.rf, aux)
@@ -1019,29 +1019,27 @@ end
 # A and T are numbers (pulse waveform)
 function register_rf_shapes!(shapes, A, T, Δrf; compress = true)
     mag_id   = _store_shape!(shapes, [1.0, 1.0]; compress=compress)
-    phase_id = _store_shape!(shapes, [0.0, 0.0]; compress=compress)
-    time_id  = _store_shape!(shapes, [0.0, T] ./ Δrf; compress=compress)
+    phase_id = _store_shape!(shapes, [0.0, 0.0]; compress=compress, phase_equality=true)
+    time_is  = _store_shape!(shapes, [0.0, T] ./ Δrf; compress=compress)
     return mag_id, phase_id, time_id
 end
 # A is a vector (uniformly-sampled waveform)
 function register_rf_shapes!(shapes, A::Vector, T, Δrf; compress = true)
-    n_samples = length(A)
-    mag_id    = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
-    phase_shape  = mod.(angle.(A), 2π) / 2π
-    phase_offset = sum(phase_shape) / n_samples
-    phase_id = _store_shape!(shapes, phase_shape .- phase_offset; compress=compress)
-    t_vector = collect(range(0, T, length=n_samples)) ./ Δrf
-    time_id  = _store_shape!(shapes, t_vector; compress=compress)
+    n_samples   = length(A)
+    mag_id      = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
+    phase_shape = mod.(angle.(A), 2π) / 2π
+    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_equality=true)
+    t_vector    = collect(range(0, T, length=n_samples)) ./ Δrf
+    time_id     = _store_shape!(shapes, t_vector; compress=compress)
     return mag_id, phase_id, time_id
 end
 # A and T are vectors (time-shaped waveform)
 function register_rf_shapes!(shapes, A::Vector, T::Vector, Δrf; compress = true)
-    mag_id    = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
-    phase_shape  = mod.(angle.(A), 2π) / 2π
-    phase_offset = sum(phase_shape) / length(A)
-    phase_id = _store_shape!(shapes, phase_shape .- phase_offset; compress=compress)
-    t_vector = cumsum(vcat(0.0, T ./ Δrf))
-    time_id  = _store_shape!(shapes, t_vector; compress=compress)
+    mag_id      = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
+    phase_shape = mod.(angle.(A), 2π) / 2π
+    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_equality=true)
+    t_vector    = cumsum(vcat(0.0, T ./ Δrf))
+    time_id     = _store_shape!(shapes, t_vector; compress=compress)
     return mag_id, phase_id, time_id
 end
 
@@ -1173,17 +1171,23 @@ function _store_shape!(
     shapes::Dict{Int,Tuple{Int,Vector{Float64}}},
     samples::Vector{Float64};
     compress::Bool = true,
+    phase_equality::Bool = false
 )
     payload = compress ? compress_shape(samples) : (length(samples), samples)
     for (k, existing) in shapes
-        if existing == payload
-            return k
+        if phase_equality
+            existing_phase = existing[2] .- existing[2][1]
+            if safe_equal_angles(existing_phase, payload[2]) && existing[1] == payload[1] return k end
+        else
+            if existing == payload return k end
         end
     end
     new_id = maximum(keys(shapes); init=0) + 1
     shapes[new_id] = payload
     return new_id
 end
+
+safe_equal_angles(a1, a2) = length(a1) == length(a2) && abs(sum(exp.(1im * 2π * a1) .* exp.(-1im * 2π * a2)) / length(a1)) == 1
 
 """
     emit_pulseq(io::IO, ctx::PulseqExportContext, assets::PulseqExportAssets)
