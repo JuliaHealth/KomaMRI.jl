@@ -157,7 +157,8 @@ function read_extensions(io, ext_string, ext_type::Type{<:Extension}, ext_id, ex
     extensionSpecLibrary[ext_id] = read_events(io, KomaMRIBase.get_scale(ext_type); format="%i "*KomaMRIBase.get_scanf_format(ext_type))
 end
 function read_extensions(io, ext_string, ext_type, ext_id, extensionTypeLibrary, extensionSpecLibrary, required_extensions)
-    if ext_string == required_extensions || ext_string in required_extensions
+    required = required_extensions isa String ? [required_extensions] : required_extensions
+    if ext_string in required
         error("Extension $ext_string is required by the sequence (RequiredExtensions: $required_extensions) but not supported by KomaMRI reader")
     else
         @warn "Ignoring unsupported extension: $ext_string"
