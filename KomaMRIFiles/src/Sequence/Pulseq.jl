@@ -1007,7 +1007,7 @@ function register_rf!(assets::PulseqExportAssets, A, T, Δf, delay, center, use,
     freq_ppm     = 0.0
     phase_ppm    = 0.0
     freq_offset  = Δf
-    phase_offset = 0.0
+    phase_offset = sum(angle.(A)) / length(A)
     use          = KomaMRIBase.get_char_from_RF_use(use)
     aux = (amp, mag_id, phase_id, time_id, center, delay, freq_ppm, phase_ppm, freq_offset, phase_offset, use)
     return _store_event!(assets.rf, aux)
@@ -1015,26 +1015,30 @@ end
 
 # A and T are numbers (pulse waveform)
 function register_rf_shapes!(shapes, A, T, Δrf; compress = true)
-    mag_id    = _store_shape!(shapes, [1.0, 1.0]; compress=compress)
-    phase_id  = _store_shape!(shapes, [0.0, 0.0]; compress=compress)
-    time_id   = _store_shape!(shapes, [0.0, T] ./ Δrf; compress=compress)
+    mag_id   = _store_shape!(shapes, [1.0, 1.0]; compress=compress)
+    phase_id = _store_shape!(shapes, [0.0, 0.0]; compress=compress)
+    time_id  = _store_shape!(shapes, [0.0, T] ./ Δrf; compress=compress)
     return mag_id, phase_id, time_id
 end
 # A is a vector (uniformly-sampled waveform)
 function register_rf_shapes!(shapes, A::Vector, T, Δrf; compress = true)
     n_samples = length(A)
     mag_id    = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
-    phase_id  = _store_shape!(shapes, mod.(angle.(A) / (2π), 1.0); compress=compress)
-    t_vector  = collect(range(0, T, length=n_samples)) ./ Δrf
-    time_id   = _store_shape!(shapes, t_vector; compress=compress)
+    phase_shape  = mod.(angle.(A), 2π) / 2π
+    phase_offset = sum(phase_shape) / n_samples
+    phase_id = _store_shape!(shapes, phase_shape .- phase_offset; compress=compress)
+    t_vector = collect(range(0, T, length=n_samples)) ./ Δrf
+    time_id  = _store_shape!(shapes, t_vector; compress=compress)
     return mag_id, phase_id, time_id
 end
 # A and T are vectors (time-shaped waveform)
 function register_rf_shapes!(shapes, A::Vector, T::Vector, Δrf; compress = true)
     mag_id    = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
-    phase_id  = _store_shape!(shapes, mod.(angle.(A) / (2π), 1.0); compress=compress)
+    phase_shape  = mod.(angle.(A), 2π) / 2π
+    phase_offset = sum(phase_shape) / length(A)
+    phase_id = _store_shape!(shapes, phase_shape .- phase_offset; compress=compress)
     t_vector = cumsum(vcat(0.0, T ./ Δrf))
-    time_id   = _store_shape!(shapes, t_vector; compress=compress)
+    time_id  = _store_shape!(shapes, t_vector; compress=compress)
     return mag_id, phase_id, time_id
 end
 
@@ -1351,7 +1355,7 @@ function emit_extension_section!(io::IO, assets::PulseqExportAssets)
         for spec_id in spec_ids
             v = assets.extensionSpecs[id][spec_id]
             field_values = Tuple(getfield(v, f) for f in fieldnames(typeof(v)))
-            scaled_values = [d isa Char ? d : s*d for (s, d) in zip(KomaMRIBase.get_scale(typeof(v)), field_values)]     
+            scaled_values = [d isa Number ? s*d : d for (s, d) in zip(KomaMRIBase.get_scale(typeof(v)), field_values)]   
             vals = (spec_id, scaled_values...)
             max_lengths = zeros(Int, length(vals))
             for (i, val) in enumerate(vals)
