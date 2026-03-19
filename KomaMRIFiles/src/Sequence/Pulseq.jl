@@ -40,7 +40,7 @@ function read_definitions(io)
         key = line_split[1]
         value_string_array = line_split[2:end]
         parsed_array = [tryparse(Float64, s) === nothing ? s : tryparse(Float64, s) for s = value_string_array]
-        def[key] = (length(parsed_array) == 1) ? parsed_array[1] : parsed_array
+        def[key] = length(parsed_array) == 1 ? parsed_array[1] : parsed_array
     end
     #Default values
     if !haskey(def,"BlockDurationRaster")       def["BlockDurationRaster"] = DEFAULT_DEFINITIONS["BlockDurationRaster"] end
