@@ -57,7 +57,7 @@ function round_trip_sequences()
     push!(sequences, seq)
 
     # 3. Uniformly-shaped gradient
-    t = 0:0.25:1
+    t = 0:0.1:1
     A = 10*10e-6 * sqrt.(π*t) .* sin.(π*t)
     T = 10e-3
     delay, rise, fall = 1e-3, 5e-6 , 5e-6
@@ -67,5 +67,16 @@ function round_trip_sequences()
     seq.DEF["Name"] = "gr-uniformly-shaped"
     push!(sequences, seq)
 
+    # 4. Time-shaped gradient
+    t = 0:0.1:1
+    A = 10*10e-6 * sqrt.(π*t) .* sin.(π*t)
+    T = 1e-3 * rand(length(A)-1)
+    delay, rise, fall = 1e-3, 5e-6 , 5e-6
+    first, last = 1e-6, -5e-6
+    gr = Grad(A, T, rise, fall, delay, first, last)
+    seq = Sequence([gr])
+    seq.DEF["Name"] = "gr-time-shaped"
+    push!(sequences, seq)
+    
     return sequences
 end
