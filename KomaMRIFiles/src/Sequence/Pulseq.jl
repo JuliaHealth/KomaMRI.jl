@@ -40,7 +40,7 @@ function read_definitions(io)
         key = line_split[1]
         value_string_array = line_split[2:end]
         parsed_array = [tryparse(Float64, s) === nothing ? s : tryparse(Float64, s) for s = value_string_array]
-        def[key] = (length(parsed_array) == 1) ? parsed_array[1] : parsed_array
+        def[key] = length(parsed_array) == 1 ? parsed_array[1] : parsed_array
     end
     #Default values
     if !haskey(def,"BlockDurationRaster")       def["BlockDurationRaster"] = DEFAULT_DEFINITIONS["BlockDurationRaster"] end
@@ -1019,8 +1019,8 @@ end
 # A and T are numbers (pulse waveform)
 function register_rf_shapes!(shapes, A, T, Δrf; compress = true)
     mag_id   = _store_shape!(shapes, [1.0, 1.0]; compress=compress)
-    phase_id = _store_shape!(shapes, [0.0, 0.0]; compress=compress, phase_equality=true)
-    time_is  = _store_shape!(shapes, [0.0, T] ./ Δrf; compress=compress)
+    phase_id = _store_shape!(shapes, [0.0, 0.0]; compress=compress, phase_shape=true)
+    time_id  = _store_shape!(shapes, [0.0, T] ./ Δrf; compress=compress)
     return mag_id, phase_id, time_id
 end
 # A is a vector (uniformly-sampled waveform)
@@ -1028,7 +1028,7 @@ function register_rf_shapes!(shapes, A::Vector, T, Δrf; compress = true)
     n_samples   = length(A)
     mag_id      = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
     phase_shape = mod.(angle.(A), 2π) / 2π
-    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_equality=true)
+    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_shape=true)
     t_vector    = collect(range(0, T, length=n_samples)) ./ Δrf
     time_id     = _store_shape!(shapes, t_vector; compress=compress)
     return mag_id, phase_id, time_id
@@ -1037,7 +1037,7 @@ end
 function register_rf_shapes!(shapes, A::Vector, T::Vector, Δrf; compress = true)
     mag_id      = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
     phase_shape = mod.(angle.(A), 2π) / 2π
-    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_equality=true)
+    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_shape=true)
     t_vector    = cumsum(vcat(0.0, T ./ Δrf))
     time_id     = _store_shape!(shapes, t_vector; compress=compress)
     return mag_id, phase_id, time_id
@@ -1171,11 +1171,11 @@ function _store_shape!(
     shapes::Dict{Int,Tuple{Int,Vector{Float64}}},
     samples::Vector{Float64};
     compress::Bool = true,
-    phase_equality::Bool = false
+    phase_shape::Bool = false
 )
     payload = compress ? compress_shape(samples) : (length(samples), samples)
     for (k, existing) in shapes
-        if phase_equality
+        if phase_shape
             existing_phase = existing[2] .- existing[2][1]
             if safe_equal_angles(existing_phase, payload[2]) && existing[1] == payload[1] return k end
         else
