@@ -76,28 +76,52 @@ function read_signature(io)
     return has_hash ? (type = signature_type, hash = signature_hash) : nothing
 end
 
+
 """
 read_blocks Read the [BLOCKS] section of a sequence file.
-   library=read_blocks(fid) Read blocks from file identifier of an
-   open MR sequence file and return the event table.
+   library=read_blocks(fid, blockDurationRaster, pulseq_version)
+   Read blocks from file identifier of an open MR sequence file and
+   returns block IDs, durations and delay IDs as arrays or vectors.
+
 """
-function read_blocks(io, pulseq_version)
-    eventTable = Dict{Int64, Vector{Int64}}()
+function read_blocks(io, blockDurationRaster, pulseq_version)
+    NumberBlockEvents = pulseq_version <= v"1.2.1" ? 7 : 8
+    # we'll collect everything into a vector and then reshape later
+    # we assume that we have at least 1000 blocks and pre-allocate for that
+    blocks = empty!(Vector{Int}(undef, NumberBlockEvents * 1000))
+    blockDurations = empty!(Vector{Float64}(undef, 1000))
+    delayIDs_tmp = empty!(Vector{Float64}(undef, 1000))
+    num_lines = 0
     while true
-        NumberBlockEvents = pulseq_version <= v"1.2.1" ? 7 : 8
-        read_event = readline(io)
-        !isempty(read_event) || break
-        blockEvents = parse.(Int64, split(read_event))
+        blockEvents = [parse(Int, d) for d in eachsplit(readline(io))]
+        if length(blockEvents) == 0
+            # empty line. break (fixme: pulseq doesn't forbid that, I believe, but other funcs here rely on that too for detecting end of blocks block...)
+            # or maybe it forbids. p9 says 'subsequent lines...'
+            break
+        end
+        if length(blockEvents) != NumberBlockEvents
+            error("Expected $NumberBlockEvents events but got $(length(blockEvents)).")
+        end
         if blockEvents[1] != 0
             if pulseq_version <= v"1.2.1"
-                eventTable[blockEvents[1]] = Int64[blockEvents[2:end]...; 0]
+                # discard id and duration (duration treated below)
+                append!(blocks, blockEvents[3:end], 0) # append 0 for version compatibility (see assert below)
             else
-                eventTable[blockEvents[1]] = Int64[blockEvents[2:end]...]
+                append!(blocks, blockEvents[3:end])
+            end
+            if pulseq_version >= v"1.4.0" # Explicit block duration (in units of blockDurationRaster)
+                duration = blockEvents[2] * blockDurationRaster
+                push!(blockDurations, Float64(duration))
+            else # Implicit block duration from delay ID
+                push!(delayIDs_tmp, blockEvents[2])
             end
         end
-        length(blockEvents) == NumberBlockEvents || break #Break on white space
+        num_lines += 1
     end
-    return eventTable
+    reshaped_blocks = reshape(blocks, :, num_lines)
+    # we need 6 vals because we drop IDs and durations
+    @assert size(reshaped_blocks, 1) == 6 "unexpected number of fields per block"
+    return reshaped_blocks, blockDurations, delayIDs_tmp
 end
 
 """
@@ -293,26 +317,26 @@ function decompress_shape(num_samples, data; forceDecompression = false)
 end
 
 """
-    fix_first_last_grads!(obj::Dict)
+    fix_first_last_grads!(blockEvents::Array{Int, 2}, blockDurations::Vector{Float64}, eventLibraries::Dict, pulseq_version)
 
-Updates the `obj` dictionary with new first and last points for gradients.
+Updates the `eventLibraries` dictionary with new first and last points for gradients.
 
 # Notes:
 - This function is "replicating" the following MATLAB code:
 https://github.com/pulseq/pulseq/blob/v1.5.1/matlab/%2Bmr/%40Sequence/read.m#L325-L413
 - We are updating the `gradLibrary` entries with the new first and last points, making them compatible with the v1.5.x format.
 """
-function fix_first_last_grads!(obj::Dict, pulseq_version) 
+function fix_first_last_grads!(blockEvents::Array{Int, 2}, blockDurations::Vector{Float64}, eventLibraries::Dict, pulseq_version)
     # Add first and last Pulseq points
     grad_prev_last = [0.0; 0.0; 0.0]
-    for iB in 1:length(obj["blockEvents"])
-        eventIDs = obj["blockEvents"][iB];
-        block = get_block(obj, iB, pulseq_version)
+    for iB in 1:size(blockEvents, 2)
+        eventIDs = blockEvents[:, iB];
+        block = get_block(eventIDs, blockDurations[iB], eventLibraries, pulseq_version)
         processedGradIDs = zeros(1, 3);    
         for iG in 1:3
             g_id = eventIDs[2+iG]
             g_id > 0 || continue
-            g = obj["gradLibrary"][g_id]
+            g = eventLibraries["gradLibrary"][g_id]
             grad = g["data"]
             if g["type"] === 'g' # Arbitrary gradient waveform
                 v1_5 = length(grad) == 6 # (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay 
@@ -321,7 +345,7 @@ function fix_first_last_grads!(obj::Dict, pulseq_version)
                 v1_5 && continue # Already-updated (to v1.5 format) gradLibrary entry
                 # From here, we are dealing with version == 1.5.x
                 grad = v1_4 ? [grad[1]; grad_prev_last[iG]; 0.0; grad[2:end]] : [grad[1]; grad_prev_last[iG]; 0.0; grad[2]; 0; grad[3]]
-                waveform = grad[1] * decompress_shape(obj["shapeLibrary"][grad[4]]...)
+                waveform = grad[1] * decompress_shape(eventLibraries["shapeLibrary"][grad[4]]...)
                 if grad[6] > 0 # delay > 0
                     grad_prev_last[iG] = 0.0 
                 end
@@ -338,7 +362,7 @@ function fix_first_last_grads!(obj::Dict, pulseq_version)
                     continue # avoid repeated updates if the same gradient is applied on differen gradient axes
                 end
                 processedGradIDs[iG] = g_id;
-                obj["gradLibrary"][g_id]["data"] = grad # Update the gradLibrary entry
+                eventLibraries["gradLibrary"][g_id]["data"] = grad # Update the gradLibrary entry
             else # Trapezoidal gradient waveform
                 grad_prev_last[iG] = 0.0
             end
@@ -357,6 +381,60 @@ function simplify_waveforms(amp_shape, time_shape)
         time_shape = sum(time_shape)
     end
     return amp_shape, time_shape
+end
+
+"""
+    seq = get_seq_from_blocks(blockEvents, blockDurations, eventLibraries)
+
+Sequence definition from several blocks, ordered by occurrence. Used internally by [`read_seq`](@ref).
+
+# Arguments
+- `blockEvents`: (`::Array{Int, 2}`) array of block event IDs
+- `blockDurations`: (`::Vector{Float64}`) vector of block durations
+- `eventLibraries`: (`::Dict`) main dictionary of event libraries
+
+# Returns
+- `s`: (`::Sequence`) Sequence struct
+"""
+function get_seq_from_blocks(blockEvents::Array{Int, 2}, blockDurations::Vector{Float64}, eventLibraries::Dict)
+    # Event IDs for each event class
+    ids_rf = blockEvents[1, :]
+    ids_gradx = blockEvents[2, :]
+    ids_grady = blockEvents[3, :]
+    ids_gradz = blockEvents[4, :]
+    ids_adc = blockEvents[5, :]
+    ids_ext = blockEvents[6, :]
+
+    num_blocks = size(blockEvents, 2)
+
+    # Grad events
+    Δt_gr = eventLibraries["definitions"]["GradientRasterTime"]
+    GR = Array{Grad}(undef, 3, num_blocks)
+    GR[1, :] = collect(get_Grad(eventLibraries["gradLibrary"], eventLibraries["shapeLibrary"], Δt_gr, id) for id in ids_gradx)
+    GR[2, :] = collect(get_Grad(eventLibraries["gradLibrary"], eventLibraries["shapeLibrary"], Δt_gr, id) for id in ids_grady)
+    GR[3, :] = collect(get_Grad(eventLibraries["gradLibrary"], eventLibraries["shapeLibrary"], Δt_gr, id) for id in ids_gradz)
+
+    # RF events
+    Δt_rf = eventLibraries["definitions"]["RadiofrequencyRasterTime"]
+    RFs = empty!(Vector{RF}(undef, num_blocks))
+    append!(RFs, get_RF(eventLibraries["rfLibrary"], eventLibraries["shapeLibrary"], Δt_rf, id)[1][1, 1] for id in ids_rf)
+    RFs = reshape(RFs, 1, num_blocks)
+
+    # ADC events
+    ADCs = empty!(Vector{ADC}(undef, num_blocks))
+    append!(ADCs, (get_ADC(eventLibraries["adcLibrary"], id)[1][1] for id in ids_adc))
+
+    # Extensions
+    EXTs = Vector{Vector{Extension}}()
+    for id in ids_ext
+        append!(EXTs, get_extension(eventLibraries["extensionInstanceLibrary"], eventLibraries["extensionTypeLibrary"], eventLibraries["extensionSpecLibrary"], id))
+    end
+
+    # Definitions
+    DEFs = Dict{String,Any}()
+
+    # Sequence 
+    return Sequence(GR, RFs, ADCs, blockDurations, EXTs, DEFs)
 end
 
 """
@@ -385,7 +463,8 @@ function read_seq(filename)
     gradLibrary = Dict()
     def = Dict()
     signature = nothing
-    blockEvents = Dict()
+    blockEvents = Array{Int, 2}(undef, 0, 0)
+    blockDurations = Vector{Float64}(undef, 0)
     rfLibrary = Dict()
     adcLibrary = Dict()
     tmp_delayLibrary = Dict()
@@ -407,7 +486,7 @@ function read_seq(filename)
                 if pulseq_version == v"0.0.0"
                     @error "Pulseq file MUST include [VERSION] section prior to [BLOCKS] section"
                 end
-                blockEvents = read_blocks(io, pulseq_version)
+                blockEvents, blockDurations, delayIDs_tmp = read_blocks(io, def["BlockDurationRaster"], pulseq_version)
             elseif  section == "[RF]"
                 if pulseq_version >= v"1.5.0"
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1e-6 1 1 1 1 1]; format="%i "*"%f "^(10)*"%c ") # this is 1.5.x format
@@ -456,10 +535,11 @@ function read_seq(filename)
             end
         end
     end
-    # fix trapezoidal gradients imported from older versions
+
     if pulseq_version < v"1.4.0"
-        # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
+        # fix trapezoidal gradients imported from older versions
         for i in keys(gradLibrary)
+            # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
             if gradLibrary[i]["type"] == 't'
                 #(1)amplitude (2)rise (2)flat (3)fall (4)delay
                 if gradLibrary[i]["data"][2] == 0 #rise
@@ -479,9 +559,8 @@ function read_seq(filename)
     end
     verify_signature!(filename, signature; pulseq_version=pulseq_version)
     isempty(def) && (def = DEFAULT_DEFINITIONS)
-    #Sequence
-    obj = Dict(
-        "blockEvents"=>blockEvents,
+    #Sequence libraries (basically everything except the blocks)
+    eventLibraries = Dict(
         "gradLibrary"=>gradLibrary,
         "rfLibrary"=>rfLibrary,
         "adcLibrary"=>adcLibrary,
@@ -492,19 +571,26 @@ function read_seq(filename)
         "extensionSpecLibrary"=>extensionSpecLibrary,
         "definitions"=>def
     )
+
+    if pulseq_version < v"1.4.0"
+        # initialize blockDurations
+        resize!(blockDurations, size(blockEvents, 2))
+        # inefficient but convenient way to get the block durations for older versions
+        for i = 1:size(blockEvents, 1)
+            block = get_block(blockEvents[:, i], delayIDs_tmp[i], eventLibraries, pulseq_version)
+            blockDurations[i] = dur(block)
+        end
+    end
     # Add first and last points for gradients #320 for version <= 1.4.2
     if pulseq_version < v"1.5.0"
-        fix_first_last_grads!(obj, pulseq_version)
+        fix_first_last_grads!(blockEvents, blockDurations, eventLibraries, pulseq_version)
     end
-    #Transforming Dictionary to Sequence object
-    #This should only work for Pulseq files >=1.4.0
-    seq = Sequence()
-    for i = 1:length(blockEvents)
-        seq += get_block(obj, i, pulseq_version)
-    end
+
+    seq = get_seq_from_blocks(blockEvents, blockDurations, eventLibraries)
+
     # Final details
     #Temporary hack
-    seq.DEF = merge(obj["definitions"], seq.DEF)
+    seq.DEF = merge(eventLibraries["definitions"], seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = pulseq_version
@@ -670,44 +756,45 @@ function get_ADC(adcLibrary, i)
 end
 
 """
-    seq = get_block(obj, i, pulseq_version)
+    seq = get_block(eventIDs, duration, eventLibraries, pulseq_version)
 
-Block sequence definition. Used internally by [`read_seq`](@ref).
+Sequence definition for one block. Used internally by [`fix_first_last_grads`](@ref).
 
 # Arguments
-- `obj`: (`::Dict{String, Any}`) main dictionary
-- `i`: (`::Int64`) index of a block event
+- `eventIDs`: (`::Vector{Int}`) event IDs for one block
+- `duration`: (`::Float64`) block duration (for versions >= 1.4.0) or delay ID (for versions < 1.4.0)
+- `eventLibraries`: (`::Dict`) main dictionary of event libraries
 - `pulseq_version`: (`::VersionNumber`) Pulseq version
 
 # Returns
 - `s`: (`::Sequence`) block Sequence struct
 """
-function get_block(obj, i, pulseq_version)
+function get_block(eventIDs, duration, eventLibraries, pulseq_version)
     #Unpacking
-    idur, irf, igx, igy, igz, iadc, iext = obj["blockEvents"][i]
+    irf, igx, igy, igz, iadc, iext = eventIDs
     #Gradient definition
-    Δt_gr = obj["definitions"]["GradientRasterTime"]
-    Gx = get_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, igx)
-    Gy = get_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, igy)
-    Gz = get_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, igz)
+    Δt_gr = eventLibraries["definitions"]["GradientRasterTime"]
+    Gx = get_Grad(eventLibraries["gradLibrary"], eventLibraries["shapeLibrary"], Δt_gr, igx)
+    Gy = get_Grad(eventLibraries["gradLibrary"], eventLibraries["shapeLibrary"], Δt_gr, igy)
+    Gz = get_Grad(eventLibraries["gradLibrary"], eventLibraries["shapeLibrary"], Δt_gr, igz)
     G = reshape([Gx;Gy;Gz],3,1) #[Gx;Gy;Gz;;]
     #RF definition
-    Δt_rf = obj["definitions"]["RadiofrequencyRasterTime"]
-    R, add_half_Δt_rf = get_RF(obj["rfLibrary"], obj["shapeLibrary"], Δt_rf, irf)
+    Δt_rf = eventLibraries["definitions"]["RadiofrequencyRasterTime"]
+    R, add_half_Δt_rf = get_RF(eventLibraries["rfLibrary"], eventLibraries["shapeLibrary"], Δt_rf, irf)
     #ADC definition
-    A, adc_dur = get_ADC(obj["adcLibrary"], iadc)
+    A, adc_dur = get_ADC(eventLibraries["adcLibrary"], iadc)
     #DUR
     max_dur = max(dur(Gx), dur(Gy), dur(Gz), dur(R[1]) + (add_half_Δt_rf) * Δt_rf/2, adc_dur)
     if pulseq_version >= v"1.4.0" # Explicit block duration (in units of blockDurationRaster)
-        duration = idur * obj["definitions"]["BlockDurationRaster"]
         @assert duration ≈ max_dur || duration >= max_dur "Block duration must be greater than or approximately equal to the duration of the block events"
         D = Float64[duration]
     else # Block duration as the maximum between the delay and the duration of the block events
-        idelay = idur > 0 ? obj["tmp_delayLibrary"][idur]["data"][1] : 0.0
-        D = Float64[max(idelay, max_dur)]
+        delayID = duration
+        delay = delayID > 0 ? eventLibraries["tmp_delayLibrary"][delayID]["data"][1] : 0.0
+        D = Float64[max(delay, max_dur)]
     end
     #Extensions
-    E = get_extension(obj["extensionInstanceLibrary"], obj["extensionTypeLibrary"], obj["extensionSpecLibrary"], iext)
+    E = get_extension(eventLibraries["extensionInstanceLibrary"], eventLibraries["extensionTypeLibrary"], eventLibraries["extensionSpecLibrary"], iext)
     # Definitition
     DEF = Dict{String,Any}()
     #Sequence block definition
