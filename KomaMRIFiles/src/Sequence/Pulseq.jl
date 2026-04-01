@@ -40,7 +40,7 @@ function read_definitions(io)
         key = line_split[1]
         value_string_array = line_split[2:end]
         parsed_array = [tryparse(Float64, s) === nothing ? s : tryparse(Float64, s) for s = value_string_array]
-        def[key] = length(parsed_array) == 1 ? parsed_array[1] : parsed_array
+        def[key] = (length(parsed_array) == 1 && key != "RequiredExtensions") ? parsed_array[1] : parsed_array
     end
     #Default values
     if !haskey(def,"BlockDurationRaster")       def["BlockDurationRaster"] = DEFAULT_DEFINITIONS["BlockDurationRaster"] end
@@ -156,11 +156,15 @@ function read_extensions(io, ext_string, ext_type::Type{<:Extension}, ext_id, ex
     extensionTypeLibrary[ext_id] = ext_type
     extensionSpecLibrary[ext_id] = read_events(io, KomaMRIBase.get_scale(ext_type); format="%i "*KomaMRIBase.get_scanf_format(ext_type))
 end
-function read_extensions(io, ext_string, ext_type::Nothing, ext_id, extensionTypeLibrary, extensionSpecLibrary, required_extensions)
+function read_extensions(io, ext_string, ext_type, ext_id, extensionTypeLibrary, extensionSpecLibrary, required_extensions)
     if ext_string in required_extensions
-        @error "Extension $ext_string is required by the sequence but not supported by KomaMRI reader"
+        error("Extension $ext_string is required by the sequence (RequiredExtensions: $required_extensions) but not supported by KomaMRI reader")
     else
         @warn "Ignoring unsupported extension: $ext_string"
+        while true # Skip the extension specifications
+            line = readline(io)
+            isempty(line) && break
+        end
     end
 end
 
@@ -734,8 +738,7 @@ function get_extension(extensionInstanceLibrary, extensionTypeLibrary, extension
     # next_id of 0 terminates the list
     type, ref, next_id = extensionInstanceLibrary[i]["data"]
     while true
-        length(extensionTypeLibrary) < type ? (@warn "extension type n°$type does not exist"; break) : nothing
-        push!(EXT[1], extensionTypeLibrary[type](extensionSpecLibrary[type][ref]["data"]...))
+        if haskey(extensionTypeLibrary, type) push!(EXT[1], extensionTypeLibrary[type](extensionSpecLibrary[type][ref]["data"]...)) end
         if next_id == 0
             break
         else
