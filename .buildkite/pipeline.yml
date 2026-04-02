@@ -1,6 +1,6 @@
 steps:
   - label: ":pipeline: Upload NoMotion Tests"
-    if: build.message !~ /skip ci/
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     env:
       TEST_GROUP: "nomotion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
@@ -8,7 +8,7 @@ steps:
       queue: "juliagpu"
 
   - label: ":pipeline: Upload Motion Tests"
-    if: build.message !~ /skip ci/
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     env:
       TEST_GROUP: "motion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
@@ -16,7 +16,7 @@ steps:
       queue: "juliagpu"
 
   - label: ":pipeline: Launch Benchmarks"
-    if: build.message !~ /skip benchmarks/
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     agents:
       queue: "juliagpu"
     plugins:
@@ -38,4 +38,3 @@ steps:
                 command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
                 agents:
                   queue: "juliagpu"
-

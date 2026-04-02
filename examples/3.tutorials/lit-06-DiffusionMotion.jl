@@ -46,11 +46,7 @@ dz = cumsum([zeros(Nspins) Δr .* randn(rng, Nspins, Nt - 1)]; dims=2);
 random_walk = KomaMRI.path(dx, dy, dz, TimeRange(0.0, T))
 obj.motion = random_walk
 p1 = plot_phantom_map(obj, :T1; time_samples=Nt÷4, height=450)
-#md savefig(p1, "../assets/6-displacements.html"); #hide
 #jl display(p1)
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/6-displacements.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # The plot shows the random walk of spins due to diffusion, also known as Brownian motion.
 # This motion was named after Robert Brown, who first described the phenomenon in 1827 while
@@ -88,13 +84,8 @@ seq += gx_diff
 seq += rf180
 seq += gx_diff
 seq += adc
-p2 = plot_seq(seq; show_adc=true) # Plotting the sequence 
-#md savefig(p2, "../assets/6-pgse_sequence.html"); #hide
+p2 = plot_seq(seq; show_adc=true, height=300) # Plotting the sequence 
 #jl display(p2);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/6-pgse_sequence.html" style="width:100%; height:300px;"></object></center>
-#md # ```
 
 # For the isotropic diffusion, the signal attenuation is given by the Stejskal-Tanner formula:
 #
@@ -149,13 +140,8 @@ E_theoretical = exp.(-bvals_si .* D);
 s_sim  = scatter(x=bvals, y=E_simulated,   name="Simulated") #hide
 s_theo = scatter(x=bvals, y=E_theoretical, name="exp(-b D)", line=attr(dash="dash")) #hide
 layout = Layout(title="Diffusion-induced signal attenuation E(b)", xaxis=attr(title="b-value [s/mm^2]")) #hide
-p3 = plot([s_sim, s_theo], layout); #hide
-#md savefig(p3, "../assets/6-pgse_signal_attenuation.html"); #hide
+p3 = plot([s_sim, s_theo], layout) #hide
 #jl display(p3);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/6-pgse_signal_attenuation.html" style="width:80%; height:400px;"></object></center>
-#md # ```
 
 # The plot shows the signal attenuation as a function of the b-value. The simulated signal attenuation
 # matches the theoretical curve, showing the expected exponential decay with the b-value.
