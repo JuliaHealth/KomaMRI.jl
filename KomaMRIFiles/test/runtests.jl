@@ -144,7 +144,7 @@ end
         isdir(pth) || mkdir(pth)
         for seq in round_trip_sequences()
             filename = pth * "$(seq.DEF["Name"]).seq"
-            qseq = @suppress check_raster(seq)
+            qseq = @suppress KomaMRIFiles.check_raster(seq)
             @suppress write_seq(seq, filename)
             seq2 = @suppress read_seq(filename)
             @test seq2 ≈ qseq # Round-trip test
