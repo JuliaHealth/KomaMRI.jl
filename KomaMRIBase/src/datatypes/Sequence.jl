@@ -687,3 +687,46 @@ function Base.maximum(label::Vector{AdcLabels})
 
 	return maxLabel
 end
+
+"""
+    check_scanner_constraints(seq::Sequence, sys::Scanner=Scanner())
+
+Checks if the sequence is compliant with the scanner constraints.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+- `sys`: (`::Scanner`) Scanner struct
+"""
+function check_scanner_constraints(seq::Sequence, sys::Scanner=Scanner())
+	for (i, s) in enumerate(seq)
+		rf    = s.RF[1]
+		grads = s.GR
+		adc   = s.ADC[1]
+		# RF amplitude
+		if is_RF_on(s) && any(abs.(ampls(rf)) .> sys.B1)
+			error("RF amplitude for block $i is greater than the maximum RF amplitude of the scanner ($(sys.B1 * 1e6) μT).")
+		end
+		is_GR_on = [is_Gx_on(s), is_Gy_on(s), is_Gz_on(s)]
+		for gi in 1:3
+			if is_GR_on[gi]
+				gr = grads[gi]
+				# Gradient amplitude
+				if any(ampls(gr) .> sys.Gmax)
+					error("$(["x", "y", "z"][gi]) gradient amplitude for block $i is greater than the maximum gradient amplitude of the scanner ($(sys.Gmax * 1e3) mT/m).")
+				end
+				# Gradient slew rate
+				slew_rates = abs.(diff(ampls(gr)) ./ diff(times(gr)))
+				if any(slew_rates .> sys.Smax)
+					error("$(["x", "y", "z"][gi]) gradient slew rate for block $i is greater than the maximum gradient slew rate of the scanner ($(sys.Smax) mT/m/ms).")
+				end
+			end
+		end
+		# ADC dwell time
+		dwell = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
+		if is_ADC_on(s) && dwell < sys.ADC_Δt
+			error("ADC dwell time $(dwell * 1e6) μs for block $i is less than the minimum ADC dwell time of the scanner ($(sys.ADC_Δt * 1e6) μs).")
+		end
+	end
+	@info "✅ Sequence is compliant with the scanner constraints."
+	return nothing
+end
