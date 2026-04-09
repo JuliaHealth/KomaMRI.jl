@@ -67,6 +67,10 @@ end
         @test seq.DEF["FileName"] == "gre_rad.seq"
         @test seq.DEF["PulseqVersion"] == v"1.5.1"
         @test seq.DEF["signature"][:hash] == "80eae81bb6b808f2cb4ed5d23885009b"
+
+        seq = @suppress read_seq(pth*"v1.5/unknown_ext.seq") #Pulseq v1.5.0 with unknown extensions
+        @test seq.DEF["FileName"] == "unknown_ext.seq" 
+        @test seq.DEF["PulseqVersion"] == v"1.5.0"
         
         seq = @suppress read_seq(pth*"v1.4/epi.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "epi.seq"
