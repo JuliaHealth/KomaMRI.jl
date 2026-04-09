@@ -1,7 +1,7 @@
-const DEFAULT_DEFINITIONS = Dict("BlockDurationRaster"      => 1e-5, 
-                                 "GradientRasterTime"       => 1e-5, 
-                                 "RadiofrequencyRasterTime" => 1e-6, 
-                                 "AdcRasterTime"            => 1e-7)
+const DEFAULT_RASTER = begin
+    sys = Scanner()
+    Dict("BlockDurationRaster" => sys.seq_Δt, "GradientRasterTime" => sys.GR_Δt, "RadiofrequencyRasterTime" => sys.RF_Δt, "AdcRasterTime" => sys.ADC_Δt)
+end
 
 """
 read_version Read the [VERSION] section of a sequence file.
@@ -42,11 +42,10 @@ function read_definitions(io)
         parsed_array = [tryparse(Float64, s) === nothing ? s : tryparse(Float64, s) for s = value_string_array]
         def[key] = (length(parsed_array) == 1 && key != "RequiredExtensions") ? parsed_array[1] : parsed_array
     end
-    #Default values
-    if !haskey(def,"BlockDurationRaster")       def["BlockDurationRaster"] = DEFAULT_DEFINITIONS["BlockDurationRaster"] end
-    if !haskey(def,"GradientRasterTime")        def["GradientRasterTime"] = DEFAULT_DEFINITIONS["GradientRasterTime"] end
-    if !haskey(def,"RadiofrequencyRasterTime")  def["RadiofrequencyRasterTime"] = DEFAULT_DEFINITIONS["RadiofrequencyRasterTime"] end
-    if !haskey(def,"AdcRasterTime")             def["AdcRasterTime"] = DEFAULT_DEFINITIONS["AdcRasterTime"] end
+    if !haskey(def,"BlockDurationRaster")      def["BlockDurationRaster"]      = DEFAULT_RASTER["BlockDurationRaster"] end
+    if !haskey(def,"GradientRasterTime")       def["GradientRasterTime"]       = DEFAULT_RASTER["GradientRasterTime"] end
+    if !haskey(def,"RadiofrequencyRasterTime") def["RadiofrequencyRasterTime"] = DEFAULT_RASTER["RadiofrequencyRasterTime"] end
+    if !haskey(def,"AdcRasterTime")            def["AdcRasterTime"]            = DEFAULT_RASTER["AdcRasterTime"] end
     return def
 end
 
@@ -481,7 +480,7 @@ function read_seq(filename; simplify_shapes=true)
         end
     end
     verify_signature!(filename, signature; pulseq_version=pulseq_version)
-    isempty(def) && (def = DEFAULT_DEFINITIONS)
+    isempty(def) && (def = DEFAULT_RASTER)
     #Sequence
     obj = Dict(
         "blockEvents"=>blockEvents,
@@ -880,20 +879,31 @@ function verify_signature!(filename::String, signature::NamedTuple; pulseq_versi
 end
 
 # ----------------- Write Pulseq -----------------
-Base.@kwdef struct PulseqExportContext
-    seq::Sequence
+struct PulseqExportContext
     filename::String
-    version::VersionNumber = v"1.5.1"
-    blockDurationRaster::Float64 = get_blockDurationRaster(seq)
-    gradientRasterTime::Float64 = get_gradientRasterTime(seq)
-    rfRasterTime::Float64 = get_rfRasterTime(seq)
-    adcRasterTime::Float64 = get_adcRasterTime(seq)
+    blockDurationRaster::Float64
+    gradientRasterTime::Float64
+    rfRasterTime::Float64
+    adcRasterTime::Float64
+    definitions::Dict{String, Any}
+    version::VersionNumber
 end
 
-get_blockDurationRaster(seq::Sequence) = get(seq.DEF, "BlockDurationRaster", DEFAULT_DEFINITIONS["BlockDurationRaster"])
-get_gradientRasterTime(seq::Sequence)  = get(seq.DEF, "GradientRasterTime", DEFAULT_DEFINITIONS["GradientRasterTime"])
-get_rfRasterTime(seq::Sequence)        = get(seq.DEF, "RadiofrequencyRasterTime", DEFAULT_DEFINITIONS["RadiofrequencyRasterTime"])
-get_adcRasterTime(seq::Sequence)       = get(seq.DEF, "AdcRasterTime", DEFAULT_DEFINITIONS["AdcRasterTime"])
+PulseqExportContext(seq::Sequence, filename::String, sys::Scanner=Scanner()) = PulseqExportContext(
+    filename,
+    get_RasterTime("BlockDurationRaster", seq, sys.seq_Δt),
+    get_RasterTime("GradientRasterTime", seq, sys.GR_Δt),
+    get_RasterTime("RadiofrequencyRasterTime", seq, sys.RF_Δt),
+    get_RasterTime("AdcRasterTime", seq, sys.ADC_Δt),
+    seq.DEF,
+    v"1.5.1"
+)
+
+function get_RasterTime(key::String, seq::Sequence, scanner_default)
+    haskey(seq.DEF, key) || return scanner_default
+    seq.DEF[key] == scanner_default || @warn "Sequence and Scanner definition for $key do not match (($(seq.DEF[key]) != $(scanner_default))). Using Sequence definition."
+    return seq.DEF[key]
+end
 
 Base.@kwdef struct PulseqBlock
     id::Int
@@ -908,11 +918,12 @@ end
 
 # - Dict keys are the ids of the objects
 # - Dict values are tuples containing the rest of the values of the blocks/events/shapes
+const ArbitraryGradient = Tuple{Float64,Float64,Float64,Int,Int,Int}
+const TrapezoidGradient = Tuple{Float64,Int,Int,Int,Int}
 Base.@kwdef struct PulseqExportAssets
     blocks::Dict{Int,PulseqBlock} = Dict{Int,PulseqBlock}()
     rf::Dict{Int,Tuple{Float64,Int,Int,Int,Float64,Int,Float64,Float64,Float64,Float64,Char}} = Dict{Int,Tuple{Float64,Int,Int,Int,Float64,Int,Float64,Float64,Float64,Float64,Char}}()
-    gradients::Dict{Int,Tuple{Float64,Float64,Float64,Int,Int,Int}} = Dict{Int,Tuple{Float64,Float64,Float64,Int,Int,Int}}()
-    trapezoids::Dict{Int,Tuple{Float64,Int,Int,Int,Int}} = Dict{Int,Tuple{Float64,Int,Int,Int,Int}}()
+    gradients::Dict{Int,Union{ArbitraryGradient,TrapezoidGradient}} = Dict{Int,Union{ArbitraryGradient,TrapezoidGradient}}()
     adc::Dict{Int,Tuple{Int,Float64,Int,Float64,Float64,Float64,Float64,Int}} = Dict{Int,Tuple{Int,Float64,Int,Float64,Float64,Float64,Float64,Int}}()
     shapes::Dict{Int,Tuple{Int,Vector{Float64}}} = Dict{Int,Tuple{Int,Vector{Float64}}}() # shapes are stored compressed if selected
     extensionInstances::Dict{Int,Tuple{Int,Int,Int}} = Dict{Int,Tuple{Int,Int,Int}}()
@@ -921,16 +932,14 @@ Base.@kwdef struct PulseqExportAssets
 end
 
 """
-    collect_pulseq_assets(ctx::PulseqExportContext) -> PulseqExportAssets
+    collect_pulseq_assets(seq::Sequence, ctx::PulseqExportContext) -> PulseqExportAssets
 
-Create the Pulseq export dictionaries required to serialize `ctx.seq` into the 1.5.1 file format.
+Create the Pulseq export dictionaries required to serialize `seq` into the Pulseq file format.
 This function is responsible for deduplicating reusable objects (RF, gradients, shapes, etc.)
 and for translating each sequence block into the integer lookups (i.e., the assets) expected by the specification.
 """
-function collect_pulseq_assets(ctx::PulseqExportContext)
+function collect_pulseq_assets(seq::Sequence, ctx::PulseqExportContext)
     assets = PulseqExportAssets()
-    seq = ctx.seq
-    
     # First step: Collect all unique extension vectors and register them once
     # This ensures that blocks sharing the same extensions reuse the same instance IDs
     # We use parallel arrays to track extension vectors and their IDs (since vectors can't be dict keys)
@@ -948,7 +957,7 @@ function collect_pulseq_assets(ctx::PulseqExportContext)
             )
             if matching_idx === nothing
                 # Register this extension vector
-                ext_id = register_ext!(assets, ext_vec, ctx)
+                ext_id = register_ext!(assets, ext_vec)
                 push!(extension_vectors, ext_vec)
                 push!(extension_vector_ids, ext_id)
             end
@@ -1088,7 +1097,7 @@ function register_grad!(assets::PulseqExportAssets, A::Number, T::Number, rise, 
         fall  = round(Int, fall  * 1e6) # from s to us
         delay = round(Int, delay * 1e6) # from s to us
         aux = (amp, rise, flat, fall, delay)
-        return _store_event!(assets.trapezoids, aux)
+        return _store_event!(assets.gradients, aux)
     end
     return register_grad!(assets, [first, A, A, last], [rise, T, fall], 0, 0, delay, first, last, ctx)
 end 
@@ -1104,32 +1113,21 @@ warning is emitted.
 """
 function register_adc!(assets::PulseqExportAssets, N, T, delay, Δf, ϕ, ctx::PulseqExportContext)
     iszero(N) && return (0, 0.0)
-    dwell_s = N == 1 ? T : T / (N - 1)
-    dwell_ns = round(Int, dwell_s * 1e9)
-    # Use exact dwell that the reader will get (dwell_ns*1e-9) so write/read round-trip is exact
-    dwell_s_exact = dwell_ns * 1e-9
-    dwell = dwell_ns
-    del   = round(Int, (delay - dwell_s_exact/2) * 1e6) # from s to us, subtract dwell/2
-    if del < 0
-        @warn "ADC delay in Koma ($(round(delay*1e3, digits=4)) ms) is below dwell/2 ($(round(dwell_s*1e3/2, digits=4)) ms).
-        In Pulseq the first sample is at dwell/2, so a smaller delay cannot be represented; it is clamped to 0.
-        For exact round-trip correspondence, use ADC delay ≥ dwell/2 (e.g. via quantize_to_pulseq).
-        See https://pulseq.github.io/pulseq_shapes_and_times.pdf#page=10"
-        del = 0
-    end
+    dwell_s = N == 1 ? T : T / (N - 1); dwell_ns = round(Int, dwell_s * 1e9)
+    delay_s  = delay - dwell_s/2;       delay_us = round(Int, delay_s * 1e6)
     freq_ppm = 0.0
     phase_ppm = 0.0
     freq = Δf
     phase = ϕ
     phase_id = 0 # TODO: implement phase shape in Koma
-    aux = (N, dwell, del, freq_ppm, phase_ppm, freq, phase, phase_id)
-    return _store_event!(assets.adc, aux), delay + T - dwell_s_exact/2
+    aux = (N, dwell_ns, delay_us, freq_ppm, phase_ppm, freq, phase, phase_id)
+    return _store_event!(assets.adc, aux), delay_s + T + dwell_s
 end
 
 """
-    id = register_ext!(assets, ext, ctx)
+    id = register_ext!(assets, ext)
 """
-function register_ext!(assets::PulseqExportAssets, ext::Vector{Extension}, ctx::PulseqExportContext)
+function register_ext!(assets::PulseqExportAssets, ext::Vector{Extension})
     length(ext) == 0 && return 0
     instance_ids = Int[]
     for e in ext
@@ -1205,10 +1203,10 @@ function emit_pulseq(io::IO, ctx::PulseqExportContext, assets::PulseqExportAsset
     if !isempty(assets.rf)
         emit_rf_section!(io, assets)
     end
-    if !isempty(assets.gradients)
+    if any(typeof.(values(assets.gradients)) .== ArbitraryGradient)
         emit_gradients_section!(io, assets)
     end
-    if !isempty(assets.trapezoids)
+    if any(typeof.(values(assets.gradients)) .== TrapezoidGradient)
         emit_trap_section!(io, assets)
     end
     if !isempty(assets.adc)
@@ -1237,7 +1235,7 @@ function emit_definitions_section!(io::IO, ctx::PulseqExportContext)
     write(io, "GradientRasterTime $(ctx.gradientRasterTime)\n")
     write(io, "RadiofrequencyRasterTime $(ctx.rfRasterTime)\n")
     write(io, "AdcRasterTime $(ctx.adcRasterTime)\n")
-    for (key, value) in ctx.seq.DEF
+    for (key, value) in ctx.definitions
         write(io, "$key $value\n")
     end
     write(io, "\n")
@@ -1287,17 +1285,19 @@ function emit_gradients_section!(io::IO, assets::PulseqExportAssets)
     write(io, "# id      amp      first      last  shape_id  time_id  delay\n")
     write(io, "# ..     Hz/m       Hz/m      Hz/m        ..       ..     us\n")
     write(io, "[GRADIENTS]\n")
-    isempty(assets.gradients) && return
+    !any(typeof.(values(assets.gradients)) .== ArbitraryGradient) && return
     grad_ids = sort(collect(keys(assets.gradients)))
     for id in grad_ids
         grad_data = assets.gradients[id]
-        vals = (id, grad_data[1], grad_data[2], grad_data[3], grad_data[4], grad_data[5], grad_data[6])
-        max_lengths = zeros(Int, 7)
-        for (i, val) in enumerate(vals)
-            str = _format_value(val)
-            max_lengths[i] = max(max_lengths[i], length(str))
+        if grad_data isa ArbitraryGradient
+            vals = (id, grad_data[1], grad_data[2], grad_data[3], grad_data[4], grad_data[5], grad_data[6])
+            max_lengths = zeros(Int, 7)
+            for (i, val) in enumerate(vals)
+                str = _format_value(val)
+                max_lengths[i] = max(max_lengths[i], length(str))
+            end
+            _format_row(io, vals, max_lengths)
         end
-        _format_row(io, vals, max_lengths)
     end
 end
 
@@ -1306,17 +1306,19 @@ function emit_trap_section!(io::IO, assets::PulseqExportAssets)
     write(io, "# id      amp      rise  flat  fall  delay\n")
     write(io, "# ..     Hz/m        us    us    us     us\n")
     write(io, "[TRAP]\n")
-    isempty(assets.trapezoids) && return
-    trap_ids = sort(collect(keys(assets.trapezoids)))
+    !any(typeof.(values(assets.gradients)) .== TrapezoidGradient) && return
+    trap_ids = sort(collect(keys(assets.gradients)))
     for id in trap_ids
-        trap_data = assets.trapezoids[id]
-        vals = (id, trap_data[1], trap_data[2], trap_data[3], trap_data[4], trap_data[5])
-        max_lengths = zeros(Int, 6)
-        for (i, val) in enumerate(vals)
-            str = _format_value(val)
-            max_lengths[i] = max(max_lengths[i], length(str))
+        trap_data = assets.gradients[id]
+        if trap_data isa TrapezoidGradient
+            vals = (id, trap_data[1], trap_data[2], trap_data[3], trap_data[4], trap_data[5])
+            max_lengths = zeros(Int, 6)
+            for (i, val) in enumerate(vals)
+                str = _format_value(val)
+                max_lengths[i] = max(max_lengths[i], length(str))
+            end
+            _format_row(io, vals, max_lengths)
         end
-        _format_row(io, vals, max_lengths)
     end
 end
 
@@ -1417,6 +1419,103 @@ function _format_row(io, values, max_lengths)
 end
 
 """
+    check_raster(ctx::PulseqExportContext)
+
+"""
+function check_raster(seq::Sequence, raster=DEFAULT_RASTER)
+    qseq = deepcopy(seq)
+    warn_count = Ref(0)
+    for (bi, s) in enumerate(qseq)
+        # ----- RF -----
+        if is_RF_on(s)
+            key = "RadiofrequencyRasterTime"
+            rf = qseq.RF[1, bi]
+            rf.delay  = quantize_time(rf.delay,  key, raster[key], bi, "RF", "delay",  warn_count)
+            rf.T      = quantize_time(rf.T,      key, raster[key], bi, "RF", "T",      warn_count; n_time_points=length(rf.A))
+            rf.center = quantize_time(rf.center, key, raster[key], bi, "RF", "center", warn_count)
+        end
+        # ----- GR -----
+        is_GR_on = [is_Gx_on(s), is_Gy_on(s), is_Gz_on(s)]
+        axis = ["x", "y", "z"]
+		for gi in 1:3
+			if is_GR_on[gi]
+                key = "GradientRasterTime"
+				gr = qseq.GR[gi, bi]
+				gr.delay = quantize_time(gr.delay, key, raster[key], bi, "GR$(axis[gi])", "delay", warn_count)
+				gr.T     = quantize_time(gr.T,     key, raster[key], bi, "GR$(axis[gi])", "T",     warn_count; n_time_points=length(gr.A))
+				gr.rise  = quantize_time(gr.rise,  key, raster[key], bi, "GR$(axis[gi])", "rise",  warn_count)
+				gr.fall  = quantize_time(gr.fall,  key, raster[key], bi, "GR$(axis[gi])", "fall",  warn_count)
+			end
+        end
+        # ----- ADC -----
+        adc_end = 0
+        if is_ADC_on(s)
+            key = "AdcRasterTime"
+            adc = qseq.ADC[bi]
+            # Dwell time and ADC duration 
+            dwell = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
+            dwell = quantize_time(dwell, key, raster[key], bi, "ADC", "dwell time", warn_count)
+            adc.T = adc.N == 1 ? dwell : (adc.N - 1) * dwell
+            # Delay: here, there are differences between Koma and Pulseq implementations:
+            # - Koma: delay = time to first sample
+            # - Pulseq: delay = time to first sample - dwell/2. This is because in Pulseq the ADC event starts at a time cell edge, but samples are taken at time cell centers.
+            #   Thus, we need to ensure that the Pulseq delay is a multiple of the adcRasterTime
+            pulseq_delay = adc.delay - dwell/2
+            if pulseq_delay < 0
+                @warn "ADC delay in Koma ($(round(adc.delay*1e3, digits=4)) ms) is below dwell/2 ($(round(dwell/2*1e3, digits=4)) ms).
+In Pulseq, the first ADC sample is acquired at dwell/2. Therefore, a Pulseq delay of 0 corresponds to a Koma delay of dwell/2.
+This means the Koma delay must be >= dwell/2. Clamping it to this minimum value...
+See https://pulseq.github.io/pulseq_shapes_and_times.pdf#page=10"
+                pulseq_delay = 0
+            end
+            pulseq_delay = quantize_time(pulseq_delay, key, raster[key], bi, "ADC", "pulseq delay", warn_count)
+            adc.delay = pulseq_delay + dwell/2
+            adc_end = adc.delay + adc.T + dwell/2 # We need to add dwell/2 for the same reasons as above: the Koma ADC ends at a sample, but Pulseq ADC ends at a time cell edge.
+        end
+        # ----- Block -----
+        key = "BlockDurationRaster"
+        max_event_duration = max(dur.(qseq.GR[:, bi])..., dur(qseq.RF[1, bi]), adc_end)
+        block_duration = max(qseq.DUR[bi], max_event_duration)
+        qseq.DUR[bi] = quantize_time(block_duration, key, raster[key], bi, "Block", "DUR", warn_count)
+    end
+    return qseq
+end
+
+const QUANT_TOL = 1e-12
+
+function quantize_time(t::Number, raster_name, raster, block_id, event_key, event_element_key, warn_count; n_time_points=1)
+    interval = n_time_points == 1 ? t : t / (n_time_points - 1)
+    k = interval / raster
+    if isapprox(k, round(k), atol=QUANT_TOL)
+        return t
+    else
+        warn_time_quantization(warn_count, block_id, event_key, event_element_key, raster_name, raster)
+        q_interval = ceil.(interval / raster) .* raster
+        return n_time_points == 1 ? q_interval : q_interval * (n_time_points - 1)
+    end
+end
+
+function quantize_time(t::Array, raster_name, raster, block_id, event_key, event_element_key, warn_count; n_time_points=1)
+    k = t / raster
+    if all(isapprox(k_i, round(k_i), atol=QUANT_TOL) for k_i in k)
+        return t
+    else
+        warn_time_quantization(warn_count, block_id, event_key, event_element_key, raster_name, raster)
+        return ceil.(t / raster) .* raster
+    end
+end
+
+function warn_time_quantization(warn_count, block_id, event_key, event_element_key, raster_name, raster)
+    if warn_count[] < 10
+        @warn "Block $block_id: Event $event_key: Element $event_element_key:
+Time is not a multiple of $raster_name ($(raster * 1e6) μs). Quantizing it..."
+    elseif warn_count[] == 10
+        @warn "Additional time quantization warnings occurred; detailed logs are capped at 10."
+    end
+    warn_count[] += 1
+end
+
+"""
     write_seq(seq, filename)
 
 Writes a Sequence struct to a Pulseq file with `.seq` extension.
@@ -1435,15 +1534,20 @@ julia> write_seq(seq, "fid.seq")
 """
 function write_seq(
     seq::Sequence, filename::String;
-    blockDurationRaster = get_blockDurationRaster(seq),
-    gradientRasterTime = get_gradientRasterTime(seq),
-    rfRasterTime = get_rfRasterTime(seq),
-    adcRasterTime = get_adcRasterTime(seq),
+    sys::Scanner=Scanner(),
     signatureAlgorithm::AbstractString = "md5"
 )
+    # 1. Check scanner constraints. If the sequence is not compliant, the function will throw an error.
+    @info "Checking scanner constraints..." B0_max = sys.B0 B1_max = sys.B1 G_max = sys.Gmax S_max = sys.Smax ADC_Δt = sys.ADC_Δt
+    check_scanner_constraints(seq, sys)
+    # 2. Create the Pulseq export context.
+    ctx = PulseqExportContext(seq, filename, sys)
+    # 3. Check raster. If the sequence is not compliant, the function will throw a warning and return the sequence with the correct raster.
+    @info "Checking Pulseqraster..." BlockDurationRaster = sys.seq_Δt GradientRasterTime = sys.GR_Δt RadiofrequencyRasterTime = sys.RF_Δt AdcRasterTime = sys.ADC_Δt
+    seq = check_raster(seq, Dict("BlockDurationRaster" => sys.seq_Δt, "GradientRasterTime" => sys.GR_Δt, "RadiofrequencyRasterTime" => sys.RF_Δt, "AdcRasterTime" => sys.ADC_Δt))
     @info "Saving sequence to $(basename(filename)) ..."
-    ctx = PulseqExportContext(seq, filename, v"1.5.1", blockDurationRaster, gradientRasterTime, rfRasterTime, adcRasterTime)
-    assets = collect_pulseq_assets(ctx)
+    # 4. Collect the pulseq assets.
+    assets = collect_pulseq_assets(seq, ctx)
     buffer = IOBuffer()
     emit_pulseq(buffer, ctx, assets)
     payload = take!(buffer)

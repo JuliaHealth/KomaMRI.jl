@@ -46,7 +46,7 @@ export DiscreteSequence
 export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
 export times, ampls, freqs
-# This are also used for simulation
+# These are also used for simulation
 export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
@@ -65,6 +65,7 @@ export get_kspace, rotx, roty, rotz
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 # Sequence related
 export get_Mk, get_kspace, get_M0, get_M1, get_M2, get_label
+export check_scanner_constraints
 
 # PulseDesigner submodule
 include("sequences/PulseDesigner.jl")
