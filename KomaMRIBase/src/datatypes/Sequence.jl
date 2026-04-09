@@ -145,19 +145,19 @@ Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k
 size(x::Sequence) = size(x.GR[1,:])
 
 # Sequence comparison
-function Base.:(≈)(x::Sequence, y::Sequence)
+function Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12)
 	length(x) == length(y) || return false
 	not_empty(ev) = !isempty(ev.t)
 	equal_blocks = Bool[]
 	for i in 1:length(x)
 		equal_events = Bool[]
-		equal_durs = x.DUR[i] ≈ y.DUR[i]
+		equal_durs = isapprox(x.DUR[i], y.DUR[i], atol=atol)
 		blk1, blk2 = get_samples(x, i), get_samples(y, i)
 		for key in keys(blk1)
 			ev1, ev2 = blk1[key], blk2[key]
 			(not_empty(ev1) && not_empty(ev2)) || continue
 			is_equal = if (length(ev1.A) == length(ev2.A) && length(ev1.t) == length(ev2.t))
-				ev1.A ≈ ev2.A && ev1.t ≈ ev2.t
+				isapprox(ev1.A, ev2.A, atol=atol) && isapprox(ev1.t, ev2.t, atol=atol)
 			else # Different number of samples: check if waveforms are the same on a common time grid
 				t_min = max(ev1.t[1], ev2.t[1])
 				t_max = min(ev1.t[end], ev2.t[end])
@@ -170,7 +170,7 @@ function Base.:(≈)(x::Sequence, y::Sequence)
 					common_time = range(t_min, t_max; length=max(length(ev1.t), length(ev2.t)))
 					itp1 = Interpolations.linear_interpolation(t1, ev1.A)
 					itp2 = Interpolations.linear_interpolation(t2, ev2.A)
-					all(isapprox.(itp1.(common_time), itp2.(common_time)))
+					all(isapprox.(itp1.(common_time), itp2.(common_time), atol=atol))
 				end
 			end
 			push!(equal_events, is_equal)

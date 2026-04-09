@@ -1,3 +1,4 @@
+const QUANT_TOL = 1e-12
 const DEFAULT_RASTER = begin
     sys = Scanner()
     Dict("BlockDurationRaster" => sys.seq_Δt, "GradientRasterTime" => sys.GR_Δt, "RadiofrequencyRasterTime" => sys.RF_Δt, "AdcRasterTime" => sys.ADC_Δt)
@@ -984,8 +985,13 @@ function collect_pulseq_assets(seq::Sequence, ctx::PulseqExportContext)
         # After quantization, event durations may have changed, so we need to recalculate
         max_event_duration = max(dur(gx), dur(gy), dur(gz), dur(rf), adc_dur)
         block_duration = max(dur(block), max_event_duration)
-        # Round to block duration raster (round up to ensure >= max_event_duration)
-        duration = ceil(Int, block_duration / ctx.blockDurationRaster)
+        # Round to block duration raster using a custom threshold lower than 0.5.
+        # This behaves like round(), but starts rounding up earlier.
+        ratio = block_duration / ctx.blockDurationRaster
+        base = floor(Int, ratio)
+        frac = ratio - base
+        round_up_threshold = 0.1
+        duration = base + (frac >= round_up_threshold - QUANT_TOL ? 1 : 0)
 
         # 5. Extensions: find pre-registered ID by content comparison
         ext_vec = block.EXT[1]
@@ -1480,8 +1486,6 @@ See https://pulseq.github.io/pulseq_shapes_and_times.pdf#page=10"
     end
     return qseq
 end
-
-const QUANT_TOL = 1e-12
 
 function quantize_time(t::Number, raster_name, raster, block_id, event_key, event_element_key, warn_count; n_time_points=1)
     interval = n_time_points == 1 ? t : t / (n_time_points - 1)
