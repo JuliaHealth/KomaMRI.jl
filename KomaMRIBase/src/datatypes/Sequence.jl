@@ -4,9 +4,9 @@
     seq = Sequence(GR, RF)
     seq = Sequence(GR, RF, ADC)
     seq = Sequence(GR, RF, ADC, DUR)
-    seq = Sequence(GR::Array{Grad,1})
-    seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1})
-    seq = Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, DEF)
+    seq = Sequence(GR::Array{<:Grad,1})
+    seq = Sequence(GR::Array{<:Grad,1}, RF::Array{<:RF,1})
+    seq = Sequence(GR::Array{<:Grad,1}, RF::Array{<:RF,1}, A::ADC, DUR, DEF)
 
 The Sequence struct. It contains events of an MRI sequence. Most field names (except for the
 DEF field) consist of matrices or vectors, where each column index represents a sequence
@@ -26,8 +26,8 @@ block. This struct serves as an input for the simulation.
 - `seq`: (`::Sequence`) Sequence struct
 """
 mutable struct Sequence
-	GR::Array{Grad,2}		  #Sequence in (X, Y and Z) and time
-	RF::Array{RF,2}			  #RF pulses in coil and time
+	GR::Array{<:Grad,2}		  #Sequence in (X, Y and Z) and time
+	RF::Array{<:RF,2}			  #RF pulses in coil and time
 	ADC::Array{ADC,1}		  #ADC in time
 	DUR::Array{Float64,1}				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
 	EXT::Vector{Vector{Extension}}
@@ -73,9 +73,9 @@ function Sequence(GR, RF, ADC, DUR, EXT)
 end
 
 # Other constructors
-Sequence(GR::Array{Grad,1}) = Sequence(reshape(GR,1,:))
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1})= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0.0) for i in 1:size(GR, 2)])
-Sequence(GR::Array{Grad,1}, RF::Array{RF,1}, A::ADC, DUR, EXT, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], Float64[DUR], [EXT],DEF)
+Sequence(GR::AbstractVector{<:Grad}) = Sequence(reshape(GR,1,:))
+Sequence(GR::AbstractVector{<:Grad}, RF::AbstractVector{<:RF})= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0.0) for i in 1:size(GR, 2)])
+Sequence(GR::AbstractVector{<:Grad}, RF::AbstractVector{<:RF}, A::ADC, DUR, EXT, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], Float64[DUR], [EXT],DEF)
 Sequence() = Sequence(
     Matrix{Grad}(undef, 3, 0),
     Matrix{RF}(undef, 1, 0),
