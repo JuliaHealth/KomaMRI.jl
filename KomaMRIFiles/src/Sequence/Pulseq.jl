@@ -87,11 +87,9 @@ read_blocks Read the [BLOCKS] section of a sequence file.
 """
 function read_blocks(io, pulseq_version)
     NumberBlockEvents = pulseq_version <= v"1.2.1" ? 7 : 8
-    # we'll collect everything into a vector and then reshape later
-    # we assume that we have at least 1000 blocks and pre-allocate for that
-    blocks = empty!(Vector{Int}(undef, NumberBlockEvents * 1000))
-    blockDurations = empty!(Vector{Float64}(undef, 1000))
-    delayIDs_tmp = empty!(Vector{Int}(undef, 1000))
+    blocks = Int[]
+    blockDurations = Float64[]
+    delayIDs_tmp = Int[]
     num_lines = 0
     while true
         blockEvents = [parse(Int, d) for d in eachsplit(readline(io))]
@@ -417,12 +415,12 @@ function get_seq_from_blocks(blockEvents::Array{Int, 2}, blockDurations::Vector{
 
     # RF events
     Δt_rf = eventLibraries["definitions"]["RadiofrequencyRasterTime"]
-    RFs = empty!(Vector{RF}(undef, num_blocks))
+    RFs = RF[]
     append!(RFs, get_RF(eventLibraries["rfLibrary"], eventLibraries["shapeLibrary"], Δt_rf, id)[1][1, 1] for id in ids_rf)
     RFs = reshape(RFs, 1, num_blocks)
 
     # ADC events
-    ADCs = empty!(Vector{ADC}(undef, num_blocks))
+    ADCs = ADC[]
     append!(ADCs, (get_ADC(eventLibraries["adcLibrary"], id)[1][1] for id in ids_adc))
 
     # Extensions
@@ -465,7 +463,7 @@ function read_seq(filename)
     def = Dict()
     signature = nothing
     blockEvents = Array{Int, 2}(undef, 0, 0)
-    blockDurations_rasterUnits = Vector{Int}(undef, 0)
+    blockDurations_rasterUnits = Vector{Int}(undef, 0) 
     delayIDs_tmp = Vector{Int}(undef, 0)
     rfLibrary = Dict()
     adcLibrary = Dict()
@@ -575,10 +573,10 @@ function read_seq(filename)
     )
 
     if pulseq_version < v"1.4.0"
-        # initialize blockDurations
-        resize!(blockDurations, size(blockEvents, 2))
         # inefficient but convenient way to get the block durations for older versions
-        for i = 1:size(blockEvents, 2)
+        num_blocks = size(blockEvents, 2)
+        blockDurations = Vector{Float64}(undef, num_blocks)
+        for i = 1:num_blocks
             block = get_block_with_delayID(blockEvents[:, i], delayIDs_tmp[i], eventLibraries)
             blockDurations[i] = dur(block)
         end
