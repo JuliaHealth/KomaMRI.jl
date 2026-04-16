@@ -1,4 +1,5 @@
-struct TrapGradEvent
+abstract type GradEvent end
+struct TrapGradEvent <: GradEvent
     amplitude::Float64
     rise::Float64
     flat::Float64
@@ -6,7 +7,7 @@ struct TrapGradEvent
     delay::Float64
 end
 
-mutable struct ArbGradEvent
+mutable struct ArbGradEvent <: GradEvent
     amplitude::Float64
     first::Float64
     last::Float64
@@ -46,7 +47,6 @@ struct ExtensionInstanceEvent
     next_id::Int
 end
 
-const GradEvent = Union{TrapGradEvent, ArbGradEvent}
 const ShapeLibrary = Dict{Int, Tuple{Int, Vector{Float64}}}
 
 struct PulseqEventLibraries
@@ -57,7 +57,7 @@ struct PulseqEventLibraries
     shape_library::ShapeLibrary
     extension_instance_library::Dict{Int, ExtensionInstanceEvent}
     extension_type_library::Dict{Int, Type{<:Extension}}
-    extension_spec_library::Dict{Int, Dict{Int, Tuple}}
+    extension_spec_library::Dict{Int, Dict{Int, Extension}}
     definitions::Dict{String, Any}
     block_duration_raster::Float64
     gradient_raster_time::Float64
@@ -92,6 +92,44 @@ function PulseqEventLibraries(
         defs["RadiofrequencyRasterTime"],
         defs["AdcRasterTime"],
     )
+end
+
+struct PulseqBlock
+    id::Int
+    duration::Int
+    rf::Int
+    gx::Int
+    gy::Int 
+    gz::Int
+    adc::Int
+    ext::Int 
+end
+
+struct PulseqRaster
+    BlockDurationRaster::Float64
+    GradientRasterTime::Float64
+    RadiofrequencyRasterTime::Float64
+    AdcRasterTime::Float64
+    PulseqRaster(seq, sys) = new(
+        get_raster_time("BlockDurationRaster", seq, sys.seq_Δt),
+        get_raster_time("GradientRasterTime", seq, sys.GR_Δt),
+        get_raster_time("RadiofrequencyRasterTime", seq, sys.RF_Δt),
+        get_raster_time("AdcRasterTime", seq, sys.ADC_Δt)
+    )
+end
+
+function get_raster_time(key::String, seq::Sequence, scanner_default)
+    haskey(seq.DEF, key) || return scanner_default
+    seq.DEF[key] == scanner_default || @warn "Sequence and Scanner definition for $key do not match (($(seq.DEF[key]) != $(scanner_default))). Using the Scanner definition ($key = $scanner_default)."
+    return scanner_default
+end
+
+function merge_definitions_with_raster!(definitions::AbstractDict{String,Any}, raster::PulseqRaster)
+    definitions["BlockDurationRaster"] = raster.BlockDurationRaster
+    definitions["GradientRasterTime"] = raster.GradientRasterTime
+    definitions["RadiofrequencyRasterTime"] = raster.RadiofrequencyRasterTime
+    definitions["AdcRasterTime"] = raster.AdcRasterTime
+    return definitions
 end
 
 TrapGradEvent(data) = TrapGradEvent(data...)
