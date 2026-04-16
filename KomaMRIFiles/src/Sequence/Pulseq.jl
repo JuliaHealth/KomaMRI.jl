@@ -79,12 +79,13 @@ end
 
 """
 read_blocks Read the [BLOCKS] section of a sequence file.
-   library=read_blocks(fid, blockDurationRaster, pulseq_version)
-   Read blocks from file identifier of an open MR sequence file and
-   returns block IDs, durations and delay IDs as arrays or vectors.
+   library=read_blocks(fid, pulseq_version)
+   Read blocks from file identifier of an open MR sequence file and returns
+   block IDs, block durations (in raster units) and delay IDs as arrays or vectors.
+   Either the block durations or delay IDs will be empty depending on pulseq_version.
 
 """
-function read_blocks(io, blockDurationRaster, pulseq_version)
+function read_blocks(io, pulseq_version)
     NumberBlockEvents = pulseq_version <= v"1.2.1" ? 7 : 8
     # we'll collect everything into a vector and then reshape later
     # we assume that we have at least 1000 blocks and pre-allocate for that
@@ -110,7 +111,7 @@ function read_blocks(io, blockDurationRaster, pulseq_version)
                 append!(blocks, blockEvents[3:end])
             end
             if pulseq_version >= v"1.4.0" # Explicit block duration (in units of blockDurationRaster)
-                duration = blockEvents[2] * blockDurationRaster
+                duration = blockEvents[2]
                 push!(blockDurations, Float64(duration))
             else # Implicit block duration from delay ID
                 push!(delayIDs_tmp, blockEvents[2])
@@ -464,7 +465,7 @@ function read_seq(filename)
     def = Dict()
     signature = nothing
     blockEvents = Array{Int, 2}(undef, 0, 0)
-    blockDurations = Vector{Float64}(undef, 0)
+    blockDurations_rasterUnits = Vector{Int}(undef, 0)
     delayIDs_tmp = Vector{Int}(undef, 0)
     rfLibrary = Dict()
     adcLibrary = Dict()
@@ -487,7 +488,7 @@ function read_seq(filename)
                 if pulseq_version == v"0.0.0"
                     @error "Pulseq file MUST include [VERSION] section prior to [BLOCKS] section"
                 end
-                blockEvents, blockDurations, delayIDs_tmp = read_blocks(io, def["BlockDurationRaster"], pulseq_version)
+                blockEvents, blockDurations_rasterUnits, delayIDs_tmp = read_blocks(io, pulseq_version)
             elseif  section == "[RF]"
                 if pulseq_version >= v"1.5.0"
                     rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1e-6 1 1 1 1 1]; format="%i "*"%f "^(10)*"%c ") # this is 1.5.x format
@@ -581,7 +582,10 @@ function read_seq(filename)
             block = get_block_with_delayID(blockEvents[:, i], delayIDs_tmp[i], eventLibraries)
             blockDurations[i] = dur(block)
         end
+    else
+        blockDurations = blockDurations_rasterUnits .* def["BlockDurationRaster"]
     end
+
     # Add first and last points for gradients #320 for version <= 1.4.2
     if pulseq_version < v"1.5.0"
         fix_first_last_grads!(blockEvents, blockDurations, eventLibraries)
