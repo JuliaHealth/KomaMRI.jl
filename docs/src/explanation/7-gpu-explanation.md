@@ -5,7 +5,7 @@ KomaMRI uses a vendor agnostic approach to GPU parallelization in order to suppo
 * CUDA.jl (Nvidia)
 * Metal.jl (Apple)
 * AMDGPU.jl (AMD)
-* oneAPI.jl (Intel, experimental)
+* oneAPI.jl (Intel, experimental: not tested or benchmarked)
 
 ## Choosing a GPU Backend
 
