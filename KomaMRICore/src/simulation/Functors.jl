@@ -10,7 +10,8 @@ _isleaf(::AbstractRange) = true
     gpu(x)
 
 Moves 'x' to the GPU. For this function to work, a GPU backend will need to be
-loaded with 'using AMDGPU / CUDA / Metal / oneAPI.
+loaded with 'using AMDGPU / CUDA / Metal / oneAPI'. oneAPI support is
+experimental.
 
 This works for functions, and any struct marked with `@functor`.
 
@@ -30,7 +31,7 @@ function gpu(x)
     if (BACKEND[] isa KA.GPU)
         return gpu(x, BACKEND[])
     else
-        @warn "function 'gpu' called with no functional backends available. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your code and try again"
+        @warn "function 'gpu' called with no functional backends available. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your code and try again. oneAPI support is experimental"
         return x
     end
 end

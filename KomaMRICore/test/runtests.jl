@@ -2,8 +2,9 @@ using TestItems, TestItemRunner
 
 ### NOTE: by default, tests are run on the CPU with the number of threads set to
 #   Threads.nthreads(). To run on a specific GPU backend, add the name of the
-#   backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the test/Project.toml
-#   file in KomaMRICore and pass the name as a test argument.
+#   backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the
+#   test/Project.toml file in KomaMRICore and pass the name as a test argument.
+#   oneAPI is experimental.
 #
 #   Example:
 #

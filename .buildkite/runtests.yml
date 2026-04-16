@@ -155,49 +155,51 @@ steps:
           arch: "aarch64"
         timeout_in_minutes: 60
 
-      - label: "oneAPI: Run tests on v{{matrix.version}}"
-        matrix:
-          setup:
-            version:
-              - "1.10"
-              - "1"
-        plugins:
-          - JuliaCI/julia#v1:
-              version: "{{matrix.version}}"
-          - JuliaCI/julia-coverage:
-              codecov: true
-              flags:
-                - core
-              dirs:
-                - KomaMRICore/src
-                - KomaMRICore/ext
-        env:
-          TEST_GROUP: $TEST_GROUP
-        command: |
-          julia -e 'println("--- :julia: Instantiating project")
-              using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
-              Pkg.develop([
-                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-                  PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              ])'
-          
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
-              using Pkg
-              Pkg.add("oneAPI")'
-
-          julia -e 'println("--- :julia: Running tests")
-              using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
-              Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
-        agents:
-          queue: "juliagpu"
-          intel: "*"
-        timeout_in_minutes: 60
+      # oneAPI CI is intentionally disabled for now because the backend is too
+      # flaky in Buildkite. Keep the step here so it can be re-enabled later.
+      # - label: "oneAPI: Run tests on v{{matrix.version}}"
+      #   matrix:
+      #     setup:
+      #       version:
+      #         - "1.10"
+      #         - "1"
+      #   plugins:
+      #     - JuliaCI/julia#v1:
+      #         version: "{{matrix.version}}"
+      #     - JuliaCI/julia-coverage:
+      #         codecov: true
+      #         flags:
+      #           - core
+      #         dirs:
+      #           - KomaMRICore/src
+      #           - KomaMRICore/ext
+      #   env:
+      #     TEST_GROUP: $TEST_GROUP
+      #   command: |
+      #     julia -e 'println("--- :julia: Instantiating project")
+      #         using Pkg
+      #         if !( VERSION < v"1.11" )
+      #             Pkg.activate("KomaMRICore/test")
+      #         end
+      #         Pkg.develop([
+      #             PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+      #             PackageSpec(path=pwd(), subdir="KomaMRICore"),
+      #         ])'
+      #
+      #     julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
+      #         using Pkg
+      #         Pkg.add("oneAPI")'
+      #
+      #     julia -e 'println("--- :julia: Running tests")
+      #         using Pkg
+      #         if !( VERSION < v"1.11" )
+      #             Pkg.activate("KomaMRICore/test")
+      #         end
+      #         Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
+      #   agents:
+      #     queue: "juliagpu"
+      #     intel: "*"
+      #   timeout_in_minutes: 60
 
 env:
   CI: BUILDKITE

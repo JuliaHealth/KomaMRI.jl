@@ -178,13 +178,13 @@ To change the default backend used for testing, modify the `[preferences.KomaMRI
 [preferences.KomaMRICore]
 test_backend = "CPU"
 ```
-The variable `test_backend` can be changed to “CPU”, “CUDA”, “AMDGPU”, “Metal”, or “oneAPI”. After this change, **restart VSCode**. Make sure that the required backend is installed in Julia’s global environment before testing. This is, for example, `@v1.10` for Julia 1.10.
+The variable `test_backend` can be changed to “CPU”, “CUDA”, “AMDGPU”, “Metal”, or “oneAPI” (experimental). After this change, **restart VSCode**. Make sure that the required backend is installed in Julia’s global environment before testing. This is, for example, `@v1.10` for Julia 1.10.
 
 **Test With Julia REPL:**
 
 By default, tests are run on the CPU with the number of threads set to `Threads.nthreads()`. To choose a specific backend, two methods exist: 
 
-**Method 1 - Using Preferences:** Add the name of the backend ("CPU","CUDA","AMDGPU","Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore`. Then, test as usual:
+**Method 1 - Using Preferences:** Add the name of the backend ("CPU","CUDA","AMDGPU","Metal", or "oneAPI") to the `test/Project.toml` file in `KomaMRICore`. oneAPI is experimental. Then, test as usual:
 
 ```julia-repl
 pkg> test KomaMRICore
@@ -264,6 +264,6 @@ To finish your pull request, give it a name with a clear mention of the subject 
 
 ### (Advanced) GPU CI Testing
 
-KomaMRI runs continuous integration tests on multiple GPU backends (CUDA, AMDGPU, Metal, oneAPI) via Buildkite. To control resource usage and costs, **GPU tests are not run by default** on pull requests.
+KomaMRI runs continuous integration tests on multiple GPU backends (CUDA, AMDGPU, and Metal) via Buildkite. To control resource usage and costs, **GPU tests are not run by default** on pull requests. oneAPI support is experimental and is currently excluded from default CI and benchmark runs.
 
 If your contribution affects GPU code, such as files in `KomaMRICore/ext/` or simulation kernels, please request `@cncastillo` to add the `run-gpu-ci` label to your PR.
