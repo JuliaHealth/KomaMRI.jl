@@ -3,6 +3,8 @@ const DEFAULT_DEFINITIONS = Dict("BlockDurationRaster"      => 1e-5,
                                  "RadiofrequencyRasterTime" => 1e-6, 
                                  "AdcRasterTime"            => 1e-7)
 
+include("PulseqEvents.jl")
+
 """
 read_version Read the [VERSION] section of a sequence file.
    defs=read_version(fid) Read Pulseq version from file
@@ -76,61 +78,87 @@ function read_signature(io)
     return has_hash ? (type = signature_type, hash = signature_hash) : nothing
 end
 
-"""
-read_blocks Read the [BLOCKS] section of a sequence file.
-   library=read_blocks(fid) Read blocks from file identifier of an
-   open MR sequence file and return the event table.
-"""
-function read_blocks(io, pulseq_version)
-    eventTable = Dict{Int64, Vector{Int64}}()
-    while true
-        NumberBlockEvents = pulseq_version <= v"1.2.1" ? 7 : 8
-        read_event = readline(io)
-        !isempty(read_event) || break
-        blockEvents = parse.(Int64, split(read_event))
-        if blockEvents[1] != 0
-            if pulseq_version <= v"1.2.1"
-                eventTable[blockEvents[1]] = Int64[blockEvents[2:end]...; 0]
-            else
-                eventTable[blockEvents[1]] = Int64[blockEvents[2:end]...]
-            end
-        end
-        length(blockEvents) == NumberBlockEvents || break #Break on white space
-    end
-    return eventTable
-end
 
 """
-    events = read_events(io, scale; type=nothing, format="%i "*"%f "^(length(scale)), eventLibrary=Dict())
+read_blocks Read the [BLOCKS] section of a sequence file.
+   library=read_blocks(fid, blockDurationRaster, pulseq_version)
+   Read blocks from file identifier of an open MR sequence file and
+   returns block IDs, durations and delay IDs as arrays or vectors.
+
+"""
+function read_blocks(io, block_duration_raster, pulseq_version)
+    n_block_events = pulseq_version <= v"1.2.1" ? 7 : 8
+    blocks = Int[]
+    blockDurations = Float64[]
+    delayIDs_tmp = Int[]
+    num_blocks = 0
+    while true
+        line = readline(io)
+        isempty(line) && break
+        blockEvents = [parse(Int, d) for d in eachsplit(line)]
+        if length(blockEvents) != n_block_events
+            error("Expected $n_block_events events but got $(length(blockEvents)).")
+        end
+        if blockEvents[1] != 0
+            if pulseq_version <= v"1.2.1"
+                # discard id and duration (duration treated below)
+                append!(blocks, blockEvents[3:end])
+                push!(blocks, 0) # append 0 for version compatibility (see assert below)
+            else
+                append!(blocks, blockEvents[3:end])
+            end
+            if pulseq_version >= v"1.4.0" # Explicit block duration (in units of blockDurationRaster)
+                duration = blockEvents[2] * block_duration_raster
+                push!(blockDurations, duration)
+            else # Implicit block duration from delay ID
+                push!(delayIDs_tmp, blockEvents[2])
+            end
+            num_blocks += 1
+        end
+    end
+    reshaped_blocks = reshape(blocks, :, num_blocks)
+    # we need 6 vals because we drop IDs and durations
+    @assert size(reshaped_blocks, 1) == 6 "unexpected number of fields per block"
+    return reshaped_blocks, blockDurations, delayIDs_tmp
+end
+
+apply_scale(scale::Number, value::Number) = scale * value
+apply_scale(scale, value) = value
+
+"""
+    events = read_events(io, scale; format="%i "*"%f "^(length(scale)), event_library)
 
 Read an event section of a sequence file.
 
 # Arguments
 - `io`: (`::IO`) input file stream
-- `scale`: (`::Vector{Float64}`) scale vector
+- `scale`: tuple of scale factors applied to parsed fields
 
 # Keywords
-- `type`: (`::Union{Nothing, Char}`) type of the event. Only used for gradients ('t' for trapezoidal and 'g' for arbitrary)
 - `format`: (`::String`) format string
-- `eventLibrary`: (`::Dict{Int64, Dict{String, Any}}`) event library
+- `event_library`: output dictionary for the parsed event library
+- `constructor`: constructor used to normalize each parsed event row
 
 # Returns
-- `events`: (`::Dict{Int64, Dict{String, Any}}`) event library
+- `events`: parsed event library
 """
-function read_events(io, scale; type=nothing, format="%i "*"%f "^(length(scale)), eventLibrary=Dict())
-    eventLength = length(scale) + 1
+function read_events(io, scales; format="%i " * "%f " ^ length(scales), event_library, constructor=identity)
+    event_length = length(scales) + 1
     fmt = Scanf.Format(format)
-    args = Tuple([f == "%i" ? Int : (f == "%f" ? Float64 : (f == "%c" ? Char : String)) for f in split(format)])
+    args = Tuple(
+        token == "%i" ? Int : token == "%f" ? Float64 : token == "%c" ? Char : String
+        for token in split(format)
+    )
     while true
         line = readline(io)
         isempty(line) && break
         r, data... = scanf(line, fmt, args...)
-        r == eventLength || break #Break if not all values read
+        r == event_length || break #Break if not all values read
         id = floor(Int, data[1])
-        data = [d isa Number ? s*d : d for (s, d) in zip(scale, data[2:end])]
-        eventLibrary[id] = type === nothing ? Dict("data"=>data) : Dict("data"=>data, "type"=>type)
+        parsed = ntuple(i -> apply_scale(scales[i], data[i + 1]), length(scales))
+        event_library[id] = constructor(parsed)
     end
-    return eventLibrary
+    return event_library
 end
 
 """
@@ -154,7 +182,12 @@ extension TRIGGERS 1
 """
 function read_extensions(io, ext_string, ext_type::Type{<:Extension}, ext_id, extensionTypeLibrary, extensionSpecLibrary, required_extensions)
     extensionTypeLibrary[ext_id] = ext_type
-    extensionSpecLibrary[ext_id] = read_events(io, KomaMRIBase.get_scale(ext_type); format="%i "*KomaMRIBase.get_scanf_format(ext_type))
+    extensionSpecLibrary[ext_id] = read_events(
+        io,
+        Tuple(KomaMRIBase.get_scale(ext_type));
+        format="%i " * KomaMRIBase.get_scanf_format(ext_type),
+        event_library=Dict{Int, Tuple}(),
+    )
 end
 function read_extensions(io, ext_string, ext_type, ext_id, extensionTypeLibrary, extensionSpecLibrary, required_extensions)
     if ext_string in required_extensions
@@ -174,7 +207,7 @@ read_shapes Read the [SHAPES] section of a sequence file.
    open MR sequence file and return a library of shapes.
 """
 function read_shapes(io, forceConvertUncompressed)
-    shapeLibrary = Dict()
+    shapeLibrary = ShapeLibrary()
     while true #Reading shapes
         eof(io) && break
         mark(io) # Mark the position before reading the line
@@ -293,57 +326,86 @@ function decompress_shape(num_samples, data; forceDecompression = false)
 end
 
 """
-    fix_first_last_grads!(obj::Dict)
+    fix_first_last_grads!(blockEvents, blockDurations, eventLibraries)
 
-Updates the `obj` dictionary with new first and last points for gradients.
+Updates the `eventLibraries` dictionary with new first and last points for gradients.
 
 # Notes:
 - This function is "replicating" the following MATLAB code:
 https://github.com/pulseq/pulseq/blob/v1.5.1/matlab/%2Bmr/%40Sequence/read.m#L325-L413
 - We are updating the `gradLibrary` entries with the new first and last points, making them compatible with the v1.5.x format.
 """
-function fix_first_last_grads!(obj::Dict, pulseq_version) 
+function fix_first_last_grads!(blockEvents, blockDurations, eventLibraries)
     # Add first and last Pulseq points
-    grad_prev_last = [0.0; 0.0; 0.0]
-    for iB in 1:length(obj["blockEvents"])
-        eventIDs = obj["blockEvents"][iB];
-        block = get_block(obj, iB, pulseq_version)
-        processedGradIDs = zeros(1, 3);    
-        for iG in 1:3
-            g_id = eventIDs[2+iG]
+    grad_prev_last = zeros(3)
+    updated_grad_ids = BitSet()
+    for (iB, eventIDs) in enumerate(eachcol(blockEvents))
+        block_duration = blockDurations[iB]
+        for iG in eachindex(grad_prev_last)
+            g_id = eventIDs[1 + iG]
             g_id > 0 || continue
-            g = obj["gradLibrary"][g_id]
-            grad = g["data"]
-            if g["type"] === 'g' # Arbitrary gradient waveform
-                v1_5 = length(grad) == 6 # (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay 
-                v1_4 = length(grad) == 4 # (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-                v1_3 = length(grad) == 3 # (1)amplitude (2)amp_shape_id (3)delay
-                v1_5 && continue # Already-updated (to v1.5 format) gradLibrary entry
-                # From here, we are dealing with version == 1.5.x
-                grad = v1_4 ? [grad[1]; grad_prev_last[iG]; 0.0; grad[2:end]] : [grad[1]; grad_prev_last[iG]; 0.0; grad[2]; 0; grad[3]]
-                waveform = grad[1] * decompress_shape(obj["shapeLibrary"][grad[4]]...)
-                if grad[6] > 0 # delay > 0
-                    grad_prev_last[iG] = 0.0 
-                end
-                if grad[5] != 0 # time-shaped case
-                    grad[3] = waveform[end]
-                else # uniformly-shaped case
-                    odd_step1 = [grad[2]; 2 * waveform]
-                    odd_step2 = odd_step1 .* (mod.(1:length(odd_step1), 2) * 2 .- 1)
-                    waveform_odd_rest = cumsum(odd_step2) .* (mod.(1:length(odd_step2), 2) * 2 .- 1)
-                    grad[3] = waveform_odd_rest[end]
-                end
-                grad_prev_last[iG] = dur(block.GR[iG]) + eps(Float64) < dur(block) ? 0 : grad[3] # Bookkeeping for the next gradient
-                if iG>1 && any(processedGradIDs[1:iG] .== g_id)
-                    continue # avoid repeated updates if the same gradient is applied on differen gradient axes
-                end
-                processedGradIDs[iG] = g_id;
-                obj["gradLibrary"][g_id]["data"] = grad # Update the gradLibrary entry
-            else # Trapezoidal gradient waveform
-                grad_prev_last[iG] = 0.0
-            end
+            update_first_last!(grad_prev_last, iG, eventLibraries.grad_library[g_id], block_duration, eventLibraries, updated_grad_ids, g_id)
         end
     end
+end
+
+function fix_legacy_trapezoids!(grad_library, grad_raster_time)
+    for (i, grad) in grad_library
+        grad isa TrapGradEvent || continue
+        fix_rise = grad.rise == 0 && abs(grad.amplitude) == 0 && grad.flat > 0
+        flat = fix_rise ? grad.flat - grad_raster_time : grad.flat
+        fix_delay = grad.delay == 0 && abs(grad.amplitude) == 0 && flat > 0
+        (fix_rise || fix_delay) || continue
+        grad_library[i] = TrapGradEvent(
+            grad.amplitude,
+            fix_rise ? grad_raster_time : grad.rise,
+            fix_delay ? flat - grad_raster_time : flat,
+            grad.fall,
+            fix_delay ? grad_raster_time : grad.delay,
+        )
+    end
+end
+
+function init_legacy_block_durations!(blockDurations, blockEvents, delayIDs_tmp, eventLibraries)
+    resize!(blockDurations, size(blockEvents, 2))
+    for (i, eventIDs) in enumerate(eachcol(blockEvents))
+        delayID = delayIDs_tmp[i]
+        delay = delayID > 0 ? eventLibraries.tmp_delay_library[delayID] : 0.0
+        Gx, Gy, Gz, rf, add_half_Δt_rf, adc, _ = get_block(eventIDs, eventLibraries)
+        blockDurations[i] = max(
+            delay,
+            dur(Gx),
+            dur(Gy),
+            dur(Gz),
+            dur(rf) + add_half_Δt_rf * eventLibraries.radiofrequency_raster_time / 2,
+            dur(adc),
+        )
+    end
+end
+
+function update_first_last!(grad_prev_last, iG, ::TrapGradEvent, block_duration, event_libraries, updated_grad_ids, g_id)
+    grad_prev_last[iG] = 0.0
+    return nothing
+end
+
+function update_first_last!(grad_prev_last, iG, g::ArbGradEvent, block_duration, event_libraries, updated_grad_ids, g_id)
+    if g_id ∉ updated_grad_ids
+        g.first = grad_prev_last[iG]
+        g.last = 0.0
+        waveform = g.amplitude * decompress_shape(event_libraries.shape_library[g.amp_shape_id]...)
+        if g.time_shape_id != 0 # time-shaped case
+            g.last = waveform[end]
+        else # uniformly-shaped case
+            odd_step1 = [g.first; 2 * waveform]
+            odd_step2 = odd_step1 .* (mod.(1:length(odd_step1), 2) * 2 .- 1)
+            waveform_odd_rest = cumsum(odd_step2) .* (mod.(1:length(odd_step2), 2) * 2 .- 1)
+            g.last = waveform_odd_rest[end]
+        end
+        push!(updated_grad_ids, g_id)
+    end
+    grad_duration = dur(get_Grad(g, event_libraries.shape_library, event_libraries.gradient_raster_time))
+    grad_prev_last[iG] = grad_duration + eps(Float64) < block_duration ? 0 : g.last
+    return nothing
 end
 
 """
@@ -351,12 +413,49 @@ end
 
 Simplifies the amplitude and time waveforms when time steps are uniform.
 """
-function simplify_waveforms(amp_shape, time_shape)
-    if all(x->x==time_shape[1], time_shape)
-        amp_shape = amp_shape
-        time_shape = sum(time_shape)
+@inline simplify_waveforms(amp_shape, time_shape::Real) = amp_shape, time_shape
+
+function simplify_waveforms(amp_shape, time_shape::AbstractVector{<:Real})
+    isempty(time_shape) && return amp_shape, time_shape
+    all(==(time_shape[1]), time_shape) || return amp_shape, time_shape
+    return amp_shape, sum(time_shape)
+end
+
+"""
+    seq = get_seq_from_blocks(blockEvents, blockDurations, eventLibraries)
+
+Sequence definition from several blocks, ordered by occurrence. Used internally by [`read_seq`](@ref).
+
+# Arguments
+- `blockEvents`: (`::Array{Int, 2}`) array of block event IDs
+- `blockDurations`: (`::Vector{Float64}`) vector of block durations
+- `eventLibraries`: (`::PulseqEventLibraries`) main dictionary of event libraries
+
+# Returns
+- `s`: (`::Sequence`) Sequence struct
+"""
+function get_seq_from_blocks(blockEvents, blockDurations, eventLibraries)
+    num_blocks = size(blockEvents, 2)
+    GR = Matrix{Grad}(undef, 3, num_blocks)
+    RFs = Matrix{RF}(undef, 1, num_blocks)
+    ADCs = Vector{ADC}(undef, num_blocks)
+    EXTs = Vector{Vector{Extension}}(undef, num_blocks)
+
+    for (i, eventIDs) in enumerate(eachcol(blockEvents))
+        Gx, Gy, Gz, rf, _, adc, ext = get_block(eventIDs, eventLibraries)
+        GR[1, i] = Gx
+        GR[2, i] = Gy
+        GR[3, i] = Gz
+        RFs[1, i] = rf
+        ADCs[i] = adc
+        EXTs[i] = ext
     end
-    return amp_shape, time_shape
+
+    # Definitions
+    DEFs = Dict{String,Any}()
+
+    # Sequence 
+    return Sequence(GR, RFs, ADCs, blockDurations, EXTs, DEFs)
 end
 
 """
@@ -382,22 +481,24 @@ julia> plot_seq(seq)
 function read_seq(filename)
     @info "Loading sequence $(basename(filename)) ..."
     pulseq_version = v"0.0.0"
-    gradLibrary = Dict()
-    def = Dict()
+    gradLibrary = Dict{Int, GradEvent}()
+    def = Dict{String, Any}()
     signature = nothing
-    blockEvents = Dict()
-    rfLibrary = Dict()
-    adcLibrary = Dict()
-    tmp_delayLibrary = Dict()
-    shapeLibrary = Dict()
-    extensionInstanceLibrary = Dict()
-    extensionTypeLibrary = Dict()
-    extensionSpecLibrary = Dict()
+    blockEvents = Array{Int, 2}(undef, 0, 0)
+    blockDurations = Vector{Float64}(undef, 0)
+    delayIDs_tmp = Int[]
+    rfLibrary = Dict{Int, RFEvent}()
+    adcLibrary = Dict{Int, ADCEvent}()
+    tmp_delayLibrary = Dict{Int, Float64}()
+    shapeLibrary = ShapeLibrary()
+    extensionInstanceLibrary = Dict{Int, ExtensionInstanceEvent}()
+    extensionTypeLibrary = Dict{Int, Type{<:Extension}}()
+    extensionSpecLibrary = Dict{Int, Dict{Int, Tuple}}()
     #Reading file and storing data
     open(filename) do io
         while !eof(io)
             section = readline(io)
-            if typeof(section) == String && (isempty(section) || section[1] == '#')
+            if isempty(section) || section[1] == '#'
                 #skip useless line
             elseif section == "[DEFINITIONS]"
                 def = read_definitions(io)
@@ -407,41 +508,42 @@ function read_seq(filename)
                 if pulseq_version == v"0.0.0"
                     @error "Pulseq file MUST include [VERSION] section prior to [BLOCKS] section"
                 end
-                blockEvents = read_blocks(io, pulseq_version)
+                block_duration_raster = get(def, "BlockDurationRaster", DEFAULT_DEFINITIONS["BlockDurationRaster"])
+                blockEvents, blockDurations, delayIDs_tmp = read_blocks(io, block_duration_raster, pulseq_version)
             elseif  section == "[RF]"
                 if pulseq_version >= v"1.5.0"
-                    rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1e-6 1 1 1 1 1]; format="%i "*"%f "^(10)*"%c ") # this is 1.5.x format
+                    rfLibrary = read_events(io, (1 / γ, 1, 1, 1, 1e-6, 1e-6, 1, 1, 1, 1, 1); format="%i " * "%f " ^ 10 * "%c ", event_library=rfLibrary, constructor=RFEvent) # this is 1.5.x format
                 elseif pulseq_version >= v"1.4.0"
-                    rfLibrary = read_events(io, [1/γ 1 1 1 1e-6 1 1]) # this is 1.4.x format
+                    rfLibrary = read_events(io, (1 / γ, 1, 1, 1, 1e-6, 1, 1); event_library=rfLibrary, constructor=RFEvent) # this is 1.4.x format
                 else
-                    rfLibrary = read_events(io, [1/γ 1 1 1e-6 1 1]) # this is 1.3.x and below
+                    rfLibrary = read_events(io, (1 / γ, 1, 1, 1e-6, 1, 1); event_library=rfLibrary, constructor=RFEvent) # this is 1.3.x and below
                     # we will have to scan through the library later after all the shapes have been loaded
                 end
             elseif  section == "[GRADIENTS]"
                 if pulseq_version >= v"1.5.0"
-                    gradLibrary = read_events(io, [1/γ 1/γ 1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.5.x format
+                    gradLibrary = read_events(io, (1 / γ, 1 / γ, 1 / γ, 1, 1, 1e-6); event_library=gradLibrary, constructor=ArbGradEvent) # this is 1.5.x format
                 elseif pulseq_version >= v"1.4.0"
-                    gradLibrary = read_events(io, [1/γ 1 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.4.x format
+                    gradLibrary = read_events(io, (1 / γ, 1, 1, 1e-6); event_library=gradLibrary, constructor=ArbGradEvent) # this is 1.4.x format
                 else
-                    gradLibrary = read_events(io, [1/γ 1 1e-6]; type='g', eventLibrary=gradLibrary) # this is 1.3.x and below
+                    gradLibrary = read_events(io, (1 / γ, 1, 1e-6); event_library=gradLibrary, constructor=ArbGradEvent) # this is 1.3.x and below
                 end
             elseif  section == "[TRAP]"
-                gradLibrary = read_events(io, [1/γ 1e-6 1e-6 1e-6 1e-6]; type='t', eventLibrary=gradLibrary);
+                gradLibrary = read_events(io, (1 / γ, 1e-6, 1e-6, 1e-6, 1e-6); event_library=gradLibrary, constructor=TrapGradEvent)
             elseif  section == "[ADC]"
                 if pulseq_version >= v"1.5.0"
-                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1 1 1 1]) # this is 1.5.x format
+                    adcLibrary = read_events(io, (1, 1e-9, 1e-6, 1, 1, 1, 1, 1); event_library=adcLibrary, constructor=ADCEvent) # this is 1.5.x format
                 else
-                    adcLibrary = read_events(io, [1 1e-9 1e-6 1 1]) # this is 1.4.x and below
+                    adcLibrary = read_events(io, (1, 1e-9, 1e-6, 1, 1); event_library=adcLibrary, constructor=ADCEvent) # this is 1.4.x and below
                 end
             elseif  section == "[DELAYS]"
                 if pulseq_version >= v"1.4.0"
                     @error "Pulseq file revision 1.4.0 and above MUST NOT contain [DELAYS] section"
                 end
-                tmp_delayLibrary = read_events(io, 1e-6);
+                tmp_delayLibrary = read_events(io, (1e-6,); event_library=tmp_delayLibrary, constructor=first);
             elseif  section == "[SHAPES]"
                 shapeLibrary = read_shapes(io, (pulseq_version.major == 1 && pulseq_version.minor < 4))
             elseif  section == "[EXTENSIONS]"
-                extensionInstanceLibrary = read_events(io, [1 1 1]; format="%i "*"%i "^(3), eventLibrary=extensionInstanceLibrary)
+                extensionInstanceLibrary = read_events(io, (1, 1, 1); format="%i " * "%i " ^ 3, event_library=extensionInstanceLibrary, constructor=ExtensionInstanceEvent)
             elseif  section == "[SIGNATURE]"
                 signature = read_signature(io)
             elseif startswith(section, "extension")
@@ -456,55 +558,40 @@ function read_seq(filename)
             end
         end
     end
+
     # fix trapezoidal gradients imported from older versions
     if pulseq_version < v"1.4.0"
-        # scan through the gradient objects and update 't'-s (trapezoids) und 'g'-s (free-shape gradients)
-        for i in keys(gradLibrary)
-            if gradLibrary[i]["type"] == 't'
-                #(1)amplitude (2)rise (2)flat (3)fall (4)delay
-                if gradLibrary[i]["data"][2] == 0 #rise
-                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-                        gradLibrary[i]["data"][2]  = def["gradRasterTime"]
-                    end
-                end
-                if gradLibrary[i]["data"][4] == 0 #delay
-                    if abs(gradLibrary[i]["data"][1]) == 0 && gradLibrary[i]["data"][3] > 0
-                        gradLibrary[i]["data"][3] -= def["gradRasterTime"]
-                        gradLibrary[i]["data"][4]  = def["gradRasterTime"]
-                    end
-                end
-            end
-        end
+        grad_raster_time = get(def, "gradRasterTime", get(def, "GradientRasterTime", DEFAULT_DEFINITIONS["GradientRasterTime"]))
+        fix_legacy_trapezoids!(gradLibrary, grad_raster_time)
     end
     verify_signature!(filename, signature; pulseq_version=pulseq_version)
     isempty(def) && (def = DEFAULT_DEFINITIONS)
-    #Sequence
-    obj = Dict(
-        "blockEvents"=>blockEvents,
-        "gradLibrary"=>gradLibrary,
-        "rfLibrary"=>rfLibrary,
-        "adcLibrary"=>adcLibrary,
-        "tmp_delayLibrary"=>tmp_delayLibrary,
-        "shapeLibrary"=>shapeLibrary,
-        "extensionInstanceLibrary"=>extensionInstanceLibrary,
-        "extensionTypeLibrary"=>extensionTypeLibrary,
-        "extensionSpecLibrary"=>extensionSpecLibrary,
-        "definitions"=>def
+    #Sequence libraries (basically everything except the blocks)
+    eventLibraries = PulseqEventLibraries(
+        gradLibrary,
+        rfLibrary,
+        adcLibrary,
+        tmp_delayLibrary,
+        shapeLibrary,
+        extensionInstanceLibrary,
+        extensionTypeLibrary,
+        extensionSpecLibrary,
+        def,
     )
+
+    if pulseq_version < v"1.4.0"
+        init_legacy_block_durations!(blockDurations, blockEvents, delayIDs_tmp, eventLibraries)
+    end
     # Add first and last points for gradients #320 for version <= 1.4.2
     if pulseq_version < v"1.5.0"
-        fix_first_last_grads!(obj, pulseq_version)
+        fix_first_last_grads!(blockEvents, blockDurations, eventLibraries)
     end
-    #Transforming Dictionary to Sequence object
-    #This should only work for Pulseq files >=1.4.0
-    seq = Sequence()
-    for i = 1:length(blockEvents)
-        seq += get_block(obj, i, pulseq_version)
-    end
+
+    seq = get_seq_from_blocks(blockEvents, blockDurations, eventLibraries)
+
     # Final details
     #Temporary hack
-    seq.DEF = merge(obj["definitions"], seq.DEF)
+    seq.DEF = merge(eventLibraries.definitions, seq.DEF)
     # Koma specific details for reconstrucion
     seq.DEF["FileName"] = basename(filename)
     seq.DEF["PulseqVersion"] = pulseq_version
@@ -524,8 +611,8 @@ end
 Reads the gradient. It is used internally by [`get_block`](@ref).
 
 # Arguments
-- `gradLibrary`: (`::Dict{K, V}`) the "gradLibrary" dictionary
-- `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
+- `gradLibrary`: (`::Dict{Int, GradEvent}`) the "gradLibrary" dictionary
+- `shapeLibrary`: (`::ShapeLibrary`) the "shapeLibrary" dictionary
 - `Δt_gr`: (`::Float64`, `[s]`) gradient raster time
 - `i`: (`::Int64`) index of the axis in the block event
 
@@ -533,79 +620,68 @@ Reads the gradient. It is used internally by [`get_block`](@ref).
 - `grad`: (::Grad) Gradient struct
 """
 function get_Grad(gradLibrary, shapeLibrary, Δt_gr, i)
-    gr = Grad(0.0,0.0)
-    haskey(gradLibrary, i) || return gr
-    if gradLibrary[i]["type"] === 't' # Trapezoidal gradient waveform
-        #(1)amplitude (2)rise (3)flat (4)fall (5)delay
-        g_A, g_rise, g_T, g_fall, g_delay = gradLibrary[i]["data"]
-        gr = Grad(g_A,g_T,g_rise,g_fall,g_delay,0.0,0.0)
-    elseif gradLibrary[i]["type"] === 'g' # Arbitrary gradient waveform
-        g = gradLibrary[i]["data"]
-        v1_5 = length(g) == 6 # (1)amplitude (2)first_grads (3)last_grads (4)amp_shape_id (5)time_shape_id (6)delay 
-        v1_4 = length(g) == 4 # (1)amplitude (2)amp_shape_id (3)time_shape_id (4)delay
-        v1_3 = length(g) == 3 # (1)amplitude (2)amp_shape_id (3)delay
-        amplitude     =  g[1]
-        first_grads   =  v1_5 ? g[2] : 0.0
-        last_grads    =  v1_5 ? g[3] : 0.0
-        amp_shape_id  = (v1_5 ? g[4] : g[2]) |> x->floor(Int64,x)
-        time_shape_id = (v1_5 ? g[5] : (v1_4 ? g[3] : 0)) |> x->floor(Int64,x)
-        delay         =  v1_5 ? g[6] : (v1_4 ? g[4] : g[3])
-        #Amplitude
-        gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
-        Ngr = length(gA) - 1
-        #Creating timings
-        if time_shape_id == 0 #no time waveform. Default time raster
-            gT = Ngr * Δt_gr
-            rise, fall = Δt_gr/2, Δt_gr/2
-        elseif time_shape_id == -1 #New in pulseq 1.5.x: no time waveform. 1/2 of the default time raster
-            gT = Ngr * Δt_gr / 2
-            rise, fall = Δt_gr/2, Δt_gr/2
-        else
-            gt = decompress_shape(shapeLibrary[time_shape_id]...)
-            gt[1] == 0 || @warn "Gradient time shape $time_shape_id starting at a non-zero value $(gt[1]). This is not recommended and may not be supported properly\n (see https://github.com/pulseq/pulseq/issues/188#issuecomment-3541588756) " maxlog=1
-            delay += gt[1] * Δt_gr # offset due to the shape starting at a non-zero value. This case 
-            gT = diff(gt) * Δt_gr
-            rise, fall = 0.0, 0.0
-        end
-        gA, gT = simplify_waveforms(gA, gT)
-        gr = Grad(gA, gT, rise, fall, delay, first_grads, last_grads)
+    haskey(gradLibrary, i) || return Grad(0.0, 0.0)
+    return get_Grad(gradLibrary[i], shapeLibrary, Δt_gr)
+end
+
+get_Grad(grad::TrapGradEvent, shapeLibrary, Δt_gr) = Grad(grad.amplitude, grad.flat, grad.rise, grad.fall, grad.delay, 0.0, 0.0)
+
+function get_Grad(grad::ArbGradEvent, shapeLibrary, Δt_gr)
+    amplitude = grad.amplitude
+    first_grads = grad.first
+    last_grads = grad.last
+    amp_shape_id = grad.amp_shape_id
+    time_shape_id = grad.time_shape_id
+    delay = grad.delay
+    #Amplitude
+    gA = amplitude * decompress_shape(shapeLibrary[amp_shape_id]...)
+    n_gr = length(gA) - 1
+    #Creating timings
+    if time_shape_id == 0 #no time waveform. Default time raster
+        gT = n_gr * Δt_gr
+        rise, fall = Δt_gr/2, Δt_gr/2
+    elseif time_shape_id == -1 #New in pulseq 1.5.x: no time waveform. 1/2 of the default time raster
+        gT = n_gr * Δt_gr / 2
+        rise, fall = Δt_gr/2, Δt_gr/2
+    else
+        gt = decompress_shape(shapeLibrary[time_shape_id]...)
+        gt[1] == 0 || @warn "Gradient time shape $time_shape_id starting at a non-zero value $(gt[1]). This is not recommended and may not be supported properly\n (see https://github.com/pulseq/pulseq/issues/188#issuecomment-3541588756) " maxlog=1
+        delay += gt[1] * Δt_gr # offset due to the shape starting at a non-zero value. This case 
+        gT = diff(gt) * Δt_gr
+        rise, fall = 0.0, 0.0
     end
-    return gr
+    gA, gT = simplify_waveforms(gA, gT)
+    return Grad(gA, gT, rise, fall, delay, first_grads, last_grads)
 end
 
 """
-    rf = get_RF(rfLibrary, shapeLibrary, Δt_rf, i)
+    rf, add_half_Δt_rf = get_RF(rfLibrary, shapeLibrary, Δt_rf, i)
 
 Reads the RF. It is used internally by [`get_block`](@ref).
 
 # Arguments
-- `rfLibrary`: (`::Dict{K, V}`) the "rfLibrary" dictionary
-- `shapeLibrary`: (`::Dict{K, V}`) the "shapeLibrary" dictionary
+- `rfLibrary`: (`::Dict{Int, RFEvent}`) the "rfLibrary" dictionary
+- `shapeLibrary`: (`::ShapeLibrary`) the "shapeLibrary" dictionary
 - `Δt_rf`: (`::Float64`, `[s]`) RF raster time
 - `i`: (`::Int64`) index of the RF in the block event
 
 # Returns
-- `rf`: (`1x1 ::Matrix{RF}`) RF struct
+- `rf`: (`::RF`) RF struct
+- `add_half_Δt_rf`: (`::Bool`) whether the block extent needs the trailing half-raster correction
 """
 function get_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     rf = RF(0.0,0.0)
-    haskey(rfLibrary, i) || return [rf;;], false
+    haskey(rfLibrary, i) || return rf, false
     #Unpacking
-    r = rfLibrary[i]["data"]
-    v1_5 = length(r) == 11 # (1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)center (6)delay (7)freq_ppm (8)phase_ppm (9)freq (10)phase (11)use
-    v1_4 = length(r) == 7  # (1)amplitude (2)mag_id (3)phase_id (4)time_shape_id (5)delay (6)freq (7)phase
-    v1_3 = length(r) == 6  # (1)amplitude (2)mag_id (3)phase_id (4)delay (5)freq (6)phase
-    amplitude     =  r[1]
-    mag_id        =  r[2] |> x->floor(Int64,x)
-    phase_id      =  r[3] |> x->floor(Int64,x)
-    time_shape_id =  v1_3 ? 0 : (r[4] |> x->floor(Int64,x)); add_half_Δt_rf = !(time_shape_id>0)
-    center        =  v1_5 ? r[5]  : 0.0
-    delay         = (v1_5 ? r[6]  : (v1_4 ? r[5] : r[4])) + (add_half_Δt_rf) * Δt_rf/2
-    freq_ppm      =  v1_5 ? r[7]  : 0.0
-    phase_ppm     =  v1_5 ? r[8]  : 0.0
-    freq          =  v1_5 ? r[9]  : (v1_4 ? r[6] : r[5])
-    phase         =  v1_5 ? r[10] : (v1_4 ? r[7] : r[6])
-    use           =  v1_5 ? r[11] : 'u'
+    r = rfLibrary[i]
+    amplitude = r.amplitude
+    mag_id = r.mag_id
+    phase_id = r.phase_id
+    time_shape_id = r.time_shape_id
+    add_half_Δt_rf = time_shape_id <= 0
+    delay = r.delay + add_half_Δt_rf * Δt_rf / 2
+    freq = r.freq
+    phase = r.phase
     #Amplitude and phase waveforms
     if amplitude != 0 && mag_id != 0
         rfA = decompress_shape(shapeLibrary[mag_id]...)
@@ -615,6 +691,7 @@ function get_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rfAϕ = amplitude .* rfA .* exp.(1im*(2π*rfϕ .+ phase))
     else
         rfAϕ = ComplexF64[0.0]
+        Nrf = 0
     end
     #Creating timings
     if time_shape_id == 0 #no time waveform. Default time raster
@@ -627,13 +704,12 @@ function get_RF(rfLibrary, shapeLibrary, Δt_rf, i)
         rfT = diff(rft) * Δt_rf
     end
     rfAϕ, rfT = simplify_waveforms(rfAϕ, rfT)
-    use = KomaMRIBase.get_RF_use_from_char(Val(use))
-    if v1_5 # for version 1.5.x
-        rf = RF(rfAϕ,rfT,freq,delay,center,use)
-    else # for version 1.4.x and below
-        rf = RF(rfAϕ,rfT,freq,delay)
+    if isnothing(r.center)
+        rf = RF(rfAϕ, rfT, freq, delay)
+    else
+        rf = RF(rfAϕ, rfT, freq, delay, r.center, KomaMRIBase.get_RF_use_from_char(Val(r.use)))
     end
-    return [rf;;], add_half_Δt_rf
+    return rf, add_half_Δt_rf
 end
 
 """
@@ -642,76 +718,52 @@ end
 Reads the ADC. It is used internally by [`get_block`](@ref).
 
 # Arguments
-- `adcLibrary`: (`::Dict{String, Any}`) the "adcLibrary" dictionary
+- `adcLibrary`: (`::Dict{Int, ADCEvent}`) the "adcLibrary" dictionary
 - `i`: (`::Int64`) index of the adc in the block event
 
 # Returns
-- `adc`: (`1x1 ::Vector{ADC}`) ADC struct
+- `adc`: (`::ADC`) ADC struct
 """
 function get_ADC(adcLibrary, i)
     adc = ADC(0, 0)
-    haskey(adcLibrary, i) || return [adc], 0.0
+    haskey(adcLibrary, i) || return adc
     #Unpacking
-    a = adcLibrary[i]["data"]
-    v1_5 = length(a) == 8 # (1)num (2)dwell (3)delay (4)freq_ppm (5)phase_ppm (6)freq (7)phase (8)phase_shape_id
-    v1_4 = length(a) == 5 # (1)num (2)dwell (3)delay (4)freq (5)phase
-    num       = a[1] |> x->floor(Int64,x)
-    dwell     = a[2]
-    delay     = a[3] + dwell/2
-    freq_ppm  = v1_5 ? a[4] : 0.0
-    phase_ppm = v1_5 ? a[5] : 0.0
-    freq      = v1_5 ? a[6] : a[4]
-    phase     = v1_5 ? a[7] : a[5]
-    phase_id  = v1_5 ? a[8] : 0
+    a = adcLibrary[i]
+    num = a.num
+    dwell = a.dwell
+    delay = a.delay + dwell / 2
+    freq = a.freq
+    phase = a.phase
     #Definition
     T = (num-1) * dwell
-    adc = ADC(num,T,delay,freq,phase)
-    return [adc], delay + T - dwell/2
+    return ADC(num,T,delay,freq,phase)
 end
 
 """
-    seq = get_block(obj, i, pulseq_version)
+    Gx, Gy, Gz, rf, add_half_Δt_rf, adc, ext = get_block(eventIDs, eventLibraries)
 
-Block sequence definition. Used internally by [`read_seq`](@ref).
+Decode one Pulseq block into gradient, RF, ADC, and extension events.
 
 # Arguments
-- `obj`: (`::Dict{String, Any}`) main dictionary
-- `i`: (`::Int64`) index of a block event
-- `pulseq_version`: (`::VersionNumber`) Pulseq version
+- `eventIDs`: (`::Vector{Int}`) event IDs for one block
+- `eventLibraries`: (`::PulseqEventLibraries`) main dictionary of event libraries
 
 # Returns
-- `s`: (`::Sequence`) block Sequence struct
+- `Gx`, `Gy`, `Gz`: (`::Grad`) decoded gradient events
+- `rf`: (`::RF`) decoded RF event
+- `add_half_Δt_rf`: (`::Bool`) whether the block extent needs the trailing half-raster correction
+- `adc`: (`::ADC`) decoded ADC event
+- `ext`: (`::Vector{Extension}`) decoded extension events
 """
-function get_block(obj, i, pulseq_version)
-    #Unpacking
-    idur, irf, igx, igy, igz, iadc, iext = obj["blockEvents"][i]
-    #Gradient definition
-    Δt_gr = obj["definitions"]["GradientRasterTime"]
-    Gx = get_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, igx)
-    Gy = get_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, igy)
-    Gz = get_Grad(obj["gradLibrary"], obj["shapeLibrary"], Δt_gr, igz)
-    G = reshape([Gx;Gy;Gz],3,1) #[Gx;Gy;Gz;;]
-    #RF definition
-    Δt_rf = obj["definitions"]["RadiofrequencyRasterTime"]
-    R, add_half_Δt_rf = get_RF(obj["rfLibrary"], obj["shapeLibrary"], Δt_rf, irf)
-    #ADC definition
-    A, adc_dur = get_ADC(obj["adcLibrary"], iadc)
-    #DUR
-    max_dur = max(dur(Gx), dur(Gy), dur(Gz), dur(R[1]) + (add_half_Δt_rf) * Δt_rf/2, adc_dur)
-    if pulseq_version >= v"1.4.0" # Explicit block duration (in units of blockDurationRaster)
-        duration = idur * obj["definitions"]["BlockDurationRaster"]
-        @assert duration ≈ max_dur || duration >= max_dur "Block duration must be greater than or approximately equal to the duration of the block events"
-        D = Float64[duration]
-    else # Block duration as the maximum between the delay and the duration of the block events
-        idelay = idur > 0 ? obj["tmp_delayLibrary"][idur]["data"][1] : 0.0
-        D = Float64[max(idelay, max_dur)]
-    end
-    #Extensions
-    E = get_extension(obj["extensionInstanceLibrary"], obj["extensionTypeLibrary"], obj["extensionSpecLibrary"], iext)
-    # Definitition
-    DEF = Dict{String,Any}()
-    #Sequence block definition
-    return Sequence(G,R,A,D,E,DEF)
+function get_block(eventIDs, eventLibraries)
+    irf, igx, igy, igz, iadc, iext = eventIDs
+    Gx = get_Grad(eventLibraries.grad_library, eventLibraries.shape_library, eventLibraries.gradient_raster_time, igx)
+    Gy = get_Grad(eventLibraries.grad_library, eventLibraries.shape_library, eventLibraries.gradient_raster_time, igy)
+    Gz = get_Grad(eventLibraries.grad_library, eventLibraries.shape_library, eventLibraries.gradient_raster_time, igz)
+    rf, add_half_Δt_rf = get_RF(eventLibraries.rf_library, eventLibraries.shape_library, eventLibraries.radiofrequency_raster_time, irf)
+    adc = get_ADC(eventLibraries.adc_library, iadc)
+    ext = get_extension(eventLibraries.extension_instance_library, eventLibraries.extension_type_library, eventLibraries.extension_spec_library, iext)
+    return Gx, Gy, Gz, rf, add_half_Δt_rf, adc, ext
 end
 
 """
@@ -732,21 +784,19 @@ Reads the extension(s) for a block event in a Pulseq sequence file.
 The available extensions are currently contained in the file KomaMRIBase/src/datatypes/sequence/EXT.jl
 """
 function get_extension(extensionInstanceLibrary, extensionTypeLibrary, extensionSpecLibrary, i)
-    EXT = [Extension[]]
+    EXT = Extension[]
     haskey(extensionInstanceLibrary, i) || return EXT
     # type ref next_id
     # next_id of 0 terminates the list
-    type, ref, next_id = extensionInstanceLibrary[i]["data"]
-    while true
-        if haskey(extensionTypeLibrary, type) push!(EXT[1], extensionTypeLibrary[type](extensionSpecLibrary[type][ref]["data"]...)) end
-        if next_id == 0
-            break
-        else
-            type, ref, next_id = extensionInstanceLibrary[next_id]["data"]
+    while i != 0
+        entry = extensionInstanceLibrary[i]
+        if haskey(extensionTypeLibrary, entry.type)
+            push!(EXT, extensionTypeLibrary[entry.type](extensionSpecLibrary[entry.type][entry.ref]...))
         end
+        i = entry.next_id
     end
     return EXT
- end
+end
 
 # ----------------- Signature-related functions ------------------
 function supported_signature_digest(algorithm::AbstractString, payload::Vector{UInt8})
