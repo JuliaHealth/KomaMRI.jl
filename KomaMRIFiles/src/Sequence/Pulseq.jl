@@ -90,7 +90,7 @@ function read_blocks(io, blockDurationRaster, pulseq_version)
     # we assume that we have at least 1000 blocks and pre-allocate for that
     blocks = empty!(Vector{Int}(undef, NumberBlockEvents * 1000))
     blockDurations = empty!(Vector{Float64}(undef, 1000))
-    delayIDs_tmp = empty!(Vector{Float64}(undef, 1000))
+    delayIDs_tmp = empty!(Vector{Int}(undef, 1000))
     num_lines = 0
     while true
         blockEvents = [parse(Int, d) for d in eachsplit(readline(io))]
@@ -317,7 +317,7 @@ function decompress_shape(num_samples, data; forceDecompression = false)
 end
 
 """
-    fix_first_last_grads!(blockEvents::Array{Int, 2}, blockDurations::Vector{Float64}, eventLibraries::Dict, pulseq_version)
+    fix_first_last_grads!(blockEvents::Array{Int, 2}, blockDurations::Vector{Float64}, eventLibraries::Dict)
 
 Updates the `eventLibraries` dictionary with new first and last points for gradients.
 
@@ -326,12 +326,12 @@ Updates the `eventLibraries` dictionary with new first and last points for gradi
 https://github.com/pulseq/pulseq/blob/v1.5.1/matlab/%2Bmr/%40Sequence/read.m#L325-L413
 - We are updating the `gradLibrary` entries with the new first and last points, making them compatible with the v1.5.x format.
 """
-function fix_first_last_grads!(blockEvents::Array{Int, 2}, blockDurations::Vector{Float64}, eventLibraries::Dict, pulseq_version)
+function fix_first_last_grads!(blockEvents::Array{Int, 2}, blockDurations::Vector{Float64}, eventLibraries::Dict)
     # Add first and last Pulseq points
     grad_prev_last = [0.0; 0.0; 0.0]
     for iB in 1:size(blockEvents, 2)
         eventIDs = blockEvents[:, iB];
-        block = get_block(eventIDs, blockDurations[iB], eventLibraries, pulseq_version)
+        block = get_block(eventIDs, blockDurations[iB], eventLibraries)
         processedGradIDs = zeros(1, 3);    
         for iG in 1:3
             g_id = eventIDs[2+iG]
@@ -465,6 +465,7 @@ function read_seq(filename)
     signature = nothing
     blockEvents = Array{Int, 2}(undef, 0, 0)
     blockDurations = Vector{Float64}(undef, 0)
+    delayIDs_tmp = Vector{Int}(undef, 0)
     rfLibrary = Dict()
     adcLibrary = Dict()
     tmp_delayLibrary = Dict()
@@ -577,7 +578,7 @@ function read_seq(filename)
         resize!(blockDurations, size(blockEvents, 2))
         # inefficient but convenient way to get the block durations for older versions
         for i = 1:size(blockEvents, 1)
-            block = get_block(blockEvents[:, i], delayIDs_tmp[i], eventLibraries, pulseq_version)
+            block = get_block_with_delayID(blockEvents[:, i], delayIDs_tmp[i], eventLibraries)
             blockDurations[i] = dur(block)
         end
     end
@@ -756,20 +757,19 @@ function get_ADC(adcLibrary, i)
 end
 
 """
-    seq = get_block(eventIDs, duration, eventLibraries, pulseq_version)
+    seq = get_block(eventIDs, duration, eventLibraries)
 
 Sequence definition for one block. Used internally by [`fix_first_last_grads`](@ref).
 
 # Arguments
 - `eventIDs`: (`::Vector{Int}`) event IDs for one block
-- `duration`: (`::Float64`) block duration (for versions >= 1.4.0) or delay ID (for versions < 1.4.0)
+- `duration`: (`::Float64`) block duration
 - `eventLibraries`: (`::Dict`) main dictionary of event libraries
-- `pulseq_version`: (`::VersionNumber`) Pulseq version
 
 # Returns
 - `s`: (`::Sequence`) block Sequence struct
 """
-function get_block(eventIDs, duration, eventLibraries, pulseq_version)
+function get_block(eventIDs, duration, eventLibraries)
     #Unpacking
     irf, igx, igy, igz, iadc, iext = eventIDs
     #Gradient definition
@@ -785,14 +785,47 @@ function get_block(eventIDs, duration, eventLibraries, pulseq_version)
     A, adc_dur = get_ADC(eventLibraries["adcLibrary"], iadc)
     #DUR
     max_dur = max(dur(Gx), dur(Gy), dur(Gz), dur(R[1]) + (add_half_Δt_rf) * Δt_rf/2, adc_dur)
-    if pulseq_version >= v"1.4.0" # Explicit block duration (in units of blockDurationRaster)
-        @assert duration ≈ max_dur || duration >= max_dur "Block duration must be greater than or approximately equal to the duration of the block events"
-        D = Float64[duration]
-    else # Block duration as the maximum between the delay and the duration of the block events
-        delayID = duration
-        delay = delayID > 0 ? eventLibraries["tmp_delayLibrary"][delayID]["data"][1] : 0.0
-        D = Float64[max(delay, max_dur)]
-    end
+    @assert duration ≈ max_dur || duration >= max_dur "Block duration must be greater than or approximately equal to the duration of the block events"
+    D = Float64[duration]
+    #Extensions
+    E = get_extension(eventLibraries["extensionInstanceLibrary"], eventLibraries["extensionTypeLibrary"], eventLibraries["extensionSpecLibrary"], iext)
+    # Definitition
+    DEF = Dict{String,Any}()
+    #Sequence block definition
+    return Sequence(G,R,A,D,E,DEF)
+end
+
+"""
+    seq = get_block_with_delayID(eventIDs, delayID, eventLibraries)
+
+Sequence definition for one block. For versions < 1.4.0 where the block duration is defined by the delay ID.
+
+# Arguments
+- `eventIDs`: (`::Vector{Int}`) event IDs for one block
+- `delayID`: (`::Int`) delay ID
+- `eventLibraries`: (`::Dict`) main dictionary of event libraries
+
+# Returns
+- `s`: (`::Sequence`) block Sequence struct
+"""
+function get_block_with_delayID(eventIDs, delayID, eventLibraries)
+    #Unpacking
+    irf, igx, igy, igz, iadc, iext = eventIDs
+    #Gradient definition
+    Δt_gr = eventLibraries["definitions"]["GradientRasterTime"]
+    Gx = get_Grad(eventLibraries["gradLibrary"], eventLibraries["shapeLibrary"], Δt_gr, igx)
+    Gy = get_Grad(eventLibraries["gradLibrary"], eventLibraries["shapeLibrary"], Δt_gr, igy)
+    Gz = get_Grad(eventLibraries["gradLibrary"], eventLibraries["shapeLibrary"], Δt_gr, igz)
+    G = reshape([Gx;Gy;Gz],3,1) #[Gx;Gy;Gz;;]
+    #RF definition
+    Δt_rf = eventLibraries["definitions"]["RadiofrequencyRasterTime"]
+    R, add_half_Δt_rf = get_RF(eventLibraries["rfLibrary"], eventLibraries["shapeLibrary"], Δt_rf, irf)
+    #ADC definition
+    A, adc_dur = get_ADC(eventLibraries["adcLibrary"], iadc)
+    #DUR
+    max_dur = max(dur(Gx), dur(Gy), dur(Gz), dur(R[1]) + (add_half_Δt_rf) * Δt_rf/2, adc_dur)
+    delay = delayID > 0 ? eventLibraries["tmp_delayLibrary"][delayID]["data"][1] : 0.0
+    D = Float64[max(delay, max_dur)]
     #Extensions
     E = get_extension(eventLibraries["extensionInstanceLibrary"], eventLibraries["extensionTypeLibrary"], eventLibraries["extensionSpecLibrary"], iext)
     # Definitition
