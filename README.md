@@ -105,7 +105,7 @@ To install, just **type** `] add KomaMRI` in the Julia REPL or copy-paste the fo
 
 ```julia
 pkg> add KomaMRI
-pkg> add CUDA     # Optional: Install desired GPU backend (CUDA, AMDGPU, Metal, or oneAPI)
+pkg> add CUDA     # Optional: Install desired GPU backend (CUDA, AMDGPU, Metal, or oneAPI (experimental))
 
 ```
 For more information about installation instructions, refer to the section [Getting Started](https://JuliaHealth.github.io/KomaMRI.jl/dev/how-to/1-getting-started) of the documentation.
@@ -120,7 +120,7 @@ KomaUI()
 Press the button that says "Simulate!" to do your first simulation :). Then, a notification will emerge telling you that the simulation was successful. In this notification, you can either select to (1) see the Raw Data or (2) to proceed with the reconstruction.
 
 > [!IMPORTANT]
-> Starting from **KomaMRI v0.9** we are using [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)) to deal with GPU dependencies, meaning that to run simulations on the GPU, installing (`add CUDA/AMDGPU/Metal/oneAPI`) and loading (`using CUDA/AMDGPU/Metal/oneAPI`) the desired backend will be necessary (see [GPU Parallelization](https://JuliaHealth.github.io/KomaMRI.jl/dev/explanation/7-gpu-explanation) and [Tested compatibility](#tested-compatibility)).  
+> Starting from **KomaMRI v0.9** we are using [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)) to deal with GPU dependencies, meaning that to run simulations on the GPU, installing (`add CUDA/AMDGPU/Metal/oneAPI`) and loading (`using CUDA/AMDGPU/Metal/oneAPI`) the desired backend will be necessary. Note that oneAPI support is experimental (see [GPU Parallelization](https://JuliaHealth.github.io/KomaMRI.jl/dev/explanation/7-gpu-explanation) and [Tested compatibility](#tested-compatibility)).
 
 ## How to Contribute
 KomaMRI exists thanks to all our contributors:
@@ -157,14 +157,14 @@ If you use this package, please cite our paper.
 
 ## Tested compatibility
 
-All parallel backends are tested on Linux (besides Apple silicon) using the latest stable release, Julia 1 (stable), and Julia 1.9 (compat). 
+CUDA, AMDGPU, and Metal are tested on Linux (besides Apple silicon) using the latest stable release, Julia 1 (stable), and Julia 1.10 (compat). oneAPI support is experimental and is not included in the status badges below.
 
 <div align="center">
 
-| KomaMRICore          | CPU                                 | GPU (Nvidia)                        | GPU (AMD)                        | GPU (Apple)                        | GPU (Intel)                        | 
-|:---------------------|:-----------------------------------:|:-----------------------------------:|:--------------------------------:|:----------------------------------:|:----------------------------------:|
-| Julia 1.10           | [![][cpu-compat]][buildkite-url]    | [![][nvidia-compat]][buildkite-url] | [![][amd-compat]][buildkite-url] | [![][apple-compat]][buildkite-url] | [![][intel-compat]][buildkite-url] |
-| Julia 1              | [![][cpu-stable]][buildkite-url]    | [![][nvidia-stable]][buildkite-url] | [![][amd-stable]][buildkite-url] | [![][apple-stable]][buildkite-url] | [![][intel-stable]][buildkite-url] |
+| KomaMRICore          | CPU                                 | GPU (Nvidia)                        | GPU (AMD)                        | GPU (Apple)                        |
+|:---------------------|:-----------------------------------:|:-----------------------------------:|:--------------------------------:|:----------------------------------:|
+| Julia 1.10           | [![][cpu-compat]][buildkite-url]    | [![][nvidia-compat]][buildkite-url] | [![][amd-compat]][buildkite-url] | [![][apple-compat]][buildkite-url] |
+| Julia 1              | [![][cpu-stable]][buildkite-url]    | [![][nvidia-stable]][buildkite-url] | [![][amd-stable]][buildkite-url] | [![][apple-stable]][buildkite-url] |
 
 </div>
 
@@ -211,13 +211,10 @@ If you see any problem with this information, please let us know in a GitHub iss
 [nvidia-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=CUDA%3A%20Run%20tests%20on%20v1
 [amd-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=AMDGPU%3A%20Run%20tests%20on%20v1
 [apple-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=Metal%3A%20Run%20tests%20on%20v1
-[intel-stable]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=oneAPI%3A%20Run%20tests%20on%20v1
-
 [cpu-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=CPU%3A%20Run%20tests%20on%20v1.10
 [nvidia-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=CUDA%3A%20Run%20tests%20on%20v1.10
 [amd-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=AMDGPU%3A%20Run%20tests%20on%20v1.10
 [apple-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=Metal%3A%20Run%20tests%20on%20v1.10
-[intel-compat]: https://badge.buildkite.com/f3c2e589ac0c1310cda3c2092814e33ac9db15b4f103eb572b.svg?branch=master&step=oneAPI%3A%20Run%20tests%20on%20v1.10
 
 [buildkite-url]: https://buildkite.com/julialang/komamri-dot-jl/builds
 <!-- CI -->

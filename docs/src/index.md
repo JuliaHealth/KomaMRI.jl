@@ -30,7 +30,7 @@ features:
 
   - icon: 🚀
     title: Fast, Device Agnostic
-    details: Run on CPU and GPU with CUDA, AMDGPU, Metal, and oneAPI support. Differentiable simulations powered by Enzyme and Reactant.
+    details: Run on CPU and GPU with CUDA, AMDGPU, Metal, and experimental oneAPI support. Differentiable simulations powered by Enzyme and Reactant.
     link: /explanation/6-simulation
 
   - icon: 🌊
@@ -62,7 +62,7 @@ julia> import Pkg; Pkg.add("KomaMRI")
 
 ## GPU Support
 
-KomaMRI supports GPU acceleration with CUDA, AMDGPU, Metal, and oneAPI. To use GPU acceleration, install the corresponding backend package:
+KomaMRI supports GPU acceleration with CUDA, AMDGPU, Metal, and experimental oneAPI support. To use GPU acceleration, install the corresponding backend package:
 
 :::code-group
 
@@ -87,7 +87,7 @@ import Pkg; Pkg.add("Metal")
 using KomaMRI, Metal
 ```
 
-```julia [Intel GPUs]
+```julia [Intel GPUs (experimental)]
 # Install
 import Pkg; Pkg.add("oneAPI")
 # Load
