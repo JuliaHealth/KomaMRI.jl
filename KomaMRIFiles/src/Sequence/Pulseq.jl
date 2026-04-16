@@ -584,7 +584,7 @@ function read_seq(filename)
     end
     # Add first and last points for gradients #320 for version <= 1.4.2
     if pulseq_version < v"1.5.0"
-        fix_first_last_grads!(blockEvents, blockDurations, eventLibraries, pulseq_version)
+        fix_first_last_grads!(blockEvents, blockDurations, eventLibraries)
     end
 
     seq = get_seq_from_blocks(blockEvents, blockDurations, eventLibraries)
