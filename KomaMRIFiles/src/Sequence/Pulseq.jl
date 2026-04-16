@@ -577,7 +577,7 @@ function read_seq(filename)
         # initialize blockDurations
         resize!(blockDurations, size(blockEvents, 2))
         # inefficient but convenient way to get the block durations for older versions
-        for i = 1:size(blockEvents, 1)
+        for i = 1:size(blockEvents, 2)
             block = get_block_with_delayID(blockEvents[:, i], delayIDs_tmp[i], eventLibraries)
             blockDurations[i] = dur(block)
         end
