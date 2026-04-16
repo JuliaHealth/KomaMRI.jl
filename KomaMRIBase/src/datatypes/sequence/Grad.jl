@@ -75,15 +75,15 @@ julia> gr = Grad(1, 1, 0.1, 0.1, 0.2)
 julia> seq = Sequence([gr]); plot_seq(seq)
 ```
 """
-mutable struct Grad
-    A
-    T
-    rise::Real
-    fall::Real
-    delay::Real
-    first
-    last
-    Grad(A, T, rise, fall, delay, first, last) = all(T .< 0) || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new(A, T, rise, fall, delay, first, last)
+mutable struct Grad{AT,TT}
+    A::AT
+    T::TT
+    rise::Float64
+    fall::Float64
+    delay::Float64
+    first::Float64
+    last::Float64
+    Grad(A, T, rise, fall, delay, first, last) = all(T .< 0) || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new{typeof(A),typeof(T)}(A, T, rise, fall, delay, first, last)
     Grad(A, T, rise, fall, delay)              = Grad(A, T, rise, fall, delay, 0.0, 0.0)
     Grad(A, T, rise, delay)                    = Grad(A, T, rise, rise, delay, 0.0, 0.0)
     Grad(A, T, rise)                           = Grad(A, T, rise, rise, 0.0,   0.0, 0.0)
@@ -159,13 +159,13 @@ Base.show(io::IO, x::Grad) = begin
 end
 
 """
-    y = getproperty(x::Array{Grad}, f::Symbol)
+    y = getproperty(x::Array{<:Grad}, f::Symbol)
 
 Overloads Base.getproperty(). It is meant to access properties of the Grad vector `x`
 directly without the need to iterate elementwise.
 
 # Arguments
-- `x`: (`::Array{Grad}`) vector or matrix of Grad structs
+- `x`: (`::Array{<:Grad}`) vector or matrix of Grad structs
 - `f`: (`::Symbol`, opts: [`:x`, `:y`, `:z`, `:T`, `:delay`, `:rise`, `:delay`, `:dur`,
     `:A`, `f`]) input symbol that represents a property of the vector or matrix of Grad
     structs
@@ -174,7 +174,7 @@ directly without the need to iterate elementwise.
 - `y`: (`::Array{Any}`) vector or matrix with the property defined
     by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
-getproperty(x::Array{Grad}, f::Symbol) = begin
+getproperty(x::AbstractArray{<:Grad}, f::Symbol) = begin
     if f == :x
         @view x[1, :]
     elseif f == :y && size(x, 1) >= 2
@@ -211,10 +211,10 @@ Base.zero(::Grad) = Grad(0.0, 0.0)
 -(x::Grad, y::Grad) = Grad(x.A .- y.A, max(x.T, y.T), max(x.rise, y.rise), max(x.fall, y.fall), max(x.delay, y.delay)) #TODO: solve this in a better way (by "stacking" gradients) issue #487
 
 # Gradient functions
-function vcat(x::Array{Grad,1}, y::Array{Grad,1})
+function vcat(x::Vector{T}, y::Vector{T}) where {T<:Grad}
     return [i == 1 ? x[j] : y[j] for i in 1:2, j in 1:length(x)]
 end
-function vcat(x::Array{Grad,1}, y::Array{Grad,1}, z::Array{Grad,1})
+function vcat(x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Grad}
     return [
         if i == 1
             x[j]
@@ -228,17 +228,17 @@ end
 
 """
     y = dur(x::Grad)
-    y = dur(x::Vector{Grad})
-    y = dur(x::Matrix{Grad})
+    y = dur(x::Vector{<:Grad})
+    y = dur(x::Matrix{<:Grad})
 
 Duration time in [s] of Grad struct or Grad Array.
 
 # Arguments
-- `x`: (`::Grad` or `::Vector{Grad}` or `::Matrix{Grad}`) Grad struct or Grad Array
+- `x`: (`::Grad` or `::Vector{<:Grad}` or `::Matrix{<:Grad}`) Grad struct or Grad Array
 
 # Returns
 - `y`: (`::Float64`, `[s]`) duration of the Grad struct or Grad Array
 """
 dur(x::Grad) = x.delay + x.rise + sum(x.T) + x.fall
-dur(x::Vector{Grad}) = maximum(dur.(x); dims=1)[:]
-dur(x::Matrix{Grad}) = maximum(dur.(x); dims=1)[:]
+dur(x::AbstractVector{<:Grad}) = maximum(dur.(x); dims=1)[:]
+dur(x::AbstractMatrix{<:Grad}) = maximum(dur.(x); dims=1)[:]
