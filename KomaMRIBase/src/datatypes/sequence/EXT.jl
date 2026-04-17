@@ -10,7 +10,10 @@ include("extensions/Trigger.jl")
 get_EXT_type_from_symbol(::Val)  = nothing
 get_symbol_from_EXT_type(::Type) = nothing
 
-Base.:(==)(x::Extension, y::Extension) = (typeof(x) == typeof(y)) && all([getfield(x, k) == getfield(y, k) for k in fieldnames(typeof(x))])
+function Base.:(==)(x::Extension, y::Extension)
+    return (typeof(x) == typeof(y)) && all([getfield(x, k) == getfield(y, k) for k in fieldnames(typeof(x))])
+end
+
 function Base.:(≈)(x::Extension, y::Extension)
     typeof(x) == typeof(y) || return false
     equal = true
