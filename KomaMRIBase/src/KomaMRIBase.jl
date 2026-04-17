@@ -42,6 +42,7 @@ export Scanner, Sequence, Phantom
 export Grad, RF, ADC, Delay
 export dur, get_block_start_times, get_samples
 export RFuse, Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
+export apply_rotations!
 export DiscreteSequence
 export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on

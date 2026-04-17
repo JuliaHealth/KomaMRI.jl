@@ -282,6 +282,35 @@ using TestItems, TestItemRunner
         PHS_vec = [l[i].PHS for i in eachindex(l)] 
         @test PHS_vec == vec([0 0 0 2 2 2])
 
+        # Pulseq Rotation extension support
+        rot = QuaternionRot(cos(π / 8), 0.0, 0.0, sin(π / 8)) # 45 deg around z
+        grads_rot = rot * [Grad(1.0, 1e-3), Grad(0.0, 1e-3), Grad(0.0, 1e-3)]
+        @test grads_rot[1].A ≈ cos(π / 4)
+        @test grads_rot[2].A ≈ sin(π / 4)
+        @test grads_rot[3].A ≈ 0.0
+        grads_unrot = transpose(rot) * grads_rot
+        @test grads_unrot[1].A ≈ 1.0
+        @test grads_unrot[2].A ≈ 0.0
+        @test grads_unrot[3].A ≈ 0.0
+
+        ext90 = QuaternionRot(cos(π / 4), 0.0, 0.0, sin(π / 4)) # 90 deg around z
+
+        seq_rot = Sequence([Grad(1.0, 1e-3); Grad(0.0, 1e-3); Grad(0.0, 1e-3);;])
+        seq_rot.EXT = [[ext90]]
+        apply_rotations!(seq_rot)
+        @test seq_rot.GR[1, 1].A ≈ 0.0 atol = 1e-12
+        @test seq_rot.GR[2, 1].A ≈ 1.0 atol = 1e-12
+        @test seq_rot.GR[3, 1].A ≈ 0.0 atol = 1e-12
+        @test length(seq_rot.EXT[1]) == 1 && seq_rot.EXT[1][1] isa QuaternionRot
+
+        seq_rot_rev = Sequence([Grad(1.0, 1e-3); Grad(0.0, 1e-3); Grad(0.0, 1e-3);;])
+        seq_rot_rev.EXT = [[ext90]]
+        apply_rotations!(seq_rot_rev; reverse=true)
+        @test seq_rot_rev.GR[1, 1].A ≈ 0.0 atol = 1e-12
+        @test seq_rot_rev.GR[2, 1].A ≈ -1.0 atol = 1e-12
+        @test seq_rot_rev.GR[3, 1].A ≈ 0.0 atol = 1e-12
+        @test length(seq_rot_rev.EXT[1]) == 1 && seq_rot_rev.EXT[1][1] isa QuaternionRot
+
     end
 
     @testset "DiscreteSequence" begin

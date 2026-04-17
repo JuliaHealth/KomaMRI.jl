@@ -459,12 +459,13 @@ function get_seq_from_blocks(blockEvents, blockDurations, eventLibraries)
 end
 
 """
-    seq = read_seq(filename)
+    seq = read_seq(filename; apply_rotations=true)
 
 Returns the Sequence struct from a Pulseq file with `.seq` extension.
 
 # Arguments
 - `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
+- `apply_rotations`: (`::Bool`) apply `ROTATIONS` extensions to gradients after loading
 
 # Returns
 - `seq`: (`::Sequence`) Sequence struct
@@ -478,7 +479,7 @@ julia> seq = read_seq(seq_file)
 julia> plot_seq(seq)
 ```
 """
-function read_seq(filename)
+function read_seq(filename; apply_rotations=true)
     @info "Loading sequence $(basename(filename)) ..."
     pulseq_version = v"0.0.0"
     gradLibrary = Dict{Int, GradEvent}()
@@ -600,6 +601,9 @@ function read_seq(filename)
     seq.DEF["Nx"] = trunc(Int64, get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC)))
     seq.DEF["Nz"] = trunc(Int64, get(seq.DEF, "Nz", length(unique(seq.RF.Δf))))
     seq.DEF["Ny"] = trunc(Int64, get(seq.DEF, "Ny", sum(map(is_ADC_on, seq)) ÷ seq.DEF["Nz"]))
+    if apply_rotations
+        KomaMRIBase.apply_rotations!(seq)
+    end
     #Koma sequence
     return seq
 end
