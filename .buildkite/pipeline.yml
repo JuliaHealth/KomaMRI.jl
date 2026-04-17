@@ -1,32 +1,57 @@
 steps:
-  - label: ":pipeline: KomaMRICore Upload NoMotion Tests"
+  - label: "KomaMRICore / Test / CPU / Julia 1.10 / nomotion"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
-    env:
-      TEST_GROUP: "nomotion"
-    command: buildkite-agent pipeline upload .buildkite/runtests.yml
-    agents:
-      queue: "juliagpu"
-
-  - label: ":pipeline: KomaMRICore Upload Motion Tests"
-    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
-    env:
-      TEST_GROUP: "motion"
-    command: buildkite-agent pipeline upload .buildkite/runtests.yml
-    agents:
-      queue: "juliagpu"
-
-  # Keep the experimental oneAPI backend as its own top-level matrix so it can
-  # soft-fail without duplicating checks across the motion/nomotion uploads.
-  - label: "KomaMRICore / Test / oneAPI / Julia {{matrix.version}} / core"
-    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
-    matrix:
-      setup:
-        version:
-          - "1.10"
-          - "1"
     plugins:
       - JuliaCI/julia#v1:
-          version: "{{matrix.version}}"
+          version: "1.10"
+    command: |
+      julia --project=KomaMRICore -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+          ])'
+
+      julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
+          using Pkg
+          Pkg.test()'
+    agents:
+      arch: "aarch64"
+      queue: "juliaecosystem"
+      num_cpus: "4"
+    env:
+      TEST_GROUP: "nomotion"
+      JULIA_NUM_THREADS: "4"
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Test / CPU / Julia 1 / nomotion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=KomaMRICore -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+          ])'
+
+      julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
+          using Pkg
+          Pkg.test()'
+    agents:
+      arch: "aarch64"
+      queue: "juliaecosystem"
+      num_cpus: "4"
+    env:
+      TEST_GROUP: "nomotion"
+      JULIA_NUM_THREADS: "4"
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Test / AMDGPU / Julia 1.10 / nomotion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.10"
       - JuliaCI/julia-coverage:
           codecov: true
           flags:
@@ -34,12 +59,514 @@ steps:
           dirs:
             - KomaMRICore/src
             - KomaMRICore/ext
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add AMDGPU to test environment")
+          using Pkg
+          Pkg.add("AMDGPU")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
+    agents:
+      queue: "juliagpu"
+      rocm: "*"
+      rocmgpu: "gfx1100"
     env:
-      TEST_GROUP: "core"
-      CI: "BUILDKITE"
-      CODECOV_FLAGS: "core"
-      JULIA_PKG_SERVER: ""
-      SECRET_CODECOV_TOKEN: "lUmUVYkTlE8u0mR/ymv5rtE1A59wXZmQ3miRkmKciC/4+xHPNjpeIJ03FupuC1ElGBeX0m6DDFavZ9burLosGxbBYIPziBQZ5P9NdPDZjBdo7NM3QSSBeUfDsDYbHsYglfJZ35UL6Pd2YTAkJG0ePrTpfUaBb9rcll926NdqUP0vE2hbR2leKFFgBVNtK9Zf+NE7hO3meZQEZ+sN5tA7xGr24A3Ay7ckPg5HbPPD3KII2/fLtW+w0fQUfJdXNFrajJ0FyNE0kNLDlIzoYN6XM4yUeLBXoyXFHnqT5dSu7pqrByEk/ptYpjUzKFoRSnDQy+p8vrx9e/iAVf3lwwgwWA==;U2FsdGVkX1+IZLGTj2FNEy4XvUQbzkZFEwUpwIdRDCKrEea5O/OKGV5vYJufty3m9yniE+av4937HabS9dO1RA=="
+      TEST_GROUP: "nomotion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / AMDGPU / Julia 1 / nomotion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+      - JuliaCI/julia-coverage:
+          codecov: true
+          flags:
+            - core
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add AMDGPU to test environment")
+          using Pkg
+          Pkg.add("AMDGPU")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
+    agents:
+      queue: "juliagpu"
+      rocm: "*"
+      rocmgpu: "gfx1100"
+    env:
+      TEST_GROUP: "nomotion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / CUDA / Julia 1.10 / nomotion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.10"
+      - JuliaCI/julia-coverage:
+          codecov: true
+          flags:
+            - core
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
+          using Pkg
+          Pkg.add("CUDA")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
+    agents:
+      queue: "juliagpu"
+      cuda: "*"
+    env:
+      TEST_GROUP: "nomotion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / CUDA / Julia 1 / nomotion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+      - JuliaCI/julia-coverage:
+          codecov: true
+          flags:
+            - core
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
+          using Pkg
+          Pkg.add("CUDA")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
+    agents:
+      queue: "juliagpu"
+      cuda: "*"
+    env:
+      TEST_GROUP: "nomotion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / Metal / Julia 1.10 / nomotion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.10"
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
+          using Pkg
+          Pkg.add("Metal")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; test_args=["Metal"])'
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "aarch64"
+    env:
+      TEST_GROUP: "nomotion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / Metal / Julia 1 / nomotion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
+          using Pkg
+          Pkg.add("Metal")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; test_args=["Metal"])'
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "aarch64"
+    env:
+      TEST_GROUP: "nomotion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / CPU / Julia 1.10 / motion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.10"
+    command: |
+      julia --project=KomaMRICore -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+          ])'
+
+      julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
+          using Pkg
+          Pkg.test()'
+    agents:
+      arch: "aarch64"
+      queue: "juliaecosystem"
+      num_cpus: "4"
+    env:
+      TEST_GROUP: "motion"
+      JULIA_NUM_THREADS: "4"
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Test / CPU / Julia 1 / motion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=KomaMRICore -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+          ])'
+
+      julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
+          using Pkg
+          Pkg.test()'
+    agents:
+      arch: "aarch64"
+      queue: "juliaecosystem"
+      num_cpus: "4"
+    env:
+      TEST_GROUP: "motion"
+      JULIA_NUM_THREADS: "4"
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Test / AMDGPU / Julia 1.10 / motion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.10"
+      - JuliaCI/julia-coverage:
+          codecov: true
+          flags:
+            - core
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add AMDGPU to test environment")
+          using Pkg
+          Pkg.add("AMDGPU")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
+    agents:
+      queue: "juliagpu"
+      rocm: "*"
+      rocmgpu: "gfx1100"
+    env:
+      TEST_GROUP: "motion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / AMDGPU / Julia 1 / motion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+      - JuliaCI/julia-coverage:
+          codecov: true
+          flags:
+            - core
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add AMDGPU to test environment")
+          using Pkg
+          Pkg.add("AMDGPU")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
+    agents:
+      queue: "juliagpu"
+      rocm: "*"
+      rocmgpu: "gfx1100"
+    env:
+      TEST_GROUP: "motion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / CUDA / Julia 1.10 / motion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.10"
+      - JuliaCI/julia-coverage:
+          codecov: true
+          flags:
+            - core
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
+          using Pkg
+          Pkg.add("CUDA")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
+    agents:
+      queue: "juliagpu"
+      cuda: "*"
+    env:
+      TEST_GROUP: "motion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / CUDA / Julia 1 / motion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+      - JuliaCI/julia-coverage:
+          codecov: true
+          flags:
+            - core
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add CUDA to test environment")
+          using Pkg
+          Pkg.add("CUDA")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
+    agents:
+      queue: "juliagpu"
+      cuda: "*"
+    env:
+      TEST_GROUP: "motion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / Metal / Julia 1.10 / motion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.10"
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
+          using Pkg
+          Pkg.add("Metal")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; test_args=["Metal"])'
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "aarch64"
+    env:
+      TEST_GROUP: "motion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / Metal / Julia 1 / motion"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
+          using Pkg
+          Pkg.add("Metal")'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.test("KomaMRICore"; test_args=["Metal"])'
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "aarch64"
+    env:
+      TEST_GROUP: "motion"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Test / oneAPI / Julia 1.10 / core"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1.10"
+      - JuliaCI/julia-coverage:
+          codecov: true
+          flags:
+            - core
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
     command: |
       julia -e 'println("--- :julia: Instantiating project")
           using Pkg
@@ -71,30 +598,338 @@ steps:
     agents:
       queue: "juliagpu"
       intel: "*"
+    env:
+      TEST_GROUP: "core"
     soft_fail:
       - exit_status: "*"
     timeout_in_minutes: 60
 
-  - label: ":pipeline: KomaMRICore Launch Benchmarks"
+  - label: "KomaMRICore / Test / oneAPI / Julia 1 / core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+      - JuliaCI/julia-coverage:
+          codecov: true
+          flags:
+            - core
+          dirs:
+            - KomaMRICore/src
+            - KomaMRICore/ext
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
+          using Pkg
+          devdir = mktempdir()
+          withenv("JULIA_PKG_PRECOMPILE_AUTO" => 0,
+                  "JULIA_PKG_DEVDIR" => devdir) do
+              Pkg.develop("oneAPI")
+              include(joinpath(devdir, "oneAPI", "deps", "build_ci.jl"))
+          end'
+
+      julia -e 'println("--- :julia: Running tests")
+          using Pkg
+          if !( VERSION < v"1.11" )
+              Pkg.activate("KomaMRICore/test")
+          end
+          using oneAPI
+          oneAPI.versioninfo()
+          Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
     agents:
       queue: "juliagpu"
+      intel: "*"
+    env:
+      TEST_GROUP: "core"
+    soft_fail:
+      - exit_status: "*"
+    timeout_in_minutes: 60
+
+  - label: "KomaMRICore / Benchmark / CPU 1T / Julia 1"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
+    key: "benchmark-cpu-1"
     plugins:
-      - monorepo-diff#v1.0.1:
-          diff: "git diff --name-only HEAD~1"
-          interpolation: false
-          watch:
-            - path:
-                - "KomaMRICore/src/**/*"
-                - "KomaMRICore/ext/**/*"
-                - "KomaMRICore/Project.toml"
-                - "KomaMRIBase/src/**/*"
-                - "KomaMRIBase/Project.toml"
-                - "benchmarks/**/*"
-                - ".buildkite/**/*"
-                - ".github/workflows/Benchmark.yml"
-                - "Project.toml"
-              config:
-                command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
-                agents:
-                  queue: "juliagpu"
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
+    artifact_paths:
+      - "benchmarks/results/*"
+    agents:
+      arch: "aarch64"
+      queue: "juliaecosystem"
+      num_cpus: "8"
+    env:
+      BENCHMARK_GROUP: CPU
+      JULIA_NUM_THREADS: "1"
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Benchmark / CPU 2T / Julia 1"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
+    key: "benchmark-cpu-2"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
+    artifact_paths:
+      - "benchmarks/results/*"
+    agents:
+      arch: "aarch64"
+      queue: "juliaecosystem"
+      num_cpus: "8"
+    env:
+      BENCHMARK_GROUP: CPU
+      JULIA_NUM_THREADS: "2"
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Benchmark / CPU 4T / Julia 1"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
+    key: "benchmark-cpu-4"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
+    artifact_paths:
+      - "benchmarks/results/*"
+    agents:
+      arch: "aarch64"
+      queue: "juliaecosystem"
+      num_cpus: "8"
+    env:
+      BENCHMARK_GROUP: CPU
+      JULIA_NUM_THREADS: "4"
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Benchmark / CPU 8T / Julia 1"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
+    key: "benchmark-cpu-8"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
+    artifact_paths:
+      - "benchmarks/results/*"
+    agents:
+      arch: "aarch64"
+      queue: "juliaecosystem"
+      num_cpus: "8"
+    env:
+      BENCHMARK_GROUP: CPU
+      JULIA_NUM_THREADS: "8"
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Benchmark / AMDGPU / Julia 1"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
+    key: "benchmark-amdgpu"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=benchmarks -e 'println("---:julia: Add AMDGPU to benchmarks environment")
+          using Pkg
+          Pkg.add("AMDGPU")'
+
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
+    artifact_paths:
+      - "benchmarks/results/*"
+    agents:
+      queue: "juliagpu"
+      rocm: "*"
+      rocmgpu: "gfx1100"
+    env:
+      BENCHMARK_GROUP: AMDGPU
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Benchmark / CUDA / Julia 1"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
+    key: "benchmark-cuda"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=benchmarks -e 'println("---:julia: Add CUDA to benchmarks environment")
+          using Pkg
+          Pkg.add("CUDA")'
+
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
+    artifact_paths:
+      - "benchmarks/results/*"
+    agents:
+      queue: "benchmark"
+      gpu: "rtx2070"
+      cuda: "*"
+    env:
+      BENCHMARK_GROUP: CUDA
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Benchmark / Metal / Julia 1"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
+    key: "benchmark-metal"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=benchmarks -e 'println("---:julia: Add Metal to benchmarks environment")
+          using Pkg
+          Pkg.add("Metal")'
+
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          include("benchmarks/runbenchmarks.jl")'
+    artifact_paths:
+      - "benchmarks/results/*"
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "aarch64"
+    env:
+      BENCHMARK_GROUP: Metal
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Benchmark / oneAPI / Julia 1"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
+    key: "benchmark-oneapi"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRICore"),
+          ])'
+
+      julia --project=benchmarks -e 'println("---:julia: Add oneAPI to benchmarks environment")
+          using Pkg
+          devdir = mktempdir()
+          withenv("JULIA_PKG_PRECOMPILE_AUTO" => 0,
+                  "JULIA_PKG_DEVDIR" => devdir) do
+              Pkg.develop("oneAPI")
+              include(joinpath(devdir, "oneAPI", "deps", "build_ci.jl"))
+          end'
+
+      julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+          using oneAPI
+          oneAPI.versioninfo()
+          include("benchmarks/runbenchmarks.jl")'
+    artifact_paths:
+      - "benchmarks/results/*"
+    agents:
+      queue: "juliagpu"
+      intel: "*"
+    env:
+      BENCHMARK_GROUP: oneAPI
+    soft_fail:
+      - exit_status: "*"
+    timeout_in_minutes: 30
+
+  - label: "KomaMRICore / Benchmark / Combine"
+    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
+    key: "benchmark-combine"
+    depends_on:
+      - "benchmark-cpu-1"
+      - "benchmark-cpu-2"
+      - "benchmark-cpu-4"
+      - "benchmark-cpu-8"
+      - "benchmark-amdgpu"
+      - "benchmark-cuda"
+      - "benchmark-metal"
+      - "benchmark-oneapi"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "1"
+    command: |
+      buildkite-agent artifact download "benchmarks/results/*" .
+
+      julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+          using Pkg
+          Pkg.instantiate()'
+
+      julia --project=benchmarks -e 'println("--- :julia: Combining Benchmarks")
+          include("benchmarks/aggregate.jl")'
+    artifact_paths:
+      - "benchmarks/results/combinedbenchmarks.json"
+    agents:
+      queue: "juliagpu"
+    timeout_in_minutes: 10
+
+env:
+  CI: "BUILDKITE"
+  CODECOV_FLAGS: "core"
+  JULIA_PKG_SERVER: ""
+  SECRET_CODECOV_TOKEN: "lUmUVYkTlE8u0mR/ymv5rtE1A59wXZmQ3miRkmKciC/4+xHPNjpeIJ03FupuC1ElGBeX0m6DDFavZ9burLosGxbBYIPziBQZ5P9NdPDZjBdo7NM3QSSBeUfDsDYbHsYglfJZ35UL6Pd2YTAkJG0ePrTpfUaBb9rcll926NdqUP0vE2hbR2leKFFgBVNtK9Zf+NE7hO3meZQEZ+sN5tA7xGr24A3Ay7ckPg5HbPPD3KII2/fLtW+w0fQUfJdXNFrajJ0FyNE0kNLDlIzoYN6XM4yUeLBXoyXFHnqT5dSu7pqrByEk/ptYpjUzKFoRSnDQy+p8vrx9e/iAVf3lwwgwWA==;U2FsdGVkX1+IZLGTj2FNEy4XvUQbzkZFEwUpwIdRDCKrEea5O/OKGV5vYJufty3m9yniE+av4937HabS9dO1RA=="
