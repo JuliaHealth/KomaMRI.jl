@@ -1,5 +1,7 @@
 steps:
   - label: ":julia: Test / CPU / Julia 1.10 / nomotion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -24,6 +26,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":julia: Test / CPU / Julia 1 / nomotion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -48,6 +52,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":julia: Test / AMDGPU / Julia 1.10 / nomotion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -89,6 +95,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / AMDGPU / Julia 1 / nomotion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -130,6 +138,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / CUDA / Julia 1.10 / nomotion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -170,6 +180,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / CUDA / Julia 1 / nomotion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -210,6 +222,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / Metal / Julia 1.10 / nomotion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -244,6 +258,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / Metal / Julia 1 / nomotion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -278,6 +294,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / CPU / Julia 1.10 / motion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -302,6 +320,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":julia: Test / CPU / Julia 1 / motion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -326,6 +346,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":julia: Test / AMDGPU / Julia 1.10 / motion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -367,6 +389,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / AMDGPU / Julia 1 / motion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -408,6 +432,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / CUDA / Julia 1.10 / motion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -448,6 +474,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / CUDA / Julia 1 / motion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -488,6 +516,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / Metal / Julia 1.10 / motion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -522,6 +552,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / Metal / Julia 1 / motion"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -556,6 +588,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / oneAPI / Julia 1.10 / core"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -580,20 +614,13 @@ steps:
 
       julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
           using Pkg
-          devdir = mktempdir()
-          withenv("JULIA_PKG_PRECOMPILE_AUTO" => 0,
-                  "JULIA_PKG_DEVDIR" => devdir) do
-              Pkg.develop("oneAPI")
-              include(joinpath(devdir, "oneAPI", "deps", "build_ci.jl"))
-          end'
+          Pkg.add("oneAPI")'
 
       julia -e 'println("--- :julia: Running tests")
           using Pkg
           if !( VERSION < v"1.11" )
               Pkg.activate("KomaMRICore/test")
           end
-          using oneAPI
-          oneAPI.versioninfo()
           Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
     agents:
       queue: "juliagpu"
@@ -605,6 +632,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":julia: Test / oneAPI / Julia 1 / core"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -629,20 +658,13 @@ steps:
 
       julia --project=KomaMRICore/test -e 'println("--- :julia: Add oneAPI to test environment")
           using Pkg
-          devdir = mktempdir()
-          withenv("JULIA_PKG_PRECOMPILE_AUTO" => 0,
-                  "JULIA_PKG_DEVDIR" => devdir) do
-              Pkg.develop("oneAPI")
-              include(joinpath(devdir, "oneAPI", "deps", "build_ci.jl"))
-          end'
+          Pkg.add("oneAPI")'
 
       julia -e 'println("--- :julia: Running tests")
           using Pkg
           if !( VERSION < v"1.11" )
               Pkg.activate("KomaMRICore/test")
           end
-          using oneAPI
-          oneAPI.versioninfo()
           Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
     agents:
       queue: "juliagpu"
@@ -654,6 +676,8 @@ steps:
     timeout_in_minutes: 60
 
   - label: ":racehorse: Benchmark / CPU 1T / Julia 1"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cpu-1"
@@ -682,6 +706,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":racehorse: Benchmark / CPU 2T / Julia 1"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cpu-2"
@@ -710,6 +736,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":racehorse: Benchmark / CPU 4T / Julia 1"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cpu-4"
@@ -738,6 +766,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":racehorse: Benchmark / CPU 8T / Julia 1"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cpu-8"
@@ -766,6 +796,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":racehorse: Benchmark / AMDGPU / Julia 1"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-amdgpu"
@@ -797,6 +829,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":racehorse: Benchmark / CUDA / Julia 1"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cuda"
@@ -828,6 +862,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":racehorse: Benchmark / Metal / Julia 1"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-metal"
@@ -859,6 +895,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":racehorse: Benchmark / oneAPI / Julia 1"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-oneapi"
@@ -875,16 +913,9 @@ steps:
 
       julia --project=benchmarks -e 'println("---:julia: Add oneAPI to benchmarks environment")
           using Pkg
-          devdir = mktempdir()
-          withenv("JULIA_PKG_PRECOMPILE_AUTO" => 0,
-                  "JULIA_PKG_DEVDIR" => devdir) do
-              Pkg.develop("oneAPI")
-              include(joinpath(devdir, "oneAPI", "deps", "build_ci.jl"))
-          end'
+          Pkg.add("oneAPI")'
 
       julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
-          using oneAPI
-          oneAPI.versioninfo()
           include("benchmarks/runbenchmarks.jl")'
     artifact_paths:
       - "benchmarks/results/*"
@@ -898,6 +929,8 @@ steps:
     timeout_in_minutes: 30
 
   - label: ":racehorse: Benchmark / Combine"
+    notify:
+      - github_commit_status: true
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-combine"
