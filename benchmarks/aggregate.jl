@@ -1,15 +1,6 @@
 using BenchmarkTools
 
-const DEFAULT_GPU_BACKENDS = ["AMDGPU", "CUDA", "Metal"]
-const EXPERIMENTAL_GPU_BACKENDS = ["oneAPI"]
-# Keep experimental backends out of published benchmark data by default while
-# still allowing manual opt-in aggregation when needed.
-const INCLUDE_EXPERIMENTAL_GPU_BACKENDS = get(
-    ENV, "INCLUDE_EXPERIMENTAL_GPU_BACKENDS", "false"
-) == "true"
-const GPU_BACKENDS = INCLUDE_EXPERIMENTAL_GPU_BACKENDS ?
-    [DEFAULT_GPU_BACKENDS; EXPERIMENTAL_GPU_BACKENDS] :
-    DEFAULT_GPU_BACKENDS
+const GPU_BACKENDS = ["AMDGPU", "CUDA", "Metal", "oneAPI"]
 const NUM_CPU_THREADS = [1, 2, 4, 8]
 
 #Start with CPU benchmarks for 1 thread and add other results

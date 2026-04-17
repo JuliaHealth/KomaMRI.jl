@@ -10,7 +10,6 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 120
 
 # To run benchmarks on a specific GPU backend, add AMDGPU / CUDA / Metal / oneAPI
 # to benchmarks/Project.toml and change BENCHMARK_GROUP to the backend name.
-# oneAPI support is experimental and is disabled in CI benchmark publishing.
 const BENCHMARK_GROUP = get(ENV, "BENCHMARK_GROUP", "CPU")
 const BENCHMARK_CPU_THREADS = Threads.nthreads()
 
