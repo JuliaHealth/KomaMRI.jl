@@ -1,7 +1,5 @@
 steps:
-  - label: ":julia: Test / CPU / Julia 1.10 / nomotion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: CPU 4T / Julia 1.10 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -25,9 +23,7 @@ steps:
       JULIA_NUM_THREADS: "4"
     timeout_in_minutes: 30
 
-  - label: ":julia: Test / CPU / Julia 1 / nomotion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: CPU 4T / Julia 1 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -51,9 +47,7 @@ steps:
       JULIA_NUM_THREADS: "4"
     timeout_in_minutes: 30
 
-  - label: ":julia: Test / AMDGPU / Julia 1.10 / nomotion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: AMDGPU / Julia 1.10 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -94,9 +88,7 @@ steps:
       TEST_GROUP: "nomotion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / AMDGPU / Julia 1 / nomotion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: AMDGPU / Julia 1 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -137,9 +129,7 @@ steps:
       TEST_GROUP: "nomotion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / CUDA / Julia 1.10 / nomotion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: CUDA / Julia 1.10 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -179,9 +169,7 @@ steps:
       TEST_GROUP: "nomotion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / CUDA / Julia 1 / nomotion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: CUDA / Julia 1 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -221,9 +209,7 @@ steps:
       TEST_GROUP: "nomotion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / Metal / Julia 1.10 / nomotion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: Metal / Julia 1.10 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -257,9 +243,7 @@ steps:
       TEST_GROUP: "nomotion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / Metal / Julia 1 / nomotion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: Metal / Julia 1 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -293,9 +277,7 @@ steps:
       TEST_GROUP: "nomotion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / CPU / Julia 1.10 / motion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: CPU 4T / Julia 1.10 / Test / Motion"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -319,9 +301,7 @@ steps:
       JULIA_NUM_THREADS: "4"
     timeout_in_minutes: 30
 
-  - label: ":julia: Test / CPU / Julia 1 / motion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: CPU 4T / Julia 1 / Test / Motion"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -345,9 +325,7 @@ steps:
       JULIA_NUM_THREADS: "4"
     timeout_in_minutes: 30
 
-  - label: ":julia: Test / AMDGPU / Julia 1.10 / motion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: AMDGPU / Julia 1.10 / Test / Motion"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -388,9 +366,7 @@ steps:
       TEST_GROUP: "motion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / AMDGPU / Julia 1 / motion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: AMDGPU / Julia 1 / Test / Motion"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -431,9 +407,7 @@ steps:
       TEST_GROUP: "motion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / CUDA / Julia 1.10 / motion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: CUDA / Julia 1.10 / Test / Motion"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -473,9 +447,7 @@ steps:
       TEST_GROUP: "motion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / CUDA / Julia 1 / motion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: CUDA / Julia 1 / Test / Motion"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -515,9 +487,7 @@ steps:
       TEST_GROUP: "motion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / Metal / Julia 1.10 / motion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: Metal / Julia 1.10 / Test / Motion"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -551,9 +521,7 @@ steps:
       TEST_GROUP: "motion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / Metal / Julia 1 / motion"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: Metal / Julia 1 / Test / Motion"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -587,9 +555,7 @@ steps:
       TEST_GROUP: "motion"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / oneAPI / Julia 1.10 / core"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: oneAPI / Julia 1.10 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -631,9 +597,7 @@ steps:
       - exit_status: "*"
     timeout_in_minutes: 60
 
-  - label: ":julia: Test / oneAPI / Julia 1 / core"
-    notify:
-      - github_commit_status: true
+  - label: ":julia: oneAPI / Julia 1 / Test / Core"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     plugins:
       - JuliaCI/julia#v1:
@@ -675,9 +639,7 @@ steps:
       - exit_status: "*"
     timeout_in_minutes: 60
 
-  - label: ":racehorse: Benchmark / CPU 1T / Julia 1"
-    notify:
-      - github_commit_status: true
+  - label: ":racehorse: CPU 1T / Julia 1 / Benchmark"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cpu-1"
@@ -705,9 +667,7 @@ steps:
       JULIA_NUM_THREADS: "1"
     timeout_in_minutes: 30
 
-  - label: ":racehorse: Benchmark / CPU 2T / Julia 1"
-    notify:
-      - github_commit_status: true
+  - label: ":racehorse: CPU 2T / Julia 1 / Benchmark"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cpu-2"
@@ -735,9 +695,7 @@ steps:
       JULIA_NUM_THREADS: "2"
     timeout_in_minutes: 30
 
-  - label: ":racehorse: Benchmark / CPU 4T / Julia 1"
-    notify:
-      - github_commit_status: true
+  - label: ":racehorse: CPU 4T / Julia 1 / Benchmark"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cpu-4"
@@ -765,9 +723,7 @@ steps:
       JULIA_NUM_THREADS: "4"
     timeout_in_minutes: 30
 
-  - label: ":racehorse: Benchmark / CPU 8T / Julia 1"
-    notify:
-      - github_commit_status: true
+  - label: ":racehorse: CPU 8T / Julia 1 / Benchmark"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cpu-8"
@@ -795,9 +751,7 @@ steps:
       JULIA_NUM_THREADS: "8"
     timeout_in_minutes: 30
 
-  - label: ":racehorse: Benchmark / AMDGPU / Julia 1"
-    notify:
-      - github_commit_status: true
+  - label: ":racehorse: AMDGPU / Julia 1 / Benchmark"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-amdgpu"
@@ -828,9 +782,7 @@ steps:
       BENCHMARK_GROUP: AMDGPU
     timeout_in_minutes: 30
 
-  - label: ":racehorse: Benchmark / CUDA / Julia 1"
-    notify:
-      - github_commit_status: true
+  - label: ":racehorse: CUDA / Julia 1 / Benchmark"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-cuda"
@@ -861,9 +813,7 @@ steps:
       BENCHMARK_GROUP: CUDA
     timeout_in_minutes: 30
 
-  - label: ":racehorse: Benchmark / Metal / Julia 1"
-    notify:
-      - github_commit_status: true
+  - label: ":racehorse: Metal / Julia 1 / Benchmark"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-metal"
@@ -894,9 +844,7 @@ steps:
       BENCHMARK_GROUP: Metal
     timeout_in_minutes: 30
 
-  - label: ":racehorse: Benchmark / oneAPI / Julia 1"
-    notify:
-      - github_commit_status: true
+  - label: ":racehorse: oneAPI / Julia 1 / Benchmark"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-oneapi"
@@ -928,9 +876,7 @@ steps:
       - exit_status: "*"
     timeout_in_minutes: 30
 
-  - label: ":racehorse: Benchmark / Combine"
-    notify:
-      - github_commit_status: true
+  - label: ":racehorse: Combine / Julia 1 / Benchmark"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
     if_changed: "{KomaMRICore/src/**,KomaMRICore/ext/**,KomaMRICore/Project.toml,KomaMRIBase/src/**,KomaMRIBase/Project.toml,benchmarks/**,.buildkite/**,.github/workflows/Benchmark.yml,Project.toml}"
     key: "benchmark-combine"
