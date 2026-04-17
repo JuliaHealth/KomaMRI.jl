@@ -123,7 +123,7 @@ end
             pulseq_files = filter(endswith(".seq"), readdir(pth*v)) .|> x -> splitext(x)[1]
             for pulseq_file in pulseq_files
                 #@show pulseq_file
-                seq_koma   = @suppress read_seq("$pth$v/$pulseq_file.seq"; simplify_shapes=false)
+                seq_koma   = @suppress read_seq("$pth$v/$pulseq_file.seq")
                 seq_pulseq = matread("$pth$v/$pulseq_file.mat")["sequence"] .|> namedtuple
                 @testset "$v/$pulseq_file" begin
                     for i in 1:length(seq_koma)
