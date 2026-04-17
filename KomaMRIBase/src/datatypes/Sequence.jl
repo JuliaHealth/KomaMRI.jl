@@ -149,6 +149,7 @@ function Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12)
 	length(x) == length(y) || return false
 	not_empty(ev) = !isempty(ev.t)
 	equal_blocks = Bool[]
+	equal_exts = Bool[]
 	for i in 1:length(x)
 		equal_events = Bool[]
 		equal_durs = isapprox(x.DUR[i], y.DUR[i], atol=atol)
@@ -176,8 +177,9 @@ function Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12)
 			push!(equal_events, is_equal)
 		end
 		push!(equal_blocks, all(equal_events) && equal_durs)
+		push!(equal_exts, length(x.EXT[i]) == length(y.EXT[i]) && all(x.EXT[i] .≈ y.EXT[i]))
 	end
-	return all(equal_blocks)
+	return all(equal_blocks) && all(equal_exts)
 end
 
 """
