@@ -150,6 +150,7 @@ function Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12)
 	not_empty(ev) = !isempty(ev.t)
 	equal_blocks = Bool[]
 	equal_exts = Bool[]
+	warned_interpolated_comparison = false
 	for i in 1:length(x)
 		equal_events = Bool[]
 		equal_durs = isapprox(x.DUR[i], y.DUR[i], atol=atol)
@@ -165,6 +166,12 @@ function Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12)
 				if t_max <= t_min
 					false
 				else
+					if !warned_interpolated_comparison
+						@warn "Sequence comparison is using interpolated waveform matching for differently sampled events. 
+This is not a strict sample-by-sample equality check. 
+This warning will only be shown once per sequence comparison." block=i event=key ev1_samples=length(ev1.t) ev2_samples=length(ev2.t)
+						warned_interpolated_comparison = true
+					end
 					t1 = copy(ev1.t); t2 = copy(ev2.t)
 					Interpolations.deduplicate_knots!(t1; move_knots=true)
 					Interpolations.deduplicate_knots!(t2; move_knots=true)

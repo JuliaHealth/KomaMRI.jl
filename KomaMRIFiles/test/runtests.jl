@@ -147,7 +147,7 @@ end
             qseq = @suppress KomaMRIFiles.check_raster(seq)
             @suppress write_seq(seq, filename)
             seq2 = @suppress read_seq(filename)
-            @test seq2 ≈ qseq # Round-trip test
+            @test @suppress seq2 ≈ qseq # Round-trip test
         end
     end
 end
