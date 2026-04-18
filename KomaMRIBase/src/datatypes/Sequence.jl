@@ -144,6 +144,42 @@ Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 
+# Sequence comparison
+function Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12)
+	length(x) == length(y) || return false
+	not_empty(ev) = !isempty(ev.t)
+	equal_blocks = Bool[]
+	for i in 1:length(x)
+		equal_events = Bool[]
+		equal_durs = isapprox(x.DUR[i], y.DUR[i], atol=atol)
+		blk1, blk2 = get_samples(x, i), get_samples(y, i)
+		for key in keys(blk1)
+			ev1, ev2 = blk1[key], blk2[key]
+			(not_empty(ev1) && not_empty(ev2)) || continue
+			is_equal = if (length(ev1.A) == length(ev2.A) && length(ev1.t) == length(ev2.t))
+				isapprox(ev1.A, ev2.A, atol=atol) && isapprox(ev1.t, ev2.t, atol=atol)
+			else # Different number of samples: check if waveforms are the same on a common time grid
+				t_min = max(ev1.t[1], ev2.t[1])
+				t_max = min(ev1.t[end], ev2.t[end])
+				if t_max <= t_min
+					false
+				else
+					t1 = copy(ev1.t); t2 = copy(ev2.t)
+					Interpolations.deduplicate_knots!(t1; move_knots=true)
+					Interpolations.deduplicate_knots!(t2; move_knots=true)
+					common_time = range(t_min, t_max; length=max(length(ev1.t), length(ev2.t)))
+					itp1 = Interpolations.linear_interpolation(t1, ev1.A)
+					itp2 = Interpolations.linear_interpolation(t2, ev2.A)
+					all(isapprox.(itp1.(common_time), itp2.(common_time), atol=atol))
+				end
+			end
+			push!(equal_events, is_equal)
+		end
+		push!(equal_blocks, all(equal_events) && equal_durs)
+	end
+	return all(equal_blocks)
+end
+
 """
     y = is_ADC_on(x::Sequence)
     y = is_ADC_on(x::Sequence, t::Union{Array{Float64,1}, Array{Float64,2}})
@@ -650,4 +686,47 @@ function Base.maximum(label::Vector{AdcLabels})
 	end
 
 	return maxLabel
+end
+
+"""
+    check_scanner_constraints(seq::Sequence, sys::Scanner=Scanner())
+
+Checks if the sequence is compliant with the scanner constraints.
+
+# Arguments
+- `seq`: (`::Sequence`) Sequence struct
+- `sys`: (`::Scanner`) Scanner struct
+"""
+function check_scanner_constraints(seq::Sequence, sys::Scanner=Scanner())
+	for (i, s) in enumerate(seq)
+		rf    = s.RF[1]
+		grads = s.GR
+		adc   = s.ADC[1]
+		# RF amplitude
+		if is_RF_on(s) && any(abs.(ampls(rf)) .> sys.B1)
+			error("RF amplitude for block $i is greater than the maximum RF amplitude of the scanner ($(sys.B1 * 1e6) μT).")
+		end
+		is_GR_on = [is_Gx_on(s), is_Gy_on(s), is_Gz_on(s)]
+		for gi in 1:3
+			if is_GR_on[gi]
+				gr = grads[gi]
+				# Gradient amplitude
+				if any(ampls(gr) .> sys.Gmax)
+					error("$(["x", "y", "z"][gi]) gradient amplitude for block $i is greater than the maximum gradient amplitude of the scanner ($(sys.Gmax * 1e3) mT/m).")
+				end
+				# Gradient slew rate
+				slew_rates = abs.(diff(ampls(gr)) ./ diff(times(gr)))
+				if any(slew_rates .> sys.Smax)
+					error("$(["x", "y", "z"][gi]) gradient slew rate for block $i is greater than the maximum gradient slew rate of the scanner ($(sys.Smax) mT/m/ms).")
+				end
+			end
+		end
+		# ADC dwell time
+		dwell = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
+		if is_ADC_on(s) && dwell < sys.ADC_Δt
+			error("ADC dwell time $(dwell * 1e6) μs for block $i is less than the minimum ADC dwell time of the scanner ($(sys.ADC_Δt * 1e6) μs).")
+		end
+	end
+	@info "✅ Sequence is compliant with the scanner constraints."
+	return nothing
 end

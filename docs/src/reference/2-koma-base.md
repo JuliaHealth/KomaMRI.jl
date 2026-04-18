@@ -71,6 +71,7 @@ Sequence
 dur
 get_block_start_times
 get_flip_angles
+check_scanner_constraints
 ```
 
 ### `Grad`

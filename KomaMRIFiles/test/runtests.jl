@@ -117,7 +117,7 @@ end
         namedtuple(d::Dict) = (; (Symbol(k == "df" ? "Δf" : k) => namedtuple(v) for (k,v) in d)...)
         not_empty = ((ek, ep),) -> !isempty(ep.t)
         # Reading files
-        pth          = joinpath(@__DIR__, "test_files/pulseq/pulseq_read_comparison/")
+        pth          = joinpath(@__DIR__, "test_files/pulseq/read_comparison/")
         versions     = ["v1.2", "v1.3", "v1.4", "v1.5"]
         for v in versions
             pulseq_files = filter(endswith(".seq"), readdir(pth*v)) .|> x -> splitext(x)[1]
@@ -138,4 +138,17 @@ end
             end
         end
     end
+    @testset "Write Comparison" begin
+        include("utils.jl")
+        pth = (@__DIR__) * "/test_files/pulseq/write_comparison/"
+        isdir(pth) || mkdir(pth)
+        for seq in round_trip_sequences()
+            filename = pth * "$(seq.DEF["Name"]).seq"
+            qseq = @suppress KomaMRIFiles.check_raster(seq)
+            @suppress write_seq(seq, filename)
+            seq2 = @suppress read_seq(filename)
+            @test seq2 ≈ qseq # Round-trip test
+        end
+    end
 end
+
