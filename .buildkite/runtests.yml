@@ -156,8 +156,7 @@ steps:
           arch: "aarch64"
         timeout_in_minutes: 60
 
-      - label: "oneAPI - Julia {{matrix.version}} - Test - Core"
-        if: build.env("TEST_GROUP") == "nomotion"
+      - label: "oneAPI - Julia {{matrix.version}} - Test"
         matrix:
           setup:
             version:
@@ -174,7 +173,7 @@ steps:
                 - KomaMRICore/src
                 - KomaMRICore/ext
         env:
-          TEST_GROUP: "core"
+          TEST_GROUP: $TEST_GROUP
         command: |
           julia -e 'println("--- :julia: Instantiating project")
               using Pkg
