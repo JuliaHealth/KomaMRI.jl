@@ -1075,15 +1075,7 @@ end
 # Uniformly-sampled waveform
 function register_grad!(grad_library, shape_library, A::Vector, T::Number, rise, fall, delay, first, last, raster::PulseqRaster)
     iszero(maximum(abs.(A))) && return 0
-    Δgr = raster.GradientRasterTime
     intervals = diff(collect(range(0, T, length=length(A))))
-    if (rise == Δgr/2 && fall == Δgr/2) & all(intervals .≈ Δgr)
-        shape_id  = _store_shape!(shape_library, A ./ maximum(abs.(A)); compress=true)
-        amp       = γ * maximum(abs.(A)) # from T/m to Hz/m (nucleus-dependent)
-        first     = γ * first # from T/m to Hz/m 
-        last      = γ * last  # from T/m to Hz/m
-        return _store_event!(grad_library, ArbGradEvent(amp, first, last, shape_id, 0, delay))
-    end
     return register_grad!(grad_library, shape_library, [first; A; last], [rise; intervals; fall], 0, 0, delay, first, last, raster)
 end
 # Trapezoidal waveform
