@@ -84,5 +84,13 @@ function round_trip_sequences()
     seq.DEF["Name"] = "combination-of-events"
     push!(sequences, seq)
 
+    # 9. Extensions
+    seq = Sequence()
+    seq += RF(1e-6, 100e-6)
+    seq += ADC(100, 100e-3, 50e-3)
+    seq.EXT = [[LabelInc(1, "LIN")], [LabelSet(1, "ECO")]]
+    seq.DEF["Name"] = "extensions"
+    push!(sequences, seq)
+
     return sequences
 end
