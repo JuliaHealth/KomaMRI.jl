@@ -3,6 +3,7 @@ using TestItems, TestItemRunner
 @run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:base in t_start.tags) #verbose=true
 
 @testitem "Sequence" tags=[:base] begin
+    using Suppressor
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -372,7 +373,21 @@ using TestItems, TestItemRunner
         z = x.ADC[3,1] + x
         @test z.ADC.N[1] ≈ x.ADC[3,1].N
     end
-
+    @testset "Sequence comparison" begin
+        seq1 = PulseDesigner.EPI_example()
+        seq2 = deepcopy(seq1)
+        @test seq1 ≈ seq2 # Basic equality check
+        seq2.EXT[1] = [LabelInc(2, "LIN")]
+        @test seq1 ≉ seq2 # Check that the sequence is not equal because of the different extensions
+        rf = seq1[1].RF[1]
+        seq2= RF([rf.A, rf.A, rf.A], rf.T, rf.Δf, rf.delay, rf.center, rf.use) + seq1[2:end]
+        @test @suppress seq1 ≈ seq2 # Check that the sequence is equal: different number of samples, but same waveform
+    end
+    @testset "Check Scanner Constraints" begin
+        sys = Scanner()
+        seq = PulseDesigner.EPI_example()
+        @test @suppress isnothing(check_scanner_constraints(seq, sys))
+    end
 end
 
 @testitem "PulseDesigner" tags=[:base] begin
