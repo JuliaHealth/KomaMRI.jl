@@ -544,8 +544,8 @@ function read_seq(filename)
                 ext_string = split(ext, " ")[1]
                 ext_type   = KomaMRIBase.get_EXT_type_from_symbol(Val(Symbol(ext_string)))
                 ext_id     = parse(Int, split(ext, " ")[2])
-                if !haskey(def,"RequiredExtensions") def["RequiredExtensions"] = String[]  end
-                read_extensions(io, ext_string, ext_type, ext_id, extensionTypeLibrary, extensionSpecLibrary, def["RequiredExtensions"])
+                required_extensions = haskey(def,"RequiredExtensions") ? def["RequiredExtensions"] : String[]
+                read_extensions(io, ext_string, ext_type, ext_id, extensionTypeLibrary, extensionSpecLibrary, required_extensions)
             else
                 @error "Unknown section code: $section"
             end

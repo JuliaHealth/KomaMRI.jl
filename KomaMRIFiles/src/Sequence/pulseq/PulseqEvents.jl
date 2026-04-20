@@ -122,6 +122,12 @@ function merge_definitions_with_raster!(definitions::AbstractDict{String,Any}, r
     return definitions
 end
 
+function clean_definitions!(definitions::AbstractDict{String,Any})
+    delete!(definitions, "PulseqVersion")
+    delete!(definitions, "signature")
+    return definitions
+end
+
 TrapGradEvent(data) = TrapGradEvent(data...)
 ArbGradEvent(data::NTuple{3, T}) where {T<:Real} = ArbGradEvent(data[1], 0.0, 0.0, Int(data[2]), 0, data[3])
 ArbGradEvent(data::NTuple{4, T}) where {T<:Real} = ArbGradEvent(data[1], 0.0, 0.0, Int(data[2]), Int(data[3]), data[4])
