@@ -94,17 +94,6 @@ function PulseqEventLibraries(
     )
 end
 
-struct PulseqBlock
-    id::Int
-    duration::Int
-    rf::Int
-    gx::Int
-    gy::Int 
-    gz::Int
-    adc::Int
-    ext::Int 
-end
-
 struct PulseqRaster
     BlockDurationRaster::Float64
     GradientRasterTime::Float64
