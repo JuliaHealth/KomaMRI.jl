@@ -391,6 +391,9 @@ using TestItems, TestItemRunner
         @test @suppress seq1 ≉ seq2 # Check that sequences are not equal because one of them has extensions
         seq1.EXT[1] = [LabelSet(2, "ECO")]
         @test @suppress seq1 ≉ seq2 # Check that sequences are not equal because they have different extensions
+        seq1.EXT[1] = [LabelInc(2, "LIN"), LabelSet(2, "ECO")]
+        seq2.EXT[1] = [LabelInc(2, "LIN"), LabelSet(2, "ECO")]
+        @test @suppress seq1 ≈ seq2 # Check that sequences are equal because they have the same extensions
     end
     @testset "Check Scanner Constraints" begin
         sys = Scanner()
