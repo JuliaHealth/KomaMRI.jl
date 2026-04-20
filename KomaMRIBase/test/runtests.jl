@@ -176,6 +176,13 @@ using TestItems, TestItemRunner
         rv = [rf1; rf2; rf3 ;;]
         @test dur(rv) ≈ maximum(dur.(rv); dims=1)
 
+        # Get Char from RF use and vice versa
+        uses = [Excitation(), Refocusing(), Inversion(), Saturation(), Preparation(), Other(), Undefined()]
+        chars = ['e', 'r', 'i', 's', 'p', 'o', 'u']
+        for (use, char) in zip(uses, chars)
+            @test KomaMRIBase.get_char_from_RF_use(use) == char
+            @test KomaMRIBase.get_RF_use_from_char(Val(char)) == use
+        end
     end
 
     @testset "Delay" begin
@@ -377,11 +384,13 @@ using TestItems, TestItemRunner
         seq1 = PulseDesigner.EPI_example()
         seq2 = deepcopy(seq1)
         @test seq1 ≈ seq2 # Basic equality check
-        seq2.EXT[1] = [LabelInc(2, "LIN")]
-        @test seq1 ≉ seq2 # Check that the sequence is not equal because of the different extensions
         rf = seq1[1].RF[1]
         seq2= RF([rf.A, rf.A, rf.A], rf.T, rf.Δf, rf.delay, rf.center, rf.use) + seq1[2:end]
-        @test @suppress seq1 ≈ seq2 # Check that the sequence is equal: different number of samples, but same waveform
+        @test @suppress seq1 ≈ seq2 # Check that sequences are equal: different number of samples, but same waveform
+        seq2.EXT[1] = [LabelInc(2, "LIN")]
+        @test @suppress seq1 ≉ seq2 # Check that sequences are not equal because one of them has extensions
+        seq1.EXT[1] = [LabelSet(2, "ECO")]
+        @test @suppress seq1 ≉ seq2 # Check that sequences are not equal because they have different extensions
     end
     @testset "Check Scanner Constraints" begin
         sys = Scanner()

@@ -79,7 +79,7 @@ function round_trip_sequences()
     gx = Grad(50*10e-6, 5e-3, 1e-3)
     gy = Grad(50*10e-6*[0; 0.5; 0.9; 1; 0.9; 0.5; 0; -0.5; -0.9; -1], 5e-3, 2e-3)
     gz = Grad(50*10e-6*[0; 0.5; 0.9; 1; 0.9; 0.5; 0; -0.5; -0.9; -1], 1e-3, 1e-3)
-    adc = ADC(16, 5e-3, 0.5e-3)
+    adc = ADC(16, 5e-3, 0)
     seq = Sequence([gx; gy; gz;;], [rf;;], [adc])
     seq.DEF["Name"] = "combination-of-events"
     push!(sequences, seq)
@@ -88,7 +88,7 @@ function round_trip_sequences()
     seq = Sequence()
     seq += RF(1e-6, 100e-6)
     seq += ADC(100, 100e-3, 50e-3)
-    seq.EXT = [[LabelInc(1, "LIN")], [LabelSet(1, "ECO")]]
+    seq.EXT = [[LabelInc(1, "LIN"), LabelSet(1, "ECO")], [LabelSet(1, "ECO")]]
     seq.DEF["Name"] = "extensions"
     push!(sequences, seq)
 
