@@ -931,7 +931,7 @@ This function is responsible for deduplicating reusable objects (RF, gradients, 
 and for translating each sequence block into integer lookups expected by the specification.
 """
 function collect_pulseq_assets(seq::Sequence, raster::PulseqRaster)
-    blocks = Dict{Int,PulseqBlock}()
+    blocks = NTuple{7,Int}[]
     rf_library = Dict{Int,RFEvent}()
     grad_library = Dict{Int,GradEvent}()
     adc_library = Dict{Int,ADCEvent}()
@@ -941,6 +941,16 @@ function collect_pulseq_assets(seq::Sequence, raster::PulseqRaster)
     extension_type_library = Dict{Int,Type{<:Extension}}()
     extension_spec_library = Dict{Int,Dict{Int,Extension}}()
     definitions = Dict{String, Any}(seq.DEF)
+
+    # Hash indexes to avoid linear scans while deduplicating events/shapes.
+    rf_index = Dict{UInt, Vector{Int}}()
+    grad_index = Dict{UInt, Vector{Int}}()
+    adc_index = Dict{UInt, Vector{Int}}()
+    ext_instance_index = Dict{UInt, Vector{Int}}()
+    ext_type_index = Dict{UInt, Vector{Int}}()
+    ext_spec_index = Dict{Int, Dict{UInt, Vector{Int}}}()
+    shape_exact_index = Dict{UInt, Vector{Int}}()
+    shape_phase_index = Dict{Int, Vector{Int}}()
     
     # First step: collect all unique extension vectors and register them once.
     extension_vectors = Vector{Extension}[]
@@ -956,24 +966,35 @@ function collect_pulseq_assets(seq::Sequence, raster::PulseqRaster)
             extension_vectors,
         )
         if matching_idx === nothing
-            ext_id = register_ext!(extension_instance_library, extension_type_library, extension_spec_library, ext_vec)
+            ext_id = register_ext!(extension_instance_library, extension_type_library, extension_spec_library, ext_vec; 
+                ext_instance_index=ext_instance_index, ext_type_index=ext_type_index, ext_spec_index=ext_spec_index)
             push!(extension_vectors, ext_vec)
             push!(extension_vector_ids, ext_id)
         end
     end
 
     # Second step: process all blocks and use pre-registered extension IDs.
-    for (idx, block) in enumerate(seq)
+    for block in seq
         rf = block.RF[1]
-        rf_id = register_rf!(rf_library, shape_library, rf.A, rf.T, rf.Δf, rf.delay, rf.center, rf.use, raster)
+        rf_id = register_rf!(rf_library, shape_library, rf.A, rf.T, rf.Δf, rf.delay, rf.center, rf.use, raster;
+            rf_index=rf_index, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
 
         gx, gy, gz = block.GR
-        gx_id = register_grad!(grad_library, shape_library, gx.A, gx.T, gx.rise, gx.fall, gx.delay, gx.first, gx.last, raster)
-        gy_id = register_grad!(grad_library, shape_library, gy.A, gy.T, gy.rise, gy.fall, gy.delay, gy.first, gy.last, raster)
-        gz_id = register_grad!(grad_library, shape_library, gz.A, gz.T, gz.rise, gz.fall, gz.delay, gz.first, gz.last, raster)
+        gx_id = register_grad!(
+            grad_library, shape_library, gx.A, gx.T, gx.rise, gx.fall, gx.delay, gx.first, gx.last, raster;
+            grad_index=grad_index, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index
+        )
+        gy_id = register_grad!(
+            grad_library, shape_library, gy.A, gy.T, gy.rise, gy.fall, gy.delay, gy.first, gy.last, raster;
+            grad_index=grad_index, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index
+        )
+        gz_id = register_grad!(
+            grad_library, shape_library, gz.A, gz.T, gz.rise, gz.fall, gz.delay, gz.first, gz.last, raster;
+            grad_index=grad_index, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index
+        )
 
         adc = block.ADC[1]
-        adc_id, adc_dur = register_adc!(adc_library, adc.N, adc.T, adc.delay, adc.Δf, adc.ϕ)
+        adc_id, adc_dur = register_adc!(adc_library, adc.N, adc.T, adc.delay, adc.Δf, adc.ϕ; adc_index=adc_index)
 
         max_event_duration = max(dur(gx), dur(gy), dur(gz), dur(rf), adc_dur)
         block_duration = max(dur(block), max_event_duration)
@@ -994,7 +1015,7 @@ function collect_pulseq_assets(seq::Sequence, raster::PulseqRaster)
             )
             ext_id = matching_idx === nothing ? 0 : extension_vector_ids[matching_idx]
         end
-        blocks[idx] = PulseqBlock(idx, duration, rf_id, gx_id, gy_id, gz_id, adc_id, ext_id)
+        push!(blocks, (duration, rf_id, gx_id, gy_id, gz_id, adc_id, ext_id))
     end
 
     merge_definitions_with_raster!(definitions, raster)
@@ -1016,42 +1037,61 @@ end
 """
     id = register_rf!(rf_library, shape_library, A, T, Δf, delay, center, use, raster)
 """
-function register_rf!(rf_library, shape_library, A, T, Δf, delay, center, use, raster::PulseqRaster)
+function register_rf!(
+    rf_library, shape_library, A, T, Δf, delay, center, use, raster::PulseqRaster;
+    rf_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
+)
     iszero(maximum(abs.(A))) && return 0
     Δt_rf = raster.RadiofrequencyRasterTime
-    mag_id, phase_id, time_id = register_rf_shapes!(shape_library, A, T, Δt_rf; compress=true)
+    mag_id, phase_id, time_id = register_rf_shapes!(shape_library, A, T, Δt_rf;
+        compress=true, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index
+    )
     amp = γ * maximum(abs.(A)) # from T to Hz (nucleus-dependent)
     delay = delay - (time_id == 0) * Δt_rf / 2
     phase  = mod.(angle.(A), 2π)[1]
     use_char = KomaMRIBase.get_char_from_RF_use(use)
     rf_event = RFEvent(amp, mag_id, phase_id, time_id, center, delay, 0.0, 0.0, Δf, phase, use_char)
-    return _store_event!(rf_library, rf_event)
+    return _store_event!(rf_library, rf_event, rf_index)
 end
 
 # A and T are numbers (pulse waveform)
-function register_rf_shapes!(shapes, A, T, Δrf; compress = true)
-    mag_id   = _store_shape!(shapes, [1.0, 1.0]; compress=compress)
-    phase_id = _store_shape!(shapes, [0.0, 0.0]; compress=compress, phase_shape=true)
-    time_id  = _store_shape!(shapes, [0.0, T] ./ Δrf; compress=compress)
+function register_rf_shapes!(
+    shapes, A, T, Δrf; compress = true, 
+    shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
+)
+    mag_id   = _store_shape!(shapes, [1.0, 1.0]; compress=compress, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
+    phase_id = _store_shape!(shapes, [0.0, 0.0]; compress=compress, phase_shape=true, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
+    time_id  = _store_shape!(shapes, [0.0, T] ./ Δrf; compress=compress, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
     return mag_id, phase_id, time_id
 end
 # A is a vector (uniformly-sampled waveform)
-function register_rf_shapes!(shapes, A::Vector, T, Δrf; compress = true)
+function register_rf_shapes!(
+    shapes, A::Vector, T, Δrf; compress = true,
+    shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
+)
     n_samples   = length(A)
-    mag_id      = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
+    mag_id      = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
     phase_shape = mod.(angle.(A), 2π) / 2π
-    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_shape=true)
+    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_shape=true, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
     t_vector    = collect(range(0, T, length=n_samples)) ./ Δrf
-    time_id     = _store_shape!(shapes, t_vector; compress=compress)
+    time_id     = _store_shape!(shapes, t_vector; compress=compress, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
     return mag_id, phase_id, time_id
 end
 # A and T are vectors (time-shaped waveform)
-function register_rf_shapes!(shapes, A::Vector, T::Vector, Δrf; compress = true)
-    mag_id      = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress)
+function register_rf_shapes!(
+    shapes, A::Vector, T::Vector, Δrf; compress = true,
+    shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
+)
+    mag_id      = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
     phase_shape = mod.(angle.(A), 2π) / 2π
-    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_shape=true)
+    phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_shape=true, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
     t_vector    = cumsum(vcat(0.0, T ./ Δrf))
-    time_id     = _store_shape!(shapes, t_vector; compress=compress)
+    time_id     = _store_shape!(shapes, t_vector; compress=compress, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
     return mag_id, phase_id, time_id
 end
 
@@ -1059,32 +1099,56 @@ end
     id = register_grad!(grad_library, shape_library, A, T, rise, fall, delay, first, last, raster)
 """
 # Time-shaped waveform
-function register_grad!(grad_library, shape_library, A::Vector, T::Vector, rise, fall, delay, first, last, raster::PulseqRaster)
+function register_grad!(
+    grad_library, shape_library, A::Vector, T::Vector, rise, fall, delay, first, last, raster::PulseqRaster;
+    grad_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
+)
     iszero(maximum(abs.(A))) && return 0
     if (iszero(rise) && iszero(fall))
-        shape_id = _store_shape!(shape_library, A ./ maximum(abs.(A)); compress=true)
+        shape_id = _store_shape!(shape_library, A ./ maximum(abs.(A)); compress=true, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
         t_vector = cumsum([0; T]) ./ raster.GradientRasterTime
-        time_id  = _store_shape!(shape_library, t_vector; compress=true)
+        time_id  = _store_shape!(shape_library, t_vector; compress=true, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
         amp   = γ * maximum(abs.(A)) # from T/m to Hz/m (nucleus-dependent)
         first = γ * first # from T/m to Hz/m 
         last  = γ * last  # from T/m to Hz/m
-        return _store_event!(grad_library, ArbGradEvent(amp, first, last, shape_id, time_id, delay))
+        return _store_event!(grad_library, ArbGradEvent(amp, first, last, shape_id, time_id, delay), grad_index)
     end
-    return register_grad!(grad_library, shape_library, [first; A; last], [rise; T; fall], 0, 0, delay, first, last, raster)
+    return register_grad!(
+        grad_library, shape_library, [first; A; last], [rise; T; fall], 0, 0, delay, first, last, raster;
+        grad_index=grad_index, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index
+    )
 end
 # Uniformly-sampled waveform
-function register_grad!(grad_library, shape_library, A::Vector, T::Number, rise, fall, delay, first, last, raster::PulseqRaster)
+function register_grad!(
+    grad_library, shape_library, A::Vector, T::Number, rise, fall, delay, first, last, raster::PulseqRaster;
+    grad_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
+)
     iszero(maximum(abs.(A))) && return 0
     intervals = diff(collect(range(0, T, length=length(A))))
-    return register_grad!(grad_library, shape_library, [first; A; last], [rise; intervals; fall], 0, 0, delay, first, last, raster)
+    return register_grad!(
+        grad_library, shape_library, [first; A; last], [rise; intervals; fall], 0, 0, delay, first, last, raster;
+        grad_index=grad_index, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index
+    )
 end
 # Trapezoidal waveform
-function register_grad!(grad_library, shape_library, A::Number, T::Number, rise, fall, delay, first, last, raster::PulseqRaster)
+function register_grad!(
+    grad_library, shape_library, A::Number, T::Number, rise, fall, delay,  first, last,  raster::PulseqRaster;
+    grad_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
+)
     iszero(A) && return 0
     if (iszero(first) && iszero(last)) 
-        return _store_event!(grad_library, TrapGradEvent(γ * A, rise, T, fall, delay))
+        return _store_event!(grad_library, TrapGradEvent(γ * A, rise, T, fall, delay), grad_index)
     end
-    return register_grad!(grad_library, shape_library, [first, A, A, last], [rise, T, fall], 0, 0, delay, first, last, raster)
+    return register_grad!(
+        grad_library, shape_library, [first, A, A, last], [rise, T, fall], 0, 0, delay, first, last, raster;
+        grad_index=grad_index, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index
+    )
 end 
 
 """
@@ -1096,27 +1160,37 @@ Koma uses delay = time to first sample, so we store pulseq_delay = delay - dwell
 round-trip (write → read) the Koma ADC delay must be ≥ dwell_s/2; otherwise it is clamped and a
 warning is emitted.
 """
-function register_adc!(adc_library, N, T, delay, Δf, ϕ)
+function register_adc!(adc_library, N, T, delay, Δf, ϕ; adc_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing)
     iszero(N) && return (0, 0.0)
     dwell_s = N == 1 ? T : T / (N - 1)
     delay_s = delay - dwell_s / 2
     adc_event = ADCEvent(N, dwell_s, delay_s, 0.0, 0.0, Δf, ϕ, 0)
-    return _store_event!(adc_library, adc_event), delay_s + T + dwell_s
+    return _store_event!(adc_library, adc_event, adc_index), delay_s + T + dwell_s
 end
 
 """
     id = register_ext!(extension_instance_library, extension_type_library, extension_spec_library, ext)
 """
-function register_ext!(extension_instance_library, extension_type_library, extension_spec_library, ext::Vector{Extension})
+function register_ext!(
+    extension_instance_library, extension_type_library, extension_spec_library, ext::Vector{Extension};
+    ext_instance_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    ext_type_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    ext_spec_index::Union{Nothing, Dict{Int, Dict{UInt, Vector{Int}}}}=nothing,
+)
     length(ext) == 0 && return 0
     instance_ids = Int[]
     for e in ext
-        ext_id = _store_event!(extension_type_library, typeof(e))
+        ext_id = _store_event!(extension_type_library, typeof(e), ext_type_index)
         if !haskey(extension_spec_library, ext_id)
             extension_spec_library[ext_id] = Dict{Int,Extension}()
+            !isnothing(ext_spec_index) && (ext_spec_index[ext_id] = Dict{UInt, Vector{Int}}())
         end
-        ref = _store_event!(extension_spec_library[ext_id], e)
-        instance_id = _store_event!(extension_instance_library, ExtensionInstanceEvent((ext_id, ref, 0)))
+        ref = _store_event!(
+            extension_spec_library[ext_id],
+            e,
+            isnothing(ext_spec_index) ? nothing : get!(ext_spec_index, ext_id, Dict{UInt, Vector{Int}}()),
+        )
+        instance_id = _store_event!(extension_instance_library, ExtensionInstanceEvent((ext_id, ref, 0)), ext_instance_index)
         push!(instance_ids, instance_id)
     end
 
@@ -1140,23 +1214,69 @@ function _store_event!(event_dict::Dict, event)
     return new_id
 end
 
+function _store_event!(event_dict::Dict, event, event_index::Nothing)
+    return _store_event!(event_dict, event)
+end
+
+function _store_event!(event_dict::Dict, event, event_index::Dict{UInt, Vector{Int}})
+    h = hash(event)
+    for id in get(event_index, h, Int[])
+        if event_dict[id] == event
+            return id
+        end
+    end
+    new_id = length(event_dict) + 1
+    event_dict[new_id] = event
+    push!(get!(event_index, h, Int[]), new_id)
+    return new_id
+end
+
+@inline _shape_hash(num_samples::Int, samples::Vector{Float64}) = hash(samples, hash(num_samples))
+
 function _store_shape!(
     shapes::Dict{Int,Tuple{Int,Vector{Float64}}},
     samples::Vector{Float64};
     compress::Bool = true,
-    phase_shape::Bool = false
+    phase_shape::Bool = false,
+    shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
+    shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
 )
     payload = compress ? compress_shape(samples) : (length(samples), samples)
-    for (k, existing) in shapes
-        if phase_shape
+    isnothing(shape_exact_index) && isnothing(shape_phase_index) && begin
+        for (k, existing) in shapes
+            if phase_shape
+                existing_phase = existing[2] .- existing[2][1]
+                if safe_equal_angles(existing_phase, payload[2]) && existing[1] == payload[1] return k end
+            else
+                if existing == payload return k end
+            end
+        end
+        new_id = length(shapes) + 1
+        shapes[new_id] = payload
+        return new_id
+    end
+    if phase_shape
+        for id in get(shape_phase_index, payload[1], Int[])
+            existing = shapes[id]
             existing_phase = existing[2] .- existing[2][1]
-            if safe_equal_angles(existing_phase, payload[2]) && existing[1] == payload[1] return k end
-        else
-            if existing == payload return k end
+            if safe_equal_angles(existing_phase, payload[2]) && existing[1] == payload[1]
+                return id
+            end
+        end
+        new_id = length(shapes) + 1
+        shapes[new_id] = payload
+        push!(get!(shape_phase_index, payload[1], Int[]), new_id)
+        return new_id
+    end
+    h = _shape_hash(payload[1], payload[2])
+    for id in get(shape_exact_index, h, Int[])
+        if shapes[id] == payload
+            return id
         end
     end
-    new_id = maximum(keys(shapes); init=0) + 1
+    new_id = length(shapes) + 1
     shapes[new_id] = payload
+    push!(get!(shape_exact_index, h, Int[]), new_id)
     return new_id
 end
 
@@ -1218,10 +1338,9 @@ function emit_blocks_section!(io::IO, blocks)
     write(io, "# NUM DUR RF  GX  GY  GZ  ADC  EXT\n")
     write(io, "[BLOCKS]\n")
     isempty(blocks) && return
-    block_ids = sort(collect(keys(blocks)))
-    for id in block_ids
-        block = blocks[id]
-        values = [id, block.duration, block.rf, block.gx, block.gy, block.gz, block.adc, block.ext]
+    for (id, block) in enumerate(blocks)
+        duration, rf, gx, gy, gz, adc, ext = block
+        values = [id, duration, rf, gx, gy, gz, adc, ext]
         max_lengths = zeros(Int, length(values))
         for (i, val) in enumerate(values)
             str = _format_value(val)
