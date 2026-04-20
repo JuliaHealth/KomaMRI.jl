@@ -109,8 +109,9 @@ end
 
 function get_raster_time(key::String, seq::Sequence, scanner_default)
     haskey(seq.DEF, key) || return scanner_default
-    seq.DEF[key] == scanner_default || @warn "Sequence and Scanner definition for $key do not match (($(seq.DEF[key]) != $(scanner_default))). Using the Scanner definition ($key = $scanner_default)."
-    return scanner_default
+    seq_value = seq.DEF[key]
+    seq_value == scanner_default || @warn "Sequence and Scanner definition for $key do not match (($(seq_value) != $(scanner_default))). Using the Sequence definition ($key = $seq_value)."
+    return seq_value
 end
 
 function merge_definitions_with_raster!(definitions::AbstractDict{String,Any}, raster::PulseqRaster)
