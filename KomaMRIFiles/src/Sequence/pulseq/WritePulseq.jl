@@ -94,6 +94,7 @@ function collect_pulseq_assets(seq::Sequence, raster::PulseqRaster)
     end
 
     merge_definitions_with_raster!(definitions, raster)
+    clean_definitions!(definitions)
 
     event_libraries = PulseqEventLibraries(
         grad_library,
