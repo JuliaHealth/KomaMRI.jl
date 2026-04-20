@@ -567,6 +567,19 @@ Refer to [`get_Mk`](@ref)
 get_M2(seq::Sequence; kwargs...) = get_Mk(seq, 2; kwargs...)
 
 """
+    _slew_quotient_ΔG_over_Δt(ΔG, δ)
+
+Quotient ``ΔG/Δt`` used for slew-like quantities, with guards for non-physical steps.
+[`get_variable_times`](@ref) pads the timeline with intervals of width `MIN_RISE_TIME` at the
+ends; dividing by those produces spurious huge values. Segments with `|δ|` below a small
+threshold contribute `0`.
+"""
+@inline function _slew_quotient_ΔG_over_Δt(ΔG::AbstractVector, δ::AbstractVector)
+    thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
+    return ifelse.(abs.(δ) .> thresh, ΔG ./ δ, zero.(ΔG))
+end
+
+"""
 	SR, SR_adc = get_slew_rate(seq::Sequence; Δt=1)
 
 Outputs the designed slew rate of the Sequence `seq`.
@@ -594,7 +607,8 @@ get_slew_rate(seq::Sequence; Δt=1) = begin
 	for i = 1:3
 		m2f = 0
 		for (rf, p) in enumerate(parts)
-			m2[p,i] = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:] ./ Δt[p]
+			ΔG = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:]
+			m2[p,i] = _slew_quotient_ΔG_over_Δt(ΔG, Δt[p])
 		end
 	end
 	M2 = m2 #[m^-1]
@@ -640,7 +654,8 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	for i = 1:3
 		m2f = 0
 		for (rf, p) in enumerate(parts)
-			m2[p,i] = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:] ./ Δt[p]
+			ΔG = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:]
+			m2[p,i] = _slew_quotient_ΔG_over_Δt(ΔG, Δt[p])
 		end
 	end
 	ec(t, λ) = exp.(-t ./ λ) .* (t .>= 0)
@@ -723,10 +738,9 @@ function check_scanner_constraints(seq::Sequence, sys::Scanner=Scanner())
 				if any(ampls(gr) .> sys.Gmax)
 					error("$(["x", "y", "z"][gi]) gradient amplitude for block $i is greater than the maximum gradient amplitude of the scanner ($(sys.Gmax * 1e3) mT/m).")
 				end
-				# Gradient slew rate
-				slew_rates = abs.(diff(ampls(gr)) ./ diff(times(gr)))
+				slew_rates = get_slew_rate(s)[1]
 				if any(slew_rates .> sys.Smax)
-					error("$(["x", "y", "z"][gi]) gradient slew rate for block $i is greater than the maximum gradient slew rate of the scanner ($(sys.Smax) mT/m/ms).")
+					error("$(["x", "y", "z"][gi]) gradient slew rate for block $i ($(maximum(slew_rates)) mT/m/ms) is greater than the maximum gradient slew rate of the scanner ($(sys.Smax) mT/m/ms).")
 				end
 			end
 		end
