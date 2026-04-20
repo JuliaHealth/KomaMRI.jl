@@ -408,119 +408,219 @@ function emit_definitions_section!(io::IO, definitions)
     write(io, "\n")
 end
 
+# --- Pulseq table formatting ---
+const PULSEQ_TABLE_COL_GAP = " "
+
+_format_value(val::AbstractFloat) =
+    isapprox(val, round(val); atol=QUANT_TOL, rtol=sqrt(eps(Float64))) ? string(round(Int, val)) : @sprintf("%.6f", val)
+_format_value(val) = string(val)
+
+function _compute_col_widths(rows; header_rows=())
+    ncols = !isempty(rows) ? length(first(rows)) : !isempty(header_rows) ? length(first(header_rows)) : 0
+    widths = zeros(Int, ncols)
+    for header in header_rows
+        for i in 1:ncols
+            widths[i] = max(widths[i], length(string(header[i])))
+        end
+    end
+    for row in rows
+        for i in 1:ncols
+            widths[i] = max(widths[i], length(_format_value(row[i])))
+        end
+    end
+    return widths
+end
+
+"""Reserve two extra characters in column 1 so `# ` + cell (width `w[1]-2`) matches data column width `w[1]`."""
+function _pulseq_reserve_hash_prefix_width!(widths::AbstractVector{Int})
+    isempty(widths) && return widths
+    widths[1] += 2
+    return widths
+end
+
+function _format_row(io::IO, values, max_lengths::AbstractVector{<:Integer})
+    for (i, (val, max_len)) in enumerate(zip(values, max_lengths))
+        str = _format_value(val)
+        num_spaces = max(0, max_len - length(str))
+        write(io, repeat(" ", num_spaces))
+        write(io, str)
+        if i < length(values)
+            write(io, PULSEQ_TABLE_COL_GAP)
+        end
+    end
+    write(io, "\n")
+end
+
+function _format_comment_row(io::IO, values, max_lengths::AbstractVector{<:Integer})
+    lengths = collect(max_lengths)
+    if !isempty(lengths)
+        lengths[1] = max(1, lengths[1] - 2)
+    end
+    write(io, "# ")
+    _format_row(io, values, lengths)
+end
+
+"""One extension specification line (Pulseq file units), using the same layout as read: `"%i " * get_scanf_format(T)`."""
+function _pulseq_extension_spec_line(ext_type::Type{<:Extension}, spec_id::Int, v::Extension)
+    fmt = strip("%i " * strip(KomaMRIBase.get_scanf_format(ext_type)))
+    tokens = split(fmt, r"\s+"; keepempty=false)
+    field_values = Tuple(getfield(v, f) for f in fieldnames(typeof(v)))
+    scales = vec(collect(KomaMRIBase.get_scale(typeof(v))))
+    vals = Any[spec_id]
+    for (s, d) in zip(scales, field_values)
+        push!(vals, d isa Number ? d / s : d)
+    end
+    length(tokens) == length(vals) ||
+        error("Pulseq export: extension $ext_type: $(length(tokens)) scanf tokens but $(length(vals)) values; check `get_scanf_format` vs struct fields.")
+    parts = String[]
+    for (tok, x) in zip(tokens, vals)
+        t = strip(tok)
+        cell = if startswith(t, "%i") || startswith(t, "%d")
+            @sprintf("%d", round(Int, x isa Integer ? x : Float64(x)))
+        elseif startswith(t, "%f") || startswith(t, "%e") || startswith(t, "%g")
+            @sprintf("%.6f", Float64(x))
+        elseif startswith(t, "%s")
+            string(x)
+        elseif startswith(t, "%c")
+            string(x isa Char ? x : first(string(x)))
+        else
+            string(x)
+        end
+        push!(parts, cell)
+    end
+    return join(parts, ' ') * "\n"
+end
+
 function emit_blocks_section!(io::IO, blocks)
     write(io, "# Format of blocks:\n")
-    write(io, "# NUM DUR RF  GX  GY  GZ  ADC  EXT\n")
-    write(io, "[BLOCKS]\n")
-    isempty(blocks) && return
+    rows = NTuple{8,Any}[]
     for (id, block) in enumerate(blocks)
         duration, rf, gx, gy, gz, adc, ext = block
-        values = [id, duration, rf, gx, gy, gz, adc, ext]
-        max_lengths = zeros(Int, length(values))
-        for (i, val) in enumerate(values)
-            str = _format_value(val)
-            max_lengths[i] = max(max_lengths[i], length(str))
-        end
-        _format_row(io, values, max_lengths)
+        push!(rows, (id, duration, rf, gx, gy, gz, adc, ext))
+    end
+    header_rows = (("NUM", "DUR", "RF", "GX", "GY", "GZ", "ADC", "EXT"),)
+    widths = _compute_col_widths(rows; header_rows=header_rows)
+    _pulseq_reserve_hash_prefix_width!(widths)
+    _format_comment_row(io, header_rows[1], widths)
+    write(io, "[BLOCKS]\n")
+    for row in rows
+        _format_row(io, row, widths)
     end
 end
 
 function emit_rf_section!(io::IO, event_libraries)
     write(io, "\n# Format of RF events:\n")
-    write(io, "# id amp mag_id phase_id time_id center delay freq_ppm phase_ppm freq_off phase_off use\n")
-    write(io, "# ..  Hz     ..       ..       ..    us    us      ppm   rad/MHz       Hz       rad  ..\n")
-    write(io, "# Field 'use' is the initial of:\n")
-    write(io, "# excitation refocusing inversion saturation preparation other undefined\n")
-    write(io, "[RF]\n")
-    isempty(event_libraries.rf_library) && return
+    rows = NTuple{12,Any}[]
     rf_ids = sort(collect(keys(event_libraries.rf_library)))
     for id in rf_ids
         rf_data = event_libraries.rf_library[id]
         center_us = isnothing(rf_data.center) ? 0.0 : rf_data.center * 1e6
         delay_us = round(Int, rf_data.delay * 1e6)
-        values = [id, rf_data.amplitude, rf_data.mag_id, rf_data.phase_id, rf_data.time_shape_id, center_us, delay_us, rf_data.freq_ppm, rf_data.phase_ppm, rf_data.freq, rf_data.phase, rf_data.use]
-        max_lengths = zeros(Int, 12)
-        for (i, val) in enumerate(values)
-            str = _format_value(val)
-            max_lengths[i] = max(max_lengths[i], length(str))
-        end
-        _format_row(io, values, max_lengths)
+        push!(rows, (id, rf_data.amplitude, rf_data.mag_id, rf_data.phase_id, rf_data.time_shape_id, center_us, delay_us, rf_data.freq_ppm, rf_data.phase_ppm, rf_data.freq, rf_data.phase, rf_data.use))
+    end
+    header_rows = (
+        ("id", "amp", "mag_id", "phase_id", "time_id", "center", "delay", "freq_ppm", "phase_ppm", "freq_off", "phase_off", "use"),
+        ("..", "Hz", "..", "..", "..", "us", "us", "ppm", "rad/MHz", "Hz", "rad", "..")
+    )
+    widths = _compute_col_widths(rows; header_rows=header_rows)
+    _pulseq_reserve_hash_prefix_width!(widths)
+    _format_comment_row(io, header_rows[1], widths)
+    _format_comment_row(io, header_rows[2], widths)
+    write(io, "# Field 'use' is the initial of:\n")
+    write(io, "# excitation refocusing inversion saturation preparation other undefined\n")
+    write(io, "[RF]\n")
+    for row in rows
+        _format_row(io, row, widths)
     end
 end
 
 function emit_gradients_section!(io::IO, event_libraries)
     write(io, "\n# Format of arbitrary gradient events:\n")
-    write(io, "# id      amp      first      last  shape_id  time_id  delay\n")
-    write(io, "# ..     Hz/m       Hz/m      Hz/m        ..       ..     us\n")
-    write(io, "[GRADIENTS]\n")
-    !any(g -> g isa ArbGradEvent, values(event_libraries.grad_library)) && return
+    rows = NTuple{7,Any}[]
     grad_ids = sort(collect(keys(event_libraries.grad_library)))
     for id in grad_ids
         grad_data = event_libraries.grad_library[id]
         if grad_data isa ArbGradEvent
-            vals = (id, grad_data.amplitude, grad_data.first, grad_data.last, grad_data.amp_shape_id, grad_data.time_shape_id, round(Int, grad_data.delay * 1e6))
-            max_lengths = zeros(Int, 7)
-            for (i, val) in enumerate(vals)
-                str = _format_value(val)
-                max_lengths[i] = max(max_lengths[i], length(str))
-            end
-            _format_row(io, vals, max_lengths)
+            push!(rows, (id, grad_data.amplitude, grad_data.first, grad_data.last, grad_data.amp_shape_id, grad_data.time_shape_id, round(Int, grad_data.delay * 1e6)))
         end
+    end
+    header_rows = (
+        ("id", "amp", "first", "last", "shape_id", "time_id", "delay"),
+        ("..", "Hz/m", "Hz/m", "Hz/m", "..", "..", "us")
+    )
+    widths = _compute_col_widths(rows; header_rows=header_rows)
+    _pulseq_reserve_hash_prefix_width!(widths)
+    _format_comment_row(io, header_rows[1], widths)
+    _format_comment_row(io, header_rows[2], widths)
+    write(io, "[GRADIENTS]\n")
+    for row in rows
+        _format_row(io, row, widths)
     end
 end
 
 function emit_trap_section!(io::IO, event_libraries)
     write(io, "\n# Format of trapezoid gradient events:\n")
-    write(io, "# id      amp      rise  flat  fall  delay\n")
-    write(io, "# ..     Hz/m        us    us    us     us\n")
-    write(io, "[TRAP]\n")
-    !any(g -> g isa TrapGradEvent, values(event_libraries.grad_library)) && return
+    rows = NTuple{6,Any}[]
     trap_ids = sort(collect(keys(event_libraries.grad_library)))
     for id in trap_ids
         trap_data = event_libraries.grad_library[id]
         if trap_data isa TrapGradEvent
-            vals = (id, trap_data.amplitude, round(Int, trap_data.rise * 1e6), round(Int, trap_data.flat * 1e6), round(Int, trap_data.fall * 1e6), round(Int, trap_data.delay * 1e6))
-            max_lengths = zeros(Int, 6)
-            for (i, val) in enumerate(vals)
-                str = _format_value(val)
-                max_lengths[i] = max(max_lengths[i], length(str))
-            end
-            _format_row(io, vals, max_lengths)
+            push!(rows, (id, trap_data.amplitude, round(Int, trap_data.rise * 1e6), round(Int, trap_data.flat * 1e6), round(Int, trap_data.fall * 1e6), round(Int, trap_data.delay * 1e6)))
         end
+    end
+    header_rows = (
+        ("id", "amp", "rise", "flat", "fall", "delay"),
+        ("..", "Hz/m", "us", "us", "us", "us")
+    )
+    widths = _compute_col_widths(rows; header_rows=header_rows)
+    _pulseq_reserve_hash_prefix_width!(widths)
+    _format_comment_row(io, header_rows[1], widths)
+    _format_comment_row(io, header_rows[2], widths)
+    write(io, "[TRAP]\n")
+    for row in rows
+        _format_row(io, row, widths)
     end
 end
 
 function emit_adc_section!(io::IO, event_libraries)
     write(io, "\n# Format of ADC events:\n")
-    write(io, "# id  num  dwell  delay  freq_ppm  phase_ppm  freq  phase  phase_id\n")
-    write(io, "# ..   ..     ns     us       ppm        ppm    Hz    rad        ..\n")
-    write(io, "[ADC]\n")
-    isempty(event_libraries.adc_library) && return
+    rows = NTuple{9,Any}[]
     adc_ids = sort(collect(keys(event_libraries.adc_library)))
     for id in adc_ids
         adc_data = event_libraries.adc_library[id]
-        vals = (id, adc_data.num, round(Int, adc_data.dwell * 1e9), round(Int, adc_data.delay * 1e6), adc_data.freq_ppm, adc_data.phase_ppm, adc_data.freq, adc_data.phase, adc_data.phase_id)
-        max_lengths = zeros(Int, 9)
-        for (i, val) in enumerate(vals)
-            str = _format_value(val)
-            max_lengths[i] = max(max_lengths[i], length(str))
-        end
-        _format_row(io, vals, max_lengths)
+        push!(rows, (id, adc_data.num, round(Int, adc_data.dwell * 1e9), round(Int, adc_data.delay * 1e6), adc_data.freq_ppm, adc_data.phase_ppm, adc_data.freq, adc_data.phase, adc_data.phase_id))
+    end
+    header_rows = (
+        ("id", "num", "dwell", "delay", "freq_ppm", "phase_ppm", "freq", "phase", "phase_id"),
+        ("..", "..", "ns", "us", "ppm", "ppm", "Hz", "rad", "..")
+    )
+    widths = _compute_col_widths(rows; header_rows=header_rows)
+    _pulseq_reserve_hash_prefix_width!(widths)
+    _format_comment_row(io, header_rows[1], widths)
+    _format_comment_row(io, header_rows[2], widths)
+    write(io, "[ADC]\n")
+    for row in rows
+        _format_row(io, row, widths)
     end
 end
 
 function emit_extension_section!(io::IO, event_libraries)
     write(io, "\n# Format of extension events:\n")
-    write(io, "# id  type  ref  next_id\n")
-    write(io, "# Extension list is followed by extension specifications\n")
-    write(io, "[EXTENSIONS]\n")
-    isempty(event_libraries.extension_instance_library) && return
+    ext_rows = NTuple{4,Any}[]
     ext_ids = sort(collect(keys(event_libraries.extension_instance_library)))
     for id in ext_ids
         ext_data = event_libraries.extension_instance_library[id]
-        vals = (id, ext_data.type, ext_data.ref, ext_data.next_id)
-        max_lengths = length.(digits.(vals))
-        _format_row(io, vals, max_lengths)
+        push!(ext_rows, (id, ext_data.type, ext_data.ref, ext_data.next_id))
+    end
+    header_rows = (("id", "type", "ref", "next_id"),)
+    ext_widths = _compute_col_widths(ext_rows; header_rows=header_rows)
+    _pulseq_reserve_hash_prefix_width!(ext_widths)
+    _format_comment_row(io, header_rows[1], ext_widths)
+    write(io, "# Extension list is followed by extension specifications\n")
+    write(io, "[EXTENSIONS]\n")
+    isempty(ext_rows) && return
+    for row in ext_rows
+        _format_row(io, row, ext_widths)
     end
     write(io, "\n")
     type_ids = sort(collect(keys(event_libraries.extension_type_library)))
@@ -528,18 +628,9 @@ function emit_extension_section!(io::IO, event_libraries)
         ext_type = event_libraries.extension_type_library[id]
         write(io, KomaMRIBase.extension_type_header(ext_type))
         write(io, "extension $(string(KomaMRIBase.get_symbol_from_EXT_type(ext_type))) $id\n")
-        spec_ids = sort(collect(keys(event_libraries.extension_spec_library[id])))
-        for spec_id in spec_ids
-            v = event_libraries.extension_spec_library[id][spec_id]
-            field_values = Tuple(getfield(v, f) for f in fieldnames(typeof(v)))
-            scaled_values = [d isa Number ? s*d : d for (s, d) in zip(KomaMRIBase.get_scale(typeof(v)), field_values)]   
-            vals = (spec_id, scaled_values...)
-            max_lengths = zeros(Int, length(vals))
-            for (i, val) in enumerate(vals)
-                str = _format_value(val)
-                max_lengths[i] = max(max_lengths[i], length(str))
-            end
-            _format_row(io, vals, max_lengths)
+        for sid in sort(collect(keys(event_libraries.extension_spec_library[id])))
+            v = event_libraries.extension_spec_library[id][sid]
+            write(io, _pulseq_extension_spec_line(ext_type, sid, v))
         end
         id !== type_ids[end] && write(io, "\n")
     end
@@ -566,25 +657,6 @@ function emit_signature_section!(io::IO, algorithm::AbstractString, hash_value::
     write(io, "# The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be stripped away for recalculating/verification)\n")
     write(io, "Type $(algorithm)\n")
     write(io, "Hash $(hash_value)\n\n")
-end
-
-# Helper function to format a value as string based on format type
-_format_value(val) = val isa Float64 && mod(val, 1.0) != 0.0 ? @sprintf("%.8f", val) : string(val)
-
-# Helper function to format a table row with automatic column alignment (right-aligned)
-function _format_row(io, values, max_lengths)
-    for (i, (val, max_len)) in enumerate(zip(values, max_lengths))
-        str = _format_value(val)
-        # Right-align: add spaces before the value to pad to max_len
-        num_spaces = max(0, max_len - length(str))
-        write(io, repeat(" ", num_spaces))
-        write(io, str)
-        # Add spacing between columns (except after last column)
-        if i < length(values)
-            write(io, "   ")  # Base spacing between columns
-        end
-    end
-    write(io, "\n")
 end
 
 """
