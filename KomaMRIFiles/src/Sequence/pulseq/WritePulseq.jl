@@ -281,19 +281,6 @@ function register_ext!(
 end
 
 # store_event! and store_shape! are helper functions to store events and shapes in the dictionary, and return the id of the event or shape.
-function _store_event!(event_dict::Dict, event)
-    for (k, v) in event_dict
-        if v == event return k end
-    end 
-    new_id = maximum(keys(event_dict); init=0) + 1
-    event_dict[new_id] = event
-    return new_id
-end
-
-function _store_event!(event_dict::Dict, event, event_index::Nothing)
-    return _store_event!(event_dict, event)
-end
-
 function _store_event!(event_dict::Dict, event, event_index::Dict{UInt, Vector{Int}})
     h = hash(event)
     for id in get(event_index, h, Int[])
@@ -318,19 +305,6 @@ function _store_shape!(
     shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
 )
     payload = compress ? compress_shape(samples) : (length(samples), samples)
-    isnothing(shape_exact_index) && isnothing(shape_phase_index) && begin
-        for (k, existing) in shapes
-            if phase_shape
-                existing_phase = existing[2] .- existing[2][1]
-                if safe_equal_angles(existing_phase, payload[2]) && existing[1] == payload[1] return k end
-            else
-                if existing == payload return k end
-            end
-        end
-        new_id = length(shapes) + 1
-        shapes[new_id] = payload
-        return new_id
-    end
     if phase_shape
         for id in get(shape_phase_index, payload[1], Int[])
             existing = shapes[id]
@@ -764,6 +738,10 @@ Writes a Sequence struct to a Pulseq file with `.seq` extension.
 - `seq`: (`::Sequence`) Sequence struct
 - `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
 
+# Keywords
+- `sys`: (`::Scanner`, `=Scanner()`) Scanner struct.
+- `signature_algorithm`: (`::AbstractString`, `="md5"`) algorithm to use for the signature. Supported algorithms: md5, sha1, sha256.
+
 # Examples
 ```julia-repl
 julia> seq = Sequence()
@@ -775,7 +753,7 @@ julia> write_seq(seq, "fid.seq")
 function write_seq(
     seq::Sequence, filename::String;
     sys::Scanner=Scanner(),
-    signatureAlgorithm::AbstractString = "md5"
+    signature_algorithm::AbstractString = "md5"
 )
     # 1. Check scanner constraints. If the sequence is not compliant, the function will throw an error.
     @info "Checking scanner constraints..." B0_max = sys.B0 B1_max = sys.B1 G_max = sys.Gmax S_max = sys.Smax ADC_Δt = sys.ADC_Δt
@@ -791,11 +769,11 @@ function write_seq(
     buffer = IOBuffer()
     emit_pulseq(buffer, blocks, event_libraries)
     payload = take!(buffer)
-    signature_hash = supported_signature_digest(signatureAlgorithm, payload)
+    signature_hash = supported_signature_digest(signature_algorithm, payload)
     open(filename, "w") do io
         write(io, payload)
         write(io, '\n')
-        emit_signature_section!(io, signatureAlgorithm, signature_hash)
+        emit_signature_section!(io, signature_algorithm, signature_hash)
     end
     return nothing
 end
