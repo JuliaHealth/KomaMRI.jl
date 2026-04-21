@@ -413,7 +413,7 @@ end
 const PULSEQ_TABLE_COL_GAP = " "
 
 _format_value(val::AbstractFloat) =
-    isapprox(val, round(val); atol=QUANT_TOL, rtol=sqrt(eps(Float64))) ? string(round(Int, val)) : @sprintf("%.6f", val)
+    isapprox(val, round(val); atol=QUANT_TOL, rtol=sqrt(eps(Float64))) ? string(round(Int, val)) : @sprintf("%.8f", val)
 _format_value(val) = string(val)
 
 function _compute_col_widths(rows; header_rows=())
