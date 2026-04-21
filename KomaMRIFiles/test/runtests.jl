@@ -142,13 +142,14 @@ end
         include("utils.jl")
         pth = (@__DIR__) * "/test_files/pulseq/write_comparison/"
         isdir(pth) || mkdir(pth)
-        for seq in round_trip_sequences()
+        signature_algorithms = ["md5", "sha1", "sha256"] # Try all supported algorithms
+        for (i, seq) in enumerate(round_trip_sequences())
+            algorithm = signature_algorithms[(mod1(i, length(signature_algorithms)))]
             filename = pth * "$(seq.DEF["Name"]).seq"
             qseq = @suppress KomaMRIFiles.check_raster(seq)
-            @suppress write_seq(seq, filename)
+            @suppress write_seq(seq, filename; signature_algorithm=algorithm)
             seq2 = @suppress read_seq(filename)
             @test @suppress seq2 ≈ qseq # Round-trip test
         end
     end
 end
-
