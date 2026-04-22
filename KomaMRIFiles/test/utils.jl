@@ -90,6 +90,12 @@ function round_trip_sequences()
     seq += ADC(100, 100e-3, 50e-3)
     seq.EXT = [[LabelInc(1, "LIN"), LabelSet(1, "ECO")], [LabelSet(1, "ECO")]]
     seq.DEF["Name"] = "extensions"
+
+    # 10. Official Pulseq MATLAB GRE example with RF spoiling
+    # https://pulseq.github.io/writeGradientEcho.html
+    push!(sequences, seq)
+    seq = read_seq(joinpath(@__DIR__, "test_files/pulseq/read_comparison/v1.5/gre.seq"))
+    seq.DEF["Name"] = "gre_rfspoiled"
     push!(sequences, seq)
 
     return sequences

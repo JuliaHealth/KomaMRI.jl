@@ -1,5 +1,5 @@
-abstract type GradEvent end
-struct TrapGradEvent <: GradEvent
+abstract type PulseqGradEvent end
+struct PulseqTrapGradEvent <: PulseqGradEvent
     amplitude::Float64
     rise::Float64
     flat::Float64
@@ -7,7 +7,7 @@ struct TrapGradEvent <: GradEvent
     delay::Float64
 end
 
-mutable struct ArbGradEvent <: GradEvent
+struct PulseqArbGradEvent <: PulseqGradEvent
     amplitude::Float64
     first::Float64
     last::Float64
@@ -16,7 +16,7 @@ mutable struct ArbGradEvent <: GradEvent
     delay::Float64
 end
 
-struct RFEvent
+struct PulseqRFEvent
     amplitude::Float64
     mag_id::Int
     phase_id::Int
@@ -30,7 +30,7 @@ struct RFEvent
     use::Char
 end
 
-struct ADCEvent
+struct PulseqADCEvent
     num::Int
     dwell::Float64
     delay::Float64
@@ -41,7 +41,7 @@ struct ADCEvent
     phase_id::Int
 end
 
-struct ExtensionInstanceEvent
+struct PulseqExtensionInstanceEvent
     type::Int
     ref::Int
     next_id::Int
@@ -49,51 +49,49 @@ end
 
 const ShapeLibrary = Dict{Int, Tuple{Int, Vector{Float64}}}
 
-struct PulseqEventLibraries
-    grad_library::Dict{Int, GradEvent}
-    rf_library::Dict{Int, RFEvent}
-    adc_library::Dict{Int, ADCEvent}
-    tmp_delay_library::Dict{Int, Float64}
-    shape_library::ShapeLibrary
-    extension_instance_library::Dict{Int, ExtensionInstanceEvent}
-    extension_type_library::Dict{Int, Type{<:Extension}}
-    extension_spec_library::Dict{Int, Dict{Int, Extension}}
-    definitions::Dict{String, Any}
+# Exact contents of the [DEFINITIONS] section plus the active raster values.
+struct PulseqDefinitions
+    entries::Vector{Pair{String,String}}
     block_duration_raster::Float64
     gradient_raster_time::Float64
     radiofrequency_raster_time::Float64
     adc_raster_time::Float64
+    required_extensions::Vector{String}
 end
 
-function PulseqEventLibraries(
-    grad_library,
-    rf_library,
-    adc_library,
-    tmp_delay_library,
-    shape_library,
-    extension_instance_library,
-    extension_type_library,
-    extension_spec_library,
-    definitions,
+PulseqDefinitions() = PulseqDefinitions(
+    Pair{String,String}[],
+    DEFAULT_RASTER.BlockDurationRaster,
+    DEFAULT_RASTER.GradientRasterTime,
+    DEFAULT_RASTER.RadiofrequencyRasterTime,
+    DEFAULT_RASTER.AdcRasterTime,
+    String[],
 )
-    defs = Dict{String, Any}(definitions)
-    return PulseqEventLibraries(
-        grad_library,
-        rf_library,
-        adc_library,
-        tmp_delay_library,
-        shape_library,
-        extension_instance_library,
-        extension_type_library,
-        extension_spec_library,
-        defs,
-        defs["BlockDurationRaster"],
-        defs["GradientRasterTime"],
-        defs["RadiofrequencyRasterTime"],
-        defs["AdcRasterTime"],
-    )
+
+# Pulseq file-format libraries keyed by the integer ids used in [BLOCKS].
+struct PulseqFileEventLibraries
+    grad_library::Dict{Int,PulseqGradEvent}
+    rf_library::Dict{Int,PulseqRFEvent}
+    adc_library::Dict{Int,PulseqADCEvent}
+    tmp_delay_library::Dict{Int,Float64}
+    shape_library::ShapeLibrary
+    extension_instance_library::Dict{Int,PulseqExtensionInstanceEvent}
+    extension_type_library::Dict{Int,Type{<:Extension}}
+    extension_spec_library::Dict{Int,Dict{Int,Extension}}
+    definitions::PulseqDefinitions
 end
 
+# One serialized [BLOCKS] row.
+struct PulseqBlockEventIDs
+    block_id::Int
+    duration_ticks::Int
+    rf_id::Int
+    gx_id::Int
+    gy_id::Int
+    gz_id::Int
+    adc_id::Int
+    ext_id::Int
+end
 struct PulseqRaster
     BlockDurationRaster::Float64
     GradientRasterTime::Float64
@@ -114,30 +112,16 @@ function get_raster_time(key::String, seq::Sequence, scanner_default)
     return seq_value
 end
 
-function merge_definitions_with_raster!(definitions::AbstractDict{String,Any}, raster::PulseqRaster)
-    definitions["BlockDurationRaster"] = raster.BlockDurationRaster
-    definitions["GradientRasterTime"] = raster.GradientRasterTime
-    definitions["RadiofrequencyRasterTime"] = raster.RadiofrequencyRasterTime
-    definitions["AdcRasterTime"] = raster.AdcRasterTime
-    return definitions
-end
+PulseqTrapGradEvent(data) = PulseqTrapGradEvent(data...)
+PulseqArbGradEvent(data::NTuple{3, T}) where {T<:Real} = PulseqArbGradEvent(data[1], 0.0, 0.0, Int(data[2]), 0, data[3])
+PulseqArbGradEvent(data::NTuple{4, T}) where {T<:Real} = PulseqArbGradEvent(data[1], 0.0, 0.0, Int(data[2]), Int(data[3]), data[4])
+PulseqArbGradEvent(data::NTuple{6, T}) where {T<:Real} = PulseqArbGradEvent(data[1], data[2], data[3], Int(data[4]), Int(data[5]), data[6])
 
-function clean_definitions!(definitions::AbstractDict{String,Any})
-    delete!(definitions, "PulseqVersion")
-    delete!(definitions, "signature")
-    return definitions
-end
+PulseqRFEvent(data::NTuple{6, T}) where {T<:Real} = PulseqRFEvent(data[1], Int(data[2]), Int(data[3]), 0, nothing, data[4], 0.0, 0.0, data[5], data[6], 'u')
+PulseqRFEvent(data::NTuple{7, T}) where {T<:Real} = PulseqRFEvent(data[1], Int(data[2]), Int(data[3]), Int(data[4]), nothing, data[5], 0.0, 0.0, data[6], data[7], 'u')
+PulseqRFEvent(data::Tuple{Vararg{Any, 11}}) = PulseqRFEvent(data[1], Int(data[2]), Int(data[3]), Int(data[4]), data[5], data[6], data[7], data[8], data[9], data[10], data[11])
 
-TrapGradEvent(data) = TrapGradEvent(data...)
-ArbGradEvent(data::NTuple{3, T}) where {T<:Real} = ArbGradEvent(data[1], 0.0, 0.0, Int(data[2]), 0, data[3])
-ArbGradEvent(data::NTuple{4, T}) where {T<:Real} = ArbGradEvent(data[1], 0.0, 0.0, Int(data[2]), Int(data[3]), data[4])
-ArbGradEvent(data::NTuple{6, T}) where {T<:Real} = ArbGradEvent(data[1], data[2], data[3], Int(data[4]), Int(data[5]), data[6])
+PulseqADCEvent(data::NTuple{5, T}) where {T<:Real} = PulseqADCEvent(Int(data[1]), data[2], data[3], 0.0, 0.0, data[4], data[5], 0)
+PulseqADCEvent(data::NTuple{8, T}) where {T<:Real} = PulseqADCEvent(Int(data[1]), data[2], data[3], data[4], data[5], data[6], data[7], Int(data[8]))
 
-RFEvent(data::NTuple{6, T}) where {T<:Real} = RFEvent(data[1], Int(data[2]), Int(data[3]), 0, nothing, data[4], 0.0, 0.0, data[5], data[6], 'u')
-RFEvent(data::NTuple{7, T}) where {T<:Real} = RFEvent(data[1], Int(data[2]), Int(data[3]), Int(data[4]), nothing, data[5], 0.0, 0.0, data[6], data[7], 'u')
-RFEvent(data::Tuple{Vararg{Any, 11}}) = RFEvent(data[1], Int(data[2]), Int(data[3]), Int(data[4]), data[5], data[6], data[7], data[8], data[9], data[10], data[11])
-
-ADCEvent(data::NTuple{5, T}) where {T<:Real} = ADCEvent(Int(data[1]), data[2], data[3], 0.0, 0.0, data[4], data[5], 0)
-ADCEvent(data::NTuple{8, T}) where {T<:Real} = ADCEvent(Int(data[1]), data[2], data[3], data[4], data[5], data[6], data[7], Int(data[8]))
-
-ExtensionInstanceEvent(data) = ExtensionInstanceEvent(Int(data[1]), Int(data[2]), Int(data[3]))
+PulseqExtensionInstanceEvent(data) = PulseqExtensionInstanceEvent(Int(data[1]), Int(data[2]), Int(data[3]))

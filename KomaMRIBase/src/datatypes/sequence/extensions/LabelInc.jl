@@ -1,4 +1,4 @@
-mutable struct LabelInc <: Extension
+struct LabelInc <: Extension
     labelvalue::Int
     labelstring::String
 end

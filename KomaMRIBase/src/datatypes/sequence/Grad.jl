@@ -83,12 +83,19 @@ mutable struct Grad{AT,TT}
     delay::Float64
     first::Float64
     last::Float64
-    Grad(A, T, rise, fall, delay, first, last) = all(T .< 0) || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new{typeof(A),typeof(T)}(A, T, rise, fall, delay, first, last)
+    Grad(A, T, rise, fall, delay, first, last) =
+        _has_negative_timings(T) || rise < 0 || fall < 0 || delay < 0 ?
+        error("Gradient timings must be positive.") :
+        new{typeof(A),typeof(T)}(A, T, rise, fall, delay, first, last)
     Grad(A, T, rise, fall, delay)              = Grad(A, T, rise, fall, delay, 0.0, 0.0)
     Grad(A, T, rise, delay)                    = Grad(A, T, rise, rise, delay, 0.0, 0.0)
     Grad(A, T, rise)                           = Grad(A, T, rise, rise, 0.0,   0.0, 0.0)
     Grad(A, T)                                 = Grad(A, T, 0.0,  0.0,  0.0,   0.0, 0.0)
 end
+
+const TrapezoidalGrad = Grad{AT,TT} where {AT<:Number,TT<:Number}
+const UniformlySampledGrad = Grad{AT,TT} where {AT<:AbstractVector{<:Number},TT<:Number}
+const TimeShapedGrad = Grad{AT,TT} where {AT<:AbstractVector{<:Number},TT<:AbstractVector{<:Number}}
 
 """
     gr = Grad(f::Function, T::Real, N::Integer; delay::Real)
@@ -191,7 +198,9 @@ getproperty(x::AbstractArray{<:Grad}, f::Symbol) = begin
 end
 
 # Gradient comparison
-Base.:(≈)(gr1::Grad, gr2::Grad) = all([typeof(getfield(gr1, k)) == typeof(getfield(gr2, k)) ? getfield(gr1, k) ≈ getfield(gr2, k) : false for k in fieldnames(Grad)])
+field_isapprox(gr1::Grad, gr2::Grad; kwargs...) = isapprox(gr1, gr2; kwargs...)
+Base.isapprox(gr1::Grad, gr2::Grad; kwargs...) = fields_isapprox(gr1, gr2; kwargs...)
+Base.copy(gr::Grad) = Grad(_deepcopy_fields(gr)...)
 
 # Gradient operations
 # zeros(Grad, M, N)

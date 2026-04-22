@@ -62,7 +62,7 @@ Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i + 1) : nothin
 Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
 Base.view(x::Phantom, i::Integer) = @view(x[i:i])
-
+Base.copy(obj::Phantom) = Phantom(_deepcopy_fields(obj)...)
 """Compare two phantoms"""
 function Base.:(==)(obj1::Phantom, obj2::Phantom)
     if length(obj1) != length(obj2) return false end
@@ -107,7 +107,7 @@ end
 
 """Scalar multiplication of a phantom"""
 *(α::Real, obj::Phantom) = begin
-    obj1 = copy(obj)
+    obj1 = deepcopy(obj)
     obj1.ρ .*= α
     return obj1
 end

@@ -1,4 +1,4 @@
-mutable struct Trigger <: Extension 
+struct Trigger <: Extension
     type::Int # Type of trigger (system dependent). 0: undefined / unused
     channel::Int # channel of trigger (system dependent). 0: undefined / unused
     d1::Float64 # Delay prior to the trigger event [s]

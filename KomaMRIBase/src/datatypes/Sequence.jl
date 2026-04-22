@@ -25,65 +25,74 @@ block. This struct serves as an input for the simulation.
 # Returns
 - `seq`: (`::Sequence`) Sequence struct
 """
-mutable struct Sequence
-	GR::Array{<:Grad,2}		  #Sequence in (X, Y and Z) and time
-	RF::Array{<:RF,2}			  #RF pulses in coil and time
-	ADC::Array{ADC,1}		  #ADC in time
-	DUR::Array{Float64,1}				  #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
-	EXT::Vector{Vector{Extension}}
-	DEF::Dict{String,Any} 	  #Dictionary with information relevant to the reconstructor
-	Sequence(GR, RF, ADC, DUR, EXT, DEF) = begin
-		@assert size(GR, 2) == size(RF,2) == length(ADC) == length(DUR) "The number of Gradient, RF, ADC, DUR and EXT objects must be the same."
-        if size(GR, 1) < 3
-            GR = vcat(GR, (0.0 .* GR[1:1, :] for i=1:3-size(GR, 1))...)
-        end
-		new(GR,
-			RF,
-			ADC,
-			DUR, #maximum(Float64[GR.dur RF.dur ADC.dur DUR],dims=2)[:],
-			EXT,
-			DEF)
-	end
+mutable struct Sequence{GT,RT,AT,DT,XT,DF}
+    GR::GT #Sequence in (X, Y and Z) and time
+    RF::RT #RF pulses in coil and time
+    ADC::AT #ADC in time
+    DUR::DT #Duration of each block, this enables delays after RF pulses to satisfy ring-down times
+    EXT::XT
+    DEF::DF #Dictionary with information relevant to the reconstructor
+    Sequence(GR, RF, ADC, DUR, EXT, DEF) = begin
+        @assert size(GR, 2) == size(RF, 2) == length(ADC) == length(DUR) "The number of Gradient, RF, ADC, DUR and EXT objects must be the same."
+        GR = _ensure_gradient_axes(GR)
+        new{typeof(GR),typeof(RF),typeof(ADC),typeof(DUR),typeof(EXT),typeof(DEF)}(
+            GR,
+            RF,
+            ADC,
+            DUR,
+            EXT,
+            DEF,
+        )
+    end
 end
+
+function _ensure_gradient_axes(GR)
+    nchannels = size(GR, 1)
+    missing_axes = 3 - nchannels
+    missing_axes <= 0 && return GR
+    return vcat(GR, [0.0 .* GR[1:1, :] for _ in 1:missing_axes]...)
+end
+
+_empty_extensions_per_block(nblocks) = [Extension[] for _ = 1:nblocks]
 
 # Main Constructors
 function Sequence(GR)
     rf = reshape([RF(0.0, 0.0) for i in 1:size(GR, 2)], 1, :)
     adc = [ADC(0, 0.0) for _ = 1:size(GR, 2)]
-		ext = [Vector{Extension}[] for _ = 1:size(GR, 2)]
+    ext = _empty_extensions_per_block(size(GR, 2))
     return Sequence(GR, rf, adc, GR.dur, ext, Dict{String, Any}())
 end
 function Sequence(GR, RF)
     adc = [ADC(0, 0.0) for _ in 1:size(GR, 2)]
     dur = maximum([GR.dur RF.dur], dims=2)[:]
-		ext = [Vector{Extension}[] for _ = 1:size(GR, 2)]
-	return Sequence(GR, RF, adc, dur, ext,Dict{String, Any}())
+    ext = _empty_extensions_per_block(size(GR, 2))
+    return Sequence(GR, RF, adc, dur, ext, Dict{String, Any}())
 end
 function Sequence(GR, RF, ADC)
     dur = maximum([GR.dur RF.dur ADC.dur], dims=2)[:]
-		ext = [Vector{Extension}[] for _ = 1:size(GR, 2)]
-	return Sequence(GR, RF, ADC, dur, ext, Dict{String, Any}())
+    ext = _empty_extensions_per_block(size(GR, 2))
+    return Sequence(GR, RF, ADC, dur, ext, Dict{String, Any}())
 end
 function Sequence(GR, RF, ADC, DUR)
-		ext = [Vector{Extension}[] for _ = 1:size(GR, 2)]
+    ext = _empty_extensions_per_block(size(GR, 2))
     return Sequence(GR, RF, ADC, DUR, ext, Dict{String, Any}())
 end
 function Sequence(GR, RF, ADC, DUR, EXT)
-	return Sequence(GR, RF, ADC, DUR, EXT, Dict{String, Any}())
+    return Sequence(GR, RF, ADC, DUR, EXT, Dict{String, Any}())
 end
 
 # Other constructors
-Sequence(GR::AbstractVector{<:Grad}) = Sequence(reshape(GR,1,:))
-Sequence(GR::AbstractVector{<:Grad}, RF::AbstractVector{<:RF})= Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0.0) for i in 1:size(GR, 2)])
-Sequence(GR::AbstractVector{<:Grad}, RF::AbstractVector{<:RF}, A::ADC, DUR, EXT, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], Float64[DUR], [EXT],DEF)
+Sequence(GR::AbstractVector{<:Grad}) = Sequence(reshape(GR, 1, :))
+Sequence(GR::AbstractVector{<:Grad}, RF::AbstractVector{<:RF}) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [ADC(0, 0.0) for _ in 1:size(GR, 2)])
+Sequence(GR::AbstractVector{<:Grad}, RF::AbstractVector{<:RF}, A::ADC, DUR, EXT, DEF) = Sequence(reshape(GR, :, 1), reshape(RF, 1, :), [A], [DUR], [EXT], DEF)
 Sequence() = Sequence(
     Matrix{Grad}(undef, 3, 0),
     Matrix{RF}(undef, 1, 0),
     Vector{ADC}(undef, 0),
     Vector{Float64}(undef, 0),
-		Vector{Vector{Extension}}(undef,0),
-		Dict{String, Any}()
-    )
+    Vector{Vector{Extension}}(undef, 0),
+    Dict{String, Any}(),
+)
 
 """
     str = show(io::IO, s::Sequence)
@@ -97,7 +106,7 @@ Displays information about the Sequence struct `s` in the julia REPL.
 - `str` (`::String`) output string message
 """
 Base.show(io::IO, s::Sequence) = begin
-	compact = get(io, :compact, false)
+    compact = get(io, :compact, false)
     if length(s) > 0
         if !compact
             nGRs = sum(is_Gx_on.(s)) + sum(is_Gy_on.(s)) + sum(is_Gz_on.(s))
@@ -119,7 +128,7 @@ Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.
 Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF) : nothing
 Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF) : nothing
 Base.lastindex(x::Sequence) = length(x.DUR)
-Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k ∈ fieldnames(Sequence)]...)
+Base.copy(x::Sequence) = Sequence(_deepcopy_fields(x)...)
 
 #Arithmetic operations
 +(x::Sequence, y::Sequence) = Sequence(hcat(x.GR,  y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), vcat(x.EXT,y.EXT),merge(x.DEF, y.DEF))
@@ -144,50 +153,13 @@ Base.copy(x::Sequence) where Sequence = Sequence([deepcopy(getfield(x, k)) for k
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 
-# Sequence comparison
-function Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12)
-	length(x) == length(y) || return false
-	not_empty(ev) = !isempty(ev.t)
-	equal_blocks = Bool[]
-	equal_exts = Bool[]
-	warned_interpolated_comparison = false
-	for i in 1:length(x)
-		equal_events = Bool[]
-		equal_durs = isapprox(x.DUR[i], y.DUR[i], atol=atol)
-		blk1, blk2 = get_samples(x, i), get_samples(y, i)
-		for key in keys(blk1)
-			ev1, ev2 = blk1[key], blk2[key]
-			(not_empty(ev1) && not_empty(ev2)) || continue
-			is_equal = if (length(ev1.A) == length(ev2.A) && length(ev1.t) == length(ev2.t))
-				isapprox(ev1.A, ev2.A, atol=atol) && isapprox(ev1.t, ev2.t, atol=atol)
-			else # Different number of samples: check if waveforms are the same on a common time grid
-				t_min = max(ev1.t[1], ev2.t[1])
-				t_max = min(ev1.t[end], ev2.t[end])
-				if t_max <= t_min
-					false
-				else
-					if !warned_interpolated_comparison
-						@warn "Sequence comparison is using interpolated waveform matching for differently sampled events. 
-This is not a strict sample-by-sample equality check. 
-This warning will only be shown once per sequence comparison." block=i event=key ev1_samples=length(ev1.t) ev2_samples=length(ev2.t)
-						warned_interpolated_comparison = true
-					end
-					t1 = copy(ev1.t); t2 = copy(ev2.t)
-					Interpolations.deduplicate_knots!(t1; move_knots=true)
-					Interpolations.deduplicate_knots!(t2; move_knots=true)
-					common_time = range(t_min, t_max; length=max(length(ev1.t), length(ev2.t)))
-					itp1 = Interpolations.linear_interpolation(t1, ev1.A)
-					itp2 = Interpolations.linear_interpolation(t2, ev2.A)
-					all(isapprox.(itp1.(common_time), itp2.(common_time), atol=atol))
-				end
-			end
-			push!(equal_events, is_equal)
-		end
-		push!(equal_blocks, all(equal_events) && equal_durs)
-		push!(equal_exts, length(x.EXT[i]) == length(y.EXT[i]) && all(x.EXT[i] .≈ y.EXT[i]))
-	end
-	return all(equal_blocks) && all(equal_exts)
-end
+Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12) =
+    typeof(x) === typeof(y) &&
+    field_isapprox(x.GR, y.GR; atol=atol) &&
+    field_isapprox(x.RF, y.RF; atol=atol) &&
+    field_isapprox(x.ADC, y.ADC; atol=atol) &&
+    field_isapprox(x.DUR, y.DUR; atol=atol) &&
+    field_isapprox(x.EXT, y.EXT; atol=atol)
 
 """
     y = is_ADC_on(x::Sequence)
@@ -202,7 +174,7 @@ Tells if the sequence `seq` has elements with ADC active, or active during time 
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the ADC in the sequence is active
 """
-is_ADC_on(x::Sequence) = any(x-> x > 0, x.ADC.N)
+is_ADC_on(x::Sequence) = any(is_ADC_on, x.ADC)
 is_ADC_on(x::Sequence, t::AbstractVecOrMat) = begin
 	N = length(x)
 	ts = get_block_start_times(x)[1:end-1]
@@ -231,7 +203,7 @@ Tells if the sequence `seq` has elements with RF active, or active during time `
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the RF in the sequence is active
 """
-is_RF_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.RF] .> 0)
+is_RF_on(x::Sequence) = any(is_RF_on, x.RF)
 is_RF_on(x::Sequence, t::AbstractVector) = begin
 	N = length(x)
 	ts = get_block_start_times(x)[1:end-1]
@@ -258,7 +230,7 @@ Tells if the sequence `seq` has elements with GR active.
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the GR in the sequence is active
 """
-is_GR_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR] .> 0)
+is_GR_on(x::Sequence) = any(is_GR_on, x.GR)
 
 """
     y = is_Gx_on(x::Sequence)
@@ -271,7 +243,7 @@ Tells if the sequence `seq` has elements with GR active in x direction.
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the GRx in the sequence is active
 """
-is_Gx_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.x] .> 0)
+is_Gx_on(x::Sequence) = any(is_GR_on, x.GR.x)
 
 """
     y = is_Gy_on(x::Sequence)
@@ -284,7 +256,7 @@ Tells if the sequence `seq` has elements with GR active in y direction.
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the GRy in the sequence is active
 """
-is_Gy_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.y] .> 0)
+is_Gy_on(x::Sequence) = any(is_GR_on, x.GR.y)
 
 """
     y = is_Gz_on(x::Sequence)
@@ -297,7 +269,7 @@ Tells if the sequence `seq` has elements with GR active in z direction.
 # Returns
 - `y`: (`::Bool`) boolean that tells whether or not the GRz in the sequence is active
 """
-is_Gz_on(x::Sequence) = any([sum(abs.(r.A)) for r = x.GR.z] .> 0)
+is_Gz_on(x::Sequence) = any(is_GR_on, x.GR.z)
 
 """
     y = is_Delay(x::Sequence)
@@ -476,18 +448,18 @@ Get RF centers and types. Useful for k-space calculations.
 - `rf_types`: (`::Vector{RFUse}`) RF types
 """
 function get_RF_types(seq, t)
-	T0 = get_block_start_times(seq)
-	rf_idx   = Int[]
-	rf_types = RFUse[]
-	for (i, s) in enumerate(seq)
-		if is_RF_on(s)
-			rf = s.RF[1]
-			trf = T0[i] + rf.delay + rf.center
-			push!(rf_idx, argmin(abs.(trf.-t))...)
-			push!(rf_types, rf.use)
-		end
-	end
-	return rf_idx, rf_types
+    T0 = get_block_start_times(seq)
+    rf_idx   = Int[]
+    rf_types = RFUse[]
+    for i in eachindex(seq.DUR)
+        rf = seq.RF[1, i]
+        if is_RF_on(rf)
+            trf = T0[i] + rf.delay + rf.center
+            push!(rf_idx, argmin(abs.(trf .- t))...)
+            push!(rf_types, rf.use)
+        end
+    end
+    return rf_idx, rf_types
 end
 
 @doc raw"""
@@ -567,19 +539,6 @@ Refer to [`get_Mk`](@ref)
 get_M2(seq::Sequence; kwargs...) = get_Mk(seq, 2; kwargs...)
 
 """
-    _slew_quotient_ΔG_over_Δt(ΔG, δ)
-
-Quotient ``ΔG/Δt`` used for slew-like quantities, with guards for non-physical steps.
-[`get_variable_times`](@ref) pads the timeline with intervals of width `MIN_RISE_TIME` at the
-ends; dividing by those produces spurious huge values. Segments with `|δ|` below a small
-threshold contribute `0`.
-"""
-@inline function _slew_quotient_ΔG_over_Δt(ΔG::AbstractVector, δ::AbstractVector)
-    thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
-    return ifelse.(abs.(δ) .> thresh, ΔG ./ δ, zero.(ΔG))
-end
-
-"""
 	SR, SR_adc = get_slew_rate(seq::Sequence; Δt=1)
 
 Outputs the designed slew rate of the Sequence `seq`.
@@ -594,35 +553,36 @@ Outputs the designed slew rate of the Sequence `seq`.
 - `SR_adc`: (`3-column ::Matrix{Float64}`) Slew rate sampled at ADC points
 """
 get_slew_rate(seq::Sequence; Δt=1) = begin
-	t, Δt = get_variable_times(seq; Δt)
-	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
-	t = t[1:end-1]
-	#kspace
-	Nt = length(t)
-	m2 = zeros(Nt,3)
-	#get_RF_center_breaks
-	idx_rf, rf_types = get_RF_types(seq, t)
-	parts = kfoldperm(Nt, 1; breaks=idx_rf)
-	for i = 1:3
-		m2f = 0
-		for (rf, p) in enumerate(parts)
-			ΔG = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:]
-			m2[p,i] = _slew_quotient_ΔG_over_Δt(ΔG, Δt[p])
-		end
-	end
-	M2 = m2 #[m^-1]
-	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
-	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
-	#TODO: check if this interpolation is necessary
-	ts = t .+ Δt
-	t_adc =  get_adc_sampling_times(seq)
-	M2x_adc = linear_interpolation(ts,M2[:,1],extrapolation_bc=0)(t_adc)
-	M2y_adc = linear_interpolation(ts,M2[:,2],extrapolation_bc=0)(t_adc)
-	M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
-	M2_adc = [M2x_adc M2y_adc M2z_adc]
-	#Final
-	M2, M2_adc
+    t, Δt = get_variable_times(seq; Δt)
+    Gx, Gy, Gz = get_grads(seq, t)
+    G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
+    t = t[1:end-1]
+    thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
+    #kspace
+    Nt = length(t)
+    m2 = zeros(Nt,3)
+    #get_RF_center_breaks
+    idx_rf, rf_types = get_RF_types(seq, t)
+    parts = kfoldperm(Nt, 1; breaks=idx_rf)
+    for i = 1:3
+        m2f = 0
+        for (rf, p) in enumerate(parts)
+            ΔG = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:]
+            m2[p,i] = ifelse.(abs.(Δt[p]) .> thresh, ΔG ./ Δt[p], zero.(ΔG))
+        end
+    end
+    M2 = m2 #[m^-1]
+    #Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
+    #Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
+    #TODO: check if this interpolation is necessary
+    ts = t .+ Δt
+    t_adc =  get_adc_sampling_times(seq)
+    M2x_adc = linear_interpolation(ts,M2[:,1],extrapolation_bc=0)(t_adc)
+    M2y_adc = linear_interpolation(ts,M2[:,2],extrapolation_bc=0)(t_adc)
+    M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
+    M2_adc = [M2x_adc M2y_adc M2z_adc]
+    #Final
+    M2, M2_adc
 end
 
 """
@@ -645,6 +605,7 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	Gx, Gy, Gz = get_grads(seq, t)
 	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
 	t = t[1:end-1]
+	thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
 	#kspace
 	Nt = length(t)
 	m2 = zeros(Nt,3)
@@ -655,7 +616,7 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 		m2f = 0
 		for (rf, p) in enumerate(parts)
 			ΔG = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:]
-			m2[p,i] = _slew_quotient_ΔG_over_Δt(ΔG, Δt[p])
+			m2[p,i] = ifelse.(abs.(Δt[p]) .> thresh, ΔG ./ Δt[p], zero.(ΔG))
 		end
 	end
 	ec(t, λ) = exp.(-t ./ λ) .* (t .>= 0)
@@ -715,41 +676,106 @@ end
 """
     check_scanner_constraints(seq::Sequence, sys::Scanner=Scanner())
 
-Checks if the sequence is compliant with the scanner constraints.
+Checks event-local scanner limits only:
+- maximum RF amplitude `|B1|`
+- maximum gradient amplitude `|G|`
+- maximum gradient slew rate `|dG/dt|`
+- minimum ADC dwell time
+
+It does not enforce RF/ADC dead times or RF ring-down.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 - `sys`: (`::Scanner`) Scanner struct
 """
-function check_scanner_constraints(seq::Sequence, sys::Scanner=Scanner())
-	for (i, s) in enumerate(seq)
-		rf    = s.RF[1]
-		grads = s.GR
-		adc   = s.ADC[1]
-		# RF amplitude
-		if is_RF_on(s) && any(abs.(ampls(rf)) .> sys.B1)
-			error("RF amplitude for block $i is greater than the maximum RF amplitude of the scanner ($(sys.B1 * 1e6) μT).")
-		end
-		is_GR_on = [is_Gx_on(s), is_Gy_on(s), is_Gz_on(s)]
-		for gi in 1:3
-			if is_GR_on[gi]
-				gr = grads[gi]
-				# Gradient amplitude
-				if any(ampls(gr) .> sys.Gmax)
-					error("$(["x", "y", "z"][gi]) gradient amplitude for block $i is greater than the maximum gradient amplitude of the scanner ($(sys.Gmax * 1e3) mT/m).")
-				end
-				slew_rates = get_slew_rate(s)[1]
-				if any(slew_rates .> sys.Smax)
-					error("$(["x", "y", "z"][gi]) gradient slew rate for block $i ($(maximum(slew_rates)) mT/m/ms) is greater than the maximum gradient slew rate of the scanner ($(sys.Smax) mT/m/ms).")
-				end
-			end
-		end
-		# ADC dwell time
-		dwell = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
-		if is_ADC_on(s) && dwell < sys.ADC_Δt
-			error("ADC dwell time $(dwell * 1e6) μs for block $i is less than the minimum ADC dwell time of the scanner ($(sys.ADC_Δt * 1e6) μs).")
-		end
-	end
-	@info "✅ Sequence is compliant with the scanner constraints."
-	return nothing
+function check_scanner_constraints(seq::Sequence, sys=Scanner())
+    return check_scanner_constraints(seq.GR, seq.RF, seq.ADC, sys)
+end
+
+_absmax(x::Number) = abs(x)
+_absmax(x::AbstractArray{<:Number}) = maximum(abs, x)
+
+function check_scanner_constraints(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, adc::AbstractVector{ADC}, sys=Scanner()) where {G<:Grad,R<:RF}
+    rf_maxima = IdDict{R,Float64}()
+    gr_maxima = IdDict{G,Float64}()
+    gr_slew_maxima = IdDict{G,Float64}()
+    adc_dwells = IdDict{ADC,Float64}()
+    axis_names = ("x", "y", "z")
+    rtol = sqrt(eps(Float64))
+    for i in eachindex(adc)
+        rf_i = rf[1, i]
+        if is_RF_on(rf_i) && !haskey(rf_maxima, rf_i)
+            rf_maxima[rf_i] = _absmax(rf_i.A)
+        end
+        rf_peak = is_RF_on(rf_i) ? rf_maxima[rf_i] : 0.0
+        if rf_peak > sys.B1 && !isapprox(rf_peak, sys.B1; rtol, atol=0)
+            error("RF amplitude for block $i is greater than the maximum RF amplitude of the scanner ($(sys.B1 * 1e6) μT).")
+        end
+        for gi in 1:3
+            gr_i = gr[gi, i]
+            is_GR_on(gr_i) || continue
+            if !haskey(gr_maxima, gr_i)
+                gr_maxima[gr_i] = max(abs(gr_i.first), _absmax(gr_i.A), abs(gr_i.last))
+            end
+            grad_peak = gr_maxima[gr_i]
+            (grad_peak <= sys.Gmax || isapprox(grad_peak, sys.Gmax; rtol, atol=0)) || error("$(axis_names[gi]) gradient amplitude for block $i is greater than the maximum gradient amplitude of the scanner ($(sys.Gmax * 1e3) mT/m).")
+            if !haskey(gr_slew_maxima, gr_i)
+                gr_slew_maxima[gr_i] = _max_gradient_slew(gr_i)
+            end
+            grad_slew = gr_slew_maxima[gr_i]
+            (grad_slew <= sys.Smax || isapprox(grad_slew, sys.Smax; rtol, atol=0)) || error("$(axis_names[gi]) gradient slew rate for block $i is greater than the maximum gradient slew rate of the scanner ($(sys.Smax) mT/m/ms).")
+        end
+        adc_i = adc[i]
+        is_ADC_on(adc_i) || continue
+        if !haskey(adc_dwells, adc_i)
+            adc_dwells[adc_i] = adc_i.N == 1 ? adc_i.T : adc_i.T / (adc_i.N - 1)
+        end
+        dwell = adc_dwells[adc_i]
+        if dwell < sys.ADC_Δt
+            error("ADC dwell time $(dwell * 1e6) μs for block $i is less than the minimum ADC dwell time of the scanner ($(sys.ADC_Δt * 1e6) μs).")
+        end
+    end
+    @info "✅ Sequence is compliant with the scanner constraints."
+    return nothing
+end
+
+function _max_gradient_slew(gr::TrapezoidalGrad)
+    max_slew = gr.rise > 0 ? abs(gr.A - gr.first) / gr.rise : 0.0
+    if gr.fall > 0
+        max_slew = max(max_slew, abs(gr.last - gr.A) / gr.fall)
+    end
+    return max_slew
+end
+
+function _max_gradient_slew(gr::UniformlySampledGrad)
+    n = length(gr.A)
+    n == 0 && return 0.0
+    thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
+    max_slew = gr.rise > 0 ? abs(gr.A[1] - gr.first) / gr.rise : 0.0
+    if n > 1
+        Δt = gr.T / (n - 1)
+        @inbounds for i in 1:(n - 1)
+            abs(Δt) > thresh || continue
+            max_slew = max(max_slew, abs((gr.A[i + 1] - gr.A[i]) / Δt))
+        end
+    end
+    if gr.fall > 0
+        max_slew = max(max_slew, abs(gr.last - gr.A[end]) / gr.fall)
+    end
+    return max_slew
+end
+
+function _max_gradient_slew(gr::TimeShapedGrad)
+    n = length(gr.A)
+    n == 0 && return 0.0
+    thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
+    max_slew = gr.rise > 0 ? abs(gr.A[1] - gr.first) / gr.rise : 0.0
+    @inbounds for i in 1:min(length(gr.T), n - 1)
+        abs(gr.T[i]) > thresh || continue
+        max_slew = max(max_slew, abs((gr.A[i + 1] - gr.A[i]) / gr.T[i]))
+    end
+    if gr.fall > 0
+        max_slew = max(max_slew, abs(gr.last - gr.A[end]) / gr.fall)
+    end
+    return max_slew
 end

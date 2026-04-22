@@ -40,10 +40,9 @@ mutable struct ADC
 end
 
 # ADC comparison
-Base.isapprox(adc1::ADC, adc2::ADC) = begin
-    return all(length(getfield(adc1, k)) ≈ length(getfield(adc2, k)) for k ∈ fieldnames(ADC))
-        all(getfield(adc1, k) ≈ getfield(adc2, k) for k ∈ fieldnames(ADC))
-end
+field_isapprox(adc1::ADC, adc2::ADC; kwargs...) = isapprox(adc1, adc2; kwargs...)
+Base.isapprox(adc1::ADC, adc2::ADC; kwargs...) = fields_isapprox(adc1, adc2; kwargs...)
+Base.copy(adc::ADC) = ADC(_deepcopy_fields(adc)...)
 
 """
     y = getproperty(x::Vector{ADC}, f::Symbol)
@@ -86,9 +85,10 @@ function get_adc_sampling_times(seq)
     t = zeros(Float64, sum(seq.ADC.N))
     idx = 1
     for i = 1:length(seq)
-        if is_ADC_on(seq[i])
-            N = seq.ADC[i].N
-            t[idx:idx+N-1] .= times(seq.ADC[i]) .+ T0[i]
+        adc = seq.ADC[i]
+        if is_ADC_on(adc)
+            N = adc.N
+            t[idx:idx+N-1] .= times(adc) .+ T0[i]
             idx += N
         end
     end
@@ -114,9 +114,10 @@ involving RF spoiling.
 function get_adc_phase_compensation(seq)
     phase = ComplexF32[]
     for i in 1:length(seq)
-        if is_ADC_on(seq[i])
-            N = seq.ADC[i].N
-            ϕ = seq.ADC[i].ϕ
+        adc = seq.ADC[i]
+        if is_ADC_on(adc)
+            N = adc.N
+            ϕ = adc.ϕ
             aux = ones(N) .* exp(-1im * ϕ)
             append!(phase, aux)
         end

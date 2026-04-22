@@ -10,18 +10,11 @@ include("extensions/Trigger.jl")
 get_EXT_type_from_symbol(::Val)  = nothing
 get_symbol_from_EXT_type(::Type) = nothing
 
-function Base.:(==)(x::Extension, y::Extension)
-    return (typeof(x) == typeof(y)) && all([getfield(x, k) == getfield(y, k) for k in fieldnames(typeof(x))])
-end
+Base.:(==)(::Extension, ::Extension) = false
+Base.:(==)(x::T, y::T) where {T<:Extension} = fields_equal(x, y)
 
-function Base.:(≈)(x::Extension, y::Extension)
-    typeof(x) == typeof(y) || return false
-    equal = true
-    for k in fieldnames(typeof(x))
-        fx, fy = getfield(x, k), getfield(y, k)
-        equal &= fx isa Number ? fx ≈ fy : fx == fy
-    end
-    return equal
-end
+Base.isapprox(::Extension, ::Extension; kwargs...) = false
+field_isapprox(x::Extension, y::Extension; kwargs...) = isapprox(x, y; kwargs...)
+Base.isapprox(x::T, y::T; kwargs...) where {T<:Extension} = fields_isapprox(x, y; kwargs...)
 
-export Extension, LabelInc, LabelSet, Trigger, SoftDelay
+export Extension, LabelInc, LabelSet, Trigger

@@ -38,6 +38,7 @@ The RF struct represents a Radio Frequency excitation of a sequence event.
     This can be a number but also a vector to represent frequency modulated signals (FM).
 - `delay`: (`::Real`, `[s]`) RF delay time
 - `center`: (`::Real`, `[s]`) RF center time
+- `ϕ`: (`::Real`, `[rad]`) RF phase at `center`
 - `use`: (`::RFUse`) RF use type
 
 # Returns
@@ -56,18 +57,56 @@ mutable struct RF{AT,TT,ΔFT}
     Δf::ΔFT
     delay::Float64
     center::Union{Float64, Nothing}
+    ϕ::Float64
     use::RFUse
-    RF(A, T, Δf, delay, center, use) = any(T .< 0) || delay < 0 ? error("RF timings must be non-negative.") : new{typeof(A),typeof(T),typeof(Δf)}(A, T, Δf, delay, center, use)
-    RF(A, T, Δf, delay, center)      = _RF_with_center_and_use(A, T, Δf,  delay; center=center)
-    RF(A, T, Δf, delay)              = _RF_with_center_and_use(A, T, Δf,  delay)
-    RF(A, T, Δf)                     = _RF_with_center_and_use(A, T, Δf,  0.0)
-    RF(A, T)                         = _RF_with_center_and_use(A, T, 0.0, 0.0)
+    function RF(A, T, Δf, delay, center, ϕ, use)
+        if _has_negative_timings(T) || delay < 0
+            error("RF timings must be non-negative.")
+        end
+        Arel, ϕrel = _canonicalize_rf_center_phase(A, T, center, ϕ)
+        return new{typeof(Arel),typeof(T),typeof(Δf)}(Arel, T, Δf, delay, center, ϕrel, use)
+    end
+    RF(A, T, Δf, delay, center, use::RFUse) = RF(A, T, Δf, delay; center, use)
+    RF(A, T, Δf, delay, center, ϕ)          = RF(A, T, Δf, delay; center, ϕ)
+    RF(A, T, Δf, delay, center)             = RF(A, T, Δf, delay; center)
+    RF(A, T, Δf)                            = RF(A, T, Δf, 0.0)
+    RF(A, T)                                = RF(A, T, 0.0, 0.0)
 end
 
-function _RF_with_center_and_use(A, T, Δf, delay; center=nothing)
-    rf = RF(A, T, Δf, delay, center, Undefined())
-    rf.center = center === nothing  ? get_RF_center(rf) : center
-    rf.use = get_flip_angle(rf) <= 90.01 ? Excitation() : Refocusing()
+const RFBlockPulse = RF{AT,TT,ΔFT} where {AT<:Number,TT<:Number,ΔFT}
+
+_rf_center(A::Number, T::Real) = T / 2
+function _rf_center(A::AbstractVector, T)
+    ts = _shape_times(A, T)
+    weights = abs.(A)
+    total = sum(weights)
+    iszero(total) && return 0.0
+    return sum(weights .* ts) / total
+end
+
+_canonicalize_rf_center_phase(A::Number, T, ::Nothing, ϕ=0.0) = A, mod(ϕ, 2π)
+_canonicalize_rf_center_phase(A::AbstractVector, T, ::Nothing, ϕ=0.0) = A, mod(ϕ, 2π)
+function _canonicalize_rf_center_phase(A::Number, T, center, ϕ=0.0)
+    ϕcenter = iszero(abs(A)) ? 0.0 : mod(angle(A), 2π)
+    return A * cis(-ϕcenter), mod(ϕ + ϕcenter, 2π)
+end
+function _canonicalize_rf_center_phase(A::AbstractVector, T, center, ϕ=0.0)
+    isempty(A) && return A, mod(ϕ, 2π)
+    value = if length(A) == 1
+        A[1]
+    else
+        ts = _shape_times(A, T)
+        Interpolations.deduplicate_knots!(ts; move_knots=true)
+        linear_interpolation(ts, A, extrapolation_bc=Interpolations.Flat())(center)
+    end
+    ϕcenter = iszero(abs(value)) ? 0.0 : mod(angle(value), 2π)
+    return A .* cis(-ϕcenter), mod(ϕ + ϕcenter, 2π)
+end
+
+function RF(A, T, Δf, delay; center=nothing, ϕ=0.0, use=nothing)
+    center = isnothing(center) ? _rf_center(A, T) : center
+    rf = RF(A, T, Δf, delay, center, ϕ, Undefined())
+    rf.use = isnothing(use) ? (get_flip_angle(rf) <= 90.01 ? Excitation() : Refocusing()) : use
     return rf
 end
 
@@ -86,7 +125,7 @@ Base.show(io::IO, x::RF) = begin
     r(x) = round.(x, digits=4)
     compact = get(io, :compact, false)
     if !compact
-        wave = length(x.A) == 1 ? r(x.A * 1e6) : "∿"
+        wave = length(x.A) == 1 ? r(abs(x.A) * 1e6) : "∿"
         print(
             io,
             (x.delay > 0 ? "←$(r(x.delay*1e3)) ms→ " : "") *
@@ -115,9 +154,9 @@ directly without the need to iterate elementwise.
 """
 getproperty(x::AbstractMatrix{<:RF}, f::Symbol) = begin
     if f == :Bx
-        real.(getfield.(x, :A))
+        real.(cis.(getfield.(x, :ϕ)) .* getfield.(x, :A))
     elseif f == :By
-        imag.(getfield.(x, :A))
+        imag.(cis.(getfield.(x, :ϕ)) .* getfield.(x, :A))
     elseif f == :dur
         dur(x)
     elseif f in fieldnames(RF)
@@ -127,17 +166,19 @@ getproperty(x::AbstractMatrix{<:RF}, f::Symbol) = begin
     end
 end
 
-# RF comparison
-Base.:(≈)(rf1::RF, rf2::RF) = all(
-    [typeof(getfield(rf1, k)) == typeof(getfield(rf2, k)) ? getfield(rf1, k)  ≈ getfield(rf2, k) : 
-    (length(getfield(rf1, k)) == length(getfield(rf2, k)) ? getfield(rf1, k) .≈ getfield(rf2, k) : false) for k in fieldnames(RF)]
-)
-Base.:(≈)(u1::RFUse, u2::RFUse) = u1 == u2
+Base.isapprox(u1::RFUse, u2::RFUse; kwargs...) = u1 == u2
+
+field_isapprox(rf1::RF, rf2::RF; kwargs...) = isapprox(rf1, rf2; kwargs...)
+function Base.isapprox(rf1::RF, rf2::RF; kwargs...)
+    typeof(rf1) === typeof(rf2) || return false
+    return fields_isapprox(rf1, rf2; kwargs...)
+end
+Base.copy(rf::RF) = RF(_deepcopy_fields(rf)...)
     
 # Properties
 size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
-*(α::Complex{T}, x::RF) where {T<:Real} = RF(α * x.A, x.T, x.Δf, x.delay)
-*(α::Real, x::RF) = RF(α * x.A, x.T, x.Δf, x.delay)
+*(α::Number, x::RF) = RF(abs(α) * x.A, x.T, x.Δf, x.delay, x.center, mod(x.ϕ + angle(α), 2π), x.use)
+*(x::RF, α::Number) = RF(abs(α) * x.A, x.T, x.Δf, x.delay, x.center, mod(x.ϕ + angle(α), 2π), x.use)
 
 """
     y = dur(x::RF)
@@ -208,9 +249,4 @@ It does not include the RF delay and uses the weighted average of times by ampli
 # Returns
 - `t`: (`::Real` or `Nothing`, `[s]`) time where is the center of the RF pulse `x`, or `nothing` if the RF amplitude is zero
 """
-function get_RF_center(x::RF)
-    t = times(x)
-    B1 = ampls(x)
-    t_center = sum(abs.(B1) .* (t .- x.delay)) ./ sum(abs.(B1))
-    return t_center
-end
+get_RF_center(rf::RF) = something(rf.center, _rf_center(rf.A, rf.T))

@@ -140,16 +140,144 @@ end
     end
     @testset "Write Comparison" begin
         include("utils.jl")
-        pth = (@__DIR__) * "/test_files/pulseq/write_comparison/"
-        isdir(pth) || mkdir(pth)
-        signature_algorithms = ["md5", "sha1", "sha256"] # Try all supported algorithms
-        for (i, seq) in enumerate(round_trip_sequences())
-            algorithm = signature_algorithms[(mod1(i, length(signature_algorithms)))]
-            filename = pth * "$(seq.DEF["Name"]).seq"
-            qseq = @suppress KomaMRIFiles.check_raster(seq)
-            @suppress write_seq(seq, filename; signature_algorithm=algorithm)
-            seq2 = @suppress read_seq(filename)
-            @test @suppress seq2 ≈ qseq # Round-trip test
+        generated_prefix = "koma-generated-"
+        signature_algorithms = ["md5", "sha1", "sha256"]
+        raster_test_scanner(seq) = begin
+            sys = Scanner()
+            Scanner(
+                B0=sys.B0,
+                B1=sys.B1,
+                Gmax=sys.Gmax,
+                Smax=sys.Smax,
+                ADC_Δt=get(seq.DEF, "AdcRasterTime", sys.ADC_Δt),
+                seq_Δt=get(seq.DEF, "BlockDurationRaster", sys.seq_Δt),
+                GR_Δt=get(seq.DEF, "GradientRasterTime", sys.GR_Δt),
+                RF_Δt=get(seq.DEF, "RadiofrequencyRasterTime", sys.RF_Δt),
+            )
         end
+        mktempdir() do pth
+            for (i, seq) in enumerate(round_trip_sequences())
+                algorithm = signature_algorithms[mod1(i, length(signature_algorithms))]
+                filename = joinpath(pth, "$(generated_prefix)$(seq.DEF["Name"]).seq")
+                raster = KomaMRIFiles.PulseqRaster(seq, raster_test_scanner(seq))
+                qseq = @suppress KomaMRIFiles.check_raster(seq, raster)
+                @suppress write_seq(seq, filename; signatureAlgorithm=algorithm)
+                seq2 = @suppress read_seq(filename)
+                @test seq2 ≈ qseq
+            end
+        end
+    end
+    @testset "RF Compact Timing" begin
+        raster = KomaMRIFiles.DEFAULT_RASTER
+        Δrf = raster.RadiofrequencyRasterTime
+        rf_event(seq) = begin
+            prepared = @suppress KomaMRIFiles.prepare_pulseq_write(seq, raster)
+            blocks, event_libraries = KomaMRIFiles.collect_pulseq_assets(prepared, raster)
+            event_libraries.rf_library[blocks[1].rf_id]
+        end
+
+        seq = Sequence()
+        seq += RF(ComplexF64[1.0, 0.5, 1.0], 2Δrf, 0.0, 3Δrf / 2)
+        qseq = KomaMRIFiles.check_raster(seq)
+        center = qseq.RF[1, 1].center
+        event = rf_event(seq)
+        @test event.time_shape_id == 0
+        @test event.delay ≈ Δrf
+        @test event.center ≈ center + Δrf / 2
+        @test qseq.RF[1, 1].center ≈ center
+
+        center = 0.83Δrf
+        seq = Sequence()
+        seq += RF(ComplexF64[1.0, 0.5, 1.0], 2Δrf, 0.0, 3Δrf / 2, center)
+        event = rf_event(seq)
+        @test event.time_shape_id == 0
+        @test event.center ≈ center + Δrf / 2
+
+        seq = Sequence()
+        seq += RF(ComplexF64[1.0, 0.5, 0.25, 0.5, 1.0], 2Δrf, 0.0, 3Δrf / 2)
+        qseq = KomaMRIFiles.check_raster(seq)
+        center = qseq.RF[1, 1].center
+        event = rf_event(seq)
+        @test event.time_shape_id == -1
+        @test event.delay ≈ Δrf
+        @test event.center ≈ center + Δrf / 2
+        @test qseq.RF[1, 1].center ≈ center
+
+        seq = Sequence()
+        seq += RF(ComplexF64[1.0, 0.5, 1.0], [0.75Δrf, 1.25Δrf], 0.0, 3Δrf / 2)
+        qseq = KomaMRIFiles.check_raster(seq)
+        center = qseq.RF[1, 1].center
+        event = rf_event(seq)
+        @test event.time_shape_id > 0
+        @test event.center ≈ center
+        @test qseq.RF[1, 1].center ≈ center
+
+        center = 0.83Δrf
+        seq = Sequence()
+        seq += RF(ComplexF64[1.0, 0.5, 1.0], [0.75Δrf, 1.25Δrf], 0.0, 3Δrf / 2, center)
+        event = rf_event(seq)
+        @test event.time_shape_id > 0
+        @test event.center ≈ center
+
+        seq = Sequence()
+        seq += RF(ComplexF64[1.0, 0.5, 1.0], 2Δrf, 0.0, Δrf / 4)
+        event = rf_event(seq)
+        @test event.time_shape_id > 0
+    end
+    @testset "RF Center Phase Representation" begin
+        rf = RF(exp.(1im .* ([0.1, 0.2, 0.7] .+ 0.3)), 2.0, 0.0, 0.5, 1.0)
+        @test rf.ϕ ≈ 0.5
+        @test rf.A[2] ≈ 1.0 + 0.0im
+        @test angle(cis(rf.ϕ) * rf.A[2]) ≈ rf.ϕ
+    end
+    @testset "Gradient Trap Preservation" begin
+        raster = KomaMRIFiles.DEFAULT_RASTER
+        trap = Sequence([Grad(1e-3, 2e-3, 1e-3, 1e-3, 0.5e-3)])
+        filename = tempname() * ".seq"
+        @suppress write_seq(trap, filename)
+        roundtrip = @suppress read_seq(filename)
+        prepared = @suppress KomaMRIFiles.prepare_pulseq_write(roundtrip, raster)
+        _, libs = @suppress KomaMRIFiles.collect_pulseq_assets(prepared, raster)
+        @test count(g -> g isa KomaMRIFiles.PulseqTrapGradEvent, values(libs.grad_library)) == 1
+        @test isempty(libs.shape_library)
+    end
+    @testset "RF Phase Shape Dedup" begin
+        raster = KomaMRIFiles.DEFAULT_RASTER
+        A = ComplexF64[0.0, 1.0, 1im, -1.0, 0.0]
+        seq = Sequence()
+        seq += RF(1e-6 .* A, 4raster.RadiofrequencyRasterTime)
+        seq += RF(1e-6 .* A .* exp(1im * π / 3), 4raster.RadiofrequencyRasterTime)
+        prepared = @suppress KomaMRIFiles.prepare_pulseq_write(seq, raster)
+        _, libs = @suppress KomaMRIFiles.collect_pulseq_assets(prepared, raster)
+        phase_ids = sort!(unique(rf.phase_id for rf in values(libs.rf_library)))
+        @test length(phase_ids) == 1
+    end
+    @testset "RF Magnitude Shape Dedup" begin
+        write_test_scanner(seq) = begin
+            sys = Scanner()
+            adc_raster = get(seq.DEF, "AdcRasterTime", sys.ADC_Δt)
+            for adc in seq.ADC
+                is_ADC_on(adc) || continue
+                dwell = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
+                adc_raster = min(adc_raster, dwell)
+            end
+            Scanner(
+                B0=sys.B0,
+                B1=1.0,
+                Gmax=100.0,
+                Smax=1e12,
+                ADC_Δt=adc_raster,
+                seq_Δt=get(seq.DEF, "BlockDurationRaster", sys.seq_Δt),
+                GR_Δt=get(seq.DEF, "GradientRasterTime", sys.GR_Δt),
+                RF_Δt=get(seq.DEF, "RadiofrequencyRasterTime", sys.RF_Δt),
+            )
+        end
+
+        seq = @suppress read_seq(joinpath(@__DIR__, "test_files/pulseq/read_comparison/v1.5/gre.seq"))
+        raster = KomaMRIFiles.PulseqRaster(seq, write_test_scanner(seq))
+        prepared = @suppress KomaMRIFiles.prepare_pulseq_write(seq, raster)
+        _, libs = @suppress KomaMRIFiles.collect_pulseq_assets(prepared, raster)
+        @test length(unique(rf.mag_id for rf in values(libs.rf_library))) == 1
+        @test length(libs.shape_library) == 2
     end
 end

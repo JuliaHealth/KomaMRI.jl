@@ -1,6 +1,26 @@
 module KomaMRIFiles
 
 using KomaMRIBase
+import KomaMRIBase:
+    AbstractSpinSpan,
+    ArbitraryAction,
+    RFBlockPulse,
+    SimpleAction,
+    TimeCurve,
+    TimeShapedGrad,
+    TrapezoidalGrad,
+    UniformlySampledGrad,
+    extension_type_header,
+    get_EXT_type_from_symbol,
+    get_RF_use_from_char,
+    get_char_from_RF_use,
+    get_dims,
+    _shape_times,
+    get_scale,
+    get_scanf_format,
+    get_symbol_from_EXT_type,
+    is_on,
+    sort_motions!
 using Scanf, FileIO, HDF5, MAT, InteractiveUtils, Printf # IO related
 using SHA, MD5 # Pulseq signature verification
 using Reexport

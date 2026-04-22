@@ -16,6 +16,46 @@ using MAT   # For loading example phantoms
 
 const global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
+_deepcopy_fields(x) = ntuple(i -> deepcopy(getfield(x, i)), fieldcount(typeof(x)))
+
+fields_equal(x, y) =
+    typeof(x) === typeof(y) &&
+    all(i -> getfield(x, i) == getfield(y, i), 1:fieldcount(typeof(x)))
+
+field_isapprox(x, y; kwargs...) = x == y
+field_isapprox(x::Number, y::Number; kwargs...) = isapprox(x, y; kwargs...)
+field_isapprox(x::AbstractArray{<:Number}, y::AbstractArray{<:Number}; kwargs...) = isapprox(x, y; kwargs...)
+function field_isapprox(x::AbstractArray, y::AbstractArray; kwargs...)
+    axes(x) == axes(y) || return false
+    return all(eachindex(x, y)) do i
+        field_isapprox(x[i], y[i]; kwargs...)
+    end
+end
+
+fields_isapprox(x, y; kwargs...) =
+    typeof(x) === typeof(y) &&
+    all(i -> field_isapprox(getfield(x, i), getfield(y, i); kwargs...), 1:fieldcount(typeof(x)))
+
+_has_negative_timings(T::Real) = T < 0
+_has_negative_timings(T::AbstractVector{<:Real}) = any(<(0), T)
+
+_shape_samples(x::Number) = [zero(x), x, x, zero(x)]
+_shape_samples(x::AbstractVector{<:Number}) = [zero(eltype(x)); x; zero(eltype(x))]
+
+_shape_times(::Number, T::Real) = [zero(T), T]
+_shape_times(::Number, T::AbstractVector{<:Number}) = [zero(eltype(T)), sum(T)]
+_shape_times(x::AbstractVector, T::Real) = range(zero(T), T; length=length(x))
+function _shape_times(x::AbstractVector, T::AbstractVector{<:Number})
+    n = length(x)
+    n == 0 && return similar(T, 0)
+    if length(T) == n - 1
+        return cumsum([zero(eltype(T)); T])
+    elseif length(T) == n
+        return cumsum([zero(eltype(T)); T[1:(end - 1)]])
+    end
+    throw(DimensionMismatch("Expected time vector of length $(n - 1) or $n for $n samples, got $(length(T))."))
+end
+
 # Hardware
 include("datatypes/Scanner.jl")
 # Sequence

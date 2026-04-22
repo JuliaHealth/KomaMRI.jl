@@ -3,7 +3,6 @@ using TestItems, TestItemRunner
 @run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:base in t_start.tags) #verbose=true
 
 @testitem "Sequence" tags=[:base] begin
-    using Suppressor
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -23,6 +22,15 @@ using TestItems, TestItemRunner
         seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
         seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
         @test dur(seq) ≈ dur(EX) + d1 + dur(EPI) #Sequence duration matches what is supposed to be
+
+        for nchannels in 1:5
+            seq1 = Sequence(reshape([Grad(Float64(i), 1e-3) for i in 1:nchannels], nchannels, :))
+            @test size(seq1.GR, 1) == max(3, nchannels)
+        end
+        seq1 = Sequence(reshape([Grad(1.0, 1e-3)], 1, :))
+        @test seq1.GR[2,1] !== seq1.GR[3,1]
+        seq1.GR[2,1].A = 2.0
+        @test seq1.GR[3,1].A == 0.0
     end
 
     @testset "Rot_and_Concat" begin
@@ -361,9 +369,13 @@ using TestItems, TestItemRunner
         z = α * x
         @test z.GR.A ≈ α*x.GR.A
         z = x * c
-        @test z.RF.A ≈ c*x.RF.A
+        @test all(rfz.A ≈ abs(c) * rfx.A &&
+                  rfz.ϕ ≈ mod(rfx.ϕ + angle(c), 2π)
+                  for (rfz, rfx) in zip(z.RF, x.RF))
         z = c * x
-        @test z.RF.A ≈ c*x.RF.A
+        @test all(rfz.A ≈ abs(c) * rfx.A &&
+                  rfz.ϕ ≈ mod(rfx.ϕ + angle(c), 2π)
+                  for (rfz, rfx) in zip(z.RF, x.RF))
         z = x / α
         @test z.GR.A ≈ x.GR.A/α
         @test size(y) == size(y.GR[1,:])
@@ -385,20 +397,28 @@ using TestItems, TestItemRunner
         seq2 = deepcopy(seq1)
         @test seq1 ≈ seq2 # Basic equality check
         rf = seq1[1].RF[1]
-        seq2= RF([rf.A, rf.A, rf.A], rf.T, rf.Δf, rf.delay, rf.center, rf.use) + seq1[2:end]
-        @test @suppress seq1 ≈ seq2 # Check that sequences are equal: different number of samples, but same waveform
+        seq2 = Sequence(
+            seq1.GR[:, 1],
+            [RF([rf.A, rf.A, rf.A], rf.T, rf.Δf, rf.delay, rf.center, rf.use)],
+            seq1.ADC[1],
+            seq1.DUR[1],
+            seq1.EXT[1],
+            seq1.DEF,
+        ) + seq1[2:end]
+        @test seq1 ≉ seq2 # Structural equality does not treat different RF samplings as equal
         seq2.EXT[1] = [LabelInc(2, "LIN")]
-        @test @suppress seq1 ≉ seq2 # Check that sequences are not equal because one of them has extensions
+        @test seq1 ≉ seq2 # Check that sequences are not equal because one of them has extensions
         seq1.EXT[1] = [LabelSet(2, "ECO")]
-        @test @suppress seq1 ≉ seq2 # Check that sequences are not equal because they have different extensions
+        @test seq1 ≉ seq2 # Check that sequences are not equal because they have different extensions
+        seq2 = deepcopy(seq1)
         seq1.EXT[1] = [LabelInc(2, "LIN"), LabelSet(2, "ECO")]
         seq2.EXT[1] = [LabelInc(2, "LIN"), LabelSet(2, "ECO")]
-        @test @suppress seq1 ≈ seq2 # Check that sequences are equal because they have the same extensions
+        @test seq1 ≈ seq2 # Check that sequences are equal because they have the same extensions
     end
     @testset "Check Scanner Constraints" begin
         sys = Scanner()
         seq = PulseDesigner.EPI_example()
-        @test @suppress isnothing(check_scanner_constraints(seq, sys))
+        @test_logs (:info, r"scanner constraints") isnothing(check_scanner_constraints(seq, sys))
     end
 end
 

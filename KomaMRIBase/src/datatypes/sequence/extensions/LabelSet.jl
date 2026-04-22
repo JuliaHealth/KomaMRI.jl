@@ -1,4 +1,4 @@
-mutable struct LabelSet <: Extension
+struct LabelSet <: Extension
     labelvalue::Int
     labelstring::String
 end
