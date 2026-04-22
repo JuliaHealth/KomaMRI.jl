@@ -105,16 +105,20 @@ function register_rf!(rf_library, shape_library, cache, rf, raster)
         first_sample_offset = pulseq_rf_first_sample_offset(time_id, rf_raster_time)
         delay = rf.delay - first_sample_offset
         amp = pulseq_rf_amplitude(rf)
+        freq = pulseq_rf_frequency(rf)
         phase = rf.ϕ
         use_char = get_char_from_RF_use(rf.use)
         center = isnothing(rf.center) ? nothing : rf.center + first_sample_offset
-        rf_event = PulseqRFEvent(amp, mag_id, phase_id, time_id, center, delay, 0.0, 0.0, rf.Δf, phase, use_char)
+        rf_event = PulseqRFEvent(amp, mag_id, phase_id, time_id, center, delay, 0.0, 0.0, freq, phase, use_char)
         return _store_event_cached!(rf_library, cache.rf_event_ids, rf_event)
     end
 end
 
-pulseq_rf_amplitude(rf::RFBlockPulse) = γ * abs(rf.A)
+pulseq_rf_amplitude(rf::BlockPulseRF) = γ * abs(rf.A)
 pulseq_rf_amplitude(rf::RF) = γ * maximum(abs, rf.A)
+pulseq_rf_frequency(rf::RF) = rf.Δf
+pulseq_rf_frequency(::FrequencyModulatedRF) =
+    throw(ArgumentError("Pulseq write does not support RF frequency waveforms."))
 
 pulseq_rf_phase_shape(::Number) = [0.0, 0.0]
 pulseq_rf_phase_shape(A::AbstractVector) = map(A) do a
@@ -877,7 +881,7 @@ function quantize_time(t::Number, raster_name, raster, block_id, event_key, even
     end
 end
 
-sample_count(::Union{RFBlockPulse,TrapezoidalGrad}) = 2
+sample_count(::Union{BlockPulseRF,TrapezoidalGrad}) = 2
 sample_count(x::Union{RF,Grad}) = length(x.A)
 
 function quantize_time(t::AbstractVector{<:Real}, raster_name, raster, block_id, event_key, event_element_key, warn_count; n_time_points=1)

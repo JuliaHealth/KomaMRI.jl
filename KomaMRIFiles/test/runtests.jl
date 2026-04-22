@@ -230,6 +230,12 @@ end
         @test rf.A[2] ≈ 1.0 + 0.0im
         @test angle(cis(rf.ϕ) * rf.A[2]) ≈ rf.ϕ
     end
+    @testset "Unsupported RF Frequency Waveform Write" begin
+        seq = Sequence()
+        seq += RF(ComplexF64[1.0, 0.5, 1.0], 2KomaMRIFiles.DEFAULT_RASTER.RadiofrequencyRasterTime, [0.0, 1.0], 0.0)
+        prepared = @suppress KomaMRIFiles.prepare_pulseq_write(seq, KomaMRIFiles.DEFAULT_RASTER)
+        @test_throws ArgumentError KomaMRIFiles.collect_pulseq_assets(prepared, KomaMRIFiles.DEFAULT_RASTER)
+    end
     @testset "Legacy RF Center Fallback" begin
         seq = @suppress read_seq(joinpath(@__DIR__, "test_files/pulseq/read_comparison/v1.2/epi_JEMRIS.seq"))
         @test all(rf -> !is_RF_on(rf) || !isnothing(rf.center), vec(seq.RF))

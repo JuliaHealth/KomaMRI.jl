@@ -73,7 +73,10 @@ mutable struct RF{AT,TT,ΔFT}
     RF(A, T)                                = RF(A, T, 0.0, 0.0)
 end
 
-const RFBlockPulse = RF{AT,TT,ΔFT} where {AT<:Number,TT<:Number,ΔFT}
+const BlockPulseRF = RF{AT,TT,ΔFT} where {AT<:Number,TT<:Number,ΔFT}
+const UniformlySampledRF = RF{AT,TT,ΔFT} where {AT<:AbstractVector{<:Number},TT<:Number,ΔFT}
+const TimeShapedRF = RF{AT,TT,ΔFT} where {AT<:AbstractVector{<:Number},TT<:AbstractVector{<:Number},ΔFT}
+const FrequencyModulatedRF = RF{AT,TT,ΔFT} where {AT,TT,ΔFT<:AbstractVector{<:Number}}
 
 _rf_center(A::Number, T::Real) = T / 2
 function _rf_center(A::AbstractVector, T)

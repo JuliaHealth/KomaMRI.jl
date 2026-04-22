@@ -4,7 +4,8 @@ using KomaMRIBase
 import KomaMRIBase:
     AbstractSpinSpan,
     ArbitraryAction,
-    RFBlockPulse,
+    BlockPulseRF,
+    FrequencyModulatedRF,
     SimpleAction,
     TimeCurve,
     TimeShapedGrad,
