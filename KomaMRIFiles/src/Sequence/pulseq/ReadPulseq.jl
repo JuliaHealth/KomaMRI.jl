@@ -823,7 +823,7 @@ function get_RF(r::PulseqRFEvent, shapeLibrary, rf_raster_time)
         rfT = diff(rft) * rf_raster_time
     end
     center = isnothing(r.center) ? nothing : r.center - first_sample_offset
-    return RF(rfAϕ, rfT, freq, delay, center, phase, get_RF_use_from_char(Val(r.use))), add_half_Δt_rf
+    return RF(rfAϕ, rfT, freq, delay; center, ϕ=phase, use=get_RF_use_from_char(Val(r.use))), add_half_Δt_rf
 end
 
 """

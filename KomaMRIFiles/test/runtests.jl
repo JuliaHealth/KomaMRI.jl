@@ -230,6 +230,10 @@ end
         @test rf.A[2] ≈ 1.0 + 0.0im
         @test angle(cis(rf.ϕ) * rf.A[2]) ≈ rf.ϕ
     end
+    @testset "Legacy RF Center Fallback" begin
+        seq = @suppress read_seq(joinpath(@__DIR__, "test_files/pulseq/read_comparison/v1.2/epi_JEMRIS.seq"))
+        @test all(rf -> !is_RF_on(rf) || !isnothing(rf.center), vec(seq.RF))
+    end
     @testset "Gradient Trap Preservation" begin
         raster = KomaMRIFiles.DEFAULT_RASTER
         trap = Sequence([Grad(1e-3, 2e-3, 1e-3, 1e-3, 0.5e-3)])
