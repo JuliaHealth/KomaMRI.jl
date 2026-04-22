@@ -16,10 +16,11 @@ function round_trip_sequences()
     push!(sequences, seq)
 
     # 3. Uniformly-shaped gradient
-    t = 0:0.1:1
+    Δgr = 1e-5
+    t = 0:Δgr:(10*Δgr)
     A = amp(t)
-    T = 10e-3
-    delay, rise, fall = 1e-3, 5e-6 , 5e-6
+    T = t[end]
+    delay, rise, fall = 1e-3, Δgr/2, Δgr/2
     first, last = 1e-6, -5e-6
     gr = Grad(A, T, rise, fall, delay, first, last)
     seq = Sequence([gr])
@@ -38,10 +39,11 @@ function round_trip_sequences()
     push!(sequences, seq)
 
     # 5. Uniformly-shaped RF with phase offset
-    t = 0:0.1:1
+    Δrf = 1e-6
+    t = 0:Δrf:(100*Δrf)
     A = 0.5 * amp(t)
-    T = 10e-3
-    delay = 1e-3
+    T = t[end]
+    delay = 1e-4 + Δrf/2
     rf = RF(A, T, 0, delay)
     seq = Sequence(); seq += rf; seq += -1*rf
     seq.DEF["Name"] = "rf-uniformly-shaped"

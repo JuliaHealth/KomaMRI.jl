@@ -121,7 +121,7 @@ function register_rf!(
 )
     iszero(maximum(abs.(A))) && return 0
     Δt_rf = raster.RadiofrequencyRasterTime
-    mag_id, phase_id, time_id = register_rf_shapes!(shape_library, A, T, Δt_rf;
+    mag_id, phase_id, time_id = register_rf_shapes!(shape_library, A, T, Δt_rf; delay=delay,
         compress=true, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index
     )
     amp = γ * maximum(abs.(A)) # from T to Hz (nucleus-dependent)
@@ -134,7 +134,7 @@ end
 
 # A and T are numbers (pulse waveform)
 function register_rf_shapes!(
-    shapes, A, T, Δrf; compress = true, 
+    shapes, A, T, Δrf; delay = 0, compress = true, 
     shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
     shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
 )
@@ -145,7 +145,7 @@ function register_rf_shapes!(
 end
 # A is a vector (uniformly-sampled waveform)
 function register_rf_shapes!(
-    shapes, A::Vector, T, Δrf; compress = true,
+    shapes, A::Vector, T, Δrf; delay = 0, compress = true,
     shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
     shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
 )
@@ -153,13 +153,18 @@ function register_rf_shapes!(
     mag_id      = _store_shape!(shapes, abs.(A) ./ maximum(abs.(A)); compress=compress, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
     phase_shape = mod.(angle.(A), 2π) / 2π
     phase_id    = _store_shape!(shapes, phase_shape .- phase_shape[1]; compress=compress, phase_shape=true, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
-    t_vector    = collect(range(0, T, length=n_samples)) ./ Δrf
-    time_id     = _store_shape!(shapes, t_vector; compress=compress, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
+    is_uniformly_shaped, __ = is_rf_uniformly_shaped(A, T, delay, Δrf)
+    if is_uniformly_shaped
+        time_id = 0
+    else
+        t_vector    = collect(range(0, T, length=n_samples)) ./ Δrf
+        time_id     = _store_shape!(shapes, t_vector; compress=compress, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
+    end
     return mag_id, phase_id, time_id
 end
 # A and T are vectors (time-shaped waveform)
 function register_rf_shapes!(
-    shapes, A::Vector, T::Vector, Δrf; compress = true,
+    shapes, A::Vector, T::Vector, Δrf; delay = 0, compress = true,
     shape_exact_index::Union{Nothing, Dict{UInt, Vector{Int}}}=nothing,
     shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
 )
@@ -204,7 +209,12 @@ function register_grad!(
     shape_phase_index::Union{Nothing, Dict{Int, Vector{Int}}}=nothing,
 )
     iszero(maximum(abs.(A))) && return 0
-    intervals = diff(collect(range(0, T, length=length(A))))
+    Δgr = raster.GradientRasterTime
+    is_uniformly_shaped, intervals = is_grad_uniformly_shaped(A, T, rise, fall, Δgr)
+    if is_uniformly_shaped
+        shape_id = _store_shape!(shape_library, A ./ maximum(abs.(A)); compress=true, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index)
+        return _store_event!(grad_library, ArbGradEvent(γ * maximum(abs.(A)), γ * first, γ * last, shape_id, 0, delay), grad_index)
+    end
     return register_grad!(
         grad_library, shape_library, [first; A; last], [rise; intervals; fall], 0, 0, delay, first, last, raster;
         grad_index=grad_index, shape_exact_index=shape_exact_index, shape_phase_index=shape_phase_index
@@ -634,6 +644,24 @@ function emit_signature_section!(io::IO, algorithm::AbstractString, hash_value::
     write(io, "Hash $(hash_value)\n\n")
 end
 
+is_grad_uniformly_shaped(A::Number, T, rise, fall, Δgr) = false, T
+is_rf_uniformly_shaped(A::Number, T, delay, Δrf)        = false, T
+
+is_grad_uniformly_shaped(A::Vector, T, rise, fall, Δgr) = false, diff(T)
+is_rf_uniformly_shaped(A::Vector, T, delay, Δrf)        = false, diff(T)
+
+function is_grad_uniformly_shaped(A::Vector, T::Number, rise, fall, Δgr)
+    intervals = diff(collect(range(0, T, length=length(A))))
+    return (rise == fall == Δgr/2) && all(intervals .≈ Δgr), intervals # The only case where the gradient is uniformly-sampled in Pulseq
+end
+function is_rf_uniformly_shaped(A::Vector, T::Number, delay, Δrf)
+    intervals = diff(collect(range(0, T, length=length(A))))
+    delay_steps = delay / (Δrf / 2)
+    nearest_delay_steps = round(Int, delay_steps)
+    is_delay_odd_multiple = isodd(nearest_delay_steps) && (delay_steps ≈ nearest_delay_steps)
+    return is_delay_odd_multiple && all(intervals .≈ Δrf), intervals # The only case where the RF is uniformly-sampled in Pulseq
+end
+
 """
     check_raster(seq::Sequence, raster::PulseqRaster)
 
@@ -646,7 +674,8 @@ function check_raster(seq::Sequence, raster::PulseqRaster=DEFAULT_RASTER)
         if is_RF_on(s)
             key = :RadiofrequencyRasterTime
             rf = qseq.RF[1, bi]
-            rf.delay  = quantize_time(rf.delay,  key, getfield(raster, key), bi, "RF", "delay",  warn_count)
+            is_uniformly_shaped,__ = is_rf_uniformly_shaped(rf.A, rf.T, rf.delay, getfield(raster, key))
+            rf.delay  = quantize_time(rf.delay,  key, getfield(raster, key)/(2^is_uniformly_shaped), bi, "RF", "delay",  warn_count)
             rf.T      = quantize_time(rf.T,      key, getfield(raster, key), bi, "RF", "T",      warn_count; n_time_points=length(rf.A))
             rf.center = quantize_time(rf.center, key, getfield(raster, key), bi, "RF", "center", warn_count)
         end
@@ -657,10 +686,11 @@ function check_raster(seq::Sequence, raster::PulseqRaster=DEFAULT_RASTER)
 			if is_GR_on[gi]
                 key = :GradientRasterTime
 				gr = qseq.GR[gi, bi]
+                is_uniformly_shaped,__= is_grad_uniformly_shaped(gr.A, gr.T, gr.rise, gr.fall, getfield(raster, key))
 				gr.delay = quantize_time(gr.delay, key, getfield(raster, key), bi, "GR$(axis[gi])", "delay", warn_count)
 				gr.T     = quantize_time(gr.T,     key, getfield(raster, key), bi, "GR$(axis[gi])", "T",     warn_count; n_time_points=length(gr.A))
-				gr.rise  = quantize_time(gr.rise,  key, getfield(raster, key), bi, "GR$(axis[gi])", "rise",  warn_count)
-				gr.fall  = quantize_time(gr.fall,  key, getfield(raster, key), bi, "GR$(axis[gi])", "fall",  warn_count)
+				gr.rise  = quantize_time(gr.rise,  key, getfield(raster, key)/(2^is_uniformly_shaped), bi, "GR$(axis[gi])", "rise",  warn_count)
+				gr.fall  = quantize_time(gr.fall,  key, getfield(raster, key)/(2^is_uniformly_shaped), bi, "GR$(axis[gi])", "fall",  warn_count)
 			end
         end
         # ----- ADC -----
