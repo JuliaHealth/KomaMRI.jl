@@ -555,22 +555,14 @@ Outputs the designed slew rate of the Sequence `seq`.
 get_slew_rate(seq::Sequence; Δt=1) = begin
     t, Δt = get_variable_times(seq; Δt)
     Gx, Gy, Gz = get_grads(seq, t)
-    G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
     t = t[1:end-1]
-    thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
-    #kspace
     Nt = length(t)
     m2 = zeros(Nt,3)
-    #get_RF_center_breaks
-    idx_rf, rf_types = get_RF_types(seq, t)
-    parts = kfoldperm(Nt, 1; breaks=idx_rf)
-    for i = 1:3
-        m2f = 0
-        for (rf, p) in enumerate(parts)
-            ΔG = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:]
-            m2[p,i] = ifelse.(abs.(Δt[p]) .> thresh, ΔG ./ Δt[p], zero.(ΔG))
-        end
-    end
+    m2[:,1] = (Gx[2:end] .- Gx[1:end-1]) ./ Δt
+    m2[:,2] = (Gy[2:end] .- Gy[1:end-1]) ./ Δt
+    m2[:,3] = (Gz[2:end] .- Gz[1:end-1]) ./ Δt
+    Nt >= 1 && (m2[1, :] .= 0.0)
+    Nt >= 2 && (m2[end, :] .= 0.0)
     M2 = m2 #[m^-1]
     #Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
     #Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
@@ -603,22 +595,14 @@ Outputs the designed eddy currents of the Sequence `seq`.
 get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	t, Δt = get_variable_times(seq; Δt)
 	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
 	t = t[1:end-1]
-	thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
-	#kspace
 	Nt = length(t)
 	m2 = zeros(Nt,3)
-	#get_RF_center_breaks
-	idx_rf, rf_types = get_RF_types(seq, t)
-	parts = kfoldperm(Nt, 1; breaks=idx_rf)
-	for i = 1:3
-		m2f = 0
-		for (rf, p) in enumerate(parts)
-			ΔG = (G[i][p[1]+1:p[end]+1] .- G[i][p[1]:p[end]])[:]
-			m2[p,i] = ifelse.(abs.(Δt[p]) .> thresh, ΔG ./ Δt[p], zero.(ΔG))
-		end
-	end
+	m2[:,1] = (Gx[2:end] .- Gx[1:end-1]) ./ Δt
+	m2[:,2] = (Gy[2:end] .- Gy[1:end-1]) ./ Δt
+	m2[:,3] = (Gz[2:end] .- Gz[1:end-1]) ./ Δt
+	Nt >= 1 && (m2[1, :] .= 0.0)
+	Nt >= 2 && (m2[end, :] .= 0.0)
 	ec(t, λ) = exp.(-t ./ λ) .* (t .>= 0)
 	M2 = [sum( m2[:, j] .* ec(t[i] .- t, λ) .* Δt ) for i = 1:Nt, j = 1:3] #[m^-1]
 	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
@@ -689,7 +673,9 @@ It does not enforce RF/ADC dead times or RF ring-down.
 - `sys`: (`::Scanner`) Scanner struct
 """
 function check_scanner_constraints(seq::Sequence, sys=Scanner())
-    return check_scanner_constraints(seq.GR, seq.RF, seq.ADC, sys)
+    check_scanner_constraints(seq.GR, seq.RF, seq.ADC, sys)
+    @info "✅ Sequence is compliant with the scanner constraints."
+    return nothing
 end
 
 _absmax(x::Number) = abs(x)
@@ -735,7 +721,6 @@ function check_scanner_constraints(gr::AbstractMatrix{G}, rf::AbstractMatrix{R},
             error("ADC dwell time $(dwell * 1e6) μs for block $i is less than the minimum ADC dwell time of the scanner ($(sys.ADC_Δt * 1e6) μs).")
         end
     end
-    @info "✅ Sequence is compliant with the scanner constraints."
     return nothing
 end
 

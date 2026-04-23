@@ -129,11 +129,7 @@ pulseq_rf_magnitude_shape(::Number) = [1.0, 1.0]
 function pulseq_rf_magnitude_shape(A::AbstractVector)
     mags = abs.(A)
     peak = maximum(mags)
-    iszero(peak) && return zero.(mags)
-    shape = mags ./ peak
-    shape = round.(shape ./ PULSEQ_SHAPE_QUANTIZATION) .* PULSEQ_SHAPE_QUANTIZATION
-    shape[abs.(shape) .<= PULSEQ_SHAPE_ZERO_TOL] .= 0
-    return shape
+    return iszero(peak) ? zero.(mags) : mags ./ peak
 end
 
 function register_rf_magnitude_shape!(shapes, cache::PulseqWriteCache, A)
@@ -173,12 +169,19 @@ function pulseq_rf_first_sample_offset(time_shape_id, rf_raster_time)
     return time_shape_id <= PULSEQ_DEFAULT_TIME_SHAPE_ID ? rf_raster_time / 2 : 0.0
 end
 
+function pulseq_rf_timing_policy(rf, Δt_rf)
+    time_shape_id = pulseq_rf_compact_time_shape_id(rf, Δt_rf)
+    time_step = time_shape_id == PULSEQ_OVERSAMPLED_TIME_SHAPE_ID ? Δt_rf / 2 : Δt_rf
+    first_sample_offset = isnothing(time_shape_id) ? 0.0 : pulseq_rf_first_sample_offset(time_shape_id, Δt_rf)
+    return (; time_shape_id, time_step, first_sample_offset)
+end
+
 function pulseq_rf_time_shape_id!(shape_library, cache, rf, rf_raster_time)
-    compact_id = pulseq_rf_compact_time_shape_id(rf, rf_raster_time)
-    if !isnothing(compact_id)
-        pulseq_delay = rf.delay - pulseq_rf_first_sample_offset(compact_id, rf_raster_time)
-        ticks = pulseq_delay / rf_raster_time
-        isapprox(ticks, round(ticks); rtol=0, atol=PULSEQ_TIME_TOL) && return compact_id
+    policy = pulseq_rf_timing_policy(rf, rf_raster_time)
+    if !isnothing(policy.time_shape_id)
+        pulseq_delay = rf.delay - policy.first_sample_offset
+        rounded_delay = round(pulseq_delay / rf_raster_time) * rf_raster_time
+        isapprox(pulseq_delay, rounded_delay; rtol=0, atol=PULSEQ_TIME_TOL) && return policy.time_shape_id
     end
     return _store_shape!(shape_library, cache, _shape_times(rf.A, rf.T) ./ rf_raster_time)
 end
@@ -194,7 +197,7 @@ end
     id = register_grad!(grad_library, shape_library, grad, raster)
 """
 function register_grad!(grad_library, shape_library, cache, grad, raster)
-    is_on(grad) || return PULSEQ_NO_EVENT_ID
+    !is_on(grad) && iszero(dur(grad)) && return PULSEQ_NO_EVENT_ID
     return get!(cache.grad_object_ids, grad) do
         register_grad_event!(grad_library, shape_library, cache, grad, raster)
     end
@@ -208,58 +211,41 @@ function register_grad_event!(grad_library, shape_library, cache, grad::Trapezoi
 end
 
 function register_grad_event!(grad_library, shape_library, cache, grad::UniformlySampledGrad, raster)
-    n = length(grad.A)
-    n > 1 || return register_grad_event!(grad_library, shape_library, cache, edge_timed_grad(grad), raster)
     trap_event = pulseq_trap_event(grad)
     !isnothing(trap_event) && return _store_grad_event!(grad_library, cache, trap_event)
-    Δgr = raster.GradientRasterTime
-    interval = grad.T / (n - 1)
+    Δt_gr = raster.GradientRasterTime
     amp = pulseq_gradient_amplitude(grad.A)
-    if grad.rise == Δgr / 2 && grad.fall == Δgr / 2 && isapprox(interval, Δgr; rtol=0, atol=PULSEQ_TIME_TOL)
-        shape_id = _store_shape!(shape_library, cache, grad.A ./ amp)
-        first = γ * grad.first
-        last = γ * grad.last
-        return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(γ * amp, first, last, shape_id, PULSEQ_DEFAULT_TIME_SHAPE_ID, grad.delay))
-    end
-    if grad.rise == Δgr / 2 && grad.fall == Δgr / 2 && isodd(n) && isapprox(interval, Δgr / 2; rtol=0, atol=PULSEQ_TIME_TOL)
-        shape_id = _store_shape!(shape_library, cache, grad.A ./ amp)
-        first = γ * grad.first
-        last = γ * grad.last
-        return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(γ * amp, first, last, shape_id, PULSEQ_OVERSAMPLED_TIME_SHAPE_ID, grad.delay))
-    end
-    return register_grad_event!(grad_library, shape_library, cache, edge_timed_grad(grad), raster)
+    shape = iszero(amp) ? zero.(grad.A) : grad.A ./ amp
+    shape_id = _store_shape!(shape_library, cache, shape)
+    time_id = pulseq_gradient_time_shape_id!(shape_library, cache, pulseq_grad_sample_times(grad), Δt_gr)
+    first = γ * grad.first
+    last = γ * grad.last
+    return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(γ * amp, first, last, shape_id, time_id, grad.delay))
 end
 
 function register_grad_event!(grad_library, shape_library, cache, grad::TimeShapedGrad, raster)
     trap_event = pulseq_trap_event(grad)
     !isnothing(trap_event) && return _store_grad_event!(grad_library, cache, trap_event)
-    if !isempty(grad.T) && all(isapprox(ti, grad.T[1]; rtol=0, atol=PULSEQ_TIME_TOL) for ti in grad.T)
-        return register_grad_event!(grad_library, shape_library, cache, Grad(grad.A, sum(grad.T), grad.rise, grad.fall, grad.delay, grad.first, grad.last), raster)
-    end
-    if iszero(grad.rise) && iszero(grad.fall)
-        amp = pulseq_gradient_amplitude(grad.A)
-        shape_id = _store_shape!(shape_library, cache, grad.A ./ amp)
-        tt = cumsum(vcat(0.0, grad.T))
-        time_id = pulseq_gradient_time_shape_id!(shape_library, cache, tt, raster.GradientRasterTime)
-        first = γ * grad.first
-        last = γ * grad.last
-        return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(γ * amp, first, last, shape_id, time_id, grad.delay))
-    end
-    return register_grad_event!(grad_library, shape_library, cache, edge_timed_grad(grad), raster)
+    amp = pulseq_gradient_amplitude(grad.A)
+    shape = iszero(amp) ? zero.(grad.A) : grad.A ./ amp
+    shape_id = _store_shape!(shape_library, cache, shape)
+    time_id = pulseq_gradient_time_shape_id!(shape_library, cache, pulseq_grad_sample_times(grad), raster.GradientRasterTime)
+    first = γ * grad.first
+    last = γ * grad.last
+    return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(γ * amp, first, last, shape_id, time_id, grad.delay))
 end
 
 edge_timed_grad(grad::TrapezoidalGrad) =
     Grad([grad.first, grad.A, grad.A, grad.last], [grad.rise, grad.T, grad.fall], 0.0, 0.0, grad.delay, grad.first, grad.last)
 
-function edge_timed_grad(grad::UniformlySampledGrad)
+function pulseq_grad_sample_times(grad::UniformlySampledGrad)
     n = length(grad.A)
     interval = n > 1 ? grad.T / (n - 1) : 0.0
-    intervals = n > 1 ? fill(interval, n - 1) : typeof(interval)[]
-    return Grad([grad.first; grad.A; grad.last], [grad.rise; intervals; grad.fall], 0.0, 0.0, grad.delay, grad.first, grad.last)
+    return grad.rise .+ (0:(n - 1)) .* interval
 end
 
-edge_timed_grad(grad::TimeShapedGrad) =
-    Grad([grad.first; grad.A; grad.last], [grad.rise; grad.T; grad.fall], 0.0, 0.0, grad.delay, grad.first, grad.last)
+pulseq_grad_sample_times(grad::TimeShapedGrad) =
+    grad.rise .+ cumsum(vcat(0.0, grad.T))
 
 function pulseq_trap_event(grad::UniformlySampledGrad)
     iszero(grad.first) && iszero(grad.last) || return nothing
@@ -376,17 +362,8 @@ function get_quantized!(builder, cache, object)
 end
 
 function canonicalize_quantized!(objects::AbstractArray{T}, cache::IdDict{T,T}, is_on) where {T}
-    off_value = nothing
     for i in eachindex(objects)
         object = objects[i]
-        if !is_on(object)
-            if isnothing(off_value)
-                off_value = object
-            else
-                objects[i] = off_value
-            end
-            continue
-        end
         objects[i] = get_quantized!(() -> object, cache, object)
     end
     return objects
@@ -444,7 +421,8 @@ end
 function pulseq_block_duration_ticks(duration, raster)
     ticks = duration / raster
     rounded = round(Int, ticks)
-    return isapprox(ticks, rounded; rtol=0, atol=PULSEQ_TIME_TOL) ? rounded : ceil(Int, ticks - PULSEQ_TIME_TOL)
+    rounded_duration = rounded * raster
+    return isapprox(duration, rounded_duration; rtol=0, atol=PULSEQ_TIME_TOL) ? rounded : ceil(Int, ticks - PULSEQ_TIME_TOL / raster)
 end
 
 function pulseq_gradient_amplitude(A)
@@ -810,7 +788,8 @@ function quantize_block(
     key = :BlockDurationRaster
     max_event_duration = max(dur(qgr[1]), dur(qgr[2]), dur(qgr[3]), dur(qrf), adc_end)
     block_duration = max(block_durations[bi], max_event_duration)
-    qdur = quantize_time(block_duration, key, getfield(raster, key), bi, "Block", "DUR", warn_count)
+    warn_ctx = (; block_id=bi, event=:Block, warn_count)
+    qdur = quantize_time_value(block_duration, getfield(raster, key), warn_ctx, :DUR; step_name=key)
     return qrf, qgr..., qadc, qdur
 end
 
@@ -825,36 +804,87 @@ end
 
 function quantize_rf!(rf, raster, block_id, warn_count)
     key = :RadiofrequencyRasterTime
-    rf_raster_time = getfield(raster, key)
-    compact_time_id = pulseq_rf_compact_time_shape_id(rf, rf_raster_time)
-    time_raster = compact_time_id == PULSEQ_OVERSAMPLED_TIME_SHAPE_ID ? rf_raster_time / 2 : rf_raster_time
-    rf.T = quantize_time(rf.T, key, time_raster, block_id, "RF", "T", warn_count; n_time_points=sample_count(rf))
-    compact_time_id = pulseq_rf_compact_time_shape_id(rf, rf_raster_time)
-    if isnothing(compact_time_id)
-        rf.delay = quantize_time(rf.delay, key, rf_raster_time, block_id, "RF", "delay", warn_count)
+    Δt_rf = getfield(raster, key)
+    warn_ctx = (; block_id, event=:RF, warn_count)
+    qt(value, field; step=Δt_rf, step_name=key) =
+        quantize_time_value(value, step, warn_ctx, field; step_name)
+    qT(value, field; step=Δt_rf, step_name=key) =
+        quantize_sample_times(value, sample_count(rf), step, warn_ctx, field; step_name)
+    policy = pulseq_rf_timing_policy(rf, Δt_rf)
+    rf.T = qT(rf.T, :T; step=policy.time_step)
+    policy = pulseq_rf_timing_policy(rf, Δt_rf)
+    if isnothing(policy.time_shape_id)
+        rf.delay = qt(rf.delay, :delay)
     else
-        first_sample_offset = pulseq_rf_first_sample_offset(compact_time_id, rf_raster_time)
-        pulseq_delay = max(rf.delay - first_sample_offset, 0.0)
-        pulseq_delay = quantize_time(pulseq_delay, key, rf_raster_time, block_id, "RF", "pulseq delay", warn_count)
-        rf.delay = pulseq_delay + first_sample_offset
+        pulseq_delay = max(rf.delay - policy.first_sample_offset, 0.0)
+        pulseq_delay = qt(pulseq_delay, :pulseq_delay)
+        rf.delay = pulseq_delay + policy.first_sample_offset
     end
     return rf
 end
 
+pulseq_grad_compact_time_shape_id(::Grad, Δt_gr) = nothing
+
+function pulseq_grad_compact_time_shape_id(gr::UniformlySampledGrad, Δt_gr)
+    n = length(gr.A)
+    n > 1 || return nothing
+    gr.rise == Δt_gr / 2 && gr.fall == Δt_gr / 2 || return nothing
+    interval = gr.T / (n - 1)
+    if isapprox(interval, Δt_gr; rtol=0, atol=PULSEQ_TIME_TOL)
+        return PULSEQ_DEFAULT_TIME_SHAPE_ID
+    elseif isodd(n) && isapprox(interval, Δt_gr / 2; rtol=0, atol=PULSEQ_TIME_TOL)
+        return PULSEQ_OVERSAMPLED_TIME_SHAPE_ID
+    end
+    return nothing
+end
+
+function pulseq_grad_compact_time_shape_id(gr::TimeShapedGrad, Δt_gr)
+    !isempty(gr.T) || return nothing
+    all(isapprox(Δt, gr.T[1]; rtol=0, atol=PULSEQ_TIME_TOL) for Δt in gr.T) || return nothing
+    gr.rise == Δt_gr / 2 && gr.fall == Δt_gr / 2 || return nothing
+    interval = gr.T[1]
+    if isapprox(interval, Δt_gr; rtol=0, atol=PULSEQ_TIME_TOL)
+        return PULSEQ_DEFAULT_TIME_SHAPE_ID
+    elseif isodd(length(gr.A)) && isapprox(interval, Δt_gr / 2; rtol=0, atol=PULSEQ_TIME_TOL)
+        return PULSEQ_OVERSAMPLED_TIME_SHAPE_ID
+    end
+    return nothing
+end
+
+function pulseq_grad_timing_policy(::Grad, Δt_gr)
+    return (; time_shape_id=nothing, time_step=Δt_gr, rise_fall_step=Δt_gr)
+end
+
+function pulseq_grad_timing_policy(gr::Union{UniformlySampledGrad,TimeShapedGrad}, Δt_gr)
+    time_shape_id = pulseq_grad_compact_time_shape_id(gr, Δt_gr)
+    time_step = time_shape_id == PULSEQ_OVERSAMPLED_TIME_SHAPE_ID ? Δt_gr / 2 : Δt_gr
+    rise_fall_step = isnothing(time_shape_id) ? Δt_gr : Δt_gr / 2
+    return (; time_shape_id, time_step, rise_fall_step)
+end
+
 function quantize_grad!(gr, raster, block_id, axis_name, warn_count)
     key = :GradientRasterTime
-    event_name = "GR$(axis_name)"
-    gr.delay = quantize_time(gr.delay, key, getfield(raster, key), block_id, event_name, "delay", warn_count)
-    gr.T     = quantize_time(gr.T,     key, getfield(raster, key), block_id, event_name, "T",     warn_count; n_time_points=sample_count(gr))
-    gr.rise  = quantize_time(gr.rise,  key, getfield(raster, key), block_id, event_name, "rise",  warn_count)
-    gr.fall  = quantize_time(gr.fall,  key, getfield(raster, key), block_id, event_name, "fall",  warn_count)
+    event = Symbol("GR", axis_name)
+    Δt_gr = getfield(raster, key)
+    warn_ctx = (; block_id, event, warn_count)
+    qt(value, field; step=Δt_gr, step_name=key) =
+        quantize_time_value(value, step, warn_ctx, field; step_name)
+    qT(value, field; step=Δt_gr, step_name=key) =
+        quantize_sample_times(value, sample_count(gr), step, warn_ctx, field; step_name)
+    policy = pulseq_grad_timing_policy(gr, Δt_gr)
+    gr.delay = qt(gr.delay, :delay)
+    gr.T     = qT(gr.T, :T; step=policy.time_step)
+    gr.rise  = qt(gr.rise, :rise; step=policy.rise_fall_step)
+    gr.fall  = qt(gr.fall, :fall; step=policy.rise_fall_step)
     return gr
 end
 
 function quantize_adc!(adc, raster, block_id, warn_count)
-    key = :AdcRasterTime
+    warn_ctx = (; block_id, event=:ADC, warn_count)
+    qt(value, field; step, step_name) =
+        quantize_time_value(value, step, warn_ctx, field; step_name)
     dwell = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
-    dwell = quantize_time(dwell, key, getfield(raster, key), block_id, "ADC", "dwell time", warn_count)
+    dwell = qt(dwell, :dwell_time; step=1e-9, step_name=:nanoseconds)
     adc.T = adc.N == 1 ? dwell : (adc.N - 1) * dwell
     pulseq_delay = adc.delay - dwell / 2
     if pulseq_delay < 0
@@ -864,41 +894,52 @@ This means the Koma delay must be >= dwell/2. Clamping it to this minimum value.
 See https://pulseq.github.io/pulseq_shapes_and_times.pdf#page=10"
         pulseq_delay = 0
     end
-    pulseq_delay = quantize_time(pulseq_delay, key, getfield(raster, key), block_id, "ADC", "pulseq delay", warn_count)
+    pulseq_delay = qt(pulseq_delay, :pulseq_delay; step=1e-6, step_name=:microseconds)
     adc.delay = pulseq_delay + dwell / 2
     return adc.delay + adc.T + dwell / 2
 end
 
-function quantize_time(t::Number, raster_name, raster, block_id, event_key, event_element_key, warn_count; n_time_points=1)
-    interval = n_time_points == 1 ? t : t / (n_time_points - 1)
-    k = interval / raster
-    if isapprox(k, round(k), atol=PULSEQ_TIME_TOL)
-        return t
-    else
-        warn_time_quantization(warn_count, block_id, event_key, event_element_key, raster_name, raster)
-        q_interval = ceil.(interval / raster) .* raster
-        return n_time_points == 1 ? q_interval : q_interval * (n_time_points - 1)
+function quantize_time_value(t::Number, step, warn_ctx, field; step_name=nothing)
+    rounded = round(t / step) * step
+    if isapprox(t, rounded; rtol=0, atol=PULSEQ_TIME_TOL)
+        return rounded
     end
+    warn_time_quantization(warn_ctx, field, step; step_name)
+    return ceil(t / step - PULSEQ_TIME_TOL / step) * step
 end
 
 sample_count(::Union{BlockPulseRF,TrapezoidalGrad}) = 2
 sample_count(x::Union{RF,Grad}) = length(x.A)
 
-function quantize_time(t::AbstractVector{<:Real}, raster_name, raster, block_id, event_key, event_element_key, warn_count; n_time_points=1)
-    k = t / raster
-    if all(isapprox(k_i, round(k_i), atol=PULSEQ_TIME_TOL) for k_i in k)
-        return t
-    else
-        warn_time_quantization(warn_count, block_id, event_key, event_element_key, raster_name, raster)
-        return ceil.(t / raster) .* raster
+function quantize_time_value(t::AbstractVector{<:Real}, step, warn_ctx, field; step_name=nothing)
+    rounded = round.(t ./ step) .* step
+    if all(isapprox(t[i], rounded[i]; rtol=0, atol=PULSEQ_TIME_TOL) for i in eachindex(t, rounded))
+        return rounded
     end
+    warn_time_quantization(warn_ctx, field, step; step_name)
+    return ceil.(t ./ step .- PULSEQ_TIME_TOL / step) .* step
 end
 
-function warn_time_quantization(warn_count, block_id, event_key, event_element_key, raster_name, raster)
-    count = Threads.atomic_add!(warn_count, 1)
+quantize_sample_times(t::AbstractVector{<:Real}, n_samples, step, warn_ctx, field; step_name=nothing) =
+    quantize_time_value(t, step, warn_ctx, field; step_name)
+
+function quantize_sample_times(t::Number, n_samples, step, warn_ctx, field; step_name=nothing)
+    n_intervals = max(n_samples - 1, 1)
+    interval = n_intervals == 1 ? t : t / n_intervals
+    q_interval = quantize_time_value(interval, step, warn_ctx, field; step_name)
+    return n_intervals == 1 ? q_interval : q_interval * n_intervals
+end
+
+warning_label(x::Symbol) = replace(String(x), '_' => ' ')
+warning_label(x) = string(x)
+
+pretty_time_step(step) = step < 1e-6 ? "$(step * 1e9) ns" : "$(step * 1e6) μs"
+
+function warn_time_quantization(warn_ctx, field, step; step_name=nothing)
+    count = Threads.atomic_add!(warn_ctx.warn_count, 1)
     if count < 10
-        @warn "Block $block_id: Event $event_key: Element $event_element_key:
-Time is not a multiple of $(string(raster_name)) ($(raster * 1e6) μs). Quantizing it..."
+        @warn "Block $(warn_ctx.block_id): Event $(warning_label(warn_ctx.event)): Element $(warning_label(field)):
+Time is not a multiple of $(isnothing(step_name) ? pretty_time_step(step) : "$(warning_label(step_name)) ($(pretty_time_step(step)))"). Quantizing it..."
     elseif count == 10
         @warn "Additional time quantization warnings occurred; detailed logs are capped at 10."
     end
@@ -929,7 +970,7 @@ function write_seq(
 )
     # 1. Check scanner constraints. If the sequence is not compliant, the function will throw an error.
     @info "Checking scanner constraints..." B0_max = sys.B0 B1_max = sys.B1 G_max = sys.Gmax S_max = sys.Smax ADC_Δt = sys.ADC_Δt
-    check_scanner_constraints(seq.GR, seq.RF, seq.ADC, sys)
+    check_scanner_constraints(seq, sys)
     # 2. Create the Pulseq Raster 
     raster = PulseqRaster(seq, sys)
     # 3. Check raster. If the sequence is not compliant, the function will throw a warning and return the sequence with the correct raster.

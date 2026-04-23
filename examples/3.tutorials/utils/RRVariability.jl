@@ -224,7 +224,7 @@ function reconstruct_cine(raw, seq, N_matrix, N_phases)
 		acqData = AcquisitionData(raw)
 		_, ktraj = get_kspace(seq)
 		for i in 1:N_phases
-			acqAux = copy(acqData)
+			acqAux = deepcopy(acqData)
 			range = reduce(vcat,[j*(N_matrix*N_phases).+((i-1)*N_matrix.+(1:N_matrix)) for j in 0:N_matrix-1])
 			## Kdata
 			acqAux.kdata[1] = reshape(acqAux.kdata[1][range],(N_matrix^2,1))

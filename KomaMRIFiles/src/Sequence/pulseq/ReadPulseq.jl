@@ -567,28 +567,10 @@ PulseqParsedFile() = PulseqParsedFile(
 )
 
 """
-    seq = read_seq(filename)
+    parsed = read_seq_data(io)
 
-Returns the Sequence struct from a Pulseq file with `.seq` extension.
-
-# Arguments
-- `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
-
-# Keywords
-- `verify_signature`: (`::Bool`, `=false`) verify the optional Pulseq `[SIGNATURE]` hash
-  while loading
-
-# Returns
-- `seq`: (`::Sequence`) Sequence struct
-
-# Examples
-```julia-repl
-julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
-
-julia> seq = read_seq(seq_file)
-
-julia> plot_seq(seq)
-```
+Parse one Pulseq file stream into the intermediate `PulseqParsedFile` representation.
+Used by [`read_seq`](@ref).
 """
 function read_seq_data(io)
     parsed = PulseqParsedFile()
@@ -716,6 +698,30 @@ function sequence_from_pulseq_data(parsed; filename=nothing, verify_signature=fa
     return seq
 end
 
+"""
+    seq = read_seq(filename)
+
+Returns the Sequence struct from a Pulseq file with `.seq` extension.
+
+# Arguments
+- `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
+
+# Keywords
+- `verify_signature`: (`::Bool`, `=false`) verify the optional Pulseq `[SIGNATURE]` hash
+  while loading
+
+# Returns
+- `seq`: (`::Sequence`) Sequence struct
+
+# Examples
+```julia-repl
+julia> seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/1.sequences/spiral.seq")
+
+julia> seq = read_seq(seq_file)
+
+julia> plot_seq(seq)
+```
+"""
 function read_seq(filename; verify_signature=false)
     @info "Loading sequence $(basename(filename)) ..."
     parsed = open(read_seq_data, filename)

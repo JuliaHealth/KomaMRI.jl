@@ -83,18 +83,26 @@ function _separate_closing_knot!(t)
     return t
 end
 
+_gradient_times(gr::TrapezoidalGrad) = cumsum([gr.delay; gr.rise; gr.T; gr.fall])
+
 times(gr::TrapezoidalGrad) =
-    is_on(gr) ? _separate_closing_knot!(cumsum([gr.delay; gr.rise; gr.T; gr.fall])) : typeof(gr.delay)[]
+    is_on(gr) ? _separate_closing_knot!(_gradient_times(gr)) : typeof(gr.delay)[]
 
 function times(gr::UniformlySampledGrad)
     is_on(gr) || return typeof(gr.delay)[]
-    n_intervals = length(gr.A) - 1
-    flat_times = n_intervals > 0 ? fill(gr.T / n_intervals, n_intervals) : typeof(gr.delay)[]
-    return _separate_closing_knot!(cumsum([gr.delay; gr.rise; flat_times; gr.fall]))
+    return _separate_closing_knot!(_gradient_times(gr))
 end
 
+function _gradient_times(gr::UniformlySampledGrad)
+    n_intervals = length(gr.A) - 1
+    flat_times = n_intervals > 0 ? fill(gr.T / n_intervals, n_intervals) : typeof(gr.delay)[]
+    return cumsum([gr.delay; gr.rise; flat_times; gr.fall])
+end
+
+_gradient_times(gr::TimeShapedGrad) = cumsum([gr.delay; gr.rise; gr.T; gr.fall])
+
 times(gr::TimeShapedGrad) =
-    is_on(gr) ? _separate_closing_knot!(cumsum([gr.delay; gr.rise; gr.T; gr.fall])) : similar(gr.T, 0)
+    is_on(gr) ? _separate_closing_knot!(_gradient_times(gr)) : similar(gr.T, 0)
 
 function times(rf::RF, key::Symbol)
     if !is_on(rf)
