@@ -391,6 +391,30 @@ using TestItems, TestItemRunner
         @test z.ADC.N[end] ≈ x.ADC[3,1].N
         z = x.ADC[3,1] + x
         @test z.ADC.N[1] ≈ x.ADC[3,1].N
+
+        seq_alias = Sequence(
+            reshape([Grad(0.01, 0.01, 0.01), Grad(0.02, 0.01, 0.01)], 1, :),
+            reshape([RF(1e-6, 1e-3), RF(2e-6, 1e-3)], 1, :),
+            [ADC(4, 1e-3), ADC(8, 2e-3)],
+            [0.02, 0.03],
+            [Extension[], Extension[]],
+            Dict{String, Any}(),
+        )
+        seq_alias[2].GR[1,1].A = 1e-3
+        @test seq_alias.GR[1, 2].A == 1e-3
+        seq_alias[2].RF[1].A = 3e-6
+        @test seq_alias.RF[1, 2].A == 3e-6 + 0im
+        seq_alias[2].ADC[1].N = 16
+        @test seq_alias.ADC[2].N == 16
+        seq_alias[2].DUR[1] = 0.05
+        @test seq_alias.DUR[2] == 0.05
+        seq_alias[1].GR[1,1] = Grad(0.5, 0.01, 0.01)
+        @test seq_alias.GR[1, 1].A == 0.5
+        seq_alias[1:2].DUR .= [0.06, 0.07]
+        @test seq_alias.DUR[1] == 0.06
+        @test seq_alias.DUR[2] == 0.07
+        seq_alias[BitVector([false, true])].ADC[1].N = 32
+        @test seq_alias.ADC[2].N == 32
     end
     @testset "Sequence comparison" begin
         seq1 = PulseDesigner.EPI_example()

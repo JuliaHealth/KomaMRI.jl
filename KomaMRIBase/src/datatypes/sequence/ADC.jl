@@ -59,9 +59,9 @@ directly without the need to iterate elementwise.
 - `y`: (`::Vector{Any}`) vector with the property defined by the `f` for all elements of
     the ADC vector `x`
 """
-getproperty(x::Vector{ADC}, f::Symbol) = begin
+getproperty(x::AbstractVector{<:ADC}, f::Symbol) = begin
     if f == :dur
-		dur.(x)
+        dur.(x)
     elseif f in fieldnames(ADC)
         getfield.(x, f)
     else

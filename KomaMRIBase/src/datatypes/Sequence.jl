@@ -121,12 +121,14 @@ end
 
 #Sequence operations
 Base.length(x::Sequence) = length(x.DUR)
-Base.iterate(x::Sequence) = (Sequence(x.GR[:,1], x.RF[:,1], x.ADC[1], x.DUR[1],x.EXT[1], x.DEF), 2)
-Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF), i+1) : nothing
-Base.getindex(x::Sequence, i::UnitRange{Int}) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF)
-Base.getindex(x::Sequence, i::Int) = Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i],x.EXT[i], x.DEF)
-Base.getindex(x::Sequence, i::BitArray{1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF) : nothing
-Base.getindex(x::Sequence, i::Array{Bool,1}) = any(i) ? Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i],x.DEF) : nothing
+Base.iterate(x::Sequence) = length(x) == 0 ? nothing : (view(x, 1), 2)
+Base.iterate(x::Sequence, i::Integer) = (i <= length(x)) ? (view(x, i), i+1) : nothing
+Base.view(x::Sequence, i::Integer) = (checkbounds(x.DUR, i); view(x, i:i))
+Base.view(x::Sequence, i::AbstractVector{Bool}) = any(i) ? view(x, findall(i)) : nothing
+Base.view(x::Sequence, i) = @views Sequence(x.GR[:,i], x.RF[:,i], x.ADC[i], x.DUR[i], x.EXT[i], x.DEF)
+Base.getindex(x::Sequence, i::UnitRange{Int}) = view(x, i)
+Base.getindex(x::Sequence, i::Int) = view(x, i)
+Base.getindex(x::Sequence, i::AbstractVector{Bool}) = view(x, i)
 Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) = Sequence(_deepcopy_fields(x)...)
 

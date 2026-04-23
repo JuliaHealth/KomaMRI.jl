@@ -155,7 +155,7 @@ directly without the need to iterate elementwise.
 - `y`: (`::Array{Any}`) vector or matrix with the property defined by the
     symbol `f` for all elements of the RF vector or matrix `x`
 """
-getproperty(x::AbstractMatrix{<:RF}, f::Symbol) = begin
+getproperty(x::AbstractVecOrMat{<:RF}, f::Symbol) = begin
     if f == :Bx
         real.(cis.(getfield.(x, :ϕ)) .* getfield.(x, :A))
     elseif f == :By

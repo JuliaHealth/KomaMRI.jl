@@ -181,7 +181,7 @@ directly without the need to iterate elementwise.
 - `y`: (`::Array{Any}`) vector or matrix with the property defined
     by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
-getproperty(x::AbstractArray{<:Grad}, f::Symbol) = begin
+getproperty(x::AbstractVecOrMat{<:Grad}, f::Symbol) = begin
     if f == :x
         @view x[1, :]
     elseif f == :y && size(x, 1) >= 2
