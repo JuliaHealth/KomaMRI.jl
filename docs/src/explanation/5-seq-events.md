@@ -279,11 +279,11 @@ is not a part of the core Pulseq format and MAY be subject to rapid changes`. Th
     Trigger extension is implemented but currently not taken into account during the simulation 
 
 ```julia
-mutable struct Trigger <: Extension 
+struct Trigger <: Extension
   type::Int # Type of trigger (system dependent). 0: undefined / unused
   channel::Int # channel of trigger (system dependent). 0: undefined / unused
-  d1::Float64 # Delay prior to the trigger event (us)
-  d2::Float64 # Duration of trigger event (us)
+  delay::Float64 # Delay prior to the trigger event [s]
+  duration::Float64 # Duration of trigger event [s]
 end
 ```
 
