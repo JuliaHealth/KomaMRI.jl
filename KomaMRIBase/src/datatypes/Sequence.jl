@@ -34,7 +34,8 @@ mutable struct Sequence{GT,RT,AT,DT,XT,DF}
     DEF::DF #Dictionary with information relevant to the reconstructor
     Sequence(GR, RF, ADC, DUR, EXT, DEF) = begin
         @assert size(GR, 2) == size(RF, 2) == length(ADC) == length(DUR) "The number of Gradient, RF, ADC, DUR and EXT objects must be the same."
-        GR = _ensure_gradient_axes(GR)
+        GR = _concrete_event_array(_ensure_gradient_axes(GR))
+        RF = _concrete_event_array(RF)
         new{typeof(GR),typeof(RF),typeof(ADC),typeof(DUR),typeof(EXT),typeof(DEF)}(
             GR,
             RF,
@@ -55,7 +56,78 @@ end
 
 _empty_extensions_per_block(nblocks) = [Extension[] for _ = 1:nblocks]
 
+_small_union_eltype(xs...) = _small_union_eltype_of_arrays(xs)
+
+function _small_union_eltype_of_arrays(xs)
+    types = Type[]
+    eltypes = Type[]
+    for x in xs
+        T = eltype(x)
+        push!(eltypes, T)
+        if isconcretetype(T)
+            T in types || push!(types, T)
+        elseif T isa Union
+            for U in Base.uniontypes(T)
+                U in types || push!(types, U)
+            end
+        else
+            for value in x
+                T = typeof(value)
+                T in types || push!(types, T)
+            end
+        end
+    end
+    return isempty(types) ? reduce(typejoin, eltypes) :
+        length(types) == 1 ? only(types) : Core.apply_type(Union, types...)
+end
+
+_concrete_event_array(x) = x
+_concrete_event_array(x::AbstractArray{Grad}) = _concrete_event_array_copy(x)
+_concrete_event_array(x::AbstractArray{RF}) = _concrete_event_array_copy(x)
+
+function _concrete_event_array_copy(x)
+    T = _small_union_eltype(x)
+    T === eltype(x) && return x
+    out = similar(x, T)
+    out .= x
+    return out
+end
+
 # Main Constructors
+function Sequence(seqs::AbstractVector{<:Sequence})
+    isempty(seqs) && return Sequence()
+    nblocks = sum(length, seqs)
+    nblocks == 0 && return Sequence()
+    i0 = findfirst(s -> length(s) > 0, seqs)
+    nGR, nRF = size(seqs[i0].GR, 1), size(seqs[i0].RF, 1)
+    @assert all(s -> length(s) == 0 || (size(s.GR, 1) == nGR && size(s.RF, 1) == nRF), seqs) "All sequences must have the same number of Gradient and RF channels."
+    GR = Matrix{_small_union_eltype_of_arrays(s.GR for s in seqs if length(s) > 0)}(undef, nGR, nblocks)
+    RF = Matrix{_small_union_eltype_of_arrays(s.RF for s in seqs if length(s) > 0)}(undef, nRF, nblocks)
+    ADC = Vector{_small_union_eltype_of_arrays(s.ADC for s in seqs if length(s) > 0)}(undef, nblocks)
+    DUR = Vector{Float64}(undef, nblocks)
+    EXT = Vector{Vector{Extension}}(undef, nblocks)
+    DEF = Dict{String, Any}()
+    j = 1
+    for s in seqs
+        n = length(s)
+        n == 0 && continue
+        for k in eachindex(s.DUR)
+            for ax in axes(s.GR, 1)
+                GR[ax, j] = copy(s.GR[ax, k])
+            end
+            for coil in axes(s.RF, 1)
+                RF[coil, j] = copy(s.RF[coil, k])
+            end
+            ADC[j] = copy(s.ADC[k])
+            DUR[j] = s.DUR[k]
+            EXT[j] = deepcopy(s.EXT[k])
+            j += 1
+        end
+        merge!(DEF, deepcopy(s.DEF))
+    end
+    return Sequence(GR, RF, ADC, DUR, EXT, DEF)
+end
+
 function Sequence(GR)
     rf = reshape([RF(0.0, 0.0) for i in 1:size(GR, 2)], 1, :)
     adc = [ADC(0, 0.0) for _ = 1:size(GR, 2)]
@@ -132,26 +204,204 @@ Base.getindex(x::Sequence, i::AbstractVector{Bool}) = view(x, i)
 Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) = Sequence(_deepcopy_fields(x)...)
 
+_copy_events(x) = copy.(x)
+_copy_block_metadata(x) = deepcopy(x)
+_fits_eltype(::Type{T}, x) where {T} = all(value -> typeof(value) <: T, x)
+const _BlockEvent = Union{Grad,RF,ADC,Extension}
+const _BlockEventTuple = Tuple{_BlockEvent,Vararg{_BlockEvent}}
+
+function _event_column(events::NTuple{N,T}) where {N,T}
+    out = Matrix{T}(undef, N, 1)
+    @inbounds for i in 1:N
+        out[i, 1] = events[i]
+    end
+    return out
+end
+
+function _event_column(events)
+    T = _small_union_eltype(events)
+    out = Matrix{T}(undef, length(events), 1)
+    @inbounds for i in eachindex(events)
+        out[i, 1] = events[i]
+    end
+    return out
+end
+
+function _event_vector(events::NTuple{N,T}) where {N,T}
+    out = Vector{T}(undef, N)
+    @inbounds for i in 1:N
+        out[i] = events[i]
+    end
+    return out
+end
+
+function _event_vector(events)
+    T = _small_union_eltype(events)
+    out = Vector{T}(undef, length(events))
+    @inbounds for i in eachindex(events)
+        out[i] = events[i]
+    end
+    return out
+end
+
+function _append_event_matrix!(x::Matrix, y::AbstractMatrix)
+    @assert size(x, 1) == size(y, 1) "Both sequences must have the same number of event channels."
+    n0 = size(x, 2)
+    n = size(y, 2)
+    out = if _fits_eltype(eltype(x), y)
+        reshape(resize!(vec(x), size(x, 1) * (n0 + n)), size(x, 1), n0 + n)
+    else
+        T = _small_union_eltype(x, y)
+        out = Matrix{T}(undef, size(x, 1), n0 + n)
+        @inbounds for j in axes(x, 2), i in axes(x, 1)
+            out[i, j] = x[i, j]
+        end
+        out
+    end
+    @inbounds for j in 1:n, i in axes(y, 1)
+        out[i, n0+j] = copy(y[i, j])
+    end
+    return out
+end
+
+function _append_event_vector!(x::Vector, y::AbstractVector)
+    n0 = length(x)
+    n = length(y)
+    out = if _fits_eltype(eltype(x), y)
+        resize!(x, n0 + n)
+    else
+        T = _small_union_eltype(x, y)
+        out = Vector{T}(undef, n0 + n)
+        @inbounds for j in eachindex(x)
+            out[j] = x[j]
+        end
+        out
+    end
+    @inbounds for j in 1:n
+        out[n0+j] = copy(y[j])
+    end
+    return out
+end
+
+function _append_metadata_vector!(x::Vector, y::AbstractVector)
+    n0 = length(x)
+    n = length(y)
+    resize!(x, n0 + n)
+    @inbounds for j in 1:n
+        x[n0+j] = deepcopy(y[j])
+    end
+    return x
+end
+
+function Base.append!(x::Sequence, y::Sequence)
+    length(y) == 0 && return x
+    x.GR = _append_event_matrix!(x.GR, y.GR)
+    x.RF = _append_event_matrix!(x.RF, y.RF)
+    x.ADC = _append_event_vector!(x.ADC, y.ADC)
+    append!(x.DUR, y.DUR)
+    x.EXT = _append_metadata_vector!(x.EXT, y.EXT)
+    merge!(x.DEF, deepcopy(y.DEF))
+    return x
+end
+function Base.append!(x::Sequence, y::Sequence, ys::Sequence...)
+    append!(x, y)
+    for z in ys
+        append!(x, z)
+    end
+    return x
+end
+Base.push!(x::Sequence, y::Sequence) = append!(x, y)
+
+_event_tuple(::Type{T}) where {T} = ()
+_event_tuple(::Type{T}, event::T, rest...) where {T} = (event, _event_tuple(T, rest...)...)
+_event_tuple(::Type{T}, event, rest...) where {T} = _event_tuple(T, rest...)
+_check_block_event(::Union{Grad,RF,ADC,Extension}) = nothing
+_check_block_event(event) = error("Unsupported block event $(typeof(event)).")
+_block_duration(block_duration) = block_duration
+_block_duration(block_duration, event, events...) = _block_duration(_block_duration(block_duration, event), events...)
+_block_duration(block_duration, event) = max(block_duration, dur(event))
+_block_duration_constraint() = nothing
+_block_duration_constraint(event) = nothing
+function _block_duration_constraint(event, events...)
+    T = _block_duration_constraint(event)
+    U = _block_duration_constraint(events...)
+    if !isnothing(T) && !isnothing(U)
+        error("Only one `Duration` can be added per block.")
+    end
+    return isnothing(T) ? U : T
+end
+function _set_block_duration!(seq, events...)
+    block_duration = _block_duration(seq.DUR[1], events...)
+    T = _block_duration_constraint(events...)
+    if isnothing(T)
+        seq.DUR[1] = block_duration
+    elseif block_duration > T && !isapprox(block_duration, T; rtol=0, atol=1e-12)
+        error("Block duration $(block_duration) s exceeds requested Duration($(T)) s.")
+    else
+        seq.DUR[1] = T
+    end
+    return seq
+end
+_zero_grad_like(gr::Grad) = 0.0 * gr
+_axis_grad(::Nothing, ref::Nothing) = Grad(0.0, 0.0)
+_axis_grad(::Nothing, ref::Grad) = _zero_grad_like(ref)
+_axis_grad(gr::Grad, ref) = gr
+
+function _block_sequence(events; x=nothing, y=nothing, z=nothing)
+    foreach(_check_block_event, events)
+    grads = (x, y, z)
+    for (axis, gr) in zip((:x, :y, :z), grads)
+        (isnothing(gr) || gr isa Grad) || error("Expected `$axis` to be a Grad.")
+    end
+    rfs = _event_tuple(RF, events...)
+    adcs = _event_tuple(ADC, events...)
+    exts = _event_tuple(Extension, events...)
+    bare_grads = _event_tuple(Grad, events...)
+    if !isempty(bare_grads)
+        if all(isnothing, grads) && length(events) == 1 && length(bare_grads) == 1
+            grads = (only(bare_grads), y, z)
+        else
+            error("Pass gradients with `x=`, `y=`, or `z=` when combining them with other events.")
+        end
+    end
+
+    ref_gr = something(grads..., Grad(0.0, 0.0))
+    grs = (_axis_grad(grads[1], ref_gr), _axis_grad(grads[2], ref_gr), _axis_grad(grads[3], ref_gr))
+    rf = isempty(rfs) ? reshape([RF(0.0, 0.0)], 1, 1) : _event_column(rfs)
+    adc = isempty(adcs) ? [ADC(0, 0.0)] : length(adcs) == 1 ? _event_vector(adcs) : error("Only one ADC event can be added per block.")
+    seq = Sequence(_event_column(grs), rf, adc)
+    _set_block_duration!(seq, events...)
+    seq.EXT[1] = Extension[exts...]
+    return seq
+end
+
+function addblock!(seq::Sequence, events::_BlockEventTuple; x=nothing, y=nothing, z=nothing)
+    return append!(seq, _block_sequence(events; x, y, z))
+end
+function addblock!(seq::Sequence, events...; x=nothing, y=nothing, z=nothing)
+    return append!(seq, _block_sequence(events; x, y, z))
+end
+Base.push!(seq::Sequence, events...) = addblock!(seq, events...)
+
 #Arithmetic operations
-+(x::Sequence, y::Sequence) = Sequence(hcat(x.GR,  y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), vcat(x.EXT,y.EXT),merge(x.DEF, y.DEF))
--(x::Sequence, y::Sequence) = Sequence(hcat(x.GR, -y.GR), hcat(x.RF, y.RF), vcat(x.ADC, y.ADC), vcat(x.DUR, y.DUR), vcat(x.EXT,y.EXT),merge(x.DEF, y.DEF))
--(x::Sequence) = Sequence(-x.GR, x.RF, x.ADC, x.DUR, x.EXT,x.DEF)
-*(x::Sequence, α::Real) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
-*(α::Real, x::Sequence) = Sequence(α .* x.GR, x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
-*(x::Sequence, α::ComplexF64) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
-*(α::ComplexF64, x::Sequence) = Sequence(x.GR, α.*x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
-*(x::Sequence, A::Matrix{Float64}) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.EXT, x.DEF) #TODO: change this, Rotation fo waveforms is broken
-*(A::Matrix{Float64}, x::Sequence) = Sequence(A*x.GR, x.RF, x.ADC, x.DUR, x.EXT, x.DEF) #TODO: change this, Rotation fo waveforms is broken
-/(x::Sequence, α::Real) = Sequence(x.GR/α, x.RF, x.ADC, x.DUR, x.EXT, x.DEF)
++(x::Sequence, y::Sequence) = Sequence([x, y])
+-(x::Sequence, y::Sequence) = x + (-y)
+-(x::Sequence) = Sequence(-x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
+*(α::Real, x::Sequence) = Sequence(α .* x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
+*(α::Complex, x::Sequence) = Sequence(_copy_events(x.GR), α.*x.RF, α.*x.ADC, copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
+*(A::AbstractMatrix{<:Real}, x::Sequence) = Sequence(A*x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF)) #TODO: change this, Rotation fo waveforms is broken
+/(x::Sequence, α::Real) = Sequence(x.GR/α, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
++(s::Sequence, events::_BlockEventTuple) = s + _block_sequence(events)
++(events::_BlockEventTuple, s::Sequence) = _block_sequence(events) + s
 #Grad operations
-+(s::Sequence, g::Grad) = s + Sequence(reshape([g],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(g::Grad, s::Sequence) = Sequence(reshape([g],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(s::Sequence, g::Grad) = s + (g,)
++(g::Grad, s::Sequence) = (g,) + s
 #RF operations
-+(s::Sequence, r::RF) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(r::RF, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([r],1,1)) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(s::Sequence, r::RF) = s + (r,)
++(r::RF, s::Sequence) = (r,) + s
 #ADC operations
-+(s::Sequence, a::ADC) = s + Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) #Changed [a;;] for reshape(a,1,1) for Julia 1.6
-+(a::ADC, s::Sequence) = Sequence(reshape([Grad(0.0,0.0)],1,1),reshape([RF(0.0,0.0)],1,1),[a]) + s #Changed [a;;] for reshape(a,1,1) for Julia 1.6
++(s::Sequence, a::ADC) = s + (a,)
++(a::ADC, s::Sequence) = (a,) + s
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 

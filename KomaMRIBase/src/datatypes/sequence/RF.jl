@@ -59,6 +59,8 @@ mutable struct RF{AT,TT,ΔFT}
     center::Union{Float64, Nothing}
     ϕ::Float64
     use::RFUse
+    RF(A, T, Δf, delay, center, ϕ, use, ::Val{:preserve}) =
+        new{typeof(A),typeof(T),typeof(Δf)}(A, T, Δf, delay, center, ϕ, use)
     function RF(A, T, Δf, delay, center, ϕ, use)
         if _has_negative_timings(T) || delay < 0
             error("RF timings must be non-negative.")
@@ -176,12 +178,12 @@ function Base.isapprox(rf1::RF, rf2::RF; kwargs...)
     typeof(rf1) === typeof(rf2) || return false
     return fields_isapprox(rf1, rf2; kwargs...)
 end
-Base.copy(rf::RF) = RF(_deepcopy_fields(rf)...)
+Base.copy(rf::RF) = RF(_deepcopy_fields(rf)..., Val(:preserve))
     
 # Properties
 size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
-*(α::Number, x::RF) = RF(abs(α) * x.A, x.T, x.Δf, x.delay, x.center, mod(x.ϕ + angle(α), 2π), x.use)
-*(x::RF, α::Number) = RF(abs(α) * x.A, x.T, x.Δf, x.delay, x.center, mod(x.ϕ + angle(α), 2π), x.use)
+*(α::Number, x::RF) = is_on(x) ? RF(abs(α) * x.A, copy(x.T), copy(x.Δf), x.delay, x.center, mod(x.ϕ + angle(α), 2π), x.use, Val(:preserve)) : copy(x)
+*(x::RF, α::Number) = α * x
 
 """
     y = dur(x::RF)

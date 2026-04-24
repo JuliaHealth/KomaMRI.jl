@@ -65,7 +65,8 @@ include("datatypes/sequence/ADC.jl")
 include("datatypes/sequence/EXT.jl")
 include("timing/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
-include("datatypes/sequence/Delay.jl")
+include("datatypes/sequence/AddBlockMacro.jl")
+include("datatypes/sequence/DelayDuration.jl")
 # Motion
 include("motion/MotionList.jl")
 include("motion/NoMotion.jl")
@@ -79,7 +80,8 @@ include("timing/TrapezoidalIntegration.jl")
 # Main
 export γ    # gyro-magnetic ratio [Hz/T]
 export Scanner, Sequence, Phantom
-export Grad, RF, ADC, Delay
+export addblock!, @addblock, @addblocks
+export Grad, RF, ADC, Delay, Duration
 export dur, get_block_start_times, get_samples
 export RFuse, Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
 export DiscreteSequence

@@ -43,6 +43,8 @@ end
 field_isapprox(adc1::ADC, adc2::ADC; kwargs...) = isapprox(adc1, adc2; kwargs...)
 Base.isapprox(adc1::ADC, adc2::ADC; kwargs...) = fields_isapprox(adc1, adc2; kwargs...)
 Base.copy(adc::ADC) = ADC(_deepcopy_fields(adc)...)
+*(α::Number, adc::ADC) = is_on(adc) ? ADC(adc.N, adc.T, adc.delay, adc.Δf, mod(adc.ϕ + angle(α), 2π)) : copy(adc)
+*(adc::ADC, α::Number) = α * adc
 
 """
     y = getproperty(x::Vector{ADC}, f::Symbol)

@@ -16,10 +16,9 @@ using TestItems, TestItemRunner
         TE = 30e-3
         d1 = TE-dur(EPI)/2-dur(EX)
         d1 = d1 > 0 ? d1 : 0.0
-        if d1 > 0 DELAY = Delay(d1) end
 
         #Sequence construction
-        seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
+        seq = d1 > 0 ? EX + Delay(d1) + EPI : EX + EPI #Only add delay if d1 is positive (enough space)
         seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
         @test dur(seq) ≈ dur(EX) + d1 + dur(EPI) #Sequence duration matches what is supposed to be
 
@@ -33,51 +32,250 @@ using TestItems, TestItemRunner
         @test seq1.GR[3,1].A == 0.0
     end
 
-    @testset "Rot_and_Concat" begin
-        # Rotation 2D case
-        A1, A2, A3, T, t = rand(5)
-        s = Sequence([Grad(A1,T);
-                      Grad(A2,T);
-                      Grad(A3,T);;])
-        θ = π*t
-        R = rotz(θ)
-        s2 = R*s #Matrix-Matrix{Grad} multiplication
-        GR2 = R*s.GR.A #Matrix-vector multiplication
-        @test s2.GR.A    ≈ GR2
-        @test s.GR.T     == s2.GR.T
-        @test s.GR.delay == s2.GR.delay
-        @test s.GR.rise  == s2.GR.rise
-        @test s.GR.fall  == s2.GR.fall
-        # Rotation 3D case
-        T, t1, t2, t3 = rand(4)
-        N = 100
-        GR = [Grad(rand(),T) for i=1:3, j=1:N]
-        s = Sequence(GR)
-        α, β, γ = π*t1, π*t2, π*t3
-        Rx = rotx(α)
-        Ry = roty(β)
-        Rz = rotz(γ)
-        R = Rx*Ry*Rz
-        s2 = R*s #Matrix-Matrix{Grad} multiplication
-        GR2 = R*s.GR.A #Matrix-vector multiplication
-        @test s2.GR.A    ≈ GR2
-        @test s.GR.T     == s2.GR.T
-        @test s.GR.delay == s2.GR.delay
-        @test s.GR.rise  == s2.GR.rise
-        @test s.GR.fall  == s2.GR.fall
-        # Concatenation of sequences
-        A1, A2, A3, T1 = rand(4)
-        s1 = Sequence([Grad(A1,T1);
-                    Grad(A2,T1)],
-                        [RF(A3,T1)])
-        B1, B2, B3, T2 = rand(4)
-        s2 = Sequence([Grad(B1,T2);
-                    Grad(B2,T2)],
-                        [RF(B3,T2)])
-        s = s1 + s2
-        @test s.GR.A ≈ [s1.GR.A s2.GR.A]
-        @test s.RF.A ≈ [s1.RF.A s2.RF.A]
-        @test s.ADC.N ≈ [s1.ADC.N ; s2.ADC.N]
+    @testset "Sequence operations" begin
+        seq1() = begin
+            seq = Sequence(
+                reshape([Grad(0.01, 0.01, 0.001)], 1, 1),
+                reshape([RF(1e-6, 1e-3)], 1, 1),
+                [ADC(4, 1e-3)],
+            )
+            seq.EXT[1] = [LabelSet(1, "LIN")]
+            seq.DEF["nested"] = Dict("value" => 1)
+            return seq
+        end
+        seq2() = Sequence(
+            reshape([Grad(0.02, 0.02, 0.002)], 1, 1),
+            reshape([RF(2e-6, 2e-3)], 1, 1),
+            [ADC(8, 2e-3)],
+        )
+
+        left = seq1()
+        right = seq2()
+        seq = left + right
+        @test seq !== left
+        @test seq.GR.A ≈ [0.01 0.02; 0.0 0.0; 0.0 0.0]
+        @test seq.RF.A ≈ [1e-6 2e-6]
+        @test seq.ADC.N == [4; 8]
+        @test (left - right).GR.A ≈ [left.GR.A -right.GR.A]
+
+        seq.GR[1,1].A = 0.03
+        seq.RF[1,1].A = 3e-6
+        seq.ADC[1].N = 16
+        seq.EXT[1][1] = LabelSet(2, "LIN")
+        seq.DEF["nested"]["value"] = 2
+
+        @test left.GR[1,1].A == 0.01
+        @test left.RF[1,1].A ≈ 1e-6
+        @test left.ADC[1].N == 4
+        @test left.EXT[1][1] == LabelSet(1, "LIN")
+        @test left.DEF["nested"]["value"] == 1
+
+        seq.GR[1,2].A = 0.04
+        seq.RF[1,2].A = 4e-6
+        seq.ADC[2].N = 32
+        @test right.GR[1,1].A == 0.02
+        @test right.RF[1,1].A ≈ 2e-6
+        @test right.ADC[1].N == 8
+
+        left = seq1()
+        right = seq2()
+        batched = Sequence([left, Sequence(), right])
+        @test batched.GR.A ≈ [left.GR.A right.GR.A]
+        @test batched.RF.A ≈ [left.RF.A right.RF.A]
+        @test batched.ADC.N == [left.ADC.N; right.ADC.N]
+        batched.GR[1,1].A = 0.04
+        batched.RF[1,1].A = 4e-6
+        batched.ADC[1].N = 32
+        @test left.GR[1,1].A == 0.01
+        @test left.RF[1,1].A ≈ 1e-6
+        @test left.ADC[1].N == 4
+
+        block = Sequence([Grad(0.01, 0.01, 0.001)])
+        empty = Sequence()
+        from_empty = Sequence([empty, block])
+        @test from_empty !== empty
+        from_empty.GR[1,1].A = 0.02
+        @test length(empty) == 0
+        @test block.GR[1,1].A == 0.01
+
+        left = seq1()
+        right = seq2()
+        appended = Sequence()
+        @test append!(appended, left) === appended
+        @test push!(appended, right) === appended
+        @test appended.GR.A ≈ [left.GR.A right.GR.A]
+        @test appended.RF.A ≈ [left.RF.A right.RF.A]
+        @test appended.ADC.N == [left.ADC.N; right.ADC.N]
+        appended.GR[1,1].A = 0.05
+        appended.RF[1,1].A = 5e-6
+        appended.ADC[1].N = 64
+        appended.GR[1,2].A = 0.06
+        @test left.GR[1,1].A == 0.01
+        @test left.RF[1,1].A ≈ 1e-6
+        @test left.ADC[1].N == 4
+        @test right.GR[1,1].A == 0.02
+
+        g = Grad(0.04, 0.01, 0.001)
+        rf = RF(4e-6, 1e-3)
+        adc = ADC(16, 1e-3)
+        seqg_left = seq1()
+        seqrf_right = seq1()
+        seqadc_left = seq1()
+        seqg = Sequence([seqg_left])
+        seqrf = Sequence([seqrf_right])
+        seqadc = Sequence([seqadc_left])
+        addblock!(seqg; x=g)
+        addblock!(seqrf, rf)
+        addblock!(seqadc, adc)
+        seqg.GR[1,end].A = 0.05
+        seqrf.RF[1,end].A = 5e-6
+        seqadc.ADC[end].N = 32
+        @test g.A == 0.04
+        @test seqrf_right.RF[1,1].A ≈ 1e-6
+        @test adc.N == 16
+
+        seq0 = Sequence(
+            [Grad(0.01, 0.01, 0.001); Grad(0.02, 0.01, 0.001); Grad(0.03, 0.01, 0.001);;],
+            reshape([RF(1e-6, 1e-3)], 1, 1),
+            [ADC(4, 1e-3)],
+        )
+        tuple_block = seq0 + (rf, adc)
+        @test tuple_block.RF[1,end].A ≈ rf.A
+        @test tuple_block.ADC[end].N == adc.N
+        @test_throws MethodError seq0 + (0, 1, 0)
+        @test_throws ErrorException seq0 + (rf, g)
+
+        scaled = 2.0 * seq0
+        @test scaled !== seq0
+        @test scaled.GR.A ≈ 2 .* seq0.GR.A
+        @test scaled.RF[1,1].A ≈ seq0.RF[1,1].A
+        @test scaled.ADC[1].ϕ == seq0.ADC[1].ϕ
+
+        phased = im * seq0
+        @test phased !== seq0
+        @test phased.GR.A ≈ seq0.GR.A
+        @test phased.RF[1,1].ϕ ≈ π / 2
+        @test phased.ADC[1].ϕ ≈ π / 2
+
+        rotated = rotz(π / 2) * seq0
+        @test rotated !== seq0
+        @test rotated.GR.A ≈ rotz(π / 2) * seq0.GR.A
+        @test rotated.RF[1,1].A ≈ seq0.RF[1,1].A
+        @test rotated.ADC[1].N == seq0.ADC[1].N
+
+        negated = -seq0
+        divided = seq0 / 2
+        @test negated.GR.A ≈ -seq0.GR.A
+        @test divided.GR.A ≈ seq0.GR.A ./ 2
+        @test negated.RF[1,1].A ≈ seq0.RF[1,1].A
+        @test divided.ADC[1].N == seq0.ADC[1].N
+
+        @test_throws MethodError seq0 * 2.0
+        @test_throws MethodError seq0 * im
+        @test_throws MethodError seq0 * rotz(π / 2)
+
+        for seq in (scaled, phased, rotated, negated, divided)
+            seq.GR[1,1].A = 0.04
+            seq.RF[1,1].A = 4e-6
+            seq.ADC[1].N = 32
+        end
+        @test seq0.GR[1,1].A == 0.01
+        @test seq0.RF[1,1].A ≈ 1e-6
+        @test seq0.ADC[1].N == 4
+
+        g_trap = Grad(1.0, 1.0)
+        g_uniform = Grad([1.0, 2.0], 1.0)
+        g_time = Grad([1.0, 2.0], [1.0])
+        rf_block = RF(1.0, 1.0)
+        rf_uniform = RF(ComplexF64[1.0, 2.0], 1.0)
+        rf_time = RF(ComplexF64[1.0, 2.0], [1.0])
+        rf_freq = RF(ComplexF64[1.0, 2.0], 1.0, [0.0, 1.0])
+        mixed = Sequence([
+            Sequence(reshape([g], 1, 1), reshape([rf], 1, 1))
+            for g in (g_trap, g_uniform, g_time)
+            for rf in (rf_block, rf_uniform, rf_time, rf_freq)
+        ])
+        @test eltype(mixed.GR) == Union{typeof(g_trap),typeof(g_uniform),typeof(g_time)}
+        @test eltype(mixed.RF) == Union{typeof(rf_block),typeof(rf_uniform),typeof(rf_time),typeof(rf_freq)}
+
+        macroseq = Sequence()
+        counter = 0
+        @addblock begin
+            macroseq += (rf, z=g)
+            macroseq += seq2()
+            counter += 1
+        end
+        @test counter == 1
+        @test length(macroseq) == 2
+        @test macroseq.RF[1,1].A ≈ rf.A
+        @test macroseq.GR[3,1].A ≈ g.A
+        @test macroseq.GR[1,2].A ≈ seq2().GR[1,1].A
+
+        axis_kw = (x=g, z=2g)
+        macroseq = Sequence()
+        @addblock macroseq += (rf; axis_kw...) + (; axis_kw...)
+        @test length(macroseq) == 2
+        @test macroseq.RF[1,1].A ≈ rf.A
+        @test macroseq.GR[1,1].A ≈ g.A
+        @test macroseq.GR[3,1].A ≈ (2g).A
+        @test macroseq.GR[1,2].A ≈ g.A
+        @test macroseq.GR[3,2].A ≈ (2g).A
+
+        @addblock initseq = (rf; axis_kw...) + (; axis_kw...)
+        @test length(initseq) == 2
+        @test initseq.RF[1,1].A ≈ rf.A
+        @test initseq.GR[1,1].A ≈ g.A
+        @test initseq.GR[3,2].A ≈ (2g).A
+
+        @addblock gxseq = (x=g)
+        @test length(gxseq) == 1
+        @test gxseq.GR[1,1].A ≈ g.A
+
+        mixedseq = Sequence()
+        left_chunk = seq1()
+        right_chunk = seq2()
+        @addblocks begin
+            mixedseq += left_chunk + (rf, x=g) + right_chunk
+        end
+        @test length(mixedseq) == 3
+        @test mixedseq.GR[1,1].A ≈ left_chunk.GR[1,1].A
+        @test mixedseq.RF[1,2].A ≈ rf.A
+        @test mixedseq.GR[1,2].A ≈ g.A
+        @test mixedseq.GR[1,3].A ≈ right_chunk.GR[1,1].A
+        mixedseq.RF[1,2].A = 7e-6
+        mixedseq.GR[1,2].A = 0.07
+        @test rf.A ≈ 4e-6
+        @test g.A == 0.04
+
+        spliced = Sequence()
+        contents = (LabelSet(0, "LIN"), LabelInc(1, "ECO"))
+        @addblocks begin
+            spliced += (contents...)
+            spliced += (contents..., Delay(20e-3), x=g)
+        end
+        @test length(spliced) == 2
+        @test spliced.EXT[1] == Extension[contents...]
+        @test spliced.EXT[2] == Extension[contents...]
+        @test spliced.GR[1,2].A ≈ g.A
+        @test dur(spliced[2]) ≈ 20e-3
+
+        bssp = Sequence()
+        @addblock bssp += (rf, z=g)
+        @test length(bssp) == 1
+        @test bssp.RF[1,1].A ≈ rf.A
+        @test bssp.GR[3,1].A ≈ g.A
+
+        bssp = Sequence()
+        line = 0
+        @addblocks for _ in 1:3
+            bssp += (rf, z=g)
+            line += 1
+        end
+        @test length(bssp) == 3
+        @test line == 3
+        @test all(block -> block.RF[1,1].A ≈ rf.A, bssp)
+
+        @test_throws ErrorException addblock!(Sequence(), rf, g)
     end
 
     @testset "Grad" begin
@@ -87,6 +285,15 @@ using TestItems, TestItemRunner
         GR = [g1;g2;;]
         GR2 = reshape([g1;g2],:,1)
         @test GR.A ≈ GR2.A
+
+        g_uniform = Grad([A1, A2], T)
+        g_time = Grad([A1, A2], [T])
+        GR = [g1; g_uniform; g_time;;]
+        @test size(GR) == (3, 1)
+        @test GR[1] === g1
+        @test GR[2] === g_uniform
+        @test GR[3] === g_time
+        @test eltype(Sequence(GR).GR) == Union{typeof(g1),typeof(g_uniform),typeof(g_time)}
 
         #Sanity checks of contructors (A [T], T[s], rise[s], fall[s], delay[s])
         A, T = 0.1, 1e-3
@@ -178,6 +385,10 @@ using TestItems, TestItemRunner
         rft = α * rf
         @test size(rf, 1) == 1
         @test rft.A ≈ α * rf.A
+        rf_off = RF(0.0, T)
+        rf_off_scaled = im * rf_off
+        @test rf_off_scaled ≈ rf_off
+        @test rf_off_scaled !== rf_off
         @test dur(rf) ≈ rf.T
         B1x, B1y, B2x, B2y, B3x, B3y, T1, T2, T3 = rand(9)
         rf1, rf2, rf3 = RF(B1x + im*B1y, T1), RF(B1x + im*B1y, T2), RF(B3x + im*B3y, T3)
@@ -198,23 +409,79 @@ using TestItems, TestItemRunner
         # Test delay construction
         T = 1e-3
         delay = Delay(T)
+        duration = Duration(T)
         @test delay.T ≈ T
+        @test dur(delay) ≈ T
+        @test duration.T ≈ T
+        @test dur(duration) ≈ T
 
         # Test delay construction error for negative values
         err = Nothing
         try Delay(-T) catch err end
         @test err isa ErrorException
+        err = Nothing
+        try Duration(-T) catch err end
+        @test err isa ErrorException
 
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", delay)
+        show(IOBuffer(), "text/plain", duration)
         @test true
 
-        # Test addition of a delay to a sequence
+        # Test delay blocks
         seq = Sequence([Grad(0.0, 0.0)])
         ds = delay + seq
         @test dur(ds[1]) ≈ delay.T && dur(ds[2]) ≈ .0
         sd = seq + delay
-        @test dur(sd[1]) ≈ .0 && dur(sd[2]) ≈ delay.T
+        addblock!(sd, delay)
+        @test dur(sd[1]) ≈ .0 && dur(sd[2]) ≈ delay.T && dur(sd[3]) ≈ delay.T
+        sd = seq + duration
+        addblock!(sd, duration)
+        @test dur(sd[1]) ≈ .0 && dur(sd[2]) ≈ duration.T && dur(sd[3]) ≈ duration.T
+
+        rf = RF(1e-6, 1e-3)
+        block = Sequence()
+        addblock!(block, rf, Delay(5e-3))
+        @test length(block) == 1
+        @test dur(block[1]) ≈ 5e-3
+
+        block = Sequence()
+        addblock!(block, rf, Delay(5e-4))
+        @test length(block) == 1
+        @test dur(block[1]) ≈ dur(rf)
+
+        block = Sequence()
+        addblock!(block, rf, Duration(5e-3))
+        @test length(block) == 1
+        @test dur(block[1]) ≈ 5e-3
+
+        @test_throws ErrorException addblock!(Sequence(), rf, Duration(5e-4))
+        @test_throws ErrorException addblock!(Sequence(), rf, Duration(5e-3), Duration(6e-3))
+
+        adc = ADC(4, 2e-3)
+        block = Sequence()
+        addblock!(block, Delay(5e-4), rf, adc)
+        @test length(block) == 1
+        @test dur(block[1]) ≈ dur(adc)
+
+        trigger = Trigger(1, 1, 1e-3, 2e-3)
+        block = Sequence()
+        addblock!(block, rf, trigger)
+        @test length(block) == 1
+        @test dur(block[1]) ≈ dur(trigger)
+
+        block = Sequence() + (rf, Delay(5e-3))
+        @test length(block) == 1
+        @test dur(block[1]) ≈ 5e-3
+        block = Sequence() + (rf, Duration(5e-3))
+        @test length(block) == 1
+        @test dur(block[1]) ≈ 5e-3
+
+        block = Sequence()
+        @addblock block += (rf, LabelSet(1, "LIN"), Duration(5e-3))
+        @test length(block) == 1
+        @test dur(block[1]) ≈ 5e-3
+        @test block.EXT[1] == [LabelSet(1, "LIN")]
 
     end
     @testset "ADC" begin
@@ -231,6 +498,12 @@ using TestItems, TestItemRunner
 
         adc1, adc2 = ADC(N, T, delay, Δf, ϕ), ADC(N, T, delay, Δf, ϕ)
         @test adc1 ≈ adc2
+        @test im * adc ≈ ADC(N, T, delay, Δf, ϕ + π / 2)
+        @test adc * complex(-2.0) ≈ ADC(N, T, delay, Δf, mod(ϕ + π, 2π))
+        adc_off = ADC(0, T)
+        adc_off_scaled = im * adc_off
+        @test adc_off_scaled ≈ adc_off
+        @test adc_off_scaled !== adc_off
 
         # Test ADC construction errors for negative values
         err = Nothing
@@ -264,20 +537,23 @@ using TestItems, TestItemRunner
         lSet = LabelSet(1,"ECO")
         lSet2 = LabelSet(0,"LIN")
         trig = Trigger(0,1,100,500)
+        @test dur(lInc) == 0.0
+        @test dur(lSet) == 0.0
+        @test dur(trig) == trig.delay + trig.duration
 
         d = Sequence([Grad(0,0.1)])
         seq = Sequence()
         d.EXT = [[lInc]]; 
-        seq += d
-        seq += d
+        append!(seq, d)
+        append!(seq, d)
         d.EXT = [[lInc,lSet]]
-        seq += d
+        append!(seq, d)
         d.EXT = [[lInc]]; 
-        seq += d
+        append!(seq, d)
         d.EXT = [[lSet2,trig]]; 
-        seq += d
+        append!(seq, d)
         d.EXT = [[]]; 
-        seq += d
+        append!(seq, d)
 
         @test seq.EXT[5][2] == trig && seq.EXT[5][1] == lSet2
 
@@ -310,9 +586,12 @@ using TestItems, TestItemRunner
         @test seqd[i1:i2-1].t ≈ t[i1:i2]
 
         T, N = 1.0, 4
-        seq = RF(1.0e-6, 1.0)
-        seq += Sequence([Grad(1.0e-3, 1.0)])
-        seq += ADC(N, 1.0)
+        seq = Sequence()
+        @addblock begin
+            seq += RF(1.0e-6, 1.0)
+            seq += Sequence([Grad(1.0e-3, 1.0)])
+            seq += ADC(N, 1.0)
+        end
         sampling_params = KomaMRIBase.default_sampling_params()
         sampling_params["Δt"], sampling_params["Δt_rf"] = T/N, T/N
         seqd1 = KomaMRIBase.discretize(seq[1]; sampling_params)
@@ -356,33 +635,42 @@ using TestItems, TestItemRunner
 
         α = rand()
         c = α + im*rand()
-        x = seq
+        x = copy(seq)
+        x0 = copy(x)
         y = PulseDesigner.EPI_example()
         z = x + y
-        @test z.GR.A ≈ [x.GR  y.GR].A && z.RF.A ≈ [x.RF y.RF].A && z.ADC.N ≈ [x.ADC; y.ADC].N
-        z = x - y
-        @test z.GR.A ≈ [x.GR  -y.GR].A
-        z = -x
-        @test z.GR.A ≈ -x.GR.A
-        z = x * α
-        @test z.GR.A ≈ α*x.GR.A
-        z = α * x
-        @test z.GR.A ≈ α*x.GR.A
-        z = x * c
+        @test z !== x
+        @test z.GR.A ≈ [x0.GR  y.GR].A && z.RF.A ≈ [x0.RF y.RF].A && z.ADC.N ≈ [x0.ADC; y.ADC].N
+        @test x ≈ x0
+        z = x0 - y
+        @test z.GR.A ≈ [x0.GR -y.GR].A
+        z = -x0
+        @test z.GR.A ≈ -x0.GR.A
+        x_real = copy(x0)
+        z = α * x_real
+        @test z !== x_real
+        @test z.GR.A ≈ α*x0.GR.A
+        @test x_real.GR.A ≈ x0.GR.A
+        rf_phase_after(c, rf) = is_RF_on(rf) ? mod(rf.ϕ + angle(c), 2π) : rf.ϕ
+        adc_phase_after(c, adc) = is_ADC_on(adc) ? mod(adc.ϕ + angle(c), 2π) : adc.ϕ
+        x_complex = copy(x0)
+        z = c * x_complex
+        @test z !== x_complex
         @test all(rfz.A ≈ abs(c) * rfx.A &&
-                  rfz.ϕ ≈ mod(rfx.ϕ + angle(c), 2π)
-                  for (rfz, rfx) in zip(z.RF, x.RF))
-        z = c * x
-        @test all(rfz.A ≈ abs(c) * rfx.A &&
-                  rfz.ϕ ≈ mod(rfx.ϕ + angle(c), 2π)
-                  for (rfz, rfx) in zip(z.RF, x.RF))
-        z = x / α
-        @test z.GR.A ≈ x.GR.A/α
+                  rfz.ϕ ≈ rf_phase_after(c, rfx)
+                  for (rfz, rfx) in zip(z.RF, x0.RF))
+        @test all(adcz.ϕ ≈ adc_phase_after(c, adcx) for (adcz, adcx) in zip(z.ADC, x0.ADC))
+        @test x_complex.GR.A ≈ x0.GR.A
+        @test_throws MethodError x0 * α
+        @test_throws MethodError x0 * c
+        @test_throws MethodError x0 * rotz(π / 4)
+        z = x0 / α
+        @test z.GR.A ≈ x0.GR.A/α
         @test size(y) == size(y.GR[1,:])
-        z = x + x.GR[3,1]
-        @test z.GR.A[1, end] ≈ x.GR[3,1].A
-        z = x.GR[3,1] + x
-        @test z.GR.A[1, 1] ≈ x.GR[3,1].A
+        z = x0 + x0.GR[3,1]
+        @test z.GR.A[1, end] ≈ x0.GR[3,1].A
+        z = x0.GR[3,1] + x0
+        @test z.GR.A[1, 1] ≈ x0.GR[3,1].A
         z = x + x.RF[1,1]
         @test z.RF.A[1, end] ≈ x.RF[1,1].A
         z = x.RF[1,1] + x
@@ -421,14 +709,17 @@ using TestItems, TestItemRunner
         seq2 = deepcopy(seq1)
         @test seq1 ≈ seq2 # Basic equality check
         rf = seq1[1].RF[1]
-        seq2 = Sequence(
+        seq2 = Sequence([
+            Sequence(
             seq1.GR[:, 1],
             [RF([rf.A, rf.A, rf.A], rf.T, rf.Δf, rf.delay, rf.center, rf.use)],
             seq1.ADC[1],
             seq1.DUR[1],
             seq1.EXT[1],
             seq1.DEF,
-        ) + seq1[2:end]
+            ),
+            seq1[2:end],
+        ])
         @test seq1 ≉ seq2 # Structural equality does not treat different RF samplings as equal
         seq2.EXT[1] = [LabelInc(2, "LIN")]
         @test seq1 ≉ seq2 # Check that sequences are not equal because one of them has extensions
