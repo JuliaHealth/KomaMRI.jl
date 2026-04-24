@@ -443,7 +443,7 @@ end
 
     Gx = 1e-3
     Gy = 1e-3
-    Gz = 0
+    Gz = 0.0
 
     motions = [
         translate(0.1, 0.1, 0.0, TimeRange(0.0, 1.0)),

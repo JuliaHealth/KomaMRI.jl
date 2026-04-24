@@ -2,7 +2,7 @@
 
 KomaMRI uses two representations:
 
-- [`Sequence`](@ref): the runtime representation used by simulation and plotting.
+- [`Sequence`](4-sequence.md): the runtime representation used by simulation and plotting.
   It stores repeated block events as [`RF`](5-seq-events.md#rf),
   [`Grad`](5-seq-events.md#gradient), and [`ADC`](5-seq-events.md#adc) objects.
   See [Sequence](4-sequence.md) for the sequence model.
