@@ -43,7 +43,7 @@ function round_trip_sequences()
     T = 10e-3
     delay = 1e-3
     rf = RF(A, T, 0, delay)
-    seq = Sequence(); seq += rf; seq += -1*rf
+    seq = Sequence(); seq += rf; seq += complex(-1.0) * rf
     seq.DEF["Name"] = "rf-uniformly-shaped"
     push!(sequences, seq)
 

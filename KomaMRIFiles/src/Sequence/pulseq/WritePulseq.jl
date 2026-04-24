@@ -45,6 +45,12 @@ const PULSEQ_OVERSAMPLED_TIME_SHAPE_ID = -1
 collect_pulseq_assets(seq, raster) =
     collect_pulseq_assets(seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster)
 
+function pulseq_data(seq::KomaMRIBase.Sequence, raster::PulseqRaster)
+    prepared = prepare_pulseq_write(seq, raster)
+    blocks, event_libraries = collect_pulseq_assets(prepared, raster)
+    return PulseqSequenceData(blocks, event_libraries, v"1.5.1", nothing)
+end
+
 function collect_pulseq_assets(gr, rf, adc, block_durations, ext, def, raster)
     blocks = Vector{PulseqBlockEventIDs}(undef, length(block_durations))
     rf_library = Dict{Int,PulseqRFEvent}()
@@ -114,8 +120,8 @@ function register_rf!(rf_library, shape_library, cache, rf, raster)
     end
 end
 
-pulseq_rf_amplitude(rf::BlockPulseRF) = γ * abs(rf.A)
-pulseq_rf_amplitude(rf::RF) = γ * maximum(abs, rf.A)
+pulseq_rf_amplitude(rf::BlockPulseRF) = abs(rf.A)
+pulseq_rf_amplitude(rf::RF) = maximum(abs, rf.A)
 pulseq_rf_frequency(rf::RF) = rf.Δf
 pulseq_rf_frequency(::FrequencyModulatedRF) =
     throw(ArgumentError("Pulseq write does not support RF frequency waveforms."))
@@ -151,6 +157,10 @@ end
 # `matlab/+mr/@Sequence/Sequence.m` (v1.5.1, lines 562-567). In Koma we store RF
 # delay to the first sample, so the same compact encoding is recognized from the
 # first-sample-relative times together with the half-raster delay shift below.
+function pulseq_rf_compact_time_shape_id(::TimeShapedRF, rf_raster_time)
+    return nothing
+end
+
 function pulseq_rf_compact_time_shape_id(rf, rf_raster_time)
     rf.delay + PULSEQ_TIME_TOL < rf_raster_time / 2 && return nothing
     tt = _shape_times(rf.A, rf.T)
@@ -205,7 +215,7 @@ end
 
 function register_grad_event!(grad_library, shape_library, cache, grad::TrapezoidalGrad, raster)
     if iszero(grad.first) && iszero(grad.last)
-        return _store_grad_event!(grad_library, cache, PulseqTrapGradEvent(γ * grad.A, grad.rise, grad.T, grad.fall, grad.delay))
+        return _store_grad_event!(grad_library, cache, PulseqTrapGradEvent(grad.A, grad.rise, grad.T, grad.fall, grad.delay))
     end
     return register_grad_event!(grad_library, shape_library, cache, edge_timed_grad(grad), raster)
 end
@@ -218,9 +228,7 @@ function register_grad_event!(grad_library, shape_library, cache, grad::Uniforml
     shape = iszero(amp) ? zero.(grad.A) : grad.A ./ amp
     shape_id = _store_shape!(shape_library, cache, shape)
     time_id = pulseq_gradient_time_shape_id!(shape_library, cache, pulseq_grad_sample_times(grad), Δt_gr)
-    first = γ * grad.first
-    last = γ * grad.last
-    return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(γ * amp, first, last, shape_id, time_id, grad.delay))
+    return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(amp, grad.first, grad.last, shape_id, time_id, grad.delay))
 end
 
 function register_grad_event!(grad_library, shape_library, cache, grad::TimeShapedGrad, raster)
@@ -230,9 +238,7 @@ function register_grad_event!(grad_library, shape_library, cache, grad::TimeShap
     shape = iszero(amp) ? zero.(grad.A) : grad.A ./ amp
     shape_id = _store_shape!(shape_library, cache, shape)
     time_id = pulseq_gradient_time_shape_id!(shape_library, cache, pulseq_grad_sample_times(grad), raster.GradientRasterTime)
-    first = γ * grad.first
-    last = γ * grad.last
-    return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(γ * amp, first, last, shape_id, time_id, grad.delay))
+    return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(amp, grad.first, grad.last, shape_id, time_id, grad.delay))
 end
 
 edge_timed_grad(grad::TrapezoidalGrad) =
@@ -251,7 +257,7 @@ function pulseq_trap_event(grad::UniformlySampledGrad)
     iszero(grad.first) && iszero(grad.last) || return nothing
     length(grad.A) == 2 || return nothing
     grad.A[1] == grad.A[2] || return nothing
-    return PulseqTrapGradEvent(γ * grad.A[1], grad.rise, grad.T, grad.fall, grad.delay)
+    return PulseqTrapGradEvent(grad.A[1], grad.rise, grad.T, grad.fall, grad.delay)
 end
 
 function pulseq_trap_event(grad::TimeShapedGrad)
@@ -259,7 +265,7 @@ function pulseq_trap_event(grad::TimeShapedGrad)
     length(grad.A) == 2 || return nothing
     length(grad.T) == 1 || return nothing
     grad.A[1] == grad.A[2] || return nothing
-    return PulseqTrapGradEvent(γ * grad.A[1], grad.rise, grad.T[1], grad.fall, grad.delay)
+    return PulseqTrapGradEvent(grad.A[1], grad.rise, grad.T[1], grad.fall, grad.delay)
 end
 
 pulseq_trap_event(::Grad) = nothing
@@ -361,10 +367,10 @@ function get_quantized!(builder, cache, object)
     end
 end
 
-function canonicalize_quantized!(objects::AbstractArray{T}, cache::IdDict{T,T}, is_on) where {T}
+function canonicalize_quantized!(objects::AbstractArray{T}, cache::IdDict{T,T}) where {T}
     for i in eachindex(objects)
         object = objects[i]
-        objects[i] = get_quantized!(() -> object, cache, object)
+        objects[i] = get!(cache, object, object)
     end
     return objects
 end
@@ -486,6 +492,9 @@ function emit_pulseq(io, blocks, event_libraries)
     end
 end
 
+emit_pulseq(io, data::PulseqSequenceData) =
+    emit_pulseq(io, data.blocks, data.libraries)
+
 function emit_header_comment!(io)
     write(io, "# Pulseq sequence file\n")
     write(io, "# Created by KomaMRI.jl\n")
@@ -544,10 +553,23 @@ function emit_rf_section!(io::IO, event_libraries)
     isempty(event_libraries.rf_library) && return
     for id in dense_event_ids(event_libraries.rf_library)
         rf_data = event_libraries.rf_library[id]
-        center_us = isnothing(rf_data.center) ? 0.0 : rf_data.center * 1e6
+        center_us = pulseq_rf_center_for_write(rf_data, event_libraries) * 1e6
         delay_us = round(Int, rf_data.delay * 1e6)
-        @printf(io, "%d %12g %d %d %d %g %g %g %g %g %g %c\n", id, rf_data.amplitude, rf_data.mag_id, rf_data.phase_id, rf_data.time_shape_id, center_us, delay_us, rf_data.freq_ppm, rf_data.phase_ppm, rf_data.freq, rf_data.phase, rf_data.use)
+        @printf(io, "%d %.17g %d %d %d %.17g %d %.17g %.17g %.17g %.17g %c\n", id, γ * rf_data.amplitude, rf_data.mag_id, rf_data.phase_id, rf_data.time_shape_id, center_us, delay_us, rf_data.freq_ppm, rf_data.phase_ppm, rf_data.freq, rf_data.phase, rf_data.use)
     end
+end
+
+function pulseq_rf_center_for_write(rf_data, event_libraries)
+    !isnothing(rf_data.center) && return rf_data.center
+    Δt_rf = event_libraries.definitions.radiofrequency_raster_time
+    rf = get_RF(rf_data, event_libraries.shape_library, Δt_rf)
+    return rf.center + pulseq_rf_first_sample_offset(rf_data, event_libraries.shape_library, Δt_rf)
+end
+
+function pulseq_rf_first_sample_offset(rf_data, shape_library, Δt_rf)
+    time_shape_id = rf_data.time_shape_id
+    time_shape_id <= PULSEQ_DEFAULT_TIME_SHAPE_ID && return Δt_rf / 2
+    return first(decompress_shape(shape_library[time_shape_id]...)) * Δt_rf
 end
 
 function emit_gradients_section!(io::IO, event_libraries)
@@ -558,7 +580,7 @@ function emit_gradients_section!(io::IO, event_libraries)
     for id in dense_event_ids(event_libraries.grad_library)
         grad_data = event_libraries.grad_library[id]
         grad_data isa PulseqArbGradEvent || continue
-        @printf(io, "%d %12g %12g %12g %d %d %d\n", id, grad_data.amplitude, grad_data.first, grad_data.last, grad_data.amp_shape_id, grad_data.time_shape_id, round(Int, grad_data.delay * 1e6))
+        @printf(io, "%d %.17g %.17g %.17g %d %d %d\n", id, γ * grad_data.amplitude, γ * grad_data.first, γ * grad_data.last, grad_data.amp_shape_id, grad_data.time_shape_id, round(Int, grad_data.delay * 1e6))
     end
 end
 
@@ -570,7 +592,7 @@ function emit_trap_section!(io::IO, event_libraries)
     for id in dense_event_ids(event_libraries.grad_library)
         trap_data = event_libraries.grad_library[id]
         trap_data isa PulseqTrapGradEvent || continue
-        @printf(io, "%2d %12g %3d %4d %3d %3d\n", id, trap_data.amplitude, round(Int, trap_data.rise * 1e6), round(Int, trap_data.flat * 1e6), round(Int, trap_data.fall * 1e6), round(Int, trap_data.delay * 1e6))
+        @printf(io, "%2d %.17g %3d %4d %3d %3d\n", id, γ * trap_data.amplitude, round(Int, trap_data.rise * 1e6), round(Int, trap_data.flat * 1e6), round(Int, trap_data.fall * 1e6), round(Int, trap_data.delay * 1e6))
     end
 end
 
@@ -582,7 +604,7 @@ function emit_adc_section!(io::IO, event_libraries)
     isempty(event_libraries.adc_library) && return
     for id in dense_event_ids(event_libraries.adc_library)
         adc_data = event_libraries.adc_library[id]
-        @printf(io, "%d %d %.0f %.0f %g %g %g %g %d\n", id, adc_data.num, adc_data.dwell * 1e9, adc_data.delay * 1e6, adc_data.freq_ppm, adc_data.phase_ppm, adc_data.freq, adc_data.phase, adc_data.phase_id)
+        @printf(io, "%d %d %.0f %.0f %.17g %.17g %.17g %.17g %d\n", id, adc_data.num, adc_data.dwell * 1e9, adc_data.delay * 1e6, adc_data.freq_ppm, adc_data.phase_ppm, adc_data.freq, adc_data.phase, adc_data.phase_id)
     end
 end
 
@@ -685,7 +707,7 @@ function pulseq_definitions(definitions, raster)
 end
 
 function emit_extension_spec!(io, spec_id, spec::Trigger)
-    @printf(io, "%d %d %d %d %d\n", spec_id, spec.type, spec.channel, round(Int, spec.d1 * 1e6), round(Int, spec.d2 * 1e6))
+    @printf(io, "%d %d %d %d %d\n", spec_id, spec.type, spec.channel, round(Int, spec.delay * 1e6), round(Int, spec.duration * 1e6))
 end
 
 function emit_extension_spec!(io, spec_id, spec::Union{LabelSet,LabelInc})
@@ -744,10 +766,10 @@ function prepare_pulseq_write(gr, rf, adc, block_durations, ext, def, raster)
                 thread_adc_caches[Threads.threadid()],
             )
     end
-    canonicalize_quantized!(qrf, canonical_rfs, is_on)
-    canonicalize_quantized!(qgr, canonical_grads, is_on)
-    canonicalize_quantized!(qadc, canonical_adcs, is_ADC_on)
-    return Sequence(qgr, qrf, qadc, qdur, ext, def)
+    canonicalize_quantized!(qrf, canonical_rfs)
+    canonicalize_quantized!(qgr, canonical_grads)
+    canonicalize_quantized!(qadc, canonical_adcs)
+    return KomaMRIBase.Sequence(qgr, qrf, qadc, qdur, ext, def)
 end
 
 function quantize_block(
@@ -794,12 +816,10 @@ function quantize_block(
 end
 
 function check_raster(seq, raster=DEFAULT_RASTER)
-    prepared = prepare_pulseq_write(seq, raster)
-    blocks, event_libraries = collect_pulseq_assets(prepared, raster)
+    data = pulseq_data(seq, raster)
     buffer = IOBuffer()
-    emit_pulseq(buffer, blocks, event_libraries)
-    parsed = read_seq_data(IOBuffer(take!(buffer)))
-    return sequence_from_pulseq_data(parsed; verify_signature=false)
+    emit_pulseq(buffer, data)
+    return KomaMRIBase.Sequence(read_seq_data(IOBuffer(take!(buffer))))
 end
 
 function quantize_rf!(rf, raster, block_id, warn_count)
@@ -823,26 +843,25 @@ function quantize_rf!(rf, raster, block_id, warn_count)
     return rf
 end
 
-pulseq_grad_compact_time_shape_id(::Grad, Δt_gr) = nothing
+uniform_pulseq_interval(::Grad) = nothing
 
-function pulseq_grad_compact_time_shape_id(gr::UniformlySampledGrad, Δt_gr)
+function uniform_pulseq_interval(gr::UniformlySampledGrad)
     n = length(gr.A)
-    n > 1 || return nothing
-    gr.rise == Δt_gr / 2 && gr.fall == Δt_gr / 2 || return nothing
-    interval = gr.T / (n - 1)
-    if isapprox(interval, Δt_gr; rtol=0, atol=PULSEQ_TIME_TOL)
-        return PULSEQ_DEFAULT_TIME_SHAPE_ID
-    elseif isodd(n) && isapprox(interval, Δt_gr / 2; rtol=0, atol=PULSEQ_TIME_TOL)
-        return PULSEQ_OVERSAMPLED_TIME_SHAPE_ID
-    end
-    return nothing
+    return n > 1 ? gr.T / (n - 1) : nothing
 end
 
-function pulseq_grad_compact_time_shape_id(gr::TimeShapedGrad, Δt_gr)
-    !isempty(gr.T) || return nothing
-    all(isapprox(Δt, gr.T[1]; rtol=0, atol=PULSEQ_TIME_TOL) for Δt in gr.T) || return nothing
-    gr.rise == Δt_gr / 2 && gr.fall == Δt_gr / 2 || return nothing
+function uniform_pulseq_interval(gr::TimeShapedGrad)
+    isempty(gr.T) && return nothing
     interval = gr.T[1]
+    all(isapprox(Δt, interval; rtol=0, atol=PULSEQ_TIME_TOL) for Δt in gr.T) || return nothing
+    return interval
+end
+
+function pulseq_grad_compact_time_shape_id(gr, Δt_gr)
+    interval = uniform_pulseq_interval(gr)
+    isnothing(interval) && return nothing
+    isapprox(gr.rise, Δt_gr / 2; rtol=0, atol=PULSEQ_TIME_TOL) || return nothing
+    isapprox(gr.fall, Δt_gr / 2; rtol=0, atol=PULSEQ_TIME_TOL) || return nothing
     if isapprox(interval, Δt_gr; rtol=0, atol=PULSEQ_TIME_TOL)
         return PULSEQ_DEFAULT_TIME_SHAPE_ID
     elseif isodd(length(gr.A)) && isapprox(interval, Δt_gr / 2; rtol=0, atol=PULSEQ_TIME_TOL)
@@ -954,6 +973,8 @@ Writes a Sequence struct to a Pulseq file with `.seq` extension.
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 - `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
+- `sys`: optional scanner used for scanner-constraint validation and as fallback for
+  raster times not defined in `seq.DEF`. Raster definitions in `seq.DEF` take precedence.
 
 # Examples
 ```julia-repl
@@ -964,23 +985,12 @@ julia> write_seq(seq, "fid.seq")
 ```
 """
 function write_seq(
-    seq::Sequence, filename::AbstractString;
-    sys=Scanner(),
+    data::PulseqSequenceData, filename::AbstractString;
     signatureAlgorithm="md5"
 )
-    # 1. Check scanner constraints. If the sequence is not compliant, the function will throw an error.
-    @info "Checking scanner constraints..." B0_max = sys.B0 B1_max = sys.B1 G_max = sys.Gmax S_max = sys.Smax ADC_Δt = sys.ADC_Δt
-    check_scanner_constraints(seq, sys)
-    # 2. Create the Pulseq Raster 
-    raster = PulseqRaster(seq, sys)
-    # 3. Check raster. If the sequence is not compliant, the function will throw a warning and return the sequence with the correct raster.
-    @info "Checking Pulseq raster..." BlockDurationRaster = raster.BlockDurationRaster GradientRasterTime = raster.GradientRasterTime RadiofrequencyRasterTime = raster.RadiofrequencyRasterTime AdcRasterTime = raster.AdcRasterTime
-    prepared = prepare_pulseq_write(seq, raster)
     @info "Saving sequence to $(basename(filename)) ..."
-    # 4. Collect the pulseq assets.
-    blocks, event_libraries = collect_pulseq_assets(prepared, raster)
     payload = let io = IOBuffer()
-        emit_pulseq(io, blocks, event_libraries)
+        emit_pulseq(io, data)
         take!(io)
     end
     signature_hash = supported_signature_digest(signatureAlgorithm, payload)
@@ -990,4 +1000,34 @@ function write_seq(
         emit_signature_section!(io, signatureAlgorithm, signature_hash)
     end
     return nothing
+end
+
+function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing)
+    scanner = isnothing(sys) ? Scanner() : sys
+    if !isnothing(sys)
+        @info "Checking scanner constraints..." B0_max = scanner.B0 B1_max = scanner.B1 G_max = scanner.Gmax S_max = scanner.Smax ADC_Δt = scanner.ADC_Δt
+        check_scanner_constraints(seq, scanner)
+    end
+    # 1. Create the Pulseq Raster
+    raster = PulseqRaster(seq, scanner)
+    # 2. Check raster. If the sequence is not compliant, the function will throw a warning and return the sequence with the correct raster.
+    @info "Checking Pulseq raster..." BlockDurationRaster = raster.BlockDurationRaster GradientRasterTime = raster.GradientRasterTime RadiofrequencyRasterTime = raster.RadiofrequencyRasterTime AdcRasterTime = raster.AdcRasterTime
+    return pulseq_data(seq, raster)
+end
+
+"""
+    data = write_seq_data(seq; sys=nothing)
+
+Prepare a Koma `Sequence` as [`PulseqSequenceData`](@ref) without writing a file.
+Raster definitions in `seq.DEF` take precedence over scanner defaults. If `sys`
+is passed, scanner constraints are checked before conversion.
+"""
+write_seq_data(seq::KomaMRIBase.Sequence; sys=nothing) = pulseq_data(seq; sys)
+
+function write_seq(
+    seq::KomaMRIBase.Sequence, filename::AbstractString;
+    sys=nothing,
+    signatureAlgorithm="md5",
+)
+    return write_seq(pulseq_data(seq; sys), filename; signatureAlgorithm)
 end

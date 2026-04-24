@@ -105,7 +105,7 @@ struct PulseqRaster
     )
 end
 
-function get_raster_time(key::String, seq::Sequence, scanner_default)
+function get_raster_time(key::String, seq::KomaMRIBase.Sequence, scanner_default)
     haskey(seq.DEF, key) || return scanner_default
     seq_value = seq.DEF[key]
     seq_value == scanner_default || @warn "Sequence and Scanner definition for $key do not match (($(seq_value) != $(scanner_default))). Using the Sequence definition ($key = $seq_value)."

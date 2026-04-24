@@ -155,8 +155,6 @@ end
         generated_prefix = "koma-generated-"
         pth = joinpath(@__DIR__, "test_files/pulseq/read_comparison/")
         versions = ["v1.2", "v1.3", "v1.4", "v1.5"]
-        seq_not_written_by_pulseq(pulseq_file) =
-            occursin("JEMRIS", pulseq_file) || occursin("gammaSTAR", pulseq_file)
         constraint_sys = Scanner(B1=1.0, Gmax=100.0, Smax=1e12, ADC_Δt=0.0)
         mktempdir() do tmpdir
             for v in versions
@@ -168,15 +166,40 @@ end
                     @suppress write_seq(seq, filename; sys=constraint_sys)
                     seq2 = @suppress read_seq(filename)
                     @testset "$label" begin
-                        if seq_not_written_by_pulseq(pulseq_file)
-                            @test seq2 ≈ seq atol=1e-5
-                        elseif v in ("v1.2", "v1.3", "v1.4")
-                            @test seq2 ≈ seq atol=1e-8
-                        else # v == "v1.5"
-                            @test seq2 ≈ seq
-                        end
+                        @test seq2 ≈ seq
                     end
                 end
+            end
+        end
+    end
+    @testset "Pulseq Event Representation Roundtrip" begin
+        mktempdir() do tmpdir
+            filename = joinpath(tmpdir, "trap.seq")
+            seq = Sequence()
+            seq += Grad(1e-3, 1e-3, 1e-5)
+            @suppress write_seq(seq, filename)
+            seq2 = @suppress read_seq(filename)
+            @test seq2.GR[1, 1] isa KomaMRIBase.TrapezoidalGrad
+
+            filename = joinpath(tmpdir, "uniform-rf.seq")
+            Δt_rf = KomaMRIFiles.DEFAULT_RASTER.RadiofrequencyRasterTime
+            seq = Sequence()
+            seq += RF(ComplexF64[0.0, 1e-6, 0.0], 2Δt_rf, 0.0, 3Δt_rf / 2)
+            @suppress write_seq(seq, filename)
+            seq2 = @suppress read_seq(filename)
+            @test seq2.RF[1, 1] isa KomaMRIBase.UniformlySampledRF
+        end
+    end
+    @testset "PulseqSequenceData Roundtrip" begin
+        mktempdir() do tmpdir
+            files = ("v1.4/rf-time-shaped.seq", "v1.5/gre.seq")
+            for file in files
+                src = joinpath(@__DIR__, "test_files/pulseq/read_comparison", file)
+                data = @suppress KomaMRIFiles.read_seq_data(src)
+                filename = joinpath(tmpdir, replace(file, "/" => "-"))
+                @suppress write_seq(data, filename)
+                seq2 = @suppress read_seq(filename)
+                @test seq2 ≈ KomaMRIBase.Sequence(data)
             end
         end
     end
@@ -214,6 +237,15 @@ end
         @test event.delay ≈ Δt_rf
         @test event.center ≈ center + Δt_rf / 2
         @test qseq.RF[1, 1].center ≈ center
+
+        seq = Sequence()
+        seq += RF(ComplexF64[1.0, 0.5, 1.0], fill(Δt_rf, 2), 0.0, 2Δt_rf)
+        qseq = KomaMRIFiles.check_raster(seq)
+        center = qseq.RF[1, 1].center
+        event = rf_event(seq)
+        @test event.time_shape_id > 0
+        @test event.delay ≈ 2Δt_rf
+        @test event.center ≈ center
 
         center = 0.83Δt_rf
         seq = Sequence()
