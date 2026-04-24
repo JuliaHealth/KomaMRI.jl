@@ -109,6 +109,17 @@ function _rewrite_addblock(ex, target)
     return ex
 end
 
+"""
+    @addblock expr
+
+Rewrite one block expression to append in place, or build a named sequence chunk.
+
+# Examples
+```julia
+@addblock seq += (rf, z=gz)
+@addblock RO = (adc, x=gx)
+```
+"""
 macro addblock(args...)
     target, ex = if length(args) == 1
         nothing, only(args)
@@ -123,6 +134,19 @@ macro addblock(args...)
     return esc(_rewrite_addblock(ex, target))
 end
 
+"""
+    @addblocks expr
+
+Rewrite block expressions inside a loop or `begin ... end` block.
+
+# Examples
+```julia
+@addblocks for ky in 1:Ny
+    seq += (rf, z=gz)
+    seq += readout(ky)
+end
+```
+"""
 macro addblocks(ex)
     return esc(_rewrite_addblock(ex, nothing))
 end

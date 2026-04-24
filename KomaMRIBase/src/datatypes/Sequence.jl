@@ -375,6 +375,12 @@ function _block_sequence(events; x=nothing, y=nothing, z=nothing)
     return seq
 end
 
+"""
+    addblock!(seq, events...; x=nothing, y=nothing, z=nothing)
+
+Append one block to `seq`. RF, ADC, and extensions are positional. Gradients use
+`x=`, `y=`, or `z=`.
+"""
 function addblock!(seq::Sequence, events::_BlockEventTuple; x=nothing, y=nothing, z=nothing)
     return append!(seq, _block_sequence(events; x, y, z))
 end

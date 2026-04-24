@@ -68,6 +68,9 @@ SpinRange
 
 ```@docs
 Sequence
+addblock!
+@addblock
+@addblocks
 dur
 get_block_start_times
 get_flip_angles
@@ -100,6 +103,7 @@ get_adc_phase_compensation
     
 ```@docs
 Delay
+Duration
 ```
 
 ### Rotation matrices

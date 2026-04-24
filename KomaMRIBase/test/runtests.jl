@@ -536,7 +536,7 @@ using TestItems, TestItemRunner
         lInc = LabelInc(1,"LIN")
         lSet = LabelSet(1,"ECO")
         lSet2 = LabelSet(0,"LIN")
-        trig = Trigger(0,1,100,500)
+        trig = Trigger(0,1,100e-6,500e-6)
         @test dur(lInc) == 0.0
         @test dur(lSet) == 0.0
         @test dur(trig) == trig.delay + trig.duration

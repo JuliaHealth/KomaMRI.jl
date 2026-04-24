@@ -82,45 +82,54 @@ seq.add_block(gx, adc)
 == KomaMRI
 
 ```julia
-addblock!(seq, rf; z=gz)
-addblock!(seq, adc; x=gx)
+@addblock seq = (rf, z=gz)
+@addblock seq += (adc, x=gx)
 ```
 
 :::
 
-Pulseq gradient events carry their channel. Koma `Grad` events are axis-neutral,
-so the axis is chosen when the block is added.
+Koma gradients are axis-neutral. Choose the axis when adding the block.
 
 ```julia
 seq = Sequence()
 
 for ky in 1:Ny
-    addblock!(seq, rf; z=gz)
-    addblock!(seq, adc; x=gx, y=phase_blip(ky))
+    @addblock seq += (rf, z=gz)
+    @addblock seq += (adc, x=gx, y=phase_blip(ky))
 end
 ```
 
-The axis keywords `x=`, `y=`, and `z=` place gradients in the corresponding
-gradient row. RF, ADC, and extensions such as `LabelSet`, `LabelInc`, and
-`Trigger` are positional block events. `Delay(T)` can be used as a standalone
-delay block, or inside a block to set the minimum block duration. `Duration(T)`
-sets the exact block duration and errors if any event is longer.
+RF, ADC, and extensions are positional. Gradients use `x=`, `y=`, or `z=`.
 
 ```julia
-addblock!(seq, rf, LabelSet(ky, "LIN"), Duration(TR); z=gz)
+@addblock seq += (rf, LabelSet(ky, "LIN"), Duration(TR), z=gz)
 ```
 
-This mirrors Pulseq's two duration styles: `Delay(T)` is like
-`mr.makeDelay(T)`, while `Duration(T)` is like MATLAB Pulseq's numeric
-`seq.addBlock(T, ...)` argument.
+Use `Delay(T)` for a minimum duration. Use `Duration(T)` for an exact duration.
 
-For longer sequences, `@addblocks` keeps the Pulseq mental model while making
-composition concise:
+```julia
+@addblock seq += (rf, Delay(TR), z=gz)     # at least TR
+@addblock seq += (rf, Duration(TR), z=gz)  # exactly TR, or errors
+```
+
+Use `@addblocks` in loops.
 
 !!! warning
-    Do not use plain `seq += ...` in long loops without `@addblocks`. Outside the
-    macro, `+=` is just `seq = seq + ...`, so it copies the accumulated sequence
-    on every iteration and becomes very inefficient for large pulse programs.
+    Plain `seq += chunk` in long loops copies the accumulated sequence each
+    iteration. In a 1,000-block loop, this can be more than 800x slower than
+    `@addblocks`.
+
+```julia
+# Slow
+for ky in 1:Ny
+    seq += readout(ky)
+end
+
+# Fast
+@addblocks for ky in 1:Ny
+    seq += readout(ky)
+end
+```
 
 ```julia
 seq = Sequence()
@@ -131,31 +140,51 @@ seq = Sequence()
 end
 ```
 
-Inside `@addblocks`, a tuple means "one block" and `+` means "append these
-chunks in order". Incoming events and sequence chunks are copied when appended,
-so reusing `rf`, `gz`, or a readout chunk in a loop does not connect old blocks
-to later edits.
+Inside `@addblocks`, a tuple is one block. `+` appends chunks in order.
 
-Variable block contents can be spliced, matching the MATLAB `contents{:}` style:
+Splice variable block contents:
 
 ```julia
 contents = (Duration(TR), LabelInc(1, "ECO"))
 @addblocks seq += (contents..., x=gx, y=gy, z=gz)
 ```
 
+Group gradient axes:
+
+```julia
+rf_event = RF(rf_waveform, rf_intervals, Δf, rf_delay)
+G_ss = (x=Grad(Gx, T, ζ), y=Grad(Gy, T, ζ), z=Grad(Gz, T, ζ))
+G_rew = (x=Grad(Gx_rew, T_rew, ζ), y=Grad(Gy_rew, T_rew, ζ), z=Grad(Gz_rew, T_rew, ζ))
+
+@addblock excitation = (rf_event; G_ss...) + (; G_rew...)
+```
+
+Name reusable chunks:
+
+```julia
+@addblock RO = (ADC(N_ro, T_adc, ζ), x=Grad(G_ro, T_ro, ζ))
+@addblock PRE = (x=Grad(Gx_pre, T_pre, ζ_pre), y=Grad(Gy_pre, T_pre, ζ_pre))
+@addblock line = PRE + RO
+```
+
+Appending copies incoming events and chunks, so reused chunks do not share mutable
+events with appended blocks.
+
 ```julia
 bSSFP = Sequence()
 
-@addblocks begin
-    for (i, f) in enumerate(ramp_factors)
-        bSSFP += ((-1)^(i - 1) * f) * rf + ramp_readout
-    end
+@addblocks for (i, f) in enumerate(ramp_factors)
+    phase = cis(π * (i - 1))
+    bSSFP += rf_excitation(f * phase) + phase * ramp_readout
+end
 
-    for ky in 1:Ny
-        bSSFP += (-1)^(ky - 1) * rf + readout(ky)
-    end
+@addblocks for ky in 1:Ny
+    phase = cis(π * (length(ramp_factors) + ky - 1))
+    bSSFP += rf_excitation(phase) + phase * readout(ky)
 end
 ```
+
+Complex scaling phase-shifts RF and ADC and leaves gradients unchanged.
 
 Use `@addblock` for one statement and `@addblocks` for a loop or `begin ... end`
 block.

@@ -40,7 +40,7 @@ julia> A, T, delay =  10e-3, 0.5e-3, 0.1e-3;
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(10000.0 uT, 0.5 ms, 0.0 Hz)
 
-julia> seq = Sequence(); seq += rf
+julia> @addblock seq = rf
 Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 
 julia> plot_seq(seq; slider=false)
@@ -61,7 +61,7 @@ julia> T, delay = 0.5e-3, 0.1e-3;
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(∿ uT, 0.5 ms, 0.0 Hz)
 
-julia> seq = Sequence(); seq += rf
+julia> @addblock seq = rf
 Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 
 julia> plot_seq(seq; slider=false)
@@ -84,7 +84,7 @@ julia> delay = 0.1e-3;
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(∿ uT, 4.0 ms, 0.0 Hz)
 
-julia> seq = Sequence(); seq += rf
+julia> @addblock seq = rf
 Sequence[ τ = 4.1 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
 
 julia> plot_seq(seq; slider=false)
@@ -211,7 +211,7 @@ julia> N, T, delay =  16, 5e-3, 1e-3;
 julia> adc = ADC(N, T, delay)
 ADC(16, 0.005, 0.001, 0.0, 0.0)
 
-julia> seq = Sequence(); seq += adc
+julia> @addblock seq = adc
 Sequence[ τ = 6.0 ms | blocks: 1 | ADC: 1 | GR: 0 | RF: 0 | DEF: 0 ]
 
 julia> plot_seq(seq; slider=false)
@@ -298,7 +298,7 @@ seq = Sequence()
 # Create labels
 lInc = LabelInc(1, "LIN")
 lSet = LabelSet(1, "ECO")
-trig = Trigger(0,1,100,500)
+trig = Trigger(0, 1, 100e-6, 500e-6) # delay and duration in seconds
 
 # Add labels to the sequence
 seq.EXT = [[lInc,trig], [lSet]]
