@@ -65,6 +65,8 @@ include("datatypes/sequence/ADC.jl")
 include("datatypes/sequence/EXT.jl")
 include("timing/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
+include("datatypes/sequence/TimingChecks.jl")
+include("datatypes/sequence/HardwareChecks.jl")
 include("datatypes/sequence/AddBlockMacro.jl")
 include("datatypes/sequence/DelayDuration.jl")
 # Motion
@@ -107,7 +109,7 @@ export get_kspace, rotx, roty, rotz
 export get_flip_angles, is_RF_on, is_GR_on, is_ADC_on
 # Sequence related
 export get_Mk, get_kspace, get_M0, get_M1, get_M2, get_label
-export check_scanner_constraints
+export check_timing, check_hw_limits
 
 # PulseDesigner submodule
 include("sequences/PulseDesigner.jl")

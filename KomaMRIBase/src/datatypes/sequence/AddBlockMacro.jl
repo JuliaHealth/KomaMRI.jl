@@ -3,6 +3,18 @@ _addblock_term!(seq::Sequence, events::_BlockEventTuple) = addblock!(seq, events
 _addblock_term!(seq::Sequence, events::_BlockEvent...) = addblock!(seq, events...)
 _addblock_term!(seq::Sequence, event) = addblock!(seq, event)
 
+function _addblock_check!(seq::Sequence, ctx)
+    if get(ctx, :check_timing, false)
+        sys = get(ctx, :sys, nothing)
+        isnothing(sys) ? check_timing(seq) : check_timing(seq, sys)
+    end
+    if get(ctx, :check_hw_limits, false)
+        sys = get(ctx, :sys, nothing)
+        isnothing(sys) ? check_hw_limits(seq) : check_hw_limits(seq, sys)
+    end
+    return seq
+end
+
 function _addblock_terms(ex)
     if ex isa Expr && ex.head == :call && ex.args[1] == :+
         return mapreduce(_addblock_terms, append!, ex.args[2:end]; init=Any[])
@@ -74,19 +86,22 @@ function _addblock_call(seq, term)
     return Expr(:call, addterm, seq, term)
 end
 
-function _addblock_initialization(lhs, rhs)
-    seq_type = GlobalRef(@__MODULE__, :Sequence)
-    return Expr(:block,
-        Expr(:(=), lhs, Expr(:call, seq_type)),
-        (_addblock_call(lhs, term) for term in _addblock_terms(rhs))...,
-        lhs,
-    )
-end
-
-function _addblock_assignment(lhs, rhs)
+function _addblock_assignment(lhs, rhs, ctx)
     lhs_value = gensym(:lhs)
     seq_type = GlobalRef(@__MODULE__, :Sequence)
-    seq_branch = Expr(:block, (_addblock_call(lhs_value, term) for term in _addblock_terms(rhs))..., lhs_value)
+    if isnothing(ctx)
+        seq_branch = Expr(:block, (_addblock_call(lhs_value, term) for term in _addblock_terms(rhs))..., lhs_value)
+    else
+        incoming = gensym(:incoming)
+        seq_branch = Expr(:block,
+            Expr(:(=), incoming, Expr(:call, seq_type)),
+            :($incoming.DEF = $(GlobalRef(Base, :deepcopy))($lhs_value.DEF)),
+            (_addblock_call(incoming, term) for term in _addblock_terms(rhs))...,
+            Expr(:call, GlobalRef(@__MODULE__, :_addblock_check!), incoming, ctx),
+            Expr(:call, GlobalRef(Base, :append!), lhs_value, incoming),
+            lhs_value,
+        )
+    end
     fallback = _has_addblock_tuple_kwargs(rhs) ?
         Expr(:call, GlobalRef(Base, :error), "@addblock tuple keyword syntax requires a Sequence left-hand side.") :
         :($lhs_value + $rhs)
@@ -99,43 +114,57 @@ function _addblock_assignment(lhs, rhs)
     end)
 end
 
-function _rewrite_addblock(ex, target)
+function _rewrite_addblock(ex, target, ctx)
     if ex isa Expr
         if ex.head == :+= && (target === nothing || ex.args[1] == target)
-            return _addblock_assignment(ex.args[1], ex.args[2])
+            return _addblock_assignment(ex.args[1], ex.args[2], ctx)
         end
-        return Expr(ex.head, (_rewrite_addblock(arg, target) for arg in ex.args)...)
+        return Expr(ex.head, (_rewrite_addblock(arg, target, ctx) for arg in ex.args)...)
     end
     return ex
 end
 
+function _split_addblock_args(args)
+    isempty(args) && error("@addblock expects an expression.")
+    ctx = nothing
+    i = 1
+    kws = Any[]
+    while i < length(args) && args[i] isa Expr && args[i].head == :(=) && args[i].args[1] in (:check_timing, :check_hw_limits, :sys)
+        push!(kws, Expr(:kw, args[i].args...))
+        i += 1
+    end
+    if !isempty(kws)
+        ctx = Expr(:tuple, Expr(:parameters, kws...))
+    end
+    i <= length(args) || error("@addblock expects an expression after its options.")
+    length(args) == i || error("@addblock expects options followed by one expression.")
+    return ctx, args[i]
+end
+
 """
     @addblock expr
+    @addblock check_timing=true check_hw_limits=true expr
 
-Rewrite one block expression to append in place, or build a named sequence chunk.
+Rewrite one block expression to append in place.
 
 # Examples
 ```julia
+seq = Sequence()
 @addblock seq += (rf, z=gz)
-@addblock RO = (adc, x=gx)
+@addblock check_timing=true seq += (adc, x=gx)
 ```
 """
 macro addblock(args...)
-    target, ex = if length(args) == 1
-        nothing, only(args)
-    elseif length(args) == 2
-        args[1], args[2]
-    else
-        error("@addblock expects an expression, or a target sequence and an expression.")
+    ctx, ex = _split_addblock_args(args)
+    if ex isa Expr && ex.head == :(=)
+        error("@addblock does not create sequences. Use `seq = Sequence()` or `seq = Sequence(sys)`, then `@addblock seq += ...`.")
     end
-    if target === nothing && ex isa Expr && ex.head == :(=)
-        return esc(_addblock_initialization(ex.args[1], ex.args[2]))
-    end
-    return esc(_rewrite_addblock(ex, target))
+    return esc(_rewrite_addblock(ex, nothing, ctx))
 end
 
 """
     @addblocks expr
+    @addblocks check_timing=true check_hw_limits=true expr
 
 Rewrite block expressions inside a loop or `begin ... end` block.
 
@@ -147,6 +176,7 @@ Rewrite block expressions inside a loop or `begin ... end` block.
 end
 ```
 """
-macro addblocks(ex)
-    return esc(_rewrite_addblock(ex, nothing))
+macro addblocks(args...)
+    ctx, ex = _split_addblock_args(args)
+    return esc(_rewrite_addblock(ex, nothing, ctx))
 end

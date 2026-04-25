@@ -1,5 +1,6 @@
 """
     seq = Sequence()
+    seq = Sequence(sys::Scanner)
     seq = Sequence(GR)
     seq = Sequence(GR, RF)
     seq = Sequence(GR, RF, ADC)
@@ -17,10 +18,9 @@ block. This struct serves as an input for the simulation.
 - `RF`: (`::Matrix{RF}`) RF matrix. The 1 row is for the coil and columns are for blocks
 - `ADC`: (`::Array{ADC,1}`) ADC block vector
 - `DUR`: (`::Vector`, `[s]`) duration block vector
-- `DEF`: (`::Dict{String, Any}`) dictionary with relevant information of the sequence.
-    Possible keys could be [`"AdcRasterTime"`, `"GradientRasterTime"`, `"Name"`, `"Nz"`,
-    `"Num_Blocks"`, `"Nx"`, `"Ny"`, `"PulseqVersion"`, `"BlockDurationRaster"`,
-    `"FileName"`, `"RadiofrequencyRasterTime"`]
+- `DEF`: (`::Dict{String, Any}`) dictionary with sequence definitions. Pulseq
+    raster and hardware-check metadata use Pulseq-style keys such as
+    `"BlockDurationRaster"`, `"GradientRasterTime"`, `"MaxGrad"`, and `"MaxSlew"`.
 
 # Returns
 - `seq`: (`::Sequence`) Sequence struct
@@ -93,6 +93,81 @@ function _concrete_event_array_copy(x)
     return out
 end
 
+const PULSEQ_RASTER_DEFINITION_KEYS = (
+    "BlockDurationRaster",
+    "GradientRasterTime",
+    "RadiofrequencyRasterTime",
+    "AdcRasterTime",
+)
+const PULSEQ_HW_DEFINITION_KEYS = (
+    "B0",
+    "MaxB1",
+    "MaxGrad",
+    "MaxSlew",
+    "RfRingdownTime",
+    "RfDeadTime",
+    "AdcDeadTime",
+)
+
+const DEFAULT_SEQUENCE_DEFINITIONS = Dict{String,Any}(
+    "BlockDurationRaster" => 10e-6,
+    "GradientRasterTime" => 10e-6,
+    "RadiofrequencyRasterTime" => 1e-6,
+    "AdcRasterTime" => 100e-9,
+    "B0" => 1.5,
+    "MaxB1" => Inf,
+    "MaxGrad" => Inf,
+    "MaxSlew" => Inf,
+    "RfRingdownTime" => 0.0,
+    "RfDeadTime" => 0.0,
+    "AdcDeadTime" => 0.0,
+)
+
+_sequence_def(sys::Scanner) = Dict{String,Any}(
+    "BlockDurationRaster" => sys.DUR_Δt,
+    "GradientRasterTime" => sys.GR_Δt,
+    "RadiofrequencyRasterTime" => sys.RF_Δt,
+    "AdcRasterTime" => sys.ADC_Δt,
+    "B0" => sys.B0,
+    "MaxB1" => sys.B1,
+    "MaxGrad" => sys.Gmax,
+    "MaxSlew" => sys.Smax,
+    "RfRingdownTime" => sys.RF_ring_down_T,
+    "RfDeadTime" => sys.RF_dead_time_T,
+    "AdcDeadTime" => sys.ADC_dead_time_T,
+)
+
+_default_sequence_def() = copy(DEFAULT_SEQUENCE_DEFINITIONS)
+_sequence_def_from_pulseq(def) = merge(_default_sequence_def(), deepcopy(def))
+
+function _merge_sequence_def!(dest, src)
+    for (key, value) in src
+        if key in PULSEQ_RASTER_DEFINITION_KEYS || key in PULSEQ_HW_DEFINITION_KEYS
+            haskey(dest, key) || (dest[key] = deepcopy(value))
+        else
+            dest[key] = deepcopy(value)
+        end
+    end
+    return dest
+end
+
+function _sequence_scanner_from_def(def)
+    default = DEFAULT_SEQUENCE_DEFINITIONS
+    return Scanner(
+        B0=get(def, "B0", default["B0"]),
+        B1=get(def, "MaxB1", default["MaxB1"]),
+        Gmax=get(def, "MaxGrad", default["MaxGrad"]),
+        Smax=get(def, "MaxSlew", default["MaxSlew"]),
+        ADC_Δt=get(def, "AdcRasterTime", default["AdcRasterTime"]),
+        DUR_Δt=get(def, "BlockDurationRaster", default["BlockDurationRaster"]),
+        GR_Δt=get(def, "GradientRasterTime", default["GradientRasterTime"]),
+        RF_Δt=get(def, "RadiofrequencyRasterTime", default["RadiofrequencyRasterTime"]),
+        RF_ring_down_T=get(def, "RfRingdownTime", default["RfRingdownTime"]),
+        RF_dead_time_T=get(def, "RfDeadTime", default["RfDeadTime"]),
+        ADC_dead_time_T=get(def, "AdcDeadTime", default["AdcDeadTime"]),
+    )
+end
+
 # Main Constructors
 function Sequence(seqs::AbstractVector{<:Sequence})
     isempty(seqs) && return Sequence()
@@ -106,7 +181,7 @@ function Sequence(seqs::AbstractVector{<:Sequence})
     ADC = Vector{_small_union_eltype_of_arrays(s.ADC for s in seqs if length(s) > 0)}(undef, nblocks)
     DUR = Vector{Float64}(undef, nblocks)
     EXT = Vector{Vector{Extension}}(undef, nblocks)
-    DEF = Dict{String, Any}()
+    DEF = deepcopy(seqs[i0].DEF)
     j = 1
     for s in seqs
         n = length(s)
@@ -123,7 +198,7 @@ function Sequence(seqs::AbstractVector{<:Sequence})
             EXT[j] = deepcopy(s.EXT[k])
             j += 1
         end
-        merge!(DEF, deepcopy(s.DEF))
+        s === seqs[i0] || _merge_sequence_def!(DEF, s.DEF)
     end
     return Sequence(GR, RF, ADC, DUR, EXT, DEF)
 end
@@ -132,25 +207,25 @@ function Sequence(GR)
     rf = reshape([RF(0.0, 0.0) for i in 1:size(GR, 2)], 1, :)
     adc = [ADC(0, 0.0) for _ = 1:size(GR, 2)]
     ext = _empty_extensions_per_block(size(GR, 2))
-    return Sequence(GR, rf, adc, GR.dur, ext, Dict{String, Any}())
+    return Sequence(GR, rf, adc, GR.dur, ext, _default_sequence_def())
 end
 function Sequence(GR, RF)
     adc = [ADC(0, 0.0) for _ in 1:size(GR, 2)]
     dur = maximum([GR.dur RF.dur], dims=2)[:]
     ext = _empty_extensions_per_block(size(GR, 2))
-    return Sequence(GR, RF, adc, dur, ext, Dict{String, Any}())
+    return Sequence(GR, RF, adc, dur, ext, _default_sequence_def())
 end
 function Sequence(GR, RF, ADC)
     dur = maximum([GR.dur RF.dur ADC.dur], dims=2)[:]
     ext = _empty_extensions_per_block(size(GR, 2))
-    return Sequence(GR, RF, ADC, dur, ext, Dict{String, Any}())
+    return Sequence(GR, RF, ADC, dur, ext, _default_sequence_def())
 end
 function Sequence(GR, RF, ADC, DUR)
     ext = _empty_extensions_per_block(size(GR, 2))
-    return Sequence(GR, RF, ADC, DUR, ext, Dict{String, Any}())
+    return Sequence(GR, RF, ADC, DUR, ext, _default_sequence_def())
 end
 function Sequence(GR, RF, ADC, DUR, EXT)
-    return Sequence(GR, RF, ADC, DUR, EXT, Dict{String, Any}())
+    return Sequence(GR, RF, ADC, DUR, EXT, _default_sequence_def())
 end
 
 # Other constructors
@@ -163,7 +238,15 @@ Sequence() = Sequence(
     Vector{ADC}(undef, 0),
     Vector{Float64}(undef, 0),
     Vector{Vector{Extension}}(undef, 0),
-    Dict{String, Any}(),
+    _default_sequence_def(),
+)
+Sequence(sys::Scanner) = Sequence(
+    Matrix{Grad}(undef, 3, 0),
+    Matrix{RF}(undef, 1, 0),
+    Vector{ADC}(undef, 0),
+    Vector{Float64}(undef, 0),
+    Vector{Vector{Extension}}(undef, 0),
+    _sequence_def(sys),
 )
 
 """
@@ -300,7 +383,7 @@ function Base.append!(x::Sequence, y::Sequence)
     x.ADC = _append_event_vector!(x.ADC, y.ADC)
     append!(x.DUR, y.DUR)
     x.EXT = _append_metadata_vector!(x.EXT, y.EXT)
-    merge!(x.DEF, deepcopy(y.DEF))
+    _merge_sequence_def!(x.DEF, y.DEF)
     return x
 end
 function Base.append!(x::Sequence, y::Sequence, ys::Sequence...)
@@ -335,7 +418,7 @@ function _set_block_duration!(seq, events...)
     T = _block_duration_constraint(events...)
     if isnothing(T)
         seq.DUR[1] = block_duration
-    elseif block_duration > T && !isapprox(block_duration, T; rtol=0, atol=1e-12)
+    elseif block_duration > T && !isapprox(block_duration, T; rtol=0, atol=PULSEQ_TIME_TOL)
         error("Block duration $(block_duration) s exceeds requested Duration($(T)) s.")
     else
         seq.DUR[1] = T
@@ -913,112 +996,4 @@ function Base.maximum(label::Vector{AdcLabels})
 	end
 
 	return maxLabel
-end
-
-"""
-    check_scanner_constraints(seq::Sequence, sys::Scanner=Scanner())
-
-Checks event-local scanner limits only:
-- maximum RF amplitude `|B1|`
-- maximum gradient amplitude `|G|`
-- maximum gradient slew rate `|dG/dt|`
-- minimum ADC dwell time
-
-It does not enforce RF/ADC dead times or RF ring-down.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-- `sys`: (`::Scanner`) Scanner struct
-"""
-function check_scanner_constraints(seq::Sequence, sys=Scanner())
-    check_scanner_constraints(seq.GR, seq.RF, seq.ADC, sys)
-    @info "✅ Sequence is compliant with the scanner constraints."
-    return nothing
-end
-
-_absmax(x::Number) = abs(x)
-_absmax(x::AbstractArray{<:Number}) = maximum(abs, x)
-
-function check_scanner_constraints(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, adc::AbstractVector{ADC}, sys=Scanner()) where {G<:Grad,R<:RF}
-    rf_maxima = IdDict{R,Float64}()
-    gr_maxima = IdDict{G,Float64}()
-    gr_slew_maxima = IdDict{G,Float64}()
-    adc_dwells = IdDict{ADC,Float64}()
-    axis_names = ("x", "y", "z")
-    rtol = sqrt(eps(Float64))
-    for i in eachindex(adc)
-        rf_i = rf[1, i]
-        if is_RF_on(rf_i) && !haskey(rf_maxima, rf_i)
-            rf_maxima[rf_i] = _absmax(rf_i.A)
-        end
-        rf_peak = is_RF_on(rf_i) ? rf_maxima[rf_i] : 0.0
-        if rf_peak > sys.B1 && !isapprox(rf_peak, sys.B1; rtol, atol=0)
-            error("RF amplitude for block $i is greater than the maximum RF amplitude of the scanner ($(sys.B1 * 1e6) μT).")
-        end
-        for gi in 1:3
-            gr_i = gr[gi, i]
-            is_GR_on(gr_i) || continue
-            if !haskey(gr_maxima, gr_i)
-                gr_maxima[gr_i] = max(abs(gr_i.first), _absmax(gr_i.A), abs(gr_i.last))
-            end
-            grad_peak = gr_maxima[gr_i]
-            (grad_peak <= sys.Gmax || isapprox(grad_peak, sys.Gmax; rtol, atol=0)) || error("$(axis_names[gi]) gradient amplitude for block $i is greater than the maximum gradient amplitude of the scanner ($(sys.Gmax * 1e3) mT/m).")
-            if !haskey(gr_slew_maxima, gr_i)
-                gr_slew_maxima[gr_i] = _max_gradient_slew(gr_i)
-            end
-            grad_slew = gr_slew_maxima[gr_i]
-            (grad_slew <= sys.Smax || isapprox(grad_slew, sys.Smax; rtol, atol=0)) || error("$(axis_names[gi]) gradient slew rate for block $i is greater than the maximum gradient slew rate of the scanner ($(sys.Smax) mT/m/ms).")
-        end
-        adc_i = adc[i]
-        is_ADC_on(adc_i) || continue
-        if !haskey(adc_dwells, adc_i)
-            adc_dwells[adc_i] = adc_i.N == 1 ? adc_i.T : adc_i.T / (adc_i.N - 1)
-        end
-        dwell = adc_dwells[adc_i]
-        if dwell < sys.ADC_Δt
-            error("ADC dwell time $(dwell * 1e6) μs for block $i is less than the minimum ADC dwell time of the scanner ($(sys.ADC_Δt * 1e6) μs).")
-        end
-    end
-    return nothing
-end
-
-function _max_gradient_slew(gr::TrapezoidalGrad)
-    max_slew = gr.rise > 0 ? abs(gr.A - gr.first) / gr.rise : 0.0
-    if gr.fall > 0
-        max_slew = max(max_slew, abs(gr.last - gr.A) / gr.fall)
-    end
-    return max_slew
-end
-
-function _max_gradient_slew(gr::UniformlySampledGrad)
-    n = length(gr.A)
-    n == 0 && return 0.0
-    thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
-    max_slew = gr.rise > 0 ? abs(gr.A[1] - gr.first) / gr.rise : 0.0
-    if n > 1
-        Δt = gr.T / (n - 1)
-        @inbounds for i in 1:(n - 1)
-            abs(Δt) > thresh || continue
-            max_slew = max(max_slew, abs((gr.A[i + 1] - gr.A[i]) / Δt))
-        end
-    end
-    if gr.fall > 0
-        max_slew = max(max_slew, abs(gr.last - gr.A[end]) / gr.fall)
-    end
-    return max_slew
-end
-
-function _max_gradient_slew(gr::TimeShapedGrad)
-    n = length(gr.A)
-    n == 0 && return 0.0
-    thresh = max(100 * MIN_RISE_TIME, sqrt(eps(Float64)))
-    max_slew = gr.rise > 0 ? abs(gr.A[1] - gr.first) / gr.rise : 0.0
-    @inbounds for i in 1:min(length(gr.T), n - 1)
-        abs(gr.T[i]) > thresh || continue
-        max_slew = max(max_slew, abs((gr.A[i + 1] - gr.A[i]) / gr.T[i]))
-    end
-    if gr.fall > 0
-        max_slew = max(max_slew, abs(gr.last - gr.A[end]) / gr.fall)
-    end
-    return max_slew
 end

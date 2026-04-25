@@ -221,13 +221,8 @@ using TestItems, TestItemRunner
         @test macroseq.GR[1,2].A ≈ g.A
         @test macroseq.GR[3,2].A ≈ (2g).A
 
-        @addblock initseq = (rf; axis_kw...) + (; axis_kw...)
-        @test length(initseq) == 2
-        @test initseq.RF[1,1].A ≈ rf.A
-        @test initseq.GR[1,1].A ≈ g.A
-        @test initseq.GR[3,2].A ≈ (2g).A
-
-        @addblock gxseq = (x=g)
+        gxseq = Sequence()
+        @addblock gxseq += (x=g)
         @test length(gxseq) == 1
         @test gxseq.GR[1,1].A ≈ g.A
 
@@ -275,7 +270,32 @@ using TestItems, TestItemRunner
         @test line == 3
         @test all(block -> block.RF[1,1].A ≈ rf.A, bssp)
 
+        checked = Sequence()
+        @addblock check_timing=true check_hw_limits=true checked += (RF(1e-6, 10e-6), x=Grad(1e-3, 10e-6))
+        @test length(checked) == 1
+        @test_throws ErrorException @addblock check_timing=true checked += RF(1e-6, 10.5e-6)
+        @test length(checked) == 1
+        @test_throws ErrorException @addblock check_timing=true sys=Scanner(DUR_Δt=20e-6) checked += RF(1e-6, 10e-6)
+        @test length(checked) == 1
+
+        hw_checked = Sequence()
+        @addblock check_hw_limits=true hw_checked += RF(1e-6, 10.5e-6)
+        @test length(hw_checked) == 1
+        @test_throws ErrorException @addblock check_hw_limits=true sys=Scanner(B1=0.5e-6) hw_checked += RF(1e-6, 10e-6)
+        @test length(hw_checked) == 1
+
+        checked_loop = Sequence()
+        @addblocks check_timing=true check_hw_limits=true for _ in 1:2
+            checked_loop += (RF(1e-6, 10e-6), x=Grad(1e-3, 10e-6))
+        end
+        @test length(checked_loop) == 2
+        @test_throws ErrorException @addblocks check_timing=true for _ in 1:1
+            checked_loop += RF(1e-6, 10.5e-6)
+        end
+        @test length(checked_loop) == 2
+
         @test_throws ErrorException addblock!(Sequence(), rf, g)
+        @test_throws ErrorException macroexpand(@__MODULE__, :(@addblock badseq = (RF(1e-6, 10e-6))))
     end
 
     @testset "Grad" begin
@@ -536,6 +556,7 @@ using TestItems, TestItemRunner
         lInc = LabelInc(1,"LIN")
         lSet = LabelSet(1,"ECO")
         lSet2 = LabelSet(0,"LIN")
+        lSetTRID = LabelSet(4,"TRID")
         trig = Trigger(0,1,100e-6,500e-6)
         @test dur(lInc) == 0.0
         @test dur(lSet) == 0.0
@@ -573,6 +594,11 @@ using TestItems, TestItemRunner
         @test LIN_vec == vec([1 2 3 3 0 0])
         PHS_vec = [l[i].PHS for i in eachindex(l)] 
         @test PHS_vec == vec([0 0 0 2 2 2])
+
+        seq.EXT[6] = [lSetTRID]
+        l = get_label(seq)
+        TRID_vec = [l[i].TRID for i in eachindex(l)]
+        @test TRID_vec == vec([0 0 0 0 0 4])
 
     end
 
@@ -733,7 +759,43 @@ using TestItems, TestItemRunner
     @testset "Check Scanner Constraints" begin
         sys = Scanner()
         seq = PulseDesigner.EPI_example()
-        @test_logs (:info, r"scanner constraints") isnothing(check_scanner_constraints(seq, sys))
+        @test isnothing(check_hw_limits(seq, sys))
+    end
+    @testset "Sequence timing and hardware metadata" begin
+        seq = Sequence()
+        @test seq.DEF["BlockDurationRaster"] == 10e-6
+        @test seq.DEF["GradientRasterTime"] == 10e-6
+        @test seq.DEF["RadiofrequencyRasterTime"] == 1e-6
+        @test seq.DEF["AdcRasterTime"] == 100e-9
+        @test isinf(seq.DEF["MaxB1"])
+        @test isinf(seq.DEF["MaxGrad"])
+        @test isinf(seq.DEF["MaxSlew"])
+
+        sys = Scanner(B1=20e-6, Gmax=40e-3, Smax=150.0, ADC_Δt=2e-6, DUR_Δt=20e-6, GR_Δt=10e-6, RF_Δt=2e-6)
+        seq = Sequence(sys)
+        @test seq.DEF["BlockDurationRaster"] == sys.DUR_Δt
+        @test seq.DEF["AdcRasterTime"] == sys.ADC_Δt
+        @test seq.DEF["MaxB1"] == sys.B1
+        @test seq.DEF["MaxGrad"] == sys.Gmax
+
+        file_def = KomaMRIBase._sequence_def_from_pulseq(Dict("BlockDurationRaster" => 2e-6))
+        @test file_def["BlockDurationRaster"] == 2e-6
+        @test isinf(file_def["MaxGrad"])
+
+        seq = Sequence()
+        @addblock seq += (RF(1e-6, 10e-6), x=Grad(1e-3, 10e-6))
+        @test isnothing(check_timing(seq))
+        @test isnothing(check_hw_limits(seq))
+        compact_rf = Sequence()
+        @addblock compact_rf += (RF([1e-6, 1e-6], 1e-6, 0.0, 0.5e-6), Duration(10e-6))
+        @test isnothing(check_timing(compact_rf))
+        compact_adc = Sequence()
+        @addblock compact_adc += (ADC(2, 100e-9, 50e-9), Duration(10e-6))
+        @test isnothing(check_timing(compact_adc))
+        seq_bad = Sequence()
+        @addblock seq_bad += RF(1e-6, 10.5e-6)
+        @test_throws ErrorException check_timing(seq_bad)
+        @test_throws ErrorException check_hw_limits(seq, Scanner(B1=0.5e-6))
     end
 end
 
@@ -1219,14 +1281,15 @@ end
         ph = heart_phantom()
         @test ph.name == "LeftVentricle"
         @test KomaMRIBase.get_dims(ph) == Bool[1, 1, 0]
+        @test 0 < length(heart_phantom(spins_per_voxel=20)) < length(ph)
     end
 end
 
 @testitem "Scanner" tags=[:base] begin
     B0, B1, Gmax, Smax = 1.5, 10e-6, 60e-3, 500
-    ADC_Δt, seq_Δt, GR_Δt, RF_Δt = 2e-6, 1e-5, 1e-5, 1e-6
+    ADC_Δt, DUR_Δt, GR_Δt, RF_Δt = 2e-6, 1e-5, 1e-5, 1e-6
     RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T = 20e-6, 100e-6, 10e-6
-    sys = Scanner(B0, B1, Gmax, Smax, ADC_Δt, seq_Δt, GR_Δt, RF_Δt, RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T)
+    sys = Scanner(B0, B1, Gmax, Smax, ADC_Δt, DUR_Δt, GR_Δt, RF_Δt, RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T)
     @test sys.B0 ≈ B0 && sys.B1 ≈ B1 && sys.Gmax ≈ Gmax && sys.Smax ≈ Smax
 end
 
