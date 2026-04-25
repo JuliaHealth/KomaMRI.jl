@@ -71,7 +71,7 @@ Scanner
   Gmax: Float64 0.06
   Smax: Int64 500
   ADC_Δt: Float64 2.0e-6
-  seq_Δt: Float64 1.0e-5
+  DUR_Δt: Float64 1.0e-5
   GR_Δt: Float64 1.0e-5
   RF_Δt: Float64 1.0e-6
   RF_ring_down_T: Float64 2.0e-5
@@ -133,7 +133,7 @@ In MRI, the sequence must be carefully designed with precise timing to obtain an
 You can view general information about a **Sequence** struct by displaying it in the **Julia REPL**:
 ```julia-repl
 julia> seq
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | DEF: 5 ]
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | EXT: 0 | DEF: 16 ]
 ```
 
 For more precise timing checks, you can use the [`plot_seq`](@ref) function:
@@ -193,7 +193,7 @@ Dict{String, Any} with 9 entries:
   "Δt_rf"       => 5.0e-5
 ```
 
-All of these parameters deserve special attention. We will explain some of the most important ones here. For instance, `"Δt"` and `"Δt_rf"` represent the raster times for the gradients and RFs. `"return_type"` specifies the type of variable returned by the simulator (by default, it returns an object ready for use with **MRIReco** for reconstruction, but you can use the value `"mat"` to return a simple vector). `"gpu"` indicates whether you want to use your GPU device for simulations, and `"precision"` sets the floating-point precision. For more details on how to set these parameters, please refer to the [Simulation Parameters Section](../explanation/6-simulation.md).
+All of these parameters deserve special attention. We will explain some of the most important ones here. For instance, `"Δt"` and `"Δt_rf"` represent the raster times for the gradients and RFs. `"return_type"` specifies the type of variable returned by the simulator (by default, it returns an object ready for use with **MRIReco** for reconstruction, but you can use the value `"mat"` to return a simple vector). `"gpu"` indicates whether you want to use your GPU device for simulations, and `"precision"` sets the floating-point precision. For more details on how to set these parameters, please refer to the [Simulation Parameters Section](../explanation/7-simulation.md).
 
 
 ### Raw Signal

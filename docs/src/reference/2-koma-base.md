@@ -74,7 +74,8 @@ addblock!
 dur
 get_block_start_times
 get_flip_angles
-check_scanner_constraints
+check_timing
+check_hw_limits
 ```
 
 ### `Grad`

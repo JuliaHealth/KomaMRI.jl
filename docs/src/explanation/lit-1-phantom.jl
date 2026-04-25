@@ -20,33 +20,21 @@ import DisplayAs #hide
 # ## KomaMRI Phantom Overview
 # In Koma, a phantom is made up of a set of spins (which in many cases are also known as ''isochromats'').
 # Each spin is independent of the others in terms of properties, position and state.
-# This is a key feature of **KomaMRI**, as it is explained in the [Simulation](6-simulation.md) section.
+# This is a key feature of **KomaMRI**, as it is explained in the [Simulation](7-simulation.md) section.
 
-# Let's take a look at the definition of the [`Phantom`](@ref KomaMRIBase.Phantom) struct 
-# inside Koma's source code to see what it looks like:
-# ```julia
-# @with_kw mutable struct Phantom{T<:Real}
-#     name::String = "spins"
-#     x::AbstractVector{T}
-#     y::AbstractVector{T}   = zeros(eltype(x), size(x))
-#     z::AbstractVector{T}   = zeros(eltype(x), size(x))
-#     ρ::AbstractVector{T}   = ones(eltype(x), size(x))
-#     T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-#     T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-#     T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
-#     #Off-resonance related
-#     Δw::AbstractVector{T}  = zeros(eltype(x), size(x))
-#     #Diffusion
-#     Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
-#     Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
-#     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
-#     #Motion
-#     motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
-# end
-# ```
-
-# This structure consists of several elements. Most of them are vectors, except for
-# the `name` (self-explanatory) and `motion` (explained below) fields.
+# A [`Phantom`](@ref KomaMRIBase.Phantom) stores one value per spin for each
+# physical property:
+#
+# | Field | Meaning |
+# |---|---|
+# | `name` | Phantom name. |
+# | `x`, `y`, `z` | Initial spin positions in metres. |
+# | `ρ` | Proton density. |
+# | `T1`, `T2`, `T2s` | Relaxation times in seconds. |
+# | `Δw` | Off-resonance in rad/s. |
+# | `Dλ1`, `Dλ2`, `Dθ` | Diffusion-related fields. |
+# | `motion` | Spin displacement model. |
+#
 # These vectors represent object properties, with each element holding a value associated 
 # with a single magnetization (i.e. a single spin).
 # Specifically, `x`, `y` and `z` are the initial spatial coordinates of each spin. 

@@ -134,9 +134,9 @@ writes an already prepared representation directly.
   <line x1="170" y1="95" x2="225" y2="95" stroke="#64748b" stroke-width="2" marker-end="url(#writer-arrow)"></line>
   <rect x="235" y="42" width="210" height="106" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"></rect>
   <text x="340" y="70" text-anchor="middle" font-size="16" font-weight="700">write_seq_data</text>
-  <text x="340" y="94" text-anchor="middle" font-size="12">optional scanner check</text>
+  <text x="340" y="94" text-anchor="middle" font-size="12">hardware checks</text>
   <text x="340" y="113" text-anchor="middle" font-size="12">raster + quantize</text>
-  <text x="340" y="132" text-anchor="middle" font-size="12">deduplicate events + shapes</text>
+  <text x="340" y="132" text-anchor="middle" font-size="12">timing check + deduplicate</text>
 
   <line x1="445" y1="95" x2="500" y2="95" stroke="#64748b" stroke-width="2" marker-end="url(#writer-arrow)"></line>
   <rect x="510" y="60" width="180" height="70" rx="12" fill="#fff7ed" stroke="#fb923c" stroke-width="2"></rect>
@@ -148,22 +148,27 @@ writes an already prepared representation directly.
   <text x="810" y="90" text-anchor="middle" font-size="16" font-weight="700">.seq file</text>
   <text x="810" y="112" text-anchor="middle" font-size="12">sections + signature</text>
 
-  <text x="450" y="185" text-anchor="middle" font-size="13" fill="#64748b">write_seq(seq) prepares data, then writes it; write_seq(data, filename) skips Koma rasterization.</text>
+  <text x="450" y="185" text-anchor="middle" font-size="13" fill="#64748b">write_seq(seq; sys) uses sys for checks and rasters; write_seq(data, filename) skips Koma rasterization.</text>
 </svg>
 </div>
 ```
 
 The writer has four stages:
 
-1. If a `Scanner` is explicitly passed, scanner constraints are checked before
-   writing. `PulseqRaster(seq, sys)` then chooses raster times from `seq.DEF`
-   first and scanner defaults second.
+1. If `check_hw_limits=true`, hardware limits are checked before writing. Without
+   `sys`, this uses metadata in `seq.DEF`; with `sys`, it uses `sys`.
 2. `prepare_pulseq_write` copies and quantizes RF, gradient, ADC, and block
-   duration timings to the Pulseq rasters.
-3. `collect_pulseq_assets` converts quantized Koma events into Pulseq event
-   libraries, deduplicating repeated events and compressed shapes.
-4. `emit_pulseq` writes `[DEFINITIONS]`, `[BLOCKS]`, event libraries, shape
-   libraries, extensions, and the signature.
+   duration timings to the Pulseq rasters. Without `sys`, raster times come from
+   `seq.DEF`; with `sys`, the scanner rasters are used.
+3. If `check_timing=true`, the quantized copy is checked against the Pulseq
+   rasters.
+4. `collect_pulseq_assets` and `emit_pulseq` write `[DEFINITIONS]`, `[BLOCKS]`,
+   event libraries, shape libraries, extensions, and the signature.
+
+Hardware-limit definitions such as `MaxGrad`, `MaxSlew`, `MaxB1`, and dead times
+are Koma check metadata. They are not emitted to the Pulseq `[DEFINITIONS]`
+section; the writer emits Pulseq raster definitions and non-internal user
+definitions.
 
 ### RF
 

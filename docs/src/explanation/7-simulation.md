@@ -140,7 +140,8 @@ durADC = 4000e-3     # duration of the acquisition
 delay =  1e-3       # small delay
 acq = ADC(nADC, durADC, delay)
 
-@addblock seq = exc
+seq = Sequence()
+@addblock seq += exc
 @addblock seq += acq
 ```
 ```@raw html
@@ -195,7 +196,8 @@ durADC = 4000e-3     # duration of the acquisition
 delay =  1e-3       # small delay
 acq = ADC(nADC, durADC, delay)
 
-@addblock seq = exc
+seq = Sequence()
+@addblock seq += exc
 @addblock seq += acq
 ```
 ```@raw html

@@ -31,7 +31,7 @@ features:
   - icon: 🚀
     title: Fast, Device Agnostic
     details: Run on CPU and GPU with CUDA, AMDGPU, Metal, and experimental oneAPI support. Differentiable simulations powered by Enzyme and Reactant.
-    link: /explanation/6-simulation
+    link: /explanation/7-simulation
 
   - icon: 🌊
     title: Dynamic Motion Models

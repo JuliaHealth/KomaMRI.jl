@@ -20,7 +20,7 @@ function bSSFP_cine(
     base_seq =  bSSFP(FOV, N_matrix, TR, flip_angle, sys; Δf=Δf, adc_duration=adc_duration)
 
     n = 1
-    for i in 0:(N_matrix - 1) # 1 vps (Views Per Segment)
+    @addblocks for i in 0:(N_matrix - 1) # 1 vps (Views Per Segment)
         line = base_seq[6*i .+ (1:6)]
 
         if N_dummy_cycles > 0 && i == 0
@@ -129,7 +129,7 @@ function bSSFP(
 	ro.ADC[1] = ADC(N, T_ro, ζ_ro)
 
 	bssfp = Sequence()
-	for i in 0:(N-1)
+	@addblocks for i in 0:(N-1)
 		# Excitation and first phase 
 		ex = copy(EX)
 		ex[end].GR[2].A += i*G_step

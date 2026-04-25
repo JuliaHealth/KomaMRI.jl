@@ -1,233 +1,535 @@
 # Create Your Own Sequence
 
-!!! warning
-    This section is currently under construction, and some details on how to construct a Sequence may be missing.
+A Koma `Sequence` is made of smaller sequence blocks. A block is a `Sequence` of
+length 1: it stores an RF pulse, one gradient per axis, an ADC event, a block
+duration, and extensions such as labels or triggers.
 
-This is an example of how to create a **Sequence** struct:
-
-```julia
-# Export necessary modules
-using KomaMRI
-
-# Create the function that creates a phantom
-function sequence_example(FOV::Real, N::Integer)
-
-    # Define initial paramters (TODO: consider when N is even)
-    sys = Scanner()
-	Δt = sys.ADC_Δt
-	Gmax = sys.Gmax
-	Nx = Ny = N #Square acquisition
-	Δx = FOV/(Nx-1)
-	Ta = Δt*(Nx-1) #4-8 us
-    Δτ = Ta/(Ny-1)
-	Ga = 1/(γ*Δt*FOV)
-	ζ = Ga / sys.Smax
-	Ga ≥ sys.Gmax ? error("Ga=$(Ga*1e3) mT/m exceeds Gmax=$(Gmax*1e3) mT/m, increase Δt to at least Δt_min="
-	*string(round(1/(γ*Gmax*FOV),digits=2))*" us.") : 0
-	ϵ1 = Δτ/(Δτ+ζ)
-
-	# EPI base
-	EPI = Sequence(vcat(
-	    [mod(i,2)==0 ? Grad(Ga*(-1)^(i/2),Ta,ζ) : Grad(0.,Δτ,ζ) for i=0:2*Ny-2],  #Gx
-	 	[mod(i,2)==1 ? ϵ1*Grad(Ga,Δτ,ζ) :         Grad(0.,Ta,ζ) for i=0:2*Ny-2])) #Gy
-	EPI.ADC = [mod(i,2)==1 ? ADC(0,Δτ,ζ) : ADC(N,Ta,ζ) for i=0:2*Ny-2]
-
-	# Pre-wind and wind gradients
-	ϵ2 = Ta/(Ta+ζ)
-    PHASE =   Sequence(reshape(1/2*[Grad(      -Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) # This needs to be calculated differently
-	DEPHASE = Sequence(reshape(1/2*[Grad((-1)^N*Ga, Ta, ζ); ϵ2*Grad(-Ga, Ta, ζ)],:,1)) # for even N
-	seq = PHASE + EPI + DEPHASE
-
-	# Saving parameters
-	seq.DEF = Dict("Nx"=>Nx,"Ny"=>Ny,"Nz"=>1,"Name"=>"epi")
-
-    # Return the sequence
-	return seq
-end
-
-# Call the function to create a sequence
-FOV, N = 23e-2, 101
-seq = sequence_example(FOV, N)
-
-# Plot the sequence in time and its kspace
-plot_seq(seq; range=[0 30])
-plot_kspace(seq)
-```
-```@raw html
-<object type="text/html" data="../assets/create-your-own-sequence-time.html" style="width:50%; height:420px;"></object><object type="text/html" data="../assets/create-your-own-sequence-kspace.html" style="width:50%; height:420px;"></object>
-```
-
-## Block-Oriented Construction
-
-Koma sequences can also be built in the same style as MATLAB Pulseq or PyPulseq:
-define reusable events, then add one physical block at a time. This is often the
-clearest way to write pulse programs with loops.
+Use `@addblock` to add one block:
 
 :::tabs
+
+== KomaMRI
+
+```julia
+seq = Sequence()
+@addblock seq += (rf, z=gz)
+```
 
 == MATLAB Pulseq
 
 ```matlab
 seq.addBlock(rf, gz)
-seq.addBlock(gx, adc)
 ```
 
 == PyPulseq
 
 ```python
 seq.add_block(rf, gz)
-seq.add_block(gx, adc)
 ```
+
+:::
+
+Everything after `+=` can also compose blocks and reusable chunks. That makes
+several Pulseq-style `addBlock` calls one Koma statement:
+
+:::tabs
 
 == KomaMRI
 
 ```julia
-@addblock seq = (rf, z=gz)
-@addblock seq += (adc, x=gx)
+@addblock seq += (rf, z=gz) + readout(ky) + (Delay(TR), LabelInc(1, "ECO"))
+```
+
+== MATLAB Pulseq
+
+```matlab
+seq.addBlock(rf, gz)
+addReadout(seq, ky)
+seq.addBlock(mr.makeDelay(TR), mr.makeLabel('INC', 'ECO', 1))
+```
+
+== PyPulseq
+
+```python
+seq.add_block(rf, gz)
+add_readout(seq, ky)
+seq.add_block(pp.make_delay(TR), pp.make_label('ECO', 'INC', 1))
 ```
 
 :::
 
-Koma gradients are axis-neutral. Choose the axis when adding the block.
+Unlike MATLAB Pulseq and PyPulseq, a Koma `Grad` does not remember whether it is
+an x, y, or z gradient. You choose the axis when adding it to the sequence with
+`x=`, `y=`, or `z=`. RF, ADC, and extensions are written normally.
+
+The same block in MATLAB Pulseq or PyPulseq is written by passing the gradient
+object for the desired channel directly:
+
+:::tabs
+
+== KomaMRI
 
 ```julia
-seq = Sequence()
-
-for ky in 1:Ny
-    @addblock seq += (rf, z=gz)
-    @addblock seq += (adc, x=gx, y=phase_blip(ky))
-end
+@addblock seq += (rf, LabelSet(ky, "LIN"), z=gz)
 ```
 
-RF, ADC, and extensions are positional. Gradients use `x=`, `y=`, or `z=`.
+== MATLAB Pulseq
 
-```julia
-@addblock seq += (rf, LabelSet(ky, "LIN"), Duration(TR), z=gz)
+```matlab
+seq.addBlock(rf, mr.makeLabel('SET', 'LIN', ky), gz)
 ```
 
-Use `Delay(T)` for a minimum duration. Use `Duration(T)` for an exact duration.
+== PyPulseq
 
-```julia
-@addblock seq += (rf, Delay(TR), z=gz)     # at least TR
-@addblock seq += (rf, Duration(TR), z=gz)  # exactly TR, or errors
+```python
+seq.add_block(rf, pp.make_label('LIN', 'SET', ky), gz)
 ```
 
-Use `@addblocks` in loops.
+:::
 
-!!! warning
-    Plain `seq += chunk` in long loops copies the accumulated sequence each
-    iteration. In a 1,000-block loop, this can be more than 800x slower than
-    `@addblocks`.
+Use `Delay(T)` to set a minimum block duration. It is a construction helper that
+updates the block `DUR`; it is not stored as an RF, gradient, ADC, or extension.
+
+:::tabs
+
+== KomaMRI
 
 ```julia
-# Slow
-for ky in 1:Ny
-    seq += readout(ky)
-end
+@addblock seq += (rf, Delay(TR), z=gz)
+```
 
-# Fast
+== MATLAB Pulseq
+
+```matlab
+seq.addBlock(rf, gz, mr.makeDelay(TR))
+```
+
+== PyPulseq
+
+```python
+seq.add_block(rf, gz, pp.make_delay(TR))
+```
+
+:::
+
+Use `Duration(T)` when the block must last exactly `T` seconds. This also sets
+`DUR`, but errors if the RF, gradients, or ADC are longer than `T`. MATLAB Pulseq
+has the same idea with a numeric first argument to `addBlock`. PyPulseq does not
+have a single public `add_block` argument for exact block duration; check the
+event duration and add a delay event.
+
+:::tabs
+
+== KomaMRI
+
+```julia
+@addblock seq += (rf, Duration(TR), z=gz)
+```
+
+== MATLAB Pulseq
+
+```matlab
+seq.addBlock(TR, rf, gz)
+```
+
+== PyPulseq
+
+```python
+if pp.calc_duration(rf, gz) > TR:
+    raise ValueError("events are longer than TR")
+seq.add_block(rf, gz, pp.make_delay(TR))
+```
+
+:::
+
+`@addblock` is a Julia macro: it rewrites the next `seq += ...` expression before
+it runs. It does not create sequences; make reusable chunks explicitly, then use
+`@addblock` to fill them.
+
+:::tabs
+
+== KomaMRI
+
+```julia
+excitation = Sequence()
+@addblock excitation += (rf, z=gz)
+```
+
+== MATLAB Pulseq
+
+```matlab
+excitation = mr.Sequence();
+excitation.addBlock(rf, gz)
+```
+
+== PyPulseq
+
+```python
+excitation = pp.Sequence()
+excitation.add_block(rf, gz)
+```
+
+:::
+
+## Scanner And Raster Times
+
+Use `Sequence(sys)` when the sequence should carry scanner raster and hardware
+metadata. `@addblock` only builds sequence blocks by default. `write_seq` checks
+raster timing and hardware limits before writing.
+
+:::tabs
+
+== KomaMRI
+
+```julia
+sys = Scanner(Gmax=40e-3, Smax=150)
+seq = Sequence(sys)
+@addblock seq += (rf, z=gz)
+write_seq(seq, "sequence.seq")
+```
+
+== MATLAB Pulseq
+
+```matlab
+sys = mr.opts('MaxGrad', 40, 'GradUnit', 'mT/m', ...
+    'MaxSlew', 150, 'SlewUnit', 'T/m/s');
+seq = mr.Sequence(sys);
+seq.addBlock(rf, gz)
+seq.write('sequence.seq')
+```
+
+== PyPulseq
+
+```python
+system = pp.Opts(max_grad=40, grad_unit='mT/m', max_slew=150, slew_unit='T/m/s')
+seq = pp.Sequence(system=system)
+seq.add_block(rf, gz)
+seq.write('sequence.seq')
+```
+
+:::
+
+Set Pulseq raster definitions on the sequence only when you need explicit file
+rasters without passing a `Scanner` to `write_seq`:
+
+```julia
+seq.DEF["BlockDurationRaster"] = sys.DUR_Δt
+seq.DEF["GradientRasterTime"] = sys.GR_Δt
+seq.DEF["RadiofrequencyRasterTime"] = sys.RF_Δt
+seq.DEF["AdcRasterTime"] = sys.ADC_Δt
+```
+
+Koma's default `Scanner` matches MATLAB Pulseq for block duration, gradient, and
+RF rasters. The ADC raster is different: Koma defaults to `2e-6` seconds, while
+MATLAB Pulseq defaults to `100e-9` seconds. Use `write_seq(seq, filename; sys)`
+when you want the scanner raster times to be authoritative.
+
+## Multiple Blocks
+
+For a longer sequence, you will usually add blocks inside a loop. Koma provides
+`@addblocks` for this: it lets you write many `seq += ...` lines, and turns them
+into efficient block appends.
+
+:::tabs
+
+== KomaMRI
+
+```julia
 @addblocks for ky in 1:Ny
-    seq += readout(ky)
-end
-```
-
-```julia
-seq = Sequence()
-
-@addblocks for ky in 1:Ny
-    seq += (rf, LabelSet(ky, "LIN"), Duration(TR), z=gz)
+    seq += (rf, z=gz)
     seq += (adc, x=gx, y=phase_blip(ky))
 end
 ```
 
-Inside `@addblocks`, a tuple is one block. `+` appends chunks in order.
+== MATLAB Pulseq
 
-Splice variable block contents:
-
-```julia
-contents = (Duration(TR), LabelInc(1, "ECO"))
-@addblocks seq += (contents..., x=gx, y=gy, z=gz)
+```matlab
+for ky = 1:Ny
+    seq.addBlock(rf, gz)
+    seq.addBlock(adc, gx, phaseBlip(ky))
+end
 ```
 
-Group gradient axes:
+== PyPulseq
+
+```python
+for ky in range(Ny):
+    seq.add_block(rf, gz)
+    seq.add_block(adc, gx, phase_blip(ky))
+```
+
+:::
+
+Use `@addblocks` in loops instead of plain `seq += chunk`. In Julia, `seq += chunk`
+is lowered to `seq = seq + chunk`. Koma defines `+` to return a fresh copied
+sequence on purpose, so sequence composition is safe and reused chunks do not
+share mutable events. In long loops that means the accumulated sequence is copied
+again and again; in a 1,000-block loop this can be more than 800x slower.
+
+Inside `@addblocks`, the same rules apply: each tuple is one block and `+`
+appends chunks in order.
+
+## Reusable Chunks
+
+You can also give a block or group of blocks a name. This is useful for readouts,
+prephasers, refocusing modules, or any piece of sequence you want to reuse.
+MATLAB Pulseq and PyPulseq usually do this with normal variables, cell arrays,
+lists, or helper functions rather than sequence chunks.
+
+:::tabs
+
+== KomaMRI
+
+```julia
+readout = Sequence()
+@addblock readout += (ADC(num_readout_samples, adc_duration, ζ), x=Grad(G_readout, T_readout, ζ))
+
+prephaser = Sequence()
+@addblock prephaser += (x=Grad(Gx_prephaser, T_prephaser, ζ_prephaser), y=Grad(Gy_prephaser, T_prephaser, ζ_prephaser))
+
+line = prephaser + readout
+@addblock seq += line
+```
+
+== MATLAB Pulseq
+
+```matlab
+readout = {gx_readout, adc};
+prephaser = {gx_prephaser, gy_prephaser};
+addLine(seq, prephaser, readout)
+
+function addLine(seq, prephaser, readout)
+    seq.addBlock(prephaser{:})
+    seq.addBlock(readout{:})
+end
+```
+
+== PyPulseq
+
+```python
+readout = [gx_readout, adc]
+prephaser = [gx_prephaser, gy_prephaser]
+
+def add_line(seq, prephaser, readout):
+    seq.add_block(*prephaser)
+    seq.add_block(*readout)
+
+add_line(seq, prephaser, readout)
+```
+
+:::
+
+When a chunk is appended, Koma copies its events. That means you can safely reuse
+the same chunk many times without later edits to one block changing the others.
+
+:::tabs
+
+== KomaMRI
+
+```julia
+@addblocks for ky in 1:Ny
+    seq += rf_preparation + readout(ky)
+end
+```
+
+== MATLAB Pulseq
+
+```matlab
+for ky = 1:Ny
+    addRfPreparation(seq)
+    addReadout(seq, ky)
+end
+```
+
+== PyPulseq
+
+```python
+for ky in range(Ny):
+    add_rf_preparation(seq)
+    add_readout(seq, ky)
+```
+
+:::
+
+## Gradient Axes
+
+Named tuples make multi-axis gradients easy to pass around. Here `G_sliceselect`
+is one small object with `x`, `y`, and `z` fields.
+
+:::tabs
+
+== KomaMRI
 
 ```julia
 rf_event = RF(rf_waveform, rf_intervals, Δf, rf_delay)
-G_ss = (x=Grad(Gx, T, ζ), y=Grad(Gy, T, ζ), z=Grad(Gz, T, ζ))
-G_rew = (x=Grad(Gx_rew, T_rew, ζ), y=Grad(Gy_rew, T_rew, ζ), z=Grad(Gz_rew, T_rew, ζ))
+G_sliceselect = (x=Grad(Gx_sliceselect, T, ζ), y=Grad(Gy_sliceselect, T, ζ), z=Grad(Gz_sliceselect, T, ζ))
+G_rewinder = (x=Grad(Gx_rewinder, T_rewinder, ζ), y=Grad(Gy_rewinder, T_rewinder, ζ), z=Grad(Gz_rewinder, T_rewinder, ζ))
 
-@addblock excitation = (rf_event; G_ss...) + (; G_rew...)
+excitation = Sequence()
+@addblock excitation += (rf_event; G_sliceselect...) + (; G_rewinder...)
 ```
 
-Name reusable chunks:
+== MATLAB Pulseq
+
+```matlab
+G_sliceselect = {gx_sliceselect, gy_sliceselect, gz_sliceselect};
+G_rewinder = {gx_rewinder, gy_rewinder, gz_rewinder};
+
+seq.addBlock(rf, G_sliceselect{:})
+seq.addBlock(G_rewinder{:})
+```
+
+== PyPulseq
+
+```python
+G_sliceselect = [gx_sliceselect, gy_sliceselect, gz_sliceselect]
+G_rewinder = [gx_rewinder, gy_rewinder, gz_rewinder]
+
+seq.add_block(rf, *G_sliceselect)
+seq.add_block(*G_rewinder)
+```
+
+:::
+
+You can also splice variable block arguments.
+
+:::tabs
+
+== KomaMRI
 
 ```julia
-@addblock RO = (ADC(N_ro, T_adc, ζ), x=Grad(G_ro, T_ro, ζ))
-@addblock PRE = (x=Grad(Gx_pre, T_pre, ζ_pre), y=Grad(Gy_pre, T_pre, ζ_pre))
-@addblock line = PRE + RO
+contents = (Delay(TR), LabelInc(1, "ECO"))
+@addblock seq += (contents..., x=gx, y=gy, z=gz)
 ```
 
-Appending copies incoming events and chunks, so reused chunks do not share mutable
-events with appended blocks.
+== MATLAB Pulseq
+
+```matlab
+contents = {mr.makeDelay(TR), mr.makeLabel('INC', 'ECO', 1)};
+seq.addBlock(contents{:}, gx, gy, gz)
+```
+
+== PyPulseq
+
+```python
+contents = [pp.make_delay(TR), pp.make_label('ECO', 'INC', 1)]
+seq.add_block(*contents, gx, gy, gz)
+```
+
+:::
+
+## Sequence Arithmetic
+
+Julia's multiple dispatch lets packages define what operators mean for their own
+types. Koma uses this for sequence chunks:
+
+- `real_scalar * sequence` copies the sequence and scales gradient amplitudes.
+- `real_matrix * sequence` copies the sequence and mixes the gradient axes.
+- `complex_scalar * sequence` copies the sequence, phase-shifts RF and ADC, and
+  leaves gradients unchanged.
 
 ```julia
-bSSFP = Sequence()
+@addblock seq += 0.5 * readout(ky)  # half gradient amplitude
+```
 
-@addblocks for (i, f) in enumerate(ramp_factors)
-    phase = cis(π * (i - 1))
-    bSSFP += rf_excitation(f * phase) + phase * ramp_readout
-end
+A `3 × 3` matrix mixes the `x`, `y`, and `z` gradient axes. This is useful for
+rotating a sequence module:
 
-@addblocks for ky in 1:Ny
-    phase = cis(π * (length(ramp_factors) + ky - 1))
-    bSSFP += rf_excitation(phase) + phase * readout(ky)
+```julia
+θ = π / 6
+Rz = [cos(θ) -sin(θ) 0
+      sin(θ)  cos(θ) 0
+      0       0      1]
+
+@addblock seq += Rz * readout(ky)
+```
+
+## Radial Readouts
+
+A rotation matrix makes radial readouts compact: define one readout module, then
+rotate its gradients for each spoke.
+
+:::tabs
+
+== KomaMRI
+
+```julia
+@addblocks for spoke in 0:Nspokes-1
+    θ = π * spoke / Nspokes
+    Rz = [cos(θ) -sin(θ) 0
+          sin(θ)  cos(θ) 0
+          0       0      1]
+    seq += Rz * (excitation + readout)
 end
 ```
 
-Complex scaling phase-shifts RF and ADC and leaves gradients unchanged.
+== MATLAB Pulseq
 
-Use `@addblock` for one statement and `@addblocks` for a loop or `begin ... end`
-block.
+```matlab
+for spoke = 0:Nspokes-1
+    theta = pi * spoke / Nspokes;
+    seq.addBlock(rf, gz)
+    addRotatedReadout(seq, theta)
+end
+```
+
+== PyPulseq
+
+```python
+for spoke in range(Nspokes):
+    theta = pi * spoke / Nspokes
+    seq.add_block(rf, gz)
+    add_rotated_readout(seq, theta)
+```
+
+:::
+
+## What The Macro Does
+
+The macro is syntax for explicit block appends. Conceptually:
 
 :::tabs
 
 == Source
 
 ```julia
-@addblock seq += (rf, LabelSet(line, "LIN"), Duration(TR), z=gz)
+@addblock seq += (rf, z=gz) + readout(ky)
 ```
 
-== Equivalent explicit code
+== Equivalent
 
 ```julia
-addblock!(seq, rf, LabelSet(line, "LIN"), Duration(TR); z=gz)
+addblock!(seq, rf; z=gz)
+append!(seq, copy(readout(ky)))
 ```
 
 :::
+
+Named chunks are normal `Sequence` values. The macro only appends blocks to them:
 
 :::tabs
 
 == Source
 
 ```julia
-@addblocks for ky in 1:Ny
-    seq += rf_prep + readout(ky)
-    counter += 1
-end
+readout = Sequence()
+@addblock readout += (adc, x=gx)
+@addblock seq += rf_preparation + readout
 ```
 
-== Equivalent explicit code
+== Equivalent
 
 ```julia
-for ky in 1:Ny
-    append!(seq, rf_prep)
-    append!(seq, readout(ky))
-    counter = counter + 1
-end
+readout = Sequence()
+addblock!(readout, adc; x=gx)
+append!(seq, copy(rf_preparation))
+append!(seq, copy(readout))
 ```
 
 :::
 
-The macro is only syntax for explicit block appends. `Sequence` left-hand sides
-append blocks in place, while non-`Sequence` `+=` expressions keep normal Julia
-meaning.
+The explicit `copy` in the equivalent code is the important behavior: incoming
+RF, gradient, ADC, and extension events are not shared with the destination
+sequence.
+
+Non-`Sequence` `+=` expressions keep their normal Julia meaning.
