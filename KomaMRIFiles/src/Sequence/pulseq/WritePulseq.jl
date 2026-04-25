@@ -45,6 +45,13 @@ const PULSEQ_OVERSAMPLED_TIME_SHAPE_ID = -1
 collect_pulseq_assets(seq, raster) =
     collect_pulseq_assets(seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster)
 
+pulseq_raster_tuple(raster) = (;
+    BlockDurationRaster=raster.BlockDurationRaster,
+    GradientRasterTime=raster.GradientRasterTime,
+    RadiofrequencyRasterTime=raster.RadiofrequencyRasterTime,
+    AdcRasterTime=raster.AdcRasterTime,
+)
+
 function pulseq_data(seq::KomaMRIBase.Sequence, raster::PulseqRaster)
     prepared = prepare_pulseq_write(seq, raster)
     blocks, event_libraries = collect_pulseq_assets(prepared, raster)
@@ -654,13 +661,8 @@ function emit_signature_section!(io, algorithm, hash_value)
     write(io, "Hash $(hash_value)\n\n")
 end
 
-const INTERNAL_DEFINITION_KEYS = ("signature", "PulseqVersion", "FileName")
-const PULSEQ_RASTER_DEFINITION_KEYS = (
-    "BlockDurationRaster",
-    "GradientRasterTime",
-    "RadiofrequencyRasterTime",
-    "AdcRasterTime",
-)
+const INTERNAL_DEFINITION_KEYS = ("signature", "PulseqVersion", "FileName", KomaMRIBase.PULSEQ_HW_DEFINITION_KEYS...)
+const PULSEQ_RASTER_DEFINITION_KEYS = KomaMRIBase.PULSEQ_RASTER_DEFINITION_KEYS
 
 should_emit_definition(key, value) =
     key ∉ INTERNAL_DEFINITION_KEYS &&
@@ -692,7 +694,7 @@ function pulseq_definitions(definitions, raster)
     for (key, value) in definitions
         if key == "RequiredExtensions"
             required_extensions = value isa AbstractVector ? string.(value) : [string(value)]
-        elseif key ∉ ("BlockDurationRaster", "GradientRasterTime", "RadiofrequencyRasterTime", "AdcRasterTime")
+        elseif should_emit_definition(key, value)
             push!(entries, key => definition_entry_value(value))
         end
     end
@@ -726,13 +728,6 @@ end
 function prepare_pulseq_write(seq, raster=DEFAULT_RASTER)
     return prepare_pulseq_write(seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster)
 end
-
-"""
-    check_raster(seq::Sequence, raster::PulseqRaster=DEFAULT_RASTER)
-
-Legacy compatibility helper: quantize the sequence to the Pulseq raster and round-trip it
-through the Pulseq reader so the returned sequence matches export semantics.
-"""
 
 function prepare_pulseq_write(gr, rf, adc, block_durations, ext, def, raster)
     warn_count = Threads.Atomic{Int}(0)
@@ -813,13 +808,6 @@ function quantize_block(
     warn_ctx = (; block_id=bi, event=:Block, warn_count)
     qdur = quantize_time_value(block_duration, getfield(raster, key), warn_ctx, :DUR; step_name=key)
     return qrf, qgr..., qadc, qdur
-end
-
-function check_raster(seq, raster=DEFAULT_RASTER)
-    data = pulseq_data(seq, raster)
-    buffer = IOBuffer()
-    emit_pulseq(buffer, data)
-    return KomaMRIBase.Sequence(read_seq_data(IOBuffer(take!(buffer))))
 end
 
 function quantize_rf!(rf, raster, block_id, warn_count)
@@ -973,14 +961,14 @@ Writes a Sequence struct to a Pulseq file with `.seq` extension.
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 - `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
-- `sys`: optional scanner used for scanner-constraint validation and as fallback for
-  raster times not defined in `seq.DEF`. Raster definitions in `seq.DEF` take precedence.
+- `sys`: optional scanner used for hardware-limit validation and export raster
+  times. If passed, `sys` raster times take precedence over `seq.DEF`.
 
 # Examples
 ```julia-repl
 julia> seq = Sequence()
-julia> seq += RF(2e-6, 3e-3)
-julia> seq += ADC(100, 100e-3)
+julia> @addblock seq += RF(2e-6, 3e-3)
+julia> @addblock seq += ADC(100, 100e-3)
 julia> write_seq(seq, "fid.seq")
 ```
 """
@@ -1002,32 +990,36 @@ function write_seq(
     return nothing
 end
 
-function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing)
-    scanner = isnothing(sys) ? Scanner() : sys
-    if !isnothing(sys)
-        @info "Checking scanner constraints..." B0_max = scanner.B0 B1_max = scanner.B1 G_max = scanner.Gmax S_max = scanner.Smax ADC_Δt = scanner.ADC_Δt
-        check_scanner_constraints(seq, scanner)
+function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, check_hw_limits=true)
+    if check_hw_limits
+        isnothing(sys) ? KomaMRIBase.check_hw_limits(seq) : KomaMRIBase.check_hw_limits(seq, sys)
     end
-    # 1. Create the Pulseq Raster
-    raster = PulseqRaster(seq, scanner)
-    # 2. Check raster. If the sequence is not compliant, the function will throw a warning and return the sequence with the correct raster.
+    raster = isnothing(sys) ? PulseqRaster(seq) : PulseqRaster(seq, sys)
     @info "Checking Pulseq raster..." BlockDurationRaster = raster.BlockDurationRaster GradientRasterTime = raster.GradientRasterTime RadiofrequencyRasterTime = raster.RadiofrequencyRasterTime AdcRasterTime = raster.AdcRasterTime
-    return pulseq_data(seq, raster)
+    prepared = prepare_pulseq_write(seq, raster)
+    if check_timing
+        KomaMRIBase.check_timing(prepared, pulseq_raster_tuple(raster))
+    end
+    blocks, event_libraries = collect_pulseq_assets(prepared, raster)
+    return PulseqSequenceData(blocks, event_libraries, v"1.5.1", nothing)
 end
 
 """
-    data = write_seq_data(seq; sys=nothing)
+    data = write_seq_data(seq; sys=nothing, check_timing=true, check_hw_limits=true)
 
 Prepare a Koma `Sequence` as [`PulseqSequenceData`](@ref) without writing a file.
-Raster definitions in `seq.DEF` take precedence over scanner defaults. If `sys`
-is passed, scanner constraints are checked before conversion.
+Without `sys`, timing and hardware checks use metadata stored in `seq.DEF`. With
+`sys`, timing, hardware checks, and export raster times use `sys`.
 """
-write_seq_data(seq::KomaMRIBase.Sequence; sys=nothing) = pulseq_data(seq; sys)
+write_seq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, check_hw_limits=true) =
+    pulseq_data(seq; sys, check_timing, check_hw_limits)
 
 function write_seq(
     seq::KomaMRIBase.Sequence, filename::AbstractString;
     sys=nothing,
     signatureAlgorithm="md5",
+    check_timing=true,
+    check_hw_limits=true,
 )
-    return write_seq(pulseq_data(seq; sys), filename; signatureAlgorithm)
+    return write_seq(pulseq_data(seq; sys, check_timing, check_hw_limits), filename; signatureAlgorithm)
 end

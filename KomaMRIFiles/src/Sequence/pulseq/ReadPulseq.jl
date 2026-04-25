@@ -739,7 +739,7 @@ function sequence_from_pulseq_data(data::PulseqSequenceData; filename=nothing)
     seq = get_seq_from_blocks(data.blocks, data.libraries.definitions, decodedLibraries)
 
     # Final details
-    seq.DEF = definitions_dict(data.libraries.definitions)
+    seq.DEF = KomaMRIBase._sequence_def_from_pulseq(definitions_dict(data.libraries.definitions))
     # Koma specific details for reconstrucion
     if !isnothing(filename)
         seq.DEF["FileName"] = basename(filename)

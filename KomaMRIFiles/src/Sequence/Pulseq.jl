@@ -6,7 +6,7 @@ include("pulseq/WritePulseq.jl")
 # Mirrors `teps = 1e-12` in MATLAB Pulseq
 # `matlab/+mr/@Sequence/Sequence.m` (v1.5.1, line 2198).
 const PULSEQ_TIME_TOL = 1e-12
-const DEFAULT_RASTER = PulseqRaster(KomaMRIBase.Sequence(), Scanner())
+const DEFAULT_RASTER = PulseqRaster(KomaMRIBase.Sequence())
 
 """
 compress_shape Compress a gradient or pulse shape.

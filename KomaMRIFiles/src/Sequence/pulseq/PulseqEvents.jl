@@ -97,19 +97,36 @@ struct PulseqRaster
     GradientRasterTime::Float64
     RadiofrequencyRasterTime::Float64
     AdcRasterTime::Float64
+    PulseqRaster(seq) = new(
+        get_raster_time("BlockDurationRaster", seq),
+        get_raster_time("GradientRasterTime", seq),
+        get_raster_time("RadiofrequencyRasterTime", seq),
+        get_raster_time("AdcRasterTime", seq),
+    )
+    PulseqRaster(sys::Scanner) = new(
+        sys.DUR_Δt,
+        sys.GR_Δt,
+        sys.RF_Δt,
+        sys.ADC_Δt,
+    )
     PulseqRaster(seq, sys) = new(
-        get_raster_time("BlockDurationRaster", seq, sys.seq_Δt),
+        get_raster_time("BlockDurationRaster", seq, sys.DUR_Δt),
         get_raster_time("GradientRasterTime", seq, sys.GR_Δt),
         get_raster_time("RadiofrequencyRasterTime", seq, sys.RF_Δt),
-        get_raster_time("AdcRasterTime", seq, sys.ADC_Δt)
+        get_raster_time("AdcRasterTime", seq, sys.ADC_Δt),
     )
 end
 
-function get_raster_time(key::String, seq::KomaMRIBase.Sequence, scanner_default)
-    haskey(seq.DEF, key) || return scanner_default
-    seq_value = seq.DEF[key]
-    seq_value == scanner_default || @warn "Sequence and Scanner definition for $key do not match (($(seq_value) != $(scanner_default))). Using the Sequence definition ($key = $seq_value)."
-    return seq_value
+function get_raster_time(key::String, seq::KomaMRIBase.Sequence)
+    haskey(seq.DEF, key) || error("Sequence has no Pulseq raster definition for `$key`.")
+    return seq.DEF[key]
+end
+
+function get_raster_time(key::String, seq::KomaMRIBase.Sequence, scanner_value)
+    haskey(seq.DEF, key) || return scanner_value
+    value = seq.DEF[key]
+    value == scanner_value || @warn "Sequence and Scanner definition for $key do not match (($(value) != $(scanner_value))). Using the Scanner definition ($key = $scanner_value)."
+    return scanner_value
 end
 
 PulseqTrapGradEvent(data) = PulseqTrapGradEvent(data...)
