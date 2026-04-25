@@ -24,7 +24,7 @@ seq_EPI.EXT[1] = [lSlcInc];
 seq = seq + seq_EPI + seq_EPI
 plot_seq(seq);
 # We can extract the label value with the following function
-l = get_label(seq);
+l = get_labels(seq);
 # And store in a vector only the value of the SLC label
 SLC_vec = [l[i].SLC for i in eachindex(l)];
 
@@ -92,7 +92,7 @@ end
 seq_LIN.EXT[1] = [LabelSet(-1,"LIN")];
 
 # Let's check the LIN label for each ADC
-l = get_label(seq_LIN)
+l = get_labels(seq_LIN)
 l[idx_ADC][1:10]
 
 # We can now simulate the results

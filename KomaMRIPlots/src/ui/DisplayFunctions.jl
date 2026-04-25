@@ -267,7 +267,7 @@ function plot_seq(
         t=reduce(vcat, [usadc(block.adc.t); Inf] for block in seq_samples),
     )
 
-    label = get_label(seq)
+    label = get_labels(seq)
 
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]

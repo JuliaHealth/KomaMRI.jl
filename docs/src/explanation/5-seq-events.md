@@ -239,10 +239,11 @@ slice number for reconstruction.
 `LabelInc` and `LabelSet` create label extensions that can be added to a block
 with `@addblock`.
 
-KomaMRI supports the Pulseq label names used by MATLAB Pulseq: `SLC`, `SEG`,
-`REP`, `AVG`, `SET`, `ECO`, `PHS`, `LIN`, `PAR`, `ACQ`, `TRID`, `NAV`, `REV`,
-`SMS`, `REF`, `IMA`, `OFF`, `NOISE`, `PMC`, `NOROT`, `NOPOS`, `NOSCL`, and
-`ONCE`. [MRD also stores other FLAGS currently not available in KomaMRI](https://ismrmrd.readthedocs.io/en/stable/mrd_raw_data.html#mrd-acquisitionflags).
+KomaMRI supports the Pulseq label names used by MATLAB Pulseq: counters `LIN`,
+`PAR`, `SLC`, `SEG`, `REP`, `AVG`, `SET`, `ECO`, `PHS`, `ACQ`, and `TRID`; flags
+`NAV`, `REV`, `SMS`, `REF`, `IMA`, `OFF`, and `NOISE`; and controls `PMC`,
+`NOROT`, `NOPOS`, `NOSCL`, and `ONCE`. [MRD also stores other FLAGS currently
+not available in KomaMRI](https://ismrmrd.readthedocs.io/en/stable/mrd_raw_data.html#mrd-acquisitionflags).
 
 #### LabelInc
 

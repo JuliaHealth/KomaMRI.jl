@@ -578,7 +578,7 @@ using TestItems, TestItemRunner
 
         @test seq.EXT[5][2] == trig && seq.EXT[5][1] == lSet2
 
-        l = get_label(seq)
+        l = get_labels(seq)
         LIN_vec = [l[i].LIN for i in eachindex(l)] 
         @test LIN_vec == vec([1 2 3 4 0 0])
 
@@ -588,7 +588,7 @@ using TestItems, TestItemRunner
         # Modification of the label directly in the sequence
         lSetPhs = LabelSet(2,"PHS")
         seq.EXT[4] = [lSetPhs]
-        l = get_label(seq)
+        l = get_labels(seq)
 
         LIN_vec = [l[i].LIN for i in eachindex(l)] 
         @test LIN_vec == vec([1 2 3 3 0 0])
@@ -596,7 +596,7 @@ using TestItems, TestItemRunner
         @test PHS_vec == vec([0 0 0 2 2 2])
 
         seq.EXT[6] = [lSetTRID]
-        l = get_label(seq)
+        l = get_labels(seq)
         TRID_vec = [l[i].TRID for i in eachindex(l)]
         @test TRID_vec == vec([0 0 0 0 0 4])
 

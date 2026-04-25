@@ -959,9 +959,9 @@ get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
 	M2, M2_adc
 end
 
-function get_label(seq::Sequence, nBlocks::Int=length(seq.EXT))
+function get_labels(seq::Sequence, nBlocks::Int=length(seq.EXT))
   if nBlocks > length(seq.EXT)
-    @warn "i = $i is superior to the n° of blocks in the sequence. All the labels will be filled"
+    @warn "nBlocks = $nBlocks is greater than the number of blocks in the sequence. All labels will be filled."
     nBlocks = length(seq.EXT)
   end
 
@@ -969,31 +969,23 @@ function get_label(seq::Sequence, nBlocks::Int=length(seq.EXT))
   label = AdcLabels()
 
   for b = 1:nBlocks
-    for val in seq.EXT[b][typeof.(seq.EXT[b]) .== LabelSet]
-      setproperty!(label, Symbol(val.labelstring), val.labelvalue)
+    for val in seq.EXT[b]
+      label = _update_label(label, val)
     end
-
-    for val in seq.EXT[b][typeof.(seq.EXT[b]) .== LabelInc]
-      setproperty!(label,Symbol(val.labelstring),getproperty(label,Symbol(val.labelstring)) + val.labelvalue)
-    end
-    push!(labels,deepcopy(label))
+    push!(labels,label)
   end
   return labels
 end
 
-function extract_field_values(adc_labels, field)
-	return [getfield(adc_label, field) for adc_label in adc_labels]
+_update_label(label::AdcLabels, ::Extension) = label
+_update_label(label::AdcLabels, val::LabelSet) = _adc_label_with(label, Symbol(val.labelstring), val.labelvalue)
+function _update_label(label::AdcLabels, val::LabelInc)
+  label_symbol = Symbol(val.labelstring)
+  return _adc_label_with(label, label_symbol, getproperty(label, label_symbol) + val.labelvalue)
 end
 
 function Base.maximum(label::Vector{AdcLabels})
-	maxLabel = AdcLabels()
-	field_names = fieldnames(eltype(label))
-	max_values = Dict{Symbol, Any}()
-
-	for field in field_names
-			field_values = extract_field_values(label, field)
-			setproperty!(maxLabel,field,maximum(field_values))
-	end
-
-	return maxLabel
+	isempty(label) && throw(ArgumentError("collection must be non-empty"))
+	values = ntuple(i -> maximum(getfield(adc_label, i) for adc_label in label), Val(length(ADC_LABEL_NAMES)))
+	return AdcLabels(values...)
 end

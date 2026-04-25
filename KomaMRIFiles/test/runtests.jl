@@ -131,7 +131,7 @@ end
     @testset "Labels" begin
         pth = @__DIR__
         seq = @suppress read_seq(pth*"/test_files/pulseq/basic_tests/v1.4/label_test.seq") 
-        label = get_label(seq)
+        label = get_labels(seq)
         m = maximum(label)
         a = AdcLabels(4,0,0,0,0,0,0,2,0,0,0,0)
         bool = true
