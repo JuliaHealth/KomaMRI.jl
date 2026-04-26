@@ -11,8 +11,8 @@ delay =  1e-3       # small delay
 acq = ADC(nADC, durADC, delay);
 
 seq = Sequence()  # empty sequence
-seq += exc        # adding RF-only block
-seq += acq        # adding ADC-only block
+@addblock seq += exc  # adding RF-only block
+@addblock seq += acq  # adding ADC-only block
 p1 = plot_seq(seq; slider=false, height=300)
 display(p1);
 
