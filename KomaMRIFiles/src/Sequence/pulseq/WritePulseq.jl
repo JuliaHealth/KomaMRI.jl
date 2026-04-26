@@ -61,6 +61,14 @@ const PULSEQ_OVERSAMPLED_TIME_SHAPE_ID = -1
 # Dedup keys ignore roundoff; stored event values stay unchanged.
 const PULSEQ_EVENT_SIGNIFICANT_DIGITS = 12
 
+_pulseq_absmax(x::Number) = abs(x)
+_pulseq_absmax(x::AbstractArray{<:Number}) = maximum(abs, x)
+_is_pulseq_rf_on(rf) = _pulseq_absmax(rf.A) > PULSEQ_SHAPE_ZERO_TOL
+function _is_pulseq_grad_on(grad)
+    peak = max(abs(grad.first), _pulseq_absmax(grad.A), abs(grad.last))
+    return iszero(peak) ? !iszero(dur(grad)) : peak > PULSEQ_SHAPE_ZERO_TOL
+end
+
 collect_pulseq_assets(seq, raster) =
     collect_pulseq_assets(seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster)
 
@@ -134,7 +142,7 @@ end
     id = register_rf!(rf_library, shape_library, rf, raster)
 """
 function register_rf!(rf_library, shape_library, cache, rf, raster)
-    is_on(rf) || return PULSEQ_NO_EVENT_ID
+    _is_pulseq_rf_on(rf) || return PULSEQ_NO_EVENT_ID
     event_id = get(cache.rf_object_ids, rf, PULSEQ_NO_EVENT_ID)
     event_id != PULSEQ_NO_EVENT_ID && return event_id
     rf_raster_time = raster.RadiofrequencyRasterTime
@@ -238,11 +246,6 @@ end
 """
     id = register_grad!(grad_library, shape_library, grad, raster)
 """
-_pulseq_absmax(x::Number) = abs(x)
-_pulseq_absmax(x::AbstractArray{<:Number}) = maximum(abs, x)
-_is_pulseq_grad_on(grad) =
-    max(abs(grad.first), _pulseq_absmax(grad.A), abs(grad.last)) > PULSEQ_SHAPE_ZERO_TOL
-
 function register_grad!(grad_library, shape_library, cache, grad, raster)
     _is_pulseq_grad_on(grad) || return PULSEQ_NO_EVENT_ID
     event_id = get(cache.grad_object_ids, grad, PULSEQ_NO_EVENT_ID)

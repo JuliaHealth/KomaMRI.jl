@@ -67,6 +67,12 @@ end
         return KomaMRIBase.Sequence(KomaMRIFiles.read_seq_data(IOBuffer(take!(buffer))))
     end
     exported_sequence(seq::Sequence) = exported_sequence(@suppress KomaMRIFiles.write_seq_data(seq; check_timing=false))
+    function matlab_signature_payload(filename)
+        bytes = read(filename)
+        sig_start = first(findfirst(b"[SIGNATURE]", bytes))
+        @test bytes[sig_start - 1] == UInt8('\n')
+        return bytes[1:(sig_start - 2)]
+    end
 
     @testset "Basic Tests" begin
         pth = (@__DIR__ )*"/test_files/pulseq/basic_tests/"
@@ -189,6 +195,8 @@ end
 
         @testset "MATLAB ROTATIONS fixture" begin
             fixture = joinpath(@__DIR__, "test_files/pulseq/basic_tests/v1.5/rotation_radial_tiny.seq")
+            fixture_data = @suppress read_seq_data(fixture)
+            @test KomaMRIFiles.supported_signature_digest(fixture_data.signature.type, matlab_signature_payload(fixture)) == fixture_data.signature.hash
             raw = @suppress read_seq(fixture; apply_rotations=false)
             applied = @suppress read_seq(fixture)
             @test applied.DEF["RequiredExtensions"] == ["ROTATIONS"]
@@ -196,7 +204,8 @@ end
             @test apply_rotations(raw) ≈ applied
 
             data = @suppress write_seq_data(applied)
-            @test length(data.libraries.grad_library) == 1
+            @test length(data.libraries.grad_library) <= 2
+            @test count(g -> !iszero(g.amplitude), values(data.libraries.grad_library)) == 1
             @test length(data.libraries.adc_library) == 1
             @test length(data.libraries.extension_instance_library) == 3
             @test length(only(values(data.libraries.extension_spec_library))) == 3

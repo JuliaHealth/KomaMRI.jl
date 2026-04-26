@@ -51,3 +51,10 @@ extension ROTATIONS 1
 1  1 0 0 0
 2  0.92388 0 0 0.382683
 3  0.707107 0 0 0.707107
+
+[SIGNATURE]
+# This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added
+# It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
+# The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be stripped away for recalculating/verification)
+Type md5
+Hash 1bafef87e5e20c477d9f1566c3ba941c
