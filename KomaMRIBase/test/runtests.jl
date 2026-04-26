@@ -3,6 +3,13 @@ using TestItems, TestItemRunner
 @run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:base in t_start.tags) #verbose=true
 
 @testitem "Sequence" tags=[:base] begin
+    struct AddBlockTestOp end
+    function Base.:*(::AddBlockTestOp, seq::Sequence)
+        out = 3.0 * seq
+        out.DEF["AddBlockTestOp"] = true
+        return out
+    end
+
     @testset "Init" begin
         sys = Scanner()
         B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
@@ -206,6 +213,13 @@ using TestItems, TestItemRunner
         @test divided.GR.A ≈ seq0.GR.A ./ 2
         @test negated.RF[1,1].A ≈ seq0.RF[1,1].A
         @test divided.ADC[1].N == seq0.ADC[1].N
+        @testset "Sequence transforms copy events" begin
+            for transformed in (scaled, phased, rotated, negated, divided)
+                @test transformed.GR[1,1] !== seq0.GR[1,1]
+                @test transformed.RF[1,1] !== seq0.RF[1,1]
+                @test transformed.ADC[1] !== seq0.ADC[1]
+            end
+        end
 
         @test_throws MethodError seq0 * 2.0
         @test_throws MethodError seq0 * im
@@ -299,6 +313,38 @@ using TestItems, TestItemRunner
         @test length(bssp) == 1
         @test bssp.RF[1,1].A ≈ rf.A
         @test bssp.GR[3,1].A ≈ g.A
+        bssp.RF[1,1].A = 8e-6
+        bssp.GR[3,1].A = 0.08
+        @test rf.A ≈ 4e-6
+        @test g.A == 0.04
+
+        transformed_tuple = Sequence()
+        @addblock transformed_tuple += rotz(π / 2) * (x=g, adc) + im * (rf, z=g) + 0.5 * (x=g, adc)
+        @test length(transformed_tuple) == 3
+        @test transformed_tuple.GR[1,1].A ≈ 0 atol=1e-15
+        @test transformed_tuple.GR[2,1].A ≈ g.A
+        @test transformed_tuple.ADC[1].N == adc.N
+        @test transformed_tuple.RF[1,2].ϕ ≈ π / 2
+        @test transformed_tuple.GR[3,2].A ≈ g.A
+        @test transformed_tuple.GR[1,3].A ≈ 0.5g.A
+        transformed_tuple.GR[2,1].A = 0.09
+        transformed_tuple.RF[1,2].A = 9e-6
+        transformed_tuple.ADC[3].N = 64
+        @test g.A == 0.04
+        @test rf.A ≈ 4e-6
+        @test adc.N == 16
+
+        transformed_block = Sequence()
+        @addblock transformed_block += (x=g, adc)
+        transformed_sequence = Sequence()
+        @addblock transformed_sequence += AddBlockTestOp() * transformed_block
+        transformed_tuple = Sequence()
+        @addblock transformed_tuple += AddBlockTestOp() * (x=g, adc)
+        @test transformed_tuple.GR[1,1].A ≈ transformed_sequence.GR[1,1].A
+        @test transformed_tuple.ADC[1].N == transformed_sequence.ADC[1].N
+        @test transformed_tuple.DEF["AddBlockTestOp"] == true
+        transformed_tuple.GR[1,1].A = 0.12
+        @test g.A == 0.04
 
         bssp = Sequence()
         line = 0

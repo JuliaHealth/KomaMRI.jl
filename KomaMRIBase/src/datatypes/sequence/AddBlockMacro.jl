@@ -3,6 +3,13 @@ _addblock_term!(seq::Sequence, events::_BlockEventTuple) = addblock!(seq, events
 _addblock_term!(seq::Sequence, events::_BlockEvent...) = addblock!(seq, events...)
 _addblock_term!(seq::Sequence, event) = addblock!(seq, event)
 
+_addblock_fresh_term!(seq::Sequence, chunk::Sequence) = _append_owned!(seq, chunk)
+_addblock_fresh_term!(seq::Sequence, event) = _addblock_term!(seq, event)
+
+function _addblock_transformed_term!(seq::Sequence, op, events...; x=nothing, y=nothing, z=nothing)
+    return _append_owned!(seq, op * _block_sequence(events; x, y, z))
+end
+
 function _addblock_check!(seq::Sequence, ctx)
     if get(ctx, :check_timing, false)
         sys = get(ctx, :sys, nothing)
@@ -61,29 +68,47 @@ end
 function _addblock_call(seq, term)
     addblock = GlobalRef(@__MODULE__, :addblock!)
     addterm = GlobalRef(@__MODULE__, :_addblock_term!)
+    addfresh = GlobalRef(@__MODULE__, :_addblock_fresh_term!)
     term = _addblock_tuple(term)
     term = something(_addblock_semicolon_splat(term), term)
+    transformed = _addblock_transformed_call(seq, term)
+    isnothing(transformed) || return transformed
     if term isa Expr && term.head == :tuple
-        events = Any[]
-        kws = Any[]
-        for arg in term.args
-            kw = _addblock_keyword(arg)
-            if !isnothing(kw)
-                push!(kws, kw)
-            elseif arg isa Expr && arg.head == :parameters
-                for kwarg in arg.args
-                    kw = _addblock_parameter(kwarg)
-                    isnothing(kw) && error("@addblock only accepts `x`, `y`, or `z` keyword axes in block tuples.")
-                    push!(kws, kw)
-                end
-            else
-                push!(events, arg)
-            end
-        end
-        args = isempty(kws) ? Any[addblock, seq, events...] : Any[addblock, Expr(:parameters, kws...), seq, events...]
-        return Expr(:call, args...)
+        return _addblock_tuple_call(addblock, seq, term)
+    end
+    if term isa Expr && term.head == :call && term.args[1] in (:+, :-, :*, :/)
+        return Expr(:call, addfresh, seq, term)
     end
     return Expr(:call, addterm, seq, term)
+end
+
+function _addblock_transformed_call(seq, term)
+    term isa Expr && term.head == :call && term.args[1] == :* && length(term.args) == 3 || return nothing
+    rhs = _addblock_tuple(term.args[3])
+    rhs = something(_addblock_semicolon_splat(rhs), rhs)
+    rhs isa Expr && rhs.head == :tuple || return nothing
+    return _addblock_tuple_call(GlobalRef(@__MODULE__, :_addblock_transformed_term!), seq, rhs, (term.args[2],))
+end
+
+function _addblock_tuple_call(f, seq, term, prefix=())
+    events = Any[]
+    kws = Any[]
+    for arg in term.args
+        kw = _addblock_keyword(arg)
+        if !isnothing(kw)
+            push!(kws, kw)
+        elseif arg isa Expr && arg.head == :parameters
+            for kwarg in arg.args
+                kw = _addblock_parameter(kwarg)
+                isnothing(kw) && error("@addblock only accepts `x`, `y`, or `z` keyword axes in block tuples.")
+                push!(kws, kw)
+            end
+        else
+            push!(events, arg)
+        end
+    end
+    args = isempty(kws) ? Any[f, seq, prefix..., events...] : Any[f, Expr(:parameters, kws...), seq, prefix..., events...]
+    return Expr(:call, args...)
 end
 
 function _addblock_assignment(lhs, rhs, ctx)

@@ -283,7 +283,13 @@ Base.getindex(x::Sequence, i::AbstractVector{Bool}) = view(x, i)
 Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) = Sequence(_deepcopy_fields(x)...)
 
-_copy_events(x) = copy.(x)
+function _copy_events(x::AbstractArray{T}) where {T}
+    out = similar(x, T)
+    @inbounds for i in eachindex(x)
+        out[i] = copy(x[i])
+    end
+    return out
+end
 _copy_block_metadata(x) = deepcopy(x)
 _fits_eltype(::Type{T}, x) where {T} = all(value -> typeof(value) <: T, x)
 const _BlockEvent = Union{Grad,RF,ADC,Extension}
@@ -323,7 +329,7 @@ function _event_vector(events)
     return out
 end
 
-function _append_event_matrix!(x::Matrix, y::AbstractMatrix)
+function _append_event_matrix!(x::Matrix, y::AbstractMatrix, ::Val{copy_new}=Val(true)) where {copy_new}
     @assert size(x, 1) == size(y, 1) "Both sequences must have the same number of event channels."
     n0 = size(x, 2)
     n = size(y, 2)
@@ -338,12 +344,12 @@ function _append_event_matrix!(x::Matrix, y::AbstractMatrix)
         out
     end
     @inbounds for j in 1:n, i in axes(y, 1)
-        out[i, n0+j] = copy(y[i, j])
+        out[i, n0+j] = copy_new ? copy(y[i, j]) : y[i, j]
     end
     return out
 end
 
-function _append_event_vector!(x::Vector, y::AbstractVector)
+function _append_event_vector!(x::Vector, y::AbstractVector, ::Val{copy_new}=Val(true)) where {copy_new}
     n0 = length(x)
     n = length(y)
     out = if _fits_eltype(eltype(x), y)
@@ -357,18 +363,30 @@ function _append_event_vector!(x::Vector, y::AbstractVector)
         out
     end
     @inbounds for j in 1:n
-        out[n0+j] = copy(y[j])
+        out[n0+j] = copy_new ? copy(y[j]) : y[j]
     end
     return out
 end
 
-function _append_metadata_vector!(x::Vector, y::AbstractVector)
+function _append_metadata_vector!(x::Vector, y::AbstractVector, ::Val{copy_new}=Val(true)) where {copy_new}
     n0 = length(x)
     n = length(y)
     resize!(x, n0 + n)
     @inbounds for j in 1:n
-        x[n0+j] = deepcopy(y[j])
+        x[n0+j] = copy_new ? deepcopy(y[j]) : y[j]
     end
+    return x
+end
+
+# For freshly created sequences whose events are already owned by the caller.
+function _append_owned!(x::Sequence, y::Sequence)
+    length(y) == 0 && return x
+    x.GR = _append_event_matrix!(x.GR, y.GR, Val(false))
+    x.RF = _append_event_matrix!(x.RF, y.RF, Val(false))
+    x.ADC = _append_event_vector!(x.ADC, y.ADC, Val(false))
+    append!(x.DUR, y.DUR)
+    x.EXT = _append_metadata_vector!(x.EXT, y.EXT, Val(false))
+    _merge_sequence_def!(x.DEF, y.DEF)
     return x
 end
 
@@ -470,11 +488,14 @@ Base.push!(seq::Sequence, events...) = addblock!(seq, events...)
 #Arithmetic operations
 +(x::Sequence, y::Sequence) = Sequence([x, y])
 -(x::Sequence, y::Sequence) = x + (-y)
--(x::Sequence) = Sequence(-x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
-*(α::Real, x::Sequence) = Sequence(α .* x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
-*(α::Complex, x::Sequence) = Sequence(_copy_events(x.GR), α.*x.RF, α.*x.ADC, copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
-*(A::AbstractMatrix{<:Real}, x::Sequence) = Sequence(A * x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
-/(x::Sequence, α::Real) = Sequence(x.GR/α, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
+-(x::Sequence) = Sequence(Matrix{Grad}(-x.GR), _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
+*(α::Real, x::Sequence) = Sequence(Matrix{Grad}(α .* x.GR), _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
+*(α::Complex, x::Sequence) = Sequence(_copy_events(x.GR), Matrix{RF}(α .* x.RF), Vector{ADC}(α .* x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
+function *(A::AbstractMatrix{<:Real}, x::Sequence)
+    GR = Matrix{Grad}(length(x) == 1 ? reshape(A * view(x.GR, :, 1), :, 1) : A * x.GR)
+    return Sequence(GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
+end
+/(x::Sequence, α::Real) = Sequence(Matrix{Grad}(x.GR / α), _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
 +(s::Sequence, events::_BlockEventTuple) = s + _block_sequence(events)
 +(events::_BlockEventTuple, s::Sequence) = _block_sequence(events) + s
 #Grad operations
