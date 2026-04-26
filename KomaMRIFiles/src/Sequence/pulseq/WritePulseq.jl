@@ -238,8 +238,13 @@ end
 """
     id = register_grad!(grad_library, shape_library, grad, raster)
 """
+_pulseq_absmax(x::Number) = abs(x)
+_pulseq_absmax(x::AbstractArray{<:Number}) = maximum(abs, x)
+_is_pulseq_grad_on(grad) =
+    max(abs(grad.first), _pulseq_absmax(grad.A), abs(grad.last)) > PULSEQ_SHAPE_ZERO_TOL
+
 function register_grad!(grad_library, shape_library, cache, grad, raster)
-    !is_on(grad) && iszero(dur(grad)) && return PULSEQ_NO_EVENT_ID
+    _is_pulseq_grad_on(grad) || return PULSEQ_NO_EVENT_ID
     event_id = get(cache.grad_object_ids, grad, PULSEQ_NO_EVENT_ID)
     event_id != PULSEQ_NO_EVENT_ID && return event_id
     event_id = register_grad_event!(grad_library, shape_library, cache, grad, raster)

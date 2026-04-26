@@ -186,6 +186,21 @@ end
                 @test all(g -> !(g isa KomaMRIFiles.PulseqArbGradEvent) || iszero(g.last) || abs(g.last) > abs(g.amplitude) * KomaMRIFiles.PULSEQ_SHAPE_ZERO_TOL, values(repeated_data.libraries.grad_library))
             end
         end
+
+        @testset "MATLAB ROTATIONS fixture" begin
+            fixture = joinpath(@__DIR__, "test_files/pulseq/basic_tests/v1.5/rotation_radial_tiny.seq")
+            raw = @suppress read_seq(fixture; apply_rotations=false)
+            applied = @suppress read_seq(fixture)
+            @test applied.DEF["RequiredExtensions"] == ["ROTATIONS"]
+            @test all(ext -> ext isa QuaternionRot, only.(raw.EXT))
+            @test apply_rotations(raw) ≈ applied
+
+            data = @suppress write_seq_data(applied)
+            @test length(data.libraries.grad_library) == 1
+            @test length(data.libraries.adc_library) == 1
+            @test length(data.libraries.extension_instance_library) == 3
+            @test length(only(values(data.libraries.extension_spec_library))) == 3
+        end
     end
     @testset "Compression-Decompression" begin
         shape = ones(100)
