@@ -11,36 +11,55 @@ struct PulseqShapeCacheEntry
     quantized::Vector{Int}
 end
 
+struct PulseqTrapGradEventKey
+    amplitude::Float64
+    rise::Float64
+    flat::Float64
+    fall::Float64
+    delay::Float64
+end
+
+struct PulseqArbGradEventKey
+    amplitude::Float64
+    first::Float64
+    last::Float64
+    amp_shape_id::Int
+    time_shape_id::Int
+    delay::Float64
+end
+
 # Dedup tables for emitted event ids and reusable shape payloads.
 struct PulseqWriteCache{G<:Grad,R<:RF}
     rf_event_ids::Dict{PulseqRFEvent,Int}
-    trap_grad_event_ids::Dict{PulseqTrapGradEvent,Int}
-    arb_grad_event_ids::Dict{PulseqArbGradEvent,Int}
+    trap_grad_event_ids::Dict{PulseqTrapGradEventKey,Int}
+    arb_grad_event_ids::Dict{PulseqArbGradEventKey,Int}
     adc_event_ids::Dict{PulseqADCEvent,Int}
     shape_ids::Dict{Tuple{Int,UInt},Vector{PulseqShapeCacheEntry}}
     phase_shape_ids::Dict{Tuple{Int,UInt},Vector{PulseqShapeCacheEntry}}
     rf_magnitude_shape_ids::Dict{Int,Vector{PulseqShapeCacheEntry}}
-    rf_object_ids::IdDict{R,Int}
-    grad_object_ids::IdDict{G,Int}
-    adc_object_ids::IdDict{ADC,Int}
+    rf_object_ids::Dict{R,Int}
+    grad_object_ids::Dict{G,Int}
+    adc_object_ids::Dict{ADC,Int}
 end
 
 PulseqWriteCache(::Type{G}, ::Type{R}) where {G<:Grad,R<:RF} = PulseqWriteCache(
     Dict{PulseqRFEvent,Int}(),
-    Dict{PulseqTrapGradEvent,Int}(),
-    Dict{PulseqArbGradEvent,Int}(),
+    Dict{PulseqTrapGradEventKey,Int}(),
+    Dict{PulseqArbGradEventKey,Int}(),
     Dict{PulseqADCEvent,Int}(),
     Dict{Tuple{Int,UInt},Vector{PulseqShapeCacheEntry}}(),
     Dict{Tuple{Int,UInt},Vector{PulseqShapeCacheEntry}}(),
     Dict{Int,Vector{PulseqShapeCacheEntry}}(),
-    IdDict{R,Int}(),
-    IdDict{G,Int}(),
-    IdDict{ADC,Int}(),
+    Dict{R,Int}(),
+    Dict{G,Int}(),
+    Dict{ADC,Int}(),
 )
 
 const PULSEQ_NO_EVENT_ID = 0
 const PULSEQ_DEFAULT_TIME_SHAPE_ID = 0
 const PULSEQ_OVERSAMPLED_TIME_SHAPE_ID = -1
+# Dedup keys ignore roundoff; stored event values stay unchanged.
+const PULSEQ_EVENT_SIGNIFICANT_DIGITS = 12
 
 collect_pulseq_assets(seq, raster) =
     collect_pulseq_assets(seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster)
@@ -68,7 +87,6 @@ function collect_pulseq_assets(gr, rf, adc, block_durations, ext, def, raster)
     extension_instance_library = Dict{Int,PulseqExtensionInstanceEvent}()
     extension_type_library = Dict{Int,Type{<:Extension}}()
     extension_spec_library = Dict{Int,Dict{Int,Extension}}()
-    definitions = pulseq_definitions(def, raster)
     cache = PulseqWriteCache(eltype(gr), eltype(rf))
     extension_vector_ids = Dict{Tuple{Vararg{Extension}},Int}()
     for idx in eachindex(block_durations)
@@ -93,6 +111,11 @@ function collect_pulseq_assets(gr, rf, adc, block_durations, ext, def, raster)
         blocks[idx] = PulseqBlockEventIDs(idx, duration, rf_id, gx_id, gy_id, gz_id, adc_id, ext_id)
     end
 
+    definitions = pulseq_definitions(def, raster)
+    for ext_type in values(extension_type_library)
+        ext_type === QuaternionRot || continue
+        "ROTATIONS" in definitions.required_extensions || push!(definitions.required_extensions, "ROTATIONS")
+    end
     event_libraries = PulseqFileEventLibraries(
         grad_library,
         rf_library,
@@ -112,19 +135,21 @@ end
 """
 function register_rf!(rf_library, shape_library, cache, rf, raster)
     is_on(rf) || return PULSEQ_NO_EVENT_ID
-    return get!(cache.rf_object_ids, rf) do
-        rf_raster_time = raster.RadiofrequencyRasterTime
-        mag_id, phase_id, time_id = register_rf_shapes!(shape_library, cache, rf, rf_raster_time)
-        first_sample_offset = pulseq_rf_first_sample_offset(time_id, rf_raster_time)
-        delay = rf.delay - first_sample_offset
-        amp = pulseq_rf_amplitude(rf)
-        freq = pulseq_rf_frequency(rf)
-        phase = rf.ϕ
-        use_char = get_char_from_RF_use(rf.use)
-        center = isnothing(rf.center) ? nothing : rf.center + first_sample_offset
-        rf_event = PulseqRFEvent(amp, mag_id, phase_id, time_id, center, delay, 0.0, 0.0, freq, phase, use_char)
-        return _store_event_cached!(rf_library, cache.rf_event_ids, rf_event)
-    end
+    event_id = get(cache.rf_object_ids, rf, PULSEQ_NO_EVENT_ID)
+    event_id != PULSEQ_NO_EVENT_ID && return event_id
+    rf_raster_time = raster.RadiofrequencyRasterTime
+    mag_id, phase_id, time_id = register_rf_shapes!(shape_library, cache, rf, rf_raster_time)
+    first_sample_offset = pulseq_rf_first_sample_offset(time_id, rf_raster_time)
+    delay = rf.delay - first_sample_offset
+    amp = pulseq_rf_amplitude(rf)
+    freq = pulseq_rf_frequency(rf)
+    phase = rf.ϕ
+    use_char = get_char_from_RF_use(rf.use)
+    center = isnothing(rf.center) ? nothing : rf.center + first_sample_offset
+    rf_event = PulseqRFEvent(amp, mag_id, phase_id, time_id, center, delay, 0.0, 0.0, freq, phase, use_char)
+    event_id = _store_event_cached!(rf_library, cache.rf_event_ids, rf_event)
+    cache.rf_object_ids[rf] = event_id
+    return event_id
 end
 
 pulseq_rf_amplitude(rf::BlockPulseRF) = abs(rf.A)
@@ -215,9 +240,11 @@ end
 """
 function register_grad!(grad_library, shape_library, cache, grad, raster)
     !is_on(grad) && iszero(dur(grad)) && return PULSEQ_NO_EVENT_ID
-    return get!(cache.grad_object_ids, grad) do
-        register_grad_event!(grad_library, shape_library, cache, grad, raster)
-    end
+    event_id = get(cache.grad_object_ids, grad, PULSEQ_NO_EVENT_ID)
+    event_id != PULSEQ_NO_EVENT_ID && return event_id
+    event_id = register_grad_event!(grad_library, shape_library, cache, grad, raster)
+    cache.grad_object_ids[grad] = event_id
+    return event_id
 end
 
 function register_grad_event!(grad_library, shape_library, cache, grad::TrapezoidalGrad, raster)
@@ -286,12 +313,14 @@ Koma uses delay = time to first sample, so we store pulseq_delay = delay - dwell
 """
 function register_adc!(adc_library, cache, adc)
     is_on(adc) || return PULSEQ_NO_EVENT_ID
-    return get!(cache.adc_object_ids, adc) do
-        dwell_s = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
-        delay_s = adc.delay - dwell_s / 2
-        event = PulseqADCEvent(adc.N, dwell_s, delay_s, 0.0, 0.0, adc.Δf, adc.ϕ, 0)
-        return _store_event_cached!(adc_library, cache.adc_event_ids, event)
-    end
+    event_id = get(cache.adc_object_ids, adc, PULSEQ_NO_EVENT_ID)
+    event_id != PULSEQ_NO_EVENT_ID && return event_id
+    dwell_s = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
+    delay_s = adc.delay - dwell_s / 2
+    event = PulseqADCEvent(adc.N, dwell_s, delay_s, 0.0, 0.0, adc.Δf, adc.ϕ, 0)
+    event_id = _store_event_cached!(adc_library, cache.adc_event_ids, event)
+    cache.adc_object_ids[adc] = event_id
+    return event_id
 end
 
 """
@@ -329,16 +358,48 @@ function _store_event!(event_dict::AbstractDict, event)
     return new_id
 end
 
-function _store_event_cached!(event_dict::AbstractDict, event_cache::AbstractDict, event)
-    get!(event_cache, event) do
+_pulseq_event_float(x) = round(x; sigdigits=PULSEQ_EVENT_SIGNIFICANT_DIGITS)
+_pulseq_event_edge(x, amp) = abs(x) <= abs(amp) * PULSEQ_SHAPE_ZERO_TOL ? 0.0 : _pulseq_event_float(x)
+
+_pulseq_grad_event_key(event::PulseqTrapGradEvent) = PulseqTrapGradEventKey(
+    _pulseq_event_float(event.amplitude),
+    event.rise,
+    event.flat,
+    event.fall,
+    event.delay,
+)
+
+_pulseq_grad_event_key(event::PulseqArbGradEvent) = PulseqArbGradEventKey(
+    _pulseq_event_float(event.amplitude),
+    _pulseq_event_edge(event.first, event.amplitude),
+    _pulseq_event_edge(event.last, event.amplitude),
+    event.amp_shape_id,
+    event.time_shape_id,
+    event.delay,
+)
+
+function _store_event_cached!(event_dict::AbstractDict, event_cache::AbstractDict, key, event=key)
+    get!(event_cache, key) do
         new_id = length(event_dict) + 1
         event_dict[new_id] = event
         new_id
     end
 end
 
-_store_grad_event!(grad_library, cache::PulseqWriteCache, event::PulseqTrapGradEvent) = _store_event_cached!(grad_library, cache.trap_grad_event_ids, event)
-_store_grad_event!(grad_library, cache::PulseqWriteCache, event::PulseqArbGradEvent) = _store_event_cached!(grad_library, cache.arb_grad_event_ids, event)
+_canonical_pulseq_grad_event(event::PulseqTrapGradEvent) = event
+_canonical_pulseq_grad_event(event::PulseqArbGradEvent) = PulseqArbGradEvent(
+    event.amplitude,
+    _pulseq_event_edge(event.first, event.amplitude),
+    _pulseq_event_edge(event.last, event.amplitude),
+    event.amp_shape_id,
+    event.time_shape_id,
+    event.delay,
+)
+
+_store_grad_event!(grad_library, cache::PulseqWriteCache, event::PulseqTrapGradEvent) =
+    _store_event_cached!(grad_library, cache.trap_grad_event_ids, _pulseq_grad_event_key(event), event)
+_store_grad_event!(grad_library, cache::PulseqWriteCache, event::PulseqArbGradEvent) =
+    _store_event_cached!(grad_library, cache.arb_grad_event_ids, _pulseq_grad_event_key(event), _canonical_pulseq_grad_event(event))
 
 function _store_shape!(
     shapes,
@@ -369,9 +430,10 @@ _store_shape!(shapes, cache::PulseqWriteCache, samples; phase_shape = false) =
     )
 
 function get_quantized!(builder, cache, object)
-    return get!(cache, object) do
-        builder()
-    end
+    haskey(cache, object) && return cache[object]
+    value = builder()
+    cache[object] = value
+    return value
 end
 
 function canonicalize_quantized!(objects::AbstractArray{T}, cache::IdDict{T,T}) where {T}
@@ -441,7 +503,8 @@ end
 function pulseq_gradient_amplitude(A)
     amp = maximum(abs, A)
     iszero(amp) && return amp
-    return amp * sign(A[findfirst(!iszero, A)])
+    idx = findfirst(a -> abs(a) > amp * PULSEQ_SHAPE_QUANTIZATION / 2, A)
+    return amp * sign(A[something(idx, findfirst(!iszero, A))])
 end
 
 function pulseq_gradient_time_shape_id!(shape_library, cache, tt, Δt)
@@ -517,6 +580,8 @@ function emit_version_section!(io, version=v"1.5.1")
 end
 
 dense_event_ids(event_dict) = Base.OneTo(length(event_dict))
+emit_pulseq_float!(io, value::Real) = @printf(io, "%.12g", value)
+pulseq_float_string(value::Real) = @sprintf("%.12g", value)
 
 function emit_definitions_section!(io::IO, definitions)
     write(io, "[DEFINITIONS]\n")
@@ -527,10 +592,10 @@ function emit_definitions_section!(io::IO, definitions)
         write(io, value)
         write(io, "\n")
     end
-    @printf(io, "BlockDurationRaster %.9g\n", definitions.block_duration_raster)
-    @printf(io, "GradientRasterTime %.9g\n", definitions.gradient_raster_time)
-    @printf(io, "RadiofrequencyRasterTime %.9g\n", definitions.radiofrequency_raster_time)
-    @printf(io, "AdcRasterTime %.9g\n", definitions.adc_raster_time)
+    write(io, "BlockDurationRaster "); emit_pulseq_float!(io, definitions.block_duration_raster); write(io, "\n")
+    write(io, "GradientRasterTime "); emit_pulseq_float!(io, definitions.gradient_raster_time); write(io, "\n")
+    write(io, "RadiofrequencyRasterTime "); emit_pulseq_float!(io, definitions.radiofrequency_raster_time); write(io, "\n")
+    write(io, "AdcRasterTime "); emit_pulseq_float!(io, definitions.adc_raster_time); write(io, "\n")
     isempty(definitions.required_extensions) || begin
         write(io, "RequiredExtensions ")
         emit_definition_value!(io, definitions.required_extensions)
@@ -562,7 +627,16 @@ function emit_rf_section!(io::IO, event_libraries)
         rf_data = event_libraries.rf_library[id]
         center_us = pulseq_rf_center_for_write(rf_data, event_libraries) * 1e6
         delay_us = round(Int, rf_data.delay * 1e6)
-        @printf(io, "%d %.17g %d %d %d %.17g %d %.17g %.17g %.17g %.17g %c\n", id, γ * rf_data.amplitude, rf_data.mag_id, rf_data.phase_id, rf_data.time_shape_id, center_us, delay_us, rf_data.freq_ppm, rf_data.phase_ppm, rf_data.freq, rf_data.phase, rf_data.use)
+        @printf(io, "%d ", id)
+        emit_pulseq_float!(io, γ * rf_data.amplitude)
+        @printf(io, " %d %d %d ", rf_data.mag_id, rf_data.phase_id, rf_data.time_shape_id)
+        emit_pulseq_float!(io, center_us)
+        @printf(io, " %d ", delay_us)
+        emit_pulseq_float!(io, rf_data.freq_ppm); write(io, " ")
+        emit_pulseq_float!(io, rf_data.phase_ppm); write(io, " ")
+        emit_pulseq_float!(io, rf_data.freq); write(io, " ")
+        emit_pulseq_float!(io, rf_data.phase)
+        @printf(io, " %c\n", rf_data.use)
     end
 end
 
@@ -587,7 +661,11 @@ function emit_gradients_section!(io::IO, event_libraries)
     for id in dense_event_ids(event_libraries.grad_library)
         grad_data = event_libraries.grad_library[id]
         grad_data isa PulseqArbGradEvent || continue
-        @printf(io, "%d %.17g %.17g %.17g %d %d %d\n", id, γ * grad_data.amplitude, γ * grad_data.first, γ * grad_data.last, grad_data.amp_shape_id, grad_data.time_shape_id, round(Int, grad_data.delay * 1e6))
+        @printf(io, "%d ", id)
+        emit_pulseq_float!(io, γ * grad_data.amplitude); write(io, " ")
+        emit_pulseq_float!(io, γ * grad_data.first); write(io, " ")
+        emit_pulseq_float!(io, γ * grad_data.last)
+        @printf(io, " %d %d %d\n", grad_data.amp_shape_id, grad_data.time_shape_id, round(Int, grad_data.delay * 1e6))
     end
 end
 
@@ -599,7 +677,9 @@ function emit_trap_section!(io::IO, event_libraries)
     for id in dense_event_ids(event_libraries.grad_library)
         trap_data = event_libraries.grad_library[id]
         trap_data isa PulseqTrapGradEvent || continue
-        @printf(io, "%2d %.17g %3d %4d %3d %3d\n", id, γ * trap_data.amplitude, round(Int, trap_data.rise * 1e6), round(Int, trap_data.flat * 1e6), round(Int, trap_data.fall * 1e6), round(Int, trap_data.delay * 1e6))
+        @printf(io, "%2d ", id)
+        emit_pulseq_float!(io, γ * trap_data.amplitude)
+        @printf(io, " %3d %4d %3d %3d\n", round(Int, trap_data.rise * 1e6), round(Int, trap_data.flat * 1e6), round(Int, trap_data.fall * 1e6), round(Int, trap_data.delay * 1e6))
     end
 end
 
@@ -611,7 +691,14 @@ function emit_adc_section!(io::IO, event_libraries)
     isempty(event_libraries.adc_library) && return
     for id in dense_event_ids(event_libraries.adc_library)
         adc_data = event_libraries.adc_library[id]
-        @printf(io, "%d %d %.0f %.0f %.17g %.17g %.17g %.17g %d\n", id, adc_data.num, adc_data.dwell * 1e9, adc_data.delay * 1e6, adc_data.freq_ppm, adc_data.phase_ppm, adc_data.freq, adc_data.phase, adc_data.phase_id)
+        @printf(io, "%d %d ", id, adc_data.num)
+        emit_pulseq_float!(io, adc_data.dwell * 1e9); write(io, " ")
+        emit_pulseq_float!(io, adc_data.delay * 1e6); write(io, " ")
+        emit_pulseq_float!(io, adc_data.freq_ppm); write(io, " ")
+        emit_pulseq_float!(io, adc_data.phase_ppm); write(io, " ")
+        emit_pulseq_float!(io, adc_data.freq); write(io, " ")
+        emit_pulseq_float!(io, adc_data.phase)
+        @printf(io, " %d\n", adc_data.phase_id)
     end
 end
 
@@ -646,7 +733,8 @@ function emit_shapes_section!(io::IO, event_libraries)
         write(io, "shape_id $id\n")
         write(io, "num_samples $num_samples\n")
         for sample in samples
-            @printf(io, "%.9g\n", sample)
+            emit_pulseq_float!(io, sample)
+            write(io, "\n")
         end
         write(io, "\n")
     end
@@ -672,7 +760,7 @@ should_emit_definition(key, value) =
 
 emit_definition_value!(io, value::AbstractString) = write(io, value)
 emit_definition_value!(io, value::Char) = write(io, string(value))
-emit_definition_value!(io, value::Real) = @printf(io, "%.9g", value)
+emit_definition_value!(io, value::Real) = emit_pulseq_float!(io, value)
 
 function emit_definition_value!(io, values::Union{AbstractVector,Tuple})
     first_value = true
@@ -685,7 +773,8 @@ end
 
 emit_definition_value!(io, value) = write(io, string(value))
 
-definition_entry_value(value::Union{AbstractVector,Tuple}) = join(string.(value), " ")
+definition_entry_value(value::Union{AbstractVector,Tuple}) = join(definition_entry_value.(value), " ")
+definition_entry_value(value::Real) = pulseq_float_string(value)
 definition_entry_value(value) = string(value)
 
 function pulseq_definitions(definitions, raster)
@@ -764,6 +853,9 @@ function prepare_pulseq_write(gr, rf, adc, block_durations, ext, def, raster)
     canonicalize_quantized!(qrf, canonical_rfs)
     canonicalize_quantized!(qgr, canonical_grads)
     canonicalize_quantized!(qadc, canonical_adcs)
+    if any(block -> any(ext -> ext isa QuaternionRot, block), ext)
+        qgr = KomaMRIBase._apply_rotation_extensions_to_gradients!(qgr, ext; reverse=true)
+    end
     return KomaMRIBase.Sequence(qgr, qrf, qadc, qdur, ext, def)
 end
 
@@ -963,6 +1055,7 @@ Writes a Sequence struct to a Pulseq file with `.seq` extension.
 - `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
 - `sys`: optional scanner used for hardware-limit validation and export raster
   times. If passed, `sys` raster times take precedence over `seq.DEF`.
+- `verbose`: (`::Bool`, `=true`) show informational writing/checking messages
 
 # Examples
 ```julia-repl
@@ -974,9 +1067,10 @@ julia> write_seq(seq, "fid.seq")
 """
 function write_seq(
     data::PulseqSequenceData, filename::AbstractString;
-    signatureAlgorithm="md5"
+    signatureAlgorithm="md5",
+    verbose=true,
 )
-    @info "Saving sequence to $(basename(filename)) ..."
+    verbose && @info "Saving sequence to $(basename(filename)) ..."
     payload = let io = IOBuffer()
         emit_pulseq(io, data)
         take!(io)
@@ -990,12 +1084,14 @@ function write_seq(
     return nothing
 end
 
-function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, check_hw_limits=true)
+function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, check_hw_limits=true, verbose=true)
     if check_hw_limits
         isnothing(sys) ? KomaMRIBase.check_hw_limits(seq) : KomaMRIBase.check_hw_limits(seq, sys)
     end
     raster = isnothing(sys) ? PulseqRaster(seq) : PulseqRaster(seq, sys)
-    @info "Checking Pulseq raster..." BlockDurationRaster = raster.BlockDurationRaster GradientRasterTime = raster.GradientRasterTime RadiofrequencyRasterTime = raster.RadiofrequencyRasterTime AdcRasterTime = raster.AdcRasterTime
+    if verbose
+        @info "Checking Pulseq raster..." BlockDurationRaster = raster.BlockDurationRaster GradientRasterTime = raster.GradientRasterTime RadiofrequencyRasterTime = raster.RadiofrequencyRasterTime AdcRasterTime = raster.AdcRasterTime
+    end
     prepared = prepare_pulseq_write(seq, raster)
     if check_timing
         KomaMRIBase.check_timing(prepared, pulseq_raster_tuple(raster))
@@ -1005,14 +1101,14 @@ function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, 
 end
 
 """
-    data = write_seq_data(seq; sys=nothing, check_timing=true, check_hw_limits=true)
+    data = write_seq_data(seq; sys=nothing, check_timing=true, check_hw_limits=true, verbose=true)
 
 Prepare a Koma `Sequence` as [`PulseqSequenceData`](@ref) without writing a file.
 Without `sys`, timing and hardware checks use metadata stored in `seq.DEF`. With
 `sys`, timing, hardware checks, and export raster times use `sys`.
 """
-write_seq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, check_hw_limits=true) =
-    pulseq_data(seq; sys, check_timing, check_hw_limits)
+write_seq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, check_hw_limits=true, verbose=true) =
+    pulseq_data(seq; sys, check_timing, check_hw_limits, verbose)
 
 function write_seq(
     seq::KomaMRIBase.Sequence, filename::AbstractString;
@@ -1020,6 +1116,8 @@ function write_seq(
     signatureAlgorithm="md5",
     check_timing=true,
     check_hw_limits=true,
+    verbose=true,
 )
-    return write_seq(pulseq_data(seq; sys, check_timing, check_hw_limits), filename; signatureAlgorithm)
+    data = pulseq_data(seq; sys, check_timing, check_hw_limits, verbose)
+    return write_seq(data, filename; signatureAlgorithm, verbose)
 end

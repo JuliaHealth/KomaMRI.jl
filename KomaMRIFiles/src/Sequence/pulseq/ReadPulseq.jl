@@ -3,7 +3,7 @@ read_version Read the [VERSION] section of a sequence file.
    defs=read_version(fid) Read Pulseq version from file
    identifier of an open MR sequence file and return it
 """
-function read_version(io)
+function read_version(io; verbose=true)
     pulseq_version = VersionNumber(
         @scanf(readline(io), "major %i", Int)[end],
         @scanf(readline(io), "minor %i", Int)[end],
@@ -14,8 +14,8 @@ function read_version(io)
         @error "Unsupported Pulseq $(pulseq_version), only file format revision 1.2.0 and above are supported"
     elseif pulseq_version < v"1.3.1"
         @warn "Loading older Pulseq $(pulseq_version); some code may not function as expected"
-    elseif pulseq_version >= v"1.5.0"
-        @info "Pulseq $(pulseq_version) is supported, but Soft Delay, Rotation, and RF Shimming extensions are not yet included\n(see https://github.com/JuliaHealth/KomaMRI.jl/issues/714)" maxlog=1
+    elseif pulseq_version >= v"1.5.0" && verbose
+        @info "Pulseq $(pulseq_version) is supported, but Soft Delay and RF Shimming extensions are not yet included\n(see https://github.com/JuliaHealth/KomaMRI.jl/issues/714)" maxlog=1
     end
     pulseq_version
 end
@@ -253,13 +253,13 @@ function read_extensions(io, ext_string, ext_type::Type{<:Extension}, ext_id, ex
 end
 function read_extensions(io, ext_string, ext_type, ext_id, extensionTypeLibrary, extensionSpecLibrary, required_extensions)
     if ext_string in required_extensions
-        error("Extension $ext_string is required by the sequence (RequiredExtensions: $required_extensions) but not supported by KomaMRI reader")
+        @warn "Ignoring unsupported required extension: $ext_string" RequiredExtensions = required_extensions
     else
         @warn "Ignoring unsupported extension: $ext_string"
-        while true # Skip the extension specifications
-            line = readline(io)
-            isempty(line) && break
-        end
+    end
+    while true # Skip the extension specifications
+        line = readline(io)
+        isempty(line) && break
     end
 end
 
@@ -594,7 +594,7 @@ PulseqParsedFile() = PulseqParsedFile(
 Parse one Pulseq file stream into the intermediate `PulseqParsedFile` representation.
 Used by [`read_seq_data`](@ref).
 """
-function parse_pulseq_file(io)
+function parse_pulseq_file(io; verbose=true)
     parsed = PulseqParsedFile()
     while !eof(io)
         section = readline(io)
@@ -603,7 +603,7 @@ function parse_pulseq_file(io)
         elseif section == "[DEFINITIONS]"
             parsed.definitions = read_definitions(io)
         elseif section == "[VERSION]"
-            parsed.pulseq_version = read_version(io)
+            parsed.pulseq_version = read_version(io; verbose)
         elseif section == "[BLOCKS]"
             if parsed.pulseq_version == v"0.0.0"
                 @error "Pulseq file MUST include [VERSION] section prior to [BLOCKS] section"
@@ -724,13 +724,15 @@ end
 Read a Pulseq file into Pulseq's native block/event-library representation without
 materializing repeated Koma `Sequence` events.
 """
-function read_seq_data(filename::AbstractString; verify_signature=false)
-    parsed = open(parse_pulseq_file, filename)
+function read_seq_data(filename::AbstractString; verify_signature=false, verbose=true)
+    parsed = open(filename) do io
+        parse_pulseq_file(io; verbose)
+    end
     return pulseq_sequence_data(parsed; filename, verify_signature)
 end
 
-function read_seq_data(io::IO; verify_signature=false)
-    parsed = parse_pulseq_file(io)
+function read_seq_data(io::IO; verify_signature=false, verbose=true)
+    parsed = parse_pulseq_file(io; verbose)
     return pulseq_sequence_data(parsed; verify_signature)
 end
 
@@ -768,6 +770,9 @@ Returns the Sequence struct from a Pulseq file with `.seq` extension.
 # Keywords
 - `verify_signature`: (`::Bool`, `=false`) verify the optional Pulseq `[SIGNATURE]` hash
   while loading
+- `apply_rotations`: (`::Bool`, `=true`) apply Pulseq `ROTATIONS` extensions to
+  the gradients while keeping the extension events in `seq.EXT`
+- `verbose`: (`::Bool`, `=true`) show informational loading messages
 
 # Returns
 - `seq`: (`::Sequence`) Sequence struct
@@ -781,10 +786,14 @@ julia> seq = read_seq(seq_file)
 julia> plot_seq(seq)
 ```
 """
-function read_seq(filename; verify_signature=false)
-    @info "Loading sequence $(basename(filename)) ..."
-    data = read_seq_data(filename; verify_signature)
-    return KomaMRIBase.Sequence(data; filename)
+function read_seq(filename; verify_signature=false, apply_rotations=true, verbose=true)
+    verbose && @info "Loading sequence $(basename(filename)) ..."
+    data = read_seq_data(filename; verify_signature, verbose)
+    seq = KomaMRIBase.Sequence(data; filename)
+    has_rotations = any(==(KomaMRIBase.QuaternionRot), values(data.libraries.extension_type_library))
+    return apply_rotations && has_rotations ?
+        KomaMRIBase._apply_rotations_to_owned_sequence(seq) :
+        seq
 end
 
 #To Sequence

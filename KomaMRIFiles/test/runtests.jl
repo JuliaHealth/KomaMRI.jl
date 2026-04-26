@@ -122,6 +122,71 @@ end
         end
 
     end
+    @testset "Pulseq rotation extension" begin
+        @testset "Unsupported required extensions warn" begin
+            @test_logs (:warn, r"Ignoring unsupported required extension") KomaMRIFiles.read_extensions(
+                IOBuffer("1 2 3\n\n"),
+                "UNKNOWN",
+                nothing,
+                1,
+                Dict{Int,Type{<:Extension}}(),
+                Dict{Int,Dict{Int,Extension}}(),
+                ["UNKNOWN"],
+            )
+        end
+
+        mktempdir() do tmpdir
+            @testset "ROTATIONS read/write roundtrip" begin
+                filename = joinpath(tmpdir, "rotation.seq")
+                q = QuaternionRot(cos(π / 4), 0, 0, sin(π / 4))
+                seq = Sequence()
+                @addblock seq += (
+                    q,
+                    x=Grad(1e-3, 1e-3, 0.1e-3, 0.1e-3),
+                    y=Grad([0.2e-3, 0.4e-3, -0.1e-3], 0.9e-3, 0.0, 0.0, 0.1e-3),
+                )
+                @suppress write_seq(seq, filename; check_timing=false)
+                pulseq_text = read(filename, String)
+                @test occursin("RequiredExtensions ROTATIONS", pulseq_text)
+                @test occursin("extension ROTATIONS", pulseq_text)
+
+                raw = @suppress read_seq(filename; apply_rotations=false)
+                @test any(ext -> ext isa QuaternionRot, raw.EXT[1])
+                applied = @suppress read_seq(filename)
+                @test any(ext -> ext isa QuaternionRot, applied.EXT[1])
+                @test applied.DEF["RequiredExtensions"] == ["ROTATIONS"]
+
+                encoded = apply_rotations(seq; reverse=true)
+                t = collect(range(0, dur(seq); length=129))
+                for (actual, expected) in zip(KomaMRIBase.get_grads(raw, t), KomaMRIBase.get_grads(encoded, t))
+                    @test actual ≈ expected
+                end
+                for (actual, expected) in zip(KomaMRIBase.get_grads(applied, t), KomaMRIBase.get_grads(seq, t))
+                    @test actual ≈ expected
+                end
+
+                rewritten = joinpath(tmpdir, "rotation_rewrite.seq")
+                @suppress write_seq(applied, rewritten; check_timing=false)
+                rewritten_text = read(rewritten, String)
+                @test occursin("RequiredExtensions ROTATIONS", rewritten_text)
+                @test occursin("extension ROTATIONS", rewritten_text)
+            end
+
+            @testset "ROTATIONS gradient-library dedup" begin
+                repeated = Sequence()
+                gx = Grad([0.0, 0.2e-3, 0.4e-3, 0.2e-3], 12e-6, 2e-6, 2e-6)
+                gy = Grad([0.0, -0.1e-3, -0.3e-3, -0.1e-3], 12e-6, 2e-6, 2e-6)
+                gz = Grad([0.0, 0.3e-3, 0.1e-3, 0.3e-3], 12e-6, 2e-6, 2e-6)
+                for rot in (QuaternionRot(rotz(π / 7)), QuaternionRot(rotx(-π / 5)), QuaternionRot(roty(π / 3) * rotz(π / 9)))
+                    @addblock repeated += (rot, x=gx, y=gy, z=gz)
+                end
+                repeated_data = @suppress write_seq_data(apply_rotations(repeated); check_timing=false, check_hw_limits=false)
+                @test length(repeated_data.libraries.grad_library) == 3
+                @test all(g -> !(g isa KomaMRIFiles.PulseqArbGradEvent) || iszero(g.first) || abs(g.first) > abs(g.amplitude) * KomaMRIFiles.PULSEQ_SHAPE_ZERO_TOL, values(repeated_data.libraries.grad_library))
+                @test all(g -> !(g isa KomaMRIFiles.PulseqArbGradEvent) || iszero(g.last) || abs(g.last) > abs(g.amplitude) * KomaMRIFiles.PULSEQ_SHAPE_ZERO_TOL, values(repeated_data.libraries.grad_library))
+            end
+        end
+    end
     @testset "Compression-Decompression" begin
         shape = ones(100)
         num_samples, compressed_data = KomaMRIFiles.compress_shape(shape)
@@ -201,6 +266,24 @@ end
             @suppress write_seq(seq, filename)
             seq2 = @suppress read_seq(filename)
             @test seq2.GR[1, 1] isa KomaMRIBase.TrapezoidalGrad
+
+            @testset "Split-gradient block-edge continuity" begin
+                filename = joinpath(tmpdir, "split-gradient.seq")
+                seq = Sequence()
+                gx1 = Grad(1e-3, 100e-6, 10e-6, 0.0, 0.0, 0.0, 1e-3)
+                gx2 = Grad(1e-3, 100e-6, 0.0, 10e-6, 0.0, 1e-3, 0.0)
+                @addblock seq += (x=gx1)
+                @addblock seq += (x=gx2)
+                @suppress write_seq(seq, filename)
+                seq2 = @suppress read_seq(filename)
+                @test seq2.GR[1, 1].last ≈ gx1.last
+                @test seq2.GR[1, 2].first ≈ gx2.first
+                t = collect(0:10e-6:dur(seq))
+                @test KomaMRIBase.get_grads(seq2, t)[1] ≈ KomaMRIBase.get_grads(seq, t)[1]
+                expected_slew = gx1.A / gx1.rise
+                @test isnothing(check_hw_limits(seq2, Scanner(B1=Inf, Gmax=Inf, Smax=expected_slew, ADC_Δt=0.0)))
+                @test_throws ErrorException check_hw_limits(seq2, Scanner(B1=Inf, Gmax=Inf, Smax=expected_slew / 2, ADC_Δt=0.0))
+            end
 
             filename = joinpath(tmpdir, "uniform-rf.seq")
             Δt_rf = KomaMRIFiles.DEFAULT_RASTER.RadiofrequencyRasterTime
