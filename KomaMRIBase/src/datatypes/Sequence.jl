@@ -142,11 +142,7 @@ _sequence_def_from_pulseq(def) = merge(_default_sequence_def(), deepcopy(def))
 
 function _merge_sequence_def!(dest, src)
     for (key, value) in src
-        if key in PULSEQ_RASTER_DEFINITION_KEYS || key in PULSEQ_HW_DEFINITION_KEYS
-            haskey(dest, key) || (dest[key] = deepcopy(value))
-        else
-            dest[key] = deepcopy(value)
-        end
+        haskey(dest, key) || (dest[key] = deepcopy(value))
     end
     return dest
 end
@@ -425,9 +421,8 @@ function _set_block_duration!(seq, events...)
     end
     return seq
 end
-_zero_grad_like(gr::Grad) = 0.0 * gr
 _axis_grad(::Nothing, ref::Nothing) = Grad(0.0, 0.0)
-_axis_grad(::Nothing, ref::Grad) = _zero_grad_like(ref)
+_axis_grad(::Nothing, ref::Grad) = 0.0 * ref
 _axis_grad(gr::Grad, ref) = gr
 
 function _block_sequence(events; x=nothing, y=nothing, z=nothing)
@@ -478,7 +473,7 @@ Base.push!(seq::Sequence, events...) = addblock!(seq, events...)
 -(x::Sequence) = Sequence(-x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
 *(α::Real, x::Sequence) = Sequence(α .* x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
 *(α::Complex, x::Sequence) = Sequence(_copy_events(x.GR), α.*x.RF, α.*x.ADC, copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
-*(A::AbstractMatrix{<:Real}, x::Sequence) = Sequence(A*x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF)) #TODO: change this, Rotation fo waveforms is broken
+*(A::AbstractMatrix{<:Real}, x::Sequence) = Sequence(A * x.GR, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
 /(x::Sequence, α::Real) = Sequence(x.GR/α, _copy_events(x.RF), _copy_events(x.ADC), copy(x.DUR), _copy_block_metadata(x.EXT), deepcopy(x.DEF))
 +(s::Sequence, events::_BlockEventTuple) = s + _block_sequence(events)
 +(events::_BlockEventTuple, s::Sequence) = _block_sequence(events) + s
@@ -652,6 +647,14 @@ always zero, and the final time corresponds to the duration of the sequence.
 """
 get_block_start_times(seq::Sequence) = cumsum([0.0; seq.DUR], dims=1)
 
+function _gradient_interpolation_samples(gr::Grad)
+    t = collect(times(gr))
+    A = ampls(gr)
+    isempty(t) && return (t=t, A=A)
+    _strictly_increasing_knots!(t)
+    return (t=t, A=A)
+end
+
 """
     samples = get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf)
 
@@ -689,12 +692,15 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     end
     # Gradients
     if :gr in events
-        t_gx = reduce(vcat, [T0[i] .+ times(seq.GR[1,i]) for i in range])
-        t_gy = reduce(vcat, [T0[i] .+ times(seq.GR[2,i]) for i in range])
-        t_gz = reduce(vcat, [T0[i] .+ times(seq.GR[3,i]) for i in range])
-        A_gx = reduce(vcat, [ampls(seq.GR[1,i]) for i in range])
-        A_gy = reduce(vcat, [ampls(seq.GR[2,i]) for i in range])
-        A_gz = reduce(vcat, [ampls(seq.GR[3,i]) for i in range])
+        gx = [_gradient_interpolation_samples(seq.GR[1,i]) for i in range]
+        gy = [_gradient_interpolation_samples(seq.GR[2,i]) for i in range]
+        gz = [_gradient_interpolation_samples(seq.GR[3,i]) for i in range]
+        t_gx = reduce(vcat, [T0[i] .+ gx[j].t for (j, i) in enumerate(range)])
+        t_gy = reduce(vcat, [T0[i] .+ gy[j].t for (j, i) in enumerate(range)])
+        t_gz = reduce(vcat, [T0[i] .+ gz[j].t for (j, i) in enumerate(range)])
+        A_gx = reduce(vcat, [g.A for g in gx])
+        A_gy = reduce(vcat, [g.A for g in gy])
+        A_gz = reduce(vcat, [g.A for g in gz])
         gr_samples = (
                 gx  = fill_if_empty((t = t_gx, A = A_gx)),
                 gy  = fill_if_empty((t = t_gy, A = A_gy)),

@@ -112,7 +112,7 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 			if is_Gy_on(s) append!(active_gradients, s.GR.y) end
 			if is_Gz_on(s) append!(active_gradients, s.GR.z) end
 			for y = active_gradients
-				ts = times(y) .+ t0
+				ts = _gradient_interpolation_samples(y).t .+ t0
 				taux = points_from_key_times([ts[1] + ϵ; ts; ts[end] - ϵ]; dt=Δt)
                 append!(t_block, taux)
 			end

@@ -159,9 +159,46 @@ using TestItems, TestItemRunner
 
         rotated = rotz(π / 2) * seq0
         @test rotated !== seq0
-        @test rotated.GR.A ≈ rotz(π / 2) * seq0.GR.A
+        @test rotated.GR[1,1].A ≈ -seq0.GR[2,1].A
+        @test rotated.GR[2,1].A ≈ seq0.GR[1,1].A
+        @test rotated.GR[3,1].A ≈ seq0.GR[3,1].A
         @test rotated.RF[1,1].A ≈ seq0.RF[1,1].A
         @test rotated.ADC[1].N == seq0.ADC[1].N
+
+        @testset "Sequence k-space rotation" begin
+            off_grad = Grad(0.0, 0.0)
+            delayed_trap = Grad(0.4e-3, 0.9e-3, 0.1e-3, 0.15e-3, 0.05e-3)
+            edge_trap = Grad(0.3e-3, 0.7e-3, 0.0, 0.0, 0.0)
+            delayed_uniform = Grad([0.1e-3, 0.5e-3, -0.2e-3], 0.9e-3, 0.0, 0.0, 0.17e-3)
+            ramped_time = Grad([0.2e-3, -0.1e-3, 0.3e-3], [0.2e-3, 0.4e-3], 0.07e-3, 0.0, 0.0)
+            edge_time = Grad([0.2e-3, -0.1e-3, 0.3e-3], [0.2e-3, 0.4e-3], 0.0, 0.0, 0.0, 0.1e-3, 0.0)
+            rotation_cases = (
+                (delayed_trap, off_grad, edge_trap),
+                (edge_trap, delayed_uniform, off_grad),
+                (delayed_uniform, ramped_time, delayed_trap),
+                (ramped_time, edge_time, edge_trap),
+                (edge_time, delayed_trap, delayed_uniform),
+            )
+            rotations = (
+                [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0],
+                rotx(π), roty(π), rotz(π),
+                rotx(2π), roty(2π), rotz(2π),
+                rotz(π / 4),
+                rotx(π / 7) * roty(-π / 5) * rotz(π / 6),
+            )
+            for gradients in rotation_cases
+                adc_duration = any(!iszero(gr.last) for gr in gradients) ?
+                    maximum(dur, gradients) :
+                    maximum(dur, gradients) + 0.2e-3
+                seq = Sequence()
+                addblock!(seq, ADC(257, adc_duration); x=gradients[1], y=gradients[2], z=gradients[3])
+                _, kspace = get_kspace(seq)
+                for R in rotations
+                    _, rotated_kspace = get_kspace(R * seq)
+                    @test rotated_kspace ≈ kspace * R'
+                end
+            end
+        end
 
         negated = -seq0
         divided = seq0 / 2
@@ -174,11 +211,14 @@ using TestItems, TestItemRunner
         @test_throws MethodError seq0 * im
         @test_throws MethodError seq0 * rotz(π / 2)
 
-        for seq in (scaled, phased, rotated, negated, divided)
+        for seq in (scaled, phased, negated, divided)
             seq.GR[1,1].A = 0.04
             seq.RF[1,1].A = 4e-6
             seq.ADC[1].N = 32
         end
+        rotated.GR[1,1].delay += 1e-6
+        rotated.RF[1,1].A = 4e-6
+        rotated.ADC[1].N = 32
         @test seq0.GR[1,1].A == 0.01
         @test seq0.RF[1,1].A ≈ 1e-6
         @test seq0.ADC[1].N == 4
@@ -354,6 +394,37 @@ using TestItems, TestItemRunner
         @test [v3[i].A for i=1:length(v3)] ≈ [v1[i].A + v2[i].A for i=1:length(v1)]
         gradr = grad - gradt
         @test gradr.A ≈ grad.A - gradt.A
+
+        @testset "Gradient addition preserves types for matching timing" begin
+            same_timing_pairs = (
+                (Grad(0.4, 0.8e-3, 0.1e-3, 0.2e-3, 0.05e-3), Grad(-0.1, 0.8e-3, 0.1e-3, 0.2e-3, 0.05e-3), KomaMRIBase.TrapezoidalGrad),
+                (Grad([0.1, 0.5, -0.2], 0.9e-3, 0.1e-3, 0.15e-3, 0.02e-3), Grad([0.3, -0.2, 0.4], 0.9e-3, 0.1e-3, 0.15e-3, 0.02e-3), KomaMRIBase.UniformlySampledGrad),
+                (Grad([0.1, 0.5, -0.2], [0.3e-3, 0.6e-3], 0.1e-3, 0.15e-3, 0.02e-3), Grad([0.3, -0.2, 0.4], [0.3e-3, 0.6e-3], 0.1e-3, 0.15e-3, 0.02e-3), KomaMRIBase.TimeShapedGrad),
+            )
+            for (ga, gb, grad_type) in same_timing_pairs
+                gsum = ga + gb
+                @test gsum isa grad_type
+                @test gsum.A ≈ ga.A .+ gb.A
+                @test gsum.T == ga.T
+                @test gsum.rise == ga.rise
+                @test gsum.fall == ga.fall
+                @test gsum.delay == ga.delay
+            end
+
+            constant_sum = Grad(fill(1.0, 4), 1e-3) + Grad(2.0, 1e-3)
+            @test constant_sum isa KomaMRIBase.TrapezoidalGrad
+            @test constant_sum.A ≈ 3.0
+            @test length(ampls(constant_sum)) == 4
+        end
+
+        @testset "Gradient addition matches sampled waveform for mixed timing" begin
+            _sample_xgrad(g, t) = first(KomaMRIBase.get_grads(Sequence(reshape([g], 1, 1)), t))
+            ga = Grad(0.4, 0.8e-3, 0.1e-3, 0.2e-3, 0.05e-3)
+            gb = Grad([0.1, 0.5, -0.2], 0.9e-3, 0.12e-3, 0.08e-3, 0.17e-3)
+            t = sort!(unique!(vcat(times(ga), times(gb))))
+            @test isapprox(_sample_xgrad(ga + gb, t), _sample_xgrad(ga, t) .+ _sample_xgrad(gb, t); atol=1e-12)
+        end
+
         gradt = -grad
         @test gradt.A ≈ -grad.A
         vc = vcat(v1, v2)
@@ -756,6 +827,37 @@ using TestItems, TestItemRunner
         seq2.EXT[1] = [LabelInc(2, "LIN"), LabelSet(2, "ECO")]
         @test seq1 ≈ seq2 # Check that sequences are equal because they have the same extensions
     end
+    @testset "Quaternion rotations" begin
+        @testset "Quaternion conversion" begin
+            q = QuaternionRot(0, 0, 0, 1)
+            @test KomaMRIBase.rotation_matrix(q) == [-1.0 0.0 0.0; 0.0 -1.0 0.0; 0.0 0.0 1.0]
+            @test KomaMRIBase.rotation_matrix(QuaternionRot([1 0 0; 0 0 -1; 0 1 0])) ≈ [1 0 0; 0 0 -1; 0 1 0]
+            @test KomaMRIBase.rotation_matrix(QuaternionRot(rotz(π / 3))) ≈ rotz(π / 3)
+            @test_throws DimensionMismatch QuaternionRot([1 0; 0 1])
+            @test_throws ArgumentError QuaternionRot(zeros(3, 3))
+        end
+
+        @testset "Apply rotations keeps extension metadata" begin
+            seq = Sequence()
+            @addblock seq += (QuaternionRot(0, 0, 0, 1), LabelSet(1, "LIN"), x=Grad(1e-3, 1e-3), y=Grad(2e-3, 1e-3))
+            seq.DEF["RequiredExtensions"] = ["ROTATIONS", "LABELSET"]
+            rotated = apply_rotations(seq)
+            @test rotated !== seq
+            @test rotated.GR[1, 1].A == -1e-3
+            @test rotated.GR[2, 1].A == -2e-3
+            @test rotated.GR[3, 1].A == 0.0
+            @test rotated.EXT[1] == [QuaternionRot(0, 0, 0, 1), LabelSet(1, "LIN")]
+            @test rotated.DEF["RequiredExtensions"] == ["ROTATIONS", "LABELSET"]
+            @test seq.GR[1, 1].A == 1e-3
+            @test any(ext -> ext isa QuaternionRot, seq.EXT[1])
+
+            mixed = Sequence([Grad(1e-3, 1e-3); Grad(2e-3, 1e-3, 0.0, 0.0, 0.2e-3); Grad(0.0, 0.0);;])
+            mixed.EXT[1] = [QuaternionRot(cos(π / 8), 0, 0, sin(π / 8))]
+            mixed_rotated = apply_rotations(mixed)
+            @test mixed_rotated !== mixed
+            @test any(ext -> ext isa QuaternionRot, mixed_rotated.EXT[1])
+        end
+    end
     @testset "Check Scanner Constraints" begin
         sys = Scanner()
         seq = PulseDesigner.EPI_example()
@@ -792,6 +894,9 @@ using TestItems, TestItemRunner
         compact_adc = Sequence()
         @addblock compact_adc += (ADC(2, 100e-9, 50e-9), Duration(10e-6))
         @test isnothing(check_timing(compact_adc))
+        adc_raster_seq = Sequence(Scanner(RF_Δt=10e-6, ADC_Δt=100e-9))
+        @addblock adc_raster_seq += (ADC(111, 4.4e-6 * 110, 151e-6), Duration(650e-6))
+        @test isnothing(check_timing(adc_raster_seq))
         seq_bad = Sequence()
         @addblock seq_bad += RF(1e-6, 10.5e-6)
         @test_throws ErrorException check_timing(seq_bad)
