@@ -88,8 +88,9 @@ for i in eachindex(idx_ADC)
   idx_ADC[i] == 1 ? seq_LIN.EXT[i] = [lInc] : nothing;
 end
 
-# Because we want the label of each ADC to start from 0, we set the value to -1 on the first block.
-seq_LIN.EXT[1] = [LabelSet(-1,"LIN")];
+# Scanner-facing labels should be positive. Set LIN to 0 before the first ADC,
+# so the first `LabelInc(1,"LIN")` makes the first acquired line LIN=1.
+seq_LIN.EXT[1] = [LabelSet(0,"LIN")];
 
 # Let's check the LIN label for each ADC
 l = get_labels(seq_LIN)

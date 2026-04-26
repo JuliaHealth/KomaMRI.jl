@@ -48,7 +48,7 @@ The RF struct represents a Radio Frequency excitation of a sequence event.
 ```julia-repl
 julia> rf = RF(1, 1, 0, 0.2)
 
-julia> seq = Sequence(); seq += rf; plot_seq(seq)
+julia> seq = Sequence(); @addblock seq += rf; plot_seq(seq)
 ```
 """
 mutable struct RF{AT,TT,ΔFT}

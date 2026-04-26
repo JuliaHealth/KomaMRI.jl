@@ -14,14 +14,8 @@ B1 =  b1max .* sech.(β.*t)
 # Sequence generation
 fmax_sim = 2e3
 Gz = fmax_sim / γ
-seq = Sequence(
-    [
-        Grad(0.,0.);   #Gx
-        Grad(0.,0.);   #Gy
-        Grad(Gz,Trf,0) #Gz
-    ;;],
-    [RF(B1,Trf,Δf,0);;]
-    )
+seq = Sequence()
+@addblock seq += (RF(B1, Trf, Δf, 0), z=Grad(Gz, Trf, 0))
 p1 = plot_seq(seq; max_rf_samples=Inf, slider=false)
 KomaMRI.get_flip_angles(seq)[1]
 # Simulation

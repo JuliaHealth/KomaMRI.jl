@@ -107,6 +107,13 @@ Delay
 Duration
 ```
 
+### Extensions
+
+```@docs
+QuaternionRot
+apply_rotations
+```
+
 ### Rotation matrices
 
 ```@docs

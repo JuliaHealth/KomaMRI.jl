@@ -20,10 +20,8 @@ for (i, f0) = enumerate(f0s), (j, Trf) = enumerate(Trfs), (k, ΔB1) = enumerate(
     dt = Trf / length(B1)
     fmax_sim = 10e3
     Gz = fmax_sim / γ
-    seq = Sequence(
-        [Grad(0.,0.); Grad(0.,0.); Grad(Gz,Trf,0);;],
-        [RF(B1,Trf,Δf,0);;]
-        )
+    seq = Sequence()
+    @addblock seq += (RF(B1, Trf, Δf, 0), z=Grad(Gz, Trf, 0))
     sim_params = Dict{String,Any}("Δt_rf"=>dt)
 
     z = range(-1, 1, 200)

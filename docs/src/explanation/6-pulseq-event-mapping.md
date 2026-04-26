@@ -100,7 +100,7 @@ Koma sequence.
 
 ### ADC
 
-[`ADC`](5-seq-events.md#adc) events do not have shape-based aliases. The timing
+[`ADC`](5-seq-events.md#adc) events do not have shape-based representations. The timing
 convention is the only translation: Koma stores `delay` to the first acquired
 sample, while Pulseq stores `pulseq_delay` to the dwell interval edge.
 
@@ -155,12 +155,12 @@ writes an already prepared representation directly.
 
 The writer has four stages:
 
-1. If `check_hw_limits=true`, hardware limits are checked before writing. Without
-   `sys`, this uses metadata in `seq.DEF`; with `sys`, it uses `sys`.
+1. By default, `check_hw_limits=true` checks hardware limits before writing.
+   Without `sys`, this uses metadata in `seq.DEF`; with `sys`, it uses `sys`.
 2. `prepare_pulseq_write` copies and quantizes RF, gradient, ADC, and block
    duration timings to the Pulseq rasters. Without `sys`, raster times come from
    `seq.DEF`; with `sys`, the scanner rasters are used.
-3. If `check_timing=true`, the quantized copy is checked against the Pulseq
+3. By default, `check_timing=true` checks the quantized copy against the Pulseq
    rasters.
 4. `collect_pulseq_assets` and `emit_pulseq` write `[DEFINITIONS]`, `[BLOCKS]`,
    event libraries, shape libraries, extensions, and the signature.

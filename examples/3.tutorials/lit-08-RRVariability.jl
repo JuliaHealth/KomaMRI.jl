@@ -121,7 +121,7 @@ seq = bSSFP_cine(
 # once again correctly aligned, despite the underlying arrhythmia.
 # 
 # In the future, this synchronization will be handled automatically 
-# through upcoming support for trigger extensions in the sequence framework.
+# through scanner trigger extensions; this tutorial keeps the synchronization explicit.
 
 ## Simulation  #hide
 raw3 = @suppress simulate(obj, seq, sys) #hide

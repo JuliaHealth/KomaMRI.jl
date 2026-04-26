@@ -2,28 +2,30 @@
 
 A Koma `Sequence` is made of smaller sequence blocks. A block is a `Sequence` of
 length 1: it stores an RF pulse, one gradient per axis, an ADC event, a block
-duration, and extensions such as labels or triggers.
+duration, and one or more extensions such as labels, triggers, or rotations.
 
-Use `@addblock` to add one block:
+Use `@addblock` to add one block to a sequence:
 
 :::tabs
 
 == KomaMRI
 
 ```julia
-seq = Sequence()
+seq = Sequence()  # or Sequence(sys) for export checks; see Scanner And Raster Times
 @addblock seq += (rf, z=gz)
 ```
 
 == MATLAB Pulseq
 
 ```matlab
+seq = mr.Sequence();
 seq.addBlock(rf, gz)
 ```
 
 == PyPulseq
 
 ```python
+seq = pp.Sequence()
 seq.add_block(rf, gz)
 ```
 
@@ -175,7 +177,12 @@ excitation.add_block(rf, gz)
 
 Use `Sequence(sys)` when the sequence should carry scanner raster and hardware
 metadata. `@addblock` only builds sequence blocks by default. `write_seq` checks
-raster timing and hardware limits before writing.
+raster timing and event-local hardware limits using `seq.DEF`, or using `sys`
+when passed. With plain `Sequence()`, the stored hardware limits are
+non-limiting; use `Sequence(sys)` or `write_seq(seq, filename; sys)` for real
+scanner checks. Hardware checks currently cover RF amplitude, gradient
+amplitude/slew, and ADC dwell; they do not enforce RF ring-down or RF/ADC dead
+times.
 
 :::tabs
 
@@ -209,20 +216,11 @@ seq.write('sequence.seq')
 
 :::
 
-Set Pulseq raster definitions on the sequence only when you need explicit file
-rasters without passing a `Scanner` to `write_seq`:
-
-```julia
-seq.DEF["BlockDurationRaster"] = sys.DUR_Δt
-seq.DEF["GradientRasterTime"] = sys.GR_Δt
-seq.DEF["RadiofrequencyRasterTime"] = sys.RF_Δt
-seq.DEF["AdcRasterTime"] = sys.ADC_Δt
-```
-
-Koma's default `Scanner` matches MATLAB Pulseq for block duration, gradient, and
-RF rasters. The ADC raster is different: Koma defaults to `2e-6` seconds, while
-MATLAB Pulseq defaults to `100e-9` seconds. Use `write_seq(seq, filename; sys)`
-when you want the scanner raster times to be authoritative.
+`Sequence()` stores Pulseq-style file defaults: `10e-6` seconds for block and
+gradient rasters, `1e-6` seconds for RF, and `100e-9` seconds for ADC. `Scanner()`
+has scanner/simulation defaults; for example its ADC raster is `2e-6` seconds.
+Use `Sequence(sys)` or `write_seq(seq, filename; sys)` when the scanner raster
+times should be authoritative.
 
 ## Multiple Blocks
 
@@ -420,29 +418,120 @@ seq.add_block(*contents, gx, gy, gz)
 
 ## Sequence Arithmetic
 
-Julia's multiple dispatch lets packages define what operators mean for their own
-types. Koma uses this for sequence chunks:
+Julia's multiple dispatch lets Koma define useful operations on sequence chunks.
+Each operation returns a copy, so reusable chunks stay independent.
 
-- `real_scalar * sequence` copies the sequence and scales gradient amplitudes.
-- `real_matrix * sequence` copies the sequence and mixes the gradient axes.
-- `complex_scalar * sequence` copies the sequence, phase-shifts RF and ADC, and
-  leaves gradients unchanged.
+### Gradient Scaling
 
-```julia
-@addblock seq += 0.5 * readout(ky)  # half gradient amplitude
-```
+`real_scalar * sequence` scales gradients and leaves RF and ADC unchanged.
 
-A `3 × 3` matrix mixes the `x`, `y`, and `z` gradient axes. This is useful for
-rotating a sequence module:
+:::tabs
+
+== KomaMRI
 
 ```julia
-θ = π / 6
-Rz = [cos(θ) -sin(θ) 0
-      sin(θ)  cos(θ) 0
-      0       0      1]
+readout = Sequence()
+@addblock readout += (adc, x=gx)
 
-@addblock seq += Rz * readout(ky)
+@addblock seq += 0.5 * readout
 ```
+
+== MATLAB Pulseq
+
+```matlab
+seq.addBlock(mr.scaleGrad(gx, 0.5), adc)
+```
+
+== PyPulseq
+
+```python
+seq.add_block(pp.scale_grad(gx, 0.5), adc)
+```
+
+:::
+
+### Gradient Rotation
+
+`real_matrix * sequence` mixes gradient axes and leaves RF and ADC unchanged. A
+rotation around z is written with `rotz(ϕ)`:
+
+:::tabs
+
+== KomaMRI
+
+```julia
+readout = Sequence()
+@addblock readout += (adc, x=gx)
+
+ϕ = π / 6
+@addblock seq += rotz(ϕ) * readout
+```
+
+== MATLAB Pulseq
+
+```matlab
+phi = pi/6;
+seq.addBlock(mr.rotate('z', phi, gx, adc))
+```
+
+== PyPulseq
+
+```python
+phi = pi / 6
+seq.add_block(*pp.rotate(gx, adc, angle=phi, axis='z'))
+```
+
+:::
+
+### RF And ADC Phase
+
+`complex_scalar * sequence` phase-shifts RF and ADC. Gradients are unchanged.
+Use `cis(ϕ)` for a pure phase, equivalent to `exp(im * ϕ)`.
+
+:::tabs
+
+== KomaMRI
+
+```julia
+excitation = Sequence()
+@addblock excitation += (rf, z=gz)
+
+readout = Sequence()
+@addblock readout += (adc, x=gx)
+
+phase = cis(π / 2)  # exp(im * π / 2)
+@addblock seq += phase * (excitation + readout)
+```
+
+== MATLAB Pulseq
+
+```matlab
+phase = pi/2;
+rf_phase = rf;
+adc_phase = adc;
+rf_phase.phaseOffset = rf.phaseOffset + phase;
+adc_phase.phaseOffset = adc.phaseOffset + phase;
+
+seq.addBlock(rf_phase, gz)
+seq.addBlock(gx, adc_phase)
+```
+
+== PyPulseq
+
+```python
+from copy import copy
+
+phase = pi / 2
+rf_phase = copy(rf)
+adc_phase = copy(adc)
+rf_phase.phase_offset += phase
+adc_phase.phase_offset += phase
+
+seq.add_block(rf_phase, gz)
+seq.add_block(gx, adc_phase)
+```
+
+:::
 
 ## Radial Readouts
 
@@ -456,10 +545,7 @@ rotate its gradients for each spoke.
 ```julia
 @addblocks for spoke in 0:Nspokes-1
     θ = π * spoke / Nspokes
-    Rz = [cos(θ) -sin(θ) 0
-          sin(θ)  cos(θ) 0
-          0       0      1]
-    seq += Rz * (excitation + readout)
+    seq += excitation + rotz(θ) * readout
 end
 ```
 
@@ -469,7 +555,7 @@ end
 for spoke = 0:Nspokes-1
     theta = pi * spoke / Nspokes;
     seq.addBlock(rf, gz)
-    addRotatedReadout(seq, theta)
+    seq.addBlock(mr.rotate('z', theta, gx, adc))
 end
 ```
 
@@ -479,7 +565,7 @@ end
 for spoke in range(Nspokes):
     theta = pi * spoke / Nspokes
     seq.add_block(rf, gz)
-    add_rotated_readout(seq, theta)
+    seq.add_block(*pp.rotate(gx, adc, angle=theta, axis='z'))
 ```
 
 :::

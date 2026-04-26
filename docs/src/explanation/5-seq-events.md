@@ -282,6 +282,17 @@ Trigger(type, channel, delay, duration)
 `type` and `channel` are system dependent. `delay` is the delay before the
 trigger event in seconds, and `duration` is the trigger duration in seconds.
 
+### Rotation extension
+
+`QuaternionRot(q0, qx, qy, qz)` stores a Pulseq `ROTATIONS` extension. `read_seq`
+applies these rotations to the gradients by default and keeps the extension
+events in `seq.EXT`, so writing the sequence can preserve the Pulseq rotation
+extension. Use `read_seq(filename; apply_rotations=false)` to keep the gradients
+as stored in the file.
+On write, KomaMRI inverse-rotates the gradients before serializing the extension,
+so reading the exported file with default settings recovers the same gradient
+waveforms.
+
 ### Example Usage
 
 Below is an example of adding labels and a trigger to sequence blocks:
@@ -317,7 +328,7 @@ lSet = LabelSet(1, "ECO")
 Both labels are stored in the `EXT` entry for that block.
 
 !!! warning
-    KomaMRI currently supports Pulseq labels and triggers. Other Pulseq
+    KomaMRI currently supports Pulseq labels, triggers, and rotations. Other Pulseq
     extensions can be added later as needed.
 
 ## Combination of Events

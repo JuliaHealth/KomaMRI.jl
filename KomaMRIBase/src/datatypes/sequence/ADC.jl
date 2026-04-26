@@ -19,7 +19,7 @@ The ADC struct represents the Analog to Digital Converter (ADC) of a sequence ev
 ```julia-repl
 julia> adc = ADC(16, 1, 0.1)
 
-julia> seq = Sequence(); seq += adc; plot_seq(seq)
+julia> seq = Sequence(); @addblock seq += adc; plot_seq(seq)
 ```
 """
 mutable struct ADC

@@ -31,7 +31,7 @@ A **Sequence** stores one column per block. Its main fields are:
 | `RF` | RF events. Rows are RF channels; columns are blocks. |
 | `ADC` | ADC event for each block. |
 | `DUR` | Duration of each block in seconds. |
-| `EXT` | Pulseq extensions for each block, such as labels or triggers. |
+| `EXT` | Pulseq extensions for each block, such as labels, triggers, or rotations. |
 | `DEF` | Dictionary of sequence definitions, mostly used for file I/O and reconstruction metadata. |
 
 The **RF**, **Grad**, and **ADC** events are explained in [Sequence Events](5-seq-events.md).
@@ -120,3 +120,7 @@ julia> plot_seq(seq; slider=false)
 ```@raw html
 <object type="text/html" data="../assets/seq-concatenation.html" style="width:100%; height:420px;"></object>
 ```
+
+The `+` operator returns a copied sequence, so reusable chunks do not share
+mutable events. For long construction loops, use [`@addblocks`](../how-to/3-create-your-own-sequence.md#multiple-blocks)
+to append efficiently.
