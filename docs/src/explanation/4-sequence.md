@@ -121,6 +121,6 @@ julia> plot_seq(seq; slider=false)
 <object type="text/html" data="../assets/seq-concatenation.html" style="width:100%; height:420px;"></object>
 ```
 
-The `+` operator returns a copied sequence, so reusable chunks do not share
-mutable events. For long construction loops, use [`@addblocks`](../how-to/3-create-your-own-sequence.md#multiple-blocks)
+The `+` operator returns a copied sequence, so reused sequence parts do not share
+mutable events. For long construction loops, use [`@addblocks`](../how-to/3-create-your-own-sequence.md#add-blocks-in-loops)
 to append efficiently.
