@@ -40,7 +40,7 @@ function QuaternionRot(R::AbstractMatrix{T}) where {T<:Real}
 end
 
 get_scale(::Type{QuaternionRot}) = [1.0 1.0 1.0 1.0]
-get_scanf_format(::Type{QuaternionRot}) = "%f %f %f %f"
+get_pulseq_format(::Type{QuaternionRot}) = "%f %f %f %f"
 get_EXT_type_from_symbol(::Val{:ROTATIONS}) = QuaternionRot
 get_symbol_from_EXT_type(::Type{QuaternionRot}) = "ROTATIONS"
 extension_type_header(::Type{QuaternionRot}) = "# Extension specification for rotations:\n# id q0 qx qy qz\n"

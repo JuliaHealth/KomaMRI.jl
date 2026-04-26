@@ -1,3 +1,15 @@
+parse_keyed_value(line, key, T) = begin
+    fields = split(line)
+    length(fields) == 2 && fields[1] == key || error("Expected `$key <value>`, got `$line`.")
+    return parse(T, fields[2])
+end
+
+try_parse_keyed_value(line, key, T) = begin
+    fields = split(line)
+    length(fields) == 2 && fields[1] == key || return nothing
+    return parse(T, fields[2])
+end
+
 """
 read_version Read the [VERSION] section of a sequence file.
    defs=read_version(fid) Read Pulseq version from file
@@ -5,9 +17,9 @@ read_version Read the [VERSION] section of a sequence file.
 """
 function read_version(io; verbose=true)
     pulseq_version = VersionNumber(
-        @scanf(readline(io), "major %i", Int)[end],
-        @scanf(readline(io), "minor %i", Int)[end],
-        @scanf(readline(io), "revision %i", Int)[end],
+        parse_keyed_value(readline(io), "major", Int),
+        parse_keyed_value(readline(io), "minor", Int),
+        parse_keyed_value(readline(io), "revision", Int),
     )
     @assert pulseq_version.major == 1 "Unsupported version_major $(pulseq_version.major)"
     if     pulseq_version < v"1.2.0"
@@ -185,9 +197,14 @@ end
 
 apply_scale(scale::Number, value::Number) = scale * value
 apply_scale(scale, value) = value
+parse_event_field(token, field) =
+    token == "%i" ? parse(Int, field) :
+    token == "%f" ? parse(Float64, field) :
+    token == "%c" ? only(field) :
+    String(field)
 
 """
-    events = read_events(io, scale; format="%i "*"%f "^(length(scale)), event_library)
+    events = read_events(io, scale; field_format="%i "*"%f "^(length(scale)), event_library)
 
 Read an event section of a sequence file.
 
@@ -196,27 +213,25 @@ Read an event section of a sequence file.
 - `scale`: tuple of scale factors applied to parsed fields
 
 # Keywords
-- `format`: (`::String`) format string
+- `field_format`: (`::String`) Pulseq field format tokens (`%i`, `%f`, `%c`, `%s`)
 - `event_library`: output dictionary for the parsed event library
 - `constructor`: constructor used to normalize each parsed event row
 
 # Returns
 - `events`: parsed event library
 """
-function read_events(io, scales; format="%i " * "%f " ^ length(scales), event_library, constructor=identity)
+function read_events(io, scales; field_format="%i " * "%f " ^ length(scales), event_library, constructor=identity)
+    field_formats = split(field_format)
     event_length = length(scales) + 1
-    fmt = Scanf.Format(format)
-    args = Tuple(
-        token == "%i" ? Int : token == "%f" ? Float64 : token == "%c" ? Char : String
-        for token in split(format)
-    )
     while true
         line = readline(io)
         isempty(line) && break
-        r, data... = scanf(line, fmt, args...)
-        r == event_length || break #Break if not all values read
-        id = data[1]
-        parsed = ntuple(i -> apply_scale(scales[i], data[i + 1]), length(scales))
+        fields = split(line)
+        length(fields) == event_length || break #Break if not all values read
+        id = parse(Int, fields[1])
+        parsed = ntuple(length(scales)) do i
+            apply_scale(scales[i], parse_event_field(field_formats[i + 1], fields[i + 1]))
+        end
         event_library[id] = constructor(parsed)
     end
     return event_library
@@ -246,7 +261,7 @@ function read_extensions(io, ext_string, ext_type::Type{<:Extension}, ext_id, ex
     raw_specs = read_events(
         io,
         Tuple(get_scale(ext_type));
-        format="%i " * get_scanf_format(ext_type),
+        field_format="%i " * get_pulseq_format(ext_type),
         event_library=Dict{Int, Tuple}(),
     )
     extensionSpecLibrary[ext_id] = Dict(id => ext_type(values...) for (id, values) in raw_specs)
@@ -275,10 +290,13 @@ function read_shapes(io, forceConvertUncompressed)
         mark(io) # Mark the position before reading the line
         line = readline(io)
         if isempty(line) unmark(io); continue end
-        r, id = @scanf(line, "shape_id %i", Int)
-        if r != 1 reset(io); break end # If the line is not a shape_id, reset the io and break the loop
+        id = try_parse_keyed_value(line, "shape_id", Int)
+        if isnothing(id)
+            reset(io)
+            break
+        end
         unmark(io) # Unmark the position after reading the line
-        _, num_samples = @scanf(readline(io), "num_samples %i", Int)
+        num_samples = parse_keyed_value(readline(io), "num_samples", Int)
         shape = Float64[]
         sizehint!(shape, num_samples)
         while true #Reading shape data
@@ -612,7 +630,7 @@ function parse_pulseq_file(io; verbose=true)
                 read_blocks(io, parsed.definitions.block_duration_raster, parsed.pulseq_version)
         elseif section == "[RF]"
             if parsed.pulseq_version >= v"1.5.0"
-                parsed.rfLibrary = read_events(io, (1 / γ, 1, 1, 1, 1e-6, 1e-6, 1, 1, 1, 1, 1); format="%i " * "%f " ^ 10 * "%c ", event_library=parsed.rfLibrary, constructor=PulseqRFEvent)
+                parsed.rfLibrary = read_events(io, (1 / γ, 1, 1, 1, 1e-6, 1e-6, 1, 1, 1, 1, 1); field_format="%i " * "%f " ^ 10 * "%c ", event_library=parsed.rfLibrary, constructor=PulseqRFEvent)
             elseif parsed.pulseq_version >= v"1.4.0"
                 parsed.rfLibrary = read_events(io, (1 / γ, 1, 1, 1, 1e-6, 1, 1); event_library=parsed.rfLibrary, constructor=PulseqRFEvent)
             else
@@ -642,7 +660,7 @@ function parse_pulseq_file(io; verbose=true)
         elseif section == "[SHAPES]"
             parsed.shapeLibrary = read_shapes(io, parsed.pulseq_version.major == 1 && parsed.pulseq_version.minor < 4)
         elseif section == "[EXTENSIONS]"
-            parsed.extensionInstanceLibrary = read_events(io, (1, 1, 1); format="%i " * "%i " ^ 3, event_library=parsed.extensionInstanceLibrary, constructor=PulseqExtensionInstanceEvent)
+            parsed.extensionInstanceLibrary = read_events(io, (1, 1, 1); field_format="%i " * "%i " ^ 3, event_library=parsed.extensionInstanceLibrary, constructor=PulseqExtensionInstanceEvent)
         elseif section == "[SIGNATURE]"
             parsed.signature = read_signature(io)
         elseif startswith(section, "extension")

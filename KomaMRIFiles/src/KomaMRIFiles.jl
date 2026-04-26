@@ -19,11 +19,11 @@ import KomaMRIBase:
     get_dims,
     _shape_times,
     get_scale,
-    get_scanf_format,
+    get_pulseq_format,
     get_symbol_from_EXT_type,
     is_on,
     sort_motions!
-using Scanf, FileIO, HDF5, MAT, InteractiveUtils, Printf # IO related
+using FileIO, HDF5, MAT, InteractiveUtils, Printf # IO related
 using SHA, MD5 # Pulseq signature verification
 using Reexport
 using MRIFiles
