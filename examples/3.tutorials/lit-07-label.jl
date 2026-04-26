@@ -88,9 +88,9 @@ for i in eachindex(idx_ADC)
   idx_ADC[i] == 1 ? seq_LIN.EXT[i] = [lInc] : nothing;
 end
 
-# Scanner-facing labels should be positive. Set LIN to 0 before the first ADC,
-# so the first `LabelInc(1,"LIN")` makes the first acquired line LIN=1.
-seq_LIN.EXT[1] = [LabelSet(0,"LIN")];
+# MRIReco uses zero-based cartesian line indices. Set LIN to -1 before the first
+# ADC, so the first `LabelInc(1,"LIN")` makes the first acquired line LIN=0.
+seq_LIN.EXT[1] = [LabelSet(-1,"LIN")];
 
 # Let's check the LIN label for each ADC
 l = get_labels(seq_LIN)
