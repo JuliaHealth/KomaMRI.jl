@@ -1,4 +1,4 @@
-# How to Build Sequences with `@addblock`
+# Build Sequences with `@addblock`
 
 A Koma `Sequence` is a list of sequence blocks. Each block stores RF events,
 one gradient per axis, ADC events, a duration, and extensions such as labels,
