@@ -99,11 +99,10 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 		t0 = T0[i]
 		if is_RF_on(s)
 			y = s.RF[1]
-			delay, T, center = y.delay, y.T, y.center
+			delay, T = y.delay, y.T
 			t1 = t0 + delay
 			t2 = t1 + sum(T)
-			rf0 = t0 + delay + center
-			taux = points_from_key_times([t1, t1 + ϵ, rf0, t2 - ϵ, t2]; dt=Δt_rf)
+			taux = points_from_key_times([t1 - ϵ, t1, t1 + ϵ, t2 - ϵ, t2, t2 + ϵ]; dt=Δt_rf)
             append!(t_block, taux)
 		end
 		if is_GR_on(s)
@@ -112,7 +111,7 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 			if is_Gy_on(s) append!(active_gradients, s.GR.y) end
 			if is_Gz_on(s) append!(active_gradients, s.GR.z) end
 			for y = active_gradients
-				ts = _gradient_interpolation_samples(y).t .+ t0
+				ts = times(y) .+ t0
 				taux = points_from_key_times([ts[1] + ϵ; ts; ts[end] - ϵ]; dt=Δt)
                 append!(t_block, taux)
 			end

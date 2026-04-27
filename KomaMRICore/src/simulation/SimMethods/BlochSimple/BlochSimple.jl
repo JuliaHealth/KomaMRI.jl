@@ -31,7 +31,6 @@ function run_spin_precession!(
     backend::KA.Backend,
     prealloc::PreallocResult
 ) where {T<:Real}
-    #Simulation
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
@@ -45,14 +44,14 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     tp   = cumsum(seq.Δt) # t' = t - t0
     dur  = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy  = [M.xy M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ)] #This assumes Δw and T2 are constant in time
+    Mxy  = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(Mxy, seq.t', p.motion)
-    outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
+    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     #Acquired signal
-    sig .= @views transpose(sum(Mxy[:, findall(seq.ADC)]; dims=1)) #<--- TODO: add coil sensitivities
+    sig .= @views transpose(sum(Mxy[:, findall(seq.ADC[2:end])]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
 end
 
@@ -81,8 +80,15 @@ function run_spin_excitation!(
     backend::KA.Backend,
     prealloc::PreallocResult
 ) where {T<:Real}
+    sample = 1
     #Simulation
-    for s in seq #This iterates over seq, "s = seq[i,:]"
+    for i in eachindex(seq.Δt)
+        s = @views ( # This was the previous behaviour of seq[i], but it was hidden
+            t = seq.t[i, :], tnew = seq.t[i + 1, :], Δt = seq.Δt[i, :],
+            Gx = seq.Gx[i, :], Gy = seq.Gy[i, :], Gz = seq.Gz[i, :],
+            B1 = seq.B1[i, :], Δf = seq.Δf[i, :],
+            ADC = any(seq.ADC[i + 1, :])
+        )
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
@@ -91,15 +97,23 @@ function run_spin_excitation!(
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B .+= (B .== 0) .* eps(T)
         #Spinor Rotation
-        φ = T(-2π .* γ) .* (B .* s.Δt) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
+        φ = T(-2π .* γ) .* (B .* s.Δt)
         mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
-        M.xy .= M.xy .* exp.(-s.Δt ./ p.T2)
-        M.z .= M.z .* exp.(-s.Δt ./ p.T1) .+ p.ρ .* (1 .- exp.(-s.Δt ./ p.T1))
+        @. M.xy = M.xy * exp(-s.Δt / p.T2)
+        @. M.z  = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M, s.t, p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(M, s.tnew, p.motion; replace_by=p.ρ)
+        #Acquire signal
+        # TODO: use sim_method and sys to modify sig 
+        if s.ADC # ADC at the end of the time step
+            acquire_signal!(sig, sample, M, sim_method)
+            sample += 1
+        end
     end
-    #Acquired signal
-    #sig .= -1.4im #<-- This was to test if an ADC point was inside an RF block
     return nothing
+end
+
+function acquire_signal!(sig, sample, M, sim_method::BlochSimple)
+    sig[sample, :] .= sum(M.xy) 
 end
