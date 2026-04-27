@@ -2,7 +2,7 @@ using KomaMRI, PlotlyJS, Plots, Printf, Suppressor; #hide
 include(joinpath(dirname(pathof(KomaMRI)), "../examples/3.tutorials/utils/RRVariability.jl")); #hide
 sys = Scanner(); #hide
 
-obj = heart_phantom();
+obj = heart_phantom(; spins_per_voxel=20);
 
 p1 = plot_phantom_map(obj, :T1 ; height=450, time_samples=21) #hide
 display(p1);
@@ -10,8 +10,8 @@ display(p1);
 obj.motion
 
 RRs          = [1.0]       # [s] constant RR interval
-N_matrix     = 50          # image size = N x N
-N_phases     = 25          # Number of cardiac phases
+N_matrix     = 32          # image size = N x N
+N_phases     = 16          # Number of cardiac phases
 FOV          = 0.11        # [m]
 TR           = 25e-3       # [s]
 flip_angle   = 10          # [º]
@@ -19,7 +19,7 @@ adc_duration = 0.2e-3;     # [s]
 
 seq = bSSFP_cine(
     FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys;
-    N_dummy_cycles = 40, adc_duration = adc_duration,
+    N_dummy_cycles = 16, adc_duration = adc_duration,
 );
 
 # Simulation  #hide
@@ -59,7 +59,7 @@ plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
 
 seq = bSSFP_cine(
     FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys;
-    N_dummy_cycles = 40, adc_duration = adc_duration,
+    N_dummy_cycles = 16, adc_duration = adc_duration,
 );
 
 # Simulation  #hide

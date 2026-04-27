@@ -13,7 +13,7 @@ seq_EPI.EXT[1] = [lSlcInc];
 seq = seq + seq_EPI + seq_EPI
 plot_seq(seq);
 
-l = get_label(seq);
+l = get_labels(seq);
 
 SLC_vec = [l[i].SLC for i in eachindex(l)];
 
@@ -63,7 +63,7 @@ end
 
 seq_LIN.EXT[1] = [LabelSet(-1,"LIN")];
 
-l = get_label(seq_LIN)
+l = get_labels(seq_LIN)
 l[idx_ADC][1:10]
 
 raw = @suppress simulate(obj, seq_LIN, sys; sim_params)
