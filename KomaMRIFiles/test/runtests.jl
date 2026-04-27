@@ -261,20 +261,17 @@ end
         generated_prefix = "koma-generated-"
         pth = joinpath(@__DIR__, "test_files/pulseq/read_comparison/")
         versions = ["v1.2", "v1.3", "v1.4", "v1.5"]
-        constraint_sys = Scanner(B1=1.0, Gmax=100.0, Smax=1e12, ADC_Δt=100e-9)
         mktempdir() do tmpdir
             for v in versions
                 pulseq_files = filter(endswith(".seq"), readdir(pth * v)) .|> x -> splitext(x)[1]
                 for pulseq_file in pulseq_files
                     label = "$v/$pulseq_file"
-                    seq = @suppress read_seq("$pth$v/$pulseq_file.seq")
+                    seq = read_seq("$pth$v/$pulseq_file.seq"; verbose=false)
                     filename = joinpath(tmpdir, "$(generated_prefix)$(v)-$(pulseq_file).seq")
-                    if occursin("JEMRIS", label) || occursin("gammaSTAR", label)
-                        @suppress write_seq(seq, filename; check_timing=false)
-                    else
-                        @suppress write_seq(seq, filename; sys=constraint_sys)
-                    end
-                    seq2 = @suppress read_seq(filename)
+                    # Legacy JEMRIS files omit AdcRasterTime but use 1 ns dwell precision.
+                    occursin("JEMRIS", label) && (seq.DEF["AdcRasterTime"] = 1e-9)
+                    write_seq(seq, filename; verbose=false)
+                    seq2 = read_seq(filename; verbose=false)
                     @testset "$label" begin
                         @test seq2 ≈ seq
                     end

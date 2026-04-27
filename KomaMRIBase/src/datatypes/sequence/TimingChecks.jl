@@ -131,11 +131,11 @@ function _check_adc_dwell(dwell, raster, block_id)
     error("Block $block_id ADC dwell ($(dwell) s) is not aligned to raster $(raster) s.")
 end
 
-function _check_adc_timing(adc, raster, block_id)
+function _check_adc_timing(adc, adc_raster, rf_raster, block_id)
     dwell = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
-    _check_adc_dwell(dwell, raster, block_id)
+    _check_adc_dwell(dwell, adc_raster, block_id)
     adc.delay + PULSEQ_TIME_TOL >= dwell / 2 || error("Block $block_id ADC delay ($(adc.delay) s) is smaller than dwell/2 ($(dwell / 2) s).")
-    _check_raster_multiple(adc.delay - dwell / 2, raster, block_id, "ADC delay")
+    _check_raster_multiple(adc.delay - dwell / 2, rf_raster, block_id, "ADC delay")
     return nothing
 end
 
@@ -169,7 +169,7 @@ function check_timing(seq::Sequence, raster::NamedTuple)
             _check_grad_timing(gr, raster.GradientRasterTime, i, name)
         end
         adc = seq.ADC[i]
-        is_ADC_on(adc) && _check_adc_timing(adc, raster.AdcRasterTime, i)
+        is_ADC_on(adc) && _check_adc_timing(adc, raster.AdcRasterTime, raster.RadiofrequencyRasterTime, i)
     end
     return nothing
 end

@@ -991,7 +991,7 @@ function quantize_adc!(adc, raster, block_id, warn_count)
     qt(value, field; step, step_name) =
         quantize_time_value(value, step, warn_ctx, field; step_name)
     dwell = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
-    dwell = qt(dwell, :dwell_time; step=1e-9, step_name=:nanoseconds)
+    dwell = qt(dwell, :dwell_time; step=raster.AdcRasterTime, step_name=:AdcRasterTime)
     adc.T = adc.N == 1 ? dwell : (adc.N - 1) * dwell
     pulseq_delay = adc.delay - dwell / 2
     if pulseq_delay < 0
@@ -1001,7 +1001,7 @@ This means the Koma delay must be >= dwell/2. Clamping it to this minimum value.
 See https://pulseq.github.io/pulseq_shapes_and_times.pdf#page=10"
         pulseq_delay = 0
     end
-    pulseq_delay = qt(pulseq_delay, :pulseq_delay; step=1e-6, step_name=:microseconds)
+    pulseq_delay = qt(pulseq_delay, :pulseq_delay; step=raster.RadiofrequencyRasterTime, step_name=:RadiofrequencyRasterTime)
     adc.delay = pulseq_delay + dwell / 2
     return adc.delay + adc.T + dwell / 2
 end
