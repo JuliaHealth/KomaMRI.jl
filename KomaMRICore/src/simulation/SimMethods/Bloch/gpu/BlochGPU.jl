@@ -37,6 +37,7 @@ function run_spin_precession!(
 ) where {T<:Real, SM<:BlochLikeSimMethods}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    has_adc = length(sig) > 0
 
     #Precession
     precession_kernel!(backend, groupsize)(
@@ -44,14 +45,16 @@ function run_spin_precession!(
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)),
+        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
 
     #Signal
-    AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
-    sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
+    if has_adc
+        AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
+        sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
+    end
 
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)

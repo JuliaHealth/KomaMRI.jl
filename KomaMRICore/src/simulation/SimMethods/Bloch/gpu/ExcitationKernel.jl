@@ -102,15 +102,13 @@
             Bx_prev, By_prev, Bz_prev = Bx_next, By_next, Bz_next
         end
 
-        if HAS_ADC
-            # Acquire Signal
-            if s_idx <= s_length && s_ADC[s_idx]
-                sig_r, sig_i = reduce_signal!(Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
-                if i_l == 1u32
-                    sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
-                end
-                ADC_idx += 1u32
+        # Acquire Signal
+        if HAS_ADC && s_ADC[s_idx]
+            sig_r, sig_i = reduce_signal!(Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
+            if i_l == 1u32
+                sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
             end
+            ADC_idx += 1u32
         end
 
         s_idx += 1u32
