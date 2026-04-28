@@ -539,6 +539,26 @@ using TestItems, TestItemRunner
             @test KomaMRIBase.get_char_from_RF_use(use) == char
             @test KomaMRIBase.get_RF_use_from_char(Val(char)) == use
         end
+
+        # Constant frequency offset: ψ is centered so the RF center has zero frame phase.
+        rf = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, 1000.0, 0.0; ϕ=0.3)
+        @test KomaMRIBase.rf_frame_phase(rf) ≈ [0, π, -π, 0]
+
+        # Frequency-modulated RF: ψ is generated from the integrated Δf waveform and centered.
+        rf_fm = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, [0.0, 1000.0, 0.0], 0.0)
+        ψ = KomaMRIBase.rf_frame_phase(rf_fm)
+        @test ψ[argmin(abs.(times(rf_fm, :Δf) .- (rf_fm.delay + rf_fm.center)))] ≈ 0
+
+        # Discretization carries ψ so simulators can handle split RF blocks independently.
+        seq = Sequence()
+        seq += rf
+        seqd = discretize(seq; sampling_params=Dict{String,Any}("Δt"=>1e-4, "Δt_rf"=>1e-4))
+        center_idx = findfirst(==(rf.delay + rf.center), seqd.t)
+        @test hasproperty(seqd, :ψ)
+        @test !isnothing(center_idx)
+        @test iszero(seqd.ψ[center_idx])
+        @test length(seqd.ψ) == length(seqd.t)
+        @test !all(iszero, seqd.ψ)
     end
 
     @testset "Delay" begin
@@ -726,7 +746,8 @@ using TestItems, TestItemRunner
         seqd = KomaMRIBase.discretize(seq)
         i1, i2 = rand(1:Int(floor(0.5*length(seqd)))), rand(Int(ceil(0.5*length(seqd))):length(seqd))
         @test seqd[i1].t ≈ [t[i1]]
-        @test seqd[i1:i2-1].t ≈ t[i1:i2]
+        @test seqd[i1:i2].t ≈ t[i1:i2]
+        @test seqd[i1:i2].Δt ≈ Δt[i1:i2-1]
 
         T, N = 1.0, 4
         seq = Sequence()

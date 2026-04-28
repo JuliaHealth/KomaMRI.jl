@@ -53,6 +53,28 @@ function freqs(rf::RF)
     end
     return _shape_samples(rf.Δf)
 end
+
+"""
+    ψ = rf_frame_phase(rf::RF)
+
+RF rotating-frame phase samples from frequency modulation, with `ψ` zeroed at the RF center.
+"""
+function rf_frame_phase(rf::RF)
+    f = freqs(rf)
+    isempty(f) && return Float64[]
+    t = times(rf, :Δf)
+    Interpolations.deduplicate_knots!(t; move_knots=true)
+    center_time = rf.delay + get_RF_center(rf)
+    t_aug = sort!([t; center_time])
+    f_aug = linear_interpolation(t, f, extrapolation_bc=Interpolations.Flat()).(t_aug)
+    ψ_aug = -2π .* [0.0; cumtrapz(diff(t_aug), f_aug)]
+    ψ = ψ_aug[searchsortedfirst.(Ref(t_aug), t)]
+    ψ_center = ψ_aug[searchsortedfirst(t_aug, center_time)]
+    ψ .-= ψ_center
+    ψ[1] = zero(eltype(ψ))
+    ψ[end] = zero(eltype(ψ))
+    return ψ
+end
 function ampls(adc::ADC)
     if !is_on(adc)
         return Bool[]

@@ -26,10 +26,11 @@ allowing the user to define some of them.
         `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively.
         It's important to note that, especially for GPU operations, using `"f32"` is
         generally much faster
-    * "Nblocks": divides the simulation into a specified number of time blocks. This parameter
-        is designed to conserve RAM resources, as **KomaMRI** computes a series of
-        simulations consecutively, each with the specified number of blocks determined by
-        the value of `"Nblocks"`
+    * "max_block_length": divides the simulation into a specified number of time blocks,
+        ensuring that the number of time steps per block does not exceed the `max_block_length` limit.
+        This parameter is designed to conserve memory resources, as **KomaMRI** computes a series of
+        simulations consecutively.
+    * "max_rf_block_length": ensures that the number of time steps per RF block does not exceed the `max_rf_block_length` limit.
     * "Nthreads": divides the **Phantom** into a specified number of threads. Because spins
         are modeled independently of each other, **KomaMRI** can solve simulations in
         parallel threads, speeding up the execution time
@@ -49,7 +50,8 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "gpu_groupsize_precession", DEFAULT_PRECESSION_GROUPSIZE)
     get!(sim_params, "gpu_groupsize_excitation", DEFAULT_EXCITATION_GROUPSIZE)
     get!(sim_params, "Nthreads", Threads.nthreads())
-    get!(sim_params, "Nblocks", 20)
+    get!(sim_params, "max_block_length", 2DEFAULT_PRECESSION_GROUPSIZE)
+    get!(sim_params, "max_rf_block_length", Inf)
     get!(sim_params, "Δt", sampling_params["Δt"])
     get!(sim_params, "Δt_rf", sampling_params["Δt_rf"])
     get!(sim_params, "sim_method", Bloch())
@@ -58,26 +60,6 @@ function default_sim_params(sim_params=Dict{String,Any}())
     return sim_params
 end
 
-"""
-    sig, Xt = run_spin_precession_parallel(obj, seq, M; Nthreads)
-
-Implementation in multiple threads for the simulation in free precession,
-separating the spins of the phantom `obj` in `Nthreads`.
-
-# Arguments
-- `obj`: (`::Phantom`) Phantom struct
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
-    dividing the simulation into different phantom spin parts
-
-# Returns
-- `sig`: (`Vector{ComplexF64}`) raw signal over time
-- `Xt`: (`::Vector{Mag}`) final state of the Mag vector (or the initial state for the
-    next simulation step (the next step can be another precession step or an excitation
-    step))
-"""
 function run_spin_precession_parallel!(
     obj::Phantom{T},
     seq::DiscreteSequence{T},
@@ -90,36 +72,16 @@ function run_spin_precession_parallel!(
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
-    dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
         )
     end
 
     return nothing
 end
 
-"""
-    M0 = run_spin_excitation_parallel(obj, seq, Xt; Nthreads)
-
-It gives rise to a rotation of M0 with an angle given by the efective magnetic field
-(including B1, gradients and off resonance) and with respect to a rotation axis. It uses
-different number threads to excecute the process.
-
-# Arguments
-- `obj`: (`::Phantom`) Phantom struct
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
-    dividing the simulation into different phantom spin parts
-
-# Returns
-- `M0`: (`::Vector{Mag}`) final state of the Mag vector after a rotation (or the initial
-    state for the next precession simulation step)
-"""
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
     seq::DiscreteSequence{T},
@@ -132,11 +94,11 @@ function run_spin_excitation_parallel!(
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
-    dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_excitation!(
-            @view(obj[p]), seq, @view(sig[dims..., i]), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), 
+            sim_method, groupsize, backend, @view(prealloc[p])
         )
     end
 
@@ -152,17 +114,16 @@ take advantage of CPU parallel processing.
 
 # Arguments
 - `obj`: (`::Phantom`) Phantom struct
-- `seq`: (`::Sequence`) Sequence struct
+- `seqd`: (`::DiscreteSequence`) Sequence struct
 - `t`: (`::Vector{Float64}`, `[s]`) non-uniform time vector
 - `Δt`: (`::Vector{Float64}`, `[s]`) delta time of `t`
 
 # Keywords
-- `Nblocks`: (`::Int`, `=16`) number of groups for spliting the simulation over time
+- `Nblocks`: (`::Int`, `=1`) number of groups for spliting the simulation over time
 - `Nthreads`: (`::Int`, `=Threads.nthreads()`) number of process threads for
     dividing the simulation into different phantom spin parts
-- `gpu`: (`::Function`) function that represents the gpu of the host
-- `w`: (`::Any`, `=nothing`) flag to regard a progress bar in the blink window UI. If
-    this variable is differnet from nothing, then the progress bar is considered
+- `callbacks`: (`::Tuple`, `=()`) tuple of callback functions to be executed
+    at the end of each simulation block
 
 # Returns
 - `S_interp`: (`::Vector{ComplexF64}`) interpolated raw signal
@@ -170,7 +131,7 @@ take advantage of CPU parallel processing.
 """
 function run_sim_time_iter!(
     obj::Phantom,
-    seq::DiscreteSequence,
+    seqd::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -179,85 +140,93 @@ function run_sim_time_iter!(
     Nthreads=Threads.nthreads(),
     precession_groupsize=DEFAULT_PRECESSION_GROUPSIZE,
     excitation_groupsize=DEFAULT_EXCITATION_GROUPSIZE,
-    parts=[1:length(seq)],
+    parts=[1:length(seqd)],
     excitation_bool=ones(Bool, size(parts)),
-    w=nothing,
+    sim_params=Dict{String,Any}(),
+    callbacks=(),
 ) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
-    progress_bar = Progress(Nblocks; desc="Running simulation...")
     prealloc_result = prealloc(sim_method, backend, obj, Xt, maximum(length.(parts))+1, precession_groupsize)
 
     (precession_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
     (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
 
     for (block, p) in enumerate(parts)
-        seq_block = @view seq[p]
+        seqd_block = @view seqd[p]
         # Params
-        # excitation_bool = is_RF_on(seq_block) #&& is_ADC_off(seq_block) #PATCH: the ADC part should not be necessary, but sometimes 1 sample is identified as RF in an ADC block
-        Nadc = sum(seq_block.ADC)
+        Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
         # Simulation wrappers
         if excitation_bool[block]
             run_spin_excitation_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, excitation_groupsize, backend, prealloc_result; Nthreads
+                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, 
+                sim_method, excitation_groupsize, backend, prealloc_result; Nthreads
             )
             rfs += 1
+
         else
             run_spin_precession_parallel!(
-                obj, seq_block, @view(sig[acq_samples, dims...]), Xt, sim_method, precession_groupsize, backend, prealloc_result; Nthreads
+                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, 
+                sim_method, precession_groupsize, backend, prealloc_result; Nthreads
             )
         end
         KA.synchronize(backend)
         samples += Nadc
-        #Update progress
-        next!(
-            progress_bar;
-            showvalues=[
-                (:simulated_blocks, block), (:rf_blocks, rfs), (:acq_samples, samples - 1)
-            ],
-        )
-        update_blink_window_progress!(w, block, Nblocks)
+        # Callbacks
+        progress_info = (; block, Nblocks, rfs, samples)
+        simulation_blocks_info = (; excitation_bool, parts)
+        device_data = (; obj, seqd, sig, Xt)
+        for cb in callbacks
+            cb(progress_info, simulation_blocks_info, device_data, sim_params)
+        end
     end
 
     return nothing
 end
 
-"""Updates KomaUI's simulation progress bar."""
-function update_blink_window_progress!(w::Nothing, block, Nblocks)
-    return nothing
+"""Split if simulation block is too long (more than max_block_length)"""
+function split_range(r, max_block_length)
+    Ldt = length(r) - 1                     # number of intervals (dts)
+    Ldt ≤ 0 && return UnitRange{Int}[]      # no intervals → nothing to split
+    Ldt ≤ max_block_length && return UnitRange{Int}[r]
+    out = UnitRange{Int}[]
+    s = first(r)
+    rem_dts = Ldt
+    while rem_dts > 0
+        k = min(max_block_length, rem_dts)  # number of dts in this block
+        push!(out, s:(s + k))               # k dts -> k+1 points
+        s += k                              # overlap by 1 point (the boundary)
+        rem_dts -= k
+    end
+    return out
 end
 
 """
-Separates the discrete sequence into Nblocks, ensuring that each block has either
-RF-on or RF-off. The function returns the ranges of the discrete sequence blocks along
-with a boolean vector indicating whether each block has RF.
+The function returns the ranges of the discrete sequence blocks along
+with a boolean vector indicating whether each block has RF. It also ensures that
+the length of each block does not exceed `max_block_length` by splitting longer blocks
+into smaller segments.
 """
-function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
+function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf)
     ranges = UnitRange{Int}[]
     ranges_bool = Bool[]
     start_idx_rf_block = 0
     start_idx_gr_block = 0
-    #Split 1:N into Nblocks like kfoldperm
     N = length(seqd.Δt)
-    k = min(N, Nblocks)
-    n, r = divrem(N, k) #N >= k, N < k
-    breaks = collect(1:n:(N + 1))
-    for i in eachindex(breaks)
-        breaks[i] += i > r ? r : i - 1
-    end
-    breaks = breaks[2:(end - 1)] #Remove borders,
     #Iterate over B1 values to decide the simulation UnitRanges
     for i in eachindex(seqd.Δt)
-        if abs(seqd.B1[i]) > 1e-9 #TODO: This is needed as the function ⏢ in get_rfs is not very accurate
+        is_rf = sum(abs.(seqd.B1[i:i+1])) > 0.0
+        if is_rf
             if start_idx_rf_block == 0 #End RF block
                 start_idx_rf_block = i
             end
             if start_idx_gr_block > 0 #End of GR block
-                push!(ranges, start_idx_gr_block:(i - 1))
-                push!(ranges_bool, false)
+                split_ranges = split_range(start_idx_gr_block:i, max_block_length)
+                append!(ranges, split_ranges)
+                append!(ranges_bool, fill(false, length(split_ranges)))
                 start_idx_gr_block = 0
             end
         else
@@ -265,40 +234,41 @@ function get_sim_ranges(seqd::DiscreteSequence; Nblocks)
                 start_idx_gr_block = i
             end
             if start_idx_rf_block > 0 #End of RF block
-                push!(ranges, start_idx_rf_block:(i - 1))
-                push!(ranges_bool, true)
+                split_ranges = split_range(start_idx_rf_block:i, max_rf_block_length)
+                append!(ranges, split_ranges)
+                append!(ranges_bool, fill(true, length(split_ranges)))
                 start_idx_rf_block = 0
-            end
-        end
-        #More subdivisions
-        if i in breaks
-            if start_idx_rf_block > 0 #End of RF block
-                if length(start_idx_rf_block:(i - 1)) > 1
-                    push!(ranges, start_idx_rf_block:(i - 1))
-                    push!(ranges_bool, true)
-                    start_idx_rf_block = i
-                end
-            end
-            if start_idx_gr_block > 0 #End of RF block
-                if length(start_idx_gr_block:(i - 1)) > 1
-                    push!(ranges, start_idx_gr_block:(i - 1))
-                    push!(ranges_bool, false)
-                    start_idx_gr_block = i
-                end
             end
         end
     end
     #Finishing the UnitRange's
     if start_idx_rf_block > 0
-        push!(ranges, start_idx_rf_block:N)
-        push!(ranges_bool, true)
+        split_ranges = split_range(start_idx_rf_block:N, max_rf_block_length)
+        append!(ranges, split_ranges)
+        append!(ranges_bool, fill(true, length(split_ranges)))
     end
     if start_idx_gr_block > 0
-        push!(ranges, start_idx_gr_block:N)
-        push!(ranges_bool, false)
+        split_ranges = split_range(start_idx_gr_block:N, max_block_length)
+        append!(ranges, split_ranges)
+        append!(ranges_bool, fill(false, length(split_ranges)))
     end
     #Output
     return ranges, ranges_bool
+end
+
+"""
+@maybe_time verbose expr
+
+Run `expr` under `@time` when `verbose` is true, otherwise run `expr` normally.
+"""
+macro maybe_time(verbose, expr)
+    quote
+        if $(esc(verbose))
+            @time $(esc(expr))
+        else
+            $(esc(expr))
+        end
+    end
 end
 
 """
@@ -316,9 +286,9 @@ This is a wrapper function to `run_sim_time_iter`, which converts the inputs to 
 
 # Keywords
 - `sim_params`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) simulation parameter dictionary
-- `w`: (`::Blink.AtomShell.Window`, `=nothing`) the window within which to display a
-    progress bar in the Blink Window UI. If this variable is anything other than 'nothing',
-    the progress bar will be considered
+- `verbose`: (`::Bool`, `=true`) flag to print or not simulation information
+- `callbacks`: (`::Tuple`, `=()`) vector of callback functions to be executed
+    at the end of each simulation block
 
 # Returns
 - `out`: (`::Vector{Complex}` or `::SpinStateRepresentation` or `::RawAcquisitionData`) depending
@@ -336,7 +306,7 @@ julia> plot_signal(raw)
 ```
 """
 function simulate(
-    obj::Phantom, seq::Sequence, sys::Scanner; sim_params=Dict{String,Any}(), w=nothing
+    obj::Phantom, seq::Sequence, sys::Scanner; sim_params=Dict{String,Any}(), verbose=true, callbacks=()
 )
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
@@ -347,7 +317,8 @@ function simulate(
     end
     # Simulation init
     seqd = discretize(seq; sampling_params=sim_params, motion=obj.motion) # Sampling of Sequence waveforms
-    parts, excitation_bool = get_sim_ranges(seqd; Nblocks=sim_params["Nblocks"]) # Generating simulation blocks
+    parts, excitation_bool = get_sim_ranges(seqd; max_block_length=sim_params["max_block_length"], max_rf_block_length=sim_params["max_rf_block_length"]) # Generating simulation blocks
+    Nblocks = length(parts)
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
@@ -390,24 +361,26 @@ function simulate(
     end
 
     # Simulation
-    @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
-        pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(
-        seqd.t
-    ) adc_points = Ndims[1]
-    @time timed_tuple = @timed run_sim_time_iter!(
+    all_callbacks = (callbacks..., Callback(verbose, 1, progressbar_callback(Nblocks)))
+    if verbose
+        @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
+            pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points = Ndims[1]
+    end
+    @maybe_time verbose ret = @timed run_sim_time_iter!(
         obj,
         seqd,
         sig,
         Xt,
         sim_params["sim_method"],
         backend;
-        Nblocks=length(parts),
+        Nblocks=Nblocks,
         Nthreads=sim_params["Nthreads"],
         precession_groupsize=sim_params["gpu_groupsize_precession"],
         excitation_groupsize=sim_params["gpu_groupsize_excitation"],
         parts,
         excitation_bool,
-        w,
+        sim_params,
+        callbacks=all_callbacks,
     )
     # Result to CPU, if already in the CPU it does nothing
     sig = sig |> cpu
@@ -420,17 +393,15 @@ function simulate(
     elseif sim_params["return_type"] == "mat"
         out = sig
     elseif sim_params["return_type"] == "raw"
-        # To visually check the simulation blocks
+        # Save info to raw data, sim_params + other useful info about the simulation
         sim_params_raw = copy(sim_params)
         sim_params_raw["sim_method"] = string(sim_params["sim_method"])
-        sim_params_raw["gpu"] = sim_params["gpu"]
         sim_params_raw["gpu_device"] = backend isa KA.GPU ? gpu_name : "nothing"
-        sim_params_raw["Nthreads"] = sim_params["Nthreads"]
         sim_params_raw["t_sim_parts"] = t_sim_parts
         sim_params_raw["type_sim_parts"] = excitation_bool
-        sim_params_raw["Nblocks"] = length(parts)
-        sim_params_raw["sim_time_sec"] = timed_tuple.time
-        sim_params_raw["allocations_bytes"] = timed_tuple.bytes
+        sim_params_raw["Nblocks"] = Nblocks
+        sim_params_raw["sim_time_sec"] = ret.time
+        sim_params_raw["allocations_bytes"] = ret.bytes
 
         out = signal_to_raw_data(
             sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw
@@ -456,11 +427,11 @@ Returns magnetization of spins distributed along `z` after running the Sequence 
 - `mag`: (`::SpinStateRepresentation`) final state of the magnetization vector
 """
 function simulate_slice_profile(
-    seq::Sequence; z=range(-2.e-2, 2.e-2, 200), sim_params=Dict{String,Any}("Δt_rf" => 1e-6)
+    seq::Sequence; z=range(-2.e-2, 2.e-2, 200), sim_params=Dict{String,Any}("Δt_rf" => 1e-6), verbose=true
 )
     sim_params["return_type"] = "state"
     sys = Scanner()
     obj = Phantom(; x=zeros(size(z)), z=Array(z))
-    mag = simulate(obj, seq, sys; sim_params)
+    mag = simulate(obj, seq, sys; sim_params, verbose)
     return mag
 end

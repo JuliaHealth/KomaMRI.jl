@@ -181,16 +181,19 @@ raw = simulate(obj, seq, sys; sim_params)
 To perform simulations, **KomaMRI** requires certain parameters. You can use the default parameters for testing, but you also have the option to customize specific simulation aspects. In the example, we use the [`KomaMRICore.default_sim_params`](@ref) function to create a dictionary with default simulation parameters. You can view the keys that can be modified by displaying the `sim_params` variable:
 ```julia-repl
 julia> sim_params
-Dict{String, Any} with 9 entries:
-  "return_type" => "raw"
-  "Nblocks"     => 20
-  "gpu"         => true
-  "Nthreads"    => 1
-  "gpu_device"  => 0
-  "sim_method"  => Bloch()
-  "precision"   => "f32"
-  "Δt"          => 0.001
-  "Δt_rf"       => 5.0e-5
+Dict{String, Any} with 12 entries:
+  "return_type"              => "raw"
+  "max_block_length"         => 512
+  "max_rf_block_length"      => Inf
+  "gpu"                      => true
+  "Nthreads"                 => 1
+  "gpu_device"               => nothing
+  "gpu_groupsize_precession" => 256
+  "gpu_groupsize_excitation" => 256
+  "sim_method"               => Bloch()
+  "precision"                => "f32"
+  "Δt"                       => 0.001
+  "Δt_rf"                    => 5.0e-5
 ```
 
 All of these parameters deserve special attention. We will explain some of the most important ones here. For instance, `"Δt"` and `"Δt_rf"` represent the raster times for the gradients and RFs. `"return_type"` specifies the type of variable returned by the simulator (by default, it returns an object ready for use with **MRIReco** for reconstruction, but you can use the value `"mat"` to return a simple vector). `"gpu"` indicates whether you want to use your GPU device for simulations, and `"precision"` sets the floating-point precision. For more details on how to set these parameters, please refer to the [Simulation Parameters Section](../explanation/7-simulation.md).

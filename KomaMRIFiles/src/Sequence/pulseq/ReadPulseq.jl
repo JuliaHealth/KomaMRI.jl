@@ -722,6 +722,9 @@ function pulseq_sequence_data(parsed::PulseqParsedFile; filename=nothing, verify
     end
     verify_signature && !isnothing(filename) && verify_signature!(filename, signature; pulseq_version=pulseq_version)
     eventLibraries = pulseq_event_libraries(parsed)
+    if pulseq_version < v"1.5.0"
+        fix_legacy_rf_use!(eventLibraries.rf_library, eventLibraries.shape_library, parsed.definitions.radiofrequency_raster_time)
+    end
 
     if pulseq_version < v"1.4.0"
         decodedLibraries = decode_pulseq_libraries(eventLibraries)
@@ -734,6 +737,26 @@ function pulseq_sequence_data(parsed::PulseqParsedFile; filename=nothing, verify
 
     blocks = pulseq_blocks(blockEvents, blockDurations, parsed.definitions)
     return PulseqSequenceData(blocks, eventLibraries, pulseq_version, signature)
+end
+
+function fix_legacy_rf_use!(rf_library, shape_library, rf_raster_time)
+    for (id, rf_data) in rf_library
+        rf = get_RF(rf_data, shape_library, rf_raster_time; use=nothing)
+        rf_library[id] = PulseqRFEvent(
+            rf_data.amplitude,
+            rf_data.mag_id,
+            rf_data.phase_id,
+            rf_data.time_shape_id,
+            rf_data.center,
+            rf_data.delay,
+            rf_data.freq_ppm,
+            rf_data.phase_ppm,
+            rf_data.freq,
+            rf_data.phase,
+            get_char_from_RF_use(rf.use),
+        )
+    end
+    return nothing
 end
 
 """
@@ -885,7 +908,7 @@ end
 
 pulseq_rf_adds_half_step(r::PulseqRFEvent) = r.time_shape_id <= 0
 
-function get_RF(r::PulseqRFEvent, shapeLibrary, rf_raster_time)
+function get_RF(r::PulseqRFEvent, shapeLibrary, rf_raster_time; use=get_RF_use_from_char(Val(r.use)))
     amplitude = r.amplitude
     mag_id = r.mag_id
     phase_id = r.phase_id
@@ -916,7 +939,7 @@ function get_RF(r::PulseqRFEvent, shapeLibrary, rf_raster_time)
         rfT = diff(rft) * rf_raster_time
     end
     center = isnothing(r.center) ? nothing : r.center - first_sample_offset
-    return RF(rfAϕ, rfT, freq, delay; center, ϕ=phase, use=get_RF_use_from_char(Val(r.use)))
+    return RF(rfAϕ, rfT, freq, delay; center, ϕ=phase, use)
 end
 
 """
