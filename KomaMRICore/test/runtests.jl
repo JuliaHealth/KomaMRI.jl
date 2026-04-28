@@ -227,15 +227,24 @@ end
     obj = phantom_sphere()
     sys = Scanner()
 
-    sim_params = Dict{String, Any}(
-        "gpu"=>USE_GPU,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat"
+    for sim_method in (
+        KomaMRICore.Bloch(),
+        KomaMRICore.BlochMagnus1(),
+        KomaMRICore.BlochMagnus2(),
+        KomaMRICore.BlochMagnus4()
     )
-    sig = simulate(obj, seq, sys; sim_params, verbose=false)
-    sig = sig / prod(size(obj))
+        @testset "$(nameof(typeof(sim_method)))" begin
+            sim_params = Dict{String, Any}(
+                "gpu"=>USE_GPU,
+                "sim_method"=>sim_method,
+                "return_type"=>"mat"
+            )
+            sig = simulate(obj, seq, sys; sim_params, verbose=false)
+            sig = sig / prod(size(obj))
 
-    @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+            @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+        end
+    end
 end
 
 @testitem "Bloch_RF_accuracy" tags=[:important, :core, :nomotion] begin
@@ -322,11 +331,20 @@ end
     seq2 += RF(B1 .* exp(1im*rf_phase), Trf)
     seq2 += ADC(N, Tadc, 0, 0, rf_phase)
 
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU)
-    raw1 = simulate(obj, seq1, sys; sim_params, verbose=false)
-    raw2 = simulate(obj, seq2, sys; sim_params, verbose=false)
+    for sim_method in (
+        KomaMRICore.Bloch(),
+        KomaMRICore.BlochMagnus1(),
+        KomaMRICore.BlochMagnus2(),
+        KomaMRICore.BlochMagnus4()
+    )
+        @testset "$(nameof(typeof(sim_method)))" begin
+            sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU, "sim_method"=>sim_method)
+            raw1 = simulate(obj, seq1, sys; sim_params, verbose=false)
+            raw2 = simulate(obj, seq2, sys; sim_params, verbose=false)
 
-    @test raw1.profiles[1].data ≈ raw2.profiles[1].data
+            @test raw1.profiles[1].data ≈ raw2.profiles[1].data
+        end
+    end
 end
 
 @testitem "BlochDict" tags=[:important, :core, :nomotion, :blochdict] begin
@@ -396,17 +414,44 @@ end
     fmax = 5e3
     z = range(-zmax, zmax, 400)
     Gz = fmax / (γ * zmax)
-    f = γ * Gz * z
     seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0; 0; Gz], TBP=8)
 
-    # Simulate the slice profile
     sim_params = Dict{String, Any}(
         "Δt_rf" => Trf / length(seq.RF.A[1]),
         "gpu" => USE_GPU)
-    M = simulate_slice_profile(seq; z, sim_params, verbose=false)
 
-    # For the time being, always pass the test
-    @test true
+    @testset "frequency offset shifts sinc slice profile" begin
+        sample_shift = 40
+        Δf = γ * Gz * sample_shift * step(z)
+        shifted_seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0; 0; Gz], Δf, TBP=8)
+        methods_to_test = (
+            KomaMRICore.Bloch(),
+            KomaMRICore.BlochDict(),
+            KomaMRICore.BlochMagnus1(),
+            KomaMRICore.BlochMagnus2(),
+            KomaMRICore.BlochMagnus4(),
+        )
+        for sim_method in methods_to_test
+            @testset "$(nameof(typeof(sim_method)))" begin
+                for max_rf_block_length in (Inf, 30, 1)
+                    @testset "max_rf_block_length=$max_rf_block_length" begin
+                        shifted_sim_params = copy(sim_params)
+                        shifted_sim_params["sim_method"] = sim_method
+                        shifted_sim_params["max_rf_block_length"] = max_rf_block_length
+                        base_sim_params = copy(shifted_sim_params)
+                        M_base = simulate_slice_profile(seq; z, sim_params=base_sim_params, verbose=false)
+                        M_shifted = simulate_slice_profile(shifted_seq; z, sim_params=shifted_sim_params, verbose=false)
+
+                        profile = abs.(M_base.xy)
+                        shifted_profile = abs.(M_shifted.xy)
+                        expected = profile[1:(end - sample_shift)]
+                        shifted = shifted_profile[(1 + sample_shift):end]
+                        @test shifted ≈ expected
+                    end
+                end
+            end
+        end
+    end
 end
 
 @testitem "GPU Functions" tags=[:core, :nomotion, :gpu] begin
@@ -469,7 +514,14 @@ end
     y0 = [0.1]
     z0 = [0.0]
 
-    for sim_method in [KomaMRICore.Bloch(), KomaMRICore.BlochSimple(), KomaMRICore.BlochDict()]
+    for sim_method in [
+        KomaMRICore.Bloch(),
+        KomaMRICore.BlochSimple(),
+        KomaMRICore.BlochDict(),
+        KomaMRICore.BlochMagnus1(),
+        KomaMRICore.BlochMagnus2(),
+        KomaMRICore.BlochMagnus4()
+    ]
         @testset "$(typeof(sim_method))" begin
             for motion in motions
                 coords(t) = get_spin_coords(motion, x0, y0, z0, t)

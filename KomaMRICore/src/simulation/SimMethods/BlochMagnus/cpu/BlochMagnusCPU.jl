@@ -90,6 +90,11 @@ function run_spin_excitation!(
     Maux_z  = prealloc.M.z
     #Initialize
     sample = 1
+    # Rotating frame -> RF frame
+    ψ_start = seq.ψ[1]
+    if !iszero(ψ_start)
+        @. M.xy = M.xy * cis(-ψ_start)
+    end
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
@@ -100,6 +105,7 @@ function run_spin_excitation!(
         effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, seq.Δt[i], sim_method)
         #Spinor Rotation
         @. θ = sqrt(abs(θxy) ^ 2 + θz ^ 2)
+        @. θ += (θ == 0) * eps(T)
         @. α = cos(θ / T(2)) - Complex{T}(im) * (θz / θ) * sin(θ / T(2))
         @. β = -Complex{T}(im) * (θxy / θ) * sin(θ / T(2))
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
@@ -119,6 +125,11 @@ function run_spin_excitation!(
     end
     @. prealloc.Bxy_old = ωxy_old / B_to_ω
     @. prealloc.Bz_old  = ωz_old  / B_to_ω
+    # RF frame -> Rotating frame
+    ψ_end = seq.ψ[end]
+    if !iszero(ψ_end)
+        @. M.xy = M.xy * cis(ψ_end)
+    end
     return nothing
 end
 
@@ -126,7 +137,6 @@ function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_
     # Ω1_constant
     @. θxy = ωxy_old * Δt
     @. θz  = ωz_old * Δt
-    @. θxy[θxy == 0] = eps(eltype(θz)) # It could be that Bxy[told] or Bxy[tnew] is zero
     return nothing
 end
 
@@ -142,6 +152,6 @@ function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_
     effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, BlochMagnus2())
     # Ω2_linear (this is the complex representation of Δt²/12 (ωₙ₊₁ × ωₙ))
     @. θxy .-= im * (ωxy_new * ωz_old - ωxy_old * ωz_new) * (Δt ^ 2 / 12)
-    @. θz  .-= imag(conj(ωxy_old) * ωz_new) * (Δt ^ 2 / 12)
+    @. θz  .-= imag(conj(ωxy_old) * ωxy_new) * (Δt ^ 2 / 12)
     return nothing
 end

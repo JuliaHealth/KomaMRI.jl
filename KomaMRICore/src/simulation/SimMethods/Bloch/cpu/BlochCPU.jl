@@ -122,6 +122,11 @@ function run_spin_excitation!(
     Maux_z = prealloc.M.z
     #Initialize
     sample = 1
+    # Rotating frame -> RF frame
+    ψ_start = seq.ψ[1]
+    if !iszero(ψ_start)
+        @. M.xy = M.xy * cis(-ψ_start)
+    end
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
@@ -145,6 +150,11 @@ function run_spin_excitation!(
             sig[sample] = sum(M.xy) 
             sample += 1
         end
+    end
+    # RF frame -> Rotating frame
+    ψ_end = seq.ψ[end]
+    if !iszero(ψ_end)
+        @. M.xy = M.xy * cis(ψ_end)
     end
     return nothing
 end

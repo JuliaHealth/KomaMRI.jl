@@ -262,6 +262,10 @@ function plot_seq(
         A=reduce(vcat, [usrf(block.Δf.A); Inf] for block in seq_samples),
         t=reduce(vcat, [usrf(block.Δf.t); Inf] for block in seq_samples),
     )
+    ψ = (
+        A=reduce(vcat, [usrf(block.ψ.A); Inf] for block in seq_samples),
+        t=reduce(vcat, [usrf(block.ψ.t); Inf] for block in seq_samples),
+    )
     adc = (
         A=reduce(vcat, [usadc(block.adc.A; ampl_edge=0.0); Inf] for block in seq_samples),
         t=reduce(vcat, [usadc(block.adc.t); Inf] for block in seq_samples),
@@ -272,7 +276,7 @@ function plot_seq(
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
     O = size(seq.RF, 1)
-    p = [scatter_fun() for _ in 1:(3 + 4O + 1 + length(label))]
+    p = [scatter_fun() for _ in 1:(3 + 5O + 1 + length(label))]
 
     # For GRADs
     fgx = is_Gx_on(seq) ? 1.0 : Inf
@@ -315,11 +319,13 @@ function plot_seq(
     # For RFs
     frf = is_RF_on(seq) ? 1.0 : Inf
     for j in 1:O
-        rf_amp = abs.(rf.A[:, j])
-        rf_phase = angle.(rf.A[:, j])
-        rf_phase[rf_amp .== Inf] .= Inf # Avoid weird jumps
+        rf_wave = rf.A[:, j]
+        is_real_rf = all(x -> isinf(x) || isapprox(imag(x), 0; atol=eps()), rf_wave)
+        rf_amp = is_real_rf ? real.(rf_wave) : abs.(rf_wave)
+        rf_phase = is_real_rf ? zero.(real.(rf_wave)) : angle.(rf_wave)
+        rf_phase[isinf.(rf_amp)] .= Inf # Avoid weird jumps
         # Plot RF
-        p[4 + 4(j-1)] = scatter_fun(;
+        p[4 + 5(j-1)] = scatter_fun(;
             x=rf.t * 1e3,
             y=rf_amp * 1e6 * frf,
             name="|B1|_AM",
@@ -330,7 +336,7 @@ function plot_seq(
             showlegend=showlegend,
             marker=attr(; color="#AB63FA"),
         )
-        p[5 + 4(j-1)] = scatter_fun(;
+        p[5 + 5(j-1)] = scatter_fun(;
             x=rf.t * 1e3,
             y=rf_phase * frf,
             text=ones(size(rf.t)),
@@ -344,22 +350,36 @@ function plot_seq(
             marker=attr(; color="#FFA15A"),
         )
         if !freq_in_phase
-            p[6 + 4(j-1)] = scatter_fun(;
+            p[6 + 5(j-1)] = scatter_fun(;
                 x=Δf.t * 1e3,
                 y=Δf.A[:, j] * 1e-3 * frf,
                 text=ones(size(Δf.t)),
-                name="B1_FM",
-                hovertemplate="(%{x:.4f} ms, B1_FM: %{y:.4f} kHz)",
+                name="Δf_FM",
+                hovertemplate="(%{x:.4f} ms, Δf_FM: %{y:.4f} kHz)",
                 visible="legendonly",
                 xaxis=xaxis,
                 yaxis=yaxis,
-                legendgroup="B1_FM",
+                legendgroup="Δf_FM",
                 showlegend=showlegend,
                 marker=attr(; color="#AB63FA"),
                 line=attr(; dash="dot"),
             )
+            p[7 + 5(j-1)] = scatter_fun(;
+                x=ψ.t * 1e3,
+                y=ψ.A[:, j] * frf,
+                text=ones(size(ψ.t)),
+                name="ψ_FM",
+                hovertemplate="(%{x:.4f} ms, ψ_FM: %{y:.4f} rad)",
+                visible="legendonly",
+                xaxis=xaxis,
+                yaxis=yaxis,
+                legendgroup="ψ_FM",
+                showlegend=showlegend,
+                marker=attr(; color="#FF6692"),
+                line=attr(; dash="dot"),
+            )
         end
-        p[7 + 4(j-1)] = scatter_fun(;
+        p[8 + 5(j-1)] = scatter_fun(;
             x=rf.ct * 1e3,
             y=rf.cA * 1e6 * frf,
             text=rf.cϕ,
@@ -377,7 +397,7 @@ function plot_seq(
 
     # For ADCs
     fa = is_ADC_on(seq) ? 1.0 : Inf
-    p[3 + 4O + 1] = scatter_fun(;
+    p[3 + 5O + 1] = scatter_fun(;
         x=adc.t * 1e3,
         y=adc.A * fa,
         name="ADC",
@@ -415,7 +435,7 @@ function plot_seq(
                 count_label = count_label + 1
                 push!(sym_vec,sym)
                 #color = colors[mod1(i, length(colors))]
-                p[3 + 4O + 1 + count_label] = scatter_fun(;
+                p[3 + 5O + 1 + count_label] = scatter_fun(;
                     x= t_center_adc * 1e3,
                     y= lab_adc,
                     name=string(sym),
@@ -1619,6 +1639,9 @@ julia> plot_seqd(seq)
 """
 function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_params())
     seqd = KomaMRIBase.discretize(seq; sampling_params)
+    is_real_rf = all(x -> isapprox(imag(x), 0; atol=eps()), seqd.B1)
+    B1 = is_real_rf ? real.(seqd.B1) : abs.(seqd.B1)
+    B1_phase = is_real_rf ? zero.(real.(seqd.B1)) : angle.(seqd.B1)
     Gx = scattergl(;
         x=seqd.t * 1e3,
         y=seqd.Gx * 1e3,
@@ -1642,15 +1665,15 @@ function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_p
     )
     B1_abs = scattergl(;
         x=seqd.t * 1e3,
-        y=abs.(seqd.B1 * 1e6),
-        name="|B1|",
+        y=B1 * 1e6,
+        name="|B1|_AM",
         mode="markers+lines",
         marker_symbol=:circle,
     )
     B1_angle = scattergl(;
         x=seqd.t * 1e3,
-        y=angle.(seqd.B1),
-        name="∠B1",
+        y=B1_phase,
+        name="∠B1_AM",
         mode="markers+lines",
         marker_symbol=:circle,
     )
@@ -1663,11 +1686,21 @@ function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_p
     )
     B1_Δf = scattergl(;
         x=seqd.t * 1e3,
-        y=abs.(seqd.Δf * 1e-3),
-        name="B1_Δf",
+        y=seqd.Δf * 1e-3,
+        name="Δf_FM",
         mode="markers+lines",
         marker_symbol=:circle,
         visible="legendonly",
     )
-    return plot_koma([Gx, Gy, Gz, B1_abs, B1_angle, ADC, B1_Δf])
+    B1_ψ = scattergl(;
+        x=seqd.t * 1e3,
+        y=seqd.ψ,
+        name="ψ_FM",
+        mode="markers+lines",
+        marker_symbol=:circle,
+        marker=attr(; color="#FF6692"),
+        line=attr(; color="#FF6692"),
+        visible="legendonly",
+    )
+    return plot_koma([Gx, Gy, Gz, B1_abs, B1_angle, ADC, B1_Δf, B1_ψ])
 end

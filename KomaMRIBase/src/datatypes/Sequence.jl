@@ -706,9 +706,11 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
         t_Δf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :Δf)  for i in range])
         A_rf = reduce(vcat, [ampls(seq.RF[1,i]; freq_in_phase) for i in range])
         A_Δf = reduce(vcat, [freqs(seq.RF[1,i])                for i in range])
+        A_ψ  = reduce(vcat, [rf_frame_phase(seq.RF[1,i])       for i in range])
         rf_samples = (
             rf  = fill_if_empty((t = t_rf, A = A_rf)),
-            Δf  = fill_if_empty((t = t_Δf, A = A_Δf))
+            Δf  = fill_if_empty((t = t_Δf, A = A_Δf)),
+            ψ   = fill_if_empty((t = t_Δf, A = A_ψ))
 		)
     end
     # Gradients
@@ -769,9 +771,9 @@ function get_grads(seq, t::Union{Vector, Matrix})
 end
 
 """
-    B1, Δf_rf  = get_rfs(seq::Sequence, t)
+    B1, Δf_rf, ψ  = get_rfs(seq::Sequence, t)
 
-Returns the RF pulses and the delta frequency.
+Returns the RF pulses, delta frequency, and RF rotating-frame phase.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -780,6 +782,7 @@ Returns the RF pulses and the delta frequency.
 # Returns
 - `B1`: (`1-row ::Matrix{ComplexF64}`, `[T]`) vector of RF pulses
 - `Δf_rf`: (`1-row ::Matrix{Float64}`, `[Hz]`) delta frequency vector
+- `ψ`: (`1-row ::Matrix{Float64}`, `[rad]`) RF rotating-frame phase vector
 """
 function get_rfs(seq, t::Union{Vector, Matrix})
     rf_samples = get_samples(seq; events=[:rf])

@@ -81,6 +81,9 @@ function run_spin_excitation!(
     prealloc::PreallocResult
 ) where {T<:Real}
     sample = 1
+    # Rotating frame -> RF frame
+    ψ_start = @view seq.ψ[1:1]
+    @. M.xy = M.xy * cis(-ψ_start)
     #Simulation
     for i in eachindex(seq.Δt)
         s = @views ( # This was the previous behaviour of seq[i], but it was hidden
@@ -111,6 +114,9 @@ function run_spin_excitation!(
             sample += 1
         end
     end
+    # RF frame -> Rotating frame
+    ψ_end = @view seq.ψ[end:end]
+    @. M.xy = M.xy * cis(ψ_end)
     return nothing
 end
 

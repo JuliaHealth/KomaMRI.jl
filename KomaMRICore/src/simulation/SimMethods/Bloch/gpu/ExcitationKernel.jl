@@ -4,7 +4,7 @@
     sig_output::AbstractMatrix{Complex{T}}, 
     M_xy::AbstractVector{Complex{T}}, M_z, 
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
-    @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), @Const(s_ADC), s_length,
+    @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), @Const(s_ψ), @Const(s_ADC), s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION},
     sim_method::SM
 ) where {T, MOTION, USE_WARP_REDUCTION, SM <: BlochLikeSimMethods}
@@ -26,6 +26,13 @@
         ρ = p_ρ[i]
         T1 = p_T1[i]
         T2 = p_T2[i]
+        # Rotating frame -> RF frame
+        # M * exp(-i * ψ)
+        ψ_start = s_ψ[1]
+        if !iszero(ψ_start)
+            sin_ψ, cos_ψ = sincos(ψ_start)
+            Mxy_r, Mxy_i = Mxy_r * cos_ψ + Mxy_i * sin_ψ, Mxy_i * cos_ψ - Mxy_r * sin_ψ
+        end
 
         # Calculate initial B
         x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
@@ -90,6 +97,13 @@
             s_idx += 1u32
         end
 
+        # RF frame -> Rotating frame
+        # M * exp(i * ψ)
+        ψ_end = s_ψ[s_length]
+        if !iszero(ψ_end)
+            sin_ψ, cos_ψ = sincos(ψ_end)
+            Mxy_r, Mxy_i = Mxy_r * cos_ψ - Mxy_i * sin_ψ, Mxy_r * sin_ψ + Mxy_i * cos_ψ
+        end
         M_xy[i] = complex(Mxy_r, Mxy_i)
         M_z[i] = Mz
     end
