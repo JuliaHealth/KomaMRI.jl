@@ -89,6 +89,7 @@ end
         @test seq.DEF["FileName"] == "epi.seq"
         @test seq.DEF["PulseqVersion"] == v"1.4.0"
         @test seq.DEF["signature"][:hash] == "67ebeffe6afdf0c393834101c14f3990"
+        @test all(rf -> !KomaMRIBase.is_on(rf) || rf.use isa KomaMRIBase.Excitation, seq.RF)
 
         seq = @suppress read_seq(pth*"v1.4/spiral.seq") #Pulseq v1.4.0, RF arbitrary
         @test seq.DEF["FileName"] == "spiral.seq"
