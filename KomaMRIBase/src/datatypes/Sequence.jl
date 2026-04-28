@@ -694,8 +694,6 @@ Returns the samples of the events in `seq`.
     Each event, represented by `e::NamedTuple`, includes time samples (`e.t`) and amplitude
     samples (`e.A`)
 """
-wrap_to_pi(x) = mod(x + π, 2π) - π
-
 function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phase=false)
     rf_samples = (;) # Empty NamedTuples
     gr_samples = (;) # Empty NamedTuples
@@ -745,6 +743,8 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     return event_samples
 end
 get_samples(seq::Sequence; kwargs...) = get_samples(seq, 1:length(seq); kwargs...)
+
+wrap_to_pi(x) = mod(x + π, 2π) - π
 
 """
     Gx, Gy, Gz = get_grads(seq, t::Vector)
