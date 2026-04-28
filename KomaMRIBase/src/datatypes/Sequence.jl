@@ -694,6 +694,8 @@ Returns the samples of the events in `seq`.
     Each event, represented by `e::NamedTuple`, includes time samples (`e.t`) and amplitude
     samples (`e.A`)
 """
+wrap_to_pi(x) = mod(x + π, 2π) - π
+
 function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phase=false)
     rf_samples = (;) # Empty NamedTuples
     gr_samples = (;) # Empty NamedTuples
@@ -789,7 +791,8 @@ function get_rfs(seq, t::Union{Vector, Matrix})
     for event in rf_samples
         Interpolations.deduplicate_knots!(event.t; move_knots=true)
     end
-    return Tuple(linear_interpolation(event..., extrapolation_bc=0.0).(t) for event in rf_samples)
+    B1, Δf, ψ = Tuple(linear_interpolation(event..., extrapolation_bc=0.0).(t) for event in rf_samples)
+    return B1, Δf, wrap_to_pi.(ψ)
 end
 
 """

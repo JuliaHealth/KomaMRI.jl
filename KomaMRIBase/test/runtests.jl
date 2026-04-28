@@ -542,7 +542,7 @@ using TestItems, TestItemRunner
 
         # Constant frequency offset: ψ is centered so the RF center has zero frame phase.
         rf = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, 1000.0, 0.0; ϕ=0.3)
-        @test KomaMRIBase.rf_frame_phase(rf) ≈ [π, π, -π, -π]
+        @test KomaMRIBase.rf_frame_phase(rf) ≈ [0, π, -π, 0]
 
         # Frequency-modulated RF: ψ is generated from the integrated Δf waveform and centered.
         rf_fm = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, [0.0, 1000.0, 0.0], 0.0)

@@ -70,7 +70,10 @@ function rf_frame_phase(rf::RF)
     ψ_aug = -2π .* [0.0; cumtrapz(diff(t_aug), f_aug)]
     ψ = ψ_aug[searchsortedfirst.(Ref(t_aug), t)]
     ψ_center = ψ_aug[searchsortedfirst(t_aug, center_time)]
-    return ψ .- ψ_center
+    ψ .-= ψ_center
+    ψ[1] = zero(eltype(ψ))
+    ψ[end] = zero(eltype(ψ))
+    return ψ
 end
 function ampls(adc::ADC)
     if !is_on(adc)
