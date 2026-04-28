@@ -247,7 +247,9 @@ end
                 @testset "$v/$pulseq_file" begin
                     for i in 1:length(seq_koma)
                         blk_koma   = get_samples(seq_koma, i)
-                        blk_pulseq = NamedTuple{keys(blk_koma)}(seq_pulseq[i]) # Reorder keys
+                        sample_keys = filter(k -> hasproperty(seq_pulseq[i], k), keys(blk_koma))
+                        blk_koma = NamedTuple{sample_keys}(blk_koma)
+                        blk_pulseq = NamedTuple{sample_keys}(seq_pulseq[i]) # Reorder keys
                         for (ev_koma, ev_pulseq) in Iterators.filter(not_empty, zip(blk_koma, blk_pulseq))
                             @test ev_koma.t ≈ ev_pulseq.t
                             @test ev_koma.A ≈ ev_pulseq.A
