@@ -24,7 +24,7 @@ pc = scatter(x=z*1e2, y=abs.(M3.xy), name="Slice 3") #hide
 pd = plot([pa,pb,pc], Layout(xaxis=attr(title="z [cm]"), height=300,margin=attr(t=40,l=0,r=0), title="Slice profiles for the slice-selective sequence")) #hide
 display(pd)
 
-raw = @suppress simulate(obj, seq, sys; sim_params=Dict{String,Any}("Nblocks"=>20))
+raw = @suppress simulate(obj, seq, sys)
 p3 = plot_signal(raw; slider=false, height=300)
 display(p3)
 
