@@ -19,7 +19,22 @@
     sig_r = zero(T)
     sig_i = zero(T)
 
-    if i <= N_spins
+    active = i <= N_spins
+    Mxy_r = zero(T)
+    Mxy_i = zero(T)
+    Mz = zero(T)
+    ρ = zero(T)
+    ΔBz = zero(T)
+    T1 = T(1)
+    T2 = T(1)
+    x = zero(T)
+    y = zero(T)
+    z = zero(T)
+    Bx_prev = zero(T)
+    By_prev = zero(T)
+    Bz_prev = zero(T)
+
+    if active
         ΔBz = p_ΔBz[i]
         Mxy_r, Mxy_i = reim(M_xy[i])
         Mz = M_z[i]
@@ -38,10 +53,12 @@
         x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
         Bx_prev, By_prev = reim(s_B1[1])
         Bz_prev = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz - s_Δf[1] / T(γ)
+    end
 
-        ADC_idx = 1u32
-        s_idx = 2u32
-        while (s_idx <= s_length)
+    ADC_idx = 1u32
+    s_idx = 2u32
+    while (s_idx <= s_length)
+        if active
             if MOTION
                 x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, s_idx)
             end
@@ -84,19 +101,22 @@
             Mxy_i = Mxy_new_i * E2
             Mz = Mz_new * E1 + ρ * (T(1) - E1)
 
-            # Acquire Signal
-            if s_idx <= s_length && s_ADC[s_idx]
-                sig_r, sig_i = reduce_signal!(Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
-                if i_l == 1u32
-                    sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
-                end
-                ADC_idx += 1u32
-            end
-
             Bx_prev, By_prev, Bz_prev = Bx_next, By_next, Bz_next
-            s_idx += 1u32
         end
 
+        # Acquire Signal
+        if s_idx <= s_length && s_ADC[s_idx]
+            sig_r, sig_i = reduce_signal!(Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
+            if i_l == 1u32
+                sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
+            end
+            ADC_idx += 1u32
+        end
+
+        s_idx += 1u32
+    end
+
+    if active
         # RF frame -> Rotating frame
         # M * exp(i * ψ)
         ψ_end = s_ψ[s_length]
