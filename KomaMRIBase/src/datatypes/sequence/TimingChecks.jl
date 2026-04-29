@@ -31,7 +31,7 @@ function _check_raster_multiple(t, raster, block_id, label; tol=PULSEQ_DIVISION_
     error("Block $block_id $label ($(t) s) is not aligned to raster $(raster) s.")
 end
 
-function _check_uniform_timing(start, step, n, raster, block_id, label)
+function _check_sample_timing(start, step::Number, n, raster, block_id, label)
     n == 0 && return nothing
     _check_raster_multiple(start, raster, block_id, label)
     n == 1 && return nothing
@@ -39,7 +39,7 @@ function _check_uniform_timing(start, step, n, raster, block_id, label)
     return nothing
 end
 
-function _check_cumulative_timing(T, n, start, raster, block_id, label)
+function _check_sample_timing(T::AbstractVector, n, start, raster, block_id, label)
     n == 0 && return nothing
     lenT = length(T)
     (lenT == n - 1 || lenT == n) || throw(DimensionMismatch("Expected time vector of length $(n - 1) or $n for $n samples, got $lenT."))
@@ -79,34 +79,40 @@ function _pulseq_compact_interval(gr::Union{UniformlySampledGrad,TimeShapedGrad}
     return nothing
 end
 
-function _check_grad_timing(gr::TrapezoidalGrad, raster, block_id, name)
+function _check_timing(gr::TrapezoidalGrad, timing, block_id, name, block_duration)
+    raster = timing.GradientRasterTime
     _check_raster_multiple(gr.delay, raster, block_id, "$name-gradient delay")
     _check_raster_multiple(gr.rise, raster, block_id, "$name-gradient rise time")
     _check_raster_multiple(gr.T, raster, block_id, "$name-gradient timing")
     _check_raster_multiple(gr.fall, raster, block_id, "$name-gradient fall time")
+    _check_block_fit(dur(gr), block_duration, block_id, "$name-gradient event")
     return nothing
 end
 
-function _check_grad_timing(gr::UniformlySampledGrad, raster, block_id, name)
+function _check_timing(gr::UniformlySampledGrad, timing, block_id, name, block_duration)
+    raster = timing.GradientRasterTime
     n = length(gr.A)
     step = n > 1 ? gr.T / (n - 1) : zero(gr.T)
     compact_interval = _pulseq_compact_interval(gr, raster)
     edge_raster = isnothing(compact_interval) ? raster : raster / 2
     _check_raster_multiple(gr.delay, raster, block_id, "$name-gradient delay")
     _check_raster_multiple(gr.rise, edge_raster, block_id, "$name-gradient rise time")
-    isnothing(compact_interval) && _check_uniform_timing(gr.rise, step, n, raster, block_id, "$name-gradient timing")
+    isnothing(compact_interval) && _check_sample_timing(gr.rise, step, n, raster, block_id, "$name-gradient timing")
     _check_raster_multiple(gr.fall, edge_raster, block_id, "$name-gradient fall time")
+    _check_block_fit(dur(gr), block_duration, block_id, "$name-gradient event")
     return nothing
 end
 
-function _check_grad_timing(gr::TimeShapedGrad, raster, block_id, name)
+function _check_timing(gr::TimeShapedGrad, timing, block_id, name, block_duration)
+    raster = timing.GradientRasterTime
     n = length(gr.A)
     compact_interval = _pulseq_compact_interval(gr, raster)
     edge_raster = isnothing(compact_interval) ? raster : raster / 2
     _check_raster_multiple(gr.delay, raster, block_id, "$name-gradient delay")
     _check_raster_multiple(gr.rise, edge_raster, block_id, "$name-gradient rise time")
-    isnothing(compact_interval) && _check_cumulative_timing(gr.T, n, gr.rise, raster, block_id, "$name-gradient timing")
+    isnothing(compact_interval) && _check_sample_timing(gr.T, n, gr.rise, raster, block_id, "$name-gradient timing")
     _check_raster_multiple(gr.fall, edge_raster, block_id, "$name-gradient fall time")
+    _check_block_fit(dur(gr), block_duration, block_id, "$name-gradient event")
     return nothing
 end
 
@@ -125,25 +131,31 @@ function _pulseq_first_sample_offset(rf::UniformlySampledRF, rf_raster)
     return isnothing(_pulseq_compact_interval(rf, rf_raster)) ? 0.0 : rf_raster / 2
 end
 
-function _check_rf_timing(rf::BlockPulseRF, raster, block_id)
+function _check_timing(rf::BlockPulseRF, timing, block_id, block_duration)
+    raster = timing.RadiofrequencyRasterTime
     _check_raster_multiple(rf.delay, raster, block_id, "RF delay")
     _check_raster_multiple(rf.T, raster, block_id, "RF timing")
+    _check_duration(rf, timing, block_id, block_duration)
     return nothing
 end
 
-function _check_rf_timing(rf::UniformlySampledRF, raster, block_id)
+function _check_timing(rf::UniformlySampledRF, timing, block_id, block_duration)
+    raster = timing.RadiofrequencyRasterTime
     n = length(rf.A)
     step = n > 1 ? rf.T / (n - 1) : zero(rf.T)
     offset = _pulseq_first_sample_offset(rf, raster)
     delay = rf.delay - offset
     _check_raster_multiple(delay, raster, block_id, "RF delay")
-    iszero(offset) && _check_uniform_timing(0.0, step, n, raster, block_id, "RF timing")
+    iszero(offset) && _check_sample_timing(0.0, step, n, raster, block_id, "RF timing")
+    _check_duration(rf, timing, block_id, block_duration)
     return nothing
 end
 
-function _check_rf_timing(rf::TimeShapedRF, raster, block_id)
+function _check_timing(rf::TimeShapedRF, timing, block_id, block_duration)
+    raster = timing.RadiofrequencyRasterTime
     _check_raster_multiple(rf.delay, raster, block_id, "RF delay")
-    _check_cumulative_timing(rf.T, length(rf.A), 0.0, raster, block_id, "RF timing")
+    _check_sample_timing(rf.T, length(rf.A), 0.0, raster, block_id, "RF timing")
+    _check_duration(rf, timing, block_id, block_duration)
     return nothing
 end
 
@@ -152,7 +164,7 @@ _pulseq_delay(rf, rf_raster) = rf.delay - _pulseq_first_sample_offset(rf, rf_ras
 # Compact Pulseq RF has an implicit half-raster first-sample offset.
 _pulseq_duration(rf, rf_raster) = dur(rf) + _pulseq_first_sample_offset(rf, rf_raster)
 
-function _check_rf_deadtime(rf, timing, block_id, block_duration)
+function _check_duration(rf, timing, block_id, block_duration)
     rf_dead_time = _timing_value(timing, :RfDeadTime, 0.0)
     rf_ringdown_time = _timing_value(timing, :RfRingdownTime, 0.0)
     rf_end = _pulseq_duration(rf, timing.RadiofrequencyRasterTime)
@@ -167,7 +179,7 @@ function _check_rf_deadtime(rf, timing, block_id, block_duration)
     return nothing
 end
 
-function _check_adc_dwell(dwell, raster, block_id)
+function _check_dwell(dwell, raster, block_id)
     raster > 0 || error("Raster time must be positive.")
     dwell + PULSEQ_TIME_TOL >= raster || error("Block $block_id ADC dwell ($(dwell) s) is shorter than raster $(raster) s.")
     rounded = round(dwell / raster) * raster
@@ -175,9 +187,9 @@ function _check_adc_dwell(dwell, raster, block_id)
     error("Block $block_id ADC dwell ($(dwell) s) is not aligned to raster $(raster) s.")
 end
 
-function _check_adc_timing(adc, timing, block_id, block_duration)
+function _check_timing(adc::ADC, timing, block_id, block_duration)
     dwell = _pulseq_dwell(adc)
-    _check_adc_dwell(dwell, timing.AdcRasterTime, block_id)
+    _check_dwell(dwell, timing.AdcRasterTime, block_id)
     adc.delay + PULSEQ_TIME_TOL >= dwell / 2 || error("Block $block_id ADC delay ($(adc.delay) s) is smaller than dwell/2 ($(dwell / 2) s).")
     pulseq_delay = adc.delay - dwell / 2
     _check_raster_multiple(pulseq_delay, timing.RadiofrequencyRasterTime, block_id, "ADC delay")
@@ -191,7 +203,7 @@ function _check_adc_timing(adc, timing, block_id, block_duration)
     return nothing
 end
 
-function _check_extension_timing(exts, block_id, block_duration)
+function _check_timing(exts::AbstractVector{<:Extension}, block_id, block_duration)
     count(ext -> ext isa Trigger, exts) <= 1 || error("Block $block_id has more than one Trigger extension.")
     count(ext -> ext isa QuaternionRot, exts) <= 1 || error("Block $block_id has more than one ROTATIONS extension.")
     for ext in exts
@@ -221,20 +233,18 @@ function check_timing(seq::Sequence, raster::NamedTuple)
         _check_raster_multiple(seq.DUR[i], raster.BlockDurationRaster, i, "duration")
         rf = seq.RF[1, i]
         if is_RF_on(rf)
-            _check_rf_timing(rf, raster.RadiofrequencyRasterTime, i)
-            _check_rf_deadtime(rf, raster, i, seq.DUR[i])
+            _check_timing(rf, raster, i, seq.DUR[i])
         end
         axis_names = ("x", "y", "z")
         for axis in axes(seq.GR, 1)
             gr = seq.GR[axis, i]
             is_GR_on(gr) || continue
             name = axis <= length(axis_names) ? axis_names[axis] : string(axis)
-            _check_grad_timing(gr, raster.GradientRasterTime, i, name)
-            _check_block_fit(dur(gr), seq.DUR[i], i, "$name-gradient event")
+            _check_timing(gr, raster, i, name, seq.DUR[i])
         end
         adc = seq.ADC[i]
-        is_ADC_on(adc) && _check_adc_timing(adc, raster, i, seq.DUR[i])
-        _check_extension_timing(seq.EXT[i], i, seq.DUR[i])
+        is_ADC_on(adc) && _check_timing(adc, raster, i, seq.DUR[i])
+        _check_timing(seq.EXT[i], i, seq.DUR[i])
     end
     return nothing
 end
