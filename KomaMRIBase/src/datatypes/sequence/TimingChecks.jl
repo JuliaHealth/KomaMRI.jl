@@ -31,7 +31,7 @@ function _check_raster_multiple(t, raster, block_id, label; tol=PULSEQ_DIVISION_
     error("Block $block_id $label ($(t) s) is not aligned to raster $(raster) s.")
 end
 
-function _check_sample_timing(start, step::Number, n, raster, block_id, label)
+function _check_sample_timing(start::Number, step::Number, n, raster, block_id, label)
     n == 0 && return nothing
     _check_raster_multiple(start, raster, block_id, label)
     n == 1 && return nothing
