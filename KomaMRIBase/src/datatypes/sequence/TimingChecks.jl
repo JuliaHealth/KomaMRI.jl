@@ -147,7 +147,7 @@ function _check_rf_timing(rf::TimeShapedRF, raster, block_id)
     return nothing
 end
 
-_pulseq_rf_delay(rf::RF, rf_raster) = rf.delay - _pulseq_rf_first_sample_offset(rf, rf_raster)
+_pulseq_rf_delay(rf, rf_raster) = rf.delay - _pulseq_rf_first_sample_offset(rf, rf_raster)
 
 # Compact Pulseq RF has an implicit half-raster first-sample offset.
 _pulseq_rf_duration(rf, rf_raster) = dur(rf) + _pulseq_rf_first_sample_offset(rf, rf_raster)
