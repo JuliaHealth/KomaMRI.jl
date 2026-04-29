@@ -93,6 +93,7 @@ Pkg.test()  # KomaMRI umbrella package
 - `KomaMRICore` defaults to CPU via `KomaMRICore/test/Project.toml`. To change backend, set `[preferences.KomaMRICore].test_backend` to `CPU`, `CUDA`, `AMDGPU`, `Metal`, or `oneAPI`, or use `Pkg.test("KomaMRICore"; test_args=\`CUDA\`)`.
 - To control CPU thread count for `KomaMRICore`, use `Pkg.test("KomaMRICore"; julia_args=\`--threads=4\`)`.
 - GPU backend packages must already be available locally before running non-CPU `KomaMRICore` tests. `oneAPI` is experimental.
+- Do not commit backend-specific GPU packages such as `CUDA`, `AMDGPU`, `Metal`, or `oneAPI` to shared test projects like `KomaMRICore/test/Project.toml`. Add them only in the backend-specific CI/local test command or a temporary environment.
 - For small exploratory tests, use a temporary environment. For longer isolated tests, use a temp folder with an activated environment. Reuse the same REPL.
 - If you add behavior, add or update tests in the owning package's `runtests.jl`.
 - Use `@testitem` tags correctly:

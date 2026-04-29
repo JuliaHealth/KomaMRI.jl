@@ -22,12 +22,11 @@ durADC = 250e-3     # duration of the acquisition
 delay =  1e-3       # small delay
 acq = ADC(nADC, durADC, delay);
 
-# Finally, we concatenate the sequence blocks to create
-# the final sequence.
+# Finally, we add the sequence blocks to create the final sequence.
 
 seq = Sequence()  # empty sequence
-seq += exc        # adding RF-only block
-seq += acq        # adding ADC-only block
+@addblock seq += exc  # adding RF-only block
+@addblock seq += acq  # adding ADC-only block
 p1 = plot_seq(seq; slider=false, height=300)
 #jl display(p1);
 

@@ -84,9 +84,9 @@ durADC = 250e-3     # duration of the acquisition
 delay =  1e-3       # small delay
 acq = ADC(nADC, durADC, delay)
 
-seq = Sequence()  # empty sequence
-seq += exc        # adding RF-only block
-seq += acq        # adding ADC-only block
+seq = Sequence()
+@addblock seq += exc
+@addblock seq += acq
 
 # Plot the sequence
 plot_seq(seq; slider=false, height=300)

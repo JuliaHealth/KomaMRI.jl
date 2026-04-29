@@ -17,7 +17,7 @@ sys = Scanner(); #hide
 # We will begin by simulating a cardiac cine on a myocardial phantom with a constant RR interval.
 # We'll use the `heart_phantom` function to create a ring-shaped phantom filled with blood, resembling the left ventricle:
 
-obj = heart_phantom(); 
+obj = heart_phantom(; spins_per_voxel=20);
 
 # By default, this phantom exhibits periodic contraction and rotation with a 1-second period:
 p1 = plot_phantom_map(obj, :T1 ; height=450, time_samples=21) #hide
@@ -33,8 +33,8 @@ obj.motion
 # Now, we will create a bSSFP cine sequence with the following parameters:
 
 RRs          = [1.0]       # [s] constant RR interval
-N_matrix     = 50          # image size = N x N
-N_phases     = 25          # Number of cardiac phases
+N_matrix     = 32          # image size = N x N
+N_phases     = 16          # Number of cardiac phases
 FOV          = 0.11        # [m]
 TR           = 25e-3       # [s]
 flip_angle   = 10          # [º]
@@ -44,7 +44,7 @@ adc_duration = 0.2e-3;     # [s]
 
 seq = bSSFP_cine(
     FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys; 
-    N_dummy_cycles = 40, adc_duration = adc_duration,
+    N_dummy_cycles = 16, adc_duration = adc_duration,
 );
 
 ## Simulation  #hide
@@ -114,14 +114,14 @@ frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
 # To correct this, we synchronize the sequence **manually** by providing it the same RR intervals as the phantom:
 seq = bSSFP_cine(
     FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys; 
-    N_dummy_cycles = 40, adc_duration = adc_duration,
+    N_dummy_cycles = 16, adc_duration = adc_duration,
 );
 
 # This approach manually mimics cardiac triggering. The resulting cine is 
 # once again correctly aligned, despite the underlying arrhythmia.
 # 
 # In the future, this synchronization will be handled automatically 
-# through upcoming support for trigger extensions in the sequence framework.
+# through scanner trigger extensions; this tutorial keeps the synchronization explicit.
 
 ## Simulation  #hide
 raw3 = @suppress simulate(obj, seq, sys) #hide

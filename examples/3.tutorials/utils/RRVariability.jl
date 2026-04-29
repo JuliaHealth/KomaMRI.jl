@@ -20,7 +20,7 @@ function bSSFP_cine(
     base_seq =  bSSFP(FOV, N_matrix, TR, flip_angle, sys; Δf=Δf, adc_duration=adc_duration)
 
     n = 1
-    for i in 0:(N_matrix - 1) # 1 vps (Views Per Segment)
+    @addblocks for i in 0:(N_matrix - 1) # 1 vps (Views Per Segment)
         line = base_seq[6*i .+ (1:6)]
 
         if N_dummy_cycles > 0 && i == 0
@@ -103,10 +103,14 @@ function bSSFP(
 	T_phase = phase_dur - 2*ζ_phase
 	G_phase = ζ_phase * sys.Smax
 
-	EX = Sequence([Grad(0., pulse_duration, ζ_ss)  Grad(-G_phase,    T_phase,   ζ_phase); 
-				   Grad(0., pulse_duration, ζ_ss)  Grad(-G_phase,    T_phase,   ζ_phase); 
-				   Grad(Gss, pulse_duration, ζ_ss) Grad(-Gss,        T_refocus, ζ_ss);], 
-				  [RF(amplitude .* unit_wf, pulse_duration, f0, ζ_ss) RF(0,0)])
+	rf_event = RF(amplitude .* unit_wf, pulse_duration, f0, ζ_ss)
+	G_sliceselect = (x=Grad(0.0, pulse_duration, ζ_ss), y=Grad(0.0, pulse_duration, ζ_ss), z=Grad(Gss, pulse_duration, ζ_ss))
+	G_rewinder = (x=Grad(-G_phase, T_phase, ζ_phase), y=Grad(-G_phase, T_phase, ζ_phase), z=Grad(-Gss, T_refocus, ζ_ss))
+	EX = Sequence()
+	@addblocks begin
+		EX += (rf_event; G_sliceselect...)
+		EX += (; G_rewinder...)
+	end
 
 	# Acquisition ----------------------------------------------
 	# PHASE
@@ -125,17 +129,18 @@ function bSSFP(
 	ζ_ro = (-T_ro * sys.Smax + sqrt((T_ro * sys.Smax)^2 + 4*sys.Smax*area_ro))/(2*sys.Smax)
 	G_ro = ζ_ro * sys.Smax
 
-	ro = Sequence([Grad(G_ro,T_ro,ζ_ro); Grad(0,0); Grad(0,0);;])
-	ro.ADC[1] = ADC(N, T_ro, ζ_ro)
+	ro = Sequence()
+	@addblock ro += (ADC(N, T_ro, ζ_ro), x=Grad(G_ro, T_ro, ζ_ro))
 
 	bssfp = Sequence()
-	for i in 0:(N-1)
+	@addblocks for i in 0:(N-1)
 		# Excitation and first phase 
 		ex = copy(EX)
 		ex[end].GR[2].A += i*G_step
 
 		# FE and Readout
-		balance = Sequence([ex[end].GR[1]; -ex[end].GR[2]; ex[end].GR[3];;])
+		balance = Sequence()
+		balance += (x=ex[end].GR[1], y=-ex[end].GR[2], z=ex[end].GR[3])
 
 		delay_TR = TR - (dur(ex) + dur(ro) + dur(balance))
 		bssfp += (ex + Delay(delay_TR/2) + ro + Delay(delay_TR/2) + balance)
@@ -224,7 +229,7 @@ function reconstruct_cine(raw, seq, N_matrix, N_phases)
 		acqData = AcquisitionData(raw)
 		_, ktraj = get_kspace(seq)
 		for i in 1:N_phases
-			acqAux = copy(acqData)
+			acqAux = deepcopy(acqData)
 			range = reduce(vcat,[j*(N_matrix*N_phases).+((i-1)*N_matrix.+(1:N_matrix)) for j in 0:N_matrix-1])
 			## Kdata
 			acqAux.kdata[1] = reshape(acqAux.kdata[1][range],(N_matrix^2,1))

@@ -1,0 +1,7 @@
+# Keep generated/binary-style artifacts out of GitHub's inline diff view.
+*.svg -diff
+*.seq -diff
+*.mat -diff
+
+# Pulseq signatures hash exact file bytes, so test fixtures must keep LF endings.
+KomaMRIFiles/test/test_files/pulseq/**/*.seq text eol=lf -diff

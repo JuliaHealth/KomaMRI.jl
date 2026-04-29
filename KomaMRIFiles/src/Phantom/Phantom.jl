@@ -58,16 +58,16 @@ function import_motion_field!(motion_fields::Array, motion::HDF5.Group, name::St
     get_subtype_strings(t::Type) = last.(split.(string.(get_subtypes(t::Type)), "."))
     
     subtype_strings = [reduce(vcat, get_subtype_strings.([
-        KomaMRIBase.SimpleAction,
-        KomaMRIBase.ArbitraryAction,
-        KomaMRIBase.AbstractSpinSpan
+        SimpleAction,
+        ArbitraryAction,
+        AbstractSpinSpan
     ])); "TimeCurve"] 
 
     subtype_vector = [reduce(vcat, get_subtypes.([
-        KomaMRIBase.SimpleAction,
-        KomaMRIBase.ArbitraryAction,
-        KomaMRIBase.AbstractSpinSpan
-    ])); KomaMRIBase.TimeCurve]
+        SimpleAction,
+        ArbitraryAction,
+        AbstractSpinSpan
+    ])); TimeCurve]
 
     motion_subfields = []
     for (i, subtype_string) in enumerate(subtype_strings)
@@ -122,7 +122,7 @@ function write_phantom(
     HDF5.attributes(fid)["Version"] = string(pkgversion(KomaMRIFiles))
     HDF5.attributes(fid)["Name"] = obj.name
     HDF5.attributes(fid)["Ns"] = length(obj.x)
-    dims = KomaMRIBase.get_dims(obj)
+    dims = get_dims(obj)
     HDF5.attributes(fid)["Dims"] = sum(dims)
     # Positions
     pos = create_group(fid, "position")
@@ -144,7 +144,7 @@ end
 
 export_motion!(motion_group::HDF5.Group, motion::Motion) = export_motion!(motion_group, MotionList([motion]))
 function export_motion!(motion_group::HDF5.Group, motion_list::MotionList)
-    KomaMRIBase.sort_motions!(motion_list)
+    sort_motions!(motion_list)
     for (counter, m) in enumerate(motion_list.motions)
         motion = create_group(motion_group, "motion_$(counter)")
         for key in fieldnames(Motion) # action, time, spins

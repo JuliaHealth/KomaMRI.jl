@@ -79,11 +79,7 @@ adc = ADC(1, adc_dwell_time, durRF/2 - adc_dwell_time/2); # ADCs with N=1 are po
 
 # Obtaining the PGSE sequence:
 seq = Sequence()
-seq += rf90
-seq += gx_diff
-seq += rf180
-seq += gx_diff
-seq += adc
+@addblock seq += rf90 + (x=gx_diff) + rf180 + (x=gx_diff) + adc
 p2 = plot_seq(seq; show_adc=true, height=300) # Plotting the sequence 
 #jl display(p2);
 

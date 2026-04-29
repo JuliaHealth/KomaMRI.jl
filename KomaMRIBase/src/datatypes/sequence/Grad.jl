@@ -83,12 +83,19 @@ mutable struct Grad{AT,TT}
     delay::Float64
     first::Float64
     last::Float64
-    Grad(A, T, rise, fall, delay, first, last) = all(T .< 0) || rise < 0 || fall < 0 || delay < 0 ? error("Gradient timings must be positive.") : new{typeof(A),typeof(T)}(A, T, rise, fall, delay, first, last)
+    Grad(A, T, rise, fall, delay, first, last) =
+        _has_negative_timings(T) || rise < 0 || fall < 0 || delay < 0 ?
+        error("Gradient timings must be positive.") :
+        new{typeof(A),typeof(T)}(A, T, rise, fall, delay, first, last)
     Grad(A, T, rise, fall, delay)              = Grad(A, T, rise, fall, delay, 0.0, 0.0)
     Grad(A, T, rise, delay)                    = Grad(A, T, rise, rise, delay, 0.0, 0.0)
     Grad(A, T, rise)                           = Grad(A, T, rise, rise, 0.0,   0.0, 0.0)
     Grad(A, T)                                 = Grad(A, T, 0.0,  0.0,  0.0,   0.0, 0.0)
 end
+
+const TrapezoidalGrad = Grad{AT,TT} where {AT<:Number,TT<:Number}
+const UniformlySampledGrad = Grad{AT,TT} where {AT<:AbstractVector{<:Number},TT<:Number}
+const TimeShapedGrad = Grad{AT,TT} where {AT<:AbstractVector{<:Number},TT<:AbstractVector{<:Number}}
 
 """
     gr = Grad(f::Function, T::Real, N::Integer; delay::Real)
@@ -174,7 +181,7 @@ directly without the need to iterate elementwise.
 - `y`: (`::Array{Any}`) vector or matrix with the property defined
     by the symbol `f` for all elements of the Grad vector or matrix `x`
 """
-getproperty(x::AbstractArray{<:Grad}, f::Symbol) = begin
+getproperty(x::AbstractVecOrMat{<:Grad}, f::Symbol) = begin
     if f == :x
         @view x[1, :]
     elseif f == :y && size(x, 1) >= 2
@@ -191,24 +198,136 @@ getproperty(x::AbstractArray{<:Grad}, f::Symbol) = begin
 end
 
 # Gradient comparison
-function Base.isapprox(gr1::Grad, gr2::Grad)
-    return all(
-        length(getfield(gr1, k)) ≈ length(getfield(gr2, k)) for k in fieldnames(Grad)
-    ) && all(getfield(gr1, k) ≈ getfield(gr2, k) for k in fieldnames(Grad))
-end
+field_isapprox(gr1::Grad, gr2::Grad; kwargs...) = isapprox(gr1, gr2; kwargs...)
+Base.isapprox(gr1::Grad, gr2::Grad; kwargs...) = fields_isapprox(gr1, gr2; kwargs...)
+Base.copy(gr::Grad) = Grad(_deepcopy_fields(gr)...)
 
 # Gradient operations
 # zeros(Grad, M, N)
 Base.zero(::Type{Grad}) = Grad(0.0, 0.0)
 # Rotation
 Base.zero(::Grad) = Grad(0.0, 0.0)
-*(α::Real, x::Grad) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
-+(x::Grad, y::Grad) = Grad(x.A .+ y.A, max(x.T, y.T), max(x.rise, y.rise), max(x.fall, y.fall), max(x.delay, y.delay)) #TODO: solve this in a better way (by "stacking" gradients) issue #487
+*(α::Real, x::Grad) = Grad(α * x.A, copy(x.T), x.rise, x.fall, x.delay, α * x.first, α * x.last)
+
+function *(A::AbstractMatrix{<:Real}, gr::AbstractVector{<:Grad})
+    size(A, 2) == length(gr) || throw(DimensionMismatch("matrix columns must match gradient axes"))
+    out = Vector{Grad}(undef, size(A, 1))
+    for row in 1:size(A, 1)
+        g = Grad(0.0, 0.0)
+        for axis in 1:size(A, 2)
+            c = A[row, axis]
+            iszero(c) && continue
+            g += c * gr[axis]
+        end
+        out[row] = g
+    end
+    return _concrete_event_array_copy(out)
+end
+
+function *(A::AbstractMatrix{<:Real}, GR::AbstractMatrix{<:Grad})
+    size(A, 2) == size(GR, 1) || throw(DimensionMismatch("matrix columns must match gradient axes"))
+    out = Matrix{Grad}(undef, size(A, 1), size(GR, 2))
+    Threads.@threads for block in 1:size(GR, 2)
+        out[:, block] = A * view(GR, :, block)
+    end
+    return _concrete_event_array_copy(out)
+end
+
+_same_grad_timing_fields(x, y) =
+    x.T == y.T &&
+    x.rise == y.rise &&
+    x.fall == y.fall &&
+    x.delay == y.delay
+
+_same_grad_timing(x::TrapezoidalGrad, y::TrapezoidalGrad) =
+    _same_grad_timing_fields(x, y)
+_same_grad_timing(x::UniformlySampledGrad, y::UniformlySampledGrad) =
+    length(x.A) == length(y.A) &&
+    _same_grad_timing_fields(x, y)
+_same_grad_timing(x::TimeShapedGrad, y::TimeShapedGrad) =
+    length(x.A) == length(y.A) &&
+    _same_grad_timing_fields(x, y)
+_same_grad_timing(::Grad, ::Grad) = false
+
+_amplitude_roundoff_tol(A) = 1000 * eps(float(maximum(abs, A)))
+
+function _strictly_increasing_knots!(t)
+    for i in 2:length(t)
+        t[i] <= t[i - 1] && (t[i] = t[i - 1] + MIN_RISE_TIME)
+    end
+    return t
+end
+
+function _sort_unique_knots!(t)
+    sort!(t)
+    isempty(t) && return t
+    tol = min(MIN_RISE_TIME / 10, 100 * eps(maximum(abs, t)))
+    i = 1
+    for j in 2:length(t)
+        if abs(t[j] - t[i]) > tol
+            i += 1
+            t[i] = t[j]
+        end
+    end
+    resize!(t, i)
+    return t
+end
+
+_sample_values_at(samples, t) =
+    isempty(samples.t) ? zeros(length(t)) : linear_interpolation(samples..., extrapolation_bc=0.0).(t)
+
+function _simplify_knots(t, A)
+    length(t) <= 3 && return t, A
+    keep = trues(length(t))
+    amplitude_tol = _amplitude_roundoff_tol(A)
+    for i in 2:(length(t) - 1)
+        Ai = A[i - 1] + (A[i + 1] - A[i - 1]) * ((t[i] - t[i - 1]) / (t[i + 1] - t[i - 1]))
+        keep[i] = !isapprox(A[i], Ai; rtol=0, atol=amplitude_tol)
+    end
+    count(keep) < 3 && (keep[end - 1] = true)
+    return t[keep], A[keep]
+end
+
+function _grad_from_knots(t, A)
+    if isempty(t) || all(iszero, A)
+        return Grad(zero(eltype(A)), 0.0)
+    end
+    t, A = _simplify_knots(t, A)
+    if length(t) >= 2
+        t[end - 1] = t[end] - t[end - 1] <= MIN_RISE_TIME ? t[end] : t[end - 1] + MIN_RISE_TIME
+    end
+    length(t) < 3 && return Grad(A[1], t[end] - t[1], 0.0, 0.0, t[1], A[1], A[end])
+    if length(t) >= 4 && all(a -> isapprox(a, A[2]; rtol=0, atol=_amplitude_roundoff_tol(A)), A[2:(end - 1)])
+        return Grad(A[2], sum(diff(t[2:(end - 1)])), t[2] - t[1], t[end] - t[end - 1], t[1], A[1], A[end])
+    end
+    return Grad(
+        A[2:(end - 1)],
+        diff(t[2:(end - 1)]),
+        t[2] - t[1],
+        t[end] - t[end - 1],
+        t[1],
+        A[1],
+        A[end],
+    )
+end
+
+function +(x::Grad, y::Grad)
+    is_on(x) || return copy(y)
+    is_on(y) || return copy(x)
+    if _same_grad_timing(x, y)
+        return Grad(x.A .+ y.A, copy(x.T), x.rise, x.fall, x.delay, x.first + y.first, x.last + y.last)
+    end
+    sx = _gradient_interpolation_samples(x)
+    sy = _gradient_interpolation_samples(y)
+    t = _sort_unique_knots!(vcat(sx.t, sy.t))
+    A = _sample_values_at(sx, t) .+ _sample_values_at(sy, t)
+    return _grad_from_knots(t, A)
+end
 # Others
-*(x::Grad, α::Real) = Grad(α * x.A, x.T, x.rise, x.fall, x.delay)
-/(x::Grad, α::Real) = Grad(x.A / α, x.T, x.rise, x.fall, x.delay)
+*(x::Grad, α::Real) = α * x
+/(x::Grad, α::Real) = Grad(x.A / α, copy(x.T), x.rise, x.fall, x.delay, x.first / α, x.last / α)
 -(x::Grad) = -1 * x
--(x::Grad, y::Grad) = Grad(x.A .- y.A, max(x.T, y.T), max(x.rise, y.rise), max(x.fall, y.fall), max(x.delay, y.delay)) #TODO: solve this in a better way (by "stacking" gradients) issue #487
+-(x::Grad, y::Grad) = x + (-y)
 
 # Gradient functions
 function vcat(x::Vector{T}, y::Vector{T}) where {T<:Grad}

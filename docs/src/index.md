@@ -24,14 +24,14 @@ hero:
 
 features:
   - icon: 📦
-    title: Community Standards
-    details: Import Pulseq sequences and export raw data in ISMRMRD. Integrate directly with reconstruction and benchmarking workflows.
-    link: tutorial/03-ChemicalShiftEPI
+    title: Pulseq and ISMRMRD Community Standards
+    details: Build, read, and write Pulseq sequences and export raw data in ISMRMRD. Integrate directly with reconstruction workflows.
+    link: /how-to/3-create-your-own-sequence
 
   - icon: 🚀
     title: Fast, Device Agnostic
     details: Run on CPU and GPU with CUDA, AMDGPU, Metal, and experimental oneAPI support. Differentiable simulations powered by Enzyme and Reactant.
-    link: /explanation/6-simulation
+    link: /explanation/7-simulation
 
   - icon: 🌊
     title: Dynamic Motion Models

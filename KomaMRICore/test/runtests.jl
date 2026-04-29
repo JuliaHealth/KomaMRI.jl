@@ -2,9 +2,8 @@ using TestItems, TestItemRunner
 
 ### NOTE: by default, tests are run on the CPU with the number of threads set to
 #   Threads.nthreads(). To run on a specific GPU backend, add the name of the
-#   backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the
-#   test/Project.toml file in KomaMRICore and pass the name as a test argument.
-#   oneAPI is experimental.
+#   backend package ("AMDGPU", "CUDA", "Metal", or "oneAPI") to the test/Project.toml
+#   file in KomaMRICore and pass the name as a test argument.
 #
 #   Example:
 #
@@ -172,27 +171,25 @@ const group = get(ENV, "TEST_GROUP", :core) |> Symbol
 end
 
 @testitem "ISMRMRD" tags=[:core, :nomotion] begin
-    using Suppressor
     include("initialize_backend.jl")
 
-    seq = PulseDesigner.EPI_example()
+    seq = PulseDesigner.EPI_example()[1:10]
     sys = Scanner()
-    obj = brain_phantom2D()
+    obj = brain_phantom2D()[1:10]
     parts = kfoldperm(length(obj), 2)
 
     sim_params = KomaMRICore.default_sim_params()
     sim_params["return_type"] = "raw"
     sim_params["gpu"] = USE_GPU
 
-    sig1 = @suppress simulate(obj[parts[1]], seq, sys; sim_params)
-    sig2 = @suppress simulate(obj[parts[2]], seq, sys; sim_params)
-    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig1 = simulate(obj[parts[1]], seq, sys; sim_params, verbose=false)
+    sig2 = simulate(obj[parts[2]], seq, sys; sim_params, verbose=false)
+    sig = simulate(obj, seq, sys; sim_params, verbose=false)
 
     @test isapprox(sig, sig1 + sig2; rtol=0.001)
 end
 
 @testitem "signal_to_raw_data" tags=[:core, :nomotion] begin
-    using Suppressor
     include("initialize_backend.jl")
 
     seq = PulseDesigner.EPI_example()
@@ -202,7 +199,7 @@ end
     sim_params = KomaMRICore.default_sim_params()
     sim_params["return_type"] = "mat"
     sim_params["gpu"] = USE_GPU
-    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = simulate(obj, seq, sys; sim_params, verbose=false)
 
     # Test signal_to_raw_data
     raw = signal_to_raw_data(sig, seq)
@@ -221,8 +218,7 @@ end
     @test true
 end
 
-@testitem "Bloch" tags=[:important, :core, :nomotion] begin
-    using Suppressor
+@testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -231,19 +227,28 @@ end
     obj = phantom_sphere()
     sys = Scanner()
 
-    sim_params = Dict{String, Any}(
-        "gpu"=>USE_GPU,
-        "sim_method"=>KomaMRICore.Bloch(),
-        "return_type"=>"mat"
+    for sim_method in (
+        KomaMRICore.Bloch(),
+        KomaMRICore.BlochMagnus1(),
+        KomaMRICore.BlochMagnus2(),
+        KomaMRICore.BlochMagnus4()
     )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
-    sig = sig / prod(size(obj))
+        @testset "$(nameof(typeof(sim_method)))" begin
+            sim_params = Dict{String, Any}(
+                "gpu"=>USE_GPU,
+                "sim_method"=>sim_method,
+                "return_type"=>"mat"
+            )
+            sig = simulate(obj, seq, sys; sim_params, verbose=false)
+            sig = sig / prod(size(obj))
 
-    @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+            @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+        end
+    end
 end
 
 @testitem "Bloch_RF_accuracy" tags=[:important, :core, :nomotion] begin
-    using Suppressor, OrdinaryDiffEqTsit5
+    using OrdinaryDiffEqTsit5
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -262,15 +267,15 @@ end
     ## Solving using KomaMRI
     seq = Sequence()
     seq += ADC(Nadc, Tadc)
-    for i=1:2
-        global seq += RF(B1 .* cis(rf_phase[i]), Trf)
-        global seq += ADC(Nadc, Tadc)
-    end
+    seq += RF(B1 .* cis(rf_phase[1]), Trf)
+    seq += ADC(Nadc, Tadc)
+    # This introduces an RF-ADC overlap!!!
+    seq += RF(B1 .* cis(rf_phase[2]), Trf)
+    seq.ADC[4] = ADC(Nadc, 2Tadc, Trf/2)
+    seq.DUR[4] = max(seq.DUR[4], dur(seq.RF[4]), dur(seq.ADC[4]))
+
     sys = Scanner()
     obj = Phantom(x = [0.], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "return_type"=>"mat")
-    raw_aux = @suppress simulate(obj, seq, sys; sim_params)
-    raw = raw_aux[:, 1, 1] # Convert solution to complex vector
 
     ## Solving using DiffEquations.jl
     B1e(t) = KomaMRIBase.get_rfs(seq, [t])[1][1]
@@ -292,11 +297,18 @@ end
     sol_diffeq = hcat(sol.u...)'
     mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
 
-    @test NRMSE(raw, mxy_diffeq) < 0.1
+    ## Solve with KomaMRI
+    methods_to_test = [Bloch(), BlochMagnus1(), BlochMagnus2(), BlochMagnus4()]
+    sim_params_to_test = [Dict{String, Any}("Δt_rf"=>1e-5, "return_type"=>"mat", "sim_method"=>method) for method in methods_to_test]
+    for sim_params in sim_params_to_test
+        @testset "$(sim_params["sim_method"])" begin 
+            raw = simulate(obj, seq, sys; sim_params, verbose=false)[:, 1, 1]
+            @test NRMSE(raw, mxy_diffeq) < 0.1
+        end
+    end
 end
 
 @testitem "Bloch_phase_compensation" tags=[:important, :core, :nomotion] begin
-    using Suppressor
     include("initialize_backend.jl")
 
     Tadc = 1e-3
@@ -319,15 +331,23 @@ end
     seq2 += RF(B1 .* exp(1im*rf_phase), Trf)
     seq2 += ADC(N, Tadc, 0, 0, rf_phase)
 
-    sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU)
-    raw1 = @suppress simulate(obj, seq1, sys; sim_params)
-    raw2 = @suppress simulate(obj, seq2, sys; sim_params)
+    for sim_method in (
+        KomaMRICore.Bloch(),
+        KomaMRICore.BlochMagnus1(),
+        KomaMRICore.BlochMagnus2(),
+        KomaMRICore.BlochMagnus4()
+    )
+        @testset "$(nameof(typeof(sim_method)))" begin
+            sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU, "sim_method"=>sim_method)
+            raw1 = simulate(obj, seq1, sys; sim_params, verbose=false)
+            raw2 = simulate(obj, seq2, sys; sim_params, verbose=false)
 
-    @test raw1.profiles[1].data ≈ raw2.profiles[1].data
+            @test raw1.profiles[1].data ≈ raw2.profiles[1].data
+        end
+    end
 end
 
-@testitem "BlochDict" tags=[:important, :core, :nomotion] begin
-    using Suppressor
+@testitem "BlochDict" tags=[:important, :core, :nomotion, :blochdict] begin
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -338,20 +358,31 @@ end
         "gpu"=>USE_GPU,
         "sim_method"=>KomaMRICore.Bloch(),
         "return_type"=>"mat")
-    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = simulate(obj, seq, sys; sim_params, verbose=false)
     sig = sig / prod(size(obj))
     sim_params["sim_method"] = KomaMRICore.BlochDict()
-    sig2 = @suppress simulate(obj, seq, sys; sim_params)
+    sig2 = simulate(obj, seq, sys; sim_params, verbose=false)
     sig2 = sig2 / prod(size(obj))
     @test sig ≈ sig2
+
+    sig_jemris = signal_sphere_jemris()
+    seq = seq_epi_100x100_TE100_FOV230()
+    obj = phantom_sphere()
+    sys = Scanner()
+    sig = simulate(obj, seq, sys; sim_params, verbose=false)
+    sig = sum(sig; dims=2) / prod(size(obj))
+    @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+
+    sim_params["sim_method"] = KomaMRICore.BlochDict(save_Mz=true)
+    sig2 = simulate(obj[1], seq[1:100], sys; sim_params, verbose=false)
+    @test true # Just checking that it runs, TODO: compare to DiffEq
 
     # Just checking to ensure that show() doesn't get stuck and that it is covered
     show(IOBuffer(), "text/plain", KomaMRICore.BlochDict())
     @test true
 end
 
-@testitem "BlochSimple" tags=[:important, :core, :nomotion] begin
-    using Suppressor
+@testitem "BlochSimple" tags=[:important, :core, :nomotion, :blochsimple] begin
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -365,14 +396,13 @@ end
         "sim_method"=>KomaMRICore.BlochSimple(),
         "return_type"=>"mat"
     )
-    sig = @suppress simulate(obj, seq, sys; sim_params)
+    sig = simulate(obj, seq, sys; sim_params, verbose=false)
     sig = sig / prod(size(obj))
 
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
-    using Suppressor
     include("initialize_backend.jl")
 
     # This is a sequence with a sinc RF 30° excitation pulse
@@ -384,27 +414,54 @@ end
     fmax = 5e3
     z = range(-zmax, zmax, 400)
     Gz = fmax / (γ * zmax)
-    f = γ * Gz * z
     seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0; 0; Gz], TBP=8)
 
-    # Simulate the slice profile
     sim_params = Dict{String, Any}(
         "Δt_rf" => Trf / length(seq.RF.A[1]),
         "gpu" => USE_GPU)
-    M = @suppress simulate_slice_profile(seq; z, sim_params)
 
-    # For the time being, always pass the test
-    @test true
+    @testset "frequency offset shifts sinc slice profile" begin
+        sample_shift = 40
+        Δf = γ * Gz * sample_shift * step(z)
+        shifted_seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0; 0; Gz], Δf, TBP=8)
+        methods_to_test = (
+            KomaMRICore.Bloch(),
+            KomaMRICore.BlochDict(),
+            KomaMRICore.BlochMagnus1(),
+            KomaMRICore.BlochMagnus2(),
+            KomaMRICore.BlochMagnus4(),
+        )
+        for sim_method in methods_to_test
+            @testset "$(nameof(typeof(sim_method)))" begin
+                for max_rf_block_length in (Inf, 30, 1)
+                    @testset "max_rf_block_length=$max_rf_block_length" begin
+                        shifted_sim_params = copy(sim_params)
+                        shifted_sim_params["sim_method"] = sim_method
+                        shifted_sim_params["max_rf_block_length"] = max_rf_block_length
+                        base_sim_params = copy(shifted_sim_params)
+                        M_base = simulate_slice_profile(seq; z, sim_params=base_sim_params, verbose=false)
+                        M_shifted = simulate_slice_profile(shifted_seq; z, sim_params=shifted_sim_params, verbose=false)
+
+                        profile = abs.(M_base.xy)
+                        shifted_profile = abs.(M_shifted.xy)
+                        expected = profile[1:(end - sample_shift)]
+                        shifted = shifted_profile[(1 + sample_shift):end]
+                        @test shifted ≈ expected
+                    end
+                end
+            end
+        end
+    end
 end
 
-@testitem "GPU Functions" tags=[:core, :nomotion] begin
+@testitem "GPU Functions" tags=[:core, :nomotion, :gpu] begin
     using Suppressor
     import KernelAbstractions as KA
     include("initialize_backend.jl")
 
     x = ones(Float32, 1000)
 
-    @suppress begin
+    begin
         if USE_GPU
             y = x |> gpu
             @test KA.get_backend(y) isa KA.GPU
@@ -426,7 +483,7 @@ end
 # --------- Motion-related tests -------------
 # We compare with the result given by OrdinaryDiffEqTsit5
 @testitem "Motion" tags=[:core, :motion] begin
-    using Suppressor, OrdinaryDiffEqTsit5
+    using OrdinaryDiffEqTsit5
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
 
@@ -443,7 +500,7 @@ end
 
     Gx = 1e-3
     Gy = 1e-3
-    Gz = 0
+    Gz = 0.0
 
     motions = [
         translate(0.1, 0.1, 0.0, TimeRange(0.0, 1.0)),
@@ -457,7 +514,14 @@ end
     y0 = [0.1]
     z0 = [0.0]
 
-    for sim_method in [KomaMRICore.Bloch(), KomaMRICore.BlochSimple(), KomaMRICore.BlochDict()]
+    for sim_method in [
+        KomaMRICore.Bloch(),
+        KomaMRICore.BlochSimple(),
+        KomaMRICore.BlochDict(),
+        KomaMRICore.BlochMagnus1(),
+        KomaMRICore.BlochMagnus2(),
+        KomaMRICore.BlochMagnus4()
+    ]
         @testset "$(typeof(sim_method))" begin
             for motion in motions
                 coords(t) = get_spin_coords(motion, x0, y0, z0, t)
@@ -479,7 +543,7 @@ end
                 prob = ODEProblem(bloch!, m0, tspan)
                 # Only at ADC points
                 tadc = range(Trf, duration, Nadc)
-                sol = @time solve(prob, Tsit5(), saveat = tadc, abstol = 1e-9, reltol = 1e-9)
+                sol = solve(prob, Tsit5(), saveat = tadc, abstol = 1e-9, reltol = 1e-9)
                 sol_diffeq = hcat(sol.u...)'
                 mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
 
@@ -501,7 +565,7 @@ end
                     "return_type"=>"mat",
                     "gpu" => USE_GPU
                 )
-                raw_aux = @suppress simulate(obj, seq, sys; sim_params)
+                raw_aux = simulate(obj, seq, sys; sim_params, verbose=false)
                 raw = raw_aux[:, 1, 1]
                 @test NRMSE(raw, mxy_diffeq) < 1
             end

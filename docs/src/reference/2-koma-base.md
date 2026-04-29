@@ -68,9 +68,14 @@ SpinRange
 
 ```@docs
 Sequence
+addblock!
+@addblock
+@addblocks
 dur
 get_block_start_times
 get_flip_angles
+check_timing
+check_hw_limits
 ```
 
 ### `Grad`
@@ -99,6 +104,14 @@ get_adc_phase_compensation
     
 ```@docs
 Delay
+Duration
+```
+
+### Extensions
+
+```@docs
+QuaternionRot
+apply_rotations
 ```
 
 ### Rotation matrices

@@ -23,19 +23,18 @@ A **sequence** can be thought of as an ordered concatenation of blocks over time
 \end{matrix*}
 ```
 
-The best way to understand the **Sequence** struct in **KomaMRI** is by examining the source code where this struct is defined:
-```julia
-mutable struct Sequence
-    GR::Array{Grad,2}
-    RF::Array{RF,2}
-    ADC::Array{ADC,1}
-    DUR::Array{Float64,1}
-    EXT::Vector{Vector{Extension}}
-    DEF::Dict{String,Any}
-end
-```
+A **Sequence** stores one column per block. Its main fields are:
 
-As you can see, a **Sequence** struct contains 6 field names: ''DEF'' contains information for reconstruction steps (so it is not mandatory to fill it), ''DUR'' is a vector that contains the time durations of each block, ''ADC'' is also a vector with the acquisition samples for every block (a vector of **ADC** structs), ''GR'' is a 2D matrix which 3 rows representing the x-y-z gradients and columns having the samples of each block (a matrix of **Grad** structs), ''RF'' is also a 2D matrix where each row represents a different coil and the columns are for different block samples too (a matrix of **RF** structs), and ''EXT'' is a vector of vectors containing extensions for each block, currently it is used to manage labels of a sequence required if you want to fill metadata headers of the MRD format. The **RF**, **Grad**, and **ADC** are MRI events that will be explained in the section [Events Definitions](5-seq-events.md).
+| Field | Meaning |
+|---|---|
+| `GR` | Gradient events. Rows are the `x`, `y`, and `z` axes; columns are blocks. |
+| `RF` | RF events. Rows are RF channels; columns are blocks. |
+| `ADC` | ADC event for each block. |
+| `DUR` | Duration of each block in seconds. |
+| `EXT` | Pulseq extensions for each block, such as labels, triggers, or rotations. |
+| `DEF` | Dictionary of sequence definitions, mostly used for file I/O and reconstruction metadata. |
+
+The **RF**, **Grad**, and **ADC** events are explained in [Sequence Events](5-seq-events.md).
 
 !!! warning
     So far, **KomaMRI** can only manage one coil for RF excitations. However, in future versions, parallel transmit pTX will be managed by adding more ``rows'' to the RF matrix of the Sequence field name.
@@ -43,7 +42,7 @@ As you can see, a **Sequence** struct contains 6 field names: ''DEF'' contains i
 In order to understand how a **Sequence** struct can be manipulated in **Julia**, let's use the EPI sequence example. You can display basic information of the **Sequence** variable in the **Julia REPL**:
 ```julia-repl
 julia> seq = PulseDesigner.EPI_example()
-Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | EXT: 0 | DEF: 5 ]
+Sequence[ τ = 62.846 ms | blocks: 204 | ADC: 101 | GR: 205 | RF: 1 | EXT: 0 | DEF: 16 ]
 ```
 
 As you can see, this **Sequence** has 204 blocks, 1 of these blocks has an **RF** struct with values different from zero, there are 205 number of **Grad** structs considering the x-y-z components, 101 **ADC** structs acquire samples of some blocks and 62.846 ms is the total time duration of the complete **Sequence**.
@@ -92,7 +91,7 @@ julia> seq.DUR
 Additionally, you can access a subset of blocks in a **Sequence** by slicing or indexing. The result will also be a **Sequence** struct, allowing you to perform the same operations as you would with a full Sequence (just a heads-up: this is analogous for the [Phantom](1-phantom.md) structure). For example, if you want to analyze the first 11 blocks, you can do the following:
 ```julia-repl
 julia> seq[1:11]
-Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]
+Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | EXT: 0 | DEF: 16 ]
 
 julia> seq[1:11].GR
 3×11 Matrix{Grad}:
@@ -111,13 +110,17 @@ julia> plot_seq(seq[1:11]; slider=false)
 Sequences can be concatenated side by side. The example below demonstrates how to concatenate sequences:
 ```julia-repl
 julia> s = PulseDesigner.EPI_example()[1:11]
-Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | DEF: 5 ]
+Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | EXT: 0 | DEF: 16 ]
 
 julia> seq = s + s + s
-Sequence[ τ = 11.512 ms | blocks: 33 | ADC: 15 | GR: 33 | RF: 3 | DEF: 5 ]
+Sequence[ τ = 11.512 ms | blocks: 33 | ADC: 15 | GR: 33 | RF: 3 | EXT: 0 | DEF: 16 ]
 
 julia> plot_seq(seq; slider=false)
 ```
 ```@raw html
 <object type="text/html" data="../assets/seq-concatenation.html" style="width:100%; height:420px;"></object>
 ```
+
+The `+` operator returns a copied sequence, so reused sequence parts do not share
+mutable events. For long construction loops, use [`@addblocks`](../how-to/3-create-your-own-sequence.md#add-blocks-in-loops)
+to append efficiently.

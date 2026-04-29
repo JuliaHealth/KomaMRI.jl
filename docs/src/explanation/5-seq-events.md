@@ -1,28 +1,32 @@
 # Sequence Events
 
-As we already know, a **Sequence** struct contains field names that store arrays of **RF**, **Grad**, and **ADC** structs. In the context of **MRI**, we refer to **RF**, **Grad**, and **ADC** as "events." To create a **Sequence**, it's essential to understand how to create these fundamental events.
-
-In the following subsections, we will provide detailed explanations of event parameters and guide you through the process of creating a **Sequence** using **RF**, **Grad**, and **ADC** events.
+A `Sequence` is made from RF, gradient, ADC, and extension events. This page
+shows the event shapes KomaMRI understands and how to place events into sequence
+blocks.
 
 
 ## RF
 
-The **RF** struct is defined in the source code of **KomaMRI** as follows:
+An **RF** event stores the RF waveform and timing:
+
 ```julia
-mutable struct RF
-    A
-    T
-    Δf
-    delay::Real
-end
+RF(A, T)
+RF(A, T, Δf)
+RF(A, T, Δf, delay; center, ϕ, use)
 ```
 
-As you can see, it has 4 field names: `A` defines amplitude, `T` defines duration time, `delay` is the distance between the 0 time and the first waveform sample and `Δf` is the displacement respect to the main field carrier frequency (this is for advanced users).
+`A` is the complex RF amplitude in tesla, `T` is the waveform timing in seconds,
+`delay` is the time from the block start to the first waveform sample, and `Δf`
+is the frequency offset from the carrier. The keyword fields `center`, `ϕ`, and
+`use` store Pulseq-compatible RF metadata.
 
-`A` and `T` can be numbers or vectors of numbers. Depending on the length of the `A` and `T`, **KomaMRI** interprets different waveforms: 
-* Pulse Waveform: `A` and `T` are numbers
-* Uniformly-Sampled Waveform: `A` is a vector and `T` is a number
-* Time-Shaped Waveform: `A` and `T` are both vectors; `T` stores interval durations so `length(A) = length(T) + 1`, and the waveform is reconstructed by connecting consecutive `A` entries with piecewise-linear segments
+`A` and `T` can be numbers or vectors. KomaMRI uses their shapes to choose the
+waveform representation:
+
+- Block pulse: `A` and `T` are numbers.
+- Uniformly-sampled waveform: `A` is a vector and `T` is a number.
+- Time-shaped waveform: `A` and `T` are both vectors; `T` stores interval
+  durations, so `length(A) = length(T) + 1`.
 
 In the image below, we provide a summary of how you can define **RF** events:
 
@@ -40,8 +44,8 @@ julia> A, T, delay =  10e-3, 0.5e-3, 0.1e-3;
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(10000.0 uT, 0.5 ms, 0.0 Hz)
 
-julia> seq = Sequence(); seq += rf
-Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+julia> seq = Sequence(); @addblock seq += rf
+Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | EXT: 0 | DEF: 11 ]
 
 julia> plot_seq(seq; slider=false)
 ```
@@ -61,8 +65,8 @@ julia> T, delay = 0.5e-3, 0.1e-3;
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(∿ uT, 0.5 ms, 0.0 Hz)
 
-julia> seq = Sequence(); seq += rf
-Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+julia> seq = Sequence(); @addblock seq += rf
+Sequence[ τ = 0.6 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | EXT: 0 | DEF: 11 ]
 
 julia> plot_seq(seq; slider=false)
 ```
@@ -84,8 +88,8 @@ julia> delay = 0.1e-3;
 julia> rf = RF(A, T, 0, delay)
 ←0.1 ms→ RF(∿ uT, 4.0 ms, 0.0 Hz)
 
-julia> seq = Sequence(); seq += rf
-Sequence[ τ = 4.1 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | DEF: 0 ]
+julia> seq = Sequence(); @addblock seq += rf
+Sequence[ τ = 4.1 ms | blocks: 1 | ADC: 0 | GR: 0 | RF: 1 | EXT: 0 | DEF: 11 ]
 
 julia> plot_seq(seq; slider=false)
 ```
@@ -96,23 +100,26 @@ julia> plot_seq(seq; slider=false)
 
 ## Gradient
 
-The **Grad** struct is defined as follows in the source code of **KomaMRI**:
+Gradient events are axis-neutral until they are added to a sequence block:
+
 ```julia
-mutable struct Grad
-    A
-    T
-    rise::Real
-    fall::Real
-    delay::Real
-end
+Grad(A, T)
+Grad(A, T, rise)
+Grad(A, T, rise, delay)
+Grad(A, T, rise, fall, delay)
 ```
 
-As you can see, it has 5 field names: `A` defines amplitude, `T` defines duration time, `delay` is the distance between the 0 time and the first waveform sample, `rise` and `fall` are the time durations of the first and last gradient ramps.
+`A` is the gradient amplitude in T/m, `T` is the waveform timing in seconds,
+`delay` is the time from the block start to the first waveform sample, and
+`rise`/`fall` are the ramp durations. Choose the gradient axis with `x=`, `y=`,
+or `z=` when adding the block.
 
-Just like the **RF**, `A` and `T` in the **Grad** struct can be numbers or vectors of numbers. Depending on the length of the `A` and `T`, **KomaMRI** interprets different waveforms: 
-* Trapezoidal Waveform: `A` and `T` are numbers
-* Uniformly-Sampled Waveform: `A` is a vector and `T` is a number
-* Time-Shaped Waveform: `A` and `T` are both vectors; `T` stores interval durations so `length(A) = length(T) + 1`, and the waveform is reconstructed by connecting consecutive `A` entries with piecewise-linear segments
+As with RF events, `A` and `T` can be numbers or vectors:
+
+- Trapezoid: `A` and `T` are numbers.
+- Uniformly-sampled waveform: `A` is a vector and `T` is a number.
+- Time-shaped waveform: `A` and `T` are both vectors; `T` stores interval
+  durations, so `length(A) = length(T) + 1`.
 
 In the image below, we provide a summary of how you can define **Grad** events:
 
@@ -130,8 +137,8 @@ julia> A, T, delay, rise, fall = 50*10e-6, 5e-3, 2e-3, 1e-3, 1e-3;
 julia> gr = Grad(A, T, rise, fall, delay)
 ←2.0 ms→ Grad(0.5 mT, 0.5 ms, ↑1.0 ms, ↓1.0 ms)
 
-julia> seq = Sequence([gr])
-Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
+julia> seq = Sequence(); @addblock seq += (x=gr)
+Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | EXT: 0 | DEF: 11 ]
 
 julia> plot_seq(seq; slider=false)
 ```
@@ -153,8 +160,8 @@ julia> delay, rise, fall = 1e-3, 0, 1e-3;
 julia> gr = Grad(A, T, rise, fall, delay)
 ←1.0 ms→ Grad(∿ mT, 10.0 ms, ↑0.0 ms, ↓1.0 ms)
 
-julia> seq = Sequence([gr])
-Sequence[ τ = 12.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
+julia> seq = Sequence(); @addblock seq += (x=gr)
+Sequence[ τ = 12.0 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | EXT: 0 | DEF: 11 ]
 
 julia> plot_seq(seq; slider=false)
 ```
@@ -174,8 +181,8 @@ julia> delay, rise, fall = 1e-3, 1e-3, 1e-3;
 julia> gr = Grad(A, T, rise, fall, delay)
 ←1.0 ms→ Grad(∿ mT, 15.4 ms, ↑1.0 ms, ↓1.0 ms)
 
-julia> seq = Sequence([gr])
-Sequence[ τ = 10.75 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | DEF: 0 ]
+julia> seq = Sequence(); @addblock seq += (x=gr)
+Sequence[ τ = 18.4 ms | blocks: 1 | ADC: 0 | GR: 1 | RF: 0 | EXT: 0 | DEF: 11 ]
 
 julia> plot_seq(seq; slider=false)
 ```
@@ -185,18 +192,18 @@ julia> plot_seq(seq; slider=false)
 
 ## ADC
 
-The **ADC** struct is defined in the **KomaMRI** source code as follows:
+An **ADC** event stores sample count, acquisition timing, and optional phase
+metadata:
+
 ```julia
-mutable struct ADC
-    N::Integer
-    T::Real
-    delay::Real
-    Δf::Real
-    ϕ::Real
-end
+ADC(N, T)
+ADC(N, T, delay)
+ADC(N, T, delay, Δf, ϕ)
 ```
 
-As you can see, it has 5 field names: `N` defines number of samples, `T` defines total acquisition duration, `delay` is the distance between the 0 time and the first sampled signal, `Δf` and `ϕ` are factor to correct signal acquisition (for advanced users).
+`N` is the number of samples, `T` is the time from the first to the last sample,
+and `delay` is the time from the block start to the first sample. `Δf` and `ϕ`
+are used for frequency and phase compensation.
 
 In the image below you can see how to define an **ADC** event:
 
@@ -211,8 +218,8 @@ julia> N, T, delay =  16, 5e-3, 1e-3;
 julia> adc = ADC(N, T, delay)
 ADC(16, 0.005, 0.001, 0.0, 0.0)
 
-julia> seq = Sequence(); seq += adc
-Sequence[ τ = 6.0 ms | blocks: 1 | ADC: 1 | GR: 0 | RF: 0 | DEF: 0 ]
+julia> seq = Sequence(); @addblock seq += adc
+Sequence[ τ = 6.0 ms | blocks: 1 | ADC: 1 | GR: 0 | RF: 0 | EXT: 0 | DEF: 11 ]
 
 julia> plot_seq(seq; slider=false)
 ```
@@ -221,32 +228,22 @@ julia> plot_seq(seq; slider=false)
 ```
 ## Extensions and Labels
 
-The `EXTENSION` field in the `Sequence` struct is used to store additional metadata or labels for each block in the sequence. This can be particularly useful for adding metadata headers required for formats like ISMRMRD. Labels can be used to manage sequence metadata, such as line numbers or echo numbers, which are essential for certain reconstruction algorithms.
+The `EXT` field stores Pulseq extensions for each sequence block. Labels are the
+most common extension: they mark metadata such as line number, echo number, or
+slice number for reconstruction.
 
 
 
 ### LabelInc and LabelSet extension
 
-The `LabelInc` and `LabelSet` functions are used to create labels that can be added to the `EXTENSION` field of a `Sequence`. These labels help in managing ADC metada.
+`LabelInc` and `LabelSet` create label extensions that can be added to a block
+with `@addblock`.
 
-Only Pulseq labels are availables. [MRD also stores other FLAGS currently not available in KomaMRI](https://ismrmrd.readthedocs.io/en/stable/mrd_raw_data.html#mrd-acquisitionflags):
-
-```julia
-mutable struct AdcLabels
-  LIN::Int
-  PAR::Int
-  SLC::Int
-  SEG::Int
-  REP::Int
-  AVG::Int
-  SET::Int
-  ECO::Int
-  PHS::Int
-  NAV::Int
-  REV::Int
-  SMS::Int
-end
-```
+KomaMRI supports the Pulseq label names used by MATLAB Pulseq: counters `LIN`,
+`PAR`, `SLC`, `SEG`, `REP`, `AVG`, `SET`, `ECO`, `PHS`, `ACQ`, and `TRID`; flags
+`NAV`, `REV`, `SMS`, `REF`, `IMA`, `OFF`, and `NOISE`; and controls `PMC`,
+`NOROT`, `NOPOS`, `NOSCL`, and `ONCE`. [MRD also stores other FLAGS currently
+not available in KomaMRI](https://ismrmrd.readthedocs.io/en/stable/mrd_raw_data.html#mrd-acquisitionflags).
 
 #### LabelInc
 
@@ -279,65 +276,66 @@ is not a part of the core Pulseq format and MAY be subject to rapid changes`. Th
     Trigger extension is implemented but currently not taken into account during the simulation 
 
 ```julia
-mutable struct Trigger <: Extension 
-  type::Int # Type of trigger (system dependent). 0: undefined / unused
-  channel::Int # channel of trigger (system dependent). 0: undefined / unused
-  d1::Float64 # Delay prior to the trigger event (us)
-  d2::Float64 # Duration of trigger event (us)
-end
+Trigger(type, channel, delay, duration)
 ```
+
+`type` and `channel` are system dependent. `delay` is the delay before the
+trigger event in seconds, and `duration` is the trigger duration in seconds.
+
+### Rotation extension
+
+`QuaternionRot(q0, qx, qy, qz)` stores a Pulseq `ROTATIONS` extension. `read_seq`
+applies these rotations to the gradients by default and keeps the extension
+events in `seq.EXT`, so writing the sequence can preserve the Pulseq rotation
+extension. Use `read_seq(filename; apply_rotations=false)` to keep the gradients
+as stored in the file.
+On write, KomaMRI inverse-rotates the gradients before serializing the extension,
+so reading the exported file with default settings recovers the same gradient
+waveforms.
 
 ### Example Usage
 
-Below is an example of how to use `LabelInc` and `LabelSet` to add labels to a sequence:
+Below is an example of adding labels and a trigger to sequence blocks:
 
 ```julia
-# Define a sequence
 seq = Sequence()
 
-# Create labels
 lInc = LabelInc(1, "LIN")
 lSet = LabelSet(1, "ECO")
-trig = Trigger(0,1,100,500)
+trig = Trigger(0, 1, 100e-6, 500e-6) # delay and duration in seconds
 
-# Add labels to the sequence
-seq.EXT = [[lInc,trig], [lSet]]
-
-# Display the sequence
-println(seq)
+@addblock seq += (ADC(16, 5e-3), lInc, trig)
+@addblock seq += (ADC(16, 5e-3), lSet)
 ```
 
-In this example, `LabelInc(1, "LIN")` increments the line number by 1, and `LabelSet(1, "ECO")` sets the echo number to 1. These labels are added to the `EXTENSION` field of the sequence.
+`LabelInc(1, "LIN")` increments the line number by 1, and `LabelSet(1, "ECO")`
+sets the echo number to 1. The trigger delay and duration are specified in
+seconds in KomaMRI.
 
 ### Combining Labels
 
-You can combine multiple labels for a single block by adding them to the `EXTENSION` field as a vector of labels. Here is an example:
+You can combine multiple extensions in a single block by passing them together:
 
 ```julia
-# Define a sequence
 seq = Sequence()
 
-# Create labels
 lInc = LabelInc(1, "LIN")
 lSet = LabelSet(1, "ECO")
 
-# Add combined labels to the sequence
-seq.EXT = [[lInc, lSet]]
-
-# Display the sequence
-println(seq)
+@addblock seq += (ADC(16, 5e-3), lInc, lSet)
 ```
 
-In this example, both `LabelInc` and `LabelSet` are added to the `EXTENSION` field of the sequence, allowing for more complex metadata management.
-
-By using `LabelInc` and `LabelSet`, you can effectively manage sequence metadata and ensure that your sequence is compatible with various reconstruction algorithms and formats.
+Both labels are stored in the `EXT` entry for that block.
 
 !!! warning
-    So far, **KomaMRI** EXTENSION only manage ADC labels and Triggers. In future version, other specific Pulseq extension will be added like **Soft Delay**, **no rotation** etc.
+    KomaMRI currently supports Pulseq labels, triggers, and rotations. Other Pulseq
+    extensions can be added later as needed.
 
 ## Combination of Events
 
-We can include multiple events within a single block of a sequence. The example below demonstrates how to combine an **RF** struct, three **Grad** structs for the x-y-z components, and an **ADC** struct in a single block of a sequence:
+Multiple events can be placed in the same sequence block. RF, ADC, and
+extensions are positional; gradients use `x=`, `y=`, or `z=`.
+
 ```julia
 # Define an RF struct
 A, T =  1e-6*[0; -0.1; 0.2; -0.5; 1; -0.5; 0.2; -0.1; 0], 0.5e-3;
@@ -362,8 +360,8 @@ N, T, delay =  16, 5e-3, 1e-3
 adc = ADC(N, T, delay)
 ```
 ```julia-repl
-julia> seq = Sequence([gx; gy; gz;;], [rf;;], [adc])
-Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 1 | GR: 3 | RF: 1 | DEF: 0 ]
+julia> seq = Sequence(); @addblock seq += (rf, adc, x=gx, y=gy, z=gz)
+Sequence[ τ = 9.0 ms | blocks: 1 | ADC: 1 | GR: 3 | RF: 1 | EXT: 0 | DEF: 11 ]
 
 julia> plot_seq(seq; slider=false)
 ```
@@ -371,12 +369,15 @@ julia> plot_seq(seq; slider=false)
 <object type="text/html" data="../assets/event-combination.html" style="width:100%; height:420px;"></object>
 ```
 
-Once the struct events are defined, it's important to note that to create a single block sequence, you need to provide 2D matrices of **Grad** and **RF** structs, as well as a vector of **ADC** structs as arguments in the [`Sequence`](@ref KomaMRIBase.Sequence) constructor.
+The lower-level [`Sequence`](@ref KomaMRIBase.Sequence) constructor also accepts
+event matrices, but `@addblock` is usually clearer when writing pulse programs.
 
 
 ## Algebraic manipulation
 
-Certain mathematical operations can be directly applied to events and sequence structs. This proves helpful when constructing sequences using reference structs and manipulating them algebraically to create new structs. Below, we provide a list of operations you can perform, along with examples where we check the equivalence of two different struct definitions:
+Mathematical operations can be applied to events and sequences. This is useful
+when constructing reusable events or chunks and then scaling, phase-shifting, or
+rotating them.
 
 * RF scaling
 ```julia
@@ -457,10 +458,16 @@ gx, gy, gz = Grad(Ax, T), Grad(Ay, T), Grad(Az, T)  # Define gradients
 R = [0 1. 0; 0 0 1.; 1. 0 0]        # Define matrix (a rotation matrix in this example)
 
 # Create two equivalent sequences in different ways
-sa = Sequence(R * [gx; gy; gz;;])
-sb = R * Sequence([gx; gy; gz;;])
+sa = Sequence()
+s = Sequence()
+@addblock sa += (x=gy, y=gz, z=gx)
+@addblock s += (x=gx, y=gy, z=gz)
+sb = R * s
 ```
 ```julia-repl
 julia> all(sa.GR .≈ sb.GR)
 true
 ```
+
+Real scaling and matrix multiplication affect gradients. Complex scaling affects
+RF and ADC phase, leaving gradients unchanged.

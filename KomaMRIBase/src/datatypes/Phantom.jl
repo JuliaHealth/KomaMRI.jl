@@ -62,7 +62,7 @@ Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i + 1) : nothin
 Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
 Base.view(x::Phantom, i::Integer) = @view(x[i:i])
-
+Base.copy(obj::Phantom) = Phantom(_deepcopy_fields(obj)...)
 """Compare two phantoms"""
 function Base.:(==)(obj1::Phantom, obj2::Phantom)
     if length(obj1) != length(obj2) return false end
@@ -107,7 +107,7 @@ end
 
 """Scalar multiplication of a phantom"""
 *(α::Real, obj::Phantom) = begin
-    obj1 = copy(obj)
+    obj1 = deepcopy(obj)
     obj1.ρ .*= α
     return obj1
 end
@@ -136,6 +136,7 @@ or contraction (if negative). `rotation_angle` is for rotation.
 - `rotation_angle`: (`::Real`, `=15.0`, `[º]`) maximum rotation angle
 - `heart_rate`: (`::Real`, `=60`, `[bpm]`) heartbeat frequency
 - `temporal_asymmetry`: (`::Real`, `=0.2`) time fraction of the period in which the systole occurs. Therefore, diastole lasts for `period * (1 - temporal_asymmetry)`
+- `spins_per_voxel`: (`::Real`, `=50`) number of spins per approximate reconstruction voxel
 
 # Returns
 - `obj`: (`::Phantom`) Heart-like LV phantom struct
@@ -146,13 +147,13 @@ function heart_phantom(;
     rotation_angle=15.0,
     heart_rate=60,
     temporal_asymmetry=0.2,
+    spins_per_voxel=50,
 )
     #PARAMETERS
     FOV = 10e-2 # [m] Diameter ventricule
     N = 10
     Δxr = FOV / (N - 1) #Aprox rec resolution, use Δx_pix and Δy_pix
-    Ns = 50 #number of spins per voxel
-    Δx = Δxr / sqrt(Ns) #spin separation
+    Δx = Δxr / sqrt(spins_per_voxel) #spin separation
     #POSITIONS
     x = y = (-FOV / 2):Δx:(FOV / 2 - Δx) #spin coordinates
     x, y = x .+ y' * 0, x * 0 .+ y' #grid points

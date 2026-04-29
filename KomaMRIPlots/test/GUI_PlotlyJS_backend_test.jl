@@ -146,7 +146,7 @@
                 "Gmax" => sys.Gmax,
                 "Smax" => sys.Smax,
                 "ADC_dt" => sys.ADC_Δt,
-                "seq_dt" => sys.seq_Δt,
+                "DUR_dt" => sys.DUR_Δt,
                 "GR_dt" => sys.GR_Δt,
                 "RF_dt" => sys.RF_Δt,
                 "RF_ring_down_T" => sys.RF_ring_down_T,
