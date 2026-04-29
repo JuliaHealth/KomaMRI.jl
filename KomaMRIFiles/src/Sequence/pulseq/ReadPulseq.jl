@@ -402,7 +402,7 @@ function init_legacy_block_durations!(blockDurations, blockEvents, delayIDs_tmp,
             dur(Gy),
             dur(Gz),
             dur(rf) + add_half_Δt_rf * eventLibraries.definitions.radiofrequency_raster_time / 2,
-            KomaMRIBase._pulseq_adc_duration(adc),
+            KomaMRIBase._pulseq_duration(adc),
             maximum(dur, ext; init=0.0),
         )
     end

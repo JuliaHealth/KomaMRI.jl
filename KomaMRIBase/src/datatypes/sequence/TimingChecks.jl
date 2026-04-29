@@ -52,11 +52,11 @@ function _check_cumulative_timing(T, n, start, raster, block_id, label)
     return nothing
 end
 
-function _pulseq_grad_uniform_interval(gr::UniformlySampledGrad)
+function _pulseq_uniform_interval(gr::UniformlySampledGrad)
     n = length(gr.A)
     return n > 1 ? gr.T / (n - 1) : nothing
 end
-function _pulseq_grad_uniform_interval(gr::TimeShapedGrad)
+function _pulseq_uniform_interval(gr::TimeShapedGrad)
     n = length(gr.A)
     lenT = length(gr.T)
     (lenT == n - 1 || lenT == n) || throw(DimensionMismatch("Expected time vector of length $(n - 1) or $n for $n samples, got $lenT."))
@@ -68,9 +68,9 @@ function _pulseq_grad_uniform_interval(gr::TimeShapedGrad)
     return interval
 end
 
-_pulseq_grad_compact_interval(::TrapezoidalGrad, raster) = nothing
-function _pulseq_grad_compact_interval(gr::Union{UniformlySampledGrad,TimeShapedGrad}, raster)
-    interval = _pulseq_grad_uniform_interval(gr)
+_pulseq_compact_interval(::TrapezoidalGrad, raster) = nothing
+function _pulseq_compact_interval(gr::Union{UniformlySampledGrad,TimeShapedGrad}, raster)
+    interval = _pulseq_uniform_interval(gr)
     isnothing(interval) && return nothing
     isapprox(gr.rise, raster / 2; rtol=0, atol=PULSEQ_TIME_TOL) || return nothing
     isapprox(gr.fall, raster / 2; rtol=0, atol=PULSEQ_TIME_TOL) || return nothing
@@ -90,7 +90,7 @@ end
 function _check_grad_timing(gr::UniformlySampledGrad, raster, block_id, name)
     n = length(gr.A)
     step = n > 1 ? gr.T / (n - 1) : zero(gr.T)
-    compact_interval = _pulseq_grad_compact_interval(gr, raster)
+    compact_interval = _pulseq_compact_interval(gr, raster)
     edge_raster = isnothing(compact_interval) ? raster : raster / 2
     _check_raster_multiple(gr.delay, raster, block_id, "$name-gradient delay")
     _check_raster_multiple(gr.rise, edge_raster, block_id, "$name-gradient rise time")
@@ -101,7 +101,7 @@ end
 
 function _check_grad_timing(gr::TimeShapedGrad, raster, block_id, name)
     n = length(gr.A)
-    compact_interval = _pulseq_grad_compact_interval(gr, raster)
+    compact_interval = _pulseq_compact_interval(gr, raster)
     edge_raster = isnothing(compact_interval) ? raster : raster / 2
     _check_raster_multiple(gr.delay, raster, block_id, "$name-gradient delay")
     _check_raster_multiple(gr.rise, edge_raster, block_id, "$name-gradient rise time")
@@ -110,8 +110,8 @@ function _check_grad_timing(gr::TimeShapedGrad, raster, block_id, name)
     return nothing
 end
 
-_pulseq_rf_compact_interval(::Union{BlockPulseRF,TimeShapedRF}, rf_raster) = nothing
-function _pulseq_rf_compact_interval(rf::UniformlySampledRF, rf_raster)
+_pulseq_compact_interval(::Union{BlockPulseRF,TimeShapedRF}, rf_raster) = nothing
+function _pulseq_compact_interval(rf::UniformlySampledRF, rf_raster)
     n = length(rf.A)
     iszero(n) && return nothing
     step = n > 1 ? rf.T / (n - 1) : rf_raster
@@ -120,9 +120,9 @@ function _pulseq_rf_compact_interval(rf::UniformlySampledRF, rf_raster)
     return nothing
 end
 
-_pulseq_rf_first_sample_offset(::Union{BlockPulseRF,TimeShapedRF}, rf_raster) = 0.0
-function _pulseq_rf_first_sample_offset(rf::UniformlySampledRF, rf_raster)
-    return isnothing(_pulseq_rf_compact_interval(rf, rf_raster)) ? 0.0 : rf_raster / 2
+_pulseq_first_sample_offset(::Union{BlockPulseRF,TimeShapedRF}, rf_raster) = 0.0
+function _pulseq_first_sample_offset(rf::UniformlySampledRF, rf_raster)
+    return isnothing(_pulseq_compact_interval(rf, rf_raster)) ? 0.0 : rf_raster / 2
 end
 
 function _check_rf_timing(rf::BlockPulseRF, raster, block_id)
@@ -134,7 +134,7 @@ end
 function _check_rf_timing(rf::UniformlySampledRF, raster, block_id)
     n = length(rf.A)
     step = n > 1 ? rf.T / (n - 1) : zero(rf.T)
-    offset = _pulseq_rf_first_sample_offset(rf, raster)
+    offset = _pulseq_first_sample_offset(rf, raster)
     delay = rf.delay - offset
     _check_raster_multiple(delay, raster, block_id, "RF delay")
     iszero(offset) && _check_uniform_timing(0.0, step, n, raster, block_id, "RF timing")
@@ -147,18 +147,18 @@ function _check_rf_timing(rf::TimeShapedRF, raster, block_id)
     return nothing
 end
 
-_pulseq_rf_delay(rf, rf_raster) = rf.delay - _pulseq_rf_first_sample_offset(rf, rf_raster)
+_pulseq_delay(rf, rf_raster) = rf.delay - _pulseq_first_sample_offset(rf, rf_raster)
 
 # Compact Pulseq RF has an implicit half-raster first-sample offset.
-_pulseq_rf_duration(rf, rf_raster) = dur(rf) + _pulseq_rf_first_sample_offset(rf, rf_raster)
+_pulseq_duration(rf, rf_raster) = dur(rf) + _pulseq_first_sample_offset(rf, rf_raster)
 
 function _check_rf_deadtime(rf, timing, block_id, block_duration)
     rf_dead_time = _timing_value(timing, :RfDeadTime, 0.0)
     rf_ringdown_time = _timing_value(timing, :RfRingdownTime, 0.0)
-    rf_end = _pulseq_rf_duration(rf, timing.RadiofrequencyRasterTime)
+    rf_end = _pulseq_duration(rf, timing.RadiofrequencyRasterTime)
     _check_block_fit(rf_end, block_duration, block_id, "RF event")
     if rf_dead_time > 0
-        rf_delay = _pulseq_rf_delay(rf, timing.RadiofrequencyRasterTime)
+        rf_delay = _pulseq_delay(rf, timing.RadiofrequencyRasterTime)
         rf_delay + PULSEQ_TIME_TOL >= rf_dead_time || error("Block $block_id RF delay ($(rf_delay) s) is smaller than RF dead time $(rf_dead_time) s.")
     end
     if rf_ringdown_time > 0
@@ -176,12 +176,12 @@ function _check_adc_dwell(dwell, raster, block_id)
 end
 
 function _check_adc_timing(adc, timing, block_id, block_duration)
-    dwell = _pulseq_adc_dwell(adc)
+    dwell = _pulseq_dwell(adc)
     _check_adc_dwell(dwell, timing.AdcRasterTime, block_id)
     adc.delay + PULSEQ_TIME_TOL >= dwell / 2 || error("Block $block_id ADC delay ($(adc.delay) s) is smaller than dwell/2 ($(dwell / 2) s).")
     pulseq_delay = adc.delay - dwell / 2
     _check_raster_multiple(pulseq_delay, timing.RadiofrequencyRasterTime, block_id, "ADC delay")
-    adc_duration = _pulseq_adc_duration(adc)
+    adc_duration = _pulseq_duration(adc)
     _check_block_fit(adc_duration, block_duration, block_id, "ADC event")
     adc_dead_time = _timing_value(timing, :AdcDeadTime, 0.0)
     if adc_dead_time > 0

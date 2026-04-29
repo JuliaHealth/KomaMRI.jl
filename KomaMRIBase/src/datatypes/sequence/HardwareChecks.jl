@@ -59,7 +59,7 @@ function check_hw_limits(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, adc::Abst
         if check_adc
             adc_i = adc[i]
             is_ADC_on(adc_i) || continue
-            dwell = _pulseq_adc_dwell(adc_i)
+            dwell = _pulseq_dwell(adc_i)
             if dwell < sys.ADC_Δt
                 error("ADC dwell time $(dwell * 1e6) μs for block $i is less than the minimum ADC dwell time of the scanner ($(sys.ADC_Δt * 1e6) μs).")
             end

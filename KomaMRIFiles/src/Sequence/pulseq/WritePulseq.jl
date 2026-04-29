@@ -140,7 +140,7 @@ function register_rf!(rf_library, shape_library, cache, rf, raster)
     event_id != PULSEQ_NO_EVENT_ID && return event_id
     rf_raster_time = raster.RadiofrequencyRasterTime
     mag_id, phase_id, time_id = register_rf_shapes!(shape_library, cache, rf, rf_raster_time)
-    first_sample_offset = pulseq_rf_first_sample_offset(time_id, rf_raster_time)
+    first_sample_offset = pulseq_first_sample_offset(time_id, rf_raster_time)
     delay = rf.delay - first_sample_offset
     amp = pulseq_rf_amplitude(rf)
     freq = pulseq_rf_frequency(rf)
@@ -190,26 +190,26 @@ end
 # `matlab/+mr/@Sequence/Sequence.m` (v1.5.1, lines 562-567). In Koma we store RF
 # delay to the first sample, so the same compact encoding is recognized from the
 # first-sample-relative times together with the half-raster delay shift below.
-function pulseq_rf_compact_time_shape_id(rf, rf_raster_time)
-    interval = KomaMRIBase._pulseq_rf_compact_interval(rf, rf_raster_time)
+function pulseq_compact_time_shape_id(rf::RF, rf_raster_time)
+    interval = KomaMRIBase._pulseq_compact_interval(rf, rf_raster_time)
     isnothing(interval) && return nothing
     rf.delay + PULSEQ_TIME_TOL < rf_raster_time / 2 && return nothing
     return interval == rf_raster_time ? PULSEQ_DEFAULT_TIME_SHAPE_ID : PULSEQ_OVERSAMPLED_TIME_SHAPE_ID
 end
 
-function pulseq_rf_first_sample_offset(time_shape_id, rf_raster_time)
+function pulseq_first_sample_offset(time_shape_id, rf_raster_time)
     return time_shape_id <= PULSEQ_DEFAULT_TIME_SHAPE_ID ? rf_raster_time / 2 : 0.0
 end
 
-function pulseq_rf_timing_policy(rf, Δt_rf)
-    time_shape_id = pulseq_rf_compact_time_shape_id(rf, Δt_rf)
+function pulseq_timing_policy(rf::RF, Δt_rf)
+    time_shape_id = pulseq_compact_time_shape_id(rf, Δt_rf)
     time_step = time_shape_id == PULSEQ_OVERSAMPLED_TIME_SHAPE_ID ? Δt_rf / 2 : Δt_rf
-    first_sample_offset = isnothing(time_shape_id) ? 0.0 : pulseq_rf_first_sample_offset(time_shape_id, Δt_rf)
+    first_sample_offset = isnothing(time_shape_id) ? 0.0 : pulseq_first_sample_offset(time_shape_id, Δt_rf)
     return (; time_shape_id, time_step, first_sample_offset)
 end
 
-function pulseq_rf_time_shape_id!(shape_library, cache, rf, rf_raster_time)
-    policy = pulseq_rf_timing_policy(rf, rf_raster_time)
+function pulseq_time_shape_id!(shape_library, cache, rf::RF, rf_raster_time)
+    policy = pulseq_timing_policy(rf, rf_raster_time)
     if !isnothing(policy.time_shape_id)
         pulseq_delay = rf.delay - policy.first_sample_offset
         rounded_delay = round(pulseq_delay / rf_raster_time) * rf_raster_time
@@ -221,7 +221,7 @@ end
 function register_rf_shapes!(shapes, cache, rf, rf_raster_time)
     mag_id      = register_rf_magnitude_shape!(shapes, cache, rf.A)
     phase_id    = _store_shape!(shapes, cache, pulseq_rf_phase_shape(rf.A); phase_shape=true)
-    time_id     = pulseq_rf_time_shape_id!(shapes, cache, rf, rf_raster_time)
+    time_id     = pulseq_time_shape_id!(shapes, cache, rf, rf_raster_time)
     return mag_id, phase_id, time_id
 end
 
@@ -251,7 +251,7 @@ function register_grad_event!(grad_library, shape_library, cache, grad::Uniforml
     amp = pulseq_gradient_amplitude(grad.A)
     shape = iszero(amp) ? zero.(grad.A) : grad.A ./ amp
     shape_id = _store_shape!(shape_library, cache, shape)
-    time_id = pulseq_gradient_time_shape_id!(shape_library, cache, pulseq_grad_sample_times(grad), Δt_gr)
+    time_id = pulseq_time_shape_id!(shape_library, cache, pulseq_sample_times(grad), Δt_gr)
     return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(amp, grad.first, grad.last, shape_id, time_id, grad.delay))
 end
 
@@ -261,14 +261,14 @@ function register_grad_event!(grad_library, shape_library, cache, grad::TimeShap
     amp = pulseq_gradient_amplitude(grad.A)
     shape = iszero(amp) ? zero.(grad.A) : grad.A ./ amp
     shape_id = _store_shape!(shape_library, cache, shape)
-    time_id = pulseq_gradient_time_shape_id!(shape_library, cache, pulseq_grad_sample_times(grad), raster.GradientRasterTime)
+    time_id = pulseq_time_shape_id!(shape_library, cache, pulseq_sample_times(grad), raster.GradientRasterTime)
     return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(amp, grad.first, grad.last, shape_id, time_id, grad.delay))
 end
 
 edge_timed_grad(grad::TrapezoidalGrad) =
     Grad([grad.first, grad.A, grad.A, grad.last], [grad.rise, grad.T, grad.fall], 0.0, 0.0, grad.delay, grad.first, grad.last)
 
-pulseq_grad_sample_times(grad::Union{UniformlySampledGrad,TimeShapedGrad}) =
+pulseq_sample_times(grad::Union{UniformlySampledGrad,TimeShapedGrad}) =
     grad.rise .+ _shape_times(grad.A, grad.T)
 
 function pulseq_trap_event(grad::UniformlySampledGrad)
@@ -299,7 +299,7 @@ function register_adc!(adc_library, cache, adc)
     is_on(adc) || return PULSEQ_NO_EVENT_ID
     event_id = get(cache.adc_object_ids, adc, PULSEQ_NO_EVENT_ID)
     event_id != PULSEQ_NO_EVENT_ID && return event_id
-    dwell_s = KomaMRIBase._pulseq_adc_dwell(adc)
+    dwell_s = KomaMRIBase._pulseq_dwell(adc)
     delay_s = adc.delay - dwell_s / 2
     event = PulseqADCEvent(adc.N, dwell_s, delay_s, 0.0, 0.0, adc.Δf, adc.ϕ, 0)
     event_id = _store_event_cached!(adc_library, cache.adc_event_ids, event)
@@ -491,7 +491,7 @@ function pulseq_gradient_amplitude(A)
     return amp * sign(A[something(idx, findfirst(!iszero, A))])
 end
 
-function pulseq_gradient_time_shape_id!(shape_library, cache, tt, Δt)
+function pulseq_time_shape_id!(shape_library, cache, tt, Δt)
     n = length(tt)
     n == 0 && return PULSEQ_DEFAULT_TIME_SHAPE_ID
     default_tt = ((1:n) .- 0.5) .* Δt
@@ -628,10 +628,10 @@ function pulseq_rf_center_for_write(rf_data, event_libraries)
     !isnothing(rf_data.center) && return rf_data.center
     Δt_rf = event_libraries.definitions.radiofrequency_raster_time
     rf = get_RF(rf_data, event_libraries.shape_library, Δt_rf)
-    return rf.center + pulseq_rf_first_sample_offset(rf_data, event_libraries.shape_library, Δt_rf)
+    return rf.center + pulseq_first_sample_offset(rf_data, event_libraries.shape_library, Δt_rf)
 end
 
-function pulseq_rf_first_sample_offset(rf_data, shape_library, Δt_rf)
+function pulseq_first_sample_offset(rf_data, shape_library, Δt_rf)
     time_shape_id = rf_data.time_shape_id
     time_shape_id <= PULSEQ_DEFAULT_TIME_SHAPE_ID && return Δt_rf / 2
     return first(decompress_shape(shape_library[time_shape_id]...)) * Δt_rf
@@ -885,7 +885,7 @@ function quantize_block(
         dur(qgr[1]),
         dur(qgr[2]),
         dur(qgr[3]),
-        KomaMRIBase._pulseq_rf_duration(qrf, raster.RadiofrequencyRasterTime),
+        KomaMRIBase._pulseq_duration(qrf, raster.RadiofrequencyRasterTime),
         adc_end,
         maximum(dur, ext_vec; init=0.0),
     )
@@ -903,9 +903,9 @@ function quantize_rf!(rf, raster, block_id, warn_count)
         quantize_time_value(value, step, warn_ctx, field; step_name)
     qT(value, field; step=Δt_rf, step_name=key) =
         quantize_sample_times(value, sample_count(rf), step, warn_ctx, field; step_name)
-    policy = pulseq_rf_timing_policy(rf, Δt_rf)
+    policy = pulseq_timing_policy(rf, Δt_rf)
     rf.T = qT(rf.T, :T; step=policy.time_step)
-    policy = pulseq_rf_timing_policy(rf, Δt_rf)
+    policy = pulseq_timing_policy(rf, Δt_rf)
     if isnothing(policy.time_shape_id)
         rf.delay = qt(rf.delay, :delay)
     else
@@ -916,18 +916,18 @@ function quantize_rf!(rf, raster, block_id, warn_count)
     return rf
 end
 
-function pulseq_grad_compact_time_shape_id(gr, Δt_gr)
-    interval = KomaMRIBase._pulseq_grad_compact_interval(gr, Δt_gr)
+function pulseq_compact_time_shape_id(gr::Grad, Δt_gr)
+    interval = KomaMRIBase._pulseq_compact_interval(gr, Δt_gr)
     isnothing(interval) && return nothing
     return interval == Δt_gr ? PULSEQ_DEFAULT_TIME_SHAPE_ID : PULSEQ_OVERSAMPLED_TIME_SHAPE_ID
 end
 
-function pulseq_grad_timing_policy(::Grad, Δt_gr)
+function pulseq_timing_policy(::Grad, Δt_gr)
     return (; time_shape_id=nothing, time_step=Δt_gr, rise_fall_step=Δt_gr)
 end
 
-function pulseq_grad_timing_policy(gr::Union{UniformlySampledGrad,TimeShapedGrad}, Δt_gr)
-    time_shape_id = pulseq_grad_compact_time_shape_id(gr, Δt_gr)
+function pulseq_timing_policy(gr::Union{UniformlySampledGrad,TimeShapedGrad}, Δt_gr)
+    time_shape_id = pulseq_compact_time_shape_id(gr, Δt_gr)
     time_step = time_shape_id == PULSEQ_OVERSAMPLED_TIME_SHAPE_ID ? Δt_gr / 2 : Δt_gr
     rise_fall_step = isnothing(time_shape_id) ? Δt_gr : Δt_gr / 2
     return (; time_shape_id, time_step, rise_fall_step)
@@ -942,7 +942,7 @@ function quantize_grad!(gr, raster, block_id, axis_name, warn_count)
         quantize_time_value(value, step, warn_ctx, field; step_name)
     qT(value, field; step=Δt_gr, step_name=key) =
         quantize_sample_times(value, sample_count(gr), step, warn_ctx, field; step_name)
-    policy = pulseq_grad_timing_policy(gr, Δt_gr)
+    policy = pulseq_timing_policy(gr, Δt_gr)
     gr.delay = qt(gr.delay, :delay)
     gr.T     = qT(gr.T, :T; step=policy.time_step)
     gr.rise  = qt(gr.rise, :rise; step=policy.rise_fall_step)
@@ -954,7 +954,7 @@ function quantize_adc!(adc, raster, block_id, warn_count)
     warn_ctx = (; block_id, event=:ADC, warn_count)
     qt(value, field; step, step_name) =
         quantize_time_value(value, step, warn_ctx, field; step_name)
-    dwell = KomaMRIBase._pulseq_adc_dwell(adc)
+    dwell = KomaMRIBase._pulseq_dwell(adc)
     dwell = qt(dwell, :dwell_time; step=raster.AdcRasterTime, step_name=:AdcRasterTime)
     adc.T = adc.N == 1 ? dwell : (adc.N - 1) * dwell
     pulseq_delay = adc.delay - dwell / 2
@@ -967,7 +967,7 @@ See https://pulseq.github.io/pulseq_shapes_and_times.pdf#page=10"
     end
     pulseq_delay = qt(pulseq_delay, :pulseq_delay; step=raster.RadiofrequencyRasterTime, step_name=:RadiofrequencyRasterTime)
     adc.delay = pulseq_delay + dwell / 2
-    return KomaMRIBase._pulseq_adc_duration(adc)
+    return KomaMRIBase._pulseq_duration(adc)
 end
 
 function quantize_time_value(t::Number, step, warn_ctx, field; step_name=nothing)
