@@ -13,9 +13,9 @@ _sequence_timing_from_sys(sys::Scanner) = (;
     GradientRasterTime=sys.GR_Δt,
     RadiofrequencyRasterTime=sys.RF_Δt,
     AdcRasterTime=sys.ADC_Δt,
-    RfRingdownTime=sys.RF_ring_down_T,
-    RfDeadTime=sys.RF_dead_time_T,
-    AdcDeadTime=sys.ADC_dead_time_T,
+    RfRingdownTime=sys.RF_ring_down_time,
+    RfDeadTime=sys.RF_dead_time,
+    AdcDeadTime=sys.ADC_dead_time,
 )
 
 _timing_value(timing, key, default) = hasproperty(timing, key) ? getproperty(timing, key) : default

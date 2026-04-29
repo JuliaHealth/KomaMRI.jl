@@ -28,12 +28,37 @@ struct PulseqArbGradEventKey
     delay::Float64
 end
 
+struct PulseqRFEventKey
+    amplitude::Float64
+    mag_id::Int
+    phase_id::Int
+    time_shape_id::Int
+    center::Union{Nothing,Float64}
+    delay::Float64
+    freq_ppm::Float64
+    phase_ppm::Float64
+    freq::Float64
+    phase::Float64
+    use::Char
+end
+
+struct PulseqADCEventKey
+    num::Int
+    dwell::Float64
+    delay::Float64
+    freq_ppm::Float64
+    phase_ppm::Float64
+    freq::Float64
+    phase::Float64
+    phase_id::Int
+end
+
 # Dedup tables for emitted event ids and reusable shape payloads.
 struct PulseqWriteCache{G<:Grad,R<:RF}
-    rf_event_ids::Dict{PulseqRFEvent,Int}
+    rf_event_ids::Dict{PulseqRFEventKey,Int}
     trap_grad_event_ids::Dict{PulseqTrapGradEventKey,Int}
     arb_grad_event_ids::Dict{PulseqArbGradEventKey,Int}
-    adc_event_ids::Dict{PulseqADCEvent,Int}
+    adc_event_ids::Dict{PulseqADCEventKey,Int}
     shape_ids::Dict{Tuple{Int,UInt},Vector{PulseqShapeCacheEntry}}
     phase_shape_ids::Dict{Tuple{Int,UInt},Vector{PulseqShapeCacheEntry}}
     rf_magnitude_shape_ids::Dict{Int,Vector{PulseqShapeCacheEntry}}
@@ -43,10 +68,10 @@ struct PulseqWriteCache{G<:Grad,R<:RF}
 end
 
 PulseqWriteCache(::Type{G}, ::Type{R}) where {G<:Grad,R<:RF} = PulseqWriteCache(
-    Dict{PulseqRFEvent,Int}(),
+    Dict{PulseqRFEventKey,Int}(),
     Dict{PulseqTrapGradEventKey,Int}(),
     Dict{PulseqArbGradEventKey,Int}(),
-    Dict{PulseqADCEvent,Int}(),
+    Dict{PulseqADCEventKey,Int}(),
     Dict{Tuple{Int,UInt},Vector{PulseqShapeCacheEntry}}(),
     Dict{Tuple{Int,UInt},Vector{PulseqShapeCacheEntry}}(),
     Dict{Int,Vector{PulseqShapeCacheEntry}}(),
@@ -148,7 +173,7 @@ function register_rf!(rf_library, shape_library, cache, rf, raster)
     use_char = get_char_from_RF_use(rf.use)
     center = isnothing(rf.center) ? nothing : rf.center + first_sample_offset
     rf_event = PulseqRFEvent(amp, mag_id, phase_id, time_id, center, delay, 0.0, 0.0, freq, phase, use_char)
-    event_id = _store_event_cached!(rf_library, cache.rf_event_ids, rf_event)
+    event_id = _store_event_cached!(rf_library, cache.rf_event_ids, _pulseq_event_key(rf_event), rf_event)
     cache.rf_object_ids[rf] = event_id
     return event_id
 end
@@ -302,7 +327,7 @@ function register_adc!(adc_library, cache, adc)
     dwell_s = KomaMRIBase._pulseq_dwell(adc)
     delay_s = adc.delay - dwell_s / 2
     event = PulseqADCEvent(adc.N, dwell_s, delay_s, 0.0, 0.0, adc.Δf, adc.ϕ, 0)
-    event_id = _store_event_cached!(adc_library, cache.adc_event_ids, event)
+    event_id = _store_event_cached!(adc_library, cache.adc_event_ids, _pulseq_event_key(event), event)
     cache.adc_object_ids[adc] = event_id
     return event_id
 end
@@ -343,7 +368,38 @@ function _store_event!(event_dict::AbstractDict, event)
 end
 
 _pulseq_event_float(x) = round(x; sigdigits=PULSEQ_EVENT_SIGNIFICANT_DIGITS)
+_pulseq_event_float(::Nothing) = nothing
 _pulseq_event_edge(x, amp) = abs(x) <= abs(amp) * PULSEQ_SHAPE_ZERO_TOL ? 0.0 : _pulseq_event_float(x)
+function _pulseq_event_phase(x)
+    phase = mod(x, 2π)
+    (phase <= PULSEQ_TIME_TOL || 2π - phase <= PULSEQ_TIME_TOL) && return 0.0
+    return _pulseq_event_float(phase)
+end
+
+_pulseq_event_key(event::PulseqRFEvent) = PulseqRFEventKey(
+    _pulseq_event_float(event.amplitude),
+    event.mag_id,
+    event.phase_id,
+    event.time_shape_id,
+    _pulseq_event_float(event.center),
+    _pulseq_event_float(event.delay),
+    _pulseq_event_float(event.freq_ppm),
+    _pulseq_event_float(event.phase_ppm),
+    _pulseq_event_float(event.freq),
+    _pulseq_event_phase(event.phase),
+    event.use,
+)
+
+_pulseq_event_key(event::PulseqADCEvent) = PulseqADCEventKey(
+    event.num,
+    _pulseq_event_float(event.dwell),
+    _pulseq_event_float(event.delay),
+    _pulseq_event_float(event.freq_ppm),
+    _pulseq_event_float(event.phase_ppm),
+    _pulseq_event_float(event.freq),
+    _pulseq_event_phase(event.phase),
+    event.phase_id,
+)
 
 _pulseq_grad_event_key(event::PulseqTrapGradEvent) = PulseqTrapGradEventKey(
     _pulseq_event_float(event.amplitude),
@@ -798,11 +854,11 @@ function emit_extension_spec!(io, spec_id, spec::Extension)
     write(io, "\n")
 end
 
-function prepare_pulseq_write(seq, raster=DEFAULT_RASTER)
-    return prepare_pulseq_write(seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster)
+function prepare_pulseq_write(seq, raster=DEFAULT_RASTER; preserve_block_durations=false)
+    return prepare_pulseq_write(seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster; preserve_block_durations)
 end
 
-function prepare_pulseq_write(gr, rf, adc, block_durations, ext, def, raster)
+function prepare_pulseq_write(gr, rf, adc, block_durations, ext, def, raster; preserve_block_durations=false)
     warn_count = Threads.Atomic{Int}(0)
     rf_type = eltype(rf)
     grad_type = eltype(gr)
@@ -830,6 +886,7 @@ function prepare_pulseq_write(gr, rf, adc, block_durations, ext, def, raster)
                 ext[bi],
                 bi,
                 warn_count,
+                preserve_block_durations,
                 thread_rf_caches[Threads.threadid()],
                 thread_grad_caches[Threads.threadid()],
                 thread_adc_caches[Threads.threadid()],
@@ -854,6 +911,7 @@ function quantize_block(
     ext_vec,
     bi,
     warn_count,
+    preserve_block_durations,
     rf_cache,
     grad_cache,
     adc_cache,
@@ -889,7 +947,7 @@ function quantize_block(
         adc_end,
         maximum(dur, ext_vec; init=0.0),
     )
-    block_duration = max(block_durations[bi], max_event_duration)
+    block_duration = preserve_block_durations ? block_durations[bi] : max(block_durations[bi], max_event_duration)
     warn_ctx = (; block_id=bi, event=:Block, warn_count)
     qdur = quantize_time_value(block_duration, getfield(raster, key), warn_ctx, :DUR; step_name=key)
     return qrf, qgr..., qadc, qdur
@@ -1064,7 +1122,7 @@ function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, 
     if verbose
         @info "Checking Pulseq raster..." BlockDurationRaster = raster.BlockDurationRaster GradientRasterTime = raster.GradientRasterTime RadiofrequencyRasterTime = raster.RadiofrequencyRasterTime AdcRasterTime = raster.AdcRasterTime
     end
-    prepared = prepare_pulseq_write(seq, raster)
+    prepared = prepare_pulseq_write(seq, raster; preserve_block_durations=check_timing)
     if check_timing
         isnothing(sys) ? KomaMRIBase.check_timing(prepared) : KomaMRIBase.check_timing(prepared, sys)
     end

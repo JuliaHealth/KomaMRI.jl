@@ -132,9 +132,9 @@ _sequence_def(sys::Scanner) = Dict{String,Any}(
     "MaxB1" => sys.B1,
     "MaxGrad" => sys.Gmax,
     "MaxSlew" => sys.Smax,
-    "RfRingdownTime" => sys.RF_ring_down_T,
-    "RfDeadTime" => sys.RF_dead_time_T,
-    "AdcDeadTime" => sys.ADC_dead_time_T,
+    "RfRingdownTime" => sys.RF_ring_down_time,
+    "RfDeadTime" => sys.RF_dead_time,
+    "AdcDeadTime" => sys.ADC_dead_time,
 )
 
 _default_sequence_def() = copy(DEFAULT_SEQUENCE_DEFINITIONS)
@@ -158,9 +158,9 @@ function _sequence_scanner_from_def(def)
         DUR_Δt=get(def, "BlockDurationRaster", default["BlockDurationRaster"]),
         GR_Δt=get(def, "GradientRasterTime", default["GradientRasterTime"]),
         RF_Δt=get(def, "RadiofrequencyRasterTime", default["RadiofrequencyRasterTime"]),
-        RF_ring_down_T=get(def, "RfRingdownTime", default["RfRingdownTime"]),
-        RF_dead_time_T=get(def, "RfDeadTime", default["RfDeadTime"]),
-        ADC_dead_time_T=get(def, "AdcDeadTime", default["AdcDeadTime"]),
+        RF_ring_down_time=get(def, "RfRingdownTime", default["RfRingdownTime"]),
+        RF_dead_time=get(def, "RfDeadTime", default["RfDeadTime"]),
+        ADC_dead_time=get(def, "AdcDeadTime", default["AdcDeadTime"]),
     )
 end
 

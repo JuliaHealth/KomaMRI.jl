@@ -356,32 +356,37 @@ using TestItems, TestItemRunner
         @test line == 3
         @test all(block -> block.RF[1,1].A ≈ rf.A, bssp)
 
+        default_sys = Scanner()
+        block_raster = default_sys.DUR_Δt
+        rf_raster = default_sys.RF_Δt
+        off_raster_duration = block_raster + rf_raster / 2
+
         checked = Sequence()
-        @addblock check_timing=true check_hw_limits=true checked += (RF(1e-6, 10e-6), x=Grad(1e-3, 10e-6))
+        @addblock check_timing=true check_hw_limits=true checked += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
         @test length(checked) == 1
-        @test_throws ErrorException @addblock check_timing=true checked += RF(1e-6, 10.5e-6)
+        @test_throws ErrorException @addblock check_timing=true checked += RF(1e-6, off_raster_duration)
         @test length(checked) == 1
-        @test_throws ErrorException @addblock check_timing=true sys=Scanner(DUR_Δt=20e-6) checked += RF(1e-6, 10e-6)
+        @test_throws ErrorException @addblock check_timing=true sys=Scanner(DUR_Δt=2block_raster) checked += RF(1e-6, block_raster)
         @test length(checked) == 1
 
         hw_checked = Sequence()
-        @addblock check_hw_limits=true hw_checked += RF(1e-6, 10.5e-6)
+        @addblock check_hw_limits=true hw_checked += RF(1e-6, off_raster_duration)
         @test length(hw_checked) == 1
-        @test_throws ErrorException @addblock check_hw_limits=true sys=Scanner(B1=0.5e-6) hw_checked += RF(1e-6, 10e-6)
+        @test_throws ErrorException @addblock check_hw_limits=true sys=Scanner(B1=0.5e-6) hw_checked += RF(1e-6, block_raster)
         @test length(hw_checked) == 1
 
         checked_loop = Sequence()
         @addblocks check_timing=true check_hw_limits=true for _ in 1:2
-            checked_loop += (RF(1e-6, 10e-6), x=Grad(1e-3, 10e-6))
+            checked_loop += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
         end
         @test length(checked_loop) == 2
         @test_throws ErrorException @addblocks check_timing=true for _ in 1:1
-            checked_loop += RF(1e-6, 10.5e-6)
+            checked_loop += RF(1e-6, off_raster_duration)
         end
         @test length(checked_loop) == 2
 
         @test_throws ErrorException addblock!(Sequence(), rf, g)
-        @test_throws ErrorException macroexpand(@__MODULE__, :(@addblock badseq = (RF(1e-6, 10e-6))))
+        @test_throws ErrorException macroexpand(@__MODULE__, :(@addblock badseq = (RF(1e-6, $block_raster))))
     end
 
     @testset "Grad" begin
@@ -958,97 +963,130 @@ using TestItems, TestItemRunner
         @test isinf(file_def["MaxGrad"])
 
         @testset "Pulseq checkTiming raster checks" begin
+            block_raster = 10e-6
+            rf_raster = 1e-6
+            adc_raster = 100e-9
             seq = Sequence()
-            @addblock seq += (RF(1e-6, 10e-6), x=Grad(1e-3, 10e-6))
+            @addblock seq += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
             @test isnothing(check_timing(seq))
             @test isnothing(check_hw_limits(seq))
             @test_throws ErrorException check_hw_limits(seq, Scanner(B1=0.5e-6))
 
             compact_rf = Sequence()
-            @addblock compact_rf += (RF([1e-6, 1e-6], 1e-6, 0.0, 0.5e-6), Duration(10e-6))
+            @addblock compact_rf += (RF([1e-6, 1e-6], rf_raster, 0.0, rf_raster / 2), Duration(block_raster))
             @test isnothing(check_timing(compact_rf))
 
+            adc_samples = 2
+            adc_dwell = adc_raster
             compact_adc = Sequence()
-            @addblock compact_adc += (ADC(2, 100e-9, 50e-9), Duration(10e-6))
+            @addblock compact_adc += (ADC(adc_samples, (adc_samples - 1) * adc_dwell, adc_dwell / 2), Duration(block_raster))
             @test isnothing(check_timing(compact_adc))
 
-            adc_raster_seq = Sequence(Scanner(RF_Δt=10e-6, ADC_Δt=100e-9))
-            @addblock adc_raster_seq += (ADC(111, 4.4e-6 * 110, 152.2e-6), Duration(650e-6))
+            adc_delay_raster = block_raster
+            raster_sys = Scanner(RF_Δt=adc_delay_raster, ADC_Δt=adc_raster, ADC_dead_time=0.0)
+            adc_raster_seq = Sequence(raster_sys)
+            adc_samples = 111
+            adc_dwell = 44 * adc_raster
+            adc_pulseq_delay = 15 * adc_delay_raster
+            adc_delay = adc_pulseq_delay + adc_dwell / 2
+            adc_duration = ceil((adc_pulseq_delay + adc_samples * adc_dwell) / raster_sys.DUR_Δt) * raster_sys.DUR_Δt
+            @addblock adc_raster_seq += (ADC(adc_samples, (adc_samples - 1) * adc_dwell, adc_delay), Duration(adc_duration))
             @test isnothing(check_timing(adc_raster_seq))
 
-            adc_bad_dwell = Sequence(Scanner(ADC_Δt=100e-9))
-            @addblock adc_bad_dwell += (ADC(2, 150e-9, 75e-9), Duration(10e-6))
+            adc_bad_dwell = Sequence(Scanner(ADC_Δt=adc_raster))
+            bad_dwell = adc_raster + adc_raster / 2
+            @addblock adc_bad_dwell += (ADC(2, bad_dwell, bad_dwell / 2), Duration(block_raster))
             @test_throws ErrorException check_timing(adc_bad_dwell)
 
-            adc_bad_delay = Sequence(Scanner(RF_Δt=10e-6, ADC_Δt=100e-9))
-            @addblock adc_bad_delay += (ADC(2, 100e-9, 150e-9), Duration(10e-6))
+            adc_bad_delay = Sequence(Scanner(RF_Δt=adc_delay_raster, ADC_Δt=adc_raster))
+            bad_pulseq_delay = adc_delay_raster + adc_raster
+            @addblock adc_bad_delay += (ADC(2, adc_raster, bad_pulseq_delay + adc_raster / 2), Duration(2block_raster))
             @test_throws ErrorException check_timing(adc_bad_delay)
 
             seq_bad = Sequence()
-            @addblock seq_bad += RF(1e-6, 10.5e-6)
+            @addblock seq_bad += RF(1e-6, block_raster + rf_raster / 2)
             @test_throws ErrorException check_timing(seq_bad)
         end
 
         @testset "Pulseq shapes-and-times duration checks" begin
+            block_raster = 10e-6
+            rf_raster = 1e-6
+            adc_raster = 100e-9
+            event_duration = 2 * block_raster
             adc_edge = Sequence()
-            @addblock adc_edge += ADC(2, 100e-9, 50e-9)
-            @test dur(adc_edge) ≈ 200e-9
+            @addblock adc_edge += ADC(2, adc_raster, adc_raster / 2)
+            @test dur(adc_edge) ≈ 2adc_raster
 
             rf_too_long = Sequence()
-            @addblock rf_too_long += RF(1e-6, 20e-6)
-            rf_too_long.DUR[1] = 10e-6
+            @addblock rf_too_long += RF(1e-6, event_duration)
+            rf_too_long.DUR[1] = block_raster
             @test_throws ErrorException check_timing(rf_too_long)
 
             grad_too_long = Sequence()
-            @addblock grad_too_long += (x=Grad(1e-3, 20e-6))
-            grad_too_long.DUR[1] = 10e-6
+            @addblock grad_too_long += (x=Grad(1e-3, event_duration))
+            grad_too_long.DUR[1] = block_raster
             @test_throws ErrorException check_timing(grad_too_long)
 
-            adc_too_long = Sequence(Scanner(DUR_Δt=100e-9, RF_Δt=100e-9, ADC_Δt=100e-9))
-            @addblock adc_too_long += ADC(2, 100e-9, 50e-9)
-            adc_too_long.DUR[1] = 100e-9
+            adc_too_long = Sequence(Scanner(DUR_Δt=adc_raster, RF_Δt=adc_raster, ADC_Δt=adc_raster))
+            @addblock adc_too_long += ADC(2, adc_raster, adc_raster / 2)
+            adc_too_long.DUR[1] = adc_raster
             @test_throws ErrorException check_timing(adc_too_long)
 
             trigger_too_long = Sequence()
-            @addblock trigger_too_long += Trigger(1, 1, 0.0, 20e-6)
-            trigger_too_long.DUR[1] = 10e-6
+            @addblock trigger_too_long += Trigger(1, 1, 0.0, event_duration)
+            trigger_too_long.DUR[1] = block_raster
             @test_throws ErrorException check_timing(trigger_too_long)
         end
 
         @testset "Pulseq checkTiming dead-time and ring-down checks" begin
-            deadtime_sys = Scanner(B1=Inf, Gmax=Inf, Smax=Inf, ADC_Δt=100e-9, RF_Δt=1e-6, RF_dead_time_T=10e-6, RF_ring_down_T=20e-6, ADC_dead_time_T=10e-6)
+            rf_raster = 1e-6
+            adc_raster = 100e-9
+            rf_dead_time = 10e-6
+            rf_ring_down_time = 20e-6
+            adc_dead_time = 10e-6
+            deadtime_sys = Scanner(B1=Inf, Gmax=Inf, Smax=Inf, ADC_Δt=adc_raster, RF_Δt=rf_raster, RF_dead_time=rf_dead_time, RF_ring_down_time=rf_ring_down_time, ADC_dead_time=adc_dead_time)
+            rf_delay = rf_dead_time + rf_raster / 2
+            rf_duration = rf_raster
+            rf_end = rf_dead_time + 2rf_raster
+            rf_block_duration = ceil((rf_end + rf_ring_down_time) / deadtime_sys.DUR_Δt) * deadtime_sys.DUR_Δt
             rf_deadtime_ok = Sequence(deadtime_sys)
-            @addblock rf_deadtime_ok += (RF([1e-6, 1e-6], 1e-6, 0.0, 10.5e-6), Duration(40e-6))
+            @addblock rf_deadtime_ok += (RF([1e-6, 1e-6], rf_duration, 0.0, rf_delay), Duration(rf_block_duration))
             @test isnothing(check_timing(rf_deadtime_ok, deadtime_sys))
 
             rf_deadtime_bad = Sequence(deadtime_sys)
-            @addblock rf_deadtime_bad += (RF([1e-6, 1e-6], 1e-6, 0.0, 10e-6), Duration(40e-6))
+            @addblock rf_deadtime_bad += (RF([1e-6, 1e-6], rf_duration, 0.0, rf_dead_time), Duration(rf_block_duration))
             @test_throws ErrorException check_timing(rf_deadtime_bad, deadtime_sys)
 
             rf_ringdown_bad = Sequence(deadtime_sys)
-            @addblock rf_ringdown_bad += (RF([1e-6, 1e-6], 1e-6, 0.0, 10.5e-6), Duration(31e-6))
+            @addblock rf_ringdown_bad += (RF([1e-6, 1e-6], rf_duration, 0.0, rf_delay), Duration(rf_block_duration - deadtime_sys.DUR_Δt))
             @test_throws ErrorException check_timing(rf_ringdown_bad, deadtime_sys)
 
+            adc_samples = 2
+            adc_dwell = adc_raster
+            adc_delay = adc_dead_time + adc_dwell / 2
+            adc_end_with_dead_time = adc_dead_time + adc_samples * adc_dwell + adc_dead_time
+            adc_block_duration = ceil(adc_end_with_dead_time / deadtime_sys.DUR_Δt) * deadtime_sys.DUR_Δt
             adc_deadtime_ok = Sequence(deadtime_sys)
-            @addblock adc_deadtime_ok += (ADC(2, 100e-9, 10.05e-6), Duration(30e-6))
+            @addblock adc_deadtime_ok += (ADC(adc_samples, (adc_samples - 1) * adc_dwell, adc_delay), Duration(adc_block_duration))
             @test isnothing(check_timing(adc_deadtime_ok, deadtime_sys))
 
             adc_deadtime_bad = Sequence(deadtime_sys)
-            @addblock adc_deadtime_bad += (ADC(2, 100e-9, 9.05e-6), Duration(30e-6))
+            @addblock adc_deadtime_bad += (ADC(adc_samples, (adc_samples - 1) * adc_dwell, adc_delay - adc_dead_time / 10), Duration(adc_block_duration))
             @test_throws ErrorException check_timing(adc_deadtime_bad, deadtime_sys)
 
             adc_post_deadtime_bad = Sequence(deadtime_sys)
-            @addblock adc_post_deadtime_bad += (ADC(2, 100e-9, 10.05e-6), Duration(20.1e-6))
+            @addblock adc_post_deadtime_bad += (ADC(adc_samples, (adc_samples - 1) * adc_dwell, adc_delay), Duration(adc_block_duration - deadtime_sys.DUR_Δt))
             @test_throws ErrorException check_timing(adc_post_deadtime_bad, deadtime_sys)
         end
 
         @testset "C++ interpreter extension constraints" begin
+            block_raster = 10e-6
             duplicate_trigger = Sequence()
-            @addblock duplicate_trigger += (Trigger(1, 1, 0.0, 0.0), Trigger(1, 2, 0.0, 0.0), Duration(10e-6))
+            @addblock duplicate_trigger += (Trigger(1, 1, 0.0, 0.0), Trigger(1, 2, 0.0, 0.0), Duration(block_raster))
             @test_throws ErrorException check_timing(duplicate_trigger)
 
             duplicate_rotation = Sequence()
-            @addblock duplicate_rotation += (QuaternionRot(1, 0, 0, 0), QuaternionRot(1, 0, 0, 0), Duration(10e-6))
+            @addblock duplicate_rotation += (QuaternionRot(1, 0, 0, 0), QuaternionRot(1, 0, 0, 0), Duration(block_raster))
             @test_throws ErrorException check_timing(duplicate_rotation)
         end
     end
@@ -1543,8 +1581,8 @@ end
 @testitem "Scanner" tags=[:base] begin
     B0, B1, Gmax, Smax = 1.5, 10e-6, 60e-3, 500
     ADC_Δt, DUR_Δt, GR_Δt, RF_Δt = 2e-6, 1e-5, 1e-5, 1e-6
-    RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T = 20e-6, 100e-6, 10e-6
-    sys = Scanner(B0, B1, Gmax, Smax, ADC_Δt, DUR_Δt, GR_Δt, RF_Δt, RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T)
+    RF_ring_down_time, RF_dead_time, ADC_dead_time = 20e-6, 100e-6, 10e-6
+    sys = Scanner(B0, B1, Gmax, Smax, ADC_Δt, DUR_Δt, GR_Δt, RF_Δt, RF_ring_down_time, RF_dead_time, ADC_dead_time)
     @test sys.B0 ≈ B0 && sys.B1 ≈ B1 && sys.Gmax ≈ Gmax && sys.Smax ≈ Smax
 end
 
