@@ -5,7 +5,7 @@ using PlotlyJS, Random #hide
 obj = brain_phantom2D(); #hide
 
 # Koma can easily simulate the effects of motion during acquisitions. 
-# As introduced in the [previous section](1-phantom.md), the motion-related information
+# As introduced in the [previous section](gen-1-phantom.md), the motion-related information
 # of the phantom is stored in the `motion` field of its structure.
 
 # Koma's motion model has been designed to accomodate a variety of real-world scenarios, including:

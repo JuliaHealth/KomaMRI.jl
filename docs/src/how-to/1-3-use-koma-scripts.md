@@ -84,7 +84,7 @@ Scanner
 The Phantom struct created in this example represents a slice of a brain. To create it, we use the function `brain_phantom2D`, which is part of the subdependency **KomaMRICore**. While **KomaMRI** provides some phantom examples for experimentation, you may also want to create your custom **Phantom** struct tailored to your specific requirements.
 
 The **Phantom** struct contains MRI parameters related to the magnetization properties of an object. These parameters include magnetization positions, proton density, relaxation times, off-resonance, among others.
-For more information about Koma's Phantom and what it can do, as well as how to store and share it, check out the [Phantom](../explanation/1-phantom.md) section.
+For more information about Koma's Phantom and what it can do, as well as how to store and share it, check out the [Phantom](../explanation/gen-1-phantom.md) section.
 To view all the keys and values of the object, you can do so in the **Julia REPL** as follows:
 ```julia-repl
 julia> obj
