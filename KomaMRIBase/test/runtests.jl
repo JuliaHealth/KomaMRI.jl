@@ -640,6 +640,11 @@ using TestItems, TestItemRunner
         @test dur(block[1]) ≈ 5e-3
         @test block.EXT[1] == [LabelSet(1, "LIN")]
 
+        t_delay, Δt_delay = KomaMRIBase.get_variable_times(Sequence() + delay)
+        @test t_delay[2] ≈ 0.0
+        @test t_delay[end-1] ≈ delay.T
+        @test sum(Δt_delay) ≈ delay.T + 2KomaMRIBase.MIN_RISE_TIME
+
     end
     @testset "ADC" begin
 

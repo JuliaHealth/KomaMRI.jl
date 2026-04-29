@@ -123,6 +123,8 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
         append!(t, t_block)
 	end
 	add_key_time_points!(t, motion)
+	# Ensure t is never empty and contains the start and end of the sequence
+	append!(t, [0.0, dur(seq)])
 	# Removing repeated points
 	sort!(unique!(t))
 	# Fixes a problem with ADC at the start and end of the seq
