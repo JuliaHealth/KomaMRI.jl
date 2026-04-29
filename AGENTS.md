@@ -20,6 +20,7 @@
 - Use idiomatic Julia, not Python habits.
 - Treat the relevant project directory as the environment. Use `julia --project=<path>` and `Pkg.activate(...)`.
 - Prefer project-local environments over the global default environment.
+- Never accept Julia/Pkg interactive prompts that add `KomaMRIBase` to the root `Project.toml`. Abort the prompt and activate the correct project instead.
 - Do not create alternate env roots, `env/` folders, or `DEPOT` / `HOME` hacks unless explicitly asked.
 - Reuse a persistent Julia REPL with Revise. Do not start a fresh REPL for convenience, precompilation, or one-off commands.
 - Only restart the REPL if none exists, it crashed, or the user asks. Say why first.

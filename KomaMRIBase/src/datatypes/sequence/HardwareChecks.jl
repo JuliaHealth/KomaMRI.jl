@@ -8,7 +8,7 @@ Checks event-local hardware limits:
 - maximum gradient slew rate `|dG/dt|`
 - minimum ADC dwell time
 
-It does not enforce RF/ADC dead times or RF ring-down.
+RF/ADC dead times and RF ring-down are checked by [`check_timing`](@ref).
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -59,7 +59,7 @@ function check_hw_limits(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, adc::Abst
         if check_adc
             adc_i = adc[i]
             is_ADC_on(adc_i) || continue
-            dwell = adc_i.N == 1 ? adc_i.T : adc_i.T / (adc_i.N - 1)
+            dwell = _pulseq_dwell(adc_i)
             if dwell < sys.ADC_Δt
                 error("ADC dwell time $(dwell * 1e6) μs for block $i is less than the minimum ADC dwell time of the scanner ($(sys.ADC_Δt * 1e6) μs).")
             end
