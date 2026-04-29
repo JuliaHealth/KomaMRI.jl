@@ -469,4 +469,20 @@ end
         @test length(unique(rf.mag_id for rf in values(libs.rf_library))) == 1
         @test length(libs.shape_library) == 2
     end
+    @testset "RF ADC Event Dedup" begin
+        raster = KomaMRIFiles.DEFAULT_RASTER
+        seq = Sequence()
+        A = fill(1e-6 + 0im, 3)
+        adc_T = 127 * 16e-6
+        for i in 1:8
+            phase = isodd(i) ? 0.0 : π
+            rf = RF(A, 2raster.RadiofrequencyRasterTime, 0.0, 140e-6; ϕ=phase)
+            adc = ADC(128, adc_T, 52e-6, 0.0, phase)
+            addblock!(seq, rf, adc)
+        end
+        prepared = @suppress KomaMRIFiles.prepare_pulseq_write(seq, raster)
+        _, libs = @suppress KomaMRIFiles.collect_pulseq_assets(prepared, raster)
+        @test length(libs.rf_library) == 2
+        @test length(libs.adc_library) == 2
+    end
 end
