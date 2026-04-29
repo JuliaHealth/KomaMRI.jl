@@ -932,7 +932,7 @@ using TestItems, TestItemRunner
     end
     @testset "Check Scanner Constraints" begin
         sys = Scanner()
-        seq = PulseDesigner.EPI_example()
+        seq = PulseDesigner.EPI_example(; sys)
         @test isnothing(check_hw_limits(seq, sys))
     end
     @testset "Sequence timing and hardware metadata" begin
@@ -979,6 +979,27 @@ using TestItems, TestItemRunner
         @addblock seq_bad += RF(1e-6, 10.5e-6)
         @test_throws ErrorException check_timing(seq_bad)
         @test_throws ErrorException check_hw_limits(seq, Scanner(B1=0.5e-6))
+
+        deadtime_sys = Scanner(B1=Inf, Gmax=Inf, Smax=Inf, ADC_Δt=100e-9, RF_Δt=1e-6, RF_dead_time_T=10e-6, RF_ring_down_T=20e-6, ADC_dead_time_T=10e-6)
+        rf_deadtime_ok = Sequence(deadtime_sys)
+        @addblock rf_deadtime_ok += (RF([1e-6, 1e-6], 1e-6, 0.0, 10.5e-6), Duration(40e-6))
+        @test isnothing(check_timing(rf_deadtime_ok, deadtime_sys))
+        rf_deadtime_bad = Sequence(deadtime_sys)
+        @addblock rf_deadtime_bad += (RF([1e-6, 1e-6], 1e-6, 0.0, 10e-6), Duration(40e-6))
+        @test_throws ErrorException check_timing(rf_deadtime_bad, deadtime_sys)
+        rf_ringdown_bad = Sequence(deadtime_sys)
+        @addblock rf_ringdown_bad += (RF([1e-6, 1e-6], 1e-6, 0.0, 10.5e-6), Duration(31e-6))
+        @test_throws ErrorException check_timing(rf_ringdown_bad, deadtime_sys)
+
+        adc_deadtime_ok = Sequence(deadtime_sys)
+        @addblock adc_deadtime_ok += (ADC(2, 100e-9, 10.05e-6), Duration(30e-6))
+        @test isnothing(check_timing(adc_deadtime_ok, deadtime_sys))
+        adc_deadtime_bad = Sequence(deadtime_sys)
+        @addblock adc_deadtime_bad += (ADC(2, 100e-9, 9.05e-6), Duration(30e-6))
+        @test_throws ErrorException check_timing(adc_deadtime_bad, deadtime_sys)
+        adc_post_deadtime_bad = Sequence(deadtime_sys)
+        @addblock adc_post_deadtime_bad += (ADC(2, 100e-9, 10.05e-6), Duration(20.1e-6))
+        @test_throws ErrorException check_timing(adc_post_deadtime_bad, deadtime_sys)
     end
 end
 

@@ -8,7 +8,7 @@ Checks event-local hardware limits:
 - maximum gradient slew rate `|dG/dt|`
 - minimum ADC dwell time
 
-It does not enforce RF/ADC dead times or RF ring-down.
+RF/ADC dead times and RF ring-down are checked by [`check_timing`](@ref).
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct

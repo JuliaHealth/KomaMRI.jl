@@ -72,13 +72,6 @@ end
 collect_pulseq_assets(seq, raster) =
     collect_pulseq_assets(seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster)
 
-pulseq_raster_tuple(raster) = (;
-    BlockDurationRaster=raster.BlockDurationRaster,
-    GradientRasterTime=raster.GradientRasterTime,
-    RadiofrequencyRasterTime=raster.RadiofrequencyRasterTime,
-    AdcRasterTime=raster.AdcRasterTime,
-)
-
 function pulseq_data(seq::KomaMRIBase.Sequence, raster::PulseqRaster)
     prepared = prepare_pulseq_write(seq, raster)
     blocks, event_libraries = collect_pulseq_assets(prepared, raster)
@@ -1102,7 +1095,7 @@ function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, 
     end
     prepared = prepare_pulseq_write(seq, raster)
     if check_timing
-        KomaMRIBase.check_timing(prepared, pulseq_raster_tuple(raster))
+        isnothing(sys) ? KomaMRIBase.check_timing(prepared) : KomaMRIBase.check_timing(prepared, sys)
     end
     blocks, event_libraries = collect_pulseq_assets(prepared, raster)
     return PulseqSequenceData(blocks, event_libraries, v"1.5.1", nothing)

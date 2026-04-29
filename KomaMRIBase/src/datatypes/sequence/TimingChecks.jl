@@ -2,23 +2,23 @@ const PULSEQ_TIME_TOL = 1e-12
 const PULSEQ_DIVISION_TOL = 1e-9
 const PULSEQ_ADC_DWELL_TOL = 1e-10
 
-function _sequence_raster_from_def(def)
+function _sequence_timing_from_def(def)
     missing = [key for key in PULSEQ_RASTER_DEFINITION_KEYS if !haskey(def, key)]
     isempty(missing) || error("Sequence has no Pulseq raster definitions. Use `Sequence()` or `Sequence(sys)`.")
-    return (;
-        BlockDurationRaster=def["BlockDurationRaster"],
-        GradientRasterTime=def["GradientRasterTime"],
-        RadiofrequencyRasterTime=def["RadiofrequencyRasterTime"],
-        AdcRasterTime=def["AdcRasterTime"],
-    )
+    return _sequence_timing_from_sys(_sequence_scanner_from_def(def))
 end
 
-_sequence_raster_from_sys(sys::Scanner) = (;
+_sequence_timing_from_sys(sys::Scanner) = (;
     BlockDurationRaster=sys.DUR_Δt,
     GradientRasterTime=sys.GR_Δt,
     RadiofrequencyRasterTime=sys.RF_Δt,
     AdcRasterTime=sys.ADC_Δt,
+    RfRingdownTime=sys.RF_ring_down_T,
+    RfDeadTime=sys.RF_dead_time_T,
+    AdcDeadTime=sys.ADC_dead_time_T,
 )
+
+_timing_value(timing, key, default) = hasproperty(timing, key) ? getproperty(timing, key) : default
 
 function _check_raster_multiple(t, raster, block_id, label; tol=PULSEQ_DIVISION_TOL)
     raster > 0 || error("Raster time must be positive.")
@@ -123,6 +123,33 @@ function _check_rf_timing(rf::TimeShapedRF, raster, block_id)
     return nothing
 end
 
+function _rf_pulseq_delay(rf::TimeShapedRF, rf_raster)
+    return rf.delay
+end
+
+function _rf_pulseq_delay(rf::RF, rf_raster)
+    rf.delay + PULSEQ_TIME_TOL < rf_raster / 2 && return rf.delay
+    tt = _shape_times(rf.A, rf.T)
+    default_tt = (0:(length(tt) - 1)) .* rf_raster
+    all(isapprox.(tt, default_tt; rtol=0, atol=PULSEQ_TIME_TOL)) && return rf.delay - rf_raster / 2
+    oversampled_tt = (0:(length(tt) - 1)) .* (rf_raster / 2)
+    isodd(length(tt)) && all(isapprox.(tt, oversampled_tt; rtol=0, atol=PULSEQ_TIME_TOL)) && return rf.delay - rf_raster / 2
+    return rf.delay
+end
+
+function _check_rf_deadtime(rf, timing, block_id, block_duration)
+    rf_dead_time = _timing_value(timing, :RfDeadTime, 0.0)
+    rf_ringdown_time = _timing_value(timing, :RfRingdownTime, 0.0)
+    if rf_dead_time > 0
+        rf_delay = _rf_pulseq_delay(rf, timing.RadiofrequencyRasterTime)
+        rf_delay + PULSEQ_TIME_TOL >= rf_dead_time || error("Block $block_id RF delay ($(rf_delay) s) is smaller than RF dead time $(rf_dead_time) s.")
+    end
+    if rf_ringdown_time > 0
+        dur(rf) + rf_ringdown_time <= block_duration + PULSEQ_TIME_TOL || error("Block $block_id RF ring-down time exceeds the block duration.")
+    end
+    return nothing
+end
+
 function _check_adc_dwell(dwell, raster, block_id)
     raster > 0 || error("Raster time must be positive.")
     dwell + PULSEQ_TIME_TOL >= raster || error("Block $block_id ADC dwell ($(dwell) s) is shorter than raster $(raster) s.")
@@ -131,11 +158,17 @@ function _check_adc_dwell(dwell, raster, block_id)
     error("Block $block_id ADC dwell ($(dwell) s) is not aligned to raster $(raster) s.")
 end
 
-function _check_adc_timing(adc, adc_raster, rf_raster, block_id)
+function _check_adc_timing(adc, timing, block_id, block_duration)
     dwell = adc.N == 1 ? adc.T : adc.T / (adc.N - 1)
-    _check_adc_dwell(dwell, adc_raster, block_id)
+    _check_adc_dwell(dwell, timing.AdcRasterTime, block_id)
     adc.delay + PULSEQ_TIME_TOL >= dwell / 2 || error("Block $block_id ADC delay ($(adc.delay) s) is smaller than dwell/2 ($(dwell / 2) s).")
-    _check_raster_multiple(adc.delay - dwell / 2, rf_raster, block_id, "ADC delay")
+    pulseq_delay = adc.delay - dwell / 2
+    _check_raster_multiple(pulseq_delay, timing.RadiofrequencyRasterTime, block_id, "ADC delay")
+    adc_dead_time = _timing_value(timing, :AdcDeadTime, 0.0)
+    if adc_dead_time > 0
+        pulseq_delay + PULSEQ_TIME_TOL >= adc_dead_time || error("Block $block_id ADC delay ($(pulseq_delay) s) is smaller than ADC dead time $(adc_dead_time) s.")
+        pulseq_delay + adc.N * dwell + adc_dead_time <= block_duration + PULSEQ_TIME_TOL || error("Block $block_id post-ADC dead time exceeds the block duration.")
+    end
     return nothing
 end
 
@@ -143,15 +176,16 @@ end
     check_timing(seq)
     check_timing(seq, sys)
 
-Check Pulseq timing alignment. The one-argument method uses raster definitions
-stored in `seq.DEF`; the two-argument method uses raster definitions from `sys`.
+Check Pulseq timing alignment, RF/ADC dead times, and RF ring-down. The
+one-argument method uses definitions stored in `seq.DEF`; the two-argument
+method uses timing definitions from `sys`.
 """
 function check_timing(seq::Sequence)
-    return check_timing(seq, _sequence_raster_from_def(seq.DEF))
+    return check_timing(seq, _sequence_timing_from_def(seq.DEF))
 end
 
 function check_timing(seq::Sequence, sys::Scanner)
-    return check_timing(seq, _sequence_raster_from_sys(sys))
+    return check_timing(seq, _sequence_timing_from_sys(sys))
 end
 
 function check_timing(seq::Sequence, raster::NamedTuple)
@@ -160,6 +194,7 @@ function check_timing(seq::Sequence, raster::NamedTuple)
         rf = seq.RF[1, i]
         if is_RF_on(rf)
             _check_rf_timing(rf, raster.RadiofrequencyRasterTime, i)
+            _check_rf_deadtime(rf, raster, i, seq.DUR[i])
         end
         axis_names = ("x", "y", "z")
         for axis in axes(seq.GR, 1)
@@ -169,7 +204,7 @@ function check_timing(seq::Sequence, raster::NamedTuple)
             _check_grad_timing(gr, raster.GradientRasterTime, i, name)
         end
         adc = seq.ADC[i]
-        is_ADC_on(adc) && _check_adc_timing(adc, raster.AdcRasterTime, raster.RadiofrequencyRasterTime, i)
+        is_ADC_on(adc) && _check_adc_timing(adc, raster, i, seq.DUR[i])
     end
     return nothing
 end

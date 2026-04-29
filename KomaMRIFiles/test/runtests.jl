@@ -117,7 +117,7 @@ end
         sys = Scanner(B0=3.0, B1=17e-6, Gmax=40e-3, Smax=170.0, ADC_Δt=1e-6, DUR_Δt=10e-6, GR_Δt=10e-6, RF_Δt=1e-6, RF_ring_down_T=100e-6, RF_dead_time_T=10e-6, ADC_dead_time_T=10e-6)
         seq = Sequence(sys)
         seq.DEF["Name"] = "hardware-metadata"
-        @addblock seq += RF(1e-6, 10e-6)
+        @addblock seq += (RF(1e-6, 10e-6, 0.0, 10e-6), Duration(120e-6))
         data = @suppress KomaMRIFiles.write_seq_data(seq)
         buffer = IOBuffer()
         KomaMRIFiles.emit_pulseq(buffer, data)
@@ -127,6 +127,15 @@ end
         for key in KomaMRIBase.PULSEQ_HW_DEFINITION_KEYS
             @test !occursin("\n$key ", pulseq_text)
         end
+        bad_rf_deadtime = Sequence(sys)
+        @addblock bad_rf_deadtime += (RF(1e-6, 10e-6), Duration(120e-6))
+        @test_throws ErrorException KomaMRIFiles.write_seq_data(bad_rf_deadtime; check_hw_limits=false, verbose=false)
+        bad_rf_ringdown = Sequence(sys)
+        @addblock bad_rf_ringdown += (RF(1e-6, 10e-6, 0.0, 10e-6), Duration(30e-6))
+        @test_throws ErrorException KomaMRIFiles.write_seq_data(bad_rf_ringdown; check_hw_limits=false, verbose=false)
+        bad_adc_deadtime = Sequence(sys)
+        @addblock bad_adc_deadtime += (ADC(2, 2e-6, 10e-6), Duration(40e-6))
+        @test_throws ErrorException KomaMRIFiles.write_seq_data(bad_adc_deadtime; check_hw_limits=false, verbose=false)
 
     end
     @testset "Pulseq rotation extension" begin
