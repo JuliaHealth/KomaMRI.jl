@@ -139,6 +139,15 @@ julia --project=docs -e 'using DocumenterVitepress; DocumenterVitepress.dev_docs
 
 ## Releases
 - JuliaRegistrator release notes must explicitly mention breaking status. Include a `## Breaking changes` section, or state `No breaking changes`; AutoMerge requires the words `breaking` or `changelog`.
+- For subpackage GitHub releases, create annotated tags at current `origin/master`, not the feature branch. Fetch first, verify the tag does not already exist, then tag and publish sequentially.
+- Use the exact tag as the GitHub release title, e.g. `KomaMRIBase-v0.11.0`. Put only the provided release notes in the release body.
+- Useful pattern:
+```bash
+git fetch origin master --tags
+git tag -a KomaMRIBase-v0.11.0 -F notes.md origin/master
+git push origin KomaMRIBase-v0.11.0
+gh release create KomaMRIBase-v0.11.0 --title KomaMRIBase-v0.11.0 --notes-file notes.md
+```
 
 ## Canonical References
 - Contributor workflow: `docs/src/how-to/5-contribute-to-koma.md`
