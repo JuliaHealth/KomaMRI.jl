@@ -417,6 +417,7 @@ _check_block_event(event) = error("Unsupported block event $(typeof(event)).")
 _block_duration(block_duration) = block_duration
 _block_duration(block_duration, event, events...) = _block_duration(_block_duration(block_duration, event), events...)
 _block_duration(block_duration, event) = max(block_duration, dur(event))
+_block_duration(block_duration, adc::ADC) = max(block_duration, _pulseq_adc_duration(adc))
 _block_duration_constraint() = nothing
 _block_duration_constraint(event) = nothing
 function _block_duration_constraint(event, events...)

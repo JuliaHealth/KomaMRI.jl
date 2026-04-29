@@ -387,7 +387,7 @@ function init_legacy_block_durations!(blockDurations, blockEvents, delayIDs_tmp,
     for i in axes(blockEvents, 2)
         delayID = delayIDs_tmp[i]
         delay = delayID > 0 ? eventLibraries.tmp_delay_library[delayID] : 0.0
-        Gx, Gy, Gz, rf, add_half_Δt_rf, adc, _ = decoded_block(
+        Gx, Gy, Gz, rf, add_half_Δt_rf, adc, ext = decoded_block(
             decodedLibraries,
             blockEvents[1, i],
             blockEvents[2, i],
@@ -402,7 +402,8 @@ function init_legacy_block_durations!(blockDurations, blockEvents, delayIDs_tmp,
             dur(Gy),
             dur(Gz),
             dur(rf) + add_half_Δt_rf * eventLibraries.definitions.radiofrequency_raster_time / 2,
-            dur(adc),
+            KomaMRIBase._pulseq_adc_duration(adc),
+            maximum(dur, ext; init=0.0),
         )
     end
 end
