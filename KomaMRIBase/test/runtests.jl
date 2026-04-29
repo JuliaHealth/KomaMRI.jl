@@ -200,6 +200,11 @@ using TestItems, TestItemRunner
         sd = seq + delay
         @test dur(sd[1]) ≈ .0 && dur(sd[2]) ≈ delay.T
 
+        t_delay, Δt_delay = KomaMRIBase.get_variable_times(Sequence() + delay)
+        @test t_delay[2] ≈ 0.0
+        @test t_delay[end-1] ≈ delay.T
+        @test sum(Δt_delay) ≈ delay.T + 2KomaMRIBase.MIN_RISE_TIME
+
     end
     @testset "ADC" begin
 
