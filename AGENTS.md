@@ -137,6 +137,9 @@ julia --project=docs -e 'using DocumenterVitepress; DocumenterVitepress.dev_docs
 - `pre-release` triggers Julia pre-release CI; use it only when intentionally checking upcoming Julia compatibility.
 - Give reviewers the missing context: what changed, why, and what you tested.
 
+## Releases
+- JuliaRegistrator release notes must explicitly mention breaking status. Include a `## Breaking changes` section, or state `No breaking changes`; AutoMerge requires the words `breaking` or `changelog`.
+
 ## Canonical References
 - Contributor workflow: `docs/src/how-to/5-contribute-to-koma.md`
 - CI truth: `.github/workflows/CI.yml` and `.github/workflows/CIPreRelease.yml`

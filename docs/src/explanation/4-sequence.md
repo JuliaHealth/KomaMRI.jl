@@ -88,7 +88,7 @@ julia> seq.DUR
  0.0004042313086942605
 ```
 
-Additionally, you can access a subset of blocks in a **Sequence** by slicing or indexing. The result will also be a **Sequence** struct, allowing you to perform the same operations as you would with a full Sequence (just a heads-up: this is analogous for the [Phantom](1-phantom.md) structure). For example, if you want to analyze the first 11 blocks, you can do the following:
+Additionally, you can access a subset of blocks in a **Sequence** by slicing or indexing. The result will also be a **Sequence** struct, allowing you to perform the same operations as you would with a full Sequence (just a heads-up: this is analogous for the [Phantom](gen-1-phantom.md) structure). For example, if you want to analyze the first 11 blocks, you can do the following:
 ```julia-repl
 julia> seq[1:11]
 Sequence[ τ = 3.837 ms | blocks: 11 | ADC: 5 | GR: 11 | RF: 1 | EXT: 0 | DEF: 16 ]

@@ -52,17 +52,18 @@ Koma's `gpu` function implementation calls a separate `gpu` function with a back
 
 ## Inside the Simulation
 
-KomaMRI has three different simulation methods, all of which can run on the GPU: 
+KomaMRI has several simulation methods, all of which can run on the GPU:
 
 * `BlochSimple`: [BlochSimple.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/BlochSimple/BlochSimple.jl)
 * `BlochDict`: [BlochDict.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/BlochDict/BlochDict.jl)
 * `Bloch`: [BlochCPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/Bloch/BlochCPU.jl) / [BlochGPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/Bloch/BlochGPU.jl)
+* `BlochMagnus1`, `BlochMagnus2`, and `BlochMagnus4`: [BlochMagnusCPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/BlochMagnus/cpu/BlochMagnusCPU.jl) / [BlochMagnusGPU.jl](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/KomaMRICore/src/simulation/SimMethods/BlochMagnus/gpu/BlochMagnusGPU.jl)
 
 `BlochSimple` uses array-based methods which are simpler to understand compared with the more optimized `Bloch` implementation.
 
 `BlochDict` can be understood as an extension to `BlochSimple` that outputs a more detailed signal.
 
-`Bloch` is equivalent to `BlochSimple` in the operations it performs, but has separate implementations optimized for both the CPU and GPU. The CPU implementation uses array broadcasting for computation and preallocates all simulation arrays to conserve memory. The simulation arrays are 1-dimensional with length equal to the number of spins in the phantom and are updated at each time step. The GPU implementation also uses preallocation and a similar loop-based computation strategy, but does so using kernels for spin precession and excitation implemented using the `KernelAbstractions.jl` package. A key advantage of using kernel-based methods is that intermediate values compuated based on phantom and sequence properties can be stored in registers without having to write back to GPU global memory, which has much higher memory latency compared with the CPU. Other optimizations within the kernels include:
+`Bloch` is equivalent to `BlochSimple` in the operations it performs, but has separate implementations optimized for both the CPU and GPU. The `BlochMagnus*` methods reuse the same optimized structure and replace the RF-excitation rotation vector with a higher-order Magnus update. The CPU implementation uses array broadcasting for computation and preallocates all simulation arrays to conserve memory. The simulation arrays are 1-dimensional with length equal to the number of spins in the phantom and are updated at each time step. The GPU implementation also uses preallocation and a similar loop-based computation strategy, but does so using kernels for spin precession and excitation implemented using the `KernelAbstractions.jl` package. A key advantage of using kernel-based methods is that intermediate values computed based on phantom and sequence properties can be stored in registers without having to write back to GPU global memory, which has much higher memory latency compared with the CPU. Other optimizations within the kernels include:
 
 * Reducing the output signal value at each time step within the kernel so that the first thread for each thread group writes the sum of the signal values for each thread in the threadgroup to GPU global memory. This reduces the number of GPU global memory reads + writes needed for the output signal from `Number of Spins x Number of Time Points` to `Number of Spins x Number of Time Points / Number of Threads in Threadgroup`, improving scalability for large phantom objects.
 

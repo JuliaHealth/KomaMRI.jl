@@ -41,7 +41,7 @@ Phantom{Float64}
   motion: NoMotion NoMotion()
 ```
 
-You can add more properties to the **Phantom**, such as off-resonance, diffusion parameters, and even [motion](../explanation/2-motion.md) information.
+You can add more properties to the **Phantom**, such as off-resonance, diffusion parameters, and even [motion](../explanation/gen-2-motion.md) information.
 
 ## Loading phantom data from a .mat file
 If you are familiar with the **MRI** world, you likely have a 2D or 3D array, where each element contains an ID number identifying a different class of tissue. In this setup, the array axes represent spatial positions, while the elements are used for tissue identification.

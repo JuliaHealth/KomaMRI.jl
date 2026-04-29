@@ -1,3 +1,6 @@
+# Prevent Plots/GR tutorial animations from opening GUI windows during docs builds.
+get!(ENV, "GKSwstype", "100")
+
 using Documenter, DocumenterVitepress, Literate, KomaMRI, PlutoSliderServer
 
 # Setup for Literate and Pluto
@@ -5,6 +8,7 @@ repo_base = "JuliaHealth/KomaMRI.jl"
 repo_root_url = "https://github.com/$repo_base/blob/master"
 lit_pattern = "lit-"
 plu_pattern = "pluto-"
+gen_pattern = "gen-"
 include("utils.jl")
 include("EmbeddPlotlyJSSyncPlotLiterate.jl")
 
@@ -33,16 +37,16 @@ move_examples_to_docs!(koma_tutorials_plu, doc_tutorial_rep, plu_pattern; remove
 
 ## DOCUMENTATION GENERATION
 # Get list of documentation md files from docs/src/section
-howto_list       = list_md_not_lit(doc_howto, "how-to"; lit_pattern)
-explanation_list = list_md_not_lit(doc_explanation, "explanation"; lit_pattern)
-reference_list   = list_md_not_lit(doc_reference, "reference"; lit_pattern)
+howto_list       = list_md_not_lit(doc_howto, "how-to"; lit_pattern, gen_pattern)
+explanation_list = list_md_not_lit(doc_explanation, "explanation"; lit_pattern, gen_pattern)
+reference_list   = list_md_not_lit(doc_reference, "reference"; lit_pattern, gen_pattern)
 # Add literate examples strarting with "lit-" from docs/src/section
-lit_howto_list       = literate_doc_folder(doc_howto, "how-to")
-lit_explanation_list = literate_doc_folder(doc_explanation, "explanation")
- lit_reference_list   = literate_doc_folder(doc_reference, "reference")
+lit_howto_list       = literate_doc_folder(doc_howto, "how-to"; lit_pattern, gen_pattern)
+lit_explanation_list = literate_doc_folder(doc_explanation, "explanation"; lit_pattern, gen_pattern)
+lit_reference_list   = literate_doc_folder(doc_reference, "reference"; lit_pattern, gen_pattern)
 # Tutorials (Literate only), and reproducible tutorials (Pluto only)
-tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern)
-reproducible_list = pluto_directory_to_html(doc_tutorial_rep, "tutorial/pluto"; plu_pattern)
+tutorial_list     = literate_doc_folder(doc_tutorial, "tutorial"; lit_pattern, gen_pattern)
+reproducible_list = pluto_directory_to_html(doc_tutorial_rep, "tutorial/pluto"; plu_pattern, gen_pattern)
 
 # Combine md files in docs/src/section with Literate/Pluto-generated md files
 append!(howto_list, lit_howto_list)
