@@ -128,3 +128,10 @@ function get_adc_phase_compensation(seq)
 end
 
 dur(adc::ADC) = adc.delay + adc.T
+_pulseq_dwell(adc::ADC) = adc.N <= 1 ? adc.T : adc.T / (adc.N - 1)
+# Pulseq block timing uses dwell-interval edges; `dur(adc)` ends at the last acquired sample.
+function _pulseq_duration(adc::ADC)
+    is_ADC_on(adc) || return dur(adc)
+    dwell = _pulseq_dwell(adc)
+    return adc.delay - dwell / 2 + adc.N * dwell
+end

@@ -74,9 +74,9 @@ Scanner
   DUR_Δt: Float64 1.0e-5
   GR_Δt: Float64 1.0e-5
   RF_Δt: Float64 1.0e-6
-  RF_ring_down_T: Float64 2.0e-5
-  RF_dead_time_T: Float64 0.0001
-  ADC_dead_time_T: Float64 1.0e-5
+  RF_ring_down_time: Float64 2.0e-5
+  RF_dead_time: Float64 0.0001
+  ADC_dead_time: Float64 1.0e-5
 ```
 
 ### Phantom
