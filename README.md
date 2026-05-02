@@ -185,6 +185,22 @@ Single-threaded compatibility is tested in all major operating systems (OS).
 
 If you see any problem with this information, please let us know in a GitHub issue.
 
+## PkgEval
+
+PkgEval is Julia's automated package evaluation system. It periodically tests
+registered packages against Julia versions to catch ecosystem regressions before
+they reach users.
+
+The umbrella `KomaMRI` package is excluded here because it opens UI paths that
+PkgEval cannot display. The subpackages below are the useful PkgEval signal.
+
+| Package | PkgEval |
+|:--------|:--------|
+| KomaMRIBase | [![PkgEval][pkgeval-img-komabase]][pkgeval-url-komabase] |
+| KomaMRICore | [![PkgEval][pkgeval-img-komacore]][pkgeval-url-komacore] |
+| KomaMRIFiles | [![PkgEval][pkgeval-img-komafiles]][pkgeval-url-komafiles] |
+| KomaMRIPlots | [![PkgEval][pkgeval-img-komaplots]][pkgeval-url-komaplots] |
+
 <!-- VARIABLES -->
 <!-- Julia compat -->
 [julia-19]: https://img.shields.io/badge/julia-v1.9-9558B2?logo=julia
@@ -240,6 +256,15 @@ If you see any problem with this information, please let us know in a GitHub iss
 [codecov-komafiles]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=files
 [codecov-komaplots]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl/branch/master/graph/badge.svg?flag=plots
 [codecov-url]: https://codecov.io/gh/JuliaHealth/KomaMRI.jl
+<!-- PkgEval -->
+[pkgeval-img-komabase]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/K/KomaMRIBase.svg
+[pkgeval-url-komabase]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/K/KomaMRIBase.html
+[pkgeval-img-komacore]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/K/KomaMRICore.svg
+[pkgeval-url-komacore]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/K/KomaMRICore.html
+[pkgeval-img-komafiles]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/K/KomaMRIFiles.svg
+[pkgeval-url-komafiles]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/K/KomaMRIFiles.html
+[pkgeval-img-komaplots]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/K/KomaMRIPlots.svg
+[pkgeval-url-komaplots]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/K/KomaMRIPlots.html
 <!-- Paper -->
 [arXiv-img]: https://img.shields.io/badge/arXiv-2107.11000-blue.svg
 [paper-img]: https://img.shields.io/badge/doi-10.1002/mrm.29635-blue.svg
