@@ -247,6 +247,91 @@ end
     end
 end
 
+@testitem "Bloch waveform event type accuracy" tags=[:core, :nomotion] begin
+    using OrdinaryDiffEqTsit5
+    include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    Tpulse = 1e-3
+    Tgrad = 1e-3
+    Tadc = 1e-3
+    Nadc = 6
+    M0 = 1.0
+    T1 = 1000e-3
+    T2 = 40e-3
+    Δw = 2π * 30
+    x0 = 1e-2
+    B1 = 1.5e-6 * cis(π / 7)
+    Gx = 0.2e-3
+
+    sys = Scanner()
+    obj = Phantom(x=[x0], ρ=[M0], T1=[T1], T2=[T2], Δw=[Δw])
+
+    grad_events = (
+        "trap" => Grad(Gx, Tgrad),
+        "uniform" => Grad([Gx, Gx], Tgrad),
+        "time-shaped" => Grad([Gx, Gx], [Tgrad]),
+    )
+    rf_events = (
+        "block" => RF(B1, Tpulse),
+        "uniform" => RF([B1, B1], Tpulse),
+        "time-shaped" => RF([B1, B1], [Tpulse]),
+    )
+
+    function waveform_sequence(grad, rf)
+        seq = Sequence()
+        @addblock seq += rf + (ADC(Nadc, Tadc), x=grad)
+        return seq
+    end
+
+    function diffeq_signal(seq)
+        B1e(t) = KomaMRIBase.get_rfs(seq, [t])[1][1]
+        Gxe(t) = KomaMRIBase.get_grads(seq, [t])[1][1]
+        function bloch!(dm, m, p, t)
+            mx, my, mz = m
+            B1t = B1e(t)
+            bx, by, bz = real(B1t), imag(B1t), x0 * Gxe(t) + Δw / (2π * γ)
+            dm[1] = -mx / T2 + 2π * γ * bz * my - 2π * γ * by * mz
+            dm[2] = -2π * γ * bz * mx - my / T2 + 2π * γ * bx * mz
+            dm[3] =  2π * γ * by * mx - 2π * γ * bx * my - mz / T1 + M0 / T1
+            return nothing
+        end
+        sol = solve(
+            ODEProblem(bloch!, [0.0, 0.0, M0], (0.0, dur(seq))),
+            Tsit5();
+            saveat=get_adc_sampling_times(seq),
+            tstops=[Tpulse, Tpulse + Tgrad],
+            dtmax=1e-6,
+            abstol=1e-9,
+            reltol=1e-9,
+        )
+        sol_diffeq = hcat(sol.u...)'
+        return sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
+    end
+
+    ref_seq = waveform_sequence(grad_events[1][2], rf_events[1][2])
+    ref_adc_times = get_adc_sampling_times(ref_seq)
+    mxy_diffeq = diffeq_signal(ref_seq)
+
+    for (grad_name, grad) in grad_events, (rf_name, rf) in rf_events
+        seq = waveform_sequence(grad, rf)
+        @test get_adc_sampling_times(seq) ≈ ref_adc_times
+        for sim_method in (Bloch(), BlochMagnus1(), BlochMagnus2(), BlochMagnus4())
+            @testset "$grad_name/$rf_name $(nameof(typeof(sim_method)))" begin
+                sim_params = Dict{String, Any}(
+                    "gpu" => USE_GPU,
+                    "return_type" => "mat",
+                    "sim_method" => sim_method,
+                    "Δt" => 1e-5,
+                    "Δt_rf" => 1e-5,
+                )
+                raw = simulate(obj, seq, sys; sim_params, verbose=false)[:, 1, 1]
+                @test NRMSE(raw, mxy_diffeq) < 0.1
+            end
+        end
+    end
+end
+
 @testitem "Bloch_RF_accuracy" tags=[:important, :core, :nomotion] begin
     using OrdinaryDiffEqTsit5
     include("initialize_backend.jl")
