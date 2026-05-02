@@ -78,19 +78,13 @@ p3 = plot_image(image[:,:,2], height=400);
 # ## Reconstruction using the labels LIN and PAR
 # Rather than using the k-space trajectory calculated by KomaMRI and performing a NUFFT for the reconstruction, we can use the label LIN (phase encoding) and PAR (partition encoding).
 #
-# First, we will create an increment label for LIN
+# First, we will create labels for LIN
 seq_LIN = PulseDesigner.EPI_example()
-lInc = LabelInc(1,"LIN");
 
-# We can put the increment at any stage between 2 ADC blocks. Here we will put it onto each ADC block.
 idx_ADC = is_ADC_on.(seq_LIN)
-for i in eachindex(idx_ADC)
-  idx_ADC[i] == 1 ? seq_LIN.EXT[i] = [lInc] : nothing;
+for (line, i) in enumerate(findall(idx_ADC))
+  seq_LIN.EXT[i] = [LabelSet(line - 1, "LIN")];
 end
-
-# MRIReco uses zero-based cartesian line indices. Set LIN to -1 before the first
-# ADC, so the first `LabelInc(1,"LIN")` makes the first acquired line LIN=0.
-seq_LIN.EXT[1] = [LabelSet(-1,"LIN")];
 
 # Let's check the LIN label for each ADC
 l = get_labels(seq_LIN)
