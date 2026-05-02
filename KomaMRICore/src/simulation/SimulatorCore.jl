@@ -308,6 +308,7 @@ julia> plot_signal(raw)
 function simulate(
     obj::Phantom, seq::Sequence, sys::Scanner; sim_params=Dict{String,Any}(), verbose=true, callbacks=()
 )
+    KomaMRIBase.assert_nonnegative_labels(seq)
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
     #Warn if user is trying to run on CPU without enabling multi-threading

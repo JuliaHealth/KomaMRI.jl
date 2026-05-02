@@ -1011,6 +1011,28 @@ function get_labels(seq::Sequence, nBlocks::Int=length(seq.EXT))
   return labels
 end
 
+@inline _has_negative_label_value(values::Tuple{}) = false
+@inline _has_negative_label_value(values::Tuple) = first(values) < 0 || _has_negative_label_value(Base.tail(values))
+@inline _has_negative_label_value(label::AdcLabels) =
+  _has_negative_label_value(ntuple(i -> getfield(label, i), Val(length(ADC_LABEL_NAMES))))
+
+function has_negative_labels(seq::Sequence, nBlocks::Int=length(seq.EXT))
+  nBlocks = min(nBlocks, length(seq.EXT))
+  label = AdcLabels()
+  for b = 1:nBlocks
+    for val in seq.EXT[b]
+      label = _update_label(label, val)
+    end
+    _has_negative_label_value(label) && return true
+  end
+  return false
+end
+
+function assert_nonnegative_labels(seq::Sequence)
+  has_negative_labels(seq) && throw(ArgumentError("Sequence ADC labels must be non-negative."))
+  return nothing
+end
+
 _update_label(label::AdcLabels, ::Extension) = label
 _update_label(label::AdcLabels, val::LabelSet) = _adc_label_with(label, Symbol(val.labelstring), val.labelvalue)
 function _update_label(label::AdcLabels, val::LabelInc)
