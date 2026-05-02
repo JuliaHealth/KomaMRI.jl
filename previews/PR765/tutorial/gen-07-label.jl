@@ -54,10 +54,11 @@ p3 = plot_image(image[:,:,2], height=400);
 display([p2 p3]);
 
 seq_LIN = PulseDesigner.EPI_example()
+lInc = LabelInc(1,"LIN");
 
 idx_ADC = is_ADC_on.(seq_LIN)
-for (line, i) in enumerate(findall(idx_ADC))
-  seq_LIN.EXT[i] = [LabelSet(line - 1, "LIN")];
+for i in findall(idx_ADC)[1:(end - 1)]
+  seq_LIN.EXT[i + 1] = [lInc];
 end
 
 l = get_labels(seq_LIN)
