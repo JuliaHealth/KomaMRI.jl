@@ -79,27 +79,35 @@ function signal_to_raw_data(
     signal, seq;
     phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
 )
+    Nadcs = sum(is_ADC_on.(seq))
     #Number of samples and FOV
-    _, ktraj = get_kspace(seq) #kspace information
-    mink = minimum(ktraj, dims=1)
-    maxk = maximum(ktraj, dims=1)
-    Wk = maxk .- mink
-    Δx = 1 ./ Wk[1:2] #[m] Only x-y
     Nx = get(seq.DEF, "Nx", 1)
     Ny = get(seq.DEF, "Ny", 1)
     Nz = get(seq.DEF, "Nz", 1)
-    if haskey(seq.DEF, "FOV")
-        FOVx, FOVy, _ = seq.DEF["FOV"] #[m]
+    if Nadcs == 0
+        FOV = get(seq.DEF, "FOV", [Nx, Ny, 1] .* 1e-3)
+        FOVx, FOVy, _ = FOV
         if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
         if FOVy > 1 FOVy *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        Nx = isnothing(get(seq.DEF, "Nx", nothing)) ? ceil(Int64, FOVx / Δx[1]) : Nx
-        Ny = isnothing(get(seq.DEF, "Ny", nothing)) ? ceil(Int64, FOVy / Δx[2]) : Ny
     else
-        FOVx = Nx * Δx[1]
-        FOVy = Ny * Δx[2]
+        _, ktraj = get_kspace(seq) #kspace information
+        mink = minimum(ktraj, dims=1)
+        maxk = maximum(ktraj, dims=1)
+        Wk = maxk .- mink
+        Δx = 1 ./ Wk[1:2] #[m] Only x-y
+        if haskey(seq.DEF, "FOV")
+            FOVx, FOVy, _ = seq.DEF["FOV"] #[m]
+            if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
+            if FOVy > 1 FOVy *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
+            Nx = isnothing(get(seq.DEF, "Nx", nothing)) ? ceil(Int64, FOVx / Δx[1]) : Nx
+            Ny = isnothing(get(seq.DEF, "Ny", nothing)) ? ceil(Int64, FOVy / Δx[2]) : Ny
+        else
+            FOVx = Nx * Δx[1]
+            FOVy = Ny * Δx[2]
+        end
+        #It needs to be transposed for the raw data
+        ktraj = maximum(2*abs.(ktraj[:])) == 0 ? transpose(ktraj) : transpose(ktraj)./ maximum(2*abs.(ktraj[:]))
     end
-    #It needs to be transposed for the raw data
-    ktraj = maximum(2*abs.(ktraj[:])) == 0 ? transpose(ktraj) : transpose(ktraj)./ maximum(2*abs.(ktraj[:]))
 
     #First we define the ISMRMRD data XML header
     #userParameters <- sim_params
@@ -154,10 +162,11 @@ function signal_to_raw_data(
         "userParameters"                 => sim_params, #Dict with parameters
     )
 
+    Nadcs == 0 && return RawAcquisitionData(params, Profile[])
+
     #Then, we define the Profiles
     profiles = Profile[]
     t_acq = get_adc_sampling_times(seq)
-    Nadcs = sum(is_ADC_on.(seq))
     NadcsPerImage = max(floor(Int, Nadcs / Nz), 1)
     scan_counter = 0
     nz = 0
@@ -237,9 +246,13 @@ function signal_to_raw_data(
 end
 
 Base.show(io::IO, raw::RawAcquisitionData) = begin
-    Nt, Nc = size(raw.profiles[1].data)
     compact = get(io, :compact, false)
     seq_name = get(raw.params, "protocolName", "None")
+    if isempty(raw.profiles)
+        print(io, compact ? "RawAcqData[$seq_name | 0 Profile(s)]" : "RawAcquisitionData[SeqName: $seq_name | 0 Profile(s)]")
+        return nothing
+    end
+    Nt, Nc = size(raw.profiles[1].data)
 	if !compact
         print(io, "RawAcquisitionData[SeqName: $seq_name | $(length(raw.profiles)) Profile(s) of $Nt×$Nc]")
     else
