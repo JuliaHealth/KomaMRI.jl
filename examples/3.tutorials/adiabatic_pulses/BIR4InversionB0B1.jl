@@ -27,18 +27,14 @@ for R = [28] #Product duration and bandwidth
         dt = Trf / length(B1)
         T90 = .5e-3
         B190 = 90 / (360 * γ * T90)
-        rf90 = Sequence(
-            [Grad(0.,0.); Grad(0.,0.); Grad(Gz,T90,0);;],
-            [RF(ΔB1*B190,T90,0,0);;]
-            )
-        bir4 = Sequence(
-            [Grad(0.,0.); Grad(0.,0.); Grad(Gz,Trf,0);;],
-            [RF(B1,Trf,Δf,0);;]
-            )
+        rf90 = Sequence()
+        @addblock rf90 += (RF(ΔB1 * B190, T90, 0, 0), z=Grad(Gz, T90, 0))
+        bir4 = Sequence()
+        @addblock bir4 += (RF(B1, Trf, Δf, 0), z=Grad(Gz, Trf, 0))
         seq = Sequence()
-        # seq += rf90
-        seq += bir4
-        # seq += rf90
+        # @addblock seq += rf90
+        @addblock seq += bir4
+        # @addblock seq += rf90
         sim_params = Dict{String,Any}("Δt_rf"=>dt)
 
         M = simulate_slice_profile(seq; sim_params, z)

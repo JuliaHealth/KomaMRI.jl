@@ -142,7 +142,7 @@ function seq_epi_100x100_TE100_FOV230()
     # Sequence generation
     epi = Sequence()
     for i in 0:Ny-1
-        epi += readout * (-1)^i
+        epi += (-1)^i * readout
         epi += blip_neg
     end
     epi = epi[1:end-1]          # Remove unnecessary last blip

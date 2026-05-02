@@ -1,4 +1,5 @@
 version: 2
+enable-beta-ecosystems: true
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -8,3 +9,17 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+
+  - package-ecosystem: "julia"
+    directories:
+      - "/"
+      - "/KomaMRIBase"
+      - "/KomaMRICore"
+      - "/KomaMRIFiles"
+      - "/KomaMRIPlots"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    labels:
+      - "dependencies"
+      - "julia"

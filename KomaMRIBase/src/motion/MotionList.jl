@@ -57,12 +57,12 @@ end
 function Base.vcat(m1::MotionList{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
     mv_aux = Motion{T}[]
     for m in m1.motions
-        m_aux = copy(m)
+        m_aux = deepcopy(m)
         m_aux.spins = expand(m_aux.spins, Ns1)
         push!(mv_aux, m_aux)
     end
     for m in m2.motions
-        m_aux = copy(m)
+        m_aux = deepcopy(m)
         m_aux.spins = expand(m_aux.spins, Ns2)
         m_aux.spins = SpinRange(m_aux.spins.range .+ Ns1)
         push!(mv_aux, m_aux)
@@ -72,10 +72,10 @@ end
 # Motion + Motion
 function Base.vcat(m1::Motion{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real}
     mv_aux = Motion{T}[]
-    m_aux = copy(m1)
+    m_aux = deepcopy(m1)
     m_aux.spins = expand(m_aux.spins, Ns1)
     push!(mv_aux, m_aux)
-    m_aux = copy(m2)
+    m_aux = deepcopy(m2)
     m_aux.spins = expand(m_aux.spins, Ns2)
     m_aux.spins = SpinRange(m_aux.spins.range .+ Ns1)
     push!(mv_aux, m_aux)
@@ -85,11 +85,11 @@ end
 Base.vcat(m1::MotionList{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real} = vcat(m2, m1, Ns2, Ns1)
 function Base.vcat(m1::Motion{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
     mv_aux = Motion{T}[]
-    m_aux = copy(m1)
+    m_aux = deepcopy(m1)
     m_aux.spins = expand(m_aux.spins, Ns1)
     push!(mv_aux, m_aux)
     for m in m2.motions
-        m_aux = copy(m)
+        m_aux = deepcopy(m)
         m_aux.spins = expand(m_aux.spins, Ns2)
         m_aux.spins = SpinRange(m_aux.spins.range .+ Ns1)
         push!(mv_aux, m_aux)

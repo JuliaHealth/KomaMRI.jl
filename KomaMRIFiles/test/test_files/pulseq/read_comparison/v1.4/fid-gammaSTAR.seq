@@ -1,0 +1,145 @@
+# Sequence generated with gammaSTAR: Demo FID
+# https://gammastar.mevis.fraunhofer.de
+
+[VERSION]
+major 1
+minor 4
+revision 0
+
+[DEFINITIONS]
+GradientRasterTime 1e-05
+RadiofrequencyRasterTime 1e-05
+AdcRasterTime 1e-06
+BlockDurationRaster 1e-06
+FOV 0.512 0.512 0.512
+TotalDuration 45.5124
+
+# Format of blocks:
+# D RF GX GY GZ ADC EXT
+[BLOCKS]
+1 400 1 0 0 0 0 0
+2 2999600 0 0 0 0 1 9
+3 400 1 0 0 0 0 0
+4 2999600 0 0 0 0 1 10
+5 400 1 0 0 0 0 0
+6 2999600 0 0 0 0 1 10
+7 400 1 0 0 0 0 0
+8 2999600 0 0 0 0 1 10
+9 400 1 0 0 0 0 0
+10 2999600 0 0 0 0 1 10
+11 400 1 0 0 0 0 0
+12 2999600 0 0 0 0 1 10
+13 400 1 0 0 0 0 0
+14 2999600 0 0 0 0 1 10
+15 400 1 0 0 0 0 0
+16 2999600 0 0 0 0 1 10
+17 400 1 0 0 0 0 0
+18 2999600 0 0 0 0 1 10
+19 400 1 0 0 0 0 0
+20 2999600 0 0 0 0 1 10
+21 400 1 0 0 0 0 0
+22 2999600 0 0 0 0 1 10
+23 400 1 0 0 0 0 0
+24 2999600 0 0 0 0 1 10
+25 400 1 0 0 0 0 0
+26 2999600 0 0 0 0 1 10
+27 400 1 0 0 0 0 0
+28 2999600 0 0 0 0 1 10
+29 400 1 0 0 0 0 0
+30 2999600 0 0 0 0 1 10
+31 400 1 0 0 0 0 0
+32 512000 0 0 0 0 1 10
+
+# Format of RF events:
+# id amplitude mag_id phase_id time_id delay freq phase
+# .. Hz .. .. .. us Hz rad
+[RF]
+1 833.333347 1 2 0 0 0.000000 1.570796
+
+# Format of gradients:
+# id amplitude shape_id time_id delay
+# .. Hz/m .. .. us
+[GRADIENTS]
+
+# Format of trapezoidal gradients:
+# id amplitude rise flat fall delay
+# .. Hz/m us us us us
+[TRAP]
+
+# Format of ADC events:
+# id num dwell delay freq phase
+# .. .. ns us Hzrad
+[ADC]
+1 1024 500000 0 0.000000 0.000000
+
+# Format of extension lists:
+# id type ref next_id
+# next_id of 0 terminates the list
+# Extension list is followed by extension specifications
+[EXTENSIONS]
+1 1 9 0
+2 1 8 1
+3 1 7 2
+4 1 6 3
+5 1 5 4
+6 1 4 5
+7 1 3 6
+8 1 2 7
+9 1 1 8
+10 2 1 0
+
+# Extension specification for setting labels:
+# id set labelstring
+extension LABELSET 1
+1 0 LIN
+2 0 PAR
+3 0 SLC
+4 0 SEG
+5 0 REP
+6 0 AVG
+7 0 SET
+8 0 ECO
+9 0 PHS
+
+# Extension specification for incrementing labels:
+# id inc labelstring
+extension LABELINC 2
+1 1 AVG
+
+# Sequence Shapes
+[SHAPES]
+shape_id 1
+num_samples 23
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+
+
+shape_id 2
+num_samples 23
+0
+0
+21
+
+
+

@@ -58,7 +58,7 @@ end
 
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], oneAPIBackend())
-    @warn "oneAPI does not support all array operations used by KomaMRI. GPU performance may be slower than expected"
+    @warn "oneAPI support is experimental and does not support all array operations used by KomaMRI. GPU performance may be slower than expected"
 end
 
 end

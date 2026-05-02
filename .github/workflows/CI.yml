@@ -36,7 +36,7 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
       - name: "KomaMRIBase: Build"
         if: '!cancelled()'
         uses: julia-actions/julia-buildpkg@v1
@@ -115,7 +115,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           flags: komamri
@@ -123,7 +123,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIBase/src
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           flags: base
@@ -131,7 +131,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRICore/src,KomaMRICore/ext
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           flags: core
@@ -139,7 +139,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIPlots/src,KomaMRIPlots/ext
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           flags: plots
@@ -147,7 +147,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIFiles/src
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           flags: files

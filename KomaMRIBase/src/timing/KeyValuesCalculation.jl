@@ -13,31 +13,26 @@ Get amplitude samples of MRI sequence event.
 # Returns
 - `A`: (`::Vector{Number}`) vector with amplitude samples
 """
-function ampls(gr::Grad)
-    if !is_on(gr)
-        return Float64[]
-    end
-    if !(gr.A isa Vector) && !(gr.T isa Vector)     # trapezoidal
-        return [gr.first; gr.A; gr.A; gr.last]
-	end
-	return [gr.first; gr.A; gr.last]     # uniformly-sampled and time-shaped
-end
+ampls(gr::TrapezoidalGrad) = is_on(gr) ? [gr.first; gr.A; gr.A; gr.last] : typeof(gr.A)[]
+ampls(gr::Union{UniformlySampledGrad,TimeShapedGrad}) =
+    is_on(gr) ? [gr.first; gr.A; gr.last] : eltype(gr.A)[]
+
 function ampls(rf::RF; freq_in_phase=false)
+    waveform = cis(rf.ϕ) .* rf.A
     if !is_on(rf)
-        return ComplexF64[]
+        return similar(_shape_samples(waveform), 0)
     end
-    if !(rf.A isa Vector)
-        A = ComplexF64[0.0; rf.A; rf.A; 0.0]
-	else
-        A = ComplexF64[0.0; rf.A; 0.0]     # uniformly-sampled and time-shaped
-    end
+    A = _shape_samples(waveform)
     if freq_in_phase
         t0 = times(rf, :Δf)
         t  = times(rf)
         Interpolations.deduplicate_knots!(t0; move_knots=true)
         Interpolations.deduplicate_knots!(t; move_knots=true)
         f = linear_interpolation(t0, freqs(rf)).(t)
-        A = A .* exp.(im*2π*[0; cumtrapz(diff(t), f)])
+        phase_cycles = [0; cumtrapz(diff(t), f)]
+        center_time = rf.delay + get_RF_center(rf)
+        center_phase_cycles = linear_interpolation(t, phase_cycles, extrapolation_bc=Interpolations.Flat())(center_time)
+        A = A .* cis.(2π .* (phase_cycles .- center_phase_cycles))
     end
 	return A
 end
@@ -54,14 +49,31 @@ Get frequency samples of MRI sequence event.
 """
 function freqs(rf::RF)
     if !is_on(rf)
-        return Float64[]
+        return similar(_shape_samples(rf.Δf), 0)
     end
-    if !(rf.Δf isa Vector)
-        df = [0.0; rf.Δf; rf.Δf; 0.0]
-	else
-        df = [0.0; rf.Δf; 0.0]     # uniformly-sampled and time-shaped
-    end
-	return df
+    return _shape_samples(rf.Δf)
+end
+
+"""
+    ψ = rf_frame_phase(rf::RF)
+
+RF rotating-frame phase samples from frequency modulation, with `ψ` zeroed at the RF center.
+"""
+function rf_frame_phase(rf::RF)
+    f = freqs(rf)
+    isempty(f) && return Float64[]
+    t = times(rf, :Δf)
+    Interpolations.deduplicate_knots!(t; move_knots=true)
+    center_time = rf.delay + get_RF_center(rf)
+    t_aug = sort!([t; center_time])
+    f_aug = linear_interpolation(t, f, extrapolation_bc=Interpolations.Flat()).(t_aug)
+    ψ_aug = -2π .* [0.0; cumtrapz(diff(t_aug), f_aug)]
+    ψ = ψ_aug[searchsortedfirst.(Ref(t_aug), t)]
+    ψ_center = ψ_aug[searchsortedfirst(t_aug, center_time)]
+    ψ .-= ψ_center
+    ψ[1] = zero(eltype(ψ))
+    ψ[end] = zero(eltype(ψ))
+    return ψ
 end
 function ampls(adc::ADC)
     if !is_on(adc)
@@ -86,38 +98,44 @@ Get time samples of MRI sequence event.
 # Returns
 - `t`: (`::Vector{Number}`) vector with time samples
 """
-function times(gr::Grad)
-    if !is_on(gr)
-        return Float64[]
-    end
-    if !(gr.A isa Vector) && !(gr.T isa Vector)
-        t = cumsum([gr.delay; gr.rise; gr.T; gr.fall])   # trapezoidal
-    elseif gr.A isa Vector && gr.T isa Vector
-        t =  cumsum([gr.delay; gr.rise; gr.T; gr.fall])    # time-shaped
-    else
-        NA = length(gr.A)
-        t = cumsum([gr.delay; gr.rise; gr.T/(NA-1).*ones(NA-1); gr.fall]) # uniformly-sampled
-    end
-    t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
+
+# Keep the closing knot distinct from the block boundary without changing the event shape.
+function _separate_closing_knot!(t)
+    length(t) >= 2 && (t[end - 1] -= MIN_RISE_TIME)
     return t
 end
+
+_gradient_times(gr::TrapezoidalGrad) = cumsum([gr.delay; gr.rise; gr.T; gr.fall])
+
+times(gr::TrapezoidalGrad) =
+    is_on(gr) ? _separate_closing_knot!(_gradient_times(gr)) : typeof(gr.delay)[]
+
+function times(gr::UniformlySampledGrad)
+    is_on(gr) || return typeof(gr.delay)[]
+    return _separate_closing_knot!(_gradient_times(gr))
+end
+
+function _gradient_times(gr::UniformlySampledGrad)
+    n_intervals = length(gr.A) - 1
+    flat_times = n_intervals > 0 ? fill(gr.T / n_intervals, n_intervals) : typeof(gr.delay)[]
+    return cumsum([gr.delay; gr.rise; flat_times; gr.fall])
+end
+
+_gradient_times(gr::TimeShapedGrad) = cumsum([gr.delay; gr.rise; gr.T; gr.fall])
+
+times(gr::TimeShapedGrad) =
+    is_on(gr) ? _separate_closing_knot!(_gradient_times(gr)) : similar(gr.T, 0)
+
 function times(rf::RF, key::Symbol)
     if !is_on(rf)
-        return Float64[]
+        return typeof(rf.delay)[]
     end
-    rfA = getproperty(rf, key)
-    if !(rfA isa Vector) && !(rf.T isa Vector)
-        t =  cumsum([rf.delay; 0.0; rf.T; 0.0])         # pulse
-    elseif rfA isa Vector && rf.T isa Vector
-        t =  cumsum([rf.delay; 0.0; rf.T; 0.0])    # time-shaped
-    elseif !(rfA isa Vector)
-        t =  cumsum([rf.delay; 0.0; sum(rf.T); 0.0]) # df constant
-    else
-        NA = length(rf.A)
-        t = cumsum([rf.delay; 0.0; rf.T/(NA-1).*ones(NA-1); 0.0])    # uniformly-sampled
-    end
-    t[end-1] -= MIN_RISE_TIME #Fixes incorrect block interpretation
-    return t
+    ts0 = key === :A ? _shape_times(rf.A, rf.T) :
+        key === :Δf ? _shape_times(rf.Δf, rf.T) :
+        throw(ArgumentError("Unsupported RF key $key"))
+    ts = rf.delay .+ ts0
+    t = [rf.delay; ts; ts[end]]
+    return _separate_closing_knot!(t)
 end
 times(rf::RF) = times(rf, :A)
 function times(adc::ADC)
@@ -132,6 +150,12 @@ function times(adc::ADC)
     return t
 end
 
-is_on(x::Grad) = any(x->abs.(x) > .0, x.A)
-is_on(x::RF)   = any(x->abs.(x) > .0, x.A)
+is_on(x::Number) = !iszero(x)
+is_on(x::AbstractArray{<:Number}) = any(!iszero, x)
+is_on(x::Grad) = is_on(x.A)
+is_on(x::RF)   = is_on(x.A)
 is_on(x::ADC)  = x.N > 0
+
+is_GR_on(x::Grad) = is_on(x)
+is_RF_on(x::RF) = is_on(x)
+is_ADC_on(x::ADC) = is_on(x)

@@ -3,7 +3,7 @@
 While KomaMRI provides built-in support for CPU and GPU parallelization, it is sometimes desirable to distribute simulation work even further across multiple GPUs or compute nodes. This can be done by using Distributed.jl and making use of the independent spin property: each spin in the system is independent from the rest, so the phantom spins can be subdivided into separate simulations and results recombined, as in the diagram below:
 
 ```@raw html
-<p align="center"><img width="90%" src="../../assets/KomamultiNode.svg"/></p>
+<p align="center"><img width="90%" src="../assets/KomamultiNode.svg"/></p>
 ```
 
 The following two examples demonstrate how to use Distributed.jl to run a simulation using multiple GPUS, and using multiple nodes in an HPC cluster.
@@ -13,7 +13,7 @@ The following two examples demonstrate how to use Distributed.jl to run a simula
 To run a simulation using multiple GPUs, the phantom object can be divided using the kfoldperm function. Distributed.jl can then be used to start one Julia worker process per available device so that each device simulates a different part of the object. The results can then be fetched asynchronously by the main process and combined to produce a final signal. This is shown in the following diagram: 
 
 ```@raw html
-<p align="center"><img width="90%" src="../../assets/KomamultiGPU.svg"/></p>
+<p align="center"><img width="90%" src="../assets/KomamultiGPU.svg"/></p>
 ```
 
 The SLURM SBATCH script below requests 4 GPUs, all on a single computer. The Julia code then distributes work among each GPU:
@@ -64,7 +64,7 @@ end
 This example uses the package ClusterManagers.jl to initialize worker processes on a SLURM cluster based on the number of tasks specified in the #SBATCH --ntasks directive. This can be useful to divide simulation work among multiple compute nodes if the problem is too large to fit into memory for a single computer, or if the number of desired workers is greater than the typical number of CPU cores available. An illustration of this is shown below:
 
 ```@raw html
-<p align="center"><img width="90%" src="../../assets/KomamultiNodeCPU.svg"/></p>
+<p align="center"><img width="90%" src="../assets/KomamultiNodeCPU.svg"/></p>
 ```
 
 This SBATCH script requests 20 separate nodes, with each taking a single task. The Julia code is similar to the example for multiple GPUs, but initializes the processes slightly differently:

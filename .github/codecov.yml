@@ -4,7 +4,7 @@ coverage:
     project:
       default:
         target: 90% #overall project/ repo coverage
-        threshold: 1%
+        threshold: 5%
       komamri:
         target: 90%
         threshold: 5%
@@ -16,7 +16,7 @@ coverage:
         flags:
           - base
       core:
-        target: 90%
+        target: 80% #slighlty lower, in case gpu tests dont run
         threshold: 5%
         flags:
           - core

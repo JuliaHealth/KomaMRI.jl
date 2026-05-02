@@ -25,10 +25,11 @@ const u32 = Literal(UInt32)
 
 Gets the simulation backend to use. If use_gpu=false or there are no available GPU backends, 
 returns CPU(), else, returns the GPU backend (currently either CUDABackend(), MetalBackend(), 
-ROCBackend(), or oneAPIBackend()).
+ROCBackend(), or oneAPIBackend() (experimental).
 
-The GPU package for the corresponding backend (CUDA.jl, Metal.jl, AMDGPU.jl, or oneAPI.jl) must be
-loaded and functional, otherwise KomaMRI will default to using the CPU.
+The GPU package for the corresponding backend (CUDA.jl, Metal.jl, AMDGPU.jl, or
+oneAPI.jl) must be loaded and functional, otherwise KomaMRI will default to using
+the CPU. oneAPI support is experimental.
 
 # Arguments
 - 'use_gpu': ('::Bool') If true, attempt to use GPU and check for available backends
@@ -53,7 +54,7 @@ function get_backend(use_gpu::Bool)
           The GPU functionality is being called but no GPU backend is loaded 
           to access it. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your 
           code. Defaulting back to the CPU. (No action is required if you want
-          to run on the CPU).
+          to run on the CPU). oneAPI support is experimental.
         """ maxlog=1
         BACKEND[] = KA.CPU()
         return BACKEND[]

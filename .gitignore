@@ -19,14 +19,29 @@ src/examples/sysimageSpinLab.dll
 *.out
 *.txt
 *.nb
-.gitignore
 qte_timings.txt
 *.nsys-rep
 *.mem
+# Generated docs outputs. Source docs use normal names; generated wrappers use gen-*.
+docs/src/**/gen-*.md
+docs/src/**/gen-*.jl
+docs/src/**/gen-*.ipynb
+
+# Generated tutorial source copies from examples/3.tutorials.
 docs/src/tutorial/*
 !docs/src/tutorial/README.md
-docs/src/tutorial-pluto/*
-!docs/src/tutorial-pluto/README.md
+!docs/src/tutorial/pluto/
+
+# Generated Pluto source copies, wrappers, and exported notebooks.
+docs/src/tutorial/pluto/**
+!docs/src/tutorial/pluto/README.md
+
+# Generated public downloads from Literate/Pluto and copied logos.
+docs/src/public/how-to/**
+docs/src/public/explanation/**
+docs/src/public/reference/**
+docs/src/public/tutorial/**
+docs/src/public/assets/logo*
 docs/src/assets/logo*
 docs/src/assets/icon*
 src/ui/assets/*
@@ -37,3 +52,4 @@ examples/5.koma_paper/comparison_accuracy/**/*.h5
 !examples/5.koma_paper/Manifest.toml
 *_w.phantom
 .julia-local/
+.codex_*

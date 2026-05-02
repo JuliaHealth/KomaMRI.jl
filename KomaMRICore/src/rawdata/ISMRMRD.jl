@@ -110,7 +110,7 @@ function signal_to_raw_data(
     end
 
     # get the maximum of encoding counters
-    label = get_label(seq)
+    label = get_labels(seq)
     max_enc = maximum(label)
     #XML header
     params = Dict(

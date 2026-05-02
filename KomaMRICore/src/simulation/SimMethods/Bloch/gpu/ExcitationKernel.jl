@@ -1,47 +1,83 @@
 ## COV_EXCL_START
 
 @kernel unsafe_indices=true inbounds=true function excitation_kernel!(
+    sig_output::AbstractMatrix{Complex{T}}, 
     M_xy::AbstractVector{Complex{T}}, M_z, 
-    @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_Spins,
-    seq::AbstractDiscreteSequence, N_Δt,
-    ::Val{MOTION}
-) where {T, MOTION}
+    @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
+    seq::AbstractDiscreteSequence, s_length,
+    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
+    sim_method::SM
+) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, SM <: BlochLikeSimMethods}
 
     @uniform N = @groupsize()[1]
     i_l = @index(Local, Linear)
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    if i <= N_Spins
-        x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
+    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
+    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
+
+    active = i <= N_spins
+    Mxy_r = zero(T)
+    Mxy_i = zero(T)
+    Mz = zero(T)
+    ρ = zero(T)
+    ΔBz = zero(T)
+    T1 = T(1)
+    T2 = T(1)
+    x = zero(T)
+    y = zero(T)
+    z = zero(T)
+    Bx_prev = zero(T)
+    By_prev = zero(T)
+    Bz_prev = zero(T)
+
+    if active
         ΔBz = p_ΔBz[i]
         Mxy_r, Mxy_i = reim(M_xy[i])
         Mz = M_z[i]
         ρ = p_ρ[i]
         T1 = p_T1[i]
         T2 = p_T2[i]
+        # Rotating frame -> RF frame
+        # M * exp(-i * ψ)
+        ψ_start = seq.ψ[1]
+        if !iszero(ψ_start)
+            sin_ψ, cos_ψ = sincos(ψ_start)
+            Mxy_r, Mxy_i = Mxy_r * cos_ψ + Mxy_i * sin_ψ, Mxy_i * cos_ψ - Mxy_r * sin_ψ
+        end
 
-        s_idx = 1u32
-        while (s_idx <= N_Δt)
+        # Calculate initial B
+        x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
+        Bx_prev, By_prev = reim(seq.B1[1])
+        Bz_prev = get_Bz(seq, x, y, z, 1) + ΔBz - seq.Δf[1] / T(γ)
+    end
+
+    ADC_idx = 1u32
+    s_idx = 2u32
+    while (s_idx <= s_length)
+        if active
             if MOTION
                 x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, s_idx)
             end
+            Bx_next, By_next = reim(seq.B1[s_idx])
+            Bz_next = get_Bz(seq, x, y, z, s_idx) + ΔBz - seq.Δf[s_idx] / T(γ)
             
-            Bz = get_Bz(seq, x, y, z, s_idx) + ΔBz - seq.Δf[s_idx] / T(γ)
-            B1_r, B1_i = reim(seq.B1[s_idx])
-            B = sqrt(B1_r^2 + B1_i^2 + Bz^2)
-            Δt = seq.Δt[s_idx]
-            φ = T(-π * γ) * B * Δt
-            sin_φ, cos_φ = sincos(φ)
-            α_r = cos_φ
-            if iszero(B)
-                α_i = -(Bz / (B + eps(T))) * sin_φ
-                β_r = (B1_i / (B + eps(T))) * sin_φ
-                β_i = -(B1_r / (B + eps(T))) * sin_φ
+            Δt = seq.Δt[s_idx - 1]
+
+            # Spinor rotation
+            θx, θy, θz = effective_rotation_vector(Bx_prev, By_prev, Bz_prev, Bx_next, By_next, Bz_next, Δt, sim_method)
+            θ =  sqrt(θx^2 + θy^2 + θz^2)
+            sin_θ, cos_θ = sincos(T(-π * γ) * θ)
+            α_r = cos_θ
+            if iszero(θ)
+                α_i = -(θz / (θ + eps(T))) * sin_θ
+                β_r =  (θy / (θ + eps(T))) * sin_θ
+                β_i = -(θx / (θ + eps(T))) * sin_θ
             else
-                α_i = -(Bz / B) * sin_φ
-                β_r = (B1_i / B) * sin_φ
-                β_i = -(B1_r / B) * sin_φ
+                α_i = -(θz / θ) * sin_θ
+                β_r =  (θy / θ) * sin_θ
+                β_i = -(θx / θ) * sin_θ
             end
 
             Mxy_new_r = 2 * (Mxy_i * (α_r * α_i - β_r * β_i) +
@@ -56,14 +92,36 @@
                         2 * (Mxy_r * (α_r * β_r - α_i * β_i) +
                         Mxy_i * (α_r * β_i + α_i * β_r))
             
-            ΔT1 = exp(-Δt / T1)
-            ΔT2 = exp(-Δt / T2)
-            Mxy_r = Mxy_new_r * ΔT2
-            Mxy_i = Mxy_new_i * ΔT2
-            Mz = Mz_new * ΔT1 + ρ * (T(1) - ΔT1)
-            s_idx += 1u32
+            # Relaxation
+            E1 = exp(-Δt / T1)
+            E2 = exp(-Δt / T2)
+            Mxy_r = Mxy_new_r * E2
+            Mxy_i = Mxy_new_i * E2
+            Mz = Mz_new * E1 + ρ * (T(1) - E1)
+
+            Bx_prev, By_prev, Bz_prev = Bx_next, By_next, Bz_next
         end
 
+        # Acquire Signal
+        if HAS_ADC && seq.ADC[s_idx]
+            sig_r, sig_i = reduce_signal!(Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
+            if i_l == 1u32
+                sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
+            end
+            ADC_idx += 1u32
+        end
+
+        s_idx += 1u32
+    end
+
+    if active
+        # RF frame -> Rotating frame
+        # M * exp(i * ψ)
+        ψ_end = seq.ψ[s_length]
+        if !iszero(ψ_end)
+            sin_ψ, cos_ψ = sincos(ψ_end)
+            Mxy_r, Mxy_i = Mxy_r * cos_ψ - Mxy_i * sin_ψ, Mxy_r * sin_ψ + Mxy_i * cos_ψ
+        end
         M_xy[i] = complex(Mxy_r, Mxy_i)
         M_z[i] = Mz
     end

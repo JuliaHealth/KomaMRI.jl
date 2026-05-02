@@ -19,7 +19,7 @@ function setup_MRILab_benchmark()
     rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4, a=0.46)
     α_desired = 90 + 0im
     α =  get_flip_angles(rf)[1]
-    rf *= α_desired / α #Linearly adjusts B1 to obtain desired FA
+    rf = (α_desired / α) * rf # Linearly adjusts B1 to obtain desired FA
     # Spiral sequence
     TE = 50e-3  # 50e-3 [s]
     TR = 10     # 10 [s]
@@ -37,10 +37,19 @@ function setup_MRILab_benchmark()
 end
 
 function add_benchmark_to_suite(suite::BenchmarkGroup, benchmark_name::String, backend::String, num_cpu_threads::Int64, sys::Scanner, obj::Phantom, seq::Sequence, sim_params::Dict)
-    if backend == "CPU"
-        suite[benchmark_name]["Bloch"]["CPU"][string(num_cpu_threads, " ", "thread(s)")] = @benchmarkable @suppress simulate($obj, $seq, $sys; sim_params=$sim_params)
-    else
-        suite[benchmark_name]["Bloch"]["GPU"][backend] = @benchmarkable @suppress simulate($obj, $seq, $sys; sim_params=$sim_params)
+    sim_methods = (
+        "Bloch" => Bloch(),
+        "BlochMagnus2" => BlochMagnus2(),
+        "BlochMagnus4" => BlochMagnus4(),
+    )
+    for (method_name, sim_method) in sim_methods
+        method_sim_params = copy(sim_params)
+        method_sim_params["sim_method"] = sim_method
+        if backend == "CPU"
+            suite[benchmark_name][method_name]["CPU"][string(num_cpu_threads, " ", "thread(s)")] = @benchmarkable @suppress simulate($obj, $seq, $sys; sim_params=$method_sim_params)
+        else
+            suite[benchmark_name][method_name]["GPU"][backend] = @benchmarkable @suppress simulate($obj, $seq, $sys; sim_params=$method_sim_params)
+        end
     end
 end
 
@@ -48,7 +57,6 @@ function setup_benchmarks(suite::BenchmarkGroup, backend::String, num_cpu_thread
     # Benchmark 1: from lit-04-3DSliceSelective.jl
     sys1, obj1, seq1 = setup_3DSlice_benchmark()
     sim_params1 = Dict{String,Any}(
-        "Nblocks" => 20,
         "gpu" => (backend != "CPU"),
         "Nthreads" => num_cpu_threads
     )
@@ -57,7 +65,6 @@ function setup_benchmarks(suite::BenchmarkGroup, backend::String, num_cpu_thread
     # Benchmark 2: from MRiLab_speed.jl
     sys2, obj2, seq2 = setup_MRILab_benchmark()
     sim_params2 = Dict{String,Any}(
-        "Nblocks" => 20,
         "gpu" => (backend != "CPU"),
         "Nthreads" => num_cpu_threads
     )

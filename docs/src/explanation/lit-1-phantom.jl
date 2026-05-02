@@ -20,33 +20,21 @@ import DisplayAs #hide
 # ## KomaMRI Phantom Overview
 # In Koma, a phantom is made up of a set of spins (which in many cases are also known as ''isochromats'').
 # Each spin is independent of the others in terms of properties, position and state.
-# This is a key feature of **KomaMRI**, as it is explained in the [Simulation](6-simulation.md) section.
+# This is a key feature of **KomaMRI**, as it is explained in the [Simulation](7-simulation.md) section.
 
-# Let's take a look at the definition of the [`Phantom`](@ref KomaMRIBase.Phantom) struct 
-# inside Koma's source code to see what it looks like:
-# ```julia
-# @with_kw mutable struct Phantom{T<:Real}
-#     name::String = "spins"
-#     x::AbstractVector{T}
-#     y::AbstractVector{T}   = zeros(eltype(x), size(x))
-#     z::AbstractVector{T}   = zeros(eltype(x), size(x))
-#     ρ::AbstractVector{T}   = ones(eltype(x), size(x))
-#     T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-#     T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-#     T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
-#     #Off-resonance related
-#     Δw::AbstractVector{T}  = zeros(eltype(x), size(x))
-#     #Diffusion
-#     Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
-#     Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
-#     Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
-#     #Motion
-#     motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
-# end
-# ```
-
-# This structure consists of several elements. Most of them are vectors, except for
-# the `name` (self-explanatory) and `motion` (explained below) fields.
+# A [`Phantom`](@ref KomaMRIBase.Phantom) stores one value per spin for each
+# physical property:
+#
+# | Field | Meaning |
+# |---|---|
+# | `name` | Phantom name. |
+# | `x`, `y`, `z` | Initial spin positions in metres. |
+# | `ρ` | Proton density. |
+# | `T1`, `T2`, `T2s` | Relaxation times in seconds. |
+# | `Δw` | Off-resonance in rad/s. |
+# | `Dλ1`, `Dλ2`, `Dθ` | Diffusion-related fields. |
+# | `motion` | Spin displacement model. |
+#
 # These vectors represent object properties, with each element holding a value associated 
 # with a single magnetization (i.e. a single spin).
 # Specifically, `x`, `y` and `z` are the initial spatial coordinates of each spin. 
@@ -55,7 +43,7 @@ import DisplayAs #hide
 # `Dλ1`, `Dλ2` and `Dθ` are diffusion-related fields which are not in use at the moment.
 # Last, the `motion` field stands for spin displacements, which are added to `x`, `y` and `z`
 # when simulating in order to obtain the spin positions at each time step. For more information about
-# motion, refer to [Motion](2-motion.md) section.
+# motion, refer to [Motion](gen-2-motion.md) section.
 
 # To get an even better understanding on how this structure works, let's look at an example of a brain phantom:
 
@@ -67,12 +55,7 @@ obj = brain_phantom2D()
 # and relaxation times, so feel free to replace the `:T1` symbol with another property of the phantom in the example below:
 
 p1 = plot_phantom_map(obj, :T1; height=450)
-#md savefig(p1, "../assets/doc-1-phantom.html"); #hide
 #jl display(p1);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/doc-1-phantom.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # You can access and filter information for the all the field names of a **Phantom** using the dot notation:
 
@@ -98,12 +81,7 @@ obj.motion
 
 obj[1:2000]
 p2 = plot_phantom_map(obj[1:1000], :T2 ; height=450) #hide
-#md savefig(p2, "../assets/tut-5-phantom-subset.html"); #hide
 #jl display(p2);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-5-phantom-subset.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # ### Combination of Phantoms
 
@@ -112,12 +90,7 @@ obj2 = pelvis_phantom2D()
 obj2.x .+= 0.1; obj.x.-= 0.1 #hide
 obj_sum = obj + obj2
 p3 = plot_phantom_map(obj_sum, :T1 ; height=450) #hide
-#md savefig(p3, "../assets/tut-5-phantom-sum.html"); #hide
 #jl display(p3);
-
-#md # ```@raw html
-#md # <center><object type="text/html" data="../../assets/tut-5-phantom-sum.html" style="width:85%; height:470px;"></object></center>
-#md # ```
 
 # ### Scalar multiplication of a Phantom
 

@@ -1,3 +1,28 @@
+abstract type RFUse end
+struct Excitation <: RFUse end
+struct Refocusing <: RFUse end
+struct Inversion <: RFUse end
+struct Saturation <: RFUse end
+struct Preparation <: RFUse end
+struct Other <: RFUse end
+struct Undefined <: RFUse end
+
+get_RF_use_from_char(::Val{'e'}) = Excitation()
+get_RF_use_from_char(::Val{'r'}) = Refocusing()
+get_RF_use_from_char(::Val{'i'}) = Inversion()
+get_RF_use_from_char(::Val{'s'}) = Saturation()
+get_RF_use_from_char(::Val{'p'}) = Preparation()
+get_RF_use_from_char(::Val{'o'}) = Other()
+get_RF_use_from_char(::Val{'u'}) = Undefined()
+
+get_char_from_RF_use(::Excitation)  = 'e'
+get_char_from_RF_use(::Refocusing)  = 'r'
+get_char_from_RF_use(::Inversion)   = 'i'
+get_char_from_RF_use(::Saturation)  = 's'
+get_char_from_RF_use(::Preparation) = 'p'
+get_char_from_RF_use(::Other)       = 'o'
+get_char_from_RF_use(::Undefined)   = 'u'
+
 """
     rf = RF(A, T)
     rf = RF(A, T, Δf)
@@ -8,10 +33,13 @@ The RF struct represents a Radio Frequency excitation of a sequence event.
 # Arguments
 - `A`: (`::Complex`, `[T]`) RF complex amplitud modulation (AM), ``B_1(t) = |B_1(t)|
     e^{i\\phi(t)} = B_{1}(t) + iB_{1,y}(t) ``
-- `T`: (`::Real`, [`s`]) RF duration
-- `Δf`: (`::Real` or `::Vector`, [`Hz`]) RF frequency difference with respect to the Larmor frequency.
+- `T`: (`::Real`, `[s]`) RF duration
+- `Δf`: (`::Real` or `::Vector`, `[Hz]`) RF frequency difference with respect to the Larmor frequency.
     This can be a number but also a vector to represent frequency modulated signals (FM).
-- `delay`: (`::Real`, [`s`]) RF delay time
+- `delay`: (`::Real`, `[s]`) RF delay time
+- `center`: (`::Real`, `[s]`) RF center time
+- `ϕ`: (`::Real`, `[rad]`) RF phase at `center`
+- `use`: (`::RFUse`) RF use type
 
 # Returns
 - `rf`: (`::RF`) the RF struct
@@ -20,27 +48,71 @@ The RF struct represents a Radio Frequency excitation of a sequence event.
 ```julia-repl
 julia> rf = RF(1, 1, 0, 0.2)
 
-julia> seq = Sequence(); seq += rf; plot_seq(seq)
+julia> seq = Sequence(); @addblock seq += rf; plot_seq(seq)
 ```
 """
-mutable struct RF
-    A
-    T
-    Δf
-    delay::Real
-    function RF(A, T, Δf, delay)
-        return if any(T .< 0) || delay < 0
+mutable struct RF{AT,TT,ΔFT}
+    A::AT
+    T::TT
+    Δf::ΔFT
+    delay::Float64
+    center::Union{Float64, Nothing}
+    ϕ::Float64
+    use::RFUse
+    RF(A, T, Δf, delay, center, ϕ, use, ::Val{:preserve}) =
+        new{typeof(A),typeof(T),typeof(Δf)}(A, T, Δf, delay, center, ϕ, use)
+    function RF(A, T, Δf, delay, center, ϕ, use)
+        if _has_negative_timings(T) || delay < 0
             error("RF timings must be non-negative.")
-        else
-            new(A, T, Δf, delay)
         end
+        Arel, ϕrel = _canonicalize_rf_center_phase(A, T, center, ϕ)
+        return new{typeof(Arel),typeof(T),typeof(Δf)}(Arel, T, Δf, delay, center, ϕrel, use)
     end
-    function RF(A, T, Δf)
-        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, Δf, 0.0)
+    RF(A, T, Δf, delay, center, use::RFUse) = RF(A, T, Δf, delay; center, use)
+    RF(A, T, Δf, delay, center, ϕ)          = RF(A, T, Δf, delay; center, ϕ)
+    RF(A, T, Δf, delay, center)             = RF(A, T, Δf, delay; center)
+    RF(A, T, Δf)                            = RF(A, T, Δf, 0.0)
+    RF(A, T)                                = RF(A, T, 0.0, 0.0)
+end
+
+const BlockPulseRF = RF{AT,TT,ΔFT} where {AT<:Number,TT<:Number,ΔFT}
+const UniformlySampledRF = RF{AT,TT,ΔFT} where {AT<:AbstractVector{<:Number},TT<:Number,ΔFT}
+const TimeShapedRF = RF{AT,TT,ΔFT} where {AT<:AbstractVector{<:Number},TT<:AbstractVector{<:Number},ΔFT}
+const FrequencyModulatedRF = RF{AT,TT,ΔFT} where {AT,TT,ΔFT<:AbstractVector{<:Number}}
+
+_rf_center(A::Number, T::Real) = T / 2
+function _rf_center(A::AbstractVector, T)
+    ts = _shape_times(A, T)
+    weights = abs.(A)
+    total = sum(weights)
+    iszero(total) && return 0.0
+    return sum(weights .* ts) / total
+end
+
+_canonicalize_rf_center_phase(A::Number, T, ::Nothing, ϕ=0.0) = A, mod(ϕ, 2π)
+_canonicalize_rf_center_phase(A::AbstractVector, T, ::Nothing, ϕ=0.0) = A, mod(ϕ, 2π)
+function _canonicalize_rf_center_phase(A::Number, T, center, ϕ=0.0)
+    ϕcenter = iszero(abs(A)) ? 0.0 : mod(angle(A), 2π)
+    return A * cis(-ϕcenter), mod(ϕ + ϕcenter, 2π)
+end
+function _canonicalize_rf_center_phase(A::AbstractVector, T, center, ϕ=0.0)
+    isempty(A) && return A, mod(ϕ, 2π)
+    value = if length(A) == 1
+        A[1]
+    else
+        ts = _shape_times(A, T)
+        Interpolations.deduplicate_knots!(ts; move_knots=true)
+        linear_interpolation(ts, A, extrapolation_bc=Interpolations.Flat())(center)
     end
-    function RF(A, T)
-        return any(T .< 0) ? error("RF timings must be non-negative.") : new(A, T, 0.0, 0.0)
-    end
+    ϕcenter = iszero(abs(value)) ? 0.0 : mod(angle(value), 2π)
+    return A .* cis(-ϕcenter), mod(ϕ + ϕcenter, 2π)
+end
+
+function RF(A, T, Δf, delay; center=nothing, ϕ=0.0, use=nothing)
+    center = isnothing(center) ? _rf_center(A, T) : center
+    rf = RF(A, T, Δf, delay, center, ϕ, Undefined())
+    rf.use = isnothing(use) ? (get_flip_angle(rf) <= 90.01 ? Excitation() : Refocusing()) : use
+    return rf
 end
 
 """
@@ -58,7 +130,7 @@ Base.show(io::IO, x::RF) = begin
     r(x) = round.(x, digits=4)
     compact = get(io, :compact, false)
     if !compact
-        wave = length(x.A) == 1 ? r(x.A * 1e6) : "∿"
+        wave = length(x.A) == 1 ? r(abs(x.A) * 1e6) : "∿"
         print(
             io,
             (x.delay > 0 ? "←$(r(x.delay*1e3)) ms→ " : "") *
@@ -71,13 +143,13 @@ Base.show(io::IO, x::RF) = begin
 end
 
 """
-    y = getproperty(x::Array{RF}, f::Symbol)
+    y = getproperty(x::Array{<:RF}, f::Symbol)
 
 Overloads Base.getproperty(). It is meant to access properties of the RF vector `x`
 directly without the need to iterate elementwise.
 
 # Arguments
-- `x`: (`::Array{RF}`) vector or matrix of RF structs
+- `x`: (`::Array{<:RF}`) vector or matrix of RF structs
 - `f`: (`::Symbol`, opts: [`:A`, `:Bx`, `:By`, `:T`, `:Δf`, `:delay` and `:dur`]) input
     symbol that represents a property of the vector or matrix of RF structs
 
@@ -85,11 +157,11 @@ directly without the need to iterate elementwise.
 - `y`: (`::Array{Any}`) vector or matrix with the property defined by the
     symbol `f` for all elements of the RF vector or matrix `x`
 """
-getproperty(x::Matrix{RF}, f::Symbol) = begin
+getproperty(x::AbstractVecOrMat{<:RF}, f::Symbol) = begin
     if f == :Bx
-        real.(getfield.(x, :A))
+        real.(cis.(getfield.(x, :ϕ)) .* getfield.(x, :A))
     elseif f == :By
-        imag.(getfield.(x, :A))
+        imag.(cis.(getfield.(x, :ϕ)) .* getfield.(x, :A))
     elseif f == :dur
         dur(x)
     elseif f in fieldnames(RF)
@@ -99,33 +171,36 @@ getproperty(x::Matrix{RF}, f::Symbol) = begin
     end
 end
 
-# RF comparison
-function Base.isapprox(rf1::RF, rf2::RF)
-    return all(length(getfield(rf1, k)) == length(getfield(rf2, k)) for k in fieldnames(RF))
-    return all(≈(getfield(rf1, k), getfield(rf2, k); atol=1e-9) for k in fieldnames(RF))
-end
+Base.isapprox(u1::RFUse, u2::RFUse; kwargs...) = u1 == u2
 
+field_isapprox(rf1::RF, rf2::RF; kwargs...) = isapprox(rf1, rf2; kwargs...)
+function Base.isapprox(rf1::RF, rf2::RF; kwargs...)
+    typeof(rf1) === typeof(rf2) || return false
+    return fields_isapprox(rf1, rf2; kwargs...)
+end
+Base.copy(rf::RF) = RF(_deepcopy_fields(rf)..., Val(:preserve))
+    
 # Properties
 size(r::RF, i::Int64) = 1 #To fix [r;r;;] concatenation of Julia 1.7.3
-*(α::Complex{T}, x::RF) where {T<:Real} = RF(α * x.A, x.T, x.Δf, x.delay)
-*(α::Real, x::RF) = RF(α * x.A, x.T, x.Δf, x.delay)
+*(α::Number, x::RF) = is_on(x) ? RF(abs(α) * x.A, copy(x.T), copy(x.Δf), x.delay, x.center, mod(x.ϕ + angle(α), 2π), x.use, Val(:preserve)) : copy(x)
+*(x::RF, α::Number) = α * x
 
 """
     y = dur(x::RF)
-    y = dur(x::Vector{RF})
-    y = dur(x::Matrix{RF})
+    y = dur(x::Vector{<:RF})
+    y = dur(x::Matrix{<:RF})
 
 Duration time in [s] of RF struct or RF Array.
 
 # Arguments
-- `x`: (`::RF` or `::Vector{RF}` or `::Matrix{RF}`) RF struct or RF array
+- `x`: (`::RF` or `::Vector{<:RF}` or `::Matrix{<:RF}`) RF struct or RF array
 
 # Returns
 - `y`: (`::Float64`, [`s`]) duration of the RF struct or RF array
 """
 dur(x::RF) = x.delay + sum(x.T)
-dur(x::Vector{RF}) = maximum(dur.(x); dims=1)[:]
-dur(x::Matrix{RF}) = maximum(dur.(x); dims=1)[:]
+dur(x::AbstractVector{<:RF}) = maximum(dur.(x); dims=1)[:]
+dur(x::AbstractMatrix{<:RF}) = maximum(dur.(x); dims=1)[:]
 
 """
     rf = RF_fun(f::Function, T::Real, N::Int64)
@@ -170,18 +245,13 @@ end
 """
     t = get_RF_center(x::RF)
 
-Calculates the time where is the center of the RF pulse `x`. This calculation includes the
-RF delay.
+Calculates the time where is the center of the RF pulse `x` .
+It does not include the RF delay and uses the weighted average of times by amplitude.
 
 # Arguments
 - `x`: (`::RF`) RF struct
 
 # Returns
-- `t`: (`::Int64`, `[s]`) time where is the center of the RF pulse `x`
+- `t`: (`::Real` or `Nothing`, `[s]`) time where is the center of the RF pulse `x`, or `nothing` if the RF amplitude is zero
 """
-get_RF_center(x::RF) = begin
-    t = times(x)
-    B1 = ampls(x)
-    t_center = sum(abs.(B1) .* t) ./ sum(abs.(B1))
-    return t_center
-end
+get_RF_center(rf::RF) = something(rf.center, _rf_center(rf.A, rf.T))

@@ -12,7 +12,7 @@ end
 # For testing with CUDA:   ] add CUDA   to KomaMRICore/test/Project.toml
 # For testing with AMDGPU: ] add AMDGPU to KomaMRICore/test/Project.toml
 # For testing with Metal:  ] add Metal  to KomaMRICore/test/Project.toml
-# For testing with oneAPI: ] add oneAPI to KomaMRICore/test/Project.toml
+# For testing with oneAPI (experimental): ] add oneAPI to KomaMRICore/test/Project.toml
 USE_GPU = any(AVAILABLE_GPU_BACKENDS .∈ Ref(TEST_BACKENDS))
 if "CUDA" in TEST_BACKENDS
     using CUDA

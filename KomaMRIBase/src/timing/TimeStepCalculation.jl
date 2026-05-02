@@ -102,8 +102,8 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 			delay, T = y.delay, y.T
 			t1 = t0 + delay
 			t2 = t1 + sum(T)
-			rf0 = t0 + get_RF_center(y) #get_RF_center includes delays
-			taux = points_from_key_times([t1, t1 + ϵ, rf0, t2 - ϵ, t2]; dt=Δt_rf)
+			tc = t0 + delay + get_RF_center(y)
+			taux = points_from_key_times(sort([t1, t1 + ϵ, tc, t2 - ϵ, t2]); dt=Δt_rf)
             append!(t_block, taux)
 		end
 		if is_GR_on(s)
@@ -123,6 +123,8 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
         append!(t, t_block)
 	end
 	add_key_time_points!(t, motion)
+	# Ensure t is never empty and contains the start and end of the sequence
+	append!(t, [0.0, dur(seq)])
 	# Removing repeated points
 	sort!(unique!(t))
 	# Fixes a problem with ADC at the start and end of the seq
