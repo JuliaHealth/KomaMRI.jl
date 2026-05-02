@@ -6,8 +6,7 @@
 <div align="center">
 
 ![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][total-downloads-komamri]][downloads-komamri-url]<br>
-[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url]<br>
-[![][OSI2-img]][OSI2-url]
+[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url] [![][OSI2-img]][OSI2-url]
 </div>
  
 KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI was built from the ground up to be: easy to use, extensible, cross-platform, and powered by open-source community standards.
