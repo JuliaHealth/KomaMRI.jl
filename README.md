@@ -4,13 +4,10 @@
 </p>
 
 <div align="center">
- 
-![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][total-downloads-komamri]][downloads-komamri-url]
 
-[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url] 
-
+![][julia-110] [![][gh-actions-komamri]][gh-actions-url] [![][buildkite-badge]][buildkite-url] [![][codecov-komamri]][codecov-url] [![][total-downloads-komamri]][downloads-komamri-url]<br>
+[![][docr-img]][docr-url] [![][docd-img]][docd-url] [![][paper-img]][paper-url]<br>
 [![][OSI2-img]][OSI2-url]
-
 </div>
  
 KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI was built from the ground up to be: easy to use, extensible, cross-platform, and powered by open-source community standards.
@@ -58,6 +55,7 @@ KomaMRI.jl is a Julia package for highly efficient ⚡ MRI simulations. KomaMRI 
 - [How to Contribute](#how-to-contribute)
 - [How to Cite](#how-to-cite)
 - [Tested compatibility](#tested-compatibility) 
+- [PkgEval](#pkgeval)
 
 ## News
 - **(23 Jul 2025)** KomaMRI.jl was presented at JuliaCon 2025. Video available [here](https://youtu.be/YO-nLLfV27A?si=Us3QySMK0l1ItCvY), and slides [here](https://github.com/cncastillo/KomaMRI_JuliaCon2025).
