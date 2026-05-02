@@ -108,3 +108,35 @@ raw = Distributed.@distributed (+) for i=1:nworkers()
     simulate(obj[parts[i]], seq, sys)
 end
 ```
+
+## Sequential Phantom Chunks on One GPU
+
+If the phantom is too large to fit in GPU memory, it can also be split into
+chunks and simulated sequentially on a single device. This uses the same
+independent spin property as distributed simulations, but does not need extra
+workers.
+
+```julia
+using KomaMRI
+
+sys = Scanner()
+seq = PulseDesigner.EPI_example()
+obj = brain_phantom2D()
+
+max_spins_per_chunk = 200_000
+nchunks = cld(length(obj), max_spins_per_chunk)
+parts = kfoldperm(length(obj), nchunks)
+
+if nchunks > 1
+    @info "Simulating phantom in $nchunks sequential chunks"
+end
+
+raws = map(enumerate(parts)) do (i, part)
+    if nchunks > 1
+        @info "Simulating phantom chunk $i/$nchunks"
+    end
+    simulate(obj[part], seq, sys)
+end
+
+raw = reduce(+, raws)
+```
