@@ -194,12 +194,16 @@ they reach users.
 The umbrella `KomaMRI` package is excluded here because it opens UI paths that
 PkgEval cannot display. The subpackages below are the useful PkgEval signal.
 
+<div align="center">
+
 | Package | PkgEval |
 |:--------|:--------|
 | KomaMRIBase | [![PkgEval][pkgeval-img-komabase]][pkgeval-url-komabase] |
 | KomaMRICore | [![PkgEval][pkgeval-img-komacore]][pkgeval-url-komacore] |
 | KomaMRIFiles | [![PkgEval][pkgeval-img-komafiles]][pkgeval-url-komafiles] |
 | KomaMRIPlots | [![PkgEval][pkgeval-img-komaplots]][pkgeval-url-komaplots] |
+
+</div>
 
 <!-- VARIABLES -->
 <!-- Julia compat -->
