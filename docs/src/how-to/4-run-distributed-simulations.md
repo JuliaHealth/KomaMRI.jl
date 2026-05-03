@@ -127,16 +127,7 @@ max_spins_per_chunk = 200_000
 nchunks = cld(length(obj), max_spins_per_chunk)
 parts = kfoldperm(length(obj), nchunks)
 
-if nchunks > 1
-    @info "Simulating phantom in $nchunks sequential chunks"
-end
-
-raws = map(enumerate(parts)) do (i, part)
-    if nchunks > 1
-        @info "Simulating phantom chunk $i/$nchunks"
-    end
+raw = mapreduce(+, parts) do part
     simulate(obj[part], seq, sys)
 end
-
-raw = reduce(+, raws)
 ```
