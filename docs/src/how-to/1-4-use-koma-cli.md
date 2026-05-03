@@ -7,7 +7,7 @@ KomaMRI provides the `koma` Julia app for opening the UI or running simulations 
 Install KomaMRI with `pkg> add KomaMRI`, then install the `koma` app (Julia 1.12+):
 ```julia-repl
 pkg> app add KomaMRI
-pkg> # app develop /path/to/KomaMRI.jl # Local checkout
+pkg> # app dev /path/to/KomaMRI.jl # Local checkout
 ```
 
 The executable is installed in `~/.julia/bin`. If `koma` is not found, add that directory to your `PATH`.
@@ -77,7 +77,7 @@ koma --threads=8 -- -i epi.seq brain.phantom -o raw.mrd
 `koma` can read CLI defaults from Julia's `LocalPreferences.toml` in the app environment. Put the file in the path that matches how the app was installed:
 
 - Installed with `pkg> app add KomaMRI`: `~/.julia/environments/apps/KomaMRI/LocalPreferences.toml`
-- Installed with `pkg> app develop /path/to/KomaMRI.jl`: `/path/to/KomaMRI.jl/LocalPreferences.toml`
+- Installed with `pkg> app dev /path/to/KomaMRI.jl`: `/path/to/KomaMRI.jl/LocalPreferences.toml`
 
 ```toml
 [KomaMRI.koma]
