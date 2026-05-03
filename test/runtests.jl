@@ -170,15 +170,27 @@ end
         @test isfile(img_mat)
     end
 
+    @testset "Batch execution" begin
+        dir = mktempdir()
+        raw_mrd = joinpath(dir, "raw.mrd")
+        img_mat = joinpath(dir, "image.mat")
+        KomaMRI.run_cli(KomaMRI.CLIOptions(sim_output=raw_mrd, recon_output=img_mat))
+        @test isfile(raw_mrd)
+        @test isfile(img_mat)
+    end
+
     @testset "App help" begin
         @static if VERSION >= v"1.12"
             @test occursin("KomaMRI command line app.", KomaMRI.CLI_HELP)
             redirect_stdout(devnull) do
                 KomaMRI.CLI.print_help()
+                @test isnothing(KomaMRI.CLI.main(["--help"]))
             end
+            @test_throws ErrorException KomaMRI.CLI.main(["--unknown"])
         end
 
         @test isnothing(KomaMRI.print_cli_versions())
+        @test KomaMRI.load_cli_preferences!(KomaMRI.CLIOptions()) isa KomaMRI.CLIOptions
     end
 
     @testset "Errors" begin
@@ -189,6 +201,8 @@ end
         @test_throws ErrorException KomaMRI.parse_cli_args(["--unknown"])
         @test_throws ErrorException KomaMRI.parse_cli_args(["-s", "sim_method=NoMethod"])
         @test_throws ErrorException KomaMRI.parse_cli_args(["-s", "sim_method=Phantom"])
+        @test_throws ErrorException KomaMRI.run_cli(["--unknown"])
+        @test_throws ErrorException KomaMRI.run_cli(["-b", "NoBackend"])
         @test_throws ErrorException KomaMRI.load_cli_phantom("brain.txt")
         @test_throws ErrorException KomaMRI.save_cli_raw(nothing, "raw.txt")
         @test_throws ErrorException KomaMRI.save_cli_recon(nothing, Dict{Symbol,Any}(), "image.nii")
