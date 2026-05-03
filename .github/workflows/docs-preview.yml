@@ -1,25 +1,21 @@
 name: Docs Preview
 
 on:
-  pull_request:
-    types:
-      - closed
   workflow_run:
     workflows:
       - CI
     types:
       - completed
+    branches-ignore:
+      - master
 
 permissions:
-  actions: read
-  contents: write
   issues: write
   pull-requests: read
 
 jobs:
   comment:
     if: >-
-      github.event_name == 'workflow_run' &&
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
     name: Comment documentation preview URL
@@ -86,27 +82,3 @@ jobs:
                 body,
               });
             }
-
-  cleanup:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    name: Cleanup documentation preview
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: gh-pages
-          fetch-depth: 0
-
-      - name: Remove documentation preview
-        run: |
-          target="previews/PR${{ github.event.pull_request.number }}"
-          if [ -d "$target" ]; then
-            rm -rf "$target"
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "Remove preview for PR #${{ github.event.pull_request.number }} [skip ci]"
-            git push origin HEAD:gh-pages
-          else
-            echo "No preview directory to clean."
-          fi
