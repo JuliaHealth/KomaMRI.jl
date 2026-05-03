@@ -12,6 +12,9 @@ jobs:
   cleanup:
     name: Cleanup documentation preview
     runs-on: ubuntu-latest
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v6
         with:
