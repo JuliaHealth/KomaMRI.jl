@@ -24,6 +24,7 @@ include("ui/ExportMATFunctions.jl")
 include("ui/ExportUIFunctions.jl")
 include("callbacks/ui_progress_callback.jl")
 include("KomaUI.jl")
+include("KomaCLI.jl")
 
 # Export the UI and the observables
 export KomaUI

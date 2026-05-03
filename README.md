@@ -105,7 +105,14 @@ pkg> add KomaMRI
 pkg> add CUDA     # Optional: Install desired GPU backend (CUDA, AMDGPU, Metal, or oneAPI (experimental))
 
 ```
+
+```julia-repl
+julia> import Pkg
+julia> Pkg.Apps.add("KomaMRI") # Installs koma app
+```
+
 For more information about installation instructions, refer to the section [Getting Started](https://JuliaHealth.github.io/KomaMRI.jl/dev/how-to/1-getting-started) of the documentation.
+
 ## First run
 KomaMRI.jl features a convenient GUI with predefined simulation inputs (i.e. `Sequence`, `Phantom`, and `Scanner`). To launch the GUI, use the following command:
 

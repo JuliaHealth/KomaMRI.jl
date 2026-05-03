@@ -22,6 +22,10 @@ julia> using KomaMRI
 
 julia> KomaUI()
 ```
+After installing the [`koma` app](1-4-use-koma-cli.md#Installing-the-App), the same interface can be opened from the terminal:
+```bash
+koma
+```
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-dashboard.png"/></p>
 ```
@@ -151,4 +155,3 @@ The variables that update the interface are:
 * `img_ui[]` for the **Image**
 
 Don't forget to add the brackets `[]` to these variables, otherwise it won't work.
-

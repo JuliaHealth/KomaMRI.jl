@@ -34,6 +34,60 @@ using TestItems, TestItemRunner
     end
 
 end
+
+@testitem "KomaCLI" tags=[:koma] begin
+    using KomaMRI
+
+    @testset "Defaults" begin
+        opts = KomaMRI.parse_cli_args(String[])
+        @test isnothing(opts.sequence)
+        @test isnothing(opts.phantom)
+        @test isnothing(opts.scanner)
+        @test isnothing(opts.sim_output)
+        @test isnothing(opts.recon_output)
+        @test opts.backend == "CPU"
+        @test opts.sim_params["gpu"] == false
+        KomaMRI.load_cli_backend!(opts)
+        @test opts.sim_params["gpu"] == false
+        @test opts.recon_params[:reco] == "direct"
+    end
+
+    @testset "Inputs and outputs" begin
+        opts = KomaMRI.parse_cli_args(["-i", "obj.phantom", "seq.seq", "scanner.sys", "-o", "raw.mrd", "image.mat"])
+        @test opts.sequence == "seq.seq"
+        @test opts.phantom == "obj.phantom"
+        @test opts.scanner == "scanner.sys"
+        @test opts.sim_output == "raw.mrd"
+        @test opts.recon_output == "image.mat"
+
+        opts = KomaMRI.parse_cli_args(["--inputs", "seq.seq", "obj.h5", "--outputs", "_", "image.mat"])
+        @test opts.sequence == "seq.seq"
+        @test opts.phantom == "obj.h5"
+        @test isnothing(opts.sim_output)
+        @test opts.recon_output == "image.mat"
+    end
+
+    @testset "Parameters and backend" begin
+        opts = KomaMRI.parse_cli_args(["--backend=CPU", "-s", "gpu=true", "-s", "Nthreads=4", "-r", "reco=direct", "-r", "shape=(2,3)"])
+        @test opts.backend == "CPU"
+        @test opts.sim_params["gpu"] == true
+        @test opts.sim_params["Nthreads"] == 4
+        @test opts.recon_params[:reco] == "direct"
+        @test opts.recon_params[:shape] == (2, 3)
+
+        KomaMRI.load_cli_backend!(opts)
+        @test opts.sim_params["gpu"] == false
+    end
+
+    @testset "Errors" begin
+        @test_throws ErrorException KomaMRI.parse_cli_args(["--inputs"])
+        @test_throws ErrorException KomaMRI.parse_cli_args(["--inputs", "a.seq", "b.phantom", "c.sys", "d.seq"])
+        @test_throws ErrorException KomaMRI.parse_cli_args(["--inputs", "notes.txt"])
+        @test_throws ErrorException KomaMRI.parse_cli_args(["--outputs=raw.mrd"])
+        @test_throws ErrorException KomaMRI.parse_cli_args(["--unknown"])
+    end
+end
+
 @testitem "KomaUI" tags=[:koma] begin
 
     using Blink
