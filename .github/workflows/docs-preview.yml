@@ -11,14 +11,18 @@ on:
 
 permissions:
   actions: read
+  contents: write
   issues: write
   pull-requests: write
 
 jobs:
   comment:
     if: github.event.workflow_run.event == 'pull_request'
-    name: Comment documentation preview URL
+    name: Deploy documentation preview
     runs-on: ubuntu-latest
+    concurrency:
+      group: docs-preview-gh-pages
+      cancel-in-progress: false
     steps:
       - name: Find pull request
         id: pr
@@ -37,6 +41,16 @@ jobs:
               repo: context.repo.repo,
               pull_number: pr.number,
             });
+
+            if (data.state !== 'open') {
+              core.info('Pull request is not open.');
+              return;
+            }
+
+            if (data.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              core.info('Pull request is not from this repository.');
+              return;
+            }
 
             if (!data.labels.some(label => label.name === 'documentation')) {
               core.info('Pull request does not have the documentation label.');
@@ -62,6 +76,41 @@ jobs:
             }
 
             core.setOutput('number', pr.number);
+
+      - uses: actions/checkout@v6
+        if: steps.pr.outputs.number != ''
+        with:
+          ref: refs/pull/${{ steps.pr.outputs.number }}/merge
+          fetch-depth: 0
+
+      - uses: julia-actions/setup-julia@v2
+        if: steps.pr.outputs.number != ''
+        with:
+          version: '1'
+
+      - name: "Documentation dev environment setup"
+        if: steps.pr.outputs.number != ''
+        run: |
+          julia --project=docs -e '
+            using Pkg
+            Pkg.develop([
+                PackageSpec(path=pwd(), subdir="."),
+                PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+                PackageSpec(path=pwd(), subdir="KomaMRICore"),
+                PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+                PackageSpec(path=pwd(), subdir="KomaMRIPlots")
+            ])
+            Pkg.instantiate()'
+
+      - name: Build and deploy preview
+        if: steps.pr.outputs.number != ''
+        run: |
+          GITHUB_EVENT_NAME=pull_request \
+          GITHUB_REF=refs/pull/${{ steps.pr.outputs.number }}/merge \
+          julia --project=docs docs/make.jl push_preview
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
 
       - name: Comment preview URL
         if: steps.pr.outputs.number != ''
