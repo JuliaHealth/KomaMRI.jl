@@ -1,0 +1,33 @@
+name: Docs Preview Cleanup
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Cleanup documentation preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Remove documentation preview
+        run: |
+          target="previews/PR${{ github.event.pull_request.number }}"
+          if [ -d "$target" ]; then
+            rm -rf "$target"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Remove preview for PR #${{ github.event.pull_request.number }} [skip ci]"
+            git push origin HEAD:gh-pages
+          else
+            echo "No preview directory to clean."
+          fi
