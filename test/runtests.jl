@@ -65,19 +65,53 @@ end
         @test opts.phantom == "obj.h5"
         @test isnothing(opts.sim_output)
         @test opts.recon_output == "image.mat"
+
+        opts = KomaMRI.parse_cli_args(["-i", "scanner.sys", "brain.h5", "epi.seq", "-o", "image.mat", "raw.mrd"])
+        @test opts.sequence == "epi.seq"
+        @test opts.phantom == "brain.h5"
+        @test opts.scanner == "scanner.sys"
+        @test opts.sim_output == "raw.mrd"
+        @test opts.recon_output == "image.mat"
+
+        opts = KomaMRI.parse_cli_args(["-i", "_", "epi.seq"])
+        @test opts.sequence == "epi.seq"
+        @test isnothing(opts.phantom)
+
+        opts = KomaMRI.parse_cli_args(["-o", "raw.mat"])
+        @test opts.sim_output == "raw.mat"
+        @test isnothing(opts.recon_output)
+
+        opts = KomaMRI.parse_cli_args(["-o", "_"])
+        @test isnothing(opts.sim_output)
+        @test isnothing(opts.recon_output)
     end
 
     @testset "Parameters and backend" begin
-        opts = KomaMRI.parse_cli_args(["--backend=CPU", "-s", "gpu=true", "-s", "Nthreads=4", "-s", "sim_method=BlochMagnus4", "-r", "reco=direct", "-r", "shape=(2,3)"])
+        opts = KomaMRI.parse_cli_args([
+            "--backend=CPU",
+            "-s", "gpu=true",
+            "-s", "Nthreads=4",
+            "-s", "sim_method=BlochMagnus4",
+            "-s", "precision=f32",
+            "-s", "max_rf_block_length=Inf",
+            "-s", "offsets=[1,2.5,true,label]",
+            "-r", "reco=direct",
+            "-r", "shape=(2,3)",
+        ])
         @test opts.backend == "CPU"
         @test opts.sim_params["gpu"] == true
         @test opts.sim_params["Nthreads"] == 4
         @test opts.sim_params["sim_method"] isa KomaMRI.BlochMagnus4
+        @test opts.sim_params["precision"] == "f32"
+        @test opts.sim_params["max_rf_block_length"] == Inf
+        @test opts.sim_params["offsets"] == [1, 2.5, true, "label"]
         @test opts.recon_params[:reco] == "direct"
         @test opts.recon_params[:shape] == (2, 3)
 
         KomaMRI.load_cli_backend!(opts)
         @test opts.sim_params["gpu"] == false
+
+        @test_throws ErrorException KomaMRI.load_cli_backend!(KomaMRI.CLIOptions(backend="NoBackend"))
     end
 
     @testset "Preferences" begin
@@ -106,12 +140,58 @@ end
         @test opts.sim_params["precision"] == "f64"
     end
 
+    @testset "Input and output files" begin
+        path = @__DIR__
+        repo = dirname(path)
+        phantom_file = joinpath(repo, "KomaMRIFiles", "test", "test_files", "phantom", "brain_nomotion_w.phantom")
+        jemris_file = joinpath(repo, "KomaMRIFiles", "test", "test_files", "phantom", "column1d.h5")
+        @test KomaMRI.load_cli_phantom(phantom_file) isa KomaMRI.Phantom
+        @test KomaMRI.load_cli_phantom(jemris_file) isa KomaMRI.Phantom
+
+        sys, seq, obj = KomaMRI.cli_inputs(KomaMRI.CLIOptions(scanner="scanner.sys"))
+        @test sys isa KomaMRI.Scanner
+        @test seq isa KomaMRI.Sequence
+        @test obj isa KomaMRI.Phantom
+
+        raw = RawAcquisitionData(ISMRMRDFile(joinpath(path, "test_files", "Koma_signal.mrd")))
+        dir = mktempdir()
+        @test KomaMRI.cli_output_dir("raw.mrd") == "."
+        @test KomaMRI.mk_cli_output_dir(joinpath(dir, "nested", "raw.mrd")) == joinpath(dir, "nested")
+        @test isdir(joinpath(dir, "nested"))
+
+        raw_mrd = joinpath(dir, "raw.mrd")
+        raw_mat = joinpath(dir, "raw.mat")
+        img_mat = joinpath(dir, "image.mat")
+        KomaMRI.save_cli_raw(raw, raw_mrd)
+        KomaMRI.save_cli_raw(raw, raw_mat)
+        KomaMRI.save_cli_recon(rand(2, 2, 1), Dict{Symbol,Any}(:reco => "direct"), img_mat)
+        @test isfile(raw_mrd)
+        @test isfile(raw_mat)
+        @test isfile(img_mat)
+    end
+
+    @testset "App help" begin
+        @static if VERSION >= v"1.12"
+            @test occursin("KomaMRI command line app.", KomaMRI.CLI_HELP)
+            redirect_stdout(devnull) do
+                KomaMRI.CLI.print_help()
+            end
+        end
+
+        @test isnothing(KomaMRI.print_cli_versions())
+    end
+
     @testset "Errors" begin
         @test_throws ErrorException KomaMRI.parse_cli_args(["--inputs"])
         @test_throws ErrorException KomaMRI.parse_cli_args(["--inputs", "a.seq", "b.phantom", "c.sys", "d.seq"])
         @test_throws ErrorException KomaMRI.parse_cli_args(["--inputs", "notes.txt"])
         @test_throws ErrorException KomaMRI.parse_cli_args(["--outputs=raw.mrd"])
         @test_throws ErrorException KomaMRI.parse_cli_args(["--unknown"])
+        @test_throws ErrorException KomaMRI.parse_cli_args(["-s", "sim_method=NoMethod"])
+        @test_throws ErrorException KomaMRI.parse_cli_args(["-s", "sim_method=Phantom"])
+        @test_throws ErrorException KomaMRI.load_cli_phantom("brain.txt")
+        @test_throws ErrorException KomaMRI.save_cli_raw(nothing, "raw.txt")
+        @test_throws ErrorException KomaMRI.save_cli_recon(nothing, Dict{Symbol,Any}(), "image.nii")
     end
 end
 
