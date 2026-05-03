@@ -179,15 +179,8 @@ jobs:
             using Documenter: doctest
             using KomaMRI
             doctest(KomaMRI)'
-      - if: ${{ !contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
-        name: "Building documentation (docs/make.jl)"
+      - name: "Building documentation (docs/make.jl)"
         run: julia --project=docs docs/make.jl
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
-      - if: ${{ contains( github.event.pull_request.labels.*.name, 'documentation' ) }}
-        name: "Building documentation (docs/make.jl) - [PR] PUSH_PREVIEW"
-        run: julia --project=docs docs/make.jl push_preview
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
