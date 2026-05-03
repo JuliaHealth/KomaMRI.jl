@@ -4,7 +4,9 @@ on:
   pull_request:
     types:
       - closed
-  workflow_job:
+  workflow_run:
+    workflows:
+      - CI
     types:
       - completed
 
@@ -17,9 +19,9 @@ permissions:
 jobs:
   comment:
     if: >-
-      github.event_name == 'workflow_job' &&
-      github.event.workflow_job.name == 'Documentation' &&
-      github.event.workflow_job.conclusion == 'success'
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
     name: Comment documentation preview URL
     runs-on: ubuntu-latest
     steps:
@@ -28,7 +30,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const pullRequests = context.payload.workflow_job.pull_requests;
+            const pullRequests = context.payload.workflow_run.pull_requests;
             if (!pullRequests || pullRequests.length !== 1) {
               core.info(`Expected one pull request, found ${pullRequests?.length ?? 0}.`);
               return;
