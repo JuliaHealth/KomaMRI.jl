@@ -10,14 +10,13 @@ on:
       - master
 
 permissions:
+  actions: read
   issues: write
   pull-requests: write
 
 jobs:
   comment:
-    if: >-
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.event == 'pull_request'
     name: Comment documentation preview URL
     runs-on: ubuntu-latest
     steps:
@@ -41,6 +40,24 @@ jobs:
 
             if (!data.labels.some(label => label.name === 'documentation')) {
               core.info('Pull request does not have the documentation label.');
+              return;
+            }
+
+            if (data.head.sha !== context.payload.workflow_run.head_sha) {
+              core.info('Workflow run is not for the current pull request head.');
+              return;
+            }
+
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+              per_page: 100,
+            });
+
+            const docsJob = jobs.find(job => job.name === 'Documentation');
+            if (docsJob?.conclusion !== 'success') {
+              core.info(`Documentation job conclusion: ${docsJob?.conclusion ?? 'missing'}.`);
               return;
             }
 
