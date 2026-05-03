@@ -1,4 +1,5 @@
 using PrecompileTools: @setup_workload, @compile_workload
+using Preferences: load_preference
 
 const CLI_BACKENDS = ("AMDGPU", "CUDA", "Metal", "oneAPI")
 
@@ -16,8 +17,8 @@ KomaMRI command line app.
 
 Usage:
   koma
-  koma -i seq.seq obj.phantom scanner.sys
-  koma -i seq.seq obj.phantom -o raw.mrd [image.mat]
+  koma -i epi.seq brain.phantom
+  koma -i epi.seq brain.phantom -o raw.mrd [image.mat]
 
 Options:
   -i, --inputs FILE...             .seq, .phantom/.h5, .sys in any order
@@ -57,13 +58,60 @@ function parse_cli_value(x::AbstractString)
     return String(x)
 end
 
+function parse_cli_sim_method(x::AbstractString)
+    sym = Symbol(x)
+    isdefined(KomaMRICore, sym) || error("Unsupported simulation method: $x")
+    sim_method = getproperty(KomaMRICore, sym)
+    if !(sim_method isa Type && sim_method <: KomaMRICore.SimulationMethod)
+        error("Unsupported simulation method: $x")
+    end
+    return sim_method()
+end
+
+function parse_cli_value(key::AbstractString, x::AbstractString)
+    key == "sim_method" && return parse_cli_sim_method(x)
+    return parse_cli_value(x)
+end
+
 param_key(::Dict{String,Any}, key) = String(key)
 param_key(::Dict{Symbol,Any}, key) = Symbol(key)
 
 function parse_cli_param!(params, param::AbstractString)
     key, value = split(param, "="; limit=2)
-    params[param_key(params, key)] = parse_cli_value(value)
+    params[param_key(params, key)] = parse_cli_value(key, value)
     return params
+end
+
+function cli_param_value(key, value)
+    key == "sim_method" && value isa AbstractString && return parse_cli_sim_method(value)
+    return value
+end
+
+function merge_cli_preferences!(opts, prefs)
+    haskey(prefs, "backend") && (opts.backend = String(prefs["backend"]))
+
+    inputs = get(prefs, "inputs", Dict{String,Any}())
+    haskey(inputs, "sequence") && (opts.sequence = String(inputs["sequence"]))
+    haskey(inputs, "phantom") && (opts.phantom = String(inputs["phantom"]))
+    haskey(inputs, "scanner") && (opts.scanner = String(inputs["scanner"]))
+
+    outputs = get(prefs, "outputs", Dict{String,Any}())
+    haskey(outputs, "rawdata") && (opts.sim_output = String(outputs["rawdata"]))
+    haskey(outputs, "image") && (opts.recon_output = String(outputs["image"]))
+
+    for (key, value) in get(prefs, "sim_params", Dict{String,Any}())
+        key = String(key)
+        opts.sim_params[key] = cli_param_value(key, value)
+    end
+    for (key, value) in get(prefs, "recon_params", Dict{String,Any}())
+        key = String(key)
+        opts.recon_params[Symbol(key)] = cli_param_value(key, value)
+    end
+    return opts
+end
+
+function load_cli_preferences!(opts)
+    return merge_cli_preferences!(opts, load_preference(@__MODULE__, "koma", Dict{String,Any}()))
 end
 
 is_cli_flag(arg) = startswith(arg, "-")
@@ -125,8 +173,7 @@ function parse_cli_outputs!(opts, outputs)
     return opts
 end
 
-function parse_cli_args(args)
-    opts = CLIOptions()
+function parse_cli_args(args, opts=CLIOptions())
     i = 1
     while i <= length(args)
         name, value = split_cli_option(args[i])
@@ -240,7 +287,7 @@ function keep_app_open(w)
 end
 
 function run_cli(args)
-    opts = parse_cli_args(args)
+    opts = parse_cli_args(args, load_cli_preferences!(CLIOptions()))
     load_cli_backend!(opts)
     return run_cli(opts)
 end

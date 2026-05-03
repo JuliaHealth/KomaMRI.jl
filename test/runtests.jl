@@ -68,15 +68,42 @@ end
     end
 
     @testset "Parameters and backend" begin
-        opts = KomaMRI.parse_cli_args(["--backend=CPU", "-s", "gpu=true", "-s", "Nthreads=4", "-r", "reco=direct", "-r", "shape=(2,3)"])
+        opts = KomaMRI.parse_cli_args(["--backend=CPU", "-s", "gpu=true", "-s", "Nthreads=4", "-s", "sim_method=BlochMagnus4", "-r", "reco=direct", "-r", "shape=(2,3)"])
         @test opts.backend == "CPU"
         @test opts.sim_params["gpu"] == true
         @test opts.sim_params["Nthreads"] == 4
+        @test opts.sim_params["sim_method"] isa KomaMRI.BlochMagnus4
         @test opts.recon_params[:reco] == "direct"
         @test opts.recon_params[:shape] == (2, 3)
 
         KomaMRI.load_cli_backend!(opts)
         @test opts.sim_params["gpu"] == false
+    end
+
+    @testset "Preferences" begin
+        opts = KomaMRI.merge_cli_preferences!(
+            KomaMRI.CLIOptions(),
+            Dict{String,Any}(
+                "backend" => "Metal",
+                "inputs" => Dict{String,Any}("sequence" => "mysequence.seq", "phantom" => "myphantom.phantom", "scanner" => "scanner.sys"),
+                "outputs" => Dict{String,Any}("rawdata" => "raw.mrd", "image" => "image.mat"),
+                "sim_params" => Dict{String,Any}("sim_method" => "BlochMagnus4", "precision" => "f32"),
+                "recon_params" => Dict{String,Any}("reco" => "direct"),
+            ),
+        )
+        @test opts.sequence == "mysequence.seq"
+        @test opts.phantom == "myphantom.phantom"
+        @test opts.scanner == "scanner.sys"
+        @test opts.sim_output == "raw.mrd"
+        @test opts.recon_output == "image.mat"
+        @test opts.backend == "Metal"
+        @test opts.sim_params["sim_method"] isa KomaMRI.BlochMagnus4
+        @test opts.sim_params["precision"] == "f32"
+        @test opts.recon_params[:reco] == "direct"
+
+        opts = KomaMRI.parse_cli_args(["-b", "CPU", "-s", "precision=f64"], opts)
+        @test opts.backend == "CPU"
+        @test opts.sim_params["precision"] == "f64"
     end
 
     @testset "Errors" begin
