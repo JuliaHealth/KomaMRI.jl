@@ -22,7 +22,7 @@ julia> using KomaMRI
 
 julia> KomaUI()
 ```
-After installing the [`koma` app](1-4-use-koma-cli.md#Installing-the-App), the same interface can be opened from the terminal:
+After installing the [`koma` app](1-4-use-koma-cli.md#Installing-the-App) (Julia 1.12+), the same interface can be opened from the terminal:
 ```bash
 koma
 ```
