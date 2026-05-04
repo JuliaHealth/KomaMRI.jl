@@ -13,7 +13,7 @@ jobs:
     name: Cleanup documentation preview
     runs-on: ubuntu-latest
     concurrency:
-      group: docs-preview-gh-pages
+      group: docs-gh-pages
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v6

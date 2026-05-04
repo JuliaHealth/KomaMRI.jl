@@ -156,6 +156,9 @@ jobs:
     if: '!cancelled()'
     name: Documentation
     runs-on: ubuntu-latest
+    concurrency:
+      group: docs-gh-pages
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2

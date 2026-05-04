@@ -21,7 +21,7 @@ jobs:
     name: Deploy documentation preview
     runs-on: ubuntu-latest
     concurrency:
-      group: docs-preview-gh-pages
+      group: docs-gh-pages
       cancel-in-progress: false
     steps:
       - name: Find pull request
