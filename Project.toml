@@ -1,10 +1,13 @@
 name = "KomaMRI"
 uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
-version = "0.10.1"
+version = "0.10.2"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [workspace]
 projects = ["test", "docs", "benchmarks", "KomaMRIBase", "KomaMRICore", "KomaMRIFiles", "KomaMRIPlots"]
+
+[apps]
+koma = { submodule = "CLI", julia_flags = ["--threads=auto"] }
 
 [deps]
 AssetRegistry = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
@@ -16,6 +19,8 @@ KomaMRIFiles = "fcf631a6-1c7e-4e88-9e64-b8888386d9dc"
 KomaMRIPlots = "76db0263-63f3-4d26-bb9a-5dba378db904"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 MRIReco = "bdf86e05-2d2b-5731-a332-f3fe1f9e047f"
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
+Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
 [compat]
@@ -28,5 +33,7 @@ KomaMRIFiles = "0.10"
 KomaMRIPlots = "0.11"
 MAT = "0.10, 0.11, 0.12"
 MRIReco = "0.6, 0.7, 0.8, 0.9"
+PrecompileTools = "1"
+Preferences = "1"
 Reexport = "1"
 julia = "1.9"
