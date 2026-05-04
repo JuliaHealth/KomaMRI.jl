@@ -35,6 +35,10 @@ Launch the Koma's UI.
     2D or 3D brain example
 - `sim`: (`::Dict{String,Any}`, `=Dict{String,Any}()`) simulation parameters dictionary
 - `rec`: (`::Dict{Symbol,Any}`, `=Dict{Symbol,Any}()`) reconstruction parameters dictionary
+- `sys`: (`::Union{Nothing,Scanner}`, `=nothing`) scanner to preload
+- `seq`: (`::Union{Nothing,Sequence}`, `=nothing`) sequence to preload
+- `obj`: (`::Union{Nothing,Phantom}`, `=nothing`) phantom to preload
+- `verbose`: (`::Bool`, `=true`) print UI startup details
 - `return_window`: (`::Bool`, `=false`) make the `out` be either 'nothing' or the Blink window,
     depending on whether the `return_window` keyword argument is set to true
 - `show_window`: (`::Bool`, `=true`) display the Blink window
@@ -48,7 +52,20 @@ Launch the Koma's UI.
 julia> KomaUI()
 ```
 """
-function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,Any}(), rec=Dict{Symbol,Any}(), return_window=false, show_window=true, dev_tools=false)
+function KomaUI(;
+    darkmode=true,
+    frame=true,
+    phantom_mode="2D",
+    sim=Dict{String,Any}(),
+    rec=Dict{Symbol,Any}(),
+    sys=nothing,
+    seq=nothing,
+    obj=nothing,
+    verbose=true,
+    return_window=false,
+    show_window=true,
+    dev_tools=false,
+)
 
     # To avoid generating multiple observables
     Observables.clear(seq_ui)
@@ -57,20 +74,26 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
     Observables.clear(raw_ui)
     Observables.clear(img_ui)
 
+    # Setup the Blink window
+    w, index = setup_blink_window(; darkmode, frame, dev_tools, show_window)
+
     # For phantom sub-buttons
     fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
     widgets_button_obj = button.(string.(fieldnames_obj))
 
-    # Setup the Blink window
-    w, index = setup_blink_window(; darkmode, frame, dev_tools, show_window)
-
     # Setup default simulation inputs (they have observables)
+    sys_default = isnothing(sys) ? setup_scanner() : sys
+    seq_default = isnothing(seq) ? setup_sequence(sys_default) : seq
+    obj_default = isnothing(obj) ? setup_phantom(; phantom_mode) : obj
     @sync begin
-        @async sys_ui[] = setup_scanner()
-        @async seq_ui[] = setup_sequence(sys_ui[])
-        @async obj_ui[] = setup_phantom(; phantom_mode)
-        @async ( @info "Loaded `RawAcquisitionData` to `raw_ui[]`"; raw_ui[] = setup_raw() )
-        @async ( @info "Loaded image to `img_ui[]`"; img_ui[] = [0.0im 0.; 0. 0.] )
+        @async sys_ui[] = sys_default
+        @async seq_ui[] = seq_default
+        @async obj_ui[] = obj_default
+        @async raw_ui[] = setup_raw()
+        @async img_ui[] = [0.0im 0.; 0. 0.]
+    end
+    if verbose
+        @info "Loaded default UI inputs" scanner="sys_ui[]" sequence="seq_ui[]" phantom="obj_ui[]" raw="raw_ui[]" image="img_ui[]"
     end
 
     # Define parameters (they are just internal variables)
@@ -277,27 +300,6 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
         img_ui[] = image
     end
 
-    # Filepicker SEQ
-    @sync begin
-        widget_filepicker_seq = filepicker(".seq (Pulseq)/.seqk (Koma)"; accept=".seq,.seqk")
-        content!(w, "#seqfilepicker", widget_filepicker_seq, async=true)
-        map!((filename) -> callback_filepicker(filename, w, seq_ui[]), seq_ui, widget_filepicker_seq)
-    end
-
-    # Filepicker OBJ
-    @sync begin
-        widget_filepicker_obj = filepicker(".phantom (Koma)/.h5 (JEMRIS)"; accept=".phantom,.h5")
-        content!(w, "#phafilepicker", widget_filepicker_obj, async=true)
-        map!((filename) -> callback_filepicker(filename, w, obj_ui[]), obj_ui, widget_filepicker_obj)
-    end
-
-    # Filepicker RAW
-    @sync begin
-        widget_filepicker_raw = filepicker(".h5/.mrd (ISMRMRD)"; accept=".h5,.mrd")
-        content!(w, "#sigfilepicker", widget_filepicker_raw, async=true)
-        map!((filename) -> callback_filepicker(filename, w, raw_ui[]), raw_ui, widget_filepicker_raw)
-    end
-
     # Listeners
     on((seq) -> view_ui!(seq, w; type="sequence", darkmode), seq_ui)
     on((obj) -> view_ui!(obj, w, seq_ui[], widgets_button_obj; key=:ρ, darkmode), obj_ui)
@@ -310,27 +312,49 @@ function KomaUI(; darkmode=true, frame=true, phantom_mode="2D", sim=Dict{String,
 
     # Update Koma versions to tooltip
     version_ui    = string(pkgversion(@__MODULE__))
+    version_base  = string(pkgversion(KomaMRIBase))
     version_core  = string(pkgversion(KomaMRICore))
     version_io    = string(pkgversion(KomaMRIFiles))
     version_plots = string(pkgversion(KomaMRIPlots))
     @js_ w (
         @var version_ui    = $(version_ui);
+        @var version_base  = $(version_base);
         @var version_core  = $(version_core);
         @var version_io    = $(version_io);
         @var version_plots = $(version_plots);
         document.getElementById("Github").setAttribute("data-bs-original-title",
                                                          "KomaMRI.jl v"+version_ui+"\n"+
+                                                         "KomaMRIBase.jl v"+version_base+"\n"+
                                                          "KomaMRICore.jl v"+version_core+"\n"+
                                                          "KomaMRIFiles.jl v"+version_io+"\n"+
                                                          "KomaMRIPlots.jl v"+version_plots);
     )
-    @info "Currently using package versions" KomaMRI=version_ui KomaMRICore=version_core KomaMRIFiles=version_io KomaMRIPlots=version_plots
+    # Filepickers
+    setup_filepickers!(w)
+
+    @info "KomaMRI loaded successfully 🚀" KomaMRI=version_ui KomaMRIBase=version_base KomaMRICore=version_core KomaMRIFiles=version_io KomaMRIPlots=version_plots
 
     # Devtools
     if return_window
         return w
     end
 
+    return nothing
+end
+
+function setup_filepickers!(w::Window)
+    setup_filepicker!(w, "#seqfilepicker", ".seq (Pulseq)/.seqk (Koma)", seq_ui; accept=".seq,.seqk")
+    setup_filepicker!(w, "#phafilepicker", ".phantom (Koma)/.h5 (JEMRIS)", obj_ui; accept=".phantom,.h5")
+    setup_filepicker!(w, "#sigfilepicker", ".h5/.mrd (ISMRMRD)", raw_ui; accept=".h5,.mrd")
+    return nothing
+end
+
+function setup_filepicker!(w::Window, selector::String, label::String, output; accept)
+    widget = filepicker(label; accept)
+    content!(w, selector, widget, async=false, fade=false)
+    on(observe(widget)) do filename
+        output[] = callback_filepicker(filename, w, output[])
+    end
     return nothing
 end
 

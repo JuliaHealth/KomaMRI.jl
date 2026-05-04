@@ -16,10 +16,11 @@ This process should take about 5 minutes in a fresh Julia installation. Here is 
 ```julia-repl
 julia> ]
 
-(@v1.9) pkg> add KomaMRI
+(@v1.12) pkg> add KomaMRI
+
+pkg> app add KomaMRI # Optional: add koma CLI app (Julia 1.12+)
 ```
 Then press `Ctrl+C` or `backspace` to return to the `julia>` prompt.
-
 
 ---
 ## My First MRI Simulation
@@ -34,6 +35,8 @@ julia> KomaUI()
 The first time you use this command it may take more time than usual, but a window with the Koma GUI will pop up:
 
 ![](../assets/ui-mainpage.png)
+
+The same UI can also be opened from the terminal with the [`koma` app](../how-to/1-4-use-koma-cli.md).
 
 The user interface has some basic definitions for the scanner, phantom, and sequence already preloaded. So you can immediately interact with the simulation and reconstruction processes, and then visualize the results.
 
