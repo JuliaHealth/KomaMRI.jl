@@ -157,3 +157,45 @@ end
 function NRMSE(x, x_true) 
     return sqrt.( sum(abs.(x .- x_true).^2) ./ sum(abs.(x_true).^2) ) * 100.
 end
+
+function diffeq_signal(
+    seq,
+    obj;
+    spin=1,
+    saveat=get_adc_sampling_times(seq),
+    tspan=(0.0, dur(seq)),
+    tstops=Float64[],
+    dtmax=1e-6,
+    abstol=1e-9,
+    reltol=1e-9,
+)
+    M0 = obj.ρ[spin]
+    T1 = obj.T1[spin]
+    T2 = obj.T2[spin]
+    Δw = obj.Δw[spin]
+
+    function bloch!(dm, m, p, t)
+        mx, my, mz = m
+        B1t = KomaMRIBase.get_rfs(seq, [t])[1][1]
+        Gx, Gy, Gz = KomaMRIBase.get_grads(seq, [t])
+        x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t)
+        bx, by = real(B1t), imag(B1t)
+        bz = x[spin] * Gx[1] + y[spin] * Gy[1] + z[spin] * Gz[1] + Δw / (2π * γ)
+        dm[1] = -mx / T2 + 2π * γ * bz * my - 2π * γ * by * mz
+        dm[2] = -2π * γ * bz * mx - my / T2 + 2π * γ * bx * mz
+        dm[3] =  2π * γ * by * mx - 2π * γ * bx * my - mz / T1 + M0 / T1
+        return nothing
+    end
+
+    sol = solve(
+        ODEProblem(bloch!, [0.0, 0.0, M0], tspan),
+        Tsit5();
+        saveat,
+        tstops,
+        dtmax,
+        abstol,
+        reltol,
+    )
+    sol_diffeq = hcat(sol.u...)'
+    return sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
+end
