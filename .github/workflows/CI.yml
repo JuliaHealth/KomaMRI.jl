@@ -32,7 +32,7 @@ jobs:
             prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
     steps:
       - uses: actions/checkout@v6
-      - uses: julia-actions/setup-julia@v2
+      - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
@@ -161,7 +161,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v6
-      - uses: julia-actions/setup-julia@v2
+      - uses: julia-actions/setup-julia@v3
         with:
           version: '1'
       - name: "Documentation dev environment setup"
