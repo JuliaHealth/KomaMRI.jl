@@ -78,10 +78,13 @@ makedocs(;
     clean=false,
 )
 
-DocumenterVitepress.deploydocs(;
-    repo = "github.com/JuliaHealth/KomaMRI.jl",
-    target = joinpath(@__DIR__, "build"),
-    branch = "gh-pages",
-    devbranch = "master",
-    push_preview = true,
-)
+deploy_preview = "push_preview" in ARGS
+if get(ENV, "GITHUB_EVENT_NAME", "") == "push" || deploy_preview
+    DocumenterVitepress.deploydocs(;
+        repo = "github.com/JuliaHealth/KomaMRI.jl",
+        target = joinpath(@__DIR__, "build"),
+        branch = "gh-pages",
+        devbranch = "master",
+        push_preview = deploy_preview,
+    )
+end
