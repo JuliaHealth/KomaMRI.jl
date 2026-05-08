@@ -289,7 +289,7 @@ end
 function run_cli(args)
     opts = parse_cli_args(args, load_cli_preferences!(CLIOptions()))
     load_cli_backend!(opts)
-    return run_cli(opts)
+    return Base.invokelatest(run_cli, opts)
 end
 
 function run_cli(opts::CLIOptions)
