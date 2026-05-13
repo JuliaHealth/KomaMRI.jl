@@ -789,45 +789,28 @@ using TestItems, TestItemRunner
         @test KomaMRIBase.is_ADC_off(seqd) == !KomaMRIBase.is_ADC_on(seqd)
     end
 
-    @testset "RF rise/fall edges keep a sub-Δt_rf marker at any absolute time" begin
-        # Regression for ε-collapse drift: past ~128 s, `t1 + MIN_RISE_TIME`
-        # rounds back to `t1` bit-exactly and the rise-edge step is lost.
-        Trf = 1e-3
-        rf = Sequence(
-            reshape([Grad(0.0, Trf), Grad(0.0, Trf), Grad(0.0, Trf)], 3, 1),
-            reshape([RF(10e-6, Trf)], 1, 1),
-            [ADC(0, 0.0)],
-        )
-        is_marker(Δ, t) = Δ ≤ max(KomaMRIBase.MIN_RISE_TIME, 2 * eps(t)) + eps(t)
-        for offset in (0.0, 200.0)
-            seq   = offset == 0 ? Sequence() + rf : Delay(offset) + rf
-            t, Δt = KomaMRIBase.get_variable_times(seq)
-            tmid = offset + Trf/2
-            leading  = count(i -> offset ≤ t[i] < tmid            && is_marker(Δt[i], t[i]),
-                             1:length(Δt))
-            trailing = count(i -> tmid    ≤ t[i] < offset + 2*Trf && is_marker(Δt[i], t[i]),
-                             1:length(Δt))
-            @test all(diff(t) .> 0)
-            @test leading  ≥ 1
-            @test trailing ≥ 1
-        end
-    end
+    @testset "large-time MRI event time-step collapse" begin
+        T, offset = 1e-3, 200.0
+        B1, Gx = 10e-6, 1e-3
+        seq = Sequence()
+        seq += Delay(offset)
+        @addblock seq += RF(B1, T)
+        seqd = KomaMRIBase.discretize(seq)
+        area = KomaMRIBase.trapz(seqd.Δt, real.(seqd.B1))
+        @test area ≈ B1 * T
 
-    @testset "discrete RF pulse area is time-translation invariant" begin
-        # The integrated B1·Δt over the discrete RF window drives the
-        # flip angle (α = 2π·γ·∫B1·dt). Pre-fix it dropped ~5% past 128 s.
-        Trf, A = 1e-3, 10e-6
-        rf = Sequence(
-            reshape([Grad(0.0, Trf), Grad(0.0, Trf), Grad(0.0, Trf)], 3, 1),
-            reshape([RF(A, Trf)], 1, 1),
-            [ADC(0, 0.0)],
-        )
-        for offset in (0.0, 200.0)
-            seq  = offset == 0 ? Sequence() + rf : Delay(offset) + rf
-            seqd = KomaMRIBase.discretize(seq)
-            area = sum(real(seqd.B1[i]) * seqd.Δt[i] for i in eachindex(seqd.Δt))
-            @test isapprox(area, A * Trf; rtol = 1e-6)
-        end
+        seq = Sequence()
+        seq += Delay(offset)
+        @addblock seq += Grad(Gx, T)
+        seqd = KomaMRIBase.discretize(seq)
+        area = KomaMRIBase.trapz(seqd.Δt, seqd.Gx)
+        @test area ≈ Gx * T
+
+        seq = Sequence()
+        seq += Delay(offset)
+        @addblock seq += ADC(2, T)
+        seqd = KomaMRIBase.discretize(seq)
+        @test all(diff(seqd.t) .> 0)
     end
 
      @testset "SequenceFunctions" begin

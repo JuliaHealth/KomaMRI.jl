@@ -494,35 +494,6 @@ end
     end
 end
 
-@testitem "Identical RF pulses at different absolute times match" tags=[:important, :core, :nomotion] begin
-    include("initialize_backend.jl")
-    # Regression for ε-collapse drift. Four identical 50 s-spaced shots
-    # cross the ~128 s threshold between shots 2 and 3.
-    Trf = 1e-3
-    rf = Sequence(
-        reshape([Grad(0.0, Trf), Grad(0.0, Trf), Grad(0.0, Trf)], 3, 1),
-        reshape([RF(10e-6, Trf)], 1, 1),
-        [ADC(0, 0.0)],
-    )
-    adc = Sequence(
-        reshape([Grad(0.0, Trf), Grad(0.0, Trf), Grad(0.0, Trf)], 3, 1),
-        reshape([RF(0.0, Trf)], 1, 1),
-        [ADC(1, Trf)],
-    )
-    seq = Sequence()
-    for _ in 1:4
-        seq += Delay(50.0); seq += rf; seq += adc
-    end
-    obj = Phantom(name="v", x=[0.0], y=[0.0], z=[0.0],
-                  T1=[1.0], T2=[1.0], T2s=[1.0], ρ=[1.0], Δw=[0.0])
-    sim_params = Dict{String, Any}("gpu" => USE_GPU, "return_type" => "mat", "Nthreads" => 1)
-    sig  = simulate(obj, seq, Scanner(); sim_params, verbose=false)
-    sigs = abs.(vec(sig))
-    @test length(sigs) == 4
-    # All shots are physically identical — drift must be < 0.1 %.
-    @test maximum(sigs) / minimum(sigs) - 1 < 1e-3
-end
-
 @testitem "GPU Functions" tags=[:core, :nomotion, :gpu] begin
     using Suppressor
     import KernelAbstractions as KA

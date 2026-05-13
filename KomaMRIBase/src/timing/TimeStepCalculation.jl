@@ -1,5 +1,8 @@
 const MIN_RISE_TIME = 1e-14
 
+next_time(t) = max(t + MIN_RISE_TIME, nextfloat(t))
+prev_time(t) = min(t - MIN_RISE_TIME, prevfloat(t))
+
 """
     array_of_ranges = kfoldperm(N, k; breaks=[])
 
@@ -91,7 +94,6 @@ This function returns non-uniform time points that are relevant in the sequence 
 """
 function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 	t = Float64[]
-	ϵ = MIN_RISE_TIME # Small Float64
 	T0 = get_block_start_times(seq)
 	for i = 1:length(seq)
         t_block = Float64[]
@@ -103,16 +105,7 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 			t1 = t0 + delay
 			t2 = t1 + sum(T)
 			tc = t0 + delay + get_RF_center(y)
-			# Past ~128 s, `t1 + ϵ` (and `t2 - ϵ`) round back to `t1`/`t2`
-			# bit-exactly, collapsing the rise-/fall-edge step markers
-			# that `linear_interpolation` relies on downstream. The
-			# `deduplicate_knots!(_; move_knots=true)` call perturbs any
-			# such bit-equal duplicates by 1 ULP via `nextfloat`, so the
-			# step survives at any absolute time. No effect when ϵ
-			# arithmetic already produces distinct floats (small t).
-			key = sort([t1, t1 + ϵ, tc, t2 - ϵ, t2])
-			Interpolations.deduplicate_knots!(key; move_knots=true)
-			taux = points_from_key_times(key; dt=Δt_rf)
+			taux = points_from_key_times(sort([t1, next_time(t1), tc, prev_time(t2), t2]); dt=Δt_rf)
             append!(t_block, taux)
 		end
 		if is_GR_on(s)
@@ -122,7 +115,7 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 			if is_Gz_on(s) append!(active_gradients, s.GR.z) end
 			for y = active_gradients
 				ts = times(y) .+ t0
-				taux = points_from_key_times([ts[1] + ϵ; ts; ts[end] - ϵ]; dt=Δt)
+				taux = points_from_key_times([next_time(ts[1]); ts; prev_time(ts[end])]; dt=Δt)
                 append!(t_block, taux)
 			end
 		end
@@ -136,14 +129,10 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 	append!(t, [0.0, dur(seq)])
 	# Removing repeated points
 	sort!(unique!(t))
-	# Fixes a problem with ADC at the start and end of the seq.
-	# Scale the bookend pad with `eps(t)` so it's a distinct Float64
-	# at any t (a fixed `ϵ = 1e-14` rounds back onto `t` itself once
-	# `eps(t)/2 > ϵ`, ≈128 s), while keeping `MIN_RISE_TIME` as a
-	# floor so we don't drop to subnormal precision near t = 0.
-	ϵ_lo = max(MIN_RISE_TIME, 2 * eps(t[1]))
-	ϵ_hi = max(MIN_RISE_TIME, 2 * eps(t[end]))
-	t = [t[1] - ϵ_lo; t; t[end] + ϵ_hi]
+	# Fixes a problem with ADC at the start and end of the seq
+	t0 = prev_time(t[1])
+	tf = next_time(t[end])
+	t = [t0; t; tf]
 	# Time difference
 	Δt = t[2:end] .- t[1:end-1]
 	t, Δt
