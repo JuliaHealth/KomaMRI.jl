@@ -516,10 +516,10 @@ end
             addblock!(seq, RF(ComplexF64[1.0, 0.5, 1.0], [Δt_rf, Δt_rf], 0.0, Δt_rf), Duration(10Δt_rf))
             write_seq(seq, filename; verbose=false)
 
+            # Some Pulseq writers emit zero-amplitude RFs. Koma does not, so this test makes one manually.
             lines = readlines(filename)
             i = findfirst(line -> startswith(line, "1 ") && contains(line, " 1 2 3 "), lines)
             fields = split(lines[i])
-            # Some Pulseq writers emit zero-amplitude RFs. Koma does not, so this test makes one manually.
             fields[2] = "0.0"
             lines[i] = join(fields, " ")
             write(filename, join(lines, "\n"))
