@@ -103,7 +103,16 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 			t1 = t0 + delay
 			t2 = t1 + sum(T)
 			tc = t0 + delay + get_RF_center(y)
-			taux = points_from_key_times(sort([t1, t1 + ϵ, tc, t2 - ϵ, t2]); dt=Δt_rf)
+			# Past ~128 s, `t1 + ϵ` (and `t2 - ϵ`) round back to `t1`/`t2`
+			# bit-exactly, collapsing the rise-/fall-edge step markers
+			# that `linear_interpolation` relies on downstream. The
+			# `deduplicate_knots!(_; move_knots=true)` call perturbs any
+			# such bit-equal duplicates by 1 ULP via `nextfloat`, so the
+			# step survives at any absolute time. No effect when ϵ
+			# arithmetic already produces distinct floats (small t).
+			key = sort([t1, t1 + ϵ, tc, t2 - ϵ, t2])
+			Interpolations.deduplicate_knots!(key; move_knots=true)
+			taux = points_from_key_times(key; dt=Δt_rf)
             append!(t_block, taux)
 		end
 		if is_GR_on(s)
@@ -127,10 +136,14 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 	append!(t, [0.0, dur(seq)])
 	# Removing repeated points
 	sort!(unique!(t))
-	# Fixes a problem with ADC at the start and end of the seq
-	t0 = t[1]   - ϵ
-	tf = t[end] + ϵ
-	t = [t0; t; tf]
+	# Fixes a problem with ADC at the start and end of the seq.
+	# Scale the bookend pad with `eps(t)` so it's a distinct Float64
+	# at any t (a fixed `ϵ = 1e-14` rounds back onto `t` itself once
+	# `eps(t)/2 > ϵ`, ≈128 s), while keeping `MIN_RISE_TIME` as a
+	# floor so we don't drop to subnormal precision near t = 0.
+	ϵ_lo = max(MIN_RISE_TIME, 2 * eps(t[1]))
+	ϵ_hi = max(MIN_RISE_TIME, 2 * eps(t[end]))
+	t = [t[1] - ϵ_lo; t; t[end] + ϵ_hi]
 	# Time difference
 	Δt = t[2:end] .- t[1:end-1]
 	t, Δt
