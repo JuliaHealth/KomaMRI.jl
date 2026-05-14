@@ -10,14 +10,23 @@ The Magnetization struct.
 # Returns
 - `mag`: (`::Mag`) Magnetization struct
 """
-mutable struct Mag{T<:Real} <: SpinStateRepresentation{T}
-    xy::AbstractVector{Complex{T}}
-    z::AbstractVector{T}
+mutable struct Mag{T<:Real,XYType,ZType} <: SpinStateRepresentation{T}
+    xy::XYType
+    z::ZType
+end
+
+function Mag(xy::AbstractVector{Complex{T}}, z::AbstractVector{T}) where {T<:Real}
+    return Mag{T,typeof(xy),typeof(z)}(xy, z)
+end
+
+function Mag(xy, z)
+    T = promote_type(_real_storage_eltype(typeof(xy)), _real_storage_eltype(typeof(z)))
+    return Mag{T,typeof(xy),typeof(z)}(xy, z)
 end
 
 # Required indexing operations
 # M[i]
-Base.getindex(M::Mag, i::Integer) = Mag(M.xy[i,:], M.z[i,:])
+Base.getindex(M::Mag, i::Integer) = Mag(M.xy[i:i], M.z[i:i])
 # M[a:b]
 Base.getindex(M::Mag, i) = Mag(M.xy[i], M.z[i])
 Base.view(M::Mag, i) = @views Mag(M.xy[i], M.z[i])
@@ -45,7 +54,7 @@ Parameter relations for the Shinnar-Le Roux selective excitation pulse design al
 (NMR imaging).
 IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 """
-mul!(s::Spinor{T}, M::Mag) where {T<:Real} = begin
+@inline mul!(s::Spinor{T}, M::Mag) where {T<:Real} = begin
     M_aux = Mag(
         T(2) .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
         (abs.(s.α).^2 .-abs.(s.β).^2).*M.z.-T(2) .*real.(s.α.*s.β.*conj.(M.xy))
@@ -53,13 +62,13 @@ mul!(s::Spinor{T}, M::Mag) where {T<:Real} = begin
     M.xy .= M_aux.xy
     M.z  .= M_aux.z
 end
-mul!(s::Spinor{T}, M::Mag, Maux_xy, Maux_z) where {T<:Real} = begin
+@inline mul!(s::Spinor{T}, M::Mag, Maux_xy, Maux_z) where {T<:Real} = begin
     @. Maux_xy = T(2)*conj(s.α)*s.β*M.z+conj(s.α)^2*M.xy-s.β^2*conj(M.xy)
     @. Maux_z = (abs(s.α)^2 -abs(s.β)^2)*M.z-T(2) *real(s.α*s.β*conj(M.xy))
     @. M.xy = Maux_xy
     @. M.z = Maux_z
 end
-*(s::Spinor{T}, M::Mag) where {T<:Real} = begin
+@inline *(s::Spinor{T}, M::Mag) where {T<:Real} = begin
     Mag(
         T(2) .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
         (abs.(s.α).^2 .-abs.(s.β).^2).*M.z.-T(2) .*real.(s.α.*s.β.*conj.(M.xy))

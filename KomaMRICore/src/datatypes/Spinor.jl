@@ -23,15 +23,30 @@ R V R^{*}``.
 # Returns
 - `spinor`: (`::Spinor`) Spinor struct
 """
-struct Spinor{T<:Real}
-	α::AbstractVector{Complex{T}}
-	β::AbstractVector{Complex{T}}
+struct Spinor{T<:Real,αType,βType}
+	α::αType
+	β::βType
+end
+function Spinor(α::AbstractVector{Complex{T}}, β::AbstractVector{Complex{T}}) where {T<:Real}
+	return Spinor{T,typeof(α),typeof(β)}(α, β)
+end
+function Spinor(α, β)
+	T = promote_type(_real_storage_eltype(typeof(α)), _real_storage_eltype(typeof(β)))
+	return Spinor{T,typeof(α),typeof(β)}(α, β)
 end
 Spinor(α::Complex{T}, β::Complex{T}) where {T<:Real} = Spinor([α], [β])
 Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
-one(T::Spinor) = Spinor(1.,0.)
+Base.one(T::Spinor) = Spinor(1.,0.)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 Base.view(s::Spinor, i::UnitRange) = @views Spinor(s.α[i], s.β[i])
+
+function _storage_eltype(::Type{A}) where {A}
+    params = Base.unwrap_unionall(A).parameters
+    return !isempty(params) && params[1] isa Type ? params[1] : eltype(A)
+end
+_real_storage_eltype(::Type{A}) where {A} = _real_eltype(_storage_eltype(A))
+_real_eltype(::Type{Complex{T}}) where {T} = T
+_real_eltype(::Type{T}) where {T<:Real} = T
 """
     str = show(io::IO, s::Spinor)
 
@@ -155,7 +170,15 @@ IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 # Returns
 - `s`: (`::Spinor`) spinnor struct that represents the `Q` rotation matrix
 """
-Q(φ, nxy, nz) = Spinor(cos.(φ/2).-1im*nz.*sin.(φ/2), -1im*nxy.*sin.(φ/2))
+function Q(φ, nxy, nz)
+    φ_half = φ ./ 2
+    sin_φ_half = sin.(φ_half)
+    neg_im = complex.(zero.(φ), -Base.one.(φ))
+    return Spinor(
+        cos.(φ_half) .+ neg_im .* nz .* sin_φ_half,
+        neg_im .* nxy .* sin_φ_half,
+    )
+end
 
 """
     y = abs(s::Spinor)
