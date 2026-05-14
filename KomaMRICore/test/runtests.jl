@@ -658,6 +658,166 @@ end
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
+@testitem "BlochSimple Enzyme RF gradient" tags=[:ad, :skipci] begin
+    using Enzyme
+    import KernelAbstractions as KA
+
+    function zero_shadow(obj::Phantom{T}) where {T}
+        Phantom(;
+            name = obj.name,
+            x = zero(obj.x),
+            y = zero(obj.y),
+            z = zero(obj.z),
+            ρ = zero(obj.ρ),
+            T1 = zero(obj.T1),
+            T2 = zero(obj.T2),
+            T2s = zero(obj.T2s),
+            Δw = zero(obj.Δw),
+            Dλ1 = zero(obj.Dλ1),
+            Dλ2 = zero(obj.Dλ2),
+            Dθ = zero(obj.Dθ),
+            motion = NoMotion(),
+        )
+    end
+
+    function native_blochsimple_loss!(
+        M_xy::AbstractVector{Complex{T}},
+        M_z::AbstractVector{T},
+        seqd::DiscreteSequence{T},
+        obj::Phantom{T},
+        target::AbstractVector{Complex{T}},
+        invN::T,
+    ) where {T<:Real}
+        @inbounds for i in eachindex(M_xy)
+            M_xy[i] = zero(Complex{T})
+            M_z[i] = one(T)
+        end
+
+        M = Mag(M_xy, M_z)
+        KomaMRICore.run_spin_excitation!(
+            obj,
+            seqd,
+            Complex{T}[],
+            M,
+            BlochSimple(),
+            1,
+            KA.CPU(),
+            KomaMRICore.DefaultPrealloc{T}(),
+        )
+
+        loss = zero(T)
+        @inbounds for i in eachindex(M_xy)
+            dr = real(M_xy[i]) - real(target[i])
+            di = imag(M_xy[i]) - imag(target[i])
+            loss += (dr * dr + di * di) * invN
+        end
+        return loss
+    end
+
+    function make_ad_case(; T=Float64, Nt=8, Nspins=5)
+        Δt = fill(T(12.5e-6), Nt)
+        t = collect(T(0):T(12.5e-6):T(Nt * 12.5e-6))
+        B1 = Complex{T}.(
+            range(T(0.8e-6), T(1.4e-6), length=Nt),
+            range(T(-0.2e-6), T(0.3e-6), length=Nt),
+        )
+        seqd = DiscreteSequence(
+            zeros(T, Nt),
+            zeros(T, Nt),
+            zeros(T, Nt),
+            B1,
+            zeros(T, Nt),
+            zeros(T, Nt + 1),
+            falses(Nt + 1),
+            t,
+            Δt,
+        )
+        obj = Phantom(;
+            x = collect(range(T(-0.01), T(0.01), length=Nspins)),
+            T1 = fill(T(1.0), Nspins),
+            T2 = fill(T(0.2), Nspins),
+        )
+        target = Complex{T}.(zeros(T, Nspins), range(T(0.02), T(0.06), length=Nspins))
+        (; seqd, obj, target, invN = inv(T(Nspins)))
+    end
+
+    function value_for_B1(B1::Vector{Complex{T}}, case) where {T}
+        seqd = DiscreteSequence(
+            case.seqd.Gx,
+            case.seqd.Gy,
+            case.seqd.Gz,
+            B1,
+            case.seqd.Δf,
+            case.seqd.ψ,
+            case.seqd.ADC,
+            case.seqd.t,
+            case.seqd.Δt,
+        )
+        M_xy = zeros(Complex{T}, length(case.obj))
+        M_z = ones(T, length(case.obj))
+        native_blochsimple_loss!(M_xy, M_z, seqd, case.obj, case.target, case.invN)
+    end
+
+    function enzyme_gradient(case)
+        T = eltype(case.seqd.Δt)
+        M_xy = zeros(Complex{T}, length(case.obj))
+        M_z = ones(T, length(case.obj))
+        dM_xy = zeros(Complex{T}, length(case.obj))
+        dM_z = zeros(T, length(case.obj))
+        dB1 = zeros(Complex{T}, length(case.seqd.B1))
+
+        seqd_shadow = DiscreteSequence(
+            zero(case.seqd.Gx),
+            zero(case.seqd.Gy),
+            zero(case.seqd.Gz),
+            dB1,
+            zero(case.seqd.Δf),
+            zero(case.seqd.ψ),
+            zero(case.seqd.ADC),
+            zero(case.seqd.t),
+            zero(case.seqd.Δt),
+        )
+
+        result = Enzyme.autodiff(
+            Enzyme.ReverseWithPrimal,
+            native_blochsimple_loss!,
+            Enzyme.Active,
+            Enzyme.Duplicated(M_xy, dM_xy),
+            Enzyme.Duplicated(M_z, dM_z),
+            Enzyme.Duplicated(case.seqd, seqd_shadow),
+            Enzyme.Duplicated(case.obj, zero_shadow(case.obj)),
+            Enzyme.Const(case.target),
+            Enzyme.Const(case.invN),
+        )
+        return result[2], dB1
+    end
+
+    function finite_difference(case, j; ε=1e-9)
+        B1 = copy(case.seqd.B1)
+        B1p = copy(B1)
+        B1m = copy(B1)
+        B1p[j] += ε
+        B1m[j] -= ε
+        grad_real = (value_for_B1(B1p, case) - value_for_B1(B1m, case)) / (2ε)
+
+        B1p .= B1
+        B1m .= B1
+        B1p[j] += im * ε
+        B1m[j] -= im * ε
+        grad_imag = (value_for_B1(B1p, case) - value_for_B1(B1m, case)) / (2ε)
+        return grad_real, grad_imag
+    end
+
+    case = make_ad_case()
+    loss, ∇B1 = enzyme_gradient(case)
+    j = 4
+    fd_real, fd_imag = finite_difference(case, j)
+
+    @test isfinite(loss)
+    @test isapprox(real(∇B1[j]), fd_real; rtol=1e-8, atol=1e-8)
+    @test isapprox(imag(∇B1[j]), fd_imag; rtol=1e-8, atol=1e-8)
+end
+
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
     include("initialize_backend.jl")
 

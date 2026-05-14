@@ -10,16 +10,14 @@ The Magnetization struct.
 # Returns
 - `mag`: (`::Mag`) Magnetization struct
 """
-mutable struct Mag{T<:Real,XY<:AbstractVector{Complex{T}},Z<:AbstractVector{T}} <: SpinStateRepresentation{T}
-    xy::XY
-    z::Z
+mutable struct Mag <: SpinStateRepresentation
+    xy::AbstractVector
+    z::AbstractVector
 end
-Mag{T}(xy::XY, z::Z) where {T<:Real,XY<:AbstractVector{Complex{T}},Z<:AbstractVector{T}} =
-    Mag{T,XY,Z}(xy, z)
 
 # Required indexing operations
 # M[i]
-Base.getindex(M::Mag, i::Integer) = Mag(M.xy[i,:], M.z[i,:])
+Base.getindex(M::Mag, i::Integer) = Mag(M.xy[i:i], M.z[i:i])
 # M[a:b]
 Base.getindex(M::Mag, i) = Mag(M.xy[i], M.z[i])
 Base.view(M::Mag, i) = @views Mag(M.xy[i], M.z[i])
@@ -44,14 +42,16 @@ function set_rotation_spinor!(α, β, θxy, θz)
     return nothing
 end
 
-calc_mag_norm!(norm, M::Mag) = nothing
-function calc_mag_norm!(norm, M::Mag{Float32})
+calc_mag_norm!(norm, M::Mag) = _calc_mag_norm!(norm, M, Val(eltype(norm)))
+_calc_mag_norm!(norm, M::Mag, ::Val) = nothing
+function _calc_mag_norm!(norm, M::Mag, ::Val{Float32})
     @. norm = sqrt(abs2(M.xy) + M.z^2)
     return nothing
 end
 
-restore_mag_norm!(norm, M::Mag) = nothing
-function restore_mag_norm!(norm, M::Mag{Float32})
+restore_mag_norm!(norm, M::Mag) = _restore_mag_norm!(norm, M, Val(eltype(norm)))
+_restore_mag_norm!(norm, M::Mag, ::Val) = nothing
+function _restore_mag_norm!(norm, M::Mag, ::Val{Float32})
     @. norm = norm / sqrt(abs2(M.xy) + M.z^2)
     @. M.xy = M.xy * norm
     @. M.z = M.z * norm
@@ -81,23 +81,23 @@ Parameter relations for the Shinnar-Le Roux selective excitation pulse design al
 (NMR imaging).
 IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 """
-mul!(s::Spinor{T}, M::Mag) where {T<:Real} = begin
+@inline mul!(s::Spinor, M::Mag) = begin
     M_aux = Mag(
-        T(2) .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
-        (abs2.(s.α) .- abs2.(s.β)).*M.z .- T(2).*real.(s.α.*s.β.*conj.(M.xy))
+        2 .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
+        (abs2.(s.α) .- abs2.(s.β)).*M.z .- 2 .*real.(s.α.*s.β.*conj.(M.xy))
      )
     M.xy .= M_aux.xy
     M.z  .= M_aux.z
 end
-mul!(s::Spinor{T}, M::Mag, Maux_xy, Maux_z) where {T<:Real} = begin
-    @. Maux_xy = T(2)*conj(s.α)*s.β*M.z+conj(s.α)^2*M.xy-s.β^2*conj(M.xy)
-    @. Maux_z = (abs2(s.α) - abs2(s.β))*M.z - T(2)*real(s.α*s.β*conj(M.xy))
+@inline mul!(s::Spinor, M::Mag, Maux_xy, Maux_z) = begin
+    @. Maux_xy = 2*conj(s.α)*s.β*M.z+conj(s.α)^2*M.xy-s.β^2*conj(M.xy)
+    @. Maux_z = (abs2(s.α) - abs2(s.β))*M.z - 2*real(s.α*s.β*conj(M.xy))
     @. M.xy = Maux_xy
     @. M.z = Maux_z
 end
-*(s::Spinor{T}, M::Mag) where {T<:Real} = begin
+@inline *(s::Spinor, M::Mag) = begin
     Mag(
-        T(2) .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
-        (abs2.(s.α) .- abs2.(s.β)).*M.z .- T(2).*real.(s.α.*s.β.*conj.(M.xy))
+        2 .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
+        (abs2.(s.α) .- abs2.(s.β)).*M.z .- 2 .*real.(s.α.*s.β.*conj.(M.xy))
      )
 end
