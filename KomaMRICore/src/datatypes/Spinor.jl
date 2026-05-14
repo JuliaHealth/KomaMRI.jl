@@ -23,15 +23,13 @@ R V R^{*}``.
 # Returns
 - `spinor`: (`::Spinor`) Spinor struct
 """
-struct Spinor{T<:Real,A<:AbstractVector{Complex{T}},B<:AbstractVector{Complex{T}}}
-	α::A
-	β::B
+struct Spinor{V<:AbstractVector}
+	α::V
+	β::V
 end
-Spinor{T}(α::A, β::B) where {T<:Real,A<:AbstractVector{Complex{T}},B<:AbstractVector{Complex{T}}} =
-    Spinor{T,A,B}(α, β)
-Spinor(α::Complex{T}, β::Complex{T}) where {T<:Real} = Spinor([α], [β])
-Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
-one(T::Spinor) = Spinor(1.,0.)
+Spinor(α::Complex, β::Complex) = Spinor([α], [β])
+Spinor(α::Real, β::Real) = Spinor([complex(α)], [complex(β)])
+Base.one(::Spinor) = Spinor(1.,0.)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 Base.view(s::Spinor, i::UnitRange) = @views Spinor(s.α[i], s.β[i])
 """
@@ -158,7 +156,15 @@ Spinor rotation matrix. Counter-clockwise rotation of `φ` with respect to the a
   (NMR imaging). IEEE Transactions on Medical Imaging, 10(1), 53-65.
   doi:10.1109/42.75611
 """
-Q(φ, nxy, nz) = Spinor(cos.(φ/2).-1im*nz.*sin.(φ/2), -1im*nxy.*sin.(φ/2))
+function Q(φ, nxy, nz)
+    φ_half = φ ./ 2
+    sin_φ_half = sin.(φ_half)
+    neg_im = complex.(zero.(φ), -Base.one.(φ))
+    return Spinor(
+        cos.(φ_half) .+ neg_im .* nz .* sin_φ_half,
+        neg_im .* nxy .* sin_φ_half,
+    )
+end
 
 """
     y = abs(s::Spinor)
