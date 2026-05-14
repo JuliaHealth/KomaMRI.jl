@@ -611,6 +611,143 @@ end
     @test isapprox(imag(∇B1[j]), fd_imag; rtol=1e-8, atol=1e-8)
 end
 
+@testitem "BlochSimple Reactant Enzyme RF gradient" tags=[:ad, :reactant, :skipci] begin
+    using Enzyme: Const, ReverseWithPrimal, gradient
+    using Reactant
+    import KernelAbstractions as KA
+
+    Reactant.set_default_backend("cpu")
+    Reactant.allowscalar(false)
+
+    function make_reactant_ad_case(; T=Float32, Nt=8, Nspins=5)
+        Δt = fill(T(12.5e-6), Nt)
+        t = collect(T(0):T(12.5e-6):T(Nt * 12.5e-6))
+        B1 = Complex{T}.(
+            range(T(0.8e-6), T(1.4e-6), length=Nt),
+            range(T(-0.2e-6), T(0.3e-6), length=Nt),
+        )
+        target = Complex{T}.(zeros(T, Nspins), range(T(0.02), T(0.06), length=Nspins))
+        return (;
+            B1,
+            M_xy = zeros(Complex{T}, Nspins),
+            M_z = ones(T, Nspins),
+            Gx = zeros(T, Nt),
+            Gy = zeros(T, Nt),
+            Gz = zeros(T, Nt),
+            Δf = zeros(T, Nt),
+            ψ = zeros(T, Nt + 1),
+            ADC = falses(Nt + 1),
+            t,
+            Δt,
+            p_x = collect(range(T(-0.01), T(0.01), length=Nspins)),
+            p_y = zeros(T, Nspins),
+            p_z = zeros(T, Nspins),
+            p_ρ = ones(T, Nspins),
+            p_T1 = fill(T(1.0), Nspins),
+            p_T2 = fill(T(0.2), Nspins),
+            p_T2s = fill(T(0.2), Nspins),
+            p_Δw = zeros(T, Nspins),
+            target,
+            invN = inv(T(Nspins)),
+        )
+    end
+
+    const REACTANT_BLOCHSIMPLE_CASE = make_reactant_ad_case()
+    const REACTANT_BLOCHSIMPLE_OBJ = Phantom(;
+        x = REACTANT_BLOCHSIMPLE_CASE.p_x,
+        y = REACTANT_BLOCHSIMPLE_CASE.p_y,
+        z = REACTANT_BLOCHSIMPLE_CASE.p_z,
+        ρ = REACTANT_BLOCHSIMPLE_CASE.p_ρ,
+        T1 = REACTANT_BLOCHSIMPLE_CASE.p_T1,
+        T2 = REACTANT_BLOCHSIMPLE_CASE.p_T2,
+        T2s = REACTANT_BLOCHSIMPLE_CASE.p_T2s,
+        Δw = REACTANT_BLOCHSIMPLE_CASE.p_Δw,
+    )
+    const REACTANT_BLOCHSIMPLE_T = eltype(REACTANT_BLOCHSIMPLE_CASE.Δt)
+
+    function reactant_blochsimple_loss_from_B1(B1, M_xy0, M_z0)
+        case = REACTANT_BLOCHSIMPLE_CASE
+        seqd = DiscreteSequence(
+            case.Gx,
+            case.Gy,
+            case.Gz,
+            B1,
+            case.Δf,
+            case.ψ,
+            case.ADC,
+            case.t,
+            case.Δt,
+        )
+        M = Mag(copy(M_xy0), copy(M_z0))
+        KomaMRICore.run_spin_excitation!(
+            REACTANT_BLOCHSIMPLE_OBJ,
+            seqd,
+            Complex{REACTANT_BLOCHSIMPLE_T}[],
+            M,
+            BlochSimple(),
+            1,
+            KA.CPU(),
+            KomaMRICore.DefaultPrealloc{REACTANT_BLOCHSIMPLE_T}(),
+        )
+        return sum(abs2, M.xy .- case.target) * case.invN
+    end
+
+    function reactant_blochsimple_grad_and_loss(B1, M_xy0, M_z0)
+        (; val, derivs) = gradient(
+            ReverseWithPrimal,
+            reactant_blochsimple_loss_from_B1,
+            B1,
+            Const(M_xy0),
+            Const(M_z0),
+        )
+        return val, derivs[1]
+    end
+
+    function reactant_blochsimple_finite_difference(j; ε=1f-8)
+        case = REACTANT_BLOCHSIMPLE_CASE
+        B1 = copy(case.B1)
+        B1p = copy(B1)
+        B1m = copy(B1)
+        B1p[j] += ε
+        B1m[j] -= ε
+        grad_real = (
+            reactant_blochsimple_loss_from_B1(B1p, case.M_xy, case.M_z) -
+            reactant_blochsimple_loss_from_B1(B1m, case.M_xy, case.M_z)
+        ) / (2ε)
+
+        B1p .= B1
+        B1m .= B1
+        B1p[j] += im * ε
+        B1m[j] -= im * ε
+        grad_imag = (
+            reactant_blochsimple_loss_from_B1(B1p, case.M_xy, case.M_z) -
+            reactant_blochsimple_loss_from_B1(B1m, case.M_xy, case.M_z)
+        ) / (2ε)
+        return grad_real, grad_imag
+    end
+
+    case = REACTANT_BLOCHSIMPLE_CASE
+    B1_ra = Reactant.to_rarray(case.B1)
+    M_xy_ra = Reactant.to_rarray(case.M_xy)
+    M_z_ra = Reactant.to_rarray(case.M_z)
+
+    native_loss = reactant_blochsimple_loss_from_B1(case.B1, case.M_xy, case.M_z)
+    compiled_grad = Reactant.@compile sync=true reactant_blochsimple_grad_and_loss(B1_ra, M_xy_ra, M_z_ra)
+    reactant_loss, reactant_∇B1 = compiled_grad(B1_ra, M_xy_ra, M_z_ra)
+
+    reactant_loss = Reactant.to_number(reactant_loss)
+    reactant_∇B1 = Array(reactant_∇B1)
+    j = 4
+    fd_real, fd_imag = reactant_blochsimple_finite_difference(j)
+
+    @test isfinite(reactant_loss)
+    @test all(isfinite, reactant_∇B1)
+    @test any(x -> !iszero(x), reactant_∇B1)
+    @test isapprox(reactant_loss, native_loss; rtol=1f-5, atol=1f-7)
+    @test isapprox(real(reactant_∇B1[j]), fd_real; rtol=1f-2, atol=1f-2)
+    @test isapprox(imag(reactant_∇B1[j]), fd_imag; rtol=1f-2, atol=1f-2)
+end
+
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
     include("initialize_backend.jl")
 
