@@ -18,10 +18,10 @@ times. DiscreteSequence is the struct used for simulation.
 # Returns
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
-struct DiscreteSequence{T<:Real,GxType,GyType,GzType,B1Type,ΔfType,ψType,ADCType,tType,ΔtType}
-    Gx::GxType
-    Gy::GyType
-    Gz::GzType
+struct DiscreteSequence{T<:Real,GType,B1Type,ΔfType,ψType,ADCType,tType,ΔtType}
+    Gx::GType
+    Gy::GType
+    Gz::GType
     B1::B1Type
     Δf::ΔfType
     ψ::ψType
@@ -44,8 +44,6 @@ function DiscreteSequence(
     return DiscreteSequence{
         T,
         typeof(Gx),
-        typeof(Gy),
-        typeof(Gz),
         typeof(B1),
         typeof(Δf),
         typeof(ψ),
@@ -69,8 +67,6 @@ function DiscreteSequence(Gx, Gy, Gz, B1, Δf, ψ, ADC, t, Δt)
     return DiscreteSequence{
         T,
         typeof(Gx),
-        typeof(Gy),
-        typeof(Gz),
         typeof(B1),
         typeof(Δf),
         typeof(ψ),
