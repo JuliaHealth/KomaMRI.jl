@@ -87,10 +87,10 @@ function run_spin_excitation!(
     #Simulation
     for i in eachindex(seq.Δt)
         s = @views ( # This was the previous behaviour of seq[i], but it was hidden
-            t = seq.t[i:i], tnew = seq.t[(i + 1):(i + 1)], Δt = seq.Δt[i:i],
-            Gx = seq.Gx[i:i], Gy = seq.Gy[i:i], Gz = seq.Gz[i:i],
-            B1 = seq.B1[i:i], Δf = seq.Δf[i:i],
-            ADC = any(seq.ADC[(i + 1):(i + 1)])
+            t = seq.t[i, :], tnew = seq.t[i + 1, :], Δt = seq.Δt[i, :],
+            Gx = seq.Gx[i, :], Gy = seq.Gy[i, :], Gz = seq.Gz[i, :],
+            B1 = seq.B1[i, :], Δf = seq.Δf[i, :],
+            ADC = any(seq.ADC[i + 1, :])
         )
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
@@ -101,15 +101,7 @@ function run_spin_excitation!(
         B .+= (B .== 0) .* eps(T)
         #Spinor Rotation
         φ = T(-2π .* γ) .* (B .* s.Δt)
-        φ_half = φ ./ 2
-        sin_φ_half = sin.(φ_half)
-        neg_im = complex.(zero.(φ), -Base.one.(φ))
-        α = cos.(φ_half) .+ neg_im .* (Bz ./ B) .* sin_φ_half
-        β = neg_im .* (s.B1 ./ B) .* sin_φ_half
-        Mxy = T(2) .* conj.(α) .* β .* M.z .+ conj.(α) .^ 2 .* M.xy .- β .^ 2 .* conj.(M.xy)
-        Mz = (abs.(α) .^ 2 .- abs.(β) .^ 2) .* M.z .- T(2) .* real.(α .* β .* conj.(M.xy))
-        M.xy .= Mxy
-        M.z .= Mz
+        mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
         @. M.z  = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))

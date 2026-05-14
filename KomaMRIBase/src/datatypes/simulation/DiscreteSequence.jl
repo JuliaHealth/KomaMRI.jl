@@ -90,15 +90,15 @@ _real_eltype(::Type{T}) where {T<:Real} = T
 
 Base.length(seq::DiscreteSequence) = length(seq.Δt)
 Base.getindex(seq::DiscreteSequence, i::Integer) = begin
-    DiscreteSequence(seq.Gx[i:i],
-                     seq.Gy[i:i],
-                     seq.Gz[i:i],
-                     seq.B1[i:i],
-                     seq.Δf[i:i],
-                     seq.ψ[i:i],
-                     seq.ADC[i:i],
-                     seq.t[i:i],
-                     seq.Δt[i:i])
+    DiscreteSequence(seq.Gx[i, :],
+                     seq.Gy[i, :],
+                     seq.Gz[i, :],
+                     seq.B1[i, :],
+                     seq.Δf[i, :],
+                     seq.ψ[i, :],
+                     seq.ADC[i, :],
+                     seq.t[i, :],
+                     seq.Δt[i, :])
 end
 Base.getindex(seq::DiscreteSequence, i::UnitRange) = begin
     DiscreteSequence(seq.Gx[i],
