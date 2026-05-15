@@ -23,16 +23,13 @@ R V R^{*}``.
 # Returns
 - `spinor`: (`::Spinor`) Spinor struct
 """
-struct Spinor{T<:Real,αType,βType}
-	α::αType
-	β::βType
+struct Spinor{T<:Real,V<:AbstractVector}
+	α::V
+	β::V
 end
-function Spinor(α::AbstractVector{Complex{T}}, β::AbstractVector{Complex{T}}) where {T<:Real}
-	return Spinor{T,typeof(α),typeof(β)}(α, β)
-end
-function Spinor(α, β)
+function Spinor(α::V, β::V) where {V<:AbstractVector}
 	T = promote_type(_real_storage_eltype(typeof(α)), _real_storage_eltype(typeof(β)))
-	return Spinor{T,typeof(α),typeof(β)}(α, β)
+	return Spinor{T,V}(α, β)
 end
 Spinor(α::Complex{T}, β::Complex{T}) where {T<:Real} = Spinor([α], [β])
 Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])

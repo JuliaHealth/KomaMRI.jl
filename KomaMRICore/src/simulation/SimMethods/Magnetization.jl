@@ -10,18 +10,18 @@ The Magnetization struct.
 # Returns
 - `mag`: (`::Mag`) Magnetization struct
 """
-mutable struct Mag{T<:Real,XYType,ZType} <: SpinStateRepresentation{T}
+mutable struct Mag{
+    T<:Real,
+    XYType<:AbstractVector,
+    ZType<:AbstractVector,
+} <: SpinStateRepresentation{T}
     xy::XYType
     z::ZType
 end
 
-function Mag(xy::AbstractVector{Complex{T}}, z::AbstractVector{T}) where {T<:Real}
-    return Mag{T,typeof(xy),typeof(z)}(xy, z)
-end
-
-function Mag(xy, z)
+function Mag(xy::XYType, z::ZType) where {XYType<:AbstractVector,ZType<:AbstractVector}
     T = promote_type(_real_storage_eltype(typeof(xy)), _real_storage_eltype(typeof(z)))
-    return Mag{T,typeof(xy),typeof(z)}(xy, z)
+    return Mag{T,XYType,ZType}(xy, z)
 end
 
 # Required indexing operations

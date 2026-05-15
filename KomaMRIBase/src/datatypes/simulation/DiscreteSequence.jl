@@ -18,7 +18,16 @@ times. DiscreteSequence is the struct used for simulation.
 # Returns
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
-struct DiscreteSequence{T<:Real,GType,B1Type,ΔfType,ψType,ADCType,tType,ΔtType}
+struct DiscreteSequence{
+    T<:Real,
+    GType<:AbstractVector,
+    B1Type<:AbstractVector,
+    ΔfType<:AbstractVector,
+    ψType<:AbstractVector,
+    ADCType<:AbstractVector,
+    tType<:AbstractVector,
+    ΔtType<:AbstractVector,
+}
     Gx::GType
     Gy::GType
     Gz::GType
@@ -31,29 +40,24 @@ struct DiscreteSequence{T<:Real,GType,B1Type,ΔfType,ψType,ADCType,tType,ΔtTyp
 end
 
 function DiscreteSequence(
-    Gx::AbstractVector{T},
-    Gy::AbstractVector{T},
-    Gz::AbstractVector{T},
-    B1::AbstractVector{Complex{T}},
-    Δf::AbstractVector{T},
-    ψ::AbstractVector{T},
-    ADC::AbstractVector{Bool},
-    t::AbstractVector{T},
-    Δt::AbstractVector{T},
-) where {T<:Real}
-    return DiscreteSequence{
-        T,
-        typeof(Gx),
-        typeof(B1),
-        typeof(Δf),
-        typeof(ψ),
-        typeof(ADC),
-        typeof(t),
-        typeof(Δt),
-    }(Gx, Gy, Gz, B1, Δf, ψ, ADC, t, Δt)
-end
-
-function DiscreteSequence(Gx, Gy, Gz, B1, Δf, ψ, ADC, t, Δt)
+    Gx::GType,
+    Gy::GType,
+    Gz::GType,
+    B1::B1Type,
+    Δf::ΔfType,
+    ψ::ψType,
+    ADC::ADCType,
+    t::tType,
+    Δt::ΔtType,
+) where {
+    GType<:AbstractVector,
+    B1Type<:AbstractVector,
+    ΔfType<:AbstractVector,
+    ψType<:AbstractVector,
+    ADCType<:AbstractVector,
+    tType<:AbstractVector,
+    ΔtType<:AbstractVector,
+}
     T = promote_type(
         _real_storage_eltype(typeof(Gx)),
         _real_storage_eltype(typeof(Gy)),
@@ -66,13 +70,13 @@ function DiscreteSequence(Gx, Gy, Gz, B1, Δf, ψ, ADC, t, Δt)
     )
     return DiscreteSequence{
         T,
-        typeof(Gx),
-        typeof(B1),
-        typeof(Δf),
-        typeof(ψ),
-        typeof(ADC),
-        typeof(t),
-        typeof(Δt),
+        GType,
+        B1Type,
+        ΔfType,
+        ψType,
+        ADCType,
+        tType,
+        ΔtType,
     }(Gx, Gy, Gz, B1, Δf, ψ, ADC, t, Δt)
 end
 
