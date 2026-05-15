@@ -218,6 +218,18 @@ end
     @test true
 end
 
+@testitem "raw output without ADC" tags=[:core, :nomotion] begin
+    seq = Sequence([Grad(0, 1e-3)])
+    obj = Phantom(x=[0.0])
+    sys = Scanner()
+    sim_params = Dict{String, Any}("return_type" => "raw", "gpu" => false)
+
+    raw = simulate(obj, seq, sys; sim_params, verbose=false)
+    @test raw isa RawAcquisitionData
+    @test isempty(raw.profiles)
+    show(IOBuffer(), "text/plain", raw)
+end
+
 @testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
