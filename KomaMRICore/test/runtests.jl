@@ -725,7 +725,7 @@ end
             case.t,
             case.Δt,
         )
-        M = Mag(copy(M_xy0), copy(M_z0))
+        M = Mag{REACTANT_BLOCHSIMPLE_T}(copy(M_xy0), copy(M_z0))
         KomaMRICore.run_spin_excitation!(
             REACTANT_BLOCHSIMPLE_OBJ,
             seqd,
