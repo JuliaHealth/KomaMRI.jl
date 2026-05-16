@@ -19,7 +19,6 @@ times. DiscreteSequence is the struct used for simulation.
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
 struct DiscreteSequence{
-    T<:Real,
     GType<:AbstractVector,
     B1Type<:AbstractVector,
     ΔfType<:AbstractVector,
@@ -38,55 +37,6 @@ struct DiscreteSequence{
     t::tType
     Δt::ΔtType
 end
-
-function DiscreteSequence(
-    Gx::GType,
-    Gy::GType,
-    Gz::GType,
-    B1::B1Type,
-    Δf::ΔfType,
-    ψ::ψType,
-    ADC::ADCType,
-    t::tType,
-    Δt::ΔtType,
-) where {
-    GType<:AbstractVector,
-    B1Type<:AbstractVector,
-    ΔfType<:AbstractVector,
-    ψType<:AbstractVector,
-    ADCType<:AbstractVector,
-    tType<:AbstractVector,
-    ΔtType<:AbstractVector,
-}
-    T = promote_type(
-        _real_storage_eltype(typeof(Gx)),
-        _real_storage_eltype(typeof(Gy)),
-        _real_storage_eltype(typeof(Gz)),
-        _real_storage_eltype(typeof(B1)),
-        _real_storage_eltype(typeof(Δf)),
-        _real_storage_eltype(typeof(ψ)),
-        _real_storage_eltype(typeof(t)),
-        _real_storage_eltype(typeof(Δt)),
-    )
-    return DiscreteSequence{
-        T,
-        GType,
-        B1Type,
-        ΔfType,
-        ψType,
-        ADCType,
-        tType,
-        ΔtType,
-    }(Gx, Gy, Gz, B1, Δf, ψ, ADC, t, Δt)
-end
-
-function _storage_eltype(::Type{A}) where {A}
-    params = Base.unwrap_unionall(A).parameters
-    return !isempty(params) && params[1] isa Type ? params[1] : eltype(A)
-end
-_real_storage_eltype(::Type{A}) where {A} = _real_eltype(_storage_eltype(A))
-_real_eltype(::Type{Complex{T}}) where {T} = T
-_real_eltype(::Type{T}) where {T<:Real} = T
 
 Base.length(seq::DiscreteSequence) = length(seq.Δt)
 Base.getindex(seq::DiscreteSequence, i::Integer) = begin

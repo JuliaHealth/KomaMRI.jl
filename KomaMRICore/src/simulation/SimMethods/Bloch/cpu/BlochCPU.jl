@@ -1,10 +1,10 @@
 """Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochCPUPrealloc{T} <: PreallocResult{T}
-    M::Mag{T}                               # Mag{T}
+    M::Mag                               # Mag
     Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
     Bz_new::AbstractVector{T}               # Vector{T}(Nspins x 1)
     ϕ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
-    Rot::Spinor{T}                          # Spinor{T}
+    Rot::Spinor                          # Spinor
     ΔBz::AbstractVector{T}            # Vector{T}(Nspins x 1)
 end
 
@@ -20,7 +20,7 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
+function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag, max_block_length::Integer, groupsize) where {T<:Real}
     return BlochCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -47,9 +47,9 @@ that they can be re-used from block to block.
 """
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    M::Mag,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
@@ -105,9 +105,9 @@ optimized for the CPU. Uses preallocation for all arrays to reduce memory usage.
 """
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    M::Mag,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,

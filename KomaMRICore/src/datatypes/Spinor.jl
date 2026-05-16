@@ -23,27 +23,15 @@ R V R^{*}``.
 # Returns
 - `spinor`: (`::Spinor`) Spinor struct
 """
-struct Spinor{T<:Real,V<:AbstractVector}
+struct Spinor{V<:AbstractVector}
 	α::V
 	β::V
-end
-function Spinor(α::V, β::V) where {V<:AbstractVector}
-	T = promote_type(_real_storage_eltype(typeof(α)), _real_storage_eltype(typeof(β)))
-	return Spinor{T,V}(α, β)
 end
 Spinor(α::Complex{T}, β::Complex{T}) where {T<:Real} = Spinor([α], [β])
 Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
 one(T::Spinor) = Spinor(1.,0.)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 Base.view(s::Spinor, i::UnitRange) = @views Spinor(s.α[i], s.β[i])
-
-function _storage_eltype(::Type{A}) where {A}
-    params = Base.unwrap_unionall(A).parameters
-    return !isempty(params) && params[1] isa Type ? params[1] : eltype(A)
-end
-_real_storage_eltype(::Type{A}) where {A} = _real_eltype(_storage_eltype(A))
-_real_eltype(::Type{Complex{T}}) where {T} = T
-_real_eltype(::Type{T}) where {T<:Real} = T
 """
     str = show(io::IO, s::Spinor)
 
