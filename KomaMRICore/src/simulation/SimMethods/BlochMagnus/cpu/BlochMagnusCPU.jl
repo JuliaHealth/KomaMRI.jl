@@ -8,15 +8,16 @@ include("prealloc/MagnusBGLPrealloc.jl")
 
 # Use Bloch implementation for precession
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::BlochMagnus,
     groupsize,
     backend::KA.CPU,
-    prealloc::BlochMagnusCPUPrealloc{T}
-) where {T<:Real}
+    prealloc::BlochMagnusCPUPrealloc
+)
+    T = eltype(p.ρ)
     Bz_0, Bz_1 = precession_buffers(prealloc)
     ϕ = prealloc.rotation_norm
     Mxy = prealloc.Maux_xy
@@ -47,15 +48,16 @@ function run_spin_precession!(
 end
 
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::BlochMagnusConst1,
     groupsize,
     backend::KA.CPU,
-    prealloc::BlochMagnusConstCPUPrealloc{T}
-) where {T<:Real}
+    prealloc::BlochMagnusConstCPUPrealloc
+)
+    T = eltype(p.ρ)
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
     (; ωxy_0, ωz_0, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
@@ -106,15 +108,16 @@ function run_spin_excitation!(
 end
 
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::Union{BlochMagnusLin2,BlochMagnusLinComm2},
     groupsize,
     backend::KA.CPU,
-    prealloc::BlochMagnusLinCPUPrealloc{T}
-) where {T<:Real}
+    prealloc::BlochMagnusLinCPUPrealloc
+)
+    T = eltype(p.ρ)
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
     (; ωxy_0, ωz_0, ωxy_1, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
