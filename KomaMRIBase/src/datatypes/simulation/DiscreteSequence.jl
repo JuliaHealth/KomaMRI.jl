@@ -19,6 +19,7 @@ times. DiscreteSequence is the struct used for simulation.
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
 struct DiscreteSequence{
+    T<:Real,
     GType<:AbstractVector,
     B1Type<:AbstractVector,
     ΔfType<:AbstractVector,
@@ -36,6 +37,31 @@ struct DiscreteSequence{
     ADC::ADCType
     t::tType
     Δt::ΔtType
+end
+
+function DiscreteSequence(
+    Gx::GType,
+    Gy::GType,
+    Gz::GType,
+    B1::B1Type,
+    Δf::ΔfType,
+    ψ::ψType,
+    ADC::ADCType,
+    t::tType,
+    Δt::ΔtType,
+) where {
+    T<:Real,
+    GType<:AbstractVector{T},
+    B1Type<:AbstractVector,
+    ΔfType<:AbstractVector{T},
+    ψType<:AbstractVector{T},
+    ADCType<:AbstractVector,
+    tType<:AbstractVector{T},
+    ΔtType<:AbstractVector{T},
+}
+    return DiscreteSequence{T,GType,B1Type,ΔfType,ψType,ADCType,tType,ΔtType}(
+        Gx, Gy, Gz, B1, Δf, ψ, ADC, t, Δt
+    )
 end
 
 Base.length(seq::DiscreteSequence) = length(seq.Δt)

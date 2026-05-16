@@ -29,7 +29,7 @@ function initialize_spins_state(
     Nspins = length(obj)
     Mxy = zeros(Complex{T}, Nspins)
     Mz = obj.ρ
-    Xt = Mag(Mxy, Mz)
+    Xt = Mag{T}(Mxy, Mz)
     return Xt, obj
 end
 
@@ -42,7 +42,7 @@ struct DefaultPrealloc{T} <: PreallocResult{T} end
 Base.view(p::PreallocResult, i::UnitRange) = p
 
 """Default preallocation function."""
-prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag, max_block_length::Integer, groupsize) where {T<:Real} = DefaultPrealloc{T}()
+prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} = DefaultPrealloc{T}()
 
 include("BlochSimple/BlochSimple.jl")
 include("Bloch/cpu/BlochCPU.jl")

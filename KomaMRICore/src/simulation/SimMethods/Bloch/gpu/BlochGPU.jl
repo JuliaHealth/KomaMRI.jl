@@ -14,7 +14,7 @@ function prealloc(
     sim_method::SM, 
     backend::KA.GPU, 
     obj::Phantom{T}, 
-    M::Mag,
+    M::Mag{T},
     max_block_length::Integer, 
     groupsize
 ) where {T<:Real, SM<:BlochLikeSimMethods}
@@ -27,9 +27,9 @@ end
 
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence,
+    seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
-    M::Mag,
+    M::Mag{T},
     sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
@@ -64,9 +64,9 @@ end
 
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::DiscreteSequence,
+    seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
-    M::Mag,
+    M::Mag{T},
     sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,

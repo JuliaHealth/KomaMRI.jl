@@ -1,6 +1,6 @@
 """Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochMagnusCPUPrealloc{T} <: PreallocResult{T}
-    M::Mag                               # Mag
+    M::Mag{T}                               # Mag{T}
     Bxy_old::AbstractVector{Complex{T}}     # Vector{T}(Nspins x 1)
     Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
     Bxy_new::AbstractVector{Complex{T}}     # Vector{T}(Nspins x 1)
@@ -28,7 +28,7 @@ Base.view(p::BlochMagnusCPUPrealloc, i::UnitRange) = begin
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::BlochMagnus, backend::KA.CPU, obj::Phantom{T}, M::Mag, max_block_length::Integer, groupsize) where {T<:Real}
+function prealloc(sim_method::BlochMagnus, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
     return BlochMagnusCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -52,9 +52,9 @@ end
 # Use Bloch implementation for precession
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence,
+    seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
-    M::Mag,
+    M::Mag{T},
     sim_method::BlochMagnus,
     groupsize,
     backend::KA.CPU,
@@ -66,9 +66,9 @@ end
 # This part changes a bit more
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::DiscreteSequence,
+    seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
-    M::Mag,
+    M::Mag{T},
     sim_method::BlochMagnus,
     groupsize,
     backend::KA.CPU,
