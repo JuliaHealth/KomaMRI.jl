@@ -10,28 +10,16 @@ The Magnetization struct.
 # Returns
 - `mag`: (`::Mag`) Magnetization struct
 """
-mutable struct Mag{
-    T<:Real,
-    XYType<:AbstractVector,
-    ZType<:AbstractVector,
-} <: SpinStateRepresentation{T}
+mutable struct Mag{T<:Real, XYType<:AbstractVector, ZType<:AbstractVector} <: SpinStateRepresentation{T}
     xy::XYType
     z::ZType
 end
 
-function Mag(xy::XYType, z::ZType) where {
-    T<:Real,
-    XYType<:AbstractVector{Complex{T}},
-    ZType<:AbstractVector{T},
-}
-    return Mag{T,XYType,ZType}(xy, z)
+function Mag(xy::AbstractVector{Complex{T}}, z::AbstractVector{T}) where {T<:Real}
+    return Mag{T,typeof(xy),typeof(z)}(xy, z)
 end
-function Mag{T}(xy::XYType, z::ZType) where {
-    T<:Real,
-    XYType<:AbstractVector,
-    ZType<:AbstractVector,
-}
-    return Mag{T,XYType,ZType}(xy, z)
+function Mag{T}(xy::AbstractVector, z::AbstractVector) where {T<:Real}
+    return Mag{T,typeof(xy),typeof(z)}(xy, z)
 end
 
 # Required indexing operations
