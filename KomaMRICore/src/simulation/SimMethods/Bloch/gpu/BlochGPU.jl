@@ -14,7 +14,7 @@ function prealloc(
     sim_method::SM, 
     backend::KA.GPU, 
     obj::Phantom{T}, 
-    M::Mag{T},
+    M::Mag{T}, 
     max_block_length::Integer, 
     groupsize
 ) where {T<:Real, SM<:BlochLikeSimMethods}
