@@ -65,6 +65,8 @@ function run_spin_precession!(
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1])
+    @. Bz_old = x * seq.Gx[1] + y * seq.Gy[1] + z * seq.Gz[1] + ΔBz
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion

@@ -315,25 +315,25 @@ end
     Trf = Tadc
     B1 = 2e-6 * (Tadc / Trf)
     rf_phase = [0, π/2]
+    Gx = 25e-3
     Nadc = 6
     # Phantom params
     M0 = 1.0
     T1 = 1000e-3
     T2 = 20e-3
     Δw = 2π * 100
+    x = 1e-2
     
     ## Solving using KomaMRI
     seq = Sequence()
-    seq += ADC(Nadc, Tadc)
-    seq += RF(B1 .* cis(rf_phase[1]), Trf)
-    seq += ADC(Nadc, Tadc)
+    @addblock seq += ADC(Nadc, Tadc)
+    @addblock seq += (RF(B1 .* cis(rf_phase[1]), Trf), x=Grad(Gx, Trf))
+    @addblock seq += ADC(Nadc, Tadc)
     # This introduces an RF-ADC overlap!!!
-    seq += RF(B1 .* cis(rf_phase[2]), Trf)
-    seq.ADC[4] = ADC(Nadc, 2Tadc, Trf/2)
-    seq.DUR[4] = max(seq.DUR[4], dur(seq.RF[4]), dur(seq.ADC[4]))
+    @addblock seq += (RF(B1 .* cis(rf_phase[2]), Trf), ADC(Nadc, 2Tadc, Trf/2))
 
     sys = Scanner()
-    obj = Phantom(x = [0.], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
+    obj = Phantom(x = [x], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
 
     mxy_diffeq = diffeq_signal(seq, obj)
 
