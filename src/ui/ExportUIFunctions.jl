@@ -4,6 +4,22 @@ Returns the blink window with some custom styles and js logic.
 function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_window=true)
     komamri_src_ui = @__DIR__
     komamri_root = dirname(dirname(komamri_src_ui))
+    app_icon = komamri_root * "/assets/app-icon.png"
+    ## WINDOW
+    w = Blink.Window(
+        Dict(
+            "title" => "KomaUI",
+            "autoHideMenuBar" => true,
+            "frame" => frame, #removes title bar
+            "node-integration" => true,
+            :icon => app_icon,
+            "width" => 1200,
+            "height" => 800,
+            :show => show_window,
+        );
+        async=true,
+    )
+
     # Asset folders
     assets = AssetRegistry.register(komamri_root * "/assets/")
     scripts = AssetRegistry.register(komamri_src_ui * "/scripts/")
@@ -11,7 +27,6 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
     # Images
     logo = joinpath(assets, "logo-dark.svg")
     home_image = joinpath(assets, "home-image.svg")
-    app_icon = komamri_root * "/assets/app-icon.png"
     # JS
     bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
     bscss = joinpath(css, "bootstrap.min.css")
@@ -28,28 +43,18 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
     sidebarcss = joinpath(css, "sidebars.css")
     # Custom icons
     icons = joinpath(css, "icons.css")
-    ## WINDOW
-    w = Blink.Window(
-        Dict(
-            "title" => "KomaUI",
-            "autoHideMenuBar" => true,
-            "frame" => frame, #removes title bar
-            "node-integration" => true,
-            :icon => app_icon,
-            "width" => 1200,
-            "height" => 800,
-            :show => show_window,
-        );
-        async=false,
-    )
     
     ## NAV BAR
     sidebar = open(f -> read(f, String), komamri_src_ui * "/html/sidebar.html")
     sidebar = replace(sidebar, "LOGO" => logo)
+    if darkmode
+        sidebar = replace(sidebar, "<main id=\"main\">" => "<main id=\"main\" style=\"background-color:rgb(13,16,17);\">")
+    end
     ## CONTENT
     index = open(f -> read(f, String), komamri_src_ui * "/html/index.html")
     index = replace(index, "ICON" => home_image)
 
+    wait(w)
     @sync begin
         ## CSS
         loadcss!(w, bscss)
@@ -69,10 +74,7 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
     end
 
     #Update GUI's home
-    body!(w, *(sidebar, index); async=false) #async false is important to set the background correctly
-    if darkmode
-        @js_ w document.getElementById("main").style = "background-color:rgb(13,16,17);"
-    end
+    body!(w, *(sidebar, index); async=false, fade=false)
     # Return the Blink window
     if dev_tools
         Blink.tools(w)
@@ -81,12 +83,9 @@ function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_w
 end
 
 """
-Returns the default scanner used by the UI and print some information about it.
+Returns the default scanner used by the UI.
 """
 function setup_scanner()
-
-    # Print information and get the default Scanner struct
-    @info "Loaded `Scanner` to `sys_ui[]`"
     sys = Scanner()
 
     # Return the default Scanner struct
@@ -94,12 +93,9 @@ function setup_scanner()
 end
 
 """
-Returns the default sequence used by the UI and print some information about it.
+Returns the default sequence used by the UI.
 """
 function setup_sequence(sys::Scanner)
-
-    # Print information and get the default Sequence struct
-    @info "Loaded `Sequence` to `seq_ui[]`"
     seq = PulseDesigner.EPI_example(; sys)
 
     # Return the default Sequence struct
@@ -107,12 +103,9 @@ function setup_sequence(sys::Scanner)
 end
 
 """
-Returns the default phantom used by the UI and print some information about it.
+Returns the default phantom used by the UI.
 """
 function setup_phantom(; phantom_mode="2D")
-
-    # Print information and get the default Phantom struct
-    @info "Loaded `Phantom` to `obj_ui[]`"
     obj = phantom_mode == "3D" ? brain_phantom3D() : brain_phantom2D()
     obj.Δw .= 0 # Removes off-resonance
 

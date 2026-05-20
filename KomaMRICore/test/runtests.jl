@@ -254,6 +254,64 @@ end
     end
 end
 
+@testitem "Bloch waveform event type accuracy" tags=[:core, :nomotion] begin
+    using OrdinaryDiffEqTsit5
+    include("initialize_backend.jl")
+    include(joinpath(@__DIR__, "test_files", "utils.jl"))
+
+    Tpulse = 1e-3
+    Tgrad = 1e-3
+    Tadc = 1e-3
+    Nadc = 6
+    M0 = 1.0
+    T1 = 1000e-3
+    T2 = 40e-3
+    Δw = 2π * 30
+    x0 = 1e-2
+    B1 = 1.5e-6 * cis(π / 7)
+    Gx = 0.2e-3
+
+    sys = Scanner()
+    obj = Phantom(x=[x0], ρ=[M0], T1=[T1], T2=[T2], Δw=[Δw])
+
+    grad_events = (
+        "trap" => Grad(Gx, Tgrad),
+        "uniform" => Grad([Gx, Gx], Tgrad),
+        "time-shaped" => Grad([Gx, Gx], [Tgrad]),
+    )
+    rf_events = (
+        "block" => RF(B1, Tpulse),
+        "uniform" => RF([B1, B1], Tpulse),
+        "time-shaped" => RF([B1, B1], [Tpulse]),
+    )
+
+    function waveform_sequence(grad, rf)
+        seq = Sequence()
+        @addblock seq += rf + (ADC(Nadc, Tadc), x=grad)
+        return seq
+    end
+
+    ref_seq = waveform_sequence(grad_events[1][2], rf_events[1][2])
+    ref_adc_times = get_adc_sampling_times(ref_seq)
+    mxy_diffeq = diffeq_signal(ref_seq, obj; tstops=[Tpulse, Tpulse + Tgrad])
+
+    for (grad_name, grad) in grad_events, (rf_name, rf) in rf_events
+        seq = waveform_sequence(grad, rf)
+        @test get_adc_sampling_times(seq) ≈ ref_adc_times
+        for sim_method in (Bloch(), BlochMagnus1(), BlochMagnus2(), BlochMagnus4())
+            @testset "$grad_name/$rf_name $(nameof(typeof(sim_method)))" begin
+                sim_params = Dict{String, Any}(
+                    "gpu" => USE_GPU,
+                    "return_type" => "mat",
+                    "sim_method" => sim_method,
+                )
+                raw = simulate(obj, seq, sys; sim_params, verbose=false)[:, 1, 1]
+                @test NRMSE(raw, mxy_diffeq) < 0.1
+            end
+        end
+    end
+end
+
 @testitem "Bloch_RF_accuracy" tags=[:important, :core, :nomotion] begin
     using OrdinaryDiffEqTsit5
     include("initialize_backend.jl")
@@ -264,45 +322,27 @@ end
     Trf = Tadc
     B1 = 2e-6 * (Tadc / Trf)
     rf_phase = [0, π/2]
+    Gx = 25e-3
     Nadc = 6
     # Phantom params
     M0 = 1.0
     T1 = 1000e-3
     T2 = 20e-3
     Δw = 2π * 100
+    x = 1e-2
     
     ## Solving using KomaMRI
     seq = Sequence()
-    seq += ADC(Nadc, Tadc)
-    seq += RF(B1 .* cis(rf_phase[1]), Trf)
-    seq += ADC(Nadc, Tadc)
+    @addblock seq += ADC(Nadc, Tadc)
+    @addblock seq += (RF(B1 .* cis(rf_phase[1]), Trf), x=Grad(Gx, Trf))
+    @addblock seq += ADC(Nadc, Tadc)
     # This introduces an RF-ADC overlap!!!
-    seq += RF(B1 .* cis(rf_phase[2]), Trf)
-    seq.ADC[4] = ADC(Nadc, 2Tadc, Trf/2)
-    seq.DUR[4] = max(seq.DUR[4], dur(seq.RF[4]), dur(seq.ADC[4]))
+    @addblock seq += (RF(B1 .* cis(rf_phase[2]), Trf), ADC(Nadc, 2Tadc, Trf/2))
 
     sys = Scanner()
-    obj = Phantom(x = [0.], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
+    obj = Phantom(x = [x], ρ = [M0], T1 = [T1], T2 = [T2], Δw = [Δw])
 
-    ## Solving using DiffEquations.jl
-    B1e(t) = KomaMRIBase.get_rfs(seq, [t])[1][1]
-    duration = dur(seq)
-    function bloch!(dm, m, p, t)
-        mx, my, mz = m
-        bx, by, bz = [real(B1e(t)), imag(B1e(t)), Δw / (2π * γ)]
-        dm[1] = -mx / T2 + 2π * γ * bz * my - 2π * γ * by * mz
-        dm[2] = -2π * γ * bz * mx - my / T2 + 2π * γ * bx * mz
-        dm[3] =  2π * γ * by * mx - 2π * γ * bx * my - mz / T1 + M0 / T1
-        return nothing
-    end
-    m0 = [0.0, 0.0, M0]
-    tspan = (0.0, duration)
-    prob = ODEProblem(bloch!, m0, tspan)
-    tadc = get_adc_sampling_times(seq)
-    sol = @time solve(prob, Tsit5(), saveat = tadc, dtmax=1e-6)
-    # Convert solution to complex vector
-    sol_diffeq = hcat(sol.u...)'
-    mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
+    mxy_diffeq = diffeq_signal(seq, obj)
 
     ## Solve with KomaMRI
     methods_to_test = [Bloch(), BlochMagnus1(), BlochMagnus2(), BlochMagnus4()]
@@ -500,9 +540,7 @@ end
     T2 = 10e-3
     B1 = 20e-6
     Trf = 3e-3
-    γ = 2π * 42.58e6
     φ = π / 4
-    B1e(t) = B1 * (0 <= t <= Trf)
     duration = 2*Trf
 
     Gx = 1e-3
@@ -531,42 +569,16 @@ end
     ]
         @testset "$(typeof(sim_method))" begin
             for motion in motions
-                coords(t) = get_spin_coords(motion, x0, y0, z0, t)
-                x(t) = (coords(t)[1])[1]
-                y(t) = (coords(t)[2])[1]
-                z(t) = (coords(t)[3])[1]
-
-                ## Solving using DiffEquations.jl
-                function bloch!(dm, m, p, t)
-                    mx, my, mz = m
-                    bx, by, bz = [B1e(t) * cos(φ), B1e(t) * sin(φ), (x(t) * Gx + y(t) * Gy + z(t) * Gz)]
-                    dm[1] = -mx / T2 + γ * bz * my - γ * by * mz
-                    dm[2] = -γ * bz * mx - my / T2 + γ * bx * mz
-                    dm[3] =  γ * by * mx - γ * bx * my - mz / T1 + M0 / T1
-                    return nothing
-                end
-                m0 = [0.0, 0.0, 1.0]
-                tspan = (0.0, duration)
-                prob = ODEProblem(bloch!, m0, tspan)
-                # Only at ADC points
-                tadc = range(Trf, duration, Nadc)
-                sol = solve(prob, Tsit5(), saveat = tadc, abstol = 1e-9, reltol = 1e-9)
-                sol_diffeq = hcat(sol.u...)'
-                mxy_diffeq = sol_diffeq[:, 1] + im * sol_diffeq[:, 2]
-
-                ## Solving using KomaMRICore.jl
-                # Creating Sequence
                 seq = Sequence()
-                seq += RF(cis(φ) .* B1, Trf)
-                seq.GR[1,1] = Grad(Gx, duration)
-                seq.GR[2,1] = Grad(Gy, duration)
-                seq.GR[3,1] = Grad(Gz, duration)
-                seq.ADC[1] = ADC(Nadc, duration-Trf, Trf)
-                # Creating object
+                @addblock seq += RF(cis(φ) .* B1, Trf) + (
+                    ADC(Nadc, duration - Trf, Trf),
+                    x=Grad(Gx, duration),
+                    y=Grad(Gy, duration),
+                    z=Grad(Gz, duration),
+                )
                 obj = Phantom(x = x0, y = y0, z = z0, ρ = [M0], T1 = [T1], T2 = [T2], motion = motion)
-                # Scanner
                 sys = Scanner()
-                # Simulation
+                mxy_diffeq = diffeq_signal(seq, obj)
                 sim_params = Dict{String, Any}(
                     "sim_method"=>sim_method,
                     "return_type"=>"mat",

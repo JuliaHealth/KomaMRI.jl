@@ -508,6 +508,26 @@ end
         seq = read_seq(joinpath(@__DIR__, "test_files/pulseq/read_comparison/v1.2/epi_JEMRIS.seq"); verbose=false)
         @test all(rf -> !is_RF_on(rf) || !isnothing(rf.center), vec(seq.RF))
     end
+    @testset "Zero-amplitude Pulseq RF" begin
+        mktempdir() do dir
+            filename = joinpath(dir, "zero-rf.seq")
+            Δt_rf = KomaMRIFiles.DEFAULT_RASTER.RadiofrequencyRasterTime
+            seq = Sequence()
+            addblock!(seq, RF(ComplexF64[1.0, 0.5, 1.0], [Δt_rf, Δt_rf], 0.0, Δt_rf), Duration(10Δt_rf))
+            write_seq(seq, filename; verbose=false)
+
+            # Some Pulseq writers emit zero-amplitude RFs. Koma does not, so this test makes one manually.
+            lines = readlines(filename)
+            i = findfirst(line -> startswith(line, "1 ") && contains(line, " 1 2 3 "), lines)
+            fields = split(lines[i])
+            fields[2] = "0.0"
+            lines[i] = join(fields, " ")
+            write(filename, join(lines, "\n"))
+
+            seq = read_seq(filename; verbose=false)
+            @test !is_RF_on(seq.RF[1, 1])
+        end
+    end
     @testset "Trapezoidal gradient writes without shape libraries" begin
         trap = Sequence([Grad(1e-3, 2e-3, 1e-3, 1e-3, 0.5e-3)])
         libs = pulseq_data_after_write(trap, "trap.seq").libraries

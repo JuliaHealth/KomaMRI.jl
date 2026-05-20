@@ -918,6 +918,8 @@ function get_RF(r::PulseqRFEvent, shapeLibrary, rf_raster_time; use=get_RF_use_f
     delay = r.delay + first_sample_offset
     freq = r.freq
     phase = r.phase
+    # Some Pulseq writers emit zero-amplitude RFs.
+    iszero(amplitude) && return RF(0.0, 0.0, freq, 0.0; ϕ=phase, use)
     #Amplitude and phase waveforms
     if amplitude != 0 && mag_id != 0
         rfA = decompress_shape(shapeLibrary[mag_id]...)
