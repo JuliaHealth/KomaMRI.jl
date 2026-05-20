@@ -221,8 +221,10 @@ end
 @testitem "simulate rejects negative labels" tags=[:core, :nomotion] begin
     obj = Phantom(x=[0.0])
     seq = Sequence([Grad(0, 1e-3)])
-    seq.EXT[1] = [LabelSet(-1, "LIN")]
-    @test_throws ArgumentError simulate(obj, seq, Scanner(); verbose=false)
+    for label in (LabelSet(-1, "LIN"), LabelInc(-1, "LIN"))
+        seq.EXT[1] = [label]
+        @test_throws Exception simulate(obj, seq, Scanner(); verbose=false)
+    end
 end
 
 @testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin

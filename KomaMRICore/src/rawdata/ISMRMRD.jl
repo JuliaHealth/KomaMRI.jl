@@ -144,7 +144,7 @@ function signal_to_raw_data(
         "enc_lim_repetition"             => Limit(0, 0, max_enc.REP),                     #min, max, center, e.g. dynamic number for dynamic scanning
         "enc_lim_set"                    => Limit(0, 0, max_enc.SET),                     #min, max, center, e.g. flow encoding set
         "enc_lim_segment"                => Limit(0, 0, max_enc.SEG),                     #min, max, center, e.g. segment number for segmented acquisition
-        "trajectory"                     => "other",
+        "trajectory"                     => "custom",
         #sequenceParameters
         # "TR"                             => 0,
         # "TE"                             => 0,

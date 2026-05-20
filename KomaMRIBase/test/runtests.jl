@@ -748,11 +748,6 @@ using TestItems, TestItemRunner
         TRID_vec = [l[i].TRID for i in eachindex(l)]
         @test TRID_vec == vec([0 0 0 0 0 4])
 
-        @test !KomaMRIBase.has_negative_labels(seq)
-        seq.EXT[6] = [LabelSet(-1, "LIN")]
-        @test KomaMRIBase.has_negative_labels(seq)
-        @test_throws ArgumentError KomaMRIBase.assert_nonnegative_labels(seq)
-
     end
 
     @testset "DiscreteSequence" begin

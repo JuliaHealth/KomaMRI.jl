@@ -271,6 +271,16 @@ macro maybe_time(verbose, expr)
     end
 end
 
+function _assert_nonnegative_adc_labels(seq::Sequence)
+    for (block, labels) in enumerate(get_labels(seq))
+        for name in fieldnames(AdcLabels)
+            value = getfield(labels, name)
+            value < 0 && error("Negative ADC label found at block $block: `$name` with value `$value`.")
+        end
+    end
+    return nothing
+end
+
 """
     out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; sim_params, w)
 
@@ -308,7 +318,7 @@ julia> plot_signal(raw)
 function simulate(
     obj::Phantom, seq::Sequence, sys::Scanner; sim_params=Dict{String,Any}(), verbose=true, callbacks=()
 )
-    KomaMRIBase.assert_nonnegative_labels(seq)
+    _assert_nonnegative_adc_labels(seq)
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
     #Warn if user is trying to run on CPU without enabling multi-threading
