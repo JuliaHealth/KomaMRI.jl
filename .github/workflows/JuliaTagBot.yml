@@ -1,4 +1,6 @@
 name: TagBot
+permissions: 
+  contents: write
 on:
   issue_comment:
     types:

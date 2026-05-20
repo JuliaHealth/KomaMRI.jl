@@ -1,6 +1,6 @@
 """
     sys = Scanner(B0, B1, Gmax, Smax, ADC_Δt, DUR_Δt, GR_Δt, RF_Δt,
-        RF_ring_down_T, RF_dead_time_T, ADC_dead_time_T)
+        RF_ring_down_time, RF_dead_time, ADC_dead_time)
 
 The Scanner struct. It contains hardware limitations of the MRI resonator. It is an input
 for the simulation.
@@ -14,9 +14,9 @@ for the simulation.
 - `DUR_Δt`: (`=1e-5`, `[s]`) block duration raster time
 - `GR_Δt`: (`=1e-5`, `[s]`) gradient raster time
 - `RF_Δt`: (`=1e-6`, `[s]`) RF raster time
-- `RF_ring_down_T`: (`=20e-6`, `[s]`) RF ring down time
-- `RF_dead_time_T`: (`=100e-6`, `[s]`) RF dead time
-- `ADC_dead_time_T`: (`=10e-6`, `[s]`) ADC dead time
+- `RF_ring_down_time`: (`=20e-6`, `[s]`) RF ring down time
+- `RF_dead_time`: (`=100e-6`, `[s]`) RF dead time
+- `ADC_dead_time`: (`=10e-6`, `[s]`) ADC dead time
 
 # Returns
 - `sys`: (`::Scanner`) Scanner struct
@@ -40,7 +40,7 @@ julia> sys.B0
     GR_Δt::Float64 = 1e-5
     RF_Δt::Float64 = 1e-6
     #Secondary
-    RF_ring_down_T::Float64 = 20e-6
-    RF_dead_time_T::Float64 = 100e-6
-    ADC_dead_time_T::Float64 = 10e-6
+    RF_ring_down_time::Float64 = 20e-6
+    RF_dead_time::Float64 = 100e-6
+    ADC_dead_time::Float64 = 10e-6
 end

@@ -37,11 +37,11 @@ function _link_example(filename)
     return _link_example_for_filename
 end
 
-function list_md_not_lit(input_folder, output_doc_section; exclude="-----------------------", lit_pattern="lit-")
+function list_md_not_lit(input_folder, output_doc_section; exclude="-----------------------", lit_pattern="lit-", gen_pattern="gen-")
     md_list = String[]
     for (_, _, files) in walkdir(input_folder)
         for filename in filter(endswith(".md"), files)
-            if startswith(lit_pattern, filename)
+            if startswith(filename, lit_pattern) || startswith(filename, gen_pattern)
                 continue
             end
             if occursin(exclude, filename)
@@ -53,13 +53,13 @@ function list_md_not_lit(input_folder, output_doc_section; exclude="------------
     return md_list
 end
 
-function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-")
+function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-", gen_pattern="gen-")
     tutorial_list = []
     public_dir = joinpath(dirname(input_folder), "public", output_doc_section)
     mkpath(public_dir)
     for (_, _, files) in walkdir(input_folder)
         for filename in filter(startswith(lit_pattern), files)
-            filename_gen = splitext(filename)[1][(length(lit_pattern) + 1):end] # removes "lit-"
+            filename_gen = gen_pattern * splitext(filename)[1][(length(lit_pattern) + 1):end] # marks generated files
             tutorial_src = joinpath(input_folder, filename)
             tutorial_md  = "$output_doc_section/$filename_gen.md"
             Literate.markdown(
@@ -81,7 +81,7 @@ function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-
 end
 
 # TODO: copy files with "pluto-" to docs, and remove for generated html and md
-function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pattern="pluto-")
+function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pattern="pluto-", gen_pattern="gen-")
     reproducible_list = String[]
     public_pluto_dir = joinpath(dirname(dirname(doc_tutorial_pluto)), "public", doc_output_section)
     mkpath(public_pluto_dir)
@@ -90,7 +90,8 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             # if !startswith(plu_pattern, filename)
             #     continue
             # end
-            filename_gen  = splitext(filename)[1]
+            filename_src  = splitext(filename)[1]
+            filename_gen  = gen_pattern * filename_src
             tutorial_src  = joinpath(doc_tutorial_pluto, filename)
             tutorial_md   = joinpath(doc_tutorial_pluto, "$filename_gen.md")
             # HTML to Markdown
@@ -115,7 +116,7 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             ```
             
             ```@raw html
-            <iframe type="text/html" src="./$(filename_gen)-notebook.html" style="height:100vh;width:100%;"></iframe>
+            <iframe type="text/html" src="./$(filename_src)-notebook.html" style="height:100vh;width:100%;"></iframe>
             ```
             """
             open(tutorial_md, "w") do file

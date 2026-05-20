@@ -74,9 +74,9 @@ Scanner
   DUR_Δt: Float64 1.0e-5
   GR_Δt: Float64 1.0e-5
   RF_Δt: Float64 1.0e-6
-  RF_ring_down_T: Float64 2.0e-5
-  RF_dead_time_T: Float64 0.0001
-  ADC_dead_time_T: Float64 1.0e-5
+  RF_ring_down_time: Float64 2.0e-5
+  RF_dead_time: Float64 0.0001
+  ADC_dead_time: Float64 1.0e-5
 ```
 
 ### Phantom
@@ -84,7 +84,7 @@ Scanner
 The Phantom struct created in this example represents a slice of a brain. To create it, we use the function `brain_phantom2D`, which is part of the subdependency **KomaMRICore**. While **KomaMRI** provides some phantom examples for experimentation, you may also want to create your custom **Phantom** struct tailored to your specific requirements.
 
 The **Phantom** struct contains MRI parameters related to the magnetization properties of an object. These parameters include magnetization positions, proton density, relaxation times, off-resonance, among others.
-For more information about Koma's Phantom and what it can do, as well as how to store and share it, check out the [Phantom](../explanation/1-phantom.md) section.
+For more information about Koma's Phantom and what it can do, as well as how to store and share it, check out the [Phantom](../explanation/gen-1-phantom.md) section.
 To view all the keys and values of the object, you can do so in the **Julia REPL** as follows:
 ```julia-repl
 julia> obj

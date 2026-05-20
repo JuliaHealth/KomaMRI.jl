@@ -54,9 +54,9 @@ function export_2_mat_scanner(sys, matfolder; matfilename="scanner.mat")
                 "DUR_dt" => sys.DUR_Δt,
                 "GR_dt" => sys.GR_Δt,
                 "RF_dt" => sys.RF_Δt,
-                "RF_ring_down_T" => sys.RF_ring_down_T,
-                "RF_dead_time_T" => sys.RF_dead_time_T,
-                "ADC_dead_time_T" => sys.ADC_dead_time_T)
+                "RF_ring_down_time" => sys.RF_ring_down_time,
+                "RF_dead_time" => sys.RF_dead_time,
+                "ADC_dead_time" => sys.ADC_dead_time)
     matwrite(joinpath(matfolder, matfilename), Dict("scanner" => sys_dict))
 end
 

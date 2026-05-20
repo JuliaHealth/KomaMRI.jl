@@ -15,7 +15,7 @@ From the programming perspective, it is needed to call the [`simulate`](@ref) fu
 | Parameter | Description |
 |:---|:---|
 |`"return_type"` | defines the output of the [`simulate`](@ref) function. Possible values are `"raw"`, `"mat"`, and `"state"`, corresponding to outputting a **MRIReco** `RawAcquisitionData`, the signal values, and the last magnetization state of the simulation, respectively. |
-| `"sim_method"` | defines the type of simulation. The default value is `Bloch()`, but you can alternatively use the `BlochDict()` simulation method. Moreover, you have the flexibility to create your own methods without altering the **KomaMRI** source code; for further details, refer to the [Simulation Method Extensibility section](#Simulation-Method-Extensibility). |
+| `"sim_method"` | defines the type of simulation. The default value is `Bloch()`. Other built-in methods include `BlochDict()`, `BlochMagnus1()`, `BlochMagnus2()`, and `BlochMagnus4()`. You can also define custom methods without altering the **KomaMRI** source code; for details, see [Simulation Method Extensibility](#Simulation-Method-Extensibility). |
 | `"Δt"` | raster time for gradients. |
 | `"Δt_rf"` | raster time for RFs. |
 | `"precision"` | defines the floating-point simulation precision. You can choose between `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively. It's important to note that, especially for GPU operations, using `"f32"` is generally much faster. |
@@ -38,6 +38,11 @@ raw = simulate(obj, seq, sys; sim_params)
 Additionally, the user must be aware of the functions `run_spin_excitation!` and `run_spin_precession!` which defines the algorithm for excitation and precession regimes respectively and can be changed by the user without modifying the source code (more details at [Simulation Method Extensibility](#Simulation-Method-Extensibility)).
 
 Previous simulation, the **Sequence** is discretized to consider specific time points which are critical for simulation. The user can control the time between intermediate gradient samples with the parameter `Δt`. Similarly, the parameter `Δt_rf` manages the time between RF samples, and can be relatively large for 2D imaging where the slice profile is less relevant.
+
+For RF excitation with rapidly changing fields, the `BlochMagnus1()`,
+`BlochMagnus2()`, and `BlochMagnus4()` methods can improve accuracy at the same
+`Δt_rf`, or allow a larger `Δt_rf` for faster simulations. See
+[Magnus Bloch Methods](8-magnus-methods.md).
 
 ### Computation Efficiency
 

@@ -43,7 +43,7 @@ import DisplayAs #hide
 # `Dλ1`, `Dλ2` and `Dθ` are diffusion-related fields which are not in use at the moment.
 # Last, the `motion` field stands for spin displacements, which are added to `x`, `y` and `z`
 # when simulating in order to obtain the spin positions at each time step. For more information about
-# motion, refer to [Motion](2-motion.md) section.
+# motion, refer to [Motion](gen-2-motion.md) section.
 
 # To get an even better understanding on how this structure works, let's look at an example of a brain phantom:
 

@@ -20,6 +20,7 @@
 - Use idiomatic Julia, not Python habits.
 - Treat the relevant project directory as the environment. Use `julia --project=<path>` and `Pkg.activate(...)`.
 - Prefer project-local environments over the global default environment.
+- Never accept Julia/Pkg interactive prompts that add `KomaMRIBase` to the root `Project.toml`. Abort the prompt and activate the correct project instead.
 - Do not create alternate env roots, `env/` folders, or `DEPOT` / `HOME` hacks unless explicitly asked.
 - Reuse a persistent Julia REPL with Revise. Do not start a fresh REPL for convenience, precompilation, or one-off commands.
 - Only restart the REPL if none exists, it crashed, or the user asks. Say why first.
@@ -135,6 +136,18 @@ julia --project=docs -e 'using DocumenterVitepress; DocumenterVitepress.dev_docs
 - GPU-sensitive PRs should get `run-gpu-ci` at PR creation when the first CI run matters. This is for `KomaMRICore/ext/`, kernels, or backend-specific changes. `oneAPI` is experimental and excluded from the default GPU CI and benchmark path.
 - `pre-release` triggers Julia pre-release CI; use it only when intentionally checking upcoming Julia compatibility.
 - Give reviewers the missing context: what changed, why, and what you tested.
+
+## Releases
+- JuliaRegistrator release notes must explicitly mention breaking status. Include a `## Breaking changes` section, or state `No breaking changes`; AutoMerge requires the words `breaking` or `changelog`.
+- For subpackage GitHub releases, create annotated tags at current `origin/master`, not the feature branch. Fetch first, verify the tag does not already exist, then tag and publish sequentially.
+- Use the exact tag as the GitHub release title, e.g. `KomaMRIBase-v0.11.0`. Put only the provided release notes in the release body.
+- Useful pattern:
+```bash
+git fetch origin master --tags
+git tag -a KomaMRIBase-v0.11.0 -F notes.md origin/master
+git push origin KomaMRIBase-v0.11.0
+gh release create KomaMRIBase-v0.11.0 --title KomaMRIBase-v0.11.0 --notes-file notes.md
+```
 
 ## Canonical References
 - Contributor workflow: `docs/src/how-to/5-contribute-to-koma.md`
