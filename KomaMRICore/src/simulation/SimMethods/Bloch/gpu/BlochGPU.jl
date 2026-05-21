@@ -83,7 +83,7 @@ end
 
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SM,
@@ -164,7 +164,7 @@ end
 
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SM,
