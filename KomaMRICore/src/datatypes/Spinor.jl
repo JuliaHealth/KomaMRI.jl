@@ -29,7 +29,7 @@ struct Spinor{V<:AbstractVector}
 end
 Spinor(α::Complex{T}, β::Complex{T}) where {T<:Real} = Spinor([α], [β])
 Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
-one(T::Spinor) = Spinor(1.,0.)
+Base.one(::Spinor) = Spinor(1.,0.)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 Base.view(s::Spinor, i::UnitRange) = @views Spinor(s.α[i], s.β[i])
 """
@@ -158,10 +158,11 @@ IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 function Q(φ, nxy, nz)
     φ_half = φ ./ 2
     sin_φ_half = sin.(φ_half)
-    neg_im = complex.(zero.(φ), -Base.one.(φ))
+    cos_φ_half = cos.(φ_half)
+    neg_im = complex.(zero.(φ), -one.(φ))
     return Spinor(
-        cos.(φ_half) .+ neg_im .* nz .* sin_φ_half,
-        neg_im .* nxy .* sin_φ_half,
+        (@. cos_φ_half + neg_im * nz * sin_φ_half),
+        (@. neg_im * nxy * sin_φ_half),
     )
 end
 

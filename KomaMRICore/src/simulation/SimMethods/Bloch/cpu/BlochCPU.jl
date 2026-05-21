@@ -47,7 +47,7 @@ that they can be re-used from block to block.
 """
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::Bloch,
@@ -105,7 +105,7 @@ optimized for the CPU. Uses preallocation for all arrays to reduce memory usage.
 """
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::Bloch,

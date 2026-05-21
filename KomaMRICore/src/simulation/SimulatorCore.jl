@@ -62,7 +62,7 @@ end
 
 function run_spin_precession_parallel!(
     obj::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -84,7 +84,7 @@ end
 
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
