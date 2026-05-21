@@ -18,16 +18,36 @@ times. DiscreteSequence is the struct used for simulation.
 # Returns
 - `seqd`: (`::DiscreteSequence`) DiscreteSequence struct
 """
-struct DiscreteSequence{T<:Real, B1Type<:AbstractVector}
-    Gx::AbstractVector{T}
-    Gy::AbstractVector{T}
-    Gz::AbstractVector{T}
+struct DiscreteSequence{
+    T<:Real,
+    GxType<:AbstractVector,
+    GyType<:AbstractVector,
+    GzType<:AbstractVector,
+    B1Type<:AbstractVector,
+    ΔfType<:AbstractVector,
+    ψType<:AbstractVector,
+    ADCType<:AbstractVector{Bool},
+    tType<:AbstractVector,
+    ΔtType<:AbstractVector,
+}
+    Gx::GxType
+    Gy::GyType
+    Gz::GzType
     B1::B1Type
-    Δf::AbstractVector{T}
-    ψ::AbstractVector{T}
-    ADC::AbstractVector{Bool}
-    t::AbstractVector{T}
-    Δt::AbstractVector{T}
+    Δf::ΔfType
+    ψ::ψType
+    ADC::ADCType
+    t::tType
+    Δt::ΔtType
+end
+
+function DiscreteSequence(
+    Gx::AbstractVector{T}, Gy, Gz, B1, Δf, ψ, ADC, t, Δt,
+) where {T<:Real}
+    return DiscreteSequence{
+        T, typeof(Gx), typeof(Gy), typeof(Gz), typeof(B1),
+        typeof(Δf), typeof(ψ), typeof(ADC), typeof(t), typeof(Δt),
+    }(Gx, Gy, Gz, B1, Δf, ψ, ADC, t, Δt)
 end
 
 Base.length(seq::DiscreteSequence) = length(seq.Δt)
