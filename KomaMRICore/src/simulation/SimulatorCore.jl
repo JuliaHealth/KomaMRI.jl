@@ -1,5 +1,5 @@
 abstract type SimulationMethod end #get all available types by using subtypes(KomaMRI.SimulationMethod)
-abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
+abstract type SpinStateRepresentation end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
 include("SimMethods/SimulationMethod.jl")  #Defines simulation methods
@@ -64,7 +64,7 @@ function run_spin_precession_parallel!(
     obj::Phantom{T},
     seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
+    Xt::SpinStateRepresentation,
     sim_method::SimulationMethod,
     groupsize::Integer,
     backend::KA.Backend,
@@ -86,7 +86,7 @@ function run_spin_excitation_parallel!(
     obj::Phantom{T},
     seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
+    Xt::SpinStateRepresentation,
     sim_method::SimulationMethod,
     groupsize::Integer,
     backend::KA.Backend,
@@ -133,7 +133,7 @@ function run_sim_time_iter!(
     obj::Phantom,
     seqd::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
+    Xt::SpinStateRepresentation,
     sim_method::SimulationMethod,
     backend::KA.Backend;
     Nblocks=1,

@@ -38,7 +38,7 @@ function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    M::Mag,
     sim_method::BlochDict,
     groupsize,
     backend::KA.Backend,
