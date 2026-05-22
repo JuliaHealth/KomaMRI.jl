@@ -1,114 +1,103 @@
-# # Using Labels to reconstruct multi-slice / multi-contrast sequences
-# 
-# This is generally done in pulseq / pypulseq. In that case, the sequence structure automatically contains the labels increment and set extension.
+# # Using Labels for Cartesian Multi-Slice Reconstruction
 #
-# Here we will show how to modify a sequence in KomaMRI to add the extension
+# In Cartesian imaging, ADC labels tell the reconstruction algorithm where each
+# k-space line was acquired, and also which contrast, slice, repetition, etc.,
+# that line belongs to. In this tutorial, we will build a compact multi-slice
+# acquisition using `LIN` for the phase-encoding line and `SLC` for the slice
+# each readout belongs to 🧭.
 
-using KomaMRI, PlotlyJS, Suppressor # hide
-sys = Scanner() # hide
-obj = brain_phantom3D()
-obj.Δw .= 0; # Removes the off-resonance
+using KomaMRI, PlotlyJS, Suppressor #hide
+sys = Scanner(); #hide
+Nx = 64
+Ny = 64
+Nslices = 2
+FOV = 23e-2 #hide
+Tadc = sys.ADC_Δt * (Nx - 1) #hide
+TR = 0.45 #hide
+slice_delay = 2.0 #hide
+TE = 5e-3 #hide
+Gx = 1 / (γ * sys.ADC_Δt * FOV) #hide
+Gz = 20e-3 #hide
+Trf = 2e-3 #hide
+slice_positions = range(-4e-3, 4e-3; length=Nslices); #hide
+obj = brain_phantom3D(); #hide
+obj.Δw .= 0; #hide
+phase_encode(lin) = Grad((lin - (Ny - 1) / 2) * Gx * sys.ADC_Δt / Tadc, Tadc) #hide
+rf = [PulseDesigner.RF_sinc(sys.B1, Trf, sys; G=[0, 0, Gz], Δf=γ * Gz * z) for z in slice_positions]; #hide
 
-# ## How to add label to a sequence
-# Let's add the label to increment the slice for each seq_EPI block. We will add that to the first block of the sequence
+# ## Creating a sequence with ADC labels
+#
+# The sequence loops over slices and phase-encoding lines. The label extensions
+# go in the readout block, next to the ADC, so the profile leaves the sequence
+# with the metadata the reconstruction algorithm will use later.
+#
+# ⚠️ ADC labels must remain non-negative. KomaMRI checks the labels before
+# simulation, so avoid negative `LabelSet` values or `LabelInc` patterns that
+# push a label below zero.
 
-seq_EPI = PulseDesigner.EPI_example()
-seq = deepcopy(seq_EPI);
-# We can create 2 different types of label "Increment" and "Set" with `LabelInc` and `LabelSet`
-lSlcInc = LabelInc(1,"SLC");
-
-# Let's change the extension field of the first block of seq_EPI in order to add an increment to the SLC label
-seq_EPI.EXT[1] = [lSlcInc];
-
-# Now let's merge 3 seq_EPI. We now have 1 EPI sequence without EXTENSION, then we have an increment of the SLC label, and another one at the beginning of the last seq_EPI
-seq = seq + seq_EPI + seq_EPI
-plot_seq(seq);
-# We can extract the label value with the following function
-l = get_labels(seq);
-# And store in a vector only the value of the SLC label
-SLC_vec = [l[i].SLC for i in eachindex(l)];
-
-# The value is equal to 0 until we reach LabelInc(1,"SLC) 
-p1 = plot(SLC_vec, Layout(
-    xaxis_title="n° blocks",
-    yaxis_title="SLC label"
-))
-#jl display(p1); 
-
-# ## Simulate the acquisition and reconstruct the data
-# Define simulation parameters and perform simulation
-sim_params = KomaMRICore.default_sim_params() 
-raw = @suppress simulate(obj, seq, sys; sim_params)
-
-# The simulated raw data stored the correct label for each profile
-for p in [1,101,102,203]
-  slc = raw.profiles[p].head.idx.slice |> Int 
-  println("Profile n°$p : SLC label = $slc")
+function cartesian_label_sequence()
+    seq = Sequence()
+    adc = ADC(Nx, Tadc)
+    readout = Grad(Gx, Tadc)
+    prewinder = Grad(-Gx / 2, Tadc)
+    @addblocks for slc in 0:(Nslices - 1), lin in 0:(Ny - 1)
+        pe = phase_encode(lin)
+        seq += rf[slc + 1]
+        seq += (x=prewinder, y=pe)
+        seq += Delay(TE) #hide
+        seq += (x=readout, adc, LabelSet(slc, "SLC"), LabelSet(lin, "LIN"))
+        seq += (y=-pe) #hide
+        seq += Delay(TR)
+        if lin == Ny - 1 #hide
+            seq += Delay(slice_delay) #hide
+        end #hide
+    end
+    return seq
 end
 
-# MRIReco splits the data into 3 when the data are converted to the AcquisitionData structure. The dimensions are (contrast / slice / repetitions)
-acqData = AcquisitionData(raw)
-acqData.kdata |> size
+seq = cartesian_label_sequence();
 
-# For multi-slice acquisition, MRIReco uses the same trajectory. We need to crop the trajectory.
-size_readout = size(acqData.traj[1].nodes,2) / 3 |> Int
-acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,1:size_readout];
-# We need to normalize the trajectory to -0.5 to 0.5
-C = maximum(2*abs.(acqData.traj[1].nodes[1:2]))
-acqData.traj[1].nodes ./= C
-acqData.traj[1].circular = false # Removing circular window
-
-Nx, Ny = raw.params["reconSize"][1:2]
-
-recParams = Dict{Symbol,Any}()
-recParams[:reconSize] = (Nx, Ny)
-recParams[:densityWeighting] = true
-rec = reconstruction(acqData, recParams)
-image = abs.(reshape(rec,Nx,Ny,:));
-
-# Let's take a look at the first 2 images
-
-p2 = plot_image(image[:,:,1], height=400);
-p3 = plot_image(image[:,:,2], height=400);
-#md [p2 p3] #hide
-#jl display([p2 p3]); 
-
-# The signal ponderation is changing because we are acquiring the same slice position with a short TR sequence. Thus, the magnetization is not at equilibrium.
-
-# ## Reconstruction using the labels LIN and PAR
-# Rather than using the k-space trajectory calculated by KomaMRI and performing a NUFFT for the reconstruction, we can use the label LIN (phase encoding) and PAR (partition encoding).
+# ## Checking labels in the raw data metadata
 #
-# First, we will create an increment label for LIN
-seq_LIN = PulseDesigner.EPI_example()
-lInc = LabelInc(1,"LIN");
+# After simulation, KomaMRI has copied those labels into the raw data headers.
+# Let's inspect the first and last readout of each slice. The jump from profile
+# 64 to 65 is the useful part: `SLC` advances and `LIN` resets.
 
-# We can put the increment at any stage between 2 ADC blocks. Here we will put it onto each ADC block.
-idx_ADC = is_ADC_on.(seq_LIN)
-for i in eachindex(idx_ADC)
-  idx_ADC[i] == 1 ? seq_LIN.EXT[i] = [lInc] : nothing;
+raw = @suppress simulate(obj, seq, sys)
+
+for p in [1, Ny, Ny + 1, Nslices * Ny]
+    slc = raw.profiles[p].head.idx.slice |> Int
+    lin = raw.profiles[p].head.idx.kspace_encode_step_1 |> Int
+    println("Profile $p: SLC=$slc, LIN=$lin")
 end
 
-# MRIReco uses zero-based cartesian line indices. Set LIN to -1 before the first
-# ADC, so the first `LabelInc(1,"LIN")` makes the first acquired line LIN=0.
-seq_LIN.EXT[1] = [LabelSet(-1,"LIN")];
+# ## Reconstructing using ADC labels
+#
+# At this point the labels stop being just annotations. Setting the trajectory
+# to `"cartesian"` lets the reconstruction use the profile headers directly:
+# `LIN` orders the phase-encoding lines and `SLC` separates the slice stack.
+# MRIReco will then reconstruct one image per slice.
 
-# Let's check the LIN label for each ADC
-l = get_labels(seq_LIN)
-l[idx_ADC][1:10]
+raw.params["trajectory"] = "cartesian";
+raw.params["encodedSize"] = [Nx, Ny, 1];
+raw.params["reconSize"] = [Nx, Ny, 1];
 
-# We can now simulate the results
-raw = @suppress simulate(obj, seq_LIN, sys; sim_params)
+# This readout is symmetric, so estimating the center sample is enough here.
+# For asymmetric readouts, set `center_sample` in the profile headers and pass
+# `estimateProfileCenter=false`.
 
-# In order to not use the NUFFT reconstruction of MRIReco.jl, we need to change the trajectory name to "cartesian"
-raw.params["trajectory"] = "cartesian"
-raw.params["encodedSize"] = [seq.DEF["Nx"],seq.DEF["Ny"]];
+acqData = AcquisitionData(raw; estimateProfileCenter=true);
+rec = reconstruction(acqData, Dict{Symbol,Any}());
+image = abs.(rec);
+image_display = sqrt.(image ./ maximum(image)); #hide
 
-# We also need to estimate the profile center, which will be at the center of the readout. If it is not the case, it should be specified in `f.profiles[i].head.center_sample = center_sample` and `estimateProfileCenter = false`
-acqData = AcquisitionData(raw,estimateProfileCenter=true);
+p1 = plot_image(image_display[:, :, 1]; height=360, title="Slice 1", zmin=0, zmax=1)
+p2 = plot_image(image_display[:, :, 2]; height=360, title="Slice 2", zmin=0, zmax=1)
+foreach(p -> p.plot.data[1].showscale = false, (p1, p2)); #hide
+#md [p1 p2] #hide
+#jl display([p1 p2]);
 
-# Let's see the results
-recParams = Dict{Symbol,Any}()
-rec = reconstruction(acqData, recParams);
-
-p4=plot_image(abs.(rec[:,:,1]), height=400)
-#jl display(p4); 
+# **KomaMRI tries to pass every supported label/flag through to the MRD raw data.
+# This path is still new, so let us know if you find a case that is not mapped
+# correctly; the goal is to stay as close as possible to what the scanner writes
+# 🙂.**
