@@ -105,6 +105,13 @@ function _separate_closing_knot!(t)
     return t
 end
 
+# Idempotent re-separation of knots that could collapse after rebasing to absolute time
+function _reseparate_closing_knot!(t)
+    length(t) >= 2 || return t
+    t[end - 1] = min(t[end - 1], t[end] - max(MIN_RISE_TIME, eps(t[end])))
+    return t
+end
+
 _gradient_times(gr::TrapezoidalGrad) = cumsum([gr.delay; gr.rise; gr.T; gr.fall])
 
 times(gr::TrapezoidalGrad) =

@@ -253,7 +253,10 @@ _amplitude_roundoff_tol(A) = 1000 * eps(float(maximum(abs, A)))
 
 function _strictly_increasing_knots!(t)
     for i in 2:length(t)
-        t[i] <= t[i - 1] && (t[i] = t[i - 1] + MIN_RISE_TIME)
+        if t[i] <= t[i - 1]
+            gap = max(MIN_RISE_TIME, eps(t[i - 1]))
+            t[i] = t[i - 1] + gap
+        end
     end
     return t
 end
