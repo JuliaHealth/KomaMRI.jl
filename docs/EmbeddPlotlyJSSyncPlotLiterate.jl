@@ -21,6 +21,9 @@ function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
     # Copy is required because we pop layout width/height for Plotly's inner JSON.
     # Mutating fig.plot directly would change size(fig) and user-visible behavior.
     plot = copy(fig.plot)
+    plot.frames = fig.plot.frames
+    plot.config = deepcopy(fig.plot.config)
+    plot.config.displayModeBar = false
     default_width = layout_to_html_default_size!(plot.layout.fields, :width, get(plot.layout.fields, :width, nothing))
     default_height = layout_to_html_default_size!(plot.layout.fields, :height, get(plot.layout.fields, :height, nothing))
 
@@ -28,6 +31,7 @@ function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
     PlotlyJS.PlotlyBase.to_html(
         html_buffer,
         plot;
+        autoplay=false,
         full_html=true,
         include_plotlyjs="cdn",
         default_width=default_width,
