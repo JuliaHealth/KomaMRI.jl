@@ -315,7 +315,7 @@ end
         redirect_stderr(devnull) do
             fields = [fieldnames(Phantom)[5:end-3]...]
             button.(string.(fields))
-            filepicker(".seq (Pulseq)/.seqk (Koma)"; accept=".seq,.seqk")
+            filepicker(".seq (Pulseq)"; accept=".seq,.seqk")
             sys = setup_scanner()
             setup_sequence(sys)
             setup_phantom()

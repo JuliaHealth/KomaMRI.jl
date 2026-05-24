@@ -350,19 +350,19 @@ end
 
 function setup_filepickers!(w::Window; seq_file=Ref(""))
     setup_filepicker!(
-        w, "#seqfilepicker", ".seq (Pulseq)/.seqk (Koma)", seq_ui; accept=".seq,.seqk", filename_ref=seq_file,
+        w, "#seqfilepicker", ".seq (Pulseq)", seq_ui; accept=".seq,.seqk", selected_file=seq_file,
     )
     setup_filepicker!(w, "#phafilepicker", ".phantom (Koma)/.h5 (JEMRIS)", obj_ui; accept=".phantom,.h5")
     setup_filepicker!(w, "#sigfilepicker", ".h5/.mrd (ISMRMRD)", raw_ui; accept=".h5,.mrd")
     return nothing
 end
 
-function setup_filepicker!(w::Window, selector::String, label::String, output; accept, filename_ref=nothing)
+function setup_filepicker!(w::Window, selector::String, label::String, output; accept, selected_file=nothing)
     widget = filepicker(label; accept)
     content!(w, selector, widget, async=false, fade=false)
     on(observe(widget)) do filename
         filename == "" && return nothing
-        isnothing(filename_ref) || (filename_ref[] = filename)
+        isnothing(selected_file) || (selected_file[] = filename)
         output[] = callback_filepicker(filename, w, output[])
     end
     return nothing

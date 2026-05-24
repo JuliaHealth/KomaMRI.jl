@@ -89,13 +89,18 @@ body, button{
   margin-bottom: 0;
 }
 
-.seq-filepicker-row .btn-circle {
+.seq-filepicker-row .seq-reload-button {
+  padding: 5px 8px !important;
   background-color: transparent !important;
   border-color: transparent !important;
   color: #f8f9fa !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25 !important;
+  border-radius: 0.25rem !important;
 }
 
-.seq-filepicker-row .btn-circle:hover {
+.seq-filepicker-row .seq-reload-button:hover,
+.seq-filepicker-row .seq-reload-button:focus {
   background-color: #52575c !important;
   border-color: #52575c !important;
 }
