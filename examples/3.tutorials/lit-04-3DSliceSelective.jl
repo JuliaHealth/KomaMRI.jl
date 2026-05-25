@@ -59,8 +59,14 @@ p4 = plot_image(abs.(image[:, :, 1]); height=360, title="Slice 1")
 p5 = plot_image(abs.(image[:, :, 2]); height=360, title="Slice 2")
 p6 = plot_image(abs.(image[:, :, 3]); height=360, title="Slice 3")
 p = [p4 p5 p6] #hide
-p.plot.layout.fields[:yaxis2][:scaleanchor] = "x2" #hide
-p.plot.layout.fields[:yaxis3][:scaleanchor] = "x3" #hide
 foreach(t -> t.fields[:showscale] = false, p.plot.data) #hide
+for (i, xref) in enumerate(("x", "x2", "x3")) #hide
+    xaxis = Symbol("xaxis", i) #hide
+    yaxis = Symbol("yaxis", i) #hide
+    p.plot.layout.fields[yaxis][:scaleanchor] = xref #hide
+    p.plot.layout.fields[yaxis][:constrain] = "domain" #hide
+    p.plot.layout.fields[xaxis][:range] = [-0.5, Nx - 0.5] #hide
+    p.plot.layout.fields[yaxis][:range] = [-0.5, Ny - 0.5] #hide
+end #hide
 #md p #hide
 #jl display(p)
