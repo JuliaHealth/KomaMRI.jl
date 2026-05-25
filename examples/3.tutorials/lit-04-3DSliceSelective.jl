@@ -47,6 +47,7 @@ p3 = plot_signal(raw; slider=false, height=300)
 # Finally, we reconstruct the acquiered images.
 
 ## Get the acquisition data
+raw.params["trajectory"] = "other"
 acq = AcquisitionData(raw)
 
 ## Setting up the reconstruction parameters and perform reconstruction

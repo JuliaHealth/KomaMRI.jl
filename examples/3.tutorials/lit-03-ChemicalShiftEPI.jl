@@ -10,9 +10,13 @@ p1 = plot_phantom_map(obj, :T2 ; height=400, width=400, view_2d=true)
 p2 = plot_phantom_map(obj, :Δw ; height=400, width=400, view_2d=true)
 p = [p1 p2] #hide
 p.plot.layout.fields[:xaxis2][:scaleanchor] = "y2" #hide
-p.plot.layout.fields[:yaxis2][:title] = "" #hide
 p.plot.layout.fields[:xaxis1][:domain] = [0.0, 0.40] #hide
 p.plot.layout.fields[:xaxis2][:domain] = [0.58, 0.98] #hide
+for axis in (:xaxis1, :yaxis1, :xaxis2, :yaxis2) #hide
+    p.plot.layout.fields[axis][:title] = "" #hide
+    p.plot.layout.fields[axis][:ticks] = "" #hide
+    p.plot.layout.fields[axis][:showticklabels] = false #hide
+end #hide
 for (trace, x) in zip(p.plot.data, (0.43, 1.02)) #hide
     trace.fields[:marker][:colorbar][:x] = x #hide
     trace.fields[:marker][:colorbar][:len] = 0.55 #hide
