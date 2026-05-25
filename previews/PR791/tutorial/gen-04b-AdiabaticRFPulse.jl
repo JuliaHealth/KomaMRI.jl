@@ -97,7 +97,7 @@ function sphere_mesh(; nθ=36, nφ=18) #hide
 end #hide
 sphere = sphere_mesh() #hide
 function bloch_traces(i, M, ω̂; scene="scene", showlegend=true) #hide
-    path = scatter3d(; #hide
+    path_trace = scatter3d(; #hide
         x=M[1][1:i], y=M[2][1:i], z=M[3][1:i], #hide
         mode="lines", name="M path", scene=scene, showlegend=showlegend, #hide
         line=attr(color="#111827", width=6), #hide
@@ -115,7 +115,7 @@ function bloch_traces(i, M, ω̂; scene="scene", showlegend=true) #hide
         marker=attr(color="#2563eb", size=4), #hide
     ) #hide
     return [ #hide
-        path, #hide
+        path_trace, #hide
         magnetization, #hide
         effective_field, #hide
     ] #hide
