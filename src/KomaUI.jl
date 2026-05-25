@@ -100,6 +100,7 @@ function KomaUI(;
     sim_params = merge(Dict{String,Any}(), sim)
     rec_params = merge(Dict{Symbol,Any}(:reco=>"direct"), rec)
     mat_folder = tempdir()
+    seq_file = Ref("")
 
     # Print gpu information
     if !(haskey(sim_params, "gpu") && sim_params["gpu"] == false)
@@ -117,6 +118,11 @@ function KomaUI(;
     end
     handle(w, "pulses_seq") do _
         view_ui!(seq_ui[], w; type="sequence", darkmode)
+    end
+    handle(w, "reload_seq") do _
+        if seq_file[] != ""
+            seq_ui[] = callback_filepicker(seq_file[], w, seq_ui[])
+        end
     end
     handle(w, "pulses_kspace") do _
         view_ui!(seq_ui[], w; type="kspace", darkmode)
@@ -330,7 +336,7 @@ function KomaUI(;
                                                          "KomaMRIPlots.jl v"+version_plots);
     )
     # Filepickers
-    setup_filepickers!(w)
+    setup_filepickers!(w; seq_file)
 
     @info "KomaMRI loaded successfully 🚀" KomaMRI=version_ui KomaMRIBase=version_base KomaMRICore=version_core KomaMRIFiles=version_io KomaMRIPlots=version_plots
 
@@ -342,17 +348,21 @@ function KomaUI(;
     return nothing
 end
 
-function setup_filepickers!(w::Window)
-    setup_filepicker!(w, "#seqfilepicker", ".seq (Pulseq)/.seqk (Koma)", seq_ui; accept=".seq,.seqk")
+function setup_filepickers!(w::Window; seq_file=Ref(""))
+    setup_filepicker!(
+        w, "#seqfilepicker", ".seq (Pulseq)", seq_ui; accept=".seq,.seqk", selected_file=seq_file,
+    )
     setup_filepicker!(w, "#phafilepicker", ".phantom (Koma)/.h5 (JEMRIS)", obj_ui; accept=".phantom,.h5")
     setup_filepicker!(w, "#sigfilepicker", ".h5/.mrd (ISMRMRD)", raw_ui; accept=".h5,.mrd")
     return nothing
 end
 
-function setup_filepicker!(w::Window, selector::String, label::String, output; accept)
+function setup_filepicker!(w::Window, selector::String, label::String, output; accept, selected_file=nothing)
     widget = filepicker(label; accept)
     content!(w, selector, widget, async=false, fade=false)
     on(observe(widget)) do filename
+        filename == "" && return nothing
+        isnothing(selected_file) || (selected_file[] = filename)
         output[] = callback_filepicker(filename, w, output[])
     end
     return nothing

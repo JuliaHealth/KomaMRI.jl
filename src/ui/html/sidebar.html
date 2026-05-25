@@ -26,7 +26,14 @@
             </ul>
           </li>
           <li><hr class="dropdown-divider"></li>
-          <li class="dropdown-interact" id="seqfilepicker"></li>
+          <li class="dropdown-interact">
+            <div class="seq-filepicker-row">
+              <span id="seqfilepicker"></span>
+              <button id="button_reload_seq" class="btn btn-dark seq-reload-button" type="button" onclick='Blink.msg("reload_seq", 1)' title="Reload sequence">
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+            </div>
+          </li>
         </ul>
     </li>
     <p id="seqname" class="pname"><abbr title="epi.seq">epi.seq</abbr></p>

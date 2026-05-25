@@ -231,6 +231,9 @@ end
         @js w document.getElementById("button_pulses_seq").click()
         @test "sequence" == @js w document.getElementById("content").dataset.content
 
+        @js w document.getElementById("button_reload_seq").click()
+        @test "sequence" == @js w document.getElementById("content").dataset.content
+
         @js w document.getElementById("button_pulses_kspace").click()
         @test "kspace" == @js w document.getElementById("content").dataset.content
 
