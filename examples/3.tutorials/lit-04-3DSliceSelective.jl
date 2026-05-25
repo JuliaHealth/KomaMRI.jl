@@ -58,5 +58,9 @@ image = reconstruction(acq, reconParams)
 p4 = plot_image(abs.(image[:, :, 1]); height=360, title="Slice 1")
 p5 = plot_image(abs.(image[:, :, 2]); height=360, title="Slice 2")
 p6 = plot_image(abs.(image[:, :, 3]); height=360, title="Slice 3")
-#md [p4 p5 p6] #hide
-#jl display([p4 p5 p6])
+p = [p4 p5 p6] #hide
+p.plot.layout.fields[:yaxis2][:scaleanchor] = "x2" #hide
+p.plot.layout.fields[:yaxis3][:scaleanchor] = "x3" #hide
+foreach(t -> t.fields[:showscale] = false, p.plot.data) #hide
+#md p #hide
+#jl display(p)
