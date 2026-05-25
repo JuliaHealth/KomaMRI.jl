@@ -8,8 +8,14 @@ sys = Scanner(); #hide
 obj = brain_phantom2D() # a slice of a brain
 p1 = plot_phantom_map(obj, :T2 ; height=400, width=400, view_2d=true)
 p2 = plot_phantom_map(obj, :Δw ; height=400, width=400, view_2d=true)
-#md [p1 p2] #hide
-#jl display([p1 p2])
+p = [p1 p2] #hide
+p.plot.layout.fields[:xaxis2][:scaleanchor] = "y2" #hide
+p.plot.layout.fields[:xaxis1][:domain] = [0.0, 0.40] #hide
+p.plot.layout.fields[:xaxis2][:domain] = [0.58, 0.98] #hide
+p.plot.data[1].fields[:marker][:colorbar][:x] = 0.46 #hide
+p.plot.data[2].fields[:marker][:colorbar][:x] = 1.03 #hide
+#md p #hide
+#jl display(p)
 
 # At the left, you can see the ``T_2`` map of the phantom,
 # and at the right, the off-resonance ``\Delta\omega``.
