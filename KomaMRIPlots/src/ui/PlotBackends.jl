@@ -1,5 +1,5 @@
 # Available backends for plots
-const PLOT_BACKENDS = ("PlotlyJS", "PlutoPlotly")
+const PLOT_BACKENDS = ("PlotlyJS", "PlotlyBase", "PlutoPlotly")
 const PLOT_BACKEND = Ref{String}("PlotlyJS")
 
 # Choose plot backend
@@ -25,11 +25,13 @@ end
 function plot_koma(args...; kwargs...)
     if PLOT_BACKEND[] == "PlotlyJS"
         plot_koma(KomaPlotlyJSBackend(), args...; kwargs...)
+    elseif PLOT_BACKEND[] == "PlotlyBase"
+        plot_koma(KomaPlotlyBaseBackend(), args...; kwargs...)
     elseif PLOT_BACKEND[] == "PlutoPlotly"
         plot_koma(KomaPlutoPlotlyBackend(), args...; kwargs...)
     else
         error("""
-        Unsupported KomaMRIPlots backend: $PLOT_BACKEND.
+        Unsupported KomaMRIPlots backend: $(PLOT_BACKEND[]).
         Supported backends are: $PLOT_BACKENDS.
         """)
     end
@@ -39,6 +41,12 @@ end
 struct KomaPlotlyJSBackend end
 function plot_koma(::KomaPlotlyJSBackend, args...; kwargs...)
     return PlotlyJS.plot(args...; kwargs...)
+end
+
+# PlotlyBase (For Google Colab / Jupyter)
+struct KomaPlotlyBaseBackend end
+function plot_koma(::KomaPlotlyBaseBackend, args...; kwargs...)
+    return PlotlyJS.PlotlyBase.Plot(args...; kwargs...)
 end
 
 # PlutoPlotly
