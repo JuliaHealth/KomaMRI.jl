@@ -1,154 +1,65 @@
 # KomaMRI.jl
 
+## Style
+- Prioritize non-verbosity and information density.
+- Prioritize elegance and simplicity: concise idiomatic Julia, no abstract fields, no speculative abstractions.
+- Type function arguments only when dispatch needs them.
+- Prefer dispatch over `isa`/type-branching when behavior depends on type.
+- Use low-level constructors like `new{typeof(...)}` only in the minimal inner-constructor boundary that actually needs them.
+- Add helper functions only when reused or semantically justified.
+- Add docstrings only for public-facing functions.
+- Prefer clear names over explanatory comments. Add comments only when they add information.
+- Be terse. Assume expert user.
+- Prefer commands/diffs over long explanations.
+- Keep diffs tight. Do not reformat or clean up unrelated code.
+
 ## Git
-- Use a new branch for new features. Base it on `master`.
-- Never push to `master`.
-- If the current worktree has unrelated uncommitted changes and you need a clean branch, prefer a separate worktree instead of stashing or rewriting the user's changes.
-- If the branch should start from the latest upstream `master`, fetch first and branch from `origin/master` rather than a potentially stale local `master`.
-- Keep PRs scoped to one issue or feature when possible.
+- If the user gives an existing branch/worktree, use it after verifying it is the intended one.
+- If starting feature/PR work yourself, create a unique branch from latest `origin/master` in a separate worktree; keep the main checkout on `master`.
+- If the active checkout is detached, create a unique local branch there before editing.
+- Fresh worktree pattern: `git fetch origin && git worktree prune && git worktree add -b codex/<task> ../KomaMRI.jl-<task> origin/master`.
+- If a branch/path exists, choose a new name. Do not force-remove unless asked.
+- Never push unless the latest user message explicitly asks. Never push to `master`.
+- No destructive Git commands without explicit approval.
 
-## Repo Shape
-- KomaMRI is a monorepo. The umbrella package lives at the repo root.
-- Subpackages: `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots`.
-- The root `KomaMRI` package directly depends on `KomaMRICore`, `KomaMRIFiles`, and `KomaMRIPlots`.
-- `KomaMRICore`, `KomaMRIFiles`, and `KomaMRIPlots` depend on `KomaMRIBase`.
-- Each package has its own `Project.toml`. Test envs live under `*/test/Project.toml`. Docs use `docs/Project.toml`.
-- Do not edit `Manifest.toml` directly. Let `Pkg` own generated manifest state.
-- `Manifest.toml` churn is usually not commit-worthy here. Manifests are mostly ignored in this repo, so do not commit manifest changes unless explicitly asked.
+## Repo
+- Monorepo packages: root `KomaMRI`, plus `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots`.
+- `KomaMRICore`, `KomaMRIFiles`, and `KomaMRIPlots` depend on `KomaMRIBase`; the root package depends on those three.
+- Each package has its own `Project.toml`; tests use `*/test/Project.toml`; docs use `docs/Project.toml`.
+- Root `[workspace]` includes `test`, `docs`, `benchmarks`, and all subpackages.
+- Do not edit `Manifest.toml` directly or commit manifest churn unless explicitly asked.
 
-## Julia Workflow
-- Use idiomatic Julia, not Python habits.
-- Treat the relevant project directory as the environment. Use `julia --project=<path>` and `Pkg.activate(...)`.
-- Prefer project-local environments over the global default environment.
-- Never accept Julia/Pkg interactive prompts that add `KomaMRIBase` to the root `Project.toml`. Abort the prompt and activate the correct project instead.
-- Do not create alternate env roots, `env/` folders, or `DEPOT` / `HOME` hacks unless explicitly asked.
-- Reuse a persistent Julia REPL with Revise. Do not start a fresh REPL for convenience, precompilation, or one-off commands.
-- Only restart the REPL if none exists, it crashed, or the user asks. Say why first.
-- Keep the REPL open until explicitly told to close it.
-- Keep diffs tight. Do not reformat or "clean up" unrelated code.
-- Read `Project.toml` when needed, but change dependencies and compat via `Pkg` APIs, not by hand-editing dependency state casually.
+## Julia
+- Use the relevant project: `julia --project=<path>` and `Pkg.activate(...)`; never use the global env by accident.
+- Use one persistent Julia REPL/session with Revise for Julia work. Do not run `julia -e`, `julia script.jl`, or package tests in fresh shell processes while a REPL is available; send commands to the session. Use a fresh process only when isolation is required or the user asks. Restart only if absent/crashed or the user asks. Keep it open.
+- Prefer workspace setup: activate root or the child project and `Pkg.instantiate()`. Use explicit `Pkg.develop(path=...)` only to reproduce CI or older Julia 1.10 wiring.
+- Change dependencies/compat with Pkg APIs, not casual `Project.toml` edits.
+- For performance work: profile first, benchmark with interpolation, then optimize the actual hotspot.
 
-## Local Package Wiring
-- This repo defines a root `[workspace]` with `test`, `docs`, `benchmarks`, `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, and `KomaMRIPlots`.
-- On modern Julia/Pkg workspaces, prefer the workspace-first path instead of blindly `Pkg.develop`-ing every local subpackage:
-```julia
-using Pkg
-Pkg.activate(".")
-Pkg.instantiate()
-```
-- If you want a child project active, activate that child directly; it still participates in the shared workspace manifest:
-```julia
-using Pkg
-Pkg.activate("KomaMRICore")  # or docs / benchmarks / another workspace child
-Pkg.instantiate()
-```
-- This also applies to docs:
-```julia
-using Pkg
-Pkg.activate("docs")
-Pkg.instantiate()
-```
-- Use explicit `Pkg.develop(path=...)` only when you need path-tracked local packages outside the normal workspace flow, or when matching older/compatibility-oriented setup.
-- If you need to mirror the current CI/docs wiring exactly, use the explicit path setup from `.github/workflows/CI.yml`, e.g. for docs:
-```julia
-using Pkg
-Pkg.activate("docs")
-Pkg.develop([
-    PackageSpec(path=pwd(), subdir="."),
-    PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-    PackageSpec(path=pwd(), subdir="KomaMRICore"),
-    PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
-    PackageSpec(path=pwd(), subdir="KomaMRIPlots"),
-])
-Pkg.instantiate()
-```
-- CI still uses explicit `Pkg.develop(...)` wiring today because the matrix includes Julia `1.10`, so use that path when reproducing CI exactly.
+## Python
+- Use `uv` for reproducible Python environments. Do not use bare `pip`.
 
-## Julia Code
-- Do not be verbose. Prefer the shortest clear correct Julia solution that matches the surrounding style.
-- Prioritize elegance and concision. Do not lie or take shortcuts.
-- Prefer the simplest correct design. Do not add helpers, wrappers, aliases, or abstractions unless they materially improve clarity, reuse, or dispatch.
-- Avoid review-hostile churn: unnecessary boilerplate, defensive overengineering, speculative abstractions, and large refactors when a small local change is enough.
-- Do not overtype function arguments; add method types only when dispatch needs them.
-- Do not use abstract types in structs.
-- Follow existing repo style and BlueStyle where it matches the surrounding code.
-- Add comments or docstrings only when they carry real information.
-- Watch type stability. Use `@code_warntype` when warranted.
-- For performance work, profile first, then benchmark with interpolation, then optimize the actual hotspot.
-
-## Julia Testing
-- Use the correct project context. Wrong env selection causes misleading failures.
-- No need to open a new REPL for testing; use `Pkg.test`.
-- Prefer `Pkg.test(...)` over directly running `test/runtests.jl`. Only run `runtests.jl` directly when debugging the test runner itself.
-- Run the narrowest relevant tests first. If the change crosses package boundaries, test each affected package and then the umbrella package if needed.
-- From the repo root, the usual entry points are:
-```julia
-import Pkg
-Pkg.test("KomaMRIBase")
-Pkg.test("KomaMRICore")
-Pkg.test("KomaMRIFiles")
-Pkg.test("KomaMRIPlots")
-Pkg.test()  # KomaMRI umbrella package
-```
-- `Pkg.test()` at the repo root exercises the `KomaMRI` package, including UI-oriented paths. On headless Linux, mirror CI and use `xvfb-run` for `KomaMRIPlots` and root `KomaMRI` tests.
-- `KomaMRICore` defaults to CPU via `KomaMRICore/test/Project.toml`. To change backend, set `[preferences.KomaMRICore].test_backend` to `CPU`, `CUDA`, `AMDGPU`, `Metal`, or `oneAPI`, or use `Pkg.test("KomaMRICore"; test_args=\`CUDA\`)`.
-- To control CPU thread count for `KomaMRICore`, use `Pkg.test("KomaMRICore"; julia_args=\`--threads=4\`)`.
-- GPU backend packages must already be available locally before running non-CPU `KomaMRICore` tests. `oneAPI` is experimental.
-- Do not commit backend-specific GPU packages such as `CUDA`, `AMDGPU`, `Metal`, or `oneAPI` to shared test projects like `KomaMRICore/test/Project.toml`. Add them only in the backend-specific CI/local test command or a temporary environment.
-- For small exploratory tests, use a temporary environment. For longer isolated tests, use a temp folder with an activated environment. Reuse the same REPL.
-- If you add behavior, add or update tests in the owning package's `runtests.jl`.
-- Use `@testitem` tags correctly:
-  - `KomaMRIBase`: `:base`
-  - `KomaMRICore`: `:core` plus exactly one of `:motion` or `:nomotion`
-  - `KomaMRIFiles`: `:files`
-  - `KomaMRIPlots`: `:plots`
-  - `KomaMRI`: `:koma`
-- If the user asks for benchmarking, run benchmarks sequentially, never in parallel.
-- If the user asks to test a PR implementation, add that version with `Pkg` using `url` / `rev`; do not hand-copy files.
+## Testing
+- In the persistent Julia session, run tests from the correct project with `Pkg.test(...)`; use the narrowest package first.
+- Usual package tests: `Pkg.test("KomaMRIBase")`, `Pkg.test("KomaMRICore")`, `Pkg.test("KomaMRIFiles")`, `Pkg.test("KomaMRIPlots")`, root `Pkg.test()`.
+- Root and `KomaMRIPlots` tests may need `xvfb-run` on headless Linux.
+- `KomaMRICore` backend tests use `test_args` (`CPU`, `CUDA`, `AMDGPU`, `Metal`, `oneAPI`) or test preferences; do not commit backend GPU deps to shared test projects.
+- Use `@testitem` tags: `:base`, `:files`, `:plots`, `:koma`, and for core `:core` plus exactly one of `:motion` or `:nomotion`.
+- If testing a PR implementation, add it with Pkg `url`/`rev`; do not hand-copy files.
 
 ## Docs
-- For docs changes, use the `docs` environment.
-- KomaMRI docs use Documenter.jl, DocumenterVitepress, Literate.jl, and PlutoSliderServer.
-- Treat the source files as canonical: edit the hand-written docs and the `lit-*.jl` / `pluto-*.jl` sources, not the generated tutorial artifacts.
-- Keep `DocumenterVitepress.deploydocs(...)` in `docs/make.jl`; do not replace it with `Documenter.deploydocs(...)`.
-- Run doctests with:
-```bash
-julia --project=docs -e 'using Documenter: doctest; using KomaMRI; doctest(KomaMRI)'
-```
-- Build docs locally with:
-```bash
-julia --project=docs docs/make.jl
-```
-- For faster local docs iteration, you can temporarily set `build_vitepress = false` in `docs/make.jl`, regenerate docs, and preview with:
-```bash
-julia --project=docs -e 'using DocumenterVitepress; DocumenterVitepress.dev_docs("docs/build")'
-```
-- `dev_docs` expects the build directory path `docs/build`, not `docs/build/.documenter`.
-- `dev_docs` does not rerun `makedocs` for you. After content changes, rerun `julia --project=docs docs/make.jl`.
-- Restore the normal Vitepress build setting before committing.
-- Do not commit files generated by `docs/make.jl`, `Literate.markdown/script/notebook`, or `PlutoSliderServer.export_directory` unless explicitly asked.
-- In practice, generated docs artifacts to avoid committing include `docs/src/tutorial/*`, `docs/src/tutorial/pluto/**`, and generated tutorial/download assets under `docs/src/public/`.
+- Use the `docs` environment.
+- Edit source docs, `lit-*.jl`, and `pluto-*.jl`; do not edit generated tutorial artifacts.
+- In the persistent Julia session activated for `docs`, build with `include("docs/make.jl")`; doctest with `using Documenter: doctest; using KomaMRI; doctest(KomaMRI)`.
+- Keep `DocumenterVitepress.deploydocs(...)` in `docs/make.jl`.
+- Do not commit files generated by `docs/make.jl`, Literate, or PlutoSliderServer unless explicitly asked.
 
-## PRs
-- Base PRs on `master`.
-- Run the relevant package tests before opening or updating the PR.
-- Docs PRs can use the `documentation` label to trigger preview docs deployment (`docs/make.jl push_preview` in CI).
-- GPU-sensitive PRs should get `run-gpu-ci` at PR creation when the first CI run matters. This is for `KomaMRICore/ext/`, kernels, or backend-specific changes. `oneAPI` is experimental and excluded from the default GPU CI and benchmark path.
-- `pre-release` triggers Julia pre-release CI; use it only when intentionally checking upcoming Julia compatibility.
-- Give reviewers the missing context: what changed, why, and what you tested.
+## PRs And Releases
+- PRs target `master`, stay scoped, and include what changed, why, and what was tested.
+- Add trigger labels at PR creation when the first CI run matters: `documentation`, `run-gpu-ci`, or `pre-release`. Adding them after PR creation is too late for the first run.
+- Release tags are annotated tags on current `origin/master`, not feature branches.
+- Registrator notes must mention breaking status: include `## Breaking changes` or state `No breaking changes`.
 
-## Releases
-- JuliaRegistrator release notes must explicitly mention breaking status. Include a `## Breaking changes` section, or state `No breaking changes`; AutoMerge requires the words `breaking` or `changelog`.
-- For subpackage GitHub releases, create annotated tags at current `origin/master`, not the feature branch. Fetch first, verify the tag does not already exist, then tag and publish sequentially.
-- Use the exact tag as the GitHub release title, e.g. `KomaMRIBase-v0.11.0`. Put only the provided release notes in the release body.
-- Useful pattern:
-```bash
-git fetch origin master --tags
-git tag -a KomaMRIBase-v0.11.0 -F notes.md origin/master
-git push origin KomaMRIBase-v0.11.0
-gh release create KomaMRIBase-v0.11.0 --title KomaMRIBase-v0.11.0 --notes-file notes.md
-```
-
-## Canonical References
+## References
 - Contributor workflow: `docs/src/how-to/5-contribute-to-koma.md`
 - CI truth: `.github/workflows/CI.yml` and `.github/workflows/CIPreRelease.yml`
