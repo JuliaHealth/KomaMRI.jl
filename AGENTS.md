@@ -57,7 +57,7 @@
 ## PRs And Releases
 - PRs target `master`, stay scoped, and include what changed, why, and what was tested.
 - Add trigger labels at PR creation when the first CI run matters: `documentation`, `run-gpu-ci`, or `pre-release`. Adding them after PR creation is too late for the first run.
-- Release tags are annotated tags on current `origin/master`, not feature branches.
+- Release tags are annotated tags on current `origin/master`, not feature branches: `git fetch origin master --tags`, `git tag -a <tag> -F notes.md origin/master`, `git push origin <tag>`, `gh release create <tag> --title <tag> --notes-file notes.md`.
 - Registrator notes must mention breaking status: include `## Breaking changes` or state `No breaking changes`.
 
 ## References
