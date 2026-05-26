@@ -38,7 +38,7 @@ end
 
 function import_motion!(phantom_fields::Array, motion_group::HDF5.Group)
     T = eltype(phantom_fields[2][2])
-    motion_array = Motion{T}[]
+    motion_array = Motion[]
     for key in keys(motion_group)
         motion = motion_group[key]
         motion_fields = []

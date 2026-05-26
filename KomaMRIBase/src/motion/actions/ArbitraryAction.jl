@@ -1,4 +1,4 @@
-abstract type ArbitraryAction{T<:Real} <: AbstractAction{T} end
+abstract type ArbitraryAction <: AbstractAction end
 
 function Base.getindex(action::ArbitraryAction, p)
     return typeof(action)([getfield(action, d)[p,:] for d in fieldnames(typeof(action))]...)
