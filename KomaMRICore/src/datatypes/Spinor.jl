@@ -27,8 +27,8 @@ struct Spinor{V<:AbstractVector}
 	α::V
 	β::V
 end
-Spinor(α::Complex{T}, β::Complex{T}) where {T<:Real} = Spinor([α], [β])
-Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
+Spinor(α::Complex, β::Complex) = Spinor([α], [β])
+Spinor(α::Real, β::Real) = Spinor([complex(α)], [complex(β)])
 Base.one(::Spinor) = Spinor(1.,0.)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 Base.view(s::Spinor, i::UnitRange) = @views Spinor(s.α[i], s.β[i])

@@ -23,26 +23,23 @@ function split_sig_per_thread(sig, i, p, sim_method::SimulationMethod)
 end
 
 """Magnetization initialization for Bloch simulation method."""
-function initialize_spins_state(
-    obj::Phantom{T}, sim_method::SimulationMethod
-) where {T<:Real}
-    Nspins = length(obj)
-    Mxy = zeros(Complex{T}, Nspins)
-    Mz = obj.ρ
-    Xt = Mag(Mxy, Mz)
+function initialize_spins_state(obj::Phantom, sim_method::SimulationMethod)
+    Mxy = complex.(zero.(obj.ρ))
+    Mz  = obj.ρ
+    Xt  = Mag(Mxy, Mz)
     return Xt, obj
 end
 
 """Stores pre-allocated arrays for use in run_spin_precession! and run_spin_excitation!"""
-abstract type PreallocResult{T<:Real} end
+abstract type PreallocResult end
 
 """Default preallocation struct, stores nothing."""
-struct DefaultPrealloc{T} <: PreallocResult{T} end
+struct DefaultPrealloc <: PreallocResult end
 
 Base.view(p::PreallocResult, i::UnitRange) = p
 
 """Default preallocation function."""
-prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag, max_block_length::Integer, groupsize) where {T<:Real} = DefaultPrealloc{T}()
+prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom, M::Mag, max_block_length::Integer, groupsize) = DefaultPrealloc()
 
 include("BlochSimple/BlochSimple.jl")
 include("Bloch/cpu/BlochCPU.jl")

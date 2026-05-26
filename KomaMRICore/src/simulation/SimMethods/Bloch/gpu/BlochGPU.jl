@@ -3,21 +3,22 @@ include("PrecessionKernel.jl")
 include("ExcitationKernel.jl")
 
 """Stores preallocated arrays for use in Bloch GPU run_spin_precession! and run_spin_excitation! functions."""
-struct BlochGPUPrealloc{T} <: PreallocResult{T}
-    sig_output::AbstractMatrix{Complex{T}}
-    sig_output_final::AbstractMatrix{Complex{T}}
-    ΔBz::AbstractVector{T}
+struct BlochGPUPrealloc <: PreallocResult
+    sig_output::AbstractMatrix
+    sig_output_final::AbstractMatrix
+    ΔBz::AbstractVector
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
 function prealloc(
-    sim_method::SM, 
-    backend::KA.GPU, 
-    obj::Phantom{T}, 
-    M::Mag, 
-    max_block_length::Integer, 
+    sim_method::SM,
+    backend::KA.GPU,
+    obj::Phantom,
+    M::Mag,
+    max_block_length::Integer,
     groupsize
-) where {T<:Real, SM<:BlochLikeSimMethods}
+) where {SM<:BlochLikeSimMethods}
+    T = eltype(obj.x)
     return BlochGPUPrealloc(
         KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
         KA.zeros(backend, Complex{T}, 1, max_block_length),
@@ -26,15 +27,16 @@ function prealloc(
 end
 
 function run_spin_precession!(
-    p::Phantom{T},
+    p::Phantom,
     seq::DiscreteSequence,
-    sig::AbstractArray{Complex{T}},
+    sig::AbstractArray,
     M::Mag,
     sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real, SM<:BlochLikeSimMethods}
+) where {SM<:BlochLikeSimMethods}
+    T = eltype(p.ρ)
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
@@ -63,15 +65,16 @@ function run_spin_precession!(
 end
 
 function run_spin_excitation!(
-    p::Phantom{T},
+    p::Phantom,
     seq::DiscreteSequence,
-    sig::AbstractArray{Complex{T}},
+    sig::AbstractArray,
     M::Mag,
     sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real, SM<:BlochLikeSimMethods}
+) where {SM<:BlochLikeSimMethods}
+    T = eltype(p.ρ)
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
