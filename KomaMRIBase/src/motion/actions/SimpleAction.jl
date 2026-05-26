@@ -1,4 +1,4 @@
-abstract type SimpleAction{T<:Real} <: AbstractAction{T} end
+abstract type SimpleAction <: AbstractAction end
 
 Base.getindex(action::SimpleAction, p) = action
 Base.view(action::SimpleAction, p)     = action

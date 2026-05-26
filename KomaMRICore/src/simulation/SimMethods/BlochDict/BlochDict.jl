@@ -8,8 +8,8 @@ Base.show(io::IO, s::BlochDict) = begin
 end
 
 function sim_output_dim(
-    obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict
-) where {T<:Real}
+    obj::Phantom, seq::Sequence, sys::Scanner, sim_method::BlochDict
+)
     out_state_dim = sim_method.save_Mz ? 2 : 1
     return (sum(seq.ADC.N), length(obj), out_state_dim)
 end
@@ -35,15 +35,16 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(
-    p::Phantom{T},
+    p::Phantom,
     seq::DiscreteSequence,
-    sig::AbstractArray{Complex{T}},
+    sig::AbstractArray,
     M::Mag,
     sim_method::BlochDict,
     groupsize,
     backend::KA.Backend,
     prealloc::PreallocResult
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
