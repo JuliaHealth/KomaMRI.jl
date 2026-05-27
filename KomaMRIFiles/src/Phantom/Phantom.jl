@@ -19,12 +19,14 @@ function read_phantom(filename::String)
     name = read_attribute(fid, "Name")
     push!(phantom_fields, (:name, name))
     # Position and contrast
-    for key in ["position", "contrast"]
-        group = fid[key]
-        for label in HDF5.keys(group)
-            values = read(group[label])
-            push!(phantom_fields, (Symbol(label), values))
-        end
+    pos = fid["position"]
+    for label in HDF5.keys(pos)
+        push!(phantom_fields, (Symbol(label), read(pos[label])))
+    end
+    contrast = fid["contrast"]
+    T = eltype(phantom_fields[end][2])
+    for label in HDF5.keys(contrast)
+        import_contrast_property!(phantom_fields, contrast, label, T)
     end
     # Motion
     if "motion" in keys(fid)
@@ -88,6 +90,48 @@ function import_motion_subfield!(motion_subfields::Array, subfield_value::Union{
     push!(motion_subfields, subfield_value)
     return nothing
 end
+function read_timecurve_group(group::HDF5.Group)
+    t = read(group, "t")
+    t_unit = read(group, "t_unit")
+    periodic = haskey(HDF5.attributes(group), "periodic") ? read_attribute(group, "periodic") : false
+    periods = haskey(HDF5.attributes(group), "periods") ? read_attribute(group, "periods") : 1.0
+    return TimeCurve(; t, t_unit, periodic, periods)
+end
+
+function write_timecurve_group!(group::HDF5.Group, tc::TimeCurve)
+    HDF5.attributes(group)["type"] = "TimeCurve"
+    group["t"] = tc.t
+    group["t_unit"] = tc.t_unit
+    HDF5.attributes(group)["periodic"] = tc.periodic
+    HDF5.attributes(group)["periods"] = tc.periods
+end
+
+function export_contrast_property!(contrast::HDF5.Group, label::Symbol, prop)
+    if prop isa TimeDependentProperty
+        grp = create_group(contrast, string(label))
+        HDF5.attributes(grp)["type"] = "TimeDependentProperty"
+        grp["value"] = prop.value
+        time_grp = create_group(grp, "time")
+        write_timecurve_group!(time_grp, prop.time)
+    else
+        contrast[string(label)] = prop
+    end
+    return nothing
+end
+
+function import_contrast_property!(phantom_fields::Array, contrast::HDF5.Group, label::String, ::Type{T}) where {T<:Real}
+    node = contrast[label]
+    if node isa HDF5.Dataset
+        push!(phantom_fields, (Symbol(label), read(node)))
+    else
+        @assert read_attribute(node, "type") == "TimeDependentProperty"
+        value = read(node["value"])
+        time = read_timecurve_group(node["time"])
+        push!(phantom_fields, (Symbol(label), TimeDependentProperty(value, time)))
+    end
+    return nothing
+end
+
 function import_motion_subfield!(motion_subfields::Array, subfield_value::String, key::String, T::Type{<:Real})
     if subfield_value in ["true", "false"]
         return push!(motion_subfields, subfield_value == "true" ? true : false)
@@ -132,7 +176,7 @@ function write_phantom(
     # Contrast (Rho, T1, T2, T2s Deltaw)
     contrast = create_group(fid, "contrast")
     for x in store_contrasts
-        contrast[String(x)] = getfield(obj, x)
+        export_contrast_property!(contrast, x, getfield(obj, x))
     end
     # Motion
     if !(obj.motion isa NoMotion) & store_motion

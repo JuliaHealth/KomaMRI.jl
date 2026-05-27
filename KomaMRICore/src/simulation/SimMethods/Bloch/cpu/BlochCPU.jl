@@ -33,7 +33,7 @@ function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}
             similar(M.xy),
             similar(M.xy)
         ),
-        obj.Δw ./ T(2π .* γ)
+        zeros(T, size(obj.x)),
     )
 end
 
@@ -65,22 +65,28 @@ function run_spin_precession!(
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
-    ρ_end = get_spin_property_at_end(get_spin_property(p.ρ, seq.t'))
+    props_end = get_spin_properties_block_end(p, seq.t')
+    ρ_end = props_end.ρ
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1])
+    Δw = get_spin_property(p.Δw, seq.t[1])
+    @. ΔBz = Δw / T(2π * γ)
     @. Bz_old = x * seq.Gx[1] + y * seq.Gy[1] + z * seq.Gz[1] + ΔBz
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i + 1])
         #Effective Field
+        Δw = get_spin_property(p.Δw, seq.t[i + 1])
+        @. ΔBz = Δw / T(2π * γ)
         @. Bz_new = x * seq.Gx[i + 1] + y * seq.Gy[i + 1] + z * seq.Gz[i + 1] + ΔBz
         #Rotation
         @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[i]
         block_time += seq.Δt[i]
         #Acquired Signal
         if seq.ADC[i + 1]
+            T2 = get_spin_property(p.T2, seq.t[i + 1])
             #Update signal
-            @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
+            @. Mxy = exp(-block_time / T2) * M.xy * cis(ϕ)
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
             #Acquired signal
@@ -91,8 +97,9 @@ function run_spin_precession!(
         Bz_old .= Bz_new
     end
     #Final Spin-State
-    @. M.xy = M.xy * exp(-block_time / p.T2) * cis(ϕ)
-    @. M.z = M.z * exp(-block_time / p.T1) + ρ_end * (T(1) - exp(-block_time / p.T1))
+    T2_end = props_end.T2
+    @. M.xy = M.xy * exp(-block_time / T2_end) * cis(ϕ)
+    @. M.z = M.z * exp(-block_time / props_end.T1) + ρ_end * (T(1) - exp(-block_time / props_end.T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(M,  seq.t', p.motion; replace_by=ρ_end)
     return nothing
@@ -134,10 +141,12 @@ function run_spin_excitation!(
     for i in eachindex(seq.Δt)
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i])
-        ρ = get_spin_property(p.ρ, seq.t[i, :])
+        props = get_spin_properties(p, seq.t[i, :])
+        ρ = props.ρ
         ρ_end = get_spin_property_at_end(ρ)
         #Effective field
-        @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        @. ΔBz = props.Δw / T(2π * γ) - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        @. Bz = seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z + ΔBz
         @. B = sqrt(abs(seq.B1[i])^2 + abs(Bz)^2)
         @. B[B == 0] = eps(T)
         #Spinor Rotation
@@ -146,8 +155,8 @@ function run_spin_excitation!(
         @. β = -Complex{T}(im) * (seq.B1[i] / B) * sin(φ_half)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
-        @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
-        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
+        @. M.xy = M.xy * exp(-seq.Δt[i] / props.T2)
+        @. M.z = M.z * exp(-seq.Δt[i] / props.T1) + ρ * (T(1) - exp(-seq.Δt[i] / props.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=ρ_end)
         #Acquire signal

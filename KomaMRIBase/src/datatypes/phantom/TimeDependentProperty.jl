@@ -5,6 +5,35 @@ end
 
 get_property_value(p::TimeDependentProperty) = p.value[:, 1]
 
+"""Spin-resolved phantom properties at simulation times `t` (vector or matrix columns)."""
+function get_spin_properties(p, t)
+    return (
+        ρ=get_spin_property(p.ρ, t),
+        T1=get_spin_property(p.T1, t),
+        T2=get_spin_property(p.T2, t),
+        T2s=get_spin_property(p.T2s, t),
+        Δw=get_spin_property(p.Δw, t),
+        Dλ1=get_spin_property(p.Dλ1, t),
+        Dλ2=get_spin_property(p.Dλ2, t),
+        Dθ=get_spin_property(p.Dθ, t),
+    )
+end
+
+"""Block-end spin properties used for GPU kernels and block-final relaxation."""
+function get_spin_properties_block_end(p, t)
+    props = get_spin_properties(p, t)
+    return (
+        ρ=get_spin_property_at_end(props.ρ),
+        T1=get_spin_property_at_end(props.T1),
+        T2=get_spin_property_at_end(props.T2),
+        T2s=get_spin_property_at_end(props.T2s),
+        Δw=get_spin_property_at_end(props.Δw),
+        Dλ1=get_spin_property_at_end(props.Dλ1),
+        Dλ2=get_spin_property_at_end(props.Dλ2),
+        Dθ=get_spin_property_at_end(props.Dθ),
+    )
+end
+
 get_spin_property(p::AbstractVector, t) = p
 function get_spin_property(p::TimeDependentProperty, t)
     Ns = size(p.value, 1)
@@ -12,7 +41,13 @@ function get_spin_property(p::TimeDependentProperty, t)
     return resample(interpolate(p.value, Gridded(Linear()), Val(Ns), t_unit), t_unit)
 end
 
-get_spin_property_at_end(p::AbstractMatrix) = selectdim(p, 2, size(p, 2))
+"""
+    get_spin_property_at_end(p::AbstractMatrix)
+
+Returns spin-wise property values at the last queried time in `p`, with shape
+`(Nspins, Ntimes)`.
+"""
+get_spin_property_at_end(p::AbstractMatrix) = vec(selectdim(p, 2, size(p, 2)))
 get_spin_property_at_end(p::AbstractVector) = p
 
 Base.:(==)(p1::TimeDependentProperty, p2::TimeDependentProperty) = p1.value == p2.value && p1.time == p2.time

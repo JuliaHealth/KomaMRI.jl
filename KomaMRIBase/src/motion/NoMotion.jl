@@ -18,10 +18,10 @@ Base.view(mv::NoMotion, p)     = mv
 
 """ Addition of NoMotions """
 # NoMotion + NoMotion
-Base.vcat(m1::NoMotion,   m2::NoMotion, Ns1, Ns2) = m1
+vcat_motion(m1::NoMotion,   m2::NoMotion, Ns1, Ns2) = m1
 # NoMotion + MotionList
-Base.vcat(m1::MotionList, m2::NoMotion, Ns1, Ns2) = vcat(m2, m1, 0, Ns1)
-function Base.vcat(m1::NoMotion, m2::MotionList{T}, Ns1, Ns2) where {T}
+vcat_motion(m1::MotionList, m2::NoMotion, Ns1, Ns2) = vcat_motion(m2, m1, 0, Ns1)
+function vcat_motion(m1::NoMotion, m2::MotionList{T}, Ns1, Ns2) where {T}
     mv_aux = Motion{T}[]
     for m in m2.motions
         m_aux = deepcopy(m)
@@ -32,8 +32,8 @@ function Base.vcat(m1::NoMotion, m2::MotionList{T}, Ns1, Ns2) where {T}
     return MotionList(mv_aux)
 end
 # NoMotion + Motion
-Base.vcat(m1::Motion, m2::NoMotion, Ns1, Ns2) = vcat(m2, m1, 0, Ns1)
-function Base.vcat(m1::NoMotion, m2::Motion{T}, Ns1, Ns2) where {T}
+vcat_motion(m1::Motion, m2::NoMotion, Ns1, Ns2) = vcat_motion(m2, m1, 0, Ns1)
+function vcat_motion(m1::NoMotion, m2::Motion{T}, Ns1, Ns2) where {T}
     m_aux = deepcopy(m2)
     m_aux.spins = expand(m_aux.spins, Ns2)
     m_aux.spins = SpinRange(m_aux.spins.range .+ Ns1)
