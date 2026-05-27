@@ -1572,12 +1572,41 @@ end
         obj2.motion = tr
         oba.motion = vcat(obj1.motion, obj2.motion, length(obj1), length(obj2))
         @test obj1 + obj2 == oba
+
+        tc = TimeRange(0.0, 1.0)
+        pd = [1.0 0.0; 0.5 1.0]
+        ρt = TimeDependentProperty(pd, tc)
+        # TimeDependentProperty + AbstractVector
+        obj1.ρ = ρt
+        obj2.ρ = ρ
+        oba.ρ = KomaMRIBase.vcat_property(obj1.ρ, obj2.ρ)
+        @test obj1 + obj2 == oba
+        # AbstractVector + TimeDependentProperty
+        obj1.ρ = ρ
+        obj2.ρ = ρt
+        oba.ρ = KomaMRIBase.vcat_property(obj1.ρ, obj2.ρ)
+        @test obj1 + obj2 == oba
+        # TimeDependentProperty + TimeDependentProperty
+        obj1.ρ = ρt
+        obj2.ρ = ρt
+        oba.ρ = KomaMRIBase.vcat_property(obj1.ρ, obj2.ρ)
+        @test obj1 + obj2 == oba
     end 
     @testset "Scalar multiplication" begin
         obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(tr, rt))
         c = 7
         obc = Phantom(name=name, x=x, y=y, z=z, ρ=c*ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ, motion=MotionList(tr, rt))
         @test c * obj1 == obc
+    end
+    @testset "Time-dependent ρ" begin
+        tc = TimeRange(0.0, 1.0)
+        pd = [1.0 0.0; 0.5 1.0]
+        ρt = TimeDependentProperty(pd, tc)
+        obj = Phantom(ρ=ρt, x=x[1:2], y=y[1:2], z=z[1:2])
+        @test KomaMRIBase.get_spin_property(obj.ρ, [0.5]) ≈ [0.5, 0.75]
+        ρt2 = KomaMRIBase.get_spin_property(obj.ρ, [0.0, 1.0])
+        @test ρt2 ≈ [1.0 0.0; 0.5 1.0]
+        @test KomaMRIBase.get_spin_property_at_end(ρt2) ≈ [1.0, 1.0]
     end
     @testset "Brain Phantom 2D" begin
         ph = brain_phantom2D()

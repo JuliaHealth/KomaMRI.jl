@@ -99,6 +99,8 @@ function run_spin_excitation!(
     for i in eachindex(seq.Δt)
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        ρ = get_spin_property(p.ρ, seq.t[i, :])
+        ρ_end = get_spin_property_at_end(ρ)
         #Effective field
         @. ωxy_new = seq.B1[i + 1] * B_to_ω
         @. ωz_new  = (seq.Gx[i + 1] * x + seq.Gy[i + 1] * y + seq.Gz[i + 1] * z + ΔBz) * B_to_ω + seq.Δf[i + 1] * T(2π)
@@ -111,9 +113,9 @@ function run_spin_excitation!(
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
-        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
+        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=ρ_end)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
             sig[sample] = sum(M.xy) 

@@ -33,6 +33,7 @@ function run_spin_precession!(
 ) where {T<:Real}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    ρ_end = get_spin_property_at_end(get_spin_property(p.ρ, seq.t'))
     #Effective field
     Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
     #Rotation
@@ -45,11 +46,12 @@ function run_spin_precession!(
     tp   = cumsum(seq.Δt) # t' = t - t0
     dur  = sum(seq.Δt)   # Total length, used for signal relaxation
     Mxy  = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
+    Mz   = M.z  .* exp.(-dur ./ p.T1) .+ ρ_end .* (1 .- exp.(-dur ./ p.T1))
     M.xy .= Mxy[:, end]
-    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
+    M.z  .= Mz[:, end]
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
-    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=ρ_end)
     #Acquired signal
     sig .= @views transpose(sum(Mxy[:, findall(seq.ADC[2:end])]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
@@ -94,6 +96,8 @@ function run_spin_excitation!(
         )
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
+        ρ = get_spin_property(p.ρ, s.t)
+        ρ_end = get_spin_property_at_end(ρ)
         #Effective field
         ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
@@ -104,9 +108,9 @@ function run_spin_excitation!(
         mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
-        @. M.z  = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))
+        @. M.z  = M.z * exp(-s.Δt / p.T1) + ρ * (1 - exp(-s.Δt / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M, s.tnew, p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(M, s.tnew, p.motion; replace_by=ρ_end)
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step

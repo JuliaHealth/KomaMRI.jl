@@ -72,3 +72,18 @@ expand(sr::SpinRange, Ns::Int) = sr
 intersect_idx(a, b) = findall(x -> x in a, b)
 intersect_idx(a, b::BitVector) = findall(x -> x in a, findall(x->x==true, b))
 intersect_idx(a::BitVector, b) = findall(x -> x in findall(x->x==true, a), b)
+
+"""Per-spin weights for broadcast masking (GPU-friendly; no gather on `replace_by`)."""
+function spin_indicator(spins::AllSpins, w::AbstractVector{T}) where {T}
+    fill!(w, one(T))
+    return w
+end
+
+function spin_indicator(spins::SpinRange, w::AbstractVector{T}) where {T}
+    fill!(w, zero(T))
+    r = spins.range
+    @inbounds for i in r
+        i <= length(w) && (w[i] = one(T))
+    end
+    return w
+end

@@ -1,3 +1,5 @@
+include("phantom/TimeDependentProperty.jl")
+
 """
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
 
@@ -9,7 +11,7 @@ a property value representing a spin. This struct serves as an input for the sim
 - `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
 - `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
 - `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
-- `ρ`: (`::AbstractVector{T<:Real}`) spin proton density vector
+- `ρ`: (`::Union{AbstractVector{T}, TimeDependentProperty{T}}`) spin proton density
 - `T1`: (`::AbstractVector{T<:Real}`, `[s]`) spin T1 parameter vector
 - `T2`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2 parameter vector
 - `T2s`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2s parameter vector
@@ -34,7 +36,7 @@ julia> obj.ρ
     x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
     y::AbstractVector{T}   = zeros(eltype(x), size(x))
     z::AbstractVector{T}   = zeros(eltype(x), size(x))
-    ρ::AbstractVector{T}   = ones(eltype(x), size(x))
+    ρ::Union{AbstractVector{T}, TimeDependentProperty{T}} = ones(eltype(x), size(x))
     T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
     T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
     T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
@@ -53,9 +55,12 @@ end
 const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
 const VECTOR_PHANTOM_FIELDS     = Iterators.filter(x -> fieldtype(Phantom, x) <: AbstractVector, fieldnames(Phantom))
 
+get_phantom_property(obj::Phantom, key::Symbol) = get_property_value(getfield(obj, key))
+get_property_value(p) = p
+
 """Size and length of a phantom"""
-size(x::Phantom) = size(x.ρ)
-Base.length(x::Phantom) = length(x.ρ)
+size(x::Phantom) = size(x.x)
+Base.length(x::Phantom) = length(x.x)
 # To enable to iterate and broadcast over the Phantom
 Base.iterate(x::Phantom) = (x[1], 2)
 Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i + 1) : nothing
@@ -99,10 +104,12 @@ end
     for field in VECTOR_PHANTOM_FIELDS
         push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
     end
-    return Phantom(; 
-        name = name, 
-        fields..., 
-        motion = vcat(obj1.motion, obj2.motion, length(obj1), length(obj2)))
+    return Phantom(;
+        name=name,
+        fields...,
+        ρ=vcat_property(getfield(obj1, :ρ), getfield(obj2, :ρ)),
+        motion=vcat(obj1.motion, obj2.motion, length(obj1), length(obj2)),
+    )
 end
 
 """Scalar multiplication of a phantom"""

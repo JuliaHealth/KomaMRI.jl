@@ -46,6 +46,8 @@ function run_spin_precession!(
 ) where {T<:Real}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    ρ = get_spin_property(p.ρ, seq.t[2:end]')
+    ρ_end = get_spin_property_at_end(ρ)
     #Effective field
     Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
     #Rotation
@@ -65,16 +67,16 @@ function run_spin_precession!(
     sig[:, :, 1] .= @views transpose(Mxy[:, findall(seq.ADC[2:end])])
 
     if sim_method.save_Mz
-        Mz = M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1)) #Calculate intermediate points
+        Mz = M.z .* exp.(-tp' ./ p.T1) .+ ρ .* (1 .- exp.(-tp' ./ p.T1)) #Calculate intermediate points
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(Mz, seq.t[2:end]', p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(Mz, seq.t[2:end]', p.motion; replace_by=ρ_end)
         sig[:, :, 2] .= @views transpose(Mz[:, findall(seq.ADC[2:end])]) #Save state to signal
         M.z .= Mz[:, end]
     else
-        M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point
+        M.z .= M.z .* exp.(-dur ./ p.T1) .+ ρ_end .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point
     end
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=ρ_end)
     return nothing
 end
 

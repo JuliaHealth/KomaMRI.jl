@@ -65,6 +65,7 @@ function run_spin_precession!(
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
+    ρ_end = get_spin_property_at_end(get_spin_property(p.ρ, seq.t'))
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1])
     @. Bz_old = x * seq.Gx[1] + y * seq.Gy[1] + z * seq.Gz[1] + ΔBz
     #Simulation
@@ -91,9 +92,9 @@ function run_spin_precession!(
     end
     #Final Spin-State
     @. M.xy = M.xy * exp(-block_time / p.T2) * cis(ϕ)
-    @. M.z = M.z * exp(-block_time / p.T1) + p.ρ * (T(1) - exp(-block_time / p.T1))
+    @. M.z = M.z * exp(-block_time / p.T1) + ρ_end * (T(1) - exp(-block_time / p.T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=ρ_end)
     return nothing
 end
 
@@ -133,6 +134,8 @@ function run_spin_excitation!(
     for i in eachindex(seq.Δt)
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i])
+        ρ = get_spin_property(p.ρ, seq.t[i, :])
+        ρ_end = get_spin_property_at_end(ρ)
         #Effective field
         @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         @. B = sqrt(abs(seq.B1[i])^2 + abs(Bz)^2)
@@ -144,9 +147,9 @@ function run_spin_excitation!(
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
-        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
+        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=ρ_end)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
             sig[sample] = sum(M.xy) 

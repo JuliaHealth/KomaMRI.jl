@@ -37,13 +37,14 @@ function run_spin_precession!(
 ) where {T<:Real, SM<:BlochLikeSimMethods}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    ρ_end = get_spin_property_at_end(get_spin_property(p.ρ, seq.t'))
     has_adc = length(sig) > 0
 
     #Precession
     precession_kernel!(backend, groupsize)(
         pre.sig_output,
         M.xy, M.z,
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        x, y, z, pre.ΔBz, p.T1, p.T2, ρ_end, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
         sim_method,
@@ -57,7 +58,7 @@ function run_spin_precession!(
     end
 
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M, seq.t', p.motion; replace_by=ρ_end)
 
     return nothing
 end
@@ -74,13 +75,14 @@ function run_spin_excitation!(
 ) where {T<:Real, SM<:BlochLikeSimMethods}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    ρ_end = get_spin_property_at_end(get_spin_property(p.ρ, seq.t'))
     has_adc = length(sig) > 0
 
     #Excitation
     excitation_kernel!(backend, groupsize)(
         pre.sig_output,
         M.xy, M.z,
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        x, y, z, pre.ΔBz, p.T1, p.T2, ρ_end, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
         sim_method,
@@ -94,7 +96,7 @@ function run_spin_excitation!(
     end
 
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ) # TODO: reset state inside kernel
+    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=ρ_end) # TODO: reset state inside kernel
 
     return nothing
 end
