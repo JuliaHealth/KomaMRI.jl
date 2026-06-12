@@ -95,7 +95,7 @@ export times, ampls, freqs
 export kfoldperm, trapz, cumtrapz
 # Phantom
 export brain_phantom2D, brain_phantom3D, pelvis_phantom2D, heart_phantom
-export get_ρ, get_T1, get_T2, get_T2s, get_Δw, get_Dλ1, get_Dλ2, get_Dθ, get_motion
+export get_ρ, get_T1, get_T2, get_T2s, get_Δw, get_motion
 # Motion
 export MotionList, NoMotion, Motion
 export translate, rotate, heartbeat, path, flowpath

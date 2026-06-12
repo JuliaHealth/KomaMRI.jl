@@ -6,7 +6,7 @@ Interface for phantom types with real-valued properties of element type `T`.
 abstract type AbstractPhantom{T<:Real} end
 
 """
-    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
 
 The Phantom struct. Most of its field names are vectors, with each element associated with
 a property value representing a spin. This struct serves as an input for the simulation.
@@ -21,9 +21,6 @@ a property value representing a spin. This struct serves as an input for the sim
 - `T2`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2 parameter vector
 - `T2s`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2s parameter vector
 - `Δw`: (`::AbstractVector{T<:Real}`, `[rad/s]`) spin off-resonance parameter vector
-- `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
-- `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
-- `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
 - `motion`: (`::Union{NoMotion, Motion{T<:Real} MotionList{T<:Real}}`) motion
 
 # Returns
@@ -46,9 +43,6 @@ mutable struct Phantom{
     T2A<:AbstractVector{T},
     T2SA<:AbstractVector{T},
     WA<:AbstractVector{T},
-    D1A<:AbstractVector{T},
-    D2A<:AbstractVector{T},
-    DA<:AbstractVector{T},
 } <: AbstractPhantom{T}
     name::String
     x::X
@@ -61,16 +55,11 @@ mutable struct Phantom{
     #Off-resonance related
     Δw::WA
     #χ::Vector{SusceptibilityModel}
-    #Diffusion
-    Dλ1::D1A
-    Dλ2::D2A
-    Dθ::DA
-    #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
     motion::Union{NoMotion, Motion{T}, MotionList{T}}
 end
 
-function Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion) where {T<:Real}
+function Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, motion) where {T<:Real}
     return Phantom{
         T,
         typeof(x),
@@ -81,14 +70,11 @@ function Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion
         typeof(T2),
         typeof(T2s),
         typeof(Δw),
-        typeof(Dλ1),
-        typeof(Dλ2),
-        typeof(Dθ),
-    }(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+    }(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
 end
 
-Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion) =
-    Phantom{eltype(x)}(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, motion) =
+    Phantom{eltype(x)}(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
 
 function Phantom(;
     name="spins",
@@ -100,12 +86,9 @@ function Phantom(;
     T2=ones(eltype(x), size(x)) * 1_000_000,
     T2s=ones(eltype(x), size(x)) * 1_000_000,
     Δw=zeros(eltype(x), size(x)),
-    Dλ1=zeros(eltype(x), size(x)),
-    Dλ2=zeros(eltype(x), size(x)),
-    Dθ=zeros(eltype(x), size(x)),
     motion=NoMotion(),
 )
-    return Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+    return Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
 end
 
 function Phantom{T}(;
@@ -118,15 +101,12 @@ function Phantom{T}(;
     T2=ones(T, size(x)) * T(1_000_000),
     T2s=ones(T, size(x)) * T(1_000_000),
     Δw=zeros(T, size(x)),
-    Dλ1=zeros(T, size(x)),
-    Dλ2=zeros(T, size(x)),
-    Dθ=zeros(T, size(x)),
     motion=NoMotion(),
 ) where {T<:Real}
-    return Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+    return Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
 end
 
-const VECTOR_PHANTOM_FIELDS = (:x, :y, :z, :ρ, :T1, :T2, :T2s, :Δw, :Dλ1, :Dλ2, :Dθ)
+const VECTOR_PHANTOM_FIELDS = (:x, :y, :z, :ρ, :T1, :T2, :T2s, :Δw)
 const NON_STRING_PHANTOM_FIELDS = (VECTOR_PHANTOM_FIELDS..., :motion)
 
 Base.eltype(::Type{<:AbstractPhantom{T}}) where {T} = T
@@ -147,15 +127,6 @@ Base.eltype(::AbstractPhantom{T}) where {T} = T
 """Return the off-resonance angular frequency."""
 @inline get_Δw(obj::Phantom) = obj.Δw
 @inline get_Δw(obj::Phantom, t) = get_Δw(obj)
-"""Return the first diffusion eigenvalue."""
-@inline get_Dλ1(obj::Phantom) = obj.Dλ1
-@inline get_Dλ1(obj::Phantom, t) = get_Dλ1(obj)
-"""Return the second diffusion eigenvalue."""
-@inline get_Dλ2(obj::Phantom) = obj.Dλ2
-@inline get_Dλ2(obj::Phantom, t) = get_Dλ2(obj)
-"""Return the diffusion principal-axis angle."""
-@inline get_Dθ(obj::Phantom) = obj.Dθ
-@inline get_Dθ(obj::Phantom, t) = get_Dθ(obj)
 """Return the phantom motion model."""
 @inline get_motion(obj::Phantom) = obj.motion
 
@@ -275,12 +246,6 @@ function heart_phantom(;
     r = 6 / 11 * FOV / 2
     ring = ⚪(R) .- ⚪(r)
     ρ = ⚪(r) .+ 0.9 * ring #proton density
-    # Diffusion tensor model
-    D = 2e-9 #Diffusion of free water m2/s
-    D1, D2 = D, D / 20
-    Dλ1 = D1 * ⚪(R) #Diffusion map
-    Dλ2 = D1 * ⚪(r) .+ D2 * ring #Diffusion map
-    Dθ = atan.(x, -y) .* ring #Diffusion map
     T1 = (1400 * ⚪(r) .+ 1026 * ring) * 1e-3 #Myocardial T1
     T2 = (308 * ⚪(r) .+ 42 * ring) * 1e-3 #T2 map [s]
     # Generating Phantoms
@@ -291,9 +256,6 @@ function heart_phantom(;
         ρ=ρ[ρ .!= 0],
         T1=T1[ρ .!= 0],
         T2=T2[ρ .!= 0],
-        Dλ1=Dλ1[ρ .!= 0],
-        Dλ2=Dλ2[ρ .!= 0],
-        Dθ=Dθ[ρ .!= 0],
         motion=MotionList(
             heartbeat(
                 circumferential_strain,

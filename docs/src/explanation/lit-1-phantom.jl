@@ -32,7 +32,6 @@ import DisplayAs #hide
 # | `ρ` | Proton density. |
 # | `T1`, `T2`, `T2s` | Relaxation times in seconds. |
 # | `Δw` | Off-resonance in rad/s. |
-# | `Dλ1`, `Dλ2`, `Dθ` | Diffusion-related fields. |
 # | `motion` | Spin displacement model. |
 #
 # These vectors represent object properties, with each element holding a value associated 
@@ -40,7 +39,6 @@ import DisplayAs #hide
 # Specifically, `x`, `y` and `z` are the initial spatial coordinates of each spin. 
 # `ρ` stands for the proton density, and `T1`, `T2` and `T2s` (standing for T2*) 
 # are the well-known relaxation times. `Δw` accounts for off-resonance effects.
-# `Dλ1`, `Dλ2` and `Dθ` are diffusion-related fields which are not in use at the moment.
 # Last, the `motion` field stands for spin displacements, which are added to `x`, `y` and `z`
 # when simulating in order to obtain the spin positions at each time step. For more information about
 # motion, refer to [Motion](gen-2-motion.md) section.
