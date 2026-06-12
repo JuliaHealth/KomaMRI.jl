@@ -29,43 +29,6 @@ steps:
           JULIA_NUM_THREADS: "4"
         timeout_in_minutes: 30
 
-      - label: "Metal - Julia {{matrix.version}} - Test"
-        matrix:
-          setup:
-            version:
-              - "1.10"
-              - "1"
-        plugins:
-          - JuliaCI/julia#v1:
-              version: "{{matrix.version}}"
-        env:
-          TEST_GROUP: $TEST_GROUP
-        command: |
-          julia -e 'println("--- :julia: Instantiating project")
-              using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
-              Pkg.develop([
-                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-                  PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              ])'
-
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
-              using Pkg
-              Pkg.add("Metal")'
-
-          julia -e 'println("--- :julia: Running tests")
-              using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
-              Pkg.test("KomaMRICore"; test_args=["Metal"])'
-        agents:
-          queue: "juliaecosystem"
-          os: "macos"
-          arch: "aarch64"
-        timeout_in_minutes: 60
 
   - group: ":racehorse: Benchmarks"
     steps:
@@ -101,33 +64,6 @@ steps:
           JULIA_NUM_THREADS: "{{matrix.threads}}"
         timeout_in_minutes: 30
 
-      - label: "Metal - Julia 1 - Benchmark"
-        plugins:
-          - JuliaCI/julia#v1:
-              version: "1"
-        command: |
-          julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
-              using Pkg
-              Pkg.develop([
-                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-                  PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              ])'
-
-          julia --project=benchmarks -e 'println("---:julia: Add Metal to benchmarks environment")
-              using Pkg
-              Pkg.add("Metal")'
-
-          julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
-              include("benchmarks/runbenchmarks.jl")'
-        artifact_paths:
-          - "benchmarks/results/*"
-        agents:
-          queue: "juliaecosystem"
-          os: "macos"
-          arch: "aarch64"
-        env:
-          BENCHMARK_GROUP: Metal
-        timeout_in_minutes: 30
 
 env:
   CI: BUILDKITE

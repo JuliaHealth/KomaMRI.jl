@@ -84,6 +84,32 @@ steps:
           - exit_status: "*"
         timeout_in_minutes: 15
 
+      - label: "Metal - Julia 1 - Benchmark"
+        plugins:
+          - JuliaCI/julia#v1:
+              version: "1"
+        command: |
+          julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+              using Pkg
+              Pkg.develop([
+                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+                  PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              ])'
+
+          julia --project=benchmarks -e 'println("---:julia: Add Metal to benchmarks environment")
+              using Pkg
+              Pkg.add("Metal")'
+
+          julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+              include("benchmarks/runbenchmarks.jl")'
+        artifact_paths:
+          - "benchmarks/results/*"
+        agents:
+          queue: "metal"
+        env:
+          BENCHMARK_GROUP: Metal
+        timeout_in_minutes: 30
+
       - wait: ~
 
       - label: "Combine benchmarks"
