@@ -227,6 +227,38 @@ end
     end
 end
 
+@testitem "AbstractPhantom simulation interface" tags=[:core, :nomotion] begin
+    import KomaMRIBase
+
+    struct WrappedPhantom{T,P<:Phantom{T}} <: AbstractPhantom{T}
+        phantom::P
+    end
+
+    Base.length(obj::WrappedPhantom) = length(obj.phantom)
+    Base.view(obj::WrappedPhantom, p) = WrappedPhantom(@view obj.phantom[p])
+    KomaMRIBase.get_ρ(obj::WrappedPhantom, t=nothing) = get_ρ(obj.phantom, t)
+    KomaMRIBase.get_T1(obj::WrappedPhantom, t=nothing) = get_T1(obj.phantom, t)
+    KomaMRIBase.get_T2(obj::WrappedPhantom, t=nothing) = get_T2(obj.phantom, t)
+    KomaMRIBase.get_Δw(obj::WrappedPhantom, t=nothing) = get_Δw(obj.phantom, t)
+    KomaMRIBase.get_motion(obj::WrappedPhantom) = get_motion(obj.phantom)
+    KomaMRIBase.get_spin_coords(obj::WrappedPhantom, t) = get_spin_coords(obj.phantom, t)
+
+    obj = Phantom(x=[0.0], ρ=[1.0], T1=[1.0], T2=[0.1])
+    wrapped = WrappedPhantom(obj)
+    seq = Sequence()
+    @addblock seq += RF(1e-6, 1e-3)
+    @addblock seq += ADC(2, 1e-3)
+    sim_params = Dict{String,Any}(
+        "gpu" => false,
+        "Nthreads" => 1,
+        "precision" => "f64",
+        "return_type" => "mat",
+    )
+    expected = simulate(obj, seq, Scanner(); sim_params=copy(sim_params), verbose=false)
+    actual = simulate(wrapped, seq, Scanner(); sim_params=copy(sim_params), verbose=false)
+    @test actual ≈ expected
+end
+
 @testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))

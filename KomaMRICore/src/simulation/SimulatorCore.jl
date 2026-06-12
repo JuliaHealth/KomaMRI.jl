@@ -61,7 +61,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
 end
 
 function run_spin_precession_parallel!(
-    obj::Phantom{T},
+    obj::AbstractPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
@@ -83,7 +83,7 @@ function run_spin_precession_parallel!(
 end
 
 function run_spin_excitation_parallel!(
-    obj::Phantom{T},
+    obj::AbstractPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
@@ -113,7 +113,7 @@ parts to reduce RAM usage and spliting the spins of the phantom `obj` into `Nthr
 take advantage of CPU parallel processing.
 
 # Arguments
-- `obj`: (`::Phantom`) Phantom struct
+- `obj`: (`::AbstractPhantom`) phantom
 - `seqd`: (`::DiscreteSequence`) Sequence struct
 - `t`: (`::Vector{Float64}`, `[s]`) non-uniform time vector
 - `Δt`: (`::Vector{Float64}`, `[s]`) delta time of `t`
@@ -130,7 +130,7 @@ take advantage of CPU parallel processing.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_sim_time_iter!(
-    obj::Phantom,
+    obj::AbstractPhantom,
     seqd::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
@@ -282,7 +282,7 @@ function _assert_nonnegative_adc_labels(seq::Sequence)
 end
 
 """
-    out = simulate(obj::Phantom, seq::Sequence, sys::Scanner; sim_params, w)
+    out = simulate(obj::AbstractPhantom, seq::Sequence, sys::Scanner; sim_params, w)
 
 Returns the raw signal or the last state of the magnetization according to the value
 of the `"return_type"` key of the `sim_params` dictionary. 
@@ -290,7 +290,7 @@ of the `"return_type"` key of the `sim_params` dictionary.
 This is a wrapper function to `run_sim_time_iter`, which converts the inputs to the appropriate types and discretizes the sequence before simulation. The reported simulation time only considers `run_sim_time_iter`, as the preprocessing duration should be negligible compared to the simulation time (if this is not the case, please file a bug report). 
 
 # Arguments
-- `obj`: (`::Phantom`) Phantom struct
+- `obj`: (`::AbstractPhantom`) phantom
 - `seq`: (`::Sequence`) Sequence struct
 - `sys`: (`::Scanner`) Scanner struct
 
@@ -316,7 +316,7 @@ julia> plot_signal(raw)
 ```
 """
 function simulate(
-    obj::Phantom, seq::Sequence, sys::Scanner; sim_params=Dict{String,Any}(), verbose=true, callbacks=()
+    obj::AbstractPhantom, seq::Sequence, sys::Scanner; sim_params=Dict{String,Any}(), verbose=true, callbacks=()
 )
     _assert_nonnegative_adc_labels(seq)
     #Simulation parameter unpacking, and setting defaults if key is not defined
@@ -327,7 +327,7 @@ function simulate(
         """ maxlog=1
     end
     # Simulation init
-    seqd = discretize(seq; sampling_params=sim_params, motion=obj.motion) # Sampling of Sequence waveforms
+    seqd = discretize(seq; sampling_params=sim_params, motion=get_motion(obj)) # Sampling of Sequence waveforms
     parts, excitation_bool = get_sim_ranges(seqd; max_block_length=sim_params["max_block_length"], max_rf_block_length=sim_params["max_rf_block_length"]) # Generating simulation blocks
     Nblocks = length(parts)
     t_sim_parts = [seqd.t[p[1]] for p in parts]

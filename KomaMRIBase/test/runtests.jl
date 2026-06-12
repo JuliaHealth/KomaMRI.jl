@@ -1494,6 +1494,26 @@ end
         @test size(obj1) == size(ρ)
         @test length(obj1) == length(ρ)
     end
+    @testset "Interface and concrete storage" begin
+        obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
+        @test obj isa AbstractPhantom{Float64}
+        @test isconcretetype(typeof(obj))
+        @test eltype(Phantom{Float32}(x=Float32[0])) === Float32
+        for field in (:x, :y, :z, :ρ, :T1, :T2, :T2s, :Δw, :Dλ1, :Dλ2, :Dθ)
+            @test fieldtype(typeof(obj), field) === typeof(getfield(obj, field))
+        end
+        @test eltype(obj) === Float64
+        @test get_ρ(obj, 0.5) === ρ
+        @test get_T1(obj, 0.5) === T1
+        @test get_T2(obj, 0.5) === T2
+        @test get_T2s(obj, 0.5) === T2s
+        @test get_Δw(obj, 0.5) === Δw
+        @test get_Dλ1(obj, 0.5) === Dλ1
+        @test get_Dλ2(obj, 0.5) === Dλ2
+        @test get_Dθ(obj, 0.5) === Dθ
+        @test get_motion(obj) === obj.motion
+        @test get_spin_coords(obj, 0.5) == (x, y, z)
+    end
     @testset "Subset" begin 
         motion = MotionList(tr, rt)
         obj1 = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)

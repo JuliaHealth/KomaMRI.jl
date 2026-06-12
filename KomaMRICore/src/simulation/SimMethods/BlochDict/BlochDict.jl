@@ -8,7 +8,7 @@ Base.show(io::IO, s::BlochDict) = begin
 end
 
 function sim_output_dim(
-    obj::Phantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict
+    obj::AbstractPhantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict
 ) where {T<:Real}
     out_state_dim = sim_method.save_Mz ? 2 : 1
     return (sum(seq.ADC.N), length(obj), out_state_dim)
@@ -27,7 +27,7 @@ Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`. It cal
 precession.
 
 # Arguments
-- `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
+- `obj`: (`::AbstractPhantom`) phantom (actually, it's a part of the complete phantom)
 - `seq`: (`::Sequence`) Sequence struct
 
 # Returns
@@ -35,7 +35,7 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(
-    p::Phantom{T},
+    p::AbstractPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -45,9 +45,13 @@ function run_spin_precession!(
     prealloc::PreallocResult
 ) where {T<:Real}
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    motion = get_motion(p)
+    ρ = get_ρ(p)
+    T1 = get_T1(p)
+    T2 = get_T2(p)
+    x, y, z = get_spin_coords(p, seq.t')
     #Effective field
-    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ get_Δw(p) ./ T(2π .* γ)
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)
@@ -57,24 +61,24 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
+    Mxy = M.xy .* exp.(-tp' ./ T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
+    outflow_spin_reset!(Mxy, seq.t[2:end]', motion)
     #Acquire signal
     sig[:, :, 1] .= @views transpose(Mxy[:, findall(seq.ADC[2:end])])
 
     if sim_method.save_Mz
-        Mz = M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1)) #Calculate intermediate points
+        Mz = M.z .* exp.(-tp' ./ T1) .+ ρ .* (1 .- exp.(-tp' ./ T1)) #Calculate intermediate points
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(Mz, seq.t[2:end]', p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(Mz, seq.t[2:end]', motion; replace_by=ρ)
         sig[:, :, 2] .= @views transpose(Mz[:, findall(seq.ADC[2:end])]) #Save state to signal
         M.z .= Mz[:, end]
     else
-        M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point
+        M.z .= M.z .* exp.(-dur ./ T1) .+ ρ .* (1 .- exp.(-dur ./ T1)) #Jump to the last point
     end
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M, seq.t[2:end]', motion; replace_by=ρ)
     return nothing
 end
 

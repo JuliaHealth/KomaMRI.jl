@@ -1,4 +1,11 @@
 """
+    AbstractPhantom{T}
+
+Interface for phantom types with real-valued properties of element type `T`.
+"""
+abstract type AbstractPhantom{T<:Real} end
+
+"""
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
 
 The Phantom struct. Most of its field names are vectors, with each element associated with
@@ -29,29 +36,132 @@ julia> obj = Phantom(x=[0.0])
 julia> obj.ρ
 ```
 """
-@with_kw mutable struct Phantom{T<:Real}
-    name::String           = "spins"
-    x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
-    y::AbstractVector{T}   = zeros(eltype(x), size(x))
-    z::AbstractVector{T}   = zeros(eltype(x), size(x))
-    ρ::AbstractVector{T}   = ones(eltype(x), size(x))
-    T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
+mutable struct Phantom{
+    T<:Real,
+    X<:AbstractVector{T},
+    Y<:AbstractVector{T},
+    Z<:AbstractVector{T},
+    R<:AbstractVector{T},
+    T1A<:AbstractVector{T},
+    T2A<:AbstractVector{T},
+    T2SA<:AbstractVector{T},
+    WA<:AbstractVector{T},
+    D1A<:AbstractVector{T},
+    D2A<:AbstractVector{T},
+    DA<:AbstractVector{T},
+} <: AbstractPhantom{T}
+    name::String
+    x::X
+    y::Y
+    z::Z
+    ρ::R
+    T1::T1A
+    T2::T2A
+    T2s::T2SA
     #Off-resonance related
-    Δw::AbstractVector{T} = zeros(eltype(x), size(x))
+    Δw::WA
     #χ::Vector{SusceptibilityModel}
     #Diffusion
-    Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
+    Dλ1::D1A
+    Dλ2::D2A
+    Dθ::DA
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
+    motion::Union{NoMotion, Motion{T}, MotionList{T}}
 end
 
-const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
-const VECTOR_PHANTOM_FIELDS     = Iterators.filter(x -> fieldtype(Phantom, x) <: AbstractVector, fieldnames(Phantom))
+function Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion) where {T<:Real}
+    return Phantom{
+        T,
+        typeof(x),
+        typeof(y),
+        typeof(z),
+        typeof(ρ),
+        typeof(T1),
+        typeof(T2),
+        typeof(T2s),
+        typeof(Δw),
+        typeof(Dλ1),
+        typeof(Dλ2),
+        typeof(Dθ),
+    }(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+end
+
+Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion) =
+    Phantom{eltype(x)}(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+
+function Phantom(;
+    name="spins",
+    x=Float64[],
+    y=zeros(eltype(x), size(x)),
+    z=zeros(eltype(x), size(x)),
+    ρ=ones(eltype(x), size(x)),
+    T1=ones(eltype(x), size(x)) * 1_000_000,
+    T2=ones(eltype(x), size(x)) * 1_000_000,
+    T2s=ones(eltype(x), size(x)) * 1_000_000,
+    Δw=zeros(eltype(x), size(x)),
+    Dλ1=zeros(eltype(x), size(x)),
+    Dλ2=zeros(eltype(x), size(x)),
+    Dθ=zeros(eltype(x), size(x)),
+    motion=NoMotion(),
+)
+    return Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+end
+
+function Phantom{T}(;
+    name="spins",
+    x=T[],
+    y=zeros(T, size(x)),
+    z=zeros(T, size(x)),
+    ρ=ones(T, size(x)),
+    T1=ones(T, size(x)) * T(1_000_000),
+    T2=ones(T, size(x)) * T(1_000_000),
+    T2s=ones(T, size(x)) * T(1_000_000),
+    Δw=zeros(T, size(x)),
+    Dλ1=zeros(T, size(x)),
+    Dλ2=zeros(T, size(x)),
+    Dθ=zeros(T, size(x)),
+    motion=NoMotion(),
+) where {T<:Real}
+    return Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+end
+
+const VECTOR_PHANTOM_FIELDS = (:x, :y, :z, :ρ, :T1, :T2, :T2s, :Δw, :Dλ1, :Dλ2, :Dθ)
+const NON_STRING_PHANTOM_FIELDS = (VECTOR_PHANTOM_FIELDS..., :motion)
+
+Base.eltype(::Type{<:AbstractPhantom{T}}) where {T} = T
+Base.eltype(::AbstractPhantom{T}) where {T} = T
+
+"""Return the proton density."""
+@inline get_ρ(obj::Phantom) = obj.ρ
+@inline get_ρ(obj::Phantom, t) = get_ρ(obj)
+"""Return the longitudinal relaxation time."""
+@inline get_T1(obj::Phantom) = obj.T1
+@inline get_T1(obj::Phantom, t) = get_T1(obj)
+"""Return the transverse relaxation time."""
+@inline get_T2(obj::Phantom) = obj.T2
+@inline get_T2(obj::Phantom, t) = get_T2(obj)
+"""Return the effective transverse relaxation time."""
+@inline get_T2s(obj::Phantom) = obj.T2s
+@inline get_T2s(obj::Phantom, t) = get_T2s(obj)
+"""Return the off-resonance angular frequency."""
+@inline get_Δw(obj::Phantom) = obj.Δw
+@inline get_Δw(obj::Phantom, t) = get_Δw(obj)
+"""Return the first diffusion eigenvalue."""
+@inline get_Dλ1(obj::Phantom) = obj.Dλ1
+@inline get_Dλ1(obj::Phantom, t) = get_Dλ1(obj)
+"""Return the second diffusion eigenvalue."""
+@inline get_Dλ2(obj::Phantom) = obj.Dλ2
+@inline get_Dλ2(obj::Phantom, t) = get_Dλ2(obj)
+"""Return the diffusion principal-axis angle."""
+@inline get_Dθ(obj::Phantom) = obj.Dθ
+@inline get_Dθ(obj::Phantom, t) = get_Dθ(obj)
+"""Return the phantom motion model."""
+@inline get_motion(obj::Phantom) = obj.motion
+
+@inline function get_spin_coords(obj::Phantom, t)
+    return get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t)
+end
 
 """Size and length of a phantom"""
 size(x::Phantom) = size(x.ρ)

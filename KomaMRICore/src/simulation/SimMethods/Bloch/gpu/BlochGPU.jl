@@ -13,20 +13,20 @@ end
 function prealloc(
     sim_method::SM, 
     backend::KA.GPU, 
-    obj::Phantom{T}, 
+    obj::AbstractPhantom{T},
     M::Mag{T}, 
     max_block_length::Integer, 
     groupsize
 ) where {T<:Real, SM<:BlochLikeSimMethods}
     return BlochGPUPrealloc(
-        KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
+        KA.zeros(backend, Complex{T}, (cld(length(obj), groupsize), max_block_length)),
         KA.zeros(backend, Complex{T}, 1, max_block_length),
-        obj.Δw ./ T(2π .* γ)
+        get_Δw(obj) ./ T(2π .* γ)
     )
 end
 
 function run_spin_precession!(
-    p::Phantom{T},
+    p::AbstractPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -36,16 +36,20 @@ function run_spin_precession!(
     pre::BlochGPUPrealloc
 ) where {T<:Real, SM<:BlochLikeSimMethods}
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    motion = get_motion(p)
+    ρ = get_ρ(p)
+    T1 = get_T1(p)
+    T2 = get_T2(p)
+    x, y, z = get_spin_coords(p, seq.t')
     has_adc = length(sig) > 0
 
     #Precession
     precession_kernel!(backend, groupsize)(
         pre.sig_output,
         M.xy, M.z,
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        x, y, z, pre.ΔBz, T1, T2, ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
@@ -57,13 +61,13 @@ function run_spin_precession!(
     end
 
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M, seq.t', motion; replace_by=ρ)
 
     return nothing
 end
 
 function run_spin_excitation!(
-    p::Phantom{T},
+    p::AbstractPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -73,16 +77,20 @@ function run_spin_excitation!(
     pre::BlochGPUPrealloc
 ) where {T<:Real, SM<:BlochLikeSimMethods}
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    motion = get_motion(p)
+    ρ = get_ρ(p)
+    T1 = get_T1(p)
+    T2 = get_T2(p)
+    x, y, z = get_spin_coords(p, seq.t')
     has_adc = length(sig) > 0
 
     #Excitation
     excitation_kernel!(backend, groupsize)(
         pre.sig_output,
         M.xy, M.z,
-        x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
+        x, y, z, pre.ΔBz, T1, T2, ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
@@ -94,7 +102,7 @@ function run_spin_excitation!(
     end
 
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ) # TODO: reset state inside kernel
+    outflow_spin_reset!(M, seq.t', motion; replace_by=ρ) # TODO: reset state inside kernel
 
     return nothing
 end
