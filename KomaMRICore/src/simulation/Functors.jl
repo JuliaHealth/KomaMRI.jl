@@ -103,8 +103,6 @@ adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref
 adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
 
 #The functor macro makes it easier to call a function in all the parameters
-# Phantom
-@functor Phantom
 @functor Motion
 @functor Translate
 @functor Rotate

@@ -2,6 +2,22 @@
     AbstractPhantom{T}
 
 Interface for phantom types with real-valued properties of element type `T`.
+
+To use a custom subtype with `simulate`, implement:
+
+- `get_x`, `get_y`, and `get_z`
+- `get_ρ`, `get_T1`, `get_T2`, and `get_Δw`
+- `get_motion`
+
+The coordinate and property getters must return `AbstractVector{T}` values with a common
+length. `get_motion` must return a supported motion model for the same spins.
+
+`get_name` is optional and defaults to `"Phantom"`. Static phantoms do not need to
+implement the property methods with a time argument, `get_spin_coords`, `length`,
+indexing, or `view`; these are either provided by the interface or handled by the
+internal simulation representation.
+
+`get_T2s` is part of the concrete `Phantom` API but is not required by the simulator.
 """
 abstract type AbstractPhantom{T<:Real} end
 
@@ -33,44 +49,20 @@ julia> obj = Phantom(x=[0.0])
 julia> obj.ρ
 ```
 """
-mutable struct Phantom{
-    T<:Real,
-    X<:AbstractVector{T},
-    Y<:AbstractVector{T},
-    Z<:AbstractVector{T},
-    R<:AbstractVector{T},
-    T1A<:AbstractVector{T},
-    T2A<:AbstractVector{T},
-    T2SA<:AbstractVector{T},
-    WA<:AbstractVector{T},
-} <: AbstractPhantom{T}
+mutable struct Phantom{T<:Real} <: AbstractPhantom{T}
     name::String
-    x::X
-    y::Y
-    z::Z
-    ρ::R
-    T1::T1A
-    T2::T2A
-    T2s::T2SA
+    x::AbstractVector{T}
+    y::AbstractVector{T}
+    z::AbstractVector{T}
+    ρ::AbstractVector{T}
+    T1::AbstractVector{T}
+    T2::AbstractVector{T}
+    T2s::AbstractVector{T}
     #Off-resonance related
-    Δw::WA
+    Δw::AbstractVector{T}
     #χ::Vector{SusceptibilityModel}
     #Motion
     motion::Union{NoMotion, Motion{T}, MotionList{T}}
-end
-
-function Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, motion) where {T<:Real}
-    return Phantom{
-        T,
-        typeof(x),
-        typeof(y),
-        typeof(z),
-        typeof(ρ),
-        typeof(T1),
-        typeof(T2),
-        typeof(T2s),
-        typeof(Δw),
-    }(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
 end
 
 Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, motion) =
@@ -112,26 +104,36 @@ const NON_STRING_PHANTOM_FIELDS = (VECTOR_PHANTOM_FIELDS..., :motion)
 Base.eltype(::Type{<:AbstractPhantom{T}}) where {T} = T
 Base.eltype(::AbstractPhantom{T}) where {T} = T
 
+"""Return the phantom name."""
+@inline get_name(obj::AbstractPhantom) = "Phantom"
+@inline get_name(obj::Phantom) = obj.name
+"""Return the reference x coordinates."""
+@inline get_x(obj::Phantom) = obj.x
+"""Return the reference y coordinates."""
+@inline get_y(obj::Phantom) = obj.y
+"""Return the reference z coordinates."""
+@inline get_z(obj::Phantom) = obj.z
 """Return the proton density."""
 @inline get_ρ(obj::Phantom) = obj.ρ
-@inline get_ρ(obj::Phantom, t) = get_ρ(obj)
 """Return the longitudinal relaxation time."""
 @inline get_T1(obj::Phantom) = obj.T1
-@inline get_T1(obj::Phantom, t) = get_T1(obj)
 """Return the transverse relaxation time."""
 @inline get_T2(obj::Phantom) = obj.T2
-@inline get_T2(obj::Phantom, t) = get_T2(obj)
 """Return the effective transverse relaxation time."""
 @inline get_T2s(obj::Phantom) = obj.T2s
-@inline get_T2s(obj::Phantom, t) = get_T2s(obj)
 """Return the off-resonance angular frequency."""
 @inline get_Δw(obj::Phantom) = obj.Δw
-@inline get_Δw(obj::Phantom, t) = get_Δw(obj)
 """Return the phantom motion model."""
 @inline get_motion(obj::Phantom) = obj.motion
 
-@inline function get_spin_coords(obj::Phantom, t)
-    return get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t)
+@inline get_ρ(obj::AbstractPhantom, t) = get_ρ(obj)
+@inline get_T1(obj::AbstractPhantom, t) = get_T1(obj)
+@inline get_T2(obj::AbstractPhantom, t) = get_T2(obj)
+@inline get_T2s(obj::AbstractPhantom, t) = get_T2s(obj)
+@inline get_Δw(obj::AbstractPhantom, t) = get_Δw(obj)
+
+@inline function get_spin_coords(obj::AbstractPhantom, t)
+    return get_spin_coords(get_motion(obj), get_x(obj), get_y(obj), get_z(obj), t)
 end
 
 """Size and length of a phantom"""

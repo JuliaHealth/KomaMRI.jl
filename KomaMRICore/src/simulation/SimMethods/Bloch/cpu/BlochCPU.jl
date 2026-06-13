@@ -20,7 +20,7 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::Bloch, backend::KA.CPU, obj::AbstractPhantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
+function prealloc(sim_method::Bloch, backend::KA.CPU, obj::SimulationPhantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
     return BlochCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -46,7 +46,7 @@ NSpins x seq.t. The Bz_old, Bz_new, ϕ, and Mxy arrays are pre-allocated in run_
 that they can be re-used from block to block.
 """
 function run_spin_precession!(
-    p::AbstractPhantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -108,7 +108,7 @@ Alternate implementation of the run_spin_excitation! function in BlochSimpleSimu
 optimized for the CPU. Uses preallocation for all arrays to reduce memory usage.
 """
 function run_spin_excitation!(
-    p::AbstractPhantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},

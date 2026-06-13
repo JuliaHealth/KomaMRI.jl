@@ -234,17 +234,37 @@ end
         phantom::P
     end
 
-    Base.length(obj::WrappedPhantom) = length(obj.phantom)
-    Base.view(obj::WrappedPhantom, p) = WrappedPhantom(@view obj.phantom[p])
-    KomaMRIBase.get_ρ(obj::WrappedPhantom, t=nothing) = get_ρ(obj.phantom, t)
-    KomaMRIBase.get_T1(obj::WrappedPhantom, t=nothing) = get_T1(obj.phantom, t)
-    KomaMRIBase.get_T2(obj::WrappedPhantom, t=nothing) = get_T2(obj.phantom, t)
-    KomaMRIBase.get_Δw(obj::WrappedPhantom, t=nothing) = get_Δw(obj.phantom, t)
+    KomaMRIBase.get_x(obj::WrappedPhantom) = get_x(obj.phantom)
+    KomaMRIBase.get_y(obj::WrappedPhantom) = get_y(obj.phantom)
+    KomaMRIBase.get_z(obj::WrappedPhantom) = get_z(obj.phantom)
+    KomaMRIBase.get_ρ(obj::WrappedPhantom) = get_ρ(obj.phantom)
+    KomaMRIBase.get_T1(obj::WrappedPhantom) = get_T1(obj.phantom)
+    KomaMRIBase.get_T2(obj::WrappedPhantom) = get_T2(obj.phantom)
+    KomaMRIBase.get_Δw(obj::WrappedPhantom) = get_Δw(obj.phantom)
     KomaMRIBase.get_motion(obj::WrappedPhantom) = get_motion(obj.phantom)
-    KomaMRIBase.get_spin_coords(obj::WrappedPhantom, t) = get_spin_coords(obj.phantom, t)
 
     obj = Phantom(x=[0.0], ρ=[1.0], T1=[1.0], T2=[0.1])
     wrapped = WrappedPhantom(obj)
+    sim_obj = KomaMRICore.SimulationPhantom(wrapped, Float64)
+    sim_obj32 = KomaMRICore.SimulationPhantom(wrapped, Float32)
+    @test isconcretetype(typeof(sim_obj))
+    @test @inferred(get_ρ(sim_obj)) === obj.ρ
+    @test @inferred(get_spin_coords(sim_obj, 0.0)) == (obj.x, obj.y, obj.z)
+    @test get_ρ(wrapped, 1.0) === obj.ρ
+    @test get_T1(wrapped, 1.0) === obj.T1
+    @test get_T2(wrapped, 1.0) === obj.T2
+    @test get_Δw(wrapped, 1.0) === obj.Δw
+    @test get_spin_coords(wrapped, 1.0) == (obj.x, obj.y, obj.z)
+    @test sim_obj.x === obj.x
+    @test sim_obj.ρ === obj.ρ
+    @test eltype(sim_obj32) === Float32
+    @test sim_obj32.x !== obj.x
+    @test fieldtype(typeof(sim_obj), :motion) === typeof(sim_obj.motion)
+    @test get_name(wrapped) == "Phantom"
+    @test_throws DimensionMismatch KomaMRICore.SimulationPhantom(
+        Phantom(x=[0.0, 1.0], ρ=[1.0]), Float64
+    )
+
     seq = Sequence()
     @addblock seq += RF(1e-6, 1e-3)
     @addblock seq += ADC(2, 1e-3)
@@ -255,8 +275,27 @@ end
         "return_type" => "mat",
     )
     expected = simulate(obj, seq, Scanner(); sim_params=copy(sim_params), verbose=false)
-    actual = simulate(wrapped, seq, Scanner(); sim_params=copy(sim_params), verbose=false)
+    callback_obj = Ref{Any}()
+    callback = Callback(1, (progress_info, simulation_blocks_info, device_data, params) -> begin
+        callback_obj[] = device_data.obj
+    end)
+    actual = simulate(
+        wrapped,
+        seq,
+        Scanner();
+        sim_params=copy(sim_params),
+        callbacks=(callback,),
+        verbose=false,
+    )
     @test actual ≈ expected
+    @test callback_obj[] isa KomaMRICore.SimulationPhantom
+
+    initial_ρ = copy(obj.ρ)
+    state_params = copy(sim_params)
+    state_params["return_type"] = "state"
+    state = simulate(obj, seq, Scanner(); sim_params=state_params, verbose=false)
+    @test obj.ρ == initial_ρ
+    @test state.z !== obj.ρ
 end
 
 @testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin

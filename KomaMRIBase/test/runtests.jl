@@ -1491,15 +1491,19 @@ end
         @test size(obj1) == size(ρ)
         @test length(obj1) == length(ρ)
     end
-    @testset "Interface and concrete storage" begin
+    @testset "Interface and user storage" begin
         obj = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw)
         @test obj isa AbstractPhantom{Float64}
         @test isconcretetype(typeof(obj))
         @test eltype(Phantom{Float32}(x=Float32[0])) === Float32
         for field in (:x, :y, :z, :ρ, :T1, :T2, :T2s, :Δw)
-            @test fieldtype(typeof(obj), field) === typeof(getfield(obj, field))
+            @test fieldtype(typeof(obj), field) === AbstractVector{Float64}
         end
         @test eltype(obj) === Float64
+        @test get_name(obj) == name
+        @test get_x(obj) === x
+        @test get_y(obj) === y
+        @test get_z(obj) === z
         @test get_ρ(obj, 0.5) === ρ
         @test get_T1(obj, 0.5) === T1
         @test get_T2(obj, 0.5) === T2

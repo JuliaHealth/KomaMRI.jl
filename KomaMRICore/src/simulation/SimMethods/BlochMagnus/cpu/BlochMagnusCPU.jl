@@ -28,7 +28,7 @@ Base.view(p::BlochMagnusCPUPrealloc, i::UnitRange) = begin
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::BlochMagnus, backend::KA.CPU, obj::AbstractPhantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
+function prealloc(sim_method::BlochMagnus, backend::KA.CPU, obj::SimulationPhantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
     return BlochMagnusCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -51,7 +51,7 @@ end
 
 # Use Bloch implementation for precession
 function run_spin_precession!(
-    p::AbstractPhantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -65,7 +65,7 @@ end
 
 # This part changes a bit more
 function run_spin_excitation!(
-    p::AbstractPhantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},

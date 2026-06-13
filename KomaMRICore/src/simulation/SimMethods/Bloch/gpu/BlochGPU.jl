@@ -13,7 +13,7 @@ end
 function prealloc(
     sim_method::SM, 
     backend::KA.GPU, 
-    obj::AbstractPhantom{T},
+    obj::SimulationPhantom{T},
     M::Mag{T}, 
     max_block_length::Integer, 
     groupsize
@@ -26,7 +26,7 @@ function prealloc(
 end
 
 function run_spin_precession!(
-    p::AbstractPhantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -67,7 +67,7 @@ function run_spin_precession!(
 end
 
 function run_spin_excitation!(
-    p::AbstractPhantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},

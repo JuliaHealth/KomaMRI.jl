@@ -14,7 +14,7 @@ Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`. It cal
 precession.
 
 # Arguments
-- `obj`: (`::AbstractPhantom`) phantom (actually, it's a part of the complete phantom)
+- `obj`: (`::SimulationPhantom`) simulation phantom view
 - `seq`: (`::Sequence`) Sequence struct
 
 # Returns
@@ -22,7 +22,7 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(
-    p::AbstractPhantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -66,7 +66,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
 (including B1, gradients and off resonance) and with respect to a rotation axis.
 
 # Arguments
-- `obj`: (`::AbstractPhantom`) phantom (actually, it's a part of the complete phantom)
+- `obj`: (`::SimulationPhantom`) simulation phantom view
 - `seq`: (`::Sequence`) Sequence struct
 
 # Returns
@@ -75,7 +75,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(
-    p::AbstractPhantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},

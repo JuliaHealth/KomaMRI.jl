@@ -8,7 +8,7 @@ Base.show(io::IO, s::BlochDict) = begin
 end
 
 function sim_output_dim(
-    obj::AbstractPhantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict
+    obj::SimulationPhantom{T}, seq::Sequence, sys::Scanner, sim_method::BlochDict
 ) where {T<:Real}
     out_state_dim = sim_method.save_Mz ? 2 : 1
     return (sum(seq.ADC.N), length(obj), out_state_dim)
@@ -27,7 +27,7 @@ Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`. It cal
 precession.
 
 # Arguments
-- `obj`: (`::AbstractPhantom`) phantom (actually, it's a part of the complete phantom)
+- `obj`: (`::SimulationPhantom`) simulation phantom view
 - `seq`: (`::Sequence`) Sequence struct
 
 # Returns
@@ -35,7 +35,7 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(
-    p::AbstractPhantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},

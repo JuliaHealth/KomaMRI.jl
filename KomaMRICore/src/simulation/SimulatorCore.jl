@@ -61,7 +61,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
 end
 
 function run_spin_precession_parallel!(
-    obj::AbstractPhantom{T},
+    obj::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
@@ -83,7 +83,7 @@ function run_spin_precession_parallel!(
 end
 
 function run_spin_excitation_parallel!(
-    obj::AbstractPhantom{T},
+    obj::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
@@ -113,7 +113,7 @@ parts to reduce RAM usage and spliting the spins of the phantom `obj` into `Nthr
 take advantage of CPU parallel processing.
 
 # Arguments
-- `obj`: (`::AbstractPhantom`) phantom
+- `obj`: (`::SimulationPhantom`) internal simulation phantom
 - `seqd`: (`::DiscreteSequence`) Sequence struct
 - `t`: (`::Vector{Float64}`, `[s]`) non-uniform time vector
 - `Δt`: (`::Vector{Float64}`, `[s]`) delta time of `t`
@@ -130,7 +130,7 @@ take advantage of CPU parallel processing.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_sim_time_iter!(
-    obj::AbstractPhantom,
+    obj::SimulationPhantom,
     seqd::DiscreteSequence,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
@@ -321,8 +321,21 @@ function simulate(
     _assert_nonnegative_adc_labels(seq)
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(sim_params)
+    backend = get_backend(sim_params["gpu"])
+    sim_params["gpu"] &= backend isa KA.GPU
+    if sim_params["gpu"]
+        sim_params["Nthreads"] = 1
+    end
+    if !KA.supports_float64(backend) && sim_params["precision"] == "f64"
+        sim_params["precision"] = "f32"
+        @info """ Backend: '$(name(backend))' does not support 64-bit precision
+        floating point operations. Automatically converting to type Float32.
+        (set sim_param["precision"] = "f32" to avoid seeing this message).
+        """ maxlog=1
+    end
+    T = sim_params["precision"] == "f64" ? Float64 : Float32
     #Warn if user is trying to run on CPU without enabling multi-threading
-    if (!sim_params["gpu"] && Threads.nthreads() == 1)
+    if backend isa KA.CPU && Threads.nthreads() == 1
         @info """Simulation will be run on the CPU with only 1 thread. To enable multi-threading, start julia with --threads=auto
         """ maxlog=1
     end
@@ -332,35 +345,14 @@ function simulate(
     Nblocks = length(parts)
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
+    phantom_name = get_name(obj)
+    obj = SimulationPhantom(obj, T)
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
     Xt, obj = initialize_spins_state(obj, sim_params["sim_method"])
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_params["sim_method"])
-    backend = get_backend(sim_params["gpu"])
-    sim_params["gpu"] &= backend isa KA.GPU
-    if sim_params["gpu"]
-        sim_params["Nthreads"] = 1
-    end
-    sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
-    if !KA.supports_float64(backend) && sim_params["precision"] == "f64"
-        sim_params["precision"] = "f32"
-        @info """ Backend: '$(name(backend))' does not support 64-bit precision 
-        floating point operations. Automatically converting to type Float32.
-        (set sim_param["precision"] = "f32" to avoid seeing this message).
-        """ maxlog=1
-    end
-    if sim_params["precision"] == "f64" && KA.supports_float64(backend)
-        obj  = obj |> f64 #Phantom
-        seqd = seqd |> f64 #DiscreteSequence
-        Xt   = Xt |> f64 #SpinStateRepresentation
-        sig  = sig |> f64 #Signal
-    else
-        #Precision  #Default
-        obj  = obj |> f32 #Phantom
-        seqd = seqd |> f32 #DiscreteSequence
-        Xt   = Xt |> f32 #SpinStateRepresentation
-        sig  = sig |> f32 #Signal
-    end
+    sig = zeros(Complex{T}, Ndims..., sim_params["Nthreads"])
+    seqd = paramtype(T, seqd)
     # Objects to GPU
     if backend isa KA.GPU
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
@@ -415,7 +407,7 @@ function simulate(
         sim_params_raw["allocations_bytes"] = ret.bytes
 
         out = signal_to_raw_data(
-            sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw
+            sig, seq; phantom_name, sys=sys, sim_params=sim_params_raw
         )
     end
     return out
