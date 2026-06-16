@@ -12,7 +12,13 @@ steps:
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
 
   - label: ":pipeline: Launch Benchmarks"
-    if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    if: |
+      build.branch == "master" ||
+        (
+          build.pull_request.labels includes "run-gpu-ci" &&
+          !build.pull_request.repository.fork &&
+          build.branch !~ /^dependabot\//
+        )
     plugins:
       - monorepo-diff#v1.0.1:
           diff: "git diff --name-only HEAD~1"
