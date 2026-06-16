@@ -190,6 +190,52 @@
         }
 
         function init() {
+          function collectCommitIds(entries) {
+            const commits = new Map();
+            for (const entry of entries) {
+              const existing = commits.get(entry.commit.id);
+              if (existing === undefined || entry.date < existing.date) {
+                commits.set(entry.commit.id, entry);
+              }
+            }
+            return [...commits.values()]
+              .sort((a, b) => a.date - b.date)
+              .map(result => result.commit.id);
+          }
+
+          function collectBenchmarkLayout(entries) {
+            const benchmarkNames = new Set();
+            const simMethods = new Set();
+            const devices = new Set();
+            const backendsByDevice = new Map();
+            for (const entry of entries) {
+              for (const bench of entry.benches) {
+                const splitted_name = bench.name.split("/");
+                const benchmarkName = splitted_name[0];
+                const simMethod = splitted_name[1];
+                const device = splitted_name[2];
+                const backend = splitted_name[3];
+
+                benchmarkNames.add(benchmarkName);
+                simMethods.add(simMethod);
+                devices.add(device);
+                if (!backendsByDevice.has(device)) {
+                  backendsByDevice.set(device, new Set());
+                }
+                backendsByDevice.get(device).add(backend);
+              }
+            }
+            return {
+              benchmarkNames: [...benchmarkNames].sort(),
+              simMethods: [...simMethods].sort(),
+              devices: [...devices].sort(),
+              backendsByDevice: new Map(
+                [...backendsByDevice.entries()]
+                  .map(([device, backends]) => [device, [...backends].sort()])
+              ),
+            };
+          }
+
           function collectBenchesPerTestCase(entries) {
             const map = new Map();
             for (const entry of entries) {
@@ -258,39 +304,27 @@
           // Prepare data points for charts
           return Object.keys(data.entries).map(name => ({
             name,
+            commitIds: collectCommitIds(data.entries[name]),
+            layout: collectBenchmarkLayout(data.entries[name]),
             dataSet: collectBenchesPerTestCase(data.entries[name]),
           }));
         }
 
         function renderAllChars(dataSets) {
 
-          function renderGraph(parent, name, graphData) {
+          function renderGraph(parent, name, graphData, backendNames, commitIds) {
             const canvas = document.createElement('canvas');
             canvas.width = 10;
             parent.appendChild(canvas);
 
             const datasets = [];
-            const commits = new Map();
-            for (const backendData of graphData.values()) {
-              for (const result of backendData) {
-                const existing = commits.get(result.commit.id);
-                if (existing === undefined || result.date < existing.date) {
-                  commits.set(result.commit.id, result);
-                }
-              }
-            }
-            const commitIds = [...commits.values()]
-              .sort((a, b) => a.date - b.date)
-              .map(result => result.commit.id);
             const data = {
               labels: commitIds.map(commitId => commitId.slice(0, 7)),
               datasets,
             };
 
-            const backendNames = [...graphData.keys()].sort();
-
             for (const backendName of backendNames) {
-              const backendData = graphData.get(backendName);
+              const backendData = graphData.get(backendName) ?? [];
               const color = backendToColor[backendName];
               const backendResults = new Map(backendData.map(result => [result.commit.id, result]));
               const alignedResults = commitIds.map(commitId => backendResults.get(commitId) ?? null);
@@ -391,8 +425,8 @@
             });
           }
 
-          function renderRow(benchmarkName, simMethod, rowData, parent) {
-            const devices = [...rowData.keys()].sort();
+          function renderRow(benchmarkName, simMethod, rowData, layout, parent, commitIds) {
+            const devices = layout.devices;
             for (const device of devices) {
               const graphsElem = document.createElement("div");
               graphsElem.className = "chartCard";
@@ -400,7 +434,13 @@
               parent.appendChild(graphsElem);
 
               const graphTitle = benchmarkName + " + " + simMethod + " + " + device;
-              renderGraph(graphsElem, graphTitle, rowData.get(device));
+              renderGraph(
+                graphsElem,
+                graphTitle,
+                rowData.get(device) ?? new Map(),
+                layout.backendsByDevice.get(device) ?? [],
+                commitIds
+              );
             }
           }
 
@@ -409,13 +449,16 @@
           div1.className = "benchmark-set";
           main.appendChild(div1);
           const dataSet = dataSets[0].dataSet;
-          const benchmarkNames = [...dataSet.keys()].sort();
+          const commitIds = dataSets[0].commitIds;
+          const layout = dataSets[0].layout;
+          const benchmarkNames = layout.benchmarkNames;
           const benchmarkBorderColors = new Map(benchmarkNames.map((name, index) => [name, getExperimentBorderColor(index)]));
-          const simMethods = [...dataSet.get(benchmarkNames[0]).keys()].sort();
+          const simMethods = layout.simMethods;
 
           for (const benchmarkName of benchmarkNames) {
             for (const simMethod of simMethods) {
-              renderRow(benchmarkName, simMethod, dataSet.get(benchmarkName).get(simMethod), div1);
+              const rowData = dataSet.get(benchmarkName)?.get(simMethod) ?? new Map();
+              renderRow(benchmarkName, simMethod, rowData, layout, div1, commitIds);
             }
           }
         }
