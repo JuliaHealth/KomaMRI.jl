@@ -789,6 +789,30 @@ using TestItems, TestItemRunner
         @test KomaMRIBase.is_ADC_off(seqd) == !KomaMRIBase.is_ADC_on(seqd)
     end
 
+    @testset "large-time MRI event time-step collapse" begin
+        T, offset = 1e-3, 200.0
+        B1, Gx = 10e-6, 1e-3
+        seq = Sequence()
+        seq += Delay(offset)
+        @addblock seq += RF(B1, T)
+        seqd = KomaMRIBase.discretize(seq)
+        area = KomaMRIBase.trapz(seqd.Δt, real.(seqd.B1))
+        @test area ≈ B1 * T
+
+        seq = Sequence()
+        seq += Delay(offset)
+        @addblock seq += Grad(Gx, T)
+        seqd = KomaMRIBase.discretize(seq)
+        area = KomaMRIBase.trapz(seqd.Δt, seqd.Gx)
+        @test area ≈ Gx * T
+
+        seq = Sequence()
+        seq += Delay(offset)
+        @addblock seq += ADC(2, T)
+        seqd = KomaMRIBase.discretize(seq)
+        @test all(diff(seqd.t) .> 0)
+    end
+
      @testset "SequenceFunctions" begin
         seq = PulseDesigner.EPI_example()
         t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
