@@ -36,7 +36,7 @@ features:
   - icon: 🌊
     title: Dynamic Motion Models
     details: Simulate static and dynamic phantoms. Model motion and complex spin trajectories with reusable HDF5 phantom files.
-    link: /explanation/2-motion
+    link: /explanation/gen-2-motion
 
   - icon: 🖥️
     title: Interactive GUI
