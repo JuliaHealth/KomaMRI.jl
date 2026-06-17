@@ -2,16 +2,20 @@
 
 ## Style
 - Prioritize non-verbosity and information density.
-- Prioritize elegance and simplicity: concise idiomatic Julia, no abstract fields, no speculative abstractions.
+- Prioritize elegance and simplicity: concise idiomatic Julia, simple data expressions over stateful loops, no abstract fields, no speculative abstractions.
 - Type function arguments only when dispatch needs them.
-- Prefer dispatch over `isa`/type-branching when behavior depends on type.
+- Do not use `isa`/`typeof` type checks for behavior that can be expressed with dispatch or small trait functions.
+- Use `!` only for functions that mutate an argument. Internal mutating helpers should return `nothing`; value-returning helpers should not use `!`.
 - Use low-level constructors like `new{typeof(...)}` only in the minimal inner-constructor boundary that actually needs them.
 - Add helper functions only when reused or semantically justified.
+- Reuse existing APIs before adding private wrappers.
 - Add docstrings only for public-facing functions.
-- Prefer clear names over explanatory comments. Add comments only when they add information.
+- Prefer domain names over implementation-mechanic names and explanatory comments. Add comments only when they add information.
+- Make semantic phases visible in code structure.
 - Be terse. Assume expert user.
 - Prefer commands/diffs over long explanations.
 - Keep diffs tight. Do not reformat or clean up unrelated code.
+- Reduce lines by simplifying design, not by compressing code.
 
 ## Git
 - If the user gives an existing branch/worktree, use it after verifying it is the intended one.
@@ -20,7 +24,10 @@
 - Fresh worktree pattern: `git fetch origin && git worktree prune && git worktree add -b codex/<task> ../KomaMRI.jl-<task> origin/master`.
 - If a branch/path exists, choose a new name. Do not force-remove unless asked.
 - Never push unless the latest user message explicitly asks. Never push to `master`.
+- When creating pull requests, open them ready for review unless explicitly asked for a draft PR.
+- Do not prefix PR titles with `[codex]` or other author/tool tags unless explicitly requested.
 - No destructive Git commands without explicit approval.
+- Keep generated scratch artifacts under `.tmp/`; never stage or push `.tmp/` contents.
 
 ## Repo
 - Monorepo packages: root `KomaMRI`, plus `KomaMRIBase`, `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots`.
@@ -31,9 +38,11 @@
 
 ## Julia
 - Use the relevant project: `julia --project=<path>` and `Pkg.activate(...)`; never use the global env by accident.
-- Use one persistent Julia REPL/session with Revise for Julia work. Do not run `julia -e`, `julia script.jl`, or package tests in fresh shell processes while a REPL is available; send commands to the session. Use a fresh process only when isolation is required or the user asks. Restart only if absent/crashed or the user asks. Keep it open.
+- Use one persistent Julia REPL/session started with `--threads=auto` and Revise for all Julia work, including diagnostics, plotting, scratch scripts, examples, and tests. Do not run `julia -e`, `julia script.jl`, or package tests in fresh shell processes while a threaded REPL is available; send commands to the session. If code is too large to paste safely, write it under `.tmp/` and run `include("...")` from the existing REPL. Use a fresh process only when isolation is technically required or the user asks. Restart only if absent/crashed, incorrectly threaded, or the user asks. Keep it open.
+- On Julia 1.12+, Revise can handle struct redefinitions; do not restart only because a struct changed.
 - Prefer workspace setup: activate root or the child project and `Pkg.instantiate()`. Use explicit `Pkg.develop(path=...)` only to reproduce CI or older Julia 1.10 wiring.
 - Change dependencies/compat with Pkg APIs, not casual `Project.toml` edits.
+- Prefer command-line arguments for script options. Use environment variables only for actual environment/CI/backend semantics such as CPU/GPU/CUDA/Metal selection.
 - For performance work: profile first, benchmark with interpolation, then optimize the actual hotspot.
 
 ## Python
@@ -51,6 +60,10 @@
 - Use the `docs` environment.
 - Edit source docs, `lit-*.jl`, and `pluto-*.jl`; do not edit generated tutorial artifacts.
 - In the persistent Julia session activated for `docs`, build with `include("docs/make.jl")`; doctest with `using Documenter: doctest; using KomaMRI; doctest(KomaMRI)`.
+- For local docs viewing after `docs/make.jl`, use the repo VitePress preview: from `docs/`, run `npm run docs:preview -- --host 127.0.0.1 --port 8765`, then open `http://127.0.0.1:8765/explanation/...`. Start the server and open the page yourself; do not ask the user to run it. Do not use ad hoc Python static servers as the default.
+- For Literate docs, hide implementation-only setup and plotting plumbing with `#hide`; show the result the reader should learn from. Avoid leaving a bare final variable such as `p` visible when it only exists to render a plot.
+- Prefer examples that generate their figures from source data/code. Keep complex plotting code hidden unless the plotting code itself is the lesson.
+- For interactive docs figures, prefer KomaMRI/KomaMRIPlots APIs and rendered interactive HTML. Do not replace them with static assets or low-level Plotly trace construction unless the user asks or there is no higher-level API.
 - Keep `DocumenterVitepress.deploydocs(...)` in `docs/make.jl`.
 - Do not commit files generated by `docs/make.jl`, Literate, or PlutoSliderServer unless explicitly asked.
 
