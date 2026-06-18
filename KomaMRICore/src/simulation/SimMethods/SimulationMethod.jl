@@ -13,7 +13,7 @@ include("Magnetization.jl")
 @functor Mag #Gives gpu acceleration capabilities, see GPUFunctions.jl
 
 function sim_output_dim(
-    obj::Phantom, seq::Sequence, sys::Scanner, sim_method::SimulationMethod
+    obj::SimulationPhantom, seq::Sequence, sys::Scanner, sim_method::SimulationMethod
 )
     return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
 end
@@ -24,11 +24,11 @@ end
 
 """Magnetization initialization for Bloch simulation method."""
 function initialize_spins_state(
-    obj::Phantom{T}, sim_method::SimulationMethod
+    obj::SimulationPhantom{T}, sim_method::SimulationMethod
 ) where {T<:Real}
     Nspins = length(obj)
     Mxy = zeros(T, Nspins)
-    Mz = obj.ρ
+    Mz = copy(get_ρ(obj))
     Xt = Mag{T}(Mxy, Mz)
     return Xt, obj
 end
@@ -42,7 +42,7 @@ struct DefaultPrealloc{T} <: PreallocResult{T} end
 Base.view(p::PreallocResult, i::UnitRange) = p
 
 """Default preallocation function."""
-prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} = DefaultPrealloc{T}()
+prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::SimulationPhantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} = DefaultPrealloc{T}()
 
 include("BlochSimple/BlochSimple.jl")
 include("Bloch/cpu/BlochCPU.jl")

@@ -1,5 +1,28 @@
 """
-    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
+    AbstractPhantom{T}
+
+Interface for phantom types with real-valued properties of element type `T`.
+
+To use a custom subtype with `simulate`, implement:
+
+- `get_x`, `get_y`, and `get_z`
+- `get_ρ`, `get_T1`, `get_T2`, and `get_Δw`
+- `get_motion`
+
+The coordinate and property getters must return `AbstractVector{T}` values with a common
+length. `get_motion` must return a supported motion model for the same spins.
+
+`get_name` is optional and defaults to `"Phantom"`. Static phantoms do not need to
+implement the property methods with a time argument, `get_spin_coords`, `length`,
+indexing, or `view`; these are either provided by the interface or handled by the
+internal simulation representation.
+
+`get_T2s` is part of the concrete `Phantom` API but is not required by the simulator.
+"""
+abstract type AbstractPhantom{T<:Real} end
+
+"""
+    obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
 
 The Phantom struct. Most of its field names are vectors, with each element associated with
 a property value representing a spin. This struct serves as an input for the simulation.
@@ -14,9 +37,6 @@ a property value representing a spin. This struct serves as an input for the sim
 - `T2`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2 parameter vector
 - `T2s`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2s parameter vector
 - `Δw`: (`::AbstractVector{T<:Real}`, `[rad/s]`) spin off-resonance parameter vector
-- `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
-- `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
-- `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
 - `motion`: (`::Union{NoMotion, Motion{T<:Real} MotionList{T<:Real}}`) motion
 
 # Returns
@@ -29,29 +49,92 @@ julia> obj = Phantom(x=[0.0])
 julia> obj.ρ
 ```
 """
-@with_kw mutable struct Phantom{T<:Real}
-    name::String           = "spins"
-    x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
-    y::AbstractVector{T}   = zeros(eltype(x), size(x))
-    z::AbstractVector{T}   = zeros(eltype(x), size(x))
-    ρ::AbstractVector{T}   = ones(eltype(x), size(x))
-    T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
+mutable struct Phantom{T<:Real} <: AbstractPhantom{T}
+    name::String
+    x::AbstractVector{T}
+    y::AbstractVector{T}
+    z::AbstractVector{T}
+    ρ::AbstractVector{T}
+    T1::AbstractVector{T}
+    T2::AbstractVector{T}
+    T2s::AbstractVector{T}
     #Off-resonance related
-    Δw::AbstractVector{T} = zeros(eltype(x), size(x))
+    Δw::AbstractVector{T}
     #χ::Vector{SusceptibilityModel}
-    #Diffusion
-    Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
-    #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
+    motion::Union{NoMotion, Motion{T}, MotionList{T}}
 end
 
-const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
-const VECTOR_PHANTOM_FIELDS     = Iterators.filter(x -> fieldtype(Phantom, x) <: AbstractVector, fieldnames(Phantom))
+Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, motion) =
+    Phantom{eltype(x)}(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
+
+function Phantom(;
+    name="spins",
+    x=Float64[],
+    y=zeros(eltype(x), size(x)),
+    z=zeros(eltype(x), size(x)),
+    ρ=ones(eltype(x), size(x)),
+    T1=ones(eltype(x), size(x)) * 1_000_000,
+    T2=ones(eltype(x), size(x)) * 1_000_000,
+    T2s=ones(eltype(x), size(x)) * 1_000_000,
+    Δw=zeros(eltype(x), size(x)),
+    motion=NoMotion(),
+)
+    return Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
+end
+
+function Phantom{T}(;
+    name="spins",
+    x=T[],
+    y=zeros(T, size(x)),
+    z=zeros(T, size(x)),
+    ρ=ones(T, size(x)),
+    T1=ones(T, size(x)) * T(1_000_000),
+    T2=ones(T, size(x)) * T(1_000_000),
+    T2s=ones(T, size(x)) * T(1_000_000),
+    Δw=zeros(T, size(x)),
+    motion=NoMotion(),
+) where {T<:Real}
+    return Phantom{T}(name, x, y, z, ρ, T1, T2, T2s, Δw, motion)
+end
+
+const VECTOR_PHANTOM_FIELDS = (:x, :y, :z, :ρ, :T1, :T2, :T2s, :Δw)
+const NON_STRING_PHANTOM_FIELDS = (VECTOR_PHANTOM_FIELDS..., :motion)
+
+Base.eltype(::Type{<:AbstractPhantom{T}}) where {T} = T
+Base.eltype(::AbstractPhantom{T}) where {T} = T
+
+"""Return the phantom name."""
+@inline get_name(obj::AbstractPhantom) = "Phantom"
+@inline get_name(obj::Phantom) = obj.name
+"""Return the reference x coordinates."""
+@inline get_x(obj::Phantom) = obj.x
+"""Return the reference y coordinates."""
+@inline get_y(obj::Phantom) = obj.y
+"""Return the reference z coordinates."""
+@inline get_z(obj::Phantom) = obj.z
+"""Return the proton density."""
+@inline get_ρ(obj::Phantom) = obj.ρ
+"""Return the longitudinal relaxation time."""
+@inline get_T1(obj::Phantom) = obj.T1
+"""Return the transverse relaxation time."""
+@inline get_T2(obj::Phantom) = obj.T2
+"""Return the effective transverse relaxation time."""
+@inline get_T2s(obj::Phantom) = obj.T2s
+"""Return the off-resonance angular frequency."""
+@inline get_Δw(obj::Phantom) = obj.Δw
+"""Return the phantom motion model."""
+@inline get_motion(obj::Phantom) = obj.motion
+
+@inline get_ρ(obj::AbstractPhantom, t) = get_ρ(obj)
+@inline get_T1(obj::AbstractPhantom, t) = get_T1(obj)
+@inline get_T2(obj::AbstractPhantom, t) = get_T2(obj)
+@inline get_T2s(obj::AbstractPhantom, t) = get_T2s(obj)
+@inline get_Δw(obj::AbstractPhantom, t) = get_Δw(obj)
+
+@inline function get_spin_coords(obj::AbstractPhantom, t)
+    return get_spin_coords(get_motion(obj), get_x(obj), get_y(obj), get_z(obj), t)
+end
 
 """Size and length of a phantom"""
 size(x::Phantom) = size(x.ρ)
@@ -165,12 +248,6 @@ function heart_phantom(;
     r = 6 / 11 * FOV / 2
     ring = ⚪(R) .- ⚪(r)
     ρ = ⚪(r) .+ 0.9 * ring #proton density
-    # Diffusion tensor model
-    D = 2e-9 #Diffusion of free water m2/s
-    D1, D2 = D, D / 20
-    Dλ1 = D1 * ⚪(R) #Diffusion map
-    Dλ2 = D1 * ⚪(r) .+ D2 * ring #Diffusion map
-    Dθ = atan.(x, -y) .* ring #Diffusion map
     T1 = (1400 * ⚪(r) .+ 1026 * ring) * 1e-3 #Myocardial T1
     T2 = (308 * ⚪(r) .+ 42 * ring) * 1e-3 #T2 map [s]
     # Generating Phantoms
@@ -181,9 +258,6 @@ function heart_phantom(;
         ρ=ρ[ρ .!= 0],
         T1=T1[ρ .!= 0],
         T2=T2[ρ .!= 0],
-        Dλ1=Dλ1[ρ .!= 0],
-        Dλ2=Dλ2[ρ .!= 0],
-        Dθ=Dθ[ρ .!= 0],
         motion=MotionList(
             heartbeat(
                 circumferential_strain,

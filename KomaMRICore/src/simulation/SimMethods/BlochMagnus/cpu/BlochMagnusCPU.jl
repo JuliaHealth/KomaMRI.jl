@@ -28,30 +28,30 @@ Base.view(p::BlochMagnusCPUPrealloc, i::UnitRange) = begin
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::BlochMagnus, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
+function prealloc(sim_method::BlochMagnus, backend::KA.CPU, obj::SimulationPhantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
     return BlochMagnusCPUPrealloc(
         Mag(
             similar(M.xy),
             similar(M.z)
         ),
-        zeros(Complex{T}, size(obj.x)),
-        zeros(T, size(obj.x)),
-        zeros(Complex{T}, size(obj.x)),
-        zeros(T, size(obj.x)),
-        zeros(Complex{T}, size(obj.x)),
-        zeros(T, size(obj.x)),
-        zeros(T, size(obj.x)),
+        zeros(Complex{T}, length(obj)),
+        zeros(T, length(obj)),
+        zeros(Complex{T}, length(obj)),
+        zeros(T, length(obj)),
+        zeros(Complex{T}, length(obj)),
+        zeros(T, length(obj)),
+        zeros(T, length(obj)),
         Spinor(
             similar(M.xy),
             similar(M.xy)
         ),
-        obj.Δw ./ T(2π .* γ)
+        get_Δw(obj) ./ T(2π .* γ)
     )
 end
 
 # Use Bloch implementation for precession
 function run_spin_precession!(
-    p::Phantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -65,7 +65,7 @@ end
 
 # This part changes a bit more
 function run_spin_excitation!(
-    p::Phantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -88,6 +88,10 @@ function run_spin_excitation!(
     ΔBz = prealloc.ΔBz
     Maux_xy = prealloc.M.xy
     Maux_z  = prealloc.M.z
+    motion = get_motion(p)
+    ρ = get_ρ(p)
+    T1 = get_T1(p)
+    T2 = get_T2(p)
     #Initialize
     sample = 1
     # Rotating frame -> RF frame
@@ -98,7 +102,7 @@ function run_spin_excitation!(
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        x, y, z = get_spin_coords(p, seq.t[i + 1])
         #Effective field
         @. ωxy_new = seq.B1[i + 1] * B_to_ω
         @. ωz_new  = (seq.Gx[i + 1] * x + seq.Gy[i + 1] * y + seq.Gz[i + 1] * z + ΔBz) * B_to_ω + seq.Δf[i + 1] * T(2π)
@@ -110,10 +114,10 @@ function run_spin_excitation!(
         @. β = -Complex{T}(im) * (θxy / θ) * sin(θ / T(2))
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
-        @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
-        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
+        @. M.xy = M.xy * exp(-seq.Δt[i] / T2)
+        @. M.z = M.z * exp(-seq.Δt[i] / T1) + ρ * (T(1) - exp(-seq.Δt[i] / T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(M, seq.t[i + 1, :], motion; replace_by=ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
             sig[sample] = sum(M.xy) 

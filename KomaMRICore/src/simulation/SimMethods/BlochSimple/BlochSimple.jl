@@ -14,7 +14,7 @@ Simulates an MRI sequence `seq` on the Phantom `obj` for time points `t`. It cal
 precession.
 
 # Arguments
-- `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
+- `obj`: (`::SimulationPhantom`) simulation phantom view
 - `seq`: (`::Sequence`) Sequence struct
 
 # Returns
@@ -22,7 +22,7 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(
-    p::Phantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -32,9 +32,13 @@ function run_spin_precession!(
     prealloc::PreallocResult
 ) where {T<:Real}
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    motion = get_motion(p)
+    ρ = get_ρ(p)
+    T1 = get_T1(p)
+    T2 = get_T2(p)
+    x, y, z = get_spin_coords(p, seq.t')
     #Effective field
-    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ get_Δw(p) ./ T(2π .* γ)
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)
@@ -44,12 +48,12 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     tp   = cumsum(seq.Δt) # t' = t - t0
     dur  = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy  = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
+    Mxy  = M.xy .* exp.(-tp' ./ T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
+    M.z  .= M.z .* exp.(-dur ./ T1) .+ ρ .* (1 .- exp.(-dur ./ T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
-    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(Mxy, seq.t[2:end]', motion)
+    outflow_spin_reset!(M, seq.t[2:end]', motion; replace_by=ρ)
     #Acquired signal
     sig .= @views transpose(sum(Mxy[:, findall(seq.ADC[2:end])]; dims=1)) #<--- TODO: add coil sensitivities
     return nothing
@@ -62,7 +66,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
 (including B1, gradients and off resonance) and with respect to a rotation axis.
 
 # Arguments
-- `obj`: (`::Phantom`) Phantom struct (actually, it's a part of the complete phantom)
+- `obj`: (`::SimulationPhantom`) simulation phantom view
 - `seq`: (`::Sequence`) Sequence struct
 
 # Returns
@@ -71,7 +75,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(
-    p::Phantom{T},
+    p::SimulationPhantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
@@ -81,6 +85,7 @@ function run_spin_excitation!(
     prealloc::PreallocResult
 ) where {T<:Real}
     sample = 1
+    motion = get_motion(p)
     # Rotating frame -> RF frame
     ψ_start = @view seq.ψ[1:1]
     @. M.xy = M.xy * cis(-ψ_start)
@@ -93,9 +98,12 @@ function run_spin_excitation!(
             ADC = any(seq.ADC[i + 1, :])
         )
         #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
+        ρ = get_ρ(p, s.t)
+        T1 = get_T1(p, s.t)
+        T2 = get_T2(p, s.t)
+        x, y, z = get_spin_coords(p, s.t)
         #Effective field
-        ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        ΔBz = get_Δw(p, s.t) ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B .+= (B .== 0) .* eps(T)
@@ -103,10 +111,10 @@ function run_spin_excitation!(
         φ = T(-2π .* γ) .* (B .* s.Δt)
         mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
-        @. M.xy = M.xy * exp(-s.Δt / p.T2)
-        @. M.z  = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))
+        @. M.xy = M.xy * exp(-s.Δt / T2)
+        @. M.z  = M.z * exp(-s.Δt / T1) + ρ * (1 - exp(-s.Δt / T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M, s.tnew, p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(M, s.tnew, motion; replace_by=ρ)
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
