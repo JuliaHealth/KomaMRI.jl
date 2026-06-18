@@ -813,6 +813,25 @@ using TestItems, TestItemRunner
         @test all(diff(seqd.t) .> 0)
     end
 
+    @testset "closing knot survives FP rebasing at large t0" begin
+        for t0 in (270.0, 1500.0), event in (RF(1e-5, 1e-3), Grad(1e-3, 1e-3))
+            ts = KomaMRIBase._reseparate_closing_knot!(t0 .+ KomaMRIBase.times(event))
+            @test ts[end-1] < ts[end]
+        end
+    end
+
+    @testset "get_samples and get_variable_times keep knots separated at large t0" begin
+        T, offset = 1e-3, 300.0
+        rf_seq = Sequence(); rf_seq += Delay(offset); @addblock rf_seq += RF(1e-5, T)
+        gr_seq = Sequence(); gr_seq += Delay(offset); @addblock gr_seq += Grad(1e-3, T)
+        ref_seq = Sequence(); ref_seq += Delay(0.5); @addblock ref_seq += Grad(1e-3, T)
+        rf_t = KomaMRIBase.get_samples(rf_seq).rf.t
+        @test rf_t[end-1] < rf_t[end]
+        @test all(diff(KomaMRIBase.get_samples(gr_seq).gx.t) .> 0)
+        @test length(KomaMRIBase.get_variable_times(gr_seq)[1]) ==
+              length(KomaMRIBase.get_variable_times(ref_seq)[1])
+    end
+
      @testset "SequenceFunctions" begin
         seq = PulseDesigner.EPI_example()
         t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)

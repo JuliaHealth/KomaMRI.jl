@@ -703,8 +703,8 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     fill_if_empty(x) = isempty(x.t) && length(range) == length(seq) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
     # RF
     if :rf in events
-        t_rf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :A)   for i in range])
-        t_Δf = reduce(vcat, [T0[i] .+ times(seq.RF[1,i], :Δf)  for i in range])
+        t_rf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ times(seq.RF[1,i], :A))  for i in range])
+        t_Δf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ times(seq.RF[1,i], :Δf)) for i in range])
         A_rf = reduce(vcat, [ampls(seq.RF[1,i]; freq_in_phase) for i in range])
         A_Δf = reduce(vcat, [freqs(seq.RF[1,i])                for i in range])
         A_ψ  = reduce(vcat, [rf_frame_phase(seq.RF[1,i])       for i in range])
@@ -719,9 +719,9 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
         gx = [_gradient_interpolation_samples(seq.GR[1,i]) for i in range]
         gy = [_gradient_interpolation_samples(seq.GR[2,i]) for i in range]
         gz = [_gradient_interpolation_samples(seq.GR[3,i]) for i in range]
-        t_gx = reduce(vcat, [T0[i] .+ gx[j].t for (j, i) in enumerate(range)])
-        t_gy = reduce(vcat, [T0[i] .+ gy[j].t for (j, i) in enumerate(range)])
-        t_gz = reduce(vcat, [T0[i] .+ gz[j].t for (j, i) in enumerate(range)])
+        t_gx = reduce(vcat, [_strictly_increasing_knots!(_reseparate_closing_knot!(T0[i] .+ gx[j].t)) for (j, i) in enumerate(range)])
+        t_gy = reduce(vcat, [_strictly_increasing_knots!(_reseparate_closing_knot!(T0[i] .+ gy[j].t)) for (j, i) in enumerate(range)])
+        t_gz = reduce(vcat, [_strictly_increasing_knots!(_reseparate_closing_knot!(T0[i] .+ gz[j].t)) for (j, i) in enumerate(range)])
         A_gx = reduce(vcat, [g.A for g in gx])
         A_gy = reduce(vcat, [g.A for g in gy])
         A_gz = reduce(vcat, [g.A for g in gz])
