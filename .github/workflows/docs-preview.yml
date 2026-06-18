@@ -21,8 +21,8 @@ jobs:
     name: Deploy documentation preview
     runs-on: ubuntu-latest
     concurrency:
-      group: docs-gh-pages
-      cancel-in-progress: false
+      group: docs-preview-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch || github.run_id }}
+      cancel-in-progress: true
     steps:
       - name: Find pull request
         id: pr
