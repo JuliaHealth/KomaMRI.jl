@@ -11,7 +11,7 @@ KomaMRICore.isfunctional(::MetalBackend) = Metal.functional()
 KomaMRICore.supports_warp_reduction(::MetalBackend) = true
 KomaMRICore.set_device!(::MetalBackend, device_index::Integer) = device_index == 1 || @warn "Metal does not support multiple gpu devices. Ignoring the device setting."
 KomaMRICore.set_device!(::MetalBackend, dev::Metal.MTLDevice) = Metal.device!(dev)
-KomaMRICore.device_name(::MetalBackend) = String(Metal.current_device().name)
+KomaMRICore.device_name(::MetalBackend) = String(Metal.device().name)
 
 @inline function KomaMRICore.shfl_down(val, offset)
     Metal.simd_shuffle_down(val, offset) 

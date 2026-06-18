@@ -1,7 +1,7 @@
 name = "KomaMRICore"
 uuid = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
-version = "0.11.2"
+version = "0.11.3"
 
 [deps]
 AcceleratedKernels = "6a4ca0a5-0e36-4168-a932-d9be78d558f1"
@@ -38,7 +38,7 @@ ProgressMeter = "1"
 Reexport = "1"
 ThreadsX = "0.1"
 julia = "1.10"
-oneAPI = "1, 2"
+oneAPI = "2.4"
 
 [workspace]
 projects = ["test"]
