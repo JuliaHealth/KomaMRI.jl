@@ -240,7 +240,8 @@ function pulseq_time_shape_id!(shape_library, cache, rf::RF, rf_raster_time)
         rounded_delay = round(pulseq_delay / rf_raster_time) * rf_raster_time
         isapprox(pulseq_delay, rounded_delay; rtol=0, atol=PULSEQ_TIME_TOL) && return policy.time_shape_id
     end
-    return _store_shape!(shape_library, cache, _shape_times(rf.A, rf.T) ./ rf_raster_time)
+    t = times(rf; separate_closing_knot=false)[2:(end - 1)] .- rf.delay
+    return _store_shape!(shape_library, cache, t ./ rf_raster_time)
 end
 
 function register_rf_shapes!(shapes, cache, rf, rf_raster_time)
@@ -294,7 +295,7 @@ edge_timed_grad(grad::TrapezoidalGrad) =
     Grad([grad.first, grad.A, grad.A, grad.last], [grad.rise, grad.T, grad.fall], 0.0, 0.0, grad.delay, grad.first, grad.last)
 
 pulseq_sample_times(grad::Union{UniformlySampledGrad,TimeShapedGrad}) =
-    grad.rise .+ _shape_times(grad.A, grad.T)
+    times(grad; separate_closing_knot=false)[2:(end - 1)] .- grad.delay
 
 function pulseq_trap_event(grad::UniformlySampledGrad)
     iszero(grad.first) && iszero(grad.last) || return nothing
@@ -620,8 +621,11 @@ function emit_version_section!(io, version=v"1.5.1")
 end
 
 dense_event_ids(event_dict) = Base.OneTo(length(event_dict))
-emit_pulseq_float!(io, value::Real) = @printf(io, "%.12g", value)
-pulseq_float_string(value::Real) = @sprintf("%.12g", value)
+_pulseq_write_digits(io::IO) = get(io, :pulseq_significant_digits, PULSEQ_EVENT_SIGNIFICANT_DIGITS)
+_pulseq_shape_write_digits(io::IO) = get(io, :pulseq_shape_significant_digits, _pulseq_write_digits(io))
+emit_pulseq_float!(io, value::Real) = @printf(io, "%.*g", _pulseq_write_digits(io), value)
+emit_pulseq_shape_float!(io, value::Real) = @printf(io, "%.*g", _pulseq_shape_write_digits(io), value)
+pulseq_float_string(value::Real) = @sprintf("%.*g", PULSEQ_EVENT_SIGNIFICANT_DIGITS, value)
 
 function emit_definitions_section!(io::IO, definitions)
     write(io, "[DEFINITIONS]\n")
@@ -675,10 +679,27 @@ function emit_rf_section!(io::IO, event_libraries)
         emit_pulseq_float!(io, rf_data.freq_ppm); write(io, " ")
         emit_pulseq_float!(io, rf_data.phase_ppm); write(io, " ")
         emit_pulseq_float!(io, rf_data.freq); write(io, " ")
-        emit_pulseq_float!(io, rf_data.phase)
+        emit_rf_phase!(io, rf_data, event_libraries.shape_library)
         @printf(io, " %c\n", rf_data.use)
     end
 end
+
+function emit_rf_phase!(io, rf_data, shape_library)
+    phase = pulseq_phase_for_write(rf_data.phase)
+    if iszero_rf_phase_shape(shape_library, rf_data.phase_id)
+        emit_pulseq_float!(io, phase)
+    else
+        emit_pulseq_shape_float!(io, phase)
+    end
+end
+
+pulseq_phase_for_write(phase) = begin
+    phase = mod(phase, 2π)
+    return phase <= PULSEQ_TIME_TOL || 2π - phase <= PULSEQ_TIME_TOL ? 0.0 : phase
+end
+
+iszero_rf_phase_shape(shape_library, phase_id) =
+    all(iszero, decompress_shape(shape_library[phase_id]...))
 
 function pulseq_rf_center_for_write(rf_data, event_libraries)
     !isnothing(rf_data.center) && return rf_data.center
@@ -773,7 +794,7 @@ function emit_shapes_section!(io::IO, event_libraries)
         write(io, "shape_id $id\n")
         write(io, "num_samples $num_samples\n")
         for sample in samples
-            emit_pulseq_float!(io, sample)
+            emit_pulseq_shape_float!(io, sample)
             write(io, "\n")
         end
         write(io, "\n")
@@ -1085,6 +1106,13 @@ Writes a Sequence struct to a Pulseq file with `.seq` extension.
 - `filename`: (`::String`) absolute or relative path of the sequence file `.seq`
 - `sys`: optional scanner used for hardware-limit validation and export raster
   times. If passed, `sys` raster times take precedence over `seq.DEF`.
+- `significant_digits`: significant digits used when writing Pulseq floats.
+  Defaults to Koma's 12-digit writer; use `6` to match MATLAB Pulseq event
+  libraries.
+- `shape_significant_digits`: significant digits used for Pulseq shape samples.
+  Defaults to `significant_digits`; use `9` to match MATLAB Pulseq shapes.
+  For MATLAB Pulseq parity, use `significant_digits=6,
+  shape_significant_digits=9`.
 - `verbose`: (`::Bool`, `=true`) show informational writing/checking messages
 
 # Examples
@@ -1098,11 +1126,20 @@ julia> write_seq(seq, "fid.seq")
 function write_seq(
     data::PulseqSequenceData, filename::AbstractString;
     signatureAlgorithm="md5",
+    significant_digits=PULSEQ_EVENT_SIGNIFICANT_DIGITS,
+    shape_significant_digits=significant_digits,
     verbose=true,
 )
     verbose && @info "Saving sequence to $(basename(filename)) ..."
     payload = let io = IOBuffer()
-        emit_pulseq(io, data)
+        emit_pulseq(
+            IOContext(
+                io,
+                :pulseq_significant_digits => significant_digits,
+                :pulseq_shape_significant_digits => shape_significant_digits,
+            ),
+            data,
+        )
         take!(io)
     end
     signature_hash = supported_signature_digest(signatureAlgorithm, payload)
@@ -1146,8 +1183,13 @@ function write_seq(
     signatureAlgorithm="md5",
     check_timing=true,
     check_hw_limits=true,
+    significant_digits=PULSEQ_EVENT_SIGNIFICANT_DIGITS,
+    shape_significant_digits=significant_digits,
     verbose=true,
 )
     data = pulseq_data(seq; sys, check_timing, check_hw_limits, verbose)
-    return write_seq(data, filename; signatureAlgorithm, verbose)
+    return write_seq(
+        data, filename; signatureAlgorithm, significant_digits,
+        shape_significant_digits, verbose,
+    )
 end

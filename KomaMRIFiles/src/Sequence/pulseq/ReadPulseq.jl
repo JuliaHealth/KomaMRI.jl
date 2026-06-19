@@ -880,12 +880,35 @@ function get_Grad(grad::PulseqArbGradEvent, shapeLibrary, Δt_gr)
         rise, fall = Δt_gr/2, Δt_gr/2
     else
         gt = decompress_shape(shapeLibrary[time_shape_id]...)
+        # MATLAB Pulseq may write compact raster timing as an explicit shape.
+        timing = compact_pulseq_grad_timing(gt, n_gr, Δt_gr)
+        if timing !== nothing
+            gT, rise, fall = timing
+            return Grad(gA, gT, rise, fall, delay, first_grads, last_grads)
+        end
         gt[1] == 0 || @warn "Gradient time shape $time_shape_id starting at a non-zero value $(gt[1]). This is not recommended and may not be supported properly\n (see https://github.com/pulseq/pulseq/issues/188#issuecomment-3541588756) " maxlog=1
         delay += gt[1] * Δt_gr # offset due to the shape starting at a non-zero value. This case 
         gT = diff(gt) * Δt_gr
         rise, fall = 0.0, 0.0
     end
     return Grad(gA, gT, rise, fall, delay, first_grads, last_grads)
+end
+
+function compact_pulseq_grad_timing(gt, n_gr, Δt_gr)
+    n = n_gr + 1
+    length(gt) == n || return nothing
+    default_timing = true
+    oversampled_timing = isodd(n)
+    for i in 1:n
+        default_timing &&
+            (default_timing = isapprox(gt[i], i - 0.5; rtol=0, atol=PULSEQ_TIME_TOL))
+        oversampled_timing &&
+            (oversampled_timing = isapprox(gt[i], i / 2; rtol=0, atol=PULSEQ_TIME_TOL))
+        (default_timing || oversampled_timing) || return nothing
+    end
+    default_timing && return n_gr * Δt_gr, Δt_gr/2, Δt_gr/2
+    oversampled_timing && return n_gr * Δt_gr / 2, Δt_gr/2, Δt_gr/2
+    return nothing
 end
 
 """
