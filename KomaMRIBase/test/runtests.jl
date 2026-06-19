@@ -488,6 +488,10 @@ using TestItems, TestItemRunner
         delay, rise, T, fall = 1e-6, 2e-6, 10e-3, 3e-6
         gr = Grad(A, T, rise, fall, delay)
         @test dur(gr) ≈ delay + rise + T + fall
+        @test area(Grad(2.0, 3.0, 1.0, 1.0, 0.0)) ≈ 8.0
+        @test area(Grad([0.0, 1.0, 0.0], 2.0)) ≈ 1.0
+        @test area(Grad([0.0, 1.0, 0.0], 2.0, 0.5, 0.5, 0.0, -0.5, -0.5)) ≈ 0.75
+        @test area(Grad([0.0, 1.0, 0.0], [1.0, 1.0])) ≈ 1.0
         T1, T2, T3 = 1e-3, 2e-3, 3e-3
         vt = [Grad(A1,T1); Grad(A2,T2); Grad(A3,T3)]
         @test dur(vt) ≈ [maximum([T1, T2, T3])]
@@ -532,6 +536,7 @@ using TestItems, TestItemRunner
         @test rf_off_scaled ≈ rf_off
         @test rf_off_scaled !== rf_off
         @test dur(rf) ≈ rf.T
+        @test area(RF([0.0, 1.0, 0.0], [1.0, 1.0])) ≈ 1.0
         B1x, B1y, B2x, B2y, B3x, B3y, T1, T2, T3 = rand(9)
         rf1, rf2, rf3 = RF(B1x + im*B1y, T1), RF(B1x + im*B1y, T2), RF(B3x + im*B3y, T3)
         rv = [rf1; rf2; rf3 ;;]
@@ -552,7 +557,7 @@ using TestItems, TestItemRunner
         # Frequency-modulated RF: ψ is generated from the integrated Δf waveform and centered.
         rf_fm = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, [0.0, 1000.0, 0.0], 0.0)
         ψ = KomaMRIBase.rf_frame_phase(rf_fm)
-        @test ψ[argmin(abs.(times(rf_fm, :Δf) .- (rf_fm.delay + rf_fm.center)))] ≈ 0
+        @test ψ[argmin(abs.(freq_times(rf_fm) .- (rf_fm.delay + rf_fm.center)))] ≈ 0
 
         # Discretization carries ψ so simulators can handle split RF blocks independently.
         seq = Sequence()
@@ -1136,12 +1141,216 @@ using TestItems, TestItemRunner
 end
 
 @testitem "PulseDesigner" tags=[:base] begin
+    import KomaMRIBase: rotation_matrix
+    using Unitful
+
     @testset "RF_sinc" begin
         sys = Scanner()
         B1 = 23.4e-6 # For 90 deg flip angle
         Trf = 1e-3
         rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
-        @test round(KomaMRIBase.get_flip_angles(rf)[1]) ≈ 90
+        @test round(get_flip_angles(rf)[1]) ≈ 90
+    end
+    @testset "build_block_pulse" begin
+        sys = Scanner(B0=3u"T")
+        @test sys.B0 == 3.0
+
+        sys = Scanner(B1=γ * 20e-6 * u"Hz")
+        @test sys.B1 ≈ 20e-6
+
+        sys = Scanner(B1=Inf, RF_Δt=1u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s")
+        seq = PulseDesigner.build_block_pulse(π * u"rad"; duration=1u"ms", sys)
+        @test get_flip_angles(seq)[1] ≈ 180.0
+
+        seq = PulseDesigner.build_block_pulse(90u"°"; duration=2u"ms", sys)
+        @test get_flip_angles(seq)[1] ≈ 90.0
+
+        rf = PulseDesigner.build_block_pulse(π * u"rad"; bandwidth=0.3u"kHz", sys).RF[1, 1]
+        @test rf.T == round(1 / (4 * 0.3e3) / sys.RF_Δt) * sys.RF_Δt
+
+        seq = PulseDesigner.build_block_pulse(π * u"rad"; bandwidth=1u"kHz", time_bw_product=5, sys)
+        rf = seq.RF[1, 1]
+        @test rf.T == 5e-3
+
+        seq = PulseDesigner.build_block_pulse(
+            90u"°"; duration=1u"ms", freq_offset=1u"kHz", phase_offset=90u"°",
+            sys, use=Excitation(),
+        )
+        rf = seq.RF[1, 1]
+        @test rf.Δf == 1e3
+        @test rf.ϕ == π / 2
+
+    end
+    @testset "build_trapezoid" begin
+        sys = Scanner(Gmax=40u"mT/m", Smax=170u"T/m/s", GR_Δt=10u"μs")
+        seq = PulseDesigner.build_trapezoid(:x; area=11e-6u"T*s/m", sys)
+        grad = only(seq.GR.x)
+        @test area(grad) ≈ 1.1e-5
+
+        seq = PulseDesigner.build_trapezoid(:x; amplitude=20u"mT/m", flat_time=0.8u"ms", sys)
+        grad = only(seq.GR.x)
+        @test grad.A ≈ 20e-3
+
+        seq = PulseDesigner.build_trapezoid(:x; area=10e-6u"T*s/m", duration=1u"ms", sys)
+        grad = only(seq.GR.x)
+        @test area(grad) ≈ 1e-5
+
+        seq = PulseDesigner.build_trapezoid(:x; flat_area=8e-6u"T*s/m", flat_time=0.8u"ms", sys)
+        grad = only(seq.GR.x)
+        @test grad.A ≈ 10e-3
+
+        amplitude = γ * 20e-3 * u"Hz/m"
+        seq = PulseDesigner.build_trapezoid(:x; amplitude, flat_time=0.8u"ms", sys)
+        grad = only(seq.GR.x)
+        @test grad.A ≈ 20e-3
+    end
+    @testset "build_extended_trapezoid" begin
+        sys = Scanner(Gmax=40u"mT/m", Smax=170u"T/m/s", GR_Δt=10u"μs")
+        times = [0.0, 0.5, 1.0]u"ms"
+        amplitudes = [0.0, 20.0, 0.0]u"mT/m"
+        seq = PulseDesigner.build_extended_trapezoid(:x, times, amplitudes; sys)
+        grad = only(seq.GR.x)
+        @test area(grad) ≈ 1e-5
+    end
+    @testset "build_extended_trapezoid_area" begin
+        sys = Scanner(Gmax=40u"mT/m", Smax=170u"T/m/s", GR_Δt=10u"μs")
+        cases = (
+            (0u"mT/m", 0u"mT/m", 0u"T*s/m"),
+            (10u"mT/m", 10u"mT/m", 0u"T*s/m"),
+            (0u"mT/m", 0u"mT/m", 10e-6u"T*s/m"),
+            (10u"mT/m", 5u"mT/m", 2e-6u"T*s/m"),
+            (0u"mT/m", 0u"mT/m", -5e-6u"T*s/m"),
+        )
+        for (grad_start, grad_end, target_area) in cases
+            seq = PulseDesigner.build_extended_trapezoid_area(
+                :x, grad_start, grad_end, target_area; sys,
+            )
+            grad = only(seq.GR.x)
+            @test area(grad) ≈ ustrip(u"T*s/m", target_area)
+            @test grad.first ≈ ustrip(u"T/m", grad_start)
+            @test grad.last ≈ ustrip(u"T/m", grad_end)
+        end
+    end
+    @testset "build_rotation" begin
+        @test rotation_matrix(PulseDesigner.make_rotation(π / 2)) ≈ rotz(π / 2)
+        @test rotation_matrix(PulseDesigner.make_rotation(π / 2, π / 4)) ≈
+            rotz(π / 2) * roty(π / 4)
+        @test rotation_matrix(PulseDesigner.make_rotation([1, 0, 0], π / 2)) ≈
+            rotx(π / 2)
+        @test rotation_matrix(PulseDesigner.make_rotation([0, -1, 0], π / 3)) ≈
+            roty(-π / 3)
+        @test rotation_matrix(PulseDesigner.make_rotation([0, 0, 0, 2])) ≈
+            rotz(π)
+        @test rotation_matrix(PulseDesigner.make_rotation(rotz(π / 3))) ≈
+            rotz(π / 3)
+
+        seq = PulseDesigner.build_rotation(90u"°")
+        @test rotation_matrix(only(seq.EXT[1])) ≈ rotz(π / 2)
+        @test rotation_matrix(PulseDesigner.make_rotation(90u"°", 30u"°")) ≈
+            rotz(π / 2) * roty(π / 6)
+        @test rotation_matrix(PulseDesigner.make_rotation(-90u"°")) ≈
+            rotz(-π / 2)
+        @test rotation_matrix(PulseDesigner.make_rotation([0, 1, 0], 45u"°")) ≈
+            roty(π / 4)
+        @test rotation_matrix(PulseDesigner.make_rotation([0, -1, 0], 45u"°")) ≈
+            roty(-π / 4)
+    end
+    @testset "build_trigger" begin
+        sys = Scanner(GR_Δt=10u"μs")
+        seq = PulseDesigner.build_trigger(:physio2; delay=20u"μs", duration=100u"μs", sys)
+        trigger = only(seq.EXT[1])
+        @test trigger == Trigger(2, 2, 20e-6, 100e-6)
+    end
+    @testset "build_digital_output_pulse" begin
+        sys = Scanner(GR_Δt=10u"μs")
+        seq = PulseDesigner.build_digital_output_pulse(
+            :ext1; delay=500u"μs", duration=100u"μs", sys,
+        )
+        output = only(seq.EXT[1])
+        @test output == Trigger(1, 3, 500e-6, 100e-6)
+    end
+    @testset "build_label" begin
+        seq = PulseDesigner.build_label(:SET, :LIN, true)
+        append!(seq, PulseDesigner.build_label(:INC, :LIN, 2))
+
+        labels = get_labels(seq)
+        @test [label.LIN for label in labels] == [1, 3]
+    end
+    @testset "build_delay" begin
+        seq = PulseDesigner.build_delay(2u"ms")
+        @test only(seq.DUR) == 2e-3
+    end
+    @testset "build_arbitrary_rf" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        seq = PulseDesigner.build_arbitrary_rf(
+            [1, 1, 1, 1], 90u"°"; dwell=10u"μs", bandwidth=2u"kHz",
+            slice_thickness=5u"mm", sys,
+        )
+        gz, gzr = seq.GR.z
+        slice_area = 2e3 * 40e-6 / (γ * 5e-3)
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area * (1 - 20e-6) / 40e-6 -
+            (area(gz) - slice_area) / 2
+
+    end
+    @testset "build_gauss_pulse" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        seq = PulseDesigner.build_gauss_pulse(
+            90u"°"; duration=1u"ms", bandwidth=2u"kHz",
+            slice_thickness=5u"mm", max_grad=30u"mT/m", max_slew=120u"T/m/s", sys,
+        )
+        gz, gzr = seq.GR.z
+        slice_area = 2e3 * 1e-3 / (γ * 5e-3)
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area / 2 - (area(gz) - slice_area) / 2
+    end
+    @testset "build_adiabatic_pulse" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        seq = PulseDesigner.build_adiabatic_pulse(
+            :wurst; duration=4u"ms", dwell=2u"μs", bandwidth=6u"kHz",
+            freq_offset=100u"Hz", phase_offset=30u"°", sys,
+        )
+        rf = seq.RF[1, 1]
+        @test rf.Δf == 100.0
+        @test rf.ϕ ≈ π / 6 atol=1e-5
+
+        seq = PulseDesigner.build_adiabatic_pulse(
+            :wurst; duration=4u"ms", bandwidth=6u"kHz", slice_thickness=5u"mm", sys,
+        )
+        rf = seq.RF[1, 1]
+        gz, gzr = seq.GR.z
+        slice_area = 6e3 * 4e-3 / (γ * 5e-3)
+        center_pos = (rf.center + sys.RF_Δt / 2) / 4e-3
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area * (1 - center_pos) - (area(gz) - slice_area) / 2
+    end
+    @testset "build_sinc_pulse" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        flip_angle = 90u"°"
+        duration = 1u"ms"
+        seq = PulseDesigner.build_sinc_pulse(
+            flip_angle; duration, slice_thickness=5u"mm", freq_offset=1u"kHz", sys,
+        )
+        rf = seq.RF[1, 1]
+        gz, gzr = seq.GR.z
+        slice_area = 4 / (γ * 5e-3)
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area / 2 - (area(gz) - slice_area) / 2
+        @test rf.delay ≈ gz.rise + gz.delay + sys.RF_Δt / 2
+        @test rf.Δf == 1e3
+
     end
     @testset "Spiral" begin
         sys = Scanner()
