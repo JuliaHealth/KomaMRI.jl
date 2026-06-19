@@ -17,7 +17,6 @@ import KomaMRIBase:
     get_RF_use_from_char,
     get_char_from_RF_use,
     get_dims,
-    _shape_times,
     get_scale,
     get_pulseq_format,
     get_symbol_from_EXT_type,

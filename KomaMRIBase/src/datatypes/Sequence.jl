@@ -511,13 +511,12 @@ end
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 
-Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12) =
-    typeof(x) === typeof(y) &&
-    field_isapprox(x.GR, y.GR; atol=atol) &&
-    field_isapprox(x.RF, y.RF; atol=atol) &&
-    field_isapprox(x.ADC, y.ADC; atol=atol) &&
-    field_isapprox(x.DUR, y.DUR; atol=atol) &&
-    field_isapprox(x.EXT, y.EXT; atol=atol)
+Base.isapprox(x::Sequence, y::Sequence; kwargs...) =
+    field_isapprox(x.GR, y.GR; kwargs...) &&
+    field_isapprox(x.RF, y.RF; kwargs...) &&
+    field_isapprox(x.ADC, y.ADC; kwargs...) &&
+    field_isapprox(x.DUR, y.DUR; kwargs...) &&
+    field_isapprox(x.EXT, y.EXT; kwargs...)
 
 """
     y = is_ADC_on(x::Sequence)
@@ -703,8 +702,8 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     fill_if_empty(x) = isempty(x.t) && length(range) == length(seq) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
     # RF
     if :rf in events
-        t_rf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ times(seq.RF[1,i], :A))  for i in range])
-        t_Δf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ times(seq.RF[1,i], :Δf)) for i in range])
+        t_rf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ times(seq.RF[1,i]))      for i in range])
+        t_Δf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ freq_times(seq.RF[1,i])) for i in range])
         A_rf = reduce(vcat, [ampls(seq.RF[1,i]; freq_in_phase) for i in range])
         A_Δf = reduce(vcat, [freqs(seq.RF[1,i])                for i in range])
         A_ψ  = reduce(vcat, [rf_frame_phase(seq.RF[1,i])       for i in range])

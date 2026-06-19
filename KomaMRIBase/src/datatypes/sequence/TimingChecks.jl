@@ -134,7 +134,7 @@ end
 function _check_timing(rf::BlockPulseRF, timing, block_id, block_duration)
     raster = timing.RadiofrequencyRasterTime
     _check_raster_multiple(rf.delay, raster, block_id, "RF delay")
-    _check_raster_multiple(rf.T, raster, block_id, "RF timing")
+    _check_raster_multiple(sum(rf.T), raster, block_id, "RF timing")
     _check_duration(rf, timing, block_id, block_duration)
     return nothing
 end

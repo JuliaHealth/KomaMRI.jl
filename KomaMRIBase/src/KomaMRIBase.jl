@@ -39,23 +39,6 @@ fields_isapprox(x, y; kwargs...) =
 _has_negative_timings(T::Real) = T < 0
 _has_negative_timings(T::AbstractVector{<:Real}) = any(<(0), T)
 
-_shape_samples(x::Number) = [zero(x), x, x, zero(x)]
-_shape_samples(x::AbstractVector{<:Number}) = [zero(eltype(x)); x; zero(eltype(x))]
-
-_shape_times(::Number, T::Real) = [zero(T), T]
-_shape_times(::Number, T::AbstractVector{<:Number}) = [zero(eltype(T)), sum(T)]
-_shape_times(x::AbstractVector, T::Real) = range(zero(T), T; length=length(x))
-function _shape_times(x::AbstractVector, T::AbstractVector{<:Number})
-    n = length(x)
-    n == 0 && return similar(T, 0)
-    if length(T) == n - 1
-        return cumsum([zero(eltype(T)); T])
-    elseif length(T) == n
-        return cumsum([zero(eltype(T)); T[1:(end - 1)]])
-    end
-    throw(DimensionMismatch("Expected time vector of length $(n - 1) or $n for $n samples, got $(length(T))."))
-end
-
 # Hardware
 include("datatypes/Scanner.jl")
 # Sequence
@@ -85,12 +68,12 @@ export γ    # gyro-magnetic ratio [Hz/T]
 export Scanner, Sequence, Phantom
 export addblock!, @addblock, @addblocks
 export Grad, RF, ADC, Delay, Duration, QuaternionRot
-export dur, get_block_start_times, get_samples
+export area, dur, get_block_start_times, get_samples
 export RFuse, Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
 export DiscreteSequence
 export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
-export times, ampls, freqs
+export times, ampls, freqs, freq_times
 # These are also used for simulation
 export kfoldperm, trapz, cumtrapz
 # Phantom

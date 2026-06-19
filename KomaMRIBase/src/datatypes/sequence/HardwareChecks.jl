@@ -26,6 +26,29 @@ end
 _absmax(x::Number) = abs(x)
 _absmax(x::AbstractArray{<:Number}) = maximum(abs, x)
 
+function check_hw_limits(gr::Grad, sys::Scanner)
+    return check_hw_limits(gr; max_grad=sys.Gmax, max_slew=sys.Smax)
+end
+
+function check_hw_limits(gr::Grad; max_grad=Inf, max_slew=Inf, name="Gradient")
+    is_GR_on(gr) || return nothing
+    rtol = sqrt(eps(Float64))
+    if isfinite(max_grad)
+        grad_peak = max(abs(gr.first), _absmax(gr.A), abs(gr.last))
+        if grad_peak > max_grad && !isapprox(grad_peak, max_grad; rtol, atol=0)
+            limit = max_grad * 1e3
+            error("$name amplitude is greater than the maximum gradient amplitude of the scanner ($limit mT/m).")
+        end
+    end
+    if isfinite(max_slew)
+        grad_slew = _max_gradient_slew(gr)
+        if grad_slew > max_slew && !isapprox(grad_slew, max_slew; rtol, atol=0)
+            error("$name slew rate is greater than the maximum gradient slew rate of the scanner ($(max_slew) mT/m/ms).")
+        end
+    end
+    return nothing
+end
+
 function check_hw_limits(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, adc::AbstractVector{ADC}, sys::Scanner) where {G<:Grad,R<:RF}
     check_rf = isfinite(sys.B1)
     check_grad = isfinite(sys.Gmax)
@@ -46,14 +69,10 @@ function check_hw_limits(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, adc::Abst
             for gi in 1:3
                 gr_i = gr[gi, i]
                 is_GR_on(gr_i) || continue
-                if check_grad
-                    grad_peak = max(abs(gr_i.first), _absmax(gr_i.A), abs(gr_i.last))
-                    (grad_peak <= sys.Gmax || isapprox(grad_peak, sys.Gmax; rtol, atol=0)) || error("$(axis_names[gi]) gradient amplitude for block $i is greater than the maximum gradient amplitude of the scanner ($(sys.Gmax * 1e3) mT/m).")
-                end
-                if check_slew
-                    grad_slew = _max_gradient_slew(gr_i)
-                    (grad_slew <= sys.Smax || isapprox(grad_slew, sys.Smax; rtol, atol=0)) || error("$(axis_names[gi]) gradient slew rate for block $i is greater than the maximum gradient slew rate of the scanner ($(sys.Smax) mT/m/ms).")
-                end
+                max_grad = check_grad ? sys.Gmax : Inf
+                max_slew = check_slew ? sys.Smax : Inf
+                name = "$(axis_names[gi]) gradient for block $i"
+                check_hw_limits(gr_i; max_grad, max_slew, name)
             end
         end
         if check_adc

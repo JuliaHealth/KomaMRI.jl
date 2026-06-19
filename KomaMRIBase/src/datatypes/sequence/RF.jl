@@ -61,12 +61,26 @@ mutable struct RF{AT,TT,ΔFT}
     use::RFUse
     RF(A, T, Δf, delay, center, ϕ, use, ::Val{:preserve}) =
         new{typeof(A),typeof(T),typeof(Δf)}(A, T, Δf, delay, center, ϕ, use)
+    function RF(A, T, Δf, delay, ::Nothing, ϕ, use)
+        if _has_negative_timings(T) || delay < 0
+            error("RF timings must be non-negative.")
+        end
+        rf = RF(A, T, Δf, delay, nothing, mod(ϕ, 2π), use, Val(:preserve))
+        return RF(A, T, Δf, delay, get_RF_center(rf), ϕ, use)
+    end
     function RF(A, T, Δf, delay, center, ϕ, use)
         if _has_negative_timings(T) || delay < 0
             error("RF timings must be non-negative.")
         end
-        Arel, ϕrel = _canonicalize_rf_center_phase(A, T, center, ϕ)
-        return new{typeof(Arel),typeof(T),typeof(Δf)}(Arel, T, Δf, delay, center, ϕrel, use)
+        rf = RF(A, T, Δf, delay, center, 0.0, use, Val(:preserve))
+        Avalues = ampls(rf)
+        isempty(Avalues) && return RF(A, T, Δf, delay, center, mod(ϕ, 2π), use, Val(:preserve))
+        t = times(rf; separate_closing_knot=false) .- rf.delay
+        Interpolations.deduplicate_knots!(t; move_knots=true)
+        value = linear_interpolation(t, Avalues, extrapolation_bc=Interpolations.Flat())(center)
+        ϕcenter = iszero(abs(value)) ? 0.0 : mod(angle(value), 2π)
+        Arel = iszero(ϕcenter) ? A : A .* cis(-ϕcenter)
+        return RF(Arel, T, Δf, delay, center, mod(ϕ + ϕcenter, 2π), use, Val(:preserve))
     end
     RF(A, T, Δf, delay, center, use::RFUse) = RF(A, T, Δf, delay; center, use)
     RF(A, T, Δf, delay, center, ϕ)          = RF(A, T, Δf, delay; center, ϕ)
@@ -75,41 +89,16 @@ mutable struct RF{AT,TT,ΔFT}
     RF(A, T)                                = RF(A, T, 0.0, 0.0)
 end
 
-const BlockPulseRF = RF{AT,TT,ΔFT} where {AT<:Number,TT<:Number,ΔFT}
+const BlockPulseRF = RF{AT,TT,ΔFT} where {AT<:Number,TT,ΔFT}
 const UniformlySampledRF = RF{AT,TT,ΔFT} where {AT<:AbstractVector{<:Number},TT<:Number,ΔFT}
 const TimeShapedRF = RF{AT,TT,ΔFT} where {AT<:AbstractVector{<:Number},TT<:AbstractVector{<:Number},ΔFT}
 const FrequencyModulatedRF = RF{AT,TT,ΔFT} where {AT,TT,ΔFT<:AbstractVector{<:Number}}
-
-_rf_center(A::Number, T::Real) = T / 2
-function _rf_center(A::AbstractVector, T)
-    ts = _shape_times(A, T)
-    weights = abs.(A)
-    total = sum(weights)
-    iszero(total) && return 0.0
-    return sum(weights .* ts) / total
-end
-
-_canonicalize_rf_center_phase(A::Number, T, ::Nothing, ϕ=0.0) = A, mod(ϕ, 2π)
-_canonicalize_rf_center_phase(A::AbstractVector, T, ::Nothing, ϕ=0.0) = A, mod(ϕ, 2π)
-function _canonicalize_rf_center_phase(A::Number, T, center, ϕ=0.0)
-    ϕcenter = iszero(abs(A)) ? 0.0 : mod(angle(A), 2π)
-    return A * cis(-ϕcenter), mod(ϕ + ϕcenter, 2π)
-end
-function _canonicalize_rf_center_phase(A::AbstractVector, T, center, ϕ=0.0)
-    isempty(A) && return A, mod(ϕ, 2π)
-    value = if length(A) == 1
-        A[1]
-    else
-        ts = _shape_times(A, T)
-        Interpolations.deduplicate_knots!(ts; move_knots=true)
-        linear_interpolation(ts, A, extrapolation_bc=Interpolations.Flat())(center)
-    end
-    ϕcenter = iszero(abs(value)) ? 0.0 : mod(angle(value), 2π)
-    return A .* cis(-ϕcenter), mod(ϕ + ϕcenter, 2π)
-end
+const UniformlySampledFrequencyModulatedRF =
+    RF{AT,TT,ΔFT} where {AT,TT<:Number,ΔFT<:AbstractVector{<:Number}}
+const TimeShapedFrequencyModulatedRF =
+    RF{AT,TT,ΔFT} where {AT,TT<:AbstractVector{<:Number},ΔFT<:AbstractVector{<:Number}}
 
 function RF(A, T, Δf, delay; center=nothing, ϕ=0.0, use=nothing)
-    center = isnothing(center) ? _rf_center(A, T) : center
     rf = RF(A, T, Δf, delay, center, ϕ, Undefined())
     rf.use = isnothing(use) ? (get_flip_angle(rf) <= 90.01 ? Excitation() : Refocusing()) : use
     return rf
@@ -254,4 +243,15 @@ It does not include the RF delay and uses the weighted average of times by ampli
 # Returns
 - `t`: (`::Real` or `Nothing`, `[s]`) time where is the center of the RF pulse `x`, or `nothing` if the RF amplitude is zero
 """
-get_RF_center(rf::RF) = something(rf.center, _rf_center(rf.A, rf.T))
+function get_RF_center(rf::BlockPulseRF)
+    !isnothing(rf.center) && return rf.center
+    return sum(rf.T) / 2
+end
+function get_RF_center(rf::RF)
+    !isnothing(rf.center) && return rf.center
+    weights = abs.(ampls(rf))
+    isempty(weights) && return 0.0
+    total = sum(weights)
+    iszero(total) && return 0.0
+    return sum(weights .* (times(rf; separate_closing_knot=false) .- rf.delay)) / total
+end
