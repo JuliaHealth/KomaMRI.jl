@@ -1,0 +1,48 @@
+name: Pulseq MATLAB parity
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  parity:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'pulseq-parity') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - uses: matlab-actions/setup-matlab@v2
+        with:
+          cache: true
+          products: >
+            Curve_Fitting_Toolbox
+      - name: Checkout latest Pulseq
+        run: git clone --depth=1 https://github.com/pulseq/pulseq.git "$RUNNER_TEMP/pulseq"
+      - name: KomaMRIFiles parity test setup
+        shell: julia --color=yes --project=KomaMRIFiles/test {0}
+        run: |
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+          ])
+          Pkg.instantiate()
+      - name: Run MATLAB Pulseq parity
+        env:
+          PULSEQ_MATLAB: ${{ runner.temp }}/pulseq/matlab
+        run: julia --color=yes --project=KomaMRIFiles/test -e 'include("KomaMRIFiles/test/pulseq_matlab_parity.jl")'
