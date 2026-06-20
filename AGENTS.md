@@ -38,6 +38,7 @@
 
 ## Julia
 - Use the relevant project: `julia --project=<path>` and `Pkg.activate(...)`; never use the global env by accident.
+- First action for Julia work: use or start the persistent Julia REPL; do not run Julia through `exec_command` unless isolation is technically required and stated first.
 - Use one persistent Julia REPL/session started with `--threads=auto` and Revise for all Julia work, including diagnostics, plotting, scratch scripts, examples, and tests. Do not run `julia -e`, `julia script.jl`, or package tests in fresh shell processes while a threaded REPL is available; send commands to the session. If code is too large to paste safely, write it under `.tmp/` and run `include("...")` from the existing REPL. Use a fresh process only when isolation is technically required or the user asks. Restart only if absent/crashed, incorrectly threaded, or the user asks. Keep it open.
 - On Julia 1.12+, Revise can handle struct redefinitions; do not restart only because a struct changed.
 - Prefer workspace setup: activate root or the child project and `Pkg.instantiate()`. Use explicit `Pkg.develop(path=...)` only to reproduce CI or older Julia 1.10 wiring.
