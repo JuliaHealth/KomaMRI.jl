@@ -78,7 +78,7 @@ function sinc_rf_event(flip_angle, duration, dwell, time_bw_product, apodization
     tt = t .- duration * center_pos
     waveform = @. (1 - apodization + apodization * cos(2π * tt / duration)) *
         sinc(time_bw_product * tt / duration)
-    waveform = normalize_flip_angle(waveform, dwell, flip_angle)
+    waveform = normalize_flip_angle(waveform, dwell, flip_angle) .|> complex
     rf = RF(waveform, (n - 1) * dwell, freq_offset, rf_start_time + dwell / 2;
         center=duration * center_pos - dwell / 2, ϕ=phase_offset, use)
     return rf

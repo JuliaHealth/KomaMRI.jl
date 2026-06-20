@@ -67,7 +67,7 @@ function make_gauss_pulse(flip_angle; duration, sys=Scanner(), slice_thickness=n
     tt = t .- duration * center_pos
     waveform = @. (1 - apodization + apodization * cos(2π * tt / duration)) *
         exp(-π * (bandwidth * tt)^2)
-    waveform = normalize_flip_angle(waveform, dwell, flip_angle)
+    waveform = normalize_flip_angle(waveform, dwell, flip_angle) .|> complex
     rf_start_time = max(delay, sys.RF_dead_time)
     rf = RF(waveform, (n - 1) * dwell, freq_offset, rf_start_time + dwell / 2;
         center=duration * center_pos - dwell / 2, ϕ=phase_offset, use)

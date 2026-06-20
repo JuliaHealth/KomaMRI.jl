@@ -63,7 +63,7 @@ function make_arbitrary_rf(signal, flip_angle; sys=Scanner(), slice_thickness=no
     waveform = vec(collect(signal))
     isempty(waveform) && error("RF signal must not be empty.")
     duration = length(waveform) * dwell
-    waveform = normalize_flip_angle(waveform, dwell, flip_angle)
+    waveform = normalize_flip_angle(waveform, dwell, flip_angle) .|> complex
     rf_start_time = max(delay, sys.RF_dead_time)
     rf_center = center === nothing || !isfinite(center) ? nothing :
         clamp(center, 0, duration) - dwell / 2
