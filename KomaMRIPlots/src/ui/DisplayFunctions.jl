@@ -988,7 +988,7 @@ function plot_image(
 end
 
 """
-    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false)
+    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false)
 
 Plots the k-space of a Sequence struct.
 
@@ -999,6 +999,7 @@ Plots the k-space of a Sequence struct.
 - `width`: (`::Integer`, `=nothing`) plot width
 - `height`: (`::Integer`, `=nothing`) plot height
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D kx/ky plot
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the k-space of the Sequence struct
@@ -1012,7 +1013,7 @@ julia> seq = read_seq(seq_file)
 julia> plot_kspace(seq)
 ```
 """
-function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false)
+function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false)
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
     #Calculations of theoretical k-space
     kspace, kspace_adc = get_kspace(seq; Δt=1) #sim_params["Δt"])
@@ -1036,93 +1037,145 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
     dW = maximum(maxk .- mink; dims=2) * 0.3
     mink .-= dW
     maxk .+= dW
-    #Layout
-    l = Layout(;
-        paper_bgcolor=bgcolor,
-        scene=attr(;
+    modebar = attr(;
+        orientation="h",
+        yanchor="bottom",
+        xanchor="right",
+        y=1,
+        x=0,
+        bgcolor=bgcolor,
+        color=text_color,
+        activecolor=plot_bgcolor,
+    )
+    legend = attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0)
+    if view_2d
+        l = Layout(;
+            paper_bgcolor=bgcolor,
+            plot_bgcolor=plot_bgcolor,
             xaxis=attr(;
                 title="kx [m⁻¹]",
                 range=[mink[1], maxk[1]],
-                backgroundcolor=plot_bgcolor,
                 gridcolor=grid_color,
                 zerolinecolor=grid_color,
+                scaleanchor="y",
             ),
             yaxis=attr(;
                 title="ky [m⁻¹]",
                 range=[mink[2], maxk[2]],
-                backgroundcolor=plot_bgcolor,
                 gridcolor=grid_color,
                 zerolinecolor=grid_color,
+                scaleratio=1,
             ),
-            zaxis=attr(;
-                title="kz [m⁻¹]",
-                range=[mink[3], maxk[3]],
-                backgroundcolor=plot_bgcolor,
-                gridcolor=grid_color,
-                zerolinecolor=grid_color,
+            modebar,
+            legend,
+            font_color=text_color,
+            margin=attr(; t=0, l=0, r=0),
+        )
+        p = [
+            scattergl(;
+                x=kspace[:, 1],
+                y=kspace[:, 2],
+                mode="lines",
+                line=attr(; color=c),
+                name="Trajectory",
+                hoverinfo="skip",
             ),
-        ),
-        modebar=attr(;
-            orientation="h",
-            yanchor="bottom",
-            xanchor="right",
-            y=1,
-            x=0,
-            bgcolor=bgcolor,
-            color=text_color,
-            activecolor=plot_bgcolor,
-        ),
-        legend=attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0),
-        font_color=text_color,
-        scene_camera_eye=attr(; x=0, y=0, z=1.7),
-        scene_camera_up=attr(; x=0, y=1.0, z=0),
-        scene_aspectmode="cube",
-        margin=attr(; t=0, l=0, r=0),
-    )
-    if height !== nothing
-        l.height = height
-    end
-    if width !== nothing
-        l.width = width
-    end
-    #Plot
-    p = [scatter() for j in 1:3]
-    p[1] = scatter3d(;
-        x=kspace[:, 1],
-        y=kspace[:, 2],
-        z=kspace[:, 3],
-        mode="lines",
-        line=attr(; color=c),
-        name="Trajectory",
-        hoverinfo="skip",
-    )
-    p[2] = scatter3d(;
-        x=kspace_adc[:, 1],
-        y=kspace_adc[:, 2],
-        z=kspace_adc[:, 3],
-        text=round.(t_adc * 1e3, digits=3),
-        mode="markers",
-        line=attr(; color=c2),
-        marker=attr(; size=2),
-        name="ADC",
-        hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
-    )
-    p[3] = scatter3d(;
-        x=[0], y=[0], z=[0], name="k=0", marker=attr(; symbol="cross", size=10, color="red")
-    )
-    config = PlotConfig(;
-        displaylogo=false,
-        toImageButtonOptions=attr(;
-            format="svg", # one of png, svg, jpeg, webp
-        ).fields,
-        modeBarButtonsToRemove=[
+            scattergl(;
+                x=kspace_adc[:, 1],
+                y=kspace_adc[:, 2],
+                text=round.(t_adc * 1e3, digits=3),
+                mode="markers",
+                marker=attr(; color=c2, size=4),
+                name="ADC",
+                hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
+            ),
+            scattergl(;
+                x=[0], y=[0], mode="markers", name="k=0",
+                marker=attr(; symbol="cross", size=10, color="red"),
+            ),
+        ]
+        modebar_buttons = ["zoom", "pan", "resetScale2d", "autoScale2d"]
+    else
+        l = Layout(;
+            paper_bgcolor=bgcolor,
+            scene=attr(;
+                xaxis=attr(;
+                    title="kx [m⁻¹]",
+                    range=[mink[1], maxk[1]],
+                    backgroundcolor=plot_bgcolor,
+                    gridcolor=grid_color,
+                    zerolinecolor=grid_color,
+                ),
+                yaxis=attr(;
+                    title="ky [m⁻¹]",
+                    range=[mink[2], maxk[2]],
+                    backgroundcolor=plot_bgcolor,
+                    gridcolor=grid_color,
+                    zerolinecolor=grid_color,
+                ),
+                zaxis=attr(;
+                    title="kz [m⁻¹]",
+                    range=[mink[3], maxk[3]],
+                    backgroundcolor=plot_bgcolor,
+                    gridcolor=grid_color,
+                    zerolinecolor=grid_color,
+                ),
+            ),
+            modebar,
+            legend,
+            font_color=text_color,
+            scene_camera_eye=attr(; x=0, y=0, z=1.7),
+            scene_camera_up=attr(; x=0, y=1.0, z=0),
+            scene_aspectmode="cube",
+            margin=attr(; t=0, l=0, r=0),
+        )
+        p = [
+            scatter3d(;
+                x=kspace[:, 1],
+                y=kspace[:, 2],
+                z=kspace[:, 3],
+                mode="lines",
+                line=attr(; color=c),
+                name="Trajectory",
+                hoverinfo="skip",
+            ),
+            scatter3d(;
+                x=kspace_adc[:, 1],
+                y=kspace_adc[:, 2],
+                z=kspace_adc[:, 3],
+                text=round.(t_adc * 1e3, digits=3),
+                mode="markers",
+                line=attr(; color=c2),
+                marker=attr(; size=2),
+                name="ADC",
+                hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
+            ),
+            scatter3d(;
+                x=[0], y=[0], z=[0], name="k=0",
+                marker=attr(; symbol="cross", size=10, color="red"),
+            ),
+        ]
+        modebar_buttons = [
             "zoom",
             "pan",
             "tableRotation",
             "resetCameraLastSave3d",
             "orbitRotation",
             "resetCameraDefault3d",
-    ],
+        ]
+    end
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
+    config = PlotConfig(;
+        displaylogo=false,
+        toImageButtonOptions=attr(;
+            format="svg", # one of png, svg, jpeg, webp
+        ).fields,
+        modeBarButtonsToRemove=modebar_buttons,
     )
     return plot_koma(p, l; config)
 end
