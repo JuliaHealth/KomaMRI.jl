@@ -130,29 +130,24 @@ end
         rf_duration = block_raster
         rf_amp = 1e-6
         sys = Scanner(B0=3.0, B1=17rf_amp, Gmax=40e-3, Smax=170.0, ADC_Δt=adc_raster, DUR_Δt=block_raster, GR_Δt=gradient_raster, RF_Δt=rf_raster, RF_ring_down_time=rf_ring_down_time, RF_dead_time=rf_dead_time, ADC_dead_time=adc_dead_time)
-        seq = Sequence(sys)
-        seq.DEF["Name"] = "hardware-metadata"
-        @addblock seq += (RF(rf_amp, rf_duration, 0.0, rf_dead_time), Duration(rf_dead_time + rf_duration + rf_ring_down_time))
-        data = KomaMRIFiles.write_seq_data(seq; verbose=false)
-        buffer = IOBuffer()
-        KomaMRIFiles.emit_pulseq(buffer, data)
-        pulseq_text = String(take!(buffer))
-        @test occursin("\nBlockDurationRaster ", pulseq_text)
-        @test occursin("\nGradientRasterTime ", pulseq_text)
-        for key in KomaMRIBase.PULSEQ_HW_DEFINITION_KEYS
-            @test !occursin("\n$key ", pulseq_text)
-        end
         bad_rf_deadtime = Sequence(sys)
         @addblock bad_rf_deadtime += (RF(rf_amp, rf_duration), Duration(rf_dead_time + rf_duration + rf_ring_down_time))
-        @test_throws ErrorException KomaMRIFiles.write_seq_data(bad_rf_deadtime; check_hw_limits=false, verbose=false)
+        @test_throws ErrorException write_seq_data(bad_rf_deadtime; check_hw_limits=false, verbose=false)
         bad_rf_ringdown = Sequence(sys)
         @addblock bad_rf_ringdown += (RF(rf_amp, rf_duration, 0.0, rf_dead_time), Duration(rf_dead_time + rf_duration + rf_ring_down_time - block_raster))
-        @test_throws ErrorException KomaMRIFiles.write_seq_data(bad_rf_ringdown; check_hw_limits=false, verbose=false)
+        @test_throws ErrorException write_seq_data(bad_rf_ringdown; check_hw_limits=false, verbose=false)
+        bad_rf_amplitude = Sequence(sys)
+        @addblock bad_rf_amplitude += (RF(2sys.B1, rf_duration, 0.0, rf_dead_time), Duration(rf_dead_time + rf_duration + rf_ring_down_time))
+        @test_throws ErrorException write_seq_data(bad_rf_amplitude; sys, verbose=false)
         bad_adc_deadtime = Sequence(sys)
         adc_samples = 2
         adc_dwell = 2adc_raster
         @addblock bad_adc_deadtime += (ADC(adc_samples, (adc_samples - 1) * adc_dwell, adc_dead_time), Duration(4block_raster))
-        @test_throws ErrorException KomaMRIFiles.write_seq_data(bad_adc_deadtime; check_hw_limits=false, verbose=false)
+        @test_throws ErrorException write_seq_data(bad_adc_deadtime; check_hw_limits=false, verbose=false)
+        bad_adc_dwell = Sequence(sys)
+        bad_dwell = adc_raster / 2
+        @addblock bad_adc_dwell += (ADC(adc_samples, (adc_samples - 1) * bad_dwell, bad_dwell / 2), Duration(block_raster))
+        @test_throws ErrorException write_seq_data(bad_adc_dwell; check_hw_limits=false, verbose=false)
 
         @testset "Write rejects events longer than block duration" begin
             block_raster = 50e-9

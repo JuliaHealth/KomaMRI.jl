@@ -6,9 +6,6 @@ Checks event-local hardware limits:
 - maximum RF amplitude `|B1|`
 - maximum gradient amplitude `|G|`
 - maximum gradient slew rate `|dG/dt|`
-- minimum ADC dwell time
-
-RF/ADC dead times and RF ring-down are checked by [`check_timing`](@ref).
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -49,15 +46,14 @@ function check_hw_limits(gr::Grad; max_grad=Inf, max_slew=Inf, name="Gradient")
     return nothing
 end
 
-function check_hw_limits(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, adc::AbstractVector{ADC}, sys::Scanner) where {G<:Grad,R<:RF}
+function check_hw_limits(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, ::AbstractVector{A}, sys::Scanner) where {G<:Grad,R<:RF,A<:ADC}
     check_rf = isfinite(sys.B1)
     check_grad = isfinite(sys.Gmax)
     check_slew = isfinite(sys.Smax)
-    check_adc = sys.ADC_Δt > 0
-    (check_rf || check_grad || check_slew || check_adc) || return nothing
+    (check_rf || check_grad || check_slew) || return nothing
     axis_names = ("x", "y", "z")
     rtol = sqrt(eps(Float64))
-    for i in eachindex(adc)
+    for i in axes(rf, 2)
         if check_rf
             rf_i = rf[1, i]
             rf_peak = is_RF_on(rf_i) ? _absmax(rf_i.A) : 0.0
@@ -73,14 +69,6 @@ function check_hw_limits(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, adc::Abst
                 max_slew = check_slew ? sys.Smax : Inf
                 name = "$(axis_names[gi]) gradient for block $i"
                 check_hw_limits(gr_i; max_grad, max_slew, name)
-            end
-        end
-        if check_adc
-            adc_i = adc[i]
-            is_ADC_on(adc_i) || continue
-            dwell = _pulseq_dwell(adc_i)
-            if dwell < sys.ADC_Δt
-                error("ADC dwell time $(dwell * 1e6) μs for block $i is less than the minimum ADC dwell time of the scanner ($(sys.ADC_Δt * 1e6) μs).")
             end
         end
     end

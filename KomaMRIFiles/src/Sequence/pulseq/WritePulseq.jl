@@ -1152,16 +1152,33 @@ function write_seq(
 end
 
 function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, check_hw_limits=true, verbose=true)
+    source = isnothing(sys) ? "seq.DEF" : "sys"
+    check_sys = isnothing(sys) ? KomaMRIBase._sequence_scanner_from_def(seq.DEF) : sys
     if check_hw_limits
-        isnothing(sys) ? KomaMRIBase.check_hw_limits(seq) : KomaMRIBase.check_hw_limits(seq, sys)
+        verbose && @info string(
+            "Checking hardware limits from $source:\n\t",
+            "maxB1 = $(check_sys.B1 * 1e6) uT, ",
+            "maxGrad = $(check_sys.Gmax * 1e3) mT/m, ",
+            "maxSlew = $(check_sys.Smax) mT/m/ms",
+        )
+        KomaMRIBase.check_hw_limits(seq, check_sys)
     end
     raster = isnothing(sys) ? PulseqRaster(seq) : PulseqRaster(seq, sys)
-    if verbose
-        @info "Checking Pulseq raster..." BlockDurationRaster = raster.BlockDurationRaster GradientRasterTime = raster.GradientRasterTime RadiofrequencyRasterTime = raster.RadiofrequencyRasterTime AdcRasterTime = raster.AdcRasterTime
+    if check_timing && verbose
+        @info string(
+            "Checking Pulseq timing from $source:\n\t",
+            "blockDurationRaster = $(raster.BlockDurationRaster * 1e6) us,\n\t",
+            "gradRasterTime = $(raster.GradientRasterTime * 1e6) us, ",
+            "rfRasterTime = $(raster.RadiofrequencyRasterTime * 1e6) us, ",
+            "adcRasterTime = $(raster.AdcRasterTime * 1e6) us,\n\t",
+            "rfDeadTime = $(check_sys.RF_dead_time * 1e6) us, ",
+            "rfRingdownTime = $(check_sys.RF_ring_down_time * 1e6) us, ",
+            "adcDeadTime = $(check_sys.ADC_dead_time * 1e6) us",
+        )
     end
     prepared = prepare_pulseq_write(seq, raster; preserve_block_durations=check_timing)
     if check_timing
-        isnothing(sys) ? KomaMRIBase.check_timing(prepared) : KomaMRIBase.check_timing(prepared, sys)
+        KomaMRIBase.check_timing(prepared, check_sys)
     end
     blocks, event_libraries = collect_pulseq_assets(prepared, raster)
     return PulseqSequenceData(blocks, event_libraries, v"1.5.1", nothing)
