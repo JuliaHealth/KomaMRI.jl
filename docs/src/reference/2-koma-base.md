@@ -152,6 +152,7 @@ get_samples
 times
 ampls
 freqs
+freq_times
 ```
 
 ### Other functions
@@ -172,4 +173,39 @@ PulseDesigner.EPI
 PulseDesigner.radial_base
 PulseDesigner.spiral_base
 PulseDesigner.EPI_example
+```
+
+### PulseDesigner constructors
+
+```@docs
+PulseDesigner.make_trapezoid
+PulseDesigner.build_trapezoid
+PulseDesigner.make_arbitrary_grad
+PulseDesigner.build_arbitrary_grad
+PulseDesigner.make_extended_trapezoid
+PulseDesigner.build_extended_trapezoid
+PulseDesigner.make_extended_trapezoid_area
+PulseDesigner.build_extended_trapezoid_area
+PulseDesigner.make_block_pulse
+PulseDesigner.build_block_pulse
+PulseDesigner.make_sinc_pulse
+PulseDesigner.build_sinc_pulse
+PulseDesigner.make_arbitrary_rf
+PulseDesigner.build_arbitrary_rf
+PulseDesigner.make_gauss_pulse
+PulseDesigner.build_gauss_pulse
+PulseDesigner.make_adiabatic_pulse
+PulseDesigner.build_adiabatic_pulse
+PulseDesigner.make_label
+PulseDesigner.build_label
+PulseDesigner.make_rotation
+PulseDesigner.build_rotation
+PulseDesigner.make_trigger
+PulseDesigner.build_trigger
+PulseDesigner.make_digital_output_pulse
+PulseDesigner.build_digital_output_pulse
+PulseDesigner.make_delay
+PulseDesigner.build_delay
+PulseDesigner.make_adc
+PulseDesigner.build_adc
 ```
