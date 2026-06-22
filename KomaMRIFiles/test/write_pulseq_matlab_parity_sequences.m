@@ -66,13 +66,14 @@ seq.addBlock(mr.makeTrigger('physio2', 'delay', 20e-6, 'duration', 100e-6, 'syst
 seq.addBlock(mr.makeDigitalOutputPulse('osc0', 'system', sys), 'roundUpBlockDuration');
 seq.addBlock(mr.makeDigitalOutputPulse('osc1', 'delay', 20e-6, 'duration', 100e-6, 'system', sys), 'roundUpBlockDuration');
 seq.addBlock(mr.makeDigitalOutputPulse('ext1', 'duration', 200e-6, 'system', sys), 'roundUpBlockDuration');
-seq.addBlock(mr.makeArbitraryGrad('x', gamma*[0; 1e-3; 0], sys), 'roundUpBlockDuration');
+seq.addBlock(mr.makeArbitraryGrad('x', gamma*[0; 1e-3; 0], sys, 'first', -gamma*0.5e-3, 'last', -gamma*0.5e-3), 'roundUpBlockDuration');
 seq.addBlock(mr.makeArbitraryGrad('x', gamma*[0; 0.5e-3; 1e-3; 0.5e-3; 0], sys, 'first', -gamma*0.25e-3, 'last', -gamma*0.25e-3, 'delay', 20e-6), 'roundUpBlockDuration');
 seq.addBlock(mr.makeArbitraryGrad('x', gamma*[0; 0.2e-3; 0.4e-3; 0.2e-3; 0], sys, 'oversampling', true, 'first', -gamma*0.2e-3, 'last', -gamma*0.2e-3), 'roundUpBlockDuration');
 seq.addBlock(mr.makeExtendedTrapezoid('x', sys, 'times', [0, 0.5e-3, 1e-3], 'amplitudes', gamma*[0, 1e-3, 0]), 'roundUpBlockDuration');
 g = mr.makeExtendedTrapezoid('x', sys, 'times', [20e-6, 0.5e-3, 1e-3], 'amplitudes', gamma*[0, 1e-3, 0]); seq.addBlock(round(mr.calcDuration(g)/sys.blockDurationRaster)*sys.blockDurationRaster, g);
 g = mr.makeExtendedTrapezoid('x', sys, 'times', [20e-6, 0.5e-3, 1e-3], 'amplitudes', gamma*[1e-3, 2e-3, 0], 'skip_check', true); seq.addBlock(round(mr.calcDuration(g)/sys.blockDurationRaster)*sys.blockDurationRaster, g);
-seq.addBlock(mr.makeExtendedTrapezoid('x', sys, 'times', [0, 0.355e-3, 1e-3], 'amplitudes', gamma*[0, 1e-3, 0], 'convert2arbitrary', true), 'roundUpBlockDuration');
+waveform = mr.pts2waveform([0, 0.355e-3, 1e-3], gamma*[0, 1e-3, 0], sys.gradRasterTime);
+seq.addBlock(mr.makeArbitraryGrad('x', waveform, sys, 'first', 0, 'last', 0), 'roundUpBlockDuration');
 [g, t, a] = mr.makeExtendedTrapezoidArea('x', 0, 0, gamma*10e-6, sys); seq.addBlock(round(mr.calcDuration(g)/sys.blockDurationRaster)*sys.blockDurationRaster, g);
 prep = mr.makeExtendedTrapezoid('x', sys, 'times', [0, 100e-6], 'amplitudes', gamma*[0, 10e-3]);
 [g, t, a] = mr.makeExtendedTrapezoidArea('x', gamma*10e-3, gamma*5e-3, gamma*2e-6, sys); seq.addBlock(prep, 'roundUpBlockDuration'); seq.addBlock(g, 'roundUpBlockDuration');

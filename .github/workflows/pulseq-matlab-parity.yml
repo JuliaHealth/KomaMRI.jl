@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 jobs:
-  parity:
+  pulseq-parity:
     if: >-
       ${{
         github.event_name == 'workflow_dispatch' ||
@@ -38,13 +38,17 @@ jobs:
         with:
           version: '1'
       - uses: julia-actions/cache@v3
-      - uses: matlab-actions/setup-matlab@v2
+      - uses: matlab-actions/setup-matlab@v3
         with:
           cache: true
           products: >
             Curve_Fitting_Toolbox
-      - name: Checkout latest Pulseq
-        run: git clone --depth=1 https://github.com/pulseq/pulseq.git "$RUNNER_TEMP/pulseq"
+      - name: Download latest Pulseq
+        run: |
+          curl -fsSL https://github.com/pulseq-admin/pulseq/archive/refs/heads/master.zip -o "$RUNNER_TEMP/pulseq.zip"
+          unzip -q "$RUNNER_TEMP/pulseq.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/pulseq-master" "$RUNNER_TEMP/pulseq"
+          mkdir -p "$HOME/Documents/MATLAB"
       - name: KomaMRIFiles parity test setup
         shell: julia --color=yes --project=KomaMRIFiles/test {0}
         run: |
@@ -54,7 +58,18 @@ jobs:
               PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
           ])
           Pkg.instantiate()
-      - name: Run MATLAB Pulseq parity
+          using KomaMRIBase
+          open(ENV["GITHUB_ENV"], "a") do io
+              println(io, "KOMA_GAMMA=$(KomaMRIBase.γ)")
+          end
+      - name: Write MATLAB Pulseq reference
+        uses: matlab-actions/run-command@v3
         env:
           PULSEQ_MATLAB: ${{ runner.temp }}/pulseq/matlab
+          PULSEQ_MATLAB_SEQ: ${{ runner.temp }}/pulseq_matlab_parity.seq
+        with:
+          command: run('KomaMRIFiles/test/write_pulseq_matlab_parity_sequences.m')
+      - name: Run MATLAB Pulseq parity
+        env:
+          PULSEQ_MATLAB_SEQ: ${{ runner.temp }}/pulseq_matlab_parity.seq
         run: julia --color=yes --project=KomaMRIFiles/test -e 'include("KomaMRIFiles/test/pulseq_matlab_parity.jl")'

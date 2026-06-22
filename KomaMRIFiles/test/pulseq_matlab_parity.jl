@@ -6,17 +6,13 @@ using Unitful
 
 const MATLAB = get(ENV, "MATLAB", "matlab")
 const PULSEQ_MATLAB = get(ENV, "PULSEQ_MATLAB", "")
+const PULSEQ_MATLAB_SEQ = get(ENV, "PULSEQ_MATLAB_SEQ", "")
 const MATLAB_PULSEQ_EVENT_SIGNIFICANT_DIGITS = 6
 const MATLAB_PULSEQ_SHAPE_SIGNIFICANT_DIGITS = 9
 
 matlab_string(s) = replace(s, "'" => "''")
 
 function run_pulseq_matlab_parity()
-    matlab = Sys.which(MATLAB)
-    matlab === nothing && isfile(MATLAB) && (matlab = MATLAB)
-    matlab === nothing && error("MATLAB not found. Set MATLAB or put matlab on PATH.")
-    isempty(PULSEQ_MATLAB) && error("Set PULSEQ_MATLAB to the Pulseq MATLAB source directory.")
-    isdir(PULSEQ_MATLAB) || error("Pulseq MATLAB path not found at $PULSEQ_MATLAB")
     sys = Scanner(
         B1=20u"μT", Gmax=40u"mT/m", Smax=170u"T/m/s", ADC_Δt=100u"ns",
         DUR_Δt=10u"μs", GR_Δt=10u"μs", RF_Δt=1u"μs",
@@ -170,14 +166,24 @@ function run_pulseq_matlab_parity()
     end
     mktempdir() do dir
         koma_path = joinpath(dir, "koma_pulseq_parity.seq")
-        matlab_path = joinpath(dir, "pulseq_matlab_parity.seq")
-        script = joinpath(@__DIR__, "write_pulseq_matlab_parity_sequences.m")
-        withenv(
-            "PULSEQ_MATLAB_SEQ" => matlab_path,
-            "KOMA_GAMMA" => string(γ),
-            "PULSEQ_MATLAB" => PULSEQ_MATLAB,
-        ) do
-            run(`$matlab -batch $("run('$(matlab_string(script))')")`)
+        matlab_path = isempty(PULSEQ_MATLAB_SEQ) ?
+            joinpath(dir, "pulseq_matlab_parity.seq") : PULSEQ_MATLAB_SEQ
+        if isempty(PULSEQ_MATLAB_SEQ)
+            matlab = Sys.which(MATLAB)
+            matlab === nothing && isfile(MATLAB) && (matlab = MATLAB)
+            matlab === nothing && error("MATLAB not found. Set MATLAB or put matlab on PATH.")
+            isempty(PULSEQ_MATLAB) && error("Set PULSEQ_MATLAB to the Pulseq MATLAB source directory.")
+            isdir(PULSEQ_MATLAB) || error("Pulseq MATLAB path not found at $PULSEQ_MATLAB")
+            script = joinpath(@__DIR__, "write_pulseq_matlab_parity_sequences.m")
+            withenv(
+                "PULSEQ_MATLAB_SEQ" => matlab_path,
+                "KOMA_GAMMA" => string(γ),
+                "PULSEQ_MATLAB" => PULSEQ_MATLAB,
+            ) do
+                run(`$matlab -batch $("run('$(matlab_string(script))')")`)
+            end
+        else
+            isfile(matlab_path) || error("Pulseq MATLAB reference sequence not found at $matlab_path")
         end
         write_seq(
             koma_seq, koma_path; verbose=false,
