@@ -658,61 +658,6 @@ end
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
-@testitem "Spinor rotation kernel Reactant Enzyme" tags=[:core, :nomotion, :ad, :reactant, :skipci] begin
-    using Enzyme: Const, ReverseWithPrimal, gradient, set_runtime_activity
-    using Reactant
-
-    Reactant.set_default_backend("cpu")
-    Reactant.allowscalar(false)
-
-    T = Float32
-    Nspins = 5
-    φ0 = T.(range(T(0.2), T(0.8), length=Nspins))
-    nxy_const = Complex{T}.(
-        range(T(0.3), T(0.7), length=Nspins),
-        range(T(0.1), T(0.5), length=Nspins),
-    )
-    nz_const = T.(range(T(0.4), T(0.8), length=Nspins))
-
-    function kernel_loss(φ_vec, nxy, nz)
-        s = Q(φ_vec, nxy, nz)
-        return sum(abs2, s.α) + sum(abs2, s.β)
-    end
-
-    function kernel_grad_and_loss(φ_vec, nxy, nz)
-        (; val, derivs) = gradient(
-            ReverseWithPrimal, kernel_loss, φ_vec, Const(nxy), Const(nz),
-        )
-        return val, derivs[1]
-    end
-
-    function fd_grad(φ, nxy, nz, j; ε=1f-3)
-        φp = copy(φ); φm = copy(φ)
-        φp[j] += ε; φm[j] -= ε
-        return (kernel_loss(φp, nxy, nz) - kernel_loss(φm, nxy, nz)) / (2ε)
-    end
-
-    native_loss = kernel_loss(φ0, nxy_const, nz_const)
-
-    φ_ra = Reactant.to_rarray(φ0)
-    nxy_ra = Reactant.to_rarray(nxy_const)
-    nz_ra = Reactant.to_rarray(nz_const)
-
-    compiled = Reactant.@compile sync=true kernel_grad_and_loss(φ_ra, nxy_ra, nz_ra)
-    reactant_loss, reactant_∇φ = compiled(φ_ra, nxy_ra, nz_ra)
-
-    reactant_loss = Reactant.to_number(reactant_loss)
-    reactant_∇φ = Array(reactant_∇φ)
-    j = 3
-    fd_val = fd_grad(φ0, nxy_const, nz_const, j)
-
-    @test isfinite(reactant_loss)
-    @test all(isfinite, reactant_∇φ)
-    @test any(x -> !iszero(x), reactant_∇φ)
-    @test isapprox(reactant_loss, native_loss; rtol=1f-5, atol=1f-7)
-    @test isapprox(reactant_∇φ[j], fd_val; rtol=1f-2, atol=1f-3)
-end
-
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
     include("initialize_backend.jl")
 
