@@ -1,9 +1,9 @@
 function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
 
-    # Get the samples of the events in the sequence
+    # Get the sequence event waveforms
     samples = get_samples(seq)
 
-    # Create a dictionary with the event samples of the sequence
+    # Create a dictionary with the sampled event waveforms
     Gx = hcat(samples.gx.t, samples.gx.A)
     Gy = hcat(samples.gy.t, samples.gy.A)
     Gz = hcat(samples.gz.t, samples.gz.A)
@@ -24,16 +24,18 @@ function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
 end
 
 function export_2_mat_kspace(seq, matfolder; matfilename="seq_kspace.mat")
-    kspace, kspace_adc = get_kspace(seq; Δt=1)
+    sampling_rule = MaxStepSizeRule(1, 5e-5)
+    kspace, kspace_adc = get_kspace(seq; sampling_rule)
     matwrite(joinpath(matfolder, matfilename), Dict("kspace" => kspace, "kspace_adc" => kspace_adc))
 end
 
 function export_2_mat_moments(seq, matfolder; matfilename="seq_moments.mat")
-    t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
-    t = t[1:end-1]
-    k0, _ =  KomaMRIBase.get_kspace(seq; Δt=1)
-    k1, _ =  KomaMRIBase.get_M1(seq; Δt=1)
-    k2, _ =  KomaMRIBase.get_M2(seq; Δt=1)
+    sampling_rule = MaxStepSizeRule(1, 5e-5)
+    seqd = discretize(seq; sampling_rule)
+    t = seqd.t[1:end-1]
+    k0, _ =  KomaMRIBase.get_kspace(seqd)
+    k1, _ =  KomaMRIBase.get_M1(seqd)
+    k2, _ =  KomaMRIBase.get_M2(seqd)
     moments = hcat(t, k0, k1, k2)
     matwrite(joinpath(matfolder, matfilename), Dict("moments" => moments))
 end
