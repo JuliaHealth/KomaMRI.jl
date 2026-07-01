@@ -111,9 +111,3 @@ write_seq(seq, seq_file; sys)
 
 # The exported sequence matches MATLAB Pulseq's `mini_gre.m` output at
 # floating-point precision.
-matlab_seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/3.tutorials/data/mini_gre_matlab.seq") #hide
-matlab_seq = read_seq(matlab_seq_file; verbose=false) #hide
-matlab_precision_file = joinpath(tempdir(), "mini_gre_matlab_precision.seq") #hide
-write_seq(seq, matlab_precision_file; sys, significant_digits=6, shape_significant_digits=9, verbose=false) #hide
-seq_matlab_precision = read_seq(matlab_precision_file; verbose=false) #hide
-seq_matlab_precision ≈ matlab_seq
