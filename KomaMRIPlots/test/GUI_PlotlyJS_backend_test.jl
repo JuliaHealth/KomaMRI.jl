@@ -1,6 +1,9 @@
 #GUI tests
 @testitem "PlotlyJS" tags=[:plots] begin
+    import KomaMRIPlots: plot_backend!
     using KomaMRIBase, MRIFiles
+
+    plot_backend!("PlotlyJS")
 
     @testset "GUI_phantom" begin
         ph = brain_phantom2D()    #2D phantom

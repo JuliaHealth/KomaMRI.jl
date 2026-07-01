@@ -1,5 +1,8 @@
 @testitem "PlutoPlotly" tags=[:plots] begin
+    import KomaMRIPlots: plot_backend!
     using KomaMRIBase, PlutoPlotly #Testing package extension
+
+    plot_backend!("PlutoPlotly")
 
     @testset "GUI_seq_PlutoPlotly" begin
         #KomaCore definition of a sequence:
