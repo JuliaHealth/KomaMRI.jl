@@ -70,6 +70,7 @@
 - The npm scripts in `docs/package.json` run VitePress on `docs/build/.documenter`, which is the generated VitePress source. Use `npm run docs:dev`, `npm run docs:build`, or `npm run docs:preview` only when intentionally using the VitePress workflow; do not treat `.documenter` as the final static site and do not serve `docs/build/1` through VitePress.
 - If VitePress components such as tabs are involved, verify the final `docs/build/1` page is interactive and the referenced `/assets/app.*.js` returns 200.
 - For Literate docs, hide implementation-only setup and plotting plumbing with `#hide`; show the result the reader should learn from. Avoid leaving a bare final variable such as `p` visible when it only exists to render a plot.
+- Do not add special cases to Literate docs generation for individual pages or filenames. Use the standard `lit-*` source and ignored `gen-*` generated outputs; do not preserve legacy URLs by changing generator behavior.
 - Prefer examples that generate their figures from source data/code. Keep complex plotting code hidden unless the plotting code itself is the lesson.
 - For interactive docs figures, prefer KomaMRI/KomaMRIPlots APIs and rendered interactive HTML. Do not replace them with static assets or low-level Plotly trace construction unless the user asks or there is no higher-level API.
 - Keep `DocumenterVitepress.deploydocs(...)` in `docs/make.jl`.
