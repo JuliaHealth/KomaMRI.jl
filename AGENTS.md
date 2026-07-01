@@ -78,10 +78,11 @@
 ## PRs And Releases
 - PRs target `master`, stay scoped, and include what changed, why, and what was tested.
 - Add trigger labels at PR creation when the first CI run matters: `documentation`, `run-gpu-ci`, or `pre-release`. Adding them after PR creation is too late for the first run.
-- Release tags are annotated tags on current `origin/master`, not feature branches: `git fetch origin master --tags`, `git tag -a <tag> -F notes.md origin/master`, `git push origin <tag>`, `gh release create <tag> --title <tag> --notes-file notes.md`.
+- Manual fallback release tags are annotated tags on current `origin/master`, not feature branches: `git fetch origin master --tags`, `git tag -a <tag> -F notes.md origin/master`, `git push origin <tag>`, `gh release create <tag> --title <tag> --notes-file notes.md`.
 - Register package versions only after the release PR is merged and `origin/master` contains the target package/version. Do not trigger JuliaRegistrator from an open PR.
 - For subpackage registration, comment on the merged `origin/master` commit, not the PR: `@JuliaRegistrator register subdir=<PackageName>`. PR comments do not trigger Registrator in this repo.
-- Registration comes before tagging/releasing: wait for the corresponding `JuliaRegistries/General` PR to merge, then create the annotated package tag and GitHub release from the same `origin/master` commit.
+- Registration comes before tagging/releasing: wait for the corresponding `JuliaRegistries/General` PR to merge.
+- JuliaTagBot creates tags and GitHub releases for the root package and subpackages after General registration merges; do not create manual tags/releases unless TagBot fails or the user explicitly asks.
 - Registrator notes must mention breaking status: include `## Breaking changes` or state `No breaking changes`.
 
 ## References
