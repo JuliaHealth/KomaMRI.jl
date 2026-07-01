@@ -39,6 +39,159 @@ const group = get(ENV, "TEST_GROUP", :core) |> Symbol
 
 @run_package_tests filter=ti->(group in ti.tags)&&(isnothing(CI) || :skipci ∉ ti.tags) #verbose=true
 
+@testitem "simulation-method sampling rule default" tags=[:core, :nomotion] begin
+    struct RuleDefaultMethod <: KomaMRICore.SimulationMethod end
+    struct RuleDefaultTestRule <: SamplingRule end
+
+    KomaMRICore.default_sampling_rule(::RuleDefaultMethod, sim_params) = RuleDefaultTestRule()
+
+    sim_params = KomaMRICore.default_sim_params(Dict{String,Any}("sim_method" => RuleDefaultMethod()))
+    @test !haskey(sim_params, "sampling_rule")
+    rule = KomaMRICore.simulation_sampling_rule(sim_params["sim_method"], sim_params)
+    @test rule isa KomaMRICore.IntegrationNodeSamplingRule
+    @test rule.rule isa RuleDefaultTestRule
+    @test KomaMRICore.integration_nodes(BlochMagnusConst1()) == (0,)
+    @test KomaMRICore.integration_nodes(BlochMagnusLin2()) == (0, 1)
+    @test KomaMRICore.integration_nodes(BlochMagnusMid2()) == (1//2,)
+    @test KomaMRICore.integration_nodes(BlochMagnusLinComm2()) == (0, 1)
+    @test KomaMRICore.integration_nodes(BlochMagnusQuad4()) == (0, 1//2, 1)
+    @test KomaMRICore.eval_intervals_per_step(BlochMagnusConst1()) == 1
+    @test KomaMRICore.eval_intervals_per_step(BlochMagnusMid2()) == 2
+    @test KomaMRICore.eval_intervals_per_step(BlochMagnusQuad4()) == 2
+    @test KomaMRICore.eval_intervals_per_step(BlochMagnusGL4()) == 3
+
+    override = MaxStepSizeRule(2e-3, 3e-5)
+    sim_params = KomaMRICore.default_sim_params(Dict{String,Any}(
+        "sim_method" => RuleDefaultMethod(),
+        "sampling_rule" => override,
+    ))
+    @test sim_params["sampling_rule"] === override
+    rule = KomaMRICore.simulation_sampling_rule(sim_params["sim_method"], sim_params)
+    @test rule.rule === override
+
+    sim_params = KomaMRICore.default_sim_params(Dict{String,Any}("sim_method" => BlochMagnusQuad4()))
+    sim_params["Δt_rf"] = 2.5e-4
+    rule = KomaMRICore.simulation_sampling_rule(sim_params["sim_method"], sim_params)
+    @test rule.rule.Δt_rf == 2.5e-4
+
+    sim_params["preserve_samples"] = ()
+    rule = KomaMRICore.simulation_sampling_rule(sim_params["sim_method"], sim_params)
+    @test KomaMRIBase.preserved_samples(rule) == ()
+
+    delays = Sequence()
+    delays += Delay(1e-3)
+    delays += Delay(1e-3)
+    base_seqd = discretize(delays; sampling_rule=MaxStepSizeRule(Inf, Inf))
+    @test base_seqd.Δt ≈ [2e-3]
+
+    method_rule = KomaMRICore.simulation_sampling_rule(BlochMagnusQuad4(), Dict("Δt" => Inf, "Δt_rf" => Inf))
+    method_seqd = discretize(delays; sampling_rule=method_rule)
+    @test method_seqd.t ≈ [0.0, 2e-3]
+    @test method_seqd.Δt ≈ [2e-3]
+end
+
+@testitem "BlochMagnusQuad4 midpoint sampling" tags=[:core, :nomotion] begin
+    # Quadratic RF intervals are represented as start, true midpoint, and stop rows.
+    seq = Sequence()
+    @addblock seq += RF([1.0, 2.0, 4.0] .* 1e-6, 1e-3, [0.0, 500.0, 1000.0])
+    rule = KomaMRICore.simulation_sampling_rule(BlochMagnusQuad4(), Dict("Δt" => Inf, "Δt_rf" => 2.5e-4))
+    seqd = discretize(seq; motion=NoMotion(), sampling_rule=rule)
+
+    let i = firstindex(seqd.Δt)
+        while i <= lastindex(seqd.Δt)
+            if seqd.excitation_bool[i] && seqd.Δt[i] > 0
+                midpoint = i + 1
+                stop = i + 2
+                @test midpoint <= lastindex(seqd.Δt)
+                @test stop <= lastindex(seqd.t)
+                @test seqd.excitation_bool[midpoint]
+                @test seqd.Δt[i] ≈ seqd.Δt[midpoint]
+                @test seqd.t[midpoint] ≈ (seqd.t[i] + seqd.t[stop]) / 2
+
+                direct = KomaMRIBase.evaluate_sequence_at(seq, [seqd.t[midpoint]])
+                @test only(direct.B1) ≈ seqd.B1[midpoint]
+                @test only(direct.Δf) ≈ seqd.Δf[midpoint]
+                i += 2
+            else
+                i += 1
+            end
+        end
+    end
+end
+
+@testitem "BlochMagnusGL RF sampling" tags=[:core, :nomotion] begin
+    # GL RF intervals keep boundary rows but use two interior Gauss-Legendre nodes.
+    seq = Sequence()
+    @addblock seq += RF([1.0, 2.0, 4.0] .* 1e-6, 1e-3, [0.0, 500.0, 1000.0])
+    rule = KomaMRICore.simulation_sampling_rule(BlochMagnusGL4(), Dict("Δt" => Inf, "Δt_rf" => 2.5e-4))
+    seqd = discretize(seq; motion=NoMotion(), sampling_rule=rule)
+    c_minus = 1 / 2 - sqrt(3) / 6
+    c_plus = 1 / 2 + sqrt(3) / 6
+
+    let i = firstindex(seqd.Δt)
+        while i <= lastindex(seqd.Δt)
+            if seqd.excitation_bool[i] && seqd.Δt[i] > 0
+                i_minus, i_plus, stop = i + 1, i + 2, i + 3
+                @test i_plus <= lastindex(seqd.Δt)
+                @test stop <= lastindex(seqd.t)
+                @test seqd.excitation_bool[i_minus]
+                @test seqd.excitation_bool[i_plus]
+                Δt = sum(seqd.Δt[i:i_plus])
+                @test seqd.t[i_minus] ≈ seqd.t[i] + c_minus * Δt
+                @test seqd.t[i_plus] ≈ seqd.t[i] + c_plus * Δt
+
+                direct = KomaMRIBase.evaluate_sequence_at(seq, [seqd.t[i_minus], seqd.t[i_plus]])
+                @test direct.B1 ≈ seqd.B1[[i_minus, i_plus]]
+                @test direct.Δf ≈ seqd.Δf[[i_minus, i_plus]]
+                i += 3
+            else
+                i += 1
+            end
+        end
+    end
+end
+
+@testitem "BlochMagnus RF block length counts simulation steps" tags=[:core, :nomotion] begin
+    seq = Sequence()
+    @addblock seq += RF([1.0, 2.0, 4.0] .* 1e-6, 1e-3, [0.0, 500.0, 1000.0])
+
+    for (sim_method, eval_stride) in ((BlochMagnusMid2(), 2), (BlochMagnusQuad4(), 2), (BlochMagnusGL4(), 3))
+        rule = KomaMRICore.simulation_sampling_rule(sim_method, Dict("Δt" => Inf, "Δt_rf" => 2.5e-4))
+        seqd = discretize(seq; motion=NoMotion(), sampling_rule=rule)
+        ranges, is_excitation = KomaMRICore.get_sim_ranges(
+            seqd;
+            max_rf_block_length=1,
+            eval_intervals_per_step=KomaMRICore.eval_intervals_per_step(sim_method),
+        )
+        @test all(length(r) - 1 == eval_stride for (r, excitation) in zip(ranges, is_excitation) if excitation)
+    end
+end
+
+@testitem "BlochMagnus simulates RF-center/max-step collision" tags=[:core, :nomotion] begin
+    sys = Scanner()
+    sys.Smax = 100.0
+    rf_B1 = 4.9e-6
+    rf_duration = 3.2e-3
+    slice_thickness = 8e-3
+    slice_bandwidth = 5e3
+    Gz = slice_bandwidth / (γ * slice_thickness)
+    seq = PulseDesigner.RF_sinc(rf_B1, rf_duration, sys; G=[Gz, 0.0, 0.0], TBP=8)
+    obj = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[Inf], T2=[Inf])
+
+    for sim_method in (BlochMagnusMid2(), BlochMagnusQuad4(), BlochMagnusGL2(), BlochMagnusGL4())
+        sim_params = KomaMRICore.default_sim_params(Dict{String,Any}(
+            "gpu" => false,
+            "precision" => "f64",
+            "return_type" => "state",
+            "sim_method" => sim_method,
+            "Δt" => 1e-3,
+            "Δt_rf" => 100e-6,
+        ))
+        simulate(obj, seq, sys; sim_params, verbose=false)
+        @test true
+    end
+end
+
 @testitem "Spinors×Mag" tags=[:core, :nomotion] begin
     using KomaMRICore: Rx, Ry, Rz, Q, rotx, roty, rotz, Un, Rφ, Rg
 
@@ -227,6 +380,27 @@ end
     end
 end
 
+@testitem "simulation precision" tags=[:core, :nomotion] begin
+    seq = Sequence()
+    @addblock seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
+    obj = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[1e6], T2=[1e6], Δw=[0.0])
+
+    for (precision, T) in ("f32" => Float32, "f64" => Float64, "bigfloat" => BigFloat)
+        sim_params = Dict{String,Any}(
+            "gpu" => false,
+            "Nthreads" => 1,
+            "return_type" => "state",
+            "precision" => precision,
+            "sim_method" => BlochMagnus1(),
+            "Δt" => Inf,
+            "Δt_rf" => 50e-6,
+        )
+        state = simulate(obj, seq, Scanner(); sim_params, verbose=false)
+        @test eltype(state.xy) === Complex{T}
+        @test eltype(state.z) === T
+    end
+end
+
 @testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
@@ -238,9 +412,13 @@ end
 
     for sim_method in (
         KomaMRICore.Bloch(),
-        KomaMRICore.BlochMagnus1(),
-        KomaMRICore.BlochMagnus2(),
-        KomaMRICore.BlochMagnus4()
+        KomaMRICore.BlochMagnusConst1(),
+        KomaMRICore.BlochMagnusLin2(),
+        KomaMRICore.BlochMagnusLinComm2(),
+        KomaMRICore.BlochMagnusQuad2(),
+        KomaMRICore.BlochMagnusQuad4(),
+        KomaMRICore.BlochMagnusGL2(),
+        KomaMRICore.BlochMagnusGL4()
     )
         @testset "$(nameof(typeof(sim_method)))" begin
             sim_params = Dict{String, Any}(
@@ -300,7 +478,7 @@ end
     for (grad_name, grad) in grad_events, (rf_name, rf) in rf_events
         seq = waveform_sequence(grad, rf)
         @test get_adc_sampling_times(seq) ≈ ref_adc_times
-        for sim_method in (Bloch(), BlochMagnus1(), BlochMagnus2(), BlochMagnus4())
+        for sim_method in (Bloch(), BlochMagnusConst1(), BlochMagnusLin2(), BlochMagnusLinComm2(), BlochMagnusQuad2(), BlochMagnusQuad4(), BlochMagnusGL2(), BlochMagnusGL4())
             @testset "$grad_name/$rf_name $(nameof(typeof(sim_method)))" begin
                 sim_params = Dict{String, Any}(
                     "gpu" => USE_GPU,
@@ -347,7 +525,7 @@ end
     mxy_diffeq = diffeq_signal(seq, obj)
 
     ## Solve with KomaMRI
-    methods_to_test = [Bloch(), BlochMagnus1(), BlochMagnus2(), BlochMagnus4()]
+    methods_to_test = [Bloch(), BlochMagnusConst1(), BlochMagnusLin2(), BlochMagnusLinComm2(), BlochMagnusQuad2(), BlochMagnusQuad4(), BlochMagnusGL2(), BlochMagnusGL4()]
     sim_params_to_test = [Dict{String, Any}("Δt_rf"=>1e-5, "return_type"=>"mat", "sim_method"=>method) for method in methods_to_test]
     for sim_params in sim_params_to_test
         @testset "$(sim_params["sim_method"])" begin 
@@ -382,9 +560,13 @@ end
 
     for sim_method in (
         KomaMRICore.Bloch(),
-        KomaMRICore.BlochMagnus1(),
-        KomaMRICore.BlochMagnus2(),
-        KomaMRICore.BlochMagnus4()
+        KomaMRICore.BlochMagnusConst1(),
+        KomaMRICore.BlochMagnusLin2(),
+        KomaMRICore.BlochMagnusLinComm2(),
+        KomaMRICore.BlochMagnusQuad2(),
+        KomaMRICore.BlochMagnusQuad4(),
+        KomaMRICore.BlochMagnusGL2(),
+        KomaMRICore.BlochMagnusGL4()
     )
         @testset "$(nameof(typeof(sim_method)))" begin
             sim_params = Dict{String, Any}("Δt_rf"=>1e-5, "gpu"=>USE_GPU, "sim_method"=>sim_method)
@@ -476,9 +658,13 @@ end
         methods_to_test = (
             KomaMRICore.Bloch(),
             KomaMRICore.BlochDict(),
-            KomaMRICore.BlochMagnus1(),
-            KomaMRICore.BlochMagnus2(),
-            KomaMRICore.BlochMagnus4(),
+            KomaMRICore.BlochMagnusConst1(),
+            KomaMRICore.BlochMagnusLin2(),
+            KomaMRICore.BlochMagnusLinComm2(),
+            KomaMRICore.BlochMagnusQuad2(),
+            KomaMRICore.BlochMagnusQuad4(),
+            KomaMRICore.BlochMagnusGL2(),
+            KomaMRICore.BlochMagnusGL4(),
         )
         for sim_method in methods_to_test
             @testset "$(nameof(typeof(sim_method)))" begin
@@ -499,6 +685,86 @@ end
                     end
                 end
             end
+        end
+    end
+end
+
+@testitem "freq_in_phase preserves RF frequency offsets" tags=[:core, :nomotion, :gpu] begin
+    include("initialize_backend.jl")
+
+    sim_params = Dict{String,Any}(
+        "gpu" => USE_GPU,
+        "return_type" => "state",
+        "Δt" => Inf,
+        "Δt_rf" => 5e-6,
+    )
+    methods = (Bloch(), BlochSimple(), BlochMagnus1(), BlochMagnus2(), BlochMagnus4(), BlochMagnus6())
+
+    @testset "slice-selective excitation" begin
+        sys = Scanner()
+        sys.Smax = 50
+        B1 = 4.92e-6
+        Trf = 3.2e-3
+        z0 = 4e-3
+        z = [-z0, 0.0, z0]
+        Gz = 5e3 / (γ * 0.02)
+        Δf = γ * Gz * z0
+        seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0; 0; Gz], TBP=8)
+        shifted_seq = PulseDesigner.RF_sinc(B1, Trf, sys; G=[0; 0; Gz], Δf=Δf, TBP=8)
+
+        for method in methods, freq_in_phase in (false, true)
+            params = copy(sim_params)
+            params["sim_method"] = method
+            params["freq_in_phase"] = freq_in_phase
+            profile = abs.(simulate_slice_profile(seq; z, sim_params=copy(params), verbose=false).xy)
+            shifted_profile = abs.(simulate_slice_profile(shifted_seq; z, sim_params=copy(params), verbose=false).xy)
+            @test z[argmax(profile)] == 0.0
+            @test z[argmax(shifted_profile)] == z0
+        end
+    end
+
+    @testset "adiabatic inversion" begin
+        duration = 18.3e-3
+        b1max = 13.5e-6
+        β̂ = 4
+        μ = 6
+        β = 2β̂ / duration
+        t = range(-duration / 2, duration / 2, 4001)
+        B1 = b1max .* sech.(β .* t)
+        Δf = -μ * β .* tanh.(β .* t) ./ (2π)
+        shift = 1000.0
+        freqs = [-shift, 0.0, shift]
+        obj = Phantom(x=zeros(length(freqs)), y=zeros(length(freqs)), z=zeros(length(freqs)), Δw=2π .* freqs)
+        seq = Sequence()
+        shifted_seq = Sequence()
+        @addblock seq += RF(B1, duration, Δf, 0)
+        @addblock shifted_seq += RF(B1, duration, Δf .+ shift, 0)
+
+        for method in methods, freq_in_phase in (false, true)
+            params = copy(sim_params)
+            params["sim_method"] = method
+            params["freq_in_phase"] = freq_in_phase
+            profile = simulate(obj, seq, Scanner(); sim_params=copy(params), verbose=false).z
+            shifted_profile = simulate(obj, shifted_seq, Scanner(); sim_params=copy(params), verbose=false).z
+            @test freqs[argmin(profile)] == 0.0
+            @test freqs[argmin(shifted_profile)] == shift
+        end
+    end
+
+    @testset "fat saturation" begin
+        Δf = -440.0
+        seq = Sequence()
+        @addblock seq += RF(fill(1.0e-6, 65), 1e-3, Δf)
+        seq.RF[1].A .*= 90 / only(get_flip_angles(seq))
+        freqs = [-Δf, 0.0, Δf]
+        obj = Phantom(x=zeros(length(freqs)), Δw=2π .* freqs)
+
+        for method in methods, freq_in_phase in (false, true)
+            params = copy(sim_params)
+            params["sim_method"] = method
+            params["freq_in_phase"] = freq_in_phase
+            state = simulate(obj, seq, Scanner(); sim_params=params, verbose=false)
+            @test freqs[argmin(abs.(state.z))] == Δf
         end
     end
 end
@@ -565,9 +831,13 @@ end
         KomaMRICore.Bloch(),
         KomaMRICore.BlochSimple(),
         KomaMRICore.BlochDict(),
-        KomaMRICore.BlochMagnus1(),
-        KomaMRICore.BlochMagnus2(),
-        KomaMRICore.BlochMagnus4()
+        KomaMRICore.BlochMagnusConst1(),
+        KomaMRICore.BlochMagnusLin2(),
+        KomaMRICore.BlochMagnusLinComm2(),
+        KomaMRICore.BlochMagnusQuad2(),
+        KomaMRICore.BlochMagnusQuad4(),
+        KomaMRICore.BlochMagnusGL2(),
+        KomaMRICore.BlochMagnusGL4()
     ]
         @testset "$(typeof(sim_method))" begin
             for motion in motions

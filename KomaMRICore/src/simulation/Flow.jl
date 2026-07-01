@@ -1,3 +1,10 @@
+spin_coordinates(motion, x, y, z, t) = get_spin_coords(motion, x, y, z, t)
+spin_coordinates(::NoMotion, x, y, z, t) = x, y, z
+
+outflow_spin_reset_at!(spin_state, t, i, motion; replace_by=0) =
+   outflow_spin_reset!(spin_state, t[i, :], motion; replace_by)
+outflow_spin_reset_at!(spin_state, t, i, ::NoMotion; replace_by=0) = nothing
+
 function outflow_spin_reset!(args...; kwargs...)
    return nothing
 end

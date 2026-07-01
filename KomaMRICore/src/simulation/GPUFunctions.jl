@@ -21,21 +21,21 @@ Base.:*(x::Number, ::Literal{T}) where T = T(x)
 const u32 = Literal(UInt32)
 
 """
-    get_backend(use_gpu)
+    get_backend(use_gpu::Bool)
 
-Gets the simulation backend to use. If use_gpu=false or there are no available GPU backends, 
-returns CPU(), else, returns the GPU backend (currently either CUDABackend(), MetalBackend(), 
-ROCBackend(), or oneAPIBackend() (experimental).
+Gets the simulation backend to use. If `use_gpu=false` or there are no available GPU backends,
+returns `CPU()`, else returns the GPU backend (currently either `CUDABackend()`,
+`MetalBackend()`, `ROCBackend()`, or `oneAPIBackend()`).
 
 The GPU package for the corresponding backend (CUDA.jl, Metal.jl, AMDGPU.jl, or
 oneAPI.jl) must be loaded and functional, otherwise KomaMRI will default to using
 the CPU. oneAPI support is experimental.
 
 # Arguments
-- 'use_gpu': ('::Bool') If true, attempt to use GPU and check for available backends
+- `use_gpu`: if true, attempt to use GPU and check for available backends
 
 # Returns
-- 'backend': (::KernelAbstractions.backend) The backend to use
+- `backend`: selected `KernelAbstractions.Backend`
 """
 function get_backend(use_gpu::Bool)
     if !isnothing(BACKEND[])
@@ -91,13 +91,14 @@ function get_backend(use_gpu::Bool)
 end
 
 """
-    print_devices()
+    print_devices(use_gpu=true)
 
 Simple function to print available devices. Calls internal get_backend() function to
 get the appropriate GPU / CPU backend and prints device information.
 
 # Arguments
-- 'use_gpu':  ('::Bool') If true, check for loaded / functional GPU backends and print appropriate warnings if no GPU backends have been loaded
+- `use_gpu`: if true, check for loaded / functional GPU backends and print appropriate
+  warnings if no GPU backends have been loaded
 """
 function print_devices(use_gpu = true)
     backend = get_backend(use_gpu)
