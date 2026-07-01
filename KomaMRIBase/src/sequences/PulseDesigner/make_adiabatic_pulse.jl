@@ -14,11 +14,12 @@ function build_adiabatic_pulse(type; sys=Scanner(), kwargs...)
     rf, gz, gz_rephaser = make_adiabatic_pulse(type; sys, kwargs...)
     seq = Sequence(sys)
     if gz === nothing
-        addblock!(seq, rf, Duration(block_duration_to_fit_rf_ringdown(rf, sys)))
+        addblock!(seq, rf)
+        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
         return seq
     end
-    duration = block_duration_to_fit_rf_ringdown(rf, sys, gz)
-    addblock!(seq, rf, Duration(duration); z=gz)
+    addblock!(seq, rf; z=gz)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
     addblock!(seq; z=gz_rephaser)
     return seq
 end
@@ -53,8 +54,8 @@ WURST keywords:
 
 Slice-selective keywords:
 - `slice_thickness=nothing`: Slice thickness. [`m`]
-- `max_grad=sys.Gmax`: Slice-gradient amplitude limit override. [`T/m`]
-- `max_slew=sys.Smax`: Slice-gradient slew limit override. [`T/m/s`]
+- `max_grad=nothing`: Slice-gradient amplitude limit override. Plain numbers use Pulseq units. [`Hz/m`]
+- `max_slew=nothing`: Slice-gradient slew limit override. Plain numbers use Pulseq units. [`Hz/m/s`]
 
 # Returns
 - `rf`: RF event.
@@ -79,7 +80,16 @@ function _make_adiabatic_pulse(type::Union{Val{:hypsec},Val{:wurst}};
     duration=10e-3, sys=Scanner(), slice_thickness=nothing,
     freq_offset=0.0, phase_offset=0.0, beta=800.0, mu=4.9, n_fac=40,
     bandwidth=40000.0, adiabaticity=4.0, delay=0.0, dwell=sys.RF_Δt,
-    use=Undefined(), max_grad=sys.Gmax, max_slew=sys.Smax)
+    use=Undefined(), max_grad=nothing, max_slew=nothing)
+    duration        = to_SI(duration, SIUnitsDefault())
+    slice_thickness = to_SI(slice_thickness, SIUnitsDefault())
+    freq_offset     = to_SI(freq_offset, SIUnitsDefault())
+    phase_offset    = to_SI(phase_offset, SIUnitsDefault())
+    bandwidth       = to_SI(bandwidth, SIUnitsDefault())
+    delay           = to_SI(delay, SIUnitsDefault())
+    dwell           = to_SI(dwell, SIUnitsDefault())
+    max_grad        = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew        = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
     duration > 0 || error("RF pulse duration must be positive.")
     dwell > 0 || error("RF dwell time must be positive.")
     nraw = round(Int, duration / dwell + eps())
@@ -91,19 +101,18 @@ function _make_adiabatic_pulse(type::Union{Val{:hypsec},Val{:wurst}};
         npad = nraw - n
         signal = [zeros(ComplexF64, npad - div(npad, 2)); signal; zeros(ComplexF64, div(npad, 2))]
     end
-    pulseq_center = pulseq_rf_peak_center(signal, dwell)
+    peak_center = rf_peak_center(signal, dwell)
     rf_start_time = max(delay, sys.RF_dead_time)
     rf = RF(signal ./ γ, (nraw - 1) * dwell, freq_offset, rf_start_time + dwell / 2;
-        center=pulseq_center - dwell / 2, ϕ=phase_offset, use)
+        center=peak_center - dwell / 2, ϕ=phase_offset, use)
     slice_thickness === nothing && return rf, nothing, nothing
     slice_thickness > 0 || error("Slice thickness must be positive.")
     slice_bandwidth = adiabatic_slice_bandwidth(
-        type, signal, pulseq_center, dwell, duration, bandwidth,
+        type, signal, peak_center, dwell, duration, bandwidth,
         freq_offset, phase_offset, Δω,
     )
     slice_area = slice_bandwidth * duration / (γ * slice_thickness)
-    center_pos = pulseq_center / duration
-    gz, gz_rephaser = slice_select_gradient_events(duration, slice_area, center_pos; sys,
+    gz, gz_rephaser = slice_select_gradient_events(duration, slice_area, rf; sys,
         rf_start_time, max_grad, max_slew)
     rf.delay = max(rf_start_time, gz.rise + gz.delay) + dwell / 2
     return rf, gz, gz_rephaser
@@ -146,7 +155,7 @@ function adiabatic_signal(B₁, Δω, Δt, adiabaticity)
     return B₁_Hz .* B₁ .* cis.(ϕ .- ϕ0)
 end
 
-function pulseq_rf_peak_center(signal, dwell)
+function rf_peak_center(signal, dwell)
     # MATLAB Pulseq calcRfCenter uses the peak plateau center; Koma's default
     # RF center is amplitude-weighted, so choose the Pulseq center explicitly.
     peak = maximum(abs, signal)

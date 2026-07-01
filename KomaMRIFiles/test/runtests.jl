@@ -149,7 +149,21 @@ end
         @addblock bad_adc_dwell += (ADC(adc_samples, (adc_samples - 1) * bad_dwell, bad_dwell / 2), Duration(block_raster))
         @test_throws ErrorException write_seq_data(bad_adc_dwell; check_hw_limits=false, verbose=false)
 
+        # With timing checks disabled, the writer still quantizes ADC dwell to the Pulseq raster.
+        data = write_seq_data(bad_adc_dwell; check_timing=false, check_hw_limits=false, verbose=false)
+        @test only(values(data.libraries.adc_library)).dwell == adc_raster
+
+        # A block with one gradient axis should not allocate empty library events for the others.
+        single_axis = Sequence(Scanner(Gmax=Inf, Smax=Inf))
+        @addblock single_axis += (x=Grad(1e-3, 1e-3))
+        data = write_seq_data(single_axis; verbose=false)
+        @test only(data.blocks).gx_id != 0
+        @test only(data.blocks).gy_id == 0
+        @test only(data.blocks).gz_id == 0
+        @test length(data.libraries.grad_library) == 1
+
         @testset "Write rejects events longer than block duration" begin
+            # Strict Pulseq write duration checks use event end times, including sample-edge offsets.
             block_raster = 50e-9
             rf_raster = 100e-9
             grad_raster = 100e-9
@@ -159,24 +173,26 @@ end
             fit_sys = Scanner(B1=Inf, Gmax=Inf, Smax=Inf, DUR_Δt=block_raster, GR_Δt=grad_raster, RF_Δt=rf_raster, ADC_Δt=adc_raster, RF_dead_time=0.0, RF_ring_down_time=0.0, ADC_dead_time=0.0)
             function expect_write_duration_error(seq, duration) # Strict write must not stretch this duration.
                 seq.DUR[1] = duration
-                @test_throws ErrorException KomaMRIFiles.write_seq_data(seq; check_hw_limits=false, verbose=false)
+                @test_throws ErrorException KomaMRIFiles.write_seq_data(seq; sys=fit_sys, check_hw_limits=false, verbose=false)
             end
             function expect_write_duration_ok(seq, duration)
                 seq.DUR[1] = duration
-                @test !isnothing(KomaMRIFiles.write_seq_data(seq; check_hw_limits=false, verbose=false))
+                @test !isnothing(KomaMRIFiles.write_seq_data(seq; sys=fit_sys, check_hw_limits=false, verbose=false))
             end
 
+            # Compact sampled RF and gradients extend half a sample past their Koma event duration.
             compact_rf = Sequence(fit_sys)
             @addblock compact_rf += RF([1e-6, 1e-6], rf_raster, 0.0, rf_half_raster)
             compact_rf_end = dur(compact_rf) + rf_half_raster
             @test dur(compact_rf) ≈ rf_raster + rf_half_raster
-            expect_write_duration_error(compact_rf, dur(compact_rf)) # compact RF ends half an RF raster after Koma dur
+            expect_write_duration_error(compact_rf, dur(compact_rf))
             expect_write_duration_ok(compact_rf, compact_rf_end)
 
+            # Time-shaped events must reserve every explicit interval, including the last one.
             time_shaped_rf = Sequence(fit_sys)
             rf_intervals = [rf_raster, rf_raster]
             @addblock time_shaped_rf += RF([1e-6, 0.5e-6], rf_intervals, 0.0, 0.0)
-            expect_write_duration_error(time_shaped_rf, first(rf_intervals)) # length(T)==length(A): last interval still counts
+            expect_write_duration_error(time_shaped_rf, first(rf_intervals))
             expect_write_duration_ok(time_shaped_rf, sum(rf_intervals))
 
             compact_grad = Sequence(fit_sys)
@@ -188,9 +204,10 @@ end
             time_shaped_grad = Sequence(fit_sys)
             grad_intervals = [grad_raster, grad_raster]
             @addblock time_shaped_grad += (x=Grad([0.2e-3, 0.4e-3], grad_intervals))
-            expect_write_duration_error(time_shaped_grad, first(grad_intervals)) # length(T)==length(A): last interval still counts
+            expect_write_duration_error(time_shaped_grad, first(grad_intervals))
             expect_write_duration_ok(time_shaped_grad, sum(grad_intervals))
 
+            # ADC write duration includes the trailing half dwell after the last Koma sample.
             adc_samples = 2
             adc_dwell = adc_raster
             adc = ADC(adc_samples, (adc_samples - 1) * adc_dwell, adc_dwell / 2)
@@ -198,7 +215,7 @@ end
             @test dur(adc) ≈ adc.delay + adc.T
             adc_edge = Sequence(fit_sys)
             @addblock adc_edge += adc
-            expect_write_duration_error(adc_edge, dur(adc)) # Pulseq ADC event ends dwell/2 after Koma dur
+            expect_write_duration_error(adc_edge, dur(adc))
             expect_write_duration_ok(adc_edge, adc_end)
         end
 
@@ -253,6 +270,19 @@ end
                 @test occursin("extension ROTATIONS", rewritten_text)
             end
 
+            @testset "Constant time-shaped gradients preserve area" begin
+                filename = joinpath(tmpdir, "constant_time_shaped.seq")
+                g = Grad(
+                    [-0.2e-3, -0.2e-3, nextfloat(-0.2e-3)],
+                    [1.19e-3, 2e-14], 0.25e-3, 0.25e-3,
+                )
+                seq = Sequence()
+                @addblock seq += (y=g)
+                write_seq(seq, filename; check_timing=false, verbose=false)
+                roundtrip = read_seq(filename; verbose=false)
+                @test area(roundtrip.GR[2,1]) ≈ area(g)
+            end
+
             @testset "ROTATIONS gradient-library dedup" begin
                 repeated = Sequence()
                 gx = Grad([0.0, 0.2e-3, 0.4e-3, 0.2e-3], 12e-6, 2e-6, 2e-6)
@@ -293,6 +323,18 @@ end
         @test shape == shape2
     end
     @testset "Labels" begin
+        mktempdir() do tmpdir
+            # Extension chains must roundtrip without dropping labels from the same block.
+            seq = Sequence()
+            @addblock seq += (LabelSet(0, "SLC"), LabelSet(0, "LIN"))
+            @addblock seq += (LabelSet(0, "SLC"), LabelSet(0, "LIN"), LabelInc(1, "SLC"))
+            filename = joinpath(tmpdir, "label-chain.seq")
+            write_seq(seq, filename; check_timing=false, verbose=false)
+            roundtrip = read_seq(filename; verbose=false)
+            @test roundtrip.EXT[1] == [LabelSet(0, "SLC"), LabelSet(0, "LIN")]
+            @test roundtrip.EXT[2] == [LabelSet(0, "SLC"), LabelSet(0, "LIN"), LabelInc(1, "SLC")]
+        end
+
         pth = @__DIR__
         seq = read_seq(pth*"/test_files/pulseq/basic_tests/v1.4/label_test.seq"; verbose=false)
         label = get_labels(seq)
@@ -444,8 +486,8 @@ end
         center = qseq.RF[1, 1].center
         event = rf_event(seq)
         @test event.time_shape_id > 0
-        @test event.delay ≈ 2Δt_rf
-        @test event.center ≈ center
+        @test event.delay ≈ Δt_rf
+        @test event.center ≈ center + Δt_rf
 
         center = 0.83Δt_rf
         seq = Sequence()
@@ -459,7 +501,7 @@ end
         qseq = exported_sequence(KomaMRIFiles.write_seq_data(seq; verbose=false))
         center = qseq.RF[1, 1].center
         event = rf_event(seq)
-        @test event.time_shape_id == -1
+        @test event.time_shape_id > 0
         @test event.delay ≈ Δt_rf
         @test event.center ≈ center + Δt_rf / 2
         @test qseq.RF[1, 1].center ≈ center
@@ -470,7 +512,7 @@ end
         center = qseq.RF[1, 1].center
         event = rf_event(seq)
         @test event.time_shape_id > 0
-        @test event.center ≈ center
+        @test event.center ≈ center + Δt_rf / 2
         @test qseq.RF[1, 1].center ≈ center
 
         center = 0.83Δt_rf
@@ -478,7 +520,7 @@ end
         seq += RF(ComplexF64[1.0, 0.5, 1.0], [0.75Δt_rf, 1.25Δt_rf], 0.0, 3Δt_rf / 2, center)
         event = rf_event(seq)
         @test event.time_shape_id > 0
-        @test event.center ≈ center
+        @test event.center ≈ center + Δt_rf / 2
 
         seq = Sequence()
         seq += RF(ComplexF64[1.0, 0.5, 1.0], 2Δt_rf, 0.0, Δt_rf / 4)
@@ -652,17 +694,22 @@ end
         end
     end
     @testset "Phase-cycled RF and ADC event dedup" begin
+        block_raster = KomaMRIFiles.DEFAULT_RASTER.BlockDurationRaster
         rf_raster = KomaMRIFiles.DEFAULT_RASTER.RadiofrequencyRasterTime
         adc_raster = KomaMRIFiles.DEFAULT_RASTER.AdcRasterTime
         adc_samples = 128
         adc_dwell = 160adc_raster
         seq = Sequence()
         A = fill(1e-6 + 0im, 3)
-        rf = RF(A, 2rf_raster, 0.0, 140rf_raster + rf_raster / 2)
-        adc = ADC(adc_samples, (adc_samples - 1) * adc_dwell, 480adc_raster)
+        rf_pulseq_delay = 140rf_raster
+        rf = RF(A, 2rf_raster, 0.0, rf_pulseq_delay + rf_raster / 2)
+        adc_delay = 480adc_raster
+        adc = ADC(adc_samples, (adc_samples - 1) * adc_dwell, adc_delay)
+        adc_end = delay(adc) - dwell(adc) / 2 + adc.N * dwell(adc)
+        block_duration = ceil(adc_end / block_raster) * block_raster
         for i in 1:8
             phase = cis(π * (i - 1))
-            addblock!(seq, phase * rf, phase * adc)
+            addblock!(seq, phase * rf, phase * adc, Duration(block_duration))
         end
         libs = pulseq_data_after_write(seq, "phase-cycled-dedup.seq").libraries
         @test length(libs.rf_library) == 2

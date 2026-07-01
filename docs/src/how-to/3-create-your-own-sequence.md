@@ -1,13 +1,20 @@
 # Build Sequences with `@addblock`
 
-A Koma `Sequence` is a list of sequence blocks. Each block stores RF events,
-one gradient per axis, ADC events, a duration, and extensions such as labels,
-triggers, or rotations.
+Use [`@addblock`](@ref) / [`@addblocks`](@ref) to write pulse programs in block
+form. One block contains events that play together: RF, ADC, and extensions are
+positional events, while gradients are assigned to axes with `x=`, `y=`, and
+`z=`.
 
-This page shows the block-oriented style for building pulse programs. It maps
-closely to MATLAB Pulseq and PyPulseq `addBlock` / `add_block` code, but Koma can
-also append named `Sequence` parts, such as a readout or prephaser, in one
-statement.
+Direct [`addblock!`](@ref) appends one block, for example
+`addblock!(seq, rf; z=gz)`. The `@addblock` macro uses the same destination
+sequence but adds syntax for common pulse-programming patterns:
+
+- Single block expression: `(rf, z=gz)`.
+- Multiple blocks in one line: `(rf, z=gz) + (x=gx, adc)`.
+- Sequence block transformations. See [Transform Sequences](#transform-sequences):
+  - Gradient scaling: `0.5 * (x=gx, adc)`.
+  - Gradient rotation: `rotz(θ) * (x=gx, adc)`.
+  - RF scaling and RF/ADC phase: `2cis(ϕ) * (rf, adc)`.
 
 Use `@addblock` to append block expressions:
 
@@ -36,9 +43,9 @@ seq.add_block(rf, gz)
 
 :::
 
-After `+=`, each tuple becomes a `Sequence` of length one and its events are
-copied into `seq`. Each `Sequence` on the right-hand side contributes all of its
-blocks. `+` appends them left-to-right:
+With `@addblock`, `+` means "append these blocks in order", so you can append
+multiple sequence blocks in one line. A tuple such as `(rf, z=gz)` becomes one
+copied block; a `Sequence` term contributes all of its blocks.
 
 :::tabs
 
@@ -68,8 +75,8 @@ seq.add_block(pp.make_delay(TR), pp.make_label('ECO', 'INC', 1))
 
 ## Gradient Axes
 
-Koma `Grad` events are axis-neutral. Choose the axis when adding the block with
-`x=`, `y=`, or `z=`. RF, ADC, and extensions are positional.
+**Koma `Grad` events are axis-neutral.** Choose the axis when adding the block
+with `x=`, `y=`, or `z=`. RF, ADC, and extensions are positional.
 
 :::tabs
 
@@ -93,7 +100,8 @@ seq.add_block(rf, pp.make_label('LIN', 'SET', ky), gz)
 
 :::
 
-Named tuples are useful when a block has gradients on several axes:
+Specify multiple gradient events in one block by giving each direction with
+`x=`, `y=`, and `z=`:
 
 :::tabs
 
@@ -133,8 +141,8 @@ excitation.add_block(*rewinder)
 
 ## Block Duration
 
-Use `Delay(T)` for a minimum block duration. Use `Duration(T)` for an exact block
-duration; it errors if any RF, gradient, or ADC event is longer than `T`.
+- `Delay(T)`: minimum block duration.
+- `Duration(T)`: exact block duration. Errors if any event is longer than `T`.
 
 :::tabs
 
@@ -164,10 +172,10 @@ seq.add_block(rf, gz, pp.make_delay(TR))
 
 :::
 
-`Delay` and `Duration` are construction helpers: they update block `DUR`; they
+`Delay` and `Duration` are construction helpers: they update `seq.DUR`; they
 are not stored as RF, gradient, ADC, or extension events.
 
-## Scanner and Raster Times
+## Sequences Considering Hardware Limits
 
 Use `Sequence(sys)` when export checks should use a scanner. `write_seq` checks
 raster timing and event-local hardware limits from `seq.DEF`, or from `sys` when
@@ -206,6 +214,18 @@ seq.write('sequence.seq')
 
 :::
 
+Optional checks can also be enabled per append. Pass only the checks you need;
+when the sequence was created with `Sequence(sys)`, the checks can use that
+scanner metadata directly.
+
+```julia
+@addblock check_timing=true seq += (rf, z=gz)
+
+# Define checks once when you want to toggle them together.
+checks = (; check_timing=true, check_hw_limits=true)
+@addblock checks seq += (rf, z=gz)
+```
+
 ## Add Blocks in Loops
 
 Use `@addblocks` around loops that append to a sequence. Inside the macro,
@@ -241,13 +261,16 @@ for ky in range(Ny):
 
 :::
 
-Do not use plain `seq += readout` in long loops. In Julia it means
-`seq = seq + readout`; Koma's `+` returns a copied sequence so reused events do not share
-mutable events. That is safe, but can be more than 800x slower in long loops.
+Do not use plain `seq += readout` in long loops. It calls Koma's `+`, which
+builds a new copied sequence from the old `seq` and `readout`. That append
+semantic is useful when you want a new independent sequence, but it scales
+poorly when repeated. Use `@addblocks` for in-place appends.
 
-## Reuse Named Sequences
+## Sequence Building Blocks
 
 Name a small part of the pulse program as a normal `Sequence`, then append it.
+In contrast to Pulseq helper functions that call `addBlock` on a destination,
+Koma sequence parts are block lists themselves, so they can be appended together.
 For example, `readout` below is a one-block `Sequence`, not a new event type.
 
 :::tabs
@@ -328,6 +351,10 @@ for ky in range(Ny):
 Koma defines arithmetic on `Sequence` values. Each operation returns a copy, so
 the original sequence can be reused. Inside `@addblock`, left-multiplying a block
 tuple applies the same operation to that one-block sequence.
+
+The macro lowers `op * (x=gx, adc)` by first making a one-block `Sequence`, then
+calling `op * seq`. Add new transforms by extending `Base.:*(op, seq::Sequence)`
+for the operation type.
 
 ### Scale Gradients
 
@@ -425,9 +452,10 @@ seq.add_block(gx, adc_phase)
 
 :::
 
-## Build Radial Spokes
+## Let's Put It All Together!
 
-Rotate the readout block for each spoke:
+Rotate the readout block for each spoke. Koma can rotate the whole block tuple;
+Pulseq rotates the events before passing them to `addBlock`.
 
 :::tabs
 
@@ -463,9 +491,10 @@ for spoke in range(Nspokes):
 
 ## Append Semantics
 
-Use this section when you need to reason about copies or performance.
-Tuple terms become one new block through `addblock!`. Existing `Sequence` terms
-append all of their blocks through `append!`.
+Use this section when you need to reason about copies or performance. Tuple
+terms become one fresh block through `addblock!`. Existing `Sequence` terms
+append all of their blocks through `append!`, which copies those blocks into the
+destination.
 
 :::tabs
 
@@ -485,4 +514,5 @@ addblock!(seq, adc; x=gx)     # copies adc and gx into a new block, then appends
 :::
 
 `@addblocks` applies the same rewrite to `+=` expressions in its scope when the
-left-hand side is a `Sequence`.
+left-hand side is a `Sequence`. Plain `seq = seq + readout` instead constructs a
+new copied `Sequence`, so avoid it inside long loops.

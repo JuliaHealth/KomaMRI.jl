@@ -292,7 +292,7 @@ function _copy_events(x::AbstractArray{T}) where {T}
 end
 _copy_block_metadata(x) = deepcopy(x)
 _fits_eltype(::Type{T}, x) where {T} = all(value -> typeof(value) <: T, x)
-const _BlockEvent = Union{Grad,RF,ADC,Extension}
+const _BlockEvent = Union{Grad,RF,ADC,Extension,Nothing}
 const _BlockEventTuple = Tuple{_BlockEvent,Vararg{_BlockEvent}}
 
 function _event_column(events::NTuple{N,T}) where {N,T}
@@ -412,12 +412,12 @@ Base.push!(x::Sequence, y::Sequence) = append!(x, y)
 _event_tuple(::Type{T}) where {T} = ()
 _event_tuple(::Type{T}, event::T, rest...) where {T} = (event, _event_tuple(T, rest...)...)
 _event_tuple(::Type{T}, event, rest...) where {T} = _event_tuple(T, rest...)
-_check_block_event(::Union{Grad,RF,ADC,Extension}) = nothing
+_check_block_event(::_BlockEvent) = nothing
 _check_block_event(event) = error("Unsupported block event $(typeof(event)).")
 _block_duration(block_duration) = block_duration
 _block_duration(block_duration, event, events...) = _block_duration(_block_duration(block_duration, event), events...)
+_block_duration(block_duration, ::Nothing) = block_duration
 _block_duration(block_duration, event) = max(block_duration, dur(event))
-_block_duration(block_duration, adc::ADC) = max(block_duration, _pulseq_duration(adc))
 _block_duration_constraint() = nothing
 _block_duration_constraint(event) = nothing
 function _block_duration_constraint(event, events...)
@@ -862,7 +862,7 @@ function get_Mk(seq::Sequence, k; Δt=1)
 	# Moment
 	Nt = length(t)
 	mk = zeros(Nt,3)
-	# get_RF_center_breaks
+		# rf_center_breaks
 	idx_rf, rf_types = get_RF_types(seq, t)
 	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3

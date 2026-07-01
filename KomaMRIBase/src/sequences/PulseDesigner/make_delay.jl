@@ -27,6 +27,7 @@ Return a Pulseq-style delay event.
 - `delay_event`: Delay event.
 """
 function make_delay(delay)
+    delay = to_SI(delay, SIUnitsDefault())
     isfinite(delay) && delay >= 0 || error("Delay must be finite and nonnegative.")
     return Delay(delay)
 end

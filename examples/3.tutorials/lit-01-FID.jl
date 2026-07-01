@@ -19,8 +19,8 @@ exc = RF(ampRF,durRF);
 
 nADC = 8192         # number of acquisition samples
 durADC = 250e-3     # duration of the acquisition
-delay =  1e-3       # small delay
-acq = ADC(nADC, durADC, delay);
+delay_time =  1e-3  # small delay
+acq = ADC(nADC, durADC, delay_time);
 
 # Finally, we add the sequence blocks to create the final sequence.
 

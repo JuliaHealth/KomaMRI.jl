@@ -66,7 +66,7 @@ mutable struct RF{AT,TT,ΔFT}
             error("RF timings must be non-negative.")
         end
         rf = RF(A, T, Δf, delay, nothing, mod(ϕ, 2π), use, Val(:preserve))
-        return RF(A, T, Δf, delay, get_RF_center(rf), ϕ, use)
+        return RF(A, T, Δf, delay, rf_center(rf), ϕ, use)
     end
     function RF(A, T, Δf, delay, center, ϕ, use)
         if _has_negative_timings(T) || delay < 0
@@ -165,7 +165,13 @@ Base.isapprox(u1::RFUse, u2::RFUse; kwargs...) = u1 == u2
 field_isapprox(rf1::RF, rf2::RF; kwargs...) = isapprox(rf1, rf2; kwargs...)
 function Base.isapprox(rf1::RF, rf2::RF; kwargs...)
     typeof(rf1) === typeof(rf2) || return false
-    return fields_isapprox(rf1, rf2; kwargs...)
+    return field_isapprox(rf1.A, rf2.A; kwargs...) &&
+        field_isapprox(rf1.T, rf2.T; kwargs...) &&
+        field_isapprox(rf1.Δf, rf2.Δf; kwargs...) &&
+        field_isapprox(rf1.delay, rf2.delay; kwargs...) &&
+        field_isapprox(rf1.center, rf2.center; kwargs...) &&
+        phase_isapprox(rf1.ϕ, rf2.ϕ; kwargs...) &&
+        field_isapprox(rf1.use, rf2.use; kwargs...)
 end
 Base.copy(rf::RF) = RF(_deepcopy_fields(rf)..., Val(:preserve))
     
@@ -232,22 +238,22 @@ get_flip_angle(x::RF) = begin
 end
 
 """
-    t = get_RF_center(x::RF)
+    t = rf_center(x::RF)
 
-Calculates the time where is the center of the RF pulse `x` .
-It does not include the RF delay and uses the weighted average of times by amplitude.
+Return the RF center inside the RF event. It does not include the RF delay and
+uses the weighted average of times by amplitude when no center is stored.
 
 # Arguments
 - `x`: (`::RF`) RF struct
 
 # Returns
-- `t`: (`::Real` or `Nothing`, `[s]`) time where is the center of the RF pulse `x`, or `nothing` if the RF amplitude is zero
+- `t`: (`::Real`, `[s]`) center time of the RF pulse `x`
 """
-function get_RF_center(rf::BlockPulseRF)
+function rf_center(rf::BlockPulseRF)
     !isnothing(rf.center) && return rf.center
     return sum(rf.T) / 2
 end
-function get_RF_center(rf::RF)
+function rf_center(rf::RF)
     !isnothing(rf.center) && return rf.center
     weights = abs.(ampls(rf))
     isempty(weights) && return 0.0

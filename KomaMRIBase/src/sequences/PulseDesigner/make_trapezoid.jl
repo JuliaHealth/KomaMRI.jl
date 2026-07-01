@@ -26,17 +26,17 @@ end
 Return a Pulseq-style trapezoidal gradient event.
 
 # Keywords
-- `area=nothing`: Total gradient area, including ramps. [`T/m*s`]
-- `flat_area=nothing`: Flat-top area, excluding ramps. [`T/m*s`]
-- `amplitude=nothing`: Flat-top gradient amplitude. [`T/m`]
+- `area=nothing`: Total gradient area, including ramps. Plain numbers use Pulseq units. [`1/m`]
+- `flat_area=nothing`: Flat-top area, excluding ramps. Plain numbers use Pulseq units. [`1/m`]
+- `amplitude=nothing`: Flat-top gradient amplitude. Plain numbers use Pulseq units. [`Hz/m`]
 - `flat_time=nothing`: Flat-top duration. [`s`]
 - `duration=nothing`: Total gradient duration, excluding `delay`. [`s`]
 - `delay=0.0`: Gradient delay. [`s`]
 - `rise_time=nothing`: Rise ramp duration. [`s`]
 - `fall_time=nothing`: Fall ramp duration; requires `rise_time`. [`s`]
 - `sys=Scanner()`: Scanner defaults and raster times.
-- `max_grad=sys.Gmax`: Gradient amplitude limit override. [`T/m`]
-- `max_slew=sys.Smax`: Slew limit override. [`T/m/s`]
+- `max_grad=nothing`: Gradient amplitude limit override. Plain numbers use Pulseq units. [`Hz/m`]
+- `max_slew=nothing`: Slew limit override. Plain numbers use Pulseq units. [`Hz/m/s`]
 
 Exactly one of `area`, `flat_area`, or `amplitude` must be supplied.
 
@@ -45,19 +45,34 @@ Exactly one of `area`, `flat_area`, or `amplitude` must be supplied.
 """
 function make_trapezoid(; area=nothing, flat_area=nothing, amplitude=nothing,
     flat_time=nothing, duration=nothing, delay=0.0, rise_time=nothing, fall_time=nothing,
-    sys=Scanner(), max_grad=sys.Gmax, max_slew=sys.Smax)
-    # Keyword dispatch cannot distinguish Unitful `area`, `flat_area`, or `amplitude`.
-    area = si_gradient_area(area)
-    flat_area = si_gradient_area(flat_area)
-    amplitude = si_gradient(amplitude)
-    flat_time = si_time(flat_time)
-    duration = si_time(duration)
-    delay = si_time(delay)
-    rise_time = si_time(rise_time)
-    fall_time = si_time(fall_time)
-    max_grad = si_gradient(max_grad)
-    max_slew = si_slew_rate(max_slew)
+    sys=Scanner(), max_grad=nothing, max_slew=nothing)
+    area      = to_SI(area, PulseqUnitsDefault())
+    flat_area = to_SI(flat_area, PulseqUnitsDefault())
+    amplitude = to_SI(amplitude, PulseqUnitsDefault())
+    flat_time = to_SI(flat_time, SIUnitsDefault())
+    duration  = to_SI(duration, SIUnitsDefault())
+    delay     = to_SI(delay, SIUnitsDefault())
+    rise_time = to_SI(rise_time, SIUnitsDefault())
+    fall_time = to_SI(fall_time, SIUnitsDefault())
+    max_grad  = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew  = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    return trapezoid(
+        area, flat_area, amplitude, flat_time, duration, delay, rise_time, fall_time,
+        sys, max_grad, max_slew,
+    )
+end
 
+function trapezoid(; area=nothing, flat_area=nothing, amplitude=nothing,
+    flat_time=nothing, duration=nothing, delay=0.0, rise_time=nothing, fall_time=nothing,
+    sys=Scanner(), max_grad=sys.Gmax, max_slew=sys.Smax)
+    return trapezoid(
+        area, flat_area, amplitude, flat_time, duration, delay, rise_time, fall_time,
+        sys, max_grad, max_slew,
+    )
+end
+
+function trapezoid(area, flat_area, amplitude, flat_time, duration, delay, rise_time,
+    fall_time, sys, max_grad, max_slew)
     if count(!isnothing, (area, flat_area, amplitude)) != 1
         error("Supply exactly one of area, flat_area, or amplitude.")
     end

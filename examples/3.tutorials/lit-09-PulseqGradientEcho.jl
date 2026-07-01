@@ -5,25 +5,28 @@
 # are native Koma objects: they can be plotted, exported to Pulseq, or used in
 # Koma simulation workflows.
 #
-# This tutorial follows the structure of Pulseq's compact `mini_gre.m` example:
+# This tutorial follows Pulseq's compact
+# [`mini_gre.m`](https://github.com/pulseq-admin/pulseq/blob/master/matlab/demoUnsorted/mini_gre.m):
 # a slice-selective RF pulse, phase prephasing, Cartesian readout, and a small
 # phase-encoding loop.
 
 using KomaMRI
 using KomaMRI.PulseDesigner # May move to its own package.
-using Unitful # Optional; without units, constructors use SI values.
+using Unitful # Lets us write values with units like 20u"mT/m".
 
 # We start with scanner limits and sequence parameters.
 sys = Scanner(
-    Gmax=20u"mT/m", Smax=40u"T/m/s",
+    B1=50u"μT", Gmax=20u"mT/m", Smax=100u"T/m/s", ADC_Δt=100u"ns",
     RF_ring_down_time=20u"μs", RF_dead_time=100u"μs", ADC_dead_time=10u"μs",
 );
 
+# `Scanner` keyword arguments are converted independently. Plain numbers are SI;
+# Unitful quantities can be mixed in per field when the physical unit is clear.
 FOV = 256u"mm"
 slice_thickness = 5u"mm"
-Nx = Ny = 32
+Nx = Ny = 128
 flip_angle = 15u"deg"
-TE = 9u"ms"
+TE = 8u"ms"
 TR = 22u"ms"
 rf_duration = 4u"ms"
 readout_time = 6.4u"ms"
@@ -31,35 +34,43 @@ prephaser_time = 2u"ms";
 
 # ## Pulseq-style constructors
 #
-# PulseDesigner follows a simple convention:
+# Pulseq's `seq.addBlock(...)` appends one block: a set of events played
+# together. A Koma `Sequence` is the ordered list of those blocks.
 #
-# - `make_*` creates event objects, such as `Grad`, `RF`, or `ADC`.
-# - `build_*` creates a one-block `Sequence`, or a short sequence when the
-#   Pulseq event naturally expands to multiple blocks.
+# - `make_*` creates events or event tuples, like Pulseq's `mr.make*`.
+# - `build_*` creates a `Sequence` with the event already placed into block(s).
 #
-# For the slice-selective RF pulse, `build_sinc_pulse` creates the RF block and
-# the slice rephaser block.
+# We use `make_*` throughout so the blocks below follow the same structure as
+# the Pulseq mini GRE example.
 
-excitation = build_sinc_pulse(flip_angle; duration=rf_duration, slice_thickness, sys, use=Excitation());
+rf, gz, gz_reph = make_sinc_pulse(
+    flip_angle; duration=rf_duration, slice_thickness, apodization=0.5,
+    time_bw_product=4, sys, use=Excitation(),
+);
 
-γ_unit = γ * u"Hz/T"
 Δk = 1 / FOV
-readout_area = Nx * Δk / γ_unit
+readout_area = Nx * Δk
 
 gx = make_trapezoid(; flat_area=readout_area, flat_time=readout_time, sys)
-adc = make_adc(Nx; duration=readout_time, delay=gx.rise * u"s", sys)
-gx_pre = make_trapezoid(; area=-area(gx) / 2 * u"T*s/m", duration=prephaser_time, sys);
+adc = make_adc(Nx; duration=gx.T, delay=gx.rise, sys)
+gx_area = area(gx) * u"T*s/m"
+gx_pre = make_trapezoid(; area=-gx_area / 2, duration=prephaser_time, sys);
 
-phase_areas = ((0:(Ny-1)) .- (Ny - 1) / 2) .* Δk ./ γ_unit
-max_grad_area = maximum(abs.(phase_areas))
-gy_pre = make_trapezoid(; area=max_grad_area, duration=prephaser_time, sys);
-phase_scales = phase_areas ./ max_grad_area;
+gy_pre = make_trapezoid(; area=Ny / 2 * Δk, duration=prephaser_time, sys)
+phase_scales = (0:(Ny - 1)) ./ (Ny / 2) .- 1;
 
-# `build_delay` is the sequence-returning version of `make_delay`; it is useful
-# when the delay is meant to be appended as its own block.
-rf_center = excitation.RF[1].delay + excitation.RF[1].center # Sequence blocks are indexable.
-delay_te = build_delay(TE - (dur(excitation) - rf_center + dur(gx_pre) + dur(gx) / 2) * u"s"; sys)
-delay_tr = build_delay(TR - (dur(excitation) + dur(gx_pre) + dur(delay_te) + dur(gx)) * u"s"; sys);
+delay_te = make_delay(
+    round_to_raster(
+        to_SI(TE) - (gz.T / 2 + gz.fall + dur(gx_pre) + dur(gx) / 2),
+        sys.GR_Δt,
+    ),
+)
+delay_tr = make_delay(
+    round_to_raster(
+        to_SI(TR) - (dur(gx_pre) + dur(gz) + dur(gx) + dur(delay_te)),
+        sys.GR_Δt,
+    ),
+);
 
 # ## Building the sequence
 #
@@ -68,8 +79,8 @@ delay_tr = build_delay(TR - (dur(excitation) + dur(gx_pre) + dur(delay_te) + dur
 function mini_gre_sequence()
     seq = Sequence(sys)
     @addblocks for pe_scale in phase_scales
-        seq += excitation
-        seq += (x=gx_pre, y=pe_scale * gy_pre) # Pulseq: mr.scaleGrad(gyPre, peScale)
+        seq += (rf, z=gz)
+        seq += (x=gx_pre, y=pe_scale * gy_pre, z=gz_reph)
         seq += delay_te
         seq += (x=gx, adc)
         seq += delay_tr
@@ -79,7 +90,7 @@ end
 
 seq = mini_gre_sequence()
 
-p1 = plot_seq(seq; range=[0, TR / u"ms"], slider=true, height=320)
+p1 = plot_seq(seq; range=[0, to_SI(TR) * 1e3], slider=true, height=320)
 #jl display(p1);
 
 # The sequence is also a normal Koma sequence, so we can inspect its k-space
@@ -93,11 +104,16 @@ p2 = plot_kspace(seq; view_2d=true, width=400, height=400)
 # definitions can store metadata such as FOV and sequence name.
 # `write_seq` checks timing and hardware limits by default. Passing `sys` makes
 # those checks and the Pulseq raster use the scanner above instead of `seq.DEF`.
-seq.DEF["FOV"] = Float64.(ustrip.(u"m", [FOV, FOV, slice_thickness]))
+seq.DEF["FOV"] = [FOV, FOV, slice_thickness] .|> to_SI
 seq.DEF["Name"] = "mini_gre"
 seq_file = joinpath(tempdir(), "mini_gre.seq")
 write_seq(seq, seq_file; sys)
 
-# Reading it back gives a normal Koma sequence again.
-seq_roundtrip = read_seq(seq_file; verbose=false)
-seq_roundtrip ≈ seq
+# The exported sequence matches MATLAB Pulseq's `mini_gre.m` output at
+# floating-point precision.
+matlab_seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/3.tutorials/data/mini_gre_matlab.seq") #hide
+matlab_seq = read_seq(matlab_seq_file; verbose=false) #hide
+matlab_precision_file = joinpath(tempdir(), "mini_gre_matlab_precision.seq") #hide
+write_seq(seq, matlab_precision_file; sys, significant_digits=6, shape_significant_digits=9, verbose=false) #hide
+seq_matlab_precision = read_seq(matlab_precision_file; verbose=false) #hide
+seq_matlab_precision ≈ matlab_seq

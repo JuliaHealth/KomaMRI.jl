@@ -12,6 +12,7 @@ import KomaMRIBase:
     TimeShapedRF,
     TrapezoidalGrad,
     UniformlySampledGrad,
+    UniformlySampledRF,
     extension_type_header,
     get_EXT_type_from_symbol,
     get_RF_use_from_char,

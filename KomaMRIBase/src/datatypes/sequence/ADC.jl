@@ -41,7 +41,12 @@ end
 
 # ADC comparison
 field_isapprox(adc1::ADC, adc2::ADC; kwargs...) = isapprox(adc1, adc2; kwargs...)
-Base.isapprox(adc1::ADC, adc2::ADC; kwargs...) = fields_isapprox(adc1, adc2; kwargs...)
+Base.isapprox(adc1::ADC, adc2::ADC; kwargs...) =
+    field_isapprox(adc1.N, adc2.N; kwargs...) &&
+    field_isapprox(adc1.T, adc2.T; kwargs...) &&
+    field_isapprox(adc1.delay, adc2.delay; kwargs...) &&
+    field_isapprox(adc1.Δf, adc2.Δf; kwargs...) &&
+    phase_isapprox(adc1.ϕ, adc2.ϕ; kwargs...)
 Base.copy(adc::ADC) = ADC(_deepcopy_fields(adc)...)
 *(α::Number, adc::ADC) = is_on(adc) ? ADC(adc.N, adc.T, adc.delay, adc.Δf, mod(adc.ϕ + angle(α), 2π)) : copy(adc)
 *(adc::ADC, α::Number) = α * adc
@@ -128,10 +133,3 @@ function get_adc_phase_compensation(seq)
 end
 
 dur(adc::ADC) = adc.delay + adc.T
-_pulseq_dwell(adc::ADC) = adc.N <= 1 ? adc.T : adc.T / (adc.N - 1)
-# Pulseq block timing uses dwell-interval edges; `dur(adc)` ends at the last acquired sample.
-function _pulseq_duration(adc::ADC)
-    is_ADC_on(adc) || return dur(adc)
-    dwell = _pulseq_dwell(adc)
-    return adc.delay - dwell / 2 + adc.N * dwell
-end

@@ -13,7 +13,8 @@ Return a one-block `Sequence` with a Pulseq-style block RF pulse. See
 function build_block_pulse(flip_angle; sys=Scanner(), kwargs...)
     rf = make_block_pulse(flip_angle; sys, kwargs...)
     seq = Sequence(sys)
-    addblock!(seq, rf, Duration(block_duration_to_fit_rf_ringdown(rf, sys)))
+    addblock!(seq, rf)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
     return seq
 end
 
@@ -45,6 +46,12 @@ If `duration` is omitted, `bandwidth` sets it to `1 / (4bandwidth)`, or
 function make_block_pulse(flip_angle; duration=nothing, bandwidth=nothing,
     time_bw_product=0.0, sys=Scanner(), freq_offset=0.0, phase_offset=0.0, delay=0.0,
     use=Undefined())
+    flip_angle   = to_SI(flip_angle, SIUnitsDefault())
+    duration     = to_SI(duration, SIUnitsDefault())
+    bandwidth    = to_SI(bandwidth, SIUnitsDefault())
+    freq_offset  = to_SI(freq_offset, SIUnitsDefault())
+    phase_offset = to_SI(phase_offset, SIUnitsDefault())
+    delay        = to_SI(delay, SIUnitsDefault())
     if duration === nothing
         bandwidth === nothing && error("Supply duration or bandwidth.")
         bandwidth > 0 || error("RF bandwidth must be positive.")

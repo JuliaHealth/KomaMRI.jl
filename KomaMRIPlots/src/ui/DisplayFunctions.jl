@@ -274,13 +274,18 @@ function plot_seq(
     )
 
     label = get_labels(seq)
+    isadc = is_ADC_on.(seq)
+    label_symbols = [
+        sym for sym in fieldnames(AdcLabels)
+        if any(j -> isadc[j] && !iszero(getfield(label[j], sym)), eachindex(label))
+    ]
 
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
     O = size(seq.RF, 1)
     rf_trace_count = 3 + (freq_in_phase ? 0 : 1) + (!freq_in_phase && show_rf_frame ? 1 : 0)
     adc_idx = 3 + rf_trace_count * O + 1
-    p = [scatter_fun() for _ in 1:(adc_idx + length(label))]
+    p = [scatter_fun() for _ in 1:(adc_idx + length(label_symbols))]
 
     # For GRADs
     fgx = is_Gx_on(seq) ? 1.0 : Inf
@@ -425,41 +430,29 @@ function plot_seq(
     ############################
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
   
-    isadc = is_ADC_on.(seq)
     d = [ seq[i].DUR[1] for i in eachindex(seq.DUR)]
     d2 = [0;d]
     dcum = cumsum(d2)
     t_center = dcum[1:end-1] + d/2
     t_center_adc = t_center[isadc]
 
-    label_symbol = fieldnames(AdcLabels)
-    count_label = 0
-    sym_vec=[]
-    #colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
-    for sym in label_symbol
+    for (i, sym) in enumerate(label_symbols)
         lab_vec = [getfield(label[j],sym) for j in eachindex(label)]
         lab_adc = lab_vec[isadc]
 
-        if ~isempty(lab_adc)
-            if maximum(lab_adc) > 1
-                count_label = count_label + 1
-                push!(sym_vec,sym)
-                #color = colors[mod1(i, length(colors))]
-                p[adc_idx + count_label] = scatter_fun(;
-                    x= t_center_adc * 1e3,
-                    y= lab_adc,
-                    name=string(sym),
-                    hovertemplate="(%{x:.4f} ms, %{y:i})",
-                    xaxis=xaxis,
-                    yaxis=yaxis,
-                    legendgroup=string(sym),
-                    showlegend=false,
-                    mode=("markers"),
-                    marker=attr(; color=sep_color, symbol="x"),
-                    visible=false,
-                )
-            end
-        end
+        p[adc_idx + i] = scatter_fun(;
+            x= t_center_adc * 1e3,
+            y= lab_adc,
+            name=string(sym),
+            hovertemplate="(%{x:.4f} ms, %{y:i})",
+            xaxis=xaxis,
+            yaxis=yaxis,
+            legendgroup=string(sym),
+            showlegend=false,
+            mode=("markers"),
+            marker=attr(; color=sep_color, symbol="x"),
+            visible=false,
+        )
     end
 
     ###############################
@@ -474,7 +467,7 @@ function plot_seq(
         show_seq_blocks,
         darkmode;
         T0=get_block_start_times(seq),
-        label_to_show = sym_vec,
+        label_to_show = label_symbols,
         non_label_count = adc_idx
     )
     return plot_koma(p, l; config)

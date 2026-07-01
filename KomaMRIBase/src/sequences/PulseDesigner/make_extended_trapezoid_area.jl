@@ -7,9 +7,9 @@ for gradient design keywords.
 
 # Arguments
 - `axis::Symbol`: Gradient axis, one of `:x`, `:y`, or `:z`.
-- `grad_start`: Starting gradient amplitude. [`T/m`]
-- `grad_end`: Ending gradient amplitude. [`T/m`]
-- `area`: Target gradient area. [`T/m*s`]
+- `grad_start`: Starting gradient amplitude. Plain numbers use Pulseq units. [`Hz/m`]
+- `grad_end`: Ending gradient amplitude. Plain numbers use Pulseq units. [`Hz/m`]
+- `area`: Target gradient area. Plain numbers use Pulseq units. [`1/m`]
 
 # Returns
 - `seq`: Sequence containing the gradient block.
@@ -31,9 +31,9 @@ Return the shortest Pulseq-style extended trapezoid matching the requested
 edge amplitudes and area.
 
 # Arguments
-- `grad_start`: Starting gradient amplitude. [`T/m`]
-- `grad_end`: Ending gradient amplitude. [`T/m`]
-- `area`: Target gradient area. [`T/m*s`]
+- `grad_start`: Starting gradient amplitude. Plain numbers use Pulseq units. [`Hz/m`]
+- `grad_end`: Ending gradient amplitude. Plain numbers use Pulseq units. [`Hz/m`]
+- `area`: Target gradient area. Plain numbers use Pulseq units. [`1/m`]
 
 # Keywords
 - `sys=Scanner()`: Scanner defaults and raster times.
@@ -42,6 +42,13 @@ edge amplitudes and area.
 - `grad`: Extended trapezoid gradient event.
 """
 function make_extended_trapezoid_area(grad_start, grad_end, target_area; sys=Scanner())
+    grad_start  = to_SI(grad_start, PulseqUnitsDefault())
+    grad_end    = to_SI(grad_end, PulseqUnitsDefault())
+    target_area = to_SI(target_area, PulseqUnitsDefault())
+    return extended_trapezoid_area(grad_start, grad_end, target_area; sys)
+end
+
+function extended_trapezoid_area(grad_start, grad_end, target_area; sys=Scanner())
     if iszero(grad_start) && iszero(grad_end) && iszero(target_area)
         return Grad(0.0, 0.0)
     end
@@ -81,7 +88,7 @@ function make_extended_trapezoid_area(grad_start, grad_end, target_area; sys=Sca
     times, amplitudes = extended_trapezoid_area_points(
         ramp_up, flat, ramp_down, grad_start, amplitude, grad_end, raster,
     )
-    grad = make_extended_trapezoid(times, amplitudes; sys)
+    grad = extended_trapezoid(times, amplitudes; sys)
     # Only allow floating-point roundoff here; Pulseq's coarse 1e-3 check is too loose.
     isapprox(area(grad), target_area; rtol=sqrt(eps(Float64)), atol=eps(Float64)) ||
         error("Could not find a solution.")

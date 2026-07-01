@@ -14,11 +14,12 @@ function build_gauss_pulse(flip_angle; sys=Scanner(), kwargs...)
     rf, gz, gz_rephaser = make_gauss_pulse(flip_angle; sys, kwargs...)
     seq = Sequence(sys)
     if gz === nothing
-        addblock!(seq, rf, Duration(block_duration_to_fit_rf_ringdown(rf, sys)))
+        addblock!(seq, rf)
+        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
         return seq
     end
-    duration = block_duration_to_fit_rf_ringdown(rf, sys, gz)
-    addblock!(seq, rf, Duration(duration); z=gz)
+    addblock!(seq, rf; z=gz)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
     addblock!(seq; z=gz_rephaser)
     return seq
 end
@@ -45,8 +46,8 @@ unless `slice_thickness` is supplied.
 - `delay=0.0`: RF delay before RF dead-time adjustment. [`s`]
 - `dwell=sys.RF_Δt`: RF sample spacing. [`s`]
 - `use=Undefined()`: RF use label.
-- `max_grad=sys.Gmax`: Slice-gradient amplitude limit override. [`T/m`]
-- `max_slew=sys.Smax`: Slice-gradient slew limit override. [`T/m/s`]
+- `max_grad=nothing`: Slice-gradient amplitude limit override. Plain numbers use Pulseq units. [`Hz/m`]
+- `max_slew=nothing`: Slice-gradient slew limit override. Plain numbers use Pulseq units. [`Hz/m/s`]
 
 # Returns
 - `rf`: RF event.
@@ -56,7 +57,17 @@ unless `slice_thickness` is supplied.
 function make_gauss_pulse(flip_angle; duration, sys=Scanner(), slice_thickness=nothing,
     bandwidth=nothing, time_bw_product=3.0, freq_offset=0.0, phase_offset=0.0,
     apodization=0.0, center_pos=0.5, delay=0.0, dwell=sys.RF_Δt, use=Undefined(),
-    max_grad=sys.Gmax, max_slew=sys.Smax)
+    max_grad=nothing, max_slew=nothing)
+    flip_angle      = to_SI(flip_angle, SIUnitsDefault())
+    duration        = to_SI(duration, SIUnitsDefault())
+    slice_thickness = to_SI(slice_thickness, SIUnitsDefault())
+    bandwidth       = to_SI(bandwidth, SIUnitsDefault())
+    freq_offset     = to_SI(freq_offset, SIUnitsDefault())
+    phase_offset    = to_SI(phase_offset, SIUnitsDefault())
+    delay           = to_SI(delay, SIUnitsDefault())
+    dwell           = to_SI(dwell, SIUnitsDefault())
+    max_grad        = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew        = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
     duration > 0 || error("RF pulse duration must be positive.")
     dwell > 0 || error("RF dwell time must be positive.")
     bandwidth = bandwidth === nothing ? time_bw_product / duration : bandwidth
@@ -74,7 +85,7 @@ function make_gauss_pulse(flip_angle; duration, sys=Scanner(), slice_thickness=n
     slice_thickness === nothing && return rf, nothing, nothing
     slice_thickness > 0 || error("Slice thickness must be positive.")
     slice_area = bandwidth * duration / (γ * slice_thickness)
-    gz, gz_rephaser = slice_select_gradient_events(duration, slice_area, center_pos; sys,
+    gz, gz_rephaser = slice_select_gradient_events(duration, slice_area, rf; sys,
         rf_start_time, max_grad, max_slew)
     rf.delay = max(rf_start_time, gz.rise + gz.delay) + dwell / 2
     return rf, gz, gz_rephaser

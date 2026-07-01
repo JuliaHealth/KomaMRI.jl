@@ -6,7 +6,7 @@ See `make_arbitrary_grad` for gradient design keywords.
 
 # Arguments
 - `axis::Symbol`: Gradient axis, one of `:x`, `:y`, or `:z`.
-- `waveform`: Gradient waveform samples. [`T/m`]
+- `waveform`: Gradient waveform samples. Plain numbers use Pulseq units. [`Hz/m`]
 
 # Returns
 - `seq`: Sequence containing the gradient block.
@@ -25,23 +25,28 @@ end
 Return a Pulseq-style arbitrary gradient event.
 
 # Arguments
-- `waveform`: Gradient waveform samples. [`T/m`]
+- `waveform`: Gradient waveform samples. Plain numbers use Pulseq units. [`Hz/m`]
 
 # Keywords
 - `sys=Scanner()`: Scanner defaults and raster times.
 - `oversampling=false`: Use Pulseq oversampled arbitrary-gradient timing.
-- `max_grad=sys.Gmax`: Gradient amplitude limit override. [`T/m`]
-- `max_slew=sys.Smax`: Slew limit override. [`T/m/s`]
+- `max_grad=nothing`: Gradient amplitude limit override. Plain numbers use Pulseq units. [`Hz/m`]
+- `max_slew=nothing`: Slew limit override. Plain numbers use Pulseq units. [`Hz/m/s`]
 - `delay=0.0`: Gradient delay. [`s`]
-- `first=nothing`: Gradient amplitude before the first sample. [`T/m`]
-- `last=nothing`: Gradient amplitude after the last sample. [`T/m`]
+- `first=nothing`: Gradient amplitude before the first sample. Plain numbers use Pulseq units. [`Hz/m`]
+- `last=nothing`: Gradient amplitude after the last sample. Plain numbers use Pulseq units. [`Hz/m`]
 
 # Returns
 - `grad`: Arbitrary gradient event.
 """
 function make_arbitrary_grad(waveform; sys=Scanner(), oversampling=false,
-    max_grad=sys.Gmax, max_slew=sys.Smax, delay=0.0, first=nothing, last=nothing)
-    waveform = collect(waveform)
+    max_grad=nothing, max_slew=nothing, delay=0.0, first=nothing, last=nothing)
+    waveform = to_SI.(collect(waveform), Ref(PulseqUnitsDefault()))
+    max_grad = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    delay    = to_SI(delay, SIUnitsDefault())
+    first    = to_SI(first, PulseqUnitsDefault())
+    last     = to_SI(last, PulseqUnitsDefault())
     isempty(waveform) && error("Gradient waveform must not be empty.")
     if oversampling && iseven(length(waveform))
         error("Oversampled gradient waveforms must have odd length.")

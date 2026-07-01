@@ -39,6 +39,8 @@ Return a Pulseq-style 3D rotation extension.
 make_rotation(phi) = make_rotation(phi, 0.0)
 
 function make_rotation(phi, theta)
+    phi = to_SI(phi, SIUnitsDefault())
+    theta = to_SI(theta, SIUnitsDefault())
     check_rotation_angle(phi, -π, 2π, "phi"; include_hi=false)
     check_rotation_angle(theta, -π, π, "theta")
     q_y = QuaternionRot(cos(theta / 2), 0, sin(theta / 2), 0)
@@ -47,6 +49,7 @@ function make_rotation(phi, theta)
 end
 
 function make_rotation(axis::AbstractVector, angle)
+    angle = to_SI(angle, SIUnitsDefault())
     length(axis) == 3 || error("Rotation axis must have length 3.")
     check_rotation_angle(abs(angle), 0, π, "angle")
     norm_axis = sqrt(sum(abs2, axis))

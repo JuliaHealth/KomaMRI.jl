@@ -36,6 +36,18 @@ function area(rf::RF)
     return trapz(diff(times(rf; separate_closing_knot=false)), A)
 end
 
+"""
+    Δt = dwell(event)
+
+Return the event sample spacing in seconds. Time-shaped gradient and RF events
+return their stored interval vector.
+"""
+dwell(gr::UniformlySampledGrad) = length(gr.A) <= 1 ? sum(gr.T) : gr.T / (length(gr.A) - 1)
+dwell(gr::TimeShapedGrad) = gr.T
+dwell(rf::UniformlySampledRF) = length(rf.A) <= 1 ? sum(rf.T) : rf.T / (length(rf.A) - 1)
+dwell(rf::TimeShapedRF) = rf.T
+dwell(adc::ADC) = adc.N <= 1 ? adc.T : adc.T / (adc.N - 1)
+
 function _with_frequency_phase(rf, A, freq_in_phase)
     if !is_on(rf)
         return similar(A, 0)
@@ -47,7 +59,7 @@ function _with_frequency_phase(rf, A, freq_in_phase)
         Interpolations.deduplicate_knots!(t; move_knots=true)
         f = linear_interpolation(t0, freqs(rf)).(t)
         phase_cycles = [0; cumtrapz(diff(t), f)]
-        center_time = rf.delay + get_RF_center(rf)
+        center_time = rf.delay + rf_center(rf)
         center_phase_cycles = linear_interpolation(t, phase_cycles, extrapolation_bc=Interpolations.Flat())(center_time)
         A = A .* cis.(2π .* (phase_cycles .- center_phase_cycles))
     end
@@ -100,7 +112,7 @@ function rf_frame_phase(rf::RF)
     isempty(f) && return Float64[]
     t = freq_times(rf)
     Interpolations.deduplicate_knots!(t; move_knots=true)
-    center_time = rf.delay + get_RF_center(rf)
+    center_time = rf.delay + rf_center(rf)
     t_aug = sort!([t; center_time])
     f_aug = linear_interpolation(t, f, extrapolation_bc=Interpolations.Flat()).(t_aug)
     ψ_aug = -2π .* [0.0; cumtrapz(diff(t_aug), f_aug)]
@@ -229,7 +241,7 @@ function times(adc::ADC)
 	if adc.N != 1
         t = range(0.0, adc.T; length=adc.N) .+ adc.delay
     else
-        t = range(adc.T/2, adc.T/2, 1) .+ adc.delay
+        t = range(0.0, 0.0, 1) .+ adc.delay
     end
     return t
 end

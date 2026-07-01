@@ -33,6 +33,8 @@ Return a Pulseq-style digital output pulse extension.
 - `event`: `Trigger` extension event.
 """
 function make_digital_output_pulse(channel; delay=0.0, duration=0.0, sys=Scanner())
+    delay = to_SI(delay, SIUnitsDefault())
+    duration = to_SI(duration, SIUnitsDefault())
     return digital_output_event(digital_output_channel(channel), delay, duration, sys)
 end
 

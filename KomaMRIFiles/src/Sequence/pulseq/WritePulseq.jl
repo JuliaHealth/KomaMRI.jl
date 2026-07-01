@@ -91,7 +91,7 @@ _pulseq_absmax(x::AbstractArray{<:Number}) = maximum(abs, x)
 _is_pulseq_on(rf::RF) = _pulseq_absmax(rf.A) > PULSEQ_SHAPE_ZERO_TOL
 function _is_pulseq_on(grad::Grad)
     peak = max(abs(grad.first), _pulseq_absmax(grad.A), abs(grad.last))
-    return iszero(peak) ? !iszero(dur(grad)) : peak > PULSEQ_SHAPE_ZERO_TOL
+    return peak > PULSEQ_SHAPE_ZERO_TOL
 end
 
 collect_pulseq_assets(seq, raster) =
@@ -104,6 +104,7 @@ function pulseq_data(seq::KomaMRIBase.Sequence, raster::PulseqRaster)
 end
 
 function collect_pulseq_assets(gr, rf, adc, block_durations, ext, def, raster)
+    sys = pulseq_timing_scanner(raster)
     blocks = Vector{PulseqBlockEventIDs}(undef, length(block_durations))
     rf_library = Dict{Int,PulseqRFEvent}()
     grad_library = Dict{Int,PulseqGradEvent}()
@@ -117,7 +118,7 @@ function collect_pulseq_assets(gr, rf, adc, block_durations, ext, def, raster)
     extension_vector_ids = Dict{Tuple{Vararg{Extension}},Int}()
     for idx in eachindex(block_durations)
         rf_i = rf[1, idx]
-        rf_id = register_rf!(rf_library, shape_library, cache, rf_i, raster)
+        rf_id = register_rf!(rf_library, shape_library, cache, rf_i, sys)
 
         gx = gr[1, idx]
         gy = gr[2, idx]
@@ -127,7 +128,7 @@ function collect_pulseq_assets(gr, rf, adc, block_durations, ext, def, raster)
         gz_id = register_grad!(grad_library, shape_library, cache, gz, raster)
 
         adc_i = adc[idx]
-        adc_id = register_adc!(adc_library, cache, adc_i)
+        adc_id = register_adc!(adc_library, cache, adc_i, sys)
         duration = pulseq_block_duration_ticks(block_durations[idx], raster.BlockDurationRaster)
 
         ext_vec = ext[idx]
@@ -157,22 +158,20 @@ function collect_pulseq_assets(gr, rf, adc, block_durations, ext, def, raster)
 end
 
 """
-    id = register_rf!(rf_library, shape_library, rf, raster)
+    id = register_rf!(rf_library, shape_library, rf, sys)
 """
-function register_rf!(rf_library, shape_library, cache, rf, raster)
+function register_rf!(rf_library, shape_library, cache, rf, sys)
     _is_pulseq_on(rf) || return PULSEQ_NO_EVENT_ID
     event_id = get(cache.rf_object_ids, rf, PULSEQ_NO_EVENT_ID)
     event_id != PULSEQ_NO_EVENT_ID && return event_id
-    rf_raster_time = raster.RadiofrequencyRasterTime
-    mag_id, phase_id, time_id = register_rf_shapes!(shape_library, cache, rf, rf_raster_time)
-    first_sample_offset = pulseq_first_sample_offset(time_id, rf_raster_time)
-    delay = rf.delay - first_sample_offset
+    mag_id, phase_id, time_id = register_rf_shapes!(shape_library, cache, rf, sys)
+    rf_delay = delay(rf, sys)
     amp = pulseq_rf_amplitude(rf)
     freq = pulseq_rf_frequency(rf)
     phase = rf.ϕ
     use_char = get_char_from_RF_use(rf.use)
-    center = isnothing(rf.center) ? nothing : rf.center + first_sample_offset
-    rf_event = PulseqRFEvent(amp, mag_id, phase_id, time_id, center, delay, 0.0, 0.0, freq, phase, use_char)
+    center = isnothing(rf.center) ? nothing : rf_center(rf, sys)
+    rf_event = PulseqRFEvent(amp, mag_id, phase_id, time_id, center, rf_delay, 0.0, 0.0, freq, phase, use_char)
     event_id = _store_event_cached!(rf_library, cache.rf_event_ids, _pulseq_event_key(rf_event), rf_event)
     cache.rf_object_ids[rf] = event_id
     return event_id
@@ -183,7 +182,6 @@ pulseq_rf_amplitude(rf::RF) = maximum(abs, rf.A)
 pulseq_rf_frequency(rf::RF) = rf.Δf
 pulseq_rf_frequency(::FrequencyModulatedRF) =
     throw(ArgumentError("Pulseq write does not support RF frequency waveforms."))
-
 pulseq_rf_phase_shape(::Number) = [0.0, 0.0]
 pulseq_rf_phase_shape(A::AbstractVector) = map(A) do a
     iszero(a) ? 0.0 : mod(angle(a), 2π) / 2π
@@ -214,40 +212,42 @@ end
 # `event.t / rfRasterTime` matches the compact center-sampled pattern in
 # `matlab/+mr/@Sequence/Sequence.m` (v1.5.1, lines 562-567). In Koma we store RF
 # delay to the first sample, so the same compact encoding is recognized from the
-# first-sample-relative times together with the half-raster delay shift below.
+# first-sample-relative times together with `delay(rf, sys)`.
 function pulseq_compact_time_shape_id(rf::RF, rf_raster_time)
-    interval = KomaMRIBase._pulseq_compact_interval(rf, rf_raster_time)
+    interval = KomaMRIBase.compact_sample_interval(rf, rf_raster_time)
     isnothing(interval) && return nothing
     rf.delay + PULSEQ_TIME_TOL < rf_raster_time / 2 && return nothing
-    return interval == rf_raster_time ? PULSEQ_DEFAULT_TIME_SHAPE_ID : PULSEQ_OVERSAMPLED_TIME_SHAPE_ID
+    return interval == rf_raster_time ? PULSEQ_DEFAULT_TIME_SHAPE_ID : nothing
 end
 
-function pulseq_first_sample_offset(time_shape_id, rf_raster_time)
-    return time_shape_id <= PULSEQ_DEFAULT_TIME_SHAPE_ID ? rf_raster_time / 2 : 0.0
+rf_time_step(::RF, policy, sys::Scanner) = sys.RF_Δt
+rf_time_step(rf::UniformlySampledRF, policy, sys::Scanner) =
+    isnothing(policy) ? dwell(rf) : sys.RF_Δt
+rf_time_step(::TimeShapedRF, policy, sys::Scanner) =
+    isnothing(policy) ? nothing : sys.RF_Δt
+
+function pulseq_timing_policy(rf::RF, sys::Scanner)
+    time_shape_id = pulseq_compact_time_shape_id(rf, sys.RF_Δt)
+    time_step = rf_time_step(rf, time_shape_id, sys)
+    return (; time_shape_id, time_step)
 end
 
-function pulseq_timing_policy(rf::RF, Δt_rf)
-    time_shape_id = pulseq_compact_time_shape_id(rf, Δt_rf)
-    time_step = time_shape_id == PULSEQ_OVERSAMPLED_TIME_SHAPE_ID ? Δt_rf / 2 : Δt_rf
-    first_sample_offset = isnothing(time_shape_id) ? 0.0 : pulseq_first_sample_offset(time_shape_id, Δt_rf)
-    return (; time_shape_id, time_step, first_sample_offset)
-end
-
-function pulseq_time_shape_id!(shape_library, cache, rf::RF, rf_raster_time)
-    policy = pulseq_timing_policy(rf, rf_raster_time)
+function pulseq_time_shape_id!(shape_library, cache, rf::RF, sys::Scanner)
+    rf_raster_time = sys.RF_Δt
+    policy = pulseq_timing_policy(rf, sys)
     if !isnothing(policy.time_shape_id)
-        pulseq_delay = rf.delay - policy.first_sample_offset
+        pulseq_delay = delay(rf, sys)
         rounded_delay = round(pulseq_delay / rf_raster_time) * rf_raster_time
         isapprox(pulseq_delay, rounded_delay; rtol=0, atol=PULSEQ_TIME_TOL) && return policy.time_shape_id
     end
-    t = times(rf; separate_closing_knot=false)[2:(end - 1)] .- rf.delay
+    t = times(rf; separate_closing_knot=false)[2:(end - 1)] .- delay(rf, sys)
     return _store_shape!(shape_library, cache, t ./ rf_raster_time)
 end
 
-function register_rf_shapes!(shapes, cache, rf, rf_raster_time)
+function register_rf_shapes!(shapes, cache, rf, sys)
     mag_id      = register_rf_magnitude_shape!(shapes, cache, rf.A)
     phase_id    = _store_shape!(shapes, cache, pulseq_rf_phase_shape(rf.A); phase_shape=true)
-    time_id     = pulseq_time_shape_id!(shapes, cache, rf, rf_raster_time)
+    time_id     = pulseq_time_shape_id!(shapes, cache, rf, sys)
     return mag_id, phase_id, time_id
 end
 
@@ -297,36 +297,47 @@ edge_timed_grad(grad::TrapezoidalGrad) =
 pulseq_sample_times(grad::Union{UniformlySampledGrad,TimeShapedGrad}) =
     times(grad; separate_closing_knot=false)[2:(end - 1)] .- grad.delay
 
+function pulseq_constant_amplitude(A)
+    amplitude = first(A)
+    tol = maximum(abs, A) * PULSEQ_SHAPE_QUANTIZATION
+    all(a -> isapprox(a, amplitude; rtol=0, atol=tol), A) || return nothing
+    return amplitude
+end
+
+function pulseq_has_zero_edges(grad, amplitude)
+    edge_tol = abs(amplitude) * PULSEQ_SHAPE_ZERO_TOL
+    return abs(grad.first) <= edge_tol && abs(grad.last) <= edge_tol
+end
+
 function pulseq_trap_event(grad::UniformlySampledGrad)
-    iszero(grad.first) && iszero(grad.last) || return nothing
-    length(grad.A) == 2 || return nothing
-    grad.A[1] == grad.A[2] || return nothing
-    return PulseqTrapGradEvent(grad.A[1], grad.rise, grad.T, grad.fall, grad.delay)
+    amplitude = pulseq_constant_amplitude(grad.A)
+    isnothing(amplitude) && return nothing
+    pulseq_has_zero_edges(grad, amplitude) || return nothing
+    return PulseqTrapGradEvent(amplitude, grad.rise, grad.T, grad.fall, grad.delay)
 end
 
 function pulseq_trap_event(grad::TimeShapedGrad)
-    iszero(grad.first) && iszero(grad.last) || return nothing
-    length(grad.A) == 2 || return nothing
-    length(grad.T) == 1 || return nothing
-    grad.A[1] == grad.A[2] || return nothing
-    return PulseqTrapGradEvent(grad.A[1], grad.rise, grad.T[1], grad.fall, grad.delay)
+    amplitude = pulseq_constant_amplitude(grad.A)
+    isnothing(amplitude) && return nothing
+    pulseq_has_zero_edges(grad, amplitude) || return nothing
+    return PulseqTrapGradEvent(amplitude, grad.rise, sum(grad.T), grad.fall, grad.delay)
 end
 
 pulseq_trap_event(::Grad) = nothing
 
 """
-    id = register_adc!(adc_library, adc)
+    id = register_adc!(adc_library, cache, adc, sys)
 
 In Pulseq the ADC event starts at a dwell-time edge, but the first sample is taken at dwell/2
 (see [Pulseq time and shape specification](https://pulseq.github.io/pulseq_shapes_and_times.pdf)).
-Koma uses delay = time to first sample, so we store pulseq_delay = delay - dwell_s/2.
+Koma uses delay = time to first sample, so sys-aware `delay(adc, sys)` is written.
 """
-function register_adc!(adc_library, cache, adc)
+function register_adc!(adc_library, cache, adc, sys)
     is_on(adc) || return PULSEQ_NO_EVENT_ID
     event_id = get(cache.adc_object_ids, adc, PULSEQ_NO_EVENT_ID)
     event_id != PULSEQ_NO_EVENT_ID && return event_id
-    dwell_s = KomaMRIBase._pulseq_dwell(adc)
-    delay_s = adc.delay - dwell_s / 2
+    dwell_s = dwell(adc, sys)
+    delay_s = delay(adc, sys)
     event = PulseqADCEvent(adc.N, dwell_s, delay_s, 0.0, 0.0, adc.Δf, adc.ϕ, 0)
     event_id = _store_event_cached!(adc_library, cache.adc_event_ids, _pulseq_event_key(event), event)
     cache.adc_object_ids[adc] = event_id
@@ -338,24 +349,19 @@ end
 """
 function register_ext!(extension_instance_library, extension_type_library, extension_spec_library, ext)
     isempty(ext) && return PULSEQ_NO_EVENT_ID
-    instance_ids = Vector{Int}(undef, length(ext))
-    for (i, e) in pairs(ext)
+    next_id = PULSEQ_NO_EVENT_ID
+    for e in Iterators.reverse(ext)
         ext_id = _store_event!(extension_type_library, typeof(e))
         if !haskey(extension_spec_library, ext_id)
             extension_spec_library[ext_id] = Dict{Int,Extension}()
         end
         ref = _store_event!(extension_spec_library[ext_id], e)
-        instance_ids[i] = _store_event!(extension_instance_library, PulseqExtensionInstanceEvent((ext_id, ref, PULSEQ_NO_EVENT_ID)))
+        next_id = _store_event!(
+            extension_instance_library,
+            PulseqExtensionInstanceEvent((ext_id, ref, next_id)),
+        )
     end
-
-    for i in firstindex(instance_ids):(lastindex(instance_ids) - 1)
-        current_id = instance_ids[i]
-        next_id = instance_ids[i + 1]
-        current = extension_instance_library[current_id]
-        extension_instance_library[current_id] = PulseqExtensionInstanceEvent(current.type, current.ref, next_id)
-    end
-
-    return instance_ids[1]
+    return next_id
 end
 
 # store_event! and store_shape! are helper functions to store events and shapes in the dictionary, and return the id of the event or shape.
@@ -705,13 +711,12 @@ function pulseq_rf_center_for_write(rf_data, event_libraries)
     !isnothing(rf_data.center) && return rf_data.center
     Δt_rf = event_libraries.definitions.radiofrequency_raster_time
     rf = get_RF(rf_data, event_libraries.shape_library, Δt_rf)
-    return rf.center + pulseq_first_sample_offset(rf_data, event_libraries.shape_library, Δt_rf)
-end
-
-function pulseq_first_sample_offset(rf_data, shape_library, Δt_rf)
+    sys = pulseq_timing_scanner(event_libraries.definitions)
     time_shape_id = rf_data.time_shape_id
-    time_shape_id <= PULSEQ_DEFAULT_TIME_SHAPE_ID && return Δt_rf / 2
-    return first(decompress_shape(shape_library[time_shape_id]...)) * Δt_rf
+    time_shape_start = time_shape_id <= PULSEQ_DEFAULT_TIME_SHAPE_ID ?
+        0.0 :
+        first(decompress_shape(event_libraries.shape_library[time_shape_id]...)) * Δt_rf
+    return rf_center(rf, sys) + time_shape_start
 end
 
 function emit_gradients_section!(io::IO, event_libraries)
@@ -875,11 +880,17 @@ function emit_extension_spec!(io, spec_id, spec::Extension)
     write(io, "\n")
 end
 
-function prepare_pulseq_write(seq, raster=DEFAULT_RASTER; preserve_block_durations=false)
-    return prepare_pulseq_write(seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster; preserve_block_durations)
+function prepare_pulseq_write(seq, raster=DEFAULT_RASTER; preserve_block_durations=false, sys=nothing)
+    check_sys = isnothing(sys) ? KomaMRIBase._sequence_scanner_from_def(seq.DEF) : sys
+    return prepare_pulseq_write(
+        seq.GR, seq.RF, seq.ADC, seq.DUR, seq.EXT, seq.DEF, raster, check_sys;
+        preserve_block_durations,
+    )
 end
 
-function prepare_pulseq_write(gr, rf, adc, block_durations, ext, def, raster; preserve_block_durations=false)
+function prepare_pulseq_write(
+    gr, rf, adc, block_durations, ext, def, raster, sys; preserve_block_durations=false,
+)
     warn_count = Threads.Atomic{Int}(0)
     rf_type = eltype(rf)
     grad_type = eltype(gr)
@@ -894,7 +905,7 @@ function prepare_pulseq_write(gr, rf, adc, block_durations, ext, def, raster; pr
     n_thread_slots = Threads.maxthreadid()
     thread_rf_caches = [IdDict{rf_type,rf_type}() for _ in 1:n_thread_slots]
     thread_grad_caches = [IdDict{grad_type,grad_type}() for _ in 1:n_thread_slots]
-    thread_adc_caches = [IdDict{ADC,Tuple{ADC,Float64}}() for _ in 1:n_thread_slots]
+    thread_adc_caches = [IdDict{ADC,ADC}() for _ in 1:n_thread_slots]
     Threads.@threads for bi in eachindex(block_durations)
         qrf[1, bi], qgr[1, bi], qgr[2, bi], qgr[3, bi], qadc[bi], qdur[bi] =
             quantize_block(
@@ -903,6 +914,7 @@ function prepare_pulseq_write(gr, rf, adc, block_durations, ext, def, raster; pr
                 adc,
                 block_durations,
                 raster,
+                sys,
                 axis_names,
                 ext[bi],
                 bi,
@@ -928,6 +940,7 @@ function quantize_block(
     adc,
     block_durations,
     raster,
+    sys,
     axis_names,
     ext_vec,
     bi,
@@ -953,10 +966,10 @@ function quantize_block(
     end
 
     adc_i = adc[bi]
-    qadc, adc_end = get_quantized!(adc_cache, adc_i) do
-        is_ADC_on(adc_i) || return adc_i, 0.0
+    qadc = get_quantized!(adc_cache, adc_i) do
+        is_ADC_on(adc_i) || return adc_i
         qadci = copy(adc_i)
-        qadci, quantize_adc!(qadci, raster, bi, warn_count)
+        quantize_adc!(qadci, raster, bi, warn_count)
     end
 
     key = :BlockDurationRaster
@@ -964,8 +977,8 @@ function quantize_block(
         dur(qgr[1]),
         dur(qgr[2]),
         dur(qgr[3]),
-        KomaMRIBase._pulseq_duration(qrf, raster.RadiofrequencyRasterTime),
-        adc_end,
+        dur(qrf, sys),
+        dur(qadc, sys),
         maximum(dur, ext_vec; init=0.0),
     )
     block_duration = preserve_block_durations ? block_durations[bi] : max(block_durations[bi], max_event_duration)
@@ -977,26 +990,23 @@ end
 function quantize_rf!(rf, raster, block_id, warn_count)
     key = :RadiofrequencyRasterTime
     Δt_rf = getfield(raster, key)
+    sys = pulseq_timing_scanner(raster)
     warn_ctx = (; block_id, event=:RF, warn_count)
     qt(value, field; step=Δt_rf, step_name=key) =
         quantize_time_value(value, step, warn_ctx, field; step_name)
     qT(value, field; step=Δt_rf, step_name=key) =
-        quantize_sample_times(value, sample_count(rf), step, warn_ctx, field; step_name)
-    policy = pulseq_timing_policy(rf, Δt_rf)
+        isnothing(step) ? value :
+            quantize_sample_times(value, sample_count(rf), step, warn_ctx, field; step_name)
+    policy = pulseq_timing_policy(rf, sys)
     rf.T = qT(rf.T, :T; step=policy.time_step)
-    policy = pulseq_timing_policy(rf, Δt_rf)
-    if isnothing(policy.time_shape_id)
-        rf.delay = qt(rf.delay, :delay)
-    else
-        pulseq_delay = max(rf.delay - policy.first_sample_offset, 0.0)
-        pulseq_delay = qt(pulseq_delay, :pulseq_delay)
-        rf.delay = pulseq_delay + policy.first_sample_offset
-    end
+    pulseq_delay = delay(rf, sys)
+    pulseq_delay = qt(pulseq_delay, :pulseq_delay)
+    rf.delay += pulseq_delay - delay(rf, sys)
     return rf
 end
 
 function pulseq_compact_time_shape_id(gr::Grad, Δt_gr)
-    interval = KomaMRIBase._pulseq_compact_interval(gr, Δt_gr)
+    interval = KomaMRIBase.compact_sample_interval(gr, Δt_gr)
     isnothing(interval) && return nothing
     return interval == Δt_gr ? PULSEQ_DEFAULT_TIME_SHAPE_ID : PULSEQ_OVERSAMPLED_TIME_SHAPE_ID
 end
@@ -1030,23 +1040,24 @@ function quantize_grad!(gr, raster, block_id, axis_name, warn_count)
 end
 
 function quantize_adc!(adc, raster, block_id, warn_count)
+    sys = pulseq_timing_scanner(raster)
     warn_ctx = (; block_id, event=:ADC, warn_count)
     qt(value, field; step, step_name) =
         quantize_time_value(value, step, warn_ctx, field; step_name)
-    dwell = KomaMRIBase._pulseq_dwell(adc)
-    dwell = qt(dwell, :dwell_time; step=raster.AdcRasterTime, step_name=:AdcRasterTime)
-    adc.T = adc.N == 1 ? dwell : (adc.N - 1) * dwell
-    pulseq_delay = adc.delay - dwell / 2
+    dwell_s = dwell(adc, sys)
+    dwell_s = qt(dwell_s, :dwell_time; step=raster.AdcRasterTime, step_name=:AdcRasterTime)
+    adc.T = adc.N == 1 ? dwell_s : (adc.N - 1) * dwell_s
+    pulseq_delay = delay(adc, sys)
     if pulseq_delay < 0
-        @warn "ADC delay in Koma ($(round(adc.delay*1e3, digits=4)) ms) is below dwell/2 ($(round(dwell/2*1e3, digits=4)) ms).
+        @warn "ADC delay in Koma ($(round(adc.delay*1e3, digits=4)) ms) is below dwell/2 ($(round(dwell_s/2*1e3, digits=4)) ms).
 In Pulseq, the first ADC sample is acquired at dwell/2. Therefore, a Pulseq delay of 0 corresponds to a Koma delay of dwell/2.
 This means the Koma delay must be >= dwell/2. Clamping it to this minimum value...
 See https://pulseq.github.io/pulseq_shapes_and_times.pdf#page=10"
         pulseq_delay = 0
     end
     pulseq_delay = qt(pulseq_delay, :pulseq_delay; step=raster.RadiofrequencyRasterTime, step_name=:RadiofrequencyRasterTime)
-    adc.delay = pulseq_delay + dwell / 2
-    return KomaMRIBase._pulseq_duration(adc)
+    adc.delay += pulseq_delay - delay(adc, sys)
+    return adc
 end
 
 function quantize_time_value(t::Number, step, warn_ctx, field; step_name=nothing)
@@ -1080,16 +1091,13 @@ function quantize_sample_times(t::Number, n_samples, step, warn_ctx, field; step
     return n_intervals == 1 ? q_interval : q_interval * n_intervals
 end
 
-warning_label(x::Symbol) = replace(String(x), '_' => ' ')
-warning_label(x) = string(x)
-
-pretty_time_step(step) = step < 1e-6 ? "$(step * 1e9) ns" : "$(step * 1e6) μs"
-
 function warn_time_quantization(warn_ctx, field, step; step_name=nothing)
     count = Threads.atomic_add!(warn_ctx.warn_count, 1)
     if count < 10
-        @warn "Block $(warn_ctx.block_id): Event $(warning_label(warn_ctx.event)): Element $(warning_label(field)):
-Time is not a multiple of $(isnothing(step_name) ? pretty_time_step(step) : "$(warning_label(step_name)) ($(pretty_time_step(step)))"). Quantizing it..."
+        step_text = "$(pulseq_float_string(step * 1e6)) us"
+        step_label = isnothing(step_name) ? step_text : "$(String(step_name)) ($step_text)"
+        @warn "Block $(warn_ctx.block_id): Event $(String(warn_ctx.event)): Element $(String(field)):
+Time is not a multiple of $step_label. Quantizing it..."
     elseif count == 10
         @warn "Additional time quantization warnings occurred; detailed logs are capped at 10."
     end
@@ -1167,16 +1175,18 @@ function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, 
     if check_timing && verbose
         @info string(
             "Checking Pulseq timing from $source:\n\t",
-            "blockDurationRaster = $(raster.BlockDurationRaster * 1e6) us,\n\t",
-            "gradRasterTime = $(raster.GradientRasterTime * 1e6) us, ",
-            "rfRasterTime = $(raster.RadiofrequencyRasterTime * 1e6) us, ",
-            "adcRasterTime = $(raster.AdcRasterTime * 1e6) us,\n\t",
-            "rfDeadTime = $(check_sys.RF_dead_time * 1e6) us, ",
-            "rfRingdownTime = $(check_sys.RF_ring_down_time * 1e6) us, ",
-            "adcDeadTime = $(check_sys.ADC_dead_time * 1e6) us",
+            "blockDurationRaster = $(pulseq_float_string(raster.BlockDurationRaster * 1e6)) us,\n\t",
+            "gradRasterTime = $(pulseq_float_string(raster.GradientRasterTime * 1e6)) us, ",
+            "rfRasterTime = $(pulseq_float_string(raster.RadiofrequencyRasterTime * 1e6)) us, ",
+            "adcRasterTime = $(pulseq_float_string(raster.AdcRasterTime * 1e6)) us,\n\t",
+            "rfDeadTime = $(pulseq_float_string(check_sys.RF_dead_time * 1e6)) us, ",
+            "rfRingdownTime = $(pulseq_float_string(check_sys.RF_ring_down_time * 1e6)) us, ",
+            "adcDeadTime = $(pulseq_float_string(check_sys.ADC_dead_time * 1e6)) us",
         )
     end
-    prepared = prepare_pulseq_write(seq, raster; preserve_block_durations=check_timing)
+    prepared = prepare_pulseq_write(
+        seq, raster; preserve_block_durations=check_timing, sys=check_sys,
+    )
     if check_timing
         KomaMRIBase.check_timing(prepared, check_sys)
     end

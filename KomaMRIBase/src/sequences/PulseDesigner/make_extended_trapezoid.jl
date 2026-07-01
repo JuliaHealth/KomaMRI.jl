@@ -7,7 +7,7 @@ See `make_extended_trapezoid` for gradient design keywords.
 # Arguments
 - `axis::Symbol`: Gradient axis, one of `:x`, `:y`, or `:z`.
 - `times`: Gradient sample times. [`s`]
-- `amplitudes`: Gradient amplitudes at `times`. [`T/m`]
+- `amplitudes`: Gradient amplitudes at `times`. Plain numbers use Pulseq units. [`Hz/m`]
 
 # Returns
 - `seq`: Sequence containing the gradient block.
@@ -27,19 +27,30 @@ Return a Pulseq-style extended trapezoid gradient event.
 
 # Arguments
 - `times`: Gradient sample times. [`s`]
-- `amplitudes`: Gradient amplitudes at `times`. [`T/m`]
+- `amplitudes`: Gradient amplitudes at `times`. Plain numbers use Pulseq units. [`Hz/m`]
 
 # Keywords
 - `sys=Scanner()`: Scanner defaults and raster times.
-- `max_grad=sys.Gmax`: Amplitude limit for `convert2arbitrary=true`. [`T/m`]
-- `max_slew=sys.Smax`: Slew limit for `convert2arbitrary=true`. [`T/m/s`]
+- `max_grad=nothing`: Amplitude limit for `convert2arbitrary=true`. Plain numbers use Pulseq units. [`Hz/m`]
+- `max_slew=nothing`: Slew limit for `convert2arbitrary=true`. Plain numbers use Pulseq units. [`Hz/m/s`]
 - `skip_check=false`: Skip Pulseq's nonzero-start connection check.
 - `convert2arbitrary=false`: If true, sample the points as an arbitrary gradient.
 
 # Returns
 - `grad`: Extended trapezoid gradient event.
 """
-function make_extended_trapezoid(times, amplitudes; sys=Scanner(), max_grad=sys.Gmax,
+function make_extended_trapezoid(times, amplitudes; sys=Scanner(), max_grad=nothing,
+    max_slew=nothing, skip_check=false, convert2arbitrary=false)
+    times      = to_SI.(times, Ref(SIUnitsDefault()))
+    amplitudes = to_SI.(amplitudes, Ref(PulseqUnitsDefault()))
+    max_grad   = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew   = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    return extended_trapezoid(
+        times, amplitudes; sys, max_grad, max_slew, skip_check, convert2arbitrary,
+    )
+end
+
+function extended_trapezoid(times, amplitudes; sys=Scanner(), max_grad=sys.Gmax,
     max_slew=sys.Smax, skip_check=false, convert2arbitrary=false)
     length(times) == length(amplitudes) ||
         error("Times and amplitudes must have the same length.")

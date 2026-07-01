@@ -12,6 +12,13 @@ const MATLAB_PULSEQ_SHAPE_SIGNIFICANT_DIGITS = 9
 
 matlab_string(s) = replace(s, "'" => "''")
 
+function pulseq_block(event::Union{RF,ADC}, sys)
+    seq = Sequence(sys)
+    addblock!(seq, event)
+    seq.DUR[end] = PD.ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+    return seq
+end
+
 function run_pulseq_matlab_parity()
     sys = Scanner(
         B1=20u"μT", Gmax=40u"mT/m", Smax=170u"T/m/s", ADC_Δt=100u"ns",
@@ -19,6 +26,8 @@ function run_pulseq_matlab_parity()
         RF_ring_down_time=30u"μs", RF_dead_time=80u"μs",
         ADC_dead_time=12u"μs",
     )
+    # Tiny-dwell RF edge cases use a low flip angle to stay inside the test scanner B1 limit.
+    edge_rf_flip = 0.1u"deg"
     cases = [
         "trap_area_short_triangle" =>
             PD.build_trapezoid(:x; area=2e-8u"T*s/m", sys),
@@ -74,6 +83,57 @@ function run_pulseq_matlab_parity()
             PD.build_arbitrary_rf([1, 2, 1], 45u"deg"; dwell=200u"μs", sys, use=Excitation()),
         "arbitrary_rf_custom" =>
             PD.build_arbitrary_rf([1, 1im, 1, -1im], 45u"deg"; dwell=100u"μs", center=150u"μs", freq_offset=77u"Hz", phase_offset=0.2u"rad", delay=20u"μs", sys, use=Excitation()),
+        "rf_time_shape_default_raster" =>
+            begin
+                rf_samples = [1, 2, 1]
+                rf0, _, _ = PD.make_arbitrary_rf(rf_samples, edge_rf_flip; dwell=sys.RF_Δt, sys, use=Excitation())
+                rf_delay = sys.RF_dead_time + sys.RF_Δt / 2
+                pulseq_block(
+                    RF(
+                        rf0.A, fill(sys.RF_Δt, length(rf_samples) - 1), rf0.Δf,
+                        rf_delay; center=sys.RF_Δt, ϕ=rf0.ϕ, use=Excitation(),
+                    ),
+                    sys,
+                )
+            end,
+        "rf_uniform_half_raster" =>
+            PD.build_arbitrary_rf([1, 2, 1], edge_rf_flip; dwell=sys.RF_Δt / 2, sys, use=Excitation()),
+        "rf_time_shape_start_offset" =>
+            begin
+                rf_samples = [1, 2, 1]
+                rf0, _, _ = PD.make_arbitrary_rf(rf_samples, edge_rf_flip; dwell=sys.RF_Δt, sys, use=Excitation())
+                pulseq_delay = sys.RF_dead_time
+                time_shape_start = 2sys.RF_Δt
+                time_shape_intervals = [3sys.RF_Δt, 4sys.RF_Δt]
+                time_shape_center = time_shape_start + first(time_shape_intervals)
+                pulseq_block(
+                    RF(
+                        rf0.A, time_shape_intervals, rf0.Δf,
+                        pulseq_delay + time_shape_start;
+                        center=time_shape_center - time_shape_start,
+                        ϕ=rf0.ϕ, use=Excitation(),
+                    ),
+                    sys,
+                )
+            end,
+        "rf_time_shape_irregular" =>
+            begin
+                rf_samples = [1, 2, 1]
+                rf0, _, _ = PD.make_arbitrary_rf(rf_samples, edge_rf_flip; dwell=sys.RF_Δt, sys, use=Excitation())
+                pulseq_delay = sys.RF_dead_time
+                time_shape_start = sys.RF_Δt / 2
+                time_shape_intervals = [3sys.RF_Δt / 2, 5sys.RF_Δt]
+                time_shape_center = 2sys.RF_Δt
+                pulseq_block(
+                    RF(
+                        rf0.A, time_shape_intervals, rf0.Δf,
+                        pulseq_delay + time_shape_start;
+                        center=time_shape_center - time_shape_start,
+                        ϕ=rf0.ϕ, use=Excitation(),
+                    ),
+                    sys,
+                )
+            end,
         "arbitrary_rf_slice_bandwidth" =>
             PD.build_arbitrary_rf([1, 1, 1, 1], 90u"deg"; dwell=100u"μs", bandwidth=2u"kHz", slice_thickness=5u"mm", sys, use=Excitation()),
         "arbitrary_rf_slice_time_bw_product" =>

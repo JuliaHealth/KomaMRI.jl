@@ -33,6 +33,8 @@ Return a Pulseq-style input trigger extension.
 - `event`: `Trigger` extension event.
 """
 function make_trigger(channel; delay=0.0, duration=0.0, sys=Scanner())
+    delay = to_SI(delay, SIUnitsDefault())
+    duration = to_SI(duration, SIUnitsDefault())
     return trigger_event(trigger_channel(channel), delay, duration, sys)
 end
 

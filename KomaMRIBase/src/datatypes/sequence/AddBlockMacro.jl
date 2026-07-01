@@ -161,6 +161,9 @@ function _split_addblock_args(args)
     if !isempty(kws)
         ctx = Expr(:tuple, Expr(:parameters, kws...))
     end
+    if isnothing(ctx) && length(args) == 2
+        return args[1], args[2]
+    end
     i <= length(args) || error("@addblock expects an expression after its options.")
     length(args) == i || error("@addblock expects options followed by one expression.")
     return ctx, args[i]
@@ -169,6 +172,7 @@ end
 """
     @addblock expr
     @addblock check_timing=true check_hw_limits=true expr
+    @addblock checks expr
 
 Rewrite one block expression to append in place.
 
@@ -177,6 +181,8 @@ Rewrite one block expression to append in place.
 seq = Sequence()
 @addblock seq += (rf, z=gz)
 @addblock check_timing=true seq += (adc, x=gx)
+checks = (; check_timing=true, check_hw_limits=true, sys)
+@addblock checks seq += (rf, z=gz)
 ```
 """
 macro addblock(args...)
@@ -190,6 +196,7 @@ end
 """
     @addblocks expr
     @addblocks check_timing=true check_hw_limits=true expr
+    @addblocks checks expr
 
 Rewrite block expressions inside a loop or `begin ... end` block.
 

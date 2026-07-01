@@ -153,6 +153,9 @@ times
 ampls
 freqs
 freq_times
+dwell
+delay
+rf_center
 ```
 
 ### Other functions
@@ -161,6 +164,7 @@ freq_times
 trapz
 cumtrapz
 kfoldperm
+to_SI
 ```
 
 ## Sequence Building Blocks (SBB)

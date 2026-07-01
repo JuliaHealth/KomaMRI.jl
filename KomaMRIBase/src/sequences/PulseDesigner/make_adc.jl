@@ -14,9 +14,8 @@ Return a one-block ADC `Sequence`. See `make_adc` for ADC arguments.
 function build_adc(num_samples, args...; sys=Scanner(), kwargs...)
     adc = make_adc(num_samples, args...; sys, kwargs...)
     seq = Sequence(sys)
-    adc_end = KomaMRIBase._pulseq_duration(adc) + sys.ADC_dead_time
-    duration = ceil_to_raster(adc_end, sys.DUR_Δt)
-    addblock!(seq, adc, Duration(duration))
+    addblock!(seq, adc)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
     return seq
 end
 
@@ -50,6 +49,10 @@ end
 
 function make_adc(num_samples, ::Nothing; duration=nothing, delay=0.0,
     sys=Scanner(), freq_offset=0.0, phase_offset=0.0)
+    duration     = to_SI(duration, SIUnitsDefault())
+    delay        = to_SI(delay, SIUnitsDefault())
+    freq_offset  = to_SI(freq_offset, SIUnitsDefault())
+    phase_offset = to_SI(phase_offset, SIUnitsDefault())
     isinteger(num_samples) || error("num_samples must be integer-valued.")
     num_samples > 0 || error("num_samples must be positive.")
     duration === nothing && error("Supply dwell or duration.")
@@ -61,6 +64,11 @@ end
 
 function make_adc(num_samples, dwell; duration=nothing, delay=0.0,
     sys=Scanner(), freq_offset=0.0, phase_offset=0.0)
+    dwell        = to_SI(dwell, SIUnitsDefault())
+    duration     = to_SI(duration, SIUnitsDefault())
+    delay        = to_SI(delay, SIUnitsDefault())
+    freq_offset  = to_SI(freq_offset, SIUnitsDefault())
+    phase_offset = to_SI(phase_offset, SIUnitsDefault())
     isinteger(num_samples) || error("num_samples must be integer-valued.")
     num_samples > 0 || error("num_samples must be positive.")
     duration === nothing || error("Supply dwell or duration, not both.")
