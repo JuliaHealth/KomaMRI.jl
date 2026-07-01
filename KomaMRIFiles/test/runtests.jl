@@ -41,6 +41,18 @@ end
         obj2 = read_phantom(filename)
         @test obj1 == obj2
     end
+    @testset "TimeDependentProperty" begin
+        pth = @__DIR__
+        filename = pth * "/test_files/phantom/brain_timedep_w.phantom"
+        obj1 = brain_phantom2D()
+        tc = TimeRange(0.0, 1.0)
+        Ns = length(obj1)
+        obj1.ρ = TimeDependentProperty([obj1.ρ obj1.ρ], tc)
+        obj1.T1 = TimeDependentProperty([obj1.T1 2 .* obj1.T1], tc)
+        write_phantom(obj1, filename)
+        obj2 = read_phantom(filename)
+        @test obj1 == obj2
+    end
     @testset "ArbitraryAction" begin
         pth = @__DIR__
         filename = pth * "/test_files/phantom/brain_arbitrarymotion_w.phantom"

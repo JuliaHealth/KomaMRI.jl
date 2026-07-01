@@ -45,7 +45,7 @@ function prealloc(sim_method::BlochMagnus, backend::KA.CPU, obj::Phantom{T}, M::
             similar(M.xy),
             similar(M.xy)
         ),
-        obj.Δw ./ T(2π .* γ)
+        zeros(T, size(obj.x)),
     )
 end
 
@@ -99,7 +99,11 @@ function run_spin_excitation!(
     for i in eachindex(seq.Δt)
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        props = get_spin_properties(p, seq.t[i, :])
+        ρ = props.ρ
+        ρ_end = get_spin_property_at_end(ρ)
         #Effective field
+        @. ΔBz = props.Δw / T(2π * γ)
         @. ωxy_new = seq.B1[i + 1] * B_to_ω
         @. ωz_new  = (seq.Gx[i + 1] * x + seq.Gy[i + 1] * y + seq.Gz[i + 1] * z + ΔBz) * B_to_ω + seq.Δf[i + 1] * T(2π)
         effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, seq.Δt[i], sim_method)
@@ -110,10 +114,10 @@ function run_spin_excitation!(
         @. β = -Complex{T}(im) * (θxy / θ) * sin(θ / T(2))
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
-        @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
-        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
+        @. M.xy = M.xy * exp(-seq.Δt[i] / props.T2)
+        @. M.z = M.z * exp(-seq.Δt[i] / props.T1) + ρ * (T(1) - exp(-seq.Δt[i] / props.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=ρ_end)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
             sig[sample] = sum(M.xy) 

@@ -54,6 +54,10 @@ function resample(itp::Interpolator2D, t)
     Ns = size(itp.coefs, 1)
     id = _similar(t, Ns)
     copyto!(id, collect(range(oneunit(eltype(t)), eltype(t)(Ns), Ns)))
+    if t isa AbstractVector
+        # Produce an outer-product evaluation: Ns spins × length(t) times.
+        return itp.(reshape(id, :, 1), reshape(t, 1, :))
+    end
     return itp.(id, t)
 end
 

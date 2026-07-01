@@ -94,6 +94,9 @@ include("datatypes/sequence/TimingChecks.jl")
 include("datatypes/sequence/HardwareChecks.jl")
 include("datatypes/sequence/AddBlockMacro.jl")
 include("datatypes/sequence/DelayDuration.jl")
+# Timing
+include("timing/TimeCurve.jl")
+include("timing/Interpolation.jl")
 # Motion
 include("motion/MotionList.jl")
 include("motion/NoMotion.jl")
@@ -128,8 +131,12 @@ export Translate, TranslateX, TranslateY, TranslateZ
 export Rotate, RotateX, RotateY, RotateZ, CenterOfMass
 export HeartBeat, Path, FlowPath
 export TimeRange, Periodic, TimeCurve
-export SpinRange, AllSpins
+export SpinRange, AllSpins, spin_indicator
 export get_spin_coords
+export TimeDependentProperty, get_phantom_property
+export get_spin_property,   get_spin_property_at_end
+export get_spin_properties, get_spin_properties_block_end
+
 # Secondary
 export get_kspace, rotx, roty, rotz
 # Additionals

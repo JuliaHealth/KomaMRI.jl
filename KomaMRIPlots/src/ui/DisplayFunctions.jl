@@ -1173,6 +1173,68 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
     return plot_koma(p, l; config)
 end
 
+motion_time_nodes(::NoMotion) = Float64[]
+motion_time_nodes(motion) = times(motion)
+
+function append_time_dependent_property_nodes!(nodes, p::TimeDependentProperty)
+    append!(nodes, times(p))
+    return nothing
+end
+append_time_dependent_property_nodes!(nodes, ::Any) = nothing
+
+function property_time_nodes(obj::Phantom)
+    nodes = Float64[]
+    for field in fieldnames(Phantom)
+        append_time_dependent_property_nodes!(nodes, getfield(obj, field))
+    end
+    return nodes
+end
+
+function phantom_time_nodes(obj::Phantom)
+    return unique(sort([motion_time_nodes(obj.motion); property_time_nodes(obj)]))
+end
+
+phantom_time_node_count(obj::Phantom) = length(phantom_time_nodes(obj))
+
+property_extrema(p::AbstractVector) = extrema(p)
+property_extrema(p::TimeDependentProperty) = extrema(p.value)
+
+function spin_coords_for_plot(mv::NoMotion, x, y, z, t)
+    nt = length(t)
+    nt == 1 && return x, y, z
+    return repeat(x, 1, nt), repeat(y, 1, nt), repeat(z, 1, nt)
+end
+spin_coords_for_plot(motion, x, y, z, t) = get_spin_coords(motion, x, y, z, t')
+
+spin_property_frames(p::AbstractVector, t) =
+    repeat(reshape(KomaMRIBase.get_spin_property(p, t'), :, 1), 1, length(t))
+spin_property_frames(p::TimeDependentProperty, t) = KomaMRIBase.get_spin_property(p, t')
+
+function process_phantom_times(time_nodes, time_samples, ::Type{T}) where {T}
+    if isempty(time_nodes)
+        return [zero(T)]
+    elseif length(time_nodes) > 1
+        time_min, time_max = minimum(time_nodes), maximum(time_nodes)
+        t = collect(range(time_min, time_max, length=time_samples))
+        merged_times = sort(unique([t; time_nodes]))
+        if length(merged_times) > time_samples
+            to_keep = time_nodes
+            remaining = setdiff(merged_times, to_keep)
+            num_needed = time_samples - length(to_keep)
+            extra = remaining[round.(Int, range(1, length(remaining), length=num_needed))]
+            merged_times = sort([to_keep; extra])
+        elseif length(merged_times) < time_samples
+            extra_points = setdiff(t, merged_times)
+            extra_needed = time_samples - length(merged_times)
+            additional = sort(extra_points)[1:extra_needed]
+            merged_times = sort([merged_times; additional])
+        end
+        return merged_times
+    else
+        return time_nodes
+    end
+end
+
 """
     p = plot_phantom_map(obj::Phantom, key::Symbol; kwargs...)
 
@@ -1217,37 +1279,9 @@ function plot_phantom_map(
     view_2d=sum(KomaMRIBase.get_dims(obj)) < 3,
     colorbar=true,
     max_spins=20_000,
-    time_samples= obj.motion isa NoMotion ? 0 : length(times(obj.motion)),
+    time_samples=phantom_time_node_count(obj),
     kwargs...,
 )
-    function process_times(::NoMotion)
-        return [zero(eltype(obj.x))]
-    end
-
-    function process_times(motion)
-        time_nodes = times(motion)
-        if length(time_nodes) > 1
-            time_min, time_max = minimum(time_nodes), maximum(time_nodes)
-            t = collect(range(time_min, time_max, length=time_samples))
-            merged_times = sort(unique([t; time_nodes]))
-            if length(merged_times) > time_samples
-                to_keep = time_nodes
-                remaining = setdiff(merged_times, to_keep)
-                num_needed = time_samples - length(to_keep)
-                extra = remaining[round.(Int, range(1, length(remaining), length=num_needed))]
-                merged_times = sort([to_keep; extra])
-            elseif length(merged_times) < time_samples
-                extra_points = setdiff(t, merged_times)
-                extra_needed = time_samples - length(merged_times)
-                additional = sort(extra_points)[1:extra_needed]
-                merged_times = sort([merged_times; additional])
-            end
-            return merged_times
-        else
-            return time_nodes
-        end
-    end
-    
     function decimate_uniform_phantom(obj, num_points::Int)
         ss = Int(ceil(length(obj) / num_points))
         return obj[1:ss:end]
@@ -1259,8 +1293,8 @@ function plot_phantom_map(
     end
 
     path = @__DIR__
-    cmin_key = minimum(getproperty(obj, key))
-    cmax_key = maximum(getproperty(obj, key))
+    prop = getproperty(obj, key)
+    cmin_key, cmax_key = property_extrema(prop)
     if key == :T1 || key == :T2 || key == :T2s
         cmin_key = 0
         factor = 1e3
@@ -1299,8 +1333,9 @@ function plot_phantom_map(
     cmin_key = get(kwargs, :zmin, factor * cmin_key)
     cmax_key = get(kwargs, :zmax, factor * cmax_key)
 
-    t = process_times(obj.motion)
-    x, y, z = get_spin_coords(obj.motion, obj.x, obj.y, obj.z, t')
+    t = process_phantom_times(phantom_time_nodes(obj), time_samples, eltype(obj.x))
+    x, y, z = spin_coords_for_plot(obj.motion, obj.x, obj.y, obj.z, t)
+    values = spin_property_frames(prop, t)
 
     x0 = -maximum(abs.([x y z])) * 1e2
     xf = maximum(abs.([x y z])) * 1e2
@@ -1350,7 +1385,7 @@ function plot_phantom_map(
                 x=dims[1]           ? (x[:,i])*1e2 : (y[:,i])*1e2,
                 y=dims[1] & dims[2] ? (y[:,i])*1e2 : (z[:,i])*1e2,
                 mode="markers",
-                marker=attr(color=getproperty(obj,key)*factor,
+                marker=attr(color=values[:, i]*factor,
                             showscale=colorbar,
                             colorscale=colormap,
                             colorbar=attr(ticksuffix=unit, title=string(key)),
@@ -1360,7 +1395,7 @@ function plot_phantom_map(
                             ),
                 visible=i==1,
                 showlegend=false,
-                text=round.(getproperty(obj,key)*factor,digits=4),
+                text=round.(values[:, i]*factor,digits=4),
                 hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
         end
     else # 3D
@@ -1403,7 +1438,7 @@ function plot_phantom_map(
                 y=(y[:,i])*1e2,
                 z=(z[:,i])*1e2,
                 mode="markers",
-                marker=attr(color=getproperty(obj,key)*factor,
+                marker=attr(color=values[:, i]*factor,
                             showscale=colorbar,
                             colorscale=colormap,
                             colorbar=attr(ticksuffix=unit, title=string(key)),
@@ -1413,7 +1448,7 @@ function plot_phantom_map(
                             ),
                 visible=i==1,
                 showlegend=false,
-                text=round.(getproperty(obj,key)*factor,digits=4),
+                text=round.(values[:, i]*factor,digits=4),
                 hovertemplate="x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>z: %{z:.1f} cm<br><b>$(string(key))</b>: %{text}$unit<extra></extra>"))
         end
     end

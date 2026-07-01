@@ -1,6 +1,4 @@
-include("Interpolation.jl")
 include("SpinSpan.jl")
-include("TimeCurve.jl")
 include("Action.jl")
 include("Motion.jl")
 
@@ -54,7 +52,7 @@ end
 # https://github.com/JuliaHealth/KomaMRI.jl/issues/480
 """ Addition of MotionLists """ 
 # MotionList + MotionList
-function Base.vcat(m1::MotionList{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
+function vcat_motion(m1::MotionList{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
     mv_aux = Motion{T}[]
     for m in m1.motions
         m_aux = deepcopy(m)
@@ -70,7 +68,7 @@ function Base.vcat(m1::MotionList{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Rea
     return MotionList(mv_aux...)
 end
 # Motion + Motion
-function Base.vcat(m1::Motion{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real}
+function vcat_motion(m1::Motion{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real}
     mv_aux = Motion{T}[]
     m_aux = deepcopy(m1)
     m_aux.spins = expand(m_aux.spins, Ns1)
@@ -82,8 +80,8 @@ function Base.vcat(m1::Motion{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real}
     return MotionList(mv_aux...)
 end
 # Motion + MotionList
-Base.vcat(m1::MotionList{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real} = vcat(m2, m1, Ns2, Ns1)
-function Base.vcat(m1::Motion{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
+vcat_motion(m1::MotionList{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real} = vcat_motion(m2, m1, Ns2, Ns1)
+function vcat_motion(m1::Motion{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
     mv_aux = Motion{T}[]
     m_aux = deepcopy(m1)
     m_aux.spins = expand(m_aux.spins, Ns1)
