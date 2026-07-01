@@ -19,7 +19,7 @@ TE = 5e-3 #hide
 Gx = 1 / (γ * sys.ADC_Δt * FOV) #hide
 Gz = 20e-3 #hide
 Trf = 2e-3 #hide
-slice_positions = range(-4e-3, 4e-3; length=Nslices); #hide
+slice_positions = [0.0, 4e-3]; #hide
 obj = brain_phantom3D(); #hide
 obj.Δw .= 0; #hide
 phase_encode(lin) = Grad((lin - (Ny - 1) / 2) * Gx * sys.ADC_Δt / Tadc, Tadc) #hide
