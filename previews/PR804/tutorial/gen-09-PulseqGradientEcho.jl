@@ -1,46 +1,56 @@
 using KomaMRI
 using KomaMRI.PulseDesigner # May move to its own package.
-using Unitful # Optional; without units, constructors use SI values.
+using Unitful # Lets us write values with units like 20u"mT/m".
 
 sys = Scanner(
-    Gmax=20u"mT/m", Smax=40u"T/m/s",
+    B1=50u"μT", Gmax=20u"mT/m", Smax=100u"T/m/s", ADC_Δt=100u"ns",
     RF_ring_down_time=20u"μs", RF_dead_time=100u"μs", ADC_dead_time=10u"μs",
 );
 
 FOV = 256u"mm"
 slice_thickness = 5u"mm"
-Nx = Ny = 32
+Nx = Ny = 128
 flip_angle = 15u"deg"
-TE = 9u"ms"
+TE = 8u"ms"
 TR = 22u"ms"
 rf_duration = 4u"ms"
 readout_time = 6.4u"ms"
 prephaser_time = 2u"ms";
 
-excitation = build_sinc_pulse(flip_angle; duration=rf_duration, slice_thickness, sys, use=Excitation());
+rf, gz, gz_reph = make_sinc_pulse(
+    flip_angle; duration=rf_duration, slice_thickness, apodization=0.5,
+    time_bw_product=4, sys, use=Excitation(),
+);
 
-γ_unit = γ * u"Hz/T"
 Δk = 1 / FOV
-readout_area = Nx * Δk / γ_unit
+readout_area = Nx * Δk
 
 gx = make_trapezoid(; flat_area=readout_area, flat_time=readout_time, sys)
-adc = make_adc(Nx; duration=readout_time, delay=gx.rise * u"s", sys)
-gx_pre = make_trapezoid(; area=-area(gx) / 2 * u"T*s/m", duration=prephaser_time, sys);
+adc = make_adc(Nx; duration=gx.T, delay=gx.rise, sys)
+gx_area = area(gx) * u"T*s/m"
+gx_pre = make_trapezoid(; area=-gx_area / 2, duration=prephaser_time, sys);
 
-phase_areas = ((0:(Ny-1)) .- (Ny - 1) / 2) .* Δk ./ γ_unit
-max_grad_area = maximum(abs.(phase_areas))
-gy_pre = make_trapezoid(; area=max_grad_area, duration=prephaser_time, sys);
-phase_scales = phase_areas ./ max_grad_area;
+gy_pre = make_trapezoid(; area=Ny / 2 * Δk, duration=prephaser_time, sys)
+phase_scales = (0:(Ny - 1)) ./ (Ny / 2) .- 1;
 
-rf_center = excitation.RF[1].delay + excitation.RF[1].center # Sequence blocks are indexable.
-delay_te = build_delay(TE - (dur(excitation) - rf_center + dur(gx_pre) + dur(gx) / 2) * u"s"; sys)
-delay_tr = build_delay(TR - (dur(excitation) + dur(gx_pre) + dur(delay_te) + dur(gx)) * u"s"; sys);
+delay_te = make_delay(
+    round_to_raster(
+        to_SI(TE) - (gz.T / 2 + gz.fall + dur(gx_pre) + dur(gx) / 2),
+        sys.GR_Δt,
+    ),
+)
+delay_tr = make_delay(
+    round_to_raster(
+        to_SI(TR) - (dur(gx_pre) + dur(gz) + dur(gx) + dur(delay_te)),
+        sys.GR_Δt,
+    ),
+);
 
 function mini_gre_sequence()
     seq = Sequence(sys)
     @addblocks for pe_scale in phase_scales
-        seq += excitation
-        seq += (x=gx_pre, y=pe_scale * gy_pre) # Pulseq: mr.scaleGrad(gyPre, peScale)
+        seq += (rf, z=gz)
+        seq += (x=gx_pre, y=pe_scale * gy_pre, z=gz_reph)
         seq += delay_te
         seq += (x=gx, adc)
         seq += delay_tr
@@ -50,18 +60,22 @@ end
 
 seq = mini_gre_sequence()
 
-p1 = plot_seq(seq; range=[0, TR / u"ms"], slider=true, height=320)
+p1 = plot_seq(seq; range=[0, to_SI(TR) * 1e3], slider=true, height=320)
 display(p1);
 
 p2 = plot_kspace(seq; view_2d=true, width=400, height=400)
 display(p2);
 
-seq.DEF["FOV"] = Float64.(ustrip.(u"m", [FOV, FOV, slice_thickness]))
+seq.DEF["FOV"] = [FOV, FOV, slice_thickness] .|> to_SI
 seq.DEF["Name"] = "mini_gre"
 seq_file = joinpath(tempdir(), "mini_gre.seq")
 write_seq(seq, seq_file; sys)
 
-seq_roundtrip = read_seq(seq_file; verbose=false)
-seq_roundtrip ≈ seq
+matlab_seq_file = joinpath(dirname(pathof(KomaMRI)), "../examples/3.tutorials/data/mini_gre_matlab.seq") #hide
+matlab_seq = read_seq(matlab_seq_file; verbose=false) #hide
+matlab_precision_file = joinpath(tempdir(), "mini_gre_matlab_precision.seq") #hide
+write_seq(seq, matlab_precision_file; sys, significant_digits=6, shape_significant_digits=9, verbose=false) #hide
+seq_matlab_precision = read_seq(matlab_precision_file; verbose=false) #hide
+seq_matlab_precision ≈ matlab_seq
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
