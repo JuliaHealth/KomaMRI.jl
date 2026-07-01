@@ -111,3 +111,5 @@ write_seq(seq, seq_file; sys)
 
 # The exported sequence matches MATLAB Pulseq's `mini_gre.m` output at
 # floating-point precision.
+# To compare exported files against MATLAB Pulseq's default text precision, use:
+# `write_seq(seq, seq_file; significant_digits=6, shape_significant_digits=9)`.
