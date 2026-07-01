@@ -44,7 +44,7 @@
 - Prefer workspace setup: activate root or the child project and `Pkg.instantiate()`. Use explicit `Pkg.develop(path=...)` only to reproduce CI or older Julia 1.10 wiring.
 - Change dependencies/compat with Pkg APIs, not casual `Project.toml` edits.
 - Prefer command-line arguments for script options. Use environment variables only for actual environment/CI/backend semantics such as CPU/GPU/CUDA/Metal selection.
-- For performance work: profile first, benchmark with interpolation, then optimize the actual hotspot.
+- For performance work: profile first, benchmark with `BenchmarkTools.@benchmark` and interpolated inputs, then optimize the actual hotspot. Never report one-off `@elapsed`/wall-clock timings as benchmark results. Warm the code first; for GPU benchmarks, synchronize the backend (for example `CUDA.synchronize()`, `Metal.synchronize()`) inside the measured function or immediately after the kernel work.
 - Never write raw `seq += ...` in examples or generated code; use `@addblock` or `@addblocks`.
 - Never call `build_*` only to extract events or duration and then rebuild the same block. Use `make_*` for custom blocks, copy a built block when preserving its block semantics, or append the built sequence/block directly.
 
