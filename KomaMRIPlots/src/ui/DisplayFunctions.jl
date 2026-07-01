@@ -274,13 +274,18 @@ function plot_seq(
     )
 
     label = get_labels(seq)
+    isadc = is_ADC_on.(seq)
+    label_symbols = [
+        sym for sym in fieldnames(AdcLabels)
+        if any(j -> isadc[j] && !iszero(getfield(label[j], sym)), eachindex(label))
+    ]
 
     # Define general params and the vector of plots
     idx = ["Gx" "Gy" "Gz"]
     O = size(seq.RF, 1)
     rf_trace_count = 3 + (freq_in_phase ? 0 : 1) + (!freq_in_phase && show_rf_frame ? 1 : 0)
     adc_idx = 3 + rf_trace_count * O + 1
-    p = [scatter_fun() for _ in 1:(adc_idx + length(label))]
+    p = [scatter_fun() for _ in 1:(adc_idx + length(label_symbols))]
 
     # For GRADs
     fgx = is_Gx_on(seq) ? 1.0 : Inf
@@ -425,41 +430,29 @@ function plot_seq(
     ############################
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
   
-    isadc = is_ADC_on.(seq)
     d = [ seq[i].DUR[1] for i in eachindex(seq.DUR)]
     d2 = [0;d]
     dcum = cumsum(d2)
     t_center = dcum[1:end-1] + d/2
     t_center_adc = t_center[isadc]
 
-    label_symbol = fieldnames(AdcLabels)
-    count_label = 0
-    sym_vec=[]
-    #colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
-    for sym in label_symbol
+    for (i, sym) in enumerate(label_symbols)
         lab_vec = [getfield(label[j],sym) for j in eachindex(label)]
         lab_adc = lab_vec[isadc]
 
-        if ~isempty(lab_adc)
-            if maximum(lab_adc) > 1
-                count_label = count_label + 1
-                push!(sym_vec,sym)
-                #color = colors[mod1(i, length(colors))]
-                p[adc_idx + count_label] = scatter_fun(;
-                    x= t_center_adc * 1e3,
-                    y= lab_adc,
-                    name=string(sym),
-                    hovertemplate="(%{x:.4f} ms, %{y:i})",
-                    xaxis=xaxis,
-                    yaxis=yaxis,
-                    legendgroup=string(sym),
-                    showlegend=false,
-                    mode=("markers"),
-                    marker=attr(; color=sep_color, symbol="x"),
-                    visible=false,
-                )
-            end
-        end
+        p[adc_idx + i] = scatter_fun(;
+            x= t_center_adc * 1e3,
+            y= lab_adc,
+            name=string(sym),
+            hovertemplate="(%{x:.4f} ms, %{y:i})",
+            xaxis=xaxis,
+            yaxis=yaxis,
+            legendgroup=string(sym),
+            showlegend=false,
+            mode=("markers"),
+            marker=attr(; color=sep_color, symbol="x"),
+            visible=false,
+        )
     end
 
     ###############################
@@ -474,7 +467,7 @@ function plot_seq(
         show_seq_blocks,
         darkmode;
         T0=get_block_start_times(seq),
-        label_to_show = sym_vec,
+        label_to_show = label_symbols,
         non_label_count = adc_idx
     )
     return plot_koma(p, l; config)
@@ -988,7 +981,7 @@ function plot_image(
 end
 
 """
-    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false)
+    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false)
 
 Plots the k-space of a Sequence struct.
 
@@ -999,6 +992,7 @@ Plots the k-space of a Sequence struct.
 - `width`: (`::Integer`, `=nothing`) plot width
 - `height`: (`::Integer`, `=nothing`) plot height
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
+- `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D kx/ky plot
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the k-space of the Sequence struct
@@ -1012,7 +1006,7 @@ julia> seq = read_seq(seq_file)
 julia> plot_kspace(seq)
 ```
 """
-function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false)
+function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false)
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
     #Calculations of theoretical k-space
     kspace, kspace_adc = get_kspace(seq; Δt=1) #sim_params["Δt"])
@@ -1036,93 +1030,145 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
     dW = maximum(maxk .- mink; dims=2) * 0.3
     mink .-= dW
     maxk .+= dW
-    #Layout
-    l = Layout(;
-        paper_bgcolor=bgcolor,
-        scene=attr(;
+    modebar = attr(;
+        orientation="h",
+        yanchor="bottom",
+        xanchor="right",
+        y=1,
+        x=0,
+        bgcolor=bgcolor,
+        color=text_color,
+        activecolor=plot_bgcolor,
+    )
+    legend = attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0)
+    if view_2d
+        l = Layout(;
+            paper_bgcolor=bgcolor,
+            plot_bgcolor=plot_bgcolor,
             xaxis=attr(;
                 title="kx [m⁻¹]",
                 range=[mink[1], maxk[1]],
-                backgroundcolor=plot_bgcolor,
                 gridcolor=grid_color,
                 zerolinecolor=grid_color,
+                scaleanchor="y",
             ),
             yaxis=attr(;
                 title="ky [m⁻¹]",
                 range=[mink[2], maxk[2]],
-                backgroundcolor=plot_bgcolor,
                 gridcolor=grid_color,
                 zerolinecolor=grid_color,
+                scaleratio=1,
             ),
-            zaxis=attr(;
-                title="kz [m⁻¹]",
-                range=[mink[3], maxk[3]],
-                backgroundcolor=plot_bgcolor,
-                gridcolor=grid_color,
-                zerolinecolor=grid_color,
+            modebar,
+            legend,
+            font_color=text_color,
+            margin=attr(; t=0, l=0, r=0),
+        )
+        p = [
+            scattergl(;
+                x=kspace[:, 1],
+                y=kspace[:, 2],
+                mode="lines",
+                line=attr(; color=c),
+                name="Trajectory",
+                hoverinfo="skip",
             ),
-        ),
-        modebar=attr(;
-            orientation="h",
-            yanchor="bottom",
-            xanchor="right",
-            y=1,
-            x=0,
-            bgcolor=bgcolor,
-            color=text_color,
-            activecolor=plot_bgcolor,
-        ),
-        legend=attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0),
-        font_color=text_color,
-        scene_camera_eye=attr(; x=0, y=0, z=1.7),
-        scene_camera_up=attr(; x=0, y=1.0, z=0),
-        scene_aspectmode="cube",
-        margin=attr(; t=0, l=0, r=0),
-    )
-    if height !== nothing
-        l.height = height
-    end
-    if width !== nothing
-        l.width = width
-    end
-    #Plot
-    p = [scatter() for j in 1:3]
-    p[1] = scatter3d(;
-        x=kspace[:, 1],
-        y=kspace[:, 2],
-        z=kspace[:, 3],
-        mode="lines",
-        line=attr(; color=c),
-        name="Trajectory",
-        hoverinfo="skip",
-    )
-    p[2] = scatter3d(;
-        x=kspace_adc[:, 1],
-        y=kspace_adc[:, 2],
-        z=kspace_adc[:, 3],
-        text=round.(t_adc * 1e3, digits=3),
-        mode="markers",
-        line=attr(; color=c2),
-        marker=attr(; size=2),
-        name="ADC",
-        hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
-    )
-    p[3] = scatter3d(;
-        x=[0], y=[0], z=[0], name="k=0", marker=attr(; symbol="cross", size=10, color="red")
-    )
-    config = PlotConfig(;
-        displaylogo=false,
-        toImageButtonOptions=attr(;
-            format="svg", # one of png, svg, jpeg, webp
-        ).fields,
-        modeBarButtonsToRemove=[
+            scattergl(;
+                x=kspace_adc[:, 1],
+                y=kspace_adc[:, 2],
+                text=round.(t_adc * 1e3, digits=3),
+                mode="markers",
+                marker=attr(; color=c2, size=4),
+                name="ADC",
+                hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
+            ),
+            scattergl(;
+                x=[0], y=[0], mode="markers", name="k=0",
+                marker=attr(; symbol="cross", size=10, color="red"),
+            ),
+        ]
+        modebar_buttons = ["zoom", "pan", "resetScale2d", "autoScale2d"]
+    else
+        l = Layout(;
+            paper_bgcolor=bgcolor,
+            scene=attr(;
+                xaxis=attr(;
+                    title="kx [m⁻¹]",
+                    range=[mink[1], maxk[1]],
+                    backgroundcolor=plot_bgcolor,
+                    gridcolor=grid_color,
+                    zerolinecolor=grid_color,
+                ),
+                yaxis=attr(;
+                    title="ky [m⁻¹]",
+                    range=[mink[2], maxk[2]],
+                    backgroundcolor=plot_bgcolor,
+                    gridcolor=grid_color,
+                    zerolinecolor=grid_color,
+                ),
+                zaxis=attr(;
+                    title="kz [m⁻¹]",
+                    range=[mink[3], maxk[3]],
+                    backgroundcolor=plot_bgcolor,
+                    gridcolor=grid_color,
+                    zerolinecolor=grid_color,
+                ),
+            ),
+            modebar,
+            legend,
+            font_color=text_color,
+            scene_camera_eye=attr(; x=0, y=0, z=1.7),
+            scene_camera_up=attr(; x=0, y=1.0, z=0),
+            scene_aspectmode="cube",
+            margin=attr(; t=0, l=0, r=0),
+        )
+        p = [
+            scatter3d(;
+                x=kspace[:, 1],
+                y=kspace[:, 2],
+                z=kspace[:, 3],
+                mode="lines",
+                line=attr(; color=c),
+                name="Trajectory",
+                hoverinfo="skip",
+            ),
+            scatter3d(;
+                x=kspace_adc[:, 1],
+                y=kspace_adc[:, 2],
+                z=kspace_adc[:, 3],
+                text=round.(t_adc * 1e3, digits=3),
+                mode="markers",
+                line=attr(; color=c2),
+                marker=attr(; size=2),
+                name="ADC",
+                hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
+            ),
+            scatter3d(;
+                x=[0], y=[0], z=[0], name="k=0",
+                marker=attr(; symbol="cross", size=10, color="red"),
+            ),
+        ]
+        modebar_buttons = [
             "zoom",
             "pan",
             "tableRotation",
             "resetCameraLastSave3d",
             "orbitRotation",
             "resetCameraDefault3d",
-    ],
+        ]
+    end
+    if height !== nothing
+        l.height = height
+    end
+    if width !== nothing
+        l.width = width
+    end
+    config = PlotConfig(;
+        displaylogo=false,
+        toImageButtonOptions=attr(;
+            format="svg", # one of png, svg, jpeg, webp
+        ).fields,
+        modeBarButtonsToRemove=modebar_buttons,
     )
     return plot_koma(p, l; config)
 end

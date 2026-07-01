@@ -104,7 +104,7 @@ function get_variable_times(seq; Δt=1e-3, Δt_rf=1e-5, motion=NoMotion())
 			delay, T = y.delay, y.T
 			t1 = t0 + delay
 			t2 = t1 + sum(T)
-			tc = t0 + delay + get_RF_center(y)
+			tc = t0 + delay + rf_center(y)
 			taux = points_from_key_times(sort([t1, next_time(t1), tc, prev_time(t2), t2]); dt=Δt_rf)
             append!(t_block, taux)
 		end

@@ -199,7 +199,8 @@ end
 
 # Gradient comparison
 field_isapprox(gr1::Grad, gr2::Grad; kwargs...) = isapprox(gr1, gr2; kwargs...)
-Base.isapprox(gr1::Grad, gr2::Grad; kwargs...) = fields_isapprox(gr1, gr2; kwargs...)
+Base.isapprox(gr1::Grad, gr2::Grad; kwargs...) =
+    (!is_on(gr1) && !is_on(gr2)) || fields_isapprox(gr1, gr2; kwargs...)
 Base.copy(gr::Grad) = Grad(_deepcopy_fields(gr)...)
 
 # Gradient operations

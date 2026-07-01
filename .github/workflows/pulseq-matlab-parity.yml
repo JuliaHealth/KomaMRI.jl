@@ -1,0 +1,75 @@
+name: Pulseq MATLAB parity
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+    paths:
+      - .github/workflows/pulseq-matlab-parity.yml
+      - KomaMRIBase/src/sequences/PulseDesigner.jl
+      - KomaMRIBase/src/sequences/PulseDesigner/**
+      - KomaMRIFiles/src/Sequence/pulseq/**
+      - KomaMRIFiles/test/pulseq_matlab_parity.jl
+      - KomaMRIFiles/test/write_pulseq_matlab_parity_sequences.m
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  pulseq-parity:
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        github.event.action != 'labeled' ||
+        github.event.label.name == 'pulseq-parity'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - uses: matlab-actions/setup-matlab@v3
+        with:
+          cache: true
+          products: >
+            Curve_Fitting_Toolbox
+      - name: Download latest Pulseq
+        run: |
+          curl -fsSL https://github.com/pulseq-admin/pulseq/archive/refs/heads/master.zip -o "$RUNNER_TEMP/pulseq.zip"
+          unzip -q "$RUNNER_TEMP/pulseq.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/pulseq-master" "$RUNNER_TEMP/pulseq"
+          mkdir -p "$HOME/Documents/MATLAB"
+      - name: KomaMRIFiles parity test setup
+        shell: julia --color=yes --project=KomaMRIFiles/test {0}
+        run: |
+          using Pkg
+          Pkg.develop([
+              PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              PackageSpec(path=pwd(), subdir="KomaMRIFiles"),
+          ])
+          Pkg.instantiate()
+          using KomaMRIBase
+          open(ENV["GITHUB_ENV"], "a") do io
+              println(io, "KOMA_GAMMA=$(KomaMRIBase.γ)")
+          end
+      - name: Write MATLAB Pulseq reference
+        uses: matlab-actions/run-command@v3
+        env:
+          PULSEQ_MATLAB: ${{ runner.temp }}/pulseq/matlab
+          PULSEQ_MATLAB_SEQ: ${{ runner.temp }}/pulseq_matlab_parity.seq
+        with:
+          command: run('KomaMRIFiles/test/write_pulseq_matlab_parity_sequences.m')
+      - name: Run MATLAB Pulseq parity
+        env:
+          PULSEQ_MATLAB_SEQ: ${{ runner.temp }}/pulseq_matlab_parity.seq
+        run: julia --color=yes --project=KomaMRIFiles/test -e 'include("KomaMRIFiles/test/pulseq_matlab_parity.jl")'

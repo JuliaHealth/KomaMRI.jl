@@ -9,6 +9,7 @@ Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoSliderServer = "2fc8631c-6f24-4c5b-bca7-cbb509c42db4"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
 Documenter = "1"

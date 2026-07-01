@@ -1,6 +1,9 @@
 #GUI tests
 @testitem "PlotlyJS" tags=[:plots] begin
+    import KomaMRIPlots: plot_backend!
     using KomaMRIBase, MRIFiles
+
+    plot_backend!("PlotlyJS")
 
     @testset "GUI_phantom" begin
         ph = brain_phantom2D()    #2D phantom
@@ -95,6 +98,17 @@
             plot_seq(seq)  #Plotting the sequence
             plot_seq(seq; width=800, height=600, slider=true, show_seq_blocks=true)
             @test true          #If the previous lines fail the test will fail
+        end
+
+        @testset "plot_seq labels" begin
+            # Binary ADC labels from Pulseq extension chains must be selectable.
+            labeled = Sequence()
+            @addblock labeled += (ADC(1, 1e-6), LabelSet(0, "LIN"), LabelSet(1, "REV"))
+            @addblock labeled += (ADC(1, 1e-6), LabelSet(3, "LIN"), LabelSet(0, "REV"))
+            p = plot_seq(labeled)
+            trace_names = [get(trace.fields, :name, nothing) for trace in p.plot.data]
+            @test "LIN" in trace_names
+            @test "REV" in trace_names
         end
 
         @testset "plot_kspace" begin

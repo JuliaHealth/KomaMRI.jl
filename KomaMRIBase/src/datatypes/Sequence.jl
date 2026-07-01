@@ -292,7 +292,7 @@ function _copy_events(x::AbstractArray{T}) where {T}
 end
 _copy_block_metadata(x) = deepcopy(x)
 _fits_eltype(::Type{T}, x) where {T} = all(value -> typeof(value) <: T, x)
-const _BlockEvent = Union{Grad,RF,ADC,Extension}
+const _BlockEvent = Union{Grad,RF,ADC,Extension,Nothing}
 const _BlockEventTuple = Tuple{_BlockEvent,Vararg{_BlockEvent}}
 
 function _event_column(events::NTuple{N,T}) where {N,T}
@@ -412,12 +412,12 @@ Base.push!(x::Sequence, y::Sequence) = append!(x, y)
 _event_tuple(::Type{T}) where {T} = ()
 _event_tuple(::Type{T}, event::T, rest...) where {T} = (event, _event_tuple(T, rest...)...)
 _event_tuple(::Type{T}, event, rest...) where {T} = _event_tuple(T, rest...)
-_check_block_event(::Union{Grad,RF,ADC,Extension}) = nothing
+_check_block_event(::_BlockEvent) = nothing
 _check_block_event(event) = error("Unsupported block event $(typeof(event)).")
 _block_duration(block_duration) = block_duration
 _block_duration(block_duration, event, events...) = _block_duration(_block_duration(block_duration, event), events...)
+_block_duration(block_duration, ::Nothing) = block_duration
 _block_duration(block_duration, event) = max(block_duration, dur(event))
-_block_duration(block_duration, adc::ADC) = max(block_duration, _pulseq_duration(adc))
 _block_duration_constraint() = nothing
 _block_duration_constraint(event) = nothing
 function _block_duration_constraint(event, events...)
@@ -511,13 +511,12 @@ end
 #Sequence object functions
 size(x::Sequence) = size(x.GR[1,:])
 
-Base.:(≈)(x::Sequence, y::Sequence; atol=1e-12) =
-    typeof(x) === typeof(y) &&
-    field_isapprox(x.GR, y.GR; atol=atol) &&
-    field_isapprox(x.RF, y.RF; atol=atol) &&
-    field_isapprox(x.ADC, y.ADC; atol=atol) &&
-    field_isapprox(x.DUR, y.DUR; atol=atol) &&
-    field_isapprox(x.EXT, y.EXT; atol=atol)
+Base.isapprox(x::Sequence, y::Sequence; kwargs...) =
+    field_isapprox(x.GR, y.GR; kwargs...) &&
+    field_isapprox(x.RF, y.RF; kwargs...) &&
+    field_isapprox(x.ADC, y.ADC; kwargs...) &&
+    field_isapprox(x.DUR, y.DUR; kwargs...) &&
+    field_isapprox(x.EXT, y.EXT; kwargs...)
 
 """
     y = is_ADC_on(x::Sequence)
@@ -703,8 +702,8 @@ function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phas
     fill_if_empty(x) = isempty(x.t) && length(range) == length(seq) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
     # RF
     if :rf in events
-        t_rf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ times(seq.RF[1,i], :A))  for i in range])
-        t_Δf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ times(seq.RF[1,i], :Δf)) for i in range])
+        t_rf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ times(seq.RF[1,i]))      for i in range])
+        t_Δf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ freq_times(seq.RF[1,i])) for i in range])
         A_rf = reduce(vcat, [ampls(seq.RF[1,i]; freq_in_phase) for i in range])
         A_Δf = reduce(vcat, [freqs(seq.RF[1,i])                for i in range])
         A_ψ  = reduce(vcat, [rf_frame_phase(seq.RF[1,i])       for i in range])
@@ -863,7 +862,7 @@ function get_Mk(seq::Sequence, k; Δt=1)
 	# Moment
 	Nt = length(t)
 	mk = zeros(Nt,3)
-	# get_RF_center_breaks
+		# rf_center_breaks
 	idx_rf, rf_types = get_RF_types(seq, t)
 	parts = kfoldperm(Nt, 1; breaks=idx_rf)
 	for i = 1:3

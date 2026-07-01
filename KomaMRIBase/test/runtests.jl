@@ -149,6 +149,11 @@ using TestItems, TestItemRunner
         tuple_block = seq0 + (rf, adc)
         @test tuple_block.RF[1,end].A ≈ rf.A
         @test tuple_block.ADC[end].N == adc.N
+        optional_seq = Sequence()
+        for acquired in (false, true)
+            @addblock optional_seq += rotz(0.0) * (x=g, acquired ? adc : nothing)
+        end
+        @test optional_seq.ADC.N == [0, adc.N]
         @test_throws MethodError seq0 + (0, 1, 0)
         @test_throws ErrorException seq0 + (rf, g)
 
@@ -364,10 +369,13 @@ using TestItems, TestItemRunner
         checked = Sequence()
         @addblock check_timing=true check_hw_limits=true checked += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
         @test length(checked) == 1
+        checks = (; check_timing=true, check_hw_limits=true)
+        @addblock checks checked += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
+        @test length(checked) == 2
         @test_throws ErrorException @addblock check_timing=true checked += RF(1e-6, off_raster_duration)
-        @test length(checked) == 1
+        @test length(checked) == 2
         @test_throws ErrorException @addblock check_timing=true sys=Scanner(DUR_Δt=2block_raster) checked += RF(1e-6, block_raster)
-        @test length(checked) == 1
+        @test length(checked) == 2
 
         hw_checked = Sequence()
         @addblock check_hw_limits=true hw_checked += RF(1e-6, off_raster_duration)
@@ -380,10 +388,14 @@ using TestItems, TestItemRunner
             checked_loop += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
         end
         @test length(checked_loop) == 2
+        @addblocks checks for _ in 1:2
+            checked_loop += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
+        end
+        @test length(checked_loop) == 4
         @test_throws ErrorException @addblocks check_timing=true for _ in 1:1
             checked_loop += RF(1e-6, off_raster_duration)
         end
-        @test length(checked_loop) == 2
+        @test length(checked_loop) == 4
 
         @test_throws ErrorException addblock!(Sequence(), rf, g)
         @test_throws ErrorException macroexpand(@__MODULE__, :(@addblock badseq = (RF(1e-6, $block_raster))))
@@ -474,6 +486,7 @@ using TestItems, TestItemRunner
             gb = Grad([0.1, 0.5, -0.2], 0.9e-3, 0.12e-3, 0.08e-3, 0.17e-3)
             t = sort!(unique!(vcat(times(ga), times(gb))))
             @test isapprox(_sample_xgrad(ga + gb, t), _sample_xgrad(ga, t) .+ _sample_xgrad(gb, t); atol=1e-12)
+            @test area(ga + gb) ≈ area(ga) + area(gb)
         end
 
         gradt = -grad
@@ -488,6 +501,10 @@ using TestItems, TestItemRunner
         delay, rise, T, fall = 1e-6, 2e-6, 10e-3, 3e-6
         gr = Grad(A, T, rise, fall, delay)
         @test dur(gr) ≈ delay + rise + T + fall
+        @test area(Grad(2.0, 3.0, 1.0, 1.0, 0.0)) ≈ 8.0
+        @test area(Grad([0.0, 1.0, 0.0], 2.0)) ≈ 1.0
+        @test area(Grad([0.0, 1.0, 0.0], 2.0, 0.5, 0.5, 0.0, -0.5, -0.5)) ≈ 0.75
+        @test area(Grad([0.0, 1.0, 0.0], [1.0, 1.0])) ≈ 1.0
         T1, T2, T3 = 1e-3, 2e-3, 3e-3
         vt = [Grad(A1,T1); Grad(A2,T2); Grad(A3,T3)]
         @test dur(vt) ≈ [maximum([T1, T2, T3])]
@@ -515,6 +532,8 @@ using TestItems, TestItemRunner
         r1 = RF(A,T,Δf)
         r2 = RF(A,T,Δf,0.0,r1.center)
         @test r1 ≈ r2
+        @test isapprox(RF(A,T,Δf,0.0,r1.center,0.0), RF(A,T,Δf,0.0,r1.center,2π - 1e-5); rtol=1e-4)
+        @test !isapprox(RF(A,T,Δf,0.0,r1.center,0.0), RF(A,T,Δf,0.0,r1.center,2π - 1e-5); rtol=1e-6)
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", r1)
         @test true
@@ -532,6 +551,7 @@ using TestItems, TestItemRunner
         @test rf_off_scaled ≈ rf_off
         @test rf_off_scaled !== rf_off
         @test dur(rf) ≈ rf.T
+        @test area(RF([0.0, 1.0, 0.0], [1.0, 1.0])) ≈ 1.0
         B1x, B1y, B2x, B2y, B3x, B3y, T1, T2, T3 = rand(9)
         rf1, rf2, rf3 = RF(B1x + im*B1y, T1), RF(B1x + im*B1y, T2), RF(B3x + im*B3y, T3)
         rv = [rf1; rf2; rf3 ;;]
@@ -552,7 +572,7 @@ using TestItems, TestItemRunner
         # Frequency-modulated RF: ψ is generated from the integrated Δf waveform and centered.
         rf_fm = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, [0.0, 1000.0, 0.0], 0.0)
         ψ = KomaMRIBase.rf_frame_phase(rf_fm)
-        @test ψ[argmin(abs.(times(rf_fm, :Δf) .- (rf_fm.delay + rf_fm.center)))] ≈ 0
+        @test ψ[argmin(abs.(freq_times(rf_fm) .- (rf_fm.delay + rf_fm.center)))] ≈ 0
 
         # Discretization carries ψ so simulators can handle split RF blocks independently.
         seq = Sequence()
@@ -624,8 +644,7 @@ using TestItems, TestItemRunner
         block = Sequence()
         addblock!(block, Delay(5e-4), rf, adc)
         @test length(block) == 1
-        dwell = adc.T / (adc.N - 1)
-        @test dur(block[1]) ≈ adc.delay - dwell / 2 + adc.N * dwell
+        @test dur(block[1]) ≈ dur(adc)
 
         trigger = Trigger(1, 1, 1e-3, 2e-3)
         block = Sequence()
@@ -666,6 +685,8 @@ using TestItems, TestItemRunner
 
         adc1, adc2 = ADC(N, T, delay, Δf, ϕ), ADC(N, T, delay, Δf, ϕ)
         @test adc1 ≈ adc2
+        @test isapprox(ADC(N, T, delay, Δf, 0.0), ADC(N, T, delay, Δf, 2π - 1e-5); rtol=1e-4)
+        @test !isapprox(ADC(N, T, delay, Δf, 0.0), ADC(N, T, delay, Δf, 2π - 1e-5); rtol=1e-6)
         @test im * adc ≈ ADC(N, T, delay, Δf, ϕ + π / 2)
         @test adc * complex(-2.0) ≈ ADC(N, T, delay, Δf, mod(ϕ + π, 2π))
         adc_off = ADC(0, T)
@@ -1056,9 +1077,15 @@ using TestItems, TestItemRunner
             rf_raster = 1e-6
             adc_raster = 100e-9
             event_duration = 2 * block_raster
-            adc_edge = Sequence()
+            adc_edge = Sequence(Scanner(
+                DUR_Δt=adc_raster, RF_Δt=adc_raster, ADC_Δt=adc_raster,
+                ADC_dead_time=0.0,
+            ))
             @addblock adc_edge += ADC(2, adc_raster, adc_raster / 2)
-            @test dur(adc_edge) ≈ 2adc_raster
+            @test dur(adc_edge) ≈ 3adc_raster / 2
+            @test_throws ErrorException check_timing(adc_edge)
+            adc_edge.DUR[1] = 2adc_raster
+            @test isnothing(check_timing(adc_edge))
 
             rf_too_long = Sequence()
             @addblock rf_too_long += RF(1e-6, event_duration)
@@ -1136,12 +1163,488 @@ using TestItems, TestItemRunner
 end
 
 @testitem "PulseDesigner" tags=[:base] begin
+    import KomaMRIBase: rotation_matrix
+    using Unitful
+
     @testset "RF_sinc" begin
         sys = Scanner()
         B1 = 23.4e-6 # For 90 deg flip angle
         Trf = 1e-3
         rf = PulseDesigner.RF_sinc(B1, Trf, sys; TBP=4)
-        @test round(KomaMRIBase.get_flip_angles(rf)[1]) ≈ 90
+        @test round(get_flip_angles(rf)[1]) ≈ 90
+    end
+    @testset "build_block_pulse" begin
+        sys = Scanner(B0=3u"T")
+        @test sys.B0 == 3.0
+
+        sys = Scanner(B1=γ * 20e-6 * u"Hz")
+        @test sys.B1 ≈ 20e-6
+
+        sys = Scanner(B1=Inf, RF_Δt=1u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s")
+        seq = PulseDesigner.build_block_pulse(π * u"rad"; duration=1u"ms", sys)
+        @test get_flip_angles(seq)[1] ≈ 180.0
+
+        seq = PulseDesigner.build_block_pulse(90u"°"; duration=2u"ms", sys)
+        @test get_flip_angles(seq)[1] ≈ 90.0
+
+        sys = Scanner(B1=Inf, RF_Δt=1u"μs", DUR_Δt=10u"μs", RF_dead_time=100u"μs", RF_ring_down_time=30u"μs")
+        seq = PulseDesigner.build_block_pulse(8u"°"; duration=200u"μs", sys)
+        @test dur(seq) ≈ 330e-6
+
+        rf = PulseDesigner.build_block_pulse(π * u"rad"; bandwidth=0.3u"kHz", sys).RF[1, 1]
+        @test rf.T == round(1 / (4 * 0.3e3) / sys.RF_Δt) * sys.RF_Δt
+
+        seq = PulseDesigner.build_block_pulse(π * u"rad"; bandwidth=1u"kHz", time_bw_product=5, sys)
+        rf = seq.RF[1, 1]
+        @test rf.T == 5e-3
+
+        seq = PulseDesigner.build_block_pulse(
+            90u"°"; duration=1u"ms", freq_offset=1u"kHz", phase_offset=90u"°",
+            sys, use=Excitation(),
+        )
+        rf = seq.RF[1, 1]
+        @test rf.Δf == 1e3
+        @test rf.ϕ == π / 2
+
+    end
+    @testset "Unitful API parity" begin
+        # Pulseq-default plain gradient numerics should match equivalent Unitful SI inputs.
+        @test (2.0u"ms" |> to_SI) == 2e-3
+        @test ([256.0u"mm", 5.0u"mm"] .|> to_SI) == [0.256, 0.005]
+        @test PulseDesigner.ceil_to_raster(1.011u"ms", 10u"μs") == 1.02u"ms"
+        @test PulseDesigner.floor_to_raster(1.019u"ms", 10u"μs") == 1.01u"ms"
+        @test PulseDesigner.round_to_raster(1.014u"ms", 10u"μs") == 1.01u"ms"
+        @test PulseDesigner.raster_samples(1.014u"ms", 10u"μs") == 101
+
+        sys = Scanner(
+            B1=Inf, Gmax=40e-3, Smax=170.0, ADC_Δt=2e-6, DUR_Δt=10e-6,
+            GR_Δt=10e-6, RF_Δt=1e-6, RF_ring_down_time=0.0,
+            RF_dead_time=0.0, ADC_dead_time=6e-6,
+        )
+        sysu = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", ADC_Δt=2u"μs",
+            DUR_Δt=10u"μs", GR_Δt=10u"μs", RF_Δt=1u"μs",
+            RF_ring_down_time=0u"s", RF_dead_time=0u"s", ADC_dead_time=6u"μs",
+        )
+        physical_area = 8e-6
+        physical_amplitude = 1e-3
+        @test PulseDesigner.build_trapezoid(:x; area=γ * physical_area, duration=1e-3, sys) ≈
+            PulseDesigner.build_trapezoid(:x; area=8e-6u"T*s/m", duration=1u"ms", sys=sysu)
+        @test PulseDesigner.build_arbitrary_grad(
+            :x, γ .* [0, physical_amplitude, 0]; sys,
+        ) ≈
+            PulseDesigner.build_arbitrary_grad(:x, [0, 1, 0]u"mT/m"; sys=sysu)
+        @test PulseDesigner.build_extended_trapezoid(
+            :x, [0, 0.5e-3, 1e-3], γ .* [0, physical_amplitude, 0]; sys,
+        ) ≈ PulseDesigner.build_extended_trapezoid(
+            :x, [0, 0.5, 1]u"ms", [0, 1, 0]u"mT/m"; sys=sysu,
+        )
+        @test PulseDesigner.build_extended_trapezoid_area(
+            :x, 0.0, 0.0, γ * 10e-6; sys,
+        ) ≈
+            PulseDesigner.build_extended_trapezoid_area(
+                :x, 0u"mT/m", 0u"mT/m", 10e-6u"T*s/m"; sys=sysu,
+            )
+        @test PulseDesigner.build_block_pulse(π / 2; duration=1e-3, sys) ≈
+            PulseDesigner.build_block_pulse(90u"°"; duration=1u"ms", sys=sysu)
+        @test PulseDesigner.build_sinc_pulse(π / 2; duration=1e-3, sys) ≈
+            PulseDesigner.build_sinc_pulse(90u"°"; duration=1u"ms", sys=sysu)
+        @test PulseDesigner.build_arbitrary_rf([1, 2, 1], π / 2; dwell=2e-6, sys) ≈
+            PulseDesigner.build_arbitrary_rf([1, 2, 1], 90u"°"; dwell=2u"μs", sys=sysu)
+        @test PulseDesigner.build_gauss_pulse(π / 2; duration=1e-3, sys) ≈
+            PulseDesigner.build_gauss_pulse(90u"°"; duration=1u"ms", sys=sysu)
+        @test PulseDesigner.build_adiabatic_pulse(
+            :wurst; duration=4e-3, dwell=2e-6, bandwidth=6e3, sys,
+        ) ≈ PulseDesigner.build_adiabatic_pulse(
+            :wurst; duration=4u"ms", dwell=2u"μs", bandwidth=6u"kHz", sys=sysu,
+        )
+        @test PulseDesigner.build_adc(4, 2e-6; sys) ≈
+            PulseDesigner.build_adc(4, 2u"μs"; sys=sysu)
+        @test PulseDesigner.build_delay(1e-3; sys) ≈
+            PulseDesigner.build_delay(1u"ms"; sys=sysu)
+        @test PulseDesigner.build_rotation(π / 2; sys) ≈
+            PulseDesigner.build_rotation(90u"deg"; sys=sysu)
+        @test PulseDesigner.build_trigger(:physio1; delay=20e-6, duration=100e-6, sys) ≈
+            PulseDesigner.build_trigger(
+                :physio1; delay=20u"μs", duration=100u"μs", sys=sysu,
+            )
+        @test PulseDesigner.build_digital_output_pulse(
+            :osc0; delay=20e-6, duration=100e-6, sys,
+        ) ≈ PulseDesigner.build_digital_output_pulse(
+            :osc0; delay=20u"μs", duration=100u"μs", sys=sysu,
+        )
+    end
+    @testset "build_trapezoid" begin
+        # Cover the constructor branches that solve amplitude from area and preserve amplitude directly.
+        sys = Scanner(Gmax=Inf, Smax=Inf, GR_Δt=10e-6)
+        target_area = γ * 10e-6
+        expected_area = target_area / γ
+        duration = 1e-3
+        rise_time = sys.GR_Δt
+        grad = PulseDesigner.make_trapezoid(;
+            area=target_area, duration, rise_time, sys,
+        )
+        @test area(grad) ≈ expected_area
+
+        target_amplitude = γ * 20e-3
+        expected_amplitude = target_amplitude / γ
+        grad = PulseDesigner.make_trapezoid(;
+            amplitude=target_amplitude, flat_time=0.8e-3, rise_time, sys,
+        )
+        @test grad.A ≈ expected_amplitude
+
+        # Unitful gradient areas and Pulseq-style Hz/m amplitudes convert to SI T/m values.
+        sys = Scanner(Gmax=40u"mT/m", Smax=170u"T/m/s", GR_Δt=10u"μs")
+        seq = PulseDesigner.build_trapezoid(:x; area=11e-6u"T*s/m", sys)
+        grad = only(seq.GR.x)
+        @test area(grad) ≈ 1.1e-5
+
+        seq = PulseDesigner.build_trapezoid(:x; amplitude=20u"mT/m", flat_time=0.8u"ms", sys)
+        grad = only(seq.GR.x)
+        @test grad.A ≈ 20e-3
+
+        seq = PulseDesigner.build_trapezoid(:x; area=10e-6u"T*s/m", duration=1u"ms", sys)
+        grad = only(seq.GR.x)
+        @test area(grad) ≈ 1e-5
+
+        seq = PulseDesigner.build_trapezoid(:x; flat_area=8e-6u"T*s/m", flat_time=0.8u"ms", sys)
+        grad = only(seq.GR.x)
+        @test grad.A ≈ 10e-3
+
+        amplitude = γ * 20e-3 * u"Hz/m"
+        seq = PulseDesigner.build_trapezoid(:x; amplitude, flat_time=0.8u"ms", sys)
+        grad = only(seq.GR.x)
+        @test grad.A ≈ 20e-3
+    end
+    @testset "build_extended_trapezoid" begin
+        sys = Scanner(Gmax=40u"mT/m", Smax=170u"T/m/s", GR_Δt=10u"μs")
+        times = [0.0, 0.5, 1.0]u"ms"
+        amplitudes = [0.0, 20.0, 0.0]u"mT/m"
+        seq = PulseDesigner.build_extended_trapezoid(:x, times, amplitudes; sys)
+        grad = only(seq.GR.x)
+        @test area(grad) ≈ 1e-5
+    end
+    @testset "build_arbitrary_grad" begin
+        # Arbitrary gradients infer edge samples, oversampling delay, and reject invalid waveforms.
+        sys = Scanner(Gmax=40e-3, Smax=170.0, GR_Δt=10e-6)
+        physical_waveform = [0, 1e-3, 0]
+        waveform = γ .* physical_waveform
+        grad = PulseDesigner.make_arbitrary_grad(waveform; sys)
+        @test grad.first ≈ -maximum(physical_waveform) / 2
+        @test grad.last ≈ -maximum(physical_waveform) / 2
+        @test grad.T == 2sys.GR_Δt
+
+        oversampled_physical_waveform = [0, 0.2e-3, 0.4e-3, 0.2e-3, 0]
+        oversampled_waveform = γ .* oversampled_physical_waveform
+        oversampled_edge = -γ * 0.2e-3
+        seq = PulseDesigner.build_arbitrary_grad(
+            :y, oversampled_waveform;
+            oversampling=true, first=oversampled_edge, last=oversampled_edge, sys,
+        )
+        grad = only(seq.GR.y)
+        @test grad.T == 2sys.GR_Δt
+        @test grad.rise == sys.GR_Δt / 2
+
+        single_sample = γ * 0.5e-3
+        grad = PulseDesigner.make_arbitrary_grad([single_sample]; first=0, last=0, sys)
+        @test grad.T == 0.0
+        @test grad.first == 0.0
+        @test grad.last == 0.0
+
+        @test_throws ErrorException PulseDesigner.make_arbitrary_grad([0.0]; sys)
+        @test_throws ErrorException PulseDesigner.make_arbitrary_grad(
+            γ .* [0, 1e-3]; oversampling=true, sys,
+        )
+        @test_throws ErrorException PulseDesigner.make_arbitrary_grad(
+            γ .* [0, 50e-3, 0]; sys,
+        )
+        @test_throws ErrorException PulseDesigner.build_arbitrary_grad(
+            :q, γ .* [0, 1e-3, 0]; sys,
+        )
+    end
+    @testset "build_extended_trapezoid_area" begin
+        sys = Scanner(Gmax=40u"mT/m", Smax=170u"T/m/s", GR_Δt=10u"μs")
+        cases = (
+            (0u"mT/m", 0u"mT/m", 0u"T*s/m"),
+            (10u"mT/m", 10u"mT/m", 0u"T*s/m"),
+            (0u"mT/m", 0u"mT/m", 10e-6u"T*s/m"),
+            (10u"mT/m", 5u"mT/m", 2e-6u"T*s/m"),
+            (0u"mT/m", 0u"mT/m", -5e-6u"T*s/m"),
+        )
+        for (grad_start, grad_end, target_area) in cases
+            seq = PulseDesigner.build_extended_trapezoid_area(
+                :x, grad_start, grad_end, target_area; sys,
+            )
+            grad = only(seq.GR.x)
+            @test area(grad) ≈ ustrip(u"T*s/m", target_area)
+            @test grad.first ≈ ustrip(u"T/m", grad_start)
+            @test grad.last ≈ ustrip(u"T/m", grad_end)
+        end
+    end
+    @testset "build_rotation" begin
+        @test rotation_matrix(PulseDesigner.make_rotation(π / 2)) ≈ rotz(π / 2)
+        @test rotation_matrix(PulseDesigner.make_rotation(π / 2, π / 4)) ≈
+            rotz(π / 2) * roty(π / 4)
+        @test rotation_matrix(PulseDesigner.make_rotation([1, 0, 0], π / 2)) ≈
+            rotx(π / 2)
+        @test rotation_matrix(PulseDesigner.make_rotation([0, -1, 0], π / 3)) ≈
+            roty(-π / 3)
+        @test rotation_matrix(PulseDesigner.make_rotation([0, 0, 0, 2])) ≈
+            rotz(π)
+        @test rotation_matrix(PulseDesigner.make_rotation(rotz(π / 3))) ≈
+            rotz(π / 3)
+
+        seq = PulseDesigner.build_rotation(90u"°")
+        @test rotation_matrix(only(seq.EXT[1])) ≈ rotz(π / 2)
+        @test rotation_matrix(PulseDesigner.make_rotation(90u"°", 30u"°")) ≈
+            rotz(π / 2) * roty(π / 6)
+        @test rotation_matrix(PulseDesigner.make_rotation(-90u"°")) ≈
+            rotz(-π / 2)
+        @test rotation_matrix(PulseDesigner.make_rotation([0, 1, 0], 45u"°")) ≈
+            roty(π / 4)
+        @test rotation_matrix(PulseDesigner.make_rotation([0, -1, 0], 45u"°")) ≈
+            roty(-π / 4)
+        @test_throws DimensionMismatch PulseDesigner.make_rotation(1u"ppm")
+    end
+    @testset "build_trigger" begin
+        sys = Scanner(GR_Δt=10u"μs")
+        seq = PulseDesigner.build_trigger(:physio2; delay=20u"μs", duration=100u"μs", sys)
+        trigger = only(seq.EXT[1])
+        @test trigger == Trigger(2, 2, 20e-6, 100e-6)
+    end
+    @testset "build_digital_output_pulse" begin
+        sys = Scanner(GR_Δt=10u"μs")
+        seq = PulseDesigner.build_digital_output_pulse(
+            :ext1; delay=500u"μs", duration=100u"μs", sys,
+        )
+        output = only(seq.EXT[1])
+        @test output == Trigger(1, 3, 500e-6, 100e-6)
+    end
+    @testset "build_label" begin
+        seq = PulseDesigner.build_label(:SET, :LIN, true)
+        append!(seq, PulseDesigner.build_label(:INC, :LIN, 2))
+
+        labels = get_labels(seq)
+        @test [label.LIN for label in labels] == [1, 3]
+    end
+    @testset "build_delay" begin
+        seq = PulseDesigner.build_delay(2u"ms")
+        @test only(seq.DUR) == 2e-3
+    end
+    @testset "Pulseq RF/ADC timing" begin
+        sys = Scanner(
+            RF_Δt=1e-6, RF_ring_down_time=30e-6,
+            ADC_Δt=2e-6, ADC_dead_time=6e-6, DUR_Δt=10e-6,
+        )
+
+        # Uniform RF stores delay at the first sample; sys-aware timing writes the
+        # Pulseq delay at the preceding sample edge and includes RF ringdown.
+        rf_waveform = ComplexF64[1, 1, 1]
+        rf_pulseq_delay = 3sys.RF_Δt
+        rf_sample_offset = sys.RF_Δt / 2
+        rf_duration = (length(rf_waveform) - 1) * sys.RF_Δt
+        rf = RF(rf_waveform, rf_duration, 0.0, rf_pulseq_delay + rf_sample_offset; center=sys.RF_Δt)
+        @test dur(rf) ≈ delay(rf) + rf_duration
+        @test delay(rf) ≈ rf_pulseq_delay + rf_sample_offset
+        @test rf_center(rf) ≈ sys.RF_Δt
+        @test delay(rf, sys) ≈ rf_pulseq_delay
+        @test rf_center(rf, sys) ≈ rf_center(rf) + rf_sample_offset
+        @test dur(rf, sys) ≈ delay(rf, sys) + length(rf.A) * sys.RF_Δt + sys.RF_ring_down_time
+
+        # ADC stores delay at the first sample; sys-aware timing writes the Pulseq
+        # delay at dwell/2 before that sample and includes post-ADC dead time.
+        adc_samples = 4
+        adc_dwell = sys.ADC_Δt
+        adc_pulseq_delay = 3sys.ADC_Δt
+        adc = PulseDesigner.make_adc(adc_samples, adc_dwell; delay=adc_pulseq_delay - sys.ADC_dead_time, sys)
+        @test dur(adc) ≈ delay(adc) + (adc_samples - 1) * adc_dwell
+        @test delay(adc) ≈ adc_pulseq_delay + adc_dwell / 2
+        @test delay(adc, sys) ≈ adc_pulseq_delay
+        @test dur(adc, sys) ≈ adc_pulseq_delay + adc_samples * adc_dwell + sys.ADC_dead_time
+        adc_block = PulseDesigner.build_adc(adc_samples, adc_dwell; delay=adc_pulseq_delay - sys.ADC_dead_time, sys)
+        @test dur(adc_block, sys) ≈ dur(adc, sys)
+        @test only(adc_block.DUR) ≈ PulseDesigner.ceil_to_raster(dur(adc, sys), sys.DUR_Δt)
+
+        # Block-pulse RF has no sample-edge shift; sys-aware duration only adds ringdown.
+        rf_block = PulseDesigner.build_block_pulse(90u"°"; duration=2u"μs", sys)
+        @test dur(rf_block[1], sys) ≈ only(rf_block.DUR)
+        block_rf_delay = sys.RF_dead_time
+        block_rf_duration = 2sys.RF_Δt
+        block_rf = RF(1e-6, block_rf_duration, 0.0, block_rf_delay; center=block_rf_duration / 2, use=Excitation())
+        @test delay(block_rf, sys) ≈ delay(block_rf)
+        @test rf_center(block_rf, sys) ≈ rf_center(block_rf)
+        @test dur(block_rf, sys) ≈ delay(block_rf) + sum(block_rf.T) + sys.RF_ring_down_time
+
+        # Compact RF timing uses type dispatch: default-raster RF writes id 0,
+        # half-raster RF writes an explicit time shape with RF-raster duration.
+        rf_samples = ComplexF64[1, 2, 1]
+        uniform_rf = RF(rf_samples, (length(rf_samples) - 1) * sys.RF_Δt, 0.0, rf_pulseq_delay + sys.RF_Δt / 2; center=sys.RF_Δt, use=Excitation())
+        @test dwell(uniform_rf, sys) ≈ sys.RF_Δt
+        @test delay(uniform_rf) ≈ rf_pulseq_delay + dwell(uniform_rf) / 2
+        @test delay(uniform_rf, sys) ≈ rf_pulseq_delay
+        @test rf_center(uniform_rf) ≈ dwell(uniform_rf)
+        @test rf_center(uniform_rf, sys) ≈ rf_center(uniform_rf) + dwell(uniform_rf) / 2
+        @test dur(uniform_rf) ≈ delay(uniform_rf) + 2dwell(uniform_rf)
+        @test dur(uniform_rf, sys) ≈ delay(uniform_rf, sys) + length(uniform_rf.A) * dwell(uniform_rf) + sys.RF_ring_down_time
+
+        half_raster_dwell = sys.RF_Δt / 2
+        half_raster_rf = RF(rf_samples, (length(rf_samples) - 1) * half_raster_dwell, 0.0, rf_pulseq_delay + half_raster_dwell / 2; center=half_raster_dwell, use=Excitation())
+        @test dwell(half_raster_rf, sys) ≈ sys.RF_Δt / 2
+        @test delay(half_raster_rf, sys) ≈ rf_pulseq_delay
+        @test rf_center(half_raster_rf, sys) ≈ rf_center(half_raster_rf) + dwell(half_raster_rf) / 2
+        half_raster_shape_duration = PulseDesigner.ceil_to_raster(
+            dur(half_raster_rf) + dwell(half_raster_rf) / 2 - delay(half_raster_rf, sys),
+            sys.RF_Δt,
+        )
+        @test dur(half_raster_rf, sys) ≈ delay(half_raster_rf, sys) +
+            half_raster_shape_duration + sys.RF_ring_down_time
+
+        # Explicit RF time shapes carry their nonzero first time in the stored Koma
+        # delay; sys-aware timing recovers the Pulseq event delay and center.
+        time_shaped_intervals = [3sys.RF_Δt, 4sys.RF_Δt]
+        time_shape_start = 2sys.RF_Δt
+        time_shape_center = time_shape_start + first(time_shaped_intervals)
+        time_shaped_rf = RF(rf_samples, time_shaped_intervals, 0.0, rf_pulseq_delay + time_shape_start; center=time_shape_center - time_shape_start, use=Excitation())
+        @test dwell(time_shaped_rf, sys) == time_shaped_intervals
+        @test delay(time_shaped_rf, sys) ≈ rf_pulseq_delay
+        @test rf_center(time_shaped_rf, sys) ≈ rf_center(time_shaped_rf) + delay(time_shaped_rf) - delay(time_shaped_rf, sys)
+        time_shaped_duration = PulseDesigner.ceil_to_raster(
+            dur(time_shaped_rf) - delay(time_shaped_rf, sys),
+            sys.RF_Δt,
+        )
+        @test dur(time_shaped_rf, sys) ≈ delay(time_shaped_rf, sys) +
+            time_shaped_duration + sys.RF_ring_down_time
+
+        irregular_intervals = [3sys.RF_Δt / 2, 5sys.RF_Δt]
+        irregular_time_shape_start = sys.RF_Δt / 2
+        irregular_time_shape_center = 2sys.RF_Δt
+        irregular_rf = RF(rf_samples, irregular_intervals, 0.0, rf_pulseq_delay + irregular_time_shape_start; center=irregular_time_shape_center - irregular_time_shape_start, use=Excitation())
+        @test delay(irregular_rf, sys) ≈ rf_pulseq_delay
+        @test rf_center(irregular_rf, sys) ≈ rf_center(irregular_rf) + delay(irregular_rf) - delay(irregular_rf, sys)
+        irregular_shape_duration = PulseDesigner.ceil_to_raster(
+            dur(irregular_rf) - delay(irregular_rf, sys),
+            sys.RF_Δt,
+        )
+        @test dur(irregular_rf, sys) ≈ delay(irregular_rf, sys) +
+            irregular_shape_duration + sys.RF_ring_down_time
+
+        # A one-sample ADC still has a dwell interval in Pulseq.
+        single_adc_dwell = sys.ADC_Δt
+        single_adc_pulseq_delay = 10sys.ADC_Δt
+        single_adc = ADC(1, single_adc_dwell, single_adc_pulseq_delay + single_adc_dwell / 2)
+        @test dwell(single_adc, sys) ≈ single_adc_dwell
+        @test delay(single_adc, sys) ≈ single_adc_pulseq_delay
+        @test dur(single_adc, sys) ≈ single_adc_pulseq_delay + single_adc.N * single_adc_dwell + sys.ADC_dead_time
+    end
+    @testset "build_adc" begin
+        sys = Scanner(ADC_Δt=2e-6, ADC_dead_time=6e-6, DUR_Δt=10e-6)
+        # ADC builders accept Pulseq delay/duration and store Koma delay/sample span.
+        adc_samples = 4
+        adc_dwell = sys.ADC_Δt
+        adc_pulseq_delay = 4e-6
+        adc_duration = adc_samples * adc_dwell
+        adc_freq_offset = 77.0
+        adc_phase_offset = 0.2
+        adc = PulseDesigner.make_adc(
+            adc_samples, adc_dwell;
+            delay=adc_pulseq_delay,
+            freq_offset=adc_freq_offset,
+            phase_offset=adc_phase_offset,
+            sys,
+        )
+        @test adc.N == adc_samples
+        @test adc.T == (adc_samples - 1) * adc_dwell
+        @test adc.delay == max(adc_pulseq_delay, sys.ADC_dead_time) + adc_dwell / 2
+        @test adc.Δf == adc_freq_offset
+        @test adc.ϕ == adc_phase_offset
+
+        seq = PulseDesigner.build_adc(adc_samples; duration=adc_duration, sys)
+        adc = only(seq.ADC)
+        @test adc.N == adc_samples
+        @test adc.T == (adc_samples - 1) * adc_dwell
+        @test adc.delay == sys.ADC_dead_time + adc_dwell / 2
+        @test only(seq.DUR) == PulseDesigner.ceil_to_raster(dur(seq[1], sys), sys.DUR_Δt)
+        single_dwell = 3e-6
+        @test PulseDesigner.make_adc(1, single_dwell; sys).T == single_dwell
+
+        @test_throws ErrorException PulseDesigner.make_adc(0, adc_dwell; sys)
+        @test_throws ErrorException PulseDesigner.make_adc(adc_samples; sys)
+        @test_throws ErrorException PulseDesigner.make_adc(
+            adc_samples, adc_dwell; duration=adc_duration, sys,
+        )
+        @test_throws ErrorException PulseDesigner.make_adc(adc_samples, 0.0; sys)
+    end
+    @testset "build_arbitrary_rf" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        seq = PulseDesigner.build_arbitrary_rf(
+            [1, 1, 1, 1], 90u"°"; dwell=10u"μs", bandwidth=2u"kHz",
+            slice_thickness=5u"mm", sys,
+        )
+        gz, gzr = seq.GR.z
+        slice_area = 2e3 * 40e-6 / (γ * 5e-3)
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area * (1 - 20e-6 / 40e-6) -
+            (area(gz) - slice_area) / 2
+
+    end
+    @testset "build_gauss_pulse" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        seq = PulseDesigner.build_gauss_pulse(
+            90u"°"; duration=1u"ms", bandwidth=2u"kHz",
+            slice_thickness=5u"mm", max_grad=30u"mT/m", max_slew=120u"T/m/s", sys,
+        )
+        gz, gzr = seq.GR.z
+        slice_area = 2e3 * 1e-3 / (γ * 5e-3)
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area / 2 - (area(gz) - slice_area) / 2
+    end
+    @testset "build_adiabatic_pulse" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        seq = PulseDesigner.build_adiabatic_pulse(
+            :wurst; duration=4u"ms", dwell=2u"μs", bandwidth=6u"kHz",
+            freq_offset=100u"Hz", phase_offset=30u"°", sys,
+        )
+        rf = seq.RF[1, 1]
+        @test rf.Δf == 100.0
+        @test rf.ϕ ≈ π / 6 atol=1e-5
+
+        seq = PulseDesigner.build_adiabatic_pulse(
+            :wurst; duration=4u"ms", bandwidth=6u"kHz", slice_thickness=5u"mm", sys,
+        )
+        rf = seq.RF[1, 1]
+        gz, gzr = seq.GR.z
+        slice_area = 6e3 * 4e-3 / (γ * 5e-3)
+        center_pos = rf_center(rf, sys) / 4e-3
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area * (1 - center_pos) - (area(gz) - slice_area) / 2
+    end
+    @testset "build_sinc_pulse" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        flip_angle = 90u"°"
+        duration = 1u"ms"
+        seq = PulseDesigner.build_sinc_pulse(
+            flip_angle; duration, slice_thickness=5u"mm", freq_offset=1u"kHz", sys,
+        )
+        rf = seq.RF[1, 1]
+        gz, gzr = seq.GR.z
+        slice_area = 4 / (γ * 5e-3)
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area / 2 - (area(gz) - slice_area) / 2
+        @test rf.delay ≈ gz.rise + gz.delay + sys.RF_Δt / 2
+        @test rf.Δf == 1e3
+
     end
     @testset "Spiral" begin
         sys = Scanner()

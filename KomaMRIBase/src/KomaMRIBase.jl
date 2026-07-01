@@ -16,6 +16,26 @@ using MAT   # For loading example phantoms
 
 const global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
 
+"""
+    to_SI(x)
+    to_SI(x, default)
+    x |> to_SI
+
+Return `x` as a plain SI number. With `SIUnitsDefault()`, plain numbers are
+already SI. With `PulseqUnitsDefault()`, plain gradient quantities use Pulseq
+units and are converted by `γ`. Unitful quantities are supported when Unitful is
+loaded.
+"""
+to_SI(x) = x
+
+abstract type UnitDefault end
+struct SIUnitsDefault <: UnitDefault end
+struct PulseqUnitsDefault <: UnitDefault end
+
+to_SI(x, ::SIUnitsDefault) = to_SI(x)
+to_SI(x, ::PulseqUnitsDefault) = to_SI(x)
+to_SI(x::Real, ::PulseqUnitsDefault) = x / γ
+
 _deepcopy_fields(x) = ntuple(i -> deepcopy(getfield(x, i)), fieldcount(typeof(x)))
 
 fields_equal(x, y) =
@@ -31,6 +51,7 @@ function field_isapprox(x::AbstractArray, y::AbstractArray; kwargs...)
         field_isapprox(x[i], y[i]; kwargs...)
     end
 end
+phase_isapprox(x, y; kwargs...) = isapprox(cis(x), cis(y); kwargs...)
 
 fields_isapprox(x, y; kwargs...) =
     typeof(x) === typeof(y) &&
@@ -39,22 +60,24 @@ fields_isapprox(x, y; kwargs...) =
 _has_negative_timings(T::Real) = T < 0
 _has_negative_timings(T::AbstractVector{<:Real}) = any(<(0), T)
 
-_shape_samples(x::Number) = [zero(x), x, x, zero(x)]
-_shape_samples(x::AbstractVector{<:Number}) = [zero(eltype(x)); x; zero(eltype(x))]
+const PULSEQ_TIME_TOL = 1e-12
+const PULSEQ_DIVISION_TOL = 1e-9
+const PULSEQ_ADC_DWELL_TOL = 1e-10
 
-_shape_times(::Number, T::Real) = [zero(T), T]
-_shape_times(::Number, T::AbstractVector{<:Number}) = [zero(eltype(T)), sum(T)]
-_shape_times(x::AbstractVector, T::Real) = range(zero(T), T; length=length(x))
-function _shape_times(x::AbstractVector, T::AbstractVector{<:Number})
-    n = length(x)
-    n == 0 && return similar(T, 0)
-    if length(T) == n - 1
-        return cumsum([zero(eltype(T)); T])
-    elseif length(T) == n
-        return cumsum([zero(eltype(T)); T[1:(end - 1)]])
-    end
-    throw(DimensionMismatch("Expected time vector of length $(n - 1) or $n for $n samples, got $(length(T))."))
+function ceil_to_raster(t, raster)
+    rounded = round(t / raster) * raster
+    isapprox(t, rounded; rtol=0, atol=PULSEQ_TIME_TOL) && return rounded
+    return ceil(t / raster - PULSEQ_TIME_TOL / raster) * raster
 end
+
+function floor_to_raster(t, raster)
+    rounded = round(t / raster) * raster
+    isapprox(t, rounded; rtol=0, atol=PULSEQ_TIME_TOL) && return rounded
+    return floor(t / raster + PULSEQ_TIME_TOL / raster) * raster
+end
+
+round_to_raster(t, raster) = round(Int, t / raster) * raster
+raster_samples(t, raster) = round(Int, t / raster)
 
 # Hardware
 include("datatypes/Scanner.jl")
@@ -65,6 +88,7 @@ include("datatypes/sequence/ADC.jl")
 include("datatypes/sequence/EXT.jl")
 include("timing/KeyValuesCalculation.jl")
 include("datatypes/Sequence.jl")
+include("timing/EventCalculations.jl")
 include("datatypes/sequence/RotationExtensions.jl")
 include("datatypes/sequence/TimingChecks.jl")
 include("datatypes/sequence/HardwareChecks.jl")
@@ -82,15 +106,17 @@ include("timing/TrapezoidalIntegration.jl")
 
 # Main
 export γ    # gyro-magnetic ratio [Hz/T]
+export to_SI, SIUnitsDefault, PulseqUnitsDefault
 export Scanner, Sequence, Phantom
 export addblock!, @addblock, @addblocks
 export Grad, RF, ADC, Delay, Duration, QuaternionRot
-export dur, get_block_start_times, get_samples
+export area, dur, dwell, delay, rf_center, get_block_start_times, get_samples
+export ceil_to_raster, floor_to_raster, round_to_raster, raster_samples
 export RFuse, Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
 export DiscreteSequence
 export discretize, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
-export times, ampls, freqs
+export times, ampls, freqs, freq_times
 # These are also used for simulation
 export kfoldperm, trapz, cumtrapz
 # Phantom
