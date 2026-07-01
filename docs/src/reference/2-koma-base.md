@@ -158,6 +158,13 @@ delay
 rf_center
 ```
 
+### Sampling rules
+
+```@docs
+MaxStepSizeRule
+additional_sampling_times
+```
+
 ### Other functions
 
 ```@docs
