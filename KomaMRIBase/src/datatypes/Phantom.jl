@@ -29,25 +29,25 @@ julia> obj = Phantom(x=[0.0])
 julia> obj.ρ
 ```
 """
-@with_kw mutable struct Phantom{T<:Real}
-    name::String           = "spins"
-    x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
-    y::AbstractVector{T}   = zeros(eltype(x), size(x))
-    z::AbstractVector{T}   = zeros(eltype(x), size(x))
-    ρ::AbstractVector{T}   = ones(eltype(x), size(x))
-    T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
+@with_kw mutable struct Phantom
+    name::String          = "spins"
+    x::AbstractVector     = Float64[]
+    y::AbstractVector     = zeros(eltype(x), size(x))
+    z::AbstractVector     = zeros(eltype(x), size(x))
+    ρ::AbstractVector     = ones(eltype(x), size(x))
+    T1::AbstractVector    = ones(eltype(x), size(x)) * 1_000_000
+    T2::AbstractVector    = ones(eltype(x), size(x)) * 1_000_000
+    T2s::AbstractVector   = ones(eltype(x), size(x)) * 1_000_000
     #Off-resonance related
-    Δw::AbstractVector{T} = zeros(eltype(x), size(x))
+    Δw::AbstractVector    = zeros(eltype(x), size(x))
     #χ::Vector{SusceptibilityModel}
     #Diffusion
-    Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
+    Dλ1::AbstractVector   = zeros(eltype(x), size(x))
+    Dλ2::AbstractVector   = zeros(eltype(x), size(x))
+    Dθ::AbstractVector    = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
-    motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
+    motion::Union{NoMotion, Motion, MotionList} = NoMotion()
 end
 
 const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))

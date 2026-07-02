@@ -1,5 +1,5 @@
 abstract type SimulationMethod end #get all available types by using subtypes(KomaMRI.SimulationMethod)
-abstract type SpinStateRepresentation{T<:Real} end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
+abstract type SpinStateRepresentation end #get all available types by using subtypes(KomaMRI.SpinStateRepresentation)
 
 #Defined methods:
 include("SimMethods/SimulationMethod.jl")  #Defines simulation methods
@@ -61,16 +61,16 @@ function default_sim_params(sim_params=Dict{String,Any}())
 end
 
 function run_spin_precession_parallel!(
-    obj::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
+    obj::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    Xt::SpinStateRepresentation,
     sim_method::SimulationMethod,
     groupsize::Integer,
     backend::KA.Backend,
     prealloc::PreallocResult;
     Nthreads=Threads.nthreads(),
-) where {T<:Real}
+)
     parts = kfoldperm(length(obj), Nthreads)
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
@@ -83,16 +83,16 @@ function run_spin_precession_parallel!(
 end
 
 function run_spin_excitation_parallel!(
-    obj::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
+    obj::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    Xt::SpinStateRepresentation,
     sim_method::SimulationMethod,
     groupsize::Integer,
     backend::KA.Backend,
     prealloc::PreallocResult;
     Nthreads=Threads.nthreads(),
-) where {T<:Real}
+)
     parts = kfoldperm(length(obj), Nthreads)
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
@@ -132,8 +132,8 @@ take advantage of CPU parallel processing.
 function run_sim_time_iter!(
     obj::Phantom,
     seqd::DiscreteSequence,
-    sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
+    sig::AbstractArray,
+    Xt::SpinStateRepresentation,
     sim_method::SimulationMethod,
     backend::KA.Backend;
     Nblocks=1,
@@ -144,7 +144,7 @@ function run_sim_time_iter!(
     excitation_bool=ones(Bool, size(parts)),
     sim_params=Dict{String,Any}(),
     callbacks=(),
-) where {T<:Real}
+)
     # Simulation
     rfs = 0
     samples = 1

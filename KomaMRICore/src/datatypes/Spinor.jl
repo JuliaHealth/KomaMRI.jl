@@ -23,13 +23,13 @@ R V R^{*}``.
 # Returns
 - `spinor`: (`::Spinor`) Spinor struct
 """
-struct Spinor{T<:Real}
-	α::AbstractVector{Complex{T}}
-	β::AbstractVector{Complex{T}}
+struct Spinor{V<:AbstractVector}
+	α::V
+	β::V
 end
-Spinor(α::Complex{T}, β::Complex{T}) where {T<:Real} = Spinor([α], [β])
-Spinor(α::T, β::T) where {T<:Real} = Spinor([complex(α)], [complex(β)])
-one(T::Spinor) = Spinor(1.,0.)
+Spinor(α::Complex, β::Complex) = Spinor([α], [β])
+Spinor(α::Real, β::Real) = Spinor([complex(α)], [complex(β)])
+Base.one(::Spinor) = Spinor(1.,0.)
 Base.getindex(s::Spinor, i) = Spinor(s.α[i], s.β[i])
 Base.view(s::Spinor, i::UnitRange) = @views Spinor(s.α[i], s.β[i])
 """
@@ -155,7 +155,16 @@ IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 # Returns
 - `s`: (`::Spinor`) spinnor struct that represents the `Q` rotation matrix
 """
-Q(φ, nxy, nz) = Spinor(cos.(φ/2).-1im*nz.*sin.(φ/2), -1im*nxy.*sin.(φ/2))
+function Q(φ, nxy, nz)
+    φ_half = φ ./ 2
+    sin_φ_half = sin.(φ_half)
+    cos_φ_half = cos.(φ_half)
+    neg_im = complex.(zero.(φ), -one.(φ))
+    return Spinor(
+        (@. cos_φ_half + neg_im * nz * sin_φ_half),
+        (@. neg_im * nxy * sin_φ_half),
+    )
+end
 
 """
     y = abs(s::Spinor)

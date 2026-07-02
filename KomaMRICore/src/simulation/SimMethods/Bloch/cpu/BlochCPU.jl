@@ -1,11 +1,11 @@
 """Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
-struct BlochCPUPrealloc{T} <: PreallocResult{T}
-    M::Mag{T}                               # Mag{T}
-    Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    Bz_new::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    ϕ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
-    Rot::Spinor{T}                          # Spinor{T}
-    ΔBz::AbstractVector{T}            # Vector{T}(Nspins x 1)
+struct BlochCPUPrealloc <: PreallocResult
+    M::Mag
+    Bz_old::AbstractVector
+    Bz_new::AbstractVector
+    ϕ::AbstractVector
+    Rot::Spinor
+    ΔBz::AbstractVector
 end
 
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
@@ -20,7 +20,8 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
+function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom, M::Mag, max_block_length::Integer, groupsize)
+    T = eltype(obj.x)
     return BlochCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -46,15 +47,16 @@ NSpins x seq.t. The Bz_old, Bz_new, ϕ, and Mxy arrays are pre-allocated in run_
 that they can be re-used from block to block.
 """
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
-    prealloc::PreallocResult{T}
-) where {T<:Real}
+    prealloc::PreallocResult
+)
+    T = eltype(p.ρ)
     #Rename arrays
     Bz_old = prealloc.Bz_old
     Bz_new = prealloc.Bz_new
@@ -104,16 +106,17 @@ Alternate implementation of the run_spin_excitation! function in BlochSimpleSimu
 optimized for the CPU. Uses preallocation for all arrays to reduce memory usage.
 """
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
     prealloc::BlochCPUPrealloc
-) where {T<:Real}
-    #Rename arrays 
+)
+    T = eltype(p.ρ)
+    #Rename arrays
     Bz = prealloc.Bz_old
     B = prealloc.Bz_new
     φ_half = prealloc.ϕ
