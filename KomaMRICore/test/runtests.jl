@@ -451,6 +451,46 @@ end
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
+@testitem "BlochSimplewithMultiCoils" tags=[:core, :motion] begin
+    include("initialize_backend.jl")
+
+    Nadc = 8
+    Tadc = 8e-3
+    Trf = 1e-3
+
+    seq = Sequence()
+    @addblock seq += RF(5e-6, Trf)
+    @addblock seq += ADC(Nadc, Tadc)
+
+    sys = Scanner()
+    sim_method = KomaMRICore.BlochSimplewithMultiCoils(ncoils=4, radius=0.20, L=0.30)
+    sim_params = Dict{String, Any}(
+        "gpu"=>USE_GPU,
+        "sim_method"=>sim_method,
+        "return_type"=>"mat"
+    )
+
+    obj_static = Phantom(x=[0.03], ρ=[1.0], T1=[1.0], T2=[0.1])
+    obj_motion = Phantom(
+        x=[0.03],
+        ρ=[1.0],
+        T1=[1.0],
+        T2=[0.1],
+        motion=translate(0.05, 0.0, 0.0, TimeRange(0.0, Trf + Tadc))
+    )
+
+    sig_static = simulate(obj_static, seq, sys; sim_params, verbose=false)
+    sig_motion = simulate(obj_motion, seq, sys; sim_params, verbose=false)
+
+    @test size(sig_static) == (Nadc, sim_method.ncoils, 1)
+    @test !isapprox(sig_static[:, :, 1], sig_motion[:, :, 1])
+
+    raw = signal_to_raw_data(sig_static, seq)
+    @test size(raw.profiles[1].data, 2) == sim_method.ncoils
+    @test raw.profiles[1].head.available_channels == Int16(sim_method.ncoils)
+    @test raw.profiles[1].head.active_channels == Int16(sim_method.ncoils)
+end
+
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
     include("initialize_backend.jl")
 
