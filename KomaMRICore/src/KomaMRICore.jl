@@ -19,6 +19,7 @@ include("datatypes/Spinor.jl")
 include("other/DiffusionModel.jl")
 include("callbacks/Callback.jl")
 # Simulator
+include("simulation/SpatialEncoding.jl")
 include("simulation/GPUFunctions.jl")
 include("simulation/Functors.jl")
 include("simulation/SimulatorCore.jl")

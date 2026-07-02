@@ -4,7 +4,7 @@
     sig_output::AbstractMatrix{Complex{T}}, 
     M_xy, M_z, 
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
-    @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_ADC), s_length,
+    seq::AbstractDiscreteSequence, s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
     sim_method::BlochLikeSimMethods
 ) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC}
@@ -36,7 +36,7 @@
         ΔBz = p_ΔBz[i]
         T2 = p_T2[i]
         x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
-        Bz_prev = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz
+        Bz_prev = get_Bz(seq, x, y, z, 1) + ΔBz
     end
 
     ADC_idx = 1u32
@@ -47,13 +47,13 @@
                 x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, s_idx)
             end
 
-            Δt = s_Δt[s_idx-1]
+            Δt = seq.Δt[s_idx-1]
             t += Δt
-            Bz_next = x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx] + ΔBz
+            Bz_next = get_Bz(seq, x, y, z, s_idx) + ΔBz
             ϕ += (Bz_prev + Bz_next) * T(-π * γ) * Δt
         end
         # Acquire Signal
-        if HAS_ADC && s_ADC[s_idx]
+        if HAS_ADC && seq.ADC[s_idx]
             sig_r = zero(T)
             sig_i = zero(T)
             if active

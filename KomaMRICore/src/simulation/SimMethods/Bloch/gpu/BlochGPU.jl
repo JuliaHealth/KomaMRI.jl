@@ -27,7 +27,7 @@ end
 
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SM,
@@ -44,7 +44,7 @@ function run_spin_precession!(
         pre.sig_output,
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
-        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
+        seq, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
@@ -64,7 +64,7 @@ end
 
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SM,
@@ -81,7 +81,7 @@ function run_spin_excitation!(
         pre.sig_output,
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
-        seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
+        seq, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)

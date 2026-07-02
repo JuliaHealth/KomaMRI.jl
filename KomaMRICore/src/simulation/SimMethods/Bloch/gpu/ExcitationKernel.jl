@@ -4,7 +4,7 @@
     sig_output::AbstractMatrix{Complex{T}}, 
     M_xy::AbstractVector{Complex{T}}, M_z, 
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
-    @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), @Const(s_ψ), @Const(s_ADC), s_length,
+    seq::AbstractDiscreteSequence, s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
     sim_method::SM
 ) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, SM <: BlochLikeSimMethods}
@@ -41,7 +41,7 @@
         T2 = p_T2[i]
         # Rotating frame -> RF frame
         # M * exp(-i * ψ)
-        ψ_start = s_ψ[1]
+        ψ_start = seq.ψ[1]
         if !iszero(ψ_start)
             sin_ψ, cos_ψ = sincos(ψ_start)
             Mxy_r, Mxy_i = Mxy_r * cos_ψ + Mxy_i * sin_ψ, Mxy_i * cos_ψ - Mxy_r * sin_ψ
@@ -49,8 +49,8 @@
 
         # Calculate initial B
         x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
-        Bx_prev, By_prev = reim(s_B1[1])
-        Bz_prev = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz - s_Δf[1] / T(γ)
+        Bx_prev, By_prev = reim(seq.B1[1])
+        Bz_prev = get_Bz(seq, x, y, z, 1) + ΔBz - seq.Δf[1] / T(γ)
     end
 
     ADC_idx = 1u32
@@ -60,10 +60,10 @@
             if MOTION
                 x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, s_idx)
             end
-            Bx_next, By_next = reim(s_B1[s_idx])
-            Bz_next = (x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx]) + ΔBz - s_Δf[s_idx] / T(γ)
+            Bx_next, By_next = reim(seq.B1[s_idx])
+            Bz_next = get_Bz(seq, x, y, z, s_idx) + ΔBz - seq.Δf[s_idx] / T(γ)
             
-            Δt = s_Δt[s_idx - 1]
+            Δt = seq.Δt[s_idx - 1]
 
             # Spinor rotation
             θx, θy, θz = effective_rotation_vector(Bx_prev, By_prev, Bz_prev, Bx_next, By_next, Bz_next, Δt, sim_method)
@@ -103,7 +103,7 @@
         end
 
         # Acquire Signal
-        if HAS_ADC && s_ADC[s_idx]
+        if HAS_ADC && seq.ADC[s_idx]
             sig_r, sig_i = reduce_signal!(Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
             if i_l == 1u32
                 sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
@@ -117,7 +117,7 @@
     if active
         # RF frame -> Rotating frame
         # M * exp(i * ψ)
-        ψ_end = s_ψ[s_length]
+        ψ_end = seq.ψ[s_length]
         if !iszero(ψ_end)
             sin_ψ, cos_ψ = sincos(ψ_end)
             Mxy_r, Mxy_i = Mxy_r * cos_ψ - Mxy_i * sin_ψ, Mxy_r * sin_ψ + Mxy_i * cos_ψ

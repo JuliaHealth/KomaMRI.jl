@@ -47,7 +47,7 @@ that they can be re-used from block to block.
 """
 function run_spin_precession!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::Bloch,
@@ -72,7 +72,7 @@ function run_spin_precession!(
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i + 1])
         #Effective Field
-        @. Bz_new = x * seq.Gx[i + 1] + y * seq.Gy[i + 1] + z * seq.Gz[i + 1] + ΔBz
+        Bz_new .= get_Bz(seq, x, y, z, i + 1) .+ ΔBz
         #Rotation
         @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[i]
         block_time += seq.Δt[i]
@@ -105,7 +105,7 @@ optimized for the CPU. Uses preallocation for all arrays to reduce memory usage.
 """
 function run_spin_excitation!(
     p::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq::AbstractDiscreteSequence,
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::Bloch,
@@ -134,7 +134,7 @@ function run_spin_excitation!(
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i])
         #Effective field
-        @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        Bz .= get_Bz(seq, x, y, z, i) .+ ΔBz .- seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         @. B = sqrt(abs(seq.B1[i])^2 + abs(Bz)^2)
         @. B[B == 0] = eps(T)
         #Spinor Rotation
