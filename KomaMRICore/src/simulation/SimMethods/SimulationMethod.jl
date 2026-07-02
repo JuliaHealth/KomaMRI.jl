@@ -45,6 +45,7 @@ Base.view(p::PreallocResult, i::UnitRange) = p
 prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} = DefaultPrealloc{T}()
 
 include("BlochSimple/BlochSimple.jl")
+include("BlochSimplewithMultiCoils/BlochSimplewithMultiCoils.jl")
 include("Bloch/cpu/BlochCPU.jl")
 include("BlochMagnus/cpu/BlochMagnusCPU.jl")
 include("BlochMagnus/gpu/BlochMagnusGPU.jl")
