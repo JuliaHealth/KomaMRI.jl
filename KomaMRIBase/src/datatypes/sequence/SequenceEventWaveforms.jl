@@ -26,17 +26,30 @@ is_ADC_on(x::ADC) = is_on(x)
 Get amplitude samples of MRI sequence event.
 """
 ampls(gr::TrapezoidalGrad) = is_on(gr) ? [gr.first; gr.A; gr.A; gr.last] : typeof(gr.A)[]
-ampls(gr::Union{UniformlySampledGrad,TimeShapedGrad}) =
-    is_on(gr) ? [gr.first; gr.A; gr.last] : eltype(gr.A)[]
+function ampls(gr::Union{UniformlySampledGrad,TimeShapedGrad})
+    is_on(gr) || return eltype(gr.A)[]
+    A = length(gr.A) == 1 ? [only(gr.A), only(gr.A)] : gr.A
+    return [gr.first; A; gr.last]
+end
 
-rf_center_time(rf::RF) = rf.delay + get_RF_center(rf)
+rf_center_time(rf::RF) = rf.delay + rf_center(rf)
+
+function ampls(rf::BlockPulseRF; freq_in_phase=false)
+    A0 = cis(rf.ϕ) * rf.A
+    is_on(rf) || return typeof(A0)[]
+    A = [A0, A0]
+    if freq_in_phase
+        t0 = times(rf, :Δf)
+        t  = times(rf)
+        A .*= cis.(rf_phase_at_times((t=t0, A=freqs(rf)), t, rf_center_time(rf)))
+    end
+    return A
+end
 
 function ampls(rf::RF; freq_in_phase=false)
-    waveform = cis(rf.ϕ) .* rf.A
-    if !is_on(rf)
-        return similar(_shape_samples(waveform), 0)
-    end
-    A = _shape_samples(waveform)
+    A = collect(cis(rf.ϕ) .* rf.A)
+    is_on(rf) || return similar(A, 0)
+    length(A) == 1 && length(times(rf)) == 2 && (A = [only(A), only(A)])
     if freq_in_phase
         t0 = times(rf, :Δf)
         t  = times(rf)
@@ -51,10 +64,15 @@ end
 Get frequency samples of MRI RF event.
 """
 function freqs(rf::RF)
-    if !is_on(rf)
-        return similar(_shape_samples(rf.Δf), 0)
-    end
-    return _shape_samples(rf.Δf)
+    is_on(rf) || return typeof(rf.Δf)[]
+    return fill(rf.Δf, length(times(rf, :Δf)))
+end
+
+function freqs(rf::FrequencyModulatedRF)
+    is_on(rf) || return eltype(rf.Δf)[]
+    Δf = collect(rf.Δf)
+    length(Δf) == 1 && length(times(rf, :Δf)) == 2 && return [only(Δf), only(Δf)]
+    return Δf
 end
 
 function ampls(adc::ADC)
@@ -78,24 +96,48 @@ times(gr::TrapezoidalGrad) =
 function times(gr::UniformlySampledGrad)
     is_on(gr) || return typeof(gr.delay)[]
     n_intervals = length(gr.A) - 1
-    flat_times = n_intervals > 0 ? fill(gr.T / n_intervals, n_intervals) : typeof(gr.delay)[]
+    flat_times = n_intervals > 0 ? fill(gr.T / n_intervals, n_intervals) : [gr.T]
     return cumsum([gr.delay; gr.rise; flat_times; gr.fall])
 end
 
 times(gr::TimeShapedGrad) =
     is_on(gr) ? cumsum([gr.delay; gr.rise; gr.T; gr.fall]) : similar(gr.T, 0)
 
-function times(rf::RF, key::Symbol)
-    if !is_on(rf)
-        return typeof(rf.delay)[]
-    end
-    ts0 = key === :A ? _shape_times(rf.A, rf.T) :
-        key === :Δf ? _shape_times(rf.Δf, rf.T) :
-        throw(ArgumentError("Unsupported RF key $key"))
-    ts = rf.delay .+ ts0
-    return [rf.delay; ts; ts[end]]
+function times(rf::BlockPulseRF, ::Val{:A})
+    is_on(rf) || return typeof(rf.delay)[]
+    return [rf.delay, dur(rf)]
 end
-times(rf::RF) = times(rf, :A)
+
+function times(rf::UniformlySampledRF, ::Val{:A})
+    is_on(rf) || return typeof(rf.delay)[]
+    length(rf.A) == 1 && return [rf.delay, dur(rf)]
+    return collect(range(rf.delay, dur(rf); length=length(rf.A)))
+end
+
+function times(rf::TimeShapedRF, ::Val{:A})
+    is_on(rf) || return typeof(rf.delay)[]
+    t = rf.delay .+ cumsum(rf.T)
+    return length(rf.T) == length(rf.A) - 1 ? [rf.delay; t] : t
+end
+
+times(rf::RF, ::Val{:Δf}) = times(rf, Val(:A))
+
+function times(rf::UniformlySampledFrequencyModulatedRF, ::Val{:Δf})
+    is_on(rf) || return typeof(rf.delay)[]
+    length(rf.Δf) == 1 && return [rf.delay, dur(rf)]
+    return collect(range(rf.delay, dur(rf); length=length(rf.Δf)))
+end
+
+function times(rf::TimeShapedFrequencyModulatedRF, ::Val{:Δf})
+    is_on(rf) || return typeof(rf.delay)[]
+    t = rf.delay .+ cumsum(rf.T)
+    return length(rf.T) == length(rf.Δf) - 1 ? [rf.delay; t] : t
+end
+
+times(rf::RF, key::Symbol) = times(rf, Val(key))
+times(rf::RF, key) = throw(ArgumentError("Unsupported RF key $key"))
+times(rf::RF) = times(rf, Val(:A))
+freq_times(rf::RF) = times(rf, Val(:Δf))
 
 function times(adc::ADC)
     if !is_on(adc)
@@ -118,8 +160,6 @@ function rf_phase_at_times(Δf, t, center_time)
     for i in idx
         ψ[i] = -2π * (waveform_integral_at(Δf, integral, t[i]) - center_integral)
     end
-    t[lo] == first(Δf.t) && (ψ[lo] = 0.0)
-    t[hi] == last(Δf.t) && (ψ[hi] = 0.0)
     return ψ
 end
 

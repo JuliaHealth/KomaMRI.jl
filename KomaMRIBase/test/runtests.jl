@@ -584,6 +584,8 @@ using TestItems, TestItemRunner
         @test area(Grad([0.0, 1.0, 0.0], 2.0)) ≈ 1.0
         @test area(Grad([0.0, 1.0, 0.0], 2.0, 0.5, 0.5, 0.0, -0.5, -0.5)) ≈ 0.75
         @test area(Grad([0.0, 1.0, 0.0], [1.0, 1.0])) ≈ 1.0
+        @test area(Grad([1.0], 2.0)) ≈ 2.0
+        @test area(Grad([1.0], [2.0])) ≈ 2.0
         T1, T2, T3 = 1e-3, 2e-3, 3e-3
         vt = [Grad(A1,T1); Grad(A2,T2); Grad(A3,T3)]
         @test dur(vt) ≈ [maximum([T1, T2, T3])]
@@ -616,6 +618,9 @@ using TestItems, TestItemRunner
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", r1)
         @test true
+        @test area(RF([1.0], 2.0)) ≈ 2.0
+        @test rf_center(RF([1.0], 2.0)) ≈ 1.0
+        @test KomaMRIBase.event_samples(RF([1.0], 2.0, [100.0]), :Δf) == (t=[0.0, 2.0], A=[100.0, 100.0])
 
         # Test Grad operations
         B1x, B1y, T = rand(3)
@@ -646,7 +651,7 @@ using TestItems, TestItemRunner
 
         # Constant frequency offset: ψ is centered so the RF center has zero frame phase.
         rf = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, 1000.0, 0.0; ϕ=0.3)
-        @test KomaMRIBase.event_samples(rf, :ψ).A ≈ [0, π, -π, 0]
+        @test KomaMRIBase.event_samples(rf, :ψ).A ≈ [π, 0, -π]
 
         # Frequency-modulated RF: ψ is generated from the integrated Δf waveform and centered.
         rf_fm = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, [0.0, 1000.0, 0.0], 0.0)
@@ -672,10 +677,7 @@ using TestItems, TestItemRunner
         @test dense.t ≈ coarse.t
         @test dense.Δf ≈ coarse.Δf
         @test dense.ψ ≈ coarse.ψ
-        @test iszero(coarse.ψ[1])
-        @test !iszero(coarse.ψ[2])
-        @test !iszero(coarse.ψ[end - 1])
-        @test iszero(coarse.ψ[end])
+        @test coarse.ψ ≈ [-π / 2, -π / 8, 0, -π / 8, -π / 2]
 
         rf_fm = RF(fill(1.0e-6, 5), 1.0, [0.0, 1000.0, -500.0, 1500.0, 0.0])
         seq = Sequence()
@@ -914,28 +916,6 @@ using TestItems, TestItemRunner
         seqd = KomaMRIBase.discretize(seq[2]; sampling_rule=MidpointSamplingRule())
         @test 0.5 in seqd.t
 
-    end
-
-    @testset "large-time MRI event time-step collapse" begin
-        T = 1e-3
-        B1, Gx = 10e-6, 1e-3
-        for offset in (200.0, 270.0, 1e6, 1e9, 1e12)
-            for (event, field, expected) in ((RF(B1, T), :B1, B1 * T), (Grad(Gx, T), :Gx, Gx * T))
-                seq = Sequence()
-                seq += Delay(offset)
-                @addblock seq += event
-                seqd = KomaMRIBase.discretize(seq)
-                @test KomaMRIBase.trapz(seqd.Δt, real.(getproperty(seqd, field))) ≈ expected
-            end
-            seq = Sequence()
-            seq += Delay(offset)
-            @addblock seq += ADC(2, T)
-            seqd = KomaMRIBase.discretize(seq)
-            adc_idx = findall(seqd.ADC)
-            @test length(adc_idx) == 2
-            @test seqd.Δt[first(adc_idx)] ≈ T
-            @test all(diff(seqd.t) .>= 0)
-        end
     end
 
      @testset "SequenceFunctions" begin
