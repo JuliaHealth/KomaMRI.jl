@@ -8,7 +8,7 @@ to_css_size(x::AbstractString) = x
 to_css_size(::Nothing) = "100%"
 to_css_size(x) = throw(ArgumentError("Unsupported Plotly size type: $(typeof(x))"))
 
-# For CSS string sizes, keep the explicit size on the outer <object> only.
+# For CSS string sizes, keep the explicit size on the outer iframe only.
 # The inner Plotly HTML should stay at 100% to avoid double-scaling.
 layout_to_html_default_size!(fields, key::Symbol, value::AbstractString) = (pop!(fields, key, nothing); "100%")
 layout_to_html_default_size!(fields, key::Symbol, ::Nothing) = (pop!(fields, key, nothing); "100%")
@@ -41,13 +41,24 @@ function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
     html = String(take!(html_buffer))
     html = replace(html, "<body>" => "<body style=\"margin:0;overflow:hidden;background:transparent;\">")
     encoded = base64encode(html)
+    srcdoc = replace("""
+        <!doctype html>
+        <meta charset="utf-8">
+        <script>
+        const encoded = "$encoded";
+        const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+        document.open();
+        document.write(new TextDecoder().decode(bytes));
+        document.close();
+        </script>
+        """, '&' => "&amp;", '"' => "&quot;", '<' => "&lt;", '>' => "&gt;")
     width = to_css_size(get(fig.plot.layout.fields, :width, nothing))
     _, plot_height = size(fig)
     height = to_css_size(plot_height)
     write(
         io,
         """
-        <object type="text/html" data="data:text/html;base64,$encoded" style="display:block;max-width:none;border:0;width:$width;height:$height;"></object>
+        <iframe srcdoc="$srcdoc" style="display:block;max-width:none;border:0;width:$width;height:$height;"></iframe>
         """,
     )
 end
