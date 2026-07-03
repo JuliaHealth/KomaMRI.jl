@@ -44,12 +44,14 @@ function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
     srcdoc = replace("""
         <!doctype html>
         <meta charset="utf-8">
+        <style>
+        html, body, iframe { margin: 0; width: 100%; height: 100%; border: 0; overflow: hidden; background: transparent; }
+        </style>
+        <iframe id="plot"></iframe>
         <script>
         const encoded = "$encoded";
-        const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
-        document.open();
-        document.write(new TextDecoder().decode(bytes));
-        document.close();
+        const html = new TextDecoder().decode(Uint8Array.from(atob(encoded), c => c.charCodeAt(0)));
+        document.getElementById("plot").srcdoc = html;
         </script>
         """, '&' => "&amp;", '"' => "&quot;", '<' => "&lt;", '>' => "&gt;")
     width = to_css_size(get(fig.plot.layout.fields, :width, nothing))
