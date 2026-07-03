@@ -41,13 +41,30 @@ function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
     html = String(take!(html_buffer))
     html = replace(html, "<body>" => "<body style=\"margin:0;overflow:hidden;background:transparent;\">")
     encoded = base64encode(html)
+    onload = replace(
+        """
+        this.onload=null;
+        this.removeAttribute('onload');
+        const encoded=this.dataset.plotlyHtml;
+        this.removeAttribute('data-plotly-html');
+        const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+        const doc=this.contentDocument;
+        doc.open();
+        doc.write(new TextDecoder().decode(bytes));
+        doc.close();
+        """,
+        '&' => "&amp;",
+        '"' => "&quot;",
+        '<' => "&lt;",
+        '>' => "&gt;",
+    )
     width = to_css_size(get(fig.plot.layout.fields, :width, nothing))
     _, plot_height = size(fig)
     height = to_css_size(plot_height)
     write(
         io,
         """
-        <object type="text/html" data="data:text/html;base64,$encoded" style="display:block;max-width:none;border:0;width:$width;height:$height;"></object>
+        <object type="text/html" data="about:blank" data-plotly-html="$encoded" onload="$onload" style="display:block;max-width:none;border:0;width:$width;height:$height;"></object>
         """,
     )
 end
