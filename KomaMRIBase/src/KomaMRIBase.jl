@@ -118,7 +118,7 @@ include("datatypes/sequence/DiscreteSequenceQuantities.jl")
 export γ    # gyro-magnetic ratio [Hz/T]
 export to_SI, SIUnitsDefault, PulseqUnitsDefault
 export Scanner, Sequence, Phantom
-export addblock!, @addblock, @addblocks
+export addblock!, @addblock
 export Grad, RF, ADC, Delay, Duration, QuaternionRot
 export area, dur, dwell, delay, rf_center, get_block_start_times, get_samples
 export ceil_to_raster, floor_to_raster, round_to_raster, raster_samples

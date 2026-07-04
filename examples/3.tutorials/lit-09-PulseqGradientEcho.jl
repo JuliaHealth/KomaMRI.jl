@@ -74,21 +74,16 @@ delay_tr = make_delay(
 
 # ## Building the sequence
 #
-# `@addblocks` appends each statement as a sequence block. Each loop iteration
-# is one TR.
-function mini_gre_sequence()
-    seq = Sequence(sys)
-    @addblocks for pe_scale in phase_scales
-        seq += (rf, z=gz)
-        seq += (x=gx_pre, y=pe_scale * gy_pre, z=gz_reph)
-        seq += delay_te
-        seq += (x=gx, adc)
-        seq += delay_tr
-    end
-    return seq
+# `@addblock` rewrites the `seq += ...` statements as in-place appends. Each
+# loop iteration is one TR.
+seq = Sequence(sys)
+@addblock for pe_scale in phase_scales
+    seq += (rf, z=gz)
+    seq += (x=gx_pre, y=pe_scale * gy_pre, z=gz_reph)
+    seq += delay_te
+    seq += (x=gx, adc)
+    seq += delay_tr
 end
-
-seq = mini_gre_sequence()
 
 p1 = plot_seq(seq; range=[0, to_SI(TR) * 1e3], slider=true, height=320)
 #jl display(p1);

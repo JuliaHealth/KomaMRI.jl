@@ -6,6 +6,7 @@ Checks event-local hardware limits:
 - maximum RF amplitude `|B1|`
 - maximum gradient amplitude `|G|`
 - maximum gradient slew rate `|dG/dt|`
+- ADC sample count accepted by scanners
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -17,59 +18,52 @@ function check_hw_limits(seq::Sequence)
 end
 
 function check_hw_limits(seq::Sequence, sys::Scanner)
-    return check_hw_limits(seq.GR, seq.RF, seq.ADC, sys)
-end
-
-_absmax(x::Number) = abs(x)
-_absmax(x::AbstractArray{<:Number}) = maximum(abs, x)
-
-function check_hw_limits(gr::Grad, sys::Scanner)
-    return check_hw_limits(gr; max_grad=sys.Gmax, max_slew=sys.Smax)
+    check_rf = isfinite(sys.B1)
+    check_grad = isfinite(sys.Gmax)
+    check_slew = isfinite(sys.Smax)
+    check_fields = check_rf || check_grad || check_slew
+    axis_names = ("x", "y", "z")
+    for i in 1:length(seq)
+        adc_i = seq.ADC[i]
+        if is_ADC_on(adc_i)
+            isodd(adc_i.N) && error("ADC for block $i has an odd number of samples ($(adc_i.N)).")
+        end
+        if check_fields
+            if check_rf
+                rf_i = seq.RF[1, i]
+                rf_peak = is_RF_on(rf_i) ? maximum(abs, ampls(rf_i)) : 0.0
+                if rf_peak > sys.B1 && !(rf_peak ≈ sys.B1)
+                    error("RF amplitude for block $i is greater than the maximum RF amplitude of the scanner ($(sys.B1 * 1e6) μT).")
+                end
+            end
+            if check_grad || check_slew
+                for gi in 1:size(seq.GR, 1)
+                    gr_i = seq.GR[gi, i]
+                    is_GR_on(gr_i) || continue
+                    max_grad = check_grad ? sys.Gmax : Inf
+                    max_slew = check_slew ? sys.Smax : Inf
+                    name = "$(axis_names[gi]) gradient for block $i"
+                    check_hw_limits(gr_i; max_grad, max_slew, name)
+                end
+            end
+        end
+    end
+    return nothing
 end
 
 function check_hw_limits(gr::Grad; max_grad=Inf, max_slew=Inf, name="Gradient")
     is_GR_on(gr) || return nothing
-    rtol = sqrt(eps(Float64))
     if isfinite(max_grad)
-        grad_peak = max(abs(gr.first), _absmax(gr.A), abs(gr.last))
-        if grad_peak > max_grad && !isapprox(grad_peak, max_grad; rtol, atol=0)
+        grad_peak = maximum(abs, ampls(gr))
+        if grad_peak > max_grad && !(grad_peak ≈ max_grad)
             limit = max_grad * 1e3
             error("$name amplitude is greater than the maximum gradient amplitude of the scanner ($limit mT/m).")
         end
     end
     if isfinite(max_slew)
         grad_slew = _max_gradient_slew(gr)
-        if grad_slew > max_slew && !isapprox(grad_slew, max_slew; rtol, atol=0)
+        if grad_slew > max_slew && !(grad_slew ≈ max_slew)
             error("$name slew rate is greater than the maximum gradient slew rate of the scanner ($(max_slew) mT/m/ms).")
-        end
-    end
-    return nothing
-end
-
-function check_hw_limits(gr::AbstractMatrix{G}, rf::AbstractMatrix{R}, ::AbstractVector{A}, sys::Scanner) where {G<:Grad,R<:RF,A<:ADC}
-    check_rf = isfinite(sys.B1)
-    check_grad = isfinite(sys.Gmax)
-    check_slew = isfinite(sys.Smax)
-    (check_rf || check_grad || check_slew) || return nothing
-    axis_names = ("x", "y", "z")
-    rtol = sqrt(eps(Float64))
-    for i in axes(rf, 2)
-        if check_rf
-            rf_i = rf[1, i]
-            rf_peak = is_RF_on(rf_i) ? _absmax(rf_i.A) : 0.0
-            if rf_peak > sys.B1 && !isapprox(rf_peak, sys.B1; rtol, atol=0)
-                error("RF amplitude for block $i is greater than the maximum RF amplitude of the scanner ($(sys.B1 * 1e6) μT).")
-            end
-        end
-        if check_grad || check_slew
-            for gi in 1:3
-                gr_i = gr[gi, i]
-                is_GR_on(gr_i) || continue
-                max_grad = check_grad ? sys.Gmax : Inf
-                max_slew = check_slew ? sys.Smax : Inf
-                name = "$(axis_names[gi]) gradient for block $i"
-                check_hw_limits(gr_i; max_grad, max_slew, name)
-            end
         end
     end
     return nothing

@@ -342,7 +342,7 @@ using TestItems, TestItemRunner
         @addblock begin
             macroseq += (rf, z=g)
             macroseq += seq2()
-            counter += 1
+            counter = counter + 1
         end
         @test counter == 1
         @test length(macroseq) == 2
@@ -368,9 +368,7 @@ using TestItems, TestItemRunner
         mixedseq = Sequence()
         left_chunk = seq1()
         right_chunk = seq2()
-        @addblocks begin
-            mixedseq += left_chunk + (rf, x=g) + right_chunk
-        end
+        @addblock mixedseq += left_chunk + (rf, x=g) + right_chunk
         @test length(mixedseq) == 3
         @test mixedseq.GR[1,1].A ≈ left_chunk.GR[1,1].A
         @test mixedseq.RF[1,2].A ≈ rf.A
@@ -383,10 +381,8 @@ using TestItems, TestItemRunner
 
         spliced = Sequence()
         contents = (LabelSet(0, "LIN"), LabelInc(1, "ECO"))
-        @addblocks begin
-            spliced += (contents...)
-            spliced += (contents..., Delay(20e-3), x=g)
-        end
+        @addblock spliced += (contents...)
+        @addblock spliced += (contents..., Delay(20e-3), x=g)
         @test length(spliced) == 2
         @test spliced.EXT[1] == Extension[contents...]
         @test spliced.EXT[2] == Extension[contents...]
@@ -433,9 +429,9 @@ using TestItems, TestItemRunner
 
         bssp = Sequence()
         line = 0
-        @addblocks for _ in 1:3
+        @addblock for _ in 1:3
             bssp += (rf, z=g)
-            line += 1
+            line = line + 1
         end
         @test length(bssp) == 3
         @test line == 3
@@ -464,15 +460,15 @@ using TestItems, TestItemRunner
         @test length(hw_checked) == 1
 
         checked_loop = Sequence()
-        @addblocks check_timing=true check_hw_limits=true for _ in 1:2
+        @addblock check_timing=true check_hw_limits=true for _ in 1:2
             checked_loop += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
         end
         @test length(checked_loop) == 2
-        @addblocks checks for _ in 1:2
+        @addblock checks for _ in 1:2
             checked_loop += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
         end
         @test length(checked_loop) == 4
-        @test_throws ErrorException @addblocks check_timing=true for _ in 1:1
+        @test_throws ErrorException @addblock check_timing=true for _ in 1:1
             checked_loop += RF(1e-6, off_raster_duration)
         end
         @test length(checked_loop) == 4
@@ -1068,8 +1064,16 @@ using TestItems, TestItemRunner
     end
     @testset "Check Scanner Constraints" begin
         sys = Scanner()
-        seq = PulseDesigner.EPI_example(; sys)
+        seq = PulseDesigner.EPI(23e-2, 100, sys)
         @test isnothing(check_hw_limits(seq, sys))
+
+        even_adc = Sequence()
+        @addblock even_adc += ADC(4, 2e-6)
+        @test isnothing(check_hw_limits(even_adc))
+
+        odd_adc = Sequence()
+        @addblock odd_adc += ADC(3, 2e-6)
+        @test_throws ErrorException check_hw_limits(odd_adc)
     end
     @testset "Sequence timing and hardware metadata" begin
         seq = Sequence()

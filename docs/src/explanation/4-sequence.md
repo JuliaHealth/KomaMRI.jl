@@ -122,5 +122,5 @@ julia> plot_seq(seq; slider=false)
 ```
 
 The `+` operator returns a copied sequence, so reused sequence parts do not share
-mutable events. For long construction loops, use [`@addblocks`](../how-to/3-create-your-own-sequence.md#add-blocks-in-loops)
-to append efficiently.
+mutable events. For long construction loops, use [`@addblock`](../how-to/3-create-your-own-sequence.md#add-blocks-in-loops)
+inside the loop to append efficiently.

@@ -35,27 +35,22 @@ rf = [PulseDesigner.RF_sinc(sys.B1, Trf, sys; G=[0, 0, Gz], Δf=γ * Gz * z) for
 # simulation, so avoid negative `LabelSet` values or `LabelInc` patterns that
 # push a label below zero.
 
-function cartesian_label_sequence()
-    seq = Sequence()
-    adc = ADC(Nx, Tadc)
-    readout = Grad(Gx, Tadc)
-    prewinder = Grad(-Gx / 2, Tadc)
-    @addblocks for slc in 0:(Nslices - 1), lin in 0:(Ny - 1)
-        pe = phase_encode(lin)
-        seq += rf[slc + 1]
-        seq += (x=prewinder, y=pe)
-        seq += Delay(TE) #hide
-        seq += (x=readout, adc, LabelSet(slc, "SLC"), LabelSet(lin, "LIN"))
-        seq += (y=-pe) #hide
-        seq += Delay(TR)
-        if lin == Ny - 1 #hide
-            seq += Delay(slice_delay) #hide
-        end #hide
-    end
-    return seq
+seq = Sequence()
+adc = ADC(Nx, Tadc)
+readout = Grad(Gx, Tadc)
+prewinder = Grad(-Gx / 2, Tadc)
+@addblock for slc in 0:(Nslices - 1), lin in 0:(Ny - 1)
+    pe = phase_encode(lin)
+    seq += rf[slc + 1]
+    seq += (x=prewinder, y=pe)
+    seq += Delay(TE) #hide
+    seq += (x=readout, adc, LabelSet(slc, "SLC"), LabelSet(lin, "LIN"))
+    seq += (y=-pe) #hide
+    seq += Delay(TR)
+    if lin == Ny - 1 #hide
+        seq += Delay(slice_delay) #hide
+    end #hide
 end
-
-seq = cartesian_label_sequence();
 
 # ## Checking labels in the raw data metadata
 #

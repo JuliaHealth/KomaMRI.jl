@@ -137,6 +137,12 @@ end
 times(rf::RF, key::Symbol) = times(rf, Val(key))
 times(rf::RF, key) = throw(ArgumentError("Unsupported RF key $key"))
 times(rf::RF) = times(rf, Val(:A))
+
+"""
+    t = freq_times(rf::RF)
+
+Get RF frequency modulation time samples.
+"""
 freq_times(rf::RF) = times(rf, Val(:Δf))
 
 function times(adc::ADC)

@@ -401,6 +401,31 @@ end
     end
 end
 
+@testitem "repeated single-spin FID" tags=[:core, :nomotion] begin
+    rf = PulseDesigner.make_block_pulse(π / 2; duration=300e-6, delay=100e-6)
+    adc = PulseDesigner.make_adc(4096; dwell=62.5e-6, delay=20e-6)
+
+    seq = Sequence()
+    for _ in 1:30
+        @addblock seq += (rf, Duration(20e-3))
+        @addblock seq += (adc, Duration(10.0))
+    end
+
+    obj = Phantom(x=[0.0], y=[0.0], z=[0.0], T1=[1.0], T2=[0.1], Δw=[100.0])
+    sim_params = Dict{String,Any}(
+        "gpu" => false,
+        "return_type" => "mat",
+        "sim_method" => Bloch(),
+    )
+    raw = simulate(obj, seq, Scanner(); sim_params, verbose=false)
+    first_adc = raw[1:4096:end, 1, 1]
+
+    # Regression: timing roundoff used to place RF samples incorrectly,
+    # changing the effective flip angle and the acquired signal in later TRs.
+    @test minimum(abs, first_adc) / maximum(abs, first_adc) > 0.99
+    @test maximum(abs, first_adc ./ first(first_adc) .- 1) < 1e-3
+end
+
 @testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))

@@ -1,7 +1,7 @@
 # Pulseq MATLAB to Koma Translation Tables
 
 Compact lookup tables for humans and LLMs translating MATLAB Pulseq code to Koma.
-For the block-construction syntax behind `@addblock` and `@addblocks`, see
+For the block-construction syntax behind `@addblock`, see
 [Build Sequences with `@addblock`](3-create-your-own-sequence.md).
 For a complete translated sequence, see
 [Building and Exporting a Pulseq GRE Sequence](../tutorial/gen-09-PulseqGradientEcho.md).
@@ -115,10 +115,10 @@ end
 @addblock seq += (x=gx, has_adc ? adc : nothing)
 ```
 
-== Koma @addblocks
+== Koma @addblock scope
 
 ```julia
-@addblocks begin
+@addblock begin
     seq += (rf, z=gz)
     seq += (x=gx, adc)
     seq += (x=gx_pre, y=gy_pre, z=gz_reph)
