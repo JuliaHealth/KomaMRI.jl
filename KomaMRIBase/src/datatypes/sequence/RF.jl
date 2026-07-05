@@ -75,7 +75,8 @@ mutable struct RF{AT,TT,ΔFT}
         rf = RF(A, T, Δf, delay, center, 0.0, use, Val(:preserve))
         Avalues = ampls(rf)
         isempty(Avalues) && return RF(A, T, Δf, delay, center, mod(ϕ, 2π), use, Val(:preserve))
-        t = times(rf) .- rf.delay
+        Avalues = Avalues[2:(end - 1)]
+        t = times(rf)[2:(end - 1)] .- rf.delay
         value = length(Avalues) == 1 ? only(Avalues) :
             linear_interpolation(t, Avalues, extrapolation_bc=Interpolations.Flat())(center)
         ϕcenter = iszero(abs(value)) ? 0.0 : mod(angle(value), 2π)

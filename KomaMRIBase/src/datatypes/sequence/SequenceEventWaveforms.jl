@@ -37,11 +37,11 @@ rf_center_time(rf::RF) = rf.delay + rf_center(rf)
 function ampls(rf::BlockPulseRF; freq_in_phase=false)
     A0 = cis(rf.ϕ) * rf.A
     is_on(rf) || return typeof(A0)[]
-    A = [A0, A0]
+    A = [zero(A0), A0, A0, zero(A0)]
     if freq_in_phase
-        t0 = times(rf, :Δf)
         t  = times(rf)
-        A .*= cis.(rf_phase_at_times((t=t0, A=freqs(rf)), t, rf_center_time(rf)))
+        Δf = (t=times(rf, :Δf)[2:(end - 1)], A=freqs(rf)[2:(end - 1)])
+        A .*= cis.(rf_phase_at_times(Δf, t, rf_center_time(rf)))
     end
     return A
 end
@@ -49,11 +49,12 @@ end
 function ampls(rf::RF; freq_in_phase=false)
     A = collect(cis(rf.ϕ) .* rf.A)
     is_on(rf) || return similar(A, 0)
-    length(A) == 1 && length(times(rf)) == 2 && (A = [only(A), only(A)])
+    length(A) == 1 && (A = [only(A), only(A)])
+    A = [zero(eltype(A)); A; zero(eltype(A))]
     if freq_in_phase
-        t0 = times(rf, :Δf)
         t  = times(rf)
-        A .*= cis.(rf_phase_at_times((t=t0, A=freqs(rf)), t, rf_center_time(rf)))
+        Δf = (t=times(rf, :Δf)[2:(end - 1)], A=freqs(rf)[2:(end - 1)])
+        A .*= cis.(rf_phase_at_times(Δf, t, rf_center_time(rf)))
     end
     return A
 end
@@ -65,14 +66,17 @@ Get frequency samples of MRI RF event.
 """
 function freqs(rf::RF)
     is_on(rf) || return typeof(rf.Δf)[]
-    return fill(rf.Δf, length(times(rf, :Δf)))
+    Δf = fill(rf.Δf, length(freq_times(rf)))
+    Δf[begin] = zero(rf.Δf)
+    Δf[end] = zero(rf.Δf)
+    return Δf
 end
 
 function freqs(rf::FrequencyModulatedRF)
     is_on(rf) || return eltype(rf.Δf)[]
     Δf = collect(rf.Δf)
-    length(Δf) == 1 && length(times(rf, :Δf)) == 2 && return [only(Δf), only(Δf)]
-    return Δf
+    length(Δf) == 1 && (Δf = [only(Δf), only(Δf)])
+    return [zero(eltype(Δf)); Δf; zero(eltype(Δf))]
 end
 
 function ampls(adc::ADC)
@@ -103,47 +107,53 @@ end
 times(gr::TimeShapedGrad) =
     is_on(gr) ? cumsum([gr.delay; gr.rise; gr.T; gr.fall]) : similar(gr.T, 0)
 
-function times(rf::BlockPulseRF, ::Val{:A})
+function times(rf::BlockPulseRF)
     is_on(rf) || return typeof(rf.delay)[]
-    return [rf.delay, dur(rf)]
+    return [rf.delay, rf.delay, dur(rf), dur(rf)]
 end
 
-function times(rf::UniformlySampledRF, ::Val{:A})
+function times(rf::UniformlySampledRF)
     is_on(rf) || return typeof(rf.delay)[]
-    length(rf.A) == 1 && return [rf.delay, dur(rf)]
-    return collect(range(rf.delay, dur(rf); length=length(rf.A)))
+    t = length(rf.A) == 1 ? [rf.delay, dur(rf)] : collect(range(rf.delay, dur(rf); length=length(rf.A)))
+    return [first(t); t; last(t)]
 end
 
-function times(rf::TimeShapedRF, ::Val{:A})
-    is_on(rf) || return typeof(rf.delay)[]
-    t = rf.delay .+ cumsum(rf.T)
-    return length(rf.T) == length(rf.A) - 1 ? [rf.delay; t] : t
-end
-
-times(rf::RF, ::Val{:Δf}) = times(rf, Val(:A))
-
-function times(rf::UniformlySampledFrequencyModulatedRF, ::Val{:Δf})
-    is_on(rf) || return typeof(rf.delay)[]
-    length(rf.Δf) == 1 && return [rf.delay, dur(rf)]
-    return collect(range(rf.delay, dur(rf); length=length(rf.Δf)))
-end
-
-function times(rf::TimeShapedFrequencyModulatedRF, ::Val{:Δf})
+function times(rf::TimeShapedRF)
     is_on(rf) || return typeof(rf.delay)[]
     t = rf.delay .+ cumsum(rf.T)
-    return length(rf.T) == length(rf.Δf) - 1 ? [rf.delay; t] : t
+    t = length(rf.T) == length(rf.A) - 1 ? [rf.delay; t] : t
+    return [first(t); t; last(t)]
 end
-
-times(rf::RF, key::Symbol) = times(rf, Val(key))
-times(rf::RF, key) = throw(ArgumentError("Unsupported RF key $key"))
-times(rf::RF) = times(rf, Val(:A))
 
 """
     t = freq_times(rf::RF)
 
 Get RF frequency modulation time samples.
 """
-freq_times(rf::RF) = times(rf, Val(:Δf))
+function freq_times(rf::RF)
+    is_on(rf) || return typeof(rf.delay)[]
+    return [rf.delay, rf.delay, dur(rf), dur(rf)]
+end
+
+function freq_times(rf::UniformlySampledFrequencyModulatedRF)
+    is_on(rf) || return typeof(rf.delay)[]
+    t = length(rf.Δf) == 1 ? [rf.delay, dur(rf)] : collect(range(rf.delay, dur(rf); length=length(rf.Δf)))
+    return [first(t); t; last(t)]
+end
+
+function freq_times(rf::TimeShapedFrequencyModulatedRF)
+    is_on(rf) || return typeof(rf.delay)[]
+    t = rf.delay .+ cumsum(rf.T)
+    t = length(rf.T) == length(rf.Δf) - 1 ? [rf.delay; t] : t
+    return [first(t); t; last(t)]
+end
+
+function times(rf::RF, key::Symbol)
+    key === :A && return times(rf)
+    key === :Δf && return freq_times(rf)
+    throw(ArgumentError("Unsupported RF key $key"))
+end
+times(rf::RF, key) = throw(ArgumentError("Unsupported RF key $key"))
 
 function times(adc::ADC)
     if !is_on(adc)

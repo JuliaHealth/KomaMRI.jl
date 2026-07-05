@@ -288,7 +288,7 @@ function plot_seq(
         yaxis=yaxis,
         legendgroup="Gx",
         showlegend=showlegend,
-        marker=attr(; color="#636EFA", size=8, line=attr(; width=3)),
+        marker=attr(; color="#636EFA", size=8),
     )
     p[2] = scatter_fun(;
         x=gy.t * 1e3,
@@ -299,7 +299,7 @@ function plot_seq(
         yaxis=yaxis,
         legendgroup="Gy",
         showlegend=showlegend,
-        marker=attr(; color="#EF553B", size=8, line=attr(; width=3)),
+        marker=attr(; color="#EF553B", size=8),
     )
     p[3] = scatter_fun(;
         x=gz.t * 1e3,
@@ -310,7 +310,7 @@ function plot_seq(
         yaxis=yaxis,
         legendgroup="Gz",
         showlegend=showlegend,
-        marker=attr(; color="#00CC96", size=8, line=attr(; width=3)),
+        marker=attr(; color="#00CC96", size=8),
     )
 
     # For RFs
@@ -1688,11 +1688,10 @@ julia> plot_seqd(seq)
 function plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3, 5e-5), show_rf_frame=true, freq_in_phase=false)
     seqd = KomaMRIBase.discretize(seq; sampling_rule, freq_in_phase)
     marker_symbol = plot_seqd_marker_symbols(seq, seqd, sampling_rule; freq_in_phase)
-    marker_line_width = [s == :circle ? 0 : 1 for s in marker_symbol]
+    marker_line_width = [s == :circle ? 0 : 2 for s in marker_symbol]
     is_real_rf = all(x -> isapprox(imag(x), 0; atol=eps()), seqd.B1)
     B1 = is_real_rf ? real.(seqd.B1) : abs.(seqd.B1)
     B1_phase = is_real_rf ? zero.(real.(seqd.B1)) : angle.(seqd.B1)
-    rf_marker_opacity = ifelse.([seqd.excitation_bool; false], 1.0, 0.2)
     Gx = scattergl(;
         x=seqd.t * 1e3,
         y=seqd.Gx * 1e3,
@@ -1730,7 +1729,7 @@ function plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3
         mode="markers+lines",
         marker_symbol,
         legendgroup="|B1|_AM",
-        marker=attr(; color="#AB63FA", opacity=rf_marker_opacity, size=8, line=attr(; color="#AB63FA", width=marker_line_width)),
+        marker=attr(; color="#AB63FA", size=8, line=attr(; color="#AB63FA", width=marker_line_width)),
         line=attr(; color="#AB63FA"),
     )
     B1_angle = scattergl(;
@@ -1740,7 +1739,7 @@ function plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3
         mode="markers+lines",
         marker_symbol,
         legendgroup="∠B1_AM",
-        marker=attr(; color="#FFA15A", opacity=rf_marker_opacity, size=8, line=attr(; color="#FFA15A", width=marker_line_width)),
+        marker=attr(; color="#FFA15A", size=8, line=attr(; color="#FFA15A", width=marker_line_width)),
         line=attr(; color="#FFA15A"),
     )
     ADC = scattergl(;
@@ -1760,10 +1759,19 @@ function plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3
         marker_symbol,
         visible="legendonly",
         legendgroup="Δf_FM",
-        marker=attr(; color="#AB63FA", opacity=rf_marker_opacity, size=8, line=attr(; color="#AB63FA", width=marker_line_width)),
+        marker=attr(; color="#AB63FA", size=8, line=attr(; color="#AB63FA", width=marker_line_width)),
         line=attr(; color="#AB63FA"),
     )
-    p = [Gx, Gy, Gz, B1_abs, B1_angle, ADC, B1_Δf]
+    excitation_bool = scattergl(;
+        x=seqd.t * 1e3,
+        y=Float64.([seqd.excitation_bool; false] .| [false; seqd.excitation_bool]),
+        name="excitation_bool",
+        mode="lines",
+        visible="legendonly",
+        legendgroup="excitation_bool",
+        line=attr(; color="#AB63FA", dash="dot"),
+    )
+    p = [Gx, Gy, Gz, B1_abs, B1_angle, ADC, B1_Δf, excitation_bool]
     if show_rf_frame
         push!(p, scattergl(;
             x=seqd.t * 1e3,
@@ -1772,7 +1780,7 @@ function plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3
             mode="markers+lines",
             marker_symbol,
             legendgroup="ψ_FM",
-            marker=attr(; color="#FF6692", opacity=rf_marker_opacity, size=8, line=attr(; color="#FF6692", width=marker_line_width)),
+            marker=attr(; color="#FF6692", size=8, line=attr(; color="#FF6692", width=marker_line_width)),
             line=attr(; color="#FF6692"),
             visible="legendonly",
         ))

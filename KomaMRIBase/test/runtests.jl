@@ -616,7 +616,9 @@ using TestItems, TestItemRunner
         @test true
         @test area(RF([1.0], 2.0)) ≈ 2.0
         @test rf_center(RF([1.0], 2.0)) ≈ 1.0
-        @test KomaMRIBase.event_samples(RF([1.0], 2.0, [100.0]), :Δf) == (t=[0.0, 2.0], A=[100.0, 100.0])
+        @test KomaMRIBase.event_samples(RF(1.0, 2.0)) == (t=[0.0, 0.0, 2.0, 2.0], A=[0.0, 1.0, 1.0, 0.0])
+        @test KomaMRIBase.event_samples(RF([1.0], 2.0)) == (t=[0.0, 0.0, 2.0, 2.0], A=[0.0, 1.0, 1.0, 0.0])
+        @test KomaMRIBase.event_samples(RF([1.0], 2.0, [100.0]), :Δf) == (t=[0.0, 0.0, 2.0, 2.0], A=[0.0, 100.0, 100.0, 0.0])
 
         # Test Grad operations
         B1x, B1y, T = rand(3)
@@ -647,7 +649,7 @@ using TestItems, TestItemRunner
 
         # Constant frequency offset: ψ is centered so the RF center has zero frame phase.
         rf = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, 1000.0, 0.0; ϕ=0.3)
-        @test KomaMRIBase.event_samples(rf, :ψ).A ≈ [π, 0, -π]
+        @test KomaMRIBase.event_samples(rf, :ψ).A ≈ [π, π, -π, -π]
 
         # Frequency-modulated RF: ψ is generated from the integrated Δf waveform and centered.
         rf_fm = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, [0.0, 1000.0, 0.0], 0.0)
@@ -673,7 +675,9 @@ using TestItems, TestItemRunner
         @test dense.t ≈ coarse.t
         @test dense.Δf ≈ coarse.Δf
         @test dense.ψ ≈ coarse.ψ
-        @test coarse.ψ ≈ [-π / 2, -π / 8, 0, -π / 8, -π / 2]
+        @test coarse.Δf ≈ [0, -1, -1 / 2, 0, 1 / 2, 1, 0]
+        @test coarse.ψ[2:(end - 1)] ≈ [-π / 2, -π / 8, 0, -π / 8, -π / 2]
+        @test coarse.ψ[[begin, end]] ≈ coarse.ψ[[begin + 1, end - 1]]
 
         rf_fm = RF(fill(1.0e-6, 5), 1.0, [0.0, 1000.0, -500.0, 1500.0, 0.0])
         seq = Sequence()
