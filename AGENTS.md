@@ -54,6 +54,7 @@
 ## Testing
 - In the persistent Julia session, run tests from the correct project with `Pkg.test(...)`; use the narrowest package first.
 - Usual package tests: `Pkg.test("KomaMRIBase")`, `Pkg.test("KomaMRICore")`, `Pkg.test("KomaMRIFiles")`, `Pkg.test("KomaMRIPlots")`, root `Pkg.test()`.
+- For API, event-semantics, or compat changes, test downstream dependents before pushing; `KomaMRIBase` changes usually require `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots`, and root/docs checks as relevant.
 - Root and `KomaMRIPlots` tests may need `xvfb-run` on headless Linux.
 - `KomaMRICore` backend tests use `test_args` (`CPU`, `CUDA`, `AMDGPU`, `Metal`, `oneAPI`) or test preferences; do not commit backend GPU deps to shared test projects.
 - Use `@testitem` tags: `:base`, `:files`, `:plots`, `:koma`, and for core `:core` plus exactly one of `:motion` or `:nomotion`.
