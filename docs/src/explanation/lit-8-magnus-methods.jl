@@ -39,8 +39,65 @@
 # RF excitation accuracy at the same ``\Delta t``, or reach similar accuracy with
 # a larger ``\Delta t``.
 using KomaMRI, PlotlyJS #hide
-include(joinpath(pkgdir(KomaMRI), "examples", "6.magnus_paper", "speed_acc_benchmarks", "0_acc_bench.jl")) #hide
-result = AccBenchmarkCommon.convergence_result(; nspins=100) #hide
+const HS_DURATION_DOC = 18.3e-3 #hide
+const DT_RF_DOC = [300e-6, 250e-6, 200e-6, 150e-6, 100e-6, 50e-6, 20e-6, 10e-6, 5e-6, 2e-6, 1e-6] #hide
+magnus_methods_doc() = ( #hide
+    ("Magnus1", BlochMagnus1()), #hide
+    ("Magnus2", BlochMagnus2()), #hide
+    ("Magnus4", BlochMagnus4()), #hide
+    ("Magnus6", BlochMagnus6()), #hide
+) #hide
+function hs_sequence_doc(n=400_001) #hide
+    β̂, μ = 4, 6 #hide
+    β = 2β̂ / HS_DURATION_DOC #hide
+    t = range(-HS_DURATION_DOC / 2, HS_DURATION_DOC / 2; length=n) #hide
+    seq = Sequence() #hide
+    @addblock seq += RF(13.5e-6 .* sech.(β .* t), HS_DURATION_DOC, -μ * β .* tanh.(β .* t) ./ (2π), 0) #hide
+    return seq #hide
+end #hide
+function phantom_grid_doc(nspins=100) #hide
+    return Phantom(; #hide
+        x=collect(range(-6e-2, 6e-2; length=nspins)), #hide
+        y=zeros(nspins), #hide
+        z=zeros(nspins), #hide
+        ρ=ones(nspins), #hide
+        T1=fill(Inf, nspins), #hide
+        T2=fill(Inf, nspins), #hide
+        Δw=2π .* collect(range(-2e3, 2e3; length=nspins)), #hide
+    ) #hide
+end #hide
+function sim_params_doc(method, Δt_rf; precision) #hide
+    return Dict{String,Any}( #hide
+        "gpu" => false, #hide
+        "Nthreads" => Threads.nthreads(), #hide
+        "return_type" => "state", #hide
+        "precision" => precision, #hide
+        "sim_method" => method, #hide
+        "Δt" => Inf, #hide
+        "Δt_rf" => Δt_rf, #hide
+    ) #hide
+end #hide
+nrmse_doc(M, Mref) = sqrt(sum(abs2.(M.xy .- Mref.xy) .+ abs2.(M.z .- Mref.z)) / sum(abs2.(Mref.xy) .+ abs2.(Mref.z))) #hide
+function convergence_result_doc() #hide
+    seq, obj, sys = hs_sequence_doc(), phantom_grid_doc(), Scanner() #hide
+    reference = simulate(obj, seq, sys; sim_params=sim_params_doc(BlochMagnus6(), 1e-6; precision="f64"), verbose=false) #hide
+    methods = magnus_methods_doc() #hide
+    err64 = [ #hide
+        nrmse_doc(simulate(obj, seq, sys; sim_params=sim_params_doc(method, Δt_rf; precision="f64"), verbose=false), reference) #hide
+        for (_, method) in methods, Δt_rf in DT_RF_DOC #hide
+    ] #hide
+    err32 = [ #hide
+        nrmse_doc(simulate(obj, seq, sys; sim_params=sim_params_doc(method, Δt_rf; precision="f32"), verbose=false), reference) #hide
+        for (_, method) in methods, Δt_rf in DT_RF_DOC #hide
+    ] #hide
+    return Dict( #hide
+        "method_labels" => collect(first.(methods)), #hide
+        "dt_rf_us" => 1e6 .* DT_RF_DOC, #hide
+        "err64" => err64, #hide
+        "err32" => err32, #hide
+    ) #hide
+end #hide
+result = convergence_result_doc() #hide
 labels = result["method_labels"] #hide
 dt_rf_us = result["dt_rf_us"] #hide
 colors = ["#D55E00", "#009E73", "#0072B2", "#CC79A7"] #hide
@@ -76,8 +133,8 @@ HTML(replace(sprint(show, MIME("text/html"), p), "style=\"display:block;" => "st
 # A Magnus method may request additional waveform evaluations inside a simulation
 # interval; those waveform values are combined into the rotation applied for
 # that step.
-seq = AccBenchmarkCommon.hs_sequence(4001) #hide
-methods = AccBenchmarkCommon.magnus_methods() #hide
+seq = hs_sequence_doc(4001) #hide
+methods = magnus_methods_doc() #hide
 plots = map(methods) do (_, method) #hide
     params = Dict{String,Any}("sim_method" => method, "Δt" => Inf, "Δt_rf" => 300e-6) #hide
     rule = KomaMRICore.simulation_sampling_rule(method, params) #hide
