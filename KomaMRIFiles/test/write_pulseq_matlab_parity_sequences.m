@@ -70,7 +70,7 @@ seq.addBlock(mr.makeAdc(16, sys, 'dwell', 2e-6), 'roundUpBlockDuration');
 seq.addBlock(mr.makeAdc(16, sys, 'dwell', 2e-6, 'freqOffset', 77, 'phaseOffset', 0.2), 'roundUpBlockDuration');
 seq.addBlock(mr.makeAdc(16, sys, 'duration', 32e-6), 'roundUpBlockDuration');
 seq.addBlock(mr.makeAdc(16, sys, 'dwell', 2e-6, 'delay', 4e-6), 'roundUpBlockDuration');
-seq.addBlock(mr.makeAdc(1, sys, 'duration', 3e-6), 'roundUpBlockDuration');
+seq.addBlock(mr.makeAdc(2, sys, 'duration', 3e-6), 'roundUpBlockDuration');
 seq.addBlock(mr.makeDelay(0), 'roundUpBlockDuration');
 seq.addBlock(mr.makeDelay(1.5e-3), 'roundUpBlockDuration');
 seq.addBlock(mr.makeLabel('SET', 'LIN', 3), 'roundUpBlockDuration');

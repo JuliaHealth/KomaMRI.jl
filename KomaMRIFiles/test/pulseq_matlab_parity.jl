@@ -156,8 +156,8 @@ function run_pulseq_matlab_parity()
             PD.build_adc(16; duration=32u"μs", sys),
         "adc_deadtime" =>
             PD.build_adc(16; dwell=2u"μs", delay=4u"μs", sys),
-        "adc_one_sample" =>
-            PD.build_adc(1; duration=3u"μs", sys),
+        "adc_two_samples" =>
+            PD.build_adc(2; duration=3u"μs", sys),
         "delay_zero" =>
             PD.build_delay(0u"s"; sys),
         "delay_positive" =>
