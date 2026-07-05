@@ -1653,23 +1653,11 @@ function plot_dict(dict::Dict)
     return html *= "</tbody></table>"
 end
 
-function plot_seqd_marker_symbols(seqd)
-    symbols = fill(:circle, length(seqd.t))
-    isempty(seqd.Δt) && return symbols
-    starts = [firstindex(seqd.Δt); findall(seqd.excitation_bool[2:end] .!= seqd.excitation_bool[1:(end - 1)]) .+ 1]
-    stops = [starts[2:end] .- 1; lastindex(seqd.Δt)]
-    for (start, stop) in zip(starts, stops)
-        seqd.excitation_bool[start] || continue
-        dts = seqd.Δt[start:stop]
-        period = findfirst(1:length(dts)) do p
-            length(dts) % p == 0 && all(i -> isapprox(dts[i], dts[mod1(i, p)]), eachindex(dts))
-        end
-        (period === nothing || period == 1 || period == length(dts)) && continue
-        for j in 1:length(dts)
-            j % period == 0 || (symbols[start + j] = Symbol("line-ns"))
-        end
-    end
-    return symbols
+function plot_seqd_marker_symbols(seq, seqd, sampling_rule; freq_in_phase=false)
+    hasproperty(sampling_rule, :rule) || return fill(:circle, length(seqd.t))
+    boundary_seqd = KomaMRIBase.discretize(seq; sampling_rule=getproperty(sampling_rule, :rule), freq_in_phase)
+    boundary_t = Set(boundary_seqd.t)
+    return [t in boundary_t ? :circle : Symbol("line-ns") for t in seqd.t]
 end
 
 """
@@ -1699,7 +1687,7 @@ julia> plot_seqd(seq)
 """
 function plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3, 5e-5), show_rf_frame=true, freq_in_phase=false)
     seqd = KomaMRIBase.discretize(seq; sampling_rule, freq_in_phase)
-    marker_symbol = plot_seqd_marker_symbols(seqd)
+    marker_symbol = plot_seqd_marker_symbols(seq, seqd, sampling_rule; freq_in_phase)
     marker_line_width = [s == :circle ? 0 : 1 for s in marker_symbol]
     is_real_rf = all(x -> isapprox(imag(x), 0; atol=eps()), seqd.B1)
     B1 = is_real_rf ? real.(seqd.B1) : abs.(seqd.B1)
