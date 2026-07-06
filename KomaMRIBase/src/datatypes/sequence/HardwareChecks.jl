@@ -22,11 +22,14 @@ function check_hw_limits(seq::Sequence, sys::Scanner)
     check_grad = isfinite(sys.Gmax)
     check_slew = isfinite(sys.Smax)
     check_fields = check_rf || check_grad || check_slew
+    # TODO: add adc_samples_divisor to Scanner.
+    adc_samples_divisor = 4
     axis_names = ("x", "y", "z")
     for i in 1:length(seq)
         adc_i = seq.ADC[i]
         if is_ADC_on(adc_i)
-            isodd(adc_i.N) && error("ADC for block $i has an odd number of samples ($(adc_i.N)).")
+            adc_i.N % adc_samples_divisor == 0 ||
+                error("ADC for block $i has $(adc_i.N) samples; expected a multiple of adc_samples_divisor = $adc_samples_divisor.")
         end
         if check_fields
             if check_rf

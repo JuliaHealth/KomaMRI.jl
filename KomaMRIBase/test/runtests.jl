@@ -1182,6 +1182,38 @@ using TestItems, TestItemRunner
             @test_throws ErrorException check_timing(trigger_too_long)
         end
 
+        @testset "Pulseq shaped-gradient continuity checks" begin
+            gradient_raster = 10e-6
+            continuation_delay = 2gradient_raster
+            edge = 30e-3
+            g_end = Grad([0.0, edge], [gradient_raster], 0.0, 0.0, continuation_delay, 0.0, edge)
+            g_start = Grad([edge, 0.0], [gradient_raster], 0.0, 0.0, 0.0, edge, 0.0)
+
+            continued = Sequence()
+            @addblock continued += (x=g_end, Duration(continuation_delay + gradient_raster))
+            @addblock continued += (x=g_start, Duration(gradient_raster))
+            @test isnothing(check_timing(continued))
+
+            delayed_start = Sequence()
+            @addblock delayed_start += (x=Grad([edge, 0.0], [gradient_raster], 0.0, 0.0, gradient_raster, edge, 0.0), Duration(2gradient_raster))
+            @test_throws ErrorException check_timing(delayed_start)
+
+            mismatched_start = Sequence()
+            mismatched_edge = edge + 2 * KomaMRIBase.PULSEQ_GRADIENT_CONTINUITY_TOL
+            @addblock mismatched_start += (x=g_end, Duration(continuation_delay + gradient_raster))
+            @addblock mismatched_start += (x=Grad([mismatched_edge, 0.0], [gradient_raster], 0.0, 0.0, 0.0, mismatched_edge, 0.0), Duration(gradient_raster))
+            @test_throws ErrorException check_timing(mismatched_start)
+
+            not_continued = Sequence()
+            @addblock not_continued += (x=g_end, Duration(continuation_delay + gradient_raster))
+            @addblock not_continued += Duration(gradient_raster)
+            @test_throws ErrorException check_timing(not_continued)
+
+            nonzero_end_before_block_end = Sequence()
+            @addblock nonzero_end_before_block_end += (x=Grad([0.0, 0.0], [gradient_raster], 0.0, 0.0, 0.0, 0.0, edge), Duration(2gradient_raster))
+            @test_throws ErrorException check_timing(nonzero_end_before_block_end)
+        end
+
         @testset "Pulseq checkTiming dead-time and ring-down checks" begin
             rf_raster = 1e-6
             adc_raster = 100e-9
