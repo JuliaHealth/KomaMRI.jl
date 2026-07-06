@@ -11,6 +11,7 @@
 - Reuse existing APIs before adding private wrappers.
 - Add docstrings only for public-facing functions.
 - Prefer domain names over implementation-mechanic names and explanatory comments. Add comments only when they add information.
+- Avoid magic numbers. Name domain constants and test fixtures when the value carries meaning.
 - Make semantic phases visible in code structure.
 - Be terse. Assume expert user.
 - Prefer commands/diffs over long explanations.
