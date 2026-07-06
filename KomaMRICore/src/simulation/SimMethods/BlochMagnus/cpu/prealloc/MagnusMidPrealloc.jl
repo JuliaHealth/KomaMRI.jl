@@ -1,6 +1,4 @@
-struct BlochMagnusMidCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T}
-} <: BlochMagnusCPUPrealloc{T}
+struct BlochMagnusMidCPUPrealloc{CV<:AbstractVector,RV<:AbstractVector} <: BlochMagnusCPUPrealloc
     ωxy_m::CV
     ωz_m::RV
     ωz_1::RV
@@ -14,7 +12,7 @@ struct BlochMagnusMidCPUPrealloc{
     Maux_z::RV
 end
 
-prealloc(sim_method::BlochMagnusMid2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusMid2, backend::KA.CPU, obj::Phantom, M::Mag, max_block_length::Integer, groupsize) =
     BlochMagnusMidCPUPrealloc(
         cbuf(obj), rbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj), rbuf(obj),
