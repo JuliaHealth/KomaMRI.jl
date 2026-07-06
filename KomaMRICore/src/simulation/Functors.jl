@@ -112,6 +112,7 @@ adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.mot
 @functor Path
 @functor FlowPath
 @functor TimeCurve
+@functor TimeDependentProperty
 # Spinor
 @functor Spinor
 # DiscreteSequence

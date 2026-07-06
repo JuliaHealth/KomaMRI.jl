@@ -46,8 +46,12 @@ function run_spin_precession!(
 ) where {T<:Real}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    t_acq = seq.t[2:end]'
+    props = get_spin_properties(p, t_acq)
+    ρ = props.ρ
+    ρ_end = get_spin_property_at_end(ρ)
     #Effective field
-    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ props.Δw ./ T(2π .* γ)
     #Rotation
     if is_ADC_on(seq)
         ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)
@@ -57,7 +61,7 @@ function run_spin_precession!(
     #Mxy precession and relaxation, and Mz relaxation
     tp = cumsum(seq.Δt) # t' = t - t0
     dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
+    Mxy = M.xy .* exp.(-tp' ./ props.T2) .* cis.(ϕ)
     M.xy .= Mxy[:, end]
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
@@ -65,16 +69,17 @@ function run_spin_precession!(
     sig[:, :, 1] .= @views transpose(Mxy[:, findall(seq.ADC[2:end])])
 
     if sim_method.save_Mz
-        Mz = M.z .* exp.(-tp' ./ p.T1) .+ p.ρ .* (1 .- exp.(-tp' ./ p.T1)) #Calculate intermediate points
+        Mz = M.z .* exp.(-tp' ./ props.T1) .+ ρ .* (1 .- exp.(-tp' ./ props.T1)) #Calculate intermediate points
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(Mz, seq.t[2:end]', p.motion; replace_by=p.ρ)
+        outflow_spin_reset!(Mz, seq.t[2:end]', p.motion; replace_by=ρ_end)
         sig[:, :, 2] .= @views transpose(Mz[:, findall(seq.ADC[2:end])]) #Save state to signal
         M.z .= Mz[:, end]
     else
-        M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1)) #Jump to the last point
+        T1_end = get_spin_property_at_end(props.T1)
+        M.z .= M.z .* exp.(-dur ./ T1_end) .+ ρ_end .* (1 .- exp.(-dur ./ T1_end)) #Jump to the last point
     end
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=ρ_end)
     return nothing
 end
 

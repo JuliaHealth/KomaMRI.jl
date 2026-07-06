@@ -1,3 +1,5 @@
+include("phantom/TimeDependentProperty.jl")
+
 """
     obj = Phantom(name, x, y, z, ρ, T1, T2, T2s, Δw, Dλ1, Dλ2, Dθ, motion)
 
@@ -9,14 +11,14 @@ a property value representing a spin. This struct serves as an input for the sim
 - `x`: (`::AbstractVector{T<:Real}`, `[m]`) spin x-position vector
 - `y`: (`::AbstractVector{T<:Real}`, `[m]`) spin y-position vector
 - `z`: (`::AbstractVector{T<:Real}`, `[m]`) spin z-position vector
-- `ρ`: (`::AbstractVector{T<:Real}`) spin proton density vector
-- `T1`: (`::AbstractVector{T<:Real}`, `[s]`) spin T1 parameter vector
-- `T2`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2 parameter vector
-- `T2s`: (`::AbstractVector{T<:Real}`, `[s]`) spin T2s parameter vector
-- `Δw`: (`::AbstractVector{T<:Real}`, `[rad/s]`) spin off-resonance parameter vector
-- `Dλ1`: (`::AbstractVector{T<:Real}`) spin Dλ1 (diffusion) parameter vector
-- `Dλ2`: (`::AbstractVector{T<:Real}`) spin Dλ2 (diffusion) parameter vector
-- `Dθ`: (`::AbstractVector{T<:Real}`) spin Dθ (diffusion) parameter vector
+- `ρ`: (`::PhantomProperty{T}`) spin proton density
+- `T1`: (`::PhantomProperty{T}`, `[s]`) spin T1 parameter vector
+- `T2`: (`::PhantomProperty{T}`, `[s]`) spin T2 parameter vector
+- `T2s`: (`::PhantomProperty{T}`, `[s]`) spin T2s parameter vector
+- `Δw`: (`::PhantomProperty{T}`, `[rad/s]`) spin off-resonance parameter vector
+- `Dλ1`: (`::PhantomProperty{T}`) spin Dλ1 (diffusion) parameter vector
+- `Dλ2`: (`::PhantomProperty{T}`) spin Dλ2 (diffusion) parameter vector
+- `Dθ`: (`::PhantomProperty{T}`) spin Dθ (diffusion) parameter vector
 - `motion`: (`::Union{NoMotion, Motion{T<:Real} MotionList{T<:Real}}`) motion
 
 # Returns
@@ -29,33 +31,40 @@ julia> obj = Phantom(x=[0.0])
 julia> obj.ρ
 ```
 """
+const PhantomProperty{T<:Real} = Union{AbstractVector{T}, TimeDependentProperty{T}}
+
 @with_kw mutable struct Phantom{T<:Real}
     name::String           = "spins"
     x::AbstractVector{T}   = @isdefined(T) ? T[] : Float64[]
     y::AbstractVector{T}   = zeros(eltype(x), size(x))
     z::AbstractVector{T}   = zeros(eltype(x), size(x))
-    ρ::AbstractVector{T}   = ones(eltype(x), size(x))
-    T1::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2::AbstractVector{T}  = ones(eltype(x), size(x)) * 1_000_000
-    T2s::AbstractVector{T} = ones(eltype(x), size(x)) * 1_000_000
+    ρ::PhantomProperty{T}   = ones(eltype(x), size(x))
+    T1::PhantomProperty{T}  = ones(eltype(x), size(x)) * 1_000_000
+    T2::PhantomProperty{T}  = ones(eltype(x), size(x)) * 1_000_000
+    T2s::PhantomProperty{T} = ones(eltype(x), size(x)) * 1_000_000
     #Off-resonance related
-    Δw::AbstractVector{T} = zeros(eltype(x), size(x))
+    Δw::PhantomProperty{T} = zeros(eltype(x), size(x))
     #χ::Vector{SusceptibilityModel}
     #Diffusion
-    Dλ1::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dλ2::AbstractVector{T} = zeros(eltype(x), size(x))
-    Dθ::AbstractVector{T}  = zeros(eltype(x), size(x))
+    Dλ1::PhantomProperty{T} = zeros(eltype(x), size(x))
+    Dλ2::PhantomProperty{T} = zeros(eltype(x), size(x))
+    Dθ::PhantomProperty{T}  = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
     motion::Union{NoMotion, Motion{T}, MotionList{T}} = NoMotion()
 end
 
-const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String,         fieldnames(Phantom))
-const VECTOR_PHANTOM_FIELDS     = Iterators.filter(x -> fieldtype(Phantom, x) <: AbstractVector, fieldnames(Phantom))
+const POSITION_PHANTOM_FIELDS = (:x, :y, :z)
+const PROPERTY_PHANTOM_FIELDS = (:ρ, :T1, :T2, :T2s, :Δw, :Dλ1, :Dλ2, :Dθ)
+
+const NON_STRING_PHANTOM_FIELDS = Iterators.filter(x -> fieldtype(Phantom, x) != String, fieldnames(Phantom))
+
+get_phantom_property(obj::Phantom, key::Symbol) = get_property_value(getfield(obj, key))
+get_property_value(p) = p
 
 """Size and length of a phantom"""
-size(x::Phantom) = size(x.ρ)
-Base.length(x::Phantom) = length(x.ρ)
+size(x::Phantom) = size(x.x)
+Base.length(x::Phantom) = length(x.x)
 # To enable to iterate and broadcast over the Phantom
 Base.iterate(x::Phantom) = (x[1], 2)
 Base.iterate(x::Phantom, i::Integer) = (i <= length(x)) ? (x[i], i + 1) : nothing
@@ -95,20 +104,28 @@ end
 """Addition of phantoms"""
 +(obj1::Phantom, obj2::Phantom) = begin
     name = first(obj1.name * "+" * obj2.name, 50) # The name is limited to 50 characters
-    fields = []
-    for field in VECTOR_PHANTOM_FIELDS
-        push!(fields, (field, [getfield(obj1, field); getfield(obj2, field)]))
+    fields = Pair{Symbol,Any}[]
+    for field in POSITION_PHANTOM_FIELDS
+        push!(fields, field => [getfield(obj1, field); getfield(obj2, field)])
     end
-    return Phantom(; 
-        name = name, 
-        fields..., 
-        motion = vcat(obj1.motion, obj2.motion, length(obj1), length(obj2)))
+    for field in PROPERTY_PHANTOM_FIELDS
+        push!(fields, field => vcat_property(getfield(obj1, field), getfield(obj2, field)))
+    end
+    return Phantom(;
+        name=name,
+        fields...,
+        motion=vcat_motion(obj1.motion, obj2.motion, length(obj1), length(obj2)),
+    )
 end
 
 """Scalar multiplication of a phantom"""
 *(α::Real, obj::Phantom) = begin
     obj1 = deepcopy(obj)
-    obj1.ρ .*= α
+    if obj1.ρ isa AbstractVector
+        obj1.ρ .*= α
+    else
+        obj1.ρ = α * obj1.ρ
+    end
     return obj1
 end
 

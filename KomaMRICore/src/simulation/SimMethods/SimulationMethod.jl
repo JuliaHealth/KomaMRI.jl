@@ -28,7 +28,7 @@ function initialize_spins_state(
 ) where {T<:Real}
     Nspins = length(obj)
     Mxy = zeros(T, Nspins)
-    Mz = obj.ρ
+    Mz = get_phantom_property(obj, :ρ)
     Xt = Mag{T}(Mxy, Mz)
     return Xt, obj
 end
