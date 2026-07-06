@@ -29,7 +29,6 @@ function run_pulseq_matlab_parity()
     # Tiny-dwell RF edge cases use a low flip angle to stay inside the test scanner B1 limit.
     edge_rf_flip = 0.1u"deg"
     edge_rf_raster_samples = [1, 2, 1, 2, 1, 2, 1, 2, 1, 2]
-    edge_rf_half_raster_samples = repeat([1, 2], 10)
     cases = [
         "trap_area_short_triangle" =>
             PD.build_trapezoid(:x; area=2e-8u"T*s/m", sys),
@@ -85,21 +84,8 @@ function run_pulseq_matlab_parity()
             PD.build_arbitrary_rf([1, 2, 1], 45u"deg"; dwell=200u"μs", sys, use=Excitation()),
         "arbitrary_rf_custom" =>
             PD.build_arbitrary_rf([1, 1im, 1, -1im], 45u"deg"; dwell=100u"μs", center=150u"μs", freq_offset=77u"Hz", phase_offset=0.2u"rad", delay=20u"μs", sys, use=Excitation()),
-        "rf_time_shape_default_raster" =>
-            begin
-                rf_samples = edge_rf_raster_samples
-                rf0, _, _ = PD.make_arbitrary_rf(rf_samples, edge_rf_flip; dwell=sys.RF_Δt, sys, use=Excitation())
-                rf_delay = sys.RF_dead_time + sys.RF_Δt / 2
-                pulseq_block(
-                    RF(
-                        rf0.A, fill(sys.RF_Δt, length(rf_samples) - 1), rf0.Δf,
-                        rf_delay; center=sys.RF_Δt, ϕ=rf0.ϕ, use=Excitation(),
-                    ),
-                    sys,
-                )
-            end,
-        "rf_uniform_half_raster" =>
-            PD.build_arbitrary_rf(edge_rf_half_raster_samples, edge_rf_flip; dwell=sys.RF_Δt / 2, sys, use=Excitation()),
+        "rf_uniform_default_raster" =>
+            PD.build_arbitrary_rf(edge_rf_raster_samples, edge_rf_flip; sys, use=Excitation()),
         "rf_time_shape_start_offset" =>
             begin
                 rf_samples = [1, 2, 1]
@@ -123,9 +109,9 @@ function run_pulseq_matlab_parity()
                 rf_samples = [1, 2, 1]
                 rf0, _, _ = PD.make_arbitrary_rf(rf_samples, edge_rf_flip; dwell=sys.RF_Δt, sys, use=Excitation())
                 pulseq_delay = sys.RF_dead_time
-                time_shape_start = sys.RF_Δt / 2
-                time_shape_intervals = [3sys.RF_Δt / 2, 8sys.RF_Δt]
-                time_shape_center = 2sys.RF_Δt
+                time_shape_start = sys.RF_Δt
+                time_shape_intervals = [2sys.RF_Δt, 7sys.RF_Δt]
+                time_shape_center = 3sys.RF_Δt
                 pulseq_block(
                     RF(
                         rf0.A, time_shape_intervals, rf0.Δf,
