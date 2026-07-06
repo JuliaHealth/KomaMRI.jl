@@ -74,6 +74,8 @@ cpu(x) = fmap(x -> adapt(KA.CPU(), x), x, exclude=_isleaf)
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
 adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
+adapt_storage(::Type{T}, xs::AbstractArray{T}) where {T<:Real} = xs
+adapt_storage(::Type{T}, xs::AbstractArray{Complex{T}}) where {T<:Real} = xs
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
@@ -98,6 +100,16 @@ See also [`f32`](@ref).
 """
 f64(m) = paramtype(Float64, m)
 
+"""
+    fbig(m)
+
+Converts the `eltype` of model's parameters to `BigFloat`.
+Recurses into structs marked with `@functor`.
+
+See also [`f32`](@ref) and [`f64`](@ref).
+"""
+fbig(m) = paramtype(BigFloat, m)
+
 # Koma motion-related adapts
 adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
 adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
@@ -117,4 +129,4 @@ adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.mot
 # DiscreteSequence
 @functor DiscreteSequence
 
-export gpu, cpu, f32, f64
+export gpu, cpu, f32, f64, fbig

@@ -11,7 +11,7 @@
 
 The Sequence struct. It contains events of an MRI sequence. Most field names (except for the
 DEF field) consist of matrices or vectors, where each column index represents a sequence
-block. This struct serves as an input for the simulation.
+block.
 
 # Arguments
 - `GR`: (`::Matrix{Grad}`) gradient matrix. Rows for x-y-z amplitudes and columns are for blocks
@@ -532,19 +532,9 @@ Tells if the sequence `seq` has elements with ADC active, or active during time 
 - `y`: (`::Bool`) boolean that tells whether or not the ADC in the sequence is active
 """
 is_ADC_on(x::Sequence) = any(is_ADC_on, x.ADC)
-is_ADC_on(x::Sequence, t::AbstractVecOrMat) = begin
-	N = length(x)
-	ts = get_block_start_times(x)[1:end-1]
-	delays = x.ADC.delay
-	Ts = 	 x.ADC.dur #delat+T
-	t0s = ts .+ delays
-	tfs = ts .+ Ts
-	# The following just checks the ADC
-	# |___∿  |
-	#     △
-	#     Here
-	activeADC = any([is_ADC_on(x[i]) && any(t0s[i] .<= t .< tfs[i]) for i=1:N])
-	activeADC
+function is_ADC_on(x::Sequence, t::AbstractVecOrMat)
+    T0 = get_block_start_times(x)
+    return any(i -> is_ADC_on(x.ADC[i]) && any(T0[i] + x.ADC[i].delay .<= t .< T0[i] + dur(x.ADC[i])), eachindex(x.DUR))
 end
 
 """
@@ -561,19 +551,11 @@ Tells if the sequence `seq` has elements with RF active, or active during time `
 - `y`: (`::Bool`) boolean that tells whether or not the RF in the sequence is active
 """
 is_RF_on(x::Sequence) = any(is_RF_on, x.RF)
-is_RF_on(x::Sequence, t::AbstractVector) = begin
-	N = length(x)
-	ts = get_block_start_times(x)[1:end-1]
-	delays = x.RF.delay
-	Ts = 	 x.RF.dur #dur = delat+T
-	t0s = ts .+ delays
-	tfs = ts .+ Ts
-	# The following just checks the RF waveform
-	# |___∿  |
-	#     △
-	#     Here
-	activeRFs = any([is_RF_on(x[i]) && any(t0s[i] .<= t .<= tfs[i]) for i=1:N])
-	activeRFs
+function is_RF_on(x::Sequence, t::AbstractVector)
+    T0 = get_block_start_times(x)
+    return any(eachindex(x.DUR)) do i
+        any(rf -> is_RF_on(rf) && any(T0[i] + rf.delay .<= t .<= T0[i] + dur(rf)), x.RF[:, i])
+    end
 end
 
 """
@@ -668,79 +650,32 @@ always zero, and the final time corresponds to the duration of the sequence.
 """
 get_block_start_times(seq::Sequence) = cumsum([0.0; seq.DUR], dims=1)
 
-function _gradient_interpolation_samples(gr::Grad)
-    t = collect(times(gr))
-    A = ampls(gr)
-    isempty(t) && return (t=t, A=A)
-    _strictly_increasing_knots!(t)
-    return (t=t, A=A)
-end
-
 """
-    samples = get_samples(seq::Sequence; off_val=0, max_rf_samples=Inf)
+    samples = get_samples(seq::Sequence, blocks=1:length(seq); freq_in_phase=false)
 
-Returns the samples of the events in `seq`.
-
-# Arguments
-- `seq`: (`::Sequence`) Sequence struct
-
-# Keywords
-- `off_val`: (`::Number`, `=0`) offset value for amplitude. Typically used to hide points in
-    plots by setting it to `Inf`
-- `max_rf_samples`: (`::Integer`, `=Inf`) maximum number of samples for the RF struct
-
-# Returns
-- `samples`: (`::NamedTuple`) contains samples for `gx`, `gy`, `gz`, `rf`, and `adc` events.
-    Each event, represented by `e::NamedTuple`, includes time samples (`e.t`) and amplitude
-    samples (`e.A`)
+Returns global event waveform samples for `rf`, `Δf`, `ψ`, `gx`, `gy`, `gz`, and `adc`.
 """
-function get_samples(seq::Sequence, range; events=[:rf, :gr, :adc], freq_in_phase=false)
-    rf_samples = (;) # Empty NamedTuples
-    gr_samples = (;) # Empty NamedTuples
-    adc_samples = (;) # Empty NamedTuples
+get_samples(seq::Sequence, block::Integer; kwargs...) = get_samples(seq, block:block; kwargs...)
+
+function get_samples(seq::Sequence, blocks; freq_in_phase=false)
+    blocks = collect(blocks)
     T0 = get_block_start_times(seq)
-    fill_if_empty(x) = isempty(x.t) && length(range) == length(seq) ? merge(x, (t=[0.0; dur(seq)], A=zeros(eltype(x.A), 2))) : x
-    # RF
-    if :rf in events
-        t_rf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ times(seq.RF[1,i]))      for i in range])
-        t_Δf = reduce(vcat, [_reseparate_closing_knot!(T0[i] .+ freq_times(seq.RF[1,i])) for i in range])
-        A_rf = reduce(vcat, [ampls(seq.RF[1,i]; freq_in_phase) for i in range])
-        A_Δf = reduce(vcat, [freqs(seq.RF[1,i])                for i in range])
-        A_ψ  = reduce(vcat, [rf_frame_phase(seq.RF[1,i])       for i in range])
-        rf_samples = (
-            rf  = fill_if_empty((t = t_rf, A = A_rf)),
-            Δf  = fill_if_empty((t = t_Δf, A = A_Δf)),
-            ψ   = fill_if_empty((t = t_Δf, A = A_ψ))
-		)
+    block_tables = [
+        merge(
+            block_event_waveforms(seq, i; freq_in_phase),
+            (; ψ=event_samples(seq.RF[1, i], Val(:ψ))),
+        )
+        for i in blocks
+    ]
+    function sequence_samples(name)
+        samples = getproperty.(block_tables, name)
+        return (
+            t=reduce(vcat, [T0[i] .+ s.t for (i, s) in zip(blocks, samples)]),
+            A=reduce(vcat, [s.A for s in samples]),
+        )
     end
-    # Gradients
-    if :gr in events
-        gx = [_gradient_interpolation_samples(seq.GR[1,i]) for i in range]
-        gy = [_gradient_interpolation_samples(seq.GR[2,i]) for i in range]
-        gz = [_gradient_interpolation_samples(seq.GR[3,i]) for i in range]
-        t_gx = reduce(vcat, [_strictly_increasing_knots!(_reseparate_closing_knot!(T0[i] .+ gx[j].t)) for (j, i) in enumerate(range)])
-        t_gy = reduce(vcat, [_strictly_increasing_knots!(_reseparate_closing_knot!(T0[i] .+ gy[j].t)) for (j, i) in enumerate(range)])
-        t_gz = reduce(vcat, [_strictly_increasing_knots!(_reseparate_closing_knot!(T0[i] .+ gz[j].t)) for (j, i) in enumerate(range)])
-        A_gx = reduce(vcat, [g.A for g in gx])
-        A_gy = reduce(vcat, [g.A for g in gy])
-        A_gz = reduce(vcat, [g.A for g in gz])
-        gr_samples = (
-                gx  = fill_if_empty((t = t_gx, A = A_gx)),
-                gy  = fill_if_empty((t = t_gy, A = A_gy)),
-                gz  = fill_if_empty((t = t_gz, A = A_gz))
-                )
-    end
-    # ADC
-    if :adc in events
-        t_aq = reduce(vcat, [T0[i] .+ times(seq.ADC[i]) for i in range])
-        A_aq = reduce(vcat, [ampls(seq.ADC[i]) for i in range])
-        adc_samples = (
-                adc = fill_if_empty((t = t_aq, A = A_aq)),
-                )
-    end
-    # Merging events
-    event_samples = merge(rf_samples, gr_samples, adc_samples)
-    return event_samples
+    names = (:rf, :Δf, :ψ, :gx, :gy, :gz, :adc)
+    return NamedTuple{names}(sequence_samples.(names))
 end
 get_samples(seq::Sequence; kwargs...) = get_samples(seq, 1:length(seq); kwargs...)
 
@@ -764,12 +699,9 @@ Get the gradient array from sequence `seq` evaluated in time points `t`.
 - `Gz`: (`Vector{Float64}` or `1-row ::Matrix{Float64}`, `[T]`) gradient vector values
     in the z direction
 """
-function get_grads(seq, t::Union{Vector, Matrix})
-    grad_samples = get_samples(seq; events=[:gr])
-    for event in grad_samples
-        Interpolations.deduplicate_knots!(event.t; move_knots=true)
-    end
-    return Tuple(linear_interpolation(event..., extrapolation_bc=0.0).(t) for event in grad_samples)
+function get_grads(seq, t)
+    values = evaluate_sequence_at(seq, t)
+    return reshape(values.Gx, size(t)), reshape(values.Gy, size(t)), reshape(values.Gz, size(t))
 end
 
 """
@@ -786,13 +718,9 @@ Returns the RF pulses, delta frequency, and RF rotating-frame phase.
 - `Δf_rf`: (`1-row ::Matrix{Float64}`, `[Hz]`) delta frequency vector
 - `ψ`: (`1-row ::Matrix{Float64}`, `[rad]`) RF rotating-frame phase vector
 """
-function get_rfs(seq, t::Union{Vector, Matrix})
-    rf_samples = get_samples(seq; events=[:rf])
-    for event in rf_samples
-        Interpolations.deduplicate_knots!(event.t; move_knots=true)
-    end
-    B1, Δf, ψ = Tuple(linear_interpolation(event..., extrapolation_bc=0.0).(t) for event in rf_samples)
-    return B1, Δf, wrap_to_pi.(ψ)
+function get_rfs(seq, t)
+    values = evaluate_sequence_at(seq, t)
+    return reshape(values.B1, size(t)), reshape(values.Δf, size(t)), reshape(values.ψ, size(t))
 end
 
 """
@@ -837,55 +765,25 @@ function get_RF_types(seq, t)
 end
 
 @doc raw"""
-    Mk, Mk_adc = get_Mk(seq::Sequence, k; Δt=1)
+    Mk, Mk_adc = get_Mk(seq::Sequence, k; sampling_rule=MaxStepSizeRule(1, 5e-5))
 
 Computes the ``k``th-order moment of the Sequence `seq` given by the formula ``\int_0^T t^k G(t) dt``.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
 - `k`: (`::Integer`) order of the moment to be computed
-- `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
-    for ADC acquisition and Gradients
+
+# Keywords
+- `sampling_rule`: controls how sequence waveforms are sampled
 
 # Returns
 - `Mk`: (`3-column ::Matrix{Real}`) ``k``th-order moment
 - `Mk_adc`: (`3-column ::Matrix{Real}`) ``k``th-order moment sampled at ADC times
 """
-function get_Mk(seq::Sequence, k; Δt=1)
-	get_sign(::Excitation) =  0
-	get_sign(::Refocusing) = -1
-	get_sign(::RFUse)      =  1
-	t, Δt = get_variable_times(seq; Δt)
-	Gx, Gy, Gz = get_grads(seq, t)
-	G = Dict(1=>Gx, 2=>Gy, 3=>Gz)
-	t = t[1:end-1]
-	# Moment
-	Nt = length(t)
-	mk = zeros(Nt,3)
-		# rf_center_breaks
-	idx_rf, rf_types = get_RF_types(seq, t)
-	parts = kfoldperm(Nt, 1; breaks=idx_rf)
-	for i = 1:3
-		mkf = 0
-		for (rf, p) in enumerate(parts)
-			mk[p,i] = cumtrapz(Δt[p]', [t[p]' t[p[end]]'.+Δt[p[end]]].^k .* G[i][p[1]:p[end]+1]')[:] #This is the exact integral
-			if rf > 1 # First part does not have RF
-				mk[p,i] .+= mkf * get_sign(rf_types[rf-1])
-			end
-			mkf = mk[p[end],i]
-		end
-	end
-	Mk = γ * mk #[m^-1]
-	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
-	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
-	#TODO: check if this interpolation is necessary
-	ts = t .+ Δt
-	t_adc =  get_adc_sampling_times(seq)
-	Mkx_adc = linear_interpolation(ts, Mk[:,1],extrapolation_bc=0)(t_adc)
-	Mky_adc = linear_interpolation(ts, Mk[:,2],extrapolation_bc=0)(t_adc)
-	Mkz_adc = linear_interpolation(ts, Mk[:,3],extrapolation_bc=0)(t_adc)
-	Mk_adc = [Mkx_adc Mky_adc Mkz_adc]
-	return Mk, Mk_adc
+function get_Mk(seq::Sequence, k; sampling_rule=MaxStepSizeRule(1, 5e-5))
+    seqd = discretize(seq; sampling_rule)
+    rf_idx, rf_types = get_RF_types(seq, seqd.t[1:end-1])
+    return get_Mk(seqd, k; rf_idx, rf_types)
 end
 
 """
@@ -913,84 +811,41 @@ Refer to [`get_Mk`](@ref)
 get_M2(seq::Sequence; kwargs...) = get_Mk(seq, 2; kwargs...)
 
 """
-	SR, SR_adc = get_slew_rate(seq::Sequence; Δt=1)
+	SR, SR_adc = get_slew_rate(seq::Sequence; sampling_rule=MaxStepSizeRule(1, 5e-5))
 
 Outputs the designed slew rate of the Sequence `seq`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
-- `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
-    for ADC acquisition and Gradients
+
+# Keywords
+- `sampling_rule`: controls how sequence waveforms are sampled
 
 # Returns
 - `SR`: (`3-column ::Matrix{Float64}`) Slew rate
 - `SR_adc`: (`3-column ::Matrix{Float64}`) Slew rate sampled at ADC points
 """
-get_slew_rate(seq::Sequence; Δt=1) = begin
-    t, Δt = get_variable_times(seq; Δt)
-    Gx, Gy, Gz = get_grads(seq, t)
-    t = t[1:end-1]
-    Nt = length(t)
-    m2 = zeros(Nt,3)
-    m2[:,1] = (Gx[2:end] .- Gx[1:end-1]) ./ Δt
-    m2[:,2] = (Gy[2:end] .- Gy[1:end-1]) ./ Δt
-    m2[:,3] = (Gz[2:end] .- Gz[1:end-1]) ./ Δt
-    Nt >= 1 && (m2[1, :] .= 0.0)
-    Nt >= 2 && (m2[end, :] .= 0.0)
-    M2 = m2 #[m^-1]
-    #Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
-    #Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
-    #TODO: check if this interpolation is necessary
-    ts = t .+ Δt
-    t_adc =  get_adc_sampling_times(seq)
-    M2x_adc = linear_interpolation(ts,M2[:,1],extrapolation_bc=0)(t_adc)
-    M2y_adc = linear_interpolation(ts,M2[:,2],extrapolation_bc=0)(t_adc)
-    M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
-    M2_adc = [M2x_adc M2y_adc M2z_adc]
-    #Final
-    M2, M2_adc
-end
+get_slew_rate(seq::Sequence; sampling_rule=MaxStepSizeRule(1, 5e-5)) =
+    get_slew_rate(discretize(seq; sampling_rule))
 
 """
-    EC, EC_adc = get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3)
+    EC, EC_adc = get_eddy_currents(seq::Sequence; sampling_rule=MaxStepSizeRule(1, 5e-5), λ=80e-3)
 
 Outputs the designed eddy currents of the Sequence `seq`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
-- `Δt`: (`::Real`, `=1`, `[s]`) nominal delta time separation between two time samples
-    for ADC acquisition and Gradients
+
+# Keywords
+- `sampling_rule`: controls how sequence waveforms are sampled
 - `λ`: (`::Float64`, `=80e-3`, `[s]`) eddy current decay constant time
 
 # Returns
 - `EC`: (`3-column ::Matrix{Float64}`) Eddy currents
 - `EC_adc`: (`3-column ::Matrix{Float64}`) Eddy currents sampled at ADC points
 """
-get_eddy_currents(seq::Sequence; Δt=1, λ=80e-3) = begin
-	t, Δt = get_variable_times(seq; Δt)
-	Gx, Gy, Gz = get_grads(seq, t)
-	t = t[1:end-1]
-	Nt = length(t)
-	m2 = zeros(Nt,3)
-	m2[:,1] = (Gx[2:end] .- Gx[1:end-1]) ./ Δt
-	m2[:,2] = (Gy[2:end] .- Gy[1:end-1]) ./ Δt
-	m2[:,3] = (Gz[2:end] .- Gz[1:end-1]) ./ Δt
-	Nt >= 1 && (m2[1, :] .= 0.0)
-	Nt >= 2 && (m2[end, :] .= 0.0)
-	ec(t, λ) = exp.(-t ./ λ) .* (t .>= 0)
-	M2 = [sum( m2[:, j] .* ec(t[i] .- t, λ) .* Δt ) for i = 1:Nt, j = 1:3] #[m^-1]
-	#Interp, as Gradients are generally piece-wise linear, the integral is piece-wise cubic
-	#Nevertheless, the integral is sampled at the ADC times so a linear interp is sufficient
-	#TODO: check if this interpolation is necessary
-	ts = t .+ Δt
-	t_adc =  get_adc_sampling_times(seq)
-	M2x_adc = linear_interpolation(ts,M2[:,1],extrapolation_bc=0)(t_adc)
-	M2y_adc = linear_interpolation(ts,M2[:,2],extrapolation_bc=0)(t_adc)
-	M2z_adc = linear_interpolation(ts,M2[:,3],extrapolation_bc=0)(t_adc)
-	M2_adc = [M2x_adc M2y_adc M2z_adc]
-	#Final
-	M2, M2_adc
-end
+get_eddy_currents(seq::Sequence; sampling_rule=MaxStepSizeRule(1, 5e-5), λ=80e-3) =
+    get_eddy_currents(discretize(seq; sampling_rule); λ)
 
 function get_labels(seq::Sequence, nBlocks::Int=length(seq.EXT))
   if nBlocks > length(seq.EXT)

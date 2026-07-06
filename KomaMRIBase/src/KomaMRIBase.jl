@@ -6,7 +6,7 @@ import Base.*, Base.+, Base.-, Base./, Base.vcat, Base.size, Base.abs, Base.getp
 using Reexport
 #Datatypes
 using Parameters
-#Simulation
+#Interpolation
 using Interpolations
 #Reconstruction
 using MRIBase
@@ -15,6 +15,7 @@ using MRIBase
 using MAT   # For loading example phantoms
 
 const global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
+const MIN_RISE_TIME = 1e-14
 
 """
     to_SI(x)
@@ -79,6 +80,14 @@ end
 round_to_raster(t, raster) = round(Int, t / raster) * raster
 raster_samples(t, raster) = round(Int, t / raster)
 
+# Sampling support
+include("discretization/WaveformInterpolation.jl")
+include("discretization/SamplingGrid.jl")
+include("discretization/sampling_rules/SamplingRule.jl")
+include("discretization/sampling_rules/MaxStepSizeRule.jl")
+include("numerics/IndexPartitioning.jl")
+include("numerics/TrapezoidalIntegration.jl")
+
 # Hardware
 include("datatypes/Scanner.jl")
 # Sequence
@@ -86,9 +95,9 @@ include("datatypes/sequence/Grad.jl")
 include("datatypes/sequence/RF.jl")
 include("datatypes/sequence/ADC.jl")
 include("datatypes/sequence/EXT.jl")
-include("timing/KeyValuesCalculation.jl")
+include("datatypes/sequence/SequenceEventWaveforms.jl")
 include("datatypes/Sequence.jl")
-include("timing/EventCalculations.jl")
+include("numerics/EventCalculations.jl")
 include("datatypes/sequence/RotationExtensions.jl")
 include("datatypes/sequence/TimingChecks.jl")
 include("datatypes/sequence/HardwareChecks.jl")
@@ -99,22 +108,23 @@ include("motion/MotionList.jl")
 include("motion/NoMotion.jl")
 # Phantom
 include("datatypes/Phantom.jl")
-# Simulator
-include("datatypes/simulation/DiscreteSequence.jl")
-include("timing/TimeStepCalculation.jl")
-include("timing/TrapezoidalIntegration.jl")
+# Sampled sequence
+include("datatypes/sequence/DiscreteSequence.jl")
+include("discretization/SequenceBlockSampling.jl")
+include("discretization/SequenceSampling.jl")
+include("datatypes/sequence/DiscreteSequenceQuantities.jl")
 
 # Main
 export γ    # gyro-magnetic ratio [Hz/T]
 export to_SI, SIUnitsDefault, PulseqUnitsDefault
 export Scanner, Sequence, Phantom
-export addblock!, @addblock, @addblocks
+export addblock!, @addblock
 export Grad, RF, ADC, Delay, Duration, QuaternionRot
 export area, dur, dwell, delay, rf_center, get_block_start_times, get_samples
 export ceil_to_raster, floor_to_raster, round_to_raster, raster_samples
 export RFuse, Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
 export DiscreteSequence
-export discretize, get_adc_phase_compensation, get_adc_sampling_times
+export discretize, SamplingRule, BlockSamplingContext, MaxStepSizeRule, additional_sampling_times, select_sampling_times, get_adc_phase_compensation, get_adc_sampling_times
 export is_Gx_on, is_Gy_on, is_Gz_on, is_RF_on, is_ADC_on
 export times, ampls, freqs, freq_times
 # These are also used for simulation

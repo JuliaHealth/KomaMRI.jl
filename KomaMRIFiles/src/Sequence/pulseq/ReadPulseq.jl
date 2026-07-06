@@ -328,13 +328,14 @@ https://github.com/pulseq/pulseq/blob/v1.5.1/matlab/%2Bmr/%40Sequence/read.m#L32
 function fix_first_last_grads!(blockEvents, blockDurations, eventLibraries)
     # Add first and last Pulseq points
     grad_prev_last = zeros(3)
-    grad_durations = Dict{Int,Float64}()
+    next_grad_id = max_pulseq_id(eventLibraries.grad_library)
     for (iB, eventIDs) in enumerate(eachcol(blockEvents))
         block_duration = blockDurations[iB]
         for iG in eachindex(grad_prev_last)
             g_id = eventIDs[1 + iG]
             g_id > 0 || continue
-            update_first_last!(grad_prev_last, iG, eventLibraries.grad_library[g_id], block_duration, eventLibraries, grad_durations, g_id)
+            grad = eventLibraries.grad_library[g_id]
+            next_grad_id = update_first_last!(grad, grad_prev_last, iG, eventIDs, block_duration, eventLibraries, next_grad_id)
         end
     end
 end
@@ -446,22 +447,6 @@ function decode_pulseq_libraries(eventLibraries)
     )
 end
 
-function update_first_last!(grad_prev_last, iG, ::PulseqTrapGradEvent, block_duration, event_libraries, grad_durations, g_id)
-    grad_prev_last[iG] = 0.0
-    return nothing
-end
-
-function update_first_last!(grad_prev_last, iG, g::PulseqArbGradEvent, block_duration, event_libraries, grad_durations, g_id)
-    grad_duration = get!(grad_durations, g_id) do
-        updated = update_first_last_grad(g, grad_prev_last[iG], event_libraries.shape_library)
-        event_libraries.grad_library[g_id] = updated
-        pulseq_event_duration(updated, event_libraries.shape_library, event_libraries.definitions.gradient_raster_time)
-    end
-    g = event_libraries.grad_library[g_id]
-    grad_prev_last[iG] = grad_duration + eps(Float64) < block_duration ? 0 : g.last
-    return nothing
-end
-
 update_first_last_grad(g::PulseqArbGradEvent, first, shape_library) = PulseqArbGradEvent(
     g.amplitude,
     first,
@@ -470,6 +455,23 @@ update_first_last_grad(g::PulseqArbGradEvent, first, shape_library) = PulseqArbG
     g.time_shape_id,
     g.delay,
 )
+
+function update_first_last!(::PulseqTrapGradEvent, grad_prev_last, iG, eventIDs, block_duration, event_libraries, next_grad_id)
+    grad_prev_last[iG] = 0.0
+    return next_grad_id
+end
+
+function update_first_last!(g::PulseqArbGradEvent, grad_prev_last, iG, eventIDs, block_duration, event_libraries, next_grad_id)
+    updated = update_first_last_grad(g, grad_prev_last[iG], event_libraries.shape_library)
+    if updated != g
+        next_grad_id += 1
+        event_libraries.grad_library[next_grad_id] = updated
+        eventIDs[1 + iG] = next_grad_id
+    end
+    duration = pulseq_event_duration(updated, event_libraries.shape_library, event_libraries.definitions.gradient_raster_time)
+    grad_prev_last[iG] = duration + eps(Float64) < block_duration ? 0 : updated.last
+    return next_grad_id
+end
 
 function pulseq_last_gradient_sample(first, g::PulseqArbGradEvent, shape_library)
     waveform = g.amplitude * decompress_shape(shape_library[g.amp_shape_id]...)

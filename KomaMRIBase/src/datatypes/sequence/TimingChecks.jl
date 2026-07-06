@@ -77,6 +77,26 @@ function _check_timing(gr::TimeShapedGrad, timing, block_id, name, block_duratio
     return nothing
 end
 
+const PULSEQ_GRADIENT_CONTINUITY_TOL = 1 / γ
+
+_check_gradient_continuity!(pending, next_pending, axis, ::TrapezoidalGrad, block_id, name, block_duration) = nothing
+
+function _check_gradient_continuity!(pending, next_pending, axis, gr::Union{UniformlySampledGrad,TimeShapedGrad}, block_id, name, block_duration)
+    if !iszero(gr.first)
+        iszero(gr.delay) || error("Block $block_id $name-gradient starts with a non-zero value but has non-zero delay.")
+        !iszero(pending[axis]) || error("Block $block_id $name-gradient starts with a non-zero value but the previous non-empty block did not end with a non-zero value.")
+        abs(pending[axis] - gr.first) <= PULSEQ_GRADIENT_CONTINUITY_TOL ||
+            error("Block $block_id $name-gradient starts at $(gr.first), which does not match the previous non-empty block end value $(pending[axis]).")
+        pending[axis] = zero(pending[axis])
+    end
+    if !iszero(gr.last)
+        abs(dur(gr) - block_duration) <= PULSEQ_TIME_TOL ||
+            error("Block $block_id $name-gradient ends with a non-zero value but does not run until the end of the block.")
+        next_pending[axis] = gr.last
+    end
+    return nothing
+end
+
 function _check_timing(rf::BlockPulseRF, timing, sys, block_id, block_duration)
     raster = timing.RadiofrequencyRasterTime
     _check_raster_multiple(delay(rf, sys), raster, block_id, "RF delay")
@@ -174,18 +194,27 @@ function check_timing(seq::Sequence, raster::NamedTuple)
 end
 
 function check_timing(seq::Sequence, raster::NamedTuple, sys::Scanner)
+    axis_names = ("x", "y", "z")
+    pending_gradient = zeros(size(seq.GR, 1))
     for i in eachindex(seq.DUR)
         _check_raster_multiple(seq.DUR[i], raster.BlockDurationRaster, i, "duration")
         rf = seq.RF[1, i]
         if is_RF_on(rf)
             _check_timing(rf, raster, sys, i, seq.DUR[i])
         end
-        axis_names = ("x", "y", "z")
+        next_pending_gradient = zeros(size(seq.GR, 1))
         for axis in axes(seq.GR, 1)
             gr = seq.GR[axis, i]
-            is_GR_on(gr) || continue
+            (is_GR_on(gr) || !iszero(gr.first) || !iszero(gr.last)) || continue
             name = axis <= length(axis_names) ? axis_names[axis] : string(axis)
             _check_timing(gr, raster, i, name, seq.DUR[i])
+            _check_gradient_continuity!(pending_gradient, next_pending_gradient, axis, gr, i, name, seq.DUR[i])
+        end
+        if !iszero(seq.DUR[i])
+            for axis in eachindex(pending_gradient)
+                iszero(pending_gradient[axis]) || error("Block $i some gradients in the previous non-empty block are ending at non-zero values but are not continued here.")
+            end
+            pending_gradient = next_pending_gradient
         end
         adc = seq.ADC[i]
         is_ADC_on(adc) && _check_timing(adc, raster, sys, i, seq.DUR[i])

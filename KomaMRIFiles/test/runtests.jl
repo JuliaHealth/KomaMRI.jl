@@ -455,7 +455,7 @@ end
             for (i, seq) in enumerate(round_trip_sequences())
                 algorithm = signature_algorithms[mod1(i, length(signature_algorithms))]
                 filename = joinpath(pth, "$(generated_prefix)$(seq.DEF["Name"]).seq")
-                data = KomaMRIFiles.write_seq_data(seq; check_timing=false, verbose=false)
+                data = KomaMRIFiles.write_seq_data(seq; check_timing=false, check_hw_limits=false, verbose=false)
                 qseq = exported_sequence(data)
                 write_seq(data, filename; signatureAlgorithm=algorithm, verbose=false)
                 seq2 = read_seq(filename; verbose=false)

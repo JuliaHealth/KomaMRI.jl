@@ -26,7 +26,7 @@ function radial_sequence(n=NTR)
     tr = Sequence(sys)
     @addblock tr += (rf, z=spoiler_gx) + (x=radial_gx, radial_adc) + (x=spoiler_gx)
     seq = Sequence(sys)
-    @addblocks for k in 0:n-1
+    @addblock for k in 0:n-1
         θ = π * k / n
         phase = isodd(k) ? -1 + 0im : 1 + 0im
         seq += phase * (rotz(θ) * tr)
@@ -38,7 +38,7 @@ function spiral_sequence(n=NTR)
     tr = Sequence(sys)
     @addblock tr += (rf, z=spoiler_gx) + (x=spiral_gx, y=spiral_gy, spiral_adc) + (x=spoiler_gx)
     seq = Sequence(sys)
-    @addblocks for k in 0:n-1
+    @addblock for k in 0:n-1
         θ = 2π * k / n
         phase = isodd(k) ? -1 + 0im : 1 + 0im
         seq += phase * (rotz(θ) * tr)

@@ -1,53 +1,10 @@
-"""Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
-struct BlochMagnusCPUPrealloc{T} <: PreallocResult{T}
-    M::Mag{T}                               # Mag{T}
-    Bxy_old::AbstractVector{Complex{T}}     # Vector{T}(Nspins x 1)
-    Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    Bxy_new::AbstractVector{Complex{T}}     # Vector{T}(Nspins x 1)
-    Bz_new::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    θxy::AbstractVector{Complex{T}}         # Vector{T}(Nspins x 1)
-    θz::AbstractVector{T}                   # Vector{T}(Nspins x 1)
-    ϕ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
-    Rot::Spinor{T}                          # Spinor{T}
-    ΔBz::AbstractVector{T}                  # Vector{T}(Nspins x 1)
-end
-
-Base.view(p::BlochMagnusCPUPrealloc, i::UnitRange) = begin
-    @views BlochMagnusCPUPrealloc(
-        p.M[i],
-        p.Bxy_old[i],
-        p.Bz_old[i],
-        p.Bxy_new[i],
-        p.Bz_new[i],
-        p.θxy[i],
-        p.θz[i],
-        p.ϕ[i],
-        p.Rot[i],
-        p.ΔBz[i]
-    )
-end
-
-"""Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::BlochMagnus, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
-    return BlochMagnusCPUPrealloc(
-        Mag(
-            similar(M.xy),
-            similar(M.z)
-        ),
-        zeros(Complex{T}, size(obj.x)),
-        zeros(T, size(obj.x)),
-        zeros(Complex{T}, size(obj.x)),
-        zeros(T, size(obj.x)),
-        zeros(Complex{T}, size(obj.x)),
-        zeros(T, size(obj.x)),
-        zeros(T, size(obj.x)),
-        Spinor(
-            similar(M.xy),
-            similar(M.xy)
-        ),
-        obj.Δw ./ T(2π .* γ)
-    )
-end
+include("prealloc/Common.jl")
+include("prealloc/MagnusConstPrealloc.jl")
+include("prealloc/MagnusLinPrealloc.jl")
+include("prealloc/MagnusMidPrealloc.jl")
+include("prealloc/MagnusQuadPrealloc.jl")
+include("prealloc/MagnusGLPrealloc.jl")
+include("prealloc/MagnusBGLPrealloc.jl")
 
 # Use Bloch implementation for precession
 function run_spin_precession!(
@@ -60,34 +17,50 @@ function run_spin_precession!(
     backend::KA.CPU,
     prealloc::BlochMagnusCPUPrealloc{T}
 ) where {T<:Real}
-    run_spin_precession!(p, seq, sig, M, Bloch(), groupsize, backend, prealloc)
+    Bz_0, Bz_1 = precession_buffers(prealloc)
+    ϕ = prealloc.rotation_norm
+    Mxy = prealloc.Maux_xy
+    ΔBz = prealloc.ΔBz
+
+    fill!(ϕ, zero(T))
+    block_time = zero(T)
+    sample = 1
+    x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[1])
+    @. Bz_0 = x * seq.Gx[1] + y * seq.Gy[1] + z * seq.Gz[1] + ΔBz
+    for i in eachindex(seq.Δt)
+        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        @. Bz_1 = x * seq.Gx[i + 1] + y * seq.Gy[i + 1] + z * seq.Gz[i + 1] + ΔBz
+        @. ϕ += (Bz_0 + Bz_1) * T(-π * γ) * seq.Δt[i]
+        block_time += seq.Δt[i]
+        if seq.ADC[i + 1]
+            @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
+            outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
+            sig[sample] = sum(Mxy)
+            sample += 1
+        end
+        Bz_0 .= Bz_1
+    end
+    @. M.xy = M.xy * exp(-block_time / p.T2) * cis(ϕ)
+    @. M.z = M.z * exp(-block_time / p.T1) + p.ρ * (T(1) - exp(-block_time / p.T1))
+    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
+    return nothing
 end
 
-# This part changes a bit more
 function run_spin_excitation!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
-    sim_method::BlochMagnus,
+    sim_method::BlochMagnusConst1,
     groupsize,
     backend::KA.CPU,
-    prealloc::BlochMagnusCPUPrealloc{T}
+    prealloc::BlochMagnusConstCPUPrealloc{T}
 ) where {T<:Real}
-    #Rename arrays, don't mind this part
     B_to_ω = T(-2π * γ)
-    ωxy_old = prealloc.Bxy_old; @. ωxy_old *= B_to_ω
-    ωz_old  = prealloc.Bz_old;  @. ωz_old  *= B_to_ω
-    ωxy_new = prealloc.Bxy_new
-    ωz_new  = prealloc.Bz_new
-    θxy = prealloc.θxy
-    θz  = prealloc.θz
-    θ = prealloc.ϕ
-    α = prealloc.Rot.α
-    β = prealloc.Rot.β
     ΔBz = prealloc.ΔBz
-    Maux_xy = prealloc.M.xy
-    Maux_z  = prealloc.M.z
+    (; ωxy_0, ωz_0, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
+    @. ωxy_0 *= B_to_ω
+    @. ωz_0  *= B_to_ω
     #Initialize
     sample = 1
     # Rotating frame -> RF frame
@@ -95,36 +68,35 @@ function run_spin_excitation!(
     if !iszero(ψ_start)
         @. M.xy = M.xy * cis(-ψ_start)
     end
+    x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[1])
+    @. ωxy_0 = seq.B1[1] * B_to_ω
+    @. ωz_0 = (seq.Gx[1] * x + seq.Gy[1] * y + seq.Gz[1] * z + ΔBz) * B_to_ω + seq.Δf[1] * T(2π)
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i + 1])
-        #Effective field
-        @. ωxy_new = seq.B1[i + 1] * B_to_ω
-        @. ωz_new  = (seq.Gx[i + 1] * x + seq.Gy[i + 1] * y + seq.Gz[i + 1] * z + ΔBz) * B_to_ω + seq.Δf[i + 1] * T(2π)
-        effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, seq.Δt[i], sim_method)
-        #Spinor Rotation
-        @. θ = sqrt(abs(θxy) ^ 2 + θz ^ 2)
-        @. θ += (θ == 0) * eps(T)
-        @. α = cos(θ / T(2)) - Complex{T}(im) * (θz / θ) * sin(θ / T(2))
-        @. β = -Complex{T}(im) * (θxy / θ) * sin(θ / T(2))
+        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        rotation_vector!(θxy, θz, ωxy_0, ωz_0, seq.Δt[i], sim_method)
+        set_rotation_spinor!(α, β, θxy, θz)
+        calc_mag_norm!(rotation_norm, M)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
+        restore_mag_norm!(rotation_norm, M) # For reduced float precision only.
         #Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
         @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=p.ρ)
+        outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            sig[sample] = sum(M.xy) 
+            sig[sample] = sum(M.xy)
             sample += 1
         end
         #Update simulation state
-        ωz_old  .= ωz_new
-        ωxy_old .= ωxy_new
+        @. ωxy_0 = seq.B1[i + 1] * B_to_ω
+        @. ωz_1  = (seq.Gx[i + 1] * x + seq.Gy[i + 1] * y + seq.Gz[i + 1] * z + ΔBz) * B_to_ω + seq.Δf[i + 1] * T(2π)
+        ωz_0 .= ωz_1
     end
-    @. prealloc.Bxy_old = ωxy_old / B_to_ω
-    @. prealloc.Bz_old  = ωz_old  / B_to_ω
+    @. prealloc.ωxy_0 = ωxy_0 / B_to_ω
+    @. prealloc.ωz_0  = ωz_0  / B_to_ω
     # RF frame -> Rotating frame
     ψ_end = seq.ψ[end]
     if !iszero(ψ_end)
@@ -133,25 +105,69 @@ function run_spin_excitation!(
     return nothing
 end
 
-function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, sim_method::BlochMagnus1)
-    # Ω1_constant
-    @. θxy = ωxy_old * Δt
-    @. θz  = ωz_old * Δt
+function run_spin_excitation!(
+    p::Phantom{T},
+    seq::DiscreteSequence{T},
+    sig::AbstractArray{Complex{T}},
+    M::Mag{T},
+    sim_method::Union{BlochMagnusLin2,BlochMagnusLinComm2},
+    groupsize,
+    backend::KA.CPU,
+    prealloc::BlochMagnusLinCPUPrealloc{T}
+) where {T<:Real}
+    B_to_ω = T(-2π * γ)
+    ΔBz = prealloc.ΔBz
+    (; ωxy_0, ωz_0, ωxy_1, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
+    @. ωxy_0 *= B_to_ω
+    @. ωz_0  *= B_to_ω
+    #Initialize
+    sample = 1
+    # Rotating frame -> RF frame
+    ψ_start = seq.ψ[1]
+    if !iszero(ψ_start)
+        @. M.xy = M.xy * cis(-ψ_start)
+    end
+    x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[1])
+    @. ωxy_0 = seq.B1[1] * B_to_ω
+    @. ωz_0 = (seq.Gx[1] * x + seq.Gy[1] * y + seq.Gz[1] * z + ΔBz) * B_to_ω + seq.Δf[1] * T(2π)
+    #Simulation
+    for i in eachindex(seq.Δt)
+        #Motion
+        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        #Effective field
+        @. ωxy_1 = seq.B1[i + 1] * B_to_ω
+        @. ωz_1  = (seq.Gx[i + 1] * x + seq.Gy[i + 1] * y + seq.Gz[i + 1] * z + ΔBz) * B_to_ω + seq.Δf[i + 1] * T(2π)
+        rotation_vector!(θxy, θz, ωxy_0, ωz_0, ωxy_1, ωz_1, seq.Δt[i], sim_method)
+        #Spinor Rotation
+        set_rotation_spinor!(α, β, θxy, θz)
+        calc_mag_norm!(rotation_norm, M)
+        mul!(Spinor(α, β), M, Maux_xy, Maux_z)
+        restore_mag_norm!(rotation_norm, M) # For reduced float precision only.
+        #Relaxation
+        @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
+        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
+        #Reset Spin-State (Magnetization). Only for FlowPath
+        outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
+        #Acquire signal
+        if seq.ADC[i + 1] # ADC at the end of the time step
+            sig[sample] = sum(M.xy)
+            sample += 1
+        end
+        #Update simulation state
+        ωz_0  .= ωz_1
+        ωxy_0 .= ωxy_1
+    end
+    @. prealloc.ωxy_0 = ωxy_0 / B_to_ω
+    @. prealloc.ωz_0  = ωz_0  / B_to_ω
+    # RF frame -> Rotating frame
+    ψ_end = seq.ψ[end]
+    if !iszero(ψ_end)
+        @. M.xy = M.xy * cis(ψ_end)
+    end
     return nothing
 end
 
-function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, sim_method::BlochMagnus2)
-    # Ω1_linear
-    @. θxy = (ωxy_old + ωxy_new) * (Δt / 2)
-    @. θz  = (ωz_old + ωz_new) * (Δt / 2)
-    return nothing
-end
-
-function effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, sim_method::BlochMagnus4)
-    # Ω1_linear
-    effective_rotation_vector!(θxy, θz, ωxy_old, ωz_old, ωxy_new, ωz_new, Δt, BlochMagnus2())
-    # Ω2_linear (this is the complex representation of Δt²/12 (ωₙ₊₁ × ωₙ))
-    @. θxy .-= im * (ωxy_new * ωz_old - ωxy_old * ωz_new) * (Δt ^ 2 / 12)
-    @. θz  .-= imag(conj(ωxy_old) * ωxy_new) * (Δt ^ 2 / 12)
-    return nothing
-end
+include("MagnusMidCPU.jl")
+include("MagnusQuadCPU.jl")
+include("MagnusGLCPU.jl")
+include("MagnusBGLCPU.jl")

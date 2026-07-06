@@ -44,6 +44,9 @@ function list_md_not_lit(input_folder, output_doc_section; exclude="------------
             if startswith(filename, lit_pattern) || startswith(filename, gen_pattern)
                 continue
             end
+            if isfile(joinpath(input_folder, "$(lit_pattern)$(splitext(filename)[1]).jl"))
+                continue
+            end
             if occursin(exclude, filename)
                 continue
             end
@@ -59,7 +62,8 @@ function literate_doc_folder(input_folder, output_doc_section; lit_pattern="lit-
     mkpath(public_dir)
     for (_, _, files) in walkdir(input_folder)
         for filename in filter(startswith(lit_pattern), files)
-            filename_gen = gen_pattern * splitext(filename)[1][(length(lit_pattern) + 1):end] # marks generated files
+            filename_src = splitext(filename)[1][(length(lit_pattern) + 1):end]
+            filename_gen = gen_pattern * filename_src # marks generated files
             tutorial_src = joinpath(input_folder, filename)
             tutorial_md  = "$output_doc_section/$filename_gen.md"
             Literate.markdown(

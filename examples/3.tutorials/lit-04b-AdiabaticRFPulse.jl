@@ -111,6 +111,7 @@ record_traj = Callback(
 )
 
 sim_params = KomaMRICore.default_sim_params()
+sim_params["gpu"] = false
 sim_params["return_type"] = "state"
 sim_params["max_rf_block_length"] = 1; # very inefficient; just for plots
 obj0 = Phantom(; x=[0.0], Δw=[0.0]);

@@ -250,69 +250,14 @@ _same_grad_timing(x::TimeShapedGrad, y::TimeShapedGrad) =
     _same_grad_timing_fields(x, y)
 _same_grad_timing(::Grad, ::Grad) = false
 
-_amplitude_roundoff_tol(A) = 1000 * eps(float(maximum(abs, A)))
-
-function _strictly_increasing_knots!(t)
-    for i in 2:length(t)
-        if t[i] <= t[i - 1]
-            gap = max(MIN_RISE_TIME, eps(t[i - 1]))
-            t[i] = t[i - 1] + gap
-        end
-    end
-    return t
-end
-
-function _sort_unique_knots!(t)
-    sort!(t)
-    isempty(t) && return t
-    tol = min(MIN_RISE_TIME / 10, 100 * eps(maximum(abs, t)))
-    i = 1
-    for j in 2:length(t)
-        if abs(t[j] - t[i]) > tol
-            i += 1
-            t[i] = t[j]
-        end
-    end
-    resize!(t, i)
-    return t
-end
-
-_sample_values_at(samples, t) =
-    isempty(samples.t) ? zeros(length(t)) : linear_interpolation(samples..., extrapolation_bc=0.0).(t)
-
-function _simplify_knots(t, A)
-    length(t) <= 3 && return t, A
-    keep = trues(length(t))
-    amplitude_tol = _amplitude_roundoff_tol(A)
-    for i in 2:(length(t) - 1)
-        Ai = A[i - 1] + (A[i + 1] - A[i - 1]) * ((t[i] - t[i - 1]) / (t[i + 1] - t[i - 1]))
-        keep[i] = !isapprox(A[i], Ai; rtol=0, atol=amplitude_tol)
-    end
-    count(keep) < 3 && (keep[end - 1] = true)
-    return t[keep], A[keep]
-end
-
-function _grad_from_knots(t, A)
-    if isempty(t) || all(iszero, A)
-        return Grad(zero(eltype(A)), 0.0)
-    end
-    t, A = _simplify_knots(t, A)
-    if length(t) >= 2
-        t[end - 1] = t[end] - t[end - 1] <= MIN_RISE_TIME ? t[end] : t[end - 1] + MIN_RISE_TIME
-    end
+function grad_from_samples(t, A)
+    (isempty(t) || all(iszero, A)) && return Grad(zero(eltype(A)), 0.0)
+    t, A = simplify_waveform_samples(t, A)
     length(t) < 3 && return Grad(A[1], t[end] - t[1], 0.0, 0.0, t[1], A[1], A[end])
-    if length(t) >= 4 && all(a -> isapprox(a, A[2]; rtol=0, atol=_amplitude_roundoff_tol(A)), A[2:(end - 1)])
+    if all(a -> isapprox(a, A[2]; rtol=0, atol=amplitude_roundoff_tol(A)), A[2:(end - 1)])
         return Grad(A[2], sum(diff(t[2:(end - 1)])), t[2] - t[1], t[end] - t[end - 1], t[1], A[1], A[end])
     end
-    return Grad(
-        A[2:(end - 1)],
-        diff(t[2:(end - 1)]),
-        t[2] - t[1],
-        t[end] - t[end - 1],
-        t[1],
-        A[1],
-        A[end],
-    )
+    return Grad(A[2:(end - 1)], diff(t[2:(end - 1)]), t[2] - t[1], t[end] - t[end - 1], t[1], A[1], A[end])
 end
 
 function +(x::Grad, y::Grad)
@@ -321,11 +266,11 @@ function +(x::Grad, y::Grad)
     if _same_grad_timing(x, y)
         return Grad(x.A .+ y.A, copy(x.T), x.rise, x.fall, x.delay, x.first + y.first, x.last + y.last)
     end
-    sx = _gradient_interpolation_samples(x)
-    sy = _gradient_interpolation_samples(y)
-    t = _sort_unique_knots!(vcat(sx.t, sy.t))
-    A = _sample_values_at(sx, t) .+ _sample_values_at(sy, t)
-    return _grad_from_knots(t, A)
+    sx = event_samples(x)
+    sy = event_samples(y)
+    t = merge_sampling_times(sx.t, sy.t)
+    A = linear_interpolate_samples(sx, t; default=0.0) .+ linear_interpolate_samples(sy, t; default=0.0)
+    return grad_from_samples(t, A)
 end
 # Others
 *(x::Grad, α::Real) = α * x

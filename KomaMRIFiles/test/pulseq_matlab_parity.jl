@@ -28,6 +28,7 @@ function run_pulseq_matlab_parity()
     )
     # Tiny-dwell RF edge cases use a low flip angle to stay inside the test scanner B1 limit.
     edge_rf_flip = 0.1u"deg"
+    edge_rf_raster_samples = [1, 2, 1, 2, 1, 2, 1, 2, 1, 2]
     cases = [
         "trap_area_short_triangle" =>
             PD.build_trapezoid(:x; area=2e-8u"T*s/m", sys),
@@ -83,28 +84,15 @@ function run_pulseq_matlab_parity()
             PD.build_arbitrary_rf([1, 2, 1], 45u"deg"; dwell=200u"μs", sys, use=Excitation()),
         "arbitrary_rf_custom" =>
             PD.build_arbitrary_rf([1, 1im, 1, -1im], 45u"deg"; dwell=100u"μs", center=150u"μs", freq_offset=77u"Hz", phase_offset=0.2u"rad", delay=20u"μs", sys, use=Excitation()),
-        "rf_time_shape_default_raster" =>
-            begin
-                rf_samples = [1, 2, 1]
-                rf0, _, _ = PD.make_arbitrary_rf(rf_samples, edge_rf_flip; dwell=sys.RF_Δt, sys, use=Excitation())
-                rf_delay = sys.RF_dead_time + sys.RF_Δt / 2
-                pulseq_block(
-                    RF(
-                        rf0.A, fill(sys.RF_Δt, length(rf_samples) - 1), rf0.Δf,
-                        rf_delay; center=sys.RF_Δt, ϕ=rf0.ϕ, use=Excitation(),
-                    ),
-                    sys,
-                )
-            end,
-        "rf_uniform_half_raster" =>
-            PD.build_arbitrary_rf([1, 2, 1], edge_rf_flip; dwell=sys.RF_Δt / 2, sys, use=Excitation()),
+        "rf_uniform_default_raster" =>
+            PD.build_arbitrary_rf(edge_rf_raster_samples, edge_rf_flip; sys, use=Excitation()),
         "rf_time_shape_start_offset" =>
             begin
                 rf_samples = [1, 2, 1]
                 rf0, _, _ = PD.make_arbitrary_rf(rf_samples, edge_rf_flip; dwell=sys.RF_Δt, sys, use=Excitation())
                 pulseq_delay = sys.RF_dead_time
                 time_shape_start = 2sys.RF_Δt
-                time_shape_intervals = [3sys.RF_Δt, 4sys.RF_Δt]
+                time_shape_intervals = [3sys.RF_Δt, 5sys.RF_Δt]
                 time_shape_center = time_shape_start + first(time_shape_intervals)
                 pulseq_block(
                     RF(
@@ -121,9 +109,9 @@ function run_pulseq_matlab_parity()
                 rf_samples = [1, 2, 1]
                 rf0, _, _ = PD.make_arbitrary_rf(rf_samples, edge_rf_flip; dwell=sys.RF_Δt, sys, use=Excitation())
                 pulseq_delay = sys.RF_dead_time
-                time_shape_start = sys.RF_Δt / 2
-                time_shape_intervals = [3sys.RF_Δt / 2, 5sys.RF_Δt]
-                time_shape_center = 2sys.RF_Δt
+                time_shape_start = sys.RF_Δt
+                time_shape_intervals = [2sys.RF_Δt, 7sys.RF_Δt]
+                time_shape_center = 3sys.RF_Δt
                 pulseq_block(
                     RF(
                         rf0.A, time_shape_intervals, rf0.Δf,
@@ -149,15 +137,15 @@ function run_pulseq_matlab_parity()
         "gauss_slice_overrides" =>
             PD.build_gauss_pulse(90u"deg"; duration=2u"ms", bandwidth=2u"kHz", slice_thickness=5u"mm", max_grad=30u"mT/m", max_slew=120u"T/m/s", sys, use=Excitation()),
         "adc_positional_dwell" =>
-            PD.build_adc(16, 2u"μs"; sys),
+            PD.build_adc(16, 1u"μs"; sys),
         "adc_dwell" =>
-            PD.build_adc(16; dwell=2u"μs", freq_offset=77u"Hz", phase_offset=0.2u"rad", sys),
+            PD.build_adc(16; dwell=1u"μs", freq_offset=77u"Hz", phase_offset=0.2u"rad", sys),
         "adc_duration" =>
-            PD.build_adc(16; duration=32u"μs", sys),
+            PD.build_adc(16; duration=16u"μs", sys),
         "adc_deadtime" =>
-            PD.build_adc(16; dwell=2u"μs", delay=4u"μs", sys),
-        "adc_one_sample" =>
-            PD.build_adc(1; duration=3u"μs", sys),
+            PD.build_adc(16; dwell=1u"μs", delay=4u"μs", sys),
+        "adc_four_samples" =>
+            PD.build_adc(4; duration=16u"μs", sys),
         "delay_zero" =>
             PD.build_delay(0u"s"; sys),
         "delay_positive" =>
@@ -191,17 +179,17 @@ function run_pulseq_matlab_parity()
         "digital_ext1" =>
             PD.build_digital_output_pulse(:ext1; duration=200u"μs", sys),
         "arbitrary_default" =>
-            PD.build_arbitrary_grad(:x, [0, 1, 0] .* u"mT/m"; sys),
+            PD.build_arbitrary_grad(:x, [0, 1, 0] .* u"mT/m"; first=0u"mT/m", last=0u"mT/m", sys),
         "arbitrary_first_last_delay" =>
-            PD.build_arbitrary_grad(:x, [0, 0.5, 1, 0.5, 0] .* u"mT/m"; first=-0.25u"mT/m", last=-0.25u"mT/m", delay=20u"μs", sys),
+            PD.build_arbitrary_grad(:x, [0, 0.5, 1, 0.5, 0] .* u"mT/m"; first=0u"mT/m", last=0u"mT/m", delay=20u"μs", sys),
         "arbitrary_oversampling" =>
-            PD.build_arbitrary_grad(:x, [0, 0.2, 0.4, 0.2, 0] .* u"mT/m"; oversampling=true, first=-0.2u"mT/m", last=-0.2u"mT/m", sys),
+            PD.build_arbitrary_grad(:x, [0, 0.2, 0.4, 0.2, 0] .* u"mT/m"; oversampling=true, first=0u"mT/m", last=0u"mT/m", sys),
         "extended_raster" =>
             PD.build_extended_trapezoid(:x, [0, 0.5, 1] .* u"ms", [0, 1, 0] .* u"mT/m"; sys),
         "extended_delay_zero_start" =>
             PD.build_extended_trapezoid(:x, [20, 500, 1000] .* u"μs", [0, 1, 0] .* u"mT/m"; sys),
-        "extended_skip_check" =>
-            PD.build_extended_trapezoid(:x, [20, 500, 1000] .* u"μs", [1, 2, 0] .* u"mT/m"; skip_check=true, sys),
+        "extended_delayed_zero_start" =>
+            PD.build_extended_trapezoid(:x, [20, 500, 1000] .* u"μs", [0, 2, 0] .* u"mT/m"; sys),
         "extended_convert2arbitrary" =>
             PD.build_extended_trapezoid(:x, [0, 0.355, 1] .* u"ms", [0, 1, 0] .* u"mT/m"; convert2arbitrary=true, sys),
         "extended_area_zero_edges" =>
@@ -213,7 +201,7 @@ function run_pulseq_matlab_parity()
                 seq
             end,
         "extended_area_negative" =>
-            PD.build_extended_trapezoid_area(:x, 0u"mT/m", 0u"mT/m", -5e-6u"T*s/m"; sys),
+            PD.build_extended_trapezoid_area(:x, 5u"mT/m", 0u"mT/m", -5e-6u"T*s/m"; sys),
     ]
     koma_seq = Sequence(sys)
     ranges = Pair{String,UnitRange{Int}}[]

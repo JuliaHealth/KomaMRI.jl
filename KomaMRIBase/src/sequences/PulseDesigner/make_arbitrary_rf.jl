@@ -74,10 +74,13 @@ function make_arbitrary_rf(signal, flip_angle; sys=Scanner(), slice_thickness=no
     duration = length(waveform) * dwell
     waveform = normalize_flip_angle(waveform, dwell, flip_angle) .|> complex
     rf_start_time = max(delay, sys.RF_dead_time)
-    rf_center_value = center === nothing || !isfinite(center) ? nothing :
-        clamp(center, 0, duration) - dwell / 2
+    pulseq_center = if center === nothing || !isfinite(center)
+        rf_peak_center(waveform, dwell)
+    else
+        clamp(center, 0, duration)
+    end
     rf = RF(waveform, (length(waveform) - 1) * dwell, freq_offset,
-        rf_start_time + dwell / 2; center=rf_center_value, ϕ=phase_offset, use)
+        rf_start_time + dwell / 2; center=pulseq_center - dwell / 2, ϕ=phase_offset, use)
     slice_thickness === nothing && return rf, nothing, nothing
     slice_thickness > 0 || error("Slice thickness must be positive.")
     if time_bw_product > 0

@@ -11,6 +11,7 @@
 - Reuse existing APIs before adding private wrappers.
 - Add docstrings only for public-facing functions.
 - Prefer domain names over implementation-mechanic names and explanatory comments. Add comments only when they add information.
+- Avoid magic numbers. Name domain constants and test fixtures when the value carries meaning.
 - Make semantic phases visible in code structure.
 - Be terse. Assume expert user.
 - Prefer commands/diffs over long explanations.
@@ -44,8 +45,8 @@
 - Prefer workspace setup: activate root or the child project and `Pkg.instantiate()`. Use explicit `Pkg.develop(path=...)` only to reproduce CI or older Julia 1.10 wiring.
 - Change dependencies/compat with Pkg APIs, not casual `Project.toml` edits.
 - Prefer command-line arguments for script options. Use environment variables only for actual environment/CI/backend semantics such as CPU/GPU/CUDA/Metal selection.
-- For performance work: profile first, benchmark with interpolation, then optimize the actual hotspot.
-- Never write raw `seq += ...` in examples or generated code; use `@addblock` or `@addblocks`.
+- For performance work: profile first, benchmark with `BenchmarkTools.@benchmark` and interpolated inputs, then optimize the actual hotspot. Never report one-off `@elapsed`/wall-clock timings as benchmark results. Warm the code first; for GPU benchmarks, synchronize the backend (for example `CUDA.synchronize()`, `Metal.synchronize()`) inside the measured function or immediately after the kernel work.
+- Never write raw `seq += ...` in examples or generated code; use `@addblock`.
 - Never call `build_*` only to extract events or duration and then rebuild the same block. Use `make_*` for custom blocks, copy a built block when preserving its block semantics, or append the built sequence/block directly.
 
 ## Python
@@ -54,6 +55,7 @@
 ## Testing
 - In the persistent Julia session, run tests from the correct project with `Pkg.test(...)`; use the narrowest package first.
 - Usual package tests: `Pkg.test("KomaMRIBase")`, `Pkg.test("KomaMRICore")`, `Pkg.test("KomaMRIFiles")`, `Pkg.test("KomaMRIPlots")`, root `Pkg.test()`.
+- For API, event-semantics, or compat changes, test downstream dependents before pushing; `KomaMRIBase` changes usually require `KomaMRICore`, `KomaMRIFiles`, `KomaMRIPlots`, and root/docs checks as relevant.
 - Root and `KomaMRIPlots` tests may need `xvfb-run` on headless Linux.
 - `KomaMRICore` backend tests use `test_args` (`CPU`, `CUDA`, `AMDGPU`, `Metal`, `oneAPI`) or test preferences; do not commit backend GPU deps to shared test projects.
 - Use `@testitem` tags: `:base`, `:files`, `:plots`, `:koma`, and for core `:core` plus exactly one of `:motion` or `:nomotion`.
@@ -70,6 +72,7 @@
 - The npm scripts in `docs/package.json` run VitePress on `docs/build/.documenter`, which is the generated VitePress source. Use `npm run docs:dev`, `npm run docs:build`, or `npm run docs:preview` only when intentionally using the VitePress workflow; do not treat `.documenter` as the final static site and do not serve `docs/build/1` through VitePress.
 - If VitePress components such as tabs are involved, verify the final `docs/build/1` page is interactive and the referenced `/assets/app.*.js` returns 200.
 - For Literate docs, hide implementation-only setup and plotting plumbing with `#hide`; show the result the reader should learn from. Avoid leaving a bare final variable such as `p` visible when it only exists to render a plot.
+- Do not add special cases to Literate docs generation for individual pages or filenames. Use the standard `lit-*` source and ignored `gen-*` generated outputs; do not preserve legacy URLs by changing generator behavior.
 - Prefer examples that generate their figures from source data/code. Keep complex plotting code hidden unless the plotting code itself is the lesson.
 - For interactive docs figures, prefer KomaMRI/KomaMRIPlots APIs and rendered interactive HTML. Do not replace them with static assets or low-level Plotly trace construction unless the user asks or there is no higher-level API.
 - Keep `DocumenterVitepress.deploydocs(...)` in `docs/make.jl`.
@@ -77,7 +80,8 @@
 
 ## PRs And Releases
 - PRs target `master`, stay scoped, and include what changed, why, and what was tested.
-- Add trigger labels at PR creation when the first CI run matters: `documentation`, `run-gpu-ci`, or `pre-release`. Adding them after PR creation is too late for the first run.
+- Add trigger labels at PR creation when the first CI run matters: `documentation` or `run-gpu-ci`. Adding them after PR creation is too late for the first run.
+- Do not use the `pre-release` label unless the user explicitly asks to test Julia pre-release versions.
 - Manual fallback release tags are annotated tags on current `origin/master`, not feature branches: `git fetch origin master --tags`, `git tag -a <tag> -F notes.md origin/master`, `git push origin <tag>`, `gh release create <tag> --title <tag> --notes-file notes.md`.
 - Register package versions only after the release PR is merged and `origin/master` contains the target package/version. Do not trigger JuliaRegistrator from an open PR.
 - For subpackage registration, comment on the merged `origin/master` commit, not the PR: `@JuliaRegistrator register subdir=<PackageName>`. PR comments do not trigger Registrator in this repo.

@@ -12,6 +12,22 @@ simulate_slice_profile
 default_sim_params
 ```
 
+## Simulation methods
+
+```@docs
+Bloch
+BlochMagnusConst1
+BlochMagnusLin2
+BlochMagnusMid2
+BlochMagnusLinComm2
+BlochMagnusQuad2
+BlochMagnusQuad4
+BlochMagnusGL2
+BlochMagnusGL4
+BlochMagnusBGL4
+BlochMagnusBGL6
+```
+
 ## GPU helper functions
 
 ```@docs
@@ -21,6 +37,7 @@ gpu
 cpu
 f32
 f64
+fbig
 ```
 
 ## Signal to `RawAquisitionData` (MRD)

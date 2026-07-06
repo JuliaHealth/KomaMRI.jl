@@ -9,6 +9,86 @@ using TestItems, TestItemRunner
         out.DEF["AddBlockTestOp"] = true
         return out
     end
+    struct MidpointSamplingRule <: SamplingRule end
+    KomaMRIBase.additional_sampling_times(::MidpointSamplingRule, event_times, context::BlockSamplingContext) =
+        (context.duration / 2,)
+
+    @testset "Max-step sampling avoids roundoff-sized intervals" begin
+        t = KomaMRIBase.merge_sampling_times([0.0], [KomaMRIBase.MIN_RISE_TIME])
+        @test t == [0.0, KomaMRIBase.MIN_RISE_TIME]
+
+        event_times = KomaMRIBase.merge_sampling_times((0.0, 1e-3), [3e-4 + eps(3e-4)])
+        added_step_times = Float64[]
+        KomaMRIBase.append_max_step_sampling_times!(added_step_times, event_times, [0.0, 1e-3], 1e-4)
+        step_times = KomaMRIBase.merge_sampling_times(event_times, unique!(sort!(added_step_times)))
+        @test !any(Δt -> 0 < Δt < KomaMRIBase.MIN_RISE_TIME / 10, diff(step_times))
+    end
+
+    @testset "Max-step sampling can interpolate dense gradients" begin
+        seq = Sequence()
+        @addblock seq += RF([1e-6, 1e-6], 1e-3) + Grad(t -> 1e-3 * sin(2π * t / 1e-3), 1e-3, 351)
+
+        dense = discretize(seq; sampling_rule=MaxStepSizeRule(Inf, 40e-6))
+        interpolated = discretize(seq; sampling_rule=MaxStepSizeRule(Inf, 40e-6; preserve_samples=()))
+
+        positive_dt(seqd) = seqd.Δt[seqd.Δt .> KomaMRIBase.MIN_RISE_TIME / 10]
+        avg_dt(dt) = sum(dt) / length(dt)
+        @test length(interpolated.t) < length(dense.t) / 5
+        @test avg_dt(positive_dt(interpolated)) > 5avg_dt(positive_dt(dense))
+    end
+
+    @testset "Sampling preserves selected native samples" begin
+        seq = Sequence()
+        @addblock seq += (
+            RF([1e-6, 2e-6, 4e-6, 8e-6], 1e-3),
+            x=Grad([0.0, 1e-3, 0.0, -1e-3, 0.0], 1e-3),
+        )
+
+        rf_native = 1e-3 / 3
+        gradient_native = 2.5e-4
+        has_time(seqd, t) = any(x -> isapprox(x, t; rtol=0, atol=1e-12), seqd.t)
+        sampled(preserve_samples) =
+            discretize(seq; sampling_rule=MaxStepSizeRule(Inf, Inf; preserve_samples))
+
+        none = sampled(())
+        @test !has_time(none, rf_native)
+        @test !has_time(none, gradient_native)
+
+        rf = sampled((:rf,))
+        @test has_time(rf, rf_native)
+        @test !has_time(rf, gradient_native)
+
+        gradients = sampled((:gradients,))
+        @test !has_time(gradients, rf_native)
+        @test has_time(gradients, gradient_native)
+
+        both = sampled((:rf, :gradients))
+        @test has_time(both, rf_native)
+        @test has_time(both, gradient_native)
+
+        z_only = Sequence()
+        addblock!(z_only; z=Grad(1e-3, 3e-3, 0.5e-3))
+        z_only_sampled = discretize(z_only; sampling_rule=MaxStepSizeRule(400e-6, Inf))
+        @test has_time(z_only_sampled, 0.5e-3)
+        @test has_time(z_only_sampled, 3.5e-3)
+    end
+
+    @testset "Sequence sampling avoids meaningless block-boundary samples" begin
+        delays = Sequence()
+        delays += Delay(1e-3)
+        delays += Delay(1e-3)
+        delay_seqd = discretize(delays; sampling_rule=MaxStepSizeRule(Inf, Inf))
+        @test delay_seqd.t ≈ [0.0, 2e-3]
+        @test delay_seqd.Δt ≈ [2e-3]
+
+        gradients = Sequence()
+        @addblock gradients += Grad(1e-3, 1e-3)
+        @addblock gradients += Grad(2e-3, 1e-3)
+        gradient_seqd = discretize(gradients; sampling_rule=MaxStepSizeRule(Inf, Inf))
+        @test gradient_seqd.t ≈ [0.0, 0.0, 1e-3, 1e-3, 1e-3, 2e-3, 2e-3]
+        @test gradient_seqd.Δt ≈ [0.0, 1e-3, 0.0, 0.0, 1e-3, 0.0]
+        @test gradient_seqd.Gx ≈ [0.0, 1e-3, 1e-3, 0.0, 2e-3, 2e-3, 0.0]
+    end
 
     @testset "Init" begin
         sys = Scanner()
@@ -262,7 +342,7 @@ using TestItems, TestItemRunner
         @addblock begin
             macroseq += (rf, z=g)
             macroseq += seq2()
-            counter += 1
+            counter = counter + 1
         end
         @test counter == 1
         @test length(macroseq) == 2
@@ -288,9 +368,7 @@ using TestItems, TestItemRunner
         mixedseq = Sequence()
         left_chunk = seq1()
         right_chunk = seq2()
-        @addblocks begin
-            mixedseq += left_chunk + (rf, x=g) + right_chunk
-        end
+        @addblock mixedseq += left_chunk + (rf, x=g) + right_chunk
         @test length(mixedseq) == 3
         @test mixedseq.GR[1,1].A ≈ left_chunk.GR[1,1].A
         @test mixedseq.RF[1,2].A ≈ rf.A
@@ -303,10 +381,8 @@ using TestItems, TestItemRunner
 
         spliced = Sequence()
         contents = (LabelSet(0, "LIN"), LabelInc(1, "ECO"))
-        @addblocks begin
-            spliced += (contents...)
-            spliced += (contents..., Delay(20e-3), x=g)
-        end
+        @addblock spliced += (contents...)
+        @addblock spliced += (contents..., Delay(20e-3), x=g)
         @test length(spliced) == 2
         @test spliced.EXT[1] == Extension[contents...]
         @test spliced.EXT[2] == Extension[contents...]
@@ -353,9 +429,9 @@ using TestItems, TestItemRunner
 
         bssp = Sequence()
         line = 0
-        @addblocks for _ in 1:3
+        @addblock for _ in 1:3
             bssp += (rf, z=g)
-            line += 1
+            line = line + 1
         end
         @test length(bssp) == 3
         @test line == 3
@@ -384,15 +460,15 @@ using TestItems, TestItemRunner
         @test length(hw_checked) == 1
 
         checked_loop = Sequence()
-        @addblocks check_timing=true check_hw_limits=true for _ in 1:2
+        @addblock check_timing=true check_hw_limits=true for _ in 1:2
             checked_loop += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
         end
         @test length(checked_loop) == 2
-        @addblocks checks for _ in 1:2
+        @addblock checks for _ in 1:2
             checked_loop += (RF(1e-6, block_raster), x=Grad(1e-3, block_raster))
         end
         @test length(checked_loop) == 4
-        @test_throws ErrorException @addblocks check_timing=true for _ in 1:1
+        @test_throws ErrorException @addblock check_timing=true for _ in 1:1
             checked_loop += RF(1e-6, off_raster_duration)
         end
         @test length(checked_loop) == 4
@@ -475,9 +551,8 @@ using TestItems, TestItemRunner
             end
 
             constant_sum = Grad(fill(1.0, 4), 1e-3) + Grad(2.0, 1e-3)
-            @test constant_sum isa KomaMRIBase.TrapezoidalGrad
-            @test constant_sum.A ≈ 3.0
-            @test length(ampls(constant_sum)) == 4
+            samples = KomaMRIBase.event_samples(constant_sum)
+            @test samples.A[2:(end - 1)] ≈ fill(3.0, length(samples.A) - 2)
         end
 
         @testset "Gradient addition matches sampled waveform for mixed timing" begin
@@ -505,6 +580,8 @@ using TestItems, TestItemRunner
         @test area(Grad([0.0, 1.0, 0.0], 2.0)) ≈ 1.0
         @test area(Grad([0.0, 1.0, 0.0], 2.0, 0.5, 0.5, 0.0, -0.5, -0.5)) ≈ 0.75
         @test area(Grad([0.0, 1.0, 0.0], [1.0, 1.0])) ≈ 1.0
+        @test area(Grad([1.0], 2.0)) ≈ 2.0
+        @test area(Grad([1.0], [2.0])) ≈ 2.0
         T1, T2, T3 = 1e-3, 2e-3, 3e-3
         vt = [Grad(A1,T1); Grad(A2,T2); Grad(A3,T3)]
         @test dur(vt) ≈ [maximum([T1, T2, T3])]
@@ -537,6 +614,11 @@ using TestItems, TestItemRunner
         # Just checking to ensure that show() doesn't get stuck and that it is covered
         show(IOBuffer(), "text/plain", r1)
         @test true
+        @test area(RF([1.0], 2.0)) ≈ 2.0
+        @test rf_center(RF([1.0], 2.0)) ≈ 1.0
+        @test KomaMRIBase.event_samples(RF(1.0, 2.0)) == (t=[0.0, 0.0, 2.0, 2.0], A=[0.0, 1.0, 1.0, 0.0])
+        @test KomaMRIBase.event_samples(RF([1.0], 2.0)) == (t=[0.0, 0.0, 2.0, 2.0], A=[0.0, 1.0, 1.0, 0.0])
+        @test KomaMRIBase.event_samples(RF([1.0], 2.0, [100.0]), :Δf) == (t=[0.0, 0.0, 2.0, 2.0], A=[0.0, 100.0, 100.0, 0.0])
 
         # Test Grad operations
         B1x, B1y, T = rand(3)
@@ -567,23 +649,47 @@ using TestItems, TestItemRunner
 
         # Constant frequency offset: ψ is centered so the RF center has zero frame phase.
         rf = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, 1000.0, 0.0; ϕ=0.3)
-        @test KomaMRIBase.rf_frame_phase(rf) ≈ [0, π, -π, 0]
+        @test KomaMRIBase.event_samples(rf, :ψ).A ≈ [π, π, -π, -π]
 
         # Frequency-modulated RF: ψ is generated from the integrated Δf waveform and centered.
         rf_fm = RF([1.0, 2.0, 1.0] .* 1e-6, 1e-3, [0.0, 1000.0, 0.0], 0.0)
-        ψ = KomaMRIBase.rf_frame_phase(rf_fm)
-        @test ψ[argmin(abs.(freq_times(rf_fm) .- (rf_fm.delay + rf_fm.center)))] ≈ 0
+        ψ = KomaMRIBase.event_samples(rf_fm, :ψ).A
+        @test ψ[argmin(abs.(times(rf_fm, :Δf) .- (rf_fm.delay + rf_fm.center)))] ≈ 0
 
         # Discretization carries ψ so simulators can handle split RF blocks independently.
         seq = Sequence()
         seq += rf
-        seqd = discretize(seq; sampling_params=Dict{String,Any}("Δt"=>1e-4, "Δt_rf"=>1e-4))
-        center_idx = findfirst(==(rf.delay + rf.center), seqd.t)
+        seqd = discretize(seq; sampling_rule=MaxStepSizeRule(1e-4, 1e-4))
+        center_value = KomaMRIBase.evaluate_sequence_at(seq, [rf.delay + rf.center])
         @test hasproperty(seqd, :ψ)
-        @test !isnothing(center_idx)
-        @test iszero(seqd.ψ[center_idx])
+        @test iszero(only(center_value.ψ))
         @test length(seqd.ψ) == length(seqd.t)
         @test !all(iszero, seqd.ψ)
+
+        rf_linear = Sequence()
+        @addblock rf_linear += RF(1.0e-6, 1.0, [-1.0, 1.0])
+        rf_linear_dense = Sequence()
+        @addblock rf_linear_dense += RF(fill(1.0e-6, 65), 1.0, collect(range(-1.0, 1.0; length=65)))
+        coarse = discretize(rf_linear; sampling_rule=MaxStepSizeRule(1.0, 1 / 4))
+        dense = discretize(rf_linear_dense; sampling_rule=MaxStepSizeRule(1.0, 1 / 4))
+        @test dense.t ≈ coarse.t
+        @test dense.Δf ≈ coarse.Δf
+        @test dense.ψ ≈ coarse.ψ
+        @test coarse.Δf ≈ [0, -1, -1 / 2, 0, 1 / 2, 1, 0]
+        @test coarse.ψ[2:(end - 1)] ≈ [-π / 2, -π / 8, 0, -π / 8, -π / 2]
+        @test coarse.ψ[[begin, end]] ≈ coarse.ψ[[begin + 1, end - 1]]
+
+        rf_fm = RF(fill(1.0e-6, 5), 1.0, [0.0, 1000.0, -500.0, 1500.0, 0.0])
+        seq = Sequence()
+        @addblock seq += rf_fm
+        query_t = [0.125, 0.375, 0.625, 0.875]
+        dense_t = sort(unique([times(rf_fm, :Δf); query_t]))
+        query_values = KomaMRIBase.evaluate_sequence_at(seq, query_t; freq_in_phase=true)
+        dense_values = KomaMRIBase.evaluate_sequence_at(seq, dense_t; freq_in_phase=true)
+        query_in_dense = searchsortedfirst.(Ref(dense_t), query_t)
+        @test query_values.B1 ≈ dense_values.B1[query_in_dense]
+        @test all(iszero, query_values.Δf)
+        @test all(iszero, query_values.ψ)
     end
 
     @testset "Delay" begin
@@ -665,10 +771,9 @@ using TestItems, TestItemRunner
         @test dur(block[1]) ≈ 5e-3
         @test block.EXT[1] == [LabelSet(1, "LIN")]
 
-        t_delay, Δt_delay = KomaMRIBase.get_variable_times(Sequence() + delay)
-        @test t_delay[2] ≈ 0.0
-        @test t_delay[end-1] ≈ delay.T
-        @test sum(Δt_delay) ≈ delay.T + 2KomaMRIBase.MIN_RISE_TIME
+        seqd_delay = KomaMRIBase.discretize(Sequence() + delay)
+        @test seqd_delay.t ≈ [0.0, delay.T]
+        @test sum(seqd_delay.Δt) ≈ delay.T
 
     end
     @testset "ADC" begin
@@ -773,9 +878,9 @@ using TestItems, TestItemRunner
 
     @testset "DiscreteSequence" begin
         seq = PulseDesigner.EPI_example()
-        sampling_params = KomaMRIBase.default_sampling_params()
-        t, Δt = KomaMRIBase.get_variable_times(seq; Δt=sampling_params["Δt"], Δt_rf=sampling_params["Δt_rf"])
-        seqd = KomaMRIBase.discretize(seq)
+        sampling_rule = MaxStepSizeRule(1e-3, 5e-5)
+        seqd = KomaMRIBase.discretize(seq; sampling_rule)
+        t, Δt = seqd.t, seqd.Δt
         i1, i2 = rand(1:Int(floor(0.5*length(seqd)))), rand(Int(ceil(0.5*length(seqd))):length(seqd))
         @test seqd[i1].t ≈ [t[i1]]
         @test seqd[i1:i2].t ≈ t[i1:i2]
@@ -788,11 +893,10 @@ using TestItems, TestItemRunner
             seq += Sequence([Grad(1.0e-3, 1.0)])
             seq += ADC(N, 1.0)
         end
-        sampling_params = KomaMRIBase.default_sampling_params()
-        sampling_params["Δt"], sampling_params["Δt_rf"] = T/N, T/N
-        seqd1 = KomaMRIBase.discretize(seq[1]; sampling_params)
-        seqd2 = KomaMRIBase.discretize(seq[2]; sampling_params)
-        seqd3 = KomaMRIBase.discretize(seq[3]; sampling_params)
+        sampling_rule = MaxStepSizeRule(T/N, T/N)
+        seqd1 = KomaMRIBase.discretize(seq[1]; sampling_rule)
+        seqd2 = KomaMRIBase.discretize(seq[2]; sampling_rule)
+        seqd3 = KomaMRIBase.discretize(seq[3]; sampling_rule)
         # Block 1
         @test is_RF_on(seq[1]) == is_RF_on(seqd1)
         @test is_GR_on(seq[1]) == is_GR_on(seqd1)
@@ -808,54 +912,16 @@ using TestItems, TestItemRunner
         @test KomaMRIBase.is_GR_off(seqd) ==  !KomaMRIBase.is_GR_on(seqd)
         @test KomaMRIBase.is_RF_off(seqd) ==  !KomaMRIBase.is_RF_on(seqd)
         @test KomaMRIBase.is_ADC_off(seqd) == !KomaMRIBase.is_ADC_on(seqd)
-    end
 
-    @testset "large-time MRI event time-step collapse" begin
-        T, offset = 1e-3, 200.0
-        B1, Gx = 10e-6, 1e-3
-        seq = Sequence()
-        seq += Delay(offset)
-        @addblock seq += RF(B1, T)
-        seqd = KomaMRIBase.discretize(seq)
-        area = KomaMRIBase.trapz(seqd.Δt, real.(seqd.B1))
-        @test area ≈ B1 * T
+        seqd = KomaMRIBase.discretize(seq[2]; sampling_rule=MidpointSamplingRule())
+        @test 0.5 in seqd.t
 
-        seq = Sequence()
-        seq += Delay(offset)
-        @addblock seq += Grad(Gx, T)
-        seqd = KomaMRIBase.discretize(seq)
-        area = KomaMRIBase.trapz(seqd.Δt, seqd.Gx)
-        @test area ≈ Gx * T
-
-        seq = Sequence()
-        seq += Delay(offset)
-        @addblock seq += ADC(2, T)
-        seqd = KomaMRIBase.discretize(seq)
-        @test all(diff(seqd.t) .> 0)
-    end
-
-    @testset "closing knot survives FP rebasing at large t0" begin
-        for t0 in (270.0, 1500.0), event in (RF(1e-5, 1e-3), Grad(1e-3, 1e-3))
-            ts = KomaMRIBase._reseparate_closing_knot!(t0 .+ KomaMRIBase.times(event))
-            @test ts[end-1] < ts[end]
-        end
-    end
-
-    @testset "get_samples and get_variable_times keep knots separated at large t0" begin
-        T, offset = 1e-3, 300.0
-        rf_seq = Sequence(); rf_seq += Delay(offset); @addblock rf_seq += RF(1e-5, T)
-        gr_seq = Sequence(); gr_seq += Delay(offset); @addblock gr_seq += Grad(1e-3, T)
-        ref_seq = Sequence(); ref_seq += Delay(0.5); @addblock ref_seq += Grad(1e-3, T)
-        rf_t = KomaMRIBase.get_samples(rf_seq).rf.t
-        @test rf_t[end-1] < rf_t[end]
-        @test all(diff(KomaMRIBase.get_samples(gr_seq).gx.t) .> 0)
-        @test length(KomaMRIBase.get_variable_times(gr_seq)[1]) ==
-              length(KomaMRIBase.get_variable_times(ref_seq)[1])
     end
 
      @testset "SequenceFunctions" begin
         seq = PulseDesigner.EPI_example()
-        t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
+        seqd = KomaMRIBase.discretize(seq; sampling_rule=MaxStepSizeRule(1, 5e-5))
+        t, Δt = seqd.t, seqd.Δt
         t_adc =  KomaMRIBase.get_adc_sampling_times(seq)
         M2, M2_adc = KomaMRIBase.get_slew_rate(seq)
         M2eddy, M2eddy_adc = KomaMRIBase.get_eddy_currents(seq)
@@ -1002,8 +1068,16 @@ using TestItems, TestItemRunner
     end
     @testset "Check Scanner Constraints" begin
         sys = Scanner()
-        seq = PulseDesigner.EPI_example(; sys)
+        seq = PulseDesigner.EPI(23e-2, 100, sys)
         @test isnothing(check_hw_limits(seq, sys))
+
+        even_adc = Sequence()
+        @addblock even_adc += ADC(4, 2e-6)
+        @test isnothing(check_hw_limits(even_adc))
+
+        odd_adc = Sequence()
+        @addblock odd_adc += ADC(3, 2e-6)
+        @test_throws ErrorException check_hw_limits(odd_adc)
     end
     @testset "Sequence timing and hardware metadata" begin
         seq = Sequence()
@@ -1106,6 +1180,38 @@ using TestItems, TestItemRunner
             @addblock trigger_too_long += Trigger(1, 1, 0.0, event_duration)
             trigger_too_long.DUR[1] = block_raster
             @test_throws ErrorException check_timing(trigger_too_long)
+        end
+
+        @testset "Pulseq shaped-gradient continuity checks" begin
+            gradient_raster = 10e-6
+            continuation_delay = 2gradient_raster
+            edge = 30e-3
+            g_end = Grad([0.0, edge], [gradient_raster], 0.0, 0.0, continuation_delay, 0.0, edge)
+            g_start = Grad([edge, 0.0], [gradient_raster], 0.0, 0.0, 0.0, edge, 0.0)
+
+            continued = Sequence()
+            @addblock continued += (x=g_end, Duration(continuation_delay + gradient_raster))
+            @addblock continued += (x=g_start, Duration(gradient_raster))
+            @test isnothing(check_timing(continued))
+
+            delayed_start = Sequence()
+            @addblock delayed_start += (x=Grad([edge, 0.0], [gradient_raster], 0.0, 0.0, gradient_raster, edge, 0.0), Duration(2gradient_raster))
+            @test_throws ErrorException check_timing(delayed_start)
+
+            mismatched_start = Sequence()
+            mismatched_edge = edge + 2 * KomaMRIBase.PULSEQ_GRADIENT_CONTINUITY_TOL
+            @addblock mismatched_start += (x=g_end, Duration(continuation_delay + gradient_raster))
+            @addblock mismatched_start += (x=Grad([mismatched_edge, 0.0], [gradient_raster], 0.0, 0.0, 0.0, mismatched_edge, 0.0), Duration(gradient_raster))
+            @test_throws ErrorException check_timing(mismatched_start)
+
+            not_continued = Sequence()
+            @addblock not_continued += (x=g_end, Duration(continuation_delay + gradient_raster))
+            @addblock not_continued += Duration(gradient_raster)
+            @test_throws ErrorException check_timing(not_continued)
+
+            nonzero_end_before_block_end = Sequence()
+            @addblock nonzero_end_before_block_end += (x=Grad([0.0, 0.0], [gradient_raster], 0.0, 0.0, 0.0, 0.0, edge), Duration(2gradient_raster))
+            @test_throws ErrorException check_timing(nonzero_end_before_block_end)
         end
 
         @testset "Pulseq checkTiming dead-time and ring-down checks" begin

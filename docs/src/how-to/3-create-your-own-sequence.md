@@ -1,9 +1,8 @@
 # Build Sequences with `@addblock`
 
-Use [`@addblock`](@ref) / [`@addblocks`](@ref) to write pulse programs in block
-form. One block contains events that play together: RF, ADC, and extensions are
-positional events, while gradients are assigned to axes with `x=`, `y=`, and
-`z=`.
+Use [`@addblock`](@ref) to write pulse programs in block form. One block
+contains events that play together: RF, ADC, and extensions are positional
+events, while gradients are assigned to axes with `x=`, `y=`, and `z=`.
 
 Direct [`addblock!`](@ref) appends one block, for example
 `addblock!(seq, rf; z=gz)`. The `@addblock` macro uses the same destination
@@ -228,15 +227,14 @@ checks = (; check_timing=true, check_hw_limits=true)
 
 ## Add Blocks in Loops
 
-Use `@addblocks` around loops that append to a sequence. Inside the macro,
-`seq += ...` appends in place.
+Use `@addblock` around loops to append in place.
 
 :::tabs
 
 == KomaMRI
 
 ```julia
-@addblocks for ky in 1:Ny
+@addblock for ky in 1:Ny
     seq += (rf, z=gz)
     seq += (x=gx, y=phase_blip(ky), adc)
 end
@@ -264,7 +262,7 @@ for ky in range(Ny):
 Do not use plain `seq += readout` in long loops. It calls Koma's `+`, which
 builds a new copied sequence from the old `seq` and `readout`. That append
 semantic is useful when you want a new independent sequence, but it scales
-poorly when repeated. Use `@addblocks` for in-place appends.
+poorly when repeated. Use `@addblock for ... end` for in-place appends.
 
 ## Sequence Building Blocks
 
@@ -315,14 +313,14 @@ add_line(seq, prephaser, readout)
 
 :::
 
-Append named sequences in loops with `@addblocks`:
+Append named sequences in loops with `@addblock`:
 
 :::tabs
 
 == KomaMRI
 
 ```julia
-@addblocks for ky in 1:Ny
+@addblock for ky in 1:Ny
     seq += rf_preparation + readout(ky)
 end
 ```
@@ -462,7 +460,7 @@ Pulseq rotates the events before passing them to `addBlock`.
 == KomaMRI
 
 ```julia
-@addblocks for spoke in 0:Nspokes-1
+@addblock for spoke in 0:Nspokes-1
     θ = π * spoke / Nspokes
     seq += (rf, z=gz) + rotz(θ) * (x=gx, adc)
 end
@@ -513,6 +511,6 @@ addblock!(seq, adc; x=gx)     # copies adc and gx into a new block, then appends
 
 :::
 
-`@addblocks` applies the same rewrite to `+=` expressions in its scope when the
-left-hand side is a `Sequence`. Plain `seq = seq + readout` instead constructs a
-new copied `Sequence`, so avoid it inside long loops.
+`@addblock` mutates sequence `+=` expressions in place. Plain
+`seq = seq + readout` instead constructs a new copied `Sequence`, so avoid it
+inside long loops.

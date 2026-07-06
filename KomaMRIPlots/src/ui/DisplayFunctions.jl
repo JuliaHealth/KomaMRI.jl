@@ -236,42 +236,30 @@ function plot_seq(
     usrf(x) = length(x) > max_rf_samples ? ([@view x[1]; @view x[2:(length(x)÷max_rf_samples):end-1]; @view x[end]]) : x
     usadc(x; ampl_edge=1.0) = show_adc || isempty(x) ? x : [ampl_edge * first(x); 1.0 * first(x); 1.0 * last(x); ampl_edge * last(x)]
     # Get the samples of the events in the sequence
-    seq_samples = (get_samples(seq, i; freq_in_phase) for i in 1:length(seq))
+    seq_samples = [get_samples(seq, i; freq_in_phase) for i in 1:length(seq)]
+    stack_samples(name; amp=identity, time=identity) = (
+        A=reduce(vcat, [amp(getproperty(block, name).A); Inf] for block in seq_samples),
+        t=reduce(vcat, [time(getproperty(block, name).t); Inf] for block in seq_samples),
+    )
     # Get block start times
     T0 = get_block_start_times(seq)
     # Get center times
-    center_times = reduce(vcat,[is_RF_on(b) ? [T0[i] + b.RF[1].delay + b.RF[1].center] : [] for (i,b) in enumerate(seq)])
-    gx = (
-        A=reduce(vcat, [block.gx.A; Inf] for block in seq_samples),
-        t=reduce(vcat, [block.gx.t; Inf] for block in seq_samples),
-    )
-    gy = (
-        A=reduce(vcat, [block.gy.A; Inf] for block in seq_samples),
-        t=reduce(vcat, [block.gy.t; Inf] for block in seq_samples),
-    )
-    gz = (
-        A=reduce(vcat, [block.gz.A; Inf] for block in seq_samples),
-        t=reduce(vcat, [block.gz.t; Inf] for block in seq_samples),
-    )
-    rf = (
-        A=reduce(vcat, [usrf(block.rf.A); Inf] for block in seq_samples),
-        t=reduce(vcat, [usrf(block.rf.t); Inf] for block in seq_samples),
+    center_times = similar(T0, 0)
+    for (i, b) in enumerate(seq)
+        is_RF_on(b) && push!(center_times, T0[i] + b.RF[1].delay + b.RF[1].center)
+    end
+    gx = stack_samples(:gx)
+    gy = stack_samples(:gy)
+    gz = stack_samples(:gz)
+    rf = (;
+        stack_samples(:rf; amp=usrf, time=usrf)...,
         ct=center_times,
         cA=abs.(KomaMRIBase.get_rfs(seq, center_times)[1]),
         cϕ=angle.(KomaMRIBase.get_rfs(seq, center_times)[1])
     )
-    Δf = (
-        A=reduce(vcat, [usrf(block.Δf.A); Inf] for block in seq_samples),
-        t=reduce(vcat, [usrf(block.Δf.t); Inf] for block in seq_samples),
-    )
-    ψ = show_rf_frame ? (
-        A=reduce(vcat, [usrf(block.ψ.A); Inf] for block in seq_samples),
-        t=reduce(vcat, [usrf(block.ψ.t); Inf] for block in seq_samples),
-    ) : nothing
-    adc = (
-        A=reduce(vcat, [usadc(block.adc.A; ampl_edge=0.0); Inf] for block in seq_samples),
-        t=reduce(vcat, [usadc(block.adc.t); Inf] for block in seq_samples),
-    )
+    Δf = stack_samples(:Δf; amp=usrf, time=usrf)
+    ψ = show_rf_frame ? stack_samples(:ψ; amp=usrf, time=usrf) : nothing
+    adc = stack_samples(:adc; amp=(x -> usadc(x; ampl_edge=0.0)), time=usadc)
 
     label = get_labels(seq)
     isadc = is_ADC_on.(seq)
@@ -300,7 +288,7 @@ function plot_seq(
         yaxis=yaxis,
         legendgroup="Gx",
         showlegend=showlegend,
-        marker=attr(; color="#636EFA"),
+        marker=attr(; color="#636EFA", size=8),
     )
     p[2] = scatter_fun(;
         x=gy.t * 1e3,
@@ -311,7 +299,7 @@ function plot_seq(
         yaxis=yaxis,
         legendgroup="Gy",
         showlegend=showlegend,
-        marker=attr(; color="#EF553B"),
+        marker=attr(; color="#EF553B", size=8),
     )
     p[3] = scatter_fun(;
         x=gz.t * 1e3,
@@ -322,7 +310,7 @@ function plot_seq(
         yaxis=yaxis,
         legendgroup="Gz",
         showlegend=showlegend,
-        marker=attr(; color="#00CC96"),
+        marker=attr(; color="#00CC96", size=8),
     )
 
     # For RFs
@@ -513,13 +501,12 @@ function plot_M0(
     title="",
 )
     #Times
-    t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
-    t = t[1:(end - 1)]
+    seqd = KomaMRIBase.discretize(seq; sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
+    t, ts = seqd.t[1:(end - 1)], seqd.t[2:end]
     T0 = get_block_start_times(seq)
     #M0
-    ts = t .+ Δt
     rf_idx, rf_types = KomaMRIBase.get_RF_types(seq, t)
-    k, _ = KomaMRIBase.get_kspace(seq; Δt=1)
+    k, _ = KomaMRIBase.get_kspace(seqd; rf_idx, rf_types)
     #plots M0
     p = [scatter() for j in 1:4]
     p[1] = scatter(;
@@ -601,13 +588,12 @@ function plot_M1(
     title="",
 )
     #Times
-    t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
-    t = t[1:(end - 1)]
+    seqd = KomaMRIBase.discretize(seq; sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
+    t, ts = seqd.t[1:(end - 1)], seqd.t[2:end]
     T0 = get_block_start_times(seq)
     #M1
-    ts = t .+ Δt
     rf_idx, rf_types = KomaMRIBase.get_RF_types(seq, t)
-    k, _ = KomaMRIBase.get_M1(seq; Δt=1)
+    k, _ = KomaMRIBase.get_M1(seqd; rf_idx, rf_types)
     #plots M1
     p = [scatter() for j in 1:4]
     p[1] = scatter(;
@@ -689,13 +675,12 @@ function plot_M2(
     title="",
 )
     #Times
-    t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
-    t = t[1:(end - 1)]
+    seqd = KomaMRIBase.discretize(seq; sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
+    t, ts = seqd.t[1:(end - 1)], seqd.t[2:end]
     T0 = get_block_start_times(seq)
     #M2
-    ts = t .+ Δt
     rf_idx, rf_types = KomaMRIBase.get_RF_types(seq, t)
-    k, _ = KomaMRIBase.get_M2(seq; Δt=1)
+    k, _ = KomaMRIBase.get_M2(seqd; rf_idx, rf_types)
     #Plor M2
     p = [scatter() for j in 1:4]
     p[1] = scatter(;
@@ -781,14 +766,14 @@ function plot_eddy_currents(
     title="",
 )
     #Times
-    t, Δt = KomaMRIBase.get_variable_times(seq + ADC(100, 100e-3); Δt=1)
-    t = t[2:end]
+    seqd = KomaMRIBase.discretize(seq + ADC(100, 100e-3); sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
+    t = seqd.t[2:end]
     T0 = get_block_start_times(seq)
-    Gx, Gy, Gz = KomaMRIBase.get_grads(seq, t)
+    Gx, Gy, Gz = seqd.Gx[2:end], seqd.Gy[2:end], seqd.Gz[2:end]
     #Eddy currents per lambda
     Gec = zeros(length(t), 3)
     for (i, l) in enumerate(λ)
-        aux, _ = KomaMRIBase.get_eddy_currents(seq + ADC(100, 100e-3); Δt=1, λ=l)
+        aux, _ = KomaMRIBase.get_eddy_currents(seqd; λ=l)
         Gec .+= α[i] .* aux
     end
     #Plot eddy currents
@@ -864,12 +849,11 @@ function plot_slew_rate(
     title="",
 )
     #Times
-    t, Δt = KomaMRIBase.get_variable_times(seq; Δt=1)
-    t = t[1:(end - 1)]
+    seqd = KomaMRIBase.discretize(seq; sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
+    ts = seqd.t[2:end]
     T0 = get_block_start_times(seq)
-    ts = t .+ Δt
     #Eddy currents per lambda
-    k, _ = KomaMRIBase.get_slew_rate(seq; Δt=1)
+    k, _ = KomaMRIBase.get_slew_rate(seqd)
     #Plot eddy currents
     p = [scatter() for j in 1:4]
     p[1] = scatter(;
@@ -1009,7 +993,7 @@ julia> plot_kspace(seq)
 function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false)
     bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
     #Calculations of theoretical k-space
-    kspace, kspace_adc = get_kspace(seq; Δt=1) #sim_params["Δt"])
+    kspace, kspace_adc = get_kspace(seq; sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
     t_adc = KomaMRIBase.get_adc_sampling_times(seq)
     #Colormap
     c_map = [[t, "hsv($(floor(Int,(1-t)*255)), 100, 50)"] for t in range(0, 1; length=10)] # range(s,b,N) only works in Julia 1.7.3
@@ -1669,8 +1653,15 @@ function plot_dict(dict::Dict)
     return html *= "</tbody></table>"
 end
 
+function plot_seqd_marker_symbols(seq, seqd, sampling_rule; freq_in_phase=false)
+    hasproperty(sampling_rule, :rule) || return fill(:circle, length(seqd.t))
+    boundary_seqd = KomaMRIBase.discretize(seq; sampling_rule=getproperty(sampling_rule, :rule), freq_in_phase)
+    boundary_t = Set(boundary_seqd.t)
+    return [t in boundary_t ? :circle : Symbol("line-ns") for t in seqd.t]
+end
+
 """
-    p = plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_params())
+    p = plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3, 5e-5))
 
 Plots a sampled sequence struct.
 
@@ -1678,9 +1669,9 @@ Plots a sampled sequence struct.
 - `seq`: (`::Sequence`) Sequence struct
 
 # Keywords
-- `sampling_params`: (`::Dict{String,Any}()`, `=KomaMRIBase.default_sampling_params()`) dictionary of
-    sampling parameters
+- `sampling_rule`: controls how the sequence sampling grid is refined
 - `show_rf_frame`: (`::Bool`, `=true`) plot RF rotating-frame phase
+- `freq_in_phase`: (`::Bool`, `=false`) fold RF frequency modulation into the complex RF waveform
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the sampled Sequence struct
@@ -1694,8 +1685,10 @@ julia> seq = read_seq(seq_file)
 julia> plot_seqd(seq)
 ```
 """
-function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_params(), show_rf_frame=true)
-    seqd = KomaMRIBase.discretize(seq; sampling_params)
+function plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3, 5e-5), show_rf_frame=true, freq_in_phase=false)
+    seqd = KomaMRIBase.discretize(seq; sampling_rule, freq_in_phase)
+    marker_symbol = plot_seqd_marker_symbols(seq, seqd, sampling_rule; freq_in_phase)
+    marker_line_width = [s == :circle ? 0 : 2 for s in marker_symbol]
     is_real_rf = all(x -> isapprox(imag(x), 0; atol=eps()), seqd.B1)
     B1 = is_real_rf ? real.(seqd.B1) : abs.(seqd.B1)
     B1_phase = is_real_rf ? zero.(real.(seqd.B1)) : angle.(seqd.B1)
@@ -1704,35 +1697,50 @@ function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_p
         y=seqd.Gx * 1e3,
         name="Gx",
         mode="markers+lines",
-        marker_symbol=:circle,
+        marker_symbol,
+        legendgroup="Gx",
+        marker=attr(; color="#636EFA", size=8, line=attr(; color="#636EFA", width=marker_line_width)),
+        line=attr(; color="#636EFA"),
     )
     Gy = scattergl(;
         x=seqd.t * 1e3,
         y=seqd.Gy * 1e3,
         name="Gy",
         mode="markers+lines",
-        marker_symbol=:circle,
+        marker_symbol,
+        legendgroup="Gy",
+        marker=attr(; color="#EF553B", size=8, line=attr(; color="#EF553B", width=marker_line_width)),
+        line=attr(; color="#EF553B"),
     )
     Gz = scattergl(;
         x=seqd.t * 1e3,
         y=seqd.Gz * 1e3,
         name="Gz",
         mode="markers+lines",
-        marker_symbol=:circle,
+        marker_symbol,
+        legendgroup="Gz",
+        marker=attr(; color="#00CC96", size=8, line=attr(; color="#00CC96", width=marker_line_width)),
+        line=attr(; color="#00CC96"),
     )
     B1_abs = scattergl(;
         x=seqd.t * 1e3,
         y=B1 * 1e6,
         name="|B1|_AM",
         mode="markers+lines",
-        marker_symbol=:circle,
+        marker_symbol,
+        legendgroup="|B1|_AM",
+        marker=attr(; color="#AB63FA", size=8, line=attr(; color="#AB63FA", width=marker_line_width)),
+        line=attr(; color="#AB63FA"),
     )
     B1_angle = scattergl(;
         x=seqd.t * 1e3,
         y=B1_phase,
         name="∠B1_AM",
         mode="markers+lines",
-        marker_symbol=:circle,
+        marker_symbol,
+        legendgroup="∠B1_AM",
+        marker=attr(; color="#FFA15A", size=8, line=attr(; color="#FFA15A", width=marker_line_width)),
+        line=attr(; color="#FFA15A"),
     )
     ADC = scattergl(;
         x=seqd.t[seqd.ADC] * 1e3,
@@ -1740,24 +1748,39 @@ function plot_seqd(seq::Sequence; sampling_params=KomaMRIBase.default_sampling_p
         name="ADC",
         mode="markers",
         marker_symbol=:x,
+        legendgroup="ADC",
+        marker=attr(; color="#19D3F3"),
     )
     B1_Δf = scattergl(;
         x=seqd.t * 1e3,
         y=seqd.Δf * 1e-3,
         name="Δf_FM",
         mode="markers+lines",
-        marker_symbol=:circle,
+        marker_symbol,
         visible="legendonly",
+        legendgroup="Δf_FM",
+        marker=attr(; color="#AB63FA", size=8, line=attr(; color="#AB63FA", width=marker_line_width)),
+        line=attr(; color="#AB63FA"),
     )
-    p = [Gx, Gy, Gz, B1_abs, B1_angle, ADC, B1_Δf]
+    excitation_bool = scattergl(;
+        x=seqd.t * 1e3,
+        y=Float64.([seqd.excitation_bool; false] .| [false; seqd.excitation_bool]),
+        name="excitation_bool",
+        mode="lines",
+        visible="legendonly",
+        legendgroup="excitation_bool",
+        line=attr(; color="#AB63FA", dash="dot"),
+    )
+    p = [Gx, Gy, Gz, B1_abs, B1_angle, ADC, B1_Δf, excitation_bool]
     if show_rf_frame
         push!(p, scattergl(;
             x=seqd.t * 1e3,
             y=seqd.ψ,
             name="ψ_FM",
             mode="markers+lines",
-            marker_symbol=:circle,
-            marker=attr(; color="#FF6692"),
+            marker_symbol,
+            legendgroup="ψ_FM",
+            marker=attr(; color="#FF6692", size=8, line=attr(; color="#FF6692", width=marker_line_width)),
             line=attr(; color="#FF6692"),
             visible="legendonly",
         ))

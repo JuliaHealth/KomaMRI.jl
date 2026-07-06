@@ -42,7 +42,7 @@ Previous simulation, the **Sequence** is discretized to consider specific time p
 For RF excitation with rapidly changing fields, the `BlochMagnus1()`,
 `BlochMagnus2()`, and `BlochMagnus4()` methods can improve accuracy at the same
 `Δt_rf`, or allow a larger `Δt_rf` for faster simulations. See
-[Magnus Bloch Methods](8-magnus-methods.md).
+[Magnus methods](gen-8-magnus-methods.md).
 
 ### Computation Efficiency
 

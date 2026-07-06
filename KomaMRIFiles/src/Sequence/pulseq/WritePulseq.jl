@@ -240,7 +240,7 @@ function pulseq_time_shape_id!(shape_library, cache, rf::RF, sys::Scanner)
         rounded_delay = round(pulseq_delay / rf_raster_time) * rf_raster_time
         isapprox(pulseq_delay, rounded_delay; rtol=0, atol=PULSEQ_TIME_TOL) && return policy.time_shape_id
     end
-    t = times(rf; separate_closing_knot=false)[2:(end - 1)] .- delay(rf, sys)
+    t = times(rf)[2:(end - 1)] .- delay(rf, sys)
     return _store_shape!(shape_library, cache, t ./ rf_raster_time)
 end
 
@@ -277,7 +277,7 @@ function register_grad_event!(grad_library, shape_library, cache, grad::Uniforml
     amp = pulseq_gradient_amplitude(grad.A)
     shape = iszero(amp) ? zero.(grad.A) : grad.A ./ amp
     shape_id = _store_shape!(shape_library, cache, shape)
-    time_id = pulseq_time_shape_id!(shape_library, cache, pulseq_sample_times(grad), Δt_gr)
+    time_id = pulseq_time_shape_id!(shape_library, cache, times(grad)[2:(end - 1)] .- grad.delay, Δt_gr)
     return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(amp, grad.first, grad.last, shape_id, time_id, grad.delay))
 end
 
@@ -287,15 +287,12 @@ function register_grad_event!(grad_library, shape_library, cache, grad::TimeShap
     amp = pulseq_gradient_amplitude(grad.A)
     shape = iszero(amp) ? zero.(grad.A) : grad.A ./ amp
     shape_id = _store_shape!(shape_library, cache, shape)
-    time_id = pulseq_time_shape_id!(shape_library, cache, pulseq_sample_times(grad), raster.GradientRasterTime)
+    time_id = pulseq_time_shape_id!(shape_library, cache, times(grad)[2:(end - 1)] .- grad.delay, raster.GradientRasterTime)
     return _store_grad_event!(grad_library, cache, PulseqArbGradEvent(amp, grad.first, grad.last, shape_id, time_id, grad.delay))
 end
 
 edge_timed_grad(grad::TrapezoidalGrad) =
     Grad([grad.first, grad.A, grad.A, grad.last], [grad.rise, grad.T, grad.fall], 0.0, 0.0, grad.delay, grad.first, grad.last)
-
-pulseq_sample_times(grad::Union{UniformlySampledGrad,TimeShapedGrad}) =
-    times(grad; separate_closing_knot=false)[2:(end - 1)] .- grad.delay
 
 function pulseq_constant_amplitude(A)
     amplitude = first(A)

@@ -75,9 +75,10 @@ mutable struct RF{AT,TT,ΔFT}
         rf = RF(A, T, Δf, delay, center, 0.0, use, Val(:preserve))
         Avalues = ampls(rf)
         isempty(Avalues) && return RF(A, T, Δf, delay, center, mod(ϕ, 2π), use, Val(:preserve))
-        t = times(rf; separate_closing_knot=false) .- rf.delay
-        Interpolations.deduplicate_knots!(t; move_knots=true)
-        value = linear_interpolation(t, Avalues, extrapolation_bc=Interpolations.Flat())(center)
+        Avalues = Avalues[2:(end - 1)]
+        t = times(rf)[2:(end - 1)] .- rf.delay
+        value = length(Avalues) == 1 ? only(Avalues) :
+            linear_interpolation(t, Avalues, extrapolation_bc=Interpolations.Flat())(center)
         ϕcenter = iszero(abs(value)) ? 0.0 : mod(angle(value), 2π)
         Arel = iszero(ϕcenter) ? A : A .* cis(-ϕcenter)
         return RF(Arel, T, Δf, delay, center, mod(ϕ + ϕcenter, 2π), use, Val(:preserve))
@@ -259,5 +260,5 @@ function rf_center(rf::RF)
     isempty(weights) && return 0.0
     total = sum(weights)
     iszero(total) && return 0.0
-    return sum(weights .* (times(rf; separate_closing_knot=false) .- rf.delay)) / total
+    return sum(weights .* (times(rf) .- rf.delay)) / total
 end

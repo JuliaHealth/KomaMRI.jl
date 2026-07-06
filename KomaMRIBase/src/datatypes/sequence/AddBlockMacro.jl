@@ -111,14 +111,13 @@ function _addblock_tuple_call(f, seq, term, prefix=())
     return Expr(:call, args...)
 end
 
-function _addblock_assignment(lhs, rhs, ctx)
-    lhs_value = gensym(:lhs)
+function _addblock_sequence_branch(lhs_value, rhs, ctx)
     seq_type = GlobalRef(@__MODULE__, :Sequence)
     if isnothing(ctx)
-        seq_branch = Expr(:block, (_addblock_call(lhs_value, term) for term in _addblock_terms(rhs))..., lhs_value)
+        return Expr(:block, (_addblock_call(lhs_value, term) for term in _addblock_terms(rhs))..., lhs_value)
     else
         incoming = gensym(:incoming)
-        seq_branch = Expr(:block,
+        return Expr(:block,
             Expr(:(=), incoming, Expr(:call, seq_type)),
             :($incoming.DEF = $(GlobalRef(Base, :deepcopy))($lhs_value.DEF)),
             (_addblock_call(incoming, term) for term in _addblock_terms(rhs))...,
@@ -127,24 +126,22 @@ function _addblock_assignment(lhs, rhs, ctx)
             lhs_value,
         )
     end
-    fallback = _has_addblock_tuple_kwargs(rhs) ?
-        Expr(:call, GlobalRef(Base, :error), "@addblock tuple keyword syntax requires a Sequence left-hand side.") :
-        :($lhs_value + $rhs)
-    return :($lhs = let $lhs_value = $lhs
-        if $lhs_value isa $seq_type
-            $seq_branch
-        else
-            $fallback
-        end
+end
+
+function _addblock_sequence_assignment(lhs, rhs, ctx)
+    lhs_value = gensym(:lhs)
+    seq_type = GlobalRef(@__MODULE__, :Sequence)
+    seq_branch = _addblock_sequence_branch(lhs_value, rhs, ctx)
+    return :(let $lhs_value = $lhs
+        $lhs_value isa $seq_type || $(Expr(:call, GlobalRef(Base, :error), "@addblock requires a Sequence left-hand side."))
+        $seq_branch
     end)
 end
 
-function _rewrite_addblock(ex, target, ctx)
+function _rewrite_addblock(ex, ctx)
     if ex isa Expr
-        if ex.head == :+= && (target === nothing || ex.args[1] == target)
-            return _addblock_assignment(ex.args[1], ex.args[2], ctx)
-        end
-        return Expr(ex.head, (_rewrite_addblock(arg, target, ctx) for arg in ex.args)...)
+        ex.head == :+= && return _addblock_sequence_assignment(ex.args[1], ex.args[2], ctx)
+        return Expr(ex.head, (_rewrite_addblock(arg, ctx) for arg in ex.args)...)
     end
     return ex
 end
@@ -170,16 +167,21 @@ function _split_addblock_args(args)
 end
 
 """
-    @addblock expr
+    @addblock seq += block
+    @addblock for ... end
+    @addblock begin ... end
     @addblock check_timing=true check_hw_limits=true expr
     @addblock checks expr
 
-Rewrite one block expression to append in place.
+Rewrite sequence `+=` expressions to append in place.
 
 # Examples
 ```julia
 seq = Sequence()
 @addblock seq += (rf, z=gz)
+@addblock for ky in 1:Ny
+    seq += readout(ky)
+end
 @addblock check_timing=true seq += (adc, x=gx)
 checks = (; check_timing=true, check_hw_limits=true, sys)
 @addblock checks seq += (rf, z=gz)
@@ -190,25 +192,7 @@ macro addblock(args...)
     if ex isa Expr && ex.head == :(=)
         error("@addblock does not create sequences. Use `seq = Sequence()` or `seq = Sequence(sys)`, then `@addblock seq += ...`.")
     end
-    return esc(_rewrite_addblock(ex, nothing, ctx))
-end
-
-"""
-    @addblocks expr
-    @addblocks check_timing=true check_hw_limits=true expr
-    @addblocks checks expr
-
-Rewrite block expressions inside a loop or `begin ... end` block.
-
-# Examples
-```julia
-@addblocks for ky in 1:Ny
-    seq += (rf, z=gz)
-    seq += readout(ky)
-end
-```
-"""
-macro addblocks(args...)
-    ctx, ex = _split_addblock_args(args)
-    return esc(_rewrite_addblock(ex, nothing, ctx))
+    ex isa Expr || error("@addblock expects `seq += block`, `for`, or `begin`.")
+    ex.head == :+= && return esc(_addblock_sequence_assignment(ex.args[1], ex.args[2], ctx))
+    return esc(_rewrite_addblock(ex, ctx))
 end

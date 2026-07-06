@@ -4,6 +4,22 @@ abstract type SpinStateRepresentation{T<:Real} end #get all available types by u
 #Defined methods:
 include("SimMethods/SimulationMethod.jl")  #Defines simulation methods
 
+max_step_sampling_rule(sim_params) =
+    MaxStepSizeRule(
+        sim_params["Δt"],
+        sim_params["Δt_rf"];
+        preserve_samples=get(sim_params, "preserve_samples", (:gradients,)),
+    )
+
+default_sampling_rule(::SimulationMethod, sim_params) = max_step_sampling_rule(sim_params)
+
+function simulation_sampling_rule(method::SimulationMethod, sim_params)
+    base_rule = get(sim_params, "sampling_rule") do
+        default_sampling_rule(method, sim_params)
+    end
+    return IntegrationNodeSamplingRule(method, base_rule)
+end
+
 """
     sim_params = default_sim_params(sim_params=Dict{String,Any}())
 
@@ -20,17 +36,20 @@ allowing the user to define some of them.
     * "sim_method": defines the type of simulation. The default value is `Bloch()`, but you
         can alternatively use the `BlochDict()` simulation method. Moreover, you have the
         flexibility to create your own methods without altering the KomaMRI source code
-    * "Δt": raster time for gradients
-    * "Δt_rf": raster time for RFs
+    * "sampling_rule": controls how sequence waveforms are sampled for simulation. When it is
+        not provided, `simulate` derives it from the current `sim_method`, `Δt`, and `Δt_rf`
+    * "preserve_samples": preserve native event samples as simulation times. Supported values are
+        `()`, `(:rf,)`, `(:gradients,)`, and `(:rf, :gradients)`. Defaults to `(:gradients,)`.
+    * "freq_in_phase": folds RF frequency modulation into the complex RF waveform before simulation
     * "precision": defines the floating-point simulation precision. You can choose between
-        `"f32"` and `"f64"` to use `Float32` and `Float64` primitive types, respectively.
-        It's important to note that, especially for GPU operations, using `"f32"` is
-        generally much faster
+        `"f32"`, `"f64"`, and `"bigfloat"` to use `Float32`, `Float64`, and `BigFloat`
+        primitive types, respectively. BigFloat is supported only on the CPU. It's important
+        to note that, especially for GPU operations, using `"f32"` is generally much faster
     * "max_block_length": divides the simulation into a specified number of time blocks,
         ensuring that the number of time steps per block does not exceed the `max_block_length` limit.
         This parameter is designed to conserve memory resources, as **KomaMRI** computes a series of
         simulations consecutively.
-    * "max_rf_block_length": ensures that the number of time steps per RF block does not exceed the `max_rf_block_length` limit.
+    * "max_rf_block_length": ensures that the number of RF simulation steps per block does not exceed the `max_rf_block_length` limit.
     * "Nthreads": divides the **Phantom** into a specified number of threads. Because spins
         are modeled independently of each other, **KomaMRI** can solve simulations in
         parallel threads, speeding up the execution time
@@ -39,12 +58,14 @@ allowing the user to define some of them.
     * "gpu_device": default value is 'nothing'. If set to integer or device instance, calls the
         corresponding function to set the device of the available GPU in the host computer 
         (e.g. CUDA.device!)
+    Legacy compatibility keys:
+    * "Δt": maximum time step for gradients
+    * "Δt_rf": maximum time step for RFs
 
 # Returns
 - `sim_params`: (`::Dict{String,Any}`) dictionary with simulation parameters
 """
 function default_sim_params(sim_params=Dict{String,Any}())
-    sampling_params = KomaMRIBase.default_sampling_params()
     get!(sim_params, "gpu", true)
     get!(sim_params, "gpu_device", nothing)
     get!(sim_params, "gpu_groupsize_precession", DEFAULT_PRECESSION_GROUPSIZE)
@@ -52,17 +73,32 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "Nthreads", Threads.nthreads())
     get!(sim_params, "max_block_length", 2DEFAULT_PRECESSION_GROUPSIZE)
     get!(sim_params, "max_rf_block_length", Inf)
-    get!(sim_params, "Δt", sampling_params["Δt"])
-    get!(sim_params, "Δt_rf", sampling_params["Δt_rf"])
+    get!(sim_params, "Δt", 1e-3)
+    get!(sim_params, "Δt_rf", 5e-5)
+    get!(sim_params, "preserve_samples", (:gradients,))
     get!(sim_params, "sim_method", Bloch())
+    get!(sim_params, "freq_in_phase", false)
     get!(sim_params, "precision", "f32")
     get!(sim_params, "return_type", "raw")
     return sim_params
 end
 
+simulation_precision_transform(::Val{:f32}) = f32
+simulation_precision_transform(::Val{:f64}) = f64
+simulation_precision_transform(::Val{:bigfloat}) = fbig
+
+function set_precision_fallback!(sim_params, backend, precision)
+    requested_precision = sim_params["precision"]
+    sim_params["precision"] = precision
+    @info """ Backend: '$(name(backend))' does not support $(requested_precision) precision
+    floating point operations. Automatically converting to $(precision).
+    (set sim_param["precision"] = "$(precision)" to avoid seeing this message).
+    """ maxlog=1
+end
+
 function run_spin_precession_parallel!(
     obj::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -84,7 +120,7 @@ end
 
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
-    seq::DiscreteSequence{T},
+    seq,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -131,7 +167,7 @@ take advantage of CPU parallel processing.
 """
 function run_sim_time_iter!(
     obj::Phantom,
-    seqd::DiscreteSequence,
+    seqd,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -192,67 +228,42 @@ function split_range(r, max_block_length)
     Ldt = length(r) - 1                     # number of intervals (dts)
     Ldt ≤ 0 && return UnitRange{Int}[]      # no intervals → nothing to split
     Ldt ≤ max_block_length && return UnitRange{Int}[r]
-    out = UnitRange{Int}[]
-    s = first(r)
-    rem_dts = Ldt
-    while rem_dts > 0
-        k = min(max_block_length, rem_dts)  # number of dts in this block
-        push!(out, s:(s + k))               # k dts -> k+1 points
-        s += k                              # overlap by 1 point (the boundary)
-        rem_dts -= k
-    end
-    return out
+    return [i:min(i + Int(max_block_length), last(r)) for i in first(r):Int(max_block_length):(last(r) - 1)]
 end
 
 """
 The function returns the ranges of the discrete sequence blocks along
-with a boolean vector indicating whether each block has RF. It also ensures that
-the length of each block does not exceed `max_block_length` by splitting longer blocks
-into smaller segments.
+with a boolean vector indicating whether each block is an excitation block.
+It also ensures that the length of each block does not exceed `max_block_length`
+by splitting longer blocks into smaller segments.
 """
-function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf)
-    ranges = UnitRange{Int}[]
-    ranges_bool = Bool[]
-    start_idx_rf_block = 0
-    start_idx_gr_block = 0
-    N = length(seqd.Δt)
-    #Iterate over B1 values to decide the simulation UnitRanges
-    for i in eachindex(seqd.Δt)
-        is_rf = sum(abs.(seqd.B1[i:i+1])) > 0.0
-        if is_rf
-            if start_idx_rf_block == 0 #End RF block
-                start_idx_rf_block = i
-            end
-            if start_idx_gr_block > 0 #End of GR block
-                split_ranges = split_range(start_idx_gr_block:i, max_block_length)
-                append!(ranges, split_ranges)
-                append!(ranges_bool, fill(false, length(split_ranges)))
-                start_idx_gr_block = 0
-            end
-        else
-            if start_idx_gr_block == 0 #Start GR block
-                start_idx_gr_block = i
-            end
-            if start_idx_rf_block > 0 #End of RF block
-                split_ranges = split_range(start_idx_rf_block:i, max_rf_block_length)
-                append!(ranges, split_ranges)
-                append!(ranges_bool, fill(true, length(split_ranges)))
-                start_idx_rf_block = 0
-            end
-        end
-    end
-    #Finishing the UnitRange's
-    if start_idx_rf_block > 0
-        split_ranges = split_range(start_idx_rf_block:N, max_rf_block_length)
+function split_range(r, max_block_length, eval_intervals_per_step)
+    Ldt = length(r) - 1
+    Ldt ≤ 0 && return UnitRange{Int}[]
+    !isfinite(max_block_length) && return UnitRange{Int}[r]
+    Ldt % eval_intervals_per_step == 0 ||
+        error("RF block has $Ldt evaluated intervals, not a multiple of $eval_intervals_per_step for this simulation method.")
+    sim_steps = Ldt ÷ eval_intervals_per_step
+    sim_steps ≤ max_block_length && return UnitRange{Int}[r]
+    block_steps = max(1, Int(max_block_length))
+    block_length = block_steps * eval_intervals_per_step
+    return [i:min(i + block_length, last(r)) for i in first(r):block_length:(last(r) - 1)]
+end
+
+function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf, eval_intervals_per_step=1)
+    ranges, ranges_bool = UnitRange{Int}[], Bool[]; isempty(seqd.Δt) && return ranges, ranges_bool
+
+    starts = [firstindex(seqd.Δt); findall(seqd.excitation_bool[2:end] .!= seqd.excitation_bool[1:(end - 1)]) .+ 1]
+    stops = [starts[2:end] .- 1; lastindex(seqd.Δt)]
+    for (start, stop) in zip(starts, stops)
+        is_excitation = seqd.excitation_bool[start]
+        max_length = is_excitation ? max_rf_block_length : max_block_length
+        eval_stride = is_excitation ? eval_intervals_per_step : 1
+        r = start:(stop + 1)
+        split_ranges = split_range(r, max_length, eval_stride)
         append!(ranges, split_ranges)
-        append!(ranges_bool, fill(true, length(split_ranges)))
+        append!(ranges_bool, fill(is_excitation, length(split_ranges)))
     end
-    if start_idx_gr_block > 0
-        split_ranges = split_range(start_idx_gr_block:N, max_block_length)
-        append!(ranges, split_ranges)
-        append!(ranges_bool, fill(false, length(split_ranges)))
-    end
-    #Output
     return ranges, ranges_bool
 end
 
@@ -320,47 +331,46 @@ function simulate(
 )
     _assert_nonnegative_adc_labels(seq)
     #Simulation parameter unpacking, and setting defaults if key is not defined
-    sim_params = default_sim_params(sim_params)
+    sim_params = default_sim_params(copy(sim_params))
+    sim_method = sim_params["sim_method"]
+    sampling_rule = simulation_sampling_rule(sim_method, sim_params)
     #Warn if user is trying to run on CPU without enabling multi-threading
     if (!sim_params["gpu"] && Threads.nthreads() == 1)
         @info """Simulation will be run on the CPU with only 1 thread. To enable multi-threading, start julia with --threads=auto
         """ maxlog=1
     end
     # Simulation init
-    seqd = discretize(seq; sampling_params=sim_params, motion=obj.motion) # Sampling of Sequence waveforms
-    parts, excitation_bool = get_sim_ranges(seqd; max_block_length=sim_params["max_block_length"], max_rf_block_length=sim_params["max_rf_block_length"]) # Generating simulation blocks
+    seqd = discretize(seq; sampling_rule, motion=obj.motion, freq_in_phase=sim_params["freq_in_phase"]) # Sampling of Sequence waveforms
+    parts, excitation_bool = get_sim_ranges(
+        seqd;
+        max_block_length=sim_params["max_block_length"],
+        max_rf_block_length=sim_params["max_rf_block_length"],
+        eval_intervals_per_step=eval_intervals_per_step(sim_method),
+    ) # Generating simulation blocks
     Nblocks = length(parts)
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
     # Spins' state init (Magnetization, EPG, etc.), could include modifications to obj (e.g. T2*)
-    Xt, obj = initialize_spins_state(obj, sim_params["sim_method"])
+    Xt, obj = initialize_spins_state(obj, sim_method)
     # Signal init
-    Ndims = sim_output_dim(obj, seq, sys, sim_params["sim_method"])
+    Ndims = sim_output_dim(obj, seq, sys, sim_method)
     backend = get_backend(sim_params["gpu"])
     sim_params["gpu"] &= backend isa KA.GPU
     if sim_params["gpu"]
         sim_params["Nthreads"] = 1
     end
     sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
-    if !KA.supports_float64(backend) && sim_params["precision"] == "f64"
-        sim_params["precision"] = "f32"
-        @info """ Backend: '$(name(backend))' does not support 64-bit precision 
-        floating point operations. Automatically converting to type Float32.
-        (set sim_param["precision"] = "f32" to avoid seeing this message).
-        """ maxlog=1
+    supports_float64 = KA.supports_float64(backend)
+    if sim_params["gpu"] && sim_params["precision"] == "bigfloat"
+        set_precision_fallback!(sim_params, backend, supports_float64 ? "f64" : "f32")
+    elseif !supports_float64 && sim_params["precision"] == "f64"
+        set_precision_fallback!(sim_params, backend, "f32")
     end
-    if sim_params["precision"] == "f64" && KA.supports_float64(backend)
-        obj  = obj |> f64 #Phantom
-        seqd = seqd |> f64 #DiscreteSequence
-        Xt   = Xt |> f64 #SpinStateRepresentation
-        sig  = sig |> f64 #Signal
-    else
-        #Precision  #Default
-        obj  = obj |> f32 #Phantom
-        seqd = seqd |> f32 #DiscreteSequence
-        Xt   = Xt |> f32 #SpinStateRepresentation
-        sig  = sig |> f32 #Signal
-    end
+    to_precision = simulation_precision_transform(Val(Symbol(sim_params["precision"])))
+    obj  = obj |> to_precision #Phantom
+    seqd = seqd |> to_precision #DiscreteSequence
+    Xt   = Xt |> to_precision #SpinStateRepresentation
+    sig  = sig |> to_precision #Signal
     # Objects to GPU
     if backend isa KA.GPU
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
@@ -407,6 +417,7 @@ function simulate(
         # Save info to raw data, sim_params + other useful info about the simulation
         sim_params_raw = copy(sim_params)
         sim_params_raw["sim_method"] = string(sim_params["sim_method"])
+        sim_params_raw["sampling_rule"] = string(sampling_rule)
         sim_params_raw["gpu_device"] = backend isa KA.GPU ? gpu_name : "nothing"
         sim_params_raw["t_sim_parts"] = t_sim_parts
         sim_params_raw["type_sim_parts"] = excitation_bool

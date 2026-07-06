@@ -70,7 +70,6 @@ SpinRange
 Sequence
 addblock!
 @addblock
-@addblocks
 dur
 get_block_start_times
 get_flip_angles
@@ -156,6 +155,13 @@ freq_times
 dwell
 delay
 rf_center
+```
+
+### Sampling rules
+
+```@docs
+MaxStepSizeRule
+additional_sampling_times
 ```
 
 ### Other functions

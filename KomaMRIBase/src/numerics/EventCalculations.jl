@@ -43,6 +43,19 @@ function rf_center(rf::TimeShapedRF, sys::Scanner)
     return rf_center(rf) + delay(rf) - delay(rf, sys)
 end
 
+function area(gr::TrapezoidalGrad)
+    is_on(gr) || return 0.0
+    return gr.A * gr.T +
+        (gr.first + gr.A) * gr.rise / 2 +
+        (gr.A + gr.last) * gr.fall / 2
+end
+
+function area(event::Union{Grad,RF})
+    A = ampls(event)
+    isempty(A) && return zero(eltype(A))
+    return trapz(diff(times(event)), A)
+end
+
 """
     dwell(event)
     dwell(event, sys)
@@ -50,6 +63,12 @@ end
 Return the event sample spacing. The sys-aware method is provided for API
 symmetry with `dur(event, sys)` and `delay(event, sys)`.
 """
+dwell(gr::UniformlySampledGrad) = length(gr.A) <= 1 ? sum(gr.T) : gr.T / (length(gr.A) - 1)
+dwell(gr::TimeShapedGrad) = gr.T
+dwell(rf::UniformlySampledRF) = length(rf.A) <= 1 ? sum(rf.T) : rf.T / (length(rf.A) - 1)
+dwell(rf::TimeShapedRF) = rf.T
+dwell(adc::ADC) = adc.N <= 1 ? adc.T : adc.T / (adc.N - 1)
+
 dwell(gr::Union{UniformlySampledGrad,TimeShapedGrad}, ::Scanner) = dwell(gr)
 dwell(rf::Union{UniformlySampledRF,TimeShapedRF}, ::Scanner) = dwell(rf)
 dwell(adc::ADC, ::Scanner) = dwell(adc)
