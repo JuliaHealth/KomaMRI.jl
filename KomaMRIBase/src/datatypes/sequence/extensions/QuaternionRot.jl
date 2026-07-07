@@ -13,9 +13,9 @@ struct QuaternionRot <: Extension
     qz::Float64
 end
 
-function QuaternionRot(R::AbstractMatrix)
+function QuaternionRot(R::AbstractMatrix{T}) where {T<:Real}
     size(R) == (3, 3) || throw(DimensionMismatch("Rotation matrix must be 3x3."))
-    R = copyto!(similar(R, typeof(float(one(eltype(R))))), R)
+    R = copyto!(similar(R, typeof(float(one(T)))), R)
     all(iszero, R) && throw(ArgumentError("Empty matrix provided in place of a rotation matrix."))
 
     qs = sqrt(max(0, R[1, 1] + R[2, 2] + R[3, 3] + 1)) / 2
