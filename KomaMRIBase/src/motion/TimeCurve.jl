@@ -51,13 +51,13 @@ julia> timecurve = TimeCurve(t=[0.0, 0.2, 0.4, 0.6], t_unit=[0.0, 1.0, 1.0, 0.0]
 ```
 ![Time Curve 4](../assets/time-curve-4.svg)
 """
-@with_kw struct TimeCurve
-    t::AbstractVector
-    t_unit::AbstractVector
-    periodic::Bool                              = false
-    periods::Union{Real, AbstractVector{<:Real}} = oneunit(eltype(t))
-    t_start::Real                               = t[1]
-    t_end::Real                                 = t[end]
+@with_kw struct TimeCurve{T<:Real}
+    t::AbstractVector{T}
+    t_unit::AbstractVector{T}
+    periodic::Bool                       = false
+    periods::Union{T,AbstractVector{T}} = oneunit(eltype(t))
+    t_start::T                           = t[1]
+    t_end::T                             = t[end]
     @assert check_unique(t) "Vector t=$(t) contains duplicate elements. Please ensure all elements in t are unique and try again"
 end
 
@@ -88,8 +88,8 @@ julia> timerange = TimeRange(t_start=0.6, t_end=1.4)
 ```
 ![Time Range](../assets/time-range.svg)
 """
-TimeRange(t_start::Real, t_end::Real) = TimeCurve(t=[t_start, t_end], t_unit=[zero(t_start), oneunit(t_start)])
-TimeRange(; t_start=0.0, t_end=1.0)   = TimeRange(t_start, t_end)
+TimeRange(t_start::T, t_end::T) where T = TimeCurve(t=[t_start, t_end], t_unit=[zero(T), oneunit(T)])
+TimeRange(; t_start=0.0, t_end=1.0)     = TimeRange(t_start, t_end)
 
 # Define our own Periodic function to avoid extending Periodic from Interpolations.jl (required since Julia 1.12)
 function Periodic end 
@@ -113,13 +113,13 @@ julia> periodic = Periodic(period=1.0, asymmetry=0.2)
 ```
 ![Periodic](../assets/periodic.svg)
 """
-function Periodic(period::Real, asymmetry::Real)
-    if asymmetry == oneunit(period)
-        return TimeCurve(t=[zero(period), period], t_unit=[zero(period), oneunit(period)], periodic=true)
-    elseif asymmetry == zero(period)
-        return TimeCurve(t=[zero(period), period], t_unit=[oneunit(period), zero(period)], periodic=true)
+function Periodic(period::T, asymmetry::T) where T 
+    if asymmetry == oneunit(T)
+        return TimeCurve(t=[zero(T), period], t_unit=[zero(T), oneunit(T)], periodic=true)
+    elseif asymmetry == zero(T)
+        return TimeCurve(t=[zero(T), period], t_unit=[oneunit(T), zero(T)], periodic=true)
     else
-        return TimeCurve(t=[zero(period), period*asymmetry, period], t_unit=[zero(period), oneunit(period), zero(period)], periodic=true)
+        return TimeCurve(t=[zero(T), period*asymmetry, period], t_unit=[zero(T), oneunit(T), zero(T)], periodic=true)
     end
 end
 Periodic(; period=1.0, asymmetry=0.5) = Periodic(period, asymmetry)

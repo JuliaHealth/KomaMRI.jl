@@ -29,14 +29,14 @@ julia> f = FlowPath(
        )
 ```
 """
-@with_kw struct FlowPath <: ArbitraryAction
-    dx::AbstractArray
-    dy::AbstractArray
-    dz::AbstractArray
+@with_kw struct FlowPath{T<:Real} <: ArbitraryAction{T}
+    dx::AbstractArray{T}
+    dy::AbstractArray{T}
+    dz::AbstractArray{T}
     spin_reset::AbstractArray{Bool}
 end
 
-FlowPath(dx::AbstractArray, dy::AbstractArray, dz::AbstractArray, spin_reset::BitMatrix) = FlowPath(dx, dy, dz, collect(spin_reset))
+FlowPath(dx::AbstractArray{T}, dy::AbstractArray{T}, dz::AbstractArray{T}, spin_reset::BitMatrix) where T<:Real = FlowPath(dx, dy, dz, collect(spin_reset))
 
 function add_reset_times!(t, a::FlowPath, t_start, t_end, periods)
     aux = t_start .+ (t_end - t_start)/(size(a.spin_reset)[2]-1) * (getindex.(findall(a.spin_reset .== 1), 2) .- 1)

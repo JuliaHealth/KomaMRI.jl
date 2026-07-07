@@ -33,8 +33,8 @@ julia>  motionlist = MotionList(
         )
 ```
 """
-struct MotionList
-    motions::Vector{<:Motion}
+struct MotionList{T<:Real}
+    motions::Vector{<:Motion{T}}
 end
 
 # NOTE: this constructor must be simplified once the Vector{<:Motion} approach is accomplished: 
@@ -52,10 +52,10 @@ end
 
 # NOTE: these vcat methods must be simplified once the Vector{<:Motion} approach is accomplished: 
 # https://github.com/JuliaHealth/KomaMRI.jl/issues/480
-""" Addition of MotionLists """
+""" Addition of MotionLists """ 
 # MotionList + MotionList
-function Base.vcat(m1::MotionList, m2::MotionList, Ns1, Ns2)
-    mv_aux = Motion[]
+function Base.vcat(m1::MotionList{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
+    mv_aux = Motion{T}[]
     for m in m1.motions
         m_aux = deepcopy(m)
         m_aux.spins = expand(m_aux.spins, Ns1)
@@ -70,8 +70,8 @@ function Base.vcat(m1::MotionList, m2::MotionList, Ns1, Ns2)
     return MotionList(mv_aux...)
 end
 # Motion + Motion
-function Base.vcat(m1::Motion, m2::Motion, Ns1, Ns2)
-    mv_aux = Motion[]
+function Base.vcat(m1::Motion{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real}
+    mv_aux = Motion{T}[]
     m_aux = deepcopy(m1)
     m_aux.spins = expand(m_aux.spins, Ns1)
     push!(mv_aux, m_aux)
@@ -82,9 +82,9 @@ function Base.vcat(m1::Motion, m2::Motion, Ns1, Ns2)
     return MotionList(mv_aux...)
 end
 # Motion + MotionList
-Base.vcat(m1::MotionList, m2::Motion, Ns1, Ns2) = vcat(m2, m1, Ns2, Ns1)
-function Base.vcat(m1::Motion, m2::MotionList, Ns1, Ns2)
-    mv_aux = Motion[]
+Base.vcat(m1::MotionList{T}, m2::Motion{T}, Ns1, Ns2) where {T<:Real} = vcat(m2, m1, Ns2, Ns1)
+function Base.vcat(m1::Motion{T}, m2::MotionList{T}, Ns1, Ns2) where {T<:Real}
+    mv_aux = Motion{T}[]
     m_aux = deepcopy(m1)
     m_aux.spins = expand(m_aux.spins, Ns1)
     push!(mv_aux, m_aux)
@@ -98,15 +98,15 @@ function Base.vcat(m1::Motion, m2::MotionList, Ns1, Ns2)
 end
 
 """ MotionList sub-group """
-function Base.getindex(mv::MotionList, p)
-    motion_array_aux = Motion[]
+function Base.getindex(mv::MotionList{T}, p) where {T<:Real}
+    motion_array_aux = Motion{T}[]
     for m in mv.motions
         m[p] isa NoMotion ? nothing : push!(motion_array_aux, m[p])
     end
     return MotionList(motion_array_aux...)
 end
-function Base.view(mv::MotionList, p)
-    motion_array_aux = Motion[]
+function Base.view(mv::MotionList{T}, p) where {T<:Real}
+    motion_array_aux = Motion{T}[]
     for m in mv.motions
         @view(m[p]) isa NoMotion ? nothing : push!(motion_array_aux, @view(m[p]))
     end
@@ -114,13 +114,13 @@ function Base.view(mv::MotionList, p)
 end
 
 """ Compare two MotionLists """
-function Base.:(==)(mv1::MotionList, mv2::MotionList)
+function Base.:(==)(mv1::MotionList{T}, mv2::MotionList{T}) where {T<:Real}
     if length(mv1) != length(mv2) return false end
     sort_motions!(mv1)
     sort_motions!(mv2)
     return reduce(&, mv1.motions .== mv2.motions)
 end
-function Base.:(≈)(mv1::MotionList, mv2::MotionList)
+function Base.:(≈)(mv1::MotionList{T}, mv2::MotionList{T}) where {T<:Real} 
     if length(mv1) != length(mv2) return false end
     sort_motions!(mv1)
     sort_motions!(mv2)
@@ -131,14 +131,14 @@ end
 Base.length(m::MotionList) = length(m.motions)
 
 function get_spin_coords(
-    ml::MotionList, x::AbstractVector, y::AbstractVector, z::AbstractVector, t
-)
+    ml::MotionList{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
+) where {T<:Real}
     # Sort motions
     sort_motions!(ml)
     # Buffers for positions:
     xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
     # Buffers for displacements:
-    ux, uy, uz = zero.(xt), zero.(yt), zero.(zt)
+    ux, uy, uz = xt .* zero(T), yt .* zero(T), zt .* zero(T)
     # Composable motions: they need to be run sequentially. Note that they depend on xt, yt, and zt
     for m in Iterators.filter(is_composable, ml.motions)
         t_unit = unit_time(t, m.time)
@@ -147,7 +147,7 @@ function get_spin_coords(
         displacement_y!(@view(uy[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         xt .+= ux; yt .+= uy; zt .+= uz
-        fill!(ux, 0); fill!(uy, 0); fill!(uz, 0)
+        ux .*= zero(T); uy .*= zero(T); uz .*= zero(T)
     end
     # Additive motions: these motions can be run in parallel
     for m in Iterators.filter(!is_composable, ml.motions)
@@ -157,7 +157,7 @@ function get_spin_coords(
         displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         xt .+= ux; yt .+= uy; zt .+= uz
-        fill!(ux, 0); fill!(uy, 0); fill!(uz, 0)
+        ux .*= zero(T); uy .*= zero(T); uz .*= zero(T)
     end
     return xt, yt, zt
 end
