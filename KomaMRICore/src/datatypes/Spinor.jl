@@ -159,7 +159,7 @@ Spinor rotation matrix. Counter-clockwise rotation of `φ` with respect to the a
 function Q(φ, nxy, nz)
     φ_half = φ ./ 2
     sin_φ_half = sin.(φ_half)
-    neg_im = complex.(zero.(φ), -Base.one.(φ))
+    neg_im = complex.(zero.(φ), -one.(φ))
     return Spinor(
         cos.(φ_half) .+ neg_im .* nz .* sin_φ_half,
         neg_im .* nxy .* sin_φ_half,
