@@ -17,10 +17,10 @@ circumferential, radial and longitudinal
 julia> h = HeartBeat(circumferential_strain=-0.3, radial_strain=-0.2, longitudinal_strain=0.0)
 ```
 """
-@with_kw struct HeartBeat <: SimpleAction
-    circumferential_strain :: Real
-    radial_strain          :: Real
-    longitudinal_strain    :: Real
+@with_kw struct HeartBeat{T<:Real} <: SimpleAction{T}
+    circumferential_strain :: T
+    radial_strain          :: T
+    longitudinal_strain    :: T
 end
 
 function displacement_x!(ux, action::HeartBeat, x, y, z, t)

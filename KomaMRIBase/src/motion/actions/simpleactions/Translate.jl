@@ -17,15 +17,15 @@ Its fields are the final displacements in the three axes (dx, dy, dz).
 julia> t = Translate(dx=0.01, dy=0.02, dz=0.03)
 ```
 """
-@with_kw struct Translate <: SimpleAction
-    dx :: Real
-    dy :: Real
-    dz :: Real
+@with_kw struct Translate{T<:Real} <: SimpleAction{T}
+    dx         :: T
+    dy         :: T
+    dz         :: T
 end
 
-TranslateX(dx::Real) = Translate(dx, zero(dx), zero(dx))
-TranslateY(dy::Real) = Translate(zero(dy), dy, zero(dy))
-TranslateZ(dz::Real) = Translate(zero(dz), zero(dz), dz)
+TranslateX(dx::T) where {T<:Real} = Translate(dx, zero(T), zero(T))
+TranslateY(dy::T) where {T<:Real} = Translate(zero(T), dy, zero(T))
+TranslateZ(dz::T) where {T<:Real} = Translate(zero(T), zero(T), dz)
 
 is_composable(m::Translate) = false
 

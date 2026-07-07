@@ -26,16 +26,25 @@ julia> motion =  Motion(
        )
 ```
 """
-@with_kw mutable struct Motion
-    action::AbstractAction
-    time  ::TimeCurve         = TimeRange(t_start=0.0, t_end=eps(Float64))
+@with_kw mutable struct Motion{T<:Real}
+    action::AbstractAction{T}
+    time  ::TimeCurve{T}      = TimeRange(t_start=zero(typeof(action).parameters[1]), t_end=eps(typeof(action).parameters[1]))
     spins ::AbstractSpinSpan  = AllSpins()
 end
 
 # Main constructors
-Motion(action) = Motion(action, TimeRange(t_start=0.0, t_end=eps(Float64)), AllSpins())
-Motion(action, time::TimeCurve)         = Motion(action, time, AllSpins())
-Motion(action, spins::AbstractSpinSpan) = Motion(action, TimeRange(t_start=0.0, t_end=eps(Float64)), spins)
+function Motion(action) 
+    T = first(typeof(action).parameters)
+    return Motion(action, TimeRange(t_start=zero(T), t_end=eps(T)), AllSpins())
+end
+function Motion(action, time::TimeCurve)
+    T = first(typeof(action).parameters)
+    return Motion(action, time, AllSpins())
+end
+function Motion(action, spins::AbstractSpinSpan)
+    T = first(typeof(action).parameters)
+    return Motion(action, TimeRange(t_start=zero(T), t_end=eps(T)), spins)
+end
 
 # Custom constructors
 """
@@ -196,8 +205,8 @@ For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `
 - `x, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
 """
 function get_spin_coords(
-    m::Motion, x::AbstractVector, y::AbstractVector, z::AbstractVector, t
-)
+    m::Motion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
+) where {T<:Real}
     ux, uy, uz = x .* (0*t), y .* (0*t), z .* (0*t) # Buffers for displacements
     t_unit = unit_time(t, m.time)
     idx = get_indexing_range(m.spins)
