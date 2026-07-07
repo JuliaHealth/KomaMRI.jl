@@ -913,6 +913,23 @@ using TestItems, TestItemRunner
         @test KomaMRIBase.is_RF_off(seqd) ==  !KomaMRIBase.is_RF_on(seqd)
         @test KomaMRIBase.is_ADC_off(seqd) == !KomaMRIBase.is_ADC_on(seqd)
 
+        plain = zeros(Float64, 4)
+        gx = view(plain, :)
+        seqd_mixed = DiscreteSequence(
+            gx,
+            plain,
+            copy(plain),
+            complex.(plain),
+            copy(plain),
+            copy(plain),
+            falses(4),
+            falses(3),
+            copy(plain),
+            zeros(Float64, 3),
+        )
+        @test fieldtype(typeof(seqd_mixed), :Gx) === typeof(gx)
+        @test fieldtype(typeof(seqd_mixed), :Gy) === typeof(plain)
+
         seqd = KomaMRIBase.discretize(seq[2]; sampling_rule=MidpointSamplingRule())
         @test 0.5 in seqd.t
 
