@@ -658,7 +658,7 @@ end
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
-@testitem "BlochSimple CPU finite-difference AD baseline" tags=[:core, :nomotion, :blochsimple, :ad] begin
+@testitem "Automatic differentiation tests / BlochSimple CPU finite-difference AD baseline" tags=[:core, :nomotion, :blochsimple, :ad] begin
     include(joinpath(@__DIR__, "test_files", "ad_utils.jl"))
 
     rf0 = BLOCHSIMPLE_AD_RF0
@@ -676,7 +676,7 @@ end
     @test sum(fd_grad .* direction) ≈ directional_fd rtol=1e-3 atol=1e-7
 end
 
-@testitem "BlochSimple CPU Enzyme AD probe" tags=[:core, :nomotion, :blochsimple, :ad, :enzyme, :skipci] begin
+@testitem "Automatic differentiation tests / BlochSimple CPU Enzyme AD probe" tags=[:core, :nomotion, :blochsimple, :ad, :enzyme, :skipci] begin
     include(joinpath(@__DIR__, "test_files", "ad_utils.jl"))
     using Enzyme: ReverseWithPrimal, gradient
 
@@ -690,7 +690,7 @@ end
     )
 end
 
-@testitem "BlochSimple CPU Reactant Enzyme AD probe" tags=[:core, :nomotion, :blochsimple, :ad, :reactant, :enzyme, :skipci] begin
+@testitem "Automatic differentiation tests / BlochSimple CPU Reactant Enzyme AD probe" tags=[:core, :nomotion, :blochsimple, :ad, :reactant, :enzyme, :skipci] begin
     include(joinpath(@__DIR__, "test_files", "ad_utils.jl"))
     using Enzyme: ReverseWithPrimal, gradient
     using Reactant
@@ -710,7 +710,7 @@ end
     end
 end
 
-@testitem "BlochSimple CPU Mooncake AD probe" tags=[:core, :nomotion, :blochsimple, :ad, :mooncake, :skipci] begin
+@testitem "Automatic differentiation tests / BlochSimple CPU Mooncake AD probe" tags=[:core, :nomotion, :blochsimple, :ad, :mooncake, :skipci] begin
     include(joinpath(@__DIR__, "test_files", "ad_utils.jl"))
     using DifferentiationInterface: AutoMooncake, gradient, prepare_gradient
     import Mooncake
@@ -723,7 +723,7 @@ end
     end
 end
 
-@testitem "Spinor rotation kernel Reactant Enzyme" tags=[:core, :nomotion, :ad, :reactant, :skipci] begin
+@testitem "Automatic differentiation tests / Spinor rotation kernel Reactant Enzyme" tags=[:core, :nomotion, :ad, :reactant, :skipci] begin
     using Enzyme: Const, ReverseWithPrimal, gradient, set_runtime_activity
     using Reactant
 
