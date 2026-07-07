@@ -161,8 +161,8 @@ function Q(φ, nxy, nz)
     sin_φ_half = sin.(φ_half)
     neg_im = complex.(zero.(φ), -one.(φ))
     return Spinor(
-        cos.(φ_half) .+ neg_im .* nz .* sin_φ_half,
-        neg_im .* nxy .* sin_φ_half,
+        (@. cos(φ_half) + neg_im * nz * sin_φ_half),
+        (@. neg_im * nxy * sin_φ_half),
     )
 end
 
