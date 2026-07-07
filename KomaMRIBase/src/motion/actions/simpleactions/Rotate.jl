@@ -64,16 +64,16 @@ julia> r = Rotate(pitch=0.0, roll=45.0, yaw=0.0, center=(5e-3,0.0,0.0))
 # Rotates around a point 5 mm to the right of the center of mass
 ```
 """
-@with_kw struct Rotate <: SimpleAction
-    pitch  :: Real
-    roll   :: Real
-    yaw    :: Real
-    center :: Union{CenterOfMass, NTuple{3, <:Real}} = CenterOfMass()
+@with_kw struct Rotate{T<:Real} <: SimpleAction{T}
+    pitch      :: T
+    roll       :: T
+    yaw        :: T
+    center     :: Union{CenterOfMass,NTuple{3,T}} = CenterOfMass()
 end
 
-RotateX(pitch::Real) = Rotate(pitch=pitch,        roll=zero(pitch), yaw=zero(pitch))
-RotateY(roll::Real)  = Rotate(pitch=zero(roll),   roll=roll,        yaw=zero(roll))
-RotateZ(yaw::Real)   = Rotate(pitch=zero(yaw),    roll=zero(yaw),   yaw=yaw)
+RotateX(pitch::T) where {T<:Real} = Rotate(pitch=pitch,   roll=zero(T), yaw=zero(T))
+RotateY(roll::T)  where {T<:Real} = Rotate(pitch=zero(T), roll=roll,    yaw=zero(T))
+RotateZ(yaw::T)   where {T<:Real} = Rotate(pitch=zero(T), roll=zero(T), yaw=yaw)
 
 get_center(center::CenterOfMass, x, y, z) = (sum(x) / length(x), sum(y) / length(y), sum(z) / length(z))
 get_center(center::NTuple, x, y, z)       = center

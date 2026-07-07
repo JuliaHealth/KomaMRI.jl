@@ -21,8 +21,8 @@ Base.view(mv::NoMotion, p)     = mv
 Base.vcat(m1::NoMotion,   m2::NoMotion, Ns1, Ns2) = m1
 # NoMotion + MotionList
 Base.vcat(m1::MotionList, m2::NoMotion, Ns1, Ns2) = vcat(m2, m1, 0, Ns1)
-function Base.vcat(m1::NoMotion, m2::MotionList, Ns1, Ns2)
-    mv_aux = Motion[]
+function Base.vcat(m1::NoMotion, m2::MotionList{T}, Ns1, Ns2) where {T}
+    mv_aux = Motion{T}[]
     for m in m2.motions
         m_aux = deepcopy(m)
         m_aux.spins = expand(m_aux.spins, Ns2)
@@ -33,7 +33,7 @@ function Base.vcat(m1::NoMotion, m2::MotionList, Ns1, Ns2)
 end
 # NoMotion + Motion
 Base.vcat(m1::Motion, m2::NoMotion, Ns1, Ns2) = vcat(m2, m1, 0, Ns1)
-function Base.vcat(m1::NoMotion, m2::Motion, Ns1, Ns2)
+function Base.vcat(m1::NoMotion, m2::Motion{T}, Ns1, Ns2) where {T}
     m_aux = deepcopy(m2)
     m_aux.spins = expand(m_aux.spins, Ns2)
     m_aux.spins = SpinRange(m_aux.spins.range .+ Ns1)
@@ -44,5 +44,9 @@ end
 Base.:(==)(m1::NoMotion, m2::NoMotion) = true
 Base.:(≈)(m1::NoMotion, m2::NoMotion)   = true
 
-get_spin_coords(::NoMotion, x::AbstractVector, y::AbstractVector, z::AbstractVector, t) = (x, y, z)
+function get_spin_coords(
+    mv::NoMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
+) where {T<:Real}
+    return x, y, z
+end
 add_key_time_points!(t, ::NoMotion) = nothing
