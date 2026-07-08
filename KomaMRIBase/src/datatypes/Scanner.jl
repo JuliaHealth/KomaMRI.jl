@@ -40,17 +40,17 @@ struct UniformTransmit{T} <: RFCoilsTx{T} end
 abstract type RFCoilsRx{T} end
 struct UniformCoilSens{T} <: RFCoilsRx{T} end
 
-Base.@kwdef struct TheoreticalCoilSensitivities{T} <: RFCoilsRx{T}
+Base.@kwdef struct BirdcageCoilSens{T} <: RFCoilsRx{T}
     ncoils::Int = 8
     radius::T = T(0.20)
     L::T = T(0.30)
 end
 
 export HardwareLimits, Scanner, GradientCoils, LinearXYZ, RFCoilsTx, UniformTransmit,
-    RFCoilsRx, UniformCoilSens, TheoreticalCoilSensitivities, get_n_coils
+    RFCoilsRx, UniformCoilSens, BirdcageCoilSens, get_n_coils
 
 get_n_coils(::RFCoilsRx) = 1
-get_n_coils(coils::TheoreticalCoilSensitivities) = coils.ncoils
+get_n_coils(coils::BirdcageCoilSens) = coils.ncoils
 
 coil_sensitivities(
     x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, ::UniformCoilSens
@@ -144,7 +144,7 @@ function Scanner(;
     )
 end
 
-function coil_sensitivities(
+function birdcage_sensitivities(
     x::AbstractVector{T},
     y::AbstractVector{T},
     z::AbstractVector{T};
@@ -188,9 +188,9 @@ function coil_sensitivities(
     x::AbstractVector{T},
     y::AbstractVector{T},
     z::AbstractVector{T},
-    rf_rx::TheoreticalCoilSensitivities,
+    rf_rx::BirdcageCoilSens,
 ) where {T<:Real}
-    return coil_sensitivities(
+    return birdcage_sensitivities(
         x, y, z;
         ncoils=rf_rx.ncoils,
         radius=T(rf_rx.radius),

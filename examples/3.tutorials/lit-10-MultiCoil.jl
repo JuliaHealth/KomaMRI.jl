@@ -7,7 +7,7 @@ using KomaMRI, Suppressor #hide
 # individual coil images, and inspect the magnitude and phase of the receive
 # sensitivities.
 
-sys = Scanner(rf_rx=TheoreticalCoilSensitivities(ncoils=4, radius=0.20, L=0.30))
+sys = Scanner(rf_rx=BirdcageCoilSens(ncoils=4, radius=0.20, L=0.30))
 obj = brain_phantom2D()
 
 seq_file = joinpath(
