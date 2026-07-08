@@ -118,6 +118,47 @@ function run_spin_precession_parallel!(
     return nothing
 end
 
+function run_spin_precession_parallel!(
+    obj::Phantom{T},
+    seq,
+    sys::Scanner,
+    sig::AbstractArray{Complex{T}},
+    Xt::SpinStateRepresentation{T},
+    sim_method::SimulationMethod,
+    groupsize::Integer,
+    backend::KA.Backend,
+    prealloc::PreallocResult;
+    Nthreads=Threads.nthreads(),
+) where {T<:Real}
+    run_spin_precession_parallel!(
+        obj, seq, sig, Xt, sim_method, groupsize, backend, prealloc; Nthreads
+    )
+end
+
+function run_spin_precession_parallel!(
+    obj::Phantom{T},
+    seq,
+    sys::Scanner,
+    sig::AbstractArray{Complex{T}},
+    Xt::SpinStateRepresentation{T},
+    sim_method::BlochSimple,
+    groupsize::Integer,
+    backend::KA.Backend,
+    prealloc::PreallocResult;
+    Nthreads=Threads.nthreads(),
+) where {T<:Real}
+    parts = kfoldperm(length(obj), Nthreads)
+
+    ThreadsX.foreach(enumerate(parts)) do (i, p)
+        run_spin_precession!(
+            @view(obj[p]), seq, sys, split_sig_per_thread(sig, i, p, sim_method),
+            @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+        )
+    end
+
+    return nothing
+end
+
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
     seq,
@@ -135,6 +176,47 @@ function run_spin_excitation_parallel!(
         run_spin_excitation!(
             @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), 
             sim_method, groupsize, backend, @view(prealloc[p])
+        )
+    end
+
+    return nothing
+end
+
+function run_spin_excitation_parallel!(
+    obj::Phantom{T},
+    seq,
+    sys::Scanner,
+    sig::AbstractArray{Complex{T}},
+    Xt::SpinStateRepresentation{T},
+    sim_method::SimulationMethod,
+    groupsize::Integer,
+    backend::KA.Backend,
+    prealloc::PreallocResult;
+    Nthreads=Threads.nthreads(),
+) where {T<:Real}
+    run_spin_excitation_parallel!(
+        obj, seq, sig, Xt, sim_method, groupsize, backend, prealloc; Nthreads
+    )
+end
+
+function run_spin_excitation_parallel!(
+    obj::Phantom{T},
+    seq,
+    sys::Scanner,
+    sig::AbstractArray{Complex{T}},
+    Xt::SpinStateRepresentation{T},
+    sim_method::BlochSimple,
+    groupsize::Integer,
+    backend::KA.Backend,
+    prealloc::PreallocResult;
+    Nthreads=Threads.nthreads(),
+) where {T<:Real}
+    parts = kfoldperm(length(obj), Nthreads)
+
+    ThreadsX.foreach(enumerate(parts)) do (i, p)
+        run_spin_excitation!(
+            @view(obj[p]), seq, sys, split_sig_per_thread(sig, i, p, sim_method),
+            @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
         )
     end
 
@@ -168,6 +250,7 @@ take advantage of CPU parallel processing.
 function run_sim_time_iter!(
     obj::Phantom,
     seqd,
+    sys::Scanner,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
     sim_method::SimulationMethod,
@@ -198,14 +281,14 @@ function run_sim_time_iter!(
         # Simulation wrappers
         if excitation_bool[block]
             run_spin_excitation_parallel!(
-                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, 
+                obj, seqd_block, sys, @view(sig[acq_samples, dims...]), Xt,
                 sim_method, excitation_groupsize, backend, prealloc_result; Nthreads
             )
             rfs += 1
 
         else
             run_spin_precession_parallel!(
-                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, 
+                obj, seqd_block, sys, @view(sig[acq_samples, dims...]), Xt,
                 sim_method, precession_groupsize, backend, prealloc_result; Nthreads
             )
         end
@@ -390,6 +473,7 @@ function simulate(
     @maybe_time verbose ret = @timed run_sim_time_iter!(
         obj,
         seqd,
+        sys,
         sig,
         Xt,
         sim_params["sim_method"],

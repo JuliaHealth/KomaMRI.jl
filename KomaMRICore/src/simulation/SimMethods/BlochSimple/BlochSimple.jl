@@ -6,6 +6,28 @@ struct BlochSimple <: SimulationMethod end
 
 export BlochSimple
 
+function sim_output_dim(
+    obj::Phantom, seq::Sequence, sys::Scanner, sim_method::BlochSimple
+)
+    return (sum(seq.ADC.N), get_n_coils(sys.rf_rx))
+end
+
+function static_sensitivities(
+    p::Phantom, ::NoMotion, sys::Scanner
+)
+    return sys.rf_sens(p.x, p.y, p.z)
+end
+
+function static_sensitivities(
+    p::Phantom, ::Union{Motion, MotionList}, sys::Scanner
+)
+    return get_n_coils(sys.rf_rx) == 1 ? sys.rf_sens(p.x, p.y, p.z) : nothing
+end
+
+function acquire_signal!(sig, sample, M, sens::AbstractMatrix)
+    sig[sample, :] .= sens * M.xy
+end
+
 """
     run_spin_precession(obj, seq, Xt, sig)
 
@@ -24,6 +46,7 @@ precession.
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Union{Nothing,Scanner},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
@@ -42,17 +65,43 @@ function run_spin_precession!(
         ϕ = T(-2π .* γ) .* trapz(seq.Δt', Bz)
     end
     #Mxy precession and relaxation, and Mz relaxation
-    tp   = cumsum(seq.Δt) # t' = t - t0
-    dur  = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy  = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
+    tp = cumsum(seq.Δt) # t' = t - t0
+    dur = sum(seq.Δt)   # Total length, used for signal relaxation
+    Mxy = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
+    M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
     outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     #Acquired signal
-    sig .= @views transpose(sum(Mxy[:, findall(seq.ADC[2:end])]; dims=1)) #<--- TODO: add coil sensitivities
+    if isnothing(sys)
+        sig .= @views transpose(sum(Mxy[:, findall(seq.ADC[2:end])]; dims=1))
+    else
+        adc = findall(seq.ADC[2:end])
+        sens = static_sensitivities(p, p.motion, sys)
+        for (sample, i) in pairs(adc)
+            if isnothing(sens)
+                @views sig[sample, :] .= sys.rf_sens(x[:, i], y[:, i], z[:, i]) * Mxy[:, i]
+            end
+        end
+        isnothing(sens) || (sig .= transpose(sens * (@view Mxy[:, adc])))
+    end
     return nothing
+end
+
+function run_spin_precession!(
+    p::Phantom{T},
+    seq::DiscreteSequence{T},
+    sig::AbstractArray{Complex{T}},
+    M::Mag{T},
+    sim_method::SimulationMethod,
+    groupsize,
+    backend::KA.Backend,
+    prealloc::PreallocResult
+) where {T<:Real}
+    return run_spin_precession!(
+        p, seq, nothing, sig, M, sim_method, groupsize, backend, prealloc,
+    )
 end
 
 """
@@ -73,6 +122,7 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
 function run_spin_excitation!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
+    sys::Union{Nothing,Scanner},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
     sim_method::SimulationMethod,
@@ -84,6 +134,7 @@ function run_spin_excitation!(
     # Rotating frame -> RF frame
     ψ_start = @view seq.ψ[1:1]
     @. M.xy = M.xy * cis(-ψ_start)
+    sens = isnothing(sys) ? nothing : static_sensitivities(p, p.motion, sys)
     #Simulation
     for i in eachindex(seq.Δt)
         s = @views ( # This was the previous behaviour of seq[i], but it was hidden
@@ -108,9 +159,14 @@ function run_spin_excitation!(
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset!(M, s.tnew, p.motion; replace_by=p.ρ)
         #Acquire signal
-        # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            acquire_signal!(sig, sample, M, sim_method)
+            if isnothing(sys)
+                acquire_signal!(sig, sample, M, sim_method)
+            else
+                acquire_signal!(
+                    sig, sample, M, isnothing(sens) ? sys.rf_sens(x, y, z) : sens,
+                )
+            end
             sample += 1
         end
     end
@@ -120,6 +176,21 @@ function run_spin_excitation!(
     return nothing
 end
 
+function run_spin_excitation!(
+    p::Phantom{T},
+    seq::DiscreteSequence{T},
+    sig::AbstractArray{Complex{T}},
+    M::Mag{T},
+    sim_method::SimulationMethod,
+    groupsize,
+    backend::KA.Backend,
+    prealloc::PreallocResult
+) where {T<:Real}
+    return run_spin_excitation!(
+        p, seq, nothing, sig, M, sim_method, groupsize, backend, prealloc,
+    )
+end
+
 function acquire_signal!(sig, sample, M, sim_method::BlochSimple)
-    sig[sample, :] .= sum(M.xy) 
+    sig[sample, :] .= sum(M.xy)
 end
