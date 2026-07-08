@@ -123,7 +123,7 @@ function get_adc_phase_compensation(seq)
     for i in 1:length(seq)
         adc = seq.ADC[i]
         if is_ADC_on(adc)
-            append!(phase, exp.(-1im .* (adc.ϕ .+ 2π * adc.Δf .* times(adc))))
+            append!(phase, cis.(-(adc.ϕ .+ 2π * adc.Δf .* times(adc))))
         end
     end
     return phase
