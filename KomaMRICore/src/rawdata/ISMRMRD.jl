@@ -79,6 +79,11 @@ function signal_to_raw_data(
     signal, seq;
     phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
 )
+    ncoils = size(signal, 2)
+    channel_mask = ntuple(16) do i
+        n = clamp(ncoils - 64 * (i - 1), 0, 64)
+        n == 0 ? UInt64(0) : n == 64 ? typemax(UInt64) : (UInt64(1) << n) - UInt64(1)
+    end
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information
     mink = minimum(ktraj, dims=1)
@@ -192,9 +197,9 @@ function signal_to_raw_data(
                 UInt32(t0_us), #acquisition_time_stamp uint32: Acquisition clock, I am "miss"-using this variable to store t0 in us
                 UInt32.((0, 0, 0)), #physiology_time_stamp uint32x3: Physiology time stamps, e.g. ecg, breating, etc.
                 UInt16(Nsamples), #number_of_samples uint16
-                UInt16(1), #available_channels uint16: Available coils
-                UInt16(1), #active_channels uint16: Active coils on current acquisiton
-                Tuple(UInt64(0) for i=1:16), #channel_mask uint64x16: Active coils on current acquisiton
+                UInt16(ncoils), #available_channels uint16: Available coils
+                UInt16(ncoils), #active_channels uint16: Active coils on current acquisiton
+                channel_mask, #channel_mask uint64x16: Active coils on current acquisiton
                 UInt16(0), #discard_pre uint16: Samples to be discarded at the beginning of acquisition
                 UInt16(0), #discard_post uint16: Samples to be discarded at the end of acquisition
                 UInt16(idx_center), #center_sample uint16: Sample at the center of k-space

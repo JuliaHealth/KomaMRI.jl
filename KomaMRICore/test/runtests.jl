@@ -360,6 +360,13 @@ end
     sig_raw = reshape(sig_aux, length(sig_aux), 1)
     @test all(sig .== sig_raw)
 
+    raw = signal_to_raw_data(cat(sig, sig, sig, sig; dims=2), seq)
+    head = raw.profiles[1].head
+    @test head.available_channels == UInt16(4)
+    @test head.active_channels == UInt16(4)
+    @test head.channel_mask[1] == UInt64(0xf)
+    @test all(iszero, head.channel_mask[2:end])
+
     seq.DEF["FOV"] = [23e-2, 23e-2, 0]
     raw = signal_to_raw_data(sig, seq)
     sig_aux = vcat([vec(profile.data) for profile in raw.profiles]...)
