@@ -96,27 +96,8 @@ function set_precision_fallback!(sim_params, backend, precision)
     """ maxlog=1
 end
 
-function run_spin_precession_parallel!(
-    obj::Phantom{T},
-    seq,
-    sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
-    sim_method::SimulationMethod,
-    groupsize::Integer,
-    backend::KA.Backend,
-    prealloc::PreallocResult;
-    Nthreads=Threads.nthreads(),
-) where {T<:Real}
-    parts = kfoldperm(length(obj), Nthreads)
-
-    ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_precession!(
-            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
-        )
-    end
-
-    return nothing
-end
+uses_receive_coils(::SimulationMethod) = false
+uses_receive_coils(::BlochSimple) = true
 
 function run_spin_precession_parallel!(
     obj::Phantom{T},
@@ -130,53 +111,20 @@ function run_spin_precession_parallel!(
     prealloc::PreallocResult;
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
-    run_spin_precession_parallel!(
-        obj, seq, sig, Xt, sim_method, groupsize, backend, prealloc; Nthreads
-    )
-end
-
-function run_spin_precession_parallel!(
-    obj::Phantom{T},
-    seq,
-    sys::Scanner,
-    sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
-    sim_method::BlochSimple,
-    groupsize::Integer,
-    backend::KA.Backend,
-    prealloc::PreallocResult;
-    Nthreads=Threads.nthreads(),
-) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_precession!(
-            @view(obj[p]), seq, sys, split_sig_per_thread(sig, i, p, sim_method),
-            @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
-        )
-    end
-
-    return nothing
-end
-
-function run_spin_excitation_parallel!(
-    obj::Phantom{T},
-    seq,
-    sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
-    sim_method::SimulationMethod,
-    groupsize::Integer,
-    backend::KA.Backend,
-    prealloc::PreallocResult;
-    Nthreads=Threads.nthreads(),
-) where {T<:Real}
-    parts = kfoldperm(length(obj), Nthreads)
-
-    ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_excitation!(
-            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), 
-            sim_method, groupsize, backend, @view(prealloc[p])
-        )
+        if uses_receive_coils(sim_method)
+            run_spin_precession!(
+                @view(obj[p]), seq, sys, split_sig_per_thread(sig, i, p, sim_method),
+                @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            )
+        else
+            run_spin_precession!(
+                @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method),
+                @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            )
+        end
     end
 
     return nothing
@@ -194,30 +142,20 @@ function run_spin_excitation_parallel!(
     prealloc::PreallocResult;
     Nthreads=Threads.nthreads(),
 ) where {T<:Real}
-    run_spin_excitation_parallel!(
-        obj, seq, sig, Xt, sim_method, groupsize, backend, prealloc; Nthreads
-    )
-end
-
-function run_spin_excitation_parallel!(
-    obj::Phantom{T},
-    seq,
-    sys::Scanner,
-    sig::AbstractArray{Complex{T}},
-    Xt::SpinStateRepresentation{T},
-    sim_method::BlochSimple,
-    groupsize::Integer,
-    backend::KA.Backend,
-    prealloc::PreallocResult;
-    Nthreads=Threads.nthreads(),
-) where {T<:Real}
     parts = kfoldperm(length(obj), Nthreads)
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_excitation!(
-            @view(obj[p]), seq, sys, split_sig_per_thread(sig, i, p, sim_method),
-            @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
-        )
+        if uses_receive_coils(sim_method)
+            run_spin_excitation!(
+                @view(obj[p]), seq, sys, split_sig_per_thread(sig, i, p, sim_method),
+                @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            )
+        else
+            run_spin_excitation!(
+                @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method),
+                @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            )
+        end
     end
 
     return nothing
