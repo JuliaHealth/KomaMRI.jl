@@ -14,6 +14,9 @@
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
+    B_to_ω = T(-2π * γ)
+    B_to_ω2_sqrt3 = B_to_ω * B_to_ω * sqrt(T(3))
+    inv_γ = inv(T(γ))
     sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
     sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
 
@@ -25,6 +28,8 @@
     ΔBz = zero(T)
     T1 = T(1)
     T2 = T(1)
+    neg_inv_T1 = -one(T)
+    neg_inv_T2 = -one(T)
     x = zero(T)
     y = zero(T)
     z = zero(T)
@@ -36,6 +41,8 @@
         ρ = p_ρ[i]
         T1 = p_T1[i]
         T2 = p_T2[i]
+        neg_inv_T1 = -inv(T1)
+        neg_inv_T2 = -inv(T2)
 
         ψ_start = s_ψ[1]
         if !iszero(ψ_start)
@@ -58,23 +65,25 @@
             x_plus, y_plus, z_plus = MOTION ? get_spin_coordinates(p_x, p_y, p_z, i, s_plus) : (x, y, z)
 
             Bx_minus, By_minus = reim(s_B1[s_minus])
-            Bz_minus = x_minus * s_Gx[s_minus] + y_minus * s_Gy[s_minus] + z_minus * s_Gz[s_minus] + ΔBz - s_Δf[s_minus] / T(γ)
+            Bz_minus = x_minus * s_Gx[s_minus] + y_minus * s_Gy[s_minus] + z_minus * s_Gz[s_minus] + ΔBz - s_Δf[s_minus] * inv_γ
             Bx_plus, By_plus = reim(s_B1[s_plus])
-            Bz_plus = x_plus * s_Gx[s_plus] + y_plus * s_Gy[s_plus] + z_plus * s_Gz[s_plus] + ΔBz - s_Δf[s_plus] / T(γ)
+            Bz_plus = x_plus * s_Gx[s_plus] + y_plus * s_Gy[s_plus] + z_plus * s_Gz[s_plus] + ΔBz - s_Δf[s_plus] * inv_γ
 
             Δt = s_Δt[s_idx] + s_Δt[s_minus] + s_Δt[s_plus]
             θx, θy, θz = rotation_vector(
                 Bx_minus, By_minus, Bz_minus,
                 Bx_plus, By_plus, Bz_plus,
                 Δt,
+                B_to_ω,
+                B_to_ω2_sqrt3,
                 sim_method,
             )
             M_norm = mag_norm(T, Mxy_r, Mxy_i, Mz)
             Mxy_new_r, Mxy_new_i, Mz_new = rotate_magnetization(θx, θy, θz, Mxy_r, Mxy_i, Mz, T)
             Mxy_new_r, Mxy_new_i, Mz_new = restore_mag_norm(M_norm, Mxy_new_r, Mxy_new_i, Mz_new) # For reduced float precision only.
 
-            E1 = exp(-Δt / T1)
-            E2 = exp(-Δt / T2)
+            E1 = exp(Δt * neg_inv_T1)
+            E2 = exp(Δt * neg_inv_T2)
             Mxy_r = Mxy_new_r * E2
             Mxy_i = Mxy_new_i * E2
             Mz = Mz_new * E1 + ρ * (T(1) - E1)

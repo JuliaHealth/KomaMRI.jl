@@ -14,6 +14,7 @@
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
+    precession_scale = T(-π * γ)
     sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
     sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
     
@@ -50,7 +51,7 @@
             Δt = s_Δt[s_idx-1]
             t += Δt
             Bz_next = x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx] + ΔBz
-            ϕ += (Bz_prev + Bz_next) * T(-π * γ) * Δt
+            ϕ += (Bz_prev + Bz_next) * precession_scale * Δt
         end
         # Acquire Signal
         if HAS_ADC && s_ADC[s_idx]
