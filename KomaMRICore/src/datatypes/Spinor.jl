@@ -66,7 +66,7 @@ Spinor counter-clockwise rotation matrix with angle `φ` with respect to z-axis.
 - `φ`: (`::Real`, `[rad]`) angle with respect to z-axis
 
 # Returns
-- `s`: (`::Spinor`) spinnor struct that represents the `Rz` rotation matrix
+- `s`: (`::Spinor`) spinor struct that represents the `Rz` rotation matrix
 """
 Rz(φ) = Spinor(exp(-1im*φ/2), 0.0im)
 
