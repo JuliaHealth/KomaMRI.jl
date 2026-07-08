@@ -47,7 +47,6 @@ end
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    B_to_ω = T(-2π * γ)
     inv_γ = inv(T(γ))
     sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
     sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
@@ -60,8 +59,8 @@ end
     ΔBz = zero(T)
     T1 = T(1)
     T2 = T(1)
-    neg_inv_T1 = -one(T)
-    neg_inv_T2 = -one(T)
+    neg_inv_T1 = T(-1)
+    neg_inv_T2 = T(-1)
     x = zero(T)
     y = zero(T)
     z = zero(T)
@@ -104,7 +103,7 @@ end
 
             Δt = s_Δt[s_idx - 1]
 
-            θx, θy, θz = rotation_vector(Bx_0, By_0, Bz_0, Bx_1, By_1, Bz_1, Δt, B_to_ω, sim_method)
+            θx, θy, θz = rotation_vector(Bx_0, By_0, Bz_0, Bx_1, By_1, Bz_1, Δt, sim_method)
             M_norm = mag_norm(T, Mxy_r, Mxy_i, Mz)
             Mxy_new_r, Mxy_new_i, Mz_new = rotate_magnetization(θx, θy, θz, Mxy_r, Mxy_i, Mz, T)
             Mxy_new_r, Mxy_new_i, Mz_new = restore_mag_norm(M_norm, Mxy_new_r, Mxy_new_i, Mz_new) # For reduced float precision only.

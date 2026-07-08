@@ -10,20 +10,12 @@ function rotation_vector!(θxy, θz, ωxy_0, ωz_0, ωxy_1, ωz_1, Δt, sim_meth
 end
 
 # -- GPU scalar rotation vector ----------------------------------------------
-@inline function rotation_vector(Bx_0, By_0, Bz_0, Δt, B_to_ω, sim_method::SM) where {SM<:Union{Bloch,BlochMagnusConst1}}
+@inline function rotation_vector(Bx_0, By_0, Bz_0, Δt, sim_method::SM) where {SM<:Union{Bloch,BlochMagnusConst1}}
+    B_to_ω = typeof(Δt)(-2π * γ)
     θx = Bx_0 * B_to_ω * Δt
     θy = By_0 * B_to_ω * Δt
     θz = Bz_0 * B_to_ω * Δt
     return θx, θy, θz
-end
-
-@inline function rotation_vector(Bx_0, By_0, Bz_0, Δt, sim_method::SM) where {SM<:Union{Bloch,BlochMagnusConst1}}
-    B_to_ω = typeof(Δt)(-2π * γ)
-    return rotation_vector(Bx_0, By_0, Bz_0, Δt, B_to_ω, sim_method)
-end
-
-@inline function rotation_vector(Bx_0, By_0, Bz_0, Bx_1, By_1, Bz_1, Δt, B_to_ω, sim_method::SM) where {SM<:Union{Bloch,BlochMagnusConst1}}
-    return rotation_vector(Bx_0, By_0, Bz_0, Δt, B_to_ω, sim_method)
 end
 
 @inline function rotation_vector(Bx_0, By_0, Bz_0, Bx_1, By_1, Bz_1, Δt, sim_method::SM) where {SM<:Union{Bloch,BlochMagnusConst1}}

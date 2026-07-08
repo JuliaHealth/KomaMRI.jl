@@ -14,8 +14,6 @@
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    B_to_ω = T(-2π * γ)
-    B_to_ω2_sqrt3 = B_to_ω * B_to_ω * sqrt(T(3))
     inv_γ = inv(T(γ))
     sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
     sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
@@ -28,8 +26,8 @@
     ΔBz = zero(T)
     T1 = T(1)
     T2 = T(1)
-    neg_inv_T1 = -one(T)
-    neg_inv_T2 = -one(T)
+    neg_inv_T1 = T(-1)
+    neg_inv_T2 = T(-1)
     x = zero(T)
     y = zero(T)
     z = zero(T)
@@ -74,8 +72,6 @@
                 Bx_minus, By_minus, Bz_minus,
                 Bx_plus, By_plus, Bz_plus,
                 Δt,
-                B_to_ω,
-                B_to_ω2_sqrt3,
                 sim_method,
             )
             M_norm = mag_norm(T, Mxy_r, Mxy_i, Mz)
