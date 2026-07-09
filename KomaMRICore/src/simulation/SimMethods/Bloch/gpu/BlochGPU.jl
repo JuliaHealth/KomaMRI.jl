@@ -5,7 +5,6 @@ include("ExcitationKernel.jl")
 """Stores preallocated arrays for use in Bloch GPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochGPUPrealloc{T} <: PreallocResult{T}
     sig_output::AbstractMatrix{Complex{T}}
-    sig_output_final::AbstractMatrix{Complex{T}}
     ΔBz::AbstractVector{T}
 end
 
@@ -20,7 +19,6 @@ function prealloc(
 ) where {T<:Real, SM<:BlochLikeSimMethods}
     return BlochGPUPrealloc(
         KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
-        KA.zeros(backend, Complex{T}, 1, max_block_length),
         obj.Δw ./ T(2π .* γ)
     )
 end
@@ -35,7 +33,6 @@ prealloc(
 ) where {T<:Real} =
     BlochGPUPrealloc(
         KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
-        KA.zeros(backend, Complex{T}, 1, max_block_length),
         obj.Δw ./ T(2π .* γ)
     )
 
@@ -73,8 +70,7 @@ function run_spin_precession!(
     )
 
     if has_adc
-        AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
-        sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
+        reduce_signal_output!(sig, view(pre.sig_output, :, 1:length(sig)), backend)
     end
 
     outflow_spin_reset!(M, seq.t', p.motion; replace_by=p.ρ)
@@ -108,8 +104,7 @@ function run_spin_precession!(
 
     #Signal
     if has_adc
-        AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
-        sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
+        reduce_signal_output!(sig, view(pre.sig_output, :, 1:length(sig)), backend)
     end
 
     #Reset Spin-State (Magnetization). Only for FlowPath
@@ -154,8 +149,7 @@ function run_spin_excitation!(
     )
 
     if has_adc
-        AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
-        sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
+        reduce_signal_output!(sig, view(pre.sig_output, :, 1:length(sig)), backend)
     end
 
     outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
@@ -189,8 +183,7 @@ function run_spin_excitation!(
 
     #Signal
     if has_adc
-        AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
-        sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
+        reduce_signal_output!(sig, view(pre.sig_output, :, 1:length(sig)), backend)
     end
 
     #Reset Spin-State (Magnetization). Only for FlowPath
@@ -224,8 +217,7 @@ begin
     )
 
     if has_adc
-        AK.reduce(+, view(pre.sig_output,:,1:length(sig)); init=zero(Complex{T}), dims=1, temp=view(pre.sig_output_final,:,1:length(sig)))
-        sig .= transpose(view(pre.sig_output_final,:,1:length(sig)))
+        reduce_signal_output!(sig, view(pre.sig_output, :, 1:length(sig)), backend)
     end
 
     outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)

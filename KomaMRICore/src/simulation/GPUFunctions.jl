@@ -2,6 +2,7 @@ const LOADED_BACKENDS = Ref{Vector{KA.GPU}}([])
 const BACKEND = Ref{Union{KA.Backend,Nothing}}(nothing)
 const DEFAULT_PRECESSION_GROUPSIZE = 256
 const DEFAULT_EXCITATION_GROUPSIZE = 256
+const DEFAULT_GPU_MAX_BLOCK_LENGTH = 2048
 
 device_name(backend) = @error "device_name called with invalid backend type $(typeof(backend))"
 isfunctional(::KA.CPU) = true

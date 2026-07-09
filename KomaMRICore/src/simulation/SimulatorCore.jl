@@ -331,8 +331,15 @@ function simulate(
 )
     _assert_nonnegative_adc_labels(seq)
     #Simulation parameter unpacking, and setting defaults if key is not defined
+    user_max_block_length = haskey(sim_params, "max_block_length")
     sim_params = default_sim_params(copy(sim_params))
     sim_method = sim_params["sim_method"]
+    backend = get_backend(sim_params["gpu"])
+    sim_params["gpu"] &= backend isa KA.GPU
+    if sim_params["gpu"]
+        sim_params["Nthreads"] = 1
+        user_max_block_length || (sim_params["max_block_length"] = DEFAULT_GPU_MAX_BLOCK_LENGTH)
+    end
     sampling_rule = simulation_sampling_rule(sim_method, sim_params)
     #Warn if user is trying to run on CPU without enabling multi-threading
     if (!sim_params["gpu"] && Threads.nthreads() == 1)
@@ -354,11 +361,6 @@ function simulate(
     Xt, obj = initialize_spins_state(obj, sim_method)
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
-    backend = get_backend(sim_params["gpu"])
-    sim_params["gpu"] &= backend isa KA.GPU
-    if sim_params["gpu"]
-        sim_params["Nthreads"] = 1
-    end
     sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
     supports_float64 = KA.supports_float64(backend)
     if sim_params["gpu"] && sim_params["precision"] == "bigfloat"
