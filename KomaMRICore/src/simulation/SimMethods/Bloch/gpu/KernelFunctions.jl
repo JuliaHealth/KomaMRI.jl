@@ -90,29 +90,27 @@ end
     return reduce_warp(sig_r, sig_i)
 end
 
-@kernel unsafe_indices=true inbounds=true function reduce_signal_output_kernel!(
+@kernel inbounds=true function reduce_signal_output_kernel!(
     sig,
     @Const(sig_output),
     n_groups::UInt32,
-    n_adc::UInt32,
 )
     adc = @index(Global, Linear)
-    if adc <= n_adc
-        acc = sig_output[1u32, adc]
-        group = 2u32
-        while group <= n_groups
-            acc += sig_output[group, adc]
-            group += 1u32
-        end
-        sig[adc] = acc
+    acc = sig_output[1u32, adc]
+    group = 2u32
+    while group <= n_groups
+        acc += sig_output[group, adc]
+        group += 1u32
     end
+    sig[adc] = acc
 end
 
 function reduce_signal_output!(sig, sig_output, backend)
-    n_adc = UInt32(length(sig))
+    n_adc = length(sig)
+    n_adc == 0 && return nothing
     n_groups = UInt32(size(sig_output, 1))
     reduce_signal_output_kernel!(backend, DEFAULT_PRECESSION_GROUPSIZE)(
-        sig, sig_output, n_groups, n_adc; ndrange=n_adc
+        sig, sig_output, n_groups; ndrange=n_adc
     )
     return nothing
 end
