@@ -1,7 +1,7 @@
-include("multi-coil/GradientCoils.jl")
-include("multi-coil/RFCoilsTx.jl")
-include("multi-coil/RFCoilsRx.jl")
-include("multi-coil/HardwareLimits.jl")
+include("scanner/GradientCoils.jl")
+include("scanner/RFCoilsTx.jl")
+include("scanner/RFCoilsRx.jl")
+include("scanner/HardwareLimits.jl")
 
 export HardwareLimits, Scanner,
     AbstractGradientSystem, GradientCoils, LinearXYZ,

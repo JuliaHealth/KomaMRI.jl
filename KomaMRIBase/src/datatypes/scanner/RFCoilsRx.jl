@@ -29,7 +29,7 @@ function get_sens(receiver::BirdcageCoilSens, x, y, z)
     L = T(receiver.L)
     ncoils = get_n_coils(receiver)
     nspins = length(x)
-    sens = Matrix(Complex{T}, nspins, ncoils)
+    sens = Matrix{Complex{T}}(undef, nspins, ncoils)
     ϵ = eps(T)
 
     for n in 1:ncoils
