@@ -7,7 +7,7 @@ using KomaMRI, Suppressor #hide
 # individual coil images, and inspect the magnitude and phase of the receive
 # sensitivities.
 
-sys = Scanner(rf_rx=BirdcageCoilSens(ncoils=4, radius=0.20, L=0.30))
+sys = Scanner(receiver=BirdcageCoilSens(ncoils=4, radius=0.20, L=0.30))
 obj = brain_phantom2D()
 
 seq_file = joinpath(
@@ -53,26 +53,11 @@ xgrid = vec([x for x in xs, _ in ys])
 ygrid = vec([y for _ in xs, y in ys])
 zgrid = zeros(Float32, length(xgrid))
 
-coil_sens = sys.rf_sens(xgrid, ygrid, zgrid)
-coil_sens_abs = [reshape(abs.(coil_sens[coil, :]), Nx, Ny) for coil in 1:size(coil_sens, 1)]
-coil_sens_phase = [reshape(angle.(coil_sens[coil, :]), Nx, Ny) for coil in 1:size(coil_sens, 1)]
+coil_sens = get_sens(sys.receiver, xgrid, ygrid, zgrid)
+coil_sens_abs = [reshape(abs.(coil_sens[:, coil]), Nx, Ny) for coil in 1:size(coil_sens, 2)]
+coil_sens_phase = [reshape(angle.(coil_sens[:, coil]), Nx, Ny) for coil in 1:size(coil_sens, 2)]
 sens_max = maximum(maximum, coil_sens_abs) #hide
 
-function circularize(img) #hide
-    Nx, Ny = size(img)
-    cx = (Nx + 1) / 2
-    cy = (Ny + 1) / 2
-    r = min(Nx, Ny) / 2
-    masked = fill(Float32(NaN), Nx, Ny)
-    for i in 1:Nx, j in 1:Ny
-        if ((i - cx) / r)^2 + ((j - cy) / r)^2 <= 1
-            masked[i, j] = img[i, j]
-        end
-    end
-    masked
-end #hide
-
-coil_sens_phase_circ = circularize.(coil_sens_phase) #hide
 function row_plot(plots, Nx, Ny) #hide
     p = hcat(plots...)
     foreach(t -> t.fields[:showscale] = false, p.plot.data)
@@ -93,11 +78,11 @@ p3b = plot_image(coil_sens_abs[2]; height=320, title="Coil 2 sensitivity magnitu
 p3c = plot_image(coil_sens_abs[3]; height=320, title="Coil 3 sensitivity magnitude", zmin=0, zmax=sens_max) #hide
 p3d = plot_image(coil_sens_abs[4]; height=320, title="Coil 4 sensitivity magnitude", zmin=0, zmax=sens_max) #hide
 
-# The phase maps keep the circular mask.
-p4a = plot_image(coil_sens_phase_circ[1]; height=320, title="Coil 1 sensitivity phase", zmin=-π, zmax=π, colorscale="Jet") #hide
-p4b = plot_image(coil_sens_phase_circ[2]; height=320, title="Coil 2 sensitivity phase", zmin=-π, zmax=π, colorscale="Jet") #hide
-p4c = plot_image(coil_sens_phase_circ[3]; height=320, title="Coil 3 sensitivity phase", zmin=-π, zmax=π, colorscale="Jet") #hide
-p4d = plot_image(coil_sens_phase_circ[4]; height=320, title="Coil 4 sensitivity phase", zmin=-π, zmax=π, colorscale="Jet") #hide
+# The phase maps are shown directly on the simulation grid.
+p4a = plot_image(coil_sens_phase[1]; height=320, title="Coil 1 sensitivity phase", zmin=-π, zmax=π, colorscale="Jet") #hide
+p4b = plot_image(coil_sens_phase[2]; height=320, title="Coil 2 sensitivity phase", zmin=-π, zmax=π, colorscale="Jet") #hide
+p4c = plot_image(coil_sens_phase[3]; height=320, title="Coil 3 sensitivity phase", zmin=-π, zmax=π, colorscale="Jet") #hide
+p4d = plot_image(coil_sens_phase[4]; height=320, title="Coil 4 sensitivity phase", zmin=-π, zmax=π, colorscale="Jet") #hide
 
 # Putting the coil images together with the sensitivity magnitude and phase
 # makes the receive profile of each channel easy to compare.

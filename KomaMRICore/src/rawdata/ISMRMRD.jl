@@ -80,10 +80,7 @@ function signal_to_raw_data(
     phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
 )
     ncoils = size(signal, 2)
-    channel_mask = ntuple(16) do i
-        n = clamp(ncoils - 64 * (i - 1), 0, 64)
-        n == 0 ? UInt64(0) : n == 64 ? typemax(UInt64) : (UInt64(1) << n) - UInt64(1)
-    end
+    channel_mask = ntuple(i -> typemax(UInt64) >> max(0, 64i - ncoils), 16)
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information
     mink = minimum(ktraj, dims=1)

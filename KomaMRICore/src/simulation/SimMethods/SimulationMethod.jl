@@ -16,7 +16,7 @@ include("Magnetization.jl")
 function sim_output_dim(
     obj::Phantom, seq::Sequence, sys::Scanner, sim_method::SimulationMethod
 )
-    return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
+    return (sum(seq.ADC.N), get_n_coils(sys.receiver)) #Nt x Ncoils, This should consider the coil info from sys
 end
 
 function split_sig_per_thread(sig, i, p, sim_method::SimulationMethod)

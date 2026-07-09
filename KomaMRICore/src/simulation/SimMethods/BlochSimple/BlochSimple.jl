@@ -6,45 +6,6 @@ struct BlochSimple <: SimulationMethod end
 
 export BlochSimple
 
-function sim_output_dim(
-    obj::Phantom, seq::Sequence, sys::Scanner, sim_method::BlochSimple
-)
-    return (sum(seq.ADC.N), get_n_coils(sys.rf_rx))
-end
-
-function static_sensitivities(p::Phantom, motion, sys::Scanner)
-    if motion == NoMotion() || get_n_coils(sys.rf_rx) == 1
-        return sys.rf_sens(p.x, p.y, p.z)
-    else
-        return nothing
-    end
-end
-
-function acquire_signal!(sig, state, sys, sens, x, y, z; sample=nothing, adc=nothing)
-    if isnothing(sys)
-        if isnothing(adc)
-            sig[sample, :] .= sum(state.xy)
-        else
-            sig .= @views transpose(sum(state[:, adc]; dims=1))
-        end
-    elseif isnothing(adc)
-        if isnothing(sens)
-            @views sig[sample, :] .= sys.rf_sens(x, y, z) * state.xy
-        else
-            sig[sample, :] .= sens * state.xy
-        end
-    else
-        if isnothing(sens)
-            for (sample, i) in pairs(adc)
-                @views sig[sample, :] .= sys.rf_sens(x[:, i], y[:, i], z[:, i]) * state[:, i]
-            end
-        else
-            sig .= transpose(sens * (@view state[:, adc]))
-        end
-    end
-    return nothing
-end
-
 """
     run_spin_precession(obj, seq, Xt, sig)
 
@@ -63,16 +24,14 @@ precession.
 function run_spin_precession!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
-    args...
+    sig::AbstractArray{Complex{T}},
+    M::Mag{T},
+    sys,
+    sim_method::SimulationMethod,
+    groupsize,
+    backend::KA.Backend,
+    prealloc::PreallocResult
 ) where {T<:Real}
-    if length(args) == 6
-        sys = nothing
-        sig, M, sim_method, groupsize, backend, prealloc = args
-    elseif length(args) == 7
-        sys, sig, M, sim_method, groupsize, backend, prealloc = args
-    else
-        throw(ArgumentError("invalid arguments to run_spin_precession!"))
-    end
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
@@ -84,18 +43,16 @@ function run_spin_precession!(
         ϕ = T(-2π .* γ) .* trapz(seq.Δt', Bz)
     end
     #Mxy precession and relaxation, and Mz relaxation
-    tp = cumsum(seq.Δt) # t' = t - t0
-    dur = sum(seq.Δt)   # Total length, used for signal relaxation
-    Mxy = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
+    tp   = cumsum(seq.Δt) # t' = t - t0
+    dur  = sum(seq.Δt)   # Total length, used for signal relaxation
+    Mxy  = M.xy .* exp.(-tp' ./ p.T2) .* cis.(ϕ) #This assumes Δw and T2 are constant in time
     M.xy .= Mxy[:, end]
-    M.z .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
+    M.z  .= M.z .* exp.(-dur ./ p.T1) .+ p.ρ .* (1 .- exp.(-dur ./ p.T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
     outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
     outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     #Acquired signal
-    adc = findall(seq.ADC[2:end])
-    sens = isnothing(sys) ? nothing : static_sensitivities(p, p.motion, sys)
-    acquire_signal!(sig, Mxy, sys, sens, x, y, z; adc)
+    acquire_signal_precession!(sig, Mxy, seq, p.motion, x, y, z, sys.receiver)
     return nothing
 end
 
@@ -117,21 +74,18 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
 function run_spin_excitation!(
     p::Phantom{T},
     seq::DiscreteSequence{T},
-    args...
+    sig::AbstractArray{Complex{T}},
+    M::Mag{T},
+    sys,
+    sim_method::SimulationMethod,
+    groupsize,
+    backend::KA.Backend,
+    prealloc::PreallocResult
 ) where {T<:Real}
-    if length(args) == 6
-        sys = nothing
-        sig, M, sim_method, groupsize, backend, prealloc = args
-    elseif length(args) == 7
-        sys, sig, M, sim_method, groupsize, backend, prealloc = args
-    else
-        throw(ArgumentError("invalid arguments to run_spin_excitation!"))
-    end
     sample = 1
     # Rotating frame -> RF frame
     ψ_start = @view seq.ψ[1:1]
     @. M.xy = M.xy * cis(-ψ_start)
-    sens = isnothing(sys) ? nothing : static_sensitivities(p, p.motion, sys)
     #Simulation
     for i in eachindex(seq.Δt)
         s = @views ( # This was the previous behaviour of seq[i], but it was hidden
@@ -152,16 +106,59 @@ function run_spin_excitation!(
         mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
-        @. M.z = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))
+        @. M.z  = M.z * exp(-s.Δt / p.T1) + p.ρ * (1 - exp(-s.Δt / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset!(M, s.tnew, p.motion; replace_by=p.ρ)
         #Acquire signal
-        s.ADC || continue
-        acquire_signal!(sig, M, sys, sens, x, y, z; sample)
-        sample += 1
+        # TODO: use sim_method and sys to modify sig 
+        if s.ADC # ADC at the end of the time step
+            acquire_signal_excitation!(sig, sample, M, p.motion, x, y, z, sys.receiver)
+            sample += 1
+        end
     end
     # RF frame -> Rotating frame
     ψ_end = @view seq.ψ[end:end]
     @. M.xy = M.xy * cis(ψ_end)
     return nothing
 end
+
+function acquire_signal_precession!(sig, Mxy, seq, motion, x, y, z, ::UniformCoilSens)
+    sig .= @views transpose(sum(Mxy[:, findall(seq.ADC[2:end])]; dims=1))
+    return nothing
+end
+
+function acquire_signal_excitation!(sig, sample, M, motion, x, y, z, ::UniformCoilSens)
+    sig[sample, :] .= sum(M.xy) 
+    return nothing
+end
+
+function acquire_signal_precession!(sig, Mxy, seq, ::NoMotion, x, y, z, receiver::BirdcageCoilSens)
+    sig .= transpose(@view Mxy[:, findall(seq.ADC[2:end])]) * get_sens(receiver, x, y, z)
+    return nothing
+end
+
+function acquire_signal_precession!(sig, Mxy, seq, ::Union{Motion{T}, MotionList{T}}, 
+    x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatrix{T}, receiver::BirdcageCoilSens,
+) where {T<:Real}
+    adc = findall(seq.ADC[2:end])
+    for (sample, i) in pairs(adc)
+        @views sig[sample, :] .= transpose(get_sens(receiver, x[:, i], y[:, i], z[:, i])) * Mxy[:, i]
+    end
+    return nothing
+end
+
+function acquire_signal_excitation!(sig, sample, M, motion, x, y, z, receiver::BirdcageCoilSens)
+    sig[sample, :] .= transpose(get_sens(receiver, vec(x), vec(y), vec(z))) * M.xy
+    return nothing
+end
+
+# function acquire_signal!(sig, obj, M, sim_method::BlochSimple, sys.receiver::ArbitraryRFCoils)
+#     interpolated_coil_sens = similar(rf_coils.coil_sens, length(obj.x), size(rf_coils.coil_sens, 4))
+#     for i in 1:size(rf_coils.coil_sens, 4)
+#         base_itp = GriddedInterpolation((rf_coils.x, rf_coils.y, rf_coils.z), rf_coils.coil_sens[:,:,:,i], Gridded(Linear()))
+#         itp = extrapolate(base_itp, 0f0)
+#         interpolated_coil_sens[:,i] = itp.(sample.x, sample.y, sample.z)
+#         sig[:, i] .= transpose(sum(interpolated_coil_sens[:, i] .* M, dims=1))
+#     end
+#     return nothing
+# end
