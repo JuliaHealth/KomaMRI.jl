@@ -57,10 +57,6 @@ end
     Mz = zero(T)
     ρ = zero(T)
     ΔBz = zero(T)
-    T1 = T(1)
-    T2 = T(1)
-    neg_inv_T1 = T(-1)
-    neg_inv_T2 = T(-1)
     x = zero(T)
     y = zero(T)
     z = zero(T)
@@ -73,10 +69,8 @@ end
         Mxy_r, Mxy_i = reim(M_xy[i])
         Mz = M_z[i]
         ρ = p_ρ[i]
-        T1 = p_T1[i]
-        T2 = p_T2[i]
-        neg_inv_T1 = -inv(T1)
-        neg_inv_T2 = -inv(T2)
+        neg_inv_T1 = -inv(p_T1[i])
+        neg_inv_T2 = -inv(p_T2[i])
         # Rotating frame -> RF frame
         # M * exp(-i * ψ)
         ψ_start = s_ψ[1]
