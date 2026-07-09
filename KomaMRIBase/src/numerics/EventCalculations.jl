@@ -15,20 +15,20 @@ delay(gr::Grad, ::Scanner) = delay(gr)
 delay(rf::RF, ::Scanner) = delay(rf)
 function delay(rf::UniformlySampledRF, sys::Scanner)
     is_RF_on(rf) || return delay(rf)
-    interval = compact_sample_interval(rf, sys.RF_Δt)
-    sample_offset = interval == sys.RF_Δt ? sys.RF_Δt / 2 : dwell(rf) / 2
+    interval = compact_sample_interval(rf, sys.limits.RF_Δt)
+    sample_offset = interval == sys.limits.RF_Δt ? sys.limits.RF_Δt / 2 : dwell(rf) / 2
     delay(rf) + PULSEQ_TIME_TOL < sample_offset && return delay(rf)
     pulseq_delay = delay(rf) - sample_offset
-    return interval == sys.RF_Δt ? pulseq_delay : floor_to_raster(pulseq_delay, sys.RF_Δt)
+    return interval == sys.limits.RF_Δt ? pulseq_delay : floor_to_raster(pulseq_delay, sys.limits.RF_Δt)
 end
 function delay(rf::TimeShapedRF, sys::Scanner)
     is_RF_on(rf) || return delay(rf)
-    raster_delay = floor_to_raster(delay(rf), sys.RF_Δt)
+    raster_delay = floor_to_raster(delay(rf), sys.limits.RF_Δt)
     offset = delay(rf) - raster_delay
     offset > PULSEQ_TIME_TOL && return raster_delay
     sample_offset = first(rf.T) / 2
     delay(rf) + PULSEQ_TIME_TOL < sample_offset && return delay(rf)
-    return floor_to_raster(delay(rf) - sample_offset, sys.RF_Δt)
+    return floor_to_raster(delay(rf) - sample_offset, sys.limits.RF_Δt)
 end
 delay(adc::ADC, sys::Scanner) = adc.delay - dwell(adc, sys) / 2
 delay(ext::Extension, ::Scanner) = delay(ext)
@@ -84,19 +84,19 @@ ADC sys-aware duration includes dwell-edge timing and ADC dead time.
 """
 dur(gr::Grad, ::Scanner) = dur(gr)
 dur(rf::RF, sys::Scanner) =
-    is_RF_on(rf) ? delay(rf, sys) + sum(rf.T) + sys.RF_ring_down_time : dur(rf)
+    is_RF_on(rf) ? delay(rf, sys) + sum(rf.T) + sys.limits.RF_ring_down_time : dur(rf)
 function dur(rf::UniformlySampledRF, sys::Scanner)
     is_RF_on(rf) || return dur(rf)
-    shape_duration = ceil_to_raster(dur(rf) + dwell(rf) / 2 - delay(rf, sys), sys.RF_Δt)
-    return delay(rf, sys) + shape_duration + sys.RF_ring_down_time
+    shape_duration = ceil_to_raster(dur(rf) + dwell(rf) / 2 - delay(rf, sys), sys.limits.RF_Δt)
+    return delay(rf, sys) + shape_duration + sys.limits.RF_ring_down_time
 end
 function dur(rf::TimeShapedRF, sys::Scanner)
     is_RF_on(rf) || return dur(rf)
-    shape_duration = ceil_to_raster(dur(rf) - delay(rf, sys), sys.RF_Δt)
-    return delay(rf, sys) + shape_duration + sys.RF_ring_down_time
+    shape_duration = ceil_to_raster(dur(rf) - delay(rf, sys), sys.limits.RF_Δt)
+    return delay(rf, sys) + shape_duration + sys.limits.RF_ring_down_time
 end
 dur(adc::ADC, sys::Scanner) = is_ADC_on(adc) ?
-    delay(adc, sys) + adc.N * dwell(adc, sys) + sys.ADC_dead_time :
+    delay(adc, sys) + adc.N * dwell(adc, sys) + sys.limits.ADC_dead_time :
     dur(adc)
 dur(ext::Extension, ::Scanner) = dur(ext)
 

@@ -53,11 +53,3 @@ function Scanner(;
 end
 
 get_sens(sys::Scanner, x, y, z) = get_sens(sys.receiver, x, y, z)
-
-function getproperty(sys::Scanner, key::Symbol)
-    if key in fieldnames(HardwareLimits)
-        return getfield(sys.limits, key)
-    else
-        return getfield(sys, key)
-    end
-end

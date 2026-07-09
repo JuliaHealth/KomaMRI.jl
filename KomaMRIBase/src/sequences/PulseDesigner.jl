@@ -14,7 +14,7 @@ slew_limited_ramp_samples(amplitude, max_slew, raster) =
     raster_samples(ceil_to_raster(abs(amplitude) / max_slew, raster), raster)
 
 slew_limited_rise_time(amplitude; sys, max_slew) =
-    ramp_time_to_raster(abs(amplitude) / max_slew, sys.GR_Δt)
+    ramp_time_to_raster(abs(amplitude) / max_slew, sys.limits.GR_Δt)
 
 normalize_flip_angle(signal, dwell, flip_angle) =
     flip_angle / (2π * γ * abs(sum(signal) * dwell)) .* signal

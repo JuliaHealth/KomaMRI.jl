@@ -19,15 +19,15 @@ Returns a sequence with a RF excitation pulse.
 
 # Examples
 ```julia-repl
-julia> sys = Scanner(); durRF = π / 2 / (2π * γ * sys.B1);
+julia> sys = Scanner(); durRF = π / 2 / (2π * γ * sys.limits.B1);
 
-julia> seq = PulseDesigner.RF_hard(sys.B1, durRF, sys);
+julia> seq = PulseDesigner.RF_hard(sys.limits.B1, durRF, sys);
 
 julia> plot_seq(seq)
 ```
 """
 function RF_hard(B1, T, sys::Scanner; G=[0, 0, 0], Δf=0)
-	ζ = sum(G) / sys.Smax
+	ζ = sum(G) / sys.limits.Smax
     gr = [Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T ,ζ) ;;]
     rf = [RF(B1, T, Δf, ζ) ;;]
 	return Sequence(gr, rf)
@@ -59,16 +59,16 @@ https://doi.org/10.1016/B978-012092861-3/50006-6.
 
 # Examples
 ```julia-repl
-julia> sys = Scanner(); durRF = π / 2 / (2π * γ * sys.B1);
+julia> sys = Scanner(); durRF = π / 2 / (2π * γ * sys.limits.B1);
 
-julia> seq = PulseDesigner.RF_sinc(sys.B1, durRF, sys);
+julia> seq = PulseDesigner.RF_sinc(sys.limits.B1, durRF, sys);
 
 julia> plot_seq(seq)
 ```
 """
 function RF_sinc(B1, T, sys::Scanner; G=[0, 0, 0], Δf=0, a=0.46, TBP=4)
 	t0 = T / TBP
-	ζ = maximum(abs.(G)) / sys.Smax
+	ζ = maximum(abs.(G)) / sys.limits.Smax
     sinc_waveform(t) = B1 * sinc(t/t0) .* ((1-a) + a*cos((2π*t)/(TBP*t0)))
     gr1 = [Grad(G[1], T, ζ); Grad(G[2], T, ζ); Grad(G[3], T, ζ)]
     gr2 = [Grad(-G[1], (T-ζ)/2, ζ); Grad(-G[2], (T-ζ)/2, ζ); Grad(-G[3], (T-ζ)/2, ζ)]
@@ -103,15 +103,15 @@ julia> plot_kspace(seq)
 """
 function EPI(FOV::Real, N::Integer, sys::Scanner)
     #TODO: consider when N is even
-	Δt = sys.ADC_Δt
-	Gmax = sys.Gmax
+	Δt = sys.limits.ADC_Δt
+	Gmax = sys.limits.Gmax
 	Nx = Ny = N #Square acquisition
 	Δx = FOV/(Nx-1)
 	Ta = Δt*(Nx-1) #4-8 us
     Δτ = Ta/(Ny-1)
 	Ga = 1/(γ*Δt*FOV)
-	ζ = Ga / sys.Smax
-	Ga ≥ sys.Gmax ? error("Ga=$(Ga*1e3) mT/m exceeds Gmax=$(Gmax*1e3) mT/m, increase Δt to at least Δt_min="
+	ζ = Ga / sys.limits.Smax
+	Ga ≥ sys.limits.Gmax ? error("Ga=$(Ga*1e3) mT/m exceeds Gmax=$(Gmax*1e3) mT/m, increase Δt to at least Δt_min="
 	*string(round(1/(γ*Gmax*FOV),digits=2))*" us.") : 0
 	ϵ1 = Δτ/(Δτ+ζ)
 	#EPI base
@@ -163,13 +163,13 @@ julia> plot_kspace(seq)
 ```
 """
 function radial_base(FOV::Real, Nr::Integer, sys::Scanner)
-	Δt = sys.ADC_Δt
-	Gmax = sys.Gmax
+	Δt = sys.limits.ADC_Δt
+	Gmax = sys.limits.Gmax
 	Δx = FOV/(Nr-1)
 	Ta = Δt*(Nr-1)
 	Ga = 1/(γ*Δt*FOV)
-	ζ = Ga / sys.Smax
-	Ga ≥ sys.Gmax ? error("Ga=$(Ga*1e3) mT/m exceeds Gmax=$(Gmax*1e3) mT/m, increase Δt to at least Δt_min="
+	ζ = Ga / sys.limits.Smax
+	Ga ≥ sys.limits.Gmax ? error("Ga=$(Ga*1e3) mT/m exceeds Gmax=$(Gmax*1e3) mT/m, increase Δt to at least Δt_min="
 	*string(round(1/(γ*Gmax*FOV),digits=2))*" us.") : 0
 	#Radial base
 	rad = Sequence([Grad(Ga,Ta,ζ)]) #Gx
@@ -188,7 +188,7 @@ function radial_base(FOV::Real, Nr::Integer, sys::Scanner)
 end
 
 """
-    spiral = spiral_base(FOV, N, sys; S0=sys.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3)
+    spiral = spiral_base(FOV, N, sys; S0=sys.limits.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3)
 
 Definition of a spiral base sequence.
 
@@ -202,7 +202,7 @@ Definition of a spiral base sequence.
 - `sys`: (`::Scanner`) Scanner struct
 
 # Keywords
-- `S0`: (`::Vector{Real}`, `=sys.Smax*2/3`, `[T/m/s]`) slew rate reference
+- `S0`: (`::Vector{Real}`, `=sys.limits.Smax*2/3`, `[T/m/s]`) slew rate reference
 - `Nint`: (`::Integer`, `=8`) number of interleaves
 - `λ`: (`::Real`, `=Nint/FOV`, `[1/m]`) kspace spiral parameter
 - `BW`: (`::Real`, `=60e3`, `[Hz]`) adquisition parameter
@@ -223,26 +223,26 @@ julia> plot_seq(seq)
 """
 function spiral_base(
     FOV::Real, N::Integer, sys::Scanner;
-    S0=sys.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3
+    S0=sys.limits.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3
 )
 	kmax = N / (2*FOV)
 	θmax = kmax / λ # From k(t) = λ θ(t) exp(iθ(t))
-	Smax = sys.Smax
+	Smax = sys.limits.Smax
 	β = Smax * γ / λ
 	a₂ = (9β/4)^(1/3)
 	Λ = Smax / S0
 	θ₁(t) = (.5 * β * t^2) / (Λ + β / 2a₂ * t^(4/3))
-	Gmax = sys.Gmax
+	Gmax = sys.limits.Gmax
 	ts = (Gmax * 3γ/(2λ*a₂^2))^3 # Gmax = 2λ / 3γ a₂² t ^1/3 e^ (i a₂ t^2/3)
-	dt = sys.GR_Δt
+	dt = sys.limits.GR_Δt
 	if θ₁(ts) < θmax
 		#Region 1 - Slew Rate-Limited
 		t1 = 0:dt:ts
 		θ₁v = θ₁.(t1)
 		#Region 2 - Amplitude-Limtied
-		ta = ts .+ (λ/(2γ * sys.Gmax)) * ( θmax.^2 .- θ₁v[end]^2); # ta = ts .+ (λ/(2γ * g0)) * ( θmax.^2 .- θs^2);
+		ta = ts .+ (λ/(2γ * sys.limits.Gmax)) * ( θmax.^2 .- θ₁v[end]^2); # ta = ts .+ (λ/(2γ * g0)) * ( θmax.^2 .- θs^2);
 		t2 = ts:dt:ta
-		θ₂v = sqrt.(θ₁v[end]^2 .+ (2γ/λ) * sys.Gmax * (t2 .- ts))
+		θ₂v = sqrt.(θ₁v[end]^2 .+ (2γ/λ) * sys.limits.Gmax * (t2 .- ts))
 		θ = [θ₁v[1:end-1]; θ₂v]
 	else
 		ta = ((2π*FOV)/(3Nint))*sqrt(1/(2γ*Smax*(FOV/N)^3));
@@ -288,7 +288,7 @@ julia> plot_seq(seq)
 ```
 """
 function EPI_example(; sys=Scanner())
-    B1 = sys.B1;
+    B1 = sys.limits.B1;
     durRF = π/2/(2π*γ*B1)
     EX = RF_hard(B1, durRF, sys; G=[0,0,0])
     N = 101

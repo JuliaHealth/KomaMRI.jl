@@ -42,8 +42,8 @@ Return a Pulseq-style arbitrary gradient event.
 function make_arbitrary_grad(waveform; sys=Scanner(), oversampling=false,
     max_grad=nothing, max_slew=nothing, delay=0.0, first=nothing, last=nothing)
     waveform = to_SI.(collect(waveform), Ref(PulseqUnitsDefault()))
-    max_grad = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
-    max_slew = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    max_grad = isnothing(max_grad) ? sys.limits.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew = isnothing(max_slew) ? sys.limits.Smax : to_SI(max_slew, PulseqUnitsDefault())
     delay    = to_SI(delay, SIUnitsDefault())
     first    = to_SI(first, PulseqUnitsDefault())
     last     = to_SI(last, PulseqUnitsDefault())
@@ -62,8 +62,8 @@ function make_arbitrary_grad(waveform; sys=Scanner(), oversampling=false,
         last = oversampling ? 2 * waveform[end] - waveform[end - 1] :
             (3 * waveform[end] - waveform[end - 1]) / 2
     end
-    duration = (length(waveform) - 1) * (oversampling ? sys.GR_Δt / 2 : sys.GR_Δt)
-    grad = Grad(waveform, duration, sys.GR_Δt / 2, sys.GR_Δt / 2, delay, first, last)
+    duration = (length(waveform) - 1) * (oversampling ? sys.limits.GR_Δt / 2 : sys.limits.GR_Δt)
+    grad = Grad(waveform, duration, sys.limits.GR_Δt / 2, sys.limits.GR_Δt / 2, delay, first, last)
     check_hw_limits(grad; max_grad, max_slew)
     return grad
 end

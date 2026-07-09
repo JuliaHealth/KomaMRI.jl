@@ -169,7 +169,7 @@ end
 
 @testitem "BlochMagnus simulates RF-center/max-step collision" tags=[:core, :nomotion] begin
     sys = Scanner()
-    sys.Smax = 100.0
+    sys.limits.Smax = 100.0
     rf_B1 = 4.9e-6
     rf_duration = 3.2e-3
     slice_thickness = 8e-3
@@ -670,7 +670,7 @@ end
 
     # This is a sequence with a sinc RF 30° excitation pulse
     sys = Scanner()
-    sys.Smax = 50
+    sys.limits.Smax = 50
     B1 = 4.92e-6
     Trf = 3.2e-3
     zmax = 2e-2
@@ -734,7 +734,7 @@ end
 
     @testset "slice-selective excitation" begin
         sys = Scanner()
-        sys.Smax = 50
+        sys.limits.Smax = 50
         B1 = 4.92e-6
         Trf = 3.2e-3
         z0 = 4e-3
