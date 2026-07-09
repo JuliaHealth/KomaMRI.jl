@@ -10,9 +10,9 @@ The Magnetization struct.
 # Returns
 - `mag`: (`::Mag`) Magnetization struct
 """
-mutable struct Mag <: SpinStateRepresentation
-    xy::AbstractVector
-    z::AbstractVector
+mutable struct Mag{XYType<:AbstractVector,ZType<:AbstractVector} <: SpinStateRepresentation
+    xy::XYType
+    z::ZType
 end
 
 # Required indexing operations
