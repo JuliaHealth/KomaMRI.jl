@@ -1,11 +1,18 @@
 """Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
-struct BlochCPUPrealloc <: PreallocResult
-    M::Mag
-    Bz_old::AbstractVector
-    Bz_new::AbstractVector
-    ϕ::AbstractVector
-    Rot::Spinor
-    ΔBz::AbstractVector
+struct BlochCPUPrealloc{
+    MType<:Mag,
+    BzOldType<:AbstractVector,
+    BzNewType<:AbstractVector,
+    PhiType<:AbstractVector,
+    RotType<:Spinor,
+    ΔBzType<:AbstractVector,
+} <: PreallocResult
+    M::MType
+    Bz_old::BzOldType
+    Bz_new::BzNewType
+    ϕ::PhiType
+    Rot::RotType
+    ΔBz::ΔBzType
 end
 
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
@@ -137,14 +144,15 @@ function run_spin_excitation!(
         #Motion
         x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i])
         #Effective field
+        B1 = seq.B1[i]
         @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        @. B = sqrt(abs2(seq.B1[i]) + Bz^2)
+        @. B = sqrt(abs2(B1) + Bz^2)
         #Spinor Rotation
         @. φ_half = T(-π * γ) * (B * seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         @. α = cos(φ_half)
         @. B = sin(φ_half) / (B + (B == 0) * eps(T))
-        @. α -= Complex{T}(im) * Bz * B
-        @. β = -Complex{T}(im) * seq.B1[i] * B
+        @. α -= complex(zero(Bz), Bz * B)
+        @. β = complex(imag(B1) * B, -real(B1) * B)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
