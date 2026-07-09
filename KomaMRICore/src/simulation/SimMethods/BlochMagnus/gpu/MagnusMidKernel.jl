@@ -15,8 +15,8 @@
     i = (i_g - 1u32) * UInt32(N) + i_l
 
     inv_γ = inv(T(γ))
-    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
-    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
+    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION === false ? N : 32) : 1
+    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION === false ? N : 32) : 1
 
     active = i <= N_spins
     Mxy_r = zero(T)

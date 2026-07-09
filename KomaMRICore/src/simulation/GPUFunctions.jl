@@ -8,6 +8,7 @@ device_name(backend) = @error "device_name called with invalid backend type $(ty
 isfunctional(::KA.CPU) = true
 isfunctional(x) = false
 supports_warp_reduction(backend) = false
+reduction_mode(backend) = Val(supports_warp_reduction(backend))
 _print_devices(backend) = @error "_print_devices called with invalid backend type $(typeof(backend))"
 _print_devices(::KA.CPU) = @info "CPU: $(length(Sys.cpu_info())) x $(Sys.cpu_info()[1].model)"
 name(::KA.CPU) = "CPU"

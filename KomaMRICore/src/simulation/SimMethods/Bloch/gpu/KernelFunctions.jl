@@ -74,6 +74,17 @@ end
     return val1, val2
 end
 
+@inline function reduce_warp(val1, val2, n)
+    @unroll for k=0:4
+        offset = 1u32 << k
+        if offset < n
+            val1 = val1 + shfl_down(val1, offset)
+            val2 = val2 + shfl_down(val2, offset)
+        end
+    end
+    return val1, val2
+end
+
 @inline function reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, ::Val{true})
     sig_r, sig_i = reduce_warp(sig_r, sig_i)
 
@@ -86,8 +97,28 @@ end
 
     @inbounds sig_r = (i_l <= UInt32(N) ÷ 32u32) ? sig_group_r[i_l] : zero(T)
     @inbounds sig_i = (i_l <= UInt32(N) ÷ 32u32) ? sig_group_i[i_l] : zero(T)
-    
+
     return reduce_warp(sig_r, sig_i)
+end
+
+@inline function reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, ::Val{:metal})
+    sig_r, sig_i = reduce_warp(sig_r, sig_i)
+
+    if i_l % 32u32 == 1u32
+        @inbounds sig_group_r[i_l ÷ 32u32 + 1u32] = sig_r
+        @inbounds sig_group_i[i_l ÷ 32u32 + 1u32] = sig_i
+    end
+
+    @synchronize()
+
+    n_warps = UInt32(N) ÷ 32u32
+    if i_l <= 32u32
+        @inbounds sig_r = i_l <= n_warps ? sig_group_r[i_l] : zero(T)
+        @inbounds sig_i = i_l <= n_warps ? sig_group_i[i_l] : zero(T)
+        return reduce_warp(sig_r, sig_i, n_warps)
+    end
+
+    return zero(T), zero(T)
 end
 
 @kernel inbounds=true function reduce_signal_output_kernel!(

@@ -64,7 +64,7 @@ function run_spin_precession!(
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(p.motion isa NoMotion)), reduction_mode(backend), Val(has_adc),
         BlochMagnusConst1(),
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
@@ -97,7 +97,7 @@ function run_spin_precession!(
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(p.motion isa NoMotion)), reduction_mode(backend), Val(has_adc),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
@@ -143,7 +143,7 @@ function run_spin_excitation!(
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(p.motion isa NoMotion)), reduction_mode(backend), Val(has_adc),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
@@ -176,7 +176,7 @@ function run_spin_excitation!(
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(p.motion isa NoMotion)), reduction_mode(backend), Val(has_adc),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
@@ -211,7 +211,7 @@ begin
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(p.motion isa NoMotion)), reduction_mode(backend), Val(has_adc),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
