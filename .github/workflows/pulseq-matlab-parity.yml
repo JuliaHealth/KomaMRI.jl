@@ -15,6 +15,7 @@ on:
       - KomaMRIBase/src/sequences/PulseDesigner/**
       - KomaMRIFiles/src/Sequence/pulseq/**
       - KomaMRIFiles/test/pulseq_matlab_parity.jl
+      - KomaMRIFiles/test/pulseq-python/**
       - KomaMRIFiles/test/write_pulseq_matlab_parity_sequences.m
   workflow_dispatch:
 
@@ -43,6 +44,16 @@ jobs:
           cache: true
           products: >
             Curve_Fitting_Toolbox
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.28"
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: KomaMRIFiles/test/pulseq-python/uv.lock
+      - name: Sync Pulseq SLR Python
+        run: |
+          uv sync --locked --project KomaMRIFiles/test/pulseq-python
+          echo "PULSEQ_PYTHON=uv run --project $GITHUB_WORKSPACE/KomaMRIFiles/test/pulseq-python --no-sync python" >> "$GITHUB_ENV"
       - name: Download latest Pulseq
         run: |
           curl -fsSL https://github.com/pulseq-admin/pulseq/archive/refs/heads/master.zip -o "$RUNNER_TEMP/pulseq.zip"

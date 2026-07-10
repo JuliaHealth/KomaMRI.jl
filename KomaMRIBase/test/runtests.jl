@@ -1710,6 +1710,38 @@ end
         @test gz.A * gz.T ≈ slice_area
         @test area(gzr) ≈ -slice_area / 2 - (area(gz) - slice_area) / 2
     end
+    @testset "build_slr_pulse" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        seq = PulseDesigner.build_slr_pulse(
+            90u"°"; duration=2u"ms", dwell=4u"μs", time_bw_product=4,
+            slice_thickness=5u"mm", freq_offset=1u"kHz", phase_offset=30u"°",
+            sys,
+        )
+
+        rf = seq.RF[1, 1]
+        gz, gzr = seq.GR.z
+        slice_area = 4 / (γ * 5e-3)
+        @test length(rf.A) == 500
+        @test get_flip_angles(seq)[1] ≈ 90.0
+        @test rf.use == Excitation()
+        @test rf.Δf == 1e3
+        @test rf.ϕ ≈ π / 6
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area * (1 - rf_center(rf, sys) / 2e-3) -
+            (area(gz) - slice_area) / 2
+
+        refocusing = PulseDesigner.build_slr_pulse(
+            180u"°"; duration=2u"ms", dwell=4u"μs", use=Refocusing(), sys,
+        )
+        @test refocusing.RF[1, 1].use == Refocusing()
+        @test get_flip_angles(refocusing)[1] ≈ 180.0
+        @test_throws ErrorException PulseDesigner.build_slr_pulse(
+            90u"°"; duration=2u"ms", filter_type=:unknown, sys,
+        )
+    end
     @testset "build_adiabatic_pulse" begin
         sys = Scanner(
             B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
