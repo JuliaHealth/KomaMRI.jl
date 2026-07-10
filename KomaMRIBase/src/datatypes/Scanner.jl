@@ -103,7 +103,7 @@ function acquire_signal!(sig, sample, p, receiver::ArbitraryRFRxCoils, Mxy::Abst
         base_itp = GriddedInterpolation((receiver.x, receiver.y, receiver.z), receiver.coil_sens[:,:,:,i], Gridded(Linear()))
         itp = extrapolate(base_itp, 0f0)
         interpolated_coil_sens[:,i] = itp.(p.x[:, sample], p.y[:, sample], p.z[:, sample])
-        sig[:, i] .= transpose(sum(interpolated_coil_sens[:, i] .* Mxy, dims=1))
+        sig[sample, i] = sum(interpolated_coil_sens[:, i] .* Mxy)
     end
     return nothing
 end
@@ -115,7 +115,7 @@ function acquire_signal!(sig, sample, p, receiver::ArbitraryRFRxCoils, Mxy::Abst
         base_itp = GriddedInterpolation((receiver.x, receiver.y, receiver.z), receiver.coil_sens[:,:,:,i], Gridded(Linear()))
         itp = extrapolate(base_itp, 0f0)
         interpolated_coil_sens[:,i] = itp.(p.x, p.y, p.z)
-        sig[:, i] .= transpose(sum(interpolated_coil_sens[:, i] .* Mxy, dims=1))
+        sig[sample, i] = sum(interpolated_coil_sens[:, i] .* Mxy)
     end
     return nothing
 end

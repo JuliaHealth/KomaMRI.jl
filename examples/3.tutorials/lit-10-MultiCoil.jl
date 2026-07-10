@@ -16,14 +16,18 @@ seq = @suppress read_seq(seq_file)
 
 birdcage = BirdcageCoilSens(ncoils=4, radius=0.20, L=0.30)
 
-coil_spread = 0.02f0 #hide
-coil_offset = 0.1f0 #hide
-coil1(x, y, z) = exp(-Float32(π) * (((x + coil_offset)^2 + y^2) / coil_spread)) * cis(Float32(π) * x / coil_offset) #hide
-coil2(x, y, z) = exp(-Float32(π) * (((x - coil_offset)^2 + y^2) / coil_spread)) * cis(-Float32(π) * x / coil_offset) #hide
-coil3(x, y, z) = exp(-Float32(π) * ((x^2 + (y + coil_offset)^2) / coil_spread)) * cis(Float32(π) * y / coil_offset) #hide
-coil4(x, y, z) = exp(-Float32(π) * ((x^2 + (y - coil_offset)^2) / coil_spread)) * cis(-Float32(π) * y / coil_offset) #hide
+coil_spread = 0.08f0 #hide
+coil_offset = 0.20f0 #hide
+coil1(x, y, z) = exp(-Float32(π) * (((x - coil_offset)^2 + y^2 + z^2) / coil_spread)) *
+    cis(angle(complex(-y, -(x - coil_offset)))) #hide
+coil2(x, y, z) = exp(-Float32(π) * ((x^2 + (y - coil_offset)^2 + z^2) / coil_spread)) *
+    cis(angle(complex(-(y - coil_offset), -x))) #hide
+coil3(x, y, z) = exp(-Float32(π) * (((x + coil_offset)^2 + y^2 + z^2) / coil_spread)) *
+    cis(angle(complex(-y, -(x + coil_offset)))) #hide
+coil4(x, y, z) = exp(-Float32(π) * ((x^2 + (y + coil_offset)^2 + z^2) / coil_spread)) *
+    cis(angle(complex(-(y + coil_offset), -x))) #hide
 
-coords = LinRange(-0.12f0, 0.12f0, 17) #hide
+coords = LinRange(-0.23f0, 0.23f0, 17) #hide
 zcoords = LinRange(-0.01f0, 0.01f0, 3) #hide
 coil_sens = cat( #hide
     [coil1(x, y, z) for x in coords, y in coords, z in zcoords],
