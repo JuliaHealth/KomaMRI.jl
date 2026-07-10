@@ -29,22 +29,34 @@ julia> obj = Phantom(x=[0.0])
 julia> obj.ρ
 ```
 """
-@with_kw mutable struct Phantom
+@with_kw mutable struct Phantom{
+    XV<:AbstractVector,
+    YV<:AbstractVector,
+    ZV<:AbstractVector,
+    ρV<:AbstractVector,
+    T1V<:AbstractVector,
+    T2V<:AbstractVector,
+    T2sV<:AbstractVector,
+    ΔwV<:AbstractVector,
+    Dλ1V<:AbstractVector,
+    Dλ2V<:AbstractVector,
+    DθV<:AbstractVector,
+}
     name::String          = "spins"
-    x::AbstractVector     = Float64[]
-    y::AbstractVector     = zeros(eltype(x), size(x))
-    z::AbstractVector     = zeros(eltype(x), size(x))
-    ρ::AbstractVector     = ones(eltype(x), size(x))
-    T1::AbstractVector    = ones(eltype(x), size(x)) * 1_000_000
-    T2::AbstractVector    = ones(eltype(x), size(x)) * 1_000_000
-    T2s::AbstractVector   = ones(eltype(x), size(x)) * 1_000_000
+    x::XV                  = Float64[]
+    y::YV                  = zeros(eltype(x), size(x))
+    z::ZV                  = zeros(eltype(x), size(x))
+    ρ::ρV                  = ones(eltype(x), size(x))
+    T1::T1V                = ones(eltype(x), size(x)) * 1_000_000
+    T2::T2V                = ones(eltype(x), size(x)) * 1_000_000
+    T2s::T2sV              = ones(eltype(x), size(x)) * 1_000_000
     #Off-resonance related
-    Δw::AbstractVector    = zeros(eltype(x), size(x))
+    Δw::ΔwV                = zeros(eltype(x), size(x))
     #χ::Vector{SusceptibilityModel}
     #Diffusion
-    Dλ1::AbstractVector   = zeros(eltype(x), size(x))
-    Dλ2::AbstractVector   = zeros(eltype(x), size(x))
-    Dθ::AbstractVector    = zeros(eltype(x), size(x))
+    Dλ1::Dλ1V              = zeros(eltype(x), size(x))
+    Dλ2::Dλ2V              = zeros(eltype(x), size(x))
+    Dθ::DθV                = zeros(eltype(x), size(x))
     #Diff::Vector{DiffusionModel}  #Diffusion map
     #Motion
     motion::Union{NoMotion, Motion, MotionList} = NoMotion()

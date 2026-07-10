@@ -3,10 +3,14 @@ include("PrecessionKernel.jl")
 include("ExcitationKernel.jl")
 
 """Stores preallocated arrays for use in Bloch GPU run_spin_precession! and run_spin_excitation! functions."""
-struct BlochGPUPrealloc <: PreallocResult
-    sig_output::AbstractMatrix
-    sig_output_final::AbstractMatrix
-    ΔBz::AbstractVector
+struct BlochGPUPrealloc{
+    SignalType<:AbstractMatrix,
+    ReducedSignalType<:AbstractMatrix,
+    OffResonanceType<:AbstractVector,
+} <: PreallocResult
+    sig_output::SignalType
+    sig_output_final::ReducedSignalType
+    ΔBz::OffResonanceType
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
@@ -18,7 +22,7 @@ function prealloc(
     max_block_length::Integer,
     groupsize
 ) where {SM<:BlochLikeSimMethods}
-    T = eltype(obj.x)
+    T = eltype(obj.ρ)
     return BlochGPUPrealloc(
         KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
         KA.zeros(backend, Complex{T}, 1, max_block_length),

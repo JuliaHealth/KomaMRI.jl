@@ -23,9 +23,9 @@ R V R^{*}``.
 # Returns
 - `spinor`: (`::Spinor`) Spinor struct
 """
-struct Spinor{V<:AbstractVector}
-	α::V
-	β::V
+struct Spinor{A<:AbstractVector,B<:AbstractVector}
+	α::A
+	β::B
 end
 Spinor(α::Complex, β::Complex) = Spinor([α], [β])
 Spinor(α::Real, β::Real) = Spinor([complex(α)], [complex(β)])
