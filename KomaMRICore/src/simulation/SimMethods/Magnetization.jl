@@ -42,16 +42,14 @@ function set_rotation_spinor!(α, β, θxy, θz)
     return nothing
 end
 
-calc_mag_norm!(norm, M::Mag) = _calc_mag_norm!(norm, M, Val(eltype(norm)))
-_calc_mag_norm!(norm, M::Mag, ::Val) = nothing
-function _calc_mag_norm!(norm, M::Mag, ::Val{Float32})
+calc_mag_norm!(norm, M::Mag) = nothing
+function calc_mag_norm!(norm::AbstractVector{Float32}, M::Mag)
     @. norm = sqrt(abs2(M.xy) + M.z^2)
     return nothing
 end
 
-restore_mag_norm!(norm, M::Mag) = _restore_mag_norm!(norm, M, Val(eltype(norm)))
-_restore_mag_norm!(norm, M::Mag, ::Val) = nothing
-function _restore_mag_norm!(norm, M::Mag, ::Val{Float32})
+restore_mag_norm!(norm, M::Mag) = nothing
+function restore_mag_norm!(norm::AbstractVector{Float32}, M::Mag)
     @. norm = norm / sqrt(abs2(M.xy) + M.z^2)
     @. M.xy = M.xy * norm
     @. M.z = M.z * norm
@@ -81,7 +79,7 @@ Parameter relations for the Shinnar-Le Roux selective excitation pulse design al
 (NMR imaging).
 IEEE Transactions on Medical Imaging, 10(1), 53-65. doi:10.1109/42.75611
 """
-@inline mul!(s::Spinor, M::Mag) = begin
+mul!(s::Spinor, M::Mag) = begin
     M_aux = Mag(
         2 .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
         (abs2.(s.α) .- abs2.(s.β)).*M.z .- 2 .*real.(s.α.*s.β.*conj.(M.xy))
