@@ -118,6 +118,21 @@ function run_spin_precession_parallel!(
     return nothing
 end
 
+function run_spin_precession_parallel!(
+    obj::Phantom{T},
+    seq,
+    sig::AbstractArray{Complex{T}},
+    Xt::SpinStateRepresentation{T},
+    sim_method::SimulationMethod,
+    groupsize::Integer,
+    backend::KA.GPU,
+    prealloc::PreallocResult;
+    Nthreads=1,
+) where {T<:Real}
+    run_spin_precession!(obj, seq, sig, Xt, sim_method, groupsize, backend, prealloc)
+    return nothing
+end
+
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
     seq,
@@ -138,6 +153,21 @@ function run_spin_excitation_parallel!(
         )
     end
 
+    return nothing
+end
+
+function run_spin_excitation_parallel!(
+    obj::Phantom{T},
+    seq,
+    sig::AbstractArray{Complex{T}},
+    Xt::SpinStateRepresentation{T},
+    sim_method::SimulationMethod,
+    groupsize::Integer,
+    backend::KA.GPU,
+    prealloc::PreallocResult;
+    Nthreads=1,
+) where {T<:Real}
+    run_spin_excitation!(obj, seq, sig, Xt, sim_method, groupsize, backend, prealloc)
     return nothing
 end
 
@@ -389,6 +419,9 @@ function simulate(
         @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
             pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points = Ndims[1]
     end
+    raw_kspace_task =
+        sim_params["return_type"] == "raw" && backend isa KA.GPU && Threads.nthreads() > 1 ?
+        Threads.@spawn(last(get_kspace(seq))) : nothing
     @maybe_time verbose ret = @timed run_sim_time_iter!(
         obj,
         seqd,
@@ -427,9 +460,16 @@ function simulate(
         sim_params_raw["sim_time_sec"] = ret.time
         sim_params_raw["allocations_bytes"] = ret.bytes
 
-        out = signal_to_raw_data(
-            sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw
-        )
+        out = if isnothing(raw_kspace_task)
+            signal_to_raw_data(
+                sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw
+            )
+        else
+            _signal_to_raw_data(
+                sig, seq, fetch(raw_kspace_task);
+                phantom_name=obj.name, sys=sys, sim_params=sim_params_raw
+            )
+        end
     end
     return out
 end
