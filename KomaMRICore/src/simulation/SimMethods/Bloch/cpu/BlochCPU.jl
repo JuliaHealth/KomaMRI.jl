@@ -55,6 +55,7 @@ function run_spin_precession!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys::Scanner,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
@@ -88,7 +89,7 @@ function run_spin_precession!(
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
             #Acquired signal
-            sig[sample] = sum(Mxy) 
+            KomaMRIBase.acquire_signal!(sig, sample, p, sys.receiver, Mxy)
             sample += 1
         end
         #Update simulation state
@@ -113,6 +114,7 @@ function run_spin_excitation!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys::Scanner,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
@@ -155,7 +157,7 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            sig[sample] = sum(M.xy) 
+            KomaMRIBase.acquire_signal!(sig, sample, p, sys.receiver, M.xy)
             sample += 1
         end
     end

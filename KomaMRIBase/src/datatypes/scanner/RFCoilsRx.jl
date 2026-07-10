@@ -3,7 +3,7 @@ abstract type AbstractReceiveSystem end
 struct UniformCoilSens <: AbstractReceiveSystem end
 
 const ComplexScalarOrArray{T} = Union{Complex{T}, AbstractArray{Complex{T}}} where {T}
-struct ArbitraryRFCoils{T,
+struct ArbitraryRFRxCoils{T,
                         T1 <: ComplexScalarOrArray{T},
                         T2 <: ComplexScalarOrArray{T}
                         } <: AbstractReceiveSystem 
@@ -22,6 +22,7 @@ end
 
 get_n_coils(::AbstractReceiveSystem) = 1
 get_n_coils(receiver::BirdcageCoilSens) = receiver.ncoils
+get_n_coils(receiver::ArbitraryRFRxCoils) = size(receiver.coil_sens, 4)
 
 function get_sens(receiver::BirdcageCoilSens, x, y, z)
     T = eltype(x)

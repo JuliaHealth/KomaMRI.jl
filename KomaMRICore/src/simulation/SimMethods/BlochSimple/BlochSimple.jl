@@ -52,7 +52,7 @@ function run_spin_precession!(
     outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
     outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     #Acquired signal
-    acquire_signal_precession!(sig, Mxy, seq, p.motion, x, y, z, sys.receiver)
+    KomaMRIBase.acquire_signal!(sig, nothing, p, sys.receiver, @view Mxy[:, findall(seq.ADC[2:end])])
     return nothing
 end
 
@@ -112,7 +112,7 @@ function run_spin_excitation!(
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            acquire_signal_excitation!(sig, sample, M, p.motion, x, y, z, sys.receiver)
+            KomaMRIBase.acquire_signal!(sig, sample, p, sys.receiver, M.xy)
             sample += 1
         end
     end
@@ -121,44 +121,3 @@ function run_spin_excitation!(
     @. M.xy = M.xy * cis(ψ_end)
     return nothing
 end
-
-function acquire_signal_precession!(sig, Mxy, seq, motion, x, y, z, ::UniformCoilSens)
-    sig .= @views transpose(sum(Mxy[:, findall(seq.ADC[2:end])]; dims=1))
-    return nothing
-end
-
-function acquire_signal_excitation!(sig, sample, M, motion, x, y, z, ::UniformCoilSens)
-    sig[sample, :] .= sum(M.xy) 
-    return nothing
-end
-
-function acquire_signal_precession!(sig, Mxy, seq, ::NoMotion, x, y, z, receiver::BirdcageCoilSens)
-    sig .= transpose(@view Mxy[:, findall(seq.ADC[2:end])]) * get_sens(receiver, x, y, z)
-    return nothing
-end
-
-function acquire_signal_precession!(sig, Mxy, seq, ::Union{Motion{T}, MotionList{T}}, 
-    x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatrix{T}, receiver::BirdcageCoilSens,
-) where {T<:Real}
-    adc = findall(seq.ADC[2:end])
-    for (sample, i) in pairs(adc)
-        @views sig[sample, :] .= transpose(get_sens(receiver, x[:, i], y[:, i], z[:, i])) * Mxy[:, i]
-    end
-    return nothing
-end
-
-function acquire_signal_excitation!(sig, sample, M, motion, x, y, z, receiver::BirdcageCoilSens)
-    sig[sample, :] .= transpose(get_sens(receiver, vec(x), vec(y), vec(z))) * M.xy
-    return nothing
-end
-
-# function acquire_signal!(sig, obj, M, sim_method::BlochSimple, sys.receiver::ArbitraryRFCoils)
-#     interpolated_coil_sens = similar(rf_coils.coil_sens, length(obj.x), size(rf_coils.coil_sens, 4))
-#     for i in 1:size(rf_coils.coil_sens, 4)
-#         base_itp = GriddedInterpolation((rf_coils.x, rf_coils.y, rf_coils.z), rf_coils.coil_sens[:,:,:,i], Gridded(Linear()))
-#         itp = extrapolate(base_itp, 0f0)
-#         interpolated_coil_sens[:,i] = itp.(sample.x, sample.y, sample.z)
-#         sig[:, i] .= transpose(sum(interpolated_coil_sens[:, i] .* M, dims=1))
-#     end
-#     return nothing
-# end
