@@ -11,6 +11,7 @@ function run_spin_excitation!(
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
     (; ωxy_m, ωz_m, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
+    (; neg_inv_T1, neg_inv_T2, E1) = prealloc.relaxation
     sample = 1
 
     ψ_start = seq.ψ[1]
@@ -33,8 +34,9 @@ function run_spin_excitation!(
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         restore_mag_norm!(rotation_norm, M) # For reduced float precision only.
 
-        @. M.xy = M.xy * exp(-Δt / p.T2)
-        @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
+        @. M.xy = M.xy * exp(Δt * neg_inv_T2)
+        @. E1 = exp(Δt * neg_inv_T1)
+        @. M.z = M.z * E1 + p.ρ * (T(1) - E1)
         outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
         if seq.ADC[i1]
             sig[sample] = sum(M.xy)

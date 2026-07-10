@@ -13,6 +13,7 @@ struct BlochMagnusLinCPUPrealloc{
     ΔBz::RV
     Maux_xy::CV
     Maux_z::RV
+    relaxation::RelaxationCPUPrealloc{T,RV}
 end
 
 prealloc(sim_method::BlochMagnusLin2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
@@ -23,6 +24,7 @@ prealloc(sim_method::BlochMagnusLin2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T
         similar(M.xy), similar(M.xy),
         off_resonance_buffer(obj),
         similar(M.xy), similar(M.z),
+        relaxation_prealloc(obj),
     )
 
 prealloc(sim_method::BlochMagnusLinComm2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
