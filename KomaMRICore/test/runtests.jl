@@ -401,6 +401,19 @@ end
     end
 end
 
+@testitem "Bloch CPU preallocation precision" tags=[:core, :nomotion] begin
+    import KernelAbstractions as KA
+
+    obj = Phantom(x=zeros(Float64, 5), ρ=ones(Float32, 5), Δw=zeros(Float64, 5))
+    M = Mag(zeros(ComplexF32, 5), copy(obj.ρ))
+    pre = KomaMRICore.prealloc(Bloch(), KA.CPU(), obj, M, 5, 1)
+
+    @test eltype(pre.Bz_old) === Float32
+    @test eltype(pre.Bz_new) === Float32
+    @test eltype(pre.ϕ) === Float32
+    @test eltype(pre.ΔBz) === Float32
+end
+
 @testitem "repeated single-spin FID" tags=[:core, :nomotion] begin
     rf = PulseDesigner.make_block_pulse(π / 2; duration=300e-6, delay=100e-6)
     adc = PulseDesigner.make_adc(4096; dwell=62.5e-6, delay=20e-6)

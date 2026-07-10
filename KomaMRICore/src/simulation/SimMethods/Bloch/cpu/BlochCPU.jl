@@ -28,7 +28,9 @@ end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
 function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom, M::Mag, max_block_length::Integer, groupsize)
-    T = eltype(obj.x)
+    T = eltype(obj.ρ)
+    ΔBz = similar(obj.ρ)
+    @. ΔBz = obj.Δw / T(2π * γ)
     return BlochCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -41,7 +43,7 @@ function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom, M::Mag, max_
             similar(M.xy),
             similar(M.xy)
         ),
-        obj.Δw ./ T(2π .* γ)
+        ΔBz
     )
 end
 
@@ -63,46 +65,66 @@ function run_spin_precession!(
     backend::KA.CPU,
     prealloc::PreallocResult
 )
-    T = eltype(p.ρ)
+    Base.@nospecialize p
+    return run_bloch_precession!(
+        p.motion, p.x, p.y, p.z, p.ρ, p.T1, p.T2, seq, sig, M, prealloc,
+    )
+end
+
+Base.@noinline function run_bloch_precession!(motion, x0, y0, z0, ρ, T1, T2, seq, sig, M, prealloc)
+    T = eltype(ρ)
     #Rename arrays
     Bz_old = prealloc.Bz_old
     Bz_new = prealloc.Bz_new
     ϕ = prealloc.ϕ
     Mxy = prealloc.M.xy
     ΔBz = prealloc.ΔBz
+    phase_scale = T(-π * γ)
     #Initialize
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
-    x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[1])
-    @. Bz_old = x * seq.Gx[1] + y * seq.Gy[1] + z * seq.Gz[1] + ΔBz
+    x, y, z = spin_coordinates(motion, x0, y0, z0, seq.t[1])
+    set_precession_field!(Bz_old, x, y, z, ΔBz, seq.Gx[1], seq.Gy[1], seq.Gz[1])
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        x, y, z = spin_coordinates(motion, x0, y0, z0, seq.t[i + 1])
         #Effective Field
-        @. Bz_new = x * seq.Gx[i + 1] + y * seq.Gy[i + 1] + z * seq.Gz[i + 1] + ΔBz
+        set_precession_field!(
+            Bz_new, x, y, z, ΔBz, seq.Gx[i + 1], seq.Gy[i + 1], seq.Gz[i + 1],
+        )
         #Rotation
-        @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[i]
+        accumulate_precession_phase!(ϕ, Bz_old, Bz_new, phase_scale, seq.Δt[i])
         block_time += seq.Δt[i]
         #Acquired Signal
         if seq.ADC[i + 1]
             #Update signal
-            @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
+            @. Mxy = exp(-block_time / T2) * M.xy * cis(ϕ)
             #Reset Spin-State (Magnetization). Only for FlowPath
-            outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
+            outflow_spin_reset!(Mxy, seq.t[i + 1], motion)
             #Acquired signal
             sig[sample] = sum(Mxy) 
             sample += 1
         end
         #Update simulation state
-        Bz_old .= Bz_new
+        Bz_old, Bz_new = Bz_new, Bz_old
     end
     #Final Spin-State
-    @. M.xy = M.xy * exp(-block_time / p.T2) * cis(ϕ)
-    @. M.z = M.z * exp(-block_time / p.T1) + p.ρ * (T(1) - exp(-block_time / p.T1))
+    @. M.xy = M.xy * exp(-block_time / T2) * cis(ϕ)
+    @. M.z = M.z * exp(-block_time / T1) + ρ * (T(1) - exp(-block_time / T1))
     #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M,  seq.t', motion; replace_by=ρ)
+    return nothing
+end
+
+Base.@noinline function set_precession_field!(Bz, x, y, z, ΔBz, Gx, Gy, Gz)
+    @. Bz = x * Gx + y * Gy + z * Gz + ΔBz
+    return nothing
+end
+
+Base.@noinline function accumulate_precession_phase!(ϕ, Bz_old, Bz_new, scale, Δt)
+    @. ϕ += (Bz_old + Bz_new) * scale * Δt
     return nothing
 end
 
@@ -122,7 +144,14 @@ function run_spin_excitation!(
     backend::KA.CPU,
     prealloc::BlochCPUPrealloc
 )
-    T = eltype(p.ρ)
+    Base.@nospecialize p
+    return run_bloch_excitation!(
+        p.motion, p.x, p.y, p.z, p.ρ, p.T1, p.T2, seq, sig, M, prealloc,
+    )
+end
+
+Base.@noinline function run_bloch_excitation!(motion, x0, y0, z0, ρ, T1, T2, seq, sig, M, prealloc)
+    T = eltype(ρ)
     #Rename arrays
     Bz = prealloc.Bz_old
     B = prealloc.Bz_new
@@ -132,6 +161,10 @@ function run_spin_excitation!(
     ΔBz = prealloc.ΔBz
     Maux_xy = prealloc.M.xy
     Maux_z = prealloc.M.z
+    γT = T(γ)
+    rotation_scale = T(-π * γ)
+    epsT = eps(T)
+    oneT = T(1)
     #Initialize
     sample = 1
     # Rotating frame -> RF frame
@@ -142,23 +175,30 @@ function run_spin_excitation!(
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i])
+        x, y, z = spin_coordinates(motion, x0, y0, z0, seq.t[i])
         #Effective field
         B1 = seq.B1[i]
-        @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        @. B = sqrt(abs2(B1) + Bz^2)
+        set_effective_field!(
+            Bz,
+            B,
+            x,
+            y,
+            z,
+            ΔBz,
+            seq.Gx[i],
+            seq.Gy[i],
+            seq.Gz[i],
+            seq.Δf[i],
+            B1,
+            γT,
+        )
         #Spinor Rotation
-        @. φ_half = T(-π * γ) * (B * seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
-        @. α = cos(φ_half)
-        @. B = sin(φ_half) / (B + (B == 0) * eps(T))
-        @. α -= complex(zero(Bz), Bz * B)
-        @. β = complex(imag(B1) * B, -real(B1) * B)
+        set_bloch_rotation!(φ_half, α, β, B, Bz, B1, seq.Δt[i], rotation_scale, epsT)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
-        @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
-        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
+        relax_spins!(M, seq.Δt[i], T1, T2, ρ, oneT)
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
+        outflow_spin_reset_at!(M, seq.t, i + 1, motion; replace_by=ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
             sig[sample] = sum(M.xy) 
@@ -170,5 +210,26 @@ function run_spin_excitation!(
     if !iszero(ψ_end)
         @. M.xy = M.xy * cis(ψ_end)
     end
+    return nothing
+end
+
+Base.@noinline function set_effective_field!(Bz, B, x, y, z, ΔBz, Gx, Gy, Gz, Δf, B1, γ)
+    @. Bz = Gx * x + Gy * y + Gz * z + ΔBz - Δf / γ
+    @. B = sqrt(abs2(B1) + Bz^2)
+    return nothing
+end
+
+Base.@noinline function set_bloch_rotation!(φ_half, α, β, B, Bz, B1, Δt, scale, ε)
+    @. φ_half = scale * (B * Δt)
+    @. α = cos(φ_half)
+    @. B = sin(φ_half) / (B + (B == 0) * ε)
+    @. α -= complex(zero(Bz), Bz * B)
+    @. β = complex(imag(B1) * B, -real(B1) * B)
+    return nothing
+end
+
+Base.@noinline function relax_spins!(M, Δt, T1, T2, ρ, oneT)
+    @. M.xy = M.xy * exp(-Δt / T2)
+    @. M.z = M.z * exp(-Δt / T1) + ρ * (oneT - exp(-Δt / T1))
     return nothing
 end

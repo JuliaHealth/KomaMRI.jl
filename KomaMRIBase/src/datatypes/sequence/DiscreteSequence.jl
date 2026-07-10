@@ -36,6 +36,7 @@ struct DiscreteSequence{
     ADCType<:AbstractVector{Bool},
     ExcitationType<:AbstractVector{Bool},
     tType<:AbstractVector,
+    ΔtType<:AbstractVector,
 }
     Gx::GxType
     Gy::GyType
@@ -46,7 +47,7 @@ struct DiscreteSequence{
     ADC::ADCType
     excitation_bool::ExcitationType
     t::tType
-    Δt::tType
+    Δt::ΔtType
 end
 
 # -- 0.2. Storage helpers ----------------------------------------------------
