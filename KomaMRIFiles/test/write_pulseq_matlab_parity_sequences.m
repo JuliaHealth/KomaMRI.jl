@@ -1,7 +1,6 @@
 pulseq_matlab = getenv('PULSEQ_MATLAB');
 seq_path = getenv('PULSEQ_MATLAB_SEQ');
 gamma = str2double(getenv('KOMA_GAMMA'));
-pulseq_python = getenv('PULSEQ_PYTHON');
 
 addpath(genpath(pulseq_matlab));
 sys = mr.opts('gamma', gamma, 'gradUnit', 'mT/m', 'maxGrad', 40, ...
@@ -67,24 +66,24 @@ rf = mr.makeGaussPulse(pi/2, sys, 'duration', 2e-3, 'bandwidth', 2e3, 'use', 'ex
 seq.addBlock(mr.makeGaussPulse(pi/2, sys, 'duration', 2.4e-3, 'bandwidth', 1.8e3, 'apodization', 0.2, 'centerpos', 0.43, 'dwell', 2e-6, 'freqOffset', 123, 'phaseOffset', 0.4, 'delay', 20e-6, 'use', 'excitation'));
 [rf, gz, gzr] = mr.makeGaussPulse(pi/2, sys, 'duration', 2e-3, 'bandwidth', 2e3, 'sliceThickness', 5e-3, 'use', 'excitation'); seq.addBlock(rf, gz); seq.addBlock(gzr);
 [rf, gz, gzr] = mr.makeGaussPulse(pi/2, sys, 'duration', 2e-3, 'bandwidth', 2e3, 'sliceThickness', 5e-3, 'maxGrad', gamma*30e-3, 'maxSlew', gamma*120, 'use', 'excitation'); seq.addBlock(rf, gz); seq.addBlock(gzr);
-rf = mr.makeSLRpulse(10*pi/180, 'system', sys, 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'filterType', 'pm', 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'filterType', 'min', 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'filterType', 'max', 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'filterType', 'ls', 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(pi/6, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(pi/6 + eps(pi/6), 'system', sys, 'duration', 5.6e-3, 'dwell', 8e-6, 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(-pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(pi, 'system', sys, 'duration', 4e-3, 'dwell', 100e-6, 'use', 'refocusing', 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(pi, 'system', sys, 'duration', 4.6e-3, 'dwell', 25e-6, 'use', 'inversion', 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(110*pi/180, 'system', sys, 'duration', 5.6e-3, 'dwell', 8e-6, 'use', 'saturation', 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'use', 'preparation', 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(80*pi/180, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'use', 'other', 'pythonCmd', pulseq_python); seq.addBlock(rf);
-rf = mr.makeSLRpulse(70*pi/180, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'use', 'undefined', 'pythonCmd', pulseq_python); seq.addBlock(rf);
+rf = mr.makeSLRpulse(10*pi/180, 'system', sys); seq.addBlock(rf);
+rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'filterType', 'pm'); seq.addBlock(rf);
+rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'filterType', 'min'); seq.addBlock(rf);
+rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'filterType', 'max'); seq.addBlock(rf);
+rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'filterType', 'ls'); seq.addBlock(rf);
+rf = mr.makeSLRpulse(pi/6, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6); seq.addBlock(rf);
+rf = mr.makeSLRpulse(pi/6 + eps(pi/6), 'system', sys, 'duration', 5.6e-3, 'dwell', 8e-6); seq.addBlock(rf);
+rf = mr.makeSLRpulse(-pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6); seq.addBlock(rf);
+rf = mr.makeSLRpulse(pi, 'system', sys, 'duration', 4e-3, 'dwell', 100e-6, 'use', 'refocusing'); seq.addBlock(rf);
+rf = mr.makeSLRpulse(pi, 'system', sys, 'duration', 4.6e-3, 'dwell', 25e-6, 'use', 'inversion'); seq.addBlock(rf);
+rf = mr.makeSLRpulse(110*pi/180, 'system', sys, 'duration', 5.6e-3, 'dwell', 8e-6, 'use', 'saturation'); seq.addBlock(rf);
+rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'use', 'preparation'); seq.addBlock(rf);
+rf = mr.makeSLRpulse(80*pi/180, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'use', 'other'); seq.addBlock(rf);
+rf = mr.makeSLRpulse(70*pi/180, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'use', 'undefined'); seq.addBlock(rf);
 % The half-sample duration requires block-raster rounding before write.
-rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 500.5*8e-6, 'dwell', 8e-6, 'pythonCmd', pulseq_python); seq.addBlock('roundUpBlockDuration', rf);
-[rf, gz, gzr] = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 5.6e-3, 'dwell', 8e-6, 'sliceThickness', 5e-3, 'pythonCmd', pulseq_python); seq.addBlock(rf, gz); seq.addBlock(gzr);
-[rf, gz, gzr] = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'timeBwProduct', 6, 'sliceThickness', 5e-3, 'freqOffset', 123, 'phaseOffset', 0.4, 'delay', 120e-6, 'maxGrad', gamma*30e-3, 'maxSlew', gamma*120, 'pythonCmd', pulseq_python); seq.addBlock(rf, gz); seq.addBlock(gzr);
+rf = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 500.5*8e-6, 'dwell', 8e-6); seq.addBlock('roundUpBlockDuration', rf);
+[rf, gz, gzr] = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 5.6e-3, 'dwell', 8e-6, 'sliceThickness', 5e-3); seq.addBlock(rf, gz); seq.addBlock(gzr);
+[rf, gz, gzr] = mr.makeSLRpulse(pi/2, 'system', sys, 'duration', 4e-3, 'dwell', 8e-6, 'timeBwProduct', 6, 'sliceThickness', 5e-3, 'freqOffset', 123, 'phaseOffset', 0.4, 'delay', 120e-6, 'maxGrad', gamma*30e-3, 'maxSlew', gamma*120); seq.addBlock(rf, gz); seq.addBlock(gzr);
 seq.addBlock(mr.makeAdc(16, sys, 'dwell', 1e-6));
 seq.addBlock(mr.makeAdc(16, sys, 'dwell', 1e-6, 'freqOffset', 77, 'phaseOffset', 0.2));
 seq.addBlock(mr.makeAdc(16, sys, 'duration', 16e-6));

@@ -51,9 +51,11 @@ jobs:
           enable-cache: true
           cache-dependency-glob: KomaMRIFiles/test/pulseq-python/uv.lock
       - name: Sync Pulseq SLR Python
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/pulseq-python
         run: |
           uv sync --locked --project KomaMRIFiles/test/pulseq-python
-          echo "PULSEQ_PYTHON=uv run --project $GITHUB_WORKSPACE/KomaMRIFiles/test/pulseq-python --no-sync python" >> "$GITHUB_ENV"
+          echo "$UV_PROJECT_ENVIRONMENT/bin" >> "$GITHUB_PATH"
       - name: Download latest Pulseq
         run: |
           curl -fsSL https://github.com/pulseq-admin/pulseq/archive/refs/heads/master.zip -o "$RUNNER_TEMP/pulseq.zip"
