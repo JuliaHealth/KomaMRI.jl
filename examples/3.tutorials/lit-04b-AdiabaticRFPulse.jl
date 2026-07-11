@@ -119,7 +119,8 @@ simulate(obj0, seq, sys; sim_params, callbacks=(record_traj,), verbose=false);
 
 function adiabatic_frame(p) #hide
     ωeff = (-real(p.B1), -imag(p.B1), p.Δf / γ) #hide
-    ω̂rf = ωeff ./ sqrt(sum(abs2, ωeff)) #hide
+    ωeff_norm = sqrt(sum(abs2, ωeff)) #hide
+    ω̂rf = iszero(ωeff_norm) ? zero.(ωeff) : ωeff ./ ωeff_norm #hide
     Mxy_rf = p.Mxy * cis(-p.ψ) #hide
     ω̂xy_rot = complex(ω̂rf[1], ω̂rf[2]) * cis(p.ψ) #hide
     return (; #hide
