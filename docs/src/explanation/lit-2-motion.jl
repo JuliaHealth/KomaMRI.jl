@@ -1,7 +1,7 @@
 # # Motion
 
 using KomaMRI #hide
-using PlotlyJS, Random #hide
+using PlotlyBase, Random #hide
 obj = brain_phantom2D(); #hide
 
 # Koma can easily simulate the effects of motion during acquisitions. 
@@ -231,7 +231,7 @@ p5 = plot_phantom_map(obj, :T1; time_samples=21, view_2d=true, height=440) #hide
 #jl display(p5);
 
 # The motion signals for this phantom are shown in the plot below, where you can see the translations in x and y, and the rotation around z over time.
-p6 = plot( #hide
+p6 = Plot( #hide
     (0:interval_dur:interval_dur*length(tra_x)) .* 1e3, #hide
     [cumsum([0, tra_x...]) * 1e3 cumsum([0, tra_y...]) * 1e3 cumsum([0, rot_z...])], #hide
     Layout( #hide

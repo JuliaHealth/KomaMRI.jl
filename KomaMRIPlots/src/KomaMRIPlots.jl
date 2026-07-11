@@ -1,14 +1,18 @@
 module KomaMRIPlots
 
 using KomaMRIBase
-using MAT, Interpolations, PlotlyJS
+using MAT, Interpolations, PlotlyBase
+import PlotlyKaleido
 using QMRIColors
 
 include("ui/PlotBackends.jl")
 include("ui/DisplayFunctions.jl")
 
-using Reexport
-@reexport using PlotlyJS: savefig
+"""Save a Plotly figure, starting Kaleido when needed."""
+function savefig(args...; kwargs...)
+    PlotlyKaleido.start()
+    return PlotlyKaleido.savefig(args...; kwargs...)
+end
 
 export plot_seq,
     plot_M0,
@@ -21,6 +25,7 @@ export plot_seq,
     plot_phantom_map,
     plot_signal,
     plot_image,
-    plot_dict
+    plot_dict,
+    savefig
 
 end

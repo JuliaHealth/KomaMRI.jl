@@ -6,7 +6,7 @@ layout: home
 hero:
   name: KomaMRI.jl
   text: Fast and Extensible MRI Simulation in Julia
-  tagline: Pulseq in, ISMRMRD out. Fast CPU and GPU simulation with a GUI, interactive PlotlyJS visualizations, and dynamic phantoms.
+  tagline: Pulseq in, ISMRMRD out. Fast CPU and GPU simulation with a GUI, interactive Plotly visualizations, and dynamic phantoms.
   image:
     light: /logo.svg
     dark: /logo-dark.svg
@@ -40,7 +40,7 @@ features:
 
   - icon: 🖥️
     title: Interactive GUI
-    details: Configure scanners, phantoms, and sequences in KomaUI. Explore results with interactive PlotlyJS visualizations.
+    details: Configure scanners, phantoms, and sequences in KomaUI. Explore results with interactive Plotly visualizations.
     link: /how-to/1-1-use-koma-ui
 
 ---

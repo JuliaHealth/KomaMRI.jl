@@ -190,7 +190,7 @@ We are going to consider the same setup as in the [Bloch() Method Example](#Bloc
 ```
 ```julia
 # Import modules
-using KomaMRI, PlotlyJS
+using KomaMRI, PlotlyBase
 
 # Define sequence
 ampRF = 2e-6                        # 2 uT RF amplitude

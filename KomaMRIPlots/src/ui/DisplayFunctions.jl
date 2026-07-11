@@ -31,12 +31,12 @@ function theme_chooser(darkmode)
 end
 
 function generate_seq_time_layout_config(
-    title, width, height, range, slider, show_seq_blocks, darkmode; T0, label_to_show=0, non_label_count=8
+    title, width, height, range, slider, show_seq_blocks, darkmode; T0, label_to_show=(), non_label_count=8
     )
 
     num_labels = length(label_to_show)
     # For dropdown, only update label traces, leave non-label traces unchanged
-    # PlotlyJS uses 0-based indices: label traces start at non_label_count (0-based)
+    # Plotly uses 0-based indices: label traces start at non_label_count (0-based)
     label_indices = [i-1 for i in (non_label_count+1):(non_label_count + num_labels)]
     buttons = [
         attr(
@@ -72,28 +72,21 @@ function generate_seq_time_layout_config(
             activecolor=plot_bgcolor,
         ),
         legend=attr(; orientation="h", yanchor="bottom", xanchor="left", y=1, x=0),
-        ####label
-
-        updatemenus = [        
-        if ~isempty(label_to_show)
+        updatemenus=isempty(label_to_show) ? [] : [
             attr(
-                type = "dropdown",
+                type="dropdown",
                 yref="paper",
                 xref="paper",
                 y=1,
+                yanchor="bottom",
                 x=-0.03,
                 align="middle",
                 orientation="h",
-
                 bgcolor="white",
                 color=text_color,
-                buttons = buttons
+                buttons=buttons,
             )
-        end
-    ],
-        
-        
-        ######
+        ],
         plot_bgcolor=plot_bgcolor,
         paper_bgcolor=bgcolor,
         xaxis_gridcolor=grid_color,
@@ -195,12 +188,12 @@ Plots a sequence struct.
 - `title`: (`::String`, `=""`) plot title
 - `freq_in_phase`: (`::Bool`, `=true`) Include FM modulation in RF phase
 - `show_rf_frame`: (`::Bool`, `=false`) plot RF rotating-frame phase
-- `gl`: (`::Bool`, `=false`) use `PlotlyJS.scattergl` backend (faster)
+- `gl`: (`::Bool`, `=false`) use the Plotly `scattergl` trace (faster)
 - `max_rf_samples`: (`::Integer`, `=100`) maximum number of RF samples
 - `show_adc`: (`::Bool`, `=false`) plot ADC samples with markers
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the Sequence struct
+- `p`: (`::PlotlyBase.Plot`) plot of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -238,9 +231,10 @@ function plot_seq(
     # Get the samples of the events in the sequence
     seq_samples = [get_samples(seq, i; freq_in_phase) for i in 1:length(seq)]
     stack_samples(name; amp=identity, time=identity) = (
-        A=reduce(vcat, [amp(getproperty(block, name).A); Inf] for block in seq_samples),
-        t=reduce(vcat, [time(getproperty(block, name).t); Inf] for block in seq_samples),
+        A=reduce(vcat, [amp(getproperty(block, name).A); missing] for block in seq_samples),
+        t=reduce(vcat, [time(getproperty(block, name).t); missing] for block in seq_samples),
     )
+    active(values, enabled) = enabled ? values : fill(missing, length(values))
     # Get block start times
     T0 = get_block_start_times(seq)
     # Get center times
@@ -276,12 +270,9 @@ function plot_seq(
     p = [scatter_fun() for _ in 1:(adc_idx + length(label_symbols))]
 
     # For GRADs
-    fgx = is_Gx_on(seq) ? 1.0 : Inf
-    fgy = is_Gy_on(seq) ? 1.0 : Inf
-    fgz = is_Gz_on(seq) ? 1.0 : Inf
     p[1] = scatter_fun(;
         x=gx.t * 1e3,
-        y=gx.A * 1e3 * fgx,
+        y=active(gx.A * 1e3, is_Gx_on(seq)),
         name=idx[1],
         hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
         xaxis=xaxis,
@@ -292,7 +283,7 @@ function plot_seq(
     )
     p[2] = scatter_fun(;
         x=gy.t * 1e3,
-        y=gy.A * 1e3 * fgy,
+        y=active(gy.A * 1e3, is_Gy_on(seq)),
         name=idx[2],
         hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
         xaxis=xaxis,
@@ -303,7 +294,7 @@ function plot_seq(
     )
     p[3] = scatter_fun(;
         x=gz.t * 1e3,
-        y=gz.A * 1e3 * fgz,
+        y=active(gz.A * 1e3, is_Gz_on(seq)),
         name=idx[3],
         hovertemplate="(%{x:.4f} ms, %{y:.2f} mT/m)",
         xaxis=xaxis,
@@ -314,18 +305,17 @@ function plot_seq(
     )
 
     # For RFs
-    frf = is_RF_on(seq) ? 1.0 : Inf
+    rf_on = is_RF_on(seq)
     for j in 1:O
         idx_rf = 3 + rf_trace_count * (j - 1)
         rf_wave = rf.A[:, j]
-        is_real_rf = all(x -> isinf(x) || isapprox(imag(x), 0; atol=eps()), rf_wave)
-        rf_amp = is_real_rf ? real.(rf_wave) : abs.(rf_wave)
-        rf_phase = is_real_rf ? zero.(real.(rf_wave)) : angle.(rf_wave)
-        rf_phase[isinf.(rf_amp)] .= Inf # Avoid weird jumps
+        is_real_rf = all(x -> ismissing(x) || isapprox(imag(x), 0; atol=eps()), rf_wave)
+        rf_amp = map(x -> ismissing(x) ? missing : (is_real_rf ? real(x) : abs(x)), rf_wave)
+        rf_phase = map(x -> ismissing(x) ? missing : (is_real_rf ? zero(real(x)) : angle(x)), rf_wave)
         # Plot RF
         p[idx_rf + 1] = scatter_fun(;
             x=rf.t * 1e3,
-            y=rf_amp * 1e6 * frf,
+            y=active(rf_amp * 1e6, rf_on),
             name="|B1|_AM",
             hovertemplate="(%{x:.4f} ms, %{y:.2f} μT)",
             xaxis=xaxis,
@@ -336,7 +326,7 @@ function plot_seq(
         )
         p[idx_rf + 2] = scatter_fun(;
             x=rf.t * 1e3,
-            y=rf_phase * frf,
+            y=active(rf_phase, rf_on),
             text=ones(size(rf.t)),
             name="∠B1_AM",
             hovertemplate="(%{x:.4f} ms, ∠B1: %{y:.4f} rad)",
@@ -351,7 +341,7 @@ function plot_seq(
         if !freq_in_phase
             p[center_idx] = scatter_fun(;
                 x=Δf.t * 1e3,
-                y=Δf.A[:, j] * 1e-3 * frf,
+                y=active(Δf.A[:, j] * 1e-3, rf_on),
                 text=ones(size(Δf.t)),
                 name="Δf_FM",
                 hovertemplate="(%{x:.4f} ms, Δf_FM: %{y:.4f} kHz)",
@@ -367,7 +357,7 @@ function plot_seq(
             if show_rf_frame
                 p[center_idx] = scatter_fun(;
                     x=ψ.t * 1e3,
-                    y=ψ.A[:, j] * frf,
+                    y=active(ψ.A[:, j], rf_on),
                     text=ones(size(ψ.t)),
                     name="ψ_FM",
                     hovertemplate="(%{x:.4f} ms, ψ_FM: %{y:.4f} rad)",
@@ -384,7 +374,7 @@ function plot_seq(
         end
         p[center_idx] = scatter_fun(;
             x=rf.ct * 1e3,
-            y=rf.cA * 1e6 * frf,
+            y=active(rf.cA * 1e6, rf_on),
             text=rf.cϕ,
             name="RF_center",
             hovertemplate="RF center: %{x:.4f} ms<br>|B1|: %{y:.2f} μT<br>∠B1: %{text:.2f} rad<extra></extra>",
@@ -399,10 +389,9 @@ function plot_seq(
     end
 
     # For ADCs
-    fa = is_ADC_on(seq) ? 1.0 : Inf
     p[adc_idx] = scatter_fun(;
         x=adc.t * 1e3,
-        y=adc.A * fa,
+        y=active(adc.A, is_ADC_on(seq)),
         name="ADC",
         hovertemplate="(%{x:.4f} ms, %{y:i})",
         xaxis=xaxis,
@@ -479,7 +468,7 @@ Plots the zero order moment (M0) of a Sequence struct.
 - `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M0 of the Sequence struct
+- `p`: (`::PlotlyBase.Plot`) plot of the moment M0 of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -566,7 +555,7 @@ Plots the first order moment (M1) of a Sequence struct.
 - `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M1 of the Sequence struct
+- `p`: (`::PlotlyBase.Plot`) plot of the moment M1 of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -653,7 +642,7 @@ Plots the second order moment (M2) of a Sequence struct.
 - `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the moment M2 of the Sequence struct
+- `p`: (`::PlotlyBase.Plot`) plot of the moment M2 of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -742,7 +731,7 @@ Plots the eddy currents of a Sequence struct.
 - `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the Eddy currents of the Sequence struct
+- `p`: (`::PlotlyBase.Plot`) plot of the Eddy currents of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -827,7 +816,7 @@ Plots the slew rate currents of a Sequence struct.
 - `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the slew rate currents of the Sequence struct
+- `p`: (`::PlotlyBase.Plot`) plot of the slew rate currents of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -904,7 +893,7 @@ Plots an image matrix.
 - `title`: (`::String`, `=""`) plot title
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the image matrix
+- `p`: (`::PlotlyBase.Plot`) plot of the image matrix
 """
 function plot_image(
     image;
@@ -979,7 +968,7 @@ Plots the k-space of a Sequence struct.
 - `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D kx/ky plot
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the k-space of the Sequence struct
+- `p`: (`::PlotlyBase.Plot`) plot of the k-space of the Sequence struct
 
 # Examples
 ```julia-repl
@@ -1177,7 +1166,7 @@ Plots a phantom map for a specific spin parameter given by `key`.
 - `time_samples`:(`::Int`, `=0`) intermediate time samples between motion `t_start` and `t_end`
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the phantom map for a specific spin parameter
+- `p`: (`::PlotlyBase.Plot`) plot of the phantom map for a specific spin parameter
 
 # References
 Colormaps from https://github.com/markgriswold/MRFColormaps
@@ -1457,7 +1446,7 @@ Plots a raw signal in ISMRMRD format.
 - `range`: (`::Vector{Real}`, `=[]`) time range to be displayed initially
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the raw signal
+- `p`: (`::PlotlyBase.Plot`) plot of the raw signal
 
 # Examples
 ```julia-repl
@@ -1500,7 +1489,7 @@ function plot_signal(
         append!(signal, p.data[:, 1]) #Just one coil
         #To generate gap
         append!(t, t[end])
-        append!(signal, [Inf + Inf * 1im])
+        push!(signal, missing)
     end
     #Show simulation blocks
     shapes = []
@@ -1674,7 +1663,7 @@ Plots a sampled sequence struct.
 - `freq_in_phase`: (`::Bool`, `=false`) fold RF frequency modulation into the complex RF waveform
 
 # Returns
-- `p`: (`::PlotlyJS.SyncPlot`) plot of the sampled Sequence struct
+- `p`: (`::PlotlyBase.Plot`) plot of the sampled Sequence struct
 
 # Examples
 ```julia-repl

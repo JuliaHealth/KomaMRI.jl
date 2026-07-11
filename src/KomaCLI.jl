@@ -279,8 +279,7 @@ function print_cli_versions()
 end
 
 function keep_app_open(w)
-    wait(w)
-    while Blink.active(w.content)
+    while !isnothing(w.session[]) && isopen(w.session[])
         sleep(0.2)
     end
     return nothing
@@ -313,9 +312,6 @@ end
 @setup_workload begin
     @compile_workload begin
         redirect_stderr(devnull) do
-            fields = [fieldnames(Phantom)[5:end-3]...]
-            button.(string.(fields))
-            filepicker(".seq (Pulseq)"; accept=".seq,.seqk")
             sys = setup_scanner()
             setup_sequence(sys)
             setup_phantom()

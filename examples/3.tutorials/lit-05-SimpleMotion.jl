@@ -1,7 +1,7 @@
 # # Patient's Motion During Acquisition
 
 using KomaMRI #hide
-using PlotlyJS, Suppressor #hide
+using PlotlyBase, Suppressor #hide
 sys = Scanner(); #hide
 
 # It can also be interesting to see the effect of the patient's motion during an MRI scan.
@@ -54,7 +54,7 @@ p2 = plot_image(abs.(image1[:, :, 1]); height=400) #hide
 # Since translations are rigid motions (``\boldsymbol{u}(\boldsymbol{x}, t)=\boldsymbol{u}(t)`` no position dependence), we can obtain the required displacements by calculating ``\boldsymbol{u}(\boldsymbol{x}=\boldsymbol{0},\ t=t_{\mathrm{adc}})``.
 sample_times = get_adc_sampling_times(seq1)
 displacements = hcat(get_spin_coords(obj.motion, [0.0], [0.0], [0.0], sample_times)...)
-p3 = plot( #hide
+p3 = Plot( #hide
     sample_times, #hide
     displacements .* 1e2, #hide
     Layout( #hide

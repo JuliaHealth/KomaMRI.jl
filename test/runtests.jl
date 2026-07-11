@@ -210,108 +210,94 @@ end
 end
 
 @testitem "KomaUI" tags=[:koma] begin
+    @testset "MAT export" begin
+        scanner = Scanner()
+        sequence = KomaMRI.setup_sequence(scanner)
+        phantom = KomaMRI.setup_phantom()
+        raw = KomaMRI.setup_raw()
+        image = ComplexF64[0 0; 0 0]
+        rec_params = Dict{Symbol,Any}(:reco => "direct")
 
-    using Blink
-    is_CI = Base.get_bool_env("CI", false)
+        dir = mktempdir()
+        message = KomaMRI.export_2_mat(sequence, phantom, scanner, raw, rec_params, image, dir; type="image")
+        @test readdir(dir) == ["data_image.mat"]
+        @test occursin("<b>Name:</b> data_image.mat", message)
 
-    @static if Sys.islinux()
-        KomaMRI.enable_unsafe_electron(!is_CI)
+        dir = mktempdir()
+        message = KomaMRI.export_2_mat(sequence, phantom, scanner, raw, rec_params, image, dir; type="sequence")
+        @test sort(readdir(dir)) == ["data_kspace.mat", "data_moments.mat", "data_sequence.mat"]
+        @test occursin("<b>Names:</b> data_sequence.mat, data_kspace.mat, data_moments.mat", message)
     end
 
-    # Unfortunately Blink does not work on macOS in GitHub's CI
-    # https://github.com/JuliaGizmos/Blink.jl/issues/325
-    if !(Sys.isapple() && is_CI)
-    # Opens UI
-    w = KomaUI(return_window=true)
-    @testset "Open UI" begin
-        @test "index" == @js w document.getElementById("content").dataset.content
+    @testset "Rendered desktop UI" begin
+        is_CI = Base.get_bool_env("CI", false)
+        if Sys.isapple() && is_CI
+            @test_skip "Electron windows are unavailable on macOS CI"
+        else
+            w = KomaUI(; return_window=true, sim=Dict{String,Any}("gpu" => false))
+            ui = KomaMRI
+            session = w.session[]
+            code(source) = ui.Bonito.JSCode(source)
+            value(source) = ui.Bonito.evaljs_value(session, code(source))
+            function wait_until(test; timeout=10)
+                start = time()
+                while !test()
+                    time() - start > timeout && return false
+                    sleep(0.05)
+                end
+                return true
+            end
+
+            try
+                @test value("document.querySelectorAll('.koma-nav-icon').length") >= 6
+                @test value("getComputedStyle(document.querySelector('.koma-nav-icon'), '::before').content !== 'none'")
+                @test value("document.querySelector('#seqfilepicker input[type=file]') !== null")
+                @test value("document.querySelector('#seqfilepicker .koma-file-name').textContent") == "epi.seq"
+
+                upload_name = "label_test_with_a_deliberately_long_filename.seq"
+                upload_data = read(
+                    joinpath(pkgdir(KomaMRI), "KomaMRIFiles", "test", "test_files", "pulseq", "basic_tests", "v1.4", "label_test.seq"),
+                )
+                data = join(upload_data, ',')
+                ui.Bonito.evaljs(session, code("""
+                    (() => {
+                        const input = document.querySelector('#seqfilepicker input[type=file]');
+                        const file = new File([new Uint8Array([$data])], $(repr(upload_name)));
+                        Object.defineProperty(input, 'files', {value: [file], configurable: true});
+                        input.dispatchEvent(new Event('change', {bubbles: true}));
+                    })()
+                """))
+                @test wait_until(() -> value("document.querySelector('#seqfilepicker .koma-file-name').title") == upload_name)
+                @test value("document.querySelector('#seqfilepicker .koma-file-name').textContent") == KomaMRI.display_filename(upload_name)
+                @test wait_until(() -> value("document.getElementById('toastTitle0').textContent.includes('...')"))
+                @test wait_until(() -> w.state[] == "sequence")
+                @test wait_until(() -> value("document.querySelector('.js-plotly-plot') !== null"))
+
+                value("document.getElementById('button_pulses_seq').click(); true")
+                @test wait_until(() -> w.state[] == "sequence")
+                @test wait_until(() -> value("document.querySelector('.js-plotly-plot') !== null"))
+                @test value("(() => { const plot = document.querySelector('.js-plotly-plot'); return Math.abs(plot.clientWidth - plot.parentElement.clientWidth) <= 1; })()")
+
+                ui.toast!(w, 0, "Loaded <b>epi.seq</b>", "Ready to <b>simulate</b>?")
+                @test wait_until(() -> value("document.getElementById('toastTitle0').innerHTML.includes('epi.seq')"))
+                @test value("document.getElementById('toastBody0').innerHTML.includes('simulate')")
+
+                ui.start_simulation_progress!(w)
+                @test value("document.getElementById('simulate!').disabled")
+                @test value("document.getElementById('simul_progress') !== null")
+                ui.finish_simulation_progress!(w)
+                @test !value("document.getElementById('simulate!').disabled")
+
+                seq_ui[] = PulseDesigner.EPI_example(; sys=sys_ui[])
+                @test wait_until(() -> w.state[] == "sequence")
+                @test wait_until(() -> value("document.querySelector('.js-plotly-plot') !== null"))
+
+                img_ui[] = reshape(ComplexF32[1, 0, 0, 1], 2, 2, 1)
+                @test wait_until(() -> w.state[] == "absi")
+                @test wait_until(() -> value("document.querySelector('.js-plotly-plot') !== null"))
+            finally
+                close(w)
+            end
+        end
     end
-
-    @testset "PulsesGUI" begin
-        @js w document.getElementById("button_pulses_seq").click()
-        @test "sequence" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_reload_seq").click()
-        @test "sequence" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_pulses_kspace").click()
-        @test "kspace" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_pulses_M0").click()
-        @test "m0" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_pulses_M1").click()
-        @test "m1" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_pulses_M2").click()
-        @test "m2" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "PhantomGUI" begin
-        @js w document.getElementById("button_phantom").click()
-        @test "phantom" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "ParamsGUI" begin
-        @js w document.getElementById("button_scanner").click()
-        @test "scanneparams" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_sim_params").click()
-        @test "simparams" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_rec_params").click()
-        @test "recparams" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "Simulation" begin
-        @js w document.getElementById("simulate!").click()
-        @test "sig" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "SignalGUI" begin
-        @js w document.getElementById("button_sig").click()
-        @test "sig" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "Reconstruction" begin
-        @js w document.getElementById("recon!").click()
-        @test "absi" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "ReconGUI" begin
-        @js w document.getElementById("button_reconstruction_absI").click()
-        @test "absi" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_reconstruction_angI").click()
-        @test "angi" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_reconstruction_absK").click()
-        @test "absk" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "ExportToMAT" begin
-        @js w document.getElementById("button_matfolder").click()
-        @test "matfolder" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfolderseq").click()
-        @test "matfolderseq" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfolderpha").click()
-        @test "matfolderpha" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfoldersca").click()
-        @test "matfoldersca" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfolderraw").click()
-        @test "matfolderraw" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfolderima").click()
-        @test "matfolderima" == @js w document.getElementById("content").dataset.content
-    end
-
-    if !isnothing(w)
-        close(w)
-    end
-
-    end # if !(Sys.isapple() && is_CI)
 end

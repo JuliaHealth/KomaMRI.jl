@@ -6,9 +6,11 @@ using Reexport
 @reexport using KomaMRIFiles
 @reexport using KomaMRIPlots
 
-# GUI
-using Blink, Interact, AssetRegistry
-using Blink.Sockets: @ip_str
+using Bonito
+import Electron
+import MsgPack
+import PlotlyBase
+using Observables: Observable, clear
 using MAT
 
 # Reconstruction
@@ -19,10 +21,9 @@ include("reconstruction/Recon.jl")
 using MRIReco
 @reexport using MRIReco: reconstruction
 
-#GUI
+# UI
 include("ui/ExportMATFunctions.jl")
-include("ui/ExportUIFunctions.jl")
-include("callbacks/ui_progress_callback.jl")
+include("ui/UIDefaults.jl")
 include("KomaUI.jl")
 include("KomaCLI.jl")
 @static if VERSION >= v"1.12"
@@ -30,7 +31,7 @@ include("KomaCLI.jl")
 end
 
 # Export the UI and the observables
-export KomaUI
+export KomaUI, KomaWindow
 export sys_ui, seq_ui, obj_ui, raw_ui, img_ui
 
 end

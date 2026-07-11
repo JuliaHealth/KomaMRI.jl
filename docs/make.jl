@@ -10,7 +10,7 @@ lit_pattern = "lit-"
 plu_pattern = "pluto-"
 gen_pattern = "gen-"
 include("utils.jl")
-include("EmbeddPlotlyJSSyncPlotLiterate.jl")
+include("EmbedPlotlyBaseLiterate.jl")
 
 # Documentation folders KomaMRI.jl/docs/
 doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")

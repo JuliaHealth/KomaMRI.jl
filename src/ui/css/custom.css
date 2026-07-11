@@ -7,7 +7,6 @@
   overflow: hidden;
 } 
 
-/* Ulma theme (Interact) is overwritting hr style */
 hr {
   height: 1px!important;
   margin: 1rem 0!important;
@@ -17,53 +16,160 @@ hr {
   opacity: .25!important;
 }
 
-/* Ulma theme (Interact) is overwritting text style */
 body, button{
   font-family: var(--bs-font-sans-serif) !important;
 }
 
-/* Interact buttons */
-.button.is-primary{
-  background-color:#212529!important;
-  font-size: .875rem!important;
+.koma-sidebar {
+  flex: 0 0 200px;
+  width: 200px;
+  min-width: 200px;
 }
 
-/* Interact filepicker button */
-.file-cta{
-  padding: 5px!important;
-  background-color: transparent!important;
-  border-color: transparent!important;
-  color: #f8f9fa!important;
-  margin-right: 5px!important;
-  cursor: pointer !important;;
-}
-.file-cta:hover{color:#f8f9fa;background-color:#52575c!important;border-color:#52575c!important}
-.file-cta:focus{color:#f8f9fa;background-color:#52575c!important;border-color:#52575c!important;box-shadow:0 0 0 .25rem rgba(49,132,253,.5)!important}
-
-/* Interact filepicker name */
-.file-name{
-  padding: 5px!important;
-  border-color:#343a40!important;
-  color:  #868888!important;
-  background-color: #343a40!important;
-  vertical-align: middle!important;
+.koma-logo {
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
-/* Interact filepicker button */
-.webio-scope>button{
-  padding: 5px!important;
-  background-color: transparent!important;
-  border-color: transparent!important;
-  color: #f8f9fa!important;
-  margin-right: 5px!important;
-  cursor: pointer !important;
-  font-size: 0.875rem!important;
+.koma-logo input {
+  max-width: 100%;
+  max-height: 100%;
 }
-.webio-scope>button:hover{color:#f8f9fa;background-color:#52575c!important;border-color:#52575c!important}
-.webio-scope>button:focus{color:#f8f9fa;background-color:#52575c!important;border-color:#52575c!important;box-shadow:0 0 0 .25rem rgba(49,132,253,.5)!important}
 
+.koma-nav-link {
+  display: grid !important;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 1.5rem;
+  align-items: center;
+  column-gap: 0.5rem;
+  width: 100%;
+}
 
-/* Interact dropdown button  style*/
+.koma-nav-link::after {
+  justify-self: end;
+  margin-left: 0 !important;
+}
+
+.koma-nav-icon {
+  justify-self: start;
+}
+
+.koma-nav-label {
+  min-width: 0;
+  justify-self: start;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.koma-sidebar-divider {
+  width: 100%;
+  margin: 16px 0 !important;
+  color: #6c757d !important;
+  opacity: 0.25 !important;
+}
+
+#main > :last-child {
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 0;
+  height: 100vh;
+}
+
+#main > :last-child > .bonito-fragment,
+#main > :last-child > .bonito-fragment > div:last-child,
+.koma-content {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.koma-content {
+  max-width: none;
+  padding: 0;
+}
+
+.koma-table-view {
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  overflow: auto;
+  color: #e9ecef;
+}
+
+.koma-table-title {
+  padding: 0 0 12px;
+  color: #f8f9fa;
+}
+
+.koma-table-view .table {
+  margin: 0;
+  border: 1px solid #495057;
+  color: #dee2e6;
+}
+
+.koma-table-view .table > :not(caption) > * > * {
+  padding: 0.75rem 1rem;
+  color: #dee2e6 !important;
+  border-bottom-color: #495057;
+}
+
+.koma-table-view .table thead th {
+  color: #ffffff !important;
+  background-color: #343a40;
+}
+
+.koma-table-view .table tbody th {
+  color: #f8f9fa !important;
+}
+
+.koma-plot-stack {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.koma-plot-stack > :last-child {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.koma-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  height: 100%;
+  color: #929292;
+}
+
+.koma-loading-spinner {
+  flex: none;
+  width: 150px;
+  height: 150px;
+  border: 8px solid transparent;
+  border-top-color: #2a7fb8;
+  border-right-color: #2a7fb8;
+  border-radius: 50%;
+  animation: koma-spin 1s linear infinite;
+}
+
+.koma-loading-message {
+  margin: 0;
+  text-align: center;
+}
+
+@keyframes koma-spin {
+  to { transform: rotate(360deg); }
+}
+
 .dropdown-interact{
   display:block;
   width:100%;
@@ -79,33 +185,87 @@ body, button{
   font-size: 0.875rem;
 }
 
+.file-dropdown-menu {
+  max-width: 260px;
+}
+
+.file-dropdown-menu .seq-filepicker-row {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.file-dropdown-menu .koma-file-input {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .seq-filepicker-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 6px;
+  width: auto;
 }
 
-.seq-filepicker-row .field.interact-widget {
-  margin-bottom: 0;
+.koma-file-input,
+.seq-filepicker-row .seq-reload-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 0.25rem !important;
+  color: #f8f9fa !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25 !important;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.koma-file-input {
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: auto;
+  min-width: 9rem;
+  background-color: #2a7fb8 !important;
+  border-color: #3890ca !important;
+}
+
+#seqfilepicker {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.koma-file-name {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .seq-filepicker-row .seq-reload-button {
   padding: 5px 8px !important;
-  background-color: transparent !important;
-  border-color: transparent !important;
-  color: #f8f9fa !important;
-  font-size: 0.875rem !important;
-  line-height: 1.25 !important;
-  border-radius: 0.25rem !important;
+  background-color: #495057 !important;
+  border-color: #5c636a !important;
+}
+
+.koma-file-input:hover,
+.koma-file-input:focus {
+  background-color: #358fc9 !important;
+  border-color: #4ba0d7 !important;
 }
 
 .seq-filepicker-row .seq-reload-button:hover,
 .seq-filepicker-row .seq-reload-button:focus {
-  background-color: #52575c !important;
-  border-color: #52575c !important;
+  background-color: #5c636a !important;
+  border-color: #6c757d !important;
 }
 
-/* So Ulma does not overwrite h1 */
 h1 {
   font-size: 2.5rem!important;
   margin-bottom: .5rem!important;
@@ -168,15 +328,6 @@ div.topsep, plot-containter {
   box-shadow: none;
 }
 
-/*INTERACT LABEL*/
-label.interact{
-  color: #868888;
-}
-
-.interact-flex-row-right>p{
-  color: #868888;
-}
-
 td, th, tr{
   color: #868888!important;
 }
@@ -200,10 +351,12 @@ abbr[title] {
   text-decoration: none;
 }
 
-.iconkoma {
-  color: #c7c8c9;
+.koma-sidebar a.koma-nav-link.iconkoma {
+  color: #d5d7da;
 }
 
-.iconkoma:hover {
+.koma-sidebar a.koma-nav-link.iconkoma:hover,
+.koma-sidebar a.koma-nav-link.iconkoma.active,
+.koma-sidebar a.koma-nav-link.iconkoma[aria-current="page"] {
   color: #ffffff;
 }

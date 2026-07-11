@@ -100,11 +100,4 @@ plot_seq(seq; slider=false, height=300)
 ```
 
 
-This should be sufficient, and now you can start working with **KomaMRI** using **Jupyter** notebooks.
-
-If you encounter the issue of **WebIO** not being detected:
-```@raw html
-<center><img src="../assets/jupyter-webio-problem.png" alt="" style="width:75%;"></center>
-```
-
-Refer to [this IJulia documentation](https://juliagizmos.github.io/WebIO.jl/latest/providers/ijulia/) and [this troubleshooting guide](https://juliagizmos.github.io/WebIO.jl/stable/troubleshooting/not-detected/) for details. Essentially, you need to install a **WebIO** extension depending on your **Jupyter** installation.
+This should be sufficient, and now you can start working with **KomaMRI** using **Jupyter** notebooks. Plotly figures use the notebook's standard HTML display and require no WebIO extension.

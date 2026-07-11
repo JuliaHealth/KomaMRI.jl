@@ -1,347 +1,384 @@
-"""
-Returns the blink window with some custom styles and js logic.
-"""
-function setup_blink_window(; darkmode=true, frame=true, dev_tools=false, show_window=true)
+struct BonitoWindow <: KomaWindow
+    app::App
+    display::Base.RefValue{Any}
+    session::Base.RefValue{Union{Nothing,Session}}
+    content::Observable{Any}
+    state::Observable{String}
+    events::Observable{String}
+    home::Base.RefValue{Any}
+    handlers::Dict{String,Function}
+    on_render::Vector{Function}
+    window_options::Dict{String,Any}
+    dev_tools::Bool
+end
+
+function page_content(content, state)
+    return DOM.div(
+        content;
+        id="content",
+        class="koma-content",
+        dataContent=state,
+    )
+end
+
+function set_content!(w::BonitoWindow, content, state)
+    w.state[] = state
+    w.content[] = page_content(content, state)
+    evaljs(w, js"""(() => {
+        const section = {
+            sequence: 'pulses', kspace: 'pulses', m0: 'pulses', m1: 'pulses', m2: 'pulses',
+            phantom: 'phantom', scanneparams: 'scanner', sig: 'sig',
+            absi: 'recon', angi: 'recon', absk: 'recon'
+        }[$(state)];
+        if ($(state) === 'loading') return;
+        document.querySelectorAll('.koma-nav-link[aria-current="page"]')
+            .forEach(link => link.removeAttribute('aria-current'));
+        if (!section) return;
+        document.querySelector('#' + section + ' > .koma-nav-link')
+            ?.setAttribute('aria-current', 'page');
+    })()""")
+    return content
+end
+
+function evaljs(w::BonitoWindow, code)
+    isnothing(w.session[]) && return nothing
+    return Bonito.evaljs(w.session[], code)
+end
+
+function handle(callback::Function, w::BonitoWindow, event::String)
+    w.handlers[event] = callback
+    return nothing
+end
+
+function show!(w::BonitoWindow)
+    display = Bonito.use_electron_display(; options=w.window_options, devtools=w.dev_tools)
+    w.display[] = display
+    Base.display(display, w.app)
+    return w
+end
+
+function Base.close(w::BonitoWindow)
+    isnothing(w.session[]) || close(w.session[])
+    if !isnothing(w.display[])
+        display = w.display[]
+        popdisplay(display)
+        close(display)
+        w.display[] = nothing
+    end
+    return nothing
+end
+
+function asset_stylesheet(session, filename)
+    css = replace(read(filename, String), r"url\(([^)]+)\)" => expression -> begin
+        match = Base.match(r"url\(([^)]+)\)", expression)
+        reference = strip(only(match.captures), ['\'', '"'])
+        path = first(split(reference, '?'))
+        if startswith(path, "data:") || occursin("://", path)
+            expression
+        else
+            asset = Asset(normpath(joinpath(dirname(filename), path)))
+            "url(\"$(Bonito.url(session, asset))\")"
+        end
+    end)
+    return DOM.style(css)
+end
+
+function home_page(image)
+    return DOM.div(
+        DOM.div(
+            DOM.div(; class="mb-auto"),
+            DOM.div(
+                DOM.h1("Welcome to Koma!"),
+                DOM.p(
+                    "KomaMRI.jl is a Julia package to simulate Magnetic Resonance Imaging (MRI) acquisitions. The main focus of this package is to simulate general scenarios that could arise in pulse sequence development.";
+                    class="lead",
+                    style="padding:32px clamp(24px,8%,128px);",
+                ),
+                DOM.img(; src=image, alt="Icon", style="padding:32px 128px;width:326px;");
+                class="mt-auto text-white-75",
+            ),
+            DOM.footer(
+                DOM.p(
+                    "Koma was developed by ",
+                    DOM.a(
+                        DOM.u("Carlos Castillo-Passi");
+                        target="_blank",
+                        href="https://github.com/cncastillo",
+                        style="color:#2a7fb8;",
+                    ),
+                    ", et al.";
+                    style="padding-bottom:10px;",
+                ),
+                DOM.p(
+                    "Cite us ",
+                    DOM.a(
+                        DOM.u("doi:10.1002/mrm.29635");
+                        target="_blank",
+                        href="https://onlinelibrary.wiley.com/doi/10.1002/mrm.29635",
+                        style="color:#2a7fb8;",
+                    );
+                    style="padding-bottom:10px;",
+                ),
+                DOM.p("Thanks to all our contributors!"; class="text-white mb-1"),
+                DOM.a(
+                    DOM.img(
+                        ;
+                        src="https://contrib.rocks/image?repo=cncastillo/KomaMRI.jl",
+                        style="height:60px;",
+                    );
+                    href="https://github.com/cncastillo/KomaMRI.jl/graphs/contributors",
+                );
+                class="mt-auto text-white-50",
+            );
+            class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column mask",
+        );
+        class="d-flex h-100 text-center text-white bg-image",
+    )
+end
+
+table_entries(values) = values
+table_entries(values::AbstractDict) = sort!(collect(values); by=pair -> string(first(pair)))
+
+function dictionary_page(values, title)
+    rows = map(enumerate(table_entries(values))) do (index, (name, value))
+        DOM.tr(
+            DOM.th(string(index); scope="row"),
+            DOM.td(string(name)),
+            DOM.td(string(value)),
+        )
+    end
+    return DOM.div(
+        DOM.h1(title; class="koma-table-title"),
+        DOM.table(
+            DOM.thead(
+                DOM.tr(
+                    DOM.th("#"; scope="col"),
+                    DOM.th("Name"; scope="col"),
+                    DOM.th("Value"; scope="col"),
+                ),
+            ),
+            DOM.tbody(rows...),
+            class="table table-dark table-striped",
+        ),
+        class="koma-table-view",
+    )
+end
+
+function setup_bonito_window(; darkmode=true, frame=true, dev_tools=false, versions="")
     komamri_src_ui = @__DIR__
     komamri_root = dirname(dirname(komamri_src_ui))
-    app_icon = komamri_root * "/assets/app-icon.png"
-    ## WINDOW
-    w = Blink.Window(
-        Dict(
-            "title" => "KomaUI",
-            "autoHideMenuBar" => true,
-            "frame" => frame, #removes title bar
-            "node-integration" => true,
-            :icon => app_icon,
-            "width" => 1200,
-            "height" => 800,
-            :show => show_window,
-        );
-        async=true,
+    scripts = joinpath(komamri_src_ui, "scripts")
+    css = joinpath(komamri_src_ui, "css")
+
+    style_assets = Asset.([
+        joinpath(css, "bootstrap.min.css"),
+        joinpath(css, "custom.css"),
+        joinpath(css, "sidebars.css"),
+    ])
+    font_stylesheets = [
+        joinpath(css, "bootstrap-icons.css"),
+        joinpath(css, "katex.min.css"),
+        joinpath(css, "icons.css"),
+    ]
+    script_assets = Asset.([
+        joinpath(scripts, "custom.js"),
+        joinpath(scripts, "bootstrap.bundle.min.js"),
+        joinpath(scripts, "katex.min.js"),
+        joinpath(scripts, "auto-render.min.js"),
+    ])
+
+    display_ref = Ref{Any}(nothing)
+    session_ref = Ref{Union{Nothing,Session}}(nothing)
+    content = Observable{Any}(DOM.div())
+    state = Observable("index")
+    events = Observable("")
+    home = Ref{Any}(DOM.div())
+    handlers = Dict{String,Function}()
+    render_callbacks = Function[]
+    on(events) do event
+        callback = get(handlers, event, nothing)
+        isnothing(callback) || callback(event)
+        return nothing
+    end
+
+    app = App(; title="KomaUI") do session
+        session_ref[] = session
+        font_styles = asset_stylesheet.(Ref(session), font_stylesheets)
+        logo = Bonito.url(session, Asset(joinpath(komamri_root, "assets", "logo-dark.svg")))
+        home_image = Bonito.url(session, Asset(joinpath(komamri_root, "assets", "home-image.svg")))
+
+        sidebar = read(joinpath(komamri_src_ui, "html", "sidebar.html"), String)
+        sidebar = replace(
+            sidebar,
+            "LOGO" => string(logo),
+            "title=\"Hooray!\"" => "title=\"$(replace(versions, '\n' => "&#10;"))\"",
+        )
+        home[] = home_page(home_image)
+        state[] = "index"
+        content[] = page_content(home[], "index")
+
+        event_bridge = js"document.title = 'KomaUI'; window.KomaUI = {notify: name => $(events).notify(name)};"
+        Bonito.on_document_load(session, js"renderMathInElement(document.body);")
+        foreach(callback -> callback(session), render_callbacks)
+        background = darkmode ? "background-color:rgb(13,16,17);" : ""
+        main = DOM.main(
+            DOM.div_unesc(sidebar),
+            content,
+            event_bridge;
+            id="main",
+            style=background,
+        )
+        return DOM.div(style_assets..., font_styles..., script_assets..., main)
+    end
+
+    window_options = Dict{String,Any}(
+        "title" => "KomaUI",
+        "autoHideMenuBar" => true,
+        "frame" => frame,
+        "icon" => joinpath(komamri_root, "assets", "app-icon.png"),
+        "width" => 1200,
+        "height" => 800,
     )
-
-    # Asset folders
-    assets = AssetRegistry.register(komamri_root * "/assets/")
-    scripts = AssetRegistry.register(komamri_src_ui * "/scripts/")
-    css = AssetRegistry.register(komamri_src_ui * "/css/")
-    # Images
-    logo = joinpath(assets, "logo-dark.svg")
-    home_image = joinpath(assets, "home-image.svg")
-    # JS
-    bsjs = joinpath(scripts, "bootstrap.bundle.min.js") #this already has Popper
-    bscss = joinpath(css, "bootstrap.min.css")
-    bsiconcss = joinpath(css, "bootstrap-icons.css")
-    jquery = joinpath(scripts, "jquery-3.4.1.slim.min.js")
-    # mathjaxsetup = joinpath(scripts, "mathjaxsetup.js")
-    # KaTeX
-    katexrender = joinpath(scripts, "auto-render.min.js")
-    katexjs = joinpath(scripts, "katex.min.js")
-    katexcss = joinpath(css, "katex.min.css")
-    # User defined JS and CSS
-    customcss = joinpath(css, "custom.css")
-    customjs = joinpath(scripts, "custom.js")
-    sidebarcss = joinpath(css, "sidebars.css")
-    # Custom icons
-    icons = joinpath(css, "icons.css")
-    
-    ## NAV BAR
-    sidebar = open(f -> read(f, String), komamri_src_ui * "/html/sidebar.html")
-    sidebar = replace(sidebar, "LOGO" => logo)
-    if darkmode
-        sidebar = replace(sidebar, "<main id=\"main\">" => "<main id=\"main\" style=\"background-color:rgb(13,16,17);\">")
-    end
-    ## CONTENT
-    index = open(f -> read(f, String), komamri_src_ui * "/html/index.html")
-    index = replace(index, "ICON" => home_image)
-
-    wait(w)
-    @sync begin
-        ## CSS
-        loadcss!(w, bscss)
-        loadcss!(w, bsiconcss)
-        loadcss!(w, customcss)
-        loadcss!(w, sidebarcss)
-        # KATEX
-        loadcss!(w, katexcss)
-        loadjs!(w, katexjs)
-        loadjs!(w, katexrender)
-        # JQUERY, BOOSTRAP JS
-        loadjs!(w, customjs)    #must be before jquery
-        loadjs!(w, jquery)
-        loadjs!(w, bsjs)        #after jquery
-        # LOAD ICONS
-        loadcss!(w, icons)
-    end
-
-    #Update GUI's home
-    body!(w, *(sidebar, index); async=false, fade=false)
-    # Return the Blink window
-    if dev_tools
-        Blink.tools(w)
-    end
-    return w, index
+    return BonitoWindow(
+        app,
+        display_ref,
+        session_ref,
+        content,
+        state,
+        events,
+        home,
+        handlers,
+        render_callbacks,
+        window_options,
+        dev_tools,
+    )
 end
 
-"""
-Returns the default scanner used by the UI.
-"""
-function setup_scanner()
-    sys = Scanner()
-
-    # Return the default Scanner struct
-    return sys
+function display_loading!(w::BonitoWindow, msg::String)
+    loading = DOM.div(
+        DOM.div(; class="koma-loading-spinner", role="status"),
+        DOM.div(msg; id="loaddes", class="koma-loading-message");
+        class="koma-loading",
+    )
+    return set_content!(w, loading, "loading")
 end
 
-"""
-Returns the default sequence used by the UI.
-"""
-function setup_sequence(sys::Scanner)
-    seq = PulseDesigner.EPI_example(; sys)
+function toast!(w::BonitoWindow, id, title, body)
+    title_bytes = collect(codeunits(title))
+    body_bytes = collect(codeunits(body))
+    return evaljs(w, js"""
+        const showToast = () => {
+            if (typeof Toasty !== 'function') return requestAnimationFrame(showToast);
+            const decode = bytes => new TextDecoder().decode(new Uint8Array(bytes));
+            Toasty($(string(id)), decode($(title_bytes)), decode($(body_bytes)));
+        };
+        showToast();
+    """)
+end
 
-    # Return the default Sequence struct
+function update_filename!(w, id, name)
+    return evaljs(w, js"""
+        const current = document.getElementById($(id));
+        const label = document.createElement('abbr');
+        label.title = $(name);
+        label.textContent = $(name);
+        current.replaceChildren(label);
+    """)
+end
+
+function loaded_data_toast(w, name, view, next, noun)
+    short_name = replace(display_filename(name, MAX_TOAST_FILENAME_CHARS), '&' => "&amp;", '<' => "&lt;", '>' => "&gt;")
+    full_name = replace(name, '&' => "&amp;", '<' => "&lt;", '>' => "&gt;", '"' => "&quot;")
+    body = """
+    <ul class="list-unstyled mb-0">
+        <li>
+            <button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View $noun" aria-label="View $noun" onclick="KomaUI.notify('$view')"><i class="bi bi-search"></i></button>
+            Updating <b>$noun</b> plots ...
+        </li>
+        <li>
+            <button type="button" class="btn btn-primary btn-circle btn-circle-sm m-1" title="$next" aria-label="$next" onclick="KomaUI.notify('$next')"><i class="bi bi-caret-right-fill"></i></button>
+            Ready to <b>$next</b>?
+        </li>
+    </ul>
+    """
+    return toast!(w, 0, "Loaded <b title=\"$full_name\">$short_name</b>", body)
+end
+
+function callback_filepicker(filename::String, w::BonitoWindow, seq::Sequence)
+    ext = splitext(filename)[2]
+    if ext == ".seqk"
+        seq = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(filename), "seq")
+    elseif ext == ".seq"
+        seq = read_seq(filename)
+    end
+    name = basename(filename)
+    update_filename!(w, "seqname", name)
+    loaded_data_toast(w, name, "pulses_seq", "simulate", "Sequence")
     return seq
 end
 
-"""
-Returns the default phantom used by the UI.
-"""
-function setup_phantom(; phantom_mode="2D")
-    obj = phantom_mode == "3D" ? brain_phantom3D() : brain_phantom2D()
-    obj.Δw .= 0 # Removes off-resonance
-
-    # Return the default Phantom struct
+function callback_filepicker(filename::String, w::BonitoWindow, obj::Phantom)
+    ext = splitext(filename)[2]
+    if ext == ".phantom"
+        obj = read_phantom(filename)
+    elseif ext == ".h5"
+        obj = read_phantom_jemris(filename)
+    end
+    name = basename(filename)
+    update_filename!(w, "phaname", name)
+    loaded_data_toast(w, name, "phantom", "simulate", "Phantom")
     return obj
 end
 
-"""
-Returns the default raw signal used by the UI.
-"""
-function setup_raw()
-
-    # Define the default RawAcquisitionData struct
-    raw = RawAcquisitionData(
-        Dict(
-            "systemVendor" => "",
-            "encodedSize" => [2, 2, 1],
-            "reconSize" => [2, 2, 1],
-            "number_of_samples" => 4,
-            "encodedFOV" => [100.0, 100.0, 1],
-            "trajectory" => "other",
-        ),
-        [
-            KomaMRICore.Profile(
-                AcquisitionHeader(; trajectory_dimensions=2, sample_time_us=1),
-                [0.0 0.0 1 1; 0 1 1 1] ./ 2,
-                reshape([0.0; 0im; 0; 0], 4, 1),
-            ),
-        ],
-    )
-
-    # Return the default RawAcquisitionData struct
+function callback_filepicker(filename::String, w::BonitoWindow, raw::RawAcquisitionData)
+    raw = RawAcquisitionData(ISMRMRDFile(filename))
+    if raw.params["systemVendor"] != "KomaMRI.jl"
+        @warn "ISMRMRD files generated externally could cause problems during the reconstruction. We are currently improving compatibility."
+    end
+    name = basename(filename)
+    update_filename!(w, "rawname", name)
+    loaded_data_toast(w, name, "sig", "recon", "Raw data")
     return raw
 end
 
-"""
-Updates the blink window with a loading content
-"""
-function display_loading!(w::Window, msg::String)
-    komamri_src_ui = @__DIR__
-    loading = replace(
-        open((f) -> read(f, String), komamri_src_ui * "/html/loading.html"),
-        "LOADDES" => msg,
-    )
-    return content!(w, "div#content", loading)
-end
-
-"""
-Fileficker callback when sequence is loaded
-"""
-function callback_filepicker(filename::String, w::Window, seq::Sequence)
-    if filename != ""
-        filename_extension = splitext(filename)[end]
-        if filename_extension == ".seqk"     # Koma
-            seq = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(filename), "seq")
-        elseif filename_extension == ".seq" # Pulseq
-            seq = read_seq(filename)        # Pulseq read
-        end
-        @js_ w (
-            @var name = $(basename(filename));
-            document.getElementById("seqname").innerHTML =
-                "<abbr title='" + name + "'>" + name + "</abbr>";
-            Toasty(
-                "0",
-                "Loaded <b>" + name + "</b> successfully",
-                """
-<ul>
-    <li>
-        <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('pulses_seq', 1)"><i class="fa fa-search"></i></button>
-        Updating <b>Sequence</b> plots ...
-    </li>
-    <li>
-        <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('simulate', 1)"><i class="bi bi-caret-right-fill"></i></button>
-        Ready to <b>simulate</b>?
-    </li>
-</ul>
-""",
-            )
-        )
-        return seq
-    end
-    return seq
-end
-
-"""
-Fileficker callback when phantom is loaded
-"""
-function callback_filepicker(filename::String, w::Window, obj::Phantom)
-    if filename != ""
-        filename_extension = splitext(filename)[end]
-        if filename_extension == ".phantom" # Koma
-            obj = read_phantom(filename)
-        elseif filename_extension == ".h5"  # JEMRIS
-            obj = read_phantom_jemris(filename)
-        end
-        @js_ w (
-            @var name = $(basename(filename));
-            document.getElementById("phaname").innerHTML =
-                "<abbr title='" + name + "'>" + name + "</abbr>";
-            Toasty(
-                "0",
-                "Loaded <b>" + name + "</b> successfully",
-                """
-<ul>
-    <li>
-        <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('phantom', 1)"><i class="fa fa-search"></i></button>
-        Updating <b>Phantom</b> plots ...
-    </li>
-    <li>
-        <button class="btn btn-primary btn-circle btn-circle-sm m-1" onclick="Blink.msg('simulate', 1)"><i class="bi bi-caret-right-fill"></i></button>
-        Ready to <b>simulate</b>?
-    </li>
-</ul>
-""",
-            )
-        )
-        return obj
-    end
-    return obj
-end
-
-"""
-Fileficker callback when raw signal is loaded
-"""
-function callback_filepicker(filename::String, w::Window, raw::RawAcquisitionData)
-    if filename != ""
-        raw = RawAcquisitionData(ISMRMRDFile(filename))
-        if raw.params["systemVendor"] != "KomaMRI.jl"
-            @warn "ISMRMRD files generated externally could cause problems during the reconstruction. We are currently improving compatibility."
-        end
-        @js_ w (
-            @var name = $(basename(filename));
-            document.getElementById("rawname").innerHTML =
-                "<abbr title='" + name + "'>" + name + "</abbr>";
-            Toasty(
-                "0",
-                "Loaded <b>" + name + "</b> successfully",
-                """
-<ul>
-    <li>
-        <button class="btn btn-dark btn-circle btn-circle-sm m-1" onclick="Blink.msg('sig', 1)"><i class="fa fa-search"></i></button>
-        Updating <b>Raw data</b> plots ...
-    </li>
-    <li>
-        <button class="btn btn-success btn-circle btn-circle-sm m-1" onclick="Blink.msg('recon', 1)"><i class="bi bi-caret-right-fill"></i></button>
-        Ready to <b>reconstruct</b>?
-    </li>
-</ul>
-""",
-            )
-        )
-        return raw
-    end
-    return raw
-end
-
-"""
-Updates the UI with sequence plots
-"""
-function view_ui!(seq::Sequence, w::Window; type="sequence", darkmode=true)
-    # Add loading progress and then a plot to the UI depending on type of the plot
-    if type == "sequence"
+function show_sequence!(w, seq, view; darkmode=true)
+    if view === :sequence
         display_loading!(w, "Plotting sequence ...")
         long_seq = length(seq) > 1_000
-        time_end = !long_seq ? 30 : dur(seq) * 1e3
-        widget_plot = plot_seq(seq; darkmode, range=[0 time_end], slider=!long_seq, gl=long_seq, show_adc=false)
-        content!(w, "div#content", dom"div"(widget_plot))
-        @js_ w document.getElementById("content").dataset.content = "sequence"
-    elseif type == "kspace"
+        time_end = long_seq ? dur(seq) * 1e3 : 30
+        plot = plot_seq(seq; darkmode, range=[0 time_end], slider=!long_seq, gl=long_seq, show_adc=false)
+        set_content!(w, plot_node(plot), "sequence")
+    elseif view === :kspace
         display_loading!(w, "Plotting kspace ...")
-        widget_plot = plot_kspace(seq; darkmode)
-        content!(w, "div#content", dom"div"(widget_plot))
-        @js_ w document.getElementById("content").dataset.content = "kspace"
-    elseif type == "moment0"
+        set_content!(w, plot_node(plot_kspace(seq; darkmode)), "kspace")
+    elseif view === :moment0
         display_loading!(w, "Plotting moment 0 ...")
-        widget_plot = plot_M0(seq; darkmode)
-        content!(w, "div#content", dom"div"(widget_plot))
-        @js_ w document.getElementById("content").dataset.content = "m0"
-    elseif type == "moment1"
+        set_content!(w, plot_node(plot_M0(seq; darkmode)), "m0")
+    elseif view === :moment1
         display_loading!(w, "Plotting moment 1 ...")
-        widget_plot = plot_M1(seq; darkmode)
-        content!(w, "div#content", dom"div"(widget_plot))
-        @js_ w document.getElementById("content").dataset.content = "m1"
-    elseif type == "moment2"
+        set_content!(w, plot_node(plot_M1(seq; darkmode)), "m1")
+    elseif view === :moment2
         display_loading!(w, "Plotting moment 2 ...")
-        widget_plot = plot_M2(seq; darkmode)
-        content!(w, "div#content", dom"div"(widget_plot))
-        @js_ w document.getElementById("content").dataset.content = "m2"
+        set_content!(w, plot_node(plot_M2(seq; darkmode)), "m2")
+    else
+        throw(ArgumentError("Unsupported sequence view: $view"))
     end
+    return nothing
 end
 
-"""
-Updates the UI with phantom plots
-"""
-function view_ui_phantom!(
-    obj::Phantom,
-    w::Window,
-    seq::Sequence,
-    buttons_obj::Vector{Widget{:button,Int64}};
-    key=:ρ,
-    darkmode=true,
-)
+function show_phantom!(w, obj, buttons; key=:ρ, darkmode=true)
     display_loading!(w, "Plotting phantom ...")
-    widget_plot = plot_phantom_map(obj, key; time_samples=5, darkmode)
-    div_content = dom"div"(hbox(buttons_obj...), widget_plot)
-    content!(w, "div#content", div_content)
-    @js_ w document.getElementById("content").dataset.content = "phantom"
-end
-function view_ui!(
-    obj::Phantom,
-    w::Window,
-    seq::Sequence,
-    buttons_obj::Vector{Widget{:button,Int64}};
-    key=:ρ,
-    darkmode=true,
-)
-    return view_ui_phantom!(obj, w, seq, buttons_obj; key, darkmode)
-end
-function view_ui!(
-    cnt::Integer,
-    w::Window,
-    obj::Phantom,
-    seq::Sequence,
-    buttons_obj::Vector{Widget{:button,Int64}};
-    key=:ρ,
-    darkmode=true,
-)
-    return view_ui_phantom!(obj, w, seq, buttons_obj; key, darkmode)
+    plot = plot_phantom_map(obj, key; time_samples=5, darkmode)
+    return set_content!(
+        w,
+        DOM.div(DOM.div(buttons...), plot_node(plot); class="koma-plot-stack"),
+        "phantom",
+    )
 end
 
-"""
-Updates the UI with scanner information
-"""
-function view_ui!(sys::Scanner, w::Window)
+function show_scanner!(w, sys)
     display_loading!(w, "Displaying scanner parameters ...")
-    sys_dict = Dict(
+    values = [
         "B0" => sys.B0,
         "B1" => sys.B1,
         "Gmax" => sys.Gmax,
@@ -353,135 +390,73 @@ function view_ui!(sys::Scanner, w::Window)
         "RF_ring_down_time" => sys.RF_ring_down_time,
         "RF_dead_time" => sys.RF_dead_time,
         "ADC_dead_time" => sys.ADC_dead_time,
-    )
-    plt = plot_dict(sys_dict)
-    title = """<h1 style="padding: 8px 16px; color: #868888;">Scanner parameters</h1>"""
-    content!(w, "div#content", title * plt)
-    @js_ w document.getElementById("content").dataset.content = "scanneparams"
+    ]
+    return set_content!(w, dictionary_page(values, "Scanner parameters"), "scanneparams")
 end
 
-"""
-Updates the UI with simulation parameters information
-"""
-function view_ui!(sim_params::Dict{String,Any}, w::Window)
-    display_loading!(w, "Displaying simulation parameters ...")
-    plt = plot_dict(sim_params)
-    title = """<h1 style="padding: 8px 16px; color: #868888;">Simulation parameters</h1>"""
-    content!(w, "div#content", title * plt)
-    @js_ w document.getElementById("content").dataset.content = "simparams"
+function show_parameters!(w, parameters, title, state)
+    display_loading!(w, "Displaying $(lowercase(title)) ...")
+    return set_content!(w, dictionary_page(parameters, title), state)
 end
 
-"""
-Updates the UI with raw signal plot
-"""
-function view_ui!(raw::RawAcquisitionData, w::Window; darkmode=true)
+function show_signal!(w, raw; darkmode=true)
     display_loading!(w, "Plotting raw signal ...")
-    widget_plot = plot_signal(raw; darkmode)
-    content!(w, "div#content", dom"div"(widget_plot))
-    @js_ w document.getElementById("content").dataset.content = "sig"
+    return set_content!(w, plot_node(plot_signal(raw; darkmode)), "sig")
 end
 
-"""
-Updates the UI with reconstruction parameters information
-"""
-function view_ui!(rec_params::Dict{Symbol,Any}, w::Window)
-    display_loading!(w, "Displaying reconstruction parameters ...")
-    plt = plot_dict(rec_params)
-    title = """<h1 style="padding: 8px 16px; color: #868888;">Reconstruction parameters</h1>"""
-    content!(w, "div#content", title * plt)
-    @js_ w document.getElementById("content").dataset.content = "recparams"
-end
-
-"""
-Updates the UI with image plots
-"""
-function view_ui!(img::Array, w::Window; type="absi", darkmode=true)
-    # Add loading progress and then a plot to the UI depending on type of the plot
-    if type == "absi"
-        display_loading!(w, "Plotting image magnitude ...")
-        widget_plot = @manipulate for slice in 1:size(img, 3)
-            aux = abs.(img) * prod(size(img)[1:2])
-            plot_image(
-                aux[:, :, slice];
-                zmin=minimum(aux[:]),
-                zmax=maximum(aux[:]),
-                darkmode,
-                title="Reconstruction ($slice/$(size(img, 3)))",
-            )
-        end
-        content!(w, "div#content", dom"div"(widget_plot))
-        @js_ w document.getElementById("content").dataset.content = "absi"
-    elseif type == "angi"
-        display_loading!(w, "Plotting image phase ...")
-        widget_plot = @manipulate for slice in 1:size(img, 3)
-            aux = angle.(img[:, :, slice])
-            plot_image(
-                aux;
-                zmin=-π,
-                zmax=π,
-                darkmode,
-                title="Reconstruction ($slice/$(size(img, 3)))",
-            )
-        end
-        content!(w, "div#content", dom"div"(widget_plot))
-        @js_ w document.getElementById("content").dataset.content = "angi"
-    elseif type == "absk"
-        display_loading!(w, "Plotting image k ...")
-        widget_plot = @manipulate for slice in 1:size(img, 3)
-            kspace = fftc(img)
-            aux = log.(abs.(kspace[:, :, slice]) .+ 1)
-            plot_image(
-                aux;
-                zmin=0,
-                zmax=0.1 * maximum(aux[:]),
-                darkmode,
-                title="Reconstruction ($slice/$(size(img, 3)))",
-            )
-        end
-        content!(w, "div#content", dom"div"(widget_plot))
-        @js_ w document.getElementById("content").dataset.content = "absk"
+function image_plot(img, type, darkmode)
+    data, zmin, zmax = if type === :absi
+        values = abs.(img) * prod(size(img)[1:2])
+        values, minimum(values), maximum(values)
+    elseif type === :angi
+        values = angle.(img)
+        values, -π, π
+    elseif type === :absk
+        values = log.(abs.(fftc(img)) .+ 1)
+        values, 0, 0.1 * maximum(values)
+    else
+        throw(ArgumentError("Unsupported image view: $type"))
     end
+    slider = Slider(1:size(img, 3))
+    plot = map(slider.value) do slice
+        plot_node(plot_image(data[:, :, slice]; zmin, zmax, darkmode, title="Reconstruction ($slice/$(size(img, 3)))"))
+    end
+    return size(img, 3) == 1 ? plot : DOM.div(slider, plot; class="koma-plot-stack")
 end
 
-"""
-Saves to .mat in the UI (displays a Toast message en the UI)
-"""
-function save_ui!(
-    w::Window,
-    seq::Sequence,
-    obj::Phantom,
-    sys::Scanner,
-    raw,
-    img,
-    rec_params,
-    mat_folder;
-    type="all",
-)
-    if type == "all"
-        str_toast = export_2_mat(
-            seq, obj, sys, raw, rec_params, img, mat_folder; type, matfilename=""
+function show_image!(w, img, view; darkmode=true)
+    messages = Dict(:absi => "Plotting image magnitude ...", :angi => "Plotting image phase ...", :absk => "Plotting image k ...")
+    display_loading!(w, messages[view])
+    return set_content!(w, image_plot(img, view, darkmode), string(view))
+end
+
+function select_export_folder(w::BonitoWindow)
+    isnothing(w.display[]) && return tempdir()
+    folders = Base.run(w.display[].window, """
+        electron.dialog.showOpenDialogSync(
+            electron.BrowserWindow.getFocusedWindow(),
+            {
+                title: "Export .mat files",
+                buttonLabel: "Export here",
+                properties: ["openDirectory", "createDirectory"]
+            }
         )
-        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files", msg))
-        @js_ w document.getElementById("content").dataset.content = "matfolder"
-    elseif type == "sequence"
-        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
-        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files", msg))
-        @js_ w document.getElementById("content").dataset.content = "matfolderseq"
-    elseif type == "phantom"
-        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
-        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files", msg))
-        @js_ w document.getElementById("content").dataset.content = "matfolderpha"
-    elseif type == "scanner"
-        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
-        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files", msg))
-        @js_ w document.getElementById("content").dataset.content = "matfoldersca"
-    elseif type == "raw"
-        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
-        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files", msg))
-        @js_ w document.getElementById("content").dataset.content = "matfolderraw"
-    elseif type == "image"
-        str_toast = export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
-        @js_ w (@var msg = $str_toast; Toasty("1", "Saved .mat files", msg))
-        @js_ w document.getElementById("content").dataset.content = "matfolderima"
+    """)
+    return isnothing(folders) || isempty(folders) ? nothing : String(first(folders))
+end
+
+function save_ui!(w::BonitoWindow, seq::Sequence, obj::Phantom, sys::Scanner, raw, img, rec_params; type="all")
+    mat_folder = select_export_folder(w)
+    isnothing(mat_folder) && return nothing
+    message = if type == "all"
+        export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type, matfilename="")
+    else
+        export_2_mat(seq, obj, sys, raw, rec_params, img, mat_folder; type)
     end
+    toast!(w, 1, "Saved .mat files", message)
+    suffix = Dict("all" => "", "sequence" => "seq", "phantom" => "pha", "scanner" => "sca", "raw" => "raw", "image" => "ima")[type]
+    state = "matfolder$suffix"
+    w.state[] = state
+    evaljs(w, js"document.getElementById('content').dataset.content = $(state);")
+    return nothing
 end

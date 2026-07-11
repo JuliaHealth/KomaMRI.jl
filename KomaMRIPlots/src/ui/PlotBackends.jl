@@ -1,6 +1,6 @@
 # Available backends for plots
-const PLOT_BACKENDS = ("PlotlyJS", "PlutoPlotly")
-const PLOT_BACKEND = Ref{String}("PlotlyJS")
+const PLOT_BACKENDS = ("PlotlyBase", "PlutoPlotly")
+const PLOT_BACKEND = Ref{String}("PlotlyBase")
 
 # Choose plot backend
 function plot_backend!(backend::String)
@@ -23,8 +23,8 @@ end
 
 # Backends
 function plot_koma(args...; kwargs...)
-    if PLOT_BACKEND[] == "PlotlyJS"
-        plot_koma(KomaPlotlyJSBackend(), args...; kwargs...)
+    if PLOT_BACKEND[] == "PlotlyBase"
+        plot_koma(KomaPlotlyBaseBackend(), args...; kwargs...)
     elseif PLOT_BACKEND[] == "PlutoPlotly"
         plot_koma(KomaPlutoPlotlyBackend(), args...; kwargs...)
     else
@@ -35,10 +35,10 @@ function plot_koma(args...; kwargs...)
     end
 end
 
-# PlotlyJS
-struct KomaPlotlyJSBackend end
-function plot_koma(::KomaPlotlyJSBackend, args...; kwargs...)
-    return PlotlyJS.plot(args...; kwargs...)
+# PlotlyBase
+struct KomaPlotlyBaseBackend end
+function plot_koma(::KomaPlotlyBaseBackend, args...; kwargs...)
+    return PlotlyBase.Plot(args...; kwargs...)
 end
 
 # PlutoPlotly

@@ -1,39 +1,44 @@
 name = "KomaMRI"
 uuid = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
-version = "0.12.0"
+version = "0.13.0"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [workspace]
 projects = ["test", "docs", "benchmarks", "KomaMRIBase", "KomaMRICore", "KomaMRIFiles", "KomaMRIPlots"]
 
-[apps]
-koma = { submodule = "CLI", julia_flags = ["--threads=auto"] }
-
 [deps]
-AssetRegistry = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
-Blink = "ad839575-38b3-5650-b840-f874b8c74a25"
+Bonito = "824d6782-a2ef-11e9-3a09-e5662e0c26f8"
+Electron = "a1bb12fb-d4d1-54b4-b10a-ee7951ef7ad3"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
-Interact = "c601a237-2ae4-5e1e-952c-7a85b0c7eef1"
 KomaMRICore = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
 KomaMRIFiles = "fcf631a6-1c7e-4e88-9e64-b8888386d9dc"
 KomaMRIPlots = "76db0263-63f3-4d26-bb9a-5dba378db904"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 MRIReco = "bdf86e05-2d2b-5731-a332-f3fe1f9e047f"
+MsgPack = "99f44e22-a591-53d1-9472-aa23ef4bd671"
+Observables = "510215fc-4207-5dde-b226-833fc4488ee2"
+PlotlyBase = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
 [compat]
-AssetRegistry = "0.1"
-Blink = "0.12"
+Bonito = "4.2"
+Electron = "5, 6"
 FFTW = "1.0"
-Interact = "0.10"
 KomaMRICore = "0.12"
 KomaMRIFiles = "0.11.1"
-KomaMRIPlots = "0.12"
+KomaMRIPlots = "0.13"
 MAT = "0.10, 0.11, 0.12"
 MRIReco = "0.6, 0.7, 0.8, 0.9"
+MsgPack = "1.2.1"
+Observables = "0.5.5"
+PlotlyBase = "0.8.23"
 PrecompileTools = "1"
 Preferences = "1"
 Reexport = "1"
-julia = "1.9"
+julia = "1.10"
+
+[apps.koma]
+julia_flags = ["--threads=auto"]
+submodule = "CLI"

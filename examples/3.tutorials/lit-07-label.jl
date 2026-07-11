@@ -6,7 +6,7 @@
 # acquisition using `LIN` for the phase-encoding line and `SLC` for the slice
 # each readout belongs to 🧭.
 
-using KomaMRI, PlotlyJS, Suppressor #hide
+using KomaMRI, PlotlyBase, Suppressor #hide
 sys = Scanner(); #hide
 Nx = 64
 Ny = 64
@@ -88,7 +88,7 @@ image_display = sqrt.(image ./ maximum(image)); #hide
 
 p1 = plot_image(image_display[:, :, 1]; height=360, title="Slice 1", zmin=0, zmax=1)
 p2 = plot_image(image_display[:, :, 2]; height=360, title="Slice 2", zmin=0, zmax=1)
-foreach(p -> p.plot.data[1].showscale = false, (p1, p2)); #hide
+foreach(p -> p.data[1].showscale = false, (p1, p2)); #hide
 #md [p1 p2] #hide
 #jl display([p1 p2]);
 

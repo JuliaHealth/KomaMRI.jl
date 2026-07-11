@@ -1,6 +1,6 @@
 # # Cardiac Cine MRI with Arrhythmias
 
-using KomaMRI, PlotlyJS, Plots, Printf, Suppressor; #hide
+using KomaMRI, Plots, Printf, Suppressor; #hide
 import KomaMRI.PulseDesigner as PD #hide
 sys = Scanner(); #hide
 
