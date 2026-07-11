@@ -1738,6 +1738,37 @@ end
         )
         @test refocusing.RF[1, 1].use == Refocusing()
         @test get_flip_angles(refocusing)[1] ≈ 180.0
+
+        # Bloch simulation of each short Pulseq FIR pulse should recover its flip within 1%.
+        short_duration = 512u"μs"
+        short_dwell = 8u"μs"
+        flip_rtol = 0.01
+        for filter_type in (:pm, :min, :max, :ls)
+            filtered = PulseDesigner.build_slr_pulse(
+                90u"°"; duration=short_duration, dwell=short_dwell, filter_type, sys,
+            )
+            @test all(isfinite, filtered.RF[1, 1].A)
+            @test isapprox(get_flip_angles(filtered)[1], 90.0; rtol=flip_rtol)
+        end
+
+        for (use, flip_angle, expected_flip) in (
+            (Inversion(), 180u"°", 180.0),
+            (Saturation(), 110u"°", 110.0),
+        )
+            pulse = PulseDesigner.build_slr_pulse(
+                flip_angle; duration=short_duration, dwell=short_dwell, use, sys,
+            )
+            @test pulse.RF[1, 1].use == use
+            @test isapprox(get_flip_angles(pulse)[1], expected_flip; rtol=flip_rtol)
+        end
+
+        fallback_uses = (Preparation(), Other(), Undefined())
+        fallback_rf = [PulseDesigner.build_slr_pulse(
+            20u"°"; duration=short_duration, dwell=short_dwell, use, sys,
+        ).RF[1, 1] for use in fallback_uses]
+        @test getproperty.(fallback_rf, :use) == collect(fallback_uses)
+        @test all(rf -> rf.A ≈ fallback_rf[1].A, fallback_rf[2:end])
+
         @test_throws ErrorException PulseDesigner.build_slr_pulse(
             90u"°"; duration=2u"ms", filter_type=:unknown, sys,
         )

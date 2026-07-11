@@ -192,11 +192,8 @@ slr_polynomial_spec(::Inversion, flip_angle, passband_ripple, stopband_ripple) =
     (1.0, passband_ripple / 8, sqrt(stopband_ripple / 2), true)
 slr_polynomial_spec(::Saturation, flip_angle, passband_ripple, stopband_ripple) =
     (sqrt(0.5), passband_ripple / 2, sqrt(stopband_ripple), true)
-slr_polynomial_spec(::Preparation, flip_angle, passband_ripple, stopband_ripple) =
-    (1.0, passband_ripple, stopband_ripple, false)
-slr_polynomial_spec(::Other, flip_angle, passband_ripple, stopband_ripple) =
-    (1.0, passband_ripple, stopband_ripple, false)
-slr_polynomial_spec(::Undefined, flip_angle, passband_ripple, stopband_ripple) =
+slr_polynomial_spec(::Union{Preparation,Other,Undefined}, flip_angle,
+    passband_ripple, stopband_ripple) =
     (1.0, passband_ripple, stopband_ripple, false)
 
 # Pauly et al., Eq. (21): empirical optimal-FIR transition measure.
