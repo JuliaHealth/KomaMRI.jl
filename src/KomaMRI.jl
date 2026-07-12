@@ -34,3 +34,6 @@ export KomaUI
 export sys_ui, seq_ui, obj_ui, raw_ui, img_ui
 
 end
+
+# Precompilation workloads for reduced first-use latency
+include("precompile.jl")
