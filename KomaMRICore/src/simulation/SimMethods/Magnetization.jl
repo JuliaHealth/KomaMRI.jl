@@ -87,13 +87,13 @@ mul!(s::Spinor, M::Mag) = begin
     M.xy .= M_aux.xy
     M.z  .= M_aux.z
 end
-@inline mul!(s::Spinor, M::Mag, Maux_xy, Maux_z) = begin
+mul!(s::Spinor, M::Mag, Maux_xy, Maux_z) = begin
     @. Maux_xy = 2*conj(s.α)*s.β*M.z+conj(s.α)^2*M.xy-s.β^2*conj(M.xy)
     @. Maux_z = (abs2(s.α) - abs2(s.β))*M.z - 2*real(s.α*s.β*conj(M.xy))
     @. M.xy = Maux_xy
     @. M.z = Maux_z
 end
-@inline *(s::Spinor, M::Mag) = begin
+*(s::Spinor, M::Mag) = begin
     Mag(
         2 .*conj.(s.α).*s.β.*M.z.+conj.(s.α).^2 .* M.xy.-s.β.^2 .*conj.(M.xy),
         (abs2.(s.α) .- abs2.(s.β)).*M.z .- 2 .*real.(s.α.*s.β.*conj.(M.xy))
