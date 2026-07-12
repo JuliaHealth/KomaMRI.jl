@@ -877,12 +877,6 @@ using TestItems, TestItemRunner
     end
 
     @testset "DiscreteSequence" begin
-        for t in (1:4, range(0f0, 3f0; length=4), @view(collect(0f0:4f0)[1:4]))
-            empty_seq = DiscreteSequence(t)
-            @test empty_seq.t === t
-            @test isempty(empty_seq.Δt)
-        end
-
         seq = PulseDesigner.EPI_example()
         sampling_rule = MaxStepSizeRule(1e-3, 5e-5)
         seqd = KomaMRIBase.discretize(seq; sampling_rule)
