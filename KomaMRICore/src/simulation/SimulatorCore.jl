@@ -98,7 +98,7 @@ end
 
 function run_spin_precession_parallel!(
     obj::Phantom,
-    seq,
+    seq::DiscreteSequence,
     sig::AbstractArray,
     Xt::SpinStateRepresentation,
     sim_method::SimulationMethod,
@@ -120,7 +120,7 @@ end
 
 function run_spin_excitation_parallel!(
     obj::Phantom,
-    seq,
+    seq::DiscreteSequence,
     sig::AbstractArray,
     Xt::SpinStateRepresentation,
     sim_method::SimulationMethod,
@@ -167,7 +167,7 @@ take advantage of CPU parallel processing.
 """
 function run_sim_time_iter!(
     obj::Phantom,
-    seqd,
+    seqd::DiscreteSequence,
     sig::AbstractArray,
     Xt::SpinStateRepresentation,
     sim_method::SimulationMethod,
