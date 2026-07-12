@@ -99,7 +99,7 @@ function run_spin_excitation!(
         #Effective field
         ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
-        B = sqrt.(abs2.(s.B1) .+ Bz .^ 2)
+        B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B .+= (B .== 0) .* eps(T)
         #Spinor Rotation
         φ = T(-2π .* γ) .* (B .* s.Δt)
