@@ -56,7 +56,7 @@ function bSSFP(FOV, N, TR, flip_angle, sys; #hide
         apodization=0.5, #hide
         sys, #hide
     ) #hide
-    readout_time = max(adc_duration, (N - 1) * sys.ADC_Δt) #hide
+    readout_time = max(adc_duration, (N - 1) * sys.limits.ADC_Δt) #hide
     readout_time == adc_duration || @warn "ADC duration is too short. It will be extended to $(readout_time * 1e3) ms." #hide
     gx = PD.make_trapezoid(; flat_area=ro_area, flat_time=readout_time, sys) #hide
     adc = PD.make_adc(N; duration=gx.T, delay=gx.rise, sys) #hide

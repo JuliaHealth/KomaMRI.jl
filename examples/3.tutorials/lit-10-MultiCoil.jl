@@ -1,10 +1,10 @@
 # # Multi-Coil Receive Reconstruction
 
-using KomaMRI, Suppressor #hide
+using KomaMRI, PlotlyJS, Suppressor #hide
 
-# KomaMRI can attach different receive models to the [`Scanner`](@ref). Here we
-# compare 4-channel birdcage and arbitrary sensitivities with both
-# [`BlochSimple`](@ref) and the CPU implementation of [`Bloch()`](@ref).
+# KomaMRI can attach different receive models to the scanner. Here we compare
+# 4-channel birdcage and arbitrary sensitivities with both `BlochSimple()` and
+# the CPU implementation `Bloch()`.
 
 obj = brain_phantom2D()
 
@@ -165,3 +165,98 @@ p10, p11, p12 = case_plots(obj, seq, arbitrary, KomaMRICore.Bloch()) #hide
 #md p10 #hide
 #md p11 #hide
 #md p12 #hide
+
+# ## Forward-Model Benchmark
+
+# The next four plots show the same CPU forward-model workload with:
+# `brain_phantom3D()[1:10000]`, `PulseDesigner.EPI_example()`, and
+# `return_type="mat"`. The hover labels expose the measured median times.
+
+const BENCHMARK_COILS = [1, 2, 4, 8, 16, 32, 64] #hide
+
+function benchmark_plot(title, receiver_label, current_uniform, current_series, upstream_uniform) #hide
+    traces = [
+        scatter(
+            x=[0],
+            y=[current_uniform],
+            mode="markers",
+            name="current uniform",
+            marker=attr(color="#4c78a8", size=11, symbol="circle"),
+            hovertemplate="current uniform<br>time=%{y:.3f} ms<extra></extra>",
+        ),
+        scatter(
+            x=BENCHMARK_COILS,
+            y=current_series,
+            mode="lines+markers",
+            name="current $(receiver_label)",
+            line=attr(color="#1f77b4", width=3),
+            marker=attr(size=9),
+            hovertemplate="$(receiver_label) %{x} coils<br>time=%{y:.3f} ms<extra></extra>",
+        ),
+        scatter(
+            x=[0],
+            y=[upstream_uniform],
+            mode="markers",
+            name="upstream uniform",
+            marker=attr(color="#111111", size=12, symbol="diamond"),
+            hovertemplate="upstream uniform<br>time=%{y:.3f} ms<extra></extra>",
+        ),
+    ]
+
+    return plot(
+        traces,
+        Layout(
+            title=title,
+            template="plotly_white",
+            width=950,
+            height=500,
+            margin=attr(l=50, r=50, t=60, b=50),
+            legend=attr(orientation="h", y=1.12, x=0.0),
+            xaxis=attr(
+                title="coil number",
+                tickmode="array",
+                tickvals=[0, BENCHMARK_COILS...],
+                ticktext=["uniform", string.(BENCHMARK_COILS)...],
+                range=[-0.6, 66.5],
+            ),
+            yaxis=attr(title="median time (ms)"),
+        ),
+        config=PlotConfig(scrollZoom=true),
+    )
+end #hide
+
+blochsimple_birdcage_bench = benchmark_plot( #hide
+    "BlochSimple with birdcage coils",
+    "birdcage",
+    208.587,
+    [247.479, 267.157, 272.183, 362.821, 552.686, 910.303, 1661.54],
+    264.729958,
+) #hide
+#md blochsimple_birdcage_bench #hide
+
+blochsimple_arbitrary_bench = benchmark_plot( #hide
+    "BlochSimple with arbitrary coils",
+    "arbitrary",
+    233.129,
+    [271.328, 288.998, 467.817, 570.708, 945.753, 1666.16, 3148.76],
+    264.729958,
+) #hide
+#md blochsimple_arbitrary_bench #hide
+
+blochcpu_birdcage_bench = benchmark_plot( #hide
+    "BlochCPU with birdcage coils",
+    "birdcage",
+    99.7675,
+    [322.536, 517.122, 857.677, 2139.26, 6360.35, 12275.4, 23411.8],
+    137.578292,
+) #hide
+#md blochcpu_birdcage_bench #hide
+
+blochcpu_arbitrary_bench = benchmark_plot( #hide
+    "BlochCPU with arbitrary coils",
+    "arbitrary",
+    102.2,
+    [419.54, 726.682, 1377.43, 2827.08, 5347.42, 11087.9, 22788.7],
+    137.578292,
+) #hide
+#md blochcpu_arbitrary_bench #hide
