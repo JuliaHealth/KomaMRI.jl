@@ -1,7 +1,7 @@
 import Adapt: adapt, adapt_storage
 import Functors: @functor, functor, fmap, isleaf
 
-#Aux. funcitons to check if the variable we want to move to the GPU is numeric
+# Helper functions that check whether a value moved to the GPU is numeric
 _isleaf(x) = isleaf(x)
 _isleaf(::AbstractArray{<:Number}) = true
 _isleaf(::AbstractArray{T}) where T = isbitstype(T)
