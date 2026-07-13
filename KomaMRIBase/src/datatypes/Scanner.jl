@@ -55,13 +55,13 @@ end
 get_sens(sys::Scanner, x, y, z) = get_sens(sys.receiver, x, y, z)
 
 # Uniform Bloch Simple run_spin_precession not sample based
-function acquire_signal!(sig, ::Nothing, ::UniformCoilSens, Mxy)
-    sig .= @views transpose(sum(Mxy[:, findall(seq.ADC[2:end])]; dims=1))
+function acquire_signal!(sig, ::Nothing, p, ::UniformCoilSens, Mxy)
+    sig .= @views transpose(sum(Mxy; dims=1))
     return nothing
 end
 
 # Uniform other sim methods
-function acquire_signal!(sig, sample, ::UniformCoilSens, Mxy)
+function acquire_signal!(sig, sample, p, ::UniformCoilSens, Mxy)
     sig[sample, :] .= sum(Mxy)
     return nothing
 end

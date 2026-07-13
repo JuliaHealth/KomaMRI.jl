@@ -372,6 +372,7 @@ function simulate(
     to_precision = simulation_precision_transform(Val(Symbol(sim_params["precision"])))
     obj  = obj |> to_precision #Phantom
     seqd = seqd |> to_precision #DiscreteSequence
+    sys = sys |> f64 #Scanner
     Xt   = Xt |> to_precision #SpinStateRepresentation
     sig  = sig |> to_precision #Signal
     # Objects to GPU
@@ -380,6 +381,7 @@ function simulate(
         gpu_name = device_name(backend)
         obj = obj |> gpu #Phantom
         seqd = seqd |> gpu #DiscreteSequence
+        sys = sys |> gpu #Scanner
         Xt = Xt |> gpu #SpinStateRepresentation
         sig = sig |> gpu #Signal
     end
