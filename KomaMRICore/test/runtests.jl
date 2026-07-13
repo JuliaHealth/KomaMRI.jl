@@ -406,6 +406,42 @@ end
         @test eltype(state.xy) === Complex{T}
         @test eltype(state.z) === T
     end
+
+    coords = [-1.0, 0.0, 1.0] .* 1e-3
+    σ2 = (8e-4)^2
+    coil1 = ComplexF64[
+        exp(-((x - 4e-4)^2 + y^2 + z^2) / σ2) * cis(0.3)
+        for x in coords, y in coords, z in coords
+    ]
+    coil2 = ComplexF64[
+        exp(-((x + 4e-4)^2 + y^2 + z^2) / σ2) * cis(-0.4)
+        for x in coords, y in coords, z in coords
+    ]
+    coil_sens = cat(coil1, coil2; dims=4)
+    sys = Scanner(receiver=KomaMRIBase.ArbitraryRFRxCoils(coords, coords, coords, coil_sens, coil_sens))
+
+    coil_seq = Sequence()
+    @addblock coil_seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
+    @addblock coil_seq += ADC(8, 2e-4)
+    coil_obj = Phantom(x=[2e-4], y=[-1e-4], z=[1e-4], ρ=[1.0], T1=[1e6], T2=[1e6], Δw=[0.0])
+
+    for sim_method in (BlochSimple(), Bloch())
+        raws = Dict{DataType, Any}()
+        for (precision, T) in ("f32" => Float32, "f64" => Float64)
+            sim_params = Dict{String,Any}(
+                "gpu" => false,
+                "Nthreads" => 1,
+                "return_type" => "mat",
+                "precision" => precision,
+                "sim_method" => sim_method,
+            )
+            raw = simulate(coil_obj, coil_seq, sys; sim_params, verbose=false)
+            @test eltype(raw) === Complex{T}
+            @test size(raw) == (8, 2, 1)
+            raws[T] = raw
+        end
+        @test raws[Float32] ≈ ComplexF32.(raws[Float64]) rtol=sqrt(eps(Float32))
+    end
 end
 
 @testitem "repeated single-spin FID" tags=[:core, :nomotion] begin
