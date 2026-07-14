@@ -349,25 +349,6 @@ const BENCHMARK_CASES = ( #hide
     ), #hide
 ) #hide
 
-const BLOCHDICT_BENCHMARK_CASES = ( #hide
-    ( #hide
-        key=:blochdict_cpu, #hide
-        label="BlochDict CPU", #hide
-        uniform=18.981, #hide
-        upstream_uniform=25.179, #hide
-        birdcage=(16.716, 23.417, 27.492), #hide
-        arbitrary=(19.865, 28.219, 41.157), #hide
-    ), #hide
-    ( #hide
-        key=:blochdict_gpu, #hide
-        label="BlochDict GPU", #hide
-        uniform=25.448, #hide
-        upstream_uniform=47.825, #hide
-        birdcage=(19.550, 24.580, 31.607), #hide
-        arbitrary=(24.224, 32.287, 45.421), #hide
-    ), #hide
-) #hide
-
 function benchmark_plot(case, receiver) #hide
     receiver_label = String(receiver) #hide
     traces = [ #hide
@@ -416,62 +397,9 @@ function benchmark_plot(case, receiver) #hide
     ) #hide
 end #hide
 
-function blochdict_benchmark_plot(case, receiver) #hide
-    receiver_label = String(receiver) #hide
-    traces = [ #hide
-        scatter( #hide
-            x=[0, BENCHMARK_COILS...], #hide
-            y=[case.uniform, getproperty(case, receiver)...], #hide
-            mode="lines+markers", #hide
-            name="branch $(receiver_label)", #hide
-            line=attr(color="#1f77b4", width=3), #hide
-            marker=attr(size=9), #hide
-            hovertemplate="coils=%{x}<br>time=%{y:.3f} ms<extra></extra>", #hide
-        ), #hide
-        scatter( #hide
-            x=[0], #hide
-            y=[case.upstream_uniform], #hide
-            mode="markers", #hide
-            name="upstream uniform", #hide
-            marker=attr( #hide
-                color="#111111", #hide
-                size=14, #hide
-                symbol="diamond-open", #hide
-                line=attr(width=3), #hide
-            ), #hide
-            hovertemplate="upstream uniform<br>time=%{y:.3f} ms<extra></extra>", #hide
-        ), #hide
-    ] #hide
-    return plot( #hide
-        traces, #hide
-        Layout( #hide
-            title="$(case.label) with $(receiver_label) coils (100k spins, 8 ADC)", #hide
-            template="plotly_white", #hide
-            width=950, #hide
-            height=500, #hide
-            margin=attr(l=60, r=30, t=70, b=60), #hide
-            legend=attr(orientation="h", y=1.14, x=0.0), #hide
-            xaxis=attr( #hide
-                title="coil number", #hide
-                tickmode="array", #hide
-                tickvals=[0, BENCHMARK_COILS...], #hide
-                ticktext=["uniform", string.(BENCHMARK_COILS)...], #hide
-                range=[-0.25, 8.5], #hide
-            ), #hide
-            yaxis=attr(title="median time (ms)"), #hide
-        ), #hide
-        config=PlotConfig(scrollZoom=true), #hide
-    ) #hide
-end #hide
-
 benchmark_plots = Dict( #hide
     (case.key, receiver) => benchmark_plot(case, receiver) #hide
     for case in BENCHMARK_CASES for receiver in (:birdcage, :arbitrary) #hide
-) #hide
-
-blochdict_benchmark_plots = Dict( #hide
-    (case.key, receiver) => blochdict_benchmark_plot(case, receiver) #hide
-    for case in BLOCHDICT_BENCHMARK_CASES for receiver in (:birdcage, :arbitrary) #hide
 ) #hide
 
 function print_benchmark_summary() #hide
@@ -585,35 +513,3 @@ end; #hide
 
 # #### ArbitraryCoilSens
 #md benchmark_plots[(:magnus6_gpu, :arbitrary)] #hide
-
-# ## BlochDict Forward-Model Benchmark
-
-# `BlochDict()` preserves every spin contribution instead of summing spins during
-# acquisition. The 100,000-spin EPI benchmark above would therefore allocate a
-# 7.6 GiB uniform dictionary and up to 60.8 GiB for eight receive-weighted
-# channels. These BlochDict measurements retain the same 100,000-spin phantom,
-# Float32 precision, receiver models, coil counts, CPU thread count, and Metal
-# workgroup size, but use a separate RF excitation followed by eight ADC samples.
-# The largest receive-weighted output is approximately 49 MiB.
-#
-# Each case measures dictionary simulation followed by static receive weighting.
-# The values are medians of ten warmed `BenchmarkTools` samples with one
-# evaluation per sample. CPU cases use 10 Julia threads; GPU cases use one CPU
-# thread and 256 Metal work-items per workgroup. Their absolute times should not
-# be compared with the full-EPI plots above.
-
-# ### BlochDict CPU
-
-# #### BirdcageCoilSens
-#md blochdict_benchmark_plots[(:blochdict_cpu, :birdcage)] #hide
-
-# #### ArbitraryCoilSens
-#md blochdict_benchmark_plots[(:blochdict_cpu, :arbitrary)] #hide
-
-# ### BlochDict GPU
-
-# #### BirdcageCoilSens
-#md blochdict_benchmark_plots[(:blochdict_gpu, :birdcage)] #hide
-
-# #### ArbitraryCoilSens
-#md blochdict_benchmark_plots[(:blochdict_gpu, :arbitrary)] #hide

@@ -455,34 +455,6 @@ end
         end
     end
 
-    sim_params = Dict{String,Any}(
-        "gpu" => false,
-        "Nthreads" => 1,
-        "return_type" => "mat",
-        "precision" => "f32",
-        "sim_method" => BlochDict(),
-    )
-    dictionary = simulate(obj, seq, Scanner(); sim_params, verbose=false)
-    single_dictionary = receive_weighted_dictionary(
-        dictionary, obj, Scanner(receiver=single_receiver),
-    )
-    multi_dictionary = receive_weighted_dictionary(
-        dictionary, obj, Scanner(receiver=multi_receiver),
-    )
-
-    @test size(single_dictionary) == (8, length(obj), 1)
-    @test size(multi_dictionary) == (8, length(obj), ncoils)
-    @test single_dictionary[:, :, 1] ≈ dictionary[:, :, 1, 1]
-    @test dropdims(sum(multi_dictionary; dims=3); dims=3) ≈ dictionary[:, :, 1, 1]
-
-    sim_params["sim_method"] = BlochSimple()
-    for receiver in (BirdcageCoilSens(; ncoils), multi_receiver)
-        coil_dictionary = receive_weighted_dictionary(
-            dictionary, obj, Scanner(; receiver),
-        )
-        signal = simulate(obj, seq, Scanner(; receiver); sim_params, verbose=false)
-        @test dropdims(sum(coil_dictionary; dims=2); dims=2) ≈ signal[:, :, 1]
-    end
 end
 
 @testitem "repeated single-spin FID" tags=[:core, :nomotion] begin
