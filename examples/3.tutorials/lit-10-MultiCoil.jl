@@ -36,28 +36,7 @@ coil_sens = cat( #hide
     [coil4(x, y, z) for x in coords, y in coords, z in zcoords];
     dims=4,
 ) #hide
-arbitrary = KomaMRIBase.ArbitraryRFRxCoils(coords, coords, zcoords, coil_sens, 0f0 + 0f0im)
-
-function row_plot(images, titles, zmin, zmax; colorscale=nothing) #hide
-    plots = [
-        isnothing(colorscale) ?
-            plot_image(images[i]; height=320, title=titles[i], zmin=zmin, zmax=zmax) :
-            plot_image(images[i]; height=320, title=titles[i], zmin=zmin, zmax=zmax, colorscale=colorscale)
-        for i in eachindex(images)
-    ]
-    p = hcat(plots...)
-    foreach(trace -> trace.fields[:showscale] = false, p.plot.data)
-    Nx, Ny = size(images[1])
-    for (i, xref) in enumerate(("x", "x2", "x3", "x4"))
-        xaxis = Symbol("xaxis", i)
-        yaxis = Symbol("yaxis", i)
-        p.plot.layout.fields[yaxis][:scaleanchor] = xref
-        p.plot.layout.fields[yaxis][:constrain] = "domain"
-        p.plot.layout.fields[xaxis][:range] = [-0.5, Nx - 0.5]
-        p.plot.layout.fields[yaxis][:range] = [-0.5, Ny - 0.5]
-    end
-    return p
-end #hide
+arbitrary = ArbitraryCoilSens(coords, coords, zcoords, coil_sens)
 
 function sensitivity_maps(receiver::BirdcageCoilSens, xgrid, ygrid, zgrid, Nx, Ny) #hide
     sens = get_sens(receiver, xgrid, ygrid, zgrid)
@@ -66,7 +45,7 @@ function sensitivity_maps(receiver::BirdcageCoilSens, xgrid, ygrid, zgrid, Nx, N
     return sens_abs, sens_phase
 end #hide
 
-function sensitivity_maps(receiver::KomaMRIBase.ArbitraryRFRxCoils, xgrid, ygrid, zgrid, Nx, Ny) #hide
+function sensitivity_maps(receiver::ArbitraryCoilSens, xgrid, ygrid, zgrid, Nx, Ny) #hide
     sens = [
         let
             itp = KomaMRIBase.extrapolate(
@@ -84,7 +63,7 @@ function sensitivity_maps(receiver::KomaMRIBase.ArbitraryRFRxCoils, xgrid, ygrid
     return [abs.(coil) for coil in sens], [angle.(coil) for coil in sens]
 end #hide
 
-function case_plots(obj, seq, receiver, sim_method) #hide
+function case_plot(obj, seq, receiver, sim_method) #hide
     sys = Scanner(receiver=receiver)
     sim_params = KomaMRICore.default_sim_params()
     sim_params["gpu"] = false
@@ -99,6 +78,7 @@ function case_plots(obj, seq, receiver, sim_method) #hide
 
     coil_images = image[:, :, 1, 1, :, 1]
     coil_abs_images = [abs.(coil_images[:, :, coil]) for coil in axes(coil_images, 3)]
+    recon_min = minimum(minimum, coil_abs_images)
     recon_max = maximum(maximum, coil_abs_images)
 
     FOVx, FOVy = raw.params["reconFOV"][1:2] .* 1f-3
@@ -109,154 +89,531 @@ function case_plots(obj, seq, receiver, sim_method) #hide
     zgrid = zeros(Float32, length(xgrid))
 
     sens_abs, sens_phase = sensitivity_maps(receiver, xgrid, ygrid, zgrid, Nx, Ny)
+    sens_min = minimum(minimum, sens_abs)
     sens_max = maximum(maximum, sens_abs)
     ncoils = length(coil_abs_images)
 
-    p_phase = row_plot(
-        sens_phase,
-        ["Coil $(coil) phase" for coil in 1:ncoils],
-        -π,
-        π;
-        colorscale="Jet",
+    plots = (
+        [plot_image(image; zmin=recon_min, zmax=recon_max) for image in coil_abs_images],
+        [plot_image(image; zmin=sens_min, zmax=sens_max) for image in sens_abs],
+        [plot_image(image; zmin=-π, zmax=π, colorscale="Jet") for image in sens_phase],
     )
-    p_magnitude = row_plot(
-        sens_abs,
-        ["Coil $(coil) magnitude" for coil in 1:ncoils],
-        0,
-        sens_max,
+    p = make_subplots(
+        rows=3,
+        cols=ncoils,
+        subplot_titles=reshape(
+            [
+                "Coil $(coil) $(kind)"
+                for kind in ("reconstruction", "magnitude", "phase") for coil in 1:ncoils
+            ],
+            1,
+            :,
+        ),
+        horizontal_spacing=0.03,
+        vertical_spacing=0.08,
     )
-    p_image = row_plot(
-        coil_abs_images,
-        ["Coil $(coil) reconstruction" for coil in 1:ncoils],
-        0,
-        recon_max,
-    )
-
-    return p_phase, p_magnitude, p_image
+    for (row, panels) in pairs(plots), (col, panel) in pairs(panels)
+        for trace in panel.plot.data
+            trace.fields[:showscale] = false
+            add_trace!(p, trace; row, col)
+        end
+        index = (row - 1) * ncoils + col
+        suffix = index == 1 ? "" : string(index)
+        xaxis = Symbol("xaxis", suffix)
+        yaxis = Symbol("yaxis", suffix)
+        xref = index == 1 ? "x" : "x$(index)"
+        Nx, Ny = size(plots[row][col].plot.data[1].fields[:z])
+        p.plot.layout[xaxis][:range] = [-0.5, Nx - 0.5]
+        p.plot.layout[yaxis][:range] = [-0.5, Ny - 0.5]
+        p.plot.layout[yaxis][:scaleanchor] = xref
+        p.plot.layout[yaxis][:constrain] = "domain"
+    end
+    relayout!(p; width="100%", height=900, showlegend=false)
+    return p
 end #hide
 
-# Each case below shows the same 4 channels as three rows: phase, magnitude,
-# and reconstructed coil image.
+# Each case below shows the same 4 channels as three rows: reconstructed coil
+# image, sensitivity magnitude, and sensitivity phase.
 
 # ## BlochSimple with BirdcageCoilSens
 
-p1, p2, p3 = case_plots(obj, seq, birdcage, KomaMRICore.BlochSimple()) #hide
+p1 = case_plot(obj, seq, birdcage, KomaMRICore.BlochSimple()) #hide
 #md p1 #hide
+
+# ## BlochSimple with ArbitraryCoilSens
+
+p2 = case_plot(obj, seq, arbitrary, KomaMRICore.BlochSimple()) #hide
 #md p2 #hide
-#md p3 #hide
-
-# ## BlochSimple with ArbitraryRFRxCoils
-
-p4, p5, p6 = case_plots(obj, seq, arbitrary, KomaMRICore.BlochSimple()) #hide
-#md p4 #hide
-#md p5 #hide
-#md p6 #hide
 
 # ## Bloch CPU with BirdcageCoilSens
 
-p7, p8, p9 = case_plots(obj, seq, birdcage, KomaMRICore.Bloch()) #hide
-#md p7 #hide
-#md p8 #hide
-#md p9 #hide
+p3 = case_plot(obj, seq, birdcage, KomaMRICore.Bloch()) #hide
+#md p3 #hide
 
-# ## Bloch CPU with ArbitraryRFRxCoils
+# ## Bloch CPU with ArbitraryCoilSens
 
-p10, p11, p12 = case_plots(obj, seq, arbitrary, KomaMRICore.Bloch()) #hide
-#md p10 #hide
-#md p11 #hide
-#md p12 #hide
+p4 = case_plot(obj, seq, arbitrary, KomaMRICore.Bloch()) #hide
+#md p4 #hide
 
 # ## Forward-Model Benchmark
 
-# The next four plots show the same CPU forward-model workload with:
-# `brain_phantom3D()[1:10000]`, `PulseDesigner.EPI_example()`, and
-# `return_type="mat"`. The hover labels expose the measured median times.
+# These benchmarks use `brain_phantom3D(ss=3)[1:100_000]`,
+# `PulseDesigner.EPI_example()`, and Float32 precision. Inputs were constructed
+# before timing, each case was warmed up, and the plots report the median of
+# three `BenchmarkTools` samples with one evaluation per sample.
+#
+# **CPU cases:** 10 Julia threads.
+#
+# **GPU cases:** `Nthreads = 1` on the CPU side, with Metal synchronized after
+# every simulation.
+#
+# **Metal kernels:** 256 GPU work-items per workgroup for precession and
+# excitation.
+#
+# **100,000 spins:** 391 workgroups and 100,096 padded GPU work-items per
+# spin-parallel kernel launch. Metal controls the number executed concurrently.
+#
+# The master baseline is uniform-coil simulation at `ed1d40f`; the branch
+# curves include uniform, 1, 4, and 8 receive channels.
 
-const BENCHMARK_COILS = [1, 2, 4, 8, 16, 32, 64] #hide
+const BENCHMARK_COILS = (1, 4, 8) #hide
+const BENCHMARK_SPINS = 100_000 #hide
+const BENCHMARK_GROUPSIZE = 256 #hide
+const BENCHMARK_RADIUS = 0.20 #hide
+const BENCHMARK_LENGTH = 0.30 #hide
+const BENCHMARK_GRID_RADIUS = 0.23f0 #hide
+const BENCHMARK_GRID_POINTS = 17 #hide
+const BENCHMARK_COIL_SPREAD = 0.08f0 #hide
 
-function benchmark_plot(title, receiver_label, current_uniform, current_series, upstream_uniform) #hide
-    traces = [
-        scatter(
-            x=[0],
-            y=[current_uniform],
-            mode="markers",
-            name="current uniform",
-            marker=attr(color="#4c78a8", size=11, symbol="circle"),
-            hovertemplate="current uniform<br>time=%{y:.3f} ms<extra></extra>",
-        ),
-        scatter(
-            x=BENCHMARK_COILS,
-            y=current_series,
-            mode="lines+markers",
-            name="current $(receiver_label)",
-            line=attr(color="#1f77b4", width=3),
-            marker=attr(size=9),
-            hovertemplate="$(receiver_label) %{x} coils<br>time=%{y:.3f} ms<extra></extra>",
-        ),
-        scatter(
-            x=[0],
-            y=[upstream_uniform],
-            mode="markers",
-            name="upstream uniform",
-            marker=attr(color="#111111", size=12, symbol="diamond"),
-            hovertemplate="upstream uniform<br>time=%{y:.3f} ms<extra></extra>",
-        ),
-    ]
+const BENCHMARK_METHODS = ( #hide
+    (method=BlochSimple(), gpu=Val(false)), #hide
+    (method=Bloch(), gpu=Val(false)), #hide
+    (method=Bloch(), gpu=Val(true)), #hide
+    (method=BlochMagnus1(), gpu=Val(false)), #hide
+    (method=BlochMagnus1(), gpu=Val(true)), #hide
+    (method=BlochMagnus2(), gpu=Val(false)), #hide
+    (method=BlochMagnus2(), gpu=Val(true)), #hide
+    (method=BlochMagnus4(), gpu=Val(false)), #hide
+    (method=BlochMagnus4(), gpu=Val(true)), #hide
+    (method=BlochMagnus6(), gpu=Val(false)), #hide
+    (method=BlochMagnus6(), gpu=Val(true)), #hide
+) #hide
 
-    return plot(
-        traces,
-        Layout(
-            title=title,
-            template="plotly_white",
-            width=950,
-            height=500,
-            margin=attr(l=50, r=50, t=60, b=50),
-            legend=attr(orientation="h", y=1.12, x=0.0),
-            xaxis=attr(
-                title="coil number",
-                tickmode="array",
-                tickvals=[0, BENCHMARK_COILS...],
-                ticktext=["uniform", string.(BENCHMARK_COILS)...],
-                range=[-0.6, 66.5],
-            ),
-            yaxis=attr(title="median time (ms)"),
-        ),
-        config=PlotConfig(scrollZoom=true),
-    )
+benchmark_gpu(::Val{false}) = false #hide
+benchmark_gpu(::Val{true}) = true #hide
+benchmark_synchronize(::Val{false}) = nothing #hide
+benchmark_synchronize(::Val{true}) = Metal.synchronize() #hide
+
+benchmark_receiver(::Val{:birdcage}, ncoils) = BirdcageCoilSens( #hide
+    ncoils=ncoils, #hide
+    radius=BENCHMARK_RADIUS, #hide
+    L=BENCHMARK_LENGTH, #hide
+) #hide
+
+function benchmark_sensitivity(x, y, z, coil, ncoils) #hide
+    θ = 2f0 * Float32(π) * Float32(coil - 1) / Float32(ncoils) #hide
+    xc = Float32(BENCHMARK_RADIUS) * cos(θ) #hide
+    yc = Float32(BENCHMARK_RADIUS) * sin(θ) #hide
+    magnitude = exp( #hide
+        -Float32(π) * (((x - xc)^2 + (y - yc)^2 + z^2) / BENCHMARK_COIL_SPREAD), #hide
+    ) #hide
+    return magnitude * cis(angle(complex(-(y - yc), -(x - xc)))) #hide
 end #hide
 
-blochsimple_birdcage_bench = benchmark_plot( #hide
-    "BlochSimple with birdcage coils",
-    "birdcage",
-    208.587,
-    [247.479, 267.157, 272.183, 362.821, 552.686, 910.303, 1661.54],
-    264.729958,
-) #hide
-#md blochsimple_birdcage_bench #hide
+function benchmark_receiver(::Val{:arbitrary}, ncoils) #hide
+    coords = collect( #hide
+        LinRange(-BENCHMARK_GRID_RADIUS, BENCHMARK_GRID_RADIUS, BENCHMARK_GRID_POINTS), #hide
+    ) #hide
+    zcoords = collect(LinRange(-0.01f0, 0.01f0, 3)) #hide
+    sensitivities = ComplexF32[ #hide
+        benchmark_sensitivity(x, y, z, coil, ncoils) #hide
+        for x in coords, y in coords, z in zcoords, coil in 1:ncoils #hide
+    ] #hide
+    return ArbitraryCoilSens(coords, coords, zcoords, sensitivities) #hide
+end #hide
 
-blochsimple_arbitrary_bench = benchmark_plot( #hide
-    "BlochSimple with arbitrary coils",
-    "arbitrary",
-    233.129,
-    [271.328, 288.998, 467.817, 570.708, 945.753, 1666.16, 3148.76],
-    264.729958,
-) #hide
-#md blochsimple_arbitrary_bench #hide
+function benchmark_parameters(sim_method, gpu) #hide
+    params = KomaMRICore.default_sim_params() #hide
+    params["gpu"] = benchmark_gpu(gpu) #hide
+    params["Nthreads"] = Threads.nthreads() #hide
+    params["precision"] = "f32" #hide
+    params["return_type"] = "mat" #hide
+    params["sim_method"] = sim_method #hide
+    params["gpu_groupsize_precession"] = BENCHMARK_GROUPSIZE #hide
+    params["gpu_groupsize_excitation"] = BENCHMARK_GROUPSIZE #hide
+    return params #hide
+end #hide
 
-blochcpu_birdcage_bench = benchmark_plot( #hide
-    "BlochCPU with birdcage coils",
-    "birdcage",
-    99.7675,
-    [322.536, 517.122, 857.677, 2139.26, 6360.35, 12275.4, 23411.8],
-    137.578292,
-) #hide
-#md blochcpu_birdcage_bench #hide
+function benchmark_inputs(sim_method, gpu, receiver, ncoils) #hide
+    obj = brain_phantom3D(; ss=3)[1:BENCHMARK_SPINS] #hide
+    seq = PulseDesigner.EPI_example() #hide
+    sys = Scanner(receiver=benchmark_receiver(receiver, ncoils)) #hide
+    params = benchmark_parameters(sim_method, gpu) #hide
+    return obj, seq, sys, params, gpu #hide
+end #hide
 
-blochcpu_arbitrary_bench = benchmark_plot( #hide
-    "BlochCPU with arbitrary coils",
-    "arbitrary",
-    102.2,
-    [419.54, 726.682, 1377.43, 2827.08, 5347.42, 11087.9, 22788.7],
-    137.578292,
+function benchmark_simulation(obj, seq, sys, params, gpu) #hide
+    signal = simulate(obj, seq, sys; sim_params=params, verbose=false) #hide
+    benchmark_synchronize(gpu) #hide
+    return signal #hide
+end #hide
+
+const BENCHMARK_CASES = ( #hide
+    ( #hide
+        key=:blochsimple_cpu, #hide
+        label="BlochSimple CPU", #hide
+        branch_uniform=2568.388, #hide
+        master_uniform=2231.805, #hide
+        birdcage=(2776.556, 3673.712, 4791.538), #hide
+        arbitrary=(3368.451, 5038.578, 7091.253), #hide
+    ), #hide
+    ( #hide
+        key=:bloch_cpu, #hide
+        label="Bloch CPU", #hide
+        branch_uniform=1070.796, #hide
+        master_uniform=965.302, #hide
+        birdcage=(2361.772, 6511.194, 12722.464), #hide
+        arbitrary=(3755.384, 12992.677, 25834.163), #hide
+    ), #hide
+    ( #hide
+        key=:bloch_gpu, #hide
+        label="Bloch GPU", #hide
+        branch_uniform=87.000, #hide
+        master_uniform=68.885, #hide
+        birdcage=(102.516, 183.089, 319.183), #hide
+        arbitrary=(85.428, 190.842, 332.858), #hide
+    ), #hide
+    ( #hide
+        key=:magnus1_cpu, #hide
+        label="BlochMagnus1 CPU", #hide
+        branch_uniform=842.647, #hide
+        master_uniform=913.933, #hide
+        birdcage=(2062.657, 6320.849, 12976.041), #hide
+        arbitrary=(3884.993, 12853.516, 25857.504), #hide
+    ), #hide
+    ( #hide
+        key=:magnus1_gpu, #hide
+        label="BlochMagnus1 GPU", #hide
+        branch_uniform=74.404, #hide
+        master_uniform=67.576, #hide
+        birdcage=(83.793, 183.696, 319.922), #hide
+        arbitrary=(86.206, 192.619, 340.237), #hide
+    ), #hide
+    ( #hide
+        key=:magnus2_cpu, #hide
+        label="BlochMagnus2 CPU", #hide
+        branch_uniform=978.603, #hide
+        master_uniform=967.552, #hide
+        birdcage=(2168.501, 6390.682, 12924.676), #hide
+        arbitrary=(3800.820, 13010.392, 26136.354), #hide
+    ), #hide
+    ( #hide
+        key=:magnus2_gpu, #hide
+        label="BlochMagnus2 GPU", #hide
+        branch_uniform=75.193, #hide
+        master_uniform=68.261, #hide
+        birdcage=(83.648, 183.943, 321.044), #hide
+        arbitrary=(86.214, 191.517, 334.206), #hide
+    ), #hide
+    ( #hide
+        key=:magnus4_cpu, #hide
+        label="BlochMagnus4 CPU", #hide
+        branch_uniform=956.589, #hide
+        master_uniform=1042.492, #hide
+        birdcage=(2126.222, 6280.580, 12886.550), #hide
+        arbitrary=(3851.549, 12768.866, 25796.930), #hide
+    ), #hide
+    ( #hide
+        key=:magnus4_gpu, #hide
+        label="BlochMagnus4 GPU", #hide
+        branch_uniform=74.569, #hide
+        master_uniform=68.471, #hide
+        birdcage=(85.057, 184.804, 318.806), #hide
+        arbitrary=(86.159, 191.143, 333.521), #hide
+    ), #hide
+    ( #hide
+        key=:magnus6_cpu, #hide
+        label="BlochMagnus6 CPU", #hide
+        branch_uniform=991.358, #hide
+        master_uniform=1004.470, #hide
+        birdcage=(2188.527, 6634.542, 14285.199), #hide
+        arbitrary=(3896.261, 13470.822, 27440.335), #hide
+    ), #hide
+    ( #hide
+        key=:magnus6_gpu, #hide
+        label="BlochMagnus6 GPU", #hide
+        branch_uniform=76.338, #hide
+        master_uniform=76.365, #hide
+        birdcage=(84.788, 183.348, 322.462), #hide
+        arbitrary=(87.064, 191.628, 342.351), #hide
+    ), #hide
 ) #hide
-#md blochcpu_arbitrary_bench #hide
+
+const BLOCHDICT_BENCHMARK_CASES = ( #hide
+    ( #hide
+        key=:blochdict_cpu, #hide
+        label="BlochDict CPU", #hide
+        uniform=18.981, #hide
+        upstream_uniform=25.179, #hide
+        birdcage=(16.716, 23.417, 27.492), #hide
+        arbitrary=(19.865, 28.219, 41.157), #hide
+    ), #hide
+    ( #hide
+        key=:blochdict_gpu, #hide
+        label="BlochDict GPU", #hide
+        uniform=25.448, #hide
+        upstream_uniform=47.825, #hide
+        birdcage=(19.550, 24.580, 31.607), #hide
+        arbitrary=(24.224, 32.287, 45.421), #hide
+    ), #hide
+) #hide
+
+function benchmark_plot(case, receiver) #hide
+    receiver_label = String(receiver) #hide
+    traces = [ #hide
+        scatter( #hide
+            x=[0, BENCHMARK_COILS...], #hide
+            y=[case.branch_uniform, getproperty(case, receiver)...], #hide
+            mode="lines+markers", #hide
+            name="branch $(receiver_label)", #hide
+            line=attr(color="#1f77b4", width=3), #hide
+            marker=attr(size=9), #hide
+            hovertemplate="coils=%{x}<br>time=%{y:.3f} ms<extra></extra>", #hide
+        ), #hide
+        scatter( #hide
+            x=[0], #hide
+            y=[case.master_uniform], #hide
+            mode="markers", #hide
+            name="master uniform", #hide
+            marker=attr( #hide
+                color="#111111", #hide
+                size=14, #hide
+                symbol="diamond-open", #hide
+                line=attr(width=3), #hide
+            ), #hide
+            hovertemplate="master uniform<br>time=%{y:.3f} ms<extra></extra>", #hide
+        ), #hide
+    ] #hide
+    return plot( #hide
+        traces, #hide
+        Layout( #hide
+            title="$(case.label) with $(receiver_label) coils (100k spins)", #hide
+            template="plotly_white", #hide
+            width=950, #hide
+            height=500, #hide
+            margin=attr(l=60, r=30, t=70, b=60), #hide
+            legend=attr(orientation="h", y=1.14, x=0.0), #hide
+            xaxis=attr( #hide
+                title="coil number", #hide
+                tickmode="array", #hide
+                tickvals=[0, BENCHMARK_COILS...], #hide
+                ticktext=["uniform", string.(BENCHMARK_COILS)...], #hide
+                range=[-0.25, 8.5], #hide
+            ), #hide
+            yaxis=attr(title="median time (ms)"), #hide
+        ), #hide
+        config=PlotConfig(scrollZoom=true), #hide
+    ) #hide
+end #hide
+
+function blochdict_benchmark_plot(case, receiver) #hide
+    receiver_label = String(receiver) #hide
+    traces = [ #hide
+        scatter( #hide
+            x=[0, BENCHMARK_COILS...], #hide
+            y=[case.uniform, getproperty(case, receiver)...], #hide
+            mode="lines+markers", #hide
+            name="branch $(receiver_label)", #hide
+            line=attr(color="#1f77b4", width=3), #hide
+            marker=attr(size=9), #hide
+            hovertemplate="coils=%{x}<br>time=%{y:.3f} ms<extra></extra>", #hide
+        ), #hide
+        scatter( #hide
+            x=[0], #hide
+            y=[case.upstream_uniform], #hide
+            mode="markers", #hide
+            name="upstream uniform", #hide
+            marker=attr( #hide
+                color="#111111", #hide
+                size=14, #hide
+                symbol="diamond-open", #hide
+                line=attr(width=3), #hide
+            ), #hide
+            hovertemplate="upstream uniform<br>time=%{y:.3f} ms<extra></extra>", #hide
+        ), #hide
+    ] #hide
+    return plot( #hide
+        traces, #hide
+        Layout( #hide
+            title="$(case.label) with $(receiver_label) coils (100k spins, 8 ADC)", #hide
+            template="plotly_white", #hide
+            width=950, #hide
+            height=500, #hide
+            margin=attr(l=60, r=30, t=70, b=60), #hide
+            legend=attr(orientation="h", y=1.14, x=0.0), #hide
+            xaxis=attr( #hide
+                title="coil number", #hide
+                tickmode="array", #hide
+                tickvals=[0, BENCHMARK_COILS...], #hide
+                ticktext=["uniform", string.(BENCHMARK_COILS)...], #hide
+                range=[-0.25, 8.5], #hide
+            ), #hide
+            yaxis=attr(title="median time (ms)"), #hide
+        ), #hide
+        config=PlotConfig(scrollZoom=true), #hide
+    ) #hide
+end #hide
+
+benchmark_plots = Dict( #hide
+    (case.key, receiver) => benchmark_plot(case, receiver) #hide
+    for case in BENCHMARK_CASES for receiver in (:birdcage, :arbitrary) #hide
+) #hide
+
+blochdict_benchmark_plots = Dict( #hide
+    (case.key, receiver) => blochdict_benchmark_plot(case, receiver) #hide
+    for case in BLOCHDICT_BENCHMARK_CASES for receiver in (:birdcage, :arbitrary) #hide
+) #hide
+
+function print_benchmark_summary() #hide
+    for case in BENCHMARK_CASES #hide
+        println("\n$(case.label)") #hide
+        println("  branch uniform: $(case.branch_uniform) ms") #hide
+        println("  master uniform: $(case.master_uniform) ms") #hide
+        println( #hide
+            "  branch uniform / master uniform: ", #hide
+            round(case.branch_uniform / case.master_uniform; digits=3), #hide
+            "x", #hide
+        ) #hide
+        for receiver in (:birdcage, :arbitrary), (index, ncoils) in pairs(BENCHMARK_COILS) #hide
+            elapsed = getproperty(case, receiver)[index] #hide
+            println( #hide
+                "  $(receiver) $(ncoils) coil$(ncoils == 1 ? "" : "s"): ", #hide
+                elapsed, #hide
+                " ms  (", #hide
+                round(elapsed / case.master_uniform; digits=3), #hide
+                "x vs master uniform)", #hide
+            ) #hide
+        end #hide
+    end #hide
+    return nothing #hide
+end; #hide
+
+# ### BlochSimple CPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:blochsimple_cpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:blochsimple_cpu, :arbitrary)] #hide
+
+# ### Bloch CPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:bloch_cpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:bloch_cpu, :arbitrary)] #hide
+
+# ### Bloch GPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:bloch_gpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:bloch_gpu, :arbitrary)] #hide
+
+# ### BlochMagnus1 CPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:magnus1_cpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:magnus1_cpu, :arbitrary)] #hide
+
+# ### BlochMagnus1 GPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:magnus1_gpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:magnus1_gpu, :arbitrary)] #hide
+
+# ### BlochMagnus2 CPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:magnus2_cpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:magnus2_cpu, :arbitrary)] #hide
+
+# ### BlochMagnus2 GPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:magnus2_gpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:magnus2_gpu, :arbitrary)] #hide
+
+# ### BlochMagnus4 CPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:magnus4_cpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:magnus4_cpu, :arbitrary)] #hide
+
+# ### BlochMagnus4 GPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:magnus4_gpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:magnus4_gpu, :arbitrary)] #hide
+
+# ### BlochMagnus6 CPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:magnus6_cpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:magnus6_cpu, :arbitrary)] #hide
+
+# ### BlochMagnus6 GPU
+
+# #### BirdcageCoilSens
+#md benchmark_plots[(:magnus6_gpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md benchmark_plots[(:magnus6_gpu, :arbitrary)] #hide
+
+# ## BlochDict Forward-Model Benchmark
+
+# `BlochDict()` preserves every spin contribution instead of summing spins during
+# acquisition. The 100,000-spin EPI benchmark above would therefore allocate a
+# 7.6 GiB uniform dictionary and up to 60.8 GiB for eight receive-weighted
+# channels. These BlochDict measurements retain the same 100,000-spin phantom,
+# Float32 precision, receiver models, coil counts, CPU thread count, and Metal
+# workgroup size, but use a separate RF excitation followed by eight ADC samples.
+# The largest receive-weighted output is approximately 49 MiB.
+#
+# Each case measures dictionary simulation followed by static receive weighting.
+# The values are medians of ten warmed `BenchmarkTools` samples with one
+# evaluation per sample. CPU cases use 10 Julia threads; GPU cases use one CPU
+# thread and 256 Metal work-items per workgroup. Their absolute times should not
+# be compared with the full-EPI plots above.
+
+# ### BlochDict CPU
+
+# #### BirdcageCoilSens
+#md blochdict_benchmark_plots[(:blochdict_cpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md blochdict_benchmark_plots[(:blochdict_cpu, :arbitrary)] #hide
+
+# ### BlochDict GPU
+
+# #### BirdcageCoilSens
+#md blochdict_benchmark_plots[(:blochdict_gpu, :birdcage)] #hide
+
+# #### ArbitraryCoilSens
+#md blochdict_benchmark_plots[(:blochdict_gpu, :arbitrary)] #hide

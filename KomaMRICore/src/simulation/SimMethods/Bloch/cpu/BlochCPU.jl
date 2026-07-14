@@ -25,7 +25,7 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real}
+function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real}
     return BlochCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -55,7 +55,7 @@ function run_spin_precession!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
-    sys::Scanner,
+    sys,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
@@ -89,7 +89,7 @@ function run_spin_precession!(
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
             #Acquired signal
-            KomaMRIBase.acquire_signal!(sig, sample, p, sys.receiver, Mxy)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, Mxy)
             sample += 1
         end
         #Update simulation state
@@ -114,7 +114,7 @@ function run_spin_excitation!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
-    sys::Scanner,
+    sys,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
@@ -157,7 +157,7 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            KomaMRIBase.acquire_signal!(sig, sample, p, sys.receiver, M.xy)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy)
             sample += 1
         end
     end

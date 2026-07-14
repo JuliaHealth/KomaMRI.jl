@@ -28,6 +28,12 @@ BlochMagnusBGL4
 BlochMagnusBGL6
 ```
 
+## Receive weighting
+
+```@docs
+receive_weighted_dictionary
+```
+
 ## GPU helper functions
 
 ```@docs

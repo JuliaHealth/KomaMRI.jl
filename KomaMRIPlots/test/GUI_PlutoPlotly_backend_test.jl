@@ -8,7 +8,7 @@
         #KomaCore definition of a sequence:
         #RF construction
         sys = Scanner()
-        B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
+        B1 = sys.limits.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
         EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
         #ACQ construction
         N = 101

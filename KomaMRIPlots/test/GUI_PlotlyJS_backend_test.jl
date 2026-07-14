@@ -79,7 +79,7 @@
         #KomaCore definition of a sequence:
         #RF construction
         sys = Scanner()
-        B1 = sys.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
+        B1 = sys.limits.B1; durRF = π/2/(2π*γ*B1) #90-degree hard excitation pulse
         EX = PulseDesigner.RF_hard(B1, durRF, sys; G=[0,0,0])
         #ACQ construction
         N = 101
@@ -155,17 +155,17 @@
     @testset "GUI_dict_html" begin
         #Define a dictionary and Plot the dictionary table
         sys = Scanner()
-        sys_dict = Dict("B0" => sys.B0,
-                "B1" => sys.B1,
-                "Gmax" => sys.Gmax,
-                "Smax" => sys.Smax,
-                "ADC_dt" => sys.ADC_Δt,
-                "DUR_dt" => sys.DUR_Δt,
-                "GR_dt" => sys.GR_Δt,
-                "RF_dt" => sys.RF_Δt,
-                "RF_ring_down_time" => sys.RF_ring_down_time,
-                "RF_dead_time" => sys.RF_dead_time,
-                "ADC_dead_time" => sys.ADC_dead_time)
+        sys_dict = Dict("B0" => sys.limits.B0,
+                "B1" => sys.limits.B1,
+                "Gmax" => sys.limits.Gmax,
+                "Smax" => sys.limits.Smax,
+                "ADC_dt" => sys.limits.ADC_Δt,
+                "DUR_dt" => sys.limits.DUR_Δt,
+                "GR_dt" => sys.limits.GR_Δt,
+                "RF_dt" => sys.limits.RF_Δt,
+                "RF_ring_down_time" => sys.limits.RF_ring_down_time,
+                "RF_dead_time" => sys.limits.RF_dead_time,
+                "ADC_dead_time" => sys.limits.ADC_dead_time)
         plot_dict(sys_dict)
         @test true
     end

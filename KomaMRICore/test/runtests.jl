@@ -390,7 +390,10 @@ end
 @testitem "simulation precision" tags=[:core, :nomotion] begin
     seq = Sequence()
     @addblock seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
-    obj = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[1e6], T2=[1e6], Δw=[0.0])
+    obj = Phantom(
+        x=[-5e-4, 0.0, 5e-4], y=[0.0, 4e-4, -4e-4], z=zeros(3),
+        ρ=ones(3), T1=fill(1e6, 3), T2=fill(1e6, 3), Δw=zeros(3),
+    )
 
     for (precision, T) in ("f32" => Float32, "f64" => Float64, "bigfloat" => BigFloat)
         sim_params = Dict{String,Any}(
@@ -407,40 +410,78 @@ end
         @test eltype(state.z) === T
     end
 
-    coords = [-1.0, 0.0, 1.0] .* 1e-3
-    σ2 = (8e-4)^2
-    coil1 = ComplexF64[
-        exp(-((x - 4e-4)^2 + y^2 + z^2) / σ2) * cis(0.3)
-        for x in coords, y in coords, z in coords
-    ]
-    coil2 = ComplexF64[
-        exp(-((x + 4e-4)^2 + y^2 + z^2) / σ2) * cis(-0.4)
-        for x in coords, y in coords, z in coords
-    ]
-    coil_sens = cat(coil1, coil2; dims=4)
-    sys = Scanner(receiver=KomaMRIBase.ArbitraryRFRxCoils(coords, coords, coords, coil_sens, coil_sens))
+end
 
-    coil_seq = Sequence()
-    @addblock coil_seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
-    @addblock coil_seq += ADC(8, 2e-4)
-    coil_obj = Phantom(x=[2e-4], y=[-1e-4], z=[1e-4], ρ=[1.0], T1=[1e6], T2=[1e6], Δw=[0.0])
+@testitem "Multi-coil simulations" tags=[:core, :nomotion] begin
+    coords = [-1.0, 0.0, 1.0] .* 1e-3
+    ncoils = 4
+    dims = (length(coords), length(coords), length(coords))
+    single_coil = fill(1.0 + 0.0im, dims..., 1)
+    multi_coil = fill((1.0 + 0.0im) / ncoils, dims..., ncoils)
+    single_receiver = ArbitraryCoilSens(coords, coords, coords, single_coil)
+    multi_receiver = ArbitraryCoilSens(coords, coords, coords, multi_coil)
+
+    seq = Sequence()
+    @addblock seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
+    @addblock seq += ADC(8, 2e-4)
+    obj = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[1e6], T2=[1e6], Δw=[0.0])
 
     for sim_method in (BlochSimple(), Bloch())
-        raws = Dict{DataType, Any}()
-        for (precision, T) in ("f32" => Float32, "f64" => Float64)
-            sim_params = Dict{String,Any}(
-                "gpu" => false,
-                "Nthreads" => 1,
-                "return_type" => "mat",
-                "precision" => precision,
-                "sim_method" => sim_method,
-            )
-            raw = simulate(coil_obj, coil_seq, sys; sim_params, verbose=false)
-            @test eltype(raw) === Complex{T}
-            @test size(raw) == (8, 2, 1)
-            raws[T] = raw
+        @testset "$(nameof(typeof(sim_method)))" begin
+            for (precision, T) in ("f32" => Float32, "f64" => Float64)
+                @testset "$precision" begin
+                    sim_params = Dict{String,Any}(
+                        "gpu" => false,
+                        "Nthreads" => 1,
+                        "return_type" => "mat",
+                        "precision" => precision,
+                        "sim_method" => sim_method,
+                    )
+                    raw_uniform = simulate(obj, seq, Scanner(); sim_params, verbose=false)
+                    raw_single = simulate(
+                        obj, seq, Scanner(receiver=single_receiver); sim_params, verbose=false,
+                    )
+                    raw_multi = simulate(
+                        obj, seq, Scanner(receiver=multi_receiver); sim_params, verbose=false,
+                    )
+
+                    @test eltype(raw_uniform) === Complex{T}
+                    @test eltype(raw_single) === Complex{T}
+                    @test eltype(raw_multi) === Complex{T}
+                    @test raw_uniform ≈ raw_single
+                    @test raw_uniform ≈ sum(raw_multi; dims=2)
+                end
+            end
         end
-        @test raws[Float32] ≈ ComplexF32.(raws[Float64]) rtol=sqrt(eps(Float32))
+    end
+
+    sim_params = Dict{String,Any}(
+        "gpu" => false,
+        "Nthreads" => 1,
+        "return_type" => "mat",
+        "precision" => "f32",
+        "sim_method" => BlochDict(),
+    )
+    dictionary = simulate(obj, seq, Scanner(); sim_params, verbose=false)
+    single_dictionary = receive_weighted_dictionary(
+        dictionary, obj, Scanner(receiver=single_receiver),
+    )
+    multi_dictionary = receive_weighted_dictionary(
+        dictionary, obj, Scanner(receiver=multi_receiver),
+    )
+
+    @test size(single_dictionary) == (8, length(obj), 1)
+    @test size(multi_dictionary) == (8, length(obj), ncoils)
+    @test single_dictionary[:, :, 1] ≈ dictionary[:, :, 1, 1]
+    @test dropdims(sum(multi_dictionary; dims=3); dims=3) ≈ dictionary[:, :, 1, 1]
+
+    sim_params["sim_method"] = BlochSimple()
+    for receiver in (BirdcageCoilSens(; ncoils), multi_receiver)
+        coil_dictionary = receive_weighted_dictionary(
+            dictionary, obj, Scanner(; receiver),
+        )
+        signal = simulate(obj, seq, Scanner(; receiver); sim_params, verbose=false)
+        @test dropdims(sum(coil_dictionary; dims=2); dims=2) ≈ signal[:, :, 1]
     end
 end
 
@@ -498,6 +539,48 @@ end
             sig = sig / prod(size(obj))
 
             @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+        end
+    end
+
+    if USE_GPU
+        coords = [-1.0, 0.0, 1.0] .* 1e-3
+        ncoils = 4
+        coil_sens = fill(ComplexF32(1 / ncoils), length(coords), length(coords), length(coords), ncoils)
+        receivers = (
+            BirdcageCoilSens(; ncoils),
+            ArbitraryCoilSens(coords, coords, coords, coil_sens),
+        )
+        multi_coil_obj = Phantom(
+            x=[-5e-4, 0.0, 5e-4], y=[0.0, 4e-4, -4e-4], z=zeros(3),
+            ρ=ones(3), T1=fill(1e6, 3), T2=fill(1e6, 3), Δw=zeros(3),
+        )
+        multi_coil_seq = Sequence()
+        @addblock multi_coil_seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4) + ADC(4, 1e-4)
+        @addblock multi_coil_seq += ADC(4, 2e-4)
+        multi_coil_methods = (
+            Bloch(), BlochMagnusConst1(), BlochMagnusLin2(), BlochMagnusMid2(),
+            BlochMagnusLinComm2(), BlochMagnusQuad2(), BlochMagnusQuad4(),
+            BlochMagnusGL2(), BlochMagnusGL4(), BlochMagnusBGL4(), BlochMagnusBGL6(),
+        )
+
+        for receiver in receivers, sim_method in multi_coil_methods
+            sim_params = Dict{String,Any}(
+                "gpu" => false,
+                "Nthreads" => 1,
+                "precision" => "f32",
+                "return_type" => "mat",
+                "sim_method" => sim_method,
+            )
+            reference = simulate(
+                multi_coil_obj, multi_coil_seq, Scanner(; receiver);
+                sim_params, verbose=false,
+            )
+            sim_params["gpu"] = true
+            signal = simulate(
+                multi_coil_obj, multi_coil_seq, Scanner(; receiver);
+                sim_params, verbose=false,
+            )
+            @test signal ≈ reference
         end
     end
 end

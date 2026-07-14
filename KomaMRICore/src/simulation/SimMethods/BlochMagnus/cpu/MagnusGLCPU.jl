@@ -3,6 +3,7 @@ function run_spin_excitation!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys,
     sim_method::Union{BlochMagnusGL2,BlochMagnusGL4},
     groupsize,
     backend::KA.CPU,
@@ -47,7 +48,7 @@ function run_spin_excitation!(
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
         outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
         if seq.ADC[i1]
-            sig[sample] = sum(M.xy)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy)
             sample += 1
         end
         i = i1

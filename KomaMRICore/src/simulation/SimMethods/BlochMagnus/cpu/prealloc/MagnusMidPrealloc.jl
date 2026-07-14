@@ -14,7 +14,7 @@ struct BlochMagnusMidCPUPrealloc{
     Maux_z::RV
 end
 
-prealloc(sim_method::BlochMagnusMid2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusMid2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} =
     BlochMagnusMidCPUPrealloc(
         cbuf(obj), rbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj), rbuf(obj),

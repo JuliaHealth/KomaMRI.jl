@@ -52,7 +52,8 @@ function run_spin_precession!(
     outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
     outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     #Acquired signal
-    KomaMRIBase.acquire_signal!(sig, nothing, p, sys.receiver, @view Mxy[:, findall(seq.ADC[2:end])])
+    adc = findall(seq.ADC[2:end])
+    acquire_signal!(sig, p, sys.receiver, @view(Mxy[:, adc]))
     return nothing
 end
 
@@ -112,7 +113,7 @@ function run_spin_excitation!(
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            KomaMRIBase.acquire_signal!(sig, sample, p, sys.receiver, M.xy)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy)
             sample += 1
         end
     end

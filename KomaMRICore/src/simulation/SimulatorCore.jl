@@ -187,7 +187,10 @@ function run_sim_time_iter!(
     # Simulation
     rfs = 0
     samples = 1
-    prealloc_result = prealloc(sim_method, backend, obj, Xt, maximum(length.(parts))+1, precession_groupsize)
+    prealloc_result = prealloc(
+        sim_method, backend, obj, Xt, maximum(length.(parts)) + 1,
+        precession_groupsize, sys,
+    )
 
     (precession_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
     (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")

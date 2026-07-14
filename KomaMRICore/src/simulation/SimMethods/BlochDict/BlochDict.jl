@@ -2,9 +2,21 @@ Base.@kwdef struct BlochDict <: SimulationMethod
     save_Mz::Bool = false
 end
 
-export BlochDict
+export BlochDict, receive_weighted_dictionary
 Base.show(io::IO, s::BlochDict) = begin
     print(io, "BlochDict(save_Mz=$(s.save_Mz))")
+end
+
+"""
+    receive_weighted_dictionary(dictionary, obj, sys)
+
+Apply static receive sensitivities to a transverse Bloch dictionary, returning an
+`NADC × Nspins × Ncoils` array.
+"""
+function receive_weighted_dictionary(dictionary, obj::Phantom, sys::Scanner)
+    transverse = @view dictionary[:, :, 1, 1]
+    sens = eltype(dictionary).(get_sens(sys.receiver, obj.x, obj.y, obj.z))
+    return reshape(transverse, size(transverse)..., 1) .* reshape(sens, 1, size(sens)...)
 end
 
 function sim_output_dim(
@@ -39,6 +51,7 @@ function run_spin_precession!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys,
     sim_method::BlochDict,
     groupsize,
     backend::KA.Backend,

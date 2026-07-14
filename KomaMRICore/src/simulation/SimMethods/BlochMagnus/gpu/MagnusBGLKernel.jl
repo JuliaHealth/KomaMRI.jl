@@ -2,12 +2,12 @@
 
 @kernel unsafe_indices=true inbounds=true function excitation_kernel!(
     sig_output::AbstractMatrix{Complex{T}},
-    M_xy::AbstractVector{Complex{T}}, M_z,
+    M_xy::AbstractVector{Complex{T}}, M_z, sens, N_coils, N_adc,
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), @Const(s_ψ), @Const(s_ADC), s_length,
-    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
+    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC}, ::Val{HAS_SENS},
     sim_method::SM
-) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, SM<:Union{BlochMagnusBGL4,BlochMagnusBGL6}}
+) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, HAS_SENS, SM<:Union{BlochMagnusBGL4,BlochMagnusBGL6}}
 
     @uniform N = @groupsize()[1]
     i_l = @index(Local, Linear)
@@ -86,9 +86,21 @@
         end
 
         if HAS_ADC && s_ADC[s_end]
-            sig_r, sig_i = reduce_signal!(Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
-            if i_l == 1u32
-                sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
+            coil = 1u32
+            while coil <= N_coils
+                sig_r, sig_i = Mxy_r, Mxy_i
+                if active && HAS_SENS
+                    sens_r, sens_i = reim(sens[i, coil])
+                    sig_r, sig_i = (
+                        sig_r * sens_r - sig_i * sens_i,
+                        sig_r * sens_i + sig_i * sens_r,
+                    )
+                end
+                sig_r, sig_i = reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
+                if i_l == 1u32
+                    sig_output[i_g, ADC_idx + (coil - 1u32) * N_adc] = complex(sig_r, sig_i)
+                end
+                coil += 1u32
             end
             ADC_idx += 1u32
         end
