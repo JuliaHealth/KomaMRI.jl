@@ -5,7 +5,6 @@ using MAT, Interpolations, PlotlyBase
 import PlotlyKaleido
 using QMRIColors
 
-include("ui/PlotBackends.jl")
 include("ui/DisplayFunctions.jl")
 
 """Save a Plotly figure, starting Kaleido when needed."""

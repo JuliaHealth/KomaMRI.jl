@@ -447,7 +447,7 @@ function plot_seq(
         label_to_show = label_symbols,
         non_label_count = adc_idx
     )
-    return plot_koma(p, l; config)
+    return PlotlyBase.Plot(p, l; config)
 end
 
 """
@@ -534,7 +534,7 @@ function plot_M0(
     l, config = generate_seq_time_layout_config(
         title, width, height, range, slider, show_seq_blocks, darkmode; T0
     )
-    return plot_koma(p, l; config)
+    return PlotlyBase.Plot(p, l; config)
 end
 
 """
@@ -621,7 +621,7 @@ function plot_M1(
     l, config = generate_seq_time_layout_config(
         title, width, height, range, slider, show_seq_blocks, darkmode; T0
     )
-    return plot_koma(p, l; config)
+    return PlotlyBase.Plot(p, l; config)
 end
 
 """
@@ -708,7 +708,7 @@ function plot_M2(
     l, config = generate_seq_time_layout_config(
         title, width, height, range, slider, show_seq_blocks, darkmode; T0
     )
-    return plot_koma(p, l; config)
+    return PlotlyBase.Plot(p, l; config)
 end
 
 """
@@ -795,7 +795,7 @@ function plot_eddy_currents(
     l, config = generate_seq_time_layout_config(
         title, width, height, range, slider, show_seq_blocks, darkmode; T0
     )
-    return plot_koma(p, l; config)
+    return PlotlyBase.Plot(p, l; config)
 end
 
 """
@@ -873,7 +873,7 @@ function plot_slew_rate(
     l, config = generate_seq_time_layout_config(
         title, width, height, range, slider, show_seq_blocks, darkmode; T0
     )
-    return plot_koma(p, l; config)
+    return PlotlyBase.Plot(p, l; config)
 end
 
 """
@@ -950,7 +950,7 @@ function plot_image(
             "zoomOut",
         ],
     )
-    return plot_koma(p, l; config)
+    return PlotlyBase.Plot(p, l; config)
 end
 
 """
@@ -1143,7 +1143,7 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
         ).fields,
         modeBarButtonsToRemove=modebar_buttons,
     )
-    return plot_koma(p, l; config)
+    return PlotlyBase.Plot(p, l; config)
 end
 
 """
@@ -1425,7 +1425,7 @@ function plot_phantom_map(
         ).fields,
         modeBarButtonsToRemove=["zoom", "pan", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"]
     )
-    return plot_koma(traces, l; config)
+    return PlotlyBase.Plot(traces, l; config)
 end
 
 
@@ -1602,7 +1602,7 @@ function plot_signal(
         ],
         # modeBarButtonsToRemove=["zoom", "select2d", "lasso2d", "autoScale", "resetScale2d", "pan", "tableRotation", "resetCameraLastSave", "zoomIn", "zoomOut"]
     )
-    return plot_koma(p, l; config)
+    return PlotlyBase.Plot(p, l; config)
 end
 
 """
@@ -1774,5 +1774,5 @@ function plot_seqd(seq::Sequence; sampling_rule=KomaMRIBase.MaxStepSizeRule(1e-3
             visible="legendonly",
         ))
     end
-    return plot_koma(p)
+    return PlotlyBase.Plot(p)
 end

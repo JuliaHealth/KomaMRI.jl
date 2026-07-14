@@ -4,4 +4,3 @@ using TestItems, TestItemRunner
 
 #GUI tests
 include("GUI_PlotlyBase_backend_test.jl")
-include("GUI_PlutoPlotly_backend_test.jl")
