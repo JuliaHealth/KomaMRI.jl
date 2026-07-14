@@ -1760,10 +1760,11 @@ end
         FOV = 0.2       # [m]
         N = 80          # Reconstructed image N×N
         Nint = 8
-        λ = 2.1
-        spiral = PulseDesigner.spiral_base(FOV, N, sys; λ=λ, BW=120e3, Nint)
-        # Look at the k_space generated
-        @test spiral(0).DEF["λ"] ≈ λ
+        seq = PulseDesigner.spiral_base(FOV, N, sys; BW=120e3, Nint)(0)
+        @test seq.DEF["Nx"] == N
+        @test seq.DEF["Ny"] == N
+        @test seq.DEF["FOV"] == [FOV, FOV, 0]
+        @test seq.DEF["λ"] == Nint / (2π * FOV)
     end
     @testset "Radial" begin
         sys = Scanner()

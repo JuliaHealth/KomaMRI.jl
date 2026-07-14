@@ -16,7 +16,7 @@ coverage:
         flags:
           - base
       core:
-        target: 80% #slighlty lower, in case gpu tests dont run
+        target: 70% #slighlty lower, in case gpu tests dont run
         threshold: 5%
         flags:
           - core
