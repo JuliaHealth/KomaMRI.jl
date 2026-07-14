@@ -1710,6 +1710,69 @@ end
         @test gz.A * gz.T ≈ slice_area
         @test area(gzr) ≈ -slice_area / 2 - (area(gz) - slice_area) / 2
     end
+    @testset "build_slr_pulse" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        seq = PulseDesigner.build_slr_pulse(
+            90u"°"; duration=2u"ms", dwell=4u"μs", time_bw_product=4,
+            slice_thickness=5u"mm", freq_offset=1u"kHz", phase_offset=30u"°",
+            sys,
+        )
+
+        rf = seq.RF[1, 1]
+        gz, gzr = seq.GR.z
+        slice_area = 4 / (γ * 5e-3)
+        @test length(rf.A) == 500
+        @test get_flip_angles(seq)[1] ≈ 90.0
+        @test rf.use == Excitation()
+        @test rf.Δf == 1e3
+        @test rf.ϕ ≈ π / 6
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area * (1 - rf_center(rf, sys) / 2e-3) -
+            (area(gz) - slice_area) / 2
+
+        refocusing = PulseDesigner.build_slr_pulse(
+            180u"°"; duration=2u"ms", dwell=4u"μs", use=Refocusing(), sys,
+        )
+        @test refocusing.RF[1, 1].use == Refocusing()
+        @test get_flip_angles(refocusing)[1] ≈ 180.0
+
+        # Bloch simulation of each short Pulseq FIR pulse should recover its flip within 1%.
+        short_duration = 512u"μs"
+        short_dwell = 8u"μs"
+        flip_rtol = 0.01
+        for filter_type in (:pm, :min, :max, :ls)
+            filtered = PulseDesigner.build_slr_pulse(
+                90u"°"; duration=short_duration, dwell=short_dwell, filter_type, sys,
+            )
+            @test all(isfinite, filtered.RF[1, 1].A)
+            @test isapprox(get_flip_angles(filtered)[1], 90.0; rtol=flip_rtol)
+        end
+
+        for (use, flip_angle, expected_flip) in (
+            (Inversion(), 180u"°", 180.0),
+            (Saturation(), 110u"°", 110.0),
+        )
+            pulse = PulseDesigner.build_slr_pulse(
+                flip_angle; duration=short_duration, dwell=short_dwell, use, sys,
+            )
+            @test pulse.RF[1, 1].use == use
+            @test isapprox(get_flip_angles(pulse)[1], expected_flip; rtol=flip_rtol)
+        end
+
+        fallback_uses = (Preparation(), Other(), Undefined())
+        fallback_rf = [PulseDesigner.build_slr_pulse(
+            20u"°"; duration=short_duration, dwell=short_dwell, use, sys,
+        ).RF[1, 1] for use in fallback_uses]
+        @test getproperty.(fallback_rf, :use) == collect(fallback_uses)
+        @test all(rf -> rf.A ≈ fallback_rf[1].A, fallback_rf[2:end])
+
+        @test_throws ErrorException PulseDesigner.build_slr_pulse(
+            90u"°"; duration=2u"ms", filter_type=:unknown, sys,
+        )
+    end
     @testset "build_adiabatic_pulse" begin
         sys = Scanner(
             B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
