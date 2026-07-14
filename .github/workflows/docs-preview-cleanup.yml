@@ -16,7 +16,7 @@ jobs:
       group: docs-preview-cleanup-${{ github.event.pull_request.number }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: gh-pages
           fetch-depth: 0
