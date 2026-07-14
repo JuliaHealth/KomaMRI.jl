@@ -77,7 +77,7 @@ jobs:
 
             core.setOutput('number', pr.number);
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: steps.pr.outputs.number != ''
         with:
           ref: refs/pull/${{ steps.pr.outputs.number }}/merge
