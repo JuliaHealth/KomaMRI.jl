@@ -2,8 +2,12 @@
 sys_ui = Observable{Scanner}(Scanner())
 seq_ui = Observable{Sequence}(Sequence())
 obj_ui = Observable{Phantom}(Phantom(x=[0.0]))
+physio_ui = Observable{AbstractPhysioSignal}(NoPhysioSignal())
 raw_ui = Observable{RawAcquisitionData}(setup_raw())
 img_ui = Observable{Array{ComplexF64}}([0.0im 0.; 0. 0.])
+
+_default_physio_signal(seq) =
+    has_trigger(seq) ? CardiacSignal(; heart_rate=1) : NoPhysioSignal()
 
 # Temporary fix for ubuntu
 # https://github.com/JuliaGizmos/Blink.jl/issues/325
@@ -71,6 +75,7 @@ function KomaUI(;
     Observables.clear(seq_ui)
     Observables.clear(obj_ui)
     Observables.clear(sys_ui)
+    Observables.clear(physio_ui)
     Observables.clear(raw_ui)
     Observables.clear(img_ui)
 
@@ -85,15 +90,17 @@ function KomaUI(;
     sys_default = isnothing(sys) ? setup_scanner() : sys
     seq_default = isnothing(seq) ? setup_sequence(sys_default) : seq
     obj_default = isnothing(obj) ? setup_phantom(; phantom_mode) : obj
+    physio_default = _default_physio_signal(seq_default)
     @sync begin
         @async sys_ui[] = sys_default
         @async seq_ui[] = seq_default
         @async obj_ui[] = obj_default
+        @async physio_ui[] = physio_default
         @async raw_ui[] = setup_raw()
         @async img_ui[] = [0.0im 0.; 0. 0.]
     end
     if verbose
-        @info "Loaded default UI inputs" scanner="sys_ui[]" sequence="seq_ui[]" phantom="obj_ui[]" raw="raw_ui[]" image="img_ui[]"
+        @info "Loaded default UI inputs" scanner="sys_ui[]" sequence="seq_ui[]" phantom="obj_ui[]" physio="physio_ui[]" raw="raw_ui[]" image="img_ui[]"
     end
 
     # Define parameters (they are just internal variables)
@@ -117,7 +124,7 @@ function KomaUI(;
         @js_ w document.getElementById("content").dataset.content = "index"
     end
     handle(w, "pulses_seq") do _
-        view_ui!(seq_ui[], w; type="sequence", darkmode)
+        view_ui!(seq_ui[], w; type="sequence", darkmode, physio=physio_ui[])
     end
     handle(w, "reload_seq") do _
         if seq_file[] != ""
@@ -203,7 +210,9 @@ function KomaUI(;
 
         # Perform simulation
         callbacks = (ui_progressbar_callback(w),)
-        raw_aux = simulate(obj_ui[], seq_ui[], sys_ui[]; sim_params, callbacks)
+        raw_aux = simulate(
+            obj_ui[], seq_ui[], sys_ui[]; sim_params, callbacks, physio=physio_ui[]
+        )
 
         # After simulation, display the text on the simulation button (not the progress bar)
         @js_ w document.getElementById("simulate!").innerHTML="Simulate!"
@@ -266,8 +275,7 @@ function KomaUI(;
         @js_ w (@var buffericon = $buffericon; document.getElementById("recon!").innerHTML = buffericon)
 
         # Get the value of the raw signal and prepare for reconstruction
-        raw_aux = raw_ui[]
-        raw_aux.profiles = raw_aux.profiles[getproperty.(getproperty.(raw_aux.profiles, :head), :flags) .!= 268435456] #Extra profile in JEMRIS simulations
+        raw_aux = _imaging_raw_data(raw_ui[])
         acq_data = AcquisitionData(raw_aux)
         acq_data.traj[1].circular = false #Removing circular window
         acq_data.traj[1].nodes = acq_data.traj[1].nodes[1:2,:] ./ maximum(2*abs.(acq_data.traj[1].nodes[:])) #Normalize k-space to -.5 to .5 for NUFFT
@@ -307,7 +315,12 @@ function KomaUI(;
     end
 
     # Listeners
-    on((seq) -> view_ui!(seq, w; type="sequence", darkmode), seq_ui)
+    on(physio_ui) do physio
+        view_ui!(seq_ui[], w; type="sequence", darkmode, physio)
+    end
+    on(seq_ui) do seq
+        physio_ui[] = _default_physio_signal(seq)
+    end
     on((obj) -> view_ui!(obj, w, seq_ui[], widgets_button_obj; key=:ρ, darkmode), obj_ui)
     for (widget_button, key) in zip(widgets_button_obj, fieldnames_obj)
         on((cnt) -> view_ui!(cnt, w, obj_ui[], seq_ui[], widgets_button_obj; key, darkmode), widget_button)

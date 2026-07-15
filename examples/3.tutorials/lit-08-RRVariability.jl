@@ -1,52 +1,51 @@
-# # Cardiac Cine MRI with Arrhythmias
+# # Triggered Cardiac bSSFP with Arrhythmia
 
-using KomaMRI, PlotlyJS, Plots, Printf, Suppressor; #hide
+using KomaMRI #hide
 import KomaMRI.PulseDesigner as PD #hide
 sys = Scanner(); #hide
-
-function bSSFP_cine(FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys; #hide
-    Δf=0, adc_duration=1e-3, N_dummy_cycles=10) #hide
-    RR(i) = RRs[(i - 1) % length(RRs) + 1] #hide
+sim_params = Dict{String,Any}("gpu"=>false); #hide
+#hide
+function triggered_bSSFP(FOV, N_matrix, TR, flip_angle, sys; #hide
+    Δf=0, adc_duration=1e-3, N_ramp_cycles=16, lines_per_heartbeat=8, #hide
+    trigger_delay) #hide
+    N_matrix % lines_per_heartbeat == 0 || #hide
+        error("`lines_per_heartbeat` must divide `N_matrix`.") #hide
     seq = Sequence() #hide
     base_seq = bSSFP(FOV, N_matrix, TR, flip_angle, sys; Δf, adc_duration) #hide
-    n = 1 #hide
-    for i in 0:(N_matrix - 1) #hide
-        line = base_seq[6 * i .+ (1:6)] #hide
-        if N_dummy_cycles > 0 && i == 0 #hide
-            dummy_dur = N_dummy_cycles * dur(line) #hide
-            rr_sum = RR(n) #hide
-            while dummy_dur > rr_sum #hide
-                n += 1 #hide
-                rr_sum += RR(n) #hide
-            end #hide
-            @addblock seq += Delay(rr_sum - dummy_dur) #hide
-        end #hide
-        for j in 1:(N_phases + N_dummy_cycles) #hide
-            l = copy(line) #hide
-            l[1].RF[1].A *= (-1)^j #hide
-            l[4].ADC[1].ϕ = iseven(j) ? 0 : π #hide
-            if j <= N_dummy_cycles #hide
-                l = 0 * l #hide
-                l[4].ADC[1].N = 0 #hide
-            end #hide
+    blocks_per_line = length(base_seq) ÷ N_matrix #hide
+    line(i) = base_seq[blocks_per_line * i .+ (1:blocks_per_line)] #hide
+    ramp_line = line(N_matrix ÷ 2) #hide
+    ramp_line.GR[1:2, :] .*= 0 #hide
+    rf_block = findfirst(i -> is_RF_on(ramp_line[i]), 1:length(ramp_line)) #hide
+    adc_block = findfirst(i -> is_ADC_on(ramp_line[i]), 1:length(ramp_line)) #hide
+    adc = ramp_line.ADC[adc_block] #hide
+    first_adc_offset = N_ramp_cycles * dur(ramp_line) + sum(ramp_line.DUR[1:(adc_block - 1)]) + adc.delay + adc.T / 2 #hide
+    post_trigger_delay = trigger_delay - first_adc_offset #hide
+    post_trigger_delay >= 0 || error("The flip-angle ramp does not fit before the requested trigger delay.") #hide
+    for first_line in 0:lines_per_heartbeat:(N_matrix - 1) #hide
+        @addblock seq += PD.make_trigger(:physio1; duration=post_trigger_delay, sys) #hide
+        for cycle in 1:N_ramp_cycles #hide
+            l = copy(ramp_line) #hide
+            l.RF[rf_block].A *= cycle / N_ramp_cycles * (-1)^cycle #hide
+            l.ADC[adc_block].N = 0 #hide
             @addblock seq += l #hide
         end #hide
-        phase_dur = (N_phases + N_dummy_cycles) * dur(line) #hide
-        n += 1 #hide
-        rr_sum = RR(n) #hide
-        while phase_dur > rr_sum #hide
-            n += 1 #hide
-            rr_sum += RR(n) #hide
+        last_line = first_line + lines_per_heartbeat - 1 #hide
+        for (segment_cycle, line_index) in enumerate(first_line:last_line) #hide
+            cycle = N_ramp_cycles + segment_cycle #hide
+            l = copy(line(line_index)) #hide
+            l.RF[rf_block].A *= (-1)^cycle #hide
+            l.ADC[adc_block].ϕ = iseven(cycle) ? 0 : π #hide
+            @addblock seq += l #hide
         end #hide
-        @addblock seq += Delay(rr_sum - phase_dur) #hide
     end #hide
     return seq #hide
 end #hide
-
+#hide
 function bSSFP(FOV, N, TR, flip_angle, sys; #hide
-    Δf=0, pulse_duration=3e-3, z0=0.0, slice_thickness=10e-3, TBP=4, adc_duration=1e-3) #hide
+    Δf=0, pulse_duration=2e-3, z0=0.0, slice_thickness=10e-3, TBP=4, adc_duration=1e-3) #hide
     Δk = 1 / FOV #hide
-    ro_area = (N - 1) * Δk #hide
+    ro_area = N * Δk #hide
     rf, gz, gz_reph = PD.make_sinc_pulse( #hide
         flip_angle * π / 180; #hide
         duration=pulse_duration, #hide
@@ -56,7 +55,7 @@ function bSSFP(FOV, N, TR, flip_angle, sys; #hide
         apodization=0.5, #hide
         sys, #hide
     ) #hide
-    readout_time = max(adc_duration, (N - 1) * sys.ADC_Δt) #hide
+    readout_time = max(adc_duration, N * sys.ADC_Δt) #hide
     readout_time == adc_duration || @warn "ADC duration is too short. It will be extended to $(readout_time * 1e3) ms." #hide
     gx = PD.make_trapezoid(; flat_area=ro_area, flat_time=readout_time, sys) #hide
     adc = PD.make_adc(N; duration=gx.T, delay=gx.rise, sys) #hide
@@ -65,190 +64,163 @@ function bSSFP(FOV, N, TR, flip_angle, sys; #hide
     gx_pre = PD.make_trapezoid(; area=-area(gx) * γ / 2, duration=pre_time, sys) #hide
     bssfp = Sequence(sys) #hide
     @addblock for i in 0:(N - 1) #hide
-        ky = i * Δk - ro_area / 2 #hide
+        ky = (i - N / 2) * Δk #hide
         gy_pre = PD.make_trapezoid(; area=ky, duration=pre_time, rise_time=gx_pre.rise, fall_time=gx_pre.fall, sys) #hide
         delay_TR = TR - excitation_time - pre_time - dur(gx) - pre_time #hide
+        delay_before_readout = round_to_raster( #hide
+            TR / 2 - (excitation_time + pre_time + adc.delay + adc.T / 2 - rf.delay - rf.center), #hide
+            sys.GR_Δt, #hide
+        ) #hide
+        delay_after_readout = delay_TR - delay_before_readout #hide
         bssfp += (rf, z=gz) #hide
         bssfp += (x=gx_pre, y=gy_pre, z=gz_reph) #hide
-        bssfp += Delay(delay_TR / 2) #hide
+        bssfp += Delay(delay_before_readout) #hide
         bssfp += (adc, x=gx) #hide
-        bssfp += Delay(delay_TR / 2) #hide
+        bssfp += Delay(delay_after_readout) #hide
         bssfp += (x=gx_pre, y=-gy_pre, z=gz_reph) #hide
     end #hide
     bssfp.DEF = Dict("Nx"=>N, "Ny"=>N, "Nz"=>1, "Name"=>"bssfp$(N)x$(N)", "FOV"=>[FOV, FOV, 0]) #hide
     return bssfp #hide
 end #hide
-
-function plot_cine(frames, fps; Δt=1 / fps, filename="cine_recon.gif", width=400, height=400) #hide
-    x = 0:(size(frames[1])[2] - 1) #hide
-    y = 1:size(frames[1])[1] #hide
-    global_min = minimum(reduce(vcat, frames)) #hide
-    global_max = maximum(reduce(vcat, frames)) #hide
-    n_frames, n_cines = ndims(frames) == 1 ? (length(frames), 1) : size(frames) #hide
-    t = 0 #hide
-    anim = @animate for i in 1:n_frames #hide
-        t += Δt #hide
-        plots = [ #hide
-            Plots.plot!( #hide
-                Plots.heatmap(x, y, frames[i, j]', color=:greys; aspect_ratio=:equal, colorbar=true, clim=(global_min, global_max), size=(n_cines * width, height)), #hide
-                title="t = " * Printf.@sprintf("%.3f", t) * "s", #hide
-                xlims=(minimum(x), maximum(x)), #hide
-                ylims=(minimum(y), maximum(y)), #hide
-            ) for j in 1:n_cines #hide
-        ] #hide
-        Plots.plot(plots..., layout=(1, n_cines)) #hide
-    end #hide
-    gif(anim, filename, fps=fps) #hide
-end #hide
-
-function reconstruct_cine(raw, seq, N_matrix, N_phases) #hide
-    frames = [] #hide
-    recParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(N_matrix, N_matrix), :densityWeighting=>false) #hide
-    acqData = AcquisitionData(raw) #hide
+#hide
+function reconstruct_image(raw, seq, N_matrix) #hide
+    acq = AcquisitionData(raw) #hide
     _, ktraj = get_kspace(seq) #hide
-    for i in 1:N_phases #hide
-        acqAux = deepcopy(acqData) #hide
-        range = reduce(vcat, [j * (N_matrix * N_phases) .+ ((i - 1) * N_matrix .+ (1:N_matrix)) for j in 0:(N_matrix - 1)]) #hide
-        acqAux.kdata[1] = reshape(acqAux.kdata[1][range], (N_matrix^2, 1)) #hide
-        acqAux.traj[1].circular = false #hide
-        acqAux.traj[1].nodes = transpose(ktraj[:, 1:2])[:, range] #hide
-        acqAux.traj[1].nodes = acqAux.traj[1].nodes[1:2, :] ./ maximum(2 * abs.(acqAux.traj[1].nodes[:])) #hide
-        acqAux.traj[1].numProfiles = N_matrix #hide
-        acqAux.traj[1].times = acqAux.traj[1].times[range] #hide
-        push!(frames, abs.(reshape(reconstruction(acqAux, recParams).data, N_matrix, N_matrix, :)[:, :, 1])) #hide
-    end #hide
-    return frames #hide
+    acq.traj[1].circular = false #hide
+    acq.traj[1].nodes = permutedims(ktraj[:, 1:2]) #hide
+    acq.traj[1].nodes ./= maximum(2 * abs.(acq.traj[1].nodes[:])) #hide
+    acq.traj[1].numProfiles = N_matrix #hide
+    rec_params = Dict{Symbol,Any}( #hide
+        :reco=>"direct", :reconSize=>(N_matrix, N_matrix), :densityWeighting=>false, #hide
+    ) #hide
+    image = reconstruction(acq, rec_params).data #hide
+    return abs.(reshape(image, N_matrix, N_matrix, :)[:, :, 1]) #hide
 end #hide
+#hide
+function cardiac_phantom(; RR_intervals) #hide
+    base_RR = 1.0 #hide
+    systole_end = 0.42 #hide
+    rest_start = 0.67 #hide
+    rest_end = 0.77 #hide
+    rest_position = 1 - (rest_start - systole_end) / (1 - systole_end - (rest_end - rest_start)) #hide
+    motion_time = TimeCurve( #hide
+        t=base_RR .* [0.0, systole_end, rest_start, rest_end, 1.0], #hide
+        t_unit=[0.0, 1.0, rest_position, rest_position, 0.0], #hide
+        periodic=true, #hide
+        periods=RR_intervals ./ base_RR, #hide
+    ) #hide
+    obj = heart_phantom(; rotation_angle=5.0, spins_per_voxel=20) #hide
+    obj.motion = MotionList(( #hide
+        Motion(motion.action, motion_time, motion.spins) for motion in obj.motion.motions #hide
+    )...) #hide
+    return obj #hide
+end #hide
+nothing #hide
+#hide
+# In this tutorial, you will acquire one 32×32 mid-diastolic bSSFP image using
+# 8 phase-encoding lines per heartbeat. You will then simulate an arrhythmia while the
+# sequence continues to trigger every second and observe the resulting artifact.
 
-# This tutorial shows how to simulate cardiac cine MRI using Koma,  
-# including cases with variable RR intervals (i.e., arrhythmias). You'll learn how to:
-
-# 1. Simulate a clean cine acquisition with constant RR intervals.  
-# 2. Introduce arrhythmias (variable RR intervals) into the cardiac phantom.  
-# 3. Observe how this desynchronization degrades image quality.  
-# 4. Correct the acquisition by synchronizing the sequence with the phantom’s RR variability (manual triggering).
-
-# ### 1. Constant RR for Phantom and Sequence
+# ### 1. Correct triggering with a regular cardiac rhythm
 #
-# We will begin by simulating a cardiac cine on a myocardial phantom with a constant RR interval.
-# We'll use the `heart_phantom` function to create a ring-shaped phantom filled with blood, resembling the left ventricle:
+# We begin with a myocardial phantom whose contraction and rotation repeat every second.
+# It contracts during systole, relaxes during diastole, and pauses around the
+# mid-diastolic acquisition window.
 
-obj = heart_phantom(; spins_per_voxel=20);
+obj = cardiac_phantom(; RR_intervals=1.0)
+trigger_delay = 0.72;
 
-# By default, this phantom exhibits periodic contraction and rotation with a 1-second period:
-p1 = plot_phantom_map(obj, :T1 ; height=450, time_samples=21) #hide
+# The resulting contraction and rotation have a one-second period:
+p1 = plot_phantom_map(obj, :T1; height=450, max_spins=2000, time_samples=21) #hide
 #jl display(p1);
 
-# As shown in previous tutorials, the phantom's motion is defined by its `motion` field.
-# Until now, this motion has typically consisted of a single `Motion` component.
-# In this case, however, it consists of two independent motions: a contraction (`HeartBeat`)
-# and a `Rotation`. These two are grouped together in a `MotionList` structure:
+# Each heartbeat starts with a flip-angle ramp. The first of 8 phase-encoding lines is
+# acquired 720 ms after the R peak; the remaining lines follow every TR within the same
+# mid-diastolic window.
 
-obj.motion
+N_matrix           = 32          # image size = N x N
+lines_per_heartbeat = 8
+N_ramp_cycles       = 16          # flip-angle ramp length
+FOV                 = 0.11        # [m]
+TR                  = 2.96e-3     # [s]
+flip_angle          = 40          # [º]
+adc_duration        = 0.24e-3;    # [s]
 
-# Now, we will create a bSSFP cine sequence with the following parameters:
-
-RRs          = [1.0]       # [s] constant RR interval
-N_matrix     = 32          # image size = N x N
-N_phases     = 16          # Number of cardiac phases
-FOV          = 0.11        # [m]
-TR           = 25e-3       # [s]
-flip_angle   = 10          # [º]
-adc_duration = 0.2e-3;     # [s]
-
-# 
-
-seq = bSSFP_cine(
-    FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys; 
-    N_dummy_cycles = 16, adc_duration = adc_duration,
+seq = triggered_bSSFP(
+    FOV, N_matrix, TR, flip_angle, sys;
+    N_ramp_cycles, lines_per_heartbeat, trigger_delay, adc_duration,
 );
 
-## Simulation  #hide
-raw1 = @suppress simulate(obj, seq, sys); #hide
-## Reconstruction #hide
-frames1 = @suppress reconstruct_cine(raw1, seq, N_matrix, N_phases); #hide
+# A heart rate of `1` means 1 Hz, giving one R peak per second:
 
-# The simulation and subsequent reconstruction produces the following cine frames, 
-# which look clean and temporally coherent:
+regular_cardiac_rythm = CardiacSignal(; heart_rate=1);
 
-fps = 25 #hide
-p2 = @suppress plot_cine(frames1, fps; Δt=TR, filename="../public/assets/tut-7-frames1.gif"); #hide
-#jl display(p2);
-#nb display(p2);
+# Passing the signal to `plot_seq` resolves the trigger waits and adds the ECG trace.
+# The complete sequence is plotted, with the initial view showing the first two seconds:
 
-#md # ```@raw html
-#md # <center><object data="../assets/tut-7-frames1.gif" style="width:100%; max-width:325px"></object></center>
-#md # ```
+pseq = plot_seq(
+    seq;
+    physio=regular_cardiac_rythm,
+    range=[0, 2000],
+    gl=true,
+    show_adc=true,
+    height=450,
+);
+pseq #hide
 
-# ### 2. Arrhythmic Phantom: Variable RR, Constant Sequence
+# Simulate the four triggered heartbeat segments:
+
+raw_regular = simulate(
+    obj, seq, sys;
+    sim_params,
+    physio=regular_cardiac_rythm,
+    verbose=false,
+);
+
+image_regular = reconstruct_image(raw_regular, seq, N_matrix); #hide
+pimage_regular = plot_image( #hide
+    image_regular; height=400, title="Correctly triggered regular rhythm", #hide
+); #hide
+
+# The segments combine into one clean mid-diastolic image:
+
+#md pimage_regular #hide
+#jl display(pimage_regular);
+#nb display(pimage_regular);
+
+# ### 2. Sequence triggered incorrectly during arrhythmia
 #
-# Now, we will introduce arrhythmias into the phantom by varying its RR intervals.
-# However, the sequence will still assume a constant RR interval of 1 second.
+# Now make the phantom arrhythmic while keeping the trigger signal at 1 Hz:
 
-RRs = [900, 1100, 1000, 1000, 1000, 800] .* 1e-3;
+arrhythmic_intervals = [1.2, 1.2, 0.8, 0.8]
+obj_arrhythmic = cardiac_phantom(; RR_intervals=arrhythmic_intervals);
 
-#md # !!! note
-#md #     The `RRs` array contains **scaling factors** relative to the original 
-#md #     duration of the phantom’s motion cycle.  
-#md #     
-#md #     In this example, the base duration of the cardiac motion is 1 second, which is defined within the `t` field of its [`TimeCurve`](@ref) structure.   
-#md #     Consequently, the elements in `RRs` directly represent the actual RR intervals in seconds (e.g., 0.9 s, 1.1 s, etc.).
+# The varying cycle lengths are visible in the motion plot:
 
-# Let's apply the new `RRs` to the phantom:
-
-## Take the time curve from the contraction motion:
-t_curve = obj.motion.motions[1].time 
-## Generate a new time curve:
-t_curve_new = TimeCurve(
-    t = t_curve.t, 
-    t_unit = t_curve.t_unit,
-    periodic = true,
-    periods = RRs
-)
-## Assign the new time curve to both the contraction and the rotation:
-obj.motion.motions[1].time = t_curve_new
-obj.motion.motions[2].time = t_curve_new;
-
-# Let’s visualize how the motion pattern has changed, now with variable-duration RR intervals:
-
-p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41) #hide
-
+p3 = plot_phantom_map(obj_arrhythmic, :T1; height=450, max_spins=2000, time_samples=41) #hide
 #jl display(p3);
 
-# Since the sequence still assumes a constant RR interval, it becomes unsynchronized with the phantom.
-# This results in artifacts and temporal inconsistencies in the cine images. We will showcase these images in the next section.
+# The regular trigger now samples the segments at different cardiac phases:
 
-## Simulation  #hide
-raw2 = @suppress simulate(obj, seq, sys) #hide
-## Reconstruction #hide
-frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
-@suppress plot_cine(frames2, fps; Δt=TR, filename="../public/assets/tut-7-frames2.gif"); #hide
-#jl plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
-#nb plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
-
-# ### 3. Prospective Triggering: Resynchronized Acquisition
-# To correct this, we synchronize the sequence **manually** by providing it the same RR intervals as the phantom:
-seq = bSSFP_cine(
-    FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys; 
-    N_dummy_cycles = 16, adc_duration = adc_duration,
+raw_mismatched = simulate(
+    obj_arrhythmic, seq, sys;
+    sim_params,
+    physio=regular_cardiac_rythm, # triggered incorrectly every second
+    verbose=false,
 );
 
-# This approach manually mimics cardiac triggering. The resulting cine is 
-# once again correctly aligned, despite the underlying arrhythmia.
-# 
-# In the future, this synchronization will be handled automatically 
-# through scanner trigger extensions; this tutorial keeps the synchronization explicit.
+image_mismatched = reconstruct_image(raw_mismatched, seq, N_matrix); #hide
+image_scale = maximum(image_mismatched) #hide
+pimage_mismatched = plot_image( #hide
+    image_mismatched; height=400, zmin=0, zmax=image_scale, #hide
+    title="Incorrect sequence triggering", #hide
+); #hide
 
-## Simulation  #hide
-raw3 = @suppress simulate(obj, seq, sys) #hide
-## Reconstruction #hide
-frames3 = @suppress reconstruct_cine(raw3, seq, N_matrix, N_phases); #hide
+# The phase-encoding segments no longer describe the same cardiac state:
 
-#jl plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif");
-#nb plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif");
+#md pimage_mismatched #hide
+#jl display(pimage_mismatched);
+#nb display(pimage_mismatched);
 
-#md # Below, we compare the results of the desynchronized 👎 acquisition simulated in the previous section with the resynchronized 🕐 acquisition: 
-@suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../public/assets/tut-7-frames_comparison.gif"); #hide
-#md # ```@raw html
-#md # <center><object data="../assets/tut-7-frames_comparison.gif" style="width:100%"></object></center>
-#md # ```
+# The phantom's cardiac rhythm and `CardiacSignal` are independent inputs: changing the
+# motion does not alter the trigger schedule.

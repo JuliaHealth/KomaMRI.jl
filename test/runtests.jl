@@ -212,6 +212,9 @@ end
 @testitem "KomaUI" tags=[:koma] begin
 
     using Blink
+    triggered = Sequence()
+    @addblock triggered += Trigger(2, 1, 0.0, 1e-3)
+
     is_CI = Base.get_bool_env("CI", false)
 
     @static if Sys.islinux()
@@ -245,6 +248,14 @@ end
 
         @js w document.getElementById("button_pulses_M2").click()
         @test "m2" == @js w document.getElementById("content").dataset.content
+
+        default_seq = seq_ui[]
+        seq_ui[] = triggered
+        @test physio_ui[].period == 1.0
+        physio_ui[] = CardiacSignal(; heart_rate=1.25)
+        @test physio_ui[].period == 0.8
+        seq_ui[] = default_seq
+        @test physio_ui[] == NoPhysioSignal()
     end
 
     @testset "PhantomGUI" begin

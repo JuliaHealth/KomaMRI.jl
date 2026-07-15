@@ -81,12 +81,15 @@ function generate_seq_time_layout_config(
                 yref="paper",
                 xref="paper",
                 y=1,
-                x=-0.03,
+                x=1,
+                yanchor="bottom",
+                xanchor="right",
                 align="middle",
                 orientation="h",
 
                 bgcolor="white",
                 color=text_color,
+                pad=attr(r=64),
                 buttons = buttons
             )
         end
@@ -114,7 +117,7 @@ function generate_seq_time_layout_config(
                 ],
             ),
         ),
-        margin=attr(; t=0, l=0, r=0, b=0),
+        margin=attr(; t=6, l=6, r=6, b=6),
     )
     if show_seq_blocks
         l.xaxis["tickvals"] = T0 * 1e3
@@ -177,6 +180,72 @@ function interp_map(c_map, t_interp)
     return c_map_interp
 end
 
+_trigger_delays(::Extension) = ()
+_trigger_delays(trigger::Trigger) = (trigger.delay,)
+
+_ecg_gaussian(t, center, width) = exp(-0.5 * ((t - center) / width)^2)
+
+function _ecg_r_peaks(signal::CardiacSignal, t_start, t_end)
+    if isnothing(signal.period)
+        return signal.r_peaks[(t_start - 0.5 .<= signal.r_peaks) .& (signal.r_peaks .<= t_end + 0.5)]
+    end
+
+    reference = first(signal.r_peaks)
+    first_period = floor(Int, (t_start - 0.5 - reference) / signal.period)
+    last_period = ceil(Int, (t_end + 0.5 - reference) / signal.period)
+    return reference .+ (first_period:last_period) .* signal.period
+end
+
+function _ecg_waveform(t, signal::CardiacSignal)
+    ecg = zeros(length(t))
+    for r_peak in _ecg_r_peaks(signal, first(t), last(t))
+        relative_time = t .- r_peak
+        ecg .+=
+            0.12 .* _ecg_gaussian.(relative_time, -0.200, 0.035) .-
+            0.15 .* _ecg_gaussian.(relative_time, -0.040, 0.012) .+
+            1.00 .* _ecg_gaussian.(relative_time, 0.000, 0.010) .-
+            0.25 .* _ecg_gaussian.(relative_time, 0.035, 0.014) .+
+            0.30 .* _ecg_gaussian.(relative_time, 0.280, 0.070)
+    end
+    return ecg
+end
+
+_add_physio!(p, layout, scatter_fun, seq, ::NoPhysioSignal, xaxis) = nothing
+
+function _add_physio!(p, layout, scatter_fun, seq, signal::CardiacSignal, xaxis)
+    seq_duration = dur(seq)
+    r_peaks = filter(peak -> 0.0 <= peak <= seq_duration, _ecg_r_peaks(signal, 0.0, seq_duration))
+    interval_edges = unique([0.0; r_peaks; seq_duration])
+    samples_per_rr = 400
+    ecg_time = [
+        interval_start + local_time
+        for (interval_start, interval_end) in zip(interval_edges, @view interval_edges[2:end])
+        for local_time in LinRange(0.0, interval_end - interval_start, samples_per_rr)
+    ]
+    push!(p, scatter_fun(;
+        x=ecg_time * 1e3,
+        y=_ecg_waveform(ecg_time, signal),
+        name="ECG",
+        hovertemplate="(%{x:.4f} ms, %{y:.3f})<extra>ECG</extra>",
+        xaxis=xaxis,
+        yaxis="y2",
+        showlegend=false,
+        line=attr(; color="red"),
+    ))
+    layout.yaxis["domain"] = [0.12, 1.0]
+    layout.xaxis["anchor"] = "y2"
+    layout.yaxis2 = attr(;
+        domain=[0.0, 0.09],
+        anchor=xaxis,
+        fixedrange=true,
+        showgrid=false,
+        showticklabels=false,
+        zeroline=false,
+        title=attr(; text="Physio", font=attr(; size=11), standoff=0),
+    )
+    return nothing
+end
+
 """
     p = plot_seq(seq::Sequence; kwargs...)
 
@@ -198,6 +267,7 @@ Plots a sequence struct.
 - `gl`: (`::Bool`, `=false`) use `PlotlyJS.scattergl` backend (faster)
 - `max_rf_samples`: (`::Integer`, `=100`) maximum number of RF samples
 - `show_adc`: (`::Bool`, `=false`) plot ADC samples with markers
+- `physio`: (`=NoPhysioSignal()`) physiological signal used to resolve triggers
 
 # Returns
 - `p`: (`::PlotlyJS.SyncPlot`) plot of the Sequence struct
@@ -229,8 +299,10 @@ function plot_seq(
     gl=false,
     max_rf_samples=100,
     show_adc=false,
+    physio=NoPhysioSignal(),
 )
 
+    seq = resolve_triggers(seq, physio)
     # Aux functions
     scatter_fun = gl ? scattergl : scatter
     usrf(x) = length(x) > max_rf_samples ? ([@view x[1]; @view x[2:(length(x)÷max_rf_samples):end-1]; @view x[end]]) : x
@@ -243,10 +315,21 @@ function plot_seq(
     )
     # Get block start times
     T0 = get_block_start_times(seq)
+    trigger_times = [
+        (T0[i] + delay) * 1e3
+        for (i, extensions) in enumerate(seq.EXT)
+        for extension in extensions
+        for delay in _trigger_delays(extension)
+    ]
     # Get center times
     center_times = similar(T0, 0)
+    center_values = ComplexF64[]
     for (i, b) in enumerate(seq)
-        is_RF_on(b) && push!(center_times, T0[i] + b.RF[1].delay + b.RF[1].center)
+        if is_RF_on(b)
+            center_time = b.RF[1].delay + b.RF[1].center
+            push!(center_times, T0[i] + center_time)
+            push!(center_values, KomaMRIBase.get_rfs(b, [center_time])[1][1])
+        end
     end
     gx = stack_samples(:gx)
     gy = stack_samples(:gy)
@@ -254,8 +337,8 @@ function plot_seq(
     rf = (;
         stack_samples(:rf; amp=usrf, time=usrf)...,
         ct=center_times,
-        cA=abs.(KomaMRIBase.get_rfs(seq, center_times)[1]),
-        cϕ=angle.(KomaMRIBase.get_rfs(seq, center_times)[1])
+        cA=abs.(center_values),
+        cϕ=angle.(center_values)
     )
     Δf = stack_samples(:Δf; amp=usrf, time=usrf)
     ψ = show_rf_frame ? stack_samples(:ψ; amp=usrf, time=usrf) : nothing
@@ -458,6 +541,44 @@ function plot_seq(
         label_to_show = label_symbols,
         non_label_count = adc_idx
     )
+    if !isempty(trigger_times)
+        hover_positions = LinRange(0.0, 1.0, 51)
+        trigger_x = reduce(vcat, (fill(time, length(hover_positions)) for time in trigger_times))
+        trigger_y = repeat(hover_positions, length(trigger_times))
+        push!(p, scatter_fun(;
+            x=trigger_x,
+            y=trigger_y,
+            name="Trigger",
+            hovertemplate="Trigger: %{x:.4f} ms<extra></extra>",
+            xaxis=xaxis,
+            yaxis="y3",
+            showlegend=false,
+            mode="markers",
+            marker=attr(; color="rgba(255,0,0,0)", size=12),
+        ))
+        l.shapes = [
+            attr(;
+                type="line",
+                x0=time,
+                x1=time,
+                y0=0,
+                y1=1,
+                xref=xaxis,
+                yref="paper",
+                layer="above",
+                opacity=0.35,
+                line=attr(; color="red", width=1),
+            ) for time in trigger_times
+        ]
+        l.yaxis3 = attr(;
+            overlaying="y",
+            anchor=xaxis,
+            range=[0.0, 1.0],
+            fixedrange=true,
+            visible=false,
+        )
+    end
+    _add_physio!(p, l, scatter_fun, seq, physio, xaxis)
     return plot_koma(p, l; config)
 end
 

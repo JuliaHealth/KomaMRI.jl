@@ -254,7 +254,7 @@ function save_cli_raw(raw, filename)
 end
 
 function reconstruct_cli(raw, rec_params)
-    raw.profiles = raw.profiles[getproperty.(getproperty.(raw.profiles, :head), :flags) .!= 268435456]
+    raw = _imaging_raw_data(raw)
     acq_data = AcquisitionData(raw)
     acq_data.traj[1].circular = false
     scale = maximum(2 * abs.(acq_data.traj[1].nodes[:]))

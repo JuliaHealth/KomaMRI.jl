@@ -111,6 +111,27 @@
             @test "REV" in trace_names
         end
 
+        @testset "plot_seq triggers" begin
+            triggered = Sequence()
+            preceding_delay = Delay(1e-3)
+            trigger = PulseDesigner.make_trigger(:physio2; delay=2e-3, duration=1e-3)
+            @addblock triggered += preceding_delay
+            @addblock triggered += trigger
+            p = plot_seq(triggered)
+            trigger_time = (dur(preceding_delay) + trigger.delay) * 1e3
+
+            @test all(trace -> trace.name != "ECG", p.plot.data)
+            @test only(p.plot.layout.shapes).x0 ≈ trigger_time
+            @test occursin(
+                "%{x", only(trace for trace in p.plot.data if trace.name == "Trigger").hovertemplate
+            )
+
+            r_peak = 10e-3
+            p = plot_seq(triggered; physio=CardiacSignal(; r_peaks=[r_peak]))
+            @test any(trace -> trace.name == "ECG", p.plot.data)
+            @test only(p.plot.layout.shapes).x0 ≈ r_peak * 1e3
+        end
+
         @testset "plot_kspace" begin
             #Plot k-space
             plot_kspace(seq; width=800, height=600) #Plotting the k-space

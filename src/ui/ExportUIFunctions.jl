@@ -265,13 +265,23 @@ end
 """
 Updates the UI with sequence plots
 """
-function view_ui!(seq::Sequence, w::Window; type="sequence", darkmode=true)
+function view_ui!(
+    seq::Sequence, w::Window; type="sequence", darkmode=true, physio=NoPhysioSignal()
+)
     # Add loading progress and then a plot to the UI depending on type of the plot
     if type == "sequence"
         display_loading!(w, "Plotting sequence ...")
         long_seq = length(seq) > 1_000
         time_end = !long_seq ? 30 : dur(seq) * 1e3
-        widget_plot = plot_seq(seq; darkmode, range=[0 time_end], slider=!long_seq, gl=long_seq, show_adc=false)
+        widget_plot = plot_seq(
+            seq;
+            darkmode,
+            range=[0 time_end],
+            slider=!long_seq,
+            gl=long_seq,
+            show_adc=false,
+            physio,
+        )
         content!(w, "div#content", dom"div"(widget_plot))
         @js_ w document.getElementById("content").dataset.content = "sequence"
     elseif type == "kspace"
