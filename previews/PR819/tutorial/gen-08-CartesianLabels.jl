@@ -34,6 +34,9 @@ prewinder = Grad(-Gx / 2, Tadc)
     end #hide
 end
 
+pseq = plot_seq(seq; height=400)
+display(pseq);
+
 raw = @suppress simulate(obj, seq, sys)
 
 for p in [1, Ny, Ny + 1, Nslices * Ny]
