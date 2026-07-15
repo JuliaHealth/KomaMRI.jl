@@ -63,7 +63,6 @@
 - Use representative semantic variable names or formulas for expected values; avoid unexplained magic numbers in assertions.
 - For groups of semantically similar tests, add one compact comment above the group when intent is not obvious. Do not comment every assertion.
 - Do not add tests that merely check a function equals its own definition or reimplement the same logic in the test. Test behavioral contracts, regressions, edge cases, and cross-implementation parity; do not add random assertions only to increase coverage.
-- For plotting and UI tests, assert the smallest user-visible contract. Do not enumerate backend layout or trace fields unless the reported regression depends on that exact property.
 
 ## Docs
 - Use the `docs` environment.
