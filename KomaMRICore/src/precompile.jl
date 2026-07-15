@@ -35,10 +35,8 @@ import KomaMRIBase: PulseDesigner as PD
             BlochSimple(),
             BlochMagnusConst1(),
             BlochMagnusLin2(),
-            BlochMagnusMid2(),
-            BlochMagnusQuad2(),
             BlochMagnusQuad4(),
-            BlochMagnusGL4(),
+            BlochMagnusBGL6(),
         ]
         
         precisions = ["f32", "f64"]
