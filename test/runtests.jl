@@ -249,8 +249,7 @@ end
                 js"""
                     document.getElementById('content').dataset.content === $(state) &&
                         document.querySelector('#content .js-plotly-plot') !== null
-                """;
-                timeout=2.0,
+                """,
             )
             range_slider_visible() = Bonito.evaljs_value(
                 session,
