@@ -10,7 +10,7 @@ using TestItems, TestItemRunner
     A = rand(5,5,3)
     B = KomaMRI.fftc(KomaMRI.ifftc(A))
     @test A ≈ B
-    
+
     #Sanity check 2
     B = KomaMRI.ifftc(KomaMRI.fftc(A))
     @test A ≈ B
@@ -210,6 +210,8 @@ end
 end
 
 @testitem "KomaUI" tags=[:koma] begin
+    using Bonito
+
     @testset "MAT export" begin
         scanner = Scanner()
         sequence = KomaMRI.setup_sequence(scanner)
@@ -235,66 +237,117 @@ end
             @test_skip "Electron windows are unavailable on macOS CI"
         else
             w = KomaUI(; return_window=true, sim=Dict{String,Any}("gpu" => false))
-            ui = KomaMRI
             session = w.session[]
-            code(source) = ui.Bonito.JSCode(source)
-            value(source) = ui.Bonito.evaljs_value(session, code(source))
-            function wait_until(test; timeout=10)
-                start = time()
-                while !test()
-                    time() - start > timeout && return false
-                    sleep(0.05)
-                end
-                return true
-            end
-
+            click_button(id) = Bonito.evaljs_value(
+                session, js"document.getElementById($(id)).click()"
+            )
+            plot_rendered(state) = Bonito.evaljs_value(
+                session,
+                js"""
+                    document.getElementById('content').dataset.content === $(state) &&
+                        document.querySelector('#content .js-plotly-plot') !== null
+                """;
+                timeout=2.0,
+            )
             try
-                @test value("document.querySelectorAll('.koma-nav-icon').length") >= 6
-                @test value("getComputedStyle(document.querySelector('.koma-nav-icon'), '::before').content !== 'none'")
-                @test value("document.querySelector('#seqfilepicker input[type=file]') !== null")
-                @test value("document.querySelector('#seqfilepicker .koma-file-name').textContent") == "epi.seq"
+                @testset "Open UI" begin
+                    @test w.state[] == "index"
+                end
 
-                upload_name = "label_test_with_a_deliberately_long_filename.seq"
-                upload_data = read(
-                    joinpath(pkgdir(KomaMRI), "KomaMRIFiles", "test", "test_files", "pulseq", "basic_tests", "v1.4", "label_test.seq"),
-                )
-                data = join(upload_data, ',')
-                ui.Bonito.evaljs(session, code("""
-                    (() => {
-                        const input = document.querySelector('#seqfilepicker input[type=file]');
-                        const file = new File([new Uint8Array([$data])], $(repr(upload_name)));
-                        Object.defineProperty(input, 'files', {value: [file], configurable: true});
-                        input.dispatchEvent(new Event('change', {bubbles: true}));
-                    })()
-                """))
-                @test wait_until(() -> value("document.querySelector('#seqfilepicker .koma-file-name').title") == upload_name)
-                @test value("document.querySelector('#seqfilepicker .koma-file-name').textContent") == KomaMRI.display_filename(upload_name)
-                @test wait_until(() -> value("document.getElementById('toastTitle0').textContent.includes('...')"))
-                @test wait_until(() -> w.state[] == "sequence")
-                @test wait_until(() -> value("document.querySelector('.js-plotly-plot') !== null"))
+                @testset "Sequence views" begin
+                    click_button("button_pulses_seq")
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+                    @test Bonito.evaljs_value(
+                        session, js"document.getElementById('main').clientHeight === window.innerHeight"
+                    )
 
-                value("document.getElementById('button_pulses_seq').click(); true")
-                @test wait_until(() -> w.state[] == "sequence")
-                @test wait_until(() -> value("document.querySelector('.js-plotly-plot') !== null"))
-                @test value("(() => { const plot = document.querySelector('.js-plotly-plot'); return Math.abs(plot.clientWidth - plot.parentElement.clientWidth) <= 1; })()")
+                    click_button("button_pulses_kspace")
+                    @test timedwait(() -> w.state[] == "kspace", 30) == :ok
+                    @test timedwait(() -> plot_rendered("kspace"), 30) == :ok
 
-                ui.toast!(w, 0, "Loaded <b>epi.seq</b>", "Ready to <b>simulate</b>?")
-                @test wait_until(() -> value("document.getElementById('toastTitle0').innerHTML.includes('epi.seq')"))
-                @test value("document.getElementById('toastBody0').innerHTML.includes('simulate')")
+                    click_button("button_pulses_M0")
+                    @test timedwait(() -> w.state[] == "m0", 30) == :ok
+                    @test timedwait(() -> plot_rendered("m0"), 30) == :ok
 
-                ui.start_simulation_progress!(w)
-                @test value("document.getElementById('simulate!').disabled")
-                @test value("document.getElementById('simul_progress') !== null")
-                ui.finish_simulation_progress!(w)
-                @test !value("document.getElementById('simulate!').disabled")
+                    click_button("button_pulses_M1")
+                    @test timedwait(() -> w.state[] == "m1", 30) == :ok
+                    @test timedwait(() -> plot_rendered("m1"), 30) == :ok
 
-                seq_ui[] = PulseDesigner.EPI_example(; sys=sys_ui[])
-                @test wait_until(() -> w.state[] == "sequence")
-                @test wait_until(() -> value("document.querySelector('.js-plotly-plot') !== null"))
+                    click_button("button_pulses_M2")
+                    @test timedwait(() -> w.state[] == "m2", 30) == :ok
+                    @test timedwait(() -> plot_rendered("m2"), 30) == :ok
+                end
 
-                img_ui[] = reshape(ComplexF32[1, 0, 0, 1], 2, 2, 1)
-                @test wait_until(() -> w.state[] == "absi")
-                @test wait_until(() -> value("document.querySelector('.js-plotly-plot') !== null"))
+                @testset "Phantom and parameters" begin
+                    click_button("button_phantom")
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+
+                    click_button("button_scanner")
+                    @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
+
+                    click_button("button_sim_params")
+                    @test timedwait(() -> w.state[] == "simparams", 30) == :ok
+
+                    click_button("button_rec_params")
+                    @test timedwait(() -> w.state[] == "recparams", 30) == :ok
+                end
+
+                @testset "Simulation and raw signal" begin
+                    click_button("simulate!")
+                    @test timedwait(() -> w.state[] == "sig", 180) == :ok
+                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+                    @test !isempty(raw_ui[].profiles)
+
+                    click_button("button_scanner")
+                    @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
+
+                    click_button("button_sig")
+                    @test timedwait(() -> w.state[] == "sig", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+                end
+
+                @testset "Reconstruction and image views" begin
+                    click_button("recon!")
+                    @test timedwait(() -> w.state[] == "absi", 180) == :ok
+                    @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+                    @test !isempty(img_ui[])
+
+                    click_button("button_reconstruction_angI")
+                    @test timedwait(() -> w.state[] == "angi", 30) == :ok
+                    @test timedwait(() -> plot_rendered("angi"), 30) == :ok
+
+                    click_button("button_reconstruction_absI")
+                    @test timedwait(() -> w.state[] == "absi", 30) == :ok
+                    @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+
+                    click_button("button_reconstruction_absK")
+                    @test timedwait(() -> w.state[] == "absk", 30) == :ok
+                    @test timedwait(() -> plot_rendered("absk"), 30) == :ok
+                end
+
+                @testset "Observable updates" begin
+                    seq_ui[] = PulseDesigner.EPI_example(; sys=sys_ui[])
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+
+                    obj_ui[] = KomaMRI.setup_phantom()
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+                    @test timedwait(() -> plot_rendered("phantom"), 30) == :ok
+
+                    sys_ui[] = Scanner()
+                    @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
+
+                    raw_ui[] = RawAcquisitionData(
+                        ISMRMRDFile(joinpath(@__DIR__, "test_files", "Koma_signal.mrd"))
+                    )
+                    @test timedwait(() -> w.state[] == "sig", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+
+                    img_ui[] = reshape(ComplexF32[1, 0, 0, 1], 2, 2, 1)
+                    @test timedwait(() -> w.state[] == "absi", 30) == :ok
+                    @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+                end
             finally
                 close(w)
             end

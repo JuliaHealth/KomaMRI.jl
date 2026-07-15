@@ -39,6 +39,33 @@ function Base.show(io::IO, ::MIME"text/html", fig::PlotlyBase.Plot)
 
     html = String(take!(html_buffer))
     html = replace(html, "<body>" => "<body style=\"margin:0;overflow:hidden;background:transparent;\">")
+    meta = get(plot.layout, :meta, nothing)
+    koma = isnothing(meta) ? nothing : get(meta, :koma, nothing)
+    if !isnothing(koma) && get(koma, :loop, false)
+        html = replace(
+            html,
+            "</body>" => """
+            <script>
+            (() => {
+                const plot = document.getElementById('$(plot.divid)');
+                const connect = () => {
+                    if (typeof plot.on !== 'function') return requestAnimationFrame(connect);
+                    const play = plot.layout.updatemenus[0].buttons[0];
+                    let looping = false;
+                    plot.on('plotly_buttonclicked', event =>
+                        looping = event.button.label === 'Play'
+                    );
+                    plot.on('plotly_animated', () => looping && requestAnimationFrame(() =>
+                        looping && Plotly.animate(plot, null, play.args[1])
+                    ));
+                };
+                connect();
+            })();
+            </script>
+            </body>
+            """,
+        )
+    end
     encoded = base64encode(html)
     onload = replace(
         """

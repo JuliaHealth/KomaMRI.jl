@@ -166,6 +166,16 @@ body, button{
   text-align: center;
 }
 
+.koma-loading-status {
+  margin-top: 0.35rem;
+  color: #c9c9c9;
+  font-size: 0.9rem;
+}
+
+.koma-loading-status:empty {
+  display: none;
+}
+
 @keyframes koma-spin {
   to { transform: rotate(360deg); }
 }

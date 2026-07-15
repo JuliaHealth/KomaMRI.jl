@@ -7,10 +7,11 @@ using Reexport
 @reexport using KomaMRIPlots
 
 using Bonito
+using Artifacts
 import Electron
 import MsgPack
 import PlotlyBase
-using Observables: Observable, clear
+using Observables: Observable, ObserverFunction, off
 using MAT
 
 # Reconstruction

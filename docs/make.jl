@@ -1,6 +1,3 @@
-# Prevent Plots/GR tutorial animations from opening GUI windows during docs builds.
-get!(ENV, "GKSwstype", "100")
-
 using Documenter, DocumenterVitepress, Literate, KomaMRI, PlutoSliderServer
 
 # Setup for Literate and Pluto

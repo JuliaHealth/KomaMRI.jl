@@ -1,7 +1,9 @@
-abstract type KomaWindow end
-
 include("ui/BonitoPlotly.jl")
-include("ui/ExportUIFunctions.jl")
+include("ui/WindowUI.jl")
+include("ui/FilePickerUI.jl")
+include("ui/ViewUI.jl")
+include("ui/ExportUI.jl")
+include("ui/SimulationUI.jl")
 include("ui/BonitoUI.jl")
 
 """
