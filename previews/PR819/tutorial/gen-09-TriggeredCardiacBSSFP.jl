@@ -140,9 +140,7 @@ regular_cardiac_rythm = CardiacSignal(; heart_rate=1);
 pseq = plot_seq(
     seq;
     physio=regular_cardiac_rythm,
-    range=[0, 2000],
     gl=true,
-    show_adc=true,
     height=450,
 );
 pseq #hide
