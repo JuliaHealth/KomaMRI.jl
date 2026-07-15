@@ -77,15 +77,14 @@ function generate_seq_time_layout_config(
                 type="dropdown",
                 yref="paper",
                 xref="paper",
-                y=1,
-                x=1,
-                yanchor="bottom",
+                y=0.99,
+                x=0.99,
+                yanchor="top",
                 xanchor="right",
                 align="middle",
                 orientation="h",
                 bgcolor="white",
                 color=text_color,
-                pad=attr(; r=64),
                 buttons=buttons,
             )
         ],
@@ -97,7 +96,9 @@ function generate_seq_time_layout_config(
         yaxis_zerolinecolor=grid_color,
         font_color=text_color,
         yaxis_fixedrange=false,
+        yaxis_automargin=false,
         xaxis=attr(;
+            automargin=false,
             ticksuffix=" ms",
             domain=range[:],
             range=range[:],
@@ -109,7 +110,7 @@ function generate_seq_time_layout_config(
                 ],
             ),
         ),
-        margin=attr(; t=6, l=6, r=6, b=6),
+        margin=attr(; t=6, l=30, r=6, b=24),
     )
     if show_seq_blocks
         l.xaxis["tickvals"] = T0 * 1e3
@@ -1674,7 +1675,9 @@ function plot_signal(
         yaxis_zerolinecolor=grid_color,
         font_color=text_color,
         yaxis_fixedrange=false,
+        yaxis_automargin=false,
         xaxis=attr(;
+            automargin=false,
             ticksuffix=" ms",
             range=range[:],
             rangeslider=attr(; visible=slider),
@@ -1687,7 +1690,7 @@ function plot_signal(
         ),
         shapes=shapes,
         annotations=annotations,
-        margin=attr(; t=0, l=0, r=0, b=0),
+        margin=attr(; t=6, l=30, r=6, b=24),
     )
     if height !== nothing
         l.height = height

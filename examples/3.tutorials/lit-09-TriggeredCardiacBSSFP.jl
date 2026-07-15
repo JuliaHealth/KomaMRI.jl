@@ -156,14 +156,12 @@ seq = triggered_bSSFP(
 regular_cardiac_rythm = CardiacSignal(; heart_rate=1);
 
 # Passing the signal to `plot_seq` resolves the trigger waits and adds the ECG trace.
-# The complete sequence is plotted, with the initial view showing the first two seconds:
+# The complete sequence is plotted together with the cardiac signal:
 
 pseq = plot_seq(
     seq;
     physio=regular_cardiac_rythm,
-    range=[0, 2000],
     gl=true,
-    show_adc=true,
     height=450,
 );
 pseq #hide
