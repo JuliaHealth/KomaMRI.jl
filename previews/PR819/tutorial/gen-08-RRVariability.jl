@@ -1,46 +1,38 @@
-using KomaMRI, Plots, Printf, Suppressor; #hide
+using KomaMRI, PlotlyBase, Printf, Suppressor; #hide
 import KomaMRI.PulseDesigner as PD #hide
 sys = Scanner(); #hide
-
 function bSSFP_cine(FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys; #hide
-    Δf=0, adc_duration=1e-3, N_dummy_cycles=10) #hide
+    Δf=0, adc_duration=1e-3) #hide
     RR(i) = RRs[(i - 1) % length(RRs) + 1] #hide
-    seq = Sequence() #hide
     base_seq = bSSFP(FOV, N_matrix, TR, flip_angle, sys; Δf, adc_duration) #hide
-    n = 1 #hide
+    seq = Sequence() #hide
+    cycle = 0 #hide
+    preparation = base_seq[1:6] #hide
+    for _ in 1:round(Int, RR(1) / TR) #hide
+        cycle += 1 #hide
+        line = copy(preparation) #hide
+        line[1].RF[1].A *= (-1)^cycle #hide
+        line[4].ADC[1].ϕ = iseven(cycle) ? 0 : π #hide
+        line[4].ADC[1].N = 0 #hide
+        @addblock seq += line #hide
+    end #hide
     for i in 0:(N_matrix - 1) #hide
+        rr = RR(i + 2) #hide
         line = base_seq[6 * i .+ (1:6)] #hide
-        if N_dummy_cycles > 0 && i == 0 #hide
-            dummy_dur = N_dummy_cycles * dur(line) #hide
-            rr_sum = RR(n) #hide
-            while dummy_dur > rr_sum #hide
-                n += 1 #hide
-                rr_sum += RR(n) #hide
-            end #hide
-            @addblock seq += Delay(rr_sum - dummy_dur) #hide
-        end #hide
-        for j in 1:(N_phases + N_dummy_cycles) #hide
+        n_cycles = round(Int, rr / TR) #hide
+        phase_stride = n_cycles ÷ N_phases #hide
+        acquisition_cycles = phase_stride:phase_stride:n_cycles #hide
+        for repetition in 1:n_cycles #hide
+            cycle += 1 #hide
             l = copy(line) #hide
-            l[1].RF[1].A *= (-1)^j #hide
-            l[4].ADC[1].ϕ = iseven(j) ? 0 : π #hide
-            if j <= N_dummy_cycles #hide
-                l = 0 * l #hide
-                l[4].ADC[1].N = 0 #hide
-            end #hide
+            l[1].RF[1].A *= (-1)^cycle #hide
+            l[4].ADC[1].ϕ = iseven(cycle) ? 0 : π #hide
+            repetition in acquisition_cycles || (l[4].ADC[1].N = 0) #hide
             @addblock seq += l #hide
         end #hide
-        phase_dur = (N_phases + N_dummy_cycles) * dur(line) #hide
-        n += 1 #hide
-        rr_sum = RR(n) #hide
-        while phase_dur > rr_sum #hide
-            n += 1 #hide
-            rr_sum += RR(n) #hide
-        end #hide
-        @addblock seq += Delay(rr_sum - phase_dur) #hide
     end #hide
     return seq #hide
 end #hide
-
 function bSSFP(FOV, N, TR, flip_angle, sys; #hide
     Δf=0, pulse_duration=3e-3, z0=0.0, slice_thickness=10e-3, TBP=4, adc_duration=1e-3) #hide
     Δk = 1 / FOV #hide
@@ -76,29 +68,50 @@ function bSSFP(FOV, N, TR, flip_angle, sys; #hide
     bssfp.DEF = Dict("Nx"=>N, "Ny"=>N, "Nz"=>1, "Name"=>"bssfp$(N)x$(N)", "FOV"=>[FOV, FOV, 0]) #hide
     return bssfp #hide
 end #hide
-
-function plot_cine(frames, fps; Δt=1 / fps, filename="cine_recon.gif", width=400, height=400) #hide
-    x = 0:(size(frames[1])[2] - 1) #hide
-    y = 1:size(frames[1])[1] #hide
-    global_min = minimum(reduce(vcat, frames)) #hide
-    global_max = maximum(reduce(vcat, frames)) #hide
+function plot_cine(frames, fps; Δt=1 / fps, height=400) #hide
     n_frames, n_cines = ndims(frames) == 1 ? (length(frames), 1) : size(frames) #hide
-    t = 0 #hide
-    anim = @animate for i in 1:n_frames #hide
-        t += Δt #hide
-        plots = [ #hide
-            Plots.plot!( #hide
-                Plots.heatmap(x, y, frames[i, j]', color=:greys; aspect_ratio=:equal, colorbar=true, clim=(global_min, global_max), size=(n_cines * width, height)), #hide
-                title="t = " * Printf.@sprintf("%.3f", t) * "s", #hide
-                xlims=(minimum(x), maximum(x)), #hide
-                ylims=(minimum(y), maximum(y)), #hide
-            ) for j in 1:n_cines #hide
-        ] #hide
-        Plots.plot(plots..., layout=(1, n_cines)) #hide
+    zmin, zmax = extrema(reduce(vcat, frames)) #hide
+    axis(j) = j == 1 ? "" : string(j) #hide
+    trace(i, j) = heatmap(; #hide
+        z=permutedims(frames[i, j]), transpose=false, #hide
+        xaxis="x$(axis(j))", yaxis="y$(axis(j))", #hide
+        coloraxis="coloraxis", #hide
+    ) #hide
+    frames_plot = [ #hide
+        PlotlyBase.frame(; #hide
+            name=string(i), data=[trace(i, j) for j in 1:n_cines], #hide
+            layout=attr(title=Printf.@sprintf("t = %.3f s", i * Δt)), #hide
+        ) #hide
+        for i in 1:n_frames #hide
+    ] #hide
+    animation = attr(; #hide
+        mode="immediate", fromcurrent=true, transition=attr(duration=0), #hide
+        frame=attr(duration=round(Int, 1000 / fps), redraw=true), #hide
+    ) #hide
+    layout = Layout(; #hide
+        title=Printf.@sprintf("t = %.3f s", Δt), height, #hide
+        meta=attr(koma=attr(loop=true)), #hide
+        margin=attr(l=40, r=80, t=70, b=40), #hide
+        grid=attr(rows=1, columns=n_cines, pattern="independent"), #hide
+        coloraxis=attr(cmin=zmin, cmax=zmax, colorscale=[[0, "black"], [1, "white"]]), #hide
+        updatemenus=[attr(; #hide
+            type="buttons", direction="right", x=0, y=1.1, showactive=false, #hide
+            buttons=[ #hide
+                attr(label="Play", method="animate", args=[nothing, animation]), #hide
+                attr(label="Pause", method="animate", args=[[nothing], attr(mode="immediate", frame=attr(duration=0, redraw=false))]), #hide
+            ], #hide
+        )], #hide
+    ) #hide
+    for j in 1:n_cines #hide
+        suffix = axis(j) #hide
+        layout[Symbol("xaxis$suffix")] = attr(constrain="domain") #hide
+        layout[Symbol("yaxis$suffix")] = attr(scaleanchor="x$suffix") #hide
     end #hide
-    gif(anim, filename, fps=fps) #hide
+    return Plot( #hide
+        [trace(1, j) for j in 1:n_cines], layout, frames_plot; #hide
+        config=PlotConfig(displaylogo=false, responsive=true), #hide
+    ) #hide
 end #hide
-
 function reconstruct_cine(raw, seq, N_matrix, N_phases) #hide
     frames = [] #hide
     recParams = Dict{Symbol,Any}(:reco=>"direct", :reconSize=>(N_matrix, N_matrix), :densityWeighting=>false) #hide
@@ -117,10 +130,11 @@ function reconstruct_cine(raw, seq, N_matrix, N_phases) #hide
     end #hide
     return frames #hide
 end #hide
+nothing #hide
 
-obj = heart_phantom(; spins_per_voxel=20);
+obj = heart_phantom(; rotation_angle=0.0, spins_per_voxel=20);
 
-p1 = plot_phantom_map(obj, :T1 ; height=450, time_samples=21) #hide
+p1 = plot_phantom_map(obj, :T1 ; height=450, time_samples=21); #hide
 display(p1);
 
 obj.motion
@@ -129,13 +143,14 @@ RRs          = [1.0]       # [s] constant RR interval
 N_matrix     = 32          # image size = N x N
 N_phases     = 16          # Number of cardiac phases
 FOV          = 0.11        # [m]
-TR           = 25e-3       # [s]
+TR           = 6.25e-3     # [s] bSSFP repetition time
+frame_interval = RRs[1] / N_phases # [s]
 flip_angle   = 10          # [º]
 adc_duration = 0.2e-3;     # [s]
 
 seq = bSSFP_cine(
     FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys;
-    N_dummy_cycles = 16, adc_duration = adc_duration,
+    adc_duration = adc_duration,
 );
 
 # Simulation  #hide
@@ -143,8 +158,8 @@ raw1 = @suppress simulate(obj, seq, sys); #hide
 # Reconstruction #hide
 frames1 = @suppress reconstruct_cine(raw1, seq, N_matrix, N_phases); #hide
 
-fps = 25 #hide
-p2 = @suppress plot_cine(frames1, fps; Δt=TR, filename="../public/assets/tut-7-frames1.gif"); #hide
+fps = 1 / frame_interval #hide
+p2 = plot_cine(frames1, fps; Δt=frame_interval); #hide
 display(p2);
 
 RRs = [900, 1100, 1000, 1000, 1000, 800] .* 1e-3;
@@ -158,11 +173,11 @@ t_curve_new = TimeCurve(
     periodic = true,
     periods = RRs
 )
-# Assign the new time curve to both the contraction and the rotation:
+# Assign the new time curve to both stored motion components:
 obj.motion.motions[1].time = t_curve_new
 obj.motion.motions[2].time = t_curve_new;
 
-p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41) #hide
+p3 = plot_phantom_map(obj, :T1 ; height=450, time_samples=41); #hide
 
 display(p3);
 
@@ -170,12 +185,11 @@ display(p3);
 raw2 = @suppress simulate(obj, seq, sys) #hide
 # Reconstruction #hide
 frames2 = @suppress reconstruct_cine(raw2, seq, N_matrix, N_phases); #hide
-@suppress plot_cine(frames2, fps; Δt=TR, filename="../public/assets/tut-7-frames2.gif"); #hide
-plot_cine(frames2, fps; Δt=TR, filename="tut-7-frames2.gif");
+display(plot_cine(frames2, fps; Δt=frame_interval));
 
 seq = bSSFP_cine(
     FOV, N_matrix, TR, flip_angle, RRs, N_phases, sys;
-    N_dummy_cycles = 16, adc_duration = adc_duration,
+    adc_duration = adc_duration,
 );
 
 # Simulation  #hide
@@ -183,8 +197,9 @@ raw3 = @suppress simulate(obj, seq, sys) #hide
 # Reconstruction #hide
 frames3 = @suppress reconstruct_cine(raw3, seq, N_matrix, N_phases); #hide
 
-plot_cine(frames3, fps; Δt=TR, filename="tut-7-frames3.gif");
+display(plot_cine(frames3, fps; Δt=frame_interval));
 
-@suppress plot_cine([frames2 ;; frames3], fps; Δt=TR, filename="../public/assets/tut-7-frames_comparison.gif"); #hide
+p4 = plot_cine([frames2 ;; frames3], fps; Δt=frame_interval); #hide
+display(p4);
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
