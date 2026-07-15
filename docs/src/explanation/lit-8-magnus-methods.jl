@@ -38,7 +38,7 @@
 # The practical benefit is that higher-order Magnus methods can either improve
 # RF excitation accuracy at the same ``\Delta t``, or reach similar accuracy with
 # a larger ``\Delta t``.
-using KomaMRI, PlotlyJS #hide
+using KomaMRI, PlotlyBase #hide
 const HS_DURATION_DOC = 18.3e-3 #hide
 const DT_RF_DOC = [300e-6, 250e-6, 200e-6, 150e-6, 100e-6, 50e-6, 20e-6, 10e-6, 5e-6, 2e-6, 1e-6] #hide
 magnus_methods_doc() = ( #hide
@@ -108,7 +108,7 @@ for (i, (label, color)) in enumerate(zip(labels, colors)) #hide
     push!(traces, scatter(; x=f64_dt, y=f64_err, mode="lines+markers", name="$label Float64", line=attr(color=color), marker=attr(color=color))) #hide
     push!(traces, scatter(; x=dt_rf_us, y=result["err32"][i, :], mode="lines+markers", name="$label Float32", line=attr(color=color, dash="dash"), marker=attr(color=color))) #hide
 end #hide
-p = plot( #hide
+p = Plot( #hide
     traces, #hide
     Layout(; #hide
         title="Method convergence", #hide
@@ -140,30 +140,30 @@ plots = map(methods) do (_, method) #hide
     rule = KomaMRICore.simulation_sampling_rule(method, params) #hide
     plot_seqd(seq; sampling_rule=rule, show_rf_frame=false) #hide
 end #hide
-p = KomaMRIPlots.PlotlyJS.make_subplots( #hide
+p = Plot(Layout(Subplots(; #hide
     rows=1, #hide
     cols=4, #hide
     subplot_titles=reshape(collect(first.(methods)), 1, :), #hide
     shared_xaxes=true, #hide
     shared_yaxes=true, #hide
     horizontal_spacing=0.04, #hide
-) #hide
-for (col, panel) in enumerate(plots), trace in panel.plot.data #hide
-    KomaMRIPlots.PlotlyJS.add_trace!(p, trace, row=1, col=col) #hide
+))) #hide
+for (col, panel) in enumerate(plots), trace in panel.data #hide
+    add_trace!(p, trace; row=1, col=col) #hide
 end #hide
 for axis in (:xaxis, :xaxis2, :xaxis3, :xaxis4) #hide
-    p.plot.layout[axis][:range] = [7.5, 9.5] #hide
+    p.layout[axis][:range] = [7.5, 9.5] #hide
 end #hide
 for axis in (:yaxis, :yaxis2, :yaxis3, :yaxis4) #hide
-    p.plot.layout[axis][:range] = [10, 14] #hide
+    p.layout[axis][:range] = [10, 14] #hide
 end #hide
 for axis in (:xaxis2, :xaxis3, :xaxis4) #hide
-    p.plot.layout[axis][:matches] = "x" #hide
+    p.layout[axis][:matches] = "x" #hide
 end #hide
 for axis in (:yaxis2, :yaxis3, :yaxis4) #hide
-    p.plot.layout[axis][:matches] = "y" #hide
+    p.layout[axis][:matches] = "y" #hide
 end #hide
-KomaMRIPlots.PlotlyJS.relayout!( #hide
+relayout!( #hide
     p; #hide
     height=360, #hide
     width="100%", #hide

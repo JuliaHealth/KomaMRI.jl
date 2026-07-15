@@ -61,7 +61,7 @@ You can visualize the tissue map using the [`plot_image`](@ref) function:
 plot_image(class)
 ```
 ```@raw html
-<center><object type="text/html" data="../assets/create-your-own-phantom-class-map.html" style="width:85%; height:470px;"></object></center>
+<div style="text-align:center;"><object type="text/html" data="../assets/create-your-own-phantom-class-map.html" style="width:85%; height:470px;"></object></div>
 ```
 
 Let's define the position arrays. You need to know the distance between the spins in the original array (in this case, it is 0.5mm), and then you can determine all the positions like this (the z-component is not calculated since this is a 2D example):

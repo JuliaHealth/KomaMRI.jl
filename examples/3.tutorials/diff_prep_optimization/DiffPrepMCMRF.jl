@@ -4,7 +4,7 @@
 using KomaMRI, KomaMRICore, JuMP, Ipopt, Dates
 using LinearAlgebra: I, Bidiagonal, norm, Diagonal, Tridiagonal
 using Printf
-using PlotlyJS
+using PlotlyBase
 
 ## Aux functions
 """"Calculates the normalized moments Mₖ = 1/tᵏ ∫ᵗG(τ)τᵏ dτ at the end of the sequence. """

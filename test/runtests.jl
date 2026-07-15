@@ -10,7 +10,7 @@ using TestItems, TestItemRunner
     A = rand(5,5,3)
     B = KomaMRI.fftc(KomaMRI.ifftc(A))
     @test A ≈ B
-    
+
     #Sanity check 2
     B = KomaMRI.ifftc(KomaMRI.fftc(A))
     @test A ≈ B
@@ -210,108 +210,204 @@ end
 end
 
 @testitem "KomaUI" tags=[:koma] begin
+    using Bonito
 
-    using Blink
-    is_CI = Base.get_bool_env("CI", false)
+    triggered = Sequence()
+    @addblock triggered += PulseDesigner.make_trigger(:physio1; duration=1e-3)
 
-    @static if Sys.islinux()
-        KomaMRI.enable_unsafe_electron(!is_CI)
+    @testset "MAT export" begin
+        scanner = Scanner()
+        sequence = KomaMRI.setup_sequence(scanner)
+        phantom = KomaMRI.setup_phantom()
+        raw = KomaMRI.setup_raw()
+        image = ComplexF64[0 0; 0 0]
+        rec_params = Dict{Symbol,Any}(:reco => "direct")
+
+        dir = mktempdir()
+        message = KomaMRI.export_2_mat(sequence, phantom, scanner, raw, rec_params, image, dir; type="image")
+        @test readdir(dir) == ["data_image.mat"]
+        @test occursin("<b>Name:</b> data_image.mat", message)
+
+        dir = mktempdir()
+        message = KomaMRI.export_2_mat(sequence, phantom, scanner, raw, rec_params, image, dir; type="sequence")
+        @test sort(readdir(dir)) == ["data_kspace.mat", "data_moments.mat", "data_sequence.mat"]
+        @test occursin("<b>Names:</b> data_sequence.mat, data_kspace.mat, data_moments.mat", message)
     end
 
-    # Unfortunately Blink does not work on macOS in GitHub's CI
-    # https://github.com/JuliaGizmos/Blink.jl/issues/325
-    if !(Sys.isapple() && is_CI)
-    # Opens UI
-    w = KomaUI(return_window=true)
-    @testset "Open UI" begin
-        @test "index" == @js w document.getElementById("content").dataset.content
+    @testset "Rendered desktop UI" begin
+        is_CI = Base.get_bool_env("CI", false)
+        if Sys.isapple() && is_CI
+            @test_skip "Electron windows are unavailable on macOS CI"
+        else
+            w = KomaUI(; return_window=true, sim=Dict{String,Any}("gpu" => false))
+            session = w.session[]
+            click_button(id) = Bonito.evaljs_value(
+                session, js"document.getElementById($(id)).click()"
+            )
+            plot_rendered(state) = Bonito.evaljs_value(
+                session,
+                js"""
+                    document.getElementById('content').dataset.content === $(state) &&
+                        document.querySelector('#content .js-plotly-plot') !== null
+                """,
+            )
+            range_slider_visible() = Bonito.evaljs_value(
+                session,
+                js"""
+                    document.querySelector('#content .rangeslider-container')
+                        .getBoundingClientRect().bottom <=
+                    document.getElementById('content').getBoundingClientRect().bottom
+                """,
+            )
+            try
+                @testset "Open UI" begin
+                    @test w.state[] == "index"
+                end
+
+                @testset "Sequence views" begin
+                    click_button("button_pulses_seq")
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+                    @test range_slider_visible()
+                    @test Bonito.evaljs_value(
+                        session, js"document.getElementById('main').clientHeight === window.innerHeight"
+                    )
+
+                    click_button("button_pulses_kspace")
+                    @test timedwait(() -> w.state[] == "kspace", 30) == :ok
+                    @test timedwait(() -> plot_rendered("kspace"), 30) == :ok
+
+                    click_button("button_pulses_M0")
+                    @test timedwait(() -> w.state[] == "m0", 30) == :ok
+                    @test timedwait(() -> plot_rendered("m0"), 30) == :ok
+
+                    click_button("button_pulses_M1")
+                    @test timedwait(() -> w.state[] == "m1", 30) == :ok
+                    @test timedwait(() -> plot_rendered("m1"), 30) == :ok
+
+                    click_button("button_pulses_M2")
+                    @test timedwait(() -> w.state[] == "m2", 30) == :ok
+                    @test timedwait(() -> plot_rendered("m2"), 30) == :ok
+                end
+
+                @testset "Phantom and parameters" begin
+                    click_button("button_phantom")
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+
+                    click_button("button_scanner")
+                    @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
+
+                    click_button("button_sim_params")
+                    @test timedwait(() -> w.state[] == "simparams", 30) == :ok
+
+                    click_button("button_rec_params")
+                    @test timedwait(() -> w.state[] == "recparams", 30) == :ok
+                end
+
+                @testset "Simulation and raw signal" begin
+                    click_button("simulate!")
+                    @test timedwait(() -> w.state[] == "sig", 180) == :ok
+                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+                    @test !isempty(raw_ui[].profiles)
+
+                    click_button("button_scanner")
+                    @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
+
+                    click_button("button_sig")
+                    @test timedwait(() -> w.state[] == "sig", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+                    @test range_slider_visible()
+                end
+
+                @testset "Reconstruction and image views" begin
+                    click_button("recon!")
+                    @test timedwait(() -> w.state[] == "absi", 180) == :ok
+                    @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+                    @test !isempty(img_ui[])
+
+                    click_button("button_reconstruction_angI")
+                    @test timedwait(() -> w.state[] == "angi", 30) == :ok
+                    @test timedwait(() -> plot_rendered("angi"), 30) == :ok
+
+                    click_button("button_reconstruction_absI")
+                    @test timedwait(() -> w.state[] == "absi", 30) == :ok
+                    @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+
+                    click_button("button_reconstruction_absK")
+                    @test timedwait(() -> w.state[] == "absk", 30) == :ok
+                    @test timedwait(() -> plot_rendered("absk"), 30) == :ok
+                end
+
+                @testset "Image export" begin
+                    display = w.display[]
+                    output = joinpath(tempdir(), "data_image.mat")
+                    rm(output; force=true)
+                    w.display[] = nothing
+                    try
+                        click_button("button_matfolderima")
+                        @test timedwait(() -> w.state[] == "matfolderima", 30) == :ok
+                        @test isfile(output)
+                    finally
+                        rm(output; force=true)
+                        w.display[] = display
+                    end
+                end
+
+                @testset "Observable updates" begin
+                    seq_ui[] = PulseDesigner.EPI_example(; sys=sys_ui[])
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+
+                    seq_ui[] = triggered
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test physio_ui[].period == 1.0
+
+                    physio_ui[] = CardiacSignal(; heart_rate=1.25)
+                    @test physio_ui[].period == 0.8
+
+                    seq_ui[] = PulseDesigner.EPI_example(; sys=sys_ui[])
+                    @test physio_ui[] == NoPhysioSignal()
+
+                    obj_ui[] = KomaMRI.setup_phantom()
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+                    @test timedwait(() -> plot_rendered("phantom"), 30) == :ok
+
+                    sys_ui[] = Scanner()
+                    @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
+
+                    raw_ui[] = RawAcquisitionData(
+                        ISMRMRDFile(joinpath(@__DIR__, "test_files", "Koma_signal.mrd"))
+                    )
+                    @test timedwait(() -> w.state[] == "sig", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+
+                    img_ui[] = reshape(ComplexF32[1, 0, 0, 1], 2, 2, 1)
+                    @test timedwait(() -> w.state[] == "absi", 30) == :ok
+                    @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+                end
+
+                @testset "File loading" begin
+                    files = joinpath(pkgdir(KomaMRI), "KomaMRIFiles", "test", "test_files")
+                    sequence_file = joinpath(
+                        files, "pulseq", "basic_tests", "v1.4", "label_test.seq"
+                    )
+                    seq_ui[] = KomaMRI.callback_filepicker(sequence_file, w, seq_ui[])
+                    @test any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+
+                    phantom_file = joinpath(files, "phantom", "column1d.h5")
+                    obj_ui[] = KomaMRI.callback_filepicker(phantom_file, w, obj_ui[])
+                    @test obj_ui[].name == "column1d.h5"
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+
+                    raw_file = joinpath(@__DIR__, "test_files", "Koma_signal.mrd")
+                    raw_ui[] = KomaMRI.callback_filepicker(raw_file, w, raw_ui[])
+                    @test !isempty(raw_ui[].profiles)
+                    @test timedwait(() -> w.state[] == "sig", 30) == :ok
+                end
+            finally
+                close(w)
+            end
+        end
     end
-
-    @testset "PulsesGUI" begin
-        @js w document.getElementById("button_pulses_seq").click()
-        @test "sequence" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_reload_seq").click()
-        @test "sequence" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_pulses_kspace").click()
-        @test "kspace" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_pulses_M0").click()
-        @test "m0" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_pulses_M1").click()
-        @test "m1" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_pulses_M2").click()
-        @test "m2" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "PhantomGUI" begin
-        @js w document.getElementById("button_phantom").click()
-        @test "phantom" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "ParamsGUI" begin
-        @js w document.getElementById("button_scanner").click()
-        @test "scanneparams" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_sim_params").click()
-        @test "simparams" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_rec_params").click()
-        @test "recparams" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "Simulation" begin
-        @js w document.getElementById("simulate!").click()
-        @test "sig" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "SignalGUI" begin
-        @js w document.getElementById("button_sig").click()
-        @test "sig" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "Reconstruction" begin
-        @js w document.getElementById("recon!").click()
-        @test "absi" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "ReconGUI" begin
-        @js w document.getElementById("button_reconstruction_absI").click()
-        @test "absi" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_reconstruction_angI").click()
-        @test "angi" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_reconstruction_absK").click()
-        @test "absk" == @js w document.getElementById("content").dataset.content
-    end
-
-    @testset "ExportToMAT" begin
-        @js w document.getElementById("button_matfolder").click()
-        @test "matfolder" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfolderseq").click()
-        @test "matfolderseq" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfolderpha").click()
-        @test "matfolderpha" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfoldersca").click()
-        @test "matfoldersca" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfolderraw").click()
-        @test "matfolderraw" == @js w document.getElementById("content").dataset.content
-
-        @js w document.getElementById("button_matfolderima").click()
-        @test "matfolderima" == @js w document.getElementById("content").dataset.content
-    end
-
-    if !isnothing(w)
-        close(w)
-    end
-
-    end # if !(Sys.isapple() && is_CI)
 end

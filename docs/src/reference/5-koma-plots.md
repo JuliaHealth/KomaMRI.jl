@@ -39,5 +39,5 @@ plot_image
 
 ```@docs
 plot_dict
+savefig
 ```
-

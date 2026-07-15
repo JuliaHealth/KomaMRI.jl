@@ -13,6 +13,9 @@ permissions:
   actions: write
   contents: read
 
+env:
+  JULIA_NUM_THREADS: auto
+
 jobs:
   ci:
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
@@ -136,7 +139,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }} # required
       - uses: julia-actions/julia-processcoverage@v1
         with:
-          directories: KomaMRIPlots/src,KomaMRIPlots/ext
+          directories: KomaMRIPlots/src
       - uses: codecov/codecov-action@v7
         with:
           files: lcov.info

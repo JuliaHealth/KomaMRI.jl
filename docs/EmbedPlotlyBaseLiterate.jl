@@ -1,5 +1,5 @@
 import Base64: base64encode
-import PlotlyJS
+import PlotlyBase
 
 # Convert Plotly width/height values to valid CSS size values.
 to_css_size(x::Integer) = string(x, "px")
@@ -15,20 +15,19 @@ layout_to_html_default_size!(fields, key::Symbol, ::Nothing) = (pop!(fields, key
 layout_to_html_default_size!(fields, key::Symbol, value::Number) = to_css_size(value)
 layout_to_html_default_size!(fields, key::Symbol, value) = throw(ArgumentError("Unsupported Plotly layout $key type: $(typeof(value))"))
 
-# This is type piracy! but it only affects the docs.
-# We are extending the `Base.show` method for the `PlotlyJS.SyncPlot` 
-function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
+# This is type piracy, but it only affects the docs.
+function Base.show(io::IO, ::MIME"text/html", fig::PlotlyBase.Plot)
     # Copy is required because we pop layout width/height for Plotly's inner JSON.
-    # Mutating fig.plot directly would change size(fig) and user-visible behavior.
-    plot = copy(fig.plot)
-    plot.frames = fig.plot.frames
-    plot.config = deepcopy(fig.plot.config)
+    # Mutating fig directly would change its user-visible behavior.
+    plot = copy(fig)
+    plot.frames = fig.frames
+    plot.config = deepcopy(fig.config)
     plot.config.displayModeBar = false
     default_width = layout_to_html_default_size!(plot.layout.fields, :width, get(plot.layout.fields, :width, nothing))
     default_height = layout_to_html_default_size!(plot.layout.fields, :height, get(plot.layout.fields, :height, nothing))
 
     html_buffer = IOBuffer()
-    PlotlyJS.PlotlyBase.to_html(
+    PlotlyBase.to_html(
         html_buffer,
         plot;
         autoplay=false,
@@ -58,7 +57,7 @@ function Base.show(io::IO, ::MIME"text/html", fig::PlotlyJS.SyncPlot)
         '<' => "&lt;",
         '>' => "&gt;",
     )
-    width = to_css_size(get(fig.plot.layout.fields, :width, nothing))
+    width = to_css_size(get(fig.layout.fields, :width, nothing))
     _, plot_height = size(fig)
     height = to_css_size(plot_height)
     write(
