@@ -1,8 +1,9 @@
 function select_export_folder(w::KomaWindow)
     isnothing(w.display[]) && return tempdir()
-    folders = Base.run(w.display[].window, """
+    window = w.display[].window.window
+    folders = Base.run(window.app, """
         electron.dialog.showOpenDialogSync(
-            electron.BrowserWindow.getFocusedWindow(),
+            electron.BrowserWindow.fromId($(window.id)),
             {
                 title: "Export .mat files",
                 buttonLabel: "Export here",

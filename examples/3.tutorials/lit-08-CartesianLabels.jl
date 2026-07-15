@@ -52,6 +52,11 @@ prewinder = Grad(-Gx / 2, Tadc)
     end #hide
 end
 
+# `plot_seq` exposes the ADC labels through the selector in the plot's upper-right corner.
+
+pseq = plot_seq(seq; height=400)
+#jl display(pseq);
+
 # ## Checking labels in the raw data metadata
 #
 # After simulation, KomaMRI has copied those labels into the raw data headers.

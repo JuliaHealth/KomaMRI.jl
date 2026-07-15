@@ -23,6 +23,9 @@ permissions:
   actions: write
   contents: read
 
+env:
+  JULIA_NUM_THREADS: auto
+
 jobs:
   pulseq-parity:
     if: >-

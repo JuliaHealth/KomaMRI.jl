@@ -121,7 +121,7 @@ nothing #hide
 # 8 phase-encoding lines per heartbeat. You will then simulate an arrhythmia while the
 # sequence continues to trigger every second and observe the resulting artifact.
 
-# ### 1. Correct triggering with a regular cardiac rhythm
+# ### Correct triggering with a regular cardiac rhythm
 #
 # We begin with a myocardial phantom whose contraction and rotation repeat every second.
 # It contracts during systole, relaxes during diastole, and pauses around the
@@ -161,7 +161,6 @@ regular_cardiac_rythm = CardiacSignal(; heart_rate=1);
 pseq = plot_seq(
     seq;
     physio=regular_cardiac_rythm,
-    gl=true,
     height=450,
 );
 pseq #hide
@@ -186,7 +185,7 @@ pimage_regular = plot_image( #hide
 #jl display(pimage_regular);
 #nb display(pimage_regular);
 
-# ### 2. Sequence triggered incorrectly during arrhythmia
+# ### Sequence triggered incorrectly during arrhythmia
 #
 # Now make the phantom arrhythmic while keeping the trigger signal at 1 Hz:
 

@@ -252,6 +252,14 @@ end
                 """;
                 timeout=2.0,
             )
+            range_slider_visible() = Bonito.evaljs_value(
+                session,
+                js"""
+                    document.querySelector('#content .rangeslider-container')
+                        .getBoundingClientRect().bottom <=
+                    document.getElementById('content').getBoundingClientRect().bottom
+                """,
+            )
             try
                 @testset "Open UI" begin
                     @test w.state[] == "index"
@@ -261,6 +269,7 @@ end
                     click_button("button_pulses_seq")
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
                     @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+                    @test range_slider_visible()
                     @test Bonito.evaljs_value(
                         session, js"document.getElementById('main').clientHeight === window.innerHeight"
                     )
@@ -308,6 +317,7 @@ end
                     click_button("button_sig")
                     @test timedwait(() -> w.state[] == "sig", 30) == :ok
                     @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+                    @test range_slider_visible()
                 end
 
                 @testset "Reconstruction and image views" begin
@@ -327,6 +337,21 @@ end
                     click_button("button_reconstruction_absK")
                     @test timedwait(() -> w.state[] == "absk", 30) == :ok
                     @test timedwait(() -> plot_rendered("absk"), 30) == :ok
+                end
+
+                @testset "Image export" begin
+                    display = w.display[]
+                    output = joinpath(tempdir(), "data_image.mat")
+                    rm(output; force=true)
+                    w.display[] = nothing
+                    try
+                        click_button("button_matfolderima")
+                        @test timedwait(() -> w.state[] == "matfolderima", 30) == :ok
+                        @test isfile(output)
+                    finally
+                        rm(output; force=true)
+                        w.display[] = display
+                    end
                 end
 
                 @testset "Observable updates" begin
@@ -360,6 +385,26 @@ end
                     img_ui[] = reshape(ComplexF32[1, 0, 0, 1], 2, 2, 1)
                     @test timedwait(() -> w.state[] == "absi", 30) == :ok
                     @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+                end
+
+                @testset "File loading" begin
+                    files = joinpath(pkgdir(KomaMRI), "KomaMRIFiles", "test", "test_files")
+                    sequence_file = joinpath(
+                        files, "pulseq", "basic_tests", "v1.4", "label_test.seq"
+                    )
+                    seq_ui[] = KomaMRI.callback_filepicker(sequence_file, w, seq_ui[])
+                    @test any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+
+                    phantom_file = joinpath(files, "phantom", "column1d.h5")
+                    obj_ui[] = KomaMRI.callback_filepicker(phantom_file, w, obj_ui[])
+                    @test obj_ui[].name == "column1d.h5"
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+
+                    raw_file = joinpath(@__DIR__, "test_files", "Koma_signal.mrd")
+                    raw_ui[] = KomaMRI.callback_filepicker(raw_file, w, raw_ui[])
+                    @test !isempty(raw_ui[].profiles)
+                    @test timedwait(() -> w.state[] == "sig", 30) == :ok
                 end
             finally
                 close(w)
