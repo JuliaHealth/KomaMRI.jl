@@ -40,3 +40,6 @@ export PulseqSequenceData, read_seq, read_seq_data, write_seq, write_seq_data   
 export read_phantom_jemris, read_phantom_MRiLab, read_phantom, write_phantom     # Phantom
 
 end # module KomaMRIFiles
+
+# Precompilation workloads for reduced first-use latency
+include("precompile.jl")

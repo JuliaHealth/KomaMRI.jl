@@ -153,3 +153,6 @@ include("sequences/PulseDesigner.jl")
 export PulseDesigner
 
 end # module KomaMRIBase
+
+# Precompilation workloads for reduced first-use latency
+include("precompile.jl")
