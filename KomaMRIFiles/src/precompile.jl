@@ -1,6 +1,7 @@
 """Precompile common KomaMRIFiles I/O workflows for reduced first-use latency."""
 
 using PrecompileTools: @setup_workload, @compile_workload
+import KomaMRIBase: PulseDesigner as PD
 
 @setup_workload begin
     @compile_workload begin
@@ -9,39 +10,29 @@ using PrecompileTools: @setup_workload, @compile_workload
             using KomaMRICore
             using Tempdir
             
-            # Pulseq Sequence I/O (write_seq: 10 docs, read_seq: 7 docs)
-            # Create sequence with all event types (Pulseq parity test)
             sys = Scanner()
-            seq = Sequence()
-            
-            # Add all event types to ensure Pulseq compatibility
-            seq_with_events = PulseDesigner.EPI_example()  # Contains RF, Grad, ADC
-            
-            # Write Pulseq sequence
-            mktempdir() do tmpdir
-                seq_path = joinpath(tmpdir, "test.seq")
-                write_seq(seq_with_events, seq_path; sys=sys)
-                
-                # Read Pulseq sequence
-                seq_read = read_seq(seq_path)
-            end
-            
-            # Phantom I/O (write_phantom: 4 docs, read_phantom: 4 docs)
             obj = brain_phantom2D()
             
+            seq = Sequence()
+            append!(seq, PD.build_trapezoid(:x; area=8e-6u"T*s/m", sys))
+            append!(seq, PD.build_block_pulse(90u"deg"; duration=1u"ms", sys, use=Excitation()))
+            append!(seq, PD.build_sinc_pulse(90u"deg"; duration=2u"ms", sys, use=Excitation()))
+            append!(seq, PD.build_arbitrary_rf([1, 2, 1], 45u"deg"; dwell=200u"μs", sys, use=Excitation()))
+            append!(seq, PD.build_adc(16; dwell=1u"μs", sys))
+            append!(seq, PD.build_label(:SET, :LIN, 3; sys))
+            append!(seq, PD.build_rotation(60u"deg"; sys))
+            append!(seq, PD.build_trigger(:physio1; sys))
+            append!(seq, PD.build_arbitrary_grad(:x, [0, 1, 0] .* u"mT/m"; sys))
+            
             mktempdir() do tmpdir
-                # Write phantom
+                seq_path = joinpath(tmpdir, "test.seq")
+                write_seq(seq, seq_path; sys=sys)
+                seq_read = read_seq(seq_path)
+                
                 phantom_path = joinpath(tmpdir, "phantom.phantom")
                 write_phantom(obj, phantom_path)
-                
-                # Read phantom
                 obj_read = read_phantom(phantom_path)
             end
-            
-            # JEMRIS Phantom I/O (read_phantom_jemris: 3 docs)
-            # Note: JEMRIS files are not created here, but read_phantom_jemris
-            # logic is precompiled when read_seq or read_phantom is called
-            # and the parser detects JEMRIS format. This is implicit.
         end
     end
 end
