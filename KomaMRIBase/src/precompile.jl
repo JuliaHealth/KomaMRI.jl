@@ -36,20 +36,65 @@ using PrecompileTools: @setup_workload, @compile_workload
             # Note: discretize may be in KomaMRICore, but include here
             # if it's part of base sequence operations
             
-            # Sequence Event Types (all required for Pulseq parity)
-            # RF event
-            rf = RF(; A=1.0, T=1e-3)
+            # RF Event Types (all variants required for Pulseq parity)
+            # Block pulse (A and T are numbers)
+            rf_block = RF(10e-3, 0.5e-3, 0, 0.1e-3)
             
-            # Gradient events (x, y, z)
-            gx = Grad(; A=1.0, T=1e-3)
-            gy = Grad(; A=1.0, T=1e-3)
-            gz = Grad(; A=1.0, T=1e-3)
+            # Uniformly-sampled waveform (A is vector, T is number)
+            tl = -3:0.2:-0.2
+            tr = 0.2:0.2:3
+            A_uniform = (10e-3) * [sin.(π*tl)./(π*tl); 1; sin.(π*tr)./(π*tr)]
+            rf_uniform = RF(A_uniform, 0.5e-3, 0, 0.1e-3)
             
-            # ADC event
-            adc = ADC(; N=100, T=10e-3, delay=0.0)
+            # Time-shaped waveform (A and T are both vectors)
+            tl = -4:0.2:-0.2
+            tr = 0.2:0.2:4
+            A_shaped = (10e-3) * [sin.(π*tl)./(π*tl); 1; 1; sin.(π*tr)./(π*tr)]
+            T_shaped = [0.05e-3*ones(length(tl)); 2e-3; 0.05e-3*ones(length(tl))]
+            rf_shaped = RF(A_shaped, T_shaped, 0, 0.1e-3)
             
-            # Delay event
-            del = Delay(; T=1e-3)
+            # Frequency modulated RF (with Δf)
+            rf_fm = RF(10e-3, 0.5e-3, 1000, 0.1e-3)  # 1kHz offset
+            
+            # Gradient Event Types (all variants for x, y, z axes)
+            # Trapezoidal gradient (A and T are numbers)
+            gr_trap = Grad(50e-6, 5e-3, 1e-3, 1e-3, 2e-3)
+            
+            # Uniformly-sampled gradient (A is vector, T is number)
+            t_grad = 0:0.25:7.5
+            A_grad_uniform = 10e-6 * sqrt.(π*t_grad) .* sin.(π*t_grad)
+            gr_uniform = Grad(A_grad_uniform, 10e-3, 0, 1e-3, 1e-3)
+            
+            # Time-shaped gradient (A and T are both vectors)
+            A_grad_shaped = 50e-6 * [1; 1; 0.8; 0.8; 1; 1]
+            T_grad_shaped = 1e-3 * [5; 0.2; 5; 0.2; 5]
+            gr_shaped = Grad(A_grad_shaped, T_grad_shaped, 1e-3, 1e-3, 1e-3)
+            
+            # Add all gradient variants to sequence (x, y, z axes)
+            seq_grad = Sequence()
+            @addblock seq_grad += (x=gr_trap, y=gr_uniform, z=gr_shaped)
+            
+            # ADC Event
+            adc = ADC(16, 5e-3, 1e-3)
+            
+            # Extension Events (Labels, Triggers, Rotations)
+            # Label increment
+            lInc = LabelInc(1, "LIN")
+            
+            # Label set
+            lSet = LabelSet(1, "ECO")
+            
+            # Trigger extension
+            trig = Trigger(0, 1, 100e-6, 500e-6)
+            
+            # Quaternion rotation extension
+            qrot = QuaternionRot(1.0, 0.0, 0.0, 0.0)
+            
+            # Complete Sequence with All Event Types
+            seq_complete = Sequence()
+            @addblock seq_complete += (rf_block, adc, x=gr_trap, y=gr_uniform, z=gr_shaped, lInc, trig)
+            @addblock seq_complete += (rf_uniform, x=gr_trap, lSet)
+            @addblock seq_complete += (rf_shaped, adc, x=gr_uniform, y=gr_shaped)
         end
     end
 end
