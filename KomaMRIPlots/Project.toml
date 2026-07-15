@@ -16,7 +16,7 @@ QMRIColors = "2bec176e-9e8c-4764-a62f-295118d1ec05"
 
 [compat]
 Interpolations = "0.13, 0.14, 0.15, 0.16"
-KomaMRIBase = "0.13"
+KomaMRIBase = "0.13.3"
 MAT = "0.10, 0.11, 0.12"
 PlotlyBase = "0.8.23"
 PlotlyKaleido = "2.3.1"

@@ -33,6 +33,6 @@ end
 
 # Export the UI and the observables
 export KomaUI, KomaWindow
-export sys_ui, seq_ui, obj_ui, raw_ui, img_ui
+export sys_ui, seq_ui, obj_ui, physio_ui, raw_ui, img_ui
 
 end

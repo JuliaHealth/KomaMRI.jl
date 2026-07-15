@@ -64,6 +64,15 @@ AllSpins
 SpinRange
 ```
 
+## Physiological signals
+
+```@docs
+AbstractPhysioSignal
+CardiacSignal
+NoPhysioSignal
+resolve_triggers
+```
+
 ## `Sequence`-related functions
 
 ```@docs

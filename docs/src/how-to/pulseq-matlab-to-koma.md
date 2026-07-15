@@ -4,7 +4,7 @@ Compact lookup tables for humans and LLMs translating MATLAB Pulseq code to Koma
 For the block-construction syntax behind `@addblock`, see
 [Build Sequences with `@addblock`](3-create-your-own-sequence.md).
 For a complete translated sequence, see
-[Building and Exporting a Pulseq GRE Sequence](../tutorial/gen-09-PulseqGradientEcho.md).
+[Building and Exporting a Pulseq GRE Sequence](../tutorial/gen-10-PulseqGradientEcho.md).
 
 ## Conventions
 

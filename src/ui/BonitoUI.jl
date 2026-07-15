@@ -27,12 +27,14 @@ function launch_ui(;
     sys_default = isnothing(sys) ? setup_scanner() : sys
     seq_default = isnothing(seq) ? setup_sequence(sys_default) : seq
     obj_default = isnothing(obj) ? setup_phantom(; phantom_mode) : obj
+    physio_default = default_physio_signal(seq_default)
     sys_ui[] = sys_default
     seq_ui[] = seq_default
     obj_ui[] = obj_default
+    physio_ui[] = physio_default
     raw_ui[] = setup_raw()
     img_ui[] = [0.0im 0.; 0. 0.]
-    verbose && @info "Loaded default UI inputs" scanner="sys_ui[]" sequence="seq_ui[]" phantom="obj_ui[]" raw="raw_ui[]" image="img_ui[]"
+    verbose && @info "Loaded default UI inputs" scanner="sys_ui[]" sequence="seq_ui[]" phantom="obj_ui[]" physio="physio_ui[]" raw="raw_ui[]" image="img_ui[]"
 
     sim_params = merge(Dict{String,Any}(), sim)
     rec_params = merge(Dict{Symbol,Any}(:reco => "direct"), rec)
@@ -49,7 +51,7 @@ function launch_ui(;
         set_content!(w, w.home[], "index")
     end
     handle(w, "pulses_seq") do _
-        show_sequence!(w, seq_ui[], :sequence; darkmode)
+        show_sequence!(w, seq_ui[], :sequence; darkmode, physio=physio_ui[])
     end
     handle(w, "reload_seq") do _
         isempty(seq_file[]) || (seq_ui[] = callback_filepicker(seq_file[], w, seq_ui[]))
@@ -115,7 +117,8 @@ function launch_ui(;
         is_first_rec = false
         run_reconstruction!(w, rec_params; initial)
     end
-    push!(w.listeners, on(seq -> show_sequence!(w, seq, :sequence; darkmode), seq_ui))
+    push!(w.listeners, on(physio -> show_sequence!(w, seq_ui[], :sequence; darkmode, physio), physio_ui))
+    push!(w.listeners, on(seq -> physio_ui[] = default_physio_signal(seq), seq_ui))
     push!(w.listeners, on(obj -> show_phantom!(w, obj, widgets_button_obj; key=:ρ, darkmode), obj_ui))
     for (widget, key) in zip(widgets_button_obj, fieldnames_obj)
         push!(w.listeners, on(widget.value) do _

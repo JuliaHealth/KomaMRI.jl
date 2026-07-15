@@ -16,6 +16,7 @@ function run_simulation!(w, sim_params; initial=false)
             sys_ui[];
             sim_params,
             callbacks=(ui_progressbar_callback(w, simulation_device),),
+            physio=physio_ui[],
         )
         rawfile = joinpath(tempdir(), "Koma_signal.mrd")
         @info "Exporting to ISMRMRD file: $rawfile"
@@ -53,10 +54,7 @@ function run_reconstruction!(w, rec_params; initial=false)
     evaljs(w, js"document.getElementById('recon!').innerHTML = $(spinner);")
 
     try
-        raw = raw_ui[]
-        raw.profiles = raw.profiles[
-            getproperty.(getproperty.(raw.profiles, :head), :flags) .!= 268435456
-        ]
+        raw = _imaging_raw_data(raw_ui[])
         acq_data = AcquisitionData(raw)
         acq_data.traj[1].circular = false
         acq_data.traj[1].nodes =

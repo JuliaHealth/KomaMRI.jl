@@ -212,6 +212,9 @@ end
 @testitem "KomaUI" tags=[:koma] begin
     using Bonito
 
+    triggered = Sequence()
+    @addblock triggered += PulseDesigner.make_trigger(:physio1; duration=1e-3)
+
     @testset "MAT export" begin
         scanner = Scanner()
         sequence = KomaMRI.setup_sequence(scanner)
@@ -330,6 +333,16 @@ end
                     seq_ui[] = PulseDesigner.EPI_example(; sys=sys_ui[])
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
                     @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+
+                    seq_ui[] = triggered
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test physio_ui[].period == 1.0
+
+                    physio_ui[] = CardiacSignal(; heart_rate=1.25)
+                    @test physio_ui[].period == 0.8
+
+                    seq_ui[] = PulseDesigner.EPI_example(; sys=sys_ui[])
+                    @test physio_ui[] == NoPhysioSignal()
 
                     obj_ui[] = KomaMRI.setup_phantom()
                     @test timedwait(() -> w.state[] == "phantom", 30) == :ok

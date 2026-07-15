@@ -10,11 +10,11 @@ obj = brain_phantom2D(); #hide
 
 # Koma's motion model has been designed to accomodate a variety of real-world scenarios, including:
 
-# - [Patient motion inside a scanner](../tutorial/gen-05-SimpleMotion.md), which may involve simultaneous or sequential translations and rotations of body parts during the acquisition.
+# - [Patient motion inside a scanner](../tutorial/gen-06-PatientMotion.md), which may involve simultaneous or sequential translations and rotations of body parts during the acquisition.
 # - Myocardial motion, including simulataneous contraction, rotation, torsion, and translation motion within the cardiac cycle.
 # - Pseudo-periodic heart patterns, caused by variations in heart rate or arrhythmias that prevent the heart's motion from being perfectly periodic.
 # - Flow through blood vessels, where the spin trajectories or fluid fields may have been obtained from Computational Fluid Dynamics (CFD) simulations.
-# - [Diffusion](../tutorial/gen-06-DiffusionMotion.md), which can be modeled, among many other ways, as microscopic Brownian spin trajectories.
+# - [Diffusion](../tutorial/gen-07-DiffusionSignalAttenuation.md), which can be modeled, among many other ways, as microscopic Brownian spin trajectories.
 
 # ... And, ultimately, any type of motion you can think of, no matter how complex!
 
@@ -243,4 +243,4 @@ restyle!(p6,1:3, name=["X-Trans (mm)", "Y-Trans (mm)", "Z-Rot (º)"]) #hide
 #md p6 #hide
 #jl display(p6);
 
-# A simulation and motion-corrected reconstruction based on a similar, slightly simplified head motion is available [here](../tutorial/gen-05-SimpleMotion.md).
+# A simulation and motion-corrected reconstruction based on a similar, slightly simplified head motion is available [here](../tutorial/gen-06-PatientMotion.md).
