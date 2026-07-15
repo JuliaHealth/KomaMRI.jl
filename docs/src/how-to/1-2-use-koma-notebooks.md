@@ -21,12 +21,12 @@ julia> Pluto.run()
 
 This should automatically open the **Pluto** dashboard in your default web browser:
 ```@raw html
-<center><img src="../assets/pluto-dashboard.png" alt="" style="width:75%;"></center>
+<div style="text-align:center;"><img src="../assets/pluto-dashboard.png" alt="" style="width:75%;"></div>
 ```
 
 Next, create a new notebook by clicking on `+ Create a new notebook`:
 ```@raw html
-<center><img src="../assets/pluto-empty-notebook.png" alt="" style="width:75%;"></center>
+<div style="text-align:center;"><img src="../assets/pluto-empty-notebook.png" alt="" style="width:75%;"></div>
 ```
 
 Write and run the following code, which is identical to the [Free Induction Decay example](#Free-Induction-Decay). **Pluto** automatically installs the required modules if they are not present on your system. Additionally, note that we do not directly use **KomaMRI** since we won't be utilizing the [`KomaUI`](@ref) function. Instead, we rely on the **KomaMRICore** and **KomaMRIPlots** dependencies:
@@ -57,12 +57,12 @@ For this example, make sure to install **KomaMRICore** and **KomaMRIPlots** (we 
 
 Next, open **Jupyter**, navigate to a working folder, and create a new notebook by clicking on `New`, then `Julia 1.9.3`."
 ```@raw html
-<center><img src="../assets/jupyter-create-new-notebook.png" alt="" style="width:75%;"></center>
+<div style="text-align:center;"><img src="../assets/jupyter-create-new-notebook.png" alt="" style="width:75%;"></div>
 ```
 
 A new, empty notebook will appear:
 ```@raw html
-<center><img src="../assets/jupyter-empty-notebook.png" alt="" style="width:75%;"></center>
+<div style="text-align:center;"><img src="../assets/jupyter-empty-notebook.png" alt="" style="width:75%;"></div>
 ```
 
 Proceed to write and execute the provided example:
@@ -96,7 +96,7 @@ plot_seq(seq; slider=false, height=300)
 ```
 
 ```@raw html
-<center><img src="../assets/jupyter-test-notebook.png" alt="" style="width:100%;"></center>
+<div style="text-align:center;"><img src="../assets/jupyter-test-notebook.png" alt="" style="width:100%;"></div>
 ```
 
 
