@@ -5,8 +5,10 @@ A module to define different pulse sequences.
 """
 module PulseDesigner
 using ..KomaMRIBase
-using FFTW: fft, fftshift, ifftshift
+using DSP: remez
+using FFTW: fft, ifft, fftshift, ifftshift
 using Interpolations: linear_interpolation
+using LinearAlgebra: Symmetric, cholesky
 
 ramp_time_to_raster(t, raster) = max(ceil_to_raster(t, raster), raster)
 
@@ -27,6 +29,7 @@ include("PulseDesigner/make_block_pulse.jl")
 include("PulseDesigner/make_sinc_pulse.jl")
 include("PulseDesigner/make_arbitrary_rf.jl")
 include("PulseDesigner/make_gauss_pulse.jl")
+include("PulseDesigner/make_slr_pulse.jl")
 include("PulseDesigner/make_adiabatic_pulse.jl")
 include("PulseDesigner/make_label.jl")
 include("PulseDesigner/make_rotation.jl")
@@ -44,6 +47,7 @@ export make_block_pulse, build_block_pulse
 export make_sinc_pulse, build_sinc_pulse
 export make_arbitrary_rf, build_arbitrary_rf
 export make_gauss_pulse, build_gauss_pulse
+export make_slr_pulse, build_slr_pulse
 export make_adiabatic_pulse, build_adiabatic_pulse
 export make_label, build_label
 export make_rotation, build_rotation

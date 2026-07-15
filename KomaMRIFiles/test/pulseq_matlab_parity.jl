@@ -9,6 +9,7 @@ const PULSEQ_MATLAB = get(ENV, "PULSEQ_MATLAB", "")
 const PULSEQ_MATLAB_SEQ = get(ENV, "PULSEQ_MATLAB_SEQ", "")
 const MATLAB_PULSEQ_EVENT_SIGNIFICANT_DIGITS = 6
 const MATLAB_PULSEQ_SHAPE_SIGNIFICANT_DIGITS = 9
+const SLR_RF_WAVEFORM_ATOL = 1e-9 # T
 
 matlab_string(s) = replace(s, "'" => "''")
 
@@ -17,6 +18,15 @@ function pulseq_block(event::Union{RF,ADC}, sys)
     addblock!(seq, event)
     seq.DUR[end] = PD.ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
     return seq
+end
+
+function test_slr_parity(matlab, koma)
+    @test maximum(abs, matlab.RF[1, 1].A - koma.RF[1, 1].A) ≤ SLR_RF_WAVEFORM_ATOL
+    # Replace only the validated waveform; the struct comparison checks every
+    # other field.
+    matlab = deepcopy(matlab)
+    matlab.RF[1, 1].A = copy(koma.RF[1, 1].A)
+    @test matlab ≈ koma
 end
 
 function run_pulseq_matlab_parity()
@@ -136,6 +146,41 @@ function run_pulseq_matlab_parity()
             PD.build_gauss_pulse(90u"deg"; duration=2u"ms", bandwidth=2u"kHz", slice_thickness=5u"mm", sys, use=Excitation()),
         "gauss_slice_overrides" =>
             PD.build_gauss_pulse(90u"deg"; duration=2u"ms", bandwidth=2u"kHz", slice_thickness=5u"mm", max_grad=30u"mT/m", max_slew=120u"T/m/s", sys, use=Excitation()),
+        # Distinct SLR filter, pulse-use, excitation-threshold, rounding, and slice branches.
+        "slr_default" =>
+            PD.build_slr_pulse(10u"deg"; sys),
+        "slr_pm" =>
+            PD.build_slr_pulse(90u"deg"; duration=4u"ms", dwell=8u"μs", filter_type=:pm, sys),
+        "slr_min" =>
+            PD.build_slr_pulse(90u"deg"; duration=4u"ms", dwell=8u"μs", filter_type=:min, sys),
+        "slr_max" =>
+            PD.build_slr_pulse(90u"deg"; duration=4u"ms", dwell=8u"μs", filter_type=:max, sys),
+        "slr_ls" =>
+            PD.build_slr_pulse(90u"deg"; duration=4u"ms", dwell=8u"μs", filter_type=:ls, sys),
+        "slr_small_tip_boundary" =>
+            PD.build_slr_pulse(30u"deg"; duration=4u"ms", dwell=8u"μs", sys),
+        "slr_small_tip_above" =>
+            PD.build_slr_pulse(nextfloat(π / 6) * u"rad"; duration=5.6u"ms", dwell=8u"μs", sys),
+        "slr_negative_excitation" =>
+            PD.build_slr_pulse(-90u"deg"; duration=4u"ms", dwell=8u"μs", sys),
+        "slr_refocusing" =>
+            PD.build_slr_pulse(180u"deg"; duration=4u"ms", dwell=100u"μs", use=Refocusing(), sys),
+        "slr_inversion" =>
+            PD.build_slr_pulse(180u"deg"; duration=4.6u"ms", dwell=25u"μs", use=Inversion(), sys),
+        "slr_saturation" =>
+            PD.build_slr_pulse(110u"deg"; duration=5.6u"ms", dwell=8u"μs", use=Saturation(), sys),
+        "slr_preparation" =>
+            PD.build_slr_pulse(90u"deg"; duration=4u"ms", dwell=8u"μs", use=Preparation(), sys),
+        "slr_other" =>
+            PD.build_slr_pulse(80u"deg"; duration=4u"ms", dwell=8u"μs", use=Other(), sys),
+        "slr_undefined" =>
+            PD.build_slr_pulse(70u"deg"; duration=4u"ms", dwell=8u"μs", use=Undefined(), sys),
+        "slr_half_sample_rounding" =>
+            PD.build_slr_pulse(90u"deg"; duration=500.5 * 8u"μs", dwell=8u"μs", sys),
+        "slr_slice" =>
+            PD.build_slr_pulse(90u"deg"; duration=5.6u"ms", dwell=8u"μs", slice_thickness=5u"mm", sys),
+        "slr_slice_overrides" =>
+            PD.build_slr_pulse(90u"deg"; duration=4u"ms", dwell=8u"μs", time_bw_product=6, slice_thickness=5u"mm", freq_offset=123u"Hz", phase_offset=0.4u"rad", delay=120u"μs", max_grad=30u"mT/m", max_slew=120u"T/m/s", sys),
         "adc_positional_dwell" =>
             PD.build_adc(16, 1u"μs"; sys),
         "adc_dwell" =>
@@ -243,7 +288,13 @@ function run_pulseq_matlab_parity()
         @test length(koma_seq) == length(matlab_seq)
         for (name, range) in ranges
             @testset "$name" begin
-                @test matlab_seq[range] ≈ koma_seq[range]
+                # MATLAB SLR uses PocketFFT and Koma uses FFTW, so only RF samples
+                # get a 1 nT tolerance.
+                if startswith(name, "slr_")
+                    test_slr_parity(matlab_seq[range], koma_seq[range])
+                else
+                    @test matlab_seq[range] ≈ koma_seq[range]
+                end
             end
         end
     end

@@ -1,7 +1,7 @@
 name = "KomaMRIFiles"
 uuid = "fcf631a6-1c7e-4e88-9e64-b8888386d9dc"
 
-version = "0.11.1"
+version = "0.11.2"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [workspace]
@@ -23,7 +23,7 @@ SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 FileIO = "1"
 HDF5 = "0.16, 0.17"
 InteractiveUtils = "1"
-KomaMRIBase = "0.13"
+KomaMRIBase = "0.13.2"
 MAT = "0.10, 0.11, 0.12"
 MD5 = "0.2.3"
 MRIFiles = "0.1, 0.2, 0.3"
