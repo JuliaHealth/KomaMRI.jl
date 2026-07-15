@@ -25,6 +25,9 @@ using PrecompileTools: @setup_workload, @compile_workload
             )
             seq_minimal = PulseDesigner.EPI_example()
             
+            # Discretize Sequence (critical for simulation, affects Core)
+            seq_disc = discretize(seq_minimal, sys)
+            
             # Bloch simulation method (most common)
             sim_params_bloch = default_sim_params()
             sim_params_bloch["sim_method"] = Bloch()
@@ -65,7 +68,6 @@ using PrecompileTools: @setup_workload, @compile_workload
             signal_raw = simulate(obj_minimal, seq_minimal, sys; sim_params=sim_params_raw)
             
             # GPU Path (if available)
-            # This will be a no-op on CPU, but precompiles GPU code if available
             try
                 sim_params_gpu = default_sim_params()
                 sim_params_gpu["gpu"] = true
@@ -73,10 +75,6 @@ using PrecompileTools: @setup_workload, @compile_workload
             catch
                 # GPU not available; skip silently
             end
-            
-            # Discretize Sequence (critical for simulation prep)
-            # Discretization with different methods
-            seq_disc = discretize(seq_minimal, sys)
         end
     end
 end
