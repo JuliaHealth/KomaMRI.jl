@@ -23,7 +23,7 @@ function coil_panel( #hide
         ) #hide
     for (coil, map) in pairs(maps) #hide
         plot = plot_image(map; zmin, zmax, colorscale) #hide
-        for trace in plot.plot.data #hide
+        for trace in plot.data #hide
             trace.fields[:showscale] = false #hide
             add_trace!(panel, trace; row=cld(coil, columns), col=mod1(coil, columns)) #hide
         end #hide
@@ -48,69 +48,66 @@ function coil_panel( #hide
     else #hide
         relayout!(panel; width="100%", height=320 * rows, showlegend=false) #hide
     end #hide
-    return panel #hide
+    return panel.plot #hide
 end; #hide
 
 # ## Measured in-vitro coil sensitivities
 
-# A scanner calibration acquisition can provide measured receive sensitivities.
-# Vendor raw data, such as a Siemens `.dat` file, is first converted to ISMRMRD
-# `.mrd`. `MRIFiles.jl` loads the data, `MRIReco.jl` reconstructs each receive
-# channel, and `MRICoilSensitivities.jl` estimates one complex 3D sensitivity map
-# per channel. For this fully sampled calibration scan, the maps are obtained by
-# normalizing the complex coil images by their root-sum-of-squares image.
+# A scanner calibration acquisition can provide one image per receive channel.
+# The calibration object used here is uniform, so its shared object intensity can
+# be removed by dividing each background-corrected channel magnitude by the
+# root-sum-of-squares (RSS) magnitude across all channels:
+#
+# ```math
+# |S_c(x,y)| = \frac{|I_c(x,y)|}{\sqrt{\sum_k |I_k(x,y)|^2}}.
+# ```
+#
+# After loading the 18 measured channel PNGs as matrices, stack them along the
+# third dimension and calculate the normalized sensitivity magnitudes. The
+# support mask prevents background noise from being amplified where the RSS is
+# close to zero.
 
 #md # ```julia
-#md # using MRIReco, MRIFiles, MRICoilSensitivities
-#md #
-#md # raw_vitro = RawAcquisitionData(ISMRMRDFile("coil_calibration.mrd"));
-#md # ncoils_vitro = raw_vitro.params["receiverChannels"];
-#md # profiles_vitro = filter(raw_vitro.profiles) do profile
-#md #     size(profile.data, 2) == ncoils_vitro &&
-#md #         flag_is_set(profile, "ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA")
-#md # end;
-#md # acq_vitro = AcquisitionData(RawAcquisitionData(raw_vitro.params, profiles_vitro));
-#md # encoded_size = Tuple(raw_vitro.params["encodedSize"]);
-#md # image_vitro = reconstruction(
-#md #     acq_vitro, Dict(:reco => "direct", :reconSize => encoded_size),
+#md # coil_images = cat(measured_channel_images...; dims=3);
+#md # rss_image = sqrt.(sum(abs2, coil_images; dims=3));
+#md # support = rss_image .> 0.02f0 * maximum(rss_image);
+#md # coil_magnitudes = ifelse.(
+#md #     support, coil_images ./ max.(rss_image, eps(Float32)), 0f0,
 #md # );
-#md # sensitivities_vitro = estimateCoilSensitivities(image_vitro);
 #md # ```
 
-# `espirit(acq_vitro, (4, 4, 4), 16)` provides an alternative for
-# autocalibration data. Here, readout oversampling is removed from the direct
-# estimate before reordering the MRD axes into physical ``(x,y,z)`` order,
-# attaching physical coordinates, and constructing `ArbitraryCoilSens`.
+# When vendor raw k-space is available, a more complete workflow is to convert
+# the scanner `.dat` file to ISMRMRD `.mrd`, load it with `MRIFiles.jl`, and use
+# `MRIReco.jl` or `MRICoilSensitivities.jl` to estimate complex maps. For example,
+# `espirit(acq_vitro, (4, 4), 16)` estimates 2D complex sensitivities from the
+# central calibration region. The present comparison has magnitude PNGs only,
+# so it uses the RSS estimate above and assigns zero phase.
+#
+# The display matrices are converted to KomaMRI's ``(x,y,z,\text{coil})`` map
+# layout. Since this is a central-slice simulation, each 2D map is repeated over
+# a thin three-point ``z`` grid before constructing `ArbitraryCoilSens`.
 
 #md # ```julia
-#md # nread = raw_vitro.params["reconSize"][1];
-#md # first_read = (size(sensitivities_vitro, 1) - nread) ÷ 2 + 1;
-#md # read_range = first_read:(first_read + nread - 1);
-#md # coil_maps_vitro = sensitivities_vitro[read_range, :, :, 1, :, 1];
-#md #
-#md # fov_vitro = Float32.(raw_vitro.params["reconFOV"]) .* 1f-3;
-#md # x_vitro = range(-fov_vitro[1] / 2, fov_vitro[1] / 2; length=size(coil_maps_vitro, 1));
-#md # y_vitro = range(-fov_vitro[2] / 2, fov_vitro[2] / 2; length=size(coil_maps_vitro, 2));
-#md # z_vitro = range(-fov_vitro[3] / 2, fov_vitro[3] / 2; length=size(coil_maps_vitro, 3));
-#md # coil_magnitudes_vitro = complex.(abs.(coil_maps_vitro));
-#md # receiver_vitro = ArbitraryCoilSens(
-#md #     x_vitro, y_vitro, z_vitro, coil_magnitudes_vitro,
+#md # coil_magnitudes_xy = permutedims(coil_magnitudes, (2, 1, 3));
+#md # Nx, Ny, ncoils_vitro = size(coil_magnitudes_xy);
+#md # coil_maps_vitro = repeat(
+#md #     reshape(coil_magnitudes_xy, Nx, Ny, 1, ncoils_vitro), 1, 1, 3, 1,
 #md # );
-#md # z0 = argmin(abs.(receiver_vitro.z));
-#md # coil1_2D = receiver_vitro.coil_sens[:, :, z0, 1];
-#md # coil2_2D = receiver_vitro.coil_sens[:, :, z0, 2];
-#md # coil3_2D = receiver_vitro.coil_sens[:, :, z0, 3];
-#md # coil4_2D = receiver_vitro.coil_sens[:, :, z0, 4];
+#md # display_fov = Nx / 100f0 * 230f-3;
+#md # x_vitro = range(-display_fov / 2, display_fov / 2; length=Nx);
+#md # y_vitro = range(-display_fov / 2, display_fov / 2; length=Ny);
+#md # z_vitro = range(-1f-3, 1f-3; length=3);
+#md # receiver_vitro = ArbitraryCoilSens(
+#md #     x_vitro, y_vitro, z_vitro, complex.(coil_maps_vitro),
+#md # );
 #md # ```
 
 # The in-vitro object is spherical, so this comparison models its central slice
 # as a uniform disk rather than using the brain phantom shown later. The scanner
-# reference images contain magnitude only, so this comparison uses the measured
-# sensitivity magnitudes with zero phase. This preserves each coil's spatial
-# receive weighting without introducing the unresolved phase of the estimated
-# maps. Equal-area golden-angle positions approximate a continuous object, the
-# sphere is simulated with `Bloch()`, and all 18 channels are reconstructed
-# independently.
+# reference images contain magnitude only, so the RSS maps preserve spatial
+# receive weighting but not measured phase. Equal-area golden-angle positions
+# approximate a continuous object, the sphere is simulated with `Bloch()`, and
+# all 18 channels are reconstructed independently.
 
 #md # ```julia
 #md # radius = 50f-3;
@@ -145,9 +142,9 @@ end; #hide
 #md # );
 #md # ```
 
-# Both rows below use the central `z` slice and receiver channels `1:18` from
-# the same MRD dataset. Each image is independently normalized so the comparison
-# emphasizes spatial receive weighting rather than absolute signal intensity.
+# Both rows below use the same ordered 18 receive channels. Each image is
+# independently normalized so the comparison emphasizes spatial receive
+# weighting rather than absolute signal intensity.
 
 #md # ```@raw html
 #md # <style>
@@ -178,7 +175,7 @@ vitro_reconstructions = open(vitro_data) do io #hide
     read!(io, Array{Float32}(undef, vitro_shape)) #hide
 end; #hide
 vitro_maps = [ #hide
-    permutedims(vitro_reconstructions[:, :, coil]) #hide
+    rotr90(permutedims(vitro_reconstructions[:, :, coil])) #hide
     for coil in axes(vitro_reconstructions, 3) #hide
 ]; #hide
 p_vitro = coil_panel( #hide
