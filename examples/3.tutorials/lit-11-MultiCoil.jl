@@ -38,6 +38,10 @@ function coil_panel( #hide
         panel.plot.layout[yaxis][:constrain] = "domain" #hide
         panel.plot.layout[xaxis][:showticklabels] = show_axes #hide
         panel.plot.layout[yaxis][:showticklabels] = show_axes #hide
+        panel.plot.layout[xaxis][:showgrid] = show_axes #hide
+        panel.plot.layout[yaxis][:showgrid] = show_axes #hide
+        panel.plot.layout[xaxis][:zeroline] = false #hide
+        panel.plot.layout[yaxis][:zeroline] = false #hide
     end #hide
     if compact #hide
         relayout!( #hide
@@ -53,136 +57,105 @@ end; #hide
 
 # ## Measured in-vitro coil sensitivities
 
-# A scanner calibration acquisition can provide one image per receive channel.
-# The calibration object used here is uniform, so its shared object intensity can
-# be removed by dividing each background-corrected channel magnitude by the
-# root-sum-of-squares (RSS) magnitude across all channels:
-#
-# ```math
-# |S_c(x,y)| = \frac{|I_c(x,y)|}{\sqrt{\sum_k |I_k(x,y)|^2}}.
-# ```
-#
-# After loading the 18 measured channel PNGs as matrices, stack them along the
-# third dimension and calculate the normalized sensitivity magnitudes. The
-# support mask prevents background noise from being amplified where the RSS is
-# close to zero.
+# The scanner localizer is stored as ISMRMRD `.mrd` data. Its readout is
+# oversampled, and its Cartesian metadata requires three corrections before
+# reconstruction: restore the encoded phase dimension, match the encoded and
+# reconstructed readout fields of view, and shift the phase-encode indices.
 
 #md # ```julia
-#md # coil_images = cat(measured_channel_images...; dims=3);
-#md # rss_image = sqrt.(sum(abs2, coil_images; dims=3));
-#md # support = rss_image .> 0.02f0 * maximum(rss_image);
-#md # coil_magnitudes = ifelse.(
-#md #     support, coil_images ./ max.(rss_image, eps(Float32)), 0f0,
-#md # );
-#md # ```
-
-# When vendor raw k-space is available, a more complete workflow is to convert
-# the scanner `.dat` file to ISMRMRD `.mrd`, load it with `MRIFiles.jl`, and use
-# `MRIReco.jl` or `MRICoilSensitivities.jl` to estimate complex maps. For example,
-# `espirit(acq_vitro, (4, 4), 16)` estimates 2D complex sensitivities from the
-# central calibration region. The present comparison has magnitude PNGs only,
-# so it uses the RSS estimate above and assigns zero phase.
-#
-# The display matrices are converted to KomaMRI's ``(x,y,z,\text{coil})`` map
-# layout. Since this is a central-slice simulation, each 2D map is repeated over
-# a thin three-point ``z`` grid before constructing `ArbitraryCoilSens`.
-
-#md # ```julia
-#md # coil_magnitudes_xy = permutedims(coil_magnitudes, (2, 1, 3));
-#md # Nx, Ny, ncoils_vitro = size(coil_magnitudes_xy);
-#md # coil_maps_vitro = repeat(
-#md #     reshape(coil_magnitudes_xy, Nx, Ny, 1, ncoils_vitro), 1, 1, 3, 1,
-#md # );
-#md # display_fov = Nx / 100f0 * 230f-3;
-#md # x_vitro = range(-display_fov / 2, display_fov / 2; length=Nx);
-#md # y_vitro = range(-display_fov / 2, display_fov / 2; length=Ny);
-#md # z_vitro = range(-1f-3, 1f-3; length=3);
-#md # receiver_vitro = ArbitraryCoilSens(
-#md #     x_vitro, y_vitro, z_vitro, complex.(coil_maps_vitro),
-#md # );
-#md # ```
-
-# The in-vitro object is spherical, so this comparison models its central slice
-# as a uniform disk rather than using the brain phantom shown later. The scanner
-# reference images contain magnitude only, so the RSS maps preserve spatial
-# receive weighting but not measured phase. Equal-area golden-angle positions
-# approximate a continuous object, the sphere is simulated with `Bloch()`, and
-# all 18 channels are reconstructed independently.
-
-#md # ```julia
-#md # radius = 50f-3;
-#md # nspins = 100_000;
-#md # spin_index = 1:nspins;
-#md # spin_radius = @. radius * sqrt((spin_index - 0.5f0) / nspins);
-#md # spin_angle = @. Float32(π) * (3 - sqrt(5f0)) * spin_index;
-#md # spin_x = spin_radius .* cos.(spin_angle);
-#md # spin_y = spin_radius .* sin.(spin_angle);
-#md # obj_vitro = Phantom(;
-#md #     name="uniform sphere slice",
-#md #     x=spin_x,
-#md #     y=spin_y,
-#md # );
+#md # using MAT, MRICoilSensitivities, MRIFiles, MRIReco
 #md #
-#md # seq_file_vitro = joinpath(
-#md #     dirname(pathof(KomaMRI)),
-#md #     "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/epi_100x100_TE100_FOV230.seq",
-#md # );
-#md # seq_vitro = read_seq(seq_file_vitro);
-#md # sys_vitro = Scanner(receiver=receiver_vitro);
-#md # sim_params_vitro = KomaMRICore.default_sim_params();
-#md # sim_params_vitro["gpu"] = false;
-#md # sim_params_vitro["sim_method"] = Bloch();
-#md # raw_sim_vitro = simulate(
-#md #     obj_vitro, seq_vitro, sys_vitro; sim_params=sim_params_vitro,
-#md # );
-#md # acq_sim_vitro = AcquisitionData(raw_sim_vitro);
-#md # acq_sim_vitro.traj[1].circular = false;
-#md # image_sim_vitro = reconstruction(
-#md #     acq_sim_vitro, Dict(:reco => "direct", :reconSize => (100, 100)),
-#md # );
+#md # raw = remove_oversampling(
+#md #     RawAcquisitionData(ISMRMRDFile("localizer.mrd")),
+#md # )
+#md # raw.params["encodedSize"][2] = 256
+#md # raw.params["encodedFOV"][1] = raw.params["reconFOV"][1]
+#md # foreach(p -> p.head.idx.kspace_encode_step_1 += UInt16(12), raw.profiles)
 #md # ```
 
-# Both rows below use the same ordered 18 receive channels. Each image is
-# independently normalized so the comparison emphasizes spatial receive
-# weighting rather than absolute signal intensity.
+# ESPIRiT uses a ``30 \times 30`` calibration region and a ``6 \times 6``
+# kernel to estimate one complex sensitivity map for each of the 18 receive
+# channels. The localizer contains three planes; the panels below show plane 1.
+
+#md # ```julia
+#md # maps = espirit(
+#md #     AcquisitionData(raw), (6, 6), 30;
+#md #     eigThresh_1=0.02, eigThresh_2=0.95,
+#md # )
+#md # matwrite(
+#md #     "localizer_espirit_sensitivities.mat",
+#md #     Dict("sensitivity_maps" => maps),
+#md # )
+#md # sensitivities_vitro = maps[:, :, 1, :]
+#md # ```
+
+# The complex ESPIRiT result is displayed directly. No additional KomaMRI
+# forward simulation or EPI reconstruction is applied to these maps.
+
+# Scanner channel `cha6` has no corresponding reference image, so its sixth grid
+# position is left empty. This display omission does not remove the channel from
+# ESPIRiT: all 18 estimated complex sensitivity maps are displayed below.
 
 #md # ```@raw html
 #md # <style>
 #md # .vitro-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.35rem}
 #md # .vitro-grid img{width:100%;aspect-ratio:1;object-fit:cover;object-position:center;display:block;background:#000}
+#md # .vitro-empty{display:block;aspect-ratio:1;background:transparent}
 #md # @media(max-width:900px){.vitro-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 #md # </style>
 #md # <p><strong>Measured scanner reconstructions</strong></p>
 #md # <div class="vitro-grid">
-#md # <img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha0_slc0_ave0_ma.png" alt="Measured reconstruction 1"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha1_slc0_ave0_ma.png" alt="Measured reconstruction 2"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha2_slc0_ave0_ma.png" alt="Measured reconstruction 3"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha3_slc0_ave0_ma.png" alt="Measured reconstruction 4"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha4_slc0_ave0_ma.png" alt="Measured reconstruction 5"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha4_slc1_ave0_ma.png" alt="Measured reconstruction 6">
-#md # <img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha5_slc0_ave0_ma.png" alt="Measured reconstruction 7"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha7_slc0_ave0_ma.png" alt="Measured reconstruction 8"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha8_slc0_ave0_ma.png" alt="Measured reconstruction 9"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha9_slc0_ave0_ma.png" alt="Measured reconstruction 10"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha10_slc0_ave0_ma.png" alt="Measured reconstruction 11"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha11_slc0_ave0_ma.png" alt="Measured reconstruction 12">
-#md # <img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha12_slc0_ave0_ma.png" alt="Measured reconstruction 13"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha13_slc0_ave0_ma.png" alt="Measured reconstruction 14"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha14_slc0_ave0_ma.png" alt="Measured reconstruction 15"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha15_slc0_ave0_ma.png" alt="Measured reconstruction 16"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha16_slc0_ave0_ma.png" alt="Measured reconstruction 17"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha17_slc0_ave0_ma.png" alt="Measured reconstruction 18">
+#md # <img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha0_slc0_ave0_ma.png" alt="Measured channel 0"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha1_slc0_ave0_ma.png" alt="Measured channel 1"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha2_slc0_ave0_ma.png" alt="Measured channel 2"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha3_slc0_ave0_ma.png" alt="Measured channel 3"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha4_slc0_ave0_ma.png" alt="Measured channel 4">
+#md # <span class="vitro-empty" aria-label="Scanner channel 6 unavailable"></span>
+#md # <img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha5_slc0_ave0_ma.png" alt="Measured channel 5"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha7_slc0_ave0_ma.png" alt="Measured channel 7"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha8_slc0_ave0_ma.png" alt="Measured channel 8"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha9_slc0_ave0_ma.png" alt="Measured channel 9"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha10_slc0_ave0_ma.png" alt="Measured channel 10"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha11_slc0_ave0_ma.png" alt="Measured channel 11">
+#md # <img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha12_slc0_ave0_ma.png" alt="Measured channel 12"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha13_slc0_ave0_ma.png" alt="Measured channel 13"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha14_slc0_ave0_ma.png" alt="Measured channel 14"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha15_slc0_ave0_ma.png" alt="Measured channel 15"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha16_slc0_ave0_ma.png" alt="Measured channel 16"><img src="/assets/lit-10-vitro-coil-sens/MID0_COLxLIN_cha17_slc0_ave0_ma.png" alt="Measured channel 17">
 #md # </div>
 #md # ```
 
-# ### KomaMRI reconstructions using measured `ArbitraryCoilSens`
+# ### ESPIRiT sensitivity magnitude
 
-# The simulated images use the same physical display field of view as the
-# measured center crop. Unlike the scanner PNGs above, this 3-by-6 panel is
-# interactive: hover to inspect normalized magnitude and drag to zoom.
+# Each map is independently normalized to emphasize its spatial receive profile.
+# The 3-by-6 panel is interactive: hover to inspect values and drag to zoom.
 
-vitro_shape = (56, 56, 18); #hide
+vitro_shape = (256, 256, 18); #hide
 vitro_data = joinpath( #hide
     dirname(pathof(KomaMRI)), "../docs/src/public/assets/", #hide
-    "lit-10-vitro-coil-sens/simulated-magnitude-axial.f32", #hide
+    "lit-10-vitro-coil-sens/espirit-magnitude-2d.f32", #hide
 ); #hide
 vitro_reconstructions = open(vitro_data) do io #hide
     read!(io, Array{Float32}(undef, vitro_shape)) #hide
 end; #hide
 vitro_maps = [ #hide
-    rotr90(permutedims(vitro_reconstructions[:, :, coil])) #hide
+    rot180(rotr90(permutedims(vitro_reconstructions[:, :, coil]))) #hide
     for coil in axes(vitro_reconstructions, 3) #hide
 ]; #hide
 p_vitro = coil_panel( #hide
-    vitro_maps, "reco", "Greys", 0, 1; #hide
+    vitro_maps, "magnitude", "Greys", 0, 1; #hide
     columns=6, show_axes=false, compact=true, #hide
 ) #hide
 #md p_vitro #hide
+
+# ### ESPIRiT sensitivity phase
+
+# The phase of each complex ESPIRiT map is displayed inside its estimated object
+# support. Colors span ``-\pi`` to ``\pi`` radians for all 18 channels.
+
+vitro_phase_data = joinpath( #hide
+    dirname(pathof(KomaMRI)), "../docs/src/public/assets/", #hide
+    "lit-10-vitro-coil-sens/espirit-phase-2d.f32", #hide
+); #hide
+vitro_phase = open(vitro_phase_data) do io #hide
+    read!(io, Array{Float32}(undef, vitro_shape)) #hide
+end; #hide
+vitro_phase_maps = [ #hide
+    rot180(rotr90(permutedims(vitro_phase[:, :, coil]))) #hide
+    for coil in axes(vitro_phase, 3) #hide
+]; #hide
+p_vitro_phase = coil_panel( #hide
+    vitro_phase_maps, "phase", "Jet", -π, π; #hide
+    columns=6, show_axes=false, compact=true, #hide
+) #hide
+#md p_vitro_phase #hide
 
 # ## Synthetic acquisition setup
 
