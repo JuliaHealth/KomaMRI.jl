@@ -19,7 +19,7 @@ import KomaMRIBase: PulseDesigner as PD
             T2s=[80e-3, 80e-3]
         )
         
-        seq = PD.build_test_seq(sys)
+        seq = PD.build_test_seq()
         
         sim_methods = [
             Bloch(),
