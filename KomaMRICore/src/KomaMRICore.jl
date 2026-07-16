@@ -34,7 +34,7 @@ export Spinor, Rx, Ry, Rz, Q, Un
 # Callback
 export Callback
 
-end
-
 # Precompilation workloads for reduced first-use latency
 include("precompile.jl")
+
+end
