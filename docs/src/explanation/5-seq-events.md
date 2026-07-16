@@ -273,7 +273,9 @@ As described by the [Pulseq specifications](https://pulseq.github.io/specificati
 is not a part of the core Pulseq format and MAY be subject to rapid changes`. The usage of the type / channel is system dependent and must be checked beforehand.
 
 !!! note
-    Trigger extension is implemented but currently not taken into account during the simulation 
+    Trigger events are resolved against the physiological signal passed to `simulate` or
+    `plot_seq`. See the [triggered cardiac bSSFP tutorial](../tutorial/gen-09-TriggeredCardiacBSSFP.md)
+    for a complete example.
 
 ```julia
 Trigger(type, channel, delay, duration)
@@ -327,9 +329,7 @@ lSet = LabelSet(1, "ECO")
 
 Both labels are stored in the `EXT` entry for that block.
 
-!!! warning
-    KomaMRI currently supports Pulseq labels, triggers, and rotations. Other Pulseq
-    extensions can be added later as needed.
+KomaMRI supports Pulseq label, trigger, and rotation extensions.
 
 ## Combination of Events
 

@@ -64,6 +64,15 @@ AllSpins
 SpinRange
 ```
 
+## Physiological signals
+
+```@docs
+AbstractPhysioSignal
+CardiacSignal
+NoPhysioSignal
+resolve_triggers
+```
+
 ## `Sequence`-related functions
 
 ```@docs
@@ -204,6 +213,8 @@ PulseDesigner.make_arbitrary_rf
 PulseDesigner.build_arbitrary_rf
 PulseDesigner.make_gauss_pulse
 PulseDesigner.build_gauss_pulse
+PulseDesigner.make_slr_pulse
+PulseDesigner.build_slr_pulse
 PulseDesigner.make_adiabatic_pulse
 PulseDesigner.build_adiabatic_pulse
 PulseDesigner.make_label

@@ -30,11 +30,11 @@ M1 = @suppress simulate_slice_profile(seq[rf1]; z)
 M2 = @suppress simulate_slice_profile(seq[rf2]; z)
 M3 = @suppress simulate_slice_profile(seq[rf3]; z);
 
-using PlotlyJS #hide
+using PlotlyBase #hide
 pa = scatter(x=z*1e2, y=abs.(M1.xy), name="Slice 1") #hide
 pb = scatter(x=z*1e2, y=abs.(M2.xy), name="Slice 2") #hide
 pc = scatter(x=z*1e2, y=abs.(M3.xy), name="Slice 3") #hide
-pd = plot([pa,pb,pc], Layout(xaxis=attr(title="z [cm]"), height=300,margin=attr(t=40,l=0,r=0), title="Slice profiles for the slice-selective sequence")) #hide
+pd = Plot([pa,pb,pc], Layout(xaxis=attr(title="z [cm]"), height=300,margin=attr(t=40,l=0,r=0), title="Slice profiles for the slice-selective sequence")) #hide
 #jl display(pd)
 
 # Now let's simulate the acquisition.
@@ -60,14 +60,14 @@ p4 = plot_image(abs.(image[:, :, 1]); height=360, title="Slice 1")
 p5 = plot_image(abs.(image[:, :, 2]); height=360, title="Slice 2")
 p6 = plot_image(abs.(image[:, :, 3]); height=360, title="Slice 3")
 p = [p4 p5 p6] #hide
-foreach(t -> t.fields[:showscale] = false, p.plot.data) #hide
+foreach(t -> t.fields[:showscale] = false, p.data) #hide
 for (i, xref) in enumerate(("x", "x2", "x3")) #hide
     xaxis = Symbol("xaxis", i) #hide
     yaxis = Symbol("yaxis", i) #hide
-    p.plot.layout.fields[yaxis][:scaleanchor] = xref #hide
-    p.plot.layout.fields[yaxis][:constrain] = "domain" #hide
-    p.plot.layout.fields[xaxis][:range] = [-0.5, Nx - 0.5] #hide
-    p.plot.layout.fields[yaxis][:range] = [-0.5, Ny - 0.5] #hide
+    p.layout.fields[yaxis][:scaleanchor] = xref #hide
+    p.layout.fields[yaxis][:constrain] = "domain" #hide
+    p.layout.fields[xaxis][:range] = [-0.5, Nx - 0.5] #hide
+    p.layout.fields[yaxis][:range] = [-0.5, Ny - 0.5] #hide
 end #hide
 #md p #hide
 #jl display(p)

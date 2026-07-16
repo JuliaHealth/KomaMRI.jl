@@ -112,21 +112,16 @@ export default defineConfig({
       text: 'Edit this page',
       pattern: ({ filePath }: { filePath: string }): string => {
         const base = 'https://github.com/JuliaHealth/KomaMRI.jl/edit/master'
-        if (filePath.startsWith('tutorial/')) {
-          const name = filePath.replace('tutorial/', '').replace('.md', '')
+        const generated = filePath.match(/^(.*\/)gen-(.+)\.md$/)
+        if (generated) {
+          const [, section, name] = generated
+          if (section === 'tutorial/pluto/') {
+            return `${base}/examples/4.reproducible_notebooks/pluto-${name}.jl`
+          }
+          if (section !== 'tutorial/') {
+            return `${base}/docs/src/${section}lit-${name}.jl`
+          }
           return `${base}/examples/3.tutorials/lit-${name}.jl`
-        }
-        if (filePath.startsWith('tutorial-pluto/')) {
-          const name = filePath.replace('tutorial-pluto/', '').replace('.md', '')
-          return `${base}/examples/4.reproducible_notebooks/pluto-${name}.jl`
-        }
-        if (filePath.startsWith('explanation/')) {
-          const name = filePath.replace('explanation/', '').replace('.md', '')
-          const litPath = `${base}/docs/src/explanation/lit-${name}.jl`
-          // TODO: this is a bit hacky, change to more robust solution
-          // Only lit-generated pages (1-phantom, 2-motion) have a lit- source; others fall back to .md
-          const litPages = ['1-phantom', '2-motion']
-          if (litPages.includes(name)) return litPath
         }
         return `${base}/docs/src/${filePath}`
       }

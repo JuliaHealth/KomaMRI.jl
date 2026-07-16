@@ -254,7 +254,7 @@ function save_cli_raw(raw, filename)
 end
 
 function reconstruct_cli(raw, rec_params)
-    raw.profiles = raw.profiles[getproperty.(getproperty.(raw.profiles, :head), :flags) .!= 268435456]
+    raw = _imaging_raw_data(raw)
     acq_data = AcquisitionData(raw)
     acq_data.traj[1].circular = false
     scale = maximum(2 * abs.(acq_data.traj[1].nodes[:]))
@@ -279,8 +279,7 @@ function print_cli_versions()
 end
 
 function keep_app_open(w)
-    wait(w)
-    while Blink.active(w.content)
+    while !isnothing(w.session[]) && isopen(w.session[])
         sleep(0.2)
     end
     return nothing
@@ -313,9 +312,6 @@ end
 @setup_workload begin
     @compile_workload begin
         redirect_stderr(devnull) do
-            fields = [fieldnames(Phantom)[5:end-3]...]
-            button.(string.(fields))
-            filepicker(".seq (Pulseq)"; accept=".seq,.seqk")
             sys = setup_scanner()
             setup_sequence(sys)
             setup_phantom()
