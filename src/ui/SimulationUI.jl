@@ -5,8 +5,7 @@ function run_simulation!(w, sim_params; initial=false)
         "Precompiling and running simulation functions ..." : "Running simulation ..."
     threads = get(sim_params, "Nthreads", Threads.nthreads())
     simulation_device = Ref("CPU ($threads thread$(threads == 1 ? "" : "s"))")
-    details = get(sim_params, "gpu", true) ? "Selecting GPU backend ..." : simulation_device[]
-    display_loading!(w, message; details)
+    display_loading!(w, message)
     start_simulation_progress!(w)
 
     raw = try

@@ -405,6 +405,13 @@ end
                     @test !isempty(raw_ui[].profiles)
                     @test timedwait(() -> w.state[] == "sig", 30) == :ok
                 end
+
+                @testset "Close UI" begin
+                    waiter = @async KomaMRI.keep_app_open(w)
+                    close(w.window[])
+                    @test timedwait(() -> istaskdone(waiter), 30) == :ok
+                    @test !isopen(w)
+                end
             finally
                 close(w)
             end
