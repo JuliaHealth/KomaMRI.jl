@@ -54,12 +54,9 @@ function handle(callback::Function, w::KomaWindow, event::String)
 end
 
 function show!(w::KomaWindow)
-    windows = Set(Iterators.flatten(Electron.windows.(Electron.applications())))
     display = Bonito.use_electron_display(; options=w.window_options, devtools=w.dev_tools)
     w.display[] = display
-    w.window[] = only(
-        setdiff(Iterators.flatten(Electron.windows.(Electron.applications())), windows)
-    )
+    w.window[] = display.window.window
     Base.display(display, w.app)
     return w
 end
@@ -72,8 +69,8 @@ end
 function Base.wait(w::KomaWindow)
     window = w.window[]
     isnothing(window) && return nothing
-    for _ in Electron.msgchannel(window)
-    end
+    # Electron closes this channel when its window closes.
+    foreach(_ -> nothing, Electron.msgchannel(window))
     return nothing
 end
 
@@ -133,7 +130,7 @@ function home_page(image)
                         style="color:#2a7fb8;",
                     ),
                     ", et al.";
-                    style="padding-bottom:10px;",
+                    class="mb-1",
                 ),
                 DOM.p(
                     "Cite us ",
@@ -150,7 +147,7 @@ function home_page(image)
                     DOM.img(
                         ;
                         src="https://contrib.rocks/image?repo=cncastillo/KomaMRI.jl",
-                        style="height:60px;",
+                        style="height:48px;",
                     );
                     href="https://github.com/cncastillo/KomaMRI.jl/graphs/contributors",
                 );

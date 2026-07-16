@@ -286,6 +286,7 @@ end
 function run_cli(args)
     opts = parse_cli_args(args, load_cli_preferences!(CLIOptions()))
     load_cli_backend!(opts)
+    # Loading a GPU backend may activate package extensions in a newer world.
     return Base.invokelatest(run_cli, opts)
 end
 
@@ -310,11 +311,17 @@ end
 @setup_workload begin
     @compile_workload begin
         redirect_stderr(devnull) do
+            opts = CLIOptions()
+            sys, seq, obj = cli_inputs(opts)
             w = KomaUI(;
+                sys,
+                seq,
+                obj,
+                sim=opts.sim_params,
+                rec=opts.recon_params,
                 show_window=false,
                 return_window=true,
                 verbose=false,
-                sim=Dict{String,Any}("gpu" => false),
             )
             close(w)
         end
