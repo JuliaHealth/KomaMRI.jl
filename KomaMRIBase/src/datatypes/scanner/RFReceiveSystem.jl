@@ -22,12 +22,6 @@ get_n_coils(::AbstractRFReceiveSystem) = 1
 get_n_coils(receiver::BirdcageCoilSens) = receiver.ncoils
 get_n_coils(receiver::ArbitraryCoilSens) = size(receiver.coil_sens, 4)
 
-function get_sens(::UniformCoilSens, x, y, z)
-    sens = similar(x, Complex{eltype(x)}, length(x), 1)
-    fill!(sens, one(eltype(sens)))
-    return sens
-end
-
 function get_sens(receiver::BirdcageCoilSens, x, y, z)
     T = eltype(x)
     radius = T(receiver.radius)
