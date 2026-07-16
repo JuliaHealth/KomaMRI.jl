@@ -35,10 +35,10 @@ import KomaMRIBase: PulseDesigner as PD
         sim_methods = [
             Bloch(),
             BlochSimple(),
-            BlochMagnusConst1(),
-            BlochMagnusLin2(),
-            BlochMagnusQuad4(),
-            BlochMagnusBGL6(),
+            BlochMagnus1(),
+            BlochMagnus2(),
+            BlochMagnus4(),
+            BlochMagnus6(),
         ]
         
         precisions = ["f32", "f64"]
