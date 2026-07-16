@@ -6,7 +6,7 @@ end
 
 # Uniform other sim methods
 function acquire_signal!(sig, _, ::UniformCoilSens, Mxy::AbstractVector)
-    sig .= sum(Mxy)
+    sig[1] = sum(Mxy)
     return nothing
 end
 

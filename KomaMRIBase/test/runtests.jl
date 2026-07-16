@@ -1750,10 +1750,10 @@ end
         @test area(gzr) ≈ -slice_area / 2 - (area(gz) - slice_area) / 2
     end
     @testset "build_slr_pulse" begin
-        sys = Scanner(
+        sys = Scanner(limits=HardwareLimits(
             B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
             GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
-        )
+        ))
         seq = PulseDesigner.build_slr_pulse(
             90u"°"; duration=2u"ms", dwell=4u"μs", time_bw_product=4,
             slice_thickness=5u"mm", freq_offset=1u"kHz", phase_offset=30u"°",
