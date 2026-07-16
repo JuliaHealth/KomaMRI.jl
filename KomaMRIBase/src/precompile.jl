@@ -21,6 +21,6 @@ import KomaMRIBase: PulseDesigner as PD
             seq += PD.build_arbitrary_grad(:x, [0, 1, 0]; sys)
         end
         
-        seq_disc = discretize(seq, sys)
+        seqd = discretize(seq, sys)
     end
 end
