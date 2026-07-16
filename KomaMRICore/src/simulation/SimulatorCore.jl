@@ -208,6 +208,7 @@ function run_sim_time_iter!(
     excitation_groupsize=DEFAULT_EXCITATION_GROUPSIZE,
     parts=[1:length(seqd)],
     excitation_bool=ones(Bool, size(parts)),
+    adc_samples_per_block,
     sim_params=Dict{String,Any}(),
     callbacks=(),
 ) where {T<:Real}
@@ -222,7 +223,7 @@ function run_sim_time_iter!(
     for (block, p) in enumerate(parts)
         seqd_block = @view seqd[p]
         # Params
-        Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
+        Nadc = adc_samples_per_block[block]
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
         # Simulation wrappers
@@ -377,6 +378,7 @@ function simulate(
         max_rf_block_length=sim_params["max_rf_block_length"],
         eval_intervals_per_step=eval_intervals_per_step(sim_method),
     ) # Generating simulation blocks
+    adc_samples_per_block = [count(@view seqd.ADC[(first(p) + 1):last(p)]) for p in parts]
     Nblocks = length(parts)
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
@@ -433,6 +435,7 @@ function simulate(
         excitation_groupsize=sim_params["gpu_groupsize_excitation"],
         parts,
         excitation_bool,
+        adc_samples_per_block,
         sim_params,
         callbacks=all_callbacks,
     )
