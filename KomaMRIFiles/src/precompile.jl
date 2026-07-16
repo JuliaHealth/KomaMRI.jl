@@ -6,7 +6,6 @@ import KomaMRIBase: PulseDesigner as PD
 @setup_workload begin
     @compile_workload begin
         using KomaMRIBase
-        using KomaMRICore
         
         sys = Scanner()
         obj = brain_phantom2D()

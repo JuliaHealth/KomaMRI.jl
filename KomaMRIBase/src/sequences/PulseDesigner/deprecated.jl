@@ -312,17 +312,17 @@ Returns a test sequence with all event type variants for precompilation.
 - `seq`: (`::Sequence`) Test Sequence struct with all event types
 """
 function build_test_seq(; sys=Scanner())
-    seq = Sequence()
+    seq = Sequence(sys)
     @addblock begin
         seq += build_trapezoid(:x; area=8e-6, sys)
         seq += build_block_pulse(pi/2; duration=1e-3, sys, use=Excitation())
-        seq += build_sinc_pulse(pi/2; duration=2e-3, sys, use=Excitation())
+        seq += build_sinc_pulse(pi/2; duration=3e-3, sys, use=Excitation())
         seq += build_arbitrary_rf([1, 2, 1], pi/4; dwell=200e-6, sys, use=Excitation())
-        seq += build_adc(16; dwell=1e-6, sys)
+        seq += build_adc(16; dwell=sys.ADC_Δt, sys)
         seq += build_label(:SET, :LIN, 3; sys)
         seq += build_rotation(pi/3; sys)
         seq += build_trigger(:physio1; sys)
-        seq += build_arbitrary_grad(:x, [0, 1, 0]; sys)
+        seq += build_arbitrary_grad(:x, [0, 0, 1, 0, 0]; sys)
     end
     return seq
 end
