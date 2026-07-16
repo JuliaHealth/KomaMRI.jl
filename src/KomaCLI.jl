@@ -254,7 +254,7 @@ function save_cli_raw(raw, filename)
 end
 
 function reconstruct_cli(raw, rec_params)
-    raw.profiles = raw.profiles[getproperty.(getproperty.(raw.profiles, :head), :flags) .!= 268435456]
+    raw = _imaging_raw_data(raw)
     acq_data = AcquisitionData(raw)
     acq_data.traj[1].circular = false
     scale = maximum(2 * abs.(acq_data.traj[1].nodes[:]))
@@ -280,15 +280,13 @@ end
 
 function keep_app_open(w)
     wait(w)
-    while Blink.active(w.content)
-        sleep(0.2)
-    end
     return nothing
 end
 
 function run_cli(args)
     opts = parse_cli_args(args, load_cli_preferences!(CLIOptions()))
     load_cli_backend!(opts)
+    # Loading a GPU backend may activate package extensions in a newer world.
     return Base.invokelatest(run_cli, opts)
 end
 
@@ -313,13 +311,19 @@ end
 @setup_workload begin
     @compile_workload begin
         redirect_stderr(devnull) do
-            fields = [fieldnames(Phantom)[5:end-3]...]
-            button.(string.(fields))
-            filepicker(".seq (Pulseq)"; accept=".seq,.seqk")
-            sys = setup_scanner()
-            setup_sequence(sys)
-            setup_phantom()
-            setup_raw()
+            opts = CLIOptions()
+            sys, seq, obj = cli_inputs(opts)
+            w = KomaUI(;
+                sys,
+                seq,
+                obj,
+                sim=opts.sim_params,
+                rec=opts.recon_params,
+                show_window=false,
+                return_window=true,
+                verbose=false,
+            )
+            close(w)
         end
     end
 end

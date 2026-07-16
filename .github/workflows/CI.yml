@@ -13,6 +13,9 @@ permissions:
   actions: write
   contents: read
 
+env:
+  JULIA_NUM_THREADS: auto
+
 jobs:
   ci:
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
@@ -30,7 +33,7 @@ jobs:
           - os: ubuntu-latest
             prefix: xvfb-run # julia-actions/julia-runtest/blob/master/README.md
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
@@ -113,7 +116,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         with:
           files: lcov.info
           flags: komamri
@@ -121,7 +124,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIBase/src
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         with:
           files: lcov.info
           flags: base
@@ -129,15 +132,15 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRICore/src,KomaMRICore/ext
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         with:
           files: lcov.info
           flags: core
           token: ${{ secrets.CODECOV_TOKEN }} # required
       - uses: julia-actions/julia-processcoverage@v1
         with:
-          directories: KomaMRIPlots/src,KomaMRIPlots/ext
-      - uses: codecov/codecov-action@v6
+          directories: KomaMRIPlots/src
+      - uses: codecov/codecov-action@v7
         with:
           files: lcov.info
           flags: plots
@@ -145,7 +148,7 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: KomaMRIFiles/src
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         with:
           files: lcov.info
           flags: files
@@ -158,7 +161,7 @@ jobs:
       group: docs-build-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
         with:
           version: '1'

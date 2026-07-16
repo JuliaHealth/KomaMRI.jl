@@ -3,6 +3,8 @@ using TestItems, TestItemRunner
 @run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:base in t_start.tags) #verbose=true
 
 @testitem "Sequence" tags=[:base] begin
+    using Unitful
+
     struct AddBlockTestOp end
     function Base.:*(::AddBlockTestOp, seq::Sequence)
         out = 3.0 * seq
@@ -775,6 +777,43 @@ using TestItems, TestItemRunner
         @test seqd_delay.t ≈ [0.0, delay.T]
         @test sum(seqd_delay.Δt) ≈ delay.T
 
+    end
+    @testset "Cardiac signals" begin
+        @test CardiacSignal(; heart_rate=1).period ==
+            CardiacSignal(; heart_rate=60u"minute^-1").period == 1.0
+        @test CardiacSignal(;
+            rr_intervals=[800u"ms", 1.1u"s"], first_peak=100u"ms",
+        ).r_peaks ≈ [0.1, 0.9, 2.0]
+    end
+    @testset "Cardiac trigger resolution" begin
+        arm_delay = 0.1
+        seq = Sequence()
+        for _ in 1:3
+            @addblock seq += PulseDesigner.make_trigger(
+                :physio1; delay=arm_delay, duration=0.01
+            )
+        end
+
+        resolved = resolve_triggers(seq, CardiacSignal(; heart_rate=1))
+        resolved_triggers = only.(resolved.EXT)
+        trigger_times = get_block_start_times(resolved)[1:length(resolved)] .+
+            getproperty.(resolved_triggers, :delay)
+        @test trigger_times ≈ [1.0, 2.0, 3.0]
+        @test getproperty.(only.(seq.EXT), :delay) == fill(arm_delay, length(seq))
+        @test resolve_triggers(seq, NoPhysioSignal()) === seq
+
+        output_seq = Sequence()
+        @addblock output_seq += PulseDesigner.make_digital_output_pulse(:osc0; duration=0.01)
+        @test has_trigger(seq)
+        @test !has_trigger(output_seq)
+
+        finite_signals = (
+            CardiacSignal(; r_peaks=[1.0, 2.0]),
+            CardiacSignal(; rr_intervals=[1.0], first_peak=1.0),
+        )
+        for signal in finite_signals
+            @test_throws ErrorException resolve_triggers(seq, signal)
+        end
     end
     @testset "ADC" begin
 
@@ -1710,6 +1749,69 @@ end
         @test gz.A * gz.T ≈ slice_area
         @test area(gzr) ≈ -slice_area / 2 - (area(gz) - slice_area) / 2
     end
+    @testset "build_slr_pulse" begin
+        sys = Scanner(
+            B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
+            GR_Δt=10u"μs", RF_dead_time=0u"s", RF_ring_down_time=0u"s",
+        )
+        seq = PulseDesigner.build_slr_pulse(
+            90u"°"; duration=2u"ms", dwell=4u"μs", time_bw_product=4,
+            slice_thickness=5u"mm", freq_offset=1u"kHz", phase_offset=30u"°",
+            sys,
+        )
+
+        rf = seq.RF[1, 1]
+        gz, gzr = seq.GR.z
+        slice_area = 4 / (γ * 5e-3)
+        @test length(rf.A) == 500
+        @test get_flip_angles(seq)[1] ≈ 90.0
+        @test rf.use == Excitation()
+        @test rf.Δf == 1e3
+        @test rf.ϕ ≈ π / 6
+        @test gz.A * gz.T ≈ slice_area
+        @test area(gzr) ≈ -slice_area * (1 - rf_center(rf, sys) / 2e-3) -
+            (area(gz) - slice_area) / 2
+
+        refocusing = PulseDesigner.build_slr_pulse(
+            180u"°"; duration=2u"ms", dwell=4u"μs", use=Refocusing(), sys,
+        )
+        @test refocusing.RF[1, 1].use == Refocusing()
+        @test get_flip_angles(refocusing)[1] ≈ 180.0
+
+        # Bloch simulation of each short Pulseq FIR pulse should recover its flip within 1%.
+        short_duration = 512u"μs"
+        short_dwell = 8u"μs"
+        flip_rtol = 0.01
+        for filter_type in (:pm, :min, :max, :ls)
+            filtered = PulseDesigner.build_slr_pulse(
+                90u"°"; duration=short_duration, dwell=short_dwell, filter_type, sys,
+            )
+            @test all(isfinite, filtered.RF[1, 1].A)
+            @test isapprox(get_flip_angles(filtered)[1], 90.0; rtol=flip_rtol)
+        end
+
+        for (use, flip_angle, expected_flip) in (
+            (Inversion(), 180u"°", 180.0),
+            (Saturation(), 110u"°", 110.0),
+        )
+            pulse = PulseDesigner.build_slr_pulse(
+                flip_angle; duration=short_duration, dwell=short_dwell, use, sys,
+            )
+            @test pulse.RF[1, 1].use == use
+            @test isapprox(get_flip_angles(pulse)[1], expected_flip; rtol=flip_rtol)
+        end
+
+        fallback_uses = (Preparation(), Other(), Undefined())
+        fallback_rf = [PulseDesigner.build_slr_pulse(
+            20u"°"; duration=short_duration, dwell=short_dwell, use, sys,
+        ).RF[1, 1] for use in fallback_uses]
+        @test getproperty.(fallback_rf, :use) == collect(fallback_uses)
+        @test all(rf -> rf.A ≈ fallback_rf[1].A, fallback_rf[2:end])
+
+        @test_throws ErrorException PulseDesigner.build_slr_pulse(
+            90u"°"; duration=2u"ms", filter_type=:unknown, sys,
+        )
+    end
     @testset "build_adiabatic_pulse" begin
         sys = Scanner(
             B1=Inf, Gmax=40u"mT/m", Smax=170u"T/m/s", RF_Δt=1u"μs",
@@ -1760,10 +1862,11 @@ end
         FOV = 0.2       # [m]
         N = 80          # Reconstructed image N×N
         Nint = 8
-        λ = 2.1
-        spiral = PulseDesigner.spiral_base(FOV, N, sys; λ=λ, BW=120e3, Nint)
-        # Look at the k_space generated
-        @test spiral(0).DEF["λ"] ≈ λ
+        seq = PulseDesigner.spiral_base(FOV, N, sys; BW=120e3, Nint)(0)
+        @test seq.DEF["Nx"] == N
+        @test seq.DEF["Ny"] == N
+        @test seq.DEF["FOV"] == [FOV, FOV, 0]
+        @test seq.DEF["λ"] == Nint / (2π * FOV)
     end
     @testset "Radial" begin
         sys = Scanner()

@@ -1,7 +1,7 @@
 # # Diffusion-induced Signal Attenuation
 
 using KomaMRI #hide
-using PlotlyJS #hide
+using PlotlyBase #hide
 using Random, Suppressor #hide
 
 # The purpose of this tutorial is to showcase the simulation of diffusion-related effects. 
@@ -136,7 +136,7 @@ E_theoretical = exp.(-bvals_si .* D);
 s_sim  = scatter(x=bvals, y=E_simulated,   name="Simulated") #hide
 s_theo = scatter(x=bvals, y=E_theoretical, name="exp(-b D)", line=attr(dash="dash")) #hide
 layout = Layout(title="Diffusion-induced signal attenuation E(b)", xaxis=attr(title="b-value [s/mm^2]")) #hide
-p3 = plot([s_sim, s_theo], layout) #hide
+p3 = Plot([s_sim, s_theo], layout) #hide
 #jl display(p3);
 
 # The plot shows the signal attenuation as a function of the b-value. The simulated signal attenuation

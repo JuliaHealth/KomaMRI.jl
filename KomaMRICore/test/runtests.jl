@@ -426,6 +426,31 @@ end
     @test maximum(abs, first_adc ./ first(first_adc) .- 1) < 1e-3
 end
 
+@testitem "cardiac trigger delay positions the first sequence event" tags=[:core, :nomotion] begin
+    trigger_delay = 0.1
+    r_peak = 0.5
+    sys = Scanner()
+    seq = Sequence(sys)
+    @addblock seq += PulseDesigner.make_trigger(:physio1; duration=trigger_delay, sys)
+    @addblock seq += ADC(2, 1e-6)
+
+    obj = Phantom(x=[0.0])
+    sim_params = Dict{String,Any}("gpu" => false)
+    triggered = simulate(
+        obj,
+        seq,
+        sys;
+        sim_params,
+        verbose=false,
+        physio=CardiacSignal(; r_peaks=[r_peak]),
+    )
+
+    triggered_time = triggered.profiles[1].head.acquisition_time_stamp
+    acquisition_timestamp_unit = 1e-6
+    expected_time = round(Int, (r_peak + trigger_delay) / acquisition_timestamp_unit)
+    @test triggered_time == expected_time
+end
+
 @testitem "Bloch" tags=[:important, :core, :nomotion, :bloch] begin
     include("initialize_backend.jl")
     include(joinpath(@__DIR__, "test_files", "utils.jl"))
