@@ -14,9 +14,8 @@
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    B_to_ω_half = T(-π * γ)
-    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION === false ? N : 32) : 1
-    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION === false ? N : 32) : 1
+    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
+    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
     
     active = i <= N_spins
     Mxy_r = zero(T)
@@ -24,7 +23,7 @@
     t = zero(T)
     ϕ = zero(T)
     ΔBz = zero(T)
-    T2_parameter = zero(T)
+    T2 = zero(T)
     x = zero(T)
     y = zero(T)
     z = zero(T)
@@ -35,7 +34,7 @@
     if active
         Mxy_r, Mxy_i = reim(M_xy[i])
         ΔBz = p_ΔBz[i]
-        T2_parameter = USE_WARP_REDUCTION === :metal ? -inv(p_T2[i]) : p_T2[i]
+        T2 = p_T2[i]
         x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
         Bz_prev = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz
     end
@@ -51,15 +50,14 @@
             Δt = s_Δt[s_idx-1]
             t += Δt
             Bz_next = x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx] + ΔBz
-            ϕ += (Bz_prev + Bz_next) * B_to_ω_half * Δt
+            ϕ += (Bz_prev + Bz_next) * T(-π * γ) * Δt
         end
         # Acquire Signal
         if HAS_ADC && s_ADC[s_idx]
             sig_r = zero(T)
             sig_i = zero(T)
             if active
-                E2 = USE_WARP_REDUCTION === :metal ?
-                    exp(t * T2_parameter) : exp(-t / T2_parameter)
+                E2 = exp(-t / T2)
                 cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
                 sig_r = E2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i)
                 sig_i = E2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r)
@@ -77,8 +75,7 @@
     # Save magnetization at end of block
     if active
         E1 = exp(-t / p_T1[i])
-        E2 = USE_WARP_REDUCTION === :metal ?
-            exp(t * T2_parameter) : exp(-t / T2_parameter)
+        E2 = exp(-t / T2)
         cis_ϕ_i, cis_ϕ_r = sincos(ϕ)
         M_xy[i] = complex(E2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i), E2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r))
         M_z[i] = M_z[i] * E1 + p_ρ[i] * (T(1) - E1)

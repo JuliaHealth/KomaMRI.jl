@@ -47,9 +47,8 @@ end
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    inv_γ = inv(T(γ))
-    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION === false ? N : 32) : 1
-    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION === false ? N : 32) : 1
+    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
+    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
 
     active = i <= N_spins
     Mxy_r = zero(T)
@@ -57,6 +56,8 @@ end
     Mz = zero(T)
     ρ = zero(T)
     ΔBz = zero(T)
+    T1 = T(1)
+    T2 = T(1)
     x = zero(T)
     y = zero(T)
     z = zero(T)
@@ -69,8 +70,8 @@ end
         Mxy_r, Mxy_i = reim(M_xy[i])
         Mz = M_z[i]
         ρ = p_ρ[i]
-        neg_inv_T1 = -inv(p_T1[i])
-        neg_inv_T2 = -inv(p_T2[i])
+        T1 = p_T1[i]
+        T2 = p_T2[i]
         # Rotating frame -> RF frame
         # M * exp(-i * ψ)
         ψ_start = s_ψ[1]
@@ -82,7 +83,7 @@ end
         # Calculate initial B
         x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
         Bx_0, By_0 = reim(s_B1[1])
-        Bz_0 = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz - s_Δf[1] * inv_γ
+        Bz_0 = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz - s_Δf[1] / T(γ)
     end
 
     ADC_idx = 1u32
@@ -93,7 +94,7 @@ end
                 x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, s_idx)
             end
             Bx_1, By_1 = reim(s_B1[s_idx])
-            Bz_1 = (x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx]) + ΔBz - s_Δf[s_idx] * inv_γ
+            Bz_1 = (x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx]) + ΔBz - s_Δf[s_idx] / T(γ)
 
             Δt = s_Δt[s_idx - 1]
 
@@ -103,8 +104,8 @@ end
             Mxy_new_r, Mxy_new_i, Mz_new = restore_mag_norm(M_norm, Mxy_new_r, Mxy_new_i, Mz_new) # For reduced float precision only.
             
             # Relaxation
-            E1 = exp(Δt * neg_inv_T1)
-            E2 = exp(Δt * neg_inv_T2)
+            E1 = exp(-Δt / T1)
+            E2 = exp(-Δt / T2)
             Mxy_r = Mxy_new_r * E2
             Mxy_i = Mxy_new_i * E2
             Mz = Mz_new * E1 + ρ * (T(1) - E1)

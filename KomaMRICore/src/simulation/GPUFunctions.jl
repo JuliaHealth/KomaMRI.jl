@@ -2,13 +2,11 @@ const LOADED_BACKENDS = Ref{Vector{KA.GPU}}([])
 const BACKEND = Ref{Union{KA.Backend,Nothing}}(nothing)
 const DEFAULT_PRECESSION_GROUPSIZE = 256
 const DEFAULT_EXCITATION_GROUPSIZE = 256
-const DEFAULT_GPU_MAX_BLOCK_LENGTH = 2048
 
 device_name(backend) = @error "device_name called with invalid backend type $(typeof(backend))"
 isfunctional(::KA.CPU) = true
 isfunctional(x) = false
 supports_warp_reduction(backend) = false
-reduction_mode(backend) = Val(supports_warp_reduction(backend))
 _print_devices(backend) = @error "_print_devices called with invalid backend type $(typeof(backend))"
 _print_devices(::KA.CPU) = @info "CPU: $(length(Sys.cpu_info())) x $(Sys.cpu_info()[1].model)"
 name(::KA.CPU) = "CPU"

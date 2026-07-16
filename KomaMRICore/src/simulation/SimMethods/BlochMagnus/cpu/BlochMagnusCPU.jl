@@ -21,9 +21,7 @@ function run_spin_precession!(
     ϕ = prealloc.rotation_norm
     Mxy = prealloc.Maux_xy
     ΔBz = prealloc.ΔBz
-    (; neg_inv_T1, neg_inv_T2, E1) = prealloc.relaxation
 
-    B_to_ω_half = T(-π * γ)
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
@@ -32,19 +30,18 @@ function run_spin_precession!(
     for i in eachindex(seq.Δt)
         x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
         @. Bz_1 = x * seq.Gx[i + 1] + y * seq.Gy[i + 1] + z * seq.Gz[i + 1] + ΔBz
-        @. ϕ += (Bz_0 + Bz_1) * B_to_ω_half * seq.Δt[i]
+        @. ϕ += (Bz_0 + Bz_1) * T(-π * γ) * seq.Δt[i]
         block_time += seq.Δt[i]
         if seq.ADC[i + 1]
-            @. Mxy = exp(block_time * neg_inv_T2) * M.xy * cis(ϕ)
+            @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
             outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
             sig[sample] = sum(Mxy)
             sample += 1
         end
         Bz_0 .= Bz_1
     end
-    @. M.xy = M.xy * exp(block_time * neg_inv_T2) * cis(ϕ)
-    @. E1 = exp(block_time * neg_inv_T1)
-    @. M.z = M.z * E1 + p.ρ * (T(1) - E1)
+    @. M.xy = M.xy * exp(-block_time / p.T2) * cis(ϕ)
+    @. M.z = M.z * exp(-block_time / p.T1) + p.ρ * (T(1) - exp(-block_time / p.T1))
     outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
     return nothing
 end
@@ -62,7 +59,6 @@ function run_spin_excitation!(
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
     (; ωxy_0, ωz_0, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
-    (; neg_inv_T1, neg_inv_T2, E1) = prealloc.relaxation
     @. ωxy_0 *= B_to_ω
     @. ωz_0  *= B_to_ω
     #Initialize
@@ -85,9 +81,8 @@ function run_spin_excitation!(
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         restore_mag_norm!(rotation_norm, M) # For reduced float precision only.
         #Relaxation
-        @. M.xy = M.xy * exp(seq.Δt[i] * neg_inv_T2)
-        @. E1 = exp(seq.Δt[i] * neg_inv_T1)
-        @. M.z = M.z * E1 + p.ρ * (T(1) - E1)
+        @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
+        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
@@ -123,7 +118,6 @@ function run_spin_excitation!(
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
     (; ωxy_0, ωz_0, ωxy_1, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
-    (; neg_inv_T1, neg_inv_T2, E1) = prealloc.relaxation
     @. ωxy_0 *= B_to_ω
     @. ωz_0  *= B_to_ω
     #Initialize
@@ -150,9 +144,8 @@ function run_spin_excitation!(
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         restore_mag_norm!(rotation_norm, M) # For reduced float precision only.
         #Relaxation
-        @. M.xy = M.xy * exp(seq.Δt[i] * neg_inv_T2)
-        @. E1 = exp(seq.Δt[i] * neg_inv_T1)
-        @. M.z = M.z * E1 + p.ρ * (T(1) - E1)
+        @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
+        @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal

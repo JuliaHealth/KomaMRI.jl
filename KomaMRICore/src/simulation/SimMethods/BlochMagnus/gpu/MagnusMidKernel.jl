@@ -14,9 +14,8 @@
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    inv_γ = inv(T(γ))
-    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION === false ? N : 32) : 1
-    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION === false ? N : 32) : 1
+    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
+    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
 
     active = i <= N_spins
     Mxy_r = zero(T)
@@ -26,8 +25,6 @@
     ΔBz = zero(T)
     T1 = T(1)
     T2 = T(1)
-    neg_inv_T1 = T(-1)
-    neg_inv_T2 = T(-1)
     x = zero(T)
     y = zero(T)
     z = zero(T)
@@ -39,8 +36,6 @@
         ρ = p_ρ[i]
         T1 = p_T1[i]
         T2 = p_T2[i]
-        neg_inv_T1 = -inv(T1)
-        neg_inv_T2 = -inv(T2)
 
         ψ_start = s_ψ[1]
         if !iszero(ψ_start)
@@ -60,7 +55,7 @@
         if active
             xm, ym, zm = MOTION ? get_spin_coordinates(p_x, p_y, p_z, i, s_mid) : (x, y, z)
             Bx_m, By_m = reim(s_B1[s_mid])
-            Bz_m = xm * s_Gx[s_mid] + ym * s_Gy[s_mid] + zm * s_Gz[s_mid] + ΔBz - s_Δf[s_mid] * inv_γ
+            Bz_m = xm * s_Gx[s_mid] + ym * s_Gy[s_mid] + zm * s_Gz[s_mid] + ΔBz - s_Δf[s_mid] / T(γ)
 
             Δt = s_Δt[s_idx] + s_Δt[s_mid]
             θx, θy, θz = rotation_vector(Bx_m, By_m, Bz_m, Δt, sim_method)
@@ -68,8 +63,8 @@
             Mxy_new_r, Mxy_new_i, Mz_new = rotate_magnetization(θx, θy, θz, Mxy_r, Mxy_i, Mz, T)
             Mxy_new_r, Mxy_new_i, Mz_new = restore_mag_norm(M_norm, Mxy_new_r, Mxy_new_i, Mz_new) # For reduced float precision only.
 
-            E1 = exp(Δt * neg_inv_T1)
-            E2 = exp(Δt * neg_inv_T2)
+            E1 = exp(-Δt / T1)
+            E2 = exp(-Δt / T2)
             Mxy_r = Mxy_new_r * E2
             Mxy_i = Mxy_new_i * E2
             Mz = Mz_new * E1 + ρ * (T(1) - E1)

@@ -25,7 +25,6 @@ struct BlochMagnusBGLCPUPrealloc{
     ΔBz::RV
     Maux_xy::CV
     Maux_z::RV
-    relaxation::RelaxationCPUPrealloc{T,RV}
 end
 
 prealloc(sim_method::BlochMagnusBGL4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
@@ -42,7 +41,6 @@ prealloc(sim_method::BlochMagnusBGL4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T
         similar(M.xy), similar(M.xy),
         off_resonance_buffer(obj),
         similar(M.xy), similar(M.z),
-        relaxation_prealloc(obj),
     )
 
 prealloc(sim_method::BlochMagnusBGL6, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
