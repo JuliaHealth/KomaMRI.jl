@@ -1,5 +1,5 @@
 using KomaMRI #hide
-using PlotlyJS, Random #hide
+using PlotlyBase, Random #hide
 obj = brain_phantom2D(); #hide
 
 obj.motion = NoMotion();
@@ -93,7 +93,7 @@ obj.motion = MotionList(motion_list...);
 p5 = plot_phantom_map(obj, :T1; time_samples=21, view_2d=true, height=440) #hide
 display(p5);
 
-p6 = plot( #hide
+p6 = Plot( #hide
     (0:interval_dur:interval_dur*length(tra_x)) .* 1e3, #hide
     [cumsum([0, tra_x...]) * 1e3 cumsum([0, tra_y...]) * 1e3 cumsum([0, rot_z...])], #hide
     Layout( #hide
