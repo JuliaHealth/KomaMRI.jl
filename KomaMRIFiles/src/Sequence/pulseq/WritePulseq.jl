@@ -1164,7 +1164,8 @@ function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, 
             "Checking hardware limits from $source:\n\t",
             "maxB1 = $(check_sys.limits.B1 * 1e6) uT, ",
             "maxGrad = $(check_sys.limits.Gmax * 1e3) mT/m, ",
-            "maxSlew = $(check_sys.limits.Smax) mT/m/ms",
+            "maxSlew = $(check_sys.limits.Smax) mT/m/ms, ",
+            "adcSamplesDivisor = 4",
         )
         KomaMRIBase.check_hw_limits(seq, check_sys)
     end

@@ -113,6 +113,7 @@ end
 
 function export_2_mat(seq, phantom, sys, raw_ismrmrd, rec_params, image, matfolder; type="all", matfilename="data.mat")
     head = splitext(matfilename)[1]
+    files = String[]
     if type=="all"
         export_2_mat_sequence(seq, matfolder)
         export_2_mat_kspace(seq, matfolder)
@@ -122,22 +123,26 @@ function export_2_mat(seq, phantom, sys, raw_ismrmrd, rec_params, image, matfold
         export_2_mat_raw(raw_ismrmrd, matfolder)
         export_2_mat_image(image, rec_params, matfolder)
     elseif type=="sequence"
-		export_2_mat_sequence(seq, matfolder; matfilename=(head*"_sequence.mat"))
-        export_2_mat_kspace(seq, matfolder; matfilename=(head*"_kspace.mat"))
-        export_2_mat_moments(seq, matfolder; matfilename=(head*"_moments.mat"))
+		files = [head*"_sequence.mat", head*"_kspace.mat", head*"_moments.mat"]
+		export_2_mat_sequence(seq, matfolder; matfilename=files[1])
+        export_2_mat_kspace(seq, matfolder; matfilename=files[2])
+        export_2_mat_moments(seq, matfolder; matfilename=files[3])
 	elseif type=="phantom"
-		export_2_mat_phantom(phantom, matfolder; matfilename=(head*"_phantom.mat"))
+		files = [head*"_phantom.mat"]
+		export_2_mat_phantom(phantom, matfolder; matfilename=only(files))
     elseif type=="scanner"
-		export_2_mat_scanner(sys, matfolder; matfilename=(head*"_scanner.mat"))
+		files = [head*"_scanner.mat"]
+		export_2_mat_scanner(sys, matfolder; matfilename=only(files))
     elseif type=="raw"
-		export_2_mat_raw(raw_ismrmrd, matfolder; matfilename=(head*"_raw.mat"))
+		files = haskey(raw_ismrmrd.params, "userParameters") ? [head*"_raw.mat", "sim_params.mat"] : String[]
+		isempty(files) || export_2_mat_raw(raw_ismrmrd, matfolder; matfilename=first(files))
     elseif type=="image"
-		export_2_mat_image(image, rec_params, matfolder; matfilename=(head*"_image.mat"))
+		files = [head*"_image.mat"]
+		haskey(rec_params, :reconSize) && push!(files, "rec_params.mat")
+		export_2_mat_image(image, rec_params, matfolder; matfilename=first(files))
 	end
 
-    strToast = "<ul><li><b>Name:</b> " * matfilename * "</li><li><b>Path:</b> " * matfolder * "</li></ul>"
-    if type=="all"
-        strToast = "<ul><li><b>Path:</b> " * matfolder * "</li></ul>"
-    end
-    return strToast
+    isempty(files) && return "<ul><li><b>Path:</b> $matfolder</li></ul>"
+    label = length(files) == 1 ? "Name" : "Names"
+    return "<ul><li><b>$label:</b> $(join(files, ", "))</li><li><b>Path:</b> $matfolder</li></ul>"
 end

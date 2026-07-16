@@ -58,9 +58,9 @@ seq = Sequence()
 # explicit; the `freq_in_phase` keyword shows the same pulse after moving the
 # frequency sweep into the RF phase.
 
-using PlotlyJS #hide
+using PlotlyBase #hide
 function show_only_traces!(p, names) #hide
-    for trace in p.plot.data #hide
+    for trace in p.data #hide
         name = get(trace.fields, :name, "") #hide
         trace.fields[:showlegend] = false #hide
         trace.fields[:visible] = name in names #hide
@@ -68,7 +68,7 @@ function show_only_traces!(p, names) #hide
     return p #hide
 end #hide
 function scale_trace_y!(p, name, scale) #hide
-    for trace in p.plot.data #hide
+    for trace in p.data #hide
         get(trace.fields, :name, "") == name || continue #hide
         y = trace.fields[:y] #hide
         trace.fields[:customdata] = y #hide
@@ -119,7 +119,8 @@ simulate(obj0, seq, sys; sim_params, callbacks=(record_traj,), verbose=false);
 
 function adiabatic_frame(p) #hide
     ωeff = (-real(p.B1), -imag(p.B1), p.Δf / γ) #hide
-    ω̂rf = ωeff ./ sqrt(sum(abs2, ωeff)) #hide
+    ωeff_norm = sqrt(sum(abs2, ωeff)) #hide
+    ω̂rf = iszero(ωeff_norm) ? zero.(ωeff) : ωeff ./ ωeff_norm #hide
     Mxy_rf = p.Mxy * cis(-p.ψ) #hide
     ω̂xy_rot = complex(ω̂rf[1], ω̂rf[2]) * cis(p.ψ) #hide
     return (; #hide
@@ -196,7 +197,7 @@ base_traces = [ #hide
     bloch_traces(first(anim_idx), Mrot_xyz, ω̂rot_xyz; scene="scene2", showlegend=false)..., #hide
 ] #hide
 frames = animation_frame.(anim_idx) #hide
-p_bloch = plot( #hide
+p_bloch = Plot( #hide
     base_traces, #hide
     Layout(; #hide
         height=340, margin=attr(l=0, r=0, t=32, b=0), #hide
@@ -242,7 +243,7 @@ end;
 b1_axis = 1e6 .* b1max .* b1_scales #hide
 threshold = 1e6 * b1_threshold #hide
 Mz_map = round.(reduce(hcat, Mz); digits=3) #hide
-p_hs = plot( #hide
+p_hs = Plot( #hide
     [ #hide
         heatmap(; x=f, y=b1_axis, z=permutedims(Mz_map), zmin=-1, zmax=1, colorscale="RdBu", colorbar=attr(title="Mz")), #hide
         scatter(; x=f, y=fill(threshold, length(f)), name="threshold", mode="lines", hoverinfo="skip", line=attr(color="#a62023", dash="dash", width=3)), #hide

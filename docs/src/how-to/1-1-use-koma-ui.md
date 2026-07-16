@@ -151,7 +151,9 @@ The variables that update the interface are:
 * `seq_ui[]` for the **Sequence**
 * `obj_ui[]` for the **Phantom**
 * `sys_ui[]` for the **Scanner**
+* `physio_ui[]` for the **Physiological Signal**
 * `raw_ui[]` for the **Raw Signal**
 * `img_ui[]` for the **Image**
 
 Don't forget to add the brackets `[]` to these variables, otherwise it won't work.
+Changing `seq_ui[]` resets `physio_ui[]` to the sequence's default physiological signal.

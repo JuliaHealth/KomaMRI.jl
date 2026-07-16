@@ -3,6 +3,8 @@ using TestItems, TestItemRunner
 @run_package_tests filter=t_start->!(:skipci in t_start.tags)&&(:base in t_start.tags) #verbose=true
 
 @testitem "Sequence" tags=[:base] begin
+    using Unitful
+
     struct AddBlockTestOp end
     function Base.:*(::AddBlockTestOp, seq::Sequence)
         out = 3.0 * seq
@@ -775,6 +777,43 @@ using TestItems, TestItemRunner
         @test seqd_delay.t ≈ [0.0, delay.T]
         @test sum(seqd_delay.Δt) ≈ delay.T
 
+    end
+    @testset "Cardiac signals" begin
+        @test CardiacSignal(; heart_rate=1).period ==
+            CardiacSignal(; heart_rate=60u"minute^-1").period == 1.0
+        @test CardiacSignal(;
+            rr_intervals=[800u"ms", 1.1u"s"], first_peak=100u"ms",
+        ).r_peaks ≈ [0.1, 0.9, 2.0]
+    end
+    @testset "Cardiac trigger resolution" begin
+        arm_delay = 0.1
+        seq = Sequence()
+        for _ in 1:3
+            @addblock seq += PulseDesigner.make_trigger(
+                :physio1; delay=arm_delay, duration=0.01
+            )
+        end
+
+        resolved = resolve_triggers(seq, CardiacSignal(; heart_rate=1))
+        resolved_triggers = only.(resolved.EXT)
+        trigger_times = get_block_start_times(resolved)[1:length(resolved)] .+
+            getproperty.(resolved_triggers, :delay)
+        @test trigger_times ≈ [1.0, 2.0, 3.0]
+        @test getproperty.(only.(seq.EXT), :delay) == fill(arm_delay, length(seq))
+        @test resolve_triggers(seq, NoPhysioSignal()) === seq
+
+        output_seq = Sequence()
+        @addblock output_seq += PulseDesigner.make_digital_output_pulse(:osc0; duration=0.01)
+        @test has_trigger(seq)
+        @test !has_trigger(output_seq)
+
+        finite_signals = (
+            CardiacSignal(; r_peaks=[1.0, 2.0]),
+            CardiacSignal(; rr_intervals=[1.0], first_peak=1.0),
+        )
+        for signal in finite_signals
+            @test_throws ErrorException resolve_triggers(seq, signal)
+        end
     end
     @testset "ADC" begin
 

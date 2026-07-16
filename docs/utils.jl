@@ -129,10 +129,13 @@ function pluto_directory_to_html(doc_tutorial_pluto, doc_output_section; plu_pat
             push!(reproducible_list, "$doc_output_section/$filename_gen.md")
         end
     end
-    PlutoSliderServer.export_directory(doc_tutorial_pluto)
+    PlutoSliderServer.export_directory(doc_tutorial_pluto; Export_baked_state=false)
     for html_file in filter(endswith(".html"), readdir(doc_tutorial_pluto))
         name_no_ext = splitext(html_file)[1]
         cp(joinpath(doc_tutorial_pluto, html_file), joinpath(public_pluto_dir, "$(name_no_ext)-notebook.html"); force=true)
+        state_file = "$name_no_ext.plutostate"
+        state_path = joinpath(doc_tutorial_pluto, state_file)
+        isfile(state_path) && cp(state_path, joinpath(public_pluto_dir, state_file); force=true)
     end
     return reproducible_list
 end

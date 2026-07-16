@@ -19,14 +19,14 @@ end
 """
     event = make_trigger(channel; kwargs...)
 
-Return a Pulseq-style input trigger extension.
+Return a Pulseq-style trigger extension.
 
 # Arguments
 - `channel`: Trigger channel, `:physio1` or `:physio2`.
 
 # Keywords
-- `delay=0.0`: Delay before trigger. [`s`]
-- `duration=0.0`: Trigger duration. [`s`]
+- `delay=0.0`: Delay before arming the trigger input. [`s`]
+- `duration=0.0`: Delay after trigger detection before the next sequence block. [`s`]
 - `sys=Scanner()`: Scanner defaults and raster times.
 
 # Returns
