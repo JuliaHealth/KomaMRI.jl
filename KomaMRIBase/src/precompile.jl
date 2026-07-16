@@ -9,6 +9,6 @@ import KomaMRIBase: PulseDesigner as PD
         obj = brain_phantom2D()
         
         seq = PD.build_test_seq()
-        seq_disc = discretize(seq, sys)
+        seq_disc = discretize(seq)
     end
 end
