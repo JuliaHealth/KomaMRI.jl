@@ -279,9 +279,7 @@ function print_cli_versions()
 end
 
 function keep_app_open(w)
-    while !isnothing(w.session[]) && isopen(w.session[])
-        sleep(0.2)
-    end
+    wait(w)
     return nothing
 end
 
@@ -312,10 +310,13 @@ end
 @setup_workload begin
     @compile_workload begin
         redirect_stderr(devnull) do
-            sys = setup_scanner()
-            setup_sequence(sys)
-            setup_phantom()
-            setup_raw()
+            w = KomaUI(;
+                show_window=false,
+                return_window=true,
+                verbose=false,
+                sim=Dict{String,Any}("gpu" => false),
+            )
+            close(w)
         end
     end
 end

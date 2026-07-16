@@ -1,6 +1,7 @@
 struct KomaWindow
     app::App
     display::Base.RefValue{Any}
+    window::Base.RefValue{Union{Nothing,Electron.Window}}
     session::Base.RefValue{Union{Nothing,Session}}
     content::Observable{Any}
     state::Observable{String}
@@ -53,10 +54,27 @@ function handle(callback::Function, w::KomaWindow, event::String)
 end
 
 function show!(w::KomaWindow)
+    windows = Set(Iterators.flatten(Electron.windows.(Electron.applications())))
     display = Bonito.use_electron_display(; options=w.window_options, devtools=w.dev_tools)
     w.display[] = display
+    w.window[] = only(
+        setdiff(Iterators.flatten(Electron.windows.(Electron.applications())), windows)
+    )
     Base.display(display, w.app)
     return w
+end
+
+function Base.isopen(w::KomaWindow)
+    window = w.window[]
+    return !isnothing(window) && isopen(window)
+end
+
+function Base.wait(w::KomaWindow)
+    window = w.window[]
+    isnothing(window) && return nothing
+    for _ in Electron.msgchannel(window)
+    end
+    return nothing
 end
 
 function Base.close(w::KomaWindow)
@@ -72,6 +90,7 @@ function Base.close(w::KomaWindow)
         close(display)
         w.display[] = nothing
     end
+    w.window[] = nothing
     return nothing
 end
 
@@ -250,6 +269,7 @@ function setup_bonito_window(; darkmode=true, frame=true, dev_tools=false, versi
     return KomaWindow(
         app,
         display_ref,
+        Ref{Union{Nothing,Electron.Window}}(nothing),
         session_ref,
         content,
         state,
