@@ -18,6 +18,7 @@ MRIFiles = "5a6f062f-bf45-497d-b654-ad17aae2a530"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+PrecompileTools = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 
 [compat]
 FileIO = "1"

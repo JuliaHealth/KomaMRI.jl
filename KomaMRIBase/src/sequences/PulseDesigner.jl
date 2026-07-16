@@ -57,4 +57,5 @@ export make_delay, build_delay
 export make_adc, build_adc
 export ceil_to_raster, floor_to_raster, round_to_raster
 export EPI, radial_base, EPI_example
+export build_test_seq
 end
