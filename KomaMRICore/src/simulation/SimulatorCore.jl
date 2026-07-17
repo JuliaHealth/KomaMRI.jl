@@ -222,7 +222,7 @@ function run_sim_time_iter!(
 
     for (block, p) in enumerate(parts)
         seqd_block = @view seqd[p]
-        # Params
+        # Block parameters
         Nadc = adc_samples_per_block[block]
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
