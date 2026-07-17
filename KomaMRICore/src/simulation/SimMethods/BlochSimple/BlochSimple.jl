@@ -35,12 +35,13 @@ function run_spin_precession!(
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     #Effective field
-    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
+    γ2π = T(2) * T(π) * T(γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ γ2π
     #Rotation
     if is_ADC_on(seq)
-        ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)
+        ϕ = -γ2π .* cumtrapz(seq.Δt', Bz)
     else
-        ϕ = T(-2π .* γ) .* trapz(seq.Δt', Bz)
+        ϕ = -γ2π .* trapz(seq.Δt', Bz)
     end
     #Mxy precession and relaxation, and Mz relaxation
     tp   = cumsum(seq.Δt) # t' = t - t0
@@ -98,12 +99,13 @@ function run_spin_excitation!(
         #Motion
         x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
         #Effective field
-        ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        γ2π = T(2) * T(π) * T(γ)
+        ΔBz = p.Δw ./ γ2π .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B .+= (B .== 0) .* eps(T)
         #Spinor Rotation
-        φ = T(-2π .* γ) .* (B .* s.Δt)
+        φ = -γ2π .* (B .* s.Δt)
         mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
