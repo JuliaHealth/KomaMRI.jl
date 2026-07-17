@@ -157,4 +157,7 @@ export check_timing, check_hw_limits, apply_rotations
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
 
+# Precompilation workloads for reduced first-use latency
+include("precompile.jl")
+
 end # module KomaMRIBase
