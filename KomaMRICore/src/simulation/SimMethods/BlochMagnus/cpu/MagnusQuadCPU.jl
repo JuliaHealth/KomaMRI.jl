@@ -53,7 +53,9 @@ function run_spin_excitation!(
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
         outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
         if seq.ADC[i1]
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy)
+            acquire_signal!(
+                @view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, (x1, y1, z1)
+            )
             sample += 1
         end
         cached_i0 = i1

@@ -54,7 +54,7 @@ function run_spin_precession!(
     outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     #Acquired signal
     adc = findall(seq.ADC[2:end])
-    acquire_signal!(sig, p, sys.receiver, @view(Mxy[:, adc]))
+    acquire_signal!(sig, p, sys.receiver, @view(Mxy[:, adc]), p.motion, (x, y, z), adc)
     return nothing
 end
 
@@ -115,7 +115,8 @@ function run_spin_excitation!(
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy)
+            coords = get_spin_coords(p.motion, p.x, p.y, p.z, s.tnew)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, coords)
             sample += 1
         end
     end

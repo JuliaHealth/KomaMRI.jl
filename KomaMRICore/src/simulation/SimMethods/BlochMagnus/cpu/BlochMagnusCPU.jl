@@ -36,7 +36,7 @@ function run_spin_precession!(
         if seq.ADC[i + 1]
             @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
             outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, Mxy)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, Mxy, p.motion, (x, y, z))
             sample += 1
         end
         Bz_0 .= Bz_1
@@ -89,7 +89,7 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, (x, y, z))
             sample += 1
         end
         #Update simulation state
@@ -153,7 +153,7 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, (x, y, z))
             sample += 1
         end
         #Update simulation state

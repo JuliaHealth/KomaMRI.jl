@@ -11,15 +11,14 @@ struct BlochGPUPrealloc{T,S,H} <: PreallocResult{T}
     has_sens::H
 end
 
-gpu_sens(::UniformCoilSens, obj, backend) = nothing, Val(false)
-gpu_sens(receiver::BirdcageCoilSens, obj, backend) =
-    get_sens(receiver, obj.x, obj.y, obj.z), Val(true)
-gpu_sens(receiver::ArbitraryCoilSens, obj, backend) =
+prealloc_sens(::UniformCoilSens, obj, backend::KA.GPU) = nothing, Val(false)
+prealloc_sens(receiver::BirdcageCoilSens, obj, backend::KA.GPU) = get_sens(receiver, obj.x, obj.y, obj.z), Val(true)
+prealloc_sens(receiver::ArbitraryCoilSens, obj, backend::KA.GPU) =
     gpu(get_sens(cpu(receiver), cpu(obj.x), cpu(obj.y), cpu(obj.z)), backend), Val(true)
 
 function bloch_gpu_prealloc(backend, obj::Phantom{T}, max_block_length, groupsize, sys) where {T}
     ncoils = get_n_coils(sys.receiver)
-    sens, has_sens = gpu_sens(sys.receiver, obj, backend)
+    sens, has_sens = prealloc_sens(sys.receiver, obj, backend)
     signal_length = max_block_length * ncoils
     return BlochGPUPrealloc(
         KA.zeros(backend, Complex{T}, cld(length(obj), groupsize), signal_length),
