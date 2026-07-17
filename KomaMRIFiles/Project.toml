@@ -1,7 +1,7 @@
 name = "KomaMRIFiles"
 uuid = "fcf631a6-1c7e-4e88-9e64-b8888386d9dc"
 
-version = "0.11.1"
+version = "0.11.4"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [workspace]
@@ -18,12 +18,13 @@ MRIFiles = "5a6f062f-bf45-497d-b654-ad17aae2a530"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 
 [compat]
 FileIO = "1"
 HDF5 = "0.16, 0.17"
 InteractiveUtils = "1"
-KomaMRIBase = "0.13"
+KomaMRIBase = "0.13.4"
 MAT = "0.10, 0.11, 0.12"
 MD5 = "0.2.3"
 MRIFiles = "0.1, 0.2, 0.3"
@@ -31,3 +32,4 @@ Printf = "1"
 Reexport = "1"
 SHA = "0.7.0"
 julia = "1.9"
+PrecompileTools = "1"

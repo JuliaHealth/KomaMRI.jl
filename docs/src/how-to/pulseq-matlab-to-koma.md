@@ -4,7 +4,7 @@ Compact lookup tables for humans and LLMs translating MATLAB Pulseq code to Koma
 For the block-construction syntax behind `@addblock`, see
 [Build Sequences with `@addblock`](3-create-your-own-sequence.md).
 For a complete translated sequence, see
-[Building and Exporting a Pulseq GRE Sequence](../tutorial/gen-09-PulseqGradientEcho.md).
+[Building and Exporting a Pulseq GRE Sequence](../tutorial/gen-10-PulseqGradientEcho.md).
 
 ## Conventions
 
@@ -288,6 +288,7 @@ rfInv = mr.makeSincPulse(pi, 'Duration', 10e-3, 'timeBwProduct', 8, 'system', sy
 
 [rfFat, ~, ~] = mr.makeGaussPulse(pi/2, 'Duration', 8e-3, 'Bandwidth', abs(fatOffset), 'freqOffset', fatOffset, 'system', sys)
 [rf, ~, ~] = mr.makeArbitraryRf(rfSignal, flipAngle, 'Dwell', dwell, 'Delay', rfDelay, 'system', sys)
+[rfSlr, gzSlr, gzrSlr] = mr.makeSLRpulse(pi/2, 'Duration', 3e-3, 'SliceThickness', thickness, 'system', sys)
 ```
 
 == Koma
@@ -301,6 +302,7 @@ rf_inv, _, _ = make_sinc_pulse(π; duration=10e-3, time_bw_product=8, sys)
 
 rf_fat, _, _ = make_gauss_pulse(π / 2; duration=8e-3, bandwidth=abs(fat_offset), freq_offset=fat_offset, sys)
 rf, _, _ = make_arbitrary_rf(rf_signal, flip_angle; dwell, delay=rf_delay, sys)
+rf_slr, gz_slr, gzr_slr = make_slr_pulse(π / 2; duration=3e-3, slice_thickness=thickness, sys)
 ```
 
 == Koma + Unitful
@@ -314,6 +316,7 @@ rf_inv, _, _ = make_sinc_pulse(180u"deg"; duration=10u"ms", time_bw_product=8, s
 
 rf_fat, _, _ = make_gauss_pulse(90u"deg"; duration=8u"ms", bandwidth=abs(fat_offset), freq_offset=fat_offset, sys)
 rf, _, _ = make_arbitrary_rf(rf_signal, flip_angle; dwell, delay=rf_delay, sys)
+rf_slr, gz_slr, gzr_slr = make_slr_pulse(90u"deg"; duration=3u"ms", slice_thickness=thickness, sys)
 ```
 
 :::
@@ -381,6 +384,12 @@ rot = make_rotation(phi)
 
 :::
 
+## MATLAB parity tolerances
+
+MATLAB SLR parity permits a 1 nT absolute tolerance only for the RF waveform
+because NumPy/PocketFFT and FFTW round spectral factorization differently.
+Gradients, timings, metadata, and all other constructors remain strict.
+
 ## Not-yet-mapped Pulseq features
 
 These Pulseq features are not direct PulseDesigner APIs or full parity paths
@@ -391,7 +400,6 @@ local wrappers.
 |---|---|
 | `mr.makeRfShim(...)` | RF shimming extension is not implemented in Pulseq read/write. |
 | `mr.makeSoftDelay(...)` | Soft-delay extension is not implemented in Pulseq read/write. |
-| `mr.makeSLRpulse(...)` | No PulseDesigner constructor; port the waveform explicitly if needed. |
 | `mr.addRamps(...)` | No ramp-optimization helper; port the final gradient waveform explicitly. |
 | `mr.traj2grad(...)` | No direct helper; derive the gradient waveform explicitly. |
 | ADC `phaseModulation` | Koma `ADC` stores one phase offset; ADC phase shapes are not strict parity yet. |

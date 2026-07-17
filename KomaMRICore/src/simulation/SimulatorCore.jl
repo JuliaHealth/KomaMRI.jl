@@ -341,6 +341,7 @@ This is a wrapper function to `run_sim_time_iter`, which converts the inputs to 
 - `verbose`: (`::Bool`, `=true`) flag to print or not simulation information
 - `callbacks`: (`::Tuple`, `=()`) vector of callback functions to be executed
     at the end of each simulation block
+- `physio`: (`=NoPhysioSignal()`) physiological signal used to resolve triggers
 
 # Returns
 - `out`: (`::Vector{Complex}` or `::SpinStateRepresentation` or `::RawAcquisitionData`) depending
@@ -358,8 +359,15 @@ julia> plot_signal(raw)
 ```
 """
 function simulate(
-    obj::Phantom, seq::Sequence, sys::Scanner; sim_params=Dict{String,Any}(), verbose=true, callbacks=()
+    obj::Phantom,
+    seq::Sequence,
+    sys::Scanner;
+    sim_params=Dict{String,Any}(),
+    verbose=true,
+    callbacks=(),
+    physio=NoPhysioSignal(),
 )
+    seq = resolve_triggers(seq, physio)
     _assert_nonnegative_adc_labels(seq)
     #Simulation parameter unpacking, and setting defaults if key is not defined
     sim_params = default_sim_params(copy(sim_params))

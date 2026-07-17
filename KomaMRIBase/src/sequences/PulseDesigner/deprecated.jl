@@ -188,7 +188,7 @@ function radial_base(FOV::Real, Nr::Integer, sys::Scanner)
 end
 
 """
-    spiral = spiral_base(FOV, N, sys; S0=sys.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3)
+    spiral = spiral_base(FOV, N, sys; S0=sys.Smax*2/3, Nint=8, λ=Nint/(2π*FOV), BW=60e3)
 
 Definition of a spiral base sequence.
 
@@ -198,13 +198,13 @@ Definition of a spiral base sequence.
 
 # Arguments
 - `FOV`: (`::Real`, `[m]`) field of view
-- `N`: (`::Integer`) number of pixels along the radious
+- `N`: (`::Integer`) square image matrix size (`N×N`), with nominal resolution `FOV/N`
 - `sys`: (`::Scanner`) Scanner struct
 
 # Keywords
 - `S0`: (`::Vector{Real}`, `=sys.Smax*2/3`, `[T/m/s]`) slew rate reference
 - `Nint`: (`::Integer`, `=8`) number of interleaves
-- `λ`: (`::Real`, `=Nint/FOV`, `[1/m]`) kspace spiral parameter
+- `λ`: (`::Real`, `=Nint/(2π*FOV)`, `[1/m]`) kspace spiral parameter
 - `BW`: (`::Real`, `=60e3`, `[Hz]`) adquisition parameter
 
 # Returns
@@ -223,7 +223,7 @@ julia> plot_seq(seq)
 """
 function spiral_base(
     FOV::Real, N::Integer, sys::Scanner;
-    S0=sys.Smax*2/3, Nint=8, λ=Nint/FOV, BW=60e3
+    S0=sys.Smax*2/3, Nint=8, λ=Nint/(2π*FOV), BW=60e3
 )
 	kmax = N / (2*FOV)
 	θmax = kmax / λ # From k(t) = λ θ(t) exp(iθ(t))
@@ -299,5 +299,21 @@ function EPI_example(; sys=Scanner())
     if d1 > 0 DELAY = Delay(d1) end
     seq = d1 > 0 ? EX + DELAY + EPI : EX + EPI
     seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
+    return seq
+end
+
+function build_test_seq(; sys=Scanner())
+    seq = Sequence(sys)
+    @addblock begin
+        seq += build_trapezoid(:x; area=8e-6, sys)
+        seq += build_block_pulse(pi/2; duration=1e-3, sys, use=Excitation())
+        seq += build_sinc_pulse(pi/2; duration=3e-3, sys, use=Excitation())
+        seq += build_arbitrary_rf([1, 2, 1], pi/4; dwell=200e-6, sys, use=Excitation())
+        seq += build_adc(16; dwell=sys.ADC_Δt, sys)
+        seq += build_label(:SET, :LIN, 3; sys)
+        seq += build_rotation(pi/3; sys)
+        seq += build_trigger(:physio1; sys)
+        seq += build_arbitrary_grad(:x, [0, 0, 1, 0, 0]; sys)
+    end
     return seq
 end

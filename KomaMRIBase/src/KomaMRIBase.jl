@@ -103,6 +103,10 @@ include("datatypes/sequence/TimingChecks.jl")
 include("datatypes/sequence/HardwareChecks.jl")
 include("datatypes/sequence/AddBlockMacro.jl")
 include("datatypes/sequence/DelayDuration.jl")
+# Physiology
+include("physio/PhysioSignal.jl")
+include("physio/CardiacSignal.jl")
+include("physio/NoPhysioSignal.jl")
 # Motion
 include("motion/MotionList.jl")
 include("motion/NoMotion.jl")
@@ -118,6 +122,7 @@ include("datatypes/sequence/DiscreteSequenceQuantities.jl")
 export γ    # gyro-magnetic ratio [Hz/T]
 export to_SI, SIUnitsDefault, PulseqUnitsDefault
 export Scanner, Sequence, Phantom
+export AbstractPhysioSignal, CardiacSignal, NoPhysioSignal, has_trigger, resolve_triggers
 export addblock!, @addblock
 export Grad, RF, ADC, Delay, Duration, QuaternionRot
 export area, dur, dwell, delay, rf_center, get_block_start_times, get_samples
@@ -151,5 +156,8 @@ export check_timing, check_hw_limits, apply_rotations
 # PulseDesigner submodule
 include("sequences/PulseDesigner.jl")
 export PulseDesigner
+
+# Precompilation workloads for reduced first-use latency
+include("precompile.jl")
 
 end # module KomaMRIBase
