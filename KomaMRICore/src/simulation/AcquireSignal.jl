@@ -31,6 +31,12 @@ function acquire_signal!(sig, p, receiver::Union{BirdcageCoilSens,ArbitraryCoilS
 end
 
 # Nonuniform other sim methods with motion
+function acquire_signal!(sig, p, receiver::Union{BirdcageCoilSens,ArbitraryCoilSens}, Mxy::AbstractVector, motion::Union{Motion,MotionList}, t::AbstractArray, sens=nothing)
+    coords = get_spin_coords(motion, p.x, p.y, p.z, t)
+    sig .= vec(transpose(Mxy) * get_sens(receiver, coords...))
+    return nothing
+end
+
 function acquire_signal!(sig, p, receiver::Union{BirdcageCoilSens,ArbitraryCoilSens}, Mxy::AbstractVector, motion::Union{Motion,MotionList}, coords, sens=nothing)
     sig .= vec(transpose(Mxy) * get_sens(receiver, coords...))
     return nothing

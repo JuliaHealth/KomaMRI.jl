@@ -1,5 +1,5 @@
 ifftc(x;dims=[1,2])=fftshift(ifft(ifftshift(x,dims),dims),dims)*prod(size(x)[dims])
-fftc(x;dims=[1,2]) =fftshift(fft(ifftshift(x,dims),dims),dims)/prod(size(x)[dims])
+fftc(x;dims=[1,2]) =fftshift(fft(ifftshift(x,dims),dims),dims)/prod(size(x, d) for d in dims)
 
 function _imaging_raw_data(raw)
     profiles = filter(raw.profiles) do profile

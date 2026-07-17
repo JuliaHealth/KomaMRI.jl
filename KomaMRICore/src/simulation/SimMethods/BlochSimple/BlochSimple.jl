@@ -33,7 +33,7 @@ function run_spin_precession!(
     prealloc::PreallocResult
 ) where {T<:Real}
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')::NTuple{3,AbstractArray{T}}
     #Effective field
     γ2π = T(2) * T(π) * T(γ)
     Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ γ2π
@@ -97,7 +97,7 @@ function run_spin_excitation!(
             ADC = any(seq.ADC[i + 1, :])
         )
         #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
+        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)::NTuple{3,AbstractArray{T}}
         #Effective field
         γ2π = T(2) * T(π) * T(γ)
         ΔBz = p.Δw ./ γ2π .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
@@ -115,8 +115,7 @@ function run_spin_excitation!(
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            coords = get_spin_coords(p.motion, p.x, p.y, p.z, s.tnew)
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, coords)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, s.tnew)
             sample += 1
         end
     end
