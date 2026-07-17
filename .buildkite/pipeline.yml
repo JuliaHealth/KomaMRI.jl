@@ -1,12 +1,16 @@
 steps:
   - label: ":pipeline: Upload NoMotion Tests"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    checkout:
+      depth: 1
     env:
       TEST_GROUP: "nomotion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
 
   - label: ":pipeline: Upload Motion Tests"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
+    checkout:
+      depth: 1
     env:
       TEST_GROUP: "motion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
@@ -19,6 +23,8 @@ steps:
           !build.pull_request.repository.fork &&
           build.branch !~ /^dependabot\//
         )
+    checkout:
+      depth: 2
     plugins:
       - monorepo-diff#v1.0.1:
           diff: "git diff --name-only HEAD~1"
