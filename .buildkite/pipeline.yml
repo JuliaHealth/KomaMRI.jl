@@ -31,6 +31,7 @@ steps:
           !build.pull_request.repository.fork &&
           build.branch !~ /^dependabot\//
         )
+    # The monorepo diff below requires HEAD~1.
     checkout:
       depth: 2
     plugins:
