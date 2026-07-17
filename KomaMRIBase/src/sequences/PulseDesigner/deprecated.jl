@@ -302,15 +302,6 @@ function EPI_example(; sys=Scanner())
     return seq
 end
 
-
-"""
-    seq = build_test_seq(; sys=Scanner())
-Returns a test sequence with all event type variants for precompilation.
-# Keywords
-- `sys`: (`::Scanner`) Scanner struct
-# Returns
-- `seq`: (`::Sequence`) Test Sequence struct with all event types
-"""
 function build_test_seq(; sys=Scanner())
     seq = Sequence(sys)
     @addblock begin
