@@ -1,3 +1,6 @@
+checkout:
+  depth: 1
+
 steps:
   - group: ":racehorse: Benchmarks"
     steps:

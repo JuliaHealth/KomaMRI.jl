@@ -8,6 +8,8 @@ steps:
     env:
       TEST_GROUP: "nomotion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
+    agents:
+      queue: upload
 
   - label: ":pipeline: Upload Motion Tests"
     if: build.pull_request.labels includes "run-gpu-ci" || build.branch == "master"
@@ -18,6 +20,8 @@ steps:
     env:
       TEST_GROUP: "motion"
     command: buildkite-agent pipeline upload .buildkite/runtests.yml
+    agents:
+      queue: upload
 
   - label: ":pipeline: Launch Benchmarks"
     if: |
@@ -44,3 +48,5 @@ steps:
                 - "Project.toml"
               config:
                 command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
+                agents:
+                  queue: upload
