@@ -31,6 +31,8 @@ steps:
           !build.pull_request.repository.fork &&
           build.branch !~ /^dependabot\//
         )
+    checkout:
+      depth: 2
     plugins:
       - monorepo-diff#v1.0.1:
           diff: "git diff --name-only HEAD~1"
