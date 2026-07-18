@@ -35,10 +35,9 @@ steps:
       - sparse-checkout#v1.8.0:
           paths:
             - .buildkite
-          # Fetch commit history so HEAD~1 is available to the diff below.
-          post_checkout:
-            unshallow: true
     command: |
+      # The sparse checkout starts at depth 1; deepen to depth 2 for HEAD~1.
+      git fetch --depth 2 origin "$(git rev-parse HEAD)"
       # Match monorepo-diff#v1.0.1 without creating a second checkout.
       changed_files="$(
         git diff --name-only HEAD~1 -- \
