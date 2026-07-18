@@ -51,7 +51,7 @@ steps:
           .github/workflows/Benchmark.yml \
           Project.toml
       )" || exit $?
-      if [ -n "$changed_files" ]; then
+      if [ -n "$$changed_files" ]; then
         buildkite-agent pipeline upload .buildkite/runbenchmarks.yml --no-interpolation
       fi
     agents:
