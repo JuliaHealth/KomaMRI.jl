@@ -35,28 +35,22 @@ steps:
       - sparse-checkout#v1.8.0:
           paths:
             - .buildkite
-          # Fetch commit history so HEAD~1 is available to the monorepo diff below.
+          # Fetch commit history so HEAD~1 is available to the diff below.
           post_checkout:
             unshallow: true
-      - monorepo-diff#v1.0.1:
-          diff: "git diff --name-only HEAD~1"
-          interpolation: false
-          watch:
-            - path:
-                - "KomaMRICore/src/**/*"
-                - "KomaMRICore/ext/**/*"
-                - "KomaMRICore/Project.toml"
-                - "KomaMRIBase/src/**/*"
-                - "KomaMRIBase/Project.toml"
-                - "benchmarks/**/*"
-                - ".buildkite/**/*"
-                - ".github/workflows/Benchmark.yml"
-                - "Project.toml"
-              config:
-                command: "buildkite-agent pipeline upload .buildkite/runbenchmarks.yml"
-                plugins:
-                  - sparse-checkout#v1.8.0:
-                      paths:
-                        - .buildkite
-                agents:
-                  queue: upload
+    command: |
+      if ! git diff --quiet HEAD~1 -- \
+        KomaMRICore/src \
+        KomaMRICore/ext \
+        KomaMRICore/Project.toml \
+        KomaMRIBase/src \
+        KomaMRIBase/Project.toml \
+        benchmarks \
+        .buildkite \
+        .github/workflows/Benchmark.yml \
+        Project.toml
+      then
+        buildkite-agent pipeline upload .buildkite/runbenchmarks.yml
+      fi
+    agents:
+      queue: upload
