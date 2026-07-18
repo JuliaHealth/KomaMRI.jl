@@ -31,10 +31,13 @@ steps:
           !build.pull_request.repository.fork &&
           build.branch !~ /^dependabot\//
         )
-    # The monorepo diff below requires HEAD~1.
-    checkout:
-      depth: 2
     plugins:
+      - sparse-checkout#v1.8.0:
+          paths:
+            - .buildkite
+          # The monorepo diff below requires HEAD~1.
+          post_checkout:
+            unshallow: true
       - monorepo-diff#v1.0.1:
           diff: "git diff --name-only HEAD~1"
           interpolation: false
