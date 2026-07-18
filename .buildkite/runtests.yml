@@ -1,6 +1,3 @@
-checkout:
-  depth: 1
-
 steps:
   - group: ":julia: ($TEST_GROUP) Tests"
     steps:
