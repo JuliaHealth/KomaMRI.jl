@@ -39,18 +39,21 @@ steps:
           post_checkout:
             unshallow: true
     command: |
-      if ! git diff --quiet HEAD~1 -- \
-        KomaMRICore/src \
-        KomaMRICore/ext \
-        KomaMRICore/Project.toml \
-        KomaMRIBase/src \
-        KomaMRIBase/Project.toml \
-        benchmarks \
-        .buildkite \
-        .github/workflows/Benchmark.yml \
-        Project.toml
-      then
-        buildkite-agent pipeline upload .buildkite/runbenchmarks.yml
+      # Match monorepo-diff#v1.0.1 without creating a second checkout.
+      changed_files="$(
+        git diff --name-only HEAD~1 -- \
+          KomaMRICore/src \
+          KomaMRICore/ext \
+          KomaMRICore/Project.toml \
+          KomaMRIBase/src \
+          KomaMRIBase/Project.toml \
+          benchmarks \
+          .buildkite \
+          .github/workflows/Benchmark.yml \
+          Project.toml
+      )" || exit $?
+      if [ -n "$changed_files" ]; then
+        buildkite-agent pipeline upload .buildkite/runbenchmarks.yml --no-interpolation
       fi
     agents:
       queue: upload
