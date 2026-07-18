@@ -35,7 +35,7 @@ steps:
       - sparse-checkout#v1.8.0:
           paths:
             - .buildkite
-          # The monorepo diff below requires HEAD~1.
+          # Fetch commit history so HEAD~1 is available to the monorepo diff below.
           post_checkout:
             unshallow: true
       - monorepo-diff#v1.0.1:
