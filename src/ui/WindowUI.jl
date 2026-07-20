@@ -1,6 +1,7 @@
 struct KomaWindow
     app::App
     display::Base.RefValue{Any}
+    window::Base.RefValue{Union{Nothing,Electron.Window}}
     session::Base.RefValue{Union{Nothing,Session}}
     content::Observable{Any}
     state::Observable{String}
@@ -55,8 +56,22 @@ end
 function show!(w::KomaWindow)
     display = Bonito.use_electron_display(; options=w.window_options, devtools=w.dev_tools)
     w.display[] = display
+    w.window[] = display.window.window
     Base.display(display, w.app)
     return w
+end
+
+function Base.isopen(w::KomaWindow)
+    window = w.window[]
+    return !isnothing(window) && isopen(window)
+end
+
+function Base.wait(w::KomaWindow)
+    window = w.window[]
+    isnothing(window) && return nothing
+    # Electron closes this channel when its window closes.
+    foreach(_ -> nothing, Electron.msgchannel(window))
+    return nothing
 end
 
 function Base.close(w::KomaWindow)
@@ -72,6 +87,7 @@ function Base.close(w::KomaWindow)
         close(display)
         w.display[] = nothing
     end
+    w.window[] = nothing
     return nothing
 end
 
@@ -114,7 +130,7 @@ function home_page(image)
                         style="color:#2a7fb8;",
                     ),
                     ", et al.";
-                    style="padding-bottom:10px;",
+                    class="mb-1",
                 ),
                 DOM.p(
                     "Cite us ",
@@ -131,7 +147,7 @@ function home_page(image)
                     DOM.img(
                         ;
                         src="https://contrib.rocks/image?repo=cncastillo/KomaMRI.jl",
-                        style="height:60px;",
+                        style="height:48px;",
                     );
                     href="https://github.com/cncastillo/KomaMRI.jl/graphs/contributors",
                 );
@@ -250,6 +266,7 @@ function setup_bonito_window(; darkmode=true, frame=true, dev_tools=false, versi
     return KomaWindow(
         app,
         display_ref,
+        Ref{Union{Nothing,Electron.Window}}(nothing),
         session_ref,
         content,
         state,

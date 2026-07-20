@@ -1,6 +1,6 @@
 function select_export_folder(w::KomaWindow)
     isnothing(w.display[]) && return tempdir()
-    window = w.display[].window.window
+    window = w.window[]
     folders = Base.run(window.app, """
         electron.dialog.showOpenDialogSync(
             electron.BrowserWindow.fromId($(window.id)),

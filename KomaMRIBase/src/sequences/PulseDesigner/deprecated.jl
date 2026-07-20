@@ -301,3 +301,19 @@ function EPI_example(; sys=Scanner())
     seq.DEF["TE"] = round(d1 > 0 ? TE : TE - d1, digits=4)*1e3
     return seq
 end
+
+function build_test_seq(; sys=Scanner())
+    seq = Sequence(sys)
+    @addblock begin
+        seq += build_trapezoid(:x; area=8e-6, sys)
+        seq += build_block_pulse(pi/2; duration=1e-3, sys, use=Excitation())
+        seq += build_sinc_pulse(pi/2; duration=3e-3, sys, use=Excitation())
+        seq += build_arbitrary_rf([1, 2, 1], pi/4; dwell=200e-6, sys, use=Excitation())
+        seq += build_adc(16; dwell=sys.ADC_Δt, sys)
+        seq += build_label(:SET, :LIN, 3; sys)
+        seq += build_rotation(pi/3; sys)
+        seq += build_trigger(:physio1; sys)
+        seq += build_arbitrary_grad(:x, [0, 0, 1, 0, 0]; sys)
+    end
+    return seq
+end
