@@ -1,18 +1,19 @@
-function simulation_device_label(sim_params)
-    backend = KomaMRICore.get_backend(Bool(get(sim_params, "gpu", true)))
-    backend_name = KomaMRICore.name(backend)
-    backend_name == "CPU" || return "GPU ($backend_name)"
-
-    threads = get(sim_params, "Nthreads", Threads.nthreads())
-    return "CPU ($threads thread$(threads == 1 ? "" : "s"))"
-end
-
 function run_simulation!(w, sim_params; initial=false)
     previous_content = w.content[]
     previous_state = w.state[]
-    simulation_device = simulation_device_label(sim_params)
-    action = initial ? "Precompiling and running" : "Running"
-    display_loading!(w, "$action $simulation_device simulation ...")
+    message = initial ?
+        "Precompiling and running simulation functions ..." : "Running simulation ..."
+    params = KomaMRICore.default_sim_params(copy(sim_params))
+    threads = params["Nthreads"]
+    backend_name = KomaMRICore.name(KomaMRICore.get_backend(params["gpu"]))
+    simulation_device = if backend_name == "CPU"
+        "CPU ($threads thread$(threads == 1 ? "" : "s"))"
+    else
+        "GPU ($backend_name)"
+    end
+    method = nameof(typeof(params["sim_method"]))
+    status = "$simulation_device · $method · $(uppercase(params["precision"]))"
+    display_loading!(w, message; details=status)
     start_simulation_progress!(w)
 
     raw = try
@@ -37,9 +38,7 @@ function run_simulation!(w, sim_params; initial=false)
         finish_simulation_progress!(w)
     end
 
-    params = raw.params["userParameters"]
-    sim_time = round(params["sim_time_sec"]; digits=3)
-    simulation_device = simulation_device_label(params)
+    sim_time = round(raw.params["userParameters"]["sim_time_sec"]; digits=3)
     body = """
         <ul class="list-unstyled mb-0">
             <li><button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View raw signal" aria-label="View raw signal" onclick="KomaUI.notify('sig')"><i class="bi bi-search"></i></button> Updating <b>Raw signal</b> plots ...</li>
@@ -47,7 +46,7 @@ function run_simulation!(w, sim_params; initial=false)
         </ul>
     """
     update_filename!(w, "rawname", "Koma_signal.mrd")
-    toast!(w, 1, "$simulation_device simulation successful<br>Time: $sim_time s", body)
+    toast!(w, 1, "$simulation_device sim. successful<br>Time: $sim_time s", body)
     raw_ui[] = raw
     return nothing
 end
