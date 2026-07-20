@@ -4,7 +4,7 @@ version = "0.13.0"
 authors = ["Carlos Castillo Passi <cncastillo@uc.cl>"]
 
 [workspace]
-projects = ["test", "docs", "benchmarks", "KomaMRIBase", "KomaMRICore", "KomaMRIFiles", "KomaMRIPlots"]
+projects = ["test", "benchmarks", "KomaMRIBase", "KomaMRICore", "KomaMRIFiles", "KomaMRIPlots"]
 
 [deps]
 Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
