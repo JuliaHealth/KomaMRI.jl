@@ -75,6 +75,7 @@ function Base.wait(w::KomaWindow)
 end
 
 function Base.close(w::KomaWindow)
+    window = w.window[]
     foreach(off, w.listeners)
     empty!(w.listeners)
     if !isnothing(w.session[])
@@ -86,6 +87,9 @@ function Base.close(w::KomaWindow)
         popdisplay(display)
         close(display)
         w.display[] = nothing
+    end
+    if !isnothing(window) && window.app.exists
+        close(window.app)
     end
     w.window[] = nothing
     return nothing

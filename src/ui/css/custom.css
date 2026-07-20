@@ -85,7 +85,10 @@ body, button{
 }
 
 .koma-content {
+  flex: 1 1 auto;
+  align-self: stretch;
   max-width: none;
+  height: 100vh;
   padding: 0;
 }
 
