@@ -85,6 +85,19 @@ end
 upload_bytes(data) = UInt8.(data)
 upload_bytes(data::MsgPack.Extension) = data.data
 
+function filepicker_selection(file)
+    name = String(get(file, "name", get(file, :name, "upload")))
+    path = String(get(file, "path", get(file, :path, "")))
+    isempty(path) || return name, path
+
+    data = get(file, "data", get(file, :data, UInt8[]))
+    filename = joinpath(mktempdir(), basename(name))
+    open(filename, "w") do io
+        write(io, upload_bytes(data))
+    end
+    return name, filename
+end
+
 function setup_filepicker!(
     w::KomaWindow,
     selector::String,
@@ -97,14 +110,7 @@ function setup_filepicker!(
     upload = Observable{Any}(nothing)
     push!(w.listeners, on(upload) do file
         isnothing(file) && return nothing
-        name = String(get(file, "name", get(file, :name, "upload")))
-        data = get(file, "data", get(file, :data, UInt8[]))
-        bytes = upload_bytes(data)
-        directory = mktempdir()
-        filename = joinpath(directory, basename(name))
-        open(filename, "w") do io
-            write(io, bytes)
-        end
+        name, filename = filepicker_selection(file)
         isnothing(selected_file) || (selected_file[] = filename)
         output[] = callback_filepicker(filename, w, output[])
         return nothing
@@ -141,6 +147,13 @@ function setup_filepicker!(
                     const file = event.target.files[0];
                     if (!file) return;
                     setCaption(file.name);
+                    if (typeof require === 'function') {
+                        const path = require('electron').webUtils.getPathForFile(file);
+                        if (path) {
+                            $(upload).notify({name: file.name, path: path});
+                            return;
+                        }
+                    }
                     const data = new Uint8Array(await file.arrayBuffer());
                     $(upload).notify({name: file.name, data: data});
                 });

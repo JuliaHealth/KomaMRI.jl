@@ -411,6 +411,22 @@ end
                     @test any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
 
+                    # Reload must reread the selected path, not the initially uploaded bytes.
+                    reload_source = joinpath(mktempdir(), "reload.seq")
+                    cp(sequence_file, reload_source)
+                    _, selected_file = KomaMRI.filepicker_selection(Dict(
+                        "name" => "reload.seq",
+                        "path" => reload_source,
+                        "data" => read(sequence_file),
+                    ))
+                    cp(
+                        joinpath(files, "pulseq", "basic_tests", "v1.4", "epi.seq"),
+                        reload_source;
+                        force=true,
+                    )
+                    seq_ui[] = KomaMRI.callback_filepicker(selected_file, w, seq_ui[])
+                    @test !any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
+
                     phantom_file = joinpath(files, "phantom", "column1d.h5")
                     obj_ui[] = KomaMRI.callback_filepicker(phantom_file, w, obj_ui[])
                     @test obj_ui[].name == "column1d.h5"
