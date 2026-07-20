@@ -11,14 +11,41 @@ struct BlochGPUPrealloc{T,S,H} <: PreallocResult{T}
     has_sens::H
 end
 
-prealloc_sens(::UniformCoilSens, obj, backend::KA.GPU) = nothing, Val(false)
-prealloc_sens(receiver::BirdcageCoilSens, obj, backend::KA.GPU) = get_sens(receiver, obj.x, obj.y, obj.z), Val(true)
-prealloc_sens(receiver::ArbitraryCoilSens, obj, backend::KA.GPU) =
-    gpu(get_sens(cpu(receiver), cpu(obj.x), cpu(obj.y), cpu(obj.z)), backend), Val(true)
+# Runs once before simulation
+
+# Uniform receiver: no sensitivity array is needed.
+prealloc_sens(::UniformCoilSens, _, ::KA.GPU, _) = nothing, Val(false)
+
+# Static birdcage receiver: calculate sensitivities once at the phantom positions.
+prealloc_sens(receiver::BirdcageCoilSens, obj, ::KA.GPU, ::NoMotion) =
+    get_sens(receiver, obj.x, obj.y, obj.z), Val(true)
+
+# Static arbitrary receiver: interpolate sensitivities once at the phantom positions.
+prealloc_sens(receiver::ArbitraryCoilSens, obj, ::KA.GPU, ::NoMotion) =
+    get_sens(receiver, obj.x, obj.y, obj.z), Val(true)
+
+# Moving birdcage receiver: keep the model for evaluation at each block's positions.
+prealloc_sens(receiver::BirdcageCoilSens, _, ::KA.GPU, ::Union{Motion,MotionList}) =
+    receiver, Val(true)
+
+# Moving arbitrary receiver: build the GPU interpolator once for reuse by each block.
+prealloc_sens(receiver::ArbitraryCoilSens, _, ::KA.GPU, ::Union{Motion,MotionList}) =
+    KomaMRIBase.sensitivity_interpolator(receiver), Val(true)
+
+# Runs for each simulation block
+
+# Uniform or static receiver: reuse the preallocated sensitivity matrix unchanged.
+block_sens(sens::Union{Nothing,AbstractMatrix}, _, _, _) = sens
+
+# Moving birdcage receiver: calculate sensitivities at the current spin positions.
+block_sens(receiver::BirdcageCoilSens, x, y, z) = get_sens(receiver, x, y, z)
+
+# Moving arbitrary receiver: interpolate sensitivities at the current spin positions.
+block_sens(itp, x, y, z) = KomaMRIBase.interpolate_sensitivities(itp, x, y, z)
 
 function bloch_gpu_prealloc(backend, obj::Phantom{T}, max_block_length, groupsize, sys) where {T}
     ncoils = get_n_coils(sys.receiver)
-    sens, has_sens = prealloc_sens(sys.receiver, obj, backend)
+    sens, has_sens = prealloc_sens(sys.receiver, obj, backend, obj.motion)
     signal_length = max_block_length * ncoils
     return BlochGPUPrealloc(
         KA.zeros(backend, Complex{T}, cld(length(obj), groupsize), signal_length),
@@ -76,12 +103,13 @@ function run_spin_precession!(
     pre::BlochGPUPrealloc
 ) where {T<:Real}
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    sens = block_sens(pre.sens, x, y, z)
     has_adc = length(sig) > 0
 
     precession_kernel!(backend, groupsize)(
         pre.sig_output,
         M.xy, M.z,
-        pre.sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
+        sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc), pre.has_sens,
@@ -111,13 +139,14 @@ function run_spin_precession!(
 ) where {T<:Real, SM<:BlochLikeSimMethods}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    sens = block_sens(pre.sens, x, y, z)
     has_adc = length(sig) > 0
 
     #Precession
     precession_kernel!(backend, groupsize)(
         pre.sig_output,
         M.xy, M.z,
-        pre.sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
+        sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc), pre.has_sens,
@@ -162,12 +191,13 @@ function run_spin_excitation!(
     pre::BlochGPUPrealloc
 ) where {T<:Real}
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    sens = block_sens(pre.sens, x, y, z)
     has_adc = length(sig) > 0
 
     excitation_kernel!(backend, groupsize)(
         pre.sig_output,
         M.xy, M.z,
-        pre.sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
+        sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc), pre.has_sens,
@@ -197,13 +227,14 @@ function run_spin_excitation!(
 ) where {T<:Real, SM<:BlochLikeSimMethods}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    sens = block_sens(pre.sens, x, y, z)
     has_adc = length(sig) > 0
 
     #Excitation
     excitation_kernel!(backend, groupsize)(
         pre.sig_output,
         M.xy, M.z,
-        pre.sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
+        sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc), pre.has_sens,
@@ -236,12 +267,13 @@ run_spin_excitation!(
 ) where {T<:Real} =
 begin
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    sens = block_sens(pre.sens, x, y, z)
     has_adc = length(sig) > 0
 
     excitation_kernel!(backend, groupsize)(
         pre.sig_output,
         M.xy, M.z,
-        pre.sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
+        sens, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
         Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc), pre.has_sens,

@@ -66,7 +66,8 @@
             while coil <= N_coils
                 coil_r, coil_i = sig_r, sig_i
                 if active && HAS_SENS
-                    sens_r, sens_i = reim(sens[i, coil])
+                    sens_idx = MOTION ? i + (s_idx - 1u32) * N_spins : i
+                    sens_r, sens_i = reim(sens[sens_idx, coil])
                     coil_r, coil_i = (
                         coil_r * sens_r - coil_i * sens_i,
                         coil_r * sens_i + coil_i * sens_r,

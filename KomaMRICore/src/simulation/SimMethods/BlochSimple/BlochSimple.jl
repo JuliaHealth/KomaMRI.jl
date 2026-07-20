@@ -115,7 +115,7 @@ function run_spin_excitation!(
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, s.tnew)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, (x, y, z))
             sample += 1
         end
     end

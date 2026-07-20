@@ -44,16 +44,29 @@ function get_sens(receiver::BirdcageCoilSens, x, y, z)
     return sens
 end
 
-function get_sens(receiver::ArbitraryCoilSens, x, y, z)
-    sens = similar(receiver.coil_sens, length(x), get_n_coils(receiver))
-    for coil in axes(receiver.coil_sens, 4)
-        base_itp = GriddedInterpolation(
-            (receiver.x, receiver.y, receiver.z),
-            receiver.coil_sens[:, :, :, coil],
-            Gridded(Linear()),
-        )
-        itp = extrapolate(base_itp, zero(eltype(receiver.coil_sens)))
-        sens[:, coil] .= itp.(x, y, z)
-    end
+function sensitivity_interpolator(receiver::ArbitraryCoilSens)
+    T = eltype(receiver.x)
+    coils = similar(receiver.x, T, get_n_coils(receiver))
+    coils .= axes(receiver.coil_sens, 4)
+    base_itp = GriddedInterpolation(
+        (receiver.x, receiver.y, receiver.z, coils),
+        receiver.coil_sens,
+        Gridded(Linear()),
+    )
+    return extrapolate(base_itp, zero(eltype(receiver.coil_sens)))
+end
+
+# Evaluate every coil at the supplied spin positions.
+function interpolate_sensitivities(itp, x, y, z)
+    sens = similar(x, eltype(itp), length(x), size(itp, 4))
+    sens .= itp.(
+        reshape(x, :, 1),
+        reshape(y, :, 1),
+        reshape(z, :, 1),
+        reshape(last(itp.itp.knots), 1, :),
+    )
     return sens
 end
+
+get_sens(receiver::ArbitraryCoilSens, x, y, z) =
+    interpolate_sensitivities(sensitivity_interpolator(receiver), x, y, z)
