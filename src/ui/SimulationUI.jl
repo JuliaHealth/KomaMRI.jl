@@ -31,7 +31,7 @@ function run_simulation!(w, sim_params; initial=false)
     params = raw.params["userParameters"]
     sim_time = round(params["sim_time_sec"]; digits=3)
     threads = params["Nthreads"]
-    simulation_device = isone(params["gpu"]) ?
+    simulation_device = params["gpu"] == 1 ?
         "GPU ($(KomaMRICore.name(KomaMRICore.get_backend(true))))" :
         "CPU ($threads thread$(threads == 1 ? "" : "s"))"
     body = """
