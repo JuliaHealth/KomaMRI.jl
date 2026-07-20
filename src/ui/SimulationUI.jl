@@ -1,9 +1,18 @@
+function simulation_device_label(sim_params)
+    backend = KomaMRICore.get_backend(Bool(get(sim_params, "gpu", true)))
+    backend_name = KomaMRICore.name(backend)
+    backend_name == "CPU" || return "GPU ($backend_name)"
+
+    threads = get(sim_params, "Nthreads", Threads.nthreads())
+    return "CPU ($threads thread$(threads == 1 ? "" : "s"))"
+end
+
 function run_simulation!(w, sim_params; initial=false)
     previous_content = w.content[]
     previous_state = w.state[]
-    message = initial ?
-        "Precompiling and running simulation functions ..." : "Running simulation ..."
-    display_loading!(w, message)
+    simulation_device = simulation_device_label(sim_params)
+    action = initial ? "Precompiling and running" : "Running"
+    display_loading!(w, "$action $simulation_device simulation ...")
     start_simulation_progress!(w)
 
     raw = try
@@ -30,10 +39,7 @@ function run_simulation!(w, sim_params; initial=false)
 
     params = raw.params["userParameters"]
     sim_time = round(params["sim_time_sec"]; digits=3)
-    threads = params["Nthreads"]
-    simulation_device = params["gpu"] == 1 ?
-        "GPU ($(KomaMRICore.name(KomaMRICore.get_backend(true))))" :
-        "CPU ($threads thread$(threads == 1 ? "" : "s"))"
+    simulation_device = simulation_device_label(params)
     body = """
         <ul class="list-unstyled mb-0">
             <li><button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View raw signal" aria-label="View raw signal" onclick="KomaUI.notify('sig')"><i class="bi bi-search"></i></button> Updating <b>Raw signal</b> plots ...</li>
