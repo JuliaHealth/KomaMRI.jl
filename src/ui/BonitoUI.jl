@@ -25,7 +25,10 @@ function launch_ui(;
     show_window && show!(w)
 
     fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
-    widgets_button_obj = [Button(string(field); style=nothing, class="btn btn-dark btn-sm m-1") for field in fieldnames_obj]
+    widgets_button_obj = [
+        Button(string(field); style=nothing, class="btn btn-primary btn-sm m-1") for
+        field in fieldnames_obj
+    ]
 
     sys_default = isnothing(sys) ? setup_scanner() : sys
     seq_default = isnothing(seq) ? setup_sequence(sys_default) : seq

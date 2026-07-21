@@ -241,9 +241,8 @@ end
         else
             w = KomaUI(; return_window=true, sim=Dict{String,Any}("gpu" => false))
             session = w.session[]
-            click_button(id) = Bonito.evaljs_value(
-                session, js"document.getElementById($(id)).click()"
-            )
+            click_button(id) =
+                Bonito.evaljs(session, js"document.getElementById($(id)).click()")
             plot_rendered(state) = Bonito.evaljs_value(
                 session,
                 js"""
@@ -411,7 +410,7 @@ end
                     @test any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
 
-                    # Reload must reread the selected path, not the initially uploaded bytes.
+                    # Reload must reread the selected path and display the changed sequence.
                     reload_source = joinpath(mktempdir(), "reload.seq")
                     cp(sequence_file, reload_source)
                     _, selected_file = KomaMRI.filepicker_selection(Dict(
@@ -419,13 +418,20 @@ end
                         "path" => reload_source,
                         "data" => read(sequence_file),
                     ))
+                    getfield(w.handlers["reload_seq"], :seq_file)[] = selected_file
+                    click_button("button_phantom")
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
                     cp(
                         joinpath(files, "pulseq", "basic_tests", "v1.4", "epi.seq"),
                         reload_source;
                         force=true,
                     )
-                    seq_ui[] = KomaMRI.callback_filepicker(selected_file, w, seq_ui[])
+                    previous_sequence = seq_ui[]
+                    click_button("button_reload_seq")
+                    @test timedwait(() -> seq_ui[] !== previous_sequence, 30) == :ok
                     @test !any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
 
                     phantom_file = joinpath(files, "phantom", "column1d.h5")
                     obj_ui[] = KomaMRI.callback_filepicker(phantom_file, w, obj_ui[])
