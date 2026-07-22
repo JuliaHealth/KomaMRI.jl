@@ -11,5 +11,6 @@ Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
+DisplayAs = "0.1.6"
 Documenter = "1"
 DocumenterVitepress = "0.3"
