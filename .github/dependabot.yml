@@ -23,10 +23,6 @@ updates:
       - "KomaMRICore/test/**"
       - "KomaMRIFiles/test/**"
       - "KomaMRIPlots/test/**"
-    groups:
-      julia-dependencies:
-        patterns:
-          - "*"
     labels:
       - "dependencies"
       - "julia"
