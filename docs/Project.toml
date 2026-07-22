@@ -13,3 +13,4 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 [compat]
 Documenter = "1"
 DocumenterVitepress = "0.3"
+Suppressor = "0.2.8"
