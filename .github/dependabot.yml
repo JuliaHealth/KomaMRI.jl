@@ -11,15 +11,22 @@ updates:
       - "github-actions"
 
   - package-ecosystem: "julia"
-    directories:
-      - "/"
-      - "/KomaMRIBase"
-      - "/KomaMRICore"
-      - "/KomaMRIFiles"
-      - "/KomaMRIPlots"
+    directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 100
+    open-pull-requests-limit: 5
+    exclude-paths:
+      - "test/**"
+      - "docs/**"
+      - "benchmarks/**"
+      - "KomaMRIBase/test/**"
+      - "KomaMRICore/test/**"
+      - "KomaMRIFiles/test/**"
+      - "KomaMRIPlots/test/**"
+    groups:
+      julia-dependencies:
+        patterns:
+          - "*"
     labels:
       - "dependencies"
       - "julia"
