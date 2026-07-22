@@ -15,14 +15,6 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    exclude-paths:
-      - "test/**"
-      - "docs/**"
-      - "benchmarks/**"
-      - "KomaMRIBase/test/**"
-      - "KomaMRICore/test/**"
-      - "KomaMRIFiles/test/**"
-      - "KomaMRIPlots/test/**"
     labels:
       - "dependencies"
       - "julia"
