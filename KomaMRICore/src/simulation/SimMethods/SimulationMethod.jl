@@ -16,7 +16,7 @@ include("Magnetization.jl")
 function sim_output_dim(
     obj::Phantom, seq::Sequence, sys::Scanner, sim_method::SimulationMethod
 )
-    return (sum(seq.ADC.N), 1) #Nt x Ncoils, This should consider the coil info from sys
+    return (sum(seq.ADC.N), get_n_coils(sys.receiver)) #Nt x Ncoils, This should consider the coil info from sys
 end
 
 function split_sig_per_thread(sig, i, p, sim_method::SimulationMethod)
@@ -43,7 +43,7 @@ struct DefaultPrealloc{T} <: PreallocResult{T} end
 Base.view(p::PreallocResult, i::UnitRange) = p
 
 """Default preallocation function."""
-prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} = DefaultPrealloc{T}()
+prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} = DefaultPrealloc{T}()
 
 include("BlochSimple/BlochSimple.jl")
 include("Bloch/cpu/BlochCPU.jl")

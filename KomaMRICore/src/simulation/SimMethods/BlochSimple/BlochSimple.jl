@@ -26,20 +26,22 @@ function run_spin_precession!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys,
     sim_method::SimulationMethod,
     groupsize,
     backend::KA.Backend,
     prealloc::PreallocResult
 ) where {T<:Real}
     #Motion
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
+    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')::NTuple{3,AbstractArray{T}}
     #Effective field
-    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ T(2π .* γ)
+    γ2π = T(2) * T(π) * T(γ)
+    Bz = x .* seq.Gx' .+ y .* seq.Gy' .+ z .* seq.Gz' .+ p.Δw ./ γ2π
     #Rotation
     if is_ADC_on(seq)
-        ϕ = T(-2π .* γ) .* cumtrapz(seq.Δt', Bz)
+        ϕ = -γ2π .* cumtrapz(seq.Δt', Bz)
     else
-        ϕ = T(-2π .* γ) .* trapz(seq.Δt', Bz)
+        ϕ = -γ2π .* trapz(seq.Δt', Bz)
     end
     #Mxy precession and relaxation, and Mz relaxation
     tp   = cumsum(seq.Δt) # t' = t - t0
@@ -51,7 +53,8 @@ function run_spin_precession!(
     outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
     outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     #Acquired signal
-    sig .= @views transpose(sum(Mxy[:, findall(seq.ADC[2:end])]; dims=1)) #<--- TODO: add coil sensitivities
+    adc = findall(seq.ADC[2:end])
+    acquire_signal!(sig, p, sys.receiver, @view(Mxy[:, adc]), p.motion, (x, y, z), adc)
     return nothing
 end
 
@@ -75,6 +78,7 @@ function run_spin_excitation!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys,
     sim_method::SimulationMethod,
     groupsize,
     backend::KA.Backend,
@@ -93,14 +97,15 @@ function run_spin_excitation!(
             ADC = any(seq.ADC[i + 1, :])
         )
         #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)
+        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, s.t)::NTuple{3,AbstractArray{T}}
         #Effective field
-        ΔBz = p.Δw ./ T(2π .* γ) .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
+        γ2π = T(2) * T(π) * T(γ)
+        ΔBz = p.Δw ./ γ2π .- s.Δf ./ T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         Bz = (s.Gx .* x .+ s.Gy .* y .+ s.Gz .* z) .+ ΔBz
         B = sqrt.(abs.(s.B1) .^ 2 .+ abs.(Bz) .^ 2)
         B .+= (B .== 0) .* eps(T)
         #Spinor Rotation
-        φ = T(-2π .* γ) .* (B .* s.Δt)
+        φ = -γ2π .* (B .* s.Δt)
         mul!(Q(φ, s.B1 ./ B, Bz ./ B), M)
         #Relaxation
         @. M.xy = M.xy * exp(-s.Δt / p.T2)
@@ -110,7 +115,7 @@ function run_spin_excitation!(
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            acquire_signal!(sig, sample, M, sim_method)
+            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, (x, y, z))
             sample += 1
         end
     end
@@ -118,8 +123,4 @@ function run_spin_excitation!(
     ψ_end = @view seq.ψ[end:end]
     @. M.xy = M.xy * cis(ψ_end)
     return nothing
-end
-
-function acquire_signal!(sig, sample, M, sim_method::BlochSimple)
-    sig[sample, :] .= sum(M.xy) 
 end

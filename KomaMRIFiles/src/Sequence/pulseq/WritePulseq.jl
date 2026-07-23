@@ -220,20 +220,20 @@ function pulseq_compact_time_shape_id(rf::RF, rf_raster_time)
     return interval == rf_raster_time ? PULSEQ_DEFAULT_TIME_SHAPE_ID : nothing
 end
 
-rf_time_step(::RF, policy, sys::Scanner) = sys.RF_Δt
+rf_time_step(::RF, policy, sys::Scanner) = sys.limits.RF_Δt
 rf_time_step(rf::UniformlySampledRF, policy, sys::Scanner) =
-    isnothing(policy) ? dwell(rf) : sys.RF_Δt
+    isnothing(policy) ? dwell(rf) : sys.limits.RF_Δt
 rf_time_step(::TimeShapedRF, policy, sys::Scanner) =
-    isnothing(policy) ? nothing : sys.RF_Δt
+    isnothing(policy) ? nothing : sys.limits.RF_Δt
 
 function pulseq_timing_policy(rf::RF, sys::Scanner)
-    time_shape_id = pulseq_compact_time_shape_id(rf, sys.RF_Δt)
+    time_shape_id = pulseq_compact_time_shape_id(rf, sys.limits.RF_Δt)
     time_step = rf_time_step(rf, time_shape_id, sys)
     return (; time_shape_id, time_step)
 end
 
 function pulseq_time_shape_id!(shape_library, cache, rf::RF, sys::Scanner)
-    rf_raster_time = sys.RF_Δt
+    rf_raster_time = sys.limits.RF_Δt
     policy = pulseq_timing_policy(rf, sys)
     if !isnothing(policy.time_shape_id)
         pulseq_delay = delay(rf, sys)
@@ -1162,9 +1162,9 @@ function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, 
     if check_hw_limits
         verbose && @info string(
             "Checking hardware limits from $source:\n\t",
-            "maxB1 = $(check_sys.B1 * 1e6) uT, ",
-            "maxGrad = $(check_sys.Gmax * 1e3) mT/m, ",
-            "maxSlew = $(check_sys.Smax) mT/m/ms, ",
+            "maxB1 = $(check_sys.limits.B1 * 1e6) uT, ",
+            "maxGrad = $(check_sys.limits.Gmax * 1e3) mT/m, ",
+            "maxSlew = $(check_sys.limits.Smax) mT/m/ms, ",
             "adcSamplesDivisor = 4",
         )
         KomaMRIBase.check_hw_limits(seq, check_sys)
@@ -1177,9 +1177,9 @@ function pulseq_data(seq::KomaMRIBase.Sequence; sys=nothing, check_timing=true, 
             "gradRasterTime = $(pulseq_float_string(raster.GradientRasterTime * 1e6)) us, ",
             "rfRasterTime = $(pulseq_float_string(raster.RadiofrequencyRasterTime * 1e6)) us, ",
             "adcRasterTime = $(pulseq_float_string(raster.AdcRasterTime * 1e6)) us,\n\t",
-            "rfDeadTime = $(pulseq_float_string(check_sys.RF_dead_time * 1e6)) us, ",
-            "rfRingdownTime = $(pulseq_float_string(check_sys.RF_ring_down_time * 1e6)) us, ",
-            "adcDeadTime = $(pulseq_float_string(check_sys.ADC_dead_time * 1e6)) us",
+            "rfDeadTime = $(pulseq_float_string(check_sys.limits.RF_dead_time * 1e6)) us, ",
+            "rfRingdownTime = $(pulseq_float_string(check_sys.limits.RF_ring_down_time * 1e6)) us, ",
+            "adcDeadTime = $(pulseq_float_string(check_sys.limits.ADC_dead_time * 1e6)) us",
         )
     end
     prepared = prepare_pulseq_write(

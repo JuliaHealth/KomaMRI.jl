@@ -104,37 +104,41 @@ struct PulseqRaster
         get_raster_time("AdcRasterTime", seq),
     )
     PulseqRaster(sys::Scanner) = new(
-        sys.DUR_Δt,
-        sys.GR_Δt,
-        sys.RF_Δt,
-        sys.ADC_Δt,
+        sys.limits.DUR_Δt,
+        sys.limits.GR_Δt,
+        sys.limits.RF_Δt,
+        sys.limits.ADC_Δt,
     )
     PulseqRaster(seq, sys) = new(
-        get_raster_time("BlockDurationRaster", seq, sys.DUR_Δt),
-        get_raster_time("GradientRasterTime", seq, sys.GR_Δt),
-        get_raster_time("RadiofrequencyRasterTime", seq, sys.RF_Δt),
-        get_raster_time("AdcRasterTime", seq, sys.ADC_Δt),
+        get_raster_time("BlockDurationRaster", seq, sys.limits.DUR_Δt),
+        get_raster_time("GradientRasterTime", seq, sys.limits.GR_Δt),
+        get_raster_time("RadiofrequencyRasterTime", seq, sys.limits.RF_Δt),
+        get_raster_time("AdcRasterTime", seq, sys.limits.ADC_Δt),
     )
 end
 
 pulseq_timing_scanner(raster::PulseqRaster) = Scanner(
-    ADC_Δt=raster.AdcRasterTime,
-    DUR_Δt=raster.BlockDurationRaster,
-    GR_Δt=raster.GradientRasterTime,
-    RF_Δt=raster.RadiofrequencyRasterTime,
-    RF_ring_down_time=0.0,
-    RF_dead_time=0.0,
-    ADC_dead_time=0.0,
+    limits=HardwareLimits(
+        ADC_Δt=raster.AdcRasterTime,
+        DUR_Δt=raster.BlockDurationRaster,
+        GR_Δt=raster.GradientRasterTime,
+        RF_Δt=raster.RadiofrequencyRasterTime,
+        RF_ring_down_time=0.0,
+        RF_dead_time=0.0,
+        ADC_dead_time=0.0,
+    ),
 )
 
 pulseq_timing_scanner(definitions::PulseqDefinitions) = Scanner(
-    ADC_Δt=definitions.adc_raster_time,
-    DUR_Δt=definitions.block_duration_raster,
-    GR_Δt=definitions.gradient_raster_time,
-    RF_Δt=definitions.radiofrequency_raster_time,
-    RF_ring_down_time=0.0,
-    RF_dead_time=0.0,
-    ADC_dead_time=0.0,
+    limits=HardwareLimits(
+        ADC_Δt=definitions.adc_raster_time,
+        DUR_Δt=definitions.block_duration_raster,
+        GR_Δt=definitions.gradient_raster_time,
+        RF_Δt=definitions.radiofrequency_raster_time,
+        RF_ring_down_time=0.0,
+        RF_dead_time=0.0,
+        ADC_dead_time=0.0,
+    ),
 )
 
 function get_raster_time(key::String, seq::KomaMRIBase.Sequence)

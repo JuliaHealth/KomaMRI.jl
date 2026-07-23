@@ -2,12 +2,12 @@
 
 @kernel unsafe_indices=true inbounds=true function precession_kernel!(
     sig_output::AbstractMatrix{Complex{T}}, 
-    M_xy, M_z, 
+    M_xy, M_z, sens, N_coils, N_adc,
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_ADC), s_length,
-    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
+    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC}, ::Val{HAS_SENS},
     sim_method::BlochLikeSimMethods
-) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC}
+) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, HAS_SENS}
 
     @uniform N = @groupsize()[1]
     i_l = @index(Local, Linear)
@@ -62,9 +62,22 @@
                 sig_r = E2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i)
                 sig_i = E2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r)
             end
-            sig_r, sig_i = reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
-            if i_l == 1u32
-                sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
+            coil = 1u32
+            while coil <= N_coils
+                coil_r, coil_i = sig_r, sig_i
+                if active && HAS_SENS
+                    sens_idx = MOTION ? i + (s_idx - 1u32) * N_spins : i
+                    sens_r, sens_i = reim(sens[sens_idx, coil])
+                    coil_r, coil_i = (
+                        coil_r * sens_r - coil_i * sens_i,
+                        coil_r * sens_i + coil_i * sens_r,
+                    )
+                end
+                coil_r, coil_i = reduce_signal!(coil_r, coil_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
+                if i_l == 1u32
+                    sig_output[i_g, ADC_idx + (coil - 1u32) * N_adc] = complex(coil_r, coil_i)
+                end
+                coil += 1u32
             end
             ADC_idx += 1u32
         end

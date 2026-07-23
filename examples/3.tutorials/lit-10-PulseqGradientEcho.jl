@@ -15,10 +15,10 @@ using KomaMRI.PulseDesigner # May move to its own package.
 using Unitful # Lets us write values with units like 20u"mT/m".
 
 # We start with scanner limits and sequence parameters.
-sys = Scanner(
+sys = Scanner(limits=HardwareLimits(
     B1=50u"μT", Gmax=20u"mT/m", Smax=100u"T/m/s", ADC_Δt=100u"ns",
     RF_ring_down_time=20u"μs", RF_dead_time=100u"μs", ADC_dead_time=10u"μs",
-);
+));
 
 # `Scanner` keyword arguments are converted independently. Plain numbers are SI;
 # Unitful quantities can be mixed in per field when the physical unit is clear.
@@ -62,13 +62,13 @@ phase_scales = (0:(Ny - 1)) ./ (Ny / 2) .- 1;
 delay_te = make_delay(
     round_to_raster(
         to_SI(TE) - (gz.T / 2 + gz.fall + dur(gx_pre) + dur(gx) / 2),
-        sys.GR_Δt,
+        sys.limits.GR_Δt,
     ),
 )
 delay_tr = make_delay(
     round_to_raster(
         to_SI(TR) - (dur(gx_pre) + dur(gz) + dur(gx) + dur(delay_te)),
-        sys.GR_Δt,
+        sys.limits.GR_Δt,
     ),
 );
 

@@ -53,9 +53,9 @@ function extended_trapezoid_area(grad_start, grad_end, target_area; sys=Scanner(
         return Grad(0.0, 0.0)
     end
     # MATLAB Pulseq uses a 1% margin here when searching for a feasible solution.
-    max_slew = 0.99 * sys.Smax
-    max_grad = 0.99 * sys.Gmax
-    raster = sys.GR_Δt
+    max_slew = 0.99 * sys.limits.Smax
+    max_grad = 0.99 * sys.limits.Gmax
+    raster = sys.limits.GR_Δt
     min_duration = max(
         slew_limited_ramp_samples(grad_end - grad_start, max_slew, raster), 2,
     )

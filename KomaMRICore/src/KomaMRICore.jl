@@ -21,6 +21,7 @@ include("callbacks/Callback.jl")
 # Simulator
 include("simulation/GPUFunctions.jl")
 include("simulation/Functors.jl")
+include("simulation/AcquireSignal.jl")
 include("simulation/SimulatorCore.jl")
 include("simulation/Flow.jl")
 

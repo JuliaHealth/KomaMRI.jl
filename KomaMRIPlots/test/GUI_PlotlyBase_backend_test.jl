@@ -27,7 +27,7 @@
     @testset "Sequence" begin
         sys = Scanner()
         excitation = PulseDesigner.RF_hard(
-            sys.B1, π / 2 / (2π * γ * sys.B1), sys; G=[0, 0, 0]
+            sys.limits.B1, π / 2 / (2π * γ * sys.limits.B1), sys; G=[0, 0, 0]
         )
         sequence = excitation + PulseDesigner.EPI(23e-2, 101, sys)
 

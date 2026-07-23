@@ -169,7 +169,7 @@ end
 
 @testitem "BlochMagnus simulates RF-center/max-step collision" tags=[:core, :nomotion] begin
     sys = Scanner()
-    sys.Smax = 100.0
+    sys.limits.Smax = 100.0
     rf_B1 = 4.9e-6
     rf_duration = 3.2e-3
     slice_thickness = 8e-3
@@ -360,6 +360,13 @@ end
     sig_raw = reshape(sig_aux, length(sig_aux), 1)
     @test all(sig .== sig_raw)
 
+    raw = signal_to_raw_data(cat(sig, sig, sig, sig; dims=2), seq)
+    head = raw.profiles[1].head
+    @test head.available_channels == UInt16(4)
+    @test head.active_channels == UInt16(4)
+    @test head.channel_mask[1] == UInt64(0xf)
+    @test all(iszero, head.channel_mask[2:end])
+
     seq.DEF["FOV"] = [23e-2, 23e-2, 0]
     raw = signal_to_raw_data(sig, seq)
     sig_aux = vcat([vec(profile.data) for profile in raw.profiles]...)
@@ -383,7 +390,10 @@ end
 @testitem "simulation precision" tags=[:core, :nomotion] begin
     seq = Sequence()
     @addblock seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
-    obj = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[1e6], T2=[1e6], Δw=[0.0])
+    obj = Phantom(
+        x=[-5e-4, 0.0, 5e-4], y=[0.0, 4e-4, -4e-4], z=zeros(3),
+        ρ=ones(3), T1=fill(1e6, 3), T2=fill(1e6, 3), Δw=zeros(3),
+    )
 
     for (precision, T) in ("f32" => Float32, "f64" => Float64, "bigfloat" => BigFloat)
         sim_params = Dict{String,Any}(
@@ -399,6 +409,52 @@ end
         @test eltype(state.xy) === Complex{T}
         @test eltype(state.z) === T
     end
+
+end
+
+@testitem "Multi-coil simulations" tags=[:core, :nomotion] begin
+    coords = [-1.0, 0.0, 1.0] .* 1e-3
+    ncoils = 4
+    dims = (length(coords), length(coords), length(coords))
+    single_coil = fill(1.0 + 0.0im, dims..., 1)
+    multi_coil = fill((1.0 + 0.0im) / ncoils, dims..., ncoils)
+    single_receiver = ArbitraryCoilSens(coords, coords, coords, single_coil)
+    multi_receiver = ArbitraryCoilSens(coords, coords, coords, multi_coil)
+
+    seq = Sequence()
+    @addblock seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
+    @addblock seq += ADC(8, 2e-4)
+    obj = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[1e6], T2=[1e6], Δw=[0.0])
+
+    for sim_method in (BlochSimple(), Bloch())
+        @testset "$(nameof(typeof(sim_method)))" begin
+            for (precision, T) in ("f32" => Float32, "f64" => Float64)
+                @testset "$precision" begin
+                    sim_params = Dict{String,Any}(
+                        "gpu" => false,
+                        "Nthreads" => 1,
+                        "return_type" => "mat",
+                        "precision" => precision,
+                        "sim_method" => sim_method,
+                    )
+                    raw_uniform = simulate(obj, seq, Scanner(); sim_params, verbose=false)
+                    raw_single = simulate(
+                        obj, seq, Scanner(receiver=single_receiver); sim_params, verbose=false,
+                    )
+                    raw_multi = simulate(
+                        obj, seq, Scanner(receiver=multi_receiver); sim_params, verbose=false,
+                    )
+
+                    @test eltype(raw_uniform) === Complex{T}
+                    @test eltype(raw_single) === Complex{T}
+                    @test eltype(raw_multi) === Complex{T}
+                    @test raw_uniform ≈ raw_single
+                    @test raw_uniform ≈ sum(raw_multi; dims=2)
+                end
+            end
+        end
+    end
+
 end
 
 @testitem "repeated single-spin FID" tags=[:core, :nomotion] begin
@@ -480,6 +536,48 @@ end
             sig = sig / prod(size(obj))
 
             @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+        end
+    end
+
+    if USE_GPU
+        coords = [-1.0, 0.0, 1.0] .* 1e-3
+        ncoils = 4
+        coil_sens = fill(ComplexF32(1 / ncoils), length(coords), length(coords), length(coords), ncoils)
+        receivers = (
+            BirdcageCoilSens(; ncoils),
+            ArbitraryCoilSens(coords, coords, coords, coil_sens),
+        )
+        multi_coil_obj = Phantom(
+            x=[-5e-4, 0.0, 5e-4], y=[0.0, 4e-4, -4e-4], z=zeros(3),
+            ρ=ones(3), T1=fill(1e6, 3), T2=fill(1e6, 3), Δw=zeros(3),
+        )
+        multi_coil_seq = Sequence()
+        @addblock multi_coil_seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4) + ADC(4, 1e-4)
+        @addblock multi_coil_seq += ADC(4, 2e-4)
+        multi_coil_methods = (
+            Bloch(), BlochMagnusConst1(), BlochMagnusLin2(), BlochMagnusMid2(),
+            BlochMagnusLinComm2(), BlochMagnusQuad2(), BlochMagnusQuad4(),
+            BlochMagnusGL2(), BlochMagnusGL4(), BlochMagnusBGL4(), BlochMagnusBGL6(),
+        )
+
+        for receiver in receivers, sim_method in multi_coil_methods
+            sim_params = Dict{String,Any}(
+                "gpu" => false,
+                "Nthreads" => 1,
+                "precision" => "f32",
+                "return_type" => "mat",
+                "sim_method" => sim_method,
+            )
+            reference = simulate(
+                multi_coil_obj, multi_coil_seq, Scanner(; receiver);
+                sim_params, verbose=false,
+            )
+            sim_params["gpu"] = true
+            signal = simulate(
+                multi_coil_obj, multi_coil_seq, Scanner(; receiver);
+                sim_params, verbose=false,
+            )
+            @test signal ≈ reference
         end
     end
 end
@@ -688,7 +786,7 @@ end
 
     # This is a sequence with a sinc RF 30° excitation pulse
     sys = Scanner()
-    sys.Smax = 50
+    sys.limits.Smax = 50
     B1 = 4.92e-6
     Trf = 3.2e-3
     zmax = 2e-2
@@ -752,7 +850,7 @@ end
 
     @testset "slice-selective excitation" begin
         sys = Scanner()
-        sys.Smax = 50
+        sys.limits.Smax = 50
         B1 = 4.92e-6
         Trf = 3.2e-3
         z0 = 4e-3

@@ -17,7 +17,7 @@ struct BlochMagnusQuadCPUPrealloc{
     Maux_z::RV
 end
 
-prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} =
     BlochMagnusQuadCPUPrealloc(
         cbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj),
@@ -28,5 +28,5 @@ prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom{T}, M::Mag{
         similar(M.xy), similar(M.z),
     )
 
-prealloc(sim_method::BlochMagnusQuad2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
-    prealloc(BlochMagnusQuad4(), backend, obj, M, max_block_length, groupsize)
+prealloc(sim_method::BlochMagnusQuad2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} =
+    prealloc(BlochMagnusQuad4(), backend, obj, M, max_block_length, groupsize, sys)

@@ -15,7 +15,7 @@ struct BlochMagnusGLCPUPrealloc{
     Maux_z::RV
 end
 
-prealloc(sim_method::BlochMagnusGL4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusGL4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} =
     BlochMagnusGLCPUPrealloc(
         cbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj),
@@ -25,7 +25,7 @@ prealloc(sim_method::BlochMagnusGL4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}
         similar(M.xy), similar(M.z),
     )
 
-prealloc(sim_method::BlochMagnusGL2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
-    prealloc(BlochMagnusGL4(), backend, obj, M, max_block_length, groupsize)
+prealloc(sim_method::BlochMagnusGL2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} =
+    prealloc(BlochMagnusGL4(), backend, obj, M, max_block_length, groupsize, sys)
 
 precession_buffers(p::BlochMagnusGLCPUPrealloc) = p.ωz_minus, p.ωz_plus
