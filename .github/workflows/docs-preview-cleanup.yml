@@ -13,10 +13,10 @@ jobs:
     name: Cleanup documentation preview
     runs-on: ubuntu-latest
     concurrency:
-      group: docs-gh-pages
+      group: docs-preview-cleanup-${{ github.event.pull_request.number }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: gh-pages
           fetch-depth: 0

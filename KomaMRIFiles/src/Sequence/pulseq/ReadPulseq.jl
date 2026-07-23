@@ -328,13 +328,14 @@ https://github.com/pulseq/pulseq/blob/v1.5.1/matlab/%2Bmr/%40Sequence/read.m#L32
 function fix_first_last_grads!(blockEvents, blockDurations, eventLibraries)
     # Add first and last Pulseq points
     grad_prev_last = zeros(3)
-    grad_durations = Dict{Int,Float64}()
+    next_grad_id = max_pulseq_id(eventLibraries.grad_library)
     for (iB, eventIDs) in enumerate(eachcol(blockEvents))
         block_duration = blockDurations[iB]
         for iG in eachindex(grad_prev_last)
             g_id = eventIDs[1 + iG]
             g_id > 0 || continue
-            update_first_last!(grad_prev_last, iG, eventLibraries.grad_library[g_id], block_duration, eventLibraries, grad_durations, g_id)
+            grad = eventLibraries.grad_library[g_id]
+            next_grad_id = update_first_last!(grad, grad_prev_last, iG, eventIDs, block_duration, eventLibraries, next_grad_id)
         end
     end
 end
@@ -357,10 +358,9 @@ function fix_legacy_trapezoids!(grad_library, grad_raster_time)
 end
 
 # Decoded runtime events used to materialize concrete Sequence storage.
-struct PulseqDecodedLibraries{G,R,H,A,E}
+struct PulseqDecodedLibraries{G,R,A,E}
     gradients::G
     rfs::R
-    rf_half_steps::H
     adcs::A
     extensions::E
 end
@@ -384,10 +384,11 @@ end
 
 function init_legacy_block_durations!(blockDurations, blockEvents, delayIDs_tmp, eventLibraries, decodedLibraries)
     resize!(blockDurations, size(blockEvents, 2))
+    sys = pulseq_timing_scanner(eventLibraries.definitions)
     for i in axes(blockEvents, 2)
         delayID = delayIDs_tmp[i]
         delay = delayID > 0 ? eventLibraries.tmp_delay_library[delayID] : 0.0
-        Gx, Gy, Gz, rf, add_half_Δt_rf, adc, ext = decoded_block(
+        Gx, Gy, Gz, rf, adc, ext = decoded_block(
             decodedLibraries,
             blockEvents[1, i],
             blockEvents[2, i],
@@ -401,8 +402,8 @@ function init_legacy_block_durations!(blockDurations, blockEvents, delayIDs_tmp,
             dur(Gx),
             dur(Gy),
             dur(Gz),
-            dur(rf) + add_half_Δt_rf * eventLibraries.definitions.radiofrequency_raster_time / 2,
-            KomaMRIBase._pulseq_duration(adc),
+            dur(rf, sys),
+            dur(adc, sys),
             maximum(dur, ext; init=0.0),
         )
     end
@@ -420,7 +421,6 @@ function decode_pulseq_libraries(eventLibraries)
     rf_library = decoded_event_library(n_rfs, PULSEQ_EMPTY_RF) do id
         get_RF(eventLibraries.rf_library, eventLibraries.shape_library, eventLibraries.definitions.radiofrequency_raster_time, id)
     end
-    rf_half_steps = [pulseq_rf_adds_half_step(eventLibraries.rf_library[id]) for id in 1:n_rfs]
 
     n_adcs = max_pulseq_id(eventLibraries.adc_library)
     adc_library = Vector{ADC}(undef, n_adcs)
@@ -442,26 +442,9 @@ function decode_pulseq_libraries(eventLibraries)
     return PulseqDecodedLibraries(
         grad_library,
         rf_library,
-        rf_half_steps,
         adc_library,
         extension_library,
     )
-end
-
-function update_first_last!(grad_prev_last, iG, ::PulseqTrapGradEvent, block_duration, event_libraries, grad_durations, g_id)
-    grad_prev_last[iG] = 0.0
-    return nothing
-end
-
-function update_first_last!(grad_prev_last, iG, g::PulseqArbGradEvent, block_duration, event_libraries, grad_durations, g_id)
-    grad_duration = get!(grad_durations, g_id) do
-        updated = update_first_last_grad(g, grad_prev_last[iG], event_libraries.shape_library)
-        event_libraries.grad_library[g_id] = updated
-        pulseq_event_duration(updated, event_libraries.shape_library, event_libraries.definitions.gradient_raster_time)
-    end
-    g = event_libraries.grad_library[g_id]
-    grad_prev_last[iG] = grad_duration + eps(Float64) < block_duration ? 0 : g.last
-    return nothing
 end
 
 update_first_last_grad(g::PulseqArbGradEvent, first, shape_library) = PulseqArbGradEvent(
@@ -472,6 +455,23 @@ update_first_last_grad(g::PulseqArbGradEvent, first, shape_library) = PulseqArbG
     g.time_shape_id,
     g.delay,
 )
+
+function update_first_last!(::PulseqTrapGradEvent, grad_prev_last, iG, eventIDs, block_duration, event_libraries, next_grad_id)
+    grad_prev_last[iG] = 0.0
+    return next_grad_id
+end
+
+function update_first_last!(g::PulseqArbGradEvent, grad_prev_last, iG, eventIDs, block_duration, event_libraries, next_grad_id)
+    updated = update_first_last_grad(g, grad_prev_last[iG], event_libraries.shape_library)
+    if updated != g
+        next_grad_id += 1
+        event_libraries.grad_library[next_grad_id] = updated
+        eventIDs[1 + iG] = next_grad_id
+    end
+    duration = pulseq_event_duration(updated, event_libraries.shape_library, event_libraries.definitions.gradient_raster_time)
+    grad_prev_last[iG] = duration + eps(Float64) < block_duration ? 0 : updated.last
+    return next_grad_id
+end
 
 function pulseq_last_gradient_sample(first, g::PulseqArbGradEvent, shape_library)
     waveform = g.amplitude * decompress_shape(shape_library[g.amp_shape_id]...)
@@ -506,8 +506,7 @@ end
     rf = decoded_or_empty(decodedLibraries.rfs, irf, PULSEQ_EMPTY_RF)
     adc = decoded_or_empty(decodedLibraries.adcs, iadc, PULSEQ_EMPTY_ADC)
     ext = decoded_or_empty(decodedLibraries.extensions, iext, PULSEQ_EMPTY_EXTENSIONS)
-    add_half_Δt_rf = irf != 0 && decodedLibraries.rf_half_steps[irf]
-    return Gx, Gy, Gz, rf, add_half_Δt_rf, adc, ext
+    return Gx, Gy, Gz, rf, adc, ext
 end
 
 # Decode dense block-id tables into concrete runtime events and build the Sequence.
@@ -535,7 +534,7 @@ end
 
 @inline function fill_decoded_block!(GR, RFs, ADCs, DUR, EXTs, blocks, definitions, decodedLibraries, i)
     block = blocks[i]
-    Gx, Gy, Gz, rf, _, adc, ext = decoded_block(
+    Gx, Gy, Gz, rf, adc, ext = decoded_block(
         decodedLibraries,
         block.rf_id,
         block.gx_id,
@@ -880,12 +879,35 @@ function get_Grad(grad::PulseqArbGradEvent, shapeLibrary, Δt_gr)
         rise, fall = Δt_gr/2, Δt_gr/2
     else
         gt = decompress_shape(shapeLibrary[time_shape_id]...)
+        # MATLAB Pulseq may write compact raster timing as an explicit shape.
+        timing = compact_pulseq_grad_timing(gt, n_gr, Δt_gr)
+        if timing !== nothing
+            gT, rise, fall = timing
+            return Grad(gA, gT, rise, fall, delay, first_grads, last_grads)
+        end
         gt[1] == 0 || @warn "Gradient time shape $time_shape_id starting at a non-zero value $(gt[1]). This is not recommended and may not be supported properly\n (see https://github.com/pulseq/pulseq/issues/188#issuecomment-3541588756) " maxlog=1
         delay += gt[1] * Δt_gr # offset due to the shape starting at a non-zero value. This case 
         gT = diff(gt) * Δt_gr
         rise, fall = 0.0, 0.0
     end
     return Grad(gA, gT, rise, fall, delay, first_grads, last_grads)
+end
+
+function compact_pulseq_grad_timing(gt, n_gr, Δt_gr)
+    n = n_gr + 1
+    length(gt) == n || return nothing
+    default_timing = true
+    oversampled_timing = isodd(n)
+    for i in 1:n
+        default_timing &&
+            (default_timing = isapprox(gt[i], i - 0.5; rtol=0, atol=PULSEQ_TIME_TOL))
+        oversampled_timing &&
+            (oversampled_timing = isapprox(gt[i], i / 2; rtol=0, atol=PULSEQ_TIME_TOL))
+        (default_timing || oversampled_timing) || return nothing
+    end
+    default_timing && return n_gr * Δt_gr, Δt_gr/2, Δt_gr/2
+    oversampled_timing && return n_gr * Δt_gr / 2, Δt_gr/2, Δt_gr/2
+    return nothing
 end
 
 """
@@ -907,15 +929,11 @@ function get_RF(rfLibrary, shapeLibrary, Δt_rf, i)
     return get_RF(rfLibrary[i], shapeLibrary, Δt_rf)
 end
 
-pulseq_rf_adds_half_step(r::PulseqRFEvent) = r.time_shape_id <= 0
-
 function get_RF(r::PulseqRFEvent, shapeLibrary, rf_raster_time; use=get_RF_use_from_char(Val(r.use)))
     amplitude = r.amplitude
     mag_id = r.mag_id
     phase_id = r.phase_id
     time_shape_id = r.time_shape_id
-    first_sample_offset = time_shape_id <= 0 ? rf_raster_time / 2 : 0.0
-    delay = r.delay + first_sample_offset
     freq = r.freq
     phase = r.phase
     # Some Pulseq writers emit zero-amplitude RFs.
@@ -931,18 +949,23 @@ function get_RF(r::PulseqRFEvent, shapeLibrary, rf_raster_time; use=get_RF_use_f
         Nrf = 0
     end
     #Creating timings
+    time_shape_start = 0.0
     if time_shape_id == 0 #no time waveform. Default time raster
         rfT = Nrf * rf_raster_time
     elseif time_shape_id == -1 #New in pulseq 1.5.x: no time waveform. 1/2 of the default time raster
         rfT = Nrf * rf_raster_time / 2
     else #time waveform
         rft = decompress_shape(shapeLibrary[time_shape_id]...)
-        first_sample_offset = rft[1] * rf_raster_time
-        delay += first_sample_offset # offset due to the shape starting at a non-zero value
+        time_shape_start = rft[1] * rf_raster_time
         rfT = diff(rft) * rf_raster_time
     end
-    center = isnothing(r.center) ? nothing : r.center - first_sample_offset
-    return RF(rfAϕ, rfT, freq, delay; center, ϕ=phase, use)
+    rf_delay = r.delay + time_shape_start
+    center = isnothing(r.center) ? nothing : r.center - time_shape_start
+    if time_shape_id <= PULSEQ_DEFAULT_TIME_SHAPE_ID
+        rf_delay += rf_raster_time / 2
+        isnothing(center) || (center -= rf_raster_time / 2)
+    end
+    return RF(rfAϕ, rfT, freq, rf_delay; center, ϕ=phase, use)
 end
 
 """
@@ -969,7 +992,7 @@ function get_ADC(a::PulseqADCEvent)
     freq = a.freq
     phase = a.phase
     #Definition
-    T = (num-1) * dwell
+    T = num == 1 ? dwell : (num - 1) * dwell
     return ADC(num,T,delay,freq,phase)
 end
 

@@ -1,11 +1,16 @@
 """Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
-struct BlochCPUPrealloc{T} <: PreallocResult{T}
-    M::Mag{T}                               # Mag{T}
-    Bz_old::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    Bz_new::AbstractVector{T}               # Vector{T}(Nspins x 1)
-    ϕ::AbstractVector{T}                    # Vector{T}(Nspins x 1)
-    Rot::Spinor{T}                          # Spinor{T}
-    ΔBz::AbstractVector{T}            # Vector{T}(Nspins x 1)
+struct BlochCPUPrealloc{
+    T,
+    MT<:Mag{T},
+    RV<:AbstractVector{T},
+    ST<:Spinor{T},
+} <: PreallocResult{T}
+    M::MT
+    Bz_old::RV
+    Bz_new::RV
+    ϕ::RV
+    Rot::ST
+    ΔBz::RV
 end
 
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
@@ -65,12 +70,12 @@ function run_spin_precession!(
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
-    x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[1])
+    x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[1])
     @. Bz_old = x * seq.Gx[1] + y * seq.Gy[1] + z * seq.Gz[1] + ΔBz
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
         #Effective Field
         @. Bz_new = x * seq.Gx[i + 1] + y * seq.Gy[i + 1] + z * seq.Gz[i + 1] + ΔBz
         #Rotation
@@ -132,21 +137,22 @@ function run_spin_excitation!(
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t[i])
+        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i])
         #Effective field
         @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        @. B = sqrt(abs(seq.B1[i])^2 + abs(Bz)^2)
-        @. B[B == 0] = eps(T)
+        @. B = sqrt(abs2(seq.B1[i]) + Bz^2)
         #Spinor Rotation
         @. φ_half = T(-π * γ) * (B * seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
-        @. α = cos(φ_half) - Complex{T}(im) * (Bz / B) * sin(φ_half)
-        @. β = -Complex{T}(im) * (seq.B1[i] / B) * sin(φ_half)
+        @. α = cos(φ_half)
+        @. B = sin(φ_half) / (B + (B == 0) * eps(T))
+        @. α -= Complex{T}(im) * Bz * B
+        @. β = -Complex{T}(im) * seq.B1[i] * B
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
         @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
         #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset!(M,  seq.t[i + 1, :], p.motion; replace_by=p.ρ)
+        outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
             sig[sample] = sum(M.xy) 

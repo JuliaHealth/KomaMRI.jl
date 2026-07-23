@@ -1,6 +1,3 @@
-# Prevent Plots/GR tutorial animations from opening GUI windows during docs builds.
-get!(ENV, "GKSwstype", "100")
-
 using Documenter, DocumenterVitepress, Literate, KomaMRI, PlutoSliderServer
 
 # Setup for Literate and Pluto
@@ -10,7 +7,7 @@ lit_pattern = "lit-"
 plu_pattern = "pluto-"
 gen_pattern = "gen-"
 include("utils.jl")
-include("EmbeddPlotlyJSSyncPlotLiterate.jl")
+include("EmbedPlotlyBaseLiterate.jl")
 
 # Documentation folders KomaMRI.jl/docs/
 doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")

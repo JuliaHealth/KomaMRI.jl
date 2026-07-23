@@ -255,7 +255,7 @@ To display the image, you can use the [`plot_image`](@ref) function which is par
 julia> plot_image(image)
 ```
 ```@raw html
-<center><object type="text/html" data="../assets/image-default-brain.html" style="width:100%; height:620px;"></object></center>
+<div style="text-align:center;"><object type="text/html" data="../assets/image-default-brain.html" style="width:100%; height:620px;"></object></div>
 ```
 
 

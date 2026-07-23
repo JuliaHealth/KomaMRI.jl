@@ -1,6 +1,5 @@
 [deps]
-Blink = "ad839575-38b3-5650-b840-f874b8c74a25"
-Interact = "c601a237-2ae4-5e1e-952c-7a85b0c7eef1"
+Bonito = "824d6782-a2ef-11e9-3a09-e5662e0c26f8"
 KomaMRI = "6a340f8b-2cdf-4c04-99be-4953d9b66d0a"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.28
 
 #> [frontmatter]
 #> image = "https://upload.wikimedia.org/wikipedia/commons/a/a0/Textformatting.svg"
@@ -14,27 +14,6 @@
 
 using Markdown
 using InteractiveUtils
-
-# ╔═╡ 7deadd58-b202-4508-b4c7-686f742cb713
-begin
-	begin
-		using Pkg
-		begin
-		  println("OS $(Base.Sys.MACHINE)")    # OS
-		  println("Julia $VERSION")            # Julia version
-		  # Koma sub-packages
-		  for (_, pkg) in filter(((_, pkg),) -> occursin("KomaMRI", pkg.name), Pkg.dependencies())
-		    println("$(pkg.name) $(pkg.version)")
-		  end
-		end
-	end
-end
-
-# ╔═╡ 0b7a405e-bbb5-11ee-05ca-4b1c8567398d
-using KomaMRICore, KomaMRIPlots, PlutoPlotly # Essentials
-
-# ╔═╡ 70dbc2bd-8b93-471d-8340-04d98a008ca6
-using Suppressor, PlutoUI, ProgressLogging # Extras
 
 # ╔═╡ a99c0c47-1b70-4362-a2f6-a7e3259606fa
 md"""# Low-Field BOOST Optimization
@@ -62,6 +41,12 @@ md"## 1.1. Loading required packages"
 # ╔═╡ f49655cc-460e-4981-92ea-dfd6147308bf
 md"Bloch simulations were performed using **KomaMRI.jl** to optimize the proposed whole-heart BOOST parameters."
 
+# ╔═╡ 0b7a405e-bbb5-11ee-05ca-4b1c8567398d
+using KomaMRICore, KomaMRIPlots, PlutoPlotly # Essentials
+
+# ╔═╡ 70dbc2bd-8b93-471d-8340-04d98a008ca6
+using Suppressor, PlutoUI, ProgressLogging # Extras
+
 # ╔═╡ 77153e5c-71bd-42e3-bae9-e4811ffa7a3d
 md"""## 1.2. Scanner
 
@@ -83,68 +68,6 @@ md"## 1.3. Sequence"
 md"""
 The BOOST sequence (`BOOST`) consists of:
 """
-
-# ╔═╡ cb659118-9f22-43c3-801d-49241dee4df6
-begin
-	# General sequence parameters
-	Trf = 500e-6  			# 500 [ms]
-	B1 = 1 / (360*γ*Trf)    # B1 amplitude [uT]
-	Tadc = 1e-6 			# 1us
-
-	# Prepulses
-	Tfatsat = 26.624e-3     # 26.6 [ms]
-	T2prep_duration = 50e-3 # 50 [ms]
-
-	# Acquisition
-	RR = 1.0 				# 1 [s]
-	dummy_heart_beats = 3 	# Steady-state
-	TR = 5.3e-3             # 5.3 [ms] RF Low SAR
-	TE = TR / 2 			# bSSFP condition
-	iNAV_lines = 6          # FatSat-Acq delay: iNAV_lines * TR
-	iNAV_flip_angle = 3.2   # 3.2 [deg]
-	im_segments = 20        # Acquisitino window: im_segments * TR
-
-	# To be optimized
-	im_flip_angle = [110, 80] # 80 [deg]
-	FatSat_flip_angle = 180   # 180 [deg]
-	IR_inversion_time = 90e-3 # 90 [ms] 
-
-	seq_params = (;
-		dummy_heart_beats,
-		iNAV_lines,
-		im_segments,
-		iNAV_flip_angle,
-		im_flip_angle,
-		T2prep_duration,
-		IR_inversion_time,
-		FatSat_flip_angle,
-		RR
-	)
-
-	seq_params
-end
-
-# ╔═╡ 42417eba-46e0-400e-a874-299533362c41
-md"Below we are showing the **bright-blood contrast** (containing a T2p-IR pulse):"
-
-# ╔═╡ 4aab8a6f-d2ba-46f0-a1bf-ddc0dcf8437f
-md"and **reference contrast** (only containing a FatSat pulse), later used to obtain the black-blood contrast by subtracting the bright-blood contrast. Note that this contrast has a different flip angle."
-
-# ╔═╡ a15d6b64-f8ee-4ee4-812c-d49cf5ea784d
-md"""
-## 1.4. Phantom
-Each tissue was represented with 200 isochromats distributed along the $z$-axis to simulate gradient spoiling effects. The isochromats for each tissue were inside a 1D voxel of size $1.5\,\mathrm{mm}$. The values for $T_1$ and $T_2$ for blood, myocardial muscle, and fat at 0.55T were obtained from the work of Campbell-Washburn, et al. Fat spins were simulated using a chemical shift of $-3.4\,\mathrm{ppm}$, simulating regular fat with $T_1=183\,\mathrm{ms}$, and fast-recovering fat with $T_1=130\,\mathrm{ms}$.
-"""
-
-# ╔═╡ f0a81c9f-5616-4663-948f-a4084e1719af
-begin
-    fat_ppm = -3.4e-6 			# -3.4ppm fat-water frequency shift
-    Niso = 200        			# 200 isochromats in spoiler direction
-    Δx_voxel = 1.5e-3 			# 1.5 [mm]
-    fat_freq = γ*sys.B0*fat_ppm # -80 [Hz]
-    dx = Array(range(-Δx_voxel/2, Δx_voxel/2, Niso))
-	md"- Phantom parameters (show/hide code)"
-end
 
 # ╔═╡ 6b870443-7be5-4287-b957-ca5c14eda89c
 begin
@@ -318,6 +241,74 @@ begin
 	```"""
 end
 
+# ╔═╡ cb659118-9f22-43c3-801d-49241dee4df6
+begin
+	# General sequence parameters
+	Trf = 500e-6  			# 500 [ms]
+	B1 = 1 / (360*γ*Trf)    # B1 amplitude [uT]
+	Tadc = 1e-6 			# 1us
+
+	# Prepulses
+	Tfatsat = 26.624e-3     # 26.6 [ms]
+	T2prep_duration = 50e-3 # 50 [ms]
+
+	# Acquisition
+	RR = 1.0 				# 1 [s]
+	dummy_heart_beats = 3 	# Steady-state
+	TR = 5.3e-3             # 5.3 [ms] RF Low SAR
+	TE = TR / 2 			# bSSFP condition
+	iNAV_lines = 6          # FatSat-Acq delay: iNAV_lines * TR
+	iNAV_flip_angle = 3.2   # 3.2 [deg]
+	im_segments = 20        # Acquisitino window: im_segments * TR
+
+	# To be optimized
+	im_flip_angle = [110, 80] # 80 [deg]
+	FatSat_flip_angle = 180   # 180 [deg]
+	IR_inversion_time = 90e-3 # 90 [ms]
+
+	seq_params = (;
+		dummy_heart_beats,
+		iNAV_lines,
+		im_segments,
+		iNAV_flip_angle,
+		im_flip_angle,
+		T2prep_duration,
+		IR_inversion_time,
+		FatSat_flip_angle,
+		RR
+	)
+
+	seq_params
+end
+
+# ╔═╡ 42417eba-46e0-400e-a874-299533362c41
+md"Below we are showing the **bright-blood contrast** (containing a T2p-IR pulse):"
+
+# ╔═╡ 0b6c1f72-b040-483c-969b-88bfe09b32c3
+plot_seq(seq; range=[5990, 6280], slider=true)
+
+# ╔═╡ 4aab8a6f-d2ba-46f0-a1bf-ddc0dcf8437f
+md"and **reference contrast** (only containing a FatSat pulse), later used to obtain the black-blood contrast by subtracting the bright-blood contrast. Note that this contrast has a different flip angle."
+
+# ╔═╡ 88eb41a5-d8c2-4f0e-b379-a8b05a341a82
+plot_seq(seq; range=[6900, 7190], slider=true)
+
+# ╔═╡ a15d6b64-f8ee-4ee4-812c-d49cf5ea784d
+md"""
+## 1.4. Phantom
+Each tissue was represented with 200 isochromats distributed along the $z$-axis to simulate gradient spoiling effects. The isochromats for each tissue were inside a 1D voxel of size $1.5\,\mathrm{mm}$. The values for $T_1$ and $T_2$ for blood, myocardial muscle, and fat at 0.55T were obtained from the work of Campbell-Washburn, et al. Fat spins were simulated using a chemical shift of $-3.4\,\mathrm{ppm}$, simulating regular fat with $T_1=183\,\mathrm{ms}$, and fast-recovering fat with $T_1=130\,\mathrm{ms}$.
+"""
+
+# ╔═╡ f0a81c9f-5616-4663-948f-a4084e1719af
+begin
+    fat_ppm = -3.4e-6 			# -3.4ppm fat-water frequency shift
+    Niso = 200        			# 200 isochromats in spoiler direction
+    Δx_voxel = 1.5e-3 			# 1.5 [mm]
+    fat_freq = γ*sys.B0*fat_ppm # -80 [Hz]
+    dx = Array(range(-Δx_voxel/2, Δx_voxel/2, Niso))
+	md"- Phantom parameters (show/hide code)"
+end
+
 # ╔═╡ f57a2b6c-eb4c-45bd-8058-4a60b038925d
 begin
 	function cardiac_phantom(off; off_fat=fat_freq)
@@ -334,44 +325,6 @@ begin
 	end
 	md"- Cardiac phantom (show/hide code)"
 end
-
-# ╔═╡ f21e9e59-25c3-4f06-8de4-792cb305eb01
-md"""# 2. Simulation
-
-Two simulation experiments were performed to optimize the sequence parameters, (1) to optimize the imaging flip angle, and (2) to optimize the FatSat flip angle.
-
-"""
-
-# ╔═╡ eceb326a-cab6-465e-8e5c-e835881bd3b0
-md"""
-## 2.0. Magnetization dynamics
-"""
-
-# ╔═╡ d54d6807-444f-4e0e-8fd6-84457974115a
-md"Here we show the magnetization dynamics of the myocardium, blood, and fat signals at 0.55T."
-
-# ╔═╡ d05dcba7-2f42-47bf-a172-6123d0113b3f
-sim_params = Dict{String,Any}(
-	"return_type"=>"mat",
-	"sim_method"=>BlochDict(save_Mz=true),
-	"Δt_rf"=>Trf,
-	"gpu"=>false,
-	"Nthreads"=>1
-)
-
-# ╔═╡ 37f7fd7f-5cb1-48b5-b877-b2bc23a1e7dd
-begin
-    seq = BOOST(seq_params...; sample_recovery=ones(Bool, dummy_heart_beats+1))
-	obj = cardiac_phantom(0)
-    magnetization = @suppress simulate(obj, seq, sys; sim_params)
-	nothing # hide output
-end
-
-# ╔═╡ 0b6c1f72-b040-483c-969b-88bfe09b32c3
-plot_seq(seq; range=[5990, 6280], slider=true)
-
-# ╔═╡ 88eb41a5-d8c2-4f0e-b379-a8b05a341a82
-plot_seq(seq; range=[6900, 7190], slider=true)
 
 # ╔═╡ 1a62ae71-58db-49ea-ae6a-9aea66145963
 begin
@@ -444,6 +397,38 @@ begin
 	[phantom_T1 phantom_T2]
 end
 
+# ╔═╡ f21e9e59-25c3-4f06-8de4-792cb305eb01
+md"""# 2. Simulation
+
+Two simulation experiments were performed to optimize the sequence parameters, (1) to optimize the imaging flip angle, and (2) to optimize the FatSat flip angle.
+
+"""
+
+# ╔═╡ eceb326a-cab6-465e-8e5c-e835881bd3b0
+md"""
+## 2.0. Magnetization dynamics
+"""
+
+# ╔═╡ d54d6807-444f-4e0e-8fd6-84457974115a
+md"Here we show the magnetization dynamics of the myocardium, blood, and fat signals at 0.55T."
+
+# ╔═╡ d05dcba7-2f42-47bf-a172-6123d0113b3f
+sim_params = Dict{String,Any}(
+	"return_type"=>"mat",
+	"sim_method"=>BlochDict(save_Mz=true),
+	"Δt_rf"=>Trf,
+	"gpu"=>false,
+	"Nthreads"=>1
+)
+
+# ╔═╡ 37f7fd7f-5cb1-48b5-b877-b2bc23a1e7dd
+begin
+    seq = BOOST(seq_params...; sample_recovery=ones(Bool, dummy_heart_beats+1))
+	obj = cardiac_phantom(0)
+    magnetization = @suppress simulate(obj, seq, sys; sim_params)
+	nothing # hide output
+end
+
 # ╔═╡ d9715bc1-49cd-4df8-8dbf-c06de42ad550
 begin
     # Prep plots
@@ -510,94 +495,6 @@ begin
 		magaux = @suppress simulate(obj1, seq1, sys; sim_params=sim_params1)
 		mag1[:, :, n, m] .= magaux[end-im_segments+1:end, :] # Last heartbeat
     end
-end
-
-# ╔═╡ d0377f9a-680d-4501-90ca-9ea3ab681db4
-md"""## 2.2. Reference contrast fat: FatSat flip angle optimization
-
-For the second simulation experiment, the fat signal was minimized by varying the FatSat flip angle (between 20 and 250 deg) using six iNAV readouts (identified experimentally to result in good fat suppression). To be robust to $B_0$ inhomogeneities, multiple simulations with tissue frequency shifts (between $-1$ and $1\,\mathrm{ppm}$, twice of what was reported by Restivo et al.) were performed, and the mean and standard deviation of the obtained fat signal were calculated."""
-
-# ╔═╡ d750cd5a-3c90-41ea-9942-5723a21da60a
-begin
-    FFAs = 20:20:250 						 # flip angle [deg]
-	Δfs = (-1:0.2:1) .* (γ * sys.B0 * 1e-6)  # off-resonance Δf [s]
-    mag2 = zeros(ComplexF64, im_segments, Niso*4, length(FFAs), length(Δfs))
-    @progress for (m, Δf) = enumerate(Δfs), (n, FatSat_flip_angle) = enumerate(FFAs)
-		seq_params2 = merge(seq_params, (; FatSat_flip_angle))
-		sim_params2 = merge(sim_params, Dict("sim_method"=>BlochDict()))
-		seq2        = BOOST(seq_params2...)
-		obj2        = cardiac_phantom(Δf)
-		magaux = @suppress simulate(obj2, seq2, sys; sim_params=sim_params2)
-		mag2[:, :, n, m] .= magaux[end-im_segments+1:end, :] # Last heartbeat
-    end
-end
-
-# ╔═╡ b0b53632-e6b8-47e9-8d3e-79f1e599315a
-md" ## 2.3. Bright-blood SNR:"
-
-# ╔═╡ 14cf6859-a4b9-4671-b022-659781c55144
-begin
-    mag4 = zeros(ComplexF64, im_segments, Niso*4, length(FAs), length(RRs))
-    @progress for (m, RR) = enumerate(RRs), (n, α) = enumerate(FAs)
-		seq_params4 = merge(seq_params, (; im_flip_angle=[α, 80], RR))
-		sim_params4 = merge(sim_params, Dict("sim_method"=>BlochDict()))
-		seq4        = BOOST(seq_params4...)
-		obj4        = cardiac_phantom(0)
-		magaux = @suppress simulate(obj4, seq4, sys; sim_params=sim_params4)
-		mag4[:, :, n, m] .= magaux[end-2im_segments+1:end-im_segments, :] # Bright-Blood
-    end
-end
-
-# ╔═╡ c64d38cb-2433-4b90-abbf-1fc938f70584
-md"## 2.4. Bright-Blood fat: Inversion delay"
-
-# ╔═╡ c952ecf1-25ef-4b48-9c8f-e53ded302629
-begin
-    TIs = (50:10:130) # Inversion delay [ms]
-    mag3 = zeros(ComplexF64, im_segments, Niso*4, length(TIs), length(Δfs))
-    @progress for (m, Δf) = enumerate(Δfs), (n, TI) = enumerate(TIs)
-		seq_params3 = merge(seq_params, (; IR_inversion_time=TI * 1e-3, RR))
-		sim_params3 = merge(sim_params, Dict("sim_method"=>BlochDict()))
-		seq3        = BOOST(seq_params3...)
-		obj3        = cardiac_phantom(Δf)
-		magaux = @suppress simulate(obj3, seq3, sys; sim_params=sim_params3)
-		mag3[:, :, n, m] .= magaux[end-2im_segments+1:end-im_segments, :] # Bright-Blood
-    end
-end
-
-# ╔═╡ 85834365-238b-4193-a0c0-d1859416ab6c
-md" ## 2.5. Bright-blood contrast: T2prep duration"
-
-# ╔═╡ 50b551d8-a212-4319-b25b-1f8ecdd2a491
-begin
-    T2ps = (20:10:80) # T2prep duration [ms]
-    mag5bb = zeros(ComplexF64, im_segments, Niso*4, length(T2ps), length(RRs))
-	mag5rf = zeros(ComplexF64, im_segments, Niso*4, length(T2ps), length(RRs))
-    @progress for (m, RR) = enumerate(RRs), (n, T2p) = enumerate(T2ps)
-		seq_params5 = merge(seq_params, (; T2prep_duration=T2p * 1e-3, RR))
-		sim_params5 = merge(sim_params, Dict("sim_method"=>BlochDict()))
-		seq5        = BOOST(seq_params5...)
-		obj5        = cardiac_phantom(0)
-		magaux = @suppress simulate(obj5, seq5, sys; sim_params=sim_params5)
-		# Bright-Blood
-		mag5bb[:, :, n, m] .= magaux[end-2im_segments+1:end-im_segments, :]
-		# Reference contrast
-		mag5rf[:, :, n, m] .= magaux[end-im_segments+1:end, :] 
-    end
-end
-
-# ╔═╡ 4b1dc8bf-feb1-42b4-94f7-1b27975d944c
-md"## 2.6. Black-blood contrast: T2prep duration"
-
-# ╔═╡ 8dc11175-ebc8-407a-ab0b-6d543f849a72
-begin
-	# Labels
-	labels = ["Myocardium", "Blood", "Fat (T₁=183 ms)", "Fat (T₁=130 ms)"]
-	colors = ["blue", "red", "green", "purple"]
-	spins = [(1:Niso)', ((Niso + 1):(2Niso))', ((2Niso + 1):(3Niso))', ((3Niso + 1):(4Niso))']
-	mean(x, dim) = sum(x; dims=dim) / size(x, dim)
-	std(x, dim; mu=mean(x, dim)) = sqrt.(sum(abs.(x .- mu) .^ 2; dims=dim) / (size(x, dim) - 1))
-	md"Aux functions (show/hide code)"
 end
 
 # ╔═╡ f73082ff-a6d3-41f8-8796-4114fa89d2bb
@@ -693,6 +590,26 @@ begin
 	    hovermode="x unified",
 	)
 	fig
+end
+
+# ╔═╡ d0377f9a-680d-4501-90ca-9ea3ab681db4
+md"""## 2.2. Reference contrast fat: FatSat flip angle optimization
+
+For the second simulation experiment, the fat signal was minimized by varying the FatSat flip angle (between 20 and 250 deg) using six iNAV readouts (identified experimentally to result in good fat suppression). To be robust to $B_0$ inhomogeneities, multiple simulations with tissue frequency shifts (between $-1$ and $1\,\mathrm{ppm}$, twice of what was reported by Restivo et al.) were performed, and the mean and standard deviation of the obtained fat signal were calculated."""
+
+# ╔═╡ d750cd5a-3c90-41ea-9942-5723a21da60a
+begin
+    FFAs = 20:20:250 						 # flip angle [deg]
+	Δfs = (-1:0.2:1) .* (γ * sys.B0 * 1e-6)  # off-resonance Δf [s]
+    mag2 = zeros(ComplexF64, im_segments, Niso*4, length(FFAs), length(Δfs))
+    @progress for (m, Δf) = enumerate(Δfs), (n, FatSat_flip_angle) = enumerate(FFAs)
+		seq_params2 = merge(seq_params, (; FatSat_flip_angle))
+		sim_params2 = merge(sim_params, Dict("sim_method"=>BlochDict()))
+		seq2        = BOOST(seq_params2...)
+		obj2        = cardiac_phantom(Δf)
+		magaux = @suppress simulate(obj2, seq2, sys; sim_params=sim_params2)
+		mag2[:, :, n, m] .= magaux[end-im_segments+1:end, :] # Last heartbeat
+    end
 end
 
 # ╔═╡ 44a31057-7b34-4c80-a273-6621c0773dc7
@@ -814,6 +731,22 @@ begin
 	fig2
 end
 
+# ╔═╡ b0b53632-e6b8-47e9-8d3e-79f1e599315a
+md" ## 2.3. Bright-blood SNR:"
+
+# ╔═╡ 14cf6859-a4b9-4671-b022-659781c55144
+begin
+    mag4 = zeros(ComplexF64, im_segments, Niso*4, length(FAs), length(RRs))
+    @progress for (m, RR) = enumerate(RRs), (n, α) = enumerate(FAs)
+		seq_params4 = merge(seq_params, (; im_flip_angle=[α, 80], RR))
+		sim_params4 = merge(sim_params, Dict("sim_method"=>BlochDict()))
+		seq4        = BOOST(seq_params4...)
+		obj4        = cardiac_phantom(0)
+		magaux = @suppress simulate(obj4, seq4, sys; sim_params=sim_params4)
+		mag4[:, :, n, m] .= magaux[end-2im_segments+1:end-im_segments, :] # Bright-Blood
+    end
+end
+
 # ╔═╡ 6649f46e-3565-4cd6-86a5-9b03d00cc3db
 begin
 	# Reducing tissues's signal
@@ -907,6 +840,23 @@ begin
 	    hovermode="x unified",
 	)
 	fig4
+end
+
+# ╔═╡ c64d38cb-2433-4b90-abbf-1fc938f70584
+md"## 2.4. Bright-Blood fat: Inversion delay"
+
+# ╔═╡ c952ecf1-25ef-4b48-9c8f-e53ded302629
+begin
+    TIs = (50:10:130) # Inversion delay [ms]
+    mag3 = zeros(ComplexF64, im_segments, Niso*4, length(TIs), length(Δfs))
+    @progress for (m, Δf) = enumerate(Δfs), (n, TI) = enumerate(TIs)
+		seq_params3 = merge(seq_params, (; IR_inversion_time=TI * 1e-3, RR))
+		sim_params3 = merge(sim_params, Dict("sim_method"=>BlochDict()))
+		seq3        = BOOST(seq_params3...)
+		obj3        = cardiac_phantom(Δf)
+		magaux = @suppress simulate(obj3, seq3, sys; sim_params=sim_params3)
+		mag3[:, :, n, m] .= magaux[end-2im_segments+1:end-im_segments, :] # Bright-Blood
+    end
 end
 
 # ╔═╡ a8751a97-c131-407b-b211-573660452142
@@ -1029,6 +979,27 @@ begin
 end
 
 
+# ╔═╡ 85834365-238b-4193-a0c0-d1859416ab6c
+md" ## 2.5. Bright-blood contrast: T2prep duration"
+
+# ╔═╡ 50b551d8-a212-4319-b25b-1f8ecdd2a491
+begin
+    T2ps = (20:10:80) # T2prep duration [ms]
+    mag5bb = zeros(ComplexF64, im_segments, Niso*4, length(T2ps), length(RRs))
+	mag5rf = zeros(ComplexF64, im_segments, Niso*4, length(T2ps), length(RRs))
+    @progress for (m, RR) = enumerate(RRs), (n, T2p) = enumerate(T2ps)
+		seq_params5 = merge(seq_params, (; T2prep_duration=T2p * 1e-3, RR))
+		sim_params5 = merge(sim_params, Dict("sim_method"=>BlochDict()))
+		seq5        = BOOST(seq_params5...)
+		obj5        = cardiac_phantom(0)
+		magaux = @suppress simulate(obj5, seq5, sys; sim_params=sim_params5)
+		# Bright-Blood
+		mag5bb[:, :, n, m] .= magaux[end-2im_segments+1:end-im_segments, :]
+		# Reference contrast
+		mag5rf[:, :, n, m] .= magaux[end-im_segments+1:end, :]
+    end
+end
+
 # ╔═╡ eb0f1e07-24a1-4aa4-b3ef-b63caa97de34
 begin
 	# Reducing tissues's signal
@@ -1123,6 +1094,9 @@ begin
 	)
 	fig5
 end
+
+# ╔═╡ 4b1dc8bf-feb1-42b4-94f7-1b27975d944c
+md"## 2.6. Black-blood contrast: T2prep duration"
 
 # ╔═╡ 10e68e25-9f68-46c0-b1b0-e9b124706b67
 begin
@@ -1229,6 +1203,17 @@ begin
 end
 
 
+# ╔═╡ 8dc11175-ebc8-407a-ab0b-6d543f849a72
+begin
+	# Labels
+	labels = ["Myocardium", "Blood", "Fat (T₁=183 ms)", "Fat (T₁=130 ms)"]
+	colors = ["blue", "red", "green", "purple"]
+	spins = [(1:Niso)', ((Niso + 1):(2Niso))', ((2Niso + 1):(3Niso))', ((3Niso + 1):(4Niso))']
+	mean(x, dim) = sum(x; dims=dim) / size(x, dim)
+	std(x, dim; mu=mean(x, dim)) = sqrt.(sum(abs.(x .- mu) .^ 2; dims=dim) / (size(x, dim) - 1))
+	md"Aux functions (show/hide code)"
+end
+
 # ╔═╡ 3d7e7d20-a77a-48b3-ad2e-6b621227be16
 md"""# References
  - **Castillo-Passi C**, Coronado R, Varela-Mattatall G, Alberola-López C, Botnar R, Irarrazaval P. KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration. Magnetic Resonance in Medicine. 2023;90(1):329-342. [doi:10.1002/mrm.29635](doi:10.1002/mrm.29635)
@@ -1243,6 +1228,21 @@ This [Pluto notebook](https://plutojl.org/) is reproducible by default, as it ha
 
 
 
+# ╔═╡ 7deadd58-b202-4508-b4c7-686f742cb713
+begin
+	begin
+		using Pkg
+		begin
+		  println("OS $(Base.Sys.MACHINE)")    # OS
+		  println("Julia $VERSION")            # Julia version
+		  # Koma sub-packages
+		  for (_, pkg) in filter(((_, pkg),) -> occursin("KomaMRI", pkg.name), Pkg.dependencies())
+		    println("$(pkg.name) $(pkg.version)")
+		  end
+		end
+	end
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -1256,7 +1256,7 @@ Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 
 [compat]
 KomaMRICore = "~0.9.1"
-KomaMRIPlots = "~0.9.2"
+KomaMRIPlots = "~0.9.6"
 PlutoPlotly = "~0.5.0"
 PlutoUI = "~0.7.62"
 ProgressLogging = "~0.1.4"
@@ -1267,9 +1267,9 @@ Suppressor = "~0.2.8"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.3"
+julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "069b6a09c4d18237bcd821a15a2481a56f6618cc"
+project_hash = "814b3ba221da7d939cccec07db655f26957d921e"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1283,22 +1283,25 @@ weakdeps = ["ChainRulesCore", "Test"]
     AbstractFFTsTestExt = "Test"
 
 [[deps.AbstractNFFTs]]
-deps = ["LinearAlgebra", "Printf"]
-git-tree-sha1 = "292e21e99dedb8621c15f185b8fdb4260bb3c429"
+deps = ["LinearAlgebra", "Printf", "Requires", "ScopedValues"]
+git-tree-sha1 = "27aa55535187ed2e62aff2883399a443944d0f55"
 uuid = "7f219486-4aa7-41d6-80a7-e08ef20ceed7"
-version = "0.8.2"
+version = "0.9.1"
+weakdeps = ["ChainRulesCore"]
+
+    [deps.AbstractNFFTs.extensions]
+    AbstractNFFTsChainRulesCoreExt = "ChainRulesCore"
 
 [[deps.AbstractPlutoDingetjes]]
-deps = ["Pkg"]
-git-tree-sha1 = "6e1d2a35f2f90a4bc7c2ed98079b2ba09c35b83a"
+git-tree-sha1 = "6c3913f4e9bdf6ba3c08041a446fb1332716cbc2"
 uuid = "6e696c72-6542-2067-7265-42206c756150"
-version = "1.3.2"
+version = "1.4.0"
 
 [[deps.Accessors]]
 deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "MacroTools"]
-git-tree-sha1 = "3b86719127f50670efe356bc11073d84b4ed7a5d"
+git-tree-sha1 = "7063ad1083578215c7c4bf410368150abe8d5524"
 uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
-version = "0.1.42"
+version = "0.1.45"
 
     [deps.Accessors.extensions]
     AxisKeysExt = "AxisKeys"
@@ -1319,10 +1322,10 @@ version = "0.1.42"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [[deps.Adapt]]
-deps = ["LinearAlgebra", "Requires"]
-git-tree-sha1 = "f7817e2e585aa6d924fd714df1e2a84be7896c60"
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "daa72978cd7a624246e894a4f4f067706d4e17e2"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
-version = "4.3.0"
+version = "4.7.0"
 weakdeps = ["SparseArrays", "StaticArrays"]
 
     [deps.Adapt.extensions]
@@ -1343,16 +1346,16 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 version = "1.11.0"
 
 [[deps.AssetRegistry]]
-deps = ["Distributed", "JSON", "Pidfile", "SHA", "Test"]
-git-tree-sha1 = "b25e88db7944f98789130d7b503276bc34bc098e"
+deps = ["JSON", "Pidfile", "SHA"]
+git-tree-sha1 = "902b85010203830d4bc02259f5450d2e16b316d8"
 uuid = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
-version = "0.1.0"
+version = "0.1.1"
 
 [[deps.Atomix]]
 deps = ["UnsafeAtomics"]
-git-tree-sha1 = "b5bb4dc6248fde467be2a863eb8452993e74d402"
+git-tree-sha1 = "b8651b2eb5796a386b0398a20b519a6a6150f75c"
 uuid = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
-version = "1.1.1"
+version = "1.1.3"
 
     [deps.Atomix.extensions]
     AtomixCUDAExt = "CUDA"
@@ -1374,9 +1377,9 @@ version = "1.1.0"
 
 [[deps.BangBang]]
 deps = ["Accessors", "ConstructionBase", "InitialValues", "LinearAlgebra"]
-git-tree-sha1 = "26f41e1df02c330c4fa1e98d4aa2168fdafc9b1f"
+git-tree-sha1 = "cceb62468025be98d42a5dc581b163c20896b040"
 uuid = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
-version = "0.4.4"
+version = "0.4.9"
 
     [deps.BangBang.extensions]
     BangBangChainRulesCoreExt = "ChainRulesCore"
@@ -1399,9 +1402,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 version = "1.11.0"
 
 [[deps.BaseDirs]]
-git-tree-sha1 = "cb25e4b105cc927052c2314f8291854ea59bf70a"
+git-tree-sha1 = "8c290a1b223deaeea9aea44b235d24546da8eb98"
 uuid = "18cc8868-cbac-4acf-b575-c8ff214dc66f"
-version = "1.2.4"
+version = "1.4.0"
 
 [[deps.Baselet]]
 git-tree-sha1 = "aebf55e6d7795e02ca500a689d326ac979aaf89e"
@@ -1409,9 +1412,9 @@ uuid = "9718e550-a3fa-408a-8086-8db961cd8217"
 version = "0.1.1"
 
 [[deps.BitFlags]]
-git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
+git-tree-sha1 = "bbe1079eecf9c9fbb52765193ad2bae27ae09bc8"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
-version = "0.1.9"
+version = "0.1.10"
 
 [[deps.Blink]]
 deps = ["Base64", "Distributed", "HTTP", "JSExpr", "JSON", "Lazy", "Logging", "MacroTools", "Mustache", "Mux", "Pkg", "Reexport", "Sockets", "WebIO"]
@@ -1419,16 +1422,11 @@ git-tree-sha1 = "bc93511973d1f949d45b0ea17878e6cb0ad484a1"
 uuid = "ad839575-38b3-5650-b840-f874b8c74a25"
 version = "0.12.9"
 
-[[deps.BufferedStreams]]
-git-tree-sha1 = "6863c5b7fc997eadcabdbaf6c5f201dc30032643"
-uuid = "e1450e63-4bb3-523b-b2a4-4ffa8c0fd77d"
-version = "1.2.2"
-
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra"]
-git-tree-sha1 = "1713c74e00545bfe14605d2a2be1712de8fbcb58"
+git-tree-sha1 = "12177ad6b3cad7fd50c8b3825ce24a99ad61c18f"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.25.1"
+version = "1.26.1"
 weakdeps = ["SparseArrays"]
 
     [deps.ChainRulesCore.extensions]
@@ -1442,9 +1440,9 @@ version = "0.7.8"
 
 [[deps.ColorSchemes]]
 deps = ["ColorTypes", "ColorVectorSpace", "Colors", "FixedPointNumbers", "PrecompileTools", "Random"]
-git-tree-sha1 = "403f2d8e209681fcbd9468a8514efff3ea08452e"
+git-tree-sha1 = "b0fd3f56fa442f81e0a47815c92245acfaaa4e34"
 uuid = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
-version = "3.29.0"
+version = "3.31.0"
 
 [[deps.ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
@@ -1472,9 +1470,9 @@ version = "0.12.11"
 
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
-git-tree-sha1 = "8ae8d32e09f0dcf42a36b90d4e17f5dd2e4c4215"
+git-tree-sha1 = "9d8a54ce4b17aa5bdce0ea5c34bc5e7c340d16ad"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.16.0"
+version = "4.18.1"
 weakdeps = ["Dates", "LinearAlgebra"]
 
     [deps.Compat.extensions]
@@ -1483,7 +1481,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.1+0"
+version = "1.3.0+1"
 
 [[deps.CompositionsBase]]
 git-tree-sha1 = "802bb88cd69dfd1509f6670416bd4434015693ad"
@@ -1496,14 +1494,14 @@ weakdeps = ["InverseFunctions"]
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
-git-tree-sha1 = "d9d26935a0bcffc87d2613ce14c527c99fc543fd"
+git-tree-sha1 = "21d088c496ea22914fe80906eb5bce65755e5ec8"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
-version = "2.5.0"
+version = "2.5.1"
 
 [[deps.ConstructionBase]]
-git-tree-sha1 = "76219f1ed5771adbb096743bff43fb5fdd4c1157"
+git-tree-sha1 = "b4b092499347b18a015186eae3042f72267106cb"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
-version = "1.5.8"
+version = "1.6.0"
 
     [deps.ConstructionBase.extensions]
     ConstructionBaseIntervalSetsExt = "IntervalSets"
@@ -1547,14 +1545,14 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 version = "1.11.0"
 
 [[deps.DocStringExtensions]]
-git-tree-sha1 = "e7b7e6f178525d17c720ab9c081e4ef04429f860"
+git-tree-sha1 = "7442a5dfe1ebb773c29cc2962a8980f47221d76c"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.9.4"
+version = "0.9.5"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
-version = "1.6.0"
+version = "1.7.0"
 
 [[deps.ExceptionUnwrapping]]
 deps = ["Test"]
@@ -1563,26 +1561,26 @@ uuid = "460bff9d-24e4-43bc-9d9f-a8973cb893f4"
 version = "0.1.11"
 
 [[deps.FFTW]]
-deps = ["AbstractFFTs", "FFTW_jll", "LinearAlgebra", "MKL_jll", "Preferences", "Reexport"]
-git-tree-sha1 = "7de7c78d681078f027389e067864a8d53bd7c3c9"
+deps = ["AbstractFFTs", "FFTW_jll", "Libdl", "LinearAlgebra", "MKL_jll", "Preferences", "Reexport"]
+git-tree-sha1 = "97f08406df914023af55ade2f843c39e99c5d969"
 uuid = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
-version = "1.8.1"
+version = "1.10.0"
 
 [[deps.FFTW_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "6d6219a004b8cf1e0b4dbe27a2860b8e04eba0be"
+git-tree-sha1 = "6866aec60ef98e3164cd8d6855225684207e9dff"
 uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
-version = "3.3.11+0"
+version = "3.3.12+0"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 version = "1.11.0"
 
 [[deps.FixedPointNumbers]]
-deps = ["Statistics"]
-git-tree-sha1 = "05882d6995ae5c12bb5f36dd2ed3f61c98cbb172"
+deps = ["Random", "Statistics"]
+git-tree-sha1 = "59af96b98217c6ef4ae0dfe065ac7c20831d1a84"
 uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
-version = "0.8.5"
+version = "0.8.6"
 
 [[deps.FunctionalCollections]]
 deps = ["Test"]
@@ -1603,9 +1601,9 @@ version = "1.11.0"
 
 [[deps.HDF5]]
 deps = ["Compat", "HDF5_jll", "Libdl", "MPIPreferences", "Mmap", "Preferences", "Printf", "Random", "Requires", "UUIDs"]
-git-tree-sha1 = "e856eef26cf5bf2b0f95f8f4fc37553c72c8641c"
+git-tree-sha1 = "491ea627ac824619f34168e29a0427a9e00e3e40"
 uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
-version = "0.17.2"
+version = "0.17.3"
 
     [deps.HDF5.extensions]
     MPIExt = "MPI"
@@ -1614,16 +1612,21 @@ version = "0.17.2"
     MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 
 [[deps.HDF5_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "LibCURL_jll", "Libdl", "MPICH_jll", "MPIPreferences", "MPItrampoline_jll", "MicrosoftMPI_jll", "OpenMPI_jll", "OpenSSL_jll", "TOML", "Zlib_jll", "libaec_jll"]
-git-tree-sha1 = "e94f84da9af7ce9c6be049e9067e511e17ff89ec"
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LibCURL_jll", "Libdl", "MPIABI_jll", "MPICH_jll", "MPIPreferences", "MPItrampoline_jll", "MicrosoftMPI_jll", "OpenMPI_jll", "OpenSSL_jll", "TOML", "Zlib_jll", "aws_c_s3_jll", "dlfcn_win32_jll", "libaec_jll", "mpif_jll"]
+git-tree-sha1 = "45337643a2d97262d5fe72ce1f13e8a662d13d62"
 uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
-version = "1.14.6+0"
+version = "2.1.2+0"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapping", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "PrecompileTools", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "c67b33b085f6e2faf8bf79a61962e7339a81129c"
+git-tree-sha1 = "51059d23c8bb67911a2e6fd5130229113735fc7e"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.10.15"
+version = "1.11.0"
+
+[[deps.HashArrayMappedTries]]
+git-tree-sha1 = "2eaa69a7cab70a52b9687c8bf950a5a93ec895ae"
+uuid = "076d061b-32b6-4027-95e0-9a2c6f6d7e74"
+version = "0.2.0"
 
 [[deps.Hiccup]]
 deps = ["MacroTools", "Test"]
@@ -1632,10 +1635,10 @@ uuid = "9fb69e20-1954-56bb-a84f-559cc56a8ff7"
 version = "0.2.2"
 
 [[deps.Hwloc_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "f93a9ce66cd89c9ba7a4695a47fd93b4c6bc59fa"
+deps = ["Artifacts", "JLLWrappers", "Libdl", "XML2_jll", "Xorg_libpciaccess_jll"]
+git-tree-sha1 = "c35847ca5b4997fc8418836354a56c459bcf48d8"
 uuid = "e33a78d0-f292-5ffc-b300-72abe9b543c8"
-version = "2.12.0+0"
+version = "2.14.0+0"
 
 [[deps.Hyperscript]]
 deps = ["Test"]
@@ -1662,9 +1665,9 @@ version = "0.3.1"
 
 [[deps.IntelOpenMP_jll]]
 deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl"]
-git-tree-sha1 = "0f14a5456bdc6b9731a5682f439a672750a09e48"
+git-tree-sha1 = "ec1debd61c300961f98064cfb21287613ad7f303"
 uuid = "1d5cc7b8-4909-519e-a0f8-d0f5ad9712d0"
-version = "2025.0.4+0"
+version = "2025.2.0+0"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -1672,15 +1675,17 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 version = "1.11.0"
 
 [[deps.Interpolations]]
-deps = ["Adapt", "AxisAlgorithms", "ChainRulesCore", "LinearAlgebra", "OffsetArrays", "Random", "Ratios", "Requires", "SharedArrays", "SparseArrays", "StaticArrays", "WoodburyMatrices"]
-git-tree-sha1 = "88a101217d7cb38a7b481ccd50d21876e1d1b0e0"
+deps = ["Adapt", "AxisAlgorithms", "ChainRulesCore", "LinearAlgebra", "OffsetArrays", "Random", "Ratios", "SharedArrays", "SparseArrays", "StaticArrays", "WoodburyMatrices"]
+git-tree-sha1 = "48922d06068130f87e43edef52382e6a94305ae6"
 uuid = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
-version = "0.15.1"
+version = "0.16.3"
 
     [deps.Interpolations.extensions]
+    InterpolationsForwardDiffExt = "ForwardDiff"
     InterpolationsUnitfulExt = "Unitful"
 
     [deps.Interpolations.weakdeps]
+    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [[deps.InverseFunctions]]
@@ -1700,9 +1705,9 @@ version = "1.0.0"
 
 [[deps.JLLWrappers]]
 deps = ["Artifacts", "Preferences"]
-git-tree-sha1 = "a007feb38b422fbdab534406aeca1b86823cb4d6"
+git-tree-sha1 = "7204148362dafe5fe6a273f855b8ccbe4df8173e"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
-version = "1.7.0"
+version = "1.8.0"
 
 [[deps.JSExpr]]
 deps = ["JSON", "MacroTools", "Observables", "WebIO"]
@@ -1716,17 +1721,22 @@ git-tree-sha1 = "31e996f0a15c7b280ba9f76636b3ff9e2ae58c9a"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.4"
 
+[[deps.JuliaSyntaxHighlighting]]
+deps = ["StyledStrings"]
+uuid = "ac6e5ff7-fb65-4e79-a425-ec3bc9c03011"
+version = "1.12.0"
+
 [[deps.Kaleido_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "2ef87eeaa28713cb010f9fb0be288b6c1a4ecd53"
+git-tree-sha1 = "43032da5832754f58d14a91ffbe86d5f176acda9"
 uuid = "f7e6163d-2fa5-5f23-b69c-1db539e41963"
-version = "0.1.0+0"
+version = "0.2.1+0"
 
 [[deps.KernelAbstractions]]
 deps = ["Adapt", "Atomix", "InteractiveUtils", "MacroTools", "PrecompileTools", "Requires", "StaticArrays", "UUIDs"]
-git-tree-sha1 = "80d268b2f4e396edc5ea004d1e0f569231c71e9e"
+git-tree-sha1 = "a5b87110fa95d711355af44832497745aa93fb52"
 uuid = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
-version = "0.9.34"
+version = "0.9.42"
 
     [deps.KernelAbstractions.extensions]
     EnzymeExt = "EnzymeCore"
@@ -1740,9 +1750,9 @@ version = "0.9.34"
 
 [[deps.KomaMRIBase]]
 deps = ["Interpolations", "MAT", "MRIBase", "Parameters", "Reexport"]
-git-tree-sha1 = "636d875ddea2355c42901d67e345069618aa8b01"
+git-tree-sha1 = "237fc1a378d711cd0a81e73773758b1b0044a9bb"
 uuid = "d0bc0b20-b151-4d03-b2a4-6ca51751cb9c"
-version = "0.9.1"
+version = "0.9.9"
 
 [[deps.KomaMRICore]]
 deps = ["Adapt", "Functors", "KernelAbstractions", "KomaMRIBase", "ProgressMeter", "Reexport", "ThreadsX"]
@@ -1763,10 +1773,10 @@ version = "0.9.1"
     oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
 
 [[deps.KomaMRIPlots]]
-deps = ["Interpolations", "Kaleido_jll", "KomaMRIBase", "MAT", "PlotlyJS", "QMRIColors", "Reexport"]
-git-tree-sha1 = "a5d24d52b960d2a6eefd15abe038b881ea4c21ff"
+deps = ["Interpolations", "KomaMRIBase", "MAT", "PlotlyJS", "QMRIColors", "Reexport"]
+git-tree-sha1 = "81990405b6ce53f7f637aebdd81c5929092abaee"
 uuid = "76db0263-63f3-4d26-bb9a-5dba378db904"
-version = "0.9.2"
+version = "0.9.6"
 weakdeps = ["PlutoPlotly"]
 
     [deps.KomaMRIPlots.extensions]
@@ -1794,33 +1804,39 @@ uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
 version = "0.6.4"
 
 [[deps.LibCURL_jll]]
-deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
+deps = ["Artifacts", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.6.0+0"
+version = "8.15.0+0"
 
 [[deps.LibGit2]]
-deps = ["Base64", "LibGit2_jll", "NetworkOptions", "Printf", "SHA"]
+deps = ["LibGit2_jll", "NetworkOptions", "Printf", "SHA"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 version = "1.11.0"
 
 [[deps.LibGit2_jll]]
-deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll"]
+deps = ["Artifacts", "LibSSH2_jll", "Libdl", "OpenSSL_jll"]
 uuid = "e37daf67-58a4-590a-8e99-b0245dd2ffc5"
-version = "1.7.2+0"
+version = "1.9.0+0"
 
 [[deps.LibSSH2_jll]]
-deps = ["Artifacts", "Libdl", "MbedTLS_jll"]
+deps = ["Artifacts", "Libdl", "OpenSSL_jll"]
 uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
-version = "1.11.0+1"
+version = "1.11.3+1"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 version = "1.11.0"
 
+[[deps.Libiconv_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "be484f5c92fad0bd8acfef35fe017900b0b73809"
+uuid = "94ce4f54-9a6c-5748-9c1c-f9c7231a4531"
+version = "1.18.0+0"
+
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-version = "1.11.0"
+version = "1.12.0"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -1828,15 +1844,15 @@ version = "1.11.0"
 
 [[deps.LoggingExtras]]
 deps = ["Dates", "Logging"]
-git-tree-sha1 = "f02b56007b064fbfddb4c9cd60161b6dd0f40df3"
+git-tree-sha1 = "f00544d95982ea270145636c181ceda21c4e2575"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
-version = "1.1.0"
+version = "1.2.0"
 
 [[deps.MAT]]
-deps = ["BufferedStreams", "CodecZlib", "HDF5", "SparseArrays"]
-git-tree-sha1 = "1d2dd9b186742b0f317f2530ddcbf00eebb18e96"
+deps = ["CodecZlib", "Dates", "HDF5", "OrderedCollections", "PooledArrays", "SparseArrays", "StringEncodings", "Tables"]
+git-tree-sha1 = "6f8434aa453c31d5a12c376d297449afa5112404"
 uuid = "23992714-dd62-5051-b70f-ba57cb901cac"
-version = "0.10.7"
+version = "0.11.5"
 
 [[deps.MIMEs]]
 git-tree-sha1 = "c64d943587f7187e751162b3b84445bbbd79f691"
@@ -1845,54 +1861,61 @@ version = "1.1.0"
 
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "oneTBB_jll"]
-git-tree-sha1 = "5de60bc6cb3899cd318d80d627560fae2e2d99ae"
+git-tree-sha1 = "282cadc186e7b2ae0eeadbd7a4dffed4196ae2aa"
 uuid = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
-version = "2025.0.1+1"
+version = "2025.2.0+0"
+
+[[deps.MPIABI_jll]]
+deps = ["Artifacts", "Hwloc_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
+git-tree-sha1 = "9be143b6045719e8fb019d2b3bc2aebad1184fef"
+uuid = "b5ada748-db0f-5fc0-8972-9331c762740c"
+version = "0.1.5+0"
 
 [[deps.MPICH_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "Hwloc_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
-git-tree-sha1 = "3aa3210044138a1749dbd350a9ba8680869eb503"
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "Hwloc_jll", "JLLWrappers", "Libdl", "MPIPreferences", "TOML"]
+git-tree-sha1 = "07dbec8aab01696edc0151a401a6cdfe95b9b885"
 uuid = "7cb0a576-ebde-5e09-9194-50597f1243b4"
-version = "4.3.0+1"
+version = "5.0.1+0"
 
 [[deps.MPIPreferences]]
 deps = ["Libdl", "Preferences"]
-git-tree-sha1 = "c105fe467859e7f6e9a852cb15cb4301126fac07"
+git-tree-sha1 = "8e98d5d80b87403c311fd51e8455d4546ba7a5f8"
 uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
-version = "0.1.11"
+version = "0.1.12"
 
 [[deps.MPItrampoline_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
-git-tree-sha1 = "ff91ca13c7c472cef700f301c8d752bc2aaff1a8"
+git-tree-sha1 = "675df097f8eeb28998b2cfe3b25655af73d5f7df"
 uuid = "f1f71cc9-e9ae-5b93-9b94-4fe0e1ad3748"
-version = "5.5.3+0"
+version = "5.5.6+0"
 
 [[deps.MRIBase]]
 deps = ["AbstractNFFTs", "LinearAlgebra", "NFFTTools"]
-git-tree-sha1 = "57979500dbdd130fc92359f1ecd6714051ed78eb"
+git-tree-sha1 = "085cc7b8873c752001e178b693e0aa25f8c0246a"
 uuid = "f7771a9a-6e57-4e71-863b-6e4b6a2f17df"
-version = "0.4.4"
+version = "0.4.6"
 
 [[deps.MacroTools]]
-git-tree-sha1 = "72aebe0b5051e5143a079a4685a46da330a40472"
+git-tree-sha1 = "1e0228a030642014fe5cfe68c2c0a818f9e3f522"
 uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
-version = "0.5.15"
+version = "0.5.16"
 
 [[deps.Markdown]]
-deps = ["Base64"]
+deps = ["Base64", "JuliaSyntaxHighlighting", "StyledStrings"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 version = "1.11.0"
 
 [[deps.MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "NetworkOptions", "Random", "Sockets"]
-git-tree-sha1 = "c067a280ddc25f196b5e7df3877c6b226d390aaf"
+git-tree-sha1 = "8785729fa736197687541f7053f6d8ab7fc44f92"
 uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
-version = "1.1.9"
+version = "1.1.10"
 
 [[deps.MbedTLS_jll]]
-deps = ["Artifacts", "Libdl"]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "ff69a2b1330bcb730b9ac1ab7dd680176f5896b8"
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
-version = "2.28.6+0"
+version = "2.28.1010+0"
 
 [[deps.MicroCollections]]
 deps = ["Accessors", "BangBang", "InitialValues"]
@@ -1912,13 +1935,13 @@ version = "1.11.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2023.12.12"
+version = "2025.11.4"
 
 [[deps.Mustache]]
 deps = ["Printf", "Tables"]
-git-tree-sha1 = "3b2db451a872b20519ebb0cec759d3d81a1c6bcb"
+git-tree-sha1 = "3cbd5dda543bc59f2e482607ccf84b633724fc32"
 uuid = "ffc61752-8dc7-55ee-8c37-f3e9cdd09e70"
-version = "1.0.20"
+version = "1.0.21"
 
 [[deps.Mux]]
 deps = ["AssetRegistry", "Base64", "HTTP", "Hiccup", "MbedTLS", "Pkg", "Sockets"]
@@ -1928,13 +1951,13 @@ version = "1.0.2"
 
 [[deps.NFFTTools]]
 deps = ["AbstractFFTs", "AbstractNFFTs", "FFTW", "LinearAlgebra"]
-git-tree-sha1 = "d6a68b7ffbd50b4c99e514a1a6fb8ce84f6e247e"
+git-tree-sha1 = "e20ac21560b314a7c38c4cd2fdcece34c66f36b6"
 uuid = "7424e34d-94f7-41d6-98a0-85abaf1b6c91"
-version = "0.2.6"
+version = "0.2.7"
 
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
-version = "1.2.0"
+version = "1.3.0"
 
 [[deps.Observables]]
 git-tree-sha1 = "7438a59546cf62428fc9d1bc94729146d37a7225"
@@ -1942,9 +1965,9 @@ uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
 version = "0.5.5"
 
 [[deps.OffsetArrays]]
-git-tree-sha1 = "a414039192a155fb38c4599a60110f0018c6ec82"
+git-tree-sha1 = "117432e406b5c023f665fa73dc26e79ec3630151"
 uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
-version = "1.16.0"
+version = "1.17.0"
 weakdeps = ["Adapt"]
 
     [deps.OffsetArrays.extensions]
@@ -1953,30 +1976,29 @@ weakdeps = ["Adapt"]
 [[deps.OpenBLAS_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
-version = "0.3.27+1"
+version = "0.3.29+0"
 
 [[deps.OpenMPI_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Hwloc_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML", "Zlib_jll"]
-git-tree-sha1 = "047b66eb62f3cae59ed260ebb9075a32a04350f1"
+git-tree-sha1 = "6d6c0ca4824268c1a7dca1f4721c535ac63d9074"
 uuid = "fe0851c0-eecd-5654-98d4-656369965a5c"
-version = "5.0.7+2"
+version = "5.0.11+0"
 
 [[deps.OpenSSL]]
-deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
-git-tree-sha1 = "38cb508d080d21dc1128f7fb04f20387ed4c0af4"
+deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "NetworkOptions", "OpenSSL_jll", "Sockets"]
+git-tree-sha1 = "1d1aaa7d449b58415f97d2839c318b70ffb525a0"
 uuid = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
-version = "1.4.3"
+version = "1.6.1"
 
 [[deps.OpenSSL_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "a9697f1d06cc3eb3fb3ad49cc67f2cfabaac31ea"
+deps = ["Artifacts", "Libdl"]
 uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
-version = "3.0.16+0"
+version = "3.5.4+0"
 
 [[deps.OrderedCollections]]
-git-tree-sha1 = "cc4054e898b852042d7b503313f7ad03de99c3dd"
+git-tree-sha1 = "94ba93778373a53bfd5a0caaf7d809c445292ff4"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.8.0"
+version = "1.8.2"
 
 [[deps.Parameters]]
 deps = ["OrderedCollections", "UnPack"]
@@ -1986,9 +2008,9 @@ version = "0.12.3"
 
 [[deps.Parsers]]
 deps = ["Dates", "PrecompileTools", "UUIDs"]
-git-tree-sha1 = "8489905bcdbcfac64d1daa51ca07c0d8f0283821"
+git-tree-sha1 = "32a4e09c5f29402573d673901778a0e03b0807b9"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.8.1"
+version = "2.8.6"
 
 [[deps.Pidfile]]
 deps = ["FileWatching", "Test"]
@@ -1999,7 +2021,7 @@ version = "1.3.0"
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-version = "1.11.0"
+version = "1.12.1"
 weakdeps = ["REPL"]
 
     [deps.Pkg.extensions]
@@ -2007,9 +2029,9 @@ weakdeps = ["REPL"]
 
 [[deps.PlotlyBase]]
 deps = ["ColorSchemes", "Colors", "Dates", "DelimitedFiles", "DocStringExtensions", "JSON", "LaTeXStrings", "Logging", "Parameters", "Pkg", "REPL", "Requires", "Statistics", "UUIDs"]
-git-tree-sha1 = "90af5c9238c1b3b25421f1fdfffd1e8fca7a7133"
+git-tree-sha1 = "6256ab3ee24ef079b3afa310593817e069925eeb"
 uuid = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
-version = "0.8.20"
+version = "0.8.23"
 
     [deps.PlotlyBase.extensions]
     DataFramesExt = "DataFrames"
@@ -2025,9 +2047,9 @@ version = "0.8.20"
 
 [[deps.PlotlyJS]]
 deps = ["Base64", "Blink", "DelimitedFiles", "JSExpr", "JSON", "Kaleido_jll", "Markdown", "Pkg", "PlotlyBase", "PlotlyKaleido", "REPL", "Reexport", "Requires", "WebIO"]
-git-tree-sha1 = "e415b25fdec06e57590a7d5ac8e0cf662fa317e2"
+git-tree-sha1 = "4bf6c08295346efba58bb2d5f8c52984efed7f27"
 uuid = "f0f68f2c-4968-5e81-91da-67840de0976a"
-version = "0.18.15"
+version = "0.18.18"
 
     [deps.PlotlyJS.extensions]
     CSVExt = "CSV"
@@ -2043,9 +2065,9 @@ version = "0.18.15"
 
 [[deps.PlotlyKaleido]]
 deps = ["Artifacts", "Base64", "JSON", "Kaleido_jll"]
-git-tree-sha1 = "9ef5c9e588ec7e912f01a76c7fd3dddf1913d4f2"
+git-tree-sha1 = "c7a270d11881c0709052f8e3def3d60d551e99f3"
 uuid = "f2990250-8cf9-495f-b13a-cce12b45703c"
-version = "2.3.0"
+version = "2.3.1"
 
 [[deps.PlutoPlotly]]
 deps = ["AbstractPlutoDingetjes", "Artifacts", "BaseDirs", "Colors", "Dates", "Downloads", "HypertextLiteral", "InteractiveUtils", "LaTeXStrings", "Markdown", "Pkg", "PlotlyBase", "Reexport", "TOML"]
@@ -2067,17 +2089,23 @@ git-tree-sha1 = "d3de2694b52a01ce61a036f18ea9c0f61c4a9230"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 version = "0.7.62"
 
+[[deps.PooledArrays]]
+deps = ["DataAPI", "Future"]
+git-tree-sha1 = "36d8b4b899628fb92c2749eb488d884a926614d3"
+uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
+version = "1.4.3"
+
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
-git-tree-sha1 = "5aa36f7049a63a1528fe8f7c3f2113413ffd4e1f"
+git-tree-sha1 = "edbeefc7a4889f528644251bdb5fc9ab5348bc2c"
 uuid = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
-version = "1.2.1"
+version = "1.3.4"
 
 [[deps.Preferences]]
 deps = ["TOML"]
-git-tree-sha1 = "9306f6085165d270f7e3db02af26a400d580f5c6"
+git-tree-sha1 = "8b770b60760d4451834fe79dd483e318eee709c4"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.4.3"
+version = "1.5.2"
 
 [[deps.Printf]]
 deps = ["Unicode"]
@@ -2092,9 +2120,9 @@ version = "0.1.4"
 
 [[deps.ProgressMeter]]
 deps = ["Distributed", "Printf"]
-git-tree-sha1 = "13c5103482a8ed1536a54c08d0e742ae3dca2d42"
+git-tree-sha1 = "fbb92c6c56b34e1a2c4c36058f68f332bec840e7"
 uuid = "92933f4c-e287-5a05-a399-4b506db050ca"
-version = "1.10.4"
+version = "1.11.0"
 
 [[deps.QMRIColors]]
 deps = ["Colors", "DelimitedFiles"]
@@ -2103,7 +2131,7 @@ uuid = "2bec176e-9e8c-4764-a62f-295118d1ec05"
 version = "1.0.1"
 
 [[deps.REPL]]
-deps = ["InteractiveUtils", "Markdown", "Sockets", "StyledStrings", "Unicode"]
+deps = ["InteractiveUtils", "JuliaSyntaxHighlighting", "Markdown", "Sockets", "StyledStrings", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 version = "1.11.0"
 
@@ -2143,6 +2171,12 @@ version = "1.3.1"
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
+[[deps.ScopedValues]]
+deps = ["HashArrayMappedTries", "Logging"]
+git-tree-sha1 = "67a144433c4ce877ee6d1ada69a124d6b1ecf7be"
+uuid = "7e506255-f358-4e82-b7e4-beb19740aa63"
+version = "1.6.2"
+
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 version = "1.11.0"
@@ -2170,7 +2204,7 @@ version = "1.11.0"
 [[deps.SparseArrays]]
 deps = ["Libdl", "LinearAlgebra", "Random", "Serialization", "SuiteSparse_jll"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-version = "1.11.0"
+version = "1.12.0"
 
 [[deps.SplittablesBase]]
 deps = ["Setfield", "Test"]
@@ -2180,9 +2214,9 @@ version = "0.1.15"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
-git-tree-sha1 = "0feb6b9031bd5c51f9072393eb5ab3efd31bf9e4"
+git-tree-sha1 = "246a8bb2e6667f832eea063c3a56aef96429a3db"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.9.13"
+version = "1.9.18"
 weakdeps = ["ChainRulesCore", "Statistics"]
 
     [deps.StaticArrays.extensions]
@@ -2190,9 +2224,9 @@ weakdeps = ["ChainRulesCore", "Statistics"]
     StaticArraysStatisticsExt = "Statistics"
 
 [[deps.StaticArraysCore]]
-git-tree-sha1 = "192954ef1208c7019899fbf8049e717f92959682"
+git-tree-sha1 = "6ab403037779dae8c514bad259f32a447262455a"
 uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
-version = "1.4.3"
+version = "1.4.4"
 
 [[deps.Statistics]]
 deps = ["LinearAlgebra"]
@@ -2204,6 +2238,12 @@ weakdeps = ["SparseArrays"]
     [deps.Statistics.extensions]
     SparseArraysExt = ["SparseArrays"]
 
+[[deps.StringEncodings]]
+deps = ["Libiconv_jll"]
+git-tree-sha1 = "b765e46ba27ecf6b44faf70df40c57aa3a547dcb"
+uuid = "69024149-9ee7-55f6-a4c4-859efe599b68"
+version = "0.3.7"
+
 [[deps.StyledStrings]]
 uuid = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
 version = "1.11.0"
@@ -2211,7 +2251,7 @@ version = "1.11.0"
 [[deps.SuiteSparse_jll]]
 deps = ["Artifacts", "Libdl", "libblastrampoline_jll"]
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
-version = "7.7.0+0"
+version = "7.8.3+2"
 
 [[deps.Suppressor]]
 deps = ["Logging"]
@@ -2232,9 +2272,9 @@ version = "1.0.1"
 
 [[deps.Tables]]
 deps = ["DataAPI", "DataValueInterfaces", "IteratorInterfaceExtensions", "OrderedCollections", "TableTraits"]
-git-tree-sha1 = "598cd7c1f68d1e205689b1c2fe65a9f85846f297"
+git-tree-sha1 = "0f38a06c83f0007bbab3cf911262841c9a0f07e0"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "1.12.0"
+version = "1.13.0"
 
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
@@ -2264,10 +2304,10 @@ uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.11.3"
 
 [[deps.Transducers]]
-deps = ["Accessors", "ArgCheck", "BangBang", "Baselet", "CompositionsBase", "ConstructionBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "MicroCollections", "Requires", "SplittablesBase", "Tables"]
-git-tree-sha1 = "7deeab4ff96b85c5f72c824cae53a1398da3d1cb"
+deps = ["Accessors", "ArgCheck", "BangBang", "Baselet", "CompositionsBase", "ConstructionBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "MicroCollections", "SplittablesBase", "Tables"]
+git-tree-sha1 = "4aa1fdf6c1da74661f6f5d3edfd96648321dade9"
 uuid = "28d57a85-8fef-5791-bfe6-a80928e7c999"
-version = "0.4.84"
+version = "0.4.85"
 
     [deps.Transducers.extensions]
     TransducersAdaptExt = "Adapt"
@@ -2286,14 +2326,14 @@ version = "0.4.84"
     Referenceables = "42d2dcc6-99eb-4e98-b66c-637b7d73030e"
 
 [[deps.Tricks]]
-git-tree-sha1 = "6cae795a5a9313bbb4f60683f7263318fc7d1505"
+git-tree-sha1 = "311349fd1c93a31f783f977a71e8b062a57d4101"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.10"
+version = "0.1.13"
 
 [[deps.URIs]]
-git-tree-sha1 = "cbbebadbcc76c5ca1cc4b4f3b0614b3e603b5000"
+git-tree-sha1 = "bef26fb046d031353ef97a82e3fdb6afe7f21b1a"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
-version = "1.5.2"
+version = "1.6.1"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
@@ -2310,9 +2350,9 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 version = "1.11.0"
 
 [[deps.UnsafeAtomics]]
-git-tree-sha1 = "b13c4edda90890e5b04ba24e20a310fbe6f249ff"
+git-tree-sha1 = "0f30765c32d66d58e41f4cb5624d4fc8a82ec13b"
 uuid = "013be700-e6cd-48c3-b4a1-df204f14c38f"
-version = "0.3.0"
+version = "0.3.1"
 
     [deps.UnsafeAtomics.extensions]
     UnsafeAtomicsLLVM = ["LLVM"]
@@ -2340,41 +2380,125 @@ version = "0.6.7"
 
 [[deps.WoodburyMatrices]]
 deps = ["LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "c1a7aa6219628fcd757dede0ca95e245c5cd9511"
+git-tree-sha1 = "248a7031b3da79a127f14e5dc5f417e26f9f6db7"
 uuid = "efce3f68-66dc-5838-9240-27a6d6f5f9b6"
-version = "1.0.0"
+version = "1.1.0"
+
+[[deps.XML2_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
+git-tree-sha1 = "80d3930c6347cfce7ccf96bd3bafdf079d9c0390"
+uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
+version = "2.13.9+0"
+
+[[deps.Xorg_libpciaccess_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Zlib_jll"]
+git-tree-sha1 = "58972370b81423fc546c56a60ed1a009450177c3"
+uuid = "a65dc6b1-eb27-53a1-bb3e-dea574b5389e"
+version = "0.19.0+0"
 
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
-version = "1.2.13+1"
+version = "1.3.1+2"
+
+[[deps.aws_c_auth_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "aws_c_cal_jll", "aws_c_http_jll", "aws_c_sdkutils_jll"]
+git-tree-sha1 = "8cab83c96af80a1be968251ce1a0548a7545484d"
+uuid = "2b3700d1-4306-52e2-a478-c162f0c514be"
+version = "0.9.6+0"
+
+[[deps.aws_c_cal_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "aws_c_common_jll"]
+git-tree-sha1 = "22c0f42f4a1f0dc5dcfa8fd267c4ac407c455e7a"
+uuid = "70f11efc-bab2-57f1-b0f3-22aad4e67c4b"
+version = "0.9.13+0"
+
+[[deps.aws_c_common_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "a759cb9bf456ad792cc7898a81ae333cce9ef02a"
+uuid = "73048d1d-b8c4-5092-a58d-866c5e8d1e50"
+version = "0.12.6+0"
+
+[[deps.aws_c_compression_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "aws_c_common_jll"]
+git-tree-sha1 = "7910c72f45f44afd297c39fe43b99c56d5ed22ec"
+uuid = "73a04cd5-f3d7-5bac-9290-e8adb709f224"
+version = "0.3.2+0"
+
+[[deps.aws_c_http_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "aws_c_compression_jll", "aws_c_io_jll"]
+git-tree-sha1 = "e358d5a001ef7afbd4f8c5225322512819cda2f2"
+uuid = "3254fc65-9028-534d-aa9d-d76d128babc6"
+version = "0.10.13+0"
+
+[[deps.aws_c_io_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "aws_c_cal_jll", "aws_c_common_jll", "s2n_tls_jll"]
+git-tree-sha1 = "7e481d474b2087ee8bbf55b81bf9119f21e396d9"
+uuid = "13c41daa-f319-5298-b5eb-5754e0170d52"
+version = "0.26.3+0"
+
+[[deps.aws_c_s3_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "aws_c_auth_jll", "aws_c_common_jll", "aws_c_http_jll", "aws_checksums_jll", "s2n_tls_jll"]
+git-tree-sha1 = "3e9917ab25114feba657e71be41cad068b9f6595"
+uuid = "bd1f34fb-993f-5903-a121-aaf302eed6d4"
+version = "0.11.5+0"
+
+[[deps.aws_c_sdkutils_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "aws_c_common_jll"]
+git-tree-sha1 = "c43dfba2c1ab9ea9f02f2c80e86fa16f6460244e"
+uuid = "1282aa60-004d-510b-9f52-12498d409daa"
+version = "0.2.4+1"
+
+[[deps.aws_checksums_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "aws_c_common_jll"]
+git-tree-sha1 = "2570c8e23f4771a087b12a47edcaaa670ac05a01"
+uuid = "b2a88e68-78e7-5e94-8c20-c02986ec140e"
+version = "0.2.10+0"
+
+[[deps.dlfcn_win32_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "e141d67ffe550eadfb5af1bdbdaf138031e4805f"
+uuid = "c4b69c83-5512-53e3-94e6-de98773c479f"
+version = "1.4.2+0"
 
 [[deps.libaec_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "f5733a5a9047722470b95a81e1b172383971105c"
+git-tree-sha1 = "60f4792734488db6f42e2c7699f1d4594780bd03"
 uuid = "477f73a3-ac25-53e9-8cc3-50b2fa2566f0"
-version = "1.1.3+0"
+version = "1.1.7+0"
 
 [[deps.libblastrampoline_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-version = "5.11.0+0"
+version = "5.15.0+0"
+
+[[deps.mpif_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIABI_jll", "MPICH_jll", "MPIPreferences", "MPItrampoline_jll", "MicrosoftMPI_jll", "OpenMPI_jll", "TOML"]
+git-tree-sha1 = "a8083ee0737c243c8f40a4ba86a0956997facb73"
+uuid = "9aeb927a-4695-514f-a259-621a69f20ec0"
+version = "0.1.7+0"
 
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.59.0+0"
+version = "1.64.0+1"
 
 [[deps.oneTBB_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "d5a767a3bb77135a99e433afe0eb14cd7f6914c3"
+deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl"]
+git-tree-sha1 = "da8c1f6eee04831f14edcfa5dae611d309807e57"
 uuid = "1317d2d5-d96f-522e-a858-c73665f53c3e"
-version = "2022.0.0+0"
+version = "2022.3.0+0"
 
 [[deps.p7zip_jll]]
-deps = ["Artifacts", "Libdl"]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
-version = "17.4.0+2"
+version = "17.7.0+0"
+
+[[deps.s2n_tls_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "64ae051c6f03044eb7d98027d1b552b4e21e650c"
+uuid = "cddc5d3d-934d-5d3a-9747-62fc12ea3f48"
+version = "1.7.3+0"
 """
 
 # ╔═╡ Cell order:

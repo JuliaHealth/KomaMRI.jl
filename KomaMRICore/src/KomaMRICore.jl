@@ -28,10 +28,13 @@ include("simulation/Flow.jl")
 export signal_to_raw_data
 # Simulator
 export Mag
-export simulate, simulate_slice_profile
+export simulate, simulate_slice_profile, default_sampling_rule
 # Spinors
 export Spinor, Rx, Ry, Rz, Q, Un
 # Callback
 export Callback
+
+# Precompilation workloads for reduced first-use latency
+include("precompile.jl")
 
 end

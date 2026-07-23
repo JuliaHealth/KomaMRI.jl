@@ -1,12 +1,13 @@
-#Bloch is the default simulation method
+"""
+    Bloch()
+
+Default Bloch simulation using the hard-pulse approximation: the magnetic field
+`B` [T] is treated as piecewise constant over each integration step `Δt` [s].
+"""
 struct Bloch <: SimulationMethod end
 export Bloch
-abstract type BlochMagnus <: SimulationMethod end
-struct BlochMagnus1 <: BlochMagnus end
-struct BlochMagnus2 <: BlochMagnus end
-struct BlochMagnus4 <: BlochMagnus end
-export BlochMagnus1, BlochMagnus2, BlochMagnus4
-const BlochLikeSimMethods = Union{Bloch, BlochMagnus1, BlochMagnus2, BlochMagnus4}
+
+include("BlochMagnus/BlochMagnus.jl")
 
 include("Magnetization.jl")
 
@@ -27,8 +28,8 @@ function initialize_spins_state(
     obj::Phantom{T}, sim_method::SimulationMethod
 ) where {T<:Real}
     Nspins = length(obj)
-    Mxy = zeros(T, Nspins)
-    Mz = obj.ρ
+    Mxy = zeros(Complex{T}, Nspins)
+    Mz = copy(obj.ρ)
     Xt = Mag{T}(Mxy, Mz)
     return Xt, obj
 end
@@ -47,6 +48,9 @@ prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::
 include("BlochSimple/BlochSimple.jl")
 include("Bloch/cpu/BlochCPU.jl")
 include("BlochMagnus/cpu/BlochMagnusCPU.jl")
-include("BlochMagnus/gpu/BlochMagnusGPU.jl")
 include("Bloch/gpu/BlochGPU.jl")
+include("BlochMagnus/gpu/MagnusMidKernel.jl")
+include("BlochMagnus/gpu/MagnusQuadKernel.jl")
+include("BlochMagnus/gpu/MagnusGLKernel.jl")
+include("BlochMagnus/gpu/MagnusBGLKernel.jl")
 include("BlochDict/BlochDict.jl")

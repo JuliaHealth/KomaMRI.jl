@@ -79,39 +79,43 @@ get_center(center::CenterOfMass, x, y, z) = (sum(x) / length(x), sum(y) / length
 get_center(center::NTuple, x, y, z)       = center
 
 function displacement_x!(ux, action::Rotate, x, y, z, t)
-    # Not using sind and cosd functions until bug with oneAPI is solved: 
-    # https://github.com/JuliaGPU/oneAPI.jl/issues/65
-    α = t .* (action.yaw*π/180)
-    β = t .* (action.roll*π/180)
-    γ = t .* (action.pitch*π/180)
     cx, cy, cz = get_center(action.center, x, y, z)
-    x0, y0, z0 = x .- cx, y .- cy, z .- cz
-    ux .= cos.(α) .* cos.(β) .* x0 +
-         (cos.(α) .* sin.(β) .* sin.(γ) .- sin.(α) .* cos.(γ)) .* y0 +
-         (cos.(α) .* sin.(β) .* cos.(γ) .+ sin.(α) .* sin.(γ)) .* z0 .+ cx .- x
+    α = deg2rad(action.yaw)
+    β = deg2rad(action.roll)
+    γ = deg2rad(action.pitch)
+    
+    @. ux =  cos(α * t) * cos(β * t) * (x - cx) +
+            (cos(α * t) * sin(β * t) * sin(γ * t) - sin(α * t) * cos(γ * t)) * (y - cy) +
+            (cos(α * t) * sin(β * t) * cos(γ * t) + sin(α * t) * sin(γ * t)) * (z - cz) + 
+            cx - x
+            
     return nothing
 end
 
 function displacement_y!(uy, action::Rotate, x, y, z, t)
-    α = t .* (action.yaw*π/180)
-    β = t .* (action.roll*π/180)
-    γ = t .* (action.pitch*π/180)
     cx, cy, cz = get_center(action.center, x, y, z)
-    x0, y0, z0 = x .- cx, y .- cy, z .- cz
-    uy .= sin.(α) .* cos.(β) .* x0 +
-         (sin.(α) .* sin.(β) .* sin.(γ) .+ cos.(α) .* cos.(γ)) .* y0 +
-         (sin.(α) .* sin.(β) .* cos.(γ) .- cos.(α) .* sin.(γ)) .* z0 .+ cy .- y
+    α = deg2rad(action.yaw)
+    β = deg2rad(action.roll)
+    γ = deg2rad(action.pitch)
+    
+    @. uy =  sin(α * t) * cos(β * t) * (x - cx) +
+            (sin(α * t) * sin(β * t) * sin(γ * t) + cos(α * t) * cos(γ * t)) * (y - cy) +
+            (sin(α * t) * sin(β * t) * cos(γ * t) - cos(α * t) * sin(γ * t)) * (z - cz) + 
+            cy - y
+            
     return nothing
 end
 
 function displacement_z!(uz, action::Rotate, x, y, z, t)
-    α = t .* (action.yaw*π/180)
-    β = t .* (action.roll*π/180)
-    γ = t .* (action.pitch*π/180)
     cx, cy, cz = get_center(action.center, x, y, z)
-    x0, y0, z0 = x .- cx, y .- cy, z .- cz
-    uz .=  -sin.(β) .* x0 + 
-            cos.(β) .* sin.(γ) .* y0 +
-            cos.(β) .* cos.(γ) .* z0 .+ cz .- z
+    α = deg2rad(action.yaw)
+    β = deg2rad(action.roll)
+    γ = deg2rad(action.pitch)
+    
+    @. uz = -sin(β * t) * (x - cx) + 
+             cos(β * t) * sin(γ * t) * (y - cy) +
+             cos(β * t) * cos(γ * t) * (z - cz) + 
+             cz - z
+            
     return nothing
 end

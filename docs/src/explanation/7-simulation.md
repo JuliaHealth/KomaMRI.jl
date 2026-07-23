@@ -6,7 +6,7 @@
 
 The are more internal considerations in the **KomaMRI** implementation. The **Figure 1** summarizes the functions called to perform the simulation.
 ```@raw html
-<center><img width="100%" src="../assets/koma-solution.svg"></center>
+<div style="text-align:center;"><img width="100%" src="../assets/koma-solution.svg"></div>
 ```
 **Figure 1**: The sequence `seq` is discretized after calculating the required time points in the wrapper function [simulate](@ref). The time points are then divided into simulation blocks to reduce the amount of memory used. The phantom `obj` is divided into `Nthreads`, and **KomaMRI** will use either `run_spin_excitation!` or `run_spin_precession!` depending on the regime. If an [`ADC`](@ref KomaMRIBase.ADC) object is present, the simulator will add the signal contributions of each thread to construct the acquired signal `sig[t]`. All the parameters: `Nthreads`, `max_block_length`, `max_rf_block_length`, `Δt_rf`, and `Δt`, are passed through a dictionary called `sim_params` as an optional parameter of the simulate function.
 
@@ -42,7 +42,7 @@ Previous simulation, the **Sequence** is discretized to consider specific time p
 For RF excitation with rapidly changing fields, the `BlochMagnus1()`,
 `BlochMagnus2()`, and `BlochMagnus4()` methods can improve accuracy at the same
 `Δt_rf`, or allow a larger `Δt_rf` for faster simulations. See
-[Magnus Bloch Methods](8-magnus-methods.md).
+[Magnus methods](gen-8-magnus-methods.md).
 
 ### Computation Efficiency
 
@@ -118,12 +118,12 @@ and a relaxation operator described by
 
 The evolution of the magnetization can then be described as a two-step process for each time step ``\Delta t`` (**Figure 2**).
 ```@raw html
-<p align="center">
+<div style="text-align:center;">
 <figure>
   <img width="60%" src="../assets/block-equation-intuition.svg">
   <figcaption><b>Figure 2</b>: Solution of the Bloch equations for one time step can be described by (2) a rotation and (3) a relaxation step.</figcaption>
 </figure>
-</p>
+</div>
 ```
 
 ### Bloch() Method Example
@@ -190,7 +190,7 @@ We are going to consider the same setup as in the [Bloch() Method Example](#Bloc
 ```
 ```julia
 # Import modules
-using KomaMRI, PlotlyJS
+using KomaMRI, PlotlyBase
 
 # Define sequence
 ampRF = 2e-6                        # 2 uT RF amplitude

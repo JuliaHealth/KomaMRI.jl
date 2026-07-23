@@ -1,5 +1,38 @@
 ## COV_EXCL_START
 
+@inline function rotate_magnetization(θx, θy, θz, Mxy_r, Mxy_i, Mz, ::Type{T}) where {T}
+    α_r, scale = spinor_half_angle(θx^2 + θy^2 + θz^2)
+    α_i = -θz * scale
+    β_r = θy * scale
+    β_i = -θx * scale
+
+    Mxy_new_r = 2 * (Mxy_i * (α_r * α_i - β_r * β_i) +
+                Mz * (α_i * β_i + α_r * β_r)) +
+                Mxy_r * (α_r^2 - α_i^2 - β_r^2 + β_i^2)
+    Mxy_new_i = -2 * (Mxy_r * (α_r * α_i + β_r * β_i) -
+                Mz * (α_r * β_i - α_i * β_r)) +
+                Mxy_i * (α_r^2 - α_i^2 + β_r^2 - β_i^2)
+    Mz_new = Mz * (α_r^2 + α_i^2 - β_r^2 - β_i^2) -
+             2 * (Mxy_r * (α_r * β_r - α_i * β_i) +
+             Mxy_i * (α_r * β_i + α_i * β_r))
+    return Mxy_new_r, Mxy_new_i, Mz_new
+end
+
+@inline mag_norm(::Type{T}, Mxy_r, Mxy_i, Mz) where {T} = nothing
+@inline mag_norm(::Type{Float32}, Mxy_r, Mxy_i, Mz) = sqrt(Mxy_r^2 + Mxy_i^2 + Mz^2)
+
+@inline restore_mag_norm(::Nothing, Mxy_r, Mxy_i, Mz) = Mxy_r, Mxy_i, Mz
+@inline function restore_mag_norm(M_norm::T, Mxy_r, Mxy_i, Mz) where {T<:Real}
+    M_norm_new = sqrt(Mxy_r^2 + Mxy_i^2 + Mz^2)
+    if !iszero(M_norm_new)
+        M_scale = M_norm / M_norm_new
+        Mxy_r *= M_scale
+        Mxy_i *= M_scale
+        Mz *= M_scale
+    end
+    return Mxy_r, Mxy_i, Mz
+end
+
 @kernel unsafe_indices=true inbounds=true function excitation_kernel!(
     sig_output::AbstractMatrix{Complex{T}}, 
     M_xy::AbstractVector{Complex{T}}, M_z, 
@@ -28,9 +61,9 @@
     x = zero(T)
     y = zero(T)
     z = zero(T)
-    Bx_prev = zero(T)
-    By_prev = zero(T)
-    Bz_prev = zero(T)
+    Bx_0 = zero(T)
+    By_0 = zero(T)
+    Bz_0 = zero(T)
 
     if active
         ΔBz = p_ΔBz[i]
@@ -49,8 +82,8 @@
 
         # Calculate initial B
         x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, 1)
-        Bx_prev, By_prev = reim(s_B1[1])
-        Bz_prev = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz - s_Δf[1] / T(γ)
+        Bx_0, By_0 = reim(s_B1[1])
+        Bz_0 = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz - s_Δf[1] / T(γ)
     end
 
     ADC_idx = 1u32
@@ -60,37 +93,15 @@
             if MOTION
                 x, y, z = get_spin_coordinates(p_x, p_y, p_z, i, s_idx)
             end
-            Bx_next, By_next = reim(s_B1[s_idx])
-            Bz_next = (x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx]) + ΔBz - s_Δf[s_idx] / T(γ)
-            
+            Bx_1, By_1 = reim(s_B1[s_idx])
+            Bz_1 = (x * s_Gx[s_idx] + y * s_Gy[s_idx] + z * s_Gz[s_idx]) + ΔBz - s_Δf[s_idx] / T(γ)
+
             Δt = s_Δt[s_idx - 1]
 
-            # Spinor rotation
-            θx, θy, θz = effective_rotation_vector(Bx_prev, By_prev, Bz_prev, Bx_next, By_next, Bz_next, Δt, sim_method)
-            θ =  sqrt(θx^2 + θy^2 + θz^2)
-            sin_θ, cos_θ = sincos(T(-π * γ) * θ)
-            α_r = cos_θ
-            if iszero(θ)
-                α_i = -(θz / (θ + eps(T))) * sin_θ
-                β_r =  (θy / (θ + eps(T))) * sin_θ
-                β_i = -(θx / (θ + eps(T))) * sin_θ
-            else
-                α_i = -(θz / θ) * sin_θ
-                β_r =  (θy / θ) * sin_θ
-                β_i = -(θx / θ) * sin_θ
-            end
-
-            Mxy_new_r = 2 * (Mxy_i * (α_r * α_i - β_r * β_i) +
-                        Mz * (α_i * β_i + α_r * β_r)) +
-                        Mxy_r * (α_r^2 - α_i^2 - β_r^2 + β_i^2)
-            
-            Mxy_new_i = -2 * (Mxy_r * (α_r * α_i + β_r * β_i) -
-                        Mz * (α_r * β_i - α_i * β_r)) +
-                        Mxy_i * (α_r^2 - α_i^2 + β_r^2 - β_i^2)
-            
-            Mz_new =    Mz * (α_r^2 + α_i^2 - β_r^2 - β_i^2) -
-                        2 * (Mxy_r * (α_r * β_r - α_i * β_i) +
-                        Mxy_i * (α_r * β_i + α_i * β_r))
+            θx, θy, θz = rotation_vector(Bx_0, By_0, Bz_0, Bx_1, By_1, Bz_1, Δt, sim_method)
+            M_norm = mag_norm(T, Mxy_r, Mxy_i, Mz)
+            Mxy_new_r, Mxy_new_i, Mz_new = rotate_magnetization(θx, θy, θz, Mxy_r, Mxy_i, Mz, T)
+            Mxy_new_r, Mxy_new_i, Mz_new = restore_mag_norm(M_norm, Mxy_new_r, Mxy_new_i, Mz_new) # For reduced float precision only.
             
             # Relaxation
             E1 = exp(-Δt / T1)
@@ -99,7 +110,7 @@
             Mxy_i = Mxy_new_i * E2
             Mz = Mz_new * E1 + ρ * (T(1) - E1)
 
-            Bx_prev, By_prev, Bz_prev = Bx_next, By_next, Bz_next
+            Bx_0, By_0, Bz_0 = Bx_1, By_1, Bz_1
         end
 
         # Acquire Signal

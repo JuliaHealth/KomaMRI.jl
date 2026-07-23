@@ -2,49 +2,49 @@ using BenchmarkTools
 
 const GPU_BACKENDS = ["AMDGPU", "CUDA", "Metal", "oneAPI"]
 const NUM_CPU_THREADS = [1, 2, 4, 8]
+const CPU_BENCHMARK_FILES = ["CPUbenchmarks$(n)threads.json" for n in NUM_CPU_THREADS]
+const GPU_BENCHMARK_FILES = ["$(backend)benchmarks.json" for backend in GPU_BACKENDS]
 
-#Start with CPU benchmarks for 1 thread and add other results
-const CPU_results_1thread_filepath = joinpath(dirname(@__FILE__), "results", "CPUbenchmarks1threads.json")
-@assert(ispath(CPU_results_1thread_filepath))
-const RESULTS = BenchmarkTools.load(CPU_results_1thread_filepath)[1]
-@assert RESULTS isa BenchmarkTools.BenchmarkGroup
-
-for n in NUM_CPU_THREADS
-    filename = string("CPUbenchmarks", n, "threads.json")
-    filepath = joinpath(dirname(@__FILE__), "results", filename)
-    if !ispath(filepath)
-        @warn "No file found at path: $(filepath)"
-    else
-        nthreads_results = BenchmarkTools.load(filepath)[1]
-        if nthreads_results isa BenchmarkTools.BenchmarkGroup
-            for benchmark in keys(RESULTS)
-                for sim_method in keys(RESULTS[benchmark])
-                    RESULTS[benchmark][sim_method]["CPU"][string(n, " ", "thread(s)")] = nthreads_results[benchmark][sim_method]["CPU"][string(n, " ", "thread(s)")]
-                end
-            end
+function merge_results!(results::BenchmarkTools.BenchmarkGroup, new_results::BenchmarkTools.BenchmarkGroup)
+    for key in keys(new_results)
+        if haskey(results, key) &&
+           results[key] isa BenchmarkTools.BenchmarkGroup &&
+           new_results[key] isa BenchmarkTools.BenchmarkGroup
+            merge_results!(results[key], new_results[key])
         else
-            @warn "Unexpected file format for file at path: $(filepath)"
+            results[key] = new_results[key]
         end
+    end
+    return results
+end
+
+function load_benchmark_group(filepath)
+    results = BenchmarkTools.load(filepath)[1]
+    if results isa BenchmarkTools.BenchmarkGroup
+        return results
+    else
+        @warn "Unexpected file format for file at path: $(filepath)"
+        return nothing
     end
 end
 
-for backend in GPU_BACKENDS
-    filename = string(backend, "benchmarks.json")
-    filepath = joinpath(dirname(@__FILE__), "results", filename)
-    if !ispath(filepath)
-        @warn "No file found at path: $(filepath)"
-    else
-        backend_results = BenchmarkTools.load(filepath)[1]
-        if backend_results isa BenchmarkTools.BenchmarkGroup
-            for benchmark in keys(RESULTS)
-                for sim_method in keys(RESULTS[benchmark])
-                    RESULTS[benchmark][sim_method]["GPU"][backend] = backend_results[benchmark][sim_method]["GPU"][backend]
-                end
+function aggregate_results(result_dir)
+    results = BenchmarkTools.BenchmarkGroup()
+    for filename in vcat(CPU_BENCHMARK_FILES, GPU_BENCHMARK_FILES)
+        filepath = joinpath(result_dir, filename)
+        if ispath(filepath)
+            loaded_results = load_benchmark_group(filepath)
+            if loaded_results !== nothing
+                merge_results!(results, loaded_results)
             end
         else
-            @warn "Unexpected file format for file at path: $(filepath)"
+            @warn "No file found at path: $(filepath)"
         end
     end
+    @assert !isempty(results) "No benchmark results found"
+    return results
 end
 
-BenchmarkTools.save(joinpath(dirname(@__FILE__), "results", "combinedbenchmarks.json"), RESULTS)
+const RESULT_DIR = joinpath(@__DIR__, "results")
+const RESULTS = aggregate_results(RESULT_DIR)
+BenchmarkTools.save(joinpath(RESULT_DIR, "combinedbenchmarks.json"), RESULTS)

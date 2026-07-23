@@ -1,34 +1,6 @@
 steps:
   - group: ":julia: ($TEST_GROUP) Tests"
     steps:
-      - label: "CPU 4T - Julia {{matrix.version}} - Test"
-        matrix:
-          setup:
-            version:
-              - "1.10"
-              - "1"
-        plugins:
-          - JuliaCI/julia#v1:
-              version: "{{matrix.version}}"
-        command: |
-          julia --project=KomaMRICore -e 'println("--- :julia: Instantiating project")
-              using Pkg
-              Pkg.develop([
-                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-              ])'
-
-          julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
-              using Pkg
-              Pkg.test()'
-        agents:
-          arch: "aarch64" 
-          queue: "juliaecosystem"
-          num_cpus: "4"
-        env:
-          TEST_GROUP: $TEST_GROUP
-          JULIA_NUM_THREADS: "4"
-        timeout_in_minutes: 30
-        
       - label: "AMDGPU - Julia {{matrix.version}} - Test"
         matrix:
           setup:
@@ -69,8 +41,7 @@ steps:
               end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["AMDGPU"])'
         agents:
-          queue: "juliagpu"
-          rocm: "*"
+          queue: "rocm"
           rocmgpu: "gfx1100"
         timeout_in_minutes: 60
 
@@ -114,46 +85,7 @@ steps:
               end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["CUDA"])'
         agents:
-          queue: "juliagpu"
-          cuda: "*"
-        timeout_in_minutes: 60
-
-      - label: "Metal - Julia {{matrix.version}} - Test"
-        matrix:
-          setup:
-            version:
-              - "1.10"
-              - "1"
-        plugins:
-          - JuliaCI/julia#v1:
-              version: "{{matrix.version}}"
-        env:
-          TEST_GROUP: $TEST_GROUP
-        command: |
-          julia -e 'println("--- :julia: Instantiating project")
-              using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
-              Pkg.develop([
-                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
-                  PackageSpec(path=pwd(), subdir="KomaMRICore"),
-              ])'
-          
-          julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
-              using Pkg
-              Pkg.add("Metal")'
-
-          julia -e 'println("--- :julia: Running tests")
-              using Pkg
-              if !( VERSION < v"1.11" )
-                  Pkg.activate("KomaMRICore/test")
-              end
-              Pkg.test("KomaMRICore"; test_args=["Metal"])'
-        agents:
-          queue: "juliaecosystem"
-          os: "macos"
-          arch: "aarch64"
+          queue: "cuda"
         timeout_in_minutes: 60
 
       - label: "oneAPI - Julia {{matrix.version}} - Test"
@@ -196,11 +128,46 @@ steps:
               end
               Pkg.test("KomaMRICore"; coverage=true, test_args=["oneAPI"])'
         agents:
-          queue: "juliagpu"
-          intel: "*"
+          queue: "oneapi"
         soft_fail:
           - exit_status: "*"
         timeout_in_minutes: 15
+
+      - label: "Metal - Julia {{matrix.version}} - Test"
+        matrix:
+          setup:
+            version:
+              - "1.10"
+              - "1"
+        plugins:
+          - JuliaCI/julia#v1:
+              version: "{{matrix.version}}"
+        env:
+          TEST_GROUP: $TEST_GROUP
+        command: |
+          julia -e 'println("--- :julia: Instantiating project")
+              using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
+              Pkg.develop([
+                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+                  PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              ])'
+
+          julia --project=KomaMRICore/test -e 'println("--- :julia: Add Metal to test environment")
+              using Pkg
+              Pkg.add("Metal")'
+
+          julia -e 'println("--- :julia: Running tests")
+              using Pkg
+              if !( VERSION < v"1.11" )
+                  Pkg.activate("KomaMRICore/test")
+              end
+              Pkg.test("KomaMRICore"; test_args=["Metal"])'
+        agents:
+          queue: "metal"
+        timeout_in_minutes: 60
 
 env:
   CI: BUILDKITE

@@ -117,6 +117,26 @@ struct PulseqRaster
     )
 end
 
+pulseq_timing_scanner(raster::PulseqRaster) = Scanner(
+    ADC_Δt=raster.AdcRasterTime,
+    DUR_Δt=raster.BlockDurationRaster,
+    GR_Δt=raster.GradientRasterTime,
+    RF_Δt=raster.RadiofrequencyRasterTime,
+    RF_ring_down_time=0.0,
+    RF_dead_time=0.0,
+    ADC_dead_time=0.0,
+)
+
+pulseq_timing_scanner(definitions::PulseqDefinitions) = Scanner(
+    ADC_Δt=definitions.adc_raster_time,
+    DUR_Δt=definitions.block_duration_raster,
+    GR_Δt=definitions.gradient_raster_time,
+    RF_Δt=definitions.radiofrequency_raster_time,
+    RF_ring_down_time=0.0,
+    RF_dead_time=0.0,
+    ADC_dead_time=0.0,
+)
+
 function get_raster_time(key::String, seq::KomaMRIBase.Sequence)
     haskey(seq.DEF, key) || error("Sequence has no Pulseq raster definition for `$key`.")
     return seq.DEF[key]

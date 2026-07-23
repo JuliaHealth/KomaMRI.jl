@@ -1,0 +1,72 @@
+steps:
+  - group: ":julia: ($TEST_GROUP) Tests"
+    steps:
+      - label: "CPU 4T - Julia {{matrix.version}} - Test"
+        matrix:
+          setup:
+            version:
+              - "1.10"
+              - "1"
+        plugins:
+          - JuliaCI/julia#v1:
+              version: "{{matrix.version}}"
+        command: |
+          julia --project=KomaMRICore -e 'println("--- :julia: Instantiating project")
+              using Pkg
+              Pkg.develop([
+                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+              ])'
+
+          julia --project=KomaMRICore -e 'println("--- :julia: Running tests")
+              using Pkg
+              Pkg.test()'
+        agents:
+          arch: "aarch64"
+          queue: "juliaecosystem"
+          num_cpus: "4"
+        env:
+          TEST_GROUP: $TEST_GROUP
+          JULIA_NUM_THREADS: "4"
+        timeout_in_minutes: 30
+
+
+  - group: ":racehorse: Benchmarks"
+    steps:
+      - label: "CPU {{matrix.threads}}T - Julia 1 - Benchmark"
+        matrix:
+          setup:
+            threads:
+              - "1"
+              - "2"
+              - "4"
+              - "8"
+        plugins:
+          - JuliaCI/julia#v1:
+              version: "1"
+        command: |
+          julia --project=benchmarks -e 'println("--- :julia: Instantiating project")
+              using Pkg
+              Pkg.develop([
+                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+                  PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              ])'
+
+          julia --project=benchmarks -e 'println("--- :julia: Run Benchmarks")
+              include("benchmarks/runbenchmarks.jl")'
+        artifact_paths:
+          - "benchmarks/results/*"
+        agents:
+          arch: "aarch64"
+          queue: "juliaecosystem"
+          num_cpus: "8"
+        env:
+          BENCHMARK_GROUP: CPU
+          JULIA_NUM_THREADS: "{{matrix.threads}}"
+        timeout_in_minutes: 30
+
+
+env:
+  CI: BUILDKITE
+  CODECOV_FLAGS: core
+  JULIA_PKG_SERVER: ""
+  SECRET_CODECOV_TOKEN: "lUmUVYkTlE8u0mR/ymv5rtE1A59wXZmQ3miRkmKciC/4+xHPNjpeIJ03FupuC1ElGBeX0m6DDFavZ9burLosGxbBYIPziBQZ5P9NdPDZjBdo7NM3QSSBeUfDsDYbHsYglfJZ35UL6Pd2YTAkJG0ePrTpfUaBb9rcll926NdqUP0vE2hbR2leKFFgBVNtK9Zf+NE7hO3meZQEZ+sN5tA7xGr24A3Ay7ckPg5HbPPD3KII2/fLtW+w0fQUfJdXNFrajJ0FyNE0kNLDlIzoYN6XM4yUeLBXoyXFHnqT5dSu7pqrByEk/ptYpjUzKFoRSnDQy+p8vrx9e/iAVf3lwwgwWA==;U2FsdGVkX1+IZLGTj2FNEy4XvUQbzkZFEwUpwIdRDCKrEea5O/OKGV5vYJufty3m9yniE+av4937HabS9dO1RA=="

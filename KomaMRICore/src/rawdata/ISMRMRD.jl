@@ -144,7 +144,7 @@ function signal_to_raw_data(
         "enc_lim_repetition"             => Limit(0, 0, max_enc.REP),                     #min, max, center, e.g. dynamic number for dynamic scanning
         "enc_lim_set"                    => Limit(0, 0, max_enc.SET),                     #min, max, center, e.g. flow encoding set
         "enc_lim_segment"                => Limit(0, 0, max_enc.SEG),                     #min, max, center, e.g. segment number for segmented acquisition
-        "trajectory"                     => "other",
+        "trajectory"                     => "custom",
         #sequenceParameters
         # "TR"                             => 0,
         # "TE"                             => 0,
@@ -167,7 +167,7 @@ function signal_to_raw_data(
             Nsamples = s.ADC.N[1]
             Δt_us = floor( s.ADC.T[1] / (Nsamples - 1) * 1e6 )
             t0_us = floor( t_acq[current] * 1e6 )
-            flag  = 0
+            flag = UInt64(0)
             if scan_counter == 0
                 flag += ISMRMRD_ACQ_FIRST_IN_ENCODE_STEP1
                 flag += ISMRMRD_ACQ_FIRST_IN_SLICE
@@ -175,6 +175,7 @@ function signal_to_raw_data(
                 flag += ISMRMRD_ACQ_LAST_IN_ENCODE_STEP1
                 flag += ISMRMRD_ACQ_LAST_IN_SLICE
             end
+            !iszero(label[b].NAV) && (flag |= ISMRMRD_ACQ_IS_NAVIGATION_DATA)
             #Trajectory information, traj::Array{Float32,2}, 1dim=DIM, 2dim=numsaples
             traj = ktraj[1:ndims, current:current+Nsamples-1]
             #Acquired data, data::Array{Complex{Float32},2}, 1dim=numsamples, 2dim=coils

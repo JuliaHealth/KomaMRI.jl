@@ -12,12 +12,12 @@ import KomaMRIBase:
     TimeShapedRF,
     TrapezoidalGrad,
     UniformlySampledGrad,
+    UniformlySampledRF,
     extension_type_header,
     get_EXT_type_from_symbol,
     get_RF_use_from_char,
     get_char_from_RF_use,
     get_dims,
-    _shape_times,
     get_scale,
     get_pulseq_format,
     get_symbol_from_EXT_type,
@@ -38,5 +38,8 @@ include("Phantom/Phantom.jl")
 
 export PulseqSequenceData, read_seq, read_seq_data, write_seq, write_seq_data    # Pulseq
 export read_phantom_jemris, read_phantom_MRiLab, read_phantom, write_phantom     # Phantom
+
+# Precompilation workloads for reduced first-use latency
+include("precompile.jl")
 
 end # module KomaMRIFiles
