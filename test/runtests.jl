@@ -423,9 +423,17 @@ end
                     @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
 
                     phantom_file = joinpath(files, "phantom", "column1d.h5")
+                    previous_phantom = obj_ui[]
                     obj_ui[] = KomaMRI.callback_filepicker(phantom_file, w, obj_ui[])
                     @test obj_ui[].name == "column1d.h5"
                     @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+
+                    getfield(w.handlers["reload_phantom"], :phantom_file)[] = phantom_file
+                    obj_ui[] = previous_phantom
+                    click_button("button_reload_phantom")
+                    @test timedwait(() -> obj_ui[].name == "column1d.h5", 30) == :ok
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+                    @test timedwait(() -> plot_rendered("phantom"), 30) == :ok
 
                     raw_file = joinpath(@__DIR__, "test_files", "Koma_signal.mrd")
                     raw_ui[] = KomaMRI.callback_filepicker(raw_file, w, raw_ui[])

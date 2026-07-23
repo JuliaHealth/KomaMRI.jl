@@ -202,7 +202,7 @@ body, button{
   max-width: 260px;
 }
 
-.file-dropdown-menu .seq-filepicker-row {
+.file-dropdown-menu .filepicker-row {
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -213,7 +213,7 @@ body, button{
   box-sizing: border-box;
 }
 
-.seq-filepicker-row {
+.filepicker-row {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -222,7 +222,7 @@ body, button{
 }
 
 .koma-file-input,
-.seq-filepicker-row .seq-reload-button {
+.filepicker-row .file-reload-button {
   appearance: none;
   display: inline-flex;
   align-items: center;
@@ -261,7 +261,7 @@ body, button{
   white-space: nowrap;
 }
 
-.seq-filepicker-row .seq-reload-button {
+.filepicker-row .file-reload-button {
   padding: 5px 8px !important;
   background-color: #495057 !important;
   border-color: #5c636a !important;
@@ -273,8 +273,8 @@ body, button{
   border-color: #4ba0d7 !important;
 }
 
-.seq-filepicker-row .seq-reload-button:hover,
-.seq-filepicker-row .seq-reload-button:focus {
+.filepicker-row .file-reload-button:hover,
+.filepicker-row .file-reload-button:focus {
   background-color: #5c636a !important;
   border-color: #6c757d !important;
 }

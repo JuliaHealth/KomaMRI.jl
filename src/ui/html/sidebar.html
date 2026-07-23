@@ -26,9 +26,9 @@
           </li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-interact">
-            <div class="seq-filepicker-row">
+            <div class="filepicker-row">
               <span id="seqfilepicker"></span>
-              <button id="button_reload_seq" class="seq-reload-button" type="button" onclick='KomaUI.notify("reload_seq")' title="Reload sequence">
+              <button id="button_reload_seq" class="file-reload-button" type="button" onclick='KomaUI.notify("reload_seq")' title="Reload sequence">
                 <i class="bi bi-arrow-clockwise"></i>
               </button>
             </div>
@@ -44,7 +44,14 @@
       <ul class="dropdown-menu dropdown-menu-dark file-dropdown-menu shadow" aria-labelledby="pha-dropdown">
           <li><a id="button_phantom" class="dropdown-item" href="#" onclick='KomaUI.notify("phantom")'>View Phantom</a></li>
           <li><hr class="dropdown-divider"></li>
-          <li class="dropdown-interact" id="phafilepicker"></li>
+          <li class="dropdown-interact">
+            <div class="filepicker-row">
+              <span id="phafilepicker"></span>
+              <button id="button_reload_phantom" class="file-reload-button" type="button" onclick='KomaUI.notify("reload_phantom")' title="Reload phantom">
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+            </div>
+          </li>
       </ul>
     </li>
     <p id="phaname" class="pname"><abbr title="brain2D_axial.h5">brain2D_axial.h5</abbr></p>

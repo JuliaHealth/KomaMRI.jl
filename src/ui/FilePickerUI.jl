@@ -53,7 +53,7 @@ function callback_filepicker(filename::String, w::KomaWindow, raw::RawAcquisitio
     return raw
 end
 
-function setup_filepickers!(w::KomaWindow; seq_file=Ref(""))
+function setup_filepickers!(w::KomaWindow; seq_file=Ref(""), phantom_file=Ref(""))
     setup_filepicker!(
         w,
         "#seqfilepicker",
@@ -70,6 +70,7 @@ function setup_filepickers!(w::KomaWindow; seq_file=Ref(""))
         ".phantom (Koma)/.h5 (JEMRIS)",
         obj_ui;
         accept=".phantom,.h5",
+        selected_file=phantom_file,
     )
     setup_filepicker!(
         w,
