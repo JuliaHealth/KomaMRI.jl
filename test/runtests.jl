@@ -375,7 +375,12 @@ end
 
                     seq_ui[] = triggered
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
                     @test physio_ui[].period == 1.0
+                    @test Bonito.evaljs_value(
+                        session,
+                        js"document.querySelector('#content .rangeslider-container') === null",
+                    )
 
                     physio_ui[] = CardiacSignal(; heart_rate=1.25)
                     @test physio_ui[].period == 0.8
