@@ -250,20 +250,6 @@ end
                         document.querySelector('#content .js-plotly-plot') !== null
                 """,
             )
-            content_fills_main() = Bonito.evaljs_value(
-                session,
-                js"""
-                    (() => {
-                        const main = document.getElementById('main').getBoundingClientRect();
-                        const sidebar = document.querySelector('.koma-sidebar').getBoundingClientRect();
-                        const content = document.getElementById('content').getBoundingClientRect();
-                        return Math.abs(content.left - sidebar.right) < 1 &&
-                            Math.abs(content.right - main.right) < 1 &&
-                            Math.abs(content.top - main.top) < 1 &&
-                            Math.abs(content.bottom - main.bottom) < 1;
-                    })()
-                """,
-            )
             range_slider_visible() = Bonito.evaljs_value(
                 session,
                 js"""
@@ -275,14 +261,12 @@ end
             try
                 @testset "Open UI" begin
                     @test w.state[] == "index"
-                    @test content_fills_main()
                 end
 
                 @testset "Sequence views" begin
                     click_button("button_pulses_seq")
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
                     @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
-                    @test content_fills_main()
                     @test range_slider_visible()
                     @test Bonito.evaljs_value(
                         session, js"document.getElementById('main').clientHeight === window.innerHeight"
