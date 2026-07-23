@@ -1,6 +1,4 @@
-struct BlochMagnusBGLCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T}
-} <: BlochMagnusCPUPrealloc{T}
+struct BlochMagnusBGLCPUPrealloc{CV<:AbstractVector,RV<:AbstractVector} <: BlochMagnusCPUPrealloc
     ωxy_minus::CV
     ωz_minus::RV
     ωxy_center::CV
@@ -27,7 +25,7 @@ struct BlochMagnusBGLCPUPrealloc{
     Maux_z::RV
 end
 
-prealloc(sim_method::BlochMagnusBGL4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusBGL4, backend::KA.CPU, obj::Phantom, M::Mag, max_block_length::Integer, groupsize) =
     BlochMagnusBGLCPUPrealloc(
         cbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj),
@@ -43,7 +41,7 @@ prealloc(sim_method::BlochMagnusBGL4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T
         similar(M.xy), similar(M.z),
     )
 
-prealloc(sim_method::BlochMagnusBGL6, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusBGL6, backend::KA.CPU, obj::Phantom, M::Mag, max_block_length::Integer, groupsize) =
     prealloc(BlochMagnusBGL4(), backend, obj, M, max_block_length, groupsize)
 
 precession_buffers(p::BlochMagnusBGLCPUPrealloc) = p.ωz_minus, p.ωz_plus

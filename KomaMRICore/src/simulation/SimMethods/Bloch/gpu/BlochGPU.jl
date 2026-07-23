@@ -3,21 +3,26 @@ include("PrecessionKernel.jl")
 include("ExcitationKernel.jl")
 
 """Stores preallocated arrays for use in Bloch GPU run_spin_precession! and run_spin_excitation! functions."""
-struct BlochGPUPrealloc{T} <: PreallocResult{T}
-    sig_output::AbstractMatrix{Complex{T}}
-    sig_output_final::AbstractMatrix{Complex{T}}
-    ΔBz::AbstractVector{T}
+struct BlochGPUPrealloc{
+    SignalType<:AbstractMatrix,
+    ReducedSignalType<:AbstractMatrix,
+    OffResonanceType<:AbstractVector,
+} <: PreallocResult
+    sig_output::SignalType
+    sig_output_final::ReducedSignalType
+    ΔBz::OffResonanceType
 end
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
 function prealloc(
-    sim_method::SM, 
-    backend::KA.GPU, 
-    obj::Phantom{T}, 
-    M::Mag{T}, 
-    max_block_length::Integer, 
+    sim_method::SM,
+    backend::KA.GPU,
+    obj::Phantom,
+    M::Mag,
+    max_block_length::Integer,
     groupsize
-) where {T<:Real, SM<:BlochLikeSimMethods}
+) where {SM<:BlochLikeSimMethods}
+    T = eltype(obj.ρ)
     return BlochGPUPrealloc(
         KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
         KA.zeros(backend, Complex{T}, 1, max_block_length),
@@ -25,40 +30,17 @@ function prealloc(
     )
 end
 
-prealloc(
-    sim_method::BlochMagnusBGL4,
-    backend::KA.GPU,
-    obj::Phantom{T},
-    M::Mag{T},
-    max_block_length::Integer,
-    groupsize
-) where {T<:Real} =
-    BlochGPUPrealloc(
-        KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
-        KA.zeros(backend, Complex{T}, 1, max_block_length),
-        obj.Δw ./ T(2π .* γ)
-    )
-
-prealloc(
-    sim_method::BlochMagnusBGL6,
-    backend::KA.GPU,
-    obj::Phantom{T},
-    M::Mag{T},
-    max_block_length::Integer,
-    groupsize
-) where {T<:Real} =
-    prealloc(BlochMagnusBGL4(), backend, obj, M, max_block_length, groupsize)
-
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::BlochMagnusBGL4,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
 
@@ -82,15 +64,16 @@ function run_spin_precession!(
 end
 
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real, SM<:BlochLikeSimMethods}
+) where {SM<:BlochLikeSimMethods}
+    T = eltype(p.ρ)
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
@@ -119,27 +102,28 @@ function run_spin_precession!(
 end
 
 run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::BlochMagnusBGL6,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real} =
+) =
     run_spin_precession!(p, seq, sig, M, BlochMagnusBGL4(), groupsize, backend, pre)
 
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::BlochMagnusBGL4,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
 
@@ -163,15 +147,16 @@ function run_spin_excitation!(
 end
 
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real, SM<:BlochLikeSimMethods}
+) where {SM<:BlochLikeSimMethods}
+    T = eltype(p.ρ)
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
@@ -200,16 +185,17 @@ function run_spin_excitation!(
 end
 
 run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::BlochMagnusBGL6,
     groupsize::Integer,
     backend::KA.Backend,
     pre::BlochGPUPrealloc
-) where {T<:Real} =
+) =
 begin
+    T = eltype(p.ρ)
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
 

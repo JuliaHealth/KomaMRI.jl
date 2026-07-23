@@ -44,9 +44,7 @@ end
 Base.:(==)(m1::NoMotion, m2::NoMotion) = true
 Base.:(≈)(m1::NoMotion, m2::NoMotion)   = true
 
-function get_spin_coords(
-    mv::NoMotion, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
-) where {T<:Real}
+function get_spin_coords(mv::NoMotion, x, y, z, t)
     return x, y, z
 end
 add_key_time_points!(t, ::NoMotion) = nothing
