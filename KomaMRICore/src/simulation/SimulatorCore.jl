@@ -352,7 +352,7 @@ function simulate(
     sim_method = sim_params["sim_method"]
     sampling_rule = simulation_sampling_rule(sim_method, sim_params)
     #Warn if user is trying to run on CPU without enabling multi-threading
-    if (!sim_params["gpu"] && Threads.nthreads() == 1)
+    if verbose && !sim_params["gpu"] && Threads.nthreads() == 1
         @info """Simulation will be run on the CPU with only 1 thread. To enable multi-threading, start julia with --threads=auto
         """ maxlog=1
     end

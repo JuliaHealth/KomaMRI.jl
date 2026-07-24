@@ -1,11 +1,22 @@
+function simulation_device_label(sim_params)
+    backend = KomaMRICore.get_backend(Bool(get(sim_params, "gpu", true)))
+    backend_name = KomaMRICore.name(backend)
+    backend_name == "CPU" || return "GPU ($backend_name)"
+
+    threads = get(sim_params, "Nthreads", Threads.nthreads())
+    return "CPU ($threads thread$(threads == 1 ? "" : "s"))"
+end
+
 function run_simulation!(w, sim_params; initial=false)
     previous_content = w.content[]
     previous_state = w.state[]
     message = initial ?
         "Precompiling and running simulation functions ..." : "Running simulation ..."
-    threads = get(sim_params, "Nthreads", Threads.nthreads())
-    simulation_device = Ref("CPU ($threads thread$(threads == 1 ? "" : "s"))")
-    display_loading!(w, message)
+    params = KomaMRICore.default_sim_params(copy(sim_params))
+    simulation_device = simulation_device_label(params)
+    method = nameof(typeof(params["sim_method"]))
+    status = "$simulation_device · $method · $(uppercase(params["precision"]))"
+    display_loading!(w, message; details=status)
     start_simulation_progress!(w)
 
     raw = try
@@ -14,7 +25,7 @@ function run_simulation!(w, sim_params; initial=false)
             seq_ui[],
             sys_ui[];
             sim_params,
-            callbacks=(ui_progressbar_callback(w, simulation_device),),
+            callbacks=(ui_progressbar_callback(w),),
             physio=physio_ui[],
         )
         rawfile = joinpath(tempdir(), "Koma_signal.mrd")
@@ -30,7 +41,9 @@ function run_simulation!(w, sim_params; initial=false)
         finish_simulation_progress!(w)
     end
 
-    sim_time = round(raw.params["userParameters"]["sim_time_sec"]; digits=3)
+    params = raw.params["userParameters"]
+    sim_time = round(params["sim_time_sec"]; digits=3)
+    simulation_device = simulation_device_label(params)
     body = """
         <ul class="list-unstyled mb-0">
             <li><button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View raw signal" aria-label="View raw signal" onclick="KomaUI.notify('sig')"><i class="bi bi-search"></i></button> Updating <b>Raw signal</b> plots ...</li>
@@ -38,7 +51,7 @@ function run_simulation!(w, sim_params; initial=false)
         </ul>
     """
     update_filename!(w, "rawname", "Koma_signal.mrd")
-    toast!(w, 1, "$(simulation_device[]) simulation successful<br>Time: $sim_time s", body)
+    toast!(w, 1, "$simulation_device sim. successful<br>Time: $sim_time s", body)
     raw_ui[] = raw
     return nothing
 end
@@ -83,7 +96,7 @@ end
 
 function start_simulation_progress!(w::KomaWindow)
     isnothing(w.session[]) && return nothing
-    Bonito.evaljs_value(w.session[], js"""(() => {
+    evaljs(w, js"""(() => {
         const button = document.getElementById('simulate!');
         button.disabled = true;
         const progress = document.createElement('div');
@@ -115,7 +128,7 @@ function finish_simulation_progress!(w::KomaWindow)
     return nothing
 end
 
-function update_bonito_progress!(w::KomaWindow, block, Nblocks, status)
+function update_bonito_progress!(w::KomaWindow, block, Nblocks)
     progress = floor(Int, block / Nblocks * 100)
     evaljs(w, js"""
         const bar = document.getElementById('simul_progress');
@@ -124,27 +137,12 @@ function update_bonito_progress!(w::KomaWindow, block, Nblocks, status)
             bar.innerHTML = $progress + '%';
             bar.setAttribute('aria-valuenow', $progress);
         }
-        const details = document.getElementById('loadstatus');
-        if (details) details.textContent = $(status);
     """)
     return nothing
 end
 
-function ui_progressbar_callback(w::KomaWindow, simulation_device)
-    gpu_backend = Ref{Union{Nothing,String}}(nothing)
-    callback = function(progress_info, _, _, sim_params)
-        threads = sim_params["Nthreads"]
-        simulation_device[] = if sim_params["gpu"]
-            if isnothing(gpu_backend[])
-                gpu_backend[] = KomaMRICore.name(KomaMRICore.get_backend(true))
-            end
-            "GPU ($(gpu_backend[]))"
-        else
-            "CPU ($threads thread$(threads == 1 ? "" : "s"))"
-        end
-        method = nameof(typeof(sim_params["sim_method"]))
-        status = "$(simulation_device[]) · $method · $(uppercase(sim_params["precision"]))"
-        update_bonito_progress!(w, progress_info.block, progress_info.Nblocks, status)
-    end
-    return Callback(1, callback)
+function ui_progressbar_callback(w::KomaWindow)
+    return Callback(1, (progress_info, _, _, _) -> begin
+        update_bonito_progress!(w, progress_info.block, progress_info.Nblocks)
+    end)
 end

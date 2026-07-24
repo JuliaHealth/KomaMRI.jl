@@ -1,10 +1,19 @@
+sequence_slider_visible(::NoPhysioSignal, long_seq) = !long_seq
+sequence_slider_visible(::AbstractPhysioSignal, _) = false
+
 function show_sequence!(w, seq, view; darkmode=true, physio=NoPhysioSignal())
     if view === :sequence
         display_loading!(w, "Plotting sequence ...")
         long_seq = length(seq) > 1_000
         time_end = long_seq ? dur(seq) * 1e3 : 30
         plot = plot_seq(
-            seq; darkmode, range=[0 time_end], slider=!long_seq, gl=long_seq, show_adc=false, physio
+            seq;
+            darkmode,
+            range=[0 time_end],
+            slider=sequence_slider_visible(physio, long_seq),
+            gl=long_seq,
+            show_adc=false,
+            physio,
         )
         set_content!(w, plot_node(plot), "sequence")
     elseif view === :kspace
