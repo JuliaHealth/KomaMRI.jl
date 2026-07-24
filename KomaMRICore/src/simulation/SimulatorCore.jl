@@ -118,6 +118,21 @@ function run_spin_precession_parallel!(
     return nothing
 end
 
+function run_spin_precession_parallel!(
+    obj::Phantom{T},
+    seq,
+    sig::AbstractArray{Complex{T}},
+    Xt::SpinStateRepresentation{T},
+    sim_method::SimulationMethod,
+    groupsize::Integer,
+    backend::KA.GPU,
+    prealloc::PreallocResult;
+    Nthreads=1,
+) where {T<:Real}
+    run_spin_precession!(obj, seq, sig, Xt, sim_method, groupsize, backend, prealloc)
+    return nothing
+end
+
 function run_spin_excitation_parallel!(
     obj::Phantom{T},
     seq,
@@ -138,6 +153,21 @@ function run_spin_excitation_parallel!(
         )
     end
 
+    return nothing
+end
+
+function run_spin_excitation_parallel!(
+    obj::Phantom{T},
+    seq,
+    sig::AbstractArray{Complex{T}},
+    Xt::SpinStateRepresentation{T},
+    sim_method::SimulationMethod,
+    groupsize::Integer,
+    backend::KA.GPU,
+    prealloc::PreallocResult;
+    Nthreads=1,
+) where {T<:Real}
+    run_spin_excitation!(obj, seq, sig, Xt, sim_method, groupsize, backend, prealloc)
     return nothing
 end
 
@@ -178,6 +208,7 @@ function run_sim_time_iter!(
     excitation_groupsize=DEFAULT_EXCITATION_GROUPSIZE,
     parts=[1:length(seqd)],
     excitation_bool=ones(Bool, size(parts)),
+    adc_samples_per_block,
     sim_params=Dict{String,Any}(),
     callbacks=(),
 ) where {T<:Real}
@@ -191,8 +222,8 @@ function run_sim_time_iter!(
 
     for (block, p) in enumerate(parts)
         seqd_block = @view seqd[p]
-        # Params
-        Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
+        # Block parameters
+        Nadc = adc_samples_per_block[block]
         acq_samples = samples:(samples + Nadc - 1)
         dims = [Colon() for i in 1:(ndims(sig) - 1)] # :,:,:,... Ndim times
         # Simulation wrappers
@@ -355,6 +386,7 @@ function simulate(
         max_rf_block_length=sim_params["max_rf_block_length"],
         eval_intervals_per_step=eval_intervals_per_step(sim_method),
     ) # Generating simulation blocks
+    adc_samples_per_block = [count(@view seqd.ADC[(first(p) + 1):last(p)]) for p in parts]
     Nblocks = length(parts)
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
@@ -395,6 +427,9 @@ function simulate(
         @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
             pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points = Ndims[1]
     end
+    raw_kspace_task =
+        sim_params["return_type"] == "raw" && backend isa KA.GPU && Threads.nthreads() > 1 ?
+        Threads.@spawn(last(get_kspace(seq))) : nothing
     @maybe_time verbose ret = @timed run_sim_time_iter!(
         obj,
         seqd,
@@ -408,6 +443,7 @@ function simulate(
         excitation_groupsize=sim_params["gpu_groupsize_excitation"],
         parts,
         excitation_bool,
+        adc_samples_per_block,
         sim_params,
         callbacks=all_callbacks,
     )
@@ -433,9 +469,16 @@ function simulate(
         sim_params_raw["sim_time_sec"] = ret.time
         sim_params_raw["allocations_bytes"] = ret.bytes
 
-        out = signal_to_raw_data(
-            sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw
-        )
+        out = if isnothing(raw_kspace_task)
+            signal_to_raw_data(
+                sig, seq; phantom_name=obj.name, sys=sys, sim_params=sim_params_raw
+            )
+        else
+            _signal_to_raw_data(
+                sig, seq, fetch(raw_kspace_task);
+                phantom_name=obj.name, sys=sys, sim_params=sim_params_raw
+            )
+        end
     end
     return out
 end

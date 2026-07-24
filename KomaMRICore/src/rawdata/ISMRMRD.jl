@@ -79,8 +79,17 @@ function signal_to_raw_data(
     signal, seq;
     phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
 )
+    _, ktraj = get_kspace(seq)
+    return _signal_to_raw_data(
+        signal, seq, ktraj; phantom_name, sys, sim_params, ndims
+    )
+end
+
+function _signal_to_raw_data(
+    signal, seq, ktraj;
+    phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
+)
     #Number of samples and FOV
-    _, ktraj = get_kspace(seq) #kspace information
     mink = minimum(ktraj, dims=1)
     maxk = maximum(ktraj, dims=1)
     Wk = maxk .- mink
