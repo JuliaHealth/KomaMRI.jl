@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784358693943,
+  "lastUpdate": 1784854782950,
   "repoUrl": "https://github.com/JuliaHealth/KomaMRI.jl",
   "entries": {
     "KomaMRI Benchmarks": [
@@ -8340,6 +8340,138 @@ window.BENCHMARK_DATA = {
             "value": 78691146,
             "unit": "ns",
             "extra": "gctime=0\nmemory=22051920\nallocs=66051\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "cacp@stanford.edu",
+            "name": "Carlos Castillo Passi",
+            "username": "cncastillo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "206593e381a1468e3a2ade758ff00e792ce2a4d5",
+          "message": "Fix Bonito 5 KomaUI compatibility and precompile output (#827)\n\n* Fix simulation progress on Bonito 5\n\n* Clarify serialized GPU flag check\n\n* Bump KomaMRI to 0.13.1\n\n* Silence precompile workload logging\n\n* Preserve KomaMRI dependency compatibility\n\n* Fix KomaUI layout and cleanup across Bonito versions\n\n* Show simulation device in loading state\n\n* Restore simulation status presentation\n\n* Restore sequence reload from selected path\n\n* Verify sequence reload and restore UI palette\n\n* Preserve UI behavior across Bonito versions\n\n* Remove brittle layout geometry test\n\n* Add phantom reload control",
+          "timestamp": "2026-07-23T16:38:58-07:00",
+          "tree_id": "dba1b35f3b4750dfef1d5956c0323843fe72e1b2",
+          "url": "https://github.com/JuliaHealth/KomaMRI.jl/commit/206593e381a1468e3a2ade758ff00e792ce2a4d5"
+        },
+        "date": 1784854605448,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "MRI Lab/Bloch/GPU/AMDGPU",
+            "value": 21312344,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=17009520\nallocs=75280\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/CUDA",
+            "value": 17449290,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=16757040\nallocs=67469\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/Bloch/GPU/Metal",
+            "value": 50797250,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=18367216\nallocs=75845\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus2/GPU/AMDGPU",
+            "value": 21285980.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=17068384\nallocs=75738\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus2/GPU/CUDA",
+            "value": 17455335,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=16805712\nallocs=67592\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus2/GPU/Metal",
+            "value": 50882333,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=18410592\nallocs=75993\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus4/GPU/AMDGPU",
+            "value": 21389899.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=17080992\nallocs=75204\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus4/GPU/CUDA",
+            "value": 17553544,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=16835072\nallocs=67597\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "MRI Lab/BlochMagnus4/GPU/Metal",
+            "value": 51115958,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=18433984\nallocs=76001\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/AMDGPU",
+            "value": 27274991.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21316792\nallocs=68055\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/CUDA",
+            "value": 19828203,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21108648\nallocs=62932\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/Bloch/GPU/Metal",
+            "value": 79670875,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=22036352\nallocs=65893\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus2/GPU/AMDGPU",
+            "value": 27256905,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21321560\nallocs=68083\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus2/GPU/CUDA",
+            "value": 19761035,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21111368\nallocs=62946\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus2/GPU/Metal",
+            "value": 79392250,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=22049056\nallocs=66049\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus4/GPU/AMDGPU",
+            "value": 27246946.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21325704\nallocs=68115\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus4/GPU/CUDA",
+            "value": 19783973,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=21115368\nallocs=62955\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Slice Selection 3D/BlochMagnus4/GPU/Metal",
+            "value": 79647166,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=22052368\nallocs=66053\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":true,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":120,\"time_tolerance\":0.05}"
           }
         ]
       }
