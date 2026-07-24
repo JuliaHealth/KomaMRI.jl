@@ -5,9 +5,9 @@
     M_xy::AbstractVector{Complex{T}}, M_z,
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), @Const(s_ψ), @Const(s_ADC), s_length,
-    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
+    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC}, ::Val{SKIP_RELAXATION},
     sim_method::SM
-) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, SM<:Union{BlochMagnusQuad2,BlochMagnusQuad4}}
+) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, SKIP_RELAXATION, SM<:Union{BlochMagnusQuad2,BlochMagnusQuad4}}
 
     @uniform N = @groupsize()[1]
     i_l = @index(Local, Linear)
@@ -36,9 +36,11 @@
         ΔBz = p_ΔBz[i]
         Mxy_r, Mxy_i = reim(M_xy[i])
         Mz = M_z[i]
-        ρ = p_ρ[i]
-        T1 = p_T1[i]
-        T2 = p_T2[i]
+        if !SKIP_RELAXATION
+            ρ = p_ρ[i]
+            T1 = p_T1[i]
+            T2 = p_T2[i]
+        end
 
         ψ_start = s_ψ[1]
         if !iszero(ψ_start)
@@ -75,14 +77,16 @@
                 sim_method,
             )
             M_norm = mag_norm(T, Mxy_r, Mxy_i, Mz)
-            Mxy_new_r, Mxy_new_i, Mz_new = rotate_magnetization(θx, θy, θz, Mxy_r, Mxy_i, Mz, T)
-            Mxy_new_r, Mxy_new_i, Mz_new = restore_mag_norm(M_norm, Mxy_new_r, Mxy_new_i, Mz_new) # For reduced float precision only.
+            Mxy_r, Mxy_i, Mz = rotate_magnetization(θx, θy, θz, Mxy_r, Mxy_i, Mz, T)
+            Mxy_r, Mxy_i, Mz = restore_mag_norm(M_norm, Mxy_r, Mxy_i, Mz) # For reduced float precision only.
 
-            E1 = exp(-Δt / T1)
-            E2 = exp(-Δt / T2)
-            Mxy_r = Mxy_new_r * E2
-            Mxy_i = Mxy_new_i * E2
-            Mz = Mz_new * E1 + ρ * (T(1) - E1)
+            if !SKIP_RELAXATION
+                E1 = exp(-Δt / T1)
+                E2 = exp(-Δt / T2)
+                Mxy_r *= E2
+                Mxy_i *= E2
+                Mz = Mz * E1 + ρ * (T(1) - E1)
+            end
 
             x0, y0, z0 = x1, y1, z1
             Bx_0, By_0, Bz_0 = Bx_1, By_1, Bz_1
