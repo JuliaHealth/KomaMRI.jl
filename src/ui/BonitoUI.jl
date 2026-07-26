@@ -20,9 +20,16 @@ function launch_ui(;
         "KomaMRIPlots.jl v$(pkgversion(KomaMRIPlots))",
     ], "\n")
     w = setup_bonito_window(; darkmode, frame, dev_tools, versions)
+    seq_file = Ref("")
+    phantom_file = Ref("")
+    setup_filepickers!(w; seq_file, phantom_file)
+    show_window && show!(w)
 
     fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
-    widgets_button_obj = [Button(string(field); style=nothing, class="btn btn-dark btn-sm m-1") for field in fieldnames_obj]
+    widgets_button_obj = [
+        Button(string(field); style=nothing, class="btn btn-primary btn-sm m-1") for
+        field in fieldnames_obj
+    ]
 
     sys_default = isnothing(sys) ? setup_scanner() : sys
     seq_default = isnothing(seq) ? setup_sequence(sys_default) : seq
@@ -38,7 +45,6 @@ function launch_ui(;
 
     sim_params = merge(Dict{String,Any}(), sim)
     rec_params = merge(Dict{Symbol,Any}(:reco => "direct"), rec)
-    seq_file = Ref("")
 
     if !(haskey(sim_params, "gpu") && sim_params["gpu"] == false)
         KomaMRICore.print_devices()
@@ -70,6 +76,10 @@ function launch_ui(;
     end
     handle(w, "phantom") do _
         show_phantom!(w, obj_ui[], widgets_button_obj; key=:ρ, darkmode)
+    end
+    handle(w, "reload_phantom") do _
+        isempty(phantom_file[]) ||
+            (obj_ui[] = callback_filepicker(phantom_file[], w, obj_ui[]))
     end
     handle(w, "scanner") do _
         show_scanner!(w, sys_ui[])
@@ -129,9 +139,6 @@ function launch_ui(;
     push!(w.listeners, on(raw -> show_signal!(w, raw; darkmode), raw_ui))
     push!(w.listeners, on(img -> show_image!(w, img, :absi; darkmode), img_ui))
 
-    setup_filepickers!(w; seq_file)
-
     @info "KomaMRI loaded successfully 🚀" KomaMRI=string(pkgversion(KomaMRI)) KomaMRIBase=string(pkgversion(KomaMRIBase)) KomaMRICore=string(pkgversion(KomaMRICore)) KomaMRIFiles=string(pkgversion(KomaMRIFiles)) KomaMRIPlots=string(pkgversion(KomaMRIPlots))
-    show_window && show!(w)
     return return_window ? w : nothing
 end
