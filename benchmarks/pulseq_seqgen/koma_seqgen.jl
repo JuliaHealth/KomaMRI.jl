@@ -10,7 +10,10 @@ const WARMUP_NTR = parse(Int, get(ENV, "SEQGEN_WARMUP_NTR", "1"))
 const OUTDIR = get(ENV, "SEQGEN_OUTDIR", joinpath(tempdir(), "koma_seqgen_bench"))
 mkpath(OUTDIR)
 
-const sys = Scanner(Gmax=40e-3, Smax=170.0, B1=Inf, ADC_Δt=100e-9, DUR_Δt=10e-6, GR_Δt=10e-6, RF_Δt=1e-6)
+const sys = Scanner(limits=HardwareLimits(
+    Gmax=40e-3, Smax=170.0, B1=Inf, ADC_Δt=100e-9,
+    DUR_Δt=10e-6, GR_Δt=10e-6, RF_Δt=1e-6,
+))
 const rf = RF(1e-6, 0.5e-3)
 const radial_gx = Grad(1e-3, 1e-3, 10e-6)
 const spoiler_gx = Grad(-0.5e-3, 0.5e-3, 10e-6)

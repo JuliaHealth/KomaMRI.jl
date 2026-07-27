@@ -1,3 +1,9 @@
+"""
+    HardwareLimits(; B0=1.5, B1=10e-6, Gmax=60e-3, Smax=500.0, ...)
+
+Scanner field, gradient, slew-rate, raster-time, and dead-time limits in SI units.
+Unitful quantities are converted to SI when Unitful is loaded.
+"""
 @with_kw mutable struct HardwareLimits
     #Main
     B0::Float64 = 1.5

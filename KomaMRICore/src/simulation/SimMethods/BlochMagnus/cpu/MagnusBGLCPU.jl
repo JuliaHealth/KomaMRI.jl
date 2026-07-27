@@ -63,7 +63,10 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
         if seq.ADC[i1]
             coords = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i1])
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, coords)
+            acquire_signal!(
+                @view(sig[sample, :]), p, sys.receiver, M.xy, p.motion,
+                coords, prealloc.sens,
+            )
             sample += 1
         end
         i = i1

@@ -6,16 +6,17 @@
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), @Const(s_ψ), @Const(s_ADC), s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC}, ::Val{HAS_SENS},
+    ::Val{COIL_TILING},
     sim_method::BlochMagnusMid2
-) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, HAS_SENS}
+) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, HAS_SENS, COIL_TILING}
 
     @uniform N = @groupsize()[1]
     i_l = @index(Local, Linear)
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
-    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
+    sig_group_r = @localmem T HAS_ADC ? (COIL_TILING ? N : (USE_WARP_REDUCTION ? 32 : N)) : 1
+    sig_group_i = @localmem T HAS_ADC ? (COIL_TILING ? N : (USE_WARP_REDUCTION ? 32 : N)) : 1
 
     active = i <= N_spins
     Mxy_r = zero(T)
@@ -71,22 +72,28 @@
         end
 
         if HAS_ADC && s_ADC[s_end]
-            coil = 1u32
-            while coil <= N_coils
-                sig_r, sig_i = Mxy_r, Mxy_i
-                if active && HAS_SENS
-                    sens_idx = MOTION ? i + (s_end - 1u32) * N_spins : i
-                    sens_r, sens_i = reim(sens[sens_idx, coil])
-                    sig_r, sig_i = (
-                        sig_r * sens_r - sig_i * sens_i,
-                        sig_r * sens_i + sig_i * sens_r,
+            if HAS_SENS
+                if COIL_TILING
+                    reduce_coils_tiled!(
+                        sig_output, Mxy_r, Mxy_i, sens, sig_group_r, sig_group_i,
+                        i, i_l, i_g, s_end, ADC_idx, N_spins, N_coils, N_adc, N, T,
+                        active, Val(MOTION),
+                    )
+                else
+                    reduce_coils_serial!(
+                        sig_output, Mxy_r, Mxy_i, sens, sig_group_r, sig_group_i,
+                        i, i_l, i_g, s_end, ADC_idx, N_spins, N_coils, N_adc, N, T,
+                        active, Val(MOTION), Val(true), Val(USE_WARP_REDUCTION),
                     )
                 end
-                sig_r, sig_i = reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
+            else
+                sig_r, sig_i = reduce_signal!(
+                    Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T,
+                    Val(USE_WARP_REDUCTION),
+                )
                 if i_l == 1u32
-                    sig_output[i_g, ADC_idx + (coil - 1u32) * N_adc] = complex(sig_r, sig_i)
+                    sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
                 end
-                coil += 1u32
             end
             ADC_idx += 1u32
         end

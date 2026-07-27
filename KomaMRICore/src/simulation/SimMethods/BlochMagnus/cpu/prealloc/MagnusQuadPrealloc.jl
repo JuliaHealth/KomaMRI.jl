@@ -1,5 +1,5 @@
 struct BlochMagnusQuadCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T}
+    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T},S
 } <: BlochMagnusCPUPrealloc{T}
     ωxy_0::CV
     ωz_0::RV
@@ -15,6 +15,7 @@ struct BlochMagnusQuadCPUPrealloc{
     ΔBz::RV
     Maux_xy::CV
     Maux_z::RV
+    sens::S
 end
 
 prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} =
@@ -26,6 +27,7 @@ prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom{T}, M::Mag{
         similar(M.xy), similar(M.xy),
         off_resonance_buffer(obj),
         similar(M.xy), similar(M.z),
+        prealloc_sens(sys.receiver, obj, backend, obj.motion),
     )
 
 prealloc(sim_method::BlochMagnusQuad2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} =

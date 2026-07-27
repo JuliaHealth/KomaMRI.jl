@@ -27,10 +27,11 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
     )
 end
 
-prealloc_sens(::UniformCoilSens, _, ::KA.CPU, _) = nothing
-prealloc_sens(receiver::Union{BirdcageCoilSens,ArbitraryCoilSens}, obj, ::KA.CPU, ::NoMotion) =
+prealloc_sens(::UniformCoilSens, _, ::KA.CPU, ::NoMotion) = nothing
+prealloc_sens(::UniformCoilSens, _, ::KA.CPU, ::Union{Motion,MotionList}) = nothing
+prealloc_sens(receiver::AbstractRFReceiveSystem, obj, ::KA.CPU, ::NoMotion) =
     get_sens(receiver, obj.x, obj.y, obj.z)
-prealloc_sens(::Union{BirdcageCoilSens,ArbitraryCoilSens}, _, ::KA.CPU, ::Union{Motion,MotionList}) = nothing
+prealloc_sens(::AbstractRFReceiveSystem, _, ::KA.CPU, ::Union{Motion,MotionList}) = nothing
 
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
 function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real}
