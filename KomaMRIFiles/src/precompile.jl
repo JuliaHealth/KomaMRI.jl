@@ -14,8 +14,8 @@ import KomaMRIBase: PulseDesigner as PD
         
         mktempdir() do tmpdir
             seq_path = joinpath(tmpdir, "test.seq")
-            write_seq(seq, seq_path; sys=sys)
-            seq_read = read_seq(seq_path)
+            write_seq(seq, seq_path; sys=sys, verbose=false)
+            seq_read = read_seq(seq_path; verbose=false)
             
             phantom_path = joinpath(tmpdir, "phantom.phantom")
             write_phantom(obj, phantom_path)

@@ -1,9 +1,39 @@
+struct KomaContent
+    value::Observable{Any}
+end
+
+Base.getindex(content::KomaContent) = content.value[]
+Base.setindex!(content::KomaContent, value) = content.value[] = value
+
+function Bonito.jsrender(session::Session, content::KomaContent)
+    pkgversion(Bonito) >= v"5" && return Bonito.jsrender(session, content.value)
+
+    # Bonito 4 closes displaced subsessions before pending asset requests complete.
+    root = DOM.div()
+    current, html = Bonito.render_subsession(session, content[]; init=true)
+    Bonito.mark_displayed!(current)
+    previous = nothing
+    Bonito.on(session, content.value) do value
+        next = Bonito.update_session_dom!(
+            session, Bonito.uuid(session, root), value; replace=false
+        )
+        if next !== current
+            isnothing(previous) || close(previous)
+            previous = current
+            current = next
+        end
+        return nothing
+    end
+    push!(Bonito.children(root), html)
+    return Bonito.jsrender(session, root)
+end
+
 struct KomaWindow
     app::App
     display::Base.RefValue{Any}
     window::Base.RefValue{Union{Nothing,Electron.Window}}
     session::Base.RefValue{Union{Nothing,Session}}
-    content::Observable{Any}
+    content::KomaContent
     state::Observable{String}
     events::Observable{String}
     home::Base.RefValue{Any}
@@ -75,6 +105,7 @@ function Base.wait(w::KomaWindow)
 end
 
 function Base.close(w::KomaWindow)
+    window = w.window[]
     foreach(off, w.listeners)
     empty!(w.listeners)
     if !isnothing(w.session[])
@@ -86,6 +117,9 @@ function Base.close(w::KomaWindow)
         popdisplay(display)
         close(display)
         w.display[] = nothing
+    end
+    if !isnothing(window) && window.app.exists
+        close(window.app)
     end
     w.window[] = nothing
     return nothing
@@ -147,7 +181,7 @@ function home_page(image)
                     DOM.img(
                         ;
                         src="https://contrib.rocks/image?repo=cncastillo/KomaMRI.jl",
-                        style="height:48px;",
+                        style="height:58px;",
                     );
                     href="https://github.com/cncastillo/KomaMRI.jl/graphs/contributors",
                 );
@@ -212,7 +246,7 @@ function setup_bonito_window(; darkmode=true, frame=true, dev_tools=false, versi
 
     display_ref = Ref{Any}(nothing)
     session_ref = Ref{Union{Nothing,Session}}(nothing)
-    content = Observable{Any}(DOM.div())
+    content = KomaContent(Observable{Any}(DOM.div()))
     state = Observable("index")
     events = Observable("")
     home = Ref{Any}(DOM.div())

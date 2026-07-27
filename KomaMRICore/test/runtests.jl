@@ -367,6 +367,16 @@ end
     @test head.channel_mask[1] == UInt64(0xf)
     @test all(iszero, head.channel_mask[2:end])
 
+    mask64 = KomaMRICore.active_channel_mask(64)
+    mask65 = KomaMRICore.active_channel_mask(65)
+    @test mask64[1] == typemax(UInt64)
+    @test all(iszero, mask64[2:end])
+    @test mask65[1:2] == (typemax(UInt64), UInt64(1))
+    @test all(iszero, mask65[3:end])
+    @test all(==(typemax(UInt64)), KomaMRICore.active_channel_mask(1024))
+    @test_throws ArgumentError KomaMRICore.active_channel_mask(0)
+    @test_throws ArgumentError KomaMRICore.active_channel_mask(1025)
+
     seq.DEF["FOV"] = [23e-2, 23e-2, 0]
     raw = signal_to_raw_data(sig, seq)
     sig_aux = vcat([vec(profile.data) for profile in raw.profiles]...)
@@ -413,20 +423,39 @@ end
 end
 
 @testitem "Multi-coil simulations" tags=[:core, :nomotion] begin
+    import KomaMRIBase: get_n_coils, get_sens
+
+    struct ConstantCoilSens <: AbstractRFReceiveSystem
+        ncoils::Int
+    end
+    get_n_coils(receiver::ConstantCoilSens) = receiver.ncoils
+    function get_sens(receiver::ConstantCoilSens, x, y, z)
+        sens = similar(x, Complex{eltype(x)}, length(x), receiver.ncoils)
+        fill!(sens, inv(eltype(x)(receiver.ncoils)))
+        return sens
+    end
+
     coords = [-1.0, 0.0, 1.0] .* 1e-3
-    ncoils = 4
+    ncoils = 64
     dims = (length(coords), length(coords), length(coords))
     single_coil = fill(1.0 + 0.0im, dims..., 1)
     multi_coil = fill((1.0 + 0.0im) / ncoils, dims..., ncoils)
     single_receiver = ArbitraryCoilSens(coords, coords, coords, single_coil)
     multi_receiver = ArbitraryCoilSens(coords, coords, coords, multi_coil)
+    custom_receiver = ConstantCoilSens(ncoils)
 
     seq = Sequence()
     @addblock seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
     @addblock seq += ADC(8, 2e-4)
     obj = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[1e6], T2=[1e6], Δw=[0.0])
 
-    for sim_method in (BlochSimple(), Bloch())
+    sim_methods = (
+        BlochSimple(), Bloch(), BlochMagnusConst1(), BlochMagnusLin2(),
+        BlochMagnusMid2(), BlochMagnusLinComm2(), BlochMagnusQuad2(),
+        BlochMagnusQuad4(), BlochMagnusGL2(), BlochMagnusGL4(),
+        BlochMagnusBGL4(), BlochMagnusBGL6(),
+    )
+    for sim_method in sim_methods
         @testset "$(nameof(typeof(sim_method)))" begin
             for (precision, T) in ("f32" => Float32, "f64" => Float64)
                 @testset "$precision" begin
@@ -444,12 +473,17 @@ end
                     raw_multi = simulate(
                         obj, seq, Scanner(receiver=multi_receiver); sim_params, verbose=false,
                     )
+                    raw_custom = simulate(
+                        obj, seq, Scanner(receiver=custom_receiver); sim_params, verbose=false,
+                    )
 
                     @test eltype(raw_uniform) === Complex{T}
                     @test eltype(raw_single) === Complex{T}
                     @test eltype(raw_multi) === Complex{T}
+                    @test eltype(raw_custom) === Complex{T}
                     @test raw_uniform ≈ raw_single
                     @test raw_uniform ≈ sum(raw_multi; dims=2)
+                    @test raw_uniform ≈ sum(raw_custom; dims=2)
                 end
             end
         end
@@ -546,6 +580,7 @@ end
         receivers = (
             BirdcageCoilSens(; ncoils),
             ArbitraryCoilSens(coords, coords, coords, coil_sens),
+            ArbitraryCoilSens(coords, coords, coords, coil_sens[:, :, :, 1:1]),
         )
         multi_coil_obj = Phantom(
             x=[-5e-4, 0.0, 5e-4], y=[0.0, 4e-4, -4e-4], z=zeros(3),
@@ -555,7 +590,7 @@ end
         @addblock multi_coil_seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4) + ADC(4, 1e-4)
         @addblock multi_coil_seq += ADC(4, 2e-4)
         multi_coil_methods = (
-            Bloch(), BlochMagnusConst1(), BlochMagnusLin2(), BlochMagnusMid2(),
+            BlochSimple(), Bloch(), BlochMagnusConst1(), BlochMagnusLin2(), BlochMagnusMid2(),
             BlochMagnusLinComm2(), BlochMagnusQuad2(), BlochMagnusQuad4(),
             BlochMagnusGL2(), BlochMagnusGL4(), BlochMagnusBGL4(), BlochMagnusBGL6(),
         )
@@ -1009,5 +1044,31 @@ end
                 @test NRMSE(raw, mxy_diffeq) < 1
             end
         end
+    end
+
+    coords = [-1.0, 0.0, 1.0]
+    ncoils = 4
+    coil_sens = fill(
+        ComplexF32(1 / ncoils),
+        length(coords), length(coords), length(coords), ncoils,
+    )
+    receiver = ArbitraryCoilSens(coords, coords, coords, coil_sens)
+    obj = Phantom(
+        x=x0, y=y0, z=z0, ρ=[M0], T1=[T1], T2=[T2],
+        motion=translate(0.1, 0.1, 0.0, TimeRange(0.0, 1.0)),
+    )
+    seq = Sequence()
+    @addblock seq += RF(cis(φ) .* B1, Trf) + ADC(Nadc, duration - Trf, Trf)
+    for sim_method in (BlochSimple(), Bloch())
+        sim_params = Dict{String,Any}(
+            "sim_method" => sim_method,
+            "return_type" => "mat",
+            "gpu" => USE_GPU,
+        )
+        uniform_signal = simulate(obj, seq, Scanner(); sim_params, verbose=false)
+        multi_coil_signal = simulate(
+            obj, seq, Scanner(; receiver); sim_params, verbose=false,
+        )
+        @test uniform_signal ≈ sum(multi_coil_signal; dims=2)
     end
 end

@@ -2341,6 +2341,37 @@ end
     @test sys.limits.B0 ≈ B0 && sys.limits.B1 ≈ B1 && sys.limits.Gmax ≈ Gmax && sys.limits.Smax ≈ Smax
 end
 
+@testitem "RF receive systems" tags=[:base] begin
+    @test get_n_coils(UniformCoilSens()) == 1
+
+    birdcage = BirdcageCoilSens(; ncoils=4)
+    birdcage_sens = get_sens(birdcage, Float32[0, 0.01], Float32[0, -0.01], zeros(Float32, 2))
+    @test size(birdcage_sens) == (2, 4)
+    @test eltype(birdcage_sens) === ComplexF32
+    @test all(isfinite, birdcage_sens)
+    center_sens = vec(get_sens(birdcage, zeros(Float32, 1), zeros(Float32, 1), zeros(Float32, 1)))
+    center_magnitude = 2 * Float32(birdcage.L) / (
+        Float32(birdcage.radius) *
+        sqrt(Float32(birdcage.radius)^2 + Float32(birdcage.L)^2)
+    )
+    @test center_sens ≈ center_magnitude .* ComplexF32[im, 1, -im, -1]
+
+    coords = Float32[-1, 0, 1]
+    coil_sens = [
+        ComplexF32(x + 2y + 3z + coil, x - y) for
+        x in coords, y in coords, z in coords, coil in 1:1
+    ]
+    receiver = ArbitraryCoilSens(coords, coords, coords, coil_sens)
+    query = (Float32[0.25], Float32[-0.5], Float32[0.75])
+    expected = ComplexF32(
+        query[1][1] + 2 * query[2][1] + 3 * query[3][1] + 1,
+        query[1][1] - query[2][1],
+    )
+    @test get_n_coils(receiver) == 1
+    @test only(get_sens(receiver, query...)) ≈ expected
+    @test iszero(only(get_sens(receiver, Float32[2], Float32[0], Float32[0])))
+end
+
 @testitem "TrapezoidalIntegration" tags=[:base] begin
     dt = Float64[1 1 1 1]
     x  = Float64[0 1 2 1 0]
