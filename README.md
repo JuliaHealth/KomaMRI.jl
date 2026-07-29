@@ -133,10 +133,12 @@ Want to be highlighted here? We welcome contributions from the community! If you
 
 
 ## How to Cite
-If you use this package, please cite our paper.
+If you use this package, please cite our papers.
 
 **Plain Text:**
-> Castillo-Passi, C, Coronado, R, Varela-Mattatall, G, Alberola-López, C, Botnar, R, Irarrazaval, P. KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration. Magn Reson Med. 2023; 1- 14. doi: 10.1002/mrm.29635
+> Castillo-Passi, C, Coronado, R, Varela-Mattatall, G, Alberola-López, C, Botnar, R, Irarrazaval, P. KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration. Magn Reson Med. 2023; 90, no. 1: 1-14. doi: 10.1002/mrm.29635
+
+> Villacorta-Aylagas, P, Castillo-Passi, C, Kierulf, R.A, Menchón-Lara, R.M, Rodríguez-Galván, J.R, Sierra-Pallares, J.B, Irarrazaval, P, Alberola-López, C. Versatile and Highly Efficient MRI Simulation of Arbitrary Motion in KomaMRI. Magn Reson Med. 2026; 95, no. 3: 1791–1803. doi: 10.1002/mrm.70145.
 
 **BibTex:**
 ```bibtex
@@ -153,6 +155,21 @@ If you use this package, please cite our paper.
          eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
          year = {2023}
 }
+
+@article{https://doi.org/10.1002/mrm.70145,
+        author = {Villacorta-Aylagas, Pablo and Castillo-Passi, Carlos Andrés and Kierulf, Ryan Anders and Menchón-Lara, Rosa María and Rodríguez-Galván, Justino R. and Sierra-Pallares, José Benito and Irarrazaval, Pablo and Alberola-López, Carlos},
+        title = {Versatile and Highly Efficient MRI Simulation of Arbitrary Motion in KomaMRI},
+        journal = {Magnetic Resonance in Medicine},
+        volume = {95},
+        number = {3},
+        pages = {1791-1803},
+        keywords = {motion, MRI simulation, open-source, performance},
+        doi = {https://doi.org/10.1002/mrm.70145},
+        url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.70145},
+        eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.70145},
+        year = {2026}
+}
+
 ```
 
 ## Tested compatibility
