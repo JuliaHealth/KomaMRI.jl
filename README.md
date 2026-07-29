@@ -169,7 +169,6 @@ If you use this package, please cite our papers.
         eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.70145},
         year = {2026}
 }
-
 ```
 
 ## Tested compatibility
