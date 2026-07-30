@@ -116,16 +116,16 @@ If you use KomaMRI.jl in your research, please cite our papers:
 }
 
 @article{https://doi.org/10.1002/mrm.70145,
-        author = {Villacorta-Aylagas, Pablo and Castillo-Passi, Carlos Andrés and Kierulf, Ryan Anders and Menchón-Lara, Rosa María and Rodríguez-Galván, Justino R. and Sierra-Pallares, José Benito and Irarrazaval, Pablo and Alberola-López, Carlos},
-        title = {Versatile and Highly Efficient MRI Simulation of Arbitrary Motion in KomaMRI},
-        journal = {Magnetic Resonance in Medicine},
-        volume = {95},
-        number = {3},
-        pages = {1791-1803},
-        keywords = {motion, MRI simulation, open-source, performance},
-        doi = {https://doi.org/10.1002/mrm.70145},
-        url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.70145},
-        eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.70145},
-        year = {2026}
+  author = {Villacorta-Aylagas, Pablo and Castillo-Passi, Carlos Andrés and Kierulf, Ryan Anders and Menchón-Lara, Rosa María and Rodríguez-Galván, Justino R. and Sierra-Pallares, José Benito and Irarrazaval, Pablo and Alberola-López, Carlos},
+  title = {Versatile and Highly Efficient MRI Simulation of Arbitrary Motion in KomaMRI},
+  journal = {Magnetic Resonance in Medicine},
+  volume = {95},
+  number = {3},
+  pages = {1791-1803},
+  keywords = {motion, MRI simulation, open-source, performance},
+  doi = {https://doi.org/10.1002/mrm.70145},
+  url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.70145},
+  eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.70145},
+  year = {2026}
 }
 ```
