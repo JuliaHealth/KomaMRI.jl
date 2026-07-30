@@ -3,7 +3,7 @@ include("PrecessionKernel.jl")
 include("ExcitationKernel.jl")
 
 """Stores preallocated arrays for use in Bloch GPU run_spin_precession! and run_spin_excitation! functions."""
-struct BlochGPUPrealloc{T} <: PreallocResult{T}
+struct BlochGPUPrealloc{T,SKIP_RELAXATION} <: PreallocResult{T}
     sig_output::AbstractMatrix{Complex{T}}
     sig_output_final::AbstractMatrix{Complex{T}}
     ΔBz::AbstractVector{T}
@@ -18,7 +18,21 @@ function prealloc(
     max_block_length::Integer, 
     groupsize
 ) where {T<:Real, SM<:BlochLikeSimMethods}
-    return BlochGPUPrealloc(
+    return prealloc(
+        sim_method, backend, obj, M, max_block_length, groupsize, Val(false)
+    )
+end
+
+function prealloc(
+    sim_method::SM,
+    backend::KA.GPU,
+    obj::Phantom{T},
+    M::Mag{T},
+    max_block_length::Integer,
+    groupsize,
+    ::Val{SKIP_RELAXATION},
+) where {T<:Real, SM<:BlochLikeSimMethods, SKIP_RELAXATION}
+    return BlochGPUPrealloc{T,SKIP_RELAXATION}(
         KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
         KA.zeros(backend, Complex{T}, 1, max_block_length),
         obj.Δw ./ T(2π .* γ)
@@ -33,11 +47,7 @@ prealloc(
     max_block_length::Integer,
     groupsize
 ) where {T<:Real} =
-    BlochGPUPrealloc(
-        KA.zeros(backend, Complex{T}, (cld(size(obj.x, 1), groupsize), max_block_length)),
-        KA.zeros(backend, Complex{T}, 1, max_block_length),
-        obj.Δw ./ T(2π .* γ)
-    )
+    prealloc(sim_method, backend, obj, M, max_block_length, groupsize, Val(false))
 
 prealloc(
     sim_method::BlochMagnusBGL6,
@@ -138,8 +148,8 @@ function run_spin_excitation!(
     sim_method::BlochMagnusBGL4,
     groupsize::Integer,
     backend::KA.Backend,
-    pre::BlochGPUPrealloc
-) where {T<:Real}
+    pre::BlochGPUPrealloc{T,SKIP_RELAXATION}
+) where {T<:Real,SKIP_RELAXATION}
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
 
@@ -148,7 +158,7 @@ function run_spin_excitation!(
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc), Val(SKIP_RELAXATION),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
@@ -170,8 +180,8 @@ function run_spin_excitation!(
     sim_method::SM,
     groupsize::Integer,
     backend::KA.Backend,
-    pre::BlochGPUPrealloc
-) where {T<:Real, SM<:BlochLikeSimMethods}
+    pre::BlochGPUPrealloc{T,SKIP_RELAXATION}
+) where {T<:Real, SM<:BlochLikeSimMethods, SKIP_RELAXATION}
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
@@ -182,7 +192,7 @@ function run_spin_excitation!(
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc), Val(SKIP_RELAXATION),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
@@ -207,8 +217,8 @@ run_spin_excitation!(
     sim_method::BlochMagnusBGL6,
     groupsize::Integer,
     backend::KA.Backend,
-    pre::BlochGPUPrealloc
-) where {T<:Real} =
+    pre::BlochGPUPrealloc{T,SKIP_RELAXATION}
+) where {T<:Real,SKIP_RELAXATION} =
 begin
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')
     has_adc = length(sig) > 0
@@ -218,7 +228,7 @@ begin
         M.xy, M.z,
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc),
+        Val(!(p.motion isa NoMotion)), Val(supports_warp_reduction(backend)), Val(has_adc), Val(SKIP_RELAXATION),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
     )
