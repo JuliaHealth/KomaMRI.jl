@@ -143,31 +143,31 @@ If you use this package, please cite our papers.
 **BibTex:**
 ```bibtex
 @article{https://doi.org/10.1002/mrm.29635,
-         author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
-         title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
-         journal = {Magnetic Resonance in Medicine},
-         volume = {90},
-         number = {1},
-         pages = {329-342},
-         keywords = {Bloch equations, GPU, GUI, Julia, open source, simulation},
-         doi = {https://doi.org/10.1002/mrm.29635},
-         url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
-         eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
-         year = {2023}
+    author = {Castillo-Passi, Carlos and Coronado, Ronal and Varela-Mattatall, Gabriel and Alberola-López, Carlos and Botnar, René and Irarrazaval, Pablo},
+    title = {KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration},
+    journal = {Magnetic Resonance in Medicine},
+    volume = {90},
+    number = {1},
+    pages = {329-342},
+    keywords = {Bloch equations, GPU, GUI, Julia, open source, simulation},
+    doi = {https://doi.org/10.1002/mrm.29635},
+    url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.29635},
+    eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.29635},
+    year = {2023}
 }
 
 @article{https://doi.org/10.1002/mrm.70145,
-        author = {Villacorta-Aylagas, Pablo and Castillo-Passi, Carlos Andrés and Kierulf, Ryan Anders and Menchón-Lara, Rosa María and Rodríguez-Galván, Justino R. and Sierra-Pallares, José Benito and Irarrazaval, Pablo and Alberola-López, Carlos},
-        title = {Versatile and Highly Efficient MRI Simulation of Arbitrary Motion in KomaMRI},
-        journal = {Magnetic Resonance in Medicine},
-        volume = {95},
-        number = {3},
-        pages = {1791-1803},
-        keywords = {motion, MRI simulation, open-source, performance},
-        doi = {https://doi.org/10.1002/mrm.70145},
-        url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.70145},
-        eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.70145},
-        year = {2026}
+    author = {Villacorta-Aylagas, Pablo and Castillo-Passi, Carlos Andrés and Kierulf, Ryan Anders and Menchón-Lara, Rosa María and Rodríguez-Galván, Justino R. and Sierra-Pallares, José Benito and Irarrazaval, Pablo and Alberola-López, Carlos},
+    title = {Versatile and Highly Efficient MRI Simulation of Arbitrary Motion in KomaMRI},
+    journal = {Magnetic Resonance in Medicine},
+    volume = {95},
+    number = {3},
+    pages = {1791-1803},
+    keywords = {motion, MRI simulation, open-source, performance},
+    doi = {https://doi.org/10.1002/mrm.70145},
+    url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.70145},
+    eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.70145},
+    year = {2026}
 }
 ```
 
