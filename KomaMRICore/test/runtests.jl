@@ -709,6 +709,22 @@ end
                 loss, gradient = compiled(rf)
                 return Reactant.to_number(loss), Array(gradient)
             end
+
+            function reactant_enzyme_discretize_loss_and_gradient(rf_scale)
+                result = Enzyme.gradient(
+                    Enzyme.ReverseWithPrimal,
+                    blochsimple_discretize_ad_loss,
+                    rf_scale,
+                )
+                return result.val, result.derivs[1]
+            end
+
+            function run_reactant_enzyme_discretize_probe()
+                rf = Reactant.to_rarray(copy(BLOCHSIMPLE_DISCRETIZE_AD_RF0))
+                compiled = Reactant.@compile sync=true reactant_enzyme_discretize_loss_and_gradient(rf)
+                loss, gradient = compiled(rf)
+                return Reactant.to_number(loss), Array(gradient)
+            end
         end)
 
         @testset "Parallel BlochSimple Reactant Enzyme accuracy" begin
@@ -721,6 +737,19 @@ end
 
             @test loss ≈ blochsimple_parallel_ad_loss(BLOCHSIMPLE_PARALLEL_AD_RF0)
             @test gradient ≈ blochsimple_parallel_ad_fd_gradient() rtol=1e-8 atol=1e-10
+        end
+
+        @testset "Sequence discretization and ADC Reactant Enzyme accuracy" begin
+            rf0 = copy(BLOCHSIMPLE_DISCRETIZE_AD_RF0)
+            probe = Base.invokelatest(
+                getfield,
+                @__MODULE__,
+                :run_reactant_enzyme_discretize_probe,
+            )
+            reactant_loss, reactant_gradient = Base.invokelatest(probe)
+
+            @test reactant_loss ≈ blochsimple_discretize_ad_loss(rf0)
+            @test reactant_gradient ≈ blochsimple_discretize_ad_fd_gradient(rf0) rtol=1e-8 atol=1e-10
         end
     end
 end
