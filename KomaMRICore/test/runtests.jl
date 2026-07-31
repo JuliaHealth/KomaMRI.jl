@@ -323,6 +323,76 @@ end
     @test true
 end
 
+@testitem "Reactant + Enzyme through parallel BlochSimple kernels" tags=[:core, :nomotion] begin
+    using Enzyme
+    using FiniteDifferences
+    using Reactant
+
+    function traced_vector(template, values, ::Type{T}=Float64) where {T}
+        out = similar(template, T, length(values))
+        Reactant.allowscalar() do
+            for i in eachindex(values)
+                out[i] = values[i]
+            end
+        end
+        return out
+    end
+
+    function discrete_sequence(rf, t_start, t_end; excitation)
+        n = length(rf)
+        t = collect(range(t_start, t_end; length=n))
+        z = zero.(rf)
+        B1 = excitation ? complex.(rf) .* 1e-6 : complex.(z)
+        return DiscreteSequence(
+            z, copy(z), copy(z), B1, copy(z), copy(z),
+            falses(n), fill(excitation, n - 1), t, diff(t),
+        )
+    end
+
+    function loss(rf)
+        obj = Phantom(
+            x=traced_vector(rf, [0.0, 1e-2]),
+            ρ=traced_vector(rf, [1.0, 0.75]),
+            T1=traced_vector(rf, [1.0, 0.8]),
+            T2=traced_vector(rf, [0.08, 0.12]),
+            Δw=traced_vector(rf, 2π .* [10.0, -12.0]),
+        )
+        M = Mag(
+            traced_vector(rf, zeros(2), ComplexF64),
+            traced_vector(rf, [1.0, 0.75]),
+        )
+        sig = similar(rf, ComplexF64, 0, 1, 1)
+        method = BlochSimple()
+        backend = KomaMRICore.KA.CPU()
+        prealloc = KomaMRICore.DefaultPrealloc()
+
+        KomaMRICore.run_spin_excitation_parallel!(
+            obj, discrete_sequence(rf, 0.0, 0.6e-3; excitation=true),
+            sig, M, method, 256, backend, prealloc; Nthreads=1,
+        )
+        KomaMRICore.run_spin_precession_parallel!(
+            obj, discrete_sequence(rf, 0.6e-3, 1.4e-3; excitation=false),
+            sig, M, method, 256, backend, prealloc; Nthreads=1,
+        )
+
+        target = traced_vector(rf, [0.4, 0.2])
+        return sum(abs2, M.xy) + sum(abs2, M.z .- target)
+    end
+
+    gradient(rf) = Enzyme.gradient(Enzyme.ReverseWithPrimal, loss, rf).derivs[1]
+
+    rf0 = [1.3, 1.7, 1.1]
+    rf = Reactant.to_rarray(rf0)
+    compiled_loss = Reactant.@compile sync=true loss(rf)
+    compiled_gradient = Reactant.@compile sync=true gradient(rf)
+    finite_difference = FiniteDifferences.grad(
+        FiniteDifferences.central_fdm(5, 1), loss, rf0,
+    )[1]
+
+    @test Reactant.to_number(compiled_loss(rf)) ≈ loss(rf0)
+    @test Array(compiled_gradient(rf)) ≈ finite_difference rtol=1e-8 atol=1e-10
+end
+
 @testitem "ISMRMRD" tags=[:core, :nomotion] begin
     include("initialize_backend.jl")
 
