@@ -323,76 +323,6 @@ end
     @test true
 end
 
-@testitem "Reactant + Enzyme through parallel BlochSimple kernels" tags=[:core, :nomotion] begin
-    using Enzyme
-    using FiniteDifferences
-    using Reactant
-
-    function traced_vector(template, values, ::Type{T}=Float64) where {T}
-        out = similar(template, T, length(values))
-        Reactant.allowscalar() do
-            for i in eachindex(values)
-                out[i] = values[i]
-            end
-        end
-        return out
-    end
-
-    function discrete_sequence(rf, t_start, t_end; excitation)
-        n = length(rf)
-        t = collect(range(t_start, t_end; length=n))
-        z = zero.(rf)
-        B1 = excitation ? complex.(rf) .* 1e-6 : complex.(z)
-        return DiscreteSequence(
-            z, copy(z), copy(z), B1, copy(z), copy(z),
-            falses(n), fill(excitation, n - 1), t, diff(t),
-        )
-    end
-
-    function loss(rf)
-        obj = Phantom(
-            x=traced_vector(rf, [0.0, 1e-2]),
-            ρ=traced_vector(rf, [1.0, 0.75]),
-            T1=traced_vector(rf, [1.0, 0.8]),
-            T2=traced_vector(rf, [0.08, 0.12]),
-            Δw=traced_vector(rf, 2π .* [10.0, -12.0]),
-        )
-        M = Mag(
-            traced_vector(rf, zeros(2), ComplexF64),
-            traced_vector(rf, [1.0, 0.75]),
-        )
-        sig = similar(rf, ComplexF64, 0, 1, 1)
-        method = BlochSimple()
-        backend = KomaMRICore.KA.CPU()
-        prealloc = KomaMRICore.DefaultPrealloc()
-
-        KomaMRICore.run_spin_excitation_parallel!(
-            obj, discrete_sequence(rf, 0.0, 0.6e-3; excitation=true),
-            sig, M, method, 256, backend, prealloc; Nthreads=1,
-        )
-        KomaMRICore.run_spin_precession_parallel!(
-            obj, discrete_sequence(rf, 0.6e-3, 1.4e-3; excitation=false),
-            sig, M, method, 256, backend, prealloc; Nthreads=1,
-        )
-
-        target = traced_vector(rf, [0.4, 0.2])
-        return sum(abs2, M.xy) + sum(abs2, M.z .- target)
-    end
-
-    gradient(rf) = Enzyme.gradient(Enzyme.ReverseWithPrimal, loss, rf).derivs[1]
-
-    rf0 = [1.3, 1.7, 1.1]
-    rf = Reactant.to_rarray(rf0)
-    compiled_loss = Reactant.@compile sync=true loss(rf)
-    compiled_gradient = Reactant.@compile sync=true gradient(rf)
-    finite_difference = FiniteDifferences.grad(
-        FiniteDifferences.central_fdm(5, 1), loss, rf0,
-    )[1]
-
-    @test Reactant.to_number(compiled_loss(rf)) ≈ loss(rf0)
-    @test Array(compiled_gradient(rf)) ≈ finite_difference rtol=1e-8 atol=1e-10
-end
-
 @testitem "ISMRMRD" tags=[:core, :nomotion] begin
     include("initialize_backend.jl")
 
@@ -751,6 +681,168 @@ end
     sig = sig / prod(size(obj))
 
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
+end
+
+@testitem "Automatic differentiation tests" tags=[:core, :nomotion, :blochsimple, :ad, :enzyme, :reactant, :mooncake] begin
+    include(joinpath(@__DIR__, "test_files", "ad_utils.jl"))
+
+    test_group = Symbol(get(ENV, "TEST_GROUP", "core"))
+    run_all_ad_tests = test_group in (:core, :ad)
+    # These sequence-level probes can segfault before `@test_broken` can record
+    # their expected failure, so they must be explicitly requested.
+    run_broken_sequence_ad =
+        lowercase(get(ENV, "KOMAMRI_RUN_BROKEN_SEQUENCE_AD", "false")) in ("1", "true", "yes")
+    run_broken_sequence_probe(tags::Symbol...) =
+        run_broken_sequence_ad && (run_all_ad_tests || test_group in tags)
+    run_reactant_kernel_probe = test_group in (:core, :nomotion, :ad, :reactant)
+
+    @testset "BlochSimple CPU finite-difference AD baseline" begin
+        rf0 = BLOCHSIMPLE_AD_RF0
+        fd_grad = blochsimple_ad_fd_gradient(rf0)
+        direction = BLOCHSIMPLE_AD_DIRECTION
+        ϵ = 1e-3
+        directional_fd = (
+            blochsimple_ad_loss(rf0 .+ ϵ .* direction) -
+            blochsimple_ad_loss(rf0 .- ϵ .* direction)
+        ) / (2ϵ)
+
+        @test isfinite(blochsimple_ad_loss(rf0))
+        @test all(isfinite, fd_grad)
+        @test any(!iszero, fd_grad)
+        @test sum(fd_grad .* direction) ≈ directional_fd rtol=1e-3 atol=1e-7
+    end
+
+    if run_broken_sequence_probe(:enzyme)
+        import Enzyme
+
+        function enzyme_blochsimple_ad_gradient(rf_scale)
+            result = Enzyme.gradient(Enzyme.ReverseWithPrimal, blochsimple_ad_loss, rf_scale)
+            return result.derivs[1]
+        end
+
+        @testset "BlochSimple CPU Enzyme AD probe" begin
+            @test_broken blochsimple_ad_gradient_matches_fd(
+                enzyme_blochsimple_ad_gradient(copy(BLOCHSIMPLE_AD_RF0)),
+            )
+        end
+    end
+
+    if run_broken_sequence_probe(:reactant, :enzyme)
+        import Enzyme
+        import Reactant
+
+        Reactant.set_default_backend("cpu")
+        Reactant.allowscalar(false)
+
+        Core.eval(@__MODULE__, quote
+            function reactant_enzyme_blochsimple_ad_gradient(rf_scale)
+                result = Enzyme.gradient(Enzyme.ReverseWithPrimal, blochsimple_ad_loss, rf_scale)
+                return result.derivs[1]
+            end
+
+            function run_reactant_enzyme_blochsimple_ad_probe()
+                rf_ra = Reactant.to_rarray(copy(BLOCHSIMPLE_AD_RF0))
+                compiled = Reactant.@compile sync=true reactant_enzyme_blochsimple_ad_gradient(rf_ra)
+                return blochsimple_ad_gradient_matches_fd(Array(compiled(rf_ra)))
+            end
+        end)
+
+        @testset "BlochSimple CPU Reactant Enzyme AD probe" begin
+            probe = Base.invokelatest(
+                getfield, @__MODULE__, :run_reactant_enzyme_blochsimple_ad_probe,
+            )
+            @test_broken Base.invokelatest(probe)
+        end
+    end
+
+    if run_broken_sequence_probe(:mooncake)
+        import DifferentiationInterface
+        import Mooncake
+
+        @testset "BlochSimple CPU Mooncake AD probe" begin
+            @test_broken begin
+                rf0 = copy(BLOCHSIMPLE_AD_RF0)
+                backend = DifferentiationInterface.AutoMooncake(; config=nothing)
+                prep = DifferentiationInterface.prepare_gradient(
+                    blochsimple_ad_loss, backend, rf0,
+                )
+                blochsimple_ad_gradient_matches_fd(
+                    DifferentiationInterface.gradient(blochsimple_ad_loss, prep, backend, rf0),
+                )
+            end
+        end
+    end
+
+    if run_reactant_kernel_probe
+        import Enzyme
+        import Reactant
+
+        Reactant.set_default_backend("cpu")
+        Reactant.allowscalar(false)
+
+        T = Float32
+        Nspins = 5
+        φ0 = T.(range(T(0.2), T(0.8), length=Nspins))
+        nxy_const = Complex{T}.(
+            range(T(0.3), T(0.7), length=Nspins),
+            range(T(0.1), T(0.5), length=Nspins),
+        )
+        nz_const = T.(range(T(0.4), T(0.8), length=Nspins))
+
+        function kernel_loss(φ_vec, nxy, nz)
+            s = Q(φ_vec, nxy, nz)
+            return sum(abs2, s.α) + sum(abs2, s.β)
+        end
+
+        function kernel_grad_and_loss(φ_vec, nxy, nz)
+            (; val, derivs) = Enzyme.gradient(
+                Enzyme.ReverseWithPrimal, kernel_loss, φ_vec, Enzyme.Const(nxy), Enzyme.Const(nz),
+            )
+            return val, derivs[1]
+        end
+
+        function fd_grad(φ, nxy, nz, j; ε=1f-3)
+            φp = copy(φ); φm = copy(φ)
+            φp[j] += ε; φm[j] -= ε
+            return (kernel_loss(φp, nxy, nz) - kernel_loss(φm, nxy, nz)) / (2ε)
+        end
+
+        native_loss = kernel_loss(φ0, nxy_const, nz_const)
+
+        Core.eval(@__MODULE__, quote
+            function run_reactant_spinor_rotation_probe(φ0, nxy_const, nz_const)
+                φ_ra = Reactant.to_rarray(φ0)
+                nxy_ra = Reactant.to_rarray(nxy_const)
+                nz_ra = Reactant.to_rarray(nz_const)
+
+                compiled = Reactant.@compile sync=true kernel_grad_and_loss(φ_ra, nxy_ra, nz_ra)
+                reactant_loss, reactant_∇φ = compiled(φ_ra, nxy_ra, nz_ra)
+
+                return Reactant.to_number(reactant_loss), Array(reactant_∇φ)
+            end
+        end)
+
+        @testset "Spinor rotation kernel Reactant Enzyme" begin
+            probe = Base.invokelatest(
+                getfield, @__MODULE__, :run_reactant_spinor_rotation_probe,
+            )
+            reactant_loss, reactant_∇φ =
+                Base.invokelatest(
+                    probe,
+                    φ0,
+                    nxy_const,
+                    nz_const,
+                )
+            j = 3
+            fd_val = fd_grad(φ0, nxy_const, nz_const, j)
+
+            @test isfinite(reactant_loss)
+            @test all(isfinite, reactant_∇φ)
+            @test any(x -> !iszero(x), reactant_∇φ)
+            @test isapprox(reactant_loss, native_loss; rtol=1f-5, atol=1f-7)
+            @test isapprox(reactant_∇φ[j], fd_val; rtol=1f-2, atol=1f-3)
+        end
+    end
 end
 
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin

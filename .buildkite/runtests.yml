@@ -88,6 +88,25 @@ steps:
           queue: "cuda"
         timeout_in_minutes: 60
 
+      - label: "Reactant + Enzyme CUDA - Julia 1 - Test"
+        if: "'$TEST_GROUP' == 'nomotion'"
+        plugins:
+          - JuliaCI/julia#v1:
+              version: "1"
+        command: |
+          julia -e 'println("--- :julia: Instantiating Reactant CUDA test environment")
+              using Pkg
+              Pkg.activate("KomaMRICore/test")
+              Pkg.develop([
+                  PackageSpec(path=pwd(), subdir="KomaMRIBase"),
+                  PackageSpec(path=pwd(), subdir="KomaMRICore"),
+              ])'
+
+          julia --project=KomaMRICore/test KomaMRICore/test/reactant_cuda.jl
+        agents:
+          queue: "cuda"
+        timeout_in_minutes: 60
+
       - label: "oneAPI - Julia {{matrix.version}} - Test"
         matrix:
           setup:
