@@ -727,34 +727,6 @@ end
         end
     end
 
-    if run_broken_sequence_probe(:reactant, :enzyme)
-        import Enzyme
-        import Reactant
-
-        Reactant.set_default_backend("cpu")
-        Reactant.allowscalar(false)
-
-        Core.eval(@__MODULE__, quote
-            function reactant_enzyme_blochsimple_ad_gradient(rf_scale)
-                result = Enzyme.gradient(Enzyme.ReverseWithPrimal, blochsimple_ad_loss, rf_scale)
-                return result.derivs[1]
-            end
-
-            function run_reactant_enzyme_blochsimple_ad_probe()
-                rf_ra = Reactant.to_rarray(copy(BLOCHSIMPLE_AD_RF0))
-                compiled = Reactant.@compile sync=true reactant_enzyme_blochsimple_ad_gradient(rf_ra)
-                return blochsimple_ad_gradient_matches_fd(Array(compiled(rf_ra)))
-            end
-        end)
-
-        @testset "BlochSimple CPU Reactant Enzyme AD probe" begin
-            probe = Base.invokelatest(
-                getfield, @__MODULE__, :run_reactant_enzyme_blochsimple_ad_probe,
-            )
-            @test_broken Base.invokelatest(probe)
-        end
-    end
-
     if run_broken_sequence_probe(:mooncake)
         import DifferentiationInterface
         import Mooncake
@@ -781,24 +753,24 @@ end
         Reactant.allowscalar(false)
 
         Core.eval(@__MODULE__, quote
-            function reactant_enzyme_discretize_loss_and_gradient(rf_scale)
+            function reactant_enzyme_simulate_loss_and_gradient(rf_scale)
                 result = Enzyme.gradient(
                     Enzyme.ReverseWithPrimal,
-                    blochsimple_discretize_ad_loss,
+                    blochsimple_simulate_ad_loss,
                     rf_scale,
                 )
                 return result.val, result.derivs[1]
             end
 
-            function run_reactant_enzyme_discretize_probe()
+            function run_reactant_enzyme_simulate_probe()
                 rf = Reactant.to_rarray(copy(BLOCHSIMPLE_DISCRETIZE_AD_RF0))
-                compiled = Reactant.@compile sync=true reactant_enzyme_discretize_loss_and_gradient(rf)
+                compiled = Reactant.@compile sync=true reactant_enzyme_simulate_loss_and_gradient(rf)
                 loss, gradient = compiled(rf)
                 return Reactant.to_number(loss), Array(gradient)
             end
         end)
 
-        @testset "Sequence discretization and ADC through BlochSimple iterator Reactant Enzyme" begin
+        @testset "Sequence and ADC through simulate with BlochSimple Reactant Enzyme" begin
             rf0 = copy(BLOCHSIMPLE_DISCRETIZE_AD_RF0)
             seqd = discretize(
                 blochsimple_discretize_ad_sequence(rf0);
@@ -808,7 +780,7 @@ end
             probe = Base.invokelatest(
                 getfield,
                 @__MODULE__,
-                :run_reactant_enzyme_discretize_probe,
+                :run_reactant_enzyme_simulate_probe,
             )
             reactant_loss, reactant_gradient = Base.invokelatest(probe)
 
@@ -817,8 +789,8 @@ end
             @test sum(seqd.ADC) == 3
             @test seqd.ADC[1:2] == [false, true]
             @test seqd.t[1:2] == [0.0, 0.0]
-            @test reactant_loss ≈ blochsimple_discretize_ad_loss(rf0)
-            @test reactant_gradient ≈ blochsimple_discretize_ad_fd_gradient(rf0) rtol=1e-8 atol=1e-10
+            @test reactant_loss ≈ blochsimple_simulate_ad_loss(rf0)
+            @test reactant_gradient ≈ blochsimple_simulate_ad_fd_gradient(rf0) rtol=1e-8 atol=1e-10
         end
 
         T = Float32

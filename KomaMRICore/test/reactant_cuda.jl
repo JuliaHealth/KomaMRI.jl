@@ -114,12 +114,7 @@ function reactant_cuda_sequence(rf_scale)
     )
 end
 
-function reactant_cuda_discretize_loss(rf_scale)
-    seqd = discretize(
-        reactant_cuda_sequence(rf_scale);
-        sampling_rule=MaxStepSizeRule(1e-3, 0.2e-3),
-    )
-    parts, excitation_bool = KomaMRICore.get_sim_ranges(seqd)
+function reactant_cuda_simulate_loss(rf_scale)
     zeros2 = zero.(rf_scale[1:2])
     density = reactant_cuda_traced_vector(rf_scale, [1.0, 0.75])
     obj = Phantom(
@@ -129,25 +124,26 @@ function reactant_cuda_discretize_loss(rf_scale)
         T2=0.1 .* one.(density),
         Δw=copy(zeros2),
     )
-    M = Mag(complex.(zeros2), copy(density))
-    signal = similar(rf_scale, ComplexF64, sum(seqd.ADC), 1, 1)
-    KomaMRICore.run_sim_time_iter!(
+    sim_params = Dict{String,Any}(
+        "sim_method" => BlochSimple(),
+        "gpu" => false,
+        "Nthreads" => 1,
+        "return_type" => "mat",
+        "precision" => "f64",
+        "sampling_rule" => MaxStepSizeRule(1e-3, 0.2e-3),
+    )
+    signal = simulate(
         obj,
-        seqd,
-        signal,
-        M,
-        BlochSimple(),
-        KomaMRICore.KA.CPU();
-        parts,
-        excitation_bool,
-        Nblocks=length(parts),
-        Nthreads=1,
+        reactant_cuda_sequence(rf_scale),
+        Scanner();
+        sim_params,
+        verbose=false,
     )
     return sum(abs2, signal)
 end
 
-reactant_cuda_discretize_gradient(rf) =
-    Enzyme.gradient(Enzyme.ReverseWithPrimal, reactant_cuda_discretize_loss, rf).derivs[1]
+reactant_cuda_simulate_gradient(rf) =
+    Enzyme.gradient(Enzyme.ReverseWithPrimal, reactant_cuda_simulate_loss, rf).derivs[1]
 
 @testset "Reactant + Enzyme CUDA through parallel BlochSimple kernels" begin
     devices = Reactant.devices()
@@ -166,17 +162,17 @@ reactant_cuda_discretize_gradient(rf) =
     @test Array(compiled_gradient(rf)) ≈ finite_difference rtol=1e-8 atol=1e-10
 end
 
-@testset "Reactant + Enzyme CUDA through discretize, ADC, and BlochSimple iterator" begin
+@testset "Reactant + Enzyme CUDA through simulate with ADC and BlochSimple" begin
     rf = Reactant.to_rarray(REACTANT_CUDA_RF0)
-    compiled_loss = Reactant.@compile sync=true reactant_cuda_discretize_loss(rf)
-    compiled_gradient = Reactant.@compile sync=true reactant_cuda_discretize_gradient(rf)
+    compiled_loss = Reactant.@compile sync=true reactant_cuda_simulate_loss(rf)
+    compiled_gradient = Reactant.@compile sync=true reactant_cuda_simulate_gradient(rf)
     finite_difference = FiniteDifferences.grad(
         FiniteDifferences.central_fdm(5, 1),
-        reactant_cuda_discretize_loss,
+        reactant_cuda_simulate_loss,
         REACTANT_CUDA_RF0,
     )[1]
 
     @test Reactant.to_number(compiled_loss(rf)) ≈
-        reactant_cuda_discretize_loss(REACTANT_CUDA_RF0)
+        reactant_cuda_simulate_loss(REACTANT_CUDA_RF0)
     @test Array(compiled_gradient(rf)) ≈ finite_difference rtol=1e-8 atol=1e-10
 end
