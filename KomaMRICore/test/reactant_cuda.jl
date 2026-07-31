@@ -87,6 +87,68 @@ end
 reactant_cuda_gradient(rf) =
     Enzyme.gradient(Enzyme.ReverseWithPrimal, reactant_cuda_loss, rf).derivs[1]
 
+function reactant_cuda_sequence(rf_scale)
+    rf_duration = 0.6e-3
+    total_duration = 1.4e-3
+    adc_delay = 0.0
+    adc_duration = total_duration - adc_delay
+    rf = RF(
+        complex.(rf_scale) .* 1e-6,
+        rf_duration,
+        0.0,
+        0.0,
+        rf_duration / 2,
+        0.0,
+        Excitation(),
+        Val(:preserve),
+    )
+    gradient = Grad(0.0, 0.0)
+    adc = ADC(3, adc_duration, adc_delay)
+    return Sequence(
+        reshape([gradient, gradient, gradient], 3, 1),
+        reshape([rf], 1, 1),
+        [adc],
+        [total_duration],
+        [Extension[]],
+        Dict{String,Any}(),
+    )
+end
+
+function reactant_cuda_discretize_loss(rf_scale)
+    seqd = discretize(
+        reactant_cuda_sequence(rf_scale);
+        sampling_rule=MaxStepSizeRule(1e-3, 0.2e-3),
+    )
+    parts, excitation_bool = KomaMRICore.get_sim_ranges(seqd)
+    zeros2 = zero.(rf_scale[1:2])
+    density = reactant_cuda_traced_vector(rf_scale, [1.0, 0.75])
+    obj = Phantom(
+        x=copy(zeros2),
+        ρ=density,
+        T1=one.(density),
+        T2=0.1 .* one.(density),
+        Δw=copy(zeros2),
+    )
+    M = Mag(complex.(zeros2), copy(density))
+    signal = similar(rf_scale, ComplexF64, sum(seqd.ADC), 1, 1)
+    KomaMRICore.run_sim_time_iter!(
+        obj,
+        seqd,
+        signal,
+        M,
+        BlochSimple(),
+        KomaMRICore.KA.CPU();
+        parts,
+        excitation_bool,
+        Nblocks=length(parts),
+        Nthreads=1,
+    )
+    return sum(abs2, signal)
+end
+
+reactant_cuda_discretize_gradient(rf) =
+    Enzyme.gradient(Enzyme.ReverseWithPrimal, reactant_cuda_discretize_loss, rf).derivs[1]
+
 @testset "Reactant + Enzyme CUDA through parallel BlochSimple kernels" begin
     devices = Reactant.devices()
     @info "Reactant CUDA devices" devices=string.(devices)
@@ -101,5 +163,20 @@ reactant_cuda_gradient(rf) =
     )[1]
 
     @test Reactant.to_number(compiled_loss(rf)) ≈ reactant_cuda_loss(REACTANT_CUDA_RF0)
+    @test Array(compiled_gradient(rf)) ≈ finite_difference rtol=1e-8 atol=1e-10
+end
+
+@testset "Reactant + Enzyme CUDA through discretize, ADC, and BlochSimple iterator" begin
+    rf = Reactant.to_rarray(REACTANT_CUDA_RF0)
+    compiled_loss = Reactant.@compile sync=true reactant_cuda_discretize_loss(rf)
+    compiled_gradient = Reactant.@compile sync=true reactant_cuda_discretize_gradient(rf)
+    finite_difference = FiniteDifferences.grad(
+        FiniteDifferences.central_fdm(5, 1),
+        reactant_cuda_discretize_loss,
+        REACTANT_CUDA_RF0,
+    )[1]
+
+    @test Reactant.to_number(compiled_loss(rf)) ≈
+        reactant_cuda_discretize_loss(REACTANT_CUDA_RF0)
     @test Array(compiled_gradient(rf)) ≈ finite_difference rtol=1e-8 atol=1e-10
 end

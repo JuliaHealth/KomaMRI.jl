@@ -648,7 +648,15 @@ always zero, and the final time corresponds to the duration of the sequence.
 # Returns
 - `T0`: (`::Vector`, `[s]`) start times of the blocks in a sequence
 """
-get_block_start_times(seq::Sequence) = cumsum([0.0; seq.DUR], dims=1)
+function get_block_start_times(seq::Sequence)
+    T = promote_type(Float64, eltype(seq.DUR))
+    t = Vector{T}(undef, length(seq.DUR) + 1)
+    t[1] = zero(T)
+    for i in eachindex(seq.DUR)
+        t[i + 1] = t[i] + seq.DUR[i]
+    end
+    return t
+end
 
 """
     samples = get_samples(seq::Sequence, blocks=1:length(seq); freq_in_phase=false)

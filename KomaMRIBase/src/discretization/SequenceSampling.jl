@@ -29,6 +29,13 @@ function append_adc_start_padding!(out, values, first_t)
     return out
 end
 
+function with_adc_start_padding(values)
+    (isempty(values.ADC) || !first(values.ADC)) && return values
+    out = DiscreteSequence()
+    append_sampled_block!(out, values, zero(first(values.t)))
+    return out
+end
+
 function same_boundary_sample(out, values)
     return all(last(dst) == first(src) for (dst, src) in zip(table_columns(out), table_columns(values)))
 end
@@ -55,11 +62,22 @@ end
 
 # -- 6.3. Sample the full sequence ------------------------------------------
 function sample_sequence(seq; motion=NoMotion(), sampling_rule=MaxStepSizeRule(1e-3, 5e-5), freq_in_phase=false)
+    T0 = get_block_start_times(seq)
+    global_event_times = merge_sampling_times(sequence_boundary_sampling_times(seq), motion_sampling_times(seq, motion))
+    if length(seq) == 1
+        values = sample_sequence_block(
+            seq,
+            1;
+            sampling_rule,
+            motion_times=block_global_event_times(T0, 1, global_event_times),
+            freq_in_phase,
+        )
+        return with_adc_start_padding(values)
+    end
+
     out = DiscreteSequence()
     sizehint = max(8length(seq), 5sum(seq.ADC.N))
     foreach(x -> Base.sizehint!(x, sizehint), (out.t, table_columns(out)..., out.excitation_bool, out.Δt))
-    T0 = get_block_start_times(seq)
-    global_event_times = merge_sampling_times(sequence_boundary_sampling_times(seq), motion_sampling_times(seq, motion))
     for block in 1:length(seq)
         values = sample_sequence_block(seq, block; sampling_rule, motion_times=block_global_event_times(T0, block, global_event_times), freq_in_phase)
         append_sampled_block!(out, values, T0[block])

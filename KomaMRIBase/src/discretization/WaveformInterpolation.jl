@@ -6,7 +6,11 @@
 # sampling grid.
 
 function linear_interpolate_samples(samples, t; default=zero(eltype(samples.A)), interpolate=true)
-    out = Vector{typeof(default)}(undef, length(t))
+    out = similar(samples.A, typeof(default), length(t))
+    return _linear_interpolate_samples!(out, samples, t, default, interpolate)
+end
+
+function _linear_interpolate_samples!(out, samples, t, default, interpolate)
     isempty(samples.t) && return fill!(out, default)
     last_sample = min(lastindex(samples.t), lastindex(samples.A))
     sample = firstindex(samples.t)

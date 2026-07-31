@@ -780,6 +780,47 @@ end
         Reactant.set_default_backend("cpu")
         Reactant.allowscalar(false)
 
+        Core.eval(@__MODULE__, quote
+            function reactant_enzyme_discretize_loss_and_gradient(rf_scale)
+                result = Enzyme.gradient(
+                    Enzyme.ReverseWithPrimal,
+                    blochsimple_discretize_ad_loss,
+                    rf_scale,
+                )
+                return result.val, result.derivs[1]
+            end
+
+            function run_reactant_enzyme_discretize_probe()
+                rf = Reactant.to_rarray(copy(BLOCHSIMPLE_DISCRETIZE_AD_RF0))
+                compiled = Reactant.@compile sync=true reactant_enzyme_discretize_loss_and_gradient(rf)
+                loss, gradient = compiled(rf)
+                return Reactant.to_number(loss), Array(gradient)
+            end
+        end)
+
+        @testset "Sequence discretization and ADC through BlochSimple iterator Reactant Enzyme" begin
+            rf0 = copy(BLOCHSIMPLE_DISCRETIZE_AD_RF0)
+            seqd = discretize(
+                blochsimple_discretize_ad_sequence(rf0);
+                sampling_rule=MaxStepSizeRule(1e-3, 0.2e-3),
+            )
+            parts, excitation_bool = KomaMRICore.get_sim_ranges(seqd)
+            probe = Base.invokelatest(
+                getfield,
+                @__MODULE__,
+                :run_reactant_enzyme_discretize_probe,
+            )
+            reactant_loss, reactant_gradient = Base.invokelatest(probe)
+
+            @test parts == [1:2, 2:6, 6:9]
+            @test excitation_bool == [false, true, false]
+            @test sum(seqd.ADC) == 3
+            @test seqd.ADC[1:2] == [false, true]
+            @test seqd.t[1:2] == [0.0, 0.0]
+            @test reactant_loss ≈ blochsimple_discretize_ad_loss(rf0)
+            @test reactant_gradient ≈ blochsimple_discretize_ad_fd_gradient(rf0) rtol=1e-8 atol=1e-10
+        end
+
         T = Float32
         Nspins = 5
         φ0 = T.(range(T(0.2), T(0.8), length=Nspins))
