@@ -105,12 +105,7 @@ function blochsimple_discretize_ad_sequence(rf_scale)
     )
 end
 
-function blochsimple_discretize_ad_loss(rf_scale)
-    seqd = discretize(
-        blochsimple_discretize_ad_sequence(rf_scale);
-        sampling_rule=MaxStepSizeRule(1e-3, 0.2e-3),
-    )
-    parts, excitation_bool = KomaMRICore.get_sim_ranges(seqd)
+function blochsimple_simulate_ad_loss(rf_scale)
     zeros2 = zero.(rf_scale[1:2])
     density = blochsimple_parallel_ad_vector(rf_scale, (1.0, 0.75))
     obj = Phantom(
@@ -120,22 +115,23 @@ function blochsimple_discretize_ad_loss(rf_scale)
         T2=0.1 .* one.(density),
         Δw=copy(zeros2),
     )
-    magnetization = KomaMRICore.Mag(complex.(zeros2), copy(density))
-    signal = similar(rf_scale, ComplexF64, sum(seqd.ADC), 1, 1)
-    KomaMRICore.run_sim_time_iter!(
+    sim_params = Dict{String,Any}(
+        "sim_method" => KomaMRICore.BlochSimple(),
+        "gpu" => false,
+        "Nthreads" => 1,
+        "return_type" => "mat",
+        "precision" => "f64",
+        "sampling_rule" => MaxStepSizeRule(1e-3, 0.2e-3),
+    )
+    signal = simulate(
         obj,
-        seqd,
-        signal,
-        magnetization,
-        KomaMRICore.BlochSimple(),
-        KomaMRICore.KA.CPU();
-        parts,
-        excitation_bool,
-        Nblocks=length(parts),
-        Nthreads=1,
+        blochsimple_discretize_ad_sequence(rf_scale),
+        Scanner();
+        sim_params,
+        verbose=false,
     )
     return sum(abs2, signal)
 end
 
-blochsimple_discretize_ad_fd_gradient(rf_scale=BLOCHSIMPLE_DISCRETIZE_AD_RF0) =
-    grad(central_fdm(5, 1), blochsimple_discretize_ad_loss, rf_scale)[1]
+blochsimple_simulate_ad_fd_gradient(rf_scale=BLOCHSIMPLE_DISCRETIZE_AD_RF0) =
+    grad(central_fdm(5, 1), blochsimple_simulate_ad_loss, rf_scale)[1]
