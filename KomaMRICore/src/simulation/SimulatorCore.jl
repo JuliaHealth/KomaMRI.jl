@@ -400,7 +400,8 @@ function simulate(
     if sim_params["gpu"]
         sim_params["Nthreads"] = 1
     end
-    sig = zeros(ComplexF64, Ndims..., sim_params["Nthreads"])
+    sig = similar(obj.ρ, ComplexF64, Ndims..., sim_params["Nthreads"])
+    fill!(sig, 0)
     supports_float64 = KA.supports_float64(backend)
     if sim_params["gpu"] && sim_params["precision"] == "bigfloat"
         set_precision_fallback!(sim_params, backend, supports_float64 ? "f64" : "f32")
@@ -448,11 +449,13 @@ function simulate(
         sim_params,
         callbacks=all_callbacks,
     )
-    # Result to CPU, if already in the CPU it does nothing
-    sig = sig |> cpu
+    # Result to CPU
+    if sim_params["gpu"]
+        sig = sig |> cpu
+        Xt = Xt |> cpu
+    end
     sig = sum(sig; dims=length(Ndims) + 1) #Sum over threads, no-op for gpu (Nthreads=1)
     sig .*= get_adc_phase_compensation(seq)
-    Xt = Xt |> cpu
     # Output
     if sim_params["return_type"] == "state"
         out = Xt
