@@ -78,13 +78,23 @@ end
 blochsimple_parallel_ad_fd_gradient(rf=BLOCHSIMPLE_PARALLEL_AD_RF0) =
     grad(central_fdm(5, 1), blochsimple_parallel_ad_loss, rf)[1]
 
-const BLOCHSIMPLE_DISCRETIZE_AD_RF0 = [1.3, 1.7, 1.1]
+const BLOCHSIMPLE_NODE_AD_RF0 = [0.0, 3.5, 0.0]
 
-function blochsimple_discretize_ad_sequence(rf_scale)
+function blochsimple_node_ad_parameters()
     rf_duration = 0.6e-3
     total_duration = 1.4e-3
+    z = collect(range(-4e-3, 4e-3; length=3))
+    obj = Phantom(
+        x=zeros(length(z)),
+        y=zeros(length(z)),
+        z=z,
+        ρ=ones(length(z)),
+        T1=ones(length(z)),
+        T2=fill(0.1, length(z)),
+        Δw=zeros(length(z)),
+    )
     rf = RF(
-        complex.(rf_scale) .* 1e-6,
+        zeros(ComplexF64, 7),
         rf_duration,
         0.0,
         0.0,
@@ -93,27 +103,15 @@ function blochsimple_discretize_ad_sequence(rf_scale)
         Excitation(),
         Val(:preserve),
     )
-    gradient = Grad(0.0, 0.0)
-    adc = ADC(3, total_duration, 0.0)
-    return Sequence(
-        reshape([gradient, gradient, gradient], 3, 1),
+    zero_gradient = Grad(0.0, 0.0)
+    slice_gradient = Grad(8e-3, rf_duration)
+    seq = Sequence(
+        reshape([zero_gradient, zero_gradient, slice_gradient], 3, 1),
         reshape([rf], 1, 1),
-        [adc],
+        [ADC(3, total_duration, 0.0)],
         [total_duration],
         [Extension[]],
         Dict{String,Any}(),
-    )
-end
-
-function blochsimple_simulate_ad_loss(rf_scale)
-    zeros2 = zero.(rf_scale[1:2])
-    density = blochsimple_parallel_ad_vector(rf_scale, (1.0, 0.75))
-    obj = Phantom(
-        x=copy(zeros2),
-        ρ=density,
-        T1=one.(density),
-        T2=0.1 .* one.(density),
-        Δw=copy(zeros2),
     )
     sim_params = Dict{String,Any}(
         "sim_method" => KomaMRICore.BlochSimple(),
@@ -121,17 +119,69 @@ function blochsimple_simulate_ad_loss(rf_scale)
         "Nthreads" => 1,
         "return_type" => "mat",
         "precision" => "f64",
-        "sampling_rule" => MaxStepSizeRule(1e-3, 0.2e-3),
+        "sampling_rule" => MaxStepSizeRule(50e-6, 25e-6),
     )
-    signal = simulate(
+    params = (;
+        seq,
         obj,
-        blochsimple_discretize_ad_sequence(rf_scale),
-        Scanner();
+        sys=Scanner(),
         sim_params,
-        verbose=false,
+        target_profile=zeros(ComplexF64, 3),
+        node_times=range(0.0, rf_duration; length=3),
+        rf_times=range(0.0, rf_duration; length=7),
+        rf_scale=1e-6,
     )
-    return sum(abs2, signal)
+    target_profile = copy(blochsimple_node_ad_forward([0.0, 5.0, 0.0], params))
+    return merge(params, (; target_profile))
 end
 
-blochsimple_simulate_ad_fd_gradient(rf_scale=BLOCHSIMPLE_DISCRETIZE_AD_RF0) =
-    grad(central_fdm(5, 1), blochsimple_simulate_ad_loss, rf_scale)[1]
+function blochsimple_node_ad_forward(x, params)
+    seq_aux = copy(params.seq)
+    rf_samples = KomaMRIBase.linear_interpolate_samples(
+        (t=params.node_times, A=x),
+        params.rf_times,
+    )
+    seq_aux.RF[1].A .= complex.(rf_samples) .* params.rf_scale
+    return simulate(
+        params.obj,
+        seq_aux,
+        params.sys;
+        sim_params=params.sim_params,
+        verbose=false,
+    )
+end
+
+function blochsimple_node_ad_loss(x, params)
+    signal = blochsimple_node_ad_forward(x, params)
+    return sum(abs2, signal .- params.target_profile) / length(signal)
+end
+
+blochsimple_node_ad_fd_gradient(params, x=BLOCHSIMPLE_NODE_AD_RF0) =
+    grad(central_fdm(5, 1), x -> blochsimple_node_ad_loss(x, params), x)[1]
+
+function blochsimple_node_ad_reactant_parameters(params)
+    rf = params.seq.RF[1]
+    rf_ra = RF(
+        Reactant.to_rarray(rf.A),
+        rf.T,
+        rf.Δf,
+        rf.delay,
+        rf.center,
+        rf.ϕ,
+        rf.use,
+        Val(:preserve),
+    )
+    seq_ra = Sequence(
+        params.seq.GR,
+        reshape([rf_ra], 1, 1),
+        params.seq.ADC,
+        params.seq.DUR,
+        params.seq.EXT,
+        params.seq.DEF,
+    )
+    return merge(params, (;
+        seq=seq_ra,
+        obj=Reactant.to_rarray(params.obj),
+        target_profile=Reactant.to_rarray(params.target_profile),
+    ))
+end
