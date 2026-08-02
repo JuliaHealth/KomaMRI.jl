@@ -1,13 +1,14 @@
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sim_method::Union{BlochMagnusQuad2,BlochMagnusQuad4},
     groupsize,
     backend::KA.CPU,
-    prealloc::BlochMagnusQuadCPUPrealloc{T}
-) where {T<:Real}
+    prealloc::BlochMagnusQuadCPUPrealloc
+)
+    T = eltype(p.ρ)
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
     (; ωxy_0, ωz_0, ωxy_m, ωz_m, ωxy_1, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc

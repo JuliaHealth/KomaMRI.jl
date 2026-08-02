@@ -1,6 +1,4 @@
-struct BlochMagnusLinCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T}
-} <: BlochMagnusCPUPrealloc{T}
+struct BlochMagnusLinCPUPrealloc{CV<:AbstractVector,RV<:AbstractVector} <: BlochMagnusCPUPrealloc
     ωxy_0::CV
     ωz_0::RV
     ωxy_1::CV
@@ -15,7 +13,7 @@ struct BlochMagnusLinCPUPrealloc{
     Maux_z::RV
 end
 
-prealloc(sim_method::BlochMagnusLin2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusLin2, backend::KA.CPU, obj::Phantom, M::Mag, max_block_length::Integer, groupsize) =
     BlochMagnusLinCPUPrealloc(
         cbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj),
@@ -25,5 +23,5 @@ prealloc(sim_method::BlochMagnusLin2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T
         similar(M.xy), similar(M.z),
     )
 
-prealloc(sim_method::BlochMagnusLinComm2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusLinComm2, backend::KA.CPU, obj::Phantom, M::Mag, max_block_length::Integer, groupsize) =
     prealloc(BlochMagnusLin2(), backend, obj, M, max_block_length, groupsize)

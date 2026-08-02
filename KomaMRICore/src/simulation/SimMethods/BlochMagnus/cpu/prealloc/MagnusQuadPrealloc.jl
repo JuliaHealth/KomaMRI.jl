@@ -1,6 +1,4 @@
-struct BlochMagnusQuadCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T}
-} <: BlochMagnusCPUPrealloc{T}
+struct BlochMagnusQuadCPUPrealloc{CV<:AbstractVector,RV<:AbstractVector} <: BlochMagnusCPUPrealloc
     ωxy_0::CV
     ωz_0::RV
     ωxy_m::CV
@@ -17,7 +15,7 @@ struct BlochMagnusQuadCPUPrealloc{
     Maux_z::RV
 end
 
-prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom, M::Mag, max_block_length::Integer, groupsize) =
     BlochMagnusQuadCPUPrealloc(
         cbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj),
@@ -28,5 +26,5 @@ prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom{T}, M::Mag{
         similar(M.xy), similar(M.z),
     )
 
-prealloc(sim_method::BlochMagnusQuad2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(sim_method::BlochMagnusQuad2, backend::KA.CPU, obj::Phantom, M::Mag, max_block_length::Integer, groupsize) =
     prealloc(BlochMagnusQuad4(), backend, obj, M, max_block_length, groupsize)
