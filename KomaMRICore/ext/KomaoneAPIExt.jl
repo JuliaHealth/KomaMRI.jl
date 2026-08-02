@@ -22,9 +22,6 @@ function __init__()
     @warn "oneAPI support is experimental and does not support all array operations used by KomaMRI. GPU performance may be slower than expected"
 end
 
-end
-
-
 """Precompile oneAPI GPU simulation workflows for reduced first-use latency."""
 
 using PrecompileTools: @setup_workload, @compile_workload
@@ -66,4 +63,6 @@ import KomaMRIBase: PulseDesigner as PD
             end
         end
     end
+end
+
 end

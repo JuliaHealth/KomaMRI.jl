@@ -25,9 +25,6 @@ function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], MetalBackend())
 end
 
-end
-
-
 """Precompile Metal GPU simulation workflows for reduced first-use latency."""
 
 using PrecompileTools: @setup_workload, @compile_workload
@@ -69,4 +66,6 @@ import KomaMRIBase: PulseDesigner as PD
             end
         end
     end
+end
+
 end
