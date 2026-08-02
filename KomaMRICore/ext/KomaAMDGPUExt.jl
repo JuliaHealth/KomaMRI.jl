@@ -45,7 +45,14 @@ import KomaMRIBase: PulseDesigner as PD
         
         seq = PD.build_test_seq()
         
-        sim_methods = [Bloch(), BlochSimple()]
+        sim_methods = [
+            Bloch(),
+            BlochSimple(),
+            BlochMagnus1(),
+            BlochMagnus2(),
+            BlochMagnus4(),
+            BlochMagnus6(),
+        ]
         precisions = ["f32", "f64"]
         return_types = ["mat", "raw"]
         
