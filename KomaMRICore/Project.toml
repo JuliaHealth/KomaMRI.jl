@@ -18,12 +18,14 @@ PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
+Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
 
 [extensions]
 KomaAMDGPUExt = "AMDGPU"
 KomaCUDAExt = "CUDA"
 KomaMetalExt = "Metal"
+KomaMRICoreReactantExt = "Reactant"
 KomaoneAPIExt = "oneAPI"
 
 [compat]
@@ -36,6 +38,7 @@ KernelAbstractions = "0.9.34"
 KomaMRIBase = "0.14"
 Metal = "1.2"
 ProgressMeter = "1"
+Reactant = "0.2"
 Reexport = "1"
 ThreadsX = "0.1"
 julia = "1.10"
