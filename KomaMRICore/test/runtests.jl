@@ -815,7 +815,7 @@ end
             function reactant_enzyme_node_loss_and_gradient(x, params)
                 result = Enzyme.gradient(
                     Enzyme.ReverseWithPrimal,
-                    blochsimple_node_ad_loss,
+                    bloch_node_ad_loss,
                     x,
                     Enzyme.Const(params),
                 )
@@ -823,8 +823,8 @@ end
             end
 
             function run_reactant_enzyme_node_probe(params)
-                x = Reactant.to_rarray(copy(BLOCHSIMPLE_NODE_AD_RF0))
-                params_ra = blochsimple_node_ad_reactant_parameters(params)
+                x = Reactant.to_rarray(copy(BLOCH_NODE_AD_X0))
+                params_ra = bloch_node_ad_reactant_parameters(params)
                 compiled = Reactant.@compile sync=true reactant_enzyme_node_loss_and_gradient(
                     x,
                     params_ra,
@@ -846,17 +846,19 @@ end
             @test gradient ≈ blochsimple_parallel_ad_fd_gradient() rtol=1e-8 atol=1e-10
         end
 
-        @testset "RF control nodes through simulate and ADC Reactant Enzyme accuracy" begin
-            params = blochsimple_node_ad_parameters()
-            probe = Base.invokelatest(
-                getfield,
-                @__MODULE__,
-                :run_reactant_enzyme_node_probe,
-            )
-            reactant_loss, reactant_gradient = Base.invokelatest(probe, params)
+        @testset "RF and density controls through simulate and ADC Reactant Enzyme accuracy" begin
+            for sim_method in (BlochSimple(), Bloch())
+                params = bloch_node_ad_parameters(sim_method)
+                probe = Base.invokelatest(
+                    getfield,
+                    @__MODULE__,
+                    :run_reactant_enzyme_node_probe,
+                )
+                reactant_loss, reactant_gradient = Base.invokelatest(probe, params)
 
-            @test reactant_loss ≈ blochsimple_node_ad_loss(BLOCHSIMPLE_NODE_AD_RF0, params)
-            @test reactant_gradient ≈ blochsimple_node_ad_fd_gradient(params) rtol=1e-8 atol=1e-10
+                @test reactant_loss ≈ bloch_node_ad_loss(BLOCH_NODE_AD_X0, params)
+                @test reactant_gradient ≈ bloch_node_ad_fd_gradient(params) rtol=1e-8 atol=1e-10
+            end
         end
     end
 end
