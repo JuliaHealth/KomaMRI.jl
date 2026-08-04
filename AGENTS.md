@@ -61,8 +61,13 @@
 - Use `@testitem` tags: `:base`, `:files`, `:plots`, `:koma`, and for core `:core` plus exactly one of `:motion` or `:nomotion`.
 - If testing a PR implementation, add it with Pkg `url`/`rev`; do not hand-copy files.
 - Use representative semantic variable names or formulas for expected values; avoid unexplained magic numbers in assertions.
+- Do not introduce or loosen numerical tolerances merely to make a comparison pass. Use nonzero tolerances only when comparing different numeric precisions, reading values from a precision-truncating file format, or following an explicit numerical error model; document the source and expected scale of the error next to the assertion. Every tolerance change must be justified.
 - For groups of semantically similar tests, add one compact comment above the group when intent is not obvious. Do not comment every assertion.
 - Do not add tests that merely check a function equals its own definition or reimplement the same logic in the test. Test behavioral contracts, regressions, edge cases, and cross-implementation parity; do not add random assertions only to increase coverage.
+- For all tests, prioritize physical, MRI, and behavioral correctness: where applicable, compare against an analytical result or an independent high-accuracy ODE solution, test conserved quantities or known invariants, and use cross-method/backend parity only when one path is a trusted reference.
+- Every new test must have an explicit semantic purpose. Do not add `isa`, output-type, allocation-shape, or “runs without error” assertions unless that exact API contract or regression is the subject of the test.
+- Every group of semantically related assertions must be preceded by one compact comment stating the physical, numerical, or behavioral invariant being tested. Do not narrate implementation steps or comment individual assertions.
+- Prefer fewer strong tests over duplicated CPU/GPU or per-method copies. Use the existing backend loader so one invariant runs on the selected backend.
 
 ## Docs
 - Use the `docs` environment.
