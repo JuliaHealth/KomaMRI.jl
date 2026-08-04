@@ -21,7 +21,7 @@ end
 function reactant_cuda_node_loss_and_gradient(x, params)
     result = Enzyme.gradient(
         Enzyme.ReverseWithPrimal,
-        blochsimple_node_ad_loss,
+        bloch_node_ad_loss,
         x,
         Enzyme.Const(params),
     )
@@ -40,14 +40,15 @@ end
     @test Array(gradient) ≈ blochsimple_parallel_ad_fd_gradient() rtol=1e-8 atol=1e-10
 end
 
-@testset "RF control nodes through simulate and ADC Reactant Enzyme CUDA accuracy" begin
-    params = blochsimple_node_ad_parameters()
-    params_ra = blochsimple_node_ad_reactant_parameters(params)
-    x = Reactant.to_rarray(copy(BLOCHSIMPLE_NODE_AD_RF0))
-    compiled = Reactant.@compile sync=true reactant_cuda_node_loss_and_gradient(x, params_ra)
-    loss, gradient = compiled(x, params_ra)
+@testset "RF and density controls through simulate and ADC Reactant Enzyme CUDA accuracy" begin
+    for sim_method in (BlochSimple(), Bloch())
+        params = bloch_node_ad_parameters(sim_method)
+        params_ra = bloch_node_ad_reactant_parameters(params)
+        x = Reactant.to_rarray(copy(BLOCH_NODE_AD_X0))
+        compiled = Reactant.@compile sync=true reactant_cuda_node_loss_and_gradient(x, params_ra)
+        loss, gradient = compiled(x, params_ra)
 
-    @test Reactant.to_number(loss) ≈
-        blochsimple_node_ad_loss(BLOCHSIMPLE_NODE_AD_RF0, params)
-    @test Array(gradient) ≈ blochsimple_node_ad_fd_gradient(params) rtol=1e-8 atol=1e-10
+        @test Reactant.to_number(loss) ≈ bloch_node_ad_loss(BLOCH_NODE_AD_X0, params)
+        @test Array(gradient) ≈ bloch_node_ad_fd_gradient(params) rtol=1e-8 atol=1e-10
+    end
 end
