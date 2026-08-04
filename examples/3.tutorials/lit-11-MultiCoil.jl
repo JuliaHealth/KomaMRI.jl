@@ -177,11 +177,11 @@ sensitivity_maps = eltype(first(raw_coils_full.profiles).data).(sensitivity_maps
 # [`get_sens`](@ref KomaMRIBase.get_sens) method interpolates those samples onto
 # the same reconstruction grid.
 
-# The first four channels illustrate why the array contains spatial information.
+# Four channels distributed around the array illustrate why it contains spatial information.
 # The top row shows sensitivity magnitude and the bottom row shows the
 # corresponding fully sampled coil image.
 
-displayed_coils = 1:4 #hide
+displayed_coils = 1:2:8 #hide
 coil_image_scale = maximum(abs, coil_images_full[:, :, 1, 1, displayed_coils, 1]) #hide
 sensitivity_plots = [ #hide
     image_panel( #hide
