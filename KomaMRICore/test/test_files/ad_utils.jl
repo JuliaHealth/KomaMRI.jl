@@ -78,9 +78,9 @@ end
 blochsimple_parallel_ad_fd_gradient(rf=BLOCHSIMPLE_PARALLEL_AD_RF0) =
     grad(central_fdm(5, 1), blochsimple_parallel_ad_loss, rf)[1]
 
-const BLOCHSIMPLE_NODE_AD_RF0 = [0.0, 3.5, 0.0]
+const BLOCH_NODE_AD_X0 = [0.0, 3.5, 0.0, 1.0, 0.75, 0.5]
 
-function blochsimple_node_ad_parameters()
+function bloch_node_ad_parameters(sim_method)
     rf_duration = 0.6e-3
     total_duration = 1.4e-3
     z = collect(range(-4e-3, 4e-3; length=3))
@@ -114,7 +114,7 @@ function blochsimple_node_ad_parameters()
         Dict{String,Any}(),
     )
     sim_params = Dict{String,Any}(
-        "sim_method" => KomaMRICore.BlochSimple(),
+        "sim_method" => sim_method,
         "gpu" => false,
         "Nthreads" => 1,
         "return_type" => "mat",
@@ -131,19 +131,21 @@ function blochsimple_node_ad_parameters()
         rf_times=range(0.0, rf_duration; length=7),
         rf_scale=1e-6,
     )
-    target_profile = copy(blochsimple_node_ad_forward([0.0, 5.0, 0.0], params))
+    target_profile = copy(bloch_node_ad_forward([0.0, 5.0, 0.0, 0.9, 0.7, 0.6], params))
     return merge(params, (; target_profile))
 end
 
-function blochsimple_node_ad_forward(x, params)
+function bloch_node_ad_forward(x, params)
     seq_aux = copy(params.seq)
     rf_samples = KomaMRIBase.linear_interpolate_samples(
-        (t=params.node_times, A=x),
+        (t=params.node_times, A=x[1:3]),
         params.rf_times,
     )
     seq_aux.RF[1].A .= complex.(rf_samples) .* params.rf_scale
+    obj_aux = copy(params.obj)
+    obj_aux.ρ .= x[4:6]
     return simulate(
-        params.obj,
+        obj_aux,
         seq_aux,
         params.sys;
         sim_params=params.sim_params,
@@ -151,15 +153,15 @@ function blochsimple_node_ad_forward(x, params)
     )
 end
 
-function blochsimple_node_ad_loss(x, params)
-    signal = blochsimple_node_ad_forward(x, params)
+function bloch_node_ad_loss(x, params)
+    signal = bloch_node_ad_forward(x, params)
     return sum(abs2, signal .- params.target_profile) / length(signal)
 end
 
-blochsimple_node_ad_fd_gradient(params, x=BLOCHSIMPLE_NODE_AD_RF0) =
-    grad(central_fdm(5, 1), x -> blochsimple_node_ad_loss(x, params), x)[1]
+bloch_node_ad_fd_gradient(params, x=BLOCH_NODE_AD_X0) =
+    grad(central_fdm(5, 1), x -> bloch_node_ad_loss(x, params), x)[1]
 
-function blochsimple_node_ad_reactant_parameters(params)
+function bloch_node_ad_reactant_parameters(params)
     rf = params.seq.RF[1]
     rf_ra = RF(
         Reactant.to_rarray(rf.A),
