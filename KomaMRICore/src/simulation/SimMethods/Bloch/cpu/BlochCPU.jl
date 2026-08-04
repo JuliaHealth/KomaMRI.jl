@@ -5,6 +5,7 @@ struct BlochCPUPrealloc{
     RV<:AbstractVector{T},
     ST<:Spinor{T},
     S,
+    P,
 } <: PreallocResult{T}
     M::MT
     Bz_old::RV
@@ -13,7 +14,14 @@ struct BlochCPUPrealloc{
     Rot::ST
     ΔBz::RV
     sens::S
+    coordinates::P
 end
+
+view_sens(sensitivities, _) = sensitivities
+view_sens(sensitivities::CoilSensitivities, i) = CoilSensitivities(
+    @view(sensitivities.values[i, :]),
+    sensitivities.interpolators,
+)
 
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
     @views BlochCPUPrealloc(
@@ -23,19 +31,18 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
         p.ϕ[i],
         p.Rot[i],
         p.ΔBz[i],
-        p.sens === nothing ? nothing : p.sens[i, :]
+        view_sens(p.sens, i),
+        view_motion_coordinates(p.coordinates, i),
     )
 end
 
-prealloc_sens(::UniformCoilSens, _, ::KA.CPU, ::NoMotion) = nothing
-prealloc_sens(::UniformCoilSens, _, ::KA.CPU, ::Union{Motion,MotionList}) = nothing
-prealloc_sens(receiver::AbstractRFReceiveSystem, obj, ::KA.CPU, ::NoMotion) =
-    get_sens(receiver, obj.x, obj.y, obj.z)
-prealloc_sens(::AbstractRFReceiveSystem, _, ::KA.CPU, ::Union{Motion,MotionList}) = nothing
-
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
-function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real}
-    sens = prealloc_sens(sys.receiver, obj, backend, obj.motion)
+function prealloc(
+    ::Bloch, backend::KA.CPU, obj, M,
+    max_block_length, _max_adc_samples, _groupsize, sys,
+)
+    T = eltype(obj.x)
+    sens = prealloc_sensitivities(sys.receiver, obj)
     return BlochCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -49,7 +56,8 @@ function prealloc(sim_method::Bloch, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}
             similar(M.xy)
         ),
         obj.Δw ./ T(2π .* γ),
-        sens
+        sens,
+        prealloc_motion_coordinates(obj.motion, backend, obj, max_block_length),
     )
 end
 
@@ -82,12 +90,16 @@ function run_spin_precession!(
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
-    x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[1])
+    x, y, z = spin_coordinates!(
+        prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[1],
+    )
     @. Bz_old = x * seq.Gx[1] + y * seq.Gy[1] + z * seq.Gz[1] + ΔBz
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
+        )
         #Effective Field
         @. Bz_new = x * seq.Gx[i + 1] + y * seq.Gy[i + 1] + z * seq.Gz[i + 1] + ΔBz
         #Rotation
@@ -99,8 +111,10 @@ function run_spin_precession!(
             @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
-            #Acquired signal
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, Mxy, p.motion, (x, y, z), prealloc.sens)
+            update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)
+            acquire_signal!(
+                @view(sig[sample, :]), Mxy, prealloc.sens, (x, y, z),
+            )
             sample += 1
         end
         #Update simulation state
@@ -150,7 +164,9 @@ function run_spin_excitation!(
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i])
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i],
+        )
         #Effective field
         @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         @. B = sqrt(abs2(seq.B1[i]) + Bz^2)
@@ -168,8 +184,11 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            coords = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, coords, prealloc.sens)
+            coords = spin_coordinates!(
+                prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
+            )
+            update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
+            acquire_signal!(@view(sig[sample, :]), M.xy, prealloc.sens, coords)
             sample += 1
         end
     end

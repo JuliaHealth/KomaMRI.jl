@@ -6,6 +6,28 @@ struct BlochSimple <: SimulationMethod end
 
 export BlochSimple
 
+function acquire_block_signal!(sig, Mxy, receiver, ::NoMotion, positions, _adc)
+    acquire_signal!(sig, Mxy, receiver, positions)
+    return nothing
+end
+
+function acquire_block_signal!(
+    sig, Mxy, receiver, ::Union{Motion,MotionList}, (x, y, z), adc,
+)
+    for (sample, time_index) in enumerate(adc .+ 1)
+        positions = (
+            @view(x[:, time_index]),
+            @view(y[:, time_index]),
+            @view(z[:, time_index]),
+        )
+        acquire_signal!(
+            @view(sig[sample, :]), @view(Mxy[:, sample]),
+            receiver, positions,
+        )
+    end
+    return nothing
+end
+
 """
     run_spin_precession(obj, seq, Xt, sig)
 
@@ -54,7 +76,10 @@ function run_spin_precession!(
     outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     #Acquired signal
     adc = findall(cpu(seq.ADC[2:end]))
-    acquire_signal!(sig, p, sys.receiver, Mxy[:, adc], p.motion, (x, y, z), adc)
+    Mxy_adc = Mxy[:, adc]
+    acquire_block_signal!(
+        sig, Mxy_adc, sys.receiver, p.motion, (x, y, z), adc,
+    )
     return nothing
 end
 
@@ -115,7 +140,9 @@ function run_spin_excitation!(
         #Acquire signal
         # TODO: use sim_method and sys to modify sig 
         if s.ADC # ADC at the end of the time step
-            acquire_signal!(@view(sig[sample, :]), p, sys.receiver, M.xy, p.motion, (x, y, z))
+            acquire_signal!(
+                @view(sig[sample, :]), M.xy, sys.receiver, (x, y, z),
+            )
             sample += 1
         end
     end

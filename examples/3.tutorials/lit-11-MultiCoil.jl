@@ -1,203 +1,218 @@
-# # Parallel Imaging with Receive Coils
+# # Accelerated MRI with SENSE
 
-using KomaMRI, PlotlyBase, Suppressor #hide
+using KomaMRI, PlotlyBase #hide
+#hide
+function square_axes!(plot; hide_ticks=false, height) #hide
+    for (name, axis) in plot.layout.fields #hide
+        axis_name = String(name) #hide
+        if startswith(axis_name, "yaxis") #hide
+            suffix = replace(axis_name, "yaxis" => "") #hide
+            axis[:scaleanchor] = suffix in ("", "1") ? "x" : "x$suffix" #hide
+            axis[:scaleratio] = 1 #hide
+            axis[:constrain] = "domain" #hide
+        end #hide
+        if hide_ticks && (startswith(axis_name, "xaxis") || startswith(axis_name, "yaxis")) #hide
+            axis[:showticklabels] = false #hide
+            axis[:title] = attr(text="") #hide
+            axis[:showgrid] = false #hide
+            axis[:zeroline] = false #hide
+        end #hide
+    end #hide
+    relayout!(plot; height, margin=attr(l=20, r=20, t=55, b=20)) #hide
+    return plot #hide
+end #hide
+#hide
+function image_panel(image, title; zmax) #hide
+    plot = plot_image(image; title, zmin=0, zmax) #hide
+    plot.data[1].fields[:showscale] = false #hide
+    return plot #hide
+end #hide
+#hide
+function direct_reconstruction(raw, recon_size) #hide
+    acquisition = AcquisitionData(raw) #hide
+    acquisition.traj[1].circular = false #hide
+    params = Dict{Symbol,Any}(:reco => "direct", :reconSize => recon_size) #hide
+    return reconstruction(acquisition, params), acquisition #hide
+end #hide
+#hide
+tissue_properties = Dict("FAT1" => zeros(5), "FAT2" => zeros(5)); #hide
+obj = brain_phantom2D(; tissue_properties); #hide
+nothing #hide
 
-# Parallel imaging acquires fewer phase-encoding lines and uses the distinct
-# spatial sensitivities of multiple receive coils to recover the missing
-# information. We will compare fully sampled and two-fold accelerated EPI
-# acquisitions of the same 2D brain phantom.
+# Parallel imaging reduces scan time by acquiring fewer phase-encoding lines.
+# The missing data make a conventional image fold over, but an array of receive
+# coils provides additional spatial information that can separate the
+# overlapping pixels. We will compare fully sampled and three-fold accelerated
+# EPI acquisitions of the same
+# [`brain_phantom2D`](@ref KomaMRIBase.brain_phantom2D).
 
-fat_free_tissues = Dict(
-    "FAT1" => zeros(5),
-    "FAT2" => zeros(5),
-);
-obj = brain_phantom2D(; tissue_properties=fat_free_tissues);
+# ## Undersample k-space
 
-# ## Fully sampled and accelerated EPI
+# The fully sampled EPI trajectory visits every ``k_y`` line. The accelerated
+# sequence visits every third line, so its acceleration factor is ``R=3``.
+# Both sequences reach the centre of k-space at the same echo time. The
+# [`plot_kspace`](@ref KomaMRIPlots.plot_kspace) view below makes the missing
+# lines explicit.
 
-# We begin with a 100-by-100 EPI sequence. The accelerated sequence keeps half
-# of its readouts and doubles the phase-encoding blips, so it traverses every
-# second ``k_y`` line with acceleration factor ``R=2``.
-
-seq_file = joinpath(
-    dirname(pathof(KomaMRI)),
-    "../examples/5.koma_paper/comparison_accuracy/sequences/EPI/",
-    "epi_100x100_TE100_FOV230.seq",
-);
-full_seq = @suppress read_seq(seq_file);
-
-R = 2;
-readout_blocks = findall(i -> is_ADC_on(full_seq[i]), 1:length(full_seq));
-last_accelerated_readout = readout_blocks[length(readout_blocks) ÷ R];
-trailing_blocks = (last(readout_blocks) + 1):length(full_seq);
-accelerated_seq = deepcopy(
-    full_seq[1:last_accelerated_readout] + full_seq[trailing_blocks],
-);
-phase_blips = (first(readout_blocks) + 1):2:(last_accelerated_readout - 1);
-accelerated_seq.GR[2, phase_blips] .= R .* accelerated_seq.GR[2, phase_blips];
-_, full_kspace = get_kspace(full_seq);
-_, accelerated_kspace = get_kspace(accelerated_seq);
-full_center_sample = argmin(vec(sum(abs2, full_kspace; dims=2)));
-accelerated_center_sample = argmin(vec(sum(abs2, accelerated_kspace; dims=2)));
-echo_time_delay =
-    get_adc_sampling_times(full_seq)[full_center_sample] -
-    get_adc_sampling_times(accelerated_seq)[accelerated_center_sample];
-accelerated_seq =
-    accelerated_seq[1:(first(readout_blocks) - 1)] +
-    Delay(echo_time_delay) +
-    accelerated_seq[first(readout_blocks):end];
-accelerated_seq.DEF["Name"] = "epi_R2";
-accelerated_seq.DEF["Num_Blocks"] = length(accelerated_seq);
-
-# `plot_kspace(...; view_2d=true)` makes the missing phase-encoding lines
-# explicit. The left trajectory has 100 acquired lines; the right has 50. The
-# added delay keeps the time from excitation to the centre of k-space equal in
-# both sequences.
-
-p_kspace_full = plot_kspace( #hide
-    full_seq; view_2d=true, width=430, height=430, #hide
+function epi_sequence(R; matrix_size=120, FOV=0.23, TE=50e-3, dwell=4e-6, sys=Scanner()) #hide
+    readout = PulseDesigner.make_trapezoid( #hide
+        ; flat_area=matrix_size / FOV, flat_time=matrix_size * dwell, sys, #hide
+    ) #hide
+    adc = PulseDesigner.make_adc( #hide
+        matrix_size; dwell, delay=readout.rise, sys, #hide
+    ) #hide
+    ky_lines = (-matrix_size ÷ 2):R:(matrix_size ÷ 2 - 1) #hide
+    train = Sequence(sys) #hide
+    @addblock train += ( #hide
+        x=PulseDesigner.make_trapezoid(; area=-γ * area(readout) / 2, sys), #hide
+        y=PulseDesigner.make_trapezoid(; area=first(ky_lines) / FOV, sys), #hide
+    ) #hide
+    blip = PulseDesigner.make_trapezoid(; area=R / FOV, sys) #hide
+    for (line, _) in enumerate(ky_lines) #hide
+        @addblock train += (x=isodd(line) ? readout : -readout, adc) #hide
+        if line < length(ky_lines) #hide
+            @addblock train += (y=blip) #hide
+        end #hide
+    end #hide
+    center_block = 2 * findfirst(iszero, ky_lines) #hide
+    center_time = get_block_start_times(train)[center_block] + #hide
+        adc.delay + adc.T / 2 #hide
+    excitation = PulseDesigner.build_block_pulse( #hide
+        π / 2; duration=1e-3, use=Excitation(), sys, #hide
+    ) #hide
+    rf = excitation.RF[1, 1] #hide
+    excitation_center = rf.delay + rf_center(rf) #hide
+    pre_readout_delay = PulseDesigner.round_to_raster( #hide
+        TE - (dur(excitation) - excitation_center + center_time), #hide
+        sys.limits.DUR_Δt, #hide
+    ) #hide
+    seq = Sequence(sys) #hide
+    @addblock seq += excitation #hide
+    @addblock seq += Delay(pre_readout_delay) #hide
+    @addblock seq += train #hide
+    return seq #hide
+end #hide
+#hide
+R = 3 #hide
+matrix_size = 120 #hide
+FOV = 0.23 #hide
+full_seq = epi_sequence(1; matrix_size, FOV) #hide
+acc_seq = epi_sequence(R; matrix_size, FOV) #hide
+_, full_kspace = get_kspace(full_seq) #hide
+_, acc_kspace = get_kspace(acc_seq) #hide
+#hide
+p_kspace_full = plot_kspace(full_seq; view_2d=true) #hide
+p_kspace_acc = plot_kspace( #hide
+    acc_seq; view_2d=true, #hide
 ) #hide
-p_kspace_accelerated = plot_kspace( #hide
-    accelerated_seq; view_2d=true, width=430, height=430, #hide
+relayout!(p_kspace_full; title="Fully sampled") #hide
+relayout!(p_kspace_acc; title="R = 3") #hide
+foreach( #hide
+    trace -> trace.fields[:showlegend] = false, #hide
+    [p_kspace_full.data; p_kspace_acc.data], #hide
 ) #hide
-relayout!(p_kspace_full; title="Fully sampled k-space") #hide
-relayout!(p_kspace_accelerated; title="R = 2 k-space") #hide
-foreach(trace -> trace.fields[:showlegend] = false, p_kspace_accelerated.data) #hide
+p_kspace = square_axes!([p_kspace_full p_kspace_acc]; height=300) #hide
+#md p_kspace #hide
+#jl display(p_kspace)
 
-# ## Without parallel imaging
+# ## See the aliasing with sum-of-squares
 
-# First we simulate both sequences with the default single uniform receive
-# channel. A direct reconstruction has no information with which to separate
-# pixels that overlap after the ``R=2`` undersampling.
+# Attach a 16-channel
+# [`BirdcageCoilSens`](@ref KomaMRIBase.BirdcageCoilSens) receiver. The
+# sequence and phantom do not change; each channel simply measures the same
+# transverse magnetization through a different complex spatial sensitivity.
 
-uniform_sys = Scanner();
-raw_uniform_full = @suppress simulate(
-    obj, full_seq, uniform_sys; verbose=false,
-);
-raw_uniform_accelerated = @suppress simulate(
-    obj, accelerated_seq, uniform_sys; verbose=false,
-);
+birdcage = BirdcageCoilSens(; ncoils=16);
+system = Scanner(; receiver=birdcage);
+raw_coils_full = simulate(obj, full_seq, system; verbose=false);
+raw_coils_acc = simulate(obj, acc_seq, system; verbose=false);
+#hide
+recon_size = (matrix_size, matrix_size) #hide
+coil_images_full, _ = direct_reconstruction(raw_coils_full, recon_size); #hide
+coil_images_acc, acq_coils_acc = direct_reconstruction(raw_coils_acc, recon_size); #hide
+#hide
+# Sum-of-squares (SoS) combines the reconstructed channel magnitudes. It
+# produces a robust fully sampled image, but it cannot separate pixels that
+# overlap after undersampling:
 
-acq_uniform_full = AcquisitionData(raw_uniform_full);
-acq_uniform_accelerated = AcquisitionData(raw_uniform_accelerated);
-acq_uniform_full.traj[1].circular = false;
-acq_uniform_accelerated.traj[1].circular = false;
+sos_full = sqrt.(sum(abs2, coil_images_full; dims=5));
+sos_acc = sqrt.(sum(abs2, coil_images_acc; dims=5));
 
-recon_size = Tuple(raw_uniform_full.params["reconSize"][1:2]);
-direct_params = Dict{Symbol,Any}(
-    :reco => "direct",
-    :reconSize => recon_size,
-);
-image_uniform_full = reconstruction(acq_uniform_full, direct_params);
-image_uniform_accelerated = reconstruction(
-    acq_uniform_accelerated, direct_params,
-);
-
-p_uniform_full = plot_image( #hide
-    abs.(image_uniform_full[:, :, 1, 1, 1, 1]); #hide
-    width=430, height=430, title="Fully sampled", #hide
+sos_full_image = sos_full[:, :, 1, 1, 1, 1] #hide
+sos_acc_image = sos_acc[:, :, 1, 1, 1, 1] #hide
+p_sos_full = image_panel( #hide
+    sos_full_image, "Fully sampled SoS"; zmax=maximum(sos_full_image), #hide
 ) #hide
-p_uniform_accelerated = plot_image( #hide
-    abs.(image_uniform_accelerated[:, :, 1, 1, 1, 1]); #hide
-    width=430, height=430, title="R = 2: direct reconstruction", #hide
+p_sos_acc = image_panel( #hide
+    sos_acc_image, "R = 3 SoS: aliased"; zmax=maximum(sos_acc_image), #hide
 ) #hide
-p_uniform_full.data[1].fields[:showscale] = false #hide
-p_uniform = [ #hide
-    p_kspace_full p_kspace_accelerated; #hide
-    p_uniform_full p_uniform_accelerated #hide
-] #hide
-relayout!(p_uniform; width=950, height=900) #hide
-#md p_uniform #hide
-#jl display(p_uniform)
+p_sos = square_axes!( #hide
+    [p_sos_full p_sos_acc]; #hide
+    hide_ticks=true, height=300, #hide
+) #hide
+#md p_sos #hide
+#jl display(p_sos)
 
-# The accelerated reconstruction contains two overlapping copies of the brain,
-# separated by half the field of view. This is the aliasing that the receive
-# array must resolve.
+# ## Inspect the coil sensitivities
 
-# ## Add a birdcage receive array
+# SENSE needs one complex sensitivity per reconstruction pixel and receive
+# channel. Use [`get_sens`](@ref KomaMRIBase.get_sens) to evaluate the receiver
+# on the reconstruction grid—not on the phantom's irregular spin positions—and
+# [`get_n_coils`](@ref KomaMRIBase.get_n_coils) to obtain its channel count:
 
-# We repeat the simulations with an eight-channel birdcage receiver. The pulse
-# sequence and phantom are unchanged; only the receiver attached to the scanner
-# differs.
-
-receiver = BirdcageCoilSens(; ncoils=8);
-coil_sys = Scanner(; receiver);
-raw_coils_full = @suppress simulate(
-    obj, full_seq, coil_sys; verbose=false,
-);
-raw_coils_accelerated = @suppress simulate(
-    obj, accelerated_seq, coil_sys; verbose=false,
-);
-
-acq_coils_full = AcquisitionData(raw_coils_full);
-acq_coils_accelerated = AcquisitionData(raw_coils_accelerated);
-acq_coils_full.traj[1].circular = false;
-acq_coils_accelerated.traj[1].circular = false;
-
-# SENSE needs one complex sensitivity value for every reconstruction pixel and
-# channel. We therefore evaluate the receiver on the physical reconstruction
-# grid, not on the phantom's irregular spin locations.
-
-Nx, Ny = recon_size;
-FOVx, FOVy = raw_coils_full.params["reconFOV"][1:2] .* 1e-3;
-T = typeof(real(zero(eltype(first(raw_coils_full.profiles).data))));
-x_axis = range(T(-FOVx / 2), T(FOVx / 2); length=Nx);
-y_axis = range(T(-FOVy / 2), T(FOVy / 2); length=Ny);
-x_positions = vec([x for x in x_axis, _ in y_axis]);
-y_positions = vec([y for _ in x_axis, y in y_axis]);
-z_positions = zeros(T, length(x_positions));
+x_axis = range(-FOV / 2, FOV / 2; length=recon_size[1])
+y_axis = range(-FOV / 2, FOV / 2; length=recon_size[2])
+x = vec([x for x in x_axis, _ in y_axis])
+y = vec([y for _ in x_axis, y in y_axis])
+z = zeros(length(x))
 sensitivity_maps = reshape(
-    get_sens(receiver, x_positions, y_positions, z_positions),
-    Nx, Ny, 1, get_n_coils(receiver),
+    get_sens(birdcage, x, y, z),
+    recon_size..., 1, get_n_coils(birdcage),
 );
+sensitivity_maps = eltype(first(raw_coils_full.profiles).data).(sensitivity_maps); #hide
 
-# `BirdcageCoilSens` evaluates an analytic model. For measured maps, an
-# `ArbitraryCoilSens` receiver uses the same `get_sens` call and linearly
-# interpolates its stored Cartesian samples onto this reconstruction grid.
+# [`BirdcageCoilSens`](@ref KomaMRIBase.BirdcageCoilSens) evaluates an analytic
+# model. Measured maps can instead be supplied with
+# [`ArbitraryCoilSens`](@ref KomaMRIBase.ArbitraryCoilSens); its
+# [`get_sens`](@ref KomaMRIBase.get_sens) method interpolates those samples onto
+# the same reconstruction grid.
 
-# A direct reconstruction of the fully sampled multi-channel data retains one
-# image per receive channel. The first row below shows the magnitude of the
-# first four sensitivity maps; the second row shows their corresponding coil
-# images. Each sensitivity is normalized independently to emphasize its spatial
-# profile.
+# The first four channels illustrate why the array contains spatial information.
+# The top row shows sensitivity magnitude and the bottom row shows the
+# corresponding fully sampled coil image.
 
-coil_images = reconstruction(acq_coils_full, direct_params);
-displayed_coils = 1:4;
-coil_image_scale = maximum(abs, coil_images[:, :, 1, 1, displayed_coils, 1]); #hide
+displayed_coils = 1:4 #hide
+coil_image_scale = maximum(abs, coil_images_full[:, :, 1, 1, displayed_coils, 1]) #hide
 sensitivity_plots = [ #hide
-    plot_image( #hide
+    image_panel( #hide
         abs.(sensitivity_maps[:, :, 1, coil]) ./ #hide
-        maximum(abs, sensitivity_maps[:, :, 1, coil]); #hide
-        width=220, height=260, zmin=0, zmax=1, #hide
-        title="Coil $coil sensitivity", #hide
+        maximum(abs, sensitivity_maps[:, :, 1, coil]), #hide
+        "Sensitivity $coil"; zmax=1, #hide
     ) #hide
     for coil in displayed_coils #hide
 ] #hide
 coil_image_plots = [ #hide
-    plot_image( #hide
-        abs.(coil_images[:, :, 1, 1, coil, 1]); #hide
-        width=220, height=260, zmin=0, zmax=coil_image_scale, #hide
-        title="Coil $coil image", #hide
+    image_panel( #hide
+        abs.(coil_images_full[:, :, 1, 1, coil, 1]), #hide
+        "Coil image $coil"; zmax=coil_image_scale, #hide
     ) #hide
     for coil in displayed_coils #hide
 ] #hide
-foreach( #hide
-    plot -> plot.data[1].fields[:showscale] = false, #hide
-    [sensitivity_plots; coil_image_plots], #hide
+p_coils = square_axes!( #hide
+    [ #hide
+        sensitivity_plots[1] sensitivity_plots[2] sensitivity_plots[3] sensitivity_plots[4] #hide
+        coil_image_plots[1] coil_image_plots[2] coil_image_plots[3] coil_image_plots[4] #hide
+    ]; #hide
+    hide_ticks=true, height=380, #hide
 ) #hide
-p_coils = [ #hide
-    sensitivity_plots[1] sensitivity_plots[2] sensitivity_plots[3] sensitivity_plots[4]; #hide
-    coil_image_plots[1] coil_image_plots[2] coil_image_plots[3] coil_image_plots[4] #hide
-] #hide
-relayout!(p_coils; width=1100, height=600) #hide
 #md p_coils #hide
 #jl display(p_coils)
 
-# ## SENSE reconstruction
+# ## Recover the accelerated image with SENSE
 
-# The SENSE forward model combines the image with these complex maps before
-# sampling its k-space trajectory. MRIReco's multi-coil reconstruction solves
-# the inverse problem jointly across all eight channels.
+# SENSE instead combines the unknown image with the complex sensitivity maps
+# before sampling each coil's k-space trajectory. The inverse problem is solved
+# jointly across all 16 channels:
 
 sense_params = Dict{Symbol,Any}(
     :reco => "multiCoil",
@@ -206,24 +221,23 @@ sense_params = Dict{Symbol,Any}(
     :iterations => 20,
     :densityWeighting => false,
     :toeplitz => false,
-);
-sense_full = reconstruction(acq_coils_full, sense_params);
-sense_accelerated = reconstruction(acq_coils_accelerated, sense_params);
+)
+sense_acc = reconstruction(acq_coils_acc, sense_params);
 
-p_sense_full = plot_image( #hide
-    abs.(sense_full[:, :, 1, 1, 1, 1]); #hide
-    width=430, height=430, title="Fully sampled SENSE", #hide
+sense_acc_image = abs.(sense_acc[:, :, 1, 1, 1, 1]) #hide
+p_sense_acc = image_panel( #hide
+    sense_acc_image, "R = 3 SENSE"; zmax=maximum(sense_acc_image), #hide
 ) #hide
-p_sense_accelerated = plot_image( #hide
-    abs.(sense_accelerated[:, :, 1, 1, 1, 1]); #hide
-    width=430, height=430, title="R = 2 SENSE", #hide
+p_sos_acc_compare = image_panel( #hide
+    sos_acc_image, "R = 3 SoS: aliased"; zmax=maximum(sos_acc_image), #hide
 ) #hide
-p_sense_full.data[1].fields[:showscale] = false #hide
-p_sense = [p_sense_full p_sense_accelerated] #hide
-relayout!(p_sense; width=950, height=450) #hide
+p_sense = square_axes!( #hide
+    [p_sos_acc_compare p_sense_acc]; #hide
+    hide_ticks=true, height=280, #hide
+) #hide
 #md p_sense #hide
 #jl display(p_sense)
 
-# The accelerated SENSE image no longer contains the fold-over seen with the
-# single receive channel. The missing phase-encoding lines are recovered from
-# the spatially distinct complex measurements supplied by the receiver array.
+# The ``R=3`` SoS image still folds because channel combination alone cannot
+# separate overlapping pixels. SENSE uses the distinct complex channel
+# sensitivities to remove that aliasing while preserving the shorter acquisition.

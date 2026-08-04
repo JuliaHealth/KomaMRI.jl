@@ -2,21 +2,23 @@
 
 @kernel unsafe_indices=true inbounds=true function precession_kernel!(
     sig_output::AbstractMatrix{Complex{T}}, 
-    M_xy, M_z, sens, N_coils, N_adc,
+    M_xy, M_z, receiver, N_coils, N_adc,
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_ADC), s_length,
-    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC}, ::Val{HAS_SENS},
-    ::Val{COIL_TILING},
+    ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
+    ::Val{HAS_SENSITIVITIES},
     sim_method::BlochLikeSimMethods
-) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, HAS_SENS, COIL_TILING}
+) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, HAS_SENSITIVITIES}
 
     @uniform N = @groupsize()[1]
     i_l = @index(Local, Linear)
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    sig_group_r = @localmem T HAS_ADC ? (COIL_TILING ? N : (USE_WARP_REDUCTION ? 32 : N)) : 1
-    sig_group_i = @localmem T HAS_ADC ? (COIL_TILING ? N : (USE_WARP_REDUCTION ? 32 : N)) : 1
+    sig_group_r =
+        @localmem T HAS_ADC ? (USE_WARP_REDUCTION && !HAS_SENSITIVITIES ? 32 : N) : 1
+    sig_group_i =
+        @localmem T HAS_ADC ? (USE_WARP_REDUCTION && !HAS_SENSITIVITIES ? 32 : N) : 1
     
     active = i <= N_spins
     Mxy_r = zero(T)
@@ -40,6 +42,7 @@
         Bz_prev = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz
     end
 
+    # ADC_idx advances within each coil; reduce_signal_per_coil! adds the coil offset.
     ADC_idx = 1u32
     s_idx = 2u32
     while s_idx <= s_length
@@ -63,20 +66,13 @@
                 sig_r = E2 * (Mxy_r * cis_ϕ_r - Mxy_i * cis_ϕ_i)
                 sig_i = E2 * (Mxy_r * cis_ϕ_i + Mxy_i * cis_ϕ_r)
             end
-            if HAS_SENS
-                if COIL_TILING
-                    reduce_coils_tiled!(
-                        sig_output, sig_r, sig_i, sens, sig_group_r, sig_group_i,
-                        i, i_l, i_g, s_idx, ADC_idx, N_spins, N_coils, N_adc, N, T,
-                        active, Val(MOTION),
-                    )
-                else
-                    reduce_coils_serial!(
-                        sig_output, sig_r, sig_i, sens, sig_group_r, sig_group_i,
-                        i, i_l, i_g, s_idx, ADC_idx, N_spins, N_coils, N_adc, N, T,
-                        active, Val(MOTION), Val(true), Val(USE_WARP_REDUCTION),
-                    )
-                end
+            if HAS_SENSITIVITIES
+                reduce_signal_per_coil!(
+                    sig_output, sig_r, sig_i, receiver, sig_group_r, sig_group_i,
+                    (p_x, p_y, p_z), s_idx,
+                    i_l, i_g, ADC_idx, N_spins, N_coils, N_adc, N, T,
+                    Val(USE_WARP_REDUCTION),
+                )
             else
                 sig_r, sig_i = reduce_signal!(
                     sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T,

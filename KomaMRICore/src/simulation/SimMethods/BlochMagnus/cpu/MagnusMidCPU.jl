@@ -24,7 +24,9 @@ function run_spin_excitation!(
         im = i + 1
         i1 = im + 1
         Δt = seq.t[i1] - seq.t[i]
-        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[im])
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[im],
+        )
         @. ωxy_m = seq.B1[im] * B_to_ω
         @. ωz_m  = (seq.Gx[im] * x + seq.Gy[im] * y + seq.Gz[im] * z + ΔBz) * B_to_ω + seq.Δf[im] * T(2π)
 
@@ -38,11 +40,11 @@ function run_spin_excitation!(
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
         outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
         if seq.ADC[i1]
-            coords = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i1])
-            acquire_signal!(
-                @view(sig[sample, :]), p, sys.receiver, M.xy, p.motion,
-                coords, prealloc.sens,
+            coords = spin_coordinates!(
+                prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i1],
             )
+            update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
+            acquire_signal!(@view(sig[sample, :]), M.xy, prealloc.sens, coords)
             sample += 1
         end
         i = i1

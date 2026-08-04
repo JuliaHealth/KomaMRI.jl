@@ -367,16 +367,6 @@ end
     @test head.channel_mask[1] == UInt64(0xf)
     @test all(iszero, head.channel_mask[2:end])
 
-    mask64 = KomaMRICore.active_channel_mask(64)
-    mask65 = KomaMRICore.active_channel_mask(65)
-    @test mask64[1] == typemax(UInt64)
-    @test all(iszero, mask64[2:end])
-    @test mask65[1:2] == (typemax(UInt64), UInt64(1))
-    @test all(iszero, mask65[3:end])
-    @test all(==(typemax(UInt64)), KomaMRICore.active_channel_mask(1024))
-    @test_throws ArgumentError KomaMRICore.active_channel_mask(0)
-    @test_throws ArgumentError KomaMRICore.active_channel_mask(1025)
-
     seq.DEF["FOV"] = [23e-2, 23e-2, 0]
     raw = signal_to_raw_data(sig, seq)
     sig_aux = vcat([vec(profile.data) for profile in raw.profiles]...)
@@ -405,7 +395,18 @@ end
         ρ=ones(3), T1=fill(1e6, 3), T2=fill(1e6, 3), Δw=zeros(3),
     )
 
-    for (precision, T) in ("f32" => Float32, "f64" => Float64, "bigfloat" => BigFloat)
+    precision_cases = (
+        ("f32", Float32, f32, range(-5e-4, 5e-4; length=3)),
+        ("f64", Float64, f64, range(-5f-4, 5f-4; length=3)),
+        ("bigfloat", BigFloat, fbig, range(-5e-4, 5e-4; length=3)),
+    )
+    for (precision, T, to_precision, coordinates) in precision_cases
+        unit = one(first(coordinates))
+        receiver = ArbitraryCoilSens(
+            coordinates, coordinates, [zero(unit)],
+            fill(complex(unit), 3, 3, 1, 1),
+        )
+        converted_receiver = to_precision(Scanner(; receiver)).receiver
         sim_params = Dict{String,Any}(
             "gpu" => false,
             "Nthreads" => 1,
@@ -418,77 +419,87 @@ end
         state = simulate(obj, seq, Scanner(); sim_params, verbose=false)
         @test eltype(state.xy) === Complex{T}
         @test eltype(state.z) === T
+
+        # Requested precision must reach range-backed sensitivity-map geometry and data.
+        @test all(axis -> eltype(axis) === T, (
+            converted_receiver.x, converted_receiver.y, converted_receiver.z,
+        ))
+        @test eltype(converted_receiver.coil_sens) === Complex{T}
     end
 
 end
 
-@testitem "Multi-coil simulations" tags=[:core, :nomotion] begin
+@testitem "Receive coil signal equation" tags=[:core, :nomotion] begin
+    include("initialize_backend.jl")
     import KomaMRIBase: get_n_coils, get_sens
 
-    struct ConstantCoilSens <: AbstractRFReceiveSystem
-        ncoils::Int
+    struct ConstantCoilSens{W<:Tuple} <: AbstractRFReceiveSystem
+        weights::W
     end
-    get_n_coils(receiver::ConstantCoilSens) = receiver.ncoils
+    get_n_coils(receiver::ConstantCoilSens) = length(receiver.weights)
     function get_sens(receiver::ConstantCoilSens, x, y, z)
-        sens = similar(x, Complex{eltype(x)}, length(x), receiver.ncoils)
-        fill!(sens, inv(eltype(x)(receiver.ncoils)))
+        sens = similar(x, Complex{eltype(x)}, length(x), get_n_coils(receiver))
+        for coil in axes(sens, 2)
+            @views sens[:, coil] .= receiver.weights[coil]
+        end
         return sens
     end
 
-    coords = [-1.0, 0.0, 1.0] .* 1e-3
-    ncoils = 64
-    dims = (length(coords), length(coords), length(coords))
-    single_coil = fill(1.0 + 0.0im, dims..., 1)
-    multi_coil = fill((1.0 + 0.0im) / ncoils, dims..., ncoils)
-    single_receiver = ArbitraryCoilSens(coords, coords, coords, single_coil)
-    multi_receiver = ArbitraryCoilSens(coords, coords, coords, multi_coil)
-    custom_receiver = ConstantCoilSens(ncoils)
+    coords = range(-1e-3, 1e-3; length=3)
+    ncoils = 16
+    weights = ntuple(coil -> cis(2π * (coil - 1) / ncoils), ncoils)
+    coil_sens = [
+        complex(
+            1 + 100x + 50y + 25z + 0.1coil,
+            -50x + 75y - 25z + 0.05coil,
+        ) for x in coords, y in coords, z in coords, coil in eachindex(weights)
+    ]
+    receivers = (
+        ArbitraryCoilSens(coords, coords, coords, coil_sens),
+        BirdcageCoilSens(; ncoils),
+        ConstantCoilSens(weights),
+    )
 
     seq = Sequence()
     @addblock seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
-    @addblock seq += ADC(8, 2e-4)
-    obj = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[1e6], T2=[1e6], Δw=[0.0])
-
-    sim_methods = (
-        BlochSimple(), Bloch(), BlochMagnusConst1(), BlochMagnusLin2(),
-        BlochMagnusMid2(), BlochMagnusLinComm2(), BlochMagnusQuad2(),
-        BlochMagnusQuad4(), BlochMagnusGL2(), BlochMagnusGL4(),
-        BlochMagnusBGL4(), BlochMagnusBGL6(),
+    @addblock seq += (
+        ADC(8, 2e-4),
+        x=Grad(2e-3, 2e-4),
+        y=Grad(-1e-3, 2e-4),
     )
-    for sim_method in sim_methods
-        @testset "$(nameof(typeof(sim_method)))" begin
-            for (precision, T) in ("f32" => Float32, "f64" => Float64)
-                @testset "$precision" begin
-                    sim_params = Dict{String,Any}(
-                        "gpu" => false,
-                        "Nthreads" => 1,
-                        "return_type" => "mat",
-                        "precision" => precision,
-                        "sim_method" => sim_method,
-                    )
-                    raw_uniform = simulate(obj, seq, Scanner(); sim_params, verbose=false)
-                    raw_single = simulate(
-                        obj, seq, Scanner(receiver=single_receiver); sim_params, verbose=false,
-                    )
-                    raw_multi = simulate(
-                        obj, seq, Scanner(receiver=multi_receiver); sim_params, verbose=false,
-                    )
-                    raw_custom = simulate(
-                        obj, seq, Scanner(receiver=custom_receiver); sim_params, verbose=false,
-                    )
+    obj = Phantom(
+        x=[-0.7e-3, 0.2e-3, 0.8e-3],
+        y=[0.4e-3, -0.6e-3, 0.1e-3],
+        z=[-0.2e-3, 0.5e-3, 0.7e-3],
+        ρ=[0.8, 1.0, 0.6],
+        T1=[1.0, 1.2, 0.9],
+        T2=[0.08, 0.06, 0.1],
+        Δw=2π .* [-40.0, 15.0, 70.0],
+    )
 
-                    @test eltype(raw_uniform) === Complex{T}
-                    @test eltype(raw_single) === Complex{T}
-                    @test eltype(raw_multi) === Complex{T}
-                    @test eltype(raw_custom) === Complex{T}
-                    @test raw_uniform ≈ raw_single
-                    @test raw_uniform ≈ sum(raw_multi; dims=2)
-                    @test raw_uniform ≈ sum(raw_custom; dims=2)
-                end
+    # The receive equation is Sᶜ(t) = Σᵢ Mxyᵢ(t) Cᶜ(rᵢ). These methods cover
+    # the generic, optimized Bloch, and Magnus acquisition implementations.
+    for sim_method in (BlochSimple(), Bloch(), BlochMagnusGL4())
+        @testset "$(nameof(typeof(sim_method)))" begin
+            sim_params = Dict{String,Any}(
+                "gpu" => USE_GPU,
+                "return_type" => "mat",
+                "sim_method" => sim_method,
+            )
+            spin_signals = hcat([
+                simulate(obj[spin], seq, Scanner(); sim_params, verbose=false)[:, 1, 1]
+                for spin in eachindex(obj.x)
+            ]...)
+            for receiver in receivers
+                signal = simulate(
+                    obj, seq, Scanner(; receiver); sim_params, verbose=false,
+                )[:, :, 1]
+                @test signal ≈ spin_signals * get_sens(
+                    receiver, obj.x, obj.y, obj.z,
+                )
             end
         end
     end
-
 end
 
 @testitem "repeated single-spin FID" tags=[:core, :nomotion] begin
@@ -573,48 +584,6 @@ end
         end
     end
 
-    if USE_GPU
-        coords = [-1.0, 0.0, 1.0] .* 1e-3
-        ncoils = 4
-        coil_sens = fill(ComplexF32(1 / ncoils), length(coords), length(coords), length(coords), ncoils)
-        receivers = (
-            BirdcageCoilSens(; ncoils),
-            ArbitraryCoilSens(coords, coords, coords, coil_sens),
-            ArbitraryCoilSens(coords, coords, coords, coil_sens[:, :, :, 1:1]),
-        )
-        multi_coil_obj = Phantom(
-            x=[-5e-4, 0.0, 5e-4], y=[0.0, 4e-4, -4e-4], z=zeros(3),
-            ρ=ones(3), T1=fill(1e6, 3), T2=fill(1e6, 3), Δw=zeros(3),
-        )
-        multi_coil_seq = Sequence()
-        @addblock multi_coil_seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4) + ADC(4, 1e-4)
-        @addblock multi_coil_seq += ADC(4, 2e-4)
-        multi_coil_methods = (
-            BlochSimple(), Bloch(), BlochMagnusConst1(), BlochMagnusLin2(), BlochMagnusMid2(),
-            BlochMagnusLinComm2(), BlochMagnusQuad2(), BlochMagnusQuad4(),
-            BlochMagnusGL2(), BlochMagnusGL4(), BlochMagnusBGL4(), BlochMagnusBGL6(),
-        )
-
-        for receiver in receivers, sim_method in multi_coil_methods
-            sim_params = Dict{String,Any}(
-                "gpu" => false,
-                "Nthreads" => 1,
-                "precision" => "f32",
-                "return_type" => "mat",
-                "sim_method" => sim_method,
-            )
-            reference = simulate(
-                multi_coil_obj, multi_coil_seq, Scanner(; receiver);
-                sim_params, verbose=false,
-            )
-            sim_params["gpu"] = true
-            signal = simulate(
-                multi_coil_obj, multi_coil_seq, Scanner(; receiver);
-                sim_params, verbose=false,
-            )
-            @test signal ≈ reference
-        end
-    end
 end
 
 @testitem "Bloch waveform event type accuracy" tags=[:core, :nomotion] begin
@@ -1046,29 +1015,43 @@ end
         end
     end
 
-    coords = [-1.0, 0.0, 1.0]
-    ncoils = 4
-    coil_sens = fill(
-        ComplexF32(1 / ncoils),
-        length(coords), length(coords), length(coords), ncoils,
+    # With no spatial encoding, motion changes only the coil weighting:
+    # Sᶜ(t) = Mxy(t) Cᶜ(r(t)).
+    motion_duration = 2e-3
+    motion = translate(0.8e-3, 0.0, 0.0, TimeRange(0.0, motion_duration))
+    moving_obj = Phantom(
+        x=[-0.4e-3], y=[0.0], z=[0.0],
+        ρ=[1.0], T1=[1e6], T2=[1e6], motion=motion,
     )
-    receiver = ArbitraryCoilSens(coords, coords, coords, coil_sens)
-    obj = Phantom(
-        x=x0, y=y0, z=z0, ρ=[M0], T1=[T1], T2=[T2],
-        motion=translate(0.1, 0.1, 0.0, TimeRange(0.0, 1.0)),
+    coil_grid = [-1.0, 0.0, 1.0] .* 1e-3
+    coil_sens = [
+        complex(1 + 200x + 0.1coil, -100x + 0.2coil) for
+        x in coil_grid, _ in 1:1, _ in 1:1, coil in 1:2
+    ]
+    receivers = (
+        ArbitraryCoilSens(coil_grid, [0.0], [0.0], coil_sens),
+        BirdcageCoilSens(; ncoils=4),
     )
-    seq = Sequence()
-    @addblock seq += RF(cis(φ) .* B1, Trf) + ADC(Nadc, duration - Trf, Trf)
-    for sim_method in (BlochSimple(), Bloch())
-        sim_params = Dict{String,Any}(
-            "sim_method" => sim_method,
-            "return_type" => "mat",
-            "gpu" => USE_GPU,
-        )
-        uniform_signal = simulate(obj, seq, Scanner(); sim_params, verbose=false)
-        multi_coil_signal = simulate(
-            obj, seq, Scanner(; receiver); sim_params, verbose=false,
-        )
-        @test uniform_signal ≈ sum(multi_coil_signal; dims=2)
+    moving_seq = Sequence()
+    rf_duration = 1e-4
+    @addblock moving_seq += RF(1 / (4γ * rf_duration), rf_duration)
+    @addblock moving_seq += ADC(7, motion_duration - rf_duration)
+    sim_params = Dict{String,Any}(
+        "sim_method" => Bloch(),
+        "return_type" => "mat",
+        "gpu" => USE_GPU,
+    )
+    uniform_signal =
+        simulate(moving_obj, moving_seq, Scanner(); sim_params, verbose=false)[:, 1, 1]
+    x, y, z = get_spin_coords(
+        motion, moving_obj.x, moving_obj.y, moving_obj.z,
+        get_adc_sampling_times(moving_seq)',
+    )
+    for receiver in receivers
+        signal = simulate(
+            moving_obj, moving_seq, Scanner(; receiver); sim_params, verbose=false,
+        )[:, :, 1]
+        @test signal ≈
+            reshape(uniform_signal, :, 1) .* get_sens(receiver, vec(x), vec(y), vec(z))
     end
 end

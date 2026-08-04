@@ -49,7 +49,7 @@ function select_profiles!(raw, line_indices)
     for (profile, line_index) in zip(raw.profiles, line_indices)
         profile.head.idx.kspace_encode_step_1 = UInt16(line_index)
     end
-    nothing
+    return nothing
 end
 ```
 
@@ -61,7 +61,10 @@ raw_reference.profiles = raw_reference.profiles[4:(3 + recon_size[2])]
 
 acq_reference = AcquisitionData(raw_reference)
 acq_reference.traj[1].circular = false
-sensitivity_maps = espirit(acq_reference, (6, 6), 30, recon_size; eigThresh_1=0.02, eigThresh_2=0.0,)
+sensitivity_maps = espirit(
+    acq_reference, (6, 6), 30, recon_size;
+    eigThresh_1=0.02, eigThresh_2=0.0,
+)
 ```
 
 The reference MRD starts with three navigator profiles and then contains the
@@ -86,7 +89,7 @@ select_profiles!(raw_measured, acquired_line_indices)
 acq_measured = AcquisitionData(raw_measured)
 acq_measured.traj[1].circular = false
 
-direct_params = Dict{Symbol,Any}(:reco => "direct", :reconSize => recon_size,)
+direct_params = Dict{Symbol,Any}(:reco => "direct", :reconSize => recon_size)
 sense_params = Dict{Symbol,Any}(
     :reco => "multiCoil",
     :reconSize => recon_size,
@@ -105,7 +108,8 @@ unfold the image.
 
 ```julia
 magnitude_image(image) = abs.(Array(image[:, :, 1, 1, 1, 1]))
-plot_reconstruction(image, title) = plot_image(image; title, zmin=0, zmax=quantile(vec(image), 0.995),)
+plot_reconstruction(image, title) =
+    plot_image(image; title, zmin=0, zmax=quantile(vec(image), 0.995))
 
 measured_direct = reconstruction(acq_measured, direct_params)
 measured_sense = reconstruction(acq_measured, sense_params)
@@ -140,20 +144,21 @@ to metres before defining the map grid. The 2D maps are repeated at three
 positions through the slice without changing the 12-coil dimension.
 
 ```julia
-fov = Float32.(raw_reference.params["reconFOV"]) .* 1f-3
-x = collect(LinRange(-fov[1] / 2, fov[1] / 2, recon_size[1]))
-y = collect(LinRange(-fov[2] / 2, fov[2] / 2, recon_size[2]))
-z = Float32[-fov[3] / 2, 0, fov[3] / 2]
-receiver = ArbitraryCoilSens(x, y, z, repeat(sensitivity_maps, 1, 1, length(z), 1),)
+fov = raw_reference.params["reconFOV"] .* 1e-3
+x = range(-fov[1] / 2, fov[1] / 2; length=recon_size[1])
+y = range(-fov[2] / 2, fov[2] / 2; length=recon_size[2])
+z = [-fov[3] / 2, zero(fov[3]), fov[3] / 2]
+receiver = ArbitraryCoilSens(
+    x, y, z, repeat(sensitivity_maps, 1, 1, length(z), 1),
+)
 ```
 
 `ArbitraryCoilSens` interpolates these maps at the phantom positions and returns
 zero outside the supplied grid, so the grid must cover the complete phantom.
-This is a triggered sequence, so the simulation uses `heart_rate=1`.
 
 ```julia
 obj = read_phantom(phantom_2D_3T_file)
-raw_simulated = simulate( obj, seq, Scanner(; receiver); physio=CardiacSignal(; heart_rate=1), verbose=false,)
+raw_simulated = simulate(obj, seq, Scanner(; receiver); verbose=false)
 
 simulated_mrd_file = "simulated_acquisition.mrd"
 save(ISMRMRDFile(simulated_mrd_file), raw_simulated)

@@ -20,7 +20,7 @@ sys = Scanner(limits=HardwareLimits(
     RF_ring_down_time=20u"μs", RF_dead_time=100u"μs", ADC_dead_time=10u"μs",
 ));
 
-# `Scanner` keyword arguments are converted independently. Plain numbers are SI;
+# `HardwareLimits` keyword arguments are converted independently. Plain numbers are SI;
 # Unitful quantities can be mixed in per field when the physical unit is clear.
 FOV = 256u"mm"
 slice_thickness = 5u"mm"

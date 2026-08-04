@@ -1,5 +1,5 @@
 struct BlochMagnusQuadCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T},S
+    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T},S,P
 } <: BlochMagnusCPUPrealloc{T}
     ωxy_0::CV
     ωz_0::RV
@@ -16,9 +16,10 @@ struct BlochMagnusQuadCPUPrealloc{
     Maux_xy::CV
     Maux_z::RV
     sens::S
+    coordinates::P
 end
 
-prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} =
+prealloc(::BlochMagnusQuad4, backend::KA.CPU, obj, M, max_block_length, _max_adc_samples, _groupsize, sys) =
     BlochMagnusQuadCPUPrealloc(
         cbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj),
@@ -27,8 +28,9 @@ prealloc(sim_method::BlochMagnusQuad4, backend::KA.CPU, obj::Phantom{T}, M::Mag{
         similar(M.xy), similar(M.xy),
         off_resonance_buffer(obj),
         similar(M.xy), similar(M.z),
-        prealloc_sens(sys.receiver, obj, backend, obj.motion),
+        prealloc_sensitivities(sys.receiver, obj),
+        prealloc_motion_coordinates(obj.motion, backend, obj, max_block_length),
     )
 
-prealloc(sim_method::BlochMagnusQuad2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize, sys::Scanner) where {T<:Real} =
-    prealloc(BlochMagnusQuad4(), backend, obj, M, max_block_length, groupsize, sys)
+prealloc(::BlochMagnusQuad2, backend::KA.CPU, obj, M, max_block_length, max_adc_samples, groupsize, sys) =
+    prealloc(BlochMagnusQuad4(), backend, obj, M, max_block_length, max_adc_samples, groupsize, sys)

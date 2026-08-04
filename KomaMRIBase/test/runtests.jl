@@ -2342,34 +2342,49 @@ end
 end
 
 @testitem "RF receive systems" tags=[:base] begin
+    # A uniform receiver has unit sensitivity everywhere.
     @test get_n_coils(UniformCoilSens()) == 1
+    positions = [0.0, 1.0]
+    @test get_sens(UniformCoilSens(), positions, positions, positions) ==
+        fill(1 + 0im, 2, 1)
 
+    # At the birdcage center, the finite-wire model has equal magnitudes and
+    # quarter-turn phase increments around a four-rung array.
     birdcage = BirdcageCoilSens(; ncoils=4)
-    birdcage_sens = get_sens(birdcage, Float32[0, 0.01], Float32[0, -0.01], zeros(Float32, 2))
-    @test size(birdcage_sens) == (2, 4)
-    @test eltype(birdcage_sens) === ComplexF32
-    @test all(isfinite, birdcage_sens)
-    center_sens = vec(get_sens(birdcage, zeros(Float32, 1), zeros(Float32, 1), zeros(Float32, 1)))
-    center_magnitude = 2 * Float32(birdcage.L) / (
-        Float32(birdcage.radius) *
-        sqrt(Float32(birdcage.radius)^2 + Float32(birdcage.L)^2)
-    )
-    @test center_sens ≈ center_magnitude .* ComplexF32[im, 1, -im, -1]
+    center_sens = vec(get_sens(birdcage, zeros(1), zeros(1), zeros(1)))
+    center_magnitude =
+        2 * birdcage.L / (birdcage.radius * sqrt(birdcage.radius^2 + birdcage.L^2))
+    @test center_sens ≈ center_magnitude .* [im, 1, -im, -1]
 
-    coords = Float32[-1, 0, 1]
+    # Linear complex sensitivity maps must be reproduced by interpolation and
+    # vanish outside their sampled support.
+    coords = [-1.0, 0.0, 1.0]
     coil_sens = [
-        ComplexF32(x + 2y + 3z + coil, x - y) for
+        complex(x + 2y + 3z + coil, x - y) for
         x in coords, y in coords, z in coords, coil in 1:1
     ]
     receiver = ArbitraryCoilSens(coords, coords, coords, coil_sens)
-    query = (Float32[0.25], Float32[-0.5], Float32[0.75])
-    expected = ComplexF32(
+    query = ([0.25], [-0.5], [0.75])
+    expected = complex(
         query[1][1] + 2 * query[2][1] + 3 * query[3][1] + 1,
         query[1][1] - query[2][1],
     )
     @test get_n_coils(receiver) == 1
     @test only(get_sens(receiver, query...)) ≈ expected
-    @test iszero(only(get_sens(receiver, Float32[2], Float32[0], Float32[0])))
+    @test iszero(only(get_sens(receiver, [2.0], [0.0], [0.0])))
+
+    # Singleton spatial axes represent lower-dimensional maps and still enforce
+    # zero sensitivity away from their plane or point.
+    receiver_2d = ArbitraryCoilSens(coords, coords, [0.0], coil_sens[:, :, 2:2, :])
+    @test only(get_sens(receiver_2d, query[1], query[2], [0.0])) ≈
+        complex(query[1][1] + 2 * query[2][1] + 1, query[1][1] - query[2][1])
+    @test iszero(only(get_sens(receiver_2d, query[1], query[2], [1.0])))
+
+    point_receiver = ArbitraryCoilSens(
+        [1.0], [2.0], [3.0], reshape([1 + 2im], 1, 1, 1, 1),
+    )
+    @test only(get_sens(point_receiver, [1.0], [2.0], [3.0])) == 1 + 2im
+    @test iszero(only(get_sens(point_receiver, [1.0], [2.0], [0.0])))
 end
 
 @testitem "TrapezoidalIntegration" tags=[:base] begin

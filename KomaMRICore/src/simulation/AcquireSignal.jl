@@ -1,35 +1,3 @@
-# Uniform Bloch Simple run_spin_precession not sample based
-function acquire_signal!(sig, _, ::UniformCoilSens, Mxy::AbstractMatrix, ::NoMotion, _, _)
-    sig .= @views transpose(sum(Mxy; dims=1))
-    return nothing
-end
-
-function acquire_signal!(
-    sig, _, ::UniformCoilSens, Mxy::AbstractMatrix,
-    ::Union{Motion,MotionList}, _, _,
-)
-    sig .= @views transpose(sum(Mxy; dims=1))
-    return nothing
-end
-
-# Uniform other sim methods
-function acquire_signal!(
-    sig, _phantom, ::UniformCoilSens, Mxy::AbstractVector,
-    ::NoMotion, _coords, _sens=nothing,
-)
-    sig[1] = sum(Mxy)
-    return nothing
-end
-
-function acquire_signal!(
-    sig, _phantom, ::UniformCoilSens, Mxy::AbstractVector,
-    ::Union{Motion,MotionList}, _coords, _sens=nothing,
-)
-    sig[1] = sum(Mxy)
-    return nothing
-end
-
-# Nonuniform Bloch Simple run_spin_precession not sample based, without motion
 function combine_coil_signal!(sig, Mxy::AbstractMatrix, sens, ::KA.CPU)
     sig .= transpose(Mxy) * sens
     return nothing
@@ -55,42 +23,61 @@ function combine_coil_signal!(sig, Mxy::AbstractMatrix, sens, backend::KA.GPU)
 end
 
 combine_coil_signal!(sig, Mxy, sens) =
-    combine_coil_signal!(sig, Mxy, sens, KA.get_backend(Mxy))
+    combine_coil_signal!(sig, Mxy, sens, KA.get_backend(sig))
 
-function acquire_signal!(sig, p, receiver::AbstractRFReceiveSystem, Mxy::AbstractMatrix, ::NoMotion, _, _)
-    sens = receiver_sensitivities(receiver, p.x, p.y, p.z)
-    combine_coil_signal!(sig, Mxy, sens)
+KomaMRIBase.get_sens(receiver, x, y, z, ::KA.Backend) =
+    get_sens(receiver, x, y, z)
+
+struct CoilSensitivities{V,I}
+    values::V
+    interpolators::I
+end
+
+prealloc_sensitivities(receiver::UniformCoilSens, _) = receiver
+prealloc_sensitivities(receiver::AbstractRFReceiveSystem, obj) =
+    CoilSensitivities(get_sens(receiver, obj.x, obj.y, obj.z), nothing)
+prealloc_sensitivities(receiver::ArbitraryCoilSens, obj) = CoilSensitivities(
+    get_sens(receiver, obj.x, obj.y, obj.z),
+    KomaMRIBase.coil_interpolators(receiver),
+)
+
+update_sensitivities!(::UniformCoilSens, _, _, _) = nothing
+update_sensitivities!(::CoilSensitivities, _, _, ::NoMotion) = nothing
+function update_sensitivities!(
+    sensitivities::CoilSensitivities, receiver::AbstractRFReceiveSystem,
+    (x, y, z), ::Union{Motion,MotionList},
+)
+    KomaMRIBase.get_sens!(sensitivities.values, receiver, x, y, z)
+    return nothing
+end
+function update_sensitivities!(
+    sensitivities::CoilSensitivities, receiver::ArbitraryCoilSens,
+    (x, y, z), ::Union{Motion,MotionList},
+)
+    KomaMRIBase.get_sens!(
+        sensitivities.values, receiver, x, y, z, sensitivities.interpolators,
+    )
     return nothing
 end
 
-# Nonuniform Bloch Simple run_spin_precession not sample based, with motion
-function acquire_signal!(
-    sig, p, receiver::AbstractRFReceiveSystem, Mxy::AbstractMatrix,
-    ::Union{Motion,MotionList}, (x, y, z), adc,
-)
-    for (sample, time_index) in enumerate(adc .+ 1)
-        coords = (@view(x[:, time_index]), @view(y[:, time_index]), @view(z[:, time_index]))
-        acquire_signal!(
-            @view(sig[sample, :]), p, receiver, Mxy[:, sample],
-            p.motion, coords,
-        )
-    end
+function acquire_signal!(sig, Mxy::AbstractVector, ::UniformCoilSens, _)
+    sig .= sum(Mxy)
     return nothing
 end
 
-# Nonuniform other sim methods without motion
-function acquire_signal!(
-    sig, p, receiver::AbstractRFReceiveSystem, Mxy::AbstractVector,
-    ::NoMotion, _coords, sens=receiver_sensitivities(receiver, p.x, p.y, p.z),
-)
-    combine_coil_signal!(sig, Mxy, sens)
+function acquire_signal!(sig, Mxy::AbstractMatrix, ::UniformCoilSens, _)
+    sig .= vec(sum(Mxy; dims=1))
     return nothing
 end
 
-function acquire_signal!(
-    sig, _phantom, receiver::AbstractRFReceiveSystem, Mxy::AbstractVector,
-    ::Union{Motion,MotionList}, coords, _sens=nothing,
-)
-    combine_coil_signal!(sig, Mxy, receiver_sensitivities(receiver, coords...))
+function acquire_signal!(sig, Mxy, sensitivities::CoilSensitivities, _)
+    combine_coil_signal!(sig, Mxy, sensitivities.values)
+    return nothing
+end
+
+function acquire_signal!(sig, Mxy, receiver, (x, y, z))
+    combine_coil_signal!(
+        sig, Mxy, get_sens(receiver, x, y, z, KA.get_backend(sig)),
+    )
     return nothing
 end

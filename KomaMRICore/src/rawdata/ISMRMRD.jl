@@ -42,19 +42,6 @@ const ISMRMRD_ACQ_USER5                               = 1b64 << ( 61 - 1 )
 const ISMRMRD_ACQ_USER6                               = 1b64 << ( 62 - 1 )
 const ISMRMRD_ACQ_USER7                               = 1b64 << ( 63 - 1 )
 const ISMRMRD_ACQ_USER8                               = 1b64 << ( 64 - 1 )
-const ISMRMRD_CHANNEL_MASK_WORDS = 16
-const ISMRMRD_CHANNELS_PER_MASK_WORD = 64
-const ISMRMRD_MAX_CHANNELS = ISMRMRD_CHANNEL_MASK_WORDS * ISMRMRD_CHANNELS_PER_MASK_WORD
-
-function active_channel_mask(ncoils)
-    1 <= ncoils <= ISMRMRD_MAX_CHANNELS ||
-        throw(ArgumentError("signal must contain between 1 and $ISMRMRD_MAX_CHANNELS channels"))
-    return ntuple(
-        i -> typemax(UInt64) >> max(0, ISMRMRD_CHANNELS_PER_MASK_WORD * i - ncoils),
-        ISMRMRD_CHANNEL_MASK_WORDS,
-    )
-end
-
 """
     raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params)
 
@@ -93,7 +80,7 @@ function signal_to_raw_data(
     phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
 )
     ncoils = size(signal, 2)
-    channel_mask = active_channel_mask(ncoils)
+    channel_mask = ntuple(i -> typemax(UInt64) >> max(0, 64i - ncoils), 16)
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information
     mink = minimum(ktraj, dims=1)

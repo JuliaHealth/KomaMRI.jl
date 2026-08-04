@@ -6,9 +6,14 @@ import Adapt
 
 KomaMRICore.name(::ROCBackend) = "AMDGPU"
 KomaMRICore.isfunctional(::ROCBackend) = AMDGPU.functional()
+KomaMRICore.supports_warp_reduction(::ROCBackend) = true
 KomaMRICore.set_device!(::ROCBackend, dev_idx::Integer) = AMDGPU.device_id!(dev_idx)
 KomaMRICore.set_device!(::ROCBackend, dev::AMDGPU.HIPDevice) = AMDGPU.device!(dev)
 KomaMRICore.device_name(::ROCBackend) = AMDGPU.HIP.name(AMDGPU.device())
+
+@inline function KomaMRICore.shfl_down(val, offset)
+    AMDGPU.Device.shfl_down(val, Int32(offset), UInt32(32))
+end
 
 function KomaMRICore._print_devices(::ROCBackend)
     devices = [

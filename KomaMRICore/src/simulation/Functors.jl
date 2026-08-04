@@ -1,4 +1,4 @@
-import Adapt: adapt, adapt_storage
+import Adapt: adapt, adapt_storage, adapt_structure, @adapt_structure
 import Functors: @functor, functor, fmap, isleaf
 
 #Aux. funcitons to check if the variable we want to move to the GPU is numeric
@@ -73,7 +73,10 @@ cpu(x) = fmap(x -> adapt(KA.CPU(), x), x, exclude=_isleaf)
 
 #Precision
 paramtype(T::Type{<:Real}, m) = fmap(x -> adapt(T, x), m)
+adapt_structure(::Type{T}, r::Base.StepRangeLen{<:Real}) where {T<:Real} =
+    collect(T, r)
 adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
+adapt_storage(::Type{T}, xs::Complex) where {T<:Real} = convert(Complex{T}, xs)
 adapt_storage(::Type{T}, xs::AbstractArray{T}) where {T<:Real} = xs
 adapt_storage(::Type{T}, xs::AbstractArray{Complex{T}}) where {T<:Real} = xs
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
@@ -120,6 +123,8 @@ adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.mot
 @functor Motion
 @functor Translate
 @functor Scanner
+@functor BirdcageCoilSens (radius, L)
+@functor ArbitraryCoilSens
 @functor Rotate
 @functor HeartBeat
 @functor Path

@@ -101,7 +101,7 @@ function run_spin_precession_parallel!(
     seq,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
-    sys::Scanner,
+    sys,
     sim_method::SimulationMethod,
     groupsize::Integer,
     backend::KA.Backend,
@@ -124,7 +124,7 @@ function run_spin_excitation_parallel!(
     seq,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
-    sys::Scanner,
+    sys,
     sim_method::SimulationMethod,
     groupsize::Integer,
     backend::KA.Backend,
@@ -172,7 +172,7 @@ function run_sim_time_iter!(
     seqd,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
-    sys::Scanner,
+    sys,
     sim_method::SimulationMethod,
     backend::KA.Backend;
     Nblocks=1,
@@ -181,19 +181,21 @@ function run_sim_time_iter!(
     excitation_groupsize=DEFAULT_EXCITATION_GROUPSIZE,
     parts=[1:length(seqd)],
     excitation_bool=ones(Bool, size(parts)),
+    max_adc_samples,
     sim_params=Dict{String,Any}(),
     callbacks=(),
 ) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
-    prealloc_result = prealloc(
-        sim_method, backend, obj, Xt, maximum(length.(parts)) + 1,
-        precession_groupsize, sys,
-    )
-
     (precession_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
     (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
+    prealloc_groupsize = min(precession_groupsize, excitation_groupsize)
+    max_block_length = maximum(length.(parts))
+    prealloc_result = prealloc(
+        sim_method, backend, obj, Xt, max_block_length, max_adc_samples,
+        prealloc_groupsize, sys,
+    )
 
     for (block, p) in enumerate(parts)
         seqd_block = @view seqd[p]
@@ -361,6 +363,10 @@ function simulate(
         max_rf_block_length=sim_params["max_rf_block_length"],
         eval_intervals_per_step=eval_intervals_per_step(sim_method),
     ) # Generating simulation blocks
+    max_adc_samples = maximum(
+        (count(@view seqd.ADC[(first(p) + 1):last(p)]) for p in parts);
+        init=0,
+    )
     Nblocks = length(parts)
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
@@ -368,7 +374,7 @@ function simulate(
     Xt, obj = initialize_spins_state(obj, sim_method)
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
-    backend = get_backend(sim_params["gpu"])
+    backend = get_backend(sim_params["gpu"]; verbose)
     sim_params["gpu"] &= backend isa KA.GPU
     if sim_params["gpu"]
         sim_params["Nthreads"] = 1
@@ -417,6 +423,7 @@ function simulate(
         excitation_groupsize=sim_params["gpu_groupsize_excitation"],
         parts,
         excitation_bool,
+        max_adc_samples,
         sim_params,
         callbacks=all_callbacks,
     )
