@@ -81,6 +81,7 @@ addblock!
 @addblock
 dur
 get_block_start_times
+set_rf_amplitude
 get_flip_angles
 check_timing
 check_hw_limits
