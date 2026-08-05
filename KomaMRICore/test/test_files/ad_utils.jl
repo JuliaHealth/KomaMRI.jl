@@ -136,12 +136,14 @@ function bloch_node_ad_parameters(sim_method)
 end
 
 function bloch_node_ad_forward(x, params)
-    seq_aux = copy(params.seq)
     rf_samples = KomaMRIBase.linear_interpolate_samples(
         (t=params.node_times, A=x[1:3]),
         params.rf_times,
     )
-    seq_aux.RF[1].A .= complex.(rf_samples) .* params.rf_scale
+    seq_aux = KomaMRIBase.set_rf_amplitude(
+        params.seq,
+        complex.(rf_samples) .* params.rf_scale,
+    )
     obj_aux = copy(params.obj)
     obj_aux.ρ .= x[4:6]
     return simulate(
@@ -162,27 +164,7 @@ bloch_node_ad_fd_gradient(params, x=BLOCH_NODE_AD_X0) =
     grad(central_fdm(5, 1), x -> bloch_node_ad_loss(x, params), x)[1]
 
 function bloch_node_ad_reactant_parameters(params)
-    rf = params.seq.RF[1]
-    rf_ra = RF(
-        Reactant.to_rarray(rf.A),
-        rf.T,
-        rf.Δf,
-        rf.delay,
-        rf.center,
-        rf.ϕ,
-        rf.use,
-        Val(:preserve),
-    )
-    seq_ra = Sequence(
-        params.seq.GR,
-        reshape([rf_ra], 1, 1),
-        params.seq.ADC,
-        params.seq.DUR,
-        params.seq.EXT,
-        params.seq.DEF,
-    )
     return merge(params, (;
-        seq=seq_ra,
         obj=Reactant.to_rarray(params.obj),
         target_profile=Reactant.to_rarray(params.target_profile),
     ))
