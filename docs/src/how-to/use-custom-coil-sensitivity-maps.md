@@ -189,9 +189,15 @@ already match the phantom orientation and therefore are not rotated.
 
 ## Cardiac MOLLI
 
-Sensitivity maps from the fully sampled `openMOLLIorig` scan are registered to
-the accelerated `R=2` product MOLLI data. Direct reconstruction retains the
-two-fold aliasing; `multiCoil` unfolds the anatomy.
+The fully sampled central calibration region from `SA_test` provides 30
+RSS-normalized coil sensitivity estimates. Use the slider to select a channel.
+
+```@raw html
+<object type="text/html" data="../assets/use-custom-coil-sensitivity-maps/sa_test_coil_sensitivities.html" style="width:100%;height:420px;"></object>
+```
+
+The `SA_test` maps are used directly for the accelerated `R=2` MOLLI scan.
+Direct reconstruction retains the two-fold aliasing; `multiCoil` unfolds it.
 
 ```@raw html
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:1rem;">
