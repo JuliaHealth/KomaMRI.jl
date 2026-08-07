@@ -14,7 +14,7 @@ function build_block_pulse(flip_angle; sys=Scanner(), kwargs...)
     rf = make_block_pulse(flip_angle; sys, kwargs...)
     seq = Sequence(sys)
     addblock!(seq, rf)
-    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
     return seq
 end
 
@@ -58,9 +58,9 @@ function make_block_pulse(flip_angle; duration=nothing, bandwidth=nothing,
         duration = time_bw_product > 0 ? time_bw_product / bandwidth : 1 / (4bandwidth)
     end
     duration > 0 || error("RF pulse duration must be positive.")
-    rf_duration = round_to_raster(duration, sys.RF_Δt)
+    rf_duration = round_to_raster(duration, sys.limits.RF_Δt)
     rf_duration > 0 || error("RF pulse duration is shorter than the RF raster.")
     amplitude = flip_angle / (2π * γ * duration)
-    return RF(amplitude, rf_duration, freq_offset, max(delay, sys.RF_dead_time);
+    return RF(amplitude, rf_duration, freq_offset, max(delay, sys.limits.RF_dead_time);
         ϕ=phase_offset, use)
 end

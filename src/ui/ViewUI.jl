@@ -47,17 +47,17 @@ end
 function show_scanner!(w, sys)
     display_loading!(w, "Displaying scanner parameters ...")
     values = [
-        "B0" => sys.B0,
-        "B1" => sys.B1,
-        "Gmax" => sys.Gmax,
-        "Smax" => sys.Smax,
-        "ADC_dt" => sys.ADC_Δt,
-        "DUR_dt" => sys.DUR_Δt,
-        "GR_dt" => sys.GR_Δt,
-        "RF_dt" => sys.RF_Δt,
-        "RF_ring_down_time" => sys.RF_ring_down_time,
-        "RF_dead_time" => sys.RF_dead_time,
-        "ADC_dead_time" => sys.ADC_dead_time,
+        "B0" => sys.limits.B0,
+        "B1" => sys.limits.B1,
+        "Gmax" => sys.limits.Gmax,
+        "Smax" => sys.limits.Smax,
+        "ADC_dt" => sys.limits.ADC_Δt,
+        "DUR_dt" => sys.limits.DUR_Δt,
+        "GR_dt" => sys.limits.GR_Δt,
+        "RF_dt" => sys.limits.RF_Δt,
+        "RF_ring_down_time" => sys.limits.RF_ring_down_time,
+        "RF_dead_time" => sys.limits.RF_dead_time,
+        "ADC_dead_time" => sys.limits.ADC_dead_time,
     ]
     return set_content!(w, dictionary_page(values, "Scanner parameters"), "scanneparams")
 end
