@@ -270,8 +270,12 @@ end
 function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf, eval_intervals_per_step=1)
     ranges, ranges_bool = UnitRange{Int}[], Bool[]; isempty(seqd.Δt) && return ranges, ranges_bool
 
-    starts = [firstindex(seqd.Δt); findall(seqd.excitation_bool[2:end] .!= seqd.excitation_bool[1:(end - 1)]) .+ 1]
-    stops = [starts[2:end] .- 1; lastindex(seqd.Δt)]
+    starts = Int[firstindex(seqd.Δt)]
+    for i in (firstindex(seqd.excitation_bool) + 1):lastindex(seqd.excitation_bool)
+        seqd.excitation_bool[i] == seqd.excitation_bool[i - 1] || push!(starts, i)
+    end
+    stops = [starts[i] - 1 for i in 2:length(starts)]
+    push!(stops, lastindex(seqd.Δt))
     for (start, stop) in zip(starts, stops)
         is_excitation = seqd.excitation_bool[start]
         max_length = is_excitation ? max_rf_block_length : max_block_length

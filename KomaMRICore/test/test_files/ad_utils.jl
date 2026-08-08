@@ -77,3 +77,65 @@ end
 
 blochsimple_parallel_ad_fd_gradient(rf=BLOCHSIMPLE_PARALLEL_AD_RF0) =
     grad(central_fdm(5, 1), blochsimple_parallel_ad_loss, rf)[1]
+
+const BLOCHSIMPLE_DISCRETIZE_AD_RF0 = [1.3, 1.7, 1.1]
+
+function blochsimple_discretize_ad_sequence(rf_scale)
+    rf_duration = 0.6e-3
+    total_duration = 1.4e-3
+    rf = RF(
+        complex.(rf_scale) .* 1e-6,
+        rf_duration,
+        0.0,
+        0.0,
+        rf_duration / 2,
+        0.0,
+        Excitation(),
+        Val(:preserve),
+    )
+    gradient = Grad(0.0, 0.0)
+    adc = ADC(3, total_duration, 0.0)
+    return Sequence(
+        reshape([gradient, gradient, gradient], 3, 1),
+        reshape([rf], 1, 1),
+        [adc],
+        [total_duration],
+        [Extension[]],
+        Dict{String,Any}(),
+    )
+end
+
+function blochsimple_discretize_ad_loss(rf_scale)
+    seqd = discretize(
+        blochsimple_discretize_ad_sequence(rf_scale);
+        sampling_rule=MaxStepSizeRule(1e-3, 0.2e-3),
+    )
+    parts, excitation_bool = KomaMRICore.get_sim_ranges(seqd)
+    zeros2 = zero.(rf_scale[1:2])
+    density = blochsimple_parallel_ad_vector(rf_scale, (1.0, 0.75))
+    obj = Phantom(
+        x=copy(zeros2),
+        ρ=density,
+        T1=one.(density),
+        T2=0.1 .* one.(density),
+        Δw=copy(zeros2),
+    )
+    magnetization = KomaMRICore.Mag(complex.(zeros2), copy(density))
+    signal = similar(rf_scale, ComplexF64, sum(seqd.ADC), 1, 1)
+    KomaMRICore.run_sim_time_iter!(
+        obj,
+        seqd,
+        signal,
+        magnetization,
+        KomaMRICore.BlochSimple(),
+        KomaMRICore.KA.CPU();
+        parts,
+        excitation_bool,
+        Nblocks=length(parts),
+        Nthreads=1,
+    )
+    return sum(abs2, signal)
+end
+
+blochsimple_discretize_ad_fd_gradient(rf_scale=BLOCHSIMPLE_DISCRETIZE_AD_RF0) =
+    grad(central_fdm(5, 1), blochsimple_discretize_ad_loss, rf_scale)[1]
