@@ -15,6 +15,9 @@ struct BlochCPUPrealloc{
     ΔBz::ΔBzType
 end
 
+@inline _scalar_getindex(x, i) = x[i]
+@inline _scalar_setindex!(x, value, i) = setindex!(x, value, i)
+
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
     @views BlochCPUPrealloc(
         p.M[i],
@@ -94,7 +97,7 @@ function run_spin_precession!(
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
             #Acquired signal
-            sig[sample] = sum(Mxy) 
+            _scalar_setindex!(sig, sum(Mxy), sample)
             sample += 1
         end
         #Update simulation state
@@ -146,13 +149,13 @@ function run_spin_excitation!(
         #Motion
         x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i])
         #Effective field
-        B1 = seq.B1[i]
+        B1 = _scalar_getindex(seq.B1, i)
         @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         @. B = sqrt(abs2(B1) + Bz^2)
         #Spinor Rotation
         @. φ_half = T(-π * γ) * (B * seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         @. α = cos(φ_half)
-        @. B = sin(φ_half) / (B + (B == 0) * eps(T))
+        @. B = (sin(φ_half) + (B == 0) * T(-π * γ) * seq.Δt[i]) / (B + (B == 0))
         @. α -= complex(zero(Bz), Bz * B)
         @. β = complex(imag(B1) * B, -real(B1) * B)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
@@ -163,7 +166,7 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            sig[sample] = sum(M.xy) 
+            _scalar_setindex!(sig, sum(M.xy), sample)
             sample += 1
         end
     end
