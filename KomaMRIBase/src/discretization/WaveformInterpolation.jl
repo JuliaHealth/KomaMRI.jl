@@ -6,8 +6,9 @@
 # sampling grid.
 
 function linear_interpolate_samples(samples, t; default=zero(eltype(samples.A)), interpolate=true)
-    out = Vector{typeof(default)}(undef, length(t))
-    isempty(samples.t) && return fill!(out, default)
+    out = similar(samples.A, typeof(default), length(t))
+    fill!(out, default)
+    (isempty(samples.t) || isempty(samples.A)) && return out
     last_sample = min(lastindex(samples.t), lastindex(samples.A))
     sample = firstindex(samples.t)
     i = firstindex(t)
@@ -27,16 +28,17 @@ function linear_interpolate_samples(samples, t; default=zero(eltype(samples.A)),
             end
             for k in i:j
                 l = interpolate ? min(sample + k - i, sample_end) : sample_end - (j - k)
-                out[k] = l >= sample ? samples.A[l] : default
+                l >= sample && _scalar_setindex!(out, _scalar_getindex(samples.A, l), k)
             end
             sample = sample_end + 1
-        elseif !interpolate || ti < first(samples.t) || sample > last_sample
-            out[i:j] .= default
-        else
+        elseif interpolate && ti >= first(samples.t) && sample <= last_sample
             lo_time, hi_time = samples.t[sample - 1], samples.t[sample]
             w = (ti - lo_time) / (hi_time - lo_time)
-            value = samples.A[sample - 1] + (samples.A[sample] - samples.A[sample - 1]) * w
-            out[i:j] .= value
+            lo = _scalar_getindex(samples.A, sample - 1)
+            value = lo + (_scalar_getindex(samples.A, sample) - lo) * w
+            for k in i:j
+                _scalar_setindex!(out, value, k)
+            end
         end
         i = j + 1
     end
