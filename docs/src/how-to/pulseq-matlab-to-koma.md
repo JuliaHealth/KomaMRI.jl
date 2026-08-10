@@ -153,8 +153,8 @@ adc.dwell                             % ADC dwell
 == Koma
 
 ```julia
-ceil_to_raster(t, sys.limits.GR_Δt)   # Round up to raster
-round_to_raster(t, sys.limits.GR_Δt)  # Round to raster
+ceil_to_raster(t, sys.GR_Δt)          # Round up to raster
+round_to_raster(t, sys.GR_Δt)         # Round to raster
 
 dur(rf, sys)                          # RF duration with sample-edge timing and ring-down
 dur(adc, sys)                         # ADC duration with dwell-edge timing and dead time
