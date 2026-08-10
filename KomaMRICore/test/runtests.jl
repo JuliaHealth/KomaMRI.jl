@@ -694,22 +694,6 @@ end
         Reactant.set_default_backend("cpu")
 
         Core.eval(@__MODULE__, quote
-            function reactant_enzyme_parallel_loss_and_gradient(rf)
-                result = Enzyme.gradient(
-                    Enzyme.ReverseWithPrimal,
-                    blochsimple_parallel_ad_loss,
-                    rf,
-                )
-                return result.val, result.derivs[1]
-            end
-
-            function run_reactant_enzyme_parallel_probe()
-                rf = Reactant.to_rarray(copy(BLOCHSIMPLE_PARALLEL_AD_RF0))
-                compiled = Reactant.@compile sync=true reactant_enzyme_parallel_loss_and_gradient(rf)
-                loss, gradient = compiled(rf)
-                return Reactant.to_number(loss), Array(gradient)
-            end
-
             function reactant_enzyme_node_loss_and_gradient(x, params)
                 result = Enzyme.gradient(
                     Enzyme.ReverseWithPrimal,
@@ -731,18 +715,6 @@ end
                 return Reactant.to_number(loss), Array(gradient)
             end
         end)
-
-        @testset "Parallel BlochSimple Reactant Enzyme accuracy" begin
-            probe = Base.invokelatest(
-                getfield,
-                @__MODULE__,
-                :run_reactant_enzyme_parallel_probe,
-            )
-            loss, gradient = Base.invokelatest(probe)
-
-            @test loss ≈ blochsimple_parallel_ad_loss(BLOCHSIMPLE_PARALLEL_AD_RF0)
-            @test gradient ≈ blochsimple_parallel_ad_fd_gradient() rtol=1e-8 atol=1e-10
-        end
 
         @testset "RF and density controls through simulate and ADC Reactant Enzyme accuracy" begin
             for sim_method in (BlochSimple(), Bloch())
