@@ -112,15 +112,14 @@ function run_spin_precession_parallel!(
         run_spin_precession!(
             obj, seq, split_sig_per_thread(sig, 1, p, sim_method), Xt, sim_method, groupsize, backend, prealloc
         )
-        return nothing
-    end
+    else
+        parts = kfoldperm(length(obj), Nthreads)
 
-    parts = kfoldperm(length(obj), Nthreads)
-
-    ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_precession!(
-            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
-        )
+        ThreadsX.foreach(enumerate(parts)) do (i, p)
+            run_spin_precession!(
+                @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            )
+        end
     end
 
     return nothing
@@ -143,16 +142,15 @@ function run_spin_excitation_parallel!(
             obj, seq, split_sig_per_thread(sig, 1, p, sim_method), Xt,
             sim_method, groupsize, backend, prealloc
         )
-        return nothing
-    end
+    else
+        parts = kfoldperm(length(obj), Nthreads)
 
-    parts = kfoldperm(length(obj), Nthreads)
-
-    ThreadsX.foreach(enumerate(parts)) do (i, p)
-        run_spin_excitation!(
-            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), 
-            sim_method, groupsize, backend, @view(prealloc[p])
-        )
+        ThreadsX.foreach(enumerate(parts)) do (i, p)
+            run_spin_excitation!(
+                @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]),
+                sim_method, groupsize, backend, @view(prealloc[p])
+            )
+        end
     end
 
     return nothing

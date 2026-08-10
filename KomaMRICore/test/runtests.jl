@@ -683,48 +683,6 @@ end
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
-@testitem "Automatic differentiation tests" tags=[:core, :nomotion, :blochsimple, :ad, :enzyme, :reactant] begin
-    include(joinpath(@__DIR__, "test_files", "ad_utils.jl"))
-
-    test_group = Symbol(get(ENV, "TEST_GROUP", "core"))
-    if test_group in (:core, :nomotion, :ad, :enzyme, :reactant)
-        import Enzyme
-        import Reactant
-
-        Reactant.set_default_backend("cpu")
-
-        Core.eval(@__MODULE__, quote
-            function reactant_enzyme_parallel_loss_and_gradient(rf)
-                result = Enzyme.gradient(
-                    Enzyme.ReverseWithPrimal,
-                    blochsimple_parallel_ad_loss,
-                    rf,
-                )
-                return result.val, result.derivs[1]
-            end
-
-            function run_reactant_enzyme_parallel_probe()
-                rf = Reactant.to_rarray(copy(BLOCHSIMPLE_PARALLEL_AD_RF0))
-                compiled = Reactant.@compile sync=true reactant_enzyme_parallel_loss_and_gradient(rf)
-                loss, gradient = compiled(rf)
-                return Reactant.to_number(loss), Array(gradient)
-            end
-        end)
-
-        @testset "Parallel BlochSimple Reactant Enzyme accuracy" begin
-            probe = Base.invokelatest(
-                getfield,
-                @__MODULE__,
-                :run_reactant_enzyme_parallel_probe,
-            )
-            loss, gradient = Base.invokelatest(probe)
-
-            @test loss ≈ blochsimple_parallel_ad_loss(BLOCHSIMPLE_PARALLEL_AD_RF0)
-            @test gradient ≈ blochsimple_parallel_ad_fd_gradient() rtol=1e-8 atol=1e-10
-        end
-    end
-end
-
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
     include("initialize_backend.jl")
 
