@@ -26,7 +26,11 @@ end
         params = bloch_node_ad_parameters(sim_method)
         params_ra = bloch_node_ad_reactant_parameters(params)
         x = Reactant.to_rarray(copy(BLOCH_NODE_AD_X0))
-        compiled = Reactant.@compile sync=true reactant_cuda_node_loss_and_gradient(x, params_ra)
+        compiled = Reactant.@allowscalar Reactant.compile(
+            reactant_cuda_node_loss_and_gradient,
+            (x, params_ra);
+            sync=true,
+        )
         loss, gradient = compiled(x, params_ra)
 
         @test Reactant.to_number(loss) ≈ bloch_node_ad_loss(BLOCH_NODE_AD_X0, params)

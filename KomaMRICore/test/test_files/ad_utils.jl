@@ -41,7 +41,8 @@ function bloch_node_ad_parameters(sim_method)
         "Nthreads" => 1,
         "return_type" => "mat",
         "precision" => "f64",
-        "sampling_rule" => MaxStepSizeRule(50e-6, 25e-6),
+        "Δt" => 50e-6,
+        "Δt_rf" => 25e-6,
     )
     params = (;
         seq,
