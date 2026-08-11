@@ -17,18 +17,6 @@ is_GR_on(x::Grad) = is_on(x)
 is_RF_on(x::RF) = is_on(x)
 is_ADC_on(x::ADC) = is_on(x)
 
-@inline _scalar_getindex(x, i) = x[i]
-@inline _scalar_setindex!(x, value, i) = setindex!(x, value, i)
-
-function _zero_pad_samples(A)
-    out = similar(A, length(A) + 2)
-    fill!(out, zero(eltype(A)))
-    for i in eachindex(A)
-        _scalar_setindex!(out, _scalar_getindex(A, i), i + 1)
-    end
-    return out
-end
-
 # -- 1.2. Event amplitudes and RF frequency offsets --------------------------
 """
     A = ampls(g::Grad)
@@ -62,7 +50,10 @@ function ampls(rf::RF; freq_in_phase=false)
     A = cis(rf.ϕ) .* rf.A
     is_on(rf) || return similar(A, 0)
     length(A) == 1 && (A = A[[1, 1]])
-    A = _zero_pad_samples(A)
+    out = similar(A, length(A) + 2)
+    fill!(out, zero(eltype(A)))
+    out[2:(end - 1)] .= A
+    A = out
     if freq_in_phase
         t  = times(rf)
         Δf = (t=times(rf, :Δf)[2:(end - 1)], A=freqs(rf)[2:(end - 1)])

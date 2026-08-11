@@ -28,16 +28,16 @@ function linear_interpolate_samples(samples, t; default=zero(eltype(samples.A)),
             end
             for k in i:j
                 l = interpolate ? min(sample + k - i, sample_end) : sample_end - (j - k)
-                l >= sample && _scalar_setindex!(out, _scalar_getindex(samples.A, l), k)
+                l >= sample && (out[k] = samples.A[l])
             end
             sample = sample_end + 1
         elseif interpolate && ti >= first(samples.t) && sample <= last_sample
             lo_time, hi_time = samples.t[sample - 1], samples.t[sample]
             w = (ti - lo_time) / (hi_time - lo_time)
-            lo = _scalar_getindex(samples.A, sample - 1)
-            value = lo + (_scalar_getindex(samples.A, sample) - lo) * w
+            lo = samples.A[sample - 1]
+            value = lo + (samples.A[sample] - lo) * w
             for k in i:j
-                _scalar_setindex!(out, value, k)
+                out[k] = value
             end
         end
         i = j + 1
