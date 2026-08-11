@@ -25,9 +25,6 @@ view_sens(sensitivities::CoilSensitivities, i) = CoilSensitivities(
     sensitivities.interpolators,
 )
 
-@inline _scalar_getindex(x, i) = x[i]
-@inline _scalar_setindex!(x, value, i) = setindex!(x, value, i)
-
 Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
     @views BlochCPUPrealloc(
         p.M[i],
@@ -177,13 +174,13 @@ function run_spin_excitation!(
             prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i],
         )
         #Effective field
-        B1 = _scalar_getindex(seq.B1, i)
+        B1 = seq.B1[i]
         @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
         @. B = sqrt(abs2(B1) + Bz^2)
         #Spinor Rotation
         @. φ_half = T(-π * γ) * (B * seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         @. α = cos(φ_half)
-        @. B = (sin(φ_half) + (B == 0) * T(-π * γ) * seq.Δt[i]) / (B + (B == 0))
+        @. B = ifelse(B == 0, T(-π * γ) * seq.Δt[i], sin(φ_half) / B)
         @. α -= complex(zero(Bz), Bz * B)
         @. β = complex(imag(B1) * B, -real(B1) * B)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
