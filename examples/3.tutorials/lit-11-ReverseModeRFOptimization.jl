@@ -1,18 +1,31 @@
-# # Reverse-mode RF pulse optimization
-#
-# Optimize three RF control points through interpolation and a Bloch simulation
-# using Enzyme reverse mode compiled by Reactant.
+# # Designing a Slice-selective Excitation Profile
 
 using Enzyme
 using KomaMRI
 using Reactant
 
 Reactant.set_default_backend("cpu")
-Reactant.allowscalar(false)
+
+# A slice-selective gradient maps position to resonance frequency, so the RF waveform determines the transverse magnetization profile after excitation.
+# Here, ``x`` contains the value of three RF control points in microtesla.
+# These control points are interpolated to a finer RF timeline before simulation.
+#
+# If ``A(x)`` denotes the Bloch simulation and ``b`` is the desired profile, we
+# design the optimal pulse by minimizing the objective function:
+#
+# ```math
+# L(x) = \frac{1}{N}\left\|A(x)-b\right\|_2^2.
+# ```
+
+# ## Defining the slice-selection experiment
+#
+# The sequence contains a short RF pulse played with a constant slice-selection gradient.
 
 Trf = 0.6e-3
 seq = Sequence()
 @addblock seq += (RF(zeros(ComplexF64, 7), Trf), z=Grad(8e-3, Trf))
+
+# We place 9 spins along ``z`` to let us evaluate the excited slice profile.
 
 params = (;
     seq,
@@ -24,55 +37,72 @@ params = (;
         "Nthreads" => 1,
         "return_type" => "state",
         "precision" => "f64",
-        "sampling_rule" => MaxStepSizeRule(50e-6, 25e-6),
+        "Δt" => 50e-6,
+        "Δt_rf" => 25e-6,
     ),
     node_times=range(0.0, Trf; length=3),
     sample_times=range(0.0, Trf; length=7),
 )
 
-# The optimization variables are RF nodes in microtesla. They are interpolated
-# to the samples used by `simulate` inside the differentiated forward model.
-function rf_forward(nodes, p)
+# ## Defining the forward model and target
+#
+# `forward` interpolates the three controls onto the seven RF samples and then simulates the resulting pulse. It returns the final transverse magnetization at each location.
+
+function forward(x, p)
     samples = KomaMRIBase.linear_interpolate_samples(
-        (t=p.node_times, A=nodes),
+        (t=p.node_times, A=x),
         p.sample_times,
     )
     seq = KomaMRIBase.set_rf_amplitude(p.seq, 1e-6 .* complex.(samples))
     return simulate(p.obj, seq, p.sys; sim_params=p.sim_params, verbose=false).xy
 end
 
-target = rf_forward([0.0, 5.0, 0.0], params)
-params = merge(params, (; target))
+# In this example we're generating a target profile from a known three-node pulse. However, `b` could be any kind of desired or measured excitation profile.
 
-rf_loss(nodes, p) = sum(abs2, rf_forward(nodes, p) .- p.target) / length(p.target)
+b = forward([0.0, 5.0, 0.0], params)
+params = merge(params, (; b))
 
-function rf_loss_and_gradient(nodes, p)
+loss(x, p) = sum(abs2, forward(x, p) .- p.b) / length(p.b)
+
+# ## Differentiating the simulation
+#
+# Enzyme differentiates the loss function and returns the loss value and its gradient w.r.t the RF control points
+
+function loss_and_gradient(x, p)
     result = Enzyme.gradient(
         Enzyme.ReverseWithPrimal,
-        rf_loss,
-        nodes,
+        loss,
+        x,
         Enzyme.Const(p),
     )
     return result.val, result.derivs[1]
 end
 
-# Transfer only the arrays used by the compiled simulation.
-params_device = merge(params, (;
+# ## Optimizing the RF
+#
+# Reactant compiles the loss and its Enzyme reverse pass together so the same function can be reused at every optimization step.
+params_ra = merge(params, (;
     obj=Reactant.to_rarray(params.obj),
-    target=Reactant.to_rarray(params.target),
+    b=Reactant.to_rarray(params.b),
 ))
-nodes = Reactant.to_rarray([0.0, 3.5, 0.0])
-compiled_gradient = Reactant.@compile sync=true rf_loss_and_gradient(nodes, params_device)
+x = Reactant.to_rarray([0.0, 3.5, 0.0])
+compiled = Reactant.@allowscalar Reactant.compile(
+    loss_and_gradient,
+    (x, params_ra);
+    sync=true,
+)
 
-initial_loss = Reactant.to_number(first(compiled_gradient(nodes, params_device)))
+# In this example we take 12 gradient descent steps toward a pulse that achieves the target
+
+initial_loss = Reactant.to_number(first(compiled(x, params_ra)))
 for _ in 1:12
-    _, ∇loss = compiled_gradient(nodes, params_device)
-    global nodes = nodes .- 8.0 .* ∇loss
+    _, ∇loss = compiled(x, params_ra)
+    global x = x .- 8.0 .* ∇loss
 end
-final_loss = Reactant.to_number(first(compiled_gradient(nodes, params_device)))
+final_loss = Reactant.to_number(first(compiled(x, params_ra)))
 
 (;
     initial_loss=round(initial_loss; sigdigits=4),
     final_loss=round(final_loss; sigdigits=4),
-    optimized_nodes=round.(Array(nodes); digits=3),
+    optimized_nodes=round.(Array(x); digits=3),
 )

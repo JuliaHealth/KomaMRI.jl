@@ -1,23 +1,31 @@
-# # Reverse-mode signal matching
-#
-# The same Reactant and Enzyme path can optimize parameters that affect an
-# acquired ADC signal. In this example, reverse-mode AD recovers three spin
-# densities from a short complex FID.
+# # Estimating Spin Density from an FID
 
 using Enzyme
 using KomaMRI
 using Reactant
 
 Reactant.set_default_backend("cpu")
-Reactant.allowscalar(false)
 
-# A hard 90-degree pulse is followed by nine ADC samples. Distinct
-# off-resonance frequencies make each spin's contribution identifiable.
-rf_duration = 0.4e-3
-b1 = (π / 2) / (2π * γ * rf_duration)
+# After a hard ``90^\circ`` pulse, spins with different off-resonance frequencies contribute distinct phase evolutions to the measured free induction decay (FID). This makes their spin densities identifiable from the complex signal.
+#
+# Let ``A(\rho)`` be the simulated FID for spin densities ``\rho`` and let
+# ``b`` be the measured signal. We recover the densities by minimizing
+#
+# ```math
+# L(\rho) = \frac{1}{N}\left\|A(\rho)-b\right\|_2^2.
+# ```
+
+# ## Defining the FID experiment
+#
+# A hard ``90^\circ`` pulse creates transverse magnetization, and the following ADC samples its FID at nine time points.
+
+Trf = 0.4e-3
+B1 = (π / 2) / (2π * γ * Trf)
 seq = Sequence()
-@addblock seq += RF(b1, rf_duration)
+@addblock seq += RF(B1, Trf)
 @addblock seq += ADC(9, 4e-3)
+
+# The three spins have distinct off-resonance frequencies, so each density contributes a different complex oscillation to the measured signal.
 
 obj = Phantom(;
     x=zeros(3),
@@ -32,69 +40,68 @@ sim_params = Dict{String,Any}(
     "Nthreads" => 1,
     "return_type" => "mat",
     "precision" => "f64",
-    "sampling_rule" => MaxStepSizeRule(50e-6, 25e-6),
+    "Δt" => 50e-6,
+    "Δt_rf" => 25e-6,
 )
 params = (; seq, obj, sys=Scanner(), sim_params)
 
-function signal_forward(density, params)
-    obj_aux = copy(params.obj)
-    obj_aux.ρ .= density
-    return simulate(
-        obj_aux,
-        params.seq,
-        params.sys;
-        sim_params=params.sim_params,
-        verbose=false,
-    )
+# ## Defining the forward model and synthetic measurement
+#
+# `forward` replaces the three spin densities and simulates the complex FID.
+
+function forward(ρ, p)
+    obj = copy(p.obj)
+    obj.ρ .= ρ
+    return simulate(obj, p.seq, p.sys; sim_params=p.sim_params, verbose=false)
 end
 
-target_density = [0.3, 0.8, 0.5]
-target_signal = signal_forward(target_density, params)
-params = merge(params, (; target_signal))
+# In this case we're synthesize a measurement (`b`) and the inverse problem attempts to recover those values.
 
-function signal_loss(density, params)
-    signal = signal_forward(density, params)
-    return sum(abs2, signal .- params.target_signal) / length(signal)
-end
+b = forward([0.3, 0.8, 0.5], params)
+params = merge(params, (; b))
 
-function signal_loss_and_gradient(density, params)
+loss(ρ, p) = sum(abs2, forward(ρ, p) .- p.b) / length(p.b)
+
+# ## Differentiating the signal model
+#
+# Enzyme differentiates through `simulate` and returns the sensitivity of the signal mismatch to each spin density.
+
+function loss_and_gradient(ρ, p)
     result = Enzyme.gradient(
         Enzyme.ReverseWithPrimal,
-        signal_loss,
-        density,
-        Enzyme.Const(params),
+        loss,
+        ρ,
+        Enzyme.Const(p),
     )
     return result.val, result.derivs[1]
 end
 
-params_device = merge(params, (;
+# ## Recovering the spin densities
+#
+# Reactant compiles the forward simulation and Enzyme reverse pass as one reusable function. In this example, only the phantom and target signal need to be traced.
+
+params_ra = merge(params, (;
     obj=Reactant.to_rarray(params.obj),
-    target_signal=Reactant.to_rarray(params.target_signal),
+    b=Reactant.to_rarray(params.b),
 ))
-density = Reactant.to_rarray(fill(0.7, 3))
-compiled_signal_gradient = Reactant.@compile sync=true signal_loss_and_gradient(
-    density,
-    params_device,
+ρ = Reactant.to_rarray(fill(0.7, 3))
+compiled = Reactant.@allowscalar Reactant.compile(
+    loss_and_gradient,
+    (ρ, params_ra);
+    sync=true,
 )
 
-function optimize_signal(density, params, gradient_function; iterations=12, step_size=0.15)
-    initial_loss = Reactant.to_number(first(gradient_function(density, params)))
-    for _ in 1:iterations
-        _, gradient = gradient_function(density, params)
-        density = density .- step_size .* gradient
-    end
-    final_loss = Reactant.to_number(first(gradient_function(density, params)))
-    return density, initial_loss, final_loss
+# Twelve gradient-descent steps move the uniform initial guess toward the proton densities used to generate `b`.
+
+initial_loss = Reactant.to_number(first(compiled(ρ, params_ra)))
+for _ in 1:12
+    _, ∇loss = compiled(ρ, params_ra)
+    global ρ = ρ .- 0.15 .* ∇loss
 end
-
-density, initial_loss, final_loss = optimize_signal(
-    density,
-    params_device,
-    compiled_signal_gradient,
-)
+final_loss = Reactant.to_number(first(compiled(ρ, params_ra)))
 
 (;
     initial_loss=round(initial_loss; sigdigits=4),
     final_loss=round(final_loss; sigdigits=4),
-    recovered_density=round.(Array(density); digits=3),
+    recovered_density=round.(Array(ρ); digits=3),
 )
