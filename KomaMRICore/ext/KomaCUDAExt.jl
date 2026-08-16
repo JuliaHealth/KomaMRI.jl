@@ -32,6 +32,7 @@ using PrecompileTools: @setup_workload, @compile_workload
 import KomaMRIBase: PulseDesigner as PD
 
 @setup_workload begin
+    KomaMRICore.BACKEND[] = CUDABackend()
     @compile_workload begin
         using KomaMRIBase
         using KomaMRICore
@@ -74,6 +75,7 @@ import KomaMRIBase: PulseDesigner as PD
             end
         end
     end
+    KomaMRICore.BACKEND[] = nothing
 end
 
 end

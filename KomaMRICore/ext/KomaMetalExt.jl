@@ -31,6 +31,7 @@ using PrecompileTools: @setup_workload, @compile_workload
 import KomaMRIBase: PulseDesigner as PD
 
 @setup_workload begin
+    KomaMRICore.BACKEND[] = MetalBackend()
     @compile_workload begin
         using KomaMRIBase
         using KomaMRICore
@@ -50,7 +51,9 @@ import KomaMRIBase: PulseDesigner as PD
         
         sim_methods = [
             Bloch(),
-            BlochSimple(),
+            # BlochSimple uses MPSGraph reductions, but Metal.__init__ does not run
+            # while generating the extension cache, so MPSGraph is unavailable.
+            # BlochSimple(),
             BlochMagnus1(),
             BlochMagnus2(),
             BlochMagnus4(),
@@ -73,6 +76,7 @@ import KomaMRIBase: PulseDesigner as PD
             end
         end
     end
+    KomaMRICore.BACKEND[] = nothing
 end
 
 end
