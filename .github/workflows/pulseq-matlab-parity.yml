@@ -42,7 +42,7 @@ jobs:
         with:
           version: '1'
       - uses: julia-actions/cache@v3
-      - uses: matlab-actions/setup-matlab@v3
+      - uses: matlab-actions/setup-matlab@v3.0.1
         with:
           cache: true
           products: >
@@ -79,7 +79,7 @@ jobs:
               println(io, "KOMA_GAMMA=$(KomaMRIBase.γ)")
           end
       - name: Write MATLAB Pulseq reference
-        uses: matlab-actions/run-command@v3
+        uses: matlab-actions/run-command@v3.2.0
         env:
           PULSEQ_MATLAB: ${{ runner.temp }}/pulseq/matlab
           PULSEQ_MATLAB_SEQ: ${{ runner.temp }}/pulseq_matlab_parity.seq
