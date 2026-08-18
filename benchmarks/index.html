@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes" />
+    <style>
+      html {
+        font-family: BlinkMacSystemFont,-apple-system,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+        -webkit-font-smoothing: antialiased;
+        background-color: #fff;
+        font-size: 16px;
+      }
+      body {
+        color: #4a4a4a;
+        margin: 8px;
+        font-size: 1em;
+        font-weight: 400;
+      }
+      header {
+        margin-bottom: 8px;
+        display: flex;
+        flex-direction: column;
+      }
+      .page-title {
+        margin: 0 0 8px 0;
+        color: #222;
+        font-size: 1.5rem;
+      }
+      main {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      a {
+        color: #3273dc;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      a:hover {
+        color: #000;
+      }
+      button {
+        color: #fff;
+        background-color: #3298dc;
+        border-color: transparent;
+        cursor: pointer;
+        text-align: center;
+      }
+      button:hover {
+        background-color: #2793da;
+        flex: none;
+      }
+      .spacer {
+        flex: auto;
+      }
+      .small {
+        font-size: 0.75rem;
+      }
+      footer {
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+      }
+      .header-label {
+        margin-right: 4px;
+      }
+      .benchmark-set {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .chartCard {
+        min-width: 0;
+        height: 420px;
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        box-sizing: border-box;
+        position: relative;
+      }
+      .option-container {
+        display: flex;
+      }
+      .option-label {
+        margin-right: 8px;
+      }
+      .option {
+        margin-right: 4px;
+      }
+      .disabled {
+        color: #ccc;
+        cursor: default;
+        pointer-events: none;
+      }
+      @media (max-width: 1100px) {
+        .benchmark-set {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 640px) {
+        .chartCard {
+          height: 340px;
+          padding: 8px;
+        }
+      }
+    </style>
+    <title>KomaMRI Benchmarks</title>
+  </head>
+
+  <body>
+    <header id="header">
+      <h1 class="page-title">KomaMRI Benchmarks</h1>
+      <div class="header-item">
+        <strong class="header-label">Last Update:</strong>
+        <span id="last-update"></span>
+      </div>
+      <div class="header-item">
+        <strong class="header-label">Repository:</strong>
+        <a id="repository-link" rel="noopener"></a>
+      </div>
+      <div class="option-container">
+        <strong class="option-label">Option:</strong>
+        <a id="option-time" class="option">time</a>
+        <a id="option-memory" class="option">memory</a>
+        <a id="option-allocations" class="option">allocations</a>
+      </div>
+    </header>
+    <main id="main"></main>
+    <footer>
+      <button id="dl-button">Download data as JSON</button>
+      <div class="spacer"></div>
+      <div class="small">Powered by <a rel="noopener" href="https://github.com/marketplace/actions/continuous-benchmark">github-action-benchmark</a></div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.2/dist/Chart.min.js"></script>
+    <script src="data.js"></script>
+    <script id="main-script">
+      'use strict';
+      (function() {
+        // Get option from query string
+        const pageOption = new URLSearchParams(document.location.search).get("option") ?? "time";
+
+        // Colors from https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
+        const backendToColor = {
+          "1 thread(s)": "#b8e6ff",
+          "2 thread(s)": "#5caeff",
+          "4 thread(s)": "#1f6fe5",
+          "8 thread(s)": "#0b2c84",
+          "AMDGPU": "#EC7063",
+          "CUDA": "#52BE80",
+          "Metal": "#00add8",
+          "oneAPI": "#F4D03F"
+        };
+
+        const experimentBorderPalette = ["#00add8", "#a270ba", "#dea584", "#f1e05a", "#EC7063", "#52BE80"];
+
+        function getExperimentBorderColor(index) {
+          if (index < experimentBorderPalette.length) {
+            return experimentBorderPalette[index];
+          }
+          return 'hsl(' + ((index * 137.508) % 360) + ', 65%, 55%)';
+        }
+
+        function parseExtraNumber(extra, key) {
+          if (!extra) {
+            return null;
+          }
+          const line = extra.split('\n').find(val => val.split("=")[0] === key);
+          if (line === undefined) {
+            return null;
+          }
+          const parsed = Number(line.split("=").slice(1).join("="));
+          return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function getDisplayValue(result) {
+          if (result === null) {
+            return null;
+          }
+          switch (pageOption) {
+            case "memory":
+              const memory = parseExtraNumber(result.bench.extra, "memory");
+              return memory === null ? null : memory / 1e6;
+            case "allocations":
+              return parseExtraNumber(result.bench.extra, "allocs");
+            case "time":
+            default:
+              return result.bench.value / 1e6;
+          }
+        }
+
+        function init() {
+          function collectCommitIds(entries) {
+            const commits = new Map();
+            for (const entry of entries) {
+              const existing = commits.get(entry.commit.id);
+              if (existing === undefined || entry.date < existing.date) {
+                commits.set(entry.commit.id, entry);
+              }
+            }
+            return [...commits.values()]
+              .sort((a, b) => a.date - b.date)
+              .map(result => result.commit.id);
+          }
+
+          function collectBenchmarkLayout(entries) {
+            const benchmarkNames = new Set();
+            const simMethods = new Set();
+            const devices = new Set();
+            const backendsByDevice = new Map();
+            for (const entry of entries) {
+              for (const bench of entry.benches) {
+                const splitted_name = bench.name.split("/");
+                const benchmarkName = splitted_name[0];
+                const simMethod = splitted_name[1];
+                const device = splitted_name[2];
+                const backend = splitted_name[3];
+
+                benchmarkNames.add(benchmarkName);
+                simMethods.add(simMethod);
+                devices.add(device);
+                if (!backendsByDevice.has(device)) {
+                  backendsByDevice.set(device, new Set());
+                }
+                backendsByDevice.get(device).add(backend);
+              }
+            }
+            return {
+              benchmarkNames: [...benchmarkNames].sort(),
+              simMethods: [...simMethods].sort(),
+              devices: [...devices].sort(),
+              backendsByDevice: new Map(
+                [...backendsByDevice.entries()]
+                  .map(([device, backends]) => [device, [...backends].sort()])
+              ),
+            };
+          }
+
+          function collectBenchesPerTestCase(entries) {
+            const map = new Map();
+            for (const entry of entries) {
+              const {commit, date, tool, benches} = entry;
+              for (const bench of benches) {
+                const result = { commit, date, tool, bench };
+                const splitted_name = bench.name.split("/");
+                const benchmarkName = splitted_name[0];
+                const simMethod = splitted_name[1];
+                const device = splitted_name[2];
+                const backend = splitted_name[3];
+                
+                if (map.get(benchmarkName) === undefined) {
+                  map.set(benchmarkName, new Map());
+                }
+
+                const mapBenchmarkName = map.get(benchmarkName);
+                if (mapBenchmarkName.get(simMethod) === undefined) {
+                  mapBenchmarkName.set(simMethod, new Map());
+                }
+
+                const mapSimMethod = mapBenchmarkName.get(simMethod);
+                if (mapSimMethod.get(device) === undefined) {
+                  mapSimMethod.set(device, new Map());
+                }
+
+                const mapDevice = mapSimMethod.get(device);
+                if (mapDevice.get(backend) === undefined) {
+                  mapDevice.set(backend, [result]);
+                } else {
+                  mapDevice.get(backend).push(result);
+                }
+              }
+            }
+            return map;
+          }
+
+          const data = window.BENCHMARK_DATA;
+
+          // Render header
+          document.getElementById('last-update').textContent = new Date(data.lastUpdate).toString();
+          const repoLink = document.getElementById('repository-link');
+          repoLink.href = data.repoUrl;
+          repoLink.textContent = data.repoUrl;
+
+          // Render option links
+          const options = ["time", "memory", "allocations"]
+          for (const option of options) {
+            const optionLink = document.getElementById("option-" + option);
+            if (option === pageOption) {
+              optionLink.classList.add("disabled");
+            } else {
+              optionLink.href = window.location.href.split('?')[0] + "?option=" + option;
+            }
+          }
+
+          // Render footer
+          document.getElementById('dl-button').onclick = () => {
+            const dataUrl = 'data:,' + JSON.stringify(data, null, 2);
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'benchmark_data.json';
+            a.click();
+          };
+
+          // Prepare data points for charts
+          return Object.keys(data.entries).map(name => ({
+            name,
+            commitIds: collectCommitIds(data.entries[name]),
+            layout: collectBenchmarkLayout(data.entries[name]),
+            dataSet: collectBenchesPerTestCase(data.entries[name]),
+          }));
+        }
+
+        function renderAllChars(dataSets) {
+
+          function renderGraph(parent, name, graphData, backendNames, commitIds) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 10;
+            parent.appendChild(canvas);
+
+            const datasets = [];
+            const data = {
+              labels: commitIds.map(commitId => commitId.slice(0, 7)),
+              datasets,
+            };
+
+            for (const backendName of backendNames) {
+              const backendData = graphData.get(backendName) ?? [];
+              const color = backendToColor[backendName];
+              const backendResults = new Map(backendData.map(result => [result.commit.id, result]));
+              const alignedResults = commitIds.map(commitId => backendResults.get(commitId) ?? null);
+              const lineData = {
+                label: backendName,
+                benchmarkResults: alignedResults,
+                data: alignedResults.map(result => getDisplayValue(result)),
+                borderColor: color,
+                fill: false,
+              };
+              datasets.push(lineData);
+            }
+
+            const yAxisLabel = pageOption === "time" ? "Time (ms)" : 
+                                pageOption === "memory" ? "Memory (MB)" : 
+                                "Allocations";
+            const options = {
+              responsive: true,
+              maintainAspectRatio: false,
+              title: {
+                display: true,
+                text: name.toUpperCase(),
+              },
+              scales: {
+                xAxes: [
+                  {
+                    scaleLabel: {
+                      display: true,
+                      labelString: 'commit',
+                    },
+                    ticks: {
+                      autoSkip: true,
+                      maxRotation: 55,
+                      minRotation: 55,
+                    },
+                  }
+                ],
+                yAxes: [
+                  {
+                    scaleLabel: {
+                      display: true,
+                      labelString: yAxisLabel,
+                    },
+                    ticks: {
+                      beginAtZero: true,
+                    }
+                  }
+                ],
+              },
+              tooltips: {
+                callbacks: {
+                  afterTitle: items => {
+                    const item = items[0];
+                    const result = data.datasets[item.datasetIndex].benchmarkResults[item.index];
+                    if (result === null) {
+                      return '';
+                    }
+                    const commit = result.commit;
+                    return '\n' + commit.message + '\n\n' + commit.timestamp + ' committed by @' + commit.author.username + '\n';
+                  },
+                  label: item => {
+                    const datasetIndex = item.datasetIndex;
+                    const backendName = data.datasets[datasetIndex].label;
+                    const unit = pageOption === "memory" ? "MB" :
+                                  pageOption === "allocations" ? "allocations" :
+                                  "ms";
+                    return backendName + ': ' + item.value + ' ' + unit;
+                  },
+                  afterLabel: item => {
+                    const result = data.datasets[item.datasetIndex].benchmarkResults[item.index];
+                    if (result === null) {
+                      return '';
+                    }
+                    const { extra } = result.bench;
+                    return extra ? '\n' + extra : '';
+                  }
+                }
+              },
+              onClick: (_mouseEvent, activeElems) => {
+                if (activeElems.length === 0) {
+                  return;
+                }
+
+                const datasetIndex = activeElems[0]._datasetIndex;
+                const dataIndex = activeElems[0]._index;
+                const result = data.datasets[datasetIndex].benchmarkResults[dataIndex];
+                if (result === null) {
+                  return;
+                }
+                window.open(result.commit.url, "_blank");
+              },
+            };
+
+            new Chart(canvas, {
+              type: 'line',
+              data,
+              options,
+            });
+          }
+
+          function renderRow(benchmarkName, simMethod, rowData, layout, parent, commitIds) {
+            const devices = layout.devices;
+            for (const device of devices) {
+              const graphsElem = document.createElement("div");
+              graphsElem.className = "chartCard";
+              graphsElem.style.borderColor = benchmarkBorderColors.get(benchmarkName) ?? "#e5e7eb";
+              parent.appendChild(graphsElem);
+
+              const graphTitle = benchmarkName + " + " + simMethod + " + " + device;
+              renderGraph(
+                graphsElem,
+                graphTitle,
+                rowData.get(device) ?? new Map(),
+                layout.backendsByDevice.get(device) ?? [],
+                commitIds
+              );
+            }
+          }
+
+          const main = document.getElementById('main');
+          const div1 = document.createElement("div");
+          div1.className = "benchmark-set";
+          main.appendChild(div1);
+          const dataSet = dataSets[0].dataSet;
+          const commitIds = dataSets[0].commitIds;
+          const layout = dataSets[0].layout;
+          const benchmarkNames = layout.benchmarkNames;
+          const benchmarkBorderColors = new Map(benchmarkNames.map((name, index) => [name, getExperimentBorderColor(index)]));
+          const simMethods = layout.simMethods;
+
+          for (const benchmarkName of benchmarkNames) {
+            for (const simMethod of simMethods) {
+              const rowData = dataSet.get(benchmarkName)?.get(simMethod) ?? new Map();
+              renderRow(benchmarkName, simMethod, rowData, layout, div1, commitIds);
+            }
+          }
+        }
+
+        renderAllChars(init()); // Start
+      })();
+    </script>
+  </body>
+</html>
