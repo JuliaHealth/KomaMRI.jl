@@ -35,11 +35,9 @@ obj = Phantom(;
     Δw=2π .* [-120.0, 0.0, 120.0],
 )
 sim_params = Dict{String,Any}(
-    "sim_method" => Bloch(),
     "gpu" => false,
     "Nthreads" => 1,
     "return_type" => "mat",
-    "precision" => "f64",
     "Δt" => 50e-6,
     "Δt_rf" => 25e-6,
 )

@@ -125,7 +125,7 @@ export Scanner, Sequence, Phantom
 export AbstractPhysioSignal, CardiacSignal, NoPhysioSignal, has_trigger, resolve_triggers
 export addblock!, @addblock
 export Grad, RF, ADC, Delay, Duration, QuaternionRot
-export area, dur, dwell, delay, rf_center, get_block_start_times, get_samples, set_rf_amplitude
+export area, dur, dwell, delay, rf_center, get_block_start_times, get_samples
 export ceil_to_raster, floor_to_raster, round_to_raster, raster_samples
 export RFuse, Excitation, Refocusing, Inversion, Saturation, Preparation, Other, Undefined
 export DiscreteSequence
