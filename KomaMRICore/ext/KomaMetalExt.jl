@@ -80,3 +80,5 @@ import KomaMRIBase: PulseDesigner as PD
 end
 
 end
+
+## COV_EXCL_STOP
