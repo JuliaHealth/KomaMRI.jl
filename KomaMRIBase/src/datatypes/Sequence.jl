@@ -285,19 +285,6 @@ Base.getindex(x::Sequence, i::AbstractVector{Bool}) = view(x, i)
 Base.lastindex(x::Sequence) = length(x.DUR)
 Base.copy(x::Sequence) = Sequence(_deepcopy_fields(x)...)
 
-"""
-    set_rf_amplitude(seq::Sequence, A, index=1)
-
-Return a sequence with RF event `index` replaced by an otherwise identical RF
-event whose amplitude is `A`.
-"""
-function set_rf_amplitude(seq::Sequence, A, index::Integer=1)
-    pulses = Matrix{RF}(seq.RF)
-    rf = pulses[index]
-    pulses[index] = RF(A, rf.T, rf.Δf, rf.delay, rf.center, rf.ϕ, rf.use, Val(:preserve))
-    return Sequence(seq.GR, pulses, seq.ADC, seq.DUR, seq.EXT, seq.DEF)
-end
-
 function _copy_events(x::AbstractArray{T}) where {T}
     out = similar(x, T)
     @inbounds for i in eachindex(x)
