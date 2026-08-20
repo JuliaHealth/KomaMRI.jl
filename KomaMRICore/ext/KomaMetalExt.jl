@@ -51,15 +51,10 @@ import KomaMRIBase: PulseDesigner as PD
         
         sim_methods = [
             Bloch(),
-            # BlochSimple uses MPSGraph reductions, but Metal.__init__ does not run
-            # while generating the extension cache, so MPSGraph is unavailable.
-            # BlochSimple(),
-            BlochMagnus1(),
             BlochMagnus2(),
             BlochMagnus4(),
-            BlochMagnus6(),
         ]
-        precisions = ["f32", "f64"]
+        precisions = ["f32"]
         return_types = ["mat", "raw"]
         
         for sim_method in sim_methods
