@@ -55,7 +55,7 @@ end
 
 # -- 6.3. Sample the full sequence ------------------------------------------
 function sample_sequence(seq; motion=NoMotion(), sampling_rule=MaxStepSizeRule(1e-3, 5e-5), freq_in_phase=false)
-    isempty(seq) && return DiscreteSequence()
+    length(seq) == 0 && return DiscreteSequence()
     T0 = get_block_start_times(seq)
     global_event_times = merge_sampling_times(sequence_boundary_sampling_times(seq), motion_sampling_times(seq, motion))
     values = sample_sequence_block(seq, 1; sampling_rule, motion_times=block_global_event_times(T0, 1, global_event_times), freq_in_phase)
