@@ -44,6 +44,8 @@ Base.view(p::PreallocResult, i::UnitRange) = p
 
 """Default preallocation function."""
 prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} = DefaultPrealloc{T}()
+prealloc(sim_method::SimulationMethod, backend::KA.Backend, obj::Phantom, M::Mag, max_block_length::Integer, groupsize, ::Val) =
+    prealloc(sim_method, backend, obj, M, max_block_length, groupsize)
 
 include("BlochSimple/BlochSimple.jl")
 include("Bloch/cpu/BlochCPU.jl")

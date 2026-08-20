@@ -178,13 +178,22 @@ function run_sim_time_iter!(
     excitation_groupsize=DEFAULT_EXCITATION_GROUPSIZE,
     parts=[1:length(seqd)],
     excitation_bool=ones(Bool, size(parts)),
+    skip_relaxation=Val(false),
     sim_params=Dict{String,Any}(),
     callbacks=(),
 ) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
-    prealloc_result = prealloc(sim_method, backend, obj, Xt, maximum(length.(parts))+1, precession_groupsize)
+    prealloc_result = prealloc(
+        sim_method,
+        backend,
+        obj,
+        Xt,
+        maximum(length.(parts)) + 1,
+        precession_groupsize,
+        skip_relaxation,
+    )
 
     (precession_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
     (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
@@ -379,6 +388,7 @@ function simulate(
     seqd = seqd |> to_precision #DiscreteSequence
     Xt   = Xt |> to_precision #SpinStateRepresentation
     sig  = sig |> to_precision #Signal
+    skip_relaxation = Val(all(isinf, obj.T1) && all(isinf, obj.T2))
     # Objects to GPU
     if backend isa KA.GPU
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
@@ -408,6 +418,7 @@ function simulate(
         excitation_groupsize=sim_params["gpu_groupsize_excitation"],
         parts,
         excitation_bool,
+        skip_relaxation,
         sim_params,
         callbacks=all_callbacks,
     )
