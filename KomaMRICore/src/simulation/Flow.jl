@@ -1,6 +1,66 @@
 spin_coordinates(motion, x, y, z, t) = get_spin_coords(motion, x, y, z, t)
 spin_coordinates(::NoMotion, x, y, z, t) = x, y, z
 
+struct CycleRemapWorkspace{I,M}
+    source::I
+    scratch::M
+end
+
+cycle_remap_indices(::Colon, N) = Base.OneTo(N)
+cycle_remap_indices(indices, N) = indices
+
+function cycle_remap_sources(obj::Phantom, motion::Motion)
+    affected = collect(cycle_remap_indices(KomaMRIBase.get_indexing_range(motion.spins), length(obj)))
+    map = motion.action.cycle_map
+    length(affected) == length(map) ||
+        throw(DimensionMismatch("cycle_map length must equal the number of affected phantom particles."))
+    source = collect(eachindex(obj.ρ))
+    source[affected] .= affected[map]
+    return source
+end
+
+function cycle_remap_break_indices(seqd, motion)
+    breaks = Int[]
+    for t in KomaMRIBase.cycle_remap_times(motion, last(seqd.t))
+        t < last(seqd.t) || continue
+        i = searchsortedlast(seqd.t, t)
+        i >= firstindex(seqd.t) && seqd.t[i] == t ||
+            error("Cycle boundary $t is missing from the simulation sampling grid.")
+        push!(breaks, i)
+    end
+    return breaks
+end
+
+@kernel function cycle_remap_kernel!(M_xy_new, M_z_new, @Const(M_xy), @Const(M_z), @Const(source))
+    i = @index(Global)
+    @inbounds begin
+        M_xy_new[i] = M_xy[source[i]]
+        M_z_new[i] = M_z[source[i]]
+    end
+end
+
+function cycle_remap_workspace(source, M::Mag, backend::KA.GPU)
+    return CycleRemapWorkspace(
+        gpu(source, backend),
+        Mag(similar(M.xy), similar(M.z)),
+    )
+end
+
+function remap_magnetization!(M::Mag, workspace::CycleRemapWorkspace, backend::KA.GPU, groupsize)
+    cycle_remap_kernel!(backend, groupsize)(
+        workspace.scratch.xy,
+        workspace.scratch.z,
+        M.xy,
+        M.z,
+        workspace.source;
+        ndrange=length(workspace.source),
+    )
+    KA.synchronize(backend)
+    M.xy, workspace.scratch.xy = workspace.scratch.xy, M.xy
+    M.z, workspace.scratch.z = workspace.scratch.z, M.z
+    return nothing
+end
+
 outflow_spin_reset_at!(spin_state, t, i, motion; replace_by=0) =
    outflow_spin_reset!(spin_state, t[i, :], motion; replace_by)
 outflow_spin_reset_at!(spin_state, t, i, ::NoMotion; replace_by=0) = nothing

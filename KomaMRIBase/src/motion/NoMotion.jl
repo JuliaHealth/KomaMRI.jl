@@ -13,6 +13,8 @@ julia> nomotion = NoMotion()
 """
 struct NoMotion end
 
+cycle_remap(::NoMotion) = nothing
+
 Base.getindex(mv::NoMotion, p) = mv 
 Base.view(mv::NoMotion, p)     = mv
 

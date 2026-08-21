@@ -145,7 +145,7 @@ function path(dx, dy, dz, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(elt
 end
 
 """
-    fp = flowpath(dx, dy, dz, spin_reset, time, spins)
+    fp = flowpath(dx, dy, dz, spin_reset, time, spins; cycle_map=nothing)
 
 # Arguments
 - `dx`: (`::AbstractArray{T<:Real}`, `[m]`) displacements in x
@@ -154,6 +154,9 @@ end
 - `spin_reset`: (`::AbstractArray{Bool}`) reset spin state flags
 - `time`: (`::TimeCurve{T<:Real}`) time information about the motion
 - `spins`: (`::AbstractSpinSpan`) spin indexes affected by the motion
+
+# Keywords
+- `cycle_map`: (`::Union{Nothing,AbstractVector{Int}}`) optional periodic magnetization map
 
 # Returns
 - `fp`: (`::Motion`) Motion struct with [`FlowPath`](@ref) action
@@ -170,8 +173,18 @@ julia> fp = flowpath(
        )
 ```
 """
-function flowpath(dx, dy, dz, spin_reset, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
-    return Motion(FlowPath(dx, dy, dz, spin_reset), time, spins)
+function flowpath(
+    dx,
+    dy,
+    dz,
+    spin_reset,
+    time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))),
+    spins=AllSpins();
+    cycle_map=nothing,
+)
+    !isnothing(cycle_map) && !time.periodic &&
+        throw(ArgumentError("cycle_map requires a periodic TimeCurve."))
+    return Motion(FlowPath(dx, dy, dz, spin_reset; cycle_map), time, spins)
 end
 
 """ Compare two Motions """
@@ -219,6 +232,24 @@ end
 # Auxiliary functions
 times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
+cycle_map(::AbstractAction) = nothing
+cycle_map(action::FlowPath) = action.cycle_map
+function cycle_remap(m::Motion)
+    isnothing(cycle_map(m.action)) && return nothing
+    m.time.periodic || throw(ArgumentError("cycle_map requires a periodic TimeCurve."))
+    return m
+end
+
+function cycle_remap_times(motion, t_max)
+    m = cycle_remap(motion)
+    isnothing(m) && return typeof(float(t_max))[]
+    t = typeof(m.time.t_start)[]
+    add_cycle_end_times!(t, m.time.t_start, m.time.t_end, m.time.periods)
+    period = sum((m.time.t_end - m.time.t_start) .* m.time.periods)
+    extend_periodic!(t, t_max, period, Val(m.time.periodic))
+    filter!(x -> m.time.t_start < x <= t_max, t)
+    return sort!(unique!(t))
+end
 
 """
     add_key_time_points!(t, motion)
@@ -234,6 +265,7 @@ function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic) whe
     t_max = maximum(t)
     add_period_times!(aux, t_start, t_end, periods)
     add_reset_times!(aux, a, t_start, t_end, periods)
+    add_cycle_remap_times!(aux, a, t_start, t_end, periods)
     extend_periodic!(aux, t_max, period, Val(periodic))
     append!(t, aux[aux .<= t_max])
     return nothing
@@ -263,6 +295,18 @@ end
 function add_period_times!(t, t_start, t_end, periods)
     period_times = times([t_start, t_end], t_start, t_end, periods)
     append!(t, period_times .+ MIN_RISE_TIME .* ((-1) .^ ((1:length(period_times)) .+ 1)))
+    return nothing
+end
+
+function add_cycle_end_times!(t, t_start, t_end, periods)
+    period_times = times([t_start, t_end], t_start, t_end, periods)
+    append!(t, @view(period_times[2:2:end]))
+    return nothing
+end
+
+add_cycle_remap_times!(t, ::AbstractAction, t_start, t_end, periods) = nothing
+function add_cycle_remap_times!(t, action::FlowPath, t_start, t_end, periods)
+    isnothing(action.cycle_map) || add_cycle_end_times!(t, t_start, t_end, periods)
     return nothing
 end
 

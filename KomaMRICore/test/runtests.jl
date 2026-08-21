@@ -846,6 +846,38 @@ end
 end
 
 # --------- Motion-related tests -------------
+@testitem "Periodic FlowPath magnetization remapping" tags=[:core, :motion] begin
+    include("initialize_backend.jl")
+
+    N = 3
+    trajectory = zeros(N, 2)
+    cycle_map = [2, 2, 1]
+    motion = flowpath(
+        trajectory, trajectory, trajectory, falses(N, 2),
+        Periodic(1.0, 1.0);
+        cycle_map,
+    )
+    obj = Phantom(x=zeros(N), ρ=[1.0, 2.0, 3.0], T1=fill(Inf, N), T2=fill(Inf, N), motion=motion)
+    seq = Sequence([Grad(0.0, 2.1)])
+
+    seqd = discretize(seq; motion)
+    breaks = KomaMRICore.cycle_remap_break_indices(seqd, motion)
+    ranges, _ = KomaMRICore.get_sim_ranges(seqd; breaks)
+    @test seqd.t[breaks] == [1.0, 2.0]
+    @test all(any(first(r) == i for r in ranges) for i in breaks)
+    @test KomaMRICore.cycle_remap_sources(obj, motion) == cycle_map
+    @test eltype(f32(obj).motion.action.cycle_map) === Int
+
+    cpu_params = Dict{String,Any}("gpu" => false, "return_type" => "state")
+    @test_throws ArgumentError simulate(obj, seq, Scanner(); sim_params=cpu_params, verbose=false)
+
+    if USE_GPU
+        gpu_params = Dict{String,Any}("gpu" => true, "return_type" => "state")
+        state = simulate(obj, seq, Scanner(); sim_params=gpu_params, verbose=false)
+        @test state.z ≈ Float32[2, 2, 2]
+    end
+end
+
 # We compare with the result given by OrdinaryDiffEqTsit5
 @testitem "Motion" tags=[:core, :motion] begin
     using OrdinaryDiffEqTsit5
