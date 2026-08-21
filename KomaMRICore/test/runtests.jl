@@ -683,6 +683,57 @@ end
     @test NRMSE(sig, sig_jemris) < 1 #NRMSE < 1%
 end
 
+@testitem "Automatic differentiation tests" tags=[:core, :nomotion, :blochsimple, :ad, :enzyme, :reactant] begin
+    test_group = Symbol(get(ENV, "TEST_GROUP", "core"))
+    if test_group in (:core, :nomotion, :ad, :enzyme, :reactant)
+        import Enzyme
+        import Reactant
+
+        include(joinpath(@__DIR__, "test_files", "ad_utils.jl"))
+
+        Reactant.set_default_backend("cpu")
+
+        function loss_and_gradient(x, params)
+            result = Enzyme.gradient(
+                Enzyme.ReverseWithPrimal,
+                bloch_node_ad_loss,
+                x,
+                Enzyme.Const(params),
+            )
+            return result.val, result.derivs[1]
+        end
+
+        @testset "Reverse-mode optimization improves the simulated target profile" begin
+            for sim_method in (BlochSimple(), Bloch())
+                params = bloch_node_ad_parameters(sim_method)
+                params_ra = bloch_node_ad_reactant_parameters(params)
+                x = Reactant.to_rarray(copy(BLOCH_NODE_AD_X0))
+                compiled = Reactant.allowscalar() do
+                    Reactant.compile(
+                        loss_and_gradient,
+                        (x, params_ra);
+                        sync=true,
+                    )
+                end
+                loss, gradient = compiled(x, params_ra)
+                reactant_loss = Reactant.to_number(loss)
+                reactant_gradient = Array(gradient)
+
+                @test reactant_loss ≈ bloch_node_ad_loss(BLOCH_NODE_AD_X0, params)
+                @test reactant_gradient ≈ bloch_node_ad_fd_gradient(params) rtol=1e-8 atol=1e-10
+
+                step_sizes = 2.0 .^ (0:-1:-10)
+                optimized_losses = map(step_sizes) do step_size
+                    candidate = x .- step_size .* gradient
+                    candidate_loss, _ = compiled(candidate, params_ra)
+                    return Reactant.to_number(candidate_loss)
+                end
+                @test minimum(optimized_losses) < reactant_loss
+            end
+        end
+    end
+end
+
 @testitem "simulate_slice_profile" tags=[:core, :nomotion] begin
     include("initialize_backend.jl")
 

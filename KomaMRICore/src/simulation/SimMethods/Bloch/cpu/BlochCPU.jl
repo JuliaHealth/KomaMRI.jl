@@ -94,7 +94,7 @@ function run_spin_precession!(
             #Reset Spin-State (Magnetization). Only for FlowPath
             outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
             #Acquired signal
-            sig[sample] = sum(Mxy) 
+            sig[sample] = sum(Mxy)
             sample += 1
         end
         #Update simulation state
@@ -152,7 +152,7 @@ function run_spin_excitation!(
         #Spinor Rotation
         @. φ_half = T(-π * γ) * (B * seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         @. α = cos(φ_half)
-        @. B = sin(φ_half) / (B + (B == 0) * eps(T))
+        @. B = ifelse(B == 0, T(-π * γ) * seq.Δt[i], sin(φ_half) / B)
         @. α -= complex(zero(Bz), Bz * B)
         @. β = complex(imag(B1) * B, -real(B1) * B)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
@@ -163,7 +163,7 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            sig[sample] = sum(M.xy) 
+            sig[sample] = sum(M.xy)
             sample += 1
         end
     end
