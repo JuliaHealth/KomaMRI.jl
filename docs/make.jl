@@ -15,7 +15,8 @@ doc_tutorial_rep   = joinpath(dirname(@__DIR__), "docs/src/tutorial/pluto")
 doc_howto          = joinpath(dirname(@__DIR__), "docs/src/how-to")
 doc_explanation    = joinpath(dirname(@__DIR__), "docs/src/explanation")
 doc_reference      = joinpath(dirname(@__DIR__), "docs/src/reference")
-# For Tutorials: Literate and Pluto
+doc_legacy         = joinpath(dirname(@__DIR__), "docs/src/legacy")
+doc_public         = joinpath(dirname(@__DIR__), "docs/src/public")
 koma_assets        = joinpath(dirname(@__DIR__), "assets")
 doc_assets         = joinpath(dirname(@__DIR__), "docs/src/public/assets")
 doc_assets_tmp     = joinpath(dirname(@__DIR__), "docs/src/assets")
@@ -31,6 +32,21 @@ cp(joinpath(koma_assets, "logo-dark.svg"), joinpath(doc_assets, "logo-dark.svg")
 # Tutorials: Literate and Pluto
 move_examples_to_docs!(koma_tutorials_lit, doc_tutorial, lit_pattern)
 move_examples_to_docs!(koma_tutorials_plu, doc_tutorial_rep, plu_pattern; remove_pattern=true)
+
+# Legacy redirects:
+# Any static file under docs/src/legacy/ is copied to docs/src/public/
+# preserving subpath, i.e. removing only the `legacy/` prefix.
+if isdir(doc_legacy)
+    for (root, _, files) in walkdir(doc_legacy)
+        for file in files
+            src = joinpath(root, file)
+            rel = relpath(src, doc_legacy)
+            dst = joinpath(doc_public, rel)
+            mkpath(dirname(dst))
+            cp(src, dst; force=true)
+        end
+    end
+end
 
 ## DOCUMENTATION GENERATION
 # Get list of documentation md files from docs/src/section
