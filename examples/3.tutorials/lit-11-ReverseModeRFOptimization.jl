@@ -1,4 +1,4 @@
-# # Designing a Slice-selective Excitation Profile
+## Designing a Slice-selective Excitation Profile
 
 using Enzyme
 using KomaMRI
@@ -6,20 +6,18 @@ using Reactant
 
 Reactant.set_default_backend("cpu")
 
-# A slice-selective gradient maps position to resonance frequency, so the RF waveform determines the transverse magnetization profile after excitation.
 # Here, ``x`` contains the value of seven RF control points in microtesla.
 # These control points are interpolated to a finer RF timeline before simulation.
 #
-# If ``A(x)`` denotes the Bloch simulation and ``b`` is the desired profile, we
-# design the optimal pulse by minimizing the objective function:
+# If ``A(x)`` denotes the Bloch simulation and ``b`` is the desired profile, optimize our pulse by minimizing the objective:
 #
 # ```math
 # L(x) = \frac{1}{N}\left\|A(x)-b\right\|_2^2.
 # ```
 
-# ## Defining the slice-selection experiment
+## Defining the slice-selection experiment
 #
-# The sequence contains a short RF pulse played with a constant slice-selection gradient, followed by a gradient lobe that refocuses the transverse phase.
+# The sequence contains a short RF pulse with a constant slice-selection gradient, followed by a gradient lobe that refocuses the transverse phase.
 
 Trf = 2.4e-3
 Gz = 8e-3
@@ -27,7 +25,7 @@ seq = Sequence()
 @addblock seq += (RF(zeros(ComplexF64, 25), Trf), z=Grad(Gz, Trf))
 @addblock seq += (z=Grad(-Gz, Trf / 2),)
 
-# We place spins along ``z`` and prescribe a one-dimensional top-hat target with a 2 mm slice thickness.
+# We place spins along ``z`` and designate a one-dimensional rectangular target with a 2 mm slice thickness.
 
 z = collect(range(-4e-3, 4e-3; length=41))
 b = @. im * Float64(abs(z) <= 1e-3)
@@ -47,9 +45,9 @@ params = (;
     b,
 )
 
-# ## Defining the forward model and target
+## Defining the forward model
 #
-# `forward` interpolates the seven controls onto the RF waveform and then simulates the resulting pulse. It returns the final transverse magnetization at each location.
+# `forward` interpolates the seven RF controls onto a finer simulation waveform and returns the final transverse magnetization
 
 function forward(x, p)
     samples = KomaMRIBase.linear_interpolate_samples(
@@ -63,9 +61,9 @@ end
 
 loss(x, p) = sum(abs2, forward(x, p) .- p.b) / length(p.b)
 
-# ## Differentiating the simulation
+## Differentiating the simulation
 #
-# Enzyme differentiates the loss function and returns the loss value and its gradient w.r.t the RF control points
+# Enzyme differentiates the loss function and returns the value and its gradient w.r.t the RF control points
 
 function loss_and_gradient(x, p)
     result = Enzyme.gradient(
@@ -77,9 +75,9 @@ function loss_and_gradient(x, p)
     return result.val, result.derivs[1]
 end
 
-# ## Optimizing the RF
+## Optimizing the RF
 #
-# Reactant compiles the loss and its Enzyme reverse pass together so the same function can be reused at every optimization step.
+# Reactant compiles the loss and the Enzyme reverse pass we can reuse the same function at each optimization step.
 seq_ra = Sequence()
 @addblock seq_ra += (Reactant.to_rarray(params.seq.RF[1]), z=params.seq.GR[3, 1])
 @addblock seq_ra += (z=params.seq.GR[3, 2],)
@@ -95,7 +93,7 @@ compiled = Reactant.@allowscalar Reactant.compile(
     sync=true,
 )
 
-# In this example we take 20 gradient descent steps toward a pulse that achieves the target.
+# In this example we'll perform 20 steps of gradient descent
 
 initial_loss = Reactant.to_number(first(compiled(x, params_ra)))
 for _ in 1:20
@@ -104,7 +102,7 @@ for _ in 1:20
 end
 final_loss = Reactant.to_number(first(compiled(x, params_ra)))
 
-# The optimized transverse magnetization can now be compared directly with the desired slice profile.
+# Now we can compare how close the optimized pulse gets relative to our objective
 
 optimized_profile = forward(Array(x), params)
 using PlotlyBase #hide
