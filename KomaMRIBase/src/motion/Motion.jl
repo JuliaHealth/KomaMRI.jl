@@ -205,15 +205,38 @@ For each dimension (x, y, z), the output matrix has ``N_{\t{spins}}`` rows and `
 - `x, y, z`: (`::Tuple{AbstractArray, AbstractArray, AbstractArray}`) spin positions over time
 """
 function get_spin_coords(
-    m::Motion{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
-) where {T<:Real}
-    ux, uy, uz = x .* (0*t), y .* (0*t), z .* (0*t) # Buffers for displacements
+    m::Motion, x, y, z, t,
+)
+    T = eltype(x)
+    positions = (
+        x .+ zero(T) .* t,
+        y .+ zero(T) .* t,
+        z .+ zero(T) .* t,
+    )
+    displacements = similar.(positions)
+    return get_spin_coords!(positions, displacements, m, x, y, z, t)
+end
+
+function get_spin_coords!(
+    (xt, yt, zt), (ux, uy, uz),
+    m::Motion, x, y, z, t,
+)
+    T = eltype(x)
+    xt .= x
+    yt .= y
+    zt .= z
+    fill!(ux, zero(T))
+    fill!(uy, zero(T))
+    fill!(uz, zero(T))
     t_unit = unit_time(t, m.time)
     idx = get_indexing_range(m.spins)
     displacement_x!(@view(ux[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
     displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
     displacement_z!(@view(uz[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
-    return x .+ ux, y .+ uy, z .+ uz
+    xt .+= ux
+    yt .+= uy
+    zt .+= uz
+    return xt, yt, zt
 end
 
 # Auxiliary functions
