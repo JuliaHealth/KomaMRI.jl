@@ -168,7 +168,7 @@ function run_spin_excitation!(
         @. M.xy = M.xy * cis(-ψ_start)
     end
     #Simulation
-    for i in eachindex(seq.Δt)
+    @trace track_numbers=false for i in eachindex(seq.Δt)
         #Motion
         x, y, z = spin_coordinates!(
             prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i],
@@ -190,7 +190,7 @@ function run_spin_excitation!(
         #Reset Spin-State (Magnetization). Only for FlowPath
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
-        if seq.ADC[i + 1] # ADC at the end of the time step
+        if !isempty(sig) && seq.ADC[i + 1] # ADC at the end of the time step
             coords = spin_coordinates!(
                 prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
             )

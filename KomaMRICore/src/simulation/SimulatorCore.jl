@@ -215,7 +215,7 @@ function run_sim_time_iter!(
     )
 
     for (block, p) in enumerate(parts)
-        seqd_block = @view seqd[p]
+        seqd_block = within_compile() ? seqd[p] : @view seqd[p]
         # Params
         Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
         acq_samples = samples:(samples + Nadc - 1)

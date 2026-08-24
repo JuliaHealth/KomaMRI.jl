@@ -6,6 +6,7 @@ import KernelAbstractions as KA
 import AcceleratedKernels as AK
 using Reexport
 using ThreadsX
+using ReactantCore: @trace, within_compile
 # Printing
 using ProgressMeter
 
