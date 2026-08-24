@@ -15,11 +15,11 @@ function build_sinc_pulse(flip_angle; sys=Scanner(), kwargs...)
     seq = Sequence(sys)
     if gz === nothing
         addblock!(seq, rf)
-        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
         return seq
     end
     addblock!(seq, rf; z=gz)
-    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
     addblock!(seq; z=gz_rephaser)
     return seq
 end
@@ -43,7 +43,7 @@ Return a Pulseq-style sinc RF event tuple. `gz` and `gzr` are `nothing` unless
 - `apodization=0.0`: Cosine-window weight.
 - `center_pos=0.5`: RF center position as a fraction of `duration`.
 - `delay=0.0`: RF delay before RF dead-time adjustment. [`s`]
-- `dwell=sys.RF_Δt`: RF sample spacing. [`s`]
+- `dwell=sys.limits.RF_Δt`: RF sample spacing. [`s`]
 - `use=Undefined()`: RF use label.
 - `max_grad=nothing`: Slice-gradient amplitude limit override. Plain numbers use Pulseq units. [`Hz/m`]
 - `max_slew=nothing`: Slice-gradient slew limit override. Plain numbers use Pulseq units. [`Hz/m/s`]
@@ -55,7 +55,7 @@ Return a Pulseq-style sinc RF event tuple. `gz` and `gzr` are `nothing` unless
 """
 function make_sinc_pulse(flip_angle; duration, sys=Scanner(), slice_thickness=nothing,
     freq_offset=0.0, phase_offset=0.0, time_bw_product=4.0, apodization=0.0,
-    center_pos=0.5, delay=0.0, dwell=sys.RF_Δt, use=Undefined(),
+    center_pos=0.5, delay=0.0, dwell=sys.limits.RF_Δt, use=Undefined(),
     max_grad=nothing, max_slew=nothing)
     flip_angle      = to_SI(flip_angle, SIUnitsDefault())
     duration        = to_SI(duration, SIUnitsDefault())
@@ -64,10 +64,10 @@ function make_sinc_pulse(flip_angle; duration, sys=Scanner(), slice_thickness=no
     phase_offset    = to_SI(phase_offset, SIUnitsDefault())
     delay           = to_SI(delay, SIUnitsDefault())
     dwell           = to_SI(dwell, SIUnitsDefault())
-    max_grad        = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
-    max_slew        = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    max_grad        = isnothing(max_grad) ? sys.limits.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew        = isnothing(max_slew) ? sys.limits.Smax : to_SI(max_slew, PulseqUnitsDefault())
     duration > 0 || error("RF pulse duration must be positive.")
-    rf_start_time = max(delay, sys.RF_dead_time)
+    rf_start_time = max(delay, sys.limits.RF_dead_time)
     rf = sinc_rf_event(
         flip_angle, duration, dwell, time_bw_product, apodization, center_pos;
         rf_start_time, freq_offset, phase_offset, use,
@@ -103,7 +103,7 @@ function slice_select_gradient_events(
     rephaser_area = slice_rephaser_area(gz, slice_area, rf, duration, sys)
     gz_rephaser = trapezoid(; area=rephaser_area, sys, max_grad, max_slew)
     if rf_start_time > gz.rise
-        gz.delay = ceil_to_raster(rf_start_time - gz.rise, sys.GR_Δt)
+        gz.delay = ceil_to_raster(rf_start_time - gz.rise, sys.limits.GR_Δt)
     end
     return gz, gz_rephaser
 end

@@ -48,6 +48,6 @@ digital_output_channel(::Val{channel}) where {channel} =
     error("Unsupported digital output channel `:$channel`; use :osc0, :osc1, or :ext1.")
 
 function digital_output_event(channel, delay, duration, sys)
-    duration = duration <= sys.GR_Δt ? sys.GR_Δt : duration
+    duration = duration <= sys.limits.GR_Δt ? sys.limits.GR_Δt : duration
     return Trigger(1, channel, delay, duration)
 end
