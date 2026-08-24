@@ -1,6 +1,5 @@
 using KomaMRI, Suppressor #hide
-sys = Scanner() #hide
-sys.Smax = 50; #hide
+sys = Scanner(limits=HardwareLimits(Smax=50)) #hide
 
 B1 = 4.92e-6
 Trf = 3.2e-3
