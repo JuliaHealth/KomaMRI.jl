@@ -87,10 +87,12 @@ params_ra = merge(params, (;
     b=Reactant.to_rarray(params.b),
 ))
 x = Reactant.to_rarray(zeros(60))
+effort_o0 = Reactant.Proto.xla.var"ExecutionOptions.EffortLevel".EFFORT_O0 #hide
 compiled = Reactant.@allowscalar Reactant.compile(
     loss_and_gradient,
     (x, params_ra);
     sync=true,
+    xla_executable_build_options=(optimization_level=effort_o0,), #hide
 );
 
 # In this example we'll perform 80 steps of gradient descent
