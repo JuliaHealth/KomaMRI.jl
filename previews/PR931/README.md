@@ -9,6 +9,6 @@ These old URLs are still referenced in the paper:
 > 
 
 
-The redirects are kept so those links continue to work. They currently redirect to documentation version `v0.13`.
+The redirects are kept so those links continue to work. They currently redirect to documentation version `v0.14`.
 
 During docs generation, `docs/make.jl` copies files from this folder into `docs/src/public/` (removing the `legacy/` prefix), so the old paths remain reachable in deployed docs.
