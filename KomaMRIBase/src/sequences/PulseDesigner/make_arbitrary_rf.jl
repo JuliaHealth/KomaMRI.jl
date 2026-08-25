@@ -16,11 +16,11 @@ function build_arbitrary_rf(signal, flip_angle; sys=Scanner(), kwargs...)
     seq = Sequence(sys)
     if gz === nothing
         addblock!(seq, rf)
-        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
         return seq
     end
     addblock!(seq, rf; z=gz)
-    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
     addblock!(seq; z=gz_rephaser)
     return seq
 end
@@ -43,7 +43,7 @@ unless `slice_thickness` is supplied.
 - `freq_offset=0.0`: RF frequency offset. [`Hz`]
 - `phase_offset=0.0`: RF phase offset. [`rad`]
 - `delay=0.0`: RF delay before RF dead-time adjustment. [`s`]
-- `dwell=sys.RF_Δt`: RF sample spacing. [`s`]
+- `dwell=sys.limits.RF_Δt`: RF sample spacing. [`s`]
 - `center=nothing`: RF center relative to the Pulseq shape start. [`s`]
 - `use=Undefined()`: RF use label.
 - `max_grad=nothing`: Slice-gradient amplitude limit override. Plain numbers use Pulseq units. [`Hz/m`]
@@ -56,7 +56,7 @@ unless `slice_thickness` is supplied.
 """
 function make_arbitrary_rf(signal, flip_angle; sys=Scanner(), slice_thickness=nothing,
     bandwidth=nothing, time_bw_product=0.0, freq_offset=0.0, phase_offset=0.0,
-    delay=0.0, dwell=sys.RF_Δt, center=nothing, use=Undefined(), max_grad=nothing,
+    delay=0.0, dwell=sys.limits.RF_Δt, center=nothing, use=Undefined(), max_grad=nothing,
     max_slew=nothing)
     flip_angle      = to_SI(flip_angle, SIUnitsDefault())
     slice_thickness = to_SI(slice_thickness, SIUnitsDefault())
@@ -66,14 +66,14 @@ function make_arbitrary_rf(signal, flip_angle; sys=Scanner(), slice_thickness=no
     delay           = to_SI(delay, SIUnitsDefault())
     dwell           = to_SI(dwell, SIUnitsDefault())
     center          = to_SI(center, SIUnitsDefault())
-    max_grad        = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
-    max_slew        = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    max_grad        = isnothing(max_grad) ? sys.limits.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew        = isnothing(max_slew) ? sys.limits.Smax : to_SI(max_slew, PulseqUnitsDefault())
     dwell > 0 || error("RF dwell time must be positive.")
     waveform = vec(collect(signal))
     isempty(waveform) && error("RF signal must not be empty.")
     duration = length(waveform) * dwell
     waveform = normalize_flip_angle(waveform, dwell, flip_angle) .|> complex
-    rf_start_time = max(delay, sys.RF_dead_time)
+    rf_start_time = max(delay, sys.limits.RF_dead_time)
     pulseq_center = if center === nothing || !isfinite(center)
         rf_peak_center(waveform, dwell)
     else
@@ -95,7 +95,7 @@ function make_arbitrary_rf(signal, flip_angle; sys=Scanner(), slice_thickness=no
         flat_time=duration, flat_area=slice_area, sys, max_grad, max_slew,
     )
     if rf_start_time > gz.rise
-        gz.delay = ceil_to_raster(rf_start_time - gz.rise, sys.GR_Δt)
+        gz.delay = ceil_to_raster(rf_start_time - gz.rise, sys.limits.GR_Δt)
     end
     if rf_start_time < gz.rise + gz.delay
         rf.delay = gz.rise + gz.delay + dwell / 2

@@ -79,6 +79,8 @@ function signal_to_raw_data(
     signal, seq;
     phantom_name="Phantom", sys=Scanner(), sim_params=Dict{String,Any}(), ndims=2
 )
+    ncoils = size(signal, 2)
+    channel_mask = ntuple(i -> typemax(UInt64) >> max(0, 64i - ncoils), 16)
     #Number of samples and FOV
     _, ktraj = get_kspace(seq) #kspace information
     mink = minimum(ktraj, dims=1)
@@ -117,12 +119,12 @@ function signal_to_raw_data(
         #AcquisitionSystemInformation
         "systemVendor"                   => "KomaMRI.jl", #String
         "systemModel"                    => string(pkgversion(@__MODULE__)), #String
-        "systemFieldStrength_T"          => sys.B0, #Float
+        "systemFieldStrength_T"          => sys.limits.B0, #Float
         "institutionName"                => "Pontificia Universidad Catolica de Chile", #String
         #subjectInformation
         "patientName"                    => phantom_name,
         #experimentalConditions
-        "H1resonanceFrequency_Hz"        => floor(Int64, γ * sys.B0), #Long (Int)
+        "H1resonanceFrequency_Hz"        => floor(Int64, γ * sys.limits.B0), #Long (Int)
         #measurementInformation
         "protocolName"                   => haskey(seq.DEF,"Name") ? seq.DEF["Name"] : "NoName", #String
         # "trajectoryDescription"          => Dict{String, Any}("comment"=>""), #You can put wathever you want here: comment, bandwidth, MaxGradient_G_per_cm, MaxSlewRate_G_per_cm_per_s, interleaves, etc
@@ -193,9 +195,9 @@ function signal_to_raw_data(
                 UInt32(t0_us), #acquisition_time_stamp uint32: Acquisition clock, I am "miss"-using this variable to store t0 in us
                 UInt32.((0, 0, 0)), #physiology_time_stamp uint32x3: Physiology time stamps, e.g. ecg, breating, etc.
                 UInt16(Nsamples), #number_of_samples uint16
-                UInt16(1), #available_channels uint16: Available coils
-                UInt16(1), #active_channels uint16: Active coils on current acquisiton
-                Tuple(UInt64(0) for i=1:16), #channel_mask uint64x16: Active coils on current acquisiton
+                UInt16(ncoils), #available_channels uint16: Available coils
+                UInt16(ncoils), #active_channels uint16: Active coils on current acquisiton
+                channel_mask, #channel_mask uint64x16: Active coils on current acquisiton
                 UInt16(0), #discard_pre uint16: Samples to be discarded at the beginning of acquisition
                 UInt16(0), #discard_post uint16: Samples to be discarded at the end of acquisition
                 UInt16(idx_center), #center_sample uint16: Sample at the center of k-space

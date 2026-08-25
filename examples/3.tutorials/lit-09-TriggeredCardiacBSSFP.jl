@@ -55,7 +55,7 @@ function bSSFP(FOV, N, TR, flip_angle, sys; #hide
         apodization=0.5, #hide
         sys, #hide
     ) #hide
-    readout_time = max(adc_duration, N * sys.ADC_Δt) #hide
+    readout_time = max(adc_duration, N * sys.limits.ADC_Δt) #hide
     readout_time == adc_duration || @warn "ADC duration is too short. It will be extended to $(readout_time * 1e3) ms." #hide
     gx = PD.make_trapezoid(; flat_area=ro_area, flat_time=readout_time, sys) #hide
     adc = PD.make_adc(N; duration=gx.T, delay=gx.rise, sys) #hide
@@ -69,7 +69,7 @@ function bSSFP(FOV, N, TR, flip_angle, sys; #hide
         delay_TR = TR - excitation_time - pre_time - dur(gx) - pre_time #hide
         delay_before_readout = round_to_raster( #hide
             TR / 2 - (excitation_time + pre_time + adc.delay + adc.T / 2 - rf.delay - rf.center), #hide
-            sys.GR_Δt, #hide
+            sys.limits.GR_Δt, #hide
         ) #hide
         delay_after_readout = delay_TR - delay_before_readout #hide
         bssfp += (rf, z=gz) #hide
