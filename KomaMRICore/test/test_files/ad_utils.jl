@@ -59,7 +59,7 @@ function bloch_node_ad_parameters(sim_method)
 end
 
 function bloch_node_ad_forward(x, params)
-    rf_samples = KomaMRIBase.linear_interpolate_samples(
+    rf_samples = KomaMRIBase.cubic_interpolate_samples(
         (t=params.node_times, A=x[1:3]),
         params.rf_times,
     )

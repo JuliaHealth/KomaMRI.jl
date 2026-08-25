@@ -1,9 +1,9 @@
 # # Designing a Slice-selective Excitation Profile
 
 using Enzyme
-using FastInterpolations
 using KomaMRI
 using Reactant
+using Suppressor #hide
 
 Reactant.set_default_backend("cpu")
 
@@ -53,7 +53,10 @@ params = (;
 # `forward` interpolates the RF controls onto the simulation waveform and returns the final transverse magnetization.
 
 function forward(x, p)
-    samples = cubic_interp(p.node_times, x, p.sample_times; extrap=InBounds())
+    samples = KomaMRIBase.cubic_interpolate_samples(
+        (t=p.node_times, A=x),
+        p.sample_times,
+    )
     seq = copy(p.seq)
     seq.RF[1].A = 1e-6 .* complex.(samples)
     return simulate(p.obj, seq, p.sys; sim_params=p.sim_params, verbose=false).xy
@@ -88,7 +91,7 @@ params_ra = merge(params, (;
 ))
 x = Reactant.to_rarray(zeros(60))
 effort_o0 = Reactant.Proto.xla.var"ExecutionOptions.EffortLevel".EFFORT_O0 #hide
-compiled = Reactant.@allowscalar Reactant.compile(
+compiled = @suppress_err Reactant.@allowscalar Reactant.compile(
     loss_and_gradient,
     (x, params_ra);
     sync=true,
@@ -107,7 +110,10 @@ final_loss = Reactant.to_number(first(compiled(x, params_ra)))
 # Now we can compare how close the optimized pulse gets relative to our objective
 
 optimized_profile = forward(Array(x), params)
-optimized_pulse = cubic_interp(params.node_times, Array(x), params.sample_times)
+optimized_pulse = KomaMRIBase.cubic_interpolate_samples(
+    (t=params.node_times, A=Array(x)),
+    params.sample_times,
+)
 using PlotlyBase #hide
 target_trace = scatter(x=z .* 1e3, y=abs.(b), name="Target", line=attr(dash="dash"), xaxis="x", yaxis="y") #hide
 optimized_trace = scatter(x=z .* 1e3, y=abs.(optimized_profile), name="Optimized", xaxis="x", yaxis="y") #hide
