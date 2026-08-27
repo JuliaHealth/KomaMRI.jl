@@ -1,12 +1,11 @@
 # # Designing an Optimal 90° Excitation Pulse
 
-# Designing a slice-selective RF pulse becomes difficult once the model must
-# include effects beyond the assumptions of a conventional design.
+# Designing a slice-selective RF pulse becomes difficult when include effects in our model that are typically assumed away (nonlinear Bloch dynamics, off-resonance, relaxation).
 #
 # In this tutorial, KomaMRI will be used for RF pulse design, showcasing its
 # differentiable capabilities. We use Enzyme to differentiate a complete
 # KomaMRI simulation and Reactant to compile the resulting gradient calculation.
-# The goal is an optimized 90° excitation with a Butterworth slice profile.
+# The objective is an optimized 90° excitation with a Butterworth slice profile.
 
 using Enzyme, Reactant
 using KomaMRIBase: cubic_interpolate_samples
@@ -48,7 +47,7 @@ num_nodes = 30
 sample_times = range(rf.delay, dur(rf); length=length(rf.A))
 node_times = range(rf.delay, dur(rf); length=num_nodes);
 
-# ## Target magnetization profile ``\boldsymbol{b}``
+# ## [Target magnetization profile ``\boldsymbol{b}``](@id target-magnetization-profile)
 #
 # The optimization grid contains ``N_{\mathrm{spins}}=41`` spins at locations
 # ``z_j``. We define the desired complex transverse magnetization directly as
@@ -91,18 +90,19 @@ p = (; # These parameters will be constant for the optimization.
     b,
 );
 
-# ## Forward operator ``\mathcal{A}_p(\boldsymbol{x})``
+# ## [Forward operator ``\mathcal{A}_p(\boldsymbol{x})``](@id forward-operator)
 #
-# Let ``p`` collect everything held fixed during one optimization. For a fixed
+# Let ``p`` collect everything held fixed during one optimization (the baseline
+# sequence, spins, and simulation parameters). For a fixed
 # ``p``, the forward calculation follows one path from the design variables to
 # the profile that will be compared with ``\boldsymbol{b}``:
 #
 # ```math
 # \boldsymbol{x}
-# \xrightarrow{\text{cubic interpolation at }t_k}
+# \xrightarrow{\text{interp. at }t_k}
 # \left[B_1(t_k;\boldsymbol{x})\right]_{k=1}^{N_{\mathrm{rf}}}
-# \xrightarrow{\text{KomaMRI simulation}}
-# \mathcal{A}_p(\boldsymbol{x}) = \boldsymbol{M}_{xy}.
+# \xrightarrow[\mathcal{A}_p(\boldsymbol{x})]{\text{Simulation}}
+# \boldsymbol{M}_{xy}.
 # ```
 #
 # In code, `B1` contains the interpolated samples converted from microtesla to
@@ -118,7 +118,7 @@ function 𝓐p(x, p)
     return Mxy
 end;
 
-# ## Loss function ``\mathcal{L}_p(\boldsymbol{x})``
+# ## [Loss function ``\mathcal{L}_p(\boldsymbol{x})``](@id loss-function)
 #
 # We minimize the mean squared error of the full complex profile:
 #
@@ -131,12 +131,12 @@ end;
 
 𝓛p(x, p) = sum(abs2, 𝓐p(x, p) .- p.b) / length(p.b);
 
-# ## Differentiating ``\mathcal{L}_p(\boldsymbol{x})``
+# ## [Differentiating ``\mathcal{L}_p(\boldsymbol{x})``](@id differentiating-loss)
 #
 # [Enzyme](https://enzyme.mit.edu/julia/stable/) applies reverse-mode automatic
 # differentiation to the scalar loss and obtains all 30
 # derivatives in one reverse pass. [Reactant](https://enzymead.github.io/Reactant.jl/stable/introduction/)
-# traces this Julia calculation, lowers it through MLIR/XLA, and produces a
+# traces this Julia calculation, lowers it through MLIR/XLA, performs targeted optimizations, and produces a
 # compiled function that can be reused by every optimization step.
 
 ∇𝓛p(x, p) = Enzyme.gradient(Enzyme.Reverse, 𝓛p, x, Enzyme.Const(p))[1];
