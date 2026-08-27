@@ -26,7 +26,7 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 [compat]
 Artifacts = "1"
 Bonito = "4.2, 5"
-Electron = "6.1.1, 7.0"
+Electron = "7"
 FFTW = "1.0"
 KomaMRICore = "0.13"
 KomaMRIFiles = "0.11.6"
