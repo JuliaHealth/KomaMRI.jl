@@ -1,4 +1,4 @@
-using Documenter, DocumenterVitepress, Literate, KomaMRI, PlutoSliderServer
+using Documenter, DocumenterVitepress, Literate, KomaMRI, PlutoSliderServer, TOML
 
 # Setup for Literate and Pluto
 repo_base = "JuliaHealth/KomaMRI.jl"
@@ -8,6 +8,43 @@ plu_pattern = "pluto-"
 gen_pattern = "gen-"
 include("utils.jl")
 include("EmbedPlotlyBaseLiterate.jl")
+
+function write_paper_redirects!(build_dir, papers)
+    stable_url = "https://juliahealth.org/KomaMRI.jl/stable/"
+    marker = "Generated from docs/paper-links.toml"
+
+    for links in values(papers), (source, target) in links
+        startswith(source, stable_url) || continue
+        startswith(target, stable_url) ||
+            error("Paper link target must remain under $stable_url: $target")
+
+        source_path = strip(chopprefix(source, stable_url), '/')
+        target_parts = split(chopprefix(target, stable_url), '#'; limit=2)
+        target_path = strip(first(target_parts), '/')
+        fragment = length(target_parts) == 2 ? "#$(last(target_parts))" : ""
+        relative_target =
+            joinpath(relpath(dirname(target_path), source_path), basename(target_path))
+        relative_target = replace(relative_target, '\\' => '/') * fragment
+
+        redirect_file = joinpath(build_dir, split(source_path, '/')..., "index.html")
+        if isfile(redirect_file) && !occursin(marker, read(redirect_file, String))
+            error("Paper link conflicts with generated documentation: $source")
+        end
+        mkpath(dirname(redirect_file))
+        write(
+            redirect_file,
+            """<!doctype html>
+            <!-- $marker -->
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=$relative_target">
+            <link rel="canonical" href="$target">
+            <title>Page moved</title>
+            <p>Page moved to <a href="$relative_target">$target</a>.</p>
+            """,
+        )
+    end
+    return nothing
+end
 
 # Documentation folders KomaMRI.jl/docs/
 doc_tutorial       = joinpath(dirname(@__DIR__), "docs/src/tutorial")
@@ -90,6 +127,11 @@ makedocs(;
     ),
     clean=false,
 )
+
+paper_links = TOML.parsefile(joinpath(@__DIR__, "paper-links.toml"))
+for (i, _) in enumerate(readlines(joinpath(@__DIR__, "build", "bases.txt")))
+    write_paper_redirects!(joinpath(@__DIR__, "build", string(i)), paper_links)
+end
 
 deploy_preview = "push_preview" in ARGS
 if get(ENV, "GITHUB_EVENT_NAME", "") == "push" || deploy_preview
