@@ -255,13 +255,13 @@ profile_plot = Plot( #hide
         xaxis3=attr(title="z [mm]", domain=[0.53, 1.0], anchor="y3", range=profile_position_range), #hide
         yaxis3=attr(domain=[0.0, 0.42], anchor="x3", range=magnetization_range), #hide
         legend=attr(groupclick="togglegroup"), #hide
-        shapes=[attr(type="rect", x0=1.01, x1=1.32, y0=0.26, y1=0.43, xref="paper", yref="paper", line=attr(color="rgba(0,0,0,0.25)", width=1), fillcolor="rgba(255,255,255,0.85)")], #hide
+        shapes=[attr(type="rect", x0=1.01, x1=1.40, y0=0.26, y1=0.43, xref="paper", yref="paper", line=attr(color="rgba(0,0,0,0.25)", width=1), fillcolor="rgba(255,255,255,0.85)")], #hide
         annotations=[ #hide
             attr(text="<b>RF pulses</b>", x=0.5, y=1.04, xref="x domain", yref="y domain", xanchor="center", yanchor="bottom", showarrow=false), #hide
             attr(text="<b>M<sub>x</sub></b>", x=0.5, y=1.04, xref="x2 domain", yref="y2 domain", xanchor="center", yanchor="bottom", showarrow=false), #hide
             attr(text="<b>M<sub>y</sub></b>", x=0.5, y=1.04, xref="x3 domain", yref="y3 domain", xanchor="center", yanchor="bottom", showarrow=false), #hide
             attr(text=nrmse_labels, x=1.02, y=0.42, xref="paper", yref="paper", xanchor="left", yanchor="top", align="left", showarrow=false), #hide
-            attr(text=nrmse_percentages, x=1.31, y=0.42, xref="paper", yref="paper", xanchor="right", yanchor="top", align="right", showarrow=false), #hide
+            attr(text=nrmse_percentages, x=1.38, y=0.42, xref="paper", yref="paper", xanchor="right", yanchor="top", align="right", showarrow=false), #hide
         ], #hide
         height=700, #hide
         margin=attr(r=230, t=60), #hide
