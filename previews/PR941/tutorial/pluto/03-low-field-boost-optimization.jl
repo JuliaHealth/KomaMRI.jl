@@ -42,7 +42,10 @@ md"## 1.1. Loading required packages"
 md"Bloch simulations were performed using **KomaMRI.jl** to optimize the proposed whole-heart BOOST parameters."
 
 # ╔═╡ 0b7a405e-bbb5-11ee-05ca-4b1c8567398d
-using KomaMRICore, KomaMRIPlots, PlotlyBase # Essentials
+begin
+	using KomaMRICore, KomaMRIPlots, PlotlyBase, PlutoPlotly # Essentials
+	pluto_plot(p) = PlutoPlotly.PlutoPlot(p)
+end
 
 # ╔═╡ 70dbc2bd-8b93-471d-8340-04d98a008ca6
 using Suppressor, PlutoUI, ProgressLogging # Extras
@@ -285,13 +288,13 @@ end
 md"Below we are showing the **bright-blood contrast** (containing a T2p-IR pulse):"
 
 # ╔═╡ 0b6c1f72-b040-483c-969b-88bfe09b32c3
-plot_seq(seq; range=[5990, 6280], slider=true, height=400)
+pluto_plot(plot_seq(seq; range=[5990, 6280], slider=true, height=400))
 
 # ╔═╡ 4aab8a6f-d2ba-46f0-a1bf-ddc0dcf8437f
 md"and **reference contrast** (only containing a FatSat pulse), later used to obtain the black-blood contrast by subtracting the bright-blood contrast. Note that this contrast has a different flip angle."
 
 # ╔═╡ 88eb41a5-d8c2-4f0e-b379-a8b05a341a82
-plot_seq(seq; range=[6900, 7190], slider=true, height=400)
+pluto_plot(plot_seq(seq; range=[6900, 7190], slider=true, height=400))
 
 # ╔═╡ a15d6b64-f8ee-4ee4-812c-d49cf5ea784d
 md"""
@@ -394,7 +397,7 @@ begin
 		yaxis_range=[0.0, 300.0],
 		title="T2 map of 1D Phantom"
 	)
-	relayout([phantom_T1 phantom_T2], height=400)
+	pluto_plot(relayout([phantom_T1 phantom_T2], height=400))
 end
 
 # ╔═╡ f21e9e59-25c3-4f06-8de4-792cb305eb01
@@ -470,7 +473,7 @@ begin
 		xaxis_range=[RR*dummy_heart_beats, RR*dummy_heart_beats+.250],
 		height=400
 	)
-    p0
+    pluto_plot(p0)
 end
 
 # ╔═╡ 8dd704a4-bf50-4ddc-a832-d074bd52ad01
@@ -590,7 +593,7 @@ begin
 	    height=400,
 	    hovermode="x unified",
 	)
-	fig
+	pluto_plot(fig)
 end
 
 # ╔═╡ d0377f9a-680d-4501-90ca-9ea3ab681db4
@@ -729,7 +732,7 @@ begin
 	    height=400,
 	    hovermode="x unified",
 	)
-	fig2
+	pluto_plot(fig2)
 end
 
 # ╔═╡ b0b53632-e6b8-47e9-8d3e-79f1e599315a
@@ -840,7 +843,7 @@ begin
 	    height=400,
 	    hovermode="x unified",
 	)
-	fig4
+	pluto_plot(fig4)
 end
 
 # ╔═╡ c64d38cb-2433-4b90-abbf-1fc938f70584
@@ -976,7 +979,7 @@ begin
 	    height=400,
 	    hovermode="x unified",
 	)
-	fig3
+	pluto_plot(fig3)
 end
 
 
@@ -1093,7 +1096,7 @@ begin
 	    height=400,
 	    hovermode="x unified",
 	)
-	fig5
+	pluto_plot(fig5)
 end
 
 # ╔═╡ 4b1dc8bf-feb1-42b4-94f7-1b27975d944c
@@ -1200,7 +1203,7 @@ begin
 	    height=400,
 	    hovermode="x unified",
 	)
-	fig6
+	pluto_plot(fig6)
 end
 
 
@@ -1251,6 +1254,7 @@ KomaMRICore = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
 KomaMRIPlots = "76db0263-63f3-4d26-bb9a-5dba378db904"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlotlyBase = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
+PlutoPlotly = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 ProgressLogging = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
 Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
@@ -1259,6 +1263,7 @@ Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 KomaMRICore = "~0.13.0"
 KomaMRIPlots = "~0.13.1"
 PlotlyBase = "~0.8.23"
+PlutoPlotly = "~0.6.6"
 PlutoUI = "~0.7.83"
 ProgressLogging = "~0.1.6"
 Suppressor = "~0.2.8"
@@ -1270,7 +1275,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "a52b322a5695f65d0ff73e2e53005b48a7cac6ce"
+project_hash = "97211a2b89a7e0f9e7bdfb3738c322588ae35b20"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -2021,6 +2026,20 @@ git-tree-sha1 = "c7a270d11881c0709052f8e3def3d60d551e99f3"
 uuid = "f2990250-8cf9-495f-b13a-cce12b45703c"
 version = "2.3.1"
 
+[[deps.PlutoPlotly]]
+deps = ["AbstractPlutoDingetjes", "Artifacts", "ColorSchemes", "Colors", "Dates", "Downloads", "HypertextLiteral", "InteractiveUtils", "LaTeXStrings", "Markdown", "Pkg", "PlotlyBase", "PrecompileTools", "Reexport", "ScopedValues", "Scratch", "TOML"]
+git-tree-sha1 = "2b9e3d771adfe535a4fdda855f4741fdaacd3f7f"
+uuid = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
+version = "0.6.6"
+
+    [deps.PlutoPlotly.extensions]
+    PlotlyKaleidoExt = "PlotlyKaleido"
+    UnitfulExt = "Unitful"
+
+    [deps.PlutoPlotly.weakdeps]
+    PlotlyKaleido = "f2990250-8cf9-495f-b13a-cce12b45703c"
+    Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Downloads", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
 git-tree-sha1 = "e189d0623e7ce9c37389bac17e80aac3b0302e75"
@@ -2134,6 +2153,12 @@ deps = ["HashArrayMappedTries", "Logging"]
 git-tree-sha1 = "67a144433c4ce877ee6d1ada69a124d6b1ecf7be"
 uuid = "7e506255-f358-4e82-b7e4-beb19740aa63"
 version = "1.6.2"
+
+[[deps.Scratch]]
+deps = ["Dates"]
+git-tree-sha1 = "9b81b8393e50b7d4e6d0a9f14e192294d3b7c109"
+uuid = "6c6a2e73-6563-6170-7368-637461726353"
+version = "1.3.0"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
