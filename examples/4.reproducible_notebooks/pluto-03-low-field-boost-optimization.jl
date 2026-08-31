@@ -59,7 +59,7 @@ begin
 	sys.limits.Gmax = 40.0e-3
 	sys.limits.Smax = 25.0
 	sys
-end
+end;
 
 # ╔═╡ 92194fcb-582a-49ce-aad7-20b0145d40d3
 md"## 1.3. Sequence"
