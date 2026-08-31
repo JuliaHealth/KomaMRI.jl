@@ -35,10 +35,7 @@ If you have any doubts about how to use a function, please search in the **Live 
 """
 
 # ╔═╡ d6b1729a-874d-11ee-151a-9b0fcce2c4fd
-begin
-	using KomaMRICore, KomaMRIPlots, FFTW, PlotlyBase, PlutoUI, PlutoPlotly
-	pluto_plot(p) = PlutoPlotly.PlutoPlot(p)
-end
+using KomaMRICore, KomaMRIPlots, FFTW, PlotlyBase, PlutoUI
 
 # ╔═╡ 8e474add-8651-431b-b481-7a139037dbd2
 md"""# 1. Free Induction Decay (FID)
@@ -71,7 +68,7 @@ begin
 	seq = Sequence()
 	seq += rf
 	seq += adc
-	pluto_plot(plot_seq(seq; slider=false, height=400))
+	plot_seq(seq; slider=false, height=400)
 end
 
 # ╔═╡ f11a2fa2-eff9-4979-b739-3da2b24a9a45
@@ -97,7 +94,7 @@ end
 
 # ╔═╡ 35ff3402-dc36-4b91-bec9-b4d21faf3e68
 # (1.5) Plot the generated Phantom
-pluto_plot(plot_phantom_map(obj, :T1))
+plot_phantom_map(obj, :T1)
 
 # ╔═╡ ea542271-01c2-4962-a708-804b23a861b9
 md"""
@@ -112,14 +109,14 @@ raw = simulate(obj, seq, sys)
 
 # ╔═╡ 7a66ab47-918f-4582-895f-1b4690562051
 # (1.7) Plot the resulting raw data with plot_signal
-pluto_plot(plot_signal(raw; slider=false, height=400))
+plot_signal(raw; slider=false, height=400)
 
 # ╔═╡ 1231b832-47b1-4ccb-9b56-a67838598cc7
 # (1.8) Is the signal the same as `Plot(t, exp.(-t ./ T2))`?
 begin
 	t = range(0, 50, 100)
 	t2_decay(t) = scatter(x=t, y=20.0.*exp.(-t ./ 50), name="T2-decay", marker_color="purple")
-	pluto_plot(Plot(t2_decay(t), Layout(yaxis_range=[0, 20.1], height=400)))
+	Plot(t2_decay(t), Layout(yaxis_range=[0, 20.1], height=400))
 end
 
 # ╔═╡ e4c80c24-20fd-42e5-9dcd-a65958569c01
@@ -160,14 +157,11 @@ end
 
 # ╔═╡ 8b4a1ad9-2d6a-4c8f-bb8e-f43c2d058195
 # (2.3) Plot `seq_gre` and the k-space
-pluto_plot(plot_seq(seq_gre; slider=false, height=400))
+plot_seq(seq_gre; slider=false, height=400)
 
 # ╔═╡ 3abca406-2e6b-4b37-8835-65cfad9d0caa
 # (2.4) Plot the $k$-space with the `plot_kspace` function
-begin
-	kspace_gre = plot_kspace(seq_gre; height=400)
-	pluto_plot(kspace_gre)
-end
+kspace_gre = plot_kspace(seq_gre; height=400)
 
 # ╔═╡ 74666c1a-2673-4936-982b-6229bf92af66
 md"""
@@ -187,7 +181,7 @@ begin
 	t_adc_gre = KomaMRICore.get_adc_sampling_times(seq_gre)*1e3
 	signal_gre = plot_signal(raw_gre; slider=false, height=400)
     addtraces!(signal_gre, t2_decay(t_adc_gre))
-	pluto_plot(signal_gre)
+	signal_gre
 end
 
 # ╔═╡ 9a88a54b-bcc7-41ad-8e60-f4d450dccb2d
@@ -195,7 +189,6 @@ end
 begin
     fftc(x; dims=[1,2]) = fftshift(fft(ifftshift(x, dims), dims), dims)/prod(size(x)[dims])
     recon_gre = Plot(abs.(fftc(raw_gre.profiles[1].data)), Layout(height=400))
-	pluto_plot(recon_gre)
 end
 
 # ╔═╡ 0f96a83d-96ef-4768-9330-87c466e35c93
@@ -251,7 +244,7 @@ end
 
 # ╔═╡ 2ee7ba47-02e5-4b02-a162-ddbd5ed47c7b
 # (3.2) Plot obj_t2star
-pluto_plot(plot_phantom_map(obj_t2star, :Δw))
+plot_phantom_map(obj_t2star, :Δw)
 
 # ╔═╡ 27686262-1a1e-45fa-b4ee-90ae1d9ee34e
 md"""
@@ -270,7 +263,7 @@ raw_t2_star_gre = simulate(obj_t2star, seq_gre, sys)
 begin
 	signal_t2_star_gre = plot_signal(raw_t2_star_gre; slider=false, height=400)
 	addtraces!(signal_t2_star_gre, t2_decay(t_adc_gre))
-	pluto_plot(signal_t2_star_gre)
+	signal_t2_star_gre
 end
 
 # ╔═╡ 18c82ff1-0bde-4fa0-848c-d0eb73d1ac7c
@@ -280,15 +273,12 @@ begin
 	relayout!(signal_gre, signal_layout; title="GRE-T2")
 	relayout!(signal_t2_star_gre, signal_layout; title="GRE-T2*")
 	fig_signal_2 = [signal_gre signal_t2_star_gre]
-	pluto_plot(relayout(fig_signal_2, showlegend=false, height=400))
+	relayout(fig_signal_2, showlegend=false, height=400)
 end
 
 # ╔═╡ 4a4a6bd3-b820-479c-89e3-f3ce79a316db
 # (3.6) Reconstruct the 1D image
-begin
-	recon_t2_star_gre = Plot(abs.(fftc(raw_t2_star_gre.profiles[1].data)), Layout(height=400))
-	pluto_plot(recon_t2_star_gre)
-end
+recon_t2_star_gre = Plot(abs.(fftc(raw_t2_star_gre.profiles[1].data)), Layout(height=400))
 
 # ╔═╡ 964404f6-7f46-4df9-ad98-921948c3be69
 begin
@@ -296,7 +286,7 @@ begin
 	relayout!(recon_gre, recon_layout; title="GRE-T2")
 	relayout!(recon_t2_star_gre, recon_layout; title="GRE-T2*")
 	fig_recon_2 = [recon_gre recon_t2_star_gre]
-	pluto_plot(relayout(fig_recon_2, showlegend=false, height=400))
+	relayout(fig_recon_2, showlegend=false, height=400)
 end
 
 # ╔═╡ 3357a283-a234-4d15-8fdf-7fbec58b33a7
@@ -334,20 +324,17 @@ end
 
 # ╔═╡ f1f3b700-5916-496f-b938-46f7f08b4eb6
 # (4.6) Plot seq_se and its k-space. Is the k-space the same as seq_gre in (2.3)?
-pluto_plot(plot_seq(seq_se; slider=false, height=400))
+plot_seq(seq_se; slider=false, height=400)
 
 # ╔═╡ 4e1434e1-673f-4206-a271-9edec10ebd6a
-begin
-	kspace_se = plot_kspace(seq_se; height=400)
-	pluto_plot(kspace_se)
-end
+kspace_se = plot_kspace(seq_se; height=400)
 
 # ╔═╡ c02f3898-10cb-4f1e-b5ef-eb42b803baed
 begin
 	relayout!(kspace_gre; title="GRE")
 	relayout!(kspace_se; title="SE")
 	fig_kspace = [kspace_gre kspace_se]
-	pluto_plot(relayout(fig_kspace, showlegend=false, height=400))
+	relayout(fig_kspace, showlegend=false, height=400)
 end
 
 # ╔═╡ 45952512-aaf1-43d8-a95e-c32bb2633f42
@@ -369,21 +356,18 @@ begin
 	addtraces!(signal_t2_star_se, t2_decay(t_adc_se))
 	relayout!(signal_t2_star_se, signal_layout; title="SE")
 	fig_signal_3 = [signal_gre signal_t2_star_gre signal_t2_star_se]
-	pluto_plot(relayout(fig_signal_3, showlegend=false, height=400))
+	relayout(fig_signal_3, showlegend=false, height=400)
 end
 
 # ╔═╡ 2e65ae31-f50a-462b-9744-80bf6cdb388e
 # (4.9) Reconstruct the 1D image
-begin
-	recon_t2_star_se = Plot(abs.(fftc(raw_t2_star_se.profiles[1].data)), Layout(height=400))
-	pluto_plot(recon_t2_star_se)
-end
+recon_t2_star_se = Plot(abs.(fftc(raw_t2_star_se.profiles[1].data)), Layout(height=400))
 
 # ╔═╡ 34824db7-13c4-45e2-befa-f027b9b585c0
 begin
 	relayout!(recon_t2_star_se, recon_layout; title="SE")
 	fig_recon_3 = [recon_gre recon_t2_star_gre recon_t2_star_se]
-	pluto_plot(relayout(fig_recon_3, showlegend=false, height=400))
+	relayout(fig_recon_3, showlegend=false, height=400)
 end
 
 # ╔═╡ fe8bbcd2-e8f5-4225-80c3-47e73176fb3d
@@ -433,7 +417,6 @@ KomaMRICore = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
 KomaMRIPlots = "76db0263-63f3-4d26-bb9a-5dba378db904"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlotlyBase = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
-PlutoPlotly = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
@@ -441,7 +424,6 @@ FFTW = "~1.10.0"
 KomaMRICore = "~0.13.0"
 KomaMRIPlots = "~0.13.1"
 PlotlyBase = "~0.8.23"
-PlutoPlotly = "~0.6.6"
 PlutoUI = "~0.7.83"
 """
 
@@ -451,7 +433,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "789aad8b1d289efd53e7c36bc5583e252c871b87"
+project_hash = "342bc92cb8576f75f85b24c88ddd6aa5881994a7"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1202,20 +1184,6 @@ git-tree-sha1 = "c7a270d11881c0709052f8e3def3d60d551e99f3"
 uuid = "f2990250-8cf9-495f-b13a-cce12b45703c"
 version = "2.3.1"
 
-[[deps.PlutoPlotly]]
-deps = ["AbstractPlutoDingetjes", "Artifacts", "ColorSchemes", "Colors", "Dates", "Downloads", "HypertextLiteral", "InteractiveUtils", "LaTeXStrings", "Markdown", "Pkg", "PlotlyBase", "PrecompileTools", "Reexport", "ScopedValues", "Scratch", "TOML"]
-git-tree-sha1 = "2b9e3d771adfe535a4fdda855f4741fdaacd3f7f"
-uuid = "8e989ff0-3d88-8e9f-f020-2b208a939ff0"
-version = "0.6.6"
-
-    [deps.PlutoPlotly.extensions]
-    PlotlyKaleidoExt = "PlotlyKaleido"
-    UnitfulExt = "Unitful"
-
-    [deps.PlutoPlotly.weakdeps]
-    PlotlyKaleido = "f2990250-8cf9-495f-b13a-cce12b45703c"
-    Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
-
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Downloads", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
 git-tree-sha1 = "e189d0623e7ce9c37389bac17e80aac3b0302e75"
@@ -1323,12 +1291,6 @@ deps = ["HashArrayMappedTries", "Logging"]
 git-tree-sha1 = "67a144433c4ce877ee6d1ada69a124d6b1ecf7be"
 uuid = "7e506255-f358-4e82-b7e4-beb19740aa63"
 version = "1.6.2"
-
-[[deps.Scratch]]
-deps = ["Dates"]
-git-tree-sha1 = "9b81b8393e50b7d4e6d0a9f14e192294d3b7c109"
-uuid = "6c6a2e73-6563-6170-7368-637461726353"
-version = "1.3.0"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
