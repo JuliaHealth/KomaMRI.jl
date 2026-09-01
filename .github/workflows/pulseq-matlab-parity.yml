@@ -42,7 +42,7 @@ jobs:
         with:
           version: '1'
       - uses: julia-actions/cache@v3
-      - uses: matlab-actions/setup-matlab@v3.0.1
+      - uses: matlab-actions/setup-matlab@v3.1.0
         with:
           cache: true
           products: >
