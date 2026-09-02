@@ -20,16 +20,15 @@ function run_spin_excitation!(
         @. M.xy = M.xy * cis(-ψ_start)
     end
 
-    i = firstindex(seq.Δt)
-    while i + 1 <= lastindex(seq.Δt)
-        im = i + 1
-        i1 = im + 1
+    @trace track_numbers=false for i in firstindex(seq.Δt):2:(lastindex(seq.Δt)-1)
+        i_mid = i + 1
+        i1 = i_mid + 1
         Δt = seq.t[i1] - seq.t[i]
         x, y, z = spin_coordinates!(
-            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[im],
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i_mid],
         )
-        @. ωxy_m = seq.B1[im] * B_to_ω
-        @. ωz_m  = (seq.Gx[im] * x + seq.Gy[im] * y + seq.Gz[im] * z + ΔBz) * B_to_ω + seq.Δf[im] * T(2π)
+        @. ωxy_m = seq.B1[i_mid] * B_to_ω
+        @. ωz_m  = (seq.Gx[i_mid] * x + seq.Gy[i_mid] * y + seq.Gz[i_mid] * z + ΔBz) * B_to_ω + seq.Δf[i_mid] * T(2π)
 
         rotation_vector!(θxy, θz, ωxy_m, ωz_m, Δt, sim_method)
         set_rotation_spinor!(α, β, θxy, θz)
@@ -40,7 +39,7 @@ function run_spin_excitation!(
         @. M.xy = M.xy * exp(-Δt / p.T2)
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
         outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
-        if seq.ADC[i1]
+        if !isempty(sig) && seq.ADC[i1]
             coords = spin_coordinates!(
                 prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i1],
             )
@@ -48,7 +47,6 @@ function run_spin_excitation!(
             acquire_signal!(@view(sig[sample, :]), M.xy, prealloc.sens, coords)
             sample += 1
         end
-        i = i1
     end
 
     ψ_end = seq.ψ[end]
