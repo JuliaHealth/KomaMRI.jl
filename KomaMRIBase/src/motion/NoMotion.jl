@@ -13,8 +13,6 @@ julia> nomotion = NoMotion()
 """
 struct NoMotion end
 
-cycle_remap(::NoMotion) = nothing
-
 Base.getindex(mv::NoMotion, p) = mv 
 Base.view(mv::NoMotion, p)     = mv
 
@@ -52,3 +50,4 @@ function get_spin_coords(
     return x, y, z
 end
 add_key_time_points!(t, ::NoMotion) = nothing
+cycle_remap(::NoMotion) = nothing

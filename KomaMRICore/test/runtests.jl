@@ -852,11 +852,7 @@ end
     N = 3
     trajectory = zeros(N, 2)
     cycle_map = [2, 2, 1]
-    motion = flowpath(
-        trajectory, trajectory, trajectory, falses(N, 2),
-        Periodic(1.0, 1.0);
-        cycle_map,
-    )
+    motion = flowpath(trajectory, trajectory, trajectory, falses(N, 2), Periodic(1.0, 1.0); cycle_map)
     obj = Phantom(x=zeros(N), ρ=[1.0, 2.0, 3.0], T1=fill(Inf, N), T2=fill(Inf, N), motion=motion)
     seq = Sequence([Grad(0.0, 2.1)])
 
@@ -868,14 +864,33 @@ end
     @test KomaMRICore.cycle_remap_sources(obj, motion) == cycle_map
     @test eltype(f32(obj).motion.action.cycle_map) === Int
 
-    cpu_params = Dict{String,Any}("gpu" => false, "return_type" => "state")
-    @test_throws ArgumentError simulate(obj, seq, Scanner(); sim_params=cpu_params, verbose=false)
+    # Two boundaries (t = 1, 2 s) apply the map twice: [1,2,3] -> [2,2,1] -> [2,2,2]
+    sim_params = Dict{String,Any}("gpu" => USE_GPU, "return_type" => "state")
+    state = simulate(obj, seq, Scanner(); sim_params, verbose=false)
+    @test state.z ≈ Float32[2, 2, 2]
+end
 
-    if USE_GPU
-        gpu_params = Dict{String,Any}("gpu" => true, "return_type" => "state")
-        state = simulate(obj, seq, Scanner(); sim_params=gpu_params, verbose=false)
-        @test state.z ≈ Float32[2, 2, 2]
-    end
+# Cycle boundaries are motion key times, so discretize promotes them to integration-step
+# boundaries and the forced block break stays aligned with the Magnus node stencil.
+@testitem "Cycle-remap breaks align with Magnus steps" tags=[:core, :motion] begin
+    include("initialize_backend.jl")
+
+    sim_method = BlochMagnusBGL4()
+    seq = PulseDesigner.RF_hard(10e-6, 1e-3, Scanner())
+    trajectory = zeros(1, 2)
+    # 0.33 ms period: boundaries land inside the RF pulse, off the nominal Δt_rf grid
+    motion = flowpath(trajectory, trajectory, trajectory, falses(1, 2), Periodic(0.33e-3, 1.0); cycle_map=[1])
+    sim_params = KomaMRICore.default_sim_params(Dict{String,Any}("sim_method" => sim_method))
+    seqd = discretize(seq; sampling_rule=KomaMRICore.simulation_sampling_rule(sim_method, sim_params), motion)
+
+    breaks = KomaMRICore.cycle_remap_break_indices(seqd, motion)
+    rf_start = first(findall(seqd.excitation_bool))
+    eval_stride = KomaMRICore.eval_intervals_per_step(sim_method)
+    parts, excitation_bool = KomaMRICore.get_sim_ranges(seqd; breaks)
+    @test !isempty(breaks)
+    @test all(iszero((b - rf_start) % eval_stride) for b in breaks)
+    @test all(any(first(p) == b for p in parts) for b in breaks)
+    @test all(excitation_bool[findfirst(p -> first(p) == b, parts)] for b in breaks)
 end
 
 # We compare with the result given by OrdinaryDiffEqTsit5

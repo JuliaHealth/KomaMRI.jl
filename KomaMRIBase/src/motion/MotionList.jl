@@ -131,14 +131,9 @@ end
 Base.length(m::MotionList) = length(m.motions)
 
 function cycle_remap(ml::MotionList)
-    remap = nothing
-    for m in ml.motions
-        candidate = cycle_remap(m)
-        isnothing(candidate) && continue
-        isnothing(remap) || throw(ArgumentError("Only one cycle-remapped FlowPath is currently supported per phantom."))
-        remap = candidate
-    end
-    return remap
+    remaps = filter(!isnothing, cycle_remap.(ml.motions))
+    length(remaps) <= 1 || throw(ArgumentError("Only one cycle-remapped FlowPath is supported per phantom."))
+    return isempty(remaps) ? nothing : only(remaps)
 end
 
 function get_spin_coords(

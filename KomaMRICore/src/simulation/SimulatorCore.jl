@@ -179,7 +179,7 @@ function run_sim_time_iter!(
     parts=[1:length(seqd)],
     excitation_bool=ones(Bool, size(parts)),
     remap_before=falses(length(parts)),
-    cycle_remap_workspace=nothing,
+    remap_sources=nothing,
     sim_params=Dict{String,Any}(),
     callbacks=(),
 ) where {T<:Real}
@@ -192,9 +192,7 @@ function run_sim_time_iter!(
     (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
 
     for (block, p) in enumerate(parts)
-        remap_before[block] && remap_magnetization!(
-            Xt, cycle_remap_workspace, backend, precession_groupsize
-        )
+        remap_before[block] && remap_magnetization!(Xt, remap_sources)
         seqd_block = @view seqd[p]
         # Params
         Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
@@ -255,29 +253,19 @@ function split_range(r, max_block_length, eval_intervals_per_step)
     return [i:min(i + block_length, last(r)) for i in first(r):block_length:(last(r) - 1)]
 end
 
-function get_sim_ranges(
-    seqd::DiscreteSequence;
-    max_block_length=Inf,
-    max_rf_block_length=Inf,
-    eval_intervals_per_step=1,
-    breaks=Int[],
-)
+function get_sim_ranges(seqd::DiscreteSequence; max_block_length=Inf, max_rf_block_length=Inf, eval_intervals_per_step=1, breaks=Int[])
     ranges, ranges_bool = UnitRange{Int}[], Bool[]; isempty(seqd.Δt) && return ranges, ranges_bool
 
-    starts = [firstindex(seqd.Δt); findall(seqd.excitation_bool[2:end] .!= seqd.excitation_bool[1:(end - 1)]) .+ 1]
+    starts = sort!(unique!([firstindex(seqd.Δt); findall(seqd.excitation_bool[2:end] .!= seqd.excitation_bool[1:(end - 1)]) .+ 1; breaks]))
     stops = [starts[2:end] .- 1; lastindex(seqd.Δt)]
     for (start, stop) in zip(starts, stops)
         is_excitation = seqd.excitation_bool[start]
         max_length = is_excitation ? max_rf_block_length : max_block_length
         eval_stride = is_excitation ? eval_intervals_per_step : 1
-        segment_breaks = filter(b -> start < b <= stop, breaks)
-        segment_starts = [start; segment_breaks]
-        segment_stops = [segment_breaks .- 1; stop]
-        for (segment_start, segment_stop) in zip(segment_starts, segment_stops)
-            split_ranges = split_range(segment_start:(segment_stop + 1), max_length, eval_stride)
-            append!(ranges, split_ranges)
-            append!(ranges_bool, fill(is_excitation, length(split_ranges)))
-        end
+        r = start:(stop + 1)
+        split_ranges = split_range(r, max_length, eval_stride)
+        append!(ranges, split_ranges)
+        append!(ranges_bool, fill(is_excitation, length(split_ranges)))
     end
     return ranges, ranges_bool
 end
@@ -383,8 +371,6 @@ function simulate(
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
     backend = get_backend(sim_params["gpu"])
-    !isnothing(remap_motion) && !(backend isa KA.GPU) &&
-        throw(ArgumentError("FlowPath cycle_map is supported only for GPU simulation."))
     sim_params["gpu"] &= backend isa KA.GPU
     if sim_params["gpu"]
         sim_params["Nthreads"] = 1
@@ -409,9 +395,8 @@ function simulate(
         seqd = seqd |> gpu #DiscreteSequence
         Xt = Xt |> gpu #SpinStateRepresentation
         sig = sig |> gpu #Signal
+        remap_sources = remap_sources |> gpu #Cycle remap indexes
     end
-    remap_workspace = isnothing(remap_sources) ? nothing :
-        cycle_remap_workspace(remap_sources, Xt, backend)
 
     # Simulation
     all_callbacks = (callbacks..., Callback(verbose, 1, progressbar_callback(Nblocks)))
@@ -433,7 +418,7 @@ function simulate(
         parts,
         excitation_bool,
         remap_before,
-        cycle_remap_workspace=remap_workspace,
+        remap_sources,
         sim_params,
         callbacks=all_callbacks,
     )

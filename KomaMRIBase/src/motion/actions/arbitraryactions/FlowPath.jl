@@ -13,8 +13,8 @@ has a size of (``N_{spins} \times \; N_{discrete\,times}``).
 For periodic, non-closed trajectories, `cycle_map` can provide a precomputed
 destination-to-source particle mapping. At each cycle boundary, particle `i`
 receives the magnetization of particle `cycle_map[i]`. The map uses 1-based
-indices local to this `FlowPath`. Koma does not calculate this map. Remapping is
-currently supported only on the GPU, and phantoms using it cannot be sliced.
+indices local to this `FlowPath`. Koma does not calculate this map. A map is only
+meaningful for the whole particle set, so slicing a `FlowPath` drops it.
 
 # Arguments
 - `dx`: (`::AbstractArray{T<:Real}`, `[m]`) displacements in x
@@ -36,62 +36,27 @@ julia> f = FlowPath(
        )
 ```
 """
-@with_kw struct FlowPath{T<:Real,M} <: ArbitraryAction{T}
+@with_kw struct FlowPath{T<:Real} <: ArbitraryAction{T}
     dx::AbstractArray{T}
     dy::AbstractArray{T}
     dz::AbstractArray{T}
     spin_reset::AbstractArray{Bool}
-    cycle_map::M = nothing
+    cycle_map::Union{Nothing,Vector{Int}} = nothing
 end
 
-function FlowPath(
-    dx::AbstractArray{T},
-    dy::AbstractArray{T},
-    dz::AbstractArray{T},
-    spin_reset::AbstractArray{Bool},
-    cycle_map::Union{Nothing,AbstractVector{<:Integer}},
-) where T<:Real
-    size(dx) == size(dy) == size(dz) == size(spin_reset) ||
-        throw(DimensionMismatch("FlowPath arrays must have equal sizes."))
-    if !isnothing(cycle_map)
-        eltype(cycle_map) === Bool && throw(ArgumentError("cycle_map must contain particle indices, not Bool values."))
-        length(cycle_map) == size(dx, 1) ||
-            throw(DimensionMismatch("cycle_map length must equal the number of FlowPath particles."))
-        all(i -> 1 <= i <= size(dx, 1), cycle_map) ||
-            throw(ArgumentError("cycle_map indices must be between 1 and $(size(dx, 1))."))
-        cycle_map = Int.(collect(cycle_map))
-    end
-    spin_reset = spin_reset isa BitMatrix ? collect(spin_reset) : spin_reset
-    return FlowPath{T,typeof(cycle_map)}(dx, dy, dz, spin_reset, cycle_map)
+FlowPath(dx, dy, dz, spin_reset::BitMatrix; cycle_map=nothing) = FlowPath(dx, dy, dz, collect(spin_reset); cycle_map)
+function FlowPath(dx, dy, dz, spin_reset::AbstractArray{Bool}; cycle_map=nothing)
+    isnothing(cycle_map) ||
+        (eltype(cycle_map) !== Bool && length(cycle_map) == size(dx, 1) && all(in(axes(dx, 1)), cycle_map)) ||
+        throw(ArgumentError("cycle_map must hold one source particle index per FlowPath particle."))
+    return FlowPath(dx, dy, dz, spin_reset, isnothing(cycle_map) ? nothing : Vector{Int}(cycle_map))
 end
 
-function FlowPath(
-    dx::AbstractArray{T},
-    dy::AbstractArray{T},
-    dz::AbstractArray{T},
-    spin_reset::AbstractArray{Bool};
-    cycle_map=nothing,
-) where T<:Real
-    return FlowPath(dx, dy, dz, spin_reset, cycle_map)
-end
+# A cycle_map indexes the whole particle set, so a sub-group cannot carry it.
+_sliced_cycle_map(a::FlowPath, p) = (p isa Colon || p == 1:size(a.dx, 1)) ? a.cycle_map : nothing
 
-function Base.getindex(action::FlowPath{T}, p) where T
-    isnothing(action.cycle_map) || _is_full_spin_selection(p, size(action.dx, 1)) ||
-        throw(ArgumentError("FlowPath with cycle_map cannot be sliced."))
-    return FlowPath(
-        action.dx[p, :], action.dy[p, :], action.dz[p, :], action.spin_reset[p, :],
-        action.cycle_map,
-    )
-end
-
-function Base.view(action::FlowPath{T}, p) where T
-    isnothing(action.cycle_map) || _is_full_spin_selection(p, size(action.dx, 1)) ||
-        throw(ArgumentError("FlowPath with cycle_map cannot be sliced."))
-    return @views FlowPath{T,typeof(action.cycle_map)}(
-        action.dx[p, :], action.dy[p, :], action.dz[p, :], action.spin_reset[p, :],
-        action.cycle_map,
-    )
-end
+Base.getindex(a::FlowPath, p) = FlowPath(a.dx[p, :], a.dy[p, :], a.dz[p, :], a.spin_reset[p, :], _sliced_cycle_map(a, p))
+Base.view(a::FlowPath, p) = @views FlowPath(a.dx[p, :], a.dy[p, :], a.dz[p, :], a.spin_reset[p, :], _sliced_cycle_map(a, p))
 
 function add_reset_times!(t, a::FlowPath, t_start, t_end, periods)
     aux = t_start .+ (t_end - t_start)/(size(a.spin_reset)[2]-1) * (getindex.(findall(a.spin_reset .== 1), 2) .- 1)

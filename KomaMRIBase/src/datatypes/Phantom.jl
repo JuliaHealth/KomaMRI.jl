@@ -63,19 +63,6 @@ Base.lastindex(x::Phantom) = length(x)
 Base.getindex(x::Phantom, i::Integer) = x[i:i]
 Base.view(x::Phantom, i::Integer) = @view(x[i:i])
 Base.copy(obj::Phantom) = Phantom(_deepcopy_fields(obj)...)
-
-_is_full_spin_selection(::Colon, N) = true
-_is_full_spin_selection(p::AbstractRange{<:Integer}, N) = p == Base.OneTo(N) || p == 1:N
-_is_full_spin_selection(p::AbstractVector{Bool}, N) = length(p) == N && all(p)
-_is_full_spin_selection(p::AbstractVector{<:Integer}, N) =
-    length(p) == N && all(i -> p[i] == i, eachindex(p))
-_is_full_spin_selection(p, N) = false
-
-function _assert_cycle_remap_slice(obj, p)
-    isnothing(cycle_remap(obj.motion)) || _is_full_spin_selection(p, length(obj)) ||
-        throw(ArgumentError("Phantoms with a FlowPath cycle_map cannot be sliced."))
-    return nothing
-end
 """Compare two phantoms"""
 function Base.:(==)(obj1::Phantom, obj2::Phantom)
     if length(obj1) != length(obj2) return false end
@@ -91,7 +78,6 @@ Base.:(≈)(::Union{NoMotion, Motion, MotionList},  ::Union{NoMotion, Motion, Mo
 
 """Separate object spins in a sub-group"""
 function Base.getindex(obj::Phantom, p)
-    _assert_cycle_remap_slice(obj, p)
     fields = []
     for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, getfield(obj, field)[p]))
@@ -99,7 +85,6 @@ function Base.getindex(obj::Phantom, p)
     return Phantom(; name=obj.name, fields...)
 end
 function Base.view(obj::Phantom, p)
-    _assert_cycle_remap_slice(obj, p)
     fields = []
     for field in NON_STRING_PHANTOM_FIELDS
         push!(fields, (field, @view(getfield(obj, field)[p])))

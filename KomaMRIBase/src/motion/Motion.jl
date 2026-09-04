@@ -173,15 +173,7 @@ julia> fp = flowpath(
        )
 ```
 """
-function flowpath(
-    dx,
-    dy,
-    dz,
-    spin_reset,
-    time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))),
-    spins=AllSpins();
-    cycle_map=nothing,
-)
+function flowpath(dx, dy, dz, spin_reset, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins(); cycle_map=nothing)
     !isnothing(cycle_map) && !time.periodic &&
         throw(ArgumentError("cycle_map requires a periodic TimeCurve."))
     return Motion(FlowPath(dx, dy, dz, spin_reset; cycle_map), time, spins)
@@ -234,16 +226,12 @@ times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
 cycle_map(::AbstractAction) = nothing
 cycle_map(action::FlowPath) = action.cycle_map
-function cycle_remap(m::Motion)
-    isnothing(cycle_map(m.action)) && return nothing
-    m.time.periodic || throw(ArgumentError("cycle_map requires a periodic TimeCurve."))
-    return m
-end
+cycle_remap(m::Motion) = isnothing(cycle_map(m.action)) ? nothing : m
 
 function cycle_remap_times(motion, t_max)
     m = cycle_remap(motion)
-    isnothing(m) && return typeof(float(t_max))[]
-    t = typeof(m.time.t_start)[]
+    t = typeof(float(t_max))[]
+    isnothing(m) && return t
     add_cycle_end_times!(t, m.time.t_start, m.time.t_end, m.time.periods)
     period = sum((m.time.t_end - m.time.t_start) .* m.time.periods)
     extend_periodic!(t, t_max, period, Val(m.time.periodic))
