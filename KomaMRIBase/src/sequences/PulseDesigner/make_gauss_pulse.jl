@@ -15,11 +15,11 @@ function build_gauss_pulse(flip_angle; sys=Scanner(), kwargs...)
     seq = Sequence(sys)
     if gz === nothing
         addblock!(seq, rf)
-        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
         return seq
     end
     addblock!(seq, rf; z=gz)
-    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
     addblock!(seq; z=gz_rephaser)
     return seq
 end
@@ -44,7 +44,7 @@ unless `slice_thickness` is supplied.
 - `apodization=0.0`: Cosine-window weight.
 - `center_pos=0.5`: RF center position as a fraction of `duration`.
 - `delay=0.0`: RF delay before RF dead-time adjustment. [`s`]
-- `dwell=sys.RF_Δt`: RF sample spacing. [`s`]
+- `dwell=sys.limits.RF_Δt`: RF sample spacing. [`s`]
 - `use=Undefined()`: RF use label.
 - `max_grad=nothing`: Slice-gradient amplitude limit override. Plain numbers use Pulseq units. [`Hz/m`]
 - `max_slew=nothing`: Slice-gradient slew limit override. Plain numbers use Pulseq units. [`Hz/m/s`]
@@ -56,7 +56,7 @@ unless `slice_thickness` is supplied.
 """
 function make_gauss_pulse(flip_angle; duration, sys=Scanner(), slice_thickness=nothing,
     bandwidth=nothing, time_bw_product=3.0, freq_offset=0.0, phase_offset=0.0,
-    apodization=0.0, center_pos=0.5, delay=0.0, dwell=sys.RF_Δt, use=Undefined(),
+    apodization=0.0, center_pos=0.5, delay=0.0, dwell=sys.limits.RF_Δt, use=Undefined(),
     max_grad=nothing, max_slew=nothing)
     flip_angle      = to_SI(flip_angle, SIUnitsDefault())
     duration        = to_SI(duration, SIUnitsDefault())
@@ -66,8 +66,8 @@ function make_gauss_pulse(flip_angle; duration, sys=Scanner(), slice_thickness=n
     phase_offset    = to_SI(phase_offset, SIUnitsDefault())
     delay           = to_SI(delay, SIUnitsDefault())
     dwell           = to_SI(dwell, SIUnitsDefault())
-    max_grad        = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
-    max_slew        = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    max_grad        = isnothing(max_grad) ? sys.limits.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew        = isnothing(max_slew) ? sys.limits.Smax : to_SI(max_slew, PulseqUnitsDefault())
     duration > 0 || error("RF pulse duration must be positive.")
     dwell > 0 || error("RF dwell time must be positive.")
     bandwidth = bandwidth === nothing ? time_bw_product / duration : bandwidth
@@ -79,7 +79,7 @@ function make_gauss_pulse(flip_angle; duration, sys=Scanner(), slice_thickness=n
     waveform = @. (1 - apodization + apodization * cos(2π * tt / duration)) *
         exp(-π * (bandwidth * tt)^2)
     waveform = normalize_flip_angle(waveform, dwell, flip_angle) .|> complex
-    rf_start_time = max(delay, sys.RF_dead_time)
+    rf_start_time = max(delay, sys.limits.RF_dead_time)
     rf = RF(waveform, (n - 1) * dwell, freq_offset, rf_start_time + dwell / 2;
         center=duration * center_pos - dwell / 2, ϕ=phase_offset, use)
     slice_thickness === nothing && return rf, nothing, nothing

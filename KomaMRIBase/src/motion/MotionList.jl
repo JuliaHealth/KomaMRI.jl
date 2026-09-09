@@ -131,14 +131,31 @@ end
 Base.length(m::MotionList) = length(m.motions)
 
 function get_spin_coords(
-    ml::MotionList{T}, x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, t
-) where {T<:Real}
+    ml::MotionList, x, y, z, t,
+)
+    T = eltype(x)
+    positions = (
+        x .+ zero(T) .* t,
+        y .+ zero(T) .* t,
+        z .+ zero(T) .* t,
+    )
+    displacements = similar.(positions)
+    return get_spin_coords!(positions, displacements, ml, x, y, z, t)
+end
+
+function get_spin_coords!(
+    (xt, yt, zt), (ux, uy, uz),
+    ml::MotionList, x, y, z, t,
+)
+    T = eltype(x)
     # Sort motions
     sort_motions!(ml)
-    # Buffers for positions:
-    xt, yt, zt = x .+ 0*t, y .+ 0*t, z .+ 0*t
-    # Buffers for displacements:
-    ux, uy, uz = xt .* zero(T), yt .* zero(T), zt .* zero(T)
+    xt .= x
+    yt .= y
+    zt .= z
+    fill!(ux, zero(T))
+    fill!(uy, zero(T))
+    fill!(uz, zero(T))
     # Composable motions: they need to be run sequentially. Note that they depend on xt, yt, and zt
     for m in Iterators.filter(is_composable, ml.motions)
         t_unit = unit_time(t, m.time)
@@ -147,7 +164,7 @@ function get_spin_coords(
         displacement_y!(@view(uy[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(xt[idx, :]), @view(yt[idx, :]), @view(zt[idx, :]), t_unit)
         xt .+= ux; yt .+= uy; zt .+= uz
-        ux .*= zero(T); uy .*= zero(T); uz .*= zero(T)
+        fill!(ux, zero(T)); fill!(uy, zero(T)); fill!(uz, zero(T))
     end
     # Additive motions: these motions can be run in parallel
     for m in Iterators.filter(!is_composable, ml.motions)
@@ -157,7 +174,7 @@ function get_spin_coords(
         displacement_y!(@view(uy[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         displacement_z!(@view(uz[idx, :]), m.action, @view(x[idx]), @view(y[idx]), @view(z[idx]), t_unit)
         xt .+= ux; yt .+= uy; zt .+= uz
-        ux .*= zero(T); uy .*= zero(T); uz .*= zero(T)
+        fill!(ux, zero(T)); fill!(uy, zero(T)); fill!(uz, zero(T))
     end
     return xt, yt, zt
 end

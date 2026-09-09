@@ -12,6 +12,7 @@ function run_spin_precession!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys,
     sim_method::BlochMagnus,
     groupsize,
     backend::KA.CPU,
@@ -25,17 +26,24 @@ function run_spin_precession!(
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
-    x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[1])
+    x, y, z = spin_coordinates!(
+        prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[1],
+    )
     @. Bz_0 = x * seq.Gx[1] + y * seq.Gy[1] + z * seq.Gz[1] + ΔBz
     for i in eachindex(seq.Δt)
-        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
+        )
         @. Bz_1 = x * seq.Gx[i + 1] + y * seq.Gy[i + 1] + z * seq.Gz[i + 1] + ΔBz
         @. ϕ += (Bz_0 + Bz_1) * T(-π * γ) * seq.Δt[i]
         block_time += seq.Δt[i]
         if seq.ADC[i + 1]
             @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
             outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
-            sig[sample] = sum(Mxy)
+            update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)
+            acquire_signal!(
+                @view(sig[sample, :]), Mxy, prealloc.sens, (x, y, z),
+            )
             sample += 1
         end
         Bz_0 .= Bz_1
@@ -51,6 +59,7 @@ function run_spin_excitation!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys,
     sim_method::BlochMagnusConst1,
     groupsize,
     backend::KA.CPU,
@@ -68,13 +77,17 @@ function run_spin_excitation!(
     if !iszero(ψ_start)
         @. M.xy = M.xy * cis(-ψ_start)
     end
-    x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[1])
+    x, y, z = spin_coordinates!(
+        prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[1],
+    )
     @. ωxy_0 = seq.B1[1] * B_to_ω
     @. ωz_0 = (seq.Gx[1] * x + seq.Gy[1] * y + seq.Gz[1] * z + ΔBz) * B_to_ω + seq.Δf[1] * T(2π)
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
+        )
         rotation_vector!(θxy, θz, ωxy_0, ωz_0, seq.Δt[i], sim_method)
         set_rotation_spinor!(α, β, θxy, θz)
         calc_mag_norm!(rotation_norm, M)
@@ -87,7 +100,10 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            sig[sample] = sum(M.xy)
+            update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)
+            acquire_signal!(
+                @view(sig[sample, :]), M.xy, prealloc.sens, (x, y, z),
+            )
             sample += 1
         end
         #Update simulation state
@@ -110,6 +126,7 @@ function run_spin_excitation!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys,
     sim_method::Union{BlochMagnusLin2,BlochMagnusLinComm2},
     groupsize,
     backend::KA.CPU,
@@ -127,13 +144,17 @@ function run_spin_excitation!(
     if !iszero(ψ_start)
         @. M.xy = M.xy * cis(-ψ_start)
     end
-    x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[1])
+    x, y, z = spin_coordinates!(
+        prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[1],
+    )
     @. ωxy_0 = seq.B1[1] * B_to_ω
     @. ωz_0 = (seq.Gx[1] * x + seq.Gy[1] * y + seq.Gz[1] * z + ΔBz) * B_to_ω + seq.Δf[1] * T(2π)
     #Simulation
     for i in eachindex(seq.Δt)
         #Motion
-        x, y, z = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i + 1])
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i + 1],
+        )
         #Effective field
         @. ωxy_1 = seq.B1[i + 1] * B_to_ω
         @. ωz_1  = (seq.Gx[i + 1] * x + seq.Gy[i + 1] * y + seq.Gz[i + 1] * z + ΔBz) * B_to_ω + seq.Δf[i + 1] * T(2π)
@@ -150,7 +171,10 @@ function run_spin_excitation!(
         outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
-            sig[sample] = sum(M.xy)
+            update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)
+            acquire_signal!(
+                @view(sig[sample, :]), M.xy, prealloc.sens, (x, y, z),
+            )
             sample += 1
         end
         #Update simulation state

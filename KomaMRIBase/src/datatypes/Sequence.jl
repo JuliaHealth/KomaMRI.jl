@@ -124,17 +124,17 @@ const DEFAULT_SEQUENCE_DEFINITIONS = Dict{String,Any}(
 )
 
 _sequence_def(sys::Scanner) = Dict{String,Any}(
-    "BlockDurationRaster" => sys.DUR_Δt,
-    "GradientRasterTime" => sys.GR_Δt,
-    "RadiofrequencyRasterTime" => sys.RF_Δt,
-    "AdcRasterTime" => sys.ADC_Δt,
-    "B0" => sys.B0,
-    "MaxB1" => sys.B1,
-    "MaxGrad" => sys.Gmax,
-    "MaxSlew" => sys.Smax,
-    "RfRingdownTime" => sys.RF_ring_down_time,
-    "RfDeadTime" => sys.RF_dead_time,
-    "AdcDeadTime" => sys.ADC_dead_time,
+    "BlockDurationRaster" => sys.limits.DUR_Δt,
+    "GradientRasterTime" => sys.limits.GR_Δt,
+    "RadiofrequencyRasterTime" => sys.limits.RF_Δt,
+    "AdcRasterTime" => sys.limits.ADC_Δt,
+    "B0" => sys.limits.B0,
+    "MaxB1" => sys.limits.B1,
+    "MaxGrad" => sys.limits.Gmax,
+    "MaxSlew" => sys.limits.Smax,
+    "RfRingdownTime" => sys.limits.RF_ring_down_time,
+    "RfDeadTime" => sys.limits.RF_dead_time,
+    "AdcDeadTime" => sys.limits.ADC_dead_time,
 )
 
 _default_sequence_def() = copy(DEFAULT_SEQUENCE_DEFINITIONS)
@@ -150,17 +150,19 @@ end
 function _sequence_scanner_from_def(def)
     default = DEFAULT_SEQUENCE_DEFINITIONS
     return Scanner(
-        B0=get(def, "B0", default["B0"]),
-        B1=get(def, "MaxB1", default["MaxB1"]),
-        Gmax=get(def, "MaxGrad", default["MaxGrad"]),
-        Smax=get(def, "MaxSlew", default["MaxSlew"]),
-        ADC_Δt=get(def, "AdcRasterTime", default["AdcRasterTime"]),
-        DUR_Δt=get(def, "BlockDurationRaster", default["BlockDurationRaster"]),
-        GR_Δt=get(def, "GradientRasterTime", default["GradientRasterTime"]),
-        RF_Δt=get(def, "RadiofrequencyRasterTime", default["RadiofrequencyRasterTime"]),
-        RF_ring_down_time=get(def, "RfRingdownTime", default["RfRingdownTime"]),
-        RF_dead_time=get(def, "RfDeadTime", default["RfDeadTime"]),
-        ADC_dead_time=get(def, "AdcDeadTime", default["AdcDeadTime"]),
+        limits=HardwareLimits(
+            B0=get(def, "B0", default["B0"]),
+            B1=get(def, "MaxB1", default["MaxB1"]),
+            Gmax=get(def, "MaxGrad", default["MaxGrad"]),
+            Smax=get(def, "MaxSlew", default["MaxSlew"]),
+            ADC_Δt=get(def, "AdcRasterTime", default["AdcRasterTime"]),
+            DUR_Δt=get(def, "BlockDurationRaster", default["BlockDurationRaster"]),
+            GR_Δt=get(def, "GradientRasterTime", default["GradientRasterTime"]),
+            RF_Δt=get(def, "RadiofrequencyRasterTime", default["RadiofrequencyRasterTime"]),
+            RF_ring_down_time=get(def, "RfRingdownTime", default["RfRingdownTime"]),
+            RF_dead_time=get(def, "RfDeadTime", default["RfDeadTime"]),
+            ADC_dead_time=get(def, "AdcDeadTime", default["AdcDeadTime"]),
+        ),
     )
 end
 

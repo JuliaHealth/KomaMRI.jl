@@ -241,9 +241,8 @@ end
         else
             w = KomaUI(; return_window=true, sim=Dict{String,Any}("gpu" => false))
             session = w.session[]
-            click_button(id) = Bonito.evaljs_value(
-                session, js"document.getElementById($(id)).click()"
-            )
+            click_button(id) =
+                Bonito.evaljs(session, js"document.getElementById($(id)).click()")
             plot_rendered(state) = Bonito.evaljs_value(
                 session,
                 js"""
@@ -360,7 +359,12 @@ end
 
                     seq_ui[] = triggered
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
                     @test physio_ui[].period == 1.0
+                    @test Bonito.evaljs_value(
+                        session,
+                        js"document.querySelector('#content .rangeslider-container') === null",
+                    )
 
                     physio_ui[] = CardiacSignal(; heart_rate=1.25)
                     @test physio_ui[].period == 0.8
@@ -395,10 +399,41 @@ end
                     @test any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
 
+                    # Reload must reread the selected path and display the changed sequence.
+                    reload_source = joinpath(mktempdir(), "reload.seq")
+                    cp(sequence_file, reload_source)
+                    _, selected_file = KomaMRI.filepicker_selection(Dict(
+                        "name" => "reload.seq",
+                        "path" => reload_source,
+                        "data" => read(sequence_file),
+                    ))
+                    getfield(w.handlers["reload_seq"], :seq_file)[] = selected_file
+                    click_button("button_phantom")
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+                    cp(
+                        joinpath(files, "pulseq", "basic_tests", "v1.4", "epi.seq"),
+                        reload_source;
+                        force=true,
+                    )
+                    previous_sequence = seq_ui[]
+                    click_button("button_reload_seq")
+                    @test timedwait(() -> seq_ui[] !== previous_sequence, 30) == :ok
+                    @test !any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
+                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+
                     phantom_file = joinpath(files, "phantom", "column1d.h5")
+                    previous_phantom = obj_ui[]
                     obj_ui[] = KomaMRI.callback_filepicker(phantom_file, w, obj_ui[])
                     @test obj_ui[].name == "column1d.h5"
                     @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+
+                    getfield(w.handlers["reload_phantom"], :phantom_file)[] = phantom_file
+                    obj_ui[] = previous_phantom
+                    click_button("button_reload_phantom")
+                    @test timedwait(() -> obj_ui[].name == "column1d.h5", 30) == :ok
+                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
+                    @test timedwait(() -> plot_rendered("phantom"), 30) == :ok
 
                     raw_file = joinpath(@__DIR__, "test_files", "Koma_signal.mrd")
                     raw_ui[] = KomaMRI.callback_filepicker(raw_file, w, raw_ui[])
@@ -408,9 +443,12 @@ end
 
                 @testset "Close UI" begin
                     waiter = @async KomaMRI.keep_app_open(w)
+                    app = w.window[].app
                     close(w.window[])
                     @test timedwait(() -> istaskdone(waiter), 30) == :ok
                     @test !isopen(w)
+                    close(w)
+                    @test timedwait(() -> process_exited(app.proc), 30) == :ok
                 end
             finally
                 close(w)

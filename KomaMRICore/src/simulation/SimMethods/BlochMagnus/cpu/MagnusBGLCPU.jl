@@ -3,6 +3,7 @@ function run_spin_excitation!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys,
     sim_method::Union{BlochMagnusBGL4,BlochMagnusBGL6},
     groupsize,
     backend::KA.CPU,
@@ -31,16 +32,21 @@ function run_spin_excitation!(
             throw(ArgumentError("$(typeof(sim_method)) RF intervals must contain three Blanes Gauss-Legendre nodes."))
 
         Δt = seq.t[i1] - seq.t[i0]
-        x_minus, y_minus, z_minus = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i_minus])
-        x_center, y_center, z_center = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i_center])
-        x_plus, y_plus, z_plus = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i_plus])
-
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i_minus],
+        )
         @. ωxy_minus = seq.B1[i_minus] * B_to_ω
-        @. ωz_minus = (seq.Gx[i_minus] * x_minus + seq.Gy[i_minus] * y_minus + seq.Gz[i_minus] * z_minus + ΔBz) * B_to_ω + seq.Δf[i_minus] * T(2π)
+        @. ωz_minus = (seq.Gx[i_minus] * x + seq.Gy[i_minus] * y + seq.Gz[i_minus] * z + ΔBz) * B_to_ω + seq.Δf[i_minus] * T(2π)
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i_center],
+        )
         @. ωxy_center = seq.B1[i_center] * B_to_ω
-        @. ωz_center = (seq.Gx[i_center] * x_center + seq.Gy[i_center] * y_center + seq.Gz[i_center] * z_center + ΔBz) * B_to_ω + seq.Δf[i_center] * T(2π)
+        @. ωz_center = (seq.Gx[i_center] * x + seq.Gy[i_center] * y + seq.Gz[i_center] * z + ΔBz) * B_to_ω + seq.Δf[i_center] * T(2π)
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i_plus],
+        )
         @. ωxy_plus = seq.B1[i_plus] * B_to_ω
-        @. ωz_plus = (seq.Gx[i_plus] * x_plus + seq.Gy[i_plus] * y_plus + seq.Gz[i_plus] * z_plus + ΔBz) * B_to_ω + seq.Δf[i_plus] * T(2π)
+        @. ωz_plus = (seq.Gx[i_plus] * x + seq.Gy[i_plus] * y + seq.Gz[i_plus] * z + ΔBz) * B_to_ω + seq.Δf[i_plus] * T(2π)
 
         rotation_vector!(
             θxy, θz,
@@ -61,7 +67,11 @@ function run_spin_excitation!(
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
         outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
         if seq.ADC[i1]
-            sig[sample] = sum(M.xy)
+            coords = spin_coordinates!(
+                prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i1],
+            )
+            update_sensitivities!(prealloc.sens, sys.receiver, coords, p.motion)
+            acquire_signal!(@view(sig[sample, :]), M.xy, prealloc.sens, coords)
             sample += 1
         end
         i = i1

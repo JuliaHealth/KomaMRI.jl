@@ -8,6 +8,17 @@ CurrentModule = KomaMRIBase
 
 ```@docs
 Scanner
+HardwareLimits
+AbstractGradientSystem
+LinearXYZ
+AbstractRFReceiveSystem
+UniformCoilSens
+BirdcageCoilSens
+ArbitraryCoilSens
+get_n_coils
+get_sens
+AbstractRFTransmitSystem
+UniformTransmit
 ```
 
 ## `Phantom`-related functions 

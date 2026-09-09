@@ -1,10 +1,19 @@
+sequence_slider_visible(::NoPhysioSignal, long_seq) = !long_seq
+sequence_slider_visible(::AbstractPhysioSignal, _) = false
+
 function show_sequence!(w, seq, view; darkmode=true, physio=NoPhysioSignal())
     if view === :sequence
         display_loading!(w, "Plotting sequence ...")
         long_seq = length(seq) > 1_000
         time_end = long_seq ? dur(seq) * 1e3 : 30
         plot = plot_seq(
-            seq; darkmode, range=[0 time_end], slider=!long_seq, gl=long_seq, show_adc=false, physio
+            seq;
+            darkmode,
+            range=[0 time_end],
+            slider=sequence_slider_visible(physio, long_seq),
+            gl=long_seq,
+            show_adc=false,
+            physio,
         )
         set_content!(w, plot_node(plot), "sequence")
     elseif view === :kspace
@@ -38,17 +47,17 @@ end
 function show_scanner!(w, sys)
     display_loading!(w, "Displaying scanner parameters ...")
     values = [
-        "B0" => sys.B0,
-        "B1" => sys.B1,
-        "Gmax" => sys.Gmax,
-        "Smax" => sys.Smax,
-        "ADC_dt" => sys.ADC_Δt,
-        "DUR_dt" => sys.DUR_Δt,
-        "GR_dt" => sys.GR_Δt,
-        "RF_dt" => sys.RF_Δt,
-        "RF_ring_down_time" => sys.RF_ring_down_time,
-        "RF_dead_time" => sys.RF_dead_time,
-        "ADC_dead_time" => sys.ADC_dead_time,
+        "B0" => sys.limits.B0,
+        "B1" => sys.limits.B1,
+        "Gmax" => sys.limits.Gmax,
+        "Smax" => sys.limits.Smax,
+        "ADC_dt" => sys.limits.ADC_Δt,
+        "DUR_dt" => sys.limits.DUR_Δt,
+        "GR_dt" => sys.limits.GR_Δt,
+        "RF_dt" => sys.limits.RF_Δt,
+        "RF_ring_down_time" => sys.limits.RF_ring_down_time,
+        "RF_dead_time" => sys.limits.RF_dead_time,
+        "ADC_dead_time" => sys.limits.ADC_dead_time,
     ]
     return set_content!(w, dictionary_page(values, "Scanner parameters"), "scanneparams")
 end

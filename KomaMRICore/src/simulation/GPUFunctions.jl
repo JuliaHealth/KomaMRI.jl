@@ -21,7 +21,7 @@ Base.:*(x::Number, ::Literal{T}) where T = T(x)
 const u32 = Literal(UInt32)
 
 """
-    get_backend(use_gpu::Bool)
+    get_backend(use_gpu; verbose=true)
 
 Gets the simulation backend to use. If `use_gpu=false` or there are no available GPU backends,
 returns `CPU()`, else returns the GPU backend (currently either `CUDABackend()`,
@@ -33,11 +33,12 @@ the CPU. oneAPI support is experimental.
 
 # Arguments
 - `use_gpu`: if true, attempt to use GPU and check for available backends
+- `verbose`: if true, print backend selection information
 
 # Returns
 - `backend`: selected `KernelAbstractions.Backend`
 """
-function get_backend(use_gpu::Bool)
+function get_backend(use_gpu; verbose=true)
     if !isnothing(BACKEND[])
         # The backend can be set and still need to change based on the value of
         # use_gpu, e.g. if switching between CPU and GPU while running tests
@@ -50,12 +51,14 @@ function get_backend(use_gpu::Bool)
     end
 
     if isempty(LOADED_BACKENDS[])
-        @info """ 
-          The GPU functionality is being called but no GPU backend is loaded 
-          to access it. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your 
-          code. Defaulting back to the CPU. (No action is required if you want
-          to run on the CPU). oneAPI support is experimental.
-        """ maxlog=1
+        if verbose
+            @info """
+              The GPU functionality is being called but no GPU backend is loaded
+              to access it. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your
+              code. Defaulting back to the CPU. (No action is required if you want
+              to run on the CPU). oneAPI support is experimental.
+            """ maxlog=1
+        end
         BACKEND[] = KA.CPU()
         return BACKEND[]
     end
@@ -71,20 +74,26 @@ function get_backend(use_gpu::Bool)
     
     if length(functional_gpu_backends) == 1
         BACKEND[] = functional_gpu_backends[1]
-        @info """Using  backend: '$(name(BACKEND[]))'"""  maxlog = 1
+        if verbose
+            @info """Using  backend: '$(name(BACKEND[]))'"""  maxlog = 1
+        end
         return BACKEND[]
     elseif length(functional_gpu_backends) == 0
-        @info """Defaulting back to the CPU. (No action is required if you want to run on the CPU). """ maxlog = 1
+        if verbose
+            @info """Defaulting back to the CPU. (No action is required if you want to run on the CPU). """ maxlog = 1
+        end
         BACKEND[] = KA.CPU()
         return BACKEND[]
     else
         # Will probably never get here
-        @info """
-          Multiple functional backends have been loaded and KomaMRI does not 
-          know which one to use. Ensure that your code contains only one 'using' 
-          statement for the GPU backend you wish to use. Defaulting back to the 
-          CPU. (No action is required if you want to run on the CPU).
-        """ maxlog = 1
+        if verbose
+            @info """
+              Multiple functional backends have been loaded and KomaMRI does not
+              know which one to use. Ensure that your code contains only one 'using'
+              statement for the GPU backend you wish to use. Defaulting back to the
+              CPU. (No action is required if you want to run on the CPU).
+            """ maxlog = 1
+        end
         BACKEND[] = KA.CPU()
         return BACKEND[]
     end

@@ -15,11 +15,11 @@ function build_adiabatic_pulse(type; sys=Scanner(), kwargs...)
     seq = Sequence(sys)
     if gz === nothing
         addblock!(seq, rf)
-        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
         return seq
     end
     addblock!(seq, rf; z=gz)
-    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
     addblock!(seq; z=gz_rephaser)
     return seq
 end
@@ -41,7 +41,7 @@ Common RF keywords:
 - `phase_offset=0.0`: RF phase offset. [`rad`]
 - `adiabaticity=4.0`: Adiabaticity scaling.
 - `delay=0.0`: RF delay before RF dead-time adjustment. [`s`]
-- `dwell=sys.RF_Δt`: RF sample spacing. [`s`]
+- `dwell=sys.limits.RF_Δt`: RF sample spacing. [`s`]
 - `use=Undefined()`: RF use label.
 
 Hypsec keywords:
@@ -79,7 +79,7 @@ _make_adiabatic_pulse(::Val{type}; kwargs...) where {type} =
 function _make_adiabatic_pulse(type::Union{Val{:hypsec},Val{:wurst}};
     duration=10e-3, sys=Scanner(), slice_thickness=nothing,
     freq_offset=0.0, phase_offset=0.0, beta=800.0, mu=4.9, n_fac=40,
-    bandwidth=40000.0, adiabaticity=4.0, delay=0.0, dwell=sys.RF_Δt,
+    bandwidth=40000.0, adiabaticity=4.0, delay=0.0, dwell=sys.limits.RF_Δt,
     use=Undefined(), max_grad=nothing, max_slew=nothing)
     duration        = to_SI(duration, SIUnitsDefault())
     slice_thickness = to_SI(slice_thickness, SIUnitsDefault())
@@ -88,8 +88,8 @@ function _make_adiabatic_pulse(type::Union{Val{:hypsec},Val{:wurst}};
     bandwidth       = to_SI(bandwidth, SIUnitsDefault())
     delay           = to_SI(delay, SIUnitsDefault())
     dwell           = to_SI(dwell, SIUnitsDefault())
-    max_grad        = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
-    max_slew        = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    max_grad        = isnothing(max_grad) ? sys.limits.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew        = isnothing(max_slew) ? sys.limits.Smax : to_SI(max_slew, PulseqUnitsDefault())
     duration > 0 || error("RF pulse duration must be positive.")
     dwell > 0 || error("RF dwell time must be positive.")
     nraw = round(Int, duration / dwell + eps())
@@ -102,7 +102,7 @@ function _make_adiabatic_pulse(type::Union{Val{:hypsec},Val{:wurst}};
         signal = [zeros(ComplexF64, npad - div(npad, 2)); signal; zeros(ComplexF64, div(npad, 2))]
     end
     peak_center = rf_peak_center(signal, dwell)
-    rf_start_time = max(delay, sys.RF_dead_time)
+    rf_start_time = max(delay, sys.limits.RF_dead_time)
     rf = RF(signal ./ γ, (nraw - 1) * dwell, freq_offset, rf_start_time + dwell / 2;
         center=peak_center - dwell / 2, ϕ=phase_offset, use)
     slice_thickness === nothing && return rf, nothing, nothing

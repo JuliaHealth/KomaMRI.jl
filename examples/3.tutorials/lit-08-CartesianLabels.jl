@@ -12,18 +12,18 @@ Nx = 64
 Ny = 64
 Nslices = 2
 FOV = 23e-2 #hide
-Tadc = sys.ADC_Δt * (Nx - 1) #hide
+Tadc = sys.limits.ADC_Δt * (Nx - 1) #hide
 TR = 0.45 #hide
 slice_delay = 2.0 #hide
 TE = 5e-3 #hide
-Gx = 1 / (γ * sys.ADC_Δt * FOV) #hide
+Gx = 1 / (γ * sys.limits.ADC_Δt * FOV) #hide
 Gz = 20e-3 #hide
 Trf = 2e-3 #hide
 slice_positions = [0.0, 4e-3]; #hide
 obj = brain_phantom3D(); #hide
 obj.Δw .= 0; #hide
-phase_encode(lin) = Grad((lin - (Ny - 1) / 2) * Gx * sys.ADC_Δt / Tadc, Tadc) #hide
-rf = [PulseDesigner.RF_sinc(sys.B1, Trf, sys; G=[0, 0, Gz], Δf=γ * Gz * z) for z in slice_positions]; #hide
+phase_encode(lin) = Grad((lin - (Ny - 1) / 2) * Gx * sys.limits.ADC_Δt / Tadc, Tadc) #hide
+rf = [PulseDesigner.RF_sinc(sys.limits.B1, Trf, sys; G=[0, 0, Gz], Δf=γ * Gz * z) for z in slice_positions]; #hide
 
 # ## Creating a sequence with ADC labels
 #

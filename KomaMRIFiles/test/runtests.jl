@@ -112,12 +112,12 @@ end
         @test seq.DEF["PulseqVersion"] == v"1.2.1"
         @test seq.DEF["signature"][:hash] == "e827cfff4436b65a6341a4fa0f6deb07"
 
-        sys = Scanner(GR_Δt=20e-6)
+        sys = Scanner(limits=HardwareLimits(GR_Δt=20e-6))
         seq = Sequence(sys)
         seq.DEF["GradientRasterTime"] = 10e-6
         @test_logs (:warn, r"GradientRasterTime") begin
             raster = KomaMRIFiles.PulseqRaster(seq, sys)
-            @test raster.GradientRasterTime == sys.GR_Δt
+            @test raster.GradientRasterTime == sys.limits.GR_Δt
         end
 
         rf_raster = 1e-6
@@ -129,7 +129,7 @@ end
         rf_ring_down_time = 10block_raster
         rf_duration = block_raster
         rf_amp = 1e-6
-        sys = Scanner(B0=3.0, B1=17rf_amp, Gmax=40e-3, Smax=170.0, ADC_Δt=adc_raster, DUR_Δt=block_raster, GR_Δt=gradient_raster, RF_Δt=rf_raster, RF_ring_down_time=rf_ring_down_time, RF_dead_time=rf_dead_time, ADC_dead_time=adc_dead_time)
+        sys = Scanner(limits=HardwareLimits(B0=3.0, B1=17rf_amp, Gmax=40e-3, Smax=170.0, ADC_Δt=adc_raster, DUR_Δt=block_raster, GR_Δt=gradient_raster, RF_Δt=rf_raster, RF_ring_down_time=rf_ring_down_time, RF_dead_time=rf_dead_time, ADC_dead_time=adc_dead_time))
         bad_rf_deadtime = Sequence(sys)
         @addblock bad_rf_deadtime += (RF(rf_amp, rf_duration), Duration(rf_dead_time + rf_duration + rf_ring_down_time))
         @test_throws ErrorException write_seq_data(bad_rf_deadtime; check_hw_limits=false, verbose=false)
@@ -137,7 +137,7 @@ end
         @addblock bad_rf_ringdown += (RF(rf_amp, rf_duration, 0.0, rf_dead_time), Duration(rf_dead_time + rf_duration + rf_ring_down_time - block_raster))
         @test_throws ErrorException write_seq_data(bad_rf_ringdown; check_hw_limits=false, verbose=false)
         bad_rf_amplitude = Sequence(sys)
-        @addblock bad_rf_amplitude += (RF(2sys.B1, rf_duration, 0.0, rf_dead_time), Duration(rf_dead_time + rf_duration + rf_ring_down_time))
+        @addblock bad_rf_amplitude += (RF(2sys.limits.B1, rf_duration, 0.0, rf_dead_time), Duration(rf_dead_time + rf_duration + rf_ring_down_time))
         @test_throws ErrorException write_seq_data(bad_rf_amplitude; sys, verbose=false)
         bad_adc_deadtime = Sequence(sys)
         adc_samples = 2
@@ -154,7 +154,7 @@ end
         @test only(values(data.libraries.adc_library)).dwell == adc_raster
 
         # A block with one gradient axis should not allocate empty library events for the others.
-        single_axis = Sequence(Scanner(Gmax=Inf, Smax=Inf))
+        single_axis = Sequence(Scanner(limits=HardwareLimits(Gmax=Inf, Smax=Inf)))
         @addblock single_axis += (x=Grad(1e-3, 1e-3))
         data = write_seq_data(single_axis; verbose=false)
         @test only(data.blocks).gx_id != 0
@@ -170,7 +170,7 @@ end
             adc_raster = 100e-9
             rf_half_raster = rf_raster / 2
             grad_half_raster = grad_raster / 2
-            fit_sys = Scanner(B1=Inf, Gmax=Inf, Smax=Inf, DUR_Δt=block_raster, GR_Δt=grad_raster, RF_Δt=rf_raster, ADC_Δt=adc_raster, RF_dead_time=0.0, RF_ring_down_time=0.0, ADC_dead_time=0.0)
+            fit_sys = Scanner(limits=HardwareLimits(B1=Inf, Gmax=Inf, Smax=Inf, DUR_Δt=block_raster, GR_Δt=grad_raster, RF_Δt=rf_raster, ADC_Δt=adc_raster, RF_dead_time=0.0, RF_ring_down_time=0.0, ADC_dead_time=0.0))
             function expect_write_duration_error(seq, duration) # Strict write must not stretch this duration.
                 seq.DUR[1] = duration
                 @test_throws ErrorException KomaMRIFiles.write_seq_data(seq; sys=fit_sys, check_hw_limits=false, verbose=false)
@@ -421,8 +421,8 @@ end
                 t = collect(0:10e-6:dur(seq))
                 @test KomaMRIBase.get_grads(seq2, t)[1] ≈ KomaMRIBase.get_grads(seq, t)[1]
                 expected_slew = gx1.A / gx1.rise
-                @test isnothing(check_hw_limits(seq2, Scanner(B1=Inf, Gmax=Inf, Smax=expected_slew, ADC_Δt=0.0)))
-                @test_throws ErrorException check_hw_limits(seq2, Scanner(B1=Inf, Gmax=Inf, Smax=expected_slew / 2, ADC_Δt=0.0))
+                @test isnothing(check_hw_limits(seq2, Scanner(limits=HardwareLimits(B1=Inf, Gmax=Inf, Smax=expected_slew, ADC_Δt=0.0))))
+                @test_throws ErrorException check_hw_limits(seq2, Scanner(limits=HardwareLimits(B1=Inf, Gmax=Inf, Smax=expected_slew / 2, ADC_Δt=0.0)))
             end
 
             filename = joinpath(tmpdir, "uniform-rf.seq")

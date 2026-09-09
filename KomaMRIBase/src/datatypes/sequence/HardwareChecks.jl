@@ -18,9 +18,9 @@ function check_hw_limits(seq::Sequence)
 end
 
 function check_hw_limits(seq::Sequence, sys::Scanner)
-    check_rf = isfinite(sys.B1)
-    check_grad = isfinite(sys.Gmax)
-    check_slew = isfinite(sys.Smax)
+    check_rf = isfinite(sys.limits.B1)
+    check_grad = isfinite(sys.limits.Gmax)
+    check_slew = isfinite(sys.limits.Smax)
     check_fields = check_rf || check_grad || check_slew
     # TODO: add adc_samples_divisor to Scanner.
     adc_samples_divisor = 4
@@ -35,16 +35,16 @@ function check_hw_limits(seq::Sequence, sys::Scanner)
             if check_rf
                 rf_i = seq.RF[1, i]
                 rf_peak = is_RF_on(rf_i) ? maximum(abs, ampls(rf_i)) : 0.0
-                if rf_peak > sys.B1 && !(rf_peak ≈ sys.B1)
-                    error("RF amplitude for block $i is greater than the maximum RF amplitude of the scanner ($(sys.B1 * 1e6) μT).")
+                if rf_peak > sys.limits.B1 && !(rf_peak ≈ sys.limits.B1)
+                    error("RF amplitude for block $i is greater than the maximum RF amplitude of the scanner ($(sys.limits.B1 * 1e6) μT).")
                 end
             end
             if check_grad || check_slew
                 for gi in 1:size(seq.GR, 1)
                     gr_i = seq.GR[gi, i]
                     is_GR_on(gr_i) || continue
-                    max_grad = check_grad ? sys.Gmax : Inf
-                    max_slew = check_slew ? sys.Smax : Inf
+                    max_grad = check_grad ? sys.limits.Gmax : Inf
+                    max_slew = check_slew ? sys.limits.Smax : Inf
                     name = "$(axis_names[gi]) gradient for block $i"
                     check_hw_limits(gr_i; max_grad, max_slew, name)
                 end

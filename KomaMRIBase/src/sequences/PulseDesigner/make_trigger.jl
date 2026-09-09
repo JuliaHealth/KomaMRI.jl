@@ -46,6 +46,6 @@ trigger_channel(::Val{channel}) where {channel} =
     error("Unsupported trigger channel `:$channel`; use :physio1 or :physio2.")
 
 function trigger_event(channel, delay, duration, sys)
-    duration = duration <= sys.GR_Δt ? sys.GR_Δt : duration
+    duration = duration <= sys.limits.GR_Δt ? sys.limits.GR_Δt : duration
     return Trigger(2, channel, delay, duration)
 end

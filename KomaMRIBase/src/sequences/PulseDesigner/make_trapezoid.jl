@@ -54,8 +54,8 @@ function make_trapezoid(; area=nothing, flat_area=nothing, amplitude=nothing,
     delay     = to_SI(delay, SIUnitsDefault())
     rise_time = to_SI(rise_time, SIUnitsDefault())
     fall_time = to_SI(fall_time, SIUnitsDefault())
-    max_grad  = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
-    max_slew  = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    max_grad  = isnothing(max_grad) ? sys.limits.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew  = isnothing(max_slew) ? sys.limits.Smax : to_SI(max_slew, PulseqUnitsDefault())
     return trapezoid(
         area, flat_area, amplitude, flat_time, duration, delay, rise_time, fall_time,
         sys, max_grad, max_slew,
@@ -64,7 +64,7 @@ end
 
 function trapezoid(; area=nothing, flat_area=nothing, amplitude=nothing,
     flat_time=nothing, duration=nothing, delay=0.0, rise_time=nothing, fall_time=nothing,
-    sys=Scanner(), max_grad=sys.Gmax, max_slew=sys.Smax)
+    sys=Scanner(), max_grad=sys.limits.Gmax, max_slew=sys.limits.Smax)
     return trapezoid(
         area, flat_area, amplitude, flat_time, duration, delay, rise_time, fall_time,
         sys, max_grad, max_slew,
@@ -78,7 +78,7 @@ function trapezoid(area, flat_area, amplitude, flat_time, duration, delay, rise_
     end
     if area !== nothing
         if duration === nothing
-            return shortest_trapezoid(area, delay, sys.GR_Δt, max_grad, max_slew)
+            return shortest_trapezoid(area, delay, sys.limits.GR_Δt, max_grad, max_slew)
         end
         return trapezoid_from_area(area, duration; delay, sys, max_grad, max_slew,
             rise_time, fall_time)
@@ -100,7 +100,7 @@ function trapezoid(area, flat_area, amplitude, flat_time, duration, delay, rise_
 end
 
 function trapezoid_from_flat_area(flat_area, flat_time; delay=0.0, rise_time=nothing,
-    fall_time=nothing, sys=Scanner(), max_grad=sys.Gmax, max_slew=sys.Smax)
+    fall_time=nothing, sys=Scanner(), max_grad=sys.limits.Gmax, max_slew=sys.limits.Smax)
     return trapezoid_from_amplitude(
         flat_area / flat_time, flat_time; delay, rise_time, fall_time, sys, max_grad,
         max_slew,
@@ -108,7 +108,7 @@ function trapezoid_from_flat_area(flat_area, flat_time; delay=0.0, rise_time=not
 end
 
 function trapezoid_from_amplitude(amplitude, flat_time; delay=0.0, rise_time=nothing,
-    fall_time=nothing, sys=Scanner(), max_grad=sys.Gmax, max_slew=sys.Smax)
+    fall_time=nothing, sys=Scanner(), max_grad=sys.limits.Gmax, max_slew=sys.limits.Smax)
     if rise_time === nothing
         fall_time !== nothing && error("Supply rise_time when fall_time is specified.")
         rise_time = slew_limited_rise_time(amplitude; sys, max_slew)
@@ -121,8 +121,8 @@ function trapezoid_from_amplitude(amplitude, flat_time; delay=0.0, rise_time=not
 end
 
 function trapezoid_from_amplitude_duration(amplitude, duration; delay=0.0,
-    rise_time=nothing, fall_time=nothing, sys=Scanner(), max_grad=sys.Gmax,
-    max_slew=sys.Smax)
+    rise_time=nothing, fall_time=nothing, sys=Scanner(), max_grad=sys.limits.Gmax,
+    max_slew=sys.limits.Smax)
     if rise_time === nothing
         fall_time !== nothing && error("Supply rise_time when fall_time is specified.")
         rise_time = slew_limited_rise_time(amplitude; sys, max_slew)
@@ -135,7 +135,7 @@ function trapezoid_from_amplitude_duration(amplitude, duration; delay=0.0,
 end
 
 function trapezoid_from_area(target_area, duration; delay=0.0, sys=Scanner(),
-    max_grad=sys.Gmax, max_slew=sys.Smax, rise_time=nothing, fall_time=nothing)
+    max_grad=sys.limits.Gmax, max_slew=sys.limits.Smax, rise_time=nothing, fall_time=nothing)
     if rise_time === nothing
         fall_time !== nothing && error("Supply rise_time when fall_time is specified.")
         amplitude = solve_max_slew_amplitude(target_area, duration, max_slew)
