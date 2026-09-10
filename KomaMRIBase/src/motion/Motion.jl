@@ -255,7 +255,7 @@ function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic) whe
     aux = T[] 
     period = sum((t_end - t_start) .* periods)
     t_max = maximum(t)
-    rise_time = max(MIN_RISE_TIME, 8eps(float(t_max)))
+    rise_time = max(MIN_RISE_TIME, 4eps(float(t_max)))
     add_period_times!(aux, t_start, t_end, periods, rise_time)
     add_reset_times!(aux, a, t_start, t_end, periods)
     extend_periodic!(aux, t_max, period, Val(periodic))
