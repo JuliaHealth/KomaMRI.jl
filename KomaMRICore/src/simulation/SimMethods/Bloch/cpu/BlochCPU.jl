@@ -1,18 +1,20 @@
 """Stores preallocated structs for use in Bloch CPU run_spin_precession! and run_spin_excitation! functions."""
 struct BlochCPUPrealloc{
-    T,
-    MT<:Mag{T},
-    RV<:AbstractVector{T},
-    ST<:Spinor{T},
+    MType<:Mag,
+    BzOldType<:AbstractVector,
+    BzNewType<:AbstractVector,
+    PhiType<:AbstractVector,
+    RotType<:Spinor,
+    ΔBzType<:AbstractVector,
     S,
     P,
-} <: PreallocResult{T}
-    M::MT
-    Bz_old::RV
-    Bz_new::RV
-    ϕ::RV
-    Rot::ST
-    ΔBz::RV
+} <: PreallocResult
+    M::MType
+    Bz_old::BzOldType
+    Bz_new::BzNewType
+    ϕ::PhiType
+    Rot::RotType
+    ΔBz::ΔBzType
     sens::S
     coordinates::P
 end
@@ -41,8 +43,10 @@ function prealloc(
     ::Bloch, backend::KA.CPU, obj, M,
     max_block_length, _max_adc_samples, _groupsize, sys,
 )
-    T = eltype(obj.x)
+    T = eltype(obj.ρ)
     sens = prealloc_sensitivities(sys.receiver, obj)
+    ΔBz = similar(obj.ρ)
+    @. ΔBz = obj.Δw / T(2π * γ)
     return BlochCPUPrealloc(
         Mag(
             similar(M.xy),
@@ -55,7 +59,7 @@ function prealloc(
             similar(M.xy),
             similar(M.xy)
         ),
-        obj.Δw ./ T(2π .* γ),
+        ΔBz,
         sens,
         prealloc_motion_coordinates(obj.motion, backend, obj, max_block_length),
     )
@@ -70,16 +74,17 @@ NSpins x seq.t. The Bz_old, Bz_new, ϕ, and Mxy arrays are pre-allocated in run_
 that they can be re-used from block to block.
 """
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
-    prealloc::PreallocResult{T}
-) where {T<:Real}
+    prealloc::PreallocResult
+)
+    T = eltype(p.ρ)
     #Rename arrays
     Bz_old = prealloc.Bz_old
     Bz_new = prealloc.Bz_new
@@ -135,17 +140,18 @@ Alternate implementation of the run_spin_excitation! function in BlochSimpleSimu
 optimized for the CPU. Uses preallocation for all arrays to reduce memory usage.
 """
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::Bloch,
     groupsize,
     backend::KA.CPU,
     prealloc::BlochCPUPrealloc
-) where {T<:Real}
-    #Rename arrays 
+)
+    T = eltype(p.ρ)
+    #Rename arrays
     Bz = prealloc.Bz_old
     B = prealloc.Bz_new
     φ_half = prealloc.ϕ
@@ -168,14 +174,15 @@ function run_spin_excitation!(
             prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i],
         )
         #Effective field
+        B1 = seq.B1[i]
         @. Bz = (seq.Gx[i] * x + seq.Gy[i] * y + seq.Gz[i] * z) + ΔBz - seq.Δf[i] / T(γ) # ΔB_0 = (B_0 - ω_rf/γ), Need to add a component here to model scanner's dB0(x,y,z)
-        @. B = sqrt(abs2(seq.B1[i]) + Bz^2)
+        @. B = sqrt(abs2(B1) + Bz^2)
         #Spinor Rotation
         @. φ_half = T(-π * γ) * (B * seq.Δt[i]) # TODO: Use trapezoidal integration here (?),  this is just Forward Euler
         @. α = cos(φ_half)
         @. B = sin(φ_half) / (B + (B == 0) * eps(T))
-        @. α -= Complex{T}(im) * Bz * B
-        @. β = -Complex{T}(im) * seq.B1[i] * B
+        @. α -= complex(zero(Bz), Bz * B)
+        @. β = complex(imag(B1) * B, -real(B1) * B)
         mul!(Spinor(α, β), M, Maux_xy, Maux_z)
         #Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
