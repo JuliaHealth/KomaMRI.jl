@@ -47,10 +47,13 @@ function ampls(rf::BlockPulseRF; freq_in_phase=false)
 end
 
 function ampls(rf::RF; freq_in_phase=false)
-    A = collect(cis(rf.ϕ) .* rf.A)
+    A = cis(rf.ϕ) .* rf.A
     is_on(rf) || return similar(A, 0)
-    length(A) == 1 && (A = [only(A), only(A)])
-    A = [zero(eltype(A)); A; zero(eltype(A))]
+    length(A) == 1 && (A = A[[1, 1]])
+    out = similar(A, length(A) + 2)
+    fill!(out, zero(eltype(A)))
+    out[2:(end - 1)] .= A
+    A = out
     if freq_in_phase
         t  = times(rf)
         Δf = (t=times(rf, :Δf)[2:(end - 1)], A=freqs(rf)[2:(end - 1)])
