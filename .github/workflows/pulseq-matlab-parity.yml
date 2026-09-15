@@ -42,12 +42,12 @@ jobs:
         with:
           version: '1'
       - uses: julia-actions/cache@v3
-      - uses: matlab-actions/setup-matlab@v3.0.1
+      - uses: matlab-actions/setup-matlab@v3.1.0
         with:
           cache: true
           products: >
             Curve_Fitting_Toolbox
-      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.11.28"
           python-version: "3.12"
@@ -79,7 +79,7 @@ jobs:
               println(io, "KOMA_GAMMA=$(KomaMRIBase.γ)")
           end
       - name: Write MATLAB Pulseq reference
-        uses: matlab-actions/run-command@v3.2.0
+        uses: matlab-actions/run-command@v3.3.0
         env:
           PULSEQ_MATLAB: ${{ runner.temp }}/pulseq/matlab
           PULSEQ_MATLAB_SEQ: ${{ runner.temp }}/pulseq_matlab_parity.seq

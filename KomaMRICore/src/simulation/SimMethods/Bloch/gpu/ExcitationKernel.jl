@@ -35,20 +35,26 @@ end
 
 @kernel unsafe_indices=true inbounds=true function excitation_kernel!(
     sig_output::AbstractMatrix{Complex{T}}, 
-    M_xy::AbstractVector{Complex{T}}, M_z, 
+    M_xy, M_z, receiver, N_coils, N_adc,
     @Const(p_x), @Const(p_y), @Const(p_z), @Const(p_ΔBz), @Const(p_T1), @Const(p_T2), @Const(p_ρ), N_spins,
     @Const(s_Gx), @Const(s_Gy), @Const(s_Gz), @Const(s_Δt), @Const(s_Δf), @Const(s_B1), @Const(s_ψ), @Const(s_ADC), s_length,
     ::Val{MOTION}, ::Val{USE_WARP_REDUCTION}, ::Val{HAS_ADC},
+    ::Val{HAS_SENSITIVITIES},
     sim_method::SM
-) where {T, MOTION, USE_WARP_REDUCTION, HAS_ADC, SM <: BlochLikeSimMethods}
+) where {
+    T, MOTION, USE_WARP_REDUCTION, HAS_ADC, HAS_SENSITIVITIES,
+    SM<:BlochLikeSimMethods,
+}
 
     @uniform N = @groupsize()[1]
     i_l = @index(Local, Linear)
     i_g = @index(Group, Linear)
     i = (i_g - 1u32) * UInt32(N) + i_l
 
-    sig_group_r = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
-    sig_group_i = @localmem T HAS_ADC ? (USE_WARP_REDUCTION ? 32 : N) : 1
+    sig_group_r =
+        @localmem T HAS_ADC ? (USE_WARP_REDUCTION && !HAS_SENSITIVITIES ? 32 : N) : 1
+    sig_group_i =
+        @localmem T HAS_ADC ? (USE_WARP_REDUCTION && !HAS_SENSITIVITIES ? 32 : N) : 1
 
     active = i <= N_spins
     Mxy_r = zero(T)
@@ -86,6 +92,7 @@ end
         Bz_0 = x * s_Gx[1] + y * s_Gy[1] + z * s_Gz[1] + ΔBz - s_Δf[1] / T(γ)
     end
 
+    # ADC_idx advances within each coil; reduce_signal_per_coil! adds the coil offset.
     ADC_idx = 1u32
     s_idx = 2u32
     while (s_idx <= s_length)
@@ -115,9 +122,21 @@ end
 
         # Acquire Signal
         if HAS_ADC && s_ADC[s_idx]
-            sig_r, sig_i = reduce_signal!(Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T, Val(USE_WARP_REDUCTION))
-            if i_l == 1u32
-                sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
+            if HAS_SENSITIVITIES
+                reduce_signal_per_coil!(
+                    sig_output, Mxy_r, Mxy_i, receiver, sig_group_r, sig_group_i,
+                    (p_x, p_y, p_z), s_idx,
+                    i_l, i_g, ADC_idx, N_spins, N_coils, N_adc, N, T,
+                    Val(USE_WARP_REDUCTION),
+                )
+            else
+                sig_r, sig_i = reduce_signal!(
+                    Mxy_r, Mxy_i, sig_group_r, sig_group_i, i_l, N, T,
+                    Val(USE_WARP_REDUCTION),
+                )
+                if i_l == 1u32
+                    sig_output[i_g, ADC_idx] = complex(sig_r, sig_i)
+                end
             end
             ADC_idx += 1u32
         end

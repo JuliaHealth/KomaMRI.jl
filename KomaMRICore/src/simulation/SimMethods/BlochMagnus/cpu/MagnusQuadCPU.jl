@@ -3,6 +3,7 @@ function run_spin_excitation!(
     seq::DiscreteSequence{T},
     sig::AbstractArray{Complex{T}},
     M::Mag{T},
+    sys,
     sim_method::Union{BlochMagnusQuad2,BlochMagnusQuad4},
     groupsize,
     backend::KA.CPU,
@@ -28,18 +29,24 @@ function run_spin_excitation!(
             throw(ArgumentError("BlochMagnusQuad RF intervals must contain midpoint samples."))
 
         Δt = seq.t[i1] - seq.t[i0]
-        xm, ym, zm = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[im])
-        x1, y1, z1 = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i1])
 
         if cached_i0 != i0
-            x0, y0, z0 = spin_coordinates(p.motion, p.x, p.y, p.z, seq.t[i0])
+            x, y, z = spin_coordinates!(
+                prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i0],
+            )
             @. ωxy_0 = seq.B1[i0] * B_to_ω
-            @. ωz_0  = (seq.Gx[i0] * x0 + seq.Gy[i0] * y0 + seq.Gz[i0] * z0 + ΔBz) * B_to_ω + seq.Δf[i0] * T(2π)
+            @. ωz_0  = (seq.Gx[i0] * x + seq.Gy[i0] * y + seq.Gz[i0] * z + ΔBz) * B_to_ω + seq.Δf[i0] * T(2π)
         end
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[im],
+        )
         @. ωxy_m = seq.B1[im] * B_to_ω
-        @. ωz_m  = (seq.Gx[im] * xm + seq.Gy[im] * ym + seq.Gz[im] * zm + ΔBz) * B_to_ω + seq.Δf[im] * T(2π)
+        @. ωz_m  = (seq.Gx[im] * x + seq.Gy[im] * y + seq.Gz[im] * z + ΔBz) * B_to_ω + seq.Δf[im] * T(2π)
+        x, y, z = spin_coordinates!(
+            prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i1],
+        )
         @. ωxy_1 = seq.B1[i1] * B_to_ω
-        @. ωz_1  = (seq.Gx[i1] * x1 + seq.Gy[i1] * y1 + seq.Gz[i1] * z1 + ΔBz) * B_to_ω + seq.Δf[i1] * T(2π)
+        @. ωz_1  = (seq.Gx[i1] * x + seq.Gy[i1] * y + seq.Gz[i1] * z + ΔBz) * B_to_ω + seq.Δf[i1] * T(2π)
 
         rotation_vector!(θxy, θz, ωxy_0, ωz_0, ωxy_m, ωz_m, ωxy_1, ωz_1, Δt, sim_method)
 
@@ -52,7 +59,12 @@ function run_spin_excitation!(
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
         outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
         if seq.ADC[i1]
-            sig[sample] = sum(M.xy)
+            update_sensitivities!(
+                prealloc.sens, sys.receiver, (x, y, z), p.motion,
+            )
+            acquire_signal!(
+                @view(sig[sample, :]), M.xy, prealloc.sens, (x, y, z),
+            )
             sample += 1
         end
         cached_i0 = i1

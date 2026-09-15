@@ -15,7 +15,7 @@ function build_adc(num_samples, args...; sys=Scanner(), kwargs...)
     adc = make_adc(num_samples, args...; sys, kwargs...)
     seq = Sequence(sys)
     addblock!(seq, adc)
-    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
     return seq
 end
 
@@ -74,7 +74,7 @@ function make_adc(num_samples, dwell; duration=nothing, delay=0.0,
     duration === nothing || error("Supply dwell or duration, not both.")
     num_samples = Int(num_samples)
     dwell > 0 || error("ADC dwell must be positive.")
-    delay = max(delay, sys.ADC_dead_time) + dwell / 2
+    delay = max(delay, sys.limits.ADC_dead_time) + dwell / 2
     sampling_time = num_samples == 1 ? dwell : (num_samples - 1) * dwell
     return ADC(num_samples, sampling_time, delay, freq_offset, phase_offset)
 end

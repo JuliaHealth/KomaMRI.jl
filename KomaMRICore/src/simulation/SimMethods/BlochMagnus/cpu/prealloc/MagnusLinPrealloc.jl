@@ -1,5 +1,5 @@
 struct BlochMagnusLinCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T}
+    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T},S,P
 } <: BlochMagnusCPUPrealloc{T}
     ωxy_0::CV
     ωz_0::RV
@@ -13,9 +13,11 @@ struct BlochMagnusLinCPUPrealloc{
     ΔBz::RV
     Maux_xy::CV
     Maux_z::RV
+    sens::S
+    coordinates::P
 end
 
-prealloc(sim_method::BlochMagnusLin2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(::BlochMagnusLin2, backend::KA.CPU, obj, M, max_block_length, _max_adc_samples, _groupsize, sys) =
     BlochMagnusLinCPUPrealloc(
         cbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj),
@@ -23,7 +25,9 @@ prealloc(sim_method::BlochMagnusLin2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T
         similar(M.xy), similar(M.xy),
         off_resonance_buffer(obj),
         similar(M.xy), similar(M.z),
+        prealloc_sensitivities(sys.receiver, obj),
+        prealloc_motion_coordinates(obj.motion, backend, obj, max_block_length),
     )
 
-prealloc(sim_method::BlochMagnusLinComm2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
-    prealloc(BlochMagnusLin2(), backend, obj, M, max_block_length, groupsize)
+prealloc(::BlochMagnusLinComm2, backend::KA.CPU, obj, M, max_block_length, max_adc_samples, groupsize, sys) =
+    prealloc(BlochMagnusLin2(), backend, obj, M, max_block_length, max_adc_samples, groupsize, sys)

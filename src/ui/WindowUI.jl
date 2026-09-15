@@ -118,7 +118,7 @@ function Base.close(w::KomaWindow)
         close(display)
         w.display[] = nothing
     end
-    if !isnothing(window) && window.app.exists
+    if !isnothing(window) && isopen(window.app)
         close(window.app)
     end
     w.window[] = nothing

@@ -90,4 +90,109 @@ end
     return reduce_warp(sig_r, sig_i)
 end
 
+# GPU-kernel sensitivity lookup: matrices are precomputed maps, while receiver
+# models evaluate one spin and coil directly at the current coordinates.
+@inline function KomaMRIBase.get_sens(
+    sens::AbstractMatrix,
+    _positions::Tuple{AbstractVector,AbstractVector,AbstractVector},
+    spin, _s_idx, _N_spins, coil,
+)
+    return @inbounds sens[spin, coil]
+end
+
+@inline function KomaMRIBase.get_sens(
+    sens::AbstractMatrix,
+    _positions::Tuple{AbstractMatrix,AbstractMatrix,AbstractMatrix},
+    spin, s_idx, N_spins, coil,
+)
+    return @inbounds sens[spin + (s_idx - 1u32) * N_spins, coil]
+end
+
+@inline function KomaMRIBase.get_sens(
+    receiver, positions, spin, s_idx, _N_spins, coil,
+)
+    x, y, z = positions
+    position = get_spin_coordinates(x, y, z, spin, s_idx)
+    return get_sens(receiver, position, coil)
+end
+
+# Fallback for backends without 32-lane subgroup shuffles.
+@inline function reduce_signal_per_coil!(
+    sig_output, sig_r, sig_i, receiver, sig_group_r, sig_group_i,
+    positions, s_idx,
+    i_l, i_g, ADC_idx, N_spins, N_coils, N_adc, N, T,
+    ::Val{false},
+)
+    spin = (i_g - 1u32) * UInt32(N) + i_l
+    active = spin <= N_spins
+    coil = 1u32
+    while coil <= N_coils
+        coil_r, coil_i = sig_r, sig_i
+        if active
+            sens_r, sens_i = reim(get_sens(
+                receiver, positions, spin, s_idx, N_spins, coil,
+            ))
+            coil_r, coil_i = (
+                coil_r * sens_r - coil_i * sens_i,
+                coil_r * sens_i + coil_i * sens_r,
+            )
+        end
+        coil_r, coil_i = reduce_signal!(
+            coil_r, coil_i, sig_group_r, sig_group_i, i_l, N, T, Val(false),
+        )
+        if i_l == 1u32
+            @inbounds sig_output[i_g, ADC_idx + (coil - 1u32) * N_adc] =
+                complex(coil_r, coil_i)
+        end
+        coil += 1u32
+    end
+    return nothing
+end
+
+# Assign one coil to each 32-lane subgroup when subgroup shuffles are available.
+@inline function reduce_signal_per_coil!(
+    sig_output, sig_r, sig_i, receiver, sig_group_r, sig_group_i,
+    positions, s_idx,
+    i_l, i_g, ADC_idx, N_spins, N_coils, N_adc, N, T,
+    ::Val{true},
+)
+    @inbounds sig_group_r[i_l] = sig_r
+    @inbounds sig_group_i[i_l] = sig_i
+    @synchronize()
+
+    lane = (i_l - 1u32) % 32u32 + 1u32
+    subgroup = (i_l - 1u32) ÷ 32u32 + 1u32
+    nsubgroups = UInt32(N) ÷ 32u32
+
+    coil = subgroup
+    while coil <= N_coils
+        coil_r = zero(T)
+        coil_i = zero(T)
+        local_spin = lane
+        while local_spin <= N
+            spin = (i_g - 1u32) * UInt32(N) + local_spin
+            if spin <= N_spins
+                sens_r, sens_i = reim(get_sens(
+                    receiver, positions, spin, s_idx, N_spins, coil,
+                ))
+                signal_r = @inbounds sig_group_r[local_spin]
+                signal_i = @inbounds sig_group_i[local_spin]
+                coil_r += signal_r * sens_r - signal_i * sens_i
+                coil_i += signal_r * sens_i + signal_i * sens_r
+            end
+            local_spin += 32u32
+        end
+        coil_r, coil_i = reduce_warp(coil_r, coil_i)
+        if lane == 1u32
+            @inbounds sig_output[i_g, ADC_idx + (coil - 1u32) * N_adc] =
+                complex(coil_r, coil_i)
+        end
+        coil += nsubgroups
+    end
+
+    # All subgroups must finish reading before the next ADC overwrites scratch.
+    @synchronize()
+    return nothing
+end
+
 ## COV_EXCL_STOP

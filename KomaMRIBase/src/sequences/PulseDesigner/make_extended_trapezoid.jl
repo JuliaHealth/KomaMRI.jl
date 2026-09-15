@@ -43,21 +43,21 @@ function make_extended_trapezoid(times, amplitudes; sys=Scanner(), max_grad=noth
     max_slew=nothing, skip_check=false, convert2arbitrary=false)
     times      = to_SI.(times, Ref(SIUnitsDefault()))
     amplitudes = to_SI.(amplitudes, Ref(PulseqUnitsDefault()))
-    max_grad   = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
-    max_slew   = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    max_grad   = isnothing(max_grad) ? sys.limits.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew   = isnothing(max_slew) ? sys.limits.Smax : to_SI(max_slew, PulseqUnitsDefault())
     return extended_trapezoid(
         times, amplitudes; sys, max_grad, max_slew, skip_check, convert2arbitrary,
     )
 end
 
-function extended_trapezoid(times, amplitudes; sys=Scanner(), max_grad=sys.Gmax,
-    max_slew=sys.Smax, skip_check=false, convert2arbitrary=false)
+function extended_trapezoid(times, amplitudes; sys=Scanner(), max_grad=sys.limits.Gmax,
+    max_slew=sys.limits.Smax, skip_check=false, convert2arbitrary=false)
     length(times) == length(amplitudes) ||
         error("Times and amplitudes must have the same length.")
     all(iszero, times) && error("At least one time must be nonzero.")
     any(diff(times) .<= 0) && error("Times must be strictly increasing.")
 
-    rounded_times = round_to_raster.(times, sys.GR_Δt)
+    rounded_times = round_to_raster.(times, sys.limits.GR_Δt)
     isapprox(times[end], rounded_times[end]; rtol=0, atol=KomaMRIBase.PULSEQ_TIME_TOL) ||
         error("The last time point must be on the gradient raster.")
 
@@ -67,13 +67,13 @@ function extended_trapezoid(times, amplitudes; sys=Scanner(), max_grad=sys.Gmax,
     end
 
     if convert2arbitrary
-        first_tick = round(Int, minimum(times) / sys.GR_Δt)
-        last_tick = round(Int, maximum(times) / sys.GR_Δt) - 1
-        sample_times = ((first_tick:last_tick) .* sys.GR_Δt) .+ sys.GR_Δt / 2
+        first_tick = round(Int, minimum(times) / sys.limits.GR_Δt)
+        last_tick = round(Int, maximum(times) / sys.limits.GR_Δt) - 1
+        sample_times = ((first_tick:last_tick) .* sys.limits.GR_Δt) .+ sys.limits.GR_Δt / 2
         waveform = linear_interpolation(times, amplitudes).(sample_times)
-        duration = (length(waveform) - 1) * sys.GR_Δt
-        delay = first_tick * sys.GR_Δt
-        edge_time = sys.GR_Δt / 2
+        duration = (length(waveform) - 1) * sys.limits.GR_Δt
+        delay = first_tick * sys.limits.GR_Δt
+        edge_time = sys.limits.GR_Δt / 2
         first_amp = first(amplitudes)
         last_amp = last(amplitudes)
         grad = Grad(waveform, duration, edge_time, edge_time, delay, first_amp, last_amp)

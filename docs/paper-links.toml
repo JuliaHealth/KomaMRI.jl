@@ -1,0 +1,14 @@
+# Permanent aliases for URLs published in KomaMRI papers.
+# Keys are the published URLs; values are their maintained destinations.
+
+# KomaMRI.jl: An open-source framework for general MRI simulations with GPU acceleration
+["10.1002/mrm.29635"]
+# "https://github.com/cncastillo/KomaMRI.jl" = "https://github.com/JuliaHealth/KomaMRI.jl"
+
+# Versatile and Highly Efficient MRI Simulation of Arbitrary Motion in KomaMRI
+["10.1002/mrm.70145"]
+# "https://juliahealth.org/KomaMRI.jl/phantom-format/" = "https://juliahealth.org/KomaMRI.jl/stable/explanation/gen-1-phantom"
+# "https://juliahealth.org/KomaMRI.jl/realistic-head-motion/" = "https://juliahealth.org/KomaMRI.jl/stable/explanation/gen-2-motion#Realistic-head-motion"
+"https://juliahealth.org/KomaMRI.jl/stable/explanation/4-gpu-explanation/" = "https://juliahealth.org/KomaMRI.jl/stable/explanation/9-gpu-explanation"
+"https://juliahealth.org/KomaMRI.jl/stable/reference/2-koma-base/Motion-related-functions" = "https://juliahealth.org/KomaMRI.jl/stable/reference/2-koma-base#Motion-related-functions"
+"https://juliahealth.org/KomaMRI.jl/stable/tutorial/06-DiffusionMotion/" = "https://juliahealth.org/KomaMRI.jl/stable/tutorial/gen-07-DiffusionSignalAttenuation"

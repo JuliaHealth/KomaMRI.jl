@@ -1,11 +1,11 @@
 _sequence_timing_from_sys(sys::Scanner) = (;
-    BlockDurationRaster=sys.DUR_Δt,
-    GradientRasterTime=sys.GR_Δt,
-    RadiofrequencyRasterTime=sys.RF_Δt,
-    AdcRasterTime=sys.ADC_Δt,
-    RfRingdownTime=sys.RF_ring_down_time,
-    RfDeadTime=sys.RF_dead_time,
-    AdcDeadTime=sys.ADC_dead_time,
+    BlockDurationRaster=sys.limits.DUR_Δt,
+    GradientRasterTime=sys.limits.GR_Δt,
+    RadiofrequencyRasterTime=sys.limits.RF_Δt,
+    AdcRasterTime=sys.limits.ADC_Δt,
+    RfRingdownTime=sys.limits.RF_ring_down_time,
+    RfDeadTime=sys.limits.RF_dead_time,
+    AdcDeadTime=sys.limits.ADC_dead_time,
 )
 
 function _check_block_fit(event_end, block_duration, block_id, label)
@@ -125,9 +125,9 @@ end
 
 function _check_rf_duration(rf, sys, block_id, block_duration)
     _check_block_fit(dur(rf, sys), block_duration, block_id, "RF event")
-    if sys.RF_dead_time > 0
+    if sys.limits.RF_dead_time > 0
         rf_delay = delay(rf, sys)
-        rf_delay + PULSEQ_TIME_TOL >= sys.RF_dead_time || error("Block $block_id RF delay ($(rf_delay) s) is smaller than RF dead time $(sys.RF_dead_time) s.")
+        rf_delay + PULSEQ_TIME_TOL >= sys.limits.RF_dead_time || error("Block $block_id RF delay ($(rf_delay) s) is smaller than RF dead time $(sys.limits.RF_dead_time) s.")
     end
     return nothing
 end
@@ -143,8 +143,8 @@ function _check_timing(adc::ADC, timing, sys, block_id, block_duration)
     adc_delay = delay(adc, sys)
     _check_raster_multiple(adc_delay, timing.RadiofrequencyRasterTime, block_id, "ADC delay")
     _check_block_fit(dur(adc, sys), block_duration, block_id, "ADC event")
-    if sys.ADC_dead_time > 0
-        adc_delay + PULSEQ_TIME_TOL >= sys.ADC_dead_time || error("Block $block_id ADC delay ($(adc_delay) s) is smaller than ADC dead time $(sys.ADC_dead_time) s.")
+    if sys.limits.ADC_dead_time > 0
+        adc_delay + PULSEQ_TIME_TOL >= sys.limits.ADC_dead_time || error("Block $block_id ADC delay ($(adc_delay) s) is smaller than ADC dead time $(sys.limits.ADC_dead_time) s.")
     end
     return nothing
 end
@@ -176,19 +176,16 @@ function check_timing(seq::Sequence, sys::Scanner)
 end
 
 function check_timing(seq::Sequence, raster::NamedTuple)
-    default = Scanner()
     sys = Scanner(
-        B0=default.B0,
-        B1=default.B1,
-        Gmax=default.Gmax,
-        Smax=default.Smax,
-        ADC_Δt=raster.AdcRasterTime,
-        DUR_Δt=raster.BlockDurationRaster,
-        GR_Δt=raster.GradientRasterTime,
-        RF_Δt=raster.RadiofrequencyRasterTime,
-        RF_ring_down_time=get(raster, :RfRingdownTime, 0.0),
-        RF_dead_time=get(raster, :RfDeadTime, 0.0),
-        ADC_dead_time=get(raster, :AdcDeadTime, 0.0),
+        limits=HardwareLimits(
+            ADC_Δt=raster.AdcRasterTime,
+            DUR_Δt=raster.BlockDurationRaster,
+            GR_Δt=raster.GradientRasterTime,
+            RF_Δt=raster.RadiofrequencyRasterTime,
+            RF_ring_down_time=get(raster, :RfRingdownTime, 0.0),
+            RF_dead_time=get(raster, :RfDeadTime, 0.0),
+            ADC_dead_time=get(raster, :AdcDeadTime, 0.0),
+        ),
     )
     return check_timing(seq, raster, sys)
 end

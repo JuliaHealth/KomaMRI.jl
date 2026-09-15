@@ -1,5 +1,5 @@
 struct BlochMagnusGLCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T}
+    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T},S,P
 } <: BlochMagnusCPUPrealloc{T}
     ωxy_minus::CV
     ωz_minus::RV
@@ -13,9 +13,11 @@ struct BlochMagnusGLCPUPrealloc{
     ΔBz::RV
     Maux_xy::CV
     Maux_z::RV
+    sens::S
+    coordinates::P
 end
 
-prealloc(sim_method::BlochMagnusGL4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
+prealloc(::BlochMagnusGL4, backend::KA.CPU, obj, M, max_block_length, _max_adc_samples, _groupsize, sys) =
     BlochMagnusGLCPUPrealloc(
         cbuf(obj), rbuf(obj),
         cbuf(obj), rbuf(obj),
@@ -23,9 +25,11 @@ prealloc(sim_method::BlochMagnusGL4, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}
         similar(M.xy), similar(M.xy),
         off_resonance_buffer(obj),
         similar(M.xy), similar(M.z),
+        prealloc_sensitivities(sys.receiver, obj),
+        prealloc_motion_coordinates(obj.motion, backend, obj, max_block_length),
     )
 
-prealloc(sim_method::BlochMagnusGL2, backend::KA.CPU, obj::Phantom{T}, M::Mag{T}, max_block_length::Integer, groupsize) where {T<:Real} =
-    prealloc(BlochMagnusGL4(), backend, obj, M, max_block_length, groupsize)
+prealloc(::BlochMagnusGL2, backend::KA.CPU, obj, M, max_block_length, max_adc_samples, groupsize, sys) =
+    prealloc(BlochMagnusGL4(), backend, obj, M, max_block_length, max_adc_samples, groupsize, sys)
 
 precession_buffers(p::BlochMagnusGLCPUPrealloc) = p.ωz_minus, p.ωz_plus

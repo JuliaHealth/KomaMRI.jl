@@ -18,11 +18,11 @@ function build_slr_pulse(flip_angle; sys=Scanner(), kwargs...)
     seq = Sequence(sys)
     if gz === nothing
         addblock!(seq, rf)
-        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+        seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
         return seq
     end
     addblock!(seq, rf; z=gz)
-    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.DUR_Δt)
+    seq.DUR[end] = ceil_to_raster(dur(seq[end], sys), sys.limits.DUR_Δt)
     addblock!(seq; z=gz_rephaser)
     return seq
 end
@@ -48,7 +48,7 @@ supplied.
 - `freq_offset=0.0`: RF frequency offset. [`Hz`]
 - `phase_offset=0.0`: RF phase offset. [`rad`]
 - `delay=0.0`: RF delay before RF dead-time adjustment. [`s`]
-- `dwell=sys.RF_Δt`: RF sample spacing. [`s`]
+- `dwell=sys.limits.RF_Δt`: RF sample spacing. [`s`]
 - `use=Excitation()`: RF use label controlling the SLR pulse type.
 - `max_grad=nothing`: Slice-gradient amplitude limit override. Plain numbers use Pulseq units. [`Hz/m`]
 - `max_slew=nothing`: Slice-gradient slew limit override. Plain numbers use Pulseq units. [`Hz/m/s`]
@@ -67,7 +67,7 @@ supplied.
 function make_slr_pulse(flip_angle; duration=1e-3, sys=Scanner(),
     slice_thickness=nothing, time_bw_product=4.0, passband_ripple=0.01,
     stopband_ripple=0.01, filter_type=:ms, freq_offset=0.0, phase_offset=0.0,
-    delay=0.0, dwell=sys.RF_Δt, use=Excitation(), max_grad=nothing,
+    delay=0.0, dwell=sys.limits.RF_Δt, use=Excitation(), max_grad=nothing,
     max_slew=nothing)
     flip_angle      = to_SI(flip_angle, SIUnitsDefault())
     duration        = to_SI(duration, SIUnitsDefault())
@@ -76,8 +76,8 @@ function make_slr_pulse(flip_angle; duration=1e-3, sys=Scanner(),
     phase_offset    = to_SI(phase_offset, SIUnitsDefault())
     delay           = to_SI(delay, SIUnitsDefault())
     dwell           = to_SI(dwell, SIUnitsDefault())
-    max_grad        = isnothing(max_grad) ? sys.Gmax : to_SI(max_grad, PulseqUnitsDefault())
-    max_slew        = isnothing(max_slew) ? sys.Smax : to_SI(max_slew, PulseqUnitsDefault())
+    max_grad        = isnothing(max_grad) ? sys.limits.Gmax : to_SI(max_grad, PulseqUnitsDefault())
+    max_slew        = isnothing(max_slew) ? sys.limits.Smax : to_SI(max_slew, PulseqUnitsDefault())
     duration > 0 || error("RF pulse duration must be positive.")
     dwell > 0 || error("RF dwell time must be positive.")
     time_bw_product > 0 || error("RF time-bandwidth product must be positive.")
@@ -92,7 +92,7 @@ function make_slr_pulse(flip_angle; duration=1e-3, sys=Scanner(),
     )
     waveform = normalize_flip_angle(waveform, dwell, flip_angle)
     center = rf_peak_center(waveform, dwell)
-    rf_start_time = max(delay, sys.RF_dead_time)
+    rf_start_time = max(delay, sys.limits.RF_dead_time)
     rf = RF(waveform, (n - 1) * dwell, freq_offset, rf_start_time + dwell / 2;
         center=center - dwell / 2, ϕ=phase_offset, use)
     slice_thickness === nothing && return rf, nothing, nothing

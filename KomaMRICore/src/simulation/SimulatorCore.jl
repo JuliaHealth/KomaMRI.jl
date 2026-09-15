@@ -101,6 +101,7 @@ function run_spin_precession_parallel!(
     seq,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
+    sys,
     sim_method::SimulationMethod,
     groupsize::Integer,
     backend::KA.Backend,
@@ -111,7 +112,7 @@ function run_spin_precession_parallel!(
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_precession!(
-            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), sim_method, groupsize, backend, @view(prealloc[p])
+            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), sys, sim_method, groupsize, backend, @view(prealloc[p])
         )
     end
 
@@ -123,6 +124,7 @@ function run_spin_excitation_parallel!(
     seq,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
+    sys,
     sim_method::SimulationMethod,
     groupsize::Integer,
     backend::KA.Backend,
@@ -133,8 +135,8 @@ function run_spin_excitation_parallel!(
 
     ThreadsX.foreach(enumerate(parts)) do (i, p)
         run_spin_excitation!(
-            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]), 
-            sim_method, groupsize, backend, @view(prealloc[p])
+            @view(obj[p]), seq, split_sig_per_thread(sig, i, p, sim_method), @view(Xt[p]),
+            sys, sim_method, groupsize, backend, @view(prealloc[p])
         )
     end
 
@@ -170,6 +172,7 @@ function run_sim_time_iter!(
     seqd,
     sig::AbstractArray{Complex{T}},
     Xt::SpinStateRepresentation{T},
+    sys,
     sim_method::SimulationMethod,
     backend::KA.Backend;
     Nblocks=1,
@@ -180,16 +183,21 @@ function run_sim_time_iter!(
     excitation_bool=ones(Bool, size(parts)),
     remap_before=falses(length(parts)),
     remap_sources=nothing,
+    max_adc_samples,
     sim_params=Dict{String,Any}(),
     callbacks=(),
 ) where {T<:Real}
     # Simulation
     rfs = 0
     samples = 1
-    prealloc_result = prealloc(sim_method, backend, obj, Xt, maximum(length.(parts))+1, precession_groupsize)
-
     (precession_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
     (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
+    prealloc_groupsize = min(precession_groupsize, excitation_groupsize)
+    max_block_length = maximum(length.(parts))
+    prealloc_result = prealloc(
+        sim_method, backend, obj, Xt, max_block_length, max_adc_samples,
+        prealloc_groupsize, sys,
+    )
 
     for (block, p) in enumerate(parts)
         remap_before[block] && remap_magnetization!(Xt, remap_sources)
@@ -201,14 +209,14 @@ function run_sim_time_iter!(
         # Simulation wrappers
         if excitation_bool[block]
             run_spin_excitation_parallel!(
-                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, 
+                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, sys,
                 sim_method, excitation_groupsize, backend, prealloc_result; Nthreads
             )
             rfs += 1
 
         else
             run_spin_precession_parallel!(
-                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, 
+                obj, seqd_block, @view(sig[acq_samples, dims...]), Xt, sys,
                 sim_method, precession_groupsize, backend, prealloc_result; Nthreads
             )
         end
@@ -363,6 +371,10 @@ function simulate(
         breaks=remap_breaks,
     ) # Generating simulation blocks
     remap_before = [first(p) in remap_breaks for p in parts]
+    max_adc_samples = maximum(
+        (count(@view seqd.ADC[(first(p) + 1):last(p)]) for p in parts);
+        init=0,
+    )
     Nblocks = length(parts)
     t_sim_parts = [seqd.t[p[1]] for p in parts]
     append!(t_sim_parts, seqd.t[end])
@@ -370,7 +382,7 @@ function simulate(
     Xt, obj = initialize_spins_state(obj, sim_method)
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
-    backend = get_backend(sim_params["gpu"])
+    backend = get_backend(sim_params["gpu"]; verbose)
     sim_params["gpu"] &= backend isa KA.GPU
     if sim_params["gpu"]
         sim_params["Nthreads"] = 1
@@ -385,6 +397,7 @@ function simulate(
     to_precision = simulation_precision_transform(Val(Symbol(sim_params["precision"])))
     obj  = obj |> to_precision #Phantom
     seqd = seqd |> to_precision #DiscreteSequence
+    sys = sys |> to_precision #Scanner
     Xt   = Xt |> to_precision #SpinStateRepresentation
     sig  = sig |> to_precision #Signal
     # Objects to GPU
@@ -393,6 +406,7 @@ function simulate(
         gpu_name = device_name(backend)
         obj = obj |> gpu #Phantom
         seqd = seqd |> gpu #DiscreteSequence
+        sys = sys |> gpu #Scanner
         Xt = Xt |> gpu #SpinStateRepresentation
         sig = sig |> gpu #Signal
         remap_sources = remap_sources |> gpu #Cycle remap indexes
@@ -409,6 +423,7 @@ function simulate(
         seqd,
         sig,
         Xt,
+        sys,
         sim_params["sim_method"],
         backend;
         Nblocks=Nblocks,
@@ -419,6 +434,7 @@ function simulate(
         excitation_bool,
         remap_before,
         remap_sources,
+        max_adc_samples,
         sim_params,
         callbacks=all_callbacks,
     )
