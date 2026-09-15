@@ -14,9 +14,9 @@ end
 # through a per-block time offset.
 function cycle_remap_break_indices(seqd, motion)
     breaks = Int[]
+    tol = KomaMRIBase.MAX_STEP_TIME_SNAP_TOL
     for t in KomaMRIBase.cycle_remap_times(motion, last(seqd.t))
         t < last(seqd.t) || continue
-        tol = max(KomaMRIBase.MAX_STEP_TIME_SNAP_TOL, 4eps(t))
         i = searchsortedlast(seqd.t, t + tol)
         i >= firstindex(seqd.t) && abs(seqd.t[i] - t) <= tol ||
             error("No sampling time within $tol of cycle boundary $t; motion key times are missing from the simulation grid.")
