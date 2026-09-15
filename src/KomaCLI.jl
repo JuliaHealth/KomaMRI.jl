@@ -254,16 +254,7 @@ function save_cli_raw(raw, filename)
 end
 
 function reconstruct_cli(raw, rec_params)
-    raw = _imaging_raw_data(raw)
-    acq_data = AcquisitionData(raw)
-    acq_data.traj[1].circular = false
-    scale = maximum(2 * abs.(acq_data.traj[1].nodes[:]))
-    acq_data.traj[1].nodes = acq_data.traj[1].nodes[1:2, :] ./ (iszero(scale) ? one(scale) : scale)
-    Nx, Ny = raw.params["reconSize"][1:2]
-    rec_params[:reconSize] = (Nx, Ny)
-    rec_params[:densityWeighting] = true
-    rec = reconstruction(acq_data, rec_params)
-    return reshape(rec.data, Nx, Ny, :)
+    return reconstruct_with_labels(raw; rec_params)
 end
 
 function save_cli_recon(image, rec_params, filename)

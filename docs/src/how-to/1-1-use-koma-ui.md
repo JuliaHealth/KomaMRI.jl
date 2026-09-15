@@ -125,17 +125,96 @@ Press the `Reconstruct!` button to perform the reconstruction (this may take a w
 ```
 
 ## Exporting Results to .mat File
+
 (You can also go to [analog steps using Scripts](1-3-use-koma-scripts.md#Exporting-Results-to-.mat-File))
 
-The user interface has the option to save the results in `.mat` format. Simply click on the `Export to .mat` and you have the alternatives to get data independently or you can press the `All` button to have all the results given by the simulator:
+Choose a result from `Export to .mat`, or choose `All`, then select the output folder.
+The confirmation shows the saved filenames. The examples below use the individual exports
+`data_raw.mat`, `data_sequence.mat`, and `data_image.mat`; `All` uses `raw.mat`,
+`seq_sequence.mat`, and `image.mat` for those results.
+
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-export-to-mat.png"/></p>
 ```
 
-So far, and due to limitations of the user interface dependencies, the `.mat` files are saved in the temporal directory of your computer OS, which can be found by typing the `tempdir()` command in the **Julia REPL**:
-```@raw html
-<p align="center"><img width="90%" src="../assets/ui-export-data.gif"/></p>
+**Format change:** `raw` is now a struct, replacing the old numeric `[time, signal]`
+matrix. Label-aware image exports now contain a `reconstruction` struct instead of the
+previous separate `image`, `labels`, `source_labels`, and `recon_policy` variables.
+Plain-array image exports still contain the original `image` variable.
+
+### Raw data
+
+`raw.params` preserves the MRD metadata. `raw.profiles` is a cell array, with one struct
+per acquired readout:
+
+| Field | Contents |
+| --- | --- |
+| `head` | Full MRD acquisition header, including flags, timestamps, discard counts, and `idx` label counters |
+| `traj` | Stored trajectory, coordinates × samples; normalization is unchanged |
+| `data` | Complex signal, samples × receive coils |
+| `role` | Acquisition role derived from the MRD flags, such as `imaging` or `navigator` |
+
+Profiles retain their own sample counts and trajectory dimensions, so 1D navigators,
+2D images, and 3D acquisitions can coexist. No coils are discarded, no `Inf` separators
+are inserted, and timestamps are not synthesized. Koma's trajectory normalization scale
+is retained in `raw.params.userParameters.KomaTrajectoryScale` when available.
+
+Raw data also exports when `userParameters` is absent. When present, those parameters
+are additionally saved in `sim_params.mat`. Dictionary keys replace `Δ` with `d` for
+MATLAB compatibility, for example `Δt_rf` becomes `dt_rf`.
+
+```matlab
+s = load('data_raw.mat');
+p = s.raw.profiles{1};
+signal = p.data(:, 1);       % All samples from receive coil 1
+k = p.traj;                 % Original stored coordinates for this readout
+slice_label = p.head.idx.slice;
 ```
+
+### Sequence
+
+`sequence` retains the waveform fields `Gx`, `Gy`, `Gz`, `RF_AM`, `RF_FM`, and `ADCS`,
+and adds `definitions` and `adc`. Each `sequence.adc` vector has one entry per ADC event:
+`block` is the one-based Julia sequence-block index, `num_samples` is its sample count,
+and `labels` contains named vectors of all accumulated ADC label values. Label values
+are preserved, including zero; they are not converted to MATLAB indices.
+
+```matlab
+s = load('data_sequence.mat');
+adc_blocks = s.sequence.adc.block;
+repetitions = s.sequence.adc.labels.REP;
+```
+
+### Reconstructed images
+
+`reconstruction.policy` records the reconstruction policy. Each cell in
+`reconstruction.images` contains one reconstruction batch with `data`, `size`, `labels`,
+and `source`. `labels` identifies the batch; `source` retains its original
+acquisition counters. The six data dimensions are **x, y, z, echo, coil, repetition**.
+The explicit six-element `size` vector preserves trailing singleton dimensions that
+MATLAB does not display.
+
+```matlab
+s = load('data_image.mat');
+batch = s.reconstruction.images{1};
+I = reshape(batch.data, batch.size(:).');
+echo = 1; coil = 1; repetition = 1; z = 1;
+plane = I(:, :, z, echo, coil, repetition);
+if batch.size(2) == 1 && batch.size(3) == 1
+    plot(abs(plane(:, 1)));       % 1D reconstruction
+else
+    imagesc(abs(plane)); axis image; % 2D image or one plane of a 3D volume
+end
+volume = I(:, :, :, echo, coil, repetition);
+```
+
+Select a different batch for separate acquisition labels, such as `SLC` or `REP`.
+Select `z` within a batch for a reconstructed 3D partition. MATLAB array indices are
+one-based, independently of the stored label values. Explicit indexing above avoids
+collapsing coil or echo dimensions with `squeeze`.
+
+Profile and image collections remain cell arrays even with one element, for a
+consistent format across supported MAT.jl versions 0.10, 0.11, and 0.12.
 
 
 ## REPL and UI communication

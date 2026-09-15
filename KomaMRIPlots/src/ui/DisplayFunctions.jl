@@ -530,6 +530,9 @@ function plot_seq(
         label_to_show = label_symbols,
         non_label_count = adc_idx
     )
+    l.xaxis[:rangeslider] = attr(;
+        visible=slider, autorange=false, range=[0, dur(seq) * 1e3]
+    )
 
     if !isempty(trigger_times)
         hover_positions = LinRange(0.0, 1.0, 51)
@@ -1556,6 +1559,8 @@ end
 
 Plots a raw signal in ISMRMRD format.
 
+For multi-coil data, a slider selects the displayed receive channel.
+
 # Arguments
 - `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct (raw signal in ISMRMRD format)
 
@@ -1593,7 +1598,13 @@ function plot_signal(
 )
     not_Koma = raw.params["systemVendor"] != "KomaMRI.jl"
     t = []
-    signal = []
+    ncoils = size(first(raw.profiles).data, 2)
+    scatter_fun = gl ? scattergl : scatter
+    components = ((abs, "|S(t)|", scatter), (real, "Re{S(t)}", scatter_fun),
+        (imag, "Im{S(t)}", scatter_fun))
+    trace_coils = repeat(1:ncoils; inner=length(components))
+    signal_type = Union{Missing,eltype(first(raw.profiles).data)}
+    signals = [signal_type[] for _ in 1:ncoils]
     current_t0 = 0
     for p in raw.profiles
         dt = p.head.sample_time_us != 0 ? p.head.sample_time_us * 1e-3 : 1
@@ -1608,11 +1619,19 @@ function plot_signal(
         else
             append!(t, t0)
         end
-        append!(signal, p.data[:, 1]) #Just one coil
+        for coil in 1:ncoils
+            append!(signals[coil], @view p.data[:, coil])
+            push!(signals[coil], missing)
+        end
         #To generate gap
         append!(t, t[end])
-        push!(signal, missing)
     end
+    ymin, ymax = extrema(
+        value for signal in signals for sample in skipmissing(signal) for
+        value in (real(sample), imag(sample), abs(sample))
+    )
+    padding = iszero(ymax - ymin) ? max(abs(ymax), one(ymax)) : (ymax - ymin) / 20
+    signal_range = [ymin - padding, ymax + padding]
     #Show simulation blocks
     shapes = []
     annotations = []
@@ -1673,6 +1692,7 @@ function plot_signal(
         yaxis_gridcolor=grid_color,
         xaxis_zerolinecolor=grid_color,
         yaxis_zerolinecolor=grid_color,
+        yaxis_range=signal_range,
         font_color=text_color,
         yaxis_fixedrange=false,
         yaxis_automargin=false,
@@ -1690,7 +1710,24 @@ function plot_signal(
         ),
         shapes=shapes,
         annotations=annotations,
-        margin=attr(; t=6, l=30, r=6, b=24),
+        sliders=ncoils == 1 ? [] : [
+            attr(;
+                active=0,
+                currentvalue=attr(; prefix="Coil: "),
+                steps=[
+                    attr(;
+                        label=string(coil),
+                        method="restyle",
+                        args=[attr(; visible=trace_coils .== coil)],
+                    ) for coil in 1:ncoils
+                ],
+                x=0.1,
+                len=0.8,
+                y=1.12,
+                yanchor="bottom",
+            ),
+        ],
+        margin=attr(; t=ncoils == 1 ? 6 : 125, l=30, r=6, b=24),
     )
     if height !== nothing
         l.height = height
@@ -1698,17 +1735,16 @@ function plot_signal(
     if width !== nothing
         l.width = width
     end
-    scatter_fun = gl ? scattergl : scatter
-    p = [scatter_fun() for j in 1:3]
-    p[1] = scatter(;
-        x=t, y=abs.(signal), name="|S(t)|", hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)"
-    )
-    p[2] = scatter_fun(;
-        x=t, y=real.(signal), name="Re{S(t)}", hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)"
-    )
-    p[3] = scatter_fun(;
-        x=t, y=imag.(signal), name="Im{S(t)}", hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)"
-    )
+    p = [
+        plot_component(;
+            x=t,
+            y=component.(signal),
+            name,
+            hovertemplate="(%{x:.4f} ms, %{y:.3f} a.u.)",
+            visible=coil == 1,
+        ) for (coil, signal) in enumerate(signals)
+        for (component, name, plot_component) in components
+    ]
     config = PlotConfig(;
         displaylogo=false,
         toImageButtonOptions=attr(;

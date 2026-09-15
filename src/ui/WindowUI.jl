@@ -353,7 +353,7 @@ end
 
 function failure_toast!(w, id, operation, error)
     message = html_escape(sprint(showerror, error))
-    return toast!(w, id, "$operation failed", "<pre class=\"mb-0\">$message</pre>")
+    return toast!(w, id, "$operation failed", "<div class=\"text-break\" style=\"white-space: pre-wrap;\">$message</div>")
 end
 
 function update_filename!(w, id, name)

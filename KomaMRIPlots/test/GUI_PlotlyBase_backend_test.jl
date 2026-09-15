@@ -75,7 +75,26 @@
         raw = RawAcquisitionData(
             ISMRMRDFile(joinpath(@__DIR__, "test_files", "Koma_signal.mrd"))
         )
-        test_plot(plot_signal(raw; width=800, height=600))
+        signal_plot = plot_signal(raw; width=800, height=600)
+        test_plot(signal_plot)
+
+        # Single-coil data has no coil selector.
+        @test isempty(signal_plot.layout[:sliders])
+        profile = first(raw.profiles)
+        head = deepcopy(profile.head)
+        head.available_channels = head.active_channels = head.number_of_samples = 2
+        data = ComplexF32[3+4im -5-12im; 0 0]
+        coils = Profile(head, profile.traj[:, 1:2], data)
+        multi_coil_plot = plot_signal(RawAcquisitionData(raw.params, [coils]))
+
+        # Each coil selects its known phasor components; the hidden coil also sets the range.
+        selector = only(multi_coil_plot.layout[:sliders])
+        @test [
+            [collect(skipmissing(trace[:y])) for trace in multi_coil_plot.data[step[:args][1][:visible]]]
+            for step in selector[:steps]
+        ] == [[[5, 0], [3, 0], [4, 0]], [[13, 0], [-5, 0], [-12, 0]]]
+        signal_limits = multi_coil_plot.layout[:yaxis][:range]
+        @test first(signal_limits) <= -12 && last(signal_limits) >= 13
 
         @test plot_dict(Dict("B0" => 1.5, "Gmax" => 0.06)) isa AbstractString
     end

@@ -335,6 +335,40 @@ end
             @test roundtrip.EXT[2] == [LabelSet(0, "SLC"), LabelSet(0, "LIN"), LabelInc(1, "SLC")]
         end
 
+        mktempdir() do tmpdir
+            # Sparse counters preserve the full encoding matrix; repetitions do not enlarge it.
+            seq = Sequence()
+            @addblock for repetition in 0:1, partition in (0, 2), line in (1, 3)
+                seq += (
+                    ADC(4, 1e-3),
+                    LabelSet(partition, "PAR"),
+                    LabelSet(line, "LIN"),
+                    LabelSet(repetition, "REP"),
+                    Duration(2e-3),
+                )
+            end
+            filename = joinpath(tmpdir, "sparse-labels.seq")
+            write_seq(seq, filename; check_timing=false, verbose=false)
+            roundtrip = read_seq(filename; verbose=false)
+            @test (roundtrip.DEF["Ny"], roundtrip.DEF["Nz"]) == (4, 3)
+
+            # Fat preparation and navigator labels must not create spatial image dimensions.
+            seq = Sequence()
+            fat_offset_hz = -440.0
+            @addblock seq += RF(1e-6, 1e-3, fat_offset_hz)
+            @addblock seq += RF(1e-6, 1e-3, 0.0)
+            @addblock seq += (ADC(4, 1e-3), Duration(2e-3))
+            @addblock seq += (ADC(4, 1e-3), Duration(2e-3))
+            @addblock seq += (
+                ADC(8, 1e-3), LabelSet(1, "NAV"), LabelSet(3, "LIN"),
+                LabelSet(4, "PAR"), LabelSet(5, "SLC"), Duration(2e-3),
+            )
+            filename = joinpath(tmpdir, "navigator.seq")
+            write_seq(seq, filename; check_timing=false, verbose=false)
+            roundtrip = read_seq(filename; verbose=false)
+            @test (roundtrip.DEF["Nx"], roundtrip.DEF["Ny"], roundtrip.DEF["Nz"]) == (4, 1, 1)
+        end
+
         pth = @__DIR__
         seq = read_seq(pth*"/test_files/pulseq/basic_tests/v1.4/label_test.seq"; verbose=false)
         label = get_labels(seq)

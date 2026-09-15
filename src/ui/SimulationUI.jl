@@ -66,24 +66,14 @@ function run_reconstruction!(w, rec_params; initial=false)
     evaljs(w, js"document.getElementById('recon!').innerHTML = $(spinner);")
 
     try
-        raw = _imaging_raw_data(raw_ui[])
-        acq_data = AcquisitionData(raw)
-        acq_data.traj[1].circular = false
-        acq_data.traj[1].nodes =
-            acq_data.traj[1].nodes[1:2, :] ./ maximum(2 * abs.(acq_data.traj[1].nodes[:]))
-        Nx, Ny = raw.params["reconSize"][1:2]
-        rec_params[:reconSize] = (Nx, Ny)
-        rec_params[:densityWeighting] = true
-
         @info "Running reconstruction ..."
-        reconstruction_result = @timed reconstruction(acq_data, rec_params)
-        image = reshape(reconstruction_result.value.data, Nx, Ny, :)
+        reconstruction_result = @timed reconstruct_with_labels(raw_ui[]; rec_params)
         body = """
             <ul class="list-unstyled mb-0"><li><button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View reconstruction" aria-label="View reconstruction" onclick="KomaUI.notify('reconstruction_absI')"><i class="bi bi-search"></i></button> Updating <b>Reconstruction</b> plots ...</li></ul>
         """
         rec_time = round(reconstruction_result.time; digits=3)
         toast!(w, 2, "Reconstruction successful<br>Time: $rec_time s", body)
-        img_ui[] = image
+        img_ui[] = reconstruction_result.value
     catch error
         @error "Reconstruction failed" exception=(error, catch_backtrace())
         restore_content!(w, previous_content, previous_state)

@@ -867,6 +867,33 @@ function get_labels(seq::Sequence, nBlocks::Int=length(seq.EXT))
   return labels
 end
 
+_adc_label_name(::Extension) = nothing
+_adc_label_name(label::Union{LabelSet,LabelInc}) = Symbol(label.labelstring)
+_is_imaging_label(label) =
+  iszero(label.NAV) && iszero(label.NOISE) && (iszero(label.REF) || !iszero(label.IMA))
+
+"""
+    adc_label_context(seq)
+
+Return the accumulated Pulseq labels and block indices for ADC events in `seq`.
+`encoding_blocks` contains imaging ADCs when present, otherwise every ADC block;
+`label_names` records the labels explicitly used by the sequence.
+`encoding_label_names` includes names encountered through the last encoding ADC, including
+explicit zero values; labels first introduced afterward cannot describe those acquisitions.
+"""
+function adc_label_context(seq::Sequence)
+  labels = get_labels(seq)
+  adc_blocks = findall(is_ADC_on, seq.ADC)
+  imaging_blocks = filter(b -> _is_imaging_label(labels[b]), adc_blocks)
+  encoding_blocks = isempty(imaging_blocks) ? adc_blocks : imaging_blocks
+  label_names = Set(Iterators.filter(!isnothing,
+    (_adc_label_name(ext) for ext in Iterators.flatten(seq.EXT))))
+  last_encoding_block = isempty(encoding_blocks) ? 0 : last(encoding_blocks)
+  encoding_label_names = Set(Iterators.filter(!isnothing,
+    (_adc_label_name(ext) for ext in Iterators.flatten(@view(seq.EXT[1:last_encoding_block])))))
+  return (; labels, adc_blocks, imaging_blocks, encoding_blocks, label_names, encoding_label_names)
+end
+
 _update_label(label::AdcLabels, ::Extension) = label
 _update_label(label::AdcLabels, val::LabelSet) = _adc_label_with(label, Symbol(val.labelstring), val.labelvalue)
 function _update_label(label::AdcLabels, val::LabelInc)

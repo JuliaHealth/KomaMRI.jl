@@ -142,6 +142,71 @@ body, button{
   min-height: 0;
 }
 
+.koma-reconstruction-controls {
+  display: grid;
+  gap: 0.5rem;
+  width: min(100%, 45rem);
+  margin-inline: auto;
+  padding: 0.75rem 1rem 0.25rem;
+}
+
+.koma-reconstruction-slider,
+.koma-reconstruction-dropdown {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr) 5rem;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0;
+}
+
+.koma-reconstruction-dropdown-input {
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  color: #f8f9fa;
+  color-scheme: dark;
+  background-color: #212529;
+  border: 1px solid #6c757d;
+  border-radius: 0.25rem;
+  font: inherit;
+}
+
+.koma-reconstruction-slider-input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--bs-primary);
+}
+
+.koma-reconstruction-slider-track {
+  grid-column: 2;
+  display: grid;
+  grid-template-rows: auto 0.25rem;
+  min-width: 0;
+}
+
+.koma-reconstruction-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  padding: 0 8px;
+}
+
+.koma-reconstruction-slider-tick {
+  width: 1px;
+  height: 4px;
+  background: #adb5bd;
+}
+
+.koma-reconstruction-slider-label {
+  grid-column: 3;
+  min-width: 0;
+  color: #f8f9fa;
+  font-weight: 500;
+}
+
 .koma-loading {
   display: flex;
   flex-direction: column;
@@ -209,6 +274,8 @@ body, button{
 }
 
 .file-dropdown-menu .koma-file-input {
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
 }
@@ -219,6 +286,11 @@ body, button{
   justify-content: flex-start;
   gap: 6px;
   width: auto;
+}
+
+.filepicker-row > span {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .koma-file-input,
@@ -247,11 +319,6 @@ body, button{
   border-color: #3890ca !important;
 }
 
-#seqfilepicker {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
 .koma-file-name {
   display: block;
   flex: 1 1 auto;
@@ -262,6 +329,7 @@ body, button{
 }
 
 .filepicker-row .file-reload-button {
+  flex: 0 0 auto;
   padding: 5px 8px !important;
   background-color: #495057 !important;
   border-color: #5c636a !important;

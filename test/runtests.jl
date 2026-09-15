@@ -6,6 +6,46 @@ using TestItems, TestItemRunner
 # include("../KomaMRIPlots/test/runtests.jl")
 
 @testitem "MRIReco recon" tags=[:koma] begin
+    using MAT
+
+    mat_values(value::Number) = [value]
+    mat_values(value::AbstractString) = [value]
+    mat_values(value) = vec(collect(value))
+
+    function test_reconstruction_mat(result)
+        mktempdir() do dir
+            KomaMRI.export_2_mat_image(result, Dict(:reco=>"direct"), dir)
+            saved = matread(joinpath(dir, "image.mat"))["reconstruction"]
+            # MAT structs preserve each labeled complex array, its dimensions, and reconstruction policy.
+            @test saved["policy"] == Dict(string(k)=>string(v) for (k, v) in pairs(result.policy)) &&
+                length(saved["images"]) == length(result.images)
+            for (stored, entry) in zip(saved["images"], result.images)
+                @test mat_values(stored["size"]) == collect(size(entry.image)) &&
+                    ntuple(d -> size(stored["data"], d), 6) == size(entry.image) &&
+                    vec(stored["data"]) == vec(parent(entry.image))
+                @test stored["labels"] == Dict(string(k)=>(k == :ROLE ? string(v) : v) for (k, v) in pairs(entry.labels)) &&
+                    all(mat_values(stored["source"][string(k)]) == collect(v) for (k, v) in pairs(entry.source))
+            end
+        end
+    end
+
+    function test_raw_mat(raw, roles)
+        mktempdir() do dir
+            KomaMRI.export_2_mat_raw(raw, dir)
+            saved = matread(joinpath(dir, "raw.mat"))["raw"]
+            # Every coil sample, trajectory coordinate, and MRD header field survives the MAT roundtrip.
+            @test mat_values(saved["params"]["encodedSize"]) == raw.params["encodedSize"] &&
+                haskey(saved["params"], "userParameters") == haskey(raw.params, "userParameters")
+            @test length(saved["profiles"]) == length(raw.profiles)
+            @test all(stored["data"] == profile.data && stored["traj"] == profile.traj && stored["role"] == role &&
+                all(mat_values(stored["head"][string(k)]) == mat_values(getproperty(profile.head, k))
+                    for k in propertynames(profile.head) if k != :idx) &&
+                all(mat_values(stored["head"]["idx"][string(k)]) == mat_values(getproperty(profile.head.idx, k))
+                    for k in propertynames(profile.head.idx))
+                for (stored, profile, role) in zip(saved["profiles"], raw.profiles, roles))
+        end
+    end
+
     #Sanity check 1
     A = rand(5,5,3)
     B = KomaMRI.fftc(KomaMRI.ifftc(A))
@@ -31,6 +71,224 @@ using TestItems, TestItemRunner
     #Test MRIReco regularized recon (with a λ)
     @testset "MRIReco_standard" begin
         #???
+    end
+
+    @testset "Cartesian point-source export and reconstruction" begin
+        fov = 0.08
+        function cartesian_sequence(matrix; fov, duration=1e-3)
+            nx, ny, nz = matrix
+            scale = 1 / (γ * fov * duration)
+            seq = Sequence()
+            @addblock for partition in 0:(nz - 1), line in 0:(ny - 1)
+                start = [-fld(nx, 2), line - fld(ny, 2), partition - fld(nz, 2)]
+                pre = [Grad(k * scale, duration) for k in start]
+                seq += (x=pre[1], y=pre[2], z=pre[3])
+                seq += (x=Grad((nx - 1) * scale, duration), ADC(nx, duration),
+                    LabelSet(line, "LIN"), nz > 1 ? LabelSet(partition, "PAR") : nothing)
+                seq += (x=Grad(-(start[1] + nx - 1) * scale, duration), y=-pre[2], z=-pre[3])
+            end
+            seq.DEF = Dict("Nx"=>nx, "Ny"=>ny, "Nz"=>nz, "FOV"=>fill(fov, 3))
+            return seq
+        end
+        function reconstruct_point(seq, position)
+            _, k = get_kspace(seq)
+            signal = reshape(ComplexF32.(exp.(-2π * im .* (k * position))), :, 1)
+            raw = signal_to_raw_data(signal, seq)
+            return reconstruct_with_labels(raw; rec_params=Dict(:reco=>"direct"))
+        end
+
+        # A point three voxels from isocenter remains there for x/y/z readouts, with no padded rows.
+        samples, displacement = 16, 3
+        rotations = ([1 0 0; 0 1 0; 0 0 1], [0 0 1; 1 0 0; 0 1 0], [0 1 0; 0 0 1; 1 0 0])
+        for (axis, rotation) in enumerate(rotations)
+            seq = rotation * cartesian_sequence((samples, 1, 1); fov)
+            for (dimension, name) in enumerate(("Nx", "Ny", "Nz"))
+                seq.DEF[name] = dimension == axis ? samples : 1
+            end
+            image = only(reconstruct_point(seq, rotation * [displacement * fov / samples, 0, 0]).images).image
+            @test size(image)[1:3] == (samples, 1, 1)
+            @test argmax(abs.(image)) == CartesianIndex(samples ÷ 2 + 1 + displacement, 1, 1, 1, 1, 1)
+        end
+
+        # Physical 3D encoding must locate an off-center point without PAR labels.
+        matrix, displacement = (8, 8, 8), [1, -2, 2]
+        seq = cartesian_sequence(matrix; fov)
+        position = displacement .* (fov ./ collect(matrix))
+        for extensions in seq.EXT
+            filter!(ext -> !(ext isa LabelSet && ext.labelstring == "PAR"), extensions)
+        end
+        volume = reconstruct_point(seq, position)
+        unlabeled = only(volume.images).image
+        @test argmax(abs.(unlabeled)) == CartesianIndex((matrix .÷ 2 .+ 1 .+ Tuple(displacement))..., 1, 1, 1)
+        test_reconstruction_mat(volume)
+
+        # A varying spatial direction without a matrix must fail rather than invent an image size.
+        missing_matrix = signal_to_raw_data(ones(ComplexF32, prod(matrix), 1), seq)
+        missing_matrix.params["encodedSize"][3] = 1
+        @test_throws ArgumentError reconstruct_with_labels(missing_matrix)
+
+        @testset "Mixed 2D slices and 1D navigators" begin
+            image_samples = 8
+            slice_seq = cartesian_sequence((image_samples, image_samples, 1); fov)
+            imaging_seq = Sequence()
+            @addblock for slice in 0:1
+                imaging_seq += (LabelSet(slice, "SLC"),)
+                imaging_seq += slice_seq
+            end
+            imaging_seq.DEF = copy(slice_seq.DEF)
+            point_position = (fov / image_samples) .* [1, -1, 1]
+            _, imaging_k = get_kspace(imaging_seq)
+            imaging_signal = reshape(ComplexF32.(exp.(-2π * im .* (imaging_k * point_position))), :, 1)
+            imaging_signal[(image_samples^2 + 1):end, :] .*= 2
+            imaging_raw = signal_to_raw_data(imaging_signal, imaging_seq)
+            rec_params = Dict(:reco=>"direct")
+            reference = reconstruct_with_labels(imaging_raw; rec_params).images
+
+            # A wider z navigator must not rescale either slice or turn the images into a 3D volume.
+            # Export normalization differs by a factor of three, including Float32 coordinate rounding.
+            navigator = last(rotations) * cartesian_sequence((image_samples, 1, 1); fov=fov / 3)
+            mixed_seq = copy(imaging_seq)
+            @addblock begin
+                mixed_seq += (LabelSet(1, "NAV"), LabelSet(0, "SLC"))
+                mixed_seq += navigator
+            end
+            mixed_seq.DEF = copy(imaging_seq.DEF)
+            _, mixed_k = get_kspace(mixed_seq)
+            navigator_k = @view mixed_k[(size(imaging_k, 1) + 1):end, :]
+            navigator_signal = reshape(ComplexF32.(exp.(-2π * im .* (navigator_k * point_position))), :, 1)
+            mixed_raw = signal_to_raw_data(vcat(imaging_signal, navigator_signal), mixed_seq)
+            result = reconstruct_with_labels(mixed_raw; rec_params)
+            images = filter(entry -> entry.labels.ROLE === :imaging, result.images)
+            line = only(entry for entry in result.images if entry.labels.ROLE === :navigator).image
+            @test [entry.labels.SLC for entry in images] == [0, 1]
+            @test all(parent(image.image) ≈ parent(original.image) for (image, original) in zip(images, reference))
+            @test parent(images[2].image) ≈ 2 .* parent(images[1].image)
+            @test size(line)[1:3] == (image_samples, 1, 1)
+            navigator_displacement = 3
+            @test argmax(abs.(line)) == CartesianIndex(image_samples ÷ 2 + 1 + navigator_displacement, 1, 1, 1, 1, 1)
+
+            test_reconstruction_mat(result)
+            foreign_raw = RawAcquisitionData(copy(mixed_raw.params), mixed_raw.profiles)
+            delete!(foreign_raw.params, "userParameters")
+            test_raw_mat(foreign_raw, [fill("imaging", length(imaging_raw.profiles)); "navigator"])
+            mktempdir() do dir
+                KomaMRI.export_2_mat_sequence(mixed_seq, dir)
+                saved = matread(joinpath(dir, "seq_sequence.mat"))["sequence"]
+                context = adc_label_context(mixed_seq)
+                # Sequence export retains accumulated NAV/SLC/LIN labels aligned with ADC blocks and samples.
+                @test mat_values(saved["adc"]["block"]) == context.adc_blocks &&
+                    mat_values(saved["adc"]["num_samples"]) == mixed_seq.ADC[context.adc_blocks].N &&
+                    all(mat_values(saved["adc"]["labels"][string(k)]) == getproperty.(context.labels[context.adc_blocks], k)
+                        for k in propertynames(first(context.labels)))
+                @test all(mat_values(saved["definitions"][k]) == mat_values(v) for (k, v) in mixed_seq.DEF)
+            end
+
+            # Discarded off-axis samples outside normalized ±0.5 cannot change geometry or scaling.
+            padded_raw = deepcopy(mixed_raw)
+            padded_nav = last(padded_raw.profiles)
+            discarded_coordinate = Float32[0, 1, 1]
+            discarded_signal = zeros(ComplexF32, 1, size(padded_nav.data, 2))
+            padded_nav.traj = hcat(-discarded_coordinate, padded_nav.traj, discarded_coordinate)
+            padded_nav.data = vcat(discarded_signal, padded_nav.data, discarded_signal)
+            padded_nav.head.discard_pre = padded_nav.head.discard_post = 1
+            padded_nav.head.number_of_samples += 2
+            padded_nav.head.center_sample += 1
+            padded = reconstruct_with_labels(padded_raw; rec_params).images
+            @test parent(only(entry for entry in padded if entry.labels.ROLE === :navigator).image) ≈ parent(line)
+        end
+    end
+
+    @testset "Bundled Pulseq examples" begin
+        # Real examples cover partial Fourier, labeled multislice, and non-Cartesian encoding.
+        examples = (
+            ("epi_ramp_fatsat", (64, 64), 1),
+            ("epi_multislice", (100, 100), 3),
+            ("spiral", (64, 64), 1),
+        )
+        for (name, matrix, slices) in examples
+            @testset "$name" begin
+                filename = joinpath(@__DIR__, "..", "examples", "1.sequences", name * ".seq")
+                seq = read_seq(filename; verbose=false)
+                signal = ones(ComplexF32, sum(seq.ADC.N), 1)
+                raw = signal_to_raw_data(signal, seq)
+                if name == "epi_ramp_fatsat"
+                    # Partial Fourier retains the full matrix's k-space center, not the acquired midpoint.
+                    @test raw.params["enc_lim_kspace_encoding_step_1"] == Limit(0, 55, 32)
+                end
+
+                # A unit isocenter point has constant k-space and must peak at each image's center.
+                images = reconstruct_with_labels(raw; rec_params=Dict(:reco=>"direct")).images
+                @test [entry.labels.SLC for entry in images] == collect(0:(slices - 1))
+                image_shape = (matrix..., 1, 1, 1, 1)
+                center = CartesianIndex((matrix .÷ 2 .+ 1)..., 1, 1, 1, 1)
+                @test all(size(entry.image) == image_shape &&
+                    argmax(abs.(entry.image)) == center for entry in images)
+            end
+        end
+    end
+
+    @testset "Shared reconstruction display ranges" begin
+        data = ones(ComplexF32, 2, 2, 2, 2, 2, 1)
+        data[:, :, 2, :, :, :] .*= 2
+        data[:, :, :, 2, :, :] .*= 10
+        data[:, :, :, :, 2, :] .*= 3
+        images = [
+            (; labels=(; ROLE=role, DIM=2, SET=set, AVG=average),
+               source=(; ECO=[0, 5]), image=amplitude .* data)
+            for (role, set, average, amplitude) in (
+                (:imaging, 0, 0, 1), (:imaging, 0, 1, 4),
+                (:imaging, 1, 0, 100), (:navigator, 0, 0, 1000),
+            )
+        ]
+        cached = KomaMRI._with_magnitude_limits(images)
+
+        # Average, partition, and coil changes share a range; ECO, SET, and ROLE do not.
+        @test cached[1].magnitude_limits == cached[2].magnitude_limits ==
+            [(4, 96), (40, 960)]
+        @test cached[3].magnitude_limits == [(400, 2400), (4000, 24000)]
+        @test cached[4].magnitude_limits == [(4000, 24000), (40000, 240000)]
+    end
+
+    @testset "Reconstruction policy" begin
+        average_profiles = map(raw.profiles) do profile
+            head = deepcopy(profile.head)
+            head.idx.average = 1
+            Profile(head, profile.traj, 3im .* profile.data)
+        end
+        average_raw = RawAcquisitionData(raw.params, [raw.profiles; average_profiles])
+        rec_params = Dict{Symbol,Any}(:reco => "direct")
+        separate = KomaMRI.reconstruct_with_labels(average_raw; rec_params)
+        combined = KomaMRI.reconstruct_with_labels(
+            average_raw; recon_policy=(; AVG=:combine), rec_params
+        )
+        first_average = only(image for image in separate.images if image.labels.AVG == 0)
+        second_average = only(image for image in separate.images if image.labels.AVG == 1)
+        reference = parent(first_average.image)
+
+        # AVG separation preserves phase; combining sums complex signals without normalization.
+        @test parent(second_average.image) ≈ 3im .* reference
+        @test parent(only(combined.images).image) ≈ (1 + 3im) .* reference
+
+        coil_profiles = map(raw.profiles) do profile
+            head = deepcopy(profile.head)
+            head.available_channels = 2
+            head.active_channels = 2
+            Profile(head, profile.traj, hcat(3im .* profile.data, 4im .* profile.data))
+        end
+        coil_raw = RawAcquisitionData(raw.params, coil_profiles)
+        coil_result = KomaMRI.reconstruct_with_labels(coil_raw; rec_params)
+        rss_result = KomaMRI.reconstruct_with_labels(
+            coil_raw; recon_policy=(; COIL=:rss), rec_params
+        )
+        coil_axis, coil_rss = only(coil_result.images).image, only(rss_result.images).image
+
+        # Coil gains 3im and 4im retain phase separately: RSS gives magnitude 5, coherent sum 7.
+        @test parent(coil_axis)[:, :, :, :, 1:1, :] ≈ 3im .* reference
+        @test parent(coil_axis)[:, :, :, :, 2:2, :] ≈ 4im .* reference
+        @test parent(coil_rss) ≈ 5 .* abs.(reference)
+        test_reconstruction_mat(coil_result)
+        test_reconstruction_mat(rss_result)
+        test_raw_mat(coil_raw, fill("imaging", length(coil_raw.profiles)))
     end
 
 end
@@ -220,13 +478,15 @@ end
         sequence = KomaMRI.setup_sequence(scanner)
         phantom = KomaMRI.setup_phantom()
         raw = KomaMRI.setup_raw()
-        image = ComplexF64[0 0; 0 0]
+        image = ComplexF64[1 im; -2 3im]
         rec_params = Dict{Symbol,Any}(:reco => "direct")
 
         dir = mktempdir()
         message = KomaMRI.export_2_mat(sequence, phantom, scanner, raw, rec_params, image, dir; type="image")
         @test readdir(dir) == ["data_image.mat"]
         @test occursin("<b>Name:</b> data_image.mat", message)
+        # Plain-array callers retain the legacy image variable and complex data.
+        @test KomaMRI.matread(joinpath(dir, "data_image.mat"))["image"] == image
 
         dir = mktempdir()
         message = KomaMRI.export_2_mat(sequence, phantom, scanner, raw, rec_params, image, dir; type="sequence")
@@ -385,9 +645,31 @@ end
                     @test timedwait(() -> w.state[] == "sig", 30) == :ok
                     @test timedwait(() -> plot_rendered("sig"), 30) == :ok
 
-                    img_ui[] = reshape(ComplexF32[1, 0, 0, 1], 2, 2, 1)
+                    # Slice changes reuse the graph; leaving the page releases its retained plot state.
+                    img_ui[] = cat(zeros(ComplexF32, 2, 2), ones(ComplexF32, 2, 2); dims=3)
                     @test timedwait(() -> w.state[] == "absi", 30) == :ok
                     @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+                    try
+                        Bonito.evaljs(session, js"""
+                            window.komaTestPlot = document.querySelector('#content .js-plotly-plot');
+                            const slider = document.querySelector('#content input[type=range]');
+                            slider.value = '2';
+                            slider.dispatchEvent(new Event('input', {bubbles: true}));
+                        """)
+                        @test timedwait(() -> Bonito.evaljs_value(session, js"""
+                            window.komaTestPlot === document.querySelector('#content .js-plotly-plot') &&
+                            window.komaTestPlot.data[0].z.flat().every(value => value === 4)
+                        """), 30) == :ok
+                        click_button("button_scanner")
+                        @test timedwait(() -> Bonito.evaljs_value(session, js"""
+                            !window.komaTestPlot.isConnected &&
+                            window.komaTestPlot.data === undefined &&
+                            window.komaTestPlot._fullLayout === undefined &&
+                            window.komaTestPlot._responsiveChartHandler === undefined
+                        """), 30) == :ok
+                    finally
+                        Bonito.evaljs(session, js"delete window.komaTestPlot")
+                    end
                 end
 
                 @testset "File loading" begin

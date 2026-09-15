@@ -1,16 +1,22 @@
 # Pulseq sequence file
-# Created by MATLAB mr toolbox
+# Created by KomaMRI.jl
+# KomaMRIFiles v0.11.7
 
 [VERSION]
 major 1
-minor 4
-revision 0
+minor 5
+revision 1
 
 [DEFINITIONS]
-AdcRasterTime 1e-07 
-BlockDurationRaster 1e-05 
-GradientRasterTime 1e-05 
-RadiofrequencyRasterTime 1e-06 
+Name epi_ramp
+Nx 64
+Ny 64
+Nz 1
+FOV 0.25 0.25 0.0
+BlockDurationRaster 1e-05
+GradientRasterTime 1e-05
+RadiofrequencyRasterTime 1e-06
+AdcRasterTime 1e-07
 
 # Format of blocks:
 # NUM DUR RF  GX  GY  GZ  ADC  EXT
@@ -18,109 +24,342 @@ RadiofrequencyRasterTime 1e-06
  1 226   1   0   0   1  0  1
  2 1614   0   0   0   0  0  0
  3 1145   2   3   4   2  0  0
- 4  48   0   5   6   0  1  0
- 5  48   0   7   8   0  1  0
- 6  48   0   5   8   0  1  0
- 7  48   0   7   8   0  1  0
- 8  48   0   5   8   0  1  0
- 9  48   0   7   8   0  1  0
-10  48   0   5   8   0  1  0
-11  48   0   7   8   0  1  0
-12  48   0   5   8   0  1  0
-13  48   0   7   8   0  1  0
-14  48   0   5   8   0  1  0
-15  48   0   7   8   0  1  0
-16  48   0   5   8   0  1  0
-17  48   0   7   8   0  1  0
-18  48   0   5   8   0  1  0
-19  48   0   7   8   0  1  0
-20  48   0   5   8   0  1  0
-21  48   0   7   8   0  1  0
-22  48   0   5   8   0  1  0
-23  48   0   7   8   0  1  0
-24  48   0   5   8   0  1  0
-25  48   0   7   8   0  1  0
-26  48   0   5   8   0  1  0
-27  48   0   7   8   0  1  0
-28  48   0   5   8   0  1  0
-29  48   0   7   8   0  1  0
-30  48   0   5   8   0  1  0
-31  48   0   7   8   0  1  0
-32  48   0   5   8   0  1  0
-33  48   0   7   8   0  1  0
-34  48   0   5   8   0  1  0
-35  48   0   7   8   0  1  0
-36  48   0   5   8   0  1  0
-37  48   0   7   8   0  1  0
-38  48   0   5   8   0  1  0
-39  48   0   7   8   0  1  0
-40  48   0   5   8   0  1  0
-41  48   0   7   8   0  1  0
-42  48   0   5   8   0  1  0
-43  48   0   7   8   0  1  0
-44  48   0   5   8   0  1  0
-45  48   0   7   8   0  1  0
-46  48   0   5   8   0  1  0
-47  48   0   7   8   0  1  0
-48  48   0   5   8   0  1  0
-49  48   0   7   8   0  1  0
-50  48   0   5   8   0  1  0
-51  48   0   7   8   0  1  0
-52  48   0   5   8   0  1  0
-53  48   0   7   8   0  1  0
-54  48   0   5   8   0  1  0
-55  48   0   7   8   0  1  0
-56  48   0   5   8   0  1  0
-57  48   0   7   8   0  1  0
-58  48   0   5   8   0  1  0
-59  48   0   7   9   0  1  0
+ 4  48   0   5  10   0  1  4
+ 5  48   0   7  11   0  1  7
+ 6  48   0   5  12   0  1  9
+ 7  48   0   7  13   0  1 11
+ 8  48   0   5  14   0  1 13
+ 9  48   0   7  15   0  1 15
+10  48   0   5  16   0  1 17
+11  48   0   7  17   0  1 19
+12  48   0   5  18   0  1 21
+13  48   0   7  19   0  1 23
+14  48   0   5  20   0  1 25
+15  48   0   7  21   0  1 27
+16  48   0   5  22   0  1 29
+17  48   0   7  23   0  1 31
+18  48   0   5  24   0  1 33
+19  48   0   7  25   0  1 35
+20  48   0   5  26   0  1 37
+21  48   0   7  27   0  1 39
+22  48   0   5  28   0  1 41
+23  48   0   7  29   0  1 43
+24  48   0   5  30   0  1 45
+25  48   0   7  31   0  1 47
+26  48   0   5  32   0  1 49
+27  48   0   7  33   0  1 51
+28  48   0   5  34   0  1 53
+29  48   0   7  35   0  1 55
+30  48   0   5  36   0  1 57
+31  48   0   7  37   0  1 59
+32  48   0   5  38   0  1 61
+33  48   0   7  39   0  1 63
+34  48   0   5  40   0  1 65
+35  48   0   7  41   0  1 67
+36  48   0   5  42   0  1 69
+37  48   0   7  43   0  1 71
+38  48   0   5  44   0  1 73
+39  48   0   7  45   0  1 75
+40  48   0   5  46   0  1 77
+41  48   0   7  47   0  1 79
+42  48   0   5  48   0  1 81
+43  48   0   7  49   0  1 83
+44  48   0   5  50   0  1 85
+45  48   0   7  51   0  1 87
+46  48   0   5  52   0  1 89
+47  48   0   7  53   0  1 91
+48  48   0   5  54   0  1 93
+49  48   0   7  55   0  1 95
+50  48   0   5  56   0  1 97
+51  48   0   7  57   0  1 99
+52  48   0   5  58   0  1 101
+53  48   0   7  59   0  1 103
+54  48   0   5  60   0  1 105
+55  48   0   7  61   0  1 107
+56  48   0   5  62   0  1 109
+57  48   0   7  63   0  1 111
+58  48   0   5  64   0  1 113
+59  48   0   7  65   0  1 115
 
 # Format of RF events:
-# id amplitude mag_id phase_id time_shape_id delay freq phase
-# ..        Hz   ....     ....          ....    us   Hz   rad
+# id amp mag_id phase_id time_id center delay freq_ppm phase_ppm freq_off phase_off use
+# ..  Hz     ..       ..       ..    us    us      ppm   rad/MHz       Hz       rad  ..
+# Field 'use' is the initial of:
+# excitation refocusing inversion saturation preparation other undefined
 [RF]
-1      493.727 1 2 0 130 0 0
-2      987.454 1 2 0 1730 0 1.5708
+1 493.727 1 2 0 1000 130 0 0 0 0 e
+2 987.454 1 2 0 1000 1730 0 0 0 1.5708 r
 
-# Format of arbitrary gradients:
-#   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)
-# id amplitude amp_shape_id time_shape_id delay
-# ..      Hz/m       ..         ..          us
+# Format of arbitrary gradient events:
+# id      amp      first      last  shape_id  time_id  delay
+# ..     Hz/m       Hz/m      Hz/m        ..       ..     us
 [GRADIENTS]
-2  1.35761e+06 3 4 0
-6      -100000 5 6 450
-8      -100000 7 8 0
-9      -100000 9 10 0
+2 1357610 0 0 3 4 0
+6 -100000 0 0 5 6 450
+8 -100000 0 0 7 8 0
+9 -100000 0 0 9 10 0
+10 -100000 0 -100000 5 6 450
+11 -100000 -100000 -100000 7 8 0
+12 -100000 -100000 -100000 7 8 0
+13 -100000 -100000 -100000 7 8 0
+14 -100000 -100000 -100000 7 8 0
+15 -100000 -100000 -100000 7 8 0
+16 -100000 -100000 -100000 7 8 0
+17 -100000 -100000 -100000 7 8 0
+18 -100000 -100000 -100000 7 8 0
+19 -100000 -100000 -100000 7 8 0
+20 -100000 -100000 -100000 7 8 0
+21 -100000 -100000 -100000 7 8 0
+22 -100000 -100000 -100000 7 8 0
+23 -100000 -100000 -100000 7 8 0
+24 -100000 -100000 -100000 7 8 0
+25 -100000 -100000 -100000 7 8 0
+26 -100000 -100000 -100000 7 8 0
+27 -100000 -100000 -100000 7 8 0
+28 -100000 -100000 -100000 7 8 0
+29 -100000 -100000 -100000 7 8 0
+30 -100000 -100000 -100000 7 8 0
+31 -100000 -100000 -100000 7 8 0
+32 -100000 -100000 -100000 7 8 0
+33 -100000 -100000 -100000 7 8 0
+34 -100000 -100000 -100000 7 8 0
+35 -100000 -100000 -100000 7 8 0
+36 -100000 -100000 -100000 7 8 0
+37 -100000 -100000 -100000 7 8 0
+38 -100000 -100000 -100000 7 8 0
+39 -100000 -100000 -100000 7 8 0
+40 -100000 -100000 -100000 7 8 0
+41 -100000 -100000 -100000 7 8 0
+42 -100000 -100000 -100000 7 8 0
+43 -100000 -100000 -100000 7 8 0
+44 -100000 -100000 -100000 7 8 0
+45 -100000 -100000 -100000 7 8 0
+46 -100000 -100000 -100000 7 8 0
+47 -100000 -100000 -100000 7 8 0
+48 -100000 -100000 -100000 7 8 0
+49 -100000 -100000 -100000 7 8 0
+50 -100000 -100000 -100000 7 8 0
+51 -100000 -100000 -100000 7 8 0
+52 -100000 -100000 -100000 7 8 0
+53 -100000 -100000 -100000 7 8 0
+54 -100000 -100000 -100000 7 8 0
+55 -100000 -100000 -100000 7 8 0
+56 -100000 -100000 -100000 7 8 0
+57 -100000 -100000 -100000 7 8 0
+58 -100000 -100000 -100000 7 8 0
+59 -100000 -100000 -100000 7 8 0
+60 -100000 -100000 -100000 7 8 0
+61 -100000 -100000 -100000 7 8 0
+62 -100000 -100000 -100000 7 8 0
+63 -100000 -100000 -100000 7 8 0
+64 -100000 -100000 -100000 7 8 0
+65 -100000 -100000 0 9 10 0
 
-# Format of trapezoid gradients:
-# id amplitude rise flat fall delay
-# ..      Hz/m   us   us   us    us
+# Format of trapezoid gradient events:
+# id      amp      rise  flat  fall  delay
+# ..     Hz/m        us    us    us     us
 [TRAP]
- 1       666667 130 2000 130   0
- 3      -827546 160    0 160 11130
- 4       368000  70  180  70 3760
- 5       802469 150  180 150   0
- 7      -802469 150  180 150   0
+ 1 666667 130 2000 130   0
+ 3 -827546 160    0 160 11130
+ 4 368000  70  180  70 3760
+ 5 802469 150  180 150   0
+ 7 -802469 150  180 150   0
 
 # Format of ADC events:
-# id num dwell delay freq phase
-# ..  ..    ns    us   Hz   rad
+# id  num  dwell  delay  freq_ppm  phase_ppm  freq  phase  phase_id
+# ..   ..     ns     us       ppm        ppm    Hz    rad        ..
 [ADC]
-1 84 4900 34 0 0
+1 84 4900 34 0 0 0 0 0
 
-# Format of extension lists:
-# id type ref next_id
-# next_id of 0 terminates the list
+# Format of extension events:
+# id  type  ref  next_id
 # Extension list is followed by extension specifications
 [EXTENSIONS]
 1 1 1 0
+2 2 1 0
+3 2 2 2
+4 2 3 3
+5 2 4 0
+6 2 5 5
+7 2 3 6
+8 2 6 2
+9 2 3 8
+10 2 7 5
+11 2 3 10
+12 2 8 2
+13 2 3 12
+14 2 9 5
+15 2 3 14
+16 2 10 2
+17 2 3 16
+18 2 11 5
+19 2 3 18
+20 2 12 2
+21 2 3 20
+22 2 13 5
+23 2 3 22
+24 2 14 2
+25 2 3 24
+26 2 15 5
+27 2 3 26
+28 2 16 2
+29 2 3 28
+30 2 17 5
+31 2 3 30
+32 2 18 2
+33 2 3 32
+34 2 19 5
+35 2 3 34
+36 2 20 2
+37 2 3 36
+38 2 21 5
+39 2 3 38
+40 2 22 2
+41 2 3 40
+42 2 23 5
+43 2 3 42
+44 2 24 2
+45 2 3 44
+46 2 25 5
+47 2 3 46
+48 2 26 2
+49 2 3 48
+50 2 27 5
+51 2 3 50
+52 2 28 2
+53 2 3 52
+54 2 29 5
+55 2 3 54
+56 2 30 2
+57 2 3 56
+58 2 31 5
+59 2 3 58
+60 2 32 2
+61 2 3 60
+62 2 33 5
+63 2 3 62
+64 2 34 2
+65 2 3 64
+66 2 35 5
+67 2 3 66
+68 2 36 2
+69 2 3 68
+70 2 37 5
+71 2 3 70
+72 2 38 2
+73 2 3 72
+74 2 39 5
+75 2 3 74
+76 2 40 2
+77 2 3 76
+78 2 41 5
+79 2 3 78
+80 2 42 2
+81 2 3 80
+82 2 43 5
+83 2 3 82
+84 2 44 2
+85 2 3 84
+86 2 45 5
+87 2 3 86
+88 2 46 2
+89 2 3 88
+90 2 47 5
+91 2 3 90
+92 2 48 2
+93 2 3 92
+94 2 49 5
+95 2 3 94
+96 2 50 2
+97 2 3 96
+98 2 51 5
+99 2 3 98
+100 2 52 2
+101 2 3 100
+102 2 53 5
+103 2 3 102
+104 2 54 2
+105 2 3 104
+106 2 55 5
+107 2 3 106
+108 2 56 2
+109 2 3 108
+110 2 57 5
+111 2 3 110
+112 2 58 2
+113 2 3 112
+114 2 59 5
+115 2 3 114
 
-# Extension specification for digital output and input triggers:
-# id type channel delay (us) duration (us)
+# Extension specification for triggers:
+# id type channel d1 [us] d2 [us]
 extension TRIGGERS 1
 1 1 1 0 100
 
-# Sequence Shapes
+# Extension specification for setting labels:
+# id set labelstring
+extension LABELSET 2
+1 0 REV
+2 55 LIN
+3 0 SLC
+4 1 REV
+5 54 LIN
+6 53 LIN
+7 52 LIN
+8 51 LIN
+9 50 LIN
+10 49 LIN
+11 48 LIN
+12 47 LIN
+13 46 LIN
+14 45 LIN
+15 44 LIN
+16 43 LIN
+17 42 LIN
+18 41 LIN
+19 40 LIN
+20 39 LIN
+21 38 LIN
+22 37 LIN
+23 36 LIN
+24 35 LIN
+25 34 LIN
+26 33 LIN
+27 32 LIN
+28 31 LIN
+29 30 LIN
+30 29 LIN
+31 28 LIN
+32 27 LIN
+33 26 LIN
+34 25 LIN
+35 24 LIN
+36 23 LIN
+37 22 LIN
+38 21 LIN
+39 20 LIN
+40 19 LIN
+41 18 LIN
+42 17 LIN
+43 16 LIN
+44 15 LIN
+45 14 LIN
+46 13 LIN
+47 12 LIN
+48 11 LIN
+49 10 LIN
+50 9 LIN
+51 8 LIN
+52 7 LIN
+53 6 LIN
+54 5 LIN
+55 4 LIN
+56 3 LIN
+57 2 LIN
+58 1 LIN
+59 0 LIN
+
+# Sequence shapes
 [SHAPES]
 
 shape_id 1
@@ -2209,6 +2448,7 @@ num_samples 3
 [SIGNATURE]
 # This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added
 # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
-# The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
+# The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be stripped away for recalculating/verification)
 Type md5
-Hash ada9e1b270291db4729783a25604d624
+Hash a29dde5168827ec26e8b5199ca46fa7e
+

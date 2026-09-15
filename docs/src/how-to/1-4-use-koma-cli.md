@@ -36,6 +36,7 @@ koma -i epi.seq brain.phantom -o raw.mrd
 ```
 
 Simulation output can be `.mrd` or `.mat`, selected from the output filename extension.
+Raw-data and reconstruction `.mat` files use the [same schema as UI exports](1-1-use-koma-ui.md#Exporting-Results-to-.mat-File).
 
 ## Reconstructing Image using MRIReco
 

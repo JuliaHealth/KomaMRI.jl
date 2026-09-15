@@ -1,61 +1,83 @@
 # Pulseq sequence file
-# Created by MATLAB mr toolbox
+# Created by KomaMRI.jl
+# KomaMRIFiles v0.11.7
 
 [VERSION]
 major 1
-minor 4
-revision 0
+minor 5
+revision 1
 
 [DEFINITIONS]
-AdcRasterTime 1e-07 
-BlockDurationRaster 1e-05 
-FOV 0.256 0.256 0.003 
-GradientRasterTime 1e-05 
-MaxAdcSegmentLength 1000 
-Name spiral 
-RadiofrequencyRasterTime 1e-06 
+MaxAdcSegmentLength 1000
+Name spiral
+Nx 64
+Ny 64
+Nz 1
+FOV 0.256 0.256 0.003
+BlockDurationRaster 1e-05
+GradientRasterTime 1e-05
+RadiofrequencyRasterTime 1e-06
+AdcRasterTime 1e-07
 
 # Format of blocks:
 # NUM DUR RF  GX  GY  GZ  ADC  EXT
 [BLOCKS]
 1 1621   1   0   0   1  0  0
 2 319   2   0   0   2  0  0
-3 2245   0   4   5   3  1  0
-4 104   0   7   8   6  0  0
+3 2245   0   9  10   3  1  2
+4 104   0  11  12   6  0  0
 
 # Format of RF events:
-# id amplitude mag_id phase_id time_shape_id delay freq phase
-# ..        Hz   ....     ....          ....    us   Hz   rad
+# id amp mag_id phase_id time_id center delay freq_ppm phase_ppm freq_off phase_off use
+# ..  Hz     ..       ..       ..    us    us      ppm   rad/MHz       Hz       rad  ..
+# Field 'use' is the initial of:
+# excitation refocusing inversion saturation preparation other undefined
 [RF]
-1      129.712 1 2 0 100 -424.504 0
-2      329.152 3 4 0 100 0 0
+1 129.712 1 2 0 4000 100 0 0 -424.504 0 s
+2 329.152 3 4 0 1500 100 0 0 0 0 e
 
-# Format of arbitrary gradients:
-#   time_shape_id of 0 means default timing (stepping with grad_raster starting at 1/2 of grad_raster)
-# id amplitude amp_shape_id time_shape_id delay
-# ..      Hz/m       ..         ..          us
+# Format of arbitrary gradient events:
+# id      amp      first      last  shape_id  time_id  delay
+# ..     Hz/m       Hz/m      Hz/m        ..       ..     us
 [GRADIENTS]
-4      -773910 5 0 790
-5       771376 6 0 790
-7      -773910 7 8 0
-8        32610 7 8 0
+4 -773910 0 0 5 0 790
+5 771376 0 0 6 0 790
+7 -773910 0 0 7 8 0
+8 32610 0 0 7 8 0
+9 -773910 0 -778747.451636 5 0 790
+10 771376 0 7456.64753271 6 0 790
+11 -773910 -778747.451636 -0 7 8 0
+12 32610 7456.64753271 0 7 8 0
 
-# Format of trapezoid gradients:
-# id amplitude rise flat fall delay
-# ..      Hz/m   us   us   us    us
+# Format of trapezoid gradient events:
+# id      amp      rise  flat  fall  delay
+# ..     Hz/m        us    us    us     us
 [TRAP]
- 1  1.27714e+06 250 7580 250 8130
- 2       444444  90 3000  90  10
- 3  -1.2716e+06 250  290 250   0
- 6  1.26582e+06 250  540 250   0
+ 1 1277140 250 7580 250 8130
+ 2 444444  90 3000  90  10
+ 3 -1271600 250  290 250   0
+ 6 1265820 250  540 250   0
 
 # Format of ADC events:
-# id num dwell delay freq phase
-# ..  ..    ns    us   Hz   rad
+# id  num  dwell  delay  freq_ppm  phase_ppm  freq  phase  phase_id
+# ..   ..     ns     us       ppm        ppm    Hz    rad        ..
 [ADC]
-1 12000 1700 790 0 0
+1 12000 1700 790 0 0 0 0 0
 
-# Sequence Shapes
+# Format of extension events:
+# id  type  ref  next_id
+# Extension list is followed by extension specifications
+[EXTENSIONS]
+1 1 1 0
+2 1 2 1
+
+# Extension specification for setting labels:
+# id set labelstring
+extension LABELSET 1
+1 0 SEG
+2 0 SLC
+
+# Sequence shapes
 [SHAPES]
 
 shape_id 1
@@ -15437,6 +15459,7 @@ num_samples 2
 [SIGNATURE]
 # This is the hash of the Pulseq file, calculated right before the [SIGNATURE] section was added
 # It can be reproduced/verified with md5sum if the file trimmed to the position right above [SIGNATURE]
-# The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be sripped away for recalculating/verification)
+# The new line character preceding [SIGNATURE] BELONGS to the signature (and needs to be stripped away for recalculating/verification)
 Type md5
-Hash efc5eb7dbaa82aba627a31ff689c8649
+Hash 92b1b27e8dbe6006fa1a3e4d598aa3fb
+

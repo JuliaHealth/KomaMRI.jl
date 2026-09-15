@@ -23,7 +23,6 @@ function launch_ui(;
     seq_file = Ref("")
     phantom_file = Ref("")
     setup_filepickers!(w; seq_file, phantom_file)
-    show_window && show!(w)
 
     fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
     widgets_button_obj = [
@@ -139,6 +138,7 @@ function launch_ui(;
     push!(w.listeners, on(raw -> show_signal!(w, raw; darkmode), raw_ui))
     push!(w.listeners, on(img -> show_image!(w, img, :absi; darkmode), img_ui))
 
+    show_window && show!(w)
     @info "KomaMRI loaded successfully 🚀" KomaMRI=string(pkgversion(KomaMRI)) KomaMRIBase=string(pkgversion(KomaMRIBase)) KomaMRICore=string(pkgversion(KomaMRICore)) KomaMRIFiles=string(pkgversion(KomaMRIFiles)) KomaMRIPlots=string(pkgversion(KomaMRIPlots))
     return return_window ? w : nothing
 end

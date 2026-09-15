@@ -378,6 +378,130 @@ end
     @test true
 end
 
+@testitem "Pulseq labels survive raw-data conversion" tags=[:core, :nomotion] begin
+    seq = Sequence()
+    seq.DEF = Dict(
+        "Nx" => 2,
+        "Ny" => 2,
+        "Nz" => 2,
+        "FOV" => [0.1, 0.1, 0.02],
+    )
+    @addblock seq += (ADC(2, 1e-3), LabelSet(1, "NAV"), Duration(2e-3))
+    @addblock seq += (
+        ADC(2, 1e-3),
+        LabelSet(0, "NAV"),
+        LabelSet(1, "LIN"),
+        LabelSet(1, "SLC"),
+        LabelSet(2, "AVG"),
+        LabelSet(3, "ECO"),
+        LabelSet(4, "PHS"),
+        LabelSet(5, "REP"),
+        LabelSet(6, "SET"),
+        LabelSet(7, "SEG"),
+        LabelSet(1, "REV"),
+        Duration(2e-3),
+    )
+
+    raw = signal_to_raw_data(zeros(ComplexF64, 4, 1), seq)
+    navigator, imaging = getproperty.(raw.profiles, :head)
+    idx = imaging.idx
+
+    # Pulseq roles and counters survive conversion to MRD metadata.
+    @test !iszero(navigator.flags & KomaMRICore.ISMRMRD_ACQ_IS_NAVIGATION_DATA)
+    @test !iszero(imaging.flags & KomaMRICore.ISMRMRD_ACQ_IS_REVERSE)
+    @test (
+        idx.kspace_encode_step_1,
+        idx.average,
+        idx.slice,
+        idx.contrast,
+        idx.phase,
+        idx.repetition,
+        idx.set,
+        idx.segment,
+    ) == UInt16.((1, 2, 1, 3, 4, 5, 6, 7))
+    @test raw.params["encodedSize"] == raw.params["reconSize"] == [2, 2, 1]
+    @test raw.params["enc_lim_slice"] == Limit(1, 1, 1)
+
+    fallback = Sequence()
+    fallback.DEF = Dict("Nx" => 2, "Ny" => 2, "Nz" => 2, "FOV" => [0.1, 0.1, 0.01])
+    @addblock fallback += (ADC(2, 1e-3), Duration(2e-3))
+    @addblock fallback += (ADC(2, 1e-3), LabelSet(1, "NAV"), Duration(2e-3))
+    @addblock fallback += (ADC(2, 1e-3), LabelSet(0, "NAV"), Duration(2e-3))
+    @addblock fallback += (
+        ADC(2, 1e-3), LabelSet(1, "NAV"), LabelSet(3, "LIN"),
+        LabelSet(4, "PAR"), LabelSet(5, "SLC"), Duration(2e-3),
+    )
+    raw = signal_to_raw_data(zeros(ComplexF64, 8, 1), fallback)
+
+    # Neither Nz nor trailing navigator labels invent encoding counters for unlabeled imaging.
+    @test [(p.head.idx.kspace_encode_step_1, p.head.idx.slice) for p in raw.profiles[1:3]] ==
+        [(0, 0), (0, 0), (0, 0)]
+    @test raw.params["encodedSize"] == [2, 2, 1]
+    @test raw.params["enc_lim_slice"] == Limit(0, 0, 0)
+    navigator = last(raw.profiles).head.idx
+    @test (navigator.kspace_encode_step_1, navigator.kspace_encode_step_2, navigator.slice) == (3, 4, 5)
+end
+
+@testitem "ADC k-space determines exported coordinates" tags=[:core, :nomotion] begin
+    using LinearAlgebra
+
+    function encoding_sequence(dimensions)
+        seq = Sequence()
+        for direction in 1:dimensions
+            gradients = [Grad(axis == direction ? 1e-3 : 0.0, 1e-3) for axis in 1:3]
+            @addblock seq += (x=gradients[1], y=gradients[2], z=gradients[3], ADC(8, 1e-3))
+        end
+        seq.DEF = Dict("Nx"=>8, "Ny"=>dimensions >= 2 ? 8 : 1,
+            "Nz"=>dimensions == 3 ? 8 : 1, "FOV"=>fill(0.1, 3))
+        return seq
+    end
+
+    rotations = [Matrix{Float64}(I, 3, 3), [0 0 1; 1 0 0; 0 1 0], [0 1 0; 0 0 1; 1 0 0]]
+    push!(rotations, rotx(π / 6) * roty(π / 4))
+
+    # Rotating a line, plane, or volume preserves its ADC coordinates in ordered XYZ storage.
+    # MRD coordinates use Float32, so comparisons allow that format's rounding precision.
+    for dimensions in 1:3
+        seq = encoding_sequence(dimensions)
+        _, reference = get_kspace(seq)
+        signal = zeros(ComplexF32, size(reference, 1), 1)
+        for rotation in rotations
+            raw = signal_to_raw_data(signal, rotation * seq)
+            expected = reference * transpose(rotation)
+            stored_dimensions = any(!iszero, rotation[3, 1:dimensions]) ? 3 : 2
+            @test all(profile.head.trajectory_dimensions == stored_dimensions for profile in raw.profiles)
+            @test hcat((profile.traj for profile in raw.profiles)...) ≈
+                Float32.(transpose(expected[:, 1:stored_dimensions]) ./ (2maximum(abs, expected)))
+        end
+    end
+
+    plane = encoding_sequence(2)
+    offset = Sequence()
+    @addblock offset += (z=Grad(100 / (γ * 1e-3), 1e-3),)
+    @addblock offset += plane
+    offset.DEF = copy(plane.DEF)
+    signal = zeros(ComplexF32, 16, 1)
+    automatic = signal_to_raw_data(signal, offset)
+    explicit = signal_to_raw_data(signal, offset; ndims=3)
+
+    # A constant nonzero kz is not a third encoding direction; explicit storage retains it.
+    @test all(profile.head.trajectory_dimensions == 2 for profile in automatic.profiles)
+    @test all(profile.traj[3, :] ≈ fill(0.5f0, size(profile.traj, 2)) for profile in explicit.profiles)
+
+    partitions = Sequence()
+    @addblock partitions += (ADC(8, 1e-3),)
+    @addblock partitions += (z=Grad(1e-3, 1e-3),)
+    @addblock partitions += (ADC(8, 1e-3),)
+    partitions.DEF = Dict("Nx"=>8, "Ny"=>1, "Nz"=>2, "FOV"=>fill(0.1, 3))
+    raw = signal_to_raw_data(signal, partitions)
+
+    # kz can be constant within every readout yet encode distinct partitions without PAR.
+    @test raw.params["encodedSize"] == [8, 1, 2]
+    @test all(profile.head.idx.slice == 0 for profile in raw.profiles)
+    @test first(raw.profiles).traj[3, :] == zeros(Float32, 8)
+    @test last(raw.profiles).traj[3, :] == fill(0.5f0, 8)
+end
+
 @testitem "simulate rejects negative labels" tags=[:core, :nomotion] begin
     obj = Phantom(x=[0.0])
     seq = Sequence([Grad(0, 1e-3)])

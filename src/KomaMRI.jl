@@ -8,6 +8,7 @@ using Reexport
 
 using Bonito
 using Artifacts
+import AxisArrays
 import Electron
 import MsgPack
 import PlotlyBase
@@ -34,5 +35,6 @@ end
 # Export the UI and the observables
 export KomaUI, KomaWindow
 export sys_ui, seq_ui, obj_ui, physio_ui, raw_ui, img_ui
+export reconstruct_with_labels, reconstruction_policy, DEFAULT_RECON_POLICY
 
 end
