@@ -32,7 +32,7 @@ using PrecompileTools: @setup_workload, @compile_workload
 import KomaMRIBase: PulseDesigner as PD
 
 # CUDA.jl's persistent compiler cache requires Julia 1.11 or later.
-if VERSION >= v"1.11"
+@static if VERSION >= v"1.11"
     @setup_workload begin
         if CUDA.functional()
             KomaMRICore.BACKEND[] = CUDABackend()
