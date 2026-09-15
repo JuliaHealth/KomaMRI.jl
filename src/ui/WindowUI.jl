@@ -59,8 +59,8 @@ function set_content!(w::KomaWindow, content, state)
     evaljs(w, js"""(() => {
         const section = {
             sequence: 'pulses', kspace: 'pulses', m0: 'pulses', m1: 'pulses', m2: 'pulses',
-            phantom: 'phantom', scanneparams: 'scanner', sig: 'sig',
-            absi: 'recon', angi: 'recon', absk: 'recon'
+            phantom: 'phantom', coils: 'scanner', scanneparams: 'scanner', sig: 'sig',
+            absi: 'recon', absk: 'recon'
         }[$(state)];
         if ($(state) === 'loading') return;
         document.querySelectorAll('.koma-nav-link[aria-current="page"]')
@@ -363,5 +363,11 @@ function update_filename!(w, id, name)
         label.title = $(name);
         label.textContent = $(name);
         current.replaceChildren(label);
+        const picker = current.previousElementSibling.querySelector('.koma-file-input');
+        if (picker) {
+            const caption = picker.querySelector('.koma-file-name');
+            caption.textContent = $(display_filename(name, MAX_UI_FILENAME_CHARS));
+            caption.title = picker.title = $(name);
+        }
     """)
 end

@@ -10,6 +10,12 @@ CurrentModule = KomaMRIPlots
 plot_phantom_map
 ```
 
+## Plotting receive sensitivities
+
+```@docs
+plot_coil_sens
+```
+
 ## Plotting `Sequence`
 
 ```@docs

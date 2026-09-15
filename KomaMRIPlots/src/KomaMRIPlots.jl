@@ -6,6 +6,7 @@ import PlotlyKaleido
 using QMRIColors
 
 include("ui/DisplayFunctions.jl")
+include("ui/CoilSensitivities.jl")
 
 """Save a Plotly figure, starting Kaleido when needed."""
 function savefig(args...; kwargs...)
@@ -22,6 +23,7 @@ export plot_seq,
     plot_slew_rate,
     plot_kspace,
     plot_phantom_map,
+    plot_coil_sens,
     plot_signal,
     plot_image,
     plot_dict,

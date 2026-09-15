@@ -10,13 +10,13 @@
           <span class="koma-nav-icon icon-wave-square"></span><span class="koma-nav-label">Sequence</span>
       </a>
         <ul class="dropdown-menu dropdown-menu-dark file-dropdown-menu shadow" aria-labelledby="seq-dropdown" style="position: absolute;">
-          <li><a id="button_pulses_seq" class="dropdown-item" href="#" onclick='KomaUI.notify("pulses_seq")'>View Sequence</a></li>
+          <li><a id="button_pulses_seq" class="dropdown-item" href="#" onclick='KomaUI.notify("pulses_seq")'>View sequence</a></li>
           <!-- Sequence (MPS) -->
           <!--<li><a class="dropdown-item disabled" href="#" onclick='KomaUI.notify("pulses_seqxyz")'>Sequence (XYZ)</a></li>-->
           <li><a id="button_pulses_kspace" class="dropdown-item" href="#" onclick='KomaUI.notify("pulses_kspace")'>View $k$-space</a></li>
           <li>
             <a class="dropdown-item d-flex justify-content-between align-items-center" href="#">
-              <span>View Moments</span><span>&raquo;</span>
+              <span>View moments</span><span>&raquo;</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-dark dropdown-submenu">
               <li><a id="button_pulses_M0" class="dropdown-item" href="#" onclick='KomaUI.notify("pulses_M0")'>$M_0(t)$</a></li>
@@ -42,7 +42,7 @@
         <span class="koma-nav-icon icon-brain"></span><span class="koma-nav-label">Phantom</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark file-dropdown-menu shadow" aria-labelledby="pha-dropdown">
-          <li><a id="button_phantom" class="dropdown-item" href="#" onclick='KomaUI.notify("phantom")'>View Phantom</a></li>
+          <li><a id="button_phantom" class="dropdown-item" href="#" onclick='KomaUI.notify("phantom")'>View phantom</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-interact">
             <div class="filepicker-row">
@@ -61,7 +61,10 @@
         <span class="koma-nav-icon icon-magnet"></span><span class="koma-nav-label">Scanner</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="pha-dropdown">
-        <li><a id="button_scanner" class="dropdown-item" href="#" onclick='KomaUI.notify("scanner")'>View Scanner</a></li>
+        <li><a id="button_scanner_params" class="dropdown-item" href="#" onclick='KomaUI.notify("scanner_params")'>View limits</a></li>
+        <li><a id="button_scanner_gradient" class="dropdown-item disabled" href="#" aria-disabled="true" tabindex="-1">View gradients</a></li>
+        <li><a id="button_scanner" class="dropdown-item" href="#" onclick='KomaUI.notify("scanner")'>View receiver coil sensitivities</a></li>
+        <li><a id="button_scanner_transmitter" class="dropdown-item disabled" href="#" aria-disabled="true" tabindex="-1">View transmitter B₁</a></li>
       </ul>
     </li>
     <p id="scaname" class="pname mb-0"><abbr title="default.scanner">default.scanner</abbr></p>
@@ -73,20 +76,27 @@
         <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         </button>
         <div class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="btnDropdownDemo">
-          <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load Options</a>
-          <a class="dropdown-item" href="#" id="button_sim_params" onclick='KomaUI.notify("sim_params")'><i class="bi bi-gear-fill me-2"></i>View Options</a>
+          <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load options</a>
+          <a class="dropdown-item" href="#" id="button_sim_params" onclick='KomaUI.notify("sim_params")'><i class="bi bi-gear-fill me-2"></i>View options</a>
         </div>
       </div>
     </li>
     <!-- SIGNAL -->
     <li id="sig" class="nav-item dropdown dropdown-dark mt-3">
       <a class="koma-nav-link nav-link dropdown-toggle iconkoma" href="#" role="button" id="sig-dropdown" data-bs-toggle="dropdown">
-        <span class="koma-nav-icon icon-oscilloscope"></span><span class="koma-nav-label">RawData</span>
+        <span class="koma-nav-icon icon-oscilloscope"></span><span class="koma-nav-label">Raw data</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark file-dropdown-menu shadow" aria-labelledby="sig-dropdown">
-          <li><a id="button_sig" class="dropdown-item" href="#" onclick='KomaUI.notify("sig")'>View RawData</a></li>
+          <li><a id="button_sig" class="dropdown-item" href="#" onclick='KomaUI.notify("sig")'>View raw data</a></li>
           <li><hr class="dropdown-divider"></li>
-          <li class="dropdown-interact" id="sigfilepicker"></li>
+          <li class="dropdown-interact">
+            <div class="filepicker-row">
+              <span id="sigfilepicker"></span>
+              <button id="button_reload_raw" class="file-reload-button" type="button" onclick='KomaUI.notify("reload_raw")' title="Reload raw data">
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+            </div>
+          </li>
       </ul>
     </li>
     <p id="rawname" class="pname mb-0"><abbr title="empty.mrd">empty.mrd</abbr></p>
@@ -99,8 +109,8 @@
         <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         </button>
         <div class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="btnDropdownDemo">
-          <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load Options</a>
-          <a class="dropdown-item" href="#" id="button_rec_params" onclick='KomaUI.notify("rec_params")'><i class="bi bi-gear-fill me-2"></i>View Options</a>
+          <a class="dropdown-item disabled" href="#"><i class="bi bi-upload me-2"></i>Load options</a>
+          <a class="dropdown-item" href="#" id="button_rec_params" onclick='KomaUI.notify("rec_params")'><i class="bi bi-gear-fill me-2"></i>View options</a>
         </div>
       </div>
     </li>
@@ -110,8 +120,7 @@
         <span class="koma-nav-icon icon-images"></span><span class="koma-nav-label">Image</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="rec-dropdown">
-          <li><a id="button_reconstruction_absI" class="dropdown-item" href="#" onclick='KomaUI.notify("reconstruction_absI")'>View $|\mathrm{Image}|$</a></li>
-          <li><a id="button_reconstruction_angI" class="dropdown-item" href="#" onclick='KomaUI.notify("reconstruction_angI")'>View $\angle\mathrm{Image}$</a></li>
+          <li><a id="button_reconstruction_absI" class="dropdown-item" href="#" onclick='KomaUI.notify("reconstruction_absI")'>View image</a></li>
           <li><a id="button_reconstruction_absK" class="dropdown-item" href="#" onclick='KomaUI.notify("reconstruction_absK")'>View $\log(|k$-data$|+1)$</a></li>
       </ul>
     </li>
@@ -128,7 +137,7 @@
           <li><a id="button_matfolderseq" class="dropdown-item" href="#" onclick='KomaUI.notify("matfolderseq")'>Sequence</a></li>
           <li><a id="button_matfolderpha" class="dropdown-item" href="#" onclick='KomaUI.notify("matfolderpha")'>Phantom</a></li>
           <li><a id="button_matfoldersca" class="dropdown-item" href="#" onclick='KomaUI.notify("matfoldersca")'>Scanner</a></li>
-          <li><a id="button_matfolderraw" class="dropdown-item" href="#" onclick='KomaUI.notify("matfolderraw")'>RawData</a></li>
+          <li><a id="button_matfolderraw" class="dropdown-item" href="#" onclick='KomaUI.notify("matfolderraw")'>Raw data</a></li>
           <li><a id="button_matfolderima" class="dropdown-item" href="#" onclick='KomaUI.notify("matfolderima")'>Image</a></li>
           <!--
           <li><a class="dropdown-interact" id="matfolderseq" href="#">Sequence</a></li>
@@ -156,7 +165,7 @@
         <i class="bi bi-file-earmark-text me-2"></i>Documentation
       </a></li>
       <li><a class="dropdown-item" id="Issues" target="_blank" href="https://github.com/cncastillo/KomaMRI.jl/issues/new">
-        <i class="bi bi-exclamation-circle me-2"></i>Post an Issue/Bug
+        <i class="bi bi-exclamation-circle me-2"></i>Post an issue/bug
       </a></li>
     </ul>
   </div>

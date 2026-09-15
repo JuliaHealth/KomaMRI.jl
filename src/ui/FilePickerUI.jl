@@ -53,7 +53,7 @@ function callback_filepicker(filename::String, w::KomaWindow, raw::RawAcquisitio
     return raw
 end
 
-function setup_filepickers!(w::KomaWindow; seq_file=Ref(""), phantom_file=Ref(""))
+function setup_filepickers!(w::KomaWindow; seq_file=Ref(""), phantom_file=Ref(""), raw_file=Ref(""))
     setup_filepicker!(
         w,
         "#seqfilepicker",
@@ -79,6 +79,7 @@ function setup_filepickers!(w::KomaWindow; seq_file=Ref(""), phantom_file=Ref(""
         ".h5/.mrd (ISMRMRD)",
         raw_ui;
         accept=".h5,.mrd",
+        selected_file=raw_file,
     )
     return nothing
 end

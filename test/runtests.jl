@@ -554,6 +554,10 @@ end
                     @test timedwait(() -> w.state[] == "phantom", 30) == :ok
 
                     click_button("button_scanner")
+                    @test timedwait(() -> w.state[] == "coils", 30) == :ok
+                    @test timedwait(() -> plot_rendered("coils"), 30) == :ok
+
+                    click_button("button_scanner_params")
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
 
                     click_button("button_sim_params")
@@ -569,13 +573,22 @@ end
                     @test timedwait(() -> plot_rendered("sig"), 30) == :ok
                     @test !isempty(raw_ui[].profiles)
 
-                    click_button("button_scanner")
+                    click_button("button_scanner_params")
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
 
                     click_button("button_sig")
                     @test timedwait(() -> w.state[] == "sig", 30) == :ok
                     @test timedwait(() -> plot_rendered("sig"), 30) == :ok
                     @test range_slider_visible()
+
+                    # Reload restores the saved simulation samples and reopens the raw-data plot.
+                    simulated_samples = copy(first(raw_ui[].profiles).data)
+                    fill!(first(raw_ui[].profiles).data, 0)
+                    click_button("button_scanner_params")
+                    @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
+                    click_button("button_reload_raw")
+                    @test timedwait(() -> first(raw_ui[].profiles).data == simulated_samples, 30) == :ok
+                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
                 end
 
                 @testset "Reconstruction and image views" begin
@@ -584,13 +597,21 @@ end
                     @test timedwait(() -> plot_rendered("absi"), 30) == :ok
                     @test !isempty(img_ui[])
 
-                    click_button("button_reconstruction_angI")
-                    @test timedwait(() -> w.state[] == "angi", 30) == :ok
-                    @test timedwait(() -> plot_rendered("angi"), 30) == :ok
-
-                    click_button("button_reconstruction_absI")
-                    @test timedwait(() -> w.state[] == "absi", 30) == :ok
-                    @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+                    # Components switch within the existing chart, without a separate UI page.
+                    for (component, index) in (("Phase", 1), ("Magnitude", 0))
+                        Bonito.evaljs(session, js"""
+                            Array.from(document.querySelectorAll('#content .updatemenu-button'))
+                                .find(button => button.textContent === $(component))
+                                .dispatchEvent(new MouseEvent('click', {bubbles: true}));
+                        """)
+                        @test timedwait(30) do
+                            Bonito.evaljs_value(session, js"""
+                                document.querySelector('#content .js-plotly-plot')
+                                    ._fullData[$(index)].visible === true
+                            """)
+                        end == :ok
+                        @test w.state[] == "absi"
+                    end
 
                     click_button("button_reconstruction_absK")
                     @test timedwait(() -> w.state[] == "absk", 30) == :ok
@@ -637,7 +658,16 @@ end
                     @test timedwait(() -> plot_rendered("phantom"), 30) == :ok
 
                     sys_ui[] = Scanner()
+                    @test timedwait(() -> w.state[] == "coils", 30) == :ok
+
+                    # Scanner edits open the changed component, including notified nested limits.
+                    sys_ui[].limits.B0 = 3.0
+                    notify(sys_ui)
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
+                    sys = sys_ui[]
+                    sys_ui[] = Scanner(; limits=sys.limits, gradient=sys.gradient,
+                        transmitter=sys.transmitter, receiver=BirdcageCoilSens())
+                    @test timedwait(() -> plot_rendered("coils"), 30) == :ok
 
                     raw_ui[] = RawAcquisitionData(
                         ISMRMRDFile(joinpath(@__DIR__, "test_files", "Koma_signal.mrd"))
@@ -721,6 +751,18 @@ end
                     raw_ui[] = KomaMRI.callback_filepicker(raw_file, w, raw_ui[])
                     @test !isempty(raw_ui[].profiles)
                     @test timedwait(() -> w.state[] == "sig", 30) == :ok
+
+                    # Reload reads changed samples from disk, not the previously loaded object.
+                    reload_raw = joinpath(mktempdir(), "reload.mrd")
+                    getfield(w.handlers["reload_raw"], :raw_file)[] = reload_raw
+                    changed_raw = deepcopy(raw_ui[])
+                    first(changed_raw.profiles).data .*= 2
+                    save(ISMRMRDFile(reload_raw), changed_raw)
+                    click_button("button_scanner_params")
+                    @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
+                    click_button("button_reload_raw")
+                    @test timedwait(() -> first(raw_ui[].profiles).data == first(changed_raw.profiles).data, 30) == :ok
+                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
                 end
 
                 @testset "Close UI" begin

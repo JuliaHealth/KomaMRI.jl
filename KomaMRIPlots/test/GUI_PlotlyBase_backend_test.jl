@@ -2,6 +2,32 @@
     using KomaMRIBase, MRIFiles, PlotlyBase
     test_plot(plot) = @test plot isa Plot
 
+    @testset "Image components" begin
+        # Real images retain signed values; only complex images expose component controls.
+        real_image = [-2 3; 4 -5]
+        real_plot = plot_image(real_image)
+        @test only(real_plot.data)[:z] == real_image
+        @test isempty(get(real_plot.layout, :updatemenus, []))
+
+        # Known phasors select magnitude or radians without applying magnitude limits to phase.
+        image = ComplexF64[2 3im; -4 -5im]
+        plot = plot_image(image; zmin=0, zmax=6)
+        buttons = only(plot.layout[:updatemenus])[:buttons]
+        magnitude, phase = [only(plot.data[button[:args][1][:visible]]) for button in buttons]
+        @test magnitude[:z] == [2 3; 4 5]
+        @test phase[:z] ≈ [0 π/2; π -π/2]
+        @test (magnitude[:zmin], magnitude[:zmax]) == (0, 6)
+        @test (phase[:zmin], phase[:zmax]) == (-π, π)
+        @test first(phase[:colorscale])[2] == last(phase[:colorscale])[2]
+
+        # A navigator uses the same component controls, with headroom only for magnitude.
+        profile = plot_image(reshape(ComplexF64[2, -4], :, 1); zmin=0, zmax=6)
+        buttons = only(profile.layout[:updatemenus])[:buttons]
+        @test [trace[:y] for trace in profile.data] == [[2, 4], [0, π]]
+        @test buttons[1][:args][2][:yaxis][:range] == [0, 1.1 * 6]
+        @test buttons[2][:args][2][:yaxis][:range] == [-π, π]
+    end
+
     @testset "Phantom" begin
         phantom = brain_phantom2D()
         for key in (:ρ, :T1, :T2, :x, :Δw)
@@ -22,6 +48,35 @@
         for key in (:ρ, :T1, :T2, :x, :Δw)
             test_plot(plot_phantom_map(phantom, key; max_spins=1_000))
         end
+    end
+
+    @testset "Receive sensitivities" begin
+        # Uniform reception stays unity and has no meaningless single-coil selector.
+        uniform = plot_coil_sens(Scanner())
+        @test all(==(1), only(uniform.data)[:marker][:color])
+        @test isempty(uniform.layout[:sliders])
+
+        # Known sampled phasors retain gain and phase in each physical plane.
+        for plane in ((1, 2), (1, 3), (2, 3))
+            coordinates = ntuple(d -> d in plane ? [-0.01, 0.0, 0.01] : [0.0], 3)
+            values = ones(ComplexF64, length.(coordinates)..., 2)
+            values[:, :, :, 1] .= 3im
+            values[:, :, :, 2] .= -4
+            plot = plot_coil_sens(Scanner(receiver=ArbitraryCoilSens(coordinates..., values)))
+            selector = only(plot.layout[:sliders])
+            @test [only(plot.data[step[:args][1][:visible]])[:marker][:color]
+                for step in selector[:steps]] == [fill(3, 9), fill(4, 9)]
+            buttons = only(plot.layout[:updatemenus])[:buttons]
+            @test buttons[2][:args][1]["marker.color"] == [fill(π/2, 9), fill(π, 9)]
+            @test plot.layout[:coloraxis][:cmax] == 4
+            @test (plot.layout[:xaxis][:title], plot.layout[:yaxis][:title]) ==
+                map(d -> ("x", "y", "z")[d], plane)
+        end
+
+        # A short birdcage changes the sampled extent, not the one-centimetre grid spacing.
+        short = plot_coil_sens(Scanner(receiver=BirdcageCoilSens(L=0.01)))
+        @test sort!(unique(first(short.data)[:z])) == [-1, 0, 1]
+        @test all(isfinite, first(short.data)[:marker][:color])
     end
 
     @testset "Sequence" begin

@@ -37,14 +37,14 @@ The user interface has preloaded certain inputs into RAM, including the **Scanne
 
 ### Scanner
 
-You can visualize the preloaded **Scanner** struct by clicking on the `Scanner` dropdown and then pressing the `View Scanner` button. The **Scanner** struct contains hardware-related information, such as the main magnetic field's magnitude:
+The `Scanner` menu follows the struct's field order: `View limits`, `View gradients`, `View receiver coil sensitivities`, and `View transmitter B₁`. Gradient and transmitter views are not yet available and are disabled. Select `View limits` to display hardware-related information, such as the main magnetic field's magnitude:
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-scanner-view.png"/></p>
 ```
 
 ### Phantom
 
-To see the phantom already stored in RAM, simply click on the `Phantom` dropdown an then press the `View Phantom` button. The preloaded phantom is a slice of a brain:
+To see the phantom already stored in RAM, simply click on the `Phantom` dropdown an then press the `View phantom` button. The preloaded phantom is a slice of a brain:
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-phantom-view.png"/></p>
 ```
@@ -70,7 +70,7 @@ For visualization of the sequence in the k-space, click on the `Sequence` dropdo
 <p align="center"><img width="90%" src="../assets/gui-seq-kspace-view.png"/></p>
 ```
 
-You can also display the `Moments` related to the **Sequence** by pressing the `View Moments` and then pressing the buttons for zero, first and second moments.
+You can also display the `Moments` related to the **Sequence** by pressing the `View moments` and then pressing the buttons for zero, first and second moments.
 
 It is also possible to load **Pulseq** compatible `.seq` sequence files. The **KomaMRI** has some examples stored at `~/.julia/packages/KomaMRI/<id-string>/examples/1.sequences/`. For instance, let's load the `spiral.seq` file and view it the time domain and k-space:
 ```@raw html
@@ -93,14 +93,14 @@ Once the inputs are loaded in RAM, it is possible to perform the simulation to g
 
 ### Simulation Parameters
 
-To visualize the default simulation parameters, click on the `Simulate!` dropdown and then press the `View Options` button:
+To visualize the default simulation parameters, click on the `Simulate!` dropdown and then press the `View options` button:
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-sim-params-view.png"/></p>
 ```
 
 ### Visualization of the Raw Signal
 
-Press the `Simulate!` button to perform the simulation (this may take a while). Automatically the generated **Raw Signal** should be displayed or you can click on the `Raw Data` dropdown and then press the `View Raw Data` button:
+Press the `Simulate!` button to perform the simulation (this may take a while). Automatically the generated **Raw Signal** should be displayed or you can click on the `Raw data` dropdown and then press the `View raw data` button:
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-rawsignal-view.png"/></p>
 ```
@@ -112,7 +112,7 @@ Once the **Raw Signal** is loaded in RAM, it is possible to reconstruct the imag
 
 ### Reconstruction Parameters
 
-To visualize the default reconstruction parameters, click on the `Reconstruct!` dropdown and then press the `View Options` button:
+To visualize the default reconstruction parameters, click on the `Reconstruct!` dropdown and then press the `View options` button:
 ```@raw html
 <p align="center"><img width="90%" src="../assets/gui-recon-params-view.png"/></p>
 ```
@@ -236,3 +236,24 @@ The variables that update the interface are:
 
 Don't forget to add the brackets `[]` to these variables, otherwise it won't work.
 Changing `seq_ui[]` resets `physio_ui[]` to the sequence's default physiological signal.
+
+`Scanner` is immutable, so replace it to change the receiver while retaining the other components:
+
+```julia
+sys = sys_ui[]
+sys_ui[] = Scanner(; limits=sys.limits, gradient=sys.gradient,
+    transmitter=sys.transmitter, receiver=BirdcageCoilSens())
+```
+
+This opens the receive-sensitivity plot. Hardware limits are mutable, but edits inside an
+observable need an explicit notification:
+
+```julia
+sys_ui[].limits.B0 = 3.0
+notify(sys_ui)
+```
+
+This opens the hardware limits. If both receiver and limits change, receive sensitivities
+take precedence. A notification without either change refreshes the current Scanner view
+(or opens receive sensitivities when another section is displayed). RF-transmit plotting
+is not yet available.

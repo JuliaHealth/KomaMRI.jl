@@ -26,6 +26,17 @@ function plot_node(plot::Observable; fit_colorbar=false)
             };
             const observer = new MutationObserver(dispose);
             observer.observe(document, {childList: true, subtree: true});
+            const styleComponentButtons = () => {
+                graph.querySelectorAll('.updatemenu-header-group').forEach(group => {
+                    const menu = group.__data__;
+                    if (!['image-component', 'coil-component'].includes(menu.name)) return;
+                    group.querySelectorAll('.updatemenu-button').forEach((button, index) => {
+                        button.classList.add('koma-component-button');
+                        button.setAttribute('role', 'button');
+                        button.setAttribute('aria-pressed', String(index === menu.active));
+                    });
+                });
+            };
             const render = async () => {
                 rendering = true;
                 try {
@@ -36,10 +47,23 @@ function plot_node(plot::Observable; fit_colorbar=false)
                             pending = null;
                             delete figure.layout.width;
                             delete figure.layout.height;
+                            // Keep the image component when another label or coil selects new data.
+                            const menu = figure.layout.updatemenus?.find(menu => menu.name === 'image-component');
+                            if (menu) {
+                                menu.active = graph.layout?.updatemenus?.find(previous => previous.name === menu.name)?.active ?? 0;
+                                const [data, layout] = menu.buttons[menu.active].args;
+                                figure.data.forEach((trace, index) => trace.visible = data.visible[index]);
+                                if (layout.yaxis) figure.layout.yaxis = layout.yaxis;
+                            }
                             await Plotly.react(
                                 graph, figure.data, {...figure.layout, autosize: true},
                                 {...figure.config, responsive: true}
                             );
+                            for (const event of ['plotly_afterplot', 'plotly_buttonclicked']) {
+                                graph.removeListener(event, styleComponentButtons);
+                                graph.on(event, styleComponentButtons);
+                            }
+                            styleComponentButtons();
                             if ($(fit_colorbar) && graph.isConnected) {
                                 graph.removeListener('plotly_afterplot', alignColorbar);
                                 graph.on('plotly_afterplot', alignColorbar);
@@ -48,13 +72,15 @@ function plot_node(plot::Observable; fit_colorbar=false)
                         }
                         if (alignPending && graph.isConnected) {
                             alignPending = false;
-                            const colorbar = graph._fullData[0].colorbar;
-                            if (!colorbar) continue;
                             const [bottom, top] = graph._fullLayout.yaxis.domain;
                             const len = top - bottom;
                             const y = (top + bottom) / 2;
-                            if (colorbar.len !== len || colorbar.y !== y) {
-                                await Plotly.restyle(graph, {'colorbar.len': len, 'colorbar.y': y}, [0]);
+                            for (const [index, trace] of graph._fullData.entries()) {
+                                const colorbar = trace.colorbar;
+                                if (!trace.visible || !colorbar) continue;
+                                if (colorbar.len !== len || colorbar.y !== y) {
+                                    await Plotly.restyle(graph, {'colorbar.len': len, 'colorbar.y': y}, [index]);
+                                }
                             }
                         }
                     }

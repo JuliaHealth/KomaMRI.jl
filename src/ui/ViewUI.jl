@@ -37,6 +37,11 @@ end
 function show_phantom!(w, obj, buttons; key=:ρ, darkmode=true)
     display_loading!(w, "Plotting phantom ...")
     plot = plot_phantom_map(obj, key; time_samples=5, darkmode)
+    for button in buttons
+        selected = button.content[] == string(key)
+        button.attributes[Symbol("aria-pressed")] = string(selected)
+        button.attributes[:class] = "btn btn-primary btn-sm m-1" * (selected ? " active" : "")
+    end
     return set_content!(
         w,
         DOM.div(
@@ -47,8 +52,13 @@ function show_phantom!(w, obj, buttons; key=:ρ, darkmode=true)
     )
 end
 
-function show_scanner!(w, sys)
-    display_loading!(w, "Displaying scanner parameters ...")
+function show_scanner!(w, sys; darkmode=true)
+    display_loading!(w, "Plotting receive sensitivities ...")
+    return set_content!(w, plot_node(plot_coil_sens(sys; darkmode)), "coils")
+end
+
+function show_scanner_parameters!(w, sys)
+    display_loading!(w, "Displaying hardware limits ...")
     values = [
         "B0" => sys.limits.B0,
         "B1" => sys.limits.B1,
@@ -62,7 +72,27 @@ function show_scanner!(w, sys)
         "RF_dead_time" => sys.limits.RF_dead_time,
         "ADC_dead_time" => sys.limits.ADC_dead_time,
     ]
-    return set_content!(w, dictionary_page(values, "Scanner parameters"), "scanneparams")
+    return set_content!(w, dictionary_page(values, "Hardware limits"), "scanneparams")
+end
+
+function observe_scanner!(w, scanner; darkmode=true)
+    receiver = scanner[].receiver
+    limits = Tuple(getfield(scanner[].limits, name) for name in fieldnames(HardwareLimits))
+    push!(w.listeners, on(scanner) do sys
+        next_limits = Tuple(getfield(sys.limits, name) for name in fieldnames(HardwareLimits))
+        receiver_changed = sys.receiver !== receiver
+        limits_changed = !isequal(next_limits, limits)
+        receiver, limits = sys.receiver, next_limits
+        if receiver_changed
+            show_scanner!(w, sys; darkmode)
+        elseif limits_changed || w.state[] == "scanneparams"
+            show_scanner_parameters!(w, sys)
+        else
+            show_scanner!(w, sys; darkmode)
+        end
+        return nothing
+    end)
+    return nothing
 end
 
 function show_parameters!(w, parameters, title, state)
@@ -80,12 +110,9 @@ const KSPACE_DYNAMIC_RANGE_DB = 60
 function image_values(img, type; limits=nothing)
     array = Array(img)
     data, zmin, zmax = if type === :absi
-        values = abs.(array) * prod(size(array)[1:2])
-        zmin, zmax = isnothing(limits) ? extrema(values) : limits
+        values = array * prod(size(array)[1:2])
+        zmin, zmax = isnothing(limits) ? extrema(abs, values) : limits
         values, zmin, zmax
-    elseif type === :angi
-        values = angle.(array)
-        values, -π, π
     elseif type === :absk
         dynamic_range_db = KSPACE_DYNAMIC_RANGE_DB
         magnitude = abs.(fftc(array))
@@ -104,40 +131,20 @@ function image_values(img, type; limits=nothing)
 end
 
 function reconstruction_plot(data, type, darkmode; zmin, zmax)
+    plot = plot_image(data; zmin, zmax, darkmode)
+    plot.layout.margin[:t] = 6
     if size(data, 2) != 1
-        plot = plot_image(data; zmin, zmax, darkmode)
-        plot.layout.margin[:t] = 6
         plot.layout.yaxis[:constrain] = "domain"
-        plot.data[1][:colorbar] = PlotlyBase.attr(; ypad=0)
-        return plot
+        for trace in plot.data
+            colorbar = get!(trace.fields, :colorbar, PlotlyBase.attr())
+            colorbar[:ypad] = 0
+        end
+    elseif type === :absk
+        plot.layout.yaxis[:title] = "Magnitude (dB)"
+    elseif length(plot.data) == 1
+        plot.layout.yaxis[:range] = [zmin, 1.1 * zmax]
     end
-
-    background, text, plot_background, grid, _ = KomaMRIPlots.theme_chooser(darkmode)
-    ylabel = type === :angi ? "Phase (rad)" : type === :absk ? "Magnitude (dB)" : "Magnitude"
-    ymax = type === :absi ? 1.1 * zmax : zmax
-    trace = PlotlyBase.scatter(;
-        x=0:(size(data, 1) - 1), y=vec(data), mode="lines", line_color="#2a7fb8",
-    )
-    layout = PlotlyBase.Layout(;
-        xaxis=PlotlyBase.attr(; title="Index", gridcolor=grid, zerolinecolor=grid),
-        yaxis=PlotlyBase.attr(; title=ylabel, range=[zmin, ymax], gridcolor=grid, zerolinecolor=grid),
-        margin=PlotlyBase.attr(; t=6, l=60, r=20, b=50),
-        font_color=text,
-        modebar=PlotlyBase.attr(;
-            orientation="v", bgcolor=background, color=text, activecolor=plot_background,
-        ),
-        paper_bgcolor=background,
-        plot_bgcolor=plot_background,
-    )
-    config = PlotlyBase.PlotConfig(;
-        displaylogo=false,
-        toImageButtonOptions=PlotlyBase.attr(; format="svg").fields,
-        modeBarButtonsToRemove=[
-            "zoom", "autoScale", "resetScale2d", "pan", "tableRotation",
-            "resetCameraLastSave", "zoomIn", "zoomOut",
-        ],
-    )
-    return PlotlyBase.Plot(trace, layout; config)
+    return plot
 end
 
 function image_plot(img::AbstractArray, type, darkmode)
@@ -242,7 +249,6 @@ function reconstruction_dimension(entry, name)
 end
 
 function reconstruction_limits(selected, echo, type)
-    type === :angi && return (-Float64(π), Float64(π))
     type === :absk && return (-Float64(KSPACE_DYNAMIC_RANGE_DB), 0.0)
     return selected.magnitude_limits[findfirst(==(echo), selected.source.ECO)]
 end
@@ -334,8 +340,7 @@ end
 
 function show_image!(w, img, view; darkmode=true)
     messages = Dict(
-        :absi => "Plotting image magnitude ...",
-        :angi => "Plotting image phase ...",
+        :absi => "Plotting image ...",
         :absk => "Plotting image k ...",
     )
     display_loading!(w, messages[view])

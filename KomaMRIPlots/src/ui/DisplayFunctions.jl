@@ -30,6 +30,11 @@ function theme_chooser(darkmode)
     return bgcolor, text_color, plot_bgcolor, grid_color, sep_color
 end
 
+const PHASE_COLORSCALE = [
+    (0.0, "#d64d4d"), (1/6, "#c6af42"), (2/6, "#44b079"),
+    (3/6, "#469fc2"), (4/6, "#7861c5"), (5/6, "#bd59a2"), (1.0, "#d64d4d"),
+]
+
 function generate_seq_time_layout_config(
     title, width, height, range, slider, show_seq_blocks, darkmode; T0, label_to_show=(), non_label_count=8
     )
@@ -1004,16 +1009,18 @@ end
 """
     p = plot_image(image; height, width, zmin, zmax, darkmode, title)
 
-Plots an image matrix.
+Plot real image values directly. Complex images initially show magnitude and include
+Magnitude/Phase buttons below the plot. Single-column images are shown as line profiles.
 
 # Arguments
-- `image`: (`::Matrix{Number}`) image matrix
+- `image`: a real or complex image matrix
 
 # Keywords
 - `width`: (`::Integer`, `=nothing`) plot width
 - `height`: (`::Integer`, `=nothing`) plot height
-- `zmin`: (`::Real`, `=minimum(abs.(image[:]))`) reference value for minimum color
-- `zmax`: (`::Real`, `=maximum(abs.(image[:]))`) reference value for maximum color
+- `zmin`, `zmax`: color limits; for complex images these apply to magnitude only
+- `colorscale`: (`="Greys"`) color scale for real values or magnitude;
+  phase uses a cyclic scale over `[-π, π]` radians
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `title`: (`::String`, `=""`) plot title
 
@@ -1058,7 +1065,15 @@ function plot_image(
         l.width = width
     end
     #Plot
-    p = heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale=colorscale)
+    p = if size(image, 2) == 1
+        l[:xaxis][:title] = "Index"
+        l[:yaxis] = attr(; title="Magnitude", range=[zmin, zmax], scaleanchor=false,
+            gridcolor=grid_color, zerolinecolor=grid_color)
+        l[:margin] = attr(; t=50, l=60, r=20, b=50)
+        scatter(; x=0:(length(image) - 1), y=vec(image), mode="lines", line_color="#2a7fb8")
+    else
+        heatmap(; z=image, transpose=false, zmin=zmin, zmax=zmax, colorscale=colorscale)
+    end
     config = PlotConfig(;
         displaylogo=false,
         toImageButtonOptions=attr(;
@@ -1076,6 +1091,39 @@ function plot_image(
         ],
     )
     return PlotlyBase.Plot(p, l; config)
+end
+
+function plot_image(image::AbstractArray{<:Complex}; kwargs...)
+    magnitude = plot_image(abs.(image); kwargs...)
+    phase = plot_image(angle.(image); kwargs..., zmin=-π, zmax=π, colorscale=PHASE_COLORSCALE)
+    profile = size(image, 2) == 1
+    if profile
+        lower, upper = magnitude.layout[:yaxis][:range]
+        magnitude.layout[:yaxis][:range] = [lower, 1.1 * upper]
+        phase.layout[:yaxis][:title] = "Phase (rad)"
+    else
+        phase.data[1][:colorbar] = attr(; title=attr(; text="rad"),
+            tickvals=[-π, -π/2, 0, π/2, π], ticktext=["−π", "−π/2", "0", "π/2", "π"])
+    end
+    components = (magnitude, phase)
+    traces = [only(component.data) for component in components]
+    for (index, trace) in enumerate(traces)
+        trace[:visible] = index == 1
+    end
+    layout = magnitude.layout
+    layout[:showlegend] = false
+    layout[:margin][:b] = 100
+    layout[:updatemenus] = [attr(;
+        name="image-component", type="buttons", direction="right",
+        x=0.5, xanchor="center", y=0, yanchor="top", pad=attr(; t=50),
+        bgcolor="#2a7fb8", bordercolor="#2a7fb8", font=attr(; color="#111111"),
+        showactive=true, active=0,
+        buttons=[attr(; label, method="update", args=[
+            attr(; visible=[index == 1, index == 2]),
+            profile ? attr(; yaxis=components[index].layout[:yaxis]) : attr(),
+        ]) for (index, label) in enumerate(("Magnitude", "Phase"))],
+    )]
+    return PlotlyBase.Plot(traces, layout; config=magnitude.config)
 end
 
 """

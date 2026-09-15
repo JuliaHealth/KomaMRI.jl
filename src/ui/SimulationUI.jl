@@ -7,7 +7,7 @@ function simulation_device_label(sim_params)
     return "CPU ($threads thread$(threads == 1 ? "" : "s"))"
 end
 
-function run_simulation!(w, sim_params; initial=false)
+function run_simulation!(w, sim_params, raw_file; initial=false)
     previous_content = w.content[]
     previous_state = w.state[]
     message = initial ?
@@ -28,9 +28,10 @@ function run_simulation!(w, sim_params; initial=false)
             callbacks=(ui_progressbar_callback(w),),
             physio=physio_ui[],
         )
-        rawfile = joinpath(tempdir(), "Koma_signal.mrd")
+        rawfile = joinpath(tempdir(), "koma_sim.mrd")
         @info "Exporting to ISMRMRD file: $rawfile"
         save(ISMRMRDFile(rawfile), raw)
+        raw_file[] = rawfile
         raw
     catch error
         @error "Simulation failed" exception=(error, catch_backtrace())
@@ -50,7 +51,7 @@ function run_simulation!(w, sim_params; initial=false)
             <li><button type="button" class="btn btn-primary btn-circle btn-circle-sm m-1" title="Reconstruct" aria-label="Reconstruct" onclick="KomaUI.notify('recon')"><i class="bi bi-caret-right-fill"></i></button> Ready to <b>reconstruct</b>?</li>
         </ul>
     """
-    update_filename!(w, "rawname", "Koma_signal.mrd")
+    update_filename!(w, "rawname", "koma_sim.mrd")
     toast!(w, 1, "$simulation_device sim. successful<br>Time: $sim_time s", body)
     raw_ui[] = raw
     return nothing

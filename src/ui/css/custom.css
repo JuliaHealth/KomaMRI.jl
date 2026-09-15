@@ -20,6 +20,20 @@ body, button{
   font-family: var(--bs-font-sans-serif) !important;
 }
 
+.koma-component-button .updatemenu-item-text {
+  fill: white !important;
+}
+
+.koma-component-button .updatemenu-item-rect {
+  fill: #2a7fb8 !important;
+}
+
+.koma-component-button[aria-pressed="true"] .updatemenu-item-rect,
+.koma-component-button:hover .updatemenu-item-rect {
+  fill: #1e5c85 !important;
+  stroke: #1e5c85 !important;
+}
+
 .koma-sidebar {
   flex: 0 0 200px;
   width: 200px;
@@ -264,7 +278,7 @@ body, button{
 }
 
 .file-dropdown-menu {
-  max-width: 260px;
+  width: 210px;
 }
 
 .file-dropdown-menu .filepicker-row {
@@ -274,22 +288,20 @@ body, button{
 }
 
 .file-dropdown-menu .koma-file-input {
-  flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
 }
 
 .filepicker-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2rem;
   align-items: center;
-  justify-content: flex-start;
   gap: 6px;
   width: auto;
 }
 
 .filepicker-row > span {
-  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -313,7 +325,7 @@ body, button{
 .koma-file-input {
   justify-content: flex-start;
   gap: 0.5rem;
-  width: auto;
+  width: 100%;
   min-width: 9rem;
   background-color: #2a7fb8 !important;
   border-color: #3890ca !important;
@@ -329,7 +341,6 @@ body, button{
 }
 
 .filepicker-row .file-reload-button {
-  flex: 0 0 auto;
   padding: 5px 8px !important;
   background-color: #495057 !important;
   border-color: #5c636a !important;
@@ -364,6 +375,11 @@ div.topsep, plot-containter {
 .dropdown-divider{
   margin-top: 5px!important; 
   margin-bottom: 5px!important;
+}
+
+.dropdown-item.disabled,
+.dropdown-item:disabled {
+  opacity: 0.8;
 }
 
 /*SUBMENUS*/

@@ -22,7 +22,8 @@ function launch_ui(;
     w = setup_bonito_window(; darkmode, frame, dev_tools, versions)
     seq_file = Ref("")
     phantom_file = Ref("")
-    setup_filepickers!(w; seq_file, phantom_file)
+    raw_file = Ref("")
+    setup_filepickers!(w; seq_file, phantom_file, raw_file)
 
     fieldnames_obj = [fieldnames(Phantom)[5:end-3]...]
     widgets_button_obj = [
@@ -81,7 +82,10 @@ function launch_ui(;
             (obj_ui[] = callback_filepicker(phantom_file[], w, obj_ui[]))
     end
     handle(w, "scanner") do _
-        show_scanner!(w, sys_ui[])
+        show_scanner!(w, sys_ui[]; darkmode)
+    end
+    handle(w, "scanner_params") do _
+        show_scanner_parameters!(w, sys_ui[])
     end
     handle(w, "sim_params") do _
         show_parameters!(w, sim_params, "Simulation parameters", "simparams")
@@ -89,14 +93,14 @@ function launch_ui(;
     handle(w, "sig") do _
         show_signal!(w, raw_ui[]; darkmode)
     end
+    handle(w, "reload_raw") do _
+        isempty(raw_file[]) || (raw_ui[] = callback_filepicker(raw_file[], w, raw_ui[]))
+    end
     handle(w, "rec_params") do _
         show_parameters!(w, rec_params, "Reconstruction parameters", "recparams")
     end
     handle(w, "reconstruction_absI") do _
         show_image!(w, img_ui[], :absi; darkmode)
-    end
-    handle(w, "reconstruction_angI") do _
-        show_image!(w, img_ui[], :angi; darkmode)
     end
     handle(w, "reconstruction_absK") do _
         show_image!(w, img_ui[], :absk; darkmode)
@@ -119,7 +123,7 @@ function launch_ui(;
     handle(w, "simulate") do _
         initial = is_first_sim
         is_first_sim = false
-        run_simulation!(w, sim_params; initial)
+        run_simulation!(w, sim_params, raw_file; initial)
     end
     handle(w, "recon") do _
         initial = is_first_rec
@@ -134,7 +138,7 @@ function launch_ui(;
             show_phantom!(w, obj_ui[], widgets_button_obj; key, darkmode)
         end)
     end
-    push!(w.listeners, on(sys -> show_scanner!(w, sys), sys_ui))
+    observe_scanner!(w, sys_ui; darkmode)
     push!(w.listeners, on(raw -> show_signal!(w, raw; darkmode), raw_ui))
     push!(w.listeners, on(img -> show_image!(w, img, :absi; darkmode), img_ui))
 
