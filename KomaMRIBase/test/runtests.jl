@@ -2184,6 +2184,17 @@ end
         seqd_t = [t_start, t_end]
         KomaMRIBase.add_key_time_points!(seqd_t, ml)
         @test unique(seqd_t) ≈ [t_start; t_end; period_times_np; reset_times_np]
+
+        # MIN_RISE_TIME must stay above one Float64 ulp at the end of the run, or the
+        # offsets straddling each period boundary collapse onto the boundary itself.
+        long_pth = path(dx, dy, dz, Periodic(1.0, 1.0), AllSpins())
+        seqd_t = [0.0, 250.0]
+        KomaMRIBase.add_key_time_points!(seqd_t, long_pth)
+        sort!(unique!(seqd_t))
+        for boundary in (1.0, 100.0, 200.0)
+            i = searchsortedlast(seqd_t, boundary)
+            @test seqd_t[i] < boundary < seqd_t[i + 1]
+        end
     end
 end
 
