@@ -23,7 +23,7 @@ PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 [compat]
 FileIO = "1"
 HDF5 = "0.16, 0.17"
-InteractiveUtils = "1"
+InteractiveUtils = "1, < 0.0.1"
 KomaMRIBase = "0.14"
 MAT = "0.10, 0.11, 0.12"
 MD5 = "0.2.3"
