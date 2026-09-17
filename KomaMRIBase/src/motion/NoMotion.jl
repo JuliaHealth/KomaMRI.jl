@@ -50,4 +50,4 @@ function get_spin_coords(
     return x, y, z
 end
 add_key_time_points!(t, ::NoMotion) = nothing
-cycle_remap(::NoMotion) = nothing
+filter_cycle_remapped_flowpath(::NoMotion) = nothing
