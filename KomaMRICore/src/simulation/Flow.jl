@@ -26,7 +26,11 @@ prealloc_view(state::SpinResetState, idx) = view(state, idx)
 spin_reset_state(::PreallocResult) = NoSpinReset()
 spin_reset_state(prealloc::BlochSimplePrealloc) = prealloc.spin_reset
 spin_reset_state(prealloc::BlochCPUPrealloc) = prealloc.spin_reset
+spin_reset_state(prealloc::BlochGPUPrealloc) = prealloc.spin_reset
 spin_reset_state(prealloc::BlochMagnusCPUPrealloc) = prealloc.spin_reset
+
+first_reset_steps(state::SpinResetState) = state.first_reset
+first_reset_steps(::NoSpinReset) = nothing
 
 reset_sample_count(_) = 0
 reset_sample_count(action::FlowPath) = size(action.spin_reset, 2)
@@ -159,8 +163,9 @@ function outflow_spin_reset_at!(
    return nothing
 end
 
-@inline spin_has_reset(first_reset, spin, step) =
-   @inbounds UInt32(step) >= first_reset[spin]
+@inline spin_first_reset(first_reset, spin) = @inbounds first_reset[spin]
+@inline spin_first_reset(::Nothing, spin) = typemax(UInt32)
+@inline spin_has_reset(first_reset, step) = UInt32(step) >= first_reset
 
 outflow_spin_reset_at!(spin_state, t, i, motion; replace_by=0) =
    outflow_spin_reset!(spin_state, t[i, :], motion; replace_by)
