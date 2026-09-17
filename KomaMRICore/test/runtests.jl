@@ -959,11 +959,11 @@ end
     seq = Sequence([Grad(0.0, 2.1)])
 
     seqd = discretize(seq; motion)
-    breaks = KomaMRIBase.cycle_remap_break_indices(seqd, motion)
+    breaks, sources = KomaMRICore.cycle_remap_breaks_and_sources(seqd, motion, obj.ρ)
     ranges, _ = KomaMRICore.get_sim_ranges(seqd; breaks)
     @test seqd.t[breaks] == [1.0, 2.0]
     @test all(any(first(r) == i for r in ranges) for i in breaks)
-    @test KomaMRIBase.cycle_remap_sources(motion, obj.ρ) == cycle_map
+    @test sources == cycle_map
     @test eltype(f32(obj).motion.action.cycle_map) === Int
 
     # Two boundaries (t = 1, 2 s) apply the map twice: [1,2,3] -> [2,2,1] -> [2,2,2]
@@ -985,7 +985,7 @@ end
     sim_params = KomaMRICore.default_sim_params(Dict{String,Any}("sim_method" => sim_method))
     seqd = discretize(seq; sampling_rule=KomaMRICore.simulation_sampling_rule(sim_method, sim_params), motion)
 
-    breaks = KomaMRIBase.cycle_remap_break_indices(seqd, motion)
+    breaks = KomaMRICore.cycle_remap_break_indices(seqd, motion)
     rf_start = first(findall(seqd.excitation_bool))
     eval_stride = KomaMRICore.eval_intervals_per_step(sim_method)
     parts, excitation_bool = KomaMRICore.get_sim_ranges(seqd; breaks)

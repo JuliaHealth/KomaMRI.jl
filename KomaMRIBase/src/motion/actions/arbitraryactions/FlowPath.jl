@@ -64,8 +64,6 @@ function add_reset_times!(t, a::FlowPath, t_start, t_end, periods)
 end
 
 has_cycle_map(action::FlowPath) = !isnothing(action.cycle_map)
-is_cycle_map(::Vector{Int}) = true
-is_cycle_map(::Nothing) = false
 function add_cycle_remap_times!(t, action::FlowPath, t_start, t_end, periods)
     has_cycle_map(action) && add_cycle_end_times!(t, t_start, t_end, periods)
     return nothing

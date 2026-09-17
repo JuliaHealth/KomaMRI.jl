@@ -360,7 +360,7 @@ function simulate(
     end
     # Simulation init
     seqd = discretize(seq; sampling_rule, motion=obj.motion, freq_in_phase=sim_params["freq_in_phase"]) # Sampling of Sequence waveforms
-    remap_breaks, remap_sources = KomaMRIBase.cycle_remap_breaks_and_sources(seqd, obj.motion, obj.ρ)
+    remap_breaks, remap_sources = cycle_remap_breaks_and_sources(seqd, obj.motion, obj.ρ)
     parts, excitation_bool = get_sim_ranges(
         seqd;
         max_block_length=sim_params["max_block_length"],
