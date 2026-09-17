@@ -26,7 +26,7 @@ const Interpolator2D = Interpolations.GriddedInterpolation{
     TCoefs<:Real,
     TNodes<:Real,
     V<:AbstractArray{TCoefs},
-    Itp<:Interpolations.Gridded,
+    Itp<:Tuple{Interpolations.NoInterp, Interpolations.Gridded},
     K<:Tuple{AbstractVector{TNodes}, AbstractVector{TNodes}},
 }
 function GriddedInterpolation(nodes, A, ITP)
@@ -43,7 +43,7 @@ function interpolate(d, ITPType, Ns::Val, t)
     Ns, Nt = size(d)
     id_knots = _similar(t, Ns); copyto!(id_knots, collect(range(oneunit(eltype(t)), eltype(t)(Ns), Ns)))
     t_knots  = _similar(t, Nt); copyto!(t_knots,  collect(range(zero(eltype(t)), oneunit(eltype(t)), Nt)))
-    return GriddedInterpolation((id_knots, t_knots), d, ITPType)
+    return GriddedInterpolation((id_knots, t_knots), d, (Interpolations.NoInterp(), ITPType))
 end
 
 function resample(itp::Interpolator1D, t)
@@ -51,10 +51,7 @@ function resample(itp::Interpolator1D, t)
 end
 
 function resample(itp::Interpolator2D, t)
-    Ns = size(itp.coefs, 1)
-    id = _similar(t, Ns)
-    copyto!(id, collect(range(oneunit(eltype(t)), eltype(t)(Ns), Ns)))
-    return itp.(id, t)
+    return itp.(itp.knots[1], t)
 end
 
 function interpolate_times(t, t_unit, periodic, tq)
