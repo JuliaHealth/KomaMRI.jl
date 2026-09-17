@@ -130,12 +130,6 @@ end
 """ MotionList length """
 Base.length(m::MotionList) = length(m.motions)
 
-function cycle_remap(ml::MotionList)
-    remaps = filter(!isnothing, cycle_remap.(ml.motions))
-    length(remaps) <= 1 || throw(ArgumentError("Only one cycle-remapped FlowPath is supported per phantom."))
-    return isempty(remaps) ? nothing : only(remaps)
-end
-
 function get_spin_coords(
     ml::MotionList, x, y, z, t,
 )
@@ -215,4 +209,10 @@ function add_key_time_points!(t, ml::MotionList)
     for m in ml.motions
         add_key_time_points!(t, m)
     end
+end
+
+function filter_cycle_remapped_flowpath(ml::MotionList)
+    remap = filter(has_cycle_map, ml.motions)
+    length(remap) <= 1 || throw(ArgumentError("Only one cycle-remapped FlowPath is supported per phantom."))
+    return isempty(remap) ? nothing : only(remap)
 end
