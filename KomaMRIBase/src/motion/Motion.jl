@@ -247,31 +247,17 @@ end
 # Auxiliary functions
 times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
-cycle_map(::AbstractAction) = nothing
-cycle_map(action::FlowPath) = action.cycle_map
-cycle_remap(m::Motion) = isnothing(cycle_map(m.action)) ? nothing : m
+has_cycle_map(m::Motion) = has_cycle_map(m.action)
+filter_cycle_remapped_flowpath(m::Motion) = has_cycle_map(m) ? m : nothing
+cycle_remap_sources(m::Motion, x) = cycle_remap_sources(m.action, m.spins, x)
 
-function cycle_remap_times(motion, t_max)
-    m = cycle_remap(motion)
-    t = typeof(float(t_max))[]
-    isnothing(m) && return t
-    add_cycle_end_times!(t, m.time.t_start, m.time.t_end, m.time.periods)
-    period = sum((m.time.t_end - m.time.t_start) .* m.time.periods)
-    extend_periodic!(t, t_max, period, Val(m.time.periodic))
-    filter!(x -> m.time.t_start < x <= t_max, t)
-    return sort!(unique!(t))
-end
-
-"""
-    add_key_time_points!(t, motion)
-"""
 function add_key_time_points!(t, m::Motion)
     add_key_time_points!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods, m.time.periodic)
     return nothing
 end
 function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic) where T
     isempty(t) && return
-    aux = T[] 
+    aux = T[]
     period = sum((t_end - t_start) .* periods)
     t_max = maximum(t)
     add_period_times!(aux, t_start, t_end, periods)
@@ -282,27 +268,19 @@ function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic) whe
     return nothing
 end
 
-"""
-    extend_periodic!(aux, t_max, period, periodic)
-"""
-function extend_periodic!(aux, t_max, period, periodic::Val{false})
-    return nothing
-end
-function extend_periodic!(aux, t_max, period, periodic::Val{true})
+extend_periodic!(t, t_max, period, periodic::Val{false}) = nothing
+function extend_periodic!(t, t_max, period, periodic::Val{true})
     n_periods = floor(Int, t_max / period)
     if n_periods > 0
-        initial_size = length(aux)
-        sizehint!(aux, initial_size * (n_periods + 1))
+        initial_size = length(t)
+        sizehint!(t, initial_size * (n_periods + 1))
         for n in 1:n_periods
-            append!(aux, aux[1:initial_size] .+ n*period)
+            append!(t, t[1:initial_size] .+ n*period)
         end
     end
     return nothing
 end
 
-"""
-    add_period_times!(t, t_start, t_end, periods)
-"""
 function add_period_times!(t, t_start, t_end, periods)
     period_times = times([t_start, t_end], t_start, t_end, periods)
     append!(t, period_times .+ MIN_RISE_TIME .* ((-1) .^ ((1:length(period_times)) .+ 1)))
@@ -315,15 +293,33 @@ function add_cycle_end_times!(t, t_start, t_end, periods)
     return nothing
 end
 
-add_cycle_remap_times!(t, ::AbstractAction, t_start, t_end, periods) = nothing
-function add_cycle_remap_times!(t, action::FlowPath, t_start, t_end, periods)
-    isnothing(action.cycle_map) || add_cycle_end_times!(t, t_start, t_end, periods)
-    return nothing
+function cycle_remap_times(m::Motion, t_max)
+    t = typeof(float(t_max))[]
+    add_cycle_remap_times!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods)
+    period = sum((m.time.t_end - m.time.t_start) .* m.time.periods)
+    extend_periodic!(t, t_max, period, Val(m.time.periodic))
+    filter!(x -> m.time.t_start < x <= t_max, t)
+    return sort!(unique!(t))
 end
 
-"""
-    add_reset_times!(t, action, t_start, t_end, periods)
-""" 
-function add_reset_times!(t, ::AbstractAction, t_start, t_end, periods)
-    return nothing 
+# Cycle boundaries are motion key times, so discretize always samples them. The grid
+# value can differ from a freshly computed boundary by a few ulp, since it round-trips
+# through a per-block time offset.
+function cycle_remap_break_indices(seqd, motion)
+    breaks = Int[]
+    tol = MAX_STEP_TIME_SNAP_TOL
+    for t in cycle_remap_times(motion, last(seqd.t))
+        t < last(seqd.t) || continue
+        i = searchsortedlast(seqd.t, t + tol)
+        i >= firstindex(seqd.t) && abs(seqd.t[i] - t) <= tol ||
+            error("No sampling time within $tol of cycle boundary $t; motion key times are missing from the simulation grid.")
+        push!(breaks, i)
+    end
+    return breaks
+end
+
+function cycle_remap_breaks_and_sources(seqd, motion, x)
+    remap_motion = filter_cycle_remapped_flowpath(motion)
+    isnothing(remap_motion) && return Int[], nothing
+    return cycle_remap_break_indices(seqd, remap_motion), cycle_remap_sources(remap_motion, x)
 end
