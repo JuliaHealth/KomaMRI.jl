@@ -24,6 +24,7 @@ end
 
 prealloc_view(state::SpinResetState, idx) = view(state, idx)
 spin_reset_state(::PreallocResult) = NoSpinReset()
+spin_reset_state(prealloc::BlochSimplePrealloc) = prealloc.spin_reset
 spin_reset_state(prealloc::BlochCPUPrealloc) = prealloc.spin_reset
 spin_reset_state(prealloc::BlochMagnusCPUPrealloc) = prealloc.spin_reset
 
@@ -141,6 +142,20 @@ outflow_spin_reset!(spin_state, ::NoSpinReset; replace_by=0) = nothing
 function outflow_spin_reset!(M::Mag, state::SpinResetState; replace_by=0)
    @. M.xy = ifelse(state.has_reset, zero(eltype(M.xy)), M.xy)
    @. M.z = ifelse(state.has_reset, replace_by, M.z)
+   return nothing
+end
+
+function outflow_spin_reset_at!(
+   spin_state, state::SpinResetState, step, t, motion; replace_by=0,
+)
+   advance_spin_reset!(state, step)
+   outflow_spin_reset!(spin_state, state; replace_by)
+   return nothing
+end
+function outflow_spin_reset_at!(
+   spin_state, ::NoSpinReset, step, t, motion; replace_by=0,
+)
+   outflow_spin_reset_at!(spin_state, t, step, motion; replace_by)
    return nothing
 end
 
