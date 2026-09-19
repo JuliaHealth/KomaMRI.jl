@@ -76,11 +76,13 @@ function run_spin_precession!(
     outflow_spin_reset!(Mxy, seq.t[2:end]', p.motion)
     outflow_spin_reset!(M, seq.t[2:end]', p.motion; replace_by=p.ρ)
     #Acquired signal
-    adc = findall(cpu(seq.ADC[2:end]))
-    Mxy_adc = Mxy[:, adc]
-    acquire_block_signal!(
-        sig, Mxy_adc, sys.receiver, p.motion, (x, y, z), adc,
-    )
+    if !isempty(sig)
+        adc = findall(cpu(seq.ADC[2:end]))
+        Mxy_adc = Mxy[:, adc]
+        acquire_block_signal!(
+            sig, Mxy_adc, sys.receiver, p.motion, (x, y, z), adc,
+        )
+    end
     return nothing
 end
 
