@@ -4,11 +4,11 @@ using KernelAbstractions.Extras: @unroll
 ## COV_EXCL_START
 
 #Used for getting spin coordinates inside precession and excitation kernels
-@inline function get_spin_coordinates(x::AbstractVector{T}, y::AbstractVector{T}, z::AbstractVector{T}, i::Integer, t::Integer) where {T<:Real} 
-    @inbounds (x[i], y[i], z[i]) 
+@inline function get_spin_coordinates(x::AbstractVector, y::AbstractVector, z::AbstractVector, i::Integer, t::Integer)
+    @inbounds (x[i], y[i], z[i])
 end
-@inline function get_spin_coordinates(x::AbstractMatrix{T}, y::AbstractMatrix{T}, z::AbstractMatrix{T}, i::Integer, t::Integer) where {T<:Real} 
-    @inbounds (x[i, t], y[i, t], z[i, t]) 
+@inline function get_spin_coordinates(x::AbstractMatrix, y::AbstractMatrix, z::AbstractMatrix, i::Integer, t::Integer)
+    @inbounds (x[i, t], y[i, t], z[i, t])
 end
 
 # Returns the next least power of two starting from n, used to calculate remaining indexes in the first step of a threadgroup-level reduction.

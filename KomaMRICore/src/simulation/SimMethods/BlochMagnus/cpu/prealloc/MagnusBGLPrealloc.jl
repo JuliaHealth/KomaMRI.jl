@@ -1,6 +1,6 @@
 struct BlochMagnusBGLCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T},S,P
-} <: BlochMagnusCPUPrealloc{T}
+    CV<:AbstractVector,RV<:AbstractVector,S,P
+} <: BlochMagnusCPUPrealloc
     ωxy_minus::CV
     ωz_minus::RV
     ωxy_center::CV

@@ -44,16 +44,17 @@ precession.
 - `M0`: (`::Vector{Mag}`) final state of the Mag vector
 """
 function run_spin_precession!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::SimulationMethod,
     groupsize,
     backend::KA.Backend,
     prealloc::PreallocResult
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     #Motion
     x, y, z = get_spin_coords(p.motion, p.x, p.y, p.z, seq.t')::NTuple{3,AbstractArray{T}}
     #Effective field
@@ -99,16 +100,17 @@ It gives rise to a rotation of `M0` with an angle given by the efective magnetic
     precession simulation step)
 """
 function run_spin_excitation!(
-    p::Phantom{T},
-    seq::DiscreteSequence{T},
-    sig::AbstractArray{Complex{T}},
-    M::Mag{T},
+    p::Phantom,
+    seq::DiscreteSequence,
+    sig::AbstractArray,
+    M::Mag,
     sys,
     sim_method::SimulationMethod,
     groupsize,
     backend::KA.Backend,
     prealloc::PreallocResult
-) where {T<:Real}
+)
+    T = eltype(p.ρ)
     sample = 1
     # Rotating frame -> RF frame
     ψ_start = @view seq.ψ[1:1]
