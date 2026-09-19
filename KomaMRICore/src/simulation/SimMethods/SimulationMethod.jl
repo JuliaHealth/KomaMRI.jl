@@ -72,10 +72,15 @@ end
 function prealloc_motion_coordinates(
     ::Union{Motion,MotionList}, backend::KA.GPU, obj, max_block_length,
 )
+    return dense_motion_coordinates(backend, obj, max_block_length)
+end
+function dense_motion_coordinates(backend, obj, max_block_length)
     T = eltype(obj.x)
     buffers() = ntuple(_ -> KA.zeros(backend, T, length(obj), max_block_length), 3)
     return MotionCoordinates(buffers(), buffers())
 end
+
+include("Bloch/gpu/PathCoordinates.jl")
 
 spin_coordinates!(::NoMotion, _, x, y, z, _) = (x, y, z)
 function spin_coordinates!(
