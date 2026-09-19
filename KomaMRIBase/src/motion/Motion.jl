@@ -145,7 +145,7 @@ function path(dx, dy, dz, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(elt
 end
 
 """
-    fp = flowpath(dx, dy, dz, spin_reset, time, spins)
+    fp = flowpath(dx, dy, dz, spin_reset, time, spins; cycle_map=nothing)
 
 # Arguments
 - `dx`: (`::AbstractArray{T<:Real}`, `[m]`) displacements in x
@@ -154,6 +154,9 @@ end
 - `spin_reset`: (`::AbstractArray{Bool}`) reset spin state flags
 - `time`: (`::TimeCurve{T<:Real}`) time information about the motion
 - `spins`: (`::AbstractSpinSpan`) spin indexes affected by the motion
+
+# Keywords
+- `cycle_map`: (`::Union{Nothing,AbstractVector{Int}}`) optional periodic magnetization map
 
 # Returns
 - `fp`: (`::Motion`) Motion struct with [`FlowPath`](@ref) action
@@ -170,8 +173,10 @@ julia> fp = flowpath(
        )
 ```
 """
-function flowpath(dx, dy, dz, spin_reset, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins())
-    return Motion(FlowPath(dx, dy, dz, spin_reset), time, spins)
+function flowpath(dx, dy, dz, spin_reset, time=TimeRange(t_start=zero(eltype(dx)), t_end=eps(eltype(dx))), spins=AllSpins(); cycle_map=nothing)
+    !isnothing(cycle_map) && !time.periodic &&
+        throw(ArgumentError("cycle_map requires a periodic TimeCurve."))
+    return Motion(FlowPath(dx, dy, dz, spin_reset; cycle_map), time, spins)
 end
 
 """ Compare two Motions """
@@ -242,56 +247,57 @@ end
 # Auxiliary functions
 times(m::Motion) = times(m.time)
 is_composable(m::Motion) = is_composable(m.action)
+has_cycle_map(m::Motion) = has_cycle_map(m.action)
+filter_cycle_remapped_flowpath(m::Motion) = has_cycle_map(m) ? m : nothing
+cycle_remap_sources(m::Motion, x) = cycle_remap_sources(m.action, m.spins, x)
 
-"""
-    add_key_time_points!(t, motion)
-"""
 function add_key_time_points!(t, m::Motion)
     add_key_time_points!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods, m.time.periodic)
     return nothing
 end
 function add_key_time_points!(t, a, t_start::T, t_end::T, periods, periodic) where T
     isempty(t) && return
-    aux = T[] 
+    aux = T[]
     period = sum((t_end - t_start) .* periods)
     t_max = maximum(t)
     add_period_times!(aux, t_start, t_end, periods)
     add_reset_times!(aux, a, t_start, t_end, periods)
+    add_cycle_remap_times!(aux, a, t_start, t_end, periods)
     extend_periodic!(aux, t_max, period, Val(periodic))
     append!(t, aux[aux .<= t_max])
     return nothing
 end
 
-"""
-    extend_periodic!(aux, t_max, period, periodic)
-"""
-function extend_periodic!(aux, t_max, period, periodic::Val{false})
-    return nothing
-end
-function extend_periodic!(aux, t_max, period, periodic::Val{true})
+extend_periodic!(t, t_max, period, periodic::Val{false}) = nothing
+function extend_periodic!(t, t_max, period, periodic::Val{true})
     n_periods = floor(Int, t_max / period)
     if n_periods > 0
-        initial_size = length(aux)
-        sizehint!(aux, initial_size * (n_periods + 1))
+        initial_size = length(t)
+        sizehint!(t, initial_size * (n_periods + 1))
         for n in 1:n_periods
-            append!(aux, aux[1:initial_size] .+ n*period)
+            append!(t, t[1:initial_size] .+ n*period)
         end
     end
     return nothing
 end
 
-"""
-    add_period_times!(t, t_start, t_end, periods)
-"""
 function add_period_times!(t, t_start, t_end, periods)
     period_times = times([t_start, t_end], t_start, t_end, periods)
     append!(t, period_times .+ MIN_RISE_TIME .* ((-1) .^ ((1:length(period_times)) .+ 1)))
     return nothing
 end
 
-"""
-    add_reset_times!(t, action, t_start, t_end, periods)
-""" 
-function add_reset_times!(t, ::AbstractAction, t_start, t_end, periods)
-    return nothing 
+function add_cycle_end_times!(t, t_start, t_end, periods)
+    period_times = times([t_start, t_end], t_start, t_end, periods)
+    append!(t, @view(period_times[2:2:end]))
+    return nothing
+end
+
+function cycle_remap_times(m::Motion, t_max)
+    t = typeof(float(t_max))[]
+    add_cycle_remap_times!(t, m.action, m.time.t_start, m.time.t_end, m.time.periods)
+    period = sum((m.time.t_end - m.time.t_start) .* m.time.periods)
+    extend_periodic!(t, t_max, period, Val(m.time.periodic))
+    filter!(x -> m.time.t_start < x <= t_max, t)
+    return sort!(unique!(t))
 end
