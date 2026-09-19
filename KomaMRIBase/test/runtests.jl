@@ -2261,6 +2261,17 @@ end
         @test obj1[rng] == obj3[rng]
         @test obj1[rng].motion == obj3.motion[rng]
     end
+    @testset "Motion subset spin identities" begin
+        displacement = hcat(zeros(4), [2.0, 4.0, 6.0, 8.0])
+        motion = path(displacement, zero(displacement), zero(displacement), TimeRange(0.0, 1.0), SpinRange(2:2:8))
+        obj = Phantom(x=collect(1.0:8.0), motion=motion)
+        # At the final time, even-numbered spins have moved by their original spin number.
+        for selection in (1:8, 3:7, 1:2:7, 2:2:8, 8:8)
+            subset = @view obj[selection]
+            x, _, _ = get_spin_coords(subset.motion, subset.x, subset.y, subset.z, 1.0)
+            @test vec(x) == [iseven(i) ? 2i : i for i in selection]
+        end
+    end
     @testset "Addition" begin
         obj1 = Phantom(name=name, x=x, y=y, z=z, ρ=ρ, T1=T1, T2=T2, T2s=T2s, Δw=Δw, Dλ1=Dλ1, Dλ2=Dλ2, Dθ=Dθ)
         rng = 1:2:5

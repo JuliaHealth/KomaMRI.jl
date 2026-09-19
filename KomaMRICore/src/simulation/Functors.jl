@@ -79,7 +79,7 @@ adapt_storage(T::Type{<:Real}, xs::Real) = convert(T, xs)
 adapt_storage(::Type{T}, xs::Complex) where {T<:Real} = convert(Complex{T}, xs)
 adapt_storage(::Type{T}, xs::AbstractArray{T}) where {T<:Real} = xs
 adapt_storage(::Type{T}, xs::AbstractArray{Complex{T}}) where {T<:Real} = xs
-adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = convert.(T, xs)
+adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Real}) = AK.map!(T, similar(xs, T), xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Complex}) = convert.(Complex{T}, xs)
 adapt_storage(T::Type{<:Real}, xs::AbstractArray{<:Bool}) = xs
 
@@ -121,6 +121,7 @@ adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.mot
 # Phantom
 @functor Phantom
 @functor Motion
+@functor SpinRange ()
 @functor Translate
 @functor Scanner
 @functor BirdcageCoilSens (radius, L)
