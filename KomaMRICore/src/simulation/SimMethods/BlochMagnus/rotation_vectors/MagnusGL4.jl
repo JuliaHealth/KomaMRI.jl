@@ -3,7 +3,8 @@ function rotation_vector!(θxy, θz, ωxy_minus, ωz_minus, ωxy_plus, ωz_plus,
     @. θxy = (ωxy_minus + ωxy_plus) * (Δt / 2)
     @. θz  = (ωz_minus  + ωz_plus)  * (Δt / 2)
     θ2_scale = sqrt(typeof(Δt)(3)) * Δt^2 / 12
-    @. θxy -= im * (ωxy_plus * ωz_minus - ωxy_minus * ωz_plus) * θ2_scale
+    imag_unit = complex(zero(Δt), one(Δt))
+    @. θxy -= imag_unit * (ωxy_plus * ωz_minus - ωxy_minus * ωz_plus) * θ2_scale
     @. θz  += imag(conj(ωxy_plus) * ωxy_minus) * θ2_scale
     return nothing
 end

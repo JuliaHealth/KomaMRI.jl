@@ -29,9 +29,9 @@ features:
     link: /how-to/3-create-your-own-sequence
 
   - icon: 🚀
-    title: Fast, Device Agnostic
+    title: Fast, Device Agnostic & Differentiable
     details: Run on CPU and GPU with CUDA, AMDGPU, Metal, and experimental oneAPI support. Differentiable simulations powered by Enzyme and Reactant.
-    link: /explanation/7-simulation
+    link: /tutorial/gen-11-ReverseModeRFOptimization
 
   - icon: 🌊
     title: Dynamic Motion Models
