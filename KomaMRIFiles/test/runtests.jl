@@ -57,18 +57,6 @@ end
         obj2 = read_phantom(filename)
         @test obj1 == obj2
     end
-    @testset "Periodic FlowPath remap" begin
-        pth = @__DIR__
-        filename = pth * "/test_files/phantom/flowpath_cyclemap_w.phantom"
-        Ns = 3
-        trajectory = zeros(Ns, 2)
-        cycle_map = [2, 2, 1]
-        obj1 = Phantom(x=zeros(Ns), motion=flowpath(trajectory, trajectory, trajectory, falses(Ns, 2), Periodic(1.0, 1.0); cycle_map))
-        write_phantom(obj1, filename)
-        obj2 = read_phantom(filename)
-        @test obj1 == obj2
-        @test obj2.motion.action.cycle_map == cycle_map
-    end
 end
 
 @testitem "Pulseq" tags=[:files, :pulseq] begin

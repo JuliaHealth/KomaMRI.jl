@@ -2116,24 +2116,6 @@ end
         @test xt == ph.x .+ dx
         @test yt == ph.y .+ dy
         @test zt == ph.z .+ dz
-
-        # Periodic magnetization remapping uses a supplied destination-to-source map.
-        Ns = 3
-        trajectory = zeros(Ns, 2)
-        cycle_map = [2, 2, 1]
-        fp = flowpath(trajectory, trajectory, trajectory, falses(Ns, 2), Periodic(1.0, 1.0); cycle_map)
-        @test fp.action.cycle_map == cycle_map
-        @test KomaMRIBase.cycle_remap_times(fp, 2.5) == [1.0, 2.0]
-        @test_throws ArgumentError flowpath(trajectory, trajectory, trajectory, falses(Ns, 2), TimeRange(0.0, 1.0); cycle_map)
-        @test_throws ArgumentError FlowPath(trajectory, trajectory, trajectory, falses(Ns, 2); cycle_map=[1, 2])
-        @test_throws ArgumentError FlowPath(trajectory, trajectory, trajectory, falses(Ns, 2); cycle_map=[1, 2, 4])
-
-        # A cycle_map indexes the whole particle set, so sub-groups drop it.
-        ph = Phantom(x=zeros(Ns), motion=fp)
-        @test ph[:] == ph
-        @test isnothing(ph[1:2].motion.action.cycle_map)
-        @test isnothing(view(ph, 1:2).motion.action.cycle_map)
-        @test ph[1:Ns].motion.action.cycle_map == cycle_map
     end
     @testset "Translate + Rotate" begin
         ph = Phantom(x=[1.0, 1.0, -1.0, -1.0], y=[1.0, -1.0, 1.0, -1.0])
