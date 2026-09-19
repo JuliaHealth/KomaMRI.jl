@@ -105,9 +105,9 @@ end
 """
     comp = get_adc_phase_compensation(seq)
 
-Returns an array of phase compensation factors, ``\\exp(-\\mathrm{i}\\varphi)``, which are
+Returns an array of phase compensation factors, ``\\exp(-\\mathrm{i}(\\varphi + 2\\pi \\Delta f t))``, which are
 used to compensate the acquired signal ``S`` by applying the operation
-``S_{\\mathrm{comp}} = S \\exp(-\\mathrm{i}\\varphi)`` after the simulation. This compensation
+``S_{\\mathrm{comp}} = S \\exp(-\\mathrm{i}(\\varphi + 2\\pi \\Delta f t))`` after the simulation. This compensation
 is necessary because the signal typically exhibits a phase offset of ``\\varphi`` following
 RF excitation with a phase of ``\\varphi``. Such pulses are commonly employed in sequences
 involving RF spoiling.
@@ -123,10 +123,7 @@ function get_adc_phase_compensation(seq)
     for i in 1:length(seq)
         adc = seq.ADC[i]
         if is_ADC_on(adc)
-            N = adc.N
-            ϕ = adc.ϕ
-            aux = ones(N) .* exp(-1im * ϕ)
-            append!(phase, aux)
+            append!(phase, cis.(-(adc.ϕ .+ 2π * adc.Δf .* times(adc))))
         end
     end
     return phase
