@@ -53,6 +53,7 @@ jobs:
           ignore_build_states: blocked,canceled,skipped,not_run,failed
           ignore_job_states: timed_out,failed
           output_path: artifacts
+          poll_interval: 300
 
       - name: Locate Benchmarks Artifact
         id: locate
