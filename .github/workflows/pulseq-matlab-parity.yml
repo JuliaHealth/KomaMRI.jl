@@ -8,6 +8,7 @@ on:
       - opened
       - synchronize
       - reopened
+      - ready_for_review
       - labeled
     paths:
       - .github/workflows/pulseq-matlab-parity.yml
@@ -30,9 +31,11 @@ jobs:
   pulseq-parity:
     if: >-
       ${{
-        github.event_name == 'workflow_dispatch' ||
-        github.event.action != 'labeled' ||
-        github.event.label.name == 'pulseq-parity'
+        !github.event.pull_request.draft && (
+          github.event_name == 'workflow_dispatch' ||
+          github.event.action != 'labeled' ||
+          github.event.label.name == 'pulseq-parity'
+        )
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 60

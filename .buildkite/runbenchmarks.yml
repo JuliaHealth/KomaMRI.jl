@@ -1,5 +1,6 @@
 steps:
   - group: ":racehorse: Benchmarks"
+    if: '!build.pull_request.draft'
     steps:
       - label: "AMDGPU - Julia 1 - Benchmark"
         plugins:
