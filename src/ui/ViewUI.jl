@@ -1,18 +1,13 @@
-sequence_slider_visible(::NoPhysioSignal, long_seq) = !long_seq
-sequence_slider_visible(::AbstractPhysioSignal, _) = false
-
 function show_sequence!(w, seq, view; darkmode=true, physio=NoPhysioSignal())
     if view === :sequence
         display_loading!(w, "Plotting sequence ...")
-        long_seq = length(seq) > 1_000
-        time_end = long_seq ? dur(seq) * 1e3 : 30
+        time_end = length(seq) > 1_000 ? dur(seq) * 1e3 : 30
         plot = plot_seq(
             seq;
             darkmode,
             range=[0 time_end],
-            slider=sequence_slider_visible(physio, long_seq),
-            gl=long_seq,
-            show_adc=false,
+            adaptive=true,
+            slider=true,
             physio,
         )
         set_content!(w, plot_node(plot), "sequence")
@@ -21,40 +16,53 @@ function show_sequence!(w, seq, view; darkmode=true, physio=NoPhysioSignal())
         set_content!(w, plot_node(plot_kspace(seq; darkmode)), "kspace")
     elseif view === :moment0
         display_loading!(w, "Plotting moment 0 ...")
-        set_content!(w, plot_node(plot_M0(seq; darkmode)), "m0")
+        plot = plot_M0(seq; adaptive=true, darkmode, physio)
+        set_content!(w, sequence_comparison(seq, plot; darkmode, physio, show_rf_center=true), "m0")
     elseif view === :moment1
         display_loading!(w, "Plotting moment 1 ...")
-        set_content!(w, plot_node(plot_M1(seq; darkmode)), "m1")
+        plot = plot_M1(seq; adaptive=true, darkmode, physio)
+        set_content!(w, sequence_comparison(seq, plot; darkmode, physio, show_rf_center=true), "m1")
     elseif view === :moment2
         display_loading!(w, "Plotting moment 2 ...")
-        set_content!(w, plot_node(plot_M2(seq; darkmode)), "m2")
+        plot = plot_M2(seq; adaptive=true, darkmode, physio)
+        set_content!(w, sequence_comparison(seq, plot; darkmode, physio, show_rf_center=true), "m2")
+    elseif view === :slew_rate
+        display_loading!(w, "Plotting slew rate ...")
+        plot = plot_slew_rate(seq; adaptive=true, darkmode, physio)
+        set_content!(w, sequence_comparison(seq, plot; darkmode, physio), "slew_rate")
     else
         throw(ArgumentError("Unsupported sequence view: $view"))
     end
     return nothing
 end
 
-function show_phantom!(w, obj, buttons; key=:ρ, darkmode=true)
-    display_loading!(w, "Plotting phantom ...")
-    plot = plot_phantom_map(obj, key; time_samples=5, darkmode)
-    for button in buttons
-        selected = button.content[] == string(key)
-        button.attributes[Symbol("aria-pressed")] = string(selected)
-        button.attributes[:class] = "btn btn-primary btn-sm m-1" * (selected ? " active" : "")
+function sequence_comparison(seq, plot; darkmode, physio, show_rf_center=false)
+    waveform = plot_seq(seq; adaptive=true, slider=false, darkmode, physio)
+    template = KomaMRIPlots.plot_template(waveform.source)
+    if show_rf_center
+        for trace in template.data
+            get(trace, :name, "") == "RF_center" && (trace[:visible] = true)
+        end
     end
-    return set_content!(
-        w,
-        DOM.div(
-            DOM.div(buttons...; class="d-flex flex-wrap justify-content-center"),
-            plot_node(plot); class="koma-plot-stack",
-        ),
-        "phantom",
-    )
+    layout = template.layout
+    layout[:updatemenus] = []
+    layout[:xaxis][:showticklabels] = false
+    layout[:margin][:b] = 6
+    return DOM.div(waveform, plot;
+        class="koma-sequence-comparison", dataLinkedTimePlots=true)
+end
+
+function show_phantom!(w, obj; key=:ρ, darkmode=true)
+    display_loading!(w, "Plotting phantom ...")
+    plot = plot_phantom(obj; key, time_samples=5, darkmode, adaptive=true, height=nothing)
+    plot.template.layout[:margin][:t] = 84
+    only(plot.template.layout[:sliders])[:pad][:b] = 4
+    return set_content!(w, plot_node(plot), "phantom")
 end
 
 function show_scanner!(w, sys; darkmode=true)
     display_loading!(w, "Plotting receive sensitivities ...")
-    return set_content!(w, plot_node(plot_coil_sens(sys; darkmode)), "coils")
+    return set_content!(w, plot_node(plot_coil_sens(sys; darkmode, adaptive=true, height=nothing)), "coils")
 end
 
 function show_scanner_parameters!(w, sys)
@@ -102,7 +110,7 @@ end
 
 function show_signal!(w, raw; darkmode=true)
     display_loading!(w, "Plotting raw signal ...")
-    return set_content!(w, plot_node(plot_signal(raw; darkmode)), "sig")
+    return set_content!(w, plot_node(plot_signal(raw; adaptive=true, darkmode)), "sig")
 end
 
 const KSPACE_DYNAMIC_RANGE_DB = 60

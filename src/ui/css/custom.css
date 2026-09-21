@@ -46,9 +46,20 @@ body, button{
   width: 100%;
 }
 
-.koma-logo input {
+.koma-logo img {
   max-width: 100%;
   max-height: 100%;
+}
+
+.koma-logo-spin,
+.koma-action-icon {
+  display: none;
+}
+
+.koma-action-button.koma-simulation-progress {
+  background-image: linear-gradient(to right, var(--bs-primary) var(--simulation-progress),
+    #27292d var(--simulation-progress));
+  opacity: 1;
 }
 
 .koma-nav-link {
@@ -80,6 +91,75 @@ body, button{
   margin: 16px 0 !important;
   color: #6c757d !important;
   opacity: 0.25 !important;
+}
+
+@media (max-width: 900px) {
+  .koma-sidebar {
+    flex-basis: 72px;
+    width: 72px;
+    min-width: 72px;
+    padding: 16px 8px !important;
+  }
+
+  .koma-logo-full,
+  .koma-sidebar .koma-nav-label,
+  .koma-sidebar .pname,
+  .koma-sidebar .koma-nav-link::after,
+  .koma-action-label {
+    display: none;
+  }
+
+  .koma-logo-spin,
+  .koma-action-icon,
+  .koma-action-button[aria-busy="true"] .koma-action-label {
+    display: block;
+  }
+
+  .koma-action-button[aria-busy="true"] .koma-action-icon {
+    display: none;
+  }
+
+  .koma-nav-link {
+    grid-template-columns: 1fr;
+    padding: 12px 0;
+    font-size: 1.25rem;
+  }
+
+  .koma-nav-icon {
+    justify-self: center;
+  }
+
+  .koma-action-button {
+    min-width: 0;
+    min-height: 34px;
+    padding-inline: 4px;
+  }
+
+  .koma-sidebar .koma-action-button ~ .dropdown-toggle-split,
+  .koma-sidebar .koma-action-button ~ .dropdown-menu {
+    display: none;
+  }
+
+  .koma-sidebar .btn-group > .btn.koma-action-button {
+    border-radius: 0.2rem;
+  }
+
+  .koma-action-button.koma-simulation-progress {
+    padding-inline: 0;
+    font-size: 0.75rem;
+  }
+
+  .koma-sidebar .dropdown > .dropdown-menu,
+  .koma-sidebar .btn-group > .dropdown-menu {
+    position: absolute;
+    inset: 0 auto auto calc(100% + 8px) !important;
+    transform: none !important;
+  }
+
+  .koma-sidebar > .dropdown > .dropdown-menu {
+    top: auto !important;
+    bottom: 0 !important;
+  }
 }
 
 #main > :last-child {
@@ -154,6 +234,15 @@ body, button{
   height: 100%;
   min-width: 0;
   min-height: 0;
+}
+
+.koma-sequence-comparison {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 4fr);
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 .koma-reconstruction-controls {

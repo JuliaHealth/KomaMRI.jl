@@ -32,9 +32,8 @@ include("KomaCLI.jl")
     include("KomaApp.jl")
 end
 
-# Export the UI and the observables
-export KomaUI, KomaWindow
-export sys_ui, seq_ui, obj_ui, physio_ui, raw_ui, img_ui
+# Export the UI
+export KomaUI, KomaWindow, click!, load_file!
 export reconstruct_with_labels, reconstruction_policy, DEFAULT_RECON_POLICY
 
 end

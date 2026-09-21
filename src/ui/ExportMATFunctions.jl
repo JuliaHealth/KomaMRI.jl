@@ -58,17 +58,12 @@ function export_2_mat_phantom(phantom, matfolder; matfilename="phantom.mat")
 end
 
 function export_2_mat_scanner(sys, matfolder; matfilename="scanner.mat")
-    sys_dict = Dict("B0" => sys.limits.B0,
-                "B1" => sys.limits.B1,
-                "Gmax" => sys.limits.Gmax,
-                "Smax" => sys.limits.Smax,
-                "ADC_dt" => sys.limits.ADC_Δt,
-                "DUR_dt" => sys.limits.DUR_Δt,
-                "GR_dt" => sys.limits.GR_Δt,
-                "RF_dt" => sys.limits.RF_Δt,
-                "RF_ring_down_time" => sys.limits.RF_ring_down_time,
-                "RF_dead_time" => sys.limits.RF_dead_time,
-                "ADC_dead_time" => sys.limits.ADC_dead_time)
+    sys_dict = Dict(string(name) => begin
+        component = getproperty(sys, name)
+        fields = Dict(string(field) => getproperty(component, field)
+            for field in fieldnames(typeof(component)))
+        merge(Dict("type" => string(nameof(typeof(component)))), _mat_value(fields))
+    end for name in fieldnames(Scanner))
     matwrite(joinpath(matfolder, matfilename), Dict("scanner" => sys_dict))
 end
 

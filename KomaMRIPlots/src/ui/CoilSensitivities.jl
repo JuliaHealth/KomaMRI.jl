@@ -10,16 +10,32 @@ coil_plot_bounds(receiver::BirdcageCoilSens) = (
 )
 coil_plot_bounds(receiver::ArbitraryCoilSens) = map(extrema, (receiver.x, receiver.y, receiver.z))
 
+"""
+    get_coil_sens_fov(receiver)
+
+Return the default plotting extent `(Lx, Ly, Lz)` in metres for a receive model.
+Uniform sensitivities use a 256 mm cube, Birdcage uses its diameter and full length,
+and arbitrary sensitivities use their sampled coordinate spans. A zero span denotes
+a plane. This is a display extent, not a physical sensitivity cutoff.
+"""
+get_coil_sens_fov(receiver) = map(bounds -> last(bounds) - first(bounds), coil_plot_bounds(receiver))
+
 inside_coil_plot(::AbstractRFReceiveSystem, position) = true
 inside_coil_plot(receiver::BirdcageCoilSens, position) =
     hypot(position[1], position[2]) < BIRDCAGE_PLOT_RADIUS_FRACTION * receiver.radius
 
 """
-    plot_coil_sens(sys; spacing=0.01, height=700, width=nothing, darkmode=false)
+    plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothing,
+        darkmode=false, adaptive=false)
 
 Plot receive-coil sensitivities without a phantom. Coordinates and `spacing` are in
 metres; axes are displayed in centimetres. The sampling grid is centred in the receiver's
 bounds and spaced by `spacing`, independently of its field of view.
+
+`fov=(Lx, Ly, Lz)` overrides the displayed extent in metres, centred on the model's
+bounds; a zero extent selects a plane. When omitted, [`get_coil_sens_fov`](@ref)
+provides the extent. The override does not change the receiver or its sensitivities;
+arbitrary maps return zero outside their sampled support.
 
 Uniform sensitivities use a 256 mm box. Birdcage sensitivities use the cylinder's
 half-length `L` and 90% of its radius, avoiding the ideal-wire singularities. Sampled
@@ -30,12 +46,28 @@ The self-contained plot has a coil selector above it (only for multiple coils) a
 Magnitude/Phase buttons below. Magnitude uses a grayscale range shared by all coils;
 phase uses a cyclic scale over `[-π, π]`. Values come directly from `get_sens`, without
 spin-density weighting or per-coil normalization.
+
+With `adaptive=true`, return a live [`SpatialPlot`](@ref): refine the visible grid
+on zoom or camera changes, down to `spacing`, without constructing the finest full
+volume. Coil and component controls fetch only the selected data. Julia must remain
+running; the default plot is self-contained.
+
+# Keywords — both modes
+All keywords in the signature apply to both modes. `spacing` is the embedded grid
+spacing with `adaptive=false`, and the finest grid spacing with `adaptive=true`.
+`fov`, `height`, `width`, and `darkmode` retain the same meaning in either mode.
 """
-function plot_coil_sens(sys; spacing=0.01, height=700, width=nothing, darkmode=false)
+function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothing,
+    darkmode=false, adaptive=false)
+    adaptive && return coil_spatial_plot(sys; fov, spacing, height, width, darkmode)
     receiver = sys.receiver
-    bounds = coil_plot_bounds(receiver)
-    grid = map(bounds) do (lower, upper)
-        intervals = floor(Int, (upper - lower) / spacing)
+    fov = isnothing(fov) ? get_coil_sens_fov(receiver) : fov
+    bounds = map(coil_plot_bounds(receiver), fov) do (lower, upper), extent
+        center = (lower + upper) / 2
+        (center - extent / 2, center + extent / 2)
+    end
+    grid = map(bounds, fov) do (lower, upper), extent
+        intervals = floor(Int, extent / spacing)
         start = (lower + upper - intervals * spacing) / 2
         range(start; step=spacing, length=intervals + 1)
     end

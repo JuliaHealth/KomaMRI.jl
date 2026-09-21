@@ -213,10 +213,7 @@ function load_cli_backend!(opts)
 end
 
 function cli_inputs(opts)
-    sys = setup_scanner()
-    if !isnothing(opts.scanner)
-        @warn "Scanner file input is accepted but ignored for now" file=opts.scanner
-    end
+    sys = isnothing(opts.scanner) ? setup_scanner() : read_scanner(opts.scanner)
     seq = isnothing(opts.sequence) ? setup_sequence(sys) : read_seq(opts.sequence)
     obj = isnothing(opts.phantom) ? setup_phantom() : load_cli_phantom(opts.phantom)
     return sys, seq, obj

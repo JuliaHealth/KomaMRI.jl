@@ -8,7 +8,7 @@ max_step_sampling_rule(sim_params) =
     MaxStepSizeRule(
         sim_params["Δt"],
         sim_params["Δt_rf"];
-        preserve_samples=get(sim_params, "preserve_samples", (:gradients,)),
+        preserve_samples=get(sim_params, "preserve_samples", (:gradients, :rf_center)),
     )
 
 default_sampling_rule(::SimulationMethod, sim_params) = max_step_sampling_rule(sim_params)
@@ -38,8 +38,9 @@ allowing the user to define some of them.
         flexibility to create your own methods without altering the KomaMRI source code
     * "sampling_rule": controls how sequence waveforms are sampled for simulation. When it is
         not provided, `simulate` derives it from the current `sim_method`, `Δt`, and `Δt_rf`
-    * "preserve_samples": preserve native event samples as simulation times. Supported values are
-        `()`, `(:rf,)`, `(:gradients,)`, and `(:rf, :gradients)`. Defaults to `(:gradients,)`.
+    * "preserve_samples": any combination of `:rf`, `:gradients`, and `:rf_center`.
+        Defaults to `(:gradients, :rf_center)`. Omit `:rf_center` to avoid center-induced
+        subdivisions in convergence studies; other sampling points are retained normally.
     * "freq_in_phase": folds RF frequency modulation into the complex RF waveform before simulation
     * "precision": defines the floating-point simulation precision. You can choose between
         `"f32"`, `"f64"`, and `"bigfloat"` to use `Float32`, `Float64`, and `BigFloat`
@@ -75,7 +76,7 @@ function default_sim_params(sim_params=Dict{String,Any}())
     get!(sim_params, "max_rf_block_length", Inf)
     get!(sim_params, "Δt", 1e-3)
     get!(sim_params, "Δt_rf", 5e-5)
-    get!(sim_params, "preserve_samples", (:gradients,))
+    get!(sim_params, "preserve_samples", (:gradients, :rf_center))
     get!(sim_params, "sim_method", Bloch())
     get!(sim_params, "freq_in_phase", false)
     get!(sim_params, "precision", "f32")

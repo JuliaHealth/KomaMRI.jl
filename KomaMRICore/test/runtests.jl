@@ -78,6 +78,20 @@ const group = get(ENV, "TEST_GROUP", :core) |> Symbol
     rule = KomaMRICore.simulation_sampling_rule(sim_params["sim_method"], sim_params)
     @test KomaMRIBase.preserved_samples(rule) == ()
 
+    # Simulation defaults retain RF centers; opting out also disables their refinement anchors.
+    rf_duration = 2.0^-10
+    rf_center = 3rf_duration / 8
+    rf_seq = Sequence()
+    @addblock rf_seq += RF(1e-6, rf_duration, 0.0, 0.0; center=rf_center)
+    for method in (Bloch(), BlochMagnusMid2())
+        params = KomaMRICore.default_sim_params(Dict{String,Any}("Δt_rf" => rf_duration / 2))
+        center_rule = KomaMRICore.simulation_sampling_rule(method, params)
+        @test rf_center in discretize(rf_seq; sampling_rule=center_rule).t
+        params["preserve_samples"] = (:gradients,)
+        center_rule = KomaMRICore.simulation_sampling_rule(method, params)
+        @test rf_center ∉ discretize(rf_seq; sampling_rule=center_rule).t
+    end
+
     delays = Sequence()
     delays += Delay(1e-3)
     delays += Delay(1e-3)

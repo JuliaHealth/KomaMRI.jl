@@ -1,5 +1,6 @@
 @testitem "PlotlyBase backend" tags=[:plots] begin
     using KomaMRIBase, MRIFiles, PlotlyBase
+    import KomaMRIPlots as P
     test_plot(plot) = @test plot isa Plot
 
     @testset "Image components" begin
@@ -77,6 +78,23 @@
         short = plot_coil_sens(Scanner(receiver=BirdcageCoilSens(L=0.01)))
         @test sort!(unique(first(short.data)[:z])) == [-1, 0, 1]
         @test all(isfinite, first(short.data)[:marker][:color])
+
+        # FOV selects the physical region/plane; spacing changes density without changing that region.
+        # Grid centering and conversion to centimetres introduce at most a few Float64 rounding steps.
+        for spacing in (0.01, 0.005)
+            trace = only(plot_coil_sens(Scanner(); fov=(0.04, 0.02, 0), spacing).data)
+            @test isapprox(sort!(unique(trace[:x])), collect(-2:100spacing:2); rtol=0, atol=8eps(2.0))
+            @test isapprox(sort!(unique(trace[:y])), collect(-1:100spacing:1); rtol=0, atol=8eps(1.0))
+            @test all(==(1), trace[:marker][:color])
+        end
+
+        # Cropping an offset map keeps its physical centre and leaves its complex gain unchanged.
+        receiver = ArbitraryCoilSens([0.08, 0.10, 0.12], [-0.01, 0, 0.01], [0.0], fill(2.0im, 3, 3, 1, 1))
+        trace = only(plot_coil_sens(Scanner(; receiver); fov=(0.02, 0.02, 0)).data)
+        # Midpoint, grid construction, and metres-to-centimetres conversion each round in Float64.
+        @test maximum(abs, sort!(unique(trace[:x])) - [9, 10, 11]) <= 8eps(11.0)
+        # Bilinear interpolation of a constant field may round its four weighted terms.
+        @test maximum(abs, trace[:marker][:color] .- 2) <= 8eps(2.0)
     end
 
     @testset "Sequence" begin
@@ -86,7 +104,8 @@
         )
         sequence = excitation + PulseDesigner.EPI(23e-2, 101, sys)
 
-        test_plot(plot_seq(sequence))
+        sequence_plot = plot_seq(sequence)
+        test_plot(sequence_plot)
         test_plot(
             plot_seq(sequence; width=800, height=600, slider=true, show_seq_blocks=true)
         )
@@ -116,14 +135,26 @@
         @test any(trace -> get(trace, :name, nothing) == "ECG", physio_plot.data)
         @test only(physio_plot.layout[:shapes])[:x0] ≈ r_peak * 1e3
 
+        # RF centers use the same marker appearance in sequence and moment plots.
+        rf_center = only(filter(trace -> trace[:name] == "RF_center", sequence_plot.data))
         for plot in (plot_M0(sequence), plot_M1(sequence), plot_M2(sequence))
             test_plot(plot)
+            marker = only(filter(trace -> trace[:name] == "RF_center", plot.data))[:marker]
+            @test marker == rf_center[:marker]
         end
 
         test_plot(plot_kspace(sequence; width=800, height=600))
         test_plot(plot_eddy_currents(sequence, 80e-3))
         test_plot(plot_slew_rate(sequence))
         test_plot(plot_seqd(sequence))
+
+        # Time-series plots retain the plain Plotly API unless adaptive rendering is requested.
+        for (plotter, args) in ((plot_seq, (sequence,)), (plot_M0, (sequence,)),
+            (plot_M1, (sequence,)), (plot_M2, (sequence,)), (plot_slew_rate, (sequence,)),
+            (plot_eddy_currents, (sequence, 80e-3)), (plot_seqd, (sequence,)))
+            @test plotter(args...; adaptive=false) isa Plot
+            @test plotter(args...; adaptive=true) isa P.TimePlot
+        end
     end
 
     @testset "Raw signal and table" begin
@@ -132,6 +163,10 @@
         )
         signal_plot = plot_signal(raw; width=800, height=600)
         test_plot(signal_plot)
+
+        # Raw-signal plots follow the same opt-in contract as sequence plots.
+        @test plot_signal(raw; adaptive=false) isa Plot
+        @test plot_signal(raw; adaptive=true) isa P.TimePlot
 
         # Single-coil data has no coil selector.
         @test isempty(signal_plot.layout[:sliders])

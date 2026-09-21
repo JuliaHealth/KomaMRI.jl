@@ -40,6 +40,14 @@ preserved_samples(::SamplingRule) = (:gradients,)
 preserved_samples(::Nothing) = (:gradients,)
 preserve_sample(rule, sample::Symbol) = sample in preserved_samples(rule)
 
+struct MomentSamplingRule{R} <: SamplingRule
+    rule::R
+end
+
+preserved_samples(rule::MomentSamplingRule) = (preserved_samples(rule.rule)..., :rf_center)
+additional_sampling_times(rule::MomentSamplingRule, event_times, context::BlockSamplingContext) =
+    additional_sampling_times(rule.rule, event_times, context)
+
 sampling_time_vector(times::AbstractVector) = times
 sampling_time_vector(times) = collect(times)
 

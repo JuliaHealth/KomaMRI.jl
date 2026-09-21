@@ -8,17 +8,30 @@ CurrentModule = KomaMRIPlots
 
 ```@docs
 plot_phantom_map
+SpatialPlot
+plot_phantom
 ```
 
 ## Plotting receive sensitivities
 
 ```@docs
 plot_coil_sens
+get_coil_sens_fov
 ```
 
 ## Plotting `Sequence`
 
+Sequence-like plots and `plot_signal` return a regular `PlotlyBase.Plot` by default.
+Set `adaptive=true` to fetch detailed samples on zoom or pan. This live mode requires
+the Julia session to remain running; KomaUI enables it automatically.
+
+```julia
+plot_seq(seq)                  # Regular Plotly figure
+plot_seq(seq; adaptive=true)   # Live adaptive viewer
+```
+
 ```@docs
+TimePlot
 plot_seq
 plot_kspace
 plot_M0

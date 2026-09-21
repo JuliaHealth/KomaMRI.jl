@@ -4,9 +4,13 @@
 
 # -- 4.1.1. Rule definition --------------------------------------------------
 """
-    MaxStepSizeRule(Δt, Δt_rf; preserve_samples=(:gradients,))
+    MaxStepSizeRule(Δt, Δt_rf; preserve_samples=(:gradients, :rf_center))
 
 Select sequence sampling times so gradient and RF intervals do not exceed `Δt` and `Δt_rf`.
+`preserve_samples` accepts any combination of `:gradients`, `:rf`, and `:rf_center`.
+The first two retain native waveform samples; `:rf_center` inserts each active RF center.
+Omit `:rf_center` for convergence studies without center-induced subdivisions. Centers
+that coincide with other retained samples or refinement points remain in the grid.
 """
 struct MaxStepSizeRule{T,TRF,TPreserved} <: SamplingRule
     Δt::T
@@ -14,18 +18,18 @@ struct MaxStepSizeRule{T,TRF,TPreserved} <: SamplingRule
     preserve_samples::TPreserved
 end
 
-const VALID_PRESERVED_SAMPLES = (:rf, :gradients)
+const VALID_PRESERVED_SAMPLES = (:rf, :gradients, :rf_center)
 
 normalize_preserved_samples(sample::Symbol) = normalize_preserved_samples((sample,))
 
 function normalize_preserved_samples(samples)
     samples = Tuple(samples)
     all(sample -> sample in VALID_PRESERVED_SAMPLES, samples) ||
-        throw(ArgumentError("preserve_samples must contain only :rf and/or :gradients."))
+        throw(ArgumentError("preserve_samples must contain only :rf, :gradients, and/or :rf_center."))
     return samples
 end
 
-MaxStepSizeRule(Δt, Δt_rf; preserve_samples=(:gradients,)) =
+MaxStepSizeRule(Δt, Δt_rf; preserve_samples=(:gradients, :rf_center)) =
     MaxStepSizeRule(Δt, Δt_rf, normalize_preserved_samples(preserve_samples))
 
 preserved_samples(rule::MaxStepSizeRule) = rule.preserve_samples
@@ -57,9 +61,9 @@ function unique_added_step_times!(added_times, event_times)
     return added_times
 end
 
-function append_max_step_sampling_times!(added_times, event_times, waveform_times, maxdt; anchors=())
+function append_max_step_sampling_times!(added_times, event_times, waveform_times, maxdt)
     (isempty(waveform_times) || !isfinite(maxdt) || maxdt <= 0) && return added_times
-    checkpoints = snap_sampling_time.((first(waveform_times), anchors..., last(waveform_times)), Ref(event_times))
+    checkpoints = snap_sampling_time.((first(waveform_times), last(waveform_times)), Ref(event_times))
     append!(added_times, checkpoints)
     step_times = merge_sampling_times(event_times, checkpoints)
     lo = searchsortedfirst(step_times, first(waveform_times))
@@ -87,9 +91,9 @@ function additional_sampling_times(rule::MaxStepSizeRule, event_times, context::
     added_times = eltype(event_times)[]
     if !isempty(waveforms.rf.t)
         needs_max_step_sampling_times(waveforms.rf.t, rule.Δt_rf) &&
-            append_max_step_sampling_times!(added_times, event_times, waveforms.rf.t, rule.Δt_rf; anchors=(context.rf_center,))
+            append_max_step_sampling_times!(added_times, event_times, waveforms.rf.t, rule.Δt_rf)
         waveforms.Δf.t != waveforms.rf.t && needs_max_step_sampling_times(waveforms.Δf.t, rule.Δt_rf) &&
-            append_max_step_sampling_times!(added_times, event_times, waveforms.Δf.t, rule.Δt_rf; anchors=(context.rf_center,))
+            append_max_step_sampling_times!(added_times, event_times, waveforms.Δf.t, rule.Δt_rf)
     end
     for gr_waveform in (waveforms.gx, waveforms.gy, waveforms.gz)
         needs_max_step_sampling_times(gr_waveform.t, rule.Δt) &&

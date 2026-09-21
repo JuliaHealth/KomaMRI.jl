@@ -7,7 +7,7 @@ function simulation_device_label(sim_params)
     return "CPU ($threads thread$(threads == 1 ? "" : "s"))"
 end
 
-function run_simulation!(w, sim_params, raw_file; initial=false)
+function run_simulation!(w, sim_params; initial=false)
     previous_content = w.content[]
     previous_state = w.state[]
     message = initial ?
@@ -21,17 +21,17 @@ function run_simulation!(w, sim_params, raw_file; initial=false)
 
     raw = try
         raw = simulate(
-            obj_ui[],
-            seq_ui[],
-            sys_ui[];
+            w.obj[],
+            w.seq[],
+            w.sys[];
             sim_params,
             callbacks=(ui_progressbar_callback(w),),
-            physio=physio_ui[],
+            physio=w.physio[],
         )
-        rawfile = joinpath(tempdir(), "koma_sim.mrd")
+        rawfile = joinpath(mktempdir(), "koma_sim.mrd")
         @info "Exporting to ISMRMRD file: $rawfile"
         save(ISMRMRDFile(rawfile), raw)
-        raw_file[] = rawfile
+        w.files[:raw_data] = rawfile
         raw
     catch error
         @error "Simulation failed" exception=(error, catch_backtrace())
@@ -47,13 +47,13 @@ function run_simulation!(w, sim_params, raw_file; initial=false)
     simulation_device = simulation_device_label(params)
     body = """
         <ul class="list-unstyled mb-0">
-            <li><button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View raw signal" aria-label="View raw signal" onclick="KomaUI.notify('sig')"><i class="bi bi-search"></i></button> Updating <b>Raw signal</b> plots ...</li>
-            <li><button type="button" class="btn btn-primary btn-circle btn-circle-sm m-1" title="Reconstruct" aria-label="Reconstruct" onclick="KomaUI.notify('recon')"><i class="bi bi-caret-right-fill"></i></button> Ready to <b>reconstruct</b>?</li>
+            <li><button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View raw signal" aria-label="View raw signal" onclick="KomaUI.notify('view_raw_data')"><i class="bi bi-search"></i></button> Updating <b>Raw signal</b> plots ...</li>
+            <li><button type="button" class="btn btn-primary btn-circle btn-circle-sm m-1" title="Reconstruct" aria-label="Reconstruct" onclick="KomaUI.notify('reconstruct')"><i class="bi bi-caret-right-fill"></i></button> Ready to <b>reconstruct</b>?</li>
         </ul>
     """
     update_filename!(w, "rawname", "koma_sim.mrd")
     toast!(w, 1, "$simulation_device sim. successful<br>Time: $sim_time s", body)
-    raw_ui[] = raw
+    w.raw[] = raw
     return nothing
 end
 
@@ -64,23 +64,31 @@ function run_reconstruction!(w, rec_params; initial=false)
         "Precompiling and running reconstruction functions ..." : "Running reconstruction ..."
     display_loading!(w, message)
     spinner = "<div class=\"spinner-border spinner-border-sm text-light\" role=\"status\"></div>"
-    evaljs(w, js"document.getElementById('recon!').innerHTML = $(spinner);")
+    evaljs(w, js"""
+        const button = document.getElementById('recon!');
+        button.setAttribute('aria-busy', 'true');
+        button.querySelector('.koma-action-label').innerHTML = $(spinner);
+    """)
 
     try
         @info "Running reconstruction ..."
-        reconstruction_result = @timed reconstruct_with_labels(raw_ui[]; rec_params)
+        reconstruction_result = @timed reconstruct_with_labels(w.raw[]; rec_params)
         body = """
-            <ul class="list-unstyled mb-0"><li><button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View reconstruction" aria-label="View reconstruction" onclick="KomaUI.notify('reconstruction_absI')"><i class="bi bi-search"></i></button> Updating <b>Reconstruction</b> plots ...</li></ul>
+            <ul class="list-unstyled mb-0"><li><button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View reconstruction" aria-label="View reconstruction" onclick="KomaUI.notify('view_image')"><i class="bi bi-search"></i></button> Updating <b>Reconstruction</b> plots ...</li></ul>
         """
         rec_time = round(reconstruction_result.time; digits=3)
         toast!(w, 2, "Reconstruction successful<br>Time: $rec_time s", body)
-        img_ui[] = reconstruction_result.value
+        w.img[] = reconstruction_result.value
     catch error
         @error "Reconstruction failed" exception=(error, catch_backtrace())
         restore_content!(w, previous_content, previous_state)
         failure_toast!(w, 2, "Reconstruction", error)
     finally
-        evaljs(w, js"document.getElementById('recon!').innerHTML = 'Reconstruct!';")
+        evaljs(w, js"""
+            const button = document.getElementById('recon!');
+            button.querySelector('.koma-action-label').textContent = 'Reconstruct!';
+            button.removeAttribute('aria-busy');
+        """)
     end
     return nothing
 end
@@ -90,21 +98,18 @@ function start_simulation_progress!(w::KomaWindow)
     evaljs(w, js"""(() => {
         const button = document.getElementById('simulate!');
         button.disabled = true;
-        const progress = document.createElement('div');
-        progress.className = 'progress w-100';
-        progress.style.backgroundColor = '#27292d';
-        const bar = document.createElement('div');
+        button.setAttribute('aria-busy', 'true');
+        button.classList.add('koma-simulation-progress');
+        button.style.setProperty('--simulation-progress', '0%');
+        const bar = document.createElement('span');
         bar.id = 'simul_progress';
-        bar.className = 'progress-bar';
-        bar.style.width = '0%';
-        bar.style.transition = 'none';
         bar.setAttribute('role', 'progressbar');
+        bar.setAttribute('aria-label', 'Simulation progress');
         bar.setAttribute('aria-valuenow', '0');
         bar.setAttribute('aria-valuemin', '0');
         bar.setAttribute('aria-valuemax', '100');
         bar.textContent = '0%';
-        progress.appendChild(bar);
-        button.replaceChildren(progress);
+        button.querySelector('.koma-action-label').replaceChildren(bar);
         return true;
     })()""")
     return nothing
@@ -113,7 +118,10 @@ end
 function finish_simulation_progress!(w::KomaWindow)
     evaljs(w, js"""
         const button = document.getElementById('simulate!');
-        button.textContent = 'Simulate!';
+        button.querySelector('.koma-action-label').textContent = 'Simulate!';
+        button.removeAttribute('aria-busy');
+        button.classList.remove('koma-simulation-progress');
+        button.style.removeProperty('--simulation-progress');
         button.disabled = false;
     """)
     return nothing
@@ -124,8 +132,8 @@ function update_bonito_progress!(w::KomaWindow, block, Nblocks)
     evaljs(w, js"""
         const bar = document.getElementById('simul_progress');
         if (bar) {
-            bar.style.width = $progress + '%';
-            bar.innerHTML = $progress + '%';
+            bar.closest('button').style.setProperty('--simulation-progress', $progress + '%');
+            bar.textContent = $progress + '%';
             bar.setAttribute('aria-valuenow', $progress);
         }
     """)

@@ -406,10 +406,14 @@ end
         @test KomaMRI.load_cli_phantom(phantom_file) isa KomaMRI.Phantom
         @test KomaMRI.load_cli_phantom(jemris_file) isa KomaMRI.Phantom
 
-        sys, seq, obj = KomaMRI.cli_inputs(KomaMRI.CLIOptions(scanner="scanner.sys"))
-        @test sys isa KomaMRI.Scanner
-        @test seq isa KomaMRI.Sequence
-        @test obj isa KomaMRI.Phantom
+        # A scanner input replaces the defaults, including receive channels and hardware limits.
+        scanner_file = joinpath(mktempdir(), "scanner.sys")
+        expected = Scanner(limits=HardwareLimits(B0=3.0), receiver=BirdcageCoilSens(ncoils=4))
+        write_scanner(expected, scanner_file)
+        sys, seq, obj = KomaMRI.cli_inputs(KomaMRI.CLIOptions(scanner=scanner_file))
+        @test sys.limits.B0 == expected.limits.B0
+        @test get_sens(sys.receiver, [0.0], [0.0], [0.0]) ==
+            get_sens(expected.receiver, [0.0], [0.0], [0.0])
 
         raw = RawAcquisitionData(ISMRMRDFile(joinpath(path, "test_files", "Koma_signal.mrd")))
         dir = mktempdir()
@@ -432,7 +436,13 @@ end
         dir = mktempdir()
         raw_mrd = joinpath(dir, "raw.mrd")
         img_mat = joinpath(dir, "image.mat")
-        KomaMRI.run_cli(KomaMRI.CLIOptions(sim_output=raw_mrd, recon_output=img_mat))
+        scanner_file = joinpath(dir, "scanner.sys")
+        maps = cat(fill(1.0 + 0im, 2, 2, 2), fill(0.0 + 2im, 2, 2, 2); dims=4)
+        write_scanner(Scanner(receiver=ArbitraryCoilSens([-1.0, 1.0], [-1.0, 1.0], [-1.0, 1.0], maps)), scanner_file)
+        KomaMRI.run_cli(KomaMRI.CLIOptions(scanner=scanner_file, sim_output=raw_mrd, recon_output=img_mat))
+        # The CLI simulation uses the saved coil maps, including their relative complex gain.
+        raw = RawAcquisitionData(ISMRMRDFile(raw_mrd))
+        @test all(profile.data[:, 2] == 2im .* profile.data[:, 1] for profile in raw.profiles)
         @test isfile(raw_mrd)
         @test isfile(img_mat)
     end
@@ -467,6 +477,27 @@ end
     end
 end
 
+@testitem "Scanner MAT export" tags=[:koma] begin
+    using MAT
+
+    coordinates = range(-0.1, 0.1; length=2)
+    maps = reshape(ComplexF32.(1:16) .* (1 + 2im), 2, 2, 2, 2)
+    sys = Scanner(limits=HardwareLimits(B0=3.0),
+        receiver=ArbitraryCoilSens(coordinates, coordinates, coordinates, maps))
+    mktempdir() do dir
+        KomaMRI.export_2_mat_scanner(sys, dir)
+        saved = matread(joinpath(dir, "scanner.mat"))["scanner"]
+        # MATLAB receives all four scanner components, with SI limits and complex maps intact.
+        @test Set(keys(saved)) == Set(["limits", "gradient", "receiver", "transmitter"])
+        @test all(saved["limits"][replace(string(name), "Δ" => "d")] == getproperty(sys.limits, name)
+            for name in fieldnames(HardwareLimits))
+        @test saved["gradient"]["type"] == "LinearXYZ" && saved["transmitter"]["type"] == "UniformTransmit"
+        @test saved["receiver"]["type"] == "ArbitraryCoilSens"
+        @test saved["receiver"]["coil_sens"] == maps
+        @test all(vec(saved["receiver"][axis]) == coordinates for axis in ("x", "y", "z"))
+    end
+end
+
 @testitem "KomaUI" tags=[:koma] begin
     using Bonito
 
@@ -492,6 +523,49 @@ end
         message = KomaMRI.export_2_mat(sequence, phantom, scanner, raw, rec_params, image, dir; type="sequence")
         @test sort(readdir(dir)) == ["data_kspace.mat", "data_moments.mat", "data_sequence.mat"]
         @test occursin("<b>Names:</b> data_sequence.mat, data_kspace.mat, data_moments.mat", message)
+    end
+
+    @testset "Window-owned data" begin
+        w = KomaUI(; seq=triggered, obj=Phantom(x=[0.0]), show_window=false,
+            return_window=true, verbose=false, sim=Dict("gpu" => false))
+        other = KomaUI(; seq=Sequence(), obj=Phantom(x=[0.0]), show_window=false,
+            return_window=true, verbose=false, sim=Dict("gpu" => false))
+        try
+            # Opening another window must not reset the first window's acquisition or physiology.
+            @test w.seq[] === triggered && w.physio[].period == 1.0
+
+            # Every data observable and its view update are isolated to their owning window.
+            updates = (
+                seq=triggered,
+                obj=Phantom(x=[0.0], ρ=[2.0]),
+                sys=Scanner(limits=HardwareLimits(B0=3.0)),
+                physio=CardiacSignal(; heart_rate=1.25),
+                raw=KomaMRI.setup_raw(),
+                img=ComplexF32[0 1; 2 3],
+                sim_params=Dict("gpu" => false, "precision" => "f64"),
+                rec_params=Dict(:reco => "standard", :iterations => 0),
+            )
+            for (field, value) in pairs(updates)
+                other_value = getproperty(other, field)[]
+                other_content = other.content[]
+                getproperty(w, field)[] = value
+                @test getproperty(other, field)[] === other_value && other.content[] === other_content
+            end
+
+            # File loading changes neither the other window's acquisition nor its reload path.
+            other_sequence = other.seq[]
+            load_file!(w, :sequence, joinpath(pkgdir(KomaMRI), "KomaMRIFiles", "test",
+                "test_files", "pulseq", "basic_tests", "v1.4", "label_test.seq"))
+            @test other.seq[] === other_sequence && isempty(other.files)
+
+            # Closing one window must leave the other's observable subscriptions active.
+            close(w)
+            other.seq[] = triggered
+            @test other.state[] == "sequence" && other.physio[].period == 1.0
+        finally
+            close(w)
+            close(other)
+        end
     end
 
     @testset "Rendered desktop UI" begin
@@ -521,6 +595,22 @@ end
             try
                 @testset "Open UI" begin
                     @test w.state[] == "index"
+                    # Both expanded and collapsed sidebar logos must resolve to loaded images.
+                    @test timedwait(() -> Bonito.evaljs_value(session, js"""
+                        ['.koma-logo-full', '.koma-logo-spin'].every(selector => {
+                            const image = document.querySelector(selector);
+                            return image !== null && image.complete && image.naturalWidth > 0;
+                        })
+                    """), 30) == :ok
+                end
+
+                @testset "Julia actions" begin
+                    # Julia actions select the same views as the menu, without a DOM click.
+                    click!(w, :view_hardware_limits)
+                    @test w.state[] == "scanneparams"
+                    click!(w, :home)
+                    @test w.state[] == "index"
+                    @test_throws KeyError click!(w, :unknown_action)
                 end
 
                 @testset "Sequence views" begin
@@ -536,17 +626,21 @@ end
                     @test timedwait(() -> w.state[] == "kspace", 30) == :ok
                     @test timedwait(() -> plot_rendered("kspace"), 30) == :ok
 
-                    click_button("button_pulses_M0")
-                    @test timedwait(() -> w.state[] == "m0", 30) == :ok
-                    @test timedwait(() -> plot_rendered("m0"), 30) == :ok
-
-                    click_button("button_pulses_M1")
-                    @test timedwait(() -> w.state[] == "m1", 30) == :ok
-                    @test timedwait(() -> plot_rendered("m1"), 30) == :ok
-
-                    click_button("button_pulses_M2")
-                    @test timedwait(() -> w.state[] == "m2", 30) == :ok
-                    @test timedwait(() -> plot_rendered("m2"), 30) == :ok
+                    # Moments and slew rate share one time slider with the sequence panel above.
+                    for (button, state) in (("M0", "m0"), ("M1", "m1"),
+                        ("M2", "m2"), ("slew_rate", "slew_rate"))
+                        click_button("button_pulses_$button")
+                        @test timedwait(() -> w.state[] == state, 30) == :ok
+                        @test timedwait(() -> Bonito.evaljs_value(session, js"""
+                            (() => {
+                                const panels = document.querySelectorAll('#content .koma-time-plot');
+                                return panels.length === 2 &&
+                                    panels[0].querySelector('.legend') !== null &&
+                                    document.querySelectorAll('#content .rangeslider-container').length === 1;
+                            })()
+                        """), 30) == :ok
+                        @test range_slider_visible()
+                    end
                 end
 
                 @testset "Phantom and parameters" begin
@@ -568,10 +662,14 @@ end
                 end
 
                 @testset "Simulation and raw signal" begin
+                    # Simulation must use replacement options, not the launch-time dictionary.
+                    w.sim_params[] = Dict("gpu" => false, "precision" => "f64")
+                    @test w.state[] == "simparams"
                     click_button("simulate!")
                     @test timedwait(() -> w.state[] == "sig", 180) == :ok
                     @test timedwait(() -> plot_rendered("sig"), 30) == :ok
-                    @test !isempty(raw_ui[].profiles)
+                    @test !isempty(w.raw[].profiles)
+                    @test w.raw[].params["userParameters"]["precision"] == "f64"
 
                     click_button("button_scanner_params")
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
@@ -582,20 +680,30 @@ end
                     @test range_slider_visible()
 
                     # Reload restores the saved simulation samples and reopens the raw-data plot.
-                    simulated_samples = copy(first(raw_ui[].profiles).data)
-                    fill!(first(raw_ui[].profiles).data, 0)
+                    simulated_samples = copy(first(w.raw[].profiles).data)
+                    fill!(first(w.raw[].profiles).data, 0)
                     click_button("button_scanner_params")
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
                     click_button("button_reload_raw")
-                    @test timedwait(() -> first(raw_ui[].profiles).data == simulated_samples, 30) == :ok
+                    @test timedwait(() -> first(w.raw[].profiles).data == simulated_samples, 30) == :ok
                     @test timedwait(() -> plot_rendered("sig"), 30) == :ok
                 end
 
                 @testset "Reconstruction and image views" begin
+                    # Zero iterations retains the zero initial image, proving replacement options are used.
+                    w.rec_params[] = Dict(:reco => "standard", :iterations => 0)
+                    @test w.state[] == "recparams"
+                    click_button("recon!")
+                    @test timedwait(() -> w.state[] == "absi", 180) == :ok
+                    @test all(iszero, first(w.img[].images).image)
+
+                    # Switching back to direct reconstruction restores an image from the nonzero signal.
+                    w.rec_params[] = Dict(:reco => "direct")
                     click_button("recon!")
                     @test timedwait(() -> w.state[] == "absi", 180) == :ok
                     @test timedwait(() -> plot_rendered("absi"), 30) == :ok
-                    @test !isempty(img_ui[])
+                    @test !isempty(w.img[])
+                    @test any(!iszero, first(w.img[].images).image)
 
                     # Components switch within the existing chart, without a separate UI page.
                     for (component, index) in (("Phase", 1), ("Magnitude", 0))
@@ -634,49 +742,49 @@ end
                 end
 
                 @testset "Observable updates" begin
-                    seq_ui[] = PulseDesigner.EPI_example(; sys=sys_ui[])
+                    w.seq[] = PulseDesigner.EPI_example(; sys=w.sys[])
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
                     @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
 
-                    seq_ui[] = triggered
+                    w.seq[] = triggered
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
                     @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
-                    @test physio_ui[].period == 1.0
+                    @test w.physio[].period == 1.0
                     @test Bonito.evaljs_value(
                         session,
                         js"document.querySelector('#content .rangeslider-container') === null",
                     )
 
-                    physio_ui[] = CardiacSignal(; heart_rate=1.25)
-                    @test physio_ui[].period == 0.8
+                    w.physio[] = CardiacSignal(; heart_rate=1.25)
+                    @test w.physio[].period == 0.8
 
-                    seq_ui[] = PulseDesigner.EPI_example(; sys=sys_ui[])
-                    @test physio_ui[] == NoPhysioSignal()
+                    w.seq[] = PulseDesigner.EPI_example(; sys=w.sys[])
+                    @test w.physio[] == NoPhysioSignal()
 
-                    obj_ui[] = KomaMRI.setup_phantom()
+                    w.obj[] = KomaMRI.setup_phantom()
                     @test timedwait(() -> w.state[] == "phantom", 30) == :ok
                     @test timedwait(() -> plot_rendered("phantom"), 30) == :ok
 
-                    sys_ui[] = Scanner()
+                    w.sys[] = Scanner()
                     @test timedwait(() -> w.state[] == "coils", 30) == :ok
 
                     # Scanner edits open the changed component, including notified nested limits.
-                    sys_ui[].limits.B0 = 3.0
-                    notify(sys_ui)
+                    w.sys[].limits.B0 = 3.0
+                    notify(w.sys)
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
-                    sys = sys_ui[]
-                    sys_ui[] = Scanner(; limits=sys.limits, gradient=sys.gradient,
+                    sys = w.sys[]
+                    w.sys[] = Scanner(; limits=sys.limits, gradient=sys.gradient,
                         transmitter=sys.transmitter, receiver=BirdcageCoilSens())
                     @test timedwait(() -> plot_rendered("coils"), 30) == :ok
 
-                    raw_ui[] = RawAcquisitionData(
+                    w.raw[] = RawAcquisitionData(
                         ISMRMRDFile(joinpath(@__DIR__, "test_files", "Koma_signal.mrd"))
                     )
                     @test timedwait(() -> w.state[] == "sig", 30) == :ok
                     @test timedwait(() -> plot_rendered("sig"), 30) == :ok
 
                     # Slice changes reuse the graph; leaving the page releases its retained plot state.
-                    img_ui[] = cat(zeros(ComplexF32, 2, 2), ones(ComplexF32, 2, 2); dims=3)
+                    w.img[] = cat(zeros(ComplexF32, 2, 2), ones(ComplexF32, 2, 2); dims=3)
                     @test timedwait(() -> w.state[] == "absi", 30) == :ok
                     @test timedwait(() -> plot_rendered("absi"), 30) == :ok
                     try
@@ -707,9 +815,17 @@ end
                     sequence_file = joinpath(
                         files, "pulseq", "basic_tests", "v1.4", "label_test.seq"
                     )
-                    seq_ui[] = KomaMRI.callback_filepicker(sequence_file, w, seq_ui[])
-                    @test any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
+                    load_file!(w, :sequence, sequence_file)
+                    @test any(ext -> ext isa LabelInc, Iterators.flatten(w.seq[].EXT))
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
+                    # Loaded filenames stay discoverable when the sidebar labels are collapsed.
+                    @test Bonito.evaljs_value(session,
+                        js"document.getElementById('seq-dropdown').title === 'Sequence: label_test.seq'")
+
+                    # A failed load must preserve both the input and its reload target.
+                    loaded_sequence = w.seq[]
+                    @test_throws SystemError load_file!(w, :sequence, joinpath(files, "missing.seq"))
+                    @test w.seq[] === loaded_sequence && w.files[:sequence] == abspath(sequence_file)
 
                     # Reload must reread the selected path and display the changed sequence.
                     reload_source = joinpath(mktempdir(), "reload.seq")
@@ -719,7 +835,7 @@ end
                         "path" => reload_source,
                         "data" => read(sequence_file),
                     ))
-                    getfield(w.handlers["reload_seq"], :seq_file)[] = selected_file
+                    load_file!(w, :sequence, selected_file)
                     click_button("button_phantom")
                     @test timedwait(() -> w.state[] == "phantom", 30) == :ok
                     cp(
@@ -727,41 +843,54 @@ end
                         reload_source;
                         force=true,
                     )
-                    previous_sequence = seq_ui[]
+                    previous_sequence = w.seq[]
                     click_button("button_reload_seq")
-                    @test timedwait(() -> seq_ui[] !== previous_sequence, 30) == :ok
-                    @test !any(ext -> ext isa LabelInc, Iterators.flatten(seq_ui[].EXT))
+                    @test timedwait(() -> w.seq[] !== previous_sequence, 30) == :ok
+                    @test !any(ext -> ext isa LabelInc, Iterators.flatten(w.seq[].EXT))
                     @test timedwait(() -> w.state[] == "sequence", 30) == :ok
                     @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
 
+                    @test Bonito.evaljs_value(session,
+                        js"document.getElementById('seq-dropdown').title === 'Sequence: reload.seq'")
                     phantom_file = joinpath(files, "phantom", "column1d.h5")
-                    previous_phantom = obj_ui[]
-                    obj_ui[] = KomaMRI.callback_filepicker(phantom_file, w, obj_ui[])
-                    @test obj_ui[].name == "column1d.h5"
+                    previous_phantom = w.obj[]
+                    load_file!(w, :phantom, phantom_file)
+                    @test w.obj[].name == "column1d.h5"
                     @test timedwait(() -> w.state[] == "phantom", 30) == :ok
 
-                    getfield(w.handlers["reload_phantom"], :phantom_file)[] = phantom_file
-                    obj_ui[] = previous_phantom
+                    w.obj[] = previous_phantom
                     click_button("button_reload_phantom")
-                    @test timedwait(() -> obj_ui[].name == "column1d.h5", 30) == :ok
+                    @test timedwait(() -> w.obj[].name == "column1d.h5", 30) == :ok
                     @test timedwait(() -> w.state[] == "phantom", 30) == :ok
                     @test timedwait(() -> plot_rendered("phantom"), 30) == :ok
 
+                    # Scanner loading updates the receive view; reloading rereads changed limits and channels.
+                    scanner_file = joinpath(mktempdir(), "scanner.sys")
+                    write_scanner(Scanner(receiver=BirdcageCoilSens(ncoils=4)), scanner_file)
+                    load_file!(w, :scanner, scanner_file)
+                    @test get_n_coils(w.sys[].receiver) == 4
+                    @test timedwait(() -> plot_rendered("coils"), 30) == :ok
+                    write_scanner(Scanner(limits=HardwareLimits(B0=3.0)), scanner_file)
+                    click_button("button_reload_scanner")
+                    @test timedwait(() -> w.sys[].limits.B0 == 3.0 && get_n_coils(w.sys[].receiver) == 1, 30) == :ok
+                    @test timedwait(() -> plot_rendered("coils"), 30) == :ok
+
                     raw_file = joinpath(@__DIR__, "test_files", "Koma_signal.mrd")
-                    raw_ui[] = KomaMRI.callback_filepicker(raw_file, w, raw_ui[])
-                    @test !isempty(raw_ui[].profiles)
+                    load_file!(w, :raw_data, raw_file)
+                    @test !isempty(w.raw[].profiles)
                     @test timedwait(() -> w.state[] == "sig", 30) == :ok
 
                     # Reload reads changed samples from disk, not the previously loaded object.
                     reload_raw = joinpath(mktempdir(), "reload.mrd")
-                    getfield(w.handlers["reload_raw"], :raw_file)[] = reload_raw
-                    changed_raw = deepcopy(raw_ui[])
+                    cp(raw_file, reload_raw)
+                    load_file!(w, :raw_data, reload_raw)
+                    changed_raw = deepcopy(w.raw[])
                     first(changed_raw.profiles).data .*= 2
                     save(ISMRMRDFile(reload_raw), changed_raw)
                     click_button("button_scanner_params")
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
                     click_button("button_reload_raw")
-                    @test timedwait(() -> first(raw_ui[].profiles).data == first(changed_raw.profiles).data, 30) == :ok
+                    @test timedwait(() -> first(w.raw[].profiles).data == first(changed_raw.profiles).data, 30) == :ok
                     @test timedwait(() -> plot_rendered("sig"), 30) == :ok
                 end
 

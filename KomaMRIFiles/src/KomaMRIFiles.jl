@@ -35,9 +35,11 @@ include("Sequence/Pulseq.jl")
 include("Phantom/JEMRIS.jl")
 include("Phantom/MRiLab.jl")
 include("Phantom/Phantom.jl")
+include("Scanner/Scanner.jl")
 
 export PulseqSequenceData, read_seq, read_seq_data, write_seq, write_seq_data    # Pulseq
 export read_phantom_jemris, read_phantom_MRiLab, read_phantom, write_phantom     # Phantom
+export read_scanner, write_scanner                                           # Scanner
 
 # Precompilation workloads for reduced first-use latency
 include("precompile.jl")

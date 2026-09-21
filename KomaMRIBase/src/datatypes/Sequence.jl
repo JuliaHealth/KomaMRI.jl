@@ -741,7 +741,8 @@ get_flip_angles(x::Sequence) = get_flip_angle.(x.RF)[:]
 """
     rf_idx, rf_type = get_RF_types(seq, t)
 
-Get RF centers and types. Useful for k-space calculations.
+Get RF centers and types. Useful for k-space calculations. Centers map to the nearest
+time sample, with ties resolved by the first sample in `t`.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -753,13 +754,19 @@ Get RF centers and types. Useful for k-space calculations.
 """
 function get_RF_types(seq, t)
     T0 = get_block_start_times(seq)
+    order = issorted(t) ? eachindex(t) : sortperm(t)
+    sorted_t = view(t, order)
     rf_idx   = Int[]
     rf_types = RFUse[]
     for i in eachindex(seq.DUR)
         rf = seq.RF[1, i]
         if is_RF_on(rf)
             trf = T0[i] + rf.delay + rf.center
-            push!(rf_idx, argmin(abs.(trf .- t))...)
+            right = clamp(searchsortedfirst(sorted_t, trf), firstindex(t), lastindex(t))
+            left = searchsortedfirst(sorted_t, sorted_t[max(firstindex(t), right - 1)])
+            a, b = order[left], order[right]
+            nearest = (abs(trf - t[a]), a) <= (abs(trf - t[b]), b) ? a : b
+            push!(rf_idx, nearest)
             push!(rf_types, rf.use)
         end
     end
@@ -770,6 +777,8 @@ end
     Mk, Mk_adc = get_Mk(seq::Sequence, k; sampling_rule=MaxStepSizeRule(1, 5e-5))
 
 Computes the ``k``th-order moment of the Sequence `seq` given by the formula ``\int_0^T t^k G(t) dt``.
+RF centers are always included in the integration grid, even if `sampling_rule` omits
+`:rf_center`, so excitation and refocusing occur at their defined times.
 
 # Arguments
 - `seq`: (`::Sequence`) Sequence struct
@@ -783,7 +792,7 @@ Computes the ``k``th-order moment of the Sequence `seq` given by the formula ``\
 - `Mk_adc`: (`3-column ::Matrix{Real}`) ``k``th-order moment sampled at ADC times
 """
 function get_Mk(seq::Sequence, k; sampling_rule=MaxStepSizeRule(1, 5e-5))
-    seqd = discretize(seq; sampling_rule)
+    seqd = discretize(seq; sampling_rule=MomentSamplingRule(sampling_rule))
     rf_idx, rf_types = get_RF_types(seq, seqd.t[1:end-1])
     return get_Mk(seqd, k; rf_idx, rf_types)
 end

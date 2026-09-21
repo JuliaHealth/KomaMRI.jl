@@ -1,5 +1,8 @@
 const PLOTLY_ASSET = Asset(joinpath(artifact"plotly-artifacts", "plotly.min.js"); name="Plotly")
 
+plot_node(plot::Union{KomaMRIPlots.TimePlot,KomaMRIPlots.SpatialPlot}) =
+    DOM.div(plot; style="width:100%;height:100%;padding:8px;box-sizing:border-box;")
+
 plot_node(plot::PlotlyBase.Plot; fit_colorbar=false) =
     plot_node(Observable(plot); fit_colorbar)
 
