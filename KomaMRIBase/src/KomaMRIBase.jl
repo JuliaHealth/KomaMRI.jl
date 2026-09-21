@@ -15,7 +15,7 @@ using MRIBase
 using MAT   # For loading example phantoms
 
 const global γ = 42.5774688e6 # Hz/T gyromagnetic constant for H1, JEMRIS uses 42.5756 MHz/T
-const MIN_RISE_TIME = 1e-14
+const MIN_RISE_TIME = 1e-10
 
 """
     to_SI(x)

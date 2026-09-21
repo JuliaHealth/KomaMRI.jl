@@ -526,6 +526,12 @@ end
 end
 
 @testitem "simulation precision" tags=[:core, :nomotion] begin
+    # Changing numeric precision must preserve spin identities beyond Float32's exact integers.
+    first_spin = Int(maxintfloat(Float32)) + 1
+    selected = first_spin:2:first_spin+4
+    motion = translate(1.0, 0.0, 0.0, TimeRange(0.0, 1.0), SpinRange(selected))
+    @test f32(motion).spins.range == selected
+
     seq = Sequence()
     @addblock seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
     obj = Phantom(
