@@ -1,14 +1,4 @@
-# We defined two types of Interpolation objects: Interpolator1D and Interpolator2D
-# 1D is for interpolating for 1 spin
-# 2D is for interpolating for 2 or more spins
-# This dispatch based on the number of spins wouldn't be necessary if it weren't for this:
-# https://github.com/JuliaMath/Interpolations.jl/issues/603
-# 
-# Once this issue is solved, this file should be simpler. 
-# We should then be able to define a single method for functions:
-#   - interpolate
-#   - resample
-# and delete the Interpolator1D and Interpolator2D definitions
+# Keep the interpolate/resample interface used by older KomaMRICore versions.
 
 const Interpolator1D = Interpolations.GriddedInterpolation{
     TCoefs,1,V,Itp,K
@@ -26,7 +16,7 @@ const Interpolator2D = Interpolations.GriddedInterpolation{
     TCoefs<:Real,
     TNodes<:Real,
     V<:AbstractArray{TCoefs},
-    Itp<:Interpolations.Gridded,
+    Itp<:Tuple{Interpolations.NoInterp, Interpolations.Gridded},
     K<:Tuple{AbstractVector{TNodes}, AbstractVector{TNodes}},
 }
 function GriddedInterpolation(nodes, A, ITP)
@@ -43,7 +33,7 @@ function interpolate(d, ITPType, Ns::Val, t)
     Ns, Nt = size(d)
     id_knots = _similar(t, Ns); copyto!(id_knots, collect(range(oneunit(eltype(t)), eltype(t)(Ns), Ns)))
     t_knots  = _similar(t, Nt); copyto!(t_knots,  collect(range(zero(eltype(t)), oneunit(eltype(t)), Nt)))
-    return GriddedInterpolation((id_knots, t_knots), d, ITPType)
+    return GriddedInterpolation((id_knots, t_knots), d, (Interpolations.NoInterp(), ITPType))
 end
 
 function resample(itp::Interpolator1D, t)
@@ -51,10 +41,47 @@ function resample(itp::Interpolator1D, t)
 end
 
 function resample(itp::Interpolator2D, t)
-    Ns = size(itp.coefs, 1)
-    id = _similar(t, Ns)
-    copyto!(id, collect(range(oneunit(eltype(t)), eltype(t)(Ns), Ns)))
-    return itp.(id, t)
+    return itp.(itp.knots[1], t)
+end
+
+trajectory_knots(Nt, ::Type{T}) where {T<:Real} = range(zero(T), oneunit(T); length=Nt)
+
+function trajectory_knots(Nt, t::AbstractArray)
+    knots = similar(t, Nt)
+    copyto!(knots, collect(trajectory_knots(Nt, eltype(t))))
+    return knots
+end
+
+@inline function trajectory_point(knots, t)
+    k = clamp(searchsortedfirst(knots, t) - 1, 1, length(knots) - 1)
+    @inbounds w = (t - knots[k]) / (knots[k + 1] - knots[k])
+    return k, w
+end
+
+@inline function trajectory_sample(d, spin, (k, w))
+    @inbounds return (oneunit(w) - w) * d[spin, k] + w * d[spin, k + 1]
+end
+
+function resample_linear!(out, d, t::Real)
+    point = trajectory_point(trajectory_knots(size(d, 2), typeof(t)), t)
+    out .= trajectory_sample.(Ref(d), axes(d, 1), Ref(point))
+    return nothing
+end
+
+function resample_linear!(out, d, t::AbstractArray)
+    knots = trajectory_knots(size(d, 2), t)
+    points = reshape(trajectory_point.(Ref(knots), t), 1, :)
+    out .= trajectory_sample.(Ref(d), axes(d, 1), points)
+    return nothing
+end
+
+@inline trajectory_next_column(knots, t) = min(max(searchsortedfirst(knots, t) - 1, 1) + 1, length(knots))
+
+next_columns(d, t::Real) = @view d[:, trajectory_next_column(trajectory_knots(size(d, 2), typeof(t)), t)]
+
+function next_columns(d, t::AbstractArray)
+    knots = trajectory_knots(size(d, 2), t)
+    return view(d, :, vec(trajectory_next_column.(Ref(knots), t)))
 end
 
 function interpolate_times(t, t_unit, periodic, tq)
