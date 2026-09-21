@@ -10,13 +10,23 @@ function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")
     RF_AM = hcat(samples.rf.t, samples.rf.A)
     RF_FM = hcat(samples.Δf.t, samples.Δf.A)
     ADCS = hcat(samples.adc.t, samples.adc.A)
-    seq_dict = Dict(
+    seq_dict = Dict{String,Any}(
         "Gx" => Gx,
         "Gy" => Gy,
         "Gz" => Gz,
         "RF_AM" => RF_AM,
         "RF_FM" => RF_FM,
         "ADCS" => ADCS
+    )
+    (; labels, adc_blocks) = adc_label_context(seq)
+    seq_dict["definitions"] = _mat_value(seq.DEF)
+    seq_dict["adc"] = Dict(
+        "block" => adc_blocks,
+        "num_samples" => [seq.ADC[b].N for b in adc_blocks],
+        "labels" => Dict(
+            string(name) => [getproperty(labels[b], name) for b in adc_blocks]
+            for name in fieldnames(KomaMRIBase.AdcLabels)
+        ),
     )
 
     # Write to matlab file
@@ -48,57 +58,58 @@ function export_2_mat_phantom(phantom, matfolder; matfilename="phantom.mat")
 end
 
 function export_2_mat_scanner(sys, matfolder; matfilename="scanner.mat")
-    sys_dict = Dict("B0" => sys.limits.B0,
-                "B1" => sys.limits.B1,
-                "Gmax" => sys.limits.Gmax,
-                "Smax" => sys.limits.Smax,
-                "ADC_dt" => sys.limits.ADC_Δt,
-                "DUR_dt" => sys.limits.DUR_Δt,
-                "GR_dt" => sys.limits.GR_Δt,
-                "RF_dt" => sys.limits.RF_Δt,
-                "RF_ring_down_time" => sys.limits.RF_ring_down_time,
-                "RF_dead_time" => sys.limits.RF_dead_time,
-                "ADC_dead_time" => sys.limits.ADC_dead_time)
+    sys_dict = Dict(string(name) => begin
+        component = getproperty(sys, name)
+        fields = Dict(string(field) => getproperty(component, field)
+            for field in fieldnames(typeof(component)))
+        merge(Dict("type" => string(nameof(typeof(component)))), _mat_value(fields))
+    end for name in fieldnames(Scanner))
     matwrite(joinpath(matfolder, matfilename), Dict("scanner" => sys_dict))
 end
 
-function export_2_mat_raw(raw_ismrmrd, matfolder; matfilename="raw.mat");
-    if haskey(raw_ismrmrd.params, "userParameters")
-        dict_for_mat = Dict()
-        dict_user_params = raw_ismrmrd.params["userParameters"]
-        for (key, value) in dict_user_params
-            ascii_key = replace(key, "Δ" => "d") # MATLAB does not support non-ascii characters in variable names
-            dict_for_mat[ascii_key] = value
-        end
-        matwrite(joinpath(matfolder, "sim_params.mat"), dict_for_mat)
+_mat_value(value) = value
+_mat_value(value::AbstractString) = String(value)
+_mat_value(value::Symbol) = string(value)
+_mat_value(value::VersionNumber) = string(value)
+_mat_value(value::Tuple) = [_mat_value(item) for item in value]
+_mat_value(value::NamedTuple) = Dict(string(key) => _mat_value(item) for (key, item) in pairs(value))
+_mat_value(value::AbstractDict) = Dict(
+    replace(string(key), "Δ" => "d") => _mat_value(item) for (key, item) in value
+)
+_mat_value(value::AbstractArray{<:Number}) = value
+_mat_value(value::AbstractArray) = reshape(Any[_mat_value(item) for item in value], size(value))
+_mat_value(value::Union{AcquisitionHeader,EncodingCounters,Limit,MeasurementDependency,CoilDescription}) =
+    Dict(string(name) => _mat_value(getfield(value, name)) for name in fieldnames(typeof(value)))
 
-        not_Koma = raw_ismrmrd.params["systemVendor"] != "KomaMRI.jl"
-        t = Float64[]
-        signal = ComplexF64[]
-        current_t0 = 0
-        for p in raw_ismrmrd.profiles
-        	dt = p.head.sample_time_us != 0 ? p.head.sample_time_us * 1e-3 : 1
-        	t0 = p.head.acquisition_time_stamp * 1e-3 #This parameter is used in Koma to store the time offset
-            N =  p.head.number_of_samples != 0 ? p.head.number_of_samples : 1
-            if not_Koma
-        		t0 = current_t0 * dt
-                current_t0 += N
-            end
-            if N != 1
-                append!(t, t0.+(0:dt:dt*(N-1)))
-            else
-                append!(t, t0)
-            end
-            append!(signal, p.data[:,1]) #Just one coil
-            #To generate gap
-            append!(t, t[end])
-            append!(signal, [Inf + Inf*1im])
-        end
-        raw_dict = hcat(t, signal)
-        matwrite(joinpath(matfolder, matfilename), Dict("raw" => raw_dict))
+function export_2_mat_raw(raw_ismrmrd, matfolder; matfilename="raw.mat")
+    params = _mat_value(raw_ismrmrd.params)
+    profiles = Any[
+        Dict(
+            "head" => _mat_value(profile.head),
+            "traj" => profile.traj,
+            "data" => profile.data,
+            "role" => string(_acquisition_role(profile.head.flags)),
+        ) for profile in raw_ismrmrd.profiles
+    ]
+    matwrite(joinpath(matfolder, matfilename), Dict("raw" => Dict("params" => params, "profiles" => profiles)))
+    if haskey(params, "userParameters")
+        matwrite(joinpath(matfolder, "sim_params.mat"), params["userParameters"])
     end
-
 end
+
+function _image_export(reconstruction::ReconstructionResult)
+    images = Any[
+        Dict(
+            "data" => parent(entry.image),
+            "size" => collect(size(entry.image)),
+            "labels" => _mat_value(entry.labels),
+            "source" => _mat_value(entry.source),
+        ) for entry in reconstruction.images
+    ]
+    return Dict("reconstruction" => Dict("policy" => _mat_value(reconstruction.policy), "images" => images))
+end
+
+_image_export(image) = Dict("image" => image)
 
 function export_2_mat_image(image, rec_params, matfolder; matfilename="image.mat")
     if haskey(rec_params, :reconSize)
@@ -108,7 +119,7 @@ function export_2_mat_image(image, rec_params, matfolder; matfilename="image.mat
         matwrite(joinpath(matfolder, "rec_params.mat"), Dict("rec_params" => dict_rec_params))
     end
 
-    matwrite(joinpath(matfolder, matfilename), Dict("image" => image))
+    matwrite(joinpath(matfolder, matfilename), _image_export(image))
 end
 
 function export_2_mat(seq, phantom, sys, raw_ismrmrd, rec_params, image, matfolder; type="all", matfilename="data.mat")
@@ -134,8 +145,9 @@ function export_2_mat(seq, phantom, sys, raw_ismrmrd, rec_params, image, matfold
 		files = [head*"_scanner.mat"]
 		export_2_mat_scanner(sys, matfolder; matfilename=only(files))
     elseif type=="raw"
-		files = haskey(raw_ismrmrd.params, "userParameters") ? [head*"_raw.mat", "sim_params.mat"] : String[]
-		isempty(files) || export_2_mat_raw(raw_ismrmrd, matfolder; matfilename=first(files))
+		files = [head*"_raw.mat"]
+		haskey(raw_ismrmrd.params, "userParameters") && push!(files, "sim_params.mat")
+		export_2_mat_raw(raw_ismrmrd, matfolder; matfilename=first(files))
     elseif type=="image"
 		files = [head*"_image.mat"]
 		haskey(rec_params, :reconSize) && push!(files, "rec_params.mat")

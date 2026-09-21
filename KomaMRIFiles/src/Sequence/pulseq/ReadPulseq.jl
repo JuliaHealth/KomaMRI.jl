@@ -783,16 +783,29 @@ function sequence_from_pulseq_data(data::PulseqSequenceData; filename=nothing)
 
     # Final details
     seq.DEF = KomaMRIBase._sequence_def_from_pulseq(definitions_dict(data.libraries.definitions))
-    # Koma specific details for reconstrucion
+    # File metadata
     if !isnothing(filename)
         seq.DEF["FileName"] = basename(filename)
         seq.DEF["PulseqVersion"] = data.pulseq_version
         seq.DEF["signature"] = data.signature
     end
-    # Guessing recon dimensions
-    seq.DEF["Nx"] = trunc(Int64, get(seq.DEF, "Nx", maximum(adc.N for adc = seq.ADC)))
-    seq.DEF["Nz"] = trunc(Int64, get(seq.DEF, "Nz", length(unique(seq.RF.Δf))))
-    seq.DEF["Ny"] = trunc(Int64, get(seq.DEF, "Ny", count(is_ADC_on, seq.ADC) ÷ seq.DEF["Nz"]))
+
+    # Koma-specific reconstruction dimensions
+    (; labels, encoding_blocks, encoding_label_names) =
+        KomaMRIBase.adc_label_context(seq)
+    max_label = isempty(encoding_blocks) ? KomaMRIBase.AdcLabels() :
+        maximum(labels[encoding_blocks])
+
+    seq.DEF["Nx"] = trunc(Int64, get(seq.DEF, "Nx") do
+        isempty(encoding_blocks) ? maximum(adc.N for adc in seq.ADC) :
+            maximum(seq.ADC[b].N for b in encoding_blocks)
+    end)
+    seq.DEF["Nz"] = trunc(Int64, get(seq.DEF, "Nz") do
+        :PAR in encoding_label_names ? max_label.PAR + 1 : 1
+    end)
+    seq.DEF["Ny"] = trunc(Int64, get(seq.DEF, "Ny") do
+        :LIN in encoding_label_names ? max_label.LIN + 1 : 1
+    end)
     #Koma sequence
     return seq
 end
@@ -804,6 +817,12 @@ KomaMRIBase.Sequence(data::PulseqSequenceData; filename=nothing) =
     seq = read_seq(filename)
 
 Returns the Sequence struct from a Pulseq file with `.seq` extension.
+
+Reconstruction uses explicit `Nx`, `Ny`, and `Nz` definitions. When absent, `Nx`
+defaults to the largest imaging ADC sample count, and `Ny`/`Nz` to the largest
+`LIN`/`PAR` label plus one (or one without those labels). Partial Fourier and
+oversampled acquisitions should declare their full matrix. Slices come only from
+`SLC` labels, never from RF frequency offsets or the number of ADC events.
 
 # Arguments
 - `filename`: (`::String`) absolute or relative path of the sequence file `.seq`

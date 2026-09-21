@@ -56,6 +56,7 @@ function block_event_times(block_duration, rf::RF, gradients, waveforms, rule)
     end
     return merge_sampling_times(
         rf_event_times(rule, waveforms),
+        preserve_sample(rule, :rf_center) ? (rf_center_time(rf),) : (),
         event_boundary_sampling_times(waveforms.Δf.t),
         gradient_event_times(rule, waveforms.gx.t),
         gradient_event_times(rule, waveforms.gy.t),

@@ -38,10 +38,19 @@ struct KomaWindow
     events::Observable{String}
     home::Base.RefValue{Any}
     handlers::Dict{String,Function}
+    files::Dict{Symbol,String}
     on_render::Vector{Function}
     listeners::Vector{ObserverFunction}
     window_options::Dict{String,Any}
     dev_tools::Bool
+    sys::Observable{Scanner}
+    seq::Observable{Sequence}
+    obj::Observable{Phantom}
+    physio::Observable{AbstractPhysioSignal}
+    raw::Observable{RawAcquisitionData}
+    img::Observable{Union{AbstractArray,ReconstructionResult}}
+    sim_params::Observable{Dict{String,Any}}
+    rec_params::Observable{Dict{Symbol,Any}}
 end
 
 function page_content(content, state)
@@ -59,8 +68,9 @@ function set_content!(w::KomaWindow, content, state)
     evaljs(w, js"""(() => {
         const section = {
             sequence: 'pulses', kspace: 'pulses', m0: 'pulses', m1: 'pulses', m2: 'pulses',
-            phantom: 'phantom', scanneparams: 'scanner', sig: 'sig',
-            absi: 'recon', angi: 'recon', absk: 'recon'
+            slew_rate: 'pulses',
+            phantom: 'phantom', coils: 'scanner', scanneparams: 'scanner', sig: 'sig',
+            absi: 'recon', absk: 'recon'
         }[$(state)];
         if ($(state) === 'loading') return;
         document.querySelectorAll('.koma-nav-link[aria-current="page"]')
@@ -76,11 +86,6 @@ function evaljs(w::KomaWindow, code)
     session = w.session[]
     (isnothing(session) || !isopen(session)) && return nothing
     return Bonito.evaljs(session, code)
-end
-
-function handle(callback::Function, w::KomaWindow, event::String)
-    w.handlers[event] = callback
-    return nothing
 end
 
 function show!(w::KomaWindow)
@@ -221,7 +226,9 @@ function dictionary_page(values, title)
     )
 end
 
-function setup_bonito_window(; darkmode=true, frame=true, dev_tools=false, versions="")
+function setup_bonito_window(sys, seq, obj, sim_params, rec_params;
+    darkmode=true, frame=true, dev_tools=false, versions="",
+)
     komamri_src_ui = @__DIR__
     komamri_root = dirname(dirname(komamri_src_ui))
     scripts = joinpath(komamri_src_ui, "scripts")
@@ -253,22 +260,19 @@ function setup_bonito_window(; darkmode=true, frame=true, dev_tools=false, versi
     handlers = Dict{String,Function}()
     render_callbacks = Function[]
     listeners = ObserverFunction[]
-    push!(listeners, on(events) do event
-        callback = get(handlers, event, nothing)
-        isnothing(callback) || callback(event)
-        return nothing
-    end)
 
     app = App(; title="KomaUI") do session
         session_ref[] = session
         font_styles = asset_stylesheet.(Ref(session), font_stylesheets)
         logo = Bonito.url(session, Asset(joinpath(komamri_root, "assets", "logo-dark.svg")))
+        spin_icon = Bonito.url(session, Asset(joinpath(komamri_root, "assets", "app-icon.svg")))
         home_image = Bonito.url(session, Asset(joinpath(komamri_root, "assets", "home-image.svg")))
 
         sidebar = read(joinpath(komamri_src_ui, "html", "sidebar.html"), String)
         sidebar = replace(
             sidebar,
             "LOGO" => string(logo),
+            "SPIN_ICON" => string(spin_icon),
             "title=\"Hooray!\"" => "title=\"$(replace(versions, '\n' => "&#10;"))\"",
         )
         home[] = home_page(home_image)
@@ -297,7 +301,7 @@ function setup_bonito_window(; darkmode=true, frame=true, dev_tools=false, versi
         "width" => 1200,
         "height" => 800,
     )
-    return KomaWindow(
+    w = KomaWindow(
         app,
         display_ref,
         Ref{Union{Nothing,Electron.Window}}(nothing),
@@ -307,11 +311,22 @@ function setup_bonito_window(; darkmode=true, frame=true, dev_tools=false, versi
         events,
         home,
         handlers,
+        Dict{Symbol,String}(),
         render_callbacks,
         listeners,
         window_options,
         dev_tools,
+        Observable{Scanner}(sys),
+        Observable{Sequence}(seq),
+        Observable{Phantom}(obj),
+        Observable{AbstractPhysioSignal}(default_physio_signal(seq)),
+        Observable{RawAcquisitionData}(setup_raw()),
+        Observable{Union{AbstractArray,ReconstructionResult}}([0.0im 0.; 0. 0.]),
+        Observable{Dict{String,Any}}(sim_params),
+        Observable{Dict{Symbol,Any}}(rec_params),
     )
+    push!(listeners, on(event -> click!(w, event), events))
+    return w
 end
 
 function display_loading!(w::KomaWindow, msg::String; details="")
@@ -353,7 +368,7 @@ end
 
 function failure_toast!(w, id, operation, error)
     message = html_escape(sprint(showerror, error))
-    return toast!(w, id, "$operation failed", "<pre class=\"mb-0\">$message</pre>")
+    return toast!(w, id, "$operation failed", "<div class=\"text-break\" style=\"white-space: pre-wrap;\">$message</div>")
 end
 
 function update_filename!(w, id, name)
@@ -363,5 +378,14 @@ function update_filename!(w, id, name)
         label.title = $(name);
         label.textContent = $(name);
         current.replaceChildren(label);
+        const section = current.previousElementSibling;
+        const toggle = section.querySelector('.koma-nav-link');
+        toggle.title = toggle.getAttribute('aria-label') + ': ' + $(name);
+        const picker = section.querySelector('.koma-file-input');
+        if (picker) {
+            const caption = picker.querySelector('.koma-file-name');
+            caption.textContent = $(display_filename(name, MAX_UI_FILENAME_CHARS));
+            caption.title = picker.title = $(name);
+        }
     """)
 end

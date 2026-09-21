@@ -4,8 +4,16 @@ using KomaMRIBase
 using MAT, Interpolations, PlotlyBase
 import PlotlyKaleido
 using QMRIColors
+using Artifacts
+import Bonito
+using Bonito: @js_str
 
 include("ui/DisplayFunctions.jl")
+include("ui/TimePlotSampling.jl")
+include("ui/SequencePlotSource.jl")
+include("ui/TimePlots.jl")
+include("ui/CoilSensitivities.jl")
+include("ui/SpatialPlots.jl")
 
 """Save a Plotly figure, starting Kaleido when needed."""
 function savefig(args...; kwargs...)
@@ -22,6 +30,9 @@ export plot_seq,
     plot_slew_rate,
     plot_kspace,
     plot_phantom_map,
+    plot_phantom,
+    plot_coil_sens,
+    get_coil_sens_fov,
     plot_signal,
     plot_image,
     plot_dict,

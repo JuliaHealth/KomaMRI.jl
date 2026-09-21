@@ -25,8 +25,12 @@ Add input files without output paths to preload the UI before it opens:
 koma -i epi.seq brain.phantom
 ```
 
-Input files can be passed in any order. KomaMRI identifies them by extension: `.seq`, `.phantom` or `.h5`.
-A scanner `.sys` file is also accepted, but it does nothing for now.
+Input files can be passed in any order. KomaMRI identifies them by extension: `.seq`, `.phantom` or `.h5`, and `.sys` for scanners.
+Create scanner files with `write_scanner(sys, "scanner.sys")`; they include hardware limits and gradient, receive, and transmit models:
+
+```bash
+koma -i epi.seq brain.phantom scanner.sys
+```
 
 ## Running Simulation
 
@@ -36,6 +40,7 @@ koma -i epi.seq brain.phantom -o raw.mrd
 ```
 
 Simulation output can be `.mrd` or `.mat`, selected from the output filename extension.
+Raw-data and reconstruction `.mat` files use the [MATLAB export schema](../reference/4-koma-files.md#MATLAB-exports).
 
 ## Reconstructing Image using MRIReco
 

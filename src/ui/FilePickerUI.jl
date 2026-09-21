@@ -25,7 +25,7 @@ function callback_filepicker(filename::String, w::KomaWindow, seq::Sequence)
     end
     name = basename(filename)
     update_filename!(w, "seqname", name)
-    loaded_data_toast(w, name, "pulses_seq", "simulate", "Sequence")
+    loaded_data_toast(w, name, "view_sequence", "simulate", "Sequence")
     return seq
 end
 
@@ -38,7 +38,7 @@ function callback_filepicker(filename::String, w::KomaWindow, obj::Phantom)
     end
     name = basename(filename)
     update_filename!(w, "phaname", name)
-    loaded_data_toast(w, name, "phantom", "simulate", "Phantom")
+    loaded_data_toast(w, name, "view_phantom", "simulate", "Phantom")
     return obj
 end
 
@@ -49,35 +49,49 @@ function callback_filepicker(filename::String, w::KomaWindow, raw::RawAcquisitio
     end
     name = basename(filename)
     update_filename!(w, "rawname", name)
-    loaded_data_toast(w, name, "sig", "recon", "Raw data")
+    loaded_data_toast(w, name, "view_raw_data", "reconstruct", "Raw data")
     return raw
 end
 
-function setup_filepickers!(w::KomaWindow; seq_file=Ref(""), phantom_file=Ref(""))
+function callback_filepicker(filename::String, w::KomaWindow, sys::Scanner)
+    sys = read_scanner(filename)
+    name = basename(filename)
+    update_filename!(w, "scaname", name)
+    loaded_data_toast(w, name, "view_coil_sensitivities", "simulate", "Scanner")
+    return sys
+end
+
+function setup_filepickers!(w::KomaWindow)
     setup_filepicker!(
         w,
         "#seqfilepicker",
         "#seqname",
         ".seq (Pulseq)",
-        seq_ui;
+        :sequence;
         accept=".seq,.seqk",
-        selected_file=seq_file,
     )
     setup_filepicker!(
         w,
         "#phafilepicker",
         "#phaname",
         ".phantom (Koma)/.h5 (JEMRIS)",
-        obj_ui;
+        :phantom;
         accept=".phantom,.h5",
-        selected_file=phantom_file,
+    )
+    setup_filepicker!(
+        w,
+        "#scafilepicker",
+        "#scaname",
+        ".sys (Koma)",
+        :scanner;
+        accept=".sys",
     )
     setup_filepicker!(
         w,
         "#sigfilepicker",
         "#rawname",
         ".h5/.mrd (ISMRMRD)",
-        raw_ui;
+        :raw_data;
         accept=".h5,.mrd",
     )
     return nothing
@@ -104,16 +118,14 @@ function setup_filepicker!(
     selector::String,
     current::String,
     label::String,
-    output;
+    target;
     accept,
-    selected_file=nothing,
 )
     upload = Observable{Any}(nothing)
     push!(w.listeners, on(upload) do file
         isnothing(file) && return nothing
-        name, filename = filepicker_selection(file)
-        isnothing(selected_file) || (selected_file[] = filename)
-        output[] = callback_filepicker(filename, w, output[])
+        _, filename = filepicker_selection(file)
+        load_file!(w, target, filename)
         return nothing
     end)
     push!(w.on_render, session -> Bonito.on_document_load(session, js"""
@@ -141,7 +153,11 @@ function setup_filepicker!(
                     caption.title = name;
                     button.title = name;
                 };
-                setCaption(document.querySelector($(current))?.innerText.trim() || $(label));
+                const filename = document.querySelector($(current));
+                const name = filename.textContent.trim() || $(label);
+                setCaption(name);
+                const toggle = filename.previousElementSibling.querySelector('.koma-nav-link');
+                toggle.title = toggle.getAttribute('aria-label') + ': ' + name;
                 button.append(icon, caption, input);
                 host.replaceChildren(button);
                 input.addEventListener('change', async event => {

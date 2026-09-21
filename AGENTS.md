@@ -49,6 +49,10 @@
 - Never write raw `seq += ...` in examples or generated code; use `@addblock`.
 - Never call `build_*` only to extract events or duration and then rebuild the same block. Use `make_*` for custom blocks, copy a built block when preserving its block semantics, or append the built sequence/block directly.
 
+## KomaUI
+
+- For programmatic UI control, prefer `click!`, `load_file!`, and window observables. Read the [usage examples](docs/src/how-to/1-1-use-koma-ui.md#Controlling-the-UI-from-Julia-(easier-for-AI-agents)) and [API/action list](docs/src/reference/6-koma-mri.md#Actions). Use browser interaction for visual checks.
+
 ## Python
 - Use `uv` for reproducible Python environments. Do not use bare `pip`.
 

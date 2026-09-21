@@ -1,6 +1,7 @@
 name: PreRelease
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
   push:
@@ -13,7 +14,7 @@ env:
 
 jobs:
   prerelease:
-    if: ${{ contains( github.event.pull_request.labels.*.name, 'pre-release' ) }} 
+    if: ${{ !github.event.pull_request.draft && contains( github.event.pull_request.labels.*.name, 'pre-release' ) }}
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60

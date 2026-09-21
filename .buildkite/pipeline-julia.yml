@@ -1,5 +1,6 @@
 steps:
   - group: ":julia: ($TEST_GROUP) Tests"
+    if: '!build.pull_request.draft'
     steps:
       - label: "CPU 4T - Julia {{matrix.version}} - Test"
         matrix:
@@ -31,6 +32,7 @@ steps:
 
 
   - group: ":racehorse: Benchmarks"
+    if: '!build.pull_request.draft'
     steps:
       - label: "CPU {{matrix.threads}}T - Julia 1 - Benchmark"
         matrix:

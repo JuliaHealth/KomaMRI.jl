@@ -5,6 +5,7 @@ on:
     branches:
       - master
     types:
+      - ready_for_review
       - labeled
       - synchronize
 
@@ -17,7 +18,7 @@ env:
 
 jobs:
   pulseq-parity:
-    if: contains(github.event.pull_request.labels.*.name, 'pulseq-parity')
+    if: ${{ !github.event.pull_request.draft && contains(github.event.pull_request.labels.*.name, 'pulseq-parity') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

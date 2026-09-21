@@ -1,5 +1,6 @@
 steps:
   - group: ":julia: ($TEST_GROUP) Tests"
+    if: '!build.pull_request.draft'
     steps:
       - label: "AMDGPU - Julia {{matrix.version}} - Test"
         matrix:

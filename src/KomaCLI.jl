@@ -213,10 +213,7 @@ function load_cli_backend!(opts)
 end
 
 function cli_inputs(opts)
-    sys = setup_scanner()
-    if !isnothing(opts.scanner)
-        @warn "Scanner file input is accepted but ignored for now" file=opts.scanner
-    end
+    sys = isnothing(opts.scanner) ? setup_scanner() : read_scanner(opts.scanner)
     seq = isnothing(opts.sequence) ? setup_sequence(sys) : read_seq(opts.sequence)
     obj = isnothing(opts.phantom) ? setup_phantom() : load_cli_phantom(opts.phantom)
     return sys, seq, obj
@@ -254,16 +251,7 @@ function save_cli_raw(raw, filename)
 end
 
 function reconstruct_cli(raw, rec_params)
-    raw = _imaging_raw_data(raw)
-    acq_data = AcquisitionData(raw)
-    acq_data.traj[1].circular = false
-    scale = maximum(2 * abs.(acq_data.traj[1].nodes[:]))
-    acq_data.traj[1].nodes = acq_data.traj[1].nodes[1:2, :] ./ (iszero(scale) ? one(scale) : scale)
-    Nx, Ny = raw.params["reconSize"][1:2]
-    rec_params[:reconSize] = (Nx, Ny)
-    rec_params[:densityWeighting] = true
-    rec = reconstruction(acq_data, rec_params)
-    return reshape(rec.data, Nx, Ny, :)
+    return reconstruct_with_labels(raw; rec_params)
 end
 
 function save_cli_recon(image, rec_params, filename)
