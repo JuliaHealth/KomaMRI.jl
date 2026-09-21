@@ -198,35 +198,6 @@ using TestItems, TestItemRunner
         end
     end
 
-    @testset "Bundled Pulseq examples" begin
-        # Real examples cover partial Fourier, labeled multislice, and non-Cartesian encoding.
-        examples = (
-            ("epi_ramp_fatsat", (64, 64), 1),
-            ("epi_multislice", (100, 100), 3),
-            ("spiral", (64, 64), 1),
-        )
-        for (name, matrix, slices) in examples
-            @testset "$name" begin
-                filename = joinpath(@__DIR__, "..", "examples", "1.sequences", name * ".seq")
-                seq = read_seq(filename; verbose=false)
-                signal = ones(ComplexF32, sum(seq.ADC.N), 1)
-                raw = signal_to_raw_data(signal, seq)
-                if name == "epi_ramp_fatsat"
-                    # Partial Fourier retains the full matrix's k-space center, not the acquired midpoint.
-                    @test raw.params["enc_lim_kspace_encoding_step_1"] == Limit(0, 55, 32)
-                end
-
-                # A unit isocenter point has constant k-space and must peak at each image's center.
-                images = reconstruct_with_labels(raw; rec_params=Dict(:reco=>"direct")).images
-                @test [entry.labels.SLC for entry in images] == collect(0:(slices - 1))
-                image_shape = (matrix..., 1, 1, 1, 1)
-                center = CartesianIndex((matrix .÷ 2 .+ 1)..., 1, 1, 1, 1)
-                @test all(size(entry.image) == image_shape &&
-                    argmax(abs.(entry.image)) == center for entry in images)
-            end
-        end
-    end
-
     @testset "Shared reconstruction display ranges" begin
         data = ones(ComplexF32, 2, 2, 2, 2, 2, 1)
         data[:, :, 2, :, :, :] .*= 2

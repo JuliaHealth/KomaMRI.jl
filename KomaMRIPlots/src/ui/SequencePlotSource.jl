@@ -65,7 +65,7 @@ function sequence_source(seq; physio=NoPhysioSignal(), width=nothing, height=not
     label_names = [name for name in fieldnames(AdcLabels)
         if any(b -> !iszero(getproperty(labels[b], name)), adc_blocks)]
     channels = [WAVEFORM_CHANNELS...]
-    template = plot_seq_legacy(seq[1:1]; slider=false, show_adc=false, darkmode)
+    template = plot_seq_nonadaptive(seq[1:1]; slider=false, show_adc=false, darkmode)
     data = template.data[1:length(WAVEFORM_CHANNELS)]
     samples = deepcopy(data[end])
     samples[:mode] = "markers"
@@ -106,7 +106,7 @@ function sequence_source(seq; physio=NoPhysioSignal(), width=nothing, height=not
     trigger_trace = trigger_line = nothing
     if !isempty(trigger_times)
         block = findfirst(b -> has_trigger(seq[b]), eachindex(seq.DUR))
-        trigger_plot = plot_seq_legacy(seq[block:block]; darkmode)
+        trigger_plot = plot_seq_nonadaptive(seq[block:block]; darkmode)
         trigger_trace = only(filter(trace -> get(trace.fields, :name, "") == "Trigger", trigger_plot.data))
         trigger_line = first(trigger_plot.layout[:shapes])
         layout[:yaxis3] = trigger_plot.layout[:yaxis3]

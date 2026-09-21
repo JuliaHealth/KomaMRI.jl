@@ -9,7 +9,6 @@ import Bonito
 using Bonito: @js_str
 
 include("ui/DisplayFunctions.jl")
-include("ui/LegacyDisplayFunctions.jl")
 include("ui/TimePlotSampling.jl")
 include("ui/SequencePlotSource.jl")
 include("ui/TimePlots.jl")

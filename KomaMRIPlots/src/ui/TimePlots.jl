@@ -95,13 +95,13 @@ Multiple RF channels currently use full trace construction before adaptive sampl
 """
 function plot_seq(seq::Sequence; physio=NoPhysioSignal(), width=nothing, height=nothing,
     slider=false, darkmode=false, range=[], title="", adaptive=false, kwargs...)
-    adaptive || return plot_seq_legacy(seq; physio, width, height, slider, darkmode,
+    adaptive || return plot_seq_nonadaptive(seq; physio, width, height, slider, darkmode,
         range, title, kwargs...)
     isempty(kwargs) || throw(ArgumentError("These keywords require adaptive=false: $(join(keys(kwargs), ", "))."))
     source = if size(seq.RF, 1) == 1
         sequence_source(seq; physio, width, height, slider, darkmode, range, title)
     else
-        TracePlotSource(plot_seq_legacy(seq; physio, width, height, slider, darkmode,
+        TracePlotSource(plot_seq_nonadaptive(seq; physio, width, height, slider, darkmode,
             range, title, max_rf_samples=typemax(Int)))
     end
     return TimePlot(source)
@@ -122,7 +122,7 @@ Both modes construct the full moment arrays; adaptive mode limits displayed samp
 There are no nonadaptive-only keywords.
 """
 plot_M0(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...) =
-    time_plot(plot_M0_legacy(resolve_triggers(seq, physio); kwargs...), adaptive)
+    time_plot(plot_M0_nonadaptive(resolve_triggers(seq, physio); kwargs...), adaptive)
 """
     plot_M1(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...)
 
@@ -130,7 +130,7 @@ Plot the first-order gradient moment. Keywords and mode behavior match [`plot_M0
 All plotting keywords apply in both modes.
 """
 plot_M1(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...) =
-    time_plot(plot_M1_legacy(resolve_triggers(seq, physio); kwargs...), adaptive)
+    time_plot(plot_M1_nonadaptive(resolve_triggers(seq, physio); kwargs...), adaptive)
 """
     plot_M2(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...)
 
@@ -138,7 +138,7 @@ Plot the second-order gradient moment. Keywords and mode behavior match [`plot_M
 All plotting keywords apply in both modes.
 """
 plot_M2(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...) =
-    time_plot(plot_M2_legacy(resolve_triggers(seq, physio); kwargs...), adaptive)
+    time_plot(plot_M2_nonadaptive(resolve_triggers(seq, physio); kwargs...), adaptive)
 """
     plot_slew_rate(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...)
 
@@ -146,7 +146,7 @@ Plot gradient slew rate. Keywords and mode behavior match [`plot_M0`](@ref).
 All plotting keywords apply in both modes.
 """
 plot_slew_rate(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...) =
-    time_plot(plot_slew_rate_legacy(resolve_triggers(seq, physio); kwargs...), adaptive)
+    time_plot(plot_slew_rate_nonadaptive(resolve_triggers(seq, physio); kwargs...), adaptive)
 """
     plot_eddy_currents(seq, λ; adaptive=false, physio=NoPhysioSignal(), kwargs...)
 
@@ -155,7 +155,7 @@ Other keywords and mode behavior match [`plot_M0`](@ref). All plotting keywords,
 including `α`, apply in both modes.
 """
 plot_eddy_currents(seq, λ; adaptive=false, physio=NoPhysioSignal(), kwargs...) =
-    time_plot(plot_eddy_currents_legacy(resolve_triggers(seq, physio), λ; kwargs...), adaptive)
+    time_plot(plot_eddy_currents_nonadaptive(resolve_triggers(seq, physio), λ; kwargs...), adaptive)
 """
     plot_seqd(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...)
 
@@ -169,7 +169,7 @@ Plot discretized waveforms as a self-contained `PlotlyBase.Plot`, or a live
 Both modes construct the full sampled arrays. There are no nonadaptive-only keywords.
 """
 plot_seqd(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...) =
-    time_plot(plot_seqd_legacy(resolve_triggers(seq, physio); kwargs...), adaptive)
+    time_plot(plot_seqd_nonadaptive(resolve_triggers(seq, physio); kwargs...), adaptive)
 """
     plot_signal(raw; adaptive=false, kwargs...)
 
@@ -181,7 +181,7 @@ Plot raw signals with coil selection as a self-contained `PlotlyBase.Plot`, or a
 `darkmode=false`, `range=[]` (milliseconds), and `gl=false`.
 Both modes construct the full signal arrays. There are no nonadaptive-only keywords.
 """
-plot_signal(raw; adaptive=false, kwargs...) = time_plot(plot_signal_legacy(raw; kwargs...), adaptive)
+plot_signal(raw; adaptive=false, kwargs...) = time_plot(plot_signal_nonadaptive(raw; kwargs...), adaptive)
 
 const TIME_PLOTLY = Bonito.Asset(joinpath(artifact"plotly-artifacts", "plotly.min.js"); name="Plotly")
 const TIME_PLOT_JS = Bonito.ES6Module(joinpath(@__DIR__, "TimePlots.js"))
