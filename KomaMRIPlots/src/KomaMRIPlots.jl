@@ -14,6 +14,7 @@ include("ui/SequencePlotSource.jl")
 include("ui/TimePlots.jl")
 include("ui/CoilSensitivities.jl")
 include("ui/SpatialPlots.jl")
+include("ui/KspaceSpatialPlot.jl")
 
 """Save a Plotly figure, starting Kaleido when needed."""
 function savefig(args...; kwargs...)

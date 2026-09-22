@@ -8,7 +8,7 @@ end
 
 function TracePlotSource(plot)
     samples = [index_samples(get(t, :x, Float64[]), get(t, :y, Float64[])) for t in plot.data]
-    times = [t[:x][i] for (t, s) in zip(plot.data, samples) for i in s.valid]
+    times = (t[:x][i] for (t, s) in zip(plot.data, samples) for i in s.valid)
     limits = isempty(times) ? [0.0, 1.0] : collect(extrema(times))
     limits[1] == limits[2] && (limits .+= [-0.5, 0.5])
     return TracePlotSource(plot.data, plot.layout, plot.config, samples, limits)

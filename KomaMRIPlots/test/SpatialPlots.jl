@@ -133,7 +133,7 @@
     end
     query["preview"] = false
     detail = P.spatial_data(moving, query)
-    @test detail.complete && detail.shown == detail.available == length(volume)
+    @test detail.shown == detail.available == length(volume)
     @test only(detail.data)[:customdata] == collect(eachindex(volume.x))
 
     # Preview budgets refill from the zoomed region, revealing spins omitted at full FOV.

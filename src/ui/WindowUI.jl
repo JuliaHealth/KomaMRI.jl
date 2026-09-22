@@ -92,6 +92,25 @@ function show!(w::KomaWindow)
     display = Bonito.use_electron_display(; options=w.window_options, devtools=w.dev_tools)
     w.display[] = display
     w.window[] = display.window.window
+    run(w.window[].app, string(js"""
+        electron.app.setName('KomaUI');
+        if (process.platform === 'darwin') {
+            const icon = electron.nativeImage.createFromPath($(w.window_options["icon"]));
+            const {width, height} = icon.getSize();
+            // A 10% transparent margin on each side matches macOS Dock icon sizing.
+            const padding = Math.round(Math.max(width, height) / 8);
+            const paddedWidth = width + 2 * padding;
+            const paddedHeight = height + 2 * padding;
+            const pixels = icon.toBitmap();
+            const padded = Buffer.alloc(paddedWidth * paddedHeight * 4);
+            for (let row = 0; row < height; row++) {
+                pixels.copy(padded, ((row + padding) * paddedWidth + padding) * 4,
+                    row * width * 4, (row + 1) * width * 4);
+            }
+            electron.app.dock.setIcon(electron.nativeImage.createFromBitmap(padded,
+                {width: paddedWidth, height: paddedHeight}));
+        }
+    """))
     Base.display(display, w.app)
     return w
 end

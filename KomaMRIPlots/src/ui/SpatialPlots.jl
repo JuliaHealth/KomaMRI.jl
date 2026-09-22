@@ -46,7 +46,8 @@ phantom_properties(motion) = (:ρ, :T1, :T2, :T2s, :Δw, :speed, :vx, :vy, :vz)
     SpatialPlot
 
 Live Plotly spatial viewer returned by `plot_phantom_map(...; adaptive=true)` and
-`plot_coil_sens(...; adaptive=true)`. Zooming, rotating and changing time or coil
+`plot_coil_sens(...; adaptive=true)` and `plot_kspace(...; adaptive=true)`.
+Zooming, rotating and changing time or coil
 fetch detail from Julia; keep the Julia session running, including in notebooks.
 The default `adaptive=false` remains a self-contained `PlotlyBase.Plot`.
 
@@ -280,6 +281,16 @@ function phantom_spatial_plot(obj, key; time_samples, view_2d, properties=(key,)
     return SpatialPlot(source, template, dimensions)
 end
 
+function portable_phantom_frames(plot, query)
+    data = GenericTrace[]
+    for frame in eachindex(plot.source.times)
+        traces = spatial_data(plot, merge(query, Dict("frame" => frame))).data
+        foreach(trace -> trace[:visible] = frame == 1, traces)
+        append!(data, traces)
+    end
+    return data
+end
+
 function portable_phantom_plot(plot)
     source, template = plot.source, deepcopy(plot.template)
     query = spatial_query(plot; width=2length(source.obj), height=2)
@@ -287,31 +298,30 @@ function portable_phantom_plot(plot)
     query["projection"] = zeros(16)
     query["projection"][16] = 1
     initial_key = query["property"]
-    data = GenericTrace[]
-    for (menu_index, menu) in enumerate(template.layout[:updatemenus]), (button_index, button) in enumerate(menu[:buttons])
+    data = portable_phantom_frames(plot, query)
+    traces_per_frame = length(data) ÷ length(source.times)
+    menus = get(template.layout, :updatemenus, [])
+    for (menu_index, menu) in enumerate(menus), (button_index, button) in enumerate(menu[:buttons])
         query["property"] = only(button[:args])
         attributes = Dict(name => Any[] for name in ("text", "hovertemplate", "showlegend",
             "marker.color", "marker.colorscale", "marker.cmin", "marker.cmax",
             "marker.colorbar", "marker.size"))
         for frame in eachindex(source.times)
             query["frame"] = frame
-            traces = spatial_data(plot, query).data
-            if query["property"] == initial_key
-                foreach(trace -> trace[:visible] = frame == 1, traces)
-                append!(data, traces)
-            end
+            traces = query["property"] == initial_key ?
+                @view(data[(frame-1)*traces_per_frame+1:frame*traces_per_frame]) : spatial_data(plot, query).data
             for trace in traces, (name, values) in attributes
                 path = split(name, '.')
                 push!(values, length(path) == 1 ? trace[Symbol(name)] : trace[:marker][Symbol(last(path))])
             end
         end
         active = Dict("updatemenus[$(i-1)].active" => i == menu_index ? button_index-1 : -1
-            for i in eachindex(template.layout[:updatemenus]))
+            for i in eachindex(menus))
         button[:method], button[:args] = "update", [attributes, active]
     end
     for (frame, step) in enumerate(only(template.layout[:sliders])[:steps])
         step[:method] = "restyle"
-        step[:args] = [attr(; visible=[cld(i, 3) == frame for i in eachindex(data)])]
+        step[:args] = [attr(; visible=[cld(i, traces_per_frame) == frame for i in eachindex(data)])]
     end
     return PlotlyBase.Plot(data, template.layout; config=template.config)
 end
@@ -472,8 +482,7 @@ function spatial_data(plot::SpatialPlot{<:PhantomSpatialSource}, query)
         end
         trace
     end
-    return (; data, shown, available, coarse=false, frame, preview, property=string(key),
-        complete=length(indices) == length(plot.source.obj))
+    return (; data, shown, available, coarse=false, frame, preview, property=string(key))
 end
 
 function phantom_velocity_plot(obj, key; adaptive, max_spins, kwargs...)
@@ -482,20 +491,7 @@ function phantom_velocity_plot(obj, key; adaptive, max_spins, kwargs...)
     end
     plot = phantom_spatial_plot(obj, key; kwargs...)
     adaptive && return plot
-    query = spatial_query(plot; width=2length(obj), height=2)
-    data = GenericTrace[]
-    for frame in eachindex(plot.source.times)
-        query["frame"] = frame
-        traces = spatial_data(plot, query).data
-        foreach(trace -> trace[:visible] = frame == 1, traces)
-        append!(data, traces)
-    end
-    traces_per_frame = length(data) ÷ length(plot.source.times)
-    for (frame, step) in enumerate(only(plot.template.layout[:sliders])[:steps])
-        step[:method] = "update"
-        step[:args] = [attr(; visible=[cld(i, traces_per_frame) == frame for i in eachindex(data)])]
-    end
-    return PlotlyBase.Plot(data, plot.template.layout; config=plot.template.config)
+    return portable_phantom_plot(plot)
 end
 
 function grid_priority(grid, node, matrix, width, height)
@@ -515,7 +511,7 @@ function spatial_grid(source, matrix, width, height)
     budget = max(1, floor(Int, width * height / SPATIAL_PIXEL_SIZE^2))
     if prod(length, grid) <= budget
         positions = [p for p in Iterators.product(grid...) if inside_coil_plot(source.receiver, p)]
-        return ntuple(d -> [p[d] for p in positions], 3), false, true
+        return ntuple(d -> [p[d] for p in positions], 3), false
     end
     root = map(g -> 1:length(g), grid)
     priority(node) = grid_priority(grid, node, matrix, width, height)
@@ -548,13 +544,13 @@ function spatial_grid(source, matrix, width, height)
         for node in nodes]
     filter!(p -> inside_coil_plot(source.receiver, p), positions)
     coordinates = ntuple(d -> [p[d] for p in positions], 3)
-    return coordinates, any(node -> prod(length, node.range) > 1, nodes), false
+    return coordinates, any(node -> prod(length, node.range) > 1, nodes)
 end
 
 function spatial_data(plot::SpatialPlot{<:CoilSpatialSource}, query)
     source = plot.source
     matrix = reshape(Float64.(query["projection"]), 4, 4)
-    coordinates, coarse, complete = spatial_grid(source, matrix, query["width"], query["height"])
+    coordinates, coarse = spatial_grid(source, matrix, query["width"], query["height"])
     values = get_sens(source.receiver, coordinates...)[:, query["coil"]]
     phase = query["component"] == 2
     trace = deepcopy(first(plot.template.data))
@@ -570,7 +566,7 @@ function spatial_data(plot::SpatialPlot{<:CoilSpatialSource}, query)
         coloraxis[:colorbar] = attr(; title="rad", thickness=16,
             tickvals=[-π, -π/2, 0, π/2, π], ticktext=["−π", "−π/2", "0", "π/2", "π"])
     end
-    return (; data=[trace], coloraxis, coarse, complete, shown=length(values), available=length(values),
+    return (; data=[trace], coloraxis, coarse, shown=length(values), available=length(values),
         spacing=step(first(source.grid)))
 end
 

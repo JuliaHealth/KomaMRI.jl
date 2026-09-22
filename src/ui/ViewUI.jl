@@ -13,19 +13,13 @@ function show_sequence!(w, seq, view; darkmode=true, physio=NoPhysioSignal())
         set_content!(w, plot_node(plot), "sequence")
     elseif view === :kspace
         display_loading!(w, "Plotting kspace ...")
-        set_content!(w, plot_node(plot_kspace(seq; darkmode)), "kspace")
-    elseif view === :moment0
-        display_loading!(w, "Plotting moment 0 ...")
-        plot = plot_M0(seq; adaptive=true, darkmode, physio)
-        set_content!(w, sequence_comparison(seq, plot; darkmode, physio, show_rf_center=true), "m0")
-    elseif view === :moment1
-        display_loading!(w, "Plotting moment 1 ...")
-        plot = plot_M1(seq; adaptive=true, darkmode, physio)
-        set_content!(w, sequence_comparison(seq, plot; darkmode, physio, show_rf_center=true), "m1")
-    elseif view === :moment2
-        display_loading!(w, "Plotting moment 2 ...")
-        plot = plot_M2(seq; adaptive=true, darkmode, physio)
-        set_content!(w, sequence_comparison(seq, plot; darkmode, physio, show_rf_center=true), "m2")
+        set_content!(w, plot_node(plot_kspace(seq; darkmode, adaptive=true)), "kspace")
+    elseif view in (:moment0, :moment1, :moment2)
+        index = findfirst(==(view), (:moment0, :moment1, :moment2))
+        order = index - 1
+        display_loading!(w, "Plotting moment $order ...")
+        plot = (plot_M0, plot_M1, plot_M2)[index](seq; adaptive=true, darkmode, physio)
+        set_content!(w, sequence_comparison(seq, plot; darkmode, physio, show_rf_center=true), "m$order")
     elseif view === :slew_rate
         display_loading!(w, "Plotting slew rate ...")
         plot = plot_slew_rate(seq; adaptive=true, darkmode, physio)
@@ -113,7 +107,7 @@ function show_signal!(w, raw; darkmode=true)
     return set_content!(w, plot_node(plot_signal(raw; adaptive=true, darkmode)), "sig")
 end
 
-const KSPACE_DYNAMIC_RANGE_DB = 60
+const KSPACE_DYNAMIC_RANGE_DB = 40
 
 function image_values(img, type; limits=nothing)
     array = Array(img)

@@ -545,6 +545,8 @@ end
             @test_skip "Electron windows are unavailable on macOS CI"
         else
             w = KomaUI(; return_window=true, sim=Dict{String,Any}("gpu" => false))
+            # Branding belongs to the Electron UI host, not the Julia simulation process.
+            @test run(w.window[].app, "electron.app.getName()") == "KomaUI"
             session = w.session[]
             click_button(id) =
                 Bonito.evaljs(session, js"document.getElementById($(id)).click()")

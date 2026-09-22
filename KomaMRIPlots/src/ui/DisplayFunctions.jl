@@ -181,6 +181,19 @@ end
 _trigger_delays(::Extension) = ()
 _trigger_delays(trigger::Trigger) = (trigger.delay,)
 
+function trigger_name(trigger)
+    trigger.type == 1 && return "Digital output"
+    trigger.type == 2 && return "Input trigger"
+    return "Trigger (type $(trigger.type))"
+end
+
+function trigger_markers(seq, starts)
+    return [(; time=(starts[b] + delay) * 1e3,
+        label="$(trigger_name(extension)) · channel $(extension.channel)")
+        for b in eachindex(seq.DUR) for extension in seq.EXT[b]
+        for delay in _trigger_delays(extension)]
+end
+
 _ecg_gaussian(t, center, width) = exp(-0.5 * ((t - center) / width)^2)
 
 function _ecg_r_peaks(signal::CardiacSignal, t_start, t_end)
@@ -336,12 +349,8 @@ function plot_seq_nonadaptive(
             for (i, block) in enumerate(seq_samples)]),
     )
     active(values, enabled) = enabled ? values : fill(missing, length(values))
-    trigger_times = [
-        (T0[i] + delay) * 1e3
-        for (i, extensions) in enumerate(seq.EXT)
-        for extension in extensions
-        for delay in _trigger_delays(extension)
-    ]
+    triggers = trigger_markers(seq, T0)
+    trigger_times = getproperty.(triggers, :time)
     # Get center times
     center_times = similar(T0, 0)
     center_values = ComplexF64[]
@@ -569,7 +578,8 @@ function plot_seq_nonadaptive(
             x=trigger_x,
             y=trigger_y,
             name="Trigger",
-            hovertemplate="Trigger: %{x:.4f} ms<extra></extra>",
+            text=repeat(getproperty.(triggers, :label); inner=length(hover_positions)),
+            hovertemplate="%{text}: %{x:.4f} ms<extra></extra>",
             xaxis=xaxis,
             yaxis="y3",
             showlegend=false,
@@ -1156,7 +1166,7 @@ function plot_image(image::AbstractArray{<:Complex}; kwargs...)
 end
 
 """
-    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false)
+    p = plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false, adaptive=false)
 
 Plots the k-space of a Sequence struct.
 
@@ -1168,9 +1178,12 @@ Plots the k-space of a Sequence struct.
 - `height`: (`::Integer`, `=nothing`) plot height
 - `darkmode`: (`::Bool`, `=false`) boolean to indicate whether to display darkmode style
 - `view_2d`: (`::Bool`, `=false`) boolean to indicate whether to use a 2D kx/ky plot
+- `adaptive=false`: use an experimental live `SpatialPlot` when true. Julia retains
+  the full trajectory; zoom/rotation fetch bounded sets of original segments and ADCs.
 
 # Returns
-- `p`: (`::PlotlyBase.Plot`) plot of the k-space of the Sequence struct
+- `p`: self-contained `PlotlyBase.Plot`, or live `SpatialPlot` with `adaptive=true`.
+  Adaptive updates require the Julia session to remain running.
 
 # Examples
 ```julia-repl
@@ -1181,24 +1194,17 @@ julia> seq = read_seq(seq_file)
 julia> plot_kspace(seq)
 ```
 """
-function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false)
-    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
+function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=false, view_2d=false, adaptive=false)
+    adaptive && return kspace_spatial_plot(seq; width, height, darkmode, view_2d)
     #Calculations of theoretical k-space
     kspace, kspace_adc = get_kspace(seq; sampling_rule=KomaMRIBase.MaxStepSizeRule(1, 5e-5))
     t_adc = KomaMRIBase.get_adc_sampling_times(seq)
-    #Colormap
-    c_map = [[t, "hsv($(floor(Int,(1-t)*255)), 100, 50)"] for t in range(0, 1; length=10)] # range(s,b,N) only works in Julia 1.7.3
+    return kspace_plot(kspace, kspace_adc, t_adc, length(t_adc); width, height, darkmode, view_2d)
+end
+
+function kspace_plot(kspace, kspace_adc, t_adc, num_adc; width, height, darkmode, view_2d)
+    bgcolor, text_color, plot_bgcolor, grid_color, sep_color = theme_chooser(darkmode)
     c = "gray"
-    c2_idx = []
-    counter = 0
-    for s in seq
-        if is_ADC_on(s)
-            N = s.ADC.N[1]
-            append!(c2_idx, counter:(N + counter - 1))
-            counter += N
-        end
-    end
-    c2 = interp_map(c_map, c2_idx ./ maximum(c2_idx))
     #Layout
     mink = minimum(kspace_adc; dims=1)
     maxk = maximum(kspace_adc; dims=1)
@@ -1253,7 +1259,7 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
                 y=kspace_adc[:, 2],
                 text=round.(t_adc * 1e3, digits=3),
                 mode="markers",
-                marker=attr(; color=c2, size=4),
+                marker=attr(; size=4),
                 name="ADC",
                 hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
             ),
@@ -1313,13 +1319,12 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
                 z=kspace_adc[:, 3],
                 text=round.(t_adc * 1e3, digits=3),
                 mode="markers",
-                line=attr(; color=c2),
                 marker=attr(; size=2),
                 name="ADC",
                 hovertemplate="kx: %{x:.1f} m⁻¹<br>ky: %{y:.1f} m⁻¹<br>kz: %{z:.1f} m⁻¹<br><b>t_acq</b>: %{text} ms<extra></extra>",
             ),
             scatter3d(;
-                x=[0], y=[0], z=[0], name="k=0",
+                x=[0], y=[0], z=[0], mode="markers", name="k=0",
                 marker=attr(; symbol="cross", size=10, color="red"),
             ),
         ]
@@ -1332,6 +1337,13 @@ function plot_kspace(seq::Sequence; width=nothing, height=nothing, darkmode=fals
             "resetCameraDefault3d",
         ]
     end
+    p[2][:marker][:color] = collect(0:length(t_adc)-1)
+    p[2][:marker][:colorscale] = "Viridis"
+    p[2][:marker][:cmin] = 0
+    p[2][:marker][:cmax] = max(num_adc - 1, 1)
+    p[2][:marker][:showscale] = true
+    p[2][:marker][:colorbar] = attr(; title=attr(; text="ADC order", side="right"), thickness=12, len=0.6,
+        tickformat="~s", outlinewidth=0)
     if height !== nothing
         l.height = height
     end

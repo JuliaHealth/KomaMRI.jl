@@ -101,17 +101,18 @@ function sequence_source(seq; physio=NoPhysioSignal(), width=nothing, height=not
     # Keep the original ECG arrays in the context; summarizing replaces plotted trace arrays.
     !isnothing(ecg) && (data[end] = deepcopy(ecg))
     source = summarize_blocks(context, channels, data, layout, config, starts .* 1e3, full_range, block_samples; break_blocks)
-    trigger_times = [(starts[b] + delay) * 1e3 for b in eachindex(seq.DUR)
-        for extension in seq.EXT[b] for delay in _trigger_delays(extension)]
+    triggers = trigger_markers(seq, starts)
+    trigger_times = getproperty.(triggers, :time)
     trigger_trace = trigger_line = nothing
     if !isempty(trigger_times)
-        block = findfirst(b -> has_trigger(seq[b]), eachindex(seq.DUR))
+        block = findfirst(extensions -> any(!isempty ∘ _trigger_delays, extensions), seq.EXT)
         trigger_plot = plot_seq_nonadaptive(seq[block:block]; darkmode)
         trigger_trace = only(filter(trace -> get(trace.fields, :name, "") == "Trigger", trigger_plot.data))
         trigger_line = first(trigger_plot.layout[:shapes])
         layout[:yaxis3] = trigger_plot.layout[:yaxis3]
     end
-    return SequencePlotSource(source, (; times=trigger_times, trace=trigger_trace, line=trigger_line))
+    return SequencePlotSource(source, (; times=trigger_times, labels=getproperty.(triggers, :label),
+        trace=trigger_trace, line=trigger_line))
 end
 
 function window_data(source::SequencePlotSource, range, width, visibility)
@@ -136,13 +137,15 @@ function window_data(source::SequencePlotSource, range, width, visibility)
     visibility[length(WAVEFORM_CHANNELS) + 1] = visibility[length(WAVEFORM_CHANNELS)] === true && resolved
     payload = block_window_data(source.blocks, range, width, visibility)
     isempty(source.triggers.times) && return payload
-    times = filter(t -> range[1] <= t <= range[2], source.triggers.times)
+    indices = findall(t -> range[1] <= t <= range[2], source.triggers.times)
+    times = source.triggers.times[indices]
     layout = deepcopy(payload.layout)
     layout[:shapes] = [merge(copy(source.triggers.line.fields), Dict(:x0=>t, :x1=>t)) for t in times]
     trace = copy(source.triggers.trace.fields)
-    positions = source.triggers.trace[:y]
+    positions = unique(source.triggers.trace[:y])
     trace[:x] = repeat(times; inner=length(positions))
     trace[:y] = repeat(positions, length(times))
+    trace[:text] = repeat(source.triggers.labels[indices]; inner=length(positions))
     trace[:uid] = "triggers"
     return (; payload..., data=[payload.data; [trace]], layout)
 end

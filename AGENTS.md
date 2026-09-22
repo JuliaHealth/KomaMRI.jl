@@ -52,6 +52,8 @@
 ## KomaUI
 
 - For programmatic UI control, prefer `click!`, `load_file!`, and window observables. Read the [usage examples](docs/src/how-to/1-1-use-koma-ui.md#Controlling-the-UI-from-Julia-(easier-for-AI-agents)) and [API/action list](docs/src/reference/6-koma-mri.md#Actions). Use browser interaction for visual checks.
+- Reuse the existing KomaUI window. Do not call `display(w.app)` or `Base.display(w.display[], w.app)` to refresh it; use `click!` for views and a native page reload for a broken page. A blank or malformed page is not proof of a crashed process.
+- Open windows only through `KomaUI` when requested or when the existing window is confirmed closed. Do not launch Electron/Julia.app directly or open a second browser/window as a workaround for failed UI controls. Suppress displayable REPL results with `;` so diagnostics do not replace the UI through the active display backend.
 
 ## Python
 - Use `uv` for reproducible Python environments. Do not use bare `pip`.

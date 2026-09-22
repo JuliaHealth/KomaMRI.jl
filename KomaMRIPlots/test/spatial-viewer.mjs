@@ -54,7 +54,7 @@ const Plotly = {
             else graph.layout[key] = value;
         }
     },
-    purge() { purged = true; }, Plots: {async resize() {}}
+    purge() { purged = true; }, Plots: {async resize() {}}, Fx: {unhover() {}}
 };
 await mount(root, Plotly, {notify: value => requests.push(value)},
     {value: JSON.stringify(initial), on: callback => { respond = callback; }}, JSON.stringify(template));
@@ -69,6 +69,43 @@ const scrub = frame => {
     graph.layout.sliders[0].active = frame - 1;
     graph.handlers.plotly_sliderchange({slider: {name: 'time'}, step: {value: String(frame)}});
 };
+reply(requests.at(-1));
+await tick();
+
+// Hidden layers keep their last browser data (and legend entry), but are omitted from requests.
+const beforeHide = graph.data[0].x;
+graph.data[0].visible = 'legendonly';
+graph.handlers.plotly_restyle([{visible:['legendonly']}, [0]]);
+assert.deepEqual(requests.at(-1).visible, [false]);
+reply(requests.at(-1), {data:[{...initial.data[0], x:[], y:[]}], shown:0, available:0});
+await tick();
+assert.deepEqual(graph.data[0].x, beforeHide);
+assert.equal(graph.data[0].visible, 'legendonly');
+graph.data[0].visible = true;
+graph.handlers.plotly_restyle([{visible:[true]}, [0]]);
+assert.deepEqual(requests.at(-1).visible, [true]);
+reply(requests.at(-1), {data:[{...initial.data[0], x:[7]}]});
+await tick();
+assert.deepEqual(graph.data[0].x, [7]);
+
+// A response arriving during a new camera gesture cannot replace its buffers.
+graph.handlers.plotly_restyle([{visible:[true]}, [0]]);
+const beforeDrag = requests.at(-1), beforeDragUpdates = updates;
+graph.handlers.pointerdown({target:{closest:()=>true}});
+reply(beforeDrag);
+await tick();
+assert.equal(updates, beforeDragUpdates);
+document.handlers.pointerup();
+await tick();
+reply(requests.at(-1));
+await tick();
+
+// Wheel events coalesce into one refinement after scrolling stops.
+const beforeWheel = requests.length;
+for (let i=0; i<3; i++) graph.handlers.wheel({target:{closest:()=>true}});
+assert.equal(requests.length, beforeWheel);
+await settle();
+assert.equal(requests.length, beforeWheel + 1);
 reply(requests.at(-1));
 await tick();
 
@@ -140,11 +177,11 @@ assert.deepEqual(projection(graph, [3, 2]).slice(0, 4), [0, 0, 0, 0]);
 assert.equal(projection(graph, [3, 2])[8], 1);
 
 // Even a fully loaded cloud is reselected on zoom so offscreen spins cannot consume its budget.
-respond(JSON.stringify({...initial, id: requests.at(-1).id, complete: true}));
+respond(JSON.stringify({...initial, id: requests.at(-1).id}));
 await settle();
 const requestCount = requests.length;
 const updateCount = updates;
-respond(JSON.stringify({...initial, id: requests.at(-1).id, complete: true}));
+respond(JSON.stringify({...initial, id: requests.at(-1).id}));
 await settle();
 assert.equal(updates, updateCount);
 graph.handlers.plotly_relayout({'xaxis.range': [2.5, 3.5]});
@@ -248,14 +285,40 @@ const liveCamera = {eye:{x:2, y:-1, z:0.5}};
 await mount(sceneRoot, {...Plotly, async newPlot(g, data, layout) {
     await Plotly.newPlot(g, data, layout);
     g._fullLayout.scene = {_scene:{getCamera:()=>liveCamera, camera:{matrix:identity}, dataScale:[1,1,1],
-        glplot:{cameraParams:{model:identity,view:identity,projection:identity}}}};
+        glplot:{selection:{object:null},cameraParams:{model:identity,view:identity,projection:identity}}}};
 }}, {notify:q=>sceneRequests.push(q)},
 {value:JSON.stringify(initial),on:callback=>{sceneRespond=callback;}},
 JSON.stringify({...template,dimensions:[1,2,3],layout:{...template.layout,scene:{camera:{eye:{x:1,y:1,z:1}}}}}));
+// Replacing points invalidates the old GL pick before Plotly can use it to draw hover spikes.
+const sceneGraph = sceneRoot.children[0];
+sceneGraph._fullLayout.scene._scene.glplot.selection.object = {stale:true};
 sceneRespond(JSON.stringify({...initial,id:sceneRequests.at(-1).id,data:[{...initial.data[0],x:[2]}]}));
 await tick();
-assert.deepEqual(sceneRoot.children[0].layout['scene.camera'], liveCamera);
+assert.equal(sceneGraph._fullLayout.scene._scene.glplot.selection.object, null);
+assert.deepEqual(sceneGraph.layout['scene.camera'], liveCamera);
+// Camera-only responses with unchanged data must not rebuild the GL buffers.
+const sceneUpdates = updates;
+sceneRespond(JSON.stringify({...initial,id:sceneRequests.at(-1).id,data:[{...initial.data[0],x:[2]}]}));
+await tick();
+assert.equal(updates, sceneUpdates);
 sceneRoot.isConnected = false;
+observers.at(-1)();
+
+// Line-only traces have no marker dictionary; camera updates must still preserve their gaps.
+const lineRoot = new Element();
+let lineRespond;
+const linePayload = {id: 0, shown: 1, available: 4,
+    detail: 'Trajectory: 1 / 4 visible segments; ADC: 0 / 0 visible samples.',
+    data: [{x: [0, 1, null], y: [0, 0, null], mode: 'lines'}]};
+await mount(lineRoot, Plotly, {notify() {}},
+    {value: JSON.stringify(linePayload), on(callback) { lineRespond = callback; }},
+    JSON.stringify({...template, layout: {...template.layout, sliders: []}}));
+lineRespond(JSON.stringify({...linePayload, id: 1,
+    data: [{x: [1, 2, null], y: [0, 0, null], mode: 'lines'}]}));
+await tick();
+assert.deepEqual(lineRoot.children[0].data[0].x, [1, 2, null]);
+assert.equal(lineRoot.children[0].layout.annotations[0].hovertext, linePayload.detail);
+lineRoot.isConnected = false;
 observers.at(-1)();
 
 // Removing a plot cancels queued work and ignores late backend responses.

@@ -7,6 +7,10 @@ minor 2
 revision 1
 
 [DEFINITIONS]
+Nx 64
+Ny 64
+Nz 1
+FOV 0.256 0.256 0.001
 Name epi
 Num_Blocks 132
 
@@ -195,4 +199,4 @@ num_samples 100
 
 [SIGNATURE]
 Type md5
-Hash f291a24409c3e8de01ddb93e124d9ff2
+Hash 71836cf1b3a9403249e41cbf4f7d3549

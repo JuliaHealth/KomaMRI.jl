@@ -52,7 +52,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
     let disposed = false, rendering = false, inFlight = false, wanted = false, timer;
     let preview = false, dragging = false, interacting = false;
     let pending = null;
-    let playing = false, playTimer, cameraFrame, playStarted, drawnFrame = 1;
+    let playing = false, playTimer, cameraFrame, cameraTimer, playStarted, drawnFrame = 1;
     let property = JSON.parse(response.value).property;
     const timeSlider = template.layout.sliders?.find(slider => slider.name === 'time' &&
         slider.visible !== false && slider.steps?.length > 1);
@@ -104,6 +104,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         inFlight = true;
         const size = graph._fullLayout._size;
         request.notify({id: revision, frame, coil, component, preview, property,
+            visible: graph.data.map(trace => trace.visible !== false && trace.visible !== 'legendonly'),
             width: size.w, height: size.h, projection: projection(graph, template.dimensions)});
     }
     function fetchDetail() {
@@ -172,14 +173,18 @@ export async function mount(root, Plotly, request, response, templateJSON) {
             text: payload.coarse ? 'Coarser grid' : `Downsampled · ${(100 * payload.shown / payload.available).toFixed(2)}%`,
             xref: 'paper', yref: 'paper', x: 1, y: 0, xanchor: 'right', yanchor: 'bottom',
             xshift: -2, yshift: 2, showarrow: false, borderpad: 0, font: {size: 10},
-            hovertext: payload.coarse ? `Zoom to refine the grid to ${1000 * payload.spacing} mm spacing.` :
+            hovertext: payload.detail ?? (payload.coarse ? `Zoom to refine the grid to ${1000 * payload.spacing} mm spacing.` :
                 `${payload.shown.toLocaleString()} / ${payload.available.toLocaleString()} ` +
                 'visible spins shown. ' +
-                (payload.preview ? 'Motion preview; pause to refine.' : 'Zoom for more detail.'),
+                (payload.preview ? 'Motion preview; pause to refine.' : 'Zoom for more detail.')),
         }] : [])];
         if (!graph._fullLayout) {
             await Plotly.newPlot(graph, payload.data, layout, {...template.config, responsive: true});
         } else {
+            // Emptying a hidden trace removes its legend entry in Plotly.
+            // Retain its bounded browser data until the user shows it again.
+            payload.data = payload.data.map((trace, i) =>
+                graph.data[i].visible === 'legendonly' ? graph.data[i] : trace);
             const data = {}, changes = {};
             const equal = (a, b) => a === b || (Array.isArray(a) && Array.isArray(b) &&
                 a.length === b.length && a.every((value, i) => value === b[i]));
@@ -188,21 +193,26 @@ export async function mount(root, Plotly, request, response, templateJSON) {
                     data[key] = payload.data.map(trace => trace[key]);
             for (const key of ['color', 'colorscale', 'colorbar', 'cmin', 'cmax', 'size'])
                 if (payload.data.some((trace, i) => key === 'color' ?
-                    !equal(trace.marker[key], graph.data[i].marker[key]) :
-                    JSON.stringify(trace.marker[key]) !== JSON.stringify(graph.data[i].marker[key])))
-                    data[`marker.${key}`] = payload.data.map(trace => trace.marker[key]);
+                    !equal(trace.marker?.[key], graph.data[i].marker?.[key]) :
+                    JSON.stringify(trace.marker?.[key]) !== JSON.stringify(graph.data[i].marker?.[key])))
+                    data[`marker.${key}`] = payload.data.map(trace => trace.marker?.[key]);
             for (const key of ['annotations', 'coloraxis'])
                 if (JSON.stringify(layout[key]) !== JSON.stringify(graph.layout[key])) changes[key] = layout[key];
             for (const key of ['sliders', 'updatemenus']) layout[key]?.forEach((control, i) => {
                 if (control.active !== graph.layout[key]?.[i]?.active)
                     changes[`${key}[${i}].active`] = control.active;
             });
-            // The live gl3d camera can be newer than gd.layout during a native gesture.
-            // Carry it through data updates instead of restoring the last saved camera.
-            if (template.dimensions.length === 3)
-                changes['scene.camera'] = graph._fullLayout.scene._scene.getCamera();
-            if (Object.keys(data).length || Object.keys(changes).length)
+            if (Object.keys(data).length || Object.keys(changes).length) {
+                if (template.dimensions.length === 3) {
+                    const scene = graph._fullLayout.scene._scene;
+                    // A pick indexes the old WebGL buffers, not the replacement points.
+                    scene.glplot.selection.object = null;
+                    Plotly.Fx.unhover(graph);
+                    // Preserve the live camera, which can be newer than gd.layout.
+                    changes['scene.camera'] = scene.getCamera();
+                }
                 await Plotly.update(graph, data, changes, payload.data.map((_, i) => i));
+            }
         }
         drawnFrame = payload.frame ?? frame;
         styleButtons();
@@ -211,7 +221,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         if (rendering || disposed || interacting) return;
         rendering = true;
         try {
-            while (pending && !disposed) {
+            while (pending && !disposed && !interacting) {
                 const payload = pending;
                 pending = null;
                 if (payload.id === revision) await draw(payload);
@@ -248,8 +258,13 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         }
     });
     graph.addEventListener('wheel', event => {
-        if (event.target.closest('.gl-container, .nsewdrag')) refreshView();
+        if (!event.target.closest('.gl-container, .nsewdrag')) return;
+        beginInteraction();
+        cameraTimer = setTimeout(finishInteraction, 120);
     }, true);
+    graph.on('plotly_restyle', ([changes]) => {
+        if (!rendering && Object.hasOwn(changes, 'visible')) fetchDetail();
+    });
     graph.on('plotly_sliderchange', event => {
         if (event.slider.name === 'time') {
             if (playing) setPlaying(false, false);
@@ -281,14 +296,22 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         else fetchDetail();
     });
     // Let native camera gestures finish without replacing their WebGL buffers mid-drag.
+    function beginInteraction() {
+        interacting = true;
+        revision++;
+        pending = null;
+        wanted = false;
+        clearTimeout(playTimer);
+        clearTimeout(cameraTimer);
+    }
     graph.addEventListener('pointerdown', event => {
         if (!event.target.closest('.gl-container, .nsewdrag')) return;
-        interacting = true;
-        clearTimeout(playTimer);
+        beginInteraction();
     }, true);
     const finishInteraction = () => {
         if (!interacting) return;
         interacting = false;
+        clearTimeout(cameraTimer);
         pending = null;
         revision++;
         refreshView();
@@ -311,6 +334,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         pending = null;
         clearTimeout(timer);
         clearTimeout(playTimer);
+        clearTimeout(cameraTimer);
         cancelAnimationFrame(cameraFrame);
         resize.disconnect();
         removal.disconnect();
