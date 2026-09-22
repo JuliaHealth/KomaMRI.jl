@@ -11,6 +11,11 @@ end
     @inbounds (x[i, t], y[i, t], z[i, t]) 
 end
 
+@inline function reset_spin_state(first_reset, step, Mxy_r, Mxy_i, Mz, ρ)
+    spin_has_reset(first_reset, step) || return Mxy_r, Mxy_i, Mz
+    return zero(Mxy_r), zero(Mxy_i), ρ
+end
+
 # Returns the next least power of two starting from n, used to calculate remaining indexes in the first step of a threadgroup-level reduction.
 @inline function next_least_power_of_two(n)
     return  n < 2 ? 1 :

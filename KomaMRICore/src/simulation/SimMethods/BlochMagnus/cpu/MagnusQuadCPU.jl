@@ -11,8 +11,11 @@ function run_spin_excitation!(
 ) where {T<:Real}
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
+    spin_reset = prealloc.spin_reset
     (; ωxy_0, ωz_0, ωxy_m, ωz_m, ωxy_1, ωz_1, θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
     sample = 1
+    advance_spin_reset!(spin_reset, firstindex(seq.t))
+    outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
 
     ψ_start = seq.ψ[1]
     if !iszero(ψ_start)
@@ -57,7 +60,8 @@ function run_spin_excitation!(
 
         @. M.xy = M.xy * exp(-Δt / p.T2)
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
-        outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
+        advance_spin_reset!(spin_reset, i1)
+        outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
         if seq.ADC[i1]
             update_sensitivities!(
                 prealloc.sens, sys.receiver, (x, y, z), p.motion,

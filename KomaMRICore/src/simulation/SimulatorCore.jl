@@ -199,6 +199,10 @@ function run_sim_time_iter!(
 
     for (block, p) in enumerate(parts)
         seqd_block = @view seqd[p]
+        # Prepare once before CPU workers receive disjoint views of the reset state.
+        prepare_spin_reset!(
+            spin_reset_state(prealloc_result), obj.motion, seqd_block.t, backend,
+        )
         # Params
         Nadc = sum(seqd_block.ADC[2:end]) # if ADC[1] == true, that is handled by the previous block
         acq_samples = samples:(samples + Nadc - 1)
