@@ -159,17 +159,12 @@ end
 function outflow_spin_reset_at!(
    spin_state, ::NoSpinReset, step, t, motion; replace_by=0,
 )
-   outflow_spin_reset_at!(spin_state, t, step, motion; replace_by)
    return nothing
 end
 
 @inline spin_first_reset(first_reset, spin) = @inbounds first_reset[spin]
 @inline spin_first_reset(::Nothing, spin) = typemax(UInt32)
 @inline spin_has_reset(first_reset, step) = UInt32(step) >= first_reset
-
-outflow_spin_reset_at!(spin_state, t, i, motion; replace_by=0) =
-   outflow_spin_reset!(spin_state, t[i, :], motion; replace_by)
-outflow_spin_reset_at!(spin_state, t, i, ::NoMotion; replace_by=0) = nothing
 
 function outflow_spin_reset!(args...; kwargs...)
    return nothing
