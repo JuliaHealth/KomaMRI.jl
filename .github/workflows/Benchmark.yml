@@ -5,55 +5,46 @@ permissions:
   deployments: write # deployments permission to deploy GitHub pages website
   pull-requests: write
 
-on: 
-  pull_request:
-    branches:
-      - master
-    paths:
-      - "KomaMRICore/src/**/*"
-      - "KomaMRICore/ext/**/*"
-      - "KomaMRICore/Project.toml"
-      - "KomaMRIBase/src/**/*"
-      - "KomaMRIBase/Project.toml"
-      - "benchmarks/**/*"
-      - ".buildkite/**/*"
-      - "Project.toml"
-      - ".github/workflows/Benchmark.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "KomaMRICore/src/**/*"
-      - "KomaMRICore/ext/**/*"
-      - "KomaMRICore/Project.toml"
-      - "KomaMRIBase/src/**/*"
-      - "KomaMRIBase/Project.toml"
-      - "benchmarks/**/*"
-      - ".buildkite/**/*"
-      - "Project.toml"
-      - ".github/workflows/Benchmark.yml"
+on:
+  status: # Buildkite pipeline completion
 
 jobs:
   benchmark:
     if: >-
       ${{
-        (github.event_name == 'push' && !contains(github.event.head_commit.message, '[skip benchmarks]')) ||
-        (github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository &&
-          github.event.pull_request.user.login != 'dependabot[bot]')
+        github.event.context == 'buildkite/komamri-dot-jl' &&
+        github.event.state == 'success' &&
+        startsWith(github.event.target_url, 'https://buildkite.com/julialang/komamri-dot-jl/builds/')
       }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Resolve Benchmark Target
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.sha }}
+          MESSAGE: ${{ github.event.commit.commit.message }}
+        run: |
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" \
+            --jq 'first(.[] | select(.head.sha == env.SHA and .state == "open" and .base.ref == "master") | .number) // empty')
+          if [ -n "$pr" ]; then
+            echo "mode=pr" >> "$GITHUB_OUTPUT"
+            echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          elif [[ "$MESSAGE" != *"[skip benchmarks]"* ]] &&
+            [[ "$(gh api "repos/$GITHUB_REPOSITORY/compare/$SHA...master" --jq .status)" =~ ^(ahead|identical)$ ]]; then
+            echo "mode=master" >> "$GITHUB_OUTPUT"
+          fi
       - name: Download Buildkite Artifacts
         id: download
+        if: ${{ steps.target.outputs.mode != '' }}
         uses: EnricoMi/download-buildkite-artifact-action@v1
         with:
           buildkite_token: ${{ secrets.BUILDKITE_TOKEN }}
+          buildkite_build_url: ${{ github.event.target_url }}
           ignore_build_states: blocked,canceled,skipped,not_run,failed
           ignore_job_states: timed_out,failed
           output_path: artifacts
-          poll_interval: 300
 
       - name: Locate Benchmarks Artifact
         id: locate
@@ -69,9 +60,29 @@ jobs:
           output-file-path: ${{ steps.locate.outputs.path }}
           benchmark-data-dir-path: "benchmarks"
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.sha }}
           # comment-on-alert: true
           comment-always: true
           summary-always: true
           alert-threshold: "150%"
           fail-on-alert: false
-          auto-push: ${{ github.event_name != 'pull_request' }}
+          auto-push: ${{ steps.target.outputs.mode == 'master' }}
+
+      # Status events carry no PR payload, so benchmark-action comments on the commit; move it to the PR review.
+      - name: Move Benchmark Comment to PR
+        if: ${{ steps.target.outputs.mode == 'pr' && steps.locate.outputs.path != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.sha }}
+          PR: ${{ steps.target.outputs.pr }}
+          MARKER: "<!-- github-benchmark-action-comment(start): KomaMRI Benchmarks Summary -->"
+          BENCHMARK_COMMENTS: '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith(env.MARKER)))'
+        run: |
+          comment=$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$SHA/comments" --jq "$BENCHMARK_COMMENTS" | tail -n 1)
+          review=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --jq "$BENCHMARK_COMMENTS | .id" | tail -n 1)
+          if [ -n "$review" ]; then
+            jq '{body}' <<< "$comment" | gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews/$review" --input -
+          else
+            jq '{body, event: "COMMENT"}' <<< "$comment" | gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --input -
+          fi
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/comments/$(jq .id <<< "$comment")"
