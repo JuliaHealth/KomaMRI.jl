@@ -394,6 +394,15 @@ end
     motion = translate(1.0, 0.0, 0.0, TimeRange(0.0, 1.0), SpinRange(selected))
     @test f32(motion).spins.range == selected
 
+    # Precision conversion must accept arrays without a KernelAbstractions backend (e.g. PythonCall.PyArray).
+    struct ForeignArray{T,N,A<:AbstractArray{T,N}} <: AbstractArray{T,N}
+        data::A
+    end
+    Base.size(a::ForeignArray) = size(a.data)
+    Base.getindex(a::ForeignArray, i::Int...) = a.data[i...]
+    off_resonance = [-2π, 0.0, 2π]
+    @test f32(Phantom(x=zeros(3), Δw=ForeignArray(off_resonance))).Δw == Float32.(off_resonance)
+
     seq = Sequence()
     @addblock seq += RF([1.0, 2.0, 1.0] .* 1e-6, 1e-4, [0.0, 0.0, 0.0])
     obj = Phantom(
