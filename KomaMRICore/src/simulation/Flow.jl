@@ -25,6 +25,7 @@ end
 prealloc_view(state::SpinResetState, idx) = view(state, idx)
 spin_reset_state(::PreallocResult) = NoSpinReset()
 spin_reset_state(prealloc::BlochSimplePrealloc) = prealloc.spin_reset
+spin_reset_state(prealloc::BlochDictPrealloc) = prealloc.spin_reset
 spin_reset_state(prealloc::BlochCPUPrealloc) = prealloc.spin_reset
 spin_reset_state(prealloc::BlochGPUPrealloc) = prealloc.spin_reset
 spin_reset_state(prealloc::BlochMagnusCPUPrealloc) = prealloc.spin_reset
