@@ -25,7 +25,7 @@ is_ADC_on(x::ADC) = is_on(x)
 
 Get amplitude samples of MRI sequence event.
 """
-ampls(gr::TrapezoidalGrad) = is_on(gr) ? [gr.first; gr.A; gr.A; gr.last] : typeof(gr.A)[]
+ampls(gr::TrapezoidalGrad) = is_on(gr) ? [gr.first, gr.A, gr.A, gr.last] : typeof(gr.A)[]
 function ampls(gr::Union{UniformlySampledGrad,TimeShapedGrad})
     is_on(gr) || return eltype(gr.A)[]
     A = length(gr.A) == 1 ? [only(gr.A), only(gr.A)] : gr.A
@@ -98,7 +98,7 @@ end
 Get time samples of MRI sequence event.
 """
 times(gr::TrapezoidalGrad) =
-    is_on(gr) ? cumsum([gr.delay; gr.rise; gr.T; gr.fall]) : typeof(gr.delay)[]
+    is_on(gr) ? cumsum([gr.delay, gr.rise, gr.T, gr.fall]) : typeof(gr.delay)[]
 
 function times(gr::UniformlySampledGrad)
     is_on(gr) || return typeof(gr.delay)[]

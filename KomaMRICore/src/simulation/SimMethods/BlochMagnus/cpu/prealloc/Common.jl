@@ -1,7 +1,7 @@
 abstract type BlochMagnusCPUPrealloc <: PreallocResult end
 
-cbuf(obj::Phantom) = zeros(Complex{eltype(obj.ρ)}, size(obj.x))
-rbuf(obj::Phantom) = zeros(eltype(obj.ρ), size(obj.x))
+cbuf(obj::Phantom) = zero.(complex.(obj.ρ))
+rbuf(obj::Phantom) = zero.(obj.ρ)
 off_resonance_buffer(obj::Phantom) = obj.Δw ./ eltype(obj.ρ)(2π .* γ)
 
 function Base.view(p::P, i::UnitRange) where {P<:BlochMagnusCPUPrealloc}
