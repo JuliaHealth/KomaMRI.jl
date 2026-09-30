@@ -1,5 +1,13 @@
 Base.@kwdef struct BlochDict <: SimulationMethod
     save_Mz::Bool = false
+
+    function BlochDict(save_Mz::Bool)
+        Base.depwarn(
+            "`BlochDict` is deprecated and will be removed in a future release.",
+            :BlochDict,
+        )
+        return new(save_Mz)
+    end
 end
 
 export BlochDict
