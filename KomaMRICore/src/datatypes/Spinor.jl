@@ -155,7 +155,13 @@ Spinor rotation matrix. Counter-clockwise rotation of `φ` with respect to the a
   (NMR imaging). IEEE Transactions on Medical Imaging, 10(1), 53-65.
   doi:10.1109/42.75611
 """
-Q(φ, nxy, nz) = Spinor(cos.(φ/2).-1im*nz.*sin.(φ/2), -1im*nxy.*sin.(φ/2))
+function Q(φ, nxy, nz)
+    neg_im = complex(zero(eltype(φ)), -one(eltype(φ)))
+    return Spinor(
+        (@. cos(φ / 2) + neg_im * nz * sin(φ / 2)),
+        (@. neg_im * nxy * sin(φ / 2)),
+    )
+end
 
 """
     y = abs(s::Spinor)
