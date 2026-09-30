@@ -259,6 +259,8 @@ function rf_center(rf::RF)
     weights = abs.(ampls(rf))
     isempty(weights) && return 0.0
     total = sum(weights)
-    iszero(total) && return 0.0
-    return sum(weights .* (times(rf) .- rf.delay)) / total
+    active = !iszero(total)
+    denominator = ifelse(active, total, one(total))
+    center = sum(weights .* (times(rf) .- rf.delay)) / denominator
+    return ifelse(active, center, zero(center))
 end
