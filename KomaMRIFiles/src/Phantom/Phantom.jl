@@ -75,7 +75,8 @@ function import_motion_field!(motion_fields::Array, motion::HDF5.Group, name::St
             for subname in fieldnames(subtype_vector[i]) # dx, dy, dz, pitch, roll...
                 key = string(subname)
                 if !(key in ["t_start", "t_end"])
-                    subfield_value = key in keys(field_group) ? read(field_group, key) : read_attribute(field_group, key)
+                    subfield_value = key in keys(field_group) ? read(field_group, key) :
+                        haskey(HDF5.attributes(field_group), key) ? read_attribute(field_group, key) : nothing
                     import_motion_subfield!(motion_subfields, subfield_value, key, T)
                 end
             end
@@ -86,6 +87,11 @@ end
 
 function import_motion_subfield!(motion_subfields::Array, subfield_value::Union{Real, Array}, key::String, T::Type{<:Real})
     push!(motion_subfields, subfield_value)
+    return nothing
+end
+""" Subfields absent from the file (e.g. an unset cycle_map) default to nothing """
+function import_motion_subfield!(motion_subfields::Array, ::Nothing, key::String, T::Type{<:Real})
+    push!(motion_subfields, nothing)
     return nothing
 end
 function import_motion_subfield!(motion_subfields::Array, subfield_value::String, key::String, T::Type{<:Real})
@@ -181,3 +187,4 @@ end
 function export_motion_subfield!(field_group::HDF5.Group, subfield::CenterOfMass, subname::String)
     field_group[subname] = "CenterOfMass"
 end
+export_motion_subfield!(field_group::HDF5.Group, ::Nothing, subname::String) = nothing
