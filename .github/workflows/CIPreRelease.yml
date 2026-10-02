@@ -70,7 +70,8 @@ jobs:
         if: '!cancelled()'
         shell: bash
         run: |
-          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
+          # TODO: remove once Bifti is registered (see [sources] in KomaMRIFiles/Project.toml)
+          julia --color=yes --project="KomaMRIFiles" -e "using Pkg; Pkg.add(PackageSpec(; url=\"https://github.com/mrx-org/bifti-phantoms\", subdir=\"julia/Bifti\", rev=\"ccr-cbbe1290-3qag5t\")); Pkg.develop(PackageSpec(; path=\"./KomaMRIBase\"));"
       - name: "KomaMRIFiles: Build"
         if: '!cancelled()'
         uses: julia-actions/julia-buildpkg@v1
@@ -102,6 +103,8 @@ jobs:
         shell: julia --color=yes --project {0}
         run: |
           using Pkg
+          # TODO: remove once Bifti is registered (see [sources] in KomaMRIFiles/Project.toml)
+          Pkg.add(PackageSpec(; url="https://github.com/mrx-org/bifti-phantoms", subdir="julia/Bifti", rev="ccr-cbbe1290-3qag5t"))
           Pkg.develop([
               PackageSpec(path=pwd(), subdir="KomaMRIBase"),
               PackageSpec(path=pwd(), subdir="KomaMRICore"),

@@ -18,6 +18,43 @@ end
     @test obj.name == "brain_mrilab.mat"
 end
 
+@testitem "BIfTI" tags=[:files] begin
+    using KomaMRIBase
+    pth = joinpath(@__DIR__, "test_files", "phantom", "bifti")
+    # shapes.json: 40×32×4 voxels of 3×3×5 mm starting at RAS (-60, -48, -10) mm, patient HFS.
+    # T1 identifies the tissue: disk 1.0 s, ring 0.6 s (covers every voxel), background 4.0 s.
+    obj = @test_logs (:warn, r"B1\+") read_phantom_bifti(joinpath(pth, "shapes.json"))
+    @test obj.name == "shapes.json"
+    disk, ring = obj.T1 .== 1.0, obj.T1 .== 0.6
+    no_relaxation = only(Phantom(; x=[0.0]).T2)
+
+    # Scalar properties map onto Koma's fields and SI units; missing relaxation is Koma's default.
+    @test all(==(0.08), obj.T2[disk])
+    @test all(≈(1 / (1 / 0.08 + 1 / 0.05)), obj.T2s[disk])
+    @test all(≈(0.9e-9), obj.Dλ1[disk]) && all(≈(0.9e-9), obj.Dλ2[disk])
+    @test all(==(no_relaxation), obj.T2[ring]) && all(==(no_relaxation), obj.T2s[ring])
+
+    # HFS turns the subject about the vertical axis: scanner x = -R, y = A, z = -S, in m.
+    @test extrema(obj.x[ring]) .* 1e3 == (-(-60 + 3 * 39), 60)
+    @test extrema(obj.y[ring]) .* 1e3 == (-48, -48 + 3 * 31)
+    @test extrema(obj.z[ring]) .* 1e3 == (-(-10 + 5 * 3), 10)
+
+    # The ring's dB0 is `func = "x * 0.5 + 10"` of the disk's map, voxel by voxel, in rad/s.
+    ring_Δw = Dict(zip(zip(obj.x[ring], obj.y[ring], obj.z[ring]), obj.Δw[ring]))
+    @test all(ring_Δw[(x, y, z)] ≈ Δw * 0.5 + 2π * 10 for (x, y, z, Δw) in zip(obj.x[disk], obj.y[disk], obj.z[disk], obj.Δw[disk]))
+
+    # Spins sit on the B1- grid nodes, so each sees the map value of its own voxel, despite
+    # the HFS flips. All tissues share one map here, so the density-weighted mean is that map.
+    coils_file = joinpath(pth, "shapes_coils.json")
+    receiver = read_coil_sens_bifti(coils_file)
+    @test get_n_coils(receiver) == 2
+    obj = @test_logs (:warn, r"B1\+") (:info, r"B1-") read_phantom_bifti(coils_file)
+    disk_tissue = KomaMRIFiles.load_bifti(coils_file).tissues["disk"]
+    disk_voxels = findall(>(0), disk_tissue.density)
+    sens = get_sens(receiver, obj.x, obj.y, obj.z)
+    @test all(sens[1:length(disk_voxels), coil] ≈ disk_tissue.B1_rx[coil][disk_voxels] for coil in 1:2)
+end
+
 @testitem "Phantom" tags=[:files] begin
     using KomaMRIBase
     @testset "NoMotion" begin

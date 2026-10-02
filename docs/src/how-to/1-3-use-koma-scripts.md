@@ -124,6 +124,14 @@ julia> plot_phantom_map(sphere, :T2)
 <object type="text/html" data="../assets/phantom-T2-circle.html" style="width:100%; height:620px;"></object>
 ```
 
+Phantoms in the [BIfTI](https://github.com/mrx-org/bifti-phantoms) format (a `.json` file referencing NIfTI maps) are read with [`read_phantom_bifti`](@ref), and their `B1-` maps with [`read_coil_sens_bifti`](@ref). Phantoms of the public BIfTI registry are downloaded with `load_registry_phantom` of the Bifti.jl package:
+```julia-repl
+julia> using Bifti
+julia> path = load_registry_phantom("endres-bifti_demo-001", "subj42-3T.json")
+julia> obj = read_phantom_bifti(path)
+julia> sys = Scanner(; receiver=read_coil_sens_bifti(path))
+```
+
 ### Sequence
 
 The **Sequence** struct in the example represents one of the most basic MRI sequences. It excites the object with a 90° RF pulse and then uses EPI gradients to fill the k-space in a "square" manner. While you may want to create your sequences for experiments, you can always use some of the examples already available in **KomaMRI**.

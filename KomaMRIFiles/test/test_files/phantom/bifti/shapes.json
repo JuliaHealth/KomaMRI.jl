@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/mrx-org/bifti-phantoms/refs/heads/main/bifti-phantom-v1.schema.json",
+  "units": {
+    "gyro": "MHz/T",
+    "B0": "T",
+    "T1": "s",
+    "T2": "s",
+    "T2'": "s",
+    "ADC": "10^-3 mm^2/s",
+    "dB0": "Hz",
+    "B1+": "rel",
+    "B1-": "rel"
+  },
+  "system": {
+    "gyro": 42.5764,
+    "B0": 3.0
+  },
+  "patient": {
+    "position": "HFS"
+  },
+  "tissues": {
+    "disk": {
+      "density": "shapes_density.nii.gz[0]",
+      "T1": 1.0,
+      "T2": 0.08,
+      "T2'": 0.05,
+      "ADC": 0.9,
+      "dB0": "shapes_dB0.nii.gz[0]",
+      "B1+": [
+        "shapes_B1.nii.gz[0]",
+        "shapes_B1.nii.gz[1]"
+      ]
+    },
+    "ring": {
+      "density": "shapes_density.nii.gz[1]",
+      "T1": 0.6,
+      "dB0": {
+        "file": "shapes_dB0.nii.gz[0]",
+        "func": "x * 0.5 + 10"
+      }
+    },
+    "background": {
+      "density": "shapes_density.nii.gz[2]",
+      "T1": 4.0,
+      "T2": 2.0
+    }
+  }
+}
