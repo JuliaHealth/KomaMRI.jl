@@ -27,7 +27,7 @@ x |> f32 |> gpu # Float32 CuArray
 
 To change the precision level used for the entire simulation, the `sim_params["precision"]` parameter can be set to either `f32` or `f64` (Note that for most GPUs, Float32 operations are considerably faster compared with Float64). In addition, the `sim_params["gpu"]` option can be set to true or false to enable / disable the gpu functionality (if set to true, the backend package will still need to be loaded beforehand):
 
-Two other simulation parameters, `gpu_groupsize_precession` and `gpu_groupsize_excitation` are exposed to allow adjusting the number of threads in each threadgroup within the `run_spin_precession!` and `run_spin_excitation!` gpu kernels. By default, they are both 256, however, on some devices other values may result in faster performance. The gpu groupsize must be a multiple of 32 between 32 and no higher than 1024, otherwise the simulation will throw an error.
+Two other simulation parameters, `gpu_groupsize_precession` and `gpu_groupsize_excitation` are exposed to allow adjusting the number of threads in each threadgroup within the `run_spin_precession!` and `run_spin_excitation!` gpu kernels. By default, they are both 256, however, on some devices other values may result in faster performance. The gpu groupsize must not exceed the maximum workgroup size of the device (usually 1024).
 
 ```julia
 using KomaMRI

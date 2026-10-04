@@ -188,8 +188,6 @@ function run_sim_time_iter!(
     # Simulation
     rfs = 0
     samples = 1
-    (precession_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
-    (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
     prealloc_groupsize = min(precession_groupsize, excitation_groupsize)
     max_block_length = maximum(length.(parts))
     prealloc_result = prealloc(
