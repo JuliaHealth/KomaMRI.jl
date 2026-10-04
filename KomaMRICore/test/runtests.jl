@@ -937,7 +937,7 @@ end
     begin
         if USE_GPU
             y = x |> gpu
-            @test KA.get_backend(y) isa KA.GPU
+            @test !(KA.get_backend(y) isa KA.CPU)
             y = y |> cpu
             @test KA.get_backend(y) isa KA.CPU
         else

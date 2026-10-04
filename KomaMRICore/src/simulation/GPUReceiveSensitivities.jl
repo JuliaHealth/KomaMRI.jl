@@ -93,7 +93,9 @@ end
 end
 
 # Whole-map materialization runs outside the kernel for static and custom receivers.
-function KomaMRIBase.get_sens(receiver::ArbitraryCoilSens, x, y, z, ::KA.GPU)
+KomaMRIBase.get_sens(receiver::ArbitraryCoilSens, x, y, z, ::KA.CPU) =
+    get_sens(receiver, x, y, z)
+function KomaMRIBase.get_sens(receiver::ArbitraryCoilSens, x, y, z, ::KA.Backend)
     ncoils = get_n_coils(receiver)
     sens = similar(x, eltype(receiver.coil_sens), length(x), ncoils)
     coils = similar(x, Int, ncoils)

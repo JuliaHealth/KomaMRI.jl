@@ -1,4 +1,4 @@
-const LOADED_BACKENDS = Ref{Vector{KA.GPU}}([])
+const LOADED_BACKENDS = Ref{Vector{KA.Backend}}([])
 const BACKEND = Ref{Union{KA.Backend,Nothing}}(nothing)
 const DEFAULT_PRECESSION_GROUPSIZE = 256
 const DEFAULT_EXCITATION_GROUPSIZE = 256
@@ -6,6 +6,8 @@ const DEFAULT_EXCITATION_GROUPSIZE = 256
 device_name(backend) = @error "device_name called with invalid backend type $(typeof(backend))"
 isfunctional(::KA.CPU) = true
 isfunctional(x) = false
+isgpu(::KA.CPU) = false
+isgpu(::KA.Backend) = true
 supports_warp_reduction(backend) = false
 _print_devices(backend) = @error "_print_devices called with invalid backend type $(typeof(backend))"
 _print_devices(::KA.CPU) = @info "CPU: $(length(Sys.cpu_info())) x $(Sys.cpu_info()[1].model)"
@@ -42,7 +44,7 @@ function get_backend(use_gpu; verbose=true)
     if !isnothing(BACKEND[])
         # The backend can be set and still need to change based on the value of
         # use_gpu, e.g. if switching between CPU and GPU while running tests
-        ((BACKEND[] isa KA.GPU) == use_gpu) && return BACKEND[]
+        (isgpu(BACKEND[]) == use_gpu) && return BACKEND[]
     end
 
     if !use_gpu

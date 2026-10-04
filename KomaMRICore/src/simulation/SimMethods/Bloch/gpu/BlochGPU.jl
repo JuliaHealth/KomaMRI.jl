@@ -35,7 +35,7 @@ end
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
 function prealloc(
     ::BlochLikeSimMethods,
-    backend::KA.GPU,
+    backend::KA.Backend,
     obj,
     _M,
     max_block_length,
@@ -50,7 +50,7 @@ end
 
 prealloc(
     ::BlochMagnusBGL4,
-    backend::KA.GPU,
+    backend::KA.Backend,
     obj,
     _M,
     max_block_length,
@@ -64,7 +64,7 @@ prealloc(
 
 prealloc(
     ::BlochMagnusBGL6,
-    backend::KA.GPU,
+    backend::KA.Backend,
     obj,
     M,
     max_block_length,
@@ -80,10 +80,9 @@ prealloc(
 function reduce_signal_groups!(sig, pre, nspins, groupsize)
     groups = 1:cld(nspins, groupsize)
     samples = 1:length(sig)
-    AK.reduce(
-        +, view(pre.sig_output, groups, samples);
-        init=zero(eltype(sig)), dims=1,
-        temp=view(pre.sig_output_final, :, samples),
+    AK.mapreducedim!(
+        identity, +, view(pre.sig_output_final, :, samples),
+        view(pre.sig_output, groups, samples); init=zero(eltype(sig)),
     )
     sig .= reshape(view(pre.sig_output_final, 1, samples), size(sig))
     return nothing

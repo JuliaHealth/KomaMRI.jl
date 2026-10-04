@@ -8,12 +8,12 @@ function combine_coil_signal!(sig, Mxy::AbstractVector, sens, ::KA.CPU)
     return nothing
 end
 
-function combine_coil_signal!(sig, Mxy::AbstractVector, sens, ::KA.GPU)
+function combine_coil_signal!(sig, Mxy::AbstractVector, sens, ::KA.Backend)
     sig .= vec(sum(reshape(Mxy, :, 1) .* sens; dims=1))
     return nothing
 end
 
-function combine_coil_signal!(sig, Mxy::AbstractMatrix, sens, backend::KA.GPU)
+function combine_coil_signal!(sig, Mxy::AbstractMatrix, sens, backend::KA.Backend)
     for sample in axes(Mxy, 2)
         combine_coil_signal!(
             @view(sig[sample, :]), @view(Mxy[:, sample]), sens, backend,
