@@ -8,13 +8,13 @@ isfunctional(::KA.CPU) = true
 isfunctional(x) = false
 isgpu(::KA.CPU) = false
 isgpu(::KA.Backend) = true
-supports_warp_reduction(backend) = false
+supports_warp_reduction(backend, T) =
+    KI.supports_subgroups(backend) && KI.supports_shuffle(backend, Complex{T})
 _print_devices(backend) = @error "_print_devices called with invalid backend type $(typeof(backend))"
 _print_devices(::KA.CPU) = @info "CPU: $(length(Sys.cpu_info())) x $(Sys.cpu_info()[1].model)"
 name(::KA.CPU) = "CPU"
 set_device!(backend, val) = @error "set_device! called with invalid parameter types: '$(typeof(backend))', '$(typeof(val))'" 
 set_device!(val) = set_device!(get_backend(true), val)
-function shfl_down end
 
 struct Literal{T} end
 Literal(T) = Literal{T}()
