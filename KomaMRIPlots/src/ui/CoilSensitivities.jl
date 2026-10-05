@@ -59,7 +59,6 @@ spacing with `adaptive=false`, and the finest grid spacing with `adaptive=true`.
 """
 function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothing,
     darkmode=false, adaptive=false)
-    adaptive && return coil_spatial_plot(sys; fov, spacing, height, width, darkmode)
     receiver = sys.receiver
     fov = isnothing(fov) ? get_coil_sens_fov(receiver) : fov
     bounds = map(coil_plot_bounds(receiver), fov) do (lower, upper), extent
@@ -71,20 +70,23 @@ function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothin
         start = (lower + upper - intervals * spacing) / 2
         range(start; step=spacing, length=intervals + 1)
     end
-    positions = [position for position in Iterators.product(grid...)
-        if inside_coil_plot(receiver, position)]
-    x, y, z = (getindex.(positions, dimension) for dimension in 1:3)
-    sensitivities = get_sens(receiver, x, y, z)
-    magnitude = [abs.(coil) for coil in eachcol(sensitivities)]
-    phase = [angle.(coil) for coil in eachcol(sensitivities)]
-    coordinates = (100 .* x, 100 .* y, 100 .* z)
+    coordinates, magnitude, phase, cmax = if adaptive
+        ((Float64[], Float64[], Float64[]), [Float64[]], [Float64[]], coil_color_limit(receiver))
+    else
+        positions = [position for position in Iterators.product(grid...)
+            if inside_coil_plot(receiver, position)]
+        x, y, z = (getindex.(positions, dimension) for dimension in 1:3)
+        sensitivities = get_sens(receiver, x, y, z)
+        ((100 .* x, 100 .* y, 100 .* z), [abs.(coil) for coil in eachcol(sensitivities)],
+            [angle.(coil) for coil in eachcol(sensitivities)], maximum(abs, sensitivities))
+    end
     ncoils = get_n_coils(receiver)
     dimensions = findall(bound -> first(bound) != last(bound), bounds)
     view_2d = length(dimensions) < 3
     displayed = [dimensions; setdiff(1:3, dimensions)][1:2]
     axis_names = ("x", "y", "z")
     background, text, plot_background, grid_color, _ = theme_chooser(darkmode)
-    magnitude_scale = attr(; cmin=0, cmax=maximum(abs, sensitivities), colorscale="Greys",
+    magnitude_scale = attr(; cmin=0, cmax, colorscale="Greys",
         colorbar=attr(; title=attr(; text="|S|"), thickness=16))
     phase_scale = attr(; cmin=-π, cmax=π, colorscale=PHASE_COLORSCALE,
         colorbar=attr(; title=attr(; text="rad"), thickness=16,
@@ -100,7 +102,7 @@ function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothin
             mode="markers", visible=coil == 1, showlegend=false, name="Coil $coil",
             marker=attr(; size=view_2d ? 4 : 2, color=magnitude[coil], coloraxis="coloraxis"),
             hovertemplate=hover * "|S|: %{marker.color:.3g}<extra>%{fullData.name}</extra>",
-        ) for coil in 1:ncoils
+        ) for coil in eachindex(magnitude)
     ]
     extent = max(spacing * 100, maximum(bound -> maximum(abs, bound), bounds) * 100)
     axes = [attr(; title=name, range=[-extent, extent], ticksuffix=" cm",
@@ -112,10 +114,12 @@ function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothin
         coloraxis=magnitude_scale,
         uirevision="coil-sensitivities",
         sliders=ncoils == 1 ? [] : [attr(;
+            (adaptive ? (; name="coil") : (;))...,
             active=0, x=0.12, len=0.78, y=1.04, yanchor="bottom",
             currentvalue=attr(; prefix="Coil: "),
-            steps=[attr(; label=string(coil), method="restyle",
-                args=[attr(; visible=collect(1:ncoils) .== coil)])
+            steps=[attr(; label=string(coil), (adaptive ?
+                (; method="skip", value=string(coil)) :
+                (; method="restyle", args=[attr(; visible=collect(1:ncoils) .== coil)]))...)
                 for coil in 1:ncoils],
         )],
         updatemenus=[attr(;
@@ -123,14 +127,14 @@ function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothin
             x=0.5, xanchor="center", y=0, yanchor="top", pad=attr(; t=30),
             bgcolor="#2a7fb8", bordercolor="#2a7fb8", font=attr(; color="#111111"),
             showactive=true, active=0,
-            buttons=[attr(; label, method="update", args=[
+            buttons=[attr(; label, method=adaptive ? "skip" : "update", args=adaptive ? [component] : [
                 Dict("marker.color" => values, "hovertemplate" => hover * value_label *
                     ": %{marker.color:.3g}<extra>%{fullData.name}</extra>"),
                 attr(; coloraxis=scale),
-            ]) for (label, value_label, values, scale) in (
+            ]) for (component, (label, value_label, values, scale)) in enumerate((
                 ("Magnitude", "|S|", magnitude, magnitude_scale),
                 ("Phase", "Phase (rad)", phase, phase_scale),
-            )],
+            ))],
         )],
         modebar=attr(; orientation="h", bgcolor=background, color=text, activecolor=plot_background),
     )
@@ -146,5 +150,7 @@ function plot_coil_sens(sys; fov=nothing, spacing=0.01, height=700, width=nothin
     width !== nothing && (layout.width = width)
     config = PlotConfig(; displaylogo=false, toImageButtonOptions=attr(; format="svg").fields,
         modeBarButtonsToRemove=["zoom", "pan", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"])
-    return PlotlyBase.Plot(traces, layout; config)
+    plot = PlotlyBase.Plot(traces, layout; config)
+    return adaptive ? SpatialPlot(CoilSpatialSource(receiver, grid), plot,
+        view_2d ? displayed : [1, 2, 3]) : plot
 end

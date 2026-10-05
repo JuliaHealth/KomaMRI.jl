@@ -81,7 +81,8 @@ function sequence_source(seq; physio=NoPhysioSignal(), width=nothing, height=not
         trace = deepcopy(data[end])
         merge!(trace.fields, Dict(:name=>string(name), :legendgroup=>string(name),
             :showlegend=>false, :mode=>"markers", :visible=>false,
-            :marker=>attr(color="white", symbol="x")))
+            :marker=>attr(color=last(theme_chooser(darkmode)), symbol="x"),
+            :meta=>attr(theme="contrast")))
         push!(data, trace)
     end
     layout, config = generate_seq_time_layout_config(

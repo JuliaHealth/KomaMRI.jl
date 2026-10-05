@@ -205,19 +205,25 @@ end
 _retained_samples(profile) =
     (1 + profile.head.discard_pre):(size(profile.data, 1) - profile.head.discard_post)
 
+function _trajectory_physical_scale(raw)
+    metadata = get(raw.params, "userParameters", Dict())
+    haskey(metadata, "KomaTrajectoryScaleX") || return nothing
+    return [metadata["KomaTrajectoryScale$axis"] for axis in ("X", "Y", "Z")]
+end
+
 function _encoding_axes(raw)
     samples = sum(profile -> length(_retained_samples(profile)), raw.profiles)
-    normalization = get(get(raw.params, "userParameters", Dict()), "KomaTrajectoryScale", nothing)
     # Exported data has a physical tolerance; foreign MRD falls back to Float32 roundoff.
-    tolerance = isnothing(normalization) ? eps(Float32) * _trajectory_scale(raw) :
-        KomaMRICore.KSPACE_DIMENSION_TOLERANCE / normalization
+    scale = _trajectory_physical_scale(raw)
+    tolerance = isnothing(scale) ? fill(eps(Float32) * _legacy_trajectory_scale(raw), 3) :
+        KomaMRICore.KSPACE_DIMENSION_TOLERANCE ./ scale
     return filter(1:first(raw.profiles).head.trajectory_dimensions) do dimension
         lower = minimum(profile -> minimum(@view(profile.traj[dimension, _retained_samples(profile)])), raw.profiles)
         upper = maximum(profile -> maximum(@view(profile.traj[dimension, _retained_samples(profile)])), raw.profiles)
         mean_coordinate = sum(raw.profiles) do profile
             sum(Float64, @view(profile.traj[dimension, _retained_samples(profile)]))
         end / samples
-        max(upper - mean_coordinate, mean_coordinate - lower) > tolerance
+        max(upper - mean_coordinate, mean_coordinate - lower) > tolerance[dimension]
     end
 end
 
@@ -237,6 +243,9 @@ function _reconstruction_geometry(raw)
     # Geometry belongs to this role/policy batch, not to the complete MRD acquisition.
     params = copy(raw.params)
     order = [encoding_axes; setdiff(1:3, encoding_axes)]
+    scale = _trajectory_physical_scale(raw)
+    isnothing(scale) || (params["userParameters"] = merge(params["userParameters"],
+        Dict("KomaTrajectoryScale$axis" => scale[d] for (axis, d) in zip(("X", "Y", "Z"), order))))
     for name in ("encodedSize", "reconSize", "encodedFOV", "reconFOV")
         haskey(params, name) && (params[name] = raw.params[name][order])
     end
@@ -250,6 +259,9 @@ function _reconstruction_geometry(raw)
             samples = maximum(profile -> length(_retained_samples(profile)), raw.profiles)
             params["encodedSize"][1] = samples
             params["reconSize"][1] = samples + samples % 2
+            # The imaging FOV does not establish a separate navigator's physical voxel size.
+            params["userParameters"] = merge(get(params, "userParameters", Dict()),
+                Dict("KomaInferredFOV" => 1))
         end
         params["reconSize"][2] = 2
     end
@@ -303,7 +315,7 @@ function reconstruction_batches(raw, policy)
     ]
 end
 
-function _trajectory_scale(raw)
+function _legacy_trajectory_scale(raw)
     scale = mapreduce(
         profile -> isempty(profile.traj) ? 0.0f0 :
             2 * maximum(abs, @view(profile.traj[:, _retained_samples(profile)])),
@@ -314,10 +326,41 @@ function _trajectory_scale(raw)
     return iszero(scale) ? one(scale) : scale
 end
 
-function _prepare_acquisition!(acquisition, scale)
+function _legacy_trajectory(raw)
+    metadata = get(raw.params, "userParameters", Dict())
+    return !haskey(metadata, "KomaTrajectoryScaleX") || get(metadata, "KomaInferredFOV", 0) != 0
+end
+
+function _inferred_fov_warning(fov_mm)
+    names = ("FOVx", "FOVy", "FOVz")
+    values = join(
+        ("$name=$(round(value; digits=3)) mm" for (name, value) in zip(names, fov_mm)),
+        ", ",
+    )
+    return "Reconstruction FOV inferred: $values. " *
+        "Explicitly specifying FOV in [DEFINITIONS] is recommended."
+end
+
+function reconstruction_geometry_warning(raw)
+    warnings = String[]
+    metadata = get(raw.params, "userParameters", Dict())
+    inferred = get(metadata, "KomaInferredMatrix", "")
+    if !isempty(inferred)
+        matrix = raw.params["encodedSize"]
+        push!(warnings, "Reconstruction matrix inferred: Nx=$(matrix[1]), Ny=$(matrix[2]), Nz=$(matrix[3]) " *
+            "(guessed: $inferred). Explicitly specifying Nx/Ny/Nz in [DEFINITIONS] is recommended.")
+    end
+    if get(raw.params, "systemVendor", "") == "KomaMRI.jl" && get(metadata, "KomaInferredFOV", 0) != 0
+        push!(warnings, _inferred_fov_warning(raw.params["encodedFOV"]))
+    end
+    return join(warnings, "\n")
+end
+
+function _prepare_acquisition!(acquisition, raw)
+    scale = _legacy_trajectory(raw) ? _legacy_trajectory_scale(raw) : 1
     for trajectory in acquisition.traj
         trajectory.circular = false
-        trajectory.nodes ./= scale
+        isone(scale) || (trajectory.nodes ./= scale)
     end
     return nothing
 end
@@ -336,9 +379,10 @@ end
 function _reconstruct_batch(batch, rec_params, coil_policy)
     raw = batch.raw
     acquisition = AcquisitionData(raw)
-    _prepare_acquisition!(acquisition, _trajectory_scale(raw))
+    _prepare_acquisition!(acquisition, raw)
     dimensions = size(first(acquisition.traj).nodes, 1)
     params = Dict{Symbol,Any}(pairs(rec_params))
+    pop!(params, :recon_policy, nothing)
     params[:reconSize] = Tuple(Int.(raw.params["reconSize"][1:dimensions]))
     get!(params, :densityWeighting, true)
     image = reconstruction(acquisition, params)
@@ -373,15 +417,17 @@ end
     reconstruct_with_labels(
         raw,
         ;
-        recon_policy=NamedTuple(),
         rec_params=Dict{Symbol,Any}(),
+        recon_policy=get(rec_params, :recon_policy, NamedTuple()),
     )
 
 Reconstruct MRD data with MRIReco after applying a policy to its acquisition labels.
 `recon_policy` contains optional overrides of [`DEFAULT_RECON_POLICY`](@ref), whose
 documentation defines every dimension, action (`:separate`, `:axis`, `:encoding`,
-`:combine`, `:ignore`, `:rss`), and acquisition role. `rec_params` supplies MRIReco's
-reconstruction options; each batch's MRD `reconSize` determines its image matrix.
+`:combine`, `:ignore`, `:rss`), and acquisition role. It can also be supplied as
+`rec_params[:recon_policy]`; an explicit `recon_policy` keyword takes precedence.
+Koma consumes that entry before passing the remaining options to MRIReco.
+Each batch's MRD `reconSize` determines its image matrix.
 
 Profiles are separated by role and policy before determining geometry or normalizing
 trajectories. Only coordinate variation within that batch determines its encoding axes;
@@ -390,6 +436,11 @@ storing three k-space coordinates does not make every role a 3D acquisition. Axi
 For a line within a multi-dimensional acquisition, the retained ADC sample count supplies
 its matrix size instead of the imaging matrix. Geometry and scaling exclude MRD samples
 marked for discarding, as MRIReco does. The input MRD data is not modified.
+
+New Koma MRD coordinates are reconstruction-ready and used unchanged. Multiplying by
+the saved `KomaTrajectoryScaleX/Y/Z` factors recovers physical k-space in cycles/m.
+Old files or data without a known FOV use legacy global-maximum normalization.
+Lines inheriting an imaging matrix/FOV also use that fallback.
 
 With other labels fixed, `SLC=:separate` and `REP=:separate` turn observed `(SLC, REP)`
 pairs `(0, 0)`, `(0, 1)`, and `(1, 0)` into three independent images, not four. KomaUI
@@ -413,8 +464,8 @@ limits after changing image data.
 """
 function reconstruct_with_labels(
     raw;
-    recon_policy=NamedTuple(),
     rec_params=Dict{Symbol,Any}(),
+    recon_policy=get(rec_params, :recon_policy, NamedTuple()),
 )
     policy = reconstruction_policy(recon_policy)
     batches = reconstruction_batches(raw, policy)

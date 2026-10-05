@@ -81,7 +81,7 @@ _mat_value(value::AbstractArray) = reshape(Any[_mat_value(item) for item in valu
 _mat_value(value::Union{AcquisitionHeader,EncodingCounters,Limit,MeasurementDependency,CoilDescription}) =
     Dict(string(name) => _mat_value(getfield(value, name)) for name in fieldnames(typeof(value)))
 
-function export_2_mat_raw(raw_ismrmrd, matfolder; matfilename="raw.mat")
+function export_2_mat_raw(raw_ismrmrd, matfolder; matfilename="raw.mat", include_params=true)
     params = _mat_value(raw_ismrmrd.params)
     profiles = Any[
         Dict(
@@ -92,7 +92,7 @@ function export_2_mat_raw(raw_ismrmrd, matfolder; matfilename="raw.mat")
         ) for profile in raw_ismrmrd.profiles
     ]
     matwrite(joinpath(matfolder, matfilename), Dict("raw" => Dict("params" => params, "profiles" => profiles)))
-    if haskey(params, "userParameters")
+    if include_params && haskey(params, "userParameters")
         matwrite(joinpath(matfolder, "sim_params.mat"), params["userParameters"])
     end
 end
@@ -111,8 +111,8 @@ end
 
 _image_export(image) = Dict("image" => image)
 
-function export_2_mat_image(image, rec_params, matfolder; matfilename="image.mat")
-    if haskey(rec_params, :reconSize)
+function export_2_mat_image(image, rec_params, matfolder; matfilename="image.mat", include_params=true)
+    if include_params && haskey(rec_params, :reconSize)
         dict_rec_params = Dict("reco" => rec_params[:reco],
                             "Nx" => rec_params[:reconSize][1],
                             "Ny" => rec_params[:reconSize][2])
@@ -122,7 +122,7 @@ function export_2_mat_image(image, rec_params, matfolder; matfilename="image.mat
     matwrite(joinpath(matfolder, matfilename), _image_export(image))
 end
 
-function export_2_mat(seq, phantom, sys, raw_ismrmrd, rec_params, image, matfolder; type="all", matfilename="data.mat")
+function export_2_mat(seq, phantom, sys, raw_ismrmrd, rec_params, image, matfolder; type="all", matfilename="data.mat", include_params=true)
     head = splitext(matfilename)[1]
     files = String[]
     if type=="all"
@@ -131,8 +131,8 @@ function export_2_mat(seq, phantom, sys, raw_ismrmrd, rec_params, image, matfold
         export_2_mat_moments(seq, matfolder)
         export_2_mat_phantom(phantom, matfolder)
         export_2_mat_scanner(sys, matfolder)
-        export_2_mat_raw(raw_ismrmrd, matfolder)
-        export_2_mat_image(image, rec_params, matfolder)
+        export_2_mat_raw(raw_ismrmrd, matfolder; include_params)
+        export_2_mat_image(image, rec_params, matfolder; include_params)
     elseif type=="sequence"
 		files = [head*"_sequence.mat", head*"_kspace.mat", head*"_moments.mat"]
 		export_2_mat_sequence(seq, matfolder; matfilename=files[1])
@@ -146,12 +146,12 @@ function export_2_mat(seq, phantom, sys, raw_ismrmrd, rec_params, image, matfold
 		export_2_mat_scanner(sys, matfolder; matfilename=only(files))
     elseif type=="raw"
 		files = [head*"_raw.mat"]
-		haskey(raw_ismrmrd.params, "userParameters") && push!(files, "sim_params.mat")
-		export_2_mat_raw(raw_ismrmrd, matfolder; matfilename=first(files))
+        include_params && haskey(raw_ismrmrd.params, "userParameters") && push!(files, "sim_params.mat")
+		export_2_mat_raw(raw_ismrmrd, matfolder; matfilename=first(files), include_params)
     elseif type=="image"
 		files = [head*"_image.mat"]
-		haskey(rec_params, :reconSize) && push!(files, "rec_params.mat")
-		export_2_mat_image(image, rec_params, matfolder; matfilename=first(files))
+		include_params && haskey(rec_params, :reconSize) && push!(files, "rec_params.mat")
+		export_2_mat_image(image, rec_params, matfolder; matfilename=first(files), include_params)
 	end
 
     isempty(files) && return "<ul><li><b>Path:</b> $matfolder</li></ul>"

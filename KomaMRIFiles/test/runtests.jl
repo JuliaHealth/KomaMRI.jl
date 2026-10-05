@@ -336,7 +336,7 @@ end
         end
 
         mktempdir() do tmpdir
-            # Sparse counters preserve the full encoding matrix; repetitions do not enlarge it.
+            # Reading sparse labels preserves the counters without inventing explicit matrix definitions.
             seq = Sequence()
             @addblock for repetition in 0:1, partition in (0, 2), line in (1, 3)
                 seq += (
@@ -350,7 +350,7 @@ end
             filename = joinpath(tmpdir, "sparse-labels.seq")
             write_seq(seq, filename; check_timing=false, verbose=false)
             roundtrip = read_seq(filename; verbose=false)
-            @test (roundtrip.DEF["Ny"], roundtrip.DEF["Nz"]) == (4, 3)
+            @test all(name -> !haskey(roundtrip.DEF, name), ("Nx", "Ny", "Nz"))
 
             # Fat preparation and navigator labels must not create spatial image dimensions.
             seq = Sequence()
@@ -366,7 +366,7 @@ end
             filename = joinpath(tmpdir, "navigator.seq")
             write_seq(seq, filename; check_timing=false, verbose=false)
             roundtrip = read_seq(filename; verbose=false)
-            @test (roundtrip.DEF["Nx"], roundtrip.DEF["Ny"], roundtrip.DEF["Nz"]) == (4, 1, 1)
+            @test all(name -> !haskey(roundtrip.DEF, name), ("Nx", "Ny", "Nz"))
         end
 
         pth = @__DIR__

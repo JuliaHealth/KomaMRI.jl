@@ -7,8 +7,7 @@ device_name(backend) = @error "device_name called with invalid backend type $(ty
 isfunctional(::KA.CPU) = true
 isfunctional(x) = false
 supports_warp_reduction(backend) = false
-_print_devices(backend) = @error "_print_devices called with invalid backend type $(typeof(backend))"
-_print_devices(::KA.CPU) = @info "CPU: $(length(Sys.cpu_info())) x $(Sys.cpu_info()[1].model)"
+_devices(::KA.CPU) = []
 name(::KA.CPU) = "CPU"
 set_device!(backend, val) = @error "set_device! called with invalid parameter types: '$(typeof(backend))', '$(typeof(val))'" 
 set_device!(val) = set_device!(get_backend(true), val)
@@ -100,18 +99,35 @@ function get_backend(use_gpu; verbose=true)
 end
 
 """
-    print_devices(use_gpu=true)
+    get_devices(use_gpu=true)
 
-Simple function to print available devices. Calls internal get_backend() function to
-get the appropriate GPU / CPU backend and prints device information.
+Return available simulation devices as named tuples with `backend`, `id`, `name`,
+and `current` fields. The CPU is always first (`id=nothing`). GPU devices are included
+only when a supported backend is loaded and functional; this does not load GPU packages
+or switch devices. `current` identifies the current device within each backend.
 
-# Arguments
-- `use_gpu`: if true, check for loaded / functional GPU backends and print appropriate
-  warnings if no GPU backends have been loaded
+Pass a GPU's `id` to `sim_params["gpu_device"]` or `set_device!`. IDs follow the
+backend's selection API: CUDA is zero-based; AMDGPU, oneAPI, and Metal are one-based.
+Use `get_devices(false)` to list only the CPU.
 """
-function print_devices(use_gpu = true)
-    backend = get_backend(use_gpu)
-    _print_devices(backend)
+function get_devices(use_gpu=true)
+    backend = get_backend(use_gpu; verbose=false)
+    return [(backend="CPU", id=nothing, name=first(Sys.cpu_info()).model, current=true);
+        [(; backend=name(backend), device...) for device in _devices(backend)]]
 end
 
-export print_devices, set_device!
+"""
+    print_devices(use_gpu=true)
+
+Print the devices returned by [`get_devices`](@ref). An asterisk marks the current
+device within each backend. Listing devices does not change the selected device.
+"""
+function print_devices(use_gpu=true)
+    for device in get_devices(use_gpu)
+        label = device.backend == "CPU" ? "CPU" : "$(device.backend) $(device.id)$(device.current ? "*" : "")"
+        @info "$label: $(device.name)"
+    end
+    return nothing
+end
+
+export get_devices, print_devices, set_device!

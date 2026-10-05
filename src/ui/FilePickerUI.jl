@@ -1,10 +1,10 @@
-function loaded_data_toast(w, name, view, next, noun)
+function loaded_data_toast(w, name, view, next, noun; warning="")
     short_name = html_escape(display_filename(name, MAX_TOAST_FILENAME_CHARS))
     full_name = html_escape(name)
     body = """
     <ul class="list-unstyled mb-0">
         <li>
-            <button type="button" class="btn btn-dark btn-circle btn-circle-sm m-1" title="View $noun" aria-label="View $noun" onclick="KomaUI.notify('$view')"><i class="bi bi-search"></i></button>
+            <button type="button" class="btn koma-toast-action btn-circle btn-circle-sm m-1" title="View $noun" aria-label="View $noun" onclick="KomaUI.notify('$view')"><i class="bi bi-search"></i></button>
             Updating <b>$noun</b> plots ...
         </li>
         <li>
@@ -13,7 +13,40 @@ function loaded_data_toast(w, name, view, next, noun)
         </li>
     </ul>
     """
-    return toast!(w, 0, "Loaded <b title=\"$full_name\">$short_name</b>", body)
+    isempty(warning) || (body = "<p style=\"white-space: pre-line;\">$(html_escape(warning))</p>" * body)
+    return toast!(w, 0, "Loaded <b title=\"$full_name\">$short_name</b>", body;
+        level=isempty(warning) ? :info : :warning)
+end
+
+function sequence_reconstruction_warning(seq)
+    any(is_ADC_on, seq.ADC) || return ""
+    context = adc_label_context(seq)
+    labels = context.encoding_label_names
+    warnings = String[]
+    negative = [name for name in fieldnames(AdcLabels)
+        if any(label -> getproperty(label, name) < 0, context.labels)]
+    isempty(negative) || push!(warnings,
+        "Negative ADC labels: $(join(negative, ", ")). Use nonnegative values for scanner acquisition and MRD export.")
+    for (label, dimension) in ((:LIN, "Ny"), (:PAR, "Nz"))
+        label in labels || continue
+        upper = maximum(getproperty(context.labels[b], label) for b in context.encoding_blocks)
+        if haskey(seq.DEF, dimension)
+            matrix_size = seq.DEF[dimension]
+            upper >= matrix_size && push!(warnings,
+                "$label reaches $upper, outside $dimension=$matrix_size (valid indices: 0–$(matrix_size - 1)). " *
+                "Correct the labels or matrix before simulation; raw-data export would fail.")
+        end
+    end
+    isempty(warnings) || return join(warnings, "\n")
+    geometry = KomaMRICore._sequence_geometry(seq; context)
+    if !isempty(geometry.inferred)
+        nx, ny, nz = geometry.matrix
+        push!(warnings, "Reconstruction matrix inferred: Nx=$nx, Ny=$ny, Nz=$nz " *
+            "(guessed: $(join(geometry.inferred, ", "))). " *
+            "Explicitly specifying Nx/Ny/Nz in [DEFINITIONS] is recommended.")
+    end
+    geometry.has_fov || push!(warnings, _inferred_fov_warning(geometry.fov .* 1e3))
+    return join(warnings, "\n")
 end
 
 function callback_filepicker(filename::String, w::KomaWindow, seq::Sequence)
@@ -22,6 +55,8 @@ function callback_filepicker(filename::String, w::KomaWindow, seq::Sequence)
         seq = JLD2.load(FileIO.File{FileIO.DataFormat{:JLD2}}(filename), "seq")
     elseif ext == ".seq"
         seq = read_seq(filename)
+    else
+        throw(ArgumentError("Unsupported sequence extension: $ext"))
     end
     name = basename(filename)
     update_filename!(w, "seqname", name)
@@ -35,6 +70,8 @@ function callback_filepicker(filename::String, w::KomaWindow, obj::Phantom)
         obj = read_phantom(filename)
     elseif ext == ".h5"
         obj = read_phantom_jemris(filename)
+    else
+        throw(ArgumentError("Unsupported phantom extension: $ext"))
     end
     name = basename(filename)
     update_filename!(w, "phaname", name)
@@ -49,7 +86,8 @@ function callback_filepicker(filename::String, w::KomaWindow, raw::RawAcquisitio
     end
     name = basename(filename)
     update_filename!(w, "rawname", name)
-    loaded_data_toast(w, name, "view_raw_data", "reconstruct", "Raw data")
+    loaded_data_toast(w, name, "view_raw_data", "reconstruct", "Raw data";
+        warning=reconstruction_geometry_warning(raw))
     return raw
 end
 
@@ -124,8 +162,10 @@ function setup_filepicker!(
     upload = Observable{Any}(nothing)
     push!(w.listeners, on(upload) do file
         isnothing(file) && return nothing
-        _, filename = filepicker_selection(file)
-        load_file!(w, target, filename)
+        @async ui_action(w, Symbol("load_", target)) do
+            _, filename = filepicker_selection(file)
+            load_file!(w, target, filename)
+        end
         return nothing
     end)
     push!(w.on_render, session -> Bonito.on_document_load(session, js"""
@@ -154,7 +194,10 @@ function setup_filepicker!(
                     button.title = name;
                 };
                 const filename = document.querySelector($(current));
-                const name = filename.textContent.trim() || $(label);
+                const loadedName = $(haskey(w.files, target) ? basename(w.files[target]) : "");
+                const name = loadedName || filename.textContent.trim() || $(label);
+                filename.textContent = name;
+                filename.previousElementSibling.querySelector('.file-reload-button').disabled = !loadedName;
                 setCaption(name);
                 const toggle = filename.previousElementSibling.querySelector('.koma-nav-link');
                 toggle.title = toggle.getAttribute('aria-label') + ': ' + name;

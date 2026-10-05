@@ -1,3 +1,5 @@
+import {themeLayout, themeTraces, observeTheme} from './PlotTheme.js';
+
 // The same component is embedded by Bonito in notebooks, browsers and KomaUI.
 export async function mount(root, Plotly, request, response, overviewJSON) {
     const overview = JSON.parse(overviewJSON);
@@ -17,6 +19,8 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
     navigator.style.cssText = 'height:200px;position:relative';
     clip.append(navigator);
     root.append(graph, clip);
+    const theme = observeTheme(graph, Plotly);
+    const navigatorTheme = observeTheme(navigator, Plotly);
 
     let range, visibility, revision = 0, rendering = false, pending = null;
     let ready = false, disposed = false, navigatorReady = false;
@@ -53,7 +57,7 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
             hovertext: `${payload.shown.toLocaleString()} / ${payload.available.toLocaleString()} samples shown. Zoom in for full detail.`}];
     }
     async function draw(payload) {
-        const layout = payload.layout;
+        const layout = themeLayout(root, payload.layout);
         layout.xaxis ??= {};
         layout.xaxis.domain = [0, 1];
         layout.xaxis.range = [...range];
@@ -64,6 +68,10 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
         delete layout.xaxis.rangeselector;
         layout.height = graph.clientHeight;
         layout.width = graph.clientWidth;
+        if (graph.layout && (graph.layout.width !== layout.width || graph.layout.height !== layout.height)) {
+            // Resize first so Plotly recomputes the legend's automatic margin before updating data.
+            await Plotly.relayout(graph, {width: layout.width, height: layout.height});
+        }
         layout.uirevision = 'time-plot';
         for (const [key, axis] of Object.entries(graph._fullLayout ?? {})) {
             if (!/^yaxis\d*$/.test(key)) continue;
@@ -76,7 +84,7 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
                 control.active = graph.layout?.[key]?.[i]?.active ?? control.active;
             });
         }
-        await Plotly.react(graph, payload.data, layout, {...payload.config, responsive: true});
+        await Plotly.react(graph, themeTraces(root, payload.data), layout, {...payload.config, responsive: true});
     }
     async function render() {
         if (rendering || disposed) return;
@@ -106,8 +114,8 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
 
     if (hasSlider) {
         const layout = first.layout;
-        await Plotly.newPlot(navigator, overview.data.map((trace, i) => ({...trace,
-            visible: visibility[i], showlegend: false, hoverinfo: 'skip', hovertemplate: null})), {
+        await Plotly.newPlot(navigator, themeTraces(root, overview.data.map((trace, i) => ({...trace,
+            visible: visibility[i], showlegend: false, hoverinfo: 'skip', hovertemplate: null}))), {
             height: 200, margin: {l: graph._fullLayout.margin.l, r: graph._fullLayout.margin.r, t: 0, b: 0},
             template: layout.template, colorway: layout.colorway,
             paper_bgcolor: layout.paper_bgcolor, plot_bgcolor: layout.plot_bgcolor, font: layout.font,
@@ -171,6 +179,7 @@ export async function mount(root, Plotly, request, response, overviewJSON) {
     const removal = new MutationObserver(() => {
         if (root.isConnected) return;
         disposed = true; pending = null; resize.disconnect(); removal.disconnect();
+        theme.disconnect(); navigatorTheme.disconnect();
         group?.removeEventListener('koma-time-range', syncRange);
         if (!rendering) { Plotly.purge(graph); Plotly.purge(navigator); }
     });

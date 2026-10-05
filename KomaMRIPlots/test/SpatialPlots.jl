@@ -321,6 +321,20 @@ end
     @test isempty(stationary.layout[:annotations])
     t1 = only(b for menu in stationary.layout[:updatemenus] for b in menu[:buttons] if b[:label] == "T1")
     @test t1[:args][1]["marker.color"][1] == [1000.0, 2000.0]
+
+    # Both APIs/modes retain native motion knots and add the same grid, even below the native count.
+    obj.motion.time = TimeCurve(t=[0.0, 0.25, 1.0], t_unit=[0.0, 0.25, 1.0])
+    for count in (0, 2, 3), render in (P.plot_phantom, (obj; kw...) -> P.plot_phantom_map(obj, :ρ; kw...))
+        expected = count == 3 ? [0.0, 0.25, 0.5, 1.0] : [0.0, 0.25, 1.0]
+        live = render(obj; adaptive=true, time_samples=count)
+        saved = render(obj; time_samples=count)
+        @test live.source.times == expected
+        @test getindex.(only(saved.layout[:sliders])[:steps], :label) == 1000 .* expected
+        for (frame, t) in enumerate(expected)
+            visible = only(saved.layout[:sliders])[:steps][frame][:args][1][:visible]
+            @test saved.data[findfirst(visible)][:x] == 100 .* (obj.x .+ 0.02t)
+        end
+    end
 end
 
 @testitem "Adaptive coil grid and components" tags=[:plots] begin

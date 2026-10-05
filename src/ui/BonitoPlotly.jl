@@ -1,4 +1,5 @@
 const PLOTLY_ASSET = Asset(joinpath(artifact"plotly-artifacts", "plotly.min.js"); name="Plotly")
+const PLOT_THEME = Bonito.ES6Module(joinpath(pkgdir(KomaMRIPlots), "src", "ui", "PlotTheme.js"))
 
 plot_node(plot::Union{KomaMRIPlots.TimePlot,KomaMRIPlots.SpatialPlot}) =
     DOM.div(plot; style="width:100%;height:100%;padding:8px;box-sizing:border-box;")
@@ -12,9 +13,10 @@ function plot_node(plot::Observable; fit_colorbar=false)
         sprint(show, MIME"application/vnd.plotly.v1+json"(), value)
     end
     source = js"""
-        $(PLOTLY_ASSET).then(Plotly => {
+        Promise.all([$(PLOTLY_ASSET), $(PLOT_THEME)]).then(([Plotly, theme]) => {
             const graph = $(div);
-            if (!graph.isConnected) return;
+            if (!graph?.isConnected) return;
+            const themeObserver = theme.observeTheme(graph, Plotly);
             const spec = $(spec);
             let pending = null;
             let alignPending = false;
@@ -22,6 +24,7 @@ function plot_node(plot::Observable; fit_colorbar=false)
             const dispose = () => {
                 if (graph.isConnected) return;
                 observer.disconnect();
+                themeObserver.disconnect();
                 pending = null;
                 alignPending = false;
                 // An in-flight draw must finish before its graph state is purged.
@@ -56,10 +59,13 @@ function plot_node(plot::Observable; fit_colorbar=false)
                                 menu.active = graph.layout?.updatemenus?.find(previous => previous.name === menu.name)?.active ?? 0;
                                 const [data, layout] = menu.buttons[menu.active].args;
                                 figure.data.forEach((trace, index) => trace.visible = data.visible[index]);
-                                if (layout.yaxis) figure.layout.yaxis = layout.yaxis;
+                                if (layout['yaxis.range']) {
+                                    figure.layout.yaxis.range = layout['yaxis.range'];
+                                    figure.layout.yaxis.title = layout['yaxis.title'];
+                                }
                             }
                             await Plotly.react(
-                                graph, figure.data, {...figure.layout, autosize: true},
+                                graph, figure.data, theme.themeLayout(graph, {...figure.layout, autosize: true}),
                                 {...figure.config, responsive: true}
                             );
                             for (const event of ['plotly_afterplot', 'plotly_buttonclicked']) {

@@ -33,7 +33,7 @@ include("KomaCLI.jl")
 end
 
 # Export the UI
-export KomaUI, KomaWindow, click!, load_file!
+export KomaUI, KomaWindow, KomaWorkspace, add_window!, click!, load_file!, simulate!, reconstruct!, export_results, ui_status, ui_actions
 export reconstruct_with_labels, reconstruction_policy, DEFAULT_RECON_POLICY
 
 end

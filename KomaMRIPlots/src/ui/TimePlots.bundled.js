@@ -2,6 +2,72 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
+function themeColors(root, layout) {
+    const host = root.closest('[data-plot-theme]');
+    if (!host) return {};
+    const [background, text, plot, grid] = JSON.parse(host.dataset.plotTheme);
+    const colors = {
+        paper_bgcolor: background,
+        plot_bgcolor: plot,
+        'font.color': text,
+        'modebar.bgcolor': background,
+        'modebar.color': text,
+        'modebar.activecolor': plot
+    };
+    const axisColors = (path)=>{
+        colors[`${path}.gridcolor`] = grid;
+        colors[`${path}.zerolinecolor`] = grid;
+        colors[`${path}.backgroundcolor`] = plot;
+    };
+    for (const key of Object.keys(layout)){
+        if (/^[xy]axis\d*$/.test(key)) axisColors(key);
+        if (/^scene\d*$/.test(key)) for (const axis of [
+            'xaxis',
+            'yaxis',
+            'zaxis'
+        ])axisColors(`${key}.${axis}`);
+    }
+    return colors;
+}
+function themeLayout(root, layout) {
+    for (const [path, color] of Object.entries(themeColors(root, layout))){
+        const keys = path.split('.'), key = keys.pop();
+        const target = keys.reduce((value, name)=>value[name] ??= {}, layout);
+        target[key] = color;
+    }
+    return layout;
+}
+function themeTraces(root, data) {
+    const host = root.closest('[data-plot-theme]');
+    if (host) {
+        for (const trace of data)if (trace.meta?.theme === 'contrast') trace.marker.color = JSON.parse(host.dataset.plotTheme)[4];
+    }
+    return data;
+}
+function observeTheme(graph, Plotly) {
+    const host = graph.closest('[data-plot-theme]');
+    const observer = new MutationObserver(()=>{
+        if (!graph.isConnected || !graph._fullLayout) return;
+        const update = themeColors(graph, graph.layout);
+        for (const key of Object.keys(graph.layout))if (/^scene\d*$/.test(key)) update[`${key}.camera`] = graph._fullLayout[key]._scene.getCamera();
+        const indices = graph.data.flatMap((trace, i)=>trace.meta?.theme === 'contrast' ? [
+                i
+            ] : []);
+        if (indices.length) {
+            const colors = themeTraces(graph, indices.map((i)=>graph.data[i])).map((trace)=>trace.marker.color);
+            Plotly.update(graph, {
+                'marker.color': colors
+            }, update, indices);
+        } else Plotly.relayout(graph, update);
+    });
+    if (host) observer.observe(host, {
+        attributes: true,
+        attributeFilter: [
+            'data-plot-theme'
+        ]
+    });
+    return observer;
+}
 async function mount(root, Plotly, request, response, overviewJSON) {
     const overview = JSON.parse(overviewJSON);
     const fullRange = overview.full_range;
@@ -20,6 +86,8 @@ async function mount(root, Plotly, request, response, overviewJSON) {
     navigator.style.cssText = 'height:200px;position:relative';
     clip.append(navigator);
     root.append(graph, clip);
+    const theme = observeTheme(graph, Plotly);
+    const navigatorTheme = observeTheme(navigator, Plotly);
     let range, visibility, revision = 0, rendering = false, pending = null;
     let ready = false, disposed = false, navigatorReady = false;
     const first = JSON.parse(response.value);
@@ -100,7 +168,7 @@ async function mount(root, Plotly, request, response, overviewJSON) {
         ];
     }
     async function draw(payload) {
-        const layout = payload.layout;
+        const layout = themeLayout(root, payload.layout);
         layout.xaxis ??= {};
         layout.xaxis.domain = [
             0,
@@ -118,6 +186,12 @@ async function mount(root, Plotly, request, response, overviewJSON) {
         delete layout.xaxis.rangeselector;
         layout.height = graph.clientHeight;
         layout.width = graph.clientWidth;
+        if (graph.layout && (graph.layout.width !== layout.width || graph.layout.height !== layout.height)) {
+            await Plotly.relayout(graph, {
+                width: layout.width,
+                height: layout.height
+            });
+        }
         layout.uirevision = 'time-plot';
         for (const [key, axis] of Object.entries(graph._fullLayout ?? {})){
             if (!/^yaxis\d*$/.test(key)) continue;
@@ -141,7 +215,7 @@ async function mount(root, Plotly, request, response, overviewJSON) {
                 control.active = graph.layout?.[key]?.[i]?.active ?? control.active;
             });
         }
-        await Plotly.react(graph, payload.data, layout, {
+        await Plotly.react(graph, themeTraces(root, payload.data), layout, {
             ...payload.config,
             responsive: true
         });
@@ -185,13 +259,13 @@ async function mount(root, Plotly, request, response, overviewJSON) {
     response.on(update);
     if (hasSlider) {
         const layout = first.layout;
-        await Plotly.newPlot(navigator, overview.data.map((trace, i)=>({
+        await Plotly.newPlot(navigator, themeTraces(root, overview.data.map((trace, i)=>({
                 ...trace,
                 visible: visibility[i],
                 showlegend: false,
                 hoverinfo: 'skip',
                 hovertemplate: null
-            })), {
+            }))), {
             height: 200,
             margin: {
                 l: graph._fullLayout.margin.l,
@@ -313,6 +387,8 @@ async function mount(root, Plotly, request, response, overviewJSON) {
         pending = null;
         resize.disconnect();
         removal.disconnect();
+        theme.disconnect();
+        navigatorTheme.disconnect();
         group?.removeEventListener('koma-time-range', syncRange);
         if (!rendering) {
             Plotly.purge(graph);

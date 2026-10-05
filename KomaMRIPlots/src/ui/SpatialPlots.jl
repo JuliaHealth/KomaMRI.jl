@@ -28,15 +28,8 @@ skipping display frames when necessary; every time step remains selectable.
 """
 function plot_phantom(obj; key=:ρ, adaptive=false, max_spins=nothing,
     time_samples=0, view_2d=sum(KomaMRIBase.get_dims(obj)) < 3, kwargs...)
-    adaptive && !isnothing(max_spins) && throw(ArgumentError("max_spins requires adaptive=false."))
-    max_spins = something(max_spins, 20_000)
-    if !adaptive && length(obj) > max_spins
-        obj = obj[1:cld(length(obj), max_spins):end]
-    end
-    properties = phantom_properties(obj.motion)
-    plot = phantom_spatial_plot(obj, key; properties, time_samples, view_2d, kwargs...)
-    adaptive && return plot
-    return portable_phantom_plot(plot)
+    return phantom_plot(obj, key; adaptive, max_spins, time_samples, view_2d,
+        properties=nothing, kwargs...)
 end
 
 phantom_properties(::NoMotion) = (:ρ, :T1, :T2, :T2s, :Δw)
@@ -176,24 +169,58 @@ function phantom_frame(source, frame)
     return coordinates
 end
 
-function phantom_property_plot(obj, key; view_2d, kwargs...)
-    # Reuse the ordinary plot's styling and full color limits using actual extrema.
+phantom_units(key) = key in (:T1, :T2, :T2s) ? (1e3, " ms") :
+    key in (:x, :y, :z) ? (100, " cm") : key == :Δw ? (1 / 2π, " Hz") : (1, "")
+
+function phantom_property_plot(obj, key; view_2d, height=700, width=nothing,
+    darkmode=false, colorbar=true, kwargs...)
     velocity = key in (:speed, :vx, :vy, :vz)
-    template_key = velocity ? :ρ : key
-    indices = unique([i for field in (:x, :y, :z, template_key)
-        for i in (argmin(getproperty(obj, field)), argmax(getproperty(obj, field)))])
-    preview = Phantom(; name=obj.name,
-        (field => getproperty(obj, field)[indices] for field in KomaMRIBase.VECTOR_PHANTOM_FIELDS)...)
-    template = plot_phantom_map(preview, template_key; view_2d, kwargs...)
-    if velocity
-        trace = first(template.data)
-        label = key == :speed ? "|v|" : string(key)
-        trace[:marker][:colorscale] = key == :speed ? "Viridis" :
-            [[0, "blue"], [0.5, "white"], [1, "red"]]
-        trace[:marker][:colorbar] = attr(; title=label, ticksuffix=" cm/s")
-        trace[:hovertemplate] = replace(trace[:hovertemplate], "ρ" => label, "%{text}" => "%{text} cm/s")
+    label = key == :speed ? "|v|" : string(key)
+    factor, unit = velocity ? (1, " cm/s") : phantom_units(key)
+    cmin, cmax = velocity ? (0.0, 1.0) : extrema(getproperty(obj, key)) .* factor
+    key ∉ (:x, :y, :z, :Δw) && (cmin = 0)
+    key == :T1 && (cmax = 2500)
+    key == :T2 && (cmax = 250)
+    colorscale = if velocity
+        key == :speed ? "Viridis" : [[0, "blue"], [0.5, "white"], [1, "red"]]
+    elseif key in (:T1, :T2, :T2s)
+        colors = replace.(string.(relaxationColorMap(key == :T1 ? "T1" : "T2") .* 255),
+            "RGB{Float64}" => "rgb")
+        collect(zip(range(0.0, 1.0; length=length(colors)), colors))
+    else
+        "Greys"
     end
-    return template
+    cmin, cmax = get(kwargs, :zmin, cmin), get(kwargs, :zmax, cmax)
+    dimensions = findall(KomaMRIBase.get_dims(obj))
+    isempty(dimensions) && (dimensions = [1, 2])
+    length(dimensions) == 1 && (dimensions = sort([only(dimensions), mod1(only(dimensions) + 1, 3)]))
+    background, text, plot_background, grid_color, _ = theme_chooser(darkmode)
+    axes = [attr(; title=name, ticksuffix=" cm", backgroundcolor=plot_background,
+        gridcolor=grid_color, zerolinecolor=grid_color) for name in ("x", "y", "z")]
+    layout = Layout(; title=obj.name * ": " * string(key), paper_bgcolor=background,
+        plot_bgcolor=plot_background, font_color=text,
+        margin=attr(; t=50, l=0, r=0, b=view_2d ? 50 : 0),
+        modebar=attr(; orientation="h", bgcolor=background, color=text, activecolor=plot_background))
+    if view_2d
+        layout[:xaxis], layout[:yaxis] = axes[dimensions[1]], axes[dimensions[2]]
+        layout[:xaxis][:scaleanchor], layout[:yaxis][:scaleratio] = "y", 1
+        layout[:autosize] = true
+    else
+        foreach(axis -> axis[:fixedrange] = true, axes)
+        layout[:scene] = attr(; xaxis=axes[1], yaxis=axes[2], zaxis=axes[3],
+            aspectmode="manual", aspectratio=attr(; x=1, y=1, z=1))
+    end
+    hover = "x: %{x:.1f} cm<br>y: %{y:.1f} cm<br>" * (view_2d ? "" : "z: %{z:.1f} cm<br>")
+    trace = (view_2d ? scattergl : scatter3d)(; x=Float64[], y=Float64[],
+        (view_2d ? (;) : (; z=Float64[]))..., mode="markers", visible=true, showlegend=false,
+        marker=attr(; color=Float64[], showscale=colorbar, colorscale,
+            colorbar=attr(; ticksuffix=unit, title=label), cmin, cmax, size=view_2d ? 4 : 2),
+        text=Float64[], hovertemplate=hover * "<b>$label</b>: %{text}$unit<extra></extra>")
+    height !== nothing && (layout.height = height)
+    width !== nothing && (layout.width = width)
+    config = PlotConfig(; displaylogo=false, toImageButtonOptions=attr(; format="svg").fields,
+        modeBarButtonsToRemove=["zoom", "pan", "resetCameraLastSave3d", "orbitRotation", "resetCameraDefault3d"])
+    return PlotlyBase.Plot([trace], layout; config)
 end
 
 function phantom_velocity_limits!(limits, coordinates, previous, dt, reset)
@@ -208,15 +235,14 @@ function phantom_velocity_limits!(limits, coordinates, previous, dt, reset)
     return nothing
 end
 
-function phantom_spatial_plot(obj, key; time_samples, view_2d, properties=(key,), kwargs...)
+function phantom_spatial_plot(obj, key; frame_times, view_2d, properties, kwargs...)
     property_plots = NamedTuple(property => phantom_property_plot(obj, property; view_2d, kwargs...)
         for property in properties)
     template = deepcopy(property_plots[key])
-    frame_times = spatial_times(obj.motion, time_samples)
     first_frame = map(v -> 100 .* vec(v), phantom_coordinates(obj.motion, obj, first(frame_times)))
     values = NamedTuple(property => begin
-        factor = property in (:T1, :T2, :T2s) ? 1e3 : property in (:x, :y, :z) ? 100 : property == :Δw ? 1 / 2π : 1
-        property in (:speed, :vx, :vy, :vz) ? PhantomVelocity(property) : getproperty(obj, property) .* factor
+        property in (:speed, :vx, :vy, :vz) ? PhantomVelocity(property) :
+            getproperty(obj, property) .* first(phantom_units(property))
     end for property in properties)
     source = PhantomSpatialSource(obj, values, frame_times, [1 => first_frame], property_plots)
     extent = maximum(v -> maximum(abs, v), first_frame)
@@ -333,34 +359,6 @@ function coil_color_limit(receiver::BirdcageCoilSens)
     return 2receiver.L / (distance * hypot(distance, receiver.L))
 end
 
-function coil_spatial_plot(sys; fov, spacing, kwargs...)
-    receiver = sys.receiver
-    fov = isnothing(fov) ? get_coil_sens_fov(receiver) : fov
-    grid = map(coil_plot_bounds(receiver), fov) do (lower, upper), extent
-        intervals = floor(Int, extent / spacing)
-        range((lower + upper - intervals * spacing) / 2; step=spacing, length=intervals+1)
-    end
-    # The template is bounded independently of the requested finest grid.
-    template = plot_coil_sens(sys; fov, spacing=max(spacing, maximum(fov) / 16), kwargs...)
-    template.layout[:coloraxis][:cmax] = coil_color_limit(receiver)
-    for slider in template.layout[:sliders]
-        slider[:name] = "coil"
-        for (i, step) in enumerate(slider[:steps])
-            step[:method] = "skip"
-            step[:value] = string(i)
-            delete!(step.fields, :args)
-        end
-    end
-    for (i, button) in enumerate(only(template.layout[:updatemenus])[:buttons])
-        button[:method] = "skip"
-        button[:args] = [i]
-    end
-    resize!(template.data, 1)
-    dimensions = haskey(template.layout, :scene) ? [1, 2, 3] :
-        [findfirst(==(template.layout[axis][:title]), ("x", "y", "z")) for axis in (:xaxis, :yaxis)]
-    return SpatialPlot(CoilSpatialSource(receiver, grid), template, dimensions)
-end
-
 function spatial_projection(plot)
     matrix = zeros(4, 4)
     matrix[4, 4] = 1
@@ -402,12 +400,13 @@ function voxel_indices(coordinates, visible, budget)
     return sort!(collect(values(cells)))
 end
 
-function spatial_indices(coordinates, values, matrix, width, height, dimensions; preview=false)
+function spatial_indices(coordinates, values, matrix, width, height, dimensions;
+    preview=false, selection=eachindex(values))
     width, height = Float64(width), Float64(height)
     budget = max(1, floor(Int, width * height / SPATIAL_PIXEL_SIZE^2))
     visible = Int[]
     cells = Dict{Tuple{Int,Int},Tuple{Int,Int}}()
-    for i in eachindex(values)
+    for i in selection
         x, y, z = projected_point(matrix, getindex.(coordinates, i))
         all(isfinite, (x, y, z)) && -1 <= x <= 1 && -1 <= y <= 1 && -1 <= z <= 1 || continue
         push!(visible, i)
@@ -485,11 +484,17 @@ function spatial_data(plot::SpatialPlot{<:PhantomSpatialSource}, query)
     return (; data, shown, available, coarse=false, frame, preview, property=string(key))
 end
 
-function phantom_velocity_plot(obj, key; adaptive, max_spins, kwargs...)
+function phantom_plot(obj, key; adaptive, max_spins, time_samples,
+    properties=(key,), kwargs...)
+    adaptive && !isnothing(max_spins) && throw(ArgumentError("max_spins requires adaptive=false."))
+    max_spins = something(max_spins, 20_000)
     if !adaptive && length(obj) > max_spins
         obj = obj[1:cld(length(obj), max_spins):end]
+        @warn "For performance reasons, the number of displayed spins was capped to `max_spins`=$max_spins."
     end
-    plot = phantom_spatial_plot(obj, key; kwargs...)
+    properties = isnothing(properties) ? phantom_properties(obj.motion) : properties
+    frame_times = spatial_times(obj.motion, time_samples)
+    plot = phantom_spatial_plot(obj, key; frame_times, properties, kwargs...)
     adaptive && return plot
     return portable_phantom_plot(plot)
 end
@@ -576,6 +581,7 @@ spatial_query(plot; width=900, height=600) = Dict{String,Any}(
     "property"=>get(get(plot.template.layout, :meta, Dict()), "phantom_property", nothing))
 
 const SPATIAL_PLOT_JS = Bonito.ES6Module(joinpath(@__DIR__, "SpatialPlots.js"))
+spatial_controls(source) = nothing
 Base.showable(::MIME"text/html", ::SpatialPlot) = true
 Base.show(io::IO, ::MIME"text/plain", ::SpatialPlot) = print(io, "SpatialPlot (live Plotly viewer; display as HTML)")
 Base.show(io::IO, mime::MIME"text/html", plot::SpatialPlot) =
@@ -593,9 +599,11 @@ function Bonito.jsrender(session::Bonito.Session, plot::SpatialPlot)
     width, height = get(plot.template.layout, :width, nothing), get(plot.template.layout, :height, nothing)
     style = "width:$(isnothing(width) ? "100%" : "$(width)px");height:$(isnothing(height) ? "100%" : "$(height)px");min-height:300px;"
     root = Bonito.DOM.div(; class="koma-spatial-plot", style)
-    template = PlotlyBase.JSON.json((; layout=plot.template.layout, config=plot.template.config, plot.dimensions))
+    template = PlotlyBase.JSON.json((; layout=plot.template.layout, config=plot.template.config,
+        plot.dimensions, kspace=spatial_controls(plot.source)))
     Bonito.onload(session, root, js"""async root => {
         const [Plotly, viewer] = await Promise.all([$(TIME_PLOTLY), $(SPATIAL_PLOT_JS)]);
+        if (!root?.isConnected) return;
         viewer.mount(root, Plotly, $(request), $(response), $(template));
     }""")
     return Bonito.jsrender(session, root)

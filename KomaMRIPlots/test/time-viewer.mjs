@@ -36,7 +36,7 @@ const Plotly = {
     },
     purge() {}, Plots: {resize() {}}
 };
-const source = await readFile(new URL('../src/ui/TimePlots.js', import.meta.url), 'utf8');
+const source = await readFile(new URL('../src/ui/TimePlots.bundled.js', import.meta.url), 'utf8');
 const {mount} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 const fullRange = [0, 100];
 const payload = {id: 0, full_range: fullRange, shown: 2, available: 2,

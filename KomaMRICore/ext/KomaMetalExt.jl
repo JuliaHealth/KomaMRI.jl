@@ -17,9 +17,7 @@ KomaMRICore.device_name(::MetalBackend) = String(Metal.device().name)
     Metal.simd_shuffle_down(val, offset) 
 end
 
-function KomaMRICore._print_devices(::MetalBackend)
-    @info "Metal device type: $(KomaMRICore.device_name(MetalBackend()))"
-end
+KomaMRICore._devices(backend::MetalBackend) = [(id=1, name=KomaMRICore.device_name(backend), current=true)]
 
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], MetalBackend())

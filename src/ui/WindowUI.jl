@@ -28,6 +28,15 @@ function Bonito.jsrender(session::Session, content::KomaContent)
     return Bonito.jsrender(session, root)
 end
 
+Base.@kwdef struct UIOperation
+    action::Symbol = :none
+    state::Symbol = :idle
+    progress::Union{Nothing,Float64} = nothing
+    elapsed_seconds::Union{Nothing,Float64} = nothing
+    eta_seconds::Union{Nothing,Float64} = nothing
+    message::String = ""
+end
+
 struct KomaWindow
     app::App
     display::Base.RefValue{Any}
@@ -36,6 +45,7 @@ struct KomaWindow
     content::KomaContent
     state::Observable{String}
     events::Observable{String}
+    darkmode::Observable{Bool}
     home::Base.RefValue{Any}
     handlers::Dict{String,Function}
     files::Dict{Symbol,String}
@@ -51,7 +61,14 @@ struct KomaWindow
     img::Observable{Union{AbstractArray,ReconstructionResult}}
     sim_params::Observable{Dict{String,Any}}
     rec_params::Observable{Dict{Symbol,Any}}
+    operation::Observable{UIOperation}
+    operation_lock::ReentrantLock
+    server::Base.RefValue{Union{Nothing,Bonito.Server}}
+    export_assets::Base.RefValue{Union{Nothing,Bonito.ChildAssetServer}}
 end
+
+const WORKSPACE_ROUTES = IdDict{KomaWindow,String}()
+window_route(w) = get(WORKSPACE_ROUTES, w, "/")
 
 function page_content(content, state)
     return DOM.div(
@@ -67,7 +84,7 @@ function set_content!(w::KomaWindow, content, state)
     w.content[] = page_content(content, state)
     evaljs(w, js"""(() => {
         const section = {
-            sequence: 'pulses', kspace: 'pulses', m0: 'pulses', m1: 'pulses', m2: 'pulses',
+            sequence: 'pulses', seqdefs: 'pulses', kspace: 'pulses', m0: 'pulses', m1: 'pulses', m2: 'pulses',
             slew_rate: 'pulses',
             phantom: 'phantom', coils: 'scanner', scanneparams: 'scanner', sig: 'sig',
             absi: 'recon', absk: 'recon'
@@ -86,6 +103,111 @@ function evaljs(w::KomaWindow, code)
     session = w.session[]
     (isnothing(session) || !isopen(session)) && return nothing
     return Bonito.evaljs(session, code)
+end
+
+function setup_host_status!(w)
+    push!(w.on_render, session -> begin
+        location = haskey(ENV, "SSH_CONNECTION") ? gethostname() : "Local"
+        port = isnothing(w.server[]) ? "" : ":$(w.server[].port)"
+        location *= port
+        devices = Observable(get_devices())
+        choice = Observable(0)
+        on(session, choice) do index
+            if index == 0
+                devices[] = get_devices()
+            else
+                ui_action(w, :select_device) do
+                    device = devices[][index]
+                    click!(w, :select_device; gpu=device.backend != "CPU", id=device.id)
+                end
+            end
+        end
+        status = map(session, w.sim_params) do params
+            "$(w.app.title)\nJulia host: $(gethostname())$port\nUsing $(simulation_device_label(params))"
+        end
+        options = map(session, w.sim_params, w.operation, devices) do params, operation, available
+            backend = KomaMRICore.name(KomaMRICore.get_backend(get(params, "gpu", true); verbose=false))
+            selected = get(params, "gpu_device", nothing)
+            threads = get(params, "Nthreads", Threads.nthreads())
+            rows = [(label=d.backend == "CPU" ? "CPU — $(d.name) · $threads thread$(threads == 1 ? "" : "s")" : "GPU $(d.id) — $(d.name)",
+                short_label=d.backend == "CPU" ? "CPU" : "GPU$(d.id)",
+                selected=d.backend == backend && (backend == "CPU" || (isnothing(selected) ? d.current : d.id == selected))) for d in available]
+            (; rows, busy=operation.state === :running)
+        end
+        workspace_status = map(session, w.operation) do operation
+            Dict{String,Any}(
+                "action" => string(operation.action), "state" => string(operation.state),
+                "progress" => operation.progress, "elapsed_seconds" => operation.elapsed_seconds,
+                "eta_seconds" => operation.eta_seconds)
+        end
+        Bonito.on_document_load(session, js"""(() => {
+            const host = document.getElementById('koma-host-status');
+            const toggle = document.getElementById('koma-device-toggle');
+            const menu = document.getElementById('koma-device-menu');
+            const selectedDevice = document.getElementById('koma-selected-device');
+            const report = operation => {
+                if (window.parent === window) return;
+                window.parent.postMessage({type: 'koma-workspace-status',
+                    busy: $(options).value.busy,
+                    connection: document.getElementById('main').dataset.connection,
+                    ...operation}, window.location.origin);
+            };
+            $(workspace_status).on(report);
+            new MutationObserver(() => report($(workspace_status).value))
+                .observe(document.getElementById('main'),
+                    {attributes: true, attributeFilter: ['data-connection']});
+            new bootstrap.Dropdown(toggle, {offset: [0, 8], popperConfig: {placement: 'right-end'}});
+            host.classList.toggle('is-ssh', $(haskey(ENV, "SSH_CONNECTION")));
+            host.querySelector('.koma-nav-label').textContent = $(location);
+            const updateDevices = value => {
+                toggle.setAttribute('aria-disabled', String(value.busy));
+                selectedDevice.textContent = value.rows.find(device => device.selected)?.short_label ?? '';
+                document.title = [$(w.app.title), $(location), selectedDevice.textContent].filter(Boolean).join(' · ');
+                report($(workspace_status).value);
+                menu.replaceChildren(...value.rows.map((device, index) => {
+                    const item = document.createElement('li');
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'dropdown-item';
+                    button.classList.toggle('active', device.selected);
+                    button.setAttribute('aria-pressed', String(device.selected));
+                    button.textContent = device.label;
+                    button.disabled = value.busy;
+                    button.onclick = () => {
+                        bootstrap.Dropdown.getInstance(toggle).hide();
+                        $(choice).notify(index + 1);
+                    };
+                    item.append(button);
+                    return item;
+                }));
+            };
+            $(options).on(updateDevices);
+            updateDevices($(options).value);
+            host.addEventListener('show.bs.dropdown', event => {
+                if ($(options).value.busy || document.getElementById('main').dataset.connection !== 'connected') {
+                    event.preventDefault();
+                    return;
+                }
+                bootstrap.Tooltip.getInstance(host)?.hide();
+                $(choice).notify(0);
+            });
+            const describe = value => {
+                host.setAttribute('aria-label', value);
+                toggle.setAttribute('aria-label', value + ' — Choose simulation device');
+            };
+            $(status).on(describe);
+            describe($(status).value);
+            host.addEventListener('show.bs.tooltip', event => {
+                if (toggle.getAttribute('aria-expanded') === 'true') event.preventDefault();
+            });
+            new bootstrap.Tooltip(host, {
+                title: () => $(status).value,
+                trigger: 'hover focus', placement: 'right', container: host,
+                customClass: 'koma-host-tooltip'
+            });
+        })()""")
+    end)
+    return nothing
 end
 
 function show!(w::KomaWindow)
@@ -116,11 +238,19 @@ function show!(w::KomaWindow)
 end
 
 function Base.isopen(w::KomaWindow)
+    isnothing(w.server[]) || return Bonito.HTTPServer.isrunning(w.server[])
     window = w.window[]
     return !isnothing(window) && isopen(window)
 end
 
 function Base.wait(w::KomaWindow)
+    if haskey(WORKSPACE_ROUTES, w)
+        while isopen(w)
+            sleep(0.1)
+        end
+        return nothing
+    end
+    isnothing(w.server[]) || return wait(w.server[])
     window = w.window[]
     isnothing(window) && return nothing
     # Electron closes this channel when its window closes.
@@ -146,6 +276,15 @@ function Base.close(w::KomaWindow)
         close(window.app)
     end
     w.window[] = nothing
+    if !isnothing(w.export_assets[])
+        close(w.export_assets[])
+        w.export_assets[] = nothing
+    end
+    if !isnothing(w.server[])
+        route = pop!(WORKSPACE_ROUTES, w, nothing)
+        isnothing(route) ? close(w.server[]) : Bonito.delete_route!(w.server[], route)
+        w.server[] = nothing
+    end
     return nothing
 end
 
@@ -176,7 +315,7 @@ function home_page(image)
                     style="padding:32px clamp(24px,8%,128px);",
                 ),
                 DOM.img(; src=image, alt="Icon", style="padding:32px 128px;width:326px;");
-                class="mt-auto text-white-75",
+                class="mt-auto",
             ),
             DOM.footer(
                 DOM.p(
@@ -200,7 +339,7 @@ function home_page(image)
                     );
                     style="padding-bottom:10px;",
                 ),
-                DOM.p("Thanks to all our contributors!"; class="text-white mb-1"),
+                DOM.p("Thanks to all our contributors!"; class="mb-1"),
                 DOM.a(
                     DOM.img(
                         ;
@@ -209,11 +348,11 @@ function home_page(image)
                     );
                     href="https://github.com/cncastillo/KomaMRI.jl/graphs/contributors",
                 );
-                class="mt-auto text-white-50",
+                class="mt-auto",
             );
             class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column mask",
         );
-        class="d-flex h-100 text-center text-white bg-image",
+        class="koma-home d-flex h-100 text-center bg-image",
     )
 end
 
@@ -239,7 +378,7 @@ function dictionary_page(values, title)
                 ),
             ),
             DOM.tbody(rows...),
-            class="table table-dark table-striped",
+            class="table table-striped",
         ),
         class="koma-table-view",
     )
@@ -248,6 +387,7 @@ end
 function setup_bonito_window(sys, seq, obj, sim_params, rec_params;
     darkmode=true, frame=true, dev_tools=false, versions="",
 )
+    title = "KomaUI"
     komamri_src_ui = @__DIR__
     komamri_root = dirname(dirname(komamri_src_ui))
     scripts = joinpath(komamri_src_ui, "scripts")
@@ -275,45 +415,68 @@ function setup_bonito_window(sys, seq, obj, sim_params, rec_params;
     content = KomaContent(Observable{Any}(DOM.div()))
     state = Observable("index")
     events = Observable("")
+    theme = Observable(darkmode)
     home = Ref{Any}(DOM.div())
     handlers = Dict{String,Function}()
     render_callbacks = Function[]
     listeners = ObserverFunction[]
 
-    app = App(; title="KomaUI") do session
+    app = App(; title) do session
+        isnothing(session_ref[]) || session_ref[] === session || close(session_ref[])
         session_ref[] = session
+        session_theme = Bonito.bind_global(session, theme)
+        # Plot modules must outlive views displaced while their imports are pending.
+        foreach(asset -> Bonito.url(session, asset),
+            (PLOTLY_ASSET, KomaMRIPlots.TIME_PLOT_JS, KomaMRIPlots.SPATIAL_PLOT_JS))
         font_styles = asset_stylesheet.(Ref(session), font_stylesheets)
-        logo = Bonito.url(session, Asset(joinpath(komamri_root, "assets", "logo-dark.svg")))
+        logos = [Bonito.url(session, Asset(joinpath(komamri_root, "assets", name)))
+            for name in ("logo.svg", "logo-dark.svg")]
         spin_icon = Bonito.url(session, Asset(joinpath(komamri_root, "assets", "app-icon.svg")))
         home_image = Bonito.url(session, Asset(joinpath(komamri_root, "assets", "home-image.svg")))
 
         sidebar = read(joinpath(komamri_src_ui, "html", "sidebar.html"), String)
         sidebar = replace(
             sidebar,
-            "LOGO" => string(logo),
+            "LOGO" => string(logos[theme[] ? 2 : 1]),
             "SPIN_ICON" => string(spin_icon),
+            "CSS_VERSION" => string(hash(read(joinpath(css, "custom.css")))),
             "title=\"Hooray!\"" => "title=\"$(replace(versions, '\n' => "&#10;"))\"",
         )
         home[] = home_page(home_image)
-        state[] = "index"
-        content[] = page_content(home[], "index")
+        state[] == "index" && (content[] = page_content(home[], "index"))
 
-        event_bridge = js"document.title = 'KomaUI'; window.KomaUI = {notify: name => $(events).notify(name)};"
+        event_bridge = js"""(() => {
+            window.KomaUI = {notify: name => $(events).notify(name)};
+            const applyTheme = dark => {
+                const main = document.getElementById('main');
+                main.className = dark ? 'koma-dark' : 'koma-light';
+                main.dataset.plotTheme = JSON.stringify($(KomaMRIPlots.theme_chooser.((false, true)))[dark ? 1 : 0]);
+                document.querySelector('.koma-logo-full').src = $(logos)[dark ? 1 : 0];
+                const toggle = document.getElementById('button_toggle_theme');
+                toggle.checked = dark;
+                toggle.parentElement.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+            };
+            $(session_theme).on(applyTheme);
+            applyTheme($(session_theme).value);
+        })()"""
         Bonito.on_document_load(session, js"renderMathInElement(document.body);")
         foreach(callback -> callback(session), render_callbacks)
-        background = darkmode ? "background-color:rgb(13,16,17);" : ""
         main = DOM.main(
             DOM.div_unesc(sidebar),
-            content,
+            DOM.div(
+                DOM.header(; class="koma-window-titlebar"),
+                DOM.div(content; class="koma-content-container");
+                class="koma-window-panel"),
             event_bridge;
             id="main",
-            style=background,
+            dataPlotTheme=PlotlyBase.JSON.json(KomaMRIPlots.theme_chooser(theme[])),
+            class=theme[] ? "koma-dark" : "koma-light",
         )
-        return DOM.div(style_assets..., font_styles..., script_assets..., main)
+        return DOM.div(PLOT_THEME, style_assets..., font_styles..., script_assets..., main)
     end
 
     window_options = Dict{String,Any}(
-        "title" => "KomaUI",
+        "title" => title,
         "autoHideMenuBar" => true,
         "frame" => frame,
         "icon" => joinpath(komamri_root, "assets", "app-icon.png"),
@@ -328,6 +491,7 @@ function setup_bonito_window(sys, seq, obj, sim_params, rec_params;
         content,
         state,
         events,
+        theme,
         home,
         handlers,
         Dict{Symbol,String}(),
@@ -343,8 +507,17 @@ function setup_bonito_window(sys, seq, obj, sim_params, rec_params;
         Observable{Union{AbstractArray,ReconstructionResult}}([0.0im 0.; 0. 0.]),
         Observable{Dict{String,Any}}(sim_params),
         Observable{Dict{Symbol,Any}}(rec_params),
+        Observable(UIOperation()),
+        ReentrantLock(),
+        Ref{Union{Nothing,Bonito.Server}}(nothing),
+        Ref{Union{Nothing,Bonito.ChildAssetServer}}(nothing),
     )
-    push!(listeners, on(event -> click!(w, event), events))
+    push!(listeners, on(events) do event
+        @async ui_action(w, event) do
+            click!(w, event)
+        end
+        return nothing
+    end)
     return w
 end
 
@@ -372,13 +545,16 @@ html_escape(text) = replace(
     string(text), '&' => "&amp;", '<' => "&lt;", '>' => "&gt;", '"' => "&quot;"
 )
 
-function toast!(w::KomaWindow, id, title, body)
+function toast!(w::KomaWindow, id, title, body; level=:info)
+    color = level == :warning ? "#ffc107" : level == :error ? "#dc3545" :
+        id == 0 ? "currentColor" : "#2a7fb8"
     title_bytes = collect(codeunits(title))
     body_bytes = collect(codeunits(body))
     return evaljs(w, js"""
         const showToast = () => {
             if (typeof Toasty !== 'function') return requestAnimationFrame(showToast);
             const decode = bytes => new TextDecoder().decode(new Uint8Array(bytes));
+            document.querySelector('#liveToast' + $(string(id)) + ' rect').setAttribute('fill', $(color));
             Toasty($(string(id)), decode($(title_bytes)), decode($(body_bytes)));
         };
         showToast();
@@ -387,7 +563,7 @@ end
 
 function failure_toast!(w, id, operation, error)
     message = html_escape(sprint(showerror, error))
-    return toast!(w, id, "$operation failed", "<div class=\"text-break\" style=\"white-space: pre-wrap;\">$message</div>")
+    return toast!(w, id, "$operation failed", "<div class=\"text-break\" style=\"white-space: pre-wrap;\">$message</div>"; level=:error)
 end
 
 function update_filename!(w, id, name)
@@ -398,6 +574,8 @@ function update_filename!(w, id, name)
         label.textContent = $(name);
         current.replaceChildren(label);
         const section = current.previousElementSibling;
+        const reload = section.querySelector('.file-reload-button');
+        if (reload) reload.disabled = false;
         const toggle = section.querySelector('.koma-nav-link');
         toggle.title = toggle.getAttribute('aria-label') + ': ' + $(name);
         const picker = section.querySelector('.koma-file-input');

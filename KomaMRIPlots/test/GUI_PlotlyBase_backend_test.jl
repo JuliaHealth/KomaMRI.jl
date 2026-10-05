@@ -25,8 +25,8 @@
         profile = plot_image(reshape(ComplexF64[2, -4], :, 1); zmin=0, zmax=6)
         buttons = only(profile.layout[:updatemenus])[:buttons]
         @test [trace[:y] for trace in profile.data] == [[2, 4], [0, π]]
-        @test buttons[1][:args][2][:yaxis][:range] == [0, 1.1 * 6]
-        @test buttons[2][:args][2][:yaxis][:range] == [-π, π]
+        @test buttons[1][:args][2]["yaxis.range"] == [0, 1.1 * 6]
+        @test buttons[2][:args][2]["yaxis.range"] == [-π, π]
     end
 
     @testset "Phantom" begin

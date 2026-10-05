@@ -67,6 +67,71 @@ end
 # Cycles/m: ignoring this variation adds at most 2π × 10⁻⁶ radians over one metre.
 const KSPACE_DIMENSION_TOLERANCE = 1e-6
 
+function _sequence_geometry(seq; ktraj=nothing, context=adc_label_context(seq))
+    (; labels, adc_blocks, encoding_blocks, encoding_label_names) = context
+    names = ("Nx", "Ny", "Nz")
+    inferred = [name for name in names if !haskey(seq.DEF, name)]
+    has_fov = haskey(seq.DEF, "FOV")
+    needs_extent = any(zip(names[2:3], (:LIN, :PAR))) do (name, label)
+        name in inferred && !(label in encoding_label_names)
+    end
+    if isnothing(ktraj) && (!has_fov || needs_extent)
+        _, ktraj = get_kspace(seq)
+    end
+    span = zeros(3)
+    varies = falses(3)
+    if !isnothing(ktraj)
+        encoding_ktraj = if encoding_blocks == adc_blocks
+            ktraj
+        else
+            ends = cumsum(seq.ADC.N)
+            samples = reduce(vcat, [(ends[b] - seq.ADC[b].N + 1):ends[b] for b in encoding_blocks])
+            @view ktraj[samples, :]
+        end
+        for d in 1:3
+            coordinates = @view encoding_ktraj[:, d]
+            lower, upper = extrema(coordinates)
+            center = sum(coordinates) / length(coordinates)
+            span[d] = upper - lower
+            varies[d] = max(upper - center, center - lower) > KSPACE_DIMENSION_TOLERANCE
+        end
+    end
+    fov = has_fov ? collect(Float64, seq.DEF["FOV"]) : zeros(3)
+    fov .= ifelse.(fov .> 1, fov .* 1e-3, fov) # Older Pulseq files used mm.
+    has_fov && iszero(fov[3]) && (fov[3] = 1e-3)
+    has_fov && !all(x -> isfinite(x) && x > 0, fov) &&
+        throw(ArgumentError("FOV must contain positive finite dimensions"))
+    matrix = ones(Int, 3)
+    max_label = maximum(labels[encoding_blocks])
+    for (d, name) in enumerate(names)
+        label = d == 2 ? :LIN : :PAR
+        matrix[d] = if haskey(seq.DEF, name)
+            Int(seq.DEF[name])
+        elseif d == 1
+            maximum(seq.ADC[b].N for b in encoding_blocks)
+        elseif label in encoding_label_names
+            getproperty(max_label, label) + 1
+        elseif has_fov && varies[d]
+            max(2, ceil(Int, fov[d] * span[d]))
+        else
+            1
+        end
+        matrix[d] > 0 || throw(ArgumentError("$name must be a positive integer"))
+        if d > 1 && label in encoding_label_names
+            getproperty(max_label, label) < matrix[d] || throw(ArgumentError(
+                "$label label $(getproperty(max_label, label)) exceeds $name = $(matrix[d])"))
+        end
+    end
+    if !isnothing(ktraj) && !(:PAR in encoding_label_names) && !varies[3]
+        matrix[3] = 1
+    end
+    if !has_fov
+        fov[1:2] .= matrix[1:2] ./ span[1:2]
+        fov[3] = 1e-3
+    end
+    return (; matrix, fov, inferred, has_fov)
+end
+
 """
     raw = signal_to_raw_data(signal, seq; phantom_name, sys, sim_params)
 
@@ -90,8 +155,13 @@ ADC samples, including variation between readouts, not gradient activity outside
 Stored coordinate count is not image rank: an oblique 1D line or 2D plane can need three
 coordinates. This function does not rotate/project trajectories or infer image orientation.
 Encoding matrix/FOV inference uses imaging ADCs when present, excluding navigator and
-noise samples. The coordinate normalization divisor is saved in
-`raw.params["userParameters"]["KomaTrajectoryScale"]` in cycles/m.
+noise samples. `Profile.traj` stores reconstruction-ready coordinates. Multiplying its
+rows by `KomaTrajectoryScaleX/Y/Z` from `raw.params["userParameters"]` recovers cycles/m.
+These factors are `reconSize ./ FOV` (FOV in metres); without FOV, export uses the
+legacy global-maximum normalization and saves its inverse mapping instead.
+Explicit `Nx`/`Ny`/`Nz` are recommended. Missing dimensions are inferred from
+imaging ADC counts, `LIN`/`PAR` counters, then FOV times acquired k-space span.
+Inferred names are saved as `KomaInferredMatrix`; sequence definitions are not modified.
 
 # Returns
 - `raw`: (`::RawAcquisitionData`) RawAcquisitionData struct
@@ -118,10 +188,9 @@ function signal_to_raw_data(
     ncoils = size(signal, 2)
     channel_mask = ntuple(i -> typemax(UInt64) >> max(0, 64i - ncoils), 16)
     # ADC labels define MRD encoding counters and acquisition roles.
-    (; labels, adc_blocks, encoding_blocks, encoding_label_names) =
-        adc_label_context(seq)
+    context = adc_label_context(seq)
+    (; labels, adc_blocks, encoding_blocks, encoding_label_names) = context
     encoding_labels = labels[encoding_blocks]
-    max_enc = maximum(encoding_labels)
 
     # Storage preserves coordinates needed by any ADC, including navigators.
     _, ktraj = get_kspace(seq)
@@ -130,58 +199,15 @@ function signal_to_raw_data(
     kz_varies = max(maximum(kz) - mean_kz, mean_kz - minimum(kz)) > KSPACE_DIMENSION_TOLERANCE
     ndims = max(ndims, kz_varies ? 3 : 2)
 
-    encoding_ktraj = if encoding_blocks == adc_blocks
-        ktraj
-    else
-        sample_ends = cumsum([adc.N for adc in seq.ADC])
-        encoding_samples = reduce(vcat, [
-            (sample_ends[b] - seq.ADC[b].N + 1):sample_ends[b] for b in encoding_blocks
-        ])
-        @view(ktraj[encoding_samples, :])
-    end
-    mink = minimum(encoding_ktraj, dims=1)
-    maxk = maximum(encoding_ktraj, dims=1)
-    Wk = maxk .- mink
-    mean_encoding_kz = sum(@view(encoding_ktraj[:, 3])) / size(encoding_ktraj, 1)
-    kz_encodes = max(maxk[3] - mean_encoding_kz, mean_encoding_kz - mink[3]) >
-        KSPACE_DIMENSION_TOLERANCE
-    Δx = 1 ./ Wk[1:2] #[m] Only x-y
-    Nx = get(seq.DEF, "Nx", 1)
-    Ny = get(seq.DEF, "Ny", 1)
-    Nz = get(seq.DEF, "Nz", 1)
-
-    has_lines = :LIN in encoding_label_names
+    geometry = _sequence_geometry(seq; ktraj, context)
+    Nx, Ny, encodedNz = geometry.matrix
+    FOVx, FOVy, FOVz = geometry.fov
+    recon_size = [Nx + Nx % 2, Ny + Ny % 2, encodedNz]
+    physical_scale = geometry.has_fov ? recon_size ./ geometry.fov : fill(2maximum(abs, ktraj), 3)
+    replace!(physical_scale, 0 => 1)
+    ktraj = transpose(ktraj) ./ physical_scale
     has_partitions = :PAR in encoding_label_names
-    if has_lines
-        Ny = get(seq.DEF, "Ny", max_enc.LIN + 1)
-        max_enc.LIN < Ny || throw(ArgumentError("LIN label $(max_enc.LIN) exceeds Ny = $Ny"))
-    end
-    if has_partitions
-        encodedNz = get(seq.DEF, "Nz", max_enc.PAR + 1)
-        max_enc.PAR < encodedNz ||
-            throw(ArgumentError("PAR label $(max_enc.PAR) exceeds Nz = $encodedNz"))
-    else
-        encodedNz = kz_encodes ? Nz : 1
-    end
     slice_limit = _counter_limit(encoding_labels, :SLC)
-
-    if haskey(seq.DEF, "FOV")
-        FOVx, FOVy, FOVz = seq.DEF["FOV"] #[m]
-        if FOVx > 1 FOVx *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        if FOVy > 1 FOVy *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        if FOVz > 1 FOVz *= 1e-3 end #mm to m, older versions of Pulseq saved FOV in mm
-        iszero(FOVz) && (FOVz = 1e-3)
-        !haskey(seq.DEF, "Nx") && (Nx = ceil(Int64, FOVx / Δx[1]))
-        !haskey(seq.DEF, "Ny") && !has_lines && (Ny = ceil(Int64, FOVy / Δx[2]))
-    else
-        FOVx = Nx * Δx[1]
-        FOVy = Ny * Δx[2]
-        FOVz = 1e-3
-    end
-    #It needs to be transposed for the raw data
-    trajectory_scale = 2 * maximum(abs, ktraj)
-    iszero(trajectory_scale) && (trajectory_scale = Base.one(trajectory_scale))
-    ktraj = transpose(ktraj) ./ trajectory_scale
 
     #First we define the ISMRMRD data XML header
     #userParameters <- sim_params
@@ -217,7 +243,7 @@ function signal_to_raw_data(
         "encodedSize"                    => [Nx, Ny, encodedNz],                #encodedSpace>matrixSize
         "encodedFOV"                     => Float32.([FOVx, FOVy, FOVz]*1e3),   #encodedSpace>fieldOfView_mm
         #   reconSpace
-        "reconSize"                      => [Nx+Nx%2, Ny+Ny%2, encodedNz],      #reconSpace>matrixSize
+        "reconSize"                      => recon_size,                        #reconSpace>matrixSize
         "reconFOV"                       => Float32.([FOVx, FOVy, FOVz]*1e3),   #reconSpace>fieldOfView_mm
         #encodingLimits
         "enc_lim_kspace_encoding_step_0" => Limit(0, Nx-1, fld(Nx, 2)),        #min, max, center, e.g. readout sample number
@@ -245,7 +271,12 @@ function signal_to_raw_data(
         # "TI"                             => 0,
         # "flipAngle_deg"                  => 0,
         # "echo_spacing"                   => 0,
-        "userParameters"                 => merge(sim_params, Dict("KomaTrajectoryScale" => trajectory_scale)),
+        "userParameters"                 => merge(sim_params, Dict(
+            "KomaTrajectoryScaleX" => physical_scale[1],
+            "KomaTrajectoryScaleY" => physical_scale[2],
+            "KomaTrajectoryScaleZ" => physical_scale[3],
+            "KomaInferredMatrix" => join(geometry.inferred, ", "),
+            "KomaInferredFOV" => Int(!geometry.has_fov))),
     )
     #Then, we define the Profiles
     profiles = Profile[]

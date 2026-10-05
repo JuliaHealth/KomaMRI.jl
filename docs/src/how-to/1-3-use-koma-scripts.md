@@ -31,8 +31,6 @@ raw = simulate(obj, seq, sys; sim_params)
 function reconstruct_2d_image(raw::RawAcquisitionData)
     acqData = AcquisitionData(raw)
     acqData.traj[1].circular = false #Removing circular window
-    C = maximum(2*abs.(acqData.traj[1].nodes[:]))  #Normalize k-space to -.5 to .5 for NUFFT
-    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ C
     Nx, Ny = raw.params["reconSize"][1:2]
     recParams = Dict{Symbol,Any}()
     recParams[:reconSize] = (Nx, Ny)
@@ -232,8 +230,6 @@ In the example below, we define an auxiliary function, `reconstruct_2d_image`, w
 function reconstruct_2d_image(raw::RawAcquisitionData)
     acqData = AcquisitionData(raw)
     acqData.traj[1].circular = false #Removing circular window
-    C = maximum(2*abs.(acqData.traj[1].nodes[:]))  #Normalize k-space to -.5 to .5 for NUFFT
-    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ C
     Nx, Ny = raw.params["reconSize"][1:2]
     recParams = Dict{Symbol,Any}()
     recParams[:reconSize] = (Nx, Ny)

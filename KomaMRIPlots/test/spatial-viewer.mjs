@@ -9,20 +9,26 @@ class Element {
     on(event, callback) { this.handlers[event] = callback; }
     addEventListener(event, callback) { this.handlers[event] = callback; }
     removeEventListener(event) { delete this.handlers[event]; }
+    closest() { return null; }
     querySelectorAll() { return []; }
 }
-const observers = [];
+const resizeObservers = [], mutationObservers = [];
 globalThis.document = Object.assign(new Element(), {createElement: () => new Element()});
 let now = 0;
 globalThis.performance = {now: () => now};
 globalThis.requestAnimationFrame = callback => setTimeout(callback, 0);
 globalThis.cancelAnimationFrame = clearTimeout;
-globalThis.ResizeObserver = globalThis.MutationObserver = class {
-    constructor(callback) { observers.push(callback); }
+globalThis.ResizeObserver = class {
+    constructor(callback) { resizeObservers.push(callback); }
     observe() {}
     disconnect() {}
 };
-const source = await readFile(new URL('../src/ui/SpatialPlots.js', import.meta.url), 'utf8');
+globalThis.MutationObserver = class {
+    constructor(callback) { this.callback = callback; }
+    observe() { mutationObservers.push(this.callback); }
+    disconnect() {}
+};
+const source = await readFile(new URL('../src/ui/SpatialPlots.bundled.js', import.meta.url), 'utf8');
 const {mount, projection, playbackFrame} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 const root = new Element(), requests = [];
 let respond, purged = false, updates = 0;
@@ -261,7 +267,7 @@ await tick();
 // Collapsing the sidebar gives its freed width to the existing plot without resetting the time.
 const selectedFrame = graph.layout.sliders[0].active;
 root.clientWidth += 128;
-observers[0]();
+resizeObservers[0]();
 await tick();
 assert.equal(graph.layout.width, root.clientWidth);
 assert.equal(graph.layout.height, root.clientHeight);
@@ -302,7 +308,7 @@ sceneRespond(JSON.stringify({...initial,id:sceneRequests.at(-1).id,data:[{...ini
 await tick();
 assert.equal(updates, sceneUpdates);
 sceneRoot.isConnected = false;
-observers.at(-1)();
+mutationObservers.at(-1)();
 
 // Line-only traces have no marker dictionary; camera updates must still preserve their gaps.
 const lineRoot = new Element();
@@ -319,11 +325,11 @@ await tick();
 assert.deepEqual(lineRoot.children[0].data[0].x, [1, 2, null]);
 assert.equal(lineRoot.children[0].layout.annotations[0].hovertext, linePayload.detail);
 lineRoot.isConnected = false;
-observers.at(-1)();
+mutationObservers.at(-1)();
 
 // Removing a plot cancels queued work and ignores late backend responses.
 root.isConnected = false;
-observers[1]();
+mutationObservers[0]();
 assert.equal(respond(JSON.stringify(initial)), false);
 assert.equal(purged, true);
 const detached = new Element();

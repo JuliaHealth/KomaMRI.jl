@@ -57,14 +57,17 @@ per acquired readout:
 | Field | Contents |
 | --- | --- |
 | `head` | Full MRD acquisition header, including flags, timestamps, discard counts, and `idx` label counters |
-| `traj` | Stored trajectory, coordinates × samples; normalization is unchanged |
+| `traj` | Stored trajectory, coordinates × samples; copied without rescaling |
 | `data` | Complex signal, samples × receive coils |
 | `role` | Acquisition role derived from the MRD flags, such as `imaging` or `navigator` |
 
 Profiles retain their own sample counts and trajectory dimensions, so 1D navigators,
 2D images, and 3D acquisitions can coexist. No coils are discarded, no `Inf` separators
-are inserted, and timestamps are not synthesized. Koma's trajectory normalization scale
-is retained in `raw.params.userParameters.KomaTrajectoryScale` when available.
+are inserted, and timestamps are not synthesized. New Koma MRD exports store
+reconstruction-ready coordinates, used directly by MRIReco. The numeric parameters
+`raw.params.userParameters.KomaTrajectoryScaleX/Y/Z` contain `reconSize ./ FOV_m`:
+multiply each stored coordinate by its factor to recover physical k-space in cycles/m.
+Without FOV, export uses legacy global normalization and saves that factor on every axis.
 
 Raw data also exports when `userParameters` is absent. When present, those parameters
 are additionally saved in `sim_params.mat`. Dictionary keys replace `Δ` with `d` for

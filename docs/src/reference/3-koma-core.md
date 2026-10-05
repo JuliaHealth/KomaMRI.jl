@@ -32,6 +32,7 @@ BlochMagnusBGL6
 
 ```@docs
 get_backend
+get_devices
 print_devices
 gpu
 cpu

@@ -76,10 +76,10 @@ end
 
 function parsed_definition_value(key, value)
     fields = split(value)
-    parsed = map(fields) do field
-        something(tryparse(Float64, field), field)
-    end
-    return length(parsed) == 1 && key != "RequiredExtensions" ? parsed[1] : parsed
+    key == "RequiredExtensions" && return String.(fields)
+    parsed = tryparse.(Float64, fields)
+    any(isnothing, parsed) && return value
+    return length(parsed) == 1 ? only(parsed) : Float64.(parsed)
 end
 
 function definitions_dict(definitions)
@@ -790,22 +790,9 @@ function sequence_from_pulseq_data(data::PulseqSequenceData; filename=nothing)
         seq.DEF["signature"] = data.signature
     end
 
-    # Koma-specific reconstruction dimensions
-    (; labels, encoding_blocks, encoding_label_names) =
-        KomaMRIBase.adc_label_context(seq)
-    max_label = isempty(encoding_blocks) ? KomaMRIBase.AdcLabels() :
-        maximum(labels[encoding_blocks])
-
-    seq.DEF["Nx"] = trunc(Int64, get(seq.DEF, "Nx") do
-        isempty(encoding_blocks) ? maximum(adc.N for adc in seq.ADC) :
-            maximum(seq.ADC[b].N for b in encoding_blocks)
-    end)
-    seq.DEF["Nz"] = trunc(Int64, get(seq.DEF, "Nz") do
-        :PAR in encoding_label_names ? max_label.PAR + 1 : 1
-    end)
-    seq.DEF["Ny"] = trunc(Int64, get(seq.DEF, "Ny") do
-        :LIN in encoding_label_names ? max_label.LIN + 1 : 1
-    end)
+    for name in ("Nx", "Ny", "Nz")
+        haskey(seq.DEF, name) && (seq.DEF[name] = Int(seq.DEF[name]))
+    end
     #Koma sequence
     return seq
 end
@@ -818,10 +805,9 @@ KomaMRIBase.Sequence(data::PulseqSequenceData; filename=nothing) =
 
 Returns the Sequence struct from a Pulseq file with `.seq` extension.
 
-Reconstruction uses explicit `Nx`, `Ny`, and `Nz` definitions. When absent, `Nx`
-defaults to the largest imaging ADC sample count, and `Ny`/`Nz` to the largest
-`LIN`/`PAR` label plus one (or one without those labels). Partial Fourier and
-oversampled acquisitions should declare their full matrix. Slices come only from
+Explicit `Nx`, `Ny`, and `Nz` definitions are recommended for reconstruction.
+Missing dimensions remain absent from `seq.DEF`; raw-data export infers them from
+imaging ADCs, `LIN`/`PAR` labels, and FOV/k-space coverage. Slices come only from
 `SLC` labels, never from RF frequency offsets or the number of ADC events.
 
 # Arguments

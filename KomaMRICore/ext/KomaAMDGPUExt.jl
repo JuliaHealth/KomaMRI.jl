@@ -15,13 +15,9 @@ KomaMRICore.device_name(::ROCBackend) = AMDGPU.HIP.name(AMDGPU.device())
     AMDGPU.Device.shfl_down(val, Int32(offset), UInt32(32))
 end
 
-function KomaMRICore._print_devices(::ROCBackend)
-    devices = [
-        Symbol("($(i-1)$(i == 1 ? "*" : " "))") => AMDGPU.HIP.name(d) for
-        (i, d) in enumerate(AMDGPU.devices())
-    ]
-    @info "$(length(AMDGPU.devices())) AMD capable device(s)." devices...
-end
+KomaMRICore._devices(::ROCBackend) = [
+    (id=i, name=AMDGPU.HIP.name(d), current=d == AMDGPU.device()) for (i, d) in enumerate(AMDGPU.devices())
+]
 
 function __init__()
     push!(KomaMRICore.LOADED_BACKENDS[], ROCBackend())

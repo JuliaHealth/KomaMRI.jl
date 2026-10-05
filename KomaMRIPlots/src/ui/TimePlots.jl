@@ -85,7 +85,8 @@ session must remain running; an indicator marks reduced samples.
 - `show_seq_blocks=false`: label sequence block boundaries.
 - `show_adc=false`: show individual ADC sample markers.
 - `max_rf_samples=100`: cap embedded RF samples per event.
-- `freq_in_phase=false`, `show_rf_frame=false`: RF phase display.
+- `freq_in_phase=false`: fold RF frequency modulation into the displayed phase.
+- `show_rf_frame=false`: display the RF rotating-frame phase.
 - `xaxis="x"`, `yaxis="y"`, `showlegend=true`: trace layout controls.
 
 Passing nonadaptive-only keywords with `adaptive=true` throws `ArgumentError`.
@@ -150,7 +151,7 @@ plot_slew_rate(seq; adaptive=false, physio=NoPhysioSignal(), kwargs...) =
 """
     plot_eddy_currents(seq, λ; adaptive=false, physio=NoPhysioSignal(), kwargs...)
 
-Plot eddy currents with time constants `λ` and weights `α=ones(size(λ))`.
+Plot eddy currents with time constants `λ` in seconds and weights `α=ones(size(λ))`.
 Other keywords and mode behavior match [`plot_M0`](@ref). All plotting keywords,
 including `α`, apply in both modes.
 """
@@ -212,6 +213,7 @@ function Bonito.jsrender(session::Bonito.Session, plot::TimePlot)
     root = Bonito.DOM.div(; class="koma-time-plot", style)
     Bonito.onload(session, root, js"""async root => {
         const [Plotly, viewer] = await Promise.all([$(TIME_PLOTLY), $(TIME_PLOT_JS)]);
+        if (!root?.isConnected) return;
         viewer.mount(root, Plotly, $(request), $(response), $(PlotlyBase.JSON.json(overview)));
     }""")
     return Bonito.jsrender(session, root)

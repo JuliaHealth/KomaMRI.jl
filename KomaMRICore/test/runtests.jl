@@ -473,7 +473,7 @@ end
     rotations = [Matrix{Float64}(I, 3, 3), [0 0 1; 1 0 0; 0 1 0], [0 1 0; 0 0 1; 1 0 0]]
     push!(rotations, rotx(π / 6) * roty(π / 4))
 
-    # Rotating a line, plane, or volume preserves its ADC coordinates in ordered XYZ storage.
+    # Stored coordinates and their factors recover physical XYZ coordinates after line/plane/volume rotation.
     # MRD coordinates use Float32, so comparisons allow that format's rounding precision.
     for dimensions in 1:3
         seq = encoding_sequence(dimensions)
@@ -483,9 +483,10 @@ end
             raw = signal_to_raw_data(signal, rotation * seq)
             expected = reference * transpose(rotation)
             stored_dimensions = any(!iszero, rotation[3, 1:dimensions]) ? 3 : 2
+            scale = Float32.([raw.params["userParameters"]["KomaTrajectoryScale$axis"] for axis in ("X", "Y", "Z")])
             @test all(profile.head.trajectory_dimensions == stored_dimensions for profile in raw.profiles)
-            @test hcat((profile.traj for profile in raw.profiles)...) ≈
-                Float32.(transpose(expected[:, 1:stored_dimensions]) ./ (2maximum(abs, expected)))
+            @test hcat((profile.traj for profile in raw.profiles)...) .* scale[1:stored_dimensions] ≈
+                Float32.(transpose(expected[:, 1:stored_dimensions]))
         end
     end
 
@@ -500,7 +501,8 @@ end
 
     # A constant nonzero kz is not a third encoding direction; explicit storage retains it.
     @test all(profile.head.trajectory_dimensions == 2 for profile in automatic.profiles)
-    @test all(profile.traj[3, :] ≈ fill(0.5f0, size(profile.traj, 2)) for profile in explicit.profiles)
+    scale_z = Float32(explicit.params["userParameters"]["KomaTrajectoryScaleZ"])
+    @test all(profile.traj[3, :] .* scale_z ≈ fill(100.0f0, size(profile.traj, 2)) for profile in explicit.profiles)
 
     partitions = Sequence()
     @addblock partitions += (ADC(8, 1e-3),)
@@ -513,7 +515,8 @@ end
     @test raw.params["encodedSize"] == [8, 1, 2]
     @test all(profile.head.idx.slice == 0 for profile in raw.profiles)
     @test first(raw.profiles).traj[3, :] == zeros(Float32, 8)
-    @test last(raw.profiles).traj[3, :] == fill(0.5f0, 8)
+    scale_z = raw.params["userParameters"]["KomaTrajectoryScaleZ"]
+    @test last(raw.profiles).traj[3, :] == fill(Float32(γ * 1e-3 * 1e-3 / scale_z), 8)
 end
 
 @testitem "simulate rejects negative labels" tags=[:core, :nomotion] begin

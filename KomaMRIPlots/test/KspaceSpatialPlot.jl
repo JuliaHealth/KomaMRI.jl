@@ -1,5 +1,5 @@
 @testitem "Adaptive k-space segments and ADC provenance" tags=[:plots] begin
-    using KomaMRIBase, LinearAlgebra
+    using KomaMRIBase
     import KomaMRIPlots as P
 
     seq = PulseDesigner.EPI_example()
@@ -43,7 +43,7 @@
     delete!(query, "visible")
 
     # A segment crossing a zoomed view remains visible even when both endpoints are outside.
-    matrix = Matrix{Float64}(I, 4, 4)
+    matrix = Float64[i == j for i in 1:4, j in 1:4]
     crossing = [-2.0 0 0; 2 0 0; 2 2 0]
     segments, available = P.kspace_segments(crossing, matrix, 100, 100, 100)
     @test segments == [1] && available == 1

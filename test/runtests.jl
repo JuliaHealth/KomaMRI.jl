@@ -77,17 +77,18 @@ using TestItems, TestItemRunner
         fov = 0.08
         function cartesian_sequence(matrix; fov, duration=1e-3)
             nx, ny, nz = matrix
-            scale = 1 / (γ * fov * duration)
+            fov = fov .* ones(3)
+            scale = 1 ./ (γ .* fov .* duration)
             seq = Sequence()
             @addblock for partition in 0:(nz - 1), line in 0:(ny - 1)
                 start = [-fld(nx, 2), line - fld(ny, 2), partition - fld(nz, 2)]
-                pre = [Grad(k * scale, duration) for k in start]
+                pre = [Grad(start[d] * scale[d], duration) for d in 1:3]
                 seq += (x=pre[1], y=pre[2], z=pre[3])
-                seq += (x=Grad((nx - 1) * scale, duration), ADC(nx, duration),
+                seq += (x=Grad((nx - 1) * scale[1], duration), ADC(nx, duration),
                     LabelSet(line, "LIN"), nz > 1 ? LabelSet(partition, "PAR") : nothing)
-                seq += (x=Grad(-(start[1] + nx - 1) * scale, duration), y=-pre[2], z=-pre[3])
+                seq += (x=Grad(-(start[1] + nx - 1) * scale[1], duration), y=-pre[2], z=-pre[3])
             end
-            seq.DEF = Dict("Nx"=>nx, "Ny"=>ny, "Nz"=>nz, "FOV"=>fill(fov, 3))
+            seq.DEF = Dict("Nx"=>nx, "Ny"=>ny, "Nz"=>nz, "FOV"=>fov)
             return seq
         end
         function reconstruct_point(seq, position)
@@ -110,16 +111,21 @@ using TestItems, TestItemRunner
             @test argmax(abs.(image)) == CartesianIndex(samples ÷ 2 + 1 + displacement, 1, 1, 1, 1, 1)
         end
 
-        # Physical 3D encoding must locate an off-center point without PAR labels.
-        matrix, displacement = (8, 8, 8), [1, -2, 2]
-        seq = cartesian_sequence(matrix; fov)
-        position = displacement .* (fov ./ collect(matrix))
+        # An anisotropic volume places the point at its physical voxel, with and without PAR labels.
+        matrix, displacement = (8, 8, 4), [1, -1, -1]
+        volume_fov = [fov, fov, 2fov]
+        seq = cartesian_sequence(matrix; fov=volume_fov)
+        position = displacement .* volume_fov ./ collect(matrix)
+        labeled = only(reconstruct_point(seq, position).images).image
+        expected = CartesianIndex((matrix .÷ 2 .+ 1 .+ Tuple(displacement))..., 1, 1, 1)
+        @test argmax(abs.(labeled)) == expected
         for extensions in seq.EXT
             filter!(ext -> !(ext isa LabelSet && ext.labelstring == "PAR"), extensions)
         end
         volume = reconstruct_point(seq, position)
         unlabeled = only(volume.images).image
-        @test argmax(abs.(unlabeled)) == CartesianIndex((matrix .÷ 2 .+ 1 .+ Tuple(displacement))..., 1, 1, 1)
+        @test argmax(abs.(unlabeled)) == expected
+        @test unlabeled == labeled
         test_reconstruction_mat(volume)
 
         # A varying spatial direction without a matrix must fail rather than invent an image size.
@@ -145,7 +151,6 @@ using TestItems, TestItemRunner
             reference = reconstruct_with_labels(imaging_raw; rec_params).images
 
             # A wider z navigator must not rescale either slice or turn the images into a 3D volume.
-            # Export normalization differs by a factor of three, including Float32 coordinate rounding.
             navigator = last(rotations) * cartesian_sequence((image_samples, 1, 1); fov=fov / 3)
             mixed_seq = copy(imaging_seq)
             @addblock begin
@@ -183,7 +188,7 @@ using TestItems, TestItemRunner
                 @test all(mat_values(saved["definitions"][k]) == mat_values(v) for (k, v) in mixed_seq.DEF)
             end
 
-            # Discarded off-axis samples outside normalized ±0.5 cannot change geometry or scaling.
+            # Discarded off-axis samples cannot change geometry or scaling.
             padded_raw = deepcopy(mixed_raw)
             padded_nav = last(padded_raw.profiles)
             discarded_coordinate = Float32[0, 1, 1]
@@ -469,6 +474,55 @@ end
     end
 end
 
+@testitem "Sequence reconstruction metadata warning" tags=[:koma] begin
+    warning = KomaMRI.sequence_reconstruction_warning
+    seq = Sequence()
+    # Guessed dimensions are reported before simulation without changing the declared metadata.
+    @test isempty(warning(seq))
+    @addblock seq += ADC(8, 1e-3)
+    @test occursin("Nx=8, Ny=1, Nz=1", warning(seq))
+    @test occursin("Explicitly specifying Nx/Ny/Nz in [DEFINITIONS] is recommended", warning(seq))
+    @test occursin("FOV is missing", warning(seq))
+    seq.DEF = Dict("Nx"=>8, "Ny"=>8, "Nz"=>1, "FOV"=>fill(0.08, 3))
+    @test isempty(warning(seq))
+
+    # Trailing labels do not invent dimensions; explicit definitions are never replaced by guesses.
+    seq.DEF = Dict("FOV"=>[0.08, 0.08, 0.08])
+    definitions = copy(seq.DEF)
+    @test occursin("guessed: Nx, Ny, Nz", warning(seq))
+    @test seq.DEF == definitions
+    @addblock seq += (LabelSet(0, "PAR"),)
+    @test occursin("Nz=1", warning(seq))
+    @addblock seq += (ADC(8, 1e-3), LabelSet(0, "LIN"))
+    @test occursin("Nx=8, Ny=1, Nz=1", warning(seq))
+    merge!(seq.DEF, Dict("Nx"=>8, "Ny"=>1, "Nz"=>1))
+    @test isempty(warning(seq))
+
+    # Encoding counters are zero-based; undeclared matrices use maximum + 1, including unacquired indices.
+    for (label, dimension) in (("LIN", "Ny"), ("PAR", "Nz"))
+        encoding = Sequence()
+        @addblock for index in 1:8
+            encoding += (ADC(8, 1e-3), LabelSet(index, label), LabelSet(3, "SLC"), LabelSet(5, "REP"))
+        end
+        encoding.DEF = Dict("Nx"=>8, "Ny"=>8, "Nz"=>8, "FOV"=>fill(0.08, 3))
+        @test occursin("$label reaches 8, outside $dimension=8", warning(encoding))
+        @test_throws ArgumentError signal_to_raw_data(zeros(ComplexF32, 64, 1), encoding)
+        delete!(encoding.DEF, dimension)
+        @test occursin("$dimension=9", warning(encoding)) && occursin("guessed: $dimension", warning(encoding))
+        # Nonzero slice/repetition labels and a valid partial encoding range need no warning.
+        encoding.DEF[dimension] = 9
+        @test isempty(warning(encoding))
+    end
+
+    # Simulation rejects negative accumulated labels even between acquisitions.
+    negative = Sequence()
+    negative.DEF = Dict("Nx"=>8, "Ny"=>1, "Nz"=>1)
+    @addblock negative += ADC(8, 1e-3)
+    @addblock negative += (LabelSet(-1, "REP"),)
+    @test occursin("Negative ADC labels: REP", warning(negative))
+    @test_throws ErrorException KomaMRICore._assert_nonnegative_adc_labels(negative)
+end
+
 @testitem "KomaUI" tags=[:koma] begin
     using Bonito
 
@@ -557,6 +611,16 @@ end
                         document.querySelector('#content .js-plotly-plot') !== null
                 """,
             )
+            function wait_for_plot(state; timeout=30)
+                @test timedwait(() -> w.state[] == state, timeout) == :ok
+                @test timedwait(() -> plot_rendered(state), 30) == :ok
+                return nothing
+            end
+            function click_button(id, state; timeout=30)
+                click_button(id)
+                wait_for_plot(state; timeout)
+                return nothing
+            end
             range_slider_visible() = Bonito.evaljs_value(
                 session,
                 js"""
@@ -575,6 +639,15 @@ end
                             return image !== null && image.complete && image.naturalWidth > 0;
                         })
                     """), 30) == :ok
+
+                    # Switch themes on Home, restoring the default dark theme for the remaining views.
+                    @test w.darkmode[]
+                    for dark in (false, true)
+                        click_button("button_toggle_theme")
+                        @test timedwait(() -> w.darkmode[] == dark && Bonito.evaljs_value(session,
+                            js"""getComputedStyle(document.getElementById('main')).colorScheme === $(dark ? "dark" : "light") && document.getElementById('button_toggle_theme').checked === $(dark)"""
+                        ), 30) == :ok
+                    end
                 end
 
                 @testset "Julia actions" begin
@@ -587,17 +660,13 @@ end
                 end
 
                 @testset "Sequence views" begin
-                    click_button("button_pulses_seq")
-                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
-                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+                    click_button("button_pulses_seq", "sequence")
                     @test range_slider_visible()
                     @test Bonito.evaljs_value(
                         session, js"document.getElementById('main').clientHeight === window.innerHeight"
                     )
 
-                    click_button("button_pulses_kspace")
-                    @test timedwait(() -> w.state[] == "kspace", 30) == :ok
-                    @test timedwait(() -> plot_rendered("kspace"), 30) == :ok
+                    click_button("button_pulses_kspace", "kspace")
 
                     # Moments and slew rate share one time slider with the sequence panel above.
                     for (button, state) in (("M0", "m0"), ("M1", "m1"),
@@ -620,9 +689,7 @@ end
                     click_button("button_phantom")
                     @test timedwait(() -> w.state[] == "phantom", 30) == :ok
 
-                    click_button("button_scanner")
-                    @test timedwait(() -> w.state[] == "coils", 30) == :ok
-                    @test timedwait(() -> plot_rendered("coils"), 30) == :ok
+                    click_button("button_scanner", "coils")
 
                     click_button("button_scanner_params")
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
@@ -638,18 +705,14 @@ end
                     # Simulation must use replacement options, not the launch-time dictionary.
                     w.sim_params[] = Dict("gpu" => false, "precision" => "f64")
                     @test w.state[] == "simparams"
-                    click_button("simulate!")
-                    @test timedwait(() -> w.state[] == "sig", 180) == :ok
-                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+                    click_button("simulate!", "sig"; timeout=180)
                     @test !isempty(w.raw[].profiles)
                     @test w.raw[].params["userParameters"]["precision"] == "f64"
 
                     click_button("button_scanner_params")
                     @test timedwait(() -> w.state[] == "scanneparams", 30) == :ok
 
-                    click_button("button_sig")
-                    @test timedwait(() -> w.state[] == "sig", 30) == :ok
-                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+                    click_button("button_sig", "sig")
                     @test range_slider_visible()
 
                     # Reload restores the saved simulation samples and reopens the raw-data plot.
@@ -672,9 +735,7 @@ end
 
                     # Switching back to direct reconstruction restores an image from the nonzero signal.
                     w.rec_params[] = Dict(:reco => "direct")
-                    click_button("recon!")
-                    @test timedwait(() -> w.state[] == "absi", 180) == :ok
-                    @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+                    click_button("recon!", "absi"; timeout=180)
                     @test !isempty(w.img[])
                     @test any(!iszero, first(w.img[].images).image)
 
@@ -694,9 +755,7 @@ end
                         @test w.state[] == "absi"
                     end
 
-                    click_button("button_reconstruction_absK")
-                    @test timedwait(() -> w.state[] == "absk", 30) == :ok
-                    @test timedwait(() -> plot_rendered("absk"), 30) == :ok
+                    click_button("button_reconstruction_absK", "absk")
                 end
 
                 @testset "Image export" begin
@@ -716,17 +775,15 @@ end
 
                 @testset "Observable updates" begin
                     w.seq[] = PulseDesigner.EPI_example(; sys=w.sys[])
-                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
-                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+                    wait_for_plot("sequence")
 
                     w.seq[] = triggered
-                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
-                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+                    wait_for_plot("sequence")
                     @test w.physio[].period == 1.0
-                    @test Bonito.evaljs_value(
+                    @test timedwait(() -> Bonito.evaljs_value(
                         session,
                         js"document.querySelector('#content .rangeslider-container') === null",
-                    )
+                    ), 30) == :ok
 
                     w.physio[] = CardiacSignal(; heart_rate=1.25)
                     @test w.physio[].period == 0.8
@@ -735,8 +792,7 @@ end
                     @test w.physio[] == NoPhysioSignal()
 
                     w.obj[] = KomaMRI.setup_phantom()
-                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
-                    @test timedwait(() -> plot_rendered("phantom"), 30) == :ok
+                    wait_for_plot("phantom")
 
                     w.sys[] = Scanner()
                     @test timedwait(() -> w.state[] == "coils", 30) == :ok
@@ -753,13 +809,11 @@ end
                     w.raw[] = RawAcquisitionData(
                         ISMRMRDFile(joinpath(@__DIR__, "test_files", "Koma_signal.mrd"))
                     )
-                    @test timedwait(() -> w.state[] == "sig", 30) == :ok
-                    @test timedwait(() -> plot_rendered("sig"), 30) == :ok
+                    wait_for_plot("sig")
 
                     # Slice changes reuse the graph; leaving the page releases its retained plot state.
                     w.img[] = cat(zeros(ComplexF32, 2, 2), ones(ComplexF32, 2, 2); dims=3)
-                    @test timedwait(() -> w.state[] == "absi", 30) == :ok
-                    @test timedwait(() -> plot_rendered("absi"), 30) == :ok
+                    wait_for_plot("absi")
                     try
                         Bonito.evaljs(session, js"""
                             window.komaTestPlot = document.querySelector('#content .js-plotly-plot');
@@ -820,8 +874,12 @@ end
                     click_button("button_reload_seq")
                     @test timedwait(() -> w.seq[] !== previous_sequence, 30) == :ok
                     @test !any(ext -> ext isa LabelInc, Iterators.flatten(w.seq[].EXT))
-                    @test timedwait(() -> w.state[] == "sequence", 30) == :ok
-                    @test timedwait(() -> plot_rendered("sequence"), 30) == :ok
+                    wait_for_plot("sequence")
+                    # The asynchronously resolved matrix is visible and explicitly identified as inferred.
+                    @test timedwait(() -> Bonito.evaljs_value(session, js"""
+                        document.querySelector('#toastBody0').textContent.includes('Explicitly specifying Nx/Ny/Nz') &&
+                        document.querySelector('#liveToast0 rect').getAttribute('fill') === '#ffc107'
+                    """), 30) == :ok
 
                     @test Bonito.evaljs_value(session,
                         js"document.getElementById('seq-dropdown').title === 'Sequence: reload.seq'")
@@ -834,8 +892,7 @@ end
                     w.obj[] = previous_phantom
                     click_button("button_reload_phantom")
                     @test timedwait(() -> w.obj[].name == "column1d.h5", 30) == :ok
-                    @test timedwait(() -> w.state[] == "phantom", 30) == :ok
-                    @test timedwait(() -> plot_rendered("phantom"), 30) == :ok
+                    wait_for_plot("phantom")
 
                     # Scanner loading updates the receive view; reloading rereads changed limits and channels.
                     scanner_file = joinpath(mktempdir(), "scanner.sys")

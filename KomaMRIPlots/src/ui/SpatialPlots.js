@@ -1,3 +1,6 @@
+import {themeLayout, observeTheme} from './PlotTheme.js';
+import {mountKspaceRange} from './KspaceRange.js';
+
 function multiply(a, b) {
     return Array.from({length: 16}, (_, i) => {
         const row = i % 4, col = Math.floor(i / 4);
@@ -29,6 +32,7 @@ export function projection(graph, dimensions) {
 }
 
 const PLAYBACK_DURATION_MS = 5000;
+const KEYBOARD_REFINE_DELAY_MS = 300;
 
 export function playbackFrame(steps, elapsed) {
     const start = Number(steps[0].label), end = Number(steps.at(-1).label);
@@ -53,7 +57,10 @@ export async function mount(root, Plotly, request, response, templateJSON) {
     let preview = false, dragging = false, interacting = false;
     let pending = null;
     let playing = false, playTimer, cameraFrame, cameraTimer, playStarted, drawnFrame = 1;
-    let property = JSON.parse(response.value).property;
+    const initial = JSON.parse(response.value);
+    let property = initial.property;
+    const range = template.kspace ? mountKspaceRange(root, graph, template.kspace, initial, fetchDetail) : null;
+    const plotSize = () => range ? [graph.clientWidth, graph.clientHeight] : [root.clientWidth, root.clientHeight];
     const timeSlider = template.layout.sliders?.find(slider => slider.name === 'time' &&
         slider.visible !== false && slider.steps?.length > 1);
     let playbackMenu;
@@ -90,7 +97,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         const label = playing ? '❚❚' : '▶';
         template.layout.updatemenus[playbackMenu].buttons[0].label = label;
         await Plotly.relayout(graph, {[`updatemenus[${playbackMenu}].buttons[0].label`]: label});
-        styleButtons();
+        styleControls();
         if (!playing && refine) {
             frame = drawnFrame;
             fetchDetail();
@@ -103,7 +110,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         wanted = false;
         inFlight = true;
         const size = graph._fullLayout._size;
-        request.notify({id: revision, frame, coil, component, preview, property,
+        request.notify({id: revision, frame, coil, component, preview, property, ...range?.query,
             visible: graph.data.map(trace => trace.visible !== false && trace.visible !== 'legendonly'),
             width: size.w, height: size.h, projection: projection(graph, template.dimensions)});
     }
@@ -116,7 +123,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         clearTimeout(timer);
         send();
     }
-    function fetchPreview() {
+    function fetchPreview(refineDelay = 120) {
         if (disposed) return;
         // Accept intermediate motion frames while coalescing the next requested time.
         if (!preview) revision++;
@@ -126,9 +133,9 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         clearTimeout(timer);
         send();
         // Only refinement is debounced; previews never wait for the pointer to stop.
-        if (!playing && !dragging) timer = setTimeout(() => fetchDetail(), 120);
+        if (!playing && !dragging) timer = setTimeout(() => fetchDetail(), refineDelay);
     }
-    function styleButtons() {
+    function styleControls() {
         const propertyGroups = [];
         graph.querySelectorAll('.updatemenu-header-group').forEach(group => {
             const playback = group.__data__.name === 'motion-playback';
@@ -153,11 +160,27 @@ export async function mount(root, Plotly, request, response, templateJSON) {
                 if (annotation.textContent === '—') annotation.style.transform = `translateX(${offset}px)`;
             });
         }
+        graph.querySelectorAll('.slider-group').forEach(group => {
+            if (group.__data__.name !== 'time') return;
+            const slider = graph.layout.sliders[group.__data__._index];
+            const handle = group.querySelector('.slider-grip-rect');
+            handle.setAttribute('tabindex', '0');
+            handle.setAttribute('role', 'slider');
+            handle.setAttribute('aria-label', 'Motion time');
+            handle.setAttribute('aria-orientation', 'horizontal');
+            handle.setAttribute('aria-valuemin', '1');
+            handle.setAttribute('aria-valuemax', String(slider.steps.length));
+            handle.setAttribute('aria-valuenow', String(slider.active + 1));
+            handle.setAttribute('aria-valuetext', `${slider.steps[slider.active].label} ms`);
+        });
     }
     async function draw(payload) {
-        const layout = structuredClone(template.layout);
-        layout.height = root.clientHeight;
-        layout.width = root.clientWidth;
+        if (range) {
+            range.update(payload);
+            payload.data[1].marker.showscale = false;
+        }
+        const layout = themeLayout(root, structuredClone(template.layout));
+        [layout.width, layout.height] = plotSize();
         layout.uirevision = 'spatial-plot';
         (layout.sliders ?? []).forEach((slider, i) => {
             // Do not pull a dragging thumb back to an intermediate preview frame.
@@ -215,7 +238,8 @@ export async function mount(root, Plotly, request, response, templateJSON) {
             }
         }
         drawnFrame = payload.frame ?? frame;
-        styleButtons();
+        styleControls();
+        range?.theme();
     }
     async function render() {
         if (rendering || disposed || interacting) return;
@@ -232,7 +256,8 @@ export async function mount(root, Plotly, request, response, templateJSON) {
             else { send(); schedulePlayback(); }
         }
     }
-    await draw(JSON.parse(response.value));
+    const theme = observeTheme(graph, Plotly);
+    await draw(initial);
     if (!root.isConnected) { Plotly.purge(graph); return; }
     response.on(serialized => {
         if (disposed) return false;
@@ -257,6 +282,7 @@ export async function mount(root, Plotly, request, response, templateJSON) {
             refreshView();
         }
     });
+    if (range) graph.on('plotly_afterplot', () => range.theme());
     graph.addEventListener('wheel', event => {
         if (!event.target.closest('.gl-container, .nsewdrag')) return;
         beginInteraction();
@@ -285,13 +311,29 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         frame = Number(event.step.value);
         fetchDetail();
     });
+    graph.addEventListener('keydown', event => {
+        const slider = event.target.closest('.slider-group');
+        if (slider?.__data__?.name !== 'time' || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (playing) {
+            frame = drawnFrame;
+            setPlaying(false, false);
+        }
+        frame = Math.max(1, Math.min(timeSlider.steps.length,
+            frame + (event.key === 'ArrowRight' ? 1 : -1)));
+        Plotly.relayout(graph, {[`sliders[${slider.__data__._index}].active`]: frame - 1})
+            .then(styleControls);
+        fetchPreview(KEYBOARD_REFINE_DELAY_MS);
+    });
     graph.on('plotly_buttonclicked', event => {
         if (event.button.name === 'motion-playback') return setPlaying(!playing);
         if (event.button.name === 'phantom-property') {
             property = event.button.args[0];
             revision++;
         } else component = event.button.args[0];
-        styleButtons();
+        styleControls();
         if (playing) fetchPreview();
         else fetchDetail();
     });
@@ -305,6 +347,9 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         clearTimeout(cameraTimer);
     }
     graph.addEventListener('pointerdown', event => {
+        const slider = event.target.closest('.slider-group');
+        if (slider?.__data__?.name === 'time')
+            slider.querySelector('.slider-grip-rect').focus({preventScroll: true});
         if (!event.target.closest('.gl-container, .nsewdrag')) return;
         beginInteraction();
     }, true);
@@ -318,13 +363,13 @@ export async function mount(root, Plotly, request, response, templateJSON) {
     };
     document.addEventListener('pointerup', finishInteraction, true);
     document.addEventListener('pointercancel', finishInteraction, true);
-    let size = [root.clientWidth, root.clientHeight];
+    let size = plotSize();
     const resize = new ResizeObserver(() => {
-        const next = [root.clientWidth, root.clientHeight];
+        const next = plotSize();
         if (next.every((value, i) => Math.abs(value - size[i]) < 2)) return;
         size = next;
         Plotly.relayout(graph, {width: next[0], height: next[1]}).then(() => {
-            styleButtons();
+            styleControls();
             playing ? fetchPreview() : fetchDetail();
         });
     });
@@ -338,11 +383,13 @@ export async function mount(root, Plotly, request, response, templateJSON) {
         cancelAnimationFrame(cameraFrame);
         resize.disconnect();
         removal.disconnect();
+        theme.disconnect();
         document.removeEventListener('pointerup', finishInteraction, true);
         document.removeEventListener('pointercancel', finishInteraction, true);
         if (!rendering) Plotly.purge(graph);
     });
     removal.observe(document, {subtree: true, childList: true});
     resize.observe(root);
+    if (range) resize.observe(graph);
     fetchDetail();
 }

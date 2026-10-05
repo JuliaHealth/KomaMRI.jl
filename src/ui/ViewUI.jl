@@ -1,4 +1,4 @@
-function show_sequence!(w, seq, view; darkmode=true, physio=NoPhysioSignal())
+function show_sequence!(w, seq, view; darkmode=w.darkmode[], physio=NoPhysioSignal())
     if view === :sequence
         display_loading!(w, "Plotting sequence ...")
         time_end = length(seq) > 1_000 ? dur(seq) * 1e3 : 30
@@ -13,7 +13,7 @@ function show_sequence!(w, seq, view; darkmode=true, physio=NoPhysioSignal())
         set_content!(w, plot_node(plot), "sequence")
     elseif view === :kspace
         display_loading!(w, "Plotting kspace ...")
-        set_content!(w, plot_node(plot_kspace(seq; darkmode, adaptive=true)), "kspace")
+        set_content!(w, plot_node(plot_kspace(seq; darkmode, adaptive=true, physio)), "kspace")
     elseif view in (:moment0, :moment1, :moment2)
         index = findfirst(==(view), (:moment0, :moment1, :moment2))
         order = index - 1
@@ -46,7 +46,7 @@ function sequence_comparison(seq, plot; darkmode, physio, show_rf_center=false)
         class="koma-sequence-comparison", dataLinkedTimePlots=true)
 end
 
-function show_phantom!(w, obj; key=:ρ, darkmode=true)
+function show_phantom!(w, obj; key=:ρ, darkmode=w.darkmode[])
     display_loading!(w, "Plotting phantom ...")
     plot = plot_phantom(obj; key, time_samples=5, darkmode, adaptive=true, height=nothing)
     plot.template.layout[:margin][:t] = 84
@@ -54,7 +54,7 @@ function show_phantom!(w, obj; key=:ρ, darkmode=true)
     return set_content!(w, plot_node(plot), "phantom")
 end
 
-function show_scanner!(w, sys; darkmode=true)
+function show_scanner!(w, sys; darkmode=w.darkmode[])
     display_loading!(w, "Plotting receive sensitivities ...")
     return set_content!(w, plot_node(plot_coil_sens(sys; darkmode, adaptive=true, height=nothing)), "coils")
 end
@@ -77,7 +77,7 @@ function show_scanner_parameters!(w, sys)
     return set_content!(w, dictionary_page(values, "Hardware limits"), "scanneparams")
 end
 
-function observe_scanner!(w, scanner; darkmode=true)
+function observe_scanner!(w, scanner)
     receiver = scanner[].receiver
     limits = Tuple(getfield(scanner[].limits, name) for name in fieldnames(HardwareLimits))
     push!(w.listeners, on(scanner) do sys
@@ -86,11 +86,11 @@ function observe_scanner!(w, scanner; darkmode=true)
         limits_changed = !isequal(next_limits, limits)
         receiver, limits = sys.receiver, next_limits
         if receiver_changed
-            show_scanner!(w, sys; darkmode)
+            show_scanner!(w, sys)
         elseif limits_changed || w.state[] == "scanneparams"
             show_scanner_parameters!(w, sys)
         else
-            show_scanner!(w, sys; darkmode)
+            show_scanner!(w, sys)
         end
         return nothing
     end)
@@ -102,12 +102,12 @@ function show_parameters!(w, parameters, title, state)
     return set_content!(w, dictionary_page(parameters, title), state)
 end
 
-function show_signal!(w, raw; darkmode=true)
+function show_signal!(w, raw; darkmode=w.darkmode[])
     display_loading!(w, "Plotting raw signal ...")
     return set_content!(w, plot_node(plot_signal(raw; adaptive=true, darkmode)), "sig")
 end
 
-const KSPACE_DYNAMIC_RANGE_DB = 40
+const KSPACE_DYNAMIC_RANGE_DB = 60
 
 function image_values(img, type; limits=nothing)
     array = Array(img)
@@ -117,7 +117,7 @@ function image_values(img, type; limits=nothing)
         values, zmin, zmax
     elseif type === :absk
         dynamic_range_db = KSPACE_DYNAMIC_RANGE_DB
-        magnitude = abs.(fftc(array))
+        magnitude = abs.(fftc(array; dims=1:min(3, ndims(array))))
         peak = maximum(magnitude)
         floor = oftype(peak, 10^(-dynamic_range_db / 20))
         values = if iszero(peak)
@@ -132,11 +132,18 @@ function image_values(img, type; limits=nothing)
     return data, zmin, zmax
 end
 
-function reconstruction_plot(data, type, darkmode; zmin, zmax)
+image_aspect_ratio(img) = 1
+function image_aspect_ratio(img::AxisArrays.AxisArray)
+    x, y = AxisArrays.axes(img)[1:2]
+    return Float64(step(y.val) / step(x.val))
+end
+
+function reconstruction_plot(data, type, darkmode; zmin, zmax, aspect_ratio=1)
     plot = plot_image(data; zmin, zmax, darkmode)
     plot.layout.margin[:t] = 6
     if size(data, 2) != 1
         plot.layout.yaxis[:constrain] = "domain"
+        plot.layout.yaxis[:scaleratio] = aspect_ratio
         for trace in plot.data
             colorbar = get!(trace.fields, :colorbar, PlotlyBase.attr())
             colorbar[:ypad] = 0
@@ -151,9 +158,10 @@ end
 
 function image_plot(img::AbstractArray, type, darkmode)
     data, zmin, zmax = image_values(img, type)
+    aspect_ratio = type === :absi ? image_aspect_ratio(img) : 1
     slider = Slider(1:size(img, 3))
     plot = map(slider.value) do slice
-        reconstruction_plot(data[:, :, slice], type, darkmode; zmin, zmax)
+        reconstruction_plot(data[:, :, slice], type, darkmode; zmin, zmax, aspect_ratio)
     end
     node = plot_node(plot; fit_colorbar=true)
     return size(img, 3) == 1 ? node : DOM.div(slider, node; class="koma-plot-stack")
@@ -327,6 +335,7 @@ function reconstruction_series_plot(reconstruction, type, darkmode)
             data, type, darkmode;
             zmin=first(limits),
             zmax=last(limits),
+            aspect_ratio=type === :absi ? image_aspect_ratio(image.entry.image) : 1,
         )
     end
     return DOM.div(
@@ -340,7 +349,7 @@ function image_plot(reconstruction::ReconstructionResult, type, darkmode)
     return reconstruction_series_plot(reconstruction, type, darkmode)
 end
 
-function show_image!(w, img, view; darkmode=true)
+function show_image!(w, img, view; darkmode=w.darkmode[])
     messages = Dict(
         :absi => "Plotting image ...",
         :absk => "Plotting image k ...",
