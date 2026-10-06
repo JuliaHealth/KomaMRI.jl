@@ -124,13 +124,7 @@ julia> plot_phantom_map(sphere, :T2)
 <object type="text/html" data="../assets/phantom-T2-circle.html" style="width:100%; height:620px;"></object>
 ```
 
-Phantoms in the [BIfTI](https://github.com/mrx-org/bifti-phantoms) format (a `.json` file referencing NIfTI maps) are read with [`read_phantom_bifti`](@ref), and their `B1-` maps with [`read_coil_sens_bifti`](@ref). Phantoms of the public BIfTI registry are downloaded with `load_registry_phantom` of the BiftiPhantoms.jl package:
-```julia-repl
-julia> using BiftiPhantoms
-julia> path = load_registry_phantom("endres-bifti_demo-001", "subj42-3T.json")
-julia> obj = read_phantom_bifti(path)
-julia> sys = Scanner(; receiver=read_coil_sens_bifti(path))
-```
+Phantoms in the [BIfTI](https://github.com/mrx-org/bifti-phantoms) format are read with [`read_phantom_bifti`](@ref), see [Loading BIfTI phantoms](2-create-your-own-phantom.md#Loading-BIfTI-phantoms).
 
 ### Sequence
 
