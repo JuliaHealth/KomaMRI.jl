@@ -288,10 +288,10 @@ julia> obj = read_phantom_bifti("subj42-3T.json")
 julia> sys = Scanner(; receiver=read_coil_sens_bifti("subj42-3T.json"))
 ```
 
-Phantoms of the public BIfTI registry are downloaded with `load_registry_phantom` from the Bifti.jl package:
+Phantoms of the public BIfTI registry are downloaded with `load_registry_phantom` from the BiftiPhantoms.jl package:
 
 ```julia-repl
-julia> using Bifti
+julia> using BiftiPhantoms
 julia> path = load_registry_phantom("endres-bifti_demo-001", "subj42-3T.json")
 julia> obj = read_phantom_bifti(path)
 ```
