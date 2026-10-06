@@ -24,7 +24,7 @@ import KomaMRIBase:
     is_on,
     sort_motions!
 using FileIO, HDF5, MAT, InteractiveUtils, Printf # IO related
-using Bifti: VoxelPhantom, load_bifti, scanner_affine # BIfTI phantoms
+using BiftiPhantoms: VoxelPhantom, load_bifti, scanner_affine # BIfTI phantoms
 using SHA, MD5 # Pulseq signature verification
 using Reexport
 using MRIFiles

@@ -5,11 +5,11 @@ const GYRO_RTOL = 1e-3           # γ mismatch tolerated as the same nucleus (¹
 
 """
     obj = read_phantom_bifti(filename; density_threshold=0.0)
-    obj = read_phantom_bifti(phantom::Bifti.VoxelPhantom; name="BIfTI", density_threshold=0.0)
+    obj = read_phantom_bifti(phantom::BiftiPhantoms.VoxelPhantom; name="BIfTI", density_threshold=0.0)
 
 Returns the Phantom struct from a [BIfTI](https://github.com/mrx-org/bifti-phantoms)
 phantom: a `.json` file defining tissues, referencing NIfTI files for the per-voxel data.
-`reslice_to` and `func` mappings are applied by Bifti.jl while loading.
+`reslice_to` and `func` mappings are applied by BiftiPhantoms.jl while loading.
 
 Every tissue becomes one spin per voxel with `density > density_threshold`, at the voxel
 centre in scanner coordinates (the phantom's `patient` position applied), with
@@ -91,7 +91,7 @@ end
 
 """
     receiver = read_coil_sens_bifti(filename)
-    receiver = read_coil_sens_bifti(phantom::Bifti.VoxelPhantom)
+    receiver = read_coil_sens_bifti(phantom::BiftiPhantoms.VoxelPhantom)
 
 Returns the `B1-` receive sensitivities of a [BIfTI](https://github.com/mrx-org/bifti-phantoms)
 phantom as an `ArbitraryCoilSens`, one coil per `B1-` channel, on the phantom's voxel grid

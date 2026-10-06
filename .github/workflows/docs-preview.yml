@@ -96,8 +96,8 @@ jobs:
         run: |
           julia --project=docs -e '
             using Pkg
-            # TODO: remove once Bifti is registered (see [sources] in KomaMRIFiles/Project.toml)
-            Pkg.add(PackageSpec(; url="https://github.com/mrx-org/bifti-phantoms", subdir="julia/Bifti", rev="main"))
+            # TODO: remove once BiftiPhantoms is registered (see [sources] in KomaMRIFiles/Project.toml)
+            Pkg.add(PackageSpec(; url="https://github.com/mrx-org/bifti-phantoms", subdir="julia/BiftiPhantoms", rev="main"))
             Pkg.develop([
                 PackageSpec(path=pwd(), subdir="."),
                 PackageSpec(path=pwd(), subdir="KomaMRIBase"),
