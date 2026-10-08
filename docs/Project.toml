@@ -12,7 +12,7 @@ Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [sources]
-OptiksMRI = {rev = "main", url = "https://code.stanford.edu/mcnab-lab/optiksmri.jl.git"}
+OptiksMRI = {rev = "release", url = "https://code.stanford.edu/mcnab-lab/optiksmri.jl.git"}
 
 [compat]
 Documenter = "1.19"
