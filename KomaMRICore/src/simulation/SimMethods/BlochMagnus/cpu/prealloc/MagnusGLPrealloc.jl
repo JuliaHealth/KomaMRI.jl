@@ -1,5 +1,5 @@
 struct BlochMagnusGLCPUPrealloc{
-    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T},S,P
+    T,CV<:AbstractVector{Complex{T}},RV<:AbstractVector{T},S,P,R
 } <: BlochMagnusCPUPrealloc{T}
     ωxy_minus::CV
     ωz_minus::RV
@@ -15,6 +15,7 @@ struct BlochMagnusGLCPUPrealloc{
     Maux_z::RV
     sens::S
     coordinates::P
+    spin_reset::R
 end
 
 prealloc(::BlochMagnusGL4, backend::KA.CPU, obj, M, max_block_length, _max_adc_samples, _groupsize, sys) =
@@ -27,6 +28,7 @@ prealloc(::BlochMagnusGL4, backend::KA.CPU, obj, M, max_block_length, _max_adc_s
         similar(M.xy), similar(M.z),
         prealloc_sensitivities(sys.receiver, obj),
         prealloc_motion_coordinates(obj.motion, backend, obj, max_block_length),
+        prealloc_spin_reset(obj.motion, backend, length(obj), max_block_length),
     )
 
 prealloc(::BlochMagnusGL2, backend::KA.CPU, obj, M, max_block_length, max_adc_samples, groupsize, sys) =

@@ -6,6 +6,7 @@ struct BlochCPUPrealloc{
     ST<:Spinor{T},
     S,
     P,
+    R,
 } <: PreallocResult{T}
     M::MT
     Bz_old::RV
@@ -15,6 +16,7 @@ struct BlochCPUPrealloc{
     ΔBz::RV
     sens::S
     coordinates::P
+    spin_reset::R
 end
 
 view_sens(sensitivities, _) = sensitivities
@@ -33,6 +35,7 @@ Base.view(p::BlochCPUPrealloc, i::UnitRange) = begin
         p.ΔBz[i],
         view_sens(p.sens, i),
         view_motion_coordinates(p.coordinates, i),
+        view(p.spin_reset, i),
     )
 end
 
@@ -58,6 +61,7 @@ function prealloc(
         obj.Δw ./ T(2π .* γ),
         sens,
         prealloc_motion_coordinates(obj.motion, backend, obj, max_block_length),
+        prealloc_spin_reset(obj.motion, backend, length(obj), max_block_length),
     )
 end
 
@@ -86,10 +90,12 @@ function run_spin_precession!(
     ϕ = prealloc.ϕ
     Mxy = prealloc.M.xy
     ΔBz = prealloc.ΔBz
+    spin_reset = prealloc.spin_reset
     #Initialize
     fill!(ϕ, zero(T))
     block_time = zero(T)
     sample = 1
+    advance_spin_reset!(spin_reset, firstindex(seq.t))
     x, y, z = spin_coordinates!(
         prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[1],
     )
@@ -105,12 +111,12 @@ function run_spin_precession!(
         #Rotation
         @. ϕ += (Bz_old + Bz_new) * T(-π * γ) * seq.Δt[i]
         block_time += seq.Δt[i]
+        advance_spin_reset!(spin_reset, i + 1)
         #Acquired Signal
         if seq.ADC[i + 1]
             #Update signal
             @. Mxy = exp(-block_time / p.T2) * M.xy * cis(ϕ)
-            #Reset Spin-State (Magnetization). Only for FlowPath
-            outflow_spin_reset!(Mxy, seq.t[i + 1], p.motion)
+            outflow_spin_reset!(Mxy, spin_reset)
             update_sensitivities!(prealloc.sens, sys.receiver, (x, y, z), p.motion)
             acquire_signal!(
                 @view(sig[sample, :]), Mxy, prealloc.sens, (x, y, z),
@@ -123,8 +129,7 @@ function run_spin_precession!(
     #Final Spin-State
     @. M.xy = M.xy * exp(-block_time / p.T2) * cis(ϕ)
     @. M.z = M.z * exp(-block_time / p.T1) + p.ρ * (T(1) - exp(-block_time / p.T1))
-    #Reset Spin-State (Magnetization). Only for FlowPath
-    outflow_spin_reset!(M,  seq.t', p.motion; replace_by=p.ρ)
+    outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
     return nothing
 end
 
@@ -154,8 +159,11 @@ function run_spin_excitation!(
     ΔBz = prealloc.ΔBz
     Maux_xy = prealloc.M.xy
     Maux_z = prealloc.M.z
+    spin_reset = prealloc.spin_reset
     #Initialize
     sample = 1
+    advance_spin_reset!(spin_reset, firstindex(seq.t))
+    outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
     # Rotating frame -> RF frame
     ψ_start = seq.ψ[1]
     if !iszero(ψ_start)
@@ -180,8 +188,8 @@ function run_spin_excitation!(
         #Relaxation
         @. M.xy = M.xy * exp(-seq.Δt[i] / p.T2)
         @. M.z = M.z * exp(-seq.Δt[i] / p.T1) + p.ρ * (T(1) - exp(-seq.Δt[i] / p.T1))
-        #Reset Spin-State (Magnetization). Only for FlowPath
-        outflow_spin_reset_at!(M, seq.t, i + 1, p.motion; replace_by=p.ρ)
+        advance_spin_reset!(spin_reset, i + 1)
+        outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
         #Acquire signal
         if seq.ADC[i + 1] # ADC at the end of the time step
             coords = spin_coordinates!(

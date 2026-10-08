@@ -11,10 +11,13 @@ function run_spin_excitation!(
 ) where {T<:Real}
     B_to_ω = T(-2π * γ)
     ΔBz = prealloc.ΔBz
+    spin_reset = prealloc.spin_reset
     (; ωxy_minus, ωz_minus, ωxy_center, ωz_center, ωxy_plus, ωz_plus,
         i0xy, i0z, i1xy, i1z, i2xy, i2z, jxy, jz, boxxy, boxz,
         θxy, θz, rotation_norm, α, β, Maux_xy, Maux_z) = prealloc
     sample = 1
+    advance_spin_reset!(spin_reset, firstindex(seq.t))
+    outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
 
     ψ_start = seq.ψ[1]
     if !iszero(ψ_start)
@@ -65,7 +68,8 @@ function run_spin_excitation!(
 
         @. M.xy = M.xy * exp(-Δt / p.T2)
         @. M.z = M.z * exp(-Δt / p.T1) + p.ρ * (T(1) - exp(-Δt / p.T1))
-        outflow_spin_reset_at!(M, seq.t, i1, p.motion; replace_by=p.ρ)
+        advance_spin_reset!(spin_reset, i1)
+        outflow_spin_reset!(M, spin_reset; replace_by=p.ρ)
         if seq.ADC[i1]
             coords = spin_coordinates!(
                 prealloc.coordinates, p.motion, p.x, p.y, p.z, seq.t[i1],
