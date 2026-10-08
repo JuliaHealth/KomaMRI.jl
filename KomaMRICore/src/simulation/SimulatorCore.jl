@@ -188,8 +188,6 @@ function run_sim_time_iter!(
     # Simulation
     rfs = 0
     samples = 1
-    (precession_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
-    (excitation_groupsize % 32 == 0) || throw("Groupsize must be a multiple of 32")
     prealloc_groupsize = min(precession_groupsize, excitation_groupsize)
     max_block_length = maximum(length.(parts))
     prealloc_result = prealloc(
@@ -375,7 +373,7 @@ function simulate(
     # Signal init
     Ndims = sim_output_dim(obj, seq, sys, sim_method)
     backend = get_backend(sim_params["gpu"]; verbose)
-    sim_params["gpu"] &= backend isa KA.GPU
+    sim_params["gpu"] &= isgpu(backend)
     if sim_params["gpu"]
         sim_params["Nthreads"] = 1
     end
@@ -393,7 +391,7 @@ function simulate(
     Xt   = Xt |> to_precision #SpinStateRepresentation
     sig  = sig |> to_precision #Signal
     # Objects to GPU
-    if backend isa KA.GPU
+    if isgpu(backend)
         isnothing(sim_params["gpu_device"]) || set_device!(backend, sim_params["gpu_device"])
         gpu_name = device_name(backend)
         obj = obj |> gpu #Phantom
@@ -406,7 +404,7 @@ function simulate(
     # Simulation
     all_callbacks = (callbacks..., Callback(verbose, 1, progressbar_callback(Nblocks)))
     if verbose
-        @info "Running simulation in the $(backend isa KA.GPU ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
+        @info "Running simulation in the $(isgpu(backend) ? "GPU ($gpu_name)" : "CPU with $(sim_params["Nthreads"]) thread(s)")" koma_version =
             pkgversion(@__MODULE__) sim_method = sim_params["sim_method"] spins = length(obj) time_points = length(seqd.t) adc_points = Ndims[1]
     end
     @maybe_time verbose ret = @timed run_sim_time_iter!(
@@ -442,7 +440,7 @@ function simulate(
         sim_params_raw = copy(sim_params)
         sim_params_raw["sim_method"] = string(sim_params["sim_method"])
         sim_params_raw["sampling_rule"] = string(sampling_rule)
-        sim_params_raw["gpu_device"] = backend isa KA.GPU ? gpu_name : "nothing"
+        sim_params_raw["gpu_device"] = isgpu(backend) ? gpu_name : "nothing"
         sim_params_raw["t_sim_parts"] = t_sim_parts
         sim_params_raw["type_sim_parts"] = excitation_bool
         sim_params_raw["Nblocks"] = Nblocks

@@ -28,7 +28,7 @@ x = x |> gpu
 function gpu(x)
     get_backend(true)
     
-    if (BACKEND[] isa KA.GPU)
+    if isgpu(BACKEND[])
         return gpu(x, BACKEND[])
     else
         @warn "function 'gpu' called with no functional backends available. Add 'using CUDA / Metal / AMDGPU / oneAPI' to your code and try again. oneAPI support is experimental"
@@ -52,7 +52,7 @@ See also [`f32`](@ref) and [`f64`](@ref) to change element type only.
 x = gpu(x, CUDABackend())
 ```
 """
-function gpu(x, backend::KA.GPU)
+function gpu(x, backend::KA.Backend)
     return fmap(x -> adapt(backend, x), x; exclude=_isleaf)
 end
 
@@ -114,7 +114,7 @@ See also [`f32`](@ref) and [`f64`](@ref).
 fbig(m) = paramtype(BigFloat, m)
 
 # Koma motion-related adapts
-adapt_storage(backend::KA.GPU, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
+adapt_storage(backend::KA.Backend, xs::MotionList) = MotionList(gpu.(xs.motions, Ref(backend)))
 adapt_storage(T::Type{<:Real}, xs::MotionList) = MotionList(paramtype.(T, xs.motions))
 
 #The functor macro makes it easier to call a function in all the parameters

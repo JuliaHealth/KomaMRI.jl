@@ -52,9 +52,9 @@ end
     i = (i_g - 1u32) * UInt32(N) + i_l
 
     sig_group_r =
-        @localmem T HAS_ADC ? (USE_WARP_REDUCTION && !HAS_SENSITIVITIES ? 32 : N) : 1
+        @localmem T HAS_ADC ? N : 1
     sig_group_i =
-        @localmem T HAS_ADC ? (USE_WARP_REDUCTION && !HAS_SENSITIVITIES ? 32 : N) : 1
+        @localmem T HAS_ADC ? N : 1
 
     active = i <= N_spins
     Mxy_r = zero(T)

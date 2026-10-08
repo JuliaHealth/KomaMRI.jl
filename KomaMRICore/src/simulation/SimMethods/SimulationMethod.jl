@@ -70,9 +70,9 @@ function prealloc_motion_coordinates(
     return MotionCoordinates(buffers(), buffers())
 end
 function prealloc_motion_coordinates(
-    ::Union{Motion,MotionList}, backend::KA.GPU, obj, max_block_length,
+    motion::Union{Motion,MotionList}, backend::KA.Backend, obj, max_block_length,
 )
-    return dense_motion_coordinates(backend, obj, max_block_length)
+    return gpu_motion_coordinates(motion, backend, obj, max_block_length)
 end
 function dense_motion_coordinates(backend, obj, max_block_length)
     T = eltype(obj.x)

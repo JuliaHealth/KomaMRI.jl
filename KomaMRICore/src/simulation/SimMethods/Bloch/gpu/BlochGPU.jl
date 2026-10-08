@@ -35,7 +35,7 @@ end
 """Preallocates arrays for use in run_spin_precession! and run_spin_excitation!."""
 function prealloc(
     ::BlochLikeSimMethods,
-    backend::KA.GPU,
+    backend::KA.Backend,
     obj,
     _M,
     max_block_length,
@@ -50,7 +50,7 @@ end
 
 prealloc(
     ::BlochMagnusBGL4,
-    backend::KA.GPU,
+    backend::KA.Backend,
     obj,
     _M,
     max_block_length,
@@ -64,7 +64,7 @@ prealloc(
 
 prealloc(
     ::BlochMagnusBGL6,
-    backend::KA.GPU,
+    backend::KA.Backend,
     obj,
     M,
     max_block_length,
@@ -80,10 +80,9 @@ prealloc(
 function reduce_signal_groups!(sig, pre, nspins, groupsize)
     groups = 1:cld(nspins, groupsize)
     samples = 1:length(sig)
-    AK.reduce(
-        +, view(pre.sig_output, groups, samples);
-        init=zero(eltype(sig)), dims=1,
-        temp=view(pre.sig_output_final, :, samples),
+    AK.mapreducedim!(
+        identity, +, view(pre.sig_output_final, :, samples),
+        view(pre.sig_output, groups, samples); init=zero(eltype(sig)),
     )
     sig .= reshape(view(pre.sig_output_final, 1, samples), size(sig))
     return nothing
@@ -111,7 +110,7 @@ function run_spin_precession!(
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
-        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
+        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend, T)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
         BlochMagnusConst1(),
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
@@ -147,7 +146,7 @@ function run_spin_precession!(
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.ADC, UInt32(length(seq.t)),
-        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
+        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend, T)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
@@ -197,7 +196,7 @@ function run_spin_excitation!(
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
+        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend, T)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
@@ -233,7 +232,7 @@ function run_spin_excitation!(
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
+        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend, T)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)
@@ -271,7 +270,7 @@ begin
         pre.receiver, UInt32(size(sig, 2)), UInt32(size(sig, 1)),
         x, y, z, pre.ΔBz, p.T1, p.T2, p.ρ, UInt32(length(M.xy)),
         seq.Gx, seq.Gy, seq.Gz, seq.Δt, seq.Δf, seq.B1, seq.ψ, seq.ADC, UInt32(length(seq.t)),
-        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend)),
+        motion_enabled(pre.coordinates), Val(supports_warp_reduction(backend, T)),
         Val(has_adc), has_coil_sensitivities(pre.receiver),
         sim_method,
         ndrange=(cld(length(M.xy), groupsize) * groupsize)

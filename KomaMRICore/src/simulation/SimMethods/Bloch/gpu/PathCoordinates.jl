@@ -14,12 +14,12 @@ end
 
 motion_enabled(::PathInterpolation) = Val(true)
 
-prealloc_motion_coordinates(motion::Motion, backend::KA.GPU, obj, max_block_length) =
-    prealloc_motion_coordinates(motion.action, backend, obj, max_block_length)
-prealloc_motion_coordinates(::KomaMRIBase.AbstractAction, backend::KA.GPU, obj, max_block_length) =
+gpu_motion_coordinates(motion::Motion, backend, obj, max_block_length) =
+    gpu_motion_coordinates(motion.action, backend, obj, max_block_length)
+gpu_motion_coordinates(_, backend, obj, max_block_length) =
     dense_motion_coordinates(backend, obj, max_block_length)
-function prealloc_motion_coordinates(
-    action::Union{Path,FlowPath}, backend::KA.GPU, obj, max_block_length,
+function gpu_motion_coordinates(
+    action::Union{Path,FlowPath}, backend, obj, max_block_length,
 )
     1 < size(action.dx, 2) == size(action.dy, 2) == size(action.dz, 2) ||
         return dense_motion_coordinates(backend, obj, max_block_length)

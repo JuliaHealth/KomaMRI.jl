@@ -1,4 +1,4 @@
-using KernelAbstractions: @kernel, @Const, @index, @uniform, @localmem, @synchronize, @groupsize
+using KernelAbstractions: @kernel, @Const, @index, @uniform, @localmem, @synchronize, @groupsize, @subgroupreduce
 using KernelAbstractions.Extras: @unroll
 
 ## COV_EXCL_START
@@ -66,28 +66,35 @@ end
     return sig_group_r[i_l], sig_group_i[i_l]
 end
 
-@inline function reduce_warp(val1, val2)
-    @unroll for k=0:4
-        val1 = val1 + shfl_down(val1, 1u32 << k)
-        val2 = val2 + shfl_down(val2, 1u32 << k)
-    end
-    return val1, val2
-end
+@inline reduce_subgroup(val_r, val_i) =
+    reim(@subgroupreduce(+, complex(val_r, val_i), zero(complex(val_r, val_i))))
 
+# Reduce every sub-group with shuffles, then the per-sub-group sums in every sub-group.
 @inline function reduce_signal!(sig_r, sig_i, sig_group_r, sig_group_i, i_l, N, T, ::Val{true})
-    sig_r, sig_i = reduce_warp(sig_r, sig_i)
+    sig_r, sig_i = reduce_subgroup(sig_r, sig_i)
 
-    if i_l % 32u32 == 1u32
-        @inbounds sig_group_r[i_l ÷ 32u32 + 1u32] = sig_r
-        @inbounds sig_group_i[i_l ÷ 32u32 + 1u32] = sig_i
+    subgroup = KI.get_sub_group_id(UInt32)
+    lane = KI.get_sub_group_local_id(UInt32)
+    if lane == 1u32
+        @inbounds sig_group_r[subgroup] = sig_r
+        @inbounds sig_group_i[subgroup] = sig_i
     end
 
     @synchronize()
 
-    @inbounds sig_r = (i_l <= UInt32(N) ÷ 32u32) ? sig_group_r[i_l] : zero(T)
-    @inbounds sig_i = (i_l <= UInt32(N) ÷ 32u32) ? sig_group_i[i_l] : zero(T)
-    
-    return reduce_warp(sig_r, sig_i)
+    sig_r = zero(T)
+    sig_i = zero(T)
+    i = lane
+    while i <= KI.get_num_sub_groups(UInt32)
+        @inbounds sig_r += sig_group_r[i]
+        @inbounds sig_i += sig_group_i[i]
+        i += KI.get_sub_group_size(UInt32)
+    end
+    sig_r, sig_i = reduce_subgroup(sig_r, sig_i)
+
+    # All sub-groups must finish reading before the next ADC overwrites scratch.
+    @synchronize()
+    return sig_r, sig_i
 end
 
 # GPU-kernel sensitivity lookup: matrices are precomputed maps, while receiver
@@ -116,7 +123,7 @@ end
     return get_sens(receiver, position, coil)
 end
 
-# Fallback for backends without 32-lane subgroup shuffles.
+# Fallback for backends without sub-group shuffles.
 @inline function reduce_signal_per_coil!(
     sig_output, sig_r, sig_i, receiver, sig_group_r, sig_group_i,
     positions, s_idx,
@@ -149,7 +156,7 @@ end
     return nothing
 end
 
-# Assign one coil to each 32-lane subgroup when subgroup shuffles are available.
+# Assign one coil to each sub-group when sub-group shuffles are available.
 @inline function reduce_signal_per_coil!(
     sig_output, sig_r, sig_i, receiver, sig_group_r, sig_group_i,
     positions, s_idx,
@@ -160,16 +167,20 @@ end
     @inbounds sig_group_i[i_l] = sig_i
     @synchronize()
 
-    lane = (i_l - 1u32) % 32u32 + 1u32
-    subgroup = (i_l - 1u32) ÷ 32u32 + 1u32
-    nsubgroups = UInt32(N) ÷ 32u32
+    lane = KI.get_sub_group_local_id(UInt32)
+    subgroup = KI.get_sub_group_id(UInt32)
+    nsubgroups = KI.get_num_sub_groups(UInt32)
+    width = KI.get_sub_group_size(UInt32)
 
-    coil = subgroup
-    while coil <= N_coils
+    # Every sub-group runs the same number of rounds: some backends (PoCL) need sub-group
+    # operations in work-group-uniform control flow.
+    first_coil = 1u32
+    while first_coil <= N_coils
+        coil = first_coil + subgroup - 1u32
         coil_r = zero(T)
         coil_i = zero(T)
         local_spin = lane
-        while local_spin <= N
+        while coil <= N_coils && local_spin <= N
             spin = (i_g - 1u32) * UInt32(N) + local_spin
             if spin <= N_spins
                 sens_r, sens_i = reim(get_sens(
@@ -180,14 +191,14 @@ end
                 coil_r += signal_r * sens_r - signal_i * sens_i
                 coil_i += signal_r * sens_i + signal_i * sens_r
             end
-            local_spin += 32u32
+            local_spin += width
         end
-        coil_r, coil_i = reduce_warp(coil_r, coil_i)
-        if lane == 1u32
+        coil_r, coil_i = reduce_subgroup(coil_r, coil_i)
+        if lane == 1u32 && coil <= N_coils
             @inbounds sig_output[i_g, ADC_idx + (coil - 1u32) * N_adc] =
                 complex(coil_r, coil_i)
         end
-        coil += nsubgroups
+        first_coil += nsubgroups
     end
 
     # All subgroups must finish reading before the next ADC overwrites scratch.
