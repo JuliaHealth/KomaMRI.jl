@@ -35,8 +35,3 @@ Reexport = "1"
 SHA = "0.7, 1"
 julia = "1.10"
 PrecompileTools = "1"
-
-# TODO: remove once BiftiPhantoms is registered in General. Julia 1.10 ignores
-# `[sources]`; CI adds the same URL explicitly, see `.github/workflows`.
-[sources]
-BiftiPhantoms = {url = "https://github.com/mrx-org/bifti-phantoms", subdir = "julia/BiftiPhantoms", rev = "main"}
