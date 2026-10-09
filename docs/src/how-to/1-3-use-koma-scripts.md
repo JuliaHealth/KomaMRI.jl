@@ -124,6 +124,8 @@ julia> plot_phantom_map(sphere, :T2)
 <object type="text/html" data="../assets/phantom-T2-circle.html" style="width:100%; height:620px;"></object>
 ```
 
+Phantoms in the [BIfTI](https://github.com/mrx-org/bifti-phantoms) format are read with [`read_phantom_bifti`](@ref), see [Loading BIfTI phantoms](2-create-your-own-phantom.md#Loading-BIfTI-phantoms).
+
 ### Sequence
 
 The **Sequence** struct in the example represents one of the most basic MRI sequences. It excites the object with a 90° RF pulse and then uses EPI gradients to fill the k-space in a "square" manner. While you may want to create your sequences for experiments, you can always use some of the examples already available in **KomaMRI**.

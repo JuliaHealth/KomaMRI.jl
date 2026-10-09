@@ -21,7 +21,7 @@ Usage:
   koma -i epi.seq brain.phantom -o raw.mrd [image.mat]
 
 Options:
-  -i, --inputs FILE...             .seq, .phantom/.h5, .sys in any order
+  -i, --inputs FILE...             .seq, .phantom/.h5/.json, .sys in any order
   -o, --outputs RAW|_ [IMAGE.mat]  RAW is .mrd or .mat; use _ for recon-only
   -b, --backend NAME               CPU (default), CUDA, Metal, AMDGPU, or oneAPI
   -s, --sim-param KEY=VALUE        repeatable simulation parameter
@@ -147,7 +147,7 @@ function parse_cli_input!(opts, input)
     ext = splitext(input)[2]
     if ext == ".seq"
         opts.sequence = input
-    elseif ext in (".phantom", ".h5")
+    elseif ext in (".phantom", ".h5", ".json")
         opts.phantom = input
     elseif ext == ".sys"
         opts.scanner = input
@@ -226,6 +226,7 @@ function load_cli_phantom(filename)
     ext = splitext(filename)[2]
     ext == ".phantom" && return read_phantom(filename)
     ext == ".h5" && return read_phantom_jemris(filename)
+    ext == ".json" && return read_phantom_bifti(filename)
     error("Unsupported phantom extension: $ext")
 end
 
